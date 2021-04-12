@@ -22,7 +22,7 @@ that aims to provide a distributed and accelerated drop-in replacement for the
 [NumPy API](https://numpy.org/doc/stable/reference/) on top of the 
 [Legion](https://legion.stanford.edu) runtime. Using Legate NumPy you do things like run 
 [the final example of the Python CFD course](https://github.com/barbagroup/CFDPython/blob/master/lessons/15_Step_12.ipynb)
-completely unmodified on 2048 A100 GPUs in a [DGX SuperPOD](https://github.com/barbagroup/CFDPython/blob/master/lessons/15_Step_12.ipynb) and achieve good weaking scaling.
+completely unmodified on 2048 A100 GPUs in a [DGX SuperPOD](https://github.com/barbagroup/CFDPython/blob/master/lessons/15_Step_12.ipynb) and achieve good weak scaling.
 
 <img src="docs/figures/cfd-demo.png" alt="drawing" width="500"/>
 
