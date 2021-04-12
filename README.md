@@ -20,12 +20,18 @@ limitations under the License.
 Legate NumPy is a [Legate](https://github.com/nv-legate/legate.core) library
 that aims to provide a distributed and accelerated drop-in replacement for the 
 [NumPy API](https://numpy.org/doc/stable/reference/) on top of the 
-[Legion](https://legion.stanford.edu) runtime. Legate NumPy works best for 
-programs that have very large arrays of data that cannot fit in the memory
-of a single GPU or a single node and need to span multiple nodes and GPUs.
-While our implementation of the current NumPy API is still incomplete, 
-programs that use unimplemented features will still work (assuming enough
-memory) by falling back to the canonical NumPy implementation.
+[Legion](https://legion.stanford.edu) runtime. Using Legate NumPy you do things like run 
+[the final example of the Python CFD course](https://github.com/barbagroup/CFDPython/blob/master/lessons/15_Step_12.ipynb)
+completely unmodified on 2048 A100 GPUs in a [DGX SuperPOD](https://github.com/barbagroup/CFDPython/blob/master/lessons/15_Step_12.ipynb) and achieve good weaking scaling.
+
+<img src="docs/figures/cfd-demo.png" alt="drawing" width="500"/>
+
+Legate NumPy works best for programs that have very large arrays of data 
+that cannot fit in the memory of a single GPU or a single node and need 
+to span multiple nodes and GPUs. While our implementation of the current 
+NumPy API is still incomplete, programs that use unimplemented features 
+will still work (assuming enough memory) by falling back to the 
+canonical NumPy implementation.
 
 1. [Dependencies](#dependencies)
 2. [Usage and Execution](#usage-and-execution)
@@ -38,12 +44,14 @@ memory) by falling back to the canonical NumPy implementation.
 
 Users must have a working installation of the 
 [Legate Core](https://github.com/nv-legate/legate.core)
-library prior to installing Legate NumPy. Additionally the `requirements.txt` lists 
-all Python packages that are required for using Legate NumPy. These dependencies 
-can be installed using:
+library prior to installing Legate NumPy. 
 
+Legate NumPy requires Python >= 3.6. We provide a 
+[conda environment file](conda/legate_numpy_dev.yml) that
+installs all needed dependencies in one step. Use the following command to
+create a conda environment with it:
 ```
-pip install -r requirements.txt
+conda env create -n legate -f conda/legate_numpy_dev.yml
 ```
 
 ### Installation
@@ -120,9 +128,8 @@ to your code if possible too so we can see how you are using the feature in cont
 ## Supported Types and Dimensions
 
 Legate NumPy currently supports the following NumPy types: `float16`, `float32`, `float64`,
-`int16`, `int32`, `int64`, `uint16`, `uint32`, `uint64`, and `bool`. We may
-consider supporting `complex` in the future if there is sufficient demand.
-Legate currently also only works on up to 3D arrays. We're currently working
+`int16`, `int32`, `int64`, `uint16`, `uint32`, `uint64`, `bool`, `complex64`, and `complex128`. 
+Legate currently also only works on up to 3D arrays at the moment. We're currently working
 on support for N-D arrays. If you have a need for arrays with more than three
 dimensions please let us know about it.
 
