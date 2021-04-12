@@ -34,11 +34,12 @@ will still work (assuming enough memory) by falling back to the
 canonical NumPy implementation.
 
 1. [Dependencies](#dependencies)
-2. [Usage and Execution](#usage-and-execution)
-3. [Supported and Planned Features](#supported-and-planned-features)
-4. [Supported Types and Dimensions](#supported-types-and-dimensions)
-5. [Future Directions](#future-directions)
-6. [Known Bugs](#known-bugs)
+1. [Usage and Execution](#usage-and-execution)
+1. [Supported and Planned Features](#supported-and-planned-features)
+1. [Supported Types and Dimensions](#supported-types-and-dimensions)
+1. [Documentation](#documentation)
+1. [Future Directions](#future-directions)
+1. [Known Bugs](#known-bugs)
 
 ## Dependencies
 
@@ -133,6 +134,10 @@ Legate currently also only works on up to 3D arrays at the moment. We're current
 on support for N-D arrays. If you have a need for arrays with more than three
 dimensions please let us know about it.
 
+## Documentation
+
+A complete list of available features can is provided in the [API
+reference](https://nv-legate.github.io/legate.numpy/api.html).
 ## Future Directions
 
 There are three primary directions that we plan to investigate 
