@@ -23,10 +23,8 @@ import glob
 import json
 import os
 import platform
-import shutil
 import subprocess
 import sys
-import tempfile
 
 # Find physical core count of the machine.
 if platform.system() == "Linux":
@@ -97,7 +95,7 @@ def cmd(command, env=None, cwd=None, stdout=None, stderr=None, show=True):
 
 
 def run_test_legate(
-    test_name, root_dir, legate_dir, temp_dir, flags, env, verbose, opts
+    test_name, root_dir, legate_dir, flags, env, verbose, opts
 ):
     driver = os.path.join(legate_dir, "bin", "legate")
     total_pass = 0
@@ -211,7 +209,6 @@ def run_tests(
     ompthreads=None,
     root_dir=None,
     legate_dir=None,
-    keep_tmp_dir=False,
     verbose=False,
     options=[],
 ):
@@ -264,11 +261,6 @@ def run_tests(
         use_cpus,
     )
 
-    tmp_dir = tempfile.mkdtemp(dir=root_dir)
-    if verbose:
-        print("Using output directory: %s" % tmp_dir)
-        print()
-
     # Normalize the test environment.
     env = dict(
         list(os.environ.items())
@@ -282,7 +274,6 @@ def run_tests(
             ("USE_LLVM", "1" if use_llvm else "0"),
             ("USE_HDF", "1" if use_hdf else "0"),
             ("USE_SPY", "1" if use_spy else "0"),
-            ("CMAKE_BUILD_DIR", os.path.join(tmp_dir, "build")),
         ]
         + (
             # Gcov doesn't get a USE_GCOV flag, but instead stuff the GCC
@@ -310,69 +301,56 @@ def run_tests(
         )
     )
 
-    try:
-        total_pass, total_count = 0, 0
-        if use_cpus:
-            with Stage("CPU tests"):
-                count = run_test_legate(
-                    "CPU",
-                    root_dir,
-                    legate_dir,
-                    tmp_dir,
-                    ["--cpus", str(cpus)],
-                    env,
-                    verbose,
-                    options,
-                )
-                total_pass += count
-                total_count += len(legate_tests)
-        if use_cuda:
-            with Stage("GPU tests"):
-                count = run_test_legate(
-                    "GPU",
-                    root_dir,
-                    legate_dir,
-                    tmp_dir,
-                    ["--gpus", str(gpus)],
-                    env,
-                    verbose,
-                    options,
-                )
-                total_pass += count
-                total_count += len(legate_tests)
-        if use_openmp:
-            with Stage("OpenMP tests"):
-                count = run_test_legate(
-                    "OMP",
-                    root_dir,
-                    legate_dir,
-                    tmp_dir,
-                    ["--omps", str(openmp), "--ompthreads", str(ompthreads)],
-                    env,
-                    verbose,
-                    options,
-                )
-                total_pass += count
-                total_count += len(legate_tests)
-        print("    " + "~" * 54)
-        print(
-            "%24s: Passed %4d of %4d tests (%5.1f%%)"
-            % (
-                "total",
-                total_pass,
-                total_count,
-                (float(100 * total_pass) / total_count),
+    total_pass, total_count = 0, 0
+    if use_cpus:
+        with Stage("CPU tests"):
+            count = run_test_legate(
+                "CPU",
+                root_dir,
+                legate_dir,
+                ["--cpus", str(cpus)],
+                env,
+                verbose,
+                options,
             )
+            total_pass += count
+            total_count += len(legate_tests)
+    if use_cuda:
+        with Stage("GPU tests"):
+            count = run_test_legate(
+                "GPU",
+                root_dir,
+                legate_dir,
+                ["--gpus", str(gpus)],
+                env,
+                verbose,
+                options,
+            )
+            total_pass += count
+            total_count += len(legate_tests)
+    if use_openmp:
+        with Stage("OpenMP tests"):
+            count = run_test_legate(
+                "OMP",
+                root_dir,
+                legate_dir,
+                ["--omps", str(openmp), "--ompthreads", str(ompthreads)],
+                env,
+                verbose,
+                options,
+            )
+            total_pass += count
+            total_count += len(legate_tests)
+    print("    " + "~" * 54)
+    print(
+        "%24s: Passed %4d of %4d tests (%5.1f%%)"
+        % (
+            "total",
+            total_pass,
+            total_count,
+            (float(100 * total_pass) / total_count),
         )
-    finally:
-        if keep_tmp_dir:
-            print("Leaving output directory:")
-            print("  %s" % tmp_dir)
-        else:
-            if verbose:
-                print("Removing output directory:")
-                print("  %s" % tmp_dir)
-            shutil.rmtree(tmp_dir)
+    )
     return not (total_count == total_pass)
 
 
@@ -495,12 +473,6 @@ def driver():
         action="store",
         required=False,
         help="Legate installation directory.",
-    )
-    parser.add_argument(
-        "--keep",
-        dest="keep_tmp_dir",
-        action="store_true",
-        help="Keep temporary directory.",
     )
     parser.add_argument(
         "-v",
