@@ -33,6 +33,8 @@ NumPy API is still incomplete, programs that use unimplemented features
 will still work (assuming enough memory) by falling back to the 
 canonical NumPy implementation.
 
+If you have questions, please contact us at legate(at)nvidia.com.
+
 1. [Dependencies](#dependencies)
 1. [Usage and Execution](#usage-and-execution)
 1. [Supported and Planned Features](#supported-and-planned-features)
