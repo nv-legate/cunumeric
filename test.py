@@ -97,6 +97,7 @@ def cmd(command, env=None, cwd=None, stdout=None, stderr=None, show=True):
 def run_test_legate(
     test_name, root_dir, legate_dir, flags, env, verbose, opts
 ):
+    flags += ["--no-replicate"]
     driver = os.path.join(legate_dir, "bin", "legate")
     total_pass = 0
     for test_file in legate_tests:
