@@ -178,23 +178,27 @@ def report_mode(
     use_gcov,
     use_cmake,
     use_cpus,
+    interop_tests,
 ):
     print()
     print("#" * 60)
     print("### Test Suite Configuration")
     print("###")
-    print("### Debug:          %s" % debug)
+    print("### Debug:               %s" % debug)
     print("###")
     print("### Test Flags:")
-    print("###   * CPUs:       %s" % use_cpus)
-    print("###   * GASNet:     %s" % use_gasnet)
-    print("###   * CUDA:       %s" % use_cuda)
-    print("###   * OpenMP:     %s" % use_openmp)
-    print("###   * LLVM:       %s" % use_llvm)
-    print("###   * HDF5:       %s" % use_hdf)
-    print("###   * Spy:        %s" % use_spy)
-    print("###   * Gcov:       %s" % use_gcov)
-    print("###   * CMake:      %s" % use_cmake)
+    print("###   * CPUs:            %s" % use_cpus)
+    print("###   * GASNet:          %s" % use_gasnet)
+    print("###   * CUDA:            %s" % use_cuda)
+    print("###   * OpenMP:          %s" % use_openmp)
+    print("###   * LLVM:            %s" % use_llvm)
+    print("###   * HDF5:            %s" % use_hdf)
+    print("###   * Spy:             %s" % use_spy)
+    print("###   * Gcov:            %s" % use_gcov)
+    print("###   * CMake:           %s" % use_cmake)
+    print("###")
+    print("### Integration Tests:   %s" % interop_tests)
+    print("###")
     print("#" * 60)
     print()
     sys.stdout.flush()
@@ -211,7 +215,11 @@ def run_tests(
     legate_dir=None,
     verbose=False,
     options=[],
+    interop_tests=False,
 ):
+
+    if interop_tests:
+        legate_tests.extend(glob.glob("tests/interop/*.py"))
 
     if root_dir is None:
         root_dir = os.path.dirname(os.path.realpath(__file__))
@@ -259,6 +267,7 @@ def run_tests(
         use_gcov,
         use_cmake,
         use_cpus,
+        interop_tests,
     )
 
     # Normalize the test environment.
@@ -480,6 +489,12 @@ def driver():
         dest="verbose",
         action="store_true",
         help="Print more debugging information.",
+    )
+    parser.add_argument(
+        "--interop",
+        dest="interop_tests",
+        action="store_true",
+        help="Include integration tests with other Legate libraries.",
     )
 
     args, opts = parser.parse_known_args()
