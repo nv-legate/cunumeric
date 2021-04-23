@@ -5458,7 +5458,8 @@ class DeferredArray(NumPyThunk):
             if rhs2_array.size > 1 and rhs2_array.shape != lhs_array.shape:
                 (
                     transform2,
-                    offset2proj2_id,
+                    offset2,
+                    proj2_id,
                 ) = self.runtime.compute_broadcast_transform(
                     lhs_array, rhs2_array
                 )
