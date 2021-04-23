@@ -38,6 +38,7 @@ try:
 except NameError:
     xrange = range  # Python 3
 
+
 @copy_docstring(np.ndarray)
 class ndarray(object):
     def __init__(

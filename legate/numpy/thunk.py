@@ -32,6 +32,7 @@ class NumPyThunk(LegateStore):
 
     :meta private:
     """
+
     def __init__(self, runtime, shape, dtype):
         self.runtime = runtime
         self.shape = shape
