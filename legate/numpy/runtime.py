@@ -1215,20 +1215,10 @@ class Runtime(object):
         if self.empty_argmap is not None:
             legion.legion_argument_map_destroy(self.empty_argmap)
             self.empty_argmap = None
-        # Go through and clean up all our Legion resources
-        while self.field_managers:
-            manager = self.field_managers.popitem(last=False)[1]
-            manager.destroy()
-            del manager
+        # Remove references to our legion resources so they can be collected
         self.field_managers = None
-        while self.field_spaces:
-            space = self.field_spaces.popitem(last=False)[1]
-            space.destroy()
-            del space
-        while self.index_spaces:
-            space = self.index_spaces.popitem(last=False)[1]
-            space.destroy()
-            del space
+        self.field_spaces = None
+        self.index_spaces = None
         if self.callsite_summaries is not None:
             f = Future(
                 legion.legion_runtime_select_tunable_value(
