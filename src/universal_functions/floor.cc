@@ -22,5 +22,5 @@ namespace numpy {
 template void Floor<__half>::instantiate_tasks();
 template void Floor<float>::instantiate_tasks();
 template void Floor<double>::instantiate_tasks();
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate

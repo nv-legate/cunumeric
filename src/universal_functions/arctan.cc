@@ -31,5 +31,5 @@ template void ArcTan<uint64_t>::instantiate_tasks();
 template void ArcTan<bool>::instantiate_tasks();
 template void ArcTan<complex<float>>::instantiate_tasks();
 template void ArcTan<complex<double>>::instantiate_tasks();
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate

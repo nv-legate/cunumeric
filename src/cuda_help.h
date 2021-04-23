@@ -32,24 +32,30 @@
   }
 
 #ifndef MAX
-#  define MAX(x, y) (((x) > (y)) ? (x) : (y))
+#define MAX(x, y) (((x) > (y)) ? (x) : (y))
 #endif
 #ifndef MIN
-#  define MIN(x, y) (((x) < (y)) ? (x) : (y))
+#define MIN(x, y) (((x) < (y)) ? (x) : (y))
 #endif
 
 namespace legate {
 namespace numpy {
 
-__host__ inline void check_cublas(cublasStatus_t status, const char* file, int line) {
+__host__ inline void check_cublas(cublasStatus_t status, const char* file, int line)
+{
   if (status != CUBLAS_STATUS_SUCCESS) {
-    fprintf(stderr, "Internal Legate CUBLAS failure with error code %d in file %s at line %d\n", status, file, line);
+    fprintf(stderr,
+            "Internal Legate CUBLAS failure with error code %d in file %s at line %d\n",
+            status,
+            file,
+            line);
     exit(status);
   }
 }
 
-__host__ inline void raster_2d_reduction(dim3& blocks, dim3& threads, const Legion::Rect<2> rect, const int axis,
-                                         const void* func) {
+__host__ inline void raster_2d_reduction(
+  dim3& blocks, dim3& threads, const Legion::Rect<2> rect, const int axis, const void* func)
+{
   if (axis == 0) {
     // Put as many threads as possible on the non-collapsing dimension
     const size_t non_collapse_size = (rect.hi[1] - rect.lo[1]) + 1;
@@ -76,7 +82,8 @@ __host__ inline void raster_2d_reduction(dim3& blocks, dim3& threads, const Legi
     // If we didn't get enough CTAs that way, fill them as little as
     // possible along the collapsing dimension
     if (blocks.x < num_ctas) {
-      blocks.y = MIN((num_ctas + blocks.x - 1) / blocks.x, ((rect.hi[0] - rect.lo[0]) + threads.y) / threads.y);
+      blocks.y = MIN((num_ctas + blocks.x - 1) / blocks.x,
+                     ((rect.hi[0] - rect.lo[0]) + threads.y) / threads.y);
       // Handle CUDA boundary problem
       while (blocks.y > 65536) {
         assert((blocks.y % 2) == 0);
@@ -91,7 +98,8 @@ __host__ inline void raster_2d_reduction(dim3& blocks, dim3& threads, const Legi
     // If we didn't get enough CTAs that way, fill them as little as
     // possible along the collapsing dimension
     if (blocks.y < num_ctas)
-      blocks.x = MIN((num_ctas + blocks.y - 1) / blocks.y, ((rect.hi[1] - rect.lo[1]) + threads.x) / threads.x);
+      blocks.x = MIN((num_ctas + blocks.y - 1) / blocks.y,
+                     ((rect.hi[1] - rect.lo[1]) + threads.x) / threads.x);
     // Handle CUDA boundary problem
     while (blocks.y > 65536) {
       assert((blocks.y % 2) == 0);
@@ -101,15 +109,17 @@ __host__ inline void raster_2d_reduction(dim3& blocks, dim3& threads, const Legi
   }
 }
 
-__host__ inline void raster_3d_reduction(dim3& blocks, dim3& threads, const Legion::Rect<3> rect, const int axis,
-                                         const void* func) {
+__host__ inline void raster_3d_reduction(
+  dim3& blocks, dim3& threads, const Legion::Rect<3> rect, const int axis, const void* func)
+{
   if (axis == 0) {
     // Transpose thread dimensions for warp goodness
     threads.x = MIN((rect.hi[2] - rect.lo[2]) + 1, THREADS_PER_BLOCK);
     if (threads.x < THREADS_PER_BLOCK) {
       const size_t remainder_threads = (THREADS_PER_BLOCK + threads.x - 1) / threads.x;
       threads.y                      = MIN((rect.hi[1] - rect.lo[1]) + 1, remainder_threads);
-      if ((threads.x * threads.y) < THREADS_PER_BLOCK) threads.z = MAX(THREADS_PER_BLOCK / (threads.x * threads.y), 1);
+      if ((threads.x * threads.y) < THREADS_PER_BLOCK)
+        threads.z = MAX(THREADS_PER_BLOCK / (threads.x * threads.y), 1);
     }
   } else if (axis == 1) {
     // Transpose thread dimensions for warp goodness
@@ -117,7 +127,8 @@ __host__ inline void raster_3d_reduction(dim3& blocks, dim3& threads, const Legi
     if (threads.x < THREADS_PER_BLOCK) {
       const size_t remainder_threads = (THREADS_PER_BLOCK + threads.x - 1) / threads.x;
       threads.z                      = MIN((rect.hi[0] - rect.lo[0]) + 1, remainder_threads);
-      if ((threads.x * threads.z) < THREADS_PER_BLOCK) threads.y = MAX(THREADS_PER_BLOCK / (threads.x * threads.z), 1);
+      if ((threads.x * threads.z) < THREADS_PER_BLOCK)
+        threads.y = MAX(THREADS_PER_BLOCK / (threads.x * threads.z), 1);
     }
   } else {
     assert(axis == 2);
@@ -128,33 +139,35 @@ __host__ inline void raster_3d_reduction(dim3& blocks, dim3& threads, const Legi
     if (threads.x < THREADS_PER_BLOCK) {
       const size_t remainder_threads = (THREADS_PER_BLOCK + threads.x - 1) / threads.x;
       threads.y                      = MIN((rect.hi[1] - rect.lo[1]) + 1, remainder_threads);
-      if ((threads.x * threads.y) < THREADS_PER_BLOCK) threads.z = MAX(THREADS_PER_BLOCK / (threads.x * threads.y), 1);
+      if ((threads.x * threads.y) < THREADS_PER_BLOCK)
+        threads.z = MAX(THREADS_PER_BLOCK / (threads.x * threads.y), 1);
     }
   }
   // Have number of threads per block, figure out how many CTAs we can fit
   // on the GPU to make sure we fill it up, but we want the minimum number
   // fill it up so we can walk as long as possible
   int num_ctas = 0;
-  cudaOccupancyMaxActiveBlocksPerMultiprocessor(&num_ctas, func, threads.x * threads.y * threads.z, 0);
+  cudaOccupancyMaxActiveBlocksPerMultiprocessor(
+    &num_ctas, func, threads.x * threads.y * threads.z, 0);
   if (axis == 0) {
     // Transpose CTA dimensions for consistency too
     blocks.y = ((rect.hi[1] - rect.lo[1]) + threads.y) / threads.y;
     blocks.x = ((rect.hi[2] - rect.lo[2]) + threads.x) / threads.x;
     if ((blocks.x * blocks.y) < num_ctas)
-      blocks.z =
-          MIN((num_ctas + (blocks.x * blocks.y) - 1) / (blocks.x * blocks.y), ((rect.hi[0] - rect.lo[0]) + threads.z) / threads.z);
+      blocks.z = MIN((num_ctas + (blocks.x * blocks.y) - 1) / (blocks.x * blocks.y),
+                     ((rect.hi[0] - rect.lo[0]) + threads.z) / threads.z);
   } else if (axis == 1) {
     blocks.z = ((rect.hi[0] - rect.lo[0]) + threads.z) / threads.z;
     blocks.x = ((rect.hi[2] - rect.lo[2]) + threads.x) / threads.x;
     if ((blocks.x * blocks.z) < num_ctas)
-      blocks.y =
-          MIN((num_ctas + (blocks.x * blocks.z) - 1) / (blocks.x * blocks.z), ((rect.hi[1] - rect.lo[1]) + threads.y) / threads.y);
+      blocks.y = MIN((num_ctas + (blocks.x * blocks.z) - 1) / (blocks.x * blocks.z),
+                     ((rect.hi[1] - rect.lo[1]) + threads.y) / threads.y);
   } else {
     blocks.z = ((rect.hi[0] - rect.lo[0]) + threads.z) / threads.z;
     blocks.y = ((rect.hi[1] - rect.lo[1]) + threads.y) / threads.y;
     if ((blocks.y * blocks.z) < num_ctas)
-      blocks.x =
-          MIN((num_ctas + (blocks.y * blocks.z) - 1) / (blocks.y * blocks.z), ((rect.hi[2] - rect.lo[2]) + threads.x) / threads.x);
+      blocks.x = MIN((num_ctas + (blocks.y * blocks.z) - 1) / (blocks.y * blocks.z),
+                     ((rect.hi[2] - rect.lo[2]) + threads.x) / threads.x);
   }
   // CUDA boundary checks in case we hit them
   // TODO: if we hit one of these assertions fix them in a way
@@ -163,8 +176,9 @@ __host__ inline void raster_3d_reduction(dim3& blocks, dim3& threads, const Legi
   assert(blocks.z <= 65536);
 }
 
-template<typename T>
-__device__ __forceinline__ T shuffle(unsigned mask, T var, int laneMask, int width) {
+template <typename T>
+__device__ __forceinline__ T shuffle(unsigned mask, T var, int laneMask, int width)
+{
   // return __shfl_xor_sync(0xffffffff, value, i, 32);
   int array[(sizeof(T) + sizeof(int) - 1) / sizeof(int)];
   memcpy(array, &var, sizeof(T));
@@ -177,9 +191,12 @@ __device__ __forceinline__ T shuffle(unsigned mask, T var, int laneMask, int wid
 }
 
 // Overload for complex
-// TBD: if compiler optimizes out the shuffle function we defined, we could make it the default version
-template<typename T, typename REDUCTION>
-__device__ __forceinline__ void reduce_output(Legion::DeferredReduction<REDUCTION> result, complex<T> value) {
+// TBD: if compiler optimizes out the shuffle function we defined, we could make it the default
+// version
+template <typename T, typename REDUCTION>
+__device__ __forceinline__ void reduce_output(Legion::DeferredReduction<REDUCTION> result,
+                                              complex<T> value)
+{
   __shared__ complex<T> trampoline[THREADS_PER_BLOCK / 32];
   // Reduce across the warp
   const int laneid = threadIdx.x & 0x1f;
@@ -201,8 +218,9 @@ __device__ __forceinline__ void reduce_output(Legion::DeferredReduction<REDUCTIO
   }
 }
 
-template<typename T, typename REDUCTION>
-__device__ __forceinline__ void reduce_output(Legion::DeferredReduction<REDUCTION> result, T value) {
+template <typename T, typename REDUCTION>
+__device__ __forceinline__ void reduce_output(Legion::DeferredReduction<REDUCTION> result, T value)
+{
   __shared__ T trampoline[THREADS_PER_BLOCK / 32];
   // Reduce across the warp
   const int laneid = threadIdx.x & 0x1f;
@@ -224,7 +242,8 @@ __device__ __forceinline__ void reduce_output(Legion::DeferredReduction<REDUCTIO
   }
 }
 
-__device__ __forceinline__ void reduce_bool(Legion::DeferredValue<bool> result, int value) {
+__device__ __forceinline__ void reduce_bool(Legion::DeferredValue<bool> result, int value)
+{
   __shared__ int trampoline[THREADS_PER_BLOCK / 32];
   // Reduce across the warp
   const int laneid = threadIdx.x & 0x1f;
@@ -251,8 +270,11 @@ __device__ __forceinline__ void reduce_bool(Legion::DeferredValue<bool> result, 
   }
 }
 
-template<typename REDUCTION, typename T>
-__device__ __forceinline__ void fold_output(Legion::DeferredBuffer<T, 1> buffer, T value, const REDUCTION) {
+template <typename REDUCTION, typename T>
+__device__ __forceinline__ void fold_output(Legion::DeferredBuffer<T, 1> buffer,
+                                            T value,
+                                            const REDUCTION)
+{
   __shared__ T trampoline[THREADS_PER_BLOCK / 32];
   // Reduce across the warp
   const int laneid = threadIdx.x & 0x1f;
@@ -273,9 +295,12 @@ __device__ __forceinline__ void fold_output(Legion::DeferredBuffer<T, 1> buffer,
   }
 }
 
-template<typename REDUCTION, typename T>
-__device__ __forceinline__ void fold_output(Legion::DeferredBuffer<complex<T>, 1> buffer, complex<T> value, const REDUCTION) {
-#pragma diag_suppress           static_var_with_dynamic_init
+template <typename REDUCTION, typename T>
+__device__ __forceinline__ void fold_output(Legion::DeferredBuffer<complex<T>, 1> buffer,
+                                            complex<T> value,
+                                            const REDUCTION)
+{
+#pragma diag_suppress static_var_with_dynamic_init
   __shared__ complex<T> trampoline[THREADS_PER_BLOCK / 32];
   // Reduce across the warp
   const int laneid = threadIdx.x & 0x1f;
@@ -296,7 +321,8 @@ __device__ __forceinline__ void fold_output(Legion::DeferredBuffer<complex<T>, 1
   }
 }
 
-__device__ __forceinline__ void fold_bool(Legion::DeferredBuffer<bool, 1> result, int value) {
+__device__ __forceinline__ void fold_bool(Legion::DeferredBuffer<bool, 1> result, int value)
+{
   __shared__ int trampoline[THREADS_PER_BLOCK / 32];
   // Reduce across the warp
   const int laneid = threadIdx.x & 0x1f;
@@ -323,7 +349,7 @@ __device__ __forceinline__ void fold_bool(Legion::DeferredBuffer<bool, 1> result
   }
 }
 
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate
 
-#endif    // __CUDA_HELP_H__
+#endif  // __CUDA_HELP_H__

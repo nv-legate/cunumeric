@@ -22,56 +22,70 @@
 namespace legate {
 namespace numpy {
 
-template<typename T>
+template <typename T>
 class WhereTask : public NumPyTask<WhereTask<T>> {
-public:
+ public:
   static const int TASK_ID;
   static const int REGIONS = 4;
 
-public:
-  static void cpu_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+ public:
+  static void cpu_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #ifdef LEGATE_USE_OPENMP
-  static void omp_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+  static void omp_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #endif
 #ifdef LEGATE_USE_CUDA
-  static void gpu_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+  static void gpu_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #endif
 };
 
-template<typename T>
+template <typename T>
 class WhereBroadcast : public NumPyTask<WhereBroadcast<T>> {
-public:
+ public:
   static const int TASK_ID;
   static const int REGIONS = 3;
 
-public:
-  static void cpu_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+ public:
+  static void cpu_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #ifdef LEGATE_USE_OPENMP
-  static void omp_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+  static void omp_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #endif
 #ifdef LEGATE_USE_CUDA
-  static void gpu_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+  static void gpu_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #endif
 };
 
-template<typename T>
+template <typename T>
 class WhereScalar : public NumPyTask<WhereScalar<T>> {
-public:
+ public:
   static const int TASK_ID;
   static const int REGIONS = 0;
 
-public:
-  static T cpu_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+ public:
+  static T cpu_variant(const Legion::Task* task,
+                       const std::vector<Legion::PhysicalRegion>& regions,
+                       Legion::Context ctx,
                        Legion::Runtime* runtime);
 };
 
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate
 
-#endif    // __NUMPY_WHERE_H__
+#endif  // __NUMPY_WHERE_H__

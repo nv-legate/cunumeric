@@ -31,5 +31,5 @@ template void Multiply<uint64_t>::instantiate_task_gpu_variants();
 template void Multiply<bool>::instantiate_task_gpu_variants();
 template void Multiply<complex<float>>::instantiate_task_gpu_variants();
 template void Multiply<complex<double>>::instantiate_task_gpu_variants();
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate

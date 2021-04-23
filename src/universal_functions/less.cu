@@ -31,5 +31,5 @@ template void Less<uint64_t>::instantiate_task_gpu_variants();
 template void Less<bool>::instantiate_task_gpu_variants();
 template void Less<complex<float>>::instantiate_task_gpu_variants();
 template void Less<complex<double>>::instantiate_task_gpu_variants();
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate

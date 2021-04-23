@@ -23,7 +23,7 @@
 namespace legate {
 namespace numpy {
 using std::atan;
-template<class T>
+template <class T>
 struct ArcTanOperation {
   using argument_type           = T;
   using result_type             = decltype(atan(std::declval<argument_type>()));
@@ -32,9 +32,9 @@ struct ArcTanOperation {
   __CUDA_HD__ constexpr result_type operator()(const argument_type& a) const { return atan(a); }
 };
 
-template<typename T>
+template <typename T>
 using ArcTan = UnaryUniversalFunction<ArcTanOperation<T>>;
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate
 
-#endif    // __NUMPY_ARCTAN_H__
+#endif  // __NUMPY_ARCTAN_H__

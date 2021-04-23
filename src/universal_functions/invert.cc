@@ -26,5 +26,5 @@ template void Invert<uint16_t>::instantiate_tasks();
 template void Invert<uint32_t>::instantiate_tasks();
 template void Invert<uint64_t>::instantiate_tasks();
 template void Invert<bool>::instantiate_tasks();
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate

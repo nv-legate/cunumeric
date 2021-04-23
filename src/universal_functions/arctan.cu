@@ -31,5 +31,5 @@ template void ArcTan<uint64_t>::instantiate_task_gpu_variants();
 template void ArcTan<bool>::instantiate_task_gpu_variants();
 template void ArcTan<complex<float>>::instantiate_task_gpu_variants();
 template void ArcTan<complex<double>>::instantiate_task_gpu_variants();
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate

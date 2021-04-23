@@ -23,7 +23,7 @@
 namespace legate {
 namespace numpy {
 using std::floor;
-template<class T>
+template <class T>
 struct FloorDivideOperation {
   using first_argument_type     = T;
   using second_argument_type    = T;
@@ -33,9 +33,9 @@ struct FloorDivideOperation {
 };
 
 // Standard data-parallel division task
-template<typename T>
+template <typename T>
 using FloorDivide = NoncommutativeBinaryUniversalFunction<FloorDivideOperation<T>>;
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate
 
-#endif    // __NUMPY_FLOOR_DIVIDE_H__
+#endif  // __NUMPY_FLOOR_DIVIDE_H__

@@ -31,5 +31,5 @@ template void Negative<uint64_t>::instantiate_tasks();
 template void Negative<bool>::instantiate_tasks();
 template void Negative<complex<float>>::instantiate_tasks();
 template void Negative<complex<double>>::instantiate_tasks();
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate

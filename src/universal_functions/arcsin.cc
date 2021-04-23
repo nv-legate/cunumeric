@@ -31,5 +31,5 @@ template void ArcSin<uint64_t>::instantiate_tasks();
 template void ArcSin<bool>::instantiate_tasks();
 template void ArcSin<complex<float>>::instantiate_tasks();
 template void ArcSin<complex<double>>::instantiate_tasks();
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate

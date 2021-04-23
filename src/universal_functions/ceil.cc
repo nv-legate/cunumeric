@@ -22,5 +22,5 @@ namespace numpy {
 template void Ceil<__half>::instantiate_tasks();
 template void Ceil<float>::instantiate_tasks();
 template void Ceil<double>::instantiate_tasks();
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate

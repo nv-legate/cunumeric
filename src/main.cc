@@ -16,7 +16,7 @@
 
 #include "legate.h"
 #ifdef LEGATE_USE_CUDA
-#  include "cuda_libs.h"
+#include "cuda_libs.h"
 #endif
 #include "realm/python/python_module.h"
 #include <cstdlib>
@@ -24,7 +24,8 @@
 
 using namespace Legion;
 
-int main(int argc, char** argv) {
+int main(int argc, char** argv)
+{
   Runtime::initialize(&argc, &argv);
   Legate::parse_config();
   const char* python_modules_path = getenv("PYTHON_MODULES_PATH");
@@ -34,7 +35,7 @@ int main(int argc, char** argv) {
   char* previous_python_path = getenv("PYTHONPATH");
   if (previous_python_path != 0) {
     size_t bufsize = 8192;
-    char*  buffer  = (char*)calloc(bufsize, sizeof(char));
+    char* buffer   = (char*)calloc(bufsize, sizeof(char));
     assert(buffer != 0);
 
     assert(strlen(previous_python_path) + strlen(python_modules_path) + 2 < bufsize);
@@ -56,7 +57,7 @@ int main(int argc, char** argv) {
     // Populate the cuda libraries data structure with an entry for
     // every GPU processor so we don't have to synchronize later
     std::map<Processor, CUDALibraries>& cuda_libraries = CUDALibraries::get_libraries();
-    Machine::ProcessorQuery             gpu_procs(Machine::get_machine());
+    Machine::ProcessorQuery gpu_procs(Machine::get_machine());
     gpu_procs.local_address_space();
     gpu_procs.only_kind(Processor::TOC_PROC);
     for (Machine::ProcessorQuery::iterator it = gpu_procs.begin(); it != gpu_procs.end(); it++) {

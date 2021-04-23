@@ -21,33 +21,99 @@ using namespace Legion;
 namespace legate {
 namespace numpy {
 // Instantiate Clip's tasks' gpu variants
-template void PointTask<ClipTask<__half>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
-template void PointTask<ClipTask<float>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
-template void PointTask<ClipTask<double>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
-template void PointTask<ClipTask<int16_t>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
-template void PointTask<ClipTask<int32_t>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
-template void PointTask<ClipTask<int64_t>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
-template void PointTask<ClipTask<uint16_t>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
-template void PointTask<ClipTask<uint32_t>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
-template void PointTask<ClipTask<uint64_t>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
-template void PointTask<ClipTask<bool>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
-template void PointTask<ClipTask<complex<float>>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
-template void PointTask<ClipTask<complex<double>>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
+template void PointTask<ClipTask<__half>>::gpu_variant(const Task*,
+                                                       const std::vector<PhysicalRegion>&,
+                                                       Context,
+                                                       Runtime*);
+template void PointTask<ClipTask<float>>::gpu_variant(const Task*,
+                                                      const std::vector<PhysicalRegion>&,
+                                                      Context,
+                                                      Runtime*);
+template void PointTask<ClipTask<double>>::gpu_variant(const Task*,
+                                                       const std::vector<PhysicalRegion>&,
+                                                       Context,
+                                                       Runtime*);
+template void PointTask<ClipTask<int16_t>>::gpu_variant(const Task*,
+                                                        const std::vector<PhysicalRegion>&,
+                                                        Context,
+                                                        Runtime*);
+template void PointTask<ClipTask<int32_t>>::gpu_variant(const Task*,
+                                                        const std::vector<PhysicalRegion>&,
+                                                        Context,
+                                                        Runtime*);
+template void PointTask<ClipTask<int64_t>>::gpu_variant(const Task*,
+                                                        const std::vector<PhysicalRegion>&,
+                                                        Context,
+                                                        Runtime*);
+template void PointTask<ClipTask<uint16_t>>::gpu_variant(const Task*,
+                                                         const std::vector<PhysicalRegion>&,
+                                                         Context,
+                                                         Runtime*);
+template void PointTask<ClipTask<uint32_t>>::gpu_variant(const Task*,
+                                                         const std::vector<PhysicalRegion>&,
+                                                         Context,
+                                                         Runtime*);
+template void PointTask<ClipTask<uint64_t>>::gpu_variant(const Task*,
+                                                         const std::vector<PhysicalRegion>&,
+                                                         Context,
+                                                         Runtime*);
+template void PointTask<ClipTask<bool>>::gpu_variant(const Task*,
+                                                     const std::vector<PhysicalRegion>&,
+                                                     Context,
+                                                     Runtime*);
+template void PointTask<ClipTask<complex<float>>>::gpu_variant(const Task*,
+                                                               const std::vector<PhysicalRegion>&,
+                                                               Context,
+                                                               Runtime*);
+template void PointTask<ClipTask<complex<double>>>::gpu_variant(const Task*,
+                                                                const std::vector<PhysicalRegion>&,
+                                                                Context,
+                                                                Runtime*);
 
-template void PointTask<ClipInplace<__half>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
-template void PointTask<ClipInplace<float>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
-template void PointTask<ClipInplace<double>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
-template void PointTask<ClipInplace<int16_t>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
-template void PointTask<ClipInplace<int32_t>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
-template void PointTask<ClipInplace<int64_t>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
-template void PointTask<ClipInplace<uint16_t>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
-template void PointTask<ClipInplace<uint32_t>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
-template void PointTask<ClipInplace<uint64_t>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
-template void PointTask<ClipInplace<bool>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
-template void PointTask<ClipInplace<complex<float>>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context,
-                                                                  Runtime*);
-template void PointTask<ClipInplace<complex<double>>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context,
-                                                                   Runtime*);
+template void PointTask<ClipInplace<__half>>::gpu_variant(const Task*,
+                                                          const std::vector<PhysicalRegion>&,
+                                                          Context,
+                                                          Runtime*);
+template void PointTask<ClipInplace<float>>::gpu_variant(const Task*,
+                                                         const std::vector<PhysicalRegion>&,
+                                                         Context,
+                                                         Runtime*);
+template void PointTask<ClipInplace<double>>::gpu_variant(const Task*,
+                                                          const std::vector<PhysicalRegion>&,
+                                                          Context,
+                                                          Runtime*);
+template void PointTask<ClipInplace<int16_t>>::gpu_variant(const Task*,
+                                                           const std::vector<PhysicalRegion>&,
+                                                           Context,
+                                                           Runtime*);
+template void PointTask<ClipInplace<int32_t>>::gpu_variant(const Task*,
+                                                           const std::vector<PhysicalRegion>&,
+                                                           Context,
+                                                           Runtime*);
+template void PointTask<ClipInplace<int64_t>>::gpu_variant(const Task*,
+                                                           const std::vector<PhysicalRegion>&,
+                                                           Context,
+                                                           Runtime*);
+template void PointTask<ClipInplace<uint16_t>>::gpu_variant(const Task*,
+                                                            const std::vector<PhysicalRegion>&,
+                                                            Context,
+                                                            Runtime*);
+template void PointTask<ClipInplace<uint32_t>>::gpu_variant(const Task*,
+                                                            const std::vector<PhysicalRegion>&,
+                                                            Context,
+                                                            Runtime*);
+template void PointTask<ClipInplace<uint64_t>>::gpu_variant(const Task*,
+                                                            const std::vector<PhysicalRegion>&,
+                                                            Context,
+                                                            Runtime*);
+template void PointTask<ClipInplace<bool>>::gpu_variant(const Task*,
+                                                        const std::vector<PhysicalRegion>&,
+                                                        Context,
+                                                        Runtime*);
+template void PointTask<ClipInplace<complex<float>>>::gpu_variant(
+  const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
+template void PointTask<ClipInplace<complex<double>>>::gpu_variant(
+  const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
 
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate

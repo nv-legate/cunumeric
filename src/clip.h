@@ -21,59 +21,69 @@
 
 namespace legate {
 namespace numpy {
-template<class T>
+template <class T>
 struct ClipOperation {
   using argument_type           = T;
   constexpr static auto op_code = NumPyOpCode::NUMPY_CLIP;
 
-  __CUDA_HD__ constexpr T operator()(const T& a, const T min, const T max) const { return (a < min) ? min : (a > max) ? max : a; }
+  __CUDA_HD__ constexpr T operator()(const T& a, const T min, const T max) const
+  {
+    return (a < min) ? min : (a > max) ? max : a;
+  }
 };
 
 #if defined(LEGATE_USE_CUDA) && defined(__CUDACC__)
-template<int DIM, typename T, typename Args>
-__global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM) gpu_clip(const Args args) {
+template <int DIM, typename T, typename Args>
+__global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM) gpu_clip(const Args args)
+{
   const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (idx >= args.volume) return;
   const Legion::Point<DIM> point = args.pitches.unflatten(idx, args.rect.lo);
-  ClipOperation<T>         func;
+  ClipOperation<T> func;
   args.out[point] = func(args.in[point], args.min, args.max);
 }
 
-template<int DIM, typename T, typename Args>
-__global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM) gpu_clip_inplace(const Args args) {
+template <int DIM, typename T, typename Args>
+__global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
+  gpu_clip_inplace(const Args args)
+{
   const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (idx >= args.volume) return;
   const Legion::Point<DIM> point = args.pitches.unflatten(idx, args.rect.lo);
-  ClipOperation<T>         func;
+  ClipOperation<T> func;
   args.inout[point] = func(args.inout[point], args.min, args.max);
 }
 #endif
 
 // Clip is like a unary operation but with some state for its operator
-template<class T>
+template <class T>
 class ClipTask : public PointTask<ClipTask<T>> {
-private:
+ private:
   using argument_type = typename ClipOperation<T>::argument_type;
   using result_type   = typename ClipOperation<T>::argument_type;
 
-public:
-  static const int TASK_ID = task_id<ClipOperation<T>::op_code, NUMPY_NORMAL_VARIANT_OFFSET, argument_type, result_type>;
+ public:
+  static const int TASK_ID =
+    task_id<ClipOperation<T>::op_code, NUMPY_NORMAL_VARIANT_OFFSET, argument_type, result_type>;
 
   // out_region = op in_region;
   static const int REGIONS = 2;
 
-  template<int N>
+  template <int N>
   struct DeserializedArgs {
-    Legion::Rect<N>              rect;
-    AccessorWO<result_type, N>   out;
+    Legion::Rect<N> rect;
+    AccessorWO<result_type, N> out;
     AccessorRO<argument_type, N> in;
-    Pitches<N - 1>               pitches;
-    size_t                       volume;
-    argument_type                min;
-    argument_type                max;
-    result_type*                 outptr;
-    const argument_type*         inptr;
-    bool deserialize(LegateDeserializer& derez, const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions) {
+    Pitches<N - 1> pitches;
+    size_t volume;
+    argument_type min;
+    argument_type max;
+    result_type* outptr;
+    const argument_type* inptr;
+    bool deserialize(LegateDeserializer& derez,
+                     const Legion::Task* task,
+                     const std::vector<Legion::PhysicalRegion>& regions)
+    {
       rect   = NumPyProjectionFunctor::unpack_shape<N>(task, derez);
       out    = derez.unpack_accessor_WO<result_type, N>(regions[0], rect);
       in     = derez.unpack_accessor_RO<argument_type, N>(regions[1], rect);
@@ -82,8 +92,8 @@ public:
       volume = pitches.flatten(rect);
 #ifndef LEGION_BOUNDS_CHECKS
       // Check to see if this is dense or not
-      return out.accessor.is_dense_row_major(rect) && in.accessor.is_dense_row_major(rect) && (outptr = out.ptr(rect)) &&
-             (inptr = in.ptr(rect));
+      return out.accessor.is_dense_row_major(rect) && in.accessor.is_dense_row_major(rect) &&
+             (outptr = out.ptr(rect)) && (inptr = in.ptr(rect));
 #else
       // No dense execution if we're doing bounds checks
       return false;
@@ -91,11 +101,13 @@ public:
     }
   };
 
-  template<int DIM>
-  static void dispatch_cpu(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions,
-                           LegateDeserializer& derez) {
+  template <int DIM>
+  static void dispatch_cpu(const Legion::Task* task,
+                           const std::vector<Legion::PhysicalRegion>& regions,
+                           LegateDeserializer& derez)
+  {
     DeserializedArgs<DIM> args;
-    const bool            dense = args.deserialize(derez, task, regions);
+    const bool dense = args.deserialize(derez, task, regions);
     if (args.volume == 0) return;
     ClipOperation<T> func;
     if (dense) {
@@ -107,15 +119,17 @@ public:
   }
 
 #ifdef LEGATE_USE_OPENMP
-  template<int DIM>
-  static void dispatch_omp(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions,
-                           LegateDeserializer& derez) {
+  template <int DIM>
+  static void dispatch_omp(const Legion::Task* task,
+                           const std::vector<Legion::PhysicalRegion>& regions,
+                           LegateDeserializer& derez)
+  {
     DeserializedArgs<DIM> args;
-    const bool            dense = args.deserialize(derez, task, regions);
+    const bool dense = args.deserialize(derez, task, regions);
     if (args.volume == 0) return;
     ClipOperation<T> func;
     if (dense) {
-#  pragma omp parallel for schedule(static)
+#pragma omp parallel for schedule(static)
       for (size_t idx = 0; idx < args.volume; ++idx) {
         args.outptr[idx] = func(args.inptr[idx], args.min, args.max);
       }
@@ -125,9 +139,11 @@ public:
   }
 #endif
 #if defined(LEGATE_USE_CUDA) && defined(__CUDACC__)
-  template<int DIM>
-  static void dispatch_gpu(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions,
-                           LegateDeserializer& derez) {
+  template <int DIM>
+  static void dispatch_gpu(const Legion::Task* task,
+                           const std::vector<Legion::PhysicalRegion>& regions,
+                           LegateDeserializer& derez)
+  {
     DeserializedArgs<DIM> args;
     args.deserialize(derez, task, regions);
     if (args.volume == 0) return;
@@ -135,33 +151,39 @@ public:
     gpu_clip<DIM, T, DeserializedArgs<DIM>><<<blocks, THREADS_PER_BLOCK>>>(args);
   }
 #elif defined(LEGATE_USE_CUDA)
-  template<int DIM>
-  static void dispatch_gpu(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, LegateDeserializer& derez);
+  template <int DIM>
+  static void dispatch_gpu(const Legion::Task* task,
+                           const std::vector<Legion::PhysicalRegion>& regions,
+                           LegateDeserializer& derez);
 #endif
 };
 
-template<typename T>
+template <typename T>
 class ClipInplace : public PointTask<ClipInplace<T>> {
-private:
+ private:
   using argument_type = typename ClipOperation<T>::argument_type;
   using result_type   = typename ClipOperation<T>::argument_type;
 
-public:
-  static const int TASK_ID = task_id<ClipOperation<T>::op_code, NUMPY_INPLACE_VARIANT_OFFSET, result_type, argument_type>;
+ public:
+  static const int TASK_ID =
+    task_id<ClipOperation<T>::op_code, NUMPY_INPLACE_VARIANT_OFFSET, result_type, argument_type>;
 
   // inout_region = op(inout_region)
   static const int REGIONS = 1;
 
-  template<int N>
+  template <int N>
   struct DeserializedArgs {
-    Legion::Rect<N>            rect;
+    Legion::Rect<N> rect;
     AccessorRW<result_type, N> inout;
-    Pitches<N - 1>             pitches;
-    size_t                     volume;
-    argument_type              min;
-    argument_type              max;
-    argument_type*             inoutptr;
-    bool deserialize(LegateDeserializer& derez, const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions) {
+    Pitches<N - 1> pitches;
+    size_t volume;
+    argument_type min;
+    argument_type max;
+    argument_type* inoutptr;
+    bool deserialize(LegateDeserializer& derez,
+                     const Legion::Task* task,
+                     const std::vector<Legion::PhysicalRegion>& regions)
+    {
       rect   = NumPyProjectionFunctor::unpack_shape<N>(task, derez);
       inout  = derez.unpack_accessor_RW<result_type, N>(regions[0], rect);
       min    = task->futures[0].get_result<argument_type>(true /*silence warnings*/);
@@ -177,11 +199,13 @@ public:
     }
   };
 
-  template<int DIM>
-  static void dispatch_cpu(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions,
-                           LegateDeserializer& derez) {
+  template <int DIM>
+  static void dispatch_cpu(const Legion::Task* task,
+                           const std::vector<Legion::PhysicalRegion>& regions,
+                           LegateDeserializer& derez)
+  {
     DeserializedArgs<DIM> args;
-    const bool            dense = args.deserialize(derez, task, regions);
+    const bool dense = args.deserialize(derez, task, regions);
     if (args.volume == 0) return;
     ClipOperation<T> func;
     if (dense) {
@@ -193,15 +217,17 @@ public:
   }
 
 #ifdef LEGATE_USE_OPENMP
-  template<int DIM>
-  static void dispatch_omp(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions,
-                           LegateDeserializer& derez) {
+  template <int DIM>
+  static void dispatch_omp(const Legion::Task* task,
+                           const std::vector<Legion::PhysicalRegion>& regions,
+                           LegateDeserializer& derez)
+  {
     DeserializedArgs<DIM> args;
-    const bool            dense = args.deserialize(derez, task, regions);
+    const bool dense = args.deserialize(derez, task, regions);
     if (args.volume == 0) return;
     ClipOperation<T> func;
     if (dense) {
-#  pragma omp parallel for schedule(static)
+#pragma omp parallel for schedule(static)
       for (size_t idx = 0; idx < args.volume; ++idx) {
         args.inoutptr[idx] = func(args.inoutptr[idx], args.min, args.max);
       }
@@ -211,9 +237,11 @@ public:
   }
 #endif
 #if defined(LEGATE_USE_CUDA) && defined(__CUDACC__)
-  template<int DIM>
-  static void dispatch_gpu(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions,
-                           LegateDeserializer& derez) {
+  template <int DIM>
+  static void dispatch_gpu(const Legion::Task* task,
+                           const std::vector<Legion::PhysicalRegion>& regions,
+                           LegateDeserializer& derez)
+  {
     DeserializedArgs<DIM> args;
     args.deserialize(derez, task, regions);
     if (args.volume == 0) return;
@@ -221,26 +249,31 @@ public:
     gpu_clip_inplace<DIM, T, DeserializedArgs<DIM>><<<blocks, THREADS_PER_BLOCK>>>(args);
   }
 #elif defined(LEGATE_USE_CUDA)
-  template<int DIM>
-  static void dispatch_gpu(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, LegateDeserializer& derez);
+  template <int DIM>
+  static void dispatch_gpu(const Legion::Task* task,
+                           const std::vector<Legion::PhysicalRegion>& regions,
+                           LegateDeserializer& derez);
 #endif
 };
 
-template<typename T>
+template <typename T>
 class ClipScalar : public NumPyTask<ClipScalar<T>> {
-private:
+ private:
   using argument_type = typename ClipOperation<T>::argument_type;
   using result_type   = typename ClipOperation<T>::argument_type;
 
-public:
+ public:
   // XXX figure out how to hoist this into PointTask
-  static const int TASK_ID = task_id<ClipOperation<T>::op_code, NUMPY_SCALAR_VARIANT_OFFSET, result_type, argument_type>;
+  static const int TASK_ID =
+    task_id<ClipOperation<T>::op_code, NUMPY_SCALAR_VARIANT_OFFSET, result_type, argument_type>;
 
   static const int REGIONS = 0;
 
-  static result_type cpu_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
-                                 Legion::Runtime* runtime) {
-
+  static result_type cpu_variant(const Legion::Task* task,
+                                 const std::vector<Legion::PhysicalRegion>& regions,
+                                 Legion::Context ctx,
+                                 Legion::Runtime* runtime)
+  {
     argument_type rhs = task->futures[0].get_result<argument_type>(true /*silence warnings*/);
     argument_type min = task->futures[1].get_result<argument_type>(true /*silence warnings*/);
     argument_type max = task->futures[2].get_result<argument_type>(true /*silence warnings*/);
@@ -249,9 +282,12 @@ public:
     return func(rhs, min, max);
   }
 
-private:
+ private:
   struct StaticRegistrar {
-    StaticRegistrar() { ClipScalar::template register_variants_with_return<result_type, argument_type>(); }
+    StaticRegistrar()
+    {
+      ClipScalar::template register_variants_with_return<result_type, argument_type>();
+    }
   };
 
   virtual void force_instantiation_of_static_registrar() { (void)&static_registrar; }
@@ -261,10 +297,10 @@ private:
 };
 
 // this is the definition of ScalarUnaryOperationTask::static_registrar
-template<class T>
+template <class T>
 const typename ClipScalar<T>::StaticRegistrar ClipScalar<T>::static_registrar{};
 
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate
 
-#endif    // __NUMPY_CLIP_H__
+#endif  // __NUMPY_CLIP_H__

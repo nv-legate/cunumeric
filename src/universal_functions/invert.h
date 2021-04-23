@@ -22,15 +22,15 @@
 
 namespace legate {
 namespace numpy {
-template<typename T>
+template <typename T>
 struct InvertOperation : std::bit_not<T> {
   using argument_type           = T;
   constexpr static auto op_code = NumPyOpCode::NUMPY_INVERT;
 };
 
-template<typename T>
+template <typename T>
 using Invert = UnaryUniversalFunction<InvertOperation<T>>;
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate
 
-#endif    // __NUMPY_INVERT_H__
+#endif  // __NUMPY_INVERT_H__

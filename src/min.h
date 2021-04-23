@@ -20,16 +20,16 @@
 #include "numpy.h"
 
 #ifndef MIN
-#  define MIN(x, y) (((x) < (y)) ? (x) : (y))
+#define MIN(x, y) (((x) < (y)) ? (x) : (y))
 #endif
 
 namespace legate {
 namespace numpy {
 
 // For doing min into particular dimensions
-template<typename T>
+template <typename T>
 class MinTask : public NumPyTask<MinTask<T>> {
-public:
+ public:
   static const int TASK_ID;
   static const int REGIONS = 2;
 #if 0
@@ -38,123 +38,157 @@ public:
       static void set_layout_constraints(LegateVariant variant, 
                   Legion::TaskLayoutConstraintSet &layout_constraints);
 #endif
-public:
-  static void cpu_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+ public:
+  static void cpu_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #ifdef LEGATE_USE_OPENMP
-  static void omp_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+  static void omp_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #endif
 #ifdef LEGATE_USE_CUDA
-  static void gpu_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+  static void gpu_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #endif
 };
 
 // For doing a reduction to a single value
-template<typename T>
+template <typename T>
 class MinReducTask : public NumPyTask<MinReducTask<T>> {
-public:
+ public:
   static const int TASK_ID;
   static const int REGIONS = 1;
 
-public:
-  static T cpu_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+ public:
+  static T cpu_variant(const Legion::Task* task,
+                       const std::vector<Legion::PhysicalRegion>& regions,
+                       Legion::Context ctx,
                        Legion::Runtime* runtime);
 #ifdef LEGATE_USE_OPENMP
-  static T omp_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+  static T omp_variant(const Legion::Task* task,
+                       const std::vector<Legion::PhysicalRegion>& regions,
+                       Legion::Context ctx,
                        Legion::Runtime* runtime);
 #endif
 #ifdef LEGATE_USE_CUDA
-  static Legion::DeferredReduction<Legion::MinReduction<T>> gpu_variant(const Legion::Task*                        task,
-                                                                        const std::vector<Legion::PhysicalRegion>& regions,
-                                                                        Legion::Context ctx, Legion::Runtime* runtime);
+  static Legion::DeferredReduction<Legion::MinReduction<T>> gpu_variant(
+    const Legion::Task* task,
+    const std::vector<Legion::PhysicalRegion>& regions,
+    Legion::Context ctx,
+    Legion::Runtime* runtime);
 #endif
 };
 
 // Binary minimum task
-template<typename T>
+template <typename T>
 class BinMinTask : public NumPyTask<BinMinTask<T>> {
-public:
+ public:
   static const int TASK_ID;
   static const int REGIONS = 3;
 
-public:
-  static void cpu_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+ public:
+  static void cpu_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #ifdef LEGATE_USE_OPENMP
-  static void omp_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+  static void omp_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #endif
 #ifdef LEGATE_USE_CUDA
-  static void gpu_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+  static void gpu_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #endif
 };
 
 // Binary minimum task for handling broadcasting of dimensions
-template<typename T>
+template <typename T>
 class BinMinBroadcast : public NumPyTask<BinMinBroadcast<T>> {
-public:
+ public:
   static const int TASK_ID;
   static const int REGIONS = 3;
 
-public:
-  static void cpu_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+ public:
+  static void cpu_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #ifdef LEGATE_USE_OPENMP
-  static void omp_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+  static void omp_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #endif
 #ifdef LEGATE_USE_CUDA
-  static void gpu_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+  static void gpu_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #endif
 };
 
 // For doing a scalar binary min
-template<typename T>
+template <typename T>
 class BinMinScalar : public NumPyTask<BinMinScalar<T>> {
-public:
+ public:
   static const int TASK_ID;
   static const int REGIONS = 0;
 
-public:
-  static T cpu_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+ public:
+  static T cpu_variant(const Legion::Task* task,
+                       const std::vector<Legion::PhysicalRegion>& regions,
+                       Legion::Context ctx,
                        Legion::Runtime* runtime);
 };
 
-template<typename T>
+template <typename T>
 class MinRadixTask : public NumPyTask<MinRadixTask<T>> {
-public:
+ public:
   static const int TASK_ID;
   static const int REGIONS = MAX_REDUCTION_RADIX;
 
-public:
-  static void cpu_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+ public:
+  static void cpu_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #ifdef LEGATE_USE_OPENMP
-  static void omp_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+  static void omp_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #endif
 #ifdef LEGATE_USE_CUDA
-  static void gpu_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+  static void gpu_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #endif
 };
 
-template<typename T>
+template <typename T>
 class MinScalarTask : public NumPyTask<MinScalarTask<T>> {
-public:
+ public:
   static const int TASK_ID;
   static const int REGIONS = 0;
 
-public:
-  static T cpu_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+ public:
+  static T cpu_variant(const Legion::Task* task,
+                       const std::vector<Legion::PhysicalRegion>& regions,
+                       Legion::Context ctx,
                        Legion::Runtime* runtime);
 };
 
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate
 
-#endif    // __NUMPY_MIN_H__
+#endif  // __NUMPY_MIN_H__

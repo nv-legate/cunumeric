@@ -29,5 +29,5 @@ template class FillTask<uint16_t>;
 template class FillTask<uint32_t>;
 template class FillTask<uint64_t>;
 template class FillTask<bool>;
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate

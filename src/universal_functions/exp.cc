@@ -31,5 +31,5 @@ template void Exp<uint64_t>::instantiate_tasks();
 template void Exp<bool>::instantiate_tasks();
 template void Exp<complex<float>>::instantiate_tasks();
 template void Exp<complex<double>>::instantiate_tasks();
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate

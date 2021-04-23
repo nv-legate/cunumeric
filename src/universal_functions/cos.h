@@ -23,7 +23,7 @@
 namespace legate {
 namespace numpy {
 using std::cos;
-template<class T>
+template <class T>
 struct CosOperation {
   using argument_type           = T;
   using result_type             = decltype(cos(std::declval<argument_type>()));
@@ -32,9 +32,9 @@ struct CosOperation {
   __CUDA_HD__ constexpr result_type operator()(const argument_type& a) const { return cos(a); }
 };
 
-template<typename T>
+template <typename T>
 using Cos = UnaryUniversalFunction<CosOperation<T>>;
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate
 
-#endif    // __NUMPY_COS_H__
+#endif  // __NUMPY_COS_H__

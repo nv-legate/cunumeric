@@ -23,25 +23,27 @@
 namespace legate {
 namespace numpy {
 using std::isnan;
-template<class T>
+template <class T>
 struct IsNaNOperation {
   using argument_type           = T;
   constexpr static auto op_code = NumPyOpCode::NUMPY_ISNAN;
 
-  template<typename T_>
-  constexpr bool operator()(const T_& a) const {
+  template <typename T_>
+  constexpr bool operator()(const T_& a) const
+  {
     return isnan(a);
   }
 
-  template<typename T_>
-  constexpr bool operator()(const complex<T_>& a) const {
+  template <typename T_>
+  constexpr bool operator()(const complex<T_>& a) const
+  {
     return isnan(a.real()) || isnan(a.imag());
   }
 };
 
-template<typename T>
+template <typename T>
 using IsNaN = UnaryUniversalFunction<IsNaNOperation<T>>;
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate
 
-#endif    // __NUMPY_ISNAN_H__
+#endif  // __NUMPY_ISNAN_H__

@@ -24,11 +24,16 @@ using namespace Legion;
 namespace legate {
 namespace numpy {
 
-template<typename T>
+template <typename T>
 __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-    legate_sum_2d(const AccessorRW<T, 2> inout, const AccessorRO<T, 2> in, const Rect<2> bounds, const T identity, const int axis) {
-  coord_t        y = bounds.lo[1] + blockIdx.x * blockDim.x + threadIdx.x;
-  coord_t        x = bounds.lo[0] + (blockIdx.z * gridDim.y + blockIdx.y) * blockDim.y + threadIdx.y;
+  legate_sum_2d(const AccessorRW<T, 2> inout,
+                const AccessorRO<T, 2> in,
+                const Rect<2> bounds,
+                const T identity,
+                const int axis)
+{
+  coord_t y = bounds.lo[1] + blockIdx.x * blockDim.x + threadIdx.x;
+  coord_t x = bounds.lo[0] + (blockIdx.z * gridDim.y + blockIdx.y) * blockDim.y + threadIdx.y;
   const Point<2> p(x, y);
   if (!bounds.contains(p)) return;
   T value = identity;
@@ -49,7 +54,7 @@ __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
     // so instead we do a warp-level reduction so just one thread ends
     // up doing the full atomic
     const int same_mask = __match_any_sync(0xffffffff, threadIdx.y);
-    int       laneid;
+    int laneid;
     asm volatile("mov.s32 %0, %laneid;" : "=r"(laneid));
     const int active_mask = __ballot_sync(0xffffffff, same_mask - (1 << laneid));
     if (active_mask) {
@@ -70,7 +75,7 @@ __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
               // perform the reduction out to memory
               value = identity;
               break;
-            } else    // Make sure we don't do this test again
+            } else  // Make sure we don't do this test again
               lowest_index = i;
             // It was already our value, so just keep going
           } else {
@@ -85,12 +90,17 @@ __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   if (value != identity) SumReduction<T>::template fold<false /*exclusive*/>(inout[p], value);
 }
 
-template<typename T>
+template <typename T>
 __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-    legate_sum_3d(const AccessorRW<T, 3> inout, const AccessorRO<T, 3> in, const Rect<3> bounds, const T identity, const int axis) {
-  coord_t        z = bounds.lo[2] + blockIdx.x * blockDim.x + threadIdx.x;
-  coord_t        y = bounds.lo[1] + blockIdx.y * blockDim.y + threadIdx.y;
-  coord_t        x = bounds.lo[0] + blockIdx.z * blockDim.z + threadIdx.z;
+  legate_sum_3d(const AccessorRW<T, 3> inout,
+                const AccessorRO<T, 3> in,
+                const Rect<3> bounds,
+                const T identity,
+                const int axis)
+{
+  coord_t z = bounds.lo[2] + blockIdx.x * blockDim.x + threadIdx.x;
+  coord_t y = bounds.lo[1] + blockIdx.y * blockDim.y + threadIdx.y;
+  coord_t x = bounds.lo[0] + blockIdx.z * blockDim.z + threadIdx.z;
   const Point<3> p(x, y, z);
   if (!bounds.contains(p)) return;
   T value = identity;
@@ -116,7 +126,7 @@ __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
     // so instead we do a warp-level reduction so just one thread ends
     // up doing the full atomic
     const int same_mask = __match_any_sync(0xffffffff, threadIdx.z * blockDim.y + threadIdx.y);
-    int       laneid;
+    int laneid;
     asm volatile("mov.s32 %0, %laneid;" : "=r"(laneid));
     const int active_mask = __ballot_sync(0xffffffff, same_mask - (1 << laneid));
     if (active_mask) {
@@ -137,7 +147,7 @@ __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
               // perform the reduction out to memory
               value = identity;
               break;
-            } else    // Make sure we don't do this test again
+            } else  // Make sure we don't do this test again
               lowest_index = i;
             // It was already our value, so just keep going
           } else {
@@ -152,21 +162,26 @@ __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   if (value != identity) SumReduction<T>::template fold<false /*exclusive*/>(inout[p], value);
 }
 
-template<typename T>
-/*static*/ void SumTask<T>::gpu_variant(const Task* task, const std::vector<PhysicalRegion>& regions, Context ctx,
-                                        Runtime* runtime) {
+template <typename T>
+/*static*/ void SumTask<T>::gpu_variant(const Task* task,
+                                        const std::vector<PhysicalRegion>& regions,
+                                        Context ctx,
+                                        Runtime* runtime)
+{
   LegateDeserializer derez(task->args, task->arglen);
-  const int          axis          = derez.unpack_dimension();
-  const int          collapse_dim  = derez.unpack_dimension();
-  const int          init_dim      = derez.unpack_dimension();
-  const T            initial_value = (task->futures.size() == 1) ? task->futures[0].get_result<T>() : SumReduction<T>::identity;
+  const int axis         = derez.unpack_dimension();
+  const int collapse_dim = derez.unpack_dimension();
+  const int init_dim     = derez.unpack_dimension();
+  const T initial_value =
+    (task->futures.size() == 1) ? task->futures[0].get_result<T>() : SumReduction<T>::identity;
   switch (init_dim) {
     case 1: {
       const Rect<1> rect = NumPyProjectionFunctor::unpack_shape<1>(task, derez);
       if (rect.empty()) return;
       const AccessorWO<T, 1> out =
-          (collapse_dim >= 0) ? derez.unpack_accessor_WO<T, 1>(regions[0], rect, collapse_dim, task->index_point[collapse_dim])
-                              : derez.unpack_accessor_WO<T, 1>(regions[0], rect);
+        (collapse_dim >= 0) ? derez.unpack_accessor_WO<T, 1>(
+                                regions[0], rect, collapse_dim, task->index_point[collapse_dim])
+                            : derez.unpack_accessor_WO<T, 1>(regions[0], rect);
       const size_t volume = rect.volume();
       const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
       legate_fill_1d<T><<<blocks, THREADS_PER_BLOCK>>>(out, initial_value, rect.lo, volume);
@@ -176,16 +191,17 @@ template<typename T>
       const Rect<2> rect = NumPyProjectionFunctor::unpack_shape<2>(task, derez);
       if (rect.empty()) return;
       const AccessorWO<T, 2> out =
-          (collapse_dim >= 0) ? derez.unpack_accessor_WO<T, 2>(regions[0], rect, collapse_dim, task->index_point[collapse_dim])
-                              : derez.unpack_accessor_WO<T, 2>(regions[0], rect);
-      const size_t  volume = rect.volume();
-      const size_t  blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-      const coord_t pitch  = rect.hi[1] - rect.lo[1] + 1;
-      legate_fill_2d<T><<<blocks, THREADS_PER_BLOCK>>>(out, initial_value, rect.lo, Point<1>(pitch), volume);
+        (collapse_dim >= 0) ? derez.unpack_accessor_WO<T, 2>(
+                                regions[0], rect, collapse_dim, task->index_point[collapse_dim])
+                            : derez.unpack_accessor_WO<T, 2>(regions[0], rect);
+      const size_t volume = rect.volume();
+      const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
+      const coord_t pitch = rect.hi[1] - rect.lo[1] + 1;
+      legate_fill_2d<T>
+        <<<blocks, THREADS_PER_BLOCK>>>(out, initial_value, rect.lo, Point<1>(pitch), volume);
       break;
     }
-    default:
-      assert(false);    // shouldn't see any other cases
+    default: assert(false);  // shouldn't see any other cases
   }
   const int dim = derez.unpack_dimension();
   switch (dim) {
@@ -195,8 +211,9 @@ template<typename T>
       const Rect<2> rect = NumPyProjectionFunctor::unpack_shape<2>(task, derez);
       if (rect.empty()) return;
       const AccessorRW<T, 2> inout =
-          (collapse_dim >= 0) ? derez.unpack_accessor_RW<T, 2, 1>(regions[0], rect, collapse_dim, task->index_point[collapse_dim])
-                              : derez.unpack_accessor_RW<T, 2>(regions[0], rect);
+        (collapse_dim >= 0) ? derez.unpack_accessor_RW<T, 2, 1>(
+                                regions[0], rect, collapse_dim, task->index_point[collapse_dim])
+                            : derez.unpack_accessor_RW<T, 2>(regions[0], rect);
       const AccessorRO<T, 2> in = derez.unpack_accessor_RO<T, 2>(regions[1], rect);
       // Figure out how many blocks and threads we need
       dim3 threads(1, 1, 1);
@@ -209,8 +226,9 @@ template<typename T>
       const Rect<3> rect = NumPyProjectionFunctor::unpack_shape<3>(task, derez);
       if (rect.empty()) return;
       const AccessorRW<T, 3> inout =
-          (collapse_dim >= 0) ? derez.unpack_accessor_RW<T, 3, 2>(regions[0], rect, collapse_dim, task->index_point[collapse_dim])
-                              : derez.unpack_accessor_RW<T, 3>(regions[0], rect);
+        (collapse_dim >= 0) ? derez.unpack_accessor_RW<T, 3, 2>(
+                                regions[0], rect, collapse_dim, task->index_point[collapse_dim])
+                            : derez.unpack_accessor_RW<T, 3>(regions[0], rect);
       const AccessorRO<T, 3> in = derez.unpack_accessor_RO<T, 3>(regions[1], rect);
       // Figure out how many blocks and threads we need
       dim3 threads(1, 1, 1);
@@ -219,18 +237,21 @@ template<typename T>
       legate_sum_3d<T><<<blocks, threads>>>(inout, in, rect, SumReduction<T>::identity, axis);
       break;
     }
-    default:
-      assert(false);
+    default: assert(false);
   }
 }
 
 INSTANTIATE_TASK_VARIANT(SumTask, gpu_variant)
 
-template<typename T>
+template <typename T>
 __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-    legate_sum_reduce_1d(const DeferredBuffer<T, 1> buffer, const AccessorRO<T, 1> in, const Point<1> origin, const size_t max,
-                         const T identity) {
-  T            value  = identity;
+  legate_sum_reduce_1d(const DeferredBuffer<T, 1> buffer,
+                       const AccessorRO<T, 1> in,
+                       const Point<1> origin,
+                       const size_t max,
+                       const T identity)
+{
+  T value             = identity;
   const size_t offset = blockIdx.x * blockDim.x + threadIdx.x;
   if (offset < max) {
     const coord_t x = origin[0] + offset;
@@ -239,11 +260,16 @@ __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   fold_output(buffer, value, SumReduction<T>{});
 }
 
-template<typename T>
+template <typename T>
 __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-    legate_sum_reduce_2d(const DeferredBuffer<T, 1> buffer, const AccessorRO<T, 2> in, const Point<2> origin, const Point<1> pitch,
-                         const size_t max, const T identity) {
-  T            value  = identity;
+  legate_sum_reduce_2d(const DeferredBuffer<T, 1> buffer,
+                       const AccessorRO<T, 2> in,
+                       const Point<2> origin,
+                       const Point<1> pitch,
+                       const size_t max,
+                       const T identity)
+{
+  T value             = identity;
   const size_t offset = blockIdx.x * blockDim.x + threadIdx.x;
   if (offset < max) {
     const coord_t x = origin[0] + offset / pitch[0];
@@ -253,11 +279,16 @@ __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   fold_output(buffer, value, SumReduction<T>{});
 }
 
-template<typename T>
+template <typename T>
 __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-    legate_sum_reduce_3d(const DeferredBuffer<T, 1> buffer, const AccessorRO<T, 3> in, const Point<3> origin, const Point<2> pitch,
-                         const size_t max, const T identity) {
-  T            value  = identity;
+  legate_sum_reduce_3d(const DeferredBuffer<T, 1> buffer,
+                       const AccessorRO<T, 3> in,
+                       const Point<3> origin,
+                       const Point<2> pitch,
+                       const size_t max,
+                       const T identity)
+{
+  T value             = identity;
   const size_t offset = blockIdx.x * blockDim.x + threadIdx.x;
   if (offset < max) {
     const coord_t x = origin[0] + offset / pitch[0];
@@ -268,32 +299,37 @@ __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   fold_output(buffer, value, SumReduction<T>{});
 }
 
-template<typename T>
-__global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-    legate_buffer_sum_reduce(const DeferredBuffer<T, 1> in, const DeferredBuffer<T, 1> out, const size_t max, const T identity) {
-  T            value  = identity;
+template <typename T>
+__global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM) legate_buffer_sum_reduce(
+  const DeferredBuffer<T, 1> in, const DeferredBuffer<T, 1> out, const size_t max, const T identity)
+{
+  T value             = identity;
   const size_t offset = blockIdx.x * blockDim.x + threadIdx.x;
   if (offset < max) value = in.read(offset);
   fold_output(out, value, SumReduction<T>{});
 }
 
-template<typename T>
+template <typename T>
 __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-    legate_final_sum_reduce(const DeferredBuffer<T, 1> in, const DeferredReduction<SumReduction<T>> out, const size_t max,
-                            const T identity) {
-  T            value  = identity;
+  legate_final_sum_reduce(const DeferredBuffer<T, 1> in,
+                          const DeferredReduction<SumReduction<T>> out,
+                          const size_t max,
+                          const T identity)
+{
+  T value             = identity;
   const size_t offset = blockIdx.x * blockDim.x + threadIdx.x;
   if (offset < max) value = in.read(offset);
   reduce_output(out, value);
 }
 
-template<typename T>
-/*static*/ DeferredReduction<SumReduction<T>>
-    SumReducTask<T>::gpu_variant(const Task* task, const std::vector<PhysicalRegion>& regions, Context ctx, Runtime* runtime) {
-  LegateDeserializer   derez(task->args, task->arglen);
-  const int            dim = derez.unpack_dimension();
+template <typename T>
+/*static*/ DeferredReduction<SumReduction<T>> SumReducTask<T>::gpu_variant(
+  const Task* task, const std::vector<PhysicalRegion>& regions, Context ctx, Runtime* runtime)
+{
+  LegateDeserializer derez(task->args, task->arglen);
+  const int dim = derez.unpack_dimension();
   DeferredBuffer<T, 1> bufferA;
-  size_t               volume = 0, blocks = 0;
+  size_t volume = 0, blocks = 0;
   switch (dim) {
     case 1: {
       const Rect<1> rect = NumPyProjectionFunctor::unpack_shape<1>(task, derez);
@@ -303,7 +339,8 @@ template<typename T>
       blocks                    = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
       Rect<1> bounds(Point<1>(0), Point<1>(blocks - 1));
       bufferA = DeferredBuffer<T, 1>(Memory::GPU_FB_MEM, Domain(bounds));
-      legate_sum_reduce_1d<T><<<blocks, THREADS_PER_BLOCK>>>(bufferA, in, rect.lo, volume, SumReduction<T>::identity);
+      legate_sum_reduce_1d<T>
+        <<<blocks, THREADS_PER_BLOCK>>>(bufferA, in, rect.lo, volume, SumReduction<T>::identity);
       volume = blocks;
       break;
     }
@@ -316,8 +353,8 @@ template<typename T>
       Rect<1> bounds(Point<1>(0), Point<1>(blocks - 1));
       bufferA             = DeferredBuffer<T, 1>(Memory::GPU_FB_MEM, Domain(bounds));
       const coord_t pitch = rect.hi[1] - rect.lo[1] + 1;
-      legate_sum_reduce_2d<T>
-          <<<blocks, THREADS_PER_BLOCK>>>(bufferA, in, rect.lo, Point<1>(pitch), volume, SumReduction<T>::identity);
+      legate_sum_reduce_2d<T><<<blocks, THREADS_PER_BLOCK>>>(
+        bufferA, in, rect.lo, Point<1>(pitch), volume, SumReduction<T>::identity);
       volume = blocks;
       break;
     }
@@ -332,21 +369,20 @@ template<typename T>
       const coord_t diffy    = rect.hi[1] - rect.lo[1] + 1;
       const coord_t diffz    = rect.hi[2] - rect.lo[2] + 1;
       const coord_t pitch[2] = {diffy * diffz, diffz};
-      legate_sum_reduce_3d<T>
-          <<<blocks, THREADS_PER_BLOCK>>>(bufferA, in, rect.lo, Point<2>(pitch), volume, SumReduction<T>::identity);
+      legate_sum_reduce_3d<T><<<blocks, THREADS_PER_BLOCK>>>(
+        bufferA, in, rect.lo, Point<2>(pitch), volume, SumReduction<T>::identity);
       volume = blocks;
       break;
     }
-    default:
-      assert(false);
+    default: assert(false);
   }
   // Continue reducing buffers until we get down to one small enough that
   // it can be handled by a single CTA and then we can do the final launch
   DeferredBuffer<T, 1> last = bufferA;
   if (volume > THREADS_PER_BLOCK) {
     DeferredBuffer<T, 1> bufferB;
-    bool                 b_initialized = false;
-    bool                 forward       = true;
+    bool b_initialized = false;
+    bool forward       = true;
     while (volume > THREADS_PER_BLOCK) {
       blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
       if (!b_initialized) {
@@ -355,10 +391,12 @@ template<typename T>
         b_initialized  = true;
       }
       if (forward) {
-        legate_buffer_sum_reduce<T><<<blocks, THREADS_PER_BLOCK>>>(bufferA, bufferB, volume, SumReduction<T>::identity);
+        legate_buffer_sum_reduce<T>
+          <<<blocks, THREADS_PER_BLOCK>>>(bufferA, bufferB, volume, SumReduction<T>::identity);
         forward = false;
       } else {
-        legate_buffer_sum_reduce<T><<<blocks, THREADS_PER_BLOCK>>>(bufferB, bufferA, volume, SumReduction<T>::identity);
+        legate_buffer_sum_reduce<T>
+          <<<blocks, THREADS_PER_BLOCK>>>(bufferB, bufferA, volume, SumReduction<T>::identity);
         forward = true;
       }
       volume = blocks;
@@ -367,81 +405,102 @@ template<typename T>
   }
   DeferredReduction<SumReduction<T>> result;
   // One last kernel launch to do the final reduction to a single value
-  if (volume > 0) legate_final_sum_reduce<T><<<1, THREADS_PER_BLOCK>>>(last, result, volume, SumReduction<T>::identity);
+  if (volume > 0)
+    legate_final_sum_reduce<T>
+      <<<1, THREADS_PER_BLOCK>>>(last, result, volume, SumReduction<T>::identity);
   return result;
 }
 
 INSTANTIATE_DEFERRED_REDUCTION_TASK_VARIANT(SumReducTask, SumReduction, gpu_variant)
 
-template<typename T, int DIM>
+template <typename T, int DIM>
 struct SumRadixArgs {
   AccessorRO<T, DIM> in[MAX_REDUCTION_RADIX];
 };
 
-template<typename T>
+template <typename T>
 __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-    legate_sum_radix_1d(const AccessorWO<T, 1> out, const SumRadixArgs<T, 1> args, const size_t argmax, const Point<1> origin,
-                        const size_t max) {
+  legate_sum_radix_1d(const AccessorWO<T, 1> out,
+                      const SumRadixArgs<T, 1> args,
+                      const size_t argmax,
+                      const Point<1> origin,
+                      const size_t max)
+{
   const size_t offset = blockIdx.x * blockDim.x + threadIdx.x;
   if (offset >= max) return;
-  const coord_t x   = origin[0] + offset;
-  T             val = args.in[0][x];
+  const coord_t x = origin[0] + offset;
+  T val           = args.in[0][x];
   for (unsigned idx = 1; idx < argmax; idx++)
     SumReduction<T>::template fold<true /*exclusive*/>(val, args.in[idx][x]);
   out[x] = val;
 }
 
-template<typename T>
+template <typename T>
 __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-    legate_sum_radix_2d(const AccessorWO<T, 2> out, const SumRadixArgs<T, 2> args, const size_t argmax, const Point<2> origin,
-                        const Point<1> pitch, const size_t max) {
+  legate_sum_radix_2d(const AccessorWO<T, 2> out,
+                      const SumRadixArgs<T, 2> args,
+                      const size_t argmax,
+                      const Point<2> origin,
+                      const Point<1> pitch,
+                      const size_t max)
+{
   const size_t offset = blockIdx.x * blockDim.x + threadIdx.x;
   if (offset >= max) return;
-  const coord_t x   = origin[0] + offset / pitch[0];
-  const coord_t y   = origin[1] + offset % pitch[0];
-  T             val = args.in[0][x][y];
+  const coord_t x = origin[0] + offset / pitch[0];
+  const coord_t y = origin[1] + offset % pitch[0];
+  T val           = args.in[0][x][y];
   for (unsigned idx = 1; idx < argmax; idx++)
     SumReduction<T>::template fold<true /*exclusive*/>(val, args.in[idx][x][y]);
   out[x][y] = val;
 }
 
-template<typename T>
+template <typename T>
 __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-    legate_sum_radix_3d(const AccessorWO<T, 3> out, const SumRadixArgs<T, 3> args, const size_t argmax, const Point<3> origin,
-                        const Point<2> pitch, const size_t max) {
+  legate_sum_radix_3d(const AccessorWO<T, 3> out,
+                      const SumRadixArgs<T, 3> args,
+                      const size_t argmax,
+                      const Point<3> origin,
+                      const Point<2> pitch,
+                      const size_t max)
+{
   const size_t offset = blockIdx.x * blockDim.x + threadIdx.x;
   if (offset >= max) return;
-  const coord_t x   = origin[0] + offset / pitch[0];
-  const coord_t y   = origin[1] + (offset % pitch[0]) / pitch[1];
-  const coord_t z   = origin[2] + (offset % pitch[0]) % pitch[1];
-  T             val = args.in[0][x][y][z];
+  const coord_t x = origin[0] + offset / pitch[0];
+  const coord_t y = origin[1] + (offset % pitch[0]) / pitch[1];
+  const coord_t z = origin[2] + (offset % pitch[0]) % pitch[1];
+  T val           = args.in[0][x][y][z];
   for (unsigned idx = 1; idx < argmax; idx++)
     SumReduction<T>::template fold<true /*exclusive*/>(val, args.in[idx][x][y][z]);
   out[x][y][z] = val;
 }
 
-template<typename T>
-/*static*/ void SumRadixTask<T>::gpu_variant(const Task* task, const std::vector<PhysicalRegion>& regions, Context ctx,
-                                             Runtime* runtime) {
+template <typename T>
+/*static*/ void SumRadixTask<T>::gpu_variant(const Task* task,
+                                             const std::vector<PhysicalRegion>& regions,
+                                             Context ctx,
+                                             Runtime* runtime)
+{
   LegateDeserializer derez(task->args, task->arglen);
   assert(task->regions.size() <= MAX_REDUCTION_RADIX);
-  const int     radix         = derez.unpack_dimension();
-  const int     extra_dim_out = derez.unpack_dimension();
-  const int     extra_dim_in  = derez.unpack_dimension();
-  const int     dim           = derez.unpack_dimension();
-  const coord_t offset        = (extra_dim_in >= 0) ? task->index_point[extra_dim_in] * radix : 0;
+  const int radix         = derez.unpack_dimension();
+  const int extra_dim_out = derez.unpack_dimension();
+  const int extra_dim_in  = derez.unpack_dimension();
+  const int dim           = derez.unpack_dimension();
+  const coord_t offset    = (extra_dim_in >= 0) ? task->index_point[extra_dim_in] * radix : 0;
   switch (dim) {
     case 1: {
       const Rect<1> rect = NumPyProjectionFunctor::unpack_shape<1>(task, derez);
       if (rect.empty()) break;
       const AccessorWO<T, 1> out =
-          (extra_dim_out >= 0) ? derez.unpack_accessor_WO<T, 1>(regions[0], rect, extra_dim_out, task->index_point[extra_dim_out])
-                               : derez.unpack_accessor_WO<T, 1>(regions[0], rect);
+        (extra_dim_out >= 0) ? derez.unpack_accessor_WO<T, 1>(
+                                 regions[0], rect, extra_dim_out, task->index_point[extra_dim_out])
+                             : derez.unpack_accessor_WO<T, 1>(regions[0], rect);
       SumRadixArgs<T, 1> args;
-      unsigned           num_inputs = 0;
+      unsigned num_inputs = 0;
       for (unsigned idx = 1; idx < task->regions.size(); idx++)
         if (task->regions[idx].region.exists())
-          args.in[num_inputs++] = derez.unpack_accessor_RO<T, 1>(regions[idx], rect, extra_dim_in, offset + idx - 1);
+          args.in[num_inputs++] =
+            derez.unpack_accessor_RO<T, 1>(regions[idx], rect, extra_dim_in, offset + idx - 1);
       const size_t volume = rect.volume();
       const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
       legate_sum_radix_1d<T><<<blocks, THREADS_PER_BLOCK>>>(out, args, num_inputs, rect.lo, volume);
@@ -451,43 +510,48 @@ template<typename T>
       const Rect<2> rect = NumPyProjectionFunctor::unpack_shape<2>(task, derez);
       if (rect.empty()) break;
       const AccessorWO<T, 2> out =
-          (extra_dim_out >= 0) ? derez.unpack_accessor_WO<T, 2>(regions[0], rect, extra_dim_out, task->index_point[extra_dim_out])
-                               : derez.unpack_accessor_WO<T, 2>(regions[0], rect);
+        (extra_dim_out >= 0) ? derez.unpack_accessor_WO<T, 2>(
+                                 regions[0], rect, extra_dim_out, task->index_point[extra_dim_out])
+                             : derez.unpack_accessor_WO<T, 2>(regions[0], rect);
       SumRadixArgs<T, 2> args;
-      unsigned           num_inputs = 0;
+      unsigned num_inputs = 0;
       for (unsigned idx = 1; idx < task->regions.size(); idx++)
         if (task->regions[idx].region.exists())
-          args.in[num_inputs++] = derez.unpack_accessor_RO<T, 2>(regions[idx], rect, extra_dim_in, offset + idx - 1);
-      const size_t  volume = rect.volume();
-      const size_t  blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-      const coord_t pitch  = rect.hi[1] - rect.lo[1] + 1;
-      legate_sum_radix_2d<T><<<blocks, THREADS_PER_BLOCK>>>(out, args, num_inputs, rect.lo, Point<1>(pitch), volume);
+          args.in[num_inputs++] =
+            derez.unpack_accessor_RO<T, 2>(regions[idx], rect, extra_dim_in, offset + idx - 1);
+      const size_t volume = rect.volume();
+      const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
+      const coord_t pitch = rect.hi[1] - rect.lo[1] + 1;
+      legate_sum_radix_2d<T>
+        <<<blocks, THREADS_PER_BLOCK>>>(out, args, num_inputs, rect.lo, Point<1>(pitch), volume);
       break;
     }
     case 3: {
       const Rect<3> rect = NumPyProjectionFunctor::unpack_shape<3>(task, derez);
       if (rect.empty()) break;
       const AccessorWO<T, 3> out =
-          (extra_dim_out >= 0) ? derez.unpack_accessor_WO<T, 3>(regions[0], rect, extra_dim_out, task->index_point[extra_dim_out])
-                               : derez.unpack_accessor_WO<T, 3>(regions[0], rect);
+        (extra_dim_out >= 0) ? derez.unpack_accessor_WO<T, 3>(
+                                 regions[0], rect, extra_dim_out, task->index_point[extra_dim_out])
+                             : derez.unpack_accessor_WO<T, 3>(regions[0], rect);
       SumRadixArgs<T, 3> args;
-      unsigned           num_inputs = 0;
+      unsigned num_inputs = 0;
       for (unsigned idx = 1; idx < task->regions.size(); idx++)
-        args.in[num_inputs++] = derez.unpack_accessor_RO<T, 3>(regions[idx], rect, extra_dim_in, offset + idx - 1);
-      const size_t  volume   = rect.volume();
-      const size_t  blocks   = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
+        args.in[num_inputs++] =
+          derez.unpack_accessor_RO<T, 3>(regions[idx], rect, extra_dim_in, offset + idx - 1);
+      const size_t volume    = rect.volume();
+      const size_t blocks    = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
       const coord_t diffy    = rect.hi[1] - rect.lo[1] + 1;
       const coord_t diffz    = rect.hi[2] - rect.lo[2] + 1;
       const coord_t pitch[2] = {diffy * diffz, diffz};
-      legate_sum_radix_3d<T><<<blocks, THREADS_PER_BLOCK>>>(out, args, num_inputs, rect.lo, Point<2>(pitch), volume);
+      legate_sum_radix_3d<T>
+        <<<blocks, THREADS_PER_BLOCK>>>(out, args, num_inputs, rect.lo, Point<2>(pitch), volume);
       break;
     }
-    default:
-      assert(false);
+    default: assert(false);
   }
 }
 
 INSTANTIATE_TASK_VARIANT(SumRadixTask, gpu_variant)
 
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate

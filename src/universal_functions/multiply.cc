@@ -31,5 +31,5 @@ template void Multiply<uint64_t>::instantiate_tasks();
 template void Multiply<bool>::instantiate_tasks();
 template void Multiply<complex<float>>::instantiate_tasks();
 template void Multiply<complex<double>>::instantiate_tasks();
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate

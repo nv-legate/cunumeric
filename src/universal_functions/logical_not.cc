@@ -31,5 +31,5 @@ template void LogicalNot<uint64_t>::instantiate_tasks();
 template void LogicalNot<bool>::instantiate_tasks();
 template void LogicalNot<complex<float>>::instantiate_tasks();
 template void LogicalNot<complex<double>>::instantiate_tasks();
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate

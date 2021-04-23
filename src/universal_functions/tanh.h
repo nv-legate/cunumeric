@@ -23,7 +23,7 @@
 namespace legate {
 namespace numpy {
 using std::tanh;
-template<class T>
+template <class T>
 struct TanhOperation {
   using argument_type           = T;
   using result_type             = decltype(tanh(std::declval<argument_type>()));
@@ -32,9 +32,9 @@ struct TanhOperation {
   __CUDA_HD__ constexpr result_type operator()(const argument_type& a) const { return tanh(a); }
 };
 
-template<typename T>
+template <typename T>
 using Tanh = UnaryUniversalFunction<TanhOperation<T>>;
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate
 
-#endif    // __NUMPY_TANH_H__
+#endif  // __NUMPY_TANH_H__

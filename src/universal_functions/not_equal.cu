@@ -31,5 +31,5 @@ template void NotEqual<uint64_t>::instantiate_task_gpu_variants();
 template void NotEqual<bool>::instantiate_task_gpu_variants();
 template void NotEqual<complex<float>>::instantiate_task_gpu_variants();
 template void NotEqual<complex<double>>::instantiate_task_gpu_variants();
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate

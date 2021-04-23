@@ -17,17 +17,47 @@
 #include "inplace_div.h"
 
 // XXX can we find a way to avoid this?
-template void PointTask<InplaceDivTask<float>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
-template void PointTask<InplaceDivTask<double>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
-template void PointTask<InplaceDivTask<int16_t>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
-template void PointTask<InplaceDivTask<int32_t>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
-template void PointTask<InplaceDivTask<int64_t>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
-template void PointTask<InplaceDivTask<uint16_t>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
-template void PointTask<InplaceDivTask<uint32_t>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
-template void PointTask<InplaceDivTask<uint64_t>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
-template void PointTask<InplaceDivTask<bool>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
-template void PointTask<InplaceDivTask<__half>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
-template void PointTask<InplaceDivTask<complex<float>>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context,
-                                                                     Runtime*);
-template void PointTask<InplaceDivTask<complex<double>>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context,
-                                                                      Runtime*);
+template void PointTask<InplaceDivTask<float>>::gpu_variant(const Task*,
+                                                            const std::vector<PhysicalRegion>&,
+                                                            Context,
+                                                            Runtime*);
+template void PointTask<InplaceDivTask<double>>::gpu_variant(const Task*,
+                                                             const std::vector<PhysicalRegion>&,
+                                                             Context,
+                                                             Runtime*);
+template void PointTask<InplaceDivTask<int16_t>>::gpu_variant(const Task*,
+                                                              const std::vector<PhysicalRegion>&,
+                                                              Context,
+                                                              Runtime*);
+template void PointTask<InplaceDivTask<int32_t>>::gpu_variant(const Task*,
+                                                              const std::vector<PhysicalRegion>&,
+                                                              Context,
+                                                              Runtime*);
+template void PointTask<InplaceDivTask<int64_t>>::gpu_variant(const Task*,
+                                                              const std::vector<PhysicalRegion>&,
+                                                              Context,
+                                                              Runtime*);
+template void PointTask<InplaceDivTask<uint16_t>>::gpu_variant(const Task*,
+                                                               const std::vector<PhysicalRegion>&,
+                                                               Context,
+                                                               Runtime*);
+template void PointTask<InplaceDivTask<uint32_t>>::gpu_variant(const Task*,
+                                                               const std::vector<PhysicalRegion>&,
+                                                               Context,
+                                                               Runtime*);
+template void PointTask<InplaceDivTask<uint64_t>>::gpu_variant(const Task*,
+                                                               const std::vector<PhysicalRegion>&,
+                                                               Context,
+                                                               Runtime*);
+template void PointTask<InplaceDivTask<bool>>::gpu_variant(const Task*,
+                                                           const std::vector<PhysicalRegion>&,
+                                                           Context,
+                                                           Runtime*);
+template void PointTask<InplaceDivTask<__half>>::gpu_variant(const Task*,
+                                                             const std::vector<PhysicalRegion>&,
+                                                             Context,
+                                                             Runtime*);
+template void PointTask<InplaceDivTask<complex<float>>>::gpu_variant(
+  const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
+template void PointTask<InplaceDivTask<complex<double>>>::gpu_variant(
+  const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);

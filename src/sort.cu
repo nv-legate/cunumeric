@@ -24,14 +24,17 @@ using namespace Legion;
 
 namespace legate {
 namespace numpy {
-template<typename T>
-/*static*/ void SortTask<T>::gpu_variant(const Task* task, const std::vector<PhysicalRegion>& regions, Context ctx,
-                                         Runtime* runtime) {
-  LegateDeserializer     derez(task->args, task->arglen);
-  const Rect<1>          rect = NumPyProjectionFunctor::unpack_shape<1>(task, derez);
-  const AccessorRW<T, 1> out  = derez.unpack_accessor_RW<T, 1>(regions[0], rect);
+template <typename T>
+/*static*/ void SortTask<T>::gpu_variant(const Task* task,
+                                         const std::vector<PhysicalRegion>& regions,
+                                         Context ctx,
+                                         Runtime* runtime)
+{
+  LegateDeserializer derez(task->args, task->arglen);
+  const Rect<1> rect         = NumPyProjectionFunctor::unpack_shape<1>(task, derez);
+  const AccessorRW<T, 1> out = derez.unpack_accessor_RW<T, 1>(regions[0], rect);
   if (rect.empty()) return;
-  T*           ptr    = out.ptr(rect);
+  T* ptr              = out.ptr(rect);
   const size_t volume = rect.volume();
   // Call GPU sort using Thrust
   thrust::device_ptr<T> ptr_d(ptr);
@@ -39,5 +42,5 @@ template<typename T>
 }
 
 INSTANTIATE_TASK_VARIANT(SortTask, gpu_variant)
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate

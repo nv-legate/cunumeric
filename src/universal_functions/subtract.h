@@ -22,20 +22,21 @@
 
 namespace legate {
 namespace numpy {
-template<class T>
+template <class T>
 struct SubtractOperation : std::minus<T> {
   constexpr static auto op_code = NumPyOpCode::NUMPY_SUBTRACT;
 
-  template<typename U, typename V>
-  __CUDA_HD__ auto operator()(U&& u, V&& v) const {
+  template <typename U, typename V>
+  __CUDA_HD__ auto operator()(U&& u, V&& v) const
+  {
     return std::forward<U>(u) - std::forward<V>(v);
   }
 };
 
 // Standard data-parallel subtraction task
-template<typename T>
+template <typename T>
 using Subtract = NoncommutativeBinaryUniversalFunction<SubtractOperation<T>>;
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate
 
-#endif    // __NUMPY_SUBTRACT_H__
+#endif  // __NUMPY_SUBTRACT_H__

@@ -17,7 +17,7 @@
 #include "contains.h"
 #include "proj.h"
 #ifdef LEGATE_USE_OPENMP
-#  include <omp.h>
+#include <omp.h>
 #endif
 
 using namespace Legion;
@@ -25,13 +25,16 @@ using namespace Legion;
 namespace legate {
 namespace numpy {
 
-template<typename T>
-/*static*/ bool ContainsTask<T>::cpu_variant(const Task* task, const std::vector<PhysicalRegion>& regions, Context ctx,
-                                             Runtime* runtime) {
+template <typename T>
+/*static*/ bool ContainsTask<T>::cpu_variant(const Task* task,
+                                             const std::vector<PhysicalRegion>& regions,
+                                             Context ctx,
+                                             Runtime* runtime)
+{
   assert(task->futures.size() == 1);
-  const T            value = task->futures[0].template get_result<T>();
+  const T value = task->futures[0].template get_result<T>();
   LegateDeserializer derez(task->args, task->arglen);
-  const int          dim = derez.unpack_dimension();
+  const int dim = derez.unpack_dimension();
   switch (dim) {
     case 1: {
       const Rect<1> rect = NumPyProjectionFunctor::unpack_shape<1>(task, derez);
@@ -60,28 +63,30 @@ template<typename T>
             if (in[x][y][z] == value) return true;
       break;
     }
-    default:
-      assert(false);
+    default: assert(false);
   }
   // If we make it here then we don't have the value
   return false;
 }
 
 #ifdef LEGATE_USE_OPENMP
-template<typename T>
-/*static*/ bool ContainsTask<T>::omp_variant(const Task* task, const std::vector<PhysicalRegion>& regions, Context ctx,
-                                             Runtime* runtime) {
+template <typename T>
+/*static*/ bool ContainsTask<T>::omp_variant(const Task* task,
+                                             const std::vector<PhysicalRegion>& regions,
+                                             Context ctx,
+                                             Runtime* runtime)
+{
   assert(task->futures.size() == 1);
-  const T            value = task->futures[0].template get_result<T>();
+  const T value = task->futures[0].template get_result<T>();
   LegateDeserializer derez(task->args, task->arglen);
-  const int          dim    = derez.unpack_dimension();
-  bool               result = false;
+  const int dim = derez.unpack_dimension();
+  bool result   = false;
   switch (dim) {
     case 1: {
       const Rect<1> rect = NumPyProjectionFunctor::unpack_shape<1>(task, derez);
       if (rect.empty()) break;
       const AccessorRO<T, 1> in = derez.unpack_accessor_RO<T, 1>(regions[0], rect);
-#  pragma omp parallel for
+#pragma omp parallel for
       for (coord_t x = rect.lo[0]; x <= rect.hi[0]; x++)
         if (in[x] == value) result = true;
       break;
@@ -90,7 +95,7 @@ template<typename T>
       const Rect<2> rect = NumPyProjectionFunctor::unpack_shape<2>(task, derez);
       if (rect.empty()) break;
       const AccessorRO<T, 2> in = derez.unpack_accessor_RO<T, 2>(regions[0], rect);
-#  pragma omp parallel for
+#pragma omp parallel for
       for (coord_t x = rect.lo[0]; x <= rect.hi[0]; x++)
         for (coord_t y = rect.lo[1]; y <= rect.hi[1]; y++)
           if (in[x][y] == value) result = true;
@@ -100,27 +105,30 @@ template<typename T>
       const Rect<3> rect = NumPyProjectionFunctor::unpack_shape<3>(task, derez);
       if (rect.empty()) break;
       const AccessorRO<T, 3> in = derez.unpack_accessor_RO<T, 3>(regions[0], rect);
-#  pragma omp parallel for
+#pragma omp parallel for
       for (coord_t x = rect.lo[0]; x <= rect.hi[0]; x++)
         for (coord_t y = rect.lo[1]; y <= rect.hi[1]; y++)
           for (coord_t z = rect.lo[2]; z <= rect.hi[2]; z++)
             if (in[x][y][z] == value) result = true;
       break;
     }
-    default:
-      assert(false);
+    default: assert(false);
   }
   return result;
 }
 #endif
 
 INSTANTIATE_ALL_TASKS(ContainsTask,
-                      static_cast<int>(NumPyOpCode::NUMPY_CONTAINS) * NUMPY_TYPE_OFFSET + NUMPY_REDUCTION_VARIANT_OFFSET)
+                      static_cast<int>(NumPyOpCode::NUMPY_CONTAINS) * NUMPY_TYPE_OFFSET +
+                        NUMPY_REDUCTION_VARIANT_OFFSET)
 
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate
 
-namespace    // unnammed
+namespace  // unnammed
 {
-static void __attribute__((constructor)) register_tasks(void) { REGISTER_ALL_TASKS_WITH_BOOL_RETURN(legate::numpy::ContainsTask) }
-}    // namespace
+static void __attribute__((constructor)) register_tasks(void)
+{
+  REGISTER_ALL_TASKS_WITH_BOOL_RETURN(legate::numpy::ContainsTask)
+}
+}  // namespace

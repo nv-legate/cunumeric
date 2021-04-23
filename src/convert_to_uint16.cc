@@ -31,5 +31,5 @@ template class ConvertTask<uint16_t, int64_t>;
 template class ConvertTask<uint16_t, uint32_t>;
 template class ConvertTask<uint16_t, uint64_t>;
 template class ConvertTask<uint16_t, bool>;
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate

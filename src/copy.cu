@@ -22,17 +22,53 @@ using namespace Legion;
 namespace legate {
 namespace numpy {
 
-template void PointTask<CopyTask<__half>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
-template void PointTask<CopyTask<float>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
-template void PointTask<CopyTask<double>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
-template void PointTask<CopyTask<int16_t>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
-template void PointTask<CopyTask<int32_t>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
-template void PointTask<CopyTask<int64_t>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
-template void PointTask<CopyTask<uint16_t>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
-template void PointTask<CopyTask<uint32_t>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
-template void PointTask<CopyTask<uint64_t>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
-template void PointTask<CopyTask<bool>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
-template void PointTask<CopyTask<complex<float>>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
-template void PointTask<CopyTask<complex<double>>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
-}    // namespace numpy
-}    // namespace legate
+template void PointTask<CopyTask<__half>>::gpu_variant(const Task*,
+                                                       const std::vector<PhysicalRegion>&,
+                                                       Context,
+                                                       Runtime*);
+template void PointTask<CopyTask<float>>::gpu_variant(const Task*,
+                                                      const std::vector<PhysicalRegion>&,
+                                                      Context,
+                                                      Runtime*);
+template void PointTask<CopyTask<double>>::gpu_variant(const Task*,
+                                                       const std::vector<PhysicalRegion>&,
+                                                       Context,
+                                                       Runtime*);
+template void PointTask<CopyTask<int16_t>>::gpu_variant(const Task*,
+                                                        const std::vector<PhysicalRegion>&,
+                                                        Context,
+                                                        Runtime*);
+template void PointTask<CopyTask<int32_t>>::gpu_variant(const Task*,
+                                                        const std::vector<PhysicalRegion>&,
+                                                        Context,
+                                                        Runtime*);
+template void PointTask<CopyTask<int64_t>>::gpu_variant(const Task*,
+                                                        const std::vector<PhysicalRegion>&,
+                                                        Context,
+                                                        Runtime*);
+template void PointTask<CopyTask<uint16_t>>::gpu_variant(const Task*,
+                                                         const std::vector<PhysicalRegion>&,
+                                                         Context,
+                                                         Runtime*);
+template void PointTask<CopyTask<uint32_t>>::gpu_variant(const Task*,
+                                                         const std::vector<PhysicalRegion>&,
+                                                         Context,
+                                                         Runtime*);
+template void PointTask<CopyTask<uint64_t>>::gpu_variant(const Task*,
+                                                         const std::vector<PhysicalRegion>&,
+                                                         Context,
+                                                         Runtime*);
+template void PointTask<CopyTask<bool>>::gpu_variant(const Task*,
+                                                     const std::vector<PhysicalRegion>&,
+                                                     Context,
+                                                     Runtime*);
+template void PointTask<CopyTask<complex<float>>>::gpu_variant(const Task*,
+                                                               const std::vector<PhysicalRegion>&,
+                                                               Context,
+                                                               Runtime*);
+template void PointTask<CopyTask<complex<double>>>::gpu_variant(const Task*,
+                                                                const std::vector<PhysicalRegion>&,
+                                                                Context,
+                                                                Runtime*);
+}  // namespace numpy
+}  // namespace legate

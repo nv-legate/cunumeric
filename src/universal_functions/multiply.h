@@ -22,20 +22,21 @@
 
 namespace legate {
 namespace numpy {
-template<class T>
+template <class T>
 struct MultiplyOperation : std::multiplies<T> {
   constexpr static auto op_code = NumPyOpCode::NUMPY_MULTIPLY;
 
-  template<typename U, typename V>
-  __CUDA_HD__ auto operator()(U&& u, V&& v) const {
+  template <typename U, typename V>
+  __CUDA_HD__ auto operator()(U&& u, V&& v) const
+  {
     return std::forward<U>(u) * std::forward<V>(v);
   }
 };
 
 // Standard data-parallel multiply task
-template<typename T>
+template <typename T>
 using Multiply = BinaryUniversalFunction<MultiplyOperation<T>>;
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate
 
-#endif    // __NUMPY_MULTIPLY_H__
+#endif  // __NUMPY_MULTIPLY_H__

@@ -22,14 +22,14 @@
 
 namespace legate {
 namespace numpy {
-template<class T>
+template <class T>
 struct EqualOperation : std::equal_to<T> {
   constexpr static auto op_code = NumPyOpCode::NUMPY_EQUAL;
 };
 
-template<class T>
+template <class T>
 using Equal = BinaryUniversalFunction<EqualOperation<T>>;
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate
 
-#endif    // __NUMPY_EQUAL_H__
+#endif  // __NUMPY_EQUAL_H__

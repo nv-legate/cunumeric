@@ -23,37 +23,45 @@
 namespace legate {
 namespace numpy {
 // Small helper method for diagonal
-static inline Legion::Rect<1> extract_rect1d(const Legion::Domain& dom) {
+static inline Legion::Rect<1> extract_rect1d(const Legion::Domain& dom)
+{
   const Legion::Rect<2> rect = dom;
-  Legion::Rect<1>       result;
+  Legion::Rect<1> result;
   result.lo[0] = rect.lo[0];
   result.hi[0] = rect.hi[0];
   return result;
 }
 
-template<typename T>
+template <typename T>
 class DiagTask : public NumPyTask<DiagTask<T>> {
-public:
+ public:
   static const int TASK_ID;
   static const int REGIONS = 2;
 
-public:
-  template<typename TASK>
-  static void set_layout_constraints(LegateVariant variant, Legion::TaskLayoutConstraintSet& layout_constraints);
+ public:
+  template <typename TASK>
+  static void set_layout_constraints(LegateVariant variant,
+                                     Legion::TaskLayoutConstraintSet& layout_constraints);
 
-public:
-  static void cpu_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+ public:
+  static void cpu_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #ifdef LEGATE_USE_OPENMP
-  static void omp_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+  static void omp_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #endif
 #ifdef LEGATE_USE_CUDA
-  static void gpu_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+  static void gpu_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #endif
 };
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate
 
-#endif    // __NUMPY_DIAG_H__
+#endif  // __NUMPY_DIAG_H__

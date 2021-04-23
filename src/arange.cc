@@ -22,9 +22,12 @@ using namespace Legion;
 namespace legate {
 namespace numpy {
 
-template<typename T>
-/*static*/ void ArangeTask<T>::cpu_variant(const Task* task, const std::vector<PhysicalRegion>& regions, Context ctx,
-                                           Runtime* runtime) {
+template <typename T>
+/*static*/ void ArangeTask<T>::cpu_variant(const Task* task,
+                                           const std::vector<PhysicalRegion>& regions,
+                                           Context ctx,
+                                           Runtime* runtime)
+{
   LegateDeserializer derez(task->args, task->arglen);
   // We know this is 2-D
   const Rect<1> rect = NumPyProjectionFunctor::unpack_shape<1>(task, derez);
@@ -42,9 +45,12 @@ template<typename T>
 }
 
 #ifdef LEGATE_USE_OPENMP
-template<typename T>
-/*static*/ void ArangeTask<T>::omp_variant(const Task* task, const std::vector<PhysicalRegion>& regions, Context ctx,
-                                           Runtime* runtime) {
+template <typename T>
+/*static*/ void ArangeTask<T>::omp_variant(const Task* task,
+                                           const std::vector<PhysicalRegion>& regions,
+                                           Context ctx,
+                                           Runtime* runtime)
+{
   LegateDeserializer derez(task->args, task->arglen);
   // We know this is 2-D
   const Rect<1> rect = NumPyProjectionFunctor::unpack_shape<1>(task, derez);
@@ -55,9 +61,9 @@ template<typename T>
   const T stop  = task->futures[1].get_result<T>();
   const T step  = task->futures[2].get_result<T>();
 
-  const Point<1> lo   = rect.lo;
-  const size_t   size = rect.volume();
-#  pragma omp    parallel for
+  const Point<1> lo = rect.lo;
+  const size_t size = rect.volume();
+#pragma omp parallel for
   for (coord_t idx = 0; idx < size; ++idx) {
     Point<1> p(lo + idx);
     out[p] = (T)p[0] * step + start;
@@ -65,12 +71,17 @@ template<typename T>
 }
 #endif
 
-INSTANTIATE_ALL_TASKS(ArangeTask, static_cast<int>(NumPyOpCode::NUMPY_ARANGE) * NUMPY_TYPE_OFFSET + NUMPY_NORMAL_VARIANT_OFFSET)
+INSTANTIATE_ALL_TASKS(ArangeTask,
+                      static_cast<int>(NumPyOpCode::NUMPY_ARANGE) * NUMPY_TYPE_OFFSET +
+                        NUMPY_NORMAL_VARIANT_OFFSET)
 
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate
 
-namespace    // unnamed
+namespace  // unnamed
 {
-static void __attribute__((constructor)) register_tasks(void) { REGISTER_ALL_TASKS(legate::numpy::ArangeTask) }
-}    // namespace
+static void __attribute__((constructor)) register_tasks(void)
+{
+  REGISTER_ALL_TASKS(legate::numpy::ArangeTask)
+}
+}  // namespace

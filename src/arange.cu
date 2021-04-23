@@ -23,20 +23,29 @@ using namespace Legion;
 namespace legate {
 namespace numpy {
 
-template<typename T>
+template <typename T>
 __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-    legate_arange(const AccessorWO<T, 1> out, const Point<1> lo, const size_t max, const T start, const T stop, const T step) {
+  legate_arange(const AccessorWO<T, 1> out,
+                const Point<1> lo,
+                const size_t max,
+                const T start,
+                const T stop,
+                const T step)
+{
   const size_t offset = blockIdx.x * blockDim.x + threadIdx.x;
   if (offset >= max) return;
   Point<1> p(lo + offset);
   out[p] = (T)p[0] * step + start;
 }
 
-template<typename T>
-/*static*/ void ArangeTask<T>::gpu_variant(const Task* task, const std::vector<PhysicalRegion>& regions, Context ctx,
-                                           Runtime* runtime) {
+template <typename T>
+/*static*/ void ArangeTask<T>::gpu_variant(const Task* task,
+                                           const std::vector<PhysicalRegion>& regions,
+                                           Context ctx,
+                                           Runtime* runtime)
+{
   LegateDeserializer derez(task->args, task->arglen);
-  const Rect<1>      rect = NumPyProjectionFunctor::unpack_shape<1>(task, derez);
+  const Rect<1> rect = NumPyProjectionFunctor::unpack_shape<1>(task, derez);
   if (rect.empty()) return;
   const AccessorWO<T, 1> out = derez.unpack_accessor_WO<T, 1>(regions[0], rect);
 
@@ -44,13 +53,13 @@ template<typename T>
   const T stop  = task->futures[1].get_result<T>();
   const T step  = task->futures[2].get_result<T>();
 
-  const Point<1> lo     = rect.lo;
-  const size_t   size   = rect.volume();
-  const size_t   blocks = (size + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
+  const Point<1> lo   = rect.lo;
+  const size_t size   = rect.volume();
+  const size_t blocks = (size + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
   legate_arange<T><<<blocks, THREADS_PER_BLOCK>>>(out, lo, size, start, stop, step);
 }
 
 INSTANTIATE_TASK_VARIANT(ArangeTask, gpu_variant)
 
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate

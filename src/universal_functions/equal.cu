@@ -31,5 +31,5 @@ template void Equal<uint64_t>::instantiate_task_gpu_variants();
 template void Equal<bool>::instantiate_task_gpu_variants();
 template void Equal<complex<float>>::instantiate_task_gpu_variants();
 template void Equal<complex<double>>::instantiate_task_gpu_variants();
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate

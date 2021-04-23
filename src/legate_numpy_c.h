@@ -21,13 +21,13 @@
 
 // Match these to NumPyVariantCode in legate/numpy/config.py
 enum NumPyVariantCode {
-  NUMPY_NORMAL_VARIANT_OFFSET            = 0,    // many_a x many_b -> many_c
-  NUMPY_SCALAR_VARIANT_OFFSET            = 1,    // one_a x one_b -> one_c
-  NUMPY_BROADCAST_VARIANT_OFFSET         = 2,    // one_a x many_b -> many_c
-  NUMPY_REDUCTION_VARIANT_OFFSET         = 3,    // many_a x many_b -> one_c
-  NUMPY_INPLACE_VARIANT_OFFSET           = 4,    // many_a x many_b -> many_a
-  NUMPY_INPLACE_BROADCAST_VARIANT_OFFSET = 5,    // many_a x one_b -> many_a
-  NUMPY_MAX_VARIANTS                     = 6     // this must be last
+  NUMPY_NORMAL_VARIANT_OFFSET            = 0,  // many_a x many_b -> many_c
+  NUMPY_SCALAR_VARIANT_OFFSET            = 1,  // one_a x one_b -> one_c
+  NUMPY_BROADCAST_VARIANT_OFFSET         = 2,  // one_a x many_b -> many_c
+  NUMPY_REDUCTION_VARIANT_OFFSET         = 3,  // many_a x many_b -> one_c
+  NUMPY_INPLACE_VARIANT_OFFSET           = 4,  // many_a x many_b -> many_a
+  NUMPY_INPLACE_BROADCAST_VARIANT_OFFSET = 5,  // many_a x one_b -> many_a
+  NUMPY_MAX_VARIANTS                     = 6   // this must be last
 };
 
 // Match these to NumPyOpCode in legate/numpy/config.py
@@ -119,41 +119,41 @@ enum NumPyRedopID {
 // Match these to NumPyProjCode in legate/core/config.py
 enum NumPyProjectionCode {
   // 2D reduction
-  NUMPY_PROJ_2D_1D_X = 1,    // keep x
-  NUMPY_PROJ_2D_1D_Y = 2,    // keep y
+  NUMPY_PROJ_2D_1D_X = 1,  // keep x
+  NUMPY_PROJ_2D_1D_Y = 2,  // keep y
   // 2D broadcast
-  NUMPY_PROJ_2D_2D_X0 = 3,    // x, broadcast 0
-  NUMPY_PROJ_2D_2D_0X = 4,    // broadcast 0, x
-  NUMPY_PROJ_2D_2D_0Y = 5,    // broadcast 0, y
-  NUMPY_PROJ_2D_2D_Y0 = 6,    // y, broadcast 0
+  NUMPY_PROJ_2D_2D_X0 = 3,  // x, broadcast 0
+  NUMPY_PROJ_2D_2D_0X = 4,  // broadcast 0, x
+  NUMPY_PROJ_2D_2D_0Y = 5,  // broadcast 0, y
+  NUMPY_PROJ_2D_2D_Y0 = 6,  // y, broadcast 0
   // 2D promotion
-  NUMPY_PROJ_1D_2D_X = 7,    // 1D point becomes (x, 0)
-  NUMPY_PROJ_1D_2D_Y = 8,    // 1D point becomes (0, x)
+  NUMPY_PROJ_1D_2D_X = 7,  // 1D point becomes (x, 0)
+  NUMPY_PROJ_1D_2D_Y = 8,  // 1D point becomes (0, x)
   // 2D transpose
-  NUMPY_PROJ_2D_2D_YX = 9,    // transpose (x,y) to (y,x)
+  NUMPY_PROJ_2D_2D_YX = 9,  // transpose (x,y) to (y,x)
   // 3D reduction
-  NUMPY_PROJ_3D_2D_XY = 10,    // keep x and y
-  NUMPY_PROJ_3D_2D_XZ = 11,    // keep x and z
-  NUMPY_PROJ_3D_2D_YZ = 12,    // keep y and z
-  NUMPY_PROJ_3D_1D_X  = 13,    // keep x
-  NUMPY_PROJ_3D_1D_Y  = 14,    // keep y
-  NUMPY_PROJ_3D_1D_Z  = 15,    // keep z
+  NUMPY_PROJ_3D_2D_XY = 10,  // keep x and y
+  NUMPY_PROJ_3D_2D_XZ = 11,  // keep x and z
+  NUMPY_PROJ_3D_2D_YZ = 12,  // keep y and z
+  NUMPY_PROJ_3D_1D_X  = 13,  // keep x
+  NUMPY_PROJ_3D_1D_Y  = 14,  // keep y
+  NUMPY_PROJ_3D_1D_Z  = 15,  // keep z
   // 3D broadcast
-  NUMPY_PROJ_3D_3D_XY = 16,    // keep x and y, broadcast z
-  NUMPY_PROJ_3D_3D_XZ = 17,    // keep x and z, broadcast y
-  NUMPY_PROJ_3D_3D_YZ = 18,    // keep y and z, broadcast x
-  NUMPY_PROJ_3D_3D_X  = 19,    // keep x, broadcast y and z
-  NUMPY_PROJ_3D_3D_Y  = 20,    // keep y, broadcast x and z
-  NUMPY_PROJ_3D_3D_Z  = 21,    // keep z, broadcast x and y
-  NUMPY_PROJ_3D_2D_XB = 22,    // y becomes x, broadcast z as y
-  NUMPY_PROJ_3D_2D_BY = 23,    // broadcast y as x, z becomes y
+  NUMPY_PROJ_3D_3D_XY = 16,  // keep x and y, broadcast z
+  NUMPY_PROJ_3D_3D_XZ = 17,  // keep x and z, broadcast y
+  NUMPY_PROJ_3D_3D_YZ = 18,  // keep y and z, broadcast x
+  NUMPY_PROJ_3D_3D_X  = 19,  // keep x, broadcast y and z
+  NUMPY_PROJ_3D_3D_Y  = 20,  // keep y, broadcast x and z
+  NUMPY_PROJ_3D_3D_Z  = 21,  // keep z, broadcast x and y
+  NUMPY_PROJ_3D_2D_XB = 22,  // y becomes x, broadcast z as y
+  NUMPY_PROJ_3D_2D_BY = 23,  // broadcast y as x, z becomes y
   // 3D promotion
-  NUMPY_PROJ_2D_3D_XY = 24,    // 2D point becomes (x, y, 0)
-  NUMPY_PROJ_2D_3D_XZ = 25,    // 2D point becomes (x, 0, y)
-  NUMPY_PROJ_2D_3D_YZ = 26,    // 2D point becomes (0, x, y)
-  NUMPY_PROJ_1D_3D_X  = 27,    // 1D point becomes (x, 0, 0)
-  NUMPY_PROJ_1D_3D_Y  = 28,    // 1D point becomes (0, x, 0)
-  NUMPY_PROJ_1D_3D_Z  = 29,    // 1D point becomes (0, 0, x)
+  NUMPY_PROJ_2D_3D_XY = 24,  // 2D point becomes (x, y, 0)
+  NUMPY_PROJ_2D_3D_XZ = 25,  // 2D point becomes (x, 0, y)
+  NUMPY_PROJ_2D_3D_YZ = 26,  // 2D point becomes (0, x, y)
+  NUMPY_PROJ_1D_3D_X  = 27,  // 1D point becomes (x, 0, 0)
+  NUMPY_PROJ_1D_3D_Y  = 28,  // 1D point becomes (0, x, 0)
+  NUMPY_PROJ_1D_3D_Z  = 29,  // 1D point becomes (0, 0, x)
   // Radix 2D
   NUMPY_PROJ_RADIX_2D_X_4_0 = 30,
   NUMPY_PROJ_RADIX_2D_X_4_1 = 31,
@@ -187,12 +187,12 @@ enum NumPyShardingCode {
   NUMPY_SHARD_TILE_1D       = 1,
   NUMPY_SHARD_TILE_2D       = 2,
   NUMPY_SHARD_TILE_3D       = 3,
-  NUMPY_SHARD_TILE_2D_YX    = 4,    // transpose
+  NUMPY_SHARD_TILE_2D_YX    = 4,  // transpose
   NUMPY_SHARD_TILE_3D_2D_XY = 5,
   NUMPY_SHARD_TILE_3D_2D_XZ = 6,
   NUMPY_SHARD_TILE_3D_2D_YZ = 7,
   // 2D Radix sharding functions
-  NUMPY_SHARD_RADIX_2D_X_0 = 8,    // never instantiated
+  NUMPY_SHARD_RADIX_2D_X_0 = 8,  // never instantiated
   NUMPY_SHARD_RADIX_2D_X_1 = 9,
   NUMPY_SHARD_RADIX_2D_X_2 = 10,
   NUMPY_SHARD_RADIX_2D_X_3 = 11,
@@ -201,7 +201,7 @@ enum NumPyShardingCode {
   NUMPY_SHARD_RADIX_2D_X_6 = 14,
   NUMPY_SHARD_RADIX_2D_X_7 = 15,
   NUMPY_SHARD_RADIX_2D_X_8 = 16,
-  NUMPY_SHARD_RADIX_2D_Y_0 = 17,    // never instantiated
+  NUMPY_SHARD_RADIX_2D_Y_0 = 17,  // never instantiated
   NUMPY_SHARD_RADIX_2D_Y_1 = 18,
   NUMPY_SHARD_RADIX_2D_Y_2 = 19,
   NUMPY_SHARD_RADIX_2D_Y_3 = 20,
@@ -211,7 +211,7 @@ enum NumPyShardingCode {
   NUMPY_SHARD_RADIX_2D_Y_7 = 24,
   NUMPY_SHARD_RADIX_2D_Y_8 = 25,
   // 3D Radix sharding functions
-  NUMPY_SHARD_RADIX_3D_X_0 = 64,    // never instantiated
+  NUMPY_SHARD_RADIX_3D_X_0 = 64,  // never instantiated
   NUMPY_SHARD_RADIX_3D_X_1 = 65,
   NUMPY_SHARD_RADIX_3D_X_2 = 66,
   NUMPY_SHARD_RADIX_3D_X_3 = 67,
@@ -220,7 +220,7 @@ enum NumPyShardingCode {
   NUMPY_SHARD_RADIX_3D_X_6 = 70,
   NUMPY_SHARD_RADIX_3D_X_7 = 71,
   NUMPY_SHARD_RADIX_3D_X_8 = 72,
-  NUMPY_SHARD_RADIX_3D_Y_0 = 73,    // never instantiated
+  NUMPY_SHARD_RADIX_3D_Y_0 = 73,  // never instantiated
   NUMPY_SHARD_RADIX_3D_Y_1 = 74,
   NUMPY_SHARD_RADIX_3D_Y_2 = 75,
   NUMPY_SHARD_RADIX_3D_Y_3 = 76,
@@ -229,7 +229,7 @@ enum NumPyShardingCode {
   NUMPY_SHARD_RADIX_3D_Y_6 = 79,
   NUMPY_SHARD_RADIX_3D_Y_7 = 80,
   NUMPY_SHARD_RADIX_3D_Y_8 = 81,
-  NUMPY_SHARD_RADIX_3D_Z_0 = 82,    // never instantiated
+  NUMPY_SHARD_RADIX_3D_Z_0 = 82,  // never instantiated
   NUMPY_SHARD_RADIX_3D_Z_1 = 83,
   NUMPY_SHARD_RADIX_3D_Z_2 = 84,
   NUMPY_SHARD_RADIX_3D_Z_3 = 85,
@@ -240,7 +240,7 @@ enum NumPyShardingCode {
   NUMPY_SHARD_RADIX_3D_Z_8 = 90,
   NUMPY_SHARD_EXTRA        = 91,
   // Leave space for some extra IDs for transform sharding functions
-  NUMPY_SHARD_LAST = 1024,    // This one must be last
+  NUMPY_SHARD_LAST = 1024,  // This one must be last
 };
 
 enum NumpyTaskOffset {
@@ -255,8 +255,8 @@ enum NumPyTag {
   NUMPY_GPU_ONLY_TAG    = 0x4,
   NUMPY_NO_MEMOIZE_TAG  = 0x8,
   NUMPY_KEY_REGION_TAG  = 0x10,
-  NUMPY_RADIX_GEN_TAG   = 0xE0,     // Update radix gen shift if you change this
-  NUMPY_RADIX_DIM_TAG   = 0x700,    // Update radix dim shift if you change this
+  NUMPY_RADIX_GEN_TAG   = 0xE0,   // Update radix gen shift if you change this
+  NUMPY_RADIX_DIM_TAG   = 0x700,  // Update radix dim shift if you change this
 };
 
 // Match these to NumPyTunable in legate/numpy/config.py
@@ -286,10 +286,11 @@ extern "C" {
 
 void legate_numpy_perform_registration();
 
-void legate_numpy_create_transform_sharding_functor(unsigned first, unsigned offset, unsigned M, unsigned N, const long* transform);
+void legate_numpy_create_transform_sharding_functor(
+  unsigned first, unsigned offset, unsigned M, unsigned N, const long* transform);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif    // __LEGATE_NUMPY_C_H__
+#endif  // __LEGATE_NUMPY_C_H__

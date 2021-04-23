@@ -20,16 +20,16 @@
 #include "numpy.h"
 
 #ifndef MAX
-#  define MAX(x, y) (((x) > (y)) ? (x) : (y))
+#define MAX(x, y) (((x) > (y)) ? (x) : (y))
 #endif
 
 namespace legate {
 namespace numpy {
 
 // For doing max into particular dimensions
-template<typename T>
+template <typename T>
 class MaxTask : public NumPyTask<MaxTask<T>> {
-public:
+ public:
   static const int TASK_ID;
   static const int REGIONS = 2;
 #if 0
@@ -38,123 +38,157 @@ public:
       static void set_layout_constraints(LegateVariant variant, 
                   TaskLayoutConstraintSet &layout_constraints);
 #endif
-public:
-  static void cpu_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+ public:
+  static void cpu_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #ifdef LEGATE_USE_OPENMP
-  static void omp_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+  static void omp_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #endif
 #ifdef LEGATE_USE_CUDA
-  static void gpu_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+  static void gpu_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #endif
 };
 
 // For doing a reduction to a single value
-template<typename T>
+template <typename T>
 class MaxReducTask : public NumPyTask<MaxReducTask<T>> {
-public:
+ public:
   static const int TASK_ID;
   static const int REGIONS = 1;
 
-public:
-  static T cpu_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+ public:
+  static T cpu_variant(const Legion::Task* task,
+                       const std::vector<Legion::PhysicalRegion>& regions,
+                       Legion::Context ctx,
                        Legion::Runtime* runtime);
 #ifdef LEGATE_USE_OPENMP
-  static T omp_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+  static T omp_variant(const Legion::Task* task,
+                       const std::vector<Legion::PhysicalRegion>& regions,
+                       Legion::Context ctx,
                        Legion::Runtime* runtime);
 #endif
 #ifdef LEGATE_USE_CUDA
-  static Legion::DeferredReduction<Legion::MaxReduction<T>> gpu_variant(const Legion::Task*                        task,
-                                                                        const std::vector<Legion::PhysicalRegion>& regions,
-                                                                        Legion::Context ctx, Legion::Runtime* runtime);
+  static Legion::DeferredReduction<Legion::MaxReduction<T>> gpu_variant(
+    const Legion::Task* task,
+    const std::vector<Legion::PhysicalRegion>& regions,
+    Legion::Context ctx,
+    Legion::Runtime* runtime);
 #endif
 };
 
 // Binary maximum task
-template<typename T>
+template <typename T>
 class BinMaxTask : public NumPyTask<BinMaxTask<T>> {
-public:
+ public:
   static const int TASK_ID;
   static const int REGIONS = 3;
 
-public:
-  static void cpu_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+ public:
+  static void cpu_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #ifdef LEGATE_USE_OPENMP
-  static void omp_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+  static void omp_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #endif
 #ifdef LEGATE_USE_CUDA
-  static void gpu_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+  static void gpu_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #endif
 };
 
 // Binary maximum task for handling broadcasting of dimensions
-template<typename T>
+template <typename T>
 class BinMaxBroadcast : public NumPyTask<BinMaxBroadcast<T>> {
-public:
+ public:
   static const int TASK_ID;
   static const int REGIONS = 3;
 
-public:
-  static void cpu_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+ public:
+  static void cpu_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #ifdef LEGATE_USE_OPENMP
-  static void omp_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+  static void omp_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #endif
 #ifdef LEGATE_USE_CUDA
-  static void gpu_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+  static void gpu_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #endif
 };
 
 // For doing a scalar binary max
-template<typename T>
+template <typename T>
 class BinMaxScalar : public NumPyTask<BinMaxScalar<T>> {
-public:
+ public:
   static const int TASK_ID;
   static const int REGIONS = 0;
 
-public:
-  static T cpu_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+ public:
+  static T cpu_variant(const Legion::Task* task,
+                       const std::vector<Legion::PhysicalRegion>& regions,
+                       Legion::Context ctx,
                        Legion::Runtime* runtime);
 };
 
-template<typename T>
+template <typename T>
 class MaxRadixTask : public NumPyTask<MaxRadixTask<T>> {
-public:
+ public:
   static const int TASK_ID;
   static const int REGIONS = MAX_REDUCTION_RADIX;
 
-public:
-  static void cpu_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+ public:
+  static void cpu_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #ifdef LEGATE_USE_OPENMP
-  static void omp_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+  static void omp_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #endif
 #ifdef LEGATE_USE_CUDA
-  static void gpu_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+  static void gpu_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #endif
 };
 
-template<typename T>
+template <typename T>
 class MaxScalarTask : public NumPyTask<MaxScalarTask<T>> {
-public:
+ public:
   static const int TASK_ID;
   static const int REGIONS = 0;
 
-public:
-  static T cpu_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+ public:
+  static T cpu_variant(const Legion::Task* task,
+                       const std::vector<Legion::PhysicalRegion>& regions,
+                       Legion::Context ctx,
                        Legion::Runtime* runtime);
 };
 
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate
 
-#endif    // __NUMPY_MAX_H__
+#endif  // __NUMPY_MAX_H__

@@ -22,19 +22,20 @@
 
 namespace legate {
 namespace numpy {
-template<class T>
+template <class T>
 struct NegativeOperation : std::negate<T> {
   constexpr static auto op_code = NumPyOpCode::NUMPY_NEGATIVE;
 
-  template<typename U>
-  __CUDA_HD__ auto operator()(U&& u) const {
+  template <typename U>
+  __CUDA_HD__ auto operator()(U&& u) const
+  {
     return -(std::forward<U>(u));
   }
 };
 
-template<typename T>
+template <typename T>
 using Negative = UnaryUniversalFunction<NegativeOperation<T>>;
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate
 
-#endif    // __NUMPY_NEGATIVE_H__
+#endif  // __NUMPY_NEGATIVE_H__

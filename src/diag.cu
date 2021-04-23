@@ -24,18 +24,23 @@ using namespace Legion;
 namespace legate {
 namespace numpy {
 
-template<typename T>
+template <typename T>
 __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-    legate_diag_in(const AccessorRW<T, 2> out, const AccessorRO<T, 1> in, const Point<2> start_out, const Point<1> start_in,
-                   const size_t max) {
+  legate_diag_in(const AccessorRW<T, 2> out,
+                 const AccessorRO<T, 1> in,
+                 const Point<2> start_out,
+                 const Point<1> start_in,
+                 const size_t max)
+{
   const size_t offset = blockIdx.x * blockDim.x + threadIdx.x;
   if (offset >= max) return;
   out[start_out[0] + offset][start_out[1] + offset] = in[start_in + offset];
 }
 
-template<typename T, bool FIRST>
-__global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-    legate_diag_out(const AccessorWO<T, 1> out, const AccessorRO<T, 2> in, const Point<2> start, const size_t max) {
+template <typename T, bool FIRST>
+__global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM) legate_diag_out(
+  const AccessorWO<T, 1> out, const AccessorRO<T, 2> in, const Point<2> start, const size_t max)
+{
   const size_t offset = blockIdx.x * blockDim.x + threadIdx.x;
   if (offset >= max) return;
   if (FIRST)
@@ -44,12 +49,15 @@ __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
     out[start[1] + offset] = in[start[0] + offset][start[1] + offset];
 }
 
-template<typename T>
-/*static*/ void DiagTask<T>::gpu_variant(const Task* task, const std::vector<PhysicalRegion>& regions, Context ctx,
-                                         Runtime* runtime) {
+template <typename T>
+/*static*/ void DiagTask<T>::gpu_variant(const Task* task,
+                                         const std::vector<PhysicalRegion>& regions,
+                                         Context ctx,
+                                         Runtime* runtime)
+{
   LegateDeserializer derez(task->args, task->arglen);
-  const int          k      = derez.unpack_32bit_int();
-  const Rect<2>      rect2d = NumPyProjectionFunctor::unpack_shape<2>(task, derez);
+  const int k          = derez.unpack_32bit_int();
+  const Rect<2> rect2d = NumPyProjectionFunctor::unpack_shape<2>(task, derez);
   // Always get the 1-D rect from the logical region since
   // we can't easily predict its shape, the shape could be 2-D if we're
   // going to be reducing into a reduction buffer
@@ -67,15 +75,17 @@ template<typename T>
   if (!rect2d.contains(start1) && !rect2d.contains(start2)) {
     // Still have to write identity into our rectangle for diagonal out case
     if (task->regions[0].privilege != READ_ONLY) {
-      const int              collapse_dim   = derez.unpack_dimension();
-      const int              collapse_index = derez.unpack_dimension();
+      const int collapse_dim   = derez.unpack_dimension();
+      const int collapse_index = derez.unpack_dimension();
       const AccessorWO<T, 1> out =
-          (collapse_dim >= 0) ? derez.unpack_accessor_WO<T, 1>(regions[0], rect1d, collapse_dim, task->index_point[collapse_index])
-                              : derez.unpack_accessor_WO<T, 1>(regions[0], rect1d);
+        (collapse_dim >= 0) ? derez.unpack_accessor_WO<T, 1>(
+                                regions[0], rect1d, collapse_dim, task->index_point[collapse_index])
+                            : derez.unpack_accessor_WO<T, 1>(regions[0], rect1d);
       // Initialize the output
       const size_t volume = rect1d.volume();
       const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-      legate_fill_1d<T><<<blocks, THREADS_PER_BLOCK>>>(out, SumReduction<T>::identity, rect1d.lo, volume);
+      legate_fill_1d<T>
+        <<<blocks, THREADS_PER_BLOCK>>>(out, SumReduction<T>::identity, rect1d.lo, volume);
     }
     return;
   }
@@ -103,16 +113,18 @@ template<typename T>
     legate_diag_in<T><<<blocks, THREADS_PER_BLOCK>>>(out, in, start, rect1d.lo, distance);
   } else {
     // diagonal out
-    const int              collapse_dim   = derez.unpack_dimension();
-    const int              collapse_index = derez.unpack_dimension();
+    const int collapse_dim   = derez.unpack_dimension();
+    const int collapse_index = derez.unpack_dimension();
     const AccessorWO<T, 1> out =
-        (collapse_dim >= 0) ? derez.unpack_accessor_WO<T, 1>(regions[0], rect1d, collapse_dim, task->index_point[collapse_index])
-                            : derez.unpack_accessor_WO<T, 1>(regions[0], rect1d);
+      (collapse_dim >= 0) ? derez.unpack_accessor_WO<T, 1>(
+                              regions[0], rect1d, collapse_dim, task->index_point[collapse_index])
+                          : derez.unpack_accessor_WO<T, 1>(regions[0], rect1d);
     const AccessorRO<T, 2> in = derez.unpack_accessor_RO<T, 2>(regions[1], rect2d);
     // Initialize the output
     const size_t volume = rect1d.volume();
     const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-    legate_fill_1d<T><<<blocks, THREADS_PER_BLOCK>>>(out, SumReduction<T>::identity, rect1d.lo, volume);
+    legate_fill_1d<T>
+      <<<blocks, THREADS_PER_BLOCK>>>(out, SumReduction<T>::identity, rect1d.lo, volume);
     // Figure out which dimension we align on
     const size_t dist_blocks = (distance + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
     if ((rect1d.lo == rect2d.lo[0]) && (rect1d.hi == rect2d.hi[0])) {
@@ -126,5 +138,5 @@ template<typename T>
 
 INSTANTIATE_TASK_VARIANT(DiagTask, gpu_variant)
 
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate

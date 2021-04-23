@@ -23,32 +23,38 @@
 namespace legate {
 namespace numpy {
 using std::abs;
-template<class T>
+template <class T>
 struct AbsoluteOperation {
   using argument_type           = T;
   constexpr static auto op_code = NumPyOpCode::NUMPY_ABSOLUTE;
 
-  template<class _T = T, std::enable_if_t<std::is_integral<_T>::value and std::is_signed<_T>::value>* = nullptr>
-  constexpr T operator()(const T& x) const {
+  template <class _T                                                                     = T,
+            std::enable_if_t<std::is_integral<_T>::value and std::is_signed<_T>::value>* = nullptr>
+  constexpr T operator()(const T& x) const
+  {
     return abs(x);
   }
 
-  template<class _T = T, std::enable_if_t<std::is_integral<_T>::value and std::is_unsigned<_T>::value>* = nullptr>
-  constexpr T operator()(const T& x) const {
+  template <
+    class _T                                                                       = T,
+    std::enable_if_t<std::is_integral<_T>::value and std::is_unsigned<_T>::value>* = nullptr>
+  constexpr T operator()(const T& x) const
+  {
     return x;
   }
 
-  template<class _T = T, std::enable_if_t<!std::is_integral<_T>::value>* = nullptr>
-  constexpr auto operator()(const T& x) const {
+  template <class _T = T, std::enable_if_t<!std::is_integral<_T>::value>* = nullptr>
+  constexpr auto operator()(const T& x) const
+  {
     using std::fabs;
     return fabs(x);
   }
 };
 
-template<typename T>
+template <typename T>
 using Absolute = UnaryUniversalFunction<AbsoluteOperation<T>>;
 
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate
 
-#endif    // __NUMPY_ABSOLUTE_H__
+#endif  // __NUMPY_ABSOLUTE_H__

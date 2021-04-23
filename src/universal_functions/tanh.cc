@@ -31,5 +31,5 @@ template void Tanh<uint64_t>::instantiate_tasks();
 template void Tanh<bool>::instantiate_tasks();
 template void Tanh<complex<float>>::instantiate_tasks();
 template void Tanh<complex<double>>::instantiate_tasks();
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate

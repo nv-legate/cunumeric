@@ -22,14 +22,14 @@
 
 namespace legate {
 namespace numpy {
-template<class T>
+template <class T>
 struct NotEqualOperation : std::not_equal_to<T> {
   constexpr static auto op_code = NumPyOpCode::NUMPY_NOT_EQUAL;
 };
 
-template<class T>
+template <class T>
 using NotEqual = NoncommutativeBinaryUniversalFunction<NotEqualOperation<T>>;
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate
 
-#endif    // __NUMPY_NOT_EQUAL_H__
+#endif  // __NUMPY_NOT_EQUAL_H__

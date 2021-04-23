@@ -31,5 +31,5 @@ template void Sin<uint64_t>::instantiate_tasks();
 template void Sin<bool>::instantiate_tasks();
 template void Sin<complex<float>>::instantiate_tasks();
 template void Sin<complex<double>>::instantiate_tasks();
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate

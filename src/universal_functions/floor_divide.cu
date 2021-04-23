@@ -29,5 +29,5 @@ template void FloorDivide<uint16_t>::instantiate_task_gpu_variants();
 template void FloorDivide<uint32_t>::instantiate_task_gpu_variants();
 template void FloorDivide<uint64_t>::instantiate_task_gpu_variants();
 template void FloorDivide<bool>::instantiate_task_gpu_variants();
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate

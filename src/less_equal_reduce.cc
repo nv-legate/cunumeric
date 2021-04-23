@@ -22,12 +22,15 @@ using namespace Legion;
 namespace legate {
 namespace numpy {
 
-template<typename T>
-/*static*/ bool LessEqualReducTask<T>::cpu_variant(const Task* task, const std::vector<PhysicalRegion>& regions, Context ctx,
-                                                   Runtime* runtime) {
+template <typename T>
+/*static*/ bool LessEqualReducTask<T>::cpu_variant(const Task* task,
+                                                   const std::vector<PhysicalRegion>& regions,
+                                                   Context ctx,
+                                                   Runtime* runtime)
+{
   LegateDeserializer derez(task->args, task->arglen);
-  const int          dim    = derez.unpack_dimension();
-  bool               result = true;
+  const int dim = derez.unpack_dimension();
+  bool result   = true;
   switch (dim) {
     case 1: {
       const Rect<1> rect = NumPyProjectionFunctor::unpack_shape<1>(task, derez);
@@ -68,26 +71,28 @@ template<typename T>
             }
       break;
     }
-    default:
-      assert(false);
+    default: assert(false);
   }
   return result;
 }
 
 #ifdef LEGATE_USE_OPENMP
-template<typename T>
-/*static*/ bool LessEqualReducTask<T>::omp_variant(const Task* task, const std::vector<PhysicalRegion>& regions, Context ctx,
-                                                   Runtime* runtime) {
+template <typename T>
+/*static*/ bool LessEqualReducTask<T>::omp_variant(const Task* task,
+                                                   const std::vector<PhysicalRegion>& regions,
+                                                   Context ctx,
+                                                   Runtime* runtime)
+{
   LegateDeserializer derez(task->args, task->arglen);
-  const int          dim    = derez.unpack_dimension();
-  bool               result = true;
+  const int dim = derez.unpack_dimension();
+  bool result   = true;
   switch (dim) {
     case 1: {
       const Rect<1> rect = NumPyProjectionFunctor::unpack_shape<1>(task, derez);
       if (rect.empty()) break;
       const AccessorRO<T, 1> in1 = derez.unpack_accessor_RO<T, 1>(regions[0], rect);
       const AccessorRO<T, 1> in2 = derez.unpack_accessor_RO<T, 1>(regions[1], rect);
-#  pragma omp parallel for
+#pragma omp parallel for
       for (coord_t x = rect.lo[0]; x <= rect.hi[0]; x++)
         if (in1[x] > in2[x]) result = false;
       break;
@@ -97,7 +102,7 @@ template<typename T>
       if (rect.empty()) break;
       const AccessorRO<T, 2> in1 = derez.unpack_accessor_RO<T, 2>(regions[0], rect);
       const AccessorRO<T, 2> in2 = derez.unpack_accessor_RO<T, 2>(regions[1], rect);
-#  pragma omp parallel for
+#pragma omp parallel for
       for (coord_t x = rect.lo[0]; x <= rect.hi[0]; x++)
         for (coord_t y = rect.lo[1]; y <= rect.hi[1]; y++)
           if (in1[x][y] > in2[x][y]) result = false;
@@ -108,29 +113,30 @@ template<typename T>
       if (rect.empty()) break;
       const AccessorRO<T, 3> in1 = derez.unpack_accessor_RO<T, 3>(regions[0], rect);
       const AccessorRO<T, 3> in2 = derez.unpack_accessor_RO<T, 3>(regions[1], rect);
-#  pragma omp parallel for
+#pragma omp parallel for
       for (coord_t x = rect.lo[0]; x <= rect.hi[0]; x++)
         for (coord_t y = rect.lo[1]; y <= rect.hi[1]; y++)
           for (coord_t z = rect.lo[2]; z <= rect.hi[2]; z++)
             if (in1[x][y][z] > in2[x][y][z]) result = false;
       break;
     }
-    default:
-      assert(false);
+    default: assert(false);
   }
   return result;
 }
 #endif
 
 INSTANTIATE_ALL_TASKS(LessEqualReducTask,
-                      static_cast<int>(NumPyOpCode::NUMPY_LESS_EQUAL) * NUMPY_TYPE_OFFSET + NUMPY_REDUCTION_VARIANT_OFFSET)
+                      static_cast<int>(NumPyOpCode::NUMPY_LESS_EQUAL) * NUMPY_TYPE_OFFSET +
+                        NUMPY_REDUCTION_VARIANT_OFFSET)
 
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate
 
-namespace    // unnamed
+namespace  // unnamed
 {
-static void __attribute__((constructor)) register_tasks(void) {
+static void __attribute__((constructor)) register_tasks(void)
+{
   REGISTER_ALL_TASKS_WITH_BOOL_RETURN(legate::numpy::LessEqualReducTask)
 }
-}    // namespace
+}  // namespace

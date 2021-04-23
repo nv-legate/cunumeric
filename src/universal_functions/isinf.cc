@@ -31,5 +31,5 @@ template void IsInf<uint64_t>::instantiate_tasks();
 template void IsInf<bool>::instantiate_tasks();
 template void IsInf<complex<float>>::instantiate_tasks();
 template void IsInf<complex<double>>::instantiate_tasks();
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate

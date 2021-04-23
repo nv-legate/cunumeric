@@ -24,27 +24,27 @@ using namespace Legion;
 // To == complex<float>
 namespace legate {
 namespace numpy {
-template void PointTask<ConvertTask<complex<float>, __half>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context,
-                                                                          Runtime*);
-template void PointTask<ConvertTask<complex<float>, float>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context,
-                                                                         Runtime*);
-template void PointTask<ConvertTask<complex<float>, double>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context,
-                                                                          Runtime*);
-template void PointTask<ConvertTask<complex<float>, int16_t>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context,
-                                                                           Runtime*);
-template void PointTask<ConvertTask<complex<float>, int32_t>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context,
-                                                                           Runtime*);
-template void PointTask<ConvertTask<complex<float>, int64_t>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context,
-                                                                           Runtime*);
-template void PointTask<ConvertTask<complex<float>, uint16_t>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&,
-                                                                            Context, Runtime*);
-template void PointTask<ConvertTask<complex<float>, uint32_t>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&,
-                                                                            Context, Runtime*);
-template void PointTask<ConvertTask<complex<float>, uint64_t>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&,
-                                                                            Context, Runtime*);
-template void PointTask<ConvertTask<complex<float>, bool>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context,
-                                                                        Runtime*);
-template void PointTask<ConvertTask<complex<float>, complex<double>>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&,
-                                                                                   Context, Runtime*);
-}    // namespace numpy
-}    // namespace legate
+template void PointTask<ConvertTask<complex<float>, __half>>::gpu_variant(
+  const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
+template void PointTask<ConvertTask<complex<float>, float>>::gpu_variant(
+  const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
+template void PointTask<ConvertTask<complex<float>, double>>::gpu_variant(
+  const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
+template void PointTask<ConvertTask<complex<float>, int16_t>>::gpu_variant(
+  const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
+template void PointTask<ConvertTask<complex<float>, int32_t>>::gpu_variant(
+  const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
+template void PointTask<ConvertTask<complex<float>, int64_t>>::gpu_variant(
+  const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
+template void PointTask<ConvertTask<complex<float>, uint16_t>>::gpu_variant(
+  const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
+template void PointTask<ConvertTask<complex<float>, uint32_t>>::gpu_variant(
+  const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
+template void PointTask<ConvertTask<complex<float>, uint64_t>>::gpu_variant(
+  const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
+template void PointTask<ConvertTask<complex<float>, bool>>::gpu_variant(
+  const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
+template void PointTask<ConvertTask<complex<float>, complex<double>>>::gpu_variant(
+  const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
+}  // namespace numpy
+}  // namespace legate

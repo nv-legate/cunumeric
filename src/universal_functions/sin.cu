@@ -31,5 +31,5 @@ template void Sin<uint64_t>::instantiate_task_gpu_variants();
 template void Sin<bool>::instantiate_task_gpu_variants();
 template void Sin<complex<float>>::instantiate_task_gpu_variants();
 template void Sin<complex<double>>::instantiate_task_gpu_variants();
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate

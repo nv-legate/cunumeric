@@ -24,9 +24,9 @@ namespace legate {
 namespace numpy {
 
 // For doing summations into particular dimensions
-template<typename T>
+template <typename T>
 class CountNonzeroTask : public NumPyTask<CountNonzeroTask<T>> {
-public:
+ public:
   static const int TASK_ID;
   static const int REGIONS = 2;
 #if 0
@@ -35,98 +35,128 @@ public:
       static void set_layout_constraints(LegateVariant variant, 
                   Legion::TaskLayoutConstraintSet &layout_constraints);
 #endif
-public:
-  static void cpu_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+ public:
+  static void cpu_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #ifdef LEGATE_USE_OPENMP
-  static void omp_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+  static void omp_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #endif
 #ifdef LEGATE_USE_CUDA
-  static void gpu_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+  static void gpu_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #endif
 };
 
 // For doing a reduction to a single value
-template<typename T>
+template <typename T>
 class CountNonzeroReducTask : public NumPyTask<CountNonzeroReducTask<T>> {
-public:
+ public:
   static const int TASK_ID;
   static const int REGIONS = 1;
 
-public:
-  static uint64_t cpu_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+ public:
+  static uint64_t cpu_variant(const Legion::Task* task,
+                              const std::vector<Legion::PhysicalRegion>& regions,
+                              Legion::Context ctx,
                               Legion::Runtime* runtime);
 #ifdef LEGATE_USE_OPENMP
-  static uint64_t omp_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+  static uint64_t omp_variant(const Legion::Task* task,
+                              const std::vector<Legion::PhysicalRegion>& regions,
+                              Legion::Context ctx,
                               Legion::Runtime* runtime);
 #endif
 #ifdef LEGATE_USE_CUDA
-  static Legion::DeferredReduction<Legion::SumReduction<uint64_t>> gpu_variant(const Legion::Task*                        task,
-                                                                               const std::vector<Legion::PhysicalRegion>& regions,
-                                                                               Legion::Context ctx, Legion::Runtime* runtime);
+  static Legion::DeferredReduction<Legion::SumReduction<uint64_t>> gpu_variant(
+    const Legion::Task* task,
+    const std::vector<Legion::PhysicalRegion>& regions,
+    Legion::Context ctx,
+    Legion::Runtime* runtime);
 #endif
 };
 
-template<typename T>
+template <typename T>
 class CountNonzeroReducWriteTask : public NumPyTask<CountNonzeroReducWriteTask<T>> {
-public:
+ public:
   static const int TASK_ID;
   static const int REGIONS = 2;
 
-public:
-  static void cpu_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+ public:
+  static void cpu_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #ifdef LEGATE_USE_OPENMP
-  static void omp_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+  static void omp_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #endif
 #ifdef LEGATE_USE_CUDA
-  static void gpu_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+  static void gpu_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #endif
 };
 
-template<typename T>
+template <typename T>
 class NonzeroTask : public NumPyTask<NonzeroTask<T>> {
-public:
+ public:
   static const int TASK_ID;
   static const int REGIONS = 2;
 
-public:
-  static void cpu_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+ public:
+  static void cpu_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #ifdef LEGATE_USE_OPENMP
-  static void omp_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+  static void omp_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #endif
 #ifdef LEGATE_USE_CUDA
-  static void gpu_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+  static void gpu_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #endif
 };
 
-template<typename T>
+template <typename T>
 class ConvertRangeToRectTask : public NumPyTask<ConvertRangeToRectTask<T>> {
-public:
+ public:
   static const int TASK_ID;
   static const int REGIONS = 2;
 
-public:
-  static void cpu_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+ public:
+  static void cpu_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #ifdef LEGATE_USE_OPENMP
-  static void omp_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+  static void omp_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #endif
 #ifdef LEGATE_USE_CUDA
-  static void gpu_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+  static void gpu_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #endif
 };
 
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate
 
-#endif    // __NUMPY_NONZERO_H__
+#endif  // __NUMPY_NONZERO_H__

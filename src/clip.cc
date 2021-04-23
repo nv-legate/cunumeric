@@ -57,5 +57,5 @@ template class ClipScalar<uint64_t>;
 template class ClipScalar<bool>;
 template class ClipScalar<complex<float>>;
 template class ClipScalar<complex<double>>;
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate

@@ -31,5 +31,5 @@ template void Divide<uint64_t>::instantiate_tasks();
 template void Divide<bool>::instantiate_tasks();
 template void Divide<complex<float>>::instantiate_tasks();
 template void Divide<complex<double>>::instantiate_tasks();
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate

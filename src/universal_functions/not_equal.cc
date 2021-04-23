@@ -31,5 +31,5 @@ template void NotEqual<uint64_t>::instantiate_tasks();
 template void NotEqual<bool>::instantiate_tasks();
 template void NotEqual<complex<float>>::instantiate_tasks();
 template void NotEqual<complex<double>>::instantiate_tasks();
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate

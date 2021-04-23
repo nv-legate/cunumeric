@@ -17,14 +17,16 @@
 #ifndef __NUMPY_CONVERT_SCALAR_H__
 #define __NUMPY_CONVERT_SCALAR_H__
 
-#include "convert.h"    // for ConvertOperation
+#include "convert.h"  // for ConvertOperation
 #include "scalar_unary_operation.h"
 
 namespace legate {
 namespace numpy {
-template<typename To, typename From>
-class ConvertScalarTask : public ScalarUnaryOperationTask<ConvertScalarTask<To, From>, ConvertOperation<To, From>> {};
-}    // namespace numpy
-}    // namespace legate
+template <typename To, typename From>
+class ConvertScalarTask
+  : public ScalarUnaryOperationTask<ConvertScalarTask<To, From>, ConvertOperation<To, From>> {
+};
+}  // namespace numpy
+}  // namespace legate
 
-#endif    // __NUMPY_CONVERT_SCALAR_H__
+#endif  // __NUMPY_CONVERT_SCALAR_H__

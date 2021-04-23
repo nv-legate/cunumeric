@@ -24,19 +24,24 @@
 namespace legate {
 namespace numpy {
 
-template<typename T>
-static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-    legate_fill_1d(const AccessorWO<T, 1> out, const T value, const Legion::Point<1> origin, const size_t max) {
+template <typename T>
+static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM) legate_fill_1d(
+  const AccessorWO<T, 1> out, const T value, const Legion::Point<1> origin, const size_t max)
+{
   const size_t offset = blockIdx.x * blockDim.x + threadIdx.x;
   if (offset >= max) return;
   const coord_t x = origin[0] + offset;
   out[x]          = value;
 }
 
-template<typename T>
+template <typename T>
 static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-    legate_fill_2d(const AccessorWO<T, 2> out, const T value, const Legion::Point<2> origin, const Legion::Point<1> pitch,
-                   const size_t max) {
+  legate_fill_2d(const AccessorWO<T, 2> out,
+                 const T value,
+                 const Legion::Point<2> origin,
+                 const Legion::Point<1> pitch,
+                 const size_t max)
+{
   const size_t offset = blockIdx.x * blockDim.x + threadIdx.x;
   if (offset >= max) return;
   const coord_t x = origin[0] + offset / pitch[0];
@@ -44,10 +49,14 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   out[x][y]       = value;
 }
 
-template<typename T>
+template <typename T>
 static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-    legate_fill_3d(const AccessorWO<T, 3> out, const T value, const Legion::Point<3> origin, const Legion::Point<2> pitch,
-                   const size_t max) {
+  legate_fill_3d(const AccessorWO<T, 3> out,
+                 const T value,
+                 const Legion::Point<3> origin,
+                 const Legion::Point<2> pitch,
+                 const size_t max)
+{
   const size_t offset = blockIdx.x * blockDim.x + threadIdx.x;
   if (offset >= max) return;
   const coord_t x = origin[0] + offset / pitch[0];
@@ -56,7 +65,7 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   out[x][y][z]    = value;
 }
 
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate
 
-#endif    // __NUMPY_FILL_CUH__
+#endif  // __NUMPY_FILL_CUH__

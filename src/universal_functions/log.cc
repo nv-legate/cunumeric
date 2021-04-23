@@ -31,5 +31,5 @@ template void Log<uint64_t>::instantiate_tasks();
 template void Log<bool>::instantiate_tasks();
 template void Log<complex<float>>::instantiate_tasks();
 template void Log<complex<double>>::instantiate_tasks();
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate

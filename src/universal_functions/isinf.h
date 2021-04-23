@@ -23,25 +23,27 @@
 namespace legate {
 namespace numpy {
 using std::isinf;
-template<class T>
+template <class T>
 struct IsInfOperation {
   using argument_type           = T;
   constexpr static auto op_code = NumPyOpCode::NUMPY_ISINF;
 
-  template<typename T_>
-  constexpr bool operator()(const T_& a) const {
+  template <typename T_>
+  constexpr bool operator()(const T_& a) const
+  {
     return isinf(a);
   }
 
-  template<typename T_>
-  constexpr bool operator()(const complex<T_>& a) const {
+  template <typename T_>
+  constexpr bool operator()(const complex<T_>& a) const
+  {
     return isinf(a.imag()) || isinf(a.real());
   }
 };
 
-template<typename T>
+template <typename T>
 using IsInf = UnaryUniversalFunction<IsInfOperation<T>>;
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate
 
-#endif    // __NUMPY_ISINF_H__
+#endif  // __NUMPY_ISINF_H__

@@ -157,5 +157,5 @@ template class ConvertScalarTask<complex<double>, uint64_t>;
 template class ConvertScalarTask<complex<double>, bool>;
 template class ConvertScalarTask<complex<double>, complex<float>>;
 
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate

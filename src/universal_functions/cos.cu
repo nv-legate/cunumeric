@@ -31,5 +31,5 @@ template void Cos<uint64_t>::instantiate_task_gpu_variants();
 template void Cos<bool>::instantiate_task_gpu_variants();
 template void Cos<complex<float>>::instantiate_task_gpu_variants();
 template void Cos<complex<double>>::instantiate_task_gpu_variants();
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate

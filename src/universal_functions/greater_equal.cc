@@ -31,5 +31,5 @@ template void GreaterEqual<uint64_t>::instantiate_tasks();
 template void GreaterEqual<bool>::instantiate_tasks();
 template void GreaterEqual<complex<float>>::instantiate_tasks();
 template void GreaterEqual<complex<double>>::instantiate_tasks();
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate

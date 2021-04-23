@@ -31,5 +31,5 @@ template void Sqrt<uint64_t>::instantiate_tasks();
 template void Sqrt<bool>::instantiate_tasks();
 template void Sqrt<complex<float>>::instantiate_tasks();
 template void Sqrt<complex<double>>::instantiate_tasks();
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate

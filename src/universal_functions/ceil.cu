@@ -22,5 +22,5 @@ namespace numpy {
 template void Ceil<__half>::instantiate_task_gpu_variants();
 template void Ceil<float>::instantiate_task_gpu_variants();
 template void Ceil<double>::instantiate_task_gpu_variants();
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate

@@ -31,5 +31,5 @@ template void Less<uint64_t>::instantiate_tasks();
 template void Less<bool>::instantiate_tasks();
 template void Less<complex<float>>::instantiate_tasks();
 template void Less<complex<double>>::instantiate_tasks();
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate

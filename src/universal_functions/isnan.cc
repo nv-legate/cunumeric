@@ -31,5 +31,5 @@ template void IsNaN<uint64_t>::instantiate_tasks();
 template void IsNaN<bool>::instantiate_tasks();
 template void IsNaN<complex<float>>::instantiate_tasks();
 template void IsNaN<complex<double>>::instantiate_tasks();
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate

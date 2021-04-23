@@ -23,7 +23,7 @@
 namespace legate {
 namespace numpy {
 using std::ceil;
-template<class T>
+template <class T>
 struct CeilOperation {
   using argument_type           = T;
   constexpr static auto op_code = NumPyOpCode::NUMPY_CEIL;
@@ -31,9 +31,9 @@ struct CeilOperation {
   constexpr T operator()(const T& a) const { return ceil(a); }
 };
 
-template<typename T>
+template <typename T>
 using Ceil = UnaryUniversalFunction<CeilOperation<T>>;
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate
 
-#endif    // __NUMPY_CEIL_H__
+#endif  // __NUMPY_CEIL_H__

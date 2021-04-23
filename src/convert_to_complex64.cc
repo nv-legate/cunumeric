@@ -33,5 +33,5 @@ template class ConvertTask<complex<float>, uint32_t>;
 template class ConvertTask<complex<float>, uint64_t>;
 template class ConvertTask<complex<float>, bool>;
 template class ConvertTask<complex<float>, complex<double>>;
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate

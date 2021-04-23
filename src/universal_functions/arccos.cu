@@ -31,5 +31,5 @@ template void ArcCos<uint64_t>::instantiate_task_gpu_variants();
 template void ArcCos<bool>::instantiate_task_gpu_variants();
 template void ArcCos<complex<float>>::instantiate_task_gpu_variants();
 template void ArcCos<complex<double>>::instantiate_task_gpu_variants();
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate

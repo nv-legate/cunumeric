@@ -23,17 +23,16 @@ using namespace Legion;
 namespace legate {
 namespace numpy {
 
-static inline double erfinv(double a) {
-  double                 p, q, t, fa;
+static inline double erfinv(double a)
+{
+  double p, q, t, fa;
   unsigned long long int l;
 
   fa = fabs(a);
   if (fa >= 1.0) {
     l = 0xfff8000000000000ull;
     memcpy(&t, &l, sizeof(double)); /* INDEFINITE */
-    if (fa == 1.0) {
-      t = a * exp(1000.0); /* Infinity */
-    }
+    if (fa == 1.0) { t = a * exp(1000.0); /* Infinity */ }
   } else if (fa >= 0.9375) {
     /* Based on: J.M. Blair, C.A. Edwards, J.H. Johnson: Rational Chebyshev
        Approximations for the Inverse of the Error Function. Mathematics of
@@ -116,314 +115,336 @@ static inline double erfinv(double a) {
 }
 
 const int RandUniformTask::TASK_ID =
-    static_cast<int>(NumPyOpCode::NUMPY_RAND_UNIFORM) * NUMPY_TYPE_OFFSET + DOUBLE_LT * NUMPY_MAX_VARIANTS;
+  static_cast<int>(NumPyOpCode::NUMPY_RAND_UNIFORM) * NUMPY_TYPE_OFFSET +
+  DOUBLE_LT * NUMPY_MAX_VARIANTS;
 
-/*static*/ void RandUniformTask::cpu_variant(const Task* task, const std::vector<PhysicalRegion>& regions, Context ctx,
-                                             Runtime* runtime) {
+/*static*/ void RandUniformTask::cpu_variant(const Task* task,
+                                             const std::vector<PhysicalRegion>& regions,
+                                             Context ctx,
+                                             Runtime* runtime)
+{
   LegateDeserializer derez(task->args, task->arglen);
-  const unsigned     epoch = derez.unpack_32bit_uint();
-  const int          dim   = derez.unpack_dimension();
+  const unsigned epoch = derez.unpack_32bit_uint();
+  const int dim        = derez.unpack_dimension();
   switch (dim) {
     case 1: {
       const Rect<1> rect = NumPyProjectionFunctor::unpack_shape<1>(task, derez);
       if (rect.empty()) break;
-      const Point<1>              strides = derez.unpack_point<1>();
-      const AccessorWO<double, 1> out     = derez.unpack_accessor_WO<double, 1>(regions[0], rect);
+      const Point<1> strides          = derez.unpack_point<1>();
+      const AccessorWO<double, 1> out = derez.unpack_accessor_WO<double, 1>(regions[0], rect);
       for (coord_t x = rect.lo[0]; x <= rect.hi[0]; x++) {
         const unsigned long long key = x * strides[0];
-        out[x]                       = RandomGenerator::rand_double(epoch, HI_BITS(key), LO_BITS(key));
+        out[x] = RandomGenerator::rand_double(epoch, HI_BITS(key), LO_BITS(key));
       }
       break;
     }
     case 2: {
       const Rect<2> rect = NumPyProjectionFunctor::unpack_shape<2>(task, derez);
       if (rect.empty()) break;
-      const Point<2>              strides = derez.unpack_point<2>();
-      const AccessorWO<double, 2> out     = derez.unpack_accessor_WO<double, 2>(regions[0], rect);
+      const Point<2> strides          = derez.unpack_point<2>();
+      const AccessorWO<double, 2> out = derez.unpack_accessor_WO<double, 2>(regions[0], rect);
       for (coord_t x = rect.lo[0]; x <= rect.hi[0]; x++)
         for (coord_t y = rect.lo[1]; y <= rect.hi[1]; y++) {
           const unsigned long long key = x * strides[0] + y * strides[1];
-          out[x][y]                    = RandomGenerator::rand_double(epoch, HI_BITS(key), LO_BITS(key));
+          out[x][y] = RandomGenerator::rand_double(epoch, HI_BITS(key), LO_BITS(key));
         }
       break;
     }
     case 3: {
       const Rect<3> rect = NumPyProjectionFunctor::unpack_shape<3>(task, derez);
       if (rect.empty()) break;
-      const Point<3>              strides = derez.unpack_point<3>();
-      const AccessorWO<double, 3> out     = derez.unpack_accessor_WO<double, 3>(regions[0], rect);
+      const Point<3> strides          = derez.unpack_point<3>();
+      const AccessorWO<double, 3> out = derez.unpack_accessor_WO<double, 3>(regions[0], rect);
       for (coord_t x = rect.lo[0]; x <= rect.hi[0]; x++)
         for (coord_t y = rect.lo[1]; y <= rect.hi[1]; y++)
           for (coord_t z = rect.lo[2]; z <= rect.hi[2]; z++) {
             const unsigned long long key = x * strides[0] + y * strides[1] + z * strides[2];
-            out[x][y][z]                 = RandomGenerator::rand_double(epoch, HI_BITS(key), LO_BITS(key));
+            out[x][y][z] = RandomGenerator::rand_double(epoch, HI_BITS(key), LO_BITS(key));
           }
       break;
     }
-    default:
-      assert(false);
+    default: assert(false);
   }
 }
 
 #ifdef LEGATE_USE_OPENMP
-/*static*/ void RandUniformTask::omp_variant(const Task* task, const std::vector<PhysicalRegion>& regions, Context ctx,
-                                             Runtime* runtime) {
+/*static*/ void RandUniformTask::omp_variant(const Task* task,
+                                             const std::vector<PhysicalRegion>& regions,
+                                             Context ctx,
+                                             Runtime* runtime)
+{
   LegateDeserializer derez(task->args, task->arglen);
-  const unsigned     epoch = derez.unpack_32bit_uint();
-  const int          dim   = derez.unpack_dimension();
+  const unsigned epoch = derez.unpack_32bit_uint();
+  const int dim        = derez.unpack_dimension();
   switch (dim) {
     case 1: {
       const Rect<1> rect = NumPyProjectionFunctor::unpack_shape<1>(task, derez);
       if (rect.empty()) break;
-      const Point<1>              strides = derez.unpack_point<1>();
-      const AccessorWO<double, 1> out     = derez.unpack_accessor_WO<double, 1>(regions[0], rect);
-#  pragma omp parallel for
+      const Point<1> strides          = derez.unpack_point<1>();
+      const AccessorWO<double, 1> out = derez.unpack_accessor_WO<double, 1>(regions[0], rect);
+#pragma omp parallel for
       for (coord_t x = rect.lo[0]; x <= rect.hi[0]; x++) {
         const unsigned long long key = x * strides[0];
-        out[x]                       = RandomGenerator::rand_double(epoch, HI_BITS(key), LO_BITS(key));
+        out[x] = RandomGenerator::rand_double(epoch, HI_BITS(key), LO_BITS(key));
       }
       break;
     }
     case 2: {
       const Rect<2> rect = NumPyProjectionFunctor::unpack_shape<2>(task, derez);
       if (rect.empty()) break;
-      const Point<2>              strides = derez.unpack_point<2>();
-      const AccessorWO<double, 2> out     = derez.unpack_accessor_WO<double, 2>(regions[0], rect);
-#  pragma omp parallel for
+      const Point<2> strides          = derez.unpack_point<2>();
+      const AccessorWO<double, 2> out = derez.unpack_accessor_WO<double, 2>(regions[0], rect);
+#pragma omp parallel for
       for (coord_t x = rect.lo[0]; x <= rect.hi[0]; x++)
         for (coord_t y = rect.lo[1]; y <= rect.hi[1]; y++) {
           const unsigned long long key = x * strides[0] + y * strides[1];
-          out[x][y]                    = RandomGenerator::rand_double(epoch, HI_BITS(key), LO_BITS(key));
+          out[x][y] = RandomGenerator::rand_double(epoch, HI_BITS(key), LO_BITS(key));
         }
       break;
     }
     case 3: {
       const Rect<3> rect = NumPyProjectionFunctor::unpack_shape<3>(task, derez);
       if (rect.empty()) break;
-      const Point<3>              strides = derez.unpack_point<3>();
-      const AccessorWO<double, 3> out     = derez.unpack_accessor_WO<double, 3>(regions[0], rect);
-#  pragma omp parallel for
+      const Point<3> strides          = derez.unpack_point<3>();
+      const AccessorWO<double, 3> out = derez.unpack_accessor_WO<double, 3>(regions[0], rect);
+#pragma omp parallel for
       for (coord_t x = rect.lo[0]; x <= rect.hi[0]; x++)
         for (coord_t y = rect.lo[1]; y <= rect.hi[1]; y++)
           for (coord_t z = rect.lo[2]; z <= rect.hi[2]; z++) {
             const unsigned long long key = x * strides[0] + y * strides[1] + z * strides[2];
-            out[x][y][z]                 = RandomGenerator::rand_double(epoch, HI_BITS(key), LO_BITS(key));
+            out[x][y][z] = RandomGenerator::rand_double(epoch, HI_BITS(key), LO_BITS(key));
           }
       break;
     }
-    default:
-      assert(false);
+    default: assert(false);
   }
 }
 #endif
 
 const int RandNormalTask::TASK_ID =
-    static_cast<int>(NumPyOpCode::NUMPY_RAND_NORMAL) * NUMPY_TYPE_OFFSET + DOUBLE_LT * NUMPY_MAX_VARIANTS;
+  static_cast<int>(NumPyOpCode::NUMPY_RAND_NORMAL) * NUMPY_TYPE_OFFSET +
+  DOUBLE_LT * NUMPY_MAX_VARIANTS;
 
-/*static*/ void RandNormalTask::cpu_variant(const Task* task, const std::vector<PhysicalRegion>& regions, Context ctx,
-                                            Runtime* runtime) {
+/*static*/ void RandNormalTask::cpu_variant(const Task* task,
+                                            const std::vector<PhysicalRegion>& regions,
+                                            Context ctx,
+                                            Runtime* runtime)
+{
   LegateDeserializer derez(task->args, task->arglen);
-  const unsigned     epoch = derez.unpack_32bit_uint();
-  const int          dim   = derez.unpack_dimension();
+  const unsigned epoch = derez.unpack_32bit_uint();
+  const int dim        = derez.unpack_dimension();
   switch (dim) {
     case 1: {
       const Rect<1> rect = NumPyProjectionFunctor::unpack_shape<1>(task, derez);
       if (rect.empty()) break;
-      const Point<1>              strides = derez.unpack_point<1>();
-      const AccessorWO<double, 1> out     = derez.unpack_accessor_WO<double, 1>(regions[0], rect);
+      const Point<1> strides          = derez.unpack_point<1>();
+      const AccessorWO<double, 1> out = derez.unpack_accessor_WO<double, 1>(regions[0], rect);
       for (coord_t x = rect.lo[0]; x <= rect.hi[0]; x++) {
         const unsigned long long key = x * strides[0];
-        out[x]                       = erfinv(2.0 * RandomGenerator::rand_double(epoch, HI_BITS(key), LO_BITS(key)) - 1.0);
+        out[x] =
+          erfinv(2.0 * RandomGenerator::rand_double(epoch, HI_BITS(key), LO_BITS(key)) - 1.0);
       }
       break;
     }
     case 2: {
       const Rect<2> rect = NumPyProjectionFunctor::unpack_shape<2>(task, derez);
       if (rect.empty()) break;
-      const Point<2>              strides = derez.unpack_point<2>();
-      const AccessorWO<double, 2> out     = derez.unpack_accessor_WO<double, 2>(regions[0], rect);
+      const Point<2> strides          = derez.unpack_point<2>();
+      const AccessorWO<double, 2> out = derez.unpack_accessor_WO<double, 2>(regions[0], rect);
       for (coord_t x = rect.lo[0]; x <= rect.hi[0]; x++)
         for (coord_t y = rect.lo[1]; y <= rect.hi[1]; y++) {
           const unsigned long long key = x * strides[0] + y * strides[1];
-          out[x][y]                    = erfinv(2.0 * RandomGenerator::rand_double(epoch, HI_BITS(key), LO_BITS(key)) - 1.0);
+          out[x][y] =
+            erfinv(2.0 * RandomGenerator::rand_double(epoch, HI_BITS(key), LO_BITS(key)) - 1.0);
         }
       break;
     }
     case 3: {
       const Rect<3> rect = NumPyProjectionFunctor::unpack_shape<3>(task, derez);
       if (rect.empty()) break;
-      const Point<3>              strides = derez.unpack_point<3>();
-      const AccessorWO<double, 3> out     = derez.unpack_accessor_WO<double, 3>(regions[0], rect);
+      const Point<3> strides          = derez.unpack_point<3>();
+      const AccessorWO<double, 3> out = derez.unpack_accessor_WO<double, 3>(regions[0], rect);
       for (coord_t x = rect.lo[0]; x <= rect.hi[0]; x++)
         for (coord_t y = rect.lo[1]; y <= rect.hi[1]; y++)
           for (coord_t z = rect.lo[2]; z <= rect.hi[2]; z++) {
             const unsigned long long key = x * strides[0] + y * strides[1] + z * strides[2];
-            out[x][y][z]                 = erfinv(2.0 * RandomGenerator::rand_double(epoch, HI_BITS(key), LO_BITS(key)) - 1.0);
+            out[x][y][z] =
+              erfinv(2.0 * RandomGenerator::rand_double(epoch, HI_BITS(key), LO_BITS(key)) - 1.0);
           }
       break;
     }
-    default:
-      assert(false);
+    default: assert(false);
   }
 }
 
 #ifdef LEGATE_USE_OPENMP
-/*static*/ void RandNormalTask::omp_variant(const Task* task, const std::vector<PhysicalRegion>& regions, Context ctx,
-                                            Runtime* runtime) {
+/*static*/ void RandNormalTask::omp_variant(const Task* task,
+                                            const std::vector<PhysicalRegion>& regions,
+                                            Context ctx,
+                                            Runtime* runtime)
+{
   LegateDeserializer derez(task->args, task->arglen);
-  const unsigned     epoch = derez.unpack_32bit_uint();
-  const int          dim   = derez.unpack_dimension();
+  const unsigned epoch = derez.unpack_32bit_uint();
+  const int dim        = derez.unpack_dimension();
   switch (dim) {
     case 1: {
       const Rect<1> rect = NumPyProjectionFunctor::unpack_shape<1>(task, derez);
       if (rect.empty()) break;
-      const Point<1>              strides = derez.unpack_point<1>();
-      const AccessorWO<double, 1> out     = derez.unpack_accessor_WO<double, 1>(regions[0], rect);
-#  pragma omp parallel for
+      const Point<1> strides          = derez.unpack_point<1>();
+      const AccessorWO<double, 1> out = derez.unpack_accessor_WO<double, 1>(regions[0], rect);
+#pragma omp parallel for
       for (coord_t x = rect.lo[0]; x <= rect.hi[0]; x++) {
         const unsigned long long key = x * strides[0];
-        out[x]                       = erfinv(2.0 * RandomGenerator::rand_double(epoch, HI_BITS(key), LO_BITS(key)) - 1.0);
+        out[x] =
+          erfinv(2.0 * RandomGenerator::rand_double(epoch, HI_BITS(key), LO_BITS(key)) - 1.0);
       }
       break;
     }
     case 2: {
       const Rect<2> rect = NumPyProjectionFunctor::unpack_shape<2>(task, derez);
       if (rect.empty()) break;
-      const Point<2>              strides = derez.unpack_point<2>();
-      const AccessorWO<double, 2> out     = derez.unpack_accessor_WO<double, 2>(regions[0], rect);
-#  pragma omp parallel for
+      const Point<2> strides          = derez.unpack_point<2>();
+      const AccessorWO<double, 2> out = derez.unpack_accessor_WO<double, 2>(regions[0], rect);
+#pragma omp parallel for
       for (coord_t x = rect.lo[0]; x <= rect.hi[0]; x++)
         for (coord_t y = rect.lo[1]; y <= rect.hi[1]; y++) {
           const unsigned long long key = x * strides[0] + y * strides[1];
-          out[x][y]                    = erfinv(2.0 * RandomGenerator::rand_double(epoch, HI_BITS(key), LO_BITS(key)) - 1.0);
+          out[x][y] =
+            erfinv(2.0 * RandomGenerator::rand_double(epoch, HI_BITS(key), LO_BITS(key)) - 1.0);
         }
       break;
     }
     case 3: {
       const Rect<3> rect = NumPyProjectionFunctor::unpack_shape<3>(task, derez);
       if (rect.empty()) break;
-      const Point<3>              strides = derez.unpack_point<3>();
-      const AccessorWO<double, 3> out     = derez.unpack_accessor_WO<double, 3>(regions[0], rect);
-#  pragma omp parallel for
+      const Point<3> strides          = derez.unpack_point<3>();
+      const AccessorWO<double, 3> out = derez.unpack_accessor_WO<double, 3>(regions[0], rect);
+#pragma omp parallel for
       for (coord_t x = rect.lo[0]; x <= rect.hi[0]; x++)
         for (coord_t y = rect.lo[1]; y <= rect.hi[1]; y++)
           for (coord_t z = rect.lo[2]; z <= rect.hi[2]; z++) {
             const unsigned long long key = x * strides[0] + y * strides[1] + z * strides[2];
-            out[x][y][z]                 = erfinv(2.0 * RandomGenerator::rand_double(epoch, HI_BITS(key), LO_BITS(key)) - 1.0);
+            out[x][y][z] =
+              erfinv(2.0 * RandomGenerator::rand_double(epoch, HI_BITS(key), LO_BITS(key)) - 1.0);
           }
       break;
     }
-    default:
-      assert(false);
+    default: assert(false);
   }
 }
 #endif
 
-template<typename T>
-/*static*/ void RandIntegerTask<T>::cpu_variant(const Task* task, const std::vector<PhysicalRegion>& regions, Context ctx,
-                                                Runtime* runtime) {
+template <typename T>
+/*static*/ void RandIntegerTask<T>::cpu_variant(const Task* task,
+                                                const std::vector<PhysicalRegion>& regions,
+                                                Context ctx,
+                                                Runtime* runtime)
+{
   LegateDeserializer derez(task->args, task->arglen);
-  const unsigned     epoch = derez.unpack_32bit_uint();
-  const T            low   = derez.unpack_value<T>();
-  const T            high  = derez.unpack_value<T>();
+  const unsigned epoch = derez.unpack_32bit_uint();
+  const T low          = derez.unpack_value<T>();
+  const T high         = derez.unpack_value<T>();
   assert(low < high);
   const unsigned long long diff = high - low;
-  const int                dim  = derez.unpack_dimension();
+  const int dim                 = derez.unpack_dimension();
   switch (dim) {
     case 1: {
       const Rect<1> rect = NumPyProjectionFunctor::unpack_shape<1>(task, derez);
       if (rect.empty()) break;
-      const Point<1>         strides = derez.unpack_point<1>();
-      const AccessorWO<T, 1> out     = derez.unpack_accessor_WO<T, 1>(regions[0], rect);
+      const Point<1> strides     = derez.unpack_point<1>();
+      const AccessorWO<T, 1> out = derez.unpack_accessor_WO<T, 1>(regions[0], rect);
       for (coord_t x = rect.lo[0]; x <= rect.hi[0]; x++) {
         const unsigned long long key = x * strides[0];
-        out[x]                       = low + RandomGenerator::rand_long(epoch, HI_BITS(key), LO_BITS(key), diff);
+        out[x] = low + RandomGenerator::rand_long(epoch, HI_BITS(key), LO_BITS(key), diff);
       }
       break;
     }
     case 2: {
       const Rect<2> rect = NumPyProjectionFunctor::unpack_shape<2>(task, derez);
       if (rect.empty()) break;
-      const Point<2>         strides = derez.unpack_point<2>();
-      const AccessorWO<T, 2> out     = derez.unpack_accessor_WO<T, 2>(regions[0], rect);
+      const Point<2> strides     = derez.unpack_point<2>();
+      const AccessorWO<T, 2> out = derez.unpack_accessor_WO<T, 2>(regions[0], rect);
       for (coord_t x = rect.lo[0]; x <= rect.hi[0]; x++)
         for (coord_t y = rect.lo[1]; y <= rect.hi[1]; y++) {
           const unsigned long long key = x * strides[0] + y * strides[1];
-          out[x][y]                    = low + RandomGenerator::rand_long(epoch, HI_BITS(key), LO_BITS(key), diff);
+          out[x][y] = low + RandomGenerator::rand_long(epoch, HI_BITS(key), LO_BITS(key), diff);
         }
       break;
     }
     case 3: {
       const Rect<3> rect = NumPyProjectionFunctor::unpack_shape<3>(task, derez);
       if (rect.empty()) break;
-      const Point<3>         strides = derez.unpack_point<3>();
-      const AccessorWO<T, 3> out     = derez.unpack_accessor_WO<T, 3>(regions[0], rect);
+      const Point<3> strides     = derez.unpack_point<3>();
+      const AccessorWO<T, 3> out = derez.unpack_accessor_WO<T, 3>(regions[0], rect);
       for (coord_t x = rect.lo[0]; x <= rect.hi[0]; x++)
         for (coord_t y = rect.lo[1]; y <= rect.hi[1]; y++)
           for (coord_t z = rect.lo[2]; z <= rect.hi[2]; z++) {
             const unsigned long long key = x * strides[0] + y * strides[1] + z * strides[2];
-            out[x][y][z]                 = low + RandomGenerator::rand_long(epoch, HI_BITS(key), LO_BITS(key), diff);
+            out[x][y][z] =
+              low + RandomGenerator::rand_long(epoch, HI_BITS(key), LO_BITS(key), diff);
           }
       break;
     }
-    default:
-      assert(false);
+    default: assert(false);
   }
 }
 
 #ifdef LEGATE_USE_OPENMP
-template<typename T>
-/*static*/ void RandIntegerTask<T>::omp_variant(const Task* task, const std::vector<PhysicalRegion>& regions, Context ctx,
-                                                Runtime* runtime) {
+template <typename T>
+/*static*/ void RandIntegerTask<T>::omp_variant(const Task* task,
+                                                const std::vector<PhysicalRegion>& regions,
+                                                Context ctx,
+                                                Runtime* runtime)
+{
   LegateDeserializer derez(task->args, task->arglen);
-  const unsigned     epoch = derez.unpack_32bit_uint();
-  const T            low   = derez.unpack_value<T>();
-  const T            high  = derez.unpack_value<T>();
+  const unsigned epoch = derez.unpack_32bit_uint();
+  const T low          = derez.unpack_value<T>();
+  const T high         = derez.unpack_value<T>();
   assert(low < high);
   const unsigned long long diff = high - low;
-  const int                dim  = derez.unpack_dimension();
+  const int dim                 = derez.unpack_dimension();
   switch (dim) {
     case 1: {
       const Rect<1> rect = NumPyProjectionFunctor::unpack_shape<1>(task, derez);
       if (rect.empty()) break;
-      const Point<1>         strides = derez.unpack_point<1>();
-      const AccessorWO<T, 1> out     = derez.unpack_accessor_WO<T, 1>(regions[0], rect);
-#  pragma omp parallel for
+      const Point<1> strides     = derez.unpack_point<1>();
+      const AccessorWO<T, 1> out = derez.unpack_accessor_WO<T, 1>(regions[0], rect);
+#pragma omp parallel for
       for (coord_t x = rect.lo[0]; x <= rect.hi[0]; x++) {
         const unsigned long long key = x * strides[0];
-        out[x]                       = low + RandomGenerator::rand_long(epoch, HI_BITS(key), LO_BITS(key), diff);
+        out[x] = low + RandomGenerator::rand_long(epoch, HI_BITS(key), LO_BITS(key), diff);
       }
       break;
     }
     case 2: {
       const Rect<2> rect = NumPyProjectionFunctor::unpack_shape<2>(task, derez);
       if (rect.empty()) break;
-      const Point<2>         strides = derez.unpack_point<2>();
-      const AccessorWO<T, 2> out     = derez.unpack_accessor_WO<T, 2>(regions[0], rect);
-#  pragma omp parallel for
+      const Point<2> strides     = derez.unpack_point<2>();
+      const AccessorWO<T, 2> out = derez.unpack_accessor_WO<T, 2>(regions[0], rect);
+#pragma omp parallel for
       for (coord_t x = rect.lo[0]; x <= rect.hi[0]; x++)
         for (coord_t y = rect.lo[1]; y <= rect.hi[1]; y++) {
           const unsigned long long key = x * strides[0] + y * strides[1];
-          out[x][y]                    = low + RandomGenerator::rand_long(epoch, HI_BITS(key), LO_BITS(key), diff);
+          out[x][y] = low + RandomGenerator::rand_long(epoch, HI_BITS(key), LO_BITS(key), diff);
         }
       break;
     }
     case 3: {
       const Rect<3> rect = NumPyProjectionFunctor::unpack_shape<3>(task, derez);
       if (rect.empty()) break;
-      const Point<3>         strides = derez.unpack_point<3>();
-      const AccessorWO<T, 3> out     = derez.unpack_accessor_WO<T, 3>(regions[0], rect);
-#  pragma omp parallel for
+      const Point<3> strides     = derez.unpack_point<3>();
+      const AccessorWO<T, 3> out = derez.unpack_accessor_WO<T, 3>(regions[0], rect);
+#pragma omp parallel for
       for (coord_t x = rect.lo[0]; x <= rect.hi[0]; x++)
         for (coord_t y = rect.lo[1]; y <= rect.hi[1]; y++)
           for (coord_t z = rect.lo[2]; z <= rect.hi[2]; z++) {
             const unsigned long long key = x * strides[0] + y * strides[1] + z * strides[2];
-            out[x][y][z]                 = low + RandomGenerator::rand_long(epoch, HI_BITS(key), LO_BITS(key), diff);
+            out[x][y][z] =
+              low + RandomGenerator::rand_long(epoch, HI_BITS(key), LO_BITS(key), diff);
           }
       break;
     }
-    default:
-      assert(false);
+    default: assert(false);
   }
 }
 
@@ -431,16 +452,18 @@ template<typename T>
 
 // No need to instantiate floating point versions
 
-INSTANTIATE_INT_TASKS(RandIntegerTask, static_cast<int>(NumPyOpCode::NUMPY_RAND_INTEGER) * NUMPY_TYPE_OFFSET)
+INSTANTIATE_INT_TASKS(RandIntegerTask,
+                      static_cast<int>(NumPyOpCode::NUMPY_RAND_INTEGER) * NUMPY_TYPE_OFFSET)
 
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate
 
-namespace    // unnamed
+namespace  // unnamed
 {
-static void __attribute__((constructor)) register_tasks(void) {
+static void __attribute__((constructor)) register_tasks(void)
+{
   legate::numpy::RandUniformTask::register_variants();
   legate::numpy::RandNormalTask::register_variants();
   REGISTER_INT_TASKS(legate::numpy::RandIntegerTask)
 }
-}    // namespace
+}  // namespace

@@ -22,26 +22,28 @@
 
 namespace legate {
 namespace numpy {
-template<class T>
+template <class T>
 struct LogicalNotOperation : public std::logical_not<T> {
   using argument_type           = typename std::logical_not<T>::argument_type;
   using result_type             = typename std::logical_not<T>::result_type;
   constexpr static auto op_code = NumPyOpCode::NUMPY_LOGICAL_NOT;
 
-  template<typename T_>
-  constexpr bool operator()(const T_& x) const {
+  template <typename T_>
+  constexpr bool operator()(const T_& x) const
+  {
     return std::logical_not<T_>{}(x);
   }
 
-  template<typename T_>
-  constexpr bool operator()(const complex<T_>& x) const {
+  template <typename T_>
+  constexpr bool operator()(const complex<T_>& x) const
+  {
     return std::logical_not<T_>{}(x.real()) && std::logical_not<T_>{}(x.imag());
   }
 };
 
-template<typename T>
+template <typename T>
 using LogicalNot = UnaryUniversalFunction<LogicalNotOperation<T>>;
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate
 
-#endif    // __NUMPY_LOGICAL_NOT_H__
+#endif  // __NUMPY_LOGICAL_NOT_H__

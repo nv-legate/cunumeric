@@ -31,5 +31,5 @@ template void Subtract<uint64_t>::instantiate_tasks();
 template void Subtract<bool>::instantiate_tasks();
 template void Subtract<complex<float>>::instantiate_tasks();
 template void Subtract<complex<double>>::instantiate_tasks();
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate

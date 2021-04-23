@@ -31,5 +31,5 @@ template void ArcCos<uint64_t>::instantiate_tasks();
 template void ArcCos<bool>::instantiate_tasks();
 template void ArcCos<complex<float>>::instantiate_tasks();
 template void ArcCos<complex<double>>::instantiate_tasks();
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate

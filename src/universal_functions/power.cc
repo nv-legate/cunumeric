@@ -31,5 +31,5 @@ template void Power<uint64_t>::instantiate_tasks();
 template void Power<bool>::instantiate_tasks();
 template void Power<complex<float>>::instantiate_tasks();
 template void Power<complex<double>>::instantiate_tasks();
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate

@@ -24,23 +24,25 @@ using namespace Legion;
 // To == int32_t
 namespace legate {
 namespace numpy {
-template void PointTask<ConvertTask<int32_t, __half>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context,
-                                                                   Runtime*);
-template void PointTask<ConvertTask<int32_t, float>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context,
-                                                                  Runtime*);
-template void PointTask<ConvertTask<int32_t, double>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context,
-                                                                   Runtime*);
-template void PointTask<ConvertTask<int32_t, int16_t>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context,
-                                                                    Runtime*);
-template void PointTask<ConvertTask<int32_t, int64_t>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context,
-                                                                    Runtime*);
-template void PointTask<ConvertTask<int32_t, uint16_t>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context,
-                                                                     Runtime*);
-template void PointTask<ConvertTask<int32_t, uint32_t>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context,
-                                                                     Runtime*);
-template void PointTask<ConvertTask<int32_t, uint64_t>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context,
-                                                                     Runtime*);
-template void PointTask<ConvertTask<int32_t, bool>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context,
+template void PointTask<ConvertTask<int32_t, __half>>::gpu_variant(
+  const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
+template void PointTask<ConvertTask<int32_t, float>>::gpu_variant(
+  const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
+template void PointTask<ConvertTask<int32_t, double>>::gpu_variant(
+  const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
+template void PointTask<ConvertTask<int32_t, int16_t>>::gpu_variant(
+  const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
+template void PointTask<ConvertTask<int32_t, int64_t>>::gpu_variant(
+  const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
+template void PointTask<ConvertTask<int32_t, uint16_t>>::gpu_variant(
+  const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
+template void PointTask<ConvertTask<int32_t, uint32_t>>::gpu_variant(
+  const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
+template void PointTask<ConvertTask<int32_t, uint64_t>>::gpu_variant(
+  const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
+template void PointTask<ConvertTask<int32_t, bool>>::gpu_variant(const Task*,
+                                                                 const std::vector<PhysicalRegion>&,
+                                                                 Context,
                                                                  Runtime*);
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate

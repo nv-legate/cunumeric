@@ -31,5 +31,5 @@ template void Absolute<uint64_t>::instantiate_tasks();
 template void Absolute<bool>::instantiate_tasks();
 template void Absolute<complex<float>>::instantiate_tasks();
 template void Absolute<complex<double>>::instantiate_tasks();
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate

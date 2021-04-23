@@ -23,22 +23,26 @@ using namespace Legion;
 namespace legate {
 namespace numpy {
 
-template<typename T>
+template <typename T>
 __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-    legate_eye(const AccessorRW<T, 2> out, const Point<2> start, const size_t max) {
+  legate_eye(const AccessorRW<T, 2> out, const Point<2> start, const size_t max)
+{
   const size_t offset = blockIdx.x * blockDim.x + threadIdx.x;
   if (offset >= max) return;
   out[start[0] + offset][start[1] + offset] = 1;
 }
 
-template<typename T>
-/*static*/ void EyeTask<T>::gpu_variant(const Task* task, const std::vector<PhysicalRegion>& regions, Context ctx,
-                                        Runtime* runtime) {
+template <typename T>
+/*static*/ void EyeTask<T>::gpu_variant(const Task* task,
+                                        const std::vector<PhysicalRegion>& regions,
+                                        Context ctx,
+                                        Runtime* runtime)
+{
   LegateDeserializer derez(task->args, task->arglen);
   // We know this is 2-D
-  const Rect<2>          rect = NumPyProjectionFunctor::unpack_shape<2>(task, derez);
-  const AccessorRW<T, 2> out  = derez.unpack_accessor_RW<T, 2>(regions[0], rect);
-  const int              k    = derez.unpack_32bit_int();
+  const Rect<2> rect         = NumPyProjectionFunctor::unpack_shape<2>(task, derez);
+  const AccessorRW<T, 2> out = derez.unpack_accessor_RW<T, 2>(regions[0], rect);
+  const int k                = derez.unpack_32bit_int();
   // Solve for the start
   // y = x + k
   // x >= rect.lo[0]
@@ -66,5 +70,5 @@ template<typename T>
 
 INSTANTIATE_TASK_VARIANT(EyeTask, gpu_variant)
 
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate

@@ -22,57 +22,71 @@
 namespace legate {
 namespace numpy {
 // Standard data parallel equal task
-template<typename T>
+template <typename T>
 class CloseTask : public NumPyTask<CloseTask<T>> {
-public:
+ public:
   static const int TASK_ID;
   static const int REGIONS = 2;
 
-public:
-  static bool cpu_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+ public:
+  static bool cpu_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #ifdef LEGATE_USE_OPENMP
-  static bool omp_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+  static bool omp_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #endif
 #ifdef LEGATE_USE_CUDA
-  static Legion::DeferredValue<bool> gpu_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions,
-                                                 Legion::Context ctx, Legion::Runtime* runtime);
+  static Legion::DeferredValue<bool> gpu_variant(const Legion::Task* task,
+                                                 const std::vector<Legion::PhysicalRegion>& regions,
+                                                 Legion::Context ctx,
+                                                 Legion::Runtime* runtime);
 #endif
 };
 
 // Broadcast close task
-template<typename T>
+template <typename T>
 class CloseBroadcast : public NumPyTask<CloseBroadcast<T>> {
-public:
+ public:
   static const int TASK_ID;
   static const int REGIONS = 2;
 
-public:
-  static bool cpu_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+ public:
+  static bool cpu_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #ifdef LEGATE_USE_OPENMP
-  static bool omp_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+  static bool omp_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #endif
 #ifdef LEGATE_USE_CUDA
-  static Legion::DeferredValue<bool> gpu_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions,
-                                                 Legion::Context ctx, Legion::Runtime* runtime);
+  static Legion::DeferredValue<bool> gpu_variant(const Legion::Task* task,
+                                                 const std::vector<Legion::PhysicalRegion>& regions,
+                                                 Legion::Context ctx,
+                                                 Legion::Runtime* runtime);
 #endif
 };
 
 // For doing a scalar closeness test
-template<typename T>
+template <typename T>
 class CloseScalar : public NumPyTask<CloseScalar<T>> {
-public:
+ public:
   static const int TASK_ID;
   static const int REGIONS = 0;
 
-public:
-  static bool cpu_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+ public:
+  static bool cpu_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 };
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate
 
-#endif    // __NUMPY_CLOSE_H__
+#endif  // __NUMPY_CLOSE_H__

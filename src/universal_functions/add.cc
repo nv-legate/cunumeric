@@ -31,5 +31,5 @@ template void Add<bool>::instantiate_tasks();
 template void Add<__half>::instantiate_tasks();
 template void Add<complex<float>>::instantiate_tasks();
 template void Add<complex<double>>::instantiate_tasks();
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate

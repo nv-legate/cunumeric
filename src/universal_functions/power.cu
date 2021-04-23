@@ -31,5 +31,5 @@ template void Power<uint64_t>::instantiate_task_gpu_variants();
 template void Power<bool>::instantiate_task_gpu_variants();
 template void Power<complex<float>>::instantiate_task_gpu_variants();
 template void Power<complex<double>>::instantiate_task_gpu_variants();
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate

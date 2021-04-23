@@ -26,7 +26,7 @@
 
 namespace legate {
 namespace numpy {
-template<class T>
+template <class T>
 struct CopyOperation {
   using argument_type           = T;
   constexpr static auto op_code = NumPyOpCode::NUMPY_COPY;
@@ -34,9 +34,10 @@ struct CopyOperation {
   __CUDA_HD__ constexpr T operator()(const T& x) const { return x; }
 };
 
-template<class T>
-class CopyTask : public UnaryOperationTask<CopyTask<T>, CopyOperation<T>> {};
-}    // namespace numpy
-}    // namespace legate
+template <class T>
+class CopyTask : public UnaryOperationTask<CopyTask<T>, CopyOperation<T>> {
+};
+}  // namespace numpy
+}  // namespace legate
 
-#endif    // __NUMPY_COPY_H__
+#endif  // __NUMPY_COPY_H__

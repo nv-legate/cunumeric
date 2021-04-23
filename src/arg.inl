@@ -17,15 +17,20 @@
 namespace legate {
 namespace numpy {
 
-template<typename T>
-__CUDA_HD__ Argval<T>::Argval(T v) : arg(LLONG_MAX), arg_value(v) {}
+template <typename T>
+__CUDA_HD__ Argval<T>::Argval(T v) : arg(LLONG_MAX), arg_value(v)
+{
+}
 
-template<typename T>
-__CUDA_HD__ Argval<T>::Argval(int64_t a, T v) : arg(a), arg_value(v) {}
+template <typename T>
+__CUDA_HD__ Argval<T>::Argval(int64_t a, T v) : arg(a), arg_value(v)
+{
+}
 
-template<typename T>
-template<typename REDOP, bool EXCLUSIVE>
-__CUDA_HD__ inline void Argval<T>::apply(const Argval<T>& rhs) {
+template <typename T>
+template <typename REDOP, bool EXCLUSIVE>
+__CUDA_HD__ inline void Argval<T>::apply(const Argval<T>& rhs)
+{
   if (EXCLUSIVE) {
     // This is the easy case
     T copy = arg_value;
@@ -38,9 +43,9 @@ __CUDA_HD__ inline void Argval<T>::apply(const Argval<T>& rhs) {
     // Handle conflicts here
 #ifdef __CUDA_ARCH__
     const unsigned long long guard = (unsigned long long)-1LL;
-    unsigned long long*      ptr   = (unsigned long long*)&arg;
+    unsigned long long* ptr        = (unsigned long long*)&arg;
     union {
-      long long          as_signed;
+      long long as_signed;
       unsigned long long as_unsigned;
     } next, current;
     next.as_signed = *ptr;
@@ -70,9 +75,9 @@ __CUDA_HD__ inline void Argval<T>::apply(const Argval<T>& rhs) {
     // Spin until no one else is doing their comparison
     // We use -1 as a guard to indicate we're doing our
     // comparison since we know all indexes should be >= 0
-    volatile long long* ptr  = (volatile long long*)&arg;
-    long long           next = *ptr;
-    long long           current;
+    volatile long long* ptr = (volatile long long*)&arg;
+    long long next          = *ptr;
+    long long current;
     do {
       current = next;
       next    = __sync_val_compare_and_swap(ptr, current, -1);
@@ -98,5 +103,5 @@ __CUDA_HD__ inline void Argval<T>::apply(const Argval<T>& rhs) {
   }
 }
 
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate

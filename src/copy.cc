@@ -31,5 +31,5 @@ template class CopyTask<uint64_t>;
 template class CopyTask<bool>;
 template class CopyTask<complex<float>>;
 template class CopyTask<complex<double>>;
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate

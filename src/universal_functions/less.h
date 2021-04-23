@@ -22,14 +22,14 @@
 
 namespace legate {
 namespace numpy {
-template<class T>
+template <class T>
 struct LessOperation : std::less<T> {
   constexpr static auto op_code = NumPyOpCode::NUMPY_LESS;
 };
 
-template<class T>
+template <class T>
 using Less = NoncommutativeBinaryUniversalFunction<LessOperation<T>>;
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate
 
-#endif    // __NUMPY_LESS_H__
+#endif  // __NUMPY_LESS_H__

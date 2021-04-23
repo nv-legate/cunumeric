@@ -24,20 +24,23 @@ using namespace Legion;
 namespace legate {
 namespace numpy {
 
-template<typename T>
-/*static*/ void InclusiveScanTask<T>::gpu_variant(const Task* task, const std::vector<PhysicalRegion>& regions, Context ctx,
-                                                  Runtime* runtime) {
+template <typename T>
+/*static*/ void InclusiveScanTask<T>::gpu_variant(const Task* task,
+                                                  const std::vector<PhysicalRegion>& regions,
+                                                  Context ctx,
+                                                  Runtime* runtime)
+{
   LegateDeserializer derez(task->args, task->arglen);
-  Rect<1>            rect = NumPyProjectionFunctor::unpack_shape<1>(task, derez);
+  Rect<1> rect = NumPyProjectionFunctor::unpack_shape<1>(task, derez);
   if (rect.empty()) return;
-  AccessorRW<T, 1>      inout  = derez.unpack_accessor_RW<T, 1>(regions[0], rect);
-  T*                    ptr    = inout.ptr(rect);
-  const size_t          volume = rect.volume();
+  AccessorRW<T, 1> inout = derez.unpack_accessor_RW<T, 1>(regions[0], rect);
+  T* ptr                 = inout.ptr(rect);
+  const size_t volume    = rect.volume();
   thrust::device_ptr<T> ptr_d(ptr);
   thrust::inclusive_scan(thrust::device, ptr_d, ptr_d + volume, ptr_d);
 }
 
 INSTANTIATE_TASK_VARIANT(InclusiveScanTask, gpu_variant)
 
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate

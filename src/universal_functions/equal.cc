@@ -31,5 +31,5 @@ template void Equal<uint64_t>::instantiate_tasks();
 template void Equal<bool>::instantiate_tasks();
 template void Equal<complex<float>>::instantiate_tasks();
 template void Equal<complex<double>>::instantiate_tasks();
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate

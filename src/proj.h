@@ -24,25 +24,29 @@ namespace numpy {
 
 // Interface for Legate projection functors
 class NumPyProjectionFunctor : public Legion::ProjectionFunctor {
-public:
+ public:
   NumPyProjectionFunctor(Legion::Runtime* runtime);
 
-public:
+ public:
   using Legion::ProjectionFunctor::project;
   // Different projection methods for different branches
-  virtual Legion::LogicalRegion project(Legion::LogicalPartition upper_bound, const Legion::DomainPoint& point,
+  virtual Legion::LogicalRegion project(Legion::LogicalPartition upper_bound,
+                                        const Legion::DomainPoint& point,
                                         const Legion::Domain& launch_domain);
 
-public:
-  virtual Legion::DomainPoint project_point(const Legion::DomainPoint& point, const Legion::Domain& launch_domain) const = 0;
+ public:
+  virtual Legion::DomainPoint project_point(const Legion::DomainPoint& point,
+                                            const Legion::Domain& launch_domain) const = 0;
 
-public:
-  static void                    register_projection_functors(Legion::Runtime* runtime, Legion::ProjectionID offset);
+ public:
+  static void register_projection_functors(Legion::Runtime* runtime, Legion::ProjectionID offset);
   static NumPyProjectionFunctor* functors[NUMPY_PROJ_LAST];
-  template<int DIM>
-  static inline Legion::Rect<DIM> unpack_shape(const Legion::Task* task, legate::LegateDeserializer& derez) {
+  template <int DIM>
+  static inline Legion::Rect<DIM> unpack_shape(const Legion::Task* task,
+                                               legate::LegateDeserializer& derez)
+  {
     const Legion::Point<DIM> shape = derez.template unpack_point<DIM>();
-    const Legion::Rect<DIM>  rect(Legion::Point<DIM>::ZEROES(), shape - Legion::Point<DIM>::ONES());
+    const Legion::Rect<DIM> rect(Legion::Point<DIM>::ZEROES(), shape - Legion::Point<DIM>::ONES());
     // Unpack the projection functor ID
     const int functor_id = derez.unpack_32bit_int();
     // If the functor is less than zero than we know that this isn't valid
@@ -57,243 +61,256 @@ public:
       const Legion::Point<DIM> upper = lower + chunk - Legion::Point<DIM>::ONES();
       return rect.intersection(Legion::Rect<DIM>(lower, upper));
     } else {
-      NumPyProjectionFunctor*  functor = functors[functor_id];
-      const Legion::Point<DIM> local   = functor->project_point(task->index_point, task->index_domain);
-      const Legion::Point<DIM> lower   = local * chunk;
-      const Legion::Point<DIM> upper   = lower + chunk - Legion::Point<DIM>::ONES();
+      NumPyProjectionFunctor* functor = functors[functor_id];
+      const Legion::Point<DIM> local =
+        functor->project_point(task->index_point, task->index_domain);
+      const Legion::Point<DIM> lower = local * chunk;
+      const Legion::Point<DIM> upper = lower + chunk - Legion::Point<DIM>::ONES();
       return rect.intersection(Legion::Rect<DIM>(lower, upper));
     }
   }
 };
 
 class NumPyProjectionFunctor_2D_1D : public NumPyProjectionFunctor {
-public:
+ public:
   NumPyProjectionFunctor_2D_1D(NumPyProjectionCode code, Legion::Runtime* runtime);
 
-public:
-  virtual bool     is_functional(void) const { return true; }
-  virtual bool     is_exclusive(void) const { return true; }
+ public:
+  virtual bool is_functional(void) const { return true; }
+  virtual bool is_exclusive(void) const { return true; }
   virtual unsigned get_depth(void) const { return 0; }
 
-public:
-  virtual Legion::DomainPoint project_point(const Legion::DomainPoint& point, const Legion::Domain& launch_domain) const;
+ public:
+  virtual Legion::DomainPoint project_point(const Legion::DomainPoint& point,
+                                            const Legion::Domain& launch_domain) const;
 
-public:
-  const NumPyProjectionCode     code;
+ public:
+  const NumPyProjectionCode code;
   const Legion::Transform<1, 2> transform;
 
-public:
+ public:
   static Legion::Transform<1, 2> get_transform(NumPyProjectionCode code);
 };
 
 class NumPyProjectionFunctor_2D_2D : public NumPyProjectionFunctor {
-public:
+ public:
   NumPyProjectionFunctor_2D_2D(NumPyProjectionCode code, Legion::Runtime* runtime);
 
-public:
-  virtual bool     is_functional(void) const { return true; }
-  virtual bool     is_exclusive(void) const { return true; }
+ public:
+  virtual bool is_functional(void) const { return true; }
+  virtual bool is_exclusive(void) const { return true; }
   virtual unsigned get_depth(void) const { return 0; }
 
-public:
-  virtual Legion::DomainPoint project_point(const Legion::DomainPoint& point, const Legion::Domain& launch_domain) const;
+ public:
+  virtual Legion::DomainPoint project_point(const Legion::DomainPoint& point,
+                                            const Legion::Domain& launch_domain) const;
 
-public:
-  const NumPyProjectionCode     code;
+ public:
+  const NumPyProjectionCode code;
   const Legion::Transform<2, 2> transform;
 
-public:
+ public:
   static Legion::Transform<2, 2> get_transform(NumPyProjectionCode code);
 };
 
 class NumPyProjectionFunctor_1D_2D : public NumPyProjectionFunctor {
-public:
+ public:
   NumPyProjectionFunctor_1D_2D(NumPyProjectionCode code, Legion::Runtime* runtime);
 
-public:
-  virtual bool     is_functional(void) const { return true; }
-  virtual bool     is_exclusive(void) const { return true; }
+ public:
+  virtual bool is_functional(void) const { return true; }
+  virtual bool is_exclusive(void) const { return true; }
   virtual unsigned get_depth(void) const { return 0; }
 
-public:
-  virtual Legion::DomainPoint project_point(const Legion::DomainPoint& point, const Legion::Domain& launch_domain) const;
+ public:
+  virtual Legion::DomainPoint project_point(const Legion::DomainPoint& point,
+                                            const Legion::Domain& launch_domain) const;
 
-public:
-  const NumPyProjectionCode     code;
+ public:
+  const NumPyProjectionCode code;
   const Legion::Transform<2, 1> transform;
 
-public:
+ public:
   static Legion::Transform<2, 1> get_transform(NumPyProjectionCode code);
 };
 
 class NumPyProjectionFunctor_3D_2D : public NumPyProjectionFunctor {
-public:
+ public:
   NumPyProjectionFunctor_3D_2D(NumPyProjectionCode code, Legion::Runtime* runtime);
 
-public:
-  virtual bool     is_functional(void) const { return true; }
-  virtual bool     is_exclusive(void) const { return true; }
+ public:
+  virtual bool is_functional(void) const { return true; }
+  virtual bool is_exclusive(void) const { return true; }
   virtual unsigned get_depth(void) const { return 0; }
 
-public:
-  virtual Legion::DomainPoint project_point(const Legion::DomainPoint& point, const Legion::Domain& launch_domain) const;
+ public:
+  virtual Legion::DomainPoint project_point(const Legion::DomainPoint& point,
+                                            const Legion::Domain& launch_domain) const;
 
-public:
-  const NumPyProjectionCode     code;
+ public:
+  const NumPyProjectionCode code;
   const Legion::Transform<2, 3> transform;
 
-public:
+ public:
   static Legion::Transform<2, 3> get_transform(NumPyProjectionCode code);
 };
 
 class NumPyProjectionFunctor_3D_1D : public NumPyProjectionFunctor {
-public:
+ public:
   NumPyProjectionFunctor_3D_1D(NumPyProjectionCode code, Legion::Runtime* runtime);
 
-public:
-  virtual bool     is_functional(void) const { return true; }
-  virtual bool     is_exclusive(void) const { return true; }
+ public:
+  virtual bool is_functional(void) const { return true; }
+  virtual bool is_exclusive(void) const { return true; }
   virtual unsigned get_depth(void) const { return 0; }
 
-public:
-  virtual Legion::DomainPoint project_point(const Legion::DomainPoint& point, const Legion::Domain& launch_domain) const;
+ public:
+  virtual Legion::DomainPoint project_point(const Legion::DomainPoint& point,
+                                            const Legion::Domain& launch_domain) const;
 
-public:
-  const NumPyProjectionCode     code;
+ public:
+  const NumPyProjectionCode code;
   const Legion::Transform<1, 3> transform;
 
-public:
+ public:
   static Legion::Transform<1, 3> get_transform(NumPyProjectionCode code);
 };
 
 class NumPyProjectionFunctor_3D_3D : public NumPyProjectionFunctor {
-public:
+ public:
   NumPyProjectionFunctor_3D_3D(NumPyProjectionCode code, Legion::Runtime* runtime);
 
-public:
-  virtual bool     is_functional(void) const { return true; }
-  virtual bool     is_exclusive(void) const { return true; }
+ public:
+  virtual bool is_functional(void) const { return true; }
+  virtual bool is_exclusive(void) const { return true; }
   virtual unsigned get_depth(void) const { return 0; }
 
-public:
-  virtual Legion::DomainPoint project_point(const Legion::DomainPoint& point, const Legion::Domain& launch_domain) const;
+ public:
+  virtual Legion::DomainPoint project_point(const Legion::DomainPoint& point,
+                                            const Legion::Domain& launch_domain) const;
 
-public:
-  const NumPyProjectionCode     code;
+ public:
+  const NumPyProjectionCode code;
   const Legion::Transform<3, 3> transform;
 
-public:
+ public:
   static Legion::Transform<3, 3> get_transform(NumPyProjectionCode code);
 };
 
 class NumPyProjectionFunctor_2D_3D : public NumPyProjectionFunctor {
-public:
+ public:
   NumPyProjectionFunctor_2D_3D(NumPyProjectionCode code, Legion::Runtime* runtime);
 
-public:
-  virtual bool     is_functional(void) const { return true; }
-  virtual bool     is_exclusive(void) const { return true; }
+ public:
+  virtual bool is_functional(void) const { return true; }
+  virtual bool is_exclusive(void) const { return true; }
   virtual unsigned get_depth(void) const { return 0; }
 
-public:
-  virtual Legion::DomainPoint project_point(const Legion::DomainPoint& point, const Legion::Domain& launch_domain) const;
+ public:
+  virtual Legion::DomainPoint project_point(const Legion::DomainPoint& point,
+                                            const Legion::Domain& launch_domain) const;
 
-public:
-  const NumPyProjectionCode     code;
+ public:
+  const NumPyProjectionCode code;
   const Legion::Transform<3, 2> transform;
 
-public:
+ public:
   static Legion::Transform<3, 2> get_transform(NumPyProjectionCode code);
 };
 
 class NumPyProjectionFunctor_1D_3D : public NumPyProjectionFunctor {
-public:
+ public:
   NumPyProjectionFunctor_1D_3D(NumPyProjectionCode code, Legion::Runtime* runtime);
 
-public:
-  virtual bool     is_functional(void) const { return true; }
-  virtual bool     is_exclusive(void) const { return true; }
+ public:
+  virtual bool is_functional(void) const { return true; }
+  virtual bool is_exclusive(void) const { return true; }
   virtual unsigned get_depth(void) const { return 0; }
 
-public:
-  virtual Legion::DomainPoint project_point(const Legion::DomainPoint& point, const Legion::Domain& launch_domain) const;
+ public:
+  virtual Legion::DomainPoint project_point(const Legion::DomainPoint& point,
+                                            const Legion::Domain& launch_domain) const;
 
-public:
-  const NumPyProjectionCode     code;
+ public:
+  const NumPyProjectionCode code;
   const Legion::Transform<3, 1> transform;
 
-public:
+ public:
   static Legion::Transform<3, 1> get_transform(NumPyProjectionCode code);
 };
 
-template<bool LEFT>
+template <bool LEFT>
 class NumPyProjectionFunctor_GEMV : public NumPyProjectionFunctor {
-public:
+ public:
   NumPyProjectionFunctor_GEMV(NumPyProjectionCode code, Legion::Runtime* runtime);
 
-public:
-  virtual bool     is_functional(void) const { return true; }
-  virtual bool     is_exclusive(void) const { return true; }
+ public:
+  virtual bool is_functional(void) const { return true; }
+  virtual bool is_exclusive(void) const { return true; }
   virtual unsigned get_depth(void) const { return 0; }
 
-public:
-  virtual Legion::DomainPoint project_point(const Legion::DomainPoint& point, const Legion::Domain& launch_domain) const;
+ public:
+  virtual Legion::DomainPoint project_point(const Legion::DomainPoint& point,
+                                            const Legion::Domain& launch_domain) const;
 
-public:
+ public:
   const NumPyProjectionCode code;
 };
 
-template<int DIM, int RADIX, int OFFSET>
+template <int DIM, int RADIX, int OFFSET>
 class NumPyProjectionFunctorRadix2D : public NumPyProjectionFunctor {
-public:
+ public:
   NumPyProjectionFunctorRadix2D(NumPyProjectionCode code, Legion::Runtime* runtime);
 
-public:
-  virtual bool     is_functional(void) const { return true; }
-  virtual bool     is_exclusive(void) const { return true; }
+ public:
+  virtual bool is_functional(void) const { return true; }
+  virtual bool is_exclusive(void) const { return true; }
   virtual unsigned get_depth(void) const { return 0; }
 
-public:
-  virtual Legion::DomainPoint project_point(const Legion::DomainPoint& point, const Legion::Domain& launch_domain) const;
+ public:
+  virtual Legion::DomainPoint project_point(const Legion::DomainPoint& point,
+                                            const Legion::Domain& launch_domain) const;
 
-public:
+ public:
   const NumPyProjectionCode code;
 };
 
-template<int DIM, int RADIX, int OFFSET>
+template <int DIM, int RADIX, int OFFSET>
 class NumPyProjectionFunctorRadix3D : public NumPyProjectionFunctor {
-public:
+ public:
   NumPyProjectionFunctorRadix3D(NumPyProjectionCode code, Legion::Runtime* runtime);
 
-public:
-  virtual bool     is_functional(void) const { return true; }
-  virtual bool     is_exclusive(void) const { return true; }
+ public:
+  virtual bool is_functional(void) const { return true; }
+  virtual bool is_exclusive(void) const { return true; }
   virtual unsigned get_depth(void) const { return 0; }
 
-public:
-  virtual Legion::DomainPoint project_point(const Legion::DomainPoint& point, const Legion::Domain& launch_domain) const;
+ public:
+  virtual Legion::DomainPoint project_point(const Legion::DomainPoint& point,
+                                            const Legion::Domain& launch_domain) const;
 
-public:
+ public:
   const NumPyProjectionCode code;
 };
 
 class NumPyProjectionFunctor_ND_1D_C_ORDER : public NumPyProjectionFunctor {
-public:
+ public:
   NumPyProjectionFunctor_ND_1D_C_ORDER(NumPyProjectionCode code, Legion::Runtime* runtime);
 
-public:
-  virtual bool     is_functional(void) const { return true; }
-  virtual bool     is_exclusive(void) const { return true; }
+ public:
+  virtual bool is_functional(void) const { return true; }
+  virtual bool is_exclusive(void) const { return true; }
   virtual unsigned get_depth(void) const { return 0; }
 
-public:
-  virtual Legion::DomainPoint project_point(const Legion::DomainPoint& point, const Legion::Domain& launch_domain) const;
+ public:
+  virtual Legion::DomainPoint project_point(const Legion::DomainPoint& point,
+                                            const Legion::Domain& launch_domain) const;
 
-public:
+ public:
   const NumPyProjectionCode code;
 };
 
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate
 
-#endif    // __NUMPY_PROJ_H__
+#endif  // __NUMPY_PROJ_H__

@@ -17,23 +17,23 @@
 #include "less_equal_broadcast.h"
 
 // XXX can we find a way to avoid this?
-template void PointTask<LessEqualBroadcastTask<__half>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context,
-                                                                     Runtime*);
-template void PointTask<LessEqualBroadcastTask<float>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context,
-                                                                    Runtime*);
-template void PointTask<LessEqualBroadcastTask<double>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context,
-                                                                     Runtime*);
-template void PointTask<LessEqualBroadcastTask<int16_t>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context,
-                                                                      Runtime*);
-template void PointTask<LessEqualBroadcastTask<int32_t>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context,
-                                                                      Runtime*);
-template void PointTask<LessEqualBroadcastTask<int64_t>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context,
-                                                                      Runtime*);
-template void PointTask<LessEqualBroadcastTask<uint16_t>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context,
-                                                                       Runtime*);
-template void PointTask<LessEqualBroadcastTask<uint32_t>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context,
-                                                                       Runtime*);
-template void PointTask<LessEqualBroadcastTask<uint64_t>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context,
-                                                                       Runtime*);
-template void PointTask<LessEqualBroadcastTask<bool>>::gpu_variant(const Task*, const std::vector<PhysicalRegion>&, Context,
-                                                                   Runtime*);
+template void PointTask<LessEqualBroadcastTask<__half>>::gpu_variant(
+  const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
+template void PointTask<LessEqualBroadcastTask<float>>::gpu_variant(
+  const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
+template void PointTask<LessEqualBroadcastTask<double>>::gpu_variant(
+  const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
+template void PointTask<LessEqualBroadcastTask<int16_t>>::gpu_variant(
+  const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
+template void PointTask<LessEqualBroadcastTask<int32_t>>::gpu_variant(
+  const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
+template void PointTask<LessEqualBroadcastTask<int64_t>>::gpu_variant(
+  const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
+template void PointTask<LessEqualBroadcastTask<uint16_t>>::gpu_variant(
+  const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
+template void PointTask<LessEqualBroadcastTask<uint32_t>>::gpu_variant(
+  const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
+template void PointTask<LessEqualBroadcastTask<uint64_t>>::gpu_variant(
+  const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
+template void PointTask<LessEqualBroadcastTask<bool>>::gpu_variant(
+  const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);

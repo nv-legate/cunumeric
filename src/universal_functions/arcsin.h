@@ -23,7 +23,7 @@
 namespace legate {
 namespace numpy {
 using std::asin;
-template<class T>
+template <class T>
 struct ArcSinOperation {
   using argument_type           = T;
   using result_type             = decltype(asin(std::declval<argument_type>()));
@@ -32,9 +32,9 @@ struct ArcSinOperation {
   __CUDA_HD__ constexpr result_type operator()(const argument_type& a) const { return asin(a); }
 };
 
-template<typename T>
+template <typename T>
 using ArcSin = UnaryUniversalFunction<ArcSinOperation<T>>;
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate
 
-#endif    // __NUMPY_ARCSIN_H__
+#endif  // __NUMPY_ARCSIN_H__

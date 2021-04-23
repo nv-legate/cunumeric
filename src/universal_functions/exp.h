@@ -23,7 +23,7 @@
 namespace legate {
 namespace numpy {
 using std::exp;
-template<class T>
+template <class T>
 struct ExpOperation {
   using argument_type           = T;
   using result_type             = decltype(exp(std::declval<argument_type>()));
@@ -32,9 +32,9 @@ struct ExpOperation {
   __CUDA_HD__ constexpr result_type operator()(const argument_type& a) const { return exp(a); }
 };
 
-template<typename T>
+template <typename T>
 using Exp = UnaryUniversalFunction<ExpOperation<T>>;
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate
 
-#endif    // __NUMPY_EXP_H__
+#endif  // __NUMPY_EXP_H__

@@ -22,58 +22,66 @@
 namespace legate {
 namespace numpy {
 
-template<typename T>
+template <typename T>
 class Argval {
-public:
+ public:
   __CUDA_HD__
   Argval(T value);
   __CUDA_HD__
   Argval(int64_t arg, T value);
 
-public:
-  template<typename REDOP, bool EXCLUSIVE>
+ public:
+  template <typename REDOP, bool EXCLUSIVE>
   __CUDA_HD__ inline void apply(const Argval<T>& rhs);
 
-public:
+ public:
   int64_t arg;
-  T       arg_value;
+  T arg_value;
 };
 
 // Data parallel get arg
-template<typename T>
+template <typename T>
 class GetargTask : public NumPyTask<GetargTask<T>> {
-public:
+ public:
   static const int TASK_ID;
   static const int REGIONS = 2;
 
-public:
-  static void cpu_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+ public:
+  static void cpu_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #ifdef LEGATE_USE_OPENMP
-  static void omp_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+  static void omp_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #endif
 #ifdef LEGATE_USE_CUDA
-  static void gpu_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+  static void gpu_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #endif
 };
 
 // For doing a scalar get arg
-template<typename T>
+template <typename T>
 class GetargScalar : public NumPyTask<GetargScalar<T>> {
-public:
+ public:
   static const int TASK_ID;
   static const int REGIONS = 0;
 
-public:
-  static int64_t cpu_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+ public:
+  static int64_t cpu_variant(const Legion::Task* task,
+                             const std::vector<Legion::PhysicalRegion>& regions,
+                             Legion::Context ctx,
                              Legion::Runtime* runtime);
 };
 
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate
 
 #include "arg.inl"
 
-#endif    // __NUMPY_ARG_H__
+#endif  // __NUMPY_ARG_H__

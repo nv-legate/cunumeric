@@ -22,7 +22,7 @@
 
 namespace legate {
 namespace numpy {
-template<typename T>
+template <typename T>
 struct FloorOperation {
   using argument_type           = T;
   constexpr static auto op_code = NumPyOpCode::NUMPY_FLOOR;
@@ -30,9 +30,9 @@ struct FloorOperation {
   constexpr T operator()(const T& a) const { return floor(a); }
 };
 
-template<typename T>
+template <typename T>
 using Floor = UnaryUniversalFunction<FloorOperation<T>>;
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate
 
-#endif    // __NUMPY_FLOOR_H__
+#endif  // __NUMPY_FLOOR_H__

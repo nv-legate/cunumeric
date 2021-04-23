@@ -25,29 +25,30 @@
 // An implementation of DE Shaw's Philox 2x32 PRNG
 
 #ifndef __CUDAPREFIX__
-#  ifdef __NVCC__
-#    define __CUDAPREFIX__ __device__ __forceinline__
-#  else
-#    define __CUDAPREFIX__
-#  endif
+#ifdef __NVCC__
+#define __CUDAPREFIX__ __device__ __forceinline__
+#else
+#define __CUDAPREFIX__
+#endif
 #endif
 
 namespace legate {
 namespace numpy {
 
-template<int ROUNDS>
+template <int ROUNDS>
 class Philox_2x32 {
-public:
-  typedef unsigned           u32;
+ public:
+  typedef unsigned u32;
   typedef unsigned long long u64;
 
   static const u32 PHILOX_M2x32_0x = 0xD256D193U;
   static const u32 PHILOX_W32_0x   = 0x9E3779B9U;
 
   __CUDAPREFIX__
-  static u64 rand_raw(u32 key, u32 ctr_hi, u32 ctr_lo) {
+  static u64 rand_raw(u32 key, u32 ctr_hi, u32 ctr_lo)
+  {
 #ifdef __NVCC__
-#  pragma unroll
+#pragma unroll
 #endif
     for (int i = 0; i < ROUNDS; i++) {
       u32 prod_hi, prod_lo;
@@ -67,7 +68,8 @@ public:
   }
 
   // Helper function for CPU hi 64-bit multiplication
-  static inline u64 mul64hi(u64 op1, u64 op2) {
+  static inline u64 mul64hi(u64 op1, u64 op2)
+  {
     u64 u1 = (op1 & 0xffffffff);
     u64 v1 = (op2 & 0xffffffff);
     u64 t  = u1 * v1;
@@ -87,7 +89,8 @@ public:
 
   // returns an unsigned 32-bit integer in the range [0, n)
   __CUDAPREFIX__
-  static u32 rand_int(u32 key, u32 ctr_hi, u32 ctr_lo, u32 n) {
+  static u32 rand_int(u32 key, u32 ctr_hi, u32 ctr_lo, u32 n)
+  {
     // need 32 random bits
     u32 bits = rand_raw(key, ctr_hi, ctr_lo);
     // now treat them as a 0.32 fixed-point value, multiply by n and truncate
@@ -100,7 +103,8 @@ public:
 
   // returns an unsigned 64-bit integer in the range [0, n)
   __CUDAPREFIX__
-  static u64 rand_long(u32 key, u32 ctr_hi, u32 ctr_lo, u64 n) {
+  static u64 rand_long(u32 key, u32 ctr_hi, u32 ctr_lo, u64 n)
+  {
     // need 64 random bits
     u64 bits = rand_raw(key, ctr_hi, ctr_lo);
     // now treat them as a 0.64 fixed-point value, multiply by n and truncate
@@ -113,12 +117,13 @@ public:
 
   // returns a float in the range [0.0, 1.0)
   __CUDAPREFIX__
-  static double rand_float(u32 key, u32 ctr_hi, u32 ctr_lo) {
+  static double rand_float(u32 key, u32 ctr_hi, u32 ctr_lo)
+  {
     // need 32 random bits (we probably lose a bunch when this gets converted to float)
     u32 bits = rand_raw(key, ctr_hi, ctr_lo);
 #if __cplusplus > 201402L
     // This syntax is only supported on >= c++17
-    const float scale = 0x1.p-32;    // 2^-32
+    const float scale = 0x1.p-32;  // 2^-32
 #else
     const float scale = 0.00000000023283064365386962890625;
 #endif
@@ -127,12 +132,13 @@ public:
 
   // returns a double in the range [0.0, 1.0)
   __CUDAPREFIX__
-  static double rand_double(u32 key, u32 ctr_hi, u32 ctr_lo) {
+  static double rand_double(u32 key, u32 ctr_hi, u32 ctr_lo)
+  {
     // need 64 random bits (we probably lose a bunch when this gets converted to float)
     u64 bits = rand_raw(key, ctr_hi, ctr_lo);
 #if __cplusplus > 201402L
     // This syntax is only supported on >= c++17
-    const double scale = 0x1.p-64;    // 2^-64
+    const double scale = 0x1.p-64;  // 2^-64
 #else
     const double scale = 0.0000000000000000000542101086242752217003726400434970855712890625;
 #endif
@@ -144,63 +150,81 @@ typedef Philox_2x32<10> RandomGenerator;
 
 // Generate uniformly distributed 64-bit floats in the range [0, 1)
 class RandUniformTask : public NumPyTask<RandUniformTask> {
-public:
+ public:
   static const int TASK_ID;
   static const int REGIONS = 1;
 
-public:
-  static void cpu_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+ public:
+  static void cpu_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #ifdef LEGATE_USE_OPENMP
-  static void omp_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+  static void omp_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #endif
 #ifdef LEGATE_USE_CUDA
-  static void gpu_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+  static void gpu_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #endif
 };
 
 // Generate normally distributed 64-bit floats in the range [0, 1)
 class RandNormalTask : public NumPyTask<RandNormalTask> {
-public:
+ public:
   static const int TASK_ID;
   static const int REGIONS = 1;
 
-public:
-  static void cpu_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+ public:
+  static void cpu_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #ifdef LEGATE_USE_OPENMP
-  static void omp_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+  static void omp_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #endif
 #ifdef LEGATE_USE_CUDA
-  static void gpu_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+  static void gpu_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #endif
 };
 
 // Generate uniformly distributed integers in the range [low, high)
-template<typename T>
+template <typename T>
 class RandIntegerTask : public NumPyTask<RandIntegerTask<T>> {
-public:
+ public:
   static const int TASK_ID;
   static const int REGIONS = 1;
 
-public:
-  static void cpu_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+ public:
+  static void cpu_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #ifdef LEGATE_USE_OPENMP
-  static void omp_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+  static void omp_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #endif
 #ifdef LEGATE_USE_CUDA
-  static void gpu_variant(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, Legion::Context ctx,
+  static void gpu_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
                           Legion::Runtime* runtime);
 #endif
 };
 
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate
 
-#endif    // __NUMPY_RAND_H__
+#endif  // __NUMPY_RAND_H__

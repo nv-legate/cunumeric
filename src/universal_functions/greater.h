@@ -22,14 +22,14 @@
 
 namespace legate {
 namespace numpy {
-template<class T>
+template <class T>
 struct GreaterOperation : std::greater<T> {
   constexpr static auto op_code = NumPyOpCode::NUMPY_GREATER;
 };
 
-template<class T>
+template <class T>
 using Greater = NoncommutativeBinaryUniversalFunction<GreaterOperation<T>>;
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate
 
-#endif    // __NUMPY_GREATER_H__
+#endif  // __NUMPY_GREATER_H__

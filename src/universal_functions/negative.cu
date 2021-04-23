@@ -31,5 +31,5 @@ template void Negative<uint64_t>::instantiate_task_gpu_variants();
 template void Negative<bool>::instantiate_task_gpu_variants();
 template void Negative<complex<float>>::instantiate_task_gpu_variants();
 template void Negative<complex<double>>::instantiate_task_gpu_variants();
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate

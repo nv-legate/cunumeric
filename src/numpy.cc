@@ -26,16 +26,30 @@ namespace numpy {
 
 static const char* const numpy_library_name = "legate.numpy";
 
-/*static*/ void LegateNumPy::record_variant(TaskID tid, const char* task_name, const CodeDescriptor& descriptor,
-                                            ExecutionConstraintSet&  execution_constraints,
-                                            TaskLayoutConstraintSet& layout_constraints, LegateVariant var, Processor::Kind kind,
-                                            bool leaf, bool inner, bool idempotent, bool ret_type) {
-  assert((kind == Processor::LOC_PROC) || (kind == Processor::TOC_PROC) || (kind == Processor::OMP_PROC));
+/*static*/ void LegateNumPy::record_variant(TaskID tid,
+                                            const char* task_name,
+                                            const CodeDescriptor& descriptor,
+                                            ExecutionConstraintSet& execution_constraints,
+                                            TaskLayoutConstraintSet& layout_constraints,
+                                            LegateVariant var,
+                                            Processor::Kind kind,
+                                            bool leaf,
+                                            bool inner,
+                                            bool idempotent,
+                                            bool ret_type)
+{
+  assert((kind == Processor::LOC_PROC) || (kind == Processor::TOC_PROC) ||
+         (kind == Processor::OMP_PROC));
   std::deque<PendingTaskVariant>& pending_task_variants = get_pending_task_variants();
   // Buffer these up until we can do our actual registration with the runtime
   pending_task_variants.push_back(PendingTaskVariant(
-      tid, false /*global*/, (kind == Processor::LOC_PROC) ? "CPU" : (kind == Processor::TOC_PROC) ? "GPU" : "OpenMP", task_name,
-      descriptor, var, ret_type));
+    tid,
+    false /*global*/,
+    (kind == Processor::LOC_PROC) ? "CPU" : (kind == Processor::TOC_PROC) ? "GPU" : "OpenMP",
+    task_name,
+    descriptor,
+    var,
+    ret_type));
   TaskVariantRegistrar& registrar = pending_task_variants.back();
   registrar.execution_constraints.swap(execution_constraints);
   registrar.layout_constraints.swap(layout_constraints);
@@ -47,53 +61,68 @@ static const char* const numpy_library_name = "legate.numpy";
   registrar.global_registration = false;
 }
 
-/*static*/ std::deque<LegateNumPy::PendingTaskVariant>& LegateNumPy::get_pending_task_variants(void) {
+/*static*/ std::deque<LegateNumPy::PendingTaskVariant>& LegateNumPy::get_pending_task_variants(void)
+{
   static std::deque<PendingTaskVariant> pending_task_variants;
   return pending_task_variants;
 }
 
-void registration_callback(Machine machine, Runtime* runtime, const std::set<Processor>& local_procs) {
+void registration_callback(Machine machine,
+                           Runtime* runtime,
+                           const std::set<Processor>& local_procs)
+{
   // This is the callback that we get from the runtime after it has started
   // but before the actual application starts running so we can now do all
   // our registrations.
   // First let's get our range of task IDs for this library from the runtime
-  const size_t                                 max_numpy_tasks = NUMPY_MAX_TASKS;
-  const TaskID                                 first_tid = runtime->generate_library_task_ids(numpy_library_name, max_numpy_tasks);
-  std::deque<LegateNumPy::PendingTaskVariant>& pending_task_variants = LegateNumPy::get_pending_task_variants();
+  const size_t max_numpy_tasks = NUMPY_MAX_TASKS;
+  const TaskID first_tid = runtime->generate_library_task_ids(numpy_library_name, max_numpy_tasks);
+  std::deque<LegateNumPy::PendingTaskVariant>& pending_task_variants =
+    LegateNumPy::get_pending_task_variants();
   // Do all our registrations
-  for (std::deque<LegateNumPy::PendingTaskVariant>::iterator it = pending_task_variants.begin(); it != pending_task_variants.end();
+  for (std::deque<LegateNumPy::PendingTaskVariant>::iterator it = pending_task_variants.begin();
+       it != pending_task_variants.end();
        it++) {
     // Make sure we haven't exceed our maximum range of IDs
     assert(it->task_id < max_numpy_tasks);
-    it->task_id += first_tid;    // Add in our library offset
+    it->task_id += first_tid;  // Add in our library offset
     // Attach the task name too for debugging
     runtime->attach_name(it->task_id, it->task_name, false /*mutable*/, true /*local only*/);
     runtime->register_task_variant(*it, it->descriptor, NULL, 0, it->ret_type, it->var);
   }
   pending_task_variants.clear();
   // Register our special reduction functions
-  const ReductionOpID first_redop_id = runtime->generate_library_reduction_ids(numpy_library_name, NUMPY_MAX_REDOPS);
+  const ReductionOpID first_redop_id =
+    runtime->generate_library_reduction_ids(numpy_library_name, NUMPY_MAX_REDOPS);
   REGISTER_ALL_REDUCTIONS(ArgminReduction, first_redop_id);
 
   // Register our projection and sharding functions
-  const ProjectionID first_projection_id = runtime->generate_library_projection_ids(numpy_library_name, NUMPY_PROJ_LAST);
+  const ProjectionID first_projection_id =
+    runtime->generate_library_projection_ids(numpy_library_name, NUMPY_PROJ_LAST);
   NumPyProjectionFunctor::register_projection_functors(runtime, first_projection_id);
-  const ShardingID first_sharding_id = runtime->generate_library_sharding_ids(numpy_library_name, NUMPY_SHARD_LAST);
+  const ShardingID first_sharding_id =
+    runtime->generate_library_sharding_ids(numpy_library_name, NUMPY_SHARD_LAST);
   NumPyShardingFunctor::register_sharding_functors(runtime, first_sharding_id);
 
   // Now we can register our mapper with the runtime
-  const MapperID numpy_mapper_id = runtime->generate_library_mapper_ids(numpy_library_name, NUMPY_MAX_MAPPERS);
+  const MapperID numpy_mapper_id =
+    runtime->generate_library_mapper_ids(numpy_library_name, NUMPY_MAX_MAPPERS);
   // This will register it with all the processors on the node
-  runtime->add_mapper(numpy_mapper_id, new NumPyMapper(runtime->get_mapper_runtime(), machine, first_tid,
-                                                       first_tid + max_numpy_tasks - 1, first_sharding_id));
+  runtime->add_mapper(numpy_mapper_id,
+                      new NumPyMapper(runtime->get_mapper_runtime(),
+                                      machine,
+                                      first_tid,
+                                      first_tid + max_numpy_tasks - 1,
+                                      first_sharding_id));
 }
 
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate
 
 extern "C" {
 
-void legate_numpy_perform_registration(void) {
+void legate_numpy_perform_registration(void)
+{
   // Tell the runtime about our registration callback so we hook it
   // in before the runtime starts and make it global so that we know
   // that this call back is invoked everywhere across all nodes

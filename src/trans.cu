@@ -26,10 +26,15 @@ using namespace Legion;
 namespace legate {
 namespace numpy {
 
-template<typename T>
+template <typename T>
 __global__ void __launch_bounds__((TILE_DIM * BLOCK_ROWS), MIN_CTAS_PER_SM)
-    legate_transpose_2d(const AccessorWO<T, 2> out, const AccessorRO<T, 2> in, const Point<2> lo_in, const Point<2> hi_in,
-                        const Point<2> lo_out, const Point<2> hi_out) {
+  legate_transpose_2d(const AccessorWO<T, 2> out,
+                      const AccessorRO<T, 2> in,
+                      const Point<2> lo_in,
+                      const Point<2> hi_in,
+                      const Point<2> lo_out,
+                      const Point<2> hi_out)
+{
   __shared__ T tile[TILE_DIM][TILE_DIM + 1 /*avoid bank conflicts*/];
 
   // These are reversed here for coalescing
@@ -48,7 +53,8 @@ __global__ void __launch_bounds__((TILE_DIM * BLOCK_ROWS), MIN_CTAS_PER_SM)
 // Overflow case
 #pragma unroll
       for (int i = 0; i < TILE_DIM; i += BLOCK_ROWS)
-        if ((lo_in[0] + x + i) <= hi_in[0]) tile[threadIdx.y + i][threadIdx.x] = in[lo_in + Point<2>(x + i, y)];
+        if ((lo_in[0] + x + i) <= hi_in[0])
+          tile[threadIdx.y + i][threadIdx.x] = in[lo_in + Point<2>(x + i, y)];
     }
   }
   // Make sure all the data is in shared memory
@@ -70,37 +76,42 @@ __global__ void __launch_bounds__((TILE_DIM * BLOCK_ROWS), MIN_CTAS_PER_SM)
 // Overflow case
 #pragma unroll
       for (int i = 0; i < TILE_DIM; i += BLOCK_ROWS)
-        if ((lo_out[0] + x + i) <= hi_out[0]) out[lo_out + Point<2>(x + i, y)] = tile[threadIdx.x][threadIdx.y + i];
+        if ((lo_out[0] + x + i) <= hi_out[0])
+          out[lo_out + Point<2>(x + i, y)] = tile[threadIdx.x][threadIdx.y + i];
     }
   }
 }
 
-template<typename T>
-/*static*/ void TransTask<T>::gpu_variant(const Task* task, const std::vector<PhysicalRegion>& regions, Context ctx,
-                                          Runtime* runtime) {
+template <typename T>
+/*static*/ void TransTask<T>::gpu_variant(const Task* task,
+                                          const std::vector<PhysicalRegion>& regions,
+                                          Context ctx,
+                                          Runtime* runtime)
+{
   LegateDeserializer derez(task->args, task->arglen);
-  const int          dim = derez.unpack_dimension();
+  const int dim = derez.unpack_dimension();
   switch (dim) {
     case 2: {
       const Rect<2> out_rect = NumPyProjectionFunctor::unpack_shape<2>(task, derez);
       if (out_rect.empty()) break;
       const AccessorWO<T, 2> out = derez.unpack_accessor_WO<T, 2>(regions[0], out_rect);
       // We know what the output shape has to be based on the input shape
-      const Rect<2>          in_rect(Point<2>(out_rect.lo[1], out_rect.lo[0]), Point<2>(out_rect.hi[1], out_rect.hi[0]));
+      const Rect<2> in_rect(Point<2>(out_rect.lo[1], out_rect.lo[0]),
+                            Point<2>(out_rect.hi[1], out_rect.hi[0]));
       const AccessorRO<T, 2> in = derez.unpack_accessor_RO<T, 2>(regions[1], in_rect);
-      const coord_t          m  = (in_rect.hi[0] - in_rect.lo[0]) + 1;
-      const coord_t          n  = (in_rect.hi[1] - in_rect.lo[1]) + 1;
-      const dim3             blocks((n + TILE_DIM - 1) / TILE_DIM, (m + TILE_DIM - 1) / TILE_DIM, 1);
-      const dim3             threads(TILE_DIM, BLOCK_ROWS, 1);
-      legate_transpose_2d<T><<<blocks, threads>>>(out, in, in_rect.lo, in_rect.hi, out_rect.lo, out_rect.hi);
+      const coord_t m           = (in_rect.hi[0] - in_rect.lo[0]) + 1;
+      const coord_t n           = (in_rect.hi[1] - in_rect.lo[1]) + 1;
+      const dim3 blocks((n + TILE_DIM - 1) / TILE_DIM, (m + TILE_DIM - 1) / TILE_DIM, 1);
+      const dim3 threads(TILE_DIM, BLOCK_ROWS, 1);
+      legate_transpose_2d<T>
+        <<<blocks, threads>>>(out, in, in_rect.lo, in_rect.hi, out_rect.lo, out_rect.hi);
       break;
     }
-    default:
-      assert(false);    // unsupported transpose dimension
+    default: assert(false);  // unsupported transpose dimension
   }
 }
 
 INSTANTIATE_TASK_VARIANT(TransTask, gpu_variant)
 
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate

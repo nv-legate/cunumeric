@@ -23,7 +23,7 @@
 namespace legate {
 namespace numpy {
 using std::log;
-template<class T>
+template <class T>
 struct LogOperation {
   using argument_type           = T;
   using result_type             = decltype(log(std::declval<argument_type>()));
@@ -32,9 +32,9 @@ struct LogOperation {
   __CUDA_HD__ constexpr result_type operator()(const argument_type& a) const { return log(a); }
 };
 
-template<typename T>
+template <typename T>
 using Log = UnaryUniversalFunction<LogOperation<T>>;
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate
 
-#endif    // __NUMPY_LOG_H__
+#endif  // __NUMPY_LOG_H__

@@ -31,5 +31,5 @@ template void Tanh<uint64_t>::instantiate_task_gpu_variants();
 template void Tanh<bool>::instantiate_task_gpu_variants();
 template void Tanh<complex<float>>::instantiate_task_gpu_variants();
 template void Tanh<complex<double>>::instantiate_task_gpu_variants();
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate

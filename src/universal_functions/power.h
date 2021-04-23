@@ -23,18 +23,21 @@
 namespace legate {
 namespace numpy {
 using std::pow;
-template<class T>
+template <class T>
 struct PowerOperation {
   using first_argument_type     = T;
   using second_argument_type    = T;
   constexpr static auto op_code = NumPyOpCode::NUMPY_POWER;
 
-  __CUDA_HD__ constexpr T operator()(const T& base, const T& exponent) const { return T(pow(base, exponent)); }
+  __CUDA_HD__ constexpr T operator()(const T& base, const T& exponent) const
+  {
+    return T(pow(base, exponent));
+  }
 };
 
-template<typename T>
+template <typename T>
 using Power = NoncommutativeBinaryUniversalFunction<PowerOperation<T>>;
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate
 
-#endif    // __NUMPY_POWER_H__
+#endif  // __NUMPY_POWER_H__

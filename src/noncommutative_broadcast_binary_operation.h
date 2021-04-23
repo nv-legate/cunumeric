@@ -23,9 +23,10 @@ namespace legate {
 namespace numpy {
 
 #if defined(LEGATE_USE_CUDA) && defined(__CUDACC__)
-template<int DIM, typename BinaryFunction, typename Args>
+template <int DIM, typename BinaryFunction, typename Args>
 __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-    gpu_noncommutative_broadcast_binary_op(const Args args, const bool dense) {
+  gpu_noncommutative_broadcast_binary_op(const Args args, const bool dense)
+{
   const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (idx >= args.volume) return;
 
@@ -49,35 +50,41 @@ __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
 #endif
 
 // Base class for all Legate's noncommutative binary operation tasks
-template<class Derived, class BinaryFunction>
+template <class Derived, class BinaryFunction>
 class NoncommutativeBroadcastBinaryOperationTask : public PointTask<Derived> {
-private:
+ private:
   using first_argument_type  = typename BinaryFunction::first_argument_type;
   using second_argument_type = typename BinaryFunction::second_argument_type;
-  using result_type          = std::result_of_t<BinaryFunction(first_argument_type, second_argument_type)>;
+  using result_type = std::result_of_t<BinaryFunction(first_argument_type, second_argument_type)>;
 
-public:
-  static_assert(
-      std::is_same<first_argument_type, second_argument_type>::value,
-      "NoncommutativeBroadcastBinaryOperationTask requires first_argument_type and second_argument_type to be the same type.");
-  static const int TASK_ID =
-      task_id<BinaryFunction::op_code, NUMPY_BROADCAST_VARIANT_OFFSET, result_type, first_argument_type, second_argument_type>;
+ public:
+  static_assert(std::is_same<first_argument_type, second_argument_type>::value,
+                "NoncommutativeBroadcastBinaryOperationTask requires first_argument_type and "
+                "second_argument_type to be the same type.");
+  static const int TASK_ID = task_id<BinaryFunction::op_code,
+                                     NUMPY_BROADCAST_VARIANT_OFFSET,
+                                     result_type,
+                                     first_argument_type,
+                                     second_argument_type>;
 
   // out_region = in_region1 op scalar
   static const int REGIONS = 2;
 
-  template<int N>
+  template <int N>
   struct DeserializedArgs {
-    Legion::Rect<N>                    rect;
-    AccessorWO<result_type, N>         out;
+    Legion::Rect<N> rect;
+    AccessorWO<result_type, N> out;
     AccessorRO<first_argument_type, N> in;
-    Pitches<N - 1>                     pitches;
-    size_t                             volume;
-    result_type*                       outptr;
-    const first_argument_type*         inptr;
-    second_argument_type               scalar;
-    bool                               scalar_on_rhs;
-    bool deserialize(LegateDeserializer& derez, const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions) {
+    Pitches<N - 1> pitches;
+    size_t volume;
+    result_type* outptr;
+    const first_argument_type* inptr;
+    second_argument_type scalar;
+    bool scalar_on_rhs;
+    bool deserialize(LegateDeserializer& derez,
+                     const Legion::Task* task,
+                     const std::vector<Legion::PhysicalRegion>& regions)
+    {
       rect          = NumPyProjectionFunctor::unpack_shape<N>(task, derez);
       out           = derez.unpack_accessor_WO<result_type, N>(regions[0], rect);
       in            = derez.unpack_accessor_RO<first_argument_type, N>(regions[1], rect);
@@ -86,8 +93,8 @@ public:
       volume        = pitches.flatten(rect);
 #ifndef LEGION_BOUNDS_CHECKS
       // Check to see if this is dense or not
-      return out.accessor.is_dense_row_major(rect) && in.accessor.is_dense_row_major(rect) && (outptr = out.ptr(rect)) &&
-             (inptr = in.ptr(rect));
+      return out.accessor.is_dense_row_major(rect) && in.accessor.is_dense_row_major(rect) &&
+             (outptr = out.ptr(rect)) && (inptr = in.ptr(rect));
 #else
       // No dense execution if we're doing bounds checks
       return false;
@@ -95,11 +102,13 @@ public:
     }
   };
 
-  template<int DIM>
-  static void dispatch_cpu(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions,
-                           LegateDeserializer& derez) {
+  template <int DIM>
+  static void dispatch_cpu(const Legion::Task* task,
+                           const std::vector<Legion::PhysicalRegion>& regions,
+                           LegateDeserializer& derez)
+  {
     DeserializedArgs<DIM> args;
-    const bool            dense = args.deserialize(derez, task, regions);
+    const bool dense = args.deserialize(derez, task, regions);
     if (args.volume == 0) return;
     BinaryFunction func;
     if (args.scalar_on_rhs) {
@@ -122,16 +131,18 @@ public:
   }
 
 #ifdef LEGATE_USE_OPENMP
-  template<int DIM>
-  static void dispatch_omp(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions,
-                           LegateDeserializer& derez) {
+  template <int DIM>
+  static void dispatch_omp(const Legion::Task* task,
+                           const std::vector<Legion::PhysicalRegion>& regions,
+                           LegateDeserializer& derez)
+  {
     DeserializedArgs<DIM> args;
-    const bool            dense = args.deserialize(derez, task, regions);
+    const bool dense = args.deserialize(derez, task, regions);
     if (args.volume == 0) return;
     BinaryFunction func;
     if (args.scalar_on_rhs) {
       if (dense) {
-#  pragma omp parallel for schedule(static)
+#pragma omp parallel for schedule(static)
         for (size_t idx = 0; idx < args.volume; ++idx)
           args.outptr[idx] = func(args.inptr[idx], args.scalar);
       } else {
@@ -140,7 +151,7 @@ public:
       }
     } else {
       if (dense) {
-#  pragma omp parallel for schedule(static)
+#pragma omp parallel for schedule(static)
         for (size_t idx = 0; idx < args.volume; ++idx)
           args.outptr[idx] = func(args.scalar, args.inptr[idx]);
       } else {
@@ -151,22 +162,27 @@ public:
   }
 #endif
 #if defined(LEGATE_USE_CUDA) && defined(__CUDACC__)
-  template<int DIM>
-  static void dispatch_gpu(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions,
-                           LegateDeserializer& derez) {
+  template <int DIM>
+  static void dispatch_gpu(const Legion::Task* task,
+                           const std::vector<Legion::PhysicalRegion>& regions,
+                           LegateDeserializer& derez)
+  {
     DeserializedArgs<DIM> args;
-    const bool            dense = args.deserialize(derez, task, regions);
+    const bool dense = args.deserialize(derez, task, regions);
     if (args.volume == 0) return;
     const size_t blocks = (args.volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-    gpu_noncommutative_broadcast_binary_op<DIM, BinaryFunction, DeserializedArgs<DIM>><<<blocks, THREADS_PER_BLOCK>>>(args, dense);
+    gpu_noncommutative_broadcast_binary_op<DIM, BinaryFunction, DeserializedArgs<DIM>>
+      <<<blocks, THREADS_PER_BLOCK>>>(args, dense);
   }
 #elif defined(LEGATE_USE_CUDA)
-  template<int DIM>
-  static void dispatch_gpu(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, LegateDeserializer& derez);
+  template <int DIM>
+  static void dispatch_gpu(const Legion::Task* task,
+                           const std::vector<Legion::PhysicalRegion>& regions,
+                           LegateDeserializer& derez);
 #endif
 };
 
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate
 
-#endif    // __NUMPY_NONCOMMUTATIVE_BROADCAST_BINARY_OPERATION_H__
+#endif  // __NUMPY_NONCOMMUTATIVE_BROADCAST_BINARY_OPERATION_H__

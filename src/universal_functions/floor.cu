@@ -22,5 +22,5 @@ namespace numpy {
 template void Floor<__half>::instantiate_task_gpu_variants();
 template void Floor<float>::instantiate_task_gpu_variants();
 template void Floor<double>::instantiate_task_gpu_variants();
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate

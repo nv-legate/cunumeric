@@ -23,8 +23,10 @@ namespace legate {
 namespace numpy {
 
 #if defined(LEGATE_USE_CUDA) && defined(__CUDACC__)
-template<int DIM, typename BinaryFunction, typename Args>
-__global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM) gpu_inplace_binary_op(const Args args, const bool dense) {
+template <int DIM, typename BinaryFunction, typename Args>
+__global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
+  gpu_inplace_binary_op(const Args args, const bool dense)
+{
   const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (idx >= args.volume) return;
   BinaryFunction func;
@@ -38,39 +40,45 @@ __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM) gpu_inplac
 #endif
 
 // Base class for all Legate's inplace binary operation tasks
-template<typename Derived, typename BinaryFunction>
+template <typename Derived, typename BinaryFunction>
 class InplaceBinaryOperationTask : public PointTask<Derived> {
-private:
+ private:
   using first_argument_type  = typename BinaryFunction::first_argument_type;
   using second_argument_type = typename BinaryFunction::second_argument_type;
-  using result_type          = std::result_of_t<BinaryFunction(first_argument_type, second_argument_type)>;
+  using result_type = std::result_of_t<BinaryFunction(first_argument_type, second_argument_type)>;
 
-public:
-  static const int TASK_ID =
-      task_id<BinaryFunction::op_code, NUMPY_INPLACE_VARIANT_OFFSET, result_type, first_argument_type, second_argument_type>;
+ public:
+  static const int TASK_ID = task_id<BinaryFunction::op_code,
+                                     NUMPY_INPLACE_VARIANT_OFFSET,
+                                     result_type,
+                                     first_argument_type,
+                                     second_argument_type>;
 
   // inout_region = op(inout_region, in_region)
   static const int REGIONS = 2;
 
-  template<int N>
+  template <int N>
   struct DeserializedArgs {
-    Legion::Rect<N>                     rect;
-    AccessorRW<first_argument_type, N>  inout;
+    Legion::Rect<N> rect;
+    AccessorRW<first_argument_type, N> inout;
     AccessorRO<second_argument_type, N> in;
-    Pitches<N - 1>                      pitches;
-    size_t                              volume;
-    first_argument_type*                inoutptr;
-    const second_argument_type*         inptr;
+    Pitches<N - 1> pitches;
+    size_t volume;
+    first_argument_type* inoutptr;
+    const second_argument_type* inptr;
 
-    bool deserialize(LegateDeserializer& derez, const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions) {
+    bool deserialize(LegateDeserializer& derez,
+                     const Legion::Task* task,
+                     const std::vector<Legion::PhysicalRegion>& regions)
+    {
       rect   = NumPyProjectionFunctor::unpack_shape<N>(task, derez);
       inout  = derez.unpack_accessor_RW<first_argument_type, N>(regions[0], rect);
       in     = derez.unpack_accessor_RO<first_argument_type, N>(regions[1], rect);
       volume = pitches.flatten(rect);
 #ifndef LEGION_BOUNDS_CHECKS
       // Check to see if this is dense or not
-      return inout.accessor.is_dense_row_major(rect) && in.accessor.is_dense_row_major(rect) && (inoutptr = inout.ptr(rect)) &&
-             (inptr = in.ptr(rect));
+      return inout.accessor.is_dense_row_major(rect) && in.accessor.is_dense_row_major(rect) &&
+             (inoutptr = inout.ptr(rect)) && (inptr = in.ptr(rect));
 #else
       // No dense execution if we're doing bounds checks
       return false;
@@ -78,11 +86,13 @@ public:
     }
   };
 
-  template<int DIM>
-  static void dispatch_cpu(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions,
-                           LegateDeserializer& derez) {
+  template <int DIM>
+  static void dispatch_cpu(const Legion::Task* task,
+                           const std::vector<Legion::PhysicalRegion>& regions,
+                           LegateDeserializer& derez)
+  {
     DeserializedArgs<DIM> args;
-    const bool            dense = args.deserialize(derez, task, regions);
+    const bool dense = args.deserialize(derez, task, regions);
     if (args.volume == 0) return;
     BinaryFunction func;
     if (dense) {
@@ -94,15 +104,17 @@ public:
   }
 
 #ifdef LEGATE_USE_OPENMP
-  template<int DIM>
-  static void dispatch_omp(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions,
-                           LegateDeserializer& derez) {
+  template <int DIM>
+  static void dispatch_omp(const Legion::Task* task,
+                           const std::vector<Legion::PhysicalRegion>& regions,
+                           LegateDeserializer& derez)
+  {
     DeserializedArgs<DIM> args;
-    const bool            dense = args.deserialize(derez, task, regions);
+    const bool dense = args.deserialize(derez, task, regions);
     if (args.volume == 0) return;
     BinaryFunction func;
     if (dense) {
-#  pragma omp parallel for schedule(static)
+#pragma omp parallel for schedule(static)
       for (size_t idx = 0; idx < args.volume; ++idx)
         args.inoutptr[idx] = func(args.inoutptr[idx], args.inptr[idx]);
     } else {
@@ -111,22 +123,27 @@ public:
   }
 #endif
 #if defined(LEGATE_USE_CUDA) && defined(__CUDACC__)
-  template<int DIM>
-  static void dispatch_gpu(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions,
-                           LegateDeserializer& derez) {
+  template <int DIM>
+  static void dispatch_gpu(const Legion::Task* task,
+                           const std::vector<Legion::PhysicalRegion>& regions,
+                           LegateDeserializer& derez)
+  {
     DeserializedArgs<DIM> args;
-    const bool            dense = args.deserialize(derez, task, regions);
+    const bool dense = args.deserialize(derez, task, regions);
     if (args.volume == 0) return;
     const size_t blocks = (args.volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-    gpu_inplace_binary_op<DIM, BinaryFunction, DeserializedArgs<DIM>><<<blocks, THREADS_PER_BLOCK>>>(args, dense);
+    gpu_inplace_binary_op<DIM, BinaryFunction, DeserializedArgs<DIM>>
+      <<<blocks, THREADS_PER_BLOCK>>>(args, dense);
   }
 #elif defined(LEGATE_USE_CUDA)
-  template<int DIM>
-  static void dispatch_gpu(const Legion::Task* task, const std::vector<Legion::PhysicalRegion>& regions, LegateDeserializer& derez);
+  template <int DIM>
+  static void dispatch_gpu(const Legion::Task* task,
+                           const std::vector<Legion::PhysicalRegion>& regions,
+                           LegateDeserializer& derez);
 #endif
 };
 
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate
 
-#endif    // __NUMPY_INPLACE_BINARY_OPERATION_H__
+#endif  // __NUMPY_INPLACE_BINARY_OPERATION_H__

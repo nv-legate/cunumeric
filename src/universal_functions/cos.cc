@@ -31,5 +31,5 @@ template void Cos<uint64_t>::instantiate_tasks();
 template void Cos<bool>::instantiate_tasks();
 template void Cos<complex<float>>::instantiate_tasks();
 template void Cos<complex<double>>::instantiate_tasks();
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate

@@ -23,21 +23,22 @@
 namespace legate {
 namespace numpy {
 using std::acos;
-template<class T>
+template <class T>
 struct ArcCosOperation {
   using argument_type           = T;
   using result_type             = decltype(acos(std::declval<argument_type>()));
   constexpr static auto op_code = NumPyOpCode::NUMPY_ARCCOS;
 
-  template<typename T_>
-  __CUDA_HD__ constexpr result_type operator()(const T_& a) const {
+  template <typename T_>
+  __CUDA_HD__ constexpr result_type operator()(const T_& a) const
+  {
     return acos(a);
   }
 };
 
-template<typename T>
+template <typename T>
 using ArcCos = UnaryUniversalFunction<ArcCosOperation<T>>;
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate
 
-#endif    // __NUMPY_ARCCOS_H__
+#endif  // __NUMPY_ARCCOS_H__

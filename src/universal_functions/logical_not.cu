@@ -31,5 +31,5 @@ template void LogicalNot<uint64_t>::instantiate_task_gpu_variants();
 template void LogicalNot<bool>::instantiate_task_gpu_variants();
 template void LogicalNot<complex<float>>::instantiate_task_gpu_variants();
 template void LogicalNot<complex<double>>::instantiate_task_gpu_variants();
-}    // namespace numpy
-}    // namespace legate
+}  // namespace numpy
+}  // namespace legate
