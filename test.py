@@ -170,7 +170,9 @@ def run_test_legate(
             pynvml = None
 
     if workers is None:
-        if test_name != "GPU":
+        if verbose:
+            workers = 1
+        elif test_name != "GPU":
             workers = multiprocessing.cpu_count() // num_procs
         else:
             if pynvml is None:
