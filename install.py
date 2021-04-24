@@ -422,7 +422,7 @@ def driver():
         action="store_true",
         required=False,
         default=os.environ.get("DEBUG_RELEASE") == "1",
-        help="Build Legate NumPy with debugging symbols enabled.",
+        help="Build Legate NumPy with debugging symbols.",
     )
     parser.add_argument(
         "--check-bounds",
@@ -430,7 +430,7 @@ def driver():
         action="store_true",
         required=False,
         default=False,
-        help="Build Legate with debugging enabled.",
+        help="Build Legate NumPy with bounds checks.",
     )
     parser.add_argument(
         "--with-core",
@@ -444,7 +444,7 @@ def driver():
         dest="openblas_dir",
         metavar="DIR",
         required=False,
-        help="Path to OpenBLAS installation directory. Note that providing "
+        help="Path to OpenBLAS installation directory. Note that providing a "
         "user-defined BLAS library may lead to dynamic library conflicts with "
         "BLAS loaded by Python's Numpy. When using legate.numpy's BLAS, this "
         "issue is prevented by a custom library name.",
@@ -459,7 +459,7 @@ def driver():
     parser.add_argument(
         "--no-cuda",
         dest="cuda",
-        action="store_true",
+        action="store_false",
         required=False,
         default=True,
         help="Build Legate NumPy without CUDA.",
@@ -467,10 +467,10 @@ def driver():
     parser.add_argument(
         "--no-openmp",
         dest="openmp",
-        action="store_true",
+        action="store_false",
         required=False,
         default=True,
-        help="Build Legate NumPy with OpenMP.",
+        help="Build Legate NumPy without OpenMP.",
     )
     parser.add_argument(
         "--cmake",
@@ -519,7 +519,8 @@ def driver():
         dest="thread_count",
         nargs="?",
         type=int,
-        help="Number threads used to compile.",
+        required=False,
+        help="Number of threads used to compile.",
     )
     parser.add_argument(
         "-v",
@@ -527,6 +528,7 @@ def driver():
         dest="verbose",
         action="store_true",
         required=False,
+        default=False,
         help="Enable verbose build output.",
     )
     args, unknown = parser.parse_known_args()
