@@ -93,6 +93,7 @@ class EagerArray(NumPyThunk):
                         self.array.nbytes,
                         wrap=True,
                         dtype=self.array.dtype,
+                        shape=(1,),
                     )
                 else:
                     self.deferred = self.runtime.find_or_create_array_thunk(
