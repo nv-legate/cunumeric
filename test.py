@@ -390,8 +390,6 @@ class ExtendAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         items = getattr(namespace, self.dest, None)
         items = items[:] if items else []
-        print(items)
-        print(values)
         if type(values) is list:
             items.extend(values)
         else:
