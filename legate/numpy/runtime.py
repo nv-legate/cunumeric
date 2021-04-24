@@ -2465,7 +2465,9 @@ class Runtime(object):
             )
 
     def compute_broadcast_transform(self, output_array, input_array):
-        assert output_array.shape != input_array.shape
+        if output_array.shape == input_array.shape or input_array.size == 1:
+            return (None, None, 0, 0)
+
         assert output_array.ndim >= input_array.ndim
         transform = np.zeros(
             (input_array.ndim, output_array.ndim), dtype=np.int64
@@ -2489,6 +2491,7 @@ class Runtime(object):
                     transform,
                     offset,
                     self.first_proj_id + NumPyProjCode.PROJ_2D_1D_Y,
+                    NumPyMappingTag.NO_MEMOIZE_TAG,
                 )
             if output_array.ndim == 2:
                 assert len(broadcast_dims) == 1
@@ -2497,6 +2500,7 @@ class Runtime(object):
                         transform,
                         offset,
                         self.first_proj_id + NumPyProjCode.PROJ_2D_2D_0Y,
+                        NumPyMappingTag.NO_MEMOIZE_TAG,
                     )
                 else:
                     assert broadcast_dims[0] == 1
@@ -2504,6 +2508,7 @@ class Runtime(object):
                         transform,
                         offset,
                         self.first_proj_id + NumPyProjCode.PROJ_2D_2D_X0,
+                        NumPyMappingTag.NO_MEMOIZE_TAG,
                     )
             else:
                 assert output_array.ndim == 3
@@ -2512,6 +2517,7 @@ class Runtime(object):
                         transform,
                         offset,
                         self.first_proj_id + NumPyProjCode.PROJ_3D_2D_YZ,
+                        NumPyMappingTag.NO_MEMOIZE_TAG,
                     )
                 elif len(broadcast_dims) == 1:
                     raise NotImplementedError(
@@ -2522,6 +2528,7 @@ class Runtime(object):
                             transform,
                             offset,
                             self.first_proj_id + NumPyProjCode.PROJ_3D_2D_0Z,
+                            NumPyMappingTag.NO_MEMOIZE_TAG,
                         )
                     else:
                         assert broadcast_dims[1] == 1
@@ -2529,6 +2536,7 @@ class Runtime(object):
                             transform,
                             offset,
                             self.first_proj_id + NumPyProjCode.PROJ_3D_2D_Y0,
+                            NumPyMappingTag.NO_MEMOIZE_TAG,
                         )
                 else:
                     assert len(broadcast_dims) == 2
@@ -2536,6 +2544,7 @@ class Runtime(object):
                         transform,
                         offset,
                         self.first_proj_id + NumPyProjCode.PROJ_3D_1D_Z,
+                        NumPyMappingTag.NO_MEMOIZE_TAG,
                     )
         elif input_array.ndim == 3:
             if output_array.ndim == 1:
@@ -2544,6 +2553,7 @@ class Runtime(object):
                     transform,
                     offset,
                     self.first_proj_id + NumPyProjCode.PROJ_3D_1D_Z,
+                    NumPyMappingTag.NO_MEMOIZE_TAG,
                 )
             elif output_array.ndim == 2:
                 assert len(broadcast_dims) == 1
@@ -2552,6 +2562,7 @@ class Runtime(object):
                         transform,
                         offset,
                         self.first_proj_id + NumPyProjCode.PROJ_3D_2D_BY,
+                        NumPyMappingTag.NO_MEMOIZE_TAG,
                     )
                 else:
                     assert broadcast_dims[0] == 1
@@ -2559,6 +2570,7 @@ class Runtime(object):
                         transform,
                         offset,
                         self.first_proj_id + NumPyProjCode.PROJ_3D_2D_XB,
+                        NumPyMappingTag.NO_MEMOIZE_TAG,
                     )
             else:
                 if len(broadcast_dims) == 1:
@@ -2567,12 +2579,14 @@ class Runtime(object):
                             transform,
                             offset,
                             self.first_proj_id + NumPyProjCode.PROJ_3D_3D_YZ,
+                            NumPyMappingTag.NO_MEMOIZE_TAG,
                         )
                     elif broadcast_dims[0] == 1:
                         return (
                             transform,
                             offset,
                             self.first_proj_id + NumPyProjCode.PROJ_3D_3D_XZ,
+                            NumPyMappingTag.NO_MEMOIZE_TAG,
                         )
                     else:
                         assert broadcast_dims[0] == 2
@@ -2580,6 +2594,7 @@ class Runtime(object):
                             transform,
                             offset,
                             self.first_proj_id + NumPyProjCode.PROJ_3D_3D_XY,
+                            NumPyMappingTag.NO_MEMOIZE_TAG,
                         )
                 else:
                     assert len(broadcast_dims) == 2
@@ -2588,12 +2603,14 @@ class Runtime(object):
                             transform,
                             offset,
                             self.first_proj_id + NumPyProjCode.PROJ_3D_3D_Z,
+                            NumPyMappingTag.NO_MEMOIZE_TAG,
                         )
                     elif broadcast_dims == (1, 2):
                         return (
                             transform,
                             offset,
                             self.first_proj_id + NumPyProjCode.PROJ_3D_3D_X,
+                            NumPyMappingTag.NO_MEMOIZE_TAG,
                         )
                     else:
                         assert broadcast_dims == (0, 2)
@@ -2601,6 +2618,7 @@ class Runtime(object):
                             transform,
                             offset,
                             self.first_proj_id + NumPyProjCode.PROJ_3D_3D_Y,
+                            NumPyMappingTag.NO_MEMOIZE_TAG,
                         )
         else:
             raise NotImplementedError(
