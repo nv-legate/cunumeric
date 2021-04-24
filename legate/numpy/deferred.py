@@ -3400,13 +3400,6 @@ class DeferredArray(NumPyThunk):
         rhs_array = self.runtime.to_deferred_array(
             src, stacklevel=(stacklevel + 1)
         )
-        if isinstance(where, NumPyThunk):
-            where_array = self.runtime.to_deferred_array(
-                where, stacklevel=(stacklevel + 1)
-            )
-        else:
-            assert where is True
-            where_array = None
         rhs = rhs_array.base
         # If we haven't computed a parallel launch space yet for
         # the destination array and the shapes are the same then
@@ -3441,152 +3434,51 @@ class DeferredArray(NumPyThunk):
             future = self.runtime.dispatch(task)
             # See if the output is also a scalar or not
             if lhs_array.size > 1:
-                if where_array is None:
-                    # Output is not a scalar so do a fill broadcast
-                    result = lhs_array.base
-                    if launch_space is not None:
-                        (
-                            lhs_part,
-                            shardfn,
-                            shardsp,
-                        ) = result.find_or_create_key_partition()
-                        fill = IndexFill(
-                            lhs_part,
-                            0,
-                            result.region.get_root(),
-                            result.field.field_id,
-                            future,
-                            mapper=self.runtime.mapper_id,
-                            tag=shardfn,
-                        )
-                        if shardsp is not None:
-                            fill.set_sharding_space(shardsp)
-                    else:
-                        (
-                            shardpt,
-                            shardfn,
-                            shardsp,
-                        ) = result.find_point_sharding()
-                        fill = Fill(
-                            result.region,
-                            result.region.get_root(),
-                            result.field.field_id,
-                            future,
-                            mapper=self.runtime.mapper_id,
-                            tag=shardfn,
-                        )
-                        if shardpt is not None:
-                            fill.set_point(shardpt)
-                        if shardsp is not None:
-                            fill.set_sharding_space(shardsp)
-                    self.runtime.dispatch(fill)
+                # Output is not a scalar so do a fill broadcast
+                result = lhs_array.base
+                if launch_space is not None:
+                    (
+                        lhs_part,
+                        shardfn,
+                        shardsp,
+                    ) = result.find_or_create_key_partition()
+                    fill = IndexFill(
+                        lhs_part,
+                        0,
+                        result.region.get_root(),
+                        result.field.field_id,
+                        future,
+                        mapper=self.runtime.mapper_id,
+                        tag=shardfn,
+                    )
+                    if shardsp is not None:
+                        fill.set_sharding_space(shardsp)
                 else:
-                    # Case where we have a non-trivial where array
-                    result = lhs_array.base
-                    where = where_array.base
-                    assert result is not where
-                    # Only write the results where the where_array is True
-                    argbuf = BufferBuilder()
-                    if launch_space is not None:
-                        (
-                            result_part,
-                            shardfn,
-                            shardsp,
-                        ) = result.find_or_create_key_partition()
-                        self.pack_shape(
-                            argbuf, self.shape, result_part.tile_shape, 0
-                        )
-                        (
-                            where_transform,
-                            where_offset,
-                            where_proj,
-                        ) = self.runtime.compute_broadcast_transform(
-                            lhs_array, where_array
-                        )
-                        where_tag = (
-                            NumPyMappingTag.NO_MEMOIZE_TAG
-                            if where_proj > 0
-                            else 0
-                        )
-                    else:
-                        self.pack_shape(argbuf, self.shape)
-                        where_transform = None
-                        where_offset = None
-                        where_proj = None
-                        where_tag = 0
-                    argbuf.pack_accessor(
-                        result.field.field_id, result.transform
+                    (
+                        shardpt,
+                        shardfn,
+                        shardsp,
+                    ) = result.find_point_sharding()
+                    fill = Fill(
+                        result.region,
+                        result.region.get_root(),
+                        result.field.field_id,
+                        future,
+                        mapper=self.runtime.mapper_id,
+                        tag=shardfn,
                     )
-                    self.pack_transform_accessor(
-                        argbuf, lhs_array, where_array, where, where_transform
-                    )
-                    if launch_space is not None:
-                        task = IndexTask(
-                            self.runtime.get_nullary_task_id(
-                                NumPyOpCode.FILL, result_type=self.dtype
-                            ),
-                            Rect(launch_space),
-                            self.runtime.empty_argmap,
-                            argbuf.get_string(),
-                            argbuf.get_size(),
-                            mapper=self.runtime.mapper_id,
-                            tag=shardfn,
-                        )
-                        if shardsp is not None:
-                            task.set_sharding_space(shardsp)
-                        task.add_write_requirement(
-                            result_part,
-                            result.field.field_id,
-                            0,
-                            tag=NumPyMappingTag.KEY_REGION_TAG,
-                        )
-                        where_part = where.find_or_create_congruent_partition(
-                            result_part, where_transform, where_offset
-                        )
-                        task.add_read_requirement(
-                            where_part,
-                            where.field.field_id,
-                            where_proj,
-                            tag=where_tag,
-                        )
-                        task.add_future(future)
-                    else:
-                        (
-                            shardpt,
-                            shardfn,
-                            shardsp,
-                        ) = result.find_point_sharding()
-                        task = Task(
-                            self.runtime.get_nullary_task_id(
-                                NumPyOpCode.FILL, result_type=self.dtype
-                            ),
-                            argbuf.get_string(),
-                            argbuf.get_size(),
-                            mapper=self.runtime.mapper_id,
-                            tag=shardfn,
-                        )
-                        if shardpt is not None:
-                            task.set_point(shardpt)
-                        if shardsp is not None:
-                            task.set_sharding_space(shardsp)
-                        task.add_write_requirement(
-                            result.region, result.field.field_id
-                        )
-                        task.add_read_requirement(
-                            where.region, where.field.field_id
-                        )
-                        task.add_future(future)
-                    self.runtime.dispatch(task)
+                    if shardpt is not None:
+                        fill.set_point(shardpt)
+                    if shardsp is not None:
+                        fill.set_sharding_space(shardsp)
+                self.runtime.dispatch(fill)
             else:
-                assert where_array is None
                 # Output is a scalar so we can just save the result
                 lhs_array.base = future
         else:
             assert not isinstance(rhs, Future)
             # Normal/broadcast version of this operation
             result = lhs_array.base
-            if where_array is not None:
-                where = where_array.base
             # Compute a transform if we need one
             if rhs_array.shape != lhs_array.shape:
                 (
@@ -3604,24 +3496,6 @@ class DeferredArray(NumPyThunk):
                 offset = None
                 proj_id = 0
                 mapping_tag = 0
-            # Compute a transform for our where array if we need one
-            if where_array is not None:
-                if where_array.shape != lhs_array.shape:
-                    (
-                        where_transform,
-                        where_offset,
-                        where_proj,
-                    ) = self.runtime.compute_broadcast_transform(
-                        lhs_array, where_array
-                    )
-                    where_tag = (
-                        NumPyMappingTag.NO_MEMOIZE_TAG if where_proj > 0 else 0
-                    )
-                else:
-                    where_transform = None
-                    where_offset = None
-                    where_proj = 0
-                    where_tag = 0
             argbuf = BufferBuilder()
             assert lhs_array.ndim >= rhs_array.ndim
             if launch_space is not None:
@@ -3651,11 +3525,6 @@ class DeferredArray(NumPyThunk):
                 # Check to see if we have a transform for input region
                 self.pack_transform_accessor(
                     argbuf, lhs_array, rhs_array, rhs, transform
-                )
-            # Pack the where array accessor if we have one
-            if where_array is not None:
-                self.pack_transform_accessor(
-                    argbuf, lhs_array, where_array, where, where_transform
                 )
             if launch_space is not None:
                 # Index space launch to do this operation in parallel
@@ -3714,18 +3583,6 @@ class DeferredArray(NumPyThunk):
                         proj_id,
                         tag=mapping_tag,
                     )
-                if where_array is not None:
-                    # Shapes are the same so we can use the identity
-                    # projection
-                    where_part = where.find_or_create_partition(
-                        launch_space, where_transform, where_offset
-                    )
-                    task.add_read_requirement(
-                        where_part,
-                        where.field.field_id,
-                        where_proj,
-                        tag=where_tag,
-                    )
                 if args is not None:
                     self.add_arguments(task, args)
                 self.runtime.dispatch(task)
@@ -3767,10 +3624,6 @@ class DeferredArray(NumPyThunk):
                         result.region, result.field.field_id
                     )
                     task.add_read_requirement(rhs.region, rhs.field.field_id)
-                if where_array is not None:
-                    task.add_read_requirement(
-                        where.region, where.field.field_id
-                    )
                 if args is not None:
                     self.add_arguments(task, args)
                 self.runtime.dispatch(task)
@@ -3805,14 +3658,6 @@ class DeferredArray(NumPyThunk):
         rhs_array = self.runtime.to_deferred_array(
             src, stacklevel=(stacklevel + 1)
         )
-        if isinstance(where, NumPyThunk):
-            where_array = self.runtime.to_deferred_array(
-                where, stacklevel=(stacklevel + 1)
-            )
-            where = where_array.base
-        else:
-            assert where is True
-            where_array = None
         assert lhs_array.ndim <= rhs_array.ndim
         assert rhs_array.size > 1
         # See if this is an arg reduction
@@ -3830,7 +3675,6 @@ class DeferredArray(NumPyThunk):
                 initial_array.data, initial_array.nbytes
             )
         if isinstance(rhs, Future):
-            assert where_array is None
             if initial is not None:
                 assert rhs_array.dtype == lhs_array.dtype
                 # If we had an initial value then we need to combine these
@@ -3867,26 +3711,6 @@ class DeferredArray(NumPyThunk):
             else:
                 self.pack_shape(argbuf, rhs_array.shape)
             argbuf.pack_accessor(rhs.field.field_id, rhs.transform)
-            if where_array is not None:
-                if where_array.shape != rhs_array.shape:
-                    (
-                        where_transform,
-                        where_offset,
-                        where_proj,
-                    ) = self.runtime.compute_broadcast_transform(
-                        rhs_array, where_array
-                    )
-                    where_tag = (
-                        NumPyMappingTag.NO_MEMOIZE_TAG if where_proj > 0 else 0
-                    )
-                else:
-                    where_transform = None
-                    where_offset = None
-                    where_proj = 0
-                    where_tag = 0
-                self.pack_transform_accessor(
-                    argbuf, rhs_array, where_array, where, where_transform
-                )
             if launch_space is not None:
                 task = IndexTask(
                     self.runtime.get_unary_task_id(
@@ -3911,16 +3735,6 @@ class DeferredArray(NumPyThunk):
                     0,
                     tag=NumPyMappingTag.KEY_REGION_TAG,
                 )
-                if where_array is not None:
-                    where_part = where.find_or_create_partition(
-                        launch_space, where_transform, where_offset
-                    )
-                    task.add_read_requirement(
-                        where_part,
-                        where.field.field_id,
-                        where_proj,
-                        tag=where_tag,
-                    )
                 if args is not None:
                     self.add_arguments(task, args)
                 result = self.runtime.dispatch(
@@ -3948,17 +3762,12 @@ class DeferredArray(NumPyThunk):
                 if shardsp is not None:
                     task.set_sharding_space(shardsp)
                 task.add_read_requirement(rhs.region, rhs.field.field_id)
-                if where_array is not None:
-                    task.add_read_requirement(
-                        where.region, where.field.field_id
-                    )
                 if args is not None:
                     self.add_arguments(task, args)
                 result = self.runtime.dispatch(task)
             # If this is an argred task, we need to convert from
             # the argred type back to the actual type of the result
             if argred:
-                assert where_array is None
                 assert initial is None
                 task = Task(
                     self.runtime.get_nullary_task_id(
@@ -4010,25 +3819,6 @@ class DeferredArray(NumPyThunk):
                 lhs_array.ndim, rhs_array.ndim, False
             )
             affine_transform.trans = transform
-            # If we have a where array then compute its transform here too
-            # Note we only need the where array on the first axis
-            if where_array is not None:
-                if where_array.shape != rhs_array.shape:
-                    (
-                        where_transform,
-                        where_offset,
-                        where_proj,
-                    ) = self.runtime.compute_broadcast_transform(
-                        rhs_array, where_array
-                    )
-                    where_tag = (
-                        NumPyMappingTag.NO_MEMOIZE_TAG if where_proj > 0 else 0
-                    )
-                else:
-                    where_transform = None
-                    where_offset = None
-                    where_proj = 0
-                    where_tag = 0
             # Compute the launch space
             launch_space = rhs.compute_parallel_launch_space()
             # Then we launch the reduction task(s)
@@ -4073,14 +3863,6 @@ class DeferredArray(NumPyThunk):
                         to_pack = affine_transform
                     argbuf.pack_accessor(result.field.field_id, to_pack)
                     argbuf.pack_accessor(rhs.field.field_id, rhs.transform)
-                    if where_array is not None:
-                        self.pack_transform_accessor(
-                            argbuf,
-                            rhs_array,
-                            where_array,
-                            where,
-                            where_transform,
-                        )
                     task = IndexTask(
                         self.runtime.get_unary_task_id(
                             op,
@@ -4109,16 +3891,6 @@ class DeferredArray(NumPyThunk):
                         0,
                         tag=NumPyMappingTag.KEY_REGION_TAG,
                     )
-                    if where_array is not None:
-                        where_part = where.find_or_create_congruent_partition(
-                            rhs_part, where_transform, where_offset
-                        )
-                        task.add_read_requirement(
-                            where_part,
-                            where.field.field_id,
-                            where_proj,
-                            tag=where_tag,
-                        )
                     if args is not None:
                         self.add_arguments(task, args)
                     if initial is not None:
@@ -4178,14 +3950,6 @@ class DeferredArray(NumPyThunk):
                         reduction_field.field.field_id, to_pack
                     )
                     argbuf.pack_accessor(rhs.field.field_id, rhs.transform)
-                    if where_array is not None:
-                        self.pack_transform_accessor(
-                            argbuf,
-                            rhs_array,
-                            where_array,
-                            where,
-                            where_transform,
-                        )
                     task = IndexTask(
                         self.runtime.get_unary_task_id(
                             op,
@@ -4214,16 +3978,6 @@ class DeferredArray(NumPyThunk):
                         0,
                         tag=NumPyMappingTag.KEY_REGION_TAG,
                     )
-                    if where_array is not None:
-                        where_part = where.find_or_create_congruent_partition(
-                            rhs_part, where_transform, where_offset
-                        )
-                        task.add_read_requirement(
-                            where_part,
-                            where.field.field_id,
-                            where_proj,
-                            tag=where_tag,
-                        )
                     if args is not None:
                         self.add_arguments(task, args)
                     if initial is not None:
@@ -4548,10 +4302,6 @@ class DeferredArray(NumPyThunk):
                     )
                 # Access rhs with the shape that was packed earlier for lhs
                 argbuf.pack_accessor(rhs.field.field_id, rhs.transform)
-                if where_array is not None:
-                    self.pack_transform_accessor(
-                        argbuf, rhs_array, where_array, where, where_transform
-                    )
                 shardpt, shardfn, shardsp = rhs.find_point_sharding()
                 task = Task(
                     self.runtime.get_unary_task_id(
@@ -4583,10 +4333,6 @@ class DeferredArray(NumPyThunk):
                     rhs.field.field_id,
                     tag=NumPyMappingTag.KEY_REGION_TAG,
                 )
-                if where_array is not None:
-                    task.add_read_requirement(
-                        where.region, where.field.field_id
-                    )
                 if args is not None:
                     self.add_arguments(task, args)
                 if initial is not None:
@@ -4651,14 +4397,6 @@ class DeferredArray(NumPyThunk):
         rhs2_array = self.runtime.to_deferred_array(
             src2, stacklevel=(stacklevel + 1)
         )
-        if where is not True:
-            where_array = self.runtime.to_deferred_array(
-                where, stacklevel=(stacklevel + 1)
-            )
-            where = where_array.base
-        else:
-            assert where is True
-            where_array = None
         lhs_array = self
         rhs1 = rhs1_array.base
         rhs2 = rhs2_array.base
@@ -4690,142 +4428,45 @@ class DeferredArray(NumPyThunk):
                 result = lhs_array.base
                 # Comptue our launch space
                 launch_space = result.compute_parallel_launch_space()
-                if where_array is None:
-                    if launch_space is not None:
-                        (
-                            result_part,
-                            shardfn,
-                            shardsp,
-                        ) = result.find_or_create_key_partition()
-                        fill = IndexFill(
-                            result_part,
-                            0,
-                            result.region.get_root(),
-                            result.field.field_id,
-                            future,
-                            mapper=self.runtime.mapper_id,
-                            tag=shardfn,
-                        )
-                        if shardsp is not None:
-                            fill.set_sharding_space(shardsp)
-                    else:
-                        (
-                            shardpt,
-                            shardfn,
-                            shardsp,
-                        ) = result.find_point_sharding()
-                        fill = Fill(
-                            result.region,
-                            result.region.get_root(),
-                            result.field.field_id,
-                            future,
-                            mapper=self.runtime.mapper_id,
-                            tag=shardfn,
-                        )
-                        if shardpt is not None:
-                            fill.set_point(shardpt)
-                        if shardsp is not None:
-                            fill.set_sharding_space(shardsp)
-                    self.runtime.dispatch(fill)
+                if launch_space is not None:
+                    (
+                        result_part,
+                        shardfn,
+                        shardsp,
+                    ) = result.find_or_create_key_partition()
+                    fill = IndexFill(
+                        result_part,
+                        0,
+                        result.region.get_root(),
+                        result.field.field_id,
+                        future,
+                        mapper=self.runtime.mapper_id,
+                        tag=shardfn,
+                    )
+                    if shardsp is not None:
+                        fill.set_sharding_space(shardsp)
                 else:
-                    # Non-trivial where case so need a selective fill
-                    argbuf = BufferBuilder()
-                    argbuf.pack_accessor(
-                        result.field.field_id, result.transform
+                    (
+                        shardpt,
+                        shardfn,
+                        shardsp,
+                    ) = result.find_point_sharding()
+                    fill = Fill(
+                        result.region,
+                        result.region.get_root(),
+                        result.field.field_id,
+                        future,
+                        mapper=self.runtime.mapper_id,
+                        tag=shardfn,
                     )
-                    if launch_space is not None:
-                        (
-                            result_part,
-                            shardfn,
-                            shardsp,
-                        ) = result.find_or_create_key_partition()
-                        self.pack_shape(
-                            argbuf, self.shape, result_part.tile_shape, 0
-                        )
-                    else:
-                        self.pack_shape(argbuf, self.shape)
-                    if where_array.shape != lhs_array.shape:
-                        (
-                            where_transform,
-                            where_offset,
-                            where_proj,
-                        ) = self.runtime.compute_broadcast_transform(
-                            lhs_array, where_array
-                        )
-                        where_tag = (
-                            NumPyMappingTag.NO_MEMOIZE_TAG
-                            if where_proj > 0
-                            else 0
-                        )
-                    else:
-                        where_transform = None
-                        where_offset = None
-                        where_proj = 0
-                        where_tag = 0
-                    self.pack_transform_accessor(
-                        argbuf, lhs_array, where_array, where, where_transform
-                    )
-                    if launch_space is not None:
-                        task = IndexTask(
-                            self.runtime.get_nullary_task_id(
-                                NumPyOpCode.FILL, result_type=self.dtype
-                            ),
-                            Rect(launch_space),
-                            self.runtime.empty_argmap,
-                            argbuf.get_string(),
-                            argbuf.get_size(),
-                            mapper=self.runtime.mapper_id,
-                            tag=shardfn,
-                        )
-                        task.add_write_requirement(
-                            result_part,
-                            result.field.field_id,
-                            0,
-                            tag=NumPyMappingTag.KEY_REGION_TAG,
-                        )
-                        where_part = where.find_or_create_congruent_partition(
-                            result_part,
-                            where_transform,
-                            where_offset,
-                        )
-                        task.add_read_requirement(
-                            where_part,
-                            where.field.field_id,
-                            where_proj,
-                            tag=where_tag,
-                        )
-                        task.add_future(future)
-                    else:
-                        (
-                            shardpt,
-                            shardfn,
-                            shardsp,
-                        ) = result.find_point_sharding()
-                        task = Task(
-                            self.runtime.get_nullary_task_id(
-                                NumPyOpCode.FILL, result_type=self.dtype
-                            ),
-                            argbuf.get_string(),
-                            argbuf.get_size(),
-                            mapper=self.runtime.mapper_id,
-                            tag=shardfn,
-                        )
-                        if shardpt is not None:
-                            task.set_point(shardpt)
-                        if shardsp is not None:
-                            task.set_sharding_space(shardsp)
-                        task.add_write_requirement(
-                            result.region, result.field.field_id
-                        )
-                        task.add_read_requirement(
-                            where.region, where.field.field_id
-                        )
-                        task.add_future(future)
-                    self.runtime.dispatch(task)
+                    if shardpt is not None:
+                        fill.set_point(shardpt)
+                    if shardsp is not None:
+                        fill.set_sharding_space(shardsp)
+                self.runtime.dispatch(fill)
             else:
                 # Output is a scalar so we can just save the result
                 # Note this also handles the in-place update correctly too
-                assert where_array is None
                 lhs_array.base = future
         else:
             # Normal/broadcast version of this task
@@ -4884,23 +4525,6 @@ class DeferredArray(NumPyThunk):
                 offset2 = None
                 proj2_id = 0
                 mapping_tag2 = 0
-            if where_array is not None:
-                if where_array.shape != lhs_array.shape:
-                    (
-                        where_transform,
-                        where_offset,
-                        where_proj,
-                    ) = self.runtime.compute_broadcast_transform(
-                        lhs_array, where_array
-                    )
-                    where_tag = (
-                        NumPyMappingTag.NO_MEMOIZE_TAG if where_proj > 0 else 0
-                    )
-                else:
-                    where_transform = None
-                    where_offset = None
-                    where_proj = 0
-                    where_tag = 0
             # Scalar should have been handled above
             assert not isinstance(rhs1, Future) or not isinstance(rhs2, Future)
             has_future = isinstance(rhs1, Future) or isinstance(rhs2, Future)
@@ -4944,11 +4568,6 @@ class DeferredArray(NumPyThunk):
                     argbuf.pack_32bit_uint(0)
                 else:
                     argbuf.pack_32bit_uint(1)
-            if where_array is not None:
-                assert result is not where
-                self.pack_transform_accessor(
-                    argbuf, lhs_array, where_array, where, where_transform
-                )
             # See if we are doing index space launches or not
             if launch_space is not None:
                 # Index task launch case
@@ -5027,19 +4646,6 @@ class DeferredArray(NumPyThunk):
                         proj2_id,
                         tag=mapping_tag2,
                     )
-                # Region requirement for where if we have one
-                if where_array is not None:
-                    where_part = where.find_or_create_congruent_partition(
-                        key_part,
-                        where_transform,
-                        where_offset,
-                    )
-                    task.add_read_requirement(
-                        where_part,
-                        where.field.field_id,
-                        where_proj,
-                        tag=where_tag,
-                    )
                 if args is not None:
                     self.add_arguments(task, args)
                 self.runtime.dispatch(task)
@@ -5089,10 +4695,6 @@ class DeferredArray(NumPyThunk):
                     task.add_future(rhs2)
                 else:
                     task.add_read_requirement(rhs2.region, rhs2.field.field_id)
-                if where_array is not None:
-                    task.add_read_requirement(
-                        where.region, where.field.field_id
-                    )
                 if args is not None:
                     self.add_arguments(task, args)
                 self.runtime.dispatch(task)
