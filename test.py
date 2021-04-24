@@ -21,6 +21,7 @@ import argparse
 import datetime
 import glob
 import json
+import multiprocessing
 import os
 import platform
 import subprocess
@@ -94,31 +95,145 @@ def cmd(command, env=None, cwd=None, stdout=None, stderr=None, show=True):
     )
 
 
-def run_test_legate(
-    test_name, root_dir, legate_dir, flags, env, verbose, opts
+def run_test(
+    test_file,
+    driver,
+    flags,
+    test_flags,
+    opts,
+    env,
+    root_dir,
+    verbose,
 ):
+    test_path = os.path.join(root_dir, test_file)
+    try:
+        cmd(
+            [driver, test_path, "-lg:numpy:test"] + flags + test_flags + opts,
+            env=env,
+            cwd=root_dir,
+            stdout=FNULL if not verbose else sys.stderr,
+            stderr=FNULL if not verbose else sys.stderr,
+            show=verbose,
+        )
+        return True, test_file
+    except (OSError, subprocess.CalledProcessError):
+        return False, test_file
+
+
+def report_result(test_name, result):
+    (passed, test_file) = result
+
+    if passed:
+        print("[%sPASS%s] (%s) %s" % (green, clear, test_name, test_file))
+        return 1
+    else:
+        print("[%sFAIL%s] (%s) %s" % (red, clear, test_name, test_file))
+        return 0
+
+
+def compute_thread_pool_size_for_gpu_tests(pynvml, gpus_per_test):
+    # TODO: We need to make this configurable
+    MEMORY_BUDGET = 6 << 30
+    gpu_count = pynvml.nvmlDeviceGetCount()
+    parallelism_per_gpu = 16
+    for idx in range(gpu_count):
+        info = pynvml.nvmlDeviceGetMemoryInfo(
+            pynvml.nvmlDeviceGetHandleByIndex(idx)
+        )
+        parallelism_per_gpu = min(
+            parallelism_per_gpu, info.free // MEMORY_BUDGET
+        )
+
+    return (
+        parallelism_per_gpu * (gpu_count // gpus_per_test),
+        parallelism_per_gpu,
+    )
+
+
+def run_test_legate(
+    test_name,
+    root_dir,
+    legate_dir,
+    flags,
+    env,
+    verbose,
+    opts,
+    workers,
+    num_procs,
+):
+    if test_name == "GPU":
+        try:
+            import pynvml
+
+            pynvml.nvmlInit()
+        except ModuleNotFoundError:
+            pynvml = None
+
+    if workers is None:
+        if test_name != "GPU":
+            workers = multiprocessing.cpu_count() // num_procs
+        else:
+            if pynvml is None:
+                workers = 1
+            else:
+                threads, parallelism = compute_thread_pool_size_for_gpu_tests(
+                    pynvml, num_procs
+                )
+                gpu_count = pynvml.nvmlDeviceGetCount()
+                workers = threads * num_procs // gpu_count
+
     driver = os.path.join(legate_dir, "bin", "legate")
     total_pass = 0
-    for test_file in legate_tests:
-        test_path = os.path.join(root_dir, test_file)
-        try:
-            cmd(
-                [driver, test_path, "-lg:numpy:test"]
-                + flags
-                + test_flags.get(test_file, [])
-                + opts,
-                env=env,
-                cwd=root_dir,
-                stdout=FNULL if not verbose else sys.stdout,
-                stderr=FNULL if not verbose else sys.stderr,
-                show=verbose,
+    if workers == 1:
+        for test_file in legate_tests:
+            result = run_test(
+                test_file,
+                driver,
+                flags,
+                test_flags.get(test_file, []),
+                opts,
+                env,
+                root_dir,
+                verbose,
             )
-            print("[%sPASS%s] (%s) %s" % (green, clear, test_name, test_file))
-            sys.stdout.flush()
-            total_pass += 1
-        except Exception:
-            print("[%sFAIL%s] (%s) %s" % (red, clear, test_name, test_file))
-            sys.stdout.flush()
+            total_pass += report_result(test_name, result)
+    else:
+        # Turn off the core pinning so that the tests can run concurrently
+        env["REALM_SYNTHETIC_CORE_MAP"] = ""
+
+        pool = multiprocessing.Pool(workers)
+
+        results = []
+        for idx, test_file in enumerate(legate_tests):
+            results.append(
+                pool.apply_async(
+                    run_test,
+                    (
+                        test_file,
+                        driver,
+                        flags,
+                        test_flags.get(test_file, []),
+                        opts,
+                        env,
+                        root_dir,
+                        verbose,
+                    ),
+                )
+            )
+
+        pool.close()
+
+        result_set = set(results)
+        while True:
+            completed = set()
+            for result in result_set:
+                if result.ready():
+                    total_pass += report_result(test_name, result.get())
+                    completed.add(result)
+            result_set -= completed
+            if len(result_set) == 0:
+                break
+
     print(
         "%24s: Passed %4d of %4d tests (%5.1f%%)"
         % (
@@ -216,6 +331,7 @@ def run_tests(
     verbose=False,
     options=[],
     interop_tests=False,
+    workers=None,
 ):
 
     if interop_tests:
@@ -321,6 +437,8 @@ def run_tests(
                 env,
                 verbose,
                 options,
+                workers,
+                cpus,
             )
             total_pass += count
             total_count += len(legate_tests)
@@ -334,6 +452,8 @@ def run_tests(
                 env,
                 verbose,
                 options,
+                workers,
+                gpus,
             )
             total_pass += count
             total_count += len(legate_tests)
@@ -347,6 +467,8 @@ def run_tests(
                 env,
                 verbose,
                 options,
+                workers,
+                openmp * ompthreads,
             )
             total_pass += count
             total_count += len(legate_tests)
@@ -493,6 +615,13 @@ def driver():
         dest="interop_tests",
         action="store_true",
         help="Include integration tests with other Legate libraries.",
+    )
+    parser.add_argument(
+        "-j",
+        type=int,
+        default=None,
+        dest="workers",
+        help="Number of parallel workers for testing",
     )
 
     args, opts = parser.parse_known_args()
