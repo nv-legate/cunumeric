@@ -44,8 +44,8 @@ class ufunc(object):
 
 # ufunc-add class
 class add(ufunc):
-    def __new__(cls, a, b, out=None):
-        return _add(a, b, out=out, stacklevel=2)
+    def __new__(cls, a, b, out=None, where=True):
+        return _add(a, b, out=out, where=where, stacklevel=2)
 
     @staticmethod
     def reduce(a, axis=0, dtype=None, out=None, keepdims=False):
@@ -56,8 +56,8 @@ class add(ufunc):
 
 # ufunc-multiply class
 class multiply(ufunc):
-    def __new__(cls, a, b, out=None):
-        return _mul(a, b, out=out, stacklevel=2)
+    def __new__(cls, a, b, out=None, where=True):
+        return _mul(a, b, out=out, where=where, stacklevel=2)
 
     @staticmethod
     def reduce(a, axis=0, dtype=None, out=None, keepdims=False):
@@ -68,14 +68,14 @@ class multiply(ufunc):
 
 # ufunc-true_divide class
 class true_divide(ufunc):
-    def __new__(cls, a, b, out=None):
-        return _tdiv(a, b, out=out, stacklevel=2)
+    def __new__(cls, a, b, out=None, where=True):
+        return _tdiv(a, b, out=out, where=where, stacklevel=2)
 
 
 # ufunc-maximum class
 class maximum(ufunc):
-    def __new__(cls, a, b, out=None):
-        return _max2(a, b, out=out, stacklevel=2)
+    def __new__(cls, a, b, out=None, where=True):
+        return _max2(a, b, out=out, where=where, stacklevel=2)
 
     @staticmethod
     def reduce(a, axis=0, dtype=None, out=None, keepdims=False):
@@ -85,8 +85,8 @@ class maximum(ufunc):
 
 # ufunc-minimum class
 class minimum(ufunc):
-    def __new__(cls, a, b, out=None):
-        return _min2(a, b, out=out, stacklevel=2)
+    def __new__(cls, a, b, out=None, where=True):
+        return _min2(a, b, out=out, where=where, stacklevel=2)
 
     @staticmethod
     def reduce(a, axis=0, dtype=None, out=None, keepdims=False):
@@ -96,35 +96,35 @@ class minimum(ufunc):
 
 # ufunc-greater class
 class greater(ufunc):
-    def __new__(cls, a, b, out=None):
-        return _gt(a, b, out=out, stacklevel=2)
+    def __new__(cls, a, b, out=None, where=True):
+        return _gt(a, b, out=out, where=where, stacklevel=2)
 
 
 # ufunc-greater_equal class
 class greater_equal(ufunc):
-    def __new__(cls, a, b, out=None):
-        return _geq(a, b, out=out, stacklevel=2)
+    def __new__(cls, a, b, out=None, where=True):
+        return _geq(a, b, out=out, where=where, stacklevel=2)
 
 
 # ufunc-less class
 class less(ufunc):
-    def __new__(cls, a, b, out=None):
-        return _lt(a, b, out=out, stacklevel=2)
+    def __new__(cls, a, b, out=None, where=True):
+        return _lt(a, b, out=out, where=where, stacklevel=2)
 
 
 # ufunc-less_equal class
 class less_equal(ufunc):
-    def __new__(cls, a, b, out=None):
-        return _leq(a, b, out=out, stacklevel=2)
+    def __new__(cls, a, b, out=None, where=True):
+        return _leq(a, b, out=out, where=where, stacklevel=2)
 
 
 # ufunc-equal class
 class equal(ufunc):
-    def __new__(cls, a, b, out=None):
-        return _eq(a, b, out=out, stacklevel=2)
+    def __new__(cls, a, b, out=None, where=True):
+        return _eq(a, b, out=out, where=where, stacklevel=2)
 
 
 # ufunc-not_equal class
 class not_equal(ufunc):
-    def __new__(cls, a, b, out=None):
-        return _neq(a, b, out=out, stacklevel=2)
+    def __new__(cls, a, b, out=None, where=True):
+        return _neq(a, b, out=out, where=where, stacklevel=2)
