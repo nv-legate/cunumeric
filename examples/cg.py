@@ -24,7 +24,7 @@ from benchmark import run_benchmark
 
 try:
     import legate.numpy as np
-except NameError:
+except ImportError:
     import numpy as np
 
 
