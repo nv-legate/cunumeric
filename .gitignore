@@ -5,6 +5,7 @@
 .DS_Store
 *.a
 *.o
+*.so
 *.gz
 *.gcno
 *.gcda
@@ -18,6 +19,7 @@ core
 *.blg
 *.aux
 *.json
+*.dylib
 legate_python
 openblas
 OpenBLAS
