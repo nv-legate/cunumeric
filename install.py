@@ -135,7 +135,7 @@ def install_openblas(openblas_dir, thread_count, verbose):
     git_clone(
         temp_dir,
         url="https://github.com/xianyi/OpenBLAS.git",
-        tag="v0.3.10",
+        tag="v0.3.13",
         verbose=verbose,
     )
     # We can just build this directly
