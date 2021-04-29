@@ -23,7 +23,7 @@ import math
 
 try:
     import legate.numpy as np
-except NameError:
+except ImportError:
     import numpy as np
 
 
