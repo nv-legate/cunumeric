@@ -709,15 +709,10 @@ class RegionField(object):
         self, part, transform=None, offset=None
     ):
         if transform is not None:
-            shape_transform = AffineTransform(
-                transform.shape[0], transform.shape[1], False
-            )
-            shape_transform.trans = transform
+            shape_transform = AffineTransform(transform.M, transform.N, False)
+            shape_transform.trans = transform.trans.copy()
             shape_transform.offset = offset
-            offset_transform = Transform(
-                transform.shape[0], transform.shape[1], False
-            )
-            offset_transform.trans = transform
+            offset_transform = transform
             return self.find_or_create_partition(
                 shape_transform.apply(part.color_shape),
                 shape_transform.apply(part.tile_shape),
@@ -2484,11 +2479,15 @@ class Runtime(object):
                 broadcast_dims = broadcast_dims + (input_dim,)
                 offset[input_dim] = 1
             input_dim += 1
+        affine_transform = AffineTransform(
+            input_array.ndim, output_array.ndim, False
+        )
+        affine_transform.trans = transform
         if input_array.ndim == 2:
             if output_array.ndim == 1:
                 assert len(broadcast_dims) == 0
                 return (
-                    transform,
+                    affine_transform,
                     offset,
                     self.first_proj_id + NumPyProjCode.PROJ_2D_1D_Y,
                     NumPyMappingTag.NO_MEMOIZE_TAG,
@@ -2497,7 +2496,7 @@ class Runtime(object):
                 assert len(broadcast_dims) == 1
                 if broadcast_dims[0] == 0:
                     return (
-                        transform,
+                        affine_transform,
                         offset,
                         self.first_proj_id + NumPyProjCode.PROJ_2D_2D_0Y,
                         NumPyMappingTag.NO_MEMOIZE_TAG,
@@ -2505,7 +2504,7 @@ class Runtime(object):
                 else:
                     assert broadcast_dims[0] == 1
                     return (
-                        transform,
+                        affine_transform,
                         offset,
                         self.first_proj_id + NumPyProjCode.PROJ_2D_2D_X0,
                         NumPyMappingTag.NO_MEMOIZE_TAG,
@@ -2514,7 +2513,7 @@ class Runtime(object):
                 assert output_array.ndim == 3
                 if len(broadcast_dims) == 0:
                     return (
-                        transform,
+                        affine_transform,
                         offset,
                         self.first_proj_id + NumPyProjCode.PROJ_3D_2D_YZ,
                         NumPyMappingTag.NO_MEMOIZE_TAG,
@@ -2525,7 +2524,7 @@ class Runtime(object):
                     )
                     if broadcast_dims[0] == 0:
                         return (
-                            transform,
+                            affine_transform,
                             offset,
                             self.first_proj_id + NumPyProjCode.PROJ_3D_2D_0Z,
                             NumPyMappingTag.NO_MEMOIZE_TAG,
@@ -2533,7 +2532,7 @@ class Runtime(object):
                     else:
                         assert broadcast_dims[1] == 1
                         return (
-                            transform,
+                            affine_transform,
                             offset,
                             self.first_proj_id + NumPyProjCode.PROJ_3D_2D_Y0,
                             NumPyMappingTag.NO_MEMOIZE_TAG,
@@ -2541,7 +2540,7 @@ class Runtime(object):
                 else:
                     assert len(broadcast_dims) == 2
                     return (
-                        transform,
+                        affine_transform,
                         offset,
                         self.first_proj_id + NumPyProjCode.PROJ_3D_1D_Z,
                         NumPyMappingTag.NO_MEMOIZE_TAG,
@@ -2550,7 +2549,7 @@ class Runtime(object):
             if output_array.ndim == 1:
                 assert len(broadcast_dims) == 0
                 return (
-                    transform,
+                    affine_transform,
                     offset,
                     self.first_proj_id + NumPyProjCode.PROJ_3D_1D_Z,
                     NumPyMappingTag.NO_MEMOIZE_TAG,
@@ -2559,7 +2558,7 @@ class Runtime(object):
                 assert len(broadcast_dims) == 1
                 if broadcast_dims[0] == 0:
                     return (
-                        transform,
+                        affine_transform,
                         offset,
                         self.first_proj_id + NumPyProjCode.PROJ_3D_2D_BY,
                         NumPyMappingTag.NO_MEMOIZE_TAG,
@@ -2567,7 +2566,7 @@ class Runtime(object):
                 else:
                     assert broadcast_dims[0] == 1
                     return (
-                        transform,
+                        affine_transform,
                         offset,
                         self.first_proj_id + NumPyProjCode.PROJ_3D_2D_XB,
                         NumPyMappingTag.NO_MEMOIZE_TAG,
@@ -2576,14 +2575,14 @@ class Runtime(object):
                 if len(broadcast_dims) == 1:
                     if broadcast_dims[0] == 0:
                         return (
-                            transform,
+                            affine_transform,
                             offset,
                             self.first_proj_id + NumPyProjCode.PROJ_3D_3D_YZ,
                             NumPyMappingTag.NO_MEMOIZE_TAG,
                         )
                     elif broadcast_dims[0] == 1:
                         return (
-                            transform,
+                            affine_transform,
                             offset,
                             self.first_proj_id + NumPyProjCode.PROJ_3D_3D_XZ,
                             NumPyMappingTag.NO_MEMOIZE_TAG,
@@ -2591,7 +2590,7 @@ class Runtime(object):
                     else:
                         assert broadcast_dims[0] == 2
                         return (
-                            transform,
+                            affine_transform,
                             offset,
                             self.first_proj_id + NumPyProjCode.PROJ_3D_3D_XY,
                             NumPyMappingTag.NO_MEMOIZE_TAG,
@@ -2600,14 +2599,14 @@ class Runtime(object):
                     assert len(broadcast_dims) == 2
                     if broadcast_dims == (0, 1):
                         return (
-                            transform,
+                            affine_transform,
                             offset,
                             self.first_proj_id + NumPyProjCode.PROJ_3D_3D_Z,
                             NumPyMappingTag.NO_MEMOIZE_TAG,
                         )
                     elif broadcast_dims == (1, 2):
                         return (
-                            transform,
+                            affine_transform,
                             offset,
                             self.first_proj_id + NumPyProjCode.PROJ_3D_3D_X,
                             NumPyMappingTag.NO_MEMOIZE_TAG,
@@ -2615,7 +2614,7 @@ class Runtime(object):
                     else:
                         assert broadcast_dims == (0, 2)
                         return (
-                            transform,
+                            affine_transform,
                             offset,
                             self.first_proj_id + NumPyProjCode.PROJ_3D_3D_Y,
                             NumPyMappingTag.NO_MEMOIZE_TAG,
@@ -2637,54 +2636,58 @@ class Runtime(object):
                 if dim in axes:
                     continue
                 transform[dim, dim] = 1
+            affine_transform = AffineTransform(
+                output_array.ndim, input_array.ndim, False
+            )
+            affine_transform.trans = transform
             assert input_array.ndim > 1  # Should never have the 1-D case here
             if input_array.ndim == 2:
                 assert len(axes) == 1
                 if axes[0] == 0:
                     return (
-                        transform,
+                        affine_transform,
                         self.first_proj_id + NumPyProjCode.PROJ_2D_2D_0Y,
                     )
                 else:
                     assert axes[0] == 1
                     return (
-                        transform,
+                        affine_transform,
                         self.first_proj_id + NumPyProjCode.PROJ_2D_2D_X0,
                     )
             elif input_array.ndim == 3:
                 if len(axes) == 1:
                     if axes[0] == 0:
                         return (
-                            transform,
+                            affine_transform,
                             self.first_proj_id + NumPyProjCode.PROJ_3D_3D_YZ,
                         )
                     elif axes[0] == 1:
                         return (
-                            transform,
+                            affine_transform,
                             self.first_proj_id + NumPyProjCode.PROJ_3D_3D_XZ,
                         )
                     else:
                         assert axes[0] == 2
                         return (
-                            transform,
+                            affine_transform,
                             self.first_proj_id + NumPyProjCode.PROJ_3D_3D_XY,
                         )
                 else:
                     assert len(axes) == 2
                     if axes == (0, 1):
                         return (
-                            transform,
+                            affine_transform,
                             self.first_proj_id + NumPyProjCode.PROJ_3D_3D_Z,
                         )
                     elif axes == (0, 2):
                         return (
-                            transform,
+                            affine_transform,
                             self.first_proj_id + NumPyProjCode.PROJ_3D_3D_Y,
                         )
                     else:
                         assert axes == (1, 2)
                         return (
-                            transform,
+                            affine_transform,
                             self.first_proj_id + NumPyProjCode.PROJ_3D_3D_X,
                         )
             else:
@@ -2703,53 +2706,57 @@ class Runtime(object):
                     continue
                 transform[output_dim, dim] = 1
                 output_dim += 1
+            affine_transform = AffineTransform(
+                output_array.ndim, input_array.ndim, False
+            )
+            affine_transform.trans = transform
             if input_array.ndim == 2:
                 assert len(axes) == 1
                 if axes[0] == 0:
                     return (
-                        transform,
+                        affine_transform,
                         self.first_proj_id + NumPyProjCode.PROJ_2D_1D_Y,
                     )
                 else:
                     assert axes[0] == 1
                     return (
-                        transform,
+                        affine_transform,
                         self.first_proj_id + NumPyProjCode.PROJ_2D_1D_X,
                     )
             elif input_array.ndim == 3:
                 if len(axes) == 1:
                     if axes[0] == 0:
                         return (
-                            transform,
+                            affine_transform,
                             self.first_proj_id + NumPyProjCode.PROJ_3D_2D_YZ,
                         )
                     elif axes[0] == 1:
                         return (
-                            transform,
+                            affine_transform,
                             self.first_proj_id + NumPyProjCode.PROJ_3D_2D_XZ,
                         )
                     else:
                         assert axes[0] == 2
                         return (
-                            transform,
+                            affine_transform,
                             self.first_proj_id + NumPyProjCode.PROJ_3D_2D_XY,
                         )
                 else:
                     assert len(axes) == 2
                     if axes == (0, 1):
                         return (
-                            transform,
+                            affine_transform,
                             self.first_proj_id + NumPyProjCode.PROJ_3D_1D_Z,
                         )
                     elif axes == (0, 2):
                         return (
-                            transform,
+                            affine_transform,
                             self.first_proj_id + NumPyProjCode.PROJ_3D_1D_Y,
                         )
                     else:
                         assert axes == (1, 2)
                         return (
-                            transform,
+                            affine_transform,
                             self.first_proj_id + NumPyProjCode.PROJ_3D_1D_X,
                         )
             else:

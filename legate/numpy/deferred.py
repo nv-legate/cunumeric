@@ -3513,9 +3513,7 @@ class DeferredArray(NumPyThunk):
             argbuf.pack_accessor(result.field.field_id, result.transform)
             if rhs is not result:
                 # Check to see if we have a transform for input region
-                self.pack_transform_accessor(
-                    argbuf, lhs_array, rhs_array, rhs, transform
-                )
+                self.pack_transform_accessor(argbuf, rhs, transform)
             if launch_space is not None:
                 # Index space launch to do this operation in parallel
                 # First construct the index launch space
@@ -3801,14 +3799,6 @@ class DeferredArray(NumPyThunk):
             transform, proj_id = self.runtime.get_reduction_transform(
                 rhs_array, lhs_array, axes
             )
-            # Compose the reduction transform with the result transform
-            assert transform.ndim == 2
-            assert transform.shape[0] == lhs_array.ndim
-            assert transform.shape[1] == rhs_array.ndim
-            affine_transform = AffineTransform(
-                lhs_array.ndim, rhs_array.ndim, False
-            )
-            affine_transform.trans = transform
             # Compute the launch space
             launch_space = rhs.compute_parallel_launch_space()
             # Then we launch the reduction task(s)
@@ -3848,9 +3838,9 @@ class DeferredArray(NumPyThunk):
                     # Use the result field here
                     if result.transform is not None:
                         # Transform from the rhs space back to our space
-                        to_pack = affine_transform.compose(result.transform)
+                        to_pack = transform.compose(result.transform)
                     else:
-                        to_pack = affine_transform
+                        to_pack = transform
                     argbuf.pack_accessor(result.field.field_id, to_pack)
                     argbuf.pack_accessor(rhs.field.field_id, rhs.transform)
                     task = IndexTask(
@@ -3931,11 +3921,9 @@ class DeferredArray(NumPyThunk):
                     # Use the result field here
                     if reduction_field.transform is not None:
                         # Transform from the rhs space back to our space
-                        to_pack = affine_transform.compose(
-                            reduction_field.transform
-                        )
+                        to_pack = transform.compose(reduction_field.transform)
                     else:
-                        to_pack = affine_transform
+                        to_pack = transform
                     argbuf.pack_accessor(
                         reduction_field.field.field_id, to_pack
                     )
@@ -4287,9 +4275,7 @@ class DeferredArray(NumPyThunk):
                     )
                     # Access lhs for reducing to rhs with the transformed shape
                     self.pack_shape(argbuf, rhs_array.shape)
-                    argbuf.pack_accessor(
-                        result.field.field_id, affine_transform
-                    )
+                    argbuf.pack_accessor(result.field.field_id, transform)
                 # Access rhs with the shape that was packed earlier for lhs
                 argbuf.pack_accessor(rhs.field.field_id, rhs.transform)
                 shardpt, shardfn, shardsp = rhs.find_point_sharding()
@@ -4520,17 +4506,13 @@ class DeferredArray(NumPyThunk):
             argbuf.pack_accessor(result.field.field_id, result.transform)
             # Check this is not a future and we're not doing this in-place
             if not isinstance(rhs1, Future) and result is not rhs1:
-                self.pack_transform_accessor(
-                    argbuf, lhs_array, rhs1_array, rhs1, transform1
-                )
+                self.pack_transform_accessor(argbuf, rhs1, transform1)
             if not isinstance(rhs2, Future):
                 # Sanity check for the Legate implementation, if we're doing an
                 # in-place update then it should always be the first src
                 # argument
                 assert result is not rhs2
-                self.pack_transform_accessor(
-                    argbuf, lhs_array, rhs2_array, rhs2, transform2
-                )
+                self.pack_transform_accessor(argbuf, rhs2, transform2)
             if (
                 has_future and result is not rhs1
             ):  # Pack the index of the future information
@@ -4746,13 +4728,9 @@ class DeferredArray(NumPyThunk):
             else:
                 self.pack_shape(argbuf, broadcast)
             if not isinstance(rhs1, Future):
-                self.pack_transform_accessor(
-                    argbuf, lhs_array, rhs1_array, rhs1, transform1
-                )
+                self.pack_transform_accessor(argbuf, rhs1, transform1)
             if not isinstance(rhs2, Future):
-                self.pack_transform_accessor(
-                    argbuf, lhs_array, rhs2_array, rhs2, transform2
-                )
+                self.pack_transform_accessor(argbuf, rhs2, transform2)
             if has_future:  # Pack the index of the future information
                 if isinstance(rhs1, Future):
                     argbuf.pack_32bit_uint(0)
@@ -5038,25 +5016,19 @@ class DeferredArray(NumPyThunk):
             if not isinstance(rhs1, Future):
                 if has_future:
                     argbuf.pack_bool(False)  # Not a future
-                self.pack_transform_accessor(
-                    argbuf, lhs_array, rhs1_array, rhs1, transform1
-                )
+                self.pack_transform_accessor(argbuf, rhs1, transform1)
             else:
                 argbuf.pack_bool(True)  # Is a future
             if not isinstance(rhs2, Future):
                 if has_future:
                     argbuf.pack_bool(False)  # Not a future
-                self.pack_transform_accessor(
-                    argbuf, lhs_array, rhs2_array, rhs2, transform2
-                )
+                self.pack_transform_accessor(argbuf, rhs2, transform2)
             else:
                 argbuf.pack_bool(True)  # Is a future
             if not isinstance(rhs3, Future):
                 if has_future:
                     argbuf.pack_bool(False)
-                self.pack_transform_accessor(
-                    argbuf, lhs_array, rhs3_array, rhs3, transform3
-                )
+                self.pack_transform_accessor(argbuf, rhs3, transform3)
             else:
                 argbuf.pack_bool(True)  # Is a future
             if launch_space is not None:
@@ -5354,17 +5326,10 @@ class DeferredArray(NumPyThunk):
         return result
 
     @staticmethod
-    def pack_transform_accessor(argbuf, lhs_array, rhs_array, rhs, transform):
+    def pack_transform_accessor(argbuf, region, transform):
         if transform is not None:
-            assert transform.ndim == 2
-            assert transform.shape[0] == rhs_array.ndim
-            assert transform.shape[1] == lhs_array.ndim
-            affine_transform = AffineTransform(
-                rhs_array.ndim, lhs_array.ndim, False
-            )
-            affine_transform.trans = transform
-            if rhs.transform:
-                affine_transform = affine_transform.compose(rhs.transform)
-            argbuf.pack_accessor(rhs.field.field_id, affine_transform)
+            if region.transform:
+                transform = transform.compose(region.transform)
+            argbuf.pack_accessor(region.field.field_id, transform)
         else:
-            argbuf.pack_accessor(rhs.field.field_id, rhs.transform)
+            argbuf.pack_accessor(region.field.field_id, region.transform)
