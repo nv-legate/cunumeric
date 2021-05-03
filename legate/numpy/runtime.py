@@ -661,7 +661,6 @@ class RegionField(object):
                 self.launch_space = ()
                 # We overlap with exactly one point in the root
                 # Therefore just record this point
-                self.shard_function = rootfn
                 self.shard_point = Point(color_lo)
                 return None, None, None
             # Now compute the offset for the partitioning
