@@ -2481,7 +2481,20 @@ class Runtime(object):
                 broadcast_dims = broadcast_dims + (input_dim,)
                 offset[input_dim] = 1
             input_dim += 1
-        if input_ndim == 2:
+        if input_ndim == 1:
+            if output_ndim == 2:
+                return (
+                    transform,
+                    offset,
+                    self.first_proj_id + NumPyProjCode.PROJ_2D_1D_Y,
+                )
+            elif output_ndim == 3:
+                return (
+                    transform,
+                    offset,
+                    self.first_proj_id + NumPyProjCode.PROJ_3D_1D_Z,
+                )
+        elif input_ndim == 2:
             if output_ndim == 2:
                 assert len(broadcast_dims) == 1
                 if broadcast_dims[0] == 0:
@@ -2499,36 +2512,11 @@ class Runtime(object):
                     )
             else:
                 assert output_ndim == 3
-                if len(broadcast_dims) == 0:
-                    return (
-                        transform,
-                        offset,
-                        self.first_proj_id + NumPyProjCode.PROJ_3D_2D_YZ,
-                    )
-                elif len(broadcast_dims) == 1:
-                    raise NotImplementedError(
-                        "Need support for these projection functions"
-                    )
-                    if broadcast_dims[0] == 0:
-                        return (
-                            transform,
-                            offset,
-                            self.first_proj_id + NumPyProjCode.PROJ_3D_2D_0Z,
-                        )
-                    else:
-                        assert broadcast_dims[1] == 1
-                        return (
-                            transform,
-                            offset,
-                            self.first_proj_id + NumPyProjCode.PROJ_3D_2D_Y0,
-                        )
-                else:
-                    assert len(broadcast_dims) == 2
-                    return (
-                        transform,
-                        offset,
-                        self.first_proj_id + NumPyProjCode.PROJ_3D_1D_Z,
-                    )
+                return (
+                    transform,
+                    offset,
+                    self.first_proj_id + NumPyProjCode.PROJ_3D_2D_YZ,
+                )
         elif input_ndim == 3:
             if len(broadcast_dims) == 1:
                 if broadcast_dims[0] == 0:
