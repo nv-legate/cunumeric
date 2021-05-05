@@ -19,7 +19,7 @@ import sys
 import numpy as np
 
 from .array import ndarray
-from .config import NumPyOpCode
+from .config import BinaryOpCode, NumPyOpCode
 from .doc_utils import copy_docstring
 from .runtime import runtime
 
@@ -490,7 +490,7 @@ def equal(a, b, out=None, where=True, dtype=np.dtype(np.bool), stacklevel=1):
             out, stacklevel=(stacklevel + 1), share=True
         )
     return ndarray.perform_binary_op(
-        NumPyOpCode.EQUAL,
+        BinaryOpCode.EQUAL,
         a_array,
         b_array,
         out=out,
@@ -512,7 +512,7 @@ def greater(a, b, out=None, where=True, dtype=np.dtype(np.bool), stacklevel=1):
             out, stacklevel=(stacklevel + 1), share=True
         )
     return ndarray.perform_binary_op(
-        NumPyOpCode.GREATER,
+        BinaryOpCode.GREATER,
         a_array,
         b_array,
         out=out,
@@ -536,7 +536,7 @@ def greater_equal(
             out, stacklevel=(stacklevel + 1), share=True
         )
     return ndarray.perform_binary_op(
-        NumPyOpCode.GREATER_EQUAL,
+        BinaryOpCode.GREATER_EQUAL,
         a_array,
         b_array,
         out=out,
@@ -590,7 +590,7 @@ def less(a, b, out=None, where=True, dtype=np.dtype(np.bool), stacklevel=1):
             out, stacklevel=(stacklevel + 1), share=True
         )
     return ndarray.perform_binary_op(
-        NumPyOpCode.LESS,
+        BinaryOpCode.LESS,
         a_array,
         b_array,
         out=out,
@@ -614,7 +614,7 @@ def less_equal(
             out, stacklevel=(stacklevel + 1), share=True
         )
     return ndarray.perform_binary_op(
-        NumPyOpCode.LESS_EQUAL,
+        BinaryOpCode.LESS_EQUAL,
         a_array,
         b_array,
         out=out,
@@ -638,7 +638,7 @@ def not_equal(
             out, stacklevel=(stacklevel + 1), share=True
         )
     return ndarray.perform_binary_op(
-        NumPyOpCode.NOT_EQUAL,
+        BinaryOpCode.NOT_EQUAL,
         a_array,
         b_array,
         out=out,
@@ -836,7 +836,7 @@ def add(a, b, out=None, where=True, dtype=None, stacklevel=1):
             out, stacklevel=(stacklevel + 1), share=True
         )
     return ndarray.perform_binary_op(
-        NumPyOpCode.ADD,
+        BinaryOpCode.ADD,
         a_array,
         b_array,
         out=out,
@@ -859,7 +859,7 @@ def divide(a, b, out=None, where=True, dtype=None):
     if out is not None:
         out = ndarray.convert_to_legate_ndarray(out, share=True)
     return ndarray.perform_binary_op(
-        NumPyOpCode.DIVIDE,
+        BinaryOpCode.DIVIDE,
         a_array,
         b_array,
         out=out,
@@ -876,7 +876,7 @@ def floor_divide(a, b, out=None, where=True, dtype=None):
     if out is not None:
         out = ndarray.convert_to_legate_ndarray(out, share=True)
     return ndarray.perform_binary_op(
-        NumPyOpCode.FLOOR_DIVIDE,
+        BinaryOpCode.FLOOR_DIVIDE,
         a_array,
         b_array,
         out=out,
@@ -897,7 +897,7 @@ def multiply(a, b, out=None, where=True, dtype=None, stacklevel=1):
             out, stacklevel=(stacklevel + 1), share=True
         )
     return ndarray.perform_binary_op(
-        NumPyOpCode.MULTIPLY,
+        BinaryOpCode.MULTIPLY,
         a_array,
         b_array,
         out=out,
@@ -948,7 +948,7 @@ def subtract(a, b, out=None, where=True, dtype=None, stacklevel=1):
             out, stacklevel=(stacklevel + 1), share=True
         )
     return ndarray.perform_binary_op(
-        NumPyOpCode.SUBTRACT,
+        BinaryOpCode.SUBTRACT,
         a_array,
         b_array,
         out=out,
@@ -1048,7 +1048,7 @@ def true_divide(a, b, out=None, where=True, dtype=None, stacklevel=1):
             out, stacklevel=(stacklevel + 1), share=True
         )
     return ndarray.perform_binary_op(
-        NumPyOpCode.DIVIDE,
+        BinaryOpCode.DIVIDE,
         a_array,
         b_array,
         out=out,
@@ -1134,7 +1134,7 @@ def power(x1, x2, out=None, where=True, dtype=None, stacklevel=1, **kwargs):
             out, stacklevel=(stacklevel + 1), share=True
         )
     return ndarray.perform_binary_op(
-        NumPyOpCode.POWER,
+        BinaryOpCode.POWER,
         x1_array,
         x2_array,
         out=out,
@@ -1153,7 +1153,7 @@ def square(a, out=None, where=True, dtype=None, **kwargs):
     # We implement this with multiply for now, locality should
     # be good enough for avoiding too much overhead with extra reads
     return ndarray.perform_binary_op(
-        NumPyOpCode.MULTIPLY,
+        BinaryOpCode.MULTIPLY,
         lg_array,
         lg_array,
         out=out,
@@ -1486,7 +1486,7 @@ def maximum(a, b, out=None, where=True, dtype=None, stacklevel=1, **kwargs):
             out, stacklevel=(stacklevel + 1), share=True
         )
     return ndarray.perform_binary_op(
-        NumPyOpCode.MAXIMUM,
+        BinaryOpCode.MAXIMUM,
         a_array,
         b_array,
         out=out,
@@ -1513,7 +1513,29 @@ def minimum(a, b, out=None, where=True, dtype=None, stacklevel=1, **kwargs):
             out, stacklevel=(stacklevel + 1), share=True
         )
     return ndarray.perform_binary_op(
-        NumPyOpCode.MINIMUM,
+        BinaryOpCode.MINIMUM,
+        a_array,
+        b_array,
+        out=out,
+        out_dtype=dtype,
+        where=where,
+        stacklevel=(stacklevel + 1),
+    )
+
+
+@copy_docstring(np.add)
+def mod(a, b, out=None, where=True, dtype=None, stacklevel=1):
+    a_array = ndarray.convert_to_legate_ndarray(a, stacklevel=(stacklevel + 1))
+    b_array = ndarray.convert_to_legate_ndarray(b, stacklevel=(stacklevel + 1))
+    where = ndarray.convert_to_predicate_ndarray(
+        where, stacklevel=(stacklevel + 1)
+    )
+    if out is not None:
+        out = ndarray.convert_to_legate_ndarray(
+            out, stacklevel=(stacklevel + 1), share=True
+        )
+    return ndarray.perform_binary_op(
+        BinaryOpCode.MOD,
         a_array,
         b_array,
         out=out,

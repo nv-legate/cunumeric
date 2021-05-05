@@ -25,6 +25,7 @@ from .module import (
     less_equal as _leq,
     maximum as _max2,
     minimum as _min2,
+    mod as _mod,
     multiply as _mul,
     not_equal as _neq,
     prod as _prod,
@@ -92,6 +93,12 @@ class minimum(ufunc):
     def reduce(a, axis=0, dtype=None, out=None, keepdims=False):
         assert dtype is None
         return _min(a, axis=axis, out=out, keepdims=keepdims, stacklevel=2)
+
+
+# ufunc-mod class
+class mod(ufunc):
+    def __new__(cls, a, b, out=None, where=True):
+        return _mod(a, b, out=out, where=where, stacklevel=2)
 
 
 # ufunc-greater class

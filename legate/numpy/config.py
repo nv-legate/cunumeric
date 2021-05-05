@@ -189,6 +189,26 @@ class NumPyOpCode(IntEnum):
     INCLUSIVE_SCAN = legate_numpy.NUMPY_INCLUSIVE_SCAN
     CONVERT_TO_RECT = legate_numpy.NUMPY_CONVERT_TO_RECT
     ARANGE = legate_numpy.NUMPY_ARANGE
+    BINARY_OP = legate_numpy.NUMPY_BINARY_OP
+
+
+@unique
+class BinaryOpCode(IntEnum):
+    ADD = (1,)
+    DIVIDE = (2,)
+    EQUAL = (3,)
+    FLOOR_DIVIDE = (4,)
+    GREATER = (5,)
+    GREATER_EQUAL = (6,)
+    LESS = (7,)
+    LESS_EQUAL = (8,)
+    MAXIMUM = (9,)
+    MINIUM = (10,)
+    MOD = (11,)
+    MULTIPLY = (12,)
+    NOT_EQUAL = (13,)
+    POWER = (14,)
+    SUBTRACT = (15,)
 
 
 # Match these to NumPyRedopID in legate_numpy_c.h

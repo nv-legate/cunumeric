@@ -22,6 +22,7 @@ import numpy as np
 from legate.core import *  # noqa F403
 
 from .config import *  # noqa F403
+from .launcher import Map, Projection
 from .thunk import NumPyThunk
 from .utils import calculate_volume
 
@@ -34,6 +35,38 @@ try:
     long  # Python 2
 except NameError:
     long = int  # Python 3
+
+
+def _combine_transforms(f, g):
+    if g is None:
+        return f
+    elif f is None:
+        return g
+    else:
+        return g.compose(f)
+
+
+class DeferredArrayView(object):
+    def __init__(self, array, transform=None, part=None, proj_id=0, tag=0):
+        self._array = array
+        self._transform = transform
+        self._part = part
+        self._proj_id = proj_id
+        self._tag = tag
+
+    def add_to_legate_op(self, op, read_only):
+        if self._array.scalar:
+            op.add_future(self._array.base)
+        else:
+            add = op.add_input if read_only else op.add_output
+            add(
+                self._array,
+                _combine_transforms(
+                    self._array.base.transform, self._transform
+                ),
+                Projection(self._part, self._proj_id),
+                tag=self._tag,
+            )
 
 
 class DeferredArray(NumPyThunk):
@@ -4365,7 +4398,7 @@ class DeferredArray(NumPyThunk):
 
     # Perform the binary operation and put the result in the lhs array
     def binary_op(
-        self, op, src1, src2, where, args, stacklevel, callsite=None
+        self, op_code, src1, src2, where, args, stacklevel, callsite=None
     ):
         rhs1_array = self.runtime.to_deferred_array(
             src1, stacklevel=(stacklevel + 1)
@@ -4385,7 +4418,7 @@ class DeferredArray(NumPyThunk):
             assert isinstance(rhs1, Future) and isinstance(rhs2, Future)
             task = Task(
                 self.runtime.get_binary_task_id(
-                    op,
+                    op_code,
                     result_type=lhs_array.dtype,
                     first_argument_type=common_dtype,
                     second_argument_type=common_dtype,
@@ -4475,16 +4508,20 @@ class DeferredArray(NumPyThunk):
                 proj1_id,
                 mapping_tag1,
             ) = self.runtime.compute_broadcast_transform(lhs_array, rhs1_array)
+
             (
                 transform2,
                 offset2,
                 proj2_id,
                 mapping_tag2,
             ) = self.runtime.compute_broadcast_transform(lhs_array, rhs2_array)
+
             # Scalar should have been handled above
-            assert not isinstance(rhs1, Future) or not isinstance(rhs2, Future)
-            has_future = isinstance(rhs1, Future) or isinstance(rhs2, Future)
-            argbuf = BufferBuilder()
+            rhs1_future = isinstance(rhs1, Future)
+            rhs2_future = isinstance(rhs2, Future)
+            assert not rhs1_future or not rhs2_future
+            has_future = rhs1_future or rhs2_future
+
             if launch_space is not None:
                 (
                     key_part,
@@ -4498,73 +4535,17 @@ class DeferredArray(NumPyThunk):
                     result.set_key_partition(result_part, shardfn, shardsp)
                 else:
                     result_part = key_part
-                self.pack_shape(
-                    argbuf, lhs_array.shape, result_part.tile_shape, 0
-                )
-            else:
-                self.pack_shape(argbuf, lhs_array.shape)
-            argbuf.pack_accessor(result.field.field_id, result.transform)
-            # Check this is not a future and we're not doing this in-place
-            if not isinstance(rhs1, Future) and result is not rhs1:
-                self.pack_transform_accessor(argbuf, rhs1, transform1)
-            if not isinstance(rhs2, Future):
-                # Sanity check for the Legate implementation, if we're doing an
-                # in-place update then it should always be the first src
-                # argument
-                assert result is not rhs2
-                self.pack_transform_accessor(argbuf, rhs2, transform2)
-            if (
-                has_future and result is not rhs1
-            ):  # Pack the index of the future information
-                if isinstance(rhs1, Future):
-                    argbuf.pack_32bit_uint(0)
-                else:
-                    argbuf.pack_32bit_uint(1)
-            # See if we are doing index space launches or not
-            if launch_space is not None:
-                # Index task launch case
-                variant_code = self.runtime.get_binary_task_variant_code(
-                    [rhs1_array, rhs2_array], lhs_array
-                )
-                task = IndexTask(
-                    self.runtime.get_binary_task_id(
-                        op,
-                        result_type=lhs_array.dtype,
-                        first_argument_type=common_dtype,
-                        second_argument_type=common_dtype,
-                        variant_code=variant_code,
-                    ),
-                    Rect(launch_space),
-                    self.runtime.empty_argmap,
-                    argbuf.get_string(),
-                    argbuf.get_size(),
-                    mapper=self.runtime.mapper_id,
-                    tag=shardfn,
-                )
-                if shardsp is not None:
-                    task.set_sharding_space(shardsp)
-                # result_part is computed above
+
+                result_arg = DeferredArrayView(lhs_array, part=result_part)
+
                 assert len(launch_space) == lhs_array.ndim
                 # Check to see if we are doing this update in-place
                 if result is rhs1:
-                    # In-place
-                    task.add_read_write_requirement(
-                        result_part,
-                        result.field.field_id,
-                        0,
-                        tag=NumPyMappingTag.KEY_REGION_TAG,
-                    )
+                    rhs1_arg = result_arg
                 else:
-                    # Not in-place
-                    task.add_write_requirement(
-                        result_part,
-                        result.field.field_id,
-                        0,
-                        tag=NumPyMappingTag.KEY_REGION_TAG,
-                    )
                     if isinstance(rhs1, Future):
                         # Future
-                        task.add_future(rhs1)
+                        rhs1_arg = DeferredArrayView(rhs1_array)
                     else:
                         if rhs1 is not key_array:
                             rhs1_part = (
@@ -4576,15 +4557,16 @@ class DeferredArray(NumPyThunk):
                             )
                         else:
                             rhs1_part = key_part
-                        task.add_read_requirement(
-                            rhs1_part,
-                            rhs1.field.field_id,
-                            proj1_id,
+                        rhs1_arg = DeferredArrayView(
+                            rhs1_array,
+                            transform=transform1,
+                            part=rhs1_part,
+                            proj_id=proj1_id,
                             tag=mapping_tag1,
                         )
                 # Now handle rhs2
                 if isinstance(rhs2, Future):
-                    task.add_future(rhs2)
+                    rhs2_arg = DeferredArrayView(rhs2_array)
                 else:
                     if rhs2 is not key_array:
                         rhs2_part = rhs2.find_or_create_congruent_partition(
@@ -4592,75 +4574,70 @@ class DeferredArray(NumPyThunk):
                         )
                     else:
                         rhs2_part = key_part
-                    task.add_read_requirement(
-                        rhs2_part,
-                        rhs2.field.field_id,
-                        proj2_id,
+                    rhs2_arg = DeferredArrayView(
+                        rhs2_array,
+                        transform=transform2,
+                        part=rhs2_part,
+                        proj_id=proj2_id,
                         tag=mapping_tag2,
                     )
-                if args is not None:
-                    self.add_arguments(task, args)
-                self.runtime.dispatch(task)
+
             else:
-                # Single task launch case
-                variant_code = self.runtime.get_binary_task_variant_code(
-                    [rhs1_array, rhs2_array], lhs_array
-                )
-                task_id = self.runtime.get_binary_task_id(
-                    op,
-                    result_type=lhs_array.dtype,
-                    first_argument_type=common_dtype,
-                    second_argument_type=common_dtype,
-                    variant_code=variant_code,
-                )
-                shardpt, shardfn, shardsp = result.find_point_sharding()
-                task = Task(
-                    task_id,
-                    argbuf.get_string(),
-                    argbuf.get_size(),
-                    mapper=self.runtime.mapper_id,
-                    tag=shardfn,
-                )
-                if shardpt is not None:
-                    task.set_point(shardpt)
-                if shardsp is not None:
-                    task.set_sharding_space(shardsp)
-                # Check to see if we are doing this update in-place
+                result_arg = DeferredArrayView(lhs_array)
                 if result is rhs1:
-                    # These are the same answer so we're doing the
-                    # update in-place
-                    task.add_read_write_requirement(
-                        result.region, result.field.field_id
-                    )
+                    rhs1_arg = result_arg
                 else:
-                    # This is the normal path of separate regions
-                    task.add_write_requirement(
-                        result.region, result.field.field_id
+                    rhs1_arg = DeferredArrayView(
+                        rhs1_array,
+                        transform=transform1,
                     )
-                    if isinstance(rhs1, Future):
-                        task.add_future(rhs1)
-                    else:
-                        task.add_read_requirement(
-                            rhs1.region, rhs1.field.field_id
-                        )
-                if isinstance(rhs2, Future):
-                    task.add_future(rhs2)
+                rhs2_arg = DeferredArrayView(
+                    rhs2_array,
+                    transform=transform2,
+                )
+
+            op = Map(
+                self.runtime, NumPyOpCode.BINARY_OP, tag=result.shard_function
+            )
+            op.add_scalar_arg(op_code.value, np.int32)
+            if launch_space is not None:
+                op.add_shape(lhs_array.shape, result_part.tile_shape, 0)
+            else:
+                op.add_shape(lhs_array.shape)
+
+            result_arg.add_to_legate_op(op, False)
+            rhs1_arg.add_to_legate_op(op, True)
+            rhs2_arg.add_to_legate_op(op, True)
+
+            if has_future and result is not rhs1:
+                # Pack the index of the future information
+                if isinstance(rhs1, Future):
+                    op.add_scalar_arg(0, np.uint32)
                 else:
-                    task.add_read_requirement(rhs2.region, rhs2.field.field_id)
-                if args is not None:
-                    self.add_arguments(task, args)
-                self.runtime.dispatch(task)
+                    op.add_scalar_arg(1, np.uint32)
+
+            if args is not None:
+                self.add_arguments(op, args)
+
+            # See if we are doing index space launches or not
+            if launch_space is not None:
+                if shardsp is not None:
+                    op.set_sharding_space(shardsp)
+                op.execute(Rect(launch_space))
+            else:
+                op.execute_single()
+
         self.runtime.profile_callsite(stacklevel + 1, True, callsite)
         if self.runtime.shadow_debug:
             self.shadow.binary_op(
-                op,
+                op_code,
                 src1.shadow,
                 src2.shadow,
                 where if not isinstance(where, NumPyThunk) else where.shadow,
                 args,
                 stacklevel=(stacklevel + 1),
             )
-            self.runtime.check_shadow(self, op)
+            self.runtime.check_shadow(self, op_code)
 
     def binary_reduction(
         self, op, src1, src2, broadcast, args, stacklevel, callsite=None
@@ -5156,14 +5133,14 @@ class DeferredArray(NumPyThunk):
             self.runtime.check_shadow(self, op)
 
     # A helper method for attaching arguments
-    def add_arguments(self, task, args):
+    def add_arguments(self, op, args):
         assert args is not None
         for numpy_array in args:
             assert numpy_array.size == 1
             future = self.runtime.create_future(
                 numpy_array.data, numpy_array.nbytes
             )
-            task.add_future(future)
+            op.add_future(future)
 
     # A helper method for support for 16 bit arithmetic
     def convert_float32_to_float16(self, result, lhs_array, collapse_dim=None):

@@ -14,8 +14,7 @@
  *
  */
 
-#ifndef __LEGATE_NUMPY_H__
-#define __LEGATE_NUMPY_H__
+#pragma once
 
 #include "legate.h"
 #include "legate_numpy_c.h"
@@ -35,6 +34,70 @@
 
 namespace legate {
 namespace numpy {
+
+template <LegateTypeCode CODE>
+struct LegateTypeOf {
+  using type = void;
+};
+template <>
+struct LegateTypeOf<LegateTypeCode::BOOL_LT> {
+  using type = bool;
+};
+template <>
+struct LegateTypeOf<LegateTypeCode::INT8_LT> {
+  using type = int8_t;
+};
+template <>
+struct LegateTypeOf<LegateTypeCode::INT16_LT> {
+  using type = int16_t;
+};
+template <>
+struct LegateTypeOf<LegateTypeCode::INT32_LT> {
+  using type = int32_t;
+};
+template <>
+struct LegateTypeOf<LegateTypeCode::INT64_LT> {
+  using type = int64_t;
+};
+template <>
+struct LegateTypeOf<LegateTypeCode::UINT8_LT> {
+  using type = uint8_t;
+};
+template <>
+struct LegateTypeOf<LegateTypeCode::UINT16_LT> {
+  using type = uint16_t;
+};
+template <>
+struct LegateTypeOf<LegateTypeCode::UINT32_LT> {
+  using type = uint32_t;
+};
+template <>
+struct LegateTypeOf<LegateTypeCode::UINT64_LT> {
+  using type = uint64_t;
+};
+template <>
+struct LegateTypeOf<LegateTypeCode::HALF_LT> {
+  using type = __half;
+};
+template <>
+struct LegateTypeOf<LegateTypeCode::FLOAT_LT> {
+  using type = float;
+};
+template <>
+struct LegateTypeOf<LegateTypeCode::DOUBLE_LT> {
+  using type = double;
+};
+template <>
+struct LegateTypeOf<LegateTypeCode::COMPLEX64_LT> {
+  using type = complex<float>;
+};
+template <>
+struct LegateTypeOf<LegateTypeCode::COMPLEX128_LT> {
+  using type = complex<double>;
+};
+
+template <LegateTypeCode CODE>
+using legate_type_of = typename LegateTypeOf<CODE>::type;
 
 class LegateNumPy {
  public:
@@ -669,6 +732,4 @@ class NumPyTask : public LegateTask<T> {
     Runtime::register_reduction_op<type<complex<float>>>(offset + type<complex<float>>::REDOP_ID); \
   }
    // Runtime::register_reduction_op<type<complex<double>>>(offset +
-   // type<complex<double>>::REDOP_ID);     \
-
-#endif  // __LEGATE_NUMPY_H__
+   // type<complex<double>>::REDOP_ID);

@@ -2262,6 +2262,9 @@ class Runtime(object):
         else:
             raise RuntimeError("invalid array type")
 
+    def get_task_id(self, op_code):
+        return self.first_task_id + op_code.value
+
     def get_nullary_task_id(
         self, op_code, result_type, variant_code=NumPyVariantCode.NORMAL
     ):

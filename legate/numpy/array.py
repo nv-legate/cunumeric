@@ -23,7 +23,7 @@ import pyarrow
 
 from legate.core import LegateArray
 
-from .config import NumPyOpCode
+from .config import BinaryOpCode, NumPyOpCode
 from .doc_utils import copy_docstring
 from .runtime import runtime
 from .utils import unimplemented
@@ -245,7 +245,7 @@ class ndarray(object):
 
     def __add__(self, rhs):
         rhs_array = self.convert_to_legate_ndarray(rhs)
-        return self.perform_binary_op(NumPyOpCode.ADD, self, rhs_array)
+        return self.perform_binary_op(BinaryOpCode.ADD, self, rhs_array)
 
     def __and__(self, rhs):
         rhs_array = self.convert_to_legate_ndarray(rhs)
@@ -315,7 +315,7 @@ class ndarray(object):
     def __eq__(self, rhs):
         rhs_array = self.convert_to_legate_ndarray(rhs)
         return self.perform_binary_op(
-            NumPyOpCode.EQUAL, self, rhs_array, out_dtype=np.dtype(np.bool_)
+            BinaryOpCode.EQUAL, self, rhs_array, out_dtype=np.dtype(np.bool_)
         )
 
     def __float__(self):
@@ -327,7 +327,7 @@ class ndarray(object):
     def __floordiv__(self, rhs):
         rhs_array = self.convert_to_legate_ndarray(rhs)
         return self.perform_binary_op(
-            NumPyOpCode.FLOOR_DIVIDE, self, rhs_array
+            BinaryOpCode.FLOOR_DIVIDE, self, rhs_array
         )
 
     def __format__(self, *args, **kwargs):
@@ -336,7 +336,7 @@ class ndarray(object):
     def __ge__(self, rhs):
         rhs_array = self.convert_to_legate_ndarray(rhs)
         return self.perform_binary_op(
-            NumPyOpCode.GREATER_EQUAL,
+            BinaryOpCode.GREATER_EQUAL,
             self,
             rhs_array,
             out_dtype=np.dtype(np.bool_),
@@ -384,7 +384,7 @@ class ndarray(object):
     def __gt__(self, rhs):
         rhs_array = self.convert_to_legate_ndarray(rhs)
         return self.perform_binary_op(
-            NumPyOpCode.GREATER, self, rhs_array, out_dtype=np.dtype(np.bool_)
+            BinaryOpCode.GREATER, self, rhs_array, out_dtype=np.dtype(np.bool_)
         )
 
     def __hash__(self, *args, **kwargs):
@@ -392,7 +392,7 @@ class ndarray(object):
 
     def __iadd__(self, rhs):
         rhs_array = self.convert_to_legate_ndarray(rhs)
-        self.perform_binary_op(NumPyOpCode.ADD, self, rhs_array, out=self)
+        self.perform_binary_op(BinaryOpCode.ADD, self, rhs_array, out=self)
         return self
 
     def __iand__(self, rhs):
@@ -413,7 +413,7 @@ class ndarray(object):
     def __ifloordiv__(self, rhs):
         rhs_array = self.convert_to_legate_ndarray(rhs)
         self.perform_binary_op(
-            NumPyOpCode.FLOOR_DIVIDE, self, rhs_array, out=self
+            BinaryOpCode.FLOOR_DIVIDE, self, rhs_array, out=self
         )
         return self
 
@@ -431,7 +431,9 @@ class ndarray(object):
 
     def __imul__(self, rhs):
         rhs_array = self.convert_to_legate_ndarray(rhs)
-        self.perform_binary_op(NumPyOpCode.MULTIPLY, self, rhs_array, out=self)
+        self.perform_binary_op(
+            BinaryOpCode.MULTIPLY, self, rhs_array, out=self
+        )
         return self
 
     def __int__(self):
@@ -458,7 +460,7 @@ class ndarray(object):
 
     def __ipow__(self, rhs):
         rhs_array = self.convert_to_legate_ndarray(rhs)
-        self.perform_binary_op(NumPyOpCode.POWER, self, rhs_array, out=self)
+        self.perform_binary_op(BinaryOpCode.POWER, self, rhs_array, out=self)
         return self
 
     def __irshift__(self, rhs):
@@ -473,7 +475,9 @@ class ndarray(object):
 
     def __isub__(self, rhs):
         rhs_array = self.convert_to_legate_ndarray(rhs)
-        self.perform_binary_op(NumPyOpCode.SUBTRACT, self, rhs_array, out=self)
+        self.perform_binary_op(
+            BinaryOpCode.SUBTRACT, self, rhs_array, out=self
+        )
         return self
 
     def internal_truediv(self, rhs, inplace, stacklevel):
@@ -517,7 +521,7 @@ class ndarray(object):
             )
             rhs_array = temp
         return self.perform_binary_op(
-            NumPyOpCode.DIVIDE,
+            BinaryOpCode.DIVIDE,
             self_array,
             rhs_array,
             out=self if inplace else None,
@@ -537,7 +541,7 @@ class ndarray(object):
     def __le__(self, rhs):
         rhs_array = self.convert_to_legate_ndarray(rhs)
         return self.perform_binary_op(
-            NumPyOpCode.LESS_EQUAL,
+            BinaryOpCode.LESS_EQUAL,
             self,
             rhs_array,
             out_dtype=np.dtype(np.bool_),
@@ -553,7 +557,7 @@ class ndarray(object):
     def __lt__(self, rhs):
         rhs_array = self.convert_to_legate_ndarray(rhs)
         return self.perform_binary_op(
-            NumPyOpCode.LESS, self, rhs_array, out_dtype=np.dtype(np.bool_)
+            BinaryOpCode.LESS, self, rhs_array, out_dtype=np.dtype(np.bool_)
         )
 
     def __matmul__(self, value):
@@ -561,16 +565,16 @@ class ndarray(object):
 
     def __mod__(self, rhs):
         rhs_array = self.convert_to_legate_ndarray(rhs)
-        return self.perform_binary_op(NumPyOpCode.MOD, self, rhs_array)
+        return self.perform_binary_op(BinaryOpCode.MOD, self, rhs_array)
 
     def __mul__(self, rhs):
         rhs_array = self.convert_to_legate_ndarray(rhs)
-        return self.perform_binary_op(NumPyOpCode.MULTIPLY, self, rhs_array)
+        return self.perform_binary_op(BinaryOpCode.MULTIPLY, self, rhs_array)
 
     def __ne__(self, rhs):
         rhs_array = self.convert_to_legate_ndarray(rhs)
         return self.perform_binary_op(
-            NumPyOpCode.NOT_EQUAL,
+            BinaryOpCode.NOT_EQUAL,
             self,
             rhs_array,
             out_dtype=np.dtype(np.bool_),
@@ -666,11 +670,11 @@ class ndarray(object):
 
     def __pow__(self, rhs):
         rhs_array = self.convert_to_legate_ndarray(rhs)
-        return self.perform_binary_op(NumPyOpCode.POWER, self, rhs_array)
+        return self.perform_binary_op(BinaryOpCode.POWER, self, rhs_array)
 
     def __radd__(self, lhs):
         lhs_array = self.convert_to_legate_ndarray(lhs)
-        return self.perform_binary_op(NumPyOpCode.ADD, lhs_array, self)
+        return self.perform_binary_op(BinaryOpCode.ADD, lhs_array, self)
 
     def __rand__(self, lhs):
         lhs_array = self.convert_to_legate_ndarray(lhs)
@@ -699,16 +703,16 @@ class ndarray(object):
     def __rfloordiv__(self, lhs):
         lhs_array = self.convert_to_legate_ndarray(lhs)
         return self.perform_binary_op(
-            NumPyOpCode.FLOOR_DIVIDE, lhs_array, self
+            BinaryOpCode.FLOOR_DIVIDE, lhs_array, self
         )
 
     def __rmod__(self, lhs):
         lhs_array = self.convert_to_legate_ndarray(lhs)
-        return self.perform_binary_op(NumPyOpCode.MODULUS, lhs_array, self)
+        return self.perform_binary_op(BinaryOpCode.MOD, lhs_array, self)
 
     def __rmul__(self, lhs):
         lhs_array = self.convert_to_legate_ndarray(lhs)
-        return self.perform_binary_op(NumPyOpCode.MULTIPLY, lhs_array, self)
+        return self.perform_binary_op(BinaryOpCode.MULTIPLY, lhs_array, self)
 
     def __ror__(self, lhs):
         lhs_array = self.convert_to_legate_ndarray(lhs)
@@ -716,7 +720,7 @@ class ndarray(object):
 
     def __rpow__(self, lhs):
         lhs_array = self.convert_to_legate_ndarray(lhs)
-        return self.perform_binary_op(NumPyOpCode.POWER, lhs_array, self)
+        return self.perform_binary_op(BinaryOpCode.POWER, lhs_array, self)
 
     def __rshift__(self, rhs):
         rhs_array = self.convert_to_legate_ndarray(rhs)
@@ -724,7 +728,7 @@ class ndarray(object):
 
     def __rsub__(self, lhs):
         lhs_array = self.convert_to_legate_ndarray(lhs)
-        return self.perform_binary_op(NumPyOpCode.SUBTRACT, lhs_array, self)
+        return self.perform_binary_op(BinaryOpCode.SUBTRACT, lhs_array, self)
 
     def __rtruediv__(self, lhs):
         lhs_array = self.convert_to_legate_ndarray(lhs)
@@ -760,7 +764,7 @@ class ndarray(object):
 
     def __sub__(self, rhs):
         rhs_array = self.convert_to_legate_ndarray(rhs)
-        return self.perform_binary_op(NumPyOpCode.SUBTRACT, self, rhs_array)
+        return self.perform_binary_op(BinaryOpCode.SUBTRACT, self, rhs_array)
 
     def __str__(self):
         if self.size == 1:
@@ -960,7 +964,7 @@ class ndarray(object):
         )
         if self.size == 1 or rhs_array.size == 1:
             return self.perform_binary_op(
-                NumPyOpCode.MULTIPLY,
+                BinaryOpCode.MULTIPLY,
                 self,
                 rhs_array,
                 stacklevel=(stacklevel + 1),

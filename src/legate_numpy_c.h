@@ -107,6 +107,7 @@ enum NumPyOpCode {
   NUMPY_INCLUSIVE_SCAN      = 72,
   NUMPY_CONVERT_TO_RECT     = 73,
   NUMPY_ARANGE              = 74,
+  NUMPY_BINARY_OP           = 400000,
 };
 
 // Match these to NumPyRedopCode in legate/core/config.py
