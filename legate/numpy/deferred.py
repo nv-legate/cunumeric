@@ -498,7 +498,7 @@ class DeferredArray(NumPyThunk):
             src = value_array.base
             if launch_space is not None:
                 # Index copy launch
-                if self.ndim != index_array.ndim:
+                if self.ndim == index_array.ndim:
                     # If we have the same dimensionality then normal
                     # partitioning works
                     (
