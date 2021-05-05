@@ -2463,33 +2463,33 @@ class Runtime(object):
                 "Need radix projection functor for dim " + str(total_dims)
             )
 
-    def compute_broadcast_transform(self, output_array, input_array):
-        assert output_array.shape != input_array.shape
-        assert output_array.ndim >= input_array.ndim
-        transform = np.zeros(
-            (input_array.ndim, output_array.ndim), dtype=np.int64
-        )
-        offset = np.zeros((input_array.ndim,), dtype=np.int64)
+    def compute_broadcast_transform(self, output_shape, input_shape):
+        output_ndim = len(output_shape)
+        input_ndim = len(input_shape)
+        assert output_shape != input_shape
+        assert output_ndim >= input_ndim
+        transform = np.zeros((input_ndim, output_ndim), dtype=np.int64)
+        offset = np.zeros((input_ndim,), dtype=np.int64)
         input_dim = 0
         broadcast_dims = ()
-        start_dim = output_array.ndim - input_array.ndim
-        for dim in range(start_dim, output_array.ndim):
-            if input_array.shape[input_dim] == output_array.shape[dim]:
+        start_dim = output_ndim - input_ndim
+        for dim in range(start_dim, output_ndim):
+            if input_shape[input_dim] == output_shape[dim]:
                 transform[input_dim, dim] = 1
             else:
-                assert input_array.shape[input_dim] == 1
+                assert input_shape[input_dim] == 1
                 broadcast_dims = broadcast_dims + (input_dim,)
                 offset[input_dim] = 1
             input_dim += 1
-        if input_array.ndim == 2:
-            if output_array.ndim == 1:
+        if input_ndim == 2:
+            if output_ndim == 1:
                 assert len(broadcast_dims) == 0
                 return (
                     transform,
                     offset,
                     self.first_proj_id + NumPyProjCode.PROJ_2D_1D_Y,
                 )
-            if output_array.ndim == 2:
+            if output_ndim == 2:
                 assert len(broadcast_dims) == 1
                 if broadcast_dims[0] == 0:
                     return (
@@ -2505,7 +2505,7 @@ class Runtime(object):
                         self.first_proj_id + NumPyProjCode.PROJ_2D_2D_X0,
                     )
             else:
-                assert output_array.ndim == 3
+                assert output_ndim == 3
                 if len(broadcast_dims) == 0:
                     return (
                         transform,
@@ -2536,15 +2536,15 @@ class Runtime(object):
                         offset,
                         self.first_proj_id + NumPyProjCode.PROJ_3D_1D_Z,
                     )
-        elif input_array.ndim == 3:
-            if output_array.ndim == 1:
+        elif input_ndim == 3:
+            if output_ndim == 1:
                 assert len(broadcast_dims) == 0
                 return (
                     transform,
                     offset,
                     self.first_proj_id + NumPyProjCode.PROJ_3D_1D_Z,
                 )
-            elif output_array.ndim == 2:
+            elif output_ndim == 2:
                 assert len(broadcast_dims) == 1
                 if broadcast_dims[0] == 0:
                     return (
@@ -2606,20 +2606,20 @@ class Runtime(object):
                 "Legate needs support for more than 3 dimensions"
             )
 
-    def get_reduction_transform(self, input_array, output_array, axes):
+    def get_reduction_transform(self, input_shape, output_shape, axes):
+        input_ndim = len(input_shape)
+        output_ndim = len(output_shape)
         assert len(axes) > 0
         # In the case where we keep dimensions the arrays can be the same size
-        if output_array.ndim == input_array.ndim:
+        if output_ndim == input_ndim:
             # The transform in this case is just identity transform
-            transform = np.zeros(
-                (output_array.ndim, input_array.ndim), dtype=np.int64
-            )
-            for dim in xrange(input_array.ndim):
+            transform = np.zeros((output_ndim, input_ndim), dtype=np.int64)
+            for dim in xrange(input_ndim):
                 if dim in axes:
                     continue
                 transform[dim, dim] = 1
-            assert input_array.ndim > 1  # Should never have the 1-D case here
-            if input_array.ndim == 2:
+            assert input_ndim > 1  # Should never have the 1-D case here
+            if input_ndim == 2:
                 assert len(axes) == 1
                 if axes[0] == 0:
                     return (
@@ -2632,7 +2632,7 @@ class Runtime(object):
                         transform,
                         self.first_proj_id + NumPyProjCode.PROJ_2D_2D_X0,
                     )
-            elif input_array.ndim == 3:
+            elif input_ndim == 3:
                 if len(axes) == 1:
                     if axes[0] == 0:
                         return (
@@ -2674,17 +2674,15 @@ class Runtime(object):
                 )
         else:
             # This is where we don't keep the dimensions
-            assert output_array.ndim + len(axes) == input_array.ndim
-            transform = np.zeros(
-                (output_array.ndim, input_array.ndim), dtype=np.int64
-            )
+            assert output_ndim + len(axes) == input_ndim
+            transform = np.zeros((output_ndim, input_ndim), dtype=np.int64)
             output_dim = 0
-            for dim in xrange(input_array.ndim):
+            for dim in xrange(input_ndim):
                 if dim in axes:
                     continue
                 transform[output_dim, dim] = 1
                 output_dim += 1
-            if input_array.ndim == 2:
+            if input_ndim == 2:
                 assert len(axes) == 1
                 if axes[0] == 0:
                     return (
@@ -2697,7 +2695,7 @@ class Runtime(object):
                         transform,
                         self.first_proj_id + NumPyProjCode.PROJ_2D_1D_X,
                     )
-            elif input_array.ndim == 3:
+            elif input_ndim == 3:
                 if len(axes) == 1:
                     if axes[0] == 0:
                         return (
