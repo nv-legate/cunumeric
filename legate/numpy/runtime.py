@@ -2482,13 +2482,6 @@ class Runtime(object):
                 offset[input_dim] = 1
             input_dim += 1
         if input_ndim == 2:
-            if output_ndim == 1:
-                assert len(broadcast_dims) == 0
-                return (
-                    transform,
-                    offset,
-                    self.first_proj_id + NumPyProjCode.PROJ_2D_1D_Y,
-                )
             if output_ndim == 2:
                 assert len(broadcast_dims) == 1
                 if broadcast_dims[0] == 0:
@@ -2537,70 +2530,47 @@ class Runtime(object):
                         self.first_proj_id + NumPyProjCode.PROJ_3D_1D_Z,
                     )
         elif input_ndim == 3:
-            if output_ndim == 1:
-                assert len(broadcast_dims) == 0
-                return (
-                    transform,
-                    offset,
-                    self.first_proj_id + NumPyProjCode.PROJ_3D_1D_Z,
-                )
-            elif output_ndim == 2:
-                assert len(broadcast_dims) == 1
+            if len(broadcast_dims) == 1:
                 if broadcast_dims[0] == 0:
                     return (
                         transform,
                         offset,
-                        self.first_proj_id + NumPyProjCode.PROJ_3D_2D_BY,
+                        self.first_proj_id + NumPyProjCode.PROJ_3D_3D_YZ,
                     )
-                else:
-                    assert broadcast_dims[0] == 1
+                elif broadcast_dims[0] == 1:
                     return (
                         transform,
                         offset,
-                        self.first_proj_id + NumPyProjCode.PROJ_3D_2D_XB,
+                        self.first_proj_id + NumPyProjCode.PROJ_3D_3D_XZ,
+                    )
+                else:
+                    assert broadcast_dims[0] == 2
+                    return (
+                        transform,
+                        offset,
+                        self.first_proj_id + NumPyProjCode.PROJ_3D_3D_XY,
                     )
             else:
-                if len(broadcast_dims) == 1:
-                    if broadcast_dims[0] == 0:
-                        return (
-                            transform,
-                            offset,
-                            self.first_proj_id + NumPyProjCode.PROJ_3D_3D_YZ,
-                        )
-                    elif broadcast_dims[0] == 1:
-                        return (
-                            transform,
-                            offset,
-                            self.first_proj_id + NumPyProjCode.PROJ_3D_3D_XZ,
-                        )
-                    else:
-                        assert broadcast_dims[0] == 2
-                        return (
-                            transform,
-                            offset,
-                            self.first_proj_id + NumPyProjCode.PROJ_3D_3D_XY,
-                        )
+                assert len(broadcast_dims) == 2
+                if broadcast_dims == (0, 1):
+                    return (
+                        transform,
+                        offset,
+                        self.first_proj_id + NumPyProjCode.PROJ_3D_3D_Z,
+                    )
+                elif broadcast_dims == (1, 2):
+                    return (
+                        transform,
+                        offset,
+                        self.first_proj_id + NumPyProjCode.PROJ_3D_3D_X,
+                    )
                 else:
-                    assert len(broadcast_dims) == 2
-                    if broadcast_dims == (0, 1):
-                        return (
-                            transform,
-                            offset,
-                            self.first_proj_id + NumPyProjCode.PROJ_3D_3D_Z,
-                        )
-                    elif broadcast_dims == (1, 2):
-                        return (
-                            transform,
-                            offset,
-                            self.first_proj_id + NumPyProjCode.PROJ_3D_3D_X,
-                        )
-                    else:
-                        assert broadcast_dims == (0, 2)
-                        return (
-                            transform,
-                            offset,
-                            self.first_proj_id + NumPyProjCode.PROJ_3D_3D_Y,
-                        )
+                    assert broadcast_dims == (0, 2)
+                    return (
+                        transform,
+                        offset,
+                        self.first_proj_id + NumPyProjCode.PROJ_3D_3D_Y,
+                    )
         else:
             raise NotImplementedError(
                 "Legate needs support for more than 3 dimensions"
