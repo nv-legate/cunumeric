@@ -127,6 +127,7 @@ class Field(object):
 _sizeof_int = ffi.sizeof("int")
 _sizeof_size_t = ffi.sizeof("size_t")
 assert _sizeof_size_t == 4 or _sizeof_size_t == 8
+_dim_names = np.array(["X", "Y", "Z", "W", "V", "U", "T", "S", "R"])
 
 
 # A helper class for doing field management with control replication
@@ -2463,176 +2464,69 @@ class Runtime(object):
                 "Need radix projection functor for dim " + str(total_dims)
             )
 
-    def compute_broadcast_transform(self, output_array, input_array):
-        assert output_array.shape != input_array.shape
-        assert output_array.ndim >= input_array.ndim
-        transform = np.zeros(
-            (input_array.ndim, output_array.ndim), dtype=np.int64
-        )
-        offset = np.zeros((input_array.ndim,), dtype=np.int64)
-        input_dim = 0
-        broadcast_dims = ()
-        start_dim = output_array.ndim - input_array.ndim
-        for dim in range(start_dim, output_array.ndim):
-            if input_array.shape[input_dim] == output_array.shape[dim]:
-                transform[input_dim, dim] = 1
-            else:
-                assert input_array.shape[input_dim] == 1
-                broadcast_dims = broadcast_dims + (input_dim,)
-                offset[input_dim] = 1
-            input_dim += 1
-        if input_array.ndim == 2:
-            if output_array.ndim == 1:
-                assert len(broadcast_dims) == 0
-                return (
-                    transform,
-                    offset,
-                    self.first_proj_id + NumPyProjCode.PROJ_2D_1D_Y,
-                )
-            if output_array.ndim == 2:
-                assert len(broadcast_dims) == 1
-                if broadcast_dims[0] == 0:
-                    return (
-                        transform,
-                        offset,
-                        self.first_proj_id + NumPyProjCode.PROJ_2D_2D_0Y,
-                    )
-                else:
-                    assert broadcast_dims[0] == 1
-                    return (
-                        transform,
-                        offset,
-                        self.first_proj_id + NumPyProjCode.PROJ_2D_2D_X0,
-                    )
-            else:
-                assert output_array.ndim == 3
-                if len(broadcast_dims) == 0:
-                    return (
-                        transform,
-                        offset,
-                        self.first_proj_id + NumPyProjCode.PROJ_3D_2D_YZ,
-                    )
-                elif len(broadcast_dims) == 1:
-                    raise NotImplementedError(
-                        "Need support for these projection functions"
-                    )
-                    if broadcast_dims[0] == 0:
-                        return (
-                            transform,
-                            offset,
-                            self.first_proj_id + NumPyProjCode.PROJ_3D_2D_0Z,
-                        )
-                    else:
-                        assert broadcast_dims[1] == 1
-                        return (
-                            transform,
-                            offset,
-                            self.first_proj_id + NumPyProjCode.PROJ_3D_2D_Y0,
-                        )
-                else:
-                    assert len(broadcast_dims) == 2
-                    return (
-                        transform,
-                        offset,
-                        self.first_proj_id + NumPyProjCode.PROJ_3D_1D_Z,
-                    )
-        elif input_array.ndim == 3:
-            if output_array.ndim == 1:
-                assert len(broadcast_dims) == 0
-                return (
-                    transform,
-                    offset,
-                    self.first_proj_id + NumPyProjCode.PROJ_3D_1D_Z,
-                )
-            elif output_array.ndim == 2:
-                assert len(broadcast_dims) == 1
-                if broadcast_dims[0] == 0:
-                    return (
-                        transform,
-                        offset,
-                        self.first_proj_id + NumPyProjCode.PROJ_3D_2D_BY,
-                    )
-                else:
-                    assert broadcast_dims[0] == 1
-                    return (
-                        transform,
-                        offset,
-                        self.first_proj_id + NumPyProjCode.PROJ_3D_2D_XB,
-                    )
-            else:
-                if len(broadcast_dims) == 1:
-                    if broadcast_dims[0] == 0:
-                        return (
-                            transform,
-                            offset,
-                            self.first_proj_id + NumPyProjCode.PROJ_3D_3D_YZ,
-                        )
-                    elif broadcast_dims[0] == 1:
-                        return (
-                            transform,
-                            offset,
-                            self.first_proj_id + NumPyProjCode.PROJ_3D_3D_XZ,
-                        )
-                    else:
-                        assert broadcast_dims[0] == 2
-                        return (
-                            transform,
-                            offset,
-                            self.first_proj_id + NumPyProjCode.PROJ_3D_3D_XY,
-                        )
-                else:
-                    assert len(broadcast_dims) == 2
-                    if broadcast_dims == (0, 1):
-                        return (
-                            transform,
-                            offset,
-                            self.first_proj_id + NumPyProjCode.PROJ_3D_3D_Z,
-                        )
-                    elif broadcast_dims == (1, 2):
-                        return (
-                            transform,
-                            offset,
-                            self.first_proj_id + NumPyProjCode.PROJ_3D_3D_X,
-                        )
-                    else:
-                        assert broadcast_dims == (0, 2)
-                        return (
-                            transform,
-                            offset,
-                            self.first_proj_id + NumPyProjCode.PROJ_3D_3D_Y,
-                        )
-        else:
+    def compute_broadcast_transform(self, output_shape, input_shape):
+        output_ndim = len(output_shape)
+        input_ndim = len(input_shape)
+
+        if output_ndim > 3:
             raise NotImplementedError(
                 "Legate needs support for more than 3 dimensions"
             )
 
-    def get_reduction_transform(self, input_array, output_array, axes):
+        assert output_shape != input_shape
+        assert output_ndim >= input_ndim
+
+        diff = output_ndim - input_ndim
+        input_shape = np.array((0,) * diff + input_shape)
+        output_shape = np.array(output_shape)
+
+        mask = output_shape == input_shape
+        assert mask.sum() < output_ndim
+        matching_dims = "".join(_dim_names[: len(mask)][mask])
+        proj_name = f"PROJ_{output_ndim}D_{input_ndim}D_{matching_dims}"
+
+        offset = np.zeros((input_ndim,), dtype=np.int64)
+        transform = np.zeros((input_ndim, output_ndim), dtype=np.int64)
+        for dim, flag in enumerate(mask):
+            if flag:
+                assert dim >= diff
+                transform[dim - diff, dim] = 1
+            elif dim >= diff:
+                offset[dim - diff] = 1
+
+        return (
+            transform,
+            offset,
+            self.first_proj_id + getattr(NumPyProjCode, proj_name),
+        )
+
+    def get_reduction_transform(self, input_shape, output_shape, axes):
+        input_ndim = len(input_shape)
+        output_ndim = len(output_shape)
         assert len(axes) > 0
         # In the case where we keep dimensions the arrays can be the same size
-        if output_array.ndim == input_array.ndim:
+        if output_ndim == input_ndim:
             # The transform in this case is just identity transform
-            transform = np.zeros(
-                (output_array.ndim, input_array.ndim), dtype=np.int64
-            )
-            for dim in xrange(input_array.ndim):
+            transform = np.zeros((output_ndim, input_ndim), dtype=np.int64)
+            for dim in xrange(input_ndim):
                 if dim in axes:
                     continue
                 transform[dim, dim] = 1
-            assert input_array.ndim > 1  # Should never have the 1-D case here
-            if input_array.ndim == 2:
+            assert input_ndim > 1  # Should never have the 1-D case here
+            if input_ndim == 2:
                 assert len(axes) == 1
                 if axes[0] == 0:
                     return (
                         transform,
-                        self.first_proj_id + NumPyProjCode.PROJ_2D_2D_0Y,
+                        self.first_proj_id + NumPyProjCode.PROJ_2D_2D_Y,
                     )
                 else:
                     assert axes[0] == 1
                     return (
                         transform,
-                        self.first_proj_id + NumPyProjCode.PROJ_2D_2D_X0,
+                        self.first_proj_id + NumPyProjCode.PROJ_2D_2D_X,
                     )
-            elif input_array.ndim == 3:
+            elif input_ndim == 3:
                 if len(axes) == 1:
                     if axes[0] == 0:
                         return (
@@ -2674,17 +2568,15 @@ class Runtime(object):
                 )
         else:
             # This is where we don't keep the dimensions
-            assert output_array.ndim + len(axes) == input_array.ndim
-            transform = np.zeros(
-                (output_array.ndim, input_array.ndim), dtype=np.int64
-            )
+            assert output_ndim + len(axes) == input_ndim
+            transform = np.zeros((output_ndim, input_ndim), dtype=np.int64)
             output_dim = 0
-            for dim in xrange(input_array.ndim):
+            for dim in xrange(input_ndim):
                 if dim in axes:
                     continue
                 transform[output_dim, dim] = 1
                 output_dim += 1
-            if input_array.ndim == 2:
+            if input_ndim == 2:
                 assert len(axes) == 1
                 if axes[0] == 0:
                     return (
@@ -2697,7 +2589,7 @@ class Runtime(object):
                         transform,
                         self.first_proj_id + NumPyProjCode.PROJ_2D_1D_X,
                     )
-            elif input_array.ndim == 3:
+            elif input_ndim == 3:
                 if len(axes) == 1:
                     if axes[0] == 0:
                         return (

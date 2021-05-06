@@ -1541,7 +1541,7 @@ class DeferredArray(NumPyThunk):
                         rhs1_array.shape,
                         rhs1_part.tile_shape,
                         self.runtime.first_proj_id
-                        + NumPyProjCode.PROJ_2D_2D_X0,
+                        + NumPyProjCode.PROJ_2D_2D_X,
                     )
                     argbuf.pack_accessor(rhs1.field.field_id, rhs1.transform)
                     self.pack_shape(
@@ -1549,7 +1549,7 @@ class DeferredArray(NumPyThunk):
                         rhs2_array.shape,
                         rhs2_part.tile_shape,
                         self.runtime.first_proj_id
-                        + NumPyProjCode.PROJ_2D_2D_0Y,
+                        + NumPyProjCode.PROJ_2D_2D_Y,
                     )
                     argbuf.pack_accessor(rhs2.field.field_id, rhs2.transform)
                     task = IndexTask(
@@ -1577,7 +1577,7 @@ class DeferredArray(NumPyThunk):
                         rhs1_part,
                         rhs1.field.field_id,
                         self.runtime.first_proj_id
-                        + NumPyProjCode.PROJ_2D_2D_X0,
+                        + NumPyProjCode.PROJ_2D_2D_X,
                         tag=NumPyMappingTag.KEY_REGION_TAG
                         if rhs1_size >= lhs_size and rhs1_size > rhs2_size
                         else NumPyMappingTag.NO_MEMOIZE_TAG,
@@ -1586,7 +1586,7 @@ class DeferredArray(NumPyThunk):
                         rhs2_part,
                         rhs2.field.field_id,
                         self.runtime.first_proj_id
-                        + NumPyProjCode.PROJ_2D_2D_0Y,
+                        + NumPyProjCode.PROJ_2D_2D_Y,
                         tag=NumPyMappingTag.KEY_REGION_TAG
                         if rhs2_size >= lhs_size and rhs2_size >= rhs1_size
                         else NumPyMappingTag.NO_MEMOIZE_TAG,
@@ -3501,7 +3501,7 @@ class DeferredArray(NumPyThunk):
                             where_offset,
                             where_proj,
                         ) = self.runtime.compute_broadcast_transform(
-                            lhs_array, where_array
+                            lhs_array.shape, where_array.shape
                         )
                         where_tag = (
                             NumPyMappingTag.NO_MEMOIZE_TAG
@@ -3594,7 +3594,7 @@ class DeferredArray(NumPyThunk):
                     offset,
                     proj_id,
                 ) = self.runtime.compute_broadcast_transform(
-                    lhs_array, rhs_array
+                    lhs_array.shape, rhs_array.shape
                 )
                 mapping_tag = (
                     NumPyMappingTag.NO_MEMOIZE_TAG if proj_id > 0 else 0
@@ -3612,7 +3612,7 @@ class DeferredArray(NumPyThunk):
                         where_offset,
                         where_proj,
                     ) = self.runtime.compute_broadcast_transform(
-                        lhs_array, where_array
+                        lhs_array.shape, where_array.shape
                     )
                     where_tag = (
                         NumPyMappingTag.NO_MEMOIZE_TAG if where_proj > 0 else 0
@@ -3874,7 +3874,7 @@ class DeferredArray(NumPyThunk):
                         where_offset,
                         where_proj,
                     ) = self.runtime.compute_broadcast_transform(
-                        rhs_array, where_array
+                        rhs_array.shape, where_array.shape
                     )
                     where_tag = (
                         NumPyMappingTag.NO_MEMOIZE_TAG if where_proj > 0 else 0
@@ -4000,7 +4000,7 @@ class DeferredArray(NumPyThunk):
             axis = axes[0]
             # Compute the reduction transform
             transform, proj_id = self.runtime.get_reduction_transform(
-                rhs_array, lhs_array, axes
+                rhs_array.shape, lhs_array.shape, axes
             )
             # Compose the reduction transform with the result transform
             assert transform.ndim == 2
@@ -4019,7 +4019,7 @@ class DeferredArray(NumPyThunk):
                         where_offset,
                         where_proj,
                     ) = self.runtime.compute_broadcast_transform(
-                        rhs_array, where_array
+                        rhs_array.shape, where_array.shape
                     )
                     where_tag = (
                         NumPyMappingTag.NO_MEMOIZE_TAG if where_proj > 0 else 0
@@ -4236,12 +4236,12 @@ class DeferredArray(NumPyThunk):
                         assert axis == 0 or axis == 1
                         if axis == 0:
                             if keepdims:
-                                result_proj = NumPyProjCode.PROJ_2D_2D_0Y
+                                result_proj = NumPyProjCode.PROJ_2D_2D_Y
                             else:
                                 result_proj = NumPyProjCode.PROJ_2D_1D_Y
                         else:
                             if keepdims:
-                                result_proj = NumPyProjCode.PROJ_2D_2D_X0
+                                result_proj = NumPyProjCode.PROJ_2D_2D_X
                             else:
                                 result_proj = NumPyProjCode.PROJ_2D_1D_X
                     elif len(lhs_array.shape) == 2:
@@ -4750,7 +4750,7 @@ class DeferredArray(NumPyThunk):
                             where_offset,
                             where_proj,
                         ) = self.runtime.compute_broadcast_transform(
-                            lhs_array, where_array
+                            lhs_array.shape, where_array.shape
                         )
                         where_tag = (
                             NumPyMappingTag.NO_MEMOIZE_TAG
@@ -4858,7 +4858,7 @@ class DeferredArray(NumPyThunk):
                     offset1,
                     proj1_id,
                 ) = self.runtime.compute_broadcast_transform(
-                    lhs_array, rhs1_array
+                    lhs_array.shape, rhs1_array.shape
                 )
                 mapping_tag1 = (
                     NumPyMappingTag.NO_MEMOIZE_TAG if proj1_id > 0 else 0
@@ -4874,7 +4874,7 @@ class DeferredArray(NumPyThunk):
                     offset2,
                     proj2_id,
                 ) = self.runtime.compute_broadcast_transform(
-                    lhs_array, rhs2_array
+                    lhs_array.shape, rhs2_array.shape
                 )
                 mapping_tag2 = (
                     NumPyMappingTag.NO_MEMOIZE_TAG if proj2_id > 0 else 0
@@ -4891,7 +4891,7 @@ class DeferredArray(NumPyThunk):
                         where_offset,
                         where_proj,
                     ) = self.runtime.compute_broadcast_transform(
-                        lhs_array, where_array
+                        lhs_array.shape, where_array.shape
                     )
                     where_tag = (
                         NumPyMappingTag.NO_MEMOIZE_TAG if where_proj > 0 else 0
@@ -5155,7 +5155,7 @@ class DeferredArray(NumPyThunk):
                     offset1,
                     proj1_id,
                 ) = self.runtime.compute_broadcast_transform(
-                    lhs_array, rhs1_array
+                    lhs_array.shape, rhs1_array.shape
                 )
                 mapping_tag1 = (
                     NumPyMappingTag.NO_MEMOIZE_TAG if proj1_id > 0 else 0
@@ -5171,7 +5171,7 @@ class DeferredArray(NumPyThunk):
                     offset2,
                     proj2_id,
                 ) = self.runtime.compute_broadcast_transform(
-                    lhs_array, rhs2_array
+                    lhs_array.shape, rhs2_array.shape
                 )
                 mapping_tag2 = (
                     NumPyMappingTag.NO_MEMOIZE_TAG if proj2_id > 0 else 0
@@ -5445,7 +5445,7 @@ class DeferredArray(NumPyThunk):
                     offset1,
                     proj1_id,
                 ) = self.runtime.compute_broadcast_transform(
-                    lhs_array, rhs1_array
+                    lhs_array.shape, rhs1_array.shape
                 )
                 mapping_tag1 = (
                     NumPyMappingTag.NO_MEMOIZE_TAG if proj1_id > 0 else 0
@@ -5461,7 +5461,7 @@ class DeferredArray(NumPyThunk):
                     offset2,
                     proj2_id,
                 ) = self.runtime.compute_broadcast_transform(
-                    lhs_array, rhs2_array
+                    lhs_array.shape, rhs2_array.shape
                 )
                 mapping_tag2 = (
                     NumPyMappingTag.NO_MEMOIZE_TAG if proj2_id > 0 else 0
@@ -5477,7 +5477,7 @@ class DeferredArray(NumPyThunk):
                     offset3,
                     proj3_id,
                 ) = self.runtime.compute_broadcast_transform(
-                    lhs_array, rhs3_array
+                    lhs_array.shape, rhs3_array.shape
                 )
                 mapping_tag3 = (
                     NumPyMappingTag.NO_MEMOIZE_TAG if proj3_id > 0 else 0

@@ -264,10 +264,8 @@ class NumPyProjCode(IntEnum):
     PROJ_2D_1D_X = legate_numpy.NUMPY_PROJ_2D_1D_X
     PROJ_2D_1D_Y = legate_numpy.NUMPY_PROJ_2D_1D_Y
     # 2D broadcast
-    PROJ_2D_2D_X0 = legate_numpy.NUMPY_PROJ_2D_2D_X0
-    PROJ_2D_2D_0X = legate_numpy.NUMPY_PROJ_2D_2D_0X
-    PROJ_2D_2D_0Y = legate_numpy.NUMPY_PROJ_2D_2D_0Y
-    PROJ_2D_2D_Y0 = legate_numpy.NUMPY_PROJ_2D_2D_Y0
+    PROJ_2D_2D_X = legate_numpy.NUMPY_PROJ_2D_2D_X
+    PROJ_2D_2D_Y = legate_numpy.NUMPY_PROJ_2D_2D_Y
     # 2D promotion
     PROJ_1D_2D_X = legate_numpy.NUMPY_PROJ_1D_2D_X
     PROJ_1D_2D_Y = legate_numpy.NUMPY_PROJ_1D_2D_Y
