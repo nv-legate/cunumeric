@@ -15,13 +15,12 @@
 
 from __future__ import division
 
+import numpy as np
+
 import legate.numpy as lg
 
-n = 20
-shape = (n, n + 1, n + 2)
 
-
-def test():
+def test(shape):
     for ndim in range(2, 4):
         print(f"Testing {ndim}D")
         local_shape = shape[:ndim]
@@ -37,21 +36,30 @@ def test():
         for dim in range(ndim):
             rhs_shape = list(local_shape)
             rhs_shape[dim] = 1
-            y = lg.random.random(tuple(rhs_shape))
-            b = y.__array__()
+            if (np.array(rhs_shape) == 1).all():
+                y = np.random.random(tuple(rhs_shape))
+                b = lg.array(y)
+            else:
+                y = lg.random.random(tuple(rhs_shape))
+                b = y.__array__()
             print(f"  {a.shape} x {b.shape}")
             assert lg.array_equal(x + y, a + b)
 
-        if ndim == 2:
-            continue
-        for dim in range(ndim):
-            rhs_shape = [1] * ndim
-            rhs_shape[dim] = local_shape[dim]
-            y = lg.random.random(tuple(rhs_shape))
-            b = y.__array__()
-            print(f"  {a.shape} x {b.shape}")
-            assert lg.array_equal(x + y, a + b)
+        if ndim > 2:
+            for dim in range(ndim):
+                rhs_shape = [1] * ndim
+                rhs_shape[dim] = local_shape[dim]
+                if (np.array(rhs_shape) == 1).all():
+                    y = np.random.random(tuple(rhs_shape))
+                    b = lg.array(y)
+                else:
+                    y = lg.random.random(tuple(rhs_shape))
+                    b = y.__array__()
+                print(f"  {a.shape} x {b.shape}")
+                assert lg.array_equal(x + y, a + b)
 
 
 if __name__ == "__main__":
-    test()
+    n = 20
+    test((n, n + 1, n + 2))
+    test((1, n + 1, n + 2))
