@@ -122,64 +122,62 @@ enum NumPyProjectionCode {
   NUMPY_PROJ_2D_1D_X = 1,  // keep x
   NUMPY_PROJ_2D_1D_Y = 2,  // keep y
   // 2D broadcast
-  NUMPY_PROJ_2D_2D_X0 = 3,  // x, broadcast 0
-  NUMPY_PROJ_2D_2D_0X = 4,  // broadcast 0, x
-  NUMPY_PROJ_2D_2D_0Y = 5,  // broadcast 0, y
-  NUMPY_PROJ_2D_2D_Y0 = 6,  // y, broadcast 0
+  NUMPY_PROJ_2D_2D_X = 3,  // keep x
+  NUMPY_PROJ_2D_2D_Y = 4,  // keep y
   // 2D promotion
-  NUMPY_PROJ_1D_2D_X = 7,  // 1D point becomes (x, 0)
-  NUMPY_PROJ_1D_2D_Y = 8,  // 1D point becomes (0, x)
+  NUMPY_PROJ_1D_2D_X = 5,  // 1D point becomes (x, 0)
+  NUMPY_PROJ_1D_2D_Y = 6,  // 1D point becomes (0, x)
   // 2D transpose
-  NUMPY_PROJ_2D_2D_YX = 9,  // transpose (x,y) to (y,x)
+  NUMPY_PROJ_2D_2D_YX = 7,  // transpose (x,y) to (y,x)
   // 3D reduction
-  NUMPY_PROJ_3D_2D_XY = 10,  // keep x and y
-  NUMPY_PROJ_3D_2D_XZ = 11,  // keep x and z
-  NUMPY_PROJ_3D_2D_YZ = 12,  // keep y and z
-  NUMPY_PROJ_3D_1D_X  = 13,  // keep x
-  NUMPY_PROJ_3D_1D_Y  = 14,  // keep y
-  NUMPY_PROJ_3D_1D_Z  = 15,  // keep z
+  NUMPY_PROJ_3D_2D_XY = 8,   // keep x and y
+  NUMPY_PROJ_3D_2D_XZ = 9,   // keep x and z
+  NUMPY_PROJ_3D_2D_YZ = 10,  // keep y and z
+  NUMPY_PROJ_3D_1D_X  = 11,  // keep x
+  NUMPY_PROJ_3D_1D_Y  = 12,  // keep y
+  NUMPY_PROJ_3D_1D_Z  = 13,  // keep z
   // 3D broadcast
-  NUMPY_PROJ_3D_3D_XY = 16,  // keep x and y, broadcast z
-  NUMPY_PROJ_3D_3D_XZ = 17,  // keep x and z, broadcast y
-  NUMPY_PROJ_3D_3D_YZ = 18,  // keep y and z, broadcast x
-  NUMPY_PROJ_3D_3D_X  = 19,  // keep x, broadcast y and z
-  NUMPY_PROJ_3D_3D_Y  = 20,  // keep y, broadcast x and z
-  NUMPY_PROJ_3D_3D_Z  = 21,  // keep z, broadcast x and y
-  NUMPY_PROJ_3D_2D_XB = 22,  // y becomes x, broadcast z as y
-  NUMPY_PROJ_3D_2D_BY = 23,  // broadcast y as x, z becomes y
+  NUMPY_PROJ_3D_3D_XY = 14,  // keep x and y, broadcast z
+  NUMPY_PROJ_3D_3D_XZ = 15,  // keep x and z, broadcast y
+  NUMPY_PROJ_3D_3D_YZ = 16,  // keep y and z, broadcast x
+  NUMPY_PROJ_3D_3D_X  = 17,  // keep x, broadcast y and z
+  NUMPY_PROJ_3D_3D_Y  = 18,  // keep y, broadcast x and z
+  NUMPY_PROJ_3D_3D_Z  = 19,  // keep z, broadcast x and y
+  NUMPY_PROJ_3D_2D_XB = 20,  // y becomes x, broadcast z as y
+  NUMPY_PROJ_3D_2D_BY = 21,  // broadcast y as x, z becomes y
   // 3D promotion
-  NUMPY_PROJ_2D_3D_XY = 24,  // 2D point becomes (x, y, 0)
-  NUMPY_PROJ_2D_3D_XZ = 25,  // 2D point becomes (x, 0, y)
-  NUMPY_PROJ_2D_3D_YZ = 26,  // 2D point becomes (0, x, y)
-  NUMPY_PROJ_1D_3D_X  = 27,  // 1D point becomes (x, 0, 0)
-  NUMPY_PROJ_1D_3D_Y  = 28,  // 1D point becomes (0, x, 0)
-  NUMPY_PROJ_1D_3D_Z  = 29,  // 1D point becomes (0, 0, x)
+  NUMPY_PROJ_2D_3D_XY = 22,  // 2D point becomes (x, y, 0)
+  NUMPY_PROJ_2D_3D_XZ = 23,  // 2D point becomes (x, 0, y)
+  NUMPY_PROJ_2D_3D_YZ = 24,  // 2D point becomes (0, x, y)
+  NUMPY_PROJ_1D_3D_X  = 25,  // 1D point becomes (x, 0, 0)
+  NUMPY_PROJ_1D_3D_Y  = 26,  // 1D point becomes (0, x, 0)
+  NUMPY_PROJ_1D_3D_Z  = 27,  // 1D point becomes (0, 0, x)
   // Radix 2D
-  NUMPY_PROJ_RADIX_2D_X_4_0 = 30,
-  NUMPY_PROJ_RADIX_2D_X_4_1 = 31,
-  NUMPY_PROJ_RADIX_2D_X_4_2 = 32,
-  NUMPY_PROJ_RADIX_2D_X_4_3 = 33,
-  NUMPY_PROJ_RADIX_2D_Y_4_0 = 34,
-  NUMPY_PROJ_RADIX_2D_Y_4_1 = 35,
-  NUMPY_PROJ_RADIX_2D_Y_4_2 = 36,
-  NUMPY_PROJ_RADIX_2D_Y_4_3 = 37,
+  NUMPY_PROJ_RADIX_2D_X_4_0 = 28,
+  NUMPY_PROJ_RADIX_2D_X_4_1 = 29,
+  NUMPY_PROJ_RADIX_2D_X_4_2 = 30,
+  NUMPY_PROJ_RADIX_2D_X_4_3 = 31,
+  NUMPY_PROJ_RADIX_2D_Y_4_0 = 32,
+  NUMPY_PROJ_RADIX_2D_Y_4_1 = 33,
+  NUMPY_PROJ_RADIX_2D_Y_4_2 = 34,
+  NUMPY_PROJ_RADIX_2D_Y_4_3 = 35,
   // Radix 3D
-  NUMPY_PROJ_RADIX_3D_X_4_0 = 38,
-  NUMPY_PROJ_RADIX_3D_X_4_1 = 39,
-  NUMPY_PROJ_RADIX_3D_X_4_2 = 40,
-  NUMPY_PROJ_RADIX_3D_X_4_3 = 41,
-  NUMPY_PROJ_RADIX_3D_Y_4_0 = 42,
-  NUMPY_PROJ_RADIX_3D_Y_4_1 = 43,
-  NUMPY_PROJ_RADIX_3D_Y_4_2 = 44,
-  NUMPY_PROJ_RADIX_3D_Y_4_3 = 45,
-  NUMPY_PROJ_RADIX_3D_Z_4_0 = 46,
-  NUMPY_PROJ_RADIX_3D_Z_4_1 = 47,
-  NUMPY_PROJ_RADIX_3D_Z_4_2 = 48,
-  NUMPY_PROJ_RADIX_3D_Z_4_3 = 49,
+  NUMPY_PROJ_RADIX_3D_X_4_0 = 36,
+  NUMPY_PROJ_RADIX_3D_X_4_1 = 37,
+  NUMPY_PROJ_RADIX_3D_X_4_2 = 38,
+  NUMPY_PROJ_RADIX_3D_X_4_3 = 39,
+  NUMPY_PROJ_RADIX_3D_Y_4_0 = 40,
+  NUMPY_PROJ_RADIX_3D_Y_4_1 = 41,
+  NUMPY_PROJ_RADIX_3D_Y_4_2 = 42,
+  NUMPY_PROJ_RADIX_3D_Y_4_3 = 43,
+  NUMPY_PROJ_RADIX_3D_Z_4_0 = 44,
+  NUMPY_PROJ_RADIX_3D_Z_4_1 = 45,
+  NUMPY_PROJ_RADIX_3D_Z_4_2 = 46,
+  NUMPY_PROJ_RADIX_3D_Z_4_3 = 47,
   // Flattening
-  NUMPY_PROJ_ND_1D_C_ORDER = 50,
+  NUMPY_PROJ_ND_1D_C_ORDER = 48,
   // Must always be last
-  NUMPY_PROJ_LAST = 51,
+  NUMPY_PROJ_LAST = 49,
 };
 
 // We provide a global class of sharding functions

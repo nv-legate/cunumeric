@@ -2501,14 +2501,14 @@ class Runtime(object):
                     return (
                         transform,
                         offset,
-                        self.first_proj_id + NumPyProjCode.PROJ_2D_2D_0Y,
+                        self.first_proj_id + NumPyProjCode.PROJ_2D_2D_Y,
                     )
                 else:
                     assert broadcast_dims[0] == 1
                     return (
                         transform,
                         offset,
-                        self.first_proj_id + NumPyProjCode.PROJ_2D_2D_X0,
+                        self.first_proj_id + NumPyProjCode.PROJ_2D_2D_X,
                     )
             else:
                 assert output_ndim == 3
@@ -2582,13 +2582,13 @@ class Runtime(object):
                 if axes[0] == 0:
                     return (
                         transform,
-                        self.first_proj_id + NumPyProjCode.PROJ_2D_2D_0Y,
+                        self.first_proj_id + NumPyProjCode.PROJ_2D_2D_Y,
                     )
                 else:
                     assert axes[0] == 1
                     return (
                         transform,
-                        self.first_proj_id + NumPyProjCode.PROJ_2D_2D_X0,
+                        self.first_proj_id + NumPyProjCode.PROJ_2D_2D_X,
                     )
             elif input_ndim == 3:
                 if len(axes) == 1:

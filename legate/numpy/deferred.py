@@ -1541,7 +1541,7 @@ class DeferredArray(NumPyThunk):
                         rhs1_array.shape,
                         rhs1_part.tile_shape,
                         self.runtime.first_proj_id
-                        + NumPyProjCode.PROJ_2D_2D_X0,
+                        + NumPyProjCode.PROJ_2D_2D_X,
                     )
                     argbuf.pack_accessor(rhs1.field.field_id, rhs1.transform)
                     self.pack_shape(
@@ -1549,7 +1549,7 @@ class DeferredArray(NumPyThunk):
                         rhs2_array.shape,
                         rhs2_part.tile_shape,
                         self.runtime.first_proj_id
-                        + NumPyProjCode.PROJ_2D_2D_0Y,
+                        + NumPyProjCode.PROJ_2D_2D_Y,
                     )
                     argbuf.pack_accessor(rhs2.field.field_id, rhs2.transform)
                     task = IndexTask(
@@ -1577,7 +1577,7 @@ class DeferredArray(NumPyThunk):
                         rhs1_part,
                         rhs1.field.field_id,
                         self.runtime.first_proj_id
-                        + NumPyProjCode.PROJ_2D_2D_X0,
+                        + NumPyProjCode.PROJ_2D_2D_X,
                         tag=NumPyMappingTag.KEY_REGION_TAG
                         if rhs1_size >= lhs_size and rhs1_size > rhs2_size
                         else NumPyMappingTag.NO_MEMOIZE_TAG,
@@ -1586,7 +1586,7 @@ class DeferredArray(NumPyThunk):
                         rhs2_part,
                         rhs2.field.field_id,
                         self.runtime.first_proj_id
-                        + NumPyProjCode.PROJ_2D_2D_0Y,
+                        + NumPyProjCode.PROJ_2D_2D_Y,
                         tag=NumPyMappingTag.KEY_REGION_TAG
                         if rhs2_size >= lhs_size and rhs2_size >= rhs1_size
                         else NumPyMappingTag.NO_MEMOIZE_TAG,
@@ -4236,12 +4236,12 @@ class DeferredArray(NumPyThunk):
                         assert axis == 0 or axis == 1
                         if axis == 0:
                             if keepdims:
-                                result_proj = NumPyProjCode.PROJ_2D_2D_0Y
+                                result_proj = NumPyProjCode.PROJ_2D_2D_Y
                             else:
                                 result_proj = NumPyProjCode.PROJ_2D_1D_Y
                         else:
                             if keepdims:
-                                result_proj = NumPyProjCode.PROJ_2D_2D_X0
+                                result_proj = NumPyProjCode.PROJ_2D_2D_X
                             else:
                                 result_proj = NumPyProjCode.PROJ_2D_1D_X
                     elif len(lhs_array.shape) == 2:
