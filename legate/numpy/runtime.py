@@ -2477,7 +2477,7 @@ class Runtime(object):
         assert output_ndim >= input_ndim
 
         diff = output_ndim - input_ndim
-        input_shape = np.array((1,) * diff + input_shape)
+        input_shape = np.array((0,) * diff + input_shape)
         output_shape = np.array(output_shape)
 
         mask = output_shape == input_shape
