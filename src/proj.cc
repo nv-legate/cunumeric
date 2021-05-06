@@ -78,7 +78,7 @@ NumPyProjectionFunctor_2D_2D::NumPyProjectionFunctor_2D_2D(NumPyProjectionCode c
 {
   Transform<2, 2> result;
   switch (code) {
-    case NUMPY_PROJ_2D_2D_X0: {
+    case NUMPY_PROJ_2D_2D_X: {
       // 1, 0
       // 0, 0
       result[0][0] = 1;
@@ -87,31 +87,13 @@ NumPyProjectionFunctor_2D_2D::NumPyProjectionFunctor_2D_2D(NumPyProjectionCode c
       result[1][1] = 0;
       break;
     }
-    case NUMPY_PROJ_2D_2D_0X: {
-      // 0, 0
-      // 1, 0
-      result[0][0] = 0;
-      result[0][1] = 0;
-      result[1][0] = 1;
-      result[1][1] = 0;
-      break;
-    }
-    case NUMPY_PROJ_2D_2D_0Y: {
+    case NUMPY_PROJ_2D_2D_Y: {
       // 0, 0
       // 0, 1
       result[0][0] = 0;
       result[0][1] = 0;
       result[1][0] = 0;
       result[1][1] = 1;
-      break;
-    }
-    case NUMPY_PROJ_2D_2D_Y0: {
-      // 0, 1
-      // 0, 0
-      result[0][0] = 0;
-      result[0][1] = 1;
-      result[1][0] = 0;
-      result[1][1] = 0;
       break;
     }
     case NUMPY_PROJ_2D_2D_YX: {
@@ -604,10 +586,8 @@ static void register_functor(Runtime* runtime, ProjectionID offset, NumPyProject
   register_functor<NumPyProjectionFunctor_2D_1D>(runtime, offset, NUMPY_PROJ_2D_1D_X);
   register_functor<NumPyProjectionFunctor_2D_1D>(runtime, offset, NUMPY_PROJ_2D_1D_Y);
   // 2D broadcast
-  register_functor<NumPyProjectionFunctor_2D_2D>(runtime, offset, NUMPY_PROJ_2D_2D_X0);
-  register_functor<NumPyProjectionFunctor_2D_2D>(runtime, offset, NUMPY_PROJ_2D_2D_0X);
-  register_functor<NumPyProjectionFunctor_2D_2D>(runtime, offset, NUMPY_PROJ_2D_2D_0Y);
-  register_functor<NumPyProjectionFunctor_2D_2D>(runtime, offset, NUMPY_PROJ_2D_2D_Y0);
+  register_functor<NumPyProjectionFunctor_2D_2D>(runtime, offset, NUMPY_PROJ_2D_2D_X);
+  register_functor<NumPyProjectionFunctor_2D_2D>(runtime, offset, NUMPY_PROJ_2D_2D_Y);
   // 2D promotion
   register_functor<NumPyProjectionFunctor_1D_2D>(runtime, offset, NUMPY_PROJ_1D_2D_X);
   register_functor<NumPyProjectionFunctor_1D_2D>(runtime, offset, NUMPY_PROJ_1D_2D_Y);

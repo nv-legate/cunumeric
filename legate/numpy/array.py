@@ -20,6 +20,7 @@ import warnings
 
 import numpy as np
 import pyarrow
+from numpy.lib.stride_tricks import broadcast_shapes
 
 from legate.core import LegateArray
 
@@ -1556,66 +1557,6 @@ class ndarray(object):
             )
         return ndarray(shape=self.shape, dtype=self.dtype, thunk=self._thunk)
 
-    @staticmethod
-    def broadcast(shapes):
-        assert shapes
-        result = shapes[0]
-        if len(shapes) == 1:
-            return result
-        for shape in shapes[1:]:
-            if result != shape:
-                # Compute the output shape and confirm any broadcasting
-                if len(result) == 0:
-                    result = shape
-                elif len(shape) == 0:
-                    continue
-                else:
-                    # Compute the broadcasted shape
-                    # First walk backwards through the dimensions and see
-                    # if they differ
-                    next_shape = ()
-                    for idx in xrange(1, min(len(result), len(shape)) + 1):
-                        if (
-                            result[len(result) - idx]
-                            == shape[len(shape) - idx]
-                        ):
-                            # Dimensions are the same so just add it
-                            next_shape = (
-                                result[len(result) - idx],
-                            ) + next_shape
-                        elif result[len(result) - idx] == 1:
-                            # Broadcast this dimension
-                            next_shape = (
-                                shape[len(shape) - idx],
-                            ) + next_shape
-                        elif shape[len(shape) - idx] == 1:
-                            # Broadcast this dimension
-                            next_shape = (
-                                result[len(result) - idx],
-                            ) + next_shape
-                        else:
-                            # Not a legal broadcast so raise an exception
-                            raise ValueError(
-                                "operands could not be broadcast together "
-                                + "with shapes "
-                                + str(result)
-                                + " and "
-                                + str(shape)
-                            )
-                    # Then see if we have any prefix dimensions to prepend
-                    if len(result) > len(shape):
-                        for idx in xrange(
-                            (len(result) - len(shape)) - 1, -1, -1
-                        ):
-                            next_shape = (result[idx],) + next_shape
-                    elif len(result) < len(shape):
-                        for idx in xrange(
-                            (len(shape) - len(result)) - 1, -1, -1
-                        ):
-                            next_shape = (shape[idx],) + next_shape
-                    result = next_shape
-        return result
-
     @classmethod
     def get_where_thunk(cls, where, out_shape, stacklevel):
         if where is True:
@@ -1668,13 +1609,13 @@ class ndarray(object):
             # If the shapes don't match see if we can broadcast
             # This will raise an exception if they can't be broadcast together
             if isinstance(where, ndarray):
-                cls.broadcast((src.shape, dst.shape, where.shape))
+                broadcast_shapes(src.shape, dst.shape, where.shape)
             else:
-                cls.broadcast((src.shape, dst.shape))
+                broadcast_shapes(src.shape, dst.shape)
         else:
             # No output yet, so make one
             if isinstance(where, ndarray):
-                out_shape = cls.broadcast((src.shape, where.shape))
+                out_shape = broadcast_shapes(src.shape, where.shape)
             else:
                 out_shape = src.shape
             if dtype is not None:
@@ -1810,7 +1751,7 @@ class ndarray(object):
     ):
         if isinstance(where, ndarray):
             # The where array has to broadcast to the src.shape
-            if cls.broadcast((src.shape, where.shape)) != src.shape:
+            if broadcast_shapes(src.shape, where.shape) != src.shape:
                 raise ValueError(
                     '"where" array must broadcast against source array '
                     "for reduction"
@@ -1967,9 +1908,9 @@ class ndarray(object):
         if out is None:
             # Compute the output shape and confirm any broadcasting
             if isinstance(where, ndarray):
-                out_shape = cls.broadcast((one.shape, two.shape, where.shape))
+                out_shape = broadcast_shapes(one.shape, two.shape, where.shape)
             else:
-                out_shape = cls.broadcast((one.shape, two.shape))
+                out_shape = broadcast_shapes(one.shape, two.shape)
             if dtype is not None:
                 out = ndarray(
                     shape=out_shape,
@@ -1994,11 +1935,11 @@ class ndarray(object):
                 )
         else:
             if isinstance(where, ndarray):
-                out_shape = cls.broadcast(
-                    (one.shape, two.shape, out.shape, where.shape)
+                out_shape = broadcast_shapes(
+                    one.shape, two.shape, out.shape, where.shape
                 )
             else:
-                out_shape = cls.broadcast((one.shape, two.shape, out.shape))
+                out_shape = broadcast_shapes(one.shape, two.shape, out.shape)
             if out.shape != out_shape:
                 raise ValueError(
                     "non-broadcastable output operand with shape "
@@ -2094,7 +2035,7 @@ class ndarray(object):
         # Collapsing down to a single value in this case
         # Check to see if we need to broadcast between inputs
         if one.shape != two.shape:
-            broadcast = cls.broadcast((one.shape, two.shape))
+            broadcast = broadcast_shapes(one.shape, two.shape)
         else:
             broadcast = None
         dst = ndarray(
@@ -2157,11 +2098,11 @@ class ndarray(object):
         if out is None:
             # Compute the output shape and confirm any broadcasting
             if isinstance(where, ndarray):
-                out_shape = cls.broadcast(
-                    (one.shape, two.shape, three.shape, where.shape)
+                out_shape = broadcast_shapes(
+                    one.shape, two.shape, three.shape, where.shape
                 )
             else:
-                out_shape = cls.broadcast((one.shape, two.shape, three.shape))
+                out_shape = broadcast_shapes(one.shape, two.shape, three.shape)
             if dtype is not None:
                 out = ndarray(
                     shape=out_shape,
@@ -2185,12 +2126,12 @@ class ndarray(object):
                 )
         else:
             if isinstance(where, ndarray):
-                out_shape = cls.broadcast(
-                    (one.shape, two.shape, three.shape, out.shape, where.shape)
+                out_shape = broadcast_shapes(
+                    one.shape, two.shape, three.shape, out.shape, where.shape
                 )
             else:
-                out_shape = cls.broadcast(
-                    (one.shape, two.shape, three.shape, out.shape)
+                out_shape = broadcast_shapes(
+                    one.shape, two.shape, three.shape, out.shape
                 )
             if out.shape != out_shape:
                 raise ValueError(

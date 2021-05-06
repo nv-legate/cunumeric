@@ -531,7 +531,7 @@ class DeferredArray(NumPyThunk):
             src = value_array.base
             if launch_space is not None:
                 # Index copy launch
-                if self.ndim != index_array.ndim:
+                if self.ndim == index_array.ndim:
                     # If we have the same dimensionality then normal
                     # partitioning works
                     (
@@ -1574,7 +1574,7 @@ class DeferredArray(NumPyThunk):
                         rhs1_array.shape,
                         rhs1_part.tile_shape,
                         self.runtime.first_proj_id
-                        + NumPyProjCode.PROJ_2D_2D_X0,
+                        + NumPyProjCode.PROJ_2D_2D_X,
                     )
                     argbuf.pack_accessor(rhs1.field.field_id, rhs1.transform)
                     self.pack_shape(
@@ -1582,7 +1582,7 @@ class DeferredArray(NumPyThunk):
                         rhs2_array.shape,
                         rhs2_part.tile_shape,
                         self.runtime.first_proj_id
-                        + NumPyProjCode.PROJ_2D_2D_0Y,
+                        + NumPyProjCode.PROJ_2D_2D_Y,
                     )
                     argbuf.pack_accessor(rhs2.field.field_id, rhs2.transform)
                     task = IndexTask(
@@ -1610,7 +1610,7 @@ class DeferredArray(NumPyThunk):
                         rhs1_part,
                         rhs1.field.field_id,
                         self.runtime.first_proj_id
-                        + NumPyProjCode.PROJ_2D_2D_X0,
+                        + NumPyProjCode.PROJ_2D_2D_X,
                         tag=NumPyMappingTag.KEY_REGION_TAG
                         if rhs1_size >= lhs_size and rhs1_size > rhs2_size
                         else NumPyMappingTag.NO_MEMOIZE_TAG,
@@ -1619,7 +1619,7 @@ class DeferredArray(NumPyThunk):
                         rhs2_part,
                         rhs2.field.field_id,
                         self.runtime.first_proj_id
-                        + NumPyProjCode.PROJ_2D_2D_0Y,
+                        + NumPyProjCode.PROJ_2D_2D_Y,
                         tag=NumPyMappingTag.KEY_REGION_TAG
                         if rhs2_size >= lhs_size and rhs2_size >= rhs1_size
                         else NumPyMappingTag.NO_MEMOIZE_TAG,
@@ -3518,7 +3518,9 @@ class DeferredArray(NumPyThunk):
                 offset,
                 proj_id,
                 mapping_tag,
-            ) = self.runtime.compute_broadcast_transform(lhs_array, rhs_array)
+            ) = self.runtime.compute_broadcast_transform(
+                lhs_array.shape, rhs_array.shape
+            )
             argbuf = BufferBuilder()
             assert lhs_array.ndim >= rhs_array.ndim
             if launch_space is not None:
@@ -3830,7 +3832,7 @@ class DeferredArray(NumPyThunk):
             axis = axes[0]
             # Compute the reduction transform
             transform, proj_id = self.runtime.get_reduction_transform(
-                rhs_array, lhs_array, axes
+                rhs_array.shape, lhs_array.shape, axes
             )
             # Compute the launch space
             launch_space = rhs.compute_parallel_launch_space()
@@ -4001,12 +4003,12 @@ class DeferredArray(NumPyThunk):
                         assert axis == 0 or axis == 1
                         if axis == 0:
                             if keepdims:
-                                result_proj = NumPyProjCode.PROJ_2D_2D_0Y
+                                result_proj = NumPyProjCode.PROJ_2D_2D_Y
                             else:
                                 result_proj = NumPyProjCode.PROJ_2D_1D_Y
                         else:
                             if keepdims:
-                                result_proj = NumPyProjCode.PROJ_2D_2D_X0
+                                result_proj = NumPyProjCode.PROJ_2D_2D_X
                             else:
                                 result_proj = NumPyProjCode.PROJ_2D_1D_X
                     elif len(lhs_array.shape) == 2:
@@ -4507,14 +4509,18 @@ class DeferredArray(NumPyThunk):
                 offset1,
                 proj1_id,
                 mapping_tag1,
-            ) = self.runtime.compute_broadcast_transform(lhs_array, rhs1_array)
+            ) = self.runtime.compute_broadcast_transform(
+                lhs_array.shape, rhs1_array.shape
+            )
 
             (
                 transform2,
                 offset2,
                 proj2_id,
                 mapping_tag2,
-            ) = self.runtime.compute_broadcast_transform(lhs_array, rhs2_array)
+            ) = self.runtime.compute_broadcast_transform(
+                lhs_array.shape, rhs2_array.shape
+            )
 
             # Scalar should have been handled above
             rhs1_future = isinstance(rhs1, Future)
@@ -4685,13 +4691,17 @@ class DeferredArray(NumPyThunk):
                 offset1,
                 proj1_id,
                 mapping_tag1,
-            ) = self.runtime.compute_broadcast_transform(lhs_array, rhs1_array)
+            ) = self.runtime.compute_broadcast_transform(
+                lhs_array.shape, rhs1_array.shape
+            )
             (
                 transform2,
                 offset2,
                 proj2_id,
                 mapping_tag2,
-            ) = self.runtime.compute_broadcast_transform(lhs_array, rhs2_array)
+            ) = self.runtime.compute_broadcast_transform(
+                lhs_array.shape, rhs2_array.shape
+            )
             # Compute our launch space
             launch_space = self.runtime.compute_parallel_launch_space_by_shape(
                 broadcast
@@ -4951,19 +4961,25 @@ class DeferredArray(NumPyThunk):
                 offset1,
                 proj1_id,
                 mapping_tag1,
-            ) = self.runtime.compute_broadcast_transform(lhs_array, rhs1_array)
+            ) = self.runtime.compute_broadcast_transform(
+                lhs_array.shape, rhs1_array.shape
+            )
             (
                 transform2,
                 offset2,
                 proj2_id,
                 mapping_tag2,
-            ) = self.runtime.compute_broadcast_transform(lhs_array, rhs2_array)
+            ) = self.runtime.compute_broadcast_transform(
+                lhs_array.shape, rhs2_array.shape
+            )
             (
                 transform3,
                 offset3,
                 proj3_id,
                 mapping_tag3,
-            ) = self.runtime.compute_broadcast_transform(lhs_array, rhs3_array)
+            ) = self.runtime.compute_broadcast_transform(
+                lhs_array.shape, rhs3_array.shape
+            )
             # Compute our launch space
             launch_space = result.compute_parallel_launch_space()
             # Scalar should have been handled above
