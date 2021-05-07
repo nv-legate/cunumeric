@@ -13,7 +13,6 @@
 # limitations under the License.
 #
 
-from collections import OrderedDict
 from enum import IntEnum
 
 import numpy as np
@@ -71,9 +70,10 @@ class PointArg(object):
 
 
 class RegionFieldArg(object):
-    def __init__(self, dim, region_idx, field_id, dtype, transform):
+    def __init__(self, op, dim, key, field_id, dtype, transform):
+        self._op = op
         self._dim = dim
-        self._region_idx = region_idx
+        self._key = key
         self._field_id = field_id
         self._dtype = dtype
         self._transform = transform
@@ -81,7 +81,7 @@ class RegionFieldArg(object):
     def pack(self, buf):
         buf.pack_32bit_int(self._dim)
         buf.pack_dtype(self._dtype)
-        buf.pack_32bit_uint(self._region_idx)
+        buf.pack_32bit_uint(self._op.get_requirement_index(self._key))
         buf.pack_32bit_uint(self._field_id)
         if self._transform is not None:
             buf.pack_32bit_int(self._transform.M)
@@ -111,16 +111,19 @@ _index_task_calls = {
 
 
 class _Broadcast(object):
-    def add(self, runtime, task, arg, fields):
-        f = _index_task_calls[arg.permission]
-        f(task, arg.region, fields, 0, parent=arg.region, tag=arg.tag)
+    def add(self, task, req, fields):
+        f = _index_task_calls[req.permission]
+        f(task, req.region, fields, 0, parent=req.region, tag=req.tag)
 
-    def add_single(self, task, arg, fields):
-        f = _single_task_calls[arg.permission]
-        f(task, arg.region, fields, tag=arg.tag, flags=arg.flags)
+    def add_single(self, task, req, fields):
+        f = _single_task_calls[req.permission]
+        f(task, req.region, fields, tag=req.tag, flags=req.flags)
 
     def __hash__(self):
         return hash("Broadcast")
+
+    def __eq__(self, other):
+        return isinstance(other, Broadcast)
 
 
 Broadcast = _Broadcast()
@@ -131,37 +134,36 @@ class Projection(object):
         self.part = part
         self.proj = proj
 
-    def add(self, runtime, task, arg, fields):
-        f = _index_task_calls[arg.permission]
-        f(task, self.part, fields, self.proj, tag=arg.tag, flags=arg.flags)
+    def add(self, task, req, fields):
+        f = _index_task_calls[req.permission]
+        f(task, self.part, fields, self.proj, tag=req.tag, flags=req.flags)
 
-    def add_single(self, task, arg, fields):
-        f = _single_task_calls[arg.permission]
-        f(task, arg.region, fields, tag=arg.tag)
+    def add_single(self, task, req, fields):
+        f = _single_task_calls[req.permission]
+        f(task, req.region, fields, tag=req.tag)
 
     def __hash__(self):
         return hash((self.part, self.proj))
 
+    def __eq__(self, other):
+        return (
+            isinstance(other, Projection)
+            and self.part == other.part
+            and self.proj == other.proj
+        )
+
 
 class RegionReq(object):
-    def __init__(self, region, proj, permission, tag, flags):
+    def __init__(self, region, permission, proj, tag, flags):
         self.region = region
-        self.proj = proj
         self.permission = permission
+        self.proj = proj
         self.tag = tag
         self.flags = flags
 
     def __repr__(self):
-        return (
-            str(self.region)
-            + ","
-            + str(self.proj)
-            + ","
-            + str(self.permission)
-            + ","
-            + str(self.tag)
-            + ","
-            + str(self.flags)
+        return repr(
+            (self.region, self.permission, self.proj, self.tag, self.flags)
         )
 
     def __hash__(self):
@@ -179,13 +181,92 @@ class RegionReq(object):
         )
 
 
+class ProjectionSet(object):
+    def __init__(self):
+        self._entries = {}
+
+    def _create(self, perm, entry):
+        self._entries[perm] = set([entry])
+
+    def _update(self, perm, entry):
+        entries = self._entries[perm]
+        entries.add(entry)
+        if perm == Permission.WRITE and len(entries) > 1:
+            raise ValueError("Interfering requirements found")
+
+    def insert(self, perm, proj_info):
+        if perm == Permission.READ_WRITE:
+            self.insert(Permission.READ, proj_info)
+            self.insert(Permission.WRITE, proj_info)
+        else:
+            if perm in self._entries:
+                self._update(perm, proj_info)
+            else:
+                self._create(perm, proj_info)
+
+    def coalesce(self):
+        if len(self._entries) == 1:
+            perm = list(self._entries.keys())[0]
+            return [(perm, *entry) for entry in self._entries[perm]]
+        all_perms = set(self._entries.keys())
+        # If the fields is requested with conflicting permissions,
+        # promote them to read write permission.
+        if len(all_perms - set([Permission.NO_ACCESS])) > 1:
+            perm = Permission.READ_WRITE
+
+            # When the field requires read write permission,
+            # all projections must be the same
+            all_entries = set()
+            for entry in self._entries.values():
+                all_entries = all_entries | entry
+            if len(all_entries) > 1:
+                raise ValueError("Interfering requirements found")
+
+            return [(perm, *all_entries.pop())]
+
+        # This can happen when there is a no access requirement.
+        # For now, we don't coalesce it with others.
+        else:
+            return [pair for pair in self._entries.items()]
+
+    def __repr__(self):
+        return str(self._entries)
+
+
+class FieldSet(object):
+    def __init__(self):
+        self._fields = {}
+
+    def insert(self, field_id, perm, proj_info):
+        if field_id in self._fields:
+            proj_set = self._fields[field_id]
+        else:
+            proj_set = ProjectionSet()
+            self._fields[field_id] = proj_set
+        proj_set.insert(perm, proj_info)
+
+    def coalesce(self):
+        coalesced = {}
+        for field_id, proj_set in self._fields.items():
+            proj_infos = proj_set.coalesce()
+            for key in proj_infos:
+                if key in coalesced:
+                    coalesced[key].append(field_id)
+                else:
+                    coalesced[key] = [field_id]
+
+        return coalesced
+
+
 class Map(object):
     def __init__(self, runtime, task_id, tag=0):
         assert type(tag) != bool
         self._runtime = runtime
         self._task_id = runtime.get_task_id(task_id)
         self._args = list()
-        self._region_args = OrderedDict()
+        self._region_args = {}
+        self._region_reqs = list()
+        self._region_reqs_indices = {}
         self._next_region_idx = 0
         self._projections = list()
         self._future_args = list()
@@ -199,17 +280,14 @@ class Map(object):
         self._future_args.clear()
         self._future_map_args.clear()
 
-    def _add_region_arg(self, region_arg, field_id):
-        if region_arg not in self._region_args:
-            idx = self._next_region_idx
-            self._next_region_idx += 1
-            self._region_args[region_arg] = ([field_id], idx)
-            return idx
-        else:
-            (fields, idx) = self._region_args[region_arg]
-            if field_id not in fields:
-                fields.append(field_id)
-            return idx
+    def _coalesce_region_requirements(self):
+        for region, field_set in self._region_args.items():
+            perm_map = field_set.coalesce()
+            for key, fields in perm_map.items():
+                req_idx = len(self._region_reqs)
+                req = RegionReq(region, *key)
+                self._region_reqs_indices[req] = req_idx
+                self._region_reqs.append((req, fields))
 
     def add_scalar_arg(self, value, dtype):
         self._args.append(ScalarArg(value, dtype))
@@ -217,16 +295,30 @@ class Map(object):
     def add_dtype_arg(self, dtype):
         self._args.append(DtypeArg(dtype))
 
+    def get_requirement_index(self, key):
+        try:
+            return self._region_reqs_indices[key]
+        except KeyError:
+            key = RegionReq(
+                key.region, Permission.READ_WRITE, key.proj, key.tag, key.flags
+            )
+            return self._region_reqs_indices[key]
+
     def add_region_arg(self, store, transform, proj, perm, tag, flags):
         (region, field_id) = store.storage
-        region_idx = self._add_region_arg(
-            RegionReq(region, proj, perm, tag, flags), field_id
-        )
+        if region in self._region_args:
+            field_set = self._region_args[region]
+        else:
+            field_set = FieldSet()
+            self._region_args[region] = field_set
+        proj_info = (proj, tag, flags)
+        field_set.insert(field_id, perm, proj_info)
 
         self._args.append(
             RegionFieldArg(
+                self,
                 region.index_space.get_dim(),
-                region_idx,
+                RegionReq(region, perm, *proj_info),
                 field_id,
                 store.type.to_pandas_dtype(),
                 transform,
@@ -278,6 +370,8 @@ class Map(object):
         self._sharding_space = space
 
     def build_task(self, launch_domain, argbuf):
+        self._coalesce_region_requirements()
+
         for arg in self._args:
             arg.pack(argbuf)
         task = IndexTask(
@@ -292,8 +386,8 @@ class Map(object):
         if self._sharding_space is not None:
             task.set_sharding_space(self._sharding_space)
 
-        for region_arg, (fields, _) in self._region_args.items():
-            region_arg.proj.add(self._runtime, task, region_arg, fields)
+        for (req, fields) in self._region_reqs:
+            req.proj.add(task, req, fields)
         for future in self._future_args:
             task.add_future(future)
         for future_map in self._future_map_args:
@@ -301,6 +395,8 @@ class Map(object):
         return task
 
     def build_single_task(self, argbuf):
+        self._coalesce_region_requirements()
+
         for arg in self._args:
             arg.pack(argbuf)
         task = Task(
@@ -310,8 +406,8 @@ class Map(object):
             mapper=self._runtime.mapper_id,
             tag=self._tag,
         )
-        for region_arg, (fields, _) in self._region_args.items():
-            region_arg.proj.add_single(task, region_arg, fields)
+        for (req, fields) in self._region_reqs:
+            req.proj.add_single(task, req, fields)
         for future in self._future_args:
             task.add_future(future)
         if len(self._region_args) == 0:
