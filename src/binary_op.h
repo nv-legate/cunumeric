@@ -17,6 +17,7 @@
 #pragma once
 
 #include "numpy.h"
+#include "deserializer.h"
 
 namespace legate {
 namespace numpy {
@@ -31,18 +32,18 @@ class BinaryOpTask : public NumPyTask<BinaryOpTask> {
                           const std::vector<Legion::PhysicalRegion>& regions,
                           Legion::Context ctx,
                           Legion::Runtime* runtime);
-  //#ifdef LEGATE_USE_OPENMP
-  //  static void omp_variant(const Legion::Task* task,
-  //                          const std::vector<Legion::PhysicalRegion>& regions,
-  //                          Legion::Context ctx,
-  //                          Legion::Runtime* runtime);
-  //#endif
-  //#ifdef LEGATE_USE_CUDA
-  //  static void gpu_variant(const Legion::Task* task,
-  //                          const std::vector<Legion::PhysicalRegion>& regions,
-  //                          Legion::Context ctx,
-  //                          Legion::Runtime* runtime);
-  //#endif
+#ifdef LEGATE_USE_OPENMP
+  static void omp_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
+                          Legion::Runtime* runtime);
+#endif
+#ifdef LEGATE_USE_CUDA
+  static void gpu_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
+                          Legion::Runtime* runtime);
+#endif
 };
 
 enum class BinaryOpCode : int {
@@ -62,6 +63,8 @@ enum class BinaryOpCode : int {
   POWER,
   SUBTRACT,
 };
+
+void deserialize(Deserializer& ctx, BinaryOpCode& code);
 
 template <typename Functor, typename... Fnargs>
 constexpr decltype(auto) op_dispatch(BinaryOpCode op_code, Functor f, Fnargs&&... args)
@@ -206,7 +209,7 @@ struct BinaryOp<BinaryOpCode::MOD, CODE> {
 template <>
 struct BinaryOp<BinaryOpCode::MOD, LegateTypeCode::HALF_LT> {
   static constexpr bool valid = true;
-  __half operator()(const __half& a, const __half& b) const
+  LEGATE_DEVICE_PREFIX __half operator()(const __half& a, const __half& b) const
   {
     return static_cast<__half>(real_mod(static_cast<float>(a), static_cast<float>(b)));
   }
@@ -232,12 +235,40 @@ struct BinaryOp<BinaryOpCode::NOT_EQUAL, CODE> : std::not_equal_to<legate_type_o
   static constexpr bool valid = true;
 };
 
-using std::pow;
 template <LegateTypeCode CODE>
 struct BinaryOp<BinaryOpCode::POWER, CODE> {
   using VAL                   = legate_type_of<CODE>;
   static constexpr bool valid = true;
-  constexpr VAL operator()(const VAL& a, const VAL& b) const { return static_cast<VAL>(pow(a, b)); }
+  constexpr VAL operator()(const VAL& a, const VAL& b) const { return std::pow(a, b); }
+};
+
+template <>
+struct BinaryOp<BinaryOpCode::POWER, LegateTypeCode::HALF_LT> {
+  static constexpr bool valid = true;
+  LEGATE_DEVICE_PREFIX __half operator()(const __half& a, const __half& b) const
+  {
+    return pow(a, b);
+  }
+};
+
+template <>
+struct BinaryOp<BinaryOpCode::POWER, LegateTypeCode::COMPLEX64_LT> {
+  static constexpr bool valid = true;
+  LEGATE_DEVICE_PREFIX complex<float> operator()(const complex<float>& a,
+                                                 const complex<float>& b) const
+  {
+    return pow(a, b);
+  }
+};
+
+template <>
+struct BinaryOp<BinaryOpCode::POWER, LegateTypeCode::COMPLEX128_LT> {
+  static constexpr bool valid = true;
+  LEGATE_DEVICE_PREFIX complex<double> operator()(const complex<double>& a,
+                                                  const complex<double>& b) const
+  {
+    return pow(a, b);
+  }
 };
 
 template <LegateTypeCode CODE>

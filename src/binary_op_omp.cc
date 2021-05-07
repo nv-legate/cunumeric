@@ -16,7 +16,6 @@
 
 #include "binary_op.h"
 #include "core.h"
-#include "deserializer.h"
 #include "dispatch.h"
 #include "point_task.h"
 
@@ -25,12 +24,7 @@ namespace numpy {
 
 using namespace Legion;
 
-void deserialize(Deserializer &ctx, BinaryOpCode &code)
-{
-  int32_t value;
-  deserialize(ctx, value);
-  code = static_cast<BinaryOpCode>(value);
-}
+namespace omp {
 
 template <BinaryOpCode OP_CODE>
 struct BinaryOpImpl {
@@ -68,9 +62,10 @@ struct BinaryOpImpl {
       auto outptr = out.ptr(rect);
       auto in1ptr = in1.ptr(rect);
       auto in2ptr = in2.ptr(rect);
+#pragma omp parallel for schedule(static)
       for (size_t idx = 0; idx < volume; ++idx) outptr[idx] = func(in1ptr[idx], in2ptr[idx]);
     } else {
-      CPULoop<DIM>::binary_loop(func, out, in1, in2, rect);
+      OMPLoop<DIM>::binary_loop(func, out, in1, in2, rect);
     }
   }
 
@@ -91,7 +86,9 @@ struct BinaryOpDispatch {
   }
 };
 
-/*static*/ void BinaryOpTask::cpu_variant(const Task *task,
+}  // namespace omp
+
+/*static*/ void BinaryOpTask::omp_variant(const Task *task,
                                           const std::vector<PhysicalRegion> &regions,
                                           Context context,
                                           Runtime *runtime)
@@ -110,13 +107,8 @@ struct BinaryOpDispatch {
   deserialize(ctx, in1);
   deserialize(ctx, in2);
 
-  op_dispatch(op_code, BinaryOpDispatch{}, shape, out, in1, in2);
+  op_dispatch(op_code, omp::BinaryOpDispatch{}, shape, out, in1, in2);
 }
-
-namespace  // unnamed
-{
-static void __attribute__((constructor)) register_tasks(void) { BinaryOpTask::register_variants(); }
-}  // namespace
 
 }  // namespace numpy
 }  // namespace legate

@@ -16,20 +16,36 @@
 
 #include "binary_op.h"
 #include "core.h"
-#include "deserializer.h"
 #include "dispatch.h"
 #include "point_task.h"
+
+#include <thrust/iterator/counting_iterator.h>
+#include <thrust/transform.h>
 
 namespace legate {
 namespace numpy {
 
 using namespace Legion;
 
-void deserialize(Deserializer &ctx, BinaryOpCode &code)
+namespace gpu {
+
+template <typename Function, typename ARG, typename RES>
+__global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
+  dense_kernel(size_t volume, Function func, RES *out, const ARG *in1, const ARG *in2)
 {
-  int32_t value;
-  deserialize(ctx, value);
-  code = static_cast<BinaryOpCode>(value);
+  const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+  if (idx >= volume) return;
+  out[idx] = func(in1[idx], in2[idx]);
+}
+
+template <typename Function, typename ReadAcc, typename WriteAcc, typename Pitches, typename Rect>
+__global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM) generic_kernel(
+  size_t volume, Function func, WriteAcc out, ReadAcc in1, ReadAcc in2, Pitches pitches, Rect rect)
+{
+  const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+  if (idx >= volume) return;
+  auto point = pitches.unflatten(idx, rect.lo);
+  out[point] = func(in1[point], in2[point]);
 }
 
 template <BinaryOpCode OP_CODE>
@@ -64,13 +80,14 @@ struct BinaryOpImpl {
 #endif
 
     OP func{};
+    const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
     if (dense) {
       auto outptr = out.ptr(rect);
       auto in1ptr = in1.ptr(rect);
       auto in2ptr = in2.ptr(rect);
-      for (size_t idx = 0; idx < volume; ++idx) outptr[idx] = func(in1ptr[idx], in2ptr[idx]);
+      dense_kernel<<<blocks, THREADS_PER_BLOCK>>>(volume, func, outptr, in1ptr, in2ptr);
     } else {
-      CPULoop<DIM>::binary_loop(func, out, in1, in2, rect);
+      generic_kernel<<<blocks, THREADS_PER_BLOCK>>>(volume, func, out, in1, in2, pitches, rect);
     }
   }
 
@@ -91,7 +108,9 @@ struct BinaryOpDispatch {
   }
 };
 
-/*static*/ void BinaryOpTask::cpu_variant(const Task *task,
+}  // namespace gpu
+
+/*static*/ void BinaryOpTask::gpu_variant(const Task *task,
                                           const std::vector<PhysicalRegion> &regions,
                                           Context context,
                                           Runtime *runtime)
@@ -110,13 +129,8 @@ struct BinaryOpDispatch {
   deserialize(ctx, in1);
   deserialize(ctx, in2);
 
-  op_dispatch(op_code, BinaryOpDispatch{}, shape, out, in1, in2);
+  op_dispatch(op_code, gpu::BinaryOpDispatch{}, shape, out, in1, in2);
 }
-
-namespace  // unnamed
-{
-static void __attribute__((constructor)) register_tasks(void) { BinaryOpTask::register_variants(); }
-}  // namespace
 
 }  // namespace numpy
 }  // namespace legate

@@ -20,6 +20,8 @@ ifndef OPEN_BLAS_DIR
 $(error OPEN_BLAS_DIR variable is not defined, aborting build)
 endif
 
+include $(LEGATE_DIR)/share/legate/config.mk
+
 LIBNAME		= liblgnumpy
 
 CC_FLAGS ?=
