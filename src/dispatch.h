@@ -76,6 +76,7 @@ struct inner_type_dispatch_fn {
     return f.template operator()<LegateTypeCode::BOOL_LT, DIM>(std::forward<Fnargs>(args)...);
   }
 };
+
 template <int DIM>
 struct inner_dim_dispatch_fn {
   template <typename Functor, typename... Fnargs>
@@ -161,6 +162,57 @@ constexpr decltype(auto) dim_dispatch(int dim, Functor f, Fnargs &&... args)
   }
   assert(false);
   return f.template operator()<1>(std::forward<Fnargs>(args)...);
+}
+
+template <typename Functor, typename... Fnargs>
+constexpr decltype(auto) type_dispatch(LegateTypeCode code, Functor f, Fnargs &&... args)
+{
+  switch (code) {
+    case LegateTypeCode::BOOL_LT: {
+      return f.template operator()<LegateTypeCode::BOOL_LT>(std::forward<Fnargs>(args)...);
+    }
+    case LegateTypeCode::INT8_LT: {
+      return f.template operator()<LegateTypeCode::INT8_LT>(std::forward<Fnargs>(args)...);
+    }
+    case LegateTypeCode::INT16_LT: {
+      return f.template operator()<LegateTypeCode::INT16_LT>(std::forward<Fnargs>(args)...);
+    }
+    case LegateTypeCode::INT32_LT: {
+      return f.template operator()<LegateTypeCode::INT32_LT>(std::forward<Fnargs>(args)...);
+    }
+    case LegateTypeCode::INT64_LT: {
+      return f.template operator()<LegateTypeCode::INT64_LT>(std::forward<Fnargs>(args)...);
+    }
+    case LegateTypeCode::UINT8_LT: {
+      return f.template operator()<LegateTypeCode::UINT8_LT>(std::forward<Fnargs>(args)...);
+    }
+    case LegateTypeCode::UINT16_LT: {
+      return f.template operator()<LegateTypeCode::UINT16_LT>(std::forward<Fnargs>(args)...);
+    }
+    case LegateTypeCode::UINT32_LT: {
+      return f.template operator()<LegateTypeCode::UINT32_LT>(std::forward<Fnargs>(args)...);
+    }
+    case LegateTypeCode::UINT64_LT: {
+      return f.template operator()<LegateTypeCode::UINT64_LT>(std::forward<Fnargs>(args)...);
+    }
+    case LegateTypeCode::HALF_LT: {
+      return f.template operator()<LegateTypeCode::HALF_LT>(std::forward<Fnargs>(args)...);
+    }
+    case LegateTypeCode::FLOAT_LT: {
+      return f.template operator()<LegateTypeCode::FLOAT_LT>(std::forward<Fnargs>(args)...);
+    }
+    case LegateTypeCode::DOUBLE_LT: {
+      return f.template operator()<LegateTypeCode::DOUBLE_LT>(std::forward<Fnargs>(args)...);
+    }
+    case LegateTypeCode::COMPLEX64_LT: {
+      return f.template operator()<LegateTypeCode::COMPLEX64_LT>(std::forward<Fnargs>(args)...);
+    }
+    case LegateTypeCode::COMPLEX128_LT: {
+      return f.template operator()<LegateTypeCode::COMPLEX128_LT>(std::forward<Fnargs>(args)...);
+    }
+  }
+  assert(false);
+  return f.template operator()<LegateTypeCode::BOOL_LT>(std::forward<Fnargs>(args)...);
 }
 
 }  // namespace numpy

@@ -22,6 +22,28 @@
 namespace legate {
 namespace numpy {
 
+template <class T>
+class FromFuture {
+ public:
+  FromFuture()                   = default;
+  FromFuture(const FromFuture &) = default;
+  FromFuture(FromFuture &&)      = default;
+
+  FromFuture &operator=(const FromFuture &) = default;
+  FromFuture &operator=(FromFuture &&) = default;
+
+  FromFuture(const T &value) : value_(value) {}
+  FromFuture(T &&value) : value_(std::forward<T>(value)) {}
+
+  inline operator T() const { return value(); }
+
+  const T &value() const { return value_; }
+  T &value() { return value_; }
+
+ private:
+  T value_;
+};
+
 template <typename T>
 struct Span {
  public:
@@ -63,6 +85,7 @@ class Deserializer {
   friend void deserialize(Deserializer &ctx, std::int16_t &value);
   friend void deserialize(Deserializer &ctx, std::int8_t &value);
   friend void deserialize(Deserializer &ctx, std::string &value);
+  friend void deserialize(Deserializer &ctx, bool &value);
 
  public:
   friend void deserialize(Deserializer &ctx, LegateTypeCode &code);
@@ -71,6 +94,17 @@ class Deserializer {
   friend void deserialize(Deserializer &ctx, Shape &value);
   friend void deserialize(Deserializer &ctx, Transform &value);
   friend void deserialize(Deserializer &ctx, RegionField &value);
+
+ public:
+  template <class T>
+  friend void deserialize(Deserializer &ctx, FromFuture<T> &scalar)
+  {
+    // grab the scalar out of the first future
+    scalar = FromFuture<T>{ctx.futures_[0].get_result<T>()};
+
+    // discard the first future
+    ctx.futures_ = ctx.futures_.subspan(1);
+  }
 
  private:
   const Legion::Task *task_;

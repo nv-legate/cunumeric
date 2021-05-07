@@ -17,7 +17,7 @@ from __future__ import absolute_import, division, print_function
 
 import numpy as np
 
-from .config import NumPyOpCode
+from .config import BinaryOpCode, NumPyOpCode
 from .thunk import NumPyThunk
 
 
@@ -88,10 +88,8 @@ class EagerArray(NumPyThunk):
                 # We are at the root of the tree so we need to
                 # actually make DeferredArray to use
                 if self.array.size == 1:
-                    self.deferred = self.runtime.create_future(
+                    self.deferred = self.runtime.create_scalar(
                         self.array.data,
-                        self.array.nbytes,
-                        wrap=True,
                         dtype=self.array.dtype,
                         shape=(1,),
                     )
@@ -755,7 +753,7 @@ class EagerArray(NumPyThunk):
                 op, rhs1, rhs2, where, args, stacklevel=(stacklevel + 1)
             )
         else:
-            if op == NumPyOpCode.ADD:
+            if op == BinaryOpCode.ADD:
                 np.add(
                     rhs1.array,
                     rhs2.array,
@@ -764,16 +762,16 @@ class EagerArray(NumPyThunk):
                     if not isinstance(where, EagerArray)
                     else where.array,
                 )
-            elif op == NumPyOpCode.LOGICAL_AND:
-                np.logical_and(
-                    rhs1.array,
-                    rhs2.array,
-                    out=self.array,
-                    where=where
-                    if not isinstance(where, EagerArray)
-                    else where.array,
-                )
-            elif op == NumPyOpCode.DIVIDE:
+            # elif op == BinaryOpCode.LOGICAL_AND:
+            #    np.logical_and(
+            #        rhs1.array,
+            #        rhs2.array,
+            #        out=self.array,
+            #        where=where
+            #        if not isinstance(where, EagerArray)
+            #        else where.array,
+            #    )
+            elif op == BinaryOpCode.DIVIDE:
                 np.divide(
                     rhs1.array,
                     rhs2.array,
@@ -782,7 +780,7 @@ class EagerArray(NumPyThunk):
                     if not isinstance(where, EagerArray)
                     else where.array,
                 )
-            elif op == NumPyOpCode.EQUAL:
+            elif op == BinaryOpCode.EQUAL:
                 np.equal(
                     rhs1.array,
                     rhs2.array,
@@ -791,7 +789,7 @@ class EagerArray(NumPyThunk):
                     if not isinstance(where, EagerArray)
                     else where.array,
                 )
-            elif op == NumPyOpCode.FLOOR_DIVIDE:
+            elif op == BinaryOpCode.FLOOR_DIVIDE:
                 np.floor_divide(
                     rhs1.array,
                     rhs2.array,
@@ -800,7 +798,7 @@ class EagerArray(NumPyThunk):
                     if not isinstance(where, EagerArray)
                     else where.array,
                 )
-            elif op == NumPyOpCode.GREATER_EQUAL:
+            elif op == BinaryOpCode.GREATER_EQUAL:
                 np.greater_equal(
                     rhs1.array,
                     rhs2.array,
@@ -809,7 +807,7 @@ class EagerArray(NumPyThunk):
                     if not isinstance(where, EagerArray)
                     else where.array,
                 )
-            elif op == NumPyOpCode.GREATER:
+            elif op == BinaryOpCode.GREATER:
                 np.greater(
                     rhs1.array,
                     rhs2.array,
@@ -818,15 +816,15 @@ class EagerArray(NumPyThunk):
                     if not isinstance(where, EagerArray)
                     else where.array,
                 )
-            # elif op == NumPyOpCode.SHIFT_LEFT:
+            # elif op == BinaryOpCode.SHIFT_LEFT:
             #    np.left_shift(rhs1.array, rhs2.array, out=self.array,
             #            where=where if not isinstance(where, EagerArray)
             #                        else where.array)
-            # elif op == NumPyOpCode.SHIFT_RIGHT:
+            # elif op == BinaryOpCode.SHIFT_RIGHT:
             #    np.right_shift(rhs1.array, rhs2.array, out=self.array,
             #            where=where if not isinstance(where, EagerArray)
             #                        else where.array)
-            elif op == NumPyOpCode.MOD:
+            elif op == BinaryOpCode.MOD:
                 np.mod(
                     rhs1.array,
                     rhs2.array,
@@ -835,7 +833,7 @@ class EagerArray(NumPyThunk):
                     if not isinstance(where, EagerArray)
                     else where.array,
                 )
-            elif op == NumPyOpCode.MULTIPLY:
+            elif op == BinaryOpCode.MULTIPLY:
                 np.multiply(
                     rhs1.array,
                     rhs2.array,
@@ -844,16 +842,16 @@ class EagerArray(NumPyThunk):
                     if not isinstance(where, EagerArray)
                     else where.array,
                 )
-            elif op == NumPyOpCode.LOGICAL_OR:
-                np.logical_or(
-                    rhs1.array,
-                    rhs2.array,
-                    out=self.array,
-                    where=where
-                    if not isinstance(where, EagerArray)
-                    else where.array,
-                )
-            elif op == NumPyOpCode.POWER:
+            # elif op == BinaryOpCode.LOGICAL_OR:
+            #    np.logical_or(
+            #        rhs1.array,
+            #        rhs2.array,
+            #        out=self.array,
+            #        where=where
+            #        if not isinstance(where, EagerArray)
+            #        else where.array,
+            #    )
+            elif op == BinaryOpCode.POWER:
                 np.power(
                     rhs1.array,
                     rhs2.array,
@@ -862,7 +860,7 @@ class EagerArray(NumPyThunk):
                     if not isinstance(where, EagerArray)
                     else where.array,
                 )
-            elif op == NumPyOpCode.SUBTRACT:
+            elif op == BinaryOpCode.SUBTRACT:
                 np.subtract(
                     rhs1.array,
                     rhs2.array,
@@ -871,16 +869,16 @@ class EagerArray(NumPyThunk):
                     if not isinstance(where, EagerArray)
                     else where.array,
                 )
-            elif op == NumPyOpCode.LOGICAL_XOR:
-                np.logical_xor(
-                    rhs1.array,
-                    rhs2.array,
-                    out=self.array,
-                    where=where
-                    if not isinstance(where, EagerArray)
-                    else where.array,
-                )
-            elif op == NumPyOpCode.LESS_EQUAL:
+            # elif op == BinaryOpCode.LOGICAL_XOR:
+            #    np.logical_xor(
+            #        rhs1.array,
+            #        rhs2.array,
+            #        out=self.array,
+            #        where=where
+            #        if not isinstance(where, EagerArray)
+            #        else where.array,
+            #    )
+            elif op == BinaryOpCode.LESS_EQUAL:
                 np.less_equal(
                     rhs1.array,
                     rhs2.array,
@@ -889,7 +887,7 @@ class EagerArray(NumPyThunk):
                     if not isinstance(where, EagerArray)
                     else where.array,
                 )
-            elif op == NumPyOpCode.LESS:
+            elif op == BinaryOpCode.LESS:
                 np.less(
                     rhs1.array,
                     rhs2.array,
@@ -898,7 +896,7 @@ class EagerArray(NumPyThunk):
                     if not isinstance(where, EagerArray)
                     else where.array,
                 )
-            elif op == NumPyOpCode.MAXIMUM:
+            elif op == BinaryOpCode.MAXIMUM:
                 np.maximum(
                     rhs1.array,
                     rhs2.array,
@@ -907,7 +905,7 @@ class EagerArray(NumPyThunk):
                     if not isinstance(where, EagerArray)
                     else where.array,
                 )
-            elif op == NumPyOpCode.MINIMUM:
+            elif op == BinaryOpCode.MINIMUM:
                 np.minimum(
                     rhs1.array,
                     rhs2.array,
@@ -916,7 +914,7 @@ class EagerArray(NumPyThunk):
                     if not isinstance(where, EagerArray)
                     else where.array,
                 )
-            elif op == NumPyOpCode.NOT_EQUAL:
+            elif op == BinaryOpCode.NOT_EQUAL:
                 np.not_equal(
                     rhs1.array,
                     rhs2.array,

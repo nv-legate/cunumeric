@@ -56,6 +56,8 @@ class DeferredArrayView(object):
 
     def add_to_legate_op(self, op, read_only):
         if self._array.scalar:
+            if not read_only:
+                raise ValueError("Singleton arrays must be read only")
             op.add_future(self._array.base)
         else:
             add = op.add_input if read_only else op.add_output
@@ -278,60 +280,9 @@ class DeferredArray(NumPyThunk):
     def get_scalar_array(self, stacklevel):
         assert self.size == 1
         # Look at the type of the data and figure out how to read this data
-        future = self.base
-        if self.dtype.type == np.float16:
-            # No base 16-bit floats in python, so use a numpy array
-            result = np.frombuffer(
-                future.get_buffer(2), dtype=np.float16, count=1
-            )
-        elif self.dtype.type == np.float32:
-            result = np.frombuffer(
-                future.get_buffer(4), dtype=np.float32, count=1
-            )
-        elif self.dtype.type == np.float64:
-            result = np.frombuffer(
-                future.get_buffer(8), dtype=np.float64, count=1
-            )
-        elif self.dtype.type == np.int16:
-            result = np.frombuffer(
-                future.get_buffer(2), dtype=np.int16, count=1
-            )
-        elif self.dtype.type == np.int32:
-            result = np.frombuffer(
-                future.get_buffer(4), dtype=np.int32, count=1
-            )
-        elif self.dtype.type == np.int64:
-            result = np.frombuffer(
-                future.get_buffer(8), dtype=np.int64, count=1
-            )
-        elif self.dtype.type == np.uint16:
-            result = np.frombuffer(
-                future.get_buffer(2), dtype=np.uint16, count=1
-            )
-        elif self.dtype.type == np.uint32:
-            result = np.frombuffer(
-                future.get_buffer(4), dtype=np.uint32, count=1
-            )
-        elif self.dtype.type == np.uint64:
-            result = np.frombuffer(
-                future.get_buffer(8), dtype=np.uint64, count=1
-            )
-        elif self.dtype.type == np.bool_:
-            result = np.frombuffer(
-                future.get_buffer(1), dtype=np.bool_, count=1
-            )
-        elif self.dtype.type == np.complex64:
-            result = np.frombuffer(
-                future.get_buffer(8), dtype=np.complex64, count=1
-            )
-        elif self.dtype.type == np.complex128:
-            result = np.frombuffer(
-                future.get_buffer(8), dtype=np.complex128, count=1
-            )
-        else:
-            raise TypeError(
-                "unsupported Legate NumPy type in get_scalar_array"
-            )
+        # First four bytes are for the type code, so we need to skip those
+        buf = self.base.get_buffer(self.dtype.itemsize + 4)[4:]
+        result = np.frombuffer(buf, dtype=self.dtype, count=1)
         return result.reshape(())
 
     def _create_indexing_array(self, key, stacklevel):
@@ -4412,27 +4363,19 @@ class DeferredArray(NumPyThunk):
         rhs1 = rhs1_array.base
         rhs2 = rhs2_array.base
         # Should have been handled by type checking on the front-end
-        common_dtype = rhs1_array.dtype
         assert rhs1_array.dtype == rhs2_array.dtype
         # Check for the scalar case first
         if rhs1_array.size == 1 and rhs2_array.size == 1:
             # This is a scalar operation
             assert isinstance(rhs1, Future) and isinstance(rhs2, Future)
-            task = Task(
-                self.runtime.get_binary_task_id(
-                    op_code,
-                    result_type=lhs_array.dtype,
-                    first_argument_type=common_dtype,
-                    second_argument_type=common_dtype,
-                    variant_code=NumPyVariantCode.SCALAR,
-                ),
-                mapper=self.runtime.mapper_id,
-            )
-            task.add_future(rhs1)
-            task.add_future(rhs2)
+            op = Map(self.runtime, NumPyOpCode.SCALAR_BINARY_OP)
+            op.add_scalar_arg(op_code.value, np.int32)
+            DeferredArrayView(rhs1_array).add_to_legate_op(op, True)
+            DeferredArrayView(rhs2_array).add_to_legate_op(op, True)
             if args is not None:
-                self.add_arguments(task, args)
-            future = self.runtime.dispatch(task)
+                self.add_arguments(op, args)
+            result = op.execute_single()
+
             # See if the output is also a scalar or not
             if lhs_array.size > 1:
                 # Output is not a scalar so do a fill broadcast
@@ -4478,7 +4421,7 @@ class DeferredArray(NumPyThunk):
             else:
                 # Output is a scalar so we can just save the result
                 # Note this also handles the in-place update correctly too
-                lhs_array.base = future
+                lhs_array.base = result
         else:
             # Normal/broadcast version of this task
             assert lhs_array.size > 1
@@ -4602,9 +4545,12 @@ class DeferredArray(NumPyThunk):
                     transform=transform2,
                 )
 
-            op = Map(
-                self.runtime, NumPyOpCode.BINARY_OP, tag=result.shard_function
+            task_id = (
+                NumPyOpCode.BROADCAST_BINARY_OP
+                if has_future
+                else NumPyOpCode.BINARY_OP
             )
+            op = Map(self.runtime, task_id, tag=result.shard_function)
             op.add_scalar_arg(op_code.value, np.int32)
             if launch_space is not None:
                 op.add_shape(lhs_array.shape, result_part.tile_shape, 0)
@@ -4615,12 +4561,9 @@ class DeferredArray(NumPyThunk):
             rhs1_arg.add_to_legate_op(op, True)
             rhs2_arg.add_to_legate_op(op, True)
 
-            if has_future and result is not rhs1:
+            if has_future:
                 # Pack the index of the future information
-                if isinstance(rhs1, Future):
-                    op.add_scalar_arg(0, np.uint32)
-                else:
-                    op.add_scalar_arg(1, np.uint32)
+                op.add_scalar_arg(rhs2_future, bool)
 
             if args is not None:
                 self.add_arguments(op, args)

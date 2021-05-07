@@ -17,15 +17,14 @@
 #pragma once
 
 #include "numpy.h"
-#include "binary_op_util.h"
 
 namespace legate {
 namespace numpy {
 
-class BinaryOpTask : public NumPyTask<BinaryOpTask> {
+class BroadcastBinaryOpTask : public NumPyTask<BroadcastBinaryOpTask> {
  public:
-  static const int TASK_ID = NUMPY_BINARY_OP;
-  static const int REGIONS = 3;
+  static const int TASK_ID = NUMPY_BROADCAST_BINARY_OP;
+  static const int REGIONS = 2;
 
  public:
   static void cpu_variant(const Legion::Task* task,

@@ -86,6 +86,8 @@ void deserialize(Deserializer &ctx, std::string &value)
   value = ctx.deserializer_.unpack_string();
 }
 
+void deserialize(Deserializer &ctx, bool &value) { value = ctx.deserializer_.unpack_bool(); }
+
 void deserialize(Deserializer &ctx, LegateTypeCode &code)
 {
   code = static_cast<LegateTypeCode>(ctx.deserializer_.unpack_32bit_int());

@@ -1319,6 +1319,17 @@ class Runtime(object):
         else:
             return result
 
+    def create_scalar(self, data, dtype, shape):
+        result = Future()
+        code = numpy_field_type_offsets[dtype.type]
+        data = data.tobytes()
+        buf = struct.pack(f"i{len(data)}s", code, data)
+        result.set_value(self.runtime, buf, len(buf))
+        assert all(extent == 1 for extent in shape)
+        return DeferredArray(
+            self, result, shape=shape, dtype=dtype, scalar=True
+        )
+
     def allocate_field(self, shape, dtype):
         assert not self.destroyed
         region = None
@@ -2126,12 +2137,10 @@ class Runtime(object):
         ):
             if array.size == 1 and not share:
                 # This is a single value array
-                result = self.create_future(
+                result = self.create_scalar(
                     array.data,
-                    array.nbytes,
-                    wrap=True,
-                    dtype=array.dtype,
-                    shape=array.shape,
+                    array.dtype,
+                    array.shape,
                 )
                 # We didn't attach to this so we don't need to save it
                 return result

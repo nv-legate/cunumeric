@@ -19,6 +19,7 @@
 
 #include "numpy.h"
 #include "point_task.h"
+#include "scalar.h"
 
 namespace legate {
 namespace numpy {
@@ -38,24 +39,27 @@ class ScalarUnaryOperationTask : public NumPyTask<Derived> {
 
   static const int REGIONS = 0;
 
-  static result_type cpu_variant(const Legion::Task* task,
-                                 const std::vector<Legion::PhysicalRegion>& regions,
-                                 Legion::Context ctx,
-                                 Legion::Runtime* runtime)
+  static UntypedScalar cpu_variant(const Legion::Task* task,
+                                   const std::vector<Legion::PhysicalRegion>& regions,
+                                   Legion::Context ctx,
+                                   Legion::Runtime* runtime)
   {
-    argument_type rhs = task->futures[0].get_result<argument_type>(true /*silence warnings*/);
+    auto rhs_scalar = task->futures[0].get_result<UntypedScalar>(true /*silence warnings*/);
+    auto rhs        = rhs_scalar.value<argument_type>();
 
     // return the result of the UnaryFunction
     UnaryFunction func;
-    return func(rhs);
+    auto result        = func(rhs);
+    auto result_scalar = UntypedScalar(result);
+    return result_scalar;
   }
 
  private:
   struct StaticRegistrar {
     StaticRegistrar()
     {
-      ScalarUnaryOperationTask::template register_variants_with_return<result_type,
-                                                                       argument_type>();
+      ScalarUnaryOperationTask::template register_variants_with_return<UntypedScalar,
+                                                                       UntypedScalar>();
     }
   };
 

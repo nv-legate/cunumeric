@@ -21,8 +21,12 @@ GEN_CPU_SRC += universal_functions/absolute.cc      \
 							 universal_functions/arcsin.cc        \
 							 universal_functions/arctan.cc        \
 							 binary_op.cc                         \
+							 binary_op_util.cc                    \
+							 broadcast_binary_op.cc               \
+							 scalar_binary_op.cc                  \
 							 core.cc                              \
 							 deserializer.cc                      \
+							 scalar.cc                            \
 							 arange.cc                            \
 							 arg.cc                               \
 							 argmin.cc                            \
@@ -101,7 +105,8 @@ GEN_CPU_SRC += universal_functions/absolute.cc      \
                         # only after all task variants are recorded
 
 ifeq ($(strip $(USE_OPENMP)),1)
-GEN_CPU_SRC += binary_op_omp.cc
+GEN_CPU_SRC += binary_op_omp.cc           \
+							 broadcast_binary_op_omp.cc
 endif
 
 GEN_GPU_SRC += universal_functions/absolute.cu      \
@@ -110,6 +115,7 @@ GEN_GPU_SRC += universal_functions/absolute.cu      \
 							 universal_functions/arcsin.cu        \
 							 universal_functions/arctan.cu        \
 							 binary_op.cu                         \
+							 broadcast_binary_op.cu               \
 							 arange.cu                            \
 							 arg.cu                               \
 							 argmin.cu                            \

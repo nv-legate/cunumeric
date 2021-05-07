@@ -190,6 +190,8 @@ class NumPyOpCode(IntEnum):
     CONVERT_TO_RECT = legate_numpy.NUMPY_CONVERT_TO_RECT
     ARANGE = legate_numpy.NUMPY_ARANGE
     BINARY_OP = legate_numpy.NUMPY_BINARY_OP
+    BROADCAST_BINARY_OP = legate_numpy.NUMPY_BROADCAST_BINARY_OP
+    SCALAR_BINARY_OP = legate_numpy.NUMPY_SCALAR_BINARY_OP
 
 
 @unique
@@ -203,7 +205,7 @@ class BinaryOpCode(IntEnum):
     LESS = 7
     LESS_EQUAL = 8
     MAXIMUM = 9
-    MINIUM = 10
+    MINIMUM = 10
     MOD = 11
     MULTIPLY = 12
     NOT_EQUAL = 13
