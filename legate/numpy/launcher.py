@@ -81,7 +81,9 @@ class RegionFieldArg(object):
     def pack(self, buf):
         buf.pack_32bit_int(self._dim)
         buf.pack_dtype(self._dtype)
-        buf.pack_32bit_uint(self._op.get_requirement_index(self._key))
+        buf.pack_32bit_uint(
+            self._op.get_requirement_index(self._key, self._field_id)
+        )
         buf.pack_32bit_uint(self._field_id)
         if self._transform is not None:
             buf.pack_32bit_int(self._transform.M)
@@ -286,7 +288,8 @@ class Map(object):
             for key, fields in perm_map.items():
                 req_idx = len(self._region_reqs)
                 req = RegionReq(region, *key)
-                self._region_reqs_indices[req] = req_idx
+                for field_id in fields:
+                    self._region_reqs_indices[(req, field_id)] = req_idx
                 self._region_reqs.append((req, fields))
 
     def add_scalar_arg(self, value, dtype):
@@ -295,14 +298,14 @@ class Map(object):
     def add_dtype_arg(self, dtype):
         self._args.append(DtypeArg(dtype))
 
-    def get_requirement_index(self, key):
+    def get_requirement_index(self, key, field_id):
         try:
-            return self._region_reqs_indices[key]
+            return self._region_reqs_indices[(key, field_id)]
         except KeyError:
             key = RegionReq(
                 key.region, Permission.READ_WRITE, key.proj, key.tag, key.flags
             )
-            return self._region_reqs_indices[key]
+            return self._region_reqs_indices[(key, field_id)]
 
     def add_region_arg(self, store, transform, proj, perm, tag, flags):
         (region, field_id) = store.storage
