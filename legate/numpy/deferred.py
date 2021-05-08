@@ -4847,7 +4847,9 @@ class DeferredArray(NumPyThunk):
                 if args is not None:
                     self.add_arguments(task, args)
                 result = self.runtime.dispatch(task)
-            lhs_array.base = result
+            array = np.frombuffer(result.get_buffer(1), dtype=bool, count=1)
+            scalar = self.runtime.create_scalar(array.data, np.dtype("bool"))
+            lhs_array.base = scalar
         self.runtime.profile_callsite(stacklevel + 1, True, callsite)
         if self.runtime.shadow_debug:
             self.shadow.binary_reduction(
