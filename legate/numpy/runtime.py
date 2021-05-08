@@ -2529,12 +2529,10 @@ class Runtime(object):
                 if dim in axes:
                     continue
                 transform[dim, dim] = 1
-            affine_transform = AffineTransform(
-                output_array.ndim, input_array.ndim, False
-            )
+            affine_transform = AffineTransform(output_ndim, input_ndim, False)
             affine_transform.trans = transform
-            assert input_array.ndim > 1  # Should never have the 1-D case here
-            if input_array.ndim == 2:
+            assert input_ndim > 1  # Should never have the 1-D case here
+            if input_ndim == 2:
                 assert len(axes) == 1
                 if axes[0] == 0:
                     return (
@@ -2597,11 +2595,9 @@ class Runtime(object):
                     continue
                 transform[output_dim, dim] = 1
                 output_dim += 1
-            affine_transform = AffineTransform(
-                output_array.ndim, input_array.ndim, False
-            )
+            affine_transform = AffineTransform(output_ndim, input_ndim, False)
             affine_transform.trans = transform
-            if input_array.ndim == 2:
+            if input_ndim == 2:
                 assert len(axes) == 1
                 if axes[0] == 0:
                     return (
