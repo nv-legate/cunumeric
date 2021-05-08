@@ -321,7 +321,7 @@ class DeferredArray(NumPyThunk):
                     )
                 # For boolean arrays do the non-zero operation to make
                 # them into a normal indexing array
-                tuple_of_arrays = key.nonzero()
+                tuple_of_arrays = key.nonzero(stacklevel + 1)
             else:
                 tuple_of_arrays = (key,)
         if len(tuple_of_arrays) != self.ndim:
