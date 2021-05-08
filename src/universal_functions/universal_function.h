@@ -17,13 +17,7 @@
 #ifndef __NUMPY_UNIVERSAL_FUNCTION_H__
 #define __NUMPY_UNIVERSAL_FUNCTION_H__
 
-#include "binary_operation.h"
-#include "broadcast_binary_operation.h"
-#include "inplace_binary_operation.h"
-#include "inplace_broadcast_binary_operation.h"
 #include "inplace_unary_operation.h"
-#include "noncommutative_broadcast_binary_operation.h"
-#include "scalar_binary_operation.h"
 #include "scalar_unary_operation.h"
 #include "unary_operation.h"
 #include <functional>
@@ -61,97 +55,6 @@ struct UnaryUniversalFunction {
     // to be instantiated and retained by the compiler
 
     printf("%p %p", NormalTask::gpu_variant, InplaceNormalTask::gpu_variant);
-  }
-#endif
-};
-
-template <class BinaryOperation>
-struct BinaryUniversalFunction {
-  // a binary universal function instantiates the following kinds of tasks:
-  struct NormalTask : public BinaryOperationTask<NormalTask, BinaryOperation> {
-  };
-  struct InplaceNormalTask : public InplaceBinaryOperationTask<InplaceNormalTask, BinaryOperation> {
-  };
-  struct ScalarTask : public ScalarBinaryOperationTask<ScalarTask, BinaryOperation> {
-  };
-  struct BroadcastTask : public BroadcastBinaryOperationTask<BroadcastTask, BinaryOperation> {
-  };
-  struct InplaceBroadcastTask
-    : public InplaceBroadcastBinaryOperationTask<InplaceBroadcastTask, BinaryOperation> {
-  };
-
-  void instantiate_tasks()
-  {
-    // this function will never be called
-    // it exists simply to force the instantiation of
-    // NormalTask, InplaceNormalTask, ScalarTask, BroadcastTask, and InplaceBroadcastTask
-
-    std::unique_ptr<NormalTask> ptr1(new NormalTask);
-    std::unique_ptr<InplaceNormalTask> ptr2(new InplaceNormalTask);
-    std::unique_ptr<ScalarTask> ptr3(new ScalarTask);
-    std::unique_ptr<BroadcastTask> ptr4(new BroadcastTask);
-    std::unique_ptr<InplaceBroadcastTask> ptr5(new InplaceBroadcastTask);
-  }
-
-#if defined(LEGATE_USE_CUDA) and defined(__CUDACC__)
-  void instantiate_task_gpu_variants()
-  {
-    // this function will never be called
-    // it exists simply to force the .gpu_variant() members of these
-    // tasks to be instanitated and retained by the compiler
-
-    printf("%p %p %p %p",
-           NormalTask::gpu_variant,
-           InplaceNormalTask::gpu_variant,
-           BroadcastTask::gpu_variant,
-           InplaceBroadcastTask::gpu_variant);
-  }
-#endif
-};
-
-// XXX investigate whether it would be convenient to merge this class with BinaryUniversalFunction
-// somehow
-template <class BinaryOperation>
-struct NoncommutativeBinaryUniversalFunction {
-  // a binary universal function instantiates the following kinds of tasks:
-  struct NormalTask : public BinaryOperationTask<NormalTask, BinaryOperation> {
-  };
-  struct InplaceNormalTask : public InplaceBinaryOperationTask<InplaceNormalTask, BinaryOperation> {
-  };
-  struct ScalarTask : public ScalarBinaryOperationTask<ScalarTask, BinaryOperation> {
-  };
-  struct BroadcastTask
-    : public NoncommutativeBroadcastBinaryOperationTask<BroadcastTask, BinaryOperation> {
-  };
-  struct InplaceBroadcastTask
-    : public InplaceBroadcastBinaryOperationTask<InplaceBroadcastTask, BinaryOperation> {
-  };
-
-  void instantiate_tasks()
-  {
-    // this function will never be called
-    // it exists simply to force the instantiation of
-    // NormalTask, InplaceNormalTask, ScalarTask, BroadcastTask, and InplaceBroadcastTask
-
-    std::unique_ptr<NormalTask> ptr1(new NormalTask);
-    std::unique_ptr<InplaceNormalTask> ptr2(new InplaceNormalTask);
-    std::unique_ptr<ScalarTask> ptr3(new ScalarTask);
-    std::unique_ptr<BroadcastTask> ptr4(new BroadcastTask);
-    std::unique_ptr<InplaceBroadcastTask> ptr5(new InplaceBroadcastTask);
-  }
-
-#if defined(LEGATE_USE_CUDA) and defined(__CUDACC__)
-  void instantiate_task_gpu_variants()
-  {
-    // this function will never be called
-    // it exists simply to force the .gpu_variant() members of these
-    // tasks to be instanitated and retained by the compiler
-
-    printf("%p %p %p %p",
-           NormalTask::gpu_variant,
-           InplaceNormalTask::gpu_variant,
-           BroadcastTask::gpu_variant,
-           InplaceBroadcastTask::gpu_variant);
   }
 #endif
 };

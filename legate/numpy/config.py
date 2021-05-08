@@ -115,7 +115,6 @@ NUMPY_TYPE_OFFSET = NUMPY_MAX_TYPES * NUMPY_MAX_VARIANTS
 @unique
 class NumPyOpCode(IntEnum):
     ABSOLUTE = legate_numpy.NUMPY_ABSOLUTE
-    ADD = legate_numpy.NUMPY_ADD
     ALLCLOSE = legate_numpy.NUMPY_ALLCLOSE
     ARCCOS = legate_numpy.NUMPY_ARCCOS
     ARCSIN = legate_numpy.NUMPY_ARCSIN
@@ -131,14 +130,12 @@ class NumPyOpCode(IntEnum):
     COPY = legate_numpy.NUMPY_COPY
     COS = legate_numpy.NUMPY_COS
     DIAG = legate_numpy.NUMPY_DIAG
-    DIVIDE = legate_numpy.NUMPY_DIVIDE
     DOT = legate_numpy.NUMPY_DOT
     EQUAL = legate_numpy.NUMPY_EQUAL
     EXP = legate_numpy.NUMPY_EXP
     EYE = legate_numpy.NUMPY_EYE
     FILL = legate_numpy.NUMPY_FILL
     FLOOR = legate_numpy.NUMPY_FLOOR
-    FLOOR_DIVIDE = legate_numpy.NUMPY_FLOOR_DIVIDE
     GETARG = legate_numpy.NUMPY_GETARG
     GREATER = legate_numpy.NUMPY_GREATER
     GREATER_EQUAL = legate_numpy.NUMPY_GREATER_EQUAL
@@ -151,16 +148,12 @@ class NumPyOpCode(IntEnum):
     LOGICAL_NOT = legate_numpy.NUMPY_LOGICAL_NOT
     MAX = legate_numpy.NUMPY_MAX
     MAX_RADIX = legate_numpy.NUMPY_MAX_RADIX
-    MAXIMUM = legate_numpy.NUMPY_MAXIMUM
     MIN = legate_numpy.NUMPY_MIN
     MIN_RADIX = legate_numpy.NUMPY_MIN_RADIX
-    MINIMUM = legate_numpy.NUMPY_MINIMUM
     MOD = legate_numpy.NUMPY_MOD
-    MULTIPLY = legate_numpy.NUMPY_MULTIPLY
     NEGATIVE = legate_numpy.NUMPY_NEGATIVE
     NORM = legate_numpy.NUMPY_NORM
     NOT_EQUAL = legate_numpy.NUMPY_NOT_EQUAL
-    POWER = legate_numpy.NUMPY_POWER
     PROD = legate_numpy.NUMPY_PROD
     PROD_RADIX = legate_numpy.NUMPY_PROD_RADIX
     RAND_INTEGER = legate_numpy.NUMPY_RAND_INTEGER
@@ -170,7 +163,6 @@ class NumPyOpCode(IntEnum):
     SIN = legate_numpy.NUMPY_SIN
     SORT = legate_numpy.NUMPY_SORT
     SQRT = legate_numpy.NUMPY_SQRT
-    SUBTRACT = legate_numpy.NUMPY_SUBTRACT
     SUM = legate_numpy.NUMPY_SUM
     SUM_RADIX = legate_numpy.NUMPY_SUM_RADIX
     TAN = legate_numpy.NUMPY_TAN
@@ -179,9 +171,6 @@ class NumPyOpCode(IntEnum):
     TRANSPOSE = legate_numpy.NUMPY_TRANSPOSE
     WHERE = legate_numpy.NUMPY_WHERE
     WRITE = legate_numpy.NUMPY_WRITE
-    LOGICAL_AND = legate_numpy.NUMPY_LOGICAL_AND
-    LOGICAL_OR = legate_numpy.NUMPY_LOGICAL_OR
-    LOGICAL_XOR = legate_numpy.NUMPY_LOGICAL_XOR
     CONTAINS = legate_numpy.NUMPY_CONTAINS
     COUNT_NONZERO = legate_numpy.NUMPY_COUNT_NONZERO
     NONZERO = legate_numpy.NUMPY_NONZERO
