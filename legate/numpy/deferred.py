@@ -410,7 +410,7 @@ class DeferredArray(NumPyThunk):
                 )
             else:
                 # Single copy launch
-                shardpt, sharfn, shardsp = index.find_point_sharding()
+                shardpt, shardfn, shardsp = index.find_point_sharding()
                 copy = Copy(mapper=self.runtime.mapper_id, tag=shardfn)
                 if shardpt is not None:
                     copy.set_point(shardpt)
