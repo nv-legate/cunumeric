@@ -342,7 +342,10 @@ def install_legate_numpy(
 
     # Check to see if we have an installation of openblas
     try:
-        f = open(os.path.join(legate_dir, ".legate-libs.json"), "r")
+        f = open(
+            os.path.join(legate_dir, "share", "legate", ".legate-libs.json"),
+            "r",
+        )
         libs_config = json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
         libs_config = {}
