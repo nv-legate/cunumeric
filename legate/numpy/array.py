@@ -301,7 +301,7 @@ class ndarray(object):
         result._thunk.copy(self._thunk, deep=False, stacklevel=2)
         return result
 
-    def __deepcopy__(self):
+    def __deepcopy__(self, memo=None):
         result = ndarray(self.shape, self.dtype)
         result._thunk.copy(self._thunk, deep=True, stacklevel=2)
         return result
