@@ -349,7 +349,7 @@ class ndarray(object):
         # Convert any arrays stored in a key to a legate array
         if key is None or key is Ellipsis:
             return key
-        if isinstance(key, int):
+        if np.isscalar(key):
             return key
         if isinstance(key, slice):
             return key

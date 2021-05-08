@@ -15,6 +15,7 @@
 
 from __future__ import absolute_import, division, print_function
 
+import numpy
 import pyarrow
 
 from legate.core import Future, LegateStore, Region
@@ -377,7 +378,7 @@ class NumPyThunk(LegateStore):
                 view = (self._standardize_slice_key(key, 0),)
                 dim_map = (0,)
                 observed_dim = 1
-            elif isinstance(key, int):
+            elif numpy.isscalar(key):
                 # Integer means we are removing this dimension
                 view = (self._standardize_int_key(key, 0),)
                 dim_map = (-1,)
@@ -405,7 +406,7 @@ class NumPyThunk(LegateStore):
                     )
                     dim_map += (0,)
                     observed_dim += 1
-                elif isinstance(key[dim], int):
+                elif numpy.isscalar(key[dim]):
                     view += (
                         self._standardize_int_key(key[dim], observed_dim),
                     )
@@ -452,7 +453,7 @@ class NumPyThunk(LegateStore):
     def _is_advanced_indexing(self, key, first=True):
         if key is Ellipsis or key is None:  # np.newdim case
             return False
-        if isinstance(key, int):
+        if numpy.isscalar(key):
             return False
         if isinstance(key, slice):
             return False
