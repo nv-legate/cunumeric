@@ -79,7 +79,8 @@ class RegionFieldArg(object):
         self._transform = transform
 
     def pack(self, buf):
-        buf.pack_32bit_int(self._dim)
+        dim = self._dim if self._transform is None else self._transform.N
+        buf.pack_32bit_int(dim)
         buf.pack_dtype(self._dtype)
         buf.pack_32bit_uint(
             self._op.get_requirement_index(self._key, self._field_id)
