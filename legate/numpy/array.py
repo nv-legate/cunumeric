@@ -20,7 +20,7 @@ import warnings
 
 import numpy as np
 import pyarrow
-from numpy.lib.stride_tricks import broadcast_shapes
+from numpy import broadcast_shapes
 
 from legate.core import LegateArray
 

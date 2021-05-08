@@ -6,7 +6,7 @@ dependencies:
   - clang=8.0.1
   - clang-tools=8.0.1
   - cffi
-  - numpy
+  - numpy>=1.20
   - packaging
   - python>=3.6
   - flake8=3.8.3
