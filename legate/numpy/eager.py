@@ -92,6 +92,7 @@ class EagerArray(NumPyThunk):
                         self.array.data,
                         dtype=self.array.dtype,
                         shape=(1,),
+                        wrap=True,
                     )
                 else:
                     self.deferred = self.runtime.find_or_create_array_thunk(
