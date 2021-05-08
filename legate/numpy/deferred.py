@@ -2335,6 +2335,16 @@ class DeferredArray(NumPyThunk):
     def arange(self, start, stop, step, stacklevel, callsite=None):
         assert self.ndim == 1  # Only 1-D arrays should be here
         dst = self.base
+        if isinstance(dst, Future):
+            # Handle the special case of a single values here
+            assert self.shape[0] == 1
+            array = np.array(start, dtype=self.dtype)
+            dst.set_value(self.runtime.runtime, array.data, array.nbytes)
+            # See if we are doing shadow debugging
+            if self.runtime.shadow_debug:
+                self.shadow.eye(k=k, stacklevel=(stacklevel + 1))
+                self.runtime.check_shadow(self, "arange")
+            return
         launch_space = dst.compute_parallel_launch_space()
         argbuf = BufferBuilder()
         if launch_space is not None:
