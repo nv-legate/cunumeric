@@ -3466,6 +3466,7 @@ class DeferredArray(NumPyThunk):
             # Compute a transform if we need one
             (
                 transform,
+                offset,
                 proj_id,
                 mapping_tag,
             ) = self.runtime.compute_broadcast_transform(
@@ -3546,7 +3547,7 @@ class DeferredArray(NumPyThunk):
                     )
                     if not rhs_parallel:
                         rhs_part = rhs.find_or_create_congruent_partition(
-                            lhs_part, transform
+                            lhs_part, transform, offset
                         )
                     # Shapes are the same so we can use the identity
                     # projection
@@ -3799,13 +3800,8 @@ class DeferredArray(NumPyThunk):
                         offset[ax] = 1
                 else:
                     offset = np.zeros(lhs_array.ndim, dtype=np.dtype(np.int64))
-                shape_transform = AffineTransform(
-                    transform.M, transform.N, False
-                )
-                shape_transform.trans = transform.trans
-                shape_transform.offset = offset
                 result_part = result.find_or_create_congruent_partition(
-                    rhs_part, shape_transform
+                    rhs_part, transform, offset
                 )
                 if launch_space[axis] == 1 and not argred:
                     # No temporary field needed since we can do all the
@@ -4453,6 +4449,7 @@ class DeferredArray(NumPyThunk):
             # Compute our transforms
             (
                 transform1,
+                offset1,
                 proj1_id,
                 mapping_tag1,
             ) = self.runtime.compute_broadcast_transform(
@@ -4461,6 +4458,7 @@ class DeferredArray(NumPyThunk):
 
             (
                 transform2,
+                offset2,
                 proj2_id,
                 mapping_tag2,
             ) = self.runtime.compute_broadcast_transform(
@@ -4503,6 +4501,7 @@ class DeferredArray(NumPyThunk):
                                 rhs1.find_or_create_congruent_partition(
                                     result_part,
                                     transform1,
+                                    offset1,
                                 )
                             )
                         else:
@@ -4520,7 +4519,7 @@ class DeferredArray(NumPyThunk):
                 else:
                     if rhs2 is not key_array:
                         rhs2_part = rhs2.find_or_create_congruent_partition(
-                            result_part, transform2
+                            result_part, transform2, offset2
                         )
                     else:
                         rhs2_part = key_part
@@ -4641,6 +4640,7 @@ class DeferredArray(NumPyThunk):
             # Compute our transforms
             (
                 transform1,
+                offset1,
                 proj1_id,
                 mapping_tag1,
             ) = self.runtime.compute_broadcast_transform(
@@ -4648,6 +4648,7 @@ class DeferredArray(NumPyThunk):
             )
             (
                 transform2,
+                offset2,
                 proj2_id,
                 mapping_tag2,
             ) = self.runtime.compute_broadcast_transform(
@@ -4911,6 +4912,7 @@ class DeferredArray(NumPyThunk):
             # Compute our transforms
             (
                 transform1,
+                offset1,
                 proj1_id,
                 mapping_tag1,
             ) = self.runtime.compute_broadcast_transform(
@@ -4918,6 +4920,7 @@ class DeferredArray(NumPyThunk):
             )
             (
                 transform2,
+                offset2,
                 proj2_id,
                 mapping_tag2,
             ) = self.runtime.compute_broadcast_transform(
@@ -4925,6 +4928,7 @@ class DeferredArray(NumPyThunk):
             )
             (
                 transform3,
+                offset3,
                 proj3_id,
                 mapping_tag3,
             ) = self.runtime.compute_broadcast_transform(
@@ -4984,7 +4988,7 @@ class DeferredArray(NumPyThunk):
                         task.add_future(region)
                     else:
                         part = region.find_or_create_congruent_partition(
-                            result_part, trans
+                            result_part, trans, offset
                         )
                         task.add_read_requirement(
                             part, region.field.field_id, proj, tag=tag

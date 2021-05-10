@@ -705,11 +705,14 @@ class RegionField(object):
             )
         return self.key_partition, self.shard_function, self.shard_space
 
-    def find_or_create_congruent_partition(self, part, transform=None):
+    def find_or_create_congruent_partition(
+        self, part, transform=None, offset=None
+    ):
         if transform is not None:
-            shape_transform = transform
-            offset_transform = AffineTransform(transform.M, transform.N, False)
-            offset_transform.trans = transform.trans
+            shape_transform = AffineTransform(transform.M, transform.N, False)
+            shape_transform.trans = transform.trans.copy()
+            shape_transform.offset = offset
+            offset_transform = transform
             return self.find_or_create_partition(
                 shape_transform.apply(part.color_shape),
                 shape_transform.apply(part.tile_shape),
@@ -2481,8 +2484,8 @@ class Runtime(object):
                 "Legate needs support for more than 3 dimensions"
             )
 
-        if output_shape == input_shape or all(dim == 1 for dim in input_shape):
-            return (None, 0, 0)
+        if output_shape == input_shape or np.array(input_shape).prod() == 1:
+            return (None, None, 0, 0)
 
         assert output_shape != input_shape
         assert output_ndim >= input_ndim
@@ -2507,9 +2510,9 @@ class Runtime(object):
 
         affine_transform = AffineTransform(input_ndim, output_ndim, False)
         affine_transform.trans = transform
-        affine_transform.offset = offset
         return (
             affine_transform,
+            offset,
             self.first_proj_id + getattr(NumPyProjCode, proj_name),
             NumPyMappingTag.NO_MEMOIZE_TAG,
         )
