@@ -276,6 +276,7 @@ class Map(object):
         self._future_map_args = list()
         self._tag = tag
         self._sharding_space = None
+        self._point = None
 
     def __del__(self):
         self._region_args.clear()
@@ -373,6 +374,9 @@ class Map(object):
     def set_sharding_space(self, space):
         self._sharding_space = space
 
+    def set_point(self, point):
+        self._point = point
+
     def build_task(self, launch_domain, argbuf):
         self._coalesce_region_requirements()
 
@@ -389,6 +393,8 @@ class Map(object):
         )
         if self._sharding_space is not None:
             task.set_sharding_space(self._sharding_space)
+        if self._point is not None:
+            task.set_point(self._point)
 
         for (req, fields) in self._region_reqs:
             req.proj.add(task, req, fields)
