@@ -30,7 +30,7 @@ using namespace Legion;
 namespace gpu {
 
 template <typename Function, typename ARG, typename RES>
-__global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
+static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   dense_kernel(size_t volume, Function func, RES *out, const ARG *in1, const ARG *in2)
 {
   const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -39,7 +39,7 @@ __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
 }
 
 template <typename Function, typename ReadAcc, typename WriteAcc, typename Pitches, typename Rect>
-__global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM) generic_kernel(
+static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM) generic_kernel(
   size_t volume, Function func, WriteAcc out, ReadAcc in1, ReadAcc in2, Pitches pitches, Rect rect)
 {
   const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;

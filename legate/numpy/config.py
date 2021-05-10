@@ -134,7 +134,6 @@ class NumPyOpCode(IntEnum):
     EQUAL = legate_numpy.NUMPY_EQUAL
     EXP = legate_numpy.NUMPY_EXP
     EYE = legate_numpy.NUMPY_EYE
-    FILL = legate_numpy.NUMPY_FILL
     FLOOR = legate_numpy.NUMPY_FLOOR
     GETARG = legate_numpy.NUMPY_GETARG
     GREATER = legate_numpy.NUMPY_GREATER
@@ -178,9 +177,11 @@ class NumPyOpCode(IntEnum):
     INCLUSIVE_SCAN = legate_numpy.NUMPY_INCLUSIVE_SCAN
     CONVERT_TO_RECT = legate_numpy.NUMPY_CONVERT_TO_RECT
     ARANGE = legate_numpy.NUMPY_ARANGE
+    # Type-erased operators
     BINARY_OP = legate_numpy.NUMPY_BINARY_OP
     BROADCAST_BINARY_OP = legate_numpy.NUMPY_BROADCAST_BINARY_OP
     SCALAR_BINARY_OP = legate_numpy.NUMPY_SCALAR_BINARY_OP
+    FILL = legate_numpy.NUMPY_FILL
 
 
 @unique

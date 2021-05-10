@@ -26,6 +26,7 @@ GEN_CPU_SRC += universal_functions/absolute.cc      \
 							 core.cc                              \
 							 deserializer.cc                      \
 							 scalar.cc                            \
+							 fill.cc                              \
 							 arange.cc                            \
 							 arg.cc                               \
 							 argmin.cc                            \
@@ -54,7 +55,6 @@ GEN_CPU_SRC += universal_functions/absolute.cc      \
 							 equal_reduce.cc                      \
 							 universal_functions/exp.cc           \
 							 eye.cc                               \
-							 fill.cc                              \
 							 universal_functions/floor.cc         \
 							 greater_equal_reduce.cc              \
 							 greater_reduce.cc                    \
@@ -93,7 +93,8 @@ GEN_CPU_SRC += universal_functions/absolute.cc      \
 
 ifeq ($(strip $(USE_OPENMP)),1)
 GEN_CPU_SRC += binary_op_omp.cc           \
-							 broadcast_binary_op_omp.cc
+							 broadcast_binary_op_omp.cc \
+							 fill_omp.cc
 endif
 
 GEN_GPU_SRC += universal_functions/absolute.cu      \
@@ -102,6 +103,7 @@ GEN_GPU_SRC += universal_functions/absolute.cu      \
 							 universal_functions/arctan.cu        \
 							 binary_op.cu                         \
 							 broadcast_binary_op.cu               \
+							 fill.cu                              \
 							 arange.cu                            \
 							 arg.cu                               \
 							 argmin.cu                            \
@@ -129,7 +131,6 @@ GEN_GPU_SRC += universal_functions/absolute.cu      \
 							 equal_reduce.cu                      \
 							 universal_functions/exp.cu           \
 							 eye.cu                               \
-							 fill.cu                              \
 							 universal_functions/floor.cu         \
 							 greater_equal_reduce.cu              \
 							 greater_reduce.cu                    \

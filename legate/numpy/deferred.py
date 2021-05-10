@@ -876,16 +876,7 @@ class DeferredArray(NumPyThunk):
             self.runtime.check_shadow(self, "convert")
 
     # Fill the legate array with the value in the numpy array
-    def fill(self, numpy_array, stacklevel, callsite=None):
-        assert isinstance(numpy_array, np.ndarray)
-        assert numpy_array.size == 1
-        assert self.dtype == numpy_array.dtype
-        # Have to copy the numpy array because this launch is asynchronous
-        # and we need to make sure the application doesn't mutate the value
-        # so make a future result, this is immediate so no dependence
-        value = self.runtime.create_future(
-            numpy_array.data, numpy_array.nbytes
-        )
+    def _fill(self, value, stacklevel, callsite=None):
         if self.size == 1:
             # Handle the 0D case special
             self.base = value
@@ -899,37 +890,42 @@ class DeferredArray(NumPyThunk):
                     shardfn,
                     shardsp,
                 ) = dst.find_or_create_key_partition()
-                fill = IndexFill(
-                    dst_part,
-                    0,
-                    dst.region.get_root(),
-                    dst.field.field_id,
-                    value,
-                    mapper=self.runtime.mapper_id,
-                    tag=shardfn,
-                )
-                if shardsp is not None:
-                    fill.set_sharding_space(shardsp)
+                lhs = DeferredArrayView(self, part=dst_part)
             else:
                 shardpt, shardfn, shardsp = dst.find_point_sharding()
-                fill = Fill(
-                    dst.region,
-                    dst.region.get_root(),
-                    dst.field.field_id,
-                    value,
-                    mapper=self.runtime.mapper_id,
-                    tag=shardfn,
-                )
+                lhs = DeferredArrayView(self)
+
+            op = Map(self.runtime, NumPyOpCode.FILL, tag=shardfn)
+            if launch_space is not None:
+                op.add_shape(dst.shape, dst_part.tile_shape, 0)
+            else:
+                op.add_shape(dst.shape)
+
+            lhs.add_to_legate_op(op, False)
+            op.add_future(value)
+            if shardsp is not None:
+                fill.set_sharding_space(shardsp)
+            if launch_space is not None:
+                op.execute(Rect(launch_space))
+            else:
                 if shardpt is not None:
                     fill.set_point(shardpt)
-                if shardsp is not None:
-                    fill.set_sharding_space(shardsp)
-            self.runtime.dispatch(fill)
+                op.execute_single()
             self.runtime.profile_callsite(stacklevel + 1, True, callsite)
-            # See if we are doing shadow debugging
-            if self.runtime.shadow_debug:
-                self.shadow.fill(numpy_array, stacklevel=(stacklevel + 1))
-                self.runtime.check_shadow(self, "fill")
+
+    def fill(self, numpy_array, stacklevel, callsite=None):
+        assert isinstance(numpy_array, np.ndarray)
+        assert numpy_array.size == 1
+        assert self.dtype == numpy_array.dtype
+        # Have to copy the numpy array because this launch is asynchronous
+        # and we need to make sure the application doesn't mutate the value
+        # so make a future result, this is immediate so no dependence
+        value = self.runtime.create_scalar(numpy_array.data, self.dtype)
+        self._fill(value, stacklevel + 1, callsite=callsite)
+        # See if we are doing shadow debugging
+        if self.size > 1 and self.runtime.shadow_debug:
+            self.shadow.fill(numpy_array, stacklevel=(stacklevel + 1))
+            self.runtime.check_shadow(self, "fill")
 
     def dot(self, src1, src2, stacklevel, callsite=None):
         rhs1_array = self.runtime.to_deferred_array(
@@ -4375,53 +4371,7 @@ class DeferredArray(NumPyThunk):
             if args is not None:
                 self.add_arguments(op, args)
             result = op.execute_single()
-
-            # See if the output is also a scalar or not
-            if lhs_array.size > 1:
-                # Output is not a scalar so do a fill broadcast
-                result = lhs_array.base
-                # Comptue our launch space
-                launch_space = result.compute_parallel_launch_space()
-                if launch_space is not None:
-                    (
-                        result_part,
-                        shardfn,
-                        shardsp,
-                    ) = result.find_or_create_key_partition()
-                    fill = IndexFill(
-                        result_part,
-                        0,
-                        result.region.get_root(),
-                        result.field.field_id,
-                        future,
-                        mapper=self.runtime.mapper_id,
-                        tag=shardfn,
-                    )
-                    if shardsp is not None:
-                        fill.set_sharding_space(shardsp)
-                else:
-                    (
-                        shardpt,
-                        shardfn,
-                        shardsp,
-                    ) = result.find_point_sharding()
-                    fill = Fill(
-                        result.region,
-                        result.region.get_root(),
-                        result.field.field_id,
-                        future,
-                        mapper=self.runtime.mapper_id,
-                        tag=shardfn,
-                    )
-                    if shardpt is not None:
-                        fill.set_point(shardpt)
-                    if shardsp is not None:
-                        fill.set_sharding_space(shardsp)
-                self.runtime.dispatch(fill)
-            else:
-                # Output is a scalar so we can just save the result
-                # Note this also handles the in-place update correctly too
-                lhs_array.base = result
+            lhs_array._fill(result, stacklevel + 1, callsite)
         else:
             # Normal/broadcast version of this task
             assert lhs_array.size > 1

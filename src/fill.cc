@@ -15,19 +15,73 @@
  */
 
 #include "fill.h"
+#include "core.h"
+#include "dispatch.h"
+#include "point_task.h"
+#include "scalar.h"
 
-// instantiate FillTask for all Legate types
 namespace legate {
 namespace numpy {
-template class FillTask<__half>;
-template class FillTask<float>;
-template class FillTask<double>;
-template class FillTask<int16_t>;
-template class FillTask<int32_t>;
-template class FillTask<int64_t>;
-template class FillTask<uint16_t>;
-template class FillTask<uint32_t>;
-template class FillTask<uint64_t>;
-template class FillTask<bool>;
+
+using namespace Legion;
+
+struct FillImpl {
+  template <LegateTypeCode CODE, int DIM>
+  void operator()(Shape &shape, RegionField &out_rf, UntypedScalar &fill_value_scalar)
+  {
+    using VAL = legate_type_of<CODE>;
+
+    auto rect = shape.to_rect<DIM>();
+
+    Pitches<DIM - 1> pitches;
+    size_t volume = pitches.flatten(rect);
+
+    if (volume == 0) return;
+
+    auto out        = out_rf.write_accessor<VAL, DIM>();
+    auto fill_value = fill_value_scalar.value<VAL>();
+
+#ifndef LEGION_BOUNDS_CHECKS
+    // Check to see if this is dense or not
+    bool dense = out.accessor.is_dense_row_major(rect);
+#else
+    // No dense execution if we're doing bounds checks
+    bool dense = false;
+#endif
+
+    if (dense) {
+      auto outptr = out.ptr(rect);
+      for (size_t idx = 0; idx < volume; ++idx) outptr[idx] = fill_value;
+    } else
+      for (size_t idx = 0; idx < volume; ++idx) {
+        const auto point = pitches.unflatten(idx, rect.lo);
+        out[point]       = fill_value;
+      }
+  }
+};
+
+/*static*/ void FillTask::cpu_variant(const Task *task,
+                                      const std::vector<PhysicalRegion> &regions,
+                                      Context context,
+                                      Runtime *runtime)
+{
+  Deserializer ctx(task, regions);
+
+  Shape shape;
+  RegionField out;
+  UntypedScalar fill_value;
+
+  deserialize(ctx, shape);
+  deserialize(ctx, out);
+  deserialize(ctx, fill_value);
+
+  double_dispatch(out.dim(), out.code(), FillImpl{}, shape, out, fill_value);
+}
+
+namespace  // unnamed
+{
+static void __attribute__((constructor)) register_tasks(void) { FillTask::register_variants(); }
+}  // namespace
+
 }  // namespace numpy
 }  // namespace legate
