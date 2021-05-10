@@ -4533,6 +4533,11 @@ class DeferredArray(NumPyThunk):
                     )
 
             else:
+                (
+                    shardpt,
+                    shardfn,
+                    shardsp,
+                ) = result.find_point_sharding()
                 result_arg = DeferredArrayView(lhs_array)
                 if result is rhs1:
                     rhs1_arg = result_arg
@@ -4575,6 +4580,10 @@ class DeferredArray(NumPyThunk):
                     op.set_sharding_space(shardsp)
                 op.execute(Rect(launch_space))
             else:
+                if shardpt is not None:
+                    op.set_point(shardpt)
+                if shardsp is not None:
+                    op.set_sharding_space(shardsp)
                 op.execute_single()
 
         self.runtime.profile_callsite(stacklevel + 1, True, callsite)
