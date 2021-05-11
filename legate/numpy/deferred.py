@@ -75,10 +75,6 @@ class DeferredArrayView(object):
         return self._part
 
     @property
-    def transform(self):
-        return self._array.shape
-
-    @property
     def sharding(self):
         if self.scalar:
             return None, 0, None
