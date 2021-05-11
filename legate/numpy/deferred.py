@@ -47,9 +47,12 @@ def _combine_transforms(f, g):
 
 
 class DeferredArrayView(object):
-    def __init__(self, array, transform=None, part=None, proj_id=0, tag=0):
+    def __init__(
+        self, array, transform=None, offset=None, part=None, proj_id=0, tag=0
+    ):
         self._array = array
         self._transform = transform
+        self._offset = offset
         self._part = part
         self._proj_id = proj_id
         self._tag = tag
@@ -147,7 +150,7 @@ class DeferredArrayView(object):
 
     def broadcast(self, to_align):
         if self.scalar:
-            return self, None
+            return self
         else:
             (
                 transform,
@@ -160,22 +163,24 @@ class DeferredArrayView(object):
             new_view = DeferredArrayView(
                 self._array,
                 transform,
+                offset,
                 self._part,
                 proj_id,
                 mapping_tag,
             )
-            return new_view, offset
+            return new_view
 
-    def align_partition(self, key, offset=None):
+    def align_partition(self, key):
         if self is key or self.scalar:
             return self
         else:
             new_part = self._array.base.find_or_create_congruent_partition(
-                key.part, self._transform, offset
+                key.part, self._transform, self._offset
             )
             new_view = DeferredArrayView(
                 self._array,
                 self._transform,
+                self._offset,
                 new_part,
                 self._proj_id,
                 self._tag,
@@ -4476,13 +4481,13 @@ class DeferredArray(NumPyThunk):
         # Align and broadcast region arguments if necessary
         launch_space, key_arg = lhs_arg.find_key_view(rhs1_arg, rhs2_arg)
         key_arg.update_tag(NumPyMappingTag.KEY_REGION_TAG)
-        rhs1_arg, offset1 = rhs1_arg.broadcast(lhs_arg)
-        rhs2_arg, offset2 = rhs2_arg.broadcast(lhs_arg)
+        rhs1_arg = rhs1_arg.broadcast(lhs_arg)
+        rhs2_arg = rhs2_arg.broadcast(lhs_arg)
 
         if launch_space is not None:
             lhs_arg = lhs_arg.align_partition(key_arg)
-            rhs1_arg = rhs1_arg.align_partition(key_arg, offset1)
-            rhs2_arg = rhs2_arg.align_partition(key_arg, offset2)
+            rhs1_arg = rhs1_arg.align_partition(key_arg)
+            rhs2_arg = rhs2_arg.align_partition(key_arg)
             if lhs_arg is not key_arg:
                 lhs_arg.copy_key_partition_from(key_arg)
 
