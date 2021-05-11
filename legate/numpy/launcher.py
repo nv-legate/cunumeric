@@ -393,8 +393,6 @@ class Map(object):
         )
         if self._sharding_space is not None:
             task.set_sharding_space(self._sharding_space)
-        if self._point is not None:
-            task.set_point(self._point)
 
         for (req, fields) in self._region_reqs:
             req.proj.add(task, req, fields)
@@ -422,6 +420,10 @@ class Map(object):
             task.add_future(future)
         if len(self._region_args) == 0:
             task.set_local_function(True)
+        if self._sharding_space is not None:
+            task.set_sharding_space(self._sharding_space)
+        if self._point is not None:
+            task.set_point(self._point)
         return task
 
     def execute(self, launch_domain):

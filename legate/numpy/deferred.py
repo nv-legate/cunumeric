@@ -54,8 +54,53 @@ class DeferredArrayView(object):
         self._proj_id = proj_id
         self._tag = tag
 
+    @property
+    def scalar(self):
+        return self._array.scalar
+
+    @property
+    def shape(self):
+        return self._array.shape
+
+    @property
+    def size(self):
+        return self._array.size
+
+    @property
+    def part(self):
+        assert not self.scalar
+        if self._part is None:
+            (part, _, _) = self._array.base.find_or_create_key_partition()
+            self._part = part
+        return self._part
+
+    @property
+    def transform(self):
+        return self._array.shape
+
+    @property
+    def sharding(self):
+        if self.scalar:
+            return None, 0, None
+        else:
+            return self._array.base.find_point_sharding()
+
+    def copy_key_partition_from(self, src):
+        if self.scalar:
+            return
+        else:
+            (
+                src_part,
+                shardfn,
+                shardsp,
+            ) = src._array.base.find_or_create_key_partition()
+            part = self._array.base.find_or_create_congruent_partition(
+                src_part
+            )
+            self._array.base.set_key_partition(part, shardfn, shardsp)
+
     def add_to_legate_op(self, op, read_only):
-        if self._array.scalar:
+        if self.scalar:
             if not read_only:
                 raise ValueError("Singleton arrays must be read only")
             op.add_future(self._array.base)
@@ -66,9 +111,77 @@ class DeferredArrayView(object):
                 _combine_transforms(
                     self._array.base.transform, self._transform
                 ),
-                Projection(self._part, self._proj_id),
+                Projection(self.part, self._proj_id),
                 tag=self._tag,
             )
+
+    def compute_launch_space(self):
+        if self.scalar:
+            return None
+        else:
+            return self._array.base.compute_parallel_launch_space()
+
+    @property
+    def has_launch_space(self):
+        if self.scalar:
+            return False
+        else:
+            return self._array.base.has_parallel_launch_space()
+
+    def find_key_view(self, *views):
+        if self.scalar:
+            return None, self
+        elif self.has_launch_space:
+            return self.compute_launch_space(), self
+
+        for view in views:
+            if view is self or view.shape != self.shape:
+                continue
+            launch_space = view.compute_launch_space()
+            if launch_space is not None:
+                return launch_space, view
+
+        # If we're here, we haven't found any partitioned region field
+        # to use as the key
+        launch_space = self.compute_launch_space()
+        return launch_space, self
+
+    def broadcast(self, to_align):
+        if self.scalar:
+            return self, None
+        else:
+            (
+                transform,
+                offset,
+                proj_id,
+                mapping_tag,
+            ) = self._array.runtime.compute_broadcast_transform(
+                to_align._array.shape, self._array.shape
+            )
+            new_view = DeferredArrayView(
+                self._array,
+                transform,
+                self._part,
+                proj_id,
+                mapping_tag,
+            )
+            return new_view, offset
+
+    def align_partition(self, key, offset=None):
+        if self is key or self.scalar:
+            return self
+        else:
+            new_part = self._array.base.find_or_create_congruent_partition(
+                key.part, self._transform, offset
+            )
+            new_view = DeferredArrayView(
+                self._array,
+                self._transform,
+                new_part,
+                self._proj_id,
+                self._tag,
+            )
+            return new_view
 
 
 class DeferredArray(NumPyThunk):
@@ -4356,185 +4469,73 @@ class DeferredArray(NumPyThunk):
             src2, stacklevel=(stacklevel + 1)
         )
         lhs_array = self
-        rhs1 = rhs1_array.base
-        rhs2 = rhs2_array.base
-        # Should have been handled by type checking on the front-end
-        assert rhs1_array.dtype == rhs2_array.dtype
-        # Check for the scalar case first
-        if rhs1_array.size == 1 and rhs2_array.size == 1:
-            # This is a scalar operation
-            assert isinstance(rhs1, Future) and isinstance(rhs2, Future)
-            op = Map(self.runtime, NumPyOpCode.SCALAR_BINARY_OP)
-            op.add_scalar_arg(op_code.value, np.int32)
-            DeferredArrayView(rhs1_array).add_to_legate_op(op, True)
-            DeferredArrayView(rhs2_array).add_to_legate_op(op, True)
-            if args is not None:
-                self.add_arguments(op, args)
-            result = op.execute_single()
-            lhs_array._fill(result, stacklevel + 1, callsite)
+
+        lhs_arg = DeferredArrayView(lhs_array)
+        rhs1_arg = DeferredArrayView(rhs1_array)
+        rhs2_arg = DeferredArrayView(rhs2_array)
+
+        # Align and broadcast region arguments if necessary
+        launch_space, key_arg = lhs_arg.find_key_view(rhs1_arg, rhs2_arg)
+        rhs1_arg, offset1 = rhs1_arg.broadcast(lhs_arg)
+        rhs2_arg, offset2 = rhs2_arg.broadcast(lhs_arg)
+
+        if launch_space is not None:
+            lhs_arg = lhs_arg.align_partition(key_arg)
+            rhs1_arg = rhs1_arg.align_partition(key_arg, offset1)
+            rhs2_arg = rhs2_arg.align_partition(key_arg, offset2)
+            if lhs_arg is not key_arg:
+                lhs_arg.copy_key_partition_from(key_arg)
+
+        # Populate the Legate launcher
+        any_scalar_rhs = rhs1_arg.scalar or rhs2_arg.scalar
+        all_scalar_rhs = rhs1_arg.scalar and rhs2_arg.scalar
+
+        if all_scalar_rhs:
+            task_id = NumPyOpCode.SCALAR_BINARY_OP
+        elif any_scalar_rhs:
+            task_id = NumPyOpCode.BROADCAST_BINARY_OP
         else:
-            # Normal/broadcast version of this task
-            assert lhs_array.size > 1
-            result = lhs_array.base
-            # Comptue our launch space
-            launch_space = None
-            if not result.has_parallel_launch_space():
-                # See if we can borrow the parallel launch space
-                # from one of the input arrays
-                if result is not rhs1 and lhs_array.shape == rhs1_array.shape:
-                    launch_space = rhs1.compute_parallel_launch_space()
-                    if launch_space is not None:
-                        key_array = rhs1
-                if (
-                    launch_space is None
-                    and result is not rhs2
-                    and lhs_array.shape == rhs2_array.shape
-                ):
-                    launch_space = rhs2.compute_parallel_launch_space()
-                    if launch_space is not None:
-                        key_array = rhs2
-            if launch_space is None:
-                launch_space = result.compute_parallel_launch_space()
-                key_array = result
-            # Compute our transforms
-            (
-                transform1,
-                offset1,
-                proj1_id,
-                mapping_tag1,
-            ) = self.runtime.compute_broadcast_transform(
-                lhs_array.shape, rhs1_array.shape
-            )
+            task_id = NumPyOpCode.BINARY_OP
 
-            (
-                transform2,
-                offset2,
-                proj2_id,
-                mapping_tag2,
-            ) = self.runtime.compute_broadcast_transform(
-                lhs_array.shape, rhs2_array.shape
-            )
+        (shardpt, shardfn, shardsp) = key_arg.sharding
 
-            # Scalar should have been handled above
-            rhs1_future = isinstance(rhs1, Future)
-            rhs2_future = isinstance(rhs2, Future)
-            assert not rhs1_future or not rhs2_future
-            has_future = rhs1_future or rhs2_future
+        op = Map(self.runtime, task_id, tag=shardfn)
+        op.add_scalar_arg(op_code.value, np.int32)
 
+        if not all_scalar_rhs:
             if launch_space is not None:
-                (
-                    key_part,
-                    shardfn,
-                    shardsp,
-                ) = key_array.find_or_create_key_partition()
-                if result is not key_array:
-                    result_part = result.find_or_create_congruent_partition(
-                        key_part
-                    )
-                    result.set_key_partition(result_part, shardfn, shardsp)
-                else:
-                    result_part = key_part
-
-                result_arg = DeferredArrayView(lhs_array, part=result_part)
-
-                assert len(launch_space) == lhs_array.ndim
-                # Check to see if we are doing this update in-place
-                if result is rhs1:
-                    rhs1_arg = result_arg
-                else:
-                    if isinstance(rhs1, Future):
-                        # Future
-                        rhs1_arg = DeferredArrayView(rhs1_array)
-                    else:
-                        if rhs1 is not key_array:
-                            rhs1_part = (
-                                rhs1.find_or_create_congruent_partition(
-                                    result_part,
-                                    transform1,
-                                    offset1,
-                                )
-                            )
-                        else:
-                            rhs1_part = key_part
-                        rhs1_arg = DeferredArrayView(
-                            rhs1_array,
-                            transform=transform1,
-                            part=rhs1_part,
-                            proj_id=proj1_id,
-                            tag=mapping_tag1,
-                        )
-                # Now handle rhs2
-                if isinstance(rhs2, Future):
-                    rhs2_arg = DeferredArrayView(rhs2_array)
-                else:
-                    if rhs2 is not key_array:
-                        rhs2_part = rhs2.find_or_create_congruent_partition(
-                            result_part, transform2, offset2
-                        )
-                    else:
-                        rhs2_part = key_part
-                    rhs2_arg = DeferredArrayView(
-                        rhs2_array,
-                        transform=transform2,
-                        part=rhs2_part,
-                        proj_id=proj2_id,
-                        tag=mapping_tag2,
-                    )
-
+                op.add_shape(lhs_arg.shape, lhs_arg.part.tile_shape, 0)
             else:
-                (
-                    shardpt,
-                    shardfn,
-                    shardsp,
-                ) = result.find_point_sharding()
-                result_arg = DeferredArrayView(lhs_array)
-                if result is rhs1:
-                    rhs1_arg = result_arg
-                else:
-                    rhs1_arg = DeferredArrayView(
-                        rhs1_array,
-                        transform=transform1,
-                    )
-                rhs2_arg = DeferredArrayView(
-                    rhs2_array,
-                    transform=transform2,
-                )
+                op.add_shape(lhs_arg.shape)
 
-            task_id = (
-                NumPyOpCode.BROADCAST_BINARY_OP
-                if has_future
-                else NumPyOpCode.BINARY_OP
-            )
-            op = Map(self.runtime, task_id, tag=result.shard_function)
-            op.add_scalar_arg(op_code.value, np.int32)
-            if launch_space is not None:
-                op.add_shape(lhs_array.shape, result_part.tile_shape, 0)
-            else:
-                op.add_shape(lhs_array.shape)
+        if not lhs_arg.scalar:
+            lhs_arg.add_to_legate_op(op, False)
+        rhs1_arg.add_to_legate_op(op, True)
+        rhs2_arg.add_to_legate_op(op, True)
 
-            result_arg.add_to_legate_op(op, False)
-            rhs1_arg.add_to_legate_op(op, True)
-            rhs2_arg.add_to_legate_op(op, True)
+        if any_scalar_rhs:
+            op.add_scalar_arg(rhs2_arg.scalar, bool)
 
-            if has_future:
-                # Pack the index of the future information
-                op.add_scalar_arg(rhs2_future, bool)
+        if args is not None:
+            self.add_arguments(op, args)
 
-            if args is not None:
-                self.add_arguments(op, args)
+        if shardsp is not None:
+            op.set_sharding_space(shardsp)
 
-            # See if we are doing index space launches or not
-            if launch_space is not None:
-                if shardsp is not None:
-                    op.set_sharding_space(shardsp)
-                op.execute(Rect(launch_space))
-            else:
-                if shardpt is not None:
-                    op.set_point(shardpt)
-                if shardsp is not None:
-                    op.set_sharding_space(shardsp)
-                op.execute_single()
+        # See if we are doing index space launches or not
+        if not all_scalar_rhs and launch_space is not None:
+            op.execute(Rect(launch_space))
+        else:
+            if shardpt is not None:
+                op.set_point(shardpt)
+            result = op.execute_single()
 
+            # If the result is a scalar and the lhs is not a singleton array,
+            # we need to fill the array with that result
+            if all_scalar_rhs:
+                lhs_arg._array._fill(result, stacklevel + 1, callsite)
+
+        # TODO: We should be able to do this automatically via decorators
         self.runtime.profile_callsite(stacklevel + 1, True, callsite)
         if self.runtime.shadow_debug:
             self.shadow.binary_op(
