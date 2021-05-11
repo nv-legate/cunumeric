@@ -4530,8 +4530,9 @@ class DeferredArray(NumPyThunk):
                 op.set_point(shardpt)
             result = op.execute_single()
 
-            # If the result is a scalar and the lhs is not a singleton array,
-            # we need to fill the array with that result
+            # If the result is a scalar, we need to fill the lhs with it.
+            # Note that the fill function makes an alias to the scalar,
+            # when the lhs is a singleton array.
             if all_scalar_rhs:
                 lhs_arg._array._fill(result, stacklevel + 1, callsite)
 
