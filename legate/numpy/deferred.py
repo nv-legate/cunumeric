@@ -85,6 +85,9 @@ class DeferredArrayView(object):
         else:
             return self._array.base.find_point_sharding()
 
+    def update_tag(self, tag):
+        self._tag = tag
+
     def copy_key_partition_from(self, src):
         if self.scalar:
             return
@@ -4476,6 +4479,7 @@ class DeferredArray(NumPyThunk):
 
         # Align and broadcast region arguments if necessary
         launch_space, key_arg = lhs_arg.find_key_view(rhs1_arg, rhs2_arg)
+        key_arg.update_tag(NumPyMappingTag.KEY_REGION_TAG)
         rhs1_arg, offset1 = rhs1_arg.broadcast(lhs_arg)
         rhs2_arg, offset2 = rhs2_arg.broadcast(lhs_arg)
 
