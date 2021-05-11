@@ -35,7 +35,7 @@ canonical NumPy implementation.
 
 If you have questions, please contact us at legate(at)nvidia.com.
 
-1. [Dependencies](#dependencies)
+1. [Installation](#installation)
 1. [Usage and Execution](#usage-and-execution)
 1. [Supported and Planned Features](#supported-and-planned-features)
 1. [Supported Types and Dimensions](#supported-types-and-dimensions)
@@ -43,7 +43,11 @@ If you have questions, please contact us at legate(at)nvidia.com.
 1. [Future Directions](#future-directions)
 1. [Known Bugs](#known-bugs)
 
-## Dependencies
+## Installation
+
+Pre-built docker images containing all Legate libraries are available on the
+[quickstart](https://github.com/nv-legate/quickstart) repo. You can also build
+Legate NumPy from source:
 
 Users must have a working installation of the 
 [Legate Core](https://github.com/nv-legate/legate.core)
@@ -56,8 +60,6 @@ create a conda environment with it:
 ```
 conda env create -n legate -f conda/legate_numpy_dev.yml
 ```
-
-### Installation
 
 Installation of Legate NumPy is done with either `setup.py` for simple 
 uses cases or `install.py` for more advanced use cases. The most common 
@@ -140,6 +142,7 @@ dimensions please let us know about it.
 
 A complete list of available features can is provided in the [API
 reference](https://nv-legate.github.io/legate.numpy/api.html).
+
 ## Future Directions
 
 There are three primary directions that we plan to investigate 
