@@ -268,7 +268,7 @@ def build_legate_numpy(
     except FileNotFoundError:
         pass
 
-    cmd = ["python", "setup.py", "install", "--recurse"]
+    cmd = [sys.executable, "setup.py", "install", "--recurse"]
     if unknown is not None:
         cmd += unknown
         if "--prefix" not in unknown:
