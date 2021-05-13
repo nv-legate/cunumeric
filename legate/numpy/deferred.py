@@ -422,7 +422,7 @@ class DeferredArray(NumPyThunk):
                     )
                 # For boolean arrays do the non-zero operation to make
                 # them into a normal indexing array
-                tuple_of_arrays = key.nonzero()
+                tuple_of_arrays = key.nonzero(stacklevel + 1)
             else:
                 tuple_of_arrays = (key,)
         if len(tuple_of_arrays) != self.ndim:
@@ -511,7 +511,7 @@ class DeferredArray(NumPyThunk):
                 )
             else:
                 # Single copy launch
-                shardpt, sharfn, shardsp = index.find_point_sharding()
+                shardpt, shardfn, shardsp = index.find_point_sharding()
                 copy = Copy(mapper=self.runtime.mapper_id, tag=shardfn)
                 if shardpt is not None:
                     copy.set_point(shardpt)
@@ -2432,6 +2432,16 @@ class DeferredArray(NumPyThunk):
     def arange(self, start, stop, step, stacklevel, callsite=None):
         assert self.ndim == 1  # Only 1-D arrays should be here
         dst = self.base
+        if isinstance(dst, Future):
+            # Handle the special case of a single values here
+            assert self.shape[0] == 1
+            array = np.array(start, dtype=self.dtype)
+            dst.set_value(self.runtime.runtime, array.data, array.nbytes)
+            # See if we are doing shadow debugging
+            if self.runtime.shadow_debug:
+                self.shadow.eye(k=k, stacklevel=(stacklevel + 1))
+                self.runtime.check_shadow(self, "arange")
+            return
         launch_space = dst.compute_parallel_launch_space()
         argbuf = BufferBuilder()
         if launch_space is not None:
@@ -4564,7 +4574,7 @@ class DeferredArray(NumPyThunk):
                 proj1_id,
                 mapping_tag1,
             ) = self.runtime.compute_broadcast_transform(
-                lhs_array.shape, rhs1_array.shape
+                broadcast, rhs1_array.shape
             )
             (
                 transform2,
@@ -4572,7 +4582,7 @@ class DeferredArray(NumPyThunk):
                 proj2_id,
                 mapping_tag2,
             ) = self.runtime.compute_broadcast_transform(
-                lhs_array.shape, rhs2_array.shape
+                broadcastshape, rhs2_array.shape
             )
             # Compute our launch space
             launch_space = self.runtime.compute_parallel_launch_space_by_shape(
@@ -4598,7 +4608,7 @@ class DeferredArray(NumPyThunk):
             if launch_space is not None:
                 # Index task launch case
                 task_variant = (
-                    NumPyVariantCode.BROADCAST_REDUCTION
+                    NumPyVariantCode.BROADCAST
                     if has_future
                     else NumPyVariantCode.REDUCTION
                 )
@@ -4628,12 +4638,13 @@ class DeferredArray(NumPyThunk):
                     rhs1_part = rhs1.find_or_create_partition(rhs1_shape)
                 else:
                     rhs1_part = rhs1.find_or_create_partition(launch_space)
-                task.add_read_requirement(
-                    rhs1_part,
-                    rhs1.field.field_id,
-                    proj1_id,
-                    tag=mapping_tag1,
-                )
+                if not isinstance(rhs1, Future):
+                    task.add_read_requirement(
+                        rhs1_part,
+                        rhs1.field.field_id,
+                        proj1_id,
+                        tag=mapping_tag1,
+                    )
                 if isinstance(rhs2, Future):
                     task.add_future(rhs2)
                 elif transform2 is not None:
@@ -4646,12 +4657,13 @@ class DeferredArray(NumPyThunk):
                     rhs2_part = rhs2.find_or_create_partition(rhs2_shape)
                 else:
                     rhs2_part = rhs2.find_or_create_partition(launch_space)
-                task.add_read_requirement(
-                    rhs2_part,
-                    rhs2.field.field_id,
-                    proj2_id,
-                    tag=mapping_tag2,
-                )
+                if not isinstance(rhs2, Future):
+                    task.add_read_requirement(
+                        rhs2_part,
+                        rhs2.field.field_id,
+                        proj2_id,
+                        tag=mapping_tag2,
+                    )
                 if args is not None:
                     self.add_arguments(task, args)
                 redop = self.runtime.get_reduction_op_id(op, lhs_array.dtype)
@@ -4659,7 +4671,7 @@ class DeferredArray(NumPyThunk):
             else:
                 # Single task launch case
                 task_variant = (
-                    NumPyVariantCode.BROADCAST_REDUCTION
+                    NumPyVariantCode.BROADCAST
                     if has_future
                     else NumPyVariantCode.REDUCTION
                 )

@@ -301,7 +301,7 @@ class ndarray(object):
         result._thunk.copy(self._thunk, deep=False, stacklevel=2)
         return result
 
-    def __deepcopy__(self):
+    def __deepcopy__(self, memo=None):
         result = ndarray(self.shape, self.dtype)
         result._thunk.copy(self._thunk, deep=True, stacklevel=2)
         return result
@@ -349,7 +349,7 @@ class ndarray(object):
         # Convert any arrays stored in a key to a legate array
         if key is None or key is Ellipsis:
             return key
-        if isinstance(key, int):
+        if np.isscalar(key):
             return key
         if isinstance(key, slice):
             return key

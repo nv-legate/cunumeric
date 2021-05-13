@@ -21,6 +21,7 @@
 
 namespace legate {
 namespace numpy {
+
 template <typename T>
 class ReadItemTask : public NumPyTask<ReadItemTask<T>> {
  public:
@@ -32,6 +33,12 @@ class ReadItemTask : public NumPyTask<ReadItemTask<T>> {
                        const std::vector<Legion::PhysicalRegion>& regions,
                        Legion::Context ctx,
                        Legion::Runtime* runtime);
+#ifdef LEGATE_USE_CUDA
+  static Legion::DeferredValue<T> gpu_variant(const Legion::Task* task,
+                                              const std::vector<Legion::PhysicalRegion>& regions,
+                                              Legion::Context ctx,
+                                              Legion::Runtime* runtime);
+#endif
 };
 
 template <typename T>
@@ -45,6 +52,12 @@ class WriteItemTask : public NumPyTask<WriteItemTask<T>> {
                           const std::vector<Legion::PhysicalRegion>& regions,
                           Legion::Context ctx,
                           Legion::Runtime* runtime);
+#ifdef LEGATE_USE_CUDA
+  static void gpu_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
+                          Legion::Runtime* runtime);
+#endif
 };
 }  // namespace numpy
 }  // namespace legate

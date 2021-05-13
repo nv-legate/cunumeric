@@ -153,23 +153,13 @@ NumPyMapper::~NumPyMapper(void)
           finder->second += inst_size;
       }
     }
-    const char* memory_kinds[12] = {
-      "global",
-      "system",
-      "regmem",
-      "socket",
-      "zero-copy",
-      "framebuffer",
-      "disk",
-      "HDF",
-      "file",
-      "level 3 cache",
-      "level 2 cache",
-      "level 1 cache",
+    const char* memory_kinds[] = {
+#define MEM_NAMES(name, desc) desc,
+      REALM_MEMORY_KINDS(MEM_NAMES)
+#undef MEM_NAMES
     };
     for (std::map<Memory, size_t>::const_iterator it = mem_sizes.begin(); it != mem_sizes.end();
          it++) {
-      assert(it->first.kind() < 12);
       const size_t capacity = it->first.capacity();
       log_numpy.print(
         "Legate.NumPy used %ld bytes of %s memory %llx with "
@@ -986,21 +976,11 @@ void NumPyMapper::report_failed_mapping(const Mappable& mappable,
                                         ReductionOpID redop)
 //--------------------------------------------------------------------------
 {
-  const char* memory_kinds[12] = {
-    "global",
-    "system",
-    "regmem",
-    "socket",
-    "zero-copy",
-    "framebuffer",
-    "disk",
-    "HDF",
-    "file",
-    "level 3 cache",
-    "level 2 cache",
-    "level 1 cache",
+  const char* memory_kinds[] = {
+#define MEM_NAMES(name, desc) desc,
+    REALM_MEMORY_KINDS(MEM_NAMES)
+#undef MEM_NAMES
   };
-  assert(target_memory.kind() < 12);
   switch (mappable.get_mappable_type()) {
     case Mappable::TASK_MAPPABLE: {
       const Task* task = mappable.as_task();

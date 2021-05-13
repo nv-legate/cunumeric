@@ -131,11 +131,11 @@ def has_openmp():
 def install_openblas(openblas_dir, thread_count, verbose):
     print_log("Legate is installing OpenBLAS into a local directory...")
     temp_dir = tempfile.mkdtemp()
-    # Pin OpenBLAS at 3.10 for now
+    # Pin OpenBLAS at a recent version
     git_clone(
         temp_dir,
         url="https://github.com/xianyi/OpenBLAS.git",
-        tag="v0.3.13",
+        tag="v0.3.15",
         verbose=verbose,
     )
     # We can just build this directly
@@ -268,7 +268,7 @@ def build_legate_numpy(
     except FileNotFoundError:
         pass
 
-    cmd = ["python", "setup.py", "install", "--recurse"]
+    cmd = [sys.executable, "setup.py", "install", "--recurse"]
     if unknown is not None:
         cmd += unknown
         if "--prefix" not in unknown:
@@ -342,7 +342,10 @@ def install_legate_numpy(
 
     # Check to see if we have an installation of openblas
     try:
-        f = open(os.path.join(legate_dir, ".legate-libs.json"), "r")
+        f = open(
+            os.path.join(legate_dir, "share", "legate", ".legate-libs.json"),
+            "r",
+        )
         libs_config = json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
         libs_config = {}
