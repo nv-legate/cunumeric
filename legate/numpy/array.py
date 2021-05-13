@@ -2039,7 +2039,7 @@ class ndarray(object):
         else:
             broadcast = None
         dst = ndarray(
-            shape=(1,),
+            shape=(),
             dtype=dtype,
             stacklevel=(stacklevel + 1),
             inputs=(one, two),
