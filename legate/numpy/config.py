@@ -189,6 +189,7 @@ class NumPyOpCode(IntEnum):
     INCLUSIVE_SCAN = legate_numpy.NUMPY_INCLUSIVE_SCAN
     CONVERT_TO_RECT = legate_numpy.NUMPY_CONVERT_TO_RECT
     ARANGE = legate_numpy.NUMPY_ARANGE
+    ZIP = legate_numpy.ZIP
 
 
 # Match these to NumPyRedopID in legate_numpy_c.h

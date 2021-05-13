@@ -107,6 +107,7 @@ enum NumPyOpCode {
   NUMPY_INCLUSIVE_SCAN      = 72,
   NUMPY_CONVERT_TO_RECT     = 73,
   NUMPY_ARANGE              = 74,
+  NUMPY_ZIP                 = 75,
 };
 
 // Match these to NumPyRedopCode in legate/core/config.py
@@ -244,6 +245,7 @@ enum NumPyShardingCode {
 enum NumpyTaskOffset {
   NUMPY_CONVERT_OFFSET  = 100000,
   NUMPY_BINCOUNT_OFFSET = 200000,
+  NUMPY_ZIP_OFFSET      = 300000,
 };
 
 // Match these to NumPyMappingTag in legate/numpy/config.py

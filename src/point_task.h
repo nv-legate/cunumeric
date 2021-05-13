@@ -31,13 +31,13 @@ namespace numpy {
 template <NumPyOpCode op_code, NumPyVariantCode variant_code, class ResultType, class...>
 constexpr int task_id = -1;
 
-// nullary tasks themselves by ResultType
+// nullary tasks distinguish themselves by ResultType
 template <NumPyOpCode op_code, NumPyVariantCode variant_code, class ResultType>
 constexpr int task_id<op_code, variant_code, ResultType> =
   static_cast<int>(op_code) * NUMPY_TYPE_OFFSET + variant_code
   + legate_type_code_of<ResultType>* NUMPY_MAX_VARIANTS;
 
-// unary tasks themselves by ArgumentType
+// unary tasks distinguish themselves by ArgumentType
 template <NumPyOpCode op_code, NumPyVariantCode variant_code, class ResultType, class ArgumentType>
 constexpr int task_id<op_code, variant_code, ResultType, ArgumentType> =
   static_cast<int>(op_code) * NUMPY_TYPE_OFFSET + variant_code
@@ -181,6 +181,14 @@ class CPULoop<1> {
     for (int x = rect.lo[0]; x <= rect.hi[0]; ++x)
       inout[x] = func(inout[x], in[x], std::forward<Args>(args)...);
   }
+  template <typename Function, typename T, typename... Ts>
+  static inline void generic_loop(const Legion::Rect<1>& rect,
+                                  const Function& func,
+                                  const T& out,
+                                  const Ts&... in)
+  {
+    for (int x = rect.lo[0]; x <= rect.hi[0]; ++x) out[x] = func(in[x]...);
+  }
 };
 
 template <>
@@ -223,6 +231,15 @@ class CPULoop<2> {
     for (int x = rect.lo[0]; x <= rect.hi[0]; ++x)
       for (int y = rect.lo[1]; y <= rect.hi[1]; ++y)
         inout[x][y] = func(inout[x][y], in[x][y], std::forward<Args>(args)...);
+  }
+  template <typename Function, typename T, typename... Ts>
+  static inline void generic_loop(const Legion::Rect<2>& rect,
+                                  const Function& func,
+                                  const T& out,
+                                  const Ts&... in)
+  {
+    for (int x = rect.lo[0]; x <= rect.hi[0]; ++x)
+      for (int y = rect.lo[1]; y <= rect.hi[1]; ++y) out[x][y] = func(in[x][y]...);
   }
 };
 
@@ -270,6 +287,16 @@ class CPULoop<3> {
       for (int y = rect.lo[1]; y <= rect.hi[1]; ++y)
         for (int z = rect.lo[2]; z <= rect.hi[2]; ++z)
           inout[x][y][z] = func(inout[x][y][z], in[x][y][z], std::forward<Args>(args)...);
+  }
+  template <typename Function, typename T, typename... Ts>
+  static inline void generic_loop(const Legion::Rect<3>& rect,
+                                  const Function& func,
+                                  const T& out,
+                                  const Ts&... in)
+  {
+    for (int x = rect.lo[0]; x <= rect.hi[0]; ++x)
+      for (int y = rect.lo[1]; y <= rect.hi[1]; ++y)
+        for (int z = rect.lo[2]; z <= rect.hi[2]; ++z) out[x][y][z] = func(in[x][y][z]...);
   }
 };
 
@@ -323,6 +350,17 @@ class CPULoop<4> {
             inout[x][y][z][w] =
               func(inout[x][y][z][w], in[x][y][z][w], std::forward<Args>(args)...);
   }
+  template <typename Function, typename T, typename... Ts>
+  static inline void generic_loop(const Legion::Rect<4>& rect,
+                                  const Function& func,
+                                  const T& out,
+                                  const Ts&... in)
+  {
+    for (int x = rect.lo[0]; x <= rect.hi[0]; ++x)
+      for (int y = rect.lo[1]; y <= rect.hi[1]; ++y)
+        for (int z = rect.lo[2]; z <= rect.hi[2]; ++z)
+          for (int w = rect.lo[3]; w <= rect.hi[3]; ++w) out[x][y][z][w] = func(in[x][y][z][w]...);
+  }
 };
 
 #ifdef LEGATE_USE_OPENMP
@@ -373,6 +411,15 @@ class OMPLoop<1> {
     for (int x = rect.lo[0]; x <= rect.hi[0]; ++x)
       inout[x] = func(inout[x], in[x], std::forward<Args>(args)...);
   }
+  template <typename Function, typename T, typename... Ts>
+  static inline void generic_loop(const Legion::Rect<1>& rect,
+                                  const Function& func,
+                                  const T& out,
+                                  const Ts&... in)
+  {
+#pragma omp parallel for schedule(static)
+    for (int x = rect.lo[0]; x <= rect.hi[0]; ++x) out[x] = func(in[x]...);
+  }
 };
 
 template <>
@@ -419,6 +466,16 @@ class OMPLoop<2> {
     for (int x = rect.lo[0]; x <= rect.hi[0]; ++x)
       for (int y = rect.lo[1]; y <= rect.hi[1]; ++y)
         inout[x][y] = func(inout[x][y], in[x][y], std::forward<Args>(args)...);
+  }
+  template <typename Function, typename T, typename... Ts>
+  static inline void generic_loop(const Legion::Rect<2>& rect,
+                                  const Function& func,
+                                  const T& out,
+                                  const Ts&... in)
+  {
+#pragma omp parallel for schedule(static), collapse(2)
+    for (int x = rect.lo[0]; x <= rect.hi[0]; ++x)
+      for (int y = rect.lo[1]; y <= rect.hi[1]; ++y) out[x][y] = func(in[x][y]...);
   }
 };
 
@@ -470,6 +527,17 @@ class OMPLoop<3> {
       for (int y = rect.lo[1]; y <= rect.hi[1]; ++y)
         for (int z = rect.lo[2]; z <= rect.hi[2]; ++z)
           inout[x][y][z] = func(inout[x][y][z], in[x][y][z], std::forward<Args>(args)...);
+  }
+  template <typename Function, typename T, typename... Ts>
+  static inline void generic_loop(const Legion::Rect<3>& rect,
+                                  const Function& func,
+                                  const T& out,
+                                  const Ts&... in)
+  {
+#pragma omp parallel for schedule(static), collapse(3)
+    for (int x = rect.lo[0]; x <= rect.hi[0]; ++x)
+      for (int y = rect.lo[1]; y <= rect.hi[1]; ++y)
+        for (int z = rect.lo[2]; z <= rect.hi[2]; ++z) out[x][y][z] = func(in[x][y][z]...);
   }
 };
 
@@ -526,6 +594,18 @@ class OMPLoop<4> {
           for (int w = rect.lo[3]; w <= rect.hi[3]; ++w)
             inout[x][y][z][w] =
               func(inout[x][y][z][w], in[x][y][z][w], std::forward<Args>(args)...);
+  }
+  template <typename Function, typename T, typename... Ts>
+  static inline void generic_loop(const Legion::Rect<4>& rect,
+                                  const Function& func,
+                                  const T& out,
+                                  const Ts&... in)
+  {
+#pragma omp parallel for schedule(static), collapse(4)
+    for (int x = rect.lo[0]; x <= rect.hi[0]; ++x)
+      for (int y = rect.lo[1]; y <= rect.hi[1]; ++y)
+        for (int z = rect.lo[2]; z <= rect.hi[2]; ++z)
+          for (int w = rect.lo[3]; w <= rect.hi[3]; ++w) out[x][y][z][w] = func(in[x][y][z][w]...);
   }
 };
 #endif

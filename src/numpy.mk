@@ -13,7 +13,7 @@
 # limitations under the License.
 #
 
-# List all the application source files that need OpenMP separately 
+# List all the application source files that need OpenMP separately
 # since we have to add the -fopenmp flag to  CC_FLAGS for them
 GEN_CPU_SRC +=	  universal_functions/absolute.cc  	\
 		  universal_functions/add.cc	       	\
@@ -93,6 +93,7 @@ GEN_CPU_SRC +=	  universal_functions/absolute.cc  	\
 		  tile.cc	                       	\
 		  trans.cc	                       	\
 		  where.cc				\
+		  zip.cc				\
 		  numpy.cc	 # This must always be the last file!
 				 # It guarantees we do our registration callback
 				 # only after all task variants are recorded
@@ -168,4 +169,5 @@ GEN_GPU_SRC +=    universal_functions/absolute.cu      	\
 		  universal_functions/tanh.cu	        \
 		  tile.cu	                        \
 		  trans.cu	                        \
-		  where.cu							
+		  where.cu	                        \
+		  zip.cu
