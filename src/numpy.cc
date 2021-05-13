@@ -18,6 +18,7 @@
 #include "argmin.h"
 #include "mapper.h"
 #include "proj.h"
+#include "unary_red_util.h"
 
 using namespace Legion;
 
@@ -95,6 +96,15 @@ void registration_callback(Machine machine,
   const ReductionOpID first_redop_id =
     runtime->generate_library_reduction_ids(numpy_library_name, NUMPY_MAX_REDOPS);
   REGISTER_ALL_REDUCTIONS(ArgminReduction, first_redop_id);
+
+  Runtime::register_reduction_op<UntypedScalarRedOp<UnaryRedCode::MAX>>(first_redop_id +
+                                                                        NUMPY_SCALAR_MAX_REDOP);
+  Runtime::register_reduction_op<UntypedScalarRedOp<UnaryRedCode::MIN>>(first_redop_id +
+                                                                        NUMPY_SCALAR_MIN_REDOP);
+  Runtime::register_reduction_op<UntypedScalarRedOp<UnaryRedCode::PROD>>(first_redop_id +
+                                                                         NUMPY_SCALAR_PROD_REDOP);
+  Runtime::register_reduction_op<UntypedScalarRedOp<UnaryRedCode::SUM>>(first_redop_id +
+                                                                        NUMPY_SCALAR_SUM_REDOP);
 
   // Register our projection and sharding functions
   const ProjectionID first_projection_id =

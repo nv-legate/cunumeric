@@ -99,12 +99,17 @@ enum NumPyOpCode {
   NUMPY_BROADCAST_BINARY_OP = 400001,
   NUMPY_SCALAR_BINARY_OP    = 400002,
   NUMPY_FILL                = 400003,
+  NUMPY_SCALAR_UNARY_RED    = 400004,
 };
 
 // Match these to NumPyRedopCode in legate/core/config.py
 enum NumPyRedopID {
   NUMPY_ARGMIN_REDOP,
   NUMPY_ARGMAX_REDOP,
+  NUMPY_SCALAR_MAX_REDOP  = 500,
+  NUMPY_SCALAR_MIN_REDOP  = 501,
+  NUMPY_SCALAR_PROD_REDOP = 502,
+  NUMPY_SCALAR_SUM_REDOP  = 503,
 };
 
 // We provide a global class of projection functions

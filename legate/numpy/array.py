@@ -24,7 +24,7 @@ from numpy import broadcast_shapes
 
 from legate.core import LegateArray
 
-from .config import BinaryOpCode, NumPyOpCode
+from .config import BinaryOpCode, NumPyOpCode, UnaryRedCode
 from .doc_utils import copy_docstring
 from .runtime import runtime
 from .utils import unimplemented
@@ -1134,7 +1134,7 @@ class ndarray(object):
                 out, stacklevel=(stacklevel + 1), share=True
             )
         return self.perform_unary_reduction(
-            NumPyOpCode.MAX,
+            UnaryRedCode.MAX,
             NumPyOpCode.MAX_RADIX,
             self,
             axis=axis,
@@ -1224,7 +1224,7 @@ class ndarray(object):
                 out, stacklevel=(stacklevel + 1), share=True
             )
         return self.perform_unary_reduction(
-            NumPyOpCode.MIN,
+            UnaryRedCode.MIN,
             NumPyOpCode.MIN_RADIX,
             self,
             axis=axis,
@@ -1274,7 +1274,7 @@ class ndarray(object):
                 out, stacklevel=(stacklevel + 1), share=True
             )
         return self.perform_unary_reduction(
-            NumPyOpCode.PROD,
+            UnaryRedCode.PROD,
             NumPyOpCode.PROD_RADIX,
             self_array,
             axis=axis,
@@ -1472,7 +1472,7 @@ class ndarray(object):
                 out, stacklevel=(stacklevel + 1), share=True
             )
         return self.perform_unary_reduction(
-            NumPyOpCode.SUM,
+            UnaryRedCode.SUM,
             NumPyOpCode.SUM_RADIX,
             self_array,
             axis=axis,

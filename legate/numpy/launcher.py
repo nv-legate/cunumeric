@@ -426,14 +426,17 @@ class Map(object):
             task.set_point(self._point)
         return task
 
-    def execute(self, launch_domain):
+    def execute(self, launch_domain, redop=None):
         # Note that we should hold a reference to this buffer
         # until we launch a task, otherwise the Python GC will
         # collect the Python object holding the buffer, which
         # in turn will deallocate the C side buffer.
         argbuf = BufferBuilder()
         task = self.build_task(launch_domain, argbuf)
-        return self._runtime.dispatch(task)
+        if redop is not None:
+            return self._runtime.dispatch(task, redop=redop)
+        else:
+            return self._runtime.dispatch(task)
 
     def execute_single(self):
         argbuf = BufferBuilder()

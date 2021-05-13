@@ -14,6 +14,8 @@
  *
  */
 
+#include <sstream>
+
 #include "scalar.h"
 #include "dispatch.h"
 
@@ -64,6 +66,7 @@ struct copy_fn {
 void UntypedScalar::copy(const UntypedScalar &other)
 {
   destroy();
+  if (nullptr == other.data_) return;
   code_ = other.code_;
   data_ = type_dispatch(code_, copy_fn{}, other.data_);
 }
@@ -112,6 +115,39 @@ void deserialize(Deserializer &ctx, UntypedScalar &scalar)
   FromFuture<UntypedScalar> fut_scalar;
   deserialize(ctx, fut_scalar);
   scalar = std::move(fut_scalar.value());
+}
+
+static const char *type_names[] = {"bool",
+                                   "int8_t",
+                                   "int16_t",
+                                   "int32_t",
+                                   "int64_t",
+                                   "uint8_t",
+                                   "uint16_t",
+                                   "uint32_t",
+                                   "uint64_t",
+                                   "__half",
+                                   "float",
+                                   "double",
+                                   "complex<float>",
+                                   "complex<double>"};
+
+struct to_string_fn {
+  template <LegateTypeCode CODE>
+  std::string operator()(const void *data)
+  {
+    std::stringstream ss;
+    ss << type_names[CODE] << "(" << *static_cast<const legate_type_of<CODE> *>(data) << ")";
+    return ss.str();
+  }
+};
+
+std::string UntypedScalar::to_string() const
+{
+  if (nullptr == data_)
+    return "invalid";
+  else
+    return type_dispatch(code_, to_string_fn{}, data_);
 }
 
 }  // namespace numpy

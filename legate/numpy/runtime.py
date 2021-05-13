@@ -2391,6 +2391,9 @@ class Runtime(object):
             result += numpy_field_type_offsets[field_dtype.type]
         return result
 
+    def get_untyped_reduction_op_id(self, op):
+        return self.first_redop_id + numpy_reduction_op_offsets[op]
+
     def get_radix_projection_functor_id(
         self, total_dims, collapse_dim, radix, offset
     ):

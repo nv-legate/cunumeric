@@ -14,14 +14,16 @@
  *
  */
 
-#ifndef __NUMPY_POINT_TASK_H__
-#define __NUMPY_POINT_TASK_H__
+#pragma once
 
 #include "numpy.h"
 #include "proj.h"
 #include <type_traits>
 #if defined(LEGATE_USE_CUDA) && defined(__CUDACC__)
 #include "cuda_help.h"
+#endif
+#ifdef LEGATE_USE_OPENMP
+#include <omp.h>
 #endif
 
 namespace legate {
@@ -181,6 +183,14 @@ class CPULoop<1> {
     for (int x = rect.lo[0]; x <= rect.hi[0]; ++x)
       inout[x] = func(inout[x], in[x], std::forward<Args>(args)...);
   }
+  template <typename ReductionOp, typename VAL, typename ACC>
+  static inline void unary_reduction_loop(ReductionOp op,
+                                          VAL& lhs,
+                                          const Legion::Rect<1>& rect,
+                                          const ACC& in)
+  {
+    for (int x = rect.lo[0]; x <= rect.hi[0]; ++x) ReductionOp::template fold<true>(lhs, in[x]);
+  }
 };
 
 template <>
@@ -223,6 +233,16 @@ class CPULoop<2> {
     for (int x = rect.lo[0]; x <= rect.hi[0]; ++x)
       for (int y = rect.lo[1]; y <= rect.hi[1]; ++y)
         inout[x][y] = func(inout[x][y], in[x][y], std::forward<Args>(args)...);
+  }
+  template <typename ReductionOp, typename VAL, typename ACC>
+  static inline void unary_reduction_loop(ReductionOp op,
+                                          VAL& lhs,
+                                          const Legion::Rect<2>& rect,
+                                          const ACC& in)
+  {
+    for (int x = rect.lo[0]; x <= rect.hi[0]; ++x)
+      for (int y = rect.lo[1]; y <= rect.hi[1]; ++y)
+        ReductionOp::template fold<true>(lhs, in[x][y]);
   }
 };
 
@@ -270,6 +290,17 @@ class CPULoop<3> {
       for (int y = rect.lo[1]; y <= rect.hi[1]; ++y)
         for (int z = rect.lo[2]; z <= rect.hi[2]; ++z)
           inout[x][y][z] = func(inout[x][y][z], in[x][y][z], std::forward<Args>(args)...);
+  }
+  template <typename ReductionOp, typename VAL, typename ACC>
+  static inline void unary_reduction_loop(ReductionOp op,
+                                          VAL& lhs,
+                                          const Legion::Rect<3>& rect,
+                                          const ACC& in)
+  {
+    for (int x = rect.lo[0]; x <= rect.hi[0]; ++x)
+      for (int y = rect.lo[1]; y <= rect.hi[1]; ++y)
+        for (int z = rect.lo[2]; z <= rect.hi[2]; ++z)
+          ReductionOp::template fold<true>(lhs, in[x][y][z]);
   }
 };
 
@@ -323,6 +354,18 @@ class CPULoop<4> {
             inout[x][y][z][w] =
               func(inout[x][y][z][w], in[x][y][z][w], std::forward<Args>(args)...);
   }
+  template <typename ReductionOp, typename VAL, typename ACC>
+  static inline void unary_reduction_loop(ReductionOp op,
+                                          VAL& lhs,
+                                          const Legion::Rect<4>& rect,
+                                          const ACC& in)
+  {
+    for (int x = rect.lo[0]; x <= rect.hi[0]; ++x)
+      for (int y = rect.lo[1]; y <= rect.hi[1]; ++y)
+        for (int z = rect.lo[2]; z <= rect.hi[2]; ++z)
+          for (int w = rect.lo[3]; w <= rect.hi[3]; ++w)
+            ReductionOp::template fold<true>(lhs, in[x][y][z][w]);
+  }
 };
 
 #ifdef LEGATE_USE_OPENMP
@@ -373,6 +416,20 @@ class OMPLoop<1> {
     for (int x = rect.lo[0]; x <= rect.hi[0]; ++x)
       inout[x] = func(inout[x], in[x], std::forward<Args>(args)...);
   }
+  template <typename ReductionOp, typename VAL, typename ACC>
+  static inline void unary_reduction_loop(ReductionOp op,
+                                          VAL* lhs,
+                                          const Legion::Rect<1>& rect,
+                                          const ACC& in)
+  {
+#pragma omp parallel
+    {
+      const int tid = omp_get_thread_num();
+#pragma omp for schedule(static)
+      for (int x = rect.lo[0]; x <= rect.hi[0]; ++x)
+        ReductionOp::template fold<true>(lhs[tid], in[x]);
+    }
+  }
 };
 
 template <>
@@ -419,6 +476,21 @@ class OMPLoop<2> {
     for (int x = rect.lo[0]; x <= rect.hi[0]; ++x)
       for (int y = rect.lo[1]; y <= rect.hi[1]; ++y)
         inout[x][y] = func(inout[x][y], in[x][y], std::forward<Args>(args)...);
+  }
+  template <typename ReductionOp, typename VAL, typename ACC>
+  static inline void unary_reduction_loop(ReductionOp op,
+                                          VAL* lhs,
+                                          const Legion::Rect<2>& rect,
+                                          const ACC& in)
+  {
+#pragma omp parallel
+    {
+      const int tid = omp_get_thread_num();
+#pragma omp for schedule(static), collapse(2)
+      for (int x = rect.lo[0]; x <= rect.hi[0]; ++x)
+        for (int y = rect.lo[1]; y <= rect.hi[1]; ++y)
+          ReductionOp::template fold<true>(lhs[tid], in[x][y]);
+    }
   }
 };
 
@@ -470,6 +542,22 @@ class OMPLoop<3> {
       for (int y = rect.lo[1]; y <= rect.hi[1]; ++y)
         for (int z = rect.lo[2]; z <= rect.hi[2]; ++z)
           inout[x][y][z] = func(inout[x][y][z], in[x][y][z], std::forward<Args>(args)...);
+  }
+  template <typename ReductionOp, typename VAL, typename ACC>
+  static inline void unary_reduction_loop(ReductionOp op,
+                                          VAL* lhs,
+                                          const Legion::Rect<3>& rect,
+                                          const ACC& in)
+  {
+#pragma omp parallel
+    {
+      const int tid = omp_get_thread_num();
+#pragma omp for schedule(static), collapse(3)
+      for (int x = rect.lo[0]; x <= rect.hi[0]; ++x)
+        for (int y = rect.lo[1]; y <= rect.hi[1]; ++y)
+          for (int z = rect.lo[2]; z <= rect.hi[2]; ++z)
+            ReductionOp::template fold<true>(lhs[tid], in[x][y][z]);
+    }
   }
 };
 
@@ -526,6 +614,23 @@ class OMPLoop<4> {
           for (int w = rect.lo[3]; w <= rect.hi[3]; ++w)
             inout[x][y][z][w] =
               func(inout[x][y][z][w], in[x][y][z][w], std::forward<Args>(args)...);
+  }
+  template <typename ReductionOp, typename VAL, typename ACC>
+  static inline void unary_reduction_loop(ReductionOp op,
+                                          VAL* lhs,
+                                          const Legion::Rect<4>& rect,
+                                          const ACC& in)
+  {
+#pragma omp parallel
+    {
+      const int tid = omp_get_thread_num();
+#pragma omp for schedule(static), collapse(4)
+      for (int x = rect.lo[0]; x <= rect.hi[0]; ++x)
+        for (int y = rect.lo[1]; y <= rect.hi[1]; ++y)
+          for (int z = rect.lo[2]; z <= rect.hi[2]; ++z)
+            for (int w = rect.lo[3]; w <= rect.hi[3]; ++w)
+              ReductionOp::template fold<true>(lhs[tid], in[x][y][z][w]);
+    }
   }
 };
 #endif
@@ -616,5 +721,3 @@ const typename PointTask<Derived>::StaticRegistrar PointTask<Derived>::static_re
 
 }  // namespace numpy
 }  // namespace legate
-
-#endif  // __NUMPY_POINT_TASK_H__

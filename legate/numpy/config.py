@@ -182,6 +182,7 @@ class NumPyOpCode(IntEnum):
     BROADCAST_BINARY_OP = legate_numpy.NUMPY_BROADCAST_BINARY_OP
     SCALAR_BINARY_OP = legate_numpy.NUMPY_SCALAR_BINARY_OP
     FILL = legate_numpy.NUMPY_FILL
+    SCALAR_UNARY_RED = legate_numpy.NUMPY_SCALAR_UNARY_RED
 
 
 @unique
@@ -201,6 +202,14 @@ class BinaryOpCode(IntEnum):
     NOT_EQUAL = 13
     POWER = 14
     SUBTRACT = 15
+
+
+@unique
+class UnaryRedCode(IntEnum):
+    MAX = 1
+    MIN = 2
+    PROD = 3
+    SUM = 4
 
 
 # Match these to NumPyRedopID in legate_numpy_c.h
@@ -234,6 +243,10 @@ numpy_reduction_op_offsets = {
     NumPyOpCode.CONTAINS: legion.LEGION_REDOP_KIND_SUM,
     # nonzeros are counted with sum
     NumPyOpCode.COUNT_NONZERO: legion.LEGION_REDOP_KIND_SUM,
+    UnaryRedCode.MAX: legate_numpy.NUMPY_SCALAR_MAX_REDOP,
+    UnaryRedCode.MIN: legate_numpy.NUMPY_SCALAR_MIN_REDOP,
+    UnaryRedCode.PROD: legate_numpy.NUMPY_SCALAR_PROD_REDOP,
+    UnaryRedCode.SUM: legate_numpy.NUMPY_SCALAR_SUM_REDOP,
 }
 
 

@@ -3781,77 +3781,40 @@ class DeferredArray(NumPyThunk):
                 lhs_array.base = rhs
             return
         task_dtype = rhs_array.dtype
-        result_dtype = lhs_array.dtype
         # See if we are doing reduction to a point or another region
         if lhs_array.size == 1:
             assert axes is None or len(axes) == (
                 rhs_array.ndim - lhs_array.ndim
             )
-            # Reduction to a single value, parallelize over the reduce space
-            launch_space = rhs.compute_parallel_launch_space()
-            argbuf = BufferBuilder()
+            rhs_arg = DeferredArrayView(rhs_array)
+            launch_space, key_arg = rhs_arg.find_key_view()
+            key_arg.update_tag(NumPyMappingTag.KEY_REGION_TAG)
+            (shardpt, shardfn, shardsp) = key_arg.sharding
+
+            task = Map(self.runtime, NumPyOpCode.SCALAR_UNARY_RED, tag=shardfn)
+
+            task.add_scalar_arg(op, np.int32)
             if launch_space is not None:
-                rhs_part, shardfn, shardsp = rhs.find_or_create_key_partition()
-                self.pack_shape(
-                    argbuf, rhs_array.shape, rhs_part.tile_shape, 0
-                )
+                task.add_shape(rhs_arg.shape, rhs_arg.part.tile_shape, 0)
             else:
-                self.pack_shape(argbuf, rhs_array.shape)
-            argbuf.pack_accessor(rhs.field.field_id, rhs.transform)
+                task.add_shape(rhs_arg.shape)
+            rhs_arg.add_to_legate_op(task, True)
+
+            if shardpt is not None:
+                task.set_point(shardpt)
+            if shardsp is not None:
+                task.set_sharding_space(shardsp)
+            if args is not None:
+                self.add_arguments(task, args)
+
             if launch_space is not None:
-                task = IndexTask(
-                    self.runtime.get_unary_task_id(
-                        op,
-                        result_type=result_dtype,
-                        argument_type=task_dtype,
-                        variant_code=NumPyVariantCode.REDUCTION,
-                    ),
+                result = task.execute(
                     Rect(launch_space),
-                    self.runtime.empty_argmap,
-                    argbuf.get_string(),
-                    argbuf.get_size(),
-                    mapper=self.runtime.mapper_id,
-                    tag=shardfn,
-                )
-                if shardsp is not None:
-                    task.set_sharding_space(shardsp)
-                # rhs_part is computed above
-                task.add_read_requirement(
-                    rhs_part,
-                    rhs.field.field_id,
-                    0,
-                    tag=NumPyMappingTag.KEY_REGION_TAG,
-                )
-                if args is not None:
-                    self.add_arguments(task, args)
-                result = self.runtime.dispatch(
-                    task,
-                    redop=self.runtime.get_reduction_op_id(
-                        op, lhs_array.dtype
-                    ),
+                    redop=self.runtime.get_untyped_reduction_op_id(op),
                 )
             else:
-                shardpt, shardfn, shardsp = rhs.find_point_sharding()
-                task = Task(
-                    self.runtime.get_unary_task_id(
-                        op,
-                        argument_type=task_dtype,
-                        result_type=result_dtype,
-                        variant_code=NumPyVariantCode.REDUCTION,
-                    ),
-                    argbuf.get_string(),
-                    argbuf.get_size(),
-                    mapper=self.runtime.mapper_id,
-                    tag=shardfn,
-                )
-                if shardpt is not None:
-                    task.set_point(shardpt)
-                if shardsp is not None:
-                    task.set_sharding_space(shardsp)
-                task.add_read_requirement(rhs.region, rhs.field.field_id)
-                if args is not None:
-                    self.add_arguments(task, args)
-                result = self.runtime.dispatch(task)
+                result = task.execute_single()
+
             # If this is an argred task, we need to convert from
             # the argred type back to the actual type of the result
             if argred:

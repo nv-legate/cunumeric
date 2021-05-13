@@ -27,6 +27,8 @@ GEN_CPU_SRC += universal_functions/absolute.cc      \
 							 deserializer.cc                      \
 							 scalar.cc                            \
 							 fill.cc                              \
+							 scalar_unary_red.cc                  \
+							 unary_red_util.cc                    \
 							 arange.cc                            \
 							 arg.cc                               \
 							 argmin.cc                            \
@@ -94,7 +96,8 @@ GEN_CPU_SRC += universal_functions/absolute.cc      \
 ifeq ($(strip $(USE_OPENMP)),1)
 GEN_CPU_SRC += binary_op_omp.cc           \
 							 broadcast_binary_op_omp.cc \
-							 fill_omp.cc
+							 fill_omp.cc                \
+							 scalar_unary_red_omp.cc
 endif
 
 GEN_GPU_SRC += universal_functions/absolute.cu      \
@@ -104,6 +107,7 @@ GEN_GPU_SRC += universal_functions/absolute.cu      \
 							 binary_op.cu                         \
 							 broadcast_binary_op.cu               \
 							 fill.cu                              \
+							 scalar_unary_red.cu                  \
 							 arange.cu                            \
 							 arg.cu                               \
 							 argmin.cu                            \

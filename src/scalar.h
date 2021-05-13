@@ -59,11 +59,19 @@ class UntypedScalar {
   {
     return *static_cast<const T *>(data_);
   }
-  template <typename T>
+  template <typename T = void>
   const T *ptr() const
   {
     return static_cast<const T *>(data_);
   }
+
+  template <typename T = void>
+  T *ptr()
+  {
+    return static_cast<T *>(data_);
+  }
+
+  std::string to_string() const;
 
  private:
   LegateTypeCode code_{LegateTypeCode::MAX_TYPE_NUMBER};
