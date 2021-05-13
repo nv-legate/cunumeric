@@ -5159,13 +5159,13 @@ class DeferredArray(NumPyThunk):
             assert not isinstance(rhs1, Future) or not isinstance(rhs2, Future)
             has_future = isinstance(rhs1, Future) or isinstance(rhs2, Future)
             # Compute our transforms
-            if rhs1_array.size > 1 and rhs1_array.shape != lhs_array.shape:
+            if rhs1_array.size > 1 and rhs1_array.shape != broadcast:
                 (
                     transform1,
                     offset1,
                     proj1_id,
                 ) = self.runtime.compute_broadcast_transform(
-                    lhs_array.shape, rhs1_array.shape
+                    broadcast, rhs1_array.shape
                 )
                 mapping_tag1 = (
                     NumPyMappingTag.NO_MEMOIZE_TAG if proj1_id > 0 else 0
@@ -5175,13 +5175,13 @@ class DeferredArray(NumPyThunk):
                 offset1 = None
                 proj1_id = 0
                 mapping_tag1 = NumPyMappingTag.KEY_REGION_TAG
-            if rhs2_array.size > 1 and rhs2_array.shape != lhs_array.shape:
+            if rhs2_array.size > 1 and rhs2_array.shape != broadcast:
                 (
                     transform2,
                     offset2,
                     proj2_id,
                 ) = self.runtime.compute_broadcast_transform(
-                    lhs_array.shape, rhs2_array.shape
+                    broadcast, rhs2_array.shape
                 )
                 mapping_tag2 = (
                     NumPyMappingTag.NO_MEMOIZE_TAG if proj2_id > 0 else 0
@@ -5219,7 +5219,7 @@ class DeferredArray(NumPyThunk):
             if launch_space is not None:
                 # Index task launch case
                 task_variant = (
-                    NumPyVariantCode.BROADCAST_REDUCTION
+                    NumPyVariantCode.BROADCAST
                     if has_future
                     else NumPyVariantCode.REDUCTION
                 )
@@ -5249,12 +5249,13 @@ class DeferredArray(NumPyThunk):
                     rhs1_part = rhs1.find_or_create_partition(rhs1_shape)
                 else:
                     rhs1_part = rhs1.find_or_create_partition(launch_space)
-                task.add_read_requirement(
-                    rhs1_part,
-                    rhs1.field.field_id,
-                    proj1_id,
-                    tag=mapping_tag1,
-                )
+                if not isinstance(rhs1, Future):
+                    task.add_read_requirement(
+                        rhs1_part,
+                        rhs1.field.field_id,
+                        proj1_id,
+                        tag=mapping_tag1,
+                    )
                 if isinstance(rhs2, Future):
                     task.add_future(rhs2)
                 elif transform2 is not None:
@@ -5267,12 +5268,13 @@ class DeferredArray(NumPyThunk):
                     rhs2_part = rhs2.find_or_create_partition(rhs2_shape)
                 else:
                     rhs2_part = rhs2.find_or_create_partition(launch_space)
-                task.add_read_requirement(
-                    rhs2_part,
-                    rhs2.field.field_id,
-                    proj2_id,
-                    tag=mapping_tag2,
-                )
+                if not isinstance(rhs2, Future):
+                    task.add_read_requirement(
+                        rhs2_part,
+                        rhs2.field.field_id,
+                        proj2_id,
+                        tag=mapping_tag2,
+                    )
                 if args is not None:
                     self.add_arguments(task, args)
                 redop = self.runtime.get_reduction_op_id(op, lhs_array.dtype)
@@ -5280,7 +5282,7 @@ class DeferredArray(NumPyThunk):
             else:
                 # Single task launch case
                 task_variant = (
-                    NumPyVariantCode.BROADCAST_REDUCTION
+                    NumPyVariantCode.BROADCAST
                     if has_future
                     else NumPyVariantCode.REDUCTION
                 )
