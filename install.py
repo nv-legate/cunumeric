@@ -131,11 +131,11 @@ def has_openmp():
 def install_openblas(openblas_dir, thread_count, verbose):
     print_log("Legate is installing OpenBLAS into a local directory...")
     temp_dir = tempfile.mkdtemp()
-    # Pin OpenBLAS at 3.10 for now
+    # Pin OpenBLAS at a recent version
     git_clone(
         temp_dir,
         url="https://github.com/xianyi/OpenBLAS.git",
-        tag="v0.3.13",
+        tag="v0.3.15",
         verbose=verbose,
     )
     # We can just build this directly
