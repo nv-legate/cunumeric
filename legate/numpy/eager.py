@@ -944,11 +944,11 @@ class EagerArray(NumPyThunk):
             )
         else:
             if op == NumPyOpCode.ALLCLOSE:
-                self.array[:] = np.allclose(
+                self.array = np.allclose(
                     rhs1.array, rhs2.array, rtol=args[0], atol=args[1]
                 )
             elif op == NumPyOpCode.EQUAL:
-                self.array[:] = np.array_equal(rhs1.array, rhs2.array)
+                self.array = np.array_equal(rhs1.array, rhs2.array)
             else:
                 raise RuntimeError(
                     "unsupported binary reduction op " + str(op)
