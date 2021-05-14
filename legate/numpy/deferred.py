@@ -330,10 +330,23 @@ class DeferredArray(NumPyThunk):
             # Check that all the arrays can be broadcast together
             # Concatenate all the arrays into a single array
             raise NotImplementedError("need support for concatenating arrays")
-        else:
-            return self.runtime.to_deferred_array(
-                tuple_of_arrays[0], stacklevel=(stacklevel + 1)
+        index_array = self.runtime.to_deferred_array(
+            tuple_of_arrays[0], stacklevel=(stacklevel + 1)
+        )
+        if index_array.dtype != np.dtype(np.int64):
+            converted_array = self.runtime.to_deferred_array(
+                self.runtime.create_empty_thunk(
+                    shape=index_array.shape,
+                    dtype=np.dtype(np.int64),
+                    inputs=(index_array,),
+                ),
+                stacklevel=(stacklevel + 1),
             )
+            converted_array.convert(
+                index_array, warn=False, stacklevel=(stacklevel + 1)
+            )
+            index_array = converted_array
+        return index_array
 
     def get_item(self, key, stacklevel, view=None, dim_map=None):
         assert self.size > 1
