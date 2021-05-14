@@ -156,7 +156,7 @@ class EagerArray(NumPyThunk):
     def get_scalar_array(self, stacklevel):
         if self.deferred is not None:
             return self.deferred.get_scalar_array(stacklevel=(stacklevel + 1))
-        return self.array
+        return self.array.reshape(())
 
     def _create_indexing_key(self, key, stacklevel):
         if key is None or key is Ellipsis:
@@ -944,11 +944,11 @@ class EagerArray(NumPyThunk):
             )
         else:
             if op == NumPyOpCode.ALLCLOSE:
-                self.array[:] = np.allclose(
+                self.array = np.allclose(
                     rhs1.array, rhs2.array, rtol=args[0], atol=args[1]
                 )
             elif op == NumPyOpCode.EQUAL:
-                self.array[:] = np.array_equal(rhs1.array, rhs2.array)
+                self.array = np.array_equal(rhs1.array, rhs2.array)
             else:
                 raise RuntimeError(
                     "unsupported binary reduction op " + str(op)
