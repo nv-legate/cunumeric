@@ -156,7 +156,7 @@ class EagerArray(NumPyThunk):
     def get_scalar_array(self, stacklevel):
         if self.deferred is not None:
             return self.deferred.get_scalar_array(stacklevel=(stacklevel + 1))
-        return self.array
+        return self.array.reshape(())
 
     def _create_indexing_key(self, key, stacklevel):
         if key is None or key is Ellipsis:
