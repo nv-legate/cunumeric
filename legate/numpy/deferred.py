@@ -369,6 +369,7 @@ class DeferredArray(NumPyThunk):
             )
             # Issue the gather copy to the result
             index = index_array.base
+            index_part, shardfn, shardsp = index.find_or_create_key_partition()
             launch_space = index.compute_parallel_launch_space()
             src = self.base
             dst = result_field
@@ -377,26 +378,14 @@ class DeferredArray(NumPyThunk):
                 if self.ndim == index_array.ndim:
                     # If we have the same dimensionality then normal
                     # partitioning works
-                    (
-                        src_part,
-                        shardfn,
-                        shardsp,
-                    ) = src.find_or_create_key_partition()
+                    src_part = src.find_or_create_partition(launch_space)
                     src_proj = 0  # identity
-                    index_part = index.find_or_create_congruent_partition(
-                        src_part
-                    )
                 else:
                     # Otherwise we need to compute an indirect partition
                     # and functor
                     src_part, src_proj = src.find_or_create_indirect_partition(
                         launch_space
                     )
-                    (
-                        index_part,
-                        shardfn,
-                        shardsp,
-                    ) = index.find_or_create_key_partition()
                 copy = IndexCopy(
                     Rect(launch_space),
                     mapper=self.runtime.mapper_id,
@@ -507,6 +496,11 @@ class DeferredArray(NumPyThunk):
             # Do the scatter copy
             index = index_array.base
             launch_space = index.compute_parallel_launch_space()
+            (
+                index_part,
+                shardfn,
+                shardsp,
+            ) = index.find_or_create_key_partition()
             dst = self.base
             src = value_array.base
             if launch_space is not None:
@@ -514,26 +508,14 @@ class DeferredArray(NumPyThunk):
                 if self.ndim == index_array.ndim:
                     # If we have the same dimensionality then normal
                     # partitioning works
-                    (
-                        dst_part,
-                        shardfn,
-                        shardsp,
-                    ) = dst.find_or_create_key_partition()
+                    dst_part = dst.find_or_create_partition(launch_space)
                     dst_proj = 0  # identity
-                    index_part = index.find_or_create_congruent_partition(
-                        dst_part
-                    )
                 else:
                     # Otherwise we need to compute an indirect partition
                     # and functor
                     dst_part, dst_proj = dst.find_or_create_indirect_partition(
                         launch_space
                     )
-                    (
-                        index_part,
-                        shardfn,
-                        shardsp,
-                    ) = index.find_or_create_key_partition()
                 copy = IndexCopy(
                     Rect(launch_space),
                     mapper=self.runtime.mapper_id,
