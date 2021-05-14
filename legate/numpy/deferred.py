@@ -4310,116 +4310,45 @@ class DeferredArray(NumPyThunk):
                             )
                             self.runtime.dispatch(task)
             else:
-                # Single task launch case
-                argbuf = BufferBuilder()
-                argbuf.pack_dimension(axis)
-                argbuf.pack_dimension(-1)  # We're not reducing any dimensions
-                if argred:
-                    # Need a temporary field for the argred case
-                    # Argreds have a combination dtype
-                    argred_dtype = np.dtype(
-                        [("f1", np.int64), ("f2", rhs_array.dtype)], align=True
-                    )
-                    temp = self.runtime.allocate_field(
-                        lhs_array.shape, argred_dtype
-                    )
-                    if temp.transform:
-                        # Transform from the rhs space back to our space
-                        affine_transform = affine_transform.compose(
-                            temp.transform
-                        )
-                    # Access lhs for initialization with its shape
-                    self.pack_shape(argbuf, lhs_array.shape)
-                    argbuf.pack_accessor(temp.field.field_id, temp.transform)
-                    # Access lhs for reducing to rhs with the transformed shape
-                    self.pack_shape(argbuf, rhs_array.shape)
-                    argbuf.pack_accessor(temp.field.field_id, affine_transform)
-                else:
-                    if result.transform:
-                        # Transform from the rhs space back to our space
-                        affine_transform = affine_transform.compose(
-                            result.transform
-                        )
-                    # Access lhs for initialization with its shape
-                    self.pack_shape(argbuf, lhs_array.shape)
-                    argbuf.pack_accessor(
-                        result.field.field_id, result.transform
-                    )
-                    # Access lhs for reducing to rhs with the transformed shape
-                    self.pack_shape(argbuf, rhs_array.shape)
-                    argbuf.pack_accessor(result.field.field_id, transform)
-                # Access rhs with the shape that was packed earlier for lhs
-                argbuf.pack_accessor(rhs.field.field_id, rhs.transform)
-                shardpt, shardfn, shardsp = rhs.find_point_sharding()
-                task = Task(
-                    self.runtime.get_unary_task_id(
-                        op, argument_type=task_dtype, result_type=task_dtype
-                    ),
-                    argbuf.get_string(),
-                    argbuf.get_size(),
-                    mapper=self.runtime.mapper_id,
-                    tag=shardfn,
+                lhs_arg_init = DeferredArrayView(
+                    lhs_array,
+                    proj_id=proj_id,
+                    tag=NumPyMappingTag.NO_MEMOIZE_TAG,
                 )
+                lhs_arg_red = DeferredArrayView(
+                    lhs_array,
+                    transform=transform,
+                    proj_id=proj_id,
+                    tag=NumPyMappingTag.NO_MEMOIZE_TAG,
+                )
+                rhs_arg = DeferredArrayView(
+                    rhs_array,
+                    tag=NumPyMappingTag.KEY_REGION_TAG,
+                )
+
+                shardpt, shardfn, shardsp = rhs_arg.sharding
+
+                task = Map(self.runtime, NumPyOpCode.UNARY_RED)
+                task.add_scalar_arg(axis, np.int32)
+                task.add_scalar_arg(op, np.int32)
+                task.add_shape(lhs_arg_init.shape)
+                task.add_shape(rhs_arg.shape)
+
+                lhs_arg_init.add_to_legate_op(task, False)
+                lhs_arg_red.add_to_legate_op(task, False)
+                rhs_arg.add_to_legate_op(task, True)
+
                 if shardpt is not None:
                     task.set_point(shardpt)
                 if shardsp is not None:
                     task.set_sharding_space(shardsp)
-                if argred:
-                    task.add_write_requirement(
-                        temp.region,
-                        temp.field.field_id,
-                        tag=NumPyMappingTag.NO_MEMOIZE_TAG,
-                    )
-                else:
-                    task.add_write_requirement(
-                        result.region,
-                        result.field.field_id,
-                        tag=NumPyMappingTag.NO_MEMOIZE_TAG,
-                    )
-                task.add_read_requirement(
-                    rhs.region,
-                    rhs.field.field_id,
-                    tag=NumPyMappingTag.KEY_REGION_TAG,
-                )
                 if args is not None:
                     self.add_arguments(task, args)
                 if initial is not None:
                     task.add_future(initial_future)
-                self.runtime.dispatch(task)
-                # if this isn't an argred then we're done, otherwise do the
-                # conversion
-                if argred:
-                    argbuf = BufferBuilder()
-                    argbuf.pack_dimension(-1)  # No collapse dimension
-                    self.pack_shape(argbuf, lhs_array.shape)
-                    argbuf.pack_accessor(
-                        result.field.field_id, result.transform
-                    )
-                    argbuf.pack_accessor(temp.field.field_id, temp.transform)
-                    task = Task(
-                        self.runtime.get_nullary_task_id(
-                            NumPyOpCode.GETARG, result_type=task_dtype
-                        ),
-                        argbuf.get_string(),
-                        argbuf.get_size(),
-                        mapper=self.runtime.mapper_id,
-                        tag=shardfn,
-                    )
-                    if shardpt is not None:
-                        task.set_point(shardpt)
-                    if shardsp is not None:
-                        task.set_sharding_space(shardsp)
-                    task.add_write_requirement(
-                        result.region,
-                        result.field.field_id,
-                        tag=NumPyMappingTag.KEY_REGION_TAG,
-                    )
-                    task.add_read_requirement(
-                        temp.region,
-                        temp.field.field_id,
-                        tag=NumPyMappingTag.NO_MEMOIZE_TAG,
-                    )
-                    self.runtime.dispatch(task)
+
+                task.execute_single()
+
         self.runtime.profile_callsite(stacklevel + 1, True, callsite)
         if self.runtime.shadow_debug:
             self.shadow.unary_reduction(

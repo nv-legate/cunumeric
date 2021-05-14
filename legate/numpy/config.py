@@ -183,6 +183,7 @@ class NumPyOpCode(IntEnum):
     SCALAR_BINARY_OP = legate_numpy.NUMPY_SCALAR_BINARY_OP
     FILL = legate_numpy.NUMPY_FILL
     SCALAR_UNARY_RED = legate_numpy.NUMPY_SCALAR_UNARY_RED
+    UNARY_RED = legate_numpy.NUMPY_UNARY_RED
 
 
 @unique
