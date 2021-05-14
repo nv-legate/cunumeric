@@ -66,7 +66,7 @@ struct UnaryRedOp<UnaryRedCode::MAX, TYPE_CODE> {
   static const VAL identity;
 
   template <bool EXCLUSIVE>
-  static void fold(VAL &rhs1, VAL rhs2)
+  __CUDA_HD__ static void fold(VAL &rhs1, VAL rhs2)
   {
     OP::template fold<EXCLUSIVE>(rhs1, rhs2);
   }
@@ -87,7 +87,7 @@ struct UnaryRedOp<UnaryRedCode::MIN, TYPE_CODE> {
   static const VAL identity;
 
   template <bool EXCLUSIVE>
-  static void fold(VAL &rhs1, VAL rhs2)
+  __CUDA_HD__ static void fold(VAL &rhs1, VAL rhs2)
   {
     OP::template fold<EXCLUSIVE>(rhs1, rhs2);
   }
@@ -108,7 +108,7 @@ struct UnaryRedOp<UnaryRedCode::PROD, TYPE_CODE> {
   static const VAL identity;
 
   template <bool EXCLUSIVE>
-  static void fold(VAL &rhs1, VAL rhs2)
+  __CUDA_HD__ static void fold(VAL &rhs1, VAL rhs2)
   {
     OP::template fold<EXCLUSIVE>(rhs1, rhs2);
   }
@@ -129,7 +129,7 @@ struct UnaryRedOp<UnaryRedCode::SUM, TYPE_CODE> {
   static const VAL identity;
 
   template <bool EXCLUSIVE>
-  static void fold(VAL &rhs1, VAL rhs2)
+  __CUDA_HD__ static void fold(VAL &rhs1, VAL rhs2)
   {
     OP::template fold<EXCLUSIVE>(rhs1, rhs2);
   }

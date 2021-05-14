@@ -110,6 +110,7 @@ GEN_GPU_SRC += universal_functions/absolute.cu      \
 							 broadcast_binary_op.cu               \
 							 fill.cu                              \
 							 scalar_unary_red.cu                  \
+							 unary_red.cu                         \
 							 arange.cu                            \
 							 arg.cu                               \
 							 argmin.cu                            \

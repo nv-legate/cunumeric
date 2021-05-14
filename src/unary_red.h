@@ -37,12 +37,12 @@ class UnaryRedTask : public NumPyTask<UnaryRedTask> {
                           Legion::Context ctx,
                           Legion::Runtime* runtime);
 #endif
-  //#ifdef LEGATE_USE_CUDA
-  //  static void gpu_variant(const Legion::Task* task,
-  //                          const std::vector<Legion::PhysicalRegion>& regions,
-  //                          Legion::Context ctx,
-  //                          Legion::Runtime* runtime);
-  //#endif
+#ifdef LEGATE_USE_CUDA
+  static void gpu_variant(const Legion::Task* task,
+                          const std::vector<Legion::PhysicalRegion>& regions,
+                          Legion::Context ctx,
+                          Legion::Runtime* runtime);
+#endif
 };
 
 }  // namespace numpy
