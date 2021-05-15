@@ -3889,65 +3889,53 @@ class DeferredArray(NumPyThunk):
                 result_part = result.find_or_create_congruent_partition(
                     rhs_part, transform, offset
                 )
-                if launch_space[axis] == 1 and not argred:
-                    # No temporary field needed since we can do all the
-                    # reductions in each point
-                    argbuf = BufferBuilder()
-                    argbuf.pack_dimension(axis)
-                    argbuf.pack_dimension(-1)  # No extra dimension
-                    self.pack_shape(
-                        argbuf,
-                        lhs_array.shape,
-                        result_part.tile_shape,
-                        proj_id,
-                    )
-                    argbuf.pack_accessor(
-                        result.field.field_id, result.transform
-                    )
-                    self.pack_shape(
-                        argbuf, rhs_array.shape, rhs_part.tile_shape, 0
-                    )
-                    # Use the result field here
-                    if result.transform is not None:
-                        # Transform from the rhs space back to our space
-                        to_pack = transform.compose(result.transform)
-                    else:
-                        to_pack = transform
-                    argbuf.pack_accessor(result.field.field_id, to_pack)
-                    argbuf.pack_accessor(rhs.field.field_id, rhs.transform)
-                    task = IndexTask(
-                        self.runtime.get_unary_task_id(
-                            op,
-                            argument_type=task_dtype,
-                            result_type=task_dtype,
-                        ),
-                        Rect(launch_space),
-                        self.runtime.empty_argmap,
-                        argbuf.get_string(),
-                        argbuf.get_size(),
-                        mapper=self.runtime.mapper_id,
-                        tag=shardfn,
-                    )
-                    if shardsp is not None:
-                        task.set_sharding_space(shardsp)
-                    task.add_write_requirement(
-                        result_part,
-                        result.field.field_id,
-                        proj_id,
+                if launch_space[axis] == 1:
+                    lhs_arg_init = DeferredArrayView(
+                        lhs_array,
+                        part=result_part,
+                        proj_id=proj_id,
                         tag=NumPyMappingTag.NO_MEMOIZE_TAG,
-                        flags=legion.LEGION_COMPLETE_PROJECTION_WRITE_FLAG,
                     )
-                    task.add_read_requirement(
-                        rhs_part,
-                        rhs.field.field_id,
-                        0,
+                    lhs_arg_red = DeferredArrayView(
+                        lhs_array,
+                        part=result_part,
+                        transform=transform,
+                        proj_id=proj_id,
+                        tag=NumPyMappingTag.NO_MEMOIZE_TAG,
+                    )
+                    rhs_arg = DeferredArrayView(
+                        rhs_array,
+                        part=rhs_part,
                         tag=NumPyMappingTag.KEY_REGION_TAG,
                     )
+
+                    shardpt, shardfn, shardsp = rhs_arg.sharding
+
+                    task = Map(self.runtime, NumPyOpCode.UNARY_RED)
+                    task.add_scalar_arg(axis, np.int32)
+                    task.add_scalar_arg(op, np.int32)
+                    task.add_shape(
+                        lhs_arg_init.shape,
+                        result_part.tile_shape,
+                        proj_id - self.runtime.first_proj_id,
+                    )
+                    task.add_shape(rhs_arg.shape, rhs_part.tile_shape, 0)
+
+                    lhs_arg_init.add_to_legate_op(task, False)
+                    lhs_arg_red.add_to_legate_op(task, False)
+                    rhs_arg.add_to_legate_op(task, True)
+
+                    if shardpt is not None:
+                        task.set_point(shardpt)
+                    if shardsp is not None:
+                        task.set_sharding_space(shardsp)
                     if args is not None:
                         self.add_arguments(task, args)
                     if initial is not None:
                         task.add_future(initial_future)
-                    self.runtime.dispatch(task)
+
+                    task.execute(Rect(launch_space))
+
                 else:
                     # We need to make a temporary field for reductions
                     reduction_shape = ()
