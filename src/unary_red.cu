@@ -229,9 +229,9 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   out[point] = init;
 }
 
-template <typename Op, typename VAL, int32_t DIM>
+template <typename OP, typename VAL, int32_t DIM>
 static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-  red_kernel(Op op,
+  red_kernel(OP op,
              AccessorWO<VAL, DIM> out,
              AccessorRO<VAL, DIM> in,
              VAL identity,
@@ -239,18 +239,65 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
              Rect<DIM> domain,
              int32_t collapsed_dim)
 {
-  coord_t tid      = threadIdx.x;
-  coord_t bid      = blockIdx.x;
-  Point<DIM> point = blocks.point(bid, tid, domain.lo);
+  const coord_t tid = threadIdx.x;
+  const coord_t bid = blockIdx.x;
+  Point<DIM> point  = blocks.point(bid, tid, domain.lo);
   if (!domain.contains(point)) return;
 
   auto result = identity;
   while (point[collapsed_dim] <= domain.hi[collapsed_dim]) {
-    Op::template fold<true>(result, in[point]);
+    OP::template fold<true>(result, in[point]);
     blocks.next_point(point);
   }
 
-  if (result != identity) Op::template fold<false>(out[point], result);
+#if __CUDA_ARCH__ >= 700
+  // If we're collapsing the innermost dimension, we perform some optimization
+  // with shared memory to reduce memory traffic due to atomic updates
+  if (collapsed_dim == DIM - 1) {
+    __shared__ VAL trampoline[THREADS_PER_BLOCK];
+    // Check for the case where all the threads in the same warp have
+    // the same x value in which case they're all going to conflict
+    // so instead we do a warp-level reduction so just one thread ends
+    // up doing the full atomic
+    coord_t bucket = 0;
+    for (int32_t dim = DIM - 2; dim >= 0; --dim)
+      bucket = bucket * (domain.hi[dim + 1] - domain.lo[dim + 1] + 1) + point[dim];
+
+    const uint32_t same_mask = __match_any_sync(0xffffffff, bucket);
+    int32_t laneid;
+    asm volatile("mov.s32 %0, %laneid;" : "=r"(laneid));
+    const uint32_t active_mask = __ballot_sync(0xffffffff, same_mask - (1 << laneid));
+    if (active_mask) {
+      // Store our data into shared
+      trampoline[tid] = result;
+      // Make sure all the threads in the warp are done writing
+      __syncwarp(active_mask);
+      // Have the lowest thread in each mask pull in the values
+      int32_t lowest_index = -1;
+      for (int32_t i = 0; i < warpSize; i++)
+        if (same_mask & (1 << i)) {
+          if (lowest_index == -1) {
+            if (i != laneid) {
+              // We're not the lowest thread in the warp for
+              // this value so we're done, set the value back
+              // to identity to ensure that we don't try to
+              // perform the reduction out to memory
+              result = identity;
+              break;
+            } else  // Make sure we don't do this test again
+              lowest_index = i;
+            // It was already our value, so just keep going
+          } else {
+            // Pull in the value from shared memory
+            const int32_t index = tid + i - laneid;
+            OP::template fold<true>(result, trampoline[index]);
+          }
+        }
+    }
+  }
+#endif
+
+  if (result != identity) OP::template fold<false>(out[point], result);
 }
 
 template <UnaryRedCode OP_CODE>
