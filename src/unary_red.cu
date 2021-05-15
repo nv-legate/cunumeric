@@ -47,14 +47,15 @@ static constexpr coord_t WARP_SIZE = 32;
 // dimension is the innermost one, in which case we prefer that dimension to the others
 // in order to enjoy wrap coalescing. The maximum degree of such parallelism woudl be 32,
 // which is the size of a wrap.
-template <int DIM>
+template <int32_t DIM>
 struct ThreadBlock {
-  void initialize(const Rect<DIM> &domain, int collapsed_dim)
+  void initialize(const Rect<DIM> &domain, int32_t collapsed_dim)
   {
     auto remaining = static_cast<coord_t>(THREADS_PER_BLOCK);
 
     Point<DIM> domain_extents;
-    for (int idx = 0; idx < DIM; ++idx) domain_extents[idx] = domain.hi[idx] - domain.lo[idx] + 1;
+    for (int32_t idx = 0; idx < DIM; ++idx)
+      domain_extents[idx] = domain.hi[idx] - domain.lo[idx] + 1;
 
     if (collapsed_dim == DIM - 1) {
       auto extent             = std::min<coord_t>(WARP_SIZE, domain_extents[collapsed_dim]);
@@ -62,7 +63,7 @@ struct ThreadBlock {
       remaining               = std::max<coord_t>(remaining / extent, 1);
     }
 
-    for (int idx = DIM - 1; idx >= 0; --idx) {
+    for (int32_t idx = DIM - 1; idx >= 0; --idx) {
       if (idx == collapsed_dim) continue;
       auto extent   = std::min(remaining, domain_extents[idx]);
       extents_[idx] = extent;
@@ -73,7 +74,7 @@ struct ThreadBlock {
       extents_[collapsed_dim] = std::min(remaining, domain_extents[collapsed_dim]);
 
     num_threads_ = 1;
-    for (int idx = DIM - 1; idx >= 0; --idx) {
+    for (int32_t idx = DIM - 1; idx >= 0; --idx) {
       pitches_[idx] = num_threads_;
       num_threads_ *= extents_[idx];
     }
@@ -82,7 +83,7 @@ struct ThreadBlock {
   __host__ __device__ Point<DIM> point(coord_t tid)
   {
     Point<DIM> p;
-    for (int dim = 0; dim < DIM; ++dim) {
+    for (int32_t dim = 0; dim < DIM; ++dim) {
       p[dim] = tid / pitches_[dim];
       tid    = tid % pitches_[dim];
     }
@@ -94,28 +95,35 @@ struct ThreadBlock {
   size_t num_threads_;
 };
 
-template <int DIM>
+template <int32_t DIM>
 struct ThreadBlocks {
-  void initialize(const Rect<DIM> &domain, int collapsed_dim)
+  void initialize(const Rect<DIM> &domain, int32_t collapsed_dim)
   {
+    collapsed_dim_ = collapsed_dim;
     block_.initialize(domain, collapsed_dim);
 
-    for (int idx = 0; idx < DIM; ++idx) {
+    for (int32_t idx = 0; idx < DIM; ++idx) {
       auto domain_extent = domain.hi[idx] - domain.lo[idx] + 1;
       extents_[idx]      = div_and_ceil(domain_extent, block_.extents_[idx]);
     }
 
+    dim_order_[0] = collapsed_dim_;
+    for (int32_t dim = 0, idx = 1; dim < DIM; ++dim)
+      if (dim != collapsed_dim_) dim_order_[idx++] = dim;
+
     num_blocks_ = 1;
-    for (int idx = DIM - 1; idx >= 0; --idx) {
-      pitches_[idx] = num_blocks_;
-      num_blocks_ *= extents_[idx];
+    for (int32_t idx = DIM - 1; idx >= 0; --idx) {
+      auto dim      = dim_order_[idx];
+      pitches_[dim] = num_blocks_;
+      num_blocks_ *= extents_[dim];
     }
+    num_concurrent_blocks_ = num_blocks_;
   }
 
   __host__ __device__ Point<DIM> point(coord_t bid, coord_t tid, const Point<DIM> &origin)
   {
     Point<DIM> p = origin;
-    for (int dim = 0; dim < DIM; ++dim) {
+    for (int32_t dim : dim_order_) {
       p[dim] += (bid / pitches_[dim]) * block_.extents_[dim];
       bid = bid % pitches_[dim];
     }
@@ -123,27 +131,43 @@ struct ThreadBlocks {
     return p;
   }
 
-  constexpr size_t num_blocks() const { return num_blocks_; }
+  void compute_maximum_concurrency(const void *func)
+  {
+    int32_t num_ctas = 0;
+    cudaOccupancyMaxActiveBlocksPerMultiprocessor(&num_ctas, func, num_threads(), 0);
+
+    size_t plane_size = pitches_[collapsed_dim_];
+    num_concurrent_blocks_ =
+      plane_size * std::max<size_t>(div_and_ceil<size_t>(num_ctas, plane_size), 1);
+  }
+
   constexpr size_t num_threads() const { return block_.num_threads_; }
 
+  int32_t dim_order_[DIM];
+  int32_t collapsed_dim_;
   ThreadBlock<DIM> block_;
   Point<DIM> extents_;
   Point<DIM> pitches_;
   size_t num_blocks_;
+  size_t num_concurrent_blocks_;
 };
 
-template <int DIM>
+template <int32_t DIM>
 std::ostream &operator<<(std::ostream &os, const ThreadBlock<DIM> &block)
 {
   os << "ThreadBlock(extents: " << block.extents_ << ", pitches: " << block.pitches_ << ")";
   return os;
 }
 
-template <int DIM>
-std::ostream &operator<<(std::ostream &os, const ThreadBlocks<DIM> &block)
+template <int32_t DIM>
+std::ostream &operator<<(std::ostream &os, const ThreadBlocks<DIM> &blocks)
 {
-  os << "ThreadBlocks(" << block.block_ << ", extents: " << block.extents_
-     << ", pitches: " << block.pitches_ << ")";
+  os << "ThreadBlocks(" << blocks.block_ << ", extents: " << blocks.extents_
+     << ", pitches: " << blocks.pitches_
+     << ", num concurrent blocks: " << blocks.num_concurrent_blocks_ << ", dim order: {";
+  for (int32_t dim : blocks.dim_order_) os << dim << ", ";
+  os << "})";
+
   return os;
 }
 
@@ -166,43 +190,45 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   out[point] = init;
 }
 
-template <typename Op,
-          typename WriteAcc,
-          typename ReadAcc,
-          typename T,
-          typename ThreadBlocks,
-          typename Rect>
+template <typename Op, typename VAL, int32_t DIM>
 static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-  red_kernel(Op op, WriteAcc out, ReadAcc in, T identity, ThreadBlocks blocks, Rect domain)
+  red_kernel(Op op,
+             AccessorWO<VAL, DIM> out,
+             AccessorRO<VAL, DIM> in,
+             VAL identity,
+             ThreadBlocks<DIM> blocks,
+             Rect<DIM> domain)
 {
   coord_t tid = threadIdx.x;
-  coord_t bid = blockIdx.x;
-  auto point  = blocks.point(bid, tid, domain.lo);
-
-  if (!domain.contains(point)) return;
 
   auto result = identity;
+  coord_t bid = blockIdx.x;
+  Point<DIM> point;
+  while (bid < blocks.num_blocks_) {
+    point = blocks.point(bid, tid, domain.lo);
+    if (!domain.contains(point)) break;
+    Op::template fold<true>(result, in[point]);
+    bid += blocks.num_concurrent_blocks_;
+  }
 
-  Op::template fold<true>(result, in[point]);
-
-  Op::template fold<false>(out[point], result);
+  if (result != identity) Op::template fold<false>(out[point], result);
 }
 
 template <UnaryRedCode OP_CODE>
 struct UnaryRedImpl {
   template <LegateTypeCode CODE,
-            int RHS_DIM,
+            int32_t RHS_DIM,
             std::enable_if_t<(RHS_DIM > 1) && UnaryRedOp<OP_CODE, CODE>::valid> * = nullptr>
-  void operator()(int collapsed_dim,
+  void operator()(int32_t collapsed_dim,
                   Shape &lhs_shape,
                   Shape &rhs_shape,
                   RegionField &lhs_init_rf,
                   RegionField &lhs_red_rf,
                   RegionField &rhs_rf)
   {
-    constexpr int LHS_DIM = RHS_DIM - 1;
-    using OP              = UnaryRedOp<OP_CODE, CODE>;
-    using VAL             = legate_type_of<CODE>;
+    constexpr int32_t LHS_DIM = RHS_DIM - 1;
+    using OP                  = UnaryRedOp<OP_CODE, CODE>;
+    using VAL                 = legate_type_of<CODE>;
 
     Pitches<LHS_DIM - 1> lhs_pitches;
     auto lhs_rect     = lhs_shape.to_rect<LHS_DIM>();
@@ -231,17 +257,19 @@ struct UnaryRedImpl {
     ThreadBlocks<RHS_DIM> blocks;
     auto rhs_rect = rhs_shape.to_rect<RHS_DIM>();
     blocks.initialize(rhs_rect, collapsed_dim);
+    blocks.compute_maximum_concurrency(
+      reinterpret_cast<const void *>(red_kernel<OP, VAL, RHS_DIM>));
     auto lhs_red = lhs_red_rf.write_accessor<VAL, RHS_DIM>();
     auto rhs     = rhs_rf.read_accessor<VAL, RHS_DIM>();
 
-    red_kernel<<<blocks.num_blocks(), blocks.num_threads()>>>(
+    red_kernel<<<blocks.num_concurrent_blocks_, blocks.num_threads()>>>(
       OP{}, lhs_red, rhs, OP::identity, blocks, rhs_rect);
   }
 
   template <LegateTypeCode CODE,
-            int RHS_DIM,
+            int32_t RHS_DIM,
             std::enable_if_t<RHS_DIM <= 1 || !UnaryRedOp<OP_CODE, CODE>::valid> * = nullptr>
-  void operator()(int collapsed_dim,
+  void operator()(int32_t collapsed_dim,
                   Shape &lhs_shape,
                   Shape &rhs_shape,
                   RegionField &lhs_init,
@@ -254,7 +282,7 @@ struct UnaryRedImpl {
 
 struct UnaryRedDispatch {
   template <UnaryRedCode OP_CODE>
-  void operator()(int collapsed_dim,
+  void operator()(int32_t collapsed_dim,
                   Shape &lhs_shape,
                   Shape &rhs_shape,
                   RegionField &lhs_init,
