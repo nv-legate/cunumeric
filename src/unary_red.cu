@@ -57,12 +57,16 @@ struct ThreadBlock {
     for (int32_t idx = 0; idx < DIM; ++idx)
       domain_extents[idx] = domain.hi[idx] - domain.lo[idx] + 1;
 
+    // If the innermost dimension is being collapsed, we assign at least one warp to it
+    // for warp coalsecing.
     if (collapsed_dim == DIM - 1) {
       auto extent             = std::min<coord_t>(WARP_SIZE, domain_extents[collapsed_dim]);
       extents_[collapsed_dim] = extent;
       remaining               = std::max<coord_t>(remaining / extent, 1);
     }
 
+    // Then, we compute how many threads there should be along aech dimension,
+    // excluding the one being collapsed
     for (int32_t idx = DIM - 1; idx >= 0; --idx) {
       if (idx == collapsed_dim) continue;
       auto extent   = std::min(remaining, domain_extents[idx]);
@@ -70,9 +74,12 @@ struct ThreadBlock {
       remaining     = std::max<coord_t>(remaining / extent, 1);
     }
 
+    // Finally, we determine degree of parallelism for the collapsed dimension if we didn't above
     if (collapsed_dim != DIM - 1)
       extents_[collapsed_dim] = std::min(remaining, domain_extents[collapsed_dim]);
 
+    // Cache the aggregate number of threads per increment in each dimension,
+    // which later will be used for de-linearization of a thread id
     num_threads_ = 1;
     for (int32_t idx = DIM - 1; idx >= 0; --idx) {
       pitches_[idx] = num_threads_;
@@ -80,6 +87,7 @@ struct ThreadBlock {
     }
   }
 
+  // Compute a relative coordiate of a given thread
   __host__ __device__ Point<DIM> point(coord_t tid)
   {
     Point<DIM> p;
@@ -90,11 +98,19 @@ struct ThreadBlock {
     return p;
   }
 
-  Point<DIM> extents_;
-  Point<DIM> pitches_;
+  // Total number of threads
   size_t num_threads_;
+  // Number of threads along each dimension
+  Point<DIM> extents_;
+  // Aggregate number of threads per increment in each dimension
+  Point<DIM> pitches_;
 };
 
+// This class represents a set of concurrent thread blocks. Concurrent thread blocks form
+// hyperplanes in N-dimensional integer lattice such that the collapsed dimension is normal to them.
+// The size of thread blocks is determined by the maximum number of CTAs for a given kernel;
+// the number of concurrent thread blocks is the minimum number of hyperplanes whose aggregate
+// volume exceeds the maximum number of CTAs.
 template <int32_t DIM>
 struct ThreadBlocks {
   void initialize(const Rect<DIM> &domain, int32_t collapsed_dim)
@@ -107,19 +123,26 @@ struct ThreadBlocks {
       extents_[idx]      = div_and_ceil(domain_extent, block_.extents_[idx]);
     }
 
+    // We want the collapsed dimension to be the outermost one when
+    // de-linearizing the block id.
     dim_order_[0] = collapsed_dim_;
     for (int32_t dim = 0, idx = 1; dim < DIM; ++dim)
       if (dim != collapsed_dim_) dim_order_[idx++] = dim;
 
-    num_blocks_ = 1;
+    // Compute the aggregate number of blocks per increment in each dimension
+    coord_t num_blocks = 1;
     for (int32_t idx = DIM - 1; idx >= 0; --idx) {
       auto dim      = dim_order_[idx];
-      pitches_[dim] = num_blocks_;
-      num_blocks_ *= extents_[dim];
+      pitches_[dim] = num_blocks;
+      num_blocks *= extents_[dim];
     }
-    num_concurrent_blocks_ = num_blocks_;
+    // For now we say all blocks can run concurrent.
+    num_blocks_ = num_blocks;
+    // Also compute the stride on the collapsed dimension
+    collapsed_dim_stride_ = extents_[collapsed_dim_] * block_.extents_[collapsed_dim_];
   }
 
+  // De-linearized the linearized block id and thread it into an N-dimensional point
   __host__ __device__ Point<DIM> point(coord_t bid, coord_t tid, const Point<DIM> &origin)
   {
     Point<DIM> p = origin;
@@ -137,19 +160,35 @@ struct ThreadBlocks {
     cudaOccupancyMaxActiveBlocksPerMultiprocessor(&num_ctas, func, num_threads(), 0);
 
     size_t plane_size = pitches_[collapsed_dim_];
-    num_concurrent_blocks_ =
-      plane_size * std::max<size_t>(div_and_ceil<size_t>(num_ctas, plane_size), 1);
+    // Calculate the number of planes whose volume barely exceeds the maximum number of CTAs
+    size_t max_num_concurrent_planes =
+      std::max<size_t>(div_and_ceil<size_t>(num_ctas, plane_size), 1);
+    // Then we update the number of concurrent thread blocks and the stride on the collapsed
+    // dimension
+    num_blocks_           = plane_size * max_num_concurrent_planes;
+    collapsed_dim_stride_ = max_num_concurrent_planes * block_.extents_[collapsed_dim_];
   }
 
+  __host__ __device__ inline void next_point(Point<DIM> &point) const
+  {
+    point[collapsed_dim_] += collapsed_dim_stride_;
+  }
+
+  constexpr size_t num_blocks() const { return num_blocks_; }
   constexpr size_t num_threads() const { return block_.num_threads_; }
 
+  // List of dimensions, from the outermost one to the innermost
   int32_t dim_order_[DIM];
   int32_t collapsed_dim_;
+  coord_t collapsed_dim_stride_;
+  // Shape of each thread block
   ThreadBlock<DIM> block_;
+  // Number of thread blocks along each dimension
   Point<DIM> extents_;
+  // Aggregate number of thread blocks per increment in each dimension
   Point<DIM> pitches_;
+  // Number of concurrent thread blocks
   size_t num_blocks_;
-  size_t num_concurrent_blocks_;
 };
 
 template <int32_t DIM>
@@ -163,8 +202,8 @@ template <int32_t DIM>
 std::ostream &operator<<(std::ostream &os, const ThreadBlocks<DIM> &blocks)
 {
   os << "ThreadBlocks(" << blocks.block_ << ", extents: " << blocks.extents_
-     << ", pitches: " << blocks.pitches_
-     << ", num concurrent blocks: " << blocks.num_concurrent_blocks_ << ", dim order: {";
+     << ", pitches: " << blocks.pitches_ << ", num concurrent blocks: " << blocks.num_blocks_
+     << ", dim order: {";
   for (int32_t dim : blocks.dim_order_) os << dim << ", ";
   os << "})";
 
@@ -197,18 +236,18 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
              AccessorRO<VAL, DIM> in,
              VAL identity,
              ThreadBlocks<DIM> blocks,
-             Rect<DIM> domain)
+             Rect<DIM> domain,
+             int32_t collapsed_dim)
 {
-  coord_t tid = threadIdx.x;
+  coord_t tid      = threadIdx.x;
+  coord_t bid      = blockIdx.x;
+  Point<DIM> point = blocks.point(bid, tid, domain.lo);
+  if (!domain.contains(point)) return;
 
   auto result = identity;
-  coord_t bid = blockIdx.x;
-  Point<DIM> point;
-  while (bid < blocks.num_blocks_) {
-    point = blocks.point(bid, tid, domain.lo);
-    if (!domain.contains(point)) break;
+  while (point[collapsed_dim] <= domain.hi[collapsed_dim]) {
     Op::template fold<true>(result, in[point]);
-    bid += blocks.num_concurrent_blocks_;
+    blocks.next_point(point);
   }
 
   if (result != identity) Op::template fold<false>(out[point], result);
@@ -262,8 +301,8 @@ struct UnaryRedImpl {
     auto lhs_red = lhs_red_rf.write_accessor<VAL, RHS_DIM>();
     auto rhs     = rhs_rf.read_accessor<VAL, RHS_DIM>();
 
-    red_kernel<<<blocks.num_concurrent_blocks_, blocks.num_threads()>>>(
-      OP{}, lhs_red, rhs, OP::identity, blocks, rhs_rect);
+    red_kernel<<<blocks.num_blocks(), blocks.num_threads()>>>(
+      OP{}, lhs_red, rhs, OP::identity, blocks, rhs_rect, collapsed_dim);
   }
 
   template <LegateTypeCode CODE,
