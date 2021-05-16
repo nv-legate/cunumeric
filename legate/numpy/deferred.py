@@ -538,7 +538,7 @@ class DeferredArray(NumPyThunk):
                 )
             else:
                 # Single copy launch
-                point, shardfn, shardsp = index.find_pont_sharding()
+                point, shardfn, shardsp = index.find_point_sharding()
                 copy = Copy(mapper=self.runtime.mapper_id, tag=shardfn)
                 if point is not None:
                     copy.set_point(point)
@@ -2469,12 +2469,12 @@ class DeferredArray(NumPyThunk):
                 )
             else:
                 self.pack_shape(argbuf, dst_array.shape)
-            argbuf.pack_accessor(dst.field.field_id, None)
+            argbuf.pack_accessor(dst.field.field_id, dst.transform)
             # Then pack the src dim if dst.ndim > 1
             if dst_array.ndim > 1:
                 argbuf.pack_dimension(src_array.ndim)
             argbuf.pack_point(src_array.shape)
-            argbuf.pack_accessor(src.field.field_id, None)
+            argbuf.pack_accessor(src.field.field_id, src.transform)
             if launch_space is not None:
                 task = IndexTask(
                     self.runtime.get_unary_task_id(
