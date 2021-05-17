@@ -43,7 +43,7 @@ struct UnaryRedImpl {
 
     if (rhs_volume == 0) return;
 
-    auto rhs = rhs_rf.read_write_accessor<VAL, RHS_DIM>();
+    auto rhs = rhs_rf.read_accessor<VAL, RHS_DIM>();
 
     if (needs_reduction) {
       auto lhs = lhs_rf.reduce_accessor<typename OP::OP, true, RHS_DIM>();

@@ -3975,7 +3975,7 @@ class DeferredArray(NumPyThunk):
                 task.add_scalar_arg(op, np.int32)
                 task.add_shape(rhs_arg.shape)
 
-                lhs_arg.add_to_legate_op(task, False)
+                lhs_arg.add_to_legate_op(task, False, read_write=True)
                 rhs_arg.add_to_legate_op(task, True)
 
                 if shardpt is not None:
