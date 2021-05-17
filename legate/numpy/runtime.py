@@ -2532,139 +2532,39 @@ class Runtime(object):
             NumPyMappingTag.NO_MEMOIZE_TAG,
         )
 
-    def get_reduction_transform(self, input_shape, output_shape, axes):
+    def get_reduction_transform(self, input_shape, axes):
         input_ndim = len(input_shape)
-        output_ndim = len(output_shape)
-        assert len(axes) > 0
-        # In the case where we keep dimensions the arrays can be the same size
-        if output_ndim == input_ndim:
-            # The transform in this case is just identity transform
-            transform = np.zeros((output_ndim, input_ndim), dtype=np.int64)
-            for dim in xrange(input_ndim):
-                if dim in axes:
-                    continue
-                transform[dim, dim] = 1
-            affine_transform = AffineTransform(output_ndim, input_ndim, False)
-            affine_transform.trans = transform
-            assert input_ndim > 1  # Should never have the 1-D case here
-            if input_ndim == 2:
-                assert len(axes) == 1
-                if axes[0] == 0:
-                    return (
-                        affine_transform,
-                        self.first_proj_id + NumPyProjCode.PROJ_2D_2D_Y,
-                    )
-                else:
-                    assert axes[0] == 1
-                    return (
-                        affine_transform,
-                        self.first_proj_id + NumPyProjCode.PROJ_2D_2D_X,
-                    )
-            elif input_ndim == 3:
-                if len(axes) == 1:
-                    if axes[0] == 0:
-                        return (
-                            affine_transform,
-                            self.first_proj_id + NumPyProjCode.PROJ_3D_3D_YZ,
-                        )
-                    elif axes[0] == 1:
-                        return (
-                            affine_transform,
-                            self.first_proj_id + NumPyProjCode.PROJ_3D_3D_XZ,
-                        )
-                    else:
-                        assert axes[0] == 2
-                        return (
-                            affine_transform,
-                            self.first_proj_id + NumPyProjCode.PROJ_3D_3D_XY,
-                        )
-                else:
-                    assert len(axes) == 2
-                    if axes == (0, 1):
-                        return (
-                            affine_transform,
-                            self.first_proj_id + NumPyProjCode.PROJ_3D_3D_Z,
-                        )
-                    elif axes == (0, 2):
-                        return (
-                            affine_transform,
-                            self.first_proj_id + NumPyProjCode.PROJ_3D_3D_Y,
-                        )
-                    else:
-                        assert axes == (1, 2)
-                        return (
-                            affine_transform,
-                            self.first_proj_id + NumPyProjCode.PROJ_3D_3D_X,
-                        )
-            else:
-                raise NotImplementedError(
-                    "Legate needs support for more than 3 dimensions"
-                )
-        else:
-            # This is where we don't keep the dimensions
-            assert output_ndim + len(axes) == input_ndim
-            transform = np.zeros((output_ndim, input_ndim), dtype=np.int64)
-            output_dim = 0
-            for dim in xrange(input_ndim):
-                if dim in axes:
-                    continue
-                transform[output_dim, dim] = 1
-                output_dim += 1
-            affine_transform = AffineTransform(output_ndim, input_ndim, False)
-            affine_transform.trans = transform
-            if input_ndim == 2:
-                assert len(axes) == 1
-                if axes[0] == 0:
-                    return (
-                        affine_transform,
-                        self.first_proj_id + NumPyProjCode.PROJ_2D_1D_Y,
-                    )
-                else:
-                    assert axes[0] == 1
-                    return (
-                        affine_transform,
-                        self.first_proj_id + NumPyProjCode.PROJ_2D_1D_X,
-                    )
-            elif input_ndim == 3:
-                if len(axes) == 1:
-                    if axes[0] == 0:
-                        return (
-                            affine_transform,
-                            self.first_proj_id + NumPyProjCode.PROJ_3D_2D_YZ,
-                        )
-                    elif axes[0] == 1:
-                        return (
-                            affine_transform,
-                            self.first_proj_id + NumPyProjCode.PROJ_3D_2D_XZ,
-                        )
-                    else:
-                        assert axes[0] == 2
-                        return (
-                            affine_transform,
-                            self.first_proj_id + NumPyProjCode.PROJ_3D_2D_XY,
-                        )
-                else:
-                    assert len(axes) == 2
-                    if axes == (0, 1):
-                        return (
-                            affine_transform,
-                            self.first_proj_id + NumPyProjCode.PROJ_3D_1D_Z,
-                        )
-                    elif axes == (0, 2):
-                        return (
-                            affine_transform,
-                            self.first_proj_id + NumPyProjCode.PROJ_3D_1D_Y,
-                        )
-                    else:
-                        assert axes == (1, 2)
-                        return (
-                            affine_transform,
-                            self.first_proj_id + NumPyProjCode.PROJ_3D_1D_X,
-                        )
-            else:
-                raise NotImplementedError(
-                    "Legate needs support for more than 3 dimensions"
-                )
+        output_ndim = input_ndim - len(axes)
+
+        assert output_ndim > 0
+
+        axes = set(axes)
+        input_shape = np.array(input_shape)
+        output_shape = np.array(
+            [
+                0 if dim in axes else input_shape[dim]
+                for dim in range(input_ndim)
+            ]
+        )
+
+        mask = output_shape == input_shape
+        assert mask.sum() < input_ndim
+        matching_dims = "".join(_dim_names[: len(mask)][mask])
+        proj_name = f"PROJ_{input_ndim}D_{output_ndim}D_{matching_dims}"
+
+        transform = np.zeros((output_ndim, input_ndim), dtype=np.int64)
+        for input_dim, (flag, output_dim) in enumerate(
+            zip(mask, mask.cumsum())
+        ):
+            if flag:
+                transform[output_dim - 1, input_dim] = 1
+
+        affine_transform = AffineTransform(output_ndim, input_ndim, False)
+        affine_transform.trans = transform
+        return (
+            affine_transform,
+            self.first_proj_id + getattr(NumPyProjCode, proj_name),
+        )
 
     def check_shadow(self, thunk, op):
         assert thunk.shadow is not None

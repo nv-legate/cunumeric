@@ -3891,7 +3891,7 @@ class DeferredArray(NumPyThunk):
             axis = axes[0]
             # Compute the reduction transform
             transform, proj_id = self.runtime.get_reduction_transform(
-                rhs_array.shape, lhs_array.shape, axes
+                rhs_array.shape, axes
             )
             # Compute the launch space
             launch_space = rhs.compute_parallel_launch_space()
