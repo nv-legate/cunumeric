@@ -101,7 +101,7 @@ class DeferredArrayView(object):
             )
             self._array.base.set_key_partition(part, shardfn, shardsp)
 
-    def add_to_legate_op(self, op, read_only, read_write=True, redop=None):
+    def add_to_legate_op(self, op, read_only, read_write=False, redop=None):
         if self.scalar:
             if not read_only:
                 raise ValueError("Singleton arrays must be read only")
