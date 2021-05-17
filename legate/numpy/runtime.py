@@ -127,7 +127,6 @@ class Field(object):
 _sizeof_int = ffi.sizeof("int")
 _sizeof_size_t = ffi.sizeof("size_t")
 assert _sizeof_size_t == 4 or _sizeof_size_t == 8
-_dim_names = np.array(["X", "Y", "Z", "W", "V", "U", "T", "S", "R"])
 
 
 # A helper class for doing field management with control replication
@@ -989,6 +988,9 @@ class Callsite(object):
             if self.line is not None
             else ""
         )
+
+
+_dim_names = np.array(["X", "Y", "Z", "W", "V", "U", "T", "S", "R"])
 
 
 class Runtime(object):
@@ -2377,8 +2379,7 @@ class Runtime(object):
         result += numpy_field_type_offsets[dt2.type] * NUMPY_MAX_VARIANTS
         return result
 
-    def get_reduction_op_id(self, op, field_dtype):
-        redop_id = numpy_reduction_op_offsets[op]
+    def _convert_reduction_op_id(self, redop_id, field_dtype):
         if redop_id < legion.LEGION_REDOP_KIND_TOTAL:
             # This is a built-in legion op-code
             result = (
@@ -2391,8 +2392,19 @@ class Runtime(object):
             result += numpy_field_type_offsets[field_dtype.type]
         return result
 
-    def get_untyped_reduction_op_id(self, op):
-        return self.first_redop_id + numpy_reduction_op_offsets[op]
+    def get_reduction_op_id(self, op, field_dtype):
+        redop_id = numpy_reduction_op_offsets[op]
+        return self._convert_reduction_op_id(redop_id, field_dtype)
+
+    def get_unary_reduction_op_id(self, op, field_dtype):
+        redop_id = numpy_unary_reduction_op_offsets[op]
+        return self._convert_reduction_op_id(redop_id, field_dtype)
+
+    def get_scalar_reduction_op_id(self, op):
+        return self.first_redop_id + numpy_scalar_reduction_op_offsets[op]
+
+    def get_reduction_identity(self, op, dtype):
+        return np.array(numpy_unary_reduction_identities[op](dtype), dtype)
 
     def get_radix_projection_functor_id(
         self, total_dims, collapse_dim, radix, offset

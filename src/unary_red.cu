@@ -88,7 +88,7 @@ struct ThreadBlock {
   }
 
   // Compute a relative coordiate of a given thread
-  __host__ __device__ Point<DIM> point(coord_t tid)
+  __host__ __device__ Point<DIM> point(coord_t tid) const
   {
     Point<DIM> p;
     for (int32_t dim = 0; dim < DIM; ++dim) {
@@ -143,7 +143,7 @@ struct ThreadBlocks {
   }
 
   // De-linearized the linearized block id and thread it into an N-dimensional point
-  __host__ __device__ Point<DIM> point(coord_t bid, coord_t tid, const Point<DIM> &origin)
+  __host__ __device__ Point<DIM> point(coord_t bid, coord_t tid, const Point<DIM> &origin) const
   {
     Point<DIM> p = origin;
     for (int32_t dim : dim_order_) {
@@ -210,41 +210,19 @@ std::ostream &operator<<(std::ostream &os, const ThreadBlocks<DIM> &blocks)
   return os;
 }
 
-template <typename T>
-static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-  dense_init_kernel(size_t volume, T *out, T init)
-{
-  const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
-  if (idx >= volume) return;
-  out[idx] = init;
-}
-
-template <typename WriteAcc, typename T, typename Pitches, typename Point>
-static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-  generic_init_kernel(size_t volume, WriteAcc out, T init, Pitches pitches, Point lo)
-{
-  const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
-  if (idx >= volume) return;
-  auto point = pitches.unflatten(idx, lo);
-  out[point] = init;
-}
-
 template <typename OP, typename VAL, int32_t DIM>
-static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-  red_kernel(OP op,
-             AccessorWO<VAL, DIM> out,
-             AccessorRO<VAL, DIM> in,
-             VAL identity,
-             ThreadBlocks<DIM> blocks,
-             Rect<DIM> domain,
-             int32_t collapsed_dim)
+static __device__ Point<DIM> local_reduce(VAL &result,
+                                          AccessorRO<VAL, DIM> in,
+                                          VAL identity,
+                                          const ThreadBlocks<DIM> &blocks,
+                                          const Rect<DIM> &domain,
+                                          int32_t collapsed_dim)
 {
   const coord_t tid = threadIdx.x;
   const coord_t bid = blockIdx.x;
   Point<DIM> point  = blocks.point(bid, tid, domain.lo);
-  if (!domain.contains(point)) return;
+  if (!domain.contains(point)) return point;
 
-  auto result = identity;
   while (point[collapsed_dim] <= domain.hi[collapsed_dim]) {
     OP::template fold<true>(result, in[point]);
     blocks.next_point(point);
@@ -297,7 +275,35 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   }
 #endif
 
+  return point;
+}
+
+template <typename OP, typename VAL, int32_t DIM>
+static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
+  reduce_with_rw_acc(AccessorRW<VAL, DIM> out,
+                     AccessorRO<VAL, DIM> in,
+                     VAL identity,
+                     ThreadBlocks<DIM> blocks,
+                     Rect<DIM> domain,
+                     int32_t collapsed_dim)
+{
+  auto result = identity;
+  auto point  = local_reduce<OP, VAL, DIM>(result, in, identity, blocks, domain, collapsed_dim);
   if (result != identity) OP::template fold<false>(out[point], result);
+}
+
+template <typename OP, typename VAL, int32_t DIM>
+static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
+  reduce_with_rd_acc(AccessorRD<OP, false, DIM> out,
+                     AccessorRO<VAL, DIM> in,
+                     VAL identity,
+                     ThreadBlocks<DIM> blocks,
+                     Rect<DIM> domain,
+                     int32_t collapsed_dim)
+{
+  auto result = identity;
+  auto point  = local_reduce<OP, VAL, DIM>(result, in, identity, blocks, domain, collapsed_dim);
+  if (result != identity) out.reduce(point, result);
 }
 
 template <UnaryRedCode OP_CODE>
@@ -306,61 +312,44 @@ struct UnaryRedImpl {
             int32_t RHS_DIM,
             std::enable_if_t<(RHS_DIM > 1) && UnaryRedOp<OP_CODE, CODE>::valid> * = nullptr>
   void operator()(int32_t collapsed_dim,
-                  Shape &lhs_shape,
                   Shape &rhs_shape,
-                  RegionField &lhs_init_rf,
-                  RegionField &lhs_red_rf,
-                  RegionField &rhs_rf)
+                  RegionField &lhs_rf,
+                  RegionField &rhs_rf,
+                  bool needs_reduction)
   {
-    constexpr int32_t LHS_DIM = RHS_DIM - 1;
-    using OP                  = UnaryRedOp<OP_CODE, CODE>;
-    using VAL                 = legate_type_of<CODE>;
+    using OP  = typename UnaryRedOp<OP_CODE, CODE>::OP;
+    using VAL = legate_type_of<CODE>;
 
-    Pitches<LHS_DIM - 1> lhs_pitches;
-    auto lhs_rect     = lhs_shape.to_rect<LHS_DIM>();
-    size_t lhs_volume = lhs_pitches.flatten(lhs_rect);
-
-    if (lhs_volume == 0) return;
-
-    auto lhs_init = lhs_init_rf.write_accessor<VAL, LHS_DIM>();
-#ifndef LEGION_BOUNDS_CHECKS
-    // Check to see if this is dense or not
-    bool dense = lhs_init.accessor.is_dense_row_major(lhs_rect);
-#else
-    // No dense execution if we're doing bounds checks
-    bool dense = false;
-#endif
-
-    const size_t lhs_blocks = (lhs_volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-    if (dense) {
-      auto lhs = lhs_init.ptr(lhs_rect);
-      dense_init_kernel<<<lhs_blocks, THREADS_PER_BLOCK>>>(lhs_volume, lhs, OP::identity);
-    } else {
-      generic_init_kernel<<<lhs_blocks, THREADS_PER_BLOCK>>>(
-        lhs_volume, lhs_init, OP::identity, lhs_pitches, lhs_rect.lo);
-    }
+    auto rhs_rect = rhs_shape.to_rect<RHS_DIM>();
+    if (rhs_rect.volume() == 0) return;
 
     ThreadBlocks<RHS_DIM> blocks;
-    auto rhs_rect = rhs_shape.to_rect<RHS_DIM>();
     blocks.initialize(rhs_rect, collapsed_dim);
-    blocks.compute_maximum_concurrency(
-      reinterpret_cast<const void *>(red_kernel<OP, VAL, RHS_DIM>));
-    auto lhs_red = lhs_red_rf.write_accessor<VAL, RHS_DIM>();
-    auto rhs     = rhs_rf.read_accessor<VAL, RHS_DIM>();
+    auto rhs = rhs_rf.read_accessor<VAL, RHS_DIM>();
 
-    red_kernel<<<blocks.num_blocks(), blocks.num_threads()>>>(
-      OP{}, lhs_red, rhs, OP::identity, blocks, rhs_rect, collapsed_dim);
+    if (needs_reduction) {
+      auto lhs = lhs_rf.reduce_accessor<OP, false, RHS_DIM>();
+      blocks.compute_maximum_concurrency(
+        reinterpret_cast<const void *>(reduce_with_rd_acc<OP, VAL, RHS_DIM>));
+      reduce_with_rd_acc<OP, VAL, RHS_DIM><<<blocks.num_blocks(), blocks.num_threads()>>>(
+        lhs, rhs, OP::identity, blocks, rhs_rect, collapsed_dim);
+    } else {
+      auto lhs = lhs_rf.read_write_accessor<VAL, RHS_DIM>();
+      blocks.compute_maximum_concurrency(
+        reinterpret_cast<const void *>(reduce_with_rw_acc<OP, VAL, RHS_DIM>));
+      reduce_with_rw_acc<OP, VAL, RHS_DIM><<<blocks.num_blocks(), blocks.num_threads()>>>(
+        lhs, rhs, OP::identity, blocks, rhs_rect, collapsed_dim);
+    }
   }
 
   template <LegateTypeCode CODE,
             int32_t RHS_DIM,
             std::enable_if_t<RHS_DIM <= 1 || !UnaryRedOp<OP_CODE, CODE>::valid> * = nullptr>
   void operator()(int32_t collapsed_dim,
-                  Shape &lhs_shape,
                   Shape &rhs_shape,
-                  RegionField &lhs_init,
-                  RegionField &lhs_red,
-                  RegionField &rhs)
+                  RegionField &lhs_rf,
+                  RegionField &rhs_rf,
+                  bool needs_reduction)
   {
     assert(false);
   }
@@ -369,21 +358,19 @@ struct UnaryRedImpl {
 struct UnaryRedDispatch {
   template <UnaryRedCode OP_CODE>
   void operator()(int32_t collapsed_dim,
-                  Shape &lhs_shape,
                   Shape &rhs_shape,
-                  RegionField &lhs_init,
-                  RegionField &lhs_red,
-                  RegionField &rhs)
+                  RegionField &lhs,
+                  RegionField &rhs,
+                  bool needs_reduction)
   {
     return double_dispatch(rhs.dim(),
                            rhs.code(),
                            UnaryRedImpl<OP_CODE>{},
                            collapsed_dim,
-                           lhs_shape,
                            rhs_shape,
-                           lhs_init,
-                           lhs_red,
-                           rhs);
+                           lhs,
+                           rhs,
+                           needs_reduction);
   }
 };
 
@@ -396,25 +383,22 @@ struct UnaryRedDispatch {
 {
   Deserializer ctx(task, regions);
 
+  bool needs_reduction;
   int32_t collapsed_dim;
   UnaryRedCode op_code;
-  Shape lhs_shape;
   Shape rhs_shape;
-  // out_init and out_red are aliases of the same region field but with different transformations
-  RegionField lhs_init;
-  RegionField lhs_red;
+  RegionField lhs;
   RegionField rhs;
 
+  deserialize(ctx, needs_reduction);
   deserialize(ctx, collapsed_dim);
   deserialize(ctx, op_code);
-  deserialize(ctx, lhs_shape);
   deserialize(ctx, rhs_shape);
-  deserialize(ctx, lhs_init);
-  deserialize(ctx, lhs_red);
+  deserialize(ctx, lhs);
   deserialize(ctx, rhs);
 
   return op_dispatch(
-    op_code, gpu::UnaryRedDispatch{}, collapsed_dim, lhs_shape, rhs_shape, lhs_init, lhs_red, rhs);
+    op_code, gpu::UnaryRedDispatch{}, collapsed_dim, rhs_shape, lhs, rhs, needs_reduction);
 }
 
 }  // namespace numpy

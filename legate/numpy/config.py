@@ -221,10 +221,6 @@ class NumPyRedopCode(IntEnum):
 
 
 numpy_reduction_op_offsets = {
-    NumPyOpCode.SUM: legion.LEGION_REDOP_KIND_SUM,
-    NumPyOpCode.PROD: legion.LEGION_REDOP_KIND_PROD,
-    NumPyOpCode.MIN: legion.LEGION_REDOP_KIND_MIN,
-    NumPyOpCode.MAX: legion.LEGION_REDOP_KIND_MAX,
     # Dot uses sum reduction
     NumPyOpCode.DOT: legion.LEGION_REDOP_KIND_SUM,
     # Diag uses sum reduction
@@ -244,6 +240,23 @@ numpy_reduction_op_offsets = {
     NumPyOpCode.CONTAINS: legion.LEGION_REDOP_KIND_SUM,
     # nonzeros are counted with sum
     NumPyOpCode.COUNT_NONZERO: legion.LEGION_REDOP_KIND_SUM,
+}
+
+numpy_unary_reduction_op_offsets = {
+    UnaryRedCode.SUM: legion.LEGION_REDOP_KIND_SUM,
+    UnaryRedCode.PROD: legion.LEGION_REDOP_KIND_PROD,
+    UnaryRedCode.MIN: legion.LEGION_REDOP_KIND_MIN,
+    UnaryRedCode.MAX: legion.LEGION_REDOP_KIND_MAX,
+}
+
+numpy_unary_reduction_identities = {
+    UnaryRedCode.SUM: lambda _: 0,
+    UnaryRedCode.PROD: lambda _: 1,
+    UnaryRedCode.MIN: lambda dtype: np.iinfo(dtype).max,
+    UnaryRedCode.MAX: lambda dtype: np.iinfo(dtype).min,
+}
+
+numpy_scalar_reduction_op_offsets = {
     UnaryRedCode.MAX: legate_numpy.NUMPY_SCALAR_MAX_REDOP,
     UnaryRedCode.MIN: legate_numpy.NUMPY_SCALAR_MIN_REDOP,
     UnaryRedCode.PROD: legate_numpy.NUMPY_SCALAR_PROD_REDOP,

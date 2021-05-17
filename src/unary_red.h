@@ -24,7 +24,15 @@ namespace numpy {
 class UnaryRedTask : public NumPyTask<UnaryRedTask> {
  public:
   static const int TASK_ID = NUMPY_UNARY_RED;
-  static const int REGIONS = 2;
+  // TODO: The first region requirement of this task can have either
+  //       write discard or reduction privilege. For now we don't
+  //       count that requirement just to avoid specifying a normal SOA
+  //       layout constraint for it. There are two proper fixes for this:
+  //       1) we attach each variant twice, once with a normal constraint
+  //       and once with a reduction specialized constraint; 2) we always
+  //       use reduction privilege and have the runtime promote it to
+  //       read write privilege.
+  static const int REGIONS = 0;
 
  public:
   static void cpu_variant(const Legion::Task* task,

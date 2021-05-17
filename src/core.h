@@ -190,6 +190,35 @@ class RegionField {
   template <typename T, int DIM>
   AccessorWO<T, DIM> write_accessor(void) const;
 
+  template <typename T, int N>
+  struct read_write_trans_accesor_fn {
+    template <int M>
+    AccessorRW<T, N> operator()(const Legion::PhysicalRegion &pr,
+                                Legion::FieldID fid,
+                                const Transform &transform)
+    {
+      auto trans = transform.to_affine_transform<M, N>();
+      return AccessorRW<T, N>(pr, fid, trans);
+    }
+  };
+  template <typename T, int DIM>
+  AccessorRW<T, DIM> read_write_accessor(void) const;
+
+  template <typename OP, bool EXCLUSIVE, int N>
+  struct reduce_trans_accesor_fn {
+    using Accessor = AccessorRD<OP, EXCLUSIVE, N>;
+    template <int M>
+    Accessor operator()(const Legion::PhysicalRegion &pr,
+                        Legion::FieldID fid,
+                        const Transform &transform)
+    {
+      auto trans = transform.to_affine_transform<M, N>();
+      return Accessor(pr, fid, OP::REDOP_ID, trans);
+    }
+  };
+  template <typename OP, bool EXCLUSIVE, int DIM>
+  AccessorRD<OP, EXCLUSIVE, DIM> reduce_accessor(void) const;
+
  private:
   int dim_{-1};
   LegateTypeCode code_{MAX_TYPE_NUMBER};
@@ -228,6 +257,37 @@ AccessorWO<T, DIM> RegionField::write_accessor(void) const
     assert(DIM == dim());
 #endif
     return AccessorWO<T, DIM>(pr_, fid_);
+  }
+}
+
+template <typename T, int DIM>
+AccessorRW<T, DIM> RegionField::read_write_accessor(void) const
+{
+  if (transform_.exists())
+    return dim_dispatch(
+      transform_.shape().first, read_write_trans_accesor_fn<T, DIM>{}, pr_, fid_, transform_);
+  else {
+#ifdef LEGION_BOUNDS_CHECKS
+    assert(DIM == dim());
+#endif
+    return AccessorRW<T, DIM>(pr_, fid_);
+  }
+}
+
+template <typename OP, bool EXCLUSIVE, int DIM>
+AccessorRD<OP, EXCLUSIVE, DIM> RegionField::reduce_accessor(void) const
+{
+  if (transform_.exists())
+    return dim_dispatch(transform_.shape().first,
+                        reduce_trans_accesor_fn<OP, EXCLUSIVE, DIM>{},
+                        pr_,
+                        fid_,
+                        transform_);
+  else {
+#ifdef LEGION_BOUNDS_CHECKS
+    assert(DIM == dim());
+#endif
+    return AccessorRD<OP, EXCLUSIVE, DIM>(pr_, fid_, OP::REDOP_ID);
   }
 }
 

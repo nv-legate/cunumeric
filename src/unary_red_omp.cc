@@ -47,7 +47,7 @@ class Splitter {
     size_t outer = 1;
     size_t inner = 1;
     size_t pitch = 1;
-    for (int dim = DIM - 1; dim >= 0; ++dim) {
+    for (int dim = DIM - 1; dim >= 0; --dim) {
       auto diff = rect.hi[dim] - rect.lo[dim] + 1;
       if (dim == outer_dim_)
         outer *= diff;
@@ -87,67 +87,49 @@ struct UnaryRedImpl {
             int RHS_DIM,
             std::enable_if_t<(RHS_DIM > 1) && UnaryRedOp<OP_CODE, CODE>::valid> * = nullptr>
   void operator()(int collapsed_dim,
-                  Shape &lhs_shape,
                   Shape &rhs_shape,
-                  RegionField &lhs_init_rf,
-                  RegionField &lhs_red_rf,
-                  RegionField &rhs_rf)
+                  RegionField &lhs_rf,
+                  RegionField &rhs_rf,
+                  bool needs_reduction)
   {
     constexpr int LHS_DIM = RHS_DIM - 1;
     using OP              = UnaryRedOp<OP_CODE, CODE>;
     using VAL             = legate_type_of<CODE>;
 
-    Pitches<LHS_DIM - 1> lhs_pitches;
-    auto lhs_rect     = lhs_shape.to_rect<LHS_DIM>();
-    size_t lhs_volume = lhs_pitches.flatten(lhs_rect);
-
-    if (lhs_volume == 0) return;
-
-    auto lhs_init = lhs_init_rf.write_accessor<VAL, LHS_DIM>();
-#ifndef LEGION_BOUNDS_CHECKS
-    // Check to see if this is dense or not
-    bool dense = lhs_init.accessor.is_dense_row_major(lhs_rect);
-#else
-    // No dense execution if we're doing bounds checks
-    bool dense = false;
-#endif
-
-    if (dense) {
-      auto lhs = lhs_init.ptr(lhs_rect);
-#pragma omp parallel for schedule(static)
-      for (size_t idx = 0; idx < lhs_volume; ++idx) lhs[idx] = OP::identity;
-    } else {
-#pragma omp parallel for schedule(static)
-      for (size_t idx = 0; idx < lhs_volume; ++idx) {
-        auto point      = lhs_pitches.unflatten(idx, lhs_rect.lo);
-        lhs_init[point] = OP::identity;
-      }
-    }
-
     Splitter<RHS_DIM> rhs_splitter;
-    auto rhs_rect  = rhs_shape.to_rect<RHS_DIM>();
+    auto rhs_rect = rhs_shape.to_rect<RHS_DIM>();
+    if (rhs_rect.volume() == 0) return;
     auto rhs_split = rhs_splitter.split(rhs_rect, collapsed_dim);
 
-    auto lhs_red = lhs_red_rf.write_accessor<VAL, RHS_DIM>();
-    auto rhs     = rhs_rf.read_accessor<VAL, RHS_DIM>();
+    auto rhs = rhs_rf.read_accessor<VAL, RHS_DIM>();
 
+    if (needs_reduction) {
+      auto lhs = lhs_rf.reduce_accessor<typename OP::OP, true, RHS_DIM>();
 #pragma omp parallel for schedule(static)
-    for (size_t o_idx = 0; o_idx < rhs_split.outer; ++o_idx)
-      for (size_t i_idx = 0; i_idx < rhs_split.inner; ++i_idx) {
-        auto point = rhs_splitter.combine(o_idx, i_idx, rhs_rect.lo);
-        OP::template fold<true>(lhs_red[point], rhs[point]);
-      }
+      for (size_t o_idx = 0; o_idx < rhs_split.outer; ++o_idx)
+        for (size_t i_idx = 0; i_idx < rhs_split.inner; ++i_idx) {
+          auto point = rhs_splitter.combine(o_idx, i_idx, rhs_rect.lo);
+          lhs.reduce(point, rhs[point]);
+        }
+    } else {
+      auto lhs = lhs_rf.read_write_accessor<VAL, RHS_DIM>();
+#pragma omp parallel for schedule(static)
+      for (size_t o_idx = 0; o_idx < rhs_split.outer; ++o_idx)
+        for (size_t i_idx = 0; i_idx < rhs_split.inner; ++i_idx) {
+          auto point = rhs_splitter.combine(o_idx, i_idx, rhs_rect.lo);
+          OP::template fold<true>(lhs[point], rhs[point]);
+        }
+    }
   }
 
   template <LegateTypeCode CODE,
             int RHS_DIM,
             std::enable_if_t<RHS_DIM <= 1 || !UnaryRedOp<OP_CODE, CODE>::valid> * = nullptr>
   void operator()(int collapsed_dim,
-                  Shape &lhs_shape,
                   Shape &rhs_shape,
-                  RegionField &lhs_init,
-                  RegionField &lhs_red,
-                  RegionField &rhs)
+                  RegionField &lhs_rf,
+                  RegionField &rhs_rf,
+                  bool needs_reduction)
   {
     assert(false);
   }
@@ -155,22 +137,17 @@ struct UnaryRedImpl {
 
 struct UnaryRedDispatch {
   template <UnaryRedCode OP_CODE>
-  void operator()(int collapsed_dim,
-                  Shape &lhs_shape,
-                  Shape &rhs_shape,
-                  RegionField &lhs_init,
-                  RegionField &lhs_red,
-                  RegionField &rhs)
+  void operator()(
+    int collapsed_dim, Shape &rhs_shape, RegionField &lhs, RegionField &rhs, bool needs_reduction)
   {
     return double_dispatch(rhs.dim(),
                            rhs.code(),
                            UnaryRedImpl<OP_CODE>{},
                            collapsed_dim,
-                           lhs_shape,
                            rhs_shape,
-                           lhs_init,
-                           lhs_red,
-                           rhs);
+                           lhs,
+                           rhs,
+                           needs_reduction);
   }
 };
 
@@ -183,25 +160,22 @@ struct UnaryRedDispatch {
 {
   Deserializer ctx(task, regions);
 
+  bool needs_reduction;
   int32_t collapsed_dim;
   UnaryRedCode op_code;
-  Shape lhs_shape;
   Shape rhs_shape;
-  // out_init and out_red are aliases of the same region field but with different transformations
-  RegionField lhs_init;
-  RegionField lhs_red;
+  RegionField lhs;
   RegionField rhs;
 
+  deserialize(ctx, needs_reduction);
   deserialize(ctx, collapsed_dim);
   deserialize(ctx, op_code);
-  deserialize(ctx, lhs_shape);
   deserialize(ctx, rhs_shape);
-  deserialize(ctx, lhs_init);
-  deserialize(ctx, lhs_red);
+  deserialize(ctx, lhs);
   deserialize(ctx, rhs);
 
   return op_dispatch(
-    op_code, omp::UnaryRedDispatch{}, collapsed_dim, lhs_shape, rhs_shape, lhs_init, lhs_red, rhs);
+    op_code, omp::UnaryRedDispatch{}, collapsed_dim, rhs_shape, lhs, rhs, needs_reduction);
 }
 
 }  // namespace numpy

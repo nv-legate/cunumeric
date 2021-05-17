@@ -25,6 +25,7 @@ class Permission(IntEnum):
     READ = 1
     WRITE = 2
     READ_WRITE = 3
+    REDUCTION = 4
 
 
 class ScalarArg(object):
@@ -103,6 +104,7 @@ _single_task_calls = {
     Permission.READ: Task.add_read_requirement,
     Permission.WRITE: Task.add_write_requirement,
     Permission.READ_WRITE: Task.add_read_write_requirement,
+    Permission.REDUCTION: Task.add_reduction_requirement,
 }
 
 _index_task_calls = {
@@ -110,49 +112,91 @@ _index_task_calls = {
     Permission.READ: IndexTask.add_read_requirement,
     Permission.WRITE: IndexTask.add_write_requirement,
     Permission.READ_WRITE: IndexTask.add_read_write_requirement,
+    Permission.REDUCTION: IndexTask.add_reduction_requirement,
 }
 
 
-class _Broadcast(object):
+class Broadcast(object):
+    def __init__(self, redop=None):
+        self.redop = redop
+
     def add(self, task, req, fields):
         f = _index_task_calls[req.permission]
-        f(task, req.region, fields, 0, parent=req.region, tag=req.tag)
+        if self.redop is None:
+            f(task, req.region, fields, 0, parent=req.region, tag=req.tag)
+        else:
+            assert req.permission == Permission.REDUCTION
+            f(
+                task,
+                req.region,
+                fields,
+                self.redop,
+                0,
+                parent=req.region,
+                tag=req.tag,
+            )
 
     def add_single(self, task, req, fields):
         f = _single_task_calls[req.permission]
-        f(task, req.region, fields, tag=req.tag, flags=req.flags)
+        if self.redop is None:
+            f(task, req.region, fields, tag=req.tag, flags=req.flags)
+        else:
+            assert req.permission == Permission.REDUCTION
+            f(
+                task,
+                req.region,
+                fields,
+                self.redop,
+                tag=req.tag,
+                flags=req.flags,
+            )
 
     def __hash__(self):
-        return hash("Broadcast")
+        return hash(("Broadcast", self.redop))
 
     def __eq__(self, other):
-        return isinstance(other, Broadcast)
-
-
-Broadcast = _Broadcast()
+        return isinstance(other, Projection) and self.redop == other.redop
 
 
 class Projection(object):
-    def __init__(self, part, proj=0):
+    def __init__(self, part, proj=0, redop=None):
         self.part = part
         self.proj = proj
+        self.redop = redop
 
     def add(self, task, req, fields):
         f = _index_task_calls[req.permission]
-        f(task, self.part, fields, self.proj, tag=req.tag, flags=req.flags)
+        if self.redop is None:
+            f(task, self.part, fields, self.proj, tag=req.tag, flags=req.flags)
+        else:
+            assert req.permission == Permission.REDUCTION
+            f(
+                task,
+                self.part,
+                fields,
+                self.redop,
+                self.proj,
+                tag=req.tag,
+                flags=req.flags,
+            )
 
     def add_single(self, task, req, fields):
         f = _single_task_calls[req.permission]
-        f(task, req.region, fields, tag=req.tag)
+        if self.redop is None:
+            f(task, req.region, fields, tag=req.tag)
+        else:
+            assert req.permission == Permission.REDUCTION
+            f(task, req.region, fields, self.redop, tag=req.tag)
 
     def __hash__(self):
-        return hash((self.part, self.proj))
+        return hash((self.part, self.proj, self.redop))
 
     def __eq__(self, other):
         return (
             isinstance(other, Projection)
             and self.part == other.part
             and self.proj == other.proj
+            and self.redop == other.redop
         )
 
 
@@ -348,6 +392,11 @@ class Map(object):
     def add_inout(self, store, transform, proj, tag=0, flags=0):
         self.add_region_arg(
             store, transform, proj, Permission.READ_WRITE, tag, flags
+        )
+
+    def add_reduction(self, store, transform, proj, tag=0, flags=0):
+        self.add_region_arg(
+            store, transform, proj, Permission.REDUCTION, tag, flags
         )
 
     def add_future(self, future):

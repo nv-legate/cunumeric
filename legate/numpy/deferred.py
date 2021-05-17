@@ -101,19 +101,26 @@ class DeferredArrayView(object):
             )
             self._array.base.set_key_partition(part, shardfn, shardsp)
 
-    def add_to_legate_op(self, op, read_only):
+    def add_to_legate_op(self, op, read_only, read_write=True, redop=None):
         if self.scalar:
             if not read_only:
                 raise ValueError("Singleton arrays must be read only")
             op.add_future(self._array.base)
         else:
-            add = op.add_input if read_only else op.add_output
+            if redop is None:
+                if read_write:
+                    add = op.add_inout
+                else:
+                    add = op.add_input if read_only else op.add_output
+            else:
+                assert not read_only
+                add = op.add_reduction
             add(
                 self._array,
                 _combine_transforms(
                     self._array.base.transform, self._transform
                 ),
-                Projection(self.part, self._proj_id),
+                Projection(self.part, self._proj_id, redop=redop),
                 tag=self._tag,
             )
 
@@ -3790,7 +3797,6 @@ class DeferredArray(NumPyThunk):
             else:
                 lhs_array.base = rhs
             return
-        task_dtype = rhs_array.dtype
         # See if we are doing reduction to a point or another region
         if lhs_array.size == 1:
             assert axes is None or len(axes) == (
@@ -3820,7 +3826,7 @@ class DeferredArray(NumPyThunk):
             if launch_space is not None:
                 result = task.execute(
                     Rect(launch_space),
-                    redop=self.runtime.get_untyped_reduction_op_id(op),
+                    redop=self.runtime.get_scalar_reduction_op_id(op),
                 )
             else:
                 result = task.execute_single()
@@ -3855,7 +3861,23 @@ class DeferredArray(NumPyThunk):
                 task.add_future(initial_future)
                 result = self.runtime.dispatch(task)
             lhs_array.base = result
+
         else:
+            # Before we perform region reduction, make sure to have the lhs
+            # initialized. If an initial value is given, we use it, otherwise
+            # we use the identity of the reduction operator
+            if initial is not None:
+                fill_value = initial
+            else:
+                fill_value = self.runtime.get_reduction_identity(
+                    op, rhs_array.dtype
+                )
+            lhs_array.fill(
+                fill_value,
+                stacklevel=stacklevel + 1,
+                callsite=callsite,
+            )
+
             # If output dims is not 0, then we must have axes
             assert axes is not None
             # Reduction to a smaller array
@@ -3889,421 +3911,52 @@ class DeferredArray(NumPyThunk):
                 result_part = result.find_or_create_congruent_partition(
                     rhs_part, transform, offset
                 )
-                if launch_space[axis] == 1:
-                    lhs_arg_init = DeferredArrayView(
-                        lhs_array,
-                        part=result_part,
-                        proj_id=proj_id,
-                        tag=NumPyMappingTag.NO_MEMOIZE_TAG,
-                    )
-                    lhs_arg_red = DeferredArrayView(
-                        lhs_array,
-                        part=result_part,
-                        transform=transform,
-                        proj_id=proj_id,
-                        tag=NumPyMappingTag.NO_MEMOIZE_TAG,
-                    )
-                    rhs_arg = DeferredArrayView(
-                        rhs_array,
-                        part=rhs_part,
-                        tag=NumPyMappingTag.KEY_REGION_TAG,
-                    )
 
-                    shardpt, shardfn, shardsp = rhs_arg.sharding
-
-                    task = Map(self.runtime, NumPyOpCode.UNARY_RED)
-                    task.add_scalar_arg(axis, np.int32)
-                    task.add_scalar_arg(op, np.int32)
-                    task.add_shape(
-                        lhs_arg_init.shape,
-                        result_part.tile_shape,
-                        proj_id - self.runtime.first_proj_id,
-                    )
-                    task.add_shape(rhs_arg.shape, rhs_part.tile_shape, 0)
-
-                    lhs_arg_init.add_to_legate_op(task, False)
-                    lhs_arg_red.add_to_legate_op(task, False)
-                    rhs_arg.add_to_legate_op(task, True)
-
-                    if shardpt is not None:
-                        task.set_point(shardpt)
-                    if shardsp is not None:
-                        task.set_sharding_space(shardsp)
-                    if args is not None:
-                        self.add_arguments(task, args)
-                    if initial is not None:
-                        task.add_future(initial_future)
-
-                    task.execute(Rect(launch_space))
-
-                else:
-                    # We need to make a temporary field for reductions
-                    reduction_shape = ()
-                    for idx in xrange(rhs_array.ndim):
-                        if idx == axis:
-                            reduction_shape += (launch_space[idx],)
-                        else:
-                            reduction_shape += (rhs_array.shape[idx],)
-                    if argred:
-                        # Argreds have a combination dtype
-                        argred_dtype = np.dtype(
-                            [("f1", np.int64), ("f2", rhs_array.dtype)],
-                            align=True,
-                        )
-                        reduction_field = self.runtime.allocate_field(
-                            reduction_shape, argred_dtype
-                        )
-                    else:
-                        reduction_field = self.runtime.allocate_field(
-                            reduction_shape, lhs_array.dtype
-                        )
-                    reduction_part = reduction_field.find_or_create_partition(
-                        launch_space
-                    )
-                    argbuf = BufferBuilder()
-                    argbuf.pack_dimension(axis)
-                    argbuf.pack_dimension(
-                        axis
-                    )  # Extra dimension to reduce over
-                    self.pack_shape(
-                        argbuf,
-                        lhs_array.shape,
-                        result_part.tile_shape,
-                        proj_id,
-                    )
-                    argbuf.pack_accessor(
-                        reduction_field.field.field_id,
-                        reduction_field.transform,
-                    )
-                    self.pack_shape(
-                        argbuf, rhs_array.shape, rhs_part.tile_shape, 0
-                    )
-                    # Use the result field here
-                    if reduction_field.transform is not None:
-                        # Transform from the rhs space back to our space
-                        to_pack = transform.compose(reduction_field.transform)
-                    else:
-                        to_pack = transform
-                    argbuf.pack_accessor(
-                        reduction_field.field.field_id, to_pack
-                    )
-                    argbuf.pack_accessor(rhs.field.field_id, rhs.transform)
-                    task = IndexTask(
-                        self.runtime.get_unary_task_id(
-                            op,
-                            result_type=task_dtype,
-                            argument_type=task_dtype,
-                        ),
-                        Rect(launch_space),
-                        self.runtime.empty_argmap,
-                        argbuf.get_string(),
-                        argbuf.get_size(),
-                        mapper=self.runtime.mapper_id,
-                        tag=shardfn,
-                    )
-                    if shardsp is not None:
-                        task.set_sharding_space(shardsp)
-                    task.add_write_requirement(
-                        reduction_part,
-                        reduction_field.field.field_id,
-                        0,
-                        tag=NumPyMappingTag.NO_MEMOIZE_TAG,
-                        flags=legion.LEGION_COMPLETE_PROJECTION_WRITE_FLAG,
-                    )
-                    task.add_read_requirement(
-                        rhs_part,
-                        rhs.field.field_id,
-                        0,
-                        tag=NumPyMappingTag.KEY_REGION_TAG,
-                    )
-                    if args is not None:
-                        self.add_arguments(task, args)
-                    if initial is not None:
-                        task.add_future(initial_future)
-                    self.runtime.dispatch(task)
-                    # Now we need to launch the reduction tree(s)
-                    # Figure out which kind of projection functor to use
-                    if len(lhs_array.shape) == 1:
-                        # 2D -> 1D
-                        assert axis == 0 or axis == 1
-                        if axis == 0:
-                            if keepdims:
-                                result_proj = NumPyProjCode.PROJ_2D_2D_Y
-                            else:
-                                result_proj = NumPyProjCode.PROJ_2D_1D_Y
-                        else:
-                            if keepdims:
-                                result_proj = NumPyProjCode.PROJ_2D_2D_X
-                            else:
-                                result_proj = NumPyProjCode.PROJ_2D_1D_X
-                    elif len(lhs_array.shape) == 2:
-                        # 3D -> 2D
-                        assert axis >= 0 and axis <= 2
-                        if axis == 0:
-                            if keepdims:
-                                result_proj = NumPyProjCode.PROJ_3D_3D_0YZ
-                            else:
-                                result_proj = NumPyProjCode.PROJ_3D_2D_YZ
-                        elif axis == 1:
-                            if keepdims:
-                                result_proj = NumPyProjCode.PROJ_3D_3D_X0Z
-                            else:
-                                result_proj = NumPyProjCode.PROJ_3D_2D_XZ
-                        else:
-                            if keepdims:
-                                result_proj = NumPyProjCode.PROJ_3D_3D_XY0
-                            else:
-                                result_proj = NumPyProjCode.PROJ_3D_2D_XY
-                    else:
-                        raise NotImplementedError(
-                            "Need support for more dims in unary reduction"
-                        )
-                    result_proj += self.runtime.first_proj_id
-                    if reduction_shape[axis] > 1:
-                        if initial is not None:
-                            # If we had a non-trivial initial value for
-                            # sum or prod then we can't count initial
-                            # values more than once which is not
-                            # something that we're currently handling
-                            if op == NumPyOpCode.SUM and initial != 0:
-                                raise NotImplementedError(
-                                    "Need reduction tree support with "
-                                    "non-trivial initial value"
-                                )
-                            if op == NumPyOpCode.PROD and initial != 1:
-                                raise NotImplementedError(
-                                    "Need reduction tree support with "
-                                    "non-trivial initial value"
-                                )
-                        RADIX = self.runtime.radix
-                        # Figure out what the natural partitioning of the
-                        # output vector is so we can do reductions to it
-                        lhs_launch = result.compute_parallel_launch_space()
-                        if lhs_launch is None:
-                            result_part = result.find_or_create_partition(
-                                (1,) * lhs_array.ndim
-                            )
-                            lhs_launch = ()
-                            for ax in xrange(rhs_array.ndim):
-                                if ax == axis:
-                                    lhs_launch += (launch_space[ax],)
-                                else:
-                                    lhs_launch += (1,)
-                            launch_space = lhs_launch
-                        else:
-                            result_part = result.find_or_create_partition(
-                                lhs_launch
-                            )
-                            full_launch = ()
-                            next_ax = 0
-                            for ax in xrange(rhs_array.ndim):
-                                if ax == axis:
-                                    full_launch += (launch_space[ax],)
-                                else:
-                                    full_launch += (lhs_launch[next_ax],)
-                                    next_ax += 1
-                            launch_space = full_launch
-                        sharding_space = self.runtime.find_or_create_index_space(  # noqa E501
-                            launch_space
-                        )
-                        reduction_part = reduction_field.find_or_create_partition(  # noqa E501
-                            launch_space
-                        )
-                        radix_generation = 1
-                        while reduction_shape[axis] > 1:
-                            argbuf = BufferBuilder()
-                            argbuf.pack_dimension(RADIX)
-                            # Make the new reduction space and the new launch
-                            # space
-                            new_reduction_shape = ()
-                            local_launch_space = ()
-                            for ax in xrange(len(reduction_shape)):
-                                if ax == axis:
-                                    new_launch = (
-                                        reduction_shape[ax] + RADIX - 1
-                                    ) // RADIX
-                                    new_reduction_shape += (new_launch,)
-                                    local_launch_space += (new_launch,)
-                                else:
-                                    new_reduction_shape += (
-                                        reduction_shape[ax],
-                                    )
-                                    local_launch_space += (launch_space[ax],)
-                            # Perform index task launches to do the reductions
-                            if new_reduction_shape[axis] == 1 and not argred:
-                                # If this is the last reduction we can put it
-                                # right in the output array assuming we don't
-                                # need a conversion
-                                new_reduction_field = result
-                                new_reduction_part = result_part
-                                new_reduction_proj = result_proj
-                                argbuf.pack_dimension(
-                                    -1
-                                )  # No collapse out dimension
-                            else:
-                                new_reduction_field = (
-                                    self.runtime.allocate_field(  # noqa E501
-                                        new_reduction_shape,
-                                        reduction_field.field.dtype,
-                                    )
-                                )
-                                new_reduction_part = new_reduction_field.find_or_create_partition(  # noqa E501
-                                    local_launch_space
-                                )
-                                new_reduction_proj = 0  # identity projection
-                                argbuf.pack_dimension(
-                                    axis
-                                )  # Collapsing out domension axis
-                            argbuf.pack_dimension(
-                                axis
-                            )  # Collapsing in dimension axis
-                            self.pack_shape(
-                                argbuf,
-                                lhs_array.shape,
-                                result_part.tile_shape,
-                                result_proj,
-                            )
-                            argbuf.pack_accessor(
-                                new_reduction_field.field.field_id,
-                                new_reduction_field.transform,
-                            )
-                            for idx in xrange(RADIX):
-                                argbuf.pack_accessor(
-                                    reduction_field.field.field_id,
-                                    reduction_field.transform,
-                                )
-                            task = IndexTask(
-                                self.runtime.get_binary_task_id(
-                                    redop,
-                                    result_type=task_dtype,
-                                    first_argument_type=task_dtype,
-                                    second_argument_type=task_dtype,
-                                ),
-                                Rect(local_launch_space),
-                                self.runtime.empty_argmap,
-                                argbuf.get_string(),
-                                argbuf.get_size(),
-                                mapper=self.runtime.mapper_id,
-                                tag=(
-                                    NumPyMappingTag.RADIX_GEN_TAG
-                                    & (radix_generation << RADIX_GEN_SHIFT)
-                                )
-                                | (
-                                    NumPyMappingTag.RADIX_DIM_TAG
-                                    & (axis << RADIX_DIM_SHIFT)
-                                ),
-                            )
-                            task.set_sharding_space(sharding_space)
-                            task.add_write_requirement(
-                                new_reduction_part,
-                                new_reduction_field.field.field_id,
-                                new_reduction_proj,
-                                tag=NumPyMappingTag.KEY_REGION_TAG,
-                                flags=legion.LEGION_COMPLETE_PROJECTION_WRITE_FLAG,  # noqa E501
-                            )
-                            for idx in xrange(RADIX):
-                                task.add_read_requirement(
-                                    reduction_part,
-                                    reduction_field.field.field_id,
-                                    self.runtime.get_radix_projection_functor_id(  # noqa E501
-                                        len(local_launch_space),
-                                        axis,
-                                        RADIX,
-                                        idx,
-                                    ),
-                                )
-                            self.runtime.dispatch(task)
-                            reduction_shape = new_reduction_shape
-                            reduction_field = new_reduction_field
-                            reduction_part = new_reduction_part
-                            radix_generation += 1
-                    # If we need a conversion back from argred, do that now
-                    if argred:
-                        out_space = result.compute_parallel_launch_space()
-                        if out_space is None:
-                            # Single task conversion
-                            argbuf = BufferBuilder()
-                            argbuf.pack_dimension(axis)
-                            self.pack_shape(argbuf, lhs_array.shape)
-                            argbuf.pack_accessor(
-                                result.field.field_id, result.transform
-                            )
-                            argbuf.pack_accessor(
-                                reduction_field.field.field_id,
-                                reduction_field.transform,
-                            )
-                            task = Task(
-                                self.runtime.get_nullary_task_id(
-                                    NumPyOpCode.GETARG, result_type=task_dtype
-                                ),
-                                argbuf.get_string(),
-                                argbuf.get_size(),
-                                mapper=self.runtime.mapper_id,
-                            )
-                            task.add_write_requirement(
-                                result.region,
-                                result.field.field_id,
-                                tag=NumPyMappingTag.KEY_REGION_TAG,
-                            )
-                            task.add_read_requirement(
-                                reduction_field.region,
-                                reduction_field.field.field_id,
-                                tag=NumPyMappingTag.NO_MEMOIZE_TAG,
-                            )
-                            self.runtime.dispatch(task)
-                        else:
-                            # Distributed task conversion
-                            local_launch_space = ()
-                            for ax in xrange(len(reduction_shape)):
-                                if ax == axis:
-                                    local_launch_space += (1,)
-                                else:
-                                    local_launch_space += (launch_space[ax],)
-                            argbuf = BufferBuilder()
-                            argbuf.pack_dimension(axis)
-                            self.pack_shape(
-                                argbuf,
-                                lhs_array.shape,
-                                result_part.tile_shape,
-                                result_proj,
-                            )
-                            argbuf.pack_accessor(
-                                result.field.field_id, result.transform
-                            )
-                            argbuf.pack_accessor(
-                                reduction_field.field.field_id,
-                                reduction_field.transform,
-                            )
-                            task = IndexTask(
-                                self.runtime.get_nullary_task_id(
-                                    NumPyOpCode.GETARG, result_type=task_dtype
-                                ),
-                                Rect(local_launch_space),
-                                self.runtime.empty_argmap,
-                                argbuf.get_string(),
-                                argbuf.get_size(),
-                                mapper=self.runtime.mapper_id,
-                            )
-                            task.add_write_requirement(
-                                result_part,
-                                result.field.field_id,
-                                result_proj,
-                                tag=NumPyMappingTag.KEY_REGION_TAG,
-                            )
-                            task.add_read_requirement(
-                                reduction_part,
-                                reduction_field.field.field_id,
-                                0,
-                                tag=NumPyMappingTag.NO_MEMOIZE_TAG,
-                            )
-                            self.runtime.dispatch(task)
-            else:
-                lhs_arg_init = DeferredArrayView(
+                needs_reduction = launch_space[axis] != 1
+                lhs_arg = DeferredArrayView(
                     lhs_array,
+                    part=result_part,
+                    transform=transform,
                     proj_id=proj_id,
                     tag=NumPyMappingTag.NO_MEMOIZE_TAG,
                 )
-                lhs_arg_red = DeferredArrayView(
+                rhs_arg = DeferredArrayView(
+                    rhs_array,
+                    part=rhs_part,
+                    tag=NumPyMappingTag.KEY_REGION_TAG,
+                )
+
+                shardpt, shardfn, shardsp = rhs_arg.sharding
+
+                task = Map(self.runtime, NumPyOpCode.UNARY_RED)
+                task.add_scalar_arg(needs_reduction, bool)
+                task.add_scalar_arg(axis, np.int32)
+                task.add_scalar_arg(op, np.int32)
+                task.add_shape(rhs_arg.shape, rhs_part.tile_shape, 0)
+
+                if needs_reduction:
+                    redop = self.runtime.get_unary_reduction_op_id(
+                        op, rhs_array.dtype
+                    )
+                    lhs_arg.add_to_legate_op(task, False, redop=redop)
+                    rhs_arg.add_to_legate_op(task, True)
+                else:
+                    lhs_arg.add_to_legate_op(task, False, read_write=True)
+                    rhs_arg.add_to_legate_op(task, True)
+
+                if shardpt is not None:
+                    task.set_point(shardpt)
+                if shardsp is not None:
+                    task.set_sharding_space(shardsp)
+                if args is not None:
+                    self.add_arguments(task, args)
+                if initial is not None:
+                    task.add_future(initial_future)
+
+                task.execute(Rect(launch_space))
+
+            else:
+                lhs_arg = DeferredArrayView(
                     lhs_array,
                     transform=transform,
                     proj_id=proj_id,
@@ -4317,13 +3970,12 @@ class DeferredArray(NumPyThunk):
                 shardpt, shardfn, shardsp = rhs_arg.sharding
 
                 task = Map(self.runtime, NumPyOpCode.UNARY_RED)
+                task.add_scalar_arg(False, bool)  # needs_reduction
                 task.add_scalar_arg(axis, np.int32)
                 task.add_scalar_arg(op, np.int32)
-                task.add_shape(lhs_arg_init.shape)
                 task.add_shape(rhs_arg.shape)
 
-                lhs_arg_init.add_to_legate_op(task, False)
-                lhs_arg_red.add_to_legate_op(task, False)
+                lhs_arg.add_to_legate_op(task, False)
                 rhs_arg.add_to_legate_op(task, True)
 
                 if shardpt is not None:

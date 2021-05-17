@@ -1749,6 +1749,8 @@ class ndarray(object):
         where=True,
         stacklevel=2,
     ):
+        # TODO: Need to require initial to be given when the array is empty
+        #       or a where mask is given.
         if isinstance(where, ndarray):
             # The where array has to broadcast to the src.shape
             if broadcast_shapes(src.shape, where.shape) != src.shape:
