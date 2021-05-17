@@ -2404,7 +2404,7 @@ class Runtime(object):
         return self.first_redop_id + numpy_scalar_reduction_op_offsets[op]
 
     def get_reduction_identity(self, op, dtype):
-        return np.array(numpy_unary_reduction_identities[op](dtype), dtype)
+        return numpy_unary_reduction_identities[op](dtype)
 
     def get_radix_projection_functor_id(
         self, total_dims, collapse_dim, radix, offset

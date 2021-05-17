@@ -3764,39 +3764,8 @@ class DeferredArray(NumPyThunk):
         )
         assert lhs_array.ndim <= rhs_array.ndim
         assert rhs_array.size > 1
-        # See if this is an arg reduction
-        argred = op == NumPyOpCode.ARGMIN or op == NumPyOpCode.ARGMAX
-        if argred:
-            assert lhs_array.dtype == np.int64
         rhs = rhs_array.base
-        if initial is not None:
-            initial_array = np.array(initial, dtype=lhs_array.dtype)
-            if initial_array.size != 1:
-                raise ValueError(
-                    '"initial" value for reduction must be a scalar'
-                )
-            initial_future = self.runtime.create_future(
-                initial_array.data, initial_array.nbytes
-            )
-        if isinstance(rhs, Future):
-            if initial is not None:
-                assert rhs_array.dtype == lhs_array.dtype
-                # If we had an initial value then we need to combine these
-                task = Task(
-                    self.runtime.get_binary_task_id(
-                        op,
-                        argument_type=rhs_array.dtype,
-                        result_type=lhs_array.dtype,
-                        variant_code=NumPyVariantCode.SCALAR,
-                    ),
-                    mapper=self.runtime.mapper_id,
-                )
-                task.add_future(rhs)
-                task.add_future(initial_future)
-                lhs_array.base = self.runtime.dispatch(task)
-            else:
-                lhs_array.base = rhs
-            return
+
         # See if we are doing reduction to a point or another region
         if lhs_array.size == 1:
             assert axes is None or len(axes) == (
@@ -3831,35 +3800,6 @@ class DeferredArray(NumPyThunk):
             else:
                 result = task.execute_single()
 
-            # If this is an argred task, we need to convert from
-            # the argred type back to the actual type of the result
-            if argred:
-                assert initial is None
-                task = Task(
-                    self.runtime.get_nullary_task_id(
-                        NumPyOpCode.GETARG,
-                        result_type=result_type,
-                        variant_code=NumPyVariantCode.SCALAR,
-                    ),
-                    mapper=self.runtime.mapper_id,
-                )
-                task.add_future(result)
-                result = self.runtime.dispatch(task)
-            elif initial is not None:
-                # If we had an initial value then we need to do an extra step
-                # to combine that with the actual result of the
-                task = Task(
-                    self.runtime.get_binary_task_id(
-                        op,
-                        argumnet_type=lhs_array.dtype,
-                        result_type=lhs_array.dtype,
-                        variant_code=NumPyVariantCode.SCALAR,
-                    ),
-                    mapper=self.runtime.mapper_id,
-                )
-                task.add_future(result)
-                task.add_future(initial_future)
-                result = self.runtime.dispatch(task)
             lhs_array.base = result
 
         else:
@@ -3873,7 +3813,7 @@ class DeferredArray(NumPyThunk):
                     op, rhs_array.dtype
                 )
             lhs_array.fill(
-                fill_value,
+                np.array(fill_value, rhs_array.dtype),
                 stacklevel=stacklevel + 1,
                 callsite=callsite,
             )
