@@ -30,6 +30,9 @@ GEN_CPU_SRC += universal_functions/absolute.cc      \
 							 scalar_unary_red.cc                  \
 							 unary_red_util.cc                    \
 							 unary_red.cc                         \
+							 unary_op.cc                          \
+							 unary_op_util.cc                     \
+							 scalar_unary_op.cc                   \
 							 arange.cc                            \
 							 arg.cc                               \
 							 argmin.cc                            \
@@ -99,7 +102,8 @@ GEN_CPU_SRC += binary_op_omp.cc           \
 							 broadcast_binary_op_omp.cc \
 							 fill_omp.cc                \
 							 scalar_unary_red_omp.cc    \
-							 unary_red_omp.cc
+							 unary_red_omp.cc           \
+							 unary_op_omp.cc
 endif
 
 GEN_GPU_SRC += universal_functions/absolute.cu      \
@@ -111,6 +115,7 @@ GEN_GPU_SRC += universal_functions/absolute.cu      \
 							 fill.cu                              \
 							 scalar_unary_red.cu                  \
 							 unary_red.cu                         \
+							 unary_op.cu                          \
 							 arange.cu                            \
 							 arg.cu                               \
 							 argmin.cu                            \

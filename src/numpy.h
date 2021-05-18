@@ -99,6 +99,26 @@ struct LegateTypeOf<LegateTypeCode::COMPLEX128_LT> {
 template <LegateTypeCode CODE>
 using legate_type_of = typename LegateTypeOf<CODE>::type;
 
+template <LegateTypeCode CODE>
+struct is_integral {
+  static constexpr bool value = std::is_integral<legate_type_of<CODE>>::value;
+};
+
+template <LegateTypeCode CODE>
+struct is_signed {
+  static constexpr bool value = std::is_signed<legate_type_of<CODE>>::value;
+};
+
+template <LegateTypeCode CODE>
+struct is_unsigned {
+  static constexpr bool value = std::is_unsigned<legate_type_of<CODE>>::value;
+};
+
+template <LegateTypeCode CODE>
+struct is_floating_point {
+  static constexpr bool value = std::is_floating_point<legate_type_of<CODE>>::value;
+};
+
 class LegateNumPy {
  public:
   // Record variants for all our tasks

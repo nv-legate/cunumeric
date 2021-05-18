@@ -19,7 +19,7 @@ import sys
 import numpy as np
 
 from .array import ndarray
-from .config import BinaryOpCode, NumPyOpCode
+from .config import BinaryOpCode, NumPyOpCode, UnaryOpCode
 from .doc_utils import copy_docstring
 from .runtime import runtime
 
@@ -393,7 +393,7 @@ def invert(a, out=None, where=True, dtype=None):
     if array.dtype.type == np.bool_:
         # Boolean values are special, just do negatiion
         return ndarray.perform_unary_op(
-            NumPyOpCode.LOGICAL_NOT,
+            UnaryOpCode.LOGICAL_NOT,
             array,
             dst=out,
             dtype=dtype,
@@ -402,7 +402,7 @@ def invert(a, out=None, where=True, dtype=None):
         )
     else:
         return ndarray.perform_unary_op(
-            NumPyOpCode.INVERT, array, dst=out, dtype=dtype, where=where
+            UnaryOpCode.INVERT, array, dst=out, dtype=dtype, where=where
         )
 
 
@@ -427,7 +427,7 @@ def logical_not(a, out=None, where=True, dtype=None, **kwargs):
     if out is not None:
         out = ndarray.convert_to_legate_ndarray(out, share=True)
     return ndarray.perform_unary_op(
-        NumPyOpCode.LOGICAL_NOT,
+        UnaryOpCode.LOGICAL_NOT,
         a_array,
         dtype=dtype,
         dst=out,
@@ -553,7 +553,7 @@ def isinf(a, out=None, where=True, dtype=None, **kwargs):
     if out is not None:
         out = ndarray.convert_to_legate_ndarray(out, share=True)
     return ndarray.perform_unary_op(
-        NumPyOpCode.ISINF,
+        UnaryOpCode.ISINF,
         a_array,
         dst=out,
         dtype=dtype,
@@ -569,7 +569,7 @@ def isnan(a, out=None, where=True, dtype=None, **kwargs):
     if out is not None:
         out = ndarray.convert_to_legate_ndarray(out, share=True)
     return ndarray.perform_unary_op(
-        NumPyOpCode.ISNAN,
+        UnaryOpCode.ISNAN,
         a_array,
         dst=out,
         dtype=dtype,
@@ -664,7 +664,7 @@ def negative(a, out=None, where=True, dtype=None, **kwargs):
     if out is not None:
         out = ndarray.convert_to_legate_ndarray(out, share=True)
     return ndarray.perform_unary_op(
-        NumPyOpCode.NEGATIVE, a_array, dtype=dtype, dst=out, where=where
+        UnaryOpCode.NEGATIVE, a_array, dtype=dtype, dst=out, where=where
     )
 
 
@@ -683,7 +683,7 @@ def arccos(a, out=None, where=True, dtype=None, **kwargs):
     if out is not None:
         out = ndarray.convert_to_legate_ndarray(out, share=True)
     return ndarray.perform_unary_op(
-        NumPyOpCode.ARCCOS,
+        UnaryOpCode.ARCCOS,
         lg_array,
         dtype=dtype,
         dst=out,
@@ -704,7 +704,7 @@ def arcsin(a, out=None, where=True, dtype=None, **kwargs):
     if out is not None:
         out = ndarray.convert_to_legate_ndarray(out, share=True)
     return ndarray.perform_unary_op(
-        NumPyOpCode.ARCSIN,
+        UnaryOpCode.ARCSIN,
         lg_array,
         dtype=dtype,
         dst=out,
@@ -725,7 +725,7 @@ def arctan(a, out=None, where=True, dtype=None, **kwargs):
     if out is not None:
         out = ndarray.convert_to_legate_ndarray(out, share=True)
     return ndarray.perform_unary_op(
-        NumPyOpCode.ARCTAN,
+        UnaryOpCode.ARCTAN,
         lg_array,
         dtype=dtype,
         dst=out,
@@ -746,7 +746,7 @@ def cos(a, out=None, where=True, dtype=None, **kwargs):
     if out is not None:
         out = ndarray.convert_to_legate_ndarray(out, share=True)
     return ndarray.perform_unary_op(
-        NumPyOpCode.COS,
+        UnaryOpCode.COS,
         lg_array,
         dtype=dtype,
         dst=out,
@@ -767,7 +767,7 @@ def sin(a, out=None, where=True, dtype=None, **kwargs):
     if out is not None:
         out = ndarray.convert_to_legate_ndarray(out, share=True)
     return ndarray.perform_unary_op(
-        NumPyOpCode.SIN,
+        UnaryOpCode.SIN,
         lg_array,
         dtype=dtype,
         dst=out,
@@ -788,7 +788,7 @@ def tan(a, out=None, where=True, dtype=None, **kwargs):
     if out is not None:
         out = ndarray.convert_to_legate_ndarray(out, share=True)
     return ndarray.perform_unary_op(
-        NumPyOpCode.TAN,
+        UnaryOpCode.TAN,
         lg_array,
         dtype=dtype,
         dst=out,
@@ -812,7 +812,7 @@ def tanh(a, out=None, where=True, dtype=None, **kwargs):
     if out is not None:
         out = ndarray.convert_to_legate_ndarray(out, share=True)
     return ndarray.perform_unary_op(
-        NumPyOpCode.TANH,
+        UnaryOpCode.TANH,
         lg_array,
         dtype=dtype,
         dst=out,
@@ -1074,7 +1074,7 @@ def exp(a, out=None, where=True, dtype=None, stacklevel=1, **kwargs):
     if out is not None:
         out = ndarray.convert_to_legate_ndarray(out, share=True)
     return ndarray.perform_unary_op(
-        NumPyOpCode.EXP,
+        UnaryOpCode.EXP,
         lg_array,
         dtype=dtype,
         dst=out,
@@ -1096,7 +1096,7 @@ def log(a, out=None, where=True, dtype=None, stacklevel=1, **kwargs):
     if out is not None:
         out = ndarray.convert_to_legate_ndarray(out, share=True)
     return ndarray.perform_unary_op(
-        NumPyOpCode.LOG,
+        UnaryOpCode.LOG,
         lg_array,
         dtype=dtype,
         dst=out,
@@ -1180,7 +1180,7 @@ def absolute(a, out=None, where=True, **kwargs):
     if out is not None:
         out = ndarray.convert_to_legate_ndarray(out, share=True)
     return ndarray.perform_unary_op(
-        NumPyOpCode.ABSOLUTE, lg_array, dst=out, where=where
+        UnaryOpCode.ABSOLUTE, lg_array, dst=out, where=where
     )
 
 
@@ -1201,7 +1201,7 @@ def ceil(a, out=None, where=True, dtype=None, **kwargs):
     if out is not None:
         out = ndarray.convert_to_legate_ndarray(out, share=True)
     return ndarray.perform_unary_op(
-        NumPyOpCode.CEIL, lg_array, dst=out, dtype=dtype, where=where
+        UnaryOpCode.CEIL, lg_array, dst=out, dtype=dtype, where=where
     )
 
 
@@ -1234,7 +1234,7 @@ def floor(a, out=None, where=True, dtype=None, **kwargs):
     if out is not None:
         out = ndarray.convert_to_legate_ndarray(out, share=True)
     return ndarray.perform_unary_op(
-        NumPyOpCode.FLOOR, lg_array, dst=out, dtype=dtype, where=where
+        UnaryOpCode.FLOOR, lg_array, dst=out, dtype=dtype, where=where
     )
 
 
@@ -1256,7 +1256,7 @@ def sqrt(a, out=None, where=True, dtype=None, stacklevel=1, **kwargs):
             out, stacklevel=(stacklevel + 1), share=True
         )
     return ndarray.perform_unary_op(
-        NumPyOpCode.SQRT,
+        UnaryOpCode.SQRT,
         lg_array,
         dtype=dtype,
         dst=out,

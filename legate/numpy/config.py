@@ -184,6 +184,8 @@ class NumPyOpCode(IntEnum):
     FILL = legate_numpy.NUMPY_FILL
     SCALAR_UNARY_RED = legate_numpy.NUMPY_SCALAR_UNARY_RED
     UNARY_RED = legate_numpy.NUMPY_UNARY_RED
+    UNARY_OP = legate_numpy.NUMPY_UNARY_OP
+    SCALAR_UNARY_OP = legate_numpy.NUMPY_SCALAR_UNARY_OP
 
 
 @unique
@@ -203,6 +205,29 @@ class BinaryOpCode(IntEnum):
     NOT_EQUAL = 13
     POWER = 14
     SUBTRACT = 15
+
+
+@unique
+class UnaryOpCode(IntEnum):
+    ABSOLUTE = 1
+    ARCCOS = 2
+    ARCSIN = 3
+    ARCTAN = 4
+    CEIL = 5
+    CLIP = 6
+    COS = 7
+    EXP = 8
+    FLOOR = 9
+    INVERT = 10
+    ISINF = 11
+    ISNAN = 12
+    LOG = 13
+    LOGICAL_NOT = 14
+    NEGATIVE = 15
+    SIN = 16
+    SQRT = 17
+    TAN = 18
+    TANH = 19
 
 
 @unique

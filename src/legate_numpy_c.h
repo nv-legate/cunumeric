@@ -101,6 +101,8 @@ enum NumPyOpCode {
   NUMPY_FILL                = 400003,
   NUMPY_SCALAR_UNARY_RED    = 400004,
   NUMPY_UNARY_RED           = 400005,
+  NUMPY_UNARY_OP            = 400006,
+  NUMPY_SCALAR_UNARY_OP     = 400007,
 };
 
 // Match these to NumPyRedopCode in legate/core/config.py
