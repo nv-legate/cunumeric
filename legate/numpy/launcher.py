@@ -369,7 +369,7 @@ class Map(object):
                 region.index_space.get_dim(),
                 RegionReq(region, perm, *proj_info),
                 field_id,
-                store.type.to_pandas_dtype(),
+                store.dtype,
                 transform,
             )
         )

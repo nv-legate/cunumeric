@@ -31,25 +31,14 @@ GEN_CPU_SRC += binary_op.cc                         \
 							 scalar_unary_op.cc                   \
 							 binary_red.cc                        \
 							 broadcast_binary_red.cc              \
+							 convert.cc                           \
+							 scalar_convert.cc                    \
 							 arange.cc                            \
 							 arg.cc                               \
 							 argmin.cc                            \
 							 bincount.cc                          \
 							 clip.cc                              \
 							 contains.cc                          \
-							 convert_to_half.cc                   \
-							 convert_to_float.cc                  \
-							 convert_to_double.cc                 \
-							 convert_to_int16.cc                  \
-							 convert_to_int32.cc                  \
-							 convert_to_int64.cc                  \
-							 convert_to_uint16.cc                 \
-							 convert_to_uint32.cc                 \
-							 convert_to_uint64.cc                 \
-							 convert_to_bool.cc                   \
-							 convert_to_complex64.cc              \
-							 convert_to_complex128.cc             \
-							 convert_scalar.cc                    \
 							 copy.cc                              \
 							 diag.cc                              \
 							 dot.cc                               \
@@ -78,7 +67,8 @@ GEN_CPU_SRC += binary_op_omp.cc            \
 							 unary_red_omp.cc            \
 							 unary_op_omp.cc             \
 							 binary_red_omp.cc           \
-							 broadcast_binary_red_omp.cc
+							 broadcast_binary_red_omp.cc \
+							 convert_omp.cc
 endif
 
 GEN_GPU_SRC += binary_op.cu                         \
@@ -89,24 +79,13 @@ GEN_GPU_SRC += binary_op.cu                         \
 							 unary_op.cu                          \
 							 binary_red.cu                        \
 							 broadcast_binary_red.cu              \
+							 convert.cu                           \
 							 arange.cu                            \
 							 arg.cu                               \
 							 argmin.cu                            \
 							 bincount.cu                          \
 							 clip.cu                              \
 							 contains.cu                          \
-							 convert_to_half.cu                   \
-							 convert_to_float.cu                  \
-							 convert_to_double.cu                 \
-							 convert_to_int16.cu                  \
-							 convert_to_int32.cu                  \
-							 convert_to_int64.cu                  \
-							 convert_to_uint16.cu                 \
-							 convert_to_uint32.cu                 \
-							 convert_to_uint64.cu                 \
-							 convert_to_bool.cu                   \
-							 convert_to_complex64.cu              \
-							 convert_to_complex128.cu             \
 							 copy.cu                              \
 							 diag.cu                              \
 							 dot.cu                               \

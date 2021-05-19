@@ -119,6 +119,18 @@ struct is_floating_point {
   static constexpr bool value = std::is_floating_point<legate_type_of<CODE>>::value;
 };
 
+template <typename T>
+struct is_complex : std::false_type {
+};
+
+template <>
+struct is_complex<complex<float>> : std::true_type {
+};
+
+template <>
+struct is_complex<complex<double>> : std::true_type {
+};
+
 class LegateNumPy {
  public:
   // Record variants for all our tasks

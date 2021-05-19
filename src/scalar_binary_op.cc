@@ -35,7 +35,12 @@ struct BinaryOpImpl {
     using RES = std::result_of_t<OP(ARG, ARG)>;
 
     OP func{};
-    return UntypedScalar(func(in1.value<ARG>(), in2.value<ARG>()));
+
+    auto a      = in1.value<ARG>();
+    auto b      = in2.value<ARG>();
+    auto result = func(a, b);
+
+    return UntypedScalar(result);
   }
 
   template <LegateTypeCode CODE, std::enable_if_t<!BinaryOp<OP_CODE, CODE>::valid> * = nullptr>

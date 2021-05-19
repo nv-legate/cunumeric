@@ -120,7 +120,6 @@ class NumPyOpCode(IntEnum):
     ARGMIN_RADIX = legate_numpy.NUMPY_ARGMIN_RADIX
     BINCOUNT = legate_numpy.NUMPY_BINCOUNT
     CLIP = legate_numpy.NUMPY_CLIP
-    CONVERT = legate_numpy.NUMPY_CONVERT
     COPY = legate_numpy.NUMPY_COPY
     DIAG = legate_numpy.NUMPY_DIAG
     DOT = legate_numpy.NUMPY_DOT
@@ -154,6 +153,8 @@ class NumPyOpCode(IntEnum):
     SCALAR_UNARY_OP = legate_numpy.NUMPY_SCALAR_UNARY_OP
     BINARY_RED = legate_numpy.NUMPY_BINARY_RED
     BROADCAST_BINARY_RED = legate_numpy.NUMPY_BROADCAST_BINARY_RED
+    CONVERT = legate_numpy.NUMPY_CONVERT
+    SCALAR_CONVERT = legate_numpy.NUMPY_SCALAR_CONVERT
 
 
 @unique

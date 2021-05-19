@@ -878,122 +878,68 @@ class DeferredArray(NumPyThunk):
 
     # Convert the source array to the destination array
     def convert(self, rhs, stacklevel, warn=True, callsite=None):
-        src_array = self.runtime.to_deferred_array(
+        lhs_array = self
+        rhs_array = self.runtime.to_deferred_array(
             rhs, stacklevel=(stacklevel + 1)
         )
-        dst_array = self
-        dst_dtype = dst_array.dtype
-        assert src_array.dtype != dst_dtype
-        assert src_array.shape == dst_array.shape or (
-            src_array.size == 1 and dst_array.size == 1
-        )
-        src = src_array.base
-        dst = dst_array.base
-        if isinstance(dst, Future):
-            # Simple case with futures
-            # No warnings in this case since it's easy to convert futures
-            assert isinstance(src, Future)
-            task = Task(
-                self.runtime.get_unary_task_id(
-                    NumPyOpCode.CONVERT,
-                    argument_type=src_array.dtype,
-                    result_type=dst_dtype,
-                    variant_code=NumPyVariantCode.SCALAR,
-                ),
-                mapper=self.runtime.mapper_id,
+        assert lhs_array.dtype != rhs_array.dtype
+
+        if warn:
+            warnings.warn(
+                "Legate performing implicit type conversion from "
+                + str(rhs_array.dtype)
+                + " to "
+                + str(lhs_array.dtype),
+                category=UserWarning,
+                stacklevel=(stacklevel + 1),
             )
-            task.add_future(src)
-            self.base = self.runtime.dispatch(task)
+
+        lhs_arg = DeferredArrayView(lhs_array)
+        rhs_arg = DeferredArrayView(rhs_array)
+
+        launch_space, key_arg = lhs_arg.find_key_view(rhs_arg)
+        key_arg.update_tag(NumPyMappingTag.KEY_REGION_TAG)
+        rhs_arg = rhs_arg.broadcast(lhs_arg)
+
+        if launch_space is not None:
+            lhs_arg = lhs_arg.align_partition(key_arg)
+            rhs_arg = rhs_arg.align_partition(key_arg)
+            if lhs_arg is not key_arg:
+                lhs_arg.copy_key_partition_from(key_arg)
+
+        if rhs_arg.scalar:
+            task_id = NumPyOpCode.SCALAR_CONVERT
         else:
-            if warn:
-                warnings.warn(
-                    "Legate performing implicit type conversion from "
-                    + str(src_array.dtype)
-                    + " to "
-                    + str(dst_dtype),
-                    category=UserWarning,
-                    stacklevel=(stacklevel + 1),
-                )
-            # Check to see if we already have a target launch space for
-            # the destination meaning it has been partitioned already
-            if dst.has_parallel_launch_space():
-                launch_space = dst.compute_parallel_launch_space()
-                src_parallel = False
-            else:
-                launch_space = src.compute_parallel_launch_space()
-                src_parallel = True
-            argbuf = BufferBuilder()
+            task_id = NumPyOpCode.CONVERT
+
+        (shardpt, shardfn, shardsp) = key_arg.sharding
+
+        task = Map(self.runtime, task_id, tag=shardfn)
+        if not rhs_arg.scalar:
             if launch_space is not None:
-                if src_parallel:
-                    (
-                        src_part,
-                        shardfn,
-                        shardsp,
-                    ) = src.find_or_create_key_partition()
-                    dst_part = dst.find_or_create_congruent_partition(src_part)
-                    dst.set_key_partition(dst_part, shardfn, shardsp)
-                else:
-                    (
-                        dst_part,
-                        shardfn,
-                        shardsp,
-                    ) = dst.find_or_create_key_partition()
-                    src_part = src.find_or_create_congruent_partition(dst_part)
-                self.pack_shape(
-                    argbuf, src_array.shape, src_part.tile_shape, 0
-                )
+                task.add_shape(lhs_arg.shape, lhs_arg.part.tile_shape, 0)
             else:
-                self.pack_shape(argbuf, src_array.shape)
-            argbuf.pack_accessor(dst.field.field_id, dst.transform)
-            argbuf.pack_accessor(src.field.field_id, src.transform)
-            if launch_space is not None:
-                task = IndexTask(
-                    self.runtime.get_unary_task_id(
-                        NumPyOpCode.CONVERT,
-                        result_type=dst_dtype,
-                        argument_type=src_array.dtype,
-                    ),
-                    Rect(launch_space),
-                    self.runtime.empty_argmap,
-                    argbuf.get_string(),
-                    argbuf.get_size(),
-                    mapper=self.runtime.mapper_id,
-                    tag=shardfn,
-                )
-                if shardsp is not None:
-                    task.set_sharding_space(shardsp)
-                task.add_write_requirement(
-                    dst_part,
-                    dst.field.field_id,
-                    0,
-                    tag=NumPyMappingTag.KEY_REGION_TAG,
-                )
-                # src_part obtained above
-                task.add_read_requirement(src_part, src.field.field_id, 0)
-                self.runtime.dispatch(task)
-            else:
-                if src_parallel:
-                    shardpt, shardfn, shardsp = src.find_point_sharding()
-                else:
-                    shardpt, shardfn, shardsp = dst.find_point_sharding()
-                task = Task(
-                    self.runtime.get_unary_task_id(
-                        NumPyOpCode.CONVERT,
-                        result_type=dst_dtype,
-                        argument_type=src_array.dtype,
-                    ),
-                    argbuf.get_string(),
-                    argbuf.get_size(),
-                    mapper=self.runtime.mapper_id,
-                    tag=shardfn,
-                )
-                if shardpt is not None:
-                    task.set_point(shardpt)
-                if shardsp is not None:
-                    task.set_sharding_space(shardsp)
-                task.add_write_requirement(dst.region, dst.field.field_id)
-                task.add_read_requirement(src.region, src.field.field_id)
-                self.runtime.dispatch(task)
+                task.add_shape(lhs_arg.shape)
+
+            lhs_arg.add_to_legate_op(task, False)
+        else:
+            task.add_dtype_arg(lhs_array.dtype)
+        rhs_arg.add_to_legate_op(task, True)
+
+        if shardsp is not None:
+            task.set_sharding_space(shardsp)
+
+        # See if we are doing index space launches or not
+        if not rhs_arg.scalar and launch_space is not None:
+            task.execute(Rect(launch_space))
+        else:
+            if shardpt is not None:
+                task.set_point(shardpt)
+            result = task.execute_single()
+
+            if rhs_arg.scalar:
+                lhs_array.base = result
+
         self.runtime.profile_callsite(stacklevel + 1, True, callsite)
         # See if we are doing shadow debugging
         if self.runtime.shadow_debug:

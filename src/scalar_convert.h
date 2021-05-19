@@ -14,22 +14,25 @@
  *
  */
 
-#include "convert.h"
+#pragma once
 
-// instantiate ConvertTask for the cross product of types Legate handles
-// we omit the T1 == T2 case
+#include "numpy.h"
+#include "scalar.h"
 
-// T1 == int64_t
 namespace legate {
 namespace numpy {
-template class ConvertTask<int64_t, __half>;
-template class ConvertTask<int64_t, float>;
-template class ConvertTask<int64_t, double>;
-template class ConvertTask<int64_t, int16_t>;
-template class ConvertTask<int64_t, int32_t>;
-template class ConvertTask<int64_t, uint16_t>;
-template class ConvertTask<int64_t, uint32_t>;
-template class ConvertTask<int64_t, uint64_t>;
-template class ConvertTask<int64_t, bool>;
+
+class ScalarConvertTask : public NumPyTask<ScalarConvertTask> {
+ public:
+  static const int TASK_ID = NUMPY_SCALAR_CONVERT;
+  static const int REGIONS = 0;
+
+ public:
+  static UntypedScalar cpu_variant(const Legion::Task* task,
+                                   const std::vector<Legion::PhysicalRegion>& regions,
+                                   Legion::Context ctx,
+                                   Legion::Runtime* runtime);
+};
+
 }  // namespace numpy
 }  // namespace legate
