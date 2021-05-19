@@ -186,6 +186,8 @@ class NumPyOpCode(IntEnum):
     UNARY_RED = legate_numpy.NUMPY_UNARY_RED
     UNARY_OP = legate_numpy.NUMPY_UNARY_OP
     SCALAR_UNARY_OP = legate_numpy.NUMPY_SCALAR_UNARY_OP
+    BINARY_RED = legate_numpy.NUMPY_BINARY_RED
+    BROADCAST_BINARY_RED = legate_numpy.NUMPY_BROADCAST_BINARY_RED
 
 
 @unique
@@ -205,6 +207,7 @@ class BinaryOpCode(IntEnum):
     NOT_EQUAL = 13
     POWER = 14
     SUBTRACT = 15
+    ALLCLOSE = 16
 
 
 @unique

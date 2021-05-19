@@ -97,6 +97,16 @@ class Deserializer {
 
  public:
   template <class T>
+  friend void deserialize(Deserializer &ctx, std::vector<T> &vec, bool resize = true)
+  {
+    if (resize) {
+      std::uint32_t size;
+      deserialize(ctx, size);
+      vec.resize(size);
+    }
+    for (auto &v : vec) deserialize(ctx, v);
+  }
+  template <class T>
   friend void deserialize(Deserializer &ctx, FromFuture<T> &scalar)
   {
     // grab the scalar out of the first future

@@ -159,13 +159,16 @@ class DeferredArrayView(object):
         if self.scalar:
             return self
         else:
+            if not isinstance(to_align, tuple):
+                assert isinstance(to_align, DeferredArrayView)
+                to_align = to_align._array.shape
             (
                 transform,
                 offset,
                 proj_id,
                 mapping_tag,
             ) = self._array.runtime.compute_broadcast_transform(
-                to_align._array.shape, self._array.shape
+                to_align, self._array.shape
             )
             new_view = DeferredArrayView(
                 self._array,
@@ -3547,8 +3550,7 @@ class DeferredArray(NumPyThunk):
             lhs_arg.add_to_legate_op(task, False)
         rhs_arg.add_to_legate_op(task, True)
 
-        if args is not None:
-            self.add_arguments(task, args)
+        self.add_arguments(task, args)
 
         if shardsp is not None:
             task.set_sharding_space(shardsp)
@@ -3880,259 +3882,63 @@ class DeferredArray(NumPyThunk):
         )
         lhs_array = self
         assert lhs_array.size == 1
-        rhs1 = rhs1_array.base
-        rhs2 = rhs2_array.base
-        # Should have been handled by type checkking on the front end
-        assert rhs1_array.dtype == rhs2_array.dtype
-        common_dtype = rhs1_array.dtype
-        if rhs1_array.size == 1 and rhs2_array.size == 1:
-            # Scalar case
-            assert isinstance(rhs1, Future) and isinstance(rhs2, Future)
-            task = Task(
-                self.runtime.get_binary_task_id(
-                    op,
-                    result_type=lhs_array.dtype,
-                    first_argument_type=common_dtype,
-                    second_argument_type=common_dtype,
-                    variant_code=NumPyVariantCode.SCALAR,
-                ),
-                mapper=self.runtime.mapper_id,
-            )
-            task.add_future(rhs1)
-            task.add_future(rhs2)
-            if args is not None:
-                self.add_arguments(task, args)
-            future = self.runtime.dispatch(task)
-            lhs_array.base = future
-        # Reduction to a single value, see if we have a broadcast
-        elif broadcast is not None:
-            # Scalar should have been handled above
-            assert not isinstance(rhs1, Future) or not isinstance(rhs2, Future)
-            has_future = isinstance(rhs1, Future) or isinstance(rhs2, Future)
-            # Compute our transforms
-            (
-                transform1,
-                offset1,
-                proj1_id,
-                mapping_tag1,
-            ) = self.runtime.compute_broadcast_transform(
-                broadcast, rhs1_array.shape
-            )
-            (
-                transform2,
-                offset2,
-                proj2_id,
-                mapping_tag2,
-            ) = self.runtime.compute_broadcast_transform(
-                broadcastshape, rhs2_array.shape
-            )
-            # Compute our launch space
-            launch_space = self.runtime.compute_parallel_launch_space_by_shape(
-                broadcast
-            )
-            argbuf = BufferBuilder()
-            if launch_space is not None:
-                tile_shape = self.runtime.compute_tile_shape(
-                    broadcast, launch_space
-                )
-                self.pack_shape(argbuf, broadcast, tile_shape, 0)
-            else:
-                self.pack_shape(argbuf, broadcast)
-            if not isinstance(rhs1, Future):
-                self.pack_transform_accessor(argbuf, rhs1, transform1)
-            if not isinstance(rhs2, Future):
-                self.pack_transform_accessor(argbuf, rhs2, transform2)
-            if has_future:  # Pack the index of the future information
-                if isinstance(rhs1, Future):
-                    argbuf.pack_32bit_uint(0)
-                else:
-                    argbuf.pack_32bit_uint(1)
-            if launch_space is not None:
-                # Index task launch case
-                task_variant = (
-                    NumPyVariantCode.BROADCAST
-                    if has_future
-                    else NumPyVariantCode.REDUCTION
-                )
-                task = IndexTask(
-                    self.runtime.get_binary_task_id(
-                        op,
-                        result_type=lhs_array.dtype,
-                        first_argument_type=common_dtype,
-                        second_argument_type=common_dtype,
-                        variant_code=task_variant,
-                    ),
-                    Rect(launch_space),
-                    self.runtime.empty_argmap,
-                    argbuf.get_string(),
-                    argbuf.get_size(),
-                    mapper=self.runtime.mapper_id,
-                )
-                if isinstance(rhs1, Future):
-                    task.add_future(rhs1)
-                elif transform1 is not None:
-                    shape_transform1 = AffineTransform(
-                        rhs1_array.ndim, len(broadcast), False
-                    )
-                    shape_transform1.trans = transform1
-                    shape_transform1.offset = offset1
-                    rhs1_shape = shape_transform1.apply(launch_space)
-                    rhs1_part = rhs1.find_or_create_partition(rhs1_shape)
-                else:
-                    rhs1_part = rhs1.find_or_create_partition(launch_space)
-                if not isinstance(rhs1, Future):
-                    task.add_read_requirement(
-                        rhs1_part,
-                        rhs1.field.field_id,
-                        proj1_id,
-                        tag=mapping_tag1,
-                    )
-                if isinstance(rhs2, Future):
-                    task.add_future(rhs2)
-                elif transform2 is not None:
-                    shape_transform2 = Transform(
-                        rhs2_array.ndim, len(broadcast), False
-                    )
-                    shape_transform2.trans = transform2
-                    shape_transform2.offset = offset2
-                    rhs2_shape = shape_transform2.apply(launch_space)
-                    rhs2_part = rhs2.find_or_create_partition(rhs2_shape)
-                else:
-                    rhs2_part = rhs2.find_or_create_partition(launch_space)
-                if not isinstance(rhs2, Future):
-                    task.add_read_requirement(
-                        rhs2_part,
-                        rhs2.field.field_id,
-                        proj2_id,
-                        tag=mapping_tag2,
-                    )
-                if args is not None:
-                    self.add_arguments(task, args)
-                redop = self.runtime.get_reduction_op_id(op, lhs_array.dtype)
-                result = self.runtime.dispatch(task, redop)
-            else:
-                # Single task launch case
-                task_variant = (
-                    NumPyVariantCode.BROADCAST
-                    if has_future
-                    else NumPyVariantCode.REDUCTION
-                )
-                task = Task(
-                    self.runtime.get_binary_task_id(
-                        op,
-                        result_type=lhs_array.dtype,
-                        first_argument_type=common_dtype,
-                        second_argument_type=common_dtype,
-                        variant_code=task_variant,
-                    ),
-                    argbuf.get_string(),
-                    argbuf.get_size(),
-                    mapper=self.runtime.mapper_id,
-                )
-                if isinstance(rhs1, Future):
-                    task.add_future(rhs1)
-                else:
-                    task.add_read_requirement(rhs1.region, rhs1.field.field_id)
-                if isinstance(rhs2, Future):
-                    task.add_future(rhs2)
-                else:
-                    task.add_read_requirement(rhs2.region, rhs2.field.field_id)
-                if args is not None:
-                    self.add_arguments(task, args)
-                result = self.runtime.dispatch(task)
-            lhs_array.base = result
+
+        rhs1_arg = DeferredArrayView(rhs1_array)
+        rhs2_arg = DeferredArrayView(rhs2_array)
+
+        # Align and broadcast region arguments if necessary
+        launch_space, key_arg = rhs1_arg.find_key_view(rhs2_arg)
+        key_arg.update_tag(NumPyMappingTag.KEY_REGION_TAG)
+        if broadcast is not None:
+            rhs1_arg = rhs1_arg.broadcast(broadcast)
+            rhs2_arg = rhs2_arg.broadcast(broadcast)
+
+        if launch_space is not None:
+            rhs1_arg = rhs1_arg.align_partition(key_arg)
+            rhs2_arg = rhs2_arg.align_partition(key_arg)
+
+        # Populate the Legate launcher
+        any_scalar_rhs = rhs1_arg.scalar or rhs2_arg.scalar
+        all_scalar_rhs = rhs1_arg.scalar and rhs2_arg.scalar
+
+        if all_scalar_rhs:
+            task_id = NumPyOpCode.SCALAR_BINARY_OP
+        elif any_scalar_rhs:
+            task_id = NumPyOpCode.BROADCAST_BINARY_RED
         else:
-            # Non-broadcast reduction to a single value
-            # No transforms should be necessary here
-            assert rhs1_array.shape == rhs2_array.shape
-            # Scalar should have been handled above
-            assert not isinstance(rhs1, Future) or not isinstance(rhs2, Future)
-            has_future = isinstance(rhs1, Future) or isinstance(rhs2, Future)
-            launch_space = (
-                rhs1.compute_parallel_launch_space()
-                if not isinstance(rhs1, Future)
-                else rhs2.compute_parallel_launch_space()
-            )
-            argbuf = BufferBuilder()
-            if launch_space is not None:
-                if rhs1_array.size > 1:
-                    rhs1_part = rhs1.find_or_create_partition(launch_space)
-                    self.pack_shape(
-                        argbuf, rhs1_array.shape, rhs1_part.tile_shape, 0
-                    )
-                else:
-                    rhs2_part = rhs2.find_or_create_partition(launch_space)
-                    self.pack_shape(
-                        argbuf, rhs2_array.shape, rhs2_part.tile_shape, 0
-                    )
+            task_id = NumPyOpCode.BINARY_RED
+
+        (shardpt, shardfn, shardsp) = key_arg.sharding
+
+        task = Map(self.runtime, task_id, tag=shardfn)
+        task.add_scalar_arg(op.value, np.int32)
+        if launch_space is not None:
+            task.add_shape(key_arg.shape, key_arg.part.tile_shape, 0)
+        else:
+            task.add_shape(key_arg.shape)
+        rhs1_arg.add_to_legate_op(task, True)
+        rhs2_arg.add_to_legate_op(task, True)
+
+        self.add_arguments(task, args)
+
+        if shardsp is not None:
+            task.set_sharding_space(shardsp)
+
+        # See if we are doing index space launches or not
+        if launch_space is not None:
+            if op == BinaryOpCode.NOT_EQUAL:
+                redop = UnaryRedCode.SUM
             else:
-                if rhs1_array.size > 1:
-                    self.pack_shape(argbuf, rhs1_array.shape)
-                else:
-                    self.pack_shape(argbuf, rhs2_array.shape)
-            argbuf.pack_accessor(rhs1.field.field_id, rhs1.transform)
-            argbuf.pack_accessor(rhs2.field.field_id, rhs2.transform)
-            if launch_space is not None:
-                task = IndexTask(
-                    self.runtime.get_binary_task_id(
-                        op,
-                        result_type=lhs_array.dtype,
-                        first_argument_type=common_dtype,
-                        second_argument_type=common_dtype,
-                        variant_code=NumPyVariantCode.REDUCTION,
-                    ),
-                    Rect(launch_space),
-                    self.runtime.empty_argmap,
-                    argbuf.get_string(),
-                    argbuf.get_size(),
-                    mapper=self.runtime.mapper_id,
-                )
-                if isinstance(rhs1, Future):
-                    task.add_future(rhs1)
-                else:
-                    rhs1_part = rhs1.find_or_create_partition(launch_space)
-                    task.add_read_requirement(
-                        rhs1_part,
-                        rhs1.field.field_id,
-                        0,
-                        tag=NumPyMappingTag.KEY_REGION_TAG,
-                    )
-                if isinstance(rhs2, Future):
-                    task.add_future(rhs2)
-                else:
-                    rhs2_part = rhs2.find_or_create_partition(launch_space)
-                    task.add_read_requirement(
-                        rhs2_part,
-                        rhs2.field.field_id,
-                        0,
-                        tag=NumPyMappingTag.KEY_REGION_TAG,
-                    )
-                if args is not None:
-                    self.add_arguments(task, args)
-                redop = self.runtime.get_reduction_op_id(op, lhs_array.dtype)
-                result = self.runtime.dispatch(task, redop)
-            else:
-                task_id = self.runtime.get_binary_task_id(
-                    op,
-                    result_type=lhs_array.dtype,
-                    first_argument_type=common_dtype,
-                    second_argument_type=common_dtype,
-                    variant_code=NumPyVariantCode.REDUCTION,
-                )
-                task = Task(
-                    task_id,
-                    argbuf.get_string(),
-                    argbuf.get_size(),
-                    mapper=self.runtime.mapper_id,
-                )
-                task.add_read_requirement(rhs1.region, rhs1.field.field_id)
-                task.add_read_requirement(rhs2.region, rhs2.field.field_id)
-                if args is not None:
-                    self.add_arguments(task, args)
-                result = self.runtime.dispatch(task)
-            array = np.frombuffer(result.get_buffer(1), dtype=bool, count=1)
-            scalar = self.runtime.create_scalar(array.data, np.dtype("bool"))
-            lhs_array.base = scalar
+                redop = UnaryRedCode.PROD
+            redop_id = self.runtime.get_scalar_reduction_op_id(redop)
+            result = task.execute(Rect(launch_space), redop=redop_id)
+        else:
+            if shardpt is not None:
+                task.set_point(shardpt)
+            result = task.execute_single()
+
+        lhs_array.base = result
+
         self.runtime.profile_callsite(stacklevel + 1, True, callsite)
         if self.runtime.shadow_debug:
             self.shadow.binary_reduction(
@@ -4378,13 +4184,14 @@ class DeferredArray(NumPyThunk):
 
     # A helper method for attaching arguments
     def add_arguments(self, op, args):
-        assert args is not None
+        args = [] if args is None else args
+        op.add_scalar_arg(len(args), np.int32)
         for numpy_array in args:
             assert numpy_array.size == 1
-            future = self.runtime.create_future(
-                numpy_array.data, numpy_array.nbytes
+            scalar = self.runtime.create_scalar(
+                numpy_array.data, numpy_array.dtype
             )
-            op.add_future(future)
+            op.add_future(scalar)
 
     # A helper method for support for 16 bit arithmetic
     def convert_float32_to_float16(self, result, lhs_array, collapse_dim=None):

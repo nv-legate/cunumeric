@@ -18,6 +18,7 @@
 
 #include "numpy.h"
 #include "deserializer.h"
+#include "scalar.h"
 
 namespace legate {
 namespace numpy {
@@ -38,6 +39,7 @@ enum class BinaryOpCode : int {
   NOT_EQUAL,
   POWER,
   SUBTRACT,
+  ALLCLOSE,
 };
 
 void deserialize(Deserializer& ctx, BinaryOpCode& code);
@@ -81,6 +83,19 @@ constexpr decltype(auto) op_dispatch(BinaryOpCode op_code, Functor f, Fnargs&&..
   return f.template operator()<BinaryOpCode::ADD>(std::forward<Fnargs>(args)...);
 }
 
+template <typename Functor, typename... Fnargs>
+constexpr decltype(auto) reduce_op_dispatch(BinaryOpCode op_code, Functor f, Fnargs&&... args)
+{
+  switch (op_code) {
+    case BinaryOpCode::EQUAL:
+      return f.template operator()<BinaryOpCode::EQUAL>(std::forward<Fnargs>(args)...);
+    case BinaryOpCode::ALLCLOSE:
+      return f.template operator()<BinaryOpCode::ALLCLOSE>(std::forward<Fnargs>(args)...);
+  }
+  assert(false);
+  return f.template operator()<BinaryOpCode::EQUAL>(std::forward<Fnargs>(args)...);
+}
+
 template <BinaryOpCode OP_CODE, LegateTypeCode CODE>
 struct BinaryOp {
   static constexpr bool valid = false;
@@ -89,16 +104,22 @@ struct BinaryOp {
 template <LegateTypeCode CODE>
 struct BinaryOp<BinaryOpCode::ADD, CODE> : std::plus<legate_type_of<CODE>> {
   static constexpr bool valid = true;
+  BinaryOp() {}
+  BinaryOp(const std::vector<UntypedScalar>& args) {}
 };
 
 template <LegateTypeCode CODE>
 struct BinaryOp<BinaryOpCode::DIVIDE, CODE> : std::divides<legate_type_of<CODE>> {
   static constexpr bool valid = true;
+  BinaryOp() {}
+  BinaryOp(const std::vector<UntypedScalar>& args) {}
 };
 
 template <LegateTypeCode CODE>
 struct BinaryOp<BinaryOpCode::EQUAL, CODE> : std::equal_to<legate_type_of<CODE>> {
   static constexpr bool valid = true;
+  BinaryOp() {}
+  BinaryOp(const std::vector<UntypedScalar>& args) {}
 };
 
 using std::floor;
@@ -106,43 +127,59 @@ template <LegateTypeCode CODE>
 struct BinaryOp<BinaryOpCode::FLOOR_DIVIDE, CODE> {
   using T                     = legate_type_of<CODE>;
   static constexpr bool valid = true;
+  BinaryOp() {}
+  BinaryOp(const std::vector<UntypedScalar>& args) {}
   constexpr T operator()(const T& a, const T& b) const { return floor(a / b); }
 };
 
 template <>
 struct BinaryOp<BinaryOpCode::FLOOR_DIVIDE, LegateTypeCode::COMPLEX64_LT> {
   static constexpr bool valid = false;
+  BinaryOp() {}
+  BinaryOp(const std::vector<UntypedScalar>& args) {}
 };
 
 template <>
 struct BinaryOp<BinaryOpCode::FLOOR_DIVIDE, LegateTypeCode::COMPLEX128_LT> {
   static constexpr bool valid = false;
+  BinaryOp() {}
+  BinaryOp(const std::vector<UntypedScalar>& args) {}
 };
 
 template <LegateTypeCode CODE>
 struct BinaryOp<BinaryOpCode::GREATER, CODE> : std::greater<legate_type_of<CODE>> {
   static constexpr bool valid = true;
+  BinaryOp() {}
+  BinaryOp(const std::vector<UntypedScalar>& args) {}
 };
 
 template <LegateTypeCode CODE>
 struct BinaryOp<BinaryOpCode::GREATER_EQUAL, CODE> : std::greater_equal<legate_type_of<CODE>> {
   static constexpr bool valid = true;
+  BinaryOp() {}
+  BinaryOp(const std::vector<UntypedScalar>& args) {}
 };
 
 template <LegateTypeCode CODE>
 struct BinaryOp<BinaryOpCode::LESS, CODE> : std::less<legate_type_of<CODE>> {
   static constexpr bool valid = true;
+  BinaryOp() {}
+  BinaryOp(const std::vector<UntypedScalar>& args) {}
 };
 
 template <LegateTypeCode CODE>
 struct BinaryOp<BinaryOpCode::LESS_EQUAL, CODE> : std::less_equal<legate_type_of<CODE>> {
   static constexpr bool valid = true;
+  BinaryOp() {}
+  BinaryOp(const std::vector<UntypedScalar>& args) {}
 };
 
 template <LegateTypeCode CODE>
 struct BinaryOp<BinaryOpCode::MAXIMUM, CODE> {
   using T                     = legate_type_of<CODE>;
   static constexpr bool valid = true;
+  BinaryOp() {}
+  BinaryOp(const std::vector<UntypedScalar>& args) {}
   constexpr T operator()(const T& a, const T& b) const { return std::max<T>(a, b); }
 };
 
@@ -150,6 +187,8 @@ template <LegateTypeCode CODE>
 struct BinaryOp<BinaryOpCode::MINIMUM, CODE> {
   using T                     = legate_type_of<CODE>;
   static constexpr bool valid = true;
+  BinaryOp() {}
+  BinaryOp(const std::vector<UntypedScalar>& args) {}
   constexpr T operator()(const T& a, const T& b) const { return std::min<T>(a, b); }
 };
 
@@ -169,6 +208,8 @@ template <LegateTypeCode CODE>
 struct BinaryOp<BinaryOpCode::MOD, CODE> {
   using T                     = legate_type_of<CODE>;
   static constexpr bool valid = true;
+  BinaryOp() {}
+  BinaryOp(const std::vector<UntypedScalar>& args) {}
   template <typename _T = T, std::enable_if_t<std::is_integral<_T>::value>* = nullptr>
   constexpr _T operator()(const _T& a, const _T& b) const
   {
@@ -185,6 +226,8 @@ struct BinaryOp<BinaryOpCode::MOD, CODE> {
 template <>
 struct BinaryOp<BinaryOpCode::MOD, LegateTypeCode::HALF_LT> {
   static constexpr bool valid = true;
+  BinaryOp() {}
+  BinaryOp(const std::vector<UntypedScalar>& args) {}
   LEGATE_DEVICE_PREFIX __half operator()(const __half& a, const __half& b) const
   {
     return static_cast<__half>(real_mod(static_cast<float>(a), static_cast<float>(b)));
@@ -194,33 +237,45 @@ struct BinaryOp<BinaryOpCode::MOD, LegateTypeCode::HALF_LT> {
 template <>
 struct BinaryOp<BinaryOpCode::MOD, LegateTypeCode::COMPLEX64_LT> {
   static constexpr bool valid = false;
+  BinaryOp() {}
+  BinaryOp(const std::vector<UntypedScalar>& args) {}
 };
 
 template <>
 struct BinaryOp<BinaryOpCode::MOD, LegateTypeCode::COMPLEX128_LT> {
   static constexpr bool valid = false;
+  BinaryOp() {}
+  BinaryOp(const std::vector<UntypedScalar>& args) {}
 };
 
 template <LegateTypeCode CODE>
 struct BinaryOp<BinaryOpCode::MULTIPLY, CODE> : std::multiplies<legate_type_of<CODE>> {
   static constexpr bool valid = true;
+  BinaryOp() {}
+  BinaryOp(const std::vector<UntypedScalar>& args) {}
 };
 
 template <LegateTypeCode CODE>
 struct BinaryOp<BinaryOpCode::NOT_EQUAL, CODE> : std::not_equal_to<legate_type_of<CODE>> {
   static constexpr bool valid = true;
+  BinaryOp() {}
+  BinaryOp(const std::vector<UntypedScalar>& args) {}
 };
 
 template <LegateTypeCode CODE>
 struct BinaryOp<BinaryOpCode::POWER, CODE> {
   using VAL                   = legate_type_of<CODE>;
   static constexpr bool valid = true;
+  BinaryOp() {}
+  BinaryOp(const std::vector<UntypedScalar>& args) {}
   constexpr VAL operator()(const VAL& a, const VAL& b) const { return std::pow(a, b); }
 };
 
 template <>
 struct BinaryOp<BinaryOpCode::POWER, LegateTypeCode::HALF_LT> {
   static constexpr bool valid = true;
+  BinaryOp() {}
+  BinaryOp(const std::vector<UntypedScalar>& args) {}
   LEGATE_DEVICE_PREFIX __half operator()(const __half& a, const __half& b) const
   {
     return pow(a, b);
@@ -230,6 +285,8 @@ struct BinaryOp<BinaryOpCode::POWER, LegateTypeCode::HALF_LT> {
 template <>
 struct BinaryOp<BinaryOpCode::POWER, LegateTypeCode::COMPLEX64_LT> {
   static constexpr bool valid = true;
+  BinaryOp() {}
+  BinaryOp(const std::vector<UntypedScalar>& args) {}
   LEGATE_DEVICE_PREFIX complex<float> operator()(const complex<float>& a,
                                                  const complex<float>& b) const
   {
@@ -240,6 +297,8 @@ struct BinaryOp<BinaryOpCode::POWER, LegateTypeCode::COMPLEX64_LT> {
 template <>
 struct BinaryOp<BinaryOpCode::POWER, LegateTypeCode::COMPLEX128_LT> {
   static constexpr bool valid = true;
+  BinaryOp() {}
+  BinaryOp(const std::vector<UntypedScalar>& args) {}
   LEGATE_DEVICE_PREFIX complex<double> operator()(const complex<double>& a,
                                                   const complex<double>& b) const
   {
@@ -250,6 +309,31 @@ struct BinaryOp<BinaryOpCode::POWER, LegateTypeCode::COMPLEX128_LT> {
 template <LegateTypeCode CODE>
 struct BinaryOp<BinaryOpCode::SUBTRACT, CODE> : std::minus<legate_type_of<CODE>> {
   static constexpr bool valid = true;
+  BinaryOp() {}
+  BinaryOp(const std::vector<UntypedScalar>& args) {}
+};
+
+template <LegateTypeCode CODE>
+struct BinaryOp<BinaryOpCode::ALLCLOSE, CODE> {
+  using VAL                   = legate_type_of<CODE>;
+  static constexpr bool valid = true;
+
+  BinaryOp() {}
+  BinaryOp(const std::vector<UntypedScalar>& args)
+  {
+    assert(args.size() == 2);
+    rtol_ = args[0].value<double>();
+    atol_ = args[1].value<double>();
+  }
+
+  constexpr bool operator()(const VAL& a, const VAL& b) const
+  {
+    using std::fabs;
+    return static_cast<double>(fabs(a - b)) <= atol_ + rtol_ * static_cast<double>(fabs(b));
+  }
+
+  double rtol_{0};
+  double atol_{0};
 };
 
 }  // namespace numpy

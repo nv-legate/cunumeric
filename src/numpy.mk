@@ -29,6 +29,8 @@ GEN_CPU_SRC += binary_op.cc                         \
 							 unary_op.cc                          \
 							 unary_op_util.cc                     \
 							 scalar_unary_op.cc                   \
+							 binary_red.cc                        \
+							 broadcast_binary_red.cc              \
 							 arange.cc                            \
 							 arg.cc                               \
 							 argmin.cc                            \
@@ -76,12 +78,14 @@ GEN_CPU_SRC += binary_op.cc                         \
                         # only after all task variants are recorded
 
 ifeq ($(strip $(USE_OPENMP)),1)
-GEN_CPU_SRC += binary_op_omp.cc           \
-							 broadcast_binary_op_omp.cc \
-							 fill_omp.cc                \
-							 scalar_unary_red_omp.cc    \
-							 unary_red_omp.cc           \
-							 unary_op_omp.cc
+GEN_CPU_SRC += binary_op_omp.cc            \
+							 broadcast_binary_op_omp.cc  \
+							 fill_omp.cc                 \
+							 scalar_unary_red_omp.cc     \
+							 unary_red_omp.cc            \
+							 unary_op_omp.cc             \
+							 binary_red_omp.cc           \
+							 broadcast_binary_red_omp.cc
 endif
 
 GEN_GPU_SRC += binary_op.cu                         \
@@ -90,6 +94,8 @@ GEN_GPU_SRC += binary_op.cu                         \
 							 scalar_unary_red.cu                  \
 							 unary_red.cu                         \
 							 unary_op.cu                          \
+							 binary_red.cu                        \
+							 broadcast_binary_red.cu              \
 							 arange.cu                            \
 							 arg.cu                               \
 							 argmin.cu                            \

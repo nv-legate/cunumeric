@@ -457,7 +457,7 @@ def allclose(a, b, rtol=1e-5, atol=1e-8, equal_nan=False):
         )
     args = (np.array(rtol, dtype=np.float64), np.array(atol, dtype=np.float64))
     return ndarray.perform_binary_reduction(
-        NumPyOpCode.ALLCLOSE,
+        BinaryOpCode.ALLCLOSE,
         a_array,
         b_array,
         dtype=np.dtype(np.bool),
@@ -474,7 +474,7 @@ def array_equal(a, b):
     if a_array.shape != b_array.shape:
         return False
     return ndarray.perform_binary_reduction(
-        NumPyOpCode.EQUAL, a_array, b_array, dtype=np.dtype(np.bool_)
+        BinaryOpCode.EQUAL, a_array, b_array, dtype=np.dtype(np.bool_)
     )
 
 
