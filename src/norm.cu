@@ -18,7 +18,6 @@
 #include "fill.cuh"
 #include "norm.h"
 #include "proj.h"
-#include "sum.h"
 #include <type_traits>
 
 using namespace Legion;

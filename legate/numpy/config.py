@@ -114,58 +114,24 @@ NUMPY_TYPE_OFFSET = NUMPY_MAX_TYPES * NUMPY_MAX_VARIANTS
 # Match these to NumPyOpCode in legate_numpy_c.h
 @unique
 class NumPyOpCode(IntEnum):
-    ABSOLUTE = legate_numpy.NUMPY_ABSOLUTE
-    ALLCLOSE = legate_numpy.NUMPY_ALLCLOSE
-    ARCCOS = legate_numpy.NUMPY_ARCCOS
-    ARCSIN = legate_numpy.NUMPY_ARCSIN
-    ARCTAN = legate_numpy.NUMPY_ARCTAN
     ARGMAX = legate_numpy.NUMPY_ARGMAX
     ARGMAX_RADIX = legate_numpy.NUMPY_ARGMAX_RADIX
     ARGMIN = legate_numpy.NUMPY_ARGMIN
     ARGMIN_RADIX = legate_numpy.NUMPY_ARGMIN_RADIX
     BINCOUNT = legate_numpy.NUMPY_BINCOUNT
-    CEIL = legate_numpy.NUMPY_CEIL
     CLIP = legate_numpy.NUMPY_CLIP
     CONVERT = legate_numpy.NUMPY_CONVERT
     COPY = legate_numpy.NUMPY_COPY
-    COS = legate_numpy.NUMPY_COS
     DIAG = legate_numpy.NUMPY_DIAG
     DOT = legate_numpy.NUMPY_DOT
-    EQUAL = legate_numpy.NUMPY_EQUAL
-    EXP = legate_numpy.NUMPY_EXP
     EYE = legate_numpy.NUMPY_EYE
-    FLOOR = legate_numpy.NUMPY_FLOOR
     GETARG = legate_numpy.NUMPY_GETARG
-    GREATER = legate_numpy.NUMPY_GREATER
-    GREATER_EQUAL = legate_numpy.NUMPY_GREATER_EQUAL
-    INVERT = legate_numpy.NUMPY_INVERT
-    ISINF = legate_numpy.NUMPY_ISINF
-    ISNAN = legate_numpy.NUMPY_ISNAN
-    LESS = legate_numpy.NUMPY_LESS
-    LESS_EQUAL = legate_numpy.NUMPY_LESS_EQUAL
-    LOG = legate_numpy.NUMPY_LOG
-    LOGICAL_NOT = legate_numpy.NUMPY_LOGICAL_NOT
-    MAX = legate_numpy.NUMPY_MAX
-    MAX_RADIX = legate_numpy.NUMPY_MAX_RADIX
-    MIN = legate_numpy.NUMPY_MIN
-    MIN_RADIX = legate_numpy.NUMPY_MIN_RADIX
-    MOD = legate_numpy.NUMPY_MOD
-    NEGATIVE = legate_numpy.NUMPY_NEGATIVE
     NORM = legate_numpy.NUMPY_NORM
-    NOT_EQUAL = legate_numpy.NUMPY_NOT_EQUAL
-    PROD = legate_numpy.NUMPY_PROD
-    PROD_RADIX = legate_numpy.NUMPY_PROD_RADIX
     RAND_INTEGER = legate_numpy.NUMPY_RAND_INTEGER
     RAND_NORMAL = legate_numpy.NUMPY_RAND_NORMAL
     RAND_UNIFORM = legate_numpy.NUMPY_RAND_UNIFORM
     READ = legate_numpy.NUMPY_READ
-    SIN = legate_numpy.NUMPY_SIN
     SORT = legate_numpy.NUMPY_SORT
-    SQRT = legate_numpy.NUMPY_SQRT
-    SUM = legate_numpy.NUMPY_SUM
-    SUM_RADIX = legate_numpy.NUMPY_SUM_RADIX
-    TAN = legate_numpy.NUMPY_TAN
-    TANH = legate_numpy.NUMPY_TANH
     TILE = legate_numpy.NUMPY_TILE
     TRANSPOSE = legate_numpy.NUMPY_TRANSPOSE
     WHERE = legate_numpy.NUMPY_WHERE
@@ -253,13 +219,6 @@ numpy_reduction_op_offsets = {
     NumPyOpCode.DOT: legion.LEGION_REDOP_KIND_SUM,
     # Diag uses sum reduction
     NumPyOpCode.DIAG: legion.LEGION_REDOP_KIND_SUM,
-    NumPyOpCode.EQUAL: legion.LEGION_REDOP_KIND_PROD,
-    NumPyOpCode.NOT_EQUAL: legion.LEGION_REDOP_KIND_PROD,
-    NumPyOpCode.GREATER: legion.LEGION_REDOP_KIND_PROD,
-    NumPyOpCode.GREATER_EQUAL: legion.LEGION_REDOP_KIND_PROD,
-    NumPyOpCode.LESS: legion.LEGION_REDOP_KIND_PROD,
-    NumPyOpCode.LESS_EQUAL: legion.LEGION_REDOP_KIND_PROD,
-    NumPyOpCode.ALLCLOSE: legion.LEGION_REDOP_KIND_PROD,
     # Norm uses sum reduction
     NumPyOpCode.NORM: legion.LEGION_REDOP_KIND_SUM,
     NumPyOpCode.ARGMIN: NumPyRedopCode.ARGMIN_REDOP,

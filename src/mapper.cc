@@ -1243,39 +1243,6 @@ ShardingID NumPyMapper::select_sharding_functor(const MapperContext ctx, const T
       }
       default: LEGATE_ABORT
     }
-  } else if ((op_code == NumPyOpCode::NUMPY_SUM_RADIX) ||
-             (op_code == NumPyOpCode::NUMPY_PROD_RADIX) ||
-             (op_code == NumPyOpCode::NUMPY_MIN_RADIX) ||
-             (op_code == NumPyOpCode::NUMPY_MAX_RADIX) ||
-             (op_code == NumPyOpCode::NUMPY_ARGMIN_RADIX) ||
-             (op_code == NumPyOpCode::NUMPY_ARGMAX_RADIX)) {
-    switch (launch_dim) {
-      case 2:  // GEMV or DIAG reduce or 2D->1D reduction
-      {
-        // Get the generation from the tag
-        const unsigned gen = (task.tag & NUMPY_RADIX_GEN_TAG) >> RADIX_GEN_SHIFT;
-        assert(gen > 0);
-        const unsigned dim = (task.tag & NUMPY_RADIX_DIM_TAG) >> RADIX_DIM_SHIFT;
-        assert((dim == 0) || (dim == 1));
-        if (dim == 0)
-          return first_sharding_id + (ShardingID)(NUMPY_SHARD_RADIX_2D_X_0 + gen);
-        else
-          return first_sharding_id + (ShardingID)(NUMPY_SHARD_RADIX_2D_Y_0 + gen);
-      }
-      case 3:  // GEMM reduce or 3D->2D reduction
-      {
-        const unsigned gen = (task.tag & NUMPY_RADIX_GEN_TAG) >> RADIX_GEN_SHIFT;
-        assert(gen > 0);
-        const unsigned dim = (task.tag & NUMPY_RADIX_DIM_TAG) >> RADIX_DIM_SHIFT;
-        assert((dim >= 0) || (dim <= 2));
-        if (dim == 0)
-          return first_sharding_id + (ShardingID)(NUMPY_SHARD_RADIX_3D_X_0 + gen);
-        else if (dim == 1)
-          return first_sharding_id + (ShardingID)(NUMPY_SHARD_RADIX_3D_Y_0 + gen);
-        else
-          return first_sharding_id + (ShardingID)(NUMPY_SHARD_RADIX_3D_Z_0 + gen);
-      }
-    }
   } else if (task.tag != 0) {
     // If we've already been perscribed a sharding function then use it
     return task.tag;

@@ -36,7 +36,6 @@ GEN_CPU_SRC += binary_op.cc                         \
 							 argmin.cc                            \
 							 bincount.cc                          \
 							 clip.cc                              \
-							 close.cc                             \
 							 contains.cc                          \
 							 convert_to_half.cc                   \
 							 convert_to_float.cc                  \
@@ -54,17 +53,11 @@ GEN_CPU_SRC += binary_op.cc                         \
 							 copy.cc                              \
 							 diag.cc                              \
 							 dot.cc                               \
-							 equal_reduce.cc                      \
 							 eye.cc                               \
-							 greater_equal_reduce.cc              \
-							 greater_reduce.cc                    \
 							 item.cc                              \
-							 less_equal_reduce.cc                 \
-							 less_reduce.cc                       \
 							 mapper.cc                            \
 							 nonzero.cc                           \
 							 norm.cc                              \
-							 not_equal_reduce.cc                  \
 							 proj.cc                              \
 							 rand.cc                              \
 							 scan.cc                              \
@@ -101,7 +94,6 @@ GEN_GPU_SRC += binary_op.cu                         \
 							 argmin.cu                            \
 							 bincount.cu                          \
 							 clip.cu                              \
-							 close.cu                             \
 							 contains.cu                          \
 							 convert_to_half.cu                   \
 							 convert_to_float.cu                  \
@@ -118,16 +110,10 @@ GEN_GPU_SRC += binary_op.cu                         \
 							 copy.cu                              \
 							 diag.cu                              \
 							 dot.cu                               \
-							 equal_reduce.cu                      \
 							 eye.cu                               \
-							 greater_equal_reduce.cu              \
-							 greater_reduce.cu                    \
 							 item.cu				                      \
-							 less_equal_reduce.cu                 \
-							 less_reduce.cu                       \
 							 nonzero.cu                           \
 							 norm.cu                              \
-							 not_equal_reduce.cu                  \
 							 rand.cu                              \
 							 scan.cu                              \
 							 sort.cu                              \
