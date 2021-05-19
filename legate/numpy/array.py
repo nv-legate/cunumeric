@@ -287,7 +287,6 @@ class ndarray(object):
             raise ValueError("contains needs scalar item")
         return self.perform_unary_reduction(
             NumPyOpCode.CONTAINS,
-            NumPyOpCode.SUM_RADIX,
             self,
             axis=None,
             dtype=np.dtype(np.bool_),
@@ -609,7 +608,6 @@ class ndarray(object):
             return 0
         return ndarray.perform_unary_reduction(
             NumPyOpCode.COUNT_NONZERO,
-            NumPyOpCode.SUM_RADIX,
             self,
             axis=axis,
             dtype=np.dtype(np.uint64),
@@ -815,7 +813,6 @@ class ndarray(object):
             )
         return self.perform_unary_reduction(
             NumPyOpCode.ARGMAX,
-            NumPyOpCode.ARGMAX_RADIX,
             self,
             axis=axis,
             dtype=np.dtype(np.int64),
@@ -839,7 +836,6 @@ class ndarray(object):
             )
         return self.perform_unary_reduction(
             NumPyOpCode.ARGMIN,
-            NumPyOpCode.ARGMIN_RADIX,
             self,
             axis=axis,
             dtype=np.dtype(np.int64),
@@ -1135,7 +1131,6 @@ class ndarray(object):
             )
         return self.perform_unary_reduction(
             UnaryRedCode.MAX,
-            NumPyOpCode.MAX_RADIX,
             self,
             axis=axis,
             dst=out,
@@ -1225,7 +1220,6 @@ class ndarray(object):
             )
         return self.perform_unary_reduction(
             UnaryRedCode.MIN,
-            NumPyOpCode.MIN_RADIX,
             self,
             axis=axis,
             dst=out,
@@ -1275,7 +1269,6 @@ class ndarray(object):
             )
         return self.perform_unary_reduction(
             UnaryRedCode.PROD,
-            NumPyOpCode.PROD_RADIX,
             self_array,
             axis=axis,
             dst=out,
@@ -1473,7 +1466,6 @@ class ndarray(object):
             )
         return self.perform_unary_reduction(
             UnaryRedCode.SUM,
-            NumPyOpCode.SUM_RADIX,
             self_array,
             axis=axis,
             dst=out,
@@ -1737,7 +1729,6 @@ class ndarray(object):
     def perform_unary_reduction(
         cls,
         op,
-        redop,
         src,
         axis=None,
         dtype=None,
@@ -1849,7 +1840,6 @@ class ndarray(object):
 
                 temp._thunk.unary_reduction(
                     op,
-                    redop,
                     src._thunk,
                     cls.get_where_thunk(
                         where, dst.shape, stacklevel=(stacklevel + 1)
@@ -1864,7 +1854,6 @@ class ndarray(object):
             else:
                 dst._thunk.unary_reduction(
                     op,
-                    redop,
                     src._thunk,
                     cls.get_where_thunk(
                         where, dst.shape, stacklevel=(stacklevel + 1)
@@ -1878,7 +1867,6 @@ class ndarray(object):
         else:
             dst._thunk.unary_reduction(
                 op,
-                redop,
                 src._thunk,
                 cls.get_where_thunk(
                     where, dst.shape, stacklevel=(stacklevel + 1)

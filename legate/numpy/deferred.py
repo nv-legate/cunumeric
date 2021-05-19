@@ -2933,7 +2933,6 @@ class DeferredArray(NumPyThunk):
             )
         return ndarray.perform_unary_reduction(
             NumPyOpCode.COUNT_NONZERO,
-            NumPyOpCode.SUM_RADIX,
             self,
             axis=axis,
             dtype=np.dtype(np.uint64),
@@ -2954,7 +2953,6 @@ class DeferredArray(NumPyThunk):
         )
         dst_nonzero.unary_reduction(
             NumPyOpCode.COUNT_NONZERO,
-            NumPyOpCode.SUM_RADIX,
             self,
             stacklevel=(stacklevel + 1),
             axes=None,
@@ -3529,7 +3527,6 @@ class DeferredArray(NumPyThunk):
     def unary_reduction(
         self,
         op,
-        redop,
         src,
         where,
         axes,

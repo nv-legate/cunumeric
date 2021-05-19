@@ -18,7 +18,7 @@
 #include "argmin.h"
 #include "mapper.h"
 #include "proj.h"
-#include "unary_red_util.h"
+#include "unary/unary_red_util.h"
 
 using namespace Legion;
 
