@@ -1641,13 +1641,13 @@ class ndarray(object):
         op_dtype = (
             dst.dtype
             if out_dtype is None
-            and not (op == NumPyOpCode.ABSOLUTE and src.dtype.kind == "c")
+            and not (op == UnaryOpCode.ABSOLUTE and src.dtype.kind == "c")
             else src.dtype
         )
         if check_types:
             if out_dtype is None:
                 if dst.dtype != src.dtype and not (
-                    op == NumPyOpCode.ABSOLUTE and src.dtype.kind == "c"
+                    op == UnaryOpCode.ABSOLUTE and src.dtype.kind == "c"
                 ):
                     temp = ndarray(
                         dst.shape,

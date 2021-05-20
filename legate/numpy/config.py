@@ -119,8 +119,6 @@ class NumPyOpCode(IntEnum):
     ARGMIN = legate_numpy.NUMPY_ARGMIN
     ARGMIN_RADIX = legate_numpy.NUMPY_ARGMIN_RADIX
     BINCOUNT = legate_numpy.NUMPY_BINCOUNT
-    CLIP = legate_numpy.NUMPY_CLIP
-    COPY = legate_numpy.NUMPY_COPY
     DIAG = legate_numpy.NUMPY_DIAG
     DOT = legate_numpy.NUMPY_DOT
     EYE = legate_numpy.NUMPY_EYE
@@ -185,19 +183,20 @@ class UnaryOpCode(IntEnum):
     ARCTAN = 4
     CEIL = 5
     CLIP = 6
-    COS = 7
-    EXP = 8
-    FLOOR = 9
-    INVERT = 10
-    ISINF = 11
-    ISNAN = 12
-    LOG = 13
-    LOGICAL_NOT = 14
-    NEGATIVE = 15
-    SIN = 16
-    SQRT = 17
-    TAN = 18
-    TANH = 19
+    COPY = 7
+    COS = 8
+    EXP = 9
+    FLOOR = 10
+    INVERT = 11
+    ISINF = 12
+    ISNAN = 13
+    LOG = 14
+    LOGICAL_NOT = 15
+    NEGATIVE = 16
+    SIN = 17
+    SQRT = 18
+    TAN = 19
+    TANH = 20
 
 
 @unique

@@ -310,7 +310,7 @@ def zeros_like(a, dtype=None, stacklevel=1):
 def copy(a):
     array = ndarray.convert_to_legate_ndarray(a)
     result = empty_like(array, dtype=array.dtype, stacklevel=2)
-    result._thunk.copy(array._thunk, stacklevel=2)
+    result._thunk.copy(array._thunk, deep=True, stacklevel=2)
     return result
 
 

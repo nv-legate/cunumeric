@@ -18,6 +18,7 @@
 
 #include "numpy.h"
 #include "deserializer.h"
+#include "scalar.h"
 
 namespace legate {
 namespace numpy {
@@ -29,6 +30,7 @@ enum class UnaryOpCode : int {
   ARCTAN,
   CEIL,
   CLIP,
+  COPY,
   COS,
   EXP,
   FLOOR,
@@ -60,6 +62,10 @@ constexpr decltype(auto) op_dispatch(UnaryOpCode op_code, Functor f, Fnargs&&...
       return f.template operator()<UnaryOpCode::ARCTAN>(std::forward<Fnargs>(args)...);
     case UnaryOpCode::CEIL:
       return f.template operator()<UnaryOpCode::CEIL>(std::forward<Fnargs>(args)...);
+    case UnaryOpCode::CLIP:
+      return f.template operator()<UnaryOpCode::CLIP>(std::forward<Fnargs>(args)...);
+    case UnaryOpCode::COPY:
+      return f.template operator()<UnaryOpCode::COPY>(std::forward<Fnargs>(args)...);
     case UnaryOpCode::COS:
       return f.template operator()<UnaryOpCode::COS>(std::forward<Fnargs>(args)...);
     case UnaryOpCode::EXP:
@@ -101,6 +107,9 @@ struct UnaryOp<UnaryOpCode::ABSOLUTE, CODE> {
   static constexpr bool valid = true;
   using T                     = legate_type_of<CODE>;
 
+  UnaryOp() {}
+  UnaryOp(const std::vector<UntypedScalar>& args) {}
+
   template <typename _T                                                                  = T,
             std::enable_if_t<std::is_integral<_T>::value and std::is_signed<_T>::value>* = nullptr>
   constexpr _T operator()(const _T& x) const
@@ -128,6 +137,10 @@ template <LegateTypeCode CODE>
 struct UnaryOp<UnaryOpCode::ARCCOS, CODE> {
   static constexpr bool valid = true;
   using T                     = legate_type_of<CODE>;
+
+  UnaryOp() {}
+  UnaryOp(const std::vector<UntypedScalar>& args) {}
+
   constexpr decltype(auto) operator()(const T& x) const
   {
     using std::acos;
@@ -139,6 +152,10 @@ template <LegateTypeCode CODE>
 struct UnaryOp<UnaryOpCode::ARCSIN, CODE> {
   static constexpr bool valid = true;
   using T                     = legate_type_of<CODE>;
+
+  UnaryOp() {}
+  UnaryOp(const std::vector<UntypedScalar>& args) {}
+
   constexpr decltype(auto) operator()(const T& x) const
   {
     using std::asin;
@@ -150,6 +167,10 @@ template <LegateTypeCode CODE>
 struct UnaryOp<UnaryOpCode::ARCTAN, CODE> {
   static constexpr bool valid = true;
   using T                     = legate_type_of<CODE>;
+
+  UnaryOp() {}
+  UnaryOp(const std::vector<UntypedScalar>& args) {}
+
   constexpr decltype(auto) operator()(const T& x) const
   {
     using std::atan;
@@ -161,6 +182,10 @@ template <LegateTypeCode CODE>
 struct UnaryOp<UnaryOpCode::CEIL, CODE> {
   static constexpr bool valid = is_floating_point<CODE>::value;
   using T                     = legate_type_of<CODE>;
+
+  UnaryOp() {}
+  UnaryOp(const std::vector<UntypedScalar>& args) {}
+
   constexpr decltype(auto) operator()(const T& x) const
   {
     using std::ceil;
@@ -169,9 +194,43 @@ struct UnaryOp<UnaryOpCode::CEIL, CODE> {
 };
 
 template <LegateTypeCode CODE>
+struct UnaryOp<UnaryOpCode::CLIP, CODE> {
+  static constexpr bool valid = is_floating_point<CODE>::value;
+  using T                     = legate_type_of<CODE>;
+
+  UnaryOp() {}
+  UnaryOp(const std::vector<UntypedScalar>& args)
+  {
+    assert(args.size() == 2);
+    min = args[0].value<T>();
+    max = args[1].value<T>();
+  }
+
+  constexpr T operator()(const T& x) const { return (x < min) ? min : (x > max) ? max : x; }
+
+  T min;
+  T max;
+};
+
+template <LegateTypeCode CODE>
+struct UnaryOp<UnaryOpCode::COPY, CODE> {
+  static constexpr bool valid = true;
+  using T                     = legate_type_of<CODE>;
+
+  UnaryOp() {}
+  UnaryOp(const std::vector<UntypedScalar>& args) {}
+
+  constexpr T operator()(const T& x) const { return x; }
+};
+
+template <LegateTypeCode CODE>
 struct UnaryOp<UnaryOpCode::COS, CODE> {
   static constexpr bool valid = true;
   using T                     = legate_type_of<CODE>;
+
+  UnaryOp() {}
+  UnaryOp(const std::vector<UntypedScalar>& args) {}
+
   constexpr decltype(auto) operator()(const T& x) const
   {
     using std::cos;
@@ -183,6 +242,10 @@ template <LegateTypeCode CODE>
 struct UnaryOp<UnaryOpCode::EXP, CODE> {
   static constexpr bool valid = true;
   using T                     = legate_type_of<CODE>;
+
+  UnaryOp() {}
+  UnaryOp(const std::vector<UntypedScalar>& args) {}
+
   constexpr decltype(auto) operator()(const T& x) const
   {
     using std::exp;
@@ -194,6 +257,10 @@ template <LegateTypeCode CODE>
 struct UnaryOp<UnaryOpCode::FLOOR, CODE> {
   static constexpr bool valid = is_floating_point<CODE>::value;
   using T                     = legate_type_of<CODE>;
+
+  UnaryOp() {}
+  UnaryOp(const std::vector<UntypedScalar>& args) {}
+
   constexpr decltype(auto) operator()(const T& x) const
   {
     using std::floor;
@@ -205,6 +272,10 @@ template <LegateTypeCode CODE>
 struct UnaryOp<UnaryOpCode::INVERT, CODE> {
   static constexpr bool valid = is_integral<CODE>::value;
   using T                     = legate_type_of<CODE>;
+
+  UnaryOp() {}
+  UnaryOp(const std::vector<UntypedScalar>& args) {}
+
   constexpr T operator()(const T& x) const { return ~x; }
 };
 
@@ -212,6 +283,9 @@ template <LegateTypeCode CODE>
 struct UnaryOp<UnaryOpCode::ISINF, CODE> {
   static constexpr bool valid = true;
   using T                     = legate_type_of<CODE>;
+
+  UnaryOp() {}
+  UnaryOp(const std::vector<UntypedScalar>& args) {}
 
   template <typename _T = T, std::enable_if_t<!std::is_floating_point<_T>::value>* = nullptr>
   constexpr bool operator()(const T& x) const
@@ -235,6 +309,10 @@ struct UnaryOp<UnaryOpCode::ISINF, CODE> {
 template <>
 struct UnaryOp<UnaryOpCode::ISINF, LegateTypeCode::HALF_LT> {
   static constexpr bool valid = true;
+
+  UnaryOp() {}
+  UnaryOp(const std::vector<UntypedScalar>& args) {}
+
   __CUDA_HD__ bool operator()(const __half& x) const { return isinf(x); }
 };
 
@@ -242,6 +320,9 @@ template <LegateTypeCode CODE>
 struct UnaryOp<UnaryOpCode::ISNAN, CODE> {
   static constexpr bool valid = true;
   using T                     = legate_type_of<CODE>;
+
+  UnaryOp() {}
+  UnaryOp(const std::vector<UntypedScalar>& args) {}
 
   template <typename _T = T, std::enable_if_t<!std::is_floating_point<_T>::value>* = nullptr>
   constexpr bool operator()(const T& x) const
@@ -266,6 +347,10 @@ struct UnaryOp<UnaryOpCode::ISNAN, CODE> {
 template <>
 struct UnaryOp<UnaryOpCode::ISNAN, LegateTypeCode::HALF_LT> {
   static constexpr bool valid = true;
+
+  UnaryOp() {}
+  UnaryOp(const std::vector<UntypedScalar>& args) {}
+
   __CUDA_HD__ bool operator()(const __half& x) const { return isnan(x); }
 };
 
@@ -273,6 +358,10 @@ template <LegateTypeCode CODE>
 struct UnaryOp<UnaryOpCode::LOG, CODE> {
   static constexpr bool valid = true;
   using T                     = legate_type_of<CODE>;
+
+  UnaryOp() {}
+  UnaryOp(const std::vector<UntypedScalar>& args) {}
+
   constexpr decltype(auto) operator()(const T& x) const
   {
     using std::log;
@@ -283,6 +372,10 @@ struct UnaryOp<UnaryOpCode::LOG, CODE> {
 template <LegateTypeCode CODE>
 struct UnaryOp<UnaryOpCode::LOGICAL_NOT, CODE> {
   static constexpr bool valid = CODE == LegateTypeCode::BOOL_LT;
+
+  UnaryOp() {}
+  UnaryOp(const std::vector<UntypedScalar>& args) {}
+
   constexpr bool operator()(const bool& x) const { return !x; }
 };
 
@@ -290,6 +383,10 @@ template <LegateTypeCode CODE>
 struct UnaryOp<UnaryOpCode::NEGATIVE, CODE> {
   static constexpr bool valid = true;
   using T                     = legate_type_of<CODE>;
+
+  UnaryOp() {}
+  UnaryOp(const std::vector<UntypedScalar>& args) {}
+
   constexpr decltype(auto) operator()(const T& x) const { return -x; }
 };
 
@@ -297,6 +394,10 @@ template <LegateTypeCode CODE>
 struct UnaryOp<UnaryOpCode::SIN, CODE> {
   static constexpr bool valid = true;
   using T                     = legate_type_of<CODE>;
+
+  UnaryOp() {}
+  UnaryOp(const std::vector<UntypedScalar>& args) {}
+
   constexpr decltype(auto) operator()(const T& x) const
   {
     using std::sin;
@@ -308,6 +409,10 @@ template <LegateTypeCode CODE>
 struct UnaryOp<UnaryOpCode::SQRT, CODE> {
   static constexpr bool valid = true;
   using T                     = legate_type_of<CODE>;
+
+  UnaryOp() {}
+  UnaryOp(const std::vector<UntypedScalar>& args) {}
+
   constexpr decltype(auto) operator()(const T& x) const
   {
     using std::sqrt;
@@ -319,6 +424,10 @@ template <LegateTypeCode CODE>
 struct UnaryOp<UnaryOpCode::TAN, CODE> {
   static constexpr bool valid = true;
   using T                     = legate_type_of<CODE>;
+
+  UnaryOp() {}
+  UnaryOp(const std::vector<UntypedScalar>& args) {}
+
   constexpr decltype(auto) operator()(const T& x) const
   {
     using std::tan;
@@ -330,6 +439,10 @@ template <LegateTypeCode CODE>
 struct UnaryOp<UnaryOpCode::TANH, CODE> {
   static constexpr bool valid = true;
   using T                     = legate_type_of<CODE>;
+
+  UnaryOp() {}
+  UnaryOp(const std::vector<UntypedScalar>& args) {}
+
   constexpr decltype(auto) operator()(const T& x) const
   {
     using std::tanh;

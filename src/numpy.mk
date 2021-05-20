@@ -37,9 +37,7 @@ GEN_CPU_SRC += binary/binary_op.cc            \
 							 arg.cc                         \
 							 argmin.cc                      \
 							 bincount.cc                    \
-							 clip.cc                        \
 							 contains.cc                    \
-							 copy.cc                        \
 							 diag.cc                        \
 							 dot.cc                         \
 							 eye.cc                         \
@@ -84,9 +82,7 @@ GEN_GPU_SRC += binary/binary_op.cu            \
 							 arg.cu                         \
 							 argmin.cu                      \
 							 bincount.cu                    \
-							 clip.cu                        \
 							 contains.cu                    \
-							 copy.cu                        \
 							 diag.cu                        \
 							 dot.cu                         \
 							 eye.cu                         \

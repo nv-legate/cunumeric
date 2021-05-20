@@ -37,8 +37,6 @@ enum NumPyOpCode {
   NUMPY_ARGMIN               = 8,
   NUMPY_ARGMIN_RADIX         = 9,
   NUMPY_BINCOUNT             = 10,
-  NUMPY_CLIP                 = 12,
-  NUMPY_COPY                 = 14,
   NUMPY_DIAG                 = 16,
   NUMPY_DOT                  = 18,
   NUMPY_EYE                  = 21,

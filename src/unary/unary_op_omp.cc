@@ -32,7 +32,10 @@ struct UnaryOpImpl {
   template <LegateTypeCode CODE,
             int DIM,
             std::enable_if_t<UnaryOp<OP_CODE, CODE>::valid> * = nullptr>
-  void operator()(Shape &shape, RegionField &out_rf, RegionField &in_rf)
+  void operator()(Shape &shape,
+                  RegionField &out_rf,
+                  RegionField &in_rf,
+                  std::vector<UntypedScalar> &args)
   {
     using OP  = UnaryOp<OP_CODE, CODE>;
     using ARG = legate_type_of<CODE>;
@@ -56,7 +59,7 @@ struct UnaryOpImpl {
     bool dense = false;
 #endif
 
-    OP func{};
+    OP func(args);
     if (dense) {
       auto outptr = out.ptr(rect);
       auto inptr  = in.ptr(rect);
@@ -69,7 +72,10 @@ struct UnaryOpImpl {
   template <LegateTypeCode CODE,
             int DIM,
             std::enable_if_t<!UnaryOp<OP_CODE, CODE>::valid> * = nullptr>
-  void operator()(Shape &shape, RegionField &out_rf, RegionField &in_rf)
+  void operator()(Shape &shape,
+                  RegionField &out_rf,
+                  RegionField &in_rf,
+                  std::vector<UntypedScalar> &args)
   {
     assert(false);
   }
@@ -77,9 +83,9 @@ struct UnaryOpImpl {
 
 struct UnaryOpDispatch {
   template <UnaryOpCode OP_CODE>
-  void operator()(Shape &shape, RegionField &out, RegionField &in)
+  void operator()(Shape &shape, RegionField &out, RegionField &in, std::vector<UntypedScalar> &args)
   {
-    double_dispatch(in.dim(), in.code(), UnaryOpImpl<OP_CODE>{}, shape, out, in);
+    double_dispatch(in.dim(), in.code(), UnaryOpImpl<OP_CODE>{}, shape, out, in, args);
   }
 };
 
@@ -96,13 +102,15 @@ struct UnaryOpDispatch {
   Shape shape;
   RegionField out;
   RegionField in;
+  std::vector<UntypedScalar> args;
 
   deserialize(ctx, op_code);
   deserialize(ctx, shape);
   deserialize(ctx, out);
   deserialize(ctx, in);
+  deserialize(ctx, args);
 
-  op_dispatch(op_code, omp::UnaryOpDispatch{}, shape, out, in);
+  op_dispatch(op_code, omp::UnaryOpDispatch{}, shape, out, in, args);
 }
 
 }  // namespace numpy
