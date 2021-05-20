@@ -522,9 +522,18 @@ class RegionField(object):
         assert self.launch_space is not None
         return self.shard_point, self.shard_function, self.shard_space
 
-    def set_key_partition(self, part, shardfn, shardsp):
+    def set_key_partition(self, part, shardfn=None, shardsp=None):
+        assert part.parent == self.region
         self.launch_space = part.color_shape
         self.key_partition = part
+        if shardfn is None:
+            assert shardsp is None
+            shardfn = (
+                self.runtime.first_shard_id
+                + legate_numpy.NUMPY_SHARD_TILE_1D
+                + len(self.shape)
+                - 1
+            )
         self.shard_function = shardfn
         self.shard_space = shardsp
 
