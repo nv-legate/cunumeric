@@ -205,11 +205,11 @@ class UnaryRedCode(IntEnum):
     MIN = 2
     PROD = 3
     SUM = 4
-    ARGMAX = (5,)
-    ARGMIN = (6,)
-    CONTAINS = (7,)
-    NORM = (8,)
-    COUNT_NONZERO = (9,)
+    ARGMAX = 5
+    ARGMIN = 6
+    CONTAINS = 7
+    NORM = 8
+    COUNT_NONZERO = 9
 
 
 # Match these to NumPyRedopID in legate_numpy_c.h
