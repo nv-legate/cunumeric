@@ -112,7 +112,7 @@ struct UnaryOp<UnaryOpCode::ABSOLUTE, CODE> {
 
   template <typename _T                                                                  = T,
             std::enable_if_t<std::is_integral<_T>::value and std::is_signed<_T>::value>* = nullptr>
-  constexpr _T operator()(const _T& x) const
+  constexpr decltype(auto) operator()(const _T& x) const
   {
     return abs(x);
   }
@@ -126,7 +126,7 @@ struct UnaryOp<UnaryOpCode::ABSOLUTE, CODE> {
   }
 
   template <typename _T = T, std::enable_if_t<!std::is_integral<_T>::value>* = nullptr>
-  constexpr _T operator()(const _T& x) const
+  constexpr decltype(auto) operator()(const _T& x) const
   {
     using std::fabs;
     return fabs(x);
@@ -371,12 +371,23 @@ struct UnaryOp<UnaryOpCode::LOG, CODE> {
 
 template <LegateTypeCode CODE>
 struct UnaryOp<UnaryOpCode::LOGICAL_NOT, CODE> {
-  static constexpr bool valid = CODE == LegateTypeCode::BOOL_LT;
+  static constexpr bool valid = true;
+  using T                     = legate_type_of<CODE>;
 
   UnaryOp() {}
   UnaryOp(const std::vector<UntypedScalar>& args) {}
 
-  constexpr bool operator()(const bool& x) const { return !x; }
+  template <typename _T = T, std::enable_if_t<!is_complex<_T>::value>* = nullptr>
+  constexpr bool operator()(const T& x) const
+  {
+    return !static_cast<bool>(x);
+  }
+
+  template <typename _T = T, std::enable_if_t<is_complex<_T>::value>* = nullptr>
+  constexpr bool operator()(const T& x) const
+  {
+    return !static_cast<bool>(x.real());
+  }
 };
 
 template <LegateTypeCode CODE>

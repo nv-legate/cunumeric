@@ -159,6 +159,8 @@ class DeferredArrayView(object):
         if self.scalar:
             return self
         else:
+            if self is to_align:
+                return self
             if not isinstance(to_align, tuple):
                 assert isinstance(to_align, DeferredArrayView)
                 to_align = to_align._array.shape
@@ -828,7 +830,7 @@ class DeferredArray(NumPyThunk):
             lhs.add_to_legate_op(op, False)
             op.add_future(value)
             if shardsp is not None:
-                fill.set_sharding_space(shardsp)
+                op.set_sharding_space(shardsp)
             if launch_space is not None:
                 op.execute(Rect(launch_space))
             else:
@@ -3313,8 +3315,11 @@ class DeferredArray(NumPyThunk):
             src, stacklevel=(stacklevel + 1)
         )
 
-        lhs_arg = DeferredArrayView(lhs_array)
         rhs_arg = DeferredArrayView(rhs_array)
+        if rhs_array is lhs_array:
+            lhs_arg = rhs_arg
+        else:
+            lhs_arg = DeferredArrayView(lhs_array)
 
         launch_space, key_arg = lhs_arg.find_key_view(rhs_arg)
         key_arg.update_tag(NumPyMappingTag.KEY_REGION_TAG)
@@ -3336,13 +3341,13 @@ class DeferredArray(NumPyThunk):
         task = Map(self.runtime, task_id, tag=shardfn)
         task.add_scalar_arg(op.value, np.int32)
 
-        if launch_space is not None:
-            task.add_shape(lhs_arg.shape, lhs_arg.part.tile_shape, 0)
-        else:
-            task.add_shape(lhs_arg.shape)
-
         if not lhs_arg.scalar:
+            if launch_space is not None:
+                task.add_shape(lhs_arg.shape, lhs_arg.part.tile_shape, 0)
+            else:
+                task.add_shape(lhs_arg.shape)
             lhs_arg.add_to_legate_op(task, False)
+
         rhs_arg.add_to_legate_op(task, True)
 
         self.add_arguments(task, args)
@@ -3585,9 +3590,15 @@ class DeferredArray(NumPyThunk):
         )
         lhs_array = self
 
-        lhs_arg = DeferredArrayView(lhs_array)
         rhs1_arg = DeferredArrayView(rhs1_array)
         rhs2_arg = DeferredArrayView(rhs2_array)
+
+        if lhs_array is rhs1_array:
+            lhs_arg = rhs1_arg
+        elif lhs_array is rhs2_array:
+            lhs_arg = rhs2_arg
+        else:
+            lhs_arg = DeferredArrayView(lhs_array)
 
         # Align and broadcast region arguments if necessary
         launch_space, key_arg = lhs_arg.find_key_view(rhs1_arg, rhs2_arg)

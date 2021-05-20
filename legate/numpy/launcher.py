@@ -191,6 +191,9 @@ class Projection(object):
     def __hash__(self):
         return hash((self.part, self.proj, self.redop))
 
+    def __repr__(self):
+        return repr((self.part, self.proj, self.redop))
+
     def __eq__(self, other):
         return (
             isinstance(other, Projection)
@@ -267,7 +270,9 @@ class ProjectionSet(object):
             for entry in self._entries.values():
                 all_entries = all_entries | entry
             if len(all_entries) > 1:
-                raise ValueError("Interfering requirements found")
+                raise ValueError(
+                    f"Interfering requirements found: {all_entries}"
+                )
 
             return [(perm, *all_entries.pop())]
 

@@ -17,7 +17,7 @@ from __future__ import absolute_import, division, print_function
 
 import numpy as np
 
-from .config import BinaryOpCode, NumPyOpCode
+from .config import BinaryOpCode, NumPyOpCode, UnaryOpCode, UnaryRedCode
 from .thunk import NumPyThunk
 
 
@@ -470,7 +470,7 @@ class EagerArray(NumPyThunk):
                 op, op_type, rhs, where, args, stacklevel=(stacklevel + 1)
             )
             return
-        if op == NumPyOpCode.ABSOLUTE:
+        if op == UnaryOpCode.ABSOLUTE:
             np.absolute(
                 rhs.array,
                 out=self.array,
@@ -478,7 +478,7 @@ class EagerArray(NumPyThunk):
                 if not isinstance(where, EagerArray)
                 else where.array,
             )
-        elif op == NumPyOpCode.ARCCOS:
+        elif op == UnaryOpCode.ARCCOS:
             np.arccos(
                 rhs.array,
                 out=self.array,
@@ -486,7 +486,7 @@ class EagerArray(NumPyThunk):
                 if not isinstance(where, EagerArray)
                 else where.array,
             )
-        elif op == NumPyOpCode.ARCSIN:
+        elif op == UnaryOpCode.ARCSIN:
             np.arcsin(
                 rhs.array,
                 out=self.array,
@@ -494,7 +494,7 @@ class EagerArray(NumPyThunk):
                 if not isinstance(where, EagerArray)
                 else where.array,
             )
-        elif op == NumPyOpCode.ARCTAN:
+        elif op == UnaryOpCode.ARCTAN:
             np.arctan(
                 rhs.array,
                 out=self.array,
@@ -502,7 +502,7 @@ class EagerArray(NumPyThunk):
                 if not isinstance(where, EagerArray)
                 else where.array,
             )
-        elif op == NumPyOpCode.CEIL:
+        elif op == UnaryOpCode.CEIL:
             np.ceil(
                 rhs.array,
                 out=self.array,
@@ -510,9 +510,9 @@ class EagerArray(NumPyThunk):
                 if not isinstance(where, EagerArray)
                 else where.array,
             )
-        elif op == NumPyOpCode.CLIP:
+        elif op == UnaryOpCode.CLIP:
             np.clip(rhs.array, out=self.array, a_min=args[0], a_max=args[1])
-        elif op == NumPyOpCode.COS:
+        elif op == UnaryOpCode.COS:
             np.cos(
                 rhs.array,
                 out=self.array,
@@ -520,7 +520,7 @@ class EagerArray(NumPyThunk):
                 if not isinstance(where, EagerArray)
                 else where.array,
             )
-        elif op == NumPyOpCode.EXP:
+        elif op == UnaryOpCode.EXP:
             np.exp(
                 rhs.array,
                 out=self.array,
@@ -528,7 +528,7 @@ class EagerArray(NumPyThunk):
                 if not isinstance(where, EagerArray)
                 else where.array,
             )
-        elif op == NumPyOpCode.FLOOR:
+        elif op == UnaryOpCode.FLOOR:
             np.floor(
                 rhs.array,
                 out=self.array,
@@ -536,7 +536,7 @@ class EagerArray(NumPyThunk):
                 if not isinstance(where, EagerArray)
                 else where.array,
             )
-        elif op == NumPyOpCode.INVERT:
+        elif op == UnaryOpCode.INVERT:
             np.invert(
                 rhs.array,
                 out=self.array,
@@ -544,7 +544,7 @@ class EagerArray(NumPyThunk):
                 if not isinstance(where, EagerArray)
                 else where.array,
             )
-        elif op == NumPyOpCode.ISINF:
+        elif op == UnaryOpCode.ISINF:
             np.isinf(
                 rhs.array,
                 out=self.array,
@@ -552,7 +552,7 @@ class EagerArray(NumPyThunk):
                 if not isinstance(where, EagerArray)
                 else where.array,
             )
-        elif op == NumPyOpCode.ISNAN:
+        elif op == UnaryOpCode.ISNAN:
             np.isnan(
                 rhs.array,
                 out=self.array,
@@ -560,7 +560,7 @@ class EagerArray(NumPyThunk):
                 if not isinstance(where, EagerArray)
                 else where.array,
             )
-        elif op == NumPyOpCode.LOG:
+        elif op == UnaryOpCode.LOG:
             np.log(
                 rhs.array,
                 out=self.array,
@@ -568,7 +568,7 @@ class EagerArray(NumPyThunk):
                 if not isinstance(where, EagerArray)
                 else where.array,
             )
-        elif op == NumPyOpCode.LOGICAL_NOT:
+        elif op == UnaryOpCode.LOGICAL_NOT:
             np.logical_not(
                 rhs.array,
                 out=self.array,
@@ -576,7 +576,7 @@ class EagerArray(NumPyThunk):
                 if not isinstance(where, EagerArray)
                 else where.array,
             )
-        elif op == NumPyOpCode.NEGATIVE:
+        elif op == UnaryOpCode.NEGATIVE:
             np.negative(
                 rhs.array,
                 out=self.array,
@@ -584,7 +584,7 @@ class EagerArray(NumPyThunk):
                 if not isinstance(where, EagerArray)
                 else where.array,
             )
-        elif op == NumPyOpCode.SIN:
+        elif op == UnaryOpCode.SIN:
             np.sin(
                 rhs.array,
                 out=self.array,
@@ -592,7 +592,7 @@ class EagerArray(NumPyThunk):
                 if not isinstance(where, EagerArray)
                 else where.array,
             )
-        elif op == NumPyOpCode.SQRT:
+        elif op == UnaryOpCode.SQRT:
             np.sqrt(
                 rhs.array,
                 out=self.array,
@@ -600,7 +600,7 @@ class EagerArray(NumPyThunk):
                 if not isinstance(where, EagerArray)
                 else where.array,
             )
-        elif op == NumPyOpCode.TAN:
+        elif op == UnaryOpCode.TAN:
             np.tan(
                 rhs.array,
                 out=self.array,
@@ -608,7 +608,7 @@ class EagerArray(NumPyThunk):
                 if not isinstance(where, EagerArray)
                 else where.array,
             )
-        elif op == NumPyOpCode.TANH:
+        elif op == UnaryOpCode.TANH:
             np.tanh(
                 rhs.array,
                 out=self.array,
@@ -621,7 +621,7 @@ class EagerArray(NumPyThunk):
         self.runtime.profile_callsite(stacklevel + 1, False)
 
     def unary_reduction(
-        self, op, redop, rhs, where, axes, keepdims, args, initial, stacklevel
+        self, op, rhs, where, axes, keepdims, args, initial, stacklevel
     ):
         if self.shadow:
             rhs = self.runtime.to_eager_array(rhs, stacklevel=(stacklevel + 1))
@@ -634,7 +634,6 @@ class EagerArray(NumPyThunk):
         if self.deferred is not None:
             self.deferred.unary_reduction(
                 op,
-                redop,
                 rhs,
                 where,
                 axes,
@@ -644,15 +643,15 @@ class EagerArray(NumPyThunk):
                 stacklevel=(stacklevel + 1),
             )
             return
-        if op == NumPyOpCode.ARGMAX:
+        if op == UnaryRedCode.ARGMAX:
             assert len(axes) == 1
             np.argmax(rhs.array, out=self.array, axis=axes[0])
-        elif op == NumPyOpCode.ARGMIN:
+        elif op == UnaryRedCode.ARGMIN:
             assert len(axes) == 1
             np.argmin(rhs.array, out=self.array, axis=axes[0])
-        elif op == NumPyOpCode.CONTAINS:
+        elif op == UnaryRedCode.CONTAINS:
             self.array.fill(args[0] in rhs.array)
-        elif op == NumPyOpCode.MAX:
+        elif op == UnaryRedCode.MAX:
             try:
                 # Try the new version of this interface for NumPy
                 rhs.array.max(
@@ -666,7 +665,7 @@ class EagerArray(NumPyThunk):
                 )
             except Exception:  # TDB: refine exception
                 rhs.array.max(axis=axes, out=self.array, keepdims=keepdims)
-        elif op == NumPyOpCode.MIN:
+        elif op == UnaryRedCode.MIN:
             try:
                 # Try the new version of this interface for NumPy
                 rhs.array.min(
@@ -680,7 +679,7 @@ class EagerArray(NumPyThunk):
                 )
             except Exception:  # TDB: refine exception
                 rhs.array.min(axis=axes, out=self.array, keepdims=keepdims)
-        elif op == NumPyOpCode.NORM:
+        elif op == UnaryRedCode.NORM:
             if self.array.size == 1:
                 self.array.fill(
                     np.linalg.norm(
@@ -694,7 +693,7 @@ class EagerArray(NumPyThunk):
                 self.array[:] = np.linalg.norm(
                     rhs.array, axis=axes, keepdims=keepdims, ord=args[0].item()
                 )
-        elif op == NumPyOpCode.PROD:
+        elif op == UnaryRedCode.PROD:
             try:
                 # Try the new version of this interface for NumPy
                 np.prod(
@@ -711,7 +710,7 @@ class EagerArray(NumPyThunk):
                 np.prod(
                     rhs.array, out=self.array, axis=axes, keepdims=keepdims
                 )
-        elif op == NumPyOpCode.SUM:
+        elif op == UnaryRedCode.SUM:
             try:
                 # Try the new version of this interface for NumPy
                 np.sum(
@@ -726,7 +725,7 @@ class EagerArray(NumPyThunk):
                 )
             except Exception:
                 np.sum(rhs.array, out=self.array, axis=axes, keepdims=keepdims)
-        elif op == NumPyOpCode.COUNT_NONZERO:
+        elif op == UnaryRedCode.COUNT_NONZERO:
             self.array[()] = np.count_nonzero(rhs.array, axis=axes)
         else:
             raise RuntimeError("unsupported unary reduction op " + str(op))
@@ -943,13 +942,13 @@ class EagerArray(NumPyThunk):
                 op, rhs1, rhs2, broadcast, args, stacklevel=(stacklevel + 1)
             )
         else:
-            if op == NumPyOpCode.ALLCLOSE:
+            if op == BinaryOpCode.ALLCLOSE:
                 self.array = np.array(
                     np.allclose(
                         rhs1.array, rhs2.array, rtol=args[0], atol=args[1]
                     )
                 )
-            elif op == NumPyOpCode.EQUAL:
+            elif op == BinaryOpCode.EQUAL:
                 self.array = np.array(np.array_equal(rhs1.array, rhs2.array))
             else:
                 raise RuntimeError(
