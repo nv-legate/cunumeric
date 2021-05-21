@@ -394,13 +394,12 @@ ShardID NumPyShardingFunctor_Radix2D<DIM, RADIX>::shard(const DomainPoint& p,
                                                         const Domain& launch_space,
                                                         const size_t total_shards)
 {
-  // Map our coordinates onto the full sharding space, and fall back to the
-  // corresponding sharding functor.
-  Point<2> point      = p;
-  const Rect<2> space = launch_space;
-  assert(space.lo[DIM] == 0);
-  point[DIM] *= RADIX;
-  return NumPyShardingFunctor_2D(NUMPY_SHARD_TILE_2D).shard(point, space, total_shards);
+  // Tile-shard based on non-reduced dimension
+  const Point<2> point = p;
+  const Rect<2> space  = launch_space;
+  const size_t size    = space.hi[1 - DIM] - space.lo[1 - DIM] + 1;
+  const size_t chunk   = (size + total_shards - 1) / total_shards;
+  return (point[1 - DIM] - space.lo[1 - DIM]) / chunk;
 }
 
 template <int DIM, int RADIX>
@@ -409,14 +408,15 @@ unsigned NumPyShardingFunctor_Radix2D<DIM, RADIX>::localize(const DomainPoint& p
                                                             const size_t total_shards,
                                                             const ShardID local_shard)
 {
-  // Map our coordinates onto the full sharding space, and fall back to the
-  // corresponding sharding functor.
-  Point<2> point      = p;
-  const Rect<2> space = launch_space;
-  assert(space.lo[DIM] == 0);
-  point[DIM] *= RADIX;
-  return NumPyShardingFunctor_2D(NUMPY_SHARD_TILE_2D)
-    .localize(point, space, total_shards, local_shard);
+  // Tile-shard based on non-reduced dimension
+  const Point<2> point = p;
+  const Rect<2> space  = launch_space;
+  const size_t size    = space.hi[1 - DIM] - space.lo[1 - DIM] + 1;
+  const coord_t chunk  = (size + total_shards - 1) / total_shards;
+  const coord_t start  = local_shard * chunk + space.lo[1 - DIM];
+  assert(point[1 - DIM] >= start);
+  assert(point[1 - DIM] < (start + chunk));
+  return point[1 - DIM] - start;
 }
 
 template <int DIM, int RADIX>
