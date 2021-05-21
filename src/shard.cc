@@ -394,35 +394,13 @@ ShardID NumPyShardingFunctor_Radix2D<DIM, RADIX>::shard(const DomainPoint& p,
                                                         const Domain& launch_space,
                                                         const size_t total_shards)
 {
-  const Point<2> point = p;
-  const Rect<2> space  = launch_space;
-  // See if this is an inner product case or not
-  if (space.lo[(DIM + 1) % 2] == space.hi[(DIM + 1) % 2]) {
-    // Inner product case
-    assert(point[(DIM + 1) % 2] == 0);
-    const coord_t num_pieces = (space.hi[DIM] - space.lo[DIM]) + 1;
-    const coord_t chunk      = (num_pieces + total_shards - 1) / total_shards;
-    return point[DIM] / chunk;
-  } else {
-    // Normal case
-    const coord_t num_pieces = (space.hi[(DIM + 1) % 2] - space.lo[(DIM + 1) % 2]) + 1;
-    const coord_t orig_n     = (space.hi[DIM] - space.lo[DIM]) + 1;
-    assert((num_pieces % orig_n) == 0);
-    const coord_t orig_m = num_pieces / orig_n;
-    // These are our coordinates on the old sharding so figure out
-    // how they got mapped down to shards before
-    const Point<2> bounds(orig_m, orig_n);
-    Point<2> pieces;
-    const Point<2> chunks = compute_chunks_2d(bounds, total_shards, pieces);
-    // Figure out how to map our coordinates onto the old shard
-    const coord_t m = point[(DIM + 1) % 2] / orig_n;
-    assert(m < orig_m);
-    const coord_t n = point[DIM % 2] * RADIX + ((point[(DIM + 1) % 2] % orig_n) % RADIX);
-    assert(n < orig_n);
-    const coord_t x = m / chunks[0];
-    const coord_t y = n / chunks[1];
-    return (y * pieces[0] + x);
-  }
+  // Map our coordinates onto the full sharding space, and fall back to the
+  // corresponding sharding functor.
+  Point<2> point      = p;
+  const Rect<2> space = launch_space;
+  assert(space.lo[DIM] == 0);
+  point[DIM] *= RADIX;
+  return NumPyShardingFunctor_2D(NUMPY_SHARD_TILE_2D).shard(point, space, total_shards);
 }
 
 template <int DIM, int RADIX>
@@ -431,37 +409,14 @@ unsigned NumPyShardingFunctor_Radix2D<DIM, RADIX>::localize(const DomainPoint& p
                                                             const size_t total_shards,
                                                             const ShardID local_shard)
 {
-  const Point<2> point = p;
-  const Rect<2> space  = launch_space;
-  // See if this is an inner product case or not
-  if (space.lo[(DIM + 1) % 2] == space.hi[(DIM + 1) % 2]) {
-    // Inner product case
-    assert(point[(DIM + 1) % 2] == 0);
-    const coord_t num_pieces = (space.hi[DIM] - space.lo[DIM]) + 1;
-    const coord_t chunk      = (num_pieces + total_shards - 1) / total_shards;
-    assert((local_shard * chunk) <= point[DIM]);
-    assert(point[DIM] < ((local_shard + 1) * chunk));
-    // Compute the offset within our local shard
-    return (point[DIM] - local_shard * chunk);
-  } else {
-    // Normal case
-    const coord_t num_pieces = (space.hi[(DIM + 1) % 2] - space.lo[(DIM + 1) % 2]) + 1;
-    const coord_t orig_n     = (space.hi[DIM] - space.lo[DIM]) + 1;
-    // assert((num_pieces % orig_n) == 0);
-    const coord_t orig_m = num_pieces / orig_n;
-    // These are our coordinates on the old sharding so figure out
-    // how they got mapped down to shards before
-    const Point<2> bounds(orig_m, orig_n);
-    Point<2> pieces;
-    const Point<2> chunks = compute_chunks_2d(bounds, total_shards, pieces);
-    const coord_t m       = point[(DIM + 1) % 2] / orig_n;
-    // assert(m < orig_m);
-    const coord_t n = point[DIM % 2] * RADIX + ((point[(DIM + 1) % 2] % orig_n) % RADIX);
-    // assert(n < orig_n);
-    const coord_t x = m % chunks[0];
-    const coord_t y = n % chunks[1];
-    return y * chunks[0] + x;
-  }
+  // Map our coordinates onto the full sharding space, and fall back to the
+  // corresponding sharding functor.
+  Point<2> point      = p;
+  const Rect<2> space = launch_space;
+  assert(space.lo[DIM] == 0);
+  point[DIM] *= RADIX;
+  return NumPyShardingFunctor_2D(NUMPY_SHARD_TILE_2D)
+    .localize(point, space, total_shards, local_shard);
 }
 
 template <int DIM, int RADIX>
