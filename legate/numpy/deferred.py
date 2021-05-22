@@ -536,6 +536,20 @@ class DeferredArray(NumPyThunk):
             view, dim_map = self._get_view(key)
             # See what the shape of the view is
             new_shape = self._get_view_shape(view, dim_map)
+
+            # In Python, any inplace update of form arr[key] op= value
+            # goes through three steps: 1) __getitem__ fetching the object
+            # for the key, 2) __iop__ for the update, and 3) __setitem__
+            # to set the result back. In Legate Numpy, the object we
+            # return in step (1) is actually a subview to the array arr
+            # through which we make udpates in place, so after step (2) is
+            # done, # the effect of inplace update is already reflected
+            # to the arr. Therefore, we skip the copy to avoid redundant
+            # copies if we know that we hit such a scenario.
+            # TODO: We should make this work for the advanced indexing case
+            if new_shape == rhs.shape and self.base.field == rhs.base.field:
+                return
+
             if new_shape == ():
                 # We're just writing a single value
                 assert value_array.size == 1
