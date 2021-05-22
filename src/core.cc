@@ -16,6 +16,7 @@
 
 #include "core.h"
 #include "dispatch.h"
+#include "scalar.h"
 
 namespace legate {
 namespace numpy {
@@ -71,6 +72,20 @@ void Shape::destroy()
     dim_dispatch(N_, destroy_fn{}, rect_);
     N_ = -1;
   }
+}
+
+struct pipe_to_ostream_fn {
+  template <int32_t N>
+  void operator()(std::ostream &os, const Shape &shape)
+  {
+    os << shape.to_rect<N>();
+  }
+};
+
+std::ostream &operator<<(std::ostream &os, const Shape &shape)
+{
+  dim_dispatch(shape.dim(), pipe_to_ostream_fn{}, os, shape);
+  return os;
 }
 
 Transform::~Transform() { destroy(); }
@@ -156,6 +171,32 @@ RegionField &RegionField::operator=(RegionField &&other) noexcept
   fid_       = other.fid_;
   transform_ = std::move(other.transform_);
 }
+
+Array::Array(int32_t dim, LegateTypeCode code, Future future)
+  : is_future_(true), dim_(dim), code_(code), future_(future)
+{
+}
+
+Array::Array(int32_t dim, LegateTypeCode code, RegionField &&region_field)
+  : is_future_(false),
+    dim_(dim),
+    code_(code),
+    region_field_(std::forward<RegionField>(region_field))
+{
+}
+
+Array &Array::operator=(Array &&other) noexcept
+{
+  is_future_ = other.is_future_;
+  dim_       = other.dim_;
+  code_      = other.code_;
+  if (is_future_)
+    future_ = other.future_;
+  else
+    region_field_ = std::move(other.region_field_);
+}
+
+UntypedScalar Array::scalar() const { return future_.get_result<UntypedScalar>(); }
 
 }  // namespace numpy
 }  // namespace legate

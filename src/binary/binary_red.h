@@ -23,6 +23,16 @@
 namespace legate {
 namespace numpy {
 
+struct BinaryRedArgs {
+  BinaryOpCode op_code;
+  Shape shape;
+  Array in1;
+  Array in2;
+  std::vector<UntypedScalar> args;
+};
+
+void deserialize(Deserializer& ctx, BinaryRedArgs& args);
+
 class BinaryRedTask : public NumPyTask<BinaryRedTask> {
  public:
   static const int TASK_ID = NUMPY_BINARY_RED;

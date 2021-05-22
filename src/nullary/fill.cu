@@ -15,28 +15,23 @@
  */
 
 #include "nullary/fill.h"
-#include "core.h"
-#include "dispatch.h"
-#include "point_task.h"
-#include "scalar.h"
+#include "nullary/fill_template.inl"
 
 namespace legate {
 namespace numpy {
 
 using namespace Legion;
 
-namespace gpu {
-
-template <typename ARG, typename RES>
+template <typename ARG>
 static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-  dense_kernel(size_t volume, RES *out, ARG fill_value)
+  dense_kernel(size_t volume, ARG *out, ARG fill_value)
 {
   const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (idx >= volume) return;
   out[idx] = fill_value;
 }
 
-template <typename ARG, typename WriteAcc, typename Pitches, typename Rect>
+template <typename WriteAcc, typename ARG, typename Pitches, typename Rect>
 static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   generic_kernel(size_t volume, WriteAcc out, ARG fill_value, Pitches pitches, Rect rect)
 {
@@ -46,57 +41,31 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   out[point] = fill_value;
 }
 
-struct FillImpl {
-  template <LegateTypeCode CODE, int DIM>
-  void operator()(Shape &shape, RegionField &out_rf, UntypedScalar &fill_value_scalar)
+template <LegateTypeCode CODE, int DIM, typename VAL>
+struct FillImplBody<VariantKind::GPU, CODE, DIM, VAL> {
+  void operator()(AccessorWO<VAL, DIM> out,
+                  const VAL &fill_value,
+                  const Pitches<DIM - 1> &pitches,
+                  const Rect<DIM> &rect,
+                  bool dense) const
   {
-    using VAL = legate_type_of<CODE>;
-
-    auto rect = shape.to_rect<DIM>();
-
-    Pitches<DIM - 1> pitches;
-    size_t volume = pitches.flatten(rect);
-
-    if (volume == 0) return;
-
-    auto out        = out_rf.write_accessor<VAL, DIM>();
-    auto fill_value = fill_value_scalar.value<VAL>();
-
-#ifndef LEGION_BOUNDS_CHECKS
-    // Check to see if this is dense or not
-    bool dense = out.accessor.is_dense_row_major(rect);
-#else
-    // No dense execution if we're doing bounds checks
-    bool dense = false;
-#endif
-
+    size_t volume       = rect.volume();
     const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
     if (dense) {
       auto outptr = out.ptr(rect);
       dense_kernel<<<blocks, THREADS_PER_BLOCK>>>(volume, outptr, fill_value);
-    } else
+    } else {
       generic_kernel<<<blocks, THREADS_PER_BLOCK>>>(volume, out, fill_value, pitches, rect);
+    }
   }
 };
-
-}  // namespace gpu
 
 /*static*/ void FillTask::gpu_variant(const Task *task,
                                       const std::vector<PhysicalRegion> &regions,
                                       Context context,
                                       Runtime *runtime)
 {
-  Deserializer ctx(task, regions);
-
-  Shape shape;
-  RegionField out;
-  UntypedScalar fill_value;
-
-  deserialize(ctx, shape);
-  deserialize(ctx, out);
-  deserialize(ctx, fill_value);
-
-  double_dispatch(out.dim(), out.code(), gpu::FillImpl{}, shape, out, fill_value);
+  fill_template<VariantKind::GPU>(task, regions, context, runtime);
 }
 
 }  // namespace numpy

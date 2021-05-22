@@ -17,9 +17,22 @@
 #pragma once
 
 #include "numpy.h"
+#include "core.h"
+#include "unary/unary_red_util.h"
 
 namespace legate {
 namespace numpy {
+
+struct UnaryRedArgs {
+  bool needs_reduction;
+  int32_t collapsed_dim;
+  UnaryRedCode op_code;
+  Shape shape;
+  Array lhs;
+  Array rhs;
+};
+
+void deserialize(Deserializer& ctx, UnaryRedArgs& args);
 
 class UnaryRedTask : public NumPyTask<UnaryRedTask> {
  public:

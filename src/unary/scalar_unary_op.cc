@@ -28,7 +28,7 @@ using namespace Legion;
 template <UnaryOpCode OP_CODE>
 struct UnaryOpImpl {
   template <LegateTypeCode CODE, std::enable_if_t<UnaryOp<OP_CODE, CODE>::valid> * = nullptr>
-  UntypedScalar operator()(UntypedScalar &in)
+  UntypedScalar operator()(const UntypedScalar &in) const
   {
     using OP  = UnaryOp<OP_CODE, CODE>;
     using ARG = legate_type_of<CODE>;
@@ -38,7 +38,7 @@ struct UnaryOpImpl {
   }
 
   template <LegateTypeCode CODE, std::enable_if_t<!UnaryOp<OP_CODE, CODE>::valid> * = nullptr>
-  UntypedScalar operator()(UntypedScalar &in)
+  UntypedScalar operator()(const UntypedScalar &in) const
   {
     assert(false);
     return UntypedScalar();
@@ -47,7 +47,7 @@ struct UnaryOpImpl {
 
 struct UnaryOpDispatch {
   template <UnaryOpCode OP_CODE>
-  UntypedScalar operator()(UntypedScalar &in)
+  UntypedScalar operator()(const UntypedScalar &in) const
   {
     return type_dispatch(in.code(), UnaryOpImpl<OP_CODE>{}, in);
   }
@@ -61,12 +61,12 @@ struct UnaryOpDispatch {
   Deserializer ctx(task, regions);
 
   UnaryOpCode op_code;
-  UntypedScalar in;
+  Array in;
 
   deserialize(ctx, op_code);
   deserialize(ctx, in);
 
-  return op_dispatch(op_code, UnaryOpDispatch{}, in);
+  return op_dispatch(op_code, UnaryOpDispatch{}, in.scalar());
 }
 
 namespace  // unnamed

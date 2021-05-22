@@ -15,67 +15,47 @@
  */
 
 #include "nullary/fill.h"
-#include "core.h"
-#include "dispatch.h"
-#include "point_task.h"
-#include "scalar.h"
+#include "nullary/fill_template.inl"
 
 namespace legate {
 namespace numpy {
 
 using namespace Legion;
 
-struct FillImpl {
-  template <LegateTypeCode CODE, int DIM>
-  void operator()(Shape &shape, RegionField &out_rf, UntypedScalar &fill_value_scalar)
+template <LegateTypeCode CODE, int DIM, typename VAL>
+struct FillImplBody<VariantKind::CPU, CODE, DIM, VAL> {
+  void operator()(AccessorWO<VAL, DIM> out,
+                  const VAL &fill_value,
+                  const Pitches<DIM - 1> &pitches,
+                  const Rect<DIM> &rect,
+                  bool dense) const
   {
-    using VAL = legate_type_of<CODE>;
-
-    auto rect = shape.to_rect<DIM>();
-
-    Pitches<DIM - 1> pitches;
-    size_t volume = pitches.flatten(rect);
-
-    if (volume == 0) return;
-
-    auto out        = out_rf.write_accessor<VAL, DIM>();
-    auto fill_value = fill_value_scalar.value<VAL>();
-
-#ifndef LEGION_BOUNDS_CHECKS
-    // Check to see if this is dense or not
-    bool dense = out.accessor.is_dense_row_major(rect);
-#else
-    // No dense execution if we're doing bounds checks
-    bool dense = false;
-#endif
-
+    size_t volume = rect.volume();
     if (dense) {
       auto outptr = out.ptr(rect);
       for (size_t idx = 0; idx < volume; ++idx) outptr[idx] = fill_value;
-    } else
+    } else {
       for (size_t idx = 0; idx < volume; ++idx) {
         const auto point = pitches.unflatten(idx, rect.lo);
         out[point]       = fill_value;
       }
+    }
   }
 };
+
+void deserialize(Deserializer &ctx, FillArgs &args)
+{
+  deserialize(ctx, args.shape);
+  deserialize(ctx, args.out);
+  deserialize(ctx, args.fill_value);
+}
 
 /*static*/ void FillTask::cpu_variant(const Task *task,
                                       const std::vector<PhysicalRegion> &regions,
                                       Context context,
                                       Runtime *runtime)
 {
-  Deserializer ctx(task, regions);
-
-  Shape shape;
-  RegionField out;
-  UntypedScalar fill_value;
-
-  deserialize(ctx, shape);
-  deserialize(ctx, out);
-  deserialize(ctx, fill_value);
-
-  double_dispatch(out.dim(), out.code(), FillImpl{}, shape, out, fill_value);
+  fill_template<VariantKind::CPU>(task, regions, context, runtime);
 }
 
 namespace  // unnamed

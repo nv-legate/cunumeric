@@ -27,7 +27,7 @@ using namespace Legion;
 template <LegateTypeCode SRC_TYPE>
 struct ConvertImpl {
   template <LegateTypeCode DST_TYPE, std::enable_if_t<SRC_TYPE != DST_TYPE> * = nullptr>
-  UntypedScalar operator()(UntypedScalar &in_scalar)
+  UntypedScalar operator()(const UntypedScalar &in_scalar) const
   {
     using OP  = ConvertOp<DST_TYPE, SRC_TYPE>;
     using SRC = legate_type_of<SRC_TYPE>;
@@ -39,7 +39,7 @@ struct ConvertImpl {
   }
 
   template <LegateTypeCode DST_TYPE, std::enable_if_t<SRC_TYPE == DST_TYPE> * = nullptr>
-  UntypedScalar operator()(UntypedScalar &in_scalar)
+  UntypedScalar operator()(const UntypedScalar &in_scalar) const
   {
     assert(false);
     return UntypedScalar();
@@ -48,7 +48,7 @@ struct ConvertImpl {
 
 struct SourceTypeDispatch {
   template <LegateTypeCode SRC_TYPE>
-  UntypedScalar operator()(LegateTypeCode dtype, UntypedScalar &in)
+  UntypedScalar operator()(LegateTypeCode dtype, const UntypedScalar &in) const
   {
     return type_dispatch(dtype, ConvertImpl<SRC_TYPE>{}, in);
   }
@@ -62,11 +62,11 @@ struct SourceTypeDispatch {
   Deserializer ctx(task, regions);
 
   LegateTypeCode dtype;
-  UntypedScalar in;
+  Array in;
   deserialize(ctx, dtype);
   deserialize(ctx, in);
 
-  return type_dispatch(in.code(), SourceTypeDispatch{}, dtype, in);
+  return type_dispatch(in.code(), SourceTypeDispatch{}, dtype, in.scalar());
 }
 
 namespace  // unnamed

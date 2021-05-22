@@ -17,9 +17,18 @@
 #pragma once
 
 #include "numpy.h"
+#include "scalar.h"
 
 namespace legate {
 namespace numpy {
+
+struct FillArgs {
+  Shape shape;
+  Array out;
+  UntypedScalar fill_value;
+};
+
+void deserialize(Deserializer& ctx, FillArgs& args);
 
 class FillTask : public NumPyTask<FillTask> {
  public:

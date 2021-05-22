@@ -14,24 +14,16 @@
  *
  */
 
-#include <iostream>
-
 #include "unary/unary_red.h"
-#include "unary/unary_red_util.h"
-#include "core.h"
-#include "deserializer.h"
-#include "dispatch.h"
-#include "point_task.h"
+#include "unary/unary_red_template.inl"
 
 namespace legate {
 namespace numpy {
 
 using namespace Legion;
 
-namespace gpu {
-
 template <typename T>
-constexpr T div_and_ceil(T value, T divider)
+static constexpr T div_and_ceil(T value, T divider)
 {
   return std::max<T>((value + divider - 1) / divider, 1);
 }
@@ -306,99 +298,51 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   if (result != identity) out.reduce(point, result);
 }
 
-template <UnaryRedCode OP_CODE>
-struct UnaryRedImpl {
-  template <LegateTypeCode CODE,
-            int32_t RHS_DIM,
-            std::enable_if_t<(RHS_DIM > 1) && UnaryRedOp<OP_CODE, CODE>::valid> * = nullptr>
-  void operator()(int32_t collapsed_dim,
-                  Shape &rhs_shape,
-                  RegionField &lhs_rf,
-                  RegionField &rhs_rf,
-                  bool needs_reduction)
+template <UnaryRedCode OP_CODE, LegateTypeCode CODE, int DIM>
+struct UnaryRedImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
+  using OP    = UnaryRedOp<OP_CODE, CODE>;
+  using LG_OP = typename OP::OP;
+  using VAL   = legate_type_of<CODE>;
+
+  void operator()(AccessorRD<LG_OP, false, DIM> lhs,
+                  AccessorRO<VAL, DIM> rhs,
+                  const Rect<DIM> &rect,
+                  const Pitches<DIM - 1> &pitches,
+                  int collapsed_dim,
+                  size_t volume) const
   {
-    using OP  = typename UnaryRedOp<OP_CODE, CODE>::OP;
-    using VAL = legate_type_of<CODE>;
+    ThreadBlocks<DIM> blocks;
+    blocks.initialize(rect, collapsed_dim);
 
-    auto rhs_rect = rhs_shape.to_rect<RHS_DIM>();
-    if (rhs_rect.volume() == 0) return;
-
-    ThreadBlocks<RHS_DIM> blocks;
-    blocks.initialize(rhs_rect, collapsed_dim);
-    auto rhs = rhs_rf.read_accessor<VAL, RHS_DIM>();
-
-    if (needs_reduction) {
-      auto lhs = lhs_rf.reduce_accessor<OP, false, RHS_DIM>();
-      blocks.compute_maximum_concurrency(
-        reinterpret_cast<const void *>(reduce_with_rd_acc<OP, VAL, RHS_DIM>));
-      reduce_with_rd_acc<OP, VAL, RHS_DIM><<<blocks.num_blocks(), blocks.num_threads()>>>(
-        lhs, rhs, OP::identity, blocks, rhs_rect, collapsed_dim);
-    } else {
-      auto lhs = lhs_rf.read_write_accessor<VAL, RHS_DIM>();
-      blocks.compute_maximum_concurrency(
-        reinterpret_cast<const void *>(reduce_with_rw_acc<OP, VAL, RHS_DIM>));
-      reduce_with_rw_acc<OP, VAL, RHS_DIM><<<blocks.num_blocks(), blocks.num_threads()>>>(
-        lhs, rhs, OP::identity, blocks, rhs_rect, collapsed_dim);
-    }
+    blocks.compute_maximum_concurrency(
+      reinterpret_cast<const void *>(reduce_with_rd_acc<LG_OP, VAL, DIM>));
+    reduce_with_rd_acc<LG_OP, VAL, DIM><<<blocks.num_blocks(), blocks.num_threads()>>>(
+      lhs, rhs, OP::identity, blocks, rect, collapsed_dim);
   }
 
-  template <LegateTypeCode CODE,
-            int32_t RHS_DIM,
-            std::enable_if_t<RHS_DIM <= 1 || !UnaryRedOp<OP_CODE, CODE>::valid> * = nullptr>
-  void operator()(int32_t collapsed_dim,
-                  Shape &rhs_shape,
-                  RegionField &lhs_rf,
-                  RegionField &rhs_rf,
-                  bool needs_reduction)
+  void operator()(AccessorRW<VAL, DIM> lhs,
+                  AccessorRO<VAL, DIM> rhs,
+                  const Rect<DIM> &rect,
+                  const Pitches<DIM - 1> &pitches,
+                  int collapsed_dim,
+                  size_t volume) const
   {
-    assert(false);
+    ThreadBlocks<DIM> blocks;
+    blocks.initialize(rect, collapsed_dim);
+
+    blocks.compute_maximum_concurrency(
+      reinterpret_cast<const void *>(reduce_with_rw_acc<OP, VAL, DIM>));
+    reduce_with_rw_acc<LG_OP, VAL, DIM><<<blocks.num_blocks(), blocks.num_threads()>>>(
+      lhs, rhs, OP::identity, blocks, rect, collapsed_dim);
   }
 };
-
-struct UnaryRedDispatch {
-  template <UnaryRedCode OP_CODE>
-  void operator()(int32_t collapsed_dim,
-                  Shape &rhs_shape,
-                  RegionField &lhs,
-                  RegionField &rhs,
-                  bool needs_reduction)
-  {
-    return double_dispatch(rhs.dim(),
-                           rhs.code(),
-                           UnaryRedImpl<OP_CODE>{},
-                           collapsed_dim,
-                           rhs_shape,
-                           lhs,
-                           rhs,
-                           needs_reduction);
-  }
-};
-
-}  // namespace gpu
 
 /*static*/ void UnaryRedTask::gpu_variant(const Task *task,
                                           const std::vector<PhysicalRegion> &regions,
                                           Context context,
                                           Runtime *runtime)
 {
-  Deserializer ctx(task, regions);
-
-  bool needs_reduction;
-  int32_t collapsed_dim;
-  UnaryRedCode op_code;
-  Shape rhs_shape;
-  RegionField lhs;
-  RegionField rhs;
-
-  deserialize(ctx, needs_reduction);
-  deserialize(ctx, collapsed_dim);
-  deserialize(ctx, op_code);
-  deserialize(ctx, rhs_shape);
-  deserialize(ctx, lhs);
-  deserialize(ctx, rhs);
-
-  return op_dispatch(
-    op_code, gpu::UnaryRedDispatch{}, collapsed_dim, rhs_shape, lhs, rhs, needs_reduction);
+  unary_red_template<VariantKind::GPU>(task, regions, context, runtime);
 }
 
 }  // namespace numpy

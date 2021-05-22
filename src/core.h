@@ -21,13 +21,15 @@
 namespace legate {
 namespace numpy {
 
+class UntypedScalar;
+
 class Shape {
  public:
   Shape() noexcept {}
   ~Shape();
 
  public:
-  template <int N>
+  template <int32_t N>
   Shape(const Legion::Rect<N> &rect) : N_(N), rect_(new Legion::Rect<N>(rect))
   {
   }
@@ -41,22 +43,20 @@ class Shape {
   Shape &operator=(Shape &&other) noexcept;
 
  public:
-  int dim() const noexcept { return N_; }
+  int32_t dim() const noexcept { return N_; }
   bool exists() const noexcept { return nullptr != rect_; }
 
  public:
-  template <int N>
+  template <int32_t N>
   Legion::Rect<N> to_rect() const
   {
-#ifdef LEGION_BOUNDS_CHECKS
     assert(N_ == N);
-#endif
     return *static_cast<Legion::Rect<N> *>(rect_);
   }
 
  private:
   struct copy_fn {
-    template <int N>
+    template <int32_t N>
     void *operator()(void *rect)
     {
       return new Legion::Rect<N>(*static_cast<Legion::Rect<N> *>(rect));
@@ -65,7 +65,7 @@ class Shape {
   void copy(const Shape &other);
   void move(Shape &&other);
   struct destroy_fn {
-    template <int N>
+    template <int32_t N>
     void operator()(void *rect)
     {
       delete static_cast<Legion::Rect<N> *>(rect);
@@ -74,9 +74,11 @@ class Shape {
   void destroy();
 
  private:
-  int N_{-1};
+  int32_t N_{-1};
   void *rect_{nullptr};
 };
+
+std::ostream &operator<<(std::ostream &os, const Shape &shape);
 
 class Transform {
  public:
@@ -84,7 +86,7 @@ class Transform {
   ~Transform();
 
  public:
-  template <int M, int N>
+  template <int32_t M, int32_t N>
   Transform(const Legion::AffineTransform<M, N> &transform)
     : M_(M), N_(N), transform_(new Legion::AffineTransform<M, N>(transform))
   {
@@ -99,22 +101,20 @@ class Transform {
   Transform &operator=(Transform &&other) noexcept;
 
  public:
-  std::pair<int, int> shape() const { return std::make_pair(M_, N_); }
+  std::pair<int32_t, int32_t> shape() const { return std::make_pair(M_, N_); }
   bool exists() const { return nullptr != transform_; }
 
  public:
-  template <int M, int N>
+  template <int32_t M, int32_t N>
   Legion::AffineTransform<M, N> to_affine_transform() const
   {
-#ifdef LEGION_BOUNDS_CHECKS
     assert(M_ == M && N_ == N);
-#endif
     return *static_cast<Legion::AffineTransform<M, N> *>(transform_);
   }
 
  private:
   struct copy_fn {
-    template <int M, int N>
+    template <int32_t M, int32_t N>
     void *operator()(void *transform)
     {
       using Transform = Legion::AffineTransform<M, N>;
@@ -124,7 +124,7 @@ class Transform {
   void copy(const Transform &other);
   void move(Transform &&other);
   struct destroy_fn {
-    template <int M, int N>
+    template <int32_t M, int32_t N>
     void operator()(void *transform)
     {
       using Transform = Legion::AffineTransform<M, N>;
@@ -134,16 +134,19 @@ class Transform {
   void destroy();
 
  private:
-  int M_{-1};
-  int N_{-1};
+  int32_t M_{-1};
+  int32_t N_{-1};
   void *transform_{nullptr};
 };
 
 class RegionField {
  public:
   RegionField() {}
-  RegionField(int dim, LegateTypeCode code, const Legion::PhysicalRegion &pr, Legion::FieldID fid);
-  RegionField(int dim,
+  RegionField(int32_t dim,
+              LegateTypeCode code,
+              const Legion::PhysicalRegion &pr,
+              Legion::FieldID fid);
+  RegionField(int32_t dim,
               LegateTypeCode code,
               const Legion::PhysicalRegion &pr,
               Legion::FieldID fid,
@@ -158,13 +161,13 @@ class RegionField {
   RegionField &operator=(const RegionField &other) = delete;
 
  public:
-  int dim() const { return dim_; }
+  int32_t dim() const { return dim_; }
   LegateTypeCode code() const { return code_; }
 
  public:
-  template <typename T, int N>
+  template <typename T, int32_t N>
   struct read_trans_accesor_fn {
-    template <int M>
+    template <int32_t M>
     AccessorRO<T, N> operator()(const Legion::PhysicalRegion &pr,
                                 Legion::FieldID fid,
                                 const Transform &transform)
@@ -173,12 +176,12 @@ class RegionField {
       return AccessorRO<T, N>(pr, fid, trans);
     }
   };
-  template <typename T, int DIM>
+  template <typename T, int32_t DIM>
   AccessorRO<T, DIM> read_accessor(void) const;
 
-  template <typename T, int N>
+  template <typename T, int32_t N>
   struct write_trans_accesor_fn {
-    template <int M>
+    template <int32_t M>
     AccessorWO<T, N> operator()(const Legion::PhysicalRegion &pr,
                                 Legion::FieldID fid,
                                 const Transform &transform)
@@ -187,12 +190,12 @@ class RegionField {
       return AccessorWO<T, N>(pr, fid, trans);
     }
   };
-  template <typename T, int DIM>
+  template <typename T, int32_t DIM>
   AccessorWO<T, DIM> write_accessor(void) const;
 
-  template <typename T, int N>
+  template <typename T, int32_t N>
   struct read_write_trans_accesor_fn {
-    template <int M>
+    template <int32_t M>
     AccessorRW<T, N> operator()(const Legion::PhysicalRegion &pr,
                                 Legion::FieldID fid,
                                 const Transform &transform)
@@ -201,13 +204,13 @@ class RegionField {
       return AccessorRW<T, N>(pr, fid, trans);
     }
   };
-  template <typename T, int DIM>
+  template <typename T, int32_t DIM>
   AccessorRW<T, DIM> read_write_accessor(void) const;
 
-  template <typename OP, bool EXCLUSIVE, int N>
+  template <typename OP, bool EXCLUSIVE, int32_t N>
   struct reduce_trans_accesor_fn {
     using Accessor = AccessorRD<OP, EXCLUSIVE, N>;
-    template <int M>
+    template <int32_t M>
     Accessor operator()(const Legion::PhysicalRegion &pr,
                         Legion::FieldID fid,
                         const Transform &transform)
@@ -216,11 +219,11 @@ class RegionField {
       return Accessor(pr, fid, OP::REDOP_ID, trans);
     }
   };
-  template <typename OP, bool EXCLUSIVE, int DIM>
+  template <typename OP, bool EXCLUSIVE, int32_t DIM>
   AccessorRD<OP, EXCLUSIVE, DIM> reduce_accessor(void) const;
 
  private:
-  int dim_{-1};
+  int32_t dim_{-1};
   LegateTypeCode code_{MAX_TYPE_NUMBER};
   Legion::PhysicalRegion pr_{};
   Legion::FieldID fid_{-1U};
@@ -232,64 +235,46 @@ class RegionField {
   bool reducible_{false};
 };
 
-template <typename T, int DIM>
-AccessorRO<T, DIM> RegionField::read_accessor(void) const
-{
-  if (transform_.exists())
-    return dim_dispatch(
-      transform_.shape().first, read_trans_accesor_fn<T, DIM>{}, pr_, fid_, transform_);
-  else {
-#ifdef LEGION_BOUNDS_CHECKS
-    assert(DIM == dim());
-#endif
-    return AccessorRO<T, DIM>(pr_, fid_);
-  }
-}
+class Array {
+ public:
+  Array() {}
+  Array(int32_t dim, LegateTypeCode code, Legion::Future future);
+  Array(int32_t dim, LegateTypeCode code, RegionField &&region_field);
 
-template <typename T, int DIM>
-AccessorWO<T, DIM> RegionField::write_accessor(void) const
-{
-  if (transform_.exists())
-    return dim_dispatch(
-      transform_.shape().first, write_trans_accesor_fn<T, DIM>{}, pr_, fid_, transform_);
-  else {
-#ifdef LEGION_BOUNDS_CHECKS
-    assert(DIM == dim());
-#endif
-    return AccessorWO<T, DIM>(pr_, fid_);
-  }
-}
+ public:
+  Array(Array &&other) noexcept;
+  Array &operator=(Array &&other) noexcept;
 
-template <typename T, int DIM>
-AccessorRW<T, DIM> RegionField::read_write_accessor(void) const
-{
-  if (transform_.exists())
-    return dim_dispatch(
-      transform_.shape().first, read_write_trans_accesor_fn<T, DIM>{}, pr_, fid_, transform_);
-  else {
-#ifdef LEGION_BOUNDS_CHECKS
-    assert(DIM == dim());
-#endif
-    return AccessorRW<T, DIM>(pr_, fid_);
-  }
-}
+ private:
+  Array(const Array &other) = delete;
+  Array &operator=(const Array &other) = delete;
 
-template <typename OP, bool EXCLUSIVE, int DIM>
-AccessorRD<OP, EXCLUSIVE, DIM> RegionField::reduce_accessor(void) const
-{
-  if (transform_.exists())
-    return dim_dispatch(transform_.shape().first,
-                        reduce_trans_accesor_fn<OP, EXCLUSIVE, DIM>{},
-                        pr_,
-                        fid_,
-                        transform_);
-  else {
-#ifdef LEGION_BOUNDS_CHECKS
-    assert(DIM == dim());
-#endif
-    return AccessorRD<OP, EXCLUSIVE, DIM>(pr_, fid_, OP::REDOP_ID);
-  }
-}
+ public:
+  int32_t dim() const { return dim_; }
+  LegateTypeCode code() const { return code_; }
+
+ public:
+  template <typename T, int32_t DIM>
+  AccessorRO<T, DIM> read_accessor(void) const;
+  template <typename T, int32_t DIM>
+  AccessorWO<T, DIM> write_accessor(void) const;
+  template <typename T, int32_t DIM>
+  AccessorRW<T, DIM> read_write_accessor(void) const;
+  template <typename OP, bool EXCLUSIVE, int32_t DIM>
+  AccessorRD<OP, EXCLUSIVE, DIM> reduce_accessor(void) const;
+
+ public:
+  UntypedScalar scalar() const;
+
+ private:
+  bool is_future_{false};
+  int32_t dim_{-1};
+  LegateTypeCode code_{MAX_TYPE_NUMBER};
+  Legion::Future future_;
+  RegionField region_field_;
+};
 
 }  // namespace numpy
 }  // namespace legate
+
+#include "core.inl"

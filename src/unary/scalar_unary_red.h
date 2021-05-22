@@ -18,9 +18,18 @@
 
 #include "numpy.h"
 #include "scalar.h"
+#include "unary/unary_red_util.h"
 
 namespace legate {
 namespace numpy {
+
+struct ScalarUnaryRedArgs {
+  UnaryRedCode op_code;
+  Shape shape;
+  Array in;
+};
+
+void deserialize(Deserializer& ctx, ScalarUnaryRedArgs& args);
 
 // Unary reduction task that produces scalar results
 class ScalarUnaryRedTask : public NumPyTask<ScalarUnaryRedTask> {

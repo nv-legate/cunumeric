@@ -17,10 +17,8 @@
 # since we have to add the -fopenmp flag to  CC_FLAGS for them
 GEN_CPU_SRC += binary/binary_op.cc            \
 							 binary/binary_op_util.cc       \
-							 binary/broadcast_binary_op.cc  \
 							 binary/scalar_binary_op.cc     \
 							 binary/binary_red.cc           \
-							 binary/broadcast_binary_red.cc \
 							 unary/scalar_unary_red.cc      \
 							 unary/unary_op.cc              \
 							 unary/unary_op_util.cc         \
@@ -59,9 +57,7 @@ GEN_CPU_SRC += binary/binary_op.cc            \
 
 ifeq ($(strip $(USE_OPENMP)),1)
 GEN_CPU_SRC += binary/binary_op_omp.cc            \
-							 binary/broadcast_binary_op_omp.cc  \
 							 binary/binary_red_omp.cc           \
-							 binary/broadcast_binary_red_omp.cc \
 							 unary/unary_op_omp.cc              \
 							 unary/scalar_unary_red_omp.cc      \
 							 unary/unary_red_omp.cc             \
@@ -70,9 +66,7 @@ GEN_CPU_SRC += binary/binary_op_omp.cc            \
 endif
 
 GEN_GPU_SRC += binary/binary_op.cu            \
-							 binary/broadcast_binary_op.cu  \
 							 binary/binary_red.cu           \
-							 binary/broadcast_binary_red.cu \
 							 unary/scalar_unary_red.cu      \
 							 unary/unary_red.cu             \
 							 unary/unary_op.cu              \

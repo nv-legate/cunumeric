@@ -15,21 +15,12 @@
  */
 
 #include "unary/scalar_unary_red.h"
-#include "unary/unary_red_util.h"
-#include "core.h"
-#include "cuda_help.h"
-#include "deserializer.h"
-#include "dispatch.h"
-#include "point_task.h"
-
-#include <thrust/reduce.h>
+#include "unary/scalar_unary_red_template.inl"
 
 namespace legate {
 namespace numpy {
 
 using namespace Legion;
-
-namespace gpu {
 
 template <typename Op,
           typename Output,
@@ -40,7 +31,7 @@ template <typename Op,
 static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   reduction_kernel(size_t volume,
                    Op op,
-                   Output result,
+                   Output out,
                    ReadAcc in,
                    Pitches pitches,
                    Point origin,
@@ -56,85 +47,51 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
     }
   }
   // Every thread in the thread block must participate in the exchange to get correct results
-  reduce_output(result, value);
+  reduce_output(out, value);
 }
 
-template <UnaryRedCode OP_CODE>
-struct ScalarUnaryRedImpl {
-  template <LegateTypeCode CODE,
-            int DIM,
-            std::enable_if_t<UnaryRedOp<OP_CODE, CODE>::valid> * = nullptr>
-  UntypedScalar operator()(Shape &shape, RegionField &in_rf)
+template <UnaryRedCode OP_CODE, LegateTypeCode CODE, int DIM>
+struct ScalarUnaryRedImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
+  using OP  = UnaryRedOp<OP_CODE, CODE>;
+  using VAL = legate_type_of<CODE>;
+
+  void operator()(OP func,
+                  VAL &result,
+                  AccessorRO<VAL, DIM> in,
+                  const Rect<DIM> &rect,
+                  const Pitches<DIM - 1> &pitches,
+                  bool dense) const
   {
-    using OP  = UnaryRedOp<OP_CODE, CODE>;
-    using VAL = legate_type_of<CODE>;
-
-    auto rect = shape.to_rect<DIM>();
-
-    Pitches<DIM - 1> pitches;
-    size_t volume = pitches.flatten(rect);
-
-    if (volume == 0) return UntypedScalar(OP::identity);
-
     cudaStream_t stream;
     cudaStreamCreate(&stream);
 
-    auto in             = in_rf.read_accessor<VAL, DIM>();
+    const size_t volume = rect.volume();
     const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-    DeferredReduction<typename OP::OP> result;
+    DeferredReduction<typename OP::OP> out;
     size_t shmem_size = THREADS_PER_BLOCK / 32 * sizeof(VAL);
 
     if (blocks >= MAX_REDUCTION_CTAS) {
       const size_t iters = (blocks + MAX_REDUCTION_CTAS - 1) / MAX_REDUCTION_CTAS;
       reduction_kernel<<<MAX_REDUCTION_CTAS, THREADS_PER_BLOCK, shmem_size, stream>>>(
-        volume, typename OP::OP{}, result, in, pitches, rect.lo, iters, OP::identity);
+        volume, typename OP::OP{}, out, in, pitches, rect.lo, iters, OP::identity);
     } else
       reduction_kernel<<<blocks, THREADS_PER_BLOCK, shmem_size, stream>>>(
-        volume, typename OP::OP{}, result, in, pitches, rect.lo, 1, OP::identity);
+        volume, typename OP::OP{}, out, in, pitches, rect.lo, 1, OP::identity);
 
     // TODO: We eventually want to unblock this step
     cudaStreamSynchronize(stream);
     cudaStreamDestroy(stream);
 
-    return UntypedScalar(result.read());
-  }
-
-  template <LegateTypeCode CODE,
-            int DIM,
-            std::enable_if_t<!UnaryRedOp<OP_CODE, CODE>::valid> * = nullptr>
-  UntypedScalar operator()(Shape &shape, RegionField &in_rf)
-  {
-    assert(false);
-    return UntypedScalar();
+    result = out.read();
   }
 };
-
-struct ScalarUnaryRedDispatch {
-  template <UnaryRedCode OP_CODE>
-  UntypedScalar operator()(Shape &shape, RegionField &in)
-  {
-    return double_dispatch(in.dim(), in.code(), ScalarUnaryRedImpl<OP_CODE>{}, shape, in);
-  }
-};
-
-}  // namespace gpu
 
 /*static*/ UntypedScalar ScalarUnaryRedTask::gpu_variant(const Task *task,
                                                          const std::vector<PhysicalRegion> &regions,
                                                          Context context,
                                                          Runtime *runtime)
 {
-  Deserializer ctx(task, regions);
-
-  UnaryRedCode op_code;
-  Shape shape;
-  RegionField in;
-
-  deserialize(ctx, op_code);
-  deserialize(ctx, shape);
-  deserialize(ctx, in);
-
-  return op_dispatch(op_code, gpu::ScalarUnaryRedDispatch{}, shape, in);
+  return scalar_unary_red_template<VariantKind::GPU>(task, regions, context, runtime);
 }
 
 }  // namespace numpy

@@ -15,89 +15,48 @@
  */
 
 #include "unary/scalar_unary_red.h"
-#include "unary/unary_red_util.h"
-#include "core.h"
-#include "deserializer.h"
-#include "dispatch.h"
-#include "point_task.h"
+#include "unary/scalar_unary_red_template.inl"
 
 namespace legate {
 namespace numpy {
 
 using namespace Legion;
 
-template <UnaryRedCode OP_CODE>
-struct ScalarUnaryRedImpl {
-  template <LegateTypeCode CODE,
-            int DIM,
-            std::enable_if_t<UnaryRedOp<OP_CODE, CODE>::valid> * = nullptr>
-  UntypedScalar operator()(Shape &shape, RegionField &in_rf)
+template <UnaryRedCode OP_CODE, LegateTypeCode CODE, int DIM>
+struct ScalarUnaryRedImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
+  using OP  = UnaryRedOp<OP_CODE, CODE>;
+  using VAL = legate_type_of<CODE>;
+
+  void operator()(OP func,
+                  VAL &result,
+                  AccessorRO<VAL, DIM> in,
+                  const Rect<DIM> &rect,
+                  const Pitches<DIM - 1> &pitches,
+                  bool dense) const
   {
-    using OP  = UnaryRedOp<OP_CODE, CODE>;
-    using VAL = legate_type_of<CODE>;
-
-    auto rect = shape.to_rect<DIM>();
-
-    Pitches<DIM - 1> pitches;
-    size_t volume = pitches.flatten(rect);
-
-    VAL result = OP::identity;
-
-    if (volume == 0) return UntypedScalar(result);
-
-    auto in = in_rf.read_accessor<VAL, DIM>();
-
-#ifndef LEGION_BOUNDS_CHECKS
-    // Check to see if this is dense or not
-    bool dense = in.accessor.is_dense_row_major(rect);
-#else
-    // No dense execution if we're doing bounds checks
-    bool dense = false;
-#endif
-
+    const size_t volume = rect.volume();
     if (dense) {
       auto inptr = in.ptr(rect);
       for (size_t idx = 0; idx < volume; ++idx) OP::template fold<true>(result, inptr[idx]);
-    } else
-      CPULoop<DIM>::unary_reduction_loop(OP{}, result, rect, in);
-
-    return UntypedScalar(result);
-  }
-
-  template <LegateTypeCode CODE,
-            int DIM,
-            std::enable_if_t<!UnaryRedOp<OP_CODE, CODE>::valid> * = nullptr>
-  UntypedScalar operator()(Shape &shape, RegionField &in_rf)
-  {
-    assert(false);
-    return UntypedScalar();
+    } else {
+      CPULoop<DIM>::unary_reduction_loop(func, result, rect, in);
+    }
   }
 };
 
-struct ScalarUnaryRedDispatch {
-  template <UnaryRedCode OP_CODE>
-  UntypedScalar operator()(Shape &shape, RegionField &in)
-  {
-    return double_dispatch(in.dim(), in.code(), ScalarUnaryRedImpl<OP_CODE>{}, shape, in);
-  }
-};
+void deserialize(Deserializer &ctx, ScalarUnaryRedArgs &args)
+{
+  deserialize(ctx, args.op_code);
+  deserialize(ctx, args.shape);
+  deserialize(ctx, args.in);
+}
 
 /*static*/ UntypedScalar ScalarUnaryRedTask::cpu_variant(const Task *task,
                                                          const std::vector<PhysicalRegion> &regions,
                                                          Context context,
                                                          Runtime *runtime)
 {
-  Deserializer ctx(task, regions);
-
-  UnaryRedCode op_code;
-  Shape shape;
-  RegionField in;
-
-  deserialize(ctx, op_code);
-  deserialize(ctx, shape);
-  deserialize(ctx, in);
-
-  return op_dispatch(op_code, ScalarUnaryRedDispatch{}, shape, in);
+  return scalar_unary_red_template<VariantKind::CPU>(task, regions, context, runtime);
 }
 
 namespace  // unnamed

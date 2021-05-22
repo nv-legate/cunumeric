@@ -139,5 +139,21 @@ void deserialize(Deserializer &ctx, RegionField &value)
   value = RegionField(dim, code, pr, fid, std::move(transform));
 }
 
+void deserialize(Deserializer &ctx, Array &array)
+{
+  auto is_future = ctx.deserializer_.unpack_bool();
+  auto dim       = ctx.deserializer_.unpack_32bit_int();
+  auto code      = ctx.deserializer_.unpack_dtype();
+
+  if (is_future) {
+    array        = Array(dim, code, ctx.futures_[0]);
+    ctx.futures_ = ctx.futures_.subspan(1);
+  } else {
+    RegionField rf;
+    deserialize(ctx, rf);
+    array = Array(dim, code, std::move(rf));
+  }
+}
+
 }  // namespace numpy
 }  // namespace legate

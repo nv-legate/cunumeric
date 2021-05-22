@@ -17,9 +17,19 @@
 #pragma once
 
 #include "numpy.h"
+#include "core.h"
+#include "deserializer.h"
 
 namespace legate {
 namespace numpy {
+
+struct ConvertArgs {
+  Shape shape;
+  Array out;
+  Array in;
+};
+
+void deserialize(Deserializer& ctx, ConvertArgs& args);
 
 class ConvertTask : public NumPyTask<ConvertTask> {
  public:

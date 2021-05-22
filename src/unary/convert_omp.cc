@@ -15,47 +15,27 @@
  */
 
 #include "unary/convert.h"
-#include "unary/convert_util.h"
-#include "core.h"
-#include "deserializer.h"
-#include "dispatch.h"
-#include "point_task.h"
+#include "unary/convert_template.inl"
 
 namespace legate {
 namespace numpy {
 
 using namespace Legion;
 
-namespace omp {
+template <LegateTypeCode DST_TYPE, LegateTypeCode SRC_TYPE, int DIM>
+struct ConvertImplBody<VariantKind::OMP, DST_TYPE, SRC_TYPE, DIM> {
+  using OP  = ConvertOp<DST_TYPE, SRC_TYPE>;
+  using SRC = legate_type_of<SRC_TYPE>;
+  using DST = legate_type_of<DST_TYPE>;
 
-template <LegateTypeCode SRC_TYPE>
-struct ConvertImpl {
-  template <LegateTypeCode DST_TYPE, int DIM, std::enable_if_t<SRC_TYPE != DST_TYPE> * = nullptr>
-  void operator()(Shape &shape, RegionField &out_rf, RegionField &in_rf)
+  void operator()(OP func,
+                  AccessorWO<DST, DIM> out,
+                  AccessorRO<SRC, DIM> in,
+                  const Pitches<DIM - 1> &pitches,
+                  const Rect<DIM> &rect,
+                  bool dense) const
   {
-    using OP  = ConvertOp<DST_TYPE, SRC_TYPE>;
-    using SRC = legate_type_of<SRC_TYPE>;
-    using DST = legate_type_of<DST_TYPE>;
-
-    auto rect = shape.to_rect<DIM>();
-
-    Pitches<DIM - 1> pitches;
-    size_t volume = pitches.flatten(rect);
-
-    if (volume == 0) return;
-
-    auto out = out_rf.write_accessor<DST, DIM>();
-    auto in  = in_rf.read_accessor<SRC, DIM>();
-
-#ifndef LEGION_BOUNDS_CHECKS
-    // Check to see if this is dense or not
-    bool dense = out.accessor.is_dense_row_major(rect) && in.accessor.is_dense_row_major(rect);
-#else
-    // No dense execution if we're doing bounds checks
-    bool dense = false;
-#endif
-
-    OP func{};
+    const size_t volume = rect.volume();
     if (dense) {
       auto outptr = out.ptr(rect);
       auto inptr  = in.ptr(rect);
@@ -65,40 +45,14 @@ struct ConvertImpl {
       OMPLoop<DIM>::unary_loop(func, out, in, rect);
     }
   }
-
-  template <LegateTypeCode DST_TYPE, int DIM, std::enable_if_t<SRC_TYPE == DST_TYPE> * = nullptr>
-  void operator()(Shape &shape, RegionField &out_rf, RegionField &in_rf)
-  {
-    assert(false);
-  }
 };
-
-struct SourceTypeDispatch {
-  template <LegateTypeCode SRC_TYPE>
-  void operator()(Shape &shape, RegionField &out, RegionField &in)
-  {
-    double_dispatch(out.dim(), out.code(), ConvertImpl<SRC_TYPE>{}, shape, out, in);
-  }
-};
-
-}  // namespace omp
 
 /*static*/ void ConvertTask::omp_variant(const Task *task,
                                          const std::vector<PhysicalRegion> &regions,
                                          Context context,
                                          Runtime *runtime)
 {
-  Deserializer ctx(task, regions);
-
-  Shape shape;
-  RegionField out;
-  RegionField in;
-
-  deserialize(ctx, shape);
-  deserialize(ctx, out);
-  deserialize(ctx, in);
-
-  type_dispatch(in.code(), omp::SourceTypeDispatch{}, shape, out, in);
+  convert_template<VariantKind::OMP>(task, regions, context, runtime);
 }
 
 }  // namespace numpy

@@ -74,8 +74,9 @@ void UntypedScalar::copy(const UntypedScalar &other)
 void UntypedScalar::move(UntypedScalar &&other)
 {
   destroy();
-  code_       = other.code_;
-  data_       = other.data_;
+  code_ = other.code_;
+  data_ = other.data_;
+  assert(nullptr != data_ || code_ == LegateTypeCode::MAX_TYPE_NUMBER);
   other.code_ = LegateTypeCode::MAX_TYPE_NUMBER;
   other.data_ = nullptr;
 }

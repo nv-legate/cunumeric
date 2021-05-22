@@ -131,6 +131,12 @@ template <>
 struct is_complex<complex<double>> : std::true_type {
 };
 
+enum class VariantKind : int {
+  CPU = 0,
+  OMP = 1,
+  GPU = 2,
+};
+
 class LegateNumPy {
  public:
   // Record variants for all our tasks

@@ -22,6 +22,16 @@
 namespace legate {
 namespace numpy {
 
+struct UnaryOpArgs {
+  UnaryOpCode op_code;
+  Shape shape;
+  Array out;
+  Array in;
+  std::vector<UntypedScalar> args;
+};
+
+void deserialize(Deserializer& ctx, UnaryOpArgs& args);
+
 class UnaryOpTask : public NumPyTask<UnaryOpTask> {
  public:
   static const int TASK_ID = NUMPY_UNARY_OP;

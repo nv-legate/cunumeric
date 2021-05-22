@@ -15,18 +15,12 @@
  */
 
 #include "unary/unary_red.h"
-#include "unary/unary_red_util.h"
-#include "core.h"
-#include "deserializer.h"
-#include "dispatch.h"
-#include "point_task.h"
+#include "unary/unary_red_template.inl"
 
 namespace legate {
 namespace numpy {
 
 using namespace Legion;
-
-namespace omp {
 
 struct Split {
   size_t outer{0};
@@ -81,101 +75,55 @@ class Splitter {
   size_t pitches_[DIM];
 };
 
-template <UnaryRedCode OP_CODE>
-struct UnaryRedImpl {
-  template <LegateTypeCode CODE,
-            int RHS_DIM,
-            std::enable_if_t<(RHS_DIM > 1) && UnaryRedOp<OP_CODE, CODE>::valid> * = nullptr>
-  void operator()(int collapsed_dim,
-                  Shape &rhs_shape,
-                  RegionField &lhs_rf,
-                  RegionField &rhs_rf,
-                  bool needs_reduction)
+template <UnaryRedCode OP_CODE, LegateTypeCode CODE, int DIM>
+struct UnaryRedImplBody<VariantKind::OMP, OP_CODE, CODE, DIM> {
+  using OP    = UnaryRedOp<OP_CODE, CODE>;
+  using LG_OP = typename OP::OP;
+  using VAL   = legate_type_of<CODE>;
+
+  void operator()(AccessorRD<LG_OP, true, DIM> lhs,
+                  AccessorRO<VAL, DIM> rhs,
+                  const Rect<DIM> &rect,
+                  const Pitches<DIM - 1> &pitches,
+                  int collapsed_dim,
+                  size_t volume) const
   {
-    constexpr int LHS_DIM = RHS_DIM - 1;
-    using OP              = UnaryRedOp<OP_CODE, CODE>;
-    using VAL             = legate_type_of<CODE>;
+    Splitter<DIM> splitter;
+    auto split = splitter.split(rect, collapsed_dim);
 
-    Splitter<RHS_DIM> rhs_splitter;
-    auto rhs_rect = rhs_shape.to_rect<RHS_DIM>();
-    if (rhs_rect.volume() == 0) return;
-    auto rhs_split = rhs_splitter.split(rhs_rect, collapsed_dim);
-
-    auto rhs = rhs_rf.read_accessor<VAL, RHS_DIM>();
-
-    if (needs_reduction) {
-      auto lhs = lhs_rf.reduce_accessor<typename OP::OP, true, RHS_DIM>();
 #pragma omp parallel for schedule(static)
-      for (size_t o_idx = 0; o_idx < rhs_split.outer; ++o_idx)
-        for (size_t i_idx = 0; i_idx < rhs_split.inner; ++i_idx) {
-          auto point = rhs_splitter.combine(o_idx, i_idx, rhs_rect.lo);
-          lhs.reduce(point, rhs[point]);
-        }
-    } else {
-      auto lhs = lhs_rf.read_write_accessor<VAL, RHS_DIM>();
-#pragma omp parallel for schedule(static)
-      for (size_t o_idx = 0; o_idx < rhs_split.outer; ++o_idx)
-        for (size_t i_idx = 0; i_idx < rhs_split.inner; ++i_idx) {
-          auto point = rhs_splitter.combine(o_idx, i_idx, rhs_rect.lo);
-          OP::template fold<true>(lhs[point], rhs[point]);
-        }
-    }
+    for (size_t o_idx = 0; o_idx < split.outer; ++o_idx)
+      for (size_t i_idx = 0; i_idx < split.inner; ++i_idx) {
+        auto point = splitter.combine(o_idx, i_idx, rect.lo);
+        lhs.reduce(point, rhs[point]);
+      }
   }
 
-  template <LegateTypeCode CODE,
-            int RHS_DIM,
-            std::enable_if_t<RHS_DIM <= 1 || !UnaryRedOp<OP_CODE, CODE>::valid> * = nullptr>
-  void operator()(int collapsed_dim,
-                  Shape &rhs_shape,
-                  RegionField &lhs_rf,
-                  RegionField &rhs_rf,
-                  bool needs_reduction)
+  void operator()(AccessorRW<VAL, DIM> lhs,
+                  AccessorRO<VAL, DIM> rhs,
+                  const Rect<DIM> &rect,
+                  const Pitches<DIM - 1> &pitches,
+                  int collapsed_dim,
+                  size_t volume) const
   {
-    assert(false);
+    Splitter<DIM> splitter;
+    auto split = splitter.split(rect, collapsed_dim);
+
+#pragma omp parallel for schedule(static)
+    for (size_t o_idx = 0; o_idx < split.outer; ++o_idx)
+      for (size_t i_idx = 0; i_idx < split.inner; ++i_idx) {
+        auto point = splitter.combine(o_idx, i_idx, rect.lo);
+        OP::template fold<true>(lhs[point], rhs[point]);
+      }
   }
 };
-
-struct UnaryRedDispatch {
-  template <UnaryRedCode OP_CODE>
-  void operator()(
-    int collapsed_dim, Shape &rhs_shape, RegionField &lhs, RegionField &rhs, bool needs_reduction)
-  {
-    return double_dispatch(rhs.dim(),
-                           rhs.code(),
-                           UnaryRedImpl<OP_CODE>{},
-                           collapsed_dim,
-                           rhs_shape,
-                           lhs,
-                           rhs,
-                           needs_reduction);
-  }
-};
-
-}  // namespace omp
 
 /*static*/ void UnaryRedTask::omp_variant(const Task *task,
                                           const std::vector<PhysicalRegion> &regions,
                                           Context context,
                                           Runtime *runtime)
 {
-  Deserializer ctx(task, regions);
-
-  bool needs_reduction;
-  int32_t collapsed_dim;
-  UnaryRedCode op_code;
-  Shape rhs_shape;
-  RegionField lhs;
-  RegionField rhs;
-
-  deserialize(ctx, needs_reduction);
-  deserialize(ctx, collapsed_dim);
-  deserialize(ctx, op_code);
-  deserialize(ctx, rhs_shape);
-  deserialize(ctx, lhs);
-  deserialize(ctx, rhs);
-
-  return op_dispatch(
-    op_code, omp::UnaryRedDispatch{}, collapsed_dim, rhs_shape, lhs, rhs, needs_reduction);
+  unary_red_template<VariantKind::OMP>(task, regions, context, runtime);
 }
 
 }  // namespace numpy

@@ -15,17 +15,12 @@
  */
 
 #include "unary/unary_op.h"
-#include "core.h"
-#include "deserializer.h"
-#include "dispatch.h"
-#include "point_task.h"
+#include "unary/unary_op_template.inl"
 
 namespace legate {
 namespace numpy {
 
 using namespace Legion;
-
-namespace gpu {
 
 template <typename Function, typename ARG, typename RES>
 static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
@@ -46,39 +41,20 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   out[point] = func(in[point]);
 }
 
-template <UnaryOpCode OP_CODE>
-struct UnaryOpImpl {
-  template <LegateTypeCode CODE,
-            int DIM,
-            std::enable_if_t<UnaryOp<OP_CODE, CODE>::valid> * = nullptr>
-  void operator()(Shape &shape,
-                  RegionField &out_rf,
-                  RegionField &in_rf,
-                  std::vector<UntypedScalar> &args)
+template <UnaryOpCode OP_CODE, LegateTypeCode CODE, int DIM>
+struct UnaryOpImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
+  using OP  = UnaryOp<OP_CODE, CODE>;
+  using ARG = legate_type_of<CODE>;
+  using RES = std::result_of_t<OP(ARG)>;
+
+  void operator()(OP func,
+                  AccessorWO<RES, DIM> out,
+                  AccessorRO<ARG, DIM> in,
+                  const Pitches<DIM - 1> &pitches,
+                  const Rect<DIM> &rect,
+                  bool dense) const
   {
-    using OP  = UnaryOp<OP_CODE, CODE>;
-    using ARG = legate_type_of<CODE>;
-    using RES = std::result_of_t<OP(ARG)>;
-
-    auto rect = shape.to_rect<DIM>();
-
-    Pitches<DIM - 1> pitches;
-    size_t volume = pitches.flatten(rect);
-
-    if (volume == 0) return;
-
-    auto out = out_rf.write_accessor<RES, DIM>();
-    auto in  = in_rf.read_accessor<ARG, DIM>();
-
-#ifndef LEGION_BOUNDS_CHECKS
-    // Check to see if this is dense or not
-    bool dense = out.accessor.is_dense_row_major(rect) && in.accessor.is_dense_row_major(rect);
-#else
-    // No dense execution if we're doing bounds checks
-    bool dense = false;
-#endif
-
-    OP func(args);
+    const size_t volume = rect.volume();
     const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
     if (dense) {
       auto outptr = out.ptr(rect);
@@ -88,49 +64,14 @@ struct UnaryOpImpl {
       generic_kernel<<<blocks, THREADS_PER_BLOCK>>>(volume, func, out, in, pitches, rect);
     }
   }
-
-  template <LegateTypeCode CODE,
-            int DIM,
-            std::enable_if_t<!UnaryOp<OP_CODE, CODE>::valid> * = nullptr>
-  void operator()(Shape &shape,
-                  RegionField &out_rf,
-                  RegionField &in_rf,
-                  std::vector<UntypedScalar> &args)
-  {
-    assert(false);
-  }
 };
-
-struct UnaryOpDispatch {
-  template <UnaryOpCode OP_CODE>
-  void operator()(Shape &shape, RegionField &out, RegionField &in, std::vector<UntypedScalar> &args)
-  {
-    double_dispatch(in.dim(), in.code(), UnaryOpImpl<OP_CODE>{}, shape, out, in, args);
-  }
-};
-
-}  // namespace gpu
 
 /*static*/ void UnaryOpTask::gpu_variant(const Task *task,
                                          const std::vector<PhysicalRegion> &regions,
                                          Context context,
                                          Runtime *runtime)
 {
-  Deserializer ctx(task, regions);
-
-  UnaryOpCode op_code;
-  Shape shape;
-  RegionField out;
-  RegionField in;
-  std::vector<UntypedScalar> args;
-
-  deserialize(ctx, op_code);
-  deserialize(ctx, shape);
-  deserialize(ctx, out);
-  deserialize(ctx, in);
-  deserialize(ctx, args);
-
-  op_dispatch(op_code, gpu::UnaryOpDispatch{}, shape, out, in, args);
+  unary_op_template<VariantKind::GPU>(task, regions, context, runtime);
 }
 
 }  // namespace numpy

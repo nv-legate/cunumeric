@@ -28,7 +28,7 @@ using namespace Legion;
 template <BinaryOpCode OP_CODE>
 struct BinaryOpImpl {
   template <LegateTypeCode CODE, std::enable_if_t<BinaryOp<OP_CODE, CODE>::valid> * = nullptr>
-  UntypedScalar operator()(UntypedScalar &in1, UntypedScalar &in2)
+  UntypedScalar operator()(const UntypedScalar &in1, const UntypedScalar &in2)
   {
     using OP  = BinaryOp<OP_CODE, CODE>;
     using ARG = legate_type_of<CODE>;
@@ -44,7 +44,7 @@ struct BinaryOpImpl {
   }
 
   template <LegateTypeCode CODE, std::enable_if_t<!BinaryOp<OP_CODE, CODE>::valid> * = nullptr>
-  UntypedScalar operator()(UntypedScalar &in1, UntypedScalar &in2)
+  UntypedScalar operator()(const UntypedScalar &in1, const UntypedScalar &in2)
   {
     assert(false);
     return UntypedScalar();
@@ -53,7 +53,7 @@ struct BinaryOpImpl {
 
 struct BinaryOpDispatch {
   template <BinaryOpCode OP_CODE>
-  UntypedScalar operator()(UntypedScalar &in1, UntypedScalar &in2)
+  UntypedScalar operator()(const UntypedScalar &in1, const UntypedScalar &in2)
   {
     return type_dispatch(in1.code(), BinaryOpImpl<OP_CODE>{}, in1, in2);
   }
@@ -67,14 +67,14 @@ struct BinaryOpDispatch {
   Deserializer ctx(task, regions);
 
   BinaryOpCode op_code;
-  UntypedScalar in1;
-  UntypedScalar in2;
+  Array in1;
+  Array in2;
 
   deserialize(ctx, op_code);
   deserialize(ctx, in1);
   deserialize(ctx, in2);
 
-  return op_dispatch(op_code, BinaryOpDispatch{}, in1, in2);
+  return op_dispatch(op_code, BinaryOpDispatch{}, in1.scalar(), in2.scalar());
 }
 
 namespace  // unnamed

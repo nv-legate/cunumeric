@@ -94,6 +94,7 @@ class Deserializer {
   friend void deserialize(Deserializer &ctx, Shape &value);
   friend void deserialize(Deserializer &ctx, Transform &value);
   friend void deserialize(Deserializer &ctx, RegionField &value);
+  friend void deserialize(Deserializer &ctx, Array &array);
 
  public:
   template <class T>

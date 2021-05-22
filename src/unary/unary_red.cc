@@ -15,91 +15,62 @@
  */
 
 #include "unary/unary_red.h"
-#include "unary/unary_red_util.h"
-#include "core.h"
-#include "deserializer.h"
-#include "dispatch.h"
-#include "point_task.h"
+#include "unary/unary_red_template.inl"
 
 namespace legate {
 namespace numpy {
 
 using namespace Legion;
 
-template <UnaryRedCode OP_CODE>
-struct UnaryRedImpl {
-  template <LegateTypeCode CODE,
-            int RHS_DIM,
-            std::enable_if_t<(RHS_DIM > 1) && UnaryRedOp<OP_CODE, CODE>::valid> * = nullptr>
-  void operator()(Shape &rhs_shape, RegionField &lhs_rf, RegionField &rhs_rf, bool needs_reduction)
+template <UnaryRedCode OP_CODE, LegateTypeCode CODE, int DIM>
+struct UnaryRedImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
+  using OP    = UnaryRedOp<OP_CODE, CODE>;
+  using LG_OP = typename OP::OP;
+  using VAL   = legate_type_of<CODE>;
+
+  void operator()(AccessorRD<LG_OP, true, DIM> lhs,
+                  AccessorRO<VAL, DIM> rhs,
+                  const Rect<DIM> &rect,
+                  const Pitches<DIM - 1> &pitches,
+                  int collapsed_dim,
+                  size_t volume) const
   {
-    constexpr int LHS_DIM = RHS_DIM - 1;
-    using OP              = UnaryRedOp<OP_CODE, CODE>;
-    using VAL             = legate_type_of<CODE>;
-
-    Pitches<RHS_DIM - 1> rhs_pitches;
-    auto rhs_rect   = rhs_shape.to_rect<RHS_DIM>();
-    auto rhs_volume = rhs_pitches.flatten(rhs_rect);
-
-    if (rhs_volume == 0) return;
-
-    auto rhs = rhs_rf.read_accessor<VAL, RHS_DIM>();
-
-    if (needs_reduction) {
-      auto lhs = lhs_rf.reduce_accessor<typename OP::OP, true, RHS_DIM>();
-      for (size_t idx = 0; idx < rhs_volume; ++idx) {
-        auto point = rhs_pitches.unflatten(idx, rhs_rect.lo);
-        lhs.reduce(point, rhs[point]);
-      }
-    } else {
-      auto lhs = lhs_rf.write_accessor<VAL, RHS_DIM>();
-      for (size_t idx = 0; idx < rhs_volume; ++idx) {
-        auto point = rhs_pitches.unflatten(idx, rhs_rect.lo);
-        OP::template fold<true>(lhs[point], rhs[point]);
-      }
+    for (size_t idx = 0; idx < volume; ++idx) {
+      auto point = pitches.unflatten(idx, rect.lo);
+      lhs.reduce(point, rhs[point]);
     }
   }
 
-  template <LegateTypeCode CODE,
-            int RHS_DIM,
-            std::enable_if_t<RHS_DIM <= 1 || !UnaryRedOp<OP_CODE, CODE>::valid> * = nullptr>
-  void operator()(Shape &rhs_shape, RegionField &lhs, RegionField &rhs, bool needs_reduction)
+  void operator()(AccessorRW<VAL, DIM> lhs,
+                  AccessorRO<VAL, DIM> rhs,
+                  const Rect<DIM> &rect,
+                  const Pitches<DIM - 1> &pitches,
+                  int collapsed_dim,
+                  size_t volume) const
   {
-    assert(false);
+    for (size_t idx = 0; idx < volume; ++idx) {
+      auto point = pitches.unflatten(idx, rect.lo);
+      OP::template fold<true>(lhs[point], rhs[point]);
+    }
   }
 };
 
-struct UnaryRedDispatch {
-  template <UnaryRedCode OP_CODE>
-  void operator()(Shape &rhs_shape, RegionField &lhs, RegionField &rhs, bool needs_reduction)
-  {
-    return double_dispatch(
-      rhs.dim(), rhs.code(), UnaryRedImpl<OP_CODE>{}, rhs_shape, lhs, rhs, needs_reduction);
-  }
-};
+void deserialize(Deserializer &ctx, UnaryRedArgs &args)
+{
+  deserialize(ctx, args.needs_reduction);
+  deserialize(ctx, args.collapsed_dim);
+  deserialize(ctx, args.op_code);
+  deserialize(ctx, args.shape);
+  deserialize(ctx, args.lhs);
+  deserialize(ctx, args.rhs);
+}
 
 /*static*/ void UnaryRedTask::cpu_variant(const Task *task,
                                           const std::vector<PhysicalRegion> &regions,
                                           Context context,
                                           Runtime *runtime)
 {
-  Deserializer ctx(task, regions);
-
-  bool needs_reduction;
-  int32_t collapsed_dim;
-  UnaryRedCode op_code;
-  Shape rhs_shape;
-  RegionField lhs;
-  RegionField rhs;
-
-  deserialize(ctx, needs_reduction);
-  deserialize(ctx, collapsed_dim);
-  deserialize(ctx, op_code);
-  deserialize(ctx, rhs_shape);
-  deserialize(ctx, lhs);
-  deserialize(ctx, rhs);
-
-  return op_dispatch(op_code, UnaryRedDispatch{}, rhs_shape, lhs, rhs, needs_reduction);
+  unary_red_template<VariantKind::CPU>(task, regions, context, runtime);
 }
 
 namespace  // unnamed
