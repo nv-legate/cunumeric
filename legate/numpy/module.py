@@ -19,7 +19,7 @@ import sys
 import numpy as np
 
 from .array import ndarray
-from .config import BinaryOpCode, NumPyOpCode, UnaryOpCode
+from .config import BinaryOpCode, UnaryOpCode
 from .doc_utils import copy_docstring
 from .runtime import runtime
 
@@ -1386,8 +1386,7 @@ def where(a, x=None, y=None):
             y_array = temp
     else:
         common_type = x_array.dtype
-    return ndarray.perform_ternary_op(
-        NumPyOpCode.WHERE,
+    return ndarray.perform_where(
         lg_array,
         x_array,
         y_array,

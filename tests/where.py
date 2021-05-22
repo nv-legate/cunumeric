@@ -39,6 +39,30 @@ def test():
     y = lg.array(ynp)
     assert np.array_equal(np.where(anp, xnp, ynp), lg.where(a, x, y))
 
+    anp = np.array([True, False])
+    xnp = np.array([[1, 2], [3, 4]])
+    ynp = np.array([[9, 8], [7, 6]])
+    a = lg.array(anp)
+    x = lg.array(xnp)
+    y = lg.array(ynp)
+    assert np.array_equal(np.where(anp, xnp, ynp), lg.where(a, x, y))
+
+    anp = np.array([[True, False]])
+    xnp = np.array([[1, 2], [3, 4]])
+    ynp = np.array([[9, 8], [7, 6]])
+    a = lg.array(anp)
+    x = lg.array(xnp)
+    y = lg.array(ynp)
+    assert np.array_equal(np.where(anp, xnp, ynp), lg.where(a, x, y))
+
+    anp = np.array(False)
+    xnp = np.array([[1, 2], [3, 4]])
+    ynp = np.array([[9, 8], [7, 6]])
+    a = lg.array(anp)
+    x = lg.array(xnp)
+    y = lg.array(ynp)
+    assert np.array_equal(np.where(anp, xnp, ynp), lg.where(a, x, y))
+
 
 if __name__ == "__main__":
     test()

@@ -2070,16 +2070,13 @@ class ndarray(object):
         return dst
 
     @classmethod
-    def perform_ternary_op(
+    def perform_where(
         cls,
-        op,
         one,
         two,
         three,
         out=None,
         dtype=None,
-        args=None,
-        where=True,
         out_dtype=None,
         check_types=True,
         stacklevel=2,
@@ -2087,42 +2084,32 @@ class ndarray(object):
         # Compute the output shape
         if out is None:
             # Compute the output shape and confirm any broadcasting
-            if isinstance(where, ndarray):
-                out_shape = broadcast_shapes(
-                    one.shape, two.shape, three.shape, where.shape
-                )
-            else:
-                out_shape = broadcast_shapes(one.shape, two.shape, three.shape)
+            out_shape = broadcast_shapes(one.shape, two.shape, three.shape)
             if dtype is not None:
                 out = ndarray(
                     shape=out_shape,
                     dtype=dtype,
                     stacklevel=(stacklevel + 1),
-                    inputs=(one, two, three, where),
+                    inputs=(one, two, three),
                 )
             elif out_dtype is not None:
                 out = ndarray(
                     shape=out_shape,
                     dtype=out_dtype,
                     stacklevel=(stacklevel + 1),
-                    inputs=(one, two, three, where),
+                    inputs=(one, two, three),
                 )
             else:
                 out = ndarray(
                     shape=out_shape,
                     dtype=np.result_type(one, two, three),
                     stacklevel=(stacklevel + 1),
-                    inputs=(one, two, three, where),
+                    inputs=(one, two, three),
                 )
         else:
-            if isinstance(where, ndarray):
-                out_shape = broadcast_shapes(
-                    one.shape, two.shape, three.shape, out.shape, where.shape
-                )
-            else:
-                out_shape = broadcast_shapes(
-                    one.shape, two.shape, three.shape, out.shape
-                )
+            out_shape = broadcast_shapes(
+                one.shape, two.shape, three.shape, out.shape
+            )
             if out.shape != out_shape:
                 raise ValueError(
                     "out array shape "
@@ -2130,9 +2117,6 @@ class ndarray(object):
                     + " does not match expected shape "
                     + str(out_shape)
                 )
-        # Quick exit
-        if where is False:
-            return out
         if out_dtype is None:
             out_dtype = np.result_type(one, two, three)
         if check_types:
@@ -2143,7 +2127,7 @@ class ndarray(object):
                         shape=one.shape,
                         dtype=common_type,
                         stacklevel=(stacklevel + 1),
-                        inputs=(one, two, three, where),
+                        inputs=(one, two, three),
                     )
                     temp._thunk.convert(
                         one._thunk, stacklevel=(stacklevel + 1)
@@ -2154,7 +2138,7 @@ class ndarray(object):
                         shape=two.shape,
                         dtype=common_type,
                         stacklevel=(stacklevel + 1),
-                        inputs=(one, two, three, where),
+                        inputs=(one, two, three),
                     )
                     temp._thunk.convert(
                         two._thunk, stacklevel=(stacklevel + 1)
@@ -2165,7 +2149,7 @@ class ndarray(object):
                         shape=three.shape,
                         dtype=common_type,
                         stacklevel=(stacklevel + 1),
-                        inputs=(one, two, three, where),
+                        inputs=(one, two, three),
                     )
                     temp._thunk.convert(
                         three._thunk, stacklevel=(stacklevel + 1)
@@ -2176,42 +2160,27 @@ class ndarray(object):
                     shape=out.shape,
                     dtype=out_dtype,
                     stacklevel=(stacklevel + 1),
-                    inputs=(one, two, three, where),
+                    inputs=(one, two, three),
                 )
-                temp._thunk.ternary_op(
-                    op,
+                temp._thunk.where(
                     one._thunk,
                     two._thunk,
                     three._thunk,
-                    cls.get_where_thunk(
-                        where, out.shape, stacklevel=(stacklevel + 1)
-                    ),
-                    args,
                     stacklevel=(stacklevel + 1),
                 )
                 out._thunk.convert(temp._thunk, stacklevel=(stacklevel + 1))
             else:
-                out._thunk.ternary_op(
-                    op,
+                out._thunk.where(
                     one._thunk,
                     two._thunk,
                     three._thunk,
-                    cls.get_where_thunk(
-                        where, out.shape, stacklevel=(stacklevel + 1)
-                    ),
-                    args,
                     stacklevel=(stacklevel + 1),
                 )
         else:
-            out._thunk.ternary_op(
-                op,
+            out._thunk.where(
                 one._thunk,
                 two._thunk,
                 three._thunk,
-                cls.get_where_thunk(
-                    where, out.shape, stacklevel=(stacklevel + 1)
-                ),
-                args,
                 stacklevel=(stacklevel + 1),
             )
         return out

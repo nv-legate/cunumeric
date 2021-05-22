@@ -3774,14 +3774,7 @@ class DeferredArray(NumPyThunk):
             )
             self.runtime.check_shadow(self, op)
 
-    def ternary_op(
-        self, op, src1, src2, src3, where, args, stacklevel, callsite=None
-    ):
-        if where is not True:
-            # Haven't seen any cases where this is needed yet
-            raise NotImplementedError(
-                "need support for non-trivial where for ternary op"
-            )
+    def where(self, src1, src2, src3, stacklevel, callsite=None):
         rhs1_array = self.runtime.to_deferred_array(
             src1, stacklevel=(stacklevel + 1)
         )
@@ -3792,215 +3785,71 @@ class DeferredArray(NumPyThunk):
             src3, stacklevel=(stacklevel + 1)
         )
         lhs_array = self
-        rhs1 = rhs1_array.base
-        rhs2 = rhs2_array.base
-        rhs3 = rhs3_array.base
-        if lhs_array.size == 1:
-            task = Task(
-                self.runtime.get_ternary_task_id(
-                    op, lhs_array.dtype, scalar=True
-                ),
-                mapper=self.runtime.mapper_id,
-            )
-            if args is not None:
-                self.add_arguments(task, args)
-            task.add_future(rhs1)
-            task.add_future(rhs2)
-            task.add_future(rhs3)
-            result = self.runtime.dispatch(task)
-            lhs_array.base = result
+
+        rhs1_arg = DeferredArrayView(rhs1_array)
+        rhs2_arg = DeferredArrayView(rhs2_array)
+        rhs3_arg = DeferredArrayView(rhs3_array)
+        lhs_arg = DeferredArrayView(lhs_array)
+
+        # Align and broadcast region arguments if necessary
+        launch_space, key_arg = lhs_arg.find_key_view(
+            rhs1_arg, rhs2_arg, rhs3_arg
+        )
+        key_arg.update_tag(NumPyMappingTag.KEY_REGION_TAG)
+        rhs1_arg = rhs1_arg.broadcast(lhs_arg)
+        rhs2_arg = rhs2_arg.broadcast(lhs_arg)
+        rhs3_arg = rhs3_arg.broadcast(lhs_arg)
+
+        if launch_space is not None:
+            lhs_arg = lhs_arg.align_partition(key_arg)
+            rhs1_arg = rhs1_arg.align_partition(key_arg)
+            rhs2_arg = rhs2_arg.align_partition(key_arg)
+            rhs3_arg = rhs3_arg.align_partition(key_arg)
+            if lhs_arg is not key_arg:
+                lhs_arg.copy_key_partition_from(key_arg)
+
+        # Populate the Legate launcher
+        all_scalar_rhs = (
+            rhs1_arg.scalar and rhs2_arg.scalar and rhs3_arg.scalar
+        )
+
+        if all_scalar_rhs:
+            task_id = NumPyOpCode.SCALAR_WHERE
         else:
-            # Normal/broadcast version of this task
-            result = lhs_array.base
-            # Compute our transforms
-            (
-                transform1,
-                offset1,
-                proj1_id,
-                mapping_tag1,
-            ) = self.runtime.compute_broadcast_transform(
-                lhs_array.shape, rhs1_array.shape
-            )
-            (
-                transform2,
-                offset2,
-                proj2_id,
-                mapping_tag2,
-            ) = self.runtime.compute_broadcast_transform(
-                lhs_array.shape, rhs2_array.shape
-            )
-            (
-                transform3,
-                offset3,
-                proj3_id,
-                mapping_tag3,
-            ) = self.runtime.compute_broadcast_transform(
-                lhs_array.shape, rhs3_array.shape
-            )
-            # Compute our launch space
-            launch_space = result.compute_parallel_launch_space()
-            # Scalar should have been handled above
-            assert (
-                not isinstance(rhs1, Future)
-                or not isinstance(rhs2, Future)
-                or not isinstance(rhs3, Future)
-            )
-            has_future = (
-                isinstance(rhs1, Future)
-                or isinstance(rhs2, Future)
-                or isinstance(rhs3, Future)
-            )
-            argbuf = BufferBuilder()
-            if launch_space is not None:
-                (
-                    result_part,
-                    shardfn,
-                    shardsp,
-                ) = result.find_or_create_key_partition()
-                self.pack_shape(
-                    argbuf, lhs_array.shape, result_part.tile_shape, 0
-                )
-            else:
-                self.pack_shape(argbuf, lhs_array.shape)
-            argbuf.pack_accessor(result.field.field_id, result.transform)
-            if not isinstance(rhs1, Future):
-                if has_future:
-                    argbuf.pack_bool(False)  # Not a future
-                self.pack_transform_accessor(argbuf, rhs1, transform1)
-            else:
-                argbuf.pack_bool(True)  # Is a future
-            if not isinstance(rhs2, Future):
-                if has_future:
-                    argbuf.pack_bool(False)  # Not a future
-                self.pack_transform_accessor(argbuf, rhs2, transform2)
-            else:
-                argbuf.pack_bool(True)  # Is a future
-            if not isinstance(rhs3, Future):
-                if has_future:
-                    argbuf.pack_bool(False)
-                self.pack_transform_accessor(argbuf, rhs3, transform3)
-            else:
-                argbuf.pack_bool(True)  # Is a future
-            if launch_space is not None:
-                # Index task launch case
-                # Helper method for adding read requirements
-                def add_read_requirement(
-                    task, array, region, proj, trans, offset, tag
-                ):
-                    if isinstance(region, Future):
-                        task.add_future(region)
-                    else:
-                        part = region.find_or_create_congruent_partition(
-                            result_part, trans, offset
-                        )
-                        task.add_read_requirement(
-                            part, region.field.field_id, proj, tag=tag
-                        )
+            task_id = NumPyOpCode.WHERE
 
-                task = IndexTask(
-                    self.runtime.get_ternary_task_id(
-                        op,
-                        lhs_array.dtype,
-                        variant_code=NumPyVariantCode.BROADCAST
-                        if has_future
-                        else NumPyVariantCode.NORMAL,
-                    ),
-                    Rect(launch_space),
-                    self.runtime.empty_argmap,
-                    argbuf.get_string(),
-                    argbuf.get_size(),
-                    mapper=self.runtime.mapper_id,
-                    tag=shardfn,
-                )
-                if shardsp is not None:
-                    task.set_sharding_space(shardsp)
-                # result_part is computed above
-                assert len(launch_space) == lhs_array.ndim
-                task.add_write_requirement(
-                    result_part,
-                    result.field.field_id,
-                    0,
-                    tag=NumPyMappingTag.KEY_REGION_TAG,
-                )
-                add_read_requirement(
-                    task,
-                    rhs1_array,
-                    rhs1,
-                    proj1_id,
-                    transform1,
-                    offset1,
-                    mapping_tag1,
-                )
-                add_read_requirement(
-                    task,
-                    rhs2_array,
-                    rhs2,
-                    proj2_id,
-                    transform2,
-                    offset2,
-                    mapping_tag2,
-                )
-                add_read_requirement(
-                    task,
-                    rhs3_array,
-                    rhs3,
-                    proj3_id,
-                    transform3,
-                    offset3,
-                    mapping_tag3,
-                )
-                if args is not None:
-                    self.add_arguments(task, args)
-                self.runtime.dispatch(task)
-            else:
-                # Single task launch case
-                # Helper method for adding read requirements
-                def add_read_requirement(task, region, tag):
-                    if isinstance(region, Future):
-                        task.add_future(region)
-                    else:
-                        task.add_read_requirement(
-                            region.region, region.field.field_id, tag=tag
-                        )
+        (shardpt, shardfn, shardsp) = key_arg.sharding
 
-                shardpt, shardfn, shardsp = result.find_point_sharding()
-                task = Task(
-                    self.runtime.get_ternary_task_id(
-                        op,
-                        lhs_array.dtype,
-                        variant_code=NumPyVariantCode.BROADCAST
-                        if has_future
-                        else NumPyVariantCode.NORMAL,
-                    ),
-                    argbuf.get_string(),
-                    argbuf.get_size(),
-                    mapper=self.runtime.mapper_id,
-                    tag=shardfn,
-                )
-                if shardpt is not None:
-                    task.set_point(shardpt)
-                if shardsp is not None:
-                    task.set_sharding_space(shardsp)
-                task.add_write_requirement(
-                    result.region,
-                    result.field.field_id,
-                    tag=NumPyMappingTag.KEY_REGION_TAG,
-                )
-                add_read_requirement(task, rhs1, mapping_tag1)
-                add_read_requirement(task, rhs2, mapping_tag2)
-                add_read_requirement(task, rhs3, mapping_tag3)
-                if args is not None:
-                    self.add_arguments(task, args)
-                self.runtime.dispatch(task)
+        task = Map(self.runtime, task_id, tag=shardfn)
+        if not all_scalar_rhs:
+            if launch_space is not None:
+                task.add_shape(lhs_arg.shape, lhs_arg.part.tile_shape, 0)
+            else:
+                task.add_shape(lhs_arg.shape)
+            lhs_arg.add_to_legate_op(task, False)
+        rhs1_arg.add_to_legate_op(task, True)
+        rhs2_arg.add_to_legate_op(task, True)
+        rhs3_arg.add_to_legate_op(task, True)
+
+        if shardsp is not None:
+            task.set_sharding_space(shardsp)
+
+        # See if we are doing index space launches or not
+        if not all_scalar_rhs and launch_space is not None:
+            task.execute(Rect(launch_space))
+        else:
+            if shardpt is not None:
+                op.set_point(shardpt)
+            result = task.execute_single()
+            if lhs_array.scalar:
+                lhs_array.base = result
+
         self.runtime.profile_callsite(stacklevel + 1, True, callsite)
         if self.runtime.shadow_debug:
-            self.shadow.ternary_op(
-                op,
+            self.shadow.where(
                 src1.shadow,
                 src2.shadow,
                 src3.shadow,
-                where if not isinstance(where, NumPyThunk) else where.shadow,
-                args,
                 stacklevel=(stacklevel + 1),
             )
             self.runtime.check_shadow(self, op)

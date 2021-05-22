@@ -15,7 +15,8 @@
 
 # List all the application source files that need OpenMP separately
 # since we have to add the -fopenmp flag to  CC_FLAGS for them
-GEN_CPU_SRC += binary/binary_op.cc            \
+GEN_CPU_SRC += ternary/where.cc               \
+							 binary/binary_op.cc            \
 							 binary/binary_op_util.cc       \
 							 binary/scalar_binary_op.cc     \
 							 binary/binary_red.cc           \
@@ -50,22 +51,23 @@ GEN_CPU_SRC += binary/binary_op.cc            \
 							 sort.cc                        \
 							 tile.cc                        \
 							 trans.cc                       \
-							 where.cc                       \
 							 numpy.cc # This must always be the last file!
                         # It guarantees we do our registration callback
                         # only after all task variants are recorded
 
 ifeq ($(strip $(USE_OPENMP)),1)
-GEN_CPU_SRC += binary/binary_op_omp.cc            \
-							 binary/binary_red_omp.cc           \
-							 unary/unary_op_omp.cc              \
-							 unary/scalar_unary_red_omp.cc      \
-							 unary/unary_red_omp.cc             \
-							 unary/convert_omp.cc               \
+GEN_CPU_SRC += ternary/where_omp.cc          \
+							 binary/binary_op_omp.cc       \
+							 binary/binary_red_omp.cc      \
+							 unary/unary_op_omp.cc         \
+							 unary/scalar_unary_red_omp.cc \
+							 unary/unary_red_omp.cc        \
+							 unary/convert_omp.cc          \
 							 nullary/fill_omp.cc
 endif
 
-GEN_GPU_SRC += binary/binary_op.cu            \
+GEN_GPU_SRC += ternary/where.cu               \
+							 binary/binary_op.cu            \
 							 binary/binary_red.cu           \
 							 unary/scalar_unary_red.cu      \
 							 unary/unary_red.cu             \
@@ -87,5 +89,4 @@ GEN_GPU_SRC += binary/binary_op.cu            \
 							 scan.cu                        \
 							 sort.cu                        \
 							 tile.cu                        \
-							 trans.cu                       \
-							 where.cu
+							 trans.cu

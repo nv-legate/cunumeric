@@ -17,7 +17,7 @@ from __future__ import absolute_import, division, print_function
 
 import numpy as np
 
-from .config import BinaryOpCode, NumPyOpCode, UnaryOpCode, UnaryRedCode
+from .config import BinaryOpCode, UnaryOpCode, UnaryRedCode
 from .thunk import NumPyThunk
 
 
@@ -956,7 +956,7 @@ class EagerArray(NumPyThunk):
                 )
             self.runtime.profile_callsite(stacklevel + 1, False)
 
-    def ternary_op(self, op, rhs1, rhs2, rhs3, where, args, stacklevel):
+    def where(self, rhs1, rhs2, rhs3, stacklevel):
         if self.shadow:
             rhs1 = self.runtime.to_eager_array(
                 rhs1, stacklevel=(stacklevel + 1)
@@ -967,26 +967,10 @@ class EagerArray(NumPyThunk):
             rhs3 = self.runtime.to_eager_array(
                 rhs3, stacklevel=(stacklevel + 1)
             )
-            if where is not None and isinstance(where, NumPyThunk):
-                where = self.runtime.to_eager_array(
-                    where, stacklevel=(stacklevel + 1)
-                )
         elif self.deferred is None:
-            if where is not None and isinstance(where, NumPyThunk):
-                self.check_eager_args(
-                    (stacklevel + 1), rhs1, rhs2, rhs3, where
-                )
-            else:
-                self.check_eager_args((stacklevel + 1), rhs1, rhs2, rhs3)
+            self.check_eager_args((stacklevel + 1), rhs1, rhs2, rhs3)
         if self.deferred is not None:
-            self.deferred.ternary_op(
-                op, rhs1, rhs2, rhs3, where, args, stacklevel=(stacklevel + 1)
-            )
+            self.deferred.where(rhs1, rhs2, rhs3, stacklevel=(stacklevel + 1))
         else:
-            if op == NumPyOpCode.WHERE:
-                self.array[:] = np.where(rhs1.array, rhs2.array, rhs3.array)
-            else:
-                raise RuntimeError(
-                    "unsupported ternary reduction op " + str(op)
-                )
+            self.array[:] = np.where(rhs1.array, rhs2.array, rhs3.array)
             self.runtime.profile_callsite(stacklevel + 1, False)

@@ -131,7 +131,6 @@ class NumPyOpCode(IntEnum):
     SORT = legate_numpy.NUMPY_SORT
     TILE = legate_numpy.NUMPY_TILE
     TRANSPOSE = legate_numpy.NUMPY_TRANSPOSE
-    WHERE = legate_numpy.NUMPY_WHERE
     WRITE = legate_numpy.NUMPY_WRITE
     CONTAINS = legate_numpy.NUMPY_CONTAINS
     COUNT_NONZERO = legate_numpy.NUMPY_COUNT_NONZERO
@@ -153,6 +152,8 @@ class NumPyOpCode(IntEnum):
     BROADCAST_BINARY_RED = legate_numpy.NUMPY_BROADCAST_BINARY_RED
     CONVERT = legate_numpy.NUMPY_CONVERT
     SCALAR_CONVERT = legate_numpy.NUMPY_SCALAR_CONVERT
+    WHERE = legate_numpy.NUMPY_WHERE
+    SCALAR_WHERE = legate_numpy.NUMPY_SCALAR_WHERE
 
 
 @unique
