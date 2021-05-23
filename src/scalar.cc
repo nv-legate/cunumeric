@@ -31,11 +31,16 @@ UntypedScalar::UntypedScalar(UntypedScalar &&other) noexcept
 
 UntypedScalar::~UntypedScalar() { destroy(); }
 
-UntypedScalar &UntypedScalar::operator=(const UntypedScalar &other) noexcept { copy(other); }
+UntypedScalar &UntypedScalar::operator=(const UntypedScalar &other) noexcept
+{
+  copy(other);
+  return *this;
+}
 
 UntypedScalar &UntypedScalar::operator=(UntypedScalar &&other) noexcept
 {
   move(std::forward<UntypedScalar>(other));
+  return *this;
 }
 
 struct destroy_fn {

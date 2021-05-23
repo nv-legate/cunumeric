@@ -35,6 +35,7 @@ Shape &Shape::operator=(const Shape &other)
 {
   destroy();
   copy(other);
+  return *this;
 }
 
 Shape::Shape(Shape &&other) noexcept
@@ -47,6 +48,7 @@ Shape &Shape::operator=(Shape &&other) noexcept
 {
   destroy();
   move(std::forward<Shape>(other));
+  return *this;
 }
 
 void Shape::copy(const Shape &other)
@@ -100,6 +102,7 @@ Transform &Transform::operator=(const Transform &other)
 {
   destroy();
   copy(other);
+  return *this;
 }
 
 Transform::Transform(Transform &&other) noexcept
@@ -112,6 +115,7 @@ Transform &Transform::operator=(Transform &&other) noexcept
 {
   destroy();
   move(std::forward<Transform>(other));
+  return *this;
 }
 
 void Transform::copy(const Transform &other)
@@ -170,6 +174,7 @@ RegionField &RegionField::operator=(RegionField &&other) noexcept
   pr_        = other.pr_;
   fid_       = other.fid_;
   transform_ = std::move(other.transform_);
+  return *this;
 }
 
 Array::Array(int32_t dim, LegateTypeCode code, Future future)
@@ -194,6 +199,7 @@ Array &Array::operator=(Array &&other) noexcept
     future_ = other.future_;
   else
     region_field_ = std::move(other.region_field_);
+  return *this;
 }
 
 UntypedScalar Array::scalar() const { return future_.get_result<UntypedScalar>(); }
