@@ -1325,7 +1325,7 @@ class Runtime(object):
         result = Future()
         code = numpy_field_type_offsets[dtype.type]
         data = data.tobytes()
-        buf = struct.pack(f"i{len(data)}s", code, data)
+        buf = struct.pack(f"l{len(data)}s", code, data)
         result.set_value(self.runtime, buf, len(buf))
         if wrap:
             assert all(extent == 1 for extent in shape)

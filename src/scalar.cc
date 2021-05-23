@@ -88,22 +88,21 @@ void UntypedScalar::move(UntypedScalar &&other)
 
 size_t UntypedScalar::legion_buffer_size() const
 {
-  return sizeof(LegateTypeCode) + (nullptr != data_ ? elem_size() : 0);
+  return sizeof(uint64_t) + (nullptr != data_ ? elem_size() : 0);
 }
 
 void UntypedScalar::legion_serialize(void *buffer) const
 {
   *static_cast<LegateTypeCode *>(buffer) = code_;
   if (nullptr != data_)
-    memcpy(static_cast<int8_t *>(buffer) + sizeof(LegateTypeCode), data_, elem_size());
+    memcpy(static_cast<int8_t *>(buffer) + sizeof(uint64_t), data_, elem_size());
 }
 
 void UntypedScalar::legion_deserialize(const void *buffer)
 {
   code_ = *static_cast<const LegateTypeCode *>(buffer);
   if (LegateTypeCode::MAX_TYPE_NUMBER != code_)
-    data_ =
-      type_dispatch(code_, copy_fn{}, static_cast<const int8_t *>(buffer) + sizeof(LegateTypeCode));
+    data_ = type_dispatch(code_, copy_fn{}, static_cast<const int8_t *>(buffer) + sizeof(uint64_t));
 }
 
 struct size_fn {

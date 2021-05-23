@@ -74,7 +74,10 @@ class UntypedScalar {
   std::string to_string() const;
 
  private:
-  LegateTypeCode code_{LegateTypeCode::MAX_TYPE_NUMBER};
+  union {
+    LegateTypeCode code_{LegateTypeCode::MAX_TYPE_NUMBER};
+    uint64_t pad_;
+  };
   void *data_{nullptr};
 };
 

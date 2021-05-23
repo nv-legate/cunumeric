@@ -272,7 +272,7 @@ class DeferredArray(NumPyThunk):
         assert self.size == 1
         # Look at the type of the data and figure out how to read this data
         # First four bytes are for the type code, so we need to skip those
-        buf = self.base.get_buffer(self.dtype.itemsize + 4)[4:]
+        buf = self.base.get_buffer(self.dtype.itemsize + 8)[8:]
         result = np.frombuffer(buf, dtype=self.dtype, count=1)
         return result.reshape(())
 

@@ -81,8 +81,7 @@ AccessorRO<T, DIM> Array::read_accessor(void) const
 {
   if (is_future_) {
     auto memkind = Legion::Memory::Kind::NO_MEMKIND;
-    return AccessorRO<T, DIM>(
-      future_, memkind, sizeof(T), false, false, NULL, sizeof(LegateTypeCode));
+    return AccessorRO<T, DIM>(future_, memkind, sizeof(T), false, false, NULL, sizeof(uint64_t));
   } else
     return region_field_.read_accessor<T, DIM>();
 }
