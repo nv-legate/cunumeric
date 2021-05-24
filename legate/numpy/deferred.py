@@ -3527,7 +3527,7 @@ class DeferredArray(NumPyThunk):
 
                 shardpt, shardfn, shardsp = rhs_arg.sharding
 
-                task = Map(self.runtime, NumPyOpCode.UNARY_RED)
+                task = Map(self.runtime, NumPyOpCode.UNARY_RED, tag=shardfn)
                 task.add_scalar_arg(needs_reduction, bool)
                 task.add_scalar_arg(axis, np.int32)
                 task.add_scalar_arg(op, np.int32)
@@ -3568,7 +3568,7 @@ class DeferredArray(NumPyThunk):
 
                 shardpt, shardfn, shardsp = rhs_arg.sharding
 
-                task = Map(self.runtime, NumPyOpCode.UNARY_RED)
+                task = Map(self.runtime, NumPyOpCode.UNARY_RED, tag=shardfn)
                 task.add_scalar_arg(False, bool)  # needs_reduction
                 task.add_scalar_arg(axis, np.int32)
                 task.add_scalar_arg(op, np.int32)
