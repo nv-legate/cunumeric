@@ -113,11 +113,12 @@ def symlink(from_path, to_path):
 
 
 def has_openmp():
+    cxx = os.getenv("CXX", "g++")
     temp_dir = tempfile.mkdtemp()
     try:
         execute_command(
             'echo "int main(void) { return 0; }" | '
-            "g++ -o test.omp -x c++ -fopenmp -",
+            f"{cxx} -o test.omp -x c++ -fopenmp -",
             shell=True,
             cwd=temp_dir,
             verbose=False,
@@ -249,7 +250,6 @@ def build_legate_numpy(
                 "OPENBLAS_FLAGS = -L%s/lib -l%s -Wl,-rpath=%s/lib"
                 % (openblas_dir, libname, openblas_dir),
             ]
-            + (["GCC=%s" % os.environ["CXX"]] if "CXX" in os.environ else [])
             + (["USE_CUDA=0"] if not cuda else [])
             + (["USE_OPENMP=0"] if not openmp else [])
         )
