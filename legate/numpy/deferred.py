@@ -414,30 +414,14 @@ class DeferredArray(NumPyThunk):
                     result.shape = new_shape
             else:  # This is just a value so read it
                 use_key = tuple([x.start for x in view])
-                src = self.base
-                # Construct our buffer for task arguments
-                argbuf = BufferBuilder()
-                argbuf.pack_dimension(self.ndim)
-                argbuf.pack_accessor(src.field.field_id, src.transform)
-                argbuf.pack_point(use_key)
-                # Now we can make the Task and add the future and region
-                # arguments
-                task = Task(
-                    self.runtime.get_unary_task_id(
-                        NumPyOpCode.READ,
-                        argument_type=self.dtype,
-                        result_type=self.dtype,
-                    ),
-                    argbuf.get_string(),
-                    argbuf.get_size(),
-                    mapper=self.runtime.mapper_id,
+                src_arg = DeferredArrayView(
+                    self, tag=NumPyMappingTag.NO_MEMOIZE_TAG
                 )
-                task.add_read_requirement(
-                    src.region,
-                    src.field.field_id,
-                    tag=NumPyMappingTag.NO_MEMOIZE_TAG,
-                )
-                future = self.runtime.dispatch(task)
+
+                task = Map(self.runtime, NumPyOpCode.READ)
+                task.add_point(use_key, untyped=True)
+                src_arg.add_to_legate_op(task, True)
+                future = task.execute_single()
                 result = DeferredArray(
                     self.runtime,
                     base=future,

@@ -91,6 +91,7 @@ class Deserializer {
   friend void deserialize(Deserializer &ctx, LegateTypeCode &code);
 
  public:
+  friend void deserialize(Deserializer &ctx, UntypedPoint &value);
   friend void deserialize(Deserializer &ctx, Shape &value);
   friend void deserialize(Deserializer &ctx, Transform &value);
   friend void deserialize(Deserializer &ctx, RegionField &value);

@@ -23,6 +23,63 @@ namespace numpy {
 
 class UntypedScalar;
 
+class UntypedPoint {
+ public:
+  UntypedPoint() noexcept {}
+  ~UntypedPoint();
+
+ public:
+  template <int32_t N>
+  UntypedPoint(const Legion::Point<N> &point) : N_(N), point_(new Legion::Point<N>(point))
+  {
+  }
+
+ public:
+  UntypedPoint(const UntypedPoint &other);
+  UntypedPoint &operator=(const UntypedPoint &other);
+
+ public:
+  UntypedPoint(UntypedPoint &&other) noexcept;
+  UntypedPoint &operator=(UntypedPoint &&other) noexcept;
+
+ public:
+  int32_t dim() const noexcept { return N_; }
+  bool exists() const noexcept { return nullptr != point_; }
+
+ public:
+  template <int32_t N>
+  Legion::Point<N> to_point() const
+  {
+    assert(N_ == N);
+    return *static_cast<Legion::Point<N> *>(point_);
+  }
+
+ private:
+  struct copy_fn {
+    template <int32_t N>
+    void *operator()(void *point)
+    {
+      return new Legion::Point<N>(*static_cast<Legion::Point<N> *>(point));
+    }
+  };
+  void copy(const UntypedPoint &other);
+  void move(UntypedPoint &&other);
+  struct destroy_fn {
+    template <int32_t N>
+    void operator()(void *point)
+    {
+      delete static_cast<Legion::Point<N> *>(point);
+    }
+  };
+  void destroy();
+
+ private:
+  int32_t N_{-1};
+  void *point_{nullptr};
+};
+
+std::ostream &operator<<(std::ostream &os, const UntypedPoint &point);
+
 class Shape {
  public:
   Shape() noexcept {}

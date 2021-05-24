@@ -81,7 +81,8 @@ template <typename T>
   }
 }
 
-INSTANTIATE_ALL_TASKS(ReadItemTask, static_cast<int>(NumPyOpCode::NUMPY_READ) * NUMPY_TYPE_OFFSET)
+// INSTANTIATE_ALL_TASKS(ReadItemTask, static_cast<int>(NumPyOpCode::NUMPY_READ) *
+// NUMPY_TYPE_OFFSET)
 INSTANTIATE_ALL_TASKS(WriteItemTask, static_cast<int>(NumPyOpCode::NUMPY_WRITE) * NUMPY_TYPE_OFFSET)
 
 }  // namespace numpy
@@ -91,7 +92,7 @@ namespace  // unnamed
 {
 static void __attribute__((constructor)) register_tasks(void)
 {
-  REGISTER_ALL_TASKS_WITH_VALUE_RETURN(legate::numpy::ReadItemTask)
+  // REGISTER_ALL_TASKS_WITH_VALUE_RETURN(legate::numpy::ReadItemTask)
   REGISTER_ALL_TASKS(legate::numpy::WriteItemTask)
 }
 }  // namespace

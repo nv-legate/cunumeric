@@ -63,10 +63,13 @@ class DtypeArg(object):
 
 
 class PointArg(object):
-    def __init__(self, point):
+    def __init__(self, point, untyped=False):
         self._point = point
+        self._untyped = untyped
 
     def pack(self, buf):
+        if self._untyped:
+            buf.pack_32bit_int(len(self._point))
         buf.pack_point(self._point)
 
 
@@ -410,8 +413,8 @@ class Map(object):
     def add_future_map(self, future_map):
         self._future_map_args.append(future_map)
 
-    def add_point(self, point):
-        self._args.append(PointArg(point))
+    def add_point(self, point, untyped=False):
+        self._args.append(PointArg(point, untyped))
 
     def add_shape(self, shape, chunk_shape=None, proj=None):
         assert chunk_shape is None or len(shape) == len(chunk_shape)

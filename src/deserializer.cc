@@ -93,6 +93,21 @@ void deserialize(Deserializer &ctx, LegateTypeCode &code)
   code = static_cast<LegateTypeCode>(ctx.deserializer_.unpack_32bit_int());
 }
 
+struct deserialize_untyped_point_fn {
+  template <int N>
+  UntypedPoint operator()(LegateDeserializer &ctx)
+  {
+    return UntypedPoint(ctx.unpack_point<N>());
+  }
+};
+
+void deserialize(Deserializer &ctx, UntypedPoint &value)
+{
+  auto dim = ctx.deserializer_.unpack_32bit_int();
+  if (dim < 0) return;
+  value = dim_dispatch(dim, deserialize_untyped_point_fn{}, ctx.deserializer_);
+}
+
 struct deserialize_shape_fn {
   template <int N>
   Shape operator()(const Task *task, LegateDeserializer &ctx)

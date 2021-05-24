@@ -127,7 +127,6 @@ class NumPyOpCode(IntEnum):
     RAND_INTEGER = legate_numpy.NUMPY_RAND_INTEGER
     RAND_NORMAL = legate_numpy.NUMPY_RAND_NORMAL
     RAND_UNIFORM = legate_numpy.NUMPY_RAND_UNIFORM
-    READ = legate_numpy.NUMPY_READ
     SORT = legate_numpy.NUMPY_SORT
     TILE = legate_numpy.NUMPY_TILE
     TRANSPOSE = legate_numpy.NUMPY_TRANSPOSE
@@ -154,6 +153,7 @@ class NumPyOpCode(IntEnum):
     SCALAR_CONVERT = legate_numpy.NUMPY_SCALAR_CONVERT
     WHERE = legate_numpy.NUMPY_WHERE
     SCALAR_WHERE = legate_numpy.NUMPY_SCALAR_WHERE
+    READ = legate_numpy.NUMPY_READ
 
 
 @unique

@@ -45,7 +45,6 @@ enum NumPyOpCode {
   NUMPY_RAND_INTEGER         = 49,
   NUMPY_RAND_NORMAL          = 50,
   NUMPY_RAND_UNIFORM         = 51,
-  NUMPY_READ                 = 52,
   NUMPY_SORT                 = 54,
   NUMPY_TILE                 = 61,
   NUMPY_TRANSPOSE            = 62,
@@ -71,6 +70,7 @@ enum NumPyOpCode {
   NUMPY_SCALAR_CONVERT       = 400011,
   NUMPY_WHERE                = 400012,
   NUMPY_SCALAR_WHERE         = 400013,
+  NUMPY_READ                 = 400014,
 };
 
 // Match these to NumPyRedopCode in legate/core/config.py

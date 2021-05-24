@@ -23,6 +23,73 @@ namespace numpy {
 
 using namespace Legion;
 
+UntypedPoint::~UntypedPoint() { destroy(); }
+
+UntypedPoint::UntypedPoint(const UntypedPoint &other)
+{
+  destroy();
+  copy(other);
+}
+
+UntypedPoint &UntypedPoint::operator=(const UntypedPoint &other)
+{
+  destroy();
+  copy(other);
+  return *this;
+}
+
+UntypedPoint::UntypedPoint(UntypedPoint &&other) noexcept
+{
+  destroy();
+  move(std::forward<UntypedPoint>(other));
+}
+
+UntypedPoint &UntypedPoint::operator=(UntypedPoint &&other) noexcept
+{
+  destroy();
+  move(std::forward<UntypedPoint>(other));
+  return *this;
+}
+
+void UntypedPoint::copy(const UntypedPoint &other)
+{
+  if (exists()) {
+    N_     = other.N_;
+    point_ = dim_dispatch(N_, copy_fn{}, other.point_);
+  }
+}
+
+void UntypedPoint::move(UntypedPoint &&other)
+{
+  N_     = other.N_;
+  point_ = other.point_;
+
+  other.N_     = -1;
+  other.point_ = nullptr;
+}
+
+void UntypedPoint::destroy()
+{
+  if (exists()) {
+    dim_dispatch(N_, destroy_fn{}, point_);
+    N_ = -1;
+  }
+}
+
+struct point_to_ostream_fn {
+  template <int32_t N>
+  void operator()(std::ostream &os, const UntypedPoint &point)
+  {
+    os << point.to_point<N>();
+  }
+};
+
+std::ostream &operator<<(std::ostream &os, const UntypedPoint &point)
+{
+  dim_dispatch(point.dim(), point_to_ostream_fn{}, os, point);
+  return os;
+}
+
 Shape::~Shape() { destroy(); }
 
 Shape::Shape(const Shape &other)
@@ -76,7 +143,7 @@ void Shape::destroy()
   }
 }
 
-struct pipe_to_ostream_fn {
+struct shape_to_ostream_fn {
   template <int32_t N>
   void operator()(std::ostream &os, const Shape &shape)
   {
@@ -86,7 +153,7 @@ struct pipe_to_ostream_fn {
 
 std::ostream &operator<<(std::ostream &os, const Shape &shape)
 {
-  dim_dispatch(shape.dim(), pipe_to_ostream_fn{}, os, shape);
+  dim_dispatch(shape.dim(), shape_to_ostream_fn{}, os, shape);
   return os;
 }
 
