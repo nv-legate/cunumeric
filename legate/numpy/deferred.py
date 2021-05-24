@@ -526,32 +526,16 @@ class DeferredArray(NumPyThunk):
                 assert value_array.size == 1
                 use_key = tuple([x.start for x in view])
                 assert len(use_key) == self.ndim
-                dst = self.base
-                # Create the arguments to the task
-                argbuf = BufferBuilder()
-                argbuf.pack_dimension(self.ndim)
-                argbuf.pack_accessor(dst.field.field_id, dst.transform)
-                argbuf.pack_point(use_key)
-                # No need for dependence since this is immediate
-                argbuf.pack_value(
-                    value_array.get_scalar_array(stacklevel + 1),
-                    value_array.dtype.type,
+                dst_arg = DeferredArrayView(
+                    self, tag=NumPyMappingTag.NO_MEMOIZE_TAG
                 )
-                # Now we can make the Task and add the region requirements
-                task = Task(
-                    self.runtime.get_nullary_task_id(
-                        NumPyOpCode.WRITE, result_type=self.dtype
-                    ),
-                    argbuf.get_string(),
-                    argbuf.get_size(),
-                    mapper=self.runtime.mapper_id,
-                )
-                task.add_read_write_requirement(
-                    dst.region,
-                    dst.field.field_id,
-                    tag=NumPyMappingTag.NO_MEMOIZE_TAG,
-                )
-                self.runtime.dispatch(task)
+                value_arg = DeferredArrayView(value_array)
+
+                task = Map(self.runtime, NumPyOpCode.WRITE)
+                task.add_point(use_key, untyped=True)
+                dst_arg.add_to_legate_op(task, False)
+                value_arg.add_to_legate_op(task, True)
+                task.execute_single()
             else:
                 # In Python, any inplace update of form arr[key] op= value
                 # goes through three steps: 1) __getitem__ fetching the object

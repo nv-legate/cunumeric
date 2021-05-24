@@ -30,6 +30,7 @@ GEN_CPU_SRC += ternary/where.cc               \
 							 unary/scalar_convert.cc        \
 							 nullary/fill.cc                \
 							 item/read.cc                   \
+							 item/write.cc                  \
 							 core.cc                        \
 							 deserializer.cc                \
 							 scalar.cc                      \
@@ -41,7 +42,6 @@ GEN_CPU_SRC += ternary/where.cc               \
 							 diag.cc                        \
 							 dot.cc                         \
 							 eye.cc                         \
-							 item.cc                        \
 							 mapper.cc                      \
 							 nonzero.cc                     \
 							 norm.cc                        \
@@ -76,6 +76,7 @@ GEN_GPU_SRC += ternary/where.cu               \
 							 unary/convert.cu               \
 							 nullary/fill.cu                \
 							 item/read.cu                   \
+							 item/write.cu                  \
 							 arange.cu                      \
 							 arg.cu                         \
 							 argmin.cu                      \
@@ -84,7 +85,6 @@ GEN_GPU_SRC += ternary/where.cu               \
 							 diag.cu                        \
 							 dot.cu                         \
 							 eye.cu                         \
-							 item.cu                        \
 							 nonzero.cu                     \
 							 norm.cu                        \
 							 rand.cu                        \

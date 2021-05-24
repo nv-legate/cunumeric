@@ -48,7 +48,6 @@ enum NumPyOpCode {
   NUMPY_SORT                 = 54,
   NUMPY_TILE                 = 61,
   NUMPY_TRANSPOSE            = 62,
-  NUMPY_WRITE                = 64,
   NUMPY_CONTAINS             = 68,
   NUMPY_COUNT_NONZERO        = 69,
   NUMPY_NONZERO              = 70,
@@ -71,6 +70,7 @@ enum NumPyOpCode {
   NUMPY_WHERE                = 400012,
   NUMPY_SCALAR_WHERE         = 400013,
   NUMPY_READ                 = 400014,
+  NUMPY_WRITE                = 400015,
 };
 
 // Match these to NumPyRedopCode in legate/core/config.py

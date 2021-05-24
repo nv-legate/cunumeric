@@ -93,6 +93,6 @@ namespace  // unnamed
 static void __attribute__((constructor)) register_tasks(void)
 {
   // REGISTER_ALL_TASKS_WITH_VALUE_RETURN(legate::numpy::ReadItemTask)
-  REGISTER_ALL_TASKS(legate::numpy::WriteItemTask)
+  // REGISTER_ALL_TASKS(legate::numpy::WriteItemTask)
 }
 }  // namespace

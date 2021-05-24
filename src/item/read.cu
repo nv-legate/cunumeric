@@ -24,9 +24,9 @@ using namespace Legion;
 
 template <typename VAL, int DIM>
 static __global__ void __launch_bounds__(1, 1)
-  read_value(DeferredValue<VAL> value, const AccessorRO<VAL, DIM> accessor, const Point<DIM> point)
+  read_value(DeferredValue<VAL> value, const AccessorRO<VAL, DIM> in, const Point<DIM> key)
 {
-  value = accessor[point];
+  value = in[key];
 }
 
 template <typename VAL, int DIM>
