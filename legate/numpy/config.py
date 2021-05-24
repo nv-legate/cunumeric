@@ -130,7 +130,6 @@ class NumPyOpCode(IntEnum):
     SORT = legate_numpy.NUMPY_SORT
     TILE = legate_numpy.NUMPY_TILE
     TRANSPOSE = legate_numpy.NUMPY_TRANSPOSE
-    WRITE = legate_numpy.NUMPY_WRITE
     CONTAINS = legate_numpy.NUMPY_CONTAINS
     COUNT_NONZERO = legate_numpy.NUMPY_COUNT_NONZERO
     NONZERO = legate_numpy.NUMPY_NONZERO
@@ -140,7 +139,6 @@ class NumPyOpCode(IntEnum):
     ARANGE = legate_numpy.NUMPY_ARANGE
     # Type-erased operators
     BINARY_OP = legate_numpy.NUMPY_BINARY_OP
-    BROADCAST_BINARY_OP = legate_numpy.NUMPY_BROADCAST_BINARY_OP
     SCALAR_BINARY_OP = legate_numpy.NUMPY_SCALAR_BINARY_OP
     FILL = legate_numpy.NUMPY_FILL
     SCALAR_UNARY_RED = legate_numpy.NUMPY_SCALAR_UNARY_RED
@@ -148,12 +146,12 @@ class NumPyOpCode(IntEnum):
     UNARY_OP = legate_numpy.NUMPY_UNARY_OP
     SCALAR_UNARY_OP = legate_numpy.NUMPY_SCALAR_UNARY_OP
     BINARY_RED = legate_numpy.NUMPY_BINARY_RED
-    BROADCAST_BINARY_RED = legate_numpy.NUMPY_BROADCAST_BINARY_RED
     CONVERT = legate_numpy.NUMPY_CONVERT
     SCALAR_CONVERT = legate_numpy.NUMPY_SCALAR_CONVERT
     WHERE = legate_numpy.NUMPY_WHERE
     SCALAR_WHERE = legate_numpy.NUMPY_SCALAR_WHERE
     READ = legate_numpy.NUMPY_READ
+    WRITE = legate_numpy.NUMPY_WRITE
 
 
 @unique
