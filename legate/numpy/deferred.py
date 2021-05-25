@@ -3508,8 +3508,7 @@ class DeferredArray(NumPyThunk):
                 task.set_point(shardpt)
             if shardsp is not None:
                 task.set_sharding_space(shardsp)
-            if args is not None:
-                self.add_arguments(task, args)
+            self.add_arguments(task, args)
 
             if launch_space is not None:
                 result = task.execute(

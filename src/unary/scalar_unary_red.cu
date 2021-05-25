@@ -50,6 +50,22 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   reduce_output(out, value);
 }
 
+template <typename Output, typename ReadAcc, typename Pitches, typename Point, typename VAL>
+static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM) contains_kernel(
+  size_t volume, Output out, ReadAcc in, Pitches pitches, Point origin, size_t iters, VAL to_find)
+{
+  bool value = false;
+  for (size_t idx = 0; idx < iters; idx++) {
+    const size_t offset = (idx * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
+    if (offset < volume) {
+      auto point = pitches.unflatten(offset, origin);
+      SumReduction<bool>::fold<true>(value, in[point] == to_find);
+    }
+  }
+  // Every thread in the thread block must participate in the exchange to get correct results
+  reduce_output(out, value);
+}
+
 template <UnaryRedCode OP_CODE, LegateTypeCode CODE, int DIM>
 struct ScalarUnaryRedImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
   using OP  = UnaryRedOp<OP_CODE, CODE>;
@@ -77,6 +93,42 @@ struct ScalarUnaryRedImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
     } else
       reduction_kernel<<<blocks, THREADS_PER_BLOCK, shmem_size, stream>>>(
         volume, typename OP::OP{}, out, in, pitches, rect.lo, 1, OP::identity);
+
+    // TODO: We eventually want to unblock this step
+    cudaStreamSynchronize(stream);
+    cudaStreamDestroy(stream);
+
+    result = out.read();
+  }
+};
+
+template <LegateTypeCode CODE, int DIM>
+struct ScalarUnaryRedImplBody<VariantKind::GPU, UnaryRedCode::CONTAINS, CODE, DIM> {
+  using VAL = legate_type_of<CODE>;
+
+  void operator()(bool &result,
+                  AccessorRO<VAL, DIM> in,
+                  const UntypedScalar &to_find_scalar,
+                  const Rect<DIM> &rect,
+                  const Pitches<DIM - 1> &pitches,
+                  bool dense) const
+  {
+    cudaStream_t stream;
+    cudaStreamCreate(&stream);
+
+    const auto to_find  = to_find_scalar.value<VAL>();
+    const size_t volume = rect.volume();
+    const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
+    DeferredReduction<SumReduction<bool>> out;
+    size_t shmem_size = THREADS_PER_BLOCK / 32 * sizeof(bool);
+
+    if (blocks >= MAX_REDUCTION_CTAS) {
+      const size_t iters = (blocks + MAX_REDUCTION_CTAS - 1) / MAX_REDUCTION_CTAS;
+      contains_kernel<<<MAX_REDUCTION_CTAS, THREADS_PER_BLOCK, shmem_size, stream>>>(
+        volume, out, in, pitches, rect.lo, iters, to_find);
+    } else
+      contains_kernel<<<blocks, THREADS_PER_BLOCK, shmem_size, stream>>>(
+        volume, out, in, pitches, rect.lo, 1, to_find);
 
     // TODO: We eventually want to unblock this step
     cudaStreamSynchronize(stream);

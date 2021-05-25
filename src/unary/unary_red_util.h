@@ -25,10 +25,11 @@ namespace legate {
 namespace numpy {
 
 enum class UnaryRedCode : int {
-  MAX  = 1,
-  MIN  = 2,
-  PROD = 3,
-  SUM  = 4,
+  MAX      = 1,
+  MIN      = 2,
+  PROD     = 3,
+  SUM      = 4,
+  CONTAINS = 7,
 };
 
 void deserialize(Deserializer &ctx, UnaryRedCode &code);
@@ -45,6 +46,8 @@ constexpr decltype(auto) op_dispatch(UnaryRedCode op_code, Functor f, Fnargs &&.
       return f.template operator()<UnaryRedCode::PROD>(std::forward<Fnargs>(args)...);
     case UnaryRedCode::SUM:
       return f.template operator()<UnaryRedCode::SUM>(std::forward<Fnargs>(args)...);
+    case UnaryRedCode::CONTAINS:
+      return f.template operator()<UnaryRedCode::CONTAINS>(std::forward<Fnargs>(args)...);
   }
   assert(false);
   return f.template operator()<UnaryRedCode::MAX>(std::forward<Fnargs>(args)...);

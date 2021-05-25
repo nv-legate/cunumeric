@@ -300,13 +300,13 @@ class ndarray(object):
 
     def __contains__(self, item):
         if isinstance(item, np.ndarray):
-            args = (item,)
+            args = (item.astype(self.dtype),)
         else:  # Otherwise convert it to a scalar numpy array of our type
             args = (np.array(item, dtype=self.dtype),)
         if args[0].size != 1:
             raise ValueError("contains needs scalar item")
         return self.perform_unary_reduction(
-            NumPyOpCode.CONTAINS,
+            UnaryRedCode.CONTAINS,
             self,
             axis=None,
             dtype=np.dtype(np.bool_),

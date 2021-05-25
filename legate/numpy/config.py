@@ -210,8 +210,7 @@ class UnaryRedCode(IntEnum):
     ARGMAX = 5
     ARGMIN = 6
     CONTAINS = 7
-    NORM = 8
-    COUNT_NONZERO = 9
+    COUNT_NONZERO = 8
 
 
 # Match these to NumPyRedopID in legate_numpy_c.h
@@ -255,6 +254,7 @@ numpy_scalar_reduction_op_offsets = {
     UnaryRedCode.MIN: legate_numpy.NUMPY_SCALAR_MIN_REDOP,
     UnaryRedCode.PROD: legate_numpy.NUMPY_SCALAR_PROD_REDOP,
     UnaryRedCode.SUM: legate_numpy.NUMPY_SCALAR_SUM_REDOP,
+    UnaryRedCode.CONTAINS: legate_numpy.NUMPY_SCALAR_SUM_REDOP,
 }
 
 

@@ -73,6 +73,39 @@ struct ScalarUnaryRedImpl {
 };
 
 template <VariantKind KIND>
+struct ScalarUnaryRedImpl<KIND, UnaryRedCode::CONTAINS> {
+  template <LegateTypeCode CODE, int DIM>
+  UntypedScalar operator()(ScalarUnaryRedArgs &args) const
+  {
+    using VAL = legate_type_of<CODE>;
+
+    auto rect = args.shape.to_rect<DIM>();
+
+    Pitches<DIM - 1> pitches;
+    size_t volume = pitches.flatten(rect);
+
+    bool result = false;
+
+    if (volume == 0) return UntypedScalar(result);
+
+    auto in = args.in.read_accessor<VAL, DIM>();
+
+#ifndef LEGION_BOUNDS_CHECKS
+    // Check to see if this is dense or not
+    bool dense = in.accessor.is_dense_row_major(rect);
+#else
+    // No dense execution if we're doing bounds checks
+    bool dense = false;
+#endif
+
+    ScalarUnaryRedImplBody<KIND, UnaryRedCode::CONTAINS, CODE, DIM>()(
+      result, in, args.args[0], rect, pitches, dense);
+
+    return UntypedScalar(result);
+  }
+};
+
+template <VariantKind KIND>
 struct ScalarUnaryRedDispatch {
   template <UnaryRedCode OP_CODE>
   UntypedScalar operator()(ScalarUnaryRedArgs &args) const

@@ -44,11 +44,44 @@ struct ScalarUnaryRedImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
   }
 };
 
+template <LegateTypeCode CODE, int DIM>
+struct ScalarUnaryRedImplBody<VariantKind::CPU, UnaryRedCode::CONTAINS, CODE, DIM> {
+  using VAL = legate_type_of<CODE>;
+
+  void operator()(bool &result,
+                  AccessorRO<VAL, DIM> in,
+                  const UntypedScalar &to_find_scalar,
+                  const Rect<DIM> &rect,
+                  const Pitches<DIM - 1> &pitches,
+                  bool dense) const
+  {
+    const auto to_find  = to_find_scalar.value<VAL>();
+    const size_t volume = rect.volume();
+    if (dense) {
+      auto inptr = in.ptr(rect);
+      for (size_t idx = 0; idx < volume; ++idx)
+        if (inptr[idx] == to_find) {
+          result = true;
+          return;
+        }
+    } else {
+      for (size_t idx = 0; idx < volume; ++idx) {
+        auto point = pitches.unflatten(idx, rect.lo);
+        if (in[point] == to_find) {
+          result = true;
+          return;
+        }
+      }
+    }
+  }
+};
+
 void deserialize(Deserializer &ctx, ScalarUnaryRedArgs &args)
 {
   deserialize(ctx, args.op_code);
   deserialize(ctx, args.shape);
   deserialize(ctx, args.in);
+  deserialize(ctx, args.args);
 }
 
 /*static*/ UntypedScalar ScalarUnaryRedTask::cpu_variant(const Task *task,
