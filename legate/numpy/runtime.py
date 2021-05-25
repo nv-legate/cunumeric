@@ -381,7 +381,7 @@ class FieldManager(object):
 
 
 def _find_or_create_partition(
-    runtime, region, color_shape, tile_shape, offset, transform
+    runtime, region, color_shape, tile_shape, offset, transform, complete=True
 ):
     # Compute the extent and transform for this partition operation
     lo = (0,) * len(tile_shape)
@@ -439,7 +439,9 @@ def _find_or_create_partition(
         region.index_space,
         color_space,
         functor,
-        kind=legion.LEGION_DISJOINT_COMPLETE_KIND,
+        kind=legion.LEGION_DISJOINT_COMPLETE_KIND
+        if complete
+        else legion.LEGION_DISJOINT_INCOMPLETE_KIND,
         keep=True,  # export this partition functor to other libraries
     )
     partition = region.get_child(index_partition)
@@ -1695,6 +1697,7 @@ class Runtime(object):
                     tile_shape,
                     lo,
                     parent.transform,
+                    complete=False,
                 )
                 child_region = partition.get_child(
                     Point((0,) * len(tile_shape))
