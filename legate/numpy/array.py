@@ -40,6 +40,14 @@ except NameError:
     xrange = range  # Python 3
 
 
+def _is_complex_dtype(dtype):
+    return (
+        dtype == np.complex64
+        or dtype == np.complex128
+        or dtype == np.complex256
+    )
+
+
 @copy_docstring(np.ndarray)
 class ndarray(object):
     def __init__(
@@ -192,7 +200,14 @@ class ndarray(object):
 
     @property
     def imag(self):
-        return ndarray(shape=None, thunk=self._thunk.imag(stacklevel=2))
+        if _is_complex_dtype(self.dtype):
+            return ndarray(
+                shape=self.shape, thunk=self._thunk.imag(stacklevel=2)
+            )
+        else:
+            result = ndarray(self.shape, self.dtype)
+            result.fill(0, stacklevel=2)
+            return result
 
     @property
     def ndim(self):
@@ -200,7 +215,12 @@ class ndarray(object):
 
     @property
     def real(self):
-        return ndarray(shape=None, thunk=self._thunk.real(stacklevel=2))
+        if _is_complex_dtype(self.dtype):
+            return ndarray(
+                shape=self.shape, thunk=self._thunk.real(stacklevel=2)
+            )
+        else:
+            return self
 
     @property
     def shape(self):
@@ -920,15 +940,15 @@ class ndarray(object):
         )
         return self.convert_to_legate_ndarray(numpy_array, stacklevel=3)
 
-    @unimplemented
     def conj(self, stacklevel=1):
-        numpy_array = self.__array__(stacklevel=3).conj()
-        return self.convert_to_legate_ndarray(numpy_array, stacklevel=3)
+        if _is_complex_dtype(self.dtype):
+            result = self._thunk.conj(stacklevel=stacklevel + 1)
+            return ndarray(self.shape, dtype=self.dtype, thunk=result)
+        else:
+            return self
 
-    @unimplemented
-    def conjugate(self):
-        numpy_array = self.__array__(stacklevel=3).conj()
-        return self.convert_to_legate_ndarray(numpy_array, stacklevel=3)
+    def conjugate(self, stacklevel=1):
+        return self.conj(stacklevel)
 
     def copy(self, order="C"):
         # We don't care about dimension order in legate

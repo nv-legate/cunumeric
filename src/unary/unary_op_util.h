@@ -43,7 +43,10 @@ enum class UnaryOpCode : int {
   SIN,
   SQRT,
   TAN,
-  TANH
+  TANH,
+  CONJ,
+  REAL,
+  IMAG,
 };
 
 void deserialize(Deserializer& ctx, UnaryOpCode& code);
@@ -92,6 +95,12 @@ constexpr decltype(auto) op_dispatch(UnaryOpCode op_code, Functor f, Fnargs&&...
       return f.template operator()<UnaryOpCode::TAN>(std::forward<Fnargs>(args)...);
     case UnaryOpCode::TANH:
       return f.template operator()<UnaryOpCode::TANH>(std::forward<Fnargs>(args)...);
+    case UnaryOpCode::CONJ:
+      return f.template operator()<UnaryOpCode::CONJ>(std::forward<Fnargs>(args)...);
+    case UnaryOpCode::REAL:
+      return f.template operator()<UnaryOpCode::REAL>(std::forward<Fnargs>(args)...);
+    case UnaryOpCode::IMAG:
+      return f.template operator()<UnaryOpCode::IMAG>(std::forward<Fnargs>(args)...);
   }
   assert(false);
   return f.template operator()<UnaryOpCode::ABSOLUTE>(std::forward<Fnargs>(args)...);
@@ -459,6 +468,39 @@ struct UnaryOp<UnaryOpCode::TANH, CODE> {
     using std::tanh;
     return tanh(x);
   }
+};
+
+template <LegateTypeCode CODE>
+struct UnaryOp<UnaryOpCode::CONJ, CODE> {
+  using T                     = legate_type_of<CODE>;
+  static constexpr bool valid = is_complex<T>::value;
+
+  UnaryOp() {}
+  UnaryOp(const std::vector<UntypedScalar>& args) {}
+
+  constexpr decltype(auto) operator()(const T& x) const { return T{x.real(), -x.imag()}; }
+};
+
+template <LegateTypeCode CODE>
+struct UnaryOp<UnaryOpCode::REAL, CODE> {
+  using T                     = legate_type_of<CODE>;
+  static constexpr bool valid = is_complex<T>::value;
+
+  UnaryOp() {}
+  UnaryOp(const std::vector<UntypedScalar>& args) {}
+
+  constexpr decltype(auto) operator()(const T& x) const { return x.real(); }
+};
+
+template <LegateTypeCode CODE>
+struct UnaryOp<UnaryOpCode::IMAG, CODE> {
+  using T                     = legate_type_of<CODE>;
+  static constexpr bool valid = is_complex<T>::value;
+
+  UnaryOp() {}
+  UnaryOp(const std::vector<UntypedScalar>& args) {}
+
+  constexpr decltype(auto) operator()(const T& x) const { return x.imag(); }
 };
 
 }  // namespace numpy

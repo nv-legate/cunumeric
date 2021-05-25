@@ -126,12 +126,18 @@ class EagerArray(NumPyThunk):
     def imag(self, stacklevel):
         if self.deferred is not None:
             return self.deferred.imag(stacklevel=(stacklevel + 1))
-        return self.array.imag()
+        return EagerArray(self.runtime, self.array.imag)
 
     def real(self, stacklevel):
         if self.deferred is not None:
             return self.deferred.imag(stacklevel=(stacklevel + 1))
-        return self.array.real()
+        return EagerArray(self.runtime, self.array.real)
+
+    def conj(self, stacklevel):
+        if self.deferred is not None:
+            return self.deferred.conj(stacklevel=(stacklevel + 1))
+
+        return EagerArray(self.runtime, self.array.conj())
 
     def copy(self, rhs, deep, stacklevel):
         if self.shadow:

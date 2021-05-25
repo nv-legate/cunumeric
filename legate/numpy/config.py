@@ -196,6 +196,9 @@ class UnaryOpCode(IntEnum):
     SQRT = 18
     TAN = 19
     TANH = 20
+    CONJ = 21
+    REAL = 22
+    IMAG = 23
 
 
 @unique

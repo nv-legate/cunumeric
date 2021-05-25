@@ -46,6 +46,17 @@ def _combine_transforms(f, g):
         return g.compose(f)
 
 
+def _complex_field_dtype(dtype):
+    if dtype == np.complex64:
+        return np.dtype(np.float32)
+    elif dtype == np.complex128:
+        return np.dtype(np.float64)
+    elif dtype == np.complex256:
+        return np.dtype(np.float128)
+    else:
+        assert False
+
+
 class DeferredArrayView(object):
     def __init__(
         self, array, transform=None, offset=None, part=None, proj_id=0, tag=0
@@ -250,11 +261,89 @@ class DeferredArray(NumPyThunk):
         else:
             return self.base.get_numpy_array()
 
-    def imag(self, stacklevel):
-        raise NotImplementedError("Implement in derived classes")
+    # TODO: We should return a view of the field instead of a copy
+    def imag(self, stacklevel, callsite=None):
+        dtype = _complex_field_dtype(self.dtype)
+        if self.scalar:
+            result_field = Future()
+        else:
+            result_field = self.runtime.allocate_field(self.shape, dtype=dtype)
 
-    def real(self, stacklevel):
-        raise NotImplementedError("Implement in derived classes")
+        result = DeferredArray(
+            self.runtime,
+            result_field,
+            shape=self.shape,
+            dtype=dtype,
+            scalar=self.scalar,
+        )
+
+        result.unary_op(
+            UnaryOpCode.IMAG,
+            result.dtype,
+            self,
+            True,
+            [],
+            stacklevel + 1,
+            callsite,
+        )
+
+        return result
+
+    # TODO: We should return a view of the field instead of a copy
+    def real(self, stacklevel, callsite=None):
+        dtype = _complex_field_dtype(self.dtype)
+        if self.scalar:
+            result_field = Future()
+        else:
+            result_field = self.runtime.allocate_field(self.shape, dtype=dtype)
+
+        result = DeferredArray(
+            self.runtime,
+            result_field,
+            shape=self.shape,
+            dtype=dtype,
+            scalar=self.scalar,
+        )
+
+        result.unary_op(
+            UnaryOpCode.REAL,
+            result.dtype,
+            self,
+            True,
+            [],
+            stacklevel + 1,
+            callsite,
+        )
+
+        return result
+
+    def conj(self, stacklevel, callsite=None):
+        if self.scalar:
+            result_field = Future()
+        else:
+            result_field = self.runtime.allocate_field(
+                self.shape, dtype=self.dtype
+            )
+
+        result = DeferredArray(
+            self.runtime,
+            result_field,
+            shape=self.shape,
+            dtype=self.dtype,
+            scalar=self.scalar,
+        )
+
+        result.unary_op(
+            UnaryOpCode.CONJ,
+            result.dtype,
+            self,
+            True,
+            [],
+            stacklevel + 1,
+            callsite,
+        )
+
+        return result
 
     # Copy source array to the destination array
     def copy(self, rhs, deep, stacklevel, callsite=None):
