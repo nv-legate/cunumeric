@@ -15,9 +15,8 @@
 
 import numpy as np
 
-from legate.numpy.array import ndarray, runtime
-from legate.numpy.config import NumPyOpCode
-from legate.numpy.module import power as _power, sqrt as _sqrt
+from legate.numpy.array import ndarray
+from legate.numpy.module import sqrt as _sqrt
 
 
 def norm(x, ord=None, axis=None, keepdims=False, stacklevel=1):
@@ -42,33 +41,27 @@ def norm(x, ord=None, axis=None, keepdims=False, stacklevel=1):
             return temp.sum(
                 axis=axis, keepdims=keepdims, stacklevel=(stacklevel + 1)
             )
-        elif ord is None:
-            args = (np.array(2, dtype=np.int32),)
+        elif ord == 1:
+            return abs(lg_array).sum(
+                axis=axis, keepdims=keepdims, stacklevel=stacklevel + 1
+            )
+        elif ord is None or ord == 2:
+            s = (lg_array.conj() * lg_array).real
+            return _sqrt(
+                s.sum(axis=axis, keepdims=keepdims, stacklevel=stacklevel + 1)
+            )
+        elif isinstance(ord, str):
+            raise ValueError(f"Invalid norm order '{ord}' for vectors")
         elif type(ord) == int:
-            args = (np.array(ord, dtype=np.int32),)
+            absx = abs(lg_array)
+            absx **= ord
+            ret = absx.sum(
+                axis=axis, keepdims=keepdims, stacklevel=(stacklevel + 1)
+            )
+            ret **= 1 / ord
+            return ret
         else:
             raise ValueError("Invalid 'ord' argument passed to norm")
-        result = ndarray.perform_unary_reduction(
-            NumPyOpCode.NORM,
-            NumPyOpCode.SUM_RADIX,
-            lg_array,
-            axis=axis,
-            keepdims=keepdims,
-            args=args,
-            stacklevel=(stacklevel + 1),
-        )
-        # Now we need to do the power part if this is not an eager array
-        # Eager arrays have the power part folded into their operation
-        # TODO: fix this as it is a hack
-        if (
-            runtime.is_eager_array(result._thunk)
-            and result._thunk.deferred is None
-        ) or ord == 1:
-            return result
-        elif ord == 2 or ord is None:
-            return _sqrt(result, stacklevel=stacklevel + 1)
-        else:
-            return _power(result, (1.0 / ord), stacklevel=(stacklevel + 1))
     else:
         raise NotImplementedError(
             "Legate needs support for other kinds of norms"
