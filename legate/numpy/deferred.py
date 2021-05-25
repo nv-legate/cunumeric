@@ -4689,7 +4689,7 @@ class DeferredArray(NumPyThunk):
             if lhs_array.size > 1:
                 # Output is not a scalar so do a fill broadcast
                 result = lhs_array.base
-                # Comptue our launch space
+                # Compute our launch space
                 launch_space = result.compute_parallel_launch_space()
                 if where_array is None:
                     if launch_space is not None:
@@ -4832,26 +4832,32 @@ class DeferredArray(NumPyThunk):
             # Normal/broadcast version of this task
             assert lhs_array.size > 1
             result = lhs_array.base
-            # Compute our launch space
+            # Pick the smallest launch space between the result array and the
+            # argument arrays (because non-full-machine launch spaces occur
+            # mostly for the output of GEMVs, whose partitioning we want to
+            # preserve).
             launch_space = None
-            if not result.has_parallel_launch_space():
-                # See if we can borrow the parallel launch space
-                # from one of the input arrays
-                if result is not rhs1 and lhs_array.shape == rhs1_array.shape:
-                    launch_space = rhs1.compute_parallel_launch_space()
-                    if launch_space is not None:
-                        key_array = rhs1
+            key_array = None
+
+            def consider_array(arr):
+                nonlocal launch_space
+                nonlocal key_array
+                s = arr.compute_parallel_launch_space()
                 if (
-                    launch_space is None
-                    and result is not rhs2
-                    and lhs_array.shape == rhs2_array.shape
+                    s is not None
+                    and result.shape == arr.shape
+                    and (
+                        launch_space is None
+                        or calculate_volume(s)
+                        <= calculate_volume(launch_space)
+                    )
                 ):
-                    launch_space = rhs2.compute_parallel_launch_space()
-                    if launch_space is not None:
-                        key_array = rhs2
-            if launch_space is None:
-                launch_space = result.compute_parallel_launch_space()
-                key_array = result
+                    launch_space = s
+                    key_array = arr
+
+            consider_array(result)
+            consider_array(rhs1)
+            consider_array(rhs2)
             # Compute our transforms
             if rhs1_array.size > 1 and rhs1_array.shape != lhs_array.shape:
                 (

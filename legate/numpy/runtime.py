@@ -1800,7 +1800,7 @@ class Runtime(object):
             self.perform_detachments()
         if self.pending_detachments:
             self.prune_detachments()
-        # Launch the operation, always user our mapper
+        # Launch the operation, always use our mapper
         if redop:
             return operation.launch(self.runtime, self.context, redop)
         else:
