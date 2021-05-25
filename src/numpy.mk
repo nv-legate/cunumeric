@@ -38,13 +38,11 @@ GEN_CPU_SRC += ternary/where.cc               \
 							 arg.cc                         \
 							 argmin.cc                      \
 							 bincount.cc                    \
-							 contains.cc                    \
 							 diag.cc                        \
 							 dot.cc                         \
 							 eye.cc                         \
 							 mapper.cc                      \
 							 nonzero.cc                     \
-							 norm.cc                        \
 							 proj.cc                        \
 							 rand.cc                        \
 							 scan.cc                        \
@@ -81,12 +79,10 @@ GEN_GPU_SRC += ternary/where.cu               \
 							 arg.cu                         \
 							 argmin.cu                      \
 							 bincount.cu                    \
-							 contains.cu                    \
 							 diag.cu                        \
 							 dot.cu                         \
 							 eye.cu                         \
 							 nonzero.cu                     \
-							 norm.cu                        \
 							 rand.cu                        \
 							 scan.cu                        \
 							 sort.cu                        \

@@ -123,14 +123,12 @@ class NumPyOpCode(IntEnum):
     DOT = legate_numpy.NUMPY_DOT
     EYE = legate_numpy.NUMPY_EYE
     GETARG = legate_numpy.NUMPY_GETARG
-    NORM = legate_numpy.NUMPY_NORM
     RAND_INTEGER = legate_numpy.NUMPY_RAND_INTEGER
     RAND_NORMAL = legate_numpy.NUMPY_RAND_NORMAL
     RAND_UNIFORM = legate_numpy.NUMPY_RAND_UNIFORM
     SORT = legate_numpy.NUMPY_SORT
     TILE = legate_numpy.NUMPY_TILE
     TRANSPOSE = legate_numpy.NUMPY_TRANSPOSE
-    CONTAINS = legate_numpy.NUMPY_CONTAINS
     COUNT_NONZERO = legate_numpy.NUMPY_COUNT_NONZERO
     NONZERO = legate_numpy.NUMPY_NONZERO
     COUNT_NONZERO_REDUC = legate_numpy.NUMPY_COUNT_NONZERO_REDUC
@@ -226,11 +224,8 @@ numpy_reduction_op_offsets = {
     # Diag uses sum reduction
     NumPyOpCode.DIAG: legion.LEGION_REDOP_KIND_SUM,
     # Norm uses sum reduction
-    NumPyOpCode.NORM: legion.LEGION_REDOP_KIND_SUM,
     NumPyOpCode.ARGMIN: NumPyRedopCode.ARGMIN_REDOP,
     NumPyOpCode.ARGMAX: NumPyRedopCode.ARGMAX_REDOP,
-    # bool sum is "or"
-    NumPyOpCode.CONTAINS: legion.LEGION_REDOP_KIND_SUM,
     # nonzeros are counted with sum
     NumPyOpCode.COUNT_NONZERO: legion.LEGION_REDOP_KIND_SUM,
 }

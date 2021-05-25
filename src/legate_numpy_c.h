@@ -48,7 +48,6 @@ enum NumPyOpCode {
   NUMPY_SORT                = 54,
   NUMPY_TILE                = 61,
   NUMPY_TRANSPOSE           = 62,
-  NUMPY_CONTAINS            = 68,
   NUMPY_COUNT_NONZERO       = 69,
   NUMPY_NONZERO             = 70,
   NUMPY_COUNT_NONZERO_REDUC = 71,

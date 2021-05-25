@@ -685,20 +685,6 @@ class EagerArray(NumPyThunk):
                 )
             except Exception:  # TDB: refine exception
                 rhs.array.min(axis=axes, out=self.array, keepdims=keepdims)
-        elif op == UnaryRedCode.NORM:
-            if self.array.size == 1:
-                self.array.fill(
-                    np.linalg.norm(
-                        rhs.array,
-                        axis=axes,
-                        keepdims=keepdims,
-                        ord=args[0].item(),
-                    )
-                )
-            else:
-                self.array[:] = np.linalg.norm(
-                    rhs.array, axis=axes, keepdims=keepdims, ord=args[0].item()
-                )
         elif op == UnaryRedCode.PROD:
             try:
                 # Try the new version of this interface for NumPy
