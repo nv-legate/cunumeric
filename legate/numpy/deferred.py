@@ -4838,26 +4838,19 @@ class DeferredArray(NumPyThunk):
             # preserve).
             launch_space = None
             key_array = None
-
-            def consider_array(arr):
-                nonlocal launch_space
-                nonlocal key_array
+            for arr in lhs_array, rhs1_array, rhs2_array:
                 if (
                     lhs_array.shape != arr.shape
                     or isinstance(arr.base, Future)
                     or not arr.base.has_parallel_launch_space()
                 ):
-                    return
+                    continue
                 arr_space = arr.base.compute_parallel_launch_space()
                 if launch_space is None or calculate_volume(
                     arr_space
                 ) <= calculate_volume(launch_space):
                     launch_space = arr_space
                     key_array = arr.base
-
-            consider_array(lhs_array)
-            consider_array(rhs1_array)
-            consider_array(rhs2_array)
             # Compute our transforms
             if rhs1_array.size > 1 and rhs1_array.shape != lhs_array.shape:
                 (
