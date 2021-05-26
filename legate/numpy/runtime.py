@@ -1672,7 +1672,7 @@ class Runtime(object):
                 # save it in the subviews that we computed
                 child_region = partition.get_child(Point(tile_color))
                 if not parent.subviews:
-                    parent.subviews = list()
+                    parent.subviews = weakref.WeakSet()
                 region_field = RegionField(
                     self,
                     child_region,
@@ -1684,7 +1684,7 @@ class Runtime(object):
                     key,
                     view,
                 )
-                parent.subviews.append(region_field)
+                parent.subviews.add(region_field)
                 return DeferredArray(
                     self, region_field, shape, parent.field.dtype, scalar=False
                 )
@@ -1703,7 +1703,7 @@ class Runtime(object):
                     Point((0,) * len(tile_shape))
                 )
                 if not parent.subviews:
-                    parent.subviews = list()
+                    parent.subviews = weakref.WeakSet()
                 region_field = RegionField(
                     self,
                     child_region,
@@ -1715,7 +1715,7 @@ class Runtime(object):
                     key,
                     view,
                 )
-                parent.subviews.append(region_field)
+                parent.subviews.add(region_field)
                 return DeferredArray(
                     self, region_field, shape, parent.field.dtype, scalar=False
                 )
