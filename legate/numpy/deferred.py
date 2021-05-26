@@ -1401,8 +1401,6 @@ class DeferredArray(NumPyThunk):
             assert M == rhs1_array.shape[0]  # Check M
             assert N == rhs2_array.shape[1]  # Check N
             assert K == rhs2_array.shape[0]  # Check K
-            # Get our result field
-            result = lhs_array.base
             # We need to figure out our strategy for matrix multiple, we can
             # figure this out using a deterministic process of decisions based
             # on the natural tiling of the largest of the three matrices
@@ -1411,17 +1409,19 @@ class DeferredArray(NumPyThunk):
             rhs2_size = K * N
             if lhs_size > rhs1_size and lhs_size > rhs2_size:
                 # LHS is biggest
-                lhs_launch = result.compute_parallel_launch_space()
+                lhs_launch = lhs_array.base.compute_parallel_launch_space()
                 if lhs_launch is not None:
                     # This gives us the tile size for m and n
-                    result_part = result.find_or_create_partition(lhs_launch)
+                    lhs_part = lhs_array.base.find_or_create_partition(
+                        lhs_launch
+                    )
                     # the choice for k and k_tile here is underconstrained, we
                     # want to be able to recognize inner and outer product like
                     # cases here, but also fall back to normal tiled execution
                     # when it's important, we'll try to make things squar-ish
                     # by making k_tile the min of the m_tile and n_tile sizes
-                    m_tile = result_part.tile_shape[0]
-                    n_tile = result_part.tile_shape[1]
+                    m_tile = lhs_part.tile_shape[0]
+                    n_tile = lhs_part.tile_shape[1]
                     k_tile = min(m_tile, n_tile)
                     rhs1_launch = (
                         (rhs1_array.shape[0] + m_tile - 1) // m_tile,
@@ -1465,7 +1465,7 @@ class DeferredArray(NumPyThunk):
                     rhs2_part = rhs2.find_or_create_partition(
                         rhs2_launch, tile_shape=(k_tile, n_tile)
                     )
-                    result_part = result.find_or_create_partition(
+                    lhs_part = lhs_array.base.find_or_create_partition(
                         lhs_launch, tile_shape=(m_tile, n_tile)
                     )
                 else:
@@ -1497,344 +1497,114 @@ class DeferredArray(NumPyThunk):
                     rhs1_part = rhs1.find_or_create_partition(
                         rhs1_launch, tile_shape=(m_tile, k_tile)
                     )
-                    result_part = result.find_or_create_partition(
+                    lhs_part = lhs_array.base.find_or_create_partition(
                         lhs_launch, tile_shape=(m_tile, n_tile)
                     )
                 else:
                     # No need for any parallelism
                     rhs1_launch = None
+
             if rhs1_launch is not None:
                 # Parallel launch case
                 assert rhs2_launch is not None
-                # Figure out if we're doing a matrix multiply that is going to
-                # require a reduction or not. If we need a reduction it will be
-                # more complicated because we'll have to build reduciton tree
-                # tasks
-                if rhs1_launch[1] == 1:
-                    ###############################################
-                    # Non-Reduction case
-                    ###############################################
-                    assert rhs2_launch[0] == 1
-                    argbuf = BufferBuilder()
-                    if lhs_array.dtype.type == np.float16:
-                        argbuf.pack_bool(
-                            False
-                        )  # No need for 32-bit accumulate ever
-                    argbuf.pack_dimension(-1)  # No collapse dimension
-                    self.pack_shape(
-                        argbuf, lhs_array.shape, result_part.tile_shape, 0
-                    )
-                    argbuf.pack_accessor(
-                        result.field.field_id, result.transform
-                    )
-                    self.pack_shape(
-                        argbuf,
-                        rhs1_array.shape,
-                        rhs1_part.tile_shape,
-                        self.runtime.first_proj_id
-                        + NumPyProjCode.PROJ_2D_2D_X,
-                    )
-                    argbuf.pack_accessor(rhs1.field.field_id, rhs1.transform)
-                    self.pack_shape(
-                        argbuf,
-                        rhs2_array.shape,
-                        rhs2_part.tile_shape,
-                        self.runtime.first_proj_id
-                        + NumPyProjCode.PROJ_2D_2D_Y,
-                    )
-                    argbuf.pack_accessor(rhs2.field.field_id, rhs2.transform)
-                    task = IndexTask(
-                        self.runtime.get_binary_task_id(
-                            NumPyOpCode.DOT,
-                            result_type=lhs_array.dtype,
-                            first_argument_type=rhs1_array.dtype,
-                            second_argument_type=rhs2_array.dtype,
-                        ),
-                        Rect(lhs_launch),
-                        self.runtime.empty_argmap,
-                        argbuf.get_string(),
-                        argbuf.get_size(),
-                        mapper=self.runtime.mapper_id,
-                    )
-                    task.add_write_requirement(
-                        result_part,
-                        result.field.field_id,
-                        0,
-                        tag=NumPyMappingTag.KEY_REGION_TAG
-                        if lhs_size > rhs1_size and lhs_size > rhs2_size
-                        else NumPyMappingTag.NO_MEMOIZE_TAG,
-                    )
-                    task.add_read_requirement(
-                        rhs1_part,
-                        rhs1.field.field_id,
-                        self.runtime.first_proj_id
-                        + NumPyProjCode.PROJ_2D_2D_X,
-                        tag=NumPyMappingTag.KEY_REGION_TAG
-                        if rhs1_size >= lhs_size and rhs1_size > rhs2_size
-                        else NumPyMappingTag.NO_MEMOIZE_TAG,
-                    )
-                    task.add_read_requirement(
-                        rhs2_part,
-                        rhs2.field.field_id,
-                        self.runtime.first_proj_id
-                        + NumPyProjCode.PROJ_2D_2D_Y,
-                        tag=NumPyMappingTag.KEY_REGION_TAG
-                        if rhs2_size >= lhs_size and rhs2_size >= rhs1_size
-                        else NumPyMappingTag.NO_MEMOIZE_TAG,
-                    )
-                    self.runtime.dispatch(task)
-                else:
-                    ###############################################
-                    # Reduction case
-                    ###############################################
-                    convert = lhs_array.dtype.type == np.float16
-                    assert lhs_launch[0] == rhs1_launch[0]
-                    assert rhs1_launch[1] == rhs2_launch[0]
-                    assert rhs2_launch[1] == lhs_launch[1]
-                    launch_space = (
-                        lhs_launch[0],
-                        rhs1_launch[1],
-                        lhs_launch[1],
-                    )
-                    reduction_shape = (
-                        lhs_array.shape[0],
-                        rhs1_launch[1],
-                        lhs_array.shape[1],
-                    )
-                    reduction_field = self.runtime.allocate_field(
-                        reduction_shape,
-                        result.field.dtype
-                        if not convert
-                        else np.dtype(np.float32),
-                    )
-                    reduction_part = reduction_field.find_or_create_partition(
-                        launch_space
-                    )
-                    result_proj = (
-                        self.runtime.first_proj_id
-                        + NumPyProjCode.PROJ_3D_2D_XZ
-                    )
-                    rhs1_proj = (
-                        self.runtime.first_proj_id
-                        + NumPyProjCode.PROJ_3D_2D_XY
-                    )
-                    rhs2_proj = (
-                        self.runtime.first_proj_id
-                        + NumPyProjCode.PROJ_3D_2D_YZ
-                    )
-                    if lhs_size > rhs1_size and lhs_size > rhs2_size:
-                        lhs_tag = NumPyMappingTag.KEY_REGION_TAG
-                        rhs1_tag = NumPyMappingTag.NO_MEMOIZE_TAG
-                        rhs2_tag = NumPyMappingTag.NO_MEMOIZE_TAG
-                    elif rhs1_size > lhs_size and rhs1_size > rhs2_size:
-                        lhs_tag = NumPyMappingTag.NO_MEMOIZE_TAG
-                        rhs1_tag = NumPyMappingTag.KEY_REGION_TAG
-                        rhs2_tag = NumPyMappingTag.NO_MEMOIZE_TAG
-                    else:
-                        assert rhs2_size >= lhs_size and rhs2_size >= rhs1_size
-                        lhs_tag = NumPyMappingTag.NO_MEMOIZE_TAG
-                        rhs1_tag = NumPyMappingTag.NO_MEMOIZE_TAG
-                        rhs2_tag = NumPyMappingTag.KEY_REGION_TAG
-                    argbuf = BufferBuilder()
-                    if convert:
-                        argbuf.pack_bool(True)
-                    argbuf.pack_dimension(1)  # The dimension being collapsed
-                    self.pack_shape(
-                        argbuf,
-                        lhs_array.shape,
-                        result_part.tile_shape,
-                        result_proj,
-                    )
-                    argbuf.pack_accessor(
-                        reduction_field.field.field_id,
-                        reduction_field.transform,
-                    )
-                    self.pack_shape(
-                        argbuf,
-                        rhs1_array.shape,
-                        rhs1_part.tile_shape,
-                        rhs1_proj,
-                    )
-                    argbuf.pack_accessor(rhs1.field.field_id, rhs1.transform)
-                    self.pack_shape(
-                        argbuf,
-                        rhs2_array.shape,
-                        rhs2_part.tile_shape,
-                        rhs2_proj,
-                    )
-                    argbuf.pack_accessor(rhs2.field.field_id, rhs2.transform)
-                    task = IndexTask(
-                        self.runtime.get_binary_task_id(
-                            NumPyOpCode.DOT,
-                            result_type=lhs_array.dtype,
-                            first_argument_type=lhs_array.dtype,
-                            second_argument_type=lhs_array.dtype,
-                        ),
-                        Rect(launch_space),
-                        self.runtime.empty_argmap,
-                        argbuf.get_string(),
-                        argbuf.get_size(),
-                        mapper=self.runtime.mapper_id,
-                    )
-                    task.add_write_requirement(
-                        reduction_part,
-                        reduction_field.field.field_id,
-                        0,
-                        tag=lhs_tag,
-                    )
-                    task.add_read_requirement(
-                        rhs1_part, rhs1.field.field_id, rhs1_proj, tag=rhs1_tag
-                    )
-                    task.add_read_requirement(
-                        rhs2_part, rhs2.field.field_id, rhs2_proj, tag=rhs2_tag
-                    )
-                    self.runtime.dispatch(task)
-                    # Now that we've created the reduction field we need to
-                    # actually reduce it down to the output array
-                    RADIX = self.runtime.radix
-                    assert reduction_shape[1] > 1
-                    # this will be the sharding space for all the index
-                    # launches
-                    sharding_space = self.runtime.find_or_create_index_space(
-                        launch_space
-                    )
-                    result_part = result.find_or_create_partition(lhs_launch)
-                    radix_generation = 1
-                    # Launch reduction tasks until we've reduced down to the
-                    # output
-                    while reduction_shape[1] > 1:
-                        argbuf = BufferBuilder()
-                        argbuf.pack_dimension(RADIX)
-                        new_reduction_shape = (
-                            lhs_array.shape[0],
-                            (reduction_shape[1] + RADIX - 1) // RADIX,
-                            lhs_array.shape[1],
-                        )
-                        local_launch_space = (
-                            lhs_launch[0],
-                            new_reduction_shape[1],
-                            lhs_launch[1],
-                        )
-                        if new_reduction_shape[1] == 1 and not convert:
-                            # If this is the last reduction we can put it right
-                            # in the output array assuming we don't need a
-                            # conversion
-                            new_reduction_field = result
-                            new_reduction_part = result_part
-                            new_reduction_proj = result_proj
-                            argbuf.pack_dimension(
-                                -1
-                            )  # No collapse out dimension
-                        else:
-                            new_reduction_field = self.runtime.allocate_field(
-                                new_reduction_shape,
-                                reduction_field.field.dtype,
-                            )
-                            new_reduction_part = new_reduction_field.find_or_create_partition(  # noqa E501
-                                local_launch_space
-                            )
-                            new_reduction_proj = 0  # identity projection
-                            argbuf.pack_dimension(
-                                1
-                            )  # Collapsing out dimension 1
-                        argbuf.pack_dimension(1)  # Collapsing in dimension 1
-                        self.pack_shape(
-                            argbuf,
-                            lhs_array.shape,
-                            result_part.tile_shape,
-                            result_proj,
-                        )
-                        argbuf.pack_accessor(
-                            new_reduction_field.field.field_id,
-                            new_reduction_field.transform,
-                        )
-                        for idx in xrange(RADIX):
-                            argbuf.pack_accessor(
-                                reduction_field.field.field_id,
-                                reduction_field.transform,
-                            )
-                        task = IndexTask(
-                            self.runtime.get_binary_task_id(
-                                NumPyOpCode.SUM_RADIX,
-                                result_type=reduction_field.field.dtype,
-                                first_argument_type=reduction_field.field.dtype,  # noqa E501
-                                second_argument_type=reduction_field.field.dtype,  # noqa E501
-                            ),
-                            Rect(local_launch_space),
-                            self.runtime.empty_argmap,
-                            argbuf.get_string(),
-                            argbuf.get_size(),
-                            mapper=self.runtime.mapper_id,
-                            tag=(
-                                NumPyMappingTag.RADIX_GEN_TAG
-                                & (radix_generation << RADIX_GEN_SHIFT)
-                            )
-                            | (
-                                NumPyMappingTag.RADIX_DIM_TAG
-                                & (1 << RADIX_DIM_SHIFT)
-                            ),
-                        )
-                        task.set_sharding_space(sharding_space)
-                        task.add_write_requirement(
-                            new_reduction_part,
-                            new_reduction_field.field.field_id,
-                            new_reduction_proj,
-                            tag=NumPyMappingTag.KEY_REGION_TAG,
-                            flags=legion.LEGION_COMPLETE_PROJECTION_WRITE_FLAG,
-                        )
-                        for idx in xrange(RADIX):
-                            task.add_read_requirement(
-                                reduction_part,
-                                reduction_field.field.field_id,
-                                self.runtime.get_radix_projection_functor_id(
-                                    3, 1, RADIX, idx
-                                ),
-                            )
-                        self.runtime.dispatch(task)
-                        reduction_shape = new_reduction_shape
-                        reduction_field = new_reduction_field
-                        reduction_part = new_reduction_part
-                        radix_generation += 1
-                    # If we need a conversion back from 16-bit do that now
-                    if convert:
-                        self.convert_float32_to_float16(
-                            reduction_field, lhs_array, 1
-                        )
+                assert lhs_launch[0] == rhs1_launch[0]
+                assert rhs1_launch[1] == rhs2_launch[0]
+                assert rhs2_launch[1] == lhs_launch[1]
+                launch_space = (
+                    lhs_launch[0],
+                    rhs1_launch[1],
+                    lhs_launch[1],
+                )
+                lhs_proj = NumPyProjCode.PROJ_3D_2D_XZ
+                rhs1_proj = NumPyProjCode.PROJ_3D_2D_XY
+                rhs2_proj = NumPyProjCode.PROJ_3D_2D_YZ
+                max_size = max(lhs_size, rhs1_size, rhs2_size)
+                lhs_tag = (
+                    NumPyMappingTag.KEY_REGION_TAG
+                    if lhs_size == max_size
+                    else NumPyMappingTag.NO_MEMOIZE_TAG
+                )
+                rhs1_tag = (
+                    NumPyMappingTag.KEY_REGION_TAG
+                    if rhs1_size == max_size
+                    else NumPyMappingTag.NO_MEMOIZE_TAG
+                )
+                rhs2_tag = (
+                    NumPyMappingTag.KEY_REGION_TAG
+                    if rhs2_size == max_size
+                    else NumPyMappingTag.NO_MEMOIZE_TAG
+                )
+
+                lhs_arg = DeferredArrayView(
+                    lhs_array,
+                    part=lhs_part,
+                    proj_id=self.runtime.first_proj_id + lhs_proj,
+                    tag=lhs_tag,
+                )
+                rhs1_arg = DeferredArrayView(
+                    rhs1_array,
+                    part=rhs1_part,
+                    proj_id=self.runtime.first_proj_id + rhs1_proj,
+                    tag=rhs1_tag,
+                )
+                rhs2_arg = DeferredArrayView(
+                    rhs2_array,
+                    part=rhs2_part,
+                    proj_id=self.runtime.first_proj_id + rhs2_proj,
+                    tag=rhs2_tag,
+                )
+
+                needs_reduction = rhs1_launch[0] > 1
+
             else:
-                # Single matrix multiply, pretty straight-forward
-                argbuf = BufferBuilder()
-                # 16-bit floats don't need any special support in this case
-                if lhs_array.dtype.type == np.float16:
-                    argbuf.pack_bool(
-                        False
-                    )  # No need for a partial accumulator
-                argbuf.pack_dimension(-1)  # No extra dimensions
-                self.pack_shape(argbuf, lhs_array.shape)
-                argbuf.pack_accessor(result.field.field_id, result.transform)
-                self.pack_shape(argbuf, rhs1_array.shape)
-                argbuf.pack_accessor(rhs1.field.field_id, rhs1.transform)
-                self.pack_shape(argbuf, rhs2_array.shape)
-                argbuf.pack_accessor(rhs2.field.field_id, rhs2.transform)
-                # This is the easy in-place GEMM case
-                task = Task(
-                    self.runtime.get_binary_task_id(
-                        NumPyOpCode.DOT,
-                        result_type=lhs_array.dtype,
-                        first_argument_type=rhs1_array.dtype,
-                        second_argument_type=rhs2_array.dtype,
-                    ),
-                    argbuf.get_string(),
-                    argbuf.get_size(),
-                    mapper=self.runtime.mapper_id,
+                launch_space = None
+                lhs_arg = DeferredArrayView(lhs_array)
+                rhs1_arg = DeferredArrayView(rhs1_array)
+                rhs2_arg = DeferredArrayView(rhs2_array)
+                needs_reduction = False
+
+            # If we perform reduction for matrix multiplication,
+            # we must zero out the lhs first
+            if needs_reduction:
+                lhs_array.fill(
+                    np.array(0, dtype=lhs_array.dtype),
+                    stacklevel=(stacklevel + 1),
                 )
-                task.add_write_requirement(
-                    result.region, result.field.field_id
+
+            task = Map(self.runtime, NumPyOpCode.MATMUL)
+            task.add_scalar_arg(needs_reduction, bool)
+            if launch_space is not None:
+                task.add_shape(lhs_array.shape, lhs_part.tile_shape, lhs_proj)
+                task.add_shape(
+                    rhs1_array.shape, rhs1_part.tile_shape, rhs1_proj
                 )
-                task.add_read_requirement(rhs1.region, rhs1.field.field_id)
-                task.add_read_requirement(rhs2.region, rhs2.field.field_id)
-                self.runtime.dispatch(task)
+                task.add_shape(
+                    rhs2_array.shape, rhs2_part.tile_shape, rhs2_proj
+                )
+            else:
+                task.add_shape(lhs_array.shape)
+                task.add_shape(rhs1_array.shape)
+                task.add_shape(rhs2_array.shape)
+
+            if needs_reduction:
+                redop = self.runtime.get_unary_reduction_op_id(
+                    UnaryRedCode.SUM, lhs_array.dtype
+                )
+            else:
+                redop = None
+
+            lhs_arg.add_to_legate_op(task, False, redop=redop)
+            rhs1_arg.add_to_legate_op(task, True)
+            rhs2_arg.add_to_legate_op(task, True)
+
+            if launch_space is not None:
+                task.execute(Rect(launch_space))
+            else:
+                task.execute_single()
+
         else:
             raise NotImplementedError("Need support for tensor contractions")
+
         self.runtime.profile_callsite(stacklevel + 1, True, callsite)
         if self.runtime.shadow_debug:
             self.shadow.dot(

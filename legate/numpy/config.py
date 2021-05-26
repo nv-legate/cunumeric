@@ -150,6 +150,7 @@ class NumPyOpCode(IntEnum):
     READ = legate_numpy.NUMPY_READ
     WRITE = legate_numpy.NUMPY_WRITE
     DIAG = legate_numpy.NUMPY_DIAG
+    MATMUL = legate_numpy.NUMPY_MATMUL
 
 
 @unique
