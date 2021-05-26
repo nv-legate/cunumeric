@@ -115,6 +115,54 @@ struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::DOUBLE_LT> {
   }
 };
 
+template <>
+struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::HALF_LT> {
+  void operator()(size_t m,
+                  size_t n,
+                  size_t k,
+                  __half *lhs,
+                  const __half *rhs1,
+                  const __half *rhs2,
+                  size_t lhs_stride,
+                  size_t rhs1_stride,
+                  size_t rhs2_stride)
+  {
+    cublasHandle_t cublas_handle = Core::get_cublas();
+    // Update the stream because the CUDA hijack can't see inside cuBLAS
+    cudaStream_t task_stream;
+    cudaStreamCreate(&task_stream);
+    CHECK_CUBLAS(cublasSetStream(cublas_handle, task_stream));
+
+    const float alpha = 1.f;
+    const float beta  = 0.f;
+
+    // cublas is dumb and doesn't support row-major, so reverse the matrix
+    // order to help cublas think things are column-major
+    // effectively we get NxM = NxK * KxM
+    // Use the extended sgemm interface so we can use tensor cores
+    // if they are available for this matrix shape and GPU
+    CHECK_CUBLAS(cublasSgemmEx(cublas_handle,
+                               CUBLAS_OP_N,
+                               CUBLAS_OP_N,
+                               n,
+                               m,
+                               k,
+                               &alpha,
+                               rhs2,
+                               CUDA_R_16F,
+                               rhs2_stride,
+                               rhs1,
+                               CUDA_R_16F,
+                               rhs1_stride,
+                               &beta,
+                               lhs,
+                               CUDA_R_16F,
+                               lhs_stride));
+
+    cudaStreamDestroy(task_stream);
+  }
+};
+
 /*static*/ void MatMulTask::gpu_variant(const Task *task,
                                         const std::vector<PhysicalRegion> &regions,
                                         Context context,

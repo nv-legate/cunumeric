@@ -946,84 +946,44 @@ class DeferredArray(NumPyThunk):
             src2, stacklevel=(stacklevel + 1)
         )
         lhs_array = self
-        rhs1 = rhs1_array.base
-        rhs2 = rhs2_array.base
         if rhs1_array.ndim == 1 and rhs2_array.ndim == 1:
             # Vector dot product case
             assert lhs_array.size == 1
             assert rhs1_array.shape == rhs2_array.shape or (
                 rhs1_array.size == 1 and rhs2_array.size == 1
             )
-            launch_space = rhs1.compute_parallel_launch_space()
-            argbuf = BufferBuilder()
+            rhs1_arg = DeferredArrayView(rhs1_array)
+            rhs2_arg = DeferredArrayView(rhs2_array)
+
+            launch_space = rhs1_array.base.compute_parallel_launch_space()
             if launch_space is not None:
-                (
-                    rhs1_part,
-                    shardfn,
-                    shardsp,
-                ) = rhs1.find_or_create_key_partition()
-                self.pack_shape(
-                    argbuf, rhs1_array.shape, rhs1_part.tile_shape, 0
-                )
-            else:
-                self.pack_shape(argbuf, rhs1_array.shape)
-            argbuf.pack_accessor(rhs1.field.field_id, rhs1.transform)
-            argbuf.pack_accessor(rhs2.field.field_id, rhs2.transform)
+                rhs1_arg.update_tag(NumPyMappingTag.KEY_REGION_TAG)
+                rhs2_arg.copy_key_partition_from(rhs1_arg)
+
+            (shardpt, shardfn, shardsp) = rhs1_arg.sharding
+
+            task = Map(self.runtime, NumPyOpCode.DOT, tag=shardfn)
             if launch_space is not None:
-                # Index space launch case
-                task = IndexTask(
-                    self.runtime.get_binary_task_id(
-                        NumPyOpCode.DOT,
-                        result_type=lhs_array.dtype,
-                        first_argument_type=lhs_array.dtype,
-                        second_argument_type=lhs_array.dtype,
-                        variant_code=NumPyVariantCode.REDUCTION,
-                    ),
-                    Rect(launch_space),
-                    self.runtime.empty_argmap,
-                    argbuf.get_string(),
-                    argbuf.get_size(),
-                    mapper=self.runtime.mapper_id,
-                    tag=shardfn,
-                )
-                if shardsp is not None:
-                    task.set_sharding_space(shardsp)
-                # rhs1_part is computed above
-                task.add_read_requirement(
-                    rhs1_part,
-                    rhs1.field.field_id,
-                    0,
-                    tag=NumPyMappingTag.KEY_REGION_TAG,
-                )
-                rhs2_part = rhs2.find_or_create_congruent_partition(rhs1_part)
-                task.add_read_requirement(rhs2_part, rhs2.field.field_id, 0)
-                redop = self.runtime.get_reduction_op_id(
-                    NumPyOpCode.DOT, lhs_array.dtype
-                )
-                result = self.runtime.dispatch(task, redop=redop)
+                task.add_shape(rhs1_arg.shape, rhs1_arg.part.tile_shape, 0)
             else:
-                # Single task launch case
-                shardpt, shardfn, shardsp = rhs1.find_point_sharding()
-                task = Task(
-                    self.runtime.get_binary_task_id(
-                        NumPyOpCode.DOT,
-                        result_type=lhs_array.dtype,
-                        first_argument_type=lhs_array.dtype,
-                        second_argument_type=lhs_array.dtype,
-                        variant_code=NumPyVariantCode.REDUCTION,
-                    ),
-                    argbuf.get_string(),
-                    argbuf.get_size(),
-                    mapper=self.runtime.mapper_id,
-                    tag=shardfn,
+                task.add_shape(rhs1_arg.shape)
+
+            rhs1_arg.add_to_legate_op(task, True)
+            rhs2_arg.add_to_legate_op(task, True)
+
+            if shardsp is not None:
+                task.set_sharding_space(shardsp)
+
+            if launch_space is not None:
+                redop = self.runtime.get_scalar_reduction_op_id(
+                    UnaryRedCode.SUM
                 )
+                result = task.execute(Rect(launch_space), redop=redop)
+            else:
                 if shardpt is not None:
                     task.set_point(shardpt)
-                if shardsp is not None:
-                    task.set_sharding_space(shardsp)
-                task.add_read_requirement(rhs1.region, rhs1.field.field_id)
-                task.add_read_requirement(rhs2.region, rhs2.field.field_id)
-                result = self.runtime.dispatch(task)
+                result = task.execute_single()
+
             lhs_array.base = result
         elif rhs1_array.ndim == 1 or rhs2_array.ndim == 1:
             # Matrix-vector or vector-matrix multiply
@@ -1332,7 +1292,7 @@ class DeferredArray(NumPyThunk):
                     tag=rhs2_tag,
                 )
 
-                needs_reduction = rhs1_launch[0] > 1
+                needs_reduction = rhs1_launch[1] > 1
 
             else:
                 launch_space = None
@@ -1376,6 +1336,7 @@ class DeferredArray(NumPyThunk):
             rhs2_arg.add_to_legate_op(task, True)
 
             if launch_space is not None:
+                print(launch_space)
                 task.execute(Rect(launch_space))
             else:
                 task.execute_single()

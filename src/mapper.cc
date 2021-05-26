@@ -1222,7 +1222,8 @@ ShardingID NumPyMapper::select_sharding_functor(const MapperContext ctx, const T
   LegateTypeCode type_code;
   NumPyVariantCode variant_code;
   decode_task_id(task.task_id, op_code, type_code, variant_code);
-  if (op_code == NumPyOpCode::NUMPY_DOT || op_code == NumPyOpCode::NUMPY_MATMUL) {
+  if (op_code == NumPyOpCode::NUMPY_DOT || op_code == NumPyOpCode::NUMPY_MATVECMUL ||
+      op_code == NumPyOpCode::NUMPY_MATMUL) {
     switch (launch_dim) {
       case 1:  // vector dot product
         return first_sharding_id + NUMPY_SHARD_TILE_1D;
@@ -2104,6 +2105,10 @@ void NumPyMapper::decode_task_id(TaskID tid,
   // This better be a NumPy task
   assert((first_numpy_task_id <= tid) && (tid <= last_numpy_task_id));
   tid -= first_numpy_task_id;
+  if (tid >= NumPyOpCode::NUMPY_BINARY_OP) {
+    op_code = static_cast<NumPyOpCode>(tid);
+    return;
+  }
   if (tid >= NUMPY_BINCOUNT_OFFSET) {
     op_code = NumPyOpCode::NUMPY_BINCOUNT;
     return;

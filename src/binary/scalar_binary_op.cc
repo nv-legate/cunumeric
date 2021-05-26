@@ -28,13 +28,15 @@ using namespace Legion;
 template <BinaryOpCode OP_CODE>
 struct BinaryOpImpl {
   template <LegateTypeCode CODE, std::enable_if_t<BinaryOp<OP_CODE, CODE>::valid> * = nullptr>
-  UntypedScalar operator()(const UntypedScalar &in1, const UntypedScalar &in2)
+  UntypedScalar operator()(const UntypedScalar &in1,
+                           const UntypedScalar &in2,
+                           const std::vector<UntypedScalar> &args) const
   {
     using OP  = BinaryOp<OP_CODE, CODE>;
     using ARG = legate_type_of<CODE>;
     using RES = std::result_of_t<OP(ARG, ARG)>;
 
-    OP func{};
+    OP func{args};
 
     auto a      = in1.value<ARG>();
     auto b      = in2.value<ARG>();
@@ -44,7 +46,9 @@ struct BinaryOpImpl {
   }
 
   template <LegateTypeCode CODE, std::enable_if_t<!BinaryOp<OP_CODE, CODE>::valid> * = nullptr>
-  UntypedScalar operator()(const UntypedScalar &in1, const UntypedScalar &in2)
+  UntypedScalar operator()(const UntypedScalar &in1,
+                           const UntypedScalar &in2,
+                           const std::vector<UntypedScalar> &args) const
   {
     assert(false);
     return UntypedScalar();
@@ -53,9 +57,11 @@ struct BinaryOpImpl {
 
 struct BinaryOpDispatch {
   template <BinaryOpCode OP_CODE>
-  UntypedScalar operator()(const UntypedScalar &in1, const UntypedScalar &in2)
+  UntypedScalar operator()(const UntypedScalar &in1,
+                           const UntypedScalar &in2,
+                           const std::vector<UntypedScalar> &args) const
   {
-    return type_dispatch(in1.code(), BinaryOpImpl<OP_CODE>{}, in1, in2);
+    return type_dispatch(in1.code(), BinaryOpImpl<OP_CODE>{}, in1, in2, args);
   }
 };
 
@@ -69,12 +75,17 @@ struct BinaryOpDispatch {
   BinaryOpCode op_code;
   Array in1;
   Array in2;
+  std::vector<UntypedScalar> args;
 
   deserialize(ctx, op_code);
   deserialize(ctx, in1);
   deserialize(ctx, in2);
+  deserialize(ctx, args);
 
-  return op_dispatch(op_code, BinaryOpDispatch{}, in1.scalar(), in2.scalar());
+  if (op_code == BinaryOpCode::ALLCLOSE)
+    return BinaryOpDispatch{}.operator()<BinaryOpCode::ALLCLOSE>(in1.scalar(), in2.scalar(), args);
+  else
+    return op_dispatch(op_code, BinaryOpDispatch{}, in1.scalar(), in2.scalar(), args);
 }
 
 namespace  // unnamed

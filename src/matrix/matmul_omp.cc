@@ -16,6 +16,7 @@
 
 #include "matrix/matmul.h"
 #include "matrix/matmul_template.inl"
+#include "matrix/util.h"
 
 #include <cblas.h>
 #include <omp.h>
@@ -80,6 +81,32 @@ struct MatMulImplBody<VariantKind::OMP, LegateTypeCode::DOUBLE_LT> {
                 0,
                 lhs,
                 lhs_stride);
+  }
+};
+
+template <>
+struct MatMulImplBody<VariantKind::OMP, LegateTypeCode::HALF_LT> {
+  void operator()(size_t m,
+                  size_t n,
+                  size_t k,
+                  __half *lhs,
+                  const __half *rhs1,
+                  const __half *rhs2,
+                  size_t lhs_stride,
+                  size_t rhs1_stride,
+                  size_t rhs2_stride)
+  {
+    auto rhs1_copy = allocate_buffer(m * k);
+    auto rhs2_copy = allocate_buffer(k * n);
+    auto lhs_copy  = allocate_buffer(m * n);
+
+    half_matrix_to_float(rhs1_copy, rhs1, m, k, rhs1_stride);
+    half_matrix_to_float(rhs2_copy, rhs2, k, n, rhs2_stride);
+
+    MatMulImplBody<VariantKind::OMP, LegateTypeCode::FLOAT_LT>()(
+      m, n, k, lhs_copy, rhs1_copy, rhs2_copy, n, k, n);
+
+    float_matrix_to_half(lhs, lhs_copy, m, n, lhs_stride);
   }
 };
 

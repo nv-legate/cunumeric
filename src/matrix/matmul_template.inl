@@ -35,6 +35,9 @@ struct support_matmul<LegateTypeCode::DOUBLE_LT> : std::true_type {
 template <>
 struct support_matmul<LegateTypeCode::FLOAT_LT> : std::true_type {
 };
+template <>
+struct support_matmul<LegateTypeCode::HALF_LT> : std::true_type {
+};
 
 template <VariantKind KIND>
 struct MatMulImpl {

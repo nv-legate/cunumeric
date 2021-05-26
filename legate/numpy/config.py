@@ -119,7 +119,6 @@ class NumPyOpCode(IntEnum):
     ARGMIN = legate_numpy.NUMPY_ARGMIN
     ARGMIN_RADIX = legate_numpy.NUMPY_ARGMIN_RADIX
     BINCOUNT = legate_numpy.NUMPY_BINCOUNT
-    DOT = legate_numpy.NUMPY_DOT
     EYE = legate_numpy.NUMPY_EYE
     GETARG = legate_numpy.NUMPY_GETARG
     RAND_INTEGER = legate_numpy.NUMPY_RAND_INTEGER
@@ -152,6 +151,7 @@ class NumPyOpCode(IntEnum):
     DIAG = legate_numpy.NUMPY_DIAG
     MATMUL = legate_numpy.NUMPY_MATMUL
     MATVECMUL = legate_numpy.NUMPY_MATVECMUL
+    DOT = legate_numpy.NUMPY_DOT
 
 
 @unique
