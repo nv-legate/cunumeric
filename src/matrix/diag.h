@@ -14,34 +14,30 @@
  *
  */
 
-#ifndef __NUMPY_DIAG_H__
-#define __NUMPY_DIAG_H__
+#pragma once
 
 #include "numpy.h"
-#include "proj.h"
+#include "core.h"
+#include "deserializer.h"
 
 namespace legate {
 namespace numpy {
-// Small helper method for diagonal
-static inline Legion::Rect<1> extract_rect1d(const Legion::Domain& dom)
-{
-  const Legion::Rect<2> rect = dom;
-  Legion::Rect<1> result;
-  result.lo[0] = rect.lo[0];
-  result.hi[0] = rect.hi[0];
-  return result;
-}
 
-template <typename T>
-class DiagTask : public NumPyTask<DiagTask<T>> {
- public:
-  static const int TASK_ID;
-  static const int REGIONS = 2;
+struct DiagArgs {
+  bool extract;
+  bool needs_reduction;
+  int32_t k;
+  Shape shape;
+  Array out;
+  Array in;
+};
 
+void deserialize(Deserializer& ctx, DiagArgs& args);
+
+class DiagTask : public NumPyTask<DiagTask> {
  public:
-  template <typename TASK>
-  static void set_layout_constraints(LegateVariant variant,
-                                     Legion::TaskLayoutConstraintSet& layout_constraints);
+  static const int TASK_ID = NUMPY_DIAG;
+  static const int REGIONS = 0;
 
  public:
   static void cpu_variant(const Legion::Task* task,
@@ -61,7 +57,6 @@ class DiagTask : public NumPyTask<DiagTask<T>> {
                           Legion::Runtime* runtime);
 #endif
 };
+
 }  // namespace numpy
 }  // namespace legate
-
-#endif  // __NUMPY_DIAG_H__

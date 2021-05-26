@@ -119,7 +119,6 @@ class NumPyOpCode(IntEnum):
     ARGMIN = legate_numpy.NUMPY_ARGMIN
     ARGMIN_RADIX = legate_numpy.NUMPY_ARGMIN_RADIX
     BINCOUNT = legate_numpy.NUMPY_BINCOUNT
-    DIAG = legate_numpy.NUMPY_DIAG
     DOT = legate_numpy.NUMPY_DOT
     EYE = legate_numpy.NUMPY_EYE
     GETARG = legate_numpy.NUMPY_GETARG
@@ -150,6 +149,7 @@ class NumPyOpCode(IntEnum):
     SCALAR_WHERE = legate_numpy.NUMPY_SCALAR_WHERE
     READ = legate_numpy.NUMPY_READ
     WRITE = legate_numpy.NUMPY_WRITE
+    DIAG = legate_numpy.NUMPY_DIAG
 
 
 @unique

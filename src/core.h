@@ -279,6 +279,10 @@ class RegionField {
   template <typename OP, bool EXCLUSIVE, int32_t DIM>
   AccessorRD<OP, EXCLUSIVE, DIM> reduce_accessor(void) const;
 
+ public:
+  template <int32_t DIM>
+  Legion::Rect<DIM> shape() const;
+
  private:
   int32_t dim_{-1};
   LegateTypeCode code_{MAX_TYPE_NUMBER};
@@ -319,6 +323,10 @@ class Array {
   AccessorRW<T, DIM> read_write_accessor(void) const;
   template <typename OP, bool EXCLUSIVE, int32_t DIM>
   AccessorRD<OP, EXCLUSIVE, DIM> reduce_accessor(void) const;
+
+ public:
+  template <int32_t DIM>
+  Legion::Rect<DIM> shape() const;
 
  public:
   UntypedScalar scalar() const;

@@ -1844,410 +1844,119 @@ class DeferredArray(NumPyThunk):
 
     # Create or extract a diagonal from a matrix
     def diag(self, rhs, extract, k, stacklevel, callsite=None):
-        assert rhs.dtype == self.dtype
         if extract:
             matrix_array = self.runtime.to_deferred_array(
                 rhs, stacklevel=(stacklevel + 1)
             )
             diag_array = self
-            assert diag_array.ndim == 1
-            assert matrix_array.ndim == 2
-            assert diag_array.shape[0] <= min(
-                matrix_array.shape[0], matrix_array.shape[1]
-            )
-            assert diag_array.dtype == matrix_array.dtype
-            if matrix_array.shape[0] < matrix_array.shape[1]:
-                offset = k if k < 0 else 0
-            else:
-                offset = -k if k > 0 else 0
-            if offset != 0:
-                raise NotImplementedError(
-                    "Need support for offset!=0 in diag extract"
-                )
-            diag = diag_array.base
-            matrix = matrix_array.base
-            launch_space = matrix.compute_parallel_launch_space()
-            if launch_space is not None:
-                # Index space launch case Find a partition for diagonal,
-                # partition on the smaller tile size since that represents the
-                # upper bound on the number of elements needed
-                (
-                    matrix_part,
-                    shardfn,
-                    shardsp,
-                ) = matrix.find_or_create_key_partition()
-                if matrix_array.shape[0] < matrix_array.shape[1]:
-                    assert matrix_array.shape[0] == diag_array.shape[0]
-                    reduction_shape = (diag_array.shape[0], launch_space[1])
-                    # Check to see if we even need a reduction field
-                    if launch_space[1] > 1:
-                        collapse_dim = 1
-                        collapse_index = 1
-                        reduction_field = self.runtime.allocate_field(
-                            reduction_shape, diag_array.dtype
-                        )
-                        reduction_part = reduction_field.find_or_create_partition(  # noqa E501
-                            launch_space,
-                            tile_shape=(matrix_part.tile_shape[0], 1),
-                            offset=(matrix_part.tile_offset[0], 0),
-                        )
-                        reduction_proj = 0
-                    else:
-                        # Only partitioning is on the other dimension so we can
-                        # put our output directly into the diag array
-                        collapse_dim = -1
-                        collapse_index = -1
-                        reduction_field = diag
-                        reduction_part = diag.find_or_create_partition(
-                            (launch_space[0],),
-                            tile_shape=(matrix_part.tile_shape[0],),
-                            offset=(matrix_part.tile_offset[0],),
-                        )
-                        reduction_proj = (
-                            self.runtime.first_proj_id
-                            + NumPyProjCode.PROJ_2D_1D_X
-                        )
-                else:
-                    assert matrix_array.shape[1] == diag_array.shape[0]
-                    reduction_shape = (diag_array.shape[0], launch_space[0])
-                    # Check to see if we even need a reduction field
-                    if launch_space[0] > 1:
-                        collapse_dim = 1
-                        collapse_index = 0
-                        reduction_field = self.runtime.allocate_field(
-                            reduction_shape, diag_array.dtype
-                        )
-                        reduction_part = reduction_field.find_or_create_partition(  # noqa E501
-                            (launch_space[1], launch_space[0]),
-                            tile_shape=(matrix_part.tile_shape[1], 1),
-                            offset=(matrix_part.tile_offset[1], 0),
-                        )
-                        reduction_proj = (
-                            self.runtime.first_proj_id
-                            + NumPyProjCode.PROJ_2D_2D_YX
-                        )
-                    else:
-                        # Only partitioning is on the other dimension so we can
-                        # put our output directly into the diag array
-                        collapse_dim = -1
-                        collapse_index = -1
-                        reduction_field = diag
-                        reduction_part = diag.find_or_create_partition(
-                            (launch_space[1],),
-                            tile_shape=(matrix_part.tile_shape[1],),
-                            offset=(matrix_part.tile_offset[1],),
-                        )
-                        reduction_proj = (
-                            self.runtime.first_proj_id
-                            + NumPyProjCode.PROJ_2D_1D_Y
-                        )
-                # Do an index space launch over the matrix to fill in the
-                # reduction field
-                argbuf = BufferBuilder()
-                argbuf.pack_32bit_int(k)
-                self.pack_shape(
-                    argbuf,
-                    matrix_array.shape,
-                    matrix_part.tile_shape,
-                    proj=0,
-                    pack_dim=False,
-                )
-                argbuf.pack_dimension(
-                    collapse_dim
-                )  # Dimension that we're collapsing
-                argbuf.pack_dimension(
-                    collapse_index
-                )  # Index of the collapsing dimension
-                argbuf.pack_accessor(
-                    reduction_field.field.field_id, reduction_field.transform
-                )
-                argbuf.pack_accessor(matrix.field.field_id, matrix.transform)
-                task = IndexTask(
-                    self.runtime.get_nullary_task_id(
-                        NumPyOpCode.DIAG, result_type=diag_array.dtype
-                    ),
-                    Rect(launch_space),
-                    self.runtime.empty_argmap,
-                    argbuf.get_string(),
-                    argbuf.get_size(),
-                    mapper=self.runtime.mapper_id,
-                    tag=shardfn,
-                )
-                if shardsp is not None:
-                    task.set_sharding_space(shardsp)
-                task.add_write_requirement(
-                    reduction_part,
-                    reduction_field.field.field_id,
-                    reduction_proj,
-                )
-                task.add_read_requirement(
-                    matrix_part,
-                    matrix.field.field_id,
-                    0,  # identity
-                    tag=NumPyMappingTag.KEY_REGION_TAG,
-                )
-                self.runtime.dispatch(task)
-                if reduction_shape[1] > 1:
-                    # Now build reduction trees until we get to the bottom
-                    RADIX = self.runtime.radix
-                    # We want the output vector partitioned in the natural way
-                    # for it
-                    launch_space = diag.compute_parallel_launch_space()
-                    if launch_space is None:
-                        diag_part = diag.find_or_create_partition((1,))
-                        launch_space = (1, reduction_shape[1])
-                    else:
-                        diag_part = diag.find_or_create_partition(launch_space)
-                        launch_space = (launch_space[0], reduction_shape[1])
-                    diag_proj = (
-                        self.runtime.first_proj_id + NumPyProjCode.PROJ_2D_1D_X
-                    )
-                    sharding_space = self.runtime.find_or_create_index_space(
-                        launch_space
-                    )
-                    reduction_part = reduction_field.find_or_create_partition(
-                        launch_space
-                    )
-                    radix_generation = 1
-                    while reduction_shape[1] > 1:
-                        argbuf = BufferBuilder()
-                        argbuf.pack_dimension(RADIX)
-                        new_reduction_shape = (
-                            diag_array.shape[0],
-                            (reduction_shape[1] + RADIX - 1) // RADIX,
-                        )
-                        local_launch_space = (
-                            launch_space[0],
-                            new_reduction_shape[1],
-                        )
-                        if new_reduction_shape[1] == 1:
-                            # We can put the result directly into the output
-                            # since this is the last reduction
-                            new_reduction_field = diag
-                            new_reduction_part = diag_part
-                            new_reduction_proj = diag_proj
-                            argbuf.pack_dimension(
-                                -1
-                            )  # No collapse out dimension
-                        else:
-                            new_reduction_field = self.runtime.allocate_field(
-                                new_reduction_shape,
-                                reduction_field.field.dtype,
-                            )
-                            new_reduction_part = new_reduction_field.find_or_create_partition(  # noqa E501
-                                local_launch_space
-                            )
-                            new_reduction_proj = 0  # identity projection
-                            argbuf.pack_dimension(
-                                1
-                            )  # collapsing out dimension 1
-                        argbuf.pack_dimension(1)  # Collapsing in dimension 1
-                        self.pack_shape(
-                            argbuf,
-                            diag_array.shape,
-                            diag_part.tile_shape,
-                            diag_proj,
-                        )
-                        argbuf.pack_accessor(
-                            new_reduction_field.field.field_id,
-                            new_reduction_field.transform,
-                        )
-                        for idx in xrange(RADIX):
-                            argbuf.pack_accessor(
-                                reduction_field.field.field_id,
-                                reduction_field.transform,
-                            )
-                        task = IndexTask(
-                            self.runtime.get_binary_task_id(
-                                NumPyOpCode.SUM_RADIX,
-                                result_type=reduction_field.field.dtype,
-                                first_argument_type=reduction_field.field.dtype,  # noqa E501
-                                second_argument_type=reduction_field.field.dtype,  # noqa E501
-                            ),
-                            Rect(local_launch_space),
-                            self.runtime.empty_argmap,
-                            argbuf.get_string(),
-                            argbuf.get_size(),
-                            mapper=self.runtime.mapper_id,
-                            tag=(
-                                NumPyMappingTag.RADIX_GEN_TAG
-                                & (radix_generation << RADIX_GEN_SHIFT)
-                            )
-                            | (
-                                NumPyMappingTag.RADIX_DIM_TAG
-                                & (1 << RADIX_DIM_SHIFT)
-                            ),
-                        )
-                        task.set_sharding_space(sharding_space)
-                        task.add_write_requirement(
-                            new_reduction_part,
-                            new_reduction_field.field.field_id,
-                            new_reduction_proj,
-                            tag=NumPyMappingTag.KEY_REGION_TAG,
-                            flags=legion.LEGION_COMPLETE_PROJECTION_WRITE_FLAG,
-                        )
-                        for idx in xrange(RADIX):
-                            task.add_read_requirement(
-                                reduction_part,
-                                reduction_field.field.field_id,
-                                self.runtime.get_radix_projection_functor_id(
-                                    2, 1, RADIX, idx
-                                ),
-                            )
-                        self.runtime.dispatch(task)
-                        reduction_shape = new_reduction_shape
-                        reduction_field = new_reduction_field
-                        reduction_part = new_reduction_part
-                        radix_generation += 1
-            else:
-                # Sequential diag case
-                argbuf = BufferBuilder()
-                argbuf.pack_32bit_int(k)
-                self.pack_shape(argbuf, matrix_array.shape, pack_dim=False)
-                argbuf.pack_dimension(-1)  # No collapse dimension
-                argbuf.pack_dimension(-1)  # No collapse index
-                argbuf.pack_accessor(diag.field.field_id, diag.transform)
-                argbuf.pack_accessor(matrix.field.field_id, matrix.transform)
-                shardpt, shardfn, shardsp = matrix.find_point_sharding()
-                task = Task(
-                    self.runtime.get_nullary_task_id(
-                        NumPyOpCode.DIAG, result_type=diag_array.dtype
-                    ),
-                    argbuf.get_string(),
-                    argbuf.get_size(),
-                    mapper=self.runtime.mapper_id,
-                    tag=shardfn,
-                )
-                if shardpt is not None:
-                    task.set_point(shardpt)
-                if shardsp is not None:
-                    task.set_sharding_space(shardsp)
-                task.add_write_requirement(diag.region, diag.field.field_id)
-                task.add_read_requirement(matrix.region, matrix.field.field_id)
-                self.runtime.dispatch(task)
         else:
             matrix_array = self
             diag_array = self.runtime.to_deferred_array(
                 rhs, stacklevel=(stacklevel + 1)
             )
-            assert diag_array.ndim == 1
-            assert matrix_array.ndim == 2
-            assert diag_array.shape[0] <= min(
-                matrix_array.shape[0], matrix_array.shape[1]
+
+        assert diag_array.ndim == 1
+        assert matrix_array.ndim == 2
+        assert diag_array.shape[0] <= min(
+            matrix_array.shape[0], matrix_array.shape[1]
+        )
+        assert rhs.dtype == self.dtype
+
+        launch_space = matrix_array.base.compute_parallel_launch_space()
+
+        if launch_space is not None:
+            # Find a partition for diagonal,
+            # partition on the smaller tile size since that represents the
+            # upper bound on the number of elements needed
+            (
+                matrix_part,
+                shardfn,
+                shardsp,
+            ) = matrix_array.base.find_or_create_key_partition()
+
+            if matrix_array.shape[0] < matrix_array.shape[1]:
+                collapse_dim = 1
+                color_space = (launch_space[0],)
+                tile_shape = (matrix_part.tile_shape[0],)
+                offset = (k if k < 0 else 0,)
+                proj = NumPyProjCode.PROJ_2D_1D_X
+            else:
+                collapse_dim = 0
+                color_space = (launch_space[1],)
+                tile_shape = (matrix_part.tile_shape[1],)
+                offset = (-k if k > 0 else 0,)
+                proj = NumPyProjCode.PROJ_2D_1D_Y
+
+            diag_part = diag_array.base.find_or_create_partition(
+                color_space,
+                tile_shape,
+                offset,
             )
-            assert diag_array.dtype == matrix_array.dtype
-            argbuf = BufferBuilder()
-            argbuf.pack_32bit_int(k)
-            diag = diag_array.base
-            matrix = matrix_array.base
-            launch_space = matrix.compute_parallel_launch_space()
-            if launch_space is not None:
-                (
-                    matrix_part,
-                    shardfn,
-                    shardsp,
-                ) = matrix.find_or_create_key_partition()
-                self.pack_shape(
-                    argbuf,
-                    matrix_array.shape,
-                    matrix_part.tile_shape,
-                    proj=0,
-                    pack_dim=False,
-                )
-                # Then find a partition for diagonal, partition on the smaller
-                # tile size since that represents the upper bound on the number
-                # of elements needed
-                assert len(matrix_part.tile_shape) == 2
-                if matrix_part.tile_shape[0] < matrix_part.tile_shape[1]:
-                    # If we have a negative k, use it as an offset
-                    if k < 0:
-                        diag_part = diag.find_or_create_partition(
-                            (launch_space[0],),
-                            tile_shape=(matrix_part.tile_shape[0],),
-                            offset=(matrix_part.tile_offset[0] + k,),
-                        )
-                    else:
-                        diag_part = diag.find_or_create_partition(
-                            (launch_space[0],),
-                            tile_shape=(matrix_part.tile_shape[0],),
-                            offset=(matrix_part.tile_offset[0],),
-                        )
-                    diag_proj = (
-                        self.runtime.first_proj_id + NumPyProjCode.PROJ_2D_1D_X
-                    )
-                else:
-                    # If we have a positive k, use it as a negative offset
-                    if k > 0:
-                        diag_part = diag.find_or_create_partition(
-                            (launch_space[1],),
-                            tile_shape=(matrix_part.tile_shape[1],),
-                            offset=(matrix_part.tile_offset[1] + -k,),
-                        )
-                    else:
-                        diag_part = diag.find_or_create_partition(
-                            (launch_space[1],),
-                            tile_shape=(matrix_part.tile_shape[1],),
-                            offset=(matrix_part.tile_offset[1],),
-                        )
-                    diag_proj = (
-                        self.runtime.first_proj_id + NumPyProjCode.PROJ_2D_1D_Y
-                    )
-            else:
-                self.pack_shape(argbuf, matrix_array.shape, pack_dim=False)
-            argbuf.pack_accessor(diag.field.field_id, diag.transform)
-            argbuf.pack_accessor(matrix.field.field_id, matrix.transform)
-            if launch_space is not None:
-                task = IndexTask(
-                    self.runtime.get_nullary_task_id(
-                        NumPyOpCode.DIAG, result_type=diag_array.dtype
-                    ),
-                    Rect(launch_space),
-                    self.runtime.empty_argmap,
-                    argbuf.get_string(),
-                    argbuf.get_size(),
-                    mapper=self.runtime.mapper_id,
-                    tag=shardfn,
-                )
-                if shardsp is not None:
-                    task.set_sharding_space(shardsp)
-                task.add_read_requirement(
-                    diag_part,
-                    diag.field.field_id,
-                    diag_proj,
-                    tag=NumPyMappingTag.NO_MEMOIZE_TAG,
-                )
-                task.add_read_write_requirement(
-                    matrix_part,
-                    matrix.field.field_id,
-                    0,
-                    tag=NumPyMappingTag.KEY_REGION_TAG,
-                )
-            else:
-                shardpt, shardfn, shardsp = matrix.find_point_sharding()
-                task = Task(
-                    self.runtime.get_nullary_task_id(
-                        NumPyOpCode.DIAG, result_type=diag_array.dtype
-                    ),
-                    argbuf.get_string(),
-                    argbuf.get_size(),
-                    mapper=self.runtime.mapper_id,
-                    tag=shardfn,
-                )
-                if shardpt is not None:
-                    task.set_point(shardpt)
-                if shardsp is not None:
-                    task.set_sharding_space(shardsp)
-                task.add_read_requirement(diag.region, diag.field.field_id)
-                task.add_read_write_requirement(
-                    matrix.region, matrix.field.field_id
-                )
-            # Before we issue the task, we have to issue a fill operation
-            # to initialize the matrix with zeros
+            diag_proj = self.runtime.first_proj_id + proj
+
+            matrix_arg = DeferredArrayView(matrix_array, part=matrix_part)
+            diag_arg = DeferredArrayView(
+                diag_array, part=diag_part, proj_id=diag_proj
+            )
+        else:
+            matrix_arg = DeferredArrayView(matrix_array)
+            diag_arg = DeferredArrayView(diag_array)
+
+        matrix_arg.update_tag(NumPyMappingTag.KEY_REGION_TAG)
+        if not extract:
+            diag_arg.update_tag(NumPyMappingTag.NO_MEMOIZE_TAG)
+
+        (shardpt, shardfn, shardsp) = matrix_arg.sharding
+
+        needs_reduction = (
+            extract
+            and launch_space is not None
+            and launch_space[collapse_dim] > 1
+        )
+
+        if needs_reduction:
+            # If we need reductions to extract the diagonal,
+            # we have to issue a fill operation to get the output initialized.
+            diag_array.fill(
+                np.array(0, dtype=diag_array.dtype),
+                stacklevel=(stacklevel + 1),
+            )
+        elif not extract:
+            # Before we populate the diagonal, we have to issue a fill
+            # operation to initialize the matrix with zeros
             matrix_array.fill(
                 np.array(0, dtype=matrix_array.dtype),
                 stacklevel=(stacklevel + 1),
             )
-            self.runtime.dispatch(task)
+
+        task = Map(self.runtime, NumPyOpCode.DIAG, tag=shardfn)
+        task.add_scalar_arg(extract, bool)
+        task.add_scalar_arg(needs_reduction, bool)
+        task.add_scalar_arg(k, np.int32)
+        if launch_space is not None:
+            task.add_shape(matrix_arg.shape, matrix_arg.part.tile_shape, 0)
+        else:
+            task.add_shape(matrix_arg.shape)
+
+        if extract:
+            if needs_reduction:
+                redop = self.runtime.get_unary_reduction_op_id(
+                    UnaryRedCode.SUM, diag_arg.dtype
+                )
+            else:
+                redop = None
+
+            diag_arg.add_to_legate_op(task, False, redop=redop)
+            matrix_arg.add_to_legate_op(task, True)
+        else:
+            matrix_arg.add_to_legate_op(task, False, read_write=True)
+            diag_arg.add_to_legate_op(task, True)
+
+        if launch_space is not None:
+            task.execute(Rect(launch_space))
+        else:
+            task.execute_single()
+
         self.runtime.profile_callsite(stacklevel + 1, True, callsite)
         # See if we are doing shadow debugging
         if self.runtime.shadow_debug:

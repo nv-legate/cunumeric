@@ -37,7 +37,6 @@ enum NumPyOpCode {
   NUMPY_ARGMIN              = 8,
   NUMPY_ARGMIN_RADIX        = 9,
   NUMPY_BINCOUNT            = 10,
-  NUMPY_DIAG                = 16,
   NUMPY_DOT                 = 18,
   NUMPY_EYE                 = 21,
   NUMPY_GETARG              = 25,
@@ -68,6 +67,7 @@ enum NumPyOpCode {
   NUMPY_SCALAR_WHERE        = 400013,
   NUMPY_READ                = 400014,
   NUMPY_WRITE               = 400015,
+  NUMPY_DIAG                = 400016,
 };
 
 // Match these to NumPyRedopCode in legate/core/config.py
