@@ -69,6 +69,7 @@ enum NumPyOpCode {
   NUMPY_WRITE               = 400015,
   NUMPY_DIAG                = 400016,
   NUMPY_MATMUL              = 400017,
+  NUMPY_MATVECMUL           = 400018,
 };
 
 // Match these to NumPyRedopCode in legate/core/config.py

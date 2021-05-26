@@ -151,6 +151,7 @@ class NumPyOpCode(IntEnum):
     WRITE = legate_numpy.NUMPY_WRITE
     DIAG = legate_numpy.NUMPY_DIAG
     MATMUL = legate_numpy.NUMPY_MATMUL
+    MATVECMUL = legate_numpy.NUMPY_MATVECMUL
 
 
 @unique
