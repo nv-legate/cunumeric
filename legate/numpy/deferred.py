@@ -4839,13 +4839,13 @@ class DeferredArray(NumPyThunk):
             launch_space = None
             key_array = None
             for arr in lhs_array, rhs1_array, rhs2_array:
-                if (
-                    lhs_array.shape != arr.shape
-                    or isinstance(arr.base, Future)
-                    or not arr.base.has_parallel_launch_space()
+                if lhs_array.shape != arr.shape or isinstance(
+                    arr.base, Future
                 ):
                     continue
                 arr_space = arr.base.compute_parallel_launch_space()
+                if arr_space is None:
+                    continue
                 if launch_space is None or calculate_volume(
                     arr_space
                 ) <= calculate_volume(launch_space):
