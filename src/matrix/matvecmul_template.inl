@@ -64,10 +64,12 @@ struct MatVecMulImpl {
       return std::make_pair(m, n);
     };
 
+    auto lhs_rect = args.lhs_shape.to_rect<1>();
     if (vec_on_lhs) {
       assert(args.rhs2.dim() == 2);
       auto rhs1_rect = args.rhs1_shape.to_rect<1>();
-      auto rhs2_rect = args.rhs2_shape.to_rect<2>();
+      Rect<2> rhs2_rect(Point<2>(rhs1_rect.lo[0], lhs_rect.lo[0]),
+                        Point<2>(rhs1_rect.hi[0], lhs_rect.hi[0]));
 
       size_t rhs1_strides[1];
       size_t rhs2_strides[2];
@@ -78,8 +80,9 @@ struct MatVecMulImpl {
     } else {
       assert(args.rhs1.dim() == 2);
       assert(args.rhs2.dim() == 1);
-      auto rhs1_rect = args.rhs1_shape.to_rect<2>();
       auto rhs2_rect = args.rhs2_shape.to_rect<1>();
+      Rect<2> rhs1_rect(Point<2>(lhs_rect.lo[0], rhs2_rect.lo[0]),
+                        Point<2>(lhs_rect.hi[0], rhs2_rect.hi[0]));
 
       size_t rhs1_strides[2];
       size_t rhs2_strides[1];
@@ -89,7 +92,6 @@ struct MatVecMulImpl {
       std::tie(m, n) = get_dimensions(rhs1_rect);
     }
 
-    auto lhs_rect = args.lhs_shape.to_rect<1>();
     size_t lhs_strides[1];
     if (args.needs_reduction) {
       auto lhs = args.lhs.reduce_accessor<SumReduction<ACC>, true, 1>().ptr(lhs_rect, lhs_strides);

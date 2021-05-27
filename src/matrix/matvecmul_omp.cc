@@ -78,8 +78,7 @@ struct MatVecMulImplBody<VariantKind::OMP, LegateTypeCode::HALF_LT> {
       half_vector_to_float(rhs1_copy, rhs1, m);
       half_matrix_to_float(rhs2_copy, rhs2, m, n, rhs_stride);
 
-      cblas_sgemv(
-        CblasRowMajor, CblasTrans, m, n, 1, rhs2_copy, rhs_stride, rhs1_copy, 1, 0, lhs_copy, 1);
+      cblas_sgemv(CblasRowMajor, CblasTrans, m, n, 1, rhs2_copy, n, rhs1_copy, 1, 0, lhs_copy, 1);
 
       float_vector_to_half(lhs, lhs_copy, n);
     } else {
@@ -90,8 +89,7 @@ struct MatVecMulImplBody<VariantKind::OMP, LegateTypeCode::HALF_LT> {
       half_matrix_to_float(rhs1_copy, rhs1, m, n, rhs_stride);
       half_vector_to_float(rhs2_copy, rhs2, n);
 
-      cblas_sgemv(
-        CblasRowMajor, CblasNoTrans, m, n, 1, rhs1_copy, rhs_stride, rhs2_copy, 1, 0, lhs_copy, 1);
+      cblas_sgemv(CblasRowMajor, CblasNoTrans, m, n, 1, rhs1_copy, n, rhs2_copy, 1, 0, lhs_copy, 1);
 
       float_vector_to_half(lhs, lhs_copy, m);
     }
@@ -112,8 +110,7 @@ struct MatVecMulImplBody<VariantKind::OMP, LegateTypeCode::HALF_LT> {
       half_vector_to_float(rhs1_copy, rhs1, m);
       half_matrix_to_float(rhs2_copy, rhs2, m, n, rhs_stride);
 
-      cblas_sgemv(
-        CblasRowMajor, CblasTrans, m, n, 1, rhs2_copy, rhs_stride, rhs1_copy, 1, 0, lhs, 1);
+      cblas_sgemv(CblasRowMajor, CblasTrans, m, n, 1, rhs2_copy, n, rhs1_copy, 1, 0, lhs, 1);
     } else {
       auto rhs1_copy = allocate_buffer(m * n);
       auto rhs2_copy = allocate_buffer(n);
@@ -121,8 +118,7 @@ struct MatVecMulImplBody<VariantKind::OMP, LegateTypeCode::HALF_LT> {
       half_matrix_to_float(rhs1_copy, rhs1, m, n, rhs_stride);
       half_vector_to_float(rhs2_copy, rhs2, n);
 
-      cblas_sgemv(
-        CblasRowMajor, CblasNoTrans, m, n, 1, rhs1_copy, rhs_stride, rhs2_copy, 1, 0, lhs, 1);
+      cblas_sgemv(CblasRowMajor, CblasNoTrans, m, n, 1, rhs1_copy, n, rhs2_copy, 1, 0, lhs, 1);
     }
   }
 };
