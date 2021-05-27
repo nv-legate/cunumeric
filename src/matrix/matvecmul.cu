@@ -86,6 +86,70 @@ struct MatVecMulImplBody<VariantKind::GPU, LegateTypeCode::DOUBLE_LT> {
   }
 };
 
+template <>
+struct MatVecMulImplBody<VariantKind::GPU, LegateTypeCode::HALF_LT> {
+  template <typename LHS>
+  void operator()(size_t m,
+                  size_t n,
+                  LHS *lhs,
+                  const __half *rhs1,
+                  const __half *rhs2,
+                  size_t rhs_stride,
+                  bool vec_on_lhs)
+  {
+    cublasHandle_t cublas_handle = Core::get_cublas();
+    // Update the stream because the CUDA hijack can't see inside cuBLAS
+    cudaStream_t task_stream;
+    cudaStreamCreate(&task_stream);
+    CHECK_CUBLAS(cublasSetStream(cublas_handle, task_stream));
+
+    const float alpha = 1.f;
+    const float beta  = 0.f;
+
+    if (vec_on_lhs) {
+      // Use SgemmEx here since there is no half precision gemv yet
+      CHECK_CUBLAS(cublasSgemmEx(cublas_handle,
+                                 CUBLAS_OP_N,
+                                 CUBLAS_OP_N,
+                                 n,
+                                 1,
+                                 m,
+                                 &alpha,
+                                 rhs2,
+                                 CUDA_R_16F,
+                                 rhs_stride,
+                                 rhs1,
+                                 CUDA_R_16F,
+                                 m,
+                                 &beta,
+                                 lhs,
+                                 sizeof(LHS) == sizeof(float) ? CUDA_R_32F : CUDA_R_16F,
+                                 n));
+    } else {
+      // Use SgemmEx here since there is no half precision gemv yet
+      CHECK_CUBLAS(cublasSgemmEx(cublas_handle,
+                                 CUBLAS_OP_T,
+                                 CUBLAS_OP_N,
+                                 m,
+                                 1,
+                                 n,
+                                 &alpha,
+                                 rhs1,
+                                 CUDA_R_16F,
+                                 rhs_stride,
+                                 rhs2,
+                                 CUDA_R_16F,
+                                 n,
+                                 &beta,
+                                 lhs,
+                                 sizeof(LHS) == sizeof(float) ? CUDA_R_32F : CUDA_R_16F,
+                                 m));
+    }
+
+    cudaStreamDestroy(task_stream);
+  }
+};
+
 /*static*/ void MatVecMulTask::gpu_variant(const Task *task,
                                            const std::vector<PhysicalRegion> &regions,
                                            Context context,

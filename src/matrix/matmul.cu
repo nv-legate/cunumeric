@@ -117,10 +117,11 @@ struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::DOUBLE_LT> {
 
 template <>
 struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::HALF_LT> {
+  template <typename LHS>
   void operator()(size_t m,
                   size_t n,
                   size_t k,
-                  __half *lhs,
+                  LHS *lhs,
                   const __half *rhs1,
                   const __half *rhs2,
                   size_t lhs_stride,
@@ -156,7 +157,7 @@ struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::HALF_LT> {
                                rhs1_stride,
                                &beta,
                                lhs,
-                               CUDA_R_16F,
+                               sizeof(LHS) == sizeof(float) ? CUDA_R_32F : CUDA_R_16F,
                                lhs_stride));
 
     cudaStreamDestroy(task_stream);

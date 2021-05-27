@@ -31,9 +31,15 @@ struct support_matvecmul : std::false_type {
 };
 template <>
 struct support_matvecmul<LegateTypeCode::DOUBLE_LT> : std::true_type {
+  using ACC_TYPE = double;
 };
 template <>
 struct support_matvecmul<LegateTypeCode::FLOAT_LT> : std::true_type {
+  using ACC_TYPE = float;
+};
+template <>
+struct support_matvecmul<LegateTypeCode::HALF_LT> : std::true_type {
+  using ACC_TYPE = float;
 };
 
 template <VariantKind KIND>
@@ -42,6 +48,7 @@ struct MatVecMulImpl {
   void operator()(MatVecMulArgs &args) const
   {
     using VAL = legate_type_of<CODE>;
+    using ACC = typename support_matvecmul<CODE>::ACC_TYPE;
 
     const bool vec_on_lhs = args.rhs1.dim() == 1;
 
@@ -84,13 +91,13 @@ struct MatVecMulImpl {
 
     auto lhs_rect = args.lhs_shape.to_rect<1>();
     size_t lhs_strides[1];
-    VAL *lhs = nullptr;
-    if (args.needs_reduction)
-      lhs = args.lhs.reduce_accessor<SumReduction<VAL>, true, 1>().ptr(lhs_rect, lhs_strides);
-    else
-      lhs = args.lhs.write_accessor<VAL, 1>().ptr(lhs_rect, lhs_strides);
-
-    MatVecMulImplBody<KIND, CODE>()(m, n, lhs, rhs1, rhs2, rhs_stride, vec_on_lhs);
+    if (args.needs_reduction) {
+      auto lhs = args.lhs.reduce_accessor<SumReduction<ACC>, true, 1>().ptr(lhs_rect, lhs_strides);
+      MatVecMulImplBody<KIND, CODE>()(m, n, lhs, rhs1, rhs2, rhs_stride, vec_on_lhs);
+    } else {
+      auto lhs = args.lhs.write_accessor<VAL, 1>().ptr(lhs_rect, lhs_strides);
+      MatVecMulImplBody<KIND, CODE>()(m, n, lhs, rhs1, rhs2, rhs_stride, vec_on_lhs);
+    }
   }
 
   template <LegateTypeCode CODE, std::enable_if_t<!support_matvecmul<CODE>::value> * = nullptr>
@@ -109,7 +116,9 @@ static void matvecmul_template(const Task *task,
   Deserializer ctx(task, regions);
   MatVecMulArgs args;
   deserialize(ctx, args);
-  type_dispatch(args.lhs.code(), MatVecMulImpl<KIND>{}, args);
+  // Note that we can't dispatch on the lhs's type,
+  // as the lhs can have a different type than the rhs'
+  type_dispatch(args.rhs1.code(), MatVecMulImpl<KIND>{}, args);
 }
 
 }  // namespace numpy

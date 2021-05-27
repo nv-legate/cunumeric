@@ -16,6 +16,7 @@
 
 #include "matrix/matvecmul.h"
 #include "matrix/matvecmul_template.inl"
+#include "matrix/util.h"
 
 #include <cblas.h>
 #include <omp.h>
@@ -56,6 +57,73 @@ struct MatVecMulImplBody<VariantKind::OMP, LegateTypeCode::DOUBLE_LT> {
       cblas_dgemv(CblasRowMajor, CblasTrans, m, n, 1, rhs2, rhs_stride, rhs1, 1, 0, lhs, 1);
     else
       cblas_dgemv(CblasRowMajor, CblasNoTrans, m, n, 1, rhs1, rhs_stride, rhs2, 1, 0, lhs, 1);
+  }
+};
+
+template <>
+struct MatVecMulImplBody<VariantKind::OMP, LegateTypeCode::HALF_LT> {
+  void operator()(size_t m,
+                  size_t n,
+                  __half *lhs,
+                  const __half *rhs1,
+                  const __half *rhs2,
+                  size_t rhs_stride,
+                  bool vec_on_lhs)
+  {
+    if (vec_on_lhs) {
+      auto lhs_copy  = allocate_buffer(n);
+      auto rhs1_copy = allocate_buffer(m);
+      auto rhs2_copy = allocate_buffer(m * n);
+
+      half_vector_to_float(rhs1_copy, rhs1, m);
+      half_matrix_to_float(rhs2_copy, rhs2, m, n, rhs_stride);
+
+      cblas_sgemv(
+        CblasRowMajor, CblasTrans, m, n, 1, rhs2_copy, rhs_stride, rhs1_copy, 1, 0, lhs_copy, 1);
+
+      float_vector_to_half(lhs, lhs_copy, n);
+    } else {
+      auto lhs_copy  = allocate_buffer(m);
+      auto rhs1_copy = allocate_buffer(m * n);
+      auto rhs2_copy = allocate_buffer(n);
+
+      half_matrix_to_float(rhs1_copy, rhs1, m, n, rhs_stride);
+      half_vector_to_float(rhs2_copy, rhs2, n);
+
+      cblas_sgemv(
+        CblasRowMajor, CblasNoTrans, m, n, 1, rhs1_copy, rhs_stride, rhs2_copy, 1, 0, lhs_copy, 1);
+
+      float_vector_to_half(lhs, lhs_copy, m);
+    }
+  }
+
+  void operator()(size_t m,
+                  size_t n,
+                  float *lhs,
+                  const __half *rhs1,
+                  const __half *rhs2,
+                  size_t rhs_stride,
+                  bool vec_on_lhs)
+  {
+    if (vec_on_lhs) {
+      auto rhs1_copy = allocate_buffer(m);
+      auto rhs2_copy = allocate_buffer(m * n);
+
+      half_vector_to_float(rhs1_copy, rhs1, m);
+      half_matrix_to_float(rhs2_copy, rhs2, m, n, rhs_stride);
+
+      cblas_sgemv(
+        CblasRowMajor, CblasTrans, m, n, 1, rhs2_copy, rhs_stride, rhs1_copy, 1, 0, lhs, 1);
+    } else {
+      auto rhs1_copy = allocate_buffer(m * n);
+      auto rhs2_copy = allocate_buffer(n);
+
+      half_matrix_to_float(rhs1_copy, rhs1, m, n, rhs_stride);
+      half_vector_to_float(rhs2_copy, rhs2, n);
+
+      cblas_sgemv(
+        CblasRowMajor, CblasNoTrans, m, n, 1, rhs1_copy, rhs_stride, rhs2_copy, 1, 0, lhs, 1);
+    }
   }
 };
 

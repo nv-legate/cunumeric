@@ -31,12 +31,15 @@ struct support_matmul : std::false_type {
 };
 template <>
 struct support_matmul<LegateTypeCode::DOUBLE_LT> : std::true_type {
+  using ACC_TYPE = double;
 };
 template <>
 struct support_matmul<LegateTypeCode::FLOAT_LT> : std::true_type {
+  using ACC_TYPE = float;
 };
 template <>
 struct support_matmul<LegateTypeCode::HALF_LT> : std::true_type {
+  using ACC_TYPE = float;
 };
 
 template <VariantKind KIND>
@@ -45,6 +48,7 @@ struct MatMulImpl {
   void operator()(MatMulArgs &args) const
   {
     using VAL = legate_type_of<CODE>;
+    using ACC = typename support_matmul<CODE>::ACC_TYPE;
 
     assert(args.lhs_shape.dim() == 2);
     assert(args.rhs1_shape.dim() == 2);
@@ -67,14 +71,15 @@ struct MatMulImpl {
 
     auto rhs1 = args.rhs1.read_accessor<VAL, 2>().ptr(rhs1_rect, rhs1_strides);
     auto rhs2 = args.rhs2.read_accessor<VAL, 2>().ptr(rhs2_rect, rhs2_strides);
-    VAL *lhs  = nullptr;
-    if (args.needs_reduction)
-      lhs = args.lhs.reduce_accessor<SumReduction<VAL>, true, 2>().ptr(lhs_rect, lhs_strides);
-    else
-      lhs = args.lhs.write_accessor<VAL, 2>().ptr(lhs_rect, lhs_strides);
-
-    MatMulImplBody<KIND, CODE>()(
-      m, n, k, lhs, rhs1, rhs2, lhs_strides[0], rhs1_strides[0], rhs2_strides[0]);
+    if (args.needs_reduction) {
+      auto lhs = args.lhs.reduce_accessor<SumReduction<ACC>, true, 2>().ptr(lhs_rect, lhs_strides);
+      MatMulImplBody<KIND, CODE>()(
+        m, n, k, lhs, rhs1, rhs2, lhs_strides[0], rhs1_strides[0], rhs2_strides[0]);
+    } else {
+      auto lhs = args.lhs.write_accessor<VAL, 2>().ptr(lhs_rect, lhs_strides);
+      MatMulImplBody<KIND, CODE>()(
+        m, n, k, lhs, rhs1, rhs2, lhs_strides[0], rhs1_strides[0], rhs2_strides[0]);
+    }
   }
 
   template <LegateTypeCode CODE, std::enable_if_t<!support_matmul<CODE>::value> * = nullptr>
@@ -93,7 +98,9 @@ static void matmul_template(const Task *task,
   Deserializer ctx(task, regions);
   MatMulArgs args;
   deserialize(ctx, args);
-  type_dispatch(args.lhs.code(), MatMulImpl<KIND>{}, args);
+  // Note that we can't dispatch on the lhs's type,
+  // as the lhs can have a different type than the rhs'
+  type_dispatch(args.rhs1.code(), MatMulImpl<KIND>{}, args);
 }
 
 }  // namespace numpy

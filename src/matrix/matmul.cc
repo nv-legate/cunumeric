@@ -110,6 +110,26 @@ struct MatMulImplBody<VariantKind::CPU, LegateTypeCode::HALF_LT> {
 
     float_matrix_to_half(lhs, lhs_copy, m, n, lhs_stride);
   }
+
+  void operator()(size_t m,
+                  size_t n,
+                  size_t k,
+                  float *lhs,
+                  const __half *rhs1,
+                  const __half *rhs2,
+                  size_t lhs_stride,
+                  size_t rhs1_stride,
+                  size_t rhs2_stride)
+  {
+    auto rhs1_copy = allocate_buffer(m * k);
+    auto rhs2_copy = allocate_buffer(k * n);
+
+    half_matrix_to_float(rhs1_copy, rhs1, m, k, rhs1_stride);
+    half_matrix_to_float(rhs2_copy, rhs2, k, n, rhs2_stride);
+
+    MatMulImplBody<VariantKind::CPU, LegateTypeCode::FLOAT_LT>()(
+      m, n, k, lhs, rhs1_copy, rhs2_copy, n, k, n);
+  }
 };
 
 void deserialize(Deserializer &ctx, MatMulArgs &args)

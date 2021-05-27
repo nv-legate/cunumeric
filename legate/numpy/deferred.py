@@ -946,6 +946,10 @@ class DeferredArray(NumPyThunk):
             src2, stacklevel=(stacklevel + 1)
         )
         lhs_array = self
+
+        def to_proj_id(proj):
+            return self.runtime.first_proj_id + proj if proj > 0 else proj
+
         if rhs1_array.ndim == 1 and rhs2_array.ndim == 1:
             # Vector dot product case
             assert lhs_array.size == 1
@@ -1058,11 +1062,6 @@ class DeferredArray(NumPyThunk):
                     rhs2_proj = 0  # Identity projection matrix
                     rhs2_tag = NumPyMappingTag.KEY_REGION_TAG
 
-                def to_proj_id(proj):
-                    return (
-                        self.runtime.first_proj_id + proj if proj > 0 else proj
-                    )
-
                 lhs_arg = DeferredArrayView(
                     lhs_array,
                     part=lhs_part,
@@ -1089,6 +1088,33 @@ class DeferredArray(NumPyThunk):
                 rhs1_arg = DeferredArrayView(rhs1_array)
                 rhs2_arg = DeferredArrayView(rhs2_array)
                 needs_reduction = False
+
+            # If the inputs are 16-bit floats, we should use 32-bit float
+            # for accumulation
+            if needs_reduction and rhs1_arg.dtype == np.float16:
+                acc_buffer_dtype = np.dtype(np.float32)
+                acc_buffer = self.runtime.allocate_field(
+                    lhs_array.shape, acc_buffer_dtype
+                )
+                acc_array = DeferredArray(
+                    self.runtime,
+                    acc_buffer,
+                    shape=lhs_array.shape,
+                    dtype=acc_buffer_dtype,
+                    scalar=False,
+                )
+                acc_part = acc_buffer.find_or_create_partition(
+                    (launch_space[0] if left_matrix else launch_space[1],)
+                )
+                acc_arg = DeferredArrayView(
+                    acc_array,
+                    part=acc_part,
+                    proj_id=to_proj_id(lhs_proj),
+                    tag=lhs_tag,
+                )
+
+                lhs_array = acc_array
+                lhs_arg = acc_arg
 
             if needs_reduction:
                 lhs_array.fill(
@@ -1126,6 +1152,13 @@ class DeferredArray(NumPyThunk):
                 task.execute(Rect(launch_space))
             else:
                 task.execute_single()
+
+            # If we used an accumulation buffer, we should copy the results
+            # back to the lhs
+            if needs_reduction and rhs1_arg.dtype == np.float16:
+                self.convert(
+                    lhs_array, stacklevel + 1, warn=False, callsite=callsite
+                )
 
         elif rhs1_array.ndim == 2 and rhs2_array.ndim == 2:
             # Matrix-matrix multiply
@@ -1276,19 +1309,19 @@ class DeferredArray(NumPyThunk):
                 lhs_arg = DeferredArrayView(
                     lhs_array,
                     part=lhs_part,
-                    proj_id=self.runtime.first_proj_id + lhs_proj,
+                    proj_id=to_proj_id(lhs_proj),
                     tag=lhs_tag,
                 )
                 rhs1_arg = DeferredArrayView(
                     rhs1_array,
                     part=rhs1_part,
-                    proj_id=self.runtime.first_proj_id + rhs1_proj,
+                    proj_id=to_proj_id(rhs1_proj),
                     tag=rhs1_tag,
                 )
                 rhs2_arg = DeferredArrayView(
                     rhs2_array,
                     part=rhs2_part,
-                    proj_id=self.runtime.first_proj_id + rhs2_proj,
+                    proj_id=to_proj_id(rhs2_proj),
                     tag=rhs2_tag,
                 )
 
@@ -1300,6 +1333,33 @@ class DeferredArray(NumPyThunk):
                 rhs1_arg = DeferredArrayView(rhs1_array)
                 rhs2_arg = DeferredArrayView(rhs2_array)
                 needs_reduction = False
+
+            # If the inputs are 16-bit floats, we should use 32-bit float
+            # for accumulation
+            if needs_reduction and rhs1_arg.dtype == np.float16:
+                acc_buffer_dtype = np.dtype(np.float32)
+                acc_buffer = self.runtime.allocate_field(
+                    lhs_array.shape, acc_buffer_dtype
+                )
+                acc_array = DeferredArray(
+                    self.runtime,
+                    acc_buffer,
+                    shape=lhs_array.shape,
+                    dtype=acc_buffer_dtype,
+                    scalar=False,
+                )
+                acc_part = acc_buffer.find_or_create_partition(
+                    lhs_launch, tile_shape=(m_tile, n_tile)
+                )
+                acc_arg = DeferredArrayView(
+                    acc_array,
+                    part=acc_part,
+                    proj_id=to_proj_id(lhs_proj),
+                    tag=lhs_tag,
+                )
+
+                lhs_array = acc_array
+                lhs_arg = acc_arg
 
             # If we perform reduction for matrix multiplication,
             # we must zero out the lhs first
@@ -1336,11 +1396,16 @@ class DeferredArray(NumPyThunk):
             rhs2_arg.add_to_legate_op(task, True)
 
             if launch_space is not None:
-                print(launch_space)
                 task.execute(Rect(launch_space))
             else:
                 task.execute_single()
 
+            # If we used an accumulation buffer, we should copy the results
+            # back to the lhs
+            if needs_reduction and rhs1_arg.dtype == np.float16:
+                self.convert(
+                    lhs_array, stacklevel + 1, warn=False, callsite=callsite
+                )
         else:
             raise NotImplementedError("Need support for tensor contractions")
 
