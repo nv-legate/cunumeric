@@ -38,6 +38,7 @@ struct DotImplBody<VariantKind::OMP, CODE> {
     const auto volume      = rect.volume();
     const auto max_threads = omp_get_max_threads();
     auto locals            = static_cast<VAL *>(alloca(max_threads * sizeof(VAL)));
+    for (auto idx = 0; idx < max_threads; ++idx) locals[idx] = SumReduction<VAL>::identity;
 
     if (dense) {
       auto rhs1ptr = rhs1.ptr(rect);
