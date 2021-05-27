@@ -1318,9 +1318,7 @@ class Runtime(object):
             # If we have a shape then all the extents should be 1 for now
             for extent in shape:
                 assert extent == 1
-            return DeferredArray(
-                self, result, shape=shape, dtype=dtype, scalar=True
-            )
+            return DeferredArray(self, result, shape=shape, dtype=dtype)
         else:
             return result
 
@@ -1542,7 +1540,6 @@ class Runtime(object):
                         child,
                         shape,
                         parent.field.dtype,
-                        scalar=False,
                     )
         # We need to make this subview
         # If all the slices have strides of one then this is a dense
@@ -1604,9 +1601,7 @@ class Runtime(object):
                 dim_map,
                 key,
             )
-            return DeferredArray(
-                self, region_field, shape, parent.field.dtype, scalar=False
-            )
+            return DeferredArray(self, region_field, shape, parent.field.dtype)
         elif dense:
             # We can do a single call to create partition by restriction
             # Build the rect for the subview
@@ -1684,7 +1679,7 @@ class Runtime(object):
                 )
                 parent.subviews.append(region_field)
                 return DeferredArray(
-                    self, region_field, shape, parent.field.dtype, scalar=False
+                    self, region_field, shape, parent.field.dtype
                 )
             else:
                 # If necessary we may need to transform these dimensions back
@@ -1727,7 +1722,7 @@ class Runtime(object):
                 )
                 parent.subviews.append(region_field)
                 return DeferredArray(
-                    self, region_field, shape, parent.field.dtype, scalar=False
+                    self, region_field, shape, parent.field.dtype
                 )
         else:
             # We need fill in a phased partition operation from Legion
@@ -1751,7 +1746,6 @@ class Runtime(object):
             new_region_field,
             new_shape,
             region_field.field.dtype,
-            scalar=False,
         )
 
     def find_or_create_transform_sharding_functor(self, transform):
@@ -1866,9 +1860,7 @@ class Runtime(object):
             dtype = np.dtype(store.type.to_pandas_dtype())
             primitive = store.storage
             if kind == Future:
-                return DeferredArray(
-                    self, primitive, shape=(), dtype=dtype, scalar=True
-                )
+                return DeferredArray(self, primitive, shape=(), dtype=dtype)
             elif kind == FutureMap:
                 raise NotImplementedError("Need support for FutureMap inputs")
             elif kind == (Region, FieldID):
@@ -1881,9 +1873,7 @@ class Runtime(object):
                 )
             else:
                 raise TypeError("Unknown LegateStore type")
-            return DeferredArray(
-                self, region_field, region_field.shape, dtype, scalar=False
-            )
+            return DeferredArray(self, region_field, region_field.shape, dtype)
         # See if this is a normal numpy array
         if not isinstance(obj, np.ndarray):
             # If it's not, make it into a numpy array
@@ -2148,7 +2138,6 @@ class Runtime(object):
                     region_field,
                     shape=array.shape,
                     dtype=array.dtype,
-                    scalar=(array.size == 1),
                 )
             # If we're doing shadow debug make an EagerArray shadow
             if self.shadow_debug:
@@ -2173,14 +2162,12 @@ class Runtime(object):
         ):
             if len(shape) == 0:
                 # Empty tuple
-                result = DeferredArray(
-                    self, Future(), shape=(), dtype=dtype, scalar=True
-                )
+                result = DeferredArray(self, Future(), shape=(), dtype=dtype)
             else:
                 volume = reduce(lambda x, y: x * y, shape)
                 if volume == 1:
                     result = DeferredArray(
-                        self, Future(), shape=shape, dtype=dtype, scalar=True
+                        self, Future(), shape=shape, dtype=dtype
                     )
                 else:
                     region_field = self.allocate_field(shape, dtype)
@@ -2189,7 +2176,6 @@ class Runtime(object):
                         region_field,
                         shape=shape,
                         dtype=dtype,
-                        scalar=False,
                     )
             # If we're doing shadow debug make an EagerArray shadow
             if self.shadow_debug:

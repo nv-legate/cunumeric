@@ -44,11 +44,10 @@ class DeferredArray(NumPyThunk):
     :meta private:
     """
 
-    def __init__(self, runtime, base, shape, dtype, scalar):
+    def __init__(self, runtime, base, shape, dtype):
         NumPyThunk.__init__(self, runtime, shape, dtype)
         assert base is not None
         self.base = base  # Either a RegionField or a Future
-        self.scalar = scalar
 
     @property
     def storage(self):
@@ -62,7 +61,7 @@ class DeferredArray(NumPyThunk):
         return len(self.shape)
 
     def __numpy_array__(self, stacklevel):
-        if self.scalar:
+        if self.size == 1:
             return np.full(
                 self.shape,
                 self.get_scalar_array(stacklevel=(stacklevel + 1)),
@@ -365,7 +364,6 @@ class DeferredArray(NumPyThunk):
                 result_field,
                 shape=index_array.shape,
                 dtype=self.dtype,
-                scalar=False,
             )
             # Issue the gather copy to the result
             index = index_array.base
@@ -470,7 +468,6 @@ class DeferredArray(NumPyThunk):
                     base=future,
                     shape=(),
                     dtype=self.dtype,
-                    scalar=True,
                 )
         if self.runtime.shadow_debug:
             result.shadow = self.shadow.get_item(
@@ -708,7 +705,7 @@ class DeferredArray(NumPyThunk):
             raise TypeError(
                 '"axis" argument for squeeze must be int-like or tuple-like'
             )
-        if not self.scalar:
+        if self.size != 1:
             # Make transform for the lost dimensions
             transform = AffineTransform(self.ndim, len(new_shape), False)
             child_idx = 0
@@ -724,7 +721,7 @@ class DeferredArray(NumPyThunk):
         else:
             # Easy case of size 1 array, nothing to do
             result = DeferredArray(
-                self.runtime, self.base, new_shape, self.dtype, True
+                self.runtime, self.base, new_shape, self.dtype
             )
         if self.runtime.shadow_debug:
             result.shadow = self.shadow.squeeze(
