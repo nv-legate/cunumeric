@@ -380,7 +380,7 @@ class FieldManager(object):
 
 
 def _find_or_create_partition(
-    runtime, region, color_shape, tile_shape, offset, transform
+    runtime, region, color_shape, tile_shape, offset, transform, complete=True
 ):
     # Compute the extent and transform for this partition operation
     lo = (0,) * len(tile_shape)
@@ -438,7 +438,9 @@ def _find_or_create_partition(
         region.index_space,
         color_space,
         functor,
-        kind=legion.LEGION_DISJOINT_COMPLETE_KIND,
+        kind=legion.LEGION_DISJOINT_COMPLETE_KIND
+        if complete
+        else legion.LEGION_DISJOINT_INCOMPLETE_KIND,
         keep=True,  # export this partition functor to other libraries
     )
     partition = region.get_child(index_partition)
@@ -1681,7 +1683,7 @@ class Runtime(object):
                 # save it in the subviews that we computed
                 child_region = partition.get_child(Point(tile_color))
                 if not parent.subviews:
-                    parent.subviews = list()
+                    parent.subviews = weakref.WeakSet()
                 region_field = RegionField(
                     self,
                     child_region,
@@ -1693,38 +1695,26 @@ class Runtime(object):
                     key,
                     view,
                 )
-                parent.subviews.append(region_field)
+                parent.subviews.add(region_field)
                 return DeferredArray(
                     self, region_field, shape, parent.field.dtype, scalar=False
                 )
             else:
-                # If necessary we may need to transform these dimensions back
-                # into the global address space, not we do this with the parent
-                # transform since they are in the parent's coordinate space
-                if parent.transform:
-                    lo = parent.transform.apply(lo)
-                    hi = parent.transform.apply(hi)
-                # Now that we have the points in the global coordinate space
-                # we can build the domain for the extent
-                extent = Rect(hi, lo, exclusive=False)
-                # Get the unit color space
-                color_space = self.find_or_create_index_space((1,))
-                # Function for doing the call to make the partition
-                identity_transform = Transform(len(lo), 1)
-                functor = PartitionByRestriction(identity_transform, extent)
-                index_partition = IndexPartition(
-                    self.context,
-                    self.runtime,
-                    parent.region.index_space,
-                    color_space,
-                    functor,
-                    kind=legion.LEGION_DISJOINT_INCOMPLETE_KIND,
-                    keep=True,
+                tile_shape = tuple(map(lambda x, y: ((x - y) + 1), hi, lo))
+                partition = _find_or_create_partition(
+                    self,
+                    parent.region,
+                    (1,) * len(tile_shape),
+                    tile_shape,
+                    lo,
+                    parent.transform,
+                    complete=False,
                 )
-                partition = parent.region.get_child(index_partition)
-                child_region = partition.get_child(Point((0,)))
+                child_region = partition.get_child(
+                    Point((0,) * len(tile_shape))
+                )
                 if not parent.subviews:
-                    parent.subviews = list()
+                    parent.subviews = weakref.WeakSet()
                 region_field = RegionField(
                     self,
                     child_region,
@@ -1736,7 +1726,7 @@ class Runtime(object):
                     key,
                     view,
                 )
-                parent.subviews.append(region_field)
+                parent.subviews.add(region_field)
                 return DeferredArray(
                     self, region_field, shape, parent.field.dtype, scalar=False
                 )
