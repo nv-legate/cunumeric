@@ -348,7 +348,6 @@ class DeferredArray(NumPyThunk):
         return index_array
 
     def get_item(self, key, stacklevel, view=None, dim_map=None):
-        assert self.size > 1
         # Check to see if this is advanced indexing or not
         if self._is_advanced_indexing(key):
             # Create the indexing array
@@ -423,7 +422,24 @@ class DeferredArray(NumPyThunk):
                 )
             # Issue the copy to the runtime
             self.runtime.dispatch(copy)
+        elif self.size == 1:
+            # Reading from a singleton array, using basic indexing: simulate
+            # the operation in numpy and see how many values need to be
+            # returned
+            sim_result = np.zeros(self.shape)[key]
+            is_number = type(sim_result) is not np.ndarray
+            result_size = (
+                1 if is_number else calculate_volume(sim_result.shape)
+            )
+            assert result_size <= 1
+            result = DeferredArray(
+                self.runtime,
+                base=(self.base if result_size == 1 else Future()),
+                shape=(() if is_number else sim_result.shape),
+                dtype=self.dtype,
+            )
         else:
+            # Reading from a non-singleton array, using basic indexing
             if view is None or dim_map is None:
                 view, dim_map = self._get_view(key)
             new_shape = self._get_view_shape(view, dim_map)
@@ -544,12 +560,23 @@ class DeferredArray(NumPyThunk):
             # Issue the copy to the runtime
             self.runtime.dispatch(copy)
         elif self.size == 1:
-            assert value_array.size == 1
-            # Special case of writing a single value
-            # We can just copy the future because they are immutable
-            self.base = value_array.base
+            # Writing to a singleton array, using basic indexing: simulate the
+            # operation in numpy and see how many values need to be updated.
+            # If it is a single value we can just copy the future because they
+            # are immutable. We don't check for exact match of shapes between
+            # LHS and RHS to capture cases of broadcasting.
+            updated_part = np.zeros(self.shape)[key]
+            updated_values = (
+                calculate_volume(updated_part.shape)
+                if type(updated_part) is np.ndarray
+                else 1
+            )
+            assert updated_values <= 1
+            if updated_values == 1:
+                assert value_array.size == 1
+                self.base = value_array.base
         else:
-            # Writing to a view of this array
+            # Writing to a view of a non-singleton array, using basic indexing
             view, dim_map = self._get_view(key)
             # See what the shape of the view is
             new_shape = self._get_view_shape(view, dim_map)

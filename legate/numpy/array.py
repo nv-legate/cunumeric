@@ -367,40 +367,9 @@ class ndarray(object):
             key, stacklevel=(stacklevel + 1)
         )._thunk
 
-    def _key_ok_for_scalar(self, key):
-        return (
-            key == Ellipsis
-            or self.ndim == 1
-            and (
-                key == 0
-                or isinstance(key, slice)
-                and (key.start is None or key.start == 0)
-            )
-            or isinstance(key, tuple)
-            and (
-                len(key) == self.ndim
-                or len(key) < self.ndim
-                and Ellipsis in key
-            )
-            and all(
-                [
-                    k == Ellipsis
-                    or k == 0
-                    or isinstance(k, slice)
-                    and (k.start is None or k.start == 0)
-                    for k in key
-                ]
-            )
-        )
-
     def __getitem__(self, key):
         if key is None:
             raise KeyError("invalid key passed to legate.numpy.ndarray")
-        # If we're a scalar, we're our own value
-        if self.size == 1:
-            if not self._key_ok_for_scalar(key):
-                raise KeyError("invalid key passed to legate.numpy.ndarray")
-            return self
         key = self._convert_key(key)
         return ndarray(
             shape=None, thunk=self._thunk.get_item(key, stacklevel=2)
@@ -769,9 +738,6 @@ class ndarray(object):
             temp = ndarray(value_array.shape, dtype=self.dtype)
             temp._thunk.convert(value_array._thunk, stacklevel=2)
             value_array = temp
-        if self.size == 1:
-            if not self._key_ok_for_scalar(key):
-                raise KeyError("invalid key passed to legate.numpy.ndarray")
         key = self._convert_key(key)
         self._thunk.set_item(key, value_array._thunk, stacklevel=2)
 
