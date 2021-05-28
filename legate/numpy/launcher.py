@@ -158,7 +158,7 @@ class Broadcast(object):
         return hash(("Broadcast", self.redop))
 
     def __eq__(self, other):
-        return isinstance(other, Projection) and self.redop == other.redop
+        return isinstance(other, Broadcast) and self.redop == other.redop
 
 
 class Projection(object):

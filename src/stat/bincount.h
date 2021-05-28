@@ -14,44 +14,38 @@
  *
  */
 
-#ifndef __NUMPY_BINCOUNT_H__
-#define __NUMPY_BINCOUNT_H__
+#pragma once
 
 #include "numpy.h"
+#include "core.h"
+#include "deserializer.h"
 
 namespace legate {
 namespace numpy {
 
-template <typename T>
-class BinCountTask : public NumPyTask<BinCountTask<T>> {
- public:
-  static const int TASK_ID;
-  static const int REGIONS = 2;
-
- public:
-  static void cpu_variant(const Legion::Task* task,
-                          const std::vector<Legion::PhysicalRegion>& regions,
-                          Legion::Context ctx,
-                          Legion::Runtime* runtime);
-#ifdef LEGATE_USE_OPENMP
-  static void omp_variant(const Legion::Task* task,
-                          const std::vector<Legion::PhysicalRegion>& regions,
-                          Legion::Context ctx,
-                          Legion::Runtime* runtime);
-#endif
-#ifdef LEGATE_USE_CUDA
-  static void gpu_variant(const Legion::Task* task,
-                          const std::vector<Legion::PhysicalRegion>& regions,
-                          Legion::Context ctx,
-                          Legion::Runtime* runtime);
-#endif
+struct BincountArgs {
+  bool needs_reduction;
+  bool has_weights;
+  Shape shape;
+  Array lhs;
+  Array rhs;
+  Array weights;
 };
 
-template <typename T, typename WT>
-class WeightedBinCountTask : public NumPyTask<WeightedBinCountTask<T, WT>> {
+void deserialize(Deserializer& ctx, BincountArgs& args);
+
+class BincountTask : public NumPyTask<BincountTask> {
  public:
-  static const int TASK_ID;
-  static const int REGIONS = 3;
+  static const int TASK_ID = NUMPY_BINCOUNT;
+  // TODO: The first region requirement of this task can have either
+  //       write discard or reduction privilege. For now we don't
+  //       count that requirement just to avoid specifying a normal SOA
+  //       layout constraint for it. There are two proper fixes for this:
+  //       1) we attach each variant twice, once with a normal constraint
+  //       and once with a reduction specialized constraint; 2) we always
+  //       use reduction privilege and have the runtime promote it to
+  //       read write privilege.
+  static const int REGIONS = 0;
 
  public:
   static void cpu_variant(const Legion::Task* task,
@@ -74,5 +68,3 @@ class WeightedBinCountTask : public NumPyTask<WeightedBinCountTask<T, WT>> {
 
 }  // namespace numpy
 }  // namespace legate
-
-#endif  // __NUMPY_BINCOUNT_H__

@@ -57,6 +57,7 @@ def randint(low, high=None, size=None, dtype=None):
         dtype = np.dtype(dtype)
     else:
         dtype = np.dtype(np.int64)
+    # TODO: randint must support unsigned integer dtypes as well
     if dtype.kind != "i":
         raise TypeError("legate.random.randint must be given an integer dtype")
     result = ndarray((size,), dtype=dtype)

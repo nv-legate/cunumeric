@@ -22,7 +22,7 @@ import numpy as np
 from legate.core import *  # noqa F403
 
 from .config import *  # noqa F403
-from .launcher import Map, Projection
+from .launcher import Broadcast, Map, Projection
 from .thunk import NumPyThunk
 from .utils import calculate_volume
 
@@ -35,6 +35,13 @@ try:
     long  # Python 2
 except NameError:
     long = int  # Python 3
+
+
+def _maybe_apply(f, v, *args, **kwargs):
+    if v is None:
+        return v
+    else:
+        return f(v, *args, **kwargs)
 
 
 def _combine_transforms(f, g):
@@ -120,6 +127,12 @@ class DeferredArrayView(object):
             )
             self._array.base.set_key_partition(part, shardfn, shardsp)
 
+    def compute_projection(self, redop):
+        if self._proj_id is None:
+            return Broadcast(redop=redop)
+        else:
+            return Projection(self.part, self._proj_id, redop=redop)
+
     def add_to_legate_op(self, op, read_only, read_write=False, redop=None):
         op.add_scalar_arg(self.scalar, bool)
         dim = self.ndim if self._transform is None else self._transform.N
@@ -143,7 +156,7 @@ class DeferredArrayView(object):
                 _combine_transforms(
                     self._array.base.transform, self._transform
                 ),
-                Projection(self.part, self._proj_id, redop=redop),
+                self.compute_projection(redop),
                 tag=self._tag,
             )
 
@@ -1898,12 +1911,10 @@ class DeferredArray(NumPyThunk):
 
     # Perform a bin count operation on the array
     def bincount(self, rhs, stacklevel, weights=None, callsite=None):
-        weight_array = (
-            None
-            if weights is None
-            else self.runtime.to_deferred_array(
-                weights, stacklevel=(stacklevel + 1)
-            )
+        weight_array = _maybe_apply(
+            self.runtime.to_deferred_array,
+            weights,
+            stacklevel=stacklevel + 1,
         )
         src_array = self.runtime.to_deferred_array(
             rhs, stacklevel=(stacklevel + 1)
@@ -1915,223 +1926,54 @@ class DeferredArray(NumPyThunk):
             assert src_array.shape == weight_array.shape or (
                 src_array.size == 1 and weight_array.size == 1
             )
-        src = src_array.base
-        dst = dst_array.base
-        if weight_array is not None:
-            weights = weight_array.base
-        launch_space = src.compute_parallel_launch_space()
+
+        # We broadcast the reduction output
+        dst_arg = DeferredArrayView(dst_array, proj_id=None)
+        src_arg = DeferredArrayView(src_array)
+        weight_arg = _maybe_apply(DeferredArrayView, weight_array)
+
+        launch_space = src_arg.compute_launch_space()
+        needs_reduction = launch_space is not None
+
+        if needs_reduction and weight_arg is not None:
+            weight_arg = weight_arg.align_partition(src_arg)
+
+        (shardpt, shardfn, shardsp) = src_arg.sharding
+
+        if needs_reduction:
+            dst_array.fill(
+                np.array(0, dst_arg.dtype), stacklevel + 1, callsite=callsite
+            )
+
+        task = Map(self.runtime, NumPyOpCode.BINCOUNT, tag=shardfn)
+        task.add_scalar_arg(needs_reduction, bool)
+        task.add_scalar_arg(weight_arg is not None, bool)
+
         if launch_space is not None:
-            src_part, shardfn, shardsp = src.find_or_create_key_partition()
-            if src_array.ndim > 1:
-                raise NotImplementedError(
-                    "Need support for higher dimensions in index bincount"
-                )
-            assert len(launch_space) == 1
-            # Construct a reduction array
-            reduction_shape = dst_array.shape + launch_space
-            reduction_field = self.runtime.allocate_field(
-                reduction_shape, dst_array.dtype
-            )
-            reduction_part = reduction_field.find_or_create_partition(
-                (1, launch_space[0]), tile_shape=(reduction_shape[0], 1)
-            )
-            reduction_proj = (
-                self.runtime.first_proj_id + NumPyProjCode.PROJ_1D_2D_Y
-            )
-            argbuf = BufferBuilder()
-            argbuf.pack_dimension(1)  # Dimension that we're collapsing
-            argbuf.pack_dimension(0)  # Dimension index
-            self.pack_shape(argbuf, dst_array.shape, pack_dim=False)
-            argbuf.pack_accessor(
-                reduction_field.field.field_id, reduction_field.transform
-            )
-            self.pack_shape(
-                argbuf, src_array.shape, src_part.tile_shape, proj=0
-            )
-            argbuf.pack_accessor(src.field.field_id, src.transform)
-            if weight_array is not None:
-                argbuf.pack_accessor(weights.field.field_id, weights.transform)
-                task = IndexTask(
-                    self.runtime.get_weighted_bincount_task_id(
-                        src_array.dtype, weight_array.dtype
-                    ),
-                    Rect(launch_space),
-                    self.runtime.empty_argmap,
-                    argbuf.get_string(),
-                    argbuf.get_size(),
-                    mapper=self.runtime.mapper_id,
-                    tag=shardfn,
-                )
-            else:
-                task = IndexTask(
-                    self.runtime.get_unary_task_id(
-                        NumPyOpCode.BINCOUNT,
-                        argument_type=src_array.dtype,
-                        result_type=dst_array.dtype,
-                    ),
-                    Rect(launch_space),
-                    self.runtime.empty_argmap,
-                    argbuf.get_string(),
-                    argbuf.get_size(),
-                    mapper=self.runtime.mapper_id,
-                    tag=shardfn,
-                )
-            if shardsp is not None:
-                task.set_sharding_space(shardsp)
-            task.add_write_requirement(
-                reduction_part, reduction_field.field.field_id, reduction_proj
-            )
-            task.add_read_requirement(
-                src_part,
-                src.field.field_id,
-                0,  # identity projection
-                tag=NumPyMappingTag.KEY_REGION_TAG,
-            )
-            if weight_array is not None:
-                weight_part = weights.find_or_create_partition(launch_space)
-                task.add_read_requirement(
-                    weight_part, weights.field.field_id, 0
-                )
-            self.runtime.dispatch(task)
-            assert reduction_shape[1] > 1
-            # Now build reduction trees until we get to the bottom
-            RADIX = self.runtime.radix
-            # We want the output vector partitioned in the natural way for it
-            launch_space = dst.compute_parallel_launch_space()
-            if launch_space is None:
-                dst_part = dst.find_or_create_partition((1,))
-                launch_space = (1, reduction_shape[1])
-            else:
-                dst_part = dst.find_or_create_partition(launch_space)
-                launch_space = (launch_space[0], reduction_shape[1])
-            dst_proj = self.runtime.first_proj_id + NumPyProjCode.PROJ_2D_1D_X
-            sharding_space = self.runtime.find_or_create_index_space(
-                launch_space
-            )
-            reduction_part = reduction_field.find_or_create_partition(
-                launch_space
-            )
-            radix_generation = 1
-            while reduction_shape[1] > 1:
-                argbuf = BufferBuilder()
-                argbuf.pack_dimension(RADIX)
-                new_reduction_shape = (
-                    dst_array.shape[0],
-                    (reduction_shape[1] + RADIX - 1) // RADIX,
-                )
-                local_launch_space = (launch_space[0], new_reduction_shape[1])
-                if new_reduction_shape[1] == 1:
-                    # We can put the result directly into the output
-                    # since this is the last reduction
-                    new_reduction_field = dst
-                    new_reduction_part = dst_part
-                    new_reduction_proj = dst_proj
-                    argbuf.pack_dimension(-1)  # No collapse out dimension
-                else:
-                    new_reduction_field = self.runtime.allocate_field(
-                        new_reduction_shape, reduction_field.field.dtype
-                    )
-                    new_reduction_part = new_reduction_field.find_or_create_partition(  # noqa E501
-                        local_launch_space
-                    )
-                    new_reduction_proj = 0  # identity projection
-                    argbuf.pack_dimension(1)  # collapsing out dimension 1
-                argbuf.pack_dimension(1)  # Collapsing in dimension 1
-                self.pack_shape(
-                    argbuf, dst_array.shape, dst_part.tile_shape, dst_proj
-                )
-                argbuf.pack_accessor(
-                    new_reduction_field.field.field_id,
-                    new_reduction_field.transform,
-                )
-                for idx in xrange(RADIX):
-                    argbuf.pack_accessor(
-                        reduction_field.field.field_id,
-                        reduction_field.transform,
-                    )
-                task = IndexTask(
-                    self.runtime.get_binary_task_id(
-                        NumPyOpCode.SUM_RADIX,
-                        result_type=reduction_field.field.dtype,
-                        first_argument_type=reduction_field.field.dtype,
-                        second_argument_type=reduction_field.field.dtype,
-                    ),
-                    Rect(local_launch_space),
-                    self.runtime.empty_argmap,
-                    argbuf.get_string(),
-                    argbuf.get_size(),
-                    mapper=self.runtime.mapper_id,
-                    tag=(
-                        NumPyMappingTag.RADIX_GEN_TAG
-                        & (radix_generation << RADIX_GEN_SHIFT)
-                    )
-                    | (NumPyMappingTag.RADIX_DIM_TAG & (1 << RADIX_DIM_SHIFT)),
-                )
-                task.set_sharding_space(sharding_space)
-                task.add_write_requirement(
-                    new_reduction_part,
-                    new_reduction_field.field.field_id,
-                    new_reduction_proj,
-                    tag=NumPyMappingTag.KEY_REGION_TAG,
-                    flags=legion.LEGION_COMPLETE_PROJECTION_WRITE_FLAG,
-                )
-                for idx in xrange(RADIX):
-                    task.add_read_requirement(
-                        reduction_part,
-                        reduction_field.field.field_id,
-                        self.runtime.get_radix_projection_functor_id(
-                            2, 1, RADIX, idx
-                        ),
-                    )
-                self.runtime.dispatch(task)
-                reduction_shape = new_reduction_shape
-                reduction_field = new_reduction_field
-                reduction_part = new_reduction_part
-                radix_generation += 1
+            task.add_shape(src_arg.shape, src_arg.part.tile_shape, 0)
         else:
-            # Sequential bincount case
-            argbuf = BufferBuilder()
-            argbuf.pack_dimension(-1)  # Not collapsing any dimensions here
-            argbuf.pack_dimension(-1)  # dimension index
-            self.pack_shape(argbuf, dst_array.shape, pack_dim=False)
-            argbuf.pack_accessor(dst.field.field_id, dst.transform)
-            self.pack_shape(argbuf, src_array.shape)
-            argbuf.pack_accessor(src.field.field_id, src.transform)
-            shardpt, shardfn, shardsp = src.find_point_sharding()
-            if weight_array is not None:
-                argbuf.pack_accessor(weights.field.field_id, weights.transform)
-                task = Task(
-                    self.runtime.get_weighted_bincount_task_id(
-                        src_array.dtype, weight_array.dtype
-                    ),
-                    argbuf.get_string(),
-                    argbuf.get_size(),
-                    mapper=self.runtime.mapper_id,
-                    tag=shardfn,
-                )
-            else:
-                task = Task(
-                    self.runtime.get_unary_task_id(
-                        NumPyOpCode.BINCOUNT,
-                        result_type=dst_array.dtype,
-                        argument_type=src_array.dtype,
-                    ),
-                    argbuf.get_string(),
-                    argbuf.get_size(),
-                    mapper=self.runtime.mapper_id,
-                    tag=shardfn,
-                )
-            if shardpt is not None:
-                task.set_point(shardpt)
-            if shardsp is not None:
-                task.set_sharding_space(shardsp)
-            task.add_write_requirement(dst.region, dst.field.field_id)
-            task.add_read_requirement(src.region, src.field.field_id)
-            if weight_array is not None:
-                task.add_read_requirement(
-                    weights.region, weights.field.field_id
-                )
-            self.runtime.dispatch(task)
+            task.add_shape(src_arg.shape)
+
+        if needs_reduction:
+            redop = self.runtime.get_unary_reduction_op_id(
+                UnaryRedCode.SUM,
+                dst_arg.dtype,
+            )
+            dst_arg.add_to_legate_op(task, False, redop=redop)
+        else:
+            dst_arg.add_to_legate_op(task, False)
+        src_arg.add_to_legate_op(task, True)
+        if weight_arg is not None:
+            weight_arg.add_to_legate_op(task, True)
+
+        if shardsp is not None:
+            task.set_sharding_space(shardsp)
+
+        if launch_space is not None:
+            task.execute(Rect(launch_space))
+        else:
+            task.execute_single()
+
         self.runtime.profile_callsite(stacklevel + 1, True, callsite)
         # See if we are doing shadow debugging
         if self.runtime.shadow_debug:

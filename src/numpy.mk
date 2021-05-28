@@ -36,13 +36,13 @@ GEN_CPU_SRC += ternary/where.cc               \
 							 matrix/matvecmul.cc            \
 							 matrix/dot.cc                  \
 							 matrix/util.cc                 \
+							 stat/bincount.cc               \
 							 core.cc                        \
 							 deserializer.cc                \
 							 scalar.cc                      \
 							 arange.cc                      \
 							 arg.cc                         \
 							 argmin.cc                      \
-							 bincount.cc                    \
 							 eye.cc                         \
 							 mapper.cc                      \
 							 nonzero.cc                     \
@@ -69,7 +69,8 @@ GEN_CPU_SRC += ternary/where_omp.cc          \
 							 matrix/diag_omp.cc            \
 							 matrix/matmul_omp.cc          \
 							 matrix/matvecmul_omp.cc       \
-							 matrix/dot_omp.cc
+							 matrix/dot_omp.cc             \
+							 stat/bincount_omp.cc
 endif
 
 GEN_GPU_SRC += ternary/where.cu               \
@@ -86,10 +87,10 @@ GEN_GPU_SRC += ternary/where.cu               \
 							 matrix/matmul.cu               \
 							 matrix/matvecmul.cu            \
 							 matrix/dot.cu                  \
+							 stat/bincount.cu               \
 							 arange.cu                      \
 							 arg.cu                         \
 							 argmin.cu                      \
-							 bincount.cu                    \
 							 eye.cu                         \
 							 nonzero.cu                     \
 							 rand.cu                        \

@@ -1294,6 +1294,10 @@ def bincount(a, weights=None, minlength=0):
         lg_weights = ndarray.convert_to_legate_ndarray(weights)
         if lg_weights.shape != lg_array.shape:
             raise ValueError("weights array must be same shape for bincount")
+        if lg_weights.dtype.kind == "c":
+            raise ValueError("weights must be convertible to float64")
+        # Make sure the weights are float64
+        lg_weights = lg_weights.astype(np.float64)
     if lg_array.dtype.kind != "i" and lg_array.dtype.kind != "u":
         raise TypeError("input array for bincount must be integer type")
     # If nobody told us the size then compute it
@@ -1302,7 +1306,7 @@ def bincount(a, weights=None, minlength=0):
     if lg_array.size == 1:
         # Handle the special case of 0-D array
         if weights is None:
-            out = zeros((minlength,), dtype=np.dtype(np.uint64), stacklevel=2)
+            out = zeros((minlength,), dtype=np.dtype(np.int64), stacklevel=2)
             out[lg_array[0]] = 1
         else:
             out = zeros((minlength,), dtype=lg_weights.dtype, stacklevel=2)
@@ -1313,7 +1317,7 @@ def bincount(a, weights=None, minlength=0):
         if weights is None:
             out = ndarray(
                 (minlength,),
-                dtype=np.dtype(np.uint64),
+                dtype=np.dtype(np.int64),
                 inputs=(lg_array, weights),
             )
             out._thunk.bincount(lg_array._thunk, stacklevel=2)
