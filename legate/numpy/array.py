@@ -40,14 +40,6 @@ except NameError:
     xrange = range  # Python 3
 
 
-def _is_complex_dtype(dtype):
-    return (
-        dtype == np.complex64
-        or dtype == np.complex128
-        or dtype == np.complex256
-    )
-
-
 @copy_docstring(np.ndarray)
 class ndarray(object):
     def __init__(
@@ -200,7 +192,7 @@ class ndarray(object):
 
     @property
     def imag(self):
-        if _is_complex_dtype(self.dtype):
+        if self.dtype.kind == "c":
             return ndarray(
                 shape=self.shape, thunk=self._thunk.imag(stacklevel=2)
             )
@@ -215,7 +207,7 @@ class ndarray(object):
 
     @property
     def real(self):
-        if _is_complex_dtype(self.dtype):
+        if self.dtype.kind == "c":
             return ndarray(
                 shape=self.shape, thunk=self._thunk.real(stacklevel=2)
             )
@@ -941,7 +933,7 @@ class ndarray(object):
         return self.convert_to_legate_ndarray(numpy_array, stacklevel=3)
 
     def conj(self, stacklevel=1):
-        if _is_complex_dtype(self.dtype):
+        if self.dtype.kind == "c":
             result = self._thunk.conj(stacklevel=stacklevel + 1)
             return ndarray(self.shape, dtype=self.dtype, thunk=result)
         else:
