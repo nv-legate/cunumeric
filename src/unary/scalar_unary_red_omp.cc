@@ -97,6 +97,45 @@ struct ScalarUnaryRedImplBody<VariantKind::OMP, UnaryRedCode::CONTAINS, CODE, DI
   }
 };
 
+template <LegateTypeCode CODE, int DIM>
+struct ScalarUnaryRedImplBody<VariantKind::OMP, UnaryRedCode::COUNT_NONZERO, CODE, DIM> {
+  using VAL = legate_type_of<CODE>;
+
+  void operator()(uint64_t &result,
+                  AccessorRO<VAL, DIM> in,
+                  const Rect<DIM> &rect,
+                  const Pitches<DIM - 1> &pitches,
+                  bool dense) const
+  {
+    const size_t volume    = rect.volume();
+    const auto max_threads = omp_get_max_threads();
+    auto locals            = static_cast<uint64_t *>(alloca(max_threads * sizeof(VAL)));
+    for (auto idx = 0; idx < max_threads; ++idx) locals[idx] = 0;
+    if (dense) {
+      auto inptr = in.ptr(rect);
+#pragma omp parallel
+      {
+        const int tid = omp_get_thread_num();
+#pragma omp for schedule(static)
+        for (size_t idx = 0; idx < volume; ++idx) locals[tid] += inptr[idx] != 0;
+      }
+    } else {
+#pragma omp parallel
+      {
+        const int tid = omp_get_thread_num();
+#pragma omp for schedule(static)
+        for (size_t idx = 0; idx < volume; ++idx) {
+          auto point = pitches.unflatten(idx, rect.lo);
+          locals[tid] += in[point] != 0;
+        }
+      }
+    }
+
+    for (auto idx = 0; idx < max_threads; ++idx)
+      SumReduction<uint64_t>::template fold<true>(result, locals[idx]);
+  }
+};
+
 /*static*/ UntypedScalar ScalarUnaryRedTask::omp_variant(const Task *task,
                                                          const std::vector<PhysicalRegion> &regions,
                                                          Context context,

@@ -26,13 +26,14 @@ namespace legate {
 namespace numpy {
 
 enum class UnaryRedCode : int {
-  MAX      = 1,
-  MIN      = 2,
-  PROD     = 3,
-  SUM      = 4,
-  ARGMAX   = 5,
-  ARGMIN   = 6,
-  CONTAINS = 7,
+  MAX           = 1,
+  MIN           = 2,
+  PROD          = 3,
+  SUM           = 4,
+  ARGMAX        = 5,
+  ARGMIN        = 6,
+  CONTAINS      = 7,
+  COUNT_NONZERO = 8,
 };
 
 template <UnaryRedCode OP_CODE>

@@ -121,9 +121,7 @@ class NumPyOpCode(IntEnum):
     SORT = legate_numpy.NUMPY_SORT
     TILE = legate_numpy.NUMPY_TILE
     TRANSPOSE = legate_numpy.NUMPY_TRANSPOSE
-    COUNT_NONZERO = legate_numpy.NUMPY_COUNT_NONZERO
     NONZERO = legate_numpy.NUMPY_NONZERO
-    COUNT_NONZERO_REDUC = legate_numpy.NUMPY_COUNT_NONZERO_REDUC
     INCLUSIVE_SCAN = legate_numpy.NUMPY_INCLUSIVE_SCAN
     CONVERT_TO_RECT = legate_numpy.NUMPY_CONVERT_TO_RECT
     ARANGE = legate_numpy.NUMPY_ARANGE
@@ -216,11 +214,6 @@ class NumPyRedopCode(IntEnum):
     ARGMAX_REDOP = legate_numpy.NUMPY_ARGMAX_REDOP
 
 
-numpy_reduction_op_offsets = {
-    # nonzeros are counted with sum
-    NumPyOpCode.COUNT_NONZERO: legion.LEGION_REDOP_KIND_SUM,
-}
-
 numpy_unary_reduction_op_offsets = {
     UnaryRedCode.SUM: legion.LEGION_REDOP_KIND_SUM,
     UnaryRedCode.PROD: legion.LEGION_REDOP_KIND_PROD,
@@ -274,6 +267,7 @@ numpy_scalar_reduction_op_offsets = {
     UnaryRedCode.CONTAINS: legate_numpy.NUMPY_SCALAR_SUM_REDOP,
     UnaryRedCode.ARGMAX: legate_numpy.NUMPY_SCALAR_ARGMAX_REDOP,
     UnaryRedCode.ARGMIN: legate_numpy.NUMPY_SCALAR_ARGMIN_REDOP,
+    UnaryRedCode.COUNT_NONZERO: legate_numpy.NUMPY_SCALAR_SUM_REDOP,
 }
 
 

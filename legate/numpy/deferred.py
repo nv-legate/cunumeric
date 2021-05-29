@@ -2016,7 +2016,7 @@ class DeferredArray(NumPyThunk):
                 stacklevel=(stacklevel + 1),
             )
         return ndarray.perform_unary_reduction(
-            NumPyOpCode.COUNT_NONZERO,
+            UnaryRedCode.COUNT_NONZERO,
             self,
             axis=axis,
             dtype=np.dtype(np.uint64),
@@ -2036,7 +2036,7 @@ class DeferredArray(NumPyThunk):
             shape=(1,), dtype=np.dtype(np.uint64), inputs=(self,)
         )
         dst_nonzero.unary_reduction(
-            NumPyOpCode.COUNT_NONZERO,
+            UnaryRedCode.COUNT_NONZERO,
             self,
             stacklevel=(stacklevel + 1),
             axes=None,

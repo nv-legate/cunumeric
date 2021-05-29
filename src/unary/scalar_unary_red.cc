@@ -76,6 +76,29 @@ struct ScalarUnaryRedImplBody<VariantKind::CPU, UnaryRedCode::CONTAINS, CODE, DI
   }
 };
 
+template <LegateTypeCode CODE, int DIM>
+struct ScalarUnaryRedImplBody<VariantKind::CPU, UnaryRedCode::COUNT_NONZERO, CODE, DIM> {
+  using VAL = legate_type_of<CODE>;
+
+  void operator()(uint64_t &result,
+                  AccessorRO<VAL, DIM> in,
+                  const Rect<DIM> &rect,
+                  const Pitches<DIM - 1> &pitches,
+                  bool dense) const
+  {
+    const size_t volume = rect.volume();
+    if (dense) {
+      auto inptr = in.ptr(rect);
+      for (size_t idx = 0; idx < volume; ++idx) result += inptr[idx] != 0;
+    } else {
+      for (size_t idx = 0; idx < volume; ++idx) {
+        auto point = pitches.unflatten(idx, rect.lo);
+        result += in[point] != 0;
+      }
+    }
+  }
+};
+
 void deserialize(Deserializer &ctx, ScalarUnaryRedArgs &args)
 {
   deserialize(ctx, args.op_code);

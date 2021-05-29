@@ -107,6 +107,39 @@ struct ScalarUnaryRedImpl<KIND, UnaryRedCode::CONTAINS> {
 };
 
 template <VariantKind KIND>
+struct ScalarUnaryRedImpl<KIND, UnaryRedCode::COUNT_NONZERO> {
+  template <LegateTypeCode CODE, int DIM>
+  UntypedScalar operator()(ScalarUnaryRedArgs &args) const
+  {
+    using VAL = legate_type_of<CODE>;
+
+    auto rect = args.shape.to_rect<DIM>();
+
+    Pitches<DIM - 1> pitches;
+    size_t volume = pitches.flatten(rect);
+
+    uint64_t result = 0;
+
+    if (volume == 0) return UntypedScalar(result);
+
+    auto in = args.in.read_accessor<VAL, DIM>();
+
+#ifndef LEGION_BOUNDS_CHECKS
+    // Check to see if this is dense or not
+    bool dense = in.accessor.is_dense_row_major(rect);
+#else
+    // No dense execution if we're doing bounds checks
+    bool dense = false;
+#endif
+
+    ScalarUnaryRedImplBody<KIND, UnaryRedCode::COUNT_NONZERO, CODE, DIM>()(
+      result, in, rect, pitches, dense);
+
+    return UntypedScalar(result);
+  }
+};
+
+template <VariantKind KIND>
 struct ScalarUnaryRedDispatch {
   template <UnaryRedCode OP_CODE, std::enable_if_t<!is_arg_reduce<OP_CODE>::value> * = nullptr>
   UntypedScalar operator()(ScalarUnaryRedArgs &args) const
@@ -131,7 +164,11 @@ static UntypedScalar scalar_unary_red_template(const Task *task,
   Deserializer ctx(task, regions);
   ScalarUnaryRedArgs args;
   deserialize(ctx, args);
-  return op_dispatch(args.op_code, ScalarUnaryRedDispatch<KIND>{}, args);
+  if (args.op_code == UnaryRedCode::COUNT_NONZERO)
+    return double_dispatch(
+      args.in.dim(), args.in.code(), ScalarUnaryRedImpl<KIND, UnaryRedCode::COUNT_NONZERO>{}, args);
+  else
+    return op_dispatch(args.op_code, ScalarUnaryRedDispatch<KIND>{}, args);
 }
 
 }  // namespace numpy
