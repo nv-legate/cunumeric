@@ -2548,9 +2548,9 @@ class DeferredArray(NumPyThunk):
 
         if op == UnaryOpCode.GETARG:
             dtype = get_arg_value_dtype(rhs_array.dtype)
-            rhs_arg = DeferredArrayView(rhs_array, dtype=dtype)
         else:
             dtype = None
+        rhs_arg = DeferredArrayView(rhs_array, dtype=dtype)
         if rhs_array is lhs_array:
             lhs_arg = rhs_arg
         else:
