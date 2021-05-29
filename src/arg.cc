@@ -15,137 +15,37 @@
  */
 
 #include "arg.h"
-#include "proj.h"
 
 using namespace Legion;
 
 namespace legate {
 namespace numpy {
 
-template <typename T>
-/*static*/ void GetargTask<T>::cpu_variant(const Task* task,
-                                           const std::vector<PhysicalRegion>& regions,
-                                           Context ctx,
-                                           Runtime* runtime)
-{
-  LegateDeserializer derez(task->args, task->arglen);
-  const int extra_dim = derez.unpack_dimension();
-  const int dim       = derez.unpack_dimension();
-  switch (dim) {
-    case 1: {
-      const Rect<1> rect = NumPyProjectionFunctor::unpack_shape<1>(task, derez);
-      if (rect.empty()) break;
-      const AccessorWO<int64_t, 1> out = derez.unpack_accessor_WO<int64_t, 1>(regions[0], rect);
-      const AccessorRO<Argval<T>, 1> in =
-        (extra_dim >= 0) ? derez.unpack_accessor_RO<Argval<T>, 1>(regions[1], rect, extra_dim, 0)
-                         : derez.unpack_accessor_RO<Argval<T>, 1>(regions[1], rect);
-      for (coord_t x = rect.lo[0]; x <= rect.hi[0]; x++) out[x] = in[x].arg;
-      break;
-    }
-    case 2: {
-      const Rect<2> rect = NumPyProjectionFunctor::unpack_shape<2>(task, derez);
-      if (rect.empty()) break;
-      const AccessorWO<int64_t, 2> out = derez.unpack_accessor_WO<int64_t, 2>(regions[0], rect);
-      const AccessorRO<Argval<T>, 2> in =
-        (extra_dim >= 0) ? derez.unpack_accessor_RO<Argval<T>, 2>(regions[1], rect, extra_dim, 0)
-                         : derez.unpack_accessor_RO<Argval<T>, 2>(regions[1], rect);
-      for (coord_t x = rect.lo[0]; x <= rect.hi[0]; x++)
-        for (coord_t y = rect.lo[1]; y <= rect.hi[1]; y++) out[x][y] = in[x][y].arg;
-      break;
-    }
-    case 3: {
-      const Rect<3> rect = NumPyProjectionFunctor::unpack_shape<3>(task, derez);
-      if (rect.empty()) break;
-      const AccessorWO<int64_t, 3> out = derez.unpack_accessor_WO<int64_t, 3>(regions[0], rect);
-      const AccessorRO<Argval<T>, 3> in =
-        (extra_dim >= 0) ? derez.unpack_accessor_RO<Argval<T>, 3>(regions[1], rect, extra_dim, 0)
-                         : derez.unpack_accessor_RO<Argval<T>, 3>(regions[1], rect);
-      for (coord_t x = rect.lo[0]; x <= rect.hi[0]; x++)
-        for (coord_t y = rect.lo[1]; y <= rect.hi[1]; y++)
-          for (coord_t z = rect.lo[2]; z <= rect.hi[2]; z++) out[x][y][z] = in[x][y][z].arg;
-      break;
-    }
-    default: assert(false);
-  }
-}
+#define DECLARE_ARGMAX_IDENTITY(TYPE) \
+  template <>                         \
+  const Argval<TYPE> ArgmaxReduction<TYPE>::identity = Argval<TYPE>(MaxReduction<TYPE>::identity);
 
-#ifdef LEGATE_USE_OPENMP
-template <typename T>
-/*static*/ void GetargTask<T>::omp_variant(const Task* task,
-                                           const std::vector<PhysicalRegion>& regions,
-                                           Context ctx,
-                                           Runtime* runtime)
-{
-  LegateDeserializer derez(task->args, task->arglen);
-  const int extra_dim = derez.unpack_dimension();
-  const int dim       = derez.unpack_dimension();
-  switch (dim) {
-    case 1: {
-      const Rect<1> rect = NumPyProjectionFunctor::unpack_shape<1>(task, derez);
-      if (rect.empty()) break;
-      const AccessorWO<int64_t, 1> out = derez.unpack_accessor_WO<int64_t, 1>(regions[0], rect);
-      const AccessorRO<Argval<T>, 1> in =
-        (extra_dim >= 0) ? derez.unpack_accessor_RO<Argval<T>, 1>(regions[1], rect, extra_dim, 0)
-                         : derez.unpack_accessor_RO<Argval<T>, 1>(regions[1], rect);
-#pragma omp parallel for
-      for (coord_t x = rect.lo[0]; x <= rect.hi[0]; x++) out[x] = in[x].arg;
-      break;
-    }
-    case 2: {
-      const Rect<2> rect = NumPyProjectionFunctor::unpack_shape<2>(task, derez);
-      if (rect.empty()) break;
-      const AccessorWO<int64_t, 2> out = derez.unpack_accessor_WO<int64_t, 2>(regions[0], rect);
-      const AccessorRO<Argval<T>, 2> in =
-        (extra_dim >= 0) ? derez.unpack_accessor_RO<Argval<T>, 2>(regions[1], rect, extra_dim, 0)
-                         : derez.unpack_accessor_RO<Argval<T>, 2>(regions[1], rect);
-#pragma omp parallel for
-      for (coord_t x = rect.lo[0]; x <= rect.hi[0]; x++)
-        for (coord_t y = rect.lo[1]; y <= rect.hi[1]; y++) out[x][y] = in[x][y].arg;
-      break;
-    }
-    case 3: {
-      const Rect<3> rect = NumPyProjectionFunctor::unpack_shape<3>(task, derez);
-      if (rect.empty()) break;
-      const AccessorWO<int64_t, 3> out = derez.unpack_accessor_WO<int64_t, 3>(regions[0], rect);
-      const AccessorRO<Argval<T>, 3> in =
-        (extra_dim >= 0) ? derez.unpack_accessor_RO<Argval<T>, 3>(regions[1], rect, extra_dim, 0)
-                         : derez.unpack_accessor_RO<Argval<T>, 3>(regions[1], rect);
-#pragma omp parallel for
-      for (coord_t x = rect.lo[0]; x <= rect.hi[0]; x++)
-        for (coord_t y = rect.lo[1]; y <= rect.hi[1]; y++)
-          for (coord_t z = rect.lo[2]; z <= rect.hi[2]; z++) out[x][y][z] = in[x][y][z].arg;
-      break;
-    }
-    default: assert(false);
-  }
-}
-#endif
+#define DECLARE_ARGMIN_IDENTITY(TYPE) \
+  template <>                         \
+  const Argval<TYPE> ArgminReduction<TYPE>::identity = Argval<TYPE>(MinReduction<TYPE>::identity);
 
-template <typename T>
-/*static*/ int64_t GetargScalar<T>::cpu_variant(const Task* task,
-                                                const std::vector<PhysicalRegion>& regions,
-                                                Context ctx,
-                                                Runtime* runtime)
-{
-  assert(task->futures.size() == 1);
-  const Argval<T> value = task->futures[0].get_result<Argval<T>>();
-  return value.arg;
-}
+#define DECLARE_IDENTITIES(TYPE) \
+  DECLARE_ARGMAX_IDENTITY(TYPE)  \
+  DECLARE_ARGMIN_IDENTITY(TYPE)
 
-INSTANTIATE_ALL_TASKS(GetargTask,
-                      static_cast<int>(NumPyOpCode::NUMPY_GETARG) * NUMPY_TYPE_OFFSET +
-                        NUMPY_NORMAL_VARIANT_OFFSET)
-INSTANTIATE_ALL_TASKS(GetargScalar,
-                      static_cast<int>(NumPyOpCode::NUMPY_GETARG) * NUMPY_TYPE_OFFSET +
-                        NUMPY_SCALAR_VARIANT_OFFSET)
+DECLARE_IDENTITIES(__half)
+DECLARE_IDENTITIES(float)
+DECLARE_IDENTITIES(double)
+DECLARE_IDENTITIES(bool)
+DECLARE_IDENTITIES(int8_t)
+DECLARE_IDENTITIES(int16_t)
+DECLARE_IDENTITIES(int32_t)
+DECLARE_IDENTITIES(int64_t)
+DECLARE_IDENTITIES(uint8_t)
+DECLARE_IDENTITIES(uint16_t)
+DECLARE_IDENTITIES(uint32_t)
+DECLARE_IDENTITIES(uint64_t)
+DECLARE_IDENTITIES(complex<float>)
 
 }  // namespace numpy
 }  // namespace legate
-
-namespace {  // unnamed
-static void __attribute__((constructor)) register_tasks(void)
-{
-  REGISTER_ALL_TASKS(legate::numpy::GetargTask)
-  REGISTER_ALL_TASKS_WITH_ARG_RETURN(legate::numpy::GetargScalar)
-}
-}  // namespace

@@ -24,7 +24,7 @@ from legate.core import *  # noqa F403
 from .config import *  # noqa F403
 from .launcher import Broadcast, Map, Projection
 from .thunk import NumPyThunk
-from .utils import calculate_volume
+from .utils import calculate_volume, get_arg_dtype, get_arg_value_dtype
 
 try:
     xrange  # Python 2
@@ -66,7 +66,14 @@ def _complex_field_dtype(dtype):
 
 class DeferredArrayView(object):
     def __init__(
-        self, array, transform=None, offset=None, part=None, proj_id=0, tag=0
+        self,
+        array,
+        transform=None,
+        offset=None,
+        part=None,
+        proj_id=0,
+        tag=0,
+        dtype=None,
     ):
         self._array = array
         self._transform = transform
@@ -74,6 +81,7 @@ class DeferredArrayView(object):
         self._part = part
         self._proj_id = proj_id
         self._tag = tag
+        self._dtype = dtype
 
     @property
     def scalar(self):
@@ -89,7 +97,9 @@ class DeferredArrayView(object):
 
     @property
     def dtype(self):
-        return self._array.dtype
+        if self._dtype is None:
+            self._dtype = self._array.dtype
+        return self._dtype
 
     @property
     def ndim(self):
@@ -214,6 +224,7 @@ class DeferredArrayView(object):
                 self._part,
                 proj_id,
                 mapping_tag,
+                self._dtype,
             )
             return new_view
 
@@ -231,6 +242,7 @@ class DeferredArrayView(object):
                 new_part,
                 self._proj_id,
                 self._tag,
+                self._dtype,
             )
             return new_view
 
@@ -907,6 +919,13 @@ class DeferredArray(NumPyThunk):
         else:
             assert self.base is not None
             dst = self.base
+            dtype = self.dtype
+            # If this is a fill for an arg value, make sure to pass
+            # the value dtype so that we get it packed correctly
+            if dtype.kind == "V":
+                dtype = get_arg_value_dtype(dtype)
+            else:
+                dtype = None
             launch_space = dst.compute_parallel_launch_space()
             if launch_space is not None:
                 (
@@ -914,10 +933,12 @@ class DeferredArray(NumPyThunk):
                     shardfn,
                     shardsp,
                 ) = dst.find_or_create_key_partition()
-                lhs = DeferredArrayView(self, part=dst_part)
+                # Need to use a fake dtype for fills with arg values
+                lhs = DeferredArrayView(self, part=dst_part, dtype=dtype)
             else:
                 shardpt, shardfn, shardsp = dst.find_point_sharding()
-                lhs = DeferredArrayView(self)
+                # Need to use a fake dtype for fills with arg values
+                lhs = DeferredArrayView(self, dtype=dtype)
 
             op = Map(self.runtime, NumPyOpCode.FILL, tag=shardfn)
             if launch_space is not None:
@@ -2525,7 +2546,11 @@ class DeferredArray(NumPyThunk):
             src, stacklevel=(stacklevel + 1)
         )
 
-        rhs_arg = DeferredArrayView(rhs_array)
+        if op == UnaryOpCode.GETARG:
+            dtype = get_arg_value_dtype(rhs_array.dtype)
+            rhs_arg = DeferredArrayView(rhs_array, dtype=dtype)
+        else:
+            dtype = None
         if rhs_array is lhs_array:
             lhs_arg = rhs_arg
         else:
@@ -2646,17 +2671,34 @@ class DeferredArray(NumPyThunk):
             lhs_array.base = result
 
         else:
+            argred = op in (UnaryRedCode.ARGMAX, UnaryRedCode.ARGMIN)
+
+            if argred:
+                argred_dtype = get_arg_dtype(rhs_array.dtype)
+                lhs_field = self.runtime.allocate_field(
+                    self.shape,
+                    dtype=argred_dtype,
+                )
+                lhs_array = DeferredArray(
+                    self.runtime,
+                    lhs_field,
+                    shape=self.shape,
+                    dtype=argred_dtype,
+                    scalar=self.scalar,
+                )
+
             # Before we perform region reduction, make sure to have the lhs
             # initialized. If an initial value is given, we use it, otherwise
             # we use the identity of the reduction operator
             if initial is not None:
+                assert not argred
                 fill_value = initial
             else:
                 fill_value = self.runtime.get_reduction_identity(
                     op, rhs_array.dtype
                 )
             lhs_array.fill(
-                np.array(fill_value, rhs_array.dtype),
+                np.array(fill_value, lhs_array.dtype),
                 stacklevel=stacklevel + 1,
                 callsite=callsite,
             )
@@ -2696,12 +2738,15 @@ class DeferredArray(NumPyThunk):
                 )
 
                 needs_reduction = launch_space[axis] != 1
+                # Fake the dtype when this is an arg reduction.
+                # Otherwise, we would need to double the number of type codes.
                 lhs_arg = DeferredArrayView(
                     lhs_array,
                     part=result_part,
                     transform=transform,
                     proj_id=proj_id,
                     tag=NumPyMappingTag.NO_MEMOIZE_TAG,
+                    dtype=rhs_array.dtype if argred else None,
                 )
                 rhs_arg = DeferredArrayView(
                     rhs_array,
@@ -2739,11 +2784,14 @@ class DeferredArray(NumPyThunk):
                 task.execute(Rect(launch_space))
 
             else:
+                # Fake the dtype when this is an arg reduction.
+                # Otherwise, we would need to double the number of type codes.
                 lhs_arg = DeferredArrayView(
                     lhs_array,
                     transform=transform,
                     proj_id=proj_id,
                     tag=NumPyMappingTag.NO_MEMOIZE_TAG,
+                    dtype=rhs_array.dtype if argred else None,
                 )
                 rhs_arg = DeferredArrayView(
                     rhs_array,
@@ -2771,6 +2819,17 @@ class DeferredArray(NumPyThunk):
                     task.add_future(initial_future)
 
                 task.execute_single()
+
+            if argred:
+                self.unary_op(
+                    UnaryOpCode.GETARG,
+                    self.dtype,
+                    lhs_array,
+                    True,
+                    [],
+                    stacklevel + 1,
+                    callsite,
+                )
 
         self.runtime.profile_callsite(stacklevel + 1, True, callsite)
         if self.runtime.shadow_debug:

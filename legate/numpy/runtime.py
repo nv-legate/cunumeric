@@ -58,7 +58,7 @@ from .deferred import DeferredArray
 from .eager import EagerArray
 from .lazy import LazyArray
 from .thunk import NumPyThunk
-from .utils import calculate_volume
+from .utils import calculate_volume, get_arg_value_dtype
 
 
 # Helper method for python 3 support
@@ -1325,9 +1325,14 @@ class Runtime(object):
 
     def create_scalar(self, data, dtype, shape=None, wrap=False):
         result = Future()
-        code = numpy_field_type_offsets[dtype.type]
+        if dtype.kind == "V":
+            is_arg = True
+            code = numpy_field_type_offsets[get_arg_value_dtype(dtype)]
+        else:
+            is_arg = False
+            code = numpy_field_type_offsets[dtype.type]
         data = data.tobytes()
-        buf = struct.pack(f"l{len(data)}s", code, data)
+        buf = struct.pack(f"ii{len(data)}s", int(is_arg), code, data)
         result.set_value(self.runtime, buf, len(buf))
         if wrap:
             assert all(extent == 1 for extent in shape)

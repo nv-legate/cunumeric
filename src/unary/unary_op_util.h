@@ -17,8 +17,11 @@
 #pragma once
 
 #include "numpy.h"
+#include "arg.h"
 #include "deserializer.h"
 #include "scalar.h"
+
+#include <math.h>
 
 namespace legate {
 namespace numpy {
@@ -47,6 +50,7 @@ enum class UnaryOpCode : int {
   CONJ,
   REAL,
   IMAG,
+  GETARG,
 };
 
 void deserialize(Deserializer& ctx, UnaryOpCode& code);
@@ -101,6 +105,8 @@ constexpr decltype(auto) op_dispatch(UnaryOpCode op_code, Functor f, Fnargs&&...
       return f.template operator()<UnaryOpCode::REAL>(std::forward<Fnargs>(args)...);
     case UnaryOpCode::IMAG:
       return f.template operator()<UnaryOpCode::IMAG>(std::forward<Fnargs>(args)...);
+    case UnaryOpCode::GETARG:
+      return f.template operator()<UnaryOpCode::GETARG>(std::forward<Fnargs>(args)...);
   }
   assert(false);
   return f.template operator()<UnaryOpCode::ABSOLUTE>(std::forward<Fnargs>(args)...);
@@ -318,6 +324,7 @@ struct UnaryOp<UnaryOpCode::ISINF, CODE> {
 template <>
 struct UnaryOp<UnaryOpCode::ISINF, LegateTypeCode::HALF_LT> {
   static constexpr bool valid = true;
+  using T                     = __half;
 
   UnaryOp() {}
   UnaryOp(const std::vector<UntypedScalar>& args) {}
@@ -356,6 +363,7 @@ struct UnaryOp<UnaryOpCode::ISNAN, CODE> {
 template <>
 struct UnaryOp<UnaryOpCode::ISNAN, LegateTypeCode::HALF_LT> {
   static constexpr bool valid = true;
+  using T                     = __half;
 
   UnaryOp() {}
   UnaryOp(const std::vector<UntypedScalar>& args) {}
@@ -501,6 +509,17 @@ struct UnaryOp<UnaryOpCode::IMAG, CODE> {
   UnaryOp(const std::vector<UntypedScalar>& args) {}
 
   constexpr decltype(auto) operator()(const T& x) const { return x.imag(); }
+};
+
+template <LegateTypeCode CODE>
+struct UnaryOp<UnaryOpCode::GETARG, CODE> {
+  using T                     = Argval<legate_type_of<CODE>>;
+  static constexpr bool valid = true;
+
+  UnaryOp() {}
+  UnaryOp(const std::vector<UntypedScalar>& args) {}
+
+  constexpr decltype(auto) operator()(const T& x) const { return x.arg; }
 };
 
 }  // namespace numpy

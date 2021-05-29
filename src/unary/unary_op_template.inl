@@ -35,7 +35,7 @@ struct UnaryOpImpl {
   void operator()(UnaryOpArgs &args) const
   {
     using OP  = UnaryOp<OP_CODE, CODE>;
-    using ARG = legate_type_of<CODE>;
+    using ARG = typename OP::T;
     using RES = std::result_of_t<OP(ARG)>;
 
     auto rect = args.shape.to_rect<DIM>();

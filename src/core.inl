@@ -67,7 +67,8 @@ AccessorRD<OP, EXCLUSIVE, DIM> RegionField::reduce_accessor(void) const
                         reduce_trans_accesor_fn<OP, EXCLUSIVE, DIM>{},
                         pr_,
                         fid_,
-                        transform_);
+                        transform_,
+                        redop_id_);
   else {
 #ifdef LEGION_BOUNDS_CHECKS
     assert(DIM == dim());

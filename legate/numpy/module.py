@@ -1275,6 +1275,8 @@ def sqrt(a, out=None, where=True, dtype=None, stacklevel=1, **kwargs):
 def argmax(a, axis=None, out=None):
     lg_array = ndarray.convert_to_legate_ndarray(a)
     if out is not None:
+        if out.dtype != np.int64:
+            raise ValueError("output array must have int64 dtype")
         out = ndarray.convert_to_legate_ndarray(out, share=True)
     return lg_array.argmax(axis=axis, out=out, stacklevel=2)
 
@@ -1283,6 +1285,8 @@ def argmax(a, axis=None, out=None):
 def argmin(a, axis=None, out=None):
     lg_array = ndarray.convert_to_legate_ndarray(a)
     if out is not None:
+        if out is not None and out.dtype != np.int64:
+            raise ValueError("output array must have int64 dtype")
         out = ndarray.convert_to_legate_ndarray(out, share=True)
     return lg_array.argmin(axis=axis, out=out, stacklevel=2)
 

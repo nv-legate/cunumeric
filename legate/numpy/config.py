@@ -114,13 +114,7 @@ NUMPY_TYPE_OFFSET = NUMPY_MAX_TYPES * NUMPY_MAX_VARIANTS
 # Match these to NumPyOpCode in legate_numpy_c.h
 @unique
 class NumPyOpCode(IntEnum):
-    ARGMAX = legate_numpy.NUMPY_ARGMAX
-    ARGMAX_RADIX = legate_numpy.NUMPY_ARGMAX_RADIX
-    ARGMIN = legate_numpy.NUMPY_ARGMIN
-    ARGMIN_RADIX = legate_numpy.NUMPY_ARGMIN_RADIX
-    BINCOUNT = legate_numpy.NUMPY_BINCOUNT
     EYE = legate_numpy.NUMPY_EYE
-    GETARG = legate_numpy.NUMPY_GETARG
     RAND_INTEGER = legate_numpy.NUMPY_RAND_INTEGER
     RAND_NORMAL = legate_numpy.NUMPY_RAND_NORMAL
     RAND_UNIFORM = legate_numpy.NUMPY_RAND_UNIFORM
@@ -152,6 +146,7 @@ class NumPyOpCode(IntEnum):
     MATMUL = legate_numpy.NUMPY_MATMUL
     MATVECMUL = legate_numpy.NUMPY_MATVECMUL
     DOT = legate_numpy.NUMPY_DOT
+    BINCOUNT = legate_numpy.NUMPY_BINCOUNT
 
 
 @unique
@@ -199,6 +194,7 @@ class UnaryOpCode(IntEnum):
     CONJ = 21
     REAL = 22
     IMAG = 23
+    GETARG = 24
 
 
 @unique
@@ -221,13 +217,6 @@ class NumPyRedopCode(IntEnum):
 
 
 numpy_reduction_op_offsets = {
-    # Dot uses sum reduction
-    NumPyOpCode.DOT: legion.LEGION_REDOP_KIND_SUM,
-    # Diag uses sum reduction
-    NumPyOpCode.DIAG: legion.LEGION_REDOP_KIND_SUM,
-    # Norm uses sum reduction
-    NumPyOpCode.ARGMIN: NumPyRedopCode.ARGMIN_REDOP,
-    NumPyOpCode.ARGMAX: NumPyRedopCode.ARGMAX_REDOP,
     # nonzeros are counted with sum
     NumPyOpCode.COUNT_NONZERO: legion.LEGION_REDOP_KIND_SUM,
 }
@@ -237,13 +226,44 @@ numpy_unary_reduction_op_offsets = {
     UnaryRedCode.PROD: legion.LEGION_REDOP_KIND_PROD,
     UnaryRedCode.MIN: legion.LEGION_REDOP_KIND_MIN,
     UnaryRedCode.MAX: legion.LEGION_REDOP_KIND_MAX,
+    UnaryRedCode.ARGMAX: NumPyRedopCode.ARGMAX_REDOP,
+    UnaryRedCode.ARGMIN: NumPyRedopCode.ARGMIN_REDOP,
 }
+
+
+def max_identity(ty):
+    if ty.kind == "i" or ty.kind == "u":
+        return np.iinfo(ty).min
+    elif ty.kind == "f":
+        return np.finfo(ty).min
+    elif ty.kind == "c":
+        return max_identity(np.float64) + max_identity(np.float64) * 1j
+    elif ty.kind == "b":
+        return False
+    else:
+        raise ValueError(f"Unsupported dtype: {ty}")
+
+
+def min_identity(ty):
+    if ty.kind == "i" or ty.kind == "u":
+        return np.iinfo(ty).max
+    elif ty.kind == "f":
+        return np.finfo(ty).max
+    elif ty.kind == "c":
+        return min_identity(np.float64) + min_identity(np.float64) * 1j
+    elif ty.kind == "b":
+        return True
+    else:
+        raise ValueError(f"Unsupported dtype: {ty}")
+
 
 numpy_unary_reduction_identities = {
     UnaryRedCode.SUM: lambda _: 0,
     UnaryRedCode.PROD: lambda _: 1,
-    UnaryRedCode.MIN: lambda dtype: np.iinfo(dtype).max,
-    UnaryRedCode.MAX: lambda dtype: np.iinfo(dtype).min,
+    UnaryRedCode.MIN: min_identity,
+    UnaryRedCode.MAX: max_identity,
+    UnaryRedCode.ARGMAX: lambda ty: (np.iinfo(np.int64).min, max_identity(ty)),
+    UnaryRedCode.ARGMIN: lambda ty: (np.iinfo(np.int64).min, min_identity(ty)),
 }
 
 numpy_scalar_reduction_op_offsets = {
@@ -252,6 +272,8 @@ numpy_scalar_reduction_op_offsets = {
     UnaryRedCode.PROD: legate_numpy.NUMPY_SCALAR_PROD_REDOP,
     UnaryRedCode.SUM: legate_numpy.NUMPY_SCALAR_SUM_REDOP,
     UnaryRedCode.CONTAINS: legate_numpy.NUMPY_SCALAR_SUM_REDOP,
+    UnaryRedCode.ARGMAX: legate_numpy.NUMPY_SCALAR_ARGMAX_REDOP,
+    UnaryRedCode.ARGMIN: legate_numpy.NUMPY_SCALAR_ARGMIN_REDOP,
 }
 
 

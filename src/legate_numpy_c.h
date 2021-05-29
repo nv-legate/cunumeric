@@ -32,12 +32,7 @@ enum NumPyVariantCode {
 
 // Match these to NumPyOpCode in legate/numpy/config.py
 enum NumPyOpCode {
-  NUMPY_ARGMAX              = 6,
-  NUMPY_ARGMAX_RADIX        = 7,
-  NUMPY_ARGMIN              = 8,
-  NUMPY_ARGMIN_RADIX        = 9,
   NUMPY_EYE                 = 21,
-  NUMPY_GETARG              = 25,
   NUMPY_NORM                = 44,
   NUMPY_RAND_INTEGER        = 49,
   NUMPY_RAND_NORMAL         = 50,
@@ -74,12 +69,14 @@ enum NumPyOpCode {
 
 // Match these to NumPyRedopCode in legate/core/config.py
 enum NumPyRedopID {
-  NUMPY_ARGMIN_REDOP,
+  NUMPY_ARGMIN_REDOP = LEGION_REDOP_KIND_TOTAL + 1,
   NUMPY_ARGMAX_REDOP,
-  NUMPY_SCALAR_MAX_REDOP  = 500,
-  NUMPY_SCALAR_MIN_REDOP  = 501,
-  NUMPY_SCALAR_PROD_REDOP = 502,
-  NUMPY_SCALAR_SUM_REDOP  = 503,
+  NUMPY_SCALAR_MAX_REDOP    = 500,
+  NUMPY_SCALAR_MIN_REDOP    = 501,
+  NUMPY_SCALAR_PROD_REDOP   = 502,
+  NUMPY_SCALAR_SUM_REDOP    = 503,
+  NUMPY_SCALAR_ARGMAX_REDOP = 504,
+  NUMPY_SCALAR_ARGMIN_REDOP = 505,
 };
 
 // We provide a global class of projection functions

@@ -100,3 +100,14 @@ def calculate_volume(shape):
     if shape == ():
         return 0
     return reduce(lambda x, y: x * y, shape)
+
+
+def get_arg_dtype(dtype):
+    return np.dtype(
+        [("arg", np.int64), ("arg_value", dtype)],
+        align=True,
+    )
+
+
+def get_arg_value_dtype(dtype):
+    return dtype.fields["arg_value"][0].type

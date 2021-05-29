@@ -41,8 +41,8 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   out[point] = fill_value;
 }
 
-template <LegateTypeCode CODE, int DIM, typename VAL>
-struct FillImplBody<VariantKind::GPU, CODE, DIM, VAL> {
+template <typename VAL, int32_t DIM>
+struct FillImplBody<VariantKind::GPU, VAL, DIM> {
   void operator()(AccessorWO<VAL, DIM> out,
                   const VAL &fill_value,
                   const Pitches<DIM - 1> &pitches,

@@ -74,18 +74,18 @@ class PointArg(object):
 
 
 class RegionFieldArg(object):
-    def __init__(self, op, dim, key, field_id, dtype, transform):
+    def __init__(self, op, dim, redop, key, field_id, transform):
         self._op = op
         self._dim = dim
+        self._redop = redop
         self._key = key
         self._field_id = field_id
-        self._dtype = dtype
         self._transform = transform
 
     def pack(self, buf):
         dim = self._dim if self._transform is None else self._transform.N
         buf.pack_32bit_int(dim)
-        buf.pack_dtype(self._dtype)
+        buf.pack_32bit_int(-1 if self._redop is None else self._redop)
         buf.pack_32bit_uint(
             self._op.get_requirement_index(self._key, self._field_id)
         )
@@ -375,9 +375,9 @@ class Map(object):
             RegionFieldArg(
                 self,
                 region.index_space.get_dim(),
+                proj.redop,
                 RegionReq(region, perm, *proj_info),
                 field_id,
-                store.dtype,
                 transform,
             )
         )

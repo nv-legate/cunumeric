@@ -17,6 +17,7 @@
 #pragma once
 
 #include "numpy.h"
+#include "arg.h"
 #include "deserializer.h"
 #include "dispatch.h"
 #include "scalar.h"
@@ -29,7 +30,19 @@ enum class UnaryRedCode : int {
   MIN      = 2,
   PROD     = 3,
   SUM      = 4,
+  ARGMAX   = 5,
+  ARGMIN   = 6,
   CONTAINS = 7,
+};
+
+template <UnaryRedCode OP_CODE>
+struct is_arg_reduce : std::false_type {
+};
+template <>
+struct is_arg_reduce<UnaryRedCode::ARGMAX> : std::true_type {
+};
+template <>
+struct is_arg_reduce<UnaryRedCode::ARGMIN> : std::true_type {
 };
 
 void deserialize(Deserializer &ctx, UnaryRedCode &code);
@@ -46,12 +59,36 @@ constexpr decltype(auto) op_dispatch(UnaryRedCode op_code, Functor f, Fnargs &&.
       return f.template operator()<UnaryRedCode::PROD>(std::forward<Fnargs>(args)...);
     case UnaryRedCode::SUM:
       return f.template operator()<UnaryRedCode::SUM>(std::forward<Fnargs>(args)...);
+    case UnaryRedCode::ARGMAX:
+      return f.template operator()<UnaryRedCode::ARGMAX>(std::forward<Fnargs>(args)...);
+    case UnaryRedCode::ARGMIN:
+      return f.template operator()<UnaryRedCode::ARGMIN>(std::forward<Fnargs>(args)...);
     case UnaryRedCode::CONTAINS:
       return f.template operator()<UnaryRedCode::CONTAINS>(std::forward<Fnargs>(args)...);
   }
   assert(false);
   return f.template operator()<UnaryRedCode::MAX>(std::forward<Fnargs>(args)...);
 }
+
+template <typename T, int32_t DIM>
+struct ValueConstructor {
+  __CUDA_HD__ inline constexpr T operator()(const Legion::Point<DIM> &,
+                                            const T &value,
+                                            int32_t) const
+  {
+    return value;
+  }
+};
+
+template <typename T, int32_t DIM>
+struct ArgvalConstructor {
+  __CUDA_HD__ inline constexpr Argval<T> operator()(const Legion::Point<DIM> &point,
+                                                    const T &value,
+                                                    int32_t collapsed_dim) const
+  {
+    return Argval<T>(point[collapsed_dim], value);
+  }
+};
 
 template <UnaryRedCode OP_CODE, LegateTypeCode TYPE_CODE>
 struct UnaryRedOp {
@@ -137,6 +174,48 @@ struct UnaryRedOp<UnaryRedCode::SUM, TYPE_CODE> {
   }
 };
 
+template <LegateTypeCode TYPE_CODE>
+struct UnaryRedOp<UnaryRedCode::ARGMAX, TYPE_CODE> {
+  static constexpr bool valid = true;
+
+  using VAL = Argval<legate_type_of<TYPE_CODE>>;
+  using OP  = ArgmaxReduction<legate_type_of<TYPE_CODE>>;
+
+  static const VAL identity;
+
+  template <bool EXCLUSIVE>
+  __CUDA_HD__ static void fold(VAL &rhs1, VAL rhs2)
+  {
+    OP::template fold<EXCLUSIVE>(rhs1, rhs2);
+  }
+};
+
+template <>
+struct UnaryRedOp<UnaryRedCode::ARGMAX, LegateTypeCode::COMPLEX128_LT> {
+  static constexpr bool valid = false;
+};
+
+template <LegateTypeCode TYPE_CODE>
+struct UnaryRedOp<UnaryRedCode::ARGMIN, TYPE_CODE> {
+  static constexpr bool valid = true;
+
+  using VAL = Argval<legate_type_of<TYPE_CODE>>;
+  using OP  = ArgminReduction<legate_type_of<TYPE_CODE>>;
+
+  static const VAL identity;
+
+  template <bool EXCLUSIVE>
+  __CUDA_HD__ static void fold(VAL &rhs1, VAL rhs2)
+  {
+    OP::template fold<EXCLUSIVE>(rhs1, rhs2);
+  }
+};
+
+template <>
+struct UnaryRedOp<UnaryRedCode::ARGMIN, LegateTypeCode::COMPLEX128_LT> {
+  static constexpr bool valid = false;
+};
+
 template <UnaryRedCode OP_CODE>
 struct UntypedScalarRedOp {
   using LHS = UntypedScalar;
@@ -150,7 +229,7 @@ struct UntypedScalarRedOp {
               std::enable_if_t<UnaryRedOp<OP_CODE, TYPE_CODE>::valid> * = nullptr>
     void operator()(void *lhs, void *rhs)
     {
-      using VAL = legate_type_of<TYPE_CODE>;
+      using VAL = typename UnaryRedOp<OP_CODE, TYPE_CODE>::VAL;
       UnaryRedOp<OP_CODE, TYPE_CODE>::OP::template apply<EXCLUSIVE>(*static_cast<VAL *>(lhs),
                                                                     *static_cast<VAL *>(rhs));
     }
@@ -169,7 +248,7 @@ struct UntypedScalarRedOp {
               std::enable_if_t<UnaryRedOp<OP_CODE, TYPE_CODE>::valid> * = nullptr>
     void operator()(void *lhs, void *rhs)
     {
-      using VAL = legate_type_of<TYPE_CODE>;
+      using VAL = typename UnaryRedOp<OP_CODE, TYPE_CODE>::VAL;
       UnaryRedOp<OP_CODE, TYPE_CODE>::OP::template fold<EXCLUSIVE>(*static_cast<VAL *>(lhs),
                                                                    *static_cast<VAL *>(rhs));
     }

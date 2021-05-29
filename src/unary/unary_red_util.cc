@@ -52,6 +52,8 @@ DECLARE_IDENTITIES(UnaryRedCode::MAX)
 DECLARE_IDENTITIES(UnaryRedCode::MIN)
 DECLARE_IDENTITIES(UnaryRedCode::PROD)
 DECLARE_IDENTITIES(UnaryRedCode::SUM)
+DECLARE_IDENTITIES(UnaryRedCode::ARGMIN)
+DECLARE_IDENTITIES(UnaryRedCode::ARGMAX)
 // Sum reduction is available for complex<double>
 DECLARE_IDENTITY(UnaryRedCode::SUM, LegateTypeCode::COMPLEX128_LT)
 
@@ -66,6 +68,10 @@ template <>
 const UntypedScalar UntypedScalarRedOp<UnaryRedCode::PROD>::identity = UntypedScalar();
 template <>
 const UntypedScalar UntypedScalarRedOp<UnaryRedCode::SUM>::identity = UntypedScalar();
+template <>
+const UntypedScalar UntypedScalarRedOp<UnaryRedCode::ARGMAX>::identity = UntypedScalar();
+template <>
+const UntypedScalar UntypedScalarRedOp<UnaryRedCode::ARGMIN>::identity = UntypedScalar();
 
 }  // namespace numpy
 }  // namespace legate

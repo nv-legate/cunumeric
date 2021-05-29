@@ -107,11 +107,17 @@ struct ScalarUnaryRedImpl<KIND, UnaryRedCode::CONTAINS> {
 
 template <VariantKind KIND>
 struct ScalarUnaryRedDispatch {
-  template <UnaryRedCode OP_CODE>
+  template <UnaryRedCode OP_CODE, std::enable_if_t<!is_arg_reduce<OP_CODE>::value> * = nullptr>
   UntypedScalar operator()(ScalarUnaryRedArgs &args) const
   {
     return double_dispatch(
       args.in.dim(), args.in.code(), ScalarUnaryRedImpl<KIND, OP_CODE>{}, args);
+  }
+  template <UnaryRedCode OP_CODE, std::enable_if_t<is_arg_reduce<OP_CODE>::value> * = nullptr>
+  UntypedScalar operator()(ScalarUnaryRedArgs &args) const
+  {
+    assert(false);
+    return UntypedScalar();
   }
 };
 

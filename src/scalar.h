@@ -17,6 +17,7 @@
 #pragma once
 
 #include "numpy.h"
+#include "arg.h"
 #include "deserializer.h"
 
 namespace legate {
@@ -35,7 +36,12 @@ class UntypedScalar {
 
  public:
   template <typename T>
-  UntypedScalar(const T &value) : code_(legate_type_code_of<T>), data_(new T(value))
+  UntypedScalar(const T &value) : is_argval_(0), code_(legate_type_code_of<T>), data_(new T(value))
+  {
+  }
+  template <typename T>
+  UntypedScalar(const Argval<T> &value)
+    : is_argval_(1), code_(legate_type_code_of<T>), data_(new Argval<T>(value))
   {
   }
 
@@ -52,6 +58,7 @@ class UntypedScalar {
  public:
   auto code() const { return code_; }
   size_t elem_size() const;
+  bool is_argval() const { return is_argval_ != 0; }
 
  public:
   template <typename T>
@@ -74,10 +81,8 @@ class UntypedScalar {
   std::string to_string() const;
 
  private:
-  union {
-    LegateTypeCode code_{LegateTypeCode::MAX_TYPE_NUMBER};
-    uint64_t pad_;
-  };
+  int32_t is_argval_{0};
+  LegateTypeCode code_{LegateTypeCode::MAX_TYPE_NUMBER};
   void *data_{nullptr};
 };
 

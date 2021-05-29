@@ -15,7 +15,6 @@
  */
 
 #include "numpy.h"
-#include "argmin.h"
 #include "mapper.h"
 #include "proj.h"
 #include "unary/unary_red_util.h"
@@ -95,6 +94,7 @@ void registration_callback(Machine machine,
   // Register our special reduction functions
   const ReductionOpID first_redop_id =
     runtime->generate_library_reduction_ids(numpy_library_name, NUMPY_MAX_REDOPS);
+  REGISTER_ALL_REDUCTIONS(ArgmaxReduction, first_redop_id);
   REGISTER_ALL_REDUCTIONS(ArgminReduction, first_redop_id);
 
   Runtime::register_reduction_op<UntypedScalarRedOp<UnaryRedCode::MAX>>(first_redop_id +
@@ -105,6 +105,10 @@ void registration_callback(Machine machine,
                                                                          NUMPY_SCALAR_PROD_REDOP);
   Runtime::register_reduction_op<UntypedScalarRedOp<UnaryRedCode::SUM>>(first_redop_id +
                                                                         NUMPY_SCALAR_SUM_REDOP);
+  Runtime::register_reduction_op<UntypedScalarRedOp<UnaryRedCode::ARGMAX>>(
+    first_redop_id + NUMPY_SCALAR_ARGMAX_REDOP);
+  Runtime::register_reduction_op<UntypedScalarRedOp<UnaryRedCode::ARGMIN>>(
+    first_redop_id + NUMPY_SCALAR_ARGMIN_REDOP);
 
   // Register our projection and sharding functions
   const ProjectionID first_projection_id =

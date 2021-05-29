@@ -199,12 +199,9 @@ class Transform {
 class RegionField {
  public:
   RegionField() {}
+  RegionField(int32_t dim, int32_t redop_id, const Legion::PhysicalRegion &pr, Legion::FieldID fid);
   RegionField(int32_t dim,
-              LegateTypeCode code,
-              const Legion::PhysicalRegion &pr,
-              Legion::FieldID fid);
-  RegionField(int32_t dim,
-              LegateTypeCode code,
+              int32_t redop_id,
               const Legion::PhysicalRegion &pr,
               Legion::FieldID fid,
               Transform &&transform);
@@ -219,7 +216,6 @@ class RegionField {
 
  public:
   int32_t dim() const { return dim_; }
-  LegateTypeCode code() const { return code_; }
 
  public:
   template <typename T, int32_t N>
@@ -270,10 +266,11 @@ class RegionField {
     template <int32_t M>
     Accessor operator()(const Legion::PhysicalRegion &pr,
                         Legion::FieldID fid,
-                        const Transform &transform)
+                        const Transform &transform,
+                        int32_t redop_id)
     {
       auto trans = transform.to_affine_transform<M, N>();
-      return Accessor(pr, fid, OP::REDOP_ID, trans);
+      return Accessor(pr, fid, redop_id, trans);
     }
   };
   template <typename OP, bool EXCLUSIVE, int32_t DIM>
@@ -285,7 +282,7 @@ class RegionField {
 
  private:
   int32_t dim_{-1};
-  LegateTypeCode code_{MAX_TYPE_NUMBER};
+  int32_t redop_id_{-1};
   Legion::PhysicalRegion pr_{};
   Legion::FieldID fid_{-1U};
   Transform transform_{};

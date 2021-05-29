@@ -18,12 +18,22 @@ namespace legate {
 namespace numpy {
 
 template <typename T>
+__CUDA_HD__ Argval<T>::Argval() : arg(LLONG_MAX), arg_value(0)
+{
+}
+
+template <typename T>
 __CUDA_HD__ Argval<T>::Argval(T v) : arg(LLONG_MAX), arg_value(v)
 {
 }
 
 template <typename T>
 __CUDA_HD__ Argval<T>::Argval(int64_t a, T v) : arg(a), arg_value(v)
+{
+}
+
+template <typename T>
+__CUDA_HD__ Argval<T>::Argval(const Argval& other) : arg(other.arg), arg_value(other.arg_value)
 {
 }
 

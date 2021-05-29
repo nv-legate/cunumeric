@@ -14,6 +14,7 @@
  *
  */
 
+#include "arg.h"
 #include "core.h"
 #include "dispatch.h"
 #include "point_task.h"
@@ -24,16 +25,14 @@ namespace numpy {
 
 using namespace Legion;
 
-template <VariantKind KIND, LegateTypeCode CODE, int DIM, typename VAL>
+template <VariantKind KIND, typename VAL, int DIM>
 struct FillImplBody;
 
 template <VariantKind KIND>
 struct FillImpl {
-  template <LegateTypeCode CODE, int DIM>
-  void operator()(FillArgs &args) const
+  template <typename VAL, int DIM>
+  void fill(FillArgs &args) const
   {
-    using VAL = legate_type_of<CODE>;
-
     auto rect = args.shape.to_rect<DIM>();
 
     Pitches<DIM - 1> pitches;
@@ -51,7 +50,19 @@ struct FillImpl {
     // No dense execution if we're doing bounds checks
     bool dense = false;
 #endif
-    FillImplBody<KIND, CODE, DIM, VAL>{}(out, fill_value, pitches, rect, dense);
+    FillImplBody<KIND, VAL, DIM>{}(out, fill_value, pitches, rect, dense);
+  }
+
+  template <LegateTypeCode CODE, int DIM>
+  void operator()(FillArgs &args) const
+  {
+    if (args.fill_value.is_argval()) {
+      using VAL = legate_type_of<CODE>;
+      fill<VAL, DIM>(args);
+    } else {
+      using VAL = Argval<legate_type_of<CODE>>;
+      fill<VAL, DIM>(args);
+    }
   }
 };
 

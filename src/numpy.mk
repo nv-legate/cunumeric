@@ -42,7 +42,6 @@ GEN_CPU_SRC += ternary/where.cc               \
 							 scalar.cc                      \
 							 arange.cc                      \
 							 arg.cc                         \
-							 argmin.cc                      \
 							 eye.cc                         \
 							 mapper.cc                      \
 							 nonzero.cc                     \
@@ -89,8 +88,6 @@ GEN_GPU_SRC += ternary/where.cu               \
 							 matrix/dot.cu                  \
 							 stat/bincount.cu               \
 							 arange.cu                      \
-							 arg.cu                         \
-							 argmin.cu                      \
 							 eye.cu                         \
 							 nonzero.cu                     \
 							 rand.cu                        \

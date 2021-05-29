@@ -25,7 +25,7 @@ using namespace Legion;
 template <UnaryOpCode OP_CODE, LegateTypeCode CODE, int DIM>
 struct UnaryOpImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
   using OP  = UnaryOp<OP_CODE, CODE>;
-  using ARG = legate_type_of<CODE>;
+  using ARG = typename OP::T;
   using RES = std::result_of_t<OP(ARG)>;
 
   void operator()(OP func,

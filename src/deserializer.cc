@@ -141,8 +141,8 @@ void deserialize(Deserializer &ctx, Transform &value)
 
 void deserialize(Deserializer &ctx, RegionField &value)
 {
-  auto dim  = ctx.deserializer_.unpack_32bit_int();
-  auto code = ctx.deserializer_.unpack_dtype();
+  auto dim      = ctx.deserializer_.unpack_32bit_int();
+  auto redop_id = ctx.deserializer_.unpack_32bit_int();
 
   auto idx = ctx.deserializer_.unpack_32bit_uint();
   auto &pr = ctx.regions_[idx];
@@ -151,7 +151,7 @@ void deserialize(Deserializer &ctx, RegionField &value)
   Transform transform;
   deserialize(ctx, transform);
 
-  value = RegionField(dim, code, pr, fid, std::move(transform));
+  value = RegionField(dim, redop_id, pr, fid, std::move(transform));
 }
 
 void deserialize(Deserializer &ctx, Array &array)

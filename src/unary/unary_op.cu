@@ -44,7 +44,7 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
 template <UnaryOpCode OP_CODE, LegateTypeCode CODE, int DIM>
 struct UnaryOpImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
   using OP  = UnaryOp<OP_CODE, CODE>;
-  using ARG = legate_type_of<CODE>;
+  using ARG = typename OP::T;
   using RES = std::result_of_t<OP(ARG)>;
 
   void operator()(OP func,

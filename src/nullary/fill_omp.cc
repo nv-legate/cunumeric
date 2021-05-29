@@ -27,8 +27,8 @@ struct Identity {
   constexpr T operator()(const T &in) const { return in; }
 };
 
-template <LegateTypeCode CODE, int DIM, typename VAL>
-struct FillImplBody<VariantKind::OMP, CODE, DIM, VAL> {
+template <typename VAL, int32_t DIM>
+struct FillImplBody<VariantKind::OMP, VAL, DIM> {
   void operator()(AccessorWO<VAL, DIM> out,
                   const VAL &fill_value,
                   const Pitches<DIM - 1> &pitches,

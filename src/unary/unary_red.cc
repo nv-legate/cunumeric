@@ -55,6 +55,40 @@ struct UnaryRedImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
   }
 };
 
+template <UnaryRedCode OP_CODE, LegateTypeCode CODE, int DIM>
+struct ArgRedImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
+  using OP     = UnaryRedOp<OP_CODE, CODE>;
+  using LG_OP  = typename OP::OP;
+  using VAL    = legate_type_of<CODE>;
+  using ARGVAL = Argval<VAL>;
+
+  void operator()(AccessorRD<LG_OP, true, DIM> lhs,
+                  AccessorRO<VAL, DIM> rhs,
+                  const Rect<DIM> &rect,
+                  const Pitches<DIM - 1> &pitches,
+                  int collapsed_dim,
+                  size_t volume) const
+  {
+    for (size_t idx = 0; idx < volume; ++idx) {
+      auto point = pitches.unflatten(idx, rect.lo);
+      lhs.reduce(point, ARGVAL(point[collapsed_dim], rhs[point]));
+    }
+  }
+
+  void operator()(AccessorRW<ARGVAL, DIM> lhs,
+                  AccessorRO<VAL, DIM> rhs,
+                  const Rect<DIM> &rect,
+                  const Pitches<DIM - 1> &pitches,
+                  int collapsed_dim,
+                  size_t volume) const
+  {
+    for (size_t idx = 0; idx < volume; ++idx) {
+      auto point = pitches.unflatten(idx, rect.lo);
+      OP::template fold<true>(lhs[point], ARGVAL(point[collapsed_dim], rhs[point]));
+    }
+  }
+};
+
 void deserialize(Deserializer &ctx, UnaryRedArgs &args)
 {
   deserialize(ctx, args.needs_reduction);

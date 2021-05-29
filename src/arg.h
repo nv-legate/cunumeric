@@ -14,8 +14,7 @@
  *
  */
 
-#ifndef __NUMPY_ARG_H__
-#define __NUMPY_ARG_H__
+#pragma once
 
 #include "numpy.h"
 
@@ -26,62 +25,72 @@ template <typename T>
 class Argval {
  public:
   __CUDA_HD__
+  Argval();
+  __CUDA_HD__
   Argval(T value);
   __CUDA_HD__
   Argval(int64_t arg, T value);
+  __CUDA_HD__
+  Argval(const Argval& other);
 
  public:
   template <typename REDOP, bool EXCLUSIVE>
   __CUDA_HD__ inline void apply(const Argval<T>& rhs);
 
  public:
+  constexpr bool operator!=(Argval& other) const
+  {
+    return arg != other.arg || arg_value != other.arg_value;
+  }
+
+ public:
   int64_t arg;
   T arg_value;
 };
 
-// Data parallel get arg
 template <typename T>
-class GetargTask : public NumPyTask<GetargTask<T>> {
+class ArgmaxReduction {
  public:
-  static const int TASK_ID;
-  static const int REGIONS = 2;
+  using LHS = Argval<T>;
+  using RHS = Argval<T>;
 
- public:
-  static void cpu_variant(const Legion::Task* task,
-                          const std::vector<Legion::PhysicalRegion>& regions,
-                          Legion::Context ctx,
-                          Legion::Runtime* runtime);
-#ifdef LEGATE_USE_OPENMP
-  static void omp_variant(const Legion::Task* task,
-                          const std::vector<Legion::PhysicalRegion>& regions,
-                          Legion::Context ctx,
-                          Legion::Runtime* runtime);
-#endif
-#ifdef LEGATE_USE_CUDA
-  static void gpu_variant(const Legion::Task* task,
-                          const std::vector<Legion::PhysicalRegion>& regions,
-                          Legion::Context ctx,
-                          Legion::Runtime* runtime);
-#endif
+  static const Argval<T> identity;
+  static const int32_t REDOP_ID = NUMPY_ARGMAX_REDOP * MAX_TYPE_NUMBER + legate_type_code_of<T>;
+
+  template <bool EXCLUSIVE>
+  __CUDA_HD__ inline static void apply(LHS& lhs, RHS rhs)
+  {
+    lhs.template apply<Legion::MaxReduction<T>, EXCLUSIVE>(rhs);
+  }
+  template <bool EXCLUSIVE>
+  __CUDA_HD__ inline static void fold(RHS& rhs1, RHS rhs2)
+  {
+    rhs1.template apply<Legion::MaxReduction<T>, EXCLUSIVE>(rhs2);
+  }
 };
 
-// For doing a scalar get arg
 template <typename T>
-class GetargScalar : public NumPyTask<GetargScalar<T>> {
+class ArgminReduction {
  public:
-  static const int TASK_ID;
-  static const int REGIONS = 0;
+  using LHS = Argval<T>;
+  using RHS = Argval<T>;
 
- public:
-  static int64_t cpu_variant(const Legion::Task* task,
-                             const std::vector<Legion::PhysicalRegion>& regions,
-                             Legion::Context ctx,
-                             Legion::Runtime* runtime);
+  static const Argval<T> identity;
+  static const int32_t REDOP_ID = NUMPY_ARGMIN_REDOP * MAX_TYPE_NUMBER + legate_type_code_of<T>;
+
+  template <bool EXCLUSIVE>
+  __CUDA_HD__ inline static void apply(LHS& lhs, RHS rhs)
+  {
+    lhs.template apply<Legion::MinReduction<T>, EXCLUSIVE>(rhs);
+  }
+  template <bool EXCLUSIVE>
+  __CUDA_HD__ inline static void fold(RHS& rhs1, RHS rhs2)
+  {
+    rhs1.template apply<Legion::MinReduction<T>, EXCLUSIVE>(rhs2);
+  }
 };
 
 }  // namespace numpy
 }  // namespace legate
 
 #include "arg.inl"
-
-#endif  // __NUMPY_ARG_H__

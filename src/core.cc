@@ -214,20 +214,24 @@ void Transform::destroy()
   }
 }
 
-RegionField::RegionField(int dim, LegateTypeCode code, const PhysicalRegion &pr, FieldID fid)
-  : dim_(dim), code_(code), pr_(pr), fid_(fid)
+RegionField::RegionField(int32_t dim, int32_t redop_id, const PhysicalRegion &pr, FieldID fid)
+  : dim_(dim), redop_id_(redop_id), pr_(pr), fid_(fid)
 {
 }
 
 RegionField::RegionField(
-  int dim, LegateTypeCode code, const PhysicalRegion &pr, FieldID fid, Transform &&transform)
-  : dim_(dim), code_(code), pr_(pr), fid_(fid), transform_(std::forward<Transform>(transform))
+  int32_t dim, int32_t redop_id, const PhysicalRegion &pr, FieldID fid, Transform &&transform)
+  : dim_(dim),
+    redop_id_(redop_id),
+    pr_(pr),
+    fid_(fid),
+    transform_(std::forward<Transform>(transform))
 {
 }
 
 RegionField::RegionField(RegionField &&other) noexcept
   : dim_(other.dim_),
-    code_(other.code_),
+    redop_id_(other.redop_id_),
     pr_(other.pr_),
     fid_(other.fid_),
     transform_(std::forward<Transform>(other.transform_))
@@ -237,7 +241,7 @@ RegionField::RegionField(RegionField &&other) noexcept
 RegionField &RegionField::operator=(RegionField &&other) noexcept
 {
   dim_       = other.dim_;
-  code_      = other.code_;
+  redop_id_  = other.redop_id_;
   pr_        = other.pr_;
   fid_       = other.fid_;
   transform_ = std::move(other.transform_);

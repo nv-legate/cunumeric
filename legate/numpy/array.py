@@ -819,12 +819,8 @@ class ndarray(object):
             raise TypeError("'axis' argument for argmax must be an 'int'")
         elif axis < 0 or axis >= self.ndim:
             raise TypeError("invalid 'axis' argument for argmax " + str(axis))
-        if out is not None:
-            out = self.convert_to_legate_ndarray(
-                out, stacklevel=(stacklevel + 1), share=True
-            )
         return self.perform_unary_reduction(
-            NumPyOpCode.ARGMAX,
+            UnaryRedCode.ARGMAX,
             self,
             axis=axis,
             dtype=np.dtype(np.int64),
@@ -842,12 +838,8 @@ class ndarray(object):
             raise TypeError("'axis' argument for argmin must be an 'int'")
         elif axis < 0 or axis >= self.ndim:
             raise TypeError("invalid 'axis' argument for argmin " + str(axis))
-        if out is not None:
-            out = self.convert_to_legate_ndarray(
-                out, stacklevel=(stacklevel + 1), share=True
-            )
         return self.perform_unary_reduction(
-            NumPyOpCode.ARGMIN,
+            UnaryRedCode.ARGMIN,
             self,
             axis=axis,
             dtype=np.dtype(np.int64),
