@@ -102,8 +102,6 @@ struct UnaryRedOp<UnaryRedCode::MAX, TYPE_CODE> {
   using VAL = legate_type_of<TYPE_CODE>;
   using OP  = Legion::MaxReduction<VAL>;
 
-  static const VAL identity;
-
   template <bool EXCLUSIVE>
   __CUDA_HD__ static void fold(VAL &rhs1, VAL rhs2)
   {
@@ -122,8 +120,6 @@ struct UnaryRedOp<UnaryRedCode::MIN, TYPE_CODE> {
 
   using VAL = legate_type_of<TYPE_CODE>;
   using OP  = Legion::MinReduction<VAL>;
-
-  static const VAL identity;
 
   template <bool EXCLUSIVE>
   __CUDA_HD__ static void fold(VAL &rhs1, VAL rhs2)
@@ -144,8 +140,6 @@ struct UnaryRedOp<UnaryRedCode::PROD, TYPE_CODE> {
   using VAL = legate_type_of<TYPE_CODE>;
   using OP  = Legion::ProdReduction<VAL>;
 
-  static const VAL identity;
-
   template <bool EXCLUSIVE>
   __CUDA_HD__ static void fold(VAL &rhs1, VAL rhs2)
   {
@@ -165,8 +159,6 @@ struct UnaryRedOp<UnaryRedCode::SUM, TYPE_CODE> {
   using VAL = legate_type_of<TYPE_CODE>;
   using OP  = Legion::SumReduction<VAL>;
 
-  static const VAL identity;
-
   template <bool EXCLUSIVE>
   __CUDA_HD__ static void fold(VAL &rhs1, VAL rhs2)
   {
@@ -180,8 +172,6 @@ struct UnaryRedOp<UnaryRedCode::ARGMAX, TYPE_CODE> {
 
   using VAL = Argval<legate_type_of<TYPE_CODE>>;
   using OP  = ArgmaxReduction<legate_type_of<TYPE_CODE>>;
-
-  static const VAL identity;
 
   template <bool EXCLUSIVE>
   __CUDA_HD__ static void fold(VAL &rhs1, VAL rhs2)
@@ -201,8 +191,6 @@ struct UnaryRedOp<UnaryRedCode::ARGMIN, TYPE_CODE> {
 
   using VAL = Argval<legate_type_of<TYPE_CODE>>;
   using OP  = ArgminReduction<legate_type_of<TYPE_CODE>>;
-
-  static const VAL identity;
 
   template <bool EXCLUSIVE>
   __CUDA_HD__ static void fold(VAL &rhs1, VAL rhs2)

@@ -38,6 +38,12 @@ class Argval {
   __CUDA_HD__ inline void apply(const Argval<T>& rhs);
 
  public:
+  __CUDA_HD__ Argval& operator=(const Argval& other)
+  {
+    arg       = other.arg;
+    arg_value = other.arg_value;
+    return *this;
+  }
   constexpr bool operator!=(Argval& other) const
   {
     return arg != other.arg || arg_value != other.arg_value;

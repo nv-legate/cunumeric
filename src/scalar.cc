@@ -91,9 +91,9 @@ void UntypedScalar::move(UntypedScalar &&other)
   code_      = other.code_;
   data_      = other.data_;
   assert(nullptr != data_ || code_ == LegateTypeCode::MAX_TYPE_NUMBER);
-  is_argval_  = false;
-  other.code_ = LegateTypeCode::MAX_TYPE_NUMBER;
-  other.data_ = nullptr;
+  other.is_argval_ = false;
+  other.code_      = LegateTypeCode::MAX_TYPE_NUMBER;
+  other.data_      = nullptr;
 }
 
 size_t UntypedScalar::legion_buffer_size() const

@@ -57,10 +57,10 @@ struct FillImpl {
   void operator()(FillArgs &args) const
   {
     if (args.fill_value.is_argval()) {
-      using VAL = legate_type_of<CODE>;
+      using VAL = Argval<legate_type_of<CODE>>;
       fill<VAL, DIM>(args);
     } else {
-      using VAL = Argval<legate_type_of<CODE>>;
+      using VAL = legate_type_of<CODE>;
       fill<VAL, DIM>(args);
     }
   }

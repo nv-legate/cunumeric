@@ -35,15 +35,16 @@ struct ScalarUnaryRedImpl {
             std::enable_if_t<UnaryRedOp<OP_CODE, CODE>::valid> * = nullptr>
   UntypedScalar operator()(ScalarUnaryRedArgs &args) const
   {
-    using OP  = UnaryRedOp<OP_CODE, CODE>;
-    using VAL = legate_type_of<CODE>;
+    using OP    = UnaryRedOp<OP_CODE, CODE>;
+    using LG_OP = typename OP::OP;
+    using VAL   = legate_type_of<CODE>;
 
     auto rect = args.shape.to_rect<DIM>();
 
     Pitches<DIM - 1> pitches;
     size_t volume = pitches.flatten(rect);
 
-    VAL result = OP::identity;
+    VAL result = LG_OP::identity;
 
     if (volume == 0) return UntypedScalar(result);
 

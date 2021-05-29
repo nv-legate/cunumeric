@@ -25,6 +25,9 @@ def test():
     assert np.array_equal(lg.argmin(a, axis=0), np.argmin(anp, axis=0))
     assert np.array_equal(lg.argmin(a, axis=1), np.argmin(anp, axis=1))
 
+    assert np.array_equal(lg.argmax(a, axis=0), np.argmax(anp, axis=0))
+    assert np.array_equal(lg.argmax(a, axis=1), np.argmax(anp, axis=1))
+
     return
 
 

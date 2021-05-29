@@ -26,40 +26,6 @@ void deserialize(Deserializer& ctx, UnaryRedCode& code)
   code = static_cast<UnaryRedCode>(value);
 }
 
-#define DECLARE_IDENTITY(OP_CODE, TYPE)                                               \
-  template <>                                                                         \
-  const typename UnaryRedOp<OP_CODE, TYPE>::VAL UnaryRedOp<OP_CODE, TYPE>::identity = \
-    UnaryRedOp<OP_CODE, TYPE>::OP::identity;
-
-#define DECLARE_IDENTITIES(OP_CODE)                    \
-  DECLARE_IDENTITY(OP_CODE, LegateTypeCode::BOOL_LT)   \
-  DECLARE_IDENTITY(OP_CODE, LegateTypeCode::INT8_LT)   \
-  DECLARE_IDENTITY(OP_CODE, LegateTypeCode::INT16_LT)  \
-  DECLARE_IDENTITY(OP_CODE, LegateTypeCode::INT32_LT)  \
-  DECLARE_IDENTITY(OP_CODE, LegateTypeCode::INT64_LT)  \
-  DECLARE_IDENTITY(OP_CODE, LegateTypeCode::UINT8_LT)  \
-  DECLARE_IDENTITY(OP_CODE, LegateTypeCode::UINT16_LT) \
-  DECLARE_IDENTITY(OP_CODE, LegateTypeCode::UINT32_LT) \
-  DECLARE_IDENTITY(OP_CODE, LegateTypeCode::UINT64_LT) \
-  DECLARE_IDENTITY(OP_CODE, LegateTypeCode::HALF_LT)   \
-  DECLARE_IDENTITY(OP_CODE, LegateTypeCode::FLOAT_LT)  \
-  DECLARE_IDENTITY(OP_CODE, LegateTypeCode::DOUBLE_LT) \
-  DECLARE_IDENTITY(OP_CODE, LegateTypeCode::COMPLEX64_LT)
-// TODO: We need to support reduction operators for complex<double>
-// DECLARE_IDENTITY(LegateTypeCode::COMPLEX128_LT
-
-DECLARE_IDENTITIES(UnaryRedCode::MAX)
-DECLARE_IDENTITIES(UnaryRedCode::MIN)
-DECLARE_IDENTITIES(UnaryRedCode::PROD)
-DECLARE_IDENTITIES(UnaryRedCode::SUM)
-DECLARE_IDENTITIES(UnaryRedCode::ARGMIN)
-DECLARE_IDENTITIES(UnaryRedCode::ARGMAX)
-// Sum reduction is available for complex<double>
-DECLARE_IDENTITY(UnaryRedCode::SUM, LegateTypeCode::COMPLEX128_LT)
-
-#undef DECLARE_IDENTITY
-#undef DECLARE_IDENTITIES
-
 template <>
 const UntypedScalar UntypedScalarRedOp<UnaryRedCode::MAX>::identity = UntypedScalar();
 template <>

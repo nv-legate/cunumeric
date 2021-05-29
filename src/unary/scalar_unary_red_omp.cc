@@ -24,8 +24,9 @@ using namespace Legion;
 
 template <UnaryRedCode OP_CODE, LegateTypeCode CODE, int DIM>
 struct ScalarUnaryRedImplBody<VariantKind::OMP, OP_CODE, CODE, DIM> {
-  using OP  = UnaryRedOp<OP_CODE, CODE>;
-  using VAL = legate_type_of<CODE>;
+  using OP    = UnaryRedOp<OP_CODE, CODE>;
+  using LG_OP = typename OP::OP;
+  using VAL   = legate_type_of<CODE>;
 
   void operator()(OP func,
                   VAL &result,
@@ -37,7 +38,7 @@ struct ScalarUnaryRedImplBody<VariantKind::OMP, OP_CODE, CODE, DIM> {
     const size_t volume    = rect.volume();
     const auto max_threads = omp_get_max_threads();
     auto locals            = static_cast<VAL *>(alloca(max_threads * sizeof(VAL)));
-    for (auto idx = 0; idx < max_threads; ++idx) locals[idx] = OP::identity;
+    for (auto idx = 0; idx < max_threads; ++idx) locals[idx] = LG_OP::identity;
     if (dense) {
       auto inptr = in.ptr(rect);
 #pragma omp parallel

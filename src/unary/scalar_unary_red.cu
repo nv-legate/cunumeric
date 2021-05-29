@@ -68,8 +68,9 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM) con
 
 template <UnaryRedCode OP_CODE, LegateTypeCode CODE, int DIM>
 struct ScalarUnaryRedImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
-  using OP  = UnaryRedOp<OP_CODE, CODE>;
-  using VAL = legate_type_of<CODE>;
+  using OP    = UnaryRedOp<OP_CODE, CODE>;
+  using LG_OP = typename OP::OP;
+  using VAL   = legate_type_of<CODE>;
 
   void operator()(OP func,
                   VAL &result,
@@ -89,10 +90,10 @@ struct ScalarUnaryRedImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
     if (blocks >= MAX_REDUCTION_CTAS) {
       const size_t iters = (blocks + MAX_REDUCTION_CTAS - 1) / MAX_REDUCTION_CTAS;
       reduction_kernel<<<MAX_REDUCTION_CTAS, THREADS_PER_BLOCK, shmem_size, stream>>>(
-        volume, typename OP::OP{}, out, in, pitches, rect.lo, iters, OP::identity);
+        volume, typename OP::OP{}, out, in, pitches, rect.lo, iters, LG_OP::identity);
     } else
       reduction_kernel<<<blocks, THREADS_PER_BLOCK, shmem_size, stream>>>(
-        volume, typename OP::OP{}, out, in, pitches, rect.lo, 1, OP::identity);
+        volume, typename OP::OP{}, out, in, pitches, rect.lo, 1, LG_OP::identity);
 
     // TODO: We eventually want to unblock this step
     cudaStreamSynchronize(stream);

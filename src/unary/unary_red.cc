@@ -57,13 +57,13 @@ struct UnaryRedImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
 
 template <UnaryRedCode OP_CODE, LegateTypeCode CODE, int DIM>
 struct ArgRedImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
-  using OP     = UnaryRedOp<OP_CODE, CODE>;
-  using LG_OP  = typename OP::OP;
-  using VAL    = legate_type_of<CODE>;
-  using ARGVAL = Argval<VAL>;
+  using OP    = UnaryRedOp<OP_CODE, CODE>;
+  using LG_OP = typename OP::OP;
+  using RHS   = legate_type_of<CODE>;
+  using LHS   = Argval<RHS>;
 
   void operator()(AccessorRD<LG_OP, true, DIM> lhs,
-                  AccessorRO<VAL, DIM> rhs,
+                  AccessorRO<RHS, DIM> rhs,
                   const Rect<DIM> &rect,
                   const Pitches<DIM - 1> &pitches,
                   int collapsed_dim,
@@ -71,12 +71,12 @@ struct ArgRedImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
   {
     for (size_t idx = 0; idx < volume; ++idx) {
       auto point = pitches.unflatten(idx, rect.lo);
-      lhs.reduce(point, ARGVAL(point[collapsed_dim], rhs[point]));
+      lhs.reduce(point, LHS(point[collapsed_dim], rhs[point]));
     }
   }
 
-  void operator()(AccessorRW<ARGVAL, DIM> lhs,
-                  AccessorRO<VAL, DIM> rhs,
+  void operator()(AccessorRW<LHS, DIM> lhs,
+                  AccessorRO<RHS, DIM> rhs,
                   const Rect<DIM> &rect,
                   const Pitches<DIM - 1> &pitches,
                   int collapsed_dim,
@@ -84,7 +84,7 @@ struct ArgRedImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
   {
     for (size_t idx = 0; idx < volume; ++idx) {
       auto point = pitches.unflatten(idx, rect.lo);
-      OP::template fold<true>(lhs[point], ARGVAL(point[collapsed_dim], rhs[point]));
+      OP::template fold<true>(lhs[point], LHS(point[collapsed_dim], rhs[point]));
     }
   }
 };
