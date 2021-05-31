@@ -47,7 +47,7 @@ class my_build_py(build_py):
             include_dir = os.path.join(args.prefix, "include")
             header = subprocess.check_output(
                 [
-                    "gcc",
+                    os.getenv("CC", "gcc"),
                     "-E",
                     "-DLEGATE_USE_PYTHON_CFFI",
                     "-I" + str(include_dir),
