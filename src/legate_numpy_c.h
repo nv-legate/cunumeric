@@ -109,14 +109,14 @@ enum NumPyOpCode {
   NUMPY_ARANGE              = 74,
 };
 
-// Match these to NumPyRedopCode in legate/core/config.py
+// Match these to NumPyRedopCode in legate/numpy/config.py
 enum NumPyRedopID {
   NUMPY_ARGMIN_REDOP,
   NUMPY_ARGMAX_REDOP,
 };
 
 // We provide a global class of projection functions
-// Match these to NumPyProjCode in legate/core/config.py
+// Match these to NumPyProjCode in legate/numpy/config.py
 enum NumPyProjectionCode {
   // 2D reduction
   NUMPY_PROJ_2D_1D_X = 1,  // keep x

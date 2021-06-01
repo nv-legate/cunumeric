@@ -1180,13 +1180,12 @@ class DeferredArray(NumPyThunk):
                         if not convert
                         else np.dtype(np.float32),
                     )
+                    reduction_space = (
+                        (launch_space[0] if left_matrix else launch_space[1]),
+                        reduction_shape[1],
+                    )
                     reduction_part = reduction_field.find_or_create_partition(
-                        (
-                            launch_space[0]
-                            if left_matrix
-                            else launch_space[1],
-                            reduction_shape[1],
-                        )
+                        reduction_space
                     )
                     argbuf = BufferBuilder()
                     if convert:
@@ -1249,25 +1248,17 @@ class DeferredArray(NumPyThunk):
                     # Now we need to launch the reduction tree(s)
                     RADIX = self.runtime.radix
                     assert reduction_shape[1] > 1
-                    # Figure out what the natural partitioning of the output
-                    # vector is so we can do reductions to it
-                    launch_space = result.compute_parallel_launch_space()
-                    if launch_space is None:
-                        result_part = result.find_or_create_partition((1,))
-                        launch_space = (1, reduction_shape[1])
-                    else:
-                        result_part = result.find_or_create_partition(
-                            launch_space
-                        )
-                        launch_space = (launch_space[0], reduction_shape[1])
+                    # Partition the output vector following the partitioning of
+                    # the remaining dimension of the matrix
+                    result_part = result.find_or_create_partition(
+                        (reduction_space[0],)
+                    )
+                    result.set_key_partition(result_part, None, None)
                     result_proj = (
                         self.runtime.first_proj_id + NumPyProjCode.PROJ_2D_1D_X
                     )
                     sharding_space = self.runtime.find_or_create_index_space(
-                        launch_space
-                    )
-                    reduction_part = reduction_field.find_or_create_partition(
-                        launch_space
+                        reduction_space
                     )
                     radix_generation = 1
                     # Now we need to launch the tasks for the reductions across
@@ -1280,7 +1271,7 @@ class DeferredArray(NumPyThunk):
                             (reduction_shape[1] + RADIX - 1) // RADIX,
                         )
                         local_launch_space = (
-                            launch_space[0],
+                            reduction_space[0],
                             new_reduction_shape[1],
                         )
                         # Perform index task launches to do the reductions
@@ -4698,7 +4689,7 @@ class DeferredArray(NumPyThunk):
             if lhs_array.size > 1:
                 # Output is not a scalar so do a fill broadcast
                 result = lhs_array.base
-                # Comptue our launch space
+                # Compute our launch space
                 launch_space = result.compute_parallel_launch_space()
                 if where_array is None:
                     if launch_space is not None:
@@ -4841,26 +4832,25 @@ class DeferredArray(NumPyThunk):
             # Normal/broadcast version of this task
             assert lhs_array.size > 1
             result = lhs_array.base
-            # Comptue our launch space
+            # Pick the smallest launch space between the result array and the
+            # argument arrays (because non-full-machine launch spaces occur
+            # mostly for the output of GEMVs, whose partitioning we want to
+            # preserve).
             launch_space = None
-            if not result.has_parallel_launch_space():
-                # See if we can borrow the parallel launch space
-                # from one of the input arrays
-                if result is not rhs1 and lhs_array.shape == rhs1_array.shape:
-                    launch_space = rhs1.compute_parallel_launch_space()
-                    if launch_space is not None:
-                        key_array = rhs1
-                if (
-                    launch_space is None
-                    and result is not rhs2
-                    and lhs_array.shape == rhs2_array.shape
+            key_array = None
+            for arr in lhs_array, rhs1_array, rhs2_array:
+                if lhs_array.shape != arr.shape or isinstance(
+                    arr.base, Future
                 ):
-                    launch_space = rhs2.compute_parallel_launch_space()
-                    if launch_space is not None:
-                        key_array = rhs2
-            if launch_space is None:
-                launch_space = result.compute_parallel_launch_space()
-                key_array = result
+                    continue
+                arr_space = arr.base.compute_parallel_launch_space()
+                if arr_space is None:
+                    continue
+                if launch_space is None or calculate_volume(
+                    arr_space
+                ) <= calculate_volume(launch_space):
+                    launch_space = arr_space
+                    key_array = arr.base
             # Compute our transforms
             if rhs1_array.size > 1 and rhs1_array.shape != lhs_array.shape:
                 (
@@ -4925,7 +4915,7 @@ class DeferredArray(NumPyThunk):
                     result_part = result.find_or_create_congruent_partition(
                         key_part
                     )
-                    result.set_key_partition(result_part, shardfn, shardsp)
+                    result.set_key_partition(result_part)
                 else:
                     result_part = key_part
                 self.pack_shape(
