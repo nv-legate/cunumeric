@@ -2352,6 +2352,11 @@ class Runtime(object):
         result += numpy_field_type_offsets[dt2.type] * NUMPY_MAX_VARIANTS
         return result
 
+    def get_zip_task_id(self, num_coord_arrays):
+        result = self.first_task_id + legate_numpy.NUMPY_ZIP_OFFSET
+        result += num_coord_arrays
+        return result
+
     def get_reduction_op_id(self, op, field_dtype):
         redop_id = numpy_reduction_op_offsets[op]
         if redop_id < legion.LEGION_REDOP_KIND_TOTAL:

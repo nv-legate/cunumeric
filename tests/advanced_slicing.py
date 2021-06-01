@@ -18,6 +18,18 @@ import numpy as np
 import legate.numpy as lg
 
 
+def sequence_2d():
+    return lg.array(
+        [
+            [0, 1, 2, 3, 4],
+            [5, 6, 7, 8, 9],
+            [10, 11, 12, 13, 14],
+            [15, 16, 17, 18, 19],
+            [20, 21, 22, 23, 24],
+        ]
+    )
+
+
 def test():
 
     # 1d __getitem__
@@ -89,63 +101,69 @@ def test():
     # 2d __getitem__
 
     # index arrays can be boolean, of the same shape as the base array
-    a = lg.arange(25).reshape((5, 5))
-    assert np.array_equal(a[a > 17], [18, 19, 20, 21, 22, 23, 24])
+    # TODO: requires support for indirect partitioning
+    # a = sequence_2d()
+    # assert np.array_equal(a[a > 17], [18, 19, 20, 21, 22, 23, 24])
 
     # index arrays can be integer, one per base array dimension
-    a = lg.arange(25).reshape((5, 5))
-    assert np.array_equal(
-        a[lg.array([0, 1, 2]), lg.array([0, 1, 2])], [0, 6, 12]
-    )
+    # TODO: requires support for indirect partitioning
+    # a = sequence_2d()
+    # assert np.array_equal(
+    #     a[lg.array([0, 1, 2]), lg.array([0, 1, 2])], [0, 6, 12]
+    # )
 
     # output shape follows index array shape
-    a = lg.arange(25).reshape((5, 5))
+    a = sequence_2d()
     assert np.array_equal(
         a[lg.array([[1, 1, 1], [2, 2, 2]]), lg.array([[0, 1, 2], [0, 1, 2]])],
         [[5, 6, 7], [10, 11, 12]],
     )
 
     # index arrays can be any sequence object
-    a = lg.arange(25).reshape((5, 5))
-    assert np.array_equal(a[range(3), range(3)], [0, 6, 12])
+    # TODO: requires support for indirect partitioning
+    # a = sequence_2d()
+    # assert np.array_equal(a[range(3), range(3)], [0, 6, 12])
 
     # index arrays are automatically cast to int64
-    a = lg.arange(25).reshape((5, 5))
-    assert np.array_equal(a[range(3), range(3)], [0, 6, 12])
-    assert np.array_equal(
-        a[
-            lg.array([0, 1, 2], dtype=np.int16),
-            lg.array([0, 1, 2], dtype=np.uint32),
-        ],
-        [0, 6, 12],
-    )
+    # TODO: requires support for indirect partitioning
+    # a = sequence_2d()
+    # assert np.array_equal(a[range(3), range(3)], [0, 6, 12])
+    # assert np.array_equal(
+    #     a[
+    #         lg.array([0, 1, 2], dtype=np.int16),
+    #         lg.array([0, 1, 2], dtype=np.uint32),
+    #     ],
+    #     [0, 6, 12],
+    # )
 
     # advanced slicing creates copies
-    a = lg.arange(25).reshape((5, 5))
-    b = a[a > 17]
-    b[:] = -1
-    assert a.min() == 0 and a.max() == 24
+    # TODO: requires support for indirect partitioning
+    # a = sequence_2d()
+    # b = a[a > 17]
+    # b[:] = -1
+    # assert a.min() == 0 and a.max() == 24
 
     # 2d __setitem__
 
     # can write through a single advanced slice
-    a = lg.arange(25).reshape((5, 5))
-    b = lg.zeros(7, dtype=np.int64)
-    a[a > 17] = b
-    assert np.array_equal(
-        a,
-        [
-            [0, 1, 2, 3, 4],
-            [5, 6, 7, 8, 9],
-            [10, 11, 12, 13, 14],
-            [15, 16, 17, 0, 0],
-            [0, 0, 0, 0, 0],
-        ],
-    )
+    # TODO: requires support for indirect partitioning
+    # a = sequence_2d()
+    # b = lg.zeros(7, dtype=np.int64)
+    # a[a > 17] = b
+    # assert np.array_equal(
+    #     a,
+    #     [
+    #         [0, 1, 2, 3, 4],
+    #         [5, 6, 7, 8, 9],
+    #         [10, 11, 12, 13, 14],
+    #         [15, 16, 17, 0, 0],
+    #         [0, 0, 0, 0, 0],
+    #     ],
+    # )
 
     # can write through views
     # TODO: Fix #16
-    # a = lg.arange(25).reshape((5, 5))
+    # a = sequence_2d()
     # b = lg.zeros(4, dtype=np.int64)
     # a[2:, :][[1, 1, 2, 2], [1, 2, 1, 2]] = b
     # assert np.array_equal(
@@ -161,7 +179,7 @@ def test():
 
     # can copy within the same array
     # TODO: Fix #16
-    # a = lg.arange(25).reshape((5, 5))
+    # a = sequence_2d()
     # a[2:, :][[[1, 1], [2, 2]], [[1, 2], [1, 2]]] = a[1:3, 3:5]
     # assert np.array_equal(
     #     a,
@@ -176,7 +194,7 @@ def test():
 
     # source & destination regions can (partially) overlap
     # TODO: Fix #16
-    # a = lg.arange(25).reshape((5, 5))
+    # a = sequence_2d()
     # a[2:, :][[[1, 1], [2, 2]], [[1, 2], [1, 2]]] = a[3:5, 2:4]
     # assert np.array_equal(
     #     a,
@@ -191,6 +209,8 @@ def test():
 
     # TODO: broadcasting in index arrays
     # TODO: mixed advanced indexing
+    # TODO: singleton arrays
+    # TODO: views as base, index or value array (incl. reshape)
 
     return
 

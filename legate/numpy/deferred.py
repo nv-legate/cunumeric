@@ -303,13 +303,13 @@ class DeferredArray(NumPyThunk):
     def _create_indexing_array(self, key, stacklevel):
         # Convert everything into deferred arrays of int64
         if isinstance(key, tuple):
-            tuple_of_arrays = ()
+            tuple_of_keys = ()
             for k in key:
                 if not isinstance(k, NumPyThunk):
                     raise NotImplementedError(
                         "need support for mixed advanced indexing"
                     )
-                tuple_of_arrays += (k,)
+                tuple_of_keys += (k,)
         else:
             assert isinstance(key, NumPyThunk)
             # Handle the boolean array case
@@ -319,33 +319,125 @@ class DeferredArray(NumPyThunk):
                         "Boolean advanced indexing dimension mismatch"
                     )
                 # For boolean arrays do the non-zero operation to make
-                # them into a normal indexing array
-                tuple_of_arrays = key.nonzero(stacklevel + 1)
+                # them into a set of integer indexing arrays
+                tuple_of_keys = key.nonzero(stacklevel + 1)
             else:
-                tuple_of_arrays = (key,)
-        if len(tuple_of_arrays) != self.ndim:
+                tuple_of_keys = (key,)
+        if len(tuple_of_keys) != self.ndim:
             raise TypeError("Advanced indexing dimension mismatch")
-        if self.ndim > 1:
-            # Check that all the arrays can be broadcast together
-            # Concatenate all the arrays into a single array
-            raise NotImplementedError("need support for concatenating arrays")
-        index_array = self.runtime.to_deferred_array(
-            tuple_of_arrays[0], stacklevel=(stacklevel + 1)
+        index_arrays = []
+        result_shape = tuple_of_keys[0].shape
+        for k in tuple_of_keys:
+            # TODO: Implement broadcasting for advanced indexing arrays
+            if k.shape != result_shape:
+                raise NotImplementedError(
+                    "Broadcasting for advanced indexing arrays"
+                )
+            # TODO: Support singleton arrays in advanced indexing
+            if k.size <= 1:
+                raise NotImplementedError(
+                    "Singleton arrays in advanced indexing"
+                )
+            arr = self.runtime.to_deferred_array(
+                k, stacklevel=(stacklevel + 1)
+            )
+            if arr.dtype != np.dtype(np.int64):
+                converted_array = self.runtime.to_deferred_array(
+                    self.runtime.create_empty_thunk(
+                        shape=arr.shape,
+                        dtype=np.dtype(np.int64),
+                        inputs=(arr,),
+                    ),
+                    stacklevel=(stacklevel + 1),
+                )
+                converted_array.convert(
+                    arr, warn=False, stacklevel=(stacklevel + 1)
+                )
+                arr = converted_array
+            index_arrays.append(arr)
+        # Zip index arrays if necessary
+        if len(index_arrays) == 1:
+            return index_arrays[0]
+        # NOTE: We need to instantiate a RegionField of non-primitive dtype, to
+        # store N-dimensional index points, to be used as the indirection field
+        # in a copy. Such dtypes are technically not supported, but it should
+        # be safe to directly create a DeferredArray of that dtype, so long as
+        # we don't try to convert it to a NumPy array.
+        result_dtype = np.dtype((np.int64, (len(index_arrays),)))
+        result_array = DeferredArray(
+            self,
+            self.runtime.allocate_field(result_shape, result_dtype),
+            shape=result_shape,
+            dtype=result_dtype,
         )
-        if index_array.dtype != np.dtype(np.int64):
-            converted_array = self.runtime.to_deferred_array(
-                self.runtime.create_empty_thunk(
-                    shape=index_array.shape,
-                    dtype=np.dtype(np.int64),
-                    inputs=(index_array,),
-                ),
-                stacklevel=(stacklevel + 1),
+        result = result_array.base
+        launch_space = result.compute_parallel_launch_space()
+        # Pack our arguments
+        argbuf = BufferBuilder()
+        if launch_space is not None:
+            (
+                result_part,
+                shardfn,
+                shardsp,
+            ) = result.find_or_create_key_partition()
+            self.pack_shape(
+                argbuf, result_array.shape, result_part.tile_shape, 0
             )
-            converted_array.convert(
-                index_array, warn=False, stacklevel=(stacklevel + 1)
+        else:
+            self.pack_shape(argbuf, result_array.shape)
+        argbuf.pack_accessor(result.field.field_id, result.transform)
+        # All arrays are of the same shape, so no need for transform accessors
+        for arr in index_arrays:
+            argbuf.pack_accessor(arr.base.field.field_id, arr.base.transform)
+        task_id = self.runtime.get_zip_task_id(len(index_arrays))
+        if launch_space is not None:
+            # Index task launch case
+            task = IndexTask(
+                task_id,
+                Rect(launch_space),
+                self.runtime.empty_argmap,
+                argbuf.get_string(),
+                argbuf.get_size(),
+                mapper=self.runtime.mapper_id,
+                tag=shardfn,
             )
-            index_array = converted_array
-        return index_array
+            if shardsp is not None:
+                task.set_sharding_space(shardsp)
+            task.add_write_requirement(
+                result_part,
+                result.field.field_id,
+                0,
+                tag=NumPyMappingTag.KEY_REGION_TAG,
+            )
+
+            for arr in index_arrays:
+                task.add_read_requirement(
+                    arr.base.find_or_create_congruent_partition(result_part),
+                    arr.base.field.field_id,
+                    0,
+                )
+            self.runtime.dispatch(task)
+        else:
+            # Single task launch case
+            shardpt, shardfn, shardsp = result.find_point_sharding()
+            task = Task(
+                task_id,
+                argbuf.get_string(),
+                argbuf.get_size(),
+                mapper=self.runtime.mapper_id,
+                tag=shardfn,
+            )
+            if shardpt is not None:
+                task.set_point(shardpt)
+            if shardsp is not None:
+                task.set_sharding_space(shardsp)
+            task.add_write_requirement(result.region, result.field.field_id)
+            for arr in index_arrays:
+                task.add_read_requirement(
+                    arr.base.region, arr.base.field.field_id
+                )
+            self.runtime.dispatch(task)
+        return result_array
 
     def get_item(self, key, stacklevel, view=None, dim_map=None):
         # Check to see if this is advanced indexing or not
@@ -354,6 +446,11 @@ class DeferredArray(NumPyThunk):
             index_array = self._create_indexing_array(
                 key, stacklevel=(stacklevel + 1)
             )
+            # TODO: Support singleton arrays in advanced indexing
+            if self.size <= 1:
+                raise NotImplementedError(
+                    "Singleton arrays in advanced indexing"
+                )
             # Create a new array to be the result
             result_field = self.runtime.allocate_field(
                 index_array.shape, dtype=self.dtype
@@ -496,12 +593,18 @@ class DeferredArray(NumPyThunk):
             rhs, stacklevel=(stacklevel + 1)
         )
         assert self.dtype == value_array.dtype
+
         # Check to see if this is advanced indexing or not
         if self._is_advanced_indexing(key):
             # Create the indexing array
             index_array = self._create_indexing_array(
                 key, stacklevel=(stacklevel + 1)
             )
+            # TODO: Support singleton arrays in advanced indexing
+            if self.size <= 1 or value_array.size <= 1:
+                raise NotImplementedError(
+                    "Singleton arrays in advanced indexing"
+                )
             if index_array.shape != value_array.shape:
                 raise ValueError(
                     "Advanced indexing array does not match source shape"
