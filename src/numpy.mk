@@ -92,4 +92,5 @@ GEN_GPU_SRC += ternary/where.cu               \
 							 scan.cu                        \
 							 sort.cu                        \
 							 tile.cu                        \
-							 trans.cu
+							 trans.cu                       \
+							 numpy.cu

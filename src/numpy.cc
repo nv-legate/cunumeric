@@ -26,6 +26,10 @@ namespace numpy {
 
 static const char* const numpy_library_name = "legate.numpy";
 
+#ifdef LEGATE_USE_CUDA
+extern void register_gpu_reduction_operators(ReductionOpID first_redop_id);
+#endif
+
 /*static*/ void LegateNumPy::record_variant(TaskID tid,
                                             const char* task_name,
                                             const CodeDescriptor& descriptor,
@@ -94,8 +98,12 @@ void registration_callback(Machine machine,
   // Register our special reduction functions
   const ReductionOpID first_redop_id =
     runtime->generate_library_reduction_ids(numpy_library_name, NUMPY_MAX_REDOPS);
+#ifdef LEGATE_USE_CUDA
+  register_gpu_reduction_operators(first_redop_id);
+#else
   REGISTER_ALL_REDUCTIONS(ArgmaxReduction, first_redop_id);
   REGISTER_ALL_REDUCTIONS(ArgminReduction, first_redop_id);
+#endif
 
   Runtime::register_reduction_op<UntypedScalarRedOp<UnaryRedCode::MAX>>(first_redop_id +
                                                                         NUMPY_SCALAR_MAX_REDOP);
