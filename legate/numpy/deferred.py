@@ -647,7 +647,7 @@ class DeferredArray(NumPyThunk):
 
                 task = Map(self.runtime, NumPyOpCode.WRITE)
                 task.add_point(use_key, untyped=True)
-                dst_arg.add_to_legate_op(task, False)
+                dst_arg.add_to_legate_op(task, False, read_write=True)
                 value_arg.add_to_legate_op(task, True)
                 task.execute_single()
             else:
@@ -1961,10 +1961,9 @@ class DeferredArray(NumPyThunk):
 
         (shardpt, shardfn, shardsp) = src_arg.sharding
 
-        if needs_reduction:
-            dst_array.fill(
-                np.array(0, dst_arg.dtype), stacklevel + 1, callsite=callsite
-            )
+        dst_array.fill(
+            np.array(0, dst_arg.dtype), stacklevel + 1, callsite=callsite
+        )
 
         task = Map(self.runtime, NumPyOpCode.BINCOUNT, tag=shardfn)
         task.add_scalar_arg(needs_reduction, bool)
@@ -1982,7 +1981,7 @@ class DeferredArray(NumPyThunk):
             )
             dst_arg.add_to_legate_op(task, False, redop=redop)
         else:
-            dst_arg.add_to_legate_op(task, False)
+            dst_arg.add_to_legate_op(task, False, read_write=True)
         src_arg.add_to_legate_op(task, True)
         if weight_arg is not None:
             weight_arg.add_to_legate_op(task, True)
