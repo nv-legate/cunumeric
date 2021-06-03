@@ -18,7 +18,7 @@ namespace legate {
 namespace numpy {
 
 template <typename T, int DIM>
-AccessorRO<T, DIM> RegionField::read_accessor(void) const
+AccessorRO<T, DIM> RegionField::read_accessor() const
 {
   if (transform_.exists())
     return dim_dispatch(
@@ -32,7 +32,7 @@ AccessorRO<T, DIM> RegionField::read_accessor(void) const
 }
 
 template <typename T, int DIM>
-AccessorWO<T, DIM> RegionField::write_accessor(void) const
+AccessorWO<T, DIM> RegionField::write_accessor() const
 {
   if (transform_.exists())
     return dim_dispatch(
@@ -46,7 +46,7 @@ AccessorWO<T, DIM> RegionField::write_accessor(void) const
 }
 
 template <typename T, int DIM>
-AccessorRW<T, DIM> RegionField::read_write_accessor(void) const
+AccessorRW<T, DIM> RegionField::read_write_accessor() const
 {
   if (transform_.exists())
     return dim_dispatch(
@@ -60,7 +60,7 @@ AccessorRW<T, DIM> RegionField::read_write_accessor(void) const
 }
 
 template <typename OP, bool EXCLUSIVE, int DIM>
-AccessorRD<OP, EXCLUSIVE, DIM> RegionField::reduce_accessor(void) const
+AccessorRD<OP, EXCLUSIVE, DIM> RegionField::reduce_accessor() const
 {
   if (transform_.exists())
     return dim_dispatch(transform_.shape().first,
@@ -77,6 +77,71 @@ AccessorRD<OP, EXCLUSIVE, DIM> RegionField::reduce_accessor(void) const
   }
 }
 
+template <typename T, int DIM>
+AccessorRO<T, DIM> RegionField::read_accessor(const Legion::Rect<DIM> &bounds) const
+{
+  if (transform_.exists())
+    return dim_dispatch(
+      transform_.shape().first, read_trans_accesor_fn<T, DIM>{}, pr_, fid_, transform_, bounds);
+  else {
+#ifdef LEGION_BOUNDS_CHECKS
+    assert(DIM == dim());
+#endif
+    return AccessorRO<T, DIM>(pr_, fid_, bounds);
+  }
+}
+
+template <typename T, int DIM>
+AccessorWO<T, DIM> RegionField::write_accessor(const Legion::Rect<DIM> &bounds) const
+{
+  if (transform_.exists())
+    return dim_dispatch(
+      transform_.shape().first, write_trans_accesor_fn<T, DIM>{}, pr_, fid_, transform_, bounds);
+  else {
+#ifdef LEGION_BOUNDS_CHECKS
+    assert(DIM == dim());
+#endif
+    return AccessorWO<T, DIM>(pr_, fid_, bounds);
+  }
+}
+
+template <typename T, int DIM>
+AccessorRW<T, DIM> RegionField::read_write_accessor(const Legion::Rect<DIM> &bounds) const
+{
+  if (transform_.exists())
+    return dim_dispatch(transform_.shape().first,
+                        read_write_trans_accesor_fn<T, DIM>{},
+                        pr_,
+                        fid_,
+                        transform_,
+                        bounds);
+  else {
+#ifdef LEGION_BOUNDS_CHECKS
+    assert(DIM == dim());
+#endif
+    return AccessorRW<T, DIM>(pr_, fid_, bounds);
+  }
+}
+
+template <typename OP, bool EXCLUSIVE, int DIM>
+AccessorRD<OP, EXCLUSIVE, DIM> RegionField::reduce_accessor(const Legion::Rect<DIM> &bounds) const
+{
+  if (transform_.exists())
+    return dim_dispatch(transform_.shape().first,
+                        reduce_trans_accesor_fn<OP, EXCLUSIVE, DIM>{},
+                        pr_,
+                        fid_,
+                        transform_,
+                        redop_id_,
+                        bounds);
+  else {
+#ifdef LEGION_BOUNDS_CHECKS
+    assert(DIM == dim());
+#endif
+    return AccessorRD<OP, EXCLUSIVE, DIM>(pr_, fid_, OP::REDOP_ID, bounds);
+  }
+}
+
 template <int32_t DIM>
 Legion::Rect<DIM> RegionField::shape() const
 {
@@ -85,7 +150,7 @@ Legion::Rect<DIM> RegionField::shape() const
 }
 
 template <typename T, int DIM>
-AccessorRO<T, DIM> Array::read_accessor(void) const
+AccessorRO<T, DIM> Array::read_accessor() const
 {
   if (is_future_) {
     auto memkind = Legion::Memory::Kind::NO_MEMKIND;
@@ -95,24 +160,56 @@ AccessorRO<T, DIM> Array::read_accessor(void) const
 }
 
 template <typename T, int DIM>
-AccessorWO<T, DIM> Array::write_accessor(void) const
+AccessorWO<T, DIM> Array::write_accessor() const
 {
   assert(!is_future_);
   return region_field_.write_accessor<T, DIM>();
 }
 
 template <typename T, int DIM>
-AccessorRW<T, DIM> Array::read_write_accessor(void) const
+AccessorRW<T, DIM> Array::read_write_accessor() const
 {
   assert(!is_future_);
   return region_field_.read_write_accessor<T, DIM>();
 }
 
 template <typename OP, bool EXCLUSIVE, int DIM>
-AccessorRD<OP, EXCLUSIVE, DIM> Array::reduce_accessor(void) const
+AccessorRD<OP, EXCLUSIVE, DIM> Array::reduce_accessor() const
 {
   assert(!is_future_);
   return region_field_.reduce_accessor<OP, EXCLUSIVE, DIM>();
+}
+
+template <typename T, int DIM>
+AccessorRO<T, DIM> Array::read_accessor(const Legion::Rect<DIM> &bounds) const
+{
+  if (is_future_) {
+    auto memkind = Legion::Memory::Kind::NO_MEMKIND;
+    return AccessorRO<T, DIM>(
+      future_, bounds, memkind, sizeof(T), false, false, NULL, sizeof(uint64_t));
+  } else
+    return region_field_.read_accessor<T, DIM>(bounds);
+}
+
+template <typename T, int DIM>
+AccessorWO<T, DIM> Array::write_accessor(const Legion::Rect<DIM> &bounds) const
+{
+  assert(!is_future_);
+  return region_field_.write_accessor<T, DIM>(bounds);
+}
+
+template <typename T, int DIM>
+AccessorRW<T, DIM> Array::read_write_accessor(const Legion::Rect<DIM> &bounds) const
+{
+  assert(!is_future_);
+  return region_field_.read_write_accessor<T, DIM>(bounds);
+}
+
+template <typename OP, bool EXCLUSIVE, int DIM>
+AccessorRD<OP, EXCLUSIVE, DIM> Array::reduce_accessor(const Legion::Rect<DIM> &bounds) const
+{
+  assert(!is_future_);
+  return region_field_.reduce_accessor<OP, EXCLUSIVE, DIM>(bounds);
 }
 
 template <int32_t DIM>

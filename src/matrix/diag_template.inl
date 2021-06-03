@@ -66,14 +66,14 @@ struct DiagImpl {
       auto rect1d = args.out.shape<1>();
       if (rect1d.empty()) return;
 
-      auto in = args.in.read_accessor<VAL, 2>();
+      auto in = args.in.read_accessor<VAL, 2>(rect_mat);
 
       auto start_out = args.k > 0 ? start[0] : start[1];
       if (args.needs_reduction) {
-        auto out = args.out.reduce_accessor<SumReduction<VAL>, true, 1>();
+        auto out = args.out.reduce_accessor<SumReduction<VAL>, true, 1>(rect1d);
         DiagImplBody<KIND, CODE>()(out, in, distance, start_out, start);
       } else {
-        auto out = args.out.write_accessor<VAL, 1>();
+        auto out = args.out.write_accessor<VAL, 1>(rect1d);
         DiagImplBody<KIND, CODE>()(out, in, distance, start_out, start);
       }
     } else {
@@ -83,8 +83,8 @@ struct DiagImpl {
       auto rect1d = args.in.shape<1>();
       if (rect1d.empty()) return;
 
-      auto out = args.out.write_accessor<VAL, 2>();
-      auto in  = args.in.read_accessor<VAL, 1>();
+      auto out = args.out.write_accessor<VAL, 2>(rect_mat);
+      auto in  = args.in.read_accessor<VAL, 1>(rect1d);
 
       auto start_in = args.k > 0 ? start[0] : start[1];
       if (args.k > 0)

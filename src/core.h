@@ -217,7 +217,7 @@ class RegionField {
  public:
   int32_t dim() const { return dim_; }
 
- public:
+ private:
   template <typename T, int32_t N>
   struct read_trans_accesor_fn {
     template <int32_t M>
@@ -228,9 +228,16 @@ class RegionField {
       auto trans = transform.to_affine_transform<M, N>();
       return AccessorRO<T, N>(pr, fid, trans);
     }
+    template <int32_t M>
+    AccessorRO<T, N> operator()(const Legion::PhysicalRegion &pr,
+                                Legion::FieldID fid,
+                                const Transform &transform,
+                                const Legion::Rect<N> &bounds)
+    {
+      auto trans = transform.to_affine_transform<M, N>();
+      return AccessorRO<T, N>(pr, fid, trans, bounds);
+    }
   };
-  template <typename T, int32_t DIM>
-  AccessorRO<T, DIM> read_accessor(void) const;
 
   template <typename T, int32_t N>
   struct write_trans_accesor_fn {
@@ -242,9 +249,16 @@ class RegionField {
       auto trans = transform.to_affine_transform<M, N>();
       return AccessorWO<T, N>(pr, fid, trans);
     }
+    template <int32_t M>
+    AccessorWO<T, N> operator()(const Legion::PhysicalRegion &pr,
+                                Legion::FieldID fid,
+                                const Transform &transform,
+                                const Legion::Rect<N> &bounds)
+    {
+      auto trans = transform.to_affine_transform<M, N>();
+      return AccessorWO<T, N>(pr, fid, trans, bounds);
+    }
   };
-  template <typename T, int32_t DIM>
-  AccessorWO<T, DIM> write_accessor(void) const;
 
   template <typename T, int32_t N>
   struct read_write_trans_accesor_fn {
@@ -256,9 +270,16 @@ class RegionField {
       auto trans = transform.to_affine_transform<M, N>();
       return AccessorRW<T, N>(pr, fid, trans);
     }
+    template <int32_t M>
+    AccessorRW<T, N> operator()(const Legion::PhysicalRegion &pr,
+                                Legion::FieldID fid,
+                                const Transform &transform,
+                                const Legion::Rect<N> &bounds)
+    {
+      auto trans = transform.to_affine_transform<M, N>();
+      return AccessorRW<T, N>(pr, fid, trans, bounds);
+    }
   };
-  template <typename T, int32_t DIM>
-  AccessorRW<T, DIM> read_write_accessor(void) const;
 
   template <typename OP, bool EXCLUSIVE, int32_t N>
   struct reduce_trans_accesor_fn {
@@ -272,9 +293,37 @@ class RegionField {
       auto trans = transform.to_affine_transform<M, N>();
       return Accessor(pr, fid, redop_id, trans);
     }
+    template <int32_t M>
+    Accessor operator()(const Legion::PhysicalRegion &pr,
+                        Legion::FieldID fid,
+                        const Transform &transform,
+                        int32_t redop_id,
+                        const Legion::Rect<N> &bounds)
+    {
+      auto trans = transform.to_affine_transform<M, N>();
+      return Accessor(pr, fid, redop_id, trans, bounds);
+    }
   };
+
+ public:
+  template <typename T, int32_t DIM>
+  AccessorRO<T, DIM> read_accessor() const;
+  template <typename T, int32_t DIM>
+  AccessorWO<T, DIM> write_accessor() const;
+  template <typename T, int32_t DIM>
+  AccessorRW<T, DIM> read_write_accessor() const;
   template <typename OP, bool EXCLUSIVE, int32_t DIM>
-  AccessorRD<OP, EXCLUSIVE, DIM> reduce_accessor(void) const;
+  AccessorRD<OP, EXCLUSIVE, DIM> reduce_accessor() const;
+
+ public:
+  template <typename T, int32_t DIM>
+  AccessorRO<T, DIM> read_accessor(const Legion::Rect<DIM> &bounds) const;
+  template <typename T, int32_t DIM>
+  AccessorWO<T, DIM> write_accessor(const Legion::Rect<DIM> &bounds) const;
+  template <typename T, int32_t DIM>
+  AccessorRW<T, DIM> read_write_accessor(const Legion::Rect<DIM> &bounds) const;
+  template <typename OP, bool EXCLUSIVE, int32_t DIM>
+  AccessorRD<OP, EXCLUSIVE, DIM> reduce_accessor(const Legion::Rect<DIM> &bounds) const;
 
  public:
   template <int32_t DIM>
@@ -313,13 +362,23 @@ class Array {
 
  public:
   template <typename T, int32_t DIM>
-  AccessorRO<T, DIM> read_accessor(void) const;
+  AccessorRO<T, DIM> read_accessor() const;
   template <typename T, int32_t DIM>
-  AccessorWO<T, DIM> write_accessor(void) const;
+  AccessorWO<T, DIM> write_accessor() const;
   template <typename T, int32_t DIM>
-  AccessorRW<T, DIM> read_write_accessor(void) const;
+  AccessorRW<T, DIM> read_write_accessor() const;
   template <typename OP, bool EXCLUSIVE, int32_t DIM>
-  AccessorRD<OP, EXCLUSIVE, DIM> reduce_accessor(void) const;
+  AccessorRD<OP, EXCLUSIVE, DIM> reduce_accessor() const;
+
+ public:
+  template <typename T, int32_t DIM>
+  AccessorRO<T, DIM> read_accessor(const Legion::Rect<DIM> &bounds) const;
+  template <typename T, int32_t DIM>
+  AccessorWO<T, DIM> write_accessor(const Legion::Rect<DIM> &bounds) const;
+  template <typename T, int32_t DIM>
+  AccessorRW<T, DIM> read_write_accessor(const Legion::Rect<DIM> &bounds) const;
+  template <typename OP, bool EXCLUSIVE, int32_t DIM>
+  AccessorRD<OP, EXCLUSIVE, DIM> reduce_accessor(const Legion::Rect<DIM> &bounds) const;
 
  public:
   template <int32_t DIM>

@@ -48,7 +48,7 @@ struct ScalarUnaryRedImpl {
 
     if (volume == 0) return UntypedScalar(result);
 
-    auto in = args.in.read_accessor<VAL, DIM>();
+    auto in = args.in.read_accessor<VAL, DIM>(rect);
 
 #ifndef LEGION_BOUNDS_CHECKS
     // Check to see if this is dense or not
@@ -89,7 +89,7 @@ struct ScalarUnaryRedImpl<KIND, UnaryRedCode::CONTAINS> {
 
     if (volume == 0) return UntypedScalar(result);
 
-    auto in = args.in.read_accessor<VAL, DIM>();
+    auto in = args.in.read_accessor<VAL, DIM>(rect);
 
 #ifndef LEGION_BOUNDS_CHECKS
     // Check to see if this is dense or not
@@ -122,7 +122,7 @@ struct ScalarUnaryRedImpl<KIND, UnaryRedCode::COUNT_NONZERO> {
 
     if (volume == 0) return UntypedScalar(result);
 
-    auto in = args.in.read_accessor<VAL, DIM>();
+    auto in = args.in.read_accessor<VAL, DIM>(rect);
 
 #ifndef LEGION_BOUNDS_CHECKS
     // Check to see if this is dense or not

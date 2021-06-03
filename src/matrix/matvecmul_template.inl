@@ -73,8 +73,8 @@ struct MatVecMulImpl {
 
       size_t rhs1_strides[1];
       size_t rhs2_strides[2];
-      rhs1           = args.rhs1.read_accessor<VAL, 1>().ptr(rhs1_rect, rhs1_strides);
-      rhs2           = args.rhs2.read_accessor<VAL, 2>().ptr(rhs2_rect, rhs2_strides);
+      rhs1           = args.rhs1.read_accessor<VAL, 1>(rhs1_rect).ptr(rhs1_rect, rhs1_strides);
+      rhs2           = args.rhs2.read_accessor<VAL, 2>(rhs2_rect).ptr(rhs2_rect, rhs2_strides);
       rhs_stride     = rhs2_strides[0];
       std::tie(m, n) = get_dimensions(rhs2_rect);
     } else {
@@ -86,8 +86,8 @@ struct MatVecMulImpl {
 
       size_t rhs1_strides[2];
       size_t rhs2_strides[1];
-      rhs1           = args.rhs1.read_accessor<VAL, 2>().ptr(rhs1_rect, rhs1_strides);
-      rhs2           = args.rhs2.read_accessor<VAL, 1>().ptr(rhs2_rect, rhs2_strides);
+      rhs1           = args.rhs1.read_accessor<VAL, 2>(rhs1_rect).ptr(rhs1_rect, rhs1_strides);
+      rhs2           = args.rhs2.read_accessor<VAL, 1>(rhs2_rect).ptr(rhs2_rect, rhs2_strides);
       rhs_stride     = rhs1_strides[0];
       std::tie(m, n) = get_dimensions(rhs1_rect);
     }

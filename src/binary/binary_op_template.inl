@@ -46,9 +46,9 @@ struct BinaryOpImpl {
 
     if (volume == 0) return;
 
-    auto out = args.out.write_accessor<RES, DIM>();
-    auto in1 = args.in1.read_accessor<ARG, DIM>();
-    auto in2 = args.in2.read_accessor<ARG, DIM>();
+    auto out = args.out.write_accessor<RES, DIM>(rect);
+    auto in1 = args.in1.read_accessor<ARG, DIM>(rect);
+    auto in2 = args.in2.read_accessor<ARG, DIM>(rect);
 
 #ifndef LEGION_BOUNDS_CHECKS
     // Check to see if this is dense or not

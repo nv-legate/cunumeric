@@ -48,14 +48,14 @@ struct UnaryRedImpl {
 
     if (volume == 0) return;
 
-    auto rhs = args.rhs.read_accessor<VAL, DIM>();
+    auto rhs = args.rhs.read_accessor<VAL, DIM>(rect);
 
     if (args.needs_reduction) {
-      auto lhs = args.lhs.reduce_accessor<typename OP::OP, KIND != VariantKind::GPU, DIM>();
+      auto lhs = args.lhs.reduce_accessor<typename OP::OP, KIND != VariantKind::GPU, DIM>(rect);
       UnaryRedImplBody<KIND, OP_CODE, CODE, DIM>()(
         lhs, rhs, rect, pitches, args.collapsed_dim, volume);
     } else {
-      auto lhs = args.lhs.read_write_accessor<VAL, DIM>();
+      auto lhs = args.lhs.read_write_accessor<VAL, DIM>(rect);
       UnaryRedImplBody<KIND, OP_CODE, CODE, DIM>()(
         lhs, rhs, rect, pitches, args.collapsed_dim, volume);
     }
@@ -87,14 +87,14 @@ struct ArgRedImpl {
 
     if (volume == 0) return;
 
-    auto rhs = args.rhs.read_accessor<VAL, DIM>();
+    auto rhs = args.rhs.read_accessor<VAL, DIM>(rect);
 
     if (args.needs_reduction) {
-      auto lhs = args.lhs.reduce_accessor<typename OP::OP, KIND != VariantKind::GPU, DIM>();
+      auto lhs = args.lhs.reduce_accessor<typename OP::OP, KIND != VariantKind::GPU, DIM>(rect);
       ArgRedImplBody<KIND, OP_CODE, CODE, DIM>()(
         lhs, rhs, rect, pitches, args.collapsed_dim, volume);
     } else {
-      auto lhs = args.lhs.read_write_accessor<ARGVAL, DIM>();
+      auto lhs = args.lhs.read_write_accessor<ARGVAL, DIM>(rect);
       ArgRedImplBody<KIND, OP_CODE, CODE, DIM>()(
         lhs, rhs, rect, pitches, args.collapsed_dim, volume);
     }

@@ -43,8 +43,8 @@ struct DotImpl {
 
     if (rect.empty()) return UntypedScalar(result);
 
-    auto rhs1 = args.rhs1.read_accessor<VAL, 1>();
-    auto rhs2 = args.rhs2.read_accessor<VAL, 1>();
+    auto rhs1 = args.rhs1.read_accessor<VAL, 1>(rect);
+    auto rhs2 = args.rhs2.read_accessor<VAL, 1>(rect);
 
 #ifndef LEGION_BOUNDS_CHECKS
     // Check to see if this is dense or not

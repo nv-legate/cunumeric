@@ -41,10 +41,10 @@ struct WhereImpl {
 
     if (volume == 0) return;
 
-    auto out  = args.out.write_accessor<VAL, DIM>();
-    auto mask = args.mask.read_accessor<bool, DIM>();
-    auto in1  = args.in1.read_accessor<VAL, DIM>();
-    auto in2  = args.in2.read_accessor<VAL, DIM>();
+    auto out  = args.out.write_accessor<VAL, DIM>(rect);
+    auto mask = args.mask.read_accessor<bool, DIM>(rect);
+    auto in1  = args.in1.read_accessor<VAL, DIM>(rect);
+    auto in2  = args.in2.read_accessor<VAL, DIM>(rect);
 
 #ifndef LEGION_BOUNDS_CHECKS
     // Check to see if this is dense or not

@@ -45,8 +45,8 @@ struct BinaryRedImpl {
 
     if (volume == 0) return UntypedScalar(true);
 
-    auto in1 = args.in1.read_accessor<ARG, DIM>();
-    auto in2 = args.in2.read_accessor<ARG, DIM>();
+    auto in1 = args.in1.read_accessor<ARG, DIM>(rect);
+    auto in2 = args.in2.read_accessor<ARG, DIM>(rect);
 
 #ifndef LEGION_BOUNDS_CHECKS
     // Check to see if this is dense or not

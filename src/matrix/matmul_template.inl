@@ -69,14 +69,15 @@ struct MatMulImpl {
     size_t rhs1_strides[2];
     size_t rhs2_strides[2];
 
-    auto rhs1 = args.rhs1.read_accessor<VAL, 2>().ptr(rhs1_rect, rhs1_strides);
-    auto rhs2 = args.rhs2.read_accessor<VAL, 2>().ptr(rhs2_rect, rhs2_strides);
+    auto rhs1 = args.rhs1.read_accessor<VAL, 2>(rhs1_rect).ptr(rhs1_rect, rhs1_strides);
+    auto rhs2 = args.rhs2.read_accessor<VAL, 2>(rhs2_rect).ptr(rhs2_rect, rhs2_strides);
     if (args.needs_reduction) {
-      auto lhs = args.lhs.reduce_accessor<SumReduction<ACC>, true, 2>().ptr(lhs_rect, lhs_strides);
+      auto lhs =
+        args.lhs.reduce_accessor<SumReduction<ACC>, true, 2>(lhs_rect).ptr(lhs_rect, lhs_strides);
       MatMulImplBody<KIND, CODE>()(
         m, n, k, lhs, rhs1, rhs2, lhs_strides[0], rhs1_strides[0], rhs2_strides[0]);
     } else {
-      auto lhs = args.lhs.write_accessor<VAL, 2>().ptr(lhs_rect, lhs_strides);
+      auto lhs = args.lhs.write_accessor<VAL, 2>(lhs_rect).ptr(lhs_rect, lhs_strides);
       MatMulImplBody<KIND, CODE>()(
         m, n, k, lhs, rhs1, rhs2, lhs_strides[0], rhs1_strides[0], rhs2_strides[0]);
     }
