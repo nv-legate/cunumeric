@@ -101,10 +101,10 @@ class DeferredArray(NumPyThunk):
         # Sometimes we get asked to do this in case of in-place updates
         # in which case both src and dst will have the same field
         if src.field is dst.field:
-            if src.overlaps(dst):
-                raise NotImplementedError(
-                    "copies between overlapping sub-arrays"
-                )
+            # XXX: If the two sub-arrays overlap we will fail with a runtime
+            # error. Unfortunately there is no cheap & accurate way to test for
+            # overlap in the presence of views.
+            pass
         # Check to see if we already have a target launch space for
         # the destination meaning it has been partitioned already
         if dst.has_parallel_launch_space():
