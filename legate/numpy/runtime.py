@@ -493,24 +493,6 @@ class RegionField(object):
         if self.attach_array is not None:
             self.detach_numpy_array(unordered=True, defer=True)
 
-    def overlaps(self, other):
-        # TODO: This check is a little conservative (ignores slice step)
-        ndim = len(self.shape)
-        assert len(other.shape) == ndim
-        arrays = [self, other]
-        lo = [None, None]
-        hi = [None, None]
-        for i in range(2):
-            lo[i] = (0,) * ndim
-            hi[i] = tuple(x - 1 for x in arrays[i].shape)
-            if arrays[i].transform is not None:
-                lo[i] = arrays[i].transform.apply(lo[i])
-                hi[i] = arrays[i].transform.apply(hi[i])
-        for d in range(ndim):
-            if hi[0][d] < lo[1][d] or hi[1][d] < lo[0][d]:
-                return False
-        return True
-
     def has_parallel_launch_space(self):
         return self.launch_space is not None
 

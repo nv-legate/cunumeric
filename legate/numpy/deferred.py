@@ -99,12 +99,10 @@ class DeferredArray(NumPyThunk):
         src = src_array.base
         dst = dst_array.base
         # Sometimes we get asked to do this in case of in-place updates
-        # in which case both src and dst will have the same field
+        # in which case both src and dst will have the same field so
+        # there is nothing for us to do
         if src.field is dst.field:
-            if src.overlaps(dst):
-                raise NotImplementedError(
-                    "copies between overlapping sub-arrays"
-                )
+            return
         # Check to see if we already have a target launch space for
         # the destination meaning it has been partitioned already
         if dst.has_parallel_launch_space():
@@ -113,8 +111,12 @@ class DeferredArray(NumPyThunk):
         else:
             launch_space = src.compute_parallel_launch_space()
             src_parallel = True
-        # Check to see if there are no transforms
-        if src.transform is None and dst.transform is None:
+        # Check to see if they are the same or there are no transforms
+        if (
+            src.region is dst.region
+            or src.region.index_space is dst.region.index_space
+            or (src.transform is None and dst.transform is None)
+        ):
             # In this case we can just do a normal Legion copy
             if launch_space is not None:
                 if src_parallel:
@@ -357,8 +359,6 @@ class DeferredArray(NumPyThunk):
             launch_space = index.compute_parallel_launch_space()
             src = self.base
             dst = result_field
-            if src.transform is not None or index.transform is not None:
-                raise NotImplementedError("views with advanced indexing")
             if launch_space is not None:
                 # Index copy launch
                 if self.ndim == index_array.ndim:
@@ -496,14 +496,6 @@ class DeferredArray(NumPyThunk):
             launch_space = index.compute_parallel_launch_space()
             dst = self.base
             src = value_array.base
-            if src.field is dst.field:
-                raise NotImplementedError("intra-array advanced coyping")
-            if (
-                src.transform is not None
-                or index.transform is not None
-                or dst.transform is not None
-            ):
-                raise NotImplementedError("views with advanced indexing")
             if launch_space is not None:
                 # Index copy launch
                 if self.ndim == index_array.ndim:
@@ -3149,7 +3141,6 @@ class DeferredArray(NumPyThunk):
                 raise NotImplementedError("Need flatten copy")
             else:
                 # Copy the data to the output array
-                # TODO: consider transforms
                 copy = Copy(mapper=self.runtime.mapper_id)
                 copy.add_src_requirement(rhs.region, rhs.field.field_id)
                 copy.add_dst_requirement(lhs.region, lhs.field.field_id)
