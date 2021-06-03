@@ -40,7 +40,7 @@ extern void register_gpu_reduction_operators(ReductionOpID first_redop_id);
                                             bool leaf,
                                             bool inner,
                                             bool idempotent,
-                                            bool ret_type)
+                                            size_t ret_size)
 {
   assert((kind == Processor::LOC_PROC) || (kind == Processor::TOC_PROC) ||
          (kind == Processor::OMP_PROC));
@@ -53,7 +53,7 @@ extern void register_gpu_reduction_operators(ReductionOpID first_redop_id);
     task_name,
     descriptor,
     var,
-    ret_type));
+    ret_size));
   TaskVariantRegistrar& registrar = pending_task_variants.back();
   registrar.execution_constraints.swap(execution_constraints);
   registrar.layout_constraints.swap(layout_constraints);
@@ -92,7 +92,7 @@ void registration_callback(Machine machine,
     it->task_id += first_tid;  // Add in our library offset
     // Attach the task name too for debugging
     runtime->attach_name(it->task_id, it->task_name, false /*mutable*/, true /*local only*/);
-    runtime->register_task_variant(*it, it->descriptor, NULL, 0, it->ret_type, it->var);
+    runtime->register_task_variant(*it, it->descriptor, NULL, 0, it->ret_size, it->var);
   }
   pending_task_variants.clear();
   // Register our special reduction functions

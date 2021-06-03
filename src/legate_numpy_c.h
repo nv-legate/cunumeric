@@ -65,7 +65,7 @@ enum NumPyOpCode {
   NUMPY_BINCOUNT         = 400020,
 };
 
-// Match these to NumPyRedopCode in legate/core/config.py
+// Match these to NumPyRedopCode in legate/numpy/config.py
 enum NumPyRedopID {
   NUMPY_ARGMIN_REDOP = LEGION_REDOP_KIND_TOTAL + 1,
   NUMPY_ARGMAX_REDOP,
@@ -78,7 +78,7 @@ enum NumPyRedopID {
 };
 
 // We provide a global class of projection functions
-// Match these to NumPyProjCode in legate/core/config.py
+// Match these to NumPyProjCode in legate/numpy/config.py
 enum NumPyProjectionCode {
   // 2D reduction
   NUMPY_PROJ_2D_1D_X = 1,  // keep x

@@ -165,7 +165,7 @@ class LegateNumPy {
                              bool leaf,
                              bool inner,
                              bool idempotent,
-                             bool ret_type);
+                             size_t ret_size);
 
  public:
   struct PendingTaskVariant : public Legion::TaskVariantRegistrar {
@@ -180,12 +180,12 @@ class LegateNumPy {
                        const char* t_name,
                        const Legion::CodeDescriptor& desc,
                        LegateVariant v,
-                       bool ret)
+                       size_t ret)
       : Legion::TaskVariantRegistrar(tid, global, var_name),
         task_name(t_name),
         descriptor(desc),
         var(v),
-        ret_type(ret)
+        ret_size(ret)
     {
     }
 
@@ -193,7 +193,7 @@ class LegateNumPy {
     const char* task_name;
     Legion::CodeDescriptor descriptor;
     LegateVariant var;
-    bool ret_type;
+    size_t ret_size;
   };
   static std::deque<PendingTaskVariant>& get_pending_task_variants(void);
 };
@@ -211,7 +211,7 @@ class NumPyTask : public LegateTask<T> {
                              bool leaf,
                              bool inner,
                              bool idempotent,
-                             bool ret_type)
+                             size_t ret_size)
   {
     // For this just turn around and call this on the base LegateNumPy
     // type so it will deduplicate across all task kinds
@@ -225,7 +225,7 @@ class NumPyTask : public LegateTask<T> {
                                 leaf,
                                 inner,
                                 idempotent,
-                                ret_type);
+                                ret_size);
   }
 };
 
