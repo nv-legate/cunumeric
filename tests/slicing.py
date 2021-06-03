@@ -80,6 +80,10 @@ def test():
     # assert(lg.array_equal(thirdslice, thirdslicegold))
 
     # can copy within the same array
+    x = lg.arange(10)
+    x[0:5] = x[5:10]
+    assert np.array_equal(x, [5, 6, 7, 8, 9, 5, 6, 7, 8, 9])
+
     # TODO: Fix #16
     # a = lg.arange(25).reshape((5, 5))
     # a[3:5:, 1:3] = a[1:3, 3:5]

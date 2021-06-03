@@ -20,7 +20,6 @@ from __future__ import print_function
 import math
 import sys
 
-# Python 3 is dumb
 if sys.version_info > (3, 0):
     from functools import reduce
 

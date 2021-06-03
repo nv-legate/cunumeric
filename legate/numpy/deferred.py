@@ -98,10 +98,12 @@ class DeferredArray(NumPyThunk):
         src = src_array.base
         dst = dst_array.base
         # Sometimes we get asked to do this in case of in-place updates
-        # in which case both src and dst will have the same field so
-        # there is nothing for us to do
+        # in which case both src and dst will have the same field
         if src.field is dst.field:
-            return
+            if src.overlaps(dst):
+                raise NotImplementedError(
+                    "copies between overlapping sub-arrays"
+                )
         # Check to see if we already have a target launch space for
         # the destination meaning it has been partitioned already
         if dst.has_parallel_launch_space():
@@ -110,12 +112,8 @@ class DeferredArray(NumPyThunk):
         else:
             launch_space = src.compute_parallel_launch_space()
             src_parallel = True
-        # Check to see if they are the same or there are no transforms
-        if (
-            src.region is dst.region
-            or src.region.index_space is dst.region.index_space
-            or (src.transform is None and dst.transform is None)
-        ):
+        # Check to see if there are no transforms
+        if src.transform is None and dst.transform is None:
             # In this case we can just do a normal Legion copy
             if launch_space is not None:
                 if src_parallel:
@@ -467,6 +465,8 @@ class DeferredArray(NumPyThunk):
             launch_space = index.compute_parallel_launch_space()
             src = self.base
             dst = result_field
+            if src.transform is not None or index.transform is not None:
+                raise NotImplementedError("views with advanced indexing")
             if launch_space is not None:
                 # Index copy launch
                 if self.ndim == index_array.ndim:
@@ -619,6 +619,14 @@ class DeferredArray(NumPyThunk):
             ) = index.find_or_create_key_partition()
             dst = self.base
             src = value_array.base
+            if src.field is dst.field:
+                raise NotImplementedError("intra-array advanced coyping")
+            if (
+                src.transform is not None
+                or index.transform is not None
+                or dst.transform is not None
+            ):
+                raise NotImplementedError("views with advanced indexing")
             if launch_space is not None:
                 # Index copy launch
                 if self.ndim == index_array.ndim:
@@ -1302,13 +1310,12 @@ class DeferredArray(NumPyThunk):
                         if not convert
                         else np.dtype(np.float32),
                     )
+                    reduction_space = (
+                        (launch_space[0] if left_matrix else launch_space[1]),
+                        reduction_shape[1],
+                    )
                     reduction_part = reduction_field.find_or_create_partition(
-                        (
-                            launch_space[0]
-                            if left_matrix
-                            else launch_space[1],
-                            reduction_shape[1],
-                        )
+                        reduction_space
                     )
                     argbuf = BufferBuilder()
                     if convert:
@@ -1371,25 +1378,17 @@ class DeferredArray(NumPyThunk):
                     # Now we need to launch the reduction tree(s)
                     RADIX = self.runtime.radix
                     assert reduction_shape[1] > 1
-                    # Figure out what the natural partitioning of the output
-                    # vector is so we can do reductions to it
-                    launch_space = result.compute_parallel_launch_space()
-                    if launch_space is None:
-                        result_part = result.find_or_create_partition((1,))
-                        launch_space = (1, reduction_shape[1])
-                    else:
-                        result_part = result.find_or_create_partition(
-                            launch_space
-                        )
-                        launch_space = (launch_space[0], reduction_shape[1])
+                    # Partition the output vector following the partitioning of
+                    # the remaining dimension of the matrix
+                    result_part = result.find_or_create_partition(
+                        (reduction_space[0],)
+                    )
+                    result.set_key_partition(result_part, None, None)
                     result_proj = (
                         self.runtime.first_proj_id + NumPyProjCode.PROJ_2D_1D_X
                     )
                     sharding_space = self.runtime.find_or_create_index_space(
-                        launch_space
-                    )
-                    reduction_part = reduction_field.find_or_create_partition(
-                        launch_space
+                        reduction_space
                     )
                     radix_generation = 1
                     # Now we need to launch the tasks for the reductions across
@@ -1402,7 +1401,7 @@ class DeferredArray(NumPyThunk):
                             (reduction_shape[1] + RADIX - 1) // RADIX,
                         )
                         local_launch_space = (
-                            launch_space[0],
+                            reduction_space[0],
                             new_reduction_shape[1],
                         )
                         # Perform index task launches to do the reductions
@@ -2591,12 +2590,12 @@ class DeferredArray(NumPyThunk):
                 )
             else:
                 self.pack_shape(argbuf, dst_array.shape)
-            argbuf.pack_accessor(dst.field.field_id, None)
+            argbuf.pack_accessor(dst.field.field_id, dst.transform)
             # Then pack the src dim if dst.ndim > 1
             if dst_array.ndim > 1:
                 argbuf.pack_dimension(src_array.ndim)
             argbuf.pack_point(src_array.shape)
-            argbuf.pack_accessor(src.field.field_id, None)
+            argbuf.pack_accessor(src.field.field_id, src.transform)
             if launch_space is not None:
                 task = IndexTask(
                     self.runtime.get_unary_task_id(
@@ -3272,6 +3271,7 @@ class DeferredArray(NumPyThunk):
                 raise NotImplementedError("Need flatten copy")
             else:
                 # Copy the data to the output array
+                # TODO: consider transforms
                 copy = Copy(mapper=self.runtime.mapper_id)
                 copy.add_src_requirement(rhs.region, rhs.field.field_id)
                 copy.add_dst_requirement(lhs.region, lhs.field.field_id)
@@ -4820,7 +4820,7 @@ class DeferredArray(NumPyThunk):
             if lhs_array.size > 1:
                 # Output is not a scalar so do a fill broadcast
                 result = lhs_array.base
-                # Comptue our launch space
+                # Compute our launch space
                 launch_space = result.compute_parallel_launch_space()
                 if where_array is None:
                     if launch_space is not None:
@@ -4963,26 +4963,25 @@ class DeferredArray(NumPyThunk):
             # Normal/broadcast version of this task
             assert lhs_array.size > 1
             result = lhs_array.base
-            # Comptue our launch space
+            # Pick the smallest launch space between the result array and the
+            # argument arrays (because non-full-machine launch spaces occur
+            # mostly for the output of GEMVs, whose partitioning we want to
+            # preserve).
             launch_space = None
-            if not result.has_parallel_launch_space():
-                # See if we can borrow the parallel launch space
-                # from one of the input arrays
-                if result is not rhs1 and lhs_array.shape == rhs1_array.shape:
-                    launch_space = rhs1.compute_parallel_launch_space()
-                    if launch_space is not None:
-                        key_array = rhs1
-                if (
-                    launch_space is None
-                    and result is not rhs2
-                    and lhs_array.shape == rhs2_array.shape
+            key_array = None
+            for arr in lhs_array, rhs1_array, rhs2_array:
+                if lhs_array.shape != arr.shape or isinstance(
+                    arr.base, Future
                 ):
-                    launch_space = rhs2.compute_parallel_launch_space()
-                    if launch_space is not None:
-                        key_array = rhs2
-            if launch_space is None:
-                launch_space = result.compute_parallel_launch_space()
-                key_array = result
+                    continue
+                arr_space = arr.base.compute_parallel_launch_space()
+                if arr_space is None:
+                    continue
+                if launch_space is None or calculate_volume(
+                    arr_space
+                ) <= calculate_volume(launch_space):
+                    launch_space = arr_space
+                    key_array = arr.base
             # Compute our transforms
             if rhs1_array.size > 1 and rhs1_array.shape != lhs_array.shape:
                 (
@@ -5047,7 +5046,7 @@ class DeferredArray(NumPyThunk):
                     result_part = result.find_or_create_congruent_partition(
                         key_part
                     )
-                    result.set_key_partition(result_part, shardfn, shardsp)
+                    result.set_key_partition(result_part)
                 else:
                     result_part = key_part
                 self.pack_shape(
@@ -5281,13 +5280,13 @@ class DeferredArray(NumPyThunk):
             assert not isinstance(rhs1, Future) or not isinstance(rhs2, Future)
             has_future = isinstance(rhs1, Future) or isinstance(rhs2, Future)
             # Compute our transforms
-            if rhs1_array.size > 1 and rhs1_array.shape != lhs_array.shape:
+            if rhs1_array.size > 1 and rhs1_array.shape != broadcast:
                 (
                     transform1,
                     offset1,
                     proj1_id,
                 ) = self.runtime.compute_broadcast_transform(
-                    lhs_array.shape, rhs1_array.shape
+                    broadcast, rhs1_array.shape
                 )
                 mapping_tag1 = (
                     NumPyMappingTag.NO_MEMOIZE_TAG if proj1_id > 0 else 0
@@ -5297,13 +5296,13 @@ class DeferredArray(NumPyThunk):
                 offset1 = None
                 proj1_id = 0
                 mapping_tag1 = NumPyMappingTag.KEY_REGION_TAG
-            if rhs2_array.size > 1 and rhs2_array.shape != lhs_array.shape:
+            if rhs2_array.size > 1 and rhs2_array.shape != broadcast:
                 (
                     transform2,
                     offset2,
                     proj2_id,
                 ) = self.runtime.compute_broadcast_transform(
-                    lhs_array.shape, rhs2_array.shape
+                    broadcast, rhs2_array.shape
                 )
                 mapping_tag2 = (
                     NumPyMappingTag.NO_MEMOIZE_TAG if proj2_id > 0 else 0
@@ -5341,7 +5340,7 @@ class DeferredArray(NumPyThunk):
             if launch_space is not None:
                 # Index task launch case
                 task_variant = (
-                    NumPyVariantCode.BROADCAST_REDUCTION
+                    NumPyVariantCode.BROADCAST
                     if has_future
                     else NumPyVariantCode.REDUCTION
                 )
@@ -5371,12 +5370,13 @@ class DeferredArray(NumPyThunk):
                     rhs1_part = rhs1.find_or_create_partition(rhs1_shape)
                 else:
                     rhs1_part = rhs1.find_or_create_partition(launch_space)
-                task.add_read_requirement(
-                    rhs1_part,
-                    rhs1.field.field_id,
-                    proj1_id,
-                    tag=mapping_tag1,
-                )
+                if not isinstance(rhs1, Future):
+                    task.add_read_requirement(
+                        rhs1_part,
+                        rhs1.field.field_id,
+                        proj1_id,
+                        tag=mapping_tag1,
+                    )
                 if isinstance(rhs2, Future):
                     task.add_future(rhs2)
                 elif transform2 is not None:
@@ -5389,12 +5389,13 @@ class DeferredArray(NumPyThunk):
                     rhs2_part = rhs2.find_or_create_partition(rhs2_shape)
                 else:
                     rhs2_part = rhs2.find_or_create_partition(launch_space)
-                task.add_read_requirement(
-                    rhs2_part,
-                    rhs2.field.field_id,
-                    proj2_id,
-                    tag=mapping_tag2,
-                )
+                if not isinstance(rhs2, Future):
+                    task.add_read_requirement(
+                        rhs2_part,
+                        rhs2.field.field_id,
+                        proj2_id,
+                        tag=mapping_tag2,
+                    )
                 if args is not None:
                     self.add_arguments(task, args)
                 redop = self.runtime.get_reduction_op_id(op, lhs_array.dtype)
@@ -5402,7 +5403,7 @@ class DeferredArray(NumPyThunk):
             else:
                 # Single task launch case
                 task_variant = (
-                    NumPyVariantCode.BROADCAST_REDUCTION
+                    NumPyVariantCode.BROADCAST
                     if has_future
                     else NumPyVariantCode.REDUCTION
                 )

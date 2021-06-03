@@ -141,6 +141,7 @@ GEN_GPU_SRC +=    universal_functions/absolute.cu      	\
 		  universal_functions/invert.cu        	\
 		  universal_functions/isinf.cu	        \
 		  universal_functions/isnan.cu         	\
+		  item.cu				\
 		  universal_functions/less.cu          	\
 		  universal_functions/less_equal.cu    	\
 		  less_equal_reduce.cu                 	\

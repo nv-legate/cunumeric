@@ -318,15 +318,12 @@ class NumPyThunk(LegateStore):
         if stop is None:
             stop = self.shape[dim]
         diff = abs(stop - start)
-        if key.step is not None and key.step == 0:
+        if stride == 0:
             raise IndexError("step 0 is not allowed for axis " + str(dim))
-        if key.step is not None and (
-            (key.step > 0 and key.step > diff)
-            or (key.stop < 0 and -key.step > diff)
-        ):
+        if abs(stride) > diff:
             raise IndexError(
                 "step "
-                + str(key.stop)
+                + str(stride)
                 + " is larger than range for axis "
                 + str(dim)
                 + " with extent "

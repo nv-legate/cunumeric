@@ -151,9 +151,8 @@ template <typename T>
     case 1: {
       const Rect<1> rect = NumPyProjectionFunctor::unpack_shape<1>(task, derez);
       if (rect.empty()) break;
-      const AccessorWO<bool, 1> out = derez.unpack_accessor_WO<bool, 1>(regions[0], rect);
-      const AccessorRO<T, 1> in1    = derez.unpack_accessor_RO<T, 1>(regions[1], rect);
-      const unsigned index          = derez.unpack_32bit_uint();
+      const AccessorRO<T, 1> in1 = derez.unpack_accessor_RO<T, 1>(regions[0], rect);
+      const unsigned index       = derez.unpack_32bit_uint();
       assert((index == 0) || (index == 1));
       if (index == 0) {
         for (coord_t x = rect.lo[0]; x <= rect.hi[0]; x++)
@@ -173,9 +172,8 @@ template <typename T>
     case 2: {
       const Rect<2> rect = NumPyProjectionFunctor::unpack_shape<2>(task, derez);
       if (rect.empty()) break;
-      const AccessorWO<bool, 2> out = derez.unpack_accessor_WO<bool, 2>(regions[0], rect);
-      const AccessorRO<T, 2> in1    = derez.unpack_accessor_RO<T, 2>(regions[1], rect);
-      const unsigned index          = derez.unpack_32bit_uint();
+      const AccessorRO<T, 2> in1 = derez.unpack_accessor_RO<T, 2>(regions[0], rect);
+      const unsigned index       = derez.unpack_32bit_uint();
       assert((index == 0) || (index == 1));
       if (index == 0) {
         for (coord_t x = rect.lo[0]; x <= rect.hi[0]; x++)
@@ -197,9 +195,8 @@ template <typename T>
     case 3: {
       const Rect<3> rect = NumPyProjectionFunctor::unpack_shape<3>(task, derez);
       if (rect.empty()) break;
-      const AccessorWO<bool, 3> out = derez.unpack_accessor_WO<bool, 3>(regions[0], rect);
-      const AccessorRO<T, 3> in1    = derez.unpack_accessor_RO<T, 3>(regions[1], rect);
-      const unsigned index          = derez.unpack_32bit_uint();
+      const AccessorRO<T, 3> in1 = derez.unpack_accessor_RO<T, 3>(regions[0], rect);
+      const unsigned index       = derez.unpack_32bit_uint();
       assert((index == 0) || (index == 1));
       if (index == 0) {
         for (coord_t x = rect.lo[0]; x <= rect.hi[0]; x++)
@@ -243,9 +240,8 @@ template <typename T>
     case 1: {
       const Rect<1> rect = NumPyProjectionFunctor::unpack_shape<1>(task, derez);
       if (rect.empty()) break;
-      const AccessorWO<bool, 1> out = derez.unpack_accessor_WO<bool, 1>(regions[0], rect);
-      const AccessorRO<T, 1> in1    = derez.unpack_accessor_RO<T, 1>(regions[1], rect);
-      const unsigned index          = derez.unpack_32bit_uint();
+      const AccessorRO<T, 1> in1 = derez.unpack_accessor_RO<T, 1>(regions[0], rect);
+      const unsigned index       = derez.unpack_32bit_uint();
       assert((index == 0) || (index == 1));
       if (index == 0) {
 #pragma omp parallel for
@@ -261,9 +257,8 @@ template <typename T>
     case 2: {
       const Rect<2> rect = NumPyProjectionFunctor::unpack_shape<2>(task, derez);
       if (rect.empty()) break;
-      const AccessorWO<bool, 2> out = derez.unpack_accessor_WO<bool, 2>(regions[0], rect);
-      const AccessorRO<T, 2> in1    = derez.unpack_accessor_RO<T, 2>(regions[1], rect);
-      const unsigned index          = derez.unpack_32bit_uint();
+      const AccessorRO<T, 2> in1 = derez.unpack_accessor_RO<T, 2>(regions[0], rect);
+      const unsigned index       = derez.unpack_32bit_uint();
       assert((index == 0) || (index == 1));
       if (index == 0) {
 #pragma omp parallel for
@@ -281,9 +276,8 @@ template <typename T>
     case 3: {
       const Rect<3> rect = NumPyProjectionFunctor::unpack_shape<3>(task, derez);
       if (rect.empty()) break;
-      const AccessorWO<bool, 3> out = derez.unpack_accessor_WO<bool, 3>(regions[0], rect);
-      const AccessorRO<T, 3> in1    = derez.unpack_accessor_RO<T, 3>(regions[1], rect);
-      const unsigned index          = derez.unpack_32bit_uint();
+      const AccessorRO<T, 3> in1 = derez.unpack_accessor_RO<T, 3>(regions[0], rect);
+      const unsigned index       = derez.unpack_32bit_uint();
       assert((index == 0) || (index == 1));
       if (index == 0) {
 #pragma omp parallel for

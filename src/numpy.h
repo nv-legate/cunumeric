@@ -49,7 +49,7 @@ class LegateNumPy {
                              bool leaf,
                              bool inner,
                              bool idempotent,
-                             bool ret_type);
+                             size_t ret_size);
 
  public:
   struct PendingTaskVariant : public Legion::TaskVariantRegistrar {
@@ -64,12 +64,12 @@ class LegateNumPy {
                        const char* t_name,
                        const Legion::CodeDescriptor& desc,
                        LegateVariant v,
-                       bool ret)
+                       size_t ret)
       : Legion::TaskVariantRegistrar(tid, global, var_name),
         task_name(t_name),
         descriptor(desc),
         var(v),
-        ret_type(ret)
+        ret_size(ret)
     {
     }
 
@@ -77,7 +77,7 @@ class LegateNumPy {
     const char* task_name;
     Legion::CodeDescriptor descriptor;
     LegateVariant var;
-    bool ret_type;
+    size_t ret_size;
   };
   static std::deque<PendingTaskVariant>& get_pending_task_variants(void);
 };
@@ -95,7 +95,7 @@ class NumPyTask : public LegateTask<T> {
                              bool leaf,
                              bool inner,
                              bool idempotent,
-                             bool ret_type)
+                             size_t ret_size)
   {
     // For this just turn around and call this on the base LegateNumPy
     // type so it will deduplicate across all task kinds
@@ -109,7 +109,7 @@ class NumPyTask : public LegateTask<T> {
                                 leaf,
                                 inner,
                                 idempotent,
-                                ret_type);
+                                ret_size);
   }
 };
 
@@ -367,6 +367,33 @@ class NumPyTask : public LegateTask<T> {
 // type<complex<double>>::variant(const Task*, const std::vector<PhysicalRegion>&, Context,
 // Runtime*);
 
+#define INSTANTIATE_DEFERRED_VALUE_TASK_VARIANTS(type, variant)          \
+  template DeferredValue<float> type<float>::variant(                    \
+    const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*); \
+  template DeferredValue<double> type<double>::variant(                  \
+    const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*); \
+  template DeferredValue<int16_t> type<int16_t>::variant(                \
+    const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*); \
+  template DeferredValue<int32_t> type<int32_t>::variant(                \
+    const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*); \
+  template DeferredValue<int64_t> type<int64_t>::variant(                \
+    const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*); \
+  template DeferredValue<uint16_t> type<uint16_t>::variant(              \
+    const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*); \
+  template DeferredValue<uint32_t> type<uint32_t>::variant(              \
+    const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*); \
+  template DeferredValue<uint64_t> type<uint64_t>::variant(              \
+    const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*); \
+  template DeferredValue<bool> type<bool>::variant(                      \
+    const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*); \
+  template DeferredValue<__half> type<__half>::variant(                  \
+    const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*); \
+  template DeferredValue<complex<float>> type<complex<float>>::variant(  \
+    const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
+// template DeferredValue<complex<double>>
+// type<complex<double>>::variant(const Task*, const std::vector<PhysicalRegion>&, Context,
+// Runtime*);
+
 #define INSTANTIATE_DEFERRED_VALUE_TASK_VARIANT(type, return_type, variant) \
   template DeferredValue<return_type> type<float>::variant(                 \
     const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);    \
@@ -544,6 +571,24 @@ class NumPyTask : public LegateTask<T> {
     type<complex<float>>::register_variants_with_return<int64_t, DeferredValue<int64_t>>(); \
   }
    // type<complex<double>>::register_variants_with_return<int64_t, DeferredValue<int64_t>>();   \
+
+#define REGISTER_ALL_TASKS_WITH_VALUE_RETURN(type)                                        \
+  {                                                                                       \
+    type<float>::register_variants_with_return<float, DeferredValue<float>>();            \
+    type<double>::register_variants_with_return<double, DeferredValue<double>>();         \
+    type<int16_t>::register_variants_with_return<int16_t, DeferredValue<int16_t>>();      \
+    type<int32_t>::register_variants_with_return<int32_t, DeferredValue<int32_t>>();      \
+    type<int64_t>::register_variants_with_return<int64_t, DeferredValue<int64_t>>();      \
+    type<uint16_t>::register_variants_with_return<uint16_t, DeferredValue<uint16_t>>();   \
+    type<uint32_t>::register_variants_with_return<uint32_t, DeferredValue<uint32_t>>();   \
+    type<uint64_t>::register_variants_with_return<uint64_t, DeferredValue<uint64_t>>();   \
+    type<bool>::register_variants_with_return<bool, DeferredValue<bool>>();               \
+    type<__half>::register_variants_with_return<__half, DeferredValue<__half>>();         \
+    type<complex<float>>::register_variants_with_return<complex<float>,                   \
+                                                        DeferredValue<complex<float>>>(); \
+  }
+   // type<complex<double>>::register_variants_with_return<complex<double>,
+   // DeferredValue<complex<double>>>();       \
 
 #define REGISTER_ALL_TASKS_WITH_REDUCTION_RETURN(type, redop)                                      \
   {                                                                                                \

@@ -381,7 +381,7 @@ class FieldManager(object):
 
 
 def _find_or_create_partition(
-    runtime, region, color_shape, tile_shape, offset, transform
+    runtime, region, color_shape, tile_shape, offset, transform, complete=True
 ):
     # Compute the extent and transform for this partition operation
     lo = (0,) * len(tile_shape)
@@ -439,7 +439,9 @@ def _find_or_create_partition(
         region.index_space,
         color_space,
         functor,
-        kind=legion.LEGION_DISJOINT_COMPLETE_KIND,
+        kind=legion.LEGION_DISJOINT_COMPLETE_KIND
+        if complete
+        else legion.LEGION_DISJOINT_INCOMPLETE_KIND,
         keep=True,  # export this partition functor to other libraries
     )
     partition = region.get_child(index_partition)
@@ -491,6 +493,24 @@ class RegionField(object):
         if self.attach_array is not None:
             self.detach_numpy_array(unordered=True, defer=True)
 
+    def overlaps(self, other):
+        # TODO: This check is a little conservative (ignores slice step)
+        ndim = len(self.shape)
+        assert len(other.shape) == ndim
+        arrays = [self, other]
+        lo = [None, None]
+        hi = [None, None]
+        for i in range(2):
+            lo[i] = (0,) * ndim
+            hi[i] = tuple(x - 1 for x in arrays[i].shape)
+            if arrays[i].transform is not None:
+                lo[i] = arrays[i].transform.apply(lo[i])
+                hi[i] = arrays[i].transform.apply(hi[i])
+        for d in range(ndim):
+            if hi[0][d] < lo[1][d] or hi[1][d] < lo[0][d]:
+                return False
+        return True
+
     def has_parallel_launch_space(self):
         return self.launch_space is not None
 
@@ -522,9 +542,18 @@ class RegionField(object):
         assert self.launch_space is not None
         return self.shard_point, self.shard_function, self.shard_space
 
-    def set_key_partition(self, part, shardfn, shardsp):
+    def set_key_partition(self, part, shardfn=None, shardsp=None):
+        assert part.parent == self.region
         self.launch_space = part.color_shape
         self.key_partition = part
+        if shardfn is None:
+            assert shardsp is None
+            shardfn = (
+                self.runtime.first_shard_id
+                + legate_numpy.NUMPY_SHARD_TILE_1D
+                + len(self.shape)
+                - 1
+            )
         self.shard_function = shardfn
         self.shard_space = shardsp
 
@@ -1665,7 +1694,7 @@ class Runtime(object):
                 # save it in the subviews that we computed
                 child_region = partition.get_child(Point(tile_color))
                 if not parent.subviews:
-                    parent.subviews = list()
+                    parent.subviews = weakref.WeakSet()
                 region_field = RegionField(
                     self,
                     child_region,
@@ -1677,38 +1706,26 @@ class Runtime(object):
                     key,
                     view,
                 )
-                parent.subviews.append(region_field)
+                parent.subviews.add(region_field)
                 return DeferredArray(
                     self, region_field, shape, parent.field.dtype
                 )
             else:
-                # If necessary we may need to transform these dimensions back
-                # into the global address space, not we do this with the parent
-                # transform since they are in the parent's coordinate space
-                if parent.transform:
-                    lo = parent.transform.apply(lo)
-                    hi = parent.transform.apply(hi)
-                # Now that we have the points in the global coordinate space
-                # we can build the domain for the extent
-                extent = Rect(hi, lo, exclusive=False)
-                # Get the unit color space
-                color_space = self.find_or_create_index_space((1,))
-                # Function for doing the call to make the partition
-                identity_transform = Transform(len(lo), 1)
-                functor = PartitionByRestriction(identity_transform, extent)
-                index_partition = IndexPartition(
-                    self.context,
-                    self.runtime,
-                    parent.region.index_space,
-                    color_space,
-                    functor,
-                    kind=legion.LEGION_DISJOINT_INCOMPLETE_KIND,
-                    keep=True,
+                tile_shape = tuple(map(lambda x, y: ((x - y) + 1), hi, lo))
+                partition = _find_or_create_partition(
+                    self,
+                    parent.region,
+                    (1,) * len(tile_shape),
+                    tile_shape,
+                    lo,
+                    parent.transform,
+                    complete=False,
                 )
-                partition = parent.region.get_child(index_partition)
-                child_region = partition.get_child(Point((0,)))
+                child_region = partition.get_child(
+                    Point((0,) * len(tile_shape))
+                )
                 if not parent.subviews:
-                    parent.subviews = list()
+                    parent.subviews = weakref.WeakSet()
                 region_field = RegionField(
                     self,
                     child_region,
@@ -1720,7 +1737,7 @@ class Runtime(object):
                     key,
                     view,
                 )
-                parent.subviews.append(region_field)
+                parent.subviews.add(region_field)
                 return DeferredArray(
                     self, region_field, shape, parent.field.dtype
                 )
@@ -1785,7 +1802,7 @@ class Runtime(object):
             self.perform_detachments()
         if self.pending_detachments:
             self.prune_detachments()
-        # Launch the operation, always user our mapper
+        # Launch the operation, always use our mapper
         if redop:
             return operation.launch(self.runtime, self.context, redop)
         else:
