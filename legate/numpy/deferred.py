@@ -97,13 +97,21 @@ class DeferredArray(NumPyThunk):
             return
         src = src_array.base
         dst = dst_array.base
-        # Sometimes we get asked to do this in case of in-place updates
-        # in which case both src and dst will have the same field
+        # Check for intra-array copies
         if src.field is dst.field:
-            if src.overlaps(dst):
-                raise NotImplementedError(
-                    "copies between overlapping sub-arrays"
-                )
+            if src.region is dst.region and src.transform == dst.transform:
+                # Self-copy; This will happen because of how Python expands
+                # in-place updates: x[:] += y becomes x[:] = x[:].__iadd__(y),
+                # and that eventually executes x[:] = x[:]. In this case we
+                # have nothing to do.
+                return
+            else:
+                # XXX: This will happen if we are copying between two different
+                # sub-arrays within the same array. If the two sub-arrays
+                # overlap we will fail with a runtime error. Unfortunately
+                # there is no cheap and accurate way to test for overlap in the
+                # presence of views.
+                pass
         # Check to see if we already have a target launch space for
         # the destination meaning it has been partitioned already
         if dst.has_parallel_launch_space():
