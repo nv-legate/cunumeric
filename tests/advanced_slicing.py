@@ -73,7 +73,7 @@ def test():
     assert np.array_equal(a, [0, 1, 2, 3, 4, 0, 1, 2, 3, 4])
 
     # can write through views
-    # TODO: Fix #16
+    # TODO: Fix #41
     # a = lg.arange(20)
     # b = np.arange(10)
     # a[10:][range(5)] = b[2:7]
@@ -82,7 +82,7 @@ def test():
     # )
 
     # can copy within the same array
-    # TODO: Fix #16
+    # TODO: Fix #40
     # a = lg.arange(20)
     # a[10:][range(5)] = a[2:7]
     # assert np.array_equal(
@@ -90,7 +90,7 @@ def test():
     # )
 
     # source & destination regions can (partially) overlap
-    # TODO: Fix #16
+    # TODO: Fix #40
     # a = lg.arange(20)
     # a[10:][range(5)] = a[12:17]
     # assert np.array_equal(
@@ -162,7 +162,7 @@ def test():
     # )
 
     # can write through views
-    # TODO: Fix #16
+    # TODO: Fix #41
     # a = sequence_2d()
     # b = lg.zeros(4, dtype=np.int64)
     # a[2:, :][[1, 1, 2, 2], [1, 2, 1, 2]] = b
@@ -178,7 +178,7 @@ def test():
     # )
 
     # can copy within the same array
-    # TODO: Fix #16
+    # TODO: Fix #40
     # a = sequence_2d()
     # a[2:, :][[[1, 1], [2, 2]], [[1, 2], [1, 2]]] = a[1:3, 3:5]
     # assert np.array_equal(
@@ -193,7 +193,7 @@ def test():
     # )
 
     # source & destination regions can (partially) overlap
-    # TODO: Fix #16
+    # TODO: Fix #40
     # a = sequence_2d()
     # a[2:, :][[[1, 1], [2, 2]], [[1, 2], [1, 2]]] = a[3:5, 2:4]
     # assert np.array_equal(
