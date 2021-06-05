@@ -49,7 +49,6 @@ GEN_CPU_SRC += ternary/where.cc               \
 							 rand.cc                        \
 							 scan.cc                        \
 							 shard.cc                       \
-							 sort.cc                        \
 							 tile.cc                        \
 							 trans.cc                       \
 							 numpy.cc # This must always be the last file!
@@ -92,7 +91,6 @@ GEN_GPU_SRC += ternary/where.cu               \
 							 nonzero.cu                     \
 							 rand.cu                        \
 							 scan.cu                        \
-							 sort.cu                        \
 							 tile.cu                        \
 							 trans.cu                       \
 							 numpy.cu

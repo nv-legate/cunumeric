@@ -118,7 +118,6 @@ class NumPyOpCode(IntEnum):
     RAND_INTEGER = legate_numpy.NUMPY_RAND_INTEGER
     RAND_NORMAL = legate_numpy.NUMPY_RAND_NORMAL
     RAND_UNIFORM = legate_numpy.NUMPY_RAND_UNIFORM
-    SORT = legate_numpy.NUMPY_SORT
     TILE = legate_numpy.NUMPY_TILE
     TRANSPOSE = legate_numpy.NUMPY_TRANSPOSE
     NONZERO = legate_numpy.NUMPY_NONZERO

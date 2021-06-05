@@ -37,7 +37,6 @@ enum NumPyOpCode {
   NUMPY_RAND_INTEGER     = 49,
   NUMPY_RAND_NORMAL      = 50,
   NUMPY_RAND_UNIFORM     = 51,
-  NUMPY_SORT             = 54,
   NUMPY_TILE             = 61,
   NUMPY_TRANSPOSE        = 62,
   NUMPY_NONZERO          = 70,
