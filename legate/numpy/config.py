@@ -120,9 +120,6 @@ class NumPyOpCode(IntEnum):
     RAND_UNIFORM = legate_numpy.NUMPY_RAND_UNIFORM
     TILE = legate_numpy.NUMPY_TILE
     TRANSPOSE = legate_numpy.NUMPY_TRANSPOSE
-    NONZERO = legate_numpy.NUMPY_NONZERO
-    INCLUSIVE_SCAN = legate_numpy.NUMPY_INCLUSIVE_SCAN
-    CONVERT_TO_RECT = legate_numpy.NUMPY_CONVERT_TO_RECT
     ARANGE = legate_numpy.NUMPY_ARANGE
     # Type-erased operators
     BINARY_OP = legate_numpy.NUMPY_BINARY_OP
@@ -361,7 +358,5 @@ class NumPyProjCode(IntEnum):
     PROJ_RADIX_3D_Z_4_1 = legate_numpy.NUMPY_PROJ_RADIX_3D_Z_4_1
     PROJ_RADIX_3D_Z_4_2 = legate_numpy.NUMPY_PROJ_RADIX_3D_Z_4_2
     PROJ_RADIX_3D_Z_4_3 = legate_numpy.NUMPY_PROJ_RADIX_3D_Z_4_3
-    # Flattening
-    PROJ_ND_1D_C_ORDER = legate_numpy.NUMPY_PROJ_ND_1D_C_ORDER
     # Must always be last
     PROJ_LAST = legate_numpy.NUMPY_PROJ_LAST
