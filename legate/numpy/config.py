@@ -108,13 +108,8 @@ NUMPY_TYPE_OFFSET = NUMPY_MAX_TYPES * NUMPY_MAX_VARIANTS
 # Match these to NumPyOpCode in legate_numpy_c.h
 @unique
 class NumPyOpCode(IntEnum):
-    EYE = legate_numpy.NUMPY_EYE
-    RAND_INTEGER = legate_numpy.NUMPY_RAND_INTEGER
-    RAND_NORMAL = legate_numpy.NUMPY_RAND_NORMAL
-    RAND_UNIFORM = legate_numpy.NUMPY_RAND_UNIFORM
     TILE = legate_numpy.NUMPY_TILE
     TRANSPOSE = legate_numpy.NUMPY_TRANSPOSE
-    ARANGE = legate_numpy.NUMPY_ARANGE
     # Type-erased operators
     BINARY_OP = legate_numpy.NUMPY_BINARY_OP
     SCALAR_BINARY_OP = legate_numpy.NUMPY_SCALAR_BINARY_OP
@@ -135,6 +130,9 @@ class NumPyOpCode(IntEnum):
     MATVECMUL = legate_numpy.NUMPY_MATVECMUL
     DOT = legate_numpy.NUMPY_DOT
     BINCOUNT = legate_numpy.NUMPY_BINCOUNT
+    EYE = legate_numpy.NUMPY_EYE
+    RAND = legate_numpy.NUMPY_RAND
+    ARANGE = legate_numpy.NUMPY_ARANGE
 
 
 @unique
@@ -195,6 +193,13 @@ class UnaryRedCode(IntEnum):
     ARGMIN = 6
     CONTAINS = 7
     COUNT_NONZERO = 8
+
+
+@unique
+class RandGenCode(IntEnum):
+    UNIFORM = 1
+    NORMAL = 2
+    INTEGER = 3
 
 
 # Match these to NumPyRedopID in legate_numpy_c.h

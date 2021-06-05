@@ -14,13 +14,7 @@
  *
  */
 
-#ifndef __NUMPY_RAND_H__
-#define __NUMPY_RAND_H__
-
-#include "numpy.h"
-
-#define HI_BITS(x) ((unsigned)((x) >> 32))
-#define LO_BITS(x) ((unsigned)((x)&0x00000000FFFFFFFF))
+#pragma once
 
 // An implementation of DE Shaw's Philox 2x32 PRNG
 
@@ -146,85 +140,5 @@ class Philox_2x32 {
   }
 };
 
-typedef Philox_2x32<10> RandomGenerator;
-
-// Generate uniformly distributed 64-bit floats in the range [0, 1)
-class RandUniformTask : public NumPyTask<RandUniformTask> {
- public:
-  static const int TASK_ID;
-  static const int REGIONS = 1;
-
- public:
-  static void cpu_variant(const Legion::Task* task,
-                          const std::vector<Legion::PhysicalRegion>& regions,
-                          Legion::Context ctx,
-                          Legion::Runtime* runtime);
-#ifdef LEGATE_USE_OPENMP
-  static void omp_variant(const Legion::Task* task,
-                          const std::vector<Legion::PhysicalRegion>& regions,
-                          Legion::Context ctx,
-                          Legion::Runtime* runtime);
-#endif
-#ifdef LEGATE_USE_CUDA
-  static void gpu_variant(const Legion::Task* task,
-                          const std::vector<Legion::PhysicalRegion>& regions,
-                          Legion::Context ctx,
-                          Legion::Runtime* runtime);
-#endif
-};
-
-// Generate normally distributed 64-bit floats in the range [0, 1)
-class RandNormalTask : public NumPyTask<RandNormalTask> {
- public:
-  static const int TASK_ID;
-  static const int REGIONS = 1;
-
- public:
-  static void cpu_variant(const Legion::Task* task,
-                          const std::vector<Legion::PhysicalRegion>& regions,
-                          Legion::Context ctx,
-                          Legion::Runtime* runtime);
-#ifdef LEGATE_USE_OPENMP
-  static void omp_variant(const Legion::Task* task,
-                          const std::vector<Legion::PhysicalRegion>& regions,
-                          Legion::Context ctx,
-                          Legion::Runtime* runtime);
-#endif
-#ifdef LEGATE_USE_CUDA
-  static void gpu_variant(const Legion::Task* task,
-                          const std::vector<Legion::PhysicalRegion>& regions,
-                          Legion::Context ctx,
-                          Legion::Runtime* runtime);
-#endif
-};
-
-// Generate uniformly distributed integers in the range [low, high)
-template <typename T>
-class RandIntegerTask : public NumPyTask<RandIntegerTask<T>> {
- public:
-  static const int TASK_ID;
-  static const int REGIONS = 1;
-
- public:
-  static void cpu_variant(const Legion::Task* task,
-                          const std::vector<Legion::PhysicalRegion>& regions,
-                          Legion::Context ctx,
-                          Legion::Runtime* runtime);
-#ifdef LEGATE_USE_OPENMP
-  static void omp_variant(const Legion::Task* task,
-                          const std::vector<Legion::PhysicalRegion>& regions,
-                          Legion::Context ctx,
-                          Legion::Runtime* runtime);
-#endif
-#ifdef LEGATE_USE_CUDA
-  static void gpu_variant(const Legion::Task* task,
-                          const std::vector<Legion::PhysicalRegion>& regions,
-                          Legion::Context ctx,
-                          Legion::Runtime* runtime);
-#endif
-};
-
 }  // namespace numpy
 }  // namespace legate
-
-#endif  // __NUMPY_RAND_H__

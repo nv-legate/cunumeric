@@ -18,6 +18,7 @@ import legate.numpy as lg
 
 def test():
     lg.random.randint(8000, size=8000)
+    lg.random.randint(8000, size=(8000, 2))
 
     return
 

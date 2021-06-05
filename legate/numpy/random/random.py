@@ -60,7 +60,9 @@ def randint(low, high=None, size=None, dtype=None):
     # TODO: randint must support unsigned integer dtypes as well
     if dtype.kind != "i":
         raise TypeError("legate.random.randint must be given an integer dtype")
-    result = ndarray((size,), dtype=dtype)
+    if not isinstance(size, tuple):
+        size = (size,)
+    result = ndarray(size, dtype=dtype)
     if high is None:
         if low <= 0:
             raise ValueError(

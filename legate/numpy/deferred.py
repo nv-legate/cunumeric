@@ -1962,196 +1962,61 @@ class DeferredArray(NumPyThunk):
     def nonzero(self, stacklevel, callsite=None):
         raise NotImplementedError()
 
+    def random(self, gen_code, args, stacklevel, callsite=None):
+        lhs_arg = DeferredArrayView(self)
+        launch_space, key_arg = lhs_arg.find_key_view()
+        key_arg.update_tag(NumPyMappingTag.KEY_REGION_TAG)
+
+        (shardpt, shardfn, shardsp) = key_arg.sharding
+
+        task = Map(self.runtime, NumPyOpCode.RAND, tag=shardfn)
+
+        task.add_scalar_arg(gen_code.value, np.int32)
+        if launch_space is not None:
+            task.add_shape(lhs_arg.shape, lhs_arg.part.tile_shape, 0)
+        else:
+            task.add_shape(lhs_arg.shape)
+        lhs_arg.add_to_legate_op(task, False)
+        epoch = self.runtime.get_next_random_epoch()
+        task.add_scalar_arg(epoch, np.uint32)
+        task.add_point(self.compute_strides(lhs_arg.shape), untyped=True)
+        self.add_arguments(task, args)
+
+        if launch_space is not None:
+            task.execute(Rect(launch_space))
+        else:
+            task.execute_single()
+
+        self.runtime.profile_callsite(stacklevel + 1, True, callsite)
+
     def random_uniform(self, stacklevel, callsite=None):
-        lhs_array = self
-        assert lhs_array.dtype.type == np.float64
+        assert self.dtype == np.float64
         # Special case for shadow debugging
         if self.runtime.shadow_debug:
             self.shadow.random_uniform(stacklevel=(stacklevel + 1))
             self.base.attach_numpy_array(self.shadow.array.copy())
             return
-        result = lhs_array.base
-        launch_space = result.compute_parallel_launch_space()
-        argbuf = BufferBuilder()
-        argbuf.pack_32bit_uint(self.runtime.get_next_random_epoch())
-        if launch_space is not None:
-            (
-                result_part,
-                shardfn,
-                shardsp,
-            ) = result.find_or_create_key_partition()
-            self.pack_shape(argbuf, lhs_array.shape, result_part.tile_shape, 0)
-        else:
-            self.pack_shape(argbuf, lhs_array.shape)
-        argbuf.pack_point(self.compute_strides(lhs_array.shape))
-        argbuf.pack_accessor(result.field.field_id, result.transform)
-        if launch_space is not None:
-            task = IndexTask(
-                self.runtime.get_nullary_task_id(
-                    NumPyOpCode.RAND_UNIFORM, result_type=lhs_array.dtype
-                ),
-                Rect(launch_space),
-                self.runtime.empty_argmap,
-                argbuf.get_string(),
-                argbuf.get_size(),
-                mapper=self.runtime.mapper_id,
-                tag=shardfn,
-            )
-            if shardsp is not None:
-                task.set_sharding_space(shardsp)
-            task.add_write_requirement(
-                result_part,
-                result.field.field_id,
-                0,
-                tag=NumPyMappingTag.KEY_REGION_TAG,
-            )
-            self.runtime.dispatch(task)
-        else:
-            shardpt, shardfn, shardsp = result.find_point_sharding()
-            task = Task(
-                self.runtime.get_nullary_task_id(
-                    NumPyOpCode.RAND_UNIFORM, result_type=lhs_array.dtype
-                ),
-                argbuf.get_string(),
-                argbuf.get_size(),
-                mapper=self.runtime.mapper_id,
-                tag=shardfn,
-            )
-            if shardpt is not None:
-                task.set_point(shardpt)
-            if shardsp is not None:
-                task.set_sharding_space(shardsp)
-            task.add_write_requirement(result.region, result.field.field_id)
-            self.runtime.dispatch(task)
-        self.runtime.profile_callsite(stacklevel + 1, True, callsite)
+        self.random(RandGenCode.UNIFORM, [], stacklevel + 1, callsite)
 
     def random_normal(self, stacklevel, callsite=None):
-        lhs_array = self
-        assert lhs_array.dtype.type == np.float64
+        assert self.dtype == np.float64
         # Special case for shadow debugging since it's hard to get data back
         if self.runtime.shadow_debug:
             self.shadow.random_normal(stacklevel=(stacklevel + 1))
             self.base.attach_numpy_array(self.shadow.array.copy())
             return
-        result = lhs_array.base
-        launch_space = result.compute_parallel_launch_space()
-        argbuf = BufferBuilder()
-        argbuf.pack_32bit_uint(self.runtime.get_next_random_epoch())
-        if launch_space is not None:
-            (
-                result_part,
-                shardfn,
-                shardsp,
-            ) = result.find_or_create_key_partition()
-            self.pack_shape(argbuf, lhs_array.shape, result_part.tile_shape, 0)
-        else:
-            self.pack_shape(argbuf, lhs_array.shape)
-        argbuf.pack_point(self.compute_strides(lhs_array.shape))
-        argbuf.pack_accessor(result.field.field_id, result.transform)
-        if launch_space is not None:
-            task = IndexTask(
-                self.runtime.get_nullary_task_id(
-                    NumPyOpCode.RAND_NORMAL, result_type=lhs_array.dtype
-                ),
-                Rect(launch_space),
-                self.runtime.empty_argmap,
-                argbuf.get_string(),
-                argbuf.get_size(),
-                mapper=self.runtime.mapper_id,
-                tag=shardfn,
-            )
-            if shardsp is not None:
-                task.set_sharding_space(shardsp)
-            task.add_write_requirement(
-                result_part,
-                result.field.field_id,
-                0,
-                tag=NumPyMappingTag.KEY_REGION_TAG,
-            )
-            self.runtime.dispatch(task)
-        else:
-            shardpt, shardfn, shardsp = result.find_point_sharding()
-            task = Task(
-                self.runtime.get_nullary_task_id(
-                    NumPyOpCode.RAND_NORMAL, result_type=lhs_array.dtype
-                ),
-                argbuf.get_string(),
-                argbuf.get_size(),
-                mapper=self.runtime.mapper_id,
-                tag=shardfn,
-            )
-            if shardpt is not None:
-                task.set_point(shardpt)
-            if shardsp is not None:
-                task.set_sharding_space(shardsp)
-            task.add_write_requirement(result.region, result.field.field_id)
-            self.runtime.dispatch(task)
-        self.runtime.profile_callsite(stacklevel + 1, True, callsite)
+        self.random(RandGenCode.NORMAL, [], stacklevel + 1, callsite)
 
     def random_integer(self, low, high, stacklevel, callsite=None):
-        lhs_array = self
-        assert lhs_array.dtype.kind == "i"
+        assert self.dtype.kind == "i"
         # Special case for shadow debugging since it's hard to get data back
         if self.runtime.shadow_debug:
             self.shadow.random_integer(low, high, stacklevel=(stacklevel + 1))
             self.base.attach_numpy_array(self.shadow.array.copy())
             return
-        result = lhs_array.base
-        launch_space = result.compute_parallel_launch_space()
-        argbuf = BufferBuilder()
-        argbuf.pack_32bit_uint(self.runtime.get_next_random_epoch())
-        argbuf.pack_value(low, lhs_array.dtype)
-        argbuf.pack_value(high, lhs_array.dtype)
-        if launch_space is not None:
-            (
-                result_part,
-                shardfn,
-                shardsp,
-            ) = result.find_or_create_key_partition()
-            self.pack_shape(argbuf, lhs_array.shape, result_part.tile_shape, 0)
-        else:
-            self.pack_shape(argbuf, lhs_array.shape)
-        argbuf.pack_point(self.compute_strides(lhs_array.shape))
-        argbuf.pack_accessor(result.field.field_id, result.transform)
-        if launch_space is not None:
-            task = IndexTask(
-                self.runtime.get_nullary_task_id(
-                    NumPyOpCode.RAND_INTEGER, result_type=lhs_array.dtype
-                ),
-                Rect(launch_space),
-                self.runtime.empty_argmap,
-                argbuf.get_string(),
-                argbuf.get_size(),
-                mapper=self.runtime.mapper_id,
-                tag=shardfn,
-            )
-            if shardsp is not None:
-                task.set_sharding_space(shardsp)
-            task.add_write_requirement(
-                result_part,
-                result.field.field_id,
-                0,
-                tag=NumPyMappingTag.KEY_REGION_TAG,
-            )
-            self.runtime.dispatch(task)
-        else:
-            shardpt, shardfn, shardsp = result.find_point_sharding()
-            task = Task(
-                self.runtime.get_nullary_task_id(
-                    NumPyOpCode.RAND_INTEGER, result_type=lhs_array.dtype
-                ),
-                argbuf.get_string(),
-                argbuf.get_size(),
-                mapper=self.runtime.mapper_id,
-                tag=shardfn,
-            )
-            if shardpt is not None:
-                task.set_point(shardpt)
-            if shardsp is not None:
-                task.set_sharding_space(shardsp)
-            task.add_write_requirement(result.region, result.field.field_id)
-            self.runtime.dispatch(task)
-        self.runtime.profile_callsite(stacklevel + 1, True, callsite)
+        low = np.array(low, self.dtype)
+        high = np.array(high, self.dtype)
+        self.random(RandGenCode.INTEGER, [low, high], stacklevel + 1, callsite)
 
     # Perform the unary operation and put the result in the array
     def unary_op(

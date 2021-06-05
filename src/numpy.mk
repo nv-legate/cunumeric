@@ -38,6 +38,8 @@ GEN_CPU_SRC += ternary/where.cc               \
 							 matrix/matvecmul.cc            \
 							 matrix/dot.cc                  \
 							 matrix/util.cc                 \
+							 random/rand.cc                 \
+							 random/rand_util.cc            \
 							 stat/bincount.cc               \
 							 core.cc                        \
 							 deserializer.cc                \
@@ -45,7 +47,6 @@ GEN_CPU_SRC += ternary/where.cc               \
 							 arg.cc                         \
 							 mapper.cc                      \
 							 proj.cc                        \
-							 rand.cc                        \
 							 shard.cc                       \
 							 tile.cc                        \
 							 trans.cc                       \
@@ -68,6 +69,7 @@ GEN_CPU_SRC += ternary/where_omp.cc          \
 							 matrix/matmul_omp.cc          \
 							 matrix/matvecmul_omp.cc       \
 							 matrix/dot_omp.cc             \
+							 random/rand_omp.cc            \
 							 stat/bincount_omp.cc
 endif
 
@@ -87,8 +89,8 @@ GEN_GPU_SRC += ternary/where.cu               \
 							 matrix/matmul.cu               \
 							 matrix/matvecmul.cu            \
 							 matrix/dot.cu                  \
+							 random/rand.cu                 \
 							 stat/bincount.cu               \
-							 rand.cu                        \
 							 tile.cu                        \
 							 trans.cu                       \
 							 numpy.cu
