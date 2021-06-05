@@ -16,17 +16,11 @@
 from __future__ import absolute_import, division, print_function
 
 import os
-import sys
 from enum import IntEnum, unique
 
 import numpy as np
 
 from legate.core import LegateLibrary, legate_add_library, legion
-
-
-# Helper method for python 3 support
-def _itervalues(obj):
-    return obj.values() if sys.version_info > (3,) else obj.viewvalues()
 
 
 # Load the Legate NumPy library first so we have a shard object that
@@ -276,7 +270,6 @@ class NumPyTunable(IntEnum):
     LOCAL_CPUS = legate_numpy.NUMPY_TUNABLE_LOCAL_CPUS
     LOCAL_GPUS = legate_numpy.NUMPY_TUNABLE_LOCAL_GPUS
     LOCAL_OMPS = legate_numpy.NUMPY_TUNABLE_LOCAL_OPENMPS
-    RADIX = legate_numpy.NUMPY_TUNABLE_RADIX
     MIN_SHARD_VOLUME = legate_numpy.NUMPY_TUNABLE_MIN_SHARD_VOLUME
     MAX_EAGER_VOLUME = legate_numpy.NUMPY_TUNABLE_MAX_EAGER_VOLUME
     FIELD_REUSE_SIZE = legate_numpy.NUMPY_TUNABLE_FIELD_REUSE_SIZE
@@ -291,12 +284,6 @@ class NumPyMappingTag(IntEnum):
     GPU_ONLY_TASK_TAG = legate_numpy.NUMPY_GPU_ONLY_TAG
     NO_MEMOIZE_TAG = 0  # Turn this off for now since it doesn't help
     KEY_REGION_TAG = legate_numpy.NUMPY_KEY_REGION_TAG
-    RADIX_GEN_TAG = legate_numpy.NUMPY_RADIX_GEN_TAG
-    RADIX_DIM_TAG = legate_numpy.NUMPY_RADIX_DIM_TAG
-
-
-RADIX_GEN_SHIFT = 5
-RADIX_DIM_SHIFT = 8
 
 
 # Match these to NumPyProjectionCode in legate_numpy_c.h
@@ -327,8 +314,6 @@ class NumPyProjCode(IntEnum):
     PROJ_3D_3D_X = legate_numpy.NUMPY_PROJ_3D_3D_X
     PROJ_3D_3D_Y = legate_numpy.NUMPY_PROJ_3D_3D_Y
     PROJ_3D_3D_Z = legate_numpy.NUMPY_PROJ_3D_3D_Z
-    PROJ_3D_2D_XB = legate_numpy.NUMPY_PROJ_3D_2D_XB
-    PROJ_3D_2D_BY = legate_numpy.NUMPY_PROJ_3D_2D_BY
     # 3D promotion
     PROJ_2D_3D_XY = legate_numpy.NUMPY_PROJ_2D_3D_XY
     PROJ_2D_3D_XZ = legate_numpy.NUMPY_PROJ_2D_3D_XZ
@@ -336,27 +321,5 @@ class NumPyProjCode(IntEnum):
     PROJ_1D_3D_X = legate_numpy.NUMPY_PROJ_1D_3D_X
     PROJ_1D_3D_Y = legate_numpy.NUMPY_PROJ_1D_3D_Y
     PROJ_1D_3D_Z = legate_numpy.NUMPY_PROJ_1D_3D_Z
-    # Radix 2D
-    PROJ_RADIX_2D_X_4_0 = legate_numpy.NUMPY_PROJ_RADIX_2D_X_4_0
-    PROJ_RADIX_2D_X_4_1 = legate_numpy.NUMPY_PROJ_RADIX_2D_X_4_1
-    PROJ_RADIX_2D_X_4_2 = legate_numpy.NUMPY_PROJ_RADIX_2D_X_4_2
-    PROJ_RADIX_2D_X_4_3 = legate_numpy.NUMPY_PROJ_RADIX_2D_X_4_3
-    PROJ_RADIX_2D_Y_4_0 = legate_numpy.NUMPY_PROJ_RADIX_2D_Y_4_0
-    PROJ_RADIX_2D_Y_4_1 = legate_numpy.NUMPY_PROJ_RADIX_2D_Y_4_1
-    PROJ_RADIX_2D_Y_4_2 = legate_numpy.NUMPY_PROJ_RADIX_2D_Y_4_2
-    PROJ_RADIX_2D_Y_4_3 = legate_numpy.NUMPY_PROJ_RADIX_2D_Y_4_3
-    # Radix 3D
-    PROJ_RADIX_3D_X_4_0 = legate_numpy.NUMPY_PROJ_RADIX_3D_X_4_0
-    PROJ_RADIX_3D_X_4_1 = legate_numpy.NUMPY_PROJ_RADIX_3D_X_4_1
-    PROJ_RADIX_3D_X_4_2 = legate_numpy.NUMPY_PROJ_RADIX_3D_X_4_2
-    PROJ_RADIX_3D_X_4_3 = legate_numpy.NUMPY_PROJ_RADIX_3D_X_4_3
-    PROJ_RADIX_3D_Y_4_0 = legate_numpy.NUMPY_PROJ_RADIX_3D_Y_4_0
-    PROJ_RADIX_3D_Y_4_1 = legate_numpy.NUMPY_PROJ_RADIX_3D_Y_4_1
-    PROJ_RADIX_3D_Y_4_2 = legate_numpy.NUMPY_PROJ_RADIX_3D_Y_4_2
-    PROJ_RADIX_3D_Y_4_3 = legate_numpy.NUMPY_PROJ_RADIX_3D_Y_4_3
-    PROJ_RADIX_3D_Z_4_0 = legate_numpy.NUMPY_PROJ_RADIX_3D_Z_4_0
-    PROJ_RADIX_3D_Z_4_1 = legate_numpy.NUMPY_PROJ_RADIX_3D_Z_4_1
-    PROJ_RADIX_3D_Z_4_2 = legate_numpy.NUMPY_PROJ_RADIX_3D_Z_4_2
-    PROJ_RADIX_3D_Z_4_3 = legate_numpy.NUMPY_PROJ_RADIX_3D_Z_4_3
     # Must always be last
     PROJ_LAST = legate_numpy.NUMPY_PROJ_LAST

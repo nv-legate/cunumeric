@@ -116,47 +116,6 @@ class NumPyShardingFunctor_3D_2D : public NumPyShardingFunctor {
                             const Legion::ShardID local_shard);
 };
 
-template <int DIM, int RADIX>
-class NumPyShardingFunctor_Radix2D : public NumPyShardingFunctor {
- public:
-  NumPyShardingFunctor_Radix2D(NumPyShardingCode code);
-
- public:
-  virtual Legion::ShardID shard(const Legion::DomainPoint& point,
-                                const Legion::Domain& launch_space,
-                                const size_t total_shards);
-  virtual unsigned localize(const Legion::DomainPoint& point,
-                            const Legion::Domain& launch_space,
-                            const size_t total_shards,
-                            const Legion::ShardID local_shard);
-};
-
-// This sharding functor assumes that there are three dimensions on the
-// space being sharded and that two of them have the same size with one
-// of them being the same size as the dimension being collapsed (DIM).
-// It then shards things in a 2-D way by collapsing the two dimensions
-// with the same shape together since we know that one of those dimension
-// is getting decimated by the radix reduction
-// (y * R^G + (z % R^G)) * |X| + x
-// where x, y, z are the coordinates
-// R is the RADIX
-// G is the generation
-// and |X| is the size of the dimension not being collapsed
-template <int DIM, int RADIX>
-class NumPyShardingFunctor_Radix3D : public NumPyShardingFunctor {
- public:
-  NumPyShardingFunctor_Radix3D(NumPyShardingCode code);
-
- public:
-  virtual Legion::ShardID shard(const Legion::DomainPoint& point,
-                                const Legion::Domain& launch_space,
-                                const size_t total_shards);
-  virtual unsigned localize(const Legion::DomainPoint& point,
-                            const Legion::Domain& launch_space,
-                            const size_t total_shards,
-                            const Legion::ShardID local_shard);
-};
-
 // This is a transform sharding functor that will transform the shapes of incoming
 // points into a different coordinate space and then use the base tiling functors
 // to actually perform the sharding

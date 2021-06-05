@@ -1945,10 +1945,6 @@ void NumPyMapper::select_tunable_value(const MapperContext ctx,
       pack_tunable(local_omps.size(), output);
       break;
     }
-    case NUMPY_TUNABLE_RADIX: {
-      pack_tunable(NUMPY_RADIX, output);
-      break;
-    }
     case NUMPY_TUNABLE_MIN_SHARD_VOLUME: {
       // TODO: make these profile guided
       if (!local_gpus.empty())
@@ -2107,14 +2103,6 @@ void NumPyMapper::decode_task_id(TaskID tid,
   tid -= first_numpy_task_id;
   if (tid >= NumPyOpCode::NUMPY_BINARY_OP) {
     op_code = static_cast<NumPyOpCode>(tid);
-    return;
-  }
-  if (tid >= NUMPY_BINCOUNT_OFFSET) {
-    op_code = NumPyOpCode::NUMPY_BINCOUNT;
-    return;
-  }
-  if (tid >= NUMPY_CONVERT_OFFSET) {
-    op_code = NumPyOpCode::NUMPY_CONVERT;
     return;
   }
   variant_code = (NumPyVariantCode)(tid % NUMPY_MAX_VARIANTS);

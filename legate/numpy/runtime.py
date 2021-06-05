@@ -70,10 +70,6 @@ def _iteritems(obj):
     return obj.items() if sys.version_info > (3,) else obj.viewitems()
 
 
-def _itervalues(obj):
-    return obj.values() if sys.version_info > (3,) else obj.viewvalues()
-
-
 try:
     reduce  # Python 2
 except NameError:
@@ -1016,7 +1012,6 @@ class Runtime(object):
         "pending_detachments",
         "current_random_epoch",
         "num_pieces",
-        "radix",
         "min_shard_volume",
         "max_eager_volume",
         "max_field_reuse_size",
@@ -1117,16 +1112,6 @@ class Runtime(object):
                     0,
                 )
             )
-            # Figure our our radix for reduction trees if necessary
-            f2 = Future(
-                legion.legion_runtime_select_tunable_value(
-                    self.runtime,
-                    self.context,
-                    legate_numpy.NUMPY_TUNABLE_RADIX,
-                    self.mapper_id,
-                    0,
-                )
-            )
             # Figure out the minimum shard volume for arrays
             f3 = Future(
                 legion.legion_runtime_select_tunable_value(
@@ -1201,7 +1186,6 @@ class Runtime(object):
                 self.piece_factors = None
                 self.empty_argmap = None
             # Wait for the futures and get the results
-            self.radix = struct.unpack_from("i", f2.get_buffer(4))[0]
             self.min_shard_volume = struct.unpack_from("i", f3.get_buffer(4))[
                 0
             ]
@@ -2409,90 +2393,6 @@ class Runtime(object):
 
     def get_reduction_identity(self, op, dtype):
         return numpy_unary_reduction_identities[op](dtype)
-
-    def get_radix_projection_functor_id(
-        self, total_dims, collapse_dim, radix, offset
-    ):
-        assert offset < radix
-        assert collapse_dim < total_dims
-        if total_dims == 2:
-            assert collapse_dim == 0 or collapse_dim == 1
-            if radix == 4:
-                if offset == 0:
-                    return self.first_proj_id + (
-                        NumPyProjCode.PROJ_RADIX_2D_X_4_0
-                        if collapse_dim == 0
-                        else NumPyProjCode.PROJ_RADIX_2D_Y_4_0
-                    )
-                elif offset == 1:
-                    return self.first_proj_id + (
-                        NumPyProjCode.PROJ_RADIX_2D_X_4_1
-                        if collapse_dim == 0
-                        else NumPyProjCode.PROJ_RADIX_2D_Y_4_1
-                    )
-                elif offset == 2:
-                    return self.first_proj_id + (
-                        NumPyProjCode.PROJ_RADIX_2D_X_4_2
-                        if collapse_dim == 0
-                        else NumPyProjCode.PROJ_RADIX_2D_Y_4_2
-                    )
-                else:
-                    return self.first_proj_id + (
-                        NumPyProjCode.PROJ_RADIX_2D_X_4_3
-                        if collapse_dim == 0
-                        else NumPyProjCode.PROJ_RADIX_2D_Y_4_3
-                    )
-            else:
-                raise NotImplementedError(
-                    "Need radix projection functor for radix "
-                    + str(radix)
-                    + "in two dimensions"
-                )
-        elif total_dims == 3:
-            assert collapse_dim >= 0 and collapse_dim <= 2
-            if radix == 4:
-                if offset == 0:
-                    return self.first_proj_id + (
-                        NumPyProjCode.PROJ_RADIX_3D_X_4_0
-                        if collapse_dim == 0
-                        else NumPyProjCode.PROJ_RADIX_3D_Y_4_0
-                        if collapse_dim == 1
-                        else NumPyProjCode.PROJ_RADIX_3D_Z_4_0
-                    )
-                elif offset == 1:
-                    return self.first_proj_id + (
-                        NumPyProjCode.PROJ_RADIX_3D_X_4_1
-                        if collapse_dim == 0
-                        else NumPyProjCode.PROJ_RADIX_3D_Y_4_1
-                        if collapse_dim == 1
-                        else NumPyProjCode.PROJ_RADIX_3D_Z_4_1
-                    )
-                elif offset == 2:
-                    return self.first_proj_id + (
-                        NumPyProjCode.PROJ_RADIX_3D_X_4_2
-                        if collapse_dim == 0
-                        else NumPyProjCode.PROJ_RADIX_3D_Y_4_2
-                        if collapse_dim == 1
-                        else NumPyProjCode.PROJ_RADIX_3D_Z_4_2
-                    )
-                else:
-                    return self.first_proj_id + (
-                        NumPyProjCode.PROJ_RADIX_3D_X_4_3
-                        if collapse_dim == 0
-                        else NumPyProjCode.PROJ_RADIX_3D_Y_4_3
-                        if collapse_dim == 1
-                        else NumPyProjCode.PROJ_RADIX_3D_Z_4_3
-                    )
-            else:
-                raise NotImplementedError(
-                    "Need radix projection functor for radix "
-                    + str(radix)
-                    + "in three dimensions"
-                )
-        else:
-            raise NotImplementedError(
-                "Need radix projection functor for dim " + str(total_dims)
-            )
 
     def compute_broadcast_transform(self, output_shape, input_shape):
         output_ndim = len(output_shape)

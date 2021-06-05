@@ -101,8 +101,6 @@ enum NumPyProjectionCode {
   NUMPY_PROJ_3D_3D_X  = 17,  // keep x, broadcast y and z
   NUMPY_PROJ_3D_3D_Y  = 18,  // keep y, broadcast x and z
   NUMPY_PROJ_3D_3D_Z  = 19,  // keep z, broadcast x and y
-  NUMPY_PROJ_3D_2D_XB = 20,  // y becomes x, broadcast z as y
-  NUMPY_PROJ_3D_2D_BY = 21,  // broadcast y as x, z becomes y
   // 3D promotion
   NUMPY_PROJ_2D_3D_XY = 22,  // 2D point becomes (x, y, 0)
   NUMPY_PROJ_2D_3D_XZ = 23,  // 2D point becomes (x, 0, y)
@@ -110,30 +108,6 @@ enum NumPyProjectionCode {
   NUMPY_PROJ_1D_3D_X  = 25,  // 1D point becomes (x, 0, 0)
   NUMPY_PROJ_1D_3D_Y  = 26,  // 1D point becomes (0, x, 0)
   NUMPY_PROJ_1D_3D_Z  = 27,  // 1D point becomes (0, 0, x)
-  // Radix 2D
-  NUMPY_PROJ_RADIX_2D_X_4_0 = 28,
-  NUMPY_PROJ_RADIX_2D_X_4_1 = 29,
-  NUMPY_PROJ_RADIX_2D_X_4_2 = 30,
-  NUMPY_PROJ_RADIX_2D_X_4_3 = 31,
-  NUMPY_PROJ_RADIX_2D_Y_4_0 = 32,
-  NUMPY_PROJ_RADIX_2D_Y_4_1 = 33,
-  NUMPY_PROJ_RADIX_2D_Y_4_2 = 34,
-  NUMPY_PROJ_RADIX_2D_Y_4_3 = 35,
-  // Radix 3D
-  NUMPY_PROJ_RADIX_3D_X_4_0 = 36,
-  NUMPY_PROJ_RADIX_3D_X_4_1 = 37,
-  NUMPY_PROJ_RADIX_3D_X_4_2 = 38,
-  NUMPY_PROJ_RADIX_3D_X_4_3 = 39,
-  NUMPY_PROJ_RADIX_3D_Y_4_0 = 40,
-  NUMPY_PROJ_RADIX_3D_Y_4_1 = 41,
-  NUMPY_PROJ_RADIX_3D_Y_4_2 = 42,
-  NUMPY_PROJ_RADIX_3D_Y_4_3 = 43,
-  NUMPY_PROJ_RADIX_3D_Z_4_0 = 44,
-  NUMPY_PROJ_RADIX_3D_Z_4_1 = 45,
-  NUMPY_PROJ_RADIX_3D_Z_4_2 = 46,
-  NUMPY_PROJ_RADIX_3D_Z_4_3 = 47,
-  // Flattening
-  NUMPY_PROJ_ND_1D_C_ORDER = 48,
   // Must always be last
   NUMPY_PROJ_LAST = 49,
 };
@@ -147,61 +121,9 @@ enum NumPyShardingCode {
   NUMPY_SHARD_TILE_3D_2D_XY = 5,
   NUMPY_SHARD_TILE_3D_2D_XZ = 6,
   NUMPY_SHARD_TILE_3D_2D_YZ = 7,
-  // 2D Radix sharding functions
-  NUMPY_SHARD_RADIX_2D_X_0 = 8,  // never instantiated
-  NUMPY_SHARD_RADIX_2D_X_1 = 9,
-  NUMPY_SHARD_RADIX_2D_X_2 = 10,
-  NUMPY_SHARD_RADIX_2D_X_3 = 11,
-  NUMPY_SHARD_RADIX_2D_X_4 = 12,
-  NUMPY_SHARD_RADIX_2D_X_5 = 13,
-  NUMPY_SHARD_RADIX_2D_X_6 = 14,
-  NUMPY_SHARD_RADIX_2D_X_7 = 15,
-  NUMPY_SHARD_RADIX_2D_X_8 = 16,
-  NUMPY_SHARD_RADIX_2D_Y_0 = 17,  // never instantiated
-  NUMPY_SHARD_RADIX_2D_Y_1 = 18,
-  NUMPY_SHARD_RADIX_2D_Y_2 = 19,
-  NUMPY_SHARD_RADIX_2D_Y_3 = 20,
-  NUMPY_SHARD_RADIX_2D_Y_4 = 21,
-  NUMPY_SHARD_RADIX_2D_Y_5 = 22,
-  NUMPY_SHARD_RADIX_2D_Y_6 = 23,
-  NUMPY_SHARD_RADIX_2D_Y_7 = 24,
-  NUMPY_SHARD_RADIX_2D_Y_8 = 25,
-  // 3D Radix sharding functions
-  NUMPY_SHARD_RADIX_3D_X_0 = 64,  // never instantiated
-  NUMPY_SHARD_RADIX_3D_X_1 = 65,
-  NUMPY_SHARD_RADIX_3D_X_2 = 66,
-  NUMPY_SHARD_RADIX_3D_X_3 = 67,
-  NUMPY_SHARD_RADIX_3D_X_4 = 68,
-  NUMPY_SHARD_RADIX_3D_X_5 = 69,
-  NUMPY_SHARD_RADIX_3D_X_6 = 70,
-  NUMPY_SHARD_RADIX_3D_X_7 = 71,
-  NUMPY_SHARD_RADIX_3D_X_8 = 72,
-  NUMPY_SHARD_RADIX_3D_Y_0 = 73,  // never instantiated
-  NUMPY_SHARD_RADIX_3D_Y_1 = 74,
-  NUMPY_SHARD_RADIX_3D_Y_2 = 75,
-  NUMPY_SHARD_RADIX_3D_Y_3 = 76,
-  NUMPY_SHARD_RADIX_3D_Y_4 = 77,
-  NUMPY_SHARD_RADIX_3D_Y_5 = 78,
-  NUMPY_SHARD_RADIX_3D_Y_6 = 79,
-  NUMPY_SHARD_RADIX_3D_Y_7 = 80,
-  NUMPY_SHARD_RADIX_3D_Y_8 = 81,
-  NUMPY_SHARD_RADIX_3D_Z_0 = 82,  // never instantiated
-  NUMPY_SHARD_RADIX_3D_Z_1 = 83,
-  NUMPY_SHARD_RADIX_3D_Z_2 = 84,
-  NUMPY_SHARD_RADIX_3D_Z_3 = 85,
-  NUMPY_SHARD_RADIX_3D_Z_4 = 86,
-  NUMPY_SHARD_RADIX_3D_Z_5 = 87,
-  NUMPY_SHARD_RADIX_3D_Z_6 = 88,
-  NUMPY_SHARD_RADIX_3D_Z_7 = 89,
-  NUMPY_SHARD_RADIX_3D_Z_8 = 90,
-  NUMPY_SHARD_EXTRA        = 91,
+  NUMPY_SHARD_EXTRA         = 91,
   // Leave space for some extra IDs for transform sharding functions
   NUMPY_SHARD_LAST = 1024,  // This one must be last
-};
-
-enum NumpyTaskOffset {
-  NUMPY_CONVERT_OFFSET  = 100000,
-  NUMPY_BINCOUNT_OFFSET = 200000,
 };
 
 // Match these to NumPyMappingTag in legate/numpy/config.py
@@ -211,8 +133,6 @@ enum NumPyTag {
   NUMPY_GPU_ONLY_TAG    = 0x4,
   NUMPY_NO_MEMOIZE_TAG  = 0x8,
   NUMPY_KEY_REGION_TAG  = 0x10,
-  NUMPY_RADIX_GEN_TAG   = 0xE0,   // Update radix gen shift if you change this
-  NUMPY_RADIX_DIM_TAG   = 0x700,  // Update radix dim shift if you change this
 };
 
 // Match these to NumPyTunable in legate/numpy/config.py
@@ -223,7 +143,6 @@ enum NumPyTunable {
   NUMPY_TUNABLE_LOCAL_CPUS            = 4,
   NUMPY_TUNABLE_LOCAL_GPUS            = 5,
   NUMPY_TUNABLE_LOCAL_OPENMPS         = 6,
-  NUMPY_TUNABLE_RADIX                 = 7,
   NUMPY_TUNABLE_MIN_SHARD_VOLUME      = 8,
   NUMPY_TUNABLE_MAX_EAGER_VOLUME      = 9,
   NUMPY_TUNABLE_FIELD_REUSE_SIZE      = 10,
