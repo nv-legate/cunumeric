@@ -32,7 +32,6 @@ enum NumPyVariantCode {
 
 // Match these to NumPyOpCode in legate/numpy/config.py
 enum NumPyOpCode {
-  NUMPY_EYE              = 21,
   NUMPY_NORM             = 44,
   NUMPY_RAND_INTEGER     = 49,
   NUMPY_RAND_NORMAL      = 50,
@@ -59,6 +58,7 @@ enum NumPyOpCode {
   NUMPY_MATVECMUL        = 400018,
   NUMPY_DOT              = 400019,
   NUMPY_BINCOUNT         = 400020,
+  NUMPY_EYE              = 400021,
 };
 
 // Match these to NumPyRedopCode in legate/numpy/config.py

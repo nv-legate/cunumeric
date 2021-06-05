@@ -28,6 +28,8 @@ GEN_CPU_SRC += ternary/where.cc               \
 							 unary/scalar_unary_op.cc       \
 							 unary/convert.cc               \
 							 unary/scalar_convert.cc        \
+							 nullary/arange.cc              \
+							 nullary/eye.cc                 \
 							 nullary/fill.cc                \
 							 item/read.cc                   \
 							 item/write.cc                  \
@@ -40,9 +42,7 @@ GEN_CPU_SRC += ternary/where.cc               \
 							 core.cc                        \
 							 deserializer.cc                \
 							 scalar.cc                      \
-							 arange.cc                      \
 							 arg.cc                         \
-							 eye.cc                         \
 							 mapper.cc                      \
 							 proj.cc                        \
 							 rand.cc                        \
@@ -61,6 +61,8 @@ GEN_CPU_SRC += ternary/where_omp.cc          \
 							 unary/scalar_unary_red_omp.cc \
 							 unary/unary_red_omp.cc        \
 							 unary/convert_omp.cc          \
+							 nullary/arange_omp.cc         \
+							 nullary/eye_omp.cc            \
 							 nullary/fill_omp.cc           \
 							 matrix/diag_omp.cc            \
 							 matrix/matmul_omp.cc          \
@@ -76,6 +78,8 @@ GEN_GPU_SRC += ternary/where.cu               \
 							 unary/unary_red.cu             \
 							 unary/unary_op.cu              \
 							 unary/convert.cu               \
+							 nullary/arange.cu              \
+							 nullary/eye.cu                 \
 							 nullary/fill.cu                \
 							 item/read.cu                   \
 							 item/write.cu                  \
@@ -84,8 +88,6 @@ GEN_GPU_SRC += ternary/where.cu               \
 							 matrix/matvecmul.cu            \
 							 matrix/dot.cu                  \
 							 stat/bincount.cu               \
-							 arange.cu                      \
-							 eye.cu                         \
 							 rand.cu                        \
 							 tile.cu                        \
 							 trans.cu                       \

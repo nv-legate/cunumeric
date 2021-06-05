@@ -1579,61 +1579,29 @@ class DeferredArray(NumPyThunk):
     # Create an identity array with the ones offset from the diagonal by k
     def eye(self, k, stacklevel, callsite=None):
         assert self.ndim == 2  # Only 2-D arrays should be here
-        dst = self.base
         # First issue a fill to zero everything out
         self.fill(np.array(0, dtype=self.dtype), stacklevel=(stacklevel + 1))
-        launch_space = dst.compute_parallel_launch_space()
-        # Then issue a task to fill in the diagonal
-        argbuf = BufferBuilder()
+
+        lhs_arg = DeferredArrayView(self)
+        launch_space, key_arg = lhs_arg.find_key_view()
+        key_arg.update_tag(NumPyMappingTag.KEY_REGION_TAG)
+
+        (shardpt, shardfn, shardsp) = key_arg.sharding
+
+        task = Map(self.runtime, NumPyOpCode.EYE, tag=shardfn)
+
         if launch_space is not None:
-            dst_part, shardfn, shardsp = dst.find_or_create_key_partition()
-            self.pack_shape(
-                argbuf, self.shape, dst_part.tile_shape, proj=0, pack_dim=False
-            )
+            task.add_shape(lhs_arg.shape, lhs_arg.part.tile_shape, 0)
         else:
-            self.pack_shape(argbuf, self.shape, pack_dim=False)
-        argbuf.pack_accessor(dst.field.field_id, dst.transform)
-        argbuf.pack_32bit_int(k)
+            task.add_shape(lhs_arg.shape)
+        lhs_arg.add_to_legate_op(task, False)
+        task.add_scalar_arg(k, np.int32)
+
         if launch_space is not None:
-            # We do the full index space launch, but we the implementation
-            # will quickly filter out certain points
-            task = IndexTask(
-                self.runtime.get_nullary_task_id(
-                    NumPyOpCode.EYE, result_type=self.dtype
-                ),
-                Rect(launch_space),
-                self.runtime.empty_argmap,
-                argbuf.get_string(),
-                argbuf.get_size(),
-                mapper=self.runtime.mapper_id,
-                tag=shardfn,
-            )
-            if shardsp is not None:
-                task.set_sharding_space(shardsp)
-            task.add_read_write_requirement(
-                dst_part,
-                dst.field.field_id,
-                0,
-                tag=NumPyMappingTag.KEY_REGION_TAG,
-            )
-            self.runtime.dispatch(task)
+            task.execute(Rect(launch_space))
         else:
-            shardpt, shardfn, shardsp = dst.find_point_sharding()
-            task = Task(
-                self.runtime.get_nullary_task_id(
-                    NumPyOpCode.EYE, result_type=self.dtype
-                ),
-                argbuf.get_string(),
-                argbuf.get_size(),
-                mapper=self.runtime.mapper_id,
-                tag=shardfn,
-            )
-            if shardpt is not None:
-                task.set_point(shardpt)
-            if shardsp is not None:
-                task.set_sharding_space(shardsp)
-            task.add_read_write_requirement(dst.region, dst.field.field_id)
-            self.runtime.dispatch(task)
+            task.execute_single()
+
         self.runtime.profile_callsite(stacklevel + 1, True, callsite)
         # See if we are doing shadow debugging
         if self.runtime.shadow_debug:
@@ -1653,68 +1621,36 @@ class DeferredArray(NumPyThunk):
                 self.shadow.eye(k=k, stacklevel=(stacklevel + 1))
                 self.runtime.check_shadow(self, "arange")
             return
-        launch_space = dst.compute_parallel_launch_space()
-        argbuf = BufferBuilder()
-        if launch_space is not None:
-            dst_part, shardfn, shardsp = dst.find_or_create_key_partition()
-            self.pack_shape(
-                argbuf, self.shape, dst_part.tile_shape, proj=0, pack_dim=False
-            )
-        else:
-            self.pack_shape(argbuf, self.shape, pack_dim=False)
-        argbuf.pack_accessor(dst.field.field_id)
 
-        def create_future(value):
-            array = np.array(value, dtype=self.dtype)
-            return self.runtime.create_future(array.data, array.nbytes)
+        def create_scalar(value, dtype):
+            numpy_array = np.array(value, dtype)
+            return self.runtime.create_scalar(
+                numpy_array.data, numpy_array.dtype
+            )
 
-        start = create_future(start)
-        stop = create_future(stop)
-        step = create_future(step)
+        lhs_arg = DeferredArrayView(self)
+        launch_space, key_arg = lhs_arg.find_key_view()
+        key_arg.update_tag(NumPyMappingTag.KEY_REGION_TAG)
+
+        (shardpt, shardfn, shardsp) = key_arg.sharding
+
+        task = Map(self.runtime, NumPyOpCode.ARANGE, tag=shardfn)
+
         if launch_space is not None:
-            task = IndexTask(
-                self.runtime.get_nullary_task_id(
-                    NumPyOpCode.ARANGE, result_type=self.dtype
-                ),
-                Rect(launch_space),
-                self.runtime.empty_argmap,
-                argbuf.get_string(),
-                argbuf.get_size(),
-                mapper=self.runtime.mapper_id,
-                tag=shardfn,
-            )
-            if shardsp is not None:
-                task.set_sharding_space(shardsp)
-            task.add_write_requirement(
-                dst_part,
-                dst.field.field_id,
-                0,
-                tag=NumPyMappingTag.KEY_REGION_TAG,
-            )
-            task.add_future(start)
-            task.add_future(stop)
-            task.add_future(step)
-            self.runtime.dispatch(task)
+            task.add_shape(lhs_arg.shape, lhs_arg.part.tile_shape, 0)
         else:
-            shardpt, shardfn, shardsp = dst.find_point_sharding()
-            task = Task(
-                self.runtime.get_nullary_task_id(
-                    NumPyOpCode.ARANGE, result_type=self.dtype
-                ),
-                argbuf.get_string(),
-                argbuf.get_size(),
-                mapper=self.runtime.mapper_id,
-                tag=shardfn,
-            )
-            if shardpt is not None:
-                task.set_point(shardpt)
-            if shardsp is not None:
-                task.set_sharding_space(shardsp)
-            task.add_write_requirement(dst.region, dst.field.field_id)
-            task.add_future(start)
-            task.add_future(stop)
-            task.add_future(step)
-            self.runtime.dispatch(task)
+            task.add_shape(lhs_arg.shape)
+        lhs_arg.add_to_legate_op(task, False)
+
+        task.add_future(create_scalar(start, self.dtype))
+        task.add_future(create_scalar(stop, self.dtype))
+        task.add_future(create_scalar(step, self.dtype))
+
+        if launch_space is not None:
+            task.execute(Rect(launch_space))
+        else:
+            task.execute_single()
+
         self.runtime.profile_callsite(stacklevel + 1, True, callsite)
         # See if we are doing shadow debugging
         if self.runtime.shadow_debug:

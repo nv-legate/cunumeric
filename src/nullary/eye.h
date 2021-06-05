@@ -14,17 +14,26 @@
  *
  */
 
-#ifndef __NUMPY_EYE_H__
-#define __NUMPY_EYE_H__
+#pragma once
 
 #include "numpy.h"
+#include "core.h"
+#include "deserializer.h"
 
 namespace legate {
 namespace numpy {
-template <typename T>
-class EyeTask : public NumPyTask<EyeTask<T>> {
+
+struct EyeArgs {
+  Shape shape;
+  Array out;
+  int32_t k;
+};
+
+void deserialize(Deserializer& ctx, EyeArgs& args);
+
+class EyeTask : public NumPyTask<EyeTask> {
  public:
-  static const int TASK_ID;
+  static const int TASK_ID = NUMPY_EYE;
   static const int REGIONS = 1;
 
  public:
@@ -45,7 +54,6 @@ class EyeTask : public NumPyTask<EyeTask<T>> {
                           Legion::Runtime* runtime);
 #endif
 };
+
 }  // namespace numpy
 }  // namespace legate
-
-#endif  // __NUMPY_EYE_H__

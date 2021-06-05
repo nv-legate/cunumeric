@@ -14,17 +14,27 @@
  *
  */
 
-#ifndef __NUMPY_ARANGE_H__
-#define __NUMPY_ARANGE_H__
+#pragma once
 
 #include "numpy.h"
+#include "scalar.h"
 
 namespace legate {
 namespace numpy {
-template <typename T>
-class ArangeTask : public NumPyTask<ArangeTask<T>> {
+
+struct ArangeArgs {
+  Shape shape;
+  Array out;
+  UntypedScalar start;
+  UntypedScalar stop;
+  UntypedScalar step;
+};
+
+void deserialize(Deserializer& ctx, ArangeArgs& args);
+
+class ArangeTask : public NumPyTask<ArangeTask> {
  public:
-  static const int TASK_ID;
+  static const int TASK_ID = NUMPY_ARANGE;
   static const int REGIONS = 1;
 
  public:
@@ -45,7 +55,6 @@ class ArangeTask : public NumPyTask<ArangeTask<T>> {
                           Legion::Runtime* runtime);
 #endif
 };
+
 }  // namespace numpy
 }  // namespace legate
-
-#endif  // __NUMPY_ARANGE_H__
