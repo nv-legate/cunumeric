@@ -2269,116 +2269,14 @@ class Runtime(object):
     def get_task_id(self, op_code):
         return self.first_task_id + op_code.value
 
-    def get_nullary_task_id(
-        self, op_code, result_type, variant_code=NumPyVariantCode.NORMAL
-    ):
-        assert isinstance(op_code, NumPyOpCode)
-        assert isinstance(variant_code, NumPyVariantCode)
-        return (
-            self.first_task_id
-            + op_code.value * NUMPY_TYPE_OFFSET
-            + variant_code.value
-            + numpy_field_type_offsets[result_type.type] * NUMPY_MAX_VARIANTS
-        )
-
-    def get_unary_task_id(
-        self,
-        op_code,
-        result_type,
-        argument_type,
-        variant_code=NumPyVariantCode.NORMAL,
-    ):
-        assert isinstance(op_code, NumPyOpCode)
-        assert isinstance(variant_code, NumPyVariantCode)
-
-        # CONVERT's ID is special
-        if op_code == NumPyOpCode.CONVERT:
-            return (
-                self.first_task_id
-                + legate_numpy.NUMPY_CONVERT_OFFSET
-                + numpy_field_type_offsets[result_type.type]
-                * NUMPY_TYPE_OFFSET
-                + variant_code.value
-                + numpy_field_type_offsets[argument_type.type]
-                * NUMPY_MAX_VARIANTS
-            )
-
-        # unary tasks distinguish themselves by argument_type
-        return (
-            self.first_task_id
-            + op_code.value * NUMPY_TYPE_OFFSET
-            + variant_code.value
-            + numpy_field_type_offsets[argument_type.type] * NUMPY_MAX_VARIANTS
-        )
-
-    def get_binary_task_id(
-        self,
-        op_code,
-        result_type,
-        first_argument_type,
-        second_argument_type,
-        variant_code=NumPyVariantCode.NORMAL,
-    ):
-        assert isinstance(op_code, NumPyOpCode)
-        assert isinstance(variant_code, NumPyVariantCode)
-
-        # binary tasks distinguish themselves by first_argument_type
-        return (
-            self.first_task_id
-            + op_code.value * NUMPY_TYPE_OFFSET
-            + variant_code.value
-            + numpy_field_type_offsets[first_argument_type.type]
-            * NUMPY_MAX_VARIANTS
-        )
-
-    @staticmethod
-    def get_binary_task_variant_code(inputs, output):
-        broadcast = False
-        inplace = False
-        for x in inputs:
-            if x is output:
-                inplace = True
-            if x.size == 1:
-                broadcast = True
-        if inplace and broadcast:
-            return NumPyVariantCode.INPLACE_BROADCAST
-        if inplace:
-            return NumPyVariantCode.INPLACE
-        if broadcast:
-            return NumPyVariantCode.BROADCAST
-        return NumPyVariantCode.NORMAL
-
-    def get_ternary_task_id(self, op_code, result_type, variant_code):
-        assert isinstance(op_code, NumPyOpCode)
-        assert isinstance(variant_code, NumPyVariantCode)
-
-        # ternary tasks distinguish themselves by result_type
-        # XXX check this once we have more ternary ops in addition to WHERE
-        return (
-            self.first_task_id
-            + op_code.value * NUMPY_TYPE_OFFSET
-            + variant_code.value
-            + numpy_field_type_offsets[result_type.type] * NUMPY_MAX_VARIANTS
-        )
-
-    def get_weighted_bincount_task_id(self, dt1, dt2):
-        result = self.first_task_id + legate_numpy.NUMPY_BINCOUNT_OFFSET
-        result += numpy_field_type_offsets[dt1.type] * NUMPY_TYPE_OFFSET
-        result += numpy_field_type_offsets[dt2.type] * NUMPY_MAX_VARIANTS
-        return result
-
     def _convert_reduction_op_id(self, redop_id, field_dtype):
-        if redop_id < legion.LEGION_REDOP_KIND_TOTAL:
-            # This is a built-in legion op-code
-            result = (
-                legion.LEGION_REDOP_BASE + redop_id * legion.LEGION_TYPE_TOTAL
-            )
-            result += numpy_field_type_offsets[field_dtype.type]
-        else:
-            # this is a custom numpy reduction
-            result = self.first_redop_id + redop_id * NUMPY_MAX_TYPES
-            result += numpy_field_type_offsets[field_dtype.type]
-        return result
+        base = (
+            legion.LEGION_REDOP_BASE
+            if redop_id < legion.LEGION_REDOP_KIND_TOTAL
+            else self.first_redop_id
+        )
+        result = base + redop_id * legion.LEGION_TYPE_TOTAL
+        return result + numpy_field_type_offsets[field_dtype.type]
 
     def get_reduction_op_id(self, op, field_dtype):
         redop_id = numpy_reduction_op_offsets[op]

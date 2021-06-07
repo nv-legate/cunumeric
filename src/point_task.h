@@ -29,32 +29,6 @@
 namespace legate {
 namespace numpy {
 
-// the primary template refers to an invalid task
-template <NumPyOpCode op_code, NumPyVariantCode variant_code, class ResultType, class...>
-constexpr int task_id = -1;
-
-// nullary tasks themselves by ResultType
-template <NumPyOpCode op_code, NumPyVariantCode variant_code, class ResultType>
-constexpr int task_id<op_code, variant_code, ResultType> =
-  static_cast<int>(op_code) * NUMPY_TYPE_OFFSET + variant_code
-  + legate_type_code_of<ResultType>* NUMPY_MAX_VARIANTS;
-
-// unary tasks themselves by ArgumentType
-template <NumPyOpCode op_code, NumPyVariantCode variant_code, class ResultType, class ArgumentType>
-constexpr int task_id<op_code, variant_code, ResultType, ArgumentType> =
-  static_cast<int>(op_code) * NUMPY_TYPE_OFFSET + variant_code
-  + legate_type_code_of<ArgumentType>* NUMPY_MAX_VARIANTS;
-
-// binary tasks distinguish themselves by FirstArgumentType
-template <NumPyOpCode op_code,
-          NumPyVariantCode variant_code,
-          class ResultType,
-          class FirstArgumentType,
-          class SecondArgumentType>
-constexpr int task_id<op_code, variant_code, ResultType, FirstArgumentType, SecondArgumentType> =
-  static_cast<int>(op_code) * NUMPY_TYPE_OFFSET + variant_code
-  + legate_type_code_of<FirstArgumentType>* NUMPY_MAX_VARIANTS;
-
 // This is a small helper class that will also work if we have zero-sized arrays
 // We also need to have this instead of std::array so that it works on devices
 template <int DIM>
@@ -634,90 +608,6 @@ class OMPLoop<4> {
   }
 };
 #endif
-
-template <class Derived>
-class PointTask : public NumPyTask<Derived> {
- public:
-  static void cpu_variant(const Legion::Task* task,
-                          const std::vector<Legion::PhysicalRegion>& regions,
-                          Legion::Context,
-                          Legion::Runtime*)
-  {
-    LegateDeserializer derez(task->args, task->arglen);
-    const int dim = derez.unpack_dimension();
-    switch (dim) {
-#define DIMFUNC(DIM)                                           \
-  case DIM: {                                                  \
-    Derived::template dispatch_cpu<DIM>(task, regions, derez); \
-    break;                                                     \
-  }
-      LEGATE_FOREACH_N(DIMFUNC)
-#undef DIMFUNC
-      default: assert(false);
-    }
-  }
-
-#ifdef LEGATE_USE_OPENMP
-  static void omp_variant(const Legion::Task* task,
-                          const std::vector<Legion::PhysicalRegion>& regions,
-                          Legion::Context ctx,
-                          Legion::Runtime* runtime)
-  {
-    LegateDeserializer derez(task->args, task->arglen);
-    const int dim = derez.unpack_dimension();
-    switch (dim) {
-#define DIMFUNC(DIM)                                           \
-  case DIM: {                                                  \
-    Derived::template dispatch_omp<DIM>(task, regions, derez); \
-    break;                                                     \
-  }
-      LEGATE_FOREACH_N(DIMFUNC)
-#undef DIMFUNC
-      default: assert(false);
-    }
-  }
-#endif
-
-#if defined(LEGATE_USE_CUDA) and defined(__CUDACC__)
-  static void gpu_variant(const Legion::Task* task,
-                          const std::vector<Legion::PhysicalRegion>& regions,
-                          Legion::Context ctx,
-                          Legion::Runtime* runtime)
-  {
-    LegateDeserializer derez(task->args, task->arglen);
-    const int dim = derez.unpack_dimension();
-    switch (dim) {
-#define DIMFUNC(DIM)                                           \
-  case DIM: {                                                  \
-    Derived::template dispatch_gpu<DIM>(task, regions, derez); \
-    break;                                                     \
-  }
-      LEGATE_FOREACH_N(DIMFUNC)
-#undef DIMFUNC
-      default: assert(false);
-    }
-  }
-#elif defined(LEGATE_USE_CUDA)
-  static void gpu_variant(const Legion::Task* task,
-                          const std::vector<Legion::PhysicalRegion>& regions,
-                          Legion::Context ctx,
-                          Legion::Runtime* runtime);
-#endif
-
- private:
-  struct StaticRegistrar {
-    StaticRegistrar() { PointTask::register_variants(); }
-  };
-
-  virtual void force_instantiation_of_static_registrar() { (void)&static_registrar; }
-
-  // this static member registers this task's variants during static initialization
-  static const StaticRegistrar static_registrar;
-};
-
-// this is the definition of PointTask::static_registrar
-template <class Derived>
-const typename PointTask<Derived>::StaticRegistrar PointTask<Derived>::static_registrar{};
 
 }  // namespace numpy
 }  // namespace legate

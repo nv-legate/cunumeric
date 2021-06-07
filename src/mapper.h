@@ -415,10 +415,7 @@ class NumPyMapper : public Legion::Mapping::Mapper {
   {
     return (left.second < right.second);
   }
-  void decode_task_id(Legion::TaskID tid,
-                      NumPyOpCode& op_code,
-                      LegateTypeCode& type_code,
-                      NumPyVariantCode& variant_code);
+  NumPyOpCode decode_task_id(Legion::TaskID tid);
   static unsigned extract_env(const char* name,
                               const unsigned default_value,
                               const unsigned test_value);

@@ -89,22 +89,6 @@ numpy_field_type_offsets = {
 }
 
 
-# Match these to NumPyVariantCode in legate_numpy_c.h
-@unique
-class NumPyVariantCode(IntEnum):
-    NORMAL = legate_numpy.NUMPY_NORMAL_VARIANT_OFFSET
-    SCALAR = legate_numpy.NUMPY_SCALAR_VARIANT_OFFSET
-    BROADCAST = legate_numpy.NUMPY_BROADCAST_VARIANT_OFFSET
-    REDUCTION = legate_numpy.NUMPY_REDUCTION_VARIANT_OFFSET
-    INPLACE = legate_numpy.NUMPY_INPLACE_VARIANT_OFFSET
-    INPLACE_BROADCAST = legate_numpy.NUMPY_INPLACE_BROADCAST_VARIANT_OFFSET
-
-
-NUMPY_MAX_VARIANTS = len(NumPyVariantCode)
-NUMPY_MAX_TYPES = legion.MAX_TYPE_NUMBER
-NUMPY_TYPE_OFFSET = NUMPY_MAX_TYPES * NUMPY_MAX_VARIANTS
-
-
 # Match these to NumPyOpCode in legate_numpy_c.h
 @unique
 class NumPyOpCode(IntEnum):

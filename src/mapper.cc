@@ -399,30 +399,8 @@ VariantID NumPyMapper::find_variant(const MapperContext ctx,
   }
   if (!has_leaf) leaf_variants[key] = 0;
   if (!has_inner) inner_variants[key] = 0;
-  // If we didn't find the variant then report
-  if (result == 0) {
-    if (!subrank) {
-      NumPyOpCode op_code;
-      LegateTypeCode type_code;
-      NumPyVariantCode variant_code;
-      decode_task_id(task.task_id, op_code, type_code, variant_code);
-      log_numpy.error(
-        "Unable to find variant for task %s to run on "
-        "processor %llx. Variant needs op code %d, type code %d, "
-        "and variant code %d. Please request an implementation.",
-        task.get_task_name(),
-        target_proc.id,
-        static_cast<int>(op_code),
-        type_code,
-        variant_code);
-    } else
-      log_numpy.error(
-        "Unable to find subrank variant for task %s "
-        "to run on processor %llx. This is a Legate bug.",
-        task.get_task_name(),
-        target_proc.id);
-    LEGATE_ABORT
-  }
+  // We must always be able to find the variant;
+  assert(result != 0);
   return result;
 }
 
@@ -1218,10 +1196,7 @@ ShardingID NumPyMapper::select_sharding_functor(const MapperContext ctx, const T
     return 0;
   }
   // Decode the task and see if it is an "interesting" task
-  NumPyOpCode op_code;
-  LegateTypeCode type_code;
-  NumPyVariantCode variant_code;
-  decode_task_id(task.task_id, op_code, type_code, variant_code);
+  NumPyOpCode op_code = decode_task_id(task.task_id);
   if (op_code == NumPyOpCode::NUMPY_DOT || op_code == NumPyOpCode::NUMPY_MATVECMUL ||
       op_code == NumPyOpCode::NUMPY_MATMUL) {
     switch (launch_dim) {
@@ -2085,32 +2060,17 @@ void NumPyMapper::handle_message(const MapperContext ctx, const MapperMessage& m
 
 //--------------------------------------------------------------------------
 void NumPyMapper::handle_task_result(const MapperContext ctx, const MapperTaskResult& result)
-//--------------------------------------------------------------------------
-{
-  // Nothing to do since we should never get one of these
-  LEGATE_ABORT
-}
+  //--------------------------------------------------------------------------
+  {// Nothing to do since we should never get one of these
+   LEGATE_ABORT}
 
 //--------------------------------------------------------------------------
-void NumPyMapper::decode_task_id(TaskID tid,
-                                 NumPyOpCode& op_code,
-                                 LegateTypeCode& type_code,
-                                 NumPyVariantCode& variant_code)
+NumPyOpCode NumPyMapper::decode_task_id(TaskID tid)
 //--------------------------------------------------------------------------
 {
   // This better be a NumPy task
   assert((first_numpy_task_id <= tid) && (tid <= last_numpy_task_id));
-  tid -= first_numpy_task_id;
-  if (tid >= NumPyOpCode::NUMPY_BINARY_OP) {
-    op_code = static_cast<NumPyOpCode>(tid);
-    return;
-  }
-  variant_code = (NumPyVariantCode)(tid % NUMPY_MAX_VARIANTS);
-  tid -= variant_code;
-  type_code = (LegateTypeCode)((tid % NUMPY_TYPE_OFFSET) / NUMPY_MAX_VARIANTS);
-  tid -= (type_code * NUMPY_MAX_VARIANTS);
-  assert((tid % NUMPY_TYPE_OFFSET) == 0);
-  op_code = (NumPyOpCode)(tid / NUMPY_TYPE_OFFSET);
+  return static_cast<NumPyOpCode>(tid - first_numpy_task_id);
 }
 
 //--------------------------------------------------------------------------

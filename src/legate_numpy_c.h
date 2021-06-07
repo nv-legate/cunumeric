@@ -19,17 +19,6 @@
 
 #include "legate_preamble.h"
 
-// Match these to NumPyVariantCode in legate/numpy/config.py
-enum NumPyVariantCode {
-  NUMPY_NORMAL_VARIANT_OFFSET            = 0,  // many_a x many_b -> many_c
-  NUMPY_SCALAR_VARIANT_OFFSET            = 1,  // one_a x one_b -> one_c
-  NUMPY_BROADCAST_VARIANT_OFFSET         = 2,  // one_a x many_b -> many_c
-  NUMPY_REDUCTION_VARIANT_OFFSET         = 3,  // many_a x many_b -> one_c
-  NUMPY_INPLACE_VARIANT_OFFSET           = 4,  // many_a x many_b -> many_a
-  NUMPY_INPLACE_BROADCAST_VARIANT_OFFSET = 5,  // many_a x one_b -> many_a
-  NUMPY_MAX_VARIANTS                     = 6   // this must be last
-};
-
 // Match these to NumPyOpCode in legate/numpy/config.py
 enum NumPyOpCode {
   NUMPY_BINARY_OP        = 400000,
