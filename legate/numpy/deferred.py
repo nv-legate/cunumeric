@@ -1789,75 +1789,54 @@ class DeferredArray(NumPyThunk):
             raise NotImplementedError(
                 "legate.numpy only supports standard 2-D transposes for now"
             )
-        src = rhs_array.base
-        dst = lhs_array.base
-        launch_space = dst.compute_parallel_launch_space()
-        # Now launch the task
-        argbuf = BufferBuilder()
+        launch_space = lhs_array.base.compute_parallel_launch_space()
         if launch_space is not None:
-            dst_part, shardfn, shardsp = dst.find_or_create_key_partition()
-            self.pack_shape(argbuf, lhs_array.shape, dst_part.tile_shape, 0)
-        else:
-            self.pack_shape(argbuf, lhs_array.shape)
-        argbuf.pack_accessor(dst.field.field_id, dst.transform)
-        argbuf.pack_accessor(src.field.field_id, src.transform)
-        if launch_space is not None:
-            task = IndexTask(
-                self.runtime.get_unary_task_id(
-                    NumPyOpCode.TRANSPOSE,
-                    result_type=lhs_array.dtype,
-                    argument_type=rhs_array.dtype,
-                ),
-                Rect(launch_space),
-                self.runtime.empty_argmap,
-                argbuf.get_string(),
-                argbuf.get_size(),
-                mapper=self.runtime.mapper_id,
-                tag=shardfn,
+            lhs_part, _, _ = lhs_array.base.find_or_create_key_partition()
+
+            # Compute the partition using the transposed launch space
+            rhs_launch_space = tuple(map(lambda x: launch_space[x], axes))
+            rhs_tile_shape = tuple(map(lambda x: lhs_part.tile_shape[x], axes))
+            rhs_offset = tuple(map(lambda x: lhs_part.tile_offset[x], axes))
+            rhs_part = rhs_array.base.find_or_create_partition(
+                rhs_launch_space, rhs_tile_shape, rhs_offset
             )
-            if shardsp is not None:
-                task.set_sharding_space(shardsp)
-            task.add_write_requirement(
-                dst_part,
-                dst.field.field_id,
-                0,
+
+            lhs_arg = DeferredArrayView(
+                lhs_array,
+                part=lhs_part,
                 tag=NumPyMappingTag.KEY_REGION_TAG,
             )
-            # Compute the partition using the transposed launch space
-            src_launch_space = tuple(map(lambda x: launch_space[x], axes))
-            src_tile_shape = tuple(map(lambda x: dst_part.tile_shape[x], axes))
-            src_offset = tuple(map(lambda x: dst_part.tile_offset[x], axes))
-            src_part = src.find_or_create_partition(
-                src_launch_space, src_tile_shape, src_offset
-            )
-            # TODO: change the hard-coded projection function for 2D
-            task.add_read_requirement(
-                src_part,
-                src.field.field_id,
-                self.runtime.first_proj_id + NumPyProjCode.PROJ_2D_2D_YX,
+            rhs_arg = DeferredArrayView(
+                rhs_array,
+                part=rhs_part,
+                proj_id=self.runtime.first_proj_id
+                + NumPyProjCode.PROJ_2D_2D_YX,
                 tag=NumPyMappingTag.NO_MEMOIZE_TAG,
             )
-            self.runtime.dispatch(task)
         else:
-            shardpt, shardfn, shardsp = dst.find_point_sharding()
-            task = Task(
-                self.runtime.get_unary_task_id(
-                    NumPyOpCode.TRANSPOSE,
-                    result_type=lhs_array.dtype,
-                    argument_type=rhs_array.dtype,
-                ),
-                argbuf.get_string(),
-                argbuf.get_size(),
-                mapper=self.runtime.mapper_id,
-                tag=shardfn,
-            )
+            lhs_arg = DeferredArrayView(lhs_array)
+            rhs_arg = DeferredArrayView(rhs_array)
+
+        (shardpt, shardfn, shardsp) = lhs_arg.sharding
+
+        task = Map(self.runtime, NumPyOpCode.TRANSPOSE)
+        if launch_space is not None:
+            task.add_shape(lhs_arg.shape, lhs_arg.part.tile_shape, 0)
+        else:
+            task.add_shape(lhs_arg.shape)
+        lhs_arg.add_to_legate_op(task, False)
+        rhs_arg.add_to_legate_op(task, True)
+
+        if shardsp is not None:
+            task.set_sharding_space(shardsp)
+
+        if launch_space is not None:
+            task.execute(Rect(launch_space))
+        else:
             if shardpt is not None:
                 task.set_point(shardpt)
-            if shardsp is not None:
-                task.set_sharding_space(shardsp)
-            task.add_write_requirement(dst.region, dst.field.field_id)
-            task.add_read_requirement(src.region, src.field.field_id)
-            self.runtime.dispatch(task)
+            task.execute_single()
+
         self.runtime.profile_callsite(stacklevel + 1, True, callsite)
         # See if we are doing shadow debugging
         if self.runtime.shadow_debug:

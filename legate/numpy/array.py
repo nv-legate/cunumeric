@@ -1521,6 +1521,8 @@ class ndarray(object):
         return self.convert_to_legate_ndarray(numpy_array, stacklevel=3)
 
     def transpose(self, axes=None, stacklevel=1):
+        if self.ndim == 1:
+            return self
         if axes is None:
             result = ndarray(
                 self.shape[::-1], dtype=self.dtype, stacklevel=(stacklevel + 1)

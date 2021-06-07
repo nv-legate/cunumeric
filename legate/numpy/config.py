@@ -109,7 +109,6 @@ NUMPY_TYPE_OFFSET = NUMPY_MAX_TYPES * NUMPY_MAX_VARIANTS
 @unique
 class NumPyOpCode(IntEnum):
     TILE = legate_numpy.NUMPY_TILE
-    TRANSPOSE = legate_numpy.NUMPY_TRANSPOSE
     # Type-erased operators
     BINARY_OP = legate_numpy.NUMPY_BINARY_OP
     SCALAR_BINARY_OP = legate_numpy.NUMPY_SCALAR_BINARY_OP
@@ -133,6 +132,7 @@ class NumPyOpCode(IntEnum):
     EYE = legate_numpy.NUMPY_EYE
     RAND = legate_numpy.NUMPY_RAND
     ARANGE = legate_numpy.NUMPY_ARANGE
+    TRANSPOSE = legate_numpy.NUMPY_TRANSPOSE
 
 
 @unique

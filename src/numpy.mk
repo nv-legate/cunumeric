@@ -37,6 +37,7 @@ GEN_CPU_SRC += ternary/where.cc               \
 							 matrix/matmul.cc               \
 							 matrix/matvecmul.cc            \
 							 matrix/dot.cc                  \
+							 matrix/transpose.cc            \
 							 matrix/util.cc                 \
 							 random/rand.cc                 \
 							 random/rand_util.cc            \
@@ -49,7 +50,6 @@ GEN_CPU_SRC += ternary/where.cc               \
 							 proj.cc                        \
 							 shard.cc                       \
 							 tile.cc                        \
-							 trans.cc                       \
 							 numpy.cc # This must always be the last file!
                         # It guarantees we do our registration callback
                         # only after all task variants are recorded
@@ -69,6 +69,7 @@ GEN_CPU_SRC += ternary/where_omp.cc          \
 							 matrix/matmul_omp.cc          \
 							 matrix/matvecmul_omp.cc       \
 							 matrix/dot_omp.cc             \
+							 matrix/transpose_omp.cc       \
 							 random/rand_omp.cc            \
 							 stat/bincount_omp.cc
 endif
@@ -89,8 +90,8 @@ GEN_GPU_SRC += ternary/where.cu               \
 							 matrix/matmul.cu               \
 							 matrix/matvecmul.cu            \
 							 matrix/dot.cu                  \
+							 matrix/transpose.cu            \
 							 random/rand.cu                 \
 							 stat/bincount.cu               \
 							 tile.cu                        \
-							 trans.cu                       \
 							 numpy.cu

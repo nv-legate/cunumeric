@@ -14,17 +14,26 @@
  *
  */
 
-#ifndef __NUMPY_TRANS_H__
-#define __NUMPY_TRANS_H__
+#pragma once
 
 #include "numpy.h"
+#include "core.h"
+#include "deserializer.h"
 
 namespace legate {
 namespace numpy {
-template <typename T>
-class TransTask : public NumPyTask<TransTask<T>> {
+
+struct TransposeArgs {
+  Shape shape;
+  Array out;
+  Array in;
+};
+
+void deserialize(Deserializer& ctx, TransposeArgs& args);
+
+class TransposeTask : public NumPyTask<TransposeTask> {
  public:
-  static const int TASK_ID;
+  static const int TASK_ID = NUMPY_TRANSPOSE;
   static const int REGIONS = 2;
 
  public:
@@ -45,7 +54,6 @@ class TransTask : public NumPyTask<TransTask<T>> {
                           Legion::Runtime* runtime);
 #endif
 };
+
 }  // namespace numpy
 }  // namespace legate
-
-#endif  // __NUMPY_TRANS_H__
