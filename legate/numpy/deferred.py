@@ -1665,111 +1665,32 @@ class DeferredArray(NumPyThunk):
         dst_array = self
         assert src_array.ndim <= dst_array.ndim
         assert src_array.dtype == dst_array.dtype
-        if dst_array.size == 1:
-            # Easy case, we can just copy the future
-            dst_array.base = src_array.base
-            return
-        src = src_array.base
-        dst = dst_array.base
-        launch_space = dst.compute_parallel_launch_space()
         if src_array.size == 1:
-            # Another easy case, we can just do a fill with the future
-            if launch_space is not None:
-                dst_part, shardfn, shardsp = dst.find_or_create_key_partition()
-                fill = IndexFill(
-                    dst_part,
-                    0,
-                    dst.region.get_root(),
-                    dst.field.field_id,
-                    src,
-                    mapper=self.runtime.mapper_id,
-                    tag=shardfn,
-                )
-                if shardsp is not None:
-                    fill.set_sharding_space(shardsp)
-            else:
-                shardpt, shardfn, shardsp = dst.find_point_sharding()
-                fill = Fill(
-                    dst.region,
-                    dst.region.get_root(),
-                    dst.field.field_id,
-                    src,
-                    mapper=self.runtime.mapper_id,
-                    tag=shardfn,
-                )
-                if shardpt is not None:
-                    fill.set_point(shardpt)
-                if shardsp is not None:
-                    fill.set_sharding_space(shardsp)
-            self.runtime.dispatch(fill)
+            self._fill(src_array.base, stacklevel + 1, callsite=callsite)
+            return
+
+        dst_arg = DeferredArrayView(dst_array)
+        src_arg = DeferredArrayView(src_array, proj_id=None)
+
+        launch_space = dst_arg.compute_launch_space()
+
+        (shardpt, shardfn, shardsp) = dst_arg.sharding
+
+        task = Map(self.runtime, NumPyOpCode.TILE, tag=shardfn)
+
+        if launch_space is not None:
+            task.add_shape(dst_arg.shape, dst_arg.part.tile_shape, 0)
         else:
-            # The common case where we have to do the tiling
-            # First pack the dst shape
-            argbuf = BufferBuilder()
-            if launch_space is not None:
-                dst_part, shardfn, shardsp = dst.find_or_create_key_partition()
-                self.pack_shape(
-                    argbuf, dst_array.shape, dst_part.tile_shape, 0
-                )
-            else:
-                self.pack_shape(argbuf, dst_array.shape)
-            argbuf.pack_accessor(dst.field.field_id, dst.transform)
-            # Then pack the src dim if dst.ndim > 1
-            if dst_array.ndim > 1:
-                argbuf.pack_dimension(src_array.ndim)
-            argbuf.pack_point(src_array.shape)
-            argbuf.pack_accessor(src.field.field_id, src.transform)
-            if launch_space is not None:
-                task = IndexTask(
-                    self.runtime.get_unary_task_id(
-                        NumPyOpCode.TILE,
-                        result_type=dst_array.dtype,
-                        argument_type=dst_array.dtype,
-                    ),
-                    Rect(launch_space),
-                    self.runtime.empty_argmap,
-                    argbuf.get_string(),
-                    argbuf.get_size(),
-                    mapper=self.runtime.mapper_id,
-                    tag=shardfn,
-                )
-                if shardsp is not None:
-                    task.set_sharding_space(shardsp)
-                task.add_write_requirement(
-                    dst_part,
-                    dst.field.field_id,
-                    0,
-                    tag=NumPyMappingTag.KEY_REGION_TAG,
-                )
-                # Pack the whole source region, we'll assume it is small
-                # Projection 0 on regions are just the region itself
-                task.add_read_requirement(
-                    src.region,
-                    src.field.field_id,
-                    0,
-                    tag=NumPyMappingTag.NO_MEMOIZE_TAG,
-                )
-                self.runtime.dispatch(task)
-            else:
-                shardpt, shardfn, shardsp = dst.find_point_sharding()
-                task = Task(
-                    self.runtime.get_unary_task_id(
-                        NumPyOpCode.TILE,
-                        result_type=dst_array.dtype,
-                        argument_type=dst_array.dtype,
-                    ),
-                    argbuf.get_string(),
-                    argbuf.get_size(),
-                    mapper=self.runtime.mapper_id,
-                    tag=shardfn,
-                )
-                if shardpt is not None:
-                    task.set_point(shardpt)
-                if shardsp is not None:
-                    task.set_sharding_space(shardsp)
-                task.add_write_requirement(dst.region, dst.field.field_id)
-                task.add_read_requirement(src.region, src.field.field_id)
-                self.runtime.dispatch(task)
+            task.add_shape(dst_arg.shape)
+        task.add_shape(src_arg.shape)
+        dst_arg.add_to_legate_op(task, False)
+        src_arg.add_to_legate_op(task, True)
+
+        if launch_space is not None:
+            task.execute(Rect(launch_space))
+        else:
+            task.execute_single()
+
         self.runtime.profile_callsite(stacklevel + 1, True, callsite)
         if self.runtime.shadow_debug:
             self.shadow.tile(rhs.shadow, reps, stacklevel=(stacklevel + 1))
@@ -1819,7 +1740,7 @@ class DeferredArray(NumPyThunk):
 
         (shardpt, shardfn, shardsp) = lhs_arg.sharding
 
-        task = Map(self.runtime, NumPyOpCode.TRANSPOSE)
+        task = Map(self.runtime, NumPyOpCode.TRANSPOSE, tag=shardfn)
         if launch_space is not None:
             task.add_shape(lhs_arg.shape, lhs_arg.part.tile_shape, 0)
         else:

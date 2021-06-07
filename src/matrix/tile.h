@@ -14,17 +14,27 @@
  *
  */
 
-#ifndef __NUMPY_TILE_H__
-#define __NUMPY_TILE_H__
+#pragma once
 
 #include "numpy.h"
+#include "core.h"
+#include "deserializer.h"
 
 namespace legate {
 namespace numpy {
-template <typename T>
-class TileTask : public NumPyTask<TileTask<T>> {
+
+struct TileArgs {
+  Shape out_shape;
+  Shape in_shape;
+  Array out;
+  Array in;
+};
+
+void deserialize(Deserializer& ctx, TileArgs& args);
+
+class TileTask : public NumPyTask<TileTask> {
  public:
-  static const int TASK_ID;
+  static const int TASK_ID = NUMPY_TILE;
   static const int REGIONS = 2;
 
  public:
@@ -45,7 +55,6 @@ class TileTask : public NumPyTask<TileTask<T>> {
                           Legion::Runtime* runtime);
 #endif
 };
+
 }  // namespace numpy
 }  // namespace legate
-
-#endif  // __NUMPY_TILE_H__
