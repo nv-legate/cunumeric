@@ -191,9 +191,9 @@ struct RandomGenerator<RandGenCode::INTEGER, CODE> {
     diff = args[1].value<VAL>() - lo;
   }
 
-  __CUDAPREFIX__ double operator()(uint32_t hi, uint32_t lo) const
+  __CUDAPREFIX__ double operator()(uint32_t hi_bits, uint32_t lo_bits) const
   {
-    return static_cast<VAL>(lo + RNG::rand_long(epoch, hi, lo, diff));
+    return static_cast<VAL>(lo + RNG::rand_long(epoch, hi_bits, lo_bits, diff));
   };
 
   uint32_t epoch;
