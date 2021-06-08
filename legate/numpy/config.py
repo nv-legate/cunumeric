@@ -20,7 +20,7 @@ from enum import IntEnum, unique
 
 import numpy as np
 
-from legate.core import Library, legate_add_library, legion
+from legate.core import Library, ResourceConfig, get_legate_runtime, legion
 
 
 # Load the Legate NumPy library first so we have a shard object that
@@ -29,6 +29,7 @@ class NumPyLib(Library):
     def __init__(self, name):
         self.name = name
         self.runtime = None
+        self.shared_object = None
 
     def get_name(self):
         return self.name
@@ -57,6 +58,17 @@ class NumPyLib(Library):
         assert self.shared_object is not None
         self.runtime = runtime
 
+    @property
+    def resource_config(self):
+        assert self.shared_object is not None
+        config = ResourceConfig()
+        config.max_tasks = self.shared_object.NUMPY_MAX_TASKS
+        config.max_mappers = self.shared_object.NUMPY_MAX_MAPPERS
+        config.max_reduction_ops = self.shared_object.NUMPY_MAX_REDOPS
+        config.max_projections = self.shared_object.NUMPY_PROJ_LAST
+        config.max_shardings = self.shared_object.NUMPY_SHARD_LAST
+        return config
+
     def destroy(self):
         if self.runtime is not None:
             self.runtime.destroy()
@@ -64,7 +76,7 @@ class NumPyLib(Library):
 
 NUMPY_LIB_NAME = "legate.numpy"
 numpy_lib = NumPyLib(NUMPY_LIB_NAME)
-legate_add_library(numpy_lib)
+numpy_context = get_legate_runtime().register_library(numpy_lib)
 legate_numpy = numpy_lib.shared_object
 
 

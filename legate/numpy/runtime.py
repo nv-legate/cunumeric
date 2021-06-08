@@ -1004,6 +1004,7 @@ class Runtime(object):
     __slots__ = [
         "context",
         "runtime",
+        "legate_context",
         "index_spaces",
         "field_spaces",
         "registered_detachments",
@@ -1034,9 +1035,10 @@ class Runtime(object):
         "destroyed",
     ]
 
-    def __init__(self, runtime, context):
+    def __init__(self, runtime, context, legate_context):
         self.context = context
         self.runtime = runtime
+        self.legate_context = legate_context
         try:
             # Prune it out so the application does not see it
             sys.argv.remove("-lg:numpy:shadow")
@@ -1072,28 +1074,12 @@ class Runtime(object):
         self.current_random_epoch = 0
         self.destroyed = False
         # Get the initial task ID and mapper ID
-        encoded_name = NUMPY_LIB_NAME.encode("utf-8")
-        self.first_task_id = legion.legion_runtime_generate_library_task_ids(
-            self.runtime, encoded_name, legate_numpy.NUMPY_MAX_TASKS
-        )
-        self.mapper_id = legion.legion_runtime_generate_library_mapper_ids(
-            self.runtime, encoded_name, legate_numpy.NUMPY_MAX_MAPPERS
-        )
-        self.first_redop_id = (
-            legion.legion_runtime_generate_library_reduction_ids(
-                self.runtime, encoded_name, legate_numpy.NUMPY_MAX_REDOPS
-            )
-        )
-        self.first_proj_id = (
-            legion.legion_runtime_generate_library_projection_ids(
-                self.runtime, encoded_name, legate_numpy.NUMPY_PROJ_LAST
-            )
-        )
-        self.first_shard_id = (
-            legion.legion_runtime_generate_library_sharding_ids(
-                self.runtime, encoded_name, legate_numpy.NUMPY_SHARD_LAST
-            )
-        )
+        self.first_task_id = legate_context._first_task_id
+        self.mapper_id = legate_context._first_mapper_id
+        self.first_redop_id = legate_context._first_redop_id
+        self.first_proj_id = legate_context._first_proj_id
+        self.first_shard_id = legate_context._first_shard_id
+
         # This next part we can only do if we have a context which we will if
         # we're running on one node or we are control replicated. Alternatively
         # we are running on multiple nodes without control replication and
@@ -2389,4 +2375,4 @@ class Runtime(object):
                 raise RuntimeError("Shadow array check failed for " + op)
 
 
-runtime = Runtime(get_legion_runtime(), get_legion_context())
+runtime = Runtime(get_legion_runtime(), get_legion_context(), numpy_context)
