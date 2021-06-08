@@ -22,7 +22,7 @@ import numpy as np
 import pyarrow
 from numpy import broadcast_shapes
 
-from legate.core import LegateArray
+from legate.core import Array
 
 from .config import BinaryOpCode, NumPyOpCode, UnaryOpCode, UnaryRedCode
 from .doc_utils import copy_docstring
@@ -94,7 +94,7 @@ class ndarray(object):
             arrow_type = pyarrow.from_numpy_dtype(self.dtype)
             # We don't have nullable data for the moment
             # until we support masked arrays
-            array = LegateArray(arrow_type, [None, self._thunk])
+            array = Array(arrow_type, [None, self._thunk])
             self._legate_data = dict()
             self._legate_data["version"] = 1
             data = dict()

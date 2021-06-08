@@ -20,12 +20,12 @@ from enum import IntEnum, unique
 
 import numpy as np
 
-from legate.core import LegateLibrary, legate_add_library, legion
+from legate.core import Library, legate_add_library, legion
 
 
 # Load the Legate NumPy library first so we have a shard object that
 # we can use to initialize all these configuration enumerations
-class NumPyLib(LegateLibrary):
+class NumPyLib(Library):
     def __init__(self, name):
         self.name = name
         self.runtime = None
