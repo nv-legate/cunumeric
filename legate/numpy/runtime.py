@@ -2334,9 +2334,9 @@ class Runtime(object):
             NumPyMappingTag.NO_MEMOIZE_TAG,
         )
 
-    def get_reduction_transform(self, input_shape, axes):
+    def get_reduction_transform(self, input_shape, axes, keepdims):
         input_ndim = len(input_shape)
-        output_ndim = input_ndim - len(axes)
+        output_ndim = input_ndim - (0 if keepdims else len(axes))
 
         assert output_ndim > 0
 
@@ -2355,11 +2355,16 @@ class Runtime(object):
         proj_name = f"PROJ_{input_ndim}D_{output_ndim}D_{matching_dims}"
 
         transform = np.zeros((output_ndim, input_ndim), dtype=np.int64)
-        for input_dim, (flag, output_dim) in enumerate(
-            zip(mask, mask.cumsum())
-        ):
-            if flag:
-                transform[output_dim - 1, input_dim] = 1
+        if keepdims:
+            for input_dim, flag in enumerate(mask):
+                if flag:
+                    transform[input_dim, input_dim] = 1
+        else:
+            for input_dim, (flag, output_dim) in enumerate(
+                zip(mask, mask.cumsum())
+            ):
+                if flag:
+                    transform[output_dim - 1, input_dim] = 1
 
         affine_transform = AffineTransform(output_ndim, input_ndim, False)
         affine_transform.trans = transform
