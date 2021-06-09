@@ -29,7 +29,8 @@ LogicalRegion NumPyProjectionFunctor::project(LogicalPartition upper_bound,
                                               const DomainPoint& point,
                                               const Domain& launch_domain)
 {
-  const DomainPoint dp = project_point(point, launch_domain);
+  Domain color_domain = runtime->get_index_partition_color_space(upper_bound.get_index_partition());
+  const DomainPoint dp = project_point(color_domain, point, launch_domain);
   if (runtime->has_logical_subregion_by_color(upper_bound, dp))
     return runtime->get_logical_subregion_by_color(upper_bound, dp);
   else
@@ -62,7 +63,8 @@ NumPyProjectionFunctor_2D_1D::NumPyProjectionFunctor_2D_1D(NumPyProjectionCode c
   return result;
 }
 
-DomainPoint NumPyProjectionFunctor_2D_1D::project_point(const DomainPoint& p,
+DomainPoint NumPyProjectionFunctor_2D_1D::project_point(const Domain& color_domain,
+                                                        const DomainPoint& p,
                                                         const Domain& launch_domain) const
 {
   const Point<1> point = transform * Point<2>(p);
@@ -110,7 +112,8 @@ NumPyProjectionFunctor_2D_2D::NumPyProjectionFunctor_2D_2D(NumPyProjectionCode c
   return result;
 }
 
-DomainPoint NumPyProjectionFunctor_2D_2D::project_point(const DomainPoint& p,
+DomainPoint NumPyProjectionFunctor_2D_2D::project_point(const Domain& color_domain,
+                                                        const DomainPoint& p,
                                                         const Domain& launch_domain) const
 {
   const Point<2> point = transform * Point<2>(p);
@@ -145,7 +148,8 @@ NumPyProjectionFunctor_1D_2D::NumPyProjectionFunctor_1D_2D(NumPyProjectionCode c
   return result;
 }
 
-DomainPoint NumPyProjectionFunctor_1D_2D::project_point(const DomainPoint& p,
+DomainPoint NumPyProjectionFunctor_1D_2D::project_point(const Domain& color_domain,
+                                                        const DomainPoint& p,
                                                         const Domain& launch_domain) const
 {
   const Point<2> point = transform * Point<1>(p);
@@ -221,7 +225,8 @@ NumPyProjectionFunctor_3D_2D::NumPyProjectionFunctor_3D_2D(NumPyProjectionCode c
   return result;
 }
 
-DomainPoint NumPyProjectionFunctor_3D_2D::project_point(const DomainPoint& p,
+DomainPoint NumPyProjectionFunctor_3D_2D::project_point(const Domain& color_domain,
+                                                        const DomainPoint& p,
                                                         const Domain& launch_domain) const
 {
   const Point<2> point = transform * Point<3>(p);
@@ -263,7 +268,8 @@ NumPyProjectionFunctor_3D_1D::NumPyProjectionFunctor_3D_1D(NumPyProjectionCode c
   return result;
 }
 
-DomainPoint NumPyProjectionFunctor_3D_1D::project_point(const DomainPoint& p,
+DomainPoint NumPyProjectionFunctor_3D_1D::project_point(const Domain& color_domain,
+                                                        const DomainPoint& p,
                                                         const Domain& launch_domain) const
 {
   const Point<1> point = transform * Point<3>(p);
@@ -374,7 +380,8 @@ NumPyProjectionFunctor_3D_3D::NumPyProjectionFunctor_3D_3D(NumPyProjectionCode c
   return result;
 }
 
-DomainPoint NumPyProjectionFunctor_3D_3D::project_point(const DomainPoint& p,
+DomainPoint NumPyProjectionFunctor_3D_3D::project_point(const Domain& color_domain,
+                                                        const DomainPoint& p,
                                                         const Domain& launch_domain) const
 {
   const Point<3> point = transform * Point<3>(p);
@@ -431,7 +438,8 @@ NumPyProjectionFunctor_2D_3D::NumPyProjectionFunctor_2D_3D(NumPyProjectionCode c
   return result;
 }
 
-DomainPoint NumPyProjectionFunctor_2D_3D::project_point(const DomainPoint& p,
+DomainPoint NumPyProjectionFunctor_2D_3D::project_point(const Domain& color_domain,
+                                                        const DomainPoint& p,
                                                         const Domain& launch_domain) const
 {
   const Point<3> point = transform * Point<2>(p);
@@ -473,31 +481,43 @@ NumPyProjectionFunctor_1D_3D::NumPyProjectionFunctor_1D_3D(NumPyProjectionCode c
   return result;
 }
 
-DomainPoint NumPyProjectionFunctor_1D_3D::project_point(const DomainPoint& p,
+DomainPoint NumPyProjectionFunctor_1D_3D::project_point(const Domain& color_domain,
+                                                        const DomainPoint& p,
                                                         const Domain& launch_domain) const
 {
   const Point<3> point = transform * Point<1>(p);
   return DomainPoint(point);
 }
 
-NumPyProjectionFunctor_ND_1D_C_ORDER::NumPyProjectionFunctor_ND_1D_C_ORDER(NumPyProjectionCode c,
+NumPyProjectionFunctor_ND_MD_C_ORDER::NumPyProjectionFunctor_ND_MD_C_ORDER(NumPyProjectionCode c,
                                                                            Runtime* rt)
   : NumPyProjectionFunctor(rt), code(c)
 {
 }
 
-DomainPoint NumPyProjectionFunctor_ND_1D_C_ORDER::project_point(const DomainPoint& p,
+DomainPoint NumPyProjectionFunctor_ND_MD_C_ORDER::project_point(const Domain& color_domain,
+                                                                const DomainPoint& launch_point,
                                                                 const Domain& launch_domain) const
 {
-  auto hi                = launch_domain.hi();
-  auto lo                = launch_domain.lo();
-  coord_t index          = p[0] - lo[0];
-  coord_t partial_volume = hi[0] - lo[0] + 1;
-  for (int dim = 1; dim < p.get_dim(); ++dim) {
-    index += p[dim] * partial_volume;
-    partial_volume *= hi[dim] - lo[dim] + 1;
+  assert(color_domain.get_volume() == launch_domain.get_volume());
+  const DomainPoint launch_hi = launch_domain.hi();
+  const DomainPoint launch_lo = launch_domain.lo();
+  coord_t index               = 0;
+  coord_t partial_volume      = 1;
+  for (int dim = launch_domain.get_dim() - 1; dim >= 0; --dim) {
+    index += (launch_point[dim] - launch_lo[dim]) * partial_volume;
+    partial_volume *= launch_hi[dim] - launch_lo[dim] + 1;
   }
-  return index;
+  const DomainPoint color_hi = color_domain.hi();
+  const DomainPoint color_lo = color_domain.lo();
+  DomainPoint color_point    = color_lo;
+  for (int dim = color_domain.get_dim() - 1; dim >= 0; --dim) {
+    const coord_t diff = color_hi[dim] - color_lo[dim] + 1;
+    color_point[dim] += index % diff;
+    index /= diff;
+  }
+  assert(index == 0);
+  return color_point;
 }
 
 template <bool LEFT>
@@ -507,7 +527,8 @@ NumPyProjectionFunctor_GEMV<LEFT>::NumPyProjectionFunctor_GEMV(NumPyProjectionCo
 }
 
 template <bool LEFT>
-DomainPoint NumPyProjectionFunctor_GEMV<LEFT>::project_point(const DomainPoint& p,
+DomainPoint NumPyProjectionFunctor_GEMV<LEFT>::project_point(const Domain& color_domain,
+                                                             const DomainPoint& p,
                                                              const Domain& launch_domain) const
 {
   const Rect<3> launch_rect = launch_domain;
@@ -536,7 +557,7 @@ NumPyProjectionFunctorRadix2D<DIM, RADIX, OFFSET>::NumPyProjectionFunctorRadix2D
 
 template <int DIM, int RADIX, int OFFSET>
 DomainPoint NumPyProjectionFunctorRadix2D<DIM, RADIX, OFFSET>::project_point(
-  const DomainPoint& p, const Domain& launch_domain) const
+  const Domain& color_domain, const DomainPoint& p, const Domain& launch_domain) const
 {
   const Rect<2> launch_rect = launch_domain;
   const Point<2> point      = p;
@@ -559,7 +580,7 @@ NumPyProjectionFunctorRadix3D<DIM, RADIX, OFFSET>::NumPyProjectionFunctorRadix3D
 
 template <int DIM, int RADIX, int OFFSET>
 DomainPoint NumPyProjectionFunctorRadix3D<DIM, RADIX, OFFSET>::project_point(
-  const DomainPoint& p, const Domain& launch_domain) const
+  const Domain& color_domain, const DomainPoint& p, const Domain& launch_domain) const
 {
   const Rect<3> launch_rect = launch_domain;
   const Point<3> point      = p;
@@ -662,7 +683,7 @@ static void register_functor(Runtime* runtime, ProjectionID offset, NumPyProject
   register_functor<NumPyProjectionFunctorRadix3D<2, 4, 3>>(
     runtime, offset, NUMPY_PROJ_RADIX_3D_Z_4_3);
   // Flattening
-  register_functor<NumPyProjectionFunctor_ND_1D_C_ORDER>(runtime, offset, NUMPY_PROJ_ND_1D_C_ORDER);
+  register_functor<NumPyProjectionFunctor_ND_MD_C_ORDER>(runtime, offset, NUMPY_PROJ_ND_MD_C_ORDER);
 }
 
 }  // namespace numpy

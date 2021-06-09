@@ -35,7 +35,8 @@ class NumPyProjectionFunctor : public Legion::ProjectionFunctor {
                                         const Legion::Domain& launch_domain);
 
  public:
-  virtual Legion::DomainPoint project_point(const Legion::DomainPoint& point,
+  virtual Legion::DomainPoint project_point(const Legion::Domain& color_domain,
+                                            const Legion::DomainPoint& point,
                                             const Legion::Domain& launch_domain) const = 0;
 
  public:
@@ -63,7 +64,7 @@ class NumPyProjectionFunctor : public Legion::ProjectionFunctor {
     } else {
       NumPyProjectionFunctor* functor = functors[functor_id];
       const Legion::Point<DIM> local =
-        functor->project_point(task->index_point, task->index_domain);
+        functor->project_point(rect, task->index_point, task->index_domain);
       const Legion::Point<DIM> lower = local * chunk;
       const Legion::Point<DIM> upper = lower + chunk - Legion::Point<DIM>::ONES();
       return rect.intersection(Legion::Rect<DIM>(lower, upper));
@@ -81,7 +82,8 @@ class NumPyProjectionFunctor_2D_1D : public NumPyProjectionFunctor {
   virtual unsigned get_depth(void) const { return 0; }
 
  public:
-  virtual Legion::DomainPoint project_point(const Legion::DomainPoint& point,
+  virtual Legion::DomainPoint project_point(const Legion::Domain& color_domain,
+                                            const Legion::DomainPoint& point,
                                             const Legion::Domain& launch_domain) const;
 
  public:
@@ -102,7 +104,8 @@ class NumPyProjectionFunctor_2D_2D : public NumPyProjectionFunctor {
   virtual unsigned get_depth(void) const { return 0; }
 
  public:
-  virtual Legion::DomainPoint project_point(const Legion::DomainPoint& point,
+  virtual Legion::DomainPoint project_point(const Legion::Domain& color_domain,
+                                            const Legion::DomainPoint& point,
                                             const Legion::Domain& launch_domain) const;
 
  public:
@@ -123,7 +126,8 @@ class NumPyProjectionFunctor_1D_2D : public NumPyProjectionFunctor {
   virtual unsigned get_depth(void) const { return 0; }
 
  public:
-  virtual Legion::DomainPoint project_point(const Legion::DomainPoint& point,
+  virtual Legion::DomainPoint project_point(const Legion::Domain& color_domain,
+                                            const Legion::DomainPoint& point,
                                             const Legion::Domain& launch_domain) const;
 
  public:
@@ -144,7 +148,8 @@ class NumPyProjectionFunctor_3D_2D : public NumPyProjectionFunctor {
   virtual unsigned get_depth(void) const { return 0; }
 
  public:
-  virtual Legion::DomainPoint project_point(const Legion::DomainPoint& point,
+  virtual Legion::DomainPoint project_point(const Legion::Domain& color_domain,
+                                            const Legion::DomainPoint& point,
                                             const Legion::Domain& launch_domain) const;
 
  public:
@@ -165,7 +170,8 @@ class NumPyProjectionFunctor_3D_1D : public NumPyProjectionFunctor {
   virtual unsigned get_depth(void) const { return 0; }
 
  public:
-  virtual Legion::DomainPoint project_point(const Legion::DomainPoint& point,
+  virtual Legion::DomainPoint project_point(const Legion::Domain& color_domain,
+                                            const Legion::DomainPoint& point,
                                             const Legion::Domain& launch_domain) const;
 
  public:
@@ -186,7 +192,8 @@ class NumPyProjectionFunctor_3D_3D : public NumPyProjectionFunctor {
   virtual unsigned get_depth(void) const { return 0; }
 
  public:
-  virtual Legion::DomainPoint project_point(const Legion::DomainPoint& point,
+  virtual Legion::DomainPoint project_point(const Legion::Domain& color_domain,
+                                            const Legion::DomainPoint& point,
                                             const Legion::Domain& launch_domain) const;
 
  public:
@@ -207,7 +214,8 @@ class NumPyProjectionFunctor_2D_3D : public NumPyProjectionFunctor {
   virtual unsigned get_depth(void) const { return 0; }
 
  public:
-  virtual Legion::DomainPoint project_point(const Legion::DomainPoint& point,
+  virtual Legion::DomainPoint project_point(const Legion::Domain& color_domain,
+                                            const Legion::DomainPoint& point,
                                             const Legion::Domain& launch_domain) const;
 
  public:
@@ -228,7 +236,8 @@ class NumPyProjectionFunctor_1D_3D : public NumPyProjectionFunctor {
   virtual unsigned get_depth(void) const { return 0; }
 
  public:
-  virtual Legion::DomainPoint project_point(const Legion::DomainPoint& point,
+  virtual Legion::DomainPoint project_point(const Legion::Domain& color_domain,
+                                            const Legion::DomainPoint& point,
                                             const Legion::Domain& launch_domain) const;
 
  public:
@@ -250,7 +259,8 @@ class NumPyProjectionFunctor_GEMV : public NumPyProjectionFunctor {
   virtual unsigned get_depth(void) const { return 0; }
 
  public:
-  virtual Legion::DomainPoint project_point(const Legion::DomainPoint& point,
+  virtual Legion::DomainPoint project_point(const Legion::Domain& color_domain,
+                                            const Legion::DomainPoint& point,
                                             const Legion::Domain& launch_domain) const;
 
  public:
@@ -268,7 +278,8 @@ class NumPyProjectionFunctorRadix2D : public NumPyProjectionFunctor {
   virtual unsigned get_depth(void) const { return 0; }
 
  public:
-  virtual Legion::DomainPoint project_point(const Legion::DomainPoint& point,
+  virtual Legion::DomainPoint project_point(const Legion::Domain& color_domain,
+                                            const Legion::DomainPoint& point,
                                             const Legion::Domain& launch_domain) const;
 
  public:
@@ -286,16 +297,17 @@ class NumPyProjectionFunctorRadix3D : public NumPyProjectionFunctor {
   virtual unsigned get_depth(void) const { return 0; }
 
  public:
-  virtual Legion::DomainPoint project_point(const Legion::DomainPoint& point,
+  virtual Legion::DomainPoint project_point(const Legion::Domain& color_domain,
+                                            const Legion::DomainPoint& point,
                                             const Legion::Domain& launch_domain) const;
 
  public:
   const NumPyProjectionCode code;
 };
 
-class NumPyProjectionFunctor_ND_1D_C_ORDER : public NumPyProjectionFunctor {
+class NumPyProjectionFunctor_ND_MD_C_ORDER : public NumPyProjectionFunctor {
  public:
-  NumPyProjectionFunctor_ND_1D_C_ORDER(NumPyProjectionCode code, Legion::Runtime* runtime);
+  NumPyProjectionFunctor_ND_MD_C_ORDER(NumPyProjectionCode code, Legion::Runtime* runtime);
 
  public:
   virtual bool is_functional(void) const { return true; }
@@ -303,7 +315,8 @@ class NumPyProjectionFunctor_ND_1D_C_ORDER : public NumPyProjectionFunctor {
   virtual unsigned get_depth(void) const { return 0; }
 
  public:
-  virtual Legion::DomainPoint project_point(const Legion::DomainPoint& point,
+  virtual Legion::DomainPoint project_point(const Legion::Domain& color_domain,
+                                            const Legion::DomainPoint& point,
                                             const Legion::Domain& launch_domain) const;
 
  public:

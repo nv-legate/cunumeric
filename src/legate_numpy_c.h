@@ -176,7 +176,7 @@ enum NumPyProjectionCode {
   NUMPY_PROJ_RADIX_3D_Z_4_2 = 46,
   NUMPY_PROJ_RADIX_3D_Z_4_3 = 47,
   // Flattening
-  NUMPY_PROJ_ND_1D_C_ORDER = 48,
+  NUMPY_PROJ_ND_MD_C_ORDER = 48,
   // Must always be last
   NUMPY_PROJ_LAST = 49,
 };

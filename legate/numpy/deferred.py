@@ -3080,7 +3080,7 @@ class DeferredArray(NumPyThunk):
                 argbuf,
                 nonzeros_dist_shape,
                 nonzeros_dist_part.tile_shape,
-                self.runtime.first_proj_id + NumPyProjCode.PROJ_ND_1D_C_ORDER,
+                self.runtime.first_proj_id + NumPyProjCode.PROJ_ND_MD_C_ORDER,
             )
             argbuf.pack_accessor(
                 nonzeros_dist_field.field.field_id,
@@ -3110,7 +3110,7 @@ class DeferredArray(NumPyThunk):
             index_task.add_write_requirement(
                 nonzeros_dist_part,
                 nonzeros_dist_field.field.field_id,
-                self.runtime.first_proj_id + NumPyProjCode.PROJ_ND_1D_C_ORDER,
+                self.runtime.first_proj_id + NumPyProjCode.PROJ_ND_MD_C_ORDER,
                 tag=NumPyMappingTag.NO_MEMOIZE_TAG,
             )
             self.runtime.dispatch(index_task)
@@ -3217,7 +3217,7 @@ class DeferredArray(NumPyThunk):
             index_task.add_write_requirement(
                 dst_partition,
                 dst.field.field_id,
-                self.runtime.first_proj_id + NumPyProjCode.PROJ_ND_1D_C_ORDER,
+                self.runtime.first_proj_id + NumPyProjCode.PROJ_ND_MD_C_ORDER,
                 tag=NumPyMappingTag.NO_MEMOIZE_TAG,
             )
             self.runtime.dispatch(index_task)

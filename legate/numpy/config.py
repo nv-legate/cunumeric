@@ -318,6 +318,6 @@ class NumPyProjCode(IntEnum):
     PROJ_RADIX_3D_Z_4_2 = legate_numpy.NUMPY_PROJ_RADIX_3D_Z_4_2
     PROJ_RADIX_3D_Z_4_3 = legate_numpy.NUMPY_PROJ_RADIX_3D_Z_4_3
     # Flattening
-    PROJ_ND_1D_C_ORDER = legate_numpy.NUMPY_PROJ_ND_1D_C_ORDER
+    PROJ_ND_MD_C_ORDER = legate_numpy.NUMPY_PROJ_ND_MD_C_ORDER
     # Must always be last
     PROJ_LAST = legate_numpy.NUMPY_PROJ_LAST
