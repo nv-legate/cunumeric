@@ -359,105 +359,6 @@ DomainPoint NumPyProjectionFunctor_3D_3D::project_point(const DomainPoint& p,
   return DomainPoint(point);
 }
 
-NumPyProjectionFunctor_2D_3D::NumPyProjectionFunctor_2D_3D(NumPyProjectionCode c, Runtime* rt)
-  : NumPyProjectionFunctor(rt), code(c), transform(get_transform(c))
-{
-}
-
-/*static*/ Transform<3, 2> NumPyProjectionFunctor_2D_3D::get_transform(NumPyProjectionCode code)
-{
-  Transform<3, 2> result;
-  switch (code) {
-    case NUMPY_PROJ_2D_3D_XY: {
-      // 1, 0
-      // 0, 1
-      // 0, 0
-      result[0][0] = 1;
-      result[0][1] = 0;
-      result[1][0] = 0;
-      result[1][1] = 1;
-      result[2][0] = 0;
-      result[2][1] = 0;
-      break;
-    }
-    case NUMPY_PROJ_2D_3D_XZ: {
-      // 1, 0
-      // 0, 0
-      // 0, 1
-      result[0][0] = 1;
-      result[0][1] = 0;
-      result[1][0] = 0;
-      result[1][1] = 0;
-      result[2][0] = 0;
-      result[2][1] = 1;
-      break;
-    }
-    case NUMPY_PROJ_2D_3D_YZ: {
-      // 0, 0
-      // 1, 0
-      // 0, 1
-      result[0][0] = 0;
-      result[0][1] = 0;
-      result[1][0] = 1;
-      result[1][1] = 0;
-      result[2][0] = 0;
-      result[2][1] = 1;
-      break;
-    }
-    default: assert(false);
-  }
-  return result;
-}
-
-DomainPoint NumPyProjectionFunctor_2D_3D::project_point(const DomainPoint& p,
-                                                        const Domain& launch_domain) const
-{
-  const Point<3> point = transform * Point<2>(p);
-  return DomainPoint(point);
-}
-
-NumPyProjectionFunctor_1D_3D::NumPyProjectionFunctor_1D_3D(NumPyProjectionCode c, Runtime* rt)
-  : NumPyProjectionFunctor(rt), code(c), transform(get_transform(c))
-{
-}
-
-/*static*/ Transform<3, 1> NumPyProjectionFunctor_1D_3D::get_transform(NumPyProjectionCode code)
-{
-  Transform<3, 1> result;
-  switch (code) {
-    case NUMPY_PROJ_1D_3D_X: {
-      // 1, 0, 0
-      result[0][0] = 1;
-      result[0][1] = 0;
-      result[0][2] = 0;
-      break;
-    }
-    case NUMPY_PROJ_1D_3D_Y: {
-      // 0, 1, 0
-      result[0][0] = 0;
-      result[0][1] = 1;
-      result[0][2] = 0;
-      break;
-    }
-    case NUMPY_PROJ_1D_3D_Z: {
-      // 0, 0, 1
-      result[0][0] = 0;
-      result[0][1] = 0;
-      result[0][2] = 1;
-      break;
-    }
-    default: assert(false);
-  }
-  return result;
-}
-
-DomainPoint NumPyProjectionFunctor_1D_3D::project_point(const DomainPoint& p,
-                                                        const Domain& launch_domain) const
-{
-  const Point<3> point = transform * Point<1>(p);
-  return DomainPoint(point);
-}
-
 template <typename T>
 static void register_functor(Runtime* runtime, ProjectionID offset, NumPyProjectionCode code)
 {
@@ -495,13 +396,6 @@ static void register_functor(Runtime* runtime, ProjectionID offset, NumPyProject
   register_functor<NumPyProjectionFunctor_3D_3D>(runtime, offset, NUMPY_PROJ_3D_3D_X);
   register_functor<NumPyProjectionFunctor_3D_3D>(runtime, offset, NUMPY_PROJ_3D_3D_Y);
   register_functor<NumPyProjectionFunctor_3D_3D>(runtime, offset, NUMPY_PROJ_3D_3D_Z);
-  // 3D promotion
-  register_functor<NumPyProjectionFunctor_2D_3D>(runtime, offset, NUMPY_PROJ_2D_3D_XY);
-  register_functor<NumPyProjectionFunctor_2D_3D>(runtime, offset, NUMPY_PROJ_2D_3D_XZ);
-  register_functor<NumPyProjectionFunctor_2D_3D>(runtime, offset, NUMPY_PROJ_2D_3D_YZ);
-  register_functor<NumPyProjectionFunctor_1D_3D>(runtime, offset, NUMPY_PROJ_1D_3D_X);
-  register_functor<NumPyProjectionFunctor_1D_3D>(runtime, offset, NUMPY_PROJ_1D_3D_Y);
-  register_functor<NumPyProjectionFunctor_1D_3D>(runtime, offset, NUMPY_PROJ_1D_3D_Z);
 }
 
 }  // namespace numpy

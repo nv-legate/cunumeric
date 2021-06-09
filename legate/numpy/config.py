@@ -303,12 +303,5 @@ class NumPyProjCode(IntEnum):
     PROJ_3D_3D_X = legate_numpy.NUMPY_PROJ_3D_3D_X
     PROJ_3D_3D_Y = legate_numpy.NUMPY_PROJ_3D_3D_Y
     PROJ_3D_3D_Z = legate_numpy.NUMPY_PROJ_3D_3D_Z
-    # 3D promotion
-    PROJ_2D_3D_XY = legate_numpy.NUMPY_PROJ_2D_3D_XY
-    PROJ_2D_3D_XZ = legate_numpy.NUMPY_PROJ_2D_3D_XZ
-    PROJ_2D_3D_YZ = legate_numpy.NUMPY_PROJ_2D_3D_YZ
-    PROJ_1D_3D_X = legate_numpy.NUMPY_PROJ_1D_3D_X
-    PROJ_1D_3D_Y = legate_numpy.NUMPY_PROJ_1D_3D_Y
-    PROJ_1D_3D_Z = legate_numpy.NUMPY_PROJ_1D_3D_Z
     # Must always be last
     PROJ_LAST = legate_numpy.NUMPY_PROJ_LAST

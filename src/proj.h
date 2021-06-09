@@ -197,48 +197,6 @@ class NumPyProjectionFunctor_3D_3D : public NumPyProjectionFunctor {
   static Legion::Transform<3, 3> get_transform(NumPyProjectionCode code);
 };
 
-class NumPyProjectionFunctor_2D_3D : public NumPyProjectionFunctor {
- public:
-  NumPyProjectionFunctor_2D_3D(NumPyProjectionCode code, Legion::Runtime* runtime);
-
- public:
-  virtual bool is_functional(void) const { return true; }
-  virtual bool is_exclusive(void) const { return true; }
-  virtual unsigned get_depth(void) const { return 0; }
-
- public:
-  virtual Legion::DomainPoint project_point(const Legion::DomainPoint& point,
-                                            const Legion::Domain& launch_domain) const;
-
- public:
-  const NumPyProjectionCode code;
-  const Legion::Transform<3, 2> transform;
-
- public:
-  static Legion::Transform<3, 2> get_transform(NumPyProjectionCode code);
-};
-
-class NumPyProjectionFunctor_1D_3D : public NumPyProjectionFunctor {
- public:
-  NumPyProjectionFunctor_1D_3D(NumPyProjectionCode code, Legion::Runtime* runtime);
-
- public:
-  virtual bool is_functional(void) const { return true; }
-  virtual bool is_exclusive(void) const { return true; }
-  virtual unsigned get_depth(void) const { return 0; }
-
- public:
-  virtual Legion::DomainPoint project_point(const Legion::DomainPoint& point,
-                                            const Legion::Domain& launch_domain) const;
-
- public:
-  const NumPyProjectionCode code;
-  const Legion::Transform<3, 1> transform;
-
- public:
-  static Legion::Transform<3, 1> get_transform(NumPyProjectionCode code);
-};
-
 }  // namespace numpy
 }  // namespace legate
 

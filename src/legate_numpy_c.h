@@ -87,13 +87,6 @@ enum NumPyProjectionCode {
   NUMPY_PROJ_3D_3D_X  = 17,  // keep x, broadcast y and z
   NUMPY_PROJ_3D_3D_Y  = 18,  // keep y, broadcast x and z
   NUMPY_PROJ_3D_3D_Z  = 19,  // keep z, broadcast x and y
-  // 3D promotion
-  NUMPY_PROJ_2D_3D_XY = 22,  // 2D point becomes (x, y, 0)
-  NUMPY_PROJ_2D_3D_XZ = 23,  // 2D point becomes (x, 0, y)
-  NUMPY_PROJ_2D_3D_YZ = 24,  // 2D point becomes (0, x, y)
-  NUMPY_PROJ_1D_3D_X  = 25,  // 1D point becomes (x, 0, 0)
-  NUMPY_PROJ_1D_3D_Y  = 26,  // 1D point becomes (0, x, 0)
-  NUMPY_PROJ_1D_3D_Z  = 27,  // 1D point becomes (0, 0, x)
   // Must always be last
   NUMPY_PROJ_LAST = 49,
 };
