@@ -1074,11 +1074,9 @@ class Runtime(object):
         self.current_random_epoch = 0
         self.destroyed = False
         # Get the initial task ID and mapper ID
-        self.first_task_id = legate_context._first_task_id
-        self.mapper_id = legate_context._first_mapper_id
-        self.first_redop_id = legate_context._first_redop_id
-        self.first_proj_id = legate_context._first_proj_id
-        self.first_shard_id = legate_context._first_shard_id
+        self.mapper_id = legate_context.first_mapper_id
+        self.first_redop_id = legate_context.first_redop_id
+        self.first_shard_id = legate_context.first_shard_id
 
         # This next part we can only do if we have a context which we will if
         # we're running on one node or we are control replicated. Alternatively
@@ -2316,7 +2314,7 @@ class Runtime(object):
         return (
             affine_transform,
             offset,
-            self.first_proj_id + getattr(NumPyProjCode, proj_name),
+            getattr(NumPyProjCode, proj_name),
             NumPyMappingTag.NO_MEMOIZE_TAG,
         )
 
@@ -2356,7 +2354,7 @@ class Runtime(object):
         affine_transform.trans = transform
         return (
             affine_transform,
-            self.first_proj_id + getattr(NumPyProjCode, proj_name),
+            getattr(NumPyProjCode, proj_name),
         )
 
     def check_shadow(self, thunk, op):

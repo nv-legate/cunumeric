@@ -20,9 +20,9 @@ import warnings
 import numpy as np
 
 from legate.core import *  # noqa F403
+from legate.core.task import Broadcast, Projection, Task
 
 from .config import *  # noqa F403
-from .launcher import Broadcast, Map, Projection
 from .thunk import NumPyThunk
 from .utils import get_arg_dtype, get_arg_value_dtype
 
@@ -76,6 +76,7 @@ class DeferredArrayView(object):
         dtype=None,
     ):
         self._array = array
+        self._context = array.context
         self._transform = transform
         self._offset = offset
         self._part = part
@@ -141,7 +142,8 @@ class DeferredArrayView(object):
         if self._proj_id is None:
             return Broadcast(redop=redop)
         else:
-            return Projection(self.part, self._proj_id, redop=redop)
+            proj_id = self._context.get_projection_id(self._proj_id)
+            return Projection(self.part, proj_id, redop=redop)
 
     def add_to_legate_op(self, op, read_only, read_write=False, redop=None):
         op.add_scalar_arg(self.scalar, bool)
@@ -532,7 +534,7 @@ class DeferredArray(NumPyThunk):
                     self, tag=NumPyMappingTag.NO_MEMOIZE_TAG
                 )
 
-                task = Map(self.runtime, NumPyOpCode.READ)
+                task = Task(self.context, NumPyOpCode.READ)
                 task.add_point(use_key, untyped=True)
                 src_arg.add_to_legate_op(task, True)
                 future = task.execute_single()
@@ -645,7 +647,7 @@ class DeferredArray(NumPyThunk):
                 )
                 value_arg = DeferredArrayView(value_array)
 
-                task = Map(self.runtime, NumPyOpCode.WRITE)
+                task = Task(self.context, NumPyOpCode.WRITE)
                 task.add_point(use_key, untyped=True)
                 dst_arg.add_to_legate_op(task, False, read_write=True)
                 value_arg.add_to_legate_op(task, True)
@@ -877,7 +879,7 @@ class DeferredArray(NumPyThunk):
 
         (shardpt, shardfn, shardsp) = key_arg.sharding
 
-        task = Map(self.runtime, task_id, tag=shardfn)
+        task = Task(self.context, task_id, tag=shardfn)
         if not rhs_arg.scalar:
             if launch_space is not None:
                 task.add_shape(lhs_arg.shape, lhs_arg.part.tile_shape, 0)
@@ -940,7 +942,7 @@ class DeferredArray(NumPyThunk):
                 # Need to use a fake dtype for fills with arg values
                 lhs = DeferredArrayView(self, dtype=dtype)
 
-            op = Map(self.runtime, NumPyOpCode.FILL, tag=shardfn)
+            op = Task(self.context, NumPyOpCode.FILL, tag=shardfn)
             if launch_space is not None:
                 op.add_shape(dst.shape, dst_part.tile_shape, 0)
             else:
@@ -981,9 +983,6 @@ class DeferredArray(NumPyThunk):
         )
         lhs_array = self
 
-        def to_proj_id(proj):
-            return self.runtime.first_proj_id + proj if proj > 0 else proj
-
         if rhs1_array.ndim == 1 and rhs2_array.ndim == 1:
             # Vector dot product case
             assert lhs_array.size == 1
@@ -1000,7 +999,7 @@ class DeferredArray(NumPyThunk):
 
             (shardpt, shardfn, shardsp) = rhs1_arg.sharding
 
-            task = Map(self.runtime, NumPyOpCode.DOT, tag=shardfn)
+            task = Task(self.context, NumPyOpCode.DOT, tag=shardfn)
             if launch_space is not None:
                 task.add_shape(rhs1_arg.shape, rhs1_arg.part.tile_shape, 0)
             else:
@@ -1099,19 +1098,19 @@ class DeferredArray(NumPyThunk):
                 lhs_arg = DeferredArrayView(
                     lhs_array,
                     part=lhs_part,
-                    proj_id=to_proj_id(lhs_proj),
+                    proj_id=lhs_proj,
                     tag=lhs_tag,
                 )
                 rhs1_arg = DeferredArrayView(
                     rhs1_array,
                     part=rhs1_part,
-                    proj_id=to_proj_id(rhs1_proj),
+                    proj_id=rhs1_proj,
                     tag=rhs1_tag,
                 )
                 rhs2_arg = DeferredArrayView(
                     rhs2_array,
                     part=rhs2_part,
-                    proj_id=to_proj_id(rhs2_proj),
+                    proj_id=rhs2_proj,
                     tag=rhs2_tag,
                 )
                 needs_reduction = (left_matrix and launch_space[1] > 1) or (
@@ -1143,7 +1142,7 @@ class DeferredArray(NumPyThunk):
                 acc_arg = DeferredArrayView(
                     acc_array,
                     part=acc_part,
-                    proj_id=to_proj_id(lhs_proj),
+                    proj_id=lhs_proj,
                     tag=lhs_tag,
                 )
 
@@ -1156,7 +1155,7 @@ class DeferredArray(NumPyThunk):
                     stacklevel=(stacklevel + 1),
                 )
 
-            task = Map(self.runtime, NumPyOpCode.MATVECMUL)
+            task = Task(self.context, NumPyOpCode.MATVECMUL)
             task.add_scalar_arg(needs_reduction, bool)
             if launch_space is not None:
                 task.add_shape(lhs_array.shape, lhs_part.tile_shape, lhs_proj)
@@ -1343,19 +1342,19 @@ class DeferredArray(NumPyThunk):
                 lhs_arg = DeferredArrayView(
                     lhs_array,
                     part=lhs_part,
-                    proj_id=to_proj_id(lhs_proj),
+                    proj_id=lhs_proj,
                     tag=lhs_tag,
                 )
                 rhs1_arg = DeferredArrayView(
                     rhs1_array,
                     part=rhs1_part,
-                    proj_id=to_proj_id(rhs1_proj),
+                    proj_id=rhs1_proj,
                     tag=rhs1_tag,
                 )
                 rhs2_arg = DeferredArrayView(
                     rhs2_array,
                     part=rhs2_part,
-                    proj_id=to_proj_id(rhs2_proj),
+                    proj_id=rhs2_proj,
                     tag=rhs2_tag,
                 )
 
@@ -1388,7 +1387,7 @@ class DeferredArray(NumPyThunk):
                 acc_arg = DeferredArrayView(
                     acc_array,
                     part=acc_part,
-                    proj_id=to_proj_id(lhs_proj),
+                    proj_id=lhs_proj,
                     tag=lhs_tag,
                 )
 
@@ -1403,7 +1402,7 @@ class DeferredArray(NumPyThunk):
                     stacklevel=(stacklevel + 1),
                 )
 
-            task = Map(self.runtime, NumPyOpCode.MATMUL)
+            task = Task(self.context, NumPyOpCode.MATMUL)
             task.add_scalar_arg(needs_reduction, bool)
             if launch_space is not None:
                 task.add_shape(lhs_array.shape, lhs_part.tile_shape, lhs_proj)
@@ -1500,7 +1499,7 @@ class DeferredArray(NumPyThunk):
                 tile_shape,
                 offset,
             )
-            diag_proj = self.runtime.first_proj_id + proj
+            diag_proj = proj
 
             matrix_arg = DeferredArrayView(matrix_array, part=matrix_part)
             diag_arg = DeferredArrayView(
@@ -1537,7 +1536,7 @@ class DeferredArray(NumPyThunk):
                 stacklevel=(stacklevel + 1),
             )
 
-        task = Map(self.runtime, NumPyOpCode.DIAG, tag=shardfn)
+        task = Task(self.context, NumPyOpCode.DIAG, tag=shardfn)
         task.add_scalar_arg(extract, bool)
         task.add_scalar_arg(needs_reduction, bool)
         task.add_scalar_arg(k, np.int32)
@@ -1588,7 +1587,7 @@ class DeferredArray(NumPyThunk):
 
         (shardpt, shardfn, shardsp) = key_arg.sharding
 
-        task = Map(self.runtime, NumPyOpCode.EYE, tag=shardfn)
+        task = Task(self.context, NumPyOpCode.EYE, tag=shardfn)
 
         if launch_space is not None:
             task.add_shape(lhs_arg.shape, lhs_arg.part.tile_shape, 0)
@@ -1634,7 +1633,7 @@ class DeferredArray(NumPyThunk):
 
         (shardpt, shardfn, shardsp) = key_arg.sharding
 
-        task = Map(self.runtime, NumPyOpCode.ARANGE, tag=shardfn)
+        task = Task(self.context, NumPyOpCode.ARANGE, tag=shardfn)
 
         if launch_space is not None:
             task.add_shape(lhs_arg.shape, lhs_arg.part.tile_shape, 0)
@@ -1676,7 +1675,7 @@ class DeferredArray(NumPyThunk):
 
         (shardpt, shardfn, shardsp) = dst_arg.sharding
 
-        task = Map(self.runtime, NumPyOpCode.TILE, tag=shardfn)
+        task = Task(self.context, NumPyOpCode.TILE, tag=shardfn)
 
         if launch_space is not None:
             task.add_shape(dst_arg.shape, dst_arg.part.tile_shape, 0)
@@ -1730,8 +1729,7 @@ class DeferredArray(NumPyThunk):
             rhs_arg = DeferredArrayView(
                 rhs_array,
                 part=rhs_part,
-                proj_id=self.runtime.first_proj_id
-                + NumPyProjCode.PROJ_2D_2D_YX,
+                proj_id=NumPyProjCode.PROJ_2D_2D_YX,
                 tag=NumPyMappingTag.NO_MEMOIZE_TAG,
             )
         else:
@@ -1740,7 +1738,7 @@ class DeferredArray(NumPyThunk):
 
         (shardpt, shardfn, shardsp) = lhs_arg.sharding
 
-        task = Map(self.runtime, NumPyOpCode.TRANSPOSE, tag=shardfn)
+        task = Task(self.context, NumPyOpCode.TRANSPOSE, tag=shardfn)
         if launch_space is not None:
             task.add_shape(lhs_arg.shape, lhs_arg.part.tile_shape, 0)
         else:
@@ -1801,7 +1799,7 @@ class DeferredArray(NumPyThunk):
             np.array(0, dst_arg.dtype), stacklevel + 1, callsite=callsite
         )
 
-        task = Map(self.runtime, NumPyOpCode.BINCOUNT, tag=shardfn)
+        task = Task(self.context, NumPyOpCode.BINCOUNT, tag=shardfn)
         task.add_scalar_arg(needs_reduction, bool)
         task.add_scalar_arg(weight_arg is not None, bool)
 
@@ -1869,7 +1867,7 @@ class DeferredArray(NumPyThunk):
 
         (shardpt, shardfn, shardsp) = key_arg.sharding
 
-        task = Map(self.runtime, NumPyOpCode.RAND, tag=shardfn)
+        task = Task(self.context, NumPyOpCode.RAND, tag=shardfn)
 
         task.add_scalar_arg(gen_code.value, np.int32)
         if launch_space is not None:
@@ -1954,7 +1952,7 @@ class DeferredArray(NumPyThunk):
 
         (shardpt, shardfn, shardsp) = key_arg.sharding
 
-        task = Map(self.runtime, task_id, tag=shardfn)
+        task = Task(self.context, task_id, tag=shardfn)
         task.add_scalar_arg(op.value, np.int32)
 
         if not lhs_arg.scalar:
@@ -2026,7 +2024,9 @@ class DeferredArray(NumPyThunk):
             key_arg.update_tag(NumPyMappingTag.KEY_REGION_TAG)
             (shardpt, shardfn, shardsp) = key_arg.sharding
 
-            task = Map(self.runtime, NumPyOpCode.SCALAR_UNARY_RED, tag=shardfn)
+            task = Task(
+                self.context, NumPyOpCode.SCALAR_UNARY_RED, tag=shardfn
+            )
 
             task.add_scalar_arg(op, np.int32)
             if launch_space is not None:
@@ -2137,7 +2137,7 @@ class DeferredArray(NumPyThunk):
 
                 shardpt, shardfn, shardsp = rhs_arg.sharding
 
-                task = Map(self.runtime, NumPyOpCode.UNARY_RED, tag=shardfn)
+                task = Task(self.context, NumPyOpCode.UNARY_RED, tag=shardfn)
                 task.add_scalar_arg(needs_reduction, bool)
                 task.add_scalar_arg(axis, np.int32)
                 task.add_scalar_arg(op, np.int32)
@@ -2181,7 +2181,7 @@ class DeferredArray(NumPyThunk):
 
                 shardpt, shardfn, shardsp = rhs_arg.sharding
 
-                task = Map(self.runtime, NumPyOpCode.UNARY_RED, tag=shardfn)
+                task = Task(self.context, NumPyOpCode.UNARY_RED, tag=shardfn)
                 task.add_scalar_arg(False, bool)  # needs_reduction
                 task.add_scalar_arg(axis, np.int32)
                 task.add_scalar_arg(op, np.int32)
@@ -2272,7 +2272,7 @@ class DeferredArray(NumPyThunk):
 
         (shardpt, shardfn, shardsp) = key_arg.sharding
 
-        op = Map(self.runtime, task_id, tag=shardfn)
+        op = Task(self.context, task_id, tag=shardfn)
         op.add_scalar_arg(op_code.value, np.int32)
 
         if not all_scalar_rhs:
@@ -2355,7 +2355,7 @@ class DeferredArray(NumPyThunk):
 
         (shardpt, shardfn, shardsp) = key_arg.sharding
 
-        task = Map(self.runtime, task_id, tag=shardfn)
+        task = Task(self.context, task_id, tag=shardfn)
         task.add_scalar_arg(op.value, np.int32)
 
         if not all_scalar_rhs:
@@ -2444,7 +2444,7 @@ class DeferredArray(NumPyThunk):
 
         (shardpt, shardfn, shardsp) = key_arg.sharding
 
-        task = Map(self.runtime, task_id, tag=shardfn)
+        task = Task(self.context, task_id, tag=shardfn)
         if not all_scalar_rhs:
             if launch_space is not None:
                 task.add_shape(lhs_arg.shape, lhs_arg.part.tile_shape, 0)
