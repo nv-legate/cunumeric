@@ -58,8 +58,7 @@ class NumPyLib(Library):
         assert self.shared_object is not None
         self.runtime = runtime
 
-    @property
-    def resource_config(self):
+    def get_resource_configuration(self):
         assert self.shared_object is not None
         config = ResourceConfig()
         config.max_tasks = self.shared_object.NUMPY_MAX_TASKS
