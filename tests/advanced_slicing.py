@@ -44,11 +44,10 @@ def test():
     assert np.array_equal(a[lg.array([1, 3, 5, 7, 9])], [2, 6, 10, 14, 18])
 
     # output shape follows index array shape
-    # TODO: requires support for indirect partitioning
-    # a = lg.arange(10) * 2
-    # assert np.array_equal(
-    #     a[lg.array([[1, 2, 3], [4, 5, 6]])], [[2, 4, 6], [8, 10, 12]]
-    # )
+    a = lg.arange(10) * 2
+    assert np.array_equal(
+        a[lg.array([[1, 2, 3], [4, 5, 6]])], [[2, 4, 6], [8, 10, 12]]
+    )
 
     # index arrays can be any sequence object
     a = lg.arange(10) * 2
@@ -101,16 +100,15 @@ def test():
     # 2d __getitem__
 
     # index arrays can be boolean, of the same shape as the base array
-    # TODO: requires support for indirect partitioning
-    # a = sequence_2d()
-    # assert np.array_equal(a[a > 17], [18, 19, 20, 21, 22, 23, 24])
+    a = sequence_2d()
+    # TODO: Have to sort the output array, until #?? is fixed
+    assert np.array_equal(np.sort(a[a > 17]), [18, 19, 20, 21, 22, 23, 24])
 
     # index arrays can be integer, one per base array dimension
-    # TODO: requires support for indirect partitioning
-    # a = sequence_2d()
-    # assert np.array_equal(
-    #     a[lg.array([0, 1, 2]), lg.array([0, 1, 2])], [0, 6, 12]
-    # )
+    a = sequence_2d()
+    assert np.array_equal(
+        a[lg.array([0, 1, 2, 3]), lg.array([0, 1, 2, 3])], [0, 6, 12, 18]
+    )
 
     # output shape follows index array shape
     a = sequence_2d()
@@ -120,46 +118,42 @@ def test():
     )
 
     # index arrays can be any sequence object
-    # TODO: requires support for indirect partitioning
-    # a = sequence_2d()
-    # assert np.array_equal(a[range(3), range(3)], [0, 6, 12])
+    a = sequence_2d()
+    assert np.array_equal(a[range(4), range(4)], [0, 6, 12, 18])
 
     # index arrays are automatically cast to int64
-    # TODO: requires support for indirect partitioning
-    # a = sequence_2d()
-    # assert np.array_equal(a[range(3), range(3)], [0, 6, 12])
-    # assert np.array_equal(
-    #     a[
-    #         lg.array([0, 1, 2], dtype=np.int16),
-    #         lg.array([0, 1, 2], dtype=np.uint32),
-    #     ],
-    #     [0, 6, 12],
-    # )
+    a = sequence_2d()
+    assert np.array_equal(a[range(4), range(4)], [0, 6, 12, 18])
+    assert np.array_equal(
+        a[
+            lg.array([0, 1, 2, 3], dtype=np.int16),
+            lg.array([0, 1, 2, 3], dtype=np.uint32),
+        ],
+        [0, 6, 12, 18],
+    )
 
     # advanced slicing creates copies
-    # TODO: requires support for indirect partitioning
-    # a = sequence_2d()
-    # b = a[a > 17]
-    # b[:] = -1
-    # assert a.min() == 0 and a.max() == 24
+    a = sequence_2d()
+    b = a[a > 17]
+    b[:] = -1
+    assert a.min() == 0 and a.max() == 24
 
     # 2d __setitem__
 
     # can write through a single advanced slice
-    # TODO: requires support for indirect partitioning
-    # a = sequence_2d()
-    # b = lg.zeros(7, dtype=np.int64)
-    # a[a > 17] = b
-    # assert np.array_equal(
-    #     a,
-    #     [
-    #         [0, 1, 2, 3, 4],
-    #         [5, 6, 7, 8, 9],
-    #         [10, 11, 12, 13, 14],
-    #         [15, 16, 17, 0, 0],
-    #         [0, 0, 0, 0, 0],
-    #     ],
-    # )
+    a = sequence_2d()
+    b = lg.zeros(7, dtype=np.int64)
+    a[a > 17] = b
+    assert np.array_equal(
+        a,
+        [
+            [0, 1, 2, 3, 4],
+            [5, 6, 7, 8, 9],
+            [10, 11, 12, 13, 14],
+            [15, 16, 17, 0, 0],
+            [0, 0, 0, 0, 0],
+        ],
+    )
 
     # can write through views
     # TODO: Fix #41

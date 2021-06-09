@@ -798,11 +798,21 @@ class RegionField(object):
         )
 
     def find_or_create_indirect_partition(self, launch_space):
-        assert len(launch_space) != len(self.shape)
         # If there is a mismatch in the number of dimensions then we need
         # to compute a partition and projection functor that can transform
-        # the points into a partition that makes sense
-        raise NotImplementedError("need support for indirect partitioning")
+        # the points into a partition that makes sense.
+        assert len(launch_space) != len(self.shape)
+        # For now cover the common case where we launch over a space wih the
+        # same number of points as the array's key partition.
+        key_space = self.compute_parallel_launch_space()
+        if calculate_volume(key_space) != calculate_volume(launch_space):
+            raise NotImplementedError(
+                "indirect partitioning over launch space of different size "
+                "than key partition"
+            )
+        key_part, _, _ = self.find_or_create_key_partition()
+        proj = self.runtime.first_proj_id + NumPyProjCode.PROJ_ND_MD_C_ORDER
+        return key_part, proj
 
     def attach_numpy_array(self, numpy_array, share=False):
         assert self.parent is None
