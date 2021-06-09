@@ -203,13 +203,13 @@ std::ostream &operator<<(std::ostream &os, const ThreadBlocks<DIM> &blocks)
 }
 
 template <typename REDOP, typename CTOR, typename LHS, typename RHS, int32_t DIM>
-static __device__ Point<DIM> local_reduce(CTOR ctor,
-                                          LHS &result,
-                                          AccessorRO<RHS, DIM> in,
-                                          LHS identity,
-                                          const ThreadBlocks<DIM> &blocks,
-                                          const Rect<DIM> &domain,
-                                          int32_t collapsed_dim)
+static __device__ __forceinline__ Point<DIM> local_reduce(CTOR ctor,
+                                                          LHS &result,
+                                                          AccessorRO<RHS, DIM> in,
+                                                          LHS identity,
+                                                          const ThreadBlocks<DIM> &blocks,
+                                                          const Rect<DIM> &domain,
+                                                          int32_t collapsed_dim)
 {
   const coord_t tid = threadIdx.x;
   const coord_t bid = blockIdx.x;
@@ -225,9 +225,9 @@ static __device__ Point<DIM> local_reduce(CTOR ctor,
 #if __CUDA_ARCH__ >= 700
   // If we're collapsing the innermost dimension, we perform some optimization
   // with shared memory to reduce memory traffic due to atomic updates
-  // if (collapsed_dim == DIM - 1) {
-  if (false) {
-    __shared__ LHS trampoline[THREADS_PER_BLOCK];
+  if (collapsed_dim == DIM - 1) {
+    __shared__ uint8_t shmem[THREADS_PER_BLOCK * sizeof(LHS)];
+    LHS *trampoline = reinterpret_cast<LHS *>(shmem);
     // Check for the case where all the threads in the same warp have
     // the same x value in which case they're all going to conflict
     // so instead we do a warp-level reduction so just one thread ends
