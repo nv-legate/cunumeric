@@ -20,7 +20,7 @@ import warnings
 import numpy as np
 
 from legate.core import *  # noqa F403
-from legate.core.task import Broadcast, Projection, Task
+from legate.core.task import Broadcast, Project, Task
 
 from .config import *  # noqa F403
 from .thunk import NumPyThunk
@@ -142,8 +142,7 @@ class DeferredArrayView(object):
         if self._proj_id is None:
             return Broadcast(redop=redop)
         else:
-            proj_id = self._context.get_projection_id(self._proj_id)
-            return Projection(self.part, proj_id, redop=redop)
+            return Project(self.part, self._proj_id, redop=redop)
 
     def add_to_legate_op(self, op, read_only, read_write=False, redop=None):
         op.add_scalar_arg(self.scalar, bool)
@@ -1059,9 +1058,11 @@ class DeferredArray(NumPyThunk):
                     (launch_space[0] if left_matrix else launch_space[1],)
                 )
                 lhs_proj = (
-                    NumPyProjCode.PROJ_2D_1D_X
+                    self.context.runtime.get_projection(2, 1, [True, False])
                     if left_matrix
-                    else NumPyProjCode.PROJ_2D_1D_Y
+                    else self.context.runtime.get_projection(
+                        2, 1, [False, True]
+                    )
                 )
                 lhs_tag = NumPyMappingTag.NO_MEMOIZE_TAG
                 if rhs1_array.ndim == 1:
@@ -1069,7 +1070,9 @@ class DeferredArray(NumPyThunk):
                     rhs1_part = rhs1_array.base.find_or_create_partition(
                         (launch_space[0],)
                     )
-                    rhs1_proj = NumPyProjCode.PROJ_2D_1D_X
+                    rhs1_proj = self.context.runtime.get_projection(
+                        2, 1, [True, False]
+                    )
                     rhs1_tag = NumPyMappingTag.NO_MEMOIZE_TAG
                 else:
                     # Matrix input
@@ -1084,7 +1087,9 @@ class DeferredArray(NumPyThunk):
                     rhs2_part = rhs2_array.base.find_or_create_partition(
                         (launch_space[1],)
                     )
-                    rhs2_proj = NumPyProjCode.PROJ_2D_1D_Y
+                    rhs2_proj = self.context.runtime.get_projection(
+                        2, 1, [False, True]
+                    )
                     rhs2_tag = NumPyMappingTag.NO_MEMOIZE_TAG
                 else:
                     assert rhs2_array.shape[1] > 1
@@ -1320,9 +1325,15 @@ class DeferredArray(NumPyThunk):
                     rhs1_launch[1],
                     lhs_launch[1],
                 )
-                lhs_proj = NumPyProjCode.PROJ_3D_2D_XZ
-                rhs1_proj = NumPyProjCode.PROJ_3D_2D_XY
-                rhs2_proj = NumPyProjCode.PROJ_3D_2D_YZ
+                lhs_proj = self.context.runtime.get_projection(
+                    3, 2, [True, False, True]
+                )
+                rhs1_proj = self.context.runtime.get_projection(
+                    3, 2, [True, True, False]
+                )
+                rhs2_proj = self.context.runtime.get_projection(
+                    3, 2, [False, True, True]
+                )
                 lhs_tag = (
                     NumPyMappingTag.KEY_REGION_TAG
                     if lhs_size == max_size
@@ -1486,13 +1497,13 @@ class DeferredArray(NumPyThunk):
                 color_space = (launch_space[0],)
                 tile_shape = (matrix_part.tile_shape[0],)
                 offset = (k if k < 0 else 0,)
-                proj = NumPyProjCode.PROJ_2D_1D_X
+                proj = self.context.runtime.get_projection(2, 1, [True, False])
             else:
                 collapse_dim = 0
                 color_space = (launch_space[1],)
                 tile_shape = (matrix_part.tile_shape[1],)
                 offset = (-k if k > 0 else 0,)
-                proj = NumPyProjCode.PROJ_2D_1D_Y
+                proj = self.context.runtime.get_projection(2, 1, [False, True])
 
             diag_part = diag_array.base.find_or_create_partition(
                 color_space,
@@ -1729,7 +1740,7 @@ class DeferredArray(NumPyThunk):
             rhs_arg = DeferredArrayView(
                 rhs_array,
                 part=rhs_part,
-                proj_id=NumPyProjCode.PROJ_2D_2D_YX,
+                proj_id=self.context.runtime.get_transpose([1, 0]),
                 tag=NumPyMappingTag.NO_MEMOIZE_TAG,
             )
         else:

@@ -45,6 +45,7 @@ from legate.core import (
     Region,
     Transform,
     ffi,
+    get_legate_runtime,
     get_legion_context,
     get_legion_runtime,
     legate_add_attachment,
@@ -2296,10 +2297,6 @@ class Runtime(object):
         output_shape = np.array(output_shape)
 
         mask = output_shape == input_shape
-        assert mask.sum() < output_ndim
-        matching_dims = "".join(_dim_names[: len(mask)][mask])
-        proj_name = f"PROJ_{output_ndim}D_{input_ndim}D_{matching_dims}"
-
         offset = np.zeros((input_ndim,), dtype=np.int64)
         transform = np.zeros((input_ndim, output_ndim), dtype=np.int64)
         for dim, flag in enumerate(mask):
@@ -2314,7 +2311,7 @@ class Runtime(object):
         return (
             affine_transform,
             offset,
-            getattr(NumPyProjCode, proj_name),
+            get_legate_runtime().get_projection(output_ndim, input_ndim, mask),
             NumPyMappingTag.NO_MEMOIZE_TAG,
         )
 
@@ -2334,10 +2331,6 @@ class Runtime(object):
         )
 
         mask = output_shape == input_shape
-        assert mask.sum() < input_ndim
-        matching_dims = "".join(_dim_names[: len(mask)][mask])
-        proj_name = f"PROJ_{input_ndim}D_{output_ndim}D_{matching_dims}"
-
         transform = np.zeros((output_ndim, input_ndim), dtype=np.int64)
         if keepdims:
             for input_dim, flag in enumerate(mask):
@@ -2354,7 +2347,7 @@ class Runtime(object):
         affine_transform.trans = transform
         return (
             affine_transform,
-            getattr(NumPyProjCode, proj_name),
+            get_legate_runtime().get_projection(input_ndim, output_ndim, mask),
         )
 
     def check_shadow(self, thunk, op):

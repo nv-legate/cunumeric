@@ -16,7 +16,7 @@
 
 #include "deserializer.h"
 #include "dispatch.h"
-#include "proj.h"
+#include "projection.h"
 
 namespace legate {
 namespace numpy {
@@ -109,10 +109,31 @@ void deserialize(Deserializer &ctx, UntypedPoint &value)
 }
 
 struct deserialize_shape_fn {
-  template <int N>
+  template <int32_t DIM>
   Shape operator()(const Task *task, LegateDeserializer &ctx)
   {
-    return Shape(NumPyProjectionFunctor::unpack_shape<N>(task, ctx));
+    const auto shape = ctx.template unpack_point<DIM>();
+    const Rect<DIM> rect(Point<DIM>::ZEROES(), shape - Point<DIM>::ONES());
+    // Unpack the projection functor ID
+    const auto functor_id = ctx.unpack_32bit_int();
+    // If the functor is less than zero than we know that this isn't valid
+    // and we've got the actual rectangle that we need for this analysis
+    if (functor_id < 0) return rect;
+    // Otherwise intersect the shape with the chunk for our point
+    auto chunk = ctx.template unpack_point<DIM>();
+    if (functor_id == 0) {
+      // Default projection functor so we can do the easy thing
+      const Point<DIM> local = task->index_point;
+      const auto lower       = local * chunk;
+      const auto upper       = lower + chunk - Point<DIM>::ONES();
+      return Shape(rect.intersection(Rect<DIM>(lower, upper)));
+    } else {
+      LegateProjectionFunctor *functor = Core::get_projection_functor(functor_id);
+      const Point<DIM> local = functor->project_point(task->index_point, task->index_domain);
+      const auto lower       = local * chunk;
+      const auto upper       = lower + chunk - Point<DIM>::ONES();
+      return Shape(rect.intersection(Legion::Rect<DIM>(lower, upper)));
+    }
   }
 };
 

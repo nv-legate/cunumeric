@@ -16,7 +16,6 @@
 
 #include "numpy.h"
 #include "mapper.h"
-#include "proj.h"
 #include "unary/unary_red_util.h"
 
 using namespace Legion;
@@ -118,10 +117,7 @@ void registration_callback(Machine machine,
   Runtime::register_reduction_op<UntypedScalarRedOp<UnaryRedCode::ARGMIN>>(
     first_redop_id + NUMPY_SCALAR_ARGMIN_REDOP);
 
-  // Register our projection and sharding functions
-  const ProjectionID first_projection_id =
-    runtime->generate_library_projection_ids(numpy_library_name, NUMPY_PROJ_LAST);
-  NumPyProjectionFunctor::register_projection_functors(runtime, first_projection_id);
+  // Register our sharding functions
   const ShardingID first_sharding_id =
     runtime->generate_library_sharding_ids(numpy_library_name, NUMPY_SHARD_LAST);
   NumPyShardingFunctor::register_sharding_functors(runtime, first_sharding_id);

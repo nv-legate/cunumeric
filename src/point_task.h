@@ -17,7 +17,6 @@
 #pragma once
 
 #include "numpy.h"
-#include "proj.h"
 #include <type_traits>
 #if defined(LEGATE_USE_CUDA) && defined(__CUDACC__)
 #include "cuda_help.h"

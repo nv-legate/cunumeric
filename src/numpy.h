@@ -18,6 +18,7 @@
 
 #include "legate.h"
 #include "legate_numpy_c.h"
+#include "dispatch.h"
 #include "mathtypes/complex.h"
 #include <deque>
 
