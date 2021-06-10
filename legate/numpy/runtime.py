@@ -23,6 +23,7 @@ import struct
 import sys
 import weakref
 from collections import OrderedDict, deque
+from functools import reduce
 
 import numpy as np
 
@@ -60,31 +61,6 @@ from .eager import EagerArray
 from .lazy import LazyArray
 from .thunk import NumPyThunk
 from .utils import calculate_volume, get_arg_value_dtype
-
-
-# Helper method for python 3 support
-def _iterkeys(obj):
-    return obj.keys() if sys.version_info > (3,) else obj.viewkeys()
-
-
-def _iteritems(obj):
-    return obj.items() if sys.version_info > (3,) else obj.viewitems()
-
-
-try:
-    reduce  # Python 2
-except NameError:
-    reduce = functools.reduce
-
-try:
-    xrange  # Python 2
-except NameError:
-    xrange = range  # Python 3
-
-try:
-    long  # Python 2
-except NameError:
-    long = int  # Python 3
 
 
 # A Field holds a reference to a field in a region tree
@@ -140,7 +116,7 @@ class FieldMatch(object):
             self.input = ffi.new(alloc_string)
             self.output = ffi.new(alloc_string)
             # Fill in the input buffer with our data
-            for idx in xrange(len(fields)):
+            for idx in range(len(fields)):
                 region, field_id = fields[idx]
                 self.input[2 * idx] = region.handle.tree_id
                 self.input[2 * idx + 1] = field_id
@@ -182,7 +158,7 @@ class FieldMatch(object):
             ordered_fields = [None] * num_fields
             for region, field_id in self.fields:
                 found = False
-                for idx in xrange(num_fields):
+                for idx in range(num_fields):
                     if self.output[2 * idx] != region.handle.tree_id:
                         continue
                     if self.output[2 * idx + 1] != field_id:
@@ -337,7 +313,7 @@ class FieldManager(object):
         if len(field_space) > 0:
             # This field space has been used already, grab the first
             # field for ourselves and put any other ones on the free list
-            for fid in _iterkeys(field_space.fields):
+            for fid in field_space.fields.keys():
                 if field_id is None:
                     field_id = fid
                 else:
@@ -908,7 +884,7 @@ class RegionField(object):
             )
         # Now that we've got our accessor we can get a pointer to the memory
         rect = ffi.new("legion_rect_{}d_t *".format(dim))
-        for d in xrange(dim):
+        for d in range(dim):
             rect[0].lo.x[d] = 0
             rect[0].hi.x[d] = self.shape[d] - 1  # inclusive
         subrect = ffi.new("legion_rect_{}d_t *".format(dim))
@@ -919,14 +895,14 @@ class RegionField(object):
         base_ptr = func(accessor, rect[0], subrect, offsets)
         assert base_ptr is not None
         # Check that the subrect is the same as in the in rect
-        for d in xrange(dim):
+        for d in range(dim):
             assert rect[0].lo.x[d] == subrect[0].lo.x[d]
             assert rect[0].hi.x[d] == subrect[0].hi.x[d]
-        shape = tuple(rect.hi.x[i] - rect.lo.x[i] + 1 for i in xrange(dim))
-        strides = tuple(offsets[i].offset for i in xrange(dim))
+        shape = tuple(rect.hi.x[i] - rect.lo.x[i] + 1 for i in range(dim))
+        strides = tuple(offsets[i].offset for i in range(dim))
         # Numpy doesn't know about CFFI pointers, so we have to cast
         # this to a Python long before we can hand it off to Numpy.
-        base_ptr = long(ffi.cast("size_t", base_ptr))
+        base_ptr = int(ffi.cast("size_t", base_ptr))
         initializer = _RegionNdarray(
             shape, self.field.dtype, base_ptr, strides, False
         )
@@ -1212,7 +1188,7 @@ class Runtime(object):
                 "----------------"
             )
             for callsite, counts in sorted(
-                _iteritems(self.callsite_summaries),
+                self.callsite_summaries.items(),
                 key=lambda site: (
                     site[0].filename,
                     site[0].lineno,
@@ -1367,7 +1343,7 @@ class Runtime(object):
         temp_shape = ()
         temp_dims = ()
         volume = 1
-        for dim in xrange(len(shape)):
+        for dim in range(len(shape)):
             assert shape[dim] > 0
             if shape[dim] == 1:
                 continue
@@ -1394,7 +1370,7 @@ class Runtime(object):
         if dims == 0:
             # Project back onto the original number of dimensions
             result = ()
-            for dim in xrange(len(shape)):
+            for dim in range(len(shape)):
                 result = result + (1,)
             return result
         elif dims == 1:
@@ -1452,7 +1428,7 @@ class Runtime(object):
             # them onto the shape, with the goal being to keep the
             # last dimension >= 32 for good memory performance on the GPU
             temp_result = list()
-            for dim in xrange(dims):
+            for dim in range(dims):
                 temp_result.append(1)
             factor_prod = 1
             for factor in self.piece_factors:
@@ -1489,7 +1465,7 @@ class Runtime(object):
         # Project back onto the original number of dimensions
         assert len(temp_result) == dims
         result = ()
-        for dim in xrange(len(shape)):
+        for dim in range(len(shape)):
             if dim in temp_dims:
                 result = result + (temp_result[temp_dims.index(dim)],)
             else:
@@ -1551,7 +1527,7 @@ class Runtime(object):
         transform = AffineTransform(len(parent.shape), len(shape), False)
         parent_idx = 0  # Index of parent dimensions
         child_idx = 0  # Index of child dimensions
-        for idx in xrange(len(view)):
+        for idx in range(len(view)):
             # If this is an added dimension then it doesn't even contribute
             # back to the parent space so we can skip it
             if dim_map[idx] > 0:
@@ -1583,10 +1559,10 @@ class Runtime(object):
         # region then we don't actually need to make a subregion, we can
         # just use the parent region with the transform
         parent_volume = 1
-        for dim in xrange(len(parent.shape)):
+        for dim in range(len(parent.shape)):
             parent_volume *= parent.shape[dim]
         child_volume = 1
-        for dim in xrange(len(shape)):
+        for dim in range(len(shape)):
             child_volume *= shape[dim]
         if parent_volume == child_volume:
             # Same number of points, so no need to make a subregion here
@@ -1613,7 +1589,7 @@ class Runtime(object):
             # a disjoint tiled partition with as many children as possible
             tile = True
             tile_shape = ()
-            for dim in xrange(len(view)):
+            for dim in range(len(view)):
                 slc = view[dim]
                 lo += (slc.start,)
                 # Legion is inclusive
@@ -1635,7 +1611,7 @@ class Runtime(object):
                 # Compute the color space bounds and then see how big it is
                 assert len(lo) == len(tile_shape)
                 color_space_bounds = ()
-                for dim in xrange(len(lo)):
+                for dim in range(len(lo)):
                     assert (parent.shape[dim] % tile_shape[dim]) == 0
                     color_space_bounds += (
                         parent.shape[dim] // tile_shape[dim],
@@ -1650,7 +1626,7 @@ class Runtime(object):
             if tile:
                 # Compute the color of the tile that we care about
                 tile_color = ()
-                for dim in xrange(len(lo)):
+                for dim in range(len(lo)):
                     assert (lo[dim] % tile_shape[dim]) == 0
                     tile_color += (lo[dim] // tile_shape[dim],)
                 assert len(view) == len(tile_shape)
@@ -1805,7 +1781,7 @@ class Runtime(object):
 
     def prune_detachments(self):
         to_remove = None
-        for future in _iterkeys(self.pending_detachments):
+        for future in self.pending_detachments.keys():
             if future.is_ready():
                 if to_remove is None:
                     to_remove = list()
@@ -1895,7 +1871,7 @@ class Runtime(object):
             # figure out the shape and transform for this top-level region
             shape = ()
             need_transform = False
-            for idx in xrange(bounds.rect.dim):
+            for idx in range(bounds.rect.dim):
                 if bounds.rect.lo[idx] != 0:
                     shape += ((bounds.rect.hi[idx] - bounds.rect.lo[idx]) + 1,)
                     need_transform = True
@@ -1906,7 +1882,7 @@ class Runtime(object):
             # If we need a transform then compute that now
             if need_transform:
                 transform = AffineTransform(len(shape), len(shape), True)
-                for idx in xrange(bounds.rect.dim):
+                for idx in range(bounds.rect.dim):
                     transform.offset[idx] = bounds.rect[idx]
             else:
                 transform = None
@@ -1922,14 +1898,14 @@ class Runtime(object):
     @staticmethod
     def has_external_attachment(array):
         assert array.base is None or not isinstance(array.base, np.ndarray)
-        ptr = long(array.ctypes.data)
+        ptr = int(array.ctypes.data)
         return legate_find_attachment(ptr, array.nbytes) is not None
 
     def attach_array_field(self, array, share):
         assert array.base is None or not isinstance(array.base, np.ndarray)
         # NumPy arrays are not hashable, so look up the pointer for the array
         # which should be unique for all root NumPy arrays
-        ptr = long(array.ctypes.data)
+        ptr = int(array.ctypes.data)
         result = legate_find_attachment(ptr, array.nbytes)
         if result is not None:
             region_field = self.instantiate_region_field(
@@ -1960,7 +1936,7 @@ class Runtime(object):
         # Remove the region field from the ptr_to_thunk
         # NumPy arrays are not hashable, so look up the pointer for the array
         # which should be unique for all root NumPy arrays
-        ptr = long(array.ctypes.data)
+        ptr = int(array.ctypes.data)
         if ptr in self.ptr_to_thunk:
             del self.ptr_to_thunk[ptr]
         # We also need to tell the core legate library that this array
@@ -1979,8 +1955,8 @@ class Runtime(object):
         # slice object that was used to generate a child array from
         # a parent array so we can build the same mapping from a
         # logical region to a subregion
-        parent_ptr = long(array.base.ctypes.data)
-        child_ptr = long(array.ctypes.data)
+        parent_ptr = int(array.base.ctypes.data)
+        child_ptr = int(array.ctypes.data)
         assert child_ptr >= parent_ptr
         ptr_diff = child_ptr - parent_ptr
         parent_shape = array.base.shape
@@ -2004,7 +1980,7 @@ class Runtime(object):
         child_idx = 0
         child_strides = tuple(array.strides)
         parent_strides = tuple(array.base.strides)
-        for idx in xrange(array.base.ndim):
+        for idx in range(array.base.ndim):
             # Handle the adding and removing dimension cases
             if parent_strides[idx] == 0:
                 # This was an added dimension in the parent
@@ -2100,7 +2076,7 @@ class Runtime(object):
             assert not defer
             return EagerArray(self, array)
         # Get the pointer for this array so we can look it up
-        ptr = long(array.ctypes.data)
+        ptr = int(array.ctypes.data)
         if self.ptr_to_thunk is not None and ptr in self.ptr_to_thunk:
             cached_thunk = self.ptr_to_thunk[ptr]
             if not defer or isinstance(cached_thunk, DeferredArray):
