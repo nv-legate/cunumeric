@@ -1,0 +1,51 @@
+name: Build legate.core
+on: 
+  push:
+    branches-ignore:
+      - gh-pages  # deployment target branch (this workflow should not exist on that branch anyway)
+  pull_request:
+    branches-ignore:
+      - gh-pages  # deployment target branch (this workflow should not exist on that branch anyway)
+env:
+  COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+  PROJECT: github-numpy-ci
+jobs:
+  build:
+    runs-on: self-hosted
+    steps:
+      - name: Run CI build
+        run: |
+          if [[ ! -d legate-ci ]]
+          then
+            git clone ssh://git@gitlab-master.nvidia.com:12051/legate/legate-ci.git
+          else
+            cd legate-ci
+            git pull
+            cd ..
+          fi
+          cd legate-ci
+          cd github-ci/
+          cd legate.numpy
+          rm -rf ngc-artifacts
+          ./build.sh > ${COMMIT}-build.log 2>&1
+          cat *artifacts/*/*
+  test:
+    runs-on: self-hosted
+    needs: build
+    steps:
+      - name: Run CI tests
+        run: |
+          if [[ ! -d legate-ci ]]
+          then
+            git clone ssh://git@gitlab-master.nvidia.com:12051/legate/legate-ci.git
+          else
+            cd legate-ci
+            git pull
+            cd ..
+          fi
+          cd legate-ci
+          cd github-ci/
+          cd legate.numpy
+          rm -rf ngc-artifacts
+          ./test.sh > ${COMMIT}-test.log 2>&1
+          cat *artifacts/*/*
