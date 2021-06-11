@@ -15,7 +15,7 @@ jobs:
     steps:
       - name: Run CI build
         run: |
-          /data/gitlab-runner/legate-bin/setup.sh
+          /data/github-runner/legate-bin/setup.sh
           cd legate.numpy
           rm -rf ngc-artifacts
           ./build.sh > ${COMMIT}-build.log 2>&1
@@ -26,7 +26,7 @@ jobs:
     steps:
       - name: Run CI tests
         run: |
-          /data/gitlab-runner/legate-bin/setup.sh
+          /data/github-runner/legate-bin/setup.sh
           cd legate.numpy
           rm -rf ngc-artifacts
           ./test.sh > ${COMMIT}-test.log 2>&1
