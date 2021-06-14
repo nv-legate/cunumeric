@@ -36,7 +36,7 @@ jobs:
           then
             mkdir ngc-artifacts
           else
-            rm ngc-artifacts/*
+            rm -rf ngc-artifacts/*
           fi
           ./test.sh > ${COMMIT}-test.log 2>&1
           cat *artifacts/*/*
