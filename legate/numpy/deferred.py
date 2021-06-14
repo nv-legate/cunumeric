@@ -285,7 +285,7 @@ class DeferredArray(NumPyThunk):
             # and type
             return np.empty(shape=self.shape, dtype=self.dtype)
         else:
-            return self.base.get_numpy_array()
+            return self.base.get_numpy_array(self.runtime.legate_context)
 
     # TODO: We should return a view of the field instead of a copy
     def imag(self, stacklevel, callsite=None):
@@ -293,7 +293,9 @@ class DeferredArray(NumPyThunk):
         if self.scalar:
             result_field = Future()
         else:
-            result_field = self.runtime.allocate_field(self.shape, dtype=dtype)
+            result_field = self.runtime.legate_runtime.allocate_field(
+                self.shape, dtype=dtype
+            )
 
         result = DeferredArray(
             self.runtime,
@@ -321,7 +323,9 @@ class DeferredArray(NumPyThunk):
         if self.scalar:
             result_field = Future()
         else:
-            result_field = self.runtime.allocate_field(self.shape, dtype=dtype)
+            result_field = self.runtime.legate_runtime.allocate_field(
+                self.shape, dtype=dtype
+            )
 
         result = DeferredArray(
             self.runtime,
@@ -347,7 +351,7 @@ class DeferredArray(NumPyThunk):
         if self.scalar:
             result_field = Future()
         else:
-            result_field = self.runtime.allocate_field(
+            result_field = self.runtime.legate_runtime.allocate_field(
                 self.shape, dtype=self.dtype
             )
 
@@ -434,7 +438,7 @@ class DeferredArray(NumPyThunk):
                 key, stacklevel=(stacklevel + 1)
             )
             # Create a new array to be the result
-            result_field = self.runtime.allocate_field(
+            result_field = self.runtime.legate_runtime.allocate_field(
                 index_array.shape, dtype=self.dtype
             )
             result = DeferredArray(
@@ -1035,7 +1039,8 @@ class DeferredArray(NumPyThunk):
                 assert rhs2_array.ndim == 2
                 matrix = rhs2_array
                 left_matrix = False
-            launch_space = self.runtime.compute_parallel_launch_space_by_shape(
+            launch_space =
+            self.runtime.legate_runtime.compute_parallel_launch_space_by_shape(  #noqa E501
                 matrix.shape
             )
             if launch_space is not None:
@@ -1131,7 +1136,7 @@ class DeferredArray(NumPyThunk):
             # for accumulation
             if needs_reduction and rhs1_arg.dtype == np.float16:
                 acc_buffer_dtype = np.dtype(np.float32)
-                acc_buffer = self.runtime.allocate_field(
+                acc_buffer = self.runtime.legate_runtime.allocate_field(
                     lhs_array.shape, acc_buffer_dtype
                 )
                 acc_array = DeferredArray(
@@ -1382,7 +1387,7 @@ class DeferredArray(NumPyThunk):
             # for accumulation
             if needs_reduction and rhs1_arg.dtype == np.float16:
                 acc_buffer_dtype = np.dtype(np.float32)
-                acc_buffer = self.runtime.allocate_field(
+                acc_buffer = self.runtime.legate_runtime.allocate_field(
                     lhs_array.shape, acc_buffer_dtype
                 )
                 acc_array = DeferredArray(
@@ -2067,7 +2072,7 @@ class DeferredArray(NumPyThunk):
 
             if argred:
                 argred_dtype = get_arg_dtype(rhs_array.dtype)
-                lhs_field = self.runtime.allocate_field(
+                lhs_field = self.runtime.legate_runtime.allocate_field(
                     self.shape,
                     dtype=argred_dtype,
                 )

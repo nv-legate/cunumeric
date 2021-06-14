@@ -265,8 +265,8 @@ void NumPyMapper::slice_task(const MapperContext ctx,
   output.slices.reserve(input.domain.get_volume());
   // Get the sharding functor for this operation and then use it to localize
   // the points onto the processors of this shard
-  const ShardingID sid          = select_sharding_functor(ctx, task);
-  NumPyShardingFunctor* functor = find_sharding_functor(sid);
+  // const ShardingID sid          = select_sharding_functor(ctx, task);
+  // NumPyShardingFunctor* functor = find_sharding_functor(sid);
   // Get the domain for the sharding space also
   Domain sharding_domain = task.index_domain;
   if (task.sharding_space.exists())
@@ -274,8 +274,8 @@ void NumPyMapper::slice_task(const MapperContext ctx,
   switch (task.target_proc.kind()) {
     case Processor::LOC_PROC: {
       for (Domain::DomainPointIterator itr(input.domain); itr; itr++) {
-        const unsigned local_index =
-          functor->localize(itr.p, sharding_domain, total_nodes, local_node) % local_cpus.size();
+        const unsigned local_index = 0;
+        // functor->localize(itr.p, sharding_domain, total_nodes, local_node) % local_cpus.size();
         output.slices.push_back(TaskSlice(
           Domain(itr.p, itr.p), local_cpus[local_index], false /*recurse*/, false /*stealable*/));
       }
@@ -283,8 +283,8 @@ void NumPyMapper::slice_task(const MapperContext ctx,
     }
     case Processor::TOC_PROC: {
       for (Domain::DomainPointIterator itr(input.domain); itr; itr++) {
-        const unsigned local_index =
-          functor->localize(itr.p, sharding_domain, total_nodes, local_node) % local_gpus.size();
+        const unsigned local_index = 0;
+        // functor->localize(itr.p, sharding_domain, total_nodes, local_node) % local_gpus.size();
         output.slices.push_back(TaskSlice(
           Domain(itr.p, itr.p), local_gpus[local_index], false /*recurse*/, false /*stealable*/));
       }
@@ -292,8 +292,8 @@ void NumPyMapper::slice_task(const MapperContext ctx,
     }
     case Processor::OMP_PROC: {
       for (Domain::DomainPointIterator itr(input.domain); itr; itr++) {
-        const unsigned local_index =
-          functor->localize(itr.p, sharding_domain, total_nodes, local_node) % local_omps.size();
+        const unsigned local_index = 0;
+        // functor->localize(itr.p, sharding_domain, total_nodes, local_node) % local_omps.size();
         output.slices.push_back(TaskSlice(
           Domain(itr.p, itr.p), local_omps[local_index], false /*recurse*/, false /*stealable*/));
       }
@@ -1177,7 +1177,7 @@ void NumPyMapper::select_sharding_functor(const MapperContext ctx,
                                           SelectShardingFunctorOutput& output)
 //--------------------------------------------------------------------------
 {
-  output.chosen_functor = select_sharding_functor(ctx, task);
+  output.chosen_functor = 0;  // select_sharding_functor(ctx, task);
 }
 
 //--------------------------------------------------------------------------
