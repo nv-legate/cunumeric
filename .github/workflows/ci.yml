@@ -33,6 +33,7 @@ jobs:
           cd github-ci/
           cd legate.numpy
           if [[ ! -d ngc-artifacts ]]
+          then
             mkdir ngc-artifacts
           else
             rm ngc-artifacts/*
