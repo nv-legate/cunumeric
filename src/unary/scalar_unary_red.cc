@@ -89,11 +89,11 @@ struct ScalarUnaryRedImplBody<VariantKind::CPU, UnaryRedCode::COUNT_NONZERO, COD
     const size_t volume = rect.volume();
     if (dense) {
       auto inptr = in.ptr(rect);
-      for (size_t idx = 0; idx < volume; ++idx) result += inptr[idx] != 0;
+      for (size_t idx = 0; idx < volume; ++idx) result += inptr[idx] != VAL(0);
     } else {
       for (size_t idx = 0; idx < volume; ++idx) {
         auto point = pitches.unflatten(idx, rect.lo);
-        result += in[point] != 0;
+        result += in[point] != VAL(0);
       }
     }
   }

@@ -27,6 +27,8 @@ static const char* const numpy_library_name = "legate.numpy";
 
 #ifdef LEGATE_USE_CUDA
 extern void register_gpu_reduction_operators(ReductionOpID first_redop_id);
+#else
+extern void register_cpu_reduction_operators(ReductionOpID first_redop_id);
 #endif
 
 /*static*/ void LegateNumPy::record_variant(TaskID tid,
@@ -100,8 +102,7 @@ void registration_callback(Machine machine,
 #ifdef LEGATE_USE_CUDA
   register_gpu_reduction_operators(first_redop_id);
 #else
-  REGISTER_ALL_REDUCTIONS(ArgmaxReduction, first_redop_id);
-  REGISTER_ALL_REDUCTIONS(ArgminReduction, first_redop_id);
+  register_cpu_reduction_operators(first_redop_id);
 #endif
 
   Runtime::register_reduction_op<UntypedScalarRedOp<UnaryRedCode::MAX>>(first_redop_id +
