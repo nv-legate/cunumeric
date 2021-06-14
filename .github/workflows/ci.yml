@@ -32,6 +32,10 @@ jobs:
           cd legate-ci
           cd github-ci/
           cd legate.numpy
-          mkdir ngc-artifacts
+          if [[ ! -d ngc-artifacts ]]
+            mkdir ngc-artifacts
+          else
+            rm ngc-artifacts/*
+          fi
           ./test.sh > ${COMMIT}-test.log 2>&1
           cat *artifacts/*/*
