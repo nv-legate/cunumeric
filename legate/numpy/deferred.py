@@ -1039,8 +1039,7 @@ class DeferredArray(NumPyThunk):
                 assert rhs2_array.ndim == 2
                 matrix = rhs2_array
                 left_matrix = False
-            launch_space =
-            self.runtime.legate_runtime.compute_parallel_launch_space_by_shape(  #noqa E501
+            launch_space = self.runtime.legate_runtime.compute_parallel_launch_space_by_shape(  # noqa E501
                 matrix.shape
             )
             if launch_space is not None:
