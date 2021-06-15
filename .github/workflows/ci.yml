@@ -23,6 +23,7 @@ jobs:
           ./build.sh > ${COMMIT}-build.log 2>&1
           cat *artifacts/*/*
       - name: Upload Build Log
+        if: always()
         uses: actions/upload-artifact@v2
         with:
           name: build-log
@@ -46,6 +47,7 @@ jobs:
           ./test.sh > ${COMMIT}-test.log 2>&1
           cat *artifacts/*/*
       - name: Upload Build Log
+        if: always()
         uses: actions/upload-artifact@v2
         with:
           name: build-log
