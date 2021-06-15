@@ -34,7 +34,6 @@ from legate.core import (
     get_legate_runtime,
     get_legion_context,
     get_legion_runtime,
-    legate_find_attachment,
     legion,
 )
 from legate.core.runtime import RegionField, _find_or_create_partition
@@ -106,7 +105,6 @@ class Runtime(object):
         "first_redop_id",
         "first_proj_id",
         "first_shard_id",
-        "ptr_to_thunk",
         "destroyed",
     ]
 
@@ -652,11 +650,9 @@ class Runtime(object):
             )
         return region_field
 
-    @staticmethod
-    def has_external_attachment(array):
+    def has_external_attachment(self, array):
         assert array.base is None or not isinstance(array.base, np.ndarray)
-        ptr = int(array.ctypes.data)
-        return legate_find_attachment(ptr, array.nbytes) is not None
+        return self.legate_runtime.has_attachment(array)
 
     @staticmethod
     def compute_parent_child_mapping(array):
@@ -784,15 +780,6 @@ class Runtime(object):
             # We always store completely empty arrays with eager thunks
             assert not defer
             return EagerArray(self, array)
-        # Get the pointer for this array so we can look it up
-        ptr = int(array.ctypes.data)
-        if (
-            self.legate_runtime.ptr_to_thunk is not None
-            and ptr in self.legate_runtime.ptr_to_thunk
-        ):
-            cached_thunk = self.legate_runtime.ptr_to_thunk[ptr]
-            if not defer or isinstance(cached_thunk, DeferredArray):
-                return cached_thunk
         # Once it's a normal numpy array we can make it into one of our arrays
         # Check to see if it is a type that we support for doing deferred
         # execution and big enough to be worth off-loading onto Legion
@@ -813,9 +800,7 @@ class Runtime(object):
                 return result
             else:
                 # This is not a scalar so make a field
-                region_field = self.legate_runtime.attach_array_field(
-                    array, share
-                )
+                region_field = self.legate_runtime.attach_array(array, share)
                 result = DeferredArray(
                     self,
                     region_field,
@@ -830,11 +815,6 @@ class Runtime(object):
             assert not defer
             # Make this into an eager evaluated thunk
             result = EagerArray(self, array)
-        # Store the result in a weakvalue dictionary so that we can track
-        # whether the tree is still alive or not
-        if self.legate_runtime.ptr_to_thunk is None:
-            self.legate_runtime.ptr_to_thunk = weakref.WeakValueDictionary()
-        self.legate_runtime.ptr_to_thunk[ptr] = result
         return result
 
     def create_empty_thunk(self, shape, dtype, inputs=None):
