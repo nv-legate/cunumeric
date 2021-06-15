@@ -15,19 +15,40 @@ jobs:
     steps:
       - name: Run CI build
         run: |
-          /data/gitlab-runner/legate-bin/setup.sh
+          /data/github-runner/legate-bin/setup.sh
+          cd legate-ci
+          cd github-ci/
           cd legate.numpy
           rm -rf ngc-artifacts
           ./build.sh > ${COMMIT}-build.log 2>&1
           cat *artifacts/*/*
+      - name: Upload Build Log
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: build-log
+          path: ./**/*build.log.gpg
   test:
     runs-on: self-hosted
     needs: build
     steps:
       - name: Run CI tests
         run: |
-          /data/gitlab-runner/legate-bin/setup.sh
+          /data/github-runner/legate-bin/setup.sh
+          cd legate-ci
+          cd github-ci/
           cd legate.numpy
-          rm -rf ngc-artifacts
+          if [[ ! -d ngc-artifacts ]]
+          then
+            mkdir ngc-artifacts
+          else
+            rm -rf ngc-artifacts/*
+          fi
           ./test.sh > ${COMMIT}-test.log 2>&1
           cat *artifacts/*/*
+      - name: Upload Build Log
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: build-log
+          path: ./**/*build.log.gpg
