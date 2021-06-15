@@ -387,10 +387,9 @@ def _find_or_create_partition(
     lo = (0,) * len(tile_shape)
     # Legion is inclusive so map down
     hi = tuple(map(lambda x: (x - 1), tile_shape))
-    if offset is not None:
-        assert len(offset) == len(tile_shape)
-        lo = tuple(map(lambda x, y: (x + y), lo, offset))
-        hi = tuple(map(lambda x, y: (x + y), hi, offset))
+    assert len(offset) == len(tile_shape)
+    lo = tuple(map(lambda x, y: (x + y), lo, offset))
+    hi = tuple(map(lambda x, y: (x + y), hi, offset))
     # Construct the transform to use based on the color space
     tile_transform = Transform(len(tile_shape), len(tile_shape))
     for idx, tile in enumerate(tile_shape):
@@ -690,7 +689,7 @@ class RegionField(object):
             )
             # Check to see if they are all one, if so then we don't even need
             # to bother with making the partition
-            volume = reduce(lambda x, y: x * y, color_shape)
+            volume = calculate_volume(color_shape)
             assert volume > 0
             if volume == 1:
                 self.launch_space = ()
@@ -1697,7 +1696,7 @@ class Runtime(object):
                     parent.region,
                     color_space_bounds,
                     tile_shape,
-                    None,
+                    (0,) * len(color_space_bounds),
                     parent.transform,
                 )
                 # Then we can build the actual child region that we want and
