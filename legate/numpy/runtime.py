@@ -58,7 +58,7 @@ from .deferred import DeferredArray
 from .eager import EagerArray
 from .lazy import LazyArray
 from .thunk import NumPyThunk
-from .utils import calculate_volume
+from .utils import calculate_volume, is_permutation_matrix
 
 
 # Helper method for python 3 support
@@ -590,27 +590,14 @@ class RegionField(object):
             color_hi = tuple(map(lambda x, y: x // y, hi, root_key.tile_shape))
             color_tile = root_key.tile_shape
             if self.transform:
-                # Check to see if this transform is invertible
-                # If it is then we'll reuse the key partition of the
-                # root in order to guide how we do the partitioning
-                # for this view to maximimize locality. If the transform
-                # is not invertible then we'll fall back to doing the
-                # standard mapping of the index space
-                invertible = True
-                for m in range(len(root.shape)):
-                    nonzero = False
-                    for n in range(len(self.shape)):
-                        if self.transform.trans[m, n] != 0:
-                            if nonzero:
-                                invertible = False
-                                break
-                            if self.transform.trans[m, n] != 1:
-                                invertible = False
-                                break
-                            nonzero = True
-                    if not invertible:
-                        break
-                if not invertible:
+                # Check to see if this transform is a permutation (with
+                # optional offset). If it is then there is a one-to-one mapping
+                # from view cells to root cells, and also from view tiles to
+                # root tiles. Note that simply being invertible does not
+                # guarantee both properties, e.g. [[2,0],[0,2]] is invertible,
+                # and thus one-to-one at the element level, but not one-to-one
+                # at the tile level.
+                if not is_permutation_matrix(self.transform.trans):
                     # Not invertible so fall back to the standard case
                     launch_space = (
                         self.runtime.compute_parallel_launch_space_by_shape(

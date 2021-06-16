@@ -100,3 +100,13 @@ def calculate_volume(shape):
     if shape == ():
         return 0
     return reduce(lambda x, y: x * y, shape)
+
+
+def is_permutation_matrix(x):
+    return (
+        x.ndim == 2
+        and x.shape[0] == x.shape[1]
+        and (x.sum(axis=0) == 1).all()
+        and (x.sum(axis=1) == 1).all()
+        and ((x == 1) | (x == 0)).all()
+    )
