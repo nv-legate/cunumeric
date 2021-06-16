@@ -584,7 +584,7 @@ class RegionField(object):
             if self.transform:
                 lo = self.transform.apply(lo)
                 hi = self.transform.apply(hi)
-            # Compute the lower bound tile and upper bound tile
+            # Compute the lower bound and upper bound tile on the root space
             assert len(lo) == len(root_key.tile_shape)
             color_lo = tuple(map(lambda x, y: x // y, lo, root_key.tile_shape))
             color_hi = tuple(map(lambda x, y: x // y, hi, root_key.tile_shape))
@@ -628,46 +628,51 @@ class RegionField(object):
                         self.shard_function,
                         self.shard_space,
                     )
-                # We're invertible so do the standard inversion
-                inverse = np.transpose(self.transform.trans)
+                # We're invertible, so we can reuse the key partition of the
+                # root, and specifically the subset of root tiles that cover
+                # the view.
+                # Construct the transformations from view to root space
+                v2r_permute = self.transform.trans
+                # v2r_elem = self.transform
+                v2r_tile = AffineTransform(
+                    len(root.shape), len(self.shape), False
+                )
+                v2r_tile.trans = v2r_permute
+                v2r_tile.offset = color_lo
+                # Construct the transformations from root to view space
+                r2v_permute = self.transform.trans.T
+                r2v_elem = AffineTransform(
+                    len(self.shape), len(root.shape), False
+                )
+                r2v_elem.trans = r2v_permute
+                r2v_elem.offset = -(r2v_permute @ self.transform.offset)
+                r2v_tile = AffineTransform(
+                    len(self.shape), len(root.shape), False
+                )
+                r2v_tile.trans = r2v_permute
+                r2v_tile.offset = -(r2v_permute @ color_lo)
+                # Sanity check
+                assert r2v_elem.apply(lo) == (0,) * len(self.shape)
+                assert r2v_elem.apply(hi) == tuple(x - 1 for x in self.shape)
                 # We need to make a make a special sharding functor here that
                 # projects the points in our launch space back into the space
-                # of the root partitions sharding space
-                # First construct the affine mapping for points in our launch
-                # space back into the launch space of the root
+                # of the root partition's sharding space.
                 # This is the special case where we have a special shard
                 # function and sharding space that is different than our normal
                 # launch space because it's a subset of the root's launch space
-                launch_transform = AffineTransform(
-                    len(root.shape), len(self.shape), False
-                )
-                launch_transform.trans = self.transform.trans
-                launch_transform.offset = color_lo
                 self.shard_function = (
                     self.runtime.find_or_create_transform_sharding_functor(
-                        launch_transform
+                        v2r_tile
                     )
                 )
-                tile_offset = np.zeros((len(self.shape),), dtype=np.int64)
-                for n in range(len(self.shape)):
-                    nonzero = False
-                    for m in range(len(root.shape)):
-                        if inverse[n, m] == 0:
-                            continue
-                        nonzero = True
-                        break
-                    if not nonzero:
-                        tile_offset[n] = 1
-                color_lo = tuple((inverse @ color_lo).flatten())
-                color_hi = tuple((inverse @ color_hi).flatten())
-                color_tile = tuple(
-                    (inverse @ color_tile).flatten() + tile_offset
-                )
+                color_lo = r2v_tile.apply(color_lo)
+                color_hi = r2v_tile.apply(color_hi)
+                color_tile = tuple((r2v_permute @ color_tile).flatten())
                 # Reset lo and hi back to our space
                 lo = np.zeros((len(self.shape),), dtype=np.int64)
                 hi = np.array(self.shape, dtype=np.int64) - 1
             else:
-                # If there is no transform then can just use the root function
+                # If there is no transform then just use the root function
                 self.shard_function = rootfn
             self.shard_space = root_key.index_partition.color_space
             # Launch space is how many tiles we have in each dimension
