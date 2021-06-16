@@ -18,7 +18,6 @@ from __future__ import absolute_import, division, print_function
 import inspect
 import struct
 import sys
-import weakref
 from functools import reduce
 
 import numpy as np
@@ -29,14 +28,13 @@ from legate.core import (
     FieldID,
     Future,
     FutureMap,
-    Point,
     Region,
     get_legate_runtime,
     get_legion_context,
     get_legion_runtime,
     legion,
 )
-from legate.core.runtime import RegionField, _find_or_create_partition
+from legate.core.runtime import RegionField
 
 from .config import *  # noqa F403
 from .deferred import DeferredArray
@@ -332,214 +330,20 @@ class Runtime(object):
         return tuple(map(lambda x, y: (x + y - 1) // y, shape, launch_space))
 
     def find_or_create_view(self, parent, view, dim_map, shape, key):
-        assert len(shape) <= len(view)
-        assert len(parent.shape) <= len(view)
-        assert len(view) == len(dim_map)
-        # Iterate through our parent region's subviews and see if
-        # we find one that matches the view that we want
-        if parent.subviews:
-            for child in parent.subviews:
-                if child.view == view:
-                    return DeferredArray(
-                        self,
-                        child,
-                        shape,
-                        parent.field.dtype,
-                        scalar=False,
-                    )
-        # We need to make this subview
-        # If all the slices have strides of one then this is a dense
-        # subview and we can make this partition with a call to create
-        # partition by restriction, otherwise we'll fall back to the
-        # general but slow partition by field, we'll also compute our
-        # transform back to the parent address space here
-        dense = True
-        # Transfrom from our space back to the parent's space
-        transform = AffineTransform(len(parent.shape), len(shape), False)
-        parent_idx = 0  # Index of parent dimensions
-        child_idx = 0  # Index of child dimensions
-        for idx in range(len(view)):
-            # If this is an added dimension then it doesn't even contribute
-            # back to the parent space so we can skip it
-            if dim_map[idx] > 0:
-                child_idx += 1
-                continue
-            slc = view[idx]
-            assert parent_idx < len(parent.shape)
-            transform.offset[parent_idx] = slc.start
-            assert (
-                slc.step >= 0
-            )  # Should have handled negative values before this
-            # If this is a collapsed dimension then we can skip it
-            if dim_map[idx] < 0:
-                parent_idx += 1
-                continue
-            assert child_idx < len(shape)
-            transform.trans[parent_idx, child_idx] = slc.step
-            child_idx += 1
-            parent_idx += 1
-            # Our temporary density check for now
-            if slc.step > 1:
-                dense = False
-        assert child_idx == len(shape)
-        assert parent_idx == len(parent.shape)
-        # Compose our transforms if necessary
-        if parent.transform:
-            transform = transform.compose(parent.transform)
-        # If the child shape has the same number of points as the parent
-        # region then we don't actually need to make a subregion, we can
-        # just use the parent region with the transform
-        parent_volume = 1
-        for dim in range(len(parent.shape)):
-            parent_volume *= parent.shape[dim]
-        child_volume = 1
-        for dim in range(len(shape)):
-            child_volume *= shape[dim]
-        if parent_volume == child_volume:
-            # Same number of points, so no need to make a subregion here
-            region_field = RegionField(
-                self.legate_runtime,
-                parent.region,
-                parent.field,
-                shape,
-                parent,
-                transform,
-                dim_map,
-                key,
-            )
-            return DeferredArray(
-                self, region_field, shape, parent.field.dtype, scalar=False
-            )
-        elif dense:
-            # We can do a single call to create partition by restriction
-            # Build the rect for the subview
-            lo = ()
-            hi = ()
-            # As an interesting optimization, if we can evenly tile the
-            # region in all dimensions of the parent region, then we'll make
-            # a disjoint tiled partition with as many children as possible
-            tile = True
-            tile_shape = ()
-            for dim in range(len(view)):
-                slc = view[dim]
-                lo += (slc.start,)
-                # Legion is inclusive
-                hi += (slc.stop - 1,)
-                # If we're still trying to tile do the analysis
-                if tile:
-                    stride = slc.stop - slc.start
-                    if slc.start > 0 and (slc.start % stride) != 0:
-                        tile = False
-                        continue
-                    if (
-                        slc.stop < parent.shape[dim]
-                        and ((parent.shape[dim] - slc.stop) % stride) != 0
-                    ):
-                        tile = False
-                        continue
-                    tile_shape += (stride,)
-            if tile:
-                # Compute the color space bounds and then see how big it is
-                assert len(lo) == len(tile_shape)
-                color_space_bounds = ()
-                for dim in range(len(lo)):
-                    assert (parent.shape[dim] % tile_shape[dim]) == 0
-                    color_space_bounds += (
-                        parent.shape[dim] // tile_shape[dim],
-                    )
-                volume = reduce(lambda x, y: x * y, color_space_bounds)
-                # If it would generate a very large number of elements then
-                # we'll apply a heuristic for now and not actually tile it
-                # TODO: A better heurisitc for this in the future
-                if volume > 256 and volume > 16 * self.num_pieces:
-                    tile = False
-            # See if we're making a tiled partition or a one-off partition
-            if tile:
-                # Compute the color of the tile that we care about
-                tile_color = ()
-                for dim in range(len(lo)):
-                    assert (lo[dim] % tile_shape[dim]) == 0
-                    tile_color += (lo[dim] // tile_shape[dim],)
-                assert len(view) == len(tile_shape)
-                partition = _find_or_create_partition(
-                    self.legate_runtime,
-                    parent.region,
-                    color_space_bounds,
-                    tile_shape,
-                    None,
-                    parent.transform,
-                )
-                # Then we can build the actual child region that we want and
-                # save it in the subviews that we computed
-                child_region = partition.get_child(Point(tile_color))
-                if not parent.subviews:
-                    parent.subviews = weakref.WeakSet()
-                region_field = RegionField(
-                    self.legate_runtime,
-                    child_region,
-                    parent.field,
-                    shape,
-                    parent,
-                    transform,
-                    dim_map,
-                    key,
-                    view,
-                )
-                parent.subviews.add(region_field)
-                return DeferredArray(
-                    self, region_field, shape, parent.field.dtype, scalar=False
-                )
-            else:
-                tile_shape = tuple(map(lambda x, y: ((x - y) + 1), hi, lo))
-                partition = _find_or_create_partition(
-                    self.legate_runtime,
-                    parent.region,
-                    (1,) * len(tile_shape),
-                    tile_shape,
-                    lo,
-                    parent.transform,
-                    complete=False,
-                )
-                child_region = partition.get_child(
-                    Point((0,) * len(tile_shape))
-                )
-                if not parent.subviews:
-                    parent.subviews = weakref.WeakSet()
-                region_field = RegionField(
-                    self.legate_runtime,
-                    child_region,
-                    parent.field,
-                    shape,
-                    parent,
-                    transform,
-                    dim_map,
-                    key,
-                    view,
-                )
-                parent.subviews.add(region_field)
-                return DeferredArray(
-                    self, region_field, shape, parent.field.dtype, scalar=False
-                )
-        else:
-            # We need fill in a phased partition operation from Legion
-            raise NotImplementedError("implement partition by phase")
+        region_field = self.legate_runtime.find_or_create_view(
+            parent, view, dim_map, shape, key
+        )
+        return DeferredArray(
+            self, region_field, shape, parent.field.dtype, scalar=False
+        )
 
     def create_transform_view(self, region_field, new_shape, transform):
-        assert isinstance(region_field, RegionField)
-        # Compose the transform if necessary
-        if region_field.transform is not None:
-            transform = transform.compose(region_field.transform)
-        new_region_field = RegionField(
-            self.legate_runtime,
-            region_field.region,
-            region_field.field,
-            shape=new_shape,
-            transform=transform,
-            parent=region_field,
+        region_field = self.legate_runtime.create_transform_view(
+            region_field, new_shape, transform
         )
         return DeferredArray(
             self,
-            new_region_field,
+            region_field,
             new_shape,
             region_field.field.dtype,
             scalar=False,
