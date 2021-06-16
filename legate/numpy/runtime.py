@@ -604,7 +604,9 @@ class Runtime(object):
                 return result
             else:
                 # This is not a scalar so make a field
-                region_field = self.legate_runtime.attach_array(array, share)
+                region_field = self.legate_runtime.attach_array(
+                    self.legate_context, array, share
+                )
                 result = DeferredArray(
                     self,
                     region_field,

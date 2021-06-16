@@ -37,6 +37,7 @@ class NumPyThunk(Store):
     def __init__(self, runtime, shape, dtype):
         self.runtime = runtime
         self.context = runtime.legate_context
+        self.legate_runtime = runtime.legate_runtime
         self.shape = shape
         self.dtype = dtype
 
