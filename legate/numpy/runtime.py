@@ -665,15 +665,20 @@ class RegionField(object):
                         v2r_tile
                     )
                 )
+                # Shift the tile down (in root space) to align with tile
+                # boundaries, while still covering all of our elements. Then
+                # translate this shift onto view space, as expected by
+                # _find_or_create_partition.
+                offset = tuple(map(lambda x, y: -(x % y), lo, color_tile))
+                offset = tuple((r2v_permute @ offset).flatten())
+                # Translate tile information back to the view space
                 color_lo = r2v_tile.apply(color_lo)
                 color_hi = r2v_tile.apply(color_hi)
                 color_tile = tuple((r2v_permute @ color_tile).flatten())
-                # Reset lo and hi back to our space
-                lo = np.zeros((len(self.shape),), dtype=np.int64)
-                hi = np.array(self.shape, dtype=np.int64) - 1
             else:
                 # If there is no transform then just use the root function
                 self.shard_function = rootfn
+                offset = (0,) * len(self.shape)
             self.shard_space = root_key.index_partition.color_space
             # Launch space is how many tiles we have in each dimension
             color_shape = tuple(
@@ -689,16 +694,6 @@ class RegionField(object):
                 # Therefore just record this point
                 self.shard_point = Point(color_lo)
                 return None, None, None
-            # Now compute the offset for the partitioning
-            # This will shift the tile down if necessary to align with the
-            # boundaries at the root while still covering all of our elements
-            offset = tuple(
-                map(
-                    lambda x, y: 0 if (x % y) == 0 else ((x % y) - y),
-                    lo,
-                    color_tile,
-                )
-            )
             self.key_partition = _find_or_create_partition(
                 self.runtime,
                 self.region,
