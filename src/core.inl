@@ -142,13 +142,6 @@ AccessorRD<OP, EXCLUSIVE, DIM> RegionField::reduce_accessor(const Legion::Rect<D
   }
 }
 
-template <int32_t DIM>
-Legion::Rect<DIM> RegionField::shape() const
-{
-  assert(DIM == pr_.get_logical_region().get_index_space().get_dim());
-  return Legion::Rect<DIM>(pr_);
-}
-
 template <typename T, int DIM>
 AccessorRO<T, DIM> Array::read_accessor() const
 {
@@ -215,8 +208,7 @@ AccessorRD<OP, EXCLUSIVE, DIM> Array::reduce_accessor(const Legion::Rect<DIM> &b
 template <int32_t DIM>
 Legion::Rect<DIM> Array::shape() const
 {
-  assert(!is_future_);
-  return region_field_.shape<DIM>();
+  return shape_.to_rect<DIM>();
 }
 
 }  // namespace numpy

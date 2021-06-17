@@ -48,10 +48,9 @@ struct UnaryOpImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
 
 void deserialize(Deserializer &ctx, UnaryOpArgs &args)
 {
-  deserialize(ctx, args.op_code);
-  deserialize(ctx, args.shape);
-  deserialize(ctx, args.out);
   deserialize(ctx, args.in);
+  deserialize(ctx, args.out);
+  deserialize(ctx, args.op_code);
   deserialize(ctx, args.args);
 }
 

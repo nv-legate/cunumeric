@@ -18,7 +18,7 @@ from __future__ import absolute_import, division, print_function
 import numpy
 import pyarrow
 
-from legate.core import Future, Region, Store
+from legate.core import Future, Region
 
 try:
     xrange  # Python 2
@@ -26,7 +26,7 @@ except NameError:
     xrange = range  # Python 3
 
 
-class NumPyThunk(Store):
+class NumPyThunk(object):
     """This is the base class for NumPy computations. It has methods
     for all the kinds of computations and operations that can be done
     on Legate NumPy ndarrays.

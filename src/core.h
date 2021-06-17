@@ -325,10 +325,6 @@ class RegionField {
   template <typename OP, bool EXCLUSIVE, int32_t DIM>
   AccessorRD<OP, EXCLUSIVE, DIM> reduce_accessor(const Legion::Rect<DIM> &bounds) const;
 
- public:
-  template <int32_t DIM>
-  Legion::Rect<DIM> shape() const;
-
  private:
   int32_t dim_{-1};
   int32_t redop_id_{-1};
@@ -345,8 +341,8 @@ class RegionField {
 class Array {
  public:
   Array() {}
-  Array(int32_t dim, LegateTypeCode code, Legion::Future future);
-  Array(int32_t dim, LegateTypeCode code, RegionField &&region_field);
+  Array(int32_t dim, LegateTypeCode code, Shape &&shape, Legion::Future future);
+  Array(int32_t dim, LegateTypeCode code, Shape &&shape, RegionField &&region_field);
 
  public:
   Array(Array &&other) noexcept;
@@ -391,6 +387,7 @@ class Array {
   bool is_future_{false};
   int32_t dim_{-1};
   LegateTypeCode code_{MAX_TYPE_NUMBER};
+  Shape shape_;
   Legion::Future future_;
   RegionField region_field_;
 };

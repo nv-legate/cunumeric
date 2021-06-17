@@ -42,9 +42,8 @@ struct RandImplBody<VariantKind::CPU, RNG, VAL, DIM> {
 
 void deserialize(Deserializer &ctx, RandArgs &args)
 {
-  deserialize(ctx, args.gen_code);
-  deserialize(ctx, args.shape);
   deserialize(ctx, args.out);
+  deserialize(ctx, args.gen_code);
   deserialize(ctx, args.epoch);
   deserialize(ctx, args.strides);
   deserialize(ctx, args.args);

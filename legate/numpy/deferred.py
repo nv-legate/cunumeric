@@ -20,7 +20,7 @@ import warnings
 import numpy as np
 
 from legate.core import *  # noqa F403
-from legate.core.task import Broadcast, Project, Task
+from legate.core.launcher import Broadcast, Project
 
 from .config import *  # noqa F403
 from .thunk import NumPyThunk
@@ -273,7 +273,7 @@ class DeferredArray(NumPyThunk):
             # and type
             return np.empty(shape=self.shape, dtype=self.dtype)
         else:
-            return self.base.get_numpy_array(self.context)
+            return self.base.storage.get_numpy_array(self.context)
 
     # TODO: We should return a view of the field instead of a copy
     def imag(self, stacklevel, callsite=None):
@@ -1785,27 +1785,16 @@ class DeferredArray(NumPyThunk):
         raise NotImplementedError()
 
     def random(self, gen_code, args, stacklevel, callsite=None):
-        lhs_arg = DeferredArrayView(self)
-        launch_space, key_arg = lhs_arg.find_key_view()
-        key_arg.update_tag(NumPyMappingTag.KEY_REGION_TAG)
+        task = self.context.create_task(NumPyOpCode.RAND)
 
-        task = Task(self.context, NumPyOpCode.RAND)
-
+        task.add_output(self.base)
         task.add_scalar_arg(gen_code.value, np.int32)
-        if launch_space is not None:
-            task.add_shape(lhs_arg.shape, lhs_arg.part.tile_shape, 0)
-        else:
-            task.add_shape(lhs_arg.shape)
-        lhs_arg.add_to_legate_op(task, False)
         epoch = self.runtime.get_next_random_epoch()
         task.add_scalar_arg(epoch, np.uint32)
-        task.add_point(self.compute_strides(lhs_arg.shape), untyped=True)
-        self.add_arguments(task, args)
+        task.add_scalar_arg(self.compute_strides(self.shape), (np.int64,))
+        task.add_scalar_arg(0, np.uint32)
 
-        if launch_space is not None:
-            task.execute(Rect(launch_space))
-        else:
-            task.execute_single()
+        task.execute()
 
         self.runtime.profile_callsite(stacklevel + 1, True, callsite)
 
@@ -1842,58 +1831,25 @@ class DeferredArray(NumPyThunk):
     def unary_op(
         self, op, op_dtype, src, where, args, stacklevel, callsite=None
     ):
-        lhs_array = self
-        rhs_array = self.runtime.to_deferred_array(
+        lhs = self.base
+        rhs = self.runtime.to_deferred_array(
             src, stacklevel=(stacklevel + 1)
-        )
+        ).base
 
-        if op == UnaryOpCode.GETARG:
-            dtype = get_arg_value_dtype(rhs_array.dtype)
-        else:
-            dtype = None
-        rhs_arg = DeferredArrayView(rhs_array, dtype=dtype)
-        if rhs_array is lhs_array:
-            lhs_arg = rhs_arg
-        else:
-            lhs_arg = DeferredArrayView(lhs_array)
-
-        launch_space, key_arg = lhs_arg.find_key_view(rhs_arg)
-        key_arg.update_tag(NumPyMappingTag.KEY_REGION_TAG)
-        rhs_arg = rhs_arg.broadcast(lhs_arg)
-
-        if launch_space is not None:
-            lhs_arg = lhs_arg.align_partition(key_arg)
-            rhs_arg = rhs_arg.align_partition(key_arg)
-            if lhs_arg is not key_arg:
-                lhs_arg.copy_key_partition_from(key_arg)
-
-        if rhs_arg.scalar:
+        if rhs.kind == Future:
             task_id = NumPyOpCode.SCALAR_UNARY_OP
         else:
             task_id = NumPyOpCode.UNARY_OP
 
-        task = Task(self.context, task_id)
+        task = self.context.create_task(task_id)
+        task.add_output(lhs)
+        task.add_input(rhs)
         task.add_scalar_arg(op.value, np.int32)
+        task.add_scalar_arg(0, np.uint32)
 
-        if not lhs_arg.scalar:
-            if launch_space is not None:
-                task.add_shape(lhs_arg.shape, lhs_arg.part.tile_shape, 0)
-            else:
-                task.add_shape(lhs_arg.shape)
-            lhs_arg.add_to_legate_op(task, False)
+        task.add_constraint(lhs.shape == rhs.shape)
 
-        rhs_arg.add_to_legate_op(task, True)
-
-        self.add_arguments(task, args)
-
-        # See if we are doing index space launches or not
-        if not rhs_arg.scalar and launch_space is not None:
-            task.execute(Rect(launch_space))
-        else:
-            result = task.execute_single()
-
-            if rhs_arg.scalar:
-                lhs_arg._array._fill(result, stacklevel + 1, callsite)
+        task.execute()
 
         self.runtime.profile_callsite(stacklevel + 1, True, callsite)
         if self.runtime.shadow_debug:

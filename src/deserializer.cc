@@ -181,13 +181,16 @@ void deserialize(Deserializer &ctx, Array &array)
   auto dim       = ctx.deserializer_.unpack_32bit_int();
   auto code      = ctx.deserializer_.unpack_dtype();
 
+  Shape shape;
+  deserialize(ctx, shape);
+
   if (is_future) {
-    array        = Array(dim, code, ctx.futures_[0]);
+    array        = Array(dim, code, std::move(shape), ctx.futures_[0]);
     ctx.futures_ = ctx.futures_.subspan(1);
   } else {
     RegionField rf;
     deserialize(ctx, rf);
-    array = Array(dim, code, std::move(rf));
+    array = Array(dim, code, std::move(shape), std::move(rf));
   }
 }
 

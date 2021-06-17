@@ -630,28 +630,13 @@ class Runtime(object):
         if self.is_supported_type(dtype) and not (
             self.is_eager_shape(shape) and self.are_all_eager_inputs(inputs)
         ):
-            if len(shape) == 0:
-                # Empty tuple
-                result = DeferredArray(
-                    self, Future(), shape=(), dtype=dtype, scalar=True
-                )
-            else:
-                volume = reduce(lambda x, y: x * y, shape)
-                if volume == 1:
-                    result = DeferredArray(
-                        self, Future(), shape=shape, dtype=dtype, scalar=True
-                    )
-                else:
-                    region_field = self.legate_runtime.allocate_field(
-                        shape, dtype
-                    )
-                    result = DeferredArray(
-                        self,
-                        region_field,
-                        shape=shape,
-                        dtype=dtype,
-                        scalar=False,
-                    )
+            store = self.legate_runtime.create_store(
+                shape, dtype, optimize_scalar=True
+            )
+            scalar = store.kind == Future
+            result = DeferredArray(
+                self, store, shape=shape, dtype=dtype, scalar=scalar
+            )
             # If we're doing shadow debug make an EagerArray shadow
             if self.shadow_debug:
                 result.shadow = EagerArray(self, np.empty(shape, dtype=dtype))

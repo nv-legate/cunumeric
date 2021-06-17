@@ -24,9 +24,8 @@ namespace legate {
 namespace numpy {
 
 struct RandArgs {
-  RandGenCode gen_code;
-  Shape shape;
   Array out;
+  RandGenCode gen_code;
   uint32_t epoch;
   UntypedPoint strides;
   std::vector<UntypedScalar> args;
