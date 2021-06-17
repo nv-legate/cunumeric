@@ -20,11 +20,6 @@ import pyarrow
 
 from legate.core import Future, Region
 
-try:
-    xrange  # Python 2
-except NameError:
-    xrange = range  # Python 3
-
 
 class NumPyThunk(object):
     """This is the base class for NumPy computations. It has methods
@@ -395,7 +390,7 @@ class NumPyThunk(object):
             view = ()
             dim_map = ()
             observed_dim = 0
-            for dim in xrange(len(key)):
+            for dim in range(len(key)):
                 if key[dim] is None:
                     view += (slice(0, 1, 1),)
                     dim_map += (1,)
@@ -418,7 +413,7 @@ class NumPyThunk(object):
                         tuple(filter(lambda x: x is not None, key[dim + 1 :]))
                     )
                     if ellipsis_keys > 0:
-                        for offset in xrange(ellipsis_keys):
+                        for offset in range(ellipsis_keys):
                             view += (slice(0, self.shape[dim + offset], 1),)
                             dim_map += (0,)
                             observed_dim += 1
@@ -428,7 +423,7 @@ class NumPyThunk(object):
                     )
         # See if we have any leftover dims we need to fill in
         if observed_dim < self.ndim:
-            for dim in xrange(observed_dim, self.ndim):
+            for dim in range(observed_dim, self.ndim):
                 view += (slice(0, self.shape[dim], 1),)
                 dim_map += (0,)
         return view, dim_map
@@ -438,7 +433,7 @@ class NumPyThunk(object):
         assert len(view) == len(dim_map)
         # Figure out the shape of the new array
         new_shape = ()
-        for dim in xrange(len(view)):
+        for dim in range(len(view)):
             diff = abs(view[dim].stop - view[dim].start)
             assert diff >= abs(view[dim].step)
             extent = (diff + view[dim].step - 1) // abs(view[dim].step)

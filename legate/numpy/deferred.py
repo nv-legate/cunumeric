@@ -13,8 +13,6 @@
 # limitations under the License.
 #
 
-from __future__ import absolute_import, division, print_function
-
 import warnings
 
 import numpy as np
@@ -25,16 +23,6 @@ from legate.core.launcher import Broadcast, Project
 from .config import *  # noqa F403
 from .thunk import NumPyThunk
 from .utils import get_arg_dtype, get_arg_value_dtype
-
-try:
-    xrange  # Python 2
-except NameError:
-    xrange = range  # Python 3
-
-try:
-    long  # Python 2
-except NameError:
-    long = int  # Python 3
 
 
 def _maybe_apply(f, v, *args, **kwargs):
@@ -667,7 +655,7 @@ class DeferredArray(NumPyThunk):
                 # dimensions
                 transform = Transform(self.ndim, len(newshape), False)
                 dim = len(newshape) - 1
-                for idx in xrange(self.ndim - 1, -1, -1):
+                for idx in range(self.ndim - 1, -1, -1):
                     stride = 1
                     current_dim = self.shape[idx]
                     while stride < current_dim:
@@ -722,7 +710,7 @@ class DeferredArray(NumPyThunk):
         if axis is None:
             new_shape = ()
             axis = ()
-            for idx in xrange(self.ndim):
+            for idx in range(self.ndim):
                 if self.shape[idx] != 1:
                     new_shape = new_shape + (self.shape[idx],)
                 else:
@@ -730,7 +718,7 @@ class DeferredArray(NumPyThunk):
                     axis = axis + (idx,)
         elif isinstance(axis, int):
             new_shape = ()
-            for idx in xrange(self.ndim):
+            for idx in range(self.ndim):
                 if idx == axis:
                     assert self.shape[idx] == 1
                 else:
@@ -739,7 +727,7 @@ class DeferredArray(NumPyThunk):
             axis = (axis,)
         elif isinstance(axis, tuple):
             new_shape = ()
-            for idx in xrange(self.ndim):
+            for idx in range(self.ndim):
                 if idx in axis:
                     assert self.shape[idx] == 1
                 else:
@@ -752,7 +740,7 @@ class DeferredArray(NumPyThunk):
             # Make transform for the lost dimensions
             transform = AffineTransform(self.ndim, len(new_shape), False)
             child_idx = 0
-            for parent_idx in xrange(self.ndim):
+            for parent_idx in range(self.ndim):
                 # If this is a collapsed dimension then record it
                 if parent_idx not in axis:
                     transform.trans[parent_idx, child_idx] = 1
@@ -779,7 +767,7 @@ class DeferredArray(NumPyThunk):
         assert axis1 < self.ndim and axis2 < self.ndim
         # Create a new shape and transform for the region field object
         new_shape = ()
-        for idx in xrange(self.ndim):
+        for idx in range(self.ndim):
             if idx == axis1:
                 new_shape = new_shape + (self.shape[axis2],)
             elif idx == axis2:

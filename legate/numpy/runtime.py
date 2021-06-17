@@ -324,11 +324,6 @@ class Runtime(object):
             )
         return result
 
-    def compute_tile_shape(self, shape, launch_space):
-        assert len(shape) == len(launch_space)
-        # Over approximate the tiles so that the ends might be small
-        return tuple(map(lambda x, y: (x + y - 1) // y, shape, launch_space))
-
     def find_or_create_view(self, parent, view, dim_map, shape, key):
         region_field = self.legate_runtime.find_or_create_view(
             parent, view, dim_map, shape, key

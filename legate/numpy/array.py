@@ -15,8 +15,8 @@
 
 from __future__ import absolute_import, division, print_function
 
-import functools
 import warnings
+from functools import reduce
 
 import numpy as np
 import pyarrow
@@ -28,16 +28,6 @@ from .config import BinaryOpCode, NumPyOpCode, UnaryOpCode, UnaryRedCode
 from .doc_utils import copy_docstring
 from .runtime import runtime
 from .utils import unimplemented
-
-try:
-    reduce  # Python 2
-except NameError:
-    reduce = functools.reduce
-
-try:
-    xrange  # Python 2
-except NameError:
-    xrange = range  # Python 3
 
 
 @copy_docstring(np.ndarray)
@@ -1783,7 +1773,7 @@ class ndarray(object):
                     + str(type(axis))
                 )
             out_shape = ()
-            for dim in xrange(len(src.shape)):
+            for dim in range(len(src.shape)):
                 if dim in to_reduce:
                     if keepdims:
                         out_shape += (1,)
