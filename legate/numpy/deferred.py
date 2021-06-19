@@ -261,7 +261,7 @@ class DeferredArray(NumPyThunk):
             # and type
             return np.empty(shape=self.shape, dtype=self.dtype)
         else:
-            return self.base.storage.get_numpy_array(self.context)
+            return self.base.get_numpy_array(self.context)
 
     # TODO: We should return a view of the field instead of a copy
     def imag(self, stacklevel, callsite=None):
@@ -478,36 +478,35 @@ class DeferredArray(NumPyThunk):
             # Issue the copy to the runtime
             self.runtime.dispatch(copy)
         else:
-            if view is None or dim_map is None:
-                view, dim_map = self._get_view(key)
-            new_shape = self._get_view_shape(view, dim_map)
-            # If all the dimensions collapsed then we are just reading a value
-            if new_shape != ():
-                # Ask the runtime to make a new view onto this logical region
-                result = self.runtime.find_or_create_view(
-                    self.base, view, dim_map, new_shape, key
-                )
-                # Handle an unfortunate case where our subview can
-                # accidentally collapse the last dimension
-                if result.ndim == 0:
-                    result.shape = new_shape
-            else:  # This is just a value so read it
-                use_key = tuple([x.start for x in view])
-                src_arg = DeferredArrayView(
-                    self, tag=NumPyMappingTag.NO_MEMOIZE_TAG
-                )
+            store = self.base
+            for dim, k in enumerate(key):
+                if k is np.newaxis:
+                    store = store.promote(dim, 1)
+                elif isinstance(k, slice):
+                    store = store.slice(dim, k)
+                elif np.isscalar(k):
+                    store = store.project(dim, k)
+                else:
+                    assert False
 
-                task = Task(self.context, NumPyOpCode.READ)
-                task.add_point(use_key, untyped=True)
-                src_arg.add_to_legate_op(task, True)
-                future = task.execute_single()
-                result = DeferredArray(
-                    self.runtime,
-                    base=future,
-                    shape=(),
-                    dtype=self.dtype,
-                    scalar=True,
-                )
+            result = DeferredArray(
+                self.runtime,
+                base=store,
+                shape=store.shape,
+                dtype=self.dtype,
+                scalar=False,
+            )
+
+            if store.shape.volume == 1:
+                input = result
+                result = self.runtime.create_empty_thunk(1, self.dtype)
+
+                task = self.context.create_task(NumPyOpCode.READ)
+                task.add_input(input.base)
+                task.add_output(result.base)
+
+                task.execute()
+
         if self.runtime.shadow_debug:
             result.shadow = self.shadow.get_item(
                 key, stacklevel=(stacklevel + 1), view=view, dim_map=dim_map
@@ -618,7 +617,7 @@ class DeferredArray(NumPyThunk):
 
                 # Get the view for the result
                 subview = self.runtime.find_or_create_view(
-                    self.base, view, dim_map, new_shape, key
+                    self.base, view, dim_map, new_shape
                 )
                 # Handle an unfortunate case where our subview can
                 # accidentally collapse the last dimension

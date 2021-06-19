@@ -348,29 +348,25 @@ class ndarray(object):
 
     def _convert_key(self, key, stacklevel=2, first=True):
         # Convert any arrays stored in a key to a legate array
-        if key is None or key is Ellipsis:
-            return key
-        if np.isscalar(key):
-            return key
-        if isinstance(key, slice):
-            return key
-        if isinstance(key, tuple) and first:
-            result = ()
-            for k in key:
-                result += (
-                    self._convert_key(
-                        k, stacklevel=(stacklevel + 1), first=False
-                    ),
-                )
-            return result
-        # Otherwise convert it to a legate array and get the thunk
-        return self.convert_to_legate_ndarray(
-            key, stacklevel=(stacklevel + 1)
-        )._thunk
+        if (
+            key is np.newaxis
+            or key is Ellipsis
+            or np.isscalar(key)
+            or isinstance(key, slice)
+        ):
+            return (key,) if first else key
+        elif isinstance(key, tuple) and first:
+            return tuple(
+                self._convert_key(k, stacklevel=(stacklevel + 1), first=False)
+                for k in key
+            )
+        else:
+            # Otherwise convert it to a legate array and get the thunk
+            return self.convert_to_legate_ndarray(
+                key, stacklevel=(stacklevel + 1)
+            )._thunk
 
     def __getitem__(self, key):
-        if key is None:
-            raise KeyError("invalid key passed to legate.numpy.ndarray")
         # If we're a scalar, we're our own value
         if self.size == 1:
             if (self.ndim == 0 and key != () and key != Ellipsis) or (

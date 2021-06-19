@@ -324,12 +324,10 @@ class Runtime(object):
             )
         return result
 
-    def find_or_create_view(self, parent, view, dim_map, shape, key):
-        region_field = self.legate_runtime.find_or_create_view(
-            parent, view, dim_map, shape, key
-        )
+    def find_or_create_view(self, parent, view, dim_map, shape):
+        region_field = parent.find_or_create_view(view, dim_map, shape)
         return DeferredArray(
-            self, region_field, shape, parent.field.dtype, scalar=False
+            self, region_field, shape, parent.type, scalar=False
         )
 
     def create_transform_view(self, region_field, new_shape, transform):
