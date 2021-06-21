@@ -43,8 +43,6 @@ GEN_CPU_SRC += ternary/where.cc               \
 							 random/rand.cc                 \
 							 random/rand_util.cc            \
 							 stat/bincount.cc               \
-							 core.cc                        \
-							 deserializer.cc                \
 							 scalar.cc                      \
 							 arg.cc                         \
 							 mapper.cc                      \

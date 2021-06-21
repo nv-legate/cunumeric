@@ -83,9 +83,11 @@ struct BinaryOpDispatch {
   deserialize(ctx, args);
 
   if (op_code == BinaryOpCode::ALLCLOSE)
-    return BinaryOpDispatch{}.operator()<BinaryOpCode::ALLCLOSE>(in1.scalar(), in2.scalar(), args);
+    return BinaryOpDispatch{}.operator()<BinaryOpCode::ALLCLOSE>(
+      in1.scalar<UntypedScalar>(), in2.scalar<UntypedScalar>(), args);
   else
-    return op_dispatch(op_code, BinaryOpDispatch{}, in1.scalar(), in2.scalar(), args);
+    return op_dispatch(
+      op_code, BinaryOpDispatch{}, in1.scalar<UntypedScalar>(), in2.scalar<UntypedScalar>(), args);
 }
 
 namespace  // unnamed

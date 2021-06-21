@@ -66,7 +66,7 @@ struct SourceTypeDispatch {
   deserialize(ctx, dtype);
   deserialize(ctx, in);
 
-  return type_dispatch(in.code(), SourceTypeDispatch{}, dtype, in.scalar());
+  return type_dispatch(in.code(), SourceTypeDispatch{}, dtype, in.scalar<UntypedScalar>());
 }
 
 namespace  // unnamed

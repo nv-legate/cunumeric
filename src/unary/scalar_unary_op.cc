@@ -66,7 +66,7 @@ struct UnaryOpDispatch {
   deserialize(ctx, op_code);
   deserialize(ctx, in);
 
-  return op_dispatch(op_code, UnaryOpDispatch{}, in.scalar());
+  return op_dispatch(op_code, UnaryOpDispatch{}, in.scalar<UntypedScalar>());
 }
 
 namespace  // unnamed
