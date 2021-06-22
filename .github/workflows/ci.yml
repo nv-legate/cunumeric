@@ -1,4 +1,4 @@
-name: Build legate.core
+name: Build legate.numpy
 on: 
   push:
     branches-ignore:
@@ -9,6 +9,11 @@ on:
 env:
   COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
   PROJECT: github-numpy-ci
+  # Prevent output buffering
+  PYTHONUNBUFFERED: 1
+defaults:
+  run:
+    working-directory: legate-ci/github-ci/legate.numpy
 jobs:
   build:
     runs-on: self-hosted
@@ -16,9 +21,6 @@ jobs:
       - name: Run CI build
         run: |
           /data/github-runner/legate-bin/setup.sh
-          cd legate-ci
-          cd github-ci/
-          cd legate.numpy
           rm -rf ngc-artifacts
           ./build.sh > ${COMMIT}-build.log 2>&1
           cat *artifacts/*/*
@@ -27,28 +29,89 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: build-log
-          path: ./**/*build.log.gpg
+          path: ./**/${{ env.COMMIT }}-build.log.gpg
   test:
     runs-on: self-hosted
     needs: build
     steps:
-      - name: Run CI tests
+      - name: Run CPU tests
         run: |
-          /data/github-runner/legate-bin/setup.sh
-          cd legate-ci
-          cd github-ci/
-          cd legate.numpy
           if [[ ! -d ngc-artifacts ]]
           then
             mkdir ngc-artifacts
           else
             rm -rf ngc-artifacts/*
           fi
-          ./test.sh > ${COMMIT}-test.log 2>&1
+      - name: Test single CPU
+        run: |
+          ./test.sh --cpus 1 -j 1 > ${COMMIT}-test-cpu.log 2>&1
+      - name: Test two CPUs
+        if: always()
+        run: ./test.sh --cpus 2 -j 1 >> ${COMMIT}-test-cpu.log 2>&1
+      - name: Process output
+        if: always()
+        run: |
+          /data/github-runner/legate-bin/encrypt.sh ${COMMIT}-test-cpu.log
           cat *artifacts/*/*
       - name: Upload Build Log
         if: always()
         uses: actions/upload-artifact@v2
         with:
-          name: build-log
-          path: ./**/*build.log.gpg
+          name: test-cpu-log
+          path: ./**/${{ env.COMMIT }}-test-cpu.log.gpg
+  test-gpu:
+    runs-on: self-hosted
+    needs: build
+    steps:
+      - name: Run GPU tests
+        run: |
+          if [[ ! -d ngc-artifacts ]]
+          then
+            mkdir ngc-artifacts
+          else
+            rm -rf ngc-artifacts/*
+          fi
+      - name: Test GPU
+        run: ./test.sh --use cuda --gpus 1 -j 1 > ${COMMIT}-test-gpu.log 2>&1
+      - name: Test two GPUs
+        if: always()
+        run: ./test.sh --use cuda --gpus 2 -j 1 >> ${COMMIT}-test-gpu.log 2>&1
+      - name: Process output
+        if: always()
+        run: |
+          /data/github-runner/legate-bin/encrypt.sh ${COMMIT}-test-gpu.log
+          cat *artifacts/*/*
+      - name: Upload Build Log
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: test-gpu-log
+          path: ./**/${{ env.COMMIT }}-test-gpu.log.gpg
+  test-omp:
+    runs-on: self-hosted
+    needs: build
+    steps:
+      - name: Run OpenMP tests
+        run: |
+          if [[ ! -d ngc-artifacts ]]
+          then
+            mkdir ngc-artifacts
+          else
+            rm -rf ngc-artifacts/*
+          fi
+      - name: Test OpenMP
+        run: ./test.sh --use openmp --omps 1 --ompthreads 2 -j 1 > ${COMMIT}-test-omp.log 2>&1
+      - name: Test two OpenMP processors
+        if: always()
+        run: ./test.sh --use openmp --omps 2 --ompthreads 2 -j 1 >> ${COMMIT}-test-omp.log 2>&1
+      - name: Process output
+        if: always()
+        run: |
+          /data/github-runner/legate-bin/encrypt.sh ${COMMIT}-test-omp.log
+          cat *artifacts/*/*
+      - name: Upload Build Log
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: test-omp-log
+          path: ./**/${{ env.COMMIT }}-test-omp.log.gpg
