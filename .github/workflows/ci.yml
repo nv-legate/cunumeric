@@ -20,10 +20,10 @@ jobs:
     steps:
       - name: Run CI build
         run: |
-          /data/github-runner/legate-bin/setup.sh
-          rm -rf ngc-artifacts || true
           pwd
           ls
+          /data/github-runner/legate-bin/setup.sh
+          rm -rf ngc-artifacts || true
           ./build.sh > ${COMMIT}-build.log 2>&1
           cat *artifacts/*/*
       - name: Upload Build Log
