@@ -24,6 +24,7 @@ jobs:
       - name: Run CI build
         run: |
           /data/github-runner/legate-bin/setup.sh
+          cd legate-ci/github-ci/legate.numpy
           rm -rf ngc-artifacts || true
           ./build.sh > ${COMMIT}-build.log 2>&1
           cat *artifacts/*/*
