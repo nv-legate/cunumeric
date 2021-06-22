@@ -16,12 +16,13 @@ defaults:
     working-directory: legate-ci/github-ci/legate.numpy
 jobs:
   build:
+    defaults:
+      run:
+        working-directory: .
     runs-on: self-hosted
     steps:
       - name: Run CI build
         run: |
-          pwd
-          ls
           /data/github-runner/legate-bin/setup.sh
           rm -rf ngc-artifacts || true
           ./build.sh > ${COMMIT}-build.log 2>&1
