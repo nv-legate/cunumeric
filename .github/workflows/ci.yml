@@ -11,14 +11,8 @@ env:
   PROJECT: github-numpy-ci
   # Prevent output buffering
   PYTHONUNBUFFERED: 1
-defaults:
-  run:
-    working-directory: legate-ci/github-ci/legate.numpy
 jobs:
   build:
-    defaults:
-      run:
-        working-directory: .
     runs-on: self-hosted
     steps:
       - name: Run CI build
@@ -40,6 +34,8 @@ jobs:
     steps:
       - name: Run CPU tests
         run: |
+          /data/github-runner/legate-bin/setup.sh
+          cd legate-ci/github-ci/legate.numpy
           if [[ ! -d ngc-artifacts ]]
           then
             mkdir ngc-artifacts
@@ -69,6 +65,8 @@ jobs:
     steps:
       - name: Run GPU tests
         run: |
+          /data/github-runner/legate-bin/setup.sh
+          cd legate-ci/github-ci/legate.numpy
           if [[ ! -d ngc-artifacts ]]
           then
             mkdir ngc-artifacts
@@ -97,6 +95,8 @@ jobs:
     steps:
       - name: Run OpenMP tests
         run: |
+          /data/github-runner/legate-bin/setup.sh
+          cd legate-ci/github-ci/legate.numpy
           if [[ ! -d ngc-artifacts ]]
           then
             mkdir ngc-artifacts
