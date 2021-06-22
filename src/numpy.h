@@ -18,12 +18,15 @@
 
 #include "legate.h"
 #include "legate_numpy_c.h"
+#include "core.h"
 #include "dispatch.h"
 #include "mathtypes/complex.h"
 #include <deque>
 
 namespace legate {
 namespace numpy {
+
+using Array = Store;
 
 template <LegateTypeCode CODE>
 struct LegateTypeOf {
