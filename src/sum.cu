@@ -37,9 +37,14 @@ __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   const Point<2> p(x, y);
   if (!bounds.contains(p)) return;
   T value = identity;
+  // In most cases there will be one thread per array element, and all threads whose coordinates
+  // differ only on the collapsed axis will atomically reduce into the same output location.
+  // One optimization we do is to avoid spawning more threadblocks than will fit on the device,
+  // by under-subscribing on the collapsed dimension. We handle this with a grid-striding loop.
   if (axis == 0) {
     while (x <= bounds.hi[0]) {
       SumReduction<T>::template fold<true /*exclusive*/>(value, in[x][y]);
+      // We piggyback on the z dimension if we go over the CUDA launch bounds limits.
       x += gridDim.z * gridDim.y * blockDim.y;
     }
   } else {

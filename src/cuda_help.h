@@ -61,14 +61,15 @@ __host__ inline void raster_2d_reduction(
     const size_t non_collapse_size = (rect.hi[1] - rect.lo[1]) + 1;
     // Transpose thread dimensions for warp goodness
     threads.x = MIN(non_collapse_size, THREADS_PER_BLOCK);
-    ;
-    if (threads.x < THREADS_PER_BLOCK) threads.y = MAX(THREADS_PER_BLOCK / threads.x, 1);
+    if (threads.x < THREADS_PER_BLOCK)
+      threads.y = MIN((rect.hi[0] - rect.lo[0]) + 1, THREADS_PER_BLOCK / threads.x);
   } else {
     // Put at least 32 threads on the last dimension since
     // we still want warp coalescing for bandwidth reasons
     // Transpose thread dimensions for warp goodness
     threads.x = MIN((rect.hi[1] - rect.lo[1]) + 1, 32);
-    if (threads.x < THREADS_PER_BLOCK) threads.y = MAX(THREADS_PER_BLOCK / threads.x, 1);
+    if (threads.x < THREADS_PER_BLOCK)
+      threads.y = MIN((rect.hi[0] - rect.lo[0]) + 1, THREADS_PER_BLOCK / threads.x);
   }
   // Have number of threads per block, figure out how many CTAs we can fit
   // on the GPU to make sure we fill it up, but we want the minimum number
@@ -112,35 +113,40 @@ __host__ inline void raster_2d_reduction(
 __host__ inline void raster_3d_reduction(
   dim3& blocks, dim3& threads, const Legion::Rect<3> rect, const int axis, const void* func)
 {
+  // Transpose thread dimensions for warp goodness
+  size_t remainder_threads = THREADS_PER_BLOCK;
   if (axis == 0) {
-    // Transpose thread dimensions for warp goodness
-    threads.x = MIN((rect.hi[2] - rect.lo[2]) + 1, THREADS_PER_BLOCK);
-    if (threads.x < THREADS_PER_BLOCK) {
-      const size_t remainder_threads = (THREADS_PER_BLOCK + threads.x - 1) / threads.x;
-      threads.y                      = MIN((rect.hi[1] - rect.lo[1]) + 1, remainder_threads);
-      if ((threads.x * threads.y) < THREADS_PER_BLOCK)
-        threads.z = MAX(THREADS_PER_BLOCK / (threads.x * threads.y), 1);
+    threads.x = MIN(rect.hi[2] - rect.lo[2] + 1, remainder_threads);
+    remainder_threads /= threads.x;
+    if (remainder_threads > 1) {
+      threads.y = MIN(rect.hi[1] - rect.lo[1] + 1, remainder_threads);
+      remainder_threads /= threads.y;
+      if (remainder_threads > 1) {
+        threads.z = MIN(rect.hi[0] - rect.lo[0] + 1, remainder_threads);
+      }
     }
   } else if (axis == 1) {
-    // Transpose thread dimensions for warp goodness
-    threads.x = MIN((rect.hi[2] - rect.lo[2]) + 1, THREADS_PER_BLOCK);
-    if (threads.x < THREADS_PER_BLOCK) {
-      const size_t remainder_threads = (THREADS_PER_BLOCK + threads.x - 1) / threads.x;
-      threads.z                      = MIN((rect.hi[0] - rect.lo[0]) + 1, remainder_threads);
-      if ((threads.x * threads.z) < THREADS_PER_BLOCK)
-        threads.y = MAX(THREADS_PER_BLOCK / (threads.x * threads.z), 1);
+    threads.x = MIN(rect.hi[2] - rect.lo[2] + 1, remainder_threads);
+    remainder_threads /= threads.x;
+    if (remainder_threads > 1) {
+      threads.z = MIN(rect.hi[0] - rect.lo[0] + 1, remainder_threads);
+      remainder_threads /= threads.z;
+      if (remainder_threads > 1) {
+        threads.y = MIN(rect.hi[1] - rect.lo[1] + 1, remainder_threads);
+      }
     }
   } else {
     assert(axis == 2);
     // Put at least 32 threads on the last dimension since we still
     // want warp coalescing for bandwidth reasons
-    // Transpose thread dimensions for warp goodness
-    threads.x = MIN((rect.hi[2] - rect.lo[2]) + 1, 32);
-    if (threads.x < THREADS_PER_BLOCK) {
-      const size_t remainder_threads = (THREADS_PER_BLOCK + threads.x - 1) / threads.x;
-      threads.y                      = MIN((rect.hi[1] - rect.lo[1]) + 1, remainder_threads);
-      if ((threads.x * threads.y) < THREADS_PER_BLOCK)
-        threads.z = MAX(THREADS_PER_BLOCK / (threads.x * threads.y), 1);
+    threads.x = MIN(rect.hi[2] - rect.lo[2] + 1, 32);
+    remainder_threads /= threads.x;
+    if (remainder_threads > 1) {
+      threads.y = MIN(rect.hi[1] - rect.lo[1] + 1, remainder_threads);
+      remainder_threads /= threads.y;
+      if (remainder_threads > 1) {
+        threads.z = MIN(rect.hi[0] - rect.lo[0] + 1, remainder_threads);
+      }
     }
   }
   // Have number of threads per block, figure out how many CTAs we can fit
