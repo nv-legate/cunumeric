@@ -319,8 +319,14 @@ class Runtime(object):
         if wrap:
             assert all(extent == 1 for extent in shape)
             assert shape is not None
+            store = self.legate_runtime.create_store(
+                shape,
+                dtype,
+                storage=result,
+                optimize_scalar=True,
+            )
             result = DeferredArray(
-                self, result, shape=shape, dtype=dtype, scalar=True
+                self, store, shape=shape, dtype=dtype, scalar=True
             )
         return result
 

@@ -18,7 +18,7 @@ import warnings
 import numpy as np
 
 from legate.core import *  # noqa F403
-from legate.core.launcher import Broadcast, Project
+from legate.core.launcher import Broadcast, Partition
 
 from .config import *  # noqa F403
 from .thunk import NumPyThunk
@@ -118,7 +118,7 @@ class DeferredArrayView(object):
         if self._proj_id is None:
             return Broadcast(redop=redop)
         else:
-            return Project(self.part, self._proj_id, redop=redop)
+            return Partition(self.part, self._proj_id, redop=redop)
 
     def add_to_legate_op(self, op, read_only, read_write=False, redop=None):
         op.add_scalar_arg(self.scalar, bool)
@@ -235,7 +235,8 @@ class DeferredArray(NumPyThunk):
     def __init__(self, runtime, base, shape, dtype, scalar):
         NumPyThunk.__init__(self, runtime, shape, dtype)
         assert base is not None
-        self.base = base  # Either a RegionField or a Future
+        assert isinstance(base, Store)
+        self.base = base  # a Legate Store
         self.scalar = scalar
 
     @property
@@ -365,9 +366,10 @@ class DeferredArray(NumPyThunk):
 
     def get_scalar_array(self, stacklevel):
         assert self.size == 1
+        assert self.base.kind == Future
         # Look at the type of the data and figure out how to read this data
         # First four bytes are for the type code, so we need to skip those
-        buf = self.base.get_buffer(self.dtype.itemsize + 8)[8:]
+        buf = self.base.storage.get_buffer(self.dtype.itemsize + 8)[8:]
         result = np.frombuffer(buf, dtype=self.dtype, count=1)
         return result.reshape(())
 
@@ -1834,7 +1836,7 @@ class DeferredArray(NumPyThunk):
         task.add_scalar_arg(op.value, np.int32)
         task.add_scalar_arg(0, np.uint32)
 
-        task.add_constraint(lhs.shape == rhs.shape)
+        task.add_alignment(lhs, rhs)
 
         task.execute()
 
@@ -2070,70 +2072,33 @@ class DeferredArray(NumPyThunk):
     def binary_op(
         self, op_code, src1, src2, where, args, stacklevel, callsite=None
     ):
-        rhs1_array = self.runtime.to_deferred_array(
+        lhs = self.base
+        rhs1 = self.runtime.to_deferred_array(
             src1, stacklevel=(stacklevel + 1)
-        )
-        rhs2_array = self.runtime.to_deferred_array(
+        ).base.broadcast(lhs.shape)
+        rhs2 = self.runtime.to_deferred_array(
             src2, stacklevel=(stacklevel + 1)
-        )
-        lhs_array = self
-
-        rhs1_arg = DeferredArrayView(rhs1_array)
-        rhs2_arg = DeferredArrayView(rhs2_array)
-
-        if lhs_array.base is rhs1_array.base:
-            lhs_arg = rhs1_arg
-        elif lhs_array.base is rhs2_array.base:
-            lhs_arg = rhs2_arg
-        else:
-            lhs_arg = DeferredArrayView(lhs_array)
-
-        # Align and broadcast region arguments if necessary
-        launch_space, key_arg = lhs_arg.find_key_view(rhs1_arg, rhs2_arg)
-        key_arg.update_tag(NumPyMappingTag.KEY_REGION_TAG)
-        rhs1_arg = rhs1_arg.broadcast(lhs_arg)
-        rhs2_arg = rhs2_arg.broadcast(lhs_arg)
-
-        if launch_space is not None:
-            lhs_arg = lhs_arg.align_partition(key_arg)
-            rhs1_arg = rhs1_arg.align_partition(key_arg)
-            rhs2_arg = rhs2_arg.align_partition(key_arg)
-            if lhs_arg is not key_arg:
-                lhs_arg.copy_key_partition_from(key_arg)
+        ).base.broadcast(lhs.shape)
 
         # Populate the Legate launcher
-        all_scalar_rhs = rhs1_arg.scalar and rhs2_arg.scalar
+        all_scalar_rhs = rhs1.kind == Future and rhs2.kind == Future
 
         if all_scalar_rhs:
             task_id = NumPyOpCode.SCALAR_BINARY_OP
         else:
             task_id = NumPyOpCode.BINARY_OP
 
-        op = Task(self.context, task_id)
-        op.add_scalar_arg(op_code.value, np.int32)
+        task = self.context.create_task(task_id)
+        task.add_output(lhs)
+        task.add_input(rhs1)
+        task.add_input(rhs2)
+        task.add_scalar_arg(op_code.value, np.int32)
+        task.add_scalar_arg(0, np.int32)
 
-        if not all_scalar_rhs:
-            if launch_space is not None:
-                op.add_shape(lhs_arg.shape, lhs_arg.part.tile_shape, 0)
-            else:
-                op.add_shape(lhs_arg.shape)
-            lhs_arg.add_to_legate_op(op, False)
+        task.add_alignment(lhs, rhs1)
+        task.add_alignment(lhs, rhs2)
 
-        rhs1_arg.add_to_legate_op(op, True)
-        rhs2_arg.add_to_legate_op(op, True)
-        self.add_arguments(op, args)
-
-        # See if we are doing index space launches or not
-        if not all_scalar_rhs and launch_space is not None:
-            op.execute(Rect(launch_space))
-        else:
-            result = op.execute_single()
-
-            # If the result is a scalar, we need to fill the lhs with it.
-            # Note that the fill function makes an alias to the scalar,
-            # when the lhs is a singleton array.
-            if all_scalar_rhs:
-                lhs_arg._array._fill(result, stacklevel + 1, callsite)
+        task.execute()
 
         # TODO: We should be able to do this automatically via decorators
         self.runtime.profile_callsite(stacklevel + 1, True, callsite)
@@ -2151,7 +2116,6 @@ class DeferredArray(NumPyThunk):
     def binary_reduction(
         self, op, src1, src2, broadcast, args, stacklevel, callsite=None
     ):
-
         rhs1_array = self.runtime.to_deferred_array(
             src1, stacklevel=(stacklevel + 1)
         )

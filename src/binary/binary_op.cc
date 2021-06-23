@@ -50,11 +50,10 @@ struct BinaryOpImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
 
 void deserialize(Deserializer &ctx, BinaryOpArgs &args)
 {
-  deserialize(ctx, args.op_code);
-  deserialize(ctx, args.shape);
-  deserialize(ctx, args.out);
   deserialize(ctx, args.in1);
   deserialize(ctx, args.in2);
+  deserialize(ctx, args.out);
+  deserialize(ctx, args.op_code);
   deserialize(ctx, args.args);
 }
 

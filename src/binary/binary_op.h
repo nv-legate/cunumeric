@@ -23,11 +23,10 @@ namespace legate {
 namespace numpy {
 
 struct BinaryOpArgs {
-  BinaryOpCode op_code;
-  Shape shape;
-  Array out;
   Array in1;
   Array in2;
+  Array out;
+  BinaryOpCode op_code;
   std::vector<UntypedScalar> args;
 };
 
