@@ -31,8 +31,19 @@ jobs:
   test:
     runs-on: self-hosted
     needs: build
+    strategy: 
+      fail-fast: false
+      matrix:
+        options: [--cpus 1, --cpus 2, --use cuda --gpus 1, --use cuda --gpus 2, --omps 1 --ompthreads 2, --omps 2 --ompthreads 2]
+        include:
+          - {optinos: --cpus 1, name: 1 CPU test, log: cpu}
+          - {options: --cpus 2, name: 2 CPUs test, log: cpus}
+          - {options: --use cuda --gpus 1, name: GPU test, log: gpu}
+          - {options: --use cuda --gpus 2, name: 2 GPUs test, log: gpus}
+          - {options: --use openmp --omps 1 --ompthreads 2, name: OpenMP test, log: omp}
+          - {options: --use openmp --omps 2 --ompthreads 2, name: 2 OpenMP processors test, log: omps}
     steps:
-      - name: Run CPU tests
+      - name: {{ matrix.name }}
         run: |
           /data/github-runner/legate-bin/setup.sh
           cd legate-ci/github-ci/legate.numpy
@@ -42,80 +53,19 @@ jobs:
           else
             rm -rf ngc-artifacts/*
           fi
-      - name: Test single CPU
+      - name: {{ matrix.name }}
         run: |
-          ./test.sh --cpus 1 -j 1 > ${COMMIT}-test-cpu.log 2>&1
-      - name: Test two CPUs
-        if: always()
-        run: ./test.sh --cpus 2 -j 1 >> ${COMMIT}-test-cpu.log 2>&1
-      - name: Process output
-        if: always()
-        run: |
-          /data/github-runner/legate-bin/encrypt.sh ${COMMIT}-test-cpu.log
-          cat *artifacts/*/*
-      - name: Upload Build Log
-        if: always()
-        uses: actions/upload-artifact@v2
-        with:
-          name: test-cpu-log
-          path: ./**/${{ env.COMMIT }}-test-cpu.log.gpg
-  test-gpu:
-    runs-on: self-hosted
-    needs: build
-    steps:
-      - name: Run GPU tests
-        run: |
-          /data/github-runner/legate-bin/setup.sh
           cd legate-ci/github-ci/legate.numpy
-          if [[ ! -d ngc-artifacts ]]
-          then
-            mkdir ngc-artifacts
-          else
-            rm -rf ngc-artifacts/*
-          fi
-      - name: Test GPU
-        run: ./test.sh --use cuda --gpus 1 -j 1 > ${COMMIT}-test-gpu.log 2>&1
-      - name: Test two GPUs
-        if: always()
-        run: ./test.sh --use cuda --gpus 2 -j 1 >> ${COMMIT}-test-gpu.log 2>&1
+          ./test.sh {{ matrix.options }} -j 1 > ${COMMIT}-test-{{ matrix.log }}.log 2>&1
       - name: Process output
         if: always()
         run: |
-          /data/github-runner/legate-bin/encrypt.sh ${COMMIT}-test-gpu.log
-          cat *artifacts/*/*
-      - name: Upload Build Log
-        if: always()
-        uses: actions/upload-artifact@v2
-        with:
-          name: test-gpu-log
-          path: ./**/${{ env.COMMIT }}-test-gpu.log.gpg
-  test-omp:
-    runs-on: self-hosted
-    needs: build
-    steps:
-      - name: Run OpenMP tests
-        run: |
-          /data/github-runner/legate-bin/setup.sh
           cd legate-ci/github-ci/legate.numpy
-          if [[ ! -d ngc-artifacts ]]
-          then
-            mkdir ngc-artifacts
-          else
-            rm -rf ngc-artifacts/*
-          fi
-      - name: Test OpenMP
-        run: ./test.sh --use openmp --omps 1 --ompthreads 2 -j 1 > ${COMMIT}-test-omp.log 2>&1
-      - name: Test two OpenMP processors
-        if: always()
-        run: ./test.sh --use openmp --omps 2 --ompthreads 2 -j 1 >> ${COMMIT}-test-omp.log 2>&1
-      - name: Process output
-        if: always()
-        run: |
-          /data/github-runner/legate-bin/encrypt.sh ${COMMIT}-test-omp.log
+          /data/github-runner/legate-bin/encrypt.sh ${COMMIT}-test-{{ matrix.log }}.log
           cat *artifacts/*/*
-      - name: Upload Build Log
+      - name: Upload Log
         if: always()
         uses: actions/upload-artifact@v2
         with:
-          name: test-omp-log
-          path: ./**/${{ env.COMMIT }}-test-omp.log.gpg
+          name: test-{{ matrix.log }}-log
+          path: ./**/${{ env.COMMIT }}-test-{{ matrix.log }}.log.gpg
