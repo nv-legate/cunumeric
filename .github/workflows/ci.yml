@@ -43,7 +43,7 @@ jobs:
           - {options: --use openmp --omps 1 --ompthreads 2, name: OpenMP test, log: omp}
           - {options: --use openmp --omps 2 --ompthreads 2, name: 2 OpenMP processors test, log: omps}
     steps:
-      - name: {{ matrix.name }}
+      - name: ${{ matrix.name }}
         run: |
           /data/github-runner/legate-bin/setup.sh
           cd legate-ci/github-ci/legate.numpy
@@ -53,19 +53,19 @@ jobs:
           else
             rm -rf ngc-artifacts/*
           fi
-      - name: {{ matrix.name }}
+      - name: ${{ matrix.name }}
         run: |
           cd legate-ci/github-ci/legate.numpy
-          ./test.sh {{ matrix.options }} -j 1 > ${COMMIT}-test-{{ matrix.log }}.log 2>&1
+          ./test.sh ${{ matrix.options }} -j 1 > ${COMMIT}-test-${{ matrix.log }}.log 2>&1
       - name: Process output
         if: always()
         run: |
           cd legate-ci/github-ci/legate.numpy
-          /data/github-runner/legate-bin/encrypt.sh ${COMMIT}-test-{{ matrix.log }}.log
+          /data/github-runner/legate-bin/encrypt.sh ${COMMIT}-test-${{ matrix.log }}.log
           cat *artifacts/*/*
       - name: Upload Log
         if: always()
         uses: actions/upload-artifact@v2
         with:
-          name: test-{{ matrix.log }}-log
-          path: ./**/${{ env.COMMIT }}-test-{{ matrix.log }}.log.gpg
+          name: test-${{ matrix.log }}-log
+          path: ./**/${{ env.COMMIT }}-test-${{ matrix.log }}.log.gpg
