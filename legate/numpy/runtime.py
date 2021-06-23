@@ -494,11 +494,11 @@ class RegionField(object):
             self.detach_numpy_array(unordered=True, defer=True)
 
     def overlaps(self, other):
-        # TODO: This check is too conservative to be useful. It intersects the
-        # convex hulls of the accessed regions on the base array (after
-        # applying any transforms). This ignores slice steps, and is very
-        # inaccurate when going from a 2d view to a 1d base array (as is the
-        # case with reshape).
+        # TODO: This check is a little conservative. It intersects the convex
+        # hulls of the accessed regions on the base array (after applying any
+        # transforms). This ignores slice steps. This might appear inaccurate
+        # when going from a 2d view to a 1d base array (as is the case with
+        # reshape), but it actually matches how we create such sub-regions.
         if self.field is not other.field:
             return False
         arrays = [self, other]
