@@ -106,12 +106,12 @@ class DeferredArray(NumPyThunk):
                 # have nothing to do.
                 return
             else:
-                # XXX: This will happen if we are copying between two different
-                # sub-arrays within the same array. If the two sub-arrays
-                # overlap we will fail with a runtime error. Unfortunately
-                # there is no cheap and accurate way to test for overlap in the
-                # presence of views.
-                pass
+                # This will happen if we are copying between two different
+                # sub-arrays within the same array.
+                if src.overlaps(dst):
+                    raise NotImplementedError(
+                        "copies between overlapping sub-arrays"
+                    )
         # Check to see if we already have a target launch space for
         # the destination meaning it has been partitioned already
         if dst.has_parallel_launch_space():
