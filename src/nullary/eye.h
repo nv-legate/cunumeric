@@ -24,7 +24,6 @@ namespace legate {
 namespace numpy {
 
 struct EyeArgs {
-  Shape shape;
   Array out;
   int32_t k;
 };

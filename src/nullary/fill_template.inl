@@ -33,7 +33,7 @@ struct FillImpl {
   template <typename VAL, int DIM>
   void fill(FillArgs &args) const
   {
-    auto rect = args.shape.to_rect<DIM>();
+    auto rect = args.out.shape<DIM>();
 
     Pitches<DIM - 1> pitches;
     size_t volume = pitches.flatten(rect);
@@ -41,7 +41,7 @@ struct FillImpl {
     if (volume == 0) return;
 
     auto out        = args.out.write_accessor<VAL, DIM>(rect);
-    auto fill_value = args.fill_value.value<VAL>();
+    auto fill_value = args.fill_value.scalar<UntypedScalar>().value<VAL>();
 
 #ifndef LEGION_BOUNDS_CHECKS
     // Check to see if this is dense or not
@@ -56,7 +56,8 @@ struct FillImpl {
   template <LegateTypeCode CODE, int DIM>
   void operator()(FillArgs &args) const
   {
-    if (args.fill_value.is_argval()) {
+    auto fill_value = args.fill_value.scalar<UntypedScalar>();
+    if (fill_value.is_argval()) {
       using VAL = Argval<legate_type_of<CODE>>;
       fill<VAL, DIM>(args);
     } else {

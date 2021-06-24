@@ -838,10 +838,9 @@ class DeferredArray(NumPyThunk):
     def _fill(self, value, stacklevel, callsite=None):
         if self.size == 1:
             # Handle the 0D case special
-            self.base = value
+            self.base.set_storage(value)
         else:
             assert self.base is not None
-            dst = self.base
             dtype = self.dtype
             # If this is a fill for an arg value, make sure to pass
             # the value dtype so that we get it packed correctly
@@ -849,27 +848,13 @@ class DeferredArray(NumPyThunk):
                 dtype = get_arg_value_dtype(dtype)
             else:
                 dtype = None
-            launch_space = dst.compute_parallel_launch_space()
-            if launch_space is not None:
-                dst_part = dst.find_or_create_key_partition()
-                # Need to use a fake dtype for fills with arg values
-                lhs = DeferredArrayView(self, part=dst_part, dtype=dtype)
-            else:
-                # Need to use a fake dtype for fills with arg values
-                lhs = DeferredArrayView(self, dtype=dtype)
 
-            op = Task(self.context, NumPyOpCode.FILL)
-            if launch_space is not None:
-                op.add_shape(dst.shape, dst_part.tile_shape, 0)
-            else:
-                op.add_shape(dst.shape)
+            task = self.context.create_task(NumPyOpCode.FILL)
+            task.add_output(self.base)
+            task.add_input(value)
 
-            lhs.add_to_legate_op(op, False)
-            op.add_future(value)
-            if launch_space is not None:
-                op.execute(Rect(launch_space))
-            else:
-                op.execute_single()
+            task.execute()
+
             self.runtime.profile_callsite(stacklevel + 1, True, callsite)
 
     def fill(self, numpy_array, stacklevel, callsite=None):
@@ -880,7 +865,10 @@ class DeferredArray(NumPyThunk):
         # and we need to make sure the application doesn't mutate the value
         # so make a future result, this is immediate so no dependence
         value = self.runtime.create_scalar(numpy_array.data, self.dtype)
-        self._fill(value, stacklevel + 1, callsite=callsite)
+        store = self.context.create_store(
+            (1,), self.dtype, storage=value, optimize_scalar=True
+        )
+        self._fill(store, stacklevel + 1, callsite=callsite)
         # See if we are doing shadow debugging
         if self.size > 1 and self.runtime.shadow_debug:
             self.shadow.fill(numpy_array, stacklevel=(stacklevel + 1))
@@ -1492,23 +1480,11 @@ class DeferredArray(NumPyThunk):
         # First issue a fill to zero everything out
         self.fill(np.array(0, dtype=self.dtype), stacklevel=(stacklevel + 1))
 
-        lhs_arg = DeferredArrayView(self)
-        launch_space, key_arg = lhs_arg.find_key_view()
-        key_arg.update_tag(NumPyMappingTag.KEY_REGION_TAG)
+        task = self.context.create_task(NumPyOpCode.EYE)
+        task.add_output(self.base)
+        task.add_scalar_arg(k, ty.int32)
 
-        task = Task(self.context, NumPyOpCode.EYE)
-
-        if launch_space is not None:
-            task.add_shape(lhs_arg.shape, lhs_arg.part.tile_shape, 0)
-        else:
-            task.add_shape(lhs_arg.shape)
-        lhs_arg.add_to_legate_op(task, False)
-        task.add_scalar_arg(k, np.int32)
-
-        if launch_space is not None:
-            task.execute(Rect(launch_space))
-        else:
-            task.execute_single()
+        task.execute()
 
         self.runtime.profile_callsite(stacklevel + 1, True, callsite)
         # See if we are doing shadow debugging

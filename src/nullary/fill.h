@@ -23,9 +23,8 @@ namespace legate {
 namespace numpy {
 
 struct FillArgs {
-  Shape shape;
   Array out;
-  UntypedScalar fill_value;
+  Array fill_value;
 };
 
 void deserialize(Deserializer& ctx, FillArgs& args);

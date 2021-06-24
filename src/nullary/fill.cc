@@ -45,9 +45,8 @@ struct FillImplBody<VariantKind::CPU, VAL, DIM> {
 
 void deserialize(Deserializer &ctx, FillArgs &args)
 {
-  deserialize(ctx, args.shape);
-  deserialize(ctx, args.out);
   deserialize(ctx, args.fill_value);
+  deserialize(ctx, args.out);
 }
 
 /*static*/ void FillTask::cpu_variant(const Task *task,

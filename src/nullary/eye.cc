@@ -34,7 +34,6 @@ struct EyeImplBody<VariantKind::CPU, VAL> {
 
 void deserialize(Deserializer &ctx, EyeArgs &args)
 {
-  deserialize(ctx, args.shape);
   deserialize(ctx, args.out);
   deserialize(ctx, args.k);
 }

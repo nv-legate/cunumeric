@@ -35,7 +35,7 @@ struct EyeImpl {
   {
     using VAL = legate_type_of<CODE>;
 
-    const auto rect = args.shape.to_rect<2>();
+    const auto rect = args.out.shape<2>();
     auto out        = args.out.write_accessor<VAL, 2>();
     const auto k    = args.k;
 
