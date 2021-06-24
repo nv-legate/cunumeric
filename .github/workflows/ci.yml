@@ -41,9 +41,10 @@ jobs:
           - {name: GPU test, options: --use cuda --gpus 1, log: gpu}
           - {name: 2 GPUs test, options: --use cuda --gpus 2, log: gpus}
           - {name: OpenMP test, options: --use openmp --omps 1 --ompthreads 2, log: omp}
-          - {name: 2 OpenMP processors test, options: --use openmp --omps 2 --ompthreads 2, log: omps}
+          - {name: 2 OpenMPs test, options: --use openmp --omps 2 --ompthreads 2, log: omps}
+    name: ${{ matrix.name }}
     steps:
-      - name: ${{ matrix.name }}
+      - name: Prepare
         run: |
           /data/github-runner/legate-bin/setup.sh
           cd legate-ci/github-ci/legate.numpy
@@ -53,7 +54,7 @@ jobs:
           else
             rm -rf ngc-artifacts/*
           fi
-      - name: ${{ matrix.name }}
+      - name: Test
         run: |
           cd legate-ci/github-ci/legate.numpy
           ./test.sh ${{ matrix.options }} -j 1 > ${COMMIT}-test-${{ matrix.log }}.log 2>&1
