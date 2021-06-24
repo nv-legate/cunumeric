@@ -482,13 +482,15 @@ class DeferredArray(NumPyThunk):
             self.runtime.dispatch(copy)
         else:
             store = self.base
+            shift = 0
             for dim, k in enumerate(key):
                 if k is np.newaxis:
-                    store = store.promote(dim, 1)
+                    store = store.promote(dim + shift, 1)
                 elif isinstance(k, slice):
-                    store = store.slice(dim, k)
+                    store = store.slice(dim + shift, k)
                 elif np.isscalar(k):
                     store = store.project(dim, k)
+                    shift -= 1
                 else:
                     assert False
 
@@ -2094,64 +2096,42 @@ class DeferredArray(NumPyThunk):
     def binary_reduction(
         self, op, src1, src2, broadcast, args, stacklevel, callsite=None
     ):
-        rhs1_array = self.runtime.to_deferred_array(
+        lhs = self.base
+        rhs1 = self.runtime.to_deferred_array(
             src1, stacklevel=(stacklevel + 1)
-        )
-        rhs2_array = self.runtime.to_deferred_array(
+        ).base
+        rhs2 = self.runtime.to_deferred_array(
             src2, stacklevel=(stacklevel + 1)
-        )
-        lhs_array = self
-        assert lhs_array.size == 1
+        ).base
+        assert lhs.scalar
 
-        rhs1_arg = DeferredArrayView(rhs1_array)
-        rhs2_arg = DeferredArrayView(rhs2_array)
-
-        # Align and broadcast region arguments if necessary
-        launch_space, key_arg = rhs1_arg.find_key_view(
-            rhs2_arg, shape=broadcast
-        )
-        key_arg.update_tag(NumPyMappingTag.KEY_REGION_TAG)
         if broadcast is not None:
-            rhs1_arg = rhs1_arg.broadcast(broadcast)
-            rhs2_arg = rhs2_arg.broadcast(broadcast)
-
-        if launch_space is not None:
-            rhs1_arg = rhs1_arg.align_partition(key_arg)
-            rhs2_arg = rhs2_arg.align_partition(key_arg)
+            rhs1 = rhs1.broadcast(broadcast)
+            rhs2 = rhs2.broadcast(broadcast)
 
         # Populate the Legate launcher
-        all_scalar_rhs = rhs1_arg.scalar and rhs2_arg.scalar
+        all_scalar_rhs = rhs1.scalar and rhs2.scalar
 
         if all_scalar_rhs:
             task_id = NumPyOpCode.SCALAR_BINARY_OP
         else:
             task_id = NumPyOpCode.BINARY_RED
 
-        task = Task(self.context, task_id)
-        task.add_scalar_arg(op.value, np.int32)
+        redop = self.runtime.get_scalar_reduction_op_id(
+            UnaryRedCode.SUM
+            if op == BinaryOpCode.NOT_EQUAL
+            else UnaryRedCode.PROD
+        )
+        task = self.context.create_task(task_id)
+        task.add_reduction(lhs, redop)
+        task.add_input(rhs1)
+        task.add_input(rhs2)
+        task.add_scalar_arg(op.value, ty.int32)
+        task.add_scalar_arg(0, ty.int32)
 
-        if not all_scalar_rhs:
-            if launch_space is not None:
-                task.add_shape(key_arg.shape, key_arg.part.tile_shape, 0)
-            else:
-                task.add_shape(key_arg.shape)
+        task.add_alignment(rhs1, rhs2)
 
-        rhs1_arg.add_to_legate_op(task, True)
-        rhs2_arg.add_to_legate_op(task, True)
-        self.add_arguments(task, args)
-
-        # See if we are doing index space launches or not
-        if launch_space is not None:
-            if op == BinaryOpCode.NOT_EQUAL:
-                redop = UnaryRedCode.SUM
-            else:
-                redop = UnaryRedCode.PROD
-            redop_id = self.runtime.get_scalar_reduction_op_id(redop)
-            result = task.execute(Rect(launch_space), redop=redop_id)
-        else:
-            result = task.execute_single()
-
-        lhs_array.base = result
+        task.execute()
 
         self.runtime.profile_callsite(stacklevel + 1, True, callsite)
         if self.runtime.shadow_debug:

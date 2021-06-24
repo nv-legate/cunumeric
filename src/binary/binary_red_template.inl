@@ -38,7 +38,7 @@ struct BinaryRedImpl {
     using OP  = BinaryOp<OP_CODE, CODE>;
     using ARG = legate_type_of<CODE>;
 
-    auto rect = args.shape.to_rect<DIM>();
+    auto rect = args.in1.shape<DIM>();
 
     Pitches<DIM - 1> pitches;
     size_t volume = pitches.flatten(rect);

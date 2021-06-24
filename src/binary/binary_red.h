@@ -25,7 +25,6 @@ namespace numpy {
 
 struct BinaryRedArgs {
   BinaryOpCode op_code;
-  Shape shape;
   Array in1;
   Array in2;
   std::vector<UntypedScalar> args;
