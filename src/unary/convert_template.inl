@@ -37,7 +37,7 @@ struct ConvertImpl {
     using SRC = legate_type_of<SRC_TYPE>;
     using DST = legate_type_of<DST_TYPE>;
 
-    auto rect = args.shape.to_rect<DIM>();
+    auto rect = args.out.shape<DIM>();
 
     Pitches<DIM - 1> pitches;
     size_t volume = pitches.flatten(rect);

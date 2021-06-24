@@ -22,6 +22,7 @@ from functools import reduce
 
 import numpy as np
 
+import legate.core.types as ty
 from legate.core import (
     LEGATE_MAX_DIM,
     AffineTransform,
@@ -81,6 +82,26 @@ class Callsite(object):
 
 
 _dim_names = np.array(["X", "Y", "Z", "W", "V", "U", "T", "S", "R"])
+
+_supported_dtypes = {
+    np.bool_: ty.bool_,
+    np.int8: ty.int8,
+    np.int16: ty.int16,
+    np.int32: ty.int32,
+    np.int: ty.int64,
+    np.int64: ty.int64,
+    np.uint8: ty.uint8,
+    np.uint16: ty.uint16,
+    np.uint32: ty.uint32,
+    np.uint: ty.uint64,
+    np.uint64: ty.uint64,
+    np.float16: ty.float16,
+    np.float32: ty.float32,
+    np.float: ty.float64,
+    np.float64: ty.float64,
+    np.complex64: ty.complex64,
+    np.complex128: ty.complex128,
+}
 
 
 class Runtime(object):
@@ -211,6 +232,12 @@ class Runtime(object):
         # Make sure that our NumPyLib object knows about us so it can destroy
         # us
         numpy_lib.set_runtime(self)
+        self._register_dtypes()
+
+    def _register_dtypes(self):
+        type_system = self.legate_context.type_system
+        for numpy_type, core_type in _supported_dtypes.items():
+            type_system.make_alias(np.dtype(numpy_type), core_type)
 
     def destroy(self):
         assert not self.destroyed
@@ -319,7 +346,7 @@ class Runtime(object):
         if wrap:
             assert all(extent == 1 for extent in shape)
             assert shape is not None
-            store = self.legate_runtime.create_store(
+            store = self.legate_context.create_store(
                 shape,
                 dtype,
                 storage=result,
@@ -356,10 +383,8 @@ class Runtime(object):
         self.current_random_epoch += 1
         return result
 
-    @staticmethod
-    def is_supported_type(dtype):
-        assert isinstance(dtype, np.dtype)
-        return dtype.type in numpy_field_type_offsets
+    def is_supported_type(self, dtype):
+        return np.dtype(dtype) in self.legate_context.type_system
 
     def get_numpy_thunk(self, obj, stacklevel, share=False, dtype=None):
         # Check to see if this object implements the Legate data interface
@@ -603,8 +628,8 @@ class Runtime(object):
                 return result
             else:
                 # This is not a scalar so make a field
-                region_field = self.legate_runtime.attach_array(
-                    self.legate_context, array, share
+                region_field = self.legate_context.attach_array(
+                    array, array.dtype, share
                 )
                 result = DeferredArray(
                     self,
@@ -629,7 +654,7 @@ class Runtime(object):
         if self.is_supported_type(dtype) and not (
             self.is_eager_shape(shape) and self.are_all_eager_inputs(inputs)
         ):
-            store = self.legate_runtime.create_store(
+            store = self.legate_context.create_store(
                 shape, dtype, optimize_scalar=True
             )
             scalar = store.kind == Future

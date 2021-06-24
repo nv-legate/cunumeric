@@ -48,9 +48,8 @@ struct ConvertImplBody<VariantKind::CPU, DST_TYPE, SRC_TYPE, DIM> {
 
 void deserialize(Deserializer &ctx, ConvertArgs &args)
 {
-  deserialize(ctx, args.shape);
-  deserialize(ctx, args.out);
   deserialize(ctx, args.in);
+  deserialize(ctx, args.out);
 }
 
 /*static*/ void ConvertTask::cpu_variant(const Task *task,

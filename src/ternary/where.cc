@@ -54,11 +54,10 @@ struct WhereImplBody<VariantKind::CPU, CODE, DIM> {
 
 void deserialize(Deserializer &ctx, WhereArgs &args)
 {
-  deserialize(ctx, args.shape);
-  deserialize(ctx, args.out);
   deserialize(ctx, args.mask);
   deserialize(ctx, args.in1);
   deserialize(ctx, args.in2);
+  deserialize(ctx, args.out);
   assert(args.mask.code() == LegateTypeCode::BOOL_LT);
   assert(args.out.code() == args.in1.code());
   assert(args.in1.code() == args.in2.code());

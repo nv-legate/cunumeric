@@ -34,7 +34,7 @@ struct WhereImpl {
   {
     using VAL = legate_type_of<CODE>;
 
-    auto rect = args.shape.to_rect<DIM>();
+    auto rect = args.out.shape<DIM>();
 
     Pitches<DIM - 1> pitches;
     size_t volume = pitches.flatten(rect);

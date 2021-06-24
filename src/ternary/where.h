@@ -24,7 +24,6 @@ namespace legate {
 namespace numpy {
 
 struct WhereArgs {
-  Shape shape;
   Array out;
   Array mask;
   Array in1;

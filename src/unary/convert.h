@@ -24,7 +24,6 @@ namespace legate {
 namespace numpy {
 
 struct ConvertArgs {
-  Shape shape;
   Array out;
   Array in;
 };
