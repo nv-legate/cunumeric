@@ -34,7 +34,6 @@ jobs:
     strategy: 
       fail-fast: false
       matrix:
-        options: [--cpus 1, --cpus 2, --use cuda --gpus 1, --use cuda --gpus 2, --omps 1 --ompthreads 2, --omps 2 --ompthreads 2]
         include:
           - {name: 1 CPU test, optinos: --cpus 1, log: cpu}
           - {name: 2 CPUs test, options: --cpus 2, log: cpus}
