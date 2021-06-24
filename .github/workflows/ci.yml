@@ -36,12 +36,12 @@ jobs:
       matrix:
         options: [--cpus 1, --cpus 2, --use cuda --gpus 1, --use cuda --gpus 2, --omps 1 --ompthreads 2, --omps 2 --ompthreads 2]
         include:
-          - {optinos: --cpus 1, name: 1 CPU test, log: cpu}
-          - {options: --cpus 2, name: 2 CPUs test, log: cpus}
-          - {options: --use cuda --gpus 1, name: GPU test, log: gpu}
-          - {options: --use cuda --gpus 2, name: 2 GPUs test, log: gpus}
-          - {options: --use openmp --omps 1 --ompthreads 2, name: OpenMP test, log: omp}
-          - {options: --use openmp --omps 2 --ompthreads 2, name: 2 OpenMP processors test, log: omps}
+          - {name: 1 CPU test, optinos: --cpus 1, log: cpu}
+          - {name: 2 CPUs test, options: --cpus 2, log: cpus}
+          - {name: GPU test, options: --use cuda --gpus 1, log: gpu}
+          - {name: 2 GPUs test, options: --use cuda --gpus 2, log: gpus}
+          - {name: OpenMP test, options: --use openmp --omps 1 --ompthreads 2, log: omp}
+          - {name: 2 OpenMP processors test, options: --use openmp --omps 2 --ompthreads 2, log: omps}
     steps:
       - name: ${{ matrix.name }}
         run: |
