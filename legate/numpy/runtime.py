@@ -332,29 +332,33 @@ class Runtime(object):
         else:
             return result
 
-    def create_scalar(self, data, dtype, shape=None, wrap=False):
-        result = Future()
+    def create_scalar(self, array, dtype, shape=None, wrap=False):
+        future = Future()
         if dtype.kind == "V":
             is_arg = True
             code = numpy_field_type_offsets[get_arg_value_dtype(dtype)]
         else:
             is_arg = False
             code = numpy_field_type_offsets[dtype.type]
-        data = data.tobytes()
+        data = array.tobytes()
         buf = struct.pack(f"ii{len(data)}s", int(is_arg), code, data)
-        result.set_value(self.runtime, buf, len(buf))
+        future.set_value(self.runtime, buf, len(buf))
         if wrap:
             assert all(extent == 1 for extent in shape)
             assert shape is not None
             store = self.legate_context.create_store(
                 shape,
                 dtype,
-                storage=result,
+                storage=future,
                 optimize_scalar=True,
             )
             result = DeferredArray(
                 self, store, shape=shape, dtype=dtype, scalar=True
             )
+            if self.shadow_debug:
+                result.shadow = EagerArray(self, np.array(array))
+        else:
+            result = future
         return result
 
     def find_or_create_view(self, parent, view, dim_map, shape):
@@ -712,7 +716,7 @@ class Runtime(object):
         if self.is_eager_array(array):
             return array
         elif self.is_deferred_array(array):
-            raise NotImplementedError("convert deferred array to eager array")
+            return EagerArray(self, array.__numpy_array__())
         elif self.is_lazy_array(array):
             raise NotImplementedError("convert lazy array to eager array")
         else:
@@ -842,15 +846,19 @@ class Runtime(object):
         # Check the kind of this array and see if we should use allclose or
         # array_equal
         if thunk.dtype.kind == "f":
-            if not np.allclose(
-                thunk.__numpy_array__, thunk.shadow.__numpy_array__
-            ):
-                raise RuntimeError("Shadow array check failed for " + op)
+            passed = np.allclose(
+                thunk.__numpy_array__(0), thunk.shadow.__numpy_array__(0)
+            )
         else:
-            if not np.array_equal(
-                thunk.__numpy_array__, thunk.shadow.__numpy_array__
-            ):
-                raise RuntimeError("Shadow array check failed for " + op)
+            passed = np.array_equal(
+                thunk.__numpy_array__(0), thunk.shadow.__numpy_array__(0)
+            )
+        if not passed:
+            print("===== Legate =====")
+            print(thunk.__numpy_array__())
+            print("===== NumPy =====")
+            print(thunk.shadow.__numpy_array__())
+            raise RuntimeError(f"Shadow array check failed for {op}")
 
 
 runtime = Runtime(get_legion_runtime(), get_legion_context(), numpy_context)

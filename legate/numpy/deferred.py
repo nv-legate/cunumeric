@@ -53,6 +53,86 @@ def _complex_field_dtype(dtype):
         assert False
 
 
+def auto_convert(indices, keys=[]):
+    indices = set(indices)
+
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            self = args[0]
+            stacklevel = kwargs.get("stacklevel") + 1
+
+            args = tuple(
+                self.runtime.to_deferred_array(arg, stacklevel=stacklevel)
+                if idx in indices
+                else arg
+                for (idx, arg) in enumerate(args)
+            )
+            for key in keys:
+                v = kwargs.get(key, None)
+                if v is None:
+                    continue
+                v = self.runtime.to_deferred_array(v, stacklevel=stacklevel)
+                kwargs[key] = v
+            kwargs["stacklevel"] = stacklevel
+
+            return func(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
+def profile(func):
+    def wrapper(*args, **kwargs):
+        self = args[0]
+        stacklevel = kwargs.get("stacklevel") + 1
+        callsite = kwargs.get("callsite")
+        kwargs["stacklevel"] = stacklevel
+
+        result = func(*args, **kwargs)
+
+        self.runtime.profile_callsite(stacklevel, True, callsite)
+
+        return result
+
+    return wrapper
+
+
+def shadow_debug(func_name, indices, keys=[]):
+    indices = set(indices)
+
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            self = args[0]
+            if not self.runtime.shadow_debug:
+                return func(*args, **kwargs)
+
+            stacklevel = kwargs.get("stacklevel") + 1
+            kwargs["stacklevel"] = stacklevel
+            result = func(*args, **kwargs)
+
+            shadow_args = tuple(
+                arg.shadow if idx in indices else arg
+                for (idx, arg) in enumerate(args)
+            )
+            shadow_args = shadow_args[1:]
+            shadow_kwargs = kwargs.copy()
+            for key in keys:
+                v = shadow_kwargs.get(key, None)
+                if v is None:
+                    continue
+                shadow_kwargs[key] = v.shadow
+
+            getattr(self.shadow, func_name)(*shadow_args, **shadow_kwargs)
+            self.runtime.check_shadow(self, func_name)
+
+            return result
+
+        return wrapper
+
+    return decorator
+
+
 class DeferredArrayView(object):
     def __init__(
         self,
@@ -251,7 +331,7 @@ class DeferredArray(NumPyThunk):
     def ndim(self):
         return len(self.shape)
 
-    def __numpy_array__(self, stacklevel):
+    def __numpy_array__(self, stacklevel=0):
         if self.scalar:
             return np.full(
                 self.shape,
@@ -518,10 +598,9 @@ class DeferredArray(NumPyThunk):
             )
         return result
 
-    def set_item(self, key, rhs, stacklevel):
-        value_array = self.runtime.to_deferred_array(
-            rhs, stacklevel=(stacklevel + 1)
-        )
+    @auto_convert([2])
+    def set_item(self, key, rhs, stacklevel=0):
+        value_array = rhs
         assert self.dtype == value_array.dtype
         # Check to see if this is advanced indexing or not
         if self._is_advanced_indexing(key):
@@ -793,11 +872,12 @@ class DeferredArray(NumPyThunk):
         return result
 
     # Convert the source array to the destination array
-    def convert(self, rhs, stacklevel, warn=True, callsite=None):
+    @profile
+    @auto_convert([1])
+    @shadow_debug("convert", [1])
+    def convert(self, rhs, stacklevel=0, warn=True, callsite=None):
         lhs_array = self
-        rhs_array = self.runtime.to_deferred_array(
-            rhs, stacklevel=(stacklevel + 1)
-        )
+        rhs_array = rhs
         assert lhs_array.dtype != rhs_array.dtype
 
         if warn:
@@ -826,16 +906,9 @@ class DeferredArray(NumPyThunk):
 
         task.execute()
 
-        self.runtime.profile_callsite(stacklevel + 1, True, callsite)
-        # See if we are doing shadow debugging
-        if self.runtime.shadow_debug:
-            self.shadow.convert(
-                rhs.shadow, stacklevel=(stacklevel + 1), warn=False
-            )
-            self.runtime.check_shadow(self, "convert")
-
     # Fill the legate array with the value in the numpy array
-    def _fill(self, value, stacklevel, callsite=None):
+    @profile
+    def _fill(self, value, stacklevel=0, callsite=None):
         if self.size == 1:
             # Handle the 0D case special
             self.base.set_storage(value)
@@ -855,9 +928,8 @@ class DeferredArray(NumPyThunk):
 
             task.execute()
 
-            self.runtime.profile_callsite(stacklevel + 1, True, callsite)
-
-    def fill(self, numpy_array, stacklevel, callsite=None):
+    @shadow_debug("fill", [])
+    def fill(self, numpy_array, stacklevel=0, callsite=None):
         assert isinstance(numpy_array, np.ndarray)
         assert numpy_array.size == 1
         assert self.dtype == numpy_array.dtype
@@ -868,19 +940,14 @@ class DeferredArray(NumPyThunk):
         store = self.context.create_store(
             (1,), self.dtype, storage=value, optimize_scalar=True
         )
-        self._fill(store, stacklevel + 1, callsite=callsite)
-        # See if we are doing shadow debugging
-        if self.size > 1 and self.runtime.shadow_debug:
-            self.shadow.fill(numpy_array, stacklevel=(stacklevel + 1))
-            self.runtime.check_shadow(self, "fill")
+        self._fill(store, stacklevel=stacklevel + 1, callsite=callsite)
 
-    def dot(self, src1, src2, stacklevel, callsite=None):
-        rhs1_array = self.runtime.to_deferred_array(
-            src1, stacklevel=(stacklevel + 1)
-        )
-        rhs2_array = self.runtime.to_deferred_array(
-            src2, stacklevel=(stacklevel + 1)
-        )
+    @profile
+    @auto_convert([1, 2])
+    @shadow_debug("dot", [1, 2])
+    def dot(self, src1, src2, stacklevel=0, callsite=None):
+        rhs1_array = src1
+        rhs2_array = src2
         lhs_array = self
 
         if rhs1_array.ndim == 1 and rhs2_array.ndim == 1:
@@ -1347,25 +1414,17 @@ class DeferredArray(NumPyThunk):
         else:
             raise NotImplementedError("Need support for tensor contractions")
 
-        self.runtime.profile_callsite(stacklevel + 1, True, callsite)
-        if self.runtime.shadow_debug:
-            self.shadow.dot(
-                src1.shadow, src2.shadow, stacklevel=(stacklevel + 1)
-            )
-            self.runtime.check_shadow(self, op)
-
     # Create or extract a diagonal from a matrix
-    def diag(self, rhs, extract, k, stacklevel, callsite=None):
+    @profile
+    @auto_convert([1])
+    @shadow_debug("diag", [1])
+    def diag(self, rhs, extract, k, stacklevel=0, callsite=None):
         if extract:
-            matrix_array = self.runtime.to_deferred_array(
-                rhs, stacklevel=(stacklevel + 1)
-            )
+            matrix_array = rhs
             diag_array = self
         else:
             matrix_array = self
-            diag_array = self.runtime.to_deferred_array(
-                rhs, stacklevel=(stacklevel + 1)
-            )
+            diag_array = rhs
 
         assert diag_array.ndim == 1
         assert matrix_array.ndim == 2
@@ -1463,7 +1522,6 @@ class DeferredArray(NumPyThunk):
         else:
             task.execute_single()
 
-        self.runtime.profile_callsite(stacklevel + 1, True, callsite)
         # See if we are doing shadow debugging
         if self.runtime.shadow_debug:
             self.shadow.diag(
@@ -1475,7 +1533,9 @@ class DeferredArray(NumPyThunk):
             self.runtime.check_shadow(self, "diag")
 
     # Create an identity array with the ones offset from the diagonal by k
-    def eye(self, k, stacklevel, callsite=None):
+    @profile
+    @shadow_debug("eye", [])
+    def eye(self, k, stacklevel=0, callsite=None):
         assert self.ndim == 2  # Only 2-D arrays should be here
         # First issue a fill to zero everything out
         self.fill(np.array(0, dtype=self.dtype), stacklevel=(stacklevel + 1))
@@ -1486,13 +1546,14 @@ class DeferredArray(NumPyThunk):
 
         task.execute()
 
-        self.runtime.profile_callsite(stacklevel + 1, True, callsite)
         # See if we are doing shadow debugging
         if self.runtime.shadow_debug:
             self.shadow.eye(k=k, stacklevel=(stacklevel + 1))
             self.runtime.check_shadow(self, "eye")
 
-    def arange(self, start, stop, step, stacklevel, callsite=None):
+    @profile
+    @shadow_debug("arange", [])
+    def arange(self, start, stop, step, stacklevel=0, callsite=None):
         assert self.ndim == 1  # Only 1-D arrays should be here
         dst = self.base
         if isinstance(dst, Future):
@@ -1533,22 +1594,19 @@ class DeferredArray(NumPyThunk):
         else:
             task.execute_single()
 
-        self.runtime.profile_callsite(stacklevel + 1, True, callsite)
-        # See if we are doing shadow debugging
-        if self.runtime.shadow_debug:
-            self.shadow.eye(k=k, stacklevel=(stacklevel + 1))
-            self.runtime.check_shadow(self, "arange")
-
     # Tile the src array onto the destination array
-    def tile(self, rhs, reps, stacklevel, callsite=None):
-        src_array = self.runtime.to_deferred_array(
-            rhs, stacklevel=(stacklevel + 1)
-        )
+    @profile
+    @auto_convert([1])
+    @shadow_debug("tile", [1])
+    def tile(self, rhs, reps, stacklevel=0, callsite=None):
+        src_array = rhs
         dst_array = self
         assert src_array.ndim <= dst_array.ndim
         assert src_array.dtype == dst_array.dtype
         if src_array.size == 1:
-            self._fill(src_array.base, stacklevel + 1, callsite=callsite)
+            self._fill(
+                src_array.base, stacklevel=stacklevel + 1, callsite=callsite
+            )
             return
 
         dst_arg = DeferredArrayView(dst_array)
@@ -1571,16 +1629,12 @@ class DeferredArray(NumPyThunk):
         else:
             task.execute_single()
 
-        self.runtime.profile_callsite(stacklevel + 1, True, callsite)
-        if self.runtime.shadow_debug:
-            self.shadow.tile(rhs.shadow, reps, stacklevel=(stacklevel + 1))
-            self.runtime.check_shadow(self, "tile")
-
     # Transpose the matrix dimensions
-    def transpose(self, rhs, axes, stacklevel, callsite=None):
-        rhs_array = self.runtime.to_deferred_array(
-            rhs, stacklevel=(stacklevel + 1)
-        )
+    @profile
+    @auto_convert([1])
+    @shadow_debug("transpose", [1])
+    def transpose(self, rhs, axes, stacklevel=0, callsite=None):
+        rhs_array = rhs
         lhs_array = self
         assert lhs_array.dtype == rhs_array.dtype
         assert lhs_array.ndim == rhs_array.ndim
@@ -1630,24 +1684,13 @@ class DeferredArray(NumPyThunk):
         else:
             task.execute_single()
 
-        self.runtime.profile_callsite(stacklevel + 1, True, callsite)
-        # See if we are doing shadow debugging
-        if self.runtime.shadow_debug:
-            self.shadow.transpose(
-                rhs.shadow, axes, stacklevel=(stacklevel + 1)
-            )
-            self.runtime.check_shadow(self, "transpose")
-
     # Perform a bin count operation on the array
-    def bincount(self, rhs, stacklevel, weights=None, callsite=None):
-        weight_array = _maybe_apply(
-            self.runtime.to_deferred_array,
-            weights,
-            stacklevel=stacklevel + 1,
-        )
-        src_array = self.runtime.to_deferred_array(
-            rhs, stacklevel=(stacklevel + 1)
-        )
+    @profile
+    @auto_convert([1], ["weights"])
+    @shadow_debug("bincount", [1])
+    def bincount(self, rhs, stacklevel=0, weights=None, callsite=None):
+        weight_array = weights
+        src_array = rhs
         dst_array = self
         assert src_array.size > 1
         assert dst_array.ndim == 1
@@ -1697,16 +1740,6 @@ class DeferredArray(NumPyThunk):
         else:
             task.execute_single()
 
-        self.runtime.profile_callsite(stacklevel + 1, True, callsite)
-        # See if we are doing shadow debugging
-        if self.runtime.shadow_debug:
-            self.shadow.bincount(
-                rhs.shadow,
-                stacklevel=(stacklevel + 1),
-                weights=None if weights is None else weights.shadow,
-            )
-            self.runtime.check_shadow(self, "bincount")
-
     def count_nonzero(self, stacklevel, axis):
         # Handle the case in which we have a future
         if self.size == 1:
@@ -1729,7 +1762,8 @@ class DeferredArray(NumPyThunk):
     def nonzero(self, stacklevel, callsite=None):
         raise NotImplementedError()
 
-    def random(self, gen_code, args, stacklevel, callsite=None):
+    @profile
+    def random(self, gen_code, args, stacklevel=0, callsite=None):
         task = self.context.create_task(NumPyOpCode.RAND)
 
         task.add_output(self.base)
@@ -1741,45 +1775,56 @@ class DeferredArray(NumPyThunk):
 
         task.execute()
 
-        self.runtime.profile_callsite(stacklevel + 1, True, callsite)
+        if self.runtime.shadow_debug:
+            self.shadow = self.runtime.to_eager_array(self, stacklevel + 1)
 
     def random_uniform(self, stacklevel, callsite=None):
         assert self.dtype == np.float64
-        # Special case for shadow debugging
-        if self.runtime.shadow_debug:
-            self.shadow.random_uniform(stacklevel=(stacklevel + 1))
-            self.base.attach_numpy_array(self.shadow.array.copy())
-            return
-        self.random(RandGenCode.UNIFORM, [], stacklevel + 1, callsite)
+        self.random(
+            RandGenCode.UNIFORM,
+            [],
+            stacklevel=stacklevel + 1,
+            callsite=callsite,
+        )
 
     def random_normal(self, stacklevel, callsite=None):
         assert self.dtype == np.float64
-        # Special case for shadow debugging since it's hard to get data back
-        if self.runtime.shadow_debug:
-            self.shadow.random_normal(stacklevel=(stacklevel + 1))
-            self.base.attach_numpy_array(self.shadow.array.copy())
-            return
-        self.random(RandGenCode.NORMAL, [], stacklevel + 1, callsite)
+        self.random(
+            RandGenCode.NORMAL,
+            [],
+            stacklevel=stacklevel + 1,
+            callsite=callsite,
+        )
 
     def random_integer(self, low, high, stacklevel, callsite=None):
         assert self.dtype.kind == "i"
         # Special case for shadow debugging since it's hard to get data back
         if self.runtime.shadow_debug:
             self.shadow.random_integer(low, high, stacklevel=(stacklevel + 1))
-            self.base.attach_numpy_array(self.shadow.array.copy())
+            self.context.attach_array(
+                self.shadow.array.copy(),
+                self.dtype,
+                True,
+            )
             return
         low = np.array(low, self.dtype)
         high = np.array(high, self.dtype)
-        self.random(RandGenCode.INTEGER, [low, high], stacklevel + 1, callsite)
+        self.random(
+            RandGenCode.INTEGER,
+            [low, high],
+            stacklevel=stacklevel + 1,
+            callsite=callsite,
+        )
 
     # Perform the unary operation and put the result in the array
+    @profile
+    @auto_convert([3])
+    @shadow_debug("unary_op", [3])
     def unary_op(
-        self, op, op_dtype, src, where, args, stacklevel, callsite=None
+        self, op, op_dtype, src, where, args, stacklevel=0, callsite=None
     ):
         lhs = self.base
-        rhs = self.runtime.to_deferred_array(
-            src, stacklevel=(stacklevel + 1)
-        ).base
+        rhs = src.base
 
         if rhs.scalar:
             task_id = NumPyOpCode.SCALAR_UNARY_OP
@@ -1796,20 +1841,11 @@ class DeferredArray(NumPyThunk):
 
         task.execute()
 
-        self.runtime.profile_callsite(stacklevel + 1, True, callsite)
-        if self.runtime.shadow_debug:
-            self.shadow.unary_op(
-                op,
-                op_dtype,
-                src.shadow,
-                where if not isinstance(where, NumPyThunk) else where.shadow,
-                args,
-                stacklevel=(stacklevel + 1),
-            )
-            self.runtime.check_shadow(self, op)
-
     # Perform a unary reduction operation from one set of dimensions down to
     # fewer
+    @profile
+    @auto_convert([2])
+    @shadow_debug("unary_reduction", [2])
     def unary_reduction(
         self,
         op,
@@ -1819,13 +1855,11 @@ class DeferredArray(NumPyThunk):
         keepdims,
         args,
         initial,
-        stacklevel,
+        stacklevel=0,
         callsite=None,
     ):
         lhs_array = self
-        rhs_array = self.runtime.to_deferred_array(
-            src, stacklevel=(stacklevel + 1)
-        )
+        rhs_array = src
         assert lhs_array.ndim <= rhs_array.ndim
         assert rhs_array.size > 1
         rhs = rhs_array.base
@@ -2009,32 +2043,16 @@ class DeferredArray(NumPyThunk):
                     callsite,
                 )
 
-        self.runtime.profile_callsite(stacklevel + 1, True, callsite)
-        if self.runtime.shadow_debug:
-            self.shadow.unary_reduction(
-                op,
-                redop,
-                rhs.shadow,
-                where.shadow,
-                axes,
-                keepdims,
-                args,
-                initial,
-                stacklevel=(stacklevel + 1),
-            )
-            self.runtime.check_shadow(self, op)
-
     # Perform the binary operation and put the result in the lhs array
+    @profile
+    @auto_convert([2, 3])
+    @shadow_debug("binary_op", [2, 3])
     def binary_op(
-        self, op_code, src1, src2, where, args, stacklevel, callsite=None
+        self, op_code, src1, src2, where, args, stacklevel=0, callsite=None
     ):
         lhs = self.base
-        rhs1 = self.runtime.to_deferred_array(
-            src1, stacklevel=(stacklevel + 1)
-        ).base.broadcast(lhs.shape)
-        rhs2 = self.runtime.to_deferred_array(
-            src2, stacklevel=(stacklevel + 1)
-        ).base.broadcast(lhs.shape)
+        rhs1 = src1.base.broadcast(lhs.shape)
+        rhs2 = src2.base.broadcast(lhs.shape)
 
         # Populate the Legate launcher
         all_scalar_rhs = rhs1.scalar and rhs2.scalar
@@ -2056,29 +2074,15 @@ class DeferredArray(NumPyThunk):
 
         task.execute()
 
-        # TODO: We should be able to do this automatically via decorators
-        self.runtime.profile_callsite(stacklevel + 1, True, callsite)
-        if self.runtime.shadow_debug:
-            self.shadow.binary_op(
-                op_code,
-                src1.shadow,
-                src2.shadow,
-                where if not isinstance(where, NumPyThunk) else where.shadow,
-                args,
-                stacklevel=(stacklevel + 1),
-            )
-            self.runtime.check_shadow(self, op_code)
-
+    @profile
+    @auto_convert([2, 3])
+    @shadow_debug("binary_reduction", [2, 3])
     def binary_reduction(
-        self, op, src1, src2, broadcast, args, stacklevel, callsite=None
+        self, op, src1, src2, broadcast, args, stacklevel=0, callsite=None
     ):
         lhs = self.base
-        rhs1 = self.runtime.to_deferred_array(
-            src1, stacklevel=(stacklevel + 1)
-        ).base
-        rhs2 = self.runtime.to_deferred_array(
-            src2, stacklevel=(stacklevel + 1)
-        ).base
+        rhs1 = src1.base
+        rhs2 = src2.base
         assert lhs.scalar
 
         if broadcast is not None:
@@ -2109,29 +2113,14 @@ class DeferredArray(NumPyThunk):
 
         task.execute()
 
-        self.runtime.profile_callsite(stacklevel + 1, True, callsite)
-        if self.runtime.shadow_debug:
-            self.shadow.binary_reduction(
-                op,
-                src1.shadow,
-                src2.shadow,
-                broadcast,
-                args,
-                stacklevel=(stacklevel + 1),
-            )
-            self.runtime.check_shadow(self, op)
-
-    def where(self, src1, src2, src3, stacklevel, callsite=None):
+    @profile
+    @auto_convert([1, 2, 3])
+    @shadow_debug("where", [1, 2, 3])
+    def where(self, src1, src2, src3, stacklevel=0, callsite=None):
         lhs = self.base
-        rhs1 = self.runtime.to_deferred_array(
-            src1, stacklevel=(stacklevel + 1)
-        ).base.broadcast(lhs.shape)
-        rhs2 = self.runtime.to_deferred_array(
-            src2, stacklevel=(stacklevel + 1)
-        ).base.broadcast(lhs.shape)
-        rhs3 = self.runtime.to_deferred_array(
-            src3, stacklevel=(stacklevel + 1)
-        ).base.broadcast(lhs.shape)
+        rhs1 = src1.base.broadcast(lhs.shape)
+        rhs2 = src2.base.broadcast(lhs.shape)
+        rhs3 = src3.base.broadcast(lhs.shape)
 
         # Populate the Legate launcher
         all_scalar_rhs = rhs1.scalar and rhs2.scalar and rhs3.scalar
@@ -2152,16 +2141,6 @@ class DeferredArray(NumPyThunk):
         task.add_alignment(lhs, rhs3)
 
         task.execute()
-
-        self.runtime.profile_callsite(stacklevel + 1, True, callsite)
-        if self.runtime.shadow_debug:
-            self.shadow.where(
-                src1.shadow,
-                src2.shadow,
-                src3.shadow,
-                stacklevel=(stacklevel + 1),
-            )
-            self.runtime.check_shadow(self, op)
 
     # A helper method for attaching arguments
     def add_arguments(self, op, args):

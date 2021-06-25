@@ -45,7 +45,7 @@ class EagerArray(NumPyThunk):
             self.to_deferred_array(stacklevel=2)
         return self.deferred.storage
 
-    def __numpy_array__(self, stacklevel):
+    def __numpy_array__(self, stacklevel=0):
         if self.deferred is not None:
             return self.deferred.__numpy_array__(stacklevel=(stacklevel + 1))
         # Track when this escapes. If it escapes we have
