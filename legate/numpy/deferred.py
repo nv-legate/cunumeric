@@ -117,6 +117,8 @@ def shadow_debug(func_name, indices, keys=[]):
             )
             shadow_args = shadow_args[1:]
             shadow_kwargs = kwargs.copy()
+            if "callsite" in shadow_kwargs:
+                del shadow_kwargs["callsite"]
             for key in keys:
                 v = shadow_kwargs.get(key, None)
                 if v is None:
@@ -956,207 +958,75 @@ class DeferredArray(NumPyThunk):
             assert rhs1_array.shape == rhs2_array.shape or (
                 rhs1_array.size == 1 and rhs2_array.size == 1
             )
-            rhs1_arg = DeferredArrayView(rhs1_array)
-            rhs2_arg = DeferredArrayView(rhs2_array)
 
-            launch_space = rhs1_array.base.compute_parallel_launch_space()
-            if launch_space is not None:
-                rhs1_arg.update_tag(NumPyMappingTag.KEY_REGION_TAG)
-                rhs2_arg.copy_key_partition_from(rhs1_arg)
+            redop = self.runtime.get_scalar_reduction_op_id(UnaryRedCode.SUM)
 
-            task = Task(self.context, NumPyOpCode.DOT)
-            if launch_space is not None:
-                task.add_shape(rhs1_arg.shape, rhs1_arg.part.tile_shape, 0)
-            else:
-                task.add_shape(rhs1_arg.shape)
+            task = self.context.create_task(NumPyOpCode.DOT)
+            task.add_reduction(lhs_array.base, redop)
+            task.add_input(rhs1_array.base)
+            task.add_input(rhs2_array.base)
 
-            rhs1_arg.add_to_legate_op(task, True)
-            rhs2_arg.add_to_legate_op(task, True)
+            task.execute()
 
-            if launch_space is not None:
-                redop = self.runtime.get_scalar_reduction_op_id(
-                    UnaryRedCode.SUM
-                )
-                result = task.execute(Rect(launch_space), redop=redop)
-            else:
-                result = task.execute_single()
-
-            lhs_array.base = result
         elif rhs1_array.ndim == 1 or rhs2_array.ndim == 1:
             # Matrix-vector or vector-matrix multiply
             assert lhs_array.ndim == 1
             assert rhs1_array.ndim == 2 or rhs2_array.ndim == 2
-            # We're going to do index launches over the matrix so first
-            # we need to find the matrix, see if it is the first array
-            # or the second
-            if rhs1_array.ndim == 2:
-                matrix = rhs1_array
-                left_matrix = True
-            else:
-                assert rhs2_array.ndim == 2
-                matrix = rhs2_array
-                left_matrix = False
-            launch_space = self.legate_runtime.partition_manager.compute_parallel_launch_space_by_shape(  # noqa E501
-                matrix.shape
-            )
-            if launch_space is not None:
-                # Parallel launch space case
-                # This optimization involves a transpose which is actually
-                # very expensive usually so we're disabling it for now,
-                # maybe someone will come up with a use for it later
-                # if matrix.shape[0] == matrix.shape[1]:
-                #    # A small optimization here for square matrices to get
-                #    # better dimension tiling based on whether this is a
-                #    # right matrix or a left matrix multiply
-                #    if left_matrix:
-                #        if launch_space[1] > launch_space[0]:
-                #            launch_space = (launch_space[1], launch_space[0])
-                #    else:
-                #        if launch_space[0] > launch_space[1]:
-                #            launch_space = (launch_space[1], launch_space[0])
-                # Partition the into the same number of pieces as the matrix
-                lhs_part = lhs_array.base.find_or_create_partition(
-                    (launch_space[0] if left_matrix else launch_space[1],)
-                )
-                lhs_proj = (
-                    self.context.runtime.get_projection(2, 1, [True, False])
-                    if left_matrix
-                    else self.context.runtime.get_projection(
-                        2, 1, [False, True]
-                    )
-                )
-                lhs_tag = NumPyMappingTag.NO_MEMOIZE_TAG
-                if rhs1_array.ndim == 1:
-                    # Row input, divide rows of matrix
-                    rhs1_part = rhs1_array.base.find_or_create_partition(
-                        (launch_space[0],)
-                    )
-                    rhs1_proj = self.context.runtime.get_projection(
-                        2, 1, [True, False]
-                    )
-                    rhs1_tag = NumPyMappingTag.NO_MEMOIZE_TAG
-                else:
-                    # Matrix input
-                    assert rhs1_array.shape[0] > 1
-                    rhs1_part = rhs1_array.base.find_or_create_partition(
-                        launch_space
-                    )
-                    rhs1_proj = 0  # Identity projection matrix
-                    rhs1_tag = NumPyMappingTag.KEY_REGION_TAG
-                if rhs2_array.ndim == 1:
-                    # Column input, divide columns of matrix
-                    rhs2_part = rhs2_array.base.find_or_create_partition(
-                        (launch_space[1],)
-                    )
-                    rhs2_proj = self.context.runtime.get_projection(
-                        2, 1, [False, True]
-                    )
-                    rhs2_tag = NumPyMappingTag.NO_MEMOIZE_TAG
-                else:
-                    assert rhs2_array.shape[1] > 1
-                    # Matrix input
-                    rhs2_part = rhs2_array.base.find_or_create_partition(
-                        launch_space
-                    )
-                    rhs2_proj = 0  # Identity projection matrix
-                    rhs2_tag = NumPyMappingTag.KEY_REGION_TAG
-
-                lhs_arg = DeferredArrayView(
-                    lhs_array,
-                    part=lhs_part,
-                    proj_id=lhs_proj,
-                    tag=lhs_tag,
-                )
-                rhs1_arg = DeferredArrayView(
-                    rhs1_array,
-                    part=rhs1_part,
-                    proj_id=rhs1_proj,
-                    tag=rhs1_tag,
-                )
-                rhs2_arg = DeferredArrayView(
-                    rhs2_array,
-                    part=rhs2_part,
-                    proj_id=rhs2_proj,
-                    tag=rhs2_tag,
-                )
-                needs_reduction = (left_matrix and launch_space[1] > 1) or (
-                    not left_matrix and launch_space[0] > 1
-                )
-            else:
-                lhs_arg = DeferredArrayView(lhs_array)
-                rhs1_arg = DeferredArrayView(rhs1_array)
-                rhs2_arg = DeferredArrayView(rhs2_array)
-                needs_reduction = False
 
             # If the inputs are 16-bit floats, we should use 32-bit float
             # for accumulation
-            if needs_reduction and rhs1_arg.dtype == np.float16:
-                acc_buffer_dtype = np.dtype(np.float32)
-                acc_buffer = self.legate_runtime.allocate_field(
-                    lhs_array.shape, acc_buffer_dtype
-                )
-                acc_array = DeferredArray(
-                    self.runtime,
-                    acc_buffer,
-                    shape=lhs_array.shape,
-                    dtype=acc_buffer_dtype,
-                    scalar=False,
-                )
-                acc_part = acc_buffer.find_or_create_partition(
-                    (launch_space[0] if left_matrix else launch_space[1],)
-                )
-                acc_arg = DeferredArrayView(
-                    acc_array,
-                    part=acc_part,
-                    proj_id=lhs_proj,
-                    tag=lhs_tag,
+            if rhs1_array.dtype == np.float16:
+                lhs_array = self.runtime.create_empty_thunk(
+                    self.shape, np.dtype(np.float32)
                 )
 
-                lhs_array = acc_array
-                lhs_arg = acc_arg
+            # TODO: We should be able to do this in the core
+            lhs_array.fill(
+                np.array(0, dtype=lhs_array.dtype),
+                stacklevel=(stacklevel + 1),
+            )
 
-            if needs_reduction:
-                lhs_array.fill(
-                    np.array(0, dtype=lhs_array.dtype),
-                    stacklevel=(stacklevel + 1),
-                )
+            left_matrix = rhs1_array.ndim == 2
 
-            task = Task(self.context, NumPyOpCode.MATVECMUL)
-            task.add_scalar_arg(needs_reduction, bool)
-            if launch_space is not None:
-                task.add_shape(lhs_array.shape, lhs_part.tile_shape, lhs_proj)
-                task.add_shape(
-                    rhs1_array.shape, rhs1_part.tile_shape, rhs1_proj
-                )
-                task.add_shape(
-                    rhs2_array.shape, rhs2_part.tile_shape, rhs2_proj
-                )
+            if left_matrix:
+                rhs1 = rhs1_array.base
+                (m, n) = rhs1.shape
+                rhs2 = rhs2_array.base.promote(0, m)
+                lhs = lhs_array.base.promote(1, n)
             else:
-                task.add_shape(lhs_array.shape)
-                task.add_shape(rhs1_array.shape)
-                task.add_shape(rhs2_array.shape)
+                rhs2 = rhs2_array.base
+                (m, n) = rhs2.shape
+                rhs1 = rhs1_array.base.promote(1, n)
+                lhs = lhs_array.base.promote(0, m)
 
-            if needs_reduction:
-                redop = self.runtime.get_unary_reduction_op_id(
-                    UnaryRedCode.SUM, lhs_array.dtype
-                )
-            else:
-                redop = None
+            redop = self.runtime.get_unary_reduction_op_id(
+                UnaryRedCode.SUM, lhs_array.dtype
+            )
 
-            lhs_arg.add_to_legate_op(task, False, redop=redop)
-            rhs1_arg.add_to_legate_op(task, True)
-            rhs2_arg.add_to_legate_op(task, True)
+            task = self.context.create_task(NumPyOpCode.MATVECMUL)
+            task.add_reduction(lhs, redop)
+            task.add_input(rhs1)
+            task.add_input(rhs2)
+            task.add_scalar_arg(left_matrix, bool)
 
-            if launch_space is not None:
-                task.execute(Rect(launch_space))
-            else:
-                task.execute_single()
+            task.execute()
 
             # If we used an accumulation buffer, we should copy the results
             # back to the lhs
-            if needs_reduction and rhs1_arg.dtype == np.float16:
+            if rhs1_array.dtype == np.float16:
+                # Since we're still in the middle of operation, we haven't had
+                # a chance to get the shadow array for this intermediate array,
+                # so we manually attach a shadow array for it
+                if self.runtime.shadow_debug:
+                    lhs_array.shadow = self.runtime.to_eager_array(
+                        lhs_array,
+                        stacklevel + 1,
+                    )
                 self.convert(
-                    lhs_array, stacklevel + 1, warn=False, callsite=callsite
+                    lhs_array,
+                    stacklevel=stacklevel + 1,
+                    warn=False,
+                    callsite=callsite,
                 )
 
         elif rhs1_array.ndim == 2 and rhs2_array.ndim == 2:
@@ -1167,249 +1037,52 @@ class DeferredArray(NumPyThunk):
             assert M == rhs1_array.shape[0]  # Check M
             assert N == rhs2_array.shape[1]  # Check N
             assert K == rhs2_array.shape[0]  # Check K
-            # We need to figure out our strategy for matrix multiple, we can
-            # figure this out using a deterministic process of decisions based
-            # on the natural tiling of the largest of the three matrices
-            lhs_size = M * N
-            rhs1_size = M * K
-            rhs2_size = K * N
-            max_size = max(lhs_size, rhs1_size, rhs2_size)
-            if lhs_size == max_size:
-                # LHS is biggest
-                lhs_launch = lhs_array.base.compute_parallel_launch_space()
-                if lhs_launch is not None:
-                    # This gives us the tile size for m and n
-                    lhs_part = lhs_array.base.find_or_create_partition(
-                        lhs_launch
-                    )
-                    # the choice for k and k_tile here is underconstrained, we
-                    # want to be able to recognize inner and outer product like
-                    # cases here, but also fall back to normal tiled execution
-                    # when it's important, we'll try to make things squar-ish
-                    # by making k_tile the min of the m_tile and n_tile sizes
-                    m_tile = lhs_part.tile_shape[0]
-                    n_tile = lhs_part.tile_shape[1]
-                    k_tile = min(m_tile, n_tile)
-                    rhs1_launch = (
-                        (rhs1_array.shape[0] + m_tile - 1) // m_tile,
-                        (rhs1_array.shape[1] + k_tile - 1) // k_tile,
-                    )
-                    rhs1_part = rhs1_array.base.find_or_create_partition(
-                        rhs1_launch, tile_shape=(m_tile, k_tile)
-                    )
-                    rhs2_launch = (
-                        (rhs2_array.shape[0] + k_tile - 1) // k_tile,
-                        (rhs2_array.shape[1] + n_tile - 1) // n_tile,
-                    )
-                    rhs2_part = rhs2_array.base.find_or_create_partition(
-                        rhs2_launch, tile_shape=(k_tile, n_tile)
-                    )
-                else:
-                    # No need for any parallelism
-                    rhs1_launch = None
-            elif rhs1_size == max_size:
-                # RHS1 is the biggest
-                rhs1_launch = rhs1_array.base.compute_parallel_launch_space()
-                if rhs1_launch is not None:
-                    # This gives us the tile size for k
-                    rhs1_part = rhs1_array.base.find_or_create_partition(
-                        rhs1_launch
-                    )
-                    m_tile = rhs1_part.tile_shape[0]
-                    k_tile = rhs1_part.tile_shape[1]
-                    # See if we want to make this inner-product like or not
-                    if rhs1_launch[0] == 1:
-                        n_tile = lhs_array.shape[1]
-                        lhs_launch = (1, 1)
-                        rhs2_launch = (rhs1_launch[1], 1)
-                    else:
-                        # Not inner-product like so compute a partitioning of
-                        # the output array that will be easy to tile for
-                        # reductions
-                        lhs_launch = rhs1_launch
-                        n_tile = (
-                            lhs_array.shape[1] + lhs_launch[1] - 1
-                        ) // lhs_launch[1]
-                        rhs2_launch = (rhs1_launch[1], rhs1_launch[1])
-                    rhs2_part = rhs2_array.base.find_or_create_partition(
-                        rhs2_launch, tile_shape=(k_tile, n_tile)
-                    )
-                    lhs_part = lhs_array.base.find_or_create_partition(
-                        lhs_launch, tile_shape=(m_tile, n_tile)
-                    )
-                else:
-                    # No need for any parallelism
-                    rhs1_launch = None
-            else:
-                assert rhs2_size == max_size
-                # RHS2 is the biggest
-                rhs2_launch = rhs2_array.base.compute_parallel_launch_space()
-                if rhs2_launch is not None:
-                    # This gives us the tile size for k
-                    rhs2_part = rhs2_array.base.find_or_create_partition(
-                        rhs2_launch
-                    )
-                    k_tile = rhs2_part.tile_shape[0]
-                    n_tile = rhs2_part.tile_shape[1]
-                    # See if we want to make this inner-product like or not
-                    if rhs2_launch[1] == 1:
-                        m_tile = lhs_array.shape[0]
-                        lhs_launch = (1, 1)
-                        rhs1_launch = (1, rhs2_launch[0])
-                    else:
-                        # Not inner-product like so compute the natural
-                        # partitioning of the output array so we can get a
-                        # partitioning scheme for m
-                        lhs_launch = rhs2_launch
-                        m_tile = (
-                            lhs_array.shape[0] + lhs_launch[0] - 1
-                        ) // lhs_launch[0]
-                        rhs1_launch = (rhs2_launch[0], rhs2_launch[0])
-                    rhs1_part = rhs1_array.base.find_or_create_partition(
-                        rhs1_launch, tile_shape=(m_tile, k_tile)
-                    )
-                    lhs_part = lhs_array.base.find_or_create_partition(
-                        lhs_launch, tile_shape=(m_tile, n_tile)
-                    )
-                else:
-                    # No need for any parallelism
-                    rhs1_launch = None
 
-            if rhs1_launch is not None:
-                # Parallel launch case
-                assert rhs2_launch is not None
-                assert lhs_launch[0] == rhs1_launch[0]
-                assert rhs1_launch[1] == rhs2_launch[0]
-                assert rhs2_launch[1] == lhs_launch[1]
-                launch_space = (
-                    lhs_launch[0],
-                    rhs1_launch[1],
-                    lhs_launch[1],
-                )
-                lhs_proj = self.context.runtime.get_projection(
-                    3, 2, [True, False, True]
-                )
-                rhs1_proj = self.context.runtime.get_projection(
-                    3, 2, [True, True, False]
-                )
-                rhs2_proj = self.context.runtime.get_projection(
-                    3, 2, [False, True, True]
-                )
-                lhs_tag = (
-                    NumPyMappingTag.KEY_REGION_TAG
-                    if lhs_size == max_size
-                    else NumPyMappingTag.NO_MEMOIZE_TAG
-                )
-                rhs1_tag = (
-                    NumPyMappingTag.KEY_REGION_TAG
-                    if rhs1_size == max_size
-                    else NumPyMappingTag.NO_MEMOIZE_TAG
-                )
-                rhs2_tag = (
-                    NumPyMappingTag.KEY_REGION_TAG
-                    if rhs2_size == max_size
-                    else NumPyMappingTag.NO_MEMOIZE_TAG
+            if rhs1_array.dtype == np.float16:
+                lhs_array = self.runtime.create_empty_thunk(
+                    self.shape, np.dtype(np.float32)
                 )
 
-                lhs_arg = DeferredArrayView(
-                    lhs_array,
-                    part=lhs_part,
-                    proj_id=lhs_proj,
-                    tag=lhs_tag,
-                )
-                rhs1_arg = DeferredArrayView(
-                    rhs1_array,
-                    part=rhs1_part,
-                    proj_id=rhs1_proj,
-                    tag=rhs1_tag,
-                )
-                rhs2_arg = DeferredArrayView(
-                    rhs2_array,
-                    part=rhs2_part,
-                    proj_id=rhs2_proj,
-                    tag=rhs2_tag,
-                )
+            # TODO: We should be able to do this in the core
+            lhs_array.fill(
+                np.array(0, dtype=lhs_array.dtype),
+                stacklevel=(stacklevel + 1),
+            )
 
-                needs_reduction = rhs1_launch[1] > 1
+            lhs = lhs_array.base.promote(1, K)
+            rhs1 = rhs1_array.base.promote(2, N)
+            rhs2 = rhs2_array.base.promote(0, M)
 
-            else:
-                launch_space = None
-                lhs_arg = DeferredArrayView(lhs_array)
-                rhs1_arg = DeferredArrayView(rhs1_array)
-                rhs2_arg = DeferredArrayView(rhs2_array)
-                needs_reduction = False
+            redop = self.runtime.get_unary_reduction_op_id(
+                UnaryRedCode.SUM, lhs_array.dtype
+            )
 
-            # If the inputs are 16-bit floats, we should use 32-bit float
-            # for accumulation
-            if needs_reduction and rhs1_arg.dtype == np.float16:
-                acc_buffer_dtype = np.dtype(np.float32)
-                acc_buffer = self.legate_runtime.allocate_field(
-                    lhs_array.shape, acc_buffer_dtype
-                )
-                acc_array = DeferredArray(
-                    self.runtime,
-                    acc_buffer,
-                    shape=lhs_array.shape,
-                    dtype=acc_buffer_dtype,
-                    scalar=False,
-                )
-                acc_part = acc_buffer.find_or_create_partition(
-                    lhs_launch, tile_shape=(m_tile, n_tile)
-                )
-                acc_arg = DeferredArrayView(
-                    acc_array,
-                    part=acc_part,
-                    proj_id=lhs_proj,
-                    tag=lhs_tag,
-                )
+            task = self.context.create_task(NumPyOpCode.MATMUL)
+            task.add_reduction(lhs, redop)
+            task.add_input(rhs1)
+            task.add_input(rhs2)
 
-                lhs_array = acc_array
-                lhs_arg = acc_arg
+            task.add_alignment(lhs, rhs1)
+            task.add_alignment(lhs, rhs2)
 
-            # If we perform reduction for matrix multiplication,
-            # we must zero out the lhs first
-            if needs_reduction:
-                lhs_array.fill(
-                    np.array(0, dtype=lhs_array.dtype),
-                    stacklevel=(stacklevel + 1),
-                )
-
-            task = Task(self.context, NumPyOpCode.MATMUL)
-            task.add_scalar_arg(needs_reduction, bool)
-            if launch_space is not None:
-                task.add_shape(lhs_array.shape, lhs_part.tile_shape, lhs_proj)
-                task.add_shape(
-                    rhs1_array.shape, rhs1_part.tile_shape, rhs1_proj
-                )
-                task.add_shape(
-                    rhs2_array.shape, rhs2_part.tile_shape, rhs2_proj
-                )
-            else:
-                task.add_shape(lhs_array.shape)
-                task.add_shape(rhs1_array.shape)
-                task.add_shape(rhs2_array.shape)
-
-            if needs_reduction:
-                redop = self.runtime.get_unary_reduction_op_id(
-                    UnaryRedCode.SUM, lhs_array.dtype
-                )
-            else:
-                redop = None
-
-            lhs_arg.add_to_legate_op(task, False, redop=redop)
-            rhs1_arg.add_to_legate_op(task, True)
-            rhs2_arg.add_to_legate_op(task, True)
-
-            if launch_space is not None:
-                task.execute(Rect(launch_space))
-            else:
-                task.execute_single()
+            task.execute()
 
             # If we used an accumulation buffer, we should copy the results
             # back to the lhs
-            if needs_reduction and rhs1_arg.dtype == np.float16:
+            if rhs1_array.dtype == np.float16:
+                # Since we're still in the middle of operation, we haven't had
+                # a chance to get the shadow array for this intermediate array,
+                # so we manually attach a shadow array for it
+                if self.runtime.shadow_debug:
+                    lhs_array.shadow = self.runtime.to_eager_array(
+                        lhs_array,
+                        stacklevel + 1,
+                    )
                 self.convert(
-                    lhs_array, stacklevel + 1, warn=False, callsite=callsite
+                    lhs_array,
+                    stacklevel=stacklevel + 1,
+                    warn=False,
+                    callsite=callsite,
                 )
         else:
             raise NotImplementedError("Need support for tensor contractions")
@@ -1639,50 +1312,7 @@ class DeferredArray(NumPyThunk):
         assert lhs_array.dtype == rhs_array.dtype
         assert lhs_array.ndim == rhs_array.ndim
         assert lhs_array.ndim == len(axes)
-        # We don't support some cases right now
-        if lhs_array.ndim > 2:
-            raise NotImplementedError(
-                "legate.numpy only supports standard 2-D transposes for now"
-            )
-        launch_space = lhs_array.base.compute_parallel_launch_space()
-        if launch_space is not None:
-            lhs_part = lhs_array.base.find_or_create_key_partition()
-
-            # Compute the partition using the transposed launch space
-            rhs_launch_space = tuple(map(lambda x: launch_space[x], axes))
-            rhs_tile_shape = tuple(map(lambda x: lhs_part.tile_shape[x], axes))
-            rhs_offset = tuple(map(lambda x: lhs_part.tile_offset[x], axes))
-            rhs_part = rhs_array.base.find_or_create_partition(
-                rhs_launch_space, rhs_tile_shape, rhs_offset
-            )
-
-            lhs_arg = DeferredArrayView(
-                lhs_array,
-                part=lhs_part,
-                tag=NumPyMappingTag.KEY_REGION_TAG,
-            )
-            rhs_arg = DeferredArrayView(
-                rhs_array,
-                part=rhs_part,
-                proj_id=self.context.runtime.get_transpose([1, 0]),
-                tag=NumPyMappingTag.NO_MEMOIZE_TAG,
-            )
-        else:
-            lhs_arg = DeferredArrayView(lhs_array)
-            rhs_arg = DeferredArrayView(rhs_array)
-
-        task = Task(self.context, NumPyOpCode.TRANSPOSE)
-        if launch_space is not None:
-            task.add_shape(lhs_arg.shape, lhs_arg.part.tile_shape, 0)
-        else:
-            task.add_shape(lhs_arg.shape)
-        lhs_arg.add_to_legate_op(task, False)
-        rhs_arg.add_to_legate_op(task, True)
-
-        if launch_space is not None:
-            task.execute(Rect(launch_space))
-        else:
-            task.execute_single()
+        lhs_array.base = rhs_array.base.transpose(axes)
 
     # Perform a bin count operation on the array
     @profile
@@ -1835,7 +1465,7 @@ class DeferredArray(NumPyThunk):
         task.add_output(lhs)
         task.add_input(rhs)
         task.add_scalar_arg(op.value, ty.int32)
-        task.add_scalar_arg(0, ty.uint32)
+        self.add_arguments(task, args)
 
         task.add_alignment(lhs, rhs)
 
@@ -2067,7 +1697,7 @@ class DeferredArray(NumPyThunk):
         task.add_input(rhs1)
         task.add_input(rhs2)
         task.add_scalar_arg(op_code.value, ty.int32)
-        task.add_scalar_arg(0, ty.int32)
+        self.add_arguments(task, args)
 
         task.add_alignment(lhs, rhs1)
         task.add_alignment(lhs, rhs2)
@@ -2107,7 +1737,7 @@ class DeferredArray(NumPyThunk):
         task.add_input(rhs1)
         task.add_input(rhs2)
         task.add_scalar_arg(op.value, ty.int32)
-        task.add_scalar_arg(0, ty.int32)
+        self.add_arguments(task, args)
 
         task.add_alignment(rhs1, rhs2)
 
@@ -2143,15 +1773,15 @@ class DeferredArray(NumPyThunk):
         task.execute()
 
     # A helper method for attaching arguments
-    def add_arguments(self, op, args):
+    def add_arguments(self, task, args):
         args = [] if args is None else args
-        op.add_scalar_arg(len(args), np.int32)
+        task.add_scalar_arg(len(args), ty.int32)
         for numpy_array in args:
             assert numpy_array.size == 1
             scalar = self.runtime.create_scalar(
                 numpy_array.data, numpy_array.dtype
             )
-            op.add_future(scalar)
+            task.add_future(scalar)
 
     @staticmethod
     def compute_strides(shape):

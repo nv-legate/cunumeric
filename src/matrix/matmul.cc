@@ -134,13 +134,9 @@ struct MatMulImplBody<VariantKind::CPU, LegateTypeCode::HALF_LT> {
 
 void deserialize(Deserializer &ctx, MatMulArgs &args)
 {
-  deserialize(ctx, args.needs_reduction);
-  deserialize(ctx, args.lhs_shape);
-  deserialize(ctx, args.rhs1_shape);
-  deserialize(ctx, args.rhs2_shape);
-  deserialize(ctx, args.lhs);
   deserialize(ctx, args.rhs1);
   deserialize(ctx, args.rhs2);
+  deserialize(ctx, args.lhs);
 }
 
 /*static*/ void MatMulTask::cpu_variant(const Task *task,

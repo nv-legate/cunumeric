@@ -25,7 +25,6 @@ namespace legate {
 namespace numpy {
 
 struct DotArgs {
-  Shape shape;
   Array rhs1;
   Array rhs2;
 };

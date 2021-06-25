@@ -24,10 +24,6 @@ namespace legate {
 namespace numpy {
 
 struct MatMulArgs {
-  bool needs_reduction;
-  Shape lhs_shape;
-  Shape rhs1_shape;
-  Shape rhs2_shape;
   Array lhs;
   Array rhs1;
   Array rhs2;

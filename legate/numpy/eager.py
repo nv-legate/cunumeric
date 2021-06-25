@@ -91,7 +91,7 @@ class EagerArray(NumPyThunk):
                     self.deferred = self.runtime.create_scalar(
                         self.array.data,
                         dtype=self.array.dtype,
-                        shape=(1,),
+                        shape=self.shape,
                         wrap=True,
                     )
                 else:

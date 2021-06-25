@@ -34,11 +34,10 @@ struct DotImpl {
   {
     using VAL = legate_type_of<CODE>;
 
-    assert(args.shape.dim() == 1);
     assert(args.rhs1.dim() == 1);
     assert(args.rhs2.dim() == 1);
 
-    auto rect  = args.shape.to_rect<1>();
+    auto rect  = args.rhs1.shape<1>();
     VAL result = SumReduction<VAL>::identity;
 
     if (rect.empty()) return UntypedScalar(result);

@@ -51,7 +51,6 @@ struct DotImplBody<VariantKind::CPU, CODE> {
 
 void deserialize(Deserializer &ctx, DotArgs &args)
 {
-  deserialize(ctx, args.shape);
   deserialize(ctx, args.rhs1);
   deserialize(ctx, args.rhs2);
 }

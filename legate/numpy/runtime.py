@@ -845,19 +845,18 @@ class Runtime(object):
         assert thunk.shadow is not None
         # Check the kind of this array and see if we should use allclose or
         # array_equal
+        legate_result = thunk.__numpy_array__()
+        numpy_result = thunk.shadow.__numpy_array__()
+
         if thunk.dtype.kind == "f":
-            passed = np.allclose(
-                thunk.__numpy_array__(0), thunk.shadow.__numpy_array__(0)
-            )
+            passed = np.allclose(legate_result, numpy_result)
         else:
-            passed = np.array_equal(
-                thunk.__numpy_array__(0), thunk.shadow.__numpy_array__(0)
-            )
+            passed = np.array_equal(legate_result, numpy_result)
         if not passed:
             print("===== Legate =====")
-            print(thunk.__numpy_array__())
+            print(legate_result)
             print("===== NumPy =====")
-            print(thunk.shadow.__numpy_array__())
+            print(numpy_result)
             raise RuntimeError(f"Shadow array check failed for {op}")
 
 

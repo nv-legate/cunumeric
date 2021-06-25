@@ -77,9 +77,9 @@ struct BinaryOpDispatch {
   Array in2;
   std::vector<UntypedScalar> args;
 
-  deserialize(ctx, op_code);
   deserialize(ctx, in1);
   deserialize(ctx, in2);
+  deserialize(ctx, op_code);
   deserialize(ctx, args);
 
   if (op_code == BinaryOpCode::ALLCLOSE)

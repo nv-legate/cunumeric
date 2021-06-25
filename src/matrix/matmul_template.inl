@@ -50,37 +50,27 @@ struct MatMulImpl {
     using VAL = legate_type_of<CODE>;
     using ACC = typename support_matmul<CODE>::ACC_TYPE;
 
-    assert(args.lhs_shape.dim() == 2);
-    assert(args.rhs1_shape.dim() == 2);
-    assert(args.rhs2_shape.dim() == 2);
-    assert(args.lhs.dim() == 2);
-    assert(args.rhs1.dim() == 2);
-    assert(args.rhs2.dim() == 2);
+    // Note that rhs1 and rhs2 may have different shapes. Here's why: rhs1 and rhs2 are promoted
+    // on one of their dimensions, and in case that the promoted dimension is partitioned,
+    // the store cannot see that partitioning, because that dimension doesn't map to the store's
+    // original domain whose partitioning is only what the store can observe. Therefore, we must
+    // take an intersection of the rhs1's and rhs2's shapes to get a correct "active" area
+    // in their bloated domains.
+    auto shape = args.rhs1.shape<3>().intersection(args.rhs2.shape<3>());
 
-    auto lhs_rect  = args.lhs_shape.to_rect<2>();
-    auto rhs1_rect = args.rhs1_shape.to_rect<2>();
-    auto rhs2_rect = args.rhs2_shape.to_rect<2>();
+    const auto m = shape.hi[0] - shape.lo[0] + 1;
+    const auto k = shape.hi[1] - shape.lo[1] + 1;
+    const auto n = shape.hi[2] - shape.lo[2] + 1;
 
-    const auto m = lhs_rect.hi[0] - lhs_rect.lo[0] + 1;
-    const auto n = lhs_rect.hi[1] - lhs_rect.lo[1] + 1;
-    const auto k = rhs2_rect.hi[0] - rhs2_rect.lo[0] + 1;
+    size_t lhs_strides[3];
+    size_t rhs1_strides[3];
+    size_t rhs2_strides[3];
 
-    size_t lhs_strides[2];
-    size_t rhs1_strides[2];
-    size_t rhs2_strides[2];
-
-    auto rhs1 = args.rhs1.read_accessor<VAL, 2>(rhs1_rect).ptr(rhs1_rect, rhs1_strides);
-    auto rhs2 = args.rhs2.read_accessor<VAL, 2>(rhs2_rect).ptr(rhs2_rect, rhs2_strides);
-    if (args.needs_reduction) {
-      auto lhs =
-        args.lhs.reduce_accessor<SumReduction<ACC>, true, 2>(lhs_rect).ptr(lhs_rect, lhs_strides);
-      MatMulImplBody<KIND, CODE>()(
-        m, n, k, lhs, rhs1, rhs2, lhs_strides[0], rhs1_strides[0], rhs2_strides[0]);
-    } else {
-      auto lhs = args.lhs.write_accessor<VAL, 2>(lhs_rect).ptr(lhs_rect, lhs_strides);
-      MatMulImplBody<KIND, CODE>()(
-        m, n, k, lhs, rhs1, rhs2, lhs_strides[0], rhs1_strides[0], rhs2_strides[0]);
-    }
+    auto rhs1 = args.rhs1.read_accessor<VAL, 3>(shape).ptr(shape, rhs1_strides);
+    auto rhs2 = args.rhs2.read_accessor<VAL, 3>(shape).ptr(shape, rhs2_strides);
+    auto lhs  = args.lhs.reduce_accessor<SumReduction<ACC>, true, 3>(shape).ptr(shape, lhs_strides);
+    MatMulImplBody<KIND, CODE>()(
+      m, n, k, lhs, rhs1, rhs2, lhs_strides[0], rhs1_strides[0], rhs2_strides[1]);
   }
 
   template <LegateTypeCode CODE, std::enable_if_t<!support_matmul<CODE>::value> * = nullptr>
