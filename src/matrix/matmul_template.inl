@@ -69,8 +69,22 @@ struct MatMulImpl {
     auto rhs1 = args.rhs1.read_accessor<VAL, 3>(shape).ptr(shape, rhs1_strides);
     auto rhs2 = args.rhs2.read_accessor<VAL, 3>(shape).ptr(shape, rhs2_strides);
     auto lhs  = args.lhs.reduce_accessor<SumReduction<ACC>, true, 3>(shape).ptr(shape, lhs_strides);
-    MatMulImplBody<KIND, CODE>()(
-      m, n, k, lhs, rhs1, rhs2, lhs_strides[0], rhs1_strides[0], rhs2_strides[1]);
+
+    auto rhs1_stride     = std::max(rhs1_strides[0], rhs1_strides[1]);
+    auto rhs2_stride     = std::max(rhs2_strides[1], rhs2_strides[2]);
+    auto rhs1_transposed = rhs1_strides[1] == rhs1_stride;
+    auto rhs2_transposed = rhs2_strides[2] == rhs2_stride;
+    MatMulImplBody<KIND, CODE>()(m,
+                                 n,
+                                 k,
+                                 lhs,
+                                 rhs1,
+                                 rhs2,
+                                 lhs_strides[0],
+                                 rhs1_stride,
+                                 rhs2_stride,
+                                 rhs1_transposed,
+                                 rhs2_transposed);
   }
 
   template <LegateTypeCode CODE, std::enable_if_t<!support_matmul<CODE>::value> * = nullptr>

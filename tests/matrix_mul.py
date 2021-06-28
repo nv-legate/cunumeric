@@ -18,79 +18,65 @@ import numpy as np
 import legate.numpy as lg
 
 
-def test():
+def test(ty):
 
     np.random.seed(42)
-    An = np.random.randn(3, 7)
-    Bn = np.random.randn(7, 11)
+    An = np.random.randn(3, 7).astype(ty)
+    Bn = np.random.randn(7, 11).astype(ty)
     Cn = An.dot(Bn)
 
     A = lg.array(An)
     B = lg.array(Bn)
     C = A.dot(B)
 
-    # print(C)
-    # print(Cn)
     assert np.allclose(C, Cn)
 
-    np.random.seed(42)
-    An = np.random.randn(3, 7)
-    Bn = np.random.randn(11, 7)
+    An = np.random.randn(3, 7).astype(ty)
+    Bn = np.random.randn(11, 7).astype(ty)
     Cn = An.dot(Bn.transpose())
 
     A = lg.array(An)
     BT = lg.array(Bn)
     C = A.dot(BT.transpose())
 
-    # print(C)
-    # print(Cn)
     assert np.allclose(C, Cn)
 
-    np.random.seed(42)
-    An = np.random.randn(7, 3)
-    Bn = np.random.randn(7, 11)
+    An = np.random.randn(7, 3).astype(ty)
+    Bn = np.random.randn(7, 11).astype(ty)
     Cn = An.transpose().dot(Bn)
 
     AT = lg.array(An)
     B = lg.array(Bn)
     C = AT.transpose().dot(B)
 
-    # print(C)
-    # print(Cn)
     assert np.allclose(C, Cn)
 
-    np.random.seed(42)
-    An = np.random.randn(7, 3)
-    Bn = np.random.randn(11, 7)
+    An = np.random.randn(7, 3).astype(ty)
+    Bn = np.random.randn(11, 7).astype(ty)
     Cn = An.transpose().dot(Bn.transpose())
 
     AT = lg.array(An)
     BT = lg.array(Bn)
     C = AT.transpose().dot(BT.transpose())
 
-    # print(C)
-    # print(Cn)
     assert np.allclose(C, Cn)
 
-    np.random.seed(42)
-    A3np = np.empty((2, 7, 3))
-    B3np = np.empty((2, 11, 7))
-    A3np[0] = np.random.randn(7, 3)
-    B3np[0] = np.random.randn(11, 7)
-    Cn = A3np[0].T.dot(B3np[0].T)
+    # A3np = np.empty((2, 7, 3), dtype=ty)
+    # B3np = np.empty((2, 11, 7), dtype=ty)
+    # A3np[0] = np.random.randn(7, 3)
+    # B3np[0] = np.random.randn(11, 7)
+    # Cn = A3np[0].T.dot(B3np[0].T)
 
-    A3 = lg.array(A3np)
-    B3 = lg.array(B3np)
-    A3[0] = A3np[0]
-    B3[0] = B3np[0]
-    C = A3[0].T.dot(B3[0].T)
+    # A3 = lg.array(A3np)
+    # B3 = lg.array(B3np)
+    # A3[0] = A3np[0]
+    # B3[0] = B3np[0]
+    # C = A3[0].T.dot(B3[0].T)
 
-    # print(C)
-    # print(Cn)
-    assert np.allclose(C, Cn)
-
-    return
+    # assert np.allclose(C, Cn)
 
 
 if __name__ == "__main__":
-    test()
+    test(np.float16)
+    test(np.float32)
+    test(np.float64)

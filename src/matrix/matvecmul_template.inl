@@ -50,21 +50,37 @@ struct MatVecMulImpl {
     using VAL = legate_type_of<CODE>;
     using ACC = typename support_matvecmul<CODE>::ACC_TYPE;
 
-    auto vec_on_lhs = !args.left_matrix;
-    auto shape      = args.rhs1.shape<2>().intersection(args.rhs2.shape<2>());
-    auto m          = static_cast<size_t>(shape.hi[0] - shape.lo[0] + 1);
-    auto n          = static_cast<size_t>(shape.hi[1] - shape.lo[1] + 1);
+    auto shape = args.rhs1.shape<2>().intersection(args.rhs2.shape<2>());
+    auto m     = static_cast<size_t>(shape.hi[0] - shape.lo[0] + 1);
+    auto n     = static_cast<size_t>(shape.hi[1] - shape.lo[1] + 1);
 
-    size_t rhs1_strides[2];
-    size_t rhs2_strides[2];
-    auto rhs1 = args.rhs1.read_accessor<VAL, 2>(shape).ptr(shape, rhs1_strides);
-    auto rhs2 = args.rhs2.read_accessor<VAL, 2>(shape).ptr(shape, rhs2_strides);
+    size_t mat_stride  = 0;
+    bool transpose_mat = false;
+    const VAL *mat     = nullptr;
+    const VAL *vec     = nullptr;
 
-    auto rhs_stride = args.left_matrix ? rhs1_strides[0] : rhs2_strides[0];
+    size_t mat_strides[2];
+    size_t vec_strides[2];
+    if (args.left_matrix) {
+      // M * v
+      mat           = args.rhs1.read_accessor<VAL, 2>(shape).ptr(shape, mat_strides);
+      vec           = args.rhs2.read_accessor<VAL, 2>(shape).ptr(shape, vec_strides);
+      mat_stride    = std::max(mat_strides[0], mat_strides[1]);
+      transpose_mat = mat_strides[1] == mat_stride;
+      if (transpose_mat) std::swap(m, n);
+    } else {
+      // (M^T * v)^T
+      vec           = args.rhs1.read_accessor<VAL, 2>(shape).ptr(shape, vec_strides);
+      mat           = args.rhs2.read_accessor<VAL, 2>(shape).ptr(shape, mat_strides);
+      mat_stride    = std::max(mat_strides[0], mat_strides[1]);
+      transpose_mat = mat_strides[0] == mat_stride;
+      if (!transpose_mat) std::swap(m, n);
+    }
 
     size_t lhs_strides[2];
     auto lhs = args.lhs.reduce_accessor<SumReduction<ACC>, true, 2>().ptr(shape, lhs_strides);
-    MatVecMulImplBody<KIND, CODE>()(m, n, lhs, rhs1, rhs2, rhs_stride, vec_on_lhs);
+
+    MatVecMulImplBody<KIND, CODE>()(m, n, lhs, mat, vec, mat_stride, transpose_mat);
   }
 
   template <LegateTypeCode CODE, std::enable_if_t<!support_matvecmul<CODE>::value> * = nullptr>

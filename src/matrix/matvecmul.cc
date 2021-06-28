@@ -33,15 +33,13 @@ struct MatVecMulImplBody<VariantKind::CPU, LegateTypeCode::FLOAT_LT> {
   void operator()(size_t m,
                   size_t n,
                   float *lhs,
-                  const float *rhs1,
-                  const float *rhs2,
-                  size_t rhs_stride,
-                  bool vec_on_lhs)
+                  const float *mat,
+                  const float *vec,
+                  size_t mat_stride,
+                  bool transpose_mat)
   {
-    if (vec_on_lhs)
-      cblas_sgemv(CblasRowMajor, CblasTrans, m, n, 1, rhs2, rhs_stride, rhs1, 1, 0, lhs, 1);
-    else
-      cblas_sgemv(CblasRowMajor, CblasNoTrans, m, n, 1, rhs1, rhs_stride, rhs2, 1, 0, lhs, 1);
+    auto trans = transpose_mat ? CblasTrans : CblasNoTrans;
+    cblas_sgemv(CblasRowMajor, trans, m, n, 1, mat, mat_stride, vec, 1, 0, lhs, 1);
   }
 };
 
@@ -50,15 +48,13 @@ struct MatVecMulImplBody<VariantKind::CPU, LegateTypeCode::DOUBLE_LT> {
   void operator()(size_t m,
                   size_t n,
                   double *lhs,
-                  const double *rhs1,
-                  const double *rhs2,
-                  size_t rhs_stride,
-                  bool vec_on_lhs)
+                  const double *mat,
+                  const double *vec,
+                  size_t mat_stride,
+                  bool transpose_mat)
   {
-    if (vec_on_lhs)
-      cblas_dgemv(CblasRowMajor, CblasTrans, m, n, 1, rhs2, rhs_stride, rhs1, 1, 0, lhs, 1);
-    else
-      cblas_dgemv(CblasRowMajor, CblasNoTrans, m, n, 1, rhs1, rhs_stride, rhs2, 1, 0, lhs, 1);
+    auto trans = transpose_mat ? CblasTrans : CblasNoTrans;
+    cblas_dgemv(CblasRowMajor, trans, m, n, 1, mat, mat_stride, vec, 1, 0, lhs, 1);
   }
 };
 
@@ -66,61 +62,22 @@ template <>
 struct MatVecMulImplBody<VariantKind::CPU, LegateTypeCode::HALF_LT> {
   void operator()(size_t m,
                   size_t n,
-                  __half *lhs,
-                  const __half *rhs1,
-                  const __half *rhs2,
-                  size_t rhs_stride,
-                  bool vec_on_lhs)
-  {
-    if (vec_on_lhs) {
-      auto lhs_copy  = allocate_buffer(n);
-      auto rhs1_copy = allocate_buffer(m);
-      auto rhs2_copy = allocate_buffer(m * n);
-
-      half_vector_to_float(rhs1_copy, rhs1, m);
-      half_matrix_to_float(rhs2_copy, rhs2, m, n, rhs_stride);
-
-      cblas_sgemv(CblasRowMajor, CblasTrans, m, n, 1, rhs2_copy, n, rhs1_copy, 1, 0, lhs_copy, 1);
-
-      float_vector_to_half(lhs, lhs_copy, n);
-    } else {
-      auto lhs_copy  = allocate_buffer(m);
-      auto rhs1_copy = allocate_buffer(m * n);
-      auto rhs2_copy = allocate_buffer(n);
-
-      half_matrix_to_float(rhs1_copy, rhs1, m, n, rhs_stride);
-      half_vector_to_float(rhs2_copy, rhs2, n);
-
-      cblas_sgemv(CblasRowMajor, CblasNoTrans, m, n, 1, rhs1_copy, n, rhs2_copy, 1, 0, lhs_copy, 1);
-
-      float_vector_to_half(lhs, lhs_copy, m);
-    }
-  }
-
-  void operator()(size_t m,
-                  size_t n,
                   float *lhs,
-                  const __half *rhs1,
-                  const __half *rhs2,
-                  size_t rhs_stride,
-                  bool vec_on_lhs)
+                  const __half *mat,
+                  const __half *vec,
+                  size_t mat_stride,
+                  bool transpose_mat)
   {
-    if (vec_on_lhs) {
-      auto rhs1_copy = allocate_buffer(m);
-      auto rhs2_copy = allocate_buffer(m * n);
+    auto vec_size = transpose_mat ? m : n;
 
-      half_vector_to_float(rhs1_copy, rhs1, m);
-      half_matrix_to_float(rhs2_copy, rhs2, m, n, rhs_stride);
+    auto mat_copy = allocate_buffer(m * n);
+    auto vec_copy = allocate_buffer(vec_size);
 
-      cblas_sgemv(CblasRowMajor, CblasTrans, m, n, 1, rhs2_copy, n, rhs1_copy, 1, 0, lhs, 1);
-    } else {
-      auto rhs1_copy = allocate_buffer(m * n);
-      auto rhs2_copy = allocate_buffer(n);
+    half_matrix_to_float(mat_copy, mat, m, n, mat_stride);
+    half_vector_to_float(vec_copy, vec, vec_size);
 
-      half_matrix_to_float(rhs1_copy, rhs1, m, n, rhs_stride);
-      half_vector_to_float(rhs2_copy, rhs2, n);
-      cblas_sgemv(CblasRowMajor, CblasNoTrans, m, n, 1, rhs1_copy, n, rhs2_copy, 1, 0, lhs, 1);
-    }
+    auto trans = transpose_mat ? CblasTrans : CblasNoTrans;
+    cblas_sgemv(CblasRowMajor, trans, m, n, 1, mat_copy, n, vec_copy, 1, 0, lhs, 1);
   }
 };
 

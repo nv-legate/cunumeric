@@ -18,35 +18,50 @@ import numpy as np
 import legate.numpy as lg
 
 
-def test():
+def test(ty):
     np.random.seed(42)
-    An = np.random.randn(3, 7)
-    Bn = np.random.randn(7)
+    An = np.random.randn(7, 3).astype(ty)
+    Bn = np.random.randn(3).astype(ty)
     Cn = An.dot(Bn)
 
     A = lg.array(An)
     B = lg.array(Bn)
     C = A.dot(B)
 
-    # print(C)
-    # print(Cn)
     assert np.allclose(C, Cn)
 
-    np.random.seed(42)
-    An = np.random.randn(3, 7)
-    Bn = np.random.randn(3)
+    An = np.random.randn(3).astype(ty)
+    Bn = np.random.randn(3, 7).astype(ty)
+    Cn = An.dot(Bn)
+
+    A = lg.array(An)
+    B = lg.array(Bn)
+    C = A.dot(B)
+
+    assert np.allclose(C, Cn)
+
+    An = np.random.randn(3, 7).astype(ty)
+    Bn = np.random.randn(3).astype(ty)
     Cn = An.transpose().dot(Bn)
 
     A = lg.array(An)
     B = lg.array(Bn)
     C = A.transpose().dot(B)
 
-    # print(C)
-    # print(Cn)
     assert np.allclose(C, Cn)
 
-    return
+    An = np.random.randn(3).astype(ty)
+    Bn = np.random.randn(7, 3).astype(ty)
+    Cn = An.dot(Bn.transpose())
+
+    A = lg.array(An)
+    B = lg.array(Bn)
+    C = A.dot(B.transpose())
+
+    assert np.allclose(C, Cn)
 
 
 if __name__ == "__main__":
-    test()
+    test(np.float16)
+    test(np.float64)
+    test(np.float32)
