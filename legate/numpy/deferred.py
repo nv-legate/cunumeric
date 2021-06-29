@@ -371,7 +371,7 @@ class DeferredArray(NumPyThunk):
         # we don't try to convert it to a NumPy array.
         result_dtype = np.dtype((np.int64, (len(index_arrays),)))
         result_array = DeferredArray(
-            self,
+            self.runtime,
             self.runtime.allocate_field(result_shape, result_dtype),
             shape=result_shape,
             dtype=result_dtype,
@@ -601,7 +601,6 @@ class DeferredArray(NumPyThunk):
             rhs, stacklevel=(stacklevel + 1)
         )
         assert self.dtype == value_array.dtype
-
         # Check to see if this is advanced indexing or not
         if self._is_advanced_indexing(key):
             # Create the indexing array
@@ -3154,7 +3153,7 @@ class DeferredArray(NumPyThunk):
             task = Task(
                 self.runtime.get_unary_task_id(
                     NumPyOpCode.CONVERT_TO_RECT,
-                    result_type=np.dtype(np.uint64),
+                    result_type=nonzeros_ranges_field.field.dtype,
                     argument_type=nonzeros_dist_field.field.dtype,
                 ),
                 argbuf.get_string(),

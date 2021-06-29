@@ -20,11 +20,13 @@ using namespace Legion;
 
 namespace legate {
 namespace numpy {
-// Instantiate zip tasks' gpu variants, up to our maximum array dimensionality.
+
+// Instantiate Zip tasks' gpu variants.
 #define DIMFUNC(N)                                  \
   template void PointTask<ZipTask<N>>::gpu_variant( \
     const Task*, const std::vector<PhysicalRegion>&, Context, Runtime*);
 LEGATE_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
+
 }  // namespace numpy
 }  // namespace legate

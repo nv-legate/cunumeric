@@ -68,7 +68,7 @@ __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
 template <int N>
 class ZipTask : public PointTask<ZipTask<N>> {
  public:
-  static const int TASK_ID = NUMPY_ZIP_OFFSET + N;
+  static const int TASK_ID = NumpyTaskOffset::NUMPY_ZIP_OFFSET + N;
 
   // out_region = op( in_region1, ..., in_regionN )
   static const int REGIONS = N + 1;

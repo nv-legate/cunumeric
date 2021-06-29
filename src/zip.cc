@@ -18,10 +18,12 @@
 
 namespace legate {
 namespace numpy {
+
 // Instantiate tasks for zipping multiple arrays of coordinates into one array of points,
 // up to our maximum array dimensionality.
 #define DIMFUNC(N) template class ZipTask<N>;
 LEGATE_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
+
 }  // namespace numpy
 }  // namespace legate

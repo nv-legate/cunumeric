@@ -562,6 +562,13 @@ class RegionField(object):
         self.shard_function = shardfn
         self.shard_space = shardsp
 
+    @property
+    def root(self):
+        res = self
+        while res.parent is not None:
+            res = res.parent
+        return res
+
     def find_or_create_key_partition(self):
         if self.key_partition is not None:
             return self.key_partition, self.shard_function, self.shard_space
@@ -570,9 +577,7 @@ class RegionField(object):
             return None, None, None
         if self.parent is not None:
             # Figure out how many tiles we overlap with of the root
-            root = self.parent
-            while root.parent is not None:
-                root = root.parent
+            root = self.root
             root_key, rootfn, rootsp = root.find_or_create_key_partition()
             if root_key is None:
                 self.launch_space = ()
