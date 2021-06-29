@@ -190,6 +190,7 @@ class NumPyOpCode(IntEnum):
     CONVERT_TO_RECT = legate_numpy.NUMPY_CONVERT_TO_RECT
     ARANGE = legate_numpy.NUMPY_ARANGE
     ZIP = legate_numpy.NUMPY_ZIP
+    TRANSFORM = legate_numpy.NUMPY_TRANSFORM
 
 
 # Match these to NumPyRedopID in legate_numpy_c.h

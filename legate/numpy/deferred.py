@@ -23,7 +23,7 @@ from legate.core import *  # noqa F403
 
 from .config import *  # noqa F403
 from .thunk import NumPyThunk
-from .utils import calculate_volume
+from .utils import calculate_volume, get_point_dim
 
 try:
     xrange  # Python 2
@@ -445,6 +445,46 @@ class DeferredArray(NumPyThunk):
             self.runtime.dispatch(task)
         return result_array
 
+    # Gets rid of any transforms
+    def materialize(self, stacklevel):
+        if isinstance(self.base, Future):
+            return self
+        result = DeferredArray(
+            self.runtime,
+            self.runtime.allocate_field(self.shape, self.dtype),
+            shape=self.shape,
+            dtype=self.dtype,
+        )
+        result.copy(self, stacklevel=(stacklevel + 1), deep=False)
+        return result
+
+    # Apply a transform to every element in an array of Points
+    def apply_transform(self, transform, stacklevel):
+        assert get_point_dim(self.dtype) == transform.N
+        result_dtype = (
+            np.dtype(np.int64)
+            if transform.M == 1
+            else np.dtype((np.int64, (transform.M,)))
+        )
+        argbuf = BufferBuilder()
+        argbuf.pack_transform(transform)
+        args = (argbuf.get_string(),)
+        result = DeferredArray(
+            self.runtime,
+            self.runtime.allocate_field(self.shape, result_dtype),
+            shape=self.shape,
+            dtype=result_dtype,
+        )
+        result.unary_op(
+            NumPyOpCode.TRANSFORM,
+            self.dtype,
+            self,
+            True,
+            args,
+            stacklevel=(stacklevel + 1),
+        )
+        return result
+
     def get_item(self, key, stacklevel, view=None, dim_map=None):
         # Check to see if this is advanced indexing or not
         if self._is_advanced_indexing(key):
@@ -467,17 +507,32 @@ class DeferredArray(NumPyThunk):
                 shape=index_array.shape,
                 dtype=self.dtype,
             )
-            # Issue the gather copy to the result
-            index = index_array.base
-            index_part, shardfn, shardsp = index.find_or_create_key_partition()
-            launch_space = index.compute_parallel_launch_space()
-            src = self.base
+            # Prepare regions for the gather copy: Get rid of all transforms,
+            # so that we use the underlying "global" coordinate space directly
+            # (gather copies can't accept accessors, that are normally used
+            # for this purpose).
+            src = self.base.root
             dst = result_field
-            if src.transform is not None or index.transform is not None:
-                raise NotImplementedError("views with advanced indexing")
+            if self.base.transform is not None:
+                src_indirect = index_array.apply_transform(
+                    self.base.transform, stacklevel=(stacklevel + 1)
+                ).base
+            elif index_array.base.transform is not None:
+                src_indirect = index_array.materialize(
+                    stacklevel=(stacklevel + 1)
+                ).base
+            else:
+                src_indirect = index_array.base
+            # Issue the gather copy to the result
+            (
+                src_indirect_part,
+                shardfn,
+                shardsp,
+            ) = src_indirect.find_or_create_key_partition()
+            launch_space = src_indirect.compute_parallel_launch_space()
             if launch_space is not None:
                 # Index copy launch
-                if self.ndim == index_array.ndim:
+                if len(src.shape) == len(src_indirect.shape):
                     # If we have the same dimensionality then normal
                     # partitioning works
                     src_part = src.find_or_create_partition(launch_space)
@@ -497,7 +552,9 @@ class DeferredArray(NumPyThunk):
                     copy.set_sharding_space(shardsp)
                 # Partition the index array and the destination array
                 # the same way
-                dst_part = dst.find_or_create_congruent_partition(index_part)
+                dst_part = dst.find_or_create_congruent_partition(
+                    src_indirect_part
+                )
                 # Set this as the key partition
                 dst.set_key_partition(dst_part, shardfn, shardsp)
                 copy.add_src_requirement(
@@ -510,11 +567,11 @@ class DeferredArray(NumPyThunk):
                     tag=NumPyMappingTag.KEY_REGION_TAG,
                 )
                 copy.add_src_indirect_requirement(
-                    index_part, index.field.field_id, 0
+                    src_indirect_part, src_indirect.field.field_id, 0
                 )
             else:
                 # Single copy launch
-                shardpt, shardfn, shardsp = index.find_point_sharding()
+                shardpt, shardfn, shardsp = src_indirect.find_point_sharding()
                 copy = Copy(mapper=self.runtime.mapper_id, tag=shardfn)
                 if shardpt is not None:
                     copy.set_point(shardpt)
@@ -523,7 +580,7 @@ class DeferredArray(NumPyThunk):
                 copy.add_src_requirement(src.region, src.field.field_id)
                 copy.add_dst_requirement(dst.region, dst.field.field_id)
                 copy.add_src_indirect_requirement(
-                    index.region, index.field.field_id
+                    src_indirect.region, src_indirect.field.field_id
                 )
             # Issue the copy to the runtime
             self.runtime.dispatch(copy)
@@ -616,27 +673,37 @@ class DeferredArray(NumPyThunk):
                 raise ValueError(
                     "Advanced indexing array does not match source shape"
                 )
-            # Do the scatter copy
-            index = index_array.base
-            launch_space = index.compute_parallel_launch_space()
-            (
-                index_part,
-                shardfn,
-                shardsp,
-            ) = index.find_or_create_key_partition()
-            dst = self.base
+            # Prepare regions for the scatter copy: Get rid of all transforms,
+            # so that we use the underlying "global" coordinate space directly
+            # (scatter copies can't accept accessors, that are normally used
+            # for this purpose).
             src = value_array.base
+            if src.transform is not None:
+                # Waiting for Legion Issue #705
+                raise NotImplementedError("views on advanced __set_item__ RHS")
+            dst = self.base.root
+            if self.base.transform is not None:
+                dst_indirect = index_array.apply_transform(
+                    self.base.transform, stacklevel=(stacklevel + 1)
+                ).base
+            elif index_array.base.transform is not None:
+                dst_indirect = index_array.materialize(
+                    stacklevel=(stacklevel + 1)
+                ).base
+            else:
+                dst_indirect = index_array.base
             if src.field is dst.field:
                 raise NotImplementedError("intra-array advanced coyping")
-            if (
-                src.transform is not None
-                or index.transform is not None
-                or dst.transform is not None
-            ):
-                raise NotImplementedError("views with advanced indexing")
+            # Do the scatter copy
+            (
+                dst_indirect_part,
+                shardfn,
+                shardsp,
+            ) = dst_indirect.find_or_create_key_partition()
+            launch_space = dst_indirect.compute_parallel_launch_space()
             if launch_space is not None:
                 # Index copy launch
-                if self.ndim == index_array.ndim:
+                if len(dst.shape) == len(dst_indirect.shape):
                     # If we have the same dimensionality then normal
                     # partitioning works
                     dst_part = dst.find_or_create_partition(launch_space)
@@ -654,26 +721,28 @@ class DeferredArray(NumPyThunk):
                 )
                 if shardsp is not None:
                     copy.set_sharding_space(shardsp)
-                src_part = src.find_or_create_congruent_partition(index_part)
+                src_part = src.find_or_create_congruent_partition(
+                    dst_indirect_part
+                )
                 copy.add_src_requirement(src_part, src.field.field_id, 0)
                 copy.add_dst_requirement(
                     dst_part, dst.field.field_id, dst_proj
                 )
                 copy.add_dst_indirect_requirement(
-                    index_part, index.field.field_id, 0
+                    dst_indirect_part, dst_indirect.field.field_id, 0
                 )
             else:
                 # Single copy launch
-                point, shardfn, shardsp = index.find_point_sharding()
+                shardpt, shardfn, shardsp = dst_indirect.find_point_sharding()
                 copy = Copy(mapper=self.runtime.mapper_id, tag=shardfn)
-                if point is not None:
-                    copy.set_point(point)
+                if shardpt is not None:
+                    copy.set_point(shardpt)
                 if shardsp is not None:
                     copy.set_sharding_space(shardsp)
                 copy.add_src_requirement(src.region, src.field.field_id)
                 copy.add_dst_requirement(dst.region, dst.field.field_id)
                 copy.add_dst_indirect_requirement(
-                    index.region, index.field.field_id
+                    dst_indirect.region, dst_indirect.field.field_id
                 )
             # Issue the copy to the runtime
             self.runtime.dispatch(copy)
@@ -5804,11 +5873,8 @@ class DeferredArray(NumPyThunk):
     # A helper method for attaching arguments
     def add_arguments(self, task, args):
         assert args is not None
-        for numpy_array in args:
-            assert numpy_array.size == 1
-            future = self.runtime.create_future(
-                numpy_array.data, numpy_array.nbytes
-            )
+        for buf in args:
+            future = self.runtime.create_future(buf, memoryview(buf).nbytes)
             task.add_future(future)
 
     # A helper method for support for 16 bit arithmetic

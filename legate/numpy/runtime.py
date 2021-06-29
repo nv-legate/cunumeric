@@ -58,7 +58,7 @@ from .deferred import DeferredArray
 from .eager import EagerArray
 from .lazy import LazyArray
 from .thunk import NumPyThunk
-from .utils import calculate_volume
+from .utils import calculate_volume, get_point_dim
 
 
 # Helper method for python 3 support
@@ -2323,6 +2323,16 @@ class Runtime(object):
                 + variant_code.value
                 + numpy_field_type_offsets[argument_type.type]
                 * NUMPY_MAX_VARIANTS
+            )
+
+        # TRANSFORM's ID is special
+        if op_code == NumPyOpCode.TRANSFORM:
+            assert variant_code == NumPyVariantCode.NORMAL
+            return (
+                self.first_task_id
+                + legate_numpy.NUMPY_TRANSFORM_OFFSET
+                + get_point_dim(result_type) * (LEGATE_MAX_DIM + 1)
+                + get_point_dim(argument_type)
             )
 
         # unary tasks distinguish themselves by argument_type

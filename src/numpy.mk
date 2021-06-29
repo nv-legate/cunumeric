@@ -94,6 +94,7 @@ GEN_CPU_SRC +=	  universal_functions/absolute.cc  	\
 		  trans.cc	                       	\
 		  where.cc				\
 		  zip.cc				\
+		  transform.cc				\
 		  numpy.cc	 # This must always be the last file!
 				 # It guarantees we do our registration callback
 				 # only after all task variants are recorded
@@ -171,4 +172,5 @@ GEN_GPU_SRC +=    universal_functions/absolute.cu      	\
 		  tile.cu	                        \
 		  trans.cu	                        \
 		  where.cu	                        \
-		  zip.cu
+		  zip.cu				\
+		  transform.cu

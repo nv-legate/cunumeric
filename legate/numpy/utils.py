@@ -19,6 +19,8 @@ import warnings
 
 import numpy as np
 
+from legate.core import LEGATE_MAX_DIM
+
 try:
     reduce  # Python 2
 except NameError:
@@ -100,3 +102,16 @@ def calculate_volume(shape):
     if shape == ():
         return 0
     return reduce(lambda x, y: x * y, shape)
+
+
+def get_point_dim(dtype):
+    if dtype == np.int64:
+        # Special case: allowing coord_t in place of Point<1>; this is fine
+        # because physical regions are untyped
+        return 1
+    assert (
+        dtype.ndim == 1
+        and dtype.base == np.int64
+        and dtype.shape[0] <= LEGATE_MAX_DIM
+    )
+    return dtype.shape[0]

@@ -63,6 +63,11 @@ def test():
     b[:] = 0
     assert np.array_equal(a, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
 
+    # can read through views
+    a = np.arange(10)
+    c = np.arange(9, -1, -1)
+    assert np.array_equal(a[2:7][c[5:10]], [6, 5, 4, 3, 2])
+
     # 1d __setitem__
 
     # can write through a single advanced slice
@@ -72,13 +77,18 @@ def test():
     assert np.array_equal(a, [0, 1, 2, 3, 4, 0, 1, 2, 3, 4])
 
     # can write through views
-    # TODO: Fix #41
-    # a = lg.arange(20)
-    # b = np.arange(10)
-    # a[10:][range(5)] = b[2:7]
-    # assert np.array_equal(
-    #     a, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 2, 3, 4, 5, 6, 15, 16, 17, 18, 19]
-    # )
+    a = np.arange(10)
+    b = np.arange(5)  # TODO: RHS cannot be a view currently
+    c = np.arange(9, -1, -1)
+    a[2:7][c[5:10]] = b
+    assert np.array_equal(a, [0, 1, 4, 3, 2, 1, 0, 7, 8, 9])
+
+    a = lg.arange(20)
+    b = np.arange(10)
+    a[10:][range(5)] = b[2:7]
+    assert np.array_equal(
+        a, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 2, 3, 4, 5, 6, 15, 16, 17, 18, 19]
+    )
 
     # can copy within the same array
     # TODO: Fix #40
@@ -101,7 +111,7 @@ def test():
 
     # index arrays can be boolean, of the same shape as the base array
     a = sequence_2d()
-    # TODO: Have to sort the output array, until #?? is fixed
+    # TODO: Have to sort the output array, until #50 is fixed
     assert np.array_equal(np.sort(a[a > 17]), [18, 19, 20, 21, 22, 23, 24])
 
     # index arrays can be integer, one per base array dimension
@@ -138,6 +148,12 @@ def test():
     b[:] = -1
     assert a.min() == 0 and a.max() == 24
 
+    # can read through views
+    a = sequence_2d()
+    cx = lg.array([0, 0, 1, 1, 2, 2])
+    cy = lg.array([1, 2, 1, 2, 1, 2])
+    assert np.array_equal(a[2:, 2:][cx[2:], cy[2:]], [18, 19, 23, 24])
+
     # 2d __setitem__
 
     # can write through a single advanced slice
@@ -156,20 +172,21 @@ def test():
     )
 
     # can write through views
-    # TODO: Fix #41
-    # a = sequence_2d()
-    # b = lg.zeros(4, dtype=np.int64)
-    # a[2:, :][[1, 1, 2, 2], [1, 2, 1, 2]] = b
-    # assert np.array_equal(
-    #     a,
-    #     [
-    #         [0, 1, 2, 3, 4],
-    #         [5, 6, 7, 8, 9],
-    #         [10, 11, 12, 13, 14],
-    #         [15, 0, 0, 18, 19],
-    #         [20, 0, 0, 23, 24],
-    #     ],
-    # )
+    a = sequence_2d()
+    b = lg.array([100, 101, 102, 103])  # TODO: RHS cannot be a view currently
+    cx = lg.array([0, 0, 1, 1, 2, 2])
+    cy = lg.array([1, 2, 1, 2, 1, 2])
+    a[2:, 2:][cx[2:], cy[2:]] = b
+    assert np.array_equal(
+        a,
+        [
+            [0, 1, 2, 3, 4],
+            [5, 6, 7, 8, 9],
+            [10, 11, 12, 13, 14],
+            [15, 16, 17, 100, 101],
+            [20, 21, 22, 102, 103],
+        ],
+    )
 
     # can copy within the same array
     # TODO: Fix #40
