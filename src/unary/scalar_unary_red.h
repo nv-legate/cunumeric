@@ -25,7 +25,6 @@ namespace numpy {
 
 struct ScalarUnaryRedArgs {
   UnaryRedCode op_code;
-  Shape shape;
   Array in;
   std::vector<UntypedScalar> args;
 };

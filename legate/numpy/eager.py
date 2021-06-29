@@ -518,6 +518,8 @@ class EagerArray(NumPyThunk):
             )
         elif op == UnaryOpCode.CLIP:
             np.clip(rhs.array, out=self.array, a_min=args[0], a_max=args[1])
+        elif op == UnaryOpCode.CONJ:
+            np.conj(rhs.array, out=self.array)
         elif op == UnaryOpCode.COPY:
             self.array[:] = rhs.array[:]
         elif op == UnaryOpCode.COS:
@@ -544,6 +546,8 @@ class EagerArray(NumPyThunk):
                 if not isinstance(where, EagerArray)
                 else where.array,
             )
+        elif op == UnaryOpCode.IMAG:
+            self.array = np.imag(rhs.array)
         elif op == UnaryOpCode.INVERT:
             np.invert(
                 rhs.array,
@@ -592,6 +596,8 @@ class EagerArray(NumPyThunk):
                 if not isinstance(where, EagerArray)
                 else where.array,
             )
+        elif op == UnaryOpCode.REAL:
+            self.array = np.real(rhs.array)
         elif op == UnaryOpCode.SIN:
             np.sin(
                 rhs.array,

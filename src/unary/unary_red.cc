@@ -91,12 +91,10 @@ struct ArgRedImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
 
 void deserialize(Deserializer &ctx, UnaryRedArgs &args)
 {
-  deserialize(ctx, args.needs_reduction);
+  deserialize(ctx, args.rhs);
+  deserialize(ctx, args.lhs);
   deserialize(ctx, args.collapsed_dim);
   deserialize(ctx, args.op_code);
-  deserialize(ctx, args.shape);
-  deserialize(ctx, args.lhs);
-  deserialize(ctx, args.rhs);
 }
 
 /*static*/ void UnaryRedTask::cpu_variant(const Task *task,

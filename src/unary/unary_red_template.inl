@@ -43,22 +43,16 @@ struct UnaryRedImpl {
     using VAL = legate_type_of<CODE>;
 
     Pitches<DIM - 1> pitches;
-    auto rect   = args.shape.to_rect<DIM>();
+    auto rect   = args.rhs.shape<DIM>();
     auto volume = pitches.flatten(rect);
 
     if (volume == 0) return;
 
     auto rhs = args.rhs.read_accessor<VAL, DIM>(rect);
 
-    if (args.needs_reduction) {
-      auto lhs = args.lhs.reduce_accessor<typename OP::OP, KIND != VariantKind::GPU, DIM>(rect);
-      UnaryRedImplBody<KIND, OP_CODE, CODE, DIM>()(
-        lhs, rhs, rect, pitches, args.collapsed_dim, volume);
-    } else {
-      auto lhs = args.lhs.read_write_accessor<VAL, DIM>(rect);
-      UnaryRedImplBody<KIND, OP_CODE, CODE, DIM>()(
-        lhs, rhs, rect, pitches, args.collapsed_dim, volume);
-    }
+    auto lhs = args.lhs.reduce_accessor<typename OP::OP, KIND != VariantKind::GPU, DIM>(rect);
+    UnaryRedImplBody<KIND, OP_CODE, CODE, DIM>()(
+      lhs, rhs, rect, pitches, args.collapsed_dim, volume);
   }
 
   template <LegateTypeCode CODE,
@@ -82,22 +76,15 @@ struct ArgRedImpl {
     using ARGVAL = Argval<VAL>;
 
     Pitches<DIM - 1> pitches;
-    auto rect   = args.shape.to_rect<DIM>();
+    auto rect   = args.rhs.shape<DIM>();
     auto volume = pitches.flatten(rect);
 
     if (volume == 0) return;
 
     auto rhs = args.rhs.read_accessor<VAL, DIM>(rect);
 
-    if (args.needs_reduction) {
-      auto lhs = args.lhs.reduce_accessor<typename OP::OP, KIND != VariantKind::GPU, DIM>(rect);
-      ArgRedImplBody<KIND, OP_CODE, CODE, DIM>()(
-        lhs, rhs, rect, pitches, args.collapsed_dim, volume);
-    } else {
-      auto lhs = args.lhs.read_write_accessor<ARGVAL, DIM>(rect);
-      ArgRedImplBody<KIND, OP_CODE, CODE, DIM>()(
-        lhs, rhs, rect, pitches, args.collapsed_dim, volume);
-    }
+    auto lhs = args.lhs.reduce_accessor<typename OP::OP, KIND != VariantKind::GPU, DIM>(rect);
+    ArgRedImplBody<KIND, OP_CODE, CODE, DIM>()(lhs, rhs, rect, pitches, args.collapsed_dim, volume);
   }
 
   template <LegateTypeCode CODE,

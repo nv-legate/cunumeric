@@ -63,8 +63,8 @@ struct UnaryOpDispatch {
   UnaryOpCode op_code;
   Array in;
 
-  deserialize(ctx, op_code);
   deserialize(ctx, in);
+  deserialize(ctx, op_code);
 
   return op_dispatch(op_code, UnaryOpDispatch{}, in.scalar<UntypedScalar>());
 }

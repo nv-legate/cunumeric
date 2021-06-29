@@ -39,7 +39,7 @@ struct ScalarUnaryRedImpl {
     using LG_OP = typename OP::OP;
     using VAL   = legate_type_of<CODE>;
 
-    auto rect = args.shape.to_rect<DIM>();
+    auto rect = args.in.shape<DIM>();
 
     Pitches<DIM - 1> pitches;
     size_t volume = pitches.flatten(rect);
@@ -80,7 +80,7 @@ struct ScalarUnaryRedImpl<KIND, UnaryRedCode::CONTAINS> {
   {
     using VAL = legate_type_of<CODE>;
 
-    auto rect = args.shape.to_rect<DIM>();
+    auto rect = args.in.shape<DIM>();
 
     Pitches<DIM - 1> pitches;
     size_t volume = pitches.flatten(rect);
@@ -113,7 +113,7 @@ struct ScalarUnaryRedImpl<KIND, UnaryRedCode::COUNT_NONZERO> {
   {
     using VAL = legate_type_of<CODE>;
 
-    auto rect = args.shape.to_rect<DIM>();
+    auto rect = args.in.shape<DIM>();
 
     Pitches<DIM - 1> pitches;
     size_t volume = pitches.flatten(rect);

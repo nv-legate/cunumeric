@@ -101,9 +101,8 @@ struct ScalarUnaryRedImplBody<VariantKind::CPU, UnaryRedCode::COUNT_NONZERO, COD
 
 void deserialize(Deserializer &ctx, ScalarUnaryRedArgs &args)
 {
-  deserialize(ctx, args.op_code);
-  deserialize(ctx, args.shape);
   deserialize(ctx, args.in);
+  deserialize(ctx, args.op_code);
   deserialize(ctx, args.args);
 }
 

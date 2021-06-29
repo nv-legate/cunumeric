@@ -24,10 +24,8 @@ namespace legate {
 namespace numpy {
 
 struct UnaryRedArgs {
-  bool needs_reduction;
   int32_t collapsed_dim;
   UnaryRedCode op_code;
-  Shape shape;
   Array lhs;
   Array rhs;
 };

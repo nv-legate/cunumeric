@@ -42,13 +42,13 @@ struct TileImpl {
   template <int32_t OUT_DIM, int32_t IN_DIM, std::enable_if_t<IN_DIM <= OUT_DIM> * = nullptr>
   void operator()(TileArgs &args) const
   {
-    const auto out_rect = args.out_shape.to_rect<OUT_DIM>();
+    const auto out_rect = args.out.shape<OUT_DIM>();
     Pitches<OUT_DIM - 1> out_pitches;
     auto out_volume = out_pitches.flatten(out_rect);
 
     if (out_volume == 0) return;
 
-    const auto in_rect       = args.in_shape.to_rect<IN_DIM>();
+    const auto in_rect       = args.in.shape<IN_DIM>();
     Point<IN_DIM> in_strides = in_rect.hi + Point<IN_DIM>::ONES();
 
     auto out = args.out.write_accessor<VAL, OUT_DIM>();

@@ -41,10 +41,8 @@ struct TileImplBody<VariantKind::CPU, VAL, OUT_DIM, IN_DIM> {
 
 void deserialize(Deserializer &ctx, TileArgs &args)
 {
-  deserialize(ctx, args.out_shape);
-  deserialize(ctx, args.in_shape);
-  deserialize(ctx, args.out);
   deserialize(ctx, args.in);
+  deserialize(ctx, args.out);
 }
 
 /*static*/ void TileTask::cpu_variant(const Task *task,

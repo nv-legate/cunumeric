@@ -24,10 +24,8 @@ namespace legate {
 namespace numpy {
 
 struct TileArgs {
-  Shape out_shape;
-  Shape in_shape;
-  Array out;
   Array in;
+  Array out;
 };
 
 void deserialize(Deserializer& ctx, TileArgs& args);

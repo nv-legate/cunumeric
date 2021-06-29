@@ -23,7 +23,6 @@ namespace legate {
 namespace numpy {
 
 struct ArangeArgs {
-  Shape shape;
   Array out;
   UntypedScalar start;
   UntypedScalar stop;

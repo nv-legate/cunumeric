@@ -36,7 +36,6 @@ struct ArangeImplBody<VariantKind::CPU, VAL> {
 
 void deserialize(Deserializer &ctx, ArangeArgs &args)
 {
-  deserialize(ctx, args.shape);
   deserialize(ctx, args.out);
   deserialize(ctx, args.start);
   deserialize(ctx, args.stop);

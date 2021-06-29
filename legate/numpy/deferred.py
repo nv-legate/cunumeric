@@ -348,21 +348,10 @@ class DeferredArray(NumPyThunk):
             return self.base.get_numpy_array(self.context)
 
     # TODO: We should return a view of the field instead of a copy
-    def imag(self, stacklevel, callsite=None):
-        dtype = _complex_field_dtype(self.dtype)
-        if self.scalar:
-            result_field = Future()
-        else:
-            result_field = self.legate_runtime.allocate_field(
-                self.shape, dtype=dtype
-            )
-
-        result = DeferredArray(
-            self.runtime,
-            result_field,
-            shape=self.shape,
-            dtype=dtype,
-            scalar=self.scalar,
+    def imag(self, stacklevel=0, callsite=None):
+        result = self.runtime.create_empty_thunk(
+            self.shape,
+            dtype=_complex_field_dtype(self.dtype),
         )
 
         result.unary_op(
@@ -371,28 +360,17 @@ class DeferredArray(NumPyThunk):
             self,
             True,
             [],
-            stacklevel + 1,
-            callsite,
+            stacklevel=stacklevel + 1,
+            callsite=callsite,
         )
 
         return result
 
     # TODO: We should return a view of the field instead of a copy
-    def real(self, stacklevel, callsite=None):
-        dtype = _complex_field_dtype(self.dtype)
-        if self.scalar:
-            result_field = Future()
-        else:
-            result_field = self.legate_runtime.allocate_field(
-                self.shape, dtype=dtype
-            )
-
-        result = DeferredArray(
-            self.runtime,
-            result_field,
-            shape=self.shape,
-            dtype=dtype,
-            scalar=self.scalar,
+    def real(self, stacklevel=0, callsite=None):
+        result = self.runtime.create_empty_thunk(
+            self.shape,
+            dtype=_complex_field_dtype(self.dtype),
         )
 
         result.unary_op(
@@ -401,27 +379,14 @@ class DeferredArray(NumPyThunk):
             self,
             True,
             [],
-            stacklevel + 1,
-            callsite,
+            stacklevel=stacklevel + 1,
+            callsite=callsite,
         )
 
         return result
 
-    def conj(self, stacklevel, callsite=None):
-        if self.scalar:
-            result_field = Future()
-        else:
-            result_field = self.legate_runtime.allocate_field(
-                self.shape, dtype=self.dtype
-            )
-
-        result = DeferredArray(
-            self.runtime,
-            result_field,
-            shape=self.shape,
-            dtype=self.dtype,
-            scalar=self.scalar,
-        )
+    def conj(self, stacklevel=0, callsite=None):
+        result = self.runtime.create_empty_thunk(self.shape, dtype=self.dtype)
 
         result.unary_op(
             UnaryOpCode.CONJ,
@@ -429,8 +394,8 @@ class DeferredArray(NumPyThunk):
             self,
             True,
             [],
-            stacklevel + 1,
-            callsite,
+            stacklevel=stacklevel + 1,
+            callsite=callsite,
         )
 
         return result
@@ -1209,8 +1174,7 @@ class DeferredArray(NumPyThunk):
     @shadow_debug("arange", [])
     def arange(self, start, stop, step, stacklevel=0, callsite=None):
         assert self.ndim == 1  # Only 1-D arrays should be here
-        dst = self.base
-        if isinstance(dst, Future):
+        if self.scalar:
             # Handle the special case of a single values here
             assert self.shape[0] == 1
             array = np.array(start, dtype=self.dtype)
@@ -1227,26 +1191,13 @@ class DeferredArray(NumPyThunk):
                 numpy_array.data, numpy_array.dtype
             )
 
-        lhs_arg = DeferredArrayView(self)
-        launch_space, key_arg = lhs_arg.find_key_view()
-        key_arg.update_tag(NumPyMappingTag.KEY_REGION_TAG)
-
-        task = Task(self.context, NumPyOpCode.ARANGE)
-
-        if launch_space is not None:
-            task.add_shape(lhs_arg.shape, lhs_arg.part.tile_shape, 0)
-        else:
-            task.add_shape(lhs_arg.shape)
-        lhs_arg.add_to_legate_op(task, False)
-
+        task = self.context.create_task(NumPyOpCode.ARANGE)
+        task.add_output(self.base)
         task.add_future(create_scalar(start, self.dtype))
         task.add_future(create_scalar(stop, self.dtype))
         task.add_future(create_scalar(step, self.dtype))
 
-        if launch_space is not None:
-            task.execute(Rect(launch_space))
-        else:
-            task.execute_single()
+        task.execute()
 
     # Tile the src array onto the destination array
     @profile
@@ -1263,25 +1214,14 @@ class DeferredArray(NumPyThunk):
             )
             return
 
-        dst_arg = DeferredArrayView(dst_array)
-        src_arg = DeferredArrayView(src_array, proj_id=None)
+        task = self.context.create_task(NumPyOpCode.TILE)
 
-        launch_space = dst_arg.compute_launch_space()
+        task.add_output(self.base)
+        task.add_input(rhs.base)
 
-        task = Task(self.context, NumPyOpCode.TILE)
+        task.add_broadcast(rhs.base)
 
-        if launch_space is not None:
-            task.add_shape(dst_arg.shape, dst_arg.part.tile_shape, 0)
-        else:
-            task.add_shape(dst_arg.shape)
-        task.add_shape(src_arg.shape)
-        dst_arg.add_to_legate_op(task, False)
-        src_arg.add_to_legate_op(task, True)
-
-        if launch_space is not None:
-            task.execute(Rect(launch_space))
-        else:
-            task.execute_single()
+        task.execute()
 
     # Transpose the matrix dimensions
     @profile
@@ -1382,7 +1322,7 @@ class DeferredArray(NumPyThunk):
         epoch = self.runtime.get_next_random_epoch()
         task.add_scalar_arg(epoch, ty.uint32)
         task.add_scalar_arg(self.compute_strides(self.shape), (ty.int64,))
-        task.add_scalar_arg(0, ty.uint32)
+        self.add_arguments(task, args)
 
         task.execute()
 
@@ -1409,15 +1349,6 @@ class DeferredArray(NumPyThunk):
 
     def random_integer(self, low, high, stacklevel, callsite=None):
         assert self.dtype.kind == "i"
-        # Special case for shadow debugging since it's hard to get data back
-        if self.runtime.shadow_debug:
-            self.shadow.random_integer(low, high, stacklevel=(stacklevel + 1))
-            self.context.attach_array(
-                self.shadow.array.copy(),
-                self.dtype,
-                True,
-            )
-            return
         low = np.array(low, self.dtype)
         high = np.array(high, self.dtype)
         self.random(
@@ -1473,53 +1404,32 @@ class DeferredArray(NumPyThunk):
         rhs_array = src
         assert lhs_array.ndim <= rhs_array.ndim
         assert rhs_array.size > 1
-        rhs = rhs_array.base
 
         # See if we are doing reduction to a point or another region
         if lhs_array.size == 1:
             assert axes is None or len(axes) == (
                 rhs_array.ndim - lhs_array.ndim
             )
-            rhs_arg = DeferredArrayView(rhs_array)
-            launch_space, key_arg = rhs_arg.find_key_view()
-            key_arg.update_tag(NumPyMappingTag.KEY_REGION_TAG)
 
-            task = Task(self.context, NumPyOpCode.SCALAR_UNARY_RED)
+            task = self.context.create_task(NumPyOpCode.SCALAR_UNARY_RED)
 
-            task.add_scalar_arg(op, np.int32)
-            if launch_space is not None:
-                task.add_shape(rhs_arg.shape, rhs_arg.part.tile_shape, 0)
-            else:
-                task.add_shape(rhs_arg.shape)
-            rhs_arg.add_to_legate_op(task, True)
+            redop = self.runtime.get_scalar_reduction_op_id(op)
+            task.add_reduction(lhs_array.base, redop)
+            task.add_input(rhs_array.base)
+            task.add_scalar_arg(op, ty.int32)
 
             self.add_arguments(task, args)
 
-            if launch_space is not None:
-                result = task.execute(
-                    Rect(launch_space),
-                    redop=self.runtime.get_scalar_reduction_op_id(op),
-                )
-            else:
-                result = task.execute_single()
-
-            lhs_array.base = result
+            task.execute()
 
         else:
             argred = op in (UnaryRedCode.ARGMAX, UnaryRedCode.ARGMIN)
 
             if argred:
                 argred_dtype = get_arg_dtype(rhs_array.dtype)
-                lhs_field = self.legate_runtime.allocate_field(
-                    self.shape,
+                lhs_array = self.runtime.create_empty_thunk(
+                    lhs_array.shape,
                     dtype=argred_dtype,
-                )
-                lhs_array = DeferredArray(
-                    self.runtime,
-                    lhs_field,
-                    shape=self.shape,
-                    dtype=argred_dtype,
-                    scalar=self.scalar,
                 )
 
             # Before we perform region reduction, make sure to have the lhs
@@ -1542,106 +1452,32 @@ class DeferredArray(NumPyThunk):
             assert axes is not None
             # Reduction to a smaller array
             result = lhs_array.base
+            if keepdims:
+                for axis in axes:
+                    result = result.project(axis, 0)
+            for axis in axes:
+                result = result.promote(axis, rhs_array.shape[axis])
             # Iterate over all the dimension(s) being collapsed and build a
             # temporary field that we will reduce down to the final value
             if len(axes) > 1:
                 raise NotImplementedError(
                     "Need support for reducing multiple dimensions"
                 )
-            axis = axes[0]
-            # Compute the reduction transform
-            transform, proj_id = self.runtime.get_reduction_transform(
-                rhs_array.shape, axes, keepdims
-            )
-            # Compute the launch space
-            launch_space = rhs.compute_parallel_launch_space()
-            # Then we launch the reduction task(s)
-            if launch_space is not None:
-                # Index space launch case
-                rhs_part = rhs.find_or_create_key_partition()
-                # Get the result partition to use
-                if lhs_array.ndim == rhs_array.ndim:
-                    offset = np.zeros(rhs_array.ndim, dtype=np.dtype(np.int64))
-                    # Handle the keepdims case
-                    # Put ones in all the keep dim axes
-                    for ax in axes:
-                        offset[ax] = 1
-                else:
-                    offset = np.zeros(lhs_array.ndim, dtype=np.dtype(np.int64))
-                result_part = result.find_or_create_congruent_partition(
-                    rhs_part, transform, offset
-                )
 
-                needs_reduction = launch_space[axis] != 1
-                # Fake the dtype when this is an arg reduction.
-                # Otherwise, we would need to double the number of type codes.
-                lhs_arg = DeferredArrayView(
-                    lhs_array,
-                    part=result_part,
-                    transform=transform,
-                    proj_id=proj_id,
-                    tag=NumPyMappingTag.NO_MEMOIZE_TAG,
-                    dtype=rhs_array.dtype if argred else None,
-                )
-                rhs_arg = DeferredArrayView(
-                    rhs_array,
-                    part=rhs_part,
-                    tag=NumPyMappingTag.KEY_REGION_TAG,
-                )
+            task = self.context.create_task(NumPyOpCode.UNARY_RED)
 
-                task = Task(self.context, NumPyOpCode.UNARY_RED)
-                task.add_scalar_arg(needs_reduction, bool)
-                task.add_scalar_arg(axis, np.int32)
-                task.add_scalar_arg(op, np.int32)
-                task.add_shape(rhs_arg.shape, rhs_part.tile_shape, 0)
+            redop = self.runtime.get_unary_reduction_op_id(op, rhs_array.dtype)
 
-                if needs_reduction:
-                    redop = self.runtime.get_unary_reduction_op_id(
-                        op, rhs_array.dtype
-                    )
-                    lhs_arg.add_to_legate_op(task, False, redop=redop)
-                    rhs_arg.add_to_legate_op(task, True)
-                else:
-                    lhs_arg.add_to_legate_op(task, False, read_write=True)
-                    rhs_arg.add_to_legate_op(task, True)
+            task.add_input(rhs_array.base)
+            task.add_reduction(result, redop)
+            task.add_scalar_arg(axis, ty.int32)
+            task.add_scalar_arg(op, ty.int32)
 
-                if args is not None:
-                    self.add_arguments(task, args)
-                if initial is not None:
-                    task.add_future(initial_future)
+            self.add_arguments(task, args)
 
-                task.execute(Rect(launch_space))
+            task.add_alignment(result, rhs_array.base)
 
-            else:
-                # Fake the dtype when this is an arg reduction.
-                # Otherwise, we would need to double the number of type codes.
-                lhs_arg = DeferredArrayView(
-                    lhs_array,
-                    transform=transform,
-                    proj_id=proj_id,
-                    tag=NumPyMappingTag.NO_MEMOIZE_TAG,
-                    dtype=rhs_array.dtype if argred else None,
-                )
-                rhs_arg = DeferredArrayView(
-                    rhs_array,
-                    tag=NumPyMappingTag.KEY_REGION_TAG,
-                )
-
-                task = Task(self.context, NumPyOpCode.UNARY_RED)
-                task.add_scalar_arg(False, bool)  # needs_reduction
-                task.add_scalar_arg(axis, np.int32)
-                task.add_scalar_arg(op, np.int32)
-                task.add_shape(rhs_arg.shape)
-
-                lhs_arg.add_to_legate_op(task, False, read_write=True)
-                rhs_arg.add_to_legate_op(task, True)
-
-                if args is not None:
-                    self.add_arguments(task, args)
-                if initial is not None:
-                    task.add_future(initial_future)
-
-                task.execute_single()
+            task.execute()
 
             if argred:
                 self.unary_op(

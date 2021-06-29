@@ -35,7 +35,7 @@ struct ArangeImpl {
   {
     using VAL = legate_type_of<CODE>;
 
-    const auto rect = args.shape.to_rect<1>();
+    const auto rect = args.out.shape<1>();
 
     if (rect.empty()) return;
 
