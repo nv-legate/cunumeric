@@ -443,8 +443,8 @@ class DeferredArray(NumPyThunk):
             rhs,
             True,
             [],
-            stacklevel + 1,
-            callsite,
+            stacklevel=stacklevel + 1,
+            callsite=callsite,
         )
 
     def get_scalar_array(self, stacklevel):
@@ -489,6 +489,28 @@ class DeferredArray(NumPyThunk):
             return self.runtime.to_deferred_array(
                 tuple_of_arrays[0], stacklevel=(stacklevel + 1)
             )
+
+    def _get_view(self, key):
+        store = self.base
+        shift = 0
+        for dim, k in enumerate(key):
+            if k is np.newaxis:
+                store = store.promote(dim + shift, 1)
+            elif isinstance(k, slice):
+                store = store.slice(dim + shift, k)
+            elif np.isscalar(k):
+                store = store.project(dim, k)
+                shift -= 1
+            else:
+                assert False
+
+        return DeferredArray(
+            self.runtime,
+            base=store,
+            shape=store.shape,
+            dtype=self.dtype,
+            scalar=False,
+        )
 
     def get_item(self, key, stacklevel, view=None, dim_map=None):
         assert self.size > 1
@@ -563,28 +585,9 @@ class DeferredArray(NumPyThunk):
             # Issue the copy to the runtime
             self.runtime.dispatch(copy)
         else:
-            store = self.base
-            shift = 0
-            for dim, k in enumerate(key):
-                if k is np.newaxis:
-                    store = store.promote(dim + shift, 1)
-                elif isinstance(k, slice):
-                    store = store.slice(dim + shift, k)
-                elif np.isscalar(k):
-                    store = store.project(dim, k)
-                    shift -= 1
-                else:
-                    assert False
+            result = self._get_view(key)
 
-            result = DeferredArray(
-                self.runtime,
-                base=store,
-                shape=store.shape,
-                dtype=self.dtype,
-                scalar=False,
-            )
-
-            if store.shape.volume == 1:
+            if result.shape == ():
                 input = result
                 result = self.runtime.create_empty_thunk(1, self.dtype)
 
@@ -664,26 +667,20 @@ class DeferredArray(NumPyThunk):
             # We can just copy the future because they are immutable
             self.base = value_array.base
         else:
-            # Writing to a view of this array
-            view, dim_map = self._get_view(key)
-            # See what the shape of the view is
-            new_shape = self._get_view_shape(view, dim_map)
+            view = self._get_view(key)
 
-            if new_shape == ():
+            if view.shape == ():
                 # We're just writing a single value
                 assert value_array.size == 1
-                use_key = tuple([x.start for x in view])
-                assert len(use_key) == self.ndim
-                dst_arg = DeferredArrayView(
-                    self, tag=NumPyMappingTag.NO_MEMOIZE_TAG
-                )
-                value_arg = DeferredArrayView(value_array)
 
-                task = Task(self.context, NumPyOpCode.WRITE)
-                task.add_point(use_key, untyped=True)
-                dst_arg.add_to_legate_op(task, False, read_write=True)
-                value_arg.add_to_legate_op(task, True)
-                task.execute_single()
+                task = self.context.create_task(NumPyOpCode.WRITE)
+                # Since we pass the view with write discard privilege,
+                # we should make sure that the mapper either creates a fresh
+                # instance just for this one-element view or picks one of the
+                # existing valid instances for the parent.
+                task.add_output(view.base)
+                task.add_input(value_array.base)
+                task.execute()
             else:
                 # In Python, any inplace update of form arr[key] op= value
                 # goes through three steps: 1) __getitem__ fetching the object
@@ -695,33 +692,17 @@ class DeferredArray(NumPyThunk):
                 # to the arr. Therefore, we skip the copy to avoid redundant
                 # copies if we know that we hit such a scenario.
                 # TODO: We should make this work for the advanced indexing case
-                if (
-                    new_shape == rhs.shape
-                    and self.base.field == value_array.base.field
-                ):
+                if view.shape == rhs.shape and view.base == value_array.base:
                     return
 
-                # Get the view for the result
-                subview = self.runtime.find_or_create_view(
-                    self.base, view, dim_map, new_shape
-                )
+                if self.runtime.shadow_debug:
+                    view.shadow = self.runtime.to_eager_array(
+                        view,
+                        stacklevel + 1,
+                    )
                 # Handle an unfortunate case where our subview can
                 # accidentally collapse the last dimension
-                if subview.ndim == 0:
-                    subview.shape = new_shape
-                # See if the value is a scalar
-                if value_array.size == 1:
-                    # Scalar so we can do this with a fill
-                    subview.fill(
-                        value_array.__numpy_array__(
-                            stacklevel=(stacklevel + 1)
-                        ),
-                        stacklevel=(stacklevel + 1),
-                    )
-                else:
-                    subview.copy(
-                        value_array, stacklevel=(stacklevel + 1), deep=False
-                    )
+                view.copy(value_array, stacklevel=(stacklevel + 1), deep=False)
         if self.runtime.shadow_debug:
             self.shadow.set_item(key, rhs.shadow, stacklevel=(stacklevel + 1))
             self.runtime.check_shadow(self, "set_item")

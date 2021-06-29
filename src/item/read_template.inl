@@ -23,17 +23,17 @@ namespace numpy {
 
 using namespace Legion;
 
-template <VariantKind KIND, typename VAL, int DIM>
+template <VariantKind KIND, typename VAL>
 struct ReadImplBody;
 
 template <VariantKind KIND>
 struct ReadImpl {
-  template <LegateTypeCode CODE, int DIM>
-  UntypedScalar operator()(Array &in_arr, UntypedPoint &key) const
+  template <LegateTypeCode CODE>
+  UntypedScalar operator()(Array &in_arr) const
   {
     using VAL = legate_type_of<CODE>;
-    auto in   = in_arr.read_accessor<VAL, DIM>();
-    return ReadImplBody<KIND, VAL, DIM>()(in, key.to_point<DIM>());
+    auto in   = in_arr.read_accessor<VAL, 1>();
+    return ReadImplBody<KIND, VAL>()(in);
   }
 };
 
@@ -44,11 +44,9 @@ static UntypedScalar read_template(const Task *task,
                                    Runtime *runtime)
 {
   Deserializer ctx(task, regions);
-  UntypedPoint key;
   Array in;
-  deserialize(ctx, key);
   deserialize(ctx, in);
-  return double_dispatch(in.dim(), in.code(), ReadImpl<KIND>{}, in, key);
+  return type_dispatch(in.code(), ReadImpl<KIND>{}, in);
 }
 
 }  // namespace numpy

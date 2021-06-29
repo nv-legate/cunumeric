@@ -24,17 +24,18 @@ namespace numpy {
 
 using namespace Legion;
 
-template <VariantKind KIND, typename VAL, int DIM>
+template <VariantKind KIND, typename VAL>
 struct WriteImplBody;
 
 template <VariantKind KIND>
 struct WriteImpl {
-  template <LegateTypeCode CODE, int DIM>
-  void operator()(Array &out_arr, UntypedPoint &key, const UntypedScalar &scalar) const
+  template <LegateTypeCode CODE>
+  void operator()(Array &out_arr, Array &in_arr) const
   {
     using VAL = legate_type_of<CODE>;
-    auto out  = out_arr.write_accessor<VAL, DIM>();
-    WriteImplBody<KIND, VAL, DIM>()(out, key.to_point<DIM>(), scalar.value<VAL>());
+    auto out  = out_arr.write_accessor<VAL, 1>();
+    auto in   = in_arr.read_accessor<VAL, 1>();
+    WriteImplBody<KIND, VAL>()(out, in[0]);
   }
 };
 
@@ -45,13 +46,11 @@ static void write_template(const Task *task,
                            Runtime *runtime)
 {
   Deserializer ctx(task, regions);
-  UntypedPoint key;
+  Array in;
   Array out;
-  UntypedScalar scalar;
-  deserialize(ctx, key);
+  deserialize(ctx, in);
   deserialize(ctx, out);
-  deserialize(ctx, scalar);
-  double_dispatch(out.dim(), out.code(), WriteImpl<KIND>{}, out, key, scalar);
+  type_dispatch(out.code(), WriteImpl<KIND>{}, out, in);
 }
 
 }  // namespace numpy

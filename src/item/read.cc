@@ -22,12 +22,9 @@ namespace numpy {
 
 using namespace Legion;
 
-template <typename VAL, int DIM>
-struct ReadImplBody<VariantKind::CPU, VAL, DIM> {
-  UntypedScalar operator()(AccessorRO<VAL, DIM> in, const Point<DIM> &key) const
-  {
-    return UntypedScalar(in[key]);
-  }
+template <typename VAL>
+struct ReadImplBody<VariantKind::CPU, VAL> {
+  UntypedScalar operator()(AccessorRO<VAL, 1> in) const { return UntypedScalar(in[0]); }
 };
 
 /*static*/ UntypedScalar ReadTask::cpu_variant(const Task *task,

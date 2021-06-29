@@ -22,12 +22,9 @@ namespace numpy {
 
 using namespace Legion;
 
-template <typename VAL, int DIM>
-struct WriteImplBody<VariantKind::CPU, VAL, DIM> {
-  void operator()(AccessorWO<VAL, DIM> out, const Point<DIM> &key, const VAL &value) const
-  {
-    out[key] = value;
-  }
+template <typename VAL>
+struct WriteImplBody<VariantKind::CPU, VAL> {
+  void operator()(AccessorWO<VAL, 1> out, const VAL &value) const { out[0] = value; }
 };
 
 /*static*/ void WriteTask::cpu_variant(const Task *task,

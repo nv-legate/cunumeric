@@ -518,6 +518,8 @@ class EagerArray(NumPyThunk):
             )
         elif op == UnaryOpCode.CLIP:
             np.clip(rhs.array, out=self.array, a_min=args[0], a_max=args[1])
+        elif op == UnaryOpCode.COPY:
+            self.array[:] = rhs.array[:]
         elif op == UnaryOpCode.COS:
             np.cos(
                 rhs.array,

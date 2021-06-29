@@ -61,19 +61,19 @@ def test(ty):
 
     assert np.allclose(C, Cn)
 
-    # A3np = np.empty((2, 7, 3), dtype=ty)
-    # B3np = np.empty((2, 11, 7), dtype=ty)
-    # A3np[0] = np.random.randn(7, 3)
-    # B3np[0] = np.random.randn(11, 7)
-    # Cn = A3np[0].T.dot(B3np[0].T)
+    A3np = np.empty((2, 7, 3), dtype=ty)
+    B3np = np.empty((2, 11, 7), dtype=ty)
+    A3np[0] = np.random.randn(7, 3)
+    B3np[0] = np.random.randn(11, 7)
+    Cn = A3np[0].T.dot(B3np[0].T)
 
-    # A3 = lg.array(A3np)
-    # B3 = lg.array(B3np)
-    # A3[0] = A3np[0]
-    # B3[0] = B3np[0]
-    # C = A3[0].T.dot(B3[0].T)
+    A3 = lg.array(A3np)
+    B3 = lg.array(B3np)
+    A3[0] = A3np[0]
+    B3[0] = B3np[0]
+    C = A3[0].T.dot(B3[0].T)
 
-    # assert np.allclose(C, Cn)
+    assert np.allclose(C, Cn)
 
 
 if __name__ == "__main__":
