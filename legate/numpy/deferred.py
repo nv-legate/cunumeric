@@ -3046,7 +3046,7 @@ class DeferredArray(NumPyThunk):
             for _ in xrange(self.ndim):
                 result += (
                     self.runtime.create_empty_thunk(
-                        shape=(0,), dtype=np.dtype(np.uint64), inputs=(self,)
+                        shape=(0,), dtype=np.dtype(np.int64), inputs=(self,)
                     ),
                 )
             return result
@@ -3055,7 +3055,7 @@ class DeferredArray(NumPyThunk):
         # TODO: A better way to create the output array?
         dst_array = self.runtime.to_deferred_array(
             self.runtime.create_empty_thunk(
-                shape=out_shape, dtype=np.dtype(np.uint64), inputs=(self,)
+                shape=out_shape, dtype=np.dtype(np.int64), inputs=(self,)
             ),
             stacklevel=(stacklevel + 1),
         )
@@ -3197,7 +3197,7 @@ class DeferredArray(NumPyThunk):
             index_task = IndexTask(
                 self.runtime.get_unary_task_id(
                     NumPyOpCode.NONZERO,
-                    result_type=np.dtype(np.uint64),
+                    result_type=np.dtype(np.int64),
                     argument_type=self.dtype,
                 ),
                 Rect(launch_space),
@@ -3232,8 +3232,8 @@ class DeferredArray(NumPyThunk):
             task = Task(
                 self.runtime.get_unary_task_id(
                     NumPyOpCode.NONZERO,
+                    result_type=np.dtype(np.int64),
                     argument_type=self.dtype,
-                    result_type=self.dtype,
                 ),
                 argbuf.get_string(),
                 argbuf.get_size(),
