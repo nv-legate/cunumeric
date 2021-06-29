@@ -24,12 +24,17 @@ namespace numpy {
 
 #if defined(LEGATE_USE_CUDA) && defined(__CUDACC__)
 template <int DIM, typename Args>
-__global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM) gpu_fill(const Args args)
+__global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
+  gpu_fill(const Args args, const bool dense)
 {
   const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (idx >= args.volume) return;
-  const Legion::Point<DIM> point = args.pitches.unflatten(idx, args.rect.lo);
-  args.out[point]                = args.value;
+  if (dense) {
+    args.outptr[idx] = args.value;
+  } else {
+    const Legion::Point<DIM> point = args.pitches.unflatten(idx, args.rect.lo);
+    args.out[point]                = args.value;
+  }
 }
 #endif
 
@@ -112,10 +117,10 @@ struct FillTask : PointTask<FillTask<T>> {
                            LegateDeserializer& derez)
   {
     DeserializedArgs<DIM> args;
-    args.deserialize(derez, task, regions);
+    const bool dense = args.deserialize(derez, task, regions);
     if (args.volume == 0) return;
     const size_t blocks = (args.volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-    gpu_fill<DIM, DeserializedArgs<DIM>><<<blocks, THREADS_PER_BLOCK>>>(args);
+    gpu_fill<DIM, DeserializedArgs<DIM>><<<blocks, THREADS_PER_BLOCK>>>(args, dense);
   }
 #elif defined(LEGATE_USE_CUDA)
   template <int DIM>

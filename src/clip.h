@@ -34,24 +34,33 @@ struct ClipOperation {
 
 #if defined(LEGATE_USE_CUDA) && defined(__CUDACC__)
 template <int DIM, typename T, typename Args>
-__global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM) gpu_clip(const Args args)
+__global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
+  gpu_clip(const Args args, const bool dense)
 {
   const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (idx >= args.volume) return;
-  const Legion::Point<DIM> point = args.pitches.unflatten(idx, args.rect.lo);
   ClipOperation<T> func;
-  args.out[point] = func(args.in[point], args.min, args.max);
+  if (dense) {
+    args.outptr[idx] = func(args.inptr[idx], args.min, args.max);
+  } else {
+    const Legion::Point<DIM> point = args.pitches.unflatten(idx, args.rect.lo);
+    args.out[point]                = func(args.in[point], args.min, args.max);
+  }
 }
 
 template <int DIM, typename T, typename Args>
 __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-  gpu_clip_inplace(const Args args)
+  gpu_clip_inplace(const Args args, const bool dense)
 {
   const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (idx >= args.volume) return;
-  const Legion::Point<DIM> point = args.pitches.unflatten(idx, args.rect.lo);
   ClipOperation<T> func;
-  args.inout[point] = func(args.inout[point], args.min, args.max);
+  if (dense) {
+    args.inoutptr[idx] = func(args.inoutptr[idx], args.min, args.max);
+  } else {
+    const Legion::Point<DIM> point = args.pitches.unflatten(idx, args.rect.lo);
+    args.inout[point]              = func(args.inout[point], args.min, args.max);
+  }
 }
 #endif
 
@@ -145,10 +154,10 @@ class ClipTask : public PointTask<ClipTask<T>> {
                            LegateDeserializer& derez)
   {
     DeserializedArgs<DIM> args;
-    args.deserialize(derez, task, regions);
+    const bool dense = args.deserialize(derez, task, regions);
     if (args.volume == 0) return;
     const size_t blocks = (args.volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-    gpu_clip<DIM, T, DeserializedArgs<DIM>><<<blocks, THREADS_PER_BLOCK>>>(args);
+    gpu_clip<DIM, T, DeserializedArgs<DIM>><<<blocks, THREADS_PER_BLOCK>>>(args, dense);
   }
 #elif defined(LEGATE_USE_CUDA)
   template <int DIM>
@@ -243,10 +252,10 @@ class ClipInplace : public PointTask<ClipInplace<T>> {
                            LegateDeserializer& derez)
   {
     DeserializedArgs<DIM> args;
-    args.deserialize(derez, task, regions);
+    const bool dense = args.deserialize(derez, task, regions);
     if (args.volume == 0) return;
     const size_t blocks = (args.volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-    gpu_clip_inplace<DIM, T, DeserializedArgs<DIM>><<<blocks, THREADS_PER_BLOCK>>>(args);
+    gpu_clip_inplace<DIM, T, DeserializedArgs<DIM>><<<blocks, THREADS_PER_BLOCK>>>(args, dense);
   }
 #elif defined(LEGATE_USE_CUDA)
   template <int DIM>
