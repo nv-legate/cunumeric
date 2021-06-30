@@ -89,4 +89,10 @@ class UntypedScalar {
 void deserialize(Deserializer &ctx, UntypedScalar &scalar);
 
 }  // namespace numpy
+
+template <>
+struct ReturnSize<numpy::UntypedScalar> {
+  static constexpr int32_t value = sizeof(complex<double>) + 8;
+};
+
 }  // namespace legate
