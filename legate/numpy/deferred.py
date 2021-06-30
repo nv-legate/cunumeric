@@ -477,6 +477,19 @@ class DeferredArray(NumPyThunk):
             scalar=False,
         )
 
+    def _broadcast(self, shape):
+        result = self.base
+        diff = len(shape) - result.ndim
+        for dim in range(diff):
+            result = result.promote(dim, shape[dim])
+
+        for dim in range(shape.ndim):
+            if result.shape[dim] != shape[dim]:
+                assert result.shape[dim] == 1
+                result = result.project(dim, 0).promote(dim, shape[dim])
+
+        return result
+
     def get_item(self, key, stacklevel, view=None, dim_map=None):
         assert self.size > 1
         # Check to see if this is advanced indexing or not
@@ -1498,8 +1511,8 @@ class DeferredArray(NumPyThunk):
         self, op_code, src1, src2, where, args, stacklevel=0, callsite=None
     ):
         lhs = self.base
-        rhs1 = src1.base.broadcast(lhs.shape)
-        rhs2 = src2.base.broadcast(lhs.shape)
+        rhs1 = src1._broadcast(lhs.shape)
+        rhs2 = src2._broadcast(lhs.shape)
 
         # Populate the Legate launcher
         all_scalar_rhs = rhs1.scalar and rhs2.scalar
@@ -1533,8 +1546,8 @@ class DeferredArray(NumPyThunk):
         assert lhs.scalar
 
         if broadcast is not None:
-            rhs1 = rhs1.broadcast(broadcast)
-            rhs2 = rhs2.broadcast(broadcast)
+            rhs1 = rhs1._broadcast(broadcast)
+            rhs2 = rhs2._broadcast(broadcast)
 
         # Populate the Legate launcher
         all_scalar_rhs = rhs1.scalar and rhs2.scalar
@@ -1565,9 +1578,9 @@ class DeferredArray(NumPyThunk):
     @shadow_debug("where", [1, 2, 3])
     def where(self, src1, src2, src3, stacklevel=0, callsite=None):
         lhs = self.base
-        rhs1 = src1.base.broadcast(lhs.shape)
-        rhs2 = src2.base.broadcast(lhs.shape)
-        rhs3 = src3.base.broadcast(lhs.shape)
+        rhs1 = src1._broadcast(lhs.shape)
+        rhs2 = src2._broadcast(lhs.shape)
+        rhs3 = src3._broadcast(lhs.shape)
 
         # Populate the Legate launcher
         all_scalar_rhs = rhs1.scalar and rhs2.scalar and rhs3.scalar
