@@ -862,6 +862,7 @@ class DeferredArray(NumPyThunk):
         task = self.context.create_task(task_id)
         task.add_output(lhs)
         task.add_input(rhs)
+        task.add_dtype_arg(lhs_array.dtype)
 
         task.add_alignment(lhs, rhs)
 

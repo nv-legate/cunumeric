@@ -61,10 +61,10 @@ struct SourceTypeDispatch {
 {
   Deserializer ctx(task, regions);
 
-  LegateTypeCode dtype;
   Array in;
-  deserialize(ctx, dtype);
+  LegateTypeCode dtype;
   deserialize(ctx, in);
+  deserialize(ctx, dtype);
 
   return type_dispatch(in.code(), SourceTypeDispatch{}, dtype, in.scalar<UntypedScalar>());
 }
