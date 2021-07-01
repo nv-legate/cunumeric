@@ -1389,8 +1389,11 @@ void NumPyMapper::map_copy(const MapperContext ctx,
     if (!local_gpus.empty() || !local_omps.empty()) {
       const ShardingID sid          = select_sharding_functor(copy);
       NumPyShardingFunctor* functor = find_sharding_functor(sid);
+      Domain sharding_domain        = copy.index_domain;
+      if (copy.sharding_space.exists())
+        sharding_domain = runtime->get_index_space_domain(ctx, copy.sharding_space);
       const unsigned local_index =
-        functor->localize(copy.index_point, copy.index_domain, total_nodes, local_node);
+        functor->localize(copy.index_point, sharding_domain, total_nodes, local_node);
       if (!local_gpus.empty()) {
         const Processor proc = local_gpus[local_index % local_gpus.size()];
         target_memory        = local_frame_buffers[proc];
