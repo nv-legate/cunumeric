@@ -876,7 +876,7 @@ class DeferredArray(NumPyThunk):
     def _fill(self, value, stacklevel=0, callsite=None):
         if self.size == 1:
             # Handle the 0D case special
-            self.base.set_storage(value)
+            self.base.set_storage(value.storage)
         else:
             assert self.base is not None
             dtype = self.dtype
