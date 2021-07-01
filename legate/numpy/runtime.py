@@ -42,7 +42,7 @@ from .deferred import DeferredArray
 from .eager import EagerArray
 from .lazy import LazyArray
 from .thunk import NumPyThunk
-from .utils import calculate_volume, get_arg_value_dtype
+from .utils import calculate_volume, get_arg_dtype, get_arg_value_dtype
 
 
 class Callsite(object):
@@ -238,6 +238,15 @@ class Runtime(object):
         type_system = self.legate_context.type_system
         for numpy_type, core_type in _supported_dtypes.items():
             type_system.make_alias(np.dtype(numpy_type), core_type)
+
+    def get_arg_dtype(self, value_dtype):
+        arg_dtype = get_arg_dtype(value_dtype)
+        type_system = self.legate_context.type_system
+        if arg_dtype not in type_system:
+            # We assign T's type code to Argval<T>
+            code = type_system[value_dtype].code
+            type_system.add_type(arg_dtype, arg_dtype.itemsize, code)
+        return arg_dtype
 
     def destroy(self):
         assert not self.destroyed

@@ -23,7 +23,7 @@ from legate.core.launcher import Broadcast, Partition
 
 from .config import *  # noqa F403
 from .thunk import NumPyThunk
-from .utils import get_arg_dtype, get_arg_value_dtype
+from .utils import get_arg_value_dtype
 
 
 def _maybe_apply(f, v, *args, **kwargs):
@@ -1427,7 +1427,7 @@ class DeferredArray(NumPyThunk):
             argred = op in (UnaryRedCode.ARGMAX, UnaryRedCode.ARGMIN)
 
             if argred:
-                argred_dtype = get_arg_dtype(rhs_array.dtype)
+                argred_dtype = self.runtime.get_arg_dtype(rhs_array.dtype)
                 lhs_array = self.runtime.create_empty_thunk(
                     lhs_array.shape,
                     dtype=argred_dtype,
@@ -1487,8 +1487,8 @@ class DeferredArray(NumPyThunk):
                     lhs_array,
                     True,
                     [],
-                    stacklevel + 1,
-                    callsite,
+                    stacklevel=stacklevel + 1,
+                    callsite=callsite,
                 )
 
     # Perform the binary operation and put the result in the lhs array
