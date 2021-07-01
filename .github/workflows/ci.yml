@@ -1,4 +1,4 @@
-name: Build legate.core
+name: Build legate.numpy
 on: 
   push:
     branches-ignore:
@@ -9,6 +9,8 @@ on:
 env:
   COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
   PROJECT: github-numpy-ci
+  # Prevent output buffering
+  PYTHONUNBUFFERED: 1
 jobs:
   build:
     runs-on: self-hosted
@@ -16,10 +18,8 @@ jobs:
       - name: Run CI build
         run: |
           /data/github-runner/legate-bin/setup.sh
-          cd legate-ci
-          cd github-ci/
-          cd legate.numpy
-          rm -rf ngc-artifacts
+          cd legate-ci/github-ci/legate.numpy
+          rm -rf ngc-artifacts || true
           ./build.sh > ${COMMIT}-build.log 2>&1
           cat *artifacts/*/*
       - name: Upload Build Log
@@ -27,28 +27,45 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: build-log
-          path: ./**/*build.log.gpg
+          path: ./**/${{ env.COMMIT }}-build.log.gpg
   test:
     runs-on: self-hosted
     needs: build
+    strategy: 
+      fail-fast: false
+      matrix:
+        include:
+          - {name: 1 CPU test, options: --cpus 1, log: cpu}
+          - {name: 2 CPUs test, options: --cpus 2, log: cpus}
+          - {name: GPU test, options: --use cuda --gpus 1, log: gpu}
+          - {name: 2 GPUs test, options: --use cuda --gpus 2, log: gpus}
+          - {name: OpenMP test, options: --use openmp --omps 1 --ompthreads 2, log: omp}
+          - {name: 2 OpenMPs test, options: --use openmp --omps 2 --ompthreads 2, log: omps}
+    name: ${{ matrix.name }}
     steps:
-      - name: Run CI tests
+      - name: Prepare
         run: |
           /data/github-runner/legate-bin/setup.sh
-          cd legate-ci
-          cd github-ci/
-          cd legate.numpy
+          cd legate-ci/github-ci/legate.numpy
           if [[ ! -d ngc-artifacts ]]
           then
             mkdir ngc-artifacts
           else
             rm -rf ngc-artifacts/*
           fi
-          ./test.sh > ${COMMIT}-test.log 2>&1
+      - name: Test
+        run: |
+          cd legate-ci/github-ci/legate.numpy
+          ./test.sh ${{ matrix.options }} -j 1 > ${COMMIT}-test-${{ matrix.log }}.log 2>&1
+      - name: Process output
+        if: always()
+        run: |
+          cd legate-ci/github-ci/legate.numpy
+          /data/github-runner/legate-bin/encrypt.sh ${COMMIT}-test-${{ matrix.log }}.log
           cat *artifacts/*/*
-      - name: Upload Build Log
+      - name: Upload Log
         if: always()
         uses: actions/upload-artifact@v2
         with:
-          name: build-log
-          path: ./**/*build.log.gpg
+          name: test-${{ matrix.log }}-log
+          path: ./**/${{ env.COMMIT }}-test-${{ matrix.log }}.log.gpg
