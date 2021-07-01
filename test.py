@@ -392,7 +392,7 @@ def run_tests(
     env = dict(
         list(os.environ.items())
         + [
-            ("NUMPY_TEST", "1"),
+            ("LEGATE_TEST", "1"),
             ("DEBUG", "1" if debug else "0"),
             ("USE_GASNET", "1" if use_gasnet else "0"),
             ("USE_CUDA", "1" if use_cuda else "0"),
