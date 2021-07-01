@@ -465,7 +465,9 @@ class DeferredArray(NumPyThunk):
             elif isinstance(k, slice):
                 store = store.slice(dim + shift, k)
             elif np.isscalar(k):
-                store = store.project(dim, k)
+                if k < 0:
+                    k += store.shape[dim + shift]
+                store = store.project(dim + shift, k)
                 shift -= 1
             else:
                 assert False
