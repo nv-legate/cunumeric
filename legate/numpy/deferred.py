@@ -125,6 +125,7 @@ def shadow_debug(func_name, indices, keys=[]):
                     continue
                 shadow_kwargs[key] = v.shadow
 
+            assert self.shadow.shadow
             getattr(self.shadow, func_name)(*shadow_args, **shadow_kwargs)
             self.runtime.check_shadow(self, func_name)
 
@@ -1263,47 +1264,33 @@ class DeferredArray(NumPyThunk):
             assert src_array.shape == weight_array.shape or (
                 src_array.size == 1 and weight_array.size == 1
             )
-
-        # We broadcast the reduction output
-        dst_arg = DeferredArrayView(dst_array, proj_id=None)
-        src_arg = DeferredArrayView(src_array)
-        weight_arg = _maybe_apply(DeferredArrayView, weight_array)
-
-        launch_space = src_arg.compute_launch_space()
-        needs_reduction = launch_space is not None
-
-        if needs_reduction and weight_arg is not None:
-            weight_arg = weight_arg.align_partition(src_arg)
+        else:
+            weight_array = self.runtime.create_scalar(
+                np.array(1, dtype=np.int64),
+                np.dtype(np.int64),
+                shape=(),
+                wrap=True,
+            )
 
         dst_array.fill(
-            np.array(0, dst_arg.dtype), stacklevel + 1, callsite=callsite
+            np.array(0, dst_array.dtype),
+            stacklevel=stacklevel + 1,
+            callsite=callsite,
         )
 
-        task = Task(self.context, NumPyOpCode.BINCOUNT)
-        task.add_scalar_arg(needs_reduction, bool)
-        task.add_scalar_arg(weight_arg is not None, bool)
+        redop = self.runtime.get_unary_reduction_op_id(
+            UnaryRedCode.SUM,
+            dst_array.dtype,
+        )
 
-        if launch_space is not None:
-            task.add_shape(src_arg.shape, src_arg.part.tile_shape, 0)
-        else:
-            task.add_shape(src_arg.shape)
+        task = self.context.create_task(NumPyOpCode.BINCOUNT)
+        task.add_reduction(dst_array.base, redop)
+        task.add_input(src_array.base)
+        task.add_input(weight_array.base)
 
-        if needs_reduction:
-            redop = self.runtime.get_unary_reduction_op_id(
-                UnaryRedCode.SUM,
-                dst_arg.dtype,
-            )
-            dst_arg.add_to_legate_op(task, False, redop=redop)
-        else:
-            dst_arg.add_to_legate_op(task, False, read_write=True)
-        src_arg.add_to_legate_op(task, True)
-        if weight_arg is not None:
-            weight_arg.add_to_legate_op(task, True)
+        task.add_broadcast(dst_array.base)
 
-        if launch_space is not None:
-            task.execute(Rect(launch_space))
-        else:
-            task.execute_single()
+        task.execute()
 
     def count_nonzero(self, stacklevel, axis):
         # Handle the case in which we have a future

@@ -644,7 +644,7 @@ class Runtime(object):
                 )
             # If we're doing shadow debug make an EagerArray shadow
             if self.shadow_debug:
-                result.shadow = EagerArray(self, array.copy())
+                result.shadow = EagerArray(self, array.copy(), shadow=True)
         else:
             assert not defer
             # Make this into an eager evaluated thunk
@@ -667,7 +667,11 @@ class Runtime(object):
             )
             # If we're doing shadow debug make an EagerArray shadow
             if self.shadow_debug:
-                result.shadow = EagerArray(self, np.empty(shape, dtype=dtype))
+                result.shadow = EagerArray(
+                    self,
+                    np.empty(shape, dtype=dtype),
+                    shadow=True,
+                )
             return result
         else:
             return EagerArray(self, np.empty(shape, dtype=dtype))

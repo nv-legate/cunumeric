@@ -38,18 +38,6 @@ struct BincountImplBody<VariantKind::CPU, CODE> {
     }
   }
 
-  void operator()(const AccessorRW<int64_t, 1> &lhs,
-                  const AccessorRO<VAL, 1> &rhs,
-                  const Rect<1> &rect,
-                  const Rect<1> &lhs_rect) const
-  {
-    for (size_t idx = rect.lo[0]; idx <= rect.hi[0]; ++idx) {
-      auto value = rhs[idx];
-      assert(lhs_rect.contains(value));
-      lhs[value] += 1;
-    }
-  }
-
   void operator()(AccessorRD<SumReduction<double>, true, 1> lhs,
                   const AccessorRO<VAL, 1> &rhs,
                   const AccessorRO<double, 1> &weights,
@@ -62,29 +50,13 @@ struct BincountImplBody<VariantKind::CPU, CODE> {
       lhs.reduce(value, weights[idx]);
     }
   }
-
-  void operator()(const AccessorRW<double, 1> &lhs,
-                  const AccessorRO<VAL, 1> &rhs,
-                  const AccessorRO<double, 1> &weights,
-                  const Rect<1> &rect,
-                  const Rect<1> &lhs_rect) const
-  {
-    for (size_t idx = rect.lo[0]; idx <= rect.hi[0]; ++idx) {
-      auto value = rhs[idx];
-      assert(lhs_rect.contains(value));
-      lhs[value] += weights[idx];
-    }
-  }
 };
 
 void deserialize(Deserializer &ctx, BincountArgs &args)
 {
-  deserialize(ctx, args.needs_reduction);
-  deserialize(ctx, args.has_weights);
-  deserialize(ctx, args.shape);
-  deserialize(ctx, args.lhs);
   deserialize(ctx, args.rhs);
-  if (args.has_weights) deserialize(ctx, args.weights);
+  deserialize(ctx, args.weights);
+  deserialize(ctx, args.lhs);
 }
 
 /*static*/ void BincountTask::cpu_variant(const Task *task,

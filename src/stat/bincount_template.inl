@@ -33,30 +33,20 @@ struct BincountImpl {
   {
     using VAL = legate_type_of<CODE>;
 
-    auto rect     = args.shape.to_rect<1>();
+    auto rect     = args.rhs.shape<1>();
     auto lhs_rect = args.lhs.shape<1>();
     if (rect.empty()) return;
 
     auto rhs = args.rhs.read_accessor<VAL, 1>(rect);
-    if (args.has_weights) {
+    if (args.weights.dim() == 1) {
       auto weights = args.weights.read_accessor<double, 1>(rect);
-      if (args.needs_reduction) {
-        auto lhs =
-          args.lhs.reduce_accessor<SumReduction<double>, KIND != VariantKind::GPU, 1>(lhs_rect);
-        BincountImplBody<KIND, CODE>()(lhs, rhs, weights, rect, lhs_rect);
-      } else {
-        auto lhs = args.lhs.read_write_accessor<double, 1>(lhs_rect);
-        BincountImplBody<KIND, CODE>()(lhs, rhs, weights, rect, lhs_rect);
-      }
+      auto lhs =
+        args.lhs.reduce_accessor<SumReduction<double>, KIND != VariantKind::GPU, 1>(lhs_rect);
+      BincountImplBody<KIND, CODE>()(lhs, rhs, weights, rect, lhs_rect);
     } else {
-      if (args.needs_reduction) {
-        auto lhs =
-          args.lhs.reduce_accessor<SumReduction<int64_t>, KIND != VariantKind::GPU, 1>(lhs_rect);
-        BincountImplBody<KIND, CODE>()(lhs, rhs, rect, lhs_rect);
-      } else {
-        auto lhs = args.lhs.read_write_accessor<int64_t, 1>(lhs_rect);
-        BincountImplBody<KIND, CODE>()(lhs, rhs, rect, lhs_rect);
-      }
+      auto lhs =
+        args.lhs.reduce_accessor<SumReduction<int64_t>, KIND != VariantKind::GPU, 1>(lhs_rect);
+      BincountImplBody<KIND, CODE>()(lhs, rhs, rect, lhs_rect);
     }
   }
 
