@@ -20,7 +20,8 @@ import legate.numpy as lg
 
 def test():
     anp = np.arange(100).reshape(10, 10)
-    a = lg.array(anp)
+    a = lg.arange(100).reshape((10, 10))
+    assert np.array_equal(anp, a)
 
     bnp = np.reshape(anp, (10, 5, 2))
     b = lg.reshape(a, (10, 5, 2))

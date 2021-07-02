@@ -538,40 +538,32 @@ class DeferredArray(NumPyThunk):
 
     def reshape(self, newshape, order, stacklevel):
         assert isinstance(newshape, tuple)
-        # Check to see if we can make an affine mapping that maps points
-        # in the new shape into points in the old shape
-        transform = None
-        if len(newshape) >= self.ndim:
-            if order == "C" or order == "A":
-                # See if we can group the dimensions from right to left
-                # in a way that creates dimensions in the old shape
-                # TODO: there are better ways to do this with prime
-                # factorization so we can handle weird splits between
-                # dimensions
-                transform = Transform(self.ndim, len(newshape), False)
-                dim = len(newshape) - 1
-                for idx in range(self.ndim - 1, -1, -1):
-                    stride = 1
-                    current_dim = self.shape[idx]
-                    while stride < current_dim:
-                        assert dim >= 0
-                        if stride * newshape[dim] <= current_dim:
-                            if newshape[dim] > 1:
-                                transform.trans[idx][dim] = stride
-                                stride *= newshape[dim]
-                            dim -= 1
-                        else:
-                            # We failed, so we're done
-                            transform = None
-                            break
-                    if transform is None:
+        # Check to see if we can convert the store make to match the new shape
+        # using domain transformations
+        result = self.base
+        if order == "C" or order == "A":
+            new_dim = 0
+            for old_dim, dim_size in enumerate(self.shape):
+                if dim_size == newshape[new_dim]:
+                    new_dim += 1
+                else:
+                    size = 1
+                    i = 0
+                    while size < dim_size:
+                        size *= newshape[new_dim + i]
+                        i += 1
+                    if size != dim_size:
+                        result = None
                         break
-            if order == "F" or (order == "A" and transform is None):
-                # See if we can group the dimensions from left to right in
-                # a way that creates dimensions in the old shape
-                # TODO; think about how this interoperates with partitioning
-                pass
-        if transform is None:
+                    else:
+                        result = result.delinearize(
+                            old_dim,
+                            newshape[new_dim : new_dim + i],
+                        )
+        else:
+            result = None
+
+        if result is None:
             # If we don't have a transform then we need to make a copy
             warnings.warn(
                 "legate.numpy has not implemented reshape/ravel for newshape "
@@ -589,11 +581,8 @@ class DeferredArray(NumPyThunk):
                 result_array, stacklevel=(stacklevel + 1)
             )
         else:
-            # If we have a transform then we can make a view
-            affine_transform = AffineTransform(self.ndim, len(newshape), False)
-            affine_transform.trans = transform.trans
-            result = self.runtime.create_transform_view(
-                self.base, newshape, affine_transform
+            result = DeferredArray(
+                self.runtime, result, result.shape, self.dtype, self.scalar
             )
         if self.runtime.shadow_debug:
             result.shadow = self.shadow.reshape(
