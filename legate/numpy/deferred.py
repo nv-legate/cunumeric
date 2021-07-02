@@ -634,32 +634,25 @@ class DeferredArray(NumPyThunk):
             )
         return result
 
-    def swapaxes(self, axis1, axis2, stacklevel):
-        if self.size == 1:
+    def swapaxes(self, axis1, axis2, stacklevel=0):
+        if self.size == 1 or axis1 == axis2:
             return self
         # Make a new deferred array object and swap the results
         assert axis1 < self.ndim and axis2 < self.ndim
-        # Create a new shape and transform for the region field object
-        new_shape = ()
-        for idx in range(self.ndim):
-            if idx == axis1:
-                new_shape = new_shape + (self.shape[axis2],)
-            elif idx == axis2:
-                new_shape = new_shape + (self.shape[axis1],)
-            else:
-                new_shape = new_shape + (self.shape[idx],)
-        transform = AffineTransform(self.ndim, self.ndim, True)
-        transform.transform[axis1, axis1] = 0
-        transform.transform[axis2, axis2] = 0
-        transform.transform[axis1, axis2] = 1
-        transform.transform[axis2, axis1] = 1
-        result = self.runtime.create_transform_view(
-            self.base, new_shape, transform
+
+        dims = list(range(self.ndim))
+        dims[axis1], dims[axis2] = dims[axis2], dims[axis1]
+
+        result = self.base.transpose(dims)
+        result = DeferredArray(
+            self.runtime, result, result.shape, self.dtype, False
         )
+
         if self.runtime.shadow_debug:
             result.shadow = self.shadow.swapaxes(
-                axis1, axis2, stacklevel=(stacklevel + 1)
+                axis1, axis2, stacklevel=stacklevel + 1
             )
+
         return result
 
     # Convert the source array to the destination array
@@ -1141,9 +1134,9 @@ class DeferredArray(NumPyThunk):
         self, op, op_dtype, src, where, args, stacklevel=0, callsite=None
     ):
         lhs = self.base
-        rhs = src.base
+        rhs = src._broadcast(lhs.shape)
 
-        if rhs.scalar:
+        if lhs.scalar:
             task_id = NumPyOpCode.SCALAR_UNARY_OP
         else:
             task_id = NumPyOpCode.UNARY_OP
