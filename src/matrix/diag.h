@@ -25,11 +25,8 @@ namespace numpy {
 
 struct DiagArgs {
   bool extract;
-  bool needs_reduction;
-  int32_t k;
-  Shape shape;
-  Array out;
-  Array in;
+  Array matrix;
+  Array diag;
 };
 
 void deserialize(Deserializer& ctx, DiagArgs& args);

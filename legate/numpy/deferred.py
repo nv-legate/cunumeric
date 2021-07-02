@@ -19,7 +19,6 @@ import numpy as np
 
 import legate.core.types as ty
 from legate.core import *  # noqa F403
-from legate.core.launcher import Broadcast, Partition
 
 from .config import *  # noqa F403
 from .thunk import NumPyThunk
@@ -134,178 +133,6 @@ def shadow_debug(func_name, indices, keys=[]):
         return wrapper
 
     return decorator
-
-
-class DeferredArrayView(object):
-    def __init__(
-        self,
-        array,
-        transform=None,
-        offset=None,
-        part=None,
-        proj_id=0,
-        tag=0,
-        dtype=None,
-    ):
-        self._array = array
-        self._context = array.context
-        self._transform = transform
-        self._offset = offset
-        self._part = part
-        self._proj_id = proj_id
-        self._tag = tag
-        self._dtype = dtype
-
-    @property
-    def scalar(self):
-        return self._array.scalar
-
-    @property
-    def shape(self):
-        return self._array.shape
-
-    @property
-    def size(self):
-        return self._array.size
-
-    @property
-    def dtype(self):
-        if self._dtype is None:
-            self._dtype = self._array.dtype
-        return self._dtype
-
-    @property
-    def ndim(self):
-        return self._array.ndim
-
-    @property
-    def part(self):
-        assert not self.scalar
-        if self._part is None:
-            self._part = self._array.base.find_or_create_key_partition()
-        return self._part
-
-    def update_tag(self, tag):
-        self._tag = tag
-
-    def copy_key_partition_from(self, src):
-        if self.scalar:
-            return
-        else:
-            src_part = src._array.base.find_or_create_key_partition()
-            part = self._array.base.find_or_create_congruent_partition(
-                src_part
-            )
-            self._array.base.set_key_partition(part)
-
-    def compute_projection(self, redop):
-        if self._proj_id is None:
-            return Broadcast(redop=redop)
-        else:
-            return Partition(self.part, self._proj_id, redop=redop)
-
-    def add_to_legate_op(self, op, read_only, read_write=False, redop=None):
-        op.add_scalar_arg(self.scalar, bool)
-        dim = self.ndim if self._transform is None else self._transform.N
-        op.add_scalar_arg(dim, np.int32)
-        op.add_dtype_arg(self.dtype)
-        if self.scalar:
-            if not read_only:
-                raise ValueError("Singleton arrays must be read only")
-            op.add_future(self._array.base)
-        else:
-            if redop is None:
-                if read_write:
-                    add = op.add_inout
-                else:
-                    add = op.add_input if read_only else op.add_output
-            else:
-                assert not read_only
-                add = op.add_reduction
-            add(
-                self._array,
-                _combine_transforms(
-                    self._array.base.transform, self._transform
-                ),
-                self.compute_projection(redop),
-                tag=self._tag,
-            )
-
-    def compute_launch_space(self):
-        if self.scalar:
-            return None
-        else:
-            return self._array.base.compute_parallel_launch_space()
-
-    @property
-    def has_launch_space(self):
-        if self.scalar:
-            return False
-        else:
-            return self._array.base.has_parallel_launch_space()
-
-    def find_key_view(self, *views, shape=None):
-        if self.has_launch_space:
-            return self.compute_launch_space(), self
-
-        shape = self.shape if shape is None else shape
-        views = list(filter(lambda v: v.shape == shape, [*views, self]))
-        assert len(views) > 0
-
-        for view in views:
-            launch_space = view.compute_launch_space()
-            if launch_space is not None:
-                return launch_space, view
-
-        # If we're here, we haven't found any partitioned region field
-        # to use as the key
-        return None, views[0]
-
-    def broadcast(self, to_align):
-        if self.scalar:
-            return self
-        else:
-            if self is to_align:
-                return self
-            if not isinstance(to_align, tuple):
-                assert isinstance(to_align, DeferredArrayView)
-                to_align = to_align._array.shape
-            (
-                transform,
-                offset,
-                proj_id,
-                mapping_tag,
-            ) = self._array.runtime.compute_broadcast_transform(
-                to_align, self._array.shape
-            )
-            new_view = DeferredArrayView(
-                self._array,
-                transform,
-                offset,
-                self._part,
-                proj_id,
-                mapping_tag,
-                self._dtype,
-            )
-            return new_view
-
-    def align_partition(self, key):
-        if self is key or self.scalar:
-            return self
-        else:
-            new_part = self._array.base.find_or_create_congruent_partition(
-                key.part, self._transform, self._offset
-            )
-            new_view = DeferredArrayView(
-                self._array,
-                self._transform,
-                self._offset,
-                new_part,
-                self._proj_id,
-                self._tag,
-                self._dtype,
-            )
-            return new_view
 
 
 class DeferredArray(NumPyThunk):
@@ -1069,104 +896,49 @@ class DeferredArray(NumPyThunk):
         )
         assert rhs.dtype == self.dtype
 
-        launch_space = matrix_array.base.compute_parallel_launch_space()
-
-        if launch_space is not None:
-            # Find a partition for diagonal,
-            # partition on the smaller tile size since that represents the
-            # upper bound on the number of elements needed
-            matrix_part = matrix_array.base.find_or_create_key_partition()
-
-            if matrix_array.shape[0] < matrix_array.shape[1]:
-                collapse_dim = 1
-                color_space = (launch_space[0],)
-                tile_shape = (matrix_part.tile_shape[0],)
-                offset = (k if k < 0 else 0,)
-                proj = self.context.runtime.get_projection(2, 1, [True, False])
-            else:
-                collapse_dim = 0
-                color_space = (launch_space[1],)
-                tile_shape = (matrix_part.tile_shape[1],)
-                offset = (-k if k > 0 else 0,)
-                proj = self.context.runtime.get_projection(2, 1, [False, True])
-
-            diag_part = diag_array.base.find_or_create_partition(
-                color_space,
-                tile_shape,
-                offset,
-            )
-            diag_proj = proj
-
-            matrix_arg = DeferredArrayView(matrix_array, part=matrix_part)
-            diag_arg = DeferredArrayView(
-                diag_array, part=diag_part, proj_id=diag_proj
-            )
-        else:
-            matrix_arg = DeferredArrayView(matrix_array)
-            diag_arg = DeferredArrayView(diag_array)
-
-        matrix_arg.update_tag(NumPyMappingTag.KEY_REGION_TAG)
-        if not extract:
-            diag_arg.update_tag(NumPyMappingTag.NO_MEMOIZE_TAG)
-
-        needs_reduction = (
-            extract
-            and launch_space is not None
-            and launch_space[collapse_dim] > 1
-        )
-
-        if needs_reduction:
-            # If we need reductions to extract the diagonal,
-            # we have to issue a fill operation to get the output initialized.
+        # Issue a fill operation to get the output initialized
+        if extract:
             diag_array.fill(
                 np.array(0, dtype=diag_array.dtype),
                 stacklevel=(stacklevel + 1),
             )
-        elif not extract:
-            # Before we populate the diagonal, we have to issue a fill
-            # operation to initialize the matrix with zeros
+        else:
             matrix_array.fill(
                 np.array(0, dtype=matrix_array.dtype),
                 stacklevel=(stacklevel + 1),
             )
 
-        task = Task(self.context, NumPyOpCode.DIAG)
-        task.add_scalar_arg(extract, bool)
-        task.add_scalar_arg(needs_reduction, bool)
-        task.add_scalar_arg(k, np.int32)
-        if launch_space is not None:
-            task.add_shape(matrix_arg.shape, matrix_arg.part.tile_shape, 0)
+        matrix = matrix_array.base
+        diag = diag_array.base
+
+        if k > 0:
+            matrix = matrix.slice(1, slice(k, None))
+        elif k < 0:
+            matrix = matrix.slice(0, slice(-k, None))
+
+        if matrix.shape[0] < matrix.shape[1]:
+            diag = diag.promote(1, matrix.shape[1])
         else:
-            task.add_shape(matrix_arg.shape)
+            diag = diag.promote(0, matrix.shape[0])
+
+        task = self.context.create_task(NumPyOpCode.DIAG)
 
         if extract:
-            if needs_reduction:
-                redop = self.runtime.get_unary_reduction_op_id(
-                    UnaryRedCode.SUM, diag_arg.dtype
-                )
-            else:
-                redop = None
-
-            diag_arg.add_to_legate_op(task, False, redop=redop)
-            matrix_arg.add_to_legate_op(task, True)
-        else:
-            matrix_arg.add_to_legate_op(task, False, read_write=True)
-            diag_arg.add_to_legate_op(task, True)
-
-        if launch_space is not None:
-            task.execute(Rect(launch_space))
-        else:
-            task.execute_single()
-
-        # See if we are doing shadow debugging
-        if self.runtime.shadow_debug:
-            self.shadow.diag(
-                rhs=rhs.shadow,
-                extract=extract,
-                k=k,
-                stacklevel=(stacklevel + 1),
+            redop = self.runtime.get_unary_reduction_op_id(
+                UnaryRedCode.SUM, diag_array.dtype
             )
-            self.runtime.check_shadow(self, "diag")
+            task.add_reduction(diag, redop)
+            task.add_input(matrix)
+        else:
+            task.add_output(matrix)
+            task.add_input(matrix)
+            task.add_input(diag)
+
+        task.add_scalar_arg(extract, bool)
+
+        task.add_alignment(matrix, diag)
+
+        task.execute()
 
     # Create an identity array with the ones offset from the diagonal by k
     @profile
