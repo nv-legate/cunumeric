@@ -283,7 +283,28 @@ class DeferredArray(NumPyThunk):
                 tuple_of_arrays[0], stacklevel=(stacklevel + 1)
             )
 
+    @staticmethod
+    def _unpack_ellipsis(key, ndim):
+        num_ellipsis = sum(k is Ellipsis for k in key)
+        num_newaxes = sum(k is np.newaxis for k in key)
+
+        if num_ellipsis == 0:
+            return key
+        elif num_ellipsis > 1:
+            raise ValueError("Only a single ellipsis must be present")
+
+        free_dims = ndim - (len(key) - num_newaxes - num_ellipsis)
+        to_replace = (slice(None),) * free_dims
+        unpacked = ()
+        for k in key:
+            if k is Ellipsis:
+                unpacked += to_replace
+            else:
+                unpacked += (k,)
+        return unpacked
+
     def _get_view(self, key):
+        key = self._unpack_ellipsis(key, self.ndim)
         store = self.base
         shift = 0
         for dim, k in enumerate(key):
