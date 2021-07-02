@@ -581,56 +581,30 @@ class DeferredArray(NumPyThunk):
         return result
 
     def squeeze(self, axis, stacklevel):
+        result = self.base
         if axis is None:
-            new_shape = ()
-            axis = ()
-            for idx in range(self.ndim):
-                if self.shape[idx] != 1:
-                    new_shape = new_shape + (self.shape[idx],)
-                else:
-                    # Record the dropped axis index
-                    axis = axis + (idx,)
+            shift = 0
+            for dim in range(self.ndim):
+                if result.shape[dim + shift] == 1:
+                    result = result.project(dim + shift, 0)
+                    shift -= 1
         elif isinstance(axis, int):
-            new_shape = ()
-            for idx in range(self.ndim):
-                if idx == axis:
-                    assert self.shape[idx] == 1
-                else:
-                    new_shape = new_shape + (self.shape[idx],)
-            # Convert to a tuple of dropped axes
-            axis = (axis,)
+            result = result.project(axis, 0)
         elif isinstance(axis, tuple):
-            new_shape = ()
-            for idx in range(self.ndim):
-                if idx in axis:
-                    assert self.shape[idx] == 1
-                else:
-                    new_shape = new_shape + (self.shape[idx],)
+            shift = 0
+            for dim in axis:
+                result = result.project(dim + shift, 0)
+                shift -= 1
         else:
             raise TypeError(
                 '"axis" argument for squeeze must be int-like or tuple-like'
             )
-        if not self.scalar:
-            # Make transform for the lost dimensions
-            transform = AffineTransform(self.ndim, len(new_shape), False)
-            child_idx = 0
-            for parent_idx in range(self.ndim):
-                # If this is a collapsed dimension then record it
-                if parent_idx not in axis:
-                    transform.trans[parent_idx, child_idx] = 1
-                    child_idx += 1
-            assert child_idx == len(new_shape)
-            result = self.runtime.create_transform_view(
-                self.base, new_shape, transform
-            )
-        else:
-            # Easy case of size 1 array, nothing to do
-            result = DeferredArray(
-                self.runtime, self.base, new_shape, self.dtype, True
-            )
+        result = DeferredArray(
+            self.runtime, result, result.shape, self.dtype, self.scalar
+        )
         if self.runtime.shadow_debug:
             result.shadow = self.shadow.squeeze(
-                axis, stacklevel=(stacklevel + 1)
+                axis, stacklevel=stacklevel + 1
             )
         return result
 
