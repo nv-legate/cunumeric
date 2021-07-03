@@ -856,7 +856,7 @@ bool NumPyMapper::map_numpy_array(const MapperContext ctx,
            it++) {
         // Remove the GC priority on the old instance
         runtime->set_garbage_collection_priority(ctx, infos.instances[*it].instance, 0);
-        infos.instances.erase(infos.instances.begin() + *it);
+        infos.erase(*it);
       }
       // Add the new entry
       const unsigned index = infos.instances.size();

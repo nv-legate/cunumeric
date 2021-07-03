@@ -109,24 +109,28 @@ class NumPyMapper : public Legion::Mapping::Mapper {
     }
     inline bool filter(const Legion::Mapping::PhysicalInstance& inst)
     {
-      for (unsigned idx = 0; idx < instances.size(); idx++) {
-        if (instances[idx].instance != inst) continue;
-        // We also need to update any of the other region mappings
-        for (std::map<Legion::LogicalRegion, unsigned>::iterator it = region_mapping.begin();
-             it != region_mapping.end();
-             /*nothing*/) {
-          if (it->second == idx) {
-            std::map<Legion::LogicalRegion, unsigned>::iterator to_delete = it++;
-            region_mapping.erase(to_delete);
-          } else {
-            if (it->second > idx) it->second--;
-            it++;
-          }
+      for (unsigned idx = 0; idx < instances.size(); idx++)
+        if (instances[idx].instance == inst) {
+          erase(idx);
+          break;
         }
-        instances.erase(instances.begin() + idx);
-        break;
-      }
       return instances.empty();
+    }
+    inline bool erase(unsigned idx)
+    {
+      // We also need to update any of the other region mappings
+      for (std::map<Legion::LogicalRegion, unsigned>::iterator it = region_mapping.begin();
+           it != region_mapping.end();
+           /*nothing*/) {
+        if (it->second == idx) {
+          std::map<Legion::LogicalRegion, unsigned>::iterator to_delete = it++;
+          region_mapping.erase(to_delete);
+        } else {
+          if (it->second > idx) it->second--;
+          it++;
+        }
+      }
+      instances.erase(instances.begin() + idx);
     }
 
    public:
