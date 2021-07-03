@@ -23,9 +23,17 @@ def test():
     a = lg.arange(100).reshape((10, 10))
     assert np.array_equal(anp, a)
 
-    bnp = np.reshape(anp, (10, 5, 2))
-    b = lg.reshape(a, (10, 5, 2))
-    assert np.array_equal(bnp, b)
+    for shape in [
+        (10, 5, 2),
+        (5, 2, 10),
+        (5, 2, 5, 2),
+        (10, 10, 1),
+        (10, 1, 10),
+        (1, 10, 10),
+    ]:
+        bnp = np.reshape(anp, shape)
+        b = lg.reshape(a, shape)
+        assert np.array_equal(bnp, b)
 
     cnp = np.reshape(anp, (100,))
     c = lg.reshape(a, (100,))

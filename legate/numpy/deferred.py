@@ -526,24 +526,26 @@ class DeferredArray(NumPyThunk):
         # using domain transformations
         result = self.base
         if order == "C" or order == "A":
-            new_dim = 0
-            for old_dim, dim_size in enumerate(self.shape):
-                if dim_size == newshape[new_dim]:
-                    new_dim += 1
-                else:
-                    size = 1
-                    i = 0
-                    while size < dim_size:
-                        size *= newshape[new_dim + i]
-                        i += 1
-                    if size != dim_size:
-                        result = None
-                        break
-                    else:
-                        result = result.delinearize(
-                            old_dim,
-                            newshape[new_dim : new_dim + i],
-                        )
+            out_dim = 0
+            for dim_size in self.shape:
+                size = 1
+                i = 0
+                while size < dim_size:
+                    size *= newshape[out_dim + i]
+                    i += 1
+                if size != dim_size:
+                    result = None
+                    break
+                elif i > 1:
+                    result = result.delinearize(
+                        out_dim,
+                        newshape[out_dim : out_dim + i],
+                    )
+                out_dim += i
+                while out_dim < len(newshape) and newshape[out_dim] == 1:
+                    result = result.promote(out_dim, 1)
+                    out_dim += 1
+
         else:
             result = None
 
