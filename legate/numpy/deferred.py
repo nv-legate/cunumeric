@@ -505,7 +505,7 @@ class DeferredArray(NumPyThunk):
                 # to the arr. Therefore, we skip the copy to avoid redundant
                 # copies if we know that we hit such a scenario.
                 # TODO: We should make this work for the advanced indexing case
-                if view.shape == rhs.shape and view.base == value_array.base:
+                if view.base == rhs.base:
                     return
 
                 if self.runtime.shadow_debug:
