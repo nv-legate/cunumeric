@@ -25,22 +25,6 @@ from .thunk import NumPyThunk
 from .utils import get_arg_value_dtype
 
 
-def _maybe_apply(f, v, *args, **kwargs):
-    if v is None:
-        return v
-    else:
-        return f(v, *args, **kwargs)
-
-
-def _combine_transforms(f, g):
-    if g is None:
-        return f
-    elif f is None:
-        return g
-    else:
-        return g.compose(f)
-
-
 def _complex_field_dtype(dtype):
     if dtype == np.complex64:
         return np.dtype(np.float32)

@@ -81,8 +81,6 @@ class Callsite(object):
         )
 
 
-_dim_names = np.array(["X", "Y", "Z", "W", "V", "U", "T", "S", "R"])
-
 _supported_dtypes = {
     np.bool_: ty.bool_,
     np.int8: ty.int8,
@@ -369,24 +367,6 @@ class Runtime(object):
         else:
             result = future
         return result
-
-    def find_or_create_view(self, parent, view, dim_map, shape):
-        region_field = parent.find_or_create_view(view, dim_map, shape)
-        return DeferredArray(
-            self, region_field, shape, parent.type, scalar=False
-        )
-
-    def create_transform_view(self, region_field, new_shape, transform):
-        region_field = self.legate_runtime.create_transform_view(
-            region_field, new_shape, transform
-        )
-        return DeferredArray(
-            self,
-            region_field,
-            new_shape,
-            region_field.field.dtype,
-            scalar=False,
-        )
 
     def set_next_random_epoch(self, epoch):
         self.current_random_epoch = epoch
@@ -780,79 +760,6 @@ class Runtime(object):
 
     def get_reduction_identity(self, op, dtype):
         return numpy_unary_reduction_identities[op](dtype)
-
-    def compute_broadcast_transform(self, output_shape, input_shape):
-        output_ndim = len(output_shape)
-        input_ndim = len(input_shape)
-
-        if output_ndim > 3:
-            raise NotImplementedError(
-                "Legate needs support for more than 3 dimensions"
-            )
-
-        if output_shape == input_shape or np.array(input_shape).prod() == 1:
-            return (None, None, 0, 0)
-
-        assert output_shape != input_shape
-        assert output_ndim >= input_ndim
-
-        diff = output_ndim - input_ndim
-        input_shape = np.array((0,) * diff + input_shape)
-        output_shape = np.array(output_shape)
-
-        mask = output_shape == input_shape
-        offset = np.zeros((input_ndim,), dtype=np.int64)
-        transform = np.zeros((input_ndim, output_ndim), dtype=np.int64)
-        for dim, flag in enumerate(mask):
-            if flag:
-                assert dim >= diff
-                transform[dim - diff, dim] = 1
-            elif dim >= diff:
-                offset[dim - diff] = 1
-
-        affine_transform = AffineTransform(input_ndim, output_ndim, False)
-        affine_transform.trans = transform
-        return (
-            affine_transform,
-            offset,
-            get_legate_runtime().get_projection(output_ndim, input_ndim, mask),
-            NumPyMappingTag.NO_MEMOIZE_TAG,
-        )
-
-    def get_reduction_transform(self, input_shape, axes, keepdims):
-        input_ndim = len(input_shape)
-        output_ndim = input_ndim - (0 if keepdims else len(axes))
-
-        assert output_ndim > 0
-
-        axes = set(axes)
-        input_shape = np.array(input_shape)
-        output_shape = np.array(
-            [
-                0 if dim in axes else input_shape[dim]
-                for dim in range(input_ndim)
-            ]
-        )
-
-        mask = output_shape == input_shape
-        transform = np.zeros((output_ndim, input_ndim), dtype=np.int64)
-        if keepdims:
-            for input_dim, flag in enumerate(mask):
-                if flag:
-                    transform[input_dim, input_dim] = 1
-        else:
-            for input_dim, (flag, output_dim) in enumerate(
-                zip(mask, mask.cumsum())
-            ):
-                if flag:
-                    transform[output_dim - 1, input_dim] = 1
-
-        affine_transform = AffineTransform(output_ndim, input_ndim, False)
-        affine_transform.trans = transform
-        return (
-            affine_transform,
-            get_legate_runtime().get_projection(input_ndim, output_ndim, mask),
-        )
 
     def check_shadow(self, thunk, op):
         assert thunk.shadow is not None
