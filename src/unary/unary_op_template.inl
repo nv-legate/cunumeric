@@ -38,7 +38,7 @@ struct UnaryOpImpl {
     using ARG = typename OP::T;
     using RES = std::result_of_t<OP(ARG)>;
 
-    auto rect = args.in.shape<DIM>();
+    auto rect = args.out.shape<DIM>().intersection(args.in.shape<DIM>());
 
     Pitches<DIM - 1> pitches;
     size_t volume = pitches.flatten(rect);
