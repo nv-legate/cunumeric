@@ -30,7 +30,7 @@ class EagerArray(NumPyThunk):
     """
 
     def __init__(self, runtime, array, parent=None, key=None, shadow=False):
-        NumPyThunk.__init__(self, runtime, array.shape, array.dtype)
+        NumPyThunk.__init__(self, runtime, array.dtype)
         self.array = array
         self.parent = parent
         self.children = None
@@ -44,6 +44,10 @@ class EagerArray(NumPyThunk):
         if self.deferred is None:
             self.to_deferred_array(stacklevel=2)
         return self.deferred.storage
+
+    @property
+    def shape(self):
+        return self.array.shape
 
     def __numpy_array__(self, stacklevel=0):
         if self.deferred is not None:

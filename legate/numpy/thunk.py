@@ -29,11 +29,10 @@ class NumPyThunk(object):
     :meta private:
     """
 
-    def __init__(self, runtime, shape, dtype):
+    def __init__(self, runtime, dtype):
         self.runtime = runtime
         self.context = runtime.legate_context
         self.legate_runtime = runtime.legate_runtime
-        self.shape = shape
         self.dtype = dtype
 
     # From Legate Store class

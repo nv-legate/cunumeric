@@ -354,14 +354,12 @@ class Runtime(object):
             assert all(extent == 1 for extent in shape)
             assert shape is not None
             store = self.legate_context.create_store(
-                shape,
                 dtype,
+                shape=shape,
                 storage=future,
                 optimize_scalar=True,
             )
-            result = DeferredArray(
-                self, store, shape=shape, dtype=dtype, scalar=True
-            )
+            result = DeferredArray(self, store, dtype=dtype, scalar=True)
             if self.shadow_debug:
                 result.shadow = EagerArray(self, np.array(array))
         else:
@@ -627,7 +625,6 @@ class Runtime(object):
                 result = DeferredArray(
                     self,
                     region_field,
-                    shape=array.shape,
                     dtype=array.dtype,
                     scalar=(array.size == 1),
                 )
@@ -648,12 +645,10 @@ class Runtime(object):
             self.is_eager_shape(shape) and self.are_all_eager_inputs(inputs)
         ):
             store = self.legate_context.create_store(
-                shape, dtype, optimize_scalar=True
+                dtype, shape=shape, optimize_scalar=True
             )
             scalar = store.kind == Future
-            result = DeferredArray(
-                self, store, shape=shape, dtype=dtype, scalar=scalar
-            )
+            result = DeferredArray(self, store, dtype=dtype, scalar=scalar)
             # If we're doing shadow debug make an EagerArray shadow
             if self.shadow_debug:
                 result.shadow = EagerArray(
@@ -664,6 +659,10 @@ class Runtime(object):
             return result
         else:
             return EagerArray(self, np.empty(shape, dtype=dtype))
+
+    def create_variable_size_thunk(self, dtype):
+        store = self.legate_context.create_store(dtype, variable_size=True)
+        return DeferredArray(self, store, dtype=dtype, scalar=False)
 
     def is_eager_shape(self, shape):
         volume = calculate_volume(shape)

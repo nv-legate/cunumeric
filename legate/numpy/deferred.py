@@ -127,8 +127,8 @@ class DeferredArray(NumPyThunk):
     :meta private:
     """
 
-    def __init__(self, runtime, base, shape, dtype, scalar):
-        NumPyThunk.__init__(self, runtime, shape, dtype)
+    def __init__(self, runtime, base, dtype, scalar):
+        NumPyThunk.__init__(self, runtime, dtype)
         assert base is not None
         assert isinstance(base, Store)
         self.base = base  # a Legate Store
@@ -140,6 +140,10 @@ class DeferredArray(NumPyThunk):
             return self.base
         else:
             return (self.base.region, self.base.field.field_id)
+
+    @property
+    def shape(self):
+        return tuple(self.base.shape)
 
     @property
     def ndim(self):
@@ -307,7 +311,6 @@ class DeferredArray(NumPyThunk):
         return DeferredArray(
             self.runtime,
             base=store,
-            shape=store.shape,
             dtype=self.dtype,
             scalar=False,
         )
@@ -568,7 +571,7 @@ class DeferredArray(NumPyThunk):
             )
         else:
             result = DeferredArray(
-                self.runtime, result, result.shape, self.dtype, self.scalar
+                self.runtime, result, self.dtype, self.scalar
             )
         if self.runtime.shadow_debug:
             result.shadow = self.shadow.reshape(
@@ -595,9 +598,7 @@ class DeferredArray(NumPyThunk):
             raise TypeError(
                 '"axis" argument for squeeze must be int-like or tuple-like'
             )
-        result = DeferredArray(
-            self.runtime, result, result.shape, self.dtype, self.scalar
-        )
+        result = DeferredArray(self.runtime, result, self.dtype, self.scalar)
         if self.runtime.shadow_debug:
             result.shadow = self.shadow.squeeze(
                 axis, stacklevel=stacklevel + 1
@@ -614,9 +615,7 @@ class DeferredArray(NumPyThunk):
         dims[axis1], dims[axis2] = dims[axis2], dims[axis1]
 
         result = self.base.transpose(dims)
-        result = DeferredArray(
-            self.runtime, result, result.shape, self.dtype, False
-        )
+        result = DeferredArray(self.runtime, result, self.dtype, False)
 
         if self.runtime.shadow_debug:
             result.shadow = self.shadow.swapaxes(
@@ -693,7 +692,7 @@ class DeferredArray(NumPyThunk):
         # so make a future result, this is immediate so no dependence
         value = self.runtime.create_scalar(numpy_array.data, self.dtype)
         store = self.context.create_store(
-            (1,), self.dtype, storage=value, optimize_scalar=True
+            self.dtype, shape=(1,), storage=value, optimize_scalar=True
         )
         self._fill(store, stacklevel=stacklevel + 1, callsite=callsite)
 
