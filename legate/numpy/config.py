@@ -128,6 +128,7 @@ class NumPyOpCode(IntEnum):
     RAND = legate_numpy.NUMPY_RAND
     ARANGE = legate_numpy.NUMPY_ARANGE
     TRANSPOSE = legate_numpy.NUMPY_TRANSPOSE
+    NONZERO = legate_numpy.NUMPY_NONZERO
 
 
 @unique

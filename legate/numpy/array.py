@@ -641,12 +641,9 @@ class ndarray(object):
                     ),
                 ) * ndim
         thunks = self._thunk.nonzero(stacklevel=stacklevel + 1)
-        result = ()
-        for thunk in thunks:
-            result += (
-                ndarray(shape=thunk.shape, thunk=thunk, dtype=thunk.dtype),
-            )
-        return result
+        return tuple(
+            ndarray(shape=thunk.shape, thunk=thunk) for thunk in thunks
+        )
 
     def __nonzero__(self):
         if self.size == 1:

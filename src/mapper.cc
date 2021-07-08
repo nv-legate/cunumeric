@@ -515,6 +515,8 @@ void NumPyMapper::map_task(const MapperContext ctx,
   }
   // Just put our target proc in the target processors for now
   output.target_procs.push_back(task.target_proc);
+  // Use the chosen target memory for all the output regions for now
+  for (auto& output_target : output.output_targets) output_target = target_memory;
 }
 
 //--------------------------------------------------------------------------

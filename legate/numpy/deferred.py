@@ -1047,8 +1047,20 @@ class DeferredArray(NumPyThunk):
             check_types=False,
         )
 
-    def nonzero(self, stacklevel, callsite=None):
-        raise NotImplementedError()
+    def nonzero(self, stacklevel=0, callsite=None):
+        results = tuple(
+            self.runtime.create_unbound_thunk(np.dtype(np.int64))
+            for _ in range(self.ndim)
+        )
+
+        task = self.context.create_task(NumPyOpCode.NONZERO)
+
+        task.add_input(self.base)
+        for result in results:
+            task.add_output(result.base)
+
+        task.execute()
+        return results
 
     @profile
     def random(self, gen_code, args, stacklevel=0, callsite=None):

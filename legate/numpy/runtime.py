@@ -660,8 +660,8 @@ class Runtime(object):
         else:
             return EagerArray(self, np.empty(shape, dtype=dtype))
 
-    def create_variable_size_thunk(self, dtype):
-        store = self.legate_context.create_store(dtype, variable_size=True)
+    def create_unbound_thunk(self, dtype):
+        store = self.legate_context.create_store(dtype, unbound=True)
         return DeferredArray(self, store, dtype=dtype, scalar=False)
 
     def is_eager_shape(self, shape):
