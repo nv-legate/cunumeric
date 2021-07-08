@@ -97,9 +97,8 @@ struct TransposeImplBody<VariantKind::CPU, CODE, 2> {
 
 void deserialize(Deserializer &ctx, TransposeArgs &args)
 {
-  deserialize(ctx, args.shape);
-  deserialize(ctx, args.out);
   deserialize(ctx, args.in);
+  deserialize(ctx, args.out);
 }
 
 /*static*/ void TransposeTask::cpu_variant(const Task *task,

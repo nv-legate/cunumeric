@@ -33,7 +33,7 @@ struct TransposeImpl {
   {
     using VAL = legate_type_of<CODE>;
 
-    const auto out_rect = args.shape.to_rect<2>();
+    const auto out_rect = args.out.shape<2>();
     if (out_rect.empty()) return;
     const Rect<2> in_rect(Point<2>(out_rect.lo[1], out_rect.lo[0]),
                           Point<2>(out_rect.hi[1], out_rect.hi[0]));

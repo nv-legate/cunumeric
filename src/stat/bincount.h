@@ -24,9 +24,6 @@ namespace legate {
 namespace numpy {
 
 struct BincountArgs {
-  bool needs_reduction;
-  bool has_weights;
-  Shape shape;
   Array lhs;
   Array rhs;
   Array weights;
