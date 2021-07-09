@@ -146,11 +146,11 @@ class NumPyMapper : public Legion::Mapping::Mapper {
               Legion::TaskID first,
               Legion::TaskID last,
               Legion::ShardingID init);
-  NumPyMapper(const NumPyMapper& rhs);
   virtual ~NumPyMapper(void);
 
- public:
-  NumPyMapper& operator=(const NumPyMapper& rhs);
+ private:
+  NumPyMapper(const NumPyMapper& rhs) = delete;
+  NumPyMapper& operator=(const NumPyMapper& rhs) = delete;
 
  protected:
   // Start-up methods
@@ -436,8 +436,6 @@ class NumPyMapper : public Legion::Mapping::Mapper {
   const unsigned min_cpu_chunk;
   const unsigned min_omp_chunk;
   const unsigned eager_fraction;
-  const unsigned field_reuse_frac;
-  const unsigned field_reuse_freq;
 
  protected:
   std::vector<Legion::Processor> local_cpus;

@@ -117,16 +117,8 @@ enum NumPyTag {
 
 // Match these to NumPyTunable in legate/numpy/config.py
 enum NumPyTunable {
-  NUMPY_TUNABLE_NUM_PIECES            = 1,
-  NUMPY_TUNABLE_NUM_GPUS              = 2,
-  NUMPY_TUNABLE_TOTAL_NODES           = 3,
-  NUMPY_TUNABLE_LOCAL_CPUS            = 4,
-  NUMPY_TUNABLE_LOCAL_GPUS            = 5,
-  NUMPY_TUNABLE_LOCAL_OPENMPS         = 6,
-  NUMPY_TUNABLE_MIN_SHARD_VOLUME      = 8,
-  NUMPY_TUNABLE_MAX_EAGER_VOLUME      = 9,
-  NUMPY_TUNABLE_FIELD_REUSE_SIZE      = 10,
-  NUMPY_TUNABLE_FIELD_REUSE_FREQUENCY = 11,
+  NUMPY_TUNABLE_NUM_GPUS         = 1,
+  NUMPY_TUNABLE_MAX_EAGER_VOLUME = 2,
 };
 
 enum NumPyBounds {

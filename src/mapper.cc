@@ -40,9 +40,7 @@ NumPyMapper::NumPyMapper(MapperRuntime* rt, Machine m, TaskID first, TaskID last
     min_gpu_chunk(extract_env("NUMPY_MIN_GPU_CHUNK", 1 << 20, 2)),
     min_cpu_chunk(extract_env("NUMPY_MIN_CPU_CHUNK", 1 << 14, 2)),
     min_omp_chunk(extract_env("NUMPY_MIN_OMP_CHUNK", 1 << 17, 2)),
-    eager_fraction(extract_env("NUMPY_EAGER_FRACTION", 16, 1)),
-    field_reuse_frac(extract_env("NUMPY_FIELD_REUSE_FRAC", 256, 256)),
-    field_reuse_freq(extract_env("NUMPY_FIELD_REUSE_FREQ", 32, 32))
+    eager_fraction(extract_env("NUMPY_EAGER_FRACTION", 16, 1))
 //--------------------------------------------------------------------------
 {
   // Query to find all our local processors
@@ -109,28 +107,6 @@ NumPyMapper::NumPyMapper(MapperRuntime* rt, Machine m, TaskID first, TaskID last
 }
 
 //--------------------------------------------------------------------------
-NumPyMapper::NumPyMapper(const NumPyMapper& rhs)
-  : Mapper(rhs.runtime),
-    machine(rhs.machine),
-    local_node(0),
-    total_nodes(0),
-    mapper_name(NULL),
-    first_numpy_task_id(0),
-    last_numpy_task_id(0),
-    first_sharding_id(0),
-    min_gpu_chunk(0),
-    min_cpu_chunk(0),
-    min_omp_chunk(0),
-    eager_fraction(0),
-    field_reuse_frac(0),
-    field_reuse_freq(0)
-//--------------------------------------------------------------------------
-{
-  // should never be called
-  LEGATE_ABORT;
-}
-
-//--------------------------------------------------------------------------
 NumPyMapper::~NumPyMapper(void)
 //--------------------------------------------------------------------------
 {
@@ -171,15 +147,6 @@ NumPyMapper::~NumPyMapper(void)
         100.0 * double(it->second) / capacity);
     }
   }
-}
-
-//--------------------------------------------------------------------------
-NumPyMapper& NumPyMapper::operator=(const NumPyMapper& rhs)
-//--------------------------------------------------------------------------
-{
-  // should never be called
-  LEGATE_ABORT
-  return *this;
 }
 
 //--------------------------------------------------------------------------
@@ -1889,50 +1856,11 @@ void NumPyMapper::select_tunable_value(const MapperContext ctx,
 //--------------------------------------------------------------------------
 {
   switch (input.tunable_id) {
-    case NUMPY_TUNABLE_NUM_PIECES: {
-      if (!local_gpus.empty()) {  // If we have GPUs, use those
-        pack_tunable(local_gpus.size() * total_nodes, output);
-      } else if (!local_omps.empty()) {  // Otherwise use OpenMP procs
-        pack_tunable(local_omps.size() * total_nodes, output);
-      } else {  // Otherwise use the CPUs
-        pack_tunable(local_cpus.size() * total_nodes, output);
-      }
-      break;
-    }
     case NUMPY_TUNABLE_NUM_GPUS: {
       if (!local_gpus.empty())
         pack_tunable(local_gpus.size() * total_nodes, output);  // assume symmetry
       else
         pack_tunable(0, output);
-      break;
-    }
-    case NUMPY_TUNABLE_TOTAL_NODES: {
-      pack_tunable(total_nodes, output);
-      break;
-    }
-    case NUMPY_TUNABLE_LOCAL_CPUS: {
-      pack_tunable(local_cpus.size(), output);
-      break;
-    }
-    case NUMPY_TUNABLE_LOCAL_GPUS: {
-      pack_tunable(local_gpus.size(), output);
-      break;
-    }
-    case NUMPY_TUNABLE_LOCAL_OPENMPS: {
-      pack_tunable(local_omps.size(), output);
-      break;
-    }
-    case NUMPY_TUNABLE_MIN_SHARD_VOLUME: {
-      // TODO: make these profile guided
-      if (!local_gpus.empty())
-        // Make sure we can get at least 1M elements on each GPU
-        pack_tunable(min_gpu_chunk, output);
-      else if (!local_omps.empty())
-        // Make sure we get at least 128K elements on each OpenMP
-        pack_tunable(min_omp_chunk, output);
-      else
-        // Make sure we can get at least 8KB elements on each CPU
-        pack_tunable(min_cpu_chunk, output);
       break;
     }
     case NUMPY_TUNABLE_MAX_EAGER_VOLUME: {
@@ -1946,33 +1874,6 @@ void NumPyMapper::select_tunable_value(const MapperContext ctx,
           pack_tunable(min_cpu_chunk / eager_fraction, output);
       } else
         pack_tunable(0, output);
-      break;
-    }
-    case NUMPY_TUNABLE_FIELD_REUSE_SIZE: {
-      // We assume that all memories of the same kind are symmetric in size
-      size_t local_mem_size;
-      if (!local_gpus.empty()) {
-        assert(!local_frame_buffers.empty());
-        local_mem_size = local_frame_buffers.begin()->second.capacity();
-        local_mem_size *= local_frame_buffers.size();
-      } else if (!local_omps.empty()) {
-        assert(!local_numa_domains.empty());
-        local_mem_size = local_numa_domains.begin()->second.capacity();
-        local_mem_size *= local_numa_domains.size();
-      } else
-        local_mem_size = local_system_memory.capacity();
-      // Multiply this by the total number of nodes and then scale by the frac
-      const size_t global_mem_size  = local_mem_size * total_nodes;
-      const size_t field_reuse_size = global_mem_size / field_reuse_frac;
-      // Pack this one explicity since it must be of size 8
-      size_t* result = (size_t*)malloc(sizeof(field_reuse_size));
-      *result        = field_reuse_size;
-      output.value   = result;
-      output.size    = sizeof(field_reuse_size);
-      break;
-    }
-    case NUMPY_TUNABLE_FIELD_REUSE_FREQUENCY: {
-      pack_tunable(field_reuse_freq, output);
       break;
     }
     default: LEGATE_ABORT  // unknown tunable value

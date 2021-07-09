@@ -265,16 +265,8 @@ numpy_scalar_reduction_op_offsets = {
 # Match these to NumPyTunable in legate_numpy_c.h
 @unique
 class NumPyTunable(IntEnum):
-    NUM_PIECES = legate_numpy.NUMPY_TUNABLE_NUM_PIECES
     NUM_GPUS = legate_numpy.NUMPY_TUNABLE_NUM_GPUS
-    TOTAL_NODES = legate_numpy.NUMPY_TUNABLE_TOTAL_NODES
-    LOCAL_CPUS = legate_numpy.NUMPY_TUNABLE_LOCAL_CPUS
-    LOCAL_GPUS = legate_numpy.NUMPY_TUNABLE_LOCAL_GPUS
-    LOCAL_OMPS = legate_numpy.NUMPY_TUNABLE_LOCAL_OPENMPS
-    MIN_SHARD_VOLUME = legate_numpy.NUMPY_TUNABLE_MIN_SHARD_VOLUME
     MAX_EAGER_VOLUME = legate_numpy.NUMPY_TUNABLE_MAX_EAGER_VOLUME
-    FIELD_REUSE_SIZE = legate_numpy.NUMPY_TUNABLE_FIELD_REUSE_SIZE
-    FIELD_REUSE_FREQ = legate_numpy.NUMPY_TUNABLE_FIELD_REUSE_FREQUENCY
 
 
 # Match these to NumPyTag in legate_numpy_c.h

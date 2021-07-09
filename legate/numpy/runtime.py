@@ -30,9 +30,6 @@ from legate.core import (
     Future,
     FutureMap,
     Region,
-    get_legate_runtime,
-    get_legion_context,
-    get_legion_runtime,
     legion,
 )
 from legate.core.runtime import RegionField
@@ -104,16 +101,10 @@ _supported_dtypes = {
 
 class Runtime(object):
     __slots__ = [
-        "context",
-        "runtime",
         "legate_context",
         "legate_runtime",
         "current_random_epoch",
-        "num_pieces",
-        "min_shard_volume",
         "max_eager_volume",
-        "max_field_reuse_size",
-        "max_field_reuse_frequency",
         "test_mode",
         "shadow_debug",
         "callsite_summaries",
@@ -121,15 +112,36 @@ class Runtime(object):
         "mapper_id",
         "first_redop_id",
         "first_proj_id",
-        "first_shard_id",
         "destroyed",
     ]
 
-    def __init__(self, runtime, context, legate_context):
-        self.context = context
-        self.runtime = runtime
+    def __init__(self, legate_context):
         self.legate_context = legate_context
         self.legate_runtime = get_legate_runtime()
+        self.current_random_epoch = 0
+        self.destroyed = False
+
+        # Get the initial task ID and mapper ID
+        self.mapper_id = legate_context.first_mapper_id
+        self.first_redop_id = legate_context.first_redop_id
+
+        self.max_eager_volume = self.legate_context.get_tunable(
+            NumPyTunable.MAX_EAGER_VOLUME,
+            ty.int32,
+        )
+
+        # Make sure that our NumPyLib object knows about us so it can destroy
+        # us
+        numpy_lib.set_runtime(self)
+        self._register_dtypes()
+        self._parse_command_args()
+
+    def _register_dtypes(self):
+        type_system = self.legate_context.type_system
+        for numpy_type, core_type in _supported_dtypes.items():
+            type_system.make_alias(np.dtype(numpy_type), core_type)
+
+    def _parse_command_args(self):
         try:
             # Prune it out so the application does not see it
             sys.argv.remove("-lg:numpy:shadow")
@@ -148,94 +160,6 @@ class Runtime(object):
             self.callsite_summaries = dict()
         except ValueError:
             self.callsite_summaries = None
-        self.current_random_epoch = 0
-        self.destroyed = False
-        # Get the initial task ID and mapper ID
-        self.mapper_id = legate_context.first_mapper_id
-        self.first_redop_id = legate_context.first_redop_id
-        self.first_shard_id = legate_context.first_shard_id
-
-        # This next part we can only do if we have a context which we will if
-        # we're running on one node or we are control replicated. Alternatively
-        # we are running on multiple nodes without control replication and
-        # we'll never be here in Python cause all the task implementations are
-        # in C++/CUDA
-        if self.context is not None:
-            # Figure out how many pieces we want to target when making
-            # partitions
-            # We do this abstractly regardless of knowing the machine type
-            f1 = Future(
-                legion.legion_runtime_select_tunable_value(
-                    self.runtime,
-                    self.context,
-                    legate_numpy.NUMPY_TUNABLE_NUM_PIECES,
-                    self.mapper_id,
-                    0,
-                )
-            )
-            # Figure out the minimum shard volume for arrays
-            f3 = Future(
-                legion.legion_runtime_select_tunable_value(
-                    self.runtime,
-                    self.context,
-                    legate_numpy.NUMPY_TUNABLE_MIN_SHARD_VOLUME,
-                    self.mapper_id,
-                    0,
-                )
-            )
-            # Figure out the maximum eager array size
-            f4 = Future(
-                legion.legion_runtime_select_tunable_value(
-                    self.runtime,
-                    self.context,
-                    legate_numpy.NUMPY_TUNABLE_MAX_EAGER_VOLUME,
-                    self.mapper_id,
-                    0,
-                )
-            )
-            # Figure out the number of allocations that need to be done before
-            # reusing fields
-            f5 = Future(
-                legion.legion_runtime_select_tunable_value(
-                    self.runtime,
-                    self.context,
-                    legate_numpy.NUMPY_TUNABLE_FIELD_REUSE_SIZE,
-                    self.mapper_id,
-                    0,
-                )
-            )
-            f6 = Future(
-                legion.legion_runtime_select_tunable_value(
-                    self.runtime,
-                    self.context,
-                    legate_numpy.NUMPY_TUNABLE_FIELD_REUSE_FREQUENCY,
-                    self.mapper_id,
-                    0,
-                )
-            )
-            self.num_pieces = struct.unpack_from("i", f1.get_buffer(4))[0]
-            # Wait for the futures and get the results
-            self.min_shard_volume = struct.unpack_from("i", f3.get_buffer(4))[
-                0
-            ]
-            self.max_eager_volume = struct.unpack_from("i", f4.get_buffer(4))[
-                0
-            ]
-            self.max_field_reuse_size = struct.unpack_from(
-                "Q", f5.get_buffer(8)
-            )[0]
-            self.max_field_reuse_frequency = struct.unpack_from(
-                "i", f6.get_buffer(4)
-            )[0]
-        # Make sure that our NumPyLib object knows about us so it can destroy
-        # us
-        numpy_lib.set_runtime(self)
-        self._register_dtypes()
-
-    def _register_dtypes(self):
-        type_system = self.legate_context.type_system
-        for numpy_type, core_type in _supported_dtypes.items():
-            type_system.make_alias(np.dtype(numpy_type), core_type)
 
     def get_arg_dtype(self, value_dtype):
         arg_dtype = get_arg_dtype(value_dtype)
@@ -249,16 +173,10 @@ class Runtime(object):
     def destroy(self):
         assert not self.destroyed
         if self.callsite_summaries is not None:
-            f = Future(
-                legion.legion_runtime_select_tunable_value(
-                    self.runtime,
-                    self.context,
-                    NumPyTunable.NUM_GPUS,
-                    self.mapper_id,
-                    0,
-                )
+            num_gpus = self.legate_context.get_tunable(
+                NumPyTunable.NUM_GPUS,
+                ty.int32,
             )
-            num_gpus = struct.unpack_from("i", f.get_buffer(4))[0]
             print(
                 "---------------- Legate.NumPy Callsite Summaries "
                 "----------------"
@@ -325,22 +243,7 @@ class Runtime(object):
         else:
             self.callsite_summaries[callsite] = (1 if accelerated else 0, 1)
 
-    def create_future(self, data, size, wrap=False, dtype=None, shape=()):
-        result = Future()
-        result.set_value(self.runtime, data, size)
-        if wrap:
-            assert dtype is not None
-            # If we have a shape then all the extents should be 1 for now
-            for extent in shape:
-                assert extent == 1
-            return DeferredArray(
-                self, result, shape=shape, dtype=dtype, scalar=True
-            )
-        else:
-            return result
-
     def create_scalar(self, array, dtype, shape=None, wrap=False):
-        future = Future()
         if dtype.kind == "V":
             is_arg = True
             code = numpy_field_type_offsets[get_arg_value_dtype(dtype)]
@@ -349,7 +252,7 @@ class Runtime(object):
             code = numpy_field_type_offsets[dtype.type]
         data = array.tobytes()
         buf = struct.pack(f"ii{len(data)}s", int(is_arg), code, data)
-        future.set_value(self.runtime, buf, len(buf))
+        future = self.legate_runtime.create_future(buf, len(buf))
         if wrap:
             assert all(extent == 1 for extent in shape)
             assert shape is not None
@@ -779,4 +682,4 @@ class Runtime(object):
             raise RuntimeError(f"Shadow array check failed for {op}")
 
 
-runtime = Runtime(get_legion_runtime(), get_legion_context(), numpy_context)
+runtime = Runtime(numpy_context)
