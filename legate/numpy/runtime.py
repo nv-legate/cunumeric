@@ -564,7 +564,7 @@ class Runtime(object):
             return EagerArray(self, np.empty(shape, dtype=dtype))
 
     def create_unbound_thunk(self, dtype):
-        store = self.legate_context.create_store(dtype, unbound=True)
+        store = self.legate_context.create_store(dtype)
         return DeferredArray(self, store, dtype=dtype, scalar=False)
 
     def is_eager_shape(self, shape):
