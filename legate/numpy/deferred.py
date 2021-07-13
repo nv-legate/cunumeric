@@ -337,69 +337,25 @@ class DeferredArray(NumPyThunk):
                 key, stacklevel=(stacklevel + 1)
             )
             # Create a new array to be the result
-            result_field = self.legate_runtime.allocate_field(
-                index_array.shape, dtype=self.dtype
+            result = self.runtime.create_empty_thunk(
+                index_array.base.shape,
+                self.dtype,
             )
-            result = DeferredArray(
-                self.runtime,
-                result_field,
-                shape=index_array.shape,
-                dtype=self.dtype,
-                scalar=False,
-            )
-            # Issue the gather copy to the result
-            index = index_array.base
-            launch_space = index.compute_parallel_launch_space()
-            src = self.base
-            dst = result_field
-            if launch_space is not None:
-                # Index copy launch
-                if self.ndim == index_array.ndim:
-                    # If we have the same dimensionality then normal
-                    # partitioning works
-                    src_part = src.find_or_create_key_partition()
-                    src_proj = 0  # identity
-                    index_part = index.find_or_create_congruent_partition(
-                        src_part
-                    )
-                else:
-                    # Otherwise we need to compute an indirect partition
-                    # and functor
-                    src_part, src_proj = src.find_or_create_indirect_partition(
-                        launch_space
-                    )
-                    index_part = index.find_or_create_key_partition()
-                copy = IndexCopy(
-                    Rect(launch_space),
-                    mapper=self.runtime.mapper_id,
+
+            if self.ndim != index_array.ndim:
+                raise NotImplementedError(
+                    "need support for indirect partitioning"
                 )
-                # Partition the index array and the destination array
-                # the same way
-                dst_part = dst.find_or_create_congruent_partition(index_part)
-                # Set this as the key partition
-                dst.set_key_partition(dst_par)
-                copy.add_src_requirement(
-                    src_part, src.field.field_id, src_proj
-                )
-                copy.add_dst_requirement(
-                    dst_part,
-                    dst.field.field_id,
-                    0,
-                    tag=NumPyMappingTag.KEY_REGION_TAG,
-                )
-                copy.add_src_indirect_requirement(
-                    index_part, index.field.field_id, 0
-                )
-            else:
-                # Single copy launch
-                copy = Copy(mapper=self.runtime.mapper_id)
-                copy.add_src_requirement(src.region, src.field.field_id)
-                copy.add_dst_requirement(dst.region, dst.field.field_id)
-                copy.add_src_indirect_requirement(
-                    index.region, index.field.field_id
-                )
-            # Issue the copy to the runtime
-            self.runtime.dispatch(copy)
+
+            copy = self.context.create_copy()
+
+            copy.add_input(self.base)
+            copy.add_source_indirect(index_array.base)
+            copy.add_output(result.base)
+
+            copy.add_alignment(index_array.base, result.base)
+
+            copy.execute()
         else:
             result = self._get_view(key)
 
@@ -433,50 +389,21 @@ class DeferredArray(NumPyThunk):
                 raise ValueError(
                     "Advanced indexing array does not match source shape"
                 )
-            # Do the scatter copy
-            index = index_array.base
-            launch_space = index.compute_parallel_launch_space()
-            dst = self.base
-            src = value_array.base
-            if launch_space is not None:
-                # Index copy launch
-                if self.ndim == index_array.ndim:
-                    # If we have the same dimensionality then normal
-                    # partitioning works
-                    dst_part = dst.find_or_create_key_partition()
-                    dst_proj = 0  # identity
-                    index_part = index.find_or_create_congruent_partition(
-                        dst_part
-                    )
-                else:
-                    # Otherwise we need to compute an indirect partition
-                    # and functor
-                    dst_part, dst_proj = dst.find_or_create_indirect_partition(
-                        launch_space
-                    )
-                    index_part = index.find_or_create_key_partition()
-                copy = IndexCopy(
-                    Rect(launch_space),
-                    mapper=self.runtime.mapper_id,
+            if self.ndim != index_array.ndim:
+                raise NotImplementedError(
+                    "need support for indirect partitioning"
                 )
-                src_part = src.find_or_create_congruent_partition(index_part)
-                copy.add_src_requirement(src_part, src.field.field_id, 0)
-                copy.add_dst_requirement(
-                    dst_part, dst.field.field_id, dst_proj
-                )
-                copy.add_dst_indirect_requirement(
-                    index_part, index.field.field_id, 0
-                )
-            else:
-                # Single copy launch
-                copy = Copy(mapper=self.runtime.mapper_id)
-                copy.add_src_requirement(src.region, src.field.field_id)
-                copy.add_dst_requirement(dst.region, dst.field.field_id)
-                copy.add_dst_indirect_requirement(
-                    index.region, index.field.field_id
-                )
-            # Issue the copy to the runtime
-            self.runtime.dispatch(copy)
+
+            copy = self.context.create_copy()
+
+            copy.add_input(value_array.base)
+            copy.add_target_indirect(index_array.base)
+            copy.add_output(self.base)
+
+            copy.add_alignment(index_array.base, value_array.base)
+
+            copy.execute()
+
         elif self.size == 1:
             assert value_array.size == 1
             # Special case of writing a single value
