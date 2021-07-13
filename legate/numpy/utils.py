@@ -35,6 +35,8 @@ def getPredefinedAttributes(namespace):
 
 def unimplemented(func):
     def wrapper(*args, **kwargs):
+        """Unimplemented
+        """
         warnings.warn(
             "legate.numpy has not implemented "
             + func.__name__

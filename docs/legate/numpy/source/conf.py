@@ -26,8 +26,18 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
 import os
+import os
+import sys
+
+
+sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
+import _comparison_generator
 
 from recommonmark.transform import AutoStructify
+
+# Generate comparison table.
+with open('comparison_table.rst.inc', 'w') as f:
+    f.write(_comparison_generator.generate())
 
 # -- Project information -----------------------------------------------------
 

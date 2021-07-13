@@ -1,0 +1,620 @@
+NumPy / Legate APIs
+-----------------
+
+Module-Level
+~~~~~~~~~~~~
+
+.. csv-table::
+   :header: NumPy, Legate
+
+   :obj:`numpy.abs`, :obj:`legate.numpy.abs`
+   :obj:`numpy.absolute`, :obj:`legate.numpy.absolute`
+   :obj:`numpy.add`, \-
+   :obj:`numpy.add_docstring`, \-
+   :obj:`numpy.add_newdoc`, \-
+   :obj:`numpy.add_newdoc_ufunc`, \-
+   :obj:`numpy.alen`, \-
+   :obj:`numpy.all`, \-
+   :obj:`numpy.allclose`, :obj:`legate.numpy.allclose`
+   :obj:`numpy.alltrue`, \-
+   :obj:`numpy.amax`, :obj:`legate.numpy.amax`
+   :obj:`numpy.amin`, :obj:`legate.numpy.amin`
+   :obj:`numpy.angle`, \-
+   :obj:`numpy.any`, \-
+   :obj:`numpy.append`, \-
+   :obj:`numpy.apply_along_axis`, \-
+   :obj:`numpy.apply_over_axes`, \-
+   :obj:`numpy.arange`, :obj:`legate.numpy.arange`
+   :obj:`numpy.arccos`, :obj:`legate.numpy.arccos`
+   :obj:`numpy.arccosh`, \-
+   :obj:`numpy.arcsin`, :obj:`legate.numpy.arcsin`
+   :obj:`numpy.arcsinh`, \-
+   :obj:`numpy.arctan`, :obj:`legate.numpy.arctan`
+   :obj:`numpy.arctan2`, \-
+   :obj:`numpy.arctanh`, \-
+   :obj:`numpy.argmax`, :obj:`legate.numpy.argmax`
+   :obj:`numpy.argmin`, :obj:`legate.numpy.argmin`
+   :obj:`numpy.argpartition`, \-
+   :obj:`numpy.argsort`, \-
+   :obj:`numpy.argwhere`, \-
+   :obj:`numpy.around`, \-
+   :obj:`numpy.array`, :obj:`legate.numpy.array`
+   :obj:`numpy.array2string`, \-
+   :obj:`numpy.array_equal`, :obj:`legate.numpy.array_equal`
+   :obj:`numpy.array_equiv`, \-
+   :obj:`numpy.array_repr`, \-
+   :obj:`numpy.array_split`, \-
+   :obj:`numpy.array_str`, \-
+   :obj:`numpy.asanyarray`, \-
+   :obj:`numpy.asarray`, :obj:`legate.numpy.asarray`
+   :obj:`numpy.asarray_chkfinite`, \-
+   :obj:`numpy.ascontiguousarray`, \-
+   :obj:`numpy.asfarray`, \-
+   :obj:`numpy.asfortranarray`, \-
+   :obj:`numpy.asmatrix`, \-
+   :obj:`numpy.asscalar`, \-
+   :obj:`numpy.atleast_1d`, \-
+   :obj:`numpy.atleast_2d`, \-
+   :obj:`numpy.atleast_3d`, \-
+   :obj:`numpy.average`, \-
+   :obj:`numpy.bartlett`, \-
+   :obj:`numpy.base_repr`, \-
+   :obj:`numpy.binary_repr`, \-
+   :obj:`numpy.bincount`, :obj:`legate.numpy.bincount`
+   :obj:`numpy.bitwise_and`, \-
+   :obj:`numpy.bitwise_not`, \-
+   :obj:`numpy.bitwise_or`, \-
+   :obj:`numpy.bitwise_xor`, \-
+   :obj:`numpy.blackman`, \-
+   :obj:`numpy.block`, \-
+   :obj:`numpy.bmat`, \-
+   :obj:`numpy.broadcast_arrays`, \-
+   :obj:`numpy.broadcast_shapes`, \-
+   :obj:`numpy.broadcast_to`, \-
+   :obj:`numpy.busday_count`, \-
+   :obj:`numpy.busday_offset`, \-
+   :obj:`numpy.byte_bounds`, \-
+   :obj:`numpy.can_cast`, \-
+   :obj:`numpy.cbrt`, \-
+   :obj:`numpy.ceil`, :obj:`legate.numpy.ceil`
+   :obj:`numpy.choose`, \-
+   :obj:`numpy.clip`, :obj:`legate.numpy.clip`
+   :obj:`numpy.column_stack`, \-
+   :obj:`numpy.common_type`, \-
+   :obj:`numpy.compare_chararrays`, \-
+   :obj:`numpy.compress`, \-
+   :obj:`numpy.concatenate`, \-
+   :obj:`numpy.conj`, \-
+   :obj:`numpy.conjugate`, \-
+   :obj:`numpy.convolve`, \-
+   :obj:`numpy.copy`, :obj:`legate.numpy.copy`
+   :obj:`numpy.copysign`, \-
+   :obj:`numpy.copyto`, \-
+   :obj:`numpy.corrcoef`, \-
+   :obj:`numpy.correlate`, \-
+   :obj:`numpy.cos`, :obj:`legate.numpy.cos`
+   :obj:`numpy.cosh`, \-
+   :obj:`numpy.count_nonzero`, :obj:`legate.numpy.count_nonzero`
+   :obj:`numpy.cov`, \-
+   :obj:`numpy.cross`, \-
+   :obj:`numpy.cumprod`, \-
+   :obj:`numpy.cumproduct`, \-
+   :obj:`numpy.cumsum`, \-
+   :obj:`numpy.datetime_as_string`, \-
+   :obj:`numpy.datetime_data`, \-
+   :obj:`numpy.deg2rad`, \-
+   :obj:`numpy.degrees`, \-
+   :obj:`numpy.delete`, \-
+   :obj:`numpy.deprecate`, \-
+   :obj:`numpy.deprecate_with_doc`, \-
+   :obj:`numpy.diag`, :obj:`legate.numpy.diag`
+   :obj:`numpy.diag_indices`, \-
+   :obj:`numpy.diag_indices_from`, \-
+   :obj:`numpy.diagflat`, \-
+   :obj:`numpy.diagonal`, \-
+   :obj:`numpy.diff`, \-
+   :obj:`numpy.digitize`, \-
+   :obj:`numpy.disp`, \-
+   :obj:`numpy.divide`, :obj:`legate.numpy.divide`
+   :obj:`numpy.divmod`, \-
+   :obj:`numpy.dot`, :obj:`legate.numpy.dot`
+   :obj:`numpy.dsplit`, \-
+   :obj:`numpy.dstack`, \-
+   :obj:`numpy.ediff1d`, \-
+   :obj:`numpy.einsum`, \-
+   :obj:`numpy.einsum_path`, \-
+   :obj:`numpy.empty`, :obj:`legate.numpy.empty`
+   :obj:`numpy.empty_like`, :obj:`legate.numpy.empty_like`
+   :obj:`numpy.equal`, \-
+   :obj:`numpy.exp`, :obj:`legate.numpy.exp`
+   :obj:`numpy.exp2`, \-
+   :obj:`numpy.expand_dims`, \-
+   :obj:`numpy.expm1`, \-
+   :obj:`numpy.extract`, \-
+   :obj:`numpy.eye`, :obj:`legate.numpy.eye`
+   :obj:`numpy.fabs`, :obj:`legate.numpy.fabs`
+   :obj:`numpy.fastCopyAndTranspose`, \-
+   :obj:`numpy.fill_diagonal`, \-
+   :obj:`numpy.find_common_type`, \-
+   :obj:`numpy.fix`, \-
+   :obj:`numpy.flatnonzero`, \-
+   :obj:`numpy.flip`, \-
+   :obj:`numpy.fliplr`, \-
+   :obj:`numpy.flipud`, \-
+   :obj:`numpy.float_power`, \-
+   :obj:`numpy.floor`, :obj:`legate.numpy.floor`
+   :obj:`numpy.floor_divide`, :obj:`legate.numpy.floor_divide`
+   :obj:`numpy.fmax`, \-
+   :obj:`numpy.fmin`, \-
+   :obj:`numpy.fmod`, \-
+   :obj:`numpy.format_float_positional`, \-
+   :obj:`numpy.format_float_scientific`, \-
+   :obj:`numpy.frexp`, \-
+   :obj:`numpy.frombuffer`, :obj:`legate.numpy.frombuffer`
+   :obj:`numpy.fromfile`, :obj:`legate.numpy.fromfile`
+   :obj:`numpy.fromfunction`, :obj:`legate.numpy.fromfunction`
+   :obj:`numpy.fromiter`, :obj:`legate.numpy.fromiter`
+   :obj:`numpy.frompyfunc`, \-
+   :obj:`numpy.fromregex`, :obj:`legate.numpy.fromregex`
+   :obj:`numpy.fromstring`, :obj:`legate.numpy.fromstring`
+   :obj:`numpy.full`, :obj:`legate.numpy.full`
+   :obj:`numpy.full_like`, :obj:`legate.numpy.full_like`
+   :obj:`numpy.gcd`, \-
+   :obj:`numpy.genfromtxt`, :obj:`legate.numpy.genfromtxt`
+   :obj:`numpy.geomspace`, \-
+   :obj:`numpy.get_array_wrap`, \-
+   :obj:`numpy.get_include`, \-
+   :obj:`numpy.get_printoptions`, \-
+   :obj:`numpy.getbufsize`, \-
+   :obj:`numpy.geterr`, \-
+   :obj:`numpy.geterrcall`, \-
+   :obj:`numpy.geterrobj`, \-
+   :obj:`numpy.gradient`, \-
+   :obj:`numpy.greater`, \-
+   :obj:`numpy.greater_equal`, \-
+   :obj:`numpy.hamming`, \-
+   :obj:`numpy.hanning`, \-
+   :obj:`numpy.heaviside`, \-
+   :obj:`numpy.histogram`, \-
+   :obj:`numpy.histogram2d`, \-
+   :obj:`numpy.histogram_bin_edges`, \-
+   :obj:`numpy.histogramdd`, \-
+   :obj:`numpy.hsplit`, \-
+   :obj:`numpy.hstack`, \-
+   :obj:`numpy.hypot`, \-
+   :obj:`numpy.i0`, \-
+   :obj:`numpy.identity`, :obj:`legate.numpy.identity`
+   :obj:`numpy.imag`, \-
+   :obj:`numpy.in1d`, \-
+   :obj:`numpy.indices`, \-
+   :obj:`numpy.info`, \-
+   :obj:`numpy.inner`, \-
+   :obj:`numpy.insert`, \-
+   :obj:`numpy.interp`, \-
+   :obj:`numpy.intersect1d`, \-
+   :obj:`numpy.invert`, :obj:`legate.numpy.invert`
+   :obj:`numpy.is_busday`, \-
+   :obj:`numpy.isclose`, \-
+   :obj:`numpy.iscomplex`, \-
+   :obj:`numpy.iscomplexobj`, \-
+   :obj:`numpy.isfinite`, \-
+   :obj:`numpy.isfortran`, \-
+   :obj:`numpy.isin`, \-
+   :obj:`numpy.isinf`, :obj:`legate.numpy.isinf`
+   :obj:`numpy.isnan`, :obj:`legate.numpy.isnan`
+   :obj:`numpy.isnat`, \-
+   :obj:`numpy.isneginf`, \-
+   :obj:`numpy.isposinf`, \-
+   :obj:`numpy.isreal`, \-
+   :obj:`numpy.isrealobj`, \-
+   :obj:`numpy.isscalar`, \-
+   :obj:`numpy.issctype`, \-
+   :obj:`numpy.issubclass_`, \-
+   :obj:`numpy.issubdtype`, \-
+   :obj:`numpy.issubsctype`, \-
+   :obj:`numpy.iterable`, \-
+   :obj:`numpy.ix_`, \-
+   :obj:`numpy.kaiser`, \-
+   :obj:`numpy.kron`, \-
+   :obj:`numpy.lcm`, \-
+   :obj:`numpy.ldexp`, \-
+   :obj:`numpy.left_shift`, \-
+   :obj:`numpy.less`, \-
+   :obj:`numpy.less_equal`, \-
+   :obj:`numpy.lexsort`, \-
+   :obj:`numpy.linspace`, :obj:`legate.numpy.linspace`
+   :obj:`numpy.load`, :obj:`legate.numpy.load`
+   :obj:`numpy.loads`, \-
+   :obj:`numpy.loadtxt`, :obj:`legate.numpy.loadtxt`
+   :obj:`numpy.log`, :obj:`legate.numpy.log`
+   :obj:`numpy.log10`, \-
+   :obj:`numpy.log1p`, \-
+   :obj:`numpy.log2`, \-
+   :obj:`numpy.logaddexp`, \-
+   :obj:`numpy.logaddexp2`, \-
+   :obj:`numpy.logical_and`, \-
+   :obj:`numpy.logical_not`, :obj:`legate.numpy.logical_not`
+   :obj:`numpy.logical_or`, \-
+   :obj:`numpy.logical_xor`, \-
+   :obj:`numpy.logspace`, \-
+   :obj:`numpy.lookfor`, \-
+   :obj:`numpy.mafromtxt`, \-
+   :obj:`numpy.mask_indices`, \-
+   :obj:`numpy.mat`, \-
+   :obj:`numpy.matmul`, \-
+   :obj:`numpy.max`, :obj:`legate.numpy.max`
+   :obj:`numpy.maximum`, \-
+   :obj:`numpy.maximum_sctype`, \-
+   :obj:`numpy.may_share_memory`, \-
+   :obj:`numpy.mean`, :obj:`legate.numpy.mean`
+   :obj:`numpy.median`, \-
+   :obj:`numpy.meshgrid`, \-
+   :obj:`numpy.min`, :obj:`legate.numpy.min`
+   :obj:`numpy.min_scalar_type`, \-
+   :obj:`numpy.minimum`, \-
+   :obj:`numpy.mintypecode`, \-
+   :obj:`numpy.mod`, \-
+   :obj:`numpy.modf`, \-
+   :obj:`numpy.moveaxis`, \-
+   :obj:`numpy.msort`, \-
+   :obj:`numpy.multiply`, \-
+   :obj:`numpy.nan_to_num`, \-
+   :obj:`numpy.nanargmax`, \-
+   :obj:`numpy.nanargmin`, \-
+   :obj:`numpy.nancumprod`, \-
+   :obj:`numpy.nancumsum`, \-
+   :obj:`numpy.nanmax`, \-
+   :obj:`numpy.nanmean`, \-
+   :obj:`numpy.nanmedian`, \-
+   :obj:`numpy.nanmin`, \-
+   :obj:`numpy.nanpercentile`, \-
+   :obj:`numpy.nanprod`, \-
+   :obj:`numpy.nanquantile`, \-
+   :obj:`numpy.nanstd`, \-
+   :obj:`numpy.nansum`, \-
+   :obj:`numpy.nanvar`, \-
+   :obj:`numpy.ndfromtxt`, \-
+   :obj:`numpy.ndim`, \-
+   :obj:`numpy.negative`, :obj:`legate.numpy.negative`
+   :obj:`numpy.nested_iters`, \-
+   :obj:`numpy.nextafter`, \-
+   :obj:`numpy.nonzero`, :obj:`legate.numpy.nonzero`
+   :obj:`numpy.not_equal`, \-
+   :obj:`numpy.obj2sctype`, \-
+   :obj:`numpy.ones`, :obj:`legate.numpy.ones`
+   :obj:`numpy.ones_like`, :obj:`legate.numpy.ones_like`
+   :obj:`numpy.outer`, \-
+   :obj:`numpy.packbits`, \-
+   :obj:`numpy.pad`, \-
+   :obj:`numpy.partition`, \-
+   :obj:`numpy.percentile`, \-
+   :obj:`numpy.piecewise`, \-
+   :obj:`numpy.place`, \-
+   :obj:`numpy.poly`, \-
+   :obj:`numpy.polyadd`, \-
+   :obj:`numpy.polyder`, \-
+   :obj:`numpy.polydiv`, \-
+   :obj:`numpy.polyfit`, \-
+   :obj:`numpy.polyint`, \-
+   :obj:`numpy.polymul`, \-
+   :obj:`numpy.polysub`, \-
+   :obj:`numpy.polyval`, \-
+   :obj:`numpy.positive`, \-
+   :obj:`numpy.power`, :obj:`legate.numpy.power`
+   :obj:`numpy.printoptions`, \-
+   :obj:`numpy.prod`, :obj:`legate.numpy.prod`
+   :obj:`numpy.product`, \-
+   :obj:`numpy.promote_types`, \-
+   :obj:`numpy.ptp`, \-
+   :obj:`numpy.put`, \-
+   :obj:`numpy.put_along_axis`, \-
+   :obj:`numpy.putmask`, \-
+   :obj:`numpy.quantile`, \-
+   :obj:`numpy.rad2deg`, \-
+   :obj:`numpy.radians`, \-
+   :obj:`numpy.ravel`, :obj:`legate.numpy.ravel`
+   :obj:`numpy.ravel_multi_index`, \-
+   :obj:`numpy.real`, \-
+   :obj:`numpy.real_if_close`, \-
+   :obj:`numpy.recfromcsv`, \-
+   :obj:`numpy.recfromtxt`, \-
+   :obj:`numpy.reciprocal`, \-
+   :obj:`numpy.remainder`, \-
+   :obj:`numpy.repeat`, \-
+   :obj:`numpy.require`, \-
+   :obj:`numpy.reshape`, :obj:`legate.numpy.reshape`
+   :obj:`numpy.resize`, \-
+   :obj:`numpy.result_type`, \-
+   :obj:`numpy.right_shift`, \-
+   :obj:`numpy.rint`, \-
+   :obj:`numpy.roll`, \-
+   :obj:`numpy.rollaxis`, \-
+   :obj:`numpy.roots`, \-
+   :obj:`numpy.rot90`, \-
+   :obj:`numpy.round`, \-
+   :obj:`numpy.round_`, \-
+   :obj:`numpy.row_stack`, :obj:`legate.numpy.row_stack`
+   :obj:`numpy.safe_eval`, \-
+   :obj:`numpy.save`, \-
+   :obj:`numpy.savetxt`, \-
+   :obj:`numpy.savez`, \-
+   :obj:`numpy.savez_compressed`, \-
+   :obj:`numpy.sctype2char`, \-
+   :obj:`numpy.searchsorted`, \-
+   :obj:`numpy.select`, \-
+   :obj:`numpy.set_numeric_ops`, \-
+   :obj:`numpy.set_printoptions`, \-
+   :obj:`numpy.set_string_function`, \-
+   :obj:`numpy.setbufsize`, \-
+   :obj:`numpy.setdiff1d`, \-
+   :obj:`numpy.seterr`, \-
+   :obj:`numpy.seterrcall`, \-
+   :obj:`numpy.seterrobj`, \-
+   :obj:`numpy.setxor1d`, \-
+   :obj:`numpy.shape`, \-
+   :obj:`numpy.shares_memory`, \-
+   :obj:`numpy.show_config`, \-
+   :obj:`numpy.sign`, \-
+   :obj:`numpy.signbit`, \-
+   :obj:`numpy.sin`, :obj:`legate.numpy.sin`
+   :obj:`numpy.sinc`, \-
+   :obj:`numpy.sinh`, \-
+   :obj:`numpy.size`, \-
+   :obj:`numpy.sometrue`, \-
+   :obj:`numpy.sort`, \-
+   :obj:`numpy.sort_complex`, \-
+   :obj:`numpy.source`, \-
+   :obj:`numpy.spacing`, \-
+   :obj:`numpy.split`, \-
+   :obj:`numpy.sqrt`, :obj:`legate.numpy.sqrt`
+   :obj:`numpy.square`, :obj:`legate.numpy.square`
+   :obj:`numpy.squeeze`, \-
+   :obj:`numpy.stack`, \-
+   :obj:`numpy.std`, \-
+   :obj:`numpy.subtract`, :obj:`legate.numpy.subtract`
+   :obj:`numpy.sum`, :obj:`legate.numpy.sum`
+   :obj:`numpy.swapaxes`, \-
+   :obj:`numpy.take`, \-
+   :obj:`numpy.take_along_axis`, \-
+   :obj:`numpy.tan`, :obj:`legate.numpy.tan`
+   :obj:`numpy.tanh`, :obj:`legate.numpy.tanh`
+   :obj:`numpy.tensordot`, \-
+   :obj:`numpy.tile`, :obj:`legate.numpy.tile`
+   :obj:`numpy.trace`, \-
+   :obj:`numpy.transpose`, :obj:`legate.numpy.transpose`
+   :obj:`numpy.trapz`, \-
+   :obj:`numpy.tri`, \-
+   :obj:`numpy.tril`, \-
+   :obj:`numpy.tril_indices`, \-
+   :obj:`numpy.tril_indices_from`, \-
+   :obj:`numpy.trim_zeros`, \-
+   :obj:`numpy.triu`, \-
+   :obj:`numpy.triu_indices`, \-
+   :obj:`numpy.triu_indices_from`, \-
+   :obj:`numpy.true_divide`, \-
+   :obj:`numpy.trunc`, \-
+   :obj:`numpy.typename`, \-
+   :obj:`numpy.union1d`, \-
+   :obj:`numpy.unique`, \-
+   :obj:`numpy.unpackbits`, \-
+   :obj:`numpy.unravel_index`, \-
+   :obj:`numpy.unwrap`, \-
+   :obj:`numpy.vander`, \-
+   :obj:`numpy.var`, \-
+   :obj:`numpy.vdot`, \-
+   :obj:`numpy.vsplit`, \-
+   :obj:`numpy.vstack`, :obj:`legate.numpy.vstack`
+   :obj:`numpy.where`, :obj:`legate.numpy.where`
+   :obj:`numpy.who`, \-
+   :obj:`numpy.zeros`, :obj:`legate.numpy.zeros`
+   :obj:`numpy.zeros_like`, :obj:`legate.numpy.zeros_like`
+
+.. Summary:
+   Number of NumPy functions: 401
+   Number of functions covered by Legate: 73
+   Legate specific functions:
+   - memmap
+
+Multi-Dimensional Array
+~~~~~~~~~~~~~~~~~~~~~~~
+
+.. csv-table::
+   :header: NumPy, Legate
+
+   :meth:`numpy.ndarray.all`, \-
+   :meth:`numpy.ndarray.any`, \-
+   :meth:`numpy.ndarray.argmax`, :meth:`legate.numpy.ndarray.argmax`
+   :meth:`numpy.ndarray.argmin`, :meth:`legate.numpy.ndarray.argmin`
+   :meth:`numpy.ndarray.argpartition`, \-
+   :meth:`numpy.ndarray.argsort`, \-
+   :meth:`numpy.ndarray.astype`, :meth:`legate.numpy.ndarray.astype`
+   :meth:`numpy.ndarray.byteswap`, \-
+   :meth:`numpy.ndarray.choose`, \-
+   :meth:`numpy.ndarray.clip`, :meth:`legate.numpy.ndarray.clip`
+   :meth:`numpy.ndarray.compress`, \-
+   :meth:`numpy.ndarray.conj`, \-
+   :meth:`numpy.ndarray.conjugate`, \-
+   :meth:`numpy.ndarray.copy`, :meth:`legate.numpy.ndarray.copy`
+   :meth:`numpy.ndarray.cumprod`, \-
+   :meth:`numpy.ndarray.cumsum`, \-
+   :meth:`numpy.ndarray.diagonal`, \-
+   :meth:`numpy.ndarray.dot`, :meth:`legate.numpy.ndarray.dot`
+   :meth:`numpy.ndarray.dump`, :meth:`legate.numpy.ndarray.dump`
+   :meth:`numpy.ndarray.dumps`, :meth:`legate.numpy.ndarray.dumps`
+   :meth:`numpy.ndarray.fill`, :meth:`legate.numpy.ndarray.fill`
+   :meth:`numpy.ndarray.flatten`, \-
+   :meth:`numpy.ndarray.getfield`, :meth:`legate.numpy.ndarray.getfield`
+   :meth:`numpy.ndarray.item`, :meth:`legate.numpy.ndarray.item`
+   :meth:`numpy.ndarray.itemset`, :meth:`legate.numpy.ndarray.itemset`
+   :meth:`numpy.ndarray.max`, :meth:`legate.numpy.ndarray.max`
+   :meth:`numpy.ndarray.mean`, :meth:`legate.numpy.ndarray.mean`
+   :meth:`numpy.ndarray.min`, :meth:`legate.numpy.ndarray.min`
+   :meth:`numpy.ndarray.newbyteorder`, \-
+   :meth:`numpy.ndarray.nonzero`, :meth:`legate.numpy.ndarray.nonzero`
+   :meth:`numpy.ndarray.partition`, \-
+   :meth:`numpy.ndarray.prod`, :meth:`legate.numpy.ndarray.prod`
+   :meth:`numpy.ndarray.ptp`, \-
+   :meth:`numpy.ndarray.put`, \-
+   :meth:`numpy.ndarray.ravel`, :meth:`legate.numpy.ndarray.ravel`
+   :meth:`numpy.ndarray.repeat`, \-
+   :meth:`numpy.ndarray.reshape`, :meth:`legate.numpy.ndarray.reshape`
+   :meth:`numpy.ndarray.resize`, \-
+   :meth:`numpy.ndarray.round`, \-
+   :meth:`numpy.ndarray.searchsorted`, \-
+   :meth:`numpy.ndarray.setfield`, :meth:`legate.numpy.ndarray.setfield`
+   :meth:`numpy.ndarray.setflags`, :meth:`legate.numpy.ndarray.setflags`
+   :meth:`numpy.ndarray.sort`, \-
+   :meth:`numpy.ndarray.squeeze`, :meth:`legate.numpy.ndarray.squeeze`
+   :meth:`numpy.ndarray.std`, \-
+   :meth:`numpy.ndarray.sum`, :meth:`legate.numpy.ndarray.sum`
+   :meth:`numpy.ndarray.swapaxes`, :meth:`legate.numpy.ndarray.swapaxes`
+   :meth:`numpy.ndarray.take`, \-
+   :meth:`numpy.ndarray.tobytes`, :meth:`legate.numpy.ndarray.tobytes`
+   :meth:`numpy.ndarray.tofile`, :meth:`legate.numpy.ndarray.tofile`
+   :meth:`numpy.ndarray.tolist`, :meth:`legate.numpy.ndarray.tolist`
+   :meth:`numpy.ndarray.tostring`, :meth:`legate.numpy.ndarray.tostring`
+   :meth:`numpy.ndarray.trace`, \-
+   :meth:`numpy.ndarray.transpose`, :meth:`legate.numpy.ndarray.transpose`
+   :meth:`numpy.ndarray.var`, \-
+   :meth:`numpy.ndarray.view`, :meth:`legate.numpy.ndarray.view`
+
+.. Summary:
+   Number of NumPy functions: 56
+   Number of functions covered by Legate: 30
+   Legate specific functions:
+   - perform_ternary_op
+   - find_common_type
+   - perform_binary_op
+   - count_nonzero
+   - convert_to_predicate_ndarray
+   - convert_to_legate_ndarray
+   - get_where_thunk
+   - perform_binary_reduction
+   - perform_unary_op
+   - internal_truediv
+   - perform_unary_reduction
+
+Linear Algebra
+~~~~~~~~~~~~~~
+
+.. csv-table::
+   :header: NumPy, Legate
+
+   :obj:`numpy.linalg.cholesky`, \-
+   :obj:`numpy.linalg.cond`, \-
+   :obj:`numpy.linalg.det`, \-
+   :obj:`numpy.linalg.eig`, \-
+   :obj:`numpy.linalg.eigh`, \-
+   :obj:`numpy.linalg.eigvals`, \-
+   :obj:`numpy.linalg.eigvalsh`, \-
+   :obj:`numpy.linalg.inv`, \-
+   :obj:`numpy.linalg.lstsq`, \-
+   :obj:`numpy.linalg.matrix_power`, \-
+   :obj:`numpy.linalg.matrix_rank`, \-
+   :obj:`numpy.linalg.multi_dot`, \-
+   :obj:`numpy.linalg.norm`, :obj:`legate.numpy.linalg.norm`
+   :obj:`numpy.linalg.pinv`, \-
+   :obj:`numpy.linalg.qr`, \-
+   :obj:`numpy.linalg.slogdet`, \-
+   :obj:`numpy.linalg.solve`, \-
+   :obj:`numpy.linalg.svd`, \-
+   :obj:`numpy.linalg.tensorinv`, \-
+   :obj:`numpy.linalg.tensorsolve`, \-
+
+.. Summary:
+   Number of NumPy functions: 20
+   Number of functions covered by Legate: 1
+   Legate specific functions:
+
+Discrete Fourier Transform
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. csv-table::
+   :header: NumPy, Legate
+
+   :obj:`numpy.fft.fft`, \-
+   :obj:`numpy.fft.fft2`, \-
+   :obj:`numpy.fft.fftfreq`, \-
+   :obj:`numpy.fft.fftn`, \-
+   :obj:`numpy.fft.fftshift`, \-
+   :obj:`numpy.fft.hfft`, \-
+   :obj:`numpy.fft.ifft`, \-
+   :obj:`numpy.fft.ifft2`, \-
+   :obj:`numpy.fft.ifftn`, \-
+   :obj:`numpy.fft.ifftshift`, \-
+   :obj:`numpy.fft.ihfft`, \-
+   :obj:`numpy.fft.irfft`, \-
+   :obj:`numpy.fft.irfft2`, \-
+   :obj:`numpy.fft.irfftn`, \-
+   :obj:`numpy.fft.rfft`, \-
+   :obj:`numpy.fft.rfft2`, \-
+   :obj:`numpy.fft.rfftfreq`, \-
+   :obj:`numpy.fft.rfftn`, \-
+
+.. Summary:
+   Number of NumPy functions: 18
+   Number of functions covered by Legate: 0
+   Legate specific functions:
+
+Random Sampling
+~~~~~~~~~~~~~~~
+
+.. csv-table::
+   :header: NumPy, Legate
+
+   :obj:`numpy.random.beta`, \-
+   :obj:`numpy.random.binomial`, \-
+   :obj:`numpy.random.bytes`, \-
+   :obj:`numpy.random.chisquare`, \-
+   :obj:`numpy.random.choice`, \-
+   :obj:`numpy.random.default_rng`, \-
+   :obj:`numpy.random.dirichlet`, \-
+   :obj:`numpy.random.exponential`, \-
+   :obj:`numpy.random.f`, \-
+   :obj:`numpy.random.gamma`, \-
+   :obj:`numpy.random.geometric`, \-
+   :obj:`numpy.random.get_state`, \-
+   :obj:`numpy.random.gumbel`, \-
+   :obj:`numpy.random.hypergeometric`, \-
+   :obj:`numpy.random.laplace`, \-
+   :obj:`numpy.random.logistic`, \-
+   :obj:`numpy.random.lognormal`, \-
+   :obj:`numpy.random.logseries`, \-
+   :obj:`numpy.random.multinomial`, \-
+   :obj:`numpy.random.multivariate_normal`, \-
+   :obj:`numpy.random.negative_binomial`, \-
+   :obj:`numpy.random.noncentral_chisquare`, \-
+   :obj:`numpy.random.noncentral_f`, \-
+   :obj:`numpy.random.normal`, \-
+   :obj:`numpy.random.pareto`, \-
+   :obj:`numpy.random.permutation`, \-
+   :obj:`numpy.random.poisson`, \-
+   :obj:`numpy.random.power`, \-
+   :obj:`numpy.random.rand`, :obj:`legate.numpy.random.rand`
+   :obj:`numpy.random.randint`, :obj:`legate.numpy.random.randint`
+   :obj:`numpy.random.randn`, :obj:`legate.numpy.random.randn`
+   :obj:`numpy.random.random`, :obj:`legate.numpy.random.random`
+   :obj:`numpy.random.random_integers`, \-
+   :obj:`numpy.random.random_sample`, \-
+   :obj:`numpy.random.ranf`, \-
+   :obj:`numpy.random.rayleigh`, \-
+   :obj:`numpy.random.sample`, \-
+   :obj:`numpy.random.seed`, :obj:`legate.numpy.random.seed`
+   :obj:`numpy.random.set_state`, \-
+   :obj:`numpy.random.shuffle`, \-
+   :obj:`numpy.random.standard_cauchy`, \-
+   :obj:`numpy.random.standard_exponential`, \-
+   :obj:`numpy.random.standard_gamma`, \-
+   :obj:`numpy.random.standard_normal`, \-
+   :obj:`numpy.random.standard_t`, \-
+   :obj:`numpy.random.triangular`, \-
+   :obj:`numpy.random.uniform`, \-
+   :obj:`numpy.random.vonmises`, \-
+   :obj:`numpy.random.wald`, \-
+   :obj:`numpy.random.weibull`, \-
+   :obj:`numpy.random.zipf`, \-
+
+.. Summary:
+   Number of NumPy functions: 51
+   Number of functions covered by Legate: 5
+   Legate specific functions:
