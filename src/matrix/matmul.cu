@@ -34,7 +34,9 @@ struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::FLOAT_LT> {
                   const float *rhs2,
                   size_t lhs_stride,
                   size_t rhs1_stride,
-                  size_t rhs2_stride)
+                  size_t rhs2_stride,
+                  bool rhs1_transposed,
+                  bool rhs2_transposed)
   {
     cublasHandle_t cublas_handle = Core::get_cublas();
     // Update the stream because the CUDA hijack can't see inside cuBLAS
@@ -51,8 +53,8 @@ struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::FLOAT_LT> {
     // Use the extended sgemm interface so we can use tensor cores
     // if they are available for this matrix shape and GPU
     CHECK_CUBLAS(cublasSgemmEx(cublas_handle,
-                               CUBLAS_OP_N,
-                               CUBLAS_OP_N,
+                               rhs2_transposed ? CUBLAS_OP_T : CUBLAS_OP_N,
+                               rhs1_transposed ? CUBLAS_OP_T : CUBLAS_OP_N,
                                n,
                                m,
                                k,
@@ -82,7 +84,9 @@ struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::DOUBLE_LT> {
                   const double *rhs2,
                   size_t lhs_stride,
                   size_t rhs1_stride,
-                  size_t rhs2_stride)
+                  size_t rhs2_stride,
+                  bool rhs1_transposed,
+                  bool rhs2_transposed)
   {
     cublasHandle_t cublas_handle = Core::get_cublas();
     // Update the stream because the CUDA hijack can't see inside cuBLAS
@@ -97,8 +101,8 @@ struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::DOUBLE_LT> {
     // order to help cublas think things are column-major
     // effectively we get NxM = NxK * KxM
     CHECK_CUBLAS(cublasDgemm(cublas_handle,
-                             CUBLAS_OP_N,
-                             CUBLAS_OP_N,
+                             rhs2_transposed ? CUBLAS_OP_T : CUBLAS_OP_N,
+                             rhs1_transposed ? CUBLAS_OP_T : CUBLAS_OP_N,
                              n,
                              m,
                              k,
@@ -117,16 +121,17 @@ struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::DOUBLE_LT> {
 
 template <>
 struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::HALF_LT> {
-  template <typename LHS>
   void operator()(size_t m,
                   size_t n,
                   size_t k,
-                  LHS *lhs,
+                  float *lhs,
                   const __half *rhs1,
                   const __half *rhs2,
                   size_t lhs_stride,
                   size_t rhs1_stride,
-                  size_t rhs2_stride)
+                  size_t rhs2_stride,
+                  bool rhs1_transposed,
+                  bool rhs2_transposed)
   {
     cublasHandle_t cublas_handle = Core::get_cublas();
     // Update the stream because the CUDA hijack can't see inside cuBLAS
@@ -143,8 +148,8 @@ struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::HALF_LT> {
     // Use the extended sgemm interface so we can use tensor cores
     // if they are available for this matrix shape and GPU
     CHECK_CUBLAS(cublasSgemmEx(cublas_handle,
-                               CUBLAS_OP_N,
-                               CUBLAS_OP_N,
+                               rhs2_transposed ? CUBLAS_OP_T : CUBLAS_OP_N,
+                               rhs1_transposed ? CUBLAS_OP_T : CUBLAS_OP_N,
                                n,
                                m,
                                k,
@@ -157,7 +162,7 @@ struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::HALF_LT> {
                                rhs1_stride,
                                &beta,
                                lhs,
-                               sizeof(LHS) == sizeof(float) ? CUDA_R_32F : CUDA_R_16F,
+                               CUDA_R_32F,
                                lhs_stride));
 
     cudaStreamDestroy(task_stream);

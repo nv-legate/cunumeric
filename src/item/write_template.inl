@@ -35,7 +35,7 @@ struct WriteImpl {
     using VAL = legate_type_of<CODE>;
     auto out  = out_arr.write_accessor<VAL, 1>();
     auto in   = in_arr.read_accessor<VAL, 1>();
-    WriteImplBody<KIND, VAL>()(out, in[0]);
+    WriteImplBody<KIND, VAL>()(out, in);
   }
 };
 

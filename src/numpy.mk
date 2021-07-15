@@ -69,6 +69,7 @@ GEN_CPU_SRC += ternary/where_omp.cc          \
 							 matrix/dot_omp.cc             \
 							 matrix/tile_omp.cc            \
 							 matrix/transpose_omp.cc       \
+							 matrix/util_omp.cc            \
 							 random/rand_omp.cc            \
 							 stat/bincount_omp.cc
 endif

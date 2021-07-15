@@ -22,22 +22,22 @@ namespace numpy {
 
 using namespace Legion;
 
-template <typename VAL, int DIM>
+template <typename VAL>
 static __global__ void __launch_bounds__(1, 1)
-  read_value(DeferredValue<VAL> value, const AccessorRO<VAL, DIM> in, const Point<DIM> key)
+  read_value(DeferredValue<VAL> value, const AccessorRO<VAL, 1> in)
 {
-  value = in[key];
+  value = in[0];
 }
 
-template <typename VAL, int DIM>
-struct ReadImplBody<VariantKind::GPU, VAL, DIM> {
-  UntypedScalar operator()(AccessorRO<VAL, DIM> in, const Point<DIM> &key) const
+template <typename VAL>
+struct ReadImplBody<VariantKind::GPU, VAL> {
+  UntypedScalar operator()(AccessorRO<VAL, 1> in) const
   {
     cudaStream_t stream;
     cudaStreamCreate(&stream);
 
     DeferredValue<VAL> result(VAL{0});
-    read_value<VAL, DIM><<<1, 1, 0, stream>>>(result, in, key);
+    read_value<VAL><<<1, 1, 0, stream>>>(result, in);
 
     cudaStreamSynchronize(stream);
     cudaStreamDestroy(stream);

@@ -22,18 +22,18 @@ namespace numpy {
 
 using namespace Legion;
 
-template <typename VAL, int DIM>
+template <typename VAL>
 static __global__ void __launch_bounds__(1, 1)
-  write_value(const AccessorWO<VAL, DIM> out, const Point<DIM> key, VAL value)
+  write_value(const AccessorWO<VAL, 1> out, const AccessorRO<VAL, 1> value)
 {
-  out[key] = value;
+  out[0] = value[0];
 }
 
-template <typename VAL, int DIM>
-struct WriteImplBody<VariantKind::GPU, VAL, DIM> {
-  void operator()(AccessorWO<VAL, DIM> out, const Point<DIM> &key, const VAL &value) const
+template <typename VAL>
+struct WriteImplBody<VariantKind::GPU, VAL> {
+  void operator()(const AccessorWO<VAL, 1> &out, const AccessorRO<VAL, 1> &value) const
   {
-    write_value<VAL, DIM><<<1, 1>>>(out, key, value);
+    write_value<VAL><<<1, 1>>>(out, value);
   }
 };
 

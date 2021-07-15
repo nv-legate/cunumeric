@@ -29,10 +29,10 @@ struct MatVecMulImplBody<VariantKind::GPU, LegateTypeCode::FLOAT_LT> {
   void operator()(size_t m,
                   size_t n,
                   float *lhs,
-                  const float *rhs1,
-                  const float *rhs2,
-                  size_t rhs_stride,
-                  bool vec_on_lhs)
+                  const float *mat,
+                  const float *vec,
+                  size_t mat_stride,
+                  bool transpose_mat)
   {
     cublasHandle_t cublas_handle = Core::get_cublas();
     // Update the stream because the CUDA hijack can't see inside cuBLAS
@@ -43,13 +43,9 @@ struct MatVecMulImplBody<VariantKind::GPU, LegateTypeCode::FLOAT_LT> {
     const float alpha = 1.f;
     const float beta  = 0.f;
 
-    if (vec_on_lhs) {
-      CHECK_CUBLAS(cublasSgemv(
-        cublas_handle, CUBLAS_OP_N, n, m, &alpha, rhs2, rhs_stride, rhs1, 1, &beta, lhs, 1));
-    } else {
-      CHECK_CUBLAS(cublasSgemv(
-        cublas_handle, CUBLAS_OP_T, n, m, &alpha, rhs1, rhs_stride, rhs2, 1, &beta, lhs, 1));
-    }
+    auto trans = transpose_mat ? CUBLAS_OP_N : CUBLAS_OP_T;
+    CHECK_CUBLAS(
+      cublasSgemv(cublas_handle, trans, n, m, &alpha, mat, mat_stride, vec, 1, &beta, lhs, 1));
 
     cudaStreamDestroy(task_stream);
   }
@@ -60,10 +56,10 @@ struct MatVecMulImplBody<VariantKind::GPU, LegateTypeCode::DOUBLE_LT> {
   void operator()(size_t m,
                   size_t n,
                   double *lhs,
-                  const double *rhs1,
-                  const double *rhs2,
-                  size_t rhs_stride,
-                  bool vec_on_lhs)
+                  const double *mat,
+                  const double *vec,
+                  size_t mat_stride,
+                  bool transpose_mat)
   {
     cublasHandle_t cublas_handle = Core::get_cublas();
     // Update the stream because the CUDA hijack can't see inside cuBLAS
@@ -74,13 +70,9 @@ struct MatVecMulImplBody<VariantKind::GPU, LegateTypeCode::DOUBLE_LT> {
     const double alpha = 1.f;
     const double beta  = 0.f;
 
-    if (vec_on_lhs) {
-      CHECK_CUBLAS(cublasDgemv(
-        cublas_handle, CUBLAS_OP_N, n, m, &alpha, rhs2, rhs_stride, rhs1, 1, &beta, lhs, 1));
-    } else {
-      CHECK_CUBLAS(cublasDgemv(
-        cublas_handle, CUBLAS_OP_T, n, m, &alpha, rhs1, rhs_stride, rhs2, 1, &beta, lhs, 1));
-    }
+    auto trans = transpose_mat ? CUBLAS_OP_N : CUBLAS_OP_T;
+    CHECK_CUBLAS(
+      cublasDgemv(cublas_handle, trans, n, m, &alpha, mat, mat_stride, vec, 1, &beta, lhs, 1));
 
     cudaStreamDestroy(task_stream);
   }
@@ -88,14 +80,13 @@ struct MatVecMulImplBody<VariantKind::GPU, LegateTypeCode::DOUBLE_LT> {
 
 template <>
 struct MatVecMulImplBody<VariantKind::GPU, LegateTypeCode::HALF_LT> {
-  template <typename LHS>
   void operator()(size_t m,
                   size_t n,
-                  LHS *lhs,
-                  const __half *rhs1,
-                  const __half *rhs2,
-                  size_t rhs_stride,
-                  bool vec_on_lhs)
+                  float *lhs,
+                  const __half *mat,
+                  const __half *vec,
+                  size_t mat_stride,
+                  bool transpose_mat)
   {
     cublasHandle_t cublas_handle = Core::get_cublas();
     // Update the stream because the CUDA hijack can't see inside cuBLAS
@@ -106,8 +97,8 @@ struct MatVecMulImplBody<VariantKind::GPU, LegateTypeCode::HALF_LT> {
     const float alpha = 1.f;
     const float beta  = 0.f;
 
-    if (vec_on_lhs) {
-      // Use SgemmEx here since there is no half precision gemv yet
+    // Use SgemmEx here since there is no half precision gemv yet
+    if (transpose_mat) {
       CHECK_CUBLAS(cublasSgemmEx(cublas_handle,
                                  CUBLAS_OP_N,
                                  CUBLAS_OP_N,
@@ -115,18 +106,17 @@ struct MatVecMulImplBody<VariantKind::GPU, LegateTypeCode::HALF_LT> {
                                  1,
                                  m,
                                  &alpha,
-                                 rhs2,
+                                 mat,
                                  CUDA_R_16F,
-                                 rhs_stride,
-                                 rhs1,
+                                 mat_stride,
+                                 vec,
                                  CUDA_R_16F,
                                  m,
                                  &beta,
                                  lhs,
-                                 sizeof(LHS) == sizeof(float) ? CUDA_R_32F : CUDA_R_16F,
+                                 CUDA_R_32F,
                                  n));
     } else {
-      // Use SgemmEx here since there is no half precision gemv yet
       CHECK_CUBLAS(cublasSgemmEx(cublas_handle,
                                  CUBLAS_OP_T,
                                  CUBLAS_OP_N,
@@ -134,15 +124,15 @@ struct MatVecMulImplBody<VariantKind::GPU, LegateTypeCode::HALF_LT> {
                                  1,
                                  n,
                                  &alpha,
-                                 rhs1,
+                                 mat,
                                  CUDA_R_16F,
-                                 rhs_stride,
-                                 rhs2,
+                                 mat_stride,
+                                 vec,
                                  CUDA_R_16F,
                                  n,
                                  &beta,
                                  lhs,
-                                 sizeof(LHS) == sizeof(float) ? CUDA_R_32F : CUDA_R_16F,
+                                 CUDA_R_32F,
                                  m));
     }
 

@@ -24,7 +24,10 @@ using namespace Legion;
 
 template <typename VAL>
 struct WriteImplBody<VariantKind::CPU, VAL> {
-  void operator()(AccessorWO<VAL, 1> out, const VAL &value) const { out[0] = value; }
+  void operator()(AccessorWO<VAL, 1> out, const AccessorRO<VAL, 1> &value) const
+  {
+    out[0] = value[0];
+  }
 };
 
 /*static*/ void WriteTask::cpu_variant(const Task *task,

@@ -17,6 +17,7 @@
 #include "matrix/matmul.h"
 #include "matrix/matmul_template.inl"
 #include "matrix/util.h"
+#include "matrix/util_omp.h"
 
 #include <cblas.h>
 #include <omp.h>
@@ -36,11 +37,13 @@ struct MatMulImplBody<VariantKind::OMP, LegateTypeCode::FLOAT_LT> {
                   const float *rhs2,
                   size_t lhs_stride,
                   size_t rhs1_stride,
-                  size_t rhs2_stride)
+                  size_t rhs2_stride,
+                  bool rhs1_transposed,
+                  bool rhs2_transposed)
   {
     cblas_sgemm(CblasRowMajor,
-                CblasNoTrans,
-                CblasNoTrans,
+                rhs1_transposed ? CblasTrans : CblasNoTrans,
+                rhs2_transposed ? CblasTrans : CblasNoTrans,
                 m,
                 n,
                 k,
@@ -65,11 +68,13 @@ struct MatMulImplBody<VariantKind::OMP, LegateTypeCode::DOUBLE_LT> {
                   const double *rhs2,
                   size_t lhs_stride,
                   size_t rhs1_stride,
-                  size_t rhs2_stride)
+                  size_t rhs2_stride,
+                  bool rhs1_transposed,
+                  bool rhs2_transposed)
   {
     cblas_dgemm(CblasRowMajor,
-                CblasNoTrans,
-                CblasNoTrans,
+                rhs1_transposed ? CblasTrans : CblasNoTrans,
+                rhs2_transposed ? CblasTrans : CblasNoTrans,
                 m,
                 n,
                 k,
@@ -89,44 +94,42 @@ struct MatMulImplBody<VariantKind::OMP, LegateTypeCode::HALF_LT> {
   void operator()(size_t m,
                   size_t n,
                   size_t k,
-                  __half *lhs,
-                  const __half *rhs1,
-                  const __half *rhs2,
-                  size_t lhs_stride,
-                  size_t rhs1_stride,
-                  size_t rhs2_stride)
-  {
-    auto rhs1_copy = allocate_buffer(m * k);
-    auto rhs2_copy = allocate_buffer(k * n);
-    auto lhs_copy  = allocate_buffer(m * n);
-
-    half_matrix_to_float(rhs1_copy, rhs1, m, k, rhs1_stride);
-    half_matrix_to_float(rhs2_copy, rhs2, k, n, rhs2_stride);
-
-    MatMulImplBody<VariantKind::OMP, LegateTypeCode::FLOAT_LT>()(
-      m, n, k, lhs_copy, rhs1_copy, rhs2_copy, n, k, n);
-
-    float_matrix_to_half(lhs, lhs_copy, m, n, lhs_stride);
-  }
-
-  void operator()(size_t m,
-                  size_t n,
-                  size_t k,
                   float *lhs,
                   const __half *rhs1,
                   const __half *rhs2,
                   size_t lhs_stride,
                   size_t rhs1_stride,
-                  size_t rhs2_stride)
+                  size_t rhs2_stride,
+                  bool rhs1_transposed,
+                  bool rhs2_transposed)
   {
     auto rhs1_copy = allocate_buffer(m * k);
     auto rhs2_copy = allocate_buffer(k * n);
 
-    half_matrix_to_float(rhs1_copy, rhs1, m, k, rhs1_stride);
-    half_matrix_to_float(rhs2_copy, rhs2, k, n, rhs2_stride);
+    if (rhs1_transposed)
+      half_matrix_to_float_omp(rhs1_copy, rhs1, k, m, rhs1_stride);
+    else
+      half_matrix_to_float_omp(rhs1_copy, rhs1, m, k, rhs1_stride);
 
-    MatMulImplBody<VariantKind::OMP, LegateTypeCode::FLOAT_LT>()(
-      m, n, k, lhs, rhs1_copy, rhs2_copy, n, k, n);
+    if (rhs2_transposed)
+      half_matrix_to_float_omp(rhs2_copy, rhs2, n, k, rhs2_stride);
+    else
+      half_matrix_to_float_omp(rhs2_copy, rhs2, k, n, rhs2_stride);
+
+    cblas_sgemm(CblasRowMajor,
+                rhs1_transposed ? CblasTrans : CblasNoTrans,
+                rhs2_transposed ? CblasTrans : CblasNoTrans,
+                m,
+                n,
+                k,
+                1,
+                rhs1_copy,
+                rhs1_transposed ? m : k,
+                rhs2_copy,
+                rhs2_transposed ? k : n,
+                0,
+                lhs,
+                lhs_stride);
   }
 };
 

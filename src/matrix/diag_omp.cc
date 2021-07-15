@@ -27,36 +27,28 @@ struct DiagImplBody<VariantKind::OMP, CODE> {
   using VAL = legate_type_of<CODE>;
 
   void operator()(const AccessorWO<VAL, 2> &out,
-                  const AccessorRO<VAL, 1> &in,
-                  coord_t distance,
-                  const Point<2> &start_out,
-                  coord_t start_in) const
+                  const AccessorRO<VAL, 2> &in,
+                  const Point<2> &start,
+                  size_t distance) const
   {
 #pragma omp parallel for schedule(static)
-    for (coord_t idx = 0; idx < distance; ++idx)
-      out[start_out[0] + idx][start_out[1] + idx] = in[start_in + idx];
+    for (coord_t idx = 0; idx < distance; ++idx) {
+      Point<2> p(start[0] + idx, start[1] + idx);
+      out[p] = in[p];
+    }
   }
 
-  void operator()(const AccessorWO<VAL, 1> &out,
+  void operator()(const AccessorRD<SumReduction<VAL>, true, 2> &out,
                   const AccessorRO<VAL, 2> &in,
-                  coord_t distance,
-                  coord_t start_out,
-                  const Point<2> &start_in) const
+                  const Point<2> &start,
+                  size_t distance) const
   {
 #pragma omp parallel for schedule(static)
-    for (coord_t idx = 0; idx < distance; ++idx)
-      out[start_out + idx] = in[start_in[0] + idx][start_in[1] + idx];
-  }
-
-  void operator()(const AccessorRD<SumReduction<VAL>, true, 1> &out,
-                  const AccessorRO<VAL, 2> &in,
-                  coord_t distance,
-                  coord_t start_out,
-                  const Point<2> &start_in) const
-  {
-#pragma omp parallel for schedule(static)
-    for (coord_t idx = 0; idx < distance; ++idx)
-      out.reduce(start_out + idx, in[start_in[0] + idx][start_in[1] + idx]);
+    for (coord_t idx = 0; idx < distance; ++idx) {
+      Point<2> p(start[0] + idx, start[1] + idx);
+      auto v = in[p];
+      out.reduce(p, v);
+    }
   }
 };
 
