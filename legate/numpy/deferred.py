@@ -14,6 +14,7 @@
 #
 
 import warnings
+import weakref
 
 import numpy as np
 
@@ -119,6 +120,23 @@ def shadow_debug(func_name, indices, keys=[]):
     return decorator
 
 
+# This is a dummy object that is only used as an initializer for the
+# RegionField object above. It is thrown away as soon as the
+# RegionField is constructed.
+class _LegateNDarray(object):
+    __slots__ = ["__array_interface__"]
+
+    def __init__(self, shape, field_type, base_ptr, strides, read_only):
+        # See: https://docs.scipy.org/doc/numpy/reference/arrays.interface.html
+        self.__array_interface__ = {
+            "version": 3,
+            "shape": shape,
+            "typestr": field_type.str,
+            "data": (base_ptr, read_only),
+            "strides": strides,
+        }
+
+
 class DeferredArray(NumPyThunk):
     """This is a deferred thunk for describing NumPy computations.
     It is backed by either a Legion logical region or a Legion future
@@ -127,12 +145,15 @@ class DeferredArray(NumPyThunk):
     :meta private:
     """
 
-    def __init__(self, runtime, base, dtype, scalar):
+    def __init__(self, runtime, base, dtype, scalar, numpy_array=None):
         NumPyThunk.__init__(self, runtime, dtype)
         assert base is not None
         assert isinstance(base, Store)
         self.base = base  # a Legate Store
         self.scalar = scalar
+        self.numpy_array = (
+            None if numpy_array is None else weakref.ref(numpy_array)
+        )
 
     @property
     def storage(self):
@@ -150,18 +171,34 @@ class DeferredArray(NumPyThunk):
         return len(self.shape)
 
     def __numpy_array__(self, stacklevel=0):
-        if self.scalar:
-            return np.full(
-                self.shape,
-                self.get_scalar_array(stacklevel=(stacklevel + 1)),
-                dtype=self.dtype,
-            )
+        if self.numpy_array is not None:
+            result = self.numpy_array()
+            if result is not None:
+                return result
         elif self.size == 0:
             # Return an empty array with the right number of dimensions
             # and type
             return np.empty(shape=self.shape, dtype=self.dtype)
+
+        if self.scalar:
+            result = np.full(
+                self.shape,
+                self.get_scalar_array(stacklevel=(stacklevel + 1)),
+                dtype=self.dtype,
+            )
         else:
-            return self.base.get_numpy_array(self.context)
+            alloc = self.base.get_inline_allocation(self.context)
+
+            def construct_ndarray(shape, address, strides):
+                initializer = _LegateNDarray(
+                    shape, self.dtype, address, strides, False
+                )
+                return np.asarray(initializer)
+
+            result = alloc.consume(construct_ndarray)
+
+        self.numpy_array = weakref.ref(result)
+        return result
 
     # TODO: We should return a view of the field instead of a copy
     def imag(self, stacklevel=0, callsite=None):

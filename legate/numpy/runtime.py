@@ -26,6 +26,7 @@ import legate.core.types as ty
 from legate.core import (
     LEGATE_MAX_DIM,
     AffineTransform,
+    ExternalAllocation,
     FieldID,
     Future,
     FutureMap,
@@ -97,6 +98,24 @@ _supported_dtypes = {
     np.complex64: ty.complex64,
     np.complex128: ty.complex128,
 }
+
+
+class NumPyAllocation(ExternalAllocation):
+    def __init__(self, array):
+        self._array = array
+
+    @property
+    def memoryview(self):
+        return memoryview(self._array.data)
+
+    @property
+    def address(self):
+        return int(self._array.ctypes.data)
+
+    def __eq__(self, other):
+        return (
+            isinstance(other, NumPyAllocation) and self._array is other._array
+        )
 
 
 class Runtime(object):
@@ -374,7 +393,7 @@ class Runtime(object):
 
     def has_external_attachment(self, array):
         assert array.base is None or not isinstance(array.base, np.ndarray)
-        return self.legate_runtime.has_attachment(array)
+        return self.legate_runtime.has_attachment(NumPyAllocation(array))
 
     @staticmethod
     def compute_parent_child_mapping(array):
@@ -522,14 +541,18 @@ class Runtime(object):
                 return result
             else:
                 # This is not a scalar so make a field
-                region_field = self.legate_context.attach_array(
-                    array, array.dtype, share
+                store = self.legate_context.attach_external_allocation(
+                    NumPyAllocation(array),
+                    array.shape,
+                    array.dtype,
+                    share,
                 )
                 result = DeferredArray(
                     self,
-                    region_field,
+                    store,
                     dtype=array.dtype,
                     scalar=(array.size == 1),
+                    numpy_array=array if share else None,
                 )
             # If we're doing shadow debug make an EagerArray shadow
             if self.shadow_debug:
