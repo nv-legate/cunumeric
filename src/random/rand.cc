@@ -44,8 +44,14 @@ void deserialize(Deserializer &ctx, RandArgs &args)
 {
   deserialize(ctx, args.out);
   deserialize(ctx, args.gen_code);
-  deserialize(ctx, args.epoch);
-  deserialize(ctx, args.strides);
+  Scalar epoch;
+  deserialize(ctx, epoch);
+  args.epoch = epoch.value<uint32_t>();
+  Scalar scalar;
+  deserialize(ctx, scalar);
+  auto strides     = scalar.values<int64_t>();
+  args.strides.dim = strides.size();
+  for (auto idx = 0; idx < args.strides.dim; ++idx) args.strides[idx] = strides[idx];
   deserialize(ctx, args.args);
 }
 

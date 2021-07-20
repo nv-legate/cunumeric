@@ -93,7 +93,9 @@ void deserialize(Deserializer &ctx, UnaryRedArgs &args)
 {
   deserialize(ctx, args.rhs);
   deserialize(ctx, args.lhs);
-  deserialize(ctx, args.collapsed_dim);
+  Scalar collapsed_dim;
+  deserialize(ctx, collapsed_dim);
+  args.collapsed_dim = collapsed_dim.value<int32_t>();
   deserialize(ctx, args.op_code);
 }
 

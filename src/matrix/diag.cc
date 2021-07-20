@@ -54,7 +54,8 @@ void deserialize(Deserializer &ctx, DiagArgs &args)
 {
   deserialize(ctx, args.matrix);
   deserialize(ctx, args.diag);
-  deserialize(ctx, args.extract);
+  args.extract = args.diag.is_reducible();
+  if (!args.extract) deserialize(ctx, args.matrix);
 }
 
 /*static*/ void DiagTask::cpu_variant(const Task *task,

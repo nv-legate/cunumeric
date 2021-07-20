@@ -41,7 +41,11 @@ struct FillImplBody<VariantKind::OMP, VAL, DIM> {
 #pragma omp parallel for schedule(static)
       for (size_t idx = 0; idx < volume; ++idx) outptr[idx] = fill_value;
     } else {
-      OMPLoop<DIM>::unary_loop(Identity<VAL>{}, out, Scalar<VAL, DIM>(fill_value), rect);
+#pragma omp parallel for schedule(static)
+      for (size_t idx = 0; idx < volume; ++idx) {
+        auto p = pitches.unflatten(idx, rect.lo);
+        out[p] = fill_value;
+      }
     }
   }
 };

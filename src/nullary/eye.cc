@@ -35,7 +35,9 @@ struct EyeImplBody<VariantKind::CPU, VAL> {
 void deserialize(Deserializer &ctx, EyeArgs &args)
 {
   deserialize(ctx, args.out);
-  deserialize(ctx, args.k);
+  Scalar k;
+  deserialize(ctx, k);
+  args.k = k.value<int32_t>();
 }
 
 /*static*/ void EyeTask::cpu_variant(const Task *task,

@@ -92,6 +92,7 @@ class CPULoop {
   static_assert(DIM <= 0, "Need more Looper instantiations");
 };
 
+/*
 // A small helper class that provides array index syntax for scalar
 // value when abstracting over loop classes, this should be optimized
 // away completely by the compiler's optimization passes
@@ -118,6 +119,7 @@ class Scalar<T, 1> {
  private:
   const T& value;
 };
+*/
 
 template <>
 class CPULoop<1> {

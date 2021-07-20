@@ -21,9 +21,9 @@ namespace numpy {
 
 void deserialize(Deserializer& ctx, RandGenCode& code)
 {
-  int32_t value;
-  deserialize(ctx, value);
-  code = static_cast<RandGenCode>(value);
+  Scalar scalar;
+  deserialize(ctx, scalar);
+  code = scalar.value<RandGenCode>();
 }
 
 }  // namespace numpy

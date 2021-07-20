@@ -27,7 +27,7 @@ struct RandArgs {
   Array out;
   RandGenCode gen_code;
   uint32_t epoch;
-  UntypedPoint strides;
+  Legion::DomainPoint strides;
   std::vector<UntypedScalar> args;
 };
 

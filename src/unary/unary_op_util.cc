@@ -21,9 +21,9 @@ namespace numpy {
 
 void deserialize(Deserializer &ctx, UnaryOpCode &code)
 {
-  int32_t value;
-  deserialize(ctx, value);
-  code = static_cast<UnaryOpCode>(value);
+  Scalar scalar;
+  deserialize(ctx, scalar);
+  code = scalar.value<UnaryOpCode>();
 }
 
 }  // namespace numpy

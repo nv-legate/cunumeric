@@ -64,7 +64,9 @@ struct SourceTypeDispatch {
   Array in;
   LegateTypeCode dtype;
   deserialize(ctx, in);
-  deserialize(ctx, dtype);
+  Scalar scalar;
+  deserialize(ctx, scalar);
+  dtype = scalar.value<LegateTypeCode>();
 
   return type_dispatch(in.code(), SourceTypeDispatch{}, dtype, in.scalar<UntypedScalar>());
 }

@@ -87,7 +87,9 @@ void deserialize(Deserializer &ctx, MatVecMulArgs &args)
   deserialize(ctx, args.rhs1);
   deserialize(ctx, args.rhs2);
   deserialize(ctx, args.lhs);
-  deserialize(ctx, args.left_matrix);
+  Scalar left_matrix;
+  deserialize(ctx, left_matrix);
+  args.left_matrix = left_matrix.value<bool>();
 }
 
 /*static*/ void MatVecMulTask::cpu_variant(const Task *task,

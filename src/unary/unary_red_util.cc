@@ -21,9 +21,9 @@ namespace numpy {
 
 void deserialize(Deserializer& ctx, UnaryRedCode& code)
 {
-  int32_t value;
-  deserialize(ctx, value);
-  code = static_cast<UnaryRedCode>(value);
+  Scalar scalar;
+  deserialize(ctx, scalar);
+  code = scalar.value<UnaryRedCode>();
 }
 
 template <>

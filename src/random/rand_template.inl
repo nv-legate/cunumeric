@@ -44,8 +44,8 @@ struct RandImpl {
 
     if (volume == 0) return;
 
-    auto out     = args.out.write_accessor<VAL, DIM>(rect);
-    auto strides = args.strides.to_point<DIM>();
+    auto out = args.out.write_accessor<VAL, DIM>(rect);
+    Point<DIM> strides(args.strides);
 
     RNG rng(args.epoch, args.args);
     RandImplBody<KIND, RNG, VAL, DIM>{}(out, rng, strides, pitches, rect);
