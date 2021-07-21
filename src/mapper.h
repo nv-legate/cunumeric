@@ -395,11 +395,9 @@ class NumPyMapper : public Legion::Mapping::Mapper {
                    const Legion::Task& task,
                    Legion::Processor::Kind kind);
   Legion::VariantID find_variant(const Legion::Mapping::MapperContext ctx,
-                                 const Legion::Task& task,
-                                 bool subrank);
+                                 const Legion::Task& task);
   Legion::VariantID find_variant(const Legion::Mapping::MapperContext ctx,
                                  const Legion::Task& task,
-                                 bool subrank,
                                  Legion::Processor target_proc);
   void pack_tunable(const int value, Mapper::SelectTunableOutput& output);
   static int find_key_region(const Legion::Task& task);
@@ -450,7 +448,6 @@ class NumPyMapper : public Legion::Mapping::Mapper {
 
  protected:
   std::map<std::pair<Legion::TaskID, Legion::Processor::Kind>, Legion::VariantID> leaf_variants;
-  std::map<std::pair<Legion::TaskID, Legion::Processor::Kind>, Legion::VariantID> inner_variants;
 
  protected:
   std::map<FieldMemInfo, InstanceInfos> local_instances;

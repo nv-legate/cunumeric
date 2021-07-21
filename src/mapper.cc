@@ -282,8 +282,7 @@ bool NumPyMapper::has_variant(const MapperContext ctx, const Task& task, Process
   std::vector<VariantID> variants;
   runtime->find_valid_variants(ctx, key.first, variants, key.second);
   // Process all the results, record if we found what we were looking for
-  bool has_leaf  = false;
-  bool has_inner = false;
+  bool has_leaf = false;
   for (std::vector<VariantID>::const_iterator it = variants.begin(); it != variants.end(); it++) {
     assert((*it) > 0);
     switch (*it) {
@@ -294,52 +293,36 @@ bool NumPyMapper::has_variant(const MapperContext ctx, const Task& task, Process
         leaf_variants[key] = *it;
         break;
       }
-      case LEGATE_SUB_CPU_VARIANT:
-      case LEGATE_SUB_GPU_VARIANT:
-      case LEGATE_SUB_OMP_VARIANT: {
-        has_inner           = true;
-        inner_variants[key] = *it;
-        break;
-      }
       default:        // TODO: handle vectorized variants
         LEGATE_ABORT  // unhandled variant kind
     }
   }
   if (!has_leaf) leaf_variants[key] = 0;
-  if (!has_inner) inner_variants[key] = 0;
   return has_leaf;
 }
 
 //--------------------------------------------------------------------------
-VariantID NumPyMapper::find_variant(const MapperContext ctx, const Task& task, bool subrank)
+VariantID NumPyMapper::find_variant(const MapperContext ctx, const Task& task)
 //--------------------------------------------------------------------------
 {
-  return find_variant(ctx, task, subrank, task.target_proc);
+  return find_variant(ctx, task, task.target_proc);
 }
 
 //--------------------------------------------------------------------------
 VariantID NumPyMapper::find_variant(const MapperContext ctx,
                                     const Task& task,
-                                    bool subrank,
                                     Processor target_proc)
 //--------------------------------------------------------------------------
 {
   const std::pair<TaskID, Processor::Kind> key(task.task_id, target_proc.kind());
-  if (subrank) {
-    std::map<std::pair<TaskID, Processor::Kind>, VariantID>::const_iterator finder =
-      inner_variants.find(key);
-    if ((finder != inner_variants.end()) && (finder->second != 0)) return finder->second;
-  } else {
-    std::map<std::pair<TaskID, Processor::Kind>, VariantID>::const_iterator finder =
-      leaf_variants.find(key);
-    if ((finder != leaf_variants.end()) && (finder->second != 0)) return finder->second;
-  }
+  std::map<std::pair<TaskID, Processor::Kind>, VariantID>::const_iterator finder =
+    leaf_variants.find(key);
+  if ((finder != leaf_variants.end()) && (finder->second != 0)) return finder->second;
   // Haven't seen it before so let's look it up to make sure it exists
   std::vector<VariantID> variants;
   runtime->find_valid_variants(ctx, key.first, variants, key.second);
   VariantID result = 0;  // 0 is reserved
   bool has_leaf    = false;
-  bool has_inner   = false;
   // Process all the results, record if we found what we were looking for
   for (std::vector<VariantID>::const_iterator it = variants.begin(); it != variants.end(); it++) {
     assert((*it) > 0);
@@ -349,15 +332,7 @@ VariantID NumPyMapper::find_variant(const MapperContext ctx,
       case LEGATE_GPU_VARIANT: {
         has_leaf           = true;
         leaf_variants[key] = *it;
-        if (!subrank) result = *it;
-        break;
-      }
-      case LEGATE_SUB_CPU_VARIANT:
-      case LEGATE_SUB_GPU_VARIANT:
-      case LEGATE_SUB_OMP_VARIANT: {
-        has_inner           = true;
-        inner_variants[key] = *it;
-        if (subrank) result = *it;
+        result             = *it;
         break;
       }
       default:        // TODO: handle vectorized variants
@@ -365,7 +340,6 @@ VariantID NumPyMapper::find_variant(const MapperContext ctx,
     }
   }
   if (!has_leaf) leaf_variants[key] = 0;
-  if (!has_inner) inner_variants[key] = 0;
   // We must always be able to find the variant;
   assert(result != 0);
   return result;
@@ -384,17 +358,7 @@ void NumPyMapper::map_task(const MapperContext ctx,
   // First let's see if this is sub-rankable
   output.chosen_instances.resize(task.regions.size());
   // We've subsumed the tag for now to capture sharding function IDs
-#if 0
-  if (task.tag & NUMPY_SUBRANKABLE_TAG) {
-    output.chosen_variant = find_variant(ctx, task, true /*subrank*/);
-    // Request virtual mappings for all the region requirements
-    const PhysicalInstance virt = PhysicalInstance::get_virtual_instance();
-    for (unsigned idx = 0; idx < task.regions.size(); idx++)
-      output.chosen_instances[idx].push_back(virt);
-    return;
-  } else    // Not subrankable so get the non-subrank variant
-#endif
-  output.chosen_variant = find_variant(ctx, task, false /*subrank*/);
+  output.chosen_variant = find_variant(ctx, task);
   // Normal task and not sub-rankable, so let's actually do the mapping
   Memory target_memory = Memory::NO_MEMORY;
   switch (task.target_proc.kind()) {
@@ -1022,7 +986,7 @@ void NumPyMapper::select_task_variant(const MapperContext ctx,
                                       SelectVariantOutput& output)
 //--------------------------------------------------------------------------
 {
-  output.chosen_variant = find_variant(ctx, task, false /*subrank*/, input.processor);
+  output.chosen_variant = find_variant(ctx, task, input.processor);
 }
 
 //--------------------------------------------------------------------------

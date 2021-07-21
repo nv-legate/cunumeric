@@ -16,8 +16,6 @@
 
 #include "unary/scalar_convert.h"
 #include "unary/convert_util.h"
-#include "core.h"
-#include "dispatch.h"
 
 namespace legate {
 namespace numpy {

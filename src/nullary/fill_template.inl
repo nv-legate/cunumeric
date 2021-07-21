@@ -15,10 +15,7 @@
  */
 
 #include "arg.h"
-#include "core.h"
-#include "dispatch.h"
 #include "point_task.h"
-#include "scalar.h"
 
 namespace legate {
 namespace numpy {

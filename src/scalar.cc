@@ -17,10 +17,24 @@
 #include <sstream>
 
 #include "scalar.h"
-#include "dispatch.h"
 
 namespace legate {
 namespace numpy {
+
+static const char *TYPE_NAMES[] = {"bool",
+                                   "int8_t",
+                                   "int16_t",
+                                   "int32_t",
+                                   "int64_t",
+                                   "uint8_t",
+                                   "uint16_t",
+                                   "uint32_t",
+                                   "uint64_t",
+                                   "__half",
+                                   "float",
+                                   "double",
+                                   "complex<float>",
+                                   "complex<double>"};
 
 UntypedScalar::UntypedScalar(const UntypedScalar &other) noexcept { copy(other); }
 

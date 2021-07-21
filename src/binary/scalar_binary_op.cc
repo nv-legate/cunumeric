@@ -16,8 +16,6 @@
 
 #include "scalar_binary_op.h"
 #include "binary_op_util.h"
-#include "core.h"
-#include "dispatch.h"
 #include "scalar.h"
 
 namespace legate {

@@ -17,7 +17,6 @@
 #pragma once
 
 #include "numpy.h"
-#include "core.h"
 #include "unary/unary_red_util.h"
 
 namespace legate {

@@ -18,9 +18,6 @@
 
 #include "numpy.h"
 #include "arg.h"
-#include "deserializer.h"
-#include "dispatch.h"
-#include "scalar.h"
 
 namespace legate {
 namespace numpy {

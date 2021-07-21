@@ -16,8 +16,6 @@
 
 #include "unary/scalar_unary_op.h"
 #include "unary/unary_op_util.h"
-#include "core.h"
-#include "dispatch.h"
 #include "scalar.h"
 
 namespace legate {

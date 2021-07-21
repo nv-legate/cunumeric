@@ -16,9 +16,8 @@
 
 #pragma once
 
-#include "numpy.h"
+#include "legate.h"
 #include "arg.h"
-#include "deserializer.h"
 
 namespace legate {
 namespace numpy {

@@ -18,8 +18,7 @@
 
 #include "legate.h"
 #include "legate_numpy_c.h"
-#include "core.h"
-#include "dispatch.h"
+#include "scalar.h"
 #include "mathtypes/complex.h"
 #include <deque>
 
@@ -34,21 +33,6 @@ enum class VariantKind : int {
   GPU = 2,
 };
 
-static const char* TYPE_NAMES[] = {"bool",
-                                   "int8_t",
-                                   "int16_t",
-                                   "int32_t",
-                                   "int64_t",
-                                   "uint8_t",
-                                   "uint16_t",
-                                   "uint32_t",
-                                   "uint64_t",
-                                   "__half",
-                                   "float",
-                                   "double",
-                                   "complex<float>",
-                                   "complex<double>"};
-
 class LegateNumPy {
  public:
   // Record variants for all our tasks
@@ -57,7 +41,7 @@ class LegateNumPy {
                              const Legion::CodeDescriptor& desc,
                              Legion::ExecutionConstraintSet& execution_constraints,
                              Legion::TaskLayoutConstraintSet& layout_constraints,
-                             LegateVariant var,
+                             LegateVariantCode var,
                              Legion::Processor::Kind kind,
                              bool leaf,
                              bool inner,
@@ -76,7 +60,7 @@ class LegateNumPy {
                        const char* var_name,
                        const char* t_name,
                        const Legion::CodeDescriptor& desc,
-                       LegateVariant v,
+                       LegateVariantCode v,
                        size_t ret)
       : Legion::TaskVariantRegistrar(tid, global, var_name),
         task_name(t_name),
@@ -89,7 +73,7 @@ class LegateNumPy {
    public:
     const char* task_name;
     Legion::CodeDescriptor descriptor;
-    LegateVariant var;
+    LegateVariantCode var;
     size_t ret_size;
   };
   static std::deque<PendingTaskVariant>& get_pending_task_variants(void);
@@ -103,7 +87,7 @@ class NumPyTask : public LegateTask<T> {
                              const Legion::CodeDescriptor& desc,
                              Legion::ExecutionConstraintSet& execution_constraints,
                              Legion::TaskLayoutConstraintSet& layout_constraints,
-                             LegateVariant var,
+                             LegateVariantCode var,
                              Legion::Processor::Kind kind,
                              bool leaf,
                              bool inner,

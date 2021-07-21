@@ -18,8 +18,6 @@
 
 #include "numpy.h"
 #include "arg.h"
-#include "deserializer.h"
-#include "scalar.h"
 
 #include <math.h>
 

@@ -36,7 +36,7 @@ extern void register_cpu_reduction_operators(ReductionOpID first_redop_id);
                                             const CodeDescriptor& descriptor,
                                             ExecutionConstraintSet& execution_constraints,
                                             TaskLayoutConstraintSet& layout_constraints,
-                                            LegateVariant var,
+                                            LegateVariantCode var,
                                             Processor::Kind kind,
                                             bool leaf,
                                             bool inner,
