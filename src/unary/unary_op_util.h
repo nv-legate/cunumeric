@@ -51,8 +51,6 @@ enum class UnaryOpCode : int {
   GETARG,
 };
 
-void deserialize(Deserializer& ctx, UnaryOpCode& code);
-
 template <typename Functor, typename... Fnargs>
 constexpr decltype(auto) op_dispatch(UnaryOpCode op_code, Functor f, Fnargs&&... args)
 {

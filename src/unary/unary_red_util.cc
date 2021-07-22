@@ -19,13 +19,6 @@
 namespace legate {
 namespace numpy {
 
-void deserialize(Deserializer& ctx, UnaryRedCode& code)
-{
-  Scalar scalar;
-  deserialize(ctx, scalar);
-  code = scalar.value<UnaryRedCode>();
-}
-
 template <>
 const UntypedScalar UntypedScalarRedOp<UnaryRedCode::MAX>::identity = UntypedScalar();
 template <>

@@ -17,12 +17,10 @@
 # since we have to add the -fopenmp flag to  CC_FLAGS for them
 GEN_CPU_SRC += ternary/where.cc               \
 							 binary/binary_op.cc            \
-							 binary/binary_op_util.cc       \
 							 binary/scalar_binary_op.cc     \
 							 binary/binary_red.cc           \
 							 unary/scalar_unary_red.cc      \
 							 unary/unary_op.cc              \
-							 unary/unary_op_util.cc         \
 							 unary/unary_red.cc             \
 							 unary/unary_red_util.cc        \
 							 unary/scalar_unary_op.cc       \
@@ -41,7 +39,6 @@ GEN_CPU_SRC += ternary/where.cc               \
 							 matrix/transpose.cc            \
 							 matrix/util.cc                 \
 							 random/rand.cc                 \
-							 random/rand_util.cc            \
 							 search/nonzero.cc              \
 							 stat/bincount.cc               \
 							 scalar.cc                      \

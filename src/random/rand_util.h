@@ -32,8 +32,6 @@ enum class RandGenCode : int32_t {
   INTEGER = 3,
 };
 
-void deserialize(Deserializer &ctx, RandGenCode &code);
-
 template <typename Functor, typename... Fnargs>
 constexpr decltype(auto) op_dispatch(RandGenCode gen_code, Functor f, Fnargs &&... args)
 {

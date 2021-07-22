@@ -40,8 +40,6 @@ enum class BinaryOpCode : int {
   ALLCLOSE,
 };
 
-void deserialize(Deserializer& ctx, BinaryOpCode& code);
-
 template <typename Functor, typename... Fnargs>
 constexpr decltype(auto) op_dispatch(BinaryOpCode op_code, Functor f, Fnargs&&... args)
 {

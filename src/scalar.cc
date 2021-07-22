@@ -147,13 +147,6 @@ struct size_fn {
 
 size_t UntypedScalar::elem_size() const { return type_dispatch(code_, size_fn{}, is_argval_); }
 
-void deserialize(Deserializer &ctx, UntypedScalar &scalar)
-{
-  FromFuture<UntypedScalar> fut_scalar;
-  deserialize(ctx, fut_scalar);
-  scalar = std::move(fut_scalar.value());
-}
-
 struct to_string_fn {
   template <LegateTypeCode CODE>
   std::string operator()(bool is_argval, const void *data)

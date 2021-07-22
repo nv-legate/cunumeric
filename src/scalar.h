@@ -85,8 +85,6 @@ class UntypedScalar {
   void *data_{nullptr};
 };
 
-void deserialize(Deserializer &ctx, UntypedScalar &scalar);
-
 }  // namespace numpy
 
 template <>
