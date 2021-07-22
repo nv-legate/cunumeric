@@ -25,7 +25,7 @@ struct ReadImplBody;
 template <VariantKind KIND>
 struct ReadImpl {
   template <LegateTypeCode CODE>
-  UntypedScalar operator()(Array &in_arr) const
+  UntypedScalar operator()(const Array &in_arr) const
   {
     using VAL = legate_type_of<CODE>;
     auto in   = in_arr.read_accessor<VAL, 1>();
@@ -34,14 +34,9 @@ struct ReadImpl {
 };
 
 template <VariantKind KIND>
-static UntypedScalar read_template(const Task *task,
-                                   const std::vector<PhysicalRegion> &regions,
-                                   Context context,
-                                   Runtime *runtime)
+static UntypedScalar read_template(TaskContext &context)
 {
-  Deserializer ctx(task, regions);
-  Array in;
-  deserialize(ctx, in);
+  auto &in = context.inputs()[0];
   return type_dispatch(in.code(), ReadImpl<KIND>{}, in);
 }
 

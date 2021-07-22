@@ -50,25 +50,14 @@ struct DiagImplBody<VariantKind::CPU, CODE> {
   }
 };
 
-void deserialize(Deserializer &ctx, DiagArgs &args)
+/*static*/ void DiagTask::cpu_variant(TaskContext &context)
 {
-  deserialize(ctx, args.matrix);
-  deserialize(ctx, args.diag);
-  args.extract = args.diag.is_reducible();
-  if (!args.extract) deserialize(ctx, args.matrix);
-}
-
-/*static*/ void DiagTask::cpu_variant(const Task *task,
-                                      const std::vector<PhysicalRegion> &regions,
-                                      Context context,
-                                      Runtime *runtime)
-{
-  diag_template<VariantKind::CPU>(task, regions, context, runtime);
+  diag_template<VariantKind::CPU>(context);
 }
 
 namespace  // unnamed
 {
-static void __attribute__((constructor)) register_tasks(void) { DiagTask::register_variants(); }
+static void __attribute__((constructor)) register_tasks(void) { DiagTask::register_new_variants(); }
 }  // namespace
 
 }  // namespace numpy

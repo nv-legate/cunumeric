@@ -63,14 +63,9 @@ struct EyeImpl {
 };
 
 template <VariantKind KIND>
-static void eye_template(const Task *task,
-                         const std::vector<PhysicalRegion> &regions,
-                         Context context,
-                         Runtime *runtime)
+static void eye_template(TaskContext &context)
 {
-  Deserializer ctx(task, regions);
-  EyeArgs args;
-  deserialize(ctx, args);
+  EyeArgs args{context.outputs()[0], context.scalars()[0].value<int32_t>()};
   type_dispatch(args.out.code(), EyeImpl<KIND>{}, args);
 }
 

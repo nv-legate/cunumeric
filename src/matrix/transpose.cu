@@ -101,12 +101,9 @@ struct TransposeImplBody<VariantKind::GPU, CODE, 2> {
   }
 };
 
-/*static*/ void TransposeTask::gpu_variant(const Task *task,
-                                           const std::vector<PhysicalRegion> &regions,
-                                           Context context,
-                                           Runtime *runtime)
+/*static*/ void TransposeTask::gpu_variant(TaskContext &context)
 {
-  transpose_template<VariantKind::GPU>(task, regions, context, runtime);
+  transpose_template<VariantKind::GPU>(context);
 }
 
 }  // namespace numpy

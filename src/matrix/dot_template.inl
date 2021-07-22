@@ -54,14 +54,10 @@ struct DotImpl {
 };
 
 template <VariantKind KIND>
-static UntypedScalar dot_template(const Task *task,
-                                  const std::vector<PhysicalRegion> &regions,
-                                  Context context,
-                                  Runtime *runtime)
+static UntypedScalar dot_template(TaskContext &context)
 {
-  Deserializer ctx(task, regions);
-  DotArgs args;
-  deserialize(ctx, args);
+  auto &inputs = context.inputs();
+  DotArgs args{inputs[0], inputs[1]};
   return type_dispatch(args.rhs1.code(), DotImpl<KIND>{}, args);
 }
 

@@ -23,12 +23,10 @@ namespace numpy {
 
 struct MatVecMulArgs {
   bool left_matrix;
-  Array lhs;
-  Array rhs1;
-  Array rhs2;
+  const Array &lhs;
+  const Array &rhs1;
+  const Array &rhs2;
 };
-
-void deserialize(Deserializer& ctx, MatVecMulArgs& args);
 
 class MatVecMulTask : public NumPyTask<MatVecMulTask> {
  public:
@@ -36,21 +34,12 @@ class MatVecMulTask : public NumPyTask<MatVecMulTask> {
   static const int REGIONS = 0;
 
  public:
-  static void cpu_variant(const Legion::Task* task,
-                          const std::vector<Legion::PhysicalRegion>& regions,
-                          Legion::Context ctx,
-                          Legion::Runtime* runtime);
+  static void cpu_variant(TaskContext &context);
 #ifdef LEGATE_USE_OPENMP
-  static void omp_variant(const Legion::Task* task,
-                          const std::vector<Legion::PhysicalRegion>& regions,
-                          Legion::Context ctx,
-                          Legion::Runtime* runtime);
+  static void omp_variant(TaskContext &context);
 #endif
 #ifdef LEGATE_USE_CUDA
-  static void gpu_variant(const Legion::Task* task,
-                          const std::vector<Legion::PhysicalRegion>& regions,
-                          Legion::Context ctx,
-                          Legion::Runtime* runtime);
+  static void gpu_variant(TaskContext &context);
 #endif
 };
 

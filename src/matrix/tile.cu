@@ -56,12 +56,9 @@ struct TileImplBody<VariantKind::GPU, VAL, OUT_DIM, IN_DIM> {
   }
 };
 
-/*static*/ void TileTask::gpu_variant(const Task *task,
-                                      const std::vector<PhysicalRegion> &regions,
-                                      Context context,
-                                      Runtime *runtime)
+/*static*/ void TileTask::gpu_variant(TaskContext &context)
 {
-  tile_template<VariantKind::GPU>(task, regions, context, runtime);
+  tile_template<VariantKind::GPU>(context);
 }
 
 }  // namespace numpy

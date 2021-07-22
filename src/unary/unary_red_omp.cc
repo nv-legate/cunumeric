@@ -162,12 +162,9 @@ struct ArgRedImplBody<VariantKind::OMP, OP_CODE, CODE, DIM> {
   }
 };
 
-/*static*/ void UnaryRedTask::omp_variant(const Task *task,
-                                          const std::vector<PhysicalRegion> &regions,
-                                          Context context,
-                                          Runtime *runtime)
+/*static*/ void UnaryRedTask::omp_variant(TaskContext &context)
 {
-  unary_red_template<VariantKind::OMP>(task, regions, context, runtime);
+  unary_red_template<VariantKind::OMP>(context);
 }
 
 }  // namespace numpy

@@ -51,18 +51,10 @@ struct UnaryOpDispatch {
   }
 };
 
-/*static*/ UntypedScalar ScalarUnaryOpTask::cpu_variant(const Task *task,
-                                                        const std::vector<PhysicalRegion> &regions,
-                                                        Context context,
-                                                        Runtime *runtime)
+/*static*/ UntypedScalar ScalarUnaryOpTask::cpu_variant(TaskContext &context)
 {
-  Deserializer ctx(task, regions);
-
-  UnaryOpCode op_code;
-  Array in;
-
-  deserialize(ctx, in);
-  deserialize(ctx, op_code);
+  auto &in     = context.inputs()[0];
+  auto op_code = context.scalars()[0].value<UnaryOpCode>();
 
   return op_dispatch(op_code, UnaryOpDispatch{}, in.scalar<UntypedScalar>());
 }
@@ -71,7 +63,7 @@ namespace  // unnamed
 {
 static void __attribute__((constructor)) register_tasks(void)
 {
-  ScalarUnaryOpTask::register_variants_with_return<UntypedScalar, UntypedScalar>();
+  ScalarUnaryOpTask::register_new_variants_with_return<UntypedScalar, UntypedScalar>();
 }
 }  // namespace
 

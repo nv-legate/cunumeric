@@ -73,14 +73,9 @@ struct TileDispatch {
 };
 
 template <VariantKind KIND>
-static void tile_template(const Task *task,
-                          const std::vector<PhysicalRegion> &regions,
-                          Context context,
-                          Runtime *runtime)
+static void tile_template(TaskContext &context)
 {
-  Deserializer ctx(task, regions);
-  TileArgs args;
-  deserialize(ctx, args);
+  TileArgs args{context.inputs()[0], context.outputs()[0]};
   type_dispatch(args.in.code(), TileDispatch<KIND>{}, args);
 }
 

@@ -52,19 +52,10 @@ struct SourceTypeDispatch {
   }
 };
 
-/*static*/ UntypedScalar ScalarConvertTask::cpu_variant(const Task *task,
-                                                        const std::vector<PhysicalRegion> &regions,
-                                                        Context context,
-                                                        Runtime *runtime)
+/*static*/ UntypedScalar ScalarConvertTask::cpu_variant(TaskContext &context)
 {
-  Deserializer ctx(task, regions);
-
-  Array in;
-  LegateTypeCode dtype;
-  deserialize(ctx, in);
-  Scalar scalar;
-  deserialize(ctx, scalar);
-  dtype = scalar.value<LegateTypeCode>();
+  auto &in   = context.inputs()[0];
+  auto dtype = context.scalars()[0].value<LegateTypeCode>();
 
   return type_dispatch(in.code(), SourceTypeDispatch{}, dtype, in.scalar<UntypedScalar>());
 }
@@ -73,7 +64,7 @@ namespace  // unnamed
 {
 static void __attribute__((constructor)) register_tasks(void)
 {
-  ScalarConvertTask::register_variants_with_return<UntypedScalar, UntypedScalar>();
+  ScalarConvertTask::register_new_variants_with_return<UntypedScalar, UntypedScalar>();
 }
 }  // namespace
 

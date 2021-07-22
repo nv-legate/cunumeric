@@ -34,25 +34,17 @@ struct ArangeImplBody<VariantKind::CPU, VAL> {
   }
 };
 
-void deserialize(Deserializer &ctx, ArangeArgs &args)
+/*static*/ void ArangeTask::cpu_variant(TaskContext &context)
 {
-  deserialize(ctx, args.out);
-  deserialize(ctx, args.start);
-  deserialize(ctx, args.stop);
-  deserialize(ctx, args.step);
-}
-
-/*static*/ void ArangeTask::cpu_variant(const Task *task,
-                                        const std::vector<PhysicalRegion> &regions,
-                                        Context context,
-                                        Runtime *runtime)
-{
-  arange_template<VariantKind::CPU>(task, regions, context, runtime);
+  arange_template<VariantKind::CPU>(context);
 }
 
 namespace  // unnamed
 {
-static void __attribute__((constructor)) register_tasks(void) { ArangeTask::register_variants(); }
+static void __attribute__((constructor)) register_tasks(void)
+{
+  ArangeTask::register_new_variants();
+}
 }  // namespace
 
 }  // namespace numpy

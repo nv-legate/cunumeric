@@ -50,12 +50,9 @@ struct FillImplBody<VariantKind::OMP, VAL, DIM> {
   }
 };
 
-/*static*/ void FillTask::omp_variant(const Task *task,
-                                      const std::vector<PhysicalRegion> &regions,
-                                      Context context,
-                                      Runtime *runtime)
+/*static*/ void FillTask::omp_variant(TaskContext &context)
 {
-  fill_template<VariantKind::OMP>(task, regions, context, runtime);
+  fill_template<VariantKind::OMP>(context);
 }
 
 }  // namespace numpy

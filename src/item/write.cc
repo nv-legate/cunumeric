@@ -30,17 +30,17 @@ struct WriteImplBody<VariantKind::CPU, VAL> {
   }
 };
 
-/*static*/ void WriteTask::cpu_variant(const Task *task,
-                                       const std::vector<PhysicalRegion> &regions,
-                                       Context context,
-                                       Runtime *runtime)
+/*static*/ void WriteTask::cpu_variant(TaskContext &context)
 {
-  write_template<VariantKind::CPU>(task, regions, context, runtime);
+  write_template<VariantKind::CPU>(context);
 }
 
 namespace  // unnamed
 {
-static void __attribute__((constructor)) register_tasks(void) { WriteTask::register_variants(); }
+static void __attribute__((constructor)) register_tasks(void)
+{
+  WriteTask::register_new_variants();
+}
 }  // namespace
 
 }  // namespace numpy

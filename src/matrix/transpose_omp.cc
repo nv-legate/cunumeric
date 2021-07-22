@@ -94,12 +94,9 @@ struct TransposeImplBody<VariantKind::OMP, CODE, 2> {
   }
 };
 
-/*static*/ void TransposeTask::omp_variant(const Task *task,
-                                           const std::vector<PhysicalRegion> &regions,
-                                           Context context,
-                                           Runtime *runtime)
+/*static*/ void TransposeTask::omp_variant(TaskContext &context)
 {
-  transpose_template<VariantKind::OMP>(task, regions, context, runtime);
+  transpose_template<VariantKind::OMP>(context);
 }
 
 }  // namespace numpy

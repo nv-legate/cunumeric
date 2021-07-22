@@ -68,12 +68,9 @@ struct WhereImplBody<VariantKind::GPU, CODE, DIM> {
   }
 };
 
-/*static*/ void WhereTask::gpu_variant(const Task *task,
-                                       const std::vector<PhysicalRegion> &regions,
-                                       Context context,
-                                       Runtime *runtime)
+/*static*/ void WhereTask::gpu_variant(TaskContext &context)
 {
-  where_template<VariantKind::GPU>(task, regions, context, runtime);
+  where_template<VariantKind::GPU>(context);
 }
 
 }  // namespace numpy

@@ -73,14 +73,9 @@ struct SourceTypeDispatch {
 };
 
 template <VariantKind KIND>
-static void convert_template(const Task *task,
-                             const std::vector<PhysicalRegion> &regions,
-                             Context context,
-                             Runtime *runtime)
+static void convert_template(TaskContext &context)
 {
-  Deserializer ctx(task, regions);
-  ConvertArgs args;
-  deserialize(ctx, args);
+  ConvertArgs args{context.outputs()[0], context.inputs()[0]};
   type_dispatch(args.in.code(), SourceTypeDispatch<KIND>{}, args);
 }
 

@@ -189,12 +189,9 @@ struct ScalarUnaryRedImplBody<VariantKind::GPU, UnaryRedCode::COUNT_NONZERO, COD
   }
 };
 
-/*static*/ UntypedScalar ScalarUnaryRedTask::gpu_variant(const Task *task,
-                                                         const std::vector<PhysicalRegion> &regions,
-                                                         Context context,
-                                                         Runtime *runtime)
+/*static*/ UntypedScalar ScalarUnaryRedTask::gpu_variant(TaskContext &context)
 {
-  return scalar_unary_red_template<VariantKind::GPU>(task, regions, context, runtime);
+  return scalar_unary_red_template<VariantKind::GPU>(context);
 }
 
 }  // namespace numpy

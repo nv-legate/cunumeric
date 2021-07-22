@@ -108,14 +108,14 @@ struct UnaryRedDispatch {
 };
 
 template <VariantKind KIND>
-static void unary_red_template(const Task *task,
-                               const std::vector<PhysicalRegion> &regions,
-                               Context context,
-                               Runtime *runtime)
+static void unary_red_template(TaskContext &context)
 {
-  Deserializer ctx(task, regions);
-  UnaryRedArgs args;
-  deserialize(ctx, args);
+  auto &inputs     = context.inputs();
+  auto &reductions = context.reductions();
+  auto &scalars    = context.scalars();
+
+  UnaryRedArgs args{
+    reductions[0], inputs[0], scalars[0].value<int32_t>(), scalars[1].value<UnaryRedCode>()};
   op_dispatch(args.op_code, UnaryRedDispatch<KIND>{}, args);
 }
 

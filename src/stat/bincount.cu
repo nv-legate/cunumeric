@@ -234,12 +234,9 @@ struct BincountImplBody<VariantKind::GPU, CODE> {
   }
 };
 
-/*static*/ void BincountTask::gpu_variant(const Task *task,
-                                          const std::vector<PhysicalRegion> &regions,
-                                          Context context,
-                                          Runtime *runtime)
+/*static*/ void BincountTask::gpu_variant(TaskContext &context)
 {
-  bincount_template<VariantKind::GPU>(task, regions, context, runtime);
+  bincount_template<VariantKind::GPU>(context);
 }
 
 }  // namespace numpy

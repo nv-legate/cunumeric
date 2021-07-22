@@ -46,23 +46,17 @@ struct ConvertImplBody<VariantKind::CPU, DST_TYPE, SRC_TYPE, DIM> {
   }
 };
 
-void deserialize(Deserializer &ctx, ConvertArgs &args)
+/*static*/ void ConvertTask::cpu_variant(TaskContext &context)
 {
-  deserialize(ctx, args.in);
-  deserialize(ctx, args.out);
-}
-
-/*static*/ void ConvertTask::cpu_variant(const Task *task,
-                                         const std::vector<PhysicalRegion> &regions,
-                                         Context context,
-                                         Runtime *runtime)
-{
-  convert_template<VariantKind::CPU>(task, regions, context, runtime);
+  convert_template<VariantKind::CPU>(context);
 }
 
 namespace  // unnamed
 {
-static void __attribute__((constructor)) register_tasks(void) { ConvertTask::register_variants(); }
+static void __attribute__((constructor)) register_tasks(void)
+{
+  ConvertTask::register_new_variants();
+}
 }  // namespace
 
 }  // namespace numpy

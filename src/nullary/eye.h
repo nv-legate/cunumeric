@@ -22,11 +22,9 @@ namespace legate {
 namespace numpy {
 
 struct EyeArgs {
-  Array out;
+  const Array& out;
   int32_t k;
 };
-
-void deserialize(Deserializer& ctx, EyeArgs& args);
 
 class EyeTask : public NumPyTask<EyeTask> {
  public:
@@ -34,21 +32,12 @@ class EyeTask : public NumPyTask<EyeTask> {
   static const int REGIONS = 1;
 
  public:
-  static void cpu_variant(const Legion::Task* task,
-                          const std::vector<Legion::PhysicalRegion>& regions,
-                          Legion::Context ctx,
-                          Legion::Runtime* runtime);
+  static void cpu_variant(TaskContext& context);
 #ifdef LEGATE_USE_OPENMP
-  static void omp_variant(const Legion::Task* task,
-                          const std::vector<Legion::PhysicalRegion>& regions,
-                          Legion::Context ctx,
-                          Legion::Runtime* runtime);
+  static void omp_variant(TaskContext& context);
 #endif
 #ifdef LEGATE_USE_CUDA
-  static void gpu_variant(const Legion::Task* task,
-                          const std::vector<Legion::PhysicalRegion>& regions,
-                          Legion::Context ctx,
-                          Legion::Runtime* runtime);
+  static void gpu_variant(TaskContext& context);
 #endif
 };
 

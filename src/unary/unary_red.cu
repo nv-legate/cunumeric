@@ -388,12 +388,9 @@ struct ArgRedImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
   }
 };
 
-/*static*/ void UnaryRedTask::gpu_variant(const Task *task,
-                                          const std::vector<PhysicalRegion> &regions,
-                                          Context context,
-                                          Runtime *runtime)
+/*static*/ void UnaryRedTask::gpu_variant(TaskContext &context)
 {
-  unary_red_template<VariantKind::GPU>(task, regions, context, runtime);
+  unary_red_template<VariantKind::GPU>(context);
 }
 
 }  // namespace numpy

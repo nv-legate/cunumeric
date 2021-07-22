@@ -23,14 +23,12 @@ namespace legate {
 namespace numpy {
 
 struct BinaryOpArgs {
-  Array in1;
-  Array in2;
-  Array out;
+  const Array &in1;
+  const Array &in2;
+  const Array &out;
   BinaryOpCode op_code;
   std::vector<UntypedScalar> args;
 };
-
-void deserialize(Deserializer& ctx, BinaryOpArgs& args);
 
 class BinaryOpTask : public NumPyTask<BinaryOpTask> {
  public:
@@ -38,21 +36,12 @@ class BinaryOpTask : public NumPyTask<BinaryOpTask> {
   static const int REGIONS = 3;
 
  public:
-  static void cpu_variant(const Legion::Task* task,
-                          const std::vector<Legion::PhysicalRegion>& regions,
-                          Legion::Context ctx,
-                          Legion::Runtime* runtime);
+  static void cpu_variant(TaskContext &context);
 #ifdef LEGATE_USE_OPENMP
-  static void omp_variant(const Legion::Task* task,
-                          const std::vector<Legion::PhysicalRegion>& regions,
-                          Legion::Context ctx,
-                          Legion::Runtime* runtime);
+  static void omp_variant(TaskContext &context);
 #endif
 #ifdef LEGATE_USE_CUDA
-  static void gpu_variant(const Legion::Task* task,
-                          const std::vector<Legion::PhysicalRegion>& regions,
-                          Legion::Context ctx,
-                          Legion::Runtime* runtime);
+  static void gpu_variant(TaskContext &context);
 #endif
 };
 

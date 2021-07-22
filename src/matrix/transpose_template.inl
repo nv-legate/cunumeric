@@ -48,14 +48,9 @@ struct TransposeImpl {
 };
 
 template <VariantKind KIND>
-static void transpose_template(const Task *task,
-                               const std::vector<PhysicalRegion> &regions,
-                               Context context,
-                               Runtime *runtime)
+static void transpose_template(TaskContext &context)
 {
-  Deserializer ctx(task, regions);
-  TransposeArgs args;
-  deserialize(ctx, args);
+  TransposeArgs args{context.outputs()[0], context.inputs()[0]};
   double_dispatch(args.out.dim(), args.in.code(), TransposeImpl<KIND>{}, args);
 }
 

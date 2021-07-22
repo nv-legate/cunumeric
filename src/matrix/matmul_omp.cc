@@ -133,13 +133,10 @@ struct MatMulImplBody<VariantKind::OMP, LegateTypeCode::HALF_LT> {
   }
 };
 
-/*static*/ void MatMulTask::omp_variant(const Task *task,
-                                        const std::vector<PhysicalRegion> &regions,
-                                        Context context,
-                                        Runtime *runtime)
+/*static*/ void MatMulTask::omp_variant(TaskContext &context)
 {
   openblas_set_num_threads(omp_get_max_threads());
-  matmul_template<VariantKind::OMP>(task, regions, context, runtime);
+  matmul_template<VariantKind::OMP>(context);
 }
 
 }  // namespace numpy

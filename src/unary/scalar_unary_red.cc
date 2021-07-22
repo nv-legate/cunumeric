@@ -99,26 +99,16 @@ struct ScalarUnaryRedImplBody<VariantKind::CPU, UnaryRedCode::COUNT_NONZERO, COD
   }
 };
 
-void deserialize(Deserializer &ctx, ScalarUnaryRedArgs &args)
+/*static*/ UntypedScalar ScalarUnaryRedTask::cpu_variant(TaskContext &context)
 {
-  deserialize(ctx, args.in);
-  deserialize(ctx, args.op_code);
-  deserialize(ctx, args.args);
-}
-
-/*static*/ UntypedScalar ScalarUnaryRedTask::cpu_variant(const Task *task,
-                                                         const std::vector<PhysicalRegion> &regions,
-                                                         Context context,
-                                                         Runtime *runtime)
-{
-  return scalar_unary_red_template<VariantKind::CPU>(task, regions, context, runtime);
+  return scalar_unary_red_template<VariantKind::CPU>(context);
 }
 
 namespace  // unnamed
 {
 static void __attribute__((constructor)) register_tasks(void)
 {
-  ScalarUnaryRedTask::register_variants_with_return<UntypedScalar, UntypedScalar>();
+  ScalarUnaryRedTask::register_new_variants_with_return<UntypedScalar, UntypedScalar>();
 }
 }  // namespace
 

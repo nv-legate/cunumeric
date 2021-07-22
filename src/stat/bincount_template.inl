@@ -54,14 +54,11 @@ struct BincountImpl {
 };
 
 template <VariantKind KIND>
-static void bincount_template(const Task *task,
-                              const std::vector<PhysicalRegion> &regions,
-                              Context context,
-                              Runtime *runtime)
+static void bincount_template(TaskContext &context)
 {
-  Deserializer ctx(task, regions);
-  BincountArgs args;
-  deserialize(ctx, args);
+  auto &inputs     = context.inputs();
+  auto &reductions = context.reductions();
+  BincountArgs args{reductions[0], inputs[0], inputs[1]};
   type_dispatch(args.rhs.code(), BincountImpl<KIND>{}, args);
 }
 

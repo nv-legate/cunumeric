@@ -24,12 +24,10 @@ namespace legate {
 namespace numpy {
 
 struct ScalarUnaryRedArgs {
+  const Array &in;
   UnaryRedCode op_code;
-  Array in;
   std::vector<UntypedScalar> args;
 };
-
-void deserialize(Deserializer& ctx, ScalarUnaryRedArgs& args);
 
 // Unary reduction task that produces scalar results
 class ScalarUnaryRedTask : public NumPyTask<ScalarUnaryRedTask> {
@@ -38,21 +36,12 @@ class ScalarUnaryRedTask : public NumPyTask<ScalarUnaryRedTask> {
   static const int REGIONS = 1;
 
  public:
-  static UntypedScalar cpu_variant(const Legion::Task* task,
-                                   const std::vector<Legion::PhysicalRegion>& regions,
-                                   Legion::Context ctx,
-                                   Legion::Runtime* runtime);
+  static UntypedScalar cpu_variant(TaskContext &context);
 #ifdef LEGATE_USE_OPENMP
-  static UntypedScalar omp_variant(const Legion::Task* task,
-                                   const std::vector<Legion::PhysicalRegion>& regions,
-                                   Legion::Context ctx,
-                                   Legion::Runtime* runtime);
+  static UntypedScalar omp_variant(TaskContext &context);
 #endif
 #ifdef LEGATE_USE_CUDA
-  static UntypedScalar gpu_variant(const Legion::Task* task,
-                                   const std::vector<Legion::PhysicalRegion>& regions,
-                                   Legion::Context ctx,
-                                   Legion::Runtime* runtime);
+  static UntypedScalar gpu_variant(TaskContext &context);
 #endif
 };
 

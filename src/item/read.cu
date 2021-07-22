@@ -46,12 +46,9 @@ struct ReadImplBody<VariantKind::GPU, VAL> {
   }
 };
 
-/*static*/ UntypedScalar ReadTask::gpu_variant(const Task *task,
-                                               const std::vector<PhysicalRegion> &regions,
-                                               Context context,
-                                               Runtime *runtime)
+/*static*/ UntypedScalar ReadTask::gpu_variant(TaskContext &context)
 {
-  return read_template<VariantKind::GPU>(task, regions, context, runtime);
+  return read_template<VariantKind::GPU>(context);
 }
 
 }  // namespace numpy

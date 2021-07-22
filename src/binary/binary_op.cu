@@ -68,12 +68,9 @@ struct BinaryOpImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
   }
 };
 
-/*static*/ void BinaryOpTask::gpu_variant(const Task *task,
-                                          const std::vector<PhysicalRegion> &regions,
-                                          Context context,
-                                          Runtime *runtime)
+/*static*/ void BinaryOpTask::gpu_variant(TaskContext &context)
 {
-  binary_op_template<VariantKind::GPU>(task, regions, context, runtime);
+  binary_op_template<VariantKind::GPU>(context);
 }
 
 }  // namespace numpy

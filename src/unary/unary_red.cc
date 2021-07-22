@@ -89,27 +89,17 @@ struct ArgRedImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
   }
 };
 
-void deserialize(Deserializer &ctx, UnaryRedArgs &args)
+/*static*/ void UnaryRedTask::cpu_variant(TaskContext &context)
 {
-  deserialize(ctx, args.rhs);
-  deserialize(ctx, args.lhs);
-  Scalar collapsed_dim;
-  deserialize(ctx, collapsed_dim);
-  args.collapsed_dim = collapsed_dim.value<int32_t>();
-  deserialize(ctx, args.op_code);
-}
-
-/*static*/ void UnaryRedTask::cpu_variant(const Task *task,
-                                          const std::vector<PhysicalRegion> &regions,
-                                          Context context,
-                                          Runtime *runtime)
-{
-  unary_red_template<VariantKind::CPU>(task, regions, context, runtime);
+  unary_red_template<VariantKind::CPU>(context);
 }
 
 namespace  // unnamed
 {
-static void __attribute__((constructor)) register_tasks(void) { UnaryRedTask::register_variants(); }
+static void __attribute__((constructor)) register_tasks(void)
+{
+  UnaryRedTask::register_new_variants();
+}
 }  // namespace
 
 }  // namespace numpy

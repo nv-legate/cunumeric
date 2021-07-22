@@ -40,12 +40,9 @@ struct TileImplBody<VariantKind::OMP, VAL, OUT_DIM, IN_DIM> {
   }
 };
 
-/*static*/ void TileTask::omp_variant(const Task *task,
-                                      const std::vector<PhysicalRegion> &regions,
-                                      Context context,
-                                      Runtime *runtime)
+/*static*/ void TileTask::omp_variant(TaskContext &context)
 {
-  tile_template<VariantKind::OMP>(task, regions, context, runtime);
+  tile_template<VariantKind::OMP>(context);
 }
 
 }  // namespace numpy

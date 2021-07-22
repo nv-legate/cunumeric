@@ -76,14 +76,17 @@ struct UnaryOpDispatch {
 };
 
 template <VariantKind KIND>
-static void unary_op_template(const Task *task,
-                              const std::vector<PhysicalRegion> &regions,
-                              Context context,
-                              Runtime *runtime)
+static void unary_op_template(TaskContext &context)
 {
-  Deserializer ctx(task, regions);
-  UnaryOpArgs args;
-  deserialize(ctx, args);
+  auto &inputs  = context.inputs();
+  auto &outputs = context.outputs();
+  auto &scalars = context.scalars();
+
+  std::vector<UntypedScalar> extra_args;
+  for (size_t idx = 1; idx < inputs.size(); ++idx)
+    extra_args.push_back(inputs[idx].scalar<UntypedScalar>());
+
+  UnaryOpArgs args{inputs[0], outputs[0], scalars[0].value<UnaryOpCode>(), std::move(extra_args)};
   op_dispatch(args.op_code, UnaryOpDispatch<KIND>{}, args);
 }
 

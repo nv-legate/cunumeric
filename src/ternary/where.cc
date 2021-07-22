@@ -52,28 +52,17 @@ struct WhereImplBody<VariantKind::CPU, CODE, DIM> {
   }
 };
 
-void deserialize(Deserializer &ctx, WhereArgs &args)
+/*static*/ void WhereTask::cpu_variant(TaskContext &context)
 {
-  deserialize(ctx, args.mask);
-  deserialize(ctx, args.in1);
-  deserialize(ctx, args.in2);
-  deserialize(ctx, args.out);
-  assert(args.mask.code() == LegateTypeCode::BOOL_LT);
-  assert(args.out.code() == args.in1.code());
-  assert(args.in1.code() == args.in2.code());
-}
-
-/*static*/ void WhereTask::cpu_variant(const Task *task,
-                                       const std::vector<PhysicalRegion> &regions,
-                                       Context context,
-                                       Runtime *runtime)
-{
-  where_template<VariantKind::CPU>(task, regions, context, runtime);
+  where_template<VariantKind::CPU>(context);
 }
 
 namespace  // unnamed
 {
-static void __attribute__((constructor)) register_tasks(void) { WhereTask::register_variants(); }
+static void __attribute__((constructor)) register_tasks(void)
+{
+  WhereTask::register_new_variants();
+}
 }  // namespace
 
 }  // namespace numpy

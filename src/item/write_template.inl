@@ -35,16 +35,10 @@ struct WriteImpl {
 };
 
 template <VariantKind KIND>
-static void write_template(const Task *task,
-                           const std::vector<PhysicalRegion> &regions,
-                           Context context,
-                           Runtime *runtime)
+static void write_template(TaskContext &context)
 {
-  Deserializer ctx(task, regions);
-  Array in;
-  Array out;
-  deserialize(ctx, in);
-  deserialize(ctx, out);
+  auto &in  = context.inputs()[0];
+  auto &out = context.outputs()[0];
   type_dispatch(out.code(), WriteImpl<KIND>{}, out, in);
 }
 

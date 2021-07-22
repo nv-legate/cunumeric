@@ -38,22 +38,18 @@ struct ArangeImpl {
 
     auto out = args.out.write_accessor<VAL, 1>();
 
-    const auto start = args.start.value<VAL>();
-    const auto step  = args.step.value<VAL>();
+    const auto start = args.start.scalar<UntypedScalar>().value<VAL>();
+    const auto step  = args.step.scalar<UntypedScalar>().value<VAL>();
 
     ArangeImplBody<KIND, VAL>{}(out, rect, start, step);
   }
 };
 
 template <VariantKind KIND>
-static void arange_template(const Task *task,
-                            const std::vector<PhysicalRegion> &regions,
-                            Context context,
-                            Runtime *runtime)
+static void arange_template(TaskContext &context)
 {
-  Deserializer ctx(task, regions);
-  ArangeArgs args;
-  deserialize(ctx, args);
+  auto &inputs = context.inputs();
+  ArangeArgs args{context.outputs()[0], inputs[0], inputs[1], inputs[2]};
   type_dispatch(args.out.code(), ArangeImpl<KIND>{}, args);
 }
 

@@ -67,14 +67,12 @@ struct DiagImpl {
 };
 
 template <VariantKind KIND>
-static void diag_template(const Task *task,
-                          const std::vector<PhysicalRegion> &regions,
-                          Context context,
-                          Runtime *runtime)
+static void diag_template(TaskContext &context)
 {
-  Deserializer ctx(task, regions);
-  DiagArgs args;
-  deserialize(ctx, args);
+  auto extract = context.scalars()[0].value<bool>();
+  auto &matrix = extract ? context.inputs()[0] : context.outputs()[0];
+  auto &diag   = extract ? context.reductions()[0] : context.inputs()[1];
+  DiagArgs args{extract, matrix, diag};
   type_dispatch(args.matrix.code(), DiagImpl<KIND>{}, args);
 }
 

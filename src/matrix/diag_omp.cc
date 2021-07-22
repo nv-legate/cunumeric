@@ -52,12 +52,9 @@ struct DiagImplBody<VariantKind::OMP, CODE> {
   }
 };
 
-/*static*/ void DiagTask::omp_variant(const Task *task,
-                                      const std::vector<PhysicalRegion> &regions,
-                                      Context context,
-                                      Runtime *runtime)
+/*static*/ void DiagTask::omp_variant(TaskContext &context)
 {
-  diag_template<VariantKind::OMP>(task, regions, context, runtime);
+  diag_template<VariantKind::OMP>(context);
 }
 
 }  // namespace numpy

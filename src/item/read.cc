@@ -27,19 +27,16 @@ struct ReadImplBody<VariantKind::CPU, VAL> {
   UntypedScalar operator()(AccessorRO<VAL, 1> in) const { return UntypedScalar(in[0]); }
 };
 
-/*static*/ UntypedScalar ReadTask::cpu_variant(const Task *task,
-                                               const std::vector<PhysicalRegion> &regions,
-                                               Context context,
-                                               Runtime *runtime)
+/*static*/ UntypedScalar ReadTask::cpu_variant(TaskContext &context)
 {
-  return read_template<VariantKind::CPU>(task, regions, context, runtime);
+  return read_template<VariantKind::CPU>(context);
 }
 
 namespace  // unnamed
 {
 static void __attribute__((constructor)) register_tasks(void)
 {
-  ReadTask::register_variants_with_return<UntypedScalar, UntypedScalar>();
+  ReadTask::register_new_variants_with_return<UntypedScalar, UntypedScalar>();
 }
 }  // namespace
 

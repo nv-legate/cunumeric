@@ -153,14 +153,16 @@ struct ScalarUnaryRedDispatch {
 };
 
 template <VariantKind KIND>
-static UntypedScalar scalar_unary_red_template(const Task *task,
-                                               const std::vector<PhysicalRegion> &regions,
-                                               Context context,
-                                               Runtime *runtime)
+static UntypedScalar scalar_unary_red_template(TaskContext &context)
 {
-  Deserializer ctx(task, regions);
-  ScalarUnaryRedArgs args;
-  deserialize(ctx, args);
+  auto &inputs  = context.inputs();
+  auto &scalars = context.scalars();
+
+  std::vector<UntypedScalar> extra_args;
+  for (size_t idx = 1; idx < inputs.size(); ++idx)
+    extra_args.push_back(inputs[idx].scalar<UntypedScalar>());
+
+  ScalarUnaryRedArgs args{inputs[0], scalars[0].value<UnaryRedCode>(), std::move(extra_args)};
   if (args.op_code == UnaryRedCode::COUNT_NONZERO)
     return double_dispatch(
       args.in.dim(), args.in.code(), ScalarUnaryRedImpl<KIND, UnaryRedCode::COUNT_NONZERO>{}, args);

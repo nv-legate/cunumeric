@@ -32,25 +32,14 @@ struct EyeImplBody<VariantKind::CPU, VAL> {
   }
 };
 
-void deserialize(Deserializer &ctx, EyeArgs &args)
+/*static*/ void EyeTask::cpu_variant(TaskContext &context)
 {
-  deserialize(ctx, args.out);
-  Scalar k;
-  deserialize(ctx, k);
-  args.k = k.value<int32_t>();
-}
-
-/*static*/ void EyeTask::cpu_variant(const Task *task,
-                                     const std::vector<PhysicalRegion> &regions,
-                                     Context context,
-                                     Runtime *runtime)
-{
-  eye_template<VariantKind::CPU>(task, regions, context, runtime);
+  eye_template<VariantKind::CPU>(context);
 }
 
 namespace  // unnamed
 {
-static void __attribute__((constructor)) register_tasks(void) { EyeTask::register_variants(); }
+static void __attribute__((constructor)) register_tasks(void) { EyeTask::register_new_variants(); }
 }  // namespace
 
 }  // namespace numpy

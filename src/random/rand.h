@@ -24,14 +24,12 @@ namespace legate {
 namespace numpy {
 
 struct RandArgs {
-  Array out;
+  const Array &out;
   RandGenCode gen_code;
   uint32_t epoch;
   Legion::DomainPoint strides;
   std::vector<UntypedScalar> args;
 };
-
-void deserialize(Deserializer& ctx, RandArgs& args);
 
 class RandTask : public NumPyTask<RandTask> {
  public:
@@ -39,21 +37,12 @@ class RandTask : public NumPyTask<RandTask> {
   static const int REGIONS = 1;
 
  public:
-  static void cpu_variant(const Legion::Task* task,
-                          const std::vector<Legion::PhysicalRegion>& regions,
-                          Legion::Context ctx,
-                          Legion::Runtime* runtime);
+  static void cpu_variant(TaskContext &context);
 #ifdef LEGATE_USE_OPENMP
-  static void omp_variant(const Legion::Task* task,
-                          const std::vector<Legion::PhysicalRegion>& regions,
-                          Legion::Context ctx,
-                          Legion::Runtime* runtime);
+  static void omp_variant(TaskContext &context);
 #endif
 #ifdef LEGATE_USE_CUDA
-  static void gpu_variant(const Legion::Task* task,
-                          const std::vector<Legion::PhysicalRegion>& regions,
-                          Legion::Context ctx,
-                          Legion::Runtime* runtime);
+  static void gpu_variant(TaskContext &context);
 #endif
 };
 

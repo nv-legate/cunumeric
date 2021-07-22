@@ -901,16 +901,19 @@ class DeferredArray(NumPyThunk):
             return
 
         def create_scalar(value, dtype):
-            numpy_array = np.array(value, dtype)
+            array = np.array(value, dtype)
             return self.runtime.create_scalar(
-                numpy_array.data, numpy_array.dtype
-            )
+                array.data,
+                array.dtype,
+                shape=(1,),
+                wrap=True,
+            ).base
 
         task = self.context.create_task(NumPyOpCode.ARANGE)
         task.add_output(self.base)
-        task.add_future(create_scalar(start, self.dtype))
-        task.add_future(create_scalar(stop, self.dtype))
-        task.add_future(create_scalar(step, self.dtype))
+        task.add_input(create_scalar(start, self.dtype))
+        task.add_input(create_scalar(stop, self.dtype))
+        task.add_input(create_scalar(step, self.dtype))
 
         task.execute()
 
@@ -1304,14 +1307,17 @@ class DeferredArray(NumPyThunk):
 
     # A helper method for attaching arguments
     def add_arguments(self, task, args):
-        args = [] if args is None else args
-        task.add_scalar_arg(len(args), ty.int32)
+        if args is None:
+            return
         for numpy_array in args:
             assert numpy_array.size == 1
             scalar = self.runtime.create_scalar(
-                numpy_array.data, numpy_array.dtype
+                numpy_array.data,
+                numpy_array.dtype,
+                shape=(1,),
+                wrap=True,
             )
-            task.add_future(scalar)
+            task.add_input(scalar.base)
 
     @staticmethod
     def compute_strides(shape):

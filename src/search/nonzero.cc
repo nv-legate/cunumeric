@@ -26,11 +26,11 @@ template <LegateTypeCode CODE, int32_t DIM>
 struct NonzeroImplBody<VariantKind::CPU, CODE, DIM> {
   using VAL = legate_type_of<CODE>;
 
-  size_t operator()(const AccessorRO<VAL, DIM>& in,
-                    const Pitches<DIM - 1>& pitches,
-                    const Rect<DIM>& rect,
+  size_t operator()(const AccessorRO<VAL, DIM> &in,
+                    const Pitches<DIM - 1> &pitches,
+                    const Rect<DIM> &rect,
                     const size_t volume,
-                    std::vector<DeferredBuffer<int64_t, 1>>& results)
+                    std::vector<DeferredBuffer<int64_t, 1>> &results)
   {
     int64_t size = 0;
 
@@ -39,7 +39,7 @@ struct NonzeroImplBody<VariantKind::CPU, CODE, DIM> {
       size += in[point] != VAL(0);
     }
 
-    for (auto& result : results) {
+    for (auto &result : results) {
       auto hi = std::max<int64_t>(size - 1, 0);
       result  = DeferredBuffer<int64_t, 1>(Rect<1>(0, hi), Memory::Kind::SYSTEM_MEM);
     }
@@ -57,24 +57,17 @@ struct NonzeroImplBody<VariantKind::CPU, CODE, DIM> {
   }
 };
 
-void deserialize(Deserializer& ctx, NonzeroArgs& args)
+/*static*/ void NonzeroTask::cpu_variant(TaskContext &context)
 {
-  deserialize(ctx, args.input);
-  args.results.resize(args.input.dim());
-  deserialize(ctx, args.results, false);
-}
-
-/*static*/ void NonzeroTask::cpu_variant(const Legion::Task* task,
-                                         const std::vector<Legion::PhysicalRegion>& regions,
-                                         Legion::Context ctx,
-                                         Legion::Runtime* runtime)
-{
-  nonzero_template<VariantKind::CPU>(task, regions, ctx, runtime);
+  nonzero_template<VariantKind::CPU>(context);
 }
 
 namespace  // unnamed
 {
-static void __attribute__((constructor)) register_tasks(void) { NonzeroTask::register_variants(); }
+static void __attribute__((constructor)) register_tasks(void)
+{
+  NonzeroTask::register_new_variants();
+}
 }  // namespace
 
 }  // namespace numpy

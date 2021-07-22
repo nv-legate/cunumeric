@@ -49,12 +49,9 @@ struct BinaryOpImplBody<VariantKind::OMP, OP_CODE, CODE, DIM> {
   }
 };
 
-/*static*/ void BinaryOpTask::omp_variant(const Task *task,
-                                          const std::vector<PhysicalRegion> &regions,
-                                          Context context,
-                                          Runtime *runtime)
+/*static*/ void BinaryOpTask::omp_variant(TaskContext &context)
 {
-  binary_op_template<VariantKind::OMP>(task, regions, context, runtime);
+  binary_op_template<VariantKind::OMP>(context);
 }
 
 }  // namespace numpy

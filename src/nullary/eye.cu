@@ -43,12 +43,9 @@ struct EyeImplBody<VariantKind::GPU, VAL> {
   }
 };
 
-/*static*/ void EyeTask::gpu_variant(const Task *task,
-                                     const std::vector<PhysicalRegion> &regions,
-                                     Context context,
-                                     Runtime *runtime)
+/*static*/ void EyeTask::gpu_variant(TaskContext &context)
 {
-  eye_template<VariantKind::GPU>(task, regions, context, runtime);
+  eye_template<VariantKind::GPU>(context);
 }
 
 }  // namespace numpy

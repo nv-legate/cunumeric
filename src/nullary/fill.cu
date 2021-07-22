@@ -60,12 +60,9 @@ struct FillImplBody<VariantKind::GPU, VAL, DIM> {
   }
 };
 
-/*static*/ void FillTask::gpu_variant(const Task *task,
-                                      const std::vector<PhysicalRegion> &regions,
-                                      Context context,
-                                      Runtime *runtime)
+/*static*/ void FillTask::gpu_variant(TaskContext &context)
 {
-  fill_template<VariantKind::GPU>(task, regions, context, runtime);
+  fill_template<VariantKind::GPU>(context);
 }
 
 }  // namespace numpy

@@ -54,12 +54,9 @@ struct WhereImplBody<VariantKind::OMP, CODE, DIM> {
   }
 };
 
-/*static*/ void WhereTask::omp_variant(const Task *task,
-                                       const std::vector<PhysicalRegion> &regions,
-                                       Context context,
-                                       Runtime *runtime)
+/*static*/ void WhereTask::omp_variant(TaskContext &context)
 {
-  where_template<VariantKind::OMP>(task, regions, context, runtime);
+  where_template<VariantKind::OMP>(context);
 }
 
 }  // namespace numpy

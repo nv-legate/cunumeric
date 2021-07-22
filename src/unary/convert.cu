@@ -66,12 +66,9 @@ struct ConvertImplBody<VariantKind::GPU, DST_TYPE, SRC_TYPE, DIM> {
   }
 };
 
-/*static*/ void ConvertTask::gpu_variant(const Task *task,
-                                         const std::vector<PhysicalRegion> &regions,
-                                         Context context,
-                                         Runtime *runtime)
+/*static*/ void ConvertTask::gpu_variant(TaskContext &context)
 {
-  convert_template<VariantKind::GPU>(task, regions, context, runtime);
+  convert_template<VariantKind::GPU>(context);
 }
 
 }  // namespace numpy

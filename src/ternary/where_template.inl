@@ -57,14 +57,10 @@ struct WhereImpl {
 };
 
 template <VariantKind KIND>
-static void where_template(const Task *task,
-                           const std::vector<PhysicalRegion> &regions,
-                           Context context,
-                           Runtime *runtime)
+static void where_template(TaskContext &context)
 {
-  Deserializer ctx(task, regions);
-  WhereArgs args;
-  deserialize(ctx, args);
+  auto &inputs = context.inputs();
+  WhereArgs args{context.outputs()[0], inputs[0], inputs[1], inputs[2]};
   double_dispatch(args.out.dim(), args.out.code(), WhereImpl<KIND>{}, args);
 }
 

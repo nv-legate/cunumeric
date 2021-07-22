@@ -22,12 +22,10 @@ namespace legate {
 namespace numpy {
 
 struct BincountArgs {
-  Array lhs;
-  Array rhs;
-  Array weights;
+  const Array &lhs;
+  const Array &rhs;
+  const Array &weights;
 };
-
-void deserialize(Deserializer& ctx, BincountArgs& args);
 
 class BincountTask : public NumPyTask<BincountTask> {
  public:
@@ -43,21 +41,12 @@ class BincountTask : public NumPyTask<BincountTask> {
   static const int REGIONS = 0;
 
  public:
-  static void cpu_variant(const Legion::Task* task,
-                          const std::vector<Legion::PhysicalRegion>& regions,
-                          Legion::Context ctx,
-                          Legion::Runtime* runtime);
+  static void cpu_variant(TaskContext &context);
 #ifdef LEGATE_USE_OPENMP
-  static void omp_variant(const Legion::Task* task,
-                          const std::vector<Legion::PhysicalRegion>& regions,
-                          Legion::Context ctx,
-                          Legion::Runtime* runtime);
+  static void omp_variant(TaskContext &context);
 #endif
 #ifdef LEGATE_USE_CUDA
-  static void gpu_variant(const Legion::Task* task,
-                          const std::vector<Legion::PhysicalRegion>& regions,
-                          Legion::Context ctx,
-                          Legion::Runtime* runtime);
+  static void gpu_variant(TaskContext &context);
 #endif
 };
 

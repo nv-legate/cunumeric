@@ -37,12 +37,9 @@ struct WriteImplBody<VariantKind::GPU, VAL> {
   }
 };
 
-/*static*/ void WriteTask::gpu_variant(const Task *task,
-                                       const std::vector<PhysicalRegion> &regions,
-                                       Context context,
-                                       Runtime *runtime)
+/*static*/ void WriteTask::gpu_variant(TaskContext &context)
 {
-  write_template<VariantKind::GPU>(task, regions, context, runtime);
+  write_template<VariantKind::GPU>(context);
 }
 
 }  // namespace numpy

@@ -73,12 +73,9 @@ struct DiagImplBody<VariantKind::GPU, CODE> {
   }
 };
 
-/*static*/ void DiagTask::gpu_variant(const Task *task,
-                                      const std::vector<PhysicalRegion> &regions,
-                                      Context context,
-                                      Runtime *runtime)
+/*static*/ void DiagTask::gpu_variant(TaskContext &context)
 {
-  diag_template<VariantKind::GPU>(task, regions, context, runtime);
+  diag_template<VariantKind::GPU>(context);
 }
 
 }  // namespace numpy

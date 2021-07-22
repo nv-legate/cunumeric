@@ -82,32 +82,19 @@ struct MatVecMulImplBody<VariantKind::CPU, LegateTypeCode::HALF_LT> {
   }
 };
 
-void deserialize(Deserializer &ctx, MatVecMulArgs &args)
-{
-  deserialize(ctx, args.rhs1);
-  deserialize(ctx, args.rhs2);
-  deserialize(ctx, args.lhs);
-  Scalar left_matrix;
-  deserialize(ctx, left_matrix);
-  args.left_matrix = left_matrix.value<bool>();
-}
-
-/*static*/ void MatVecMulTask::cpu_variant(const Task *task,
-                                           const std::vector<PhysicalRegion> &regions,
-                                           Context context,
-                                           Runtime *runtime)
+/*static*/ void MatVecMulTask::cpu_variant(TaskContext &context)
 {
 #ifdef LEGATE_USE_OPENMP
   openblas_set_num_threads(1);  // make sure this isn't overzealous
 #endif
-  matvecmul_template<VariantKind::CPU>(task, regions, context, runtime);
+  matvecmul_template<VariantKind::CPU>(context);
 }
 
 namespace  // unnamed
 {
 static void __attribute__((constructor)) register_tasks(void)
 {
-  MatVecMulTask::register_variants();
+  MatVecMulTask::register_new_variants();
 }
 }  // namespace
 

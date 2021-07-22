@@ -95,28 +95,19 @@ struct TransposeImplBody<VariantKind::CPU, CODE, 2> {
   }
 };
 
-void deserialize(Deserializer &ctx, TransposeArgs &args)
-{
-  deserialize(ctx, args.in);
-  deserialize(ctx, args.out);
-}
-
-/*static*/ void TransposeTask::cpu_variant(const Task *task,
-                                           const std::vector<PhysicalRegion> &regions,
-                                           Context context,
-                                           Runtime *runtime)
+/*static*/ void TransposeTask::cpu_variant(TaskContext &context)
 {
 #ifdef LEGATE_USE_OPENMP
   openblas_set_num_threads(1);  // make sure this isn't overzealous
 #endif
-  transpose_template<VariantKind::CPU>(task, regions, context, runtime);
+  transpose_template<VariantKind::CPU>(context);
 }
 
 namespace  // unnamed
 {
 static void __attribute__((constructor)) register_tasks(void)
 {
-  TransposeTask::register_variants();
+  TransposeTask::register_new_variants();
 }
 }  // namespace
 

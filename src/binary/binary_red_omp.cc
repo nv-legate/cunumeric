@@ -54,12 +54,9 @@ struct BinaryRedImplBody<VariantKind::OMP, OP_CODE, CODE, DIM> {
   }
 };
 
-/*static*/ UntypedScalar BinaryRedTask::omp_variant(const Task *task,
-                                                    const std::vector<PhysicalRegion> &regions,
-                                                    Context context,
-                                                    Runtime *runtime)
+/*static*/ UntypedScalar BinaryRedTask::omp_variant(TaskContext &context)
 {
-  return binary_red_template<VariantKind::OMP>(task, regions, context, runtime);
+  return binary_red_template<VariantKind::OMP>(context);
 }
 
 }  // namespace numpy

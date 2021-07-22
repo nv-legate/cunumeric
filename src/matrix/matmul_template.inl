@@ -94,14 +94,12 @@ struct MatMulImpl {
 };
 
 template <VariantKind KIND>
-static void matmul_template(const Task *task,
-                            const std::vector<PhysicalRegion> &regions,
-                            Context context,
-                            Runtime *runtime)
+static void matmul_template(TaskContext &context)
 {
-  Deserializer ctx(task, regions);
-  MatMulArgs args;
-  deserialize(ctx, args);
+  auto &reductions = context.reductions();
+  auto &inputs     = context.inputs();
+
+  MatMulArgs args{reductions[0], inputs[0], inputs[1]};
   // Note that we can't dispatch on the lhs's type,
   // as the lhs can have a different type than the rhs'
   type_dispatch(args.rhs1.code(), MatMulImpl<KIND>{}, args);

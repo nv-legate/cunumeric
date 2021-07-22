@@ -35,12 +35,9 @@ struct ArangeImplBody<VariantKind::OMP, VAL> {
   }
 };
 
-/*static*/ void ArangeTask::omp_variant(const Task *task,
-                                        const std::vector<PhysicalRegion> &regions,
-                                        Context context,
-                                        Runtime *runtime)
+/*static*/ void ArangeTask::omp_variant(TaskContext &context)
 {
-  arange_template<VariantKind::OMP>(task, regions, context, runtime);
+  arange_template<VariantKind::OMP>(context);
 }
 
 }  // namespace numpy

@@ -140,12 +140,9 @@ struct MatVecMulImplBody<VariantKind::GPU, LegateTypeCode::HALF_LT> {
   }
 };
 
-/*static*/ void MatVecMulTask::gpu_variant(const Task *task,
-                                           const std::vector<PhysicalRegion> &regions,
-                                           Context context,
-                                           Runtime *runtime)
+/*static*/ void MatVecMulTask::gpu_variant(TaskContext &context)
 {
-  matvecmul_template<VariantKind::GPU>(task, regions, context, runtime);
+  matvecmul_template<VariantKind::GPU>(context);
 }
 
 }  // namespace numpy

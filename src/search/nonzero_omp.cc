@@ -78,12 +78,9 @@ struct NonzeroImplBody<VariantKind::OMP, CODE, DIM> {
   }
 };
 
-/*static*/ void NonzeroTask::omp_variant(const Legion::Task *task,
-                                         const std::vector<Legion::PhysicalRegion> &regions,
-                                         Legion::Context ctx,
-                                         Legion::Runtime *runtime)
+/*static*/ void NonzeroTask::omp_variant(TaskContext &context)
 {
-  nonzero_template<VariantKind::OMP>(task, regions, ctx, runtime);
+  nonzero_template<VariantKind::OMP>(context);
 }
 
 }  // namespace numpy

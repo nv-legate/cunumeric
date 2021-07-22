@@ -48,26 +48,17 @@ struct BinaryOpImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
   }
 };
 
-void deserialize(Deserializer &ctx, BinaryOpArgs &args)
+/*static*/ void BinaryOpTask::cpu_variant(TaskContext &context)
 {
-  deserialize(ctx, args.in1);
-  deserialize(ctx, args.in2);
-  deserialize(ctx, args.out);
-  deserialize(ctx, args.op_code);
-  deserialize(ctx, args.args);
-}
-
-/*static*/ void BinaryOpTask::cpu_variant(const Task *task,
-                                          const std::vector<PhysicalRegion> &regions,
-                                          Context context,
-                                          Runtime *runtime)
-{
-  binary_op_template<VariantKind::CPU>(task, regions, context, runtime);
+  binary_op_template<VariantKind::CPU>(context);
 }
 
 namespace  // unnamed
 {
-static void __attribute__((constructor)) register_tasks(void) { BinaryOpTask::register_variants(); }
+static void __attribute__((constructor)) register_tasks(void)
+{
+  BinaryOpTask::register_new_variants();
+}
 }  // namespace
 
 }  // namespace numpy

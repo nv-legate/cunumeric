@@ -136,12 +136,9 @@ struct ScalarUnaryRedImplBody<VariantKind::OMP, UnaryRedCode::COUNT_NONZERO, COD
   }
 };
 
-/*static*/ UntypedScalar ScalarUnaryRedTask::omp_variant(const Task *task,
-                                                         const std::vector<PhysicalRegion> &regions,
-                                                         Context context,
-                                                         Runtime *runtime)
+/*static*/ UntypedScalar ScalarUnaryRedTask::omp_variant(TaskContext &context)
 {
-  return scalar_unary_red_template<VariantKind::OMP>(task, regions, context, runtime);
+  return scalar_unary_red_template<VariantKind::OMP>(context);
 }
 
 }  // namespace numpy

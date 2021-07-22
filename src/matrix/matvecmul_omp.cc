@@ -80,13 +80,10 @@ struct MatVecMulImplBody<VariantKind::OMP, LegateTypeCode::HALF_LT> {
   }
 };
 
-/*static*/ void MatVecMulTask::omp_variant(const Task *task,
-                                           const std::vector<PhysicalRegion> &regions,
-                                           Context context,
-                                           Runtime *runtime)
+/*static*/ void MatVecMulTask::omp_variant(TaskContext &context)
 {
   openblas_set_num_threads(omp_get_max_threads());
-  matvecmul_template<VariantKind::OMP>(task, regions, context, runtime);
+  matvecmul_template<VariantKind::OMP>(context);
 }
 
 }  // namespace numpy

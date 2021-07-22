@@ -78,14 +78,16 @@ struct BinaryRedDispatch {
 };
 
 template <VariantKind KIND>
-static UntypedScalar binary_red_template(const Task *task,
-                                         const std::vector<PhysicalRegion> &regions,
-                                         Context context,
-                                         Runtime *runtime)
+static UntypedScalar binary_red_template(TaskContext &context)
 {
-  Deserializer ctx(task, regions);
-  BinaryRedArgs args;
-  deserialize(ctx, args);
+  auto &inputs  = context.inputs();
+  auto &scalars = context.scalars();
+
+  std::vector<UntypedScalar> extra_args;
+  for (size_t idx = 2; idx < inputs.size(); ++idx)
+    extra_args.push_back(inputs[idx].scalar<UntypedScalar>());
+
+  BinaryRedArgs args{inputs[0], inputs[1], scalars[0].value<BinaryOpCode>(), std::move(extra_args)};
   return reduce_op_dispatch(args.op_code, BinaryRedDispatch<KIND>{}, args);
 }
 

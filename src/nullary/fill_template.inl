@@ -65,14 +65,9 @@ struct FillImpl {
 };
 
 template <VariantKind KIND>
-static void fill_template(const Task *task,
-                          const std::vector<PhysicalRegion> &regions,
-                          Context context,
-                          Runtime *runtime)
+static void fill_template(TaskContext &context)
 {
-  Deserializer ctx(task, regions);
-  FillArgs args;
-  deserialize(ctx, args);
+  FillArgs args{context.outputs()[0], context.inputs()[0]};
   double_dispatch(args.out.dim(), args.out.code(), FillImpl<KIND>{}, args);
 }
 

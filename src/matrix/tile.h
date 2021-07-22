@@ -22,11 +22,9 @@ namespace legate {
 namespace numpy {
 
 struct TileArgs {
-  Array in;
-  Array out;
+  const Array &in;
+  const Array &out;
 };
-
-void deserialize(Deserializer& ctx, TileArgs& args);
 
 class TileTask : public NumPyTask<TileTask> {
  public:
@@ -34,21 +32,12 @@ class TileTask : public NumPyTask<TileTask> {
   static const int REGIONS = 2;
 
  public:
-  static void cpu_variant(const Legion::Task* task,
-                          const std::vector<Legion::PhysicalRegion>& regions,
-                          Legion::Context ctx,
-                          Legion::Runtime* runtime);
+  static void cpu_variant(TaskContext &context);
 #ifdef LEGATE_USE_OPENMP
-  static void omp_variant(const Legion::Task* task,
-                          const std::vector<Legion::PhysicalRegion>& regions,
-                          Legion::Context ctx,
-                          Legion::Runtime* runtime);
+  static void omp_variant(TaskContext &context);
 #endif
 #ifdef LEGATE_USE_CUDA
-  static void gpu_variant(const Legion::Task* task,
-                          const std::vector<Legion::PhysicalRegion>& regions,
-                          Legion::Context ctx,
-                          Legion::Runtime* runtime);
+  static void gpu_variant(TaskContext &context);
 #endif
 };
 

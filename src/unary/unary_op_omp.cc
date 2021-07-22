@@ -47,12 +47,9 @@ struct UnaryOpImplBody<VariantKind::OMP, OP_CODE, CODE, DIM> {
   }
 };
 
-/*static*/ void UnaryOpTask::omp_variant(const Task *task,
-                                         const std::vector<PhysicalRegion> &regions,
-                                         Context context,
-                                         Runtime *runtime)
+/*static*/ void UnaryOpTask::omp_variant(TaskContext &context)
 {
-  unary_op_template<VariantKind::OMP>(task, regions, context, runtime);
+  unary_op_template<VariantKind::OMP>(context);
 }
 
 }  // namespace numpy

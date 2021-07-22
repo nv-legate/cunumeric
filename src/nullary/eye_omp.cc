@@ -33,12 +33,9 @@ struct EyeImplBody<VariantKind::OMP, VAL> {
   }
 };
 
-/*static*/ void EyeTask::omp_variant(const Task *task,
-                                     const std::vector<PhysicalRegion> &regions,
-                                     Context context,
-                                     Runtime *runtime)
+/*static*/ void EyeTask::omp_variant(TaskContext &context)
 {
-  eye_template<VariantKind::OMP>(task, regions, context, runtime);
+  eye_template<VariantKind::OMP>(context);
 }
 
 }  // namespace numpy

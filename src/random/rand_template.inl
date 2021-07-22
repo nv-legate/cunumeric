@@ -68,14 +68,20 @@ struct RandDispatch {
 };
 
 template <VariantKind KIND>
-static void rand_template(const Task *task,
-                          const std::vector<PhysicalRegion> &regions,
-                          Context context,
-                          Runtime *runtime)
+static void rand_template(TaskContext &context)
 {
-  Deserializer ctx(task, regions);
-  RandArgs args;
-  deserialize(ctx, args);
+  auto &inputs  = context.inputs();
+  auto &outputs = context.outputs();
+  auto &scalars = context.scalars();
+
+  auto gen_code = scalars[0].value<RandGenCode>();
+  auto epoch    = scalars[1].value<uint32_t>();
+  auto strides  = scalars[2].value<DomainPoint>();
+
+  std::vector<UntypedScalar> extra_args;
+  for (auto &input : inputs) extra_args.push_back(input.scalar<UntypedScalar>());
+
+  RandArgs args{outputs[0], gen_code, epoch, strides, std::move(extra_args)};
   op_dispatch(args.gen_code, RandDispatch<KIND>{}, args);
 }
 

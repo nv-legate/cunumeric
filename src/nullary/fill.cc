@@ -43,23 +43,14 @@ struct FillImplBody<VariantKind::CPU, VAL, DIM> {
   }
 };
 
-void deserialize(Deserializer &ctx, FillArgs &args)
+/*static*/ void FillTask::cpu_variant(TaskContext &context)
 {
-  deserialize(ctx, args.fill_value);
-  deserialize(ctx, args.out);
-}
-
-/*static*/ void FillTask::cpu_variant(const Task *task,
-                                      const std::vector<PhysicalRegion> &regions,
-                                      Context context,
-                                      Runtime *runtime)
-{
-  fill_template<VariantKind::CPU>(task, regions, context, runtime);
+  fill_template<VariantKind::CPU>(context);
 }
 
 namespace  // unnamed
 {
-static void __attribute__((constructor)) register_tasks(void) { FillTask::register_variants(); }
+static void __attribute__((constructor)) register_tasks(void) { FillTask::register_new_variants(); }
 }  // namespace
 
 }  // namespace numpy

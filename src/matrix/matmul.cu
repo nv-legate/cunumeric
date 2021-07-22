@@ -169,12 +169,9 @@ struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::HALF_LT> {
   }
 };
 
-/*static*/ void MatMulTask::gpu_variant(const Task *task,
-                                        const std::vector<PhysicalRegion> &regions,
-                                        Context context,
-                                        Runtime *runtime)
+/*static*/ void MatMulTask::gpu_variant(TaskContext &context)
 {
-  matmul_template<VariantKind::GPU>(task, regions, context, runtime);
+  matmul_template<VariantKind::GPU>(context);
 }
 
 }  // namespace numpy

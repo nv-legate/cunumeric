@@ -63,22 +63,18 @@ struct BinaryOpDispatch {
   }
 };
 
-/*static*/ UntypedScalar ScalarBinaryOpTask::cpu_variant(const Task *task,
-                                                         const std::vector<PhysicalRegion> &regions,
-                                                         Context context,
-                                                         Runtime *runtime)
+/*static*/ UntypedScalar ScalarBinaryOpTask::cpu_variant(TaskContext &context)
 {
-  Deserializer ctx(task, regions);
+  auto op_code = context.scalars()[0].value<BinaryOpCode>();
 
-  BinaryOpCode op_code;
-  Array in1;
-  Array in2;
+  auto &inputs = context.inputs();
+
+  auto &in1 = inputs[0];
+  auto &in2 = inputs[1];
+
   std::vector<UntypedScalar> args;
-
-  deserialize(ctx, in1);
-  deserialize(ctx, in2);
-  deserialize(ctx, op_code);
-  deserialize(ctx, args);
+  for (auto idx = 2; idx < inputs.size(); ++idx)
+    args.push_back(inputs[idx].scalar<UntypedScalar>());
 
   if (op_code == BinaryOpCode::ALLCLOSE)
     return BinaryOpDispatch{}.operator()<BinaryOpCode::ALLCLOSE>(
@@ -92,7 +88,7 @@ namespace  // unnamed
 {
 static void __attribute__((constructor)) register_tasks(void)
 {
-  ScalarBinaryOpTask::register_variants_with_return<UntypedScalar, UntypedScalar>();
+  ScalarBinaryOpTask::register_new_variants_with_return<UntypedScalar, UntypedScalar>();
 }
 }  // namespace
 

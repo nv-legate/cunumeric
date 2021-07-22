@@ -51,27 +51,16 @@ struct BinaryRedImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
   }
 };
 
-void deserialize(Deserializer &ctx, BinaryRedArgs &args)
+/*static*/ UntypedScalar BinaryRedTask::cpu_variant(TaskContext &context)
 {
-  deserialize(ctx, args.in1);
-  deserialize(ctx, args.in2);
-  deserialize(ctx, args.op_code);
-  deserialize(ctx, args.args);
-}
-
-/*static*/ UntypedScalar BinaryRedTask::cpu_variant(const Task *task,
-                                                    const std::vector<PhysicalRegion> &regions,
-                                                    Context context,
-                                                    Runtime *runtime)
-{
-  return binary_red_template<VariantKind::CPU>(task, regions, context, runtime);
+  return binary_red_template<VariantKind::CPU>(context);
 }
 
 namespace  // unnamed
 {
 static void __attribute__((constructor)) register_tasks(void)
 {
-  BinaryRedTask::register_variants_with_return<UntypedScalar, UntypedScalar>();
+  BinaryRedTask::register_new_variants_with_return<UntypedScalar, UntypedScalar>();
 }
 }  // namespace
 

@@ -126,12 +126,9 @@ struct BincountImplBody<VariantKind::OMP, CODE> {
   }
 };
 
-/*static*/ void BincountTask::omp_variant(const Task *task,
-                                          const std::vector<PhysicalRegion> &regions,
-                                          Context context,
-                                          Runtime *runtime)
+/*static*/ void BincountTask::omp_variant(TaskContext &context)
 {
-  bincount_template<VariantKind::OMP>(task, regions, context, runtime);
+  bincount_template<VariantKind::OMP>(context);
 }
 
 }  // namespace numpy

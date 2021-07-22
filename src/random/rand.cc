@@ -40,32 +40,14 @@ struct RandImplBody<VariantKind::CPU, RNG, VAL, DIM> {
   }
 };
 
-void deserialize(Deserializer &ctx, RandArgs &args)
+/*static*/ void RandTask::cpu_variant(TaskContext &context)
 {
-  deserialize(ctx, args.out);
-  deserialize(ctx, args.gen_code);
-  Scalar epoch;
-  deserialize(ctx, epoch);
-  args.epoch = epoch.value<uint32_t>();
-  Scalar scalar;
-  deserialize(ctx, scalar);
-  auto strides     = scalar.values<int64_t>();
-  args.strides.dim = strides.size();
-  for (auto idx = 0; idx < args.strides.dim; ++idx) args.strides[idx] = strides[idx];
-  deserialize(ctx, args.args);
-}
-
-/*static*/ void RandTask::cpu_variant(const Task *task,
-                                      const std::vector<PhysicalRegion> &regions,
-                                      Context context,
-                                      Runtime *runtime)
-{
-  rand_template<VariantKind::CPU>(task, regions, context, runtime);
+  rand_template<VariantKind::CPU>(context);
 }
 
 namespace  // unnamed
 {
-static void __attribute__((constructor)) register_tasks(void) { RandTask::register_variants(); }
+static void __attribute__((constructor)) register_tasks(void) { RandTask::register_new_variants(); }
 }  // namespace
 
 }  // namespace numpy

@@ -49,25 +49,16 @@ struct DotImplBody<VariantKind::CPU, CODE> {
   }
 };
 
-void deserialize(Deserializer &ctx, DotArgs &args)
+/*static*/ UntypedScalar DotTask::cpu_variant(TaskContext &context)
 {
-  deserialize(ctx, args.rhs1);
-  deserialize(ctx, args.rhs2);
-}
-
-/*static*/ UntypedScalar DotTask::cpu_variant(const Task *task,
-                                              const std::vector<PhysicalRegion> &regions,
-                                              Context context,
-                                              Runtime *runtime)
-{
-  return dot_template<VariantKind::CPU>(task, regions, context, runtime);
+  return dot_template<VariantKind::CPU>(context);
 }
 
 namespace  // unnamed
 {
 static void __attribute__((constructor)) register_tasks(void)
 {
-  DotTask::register_variants_with_return<UntypedScalar, UntypedScalar>();
+  DotTask::register_new_variants_with_return<UntypedScalar, UntypedScalar>();
 }
 }  // namespace
 

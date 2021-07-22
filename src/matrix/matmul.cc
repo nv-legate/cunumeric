@@ -134,27 +134,20 @@ struct MatMulImplBody<VariantKind::CPU, LegateTypeCode::HALF_LT> {
   }
 };
 
-void deserialize(Deserializer &ctx, MatMulArgs &args)
-{
-  deserialize(ctx, args.rhs1);
-  deserialize(ctx, args.rhs2);
-  deserialize(ctx, args.lhs);
-}
-
-/*static*/ void MatMulTask::cpu_variant(const Task *task,
-                                        const std::vector<PhysicalRegion> &regions,
-                                        Context context,
-                                        Runtime *runtime)
+/*static*/ void MatMulTask::cpu_variant(TaskContext &context)
 {
 #ifdef LEGATE_USE_OPENMP
   openblas_set_num_threads(1);  // make sure this isn't overzealous
 #endif
-  matmul_template<VariantKind::CPU>(task, regions, context, runtime);
+  matmul_template<VariantKind::CPU>(context);
 }
 
 namespace  // unnamed
 {
-static void __attribute__((constructor)) register_tasks(void) { MatMulTask::register_variants(); }
+static void __attribute__((constructor)) register_tasks(void)
+{
+  MatMulTask::register_new_variants();
+}
 }  // namespace
 
 }  // namespace numpy

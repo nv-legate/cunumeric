@@ -48,12 +48,9 @@ struct RandImplBody<VariantKind::GPU, RNG, VAL, DIM> {
   }
 };
 
-/*static*/ void RandTask::gpu_variant(const Task *task,
-                                      const std::vector<PhysicalRegion> &regions,
-                                      Context context,
-                                      Runtime *runtime)
+/*static*/ void RandTask::gpu_variant(TaskContext &context)
 {
-  rand_template<VariantKind::GPU>(task, regions, context, runtime);
+  rand_template<VariantKind::GPU>(context);
 }
 
 }  // namespace numpy

@@ -47,12 +47,9 @@ struct ConvertImplBody<VariantKind::OMP, DST_TYPE, SRC_TYPE, DIM> {
   }
 };
 
-/*static*/ void ConvertTask::omp_variant(const Task *task,
-                                         const std::vector<PhysicalRegion> &regions,
-                                         Context context,
-                                         Runtime *runtime)
+/*static*/ void ConvertTask::omp_variant(TaskContext &context)
 {
-  convert_template<VariantKind::OMP>(task, regions, context, runtime);
+  convert_template<VariantKind::OMP>(context);
 }
 
 }  // namespace numpy

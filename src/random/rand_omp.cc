@@ -41,12 +41,9 @@ struct RandImplBody<VariantKind::OMP, RNG, VAL, DIM> {
   }
 };
 
-/*static*/ void RandTask::omp_variant(const Task *task,
-                                      const std::vector<PhysicalRegion> &regions,
-                                      Context context,
-                                      Runtime *runtime)
+/*static*/ void RandTask::omp_variant(TaskContext &context)
 {
-  rand_template<VariantKind::OMP>(task, regions, context, runtime);
+  rand_template<VariantKind::OMP>(context);
 }
 
 }  // namespace numpy

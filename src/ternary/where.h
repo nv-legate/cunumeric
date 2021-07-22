@@ -22,13 +22,13 @@ namespace legate {
 namespace numpy {
 
 struct WhereArgs {
-  Array out;
-  Array mask;
-  Array in1;
-  Array in2;
+  const Array &out;
+  const Array &mask;
+  const Array &in1;
+  const Array &in2;
 };
 
-void deserialize(Deserializer& ctx, WhereArgs& args);
+void deserialize(Deserializer &ctx, WhereArgs &args);
 
 class WhereTask : public NumPyTask<WhereTask> {
  public:
@@ -36,21 +36,12 @@ class WhereTask : public NumPyTask<WhereTask> {
   static const int REGIONS = 4;
 
  public:
-  static void cpu_variant(const Legion::Task* task,
-                          const std::vector<Legion::PhysicalRegion>& regions,
-                          Legion::Context ctx,
-                          Legion::Runtime* runtime);
+  static void cpu_variant(TaskContext &context);
 #ifdef LEGATE_USE_OPENMP
-  static void omp_variant(const Legion::Task* task,
-                          const std::vector<Legion::PhysicalRegion>& regions,
-                          Legion::Context ctx,
-                          Legion::Runtime* runtime);
+  static void omp_variant(TaskContext &context);
 #endif
 #ifdef LEGATE_USE_CUDA
-  static void gpu_variant(const Legion::Task* task,
-                          const std::vector<Legion::PhysicalRegion>& regions,
-                          Legion::Context ctx,
-                          Legion::Runtime* runtime);
+  static void gpu_variant(TaskContext &context);
 #endif
 };
 

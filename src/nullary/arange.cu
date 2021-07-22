@@ -45,12 +45,9 @@ struct ArangeImplBody<VariantKind::GPU, VAL> {
   }
 };
 
-/*static*/ void ArangeTask::gpu_variant(const Task *task,
-                                        const std::vector<PhysicalRegion> &regions,
-                                        Context context,
-                                        Runtime *runtime)
+/*static*/ void ArangeTask::gpu_variant(TaskContext &context)
 {
-  arange_template<VariantKind::GPU>(task, regions, context, runtime);
+  arange_template<VariantKind::GPU>(context);
 }
 
 }  // namespace numpy

@@ -17,39 +17,27 @@
 #pragma once
 
 #include "numpy.h"
-#include "deserializer.h"
 
 namespace legate {
 namespace numpy {
 
 struct NonzeroArgs {
-  Array input;
-  std::vector<Array> results;
+  const Array &input;
+  std::vector<Array> &results;
 };
-
-void deserialize(Deserializer& ctx, NonzeroArgs& args);
 
 class NonzeroTask : public NumPyTask<NonzeroTask> {
  public:
   static const int TASK_ID = NUMPY_NONZERO;
-  static const int REGIONS = 1;
+  static const int REGIONS = 1 + LEGION_MAX_DIM;
 
  public:
-  static void cpu_variant(const Legion::Task* task,
-                          const std::vector<Legion::PhysicalRegion>& regions,
-                          Legion::Context ctx,
-                          Legion::Runtime* runtime);
+  static void cpu_variant(TaskContext &context);
 #ifdef LEGATE_USE_OPENMP
-  static void omp_variant(const Legion::Task* task,
-                          const std::vector<Legion::PhysicalRegion>& regions,
-                          Legion::Context ctx,
-                          Legion::Runtime* runtime);
+  static void omp_variant(TaskContext &context);
 #endif
 #ifdef LEGATE_USE_CUDA
-  static void gpu_variant(const Legion::Task* task,
-                          const std::vector<Legion::PhysicalRegion>& regions,
-                          Legion::Context ctx,
-                          Legion::Runtime* runtime);
+  static void gpu_variant(TaskContext &context);
 #endif
 };
 
