@@ -71,6 +71,7 @@ GEN_CPU_SRC += ternary/where_omp.cc          \
 							 matrix/transpose_omp.cc       \
 							 matrix/util_omp.cc            \
 							 random/rand_omp.cc            \
+							 search/nonzero_omp.cc         \
 							 stat/bincount_omp.cc
 endif
 
@@ -93,5 +94,6 @@ GEN_GPU_SRC += ternary/where.cu               \
 							 matrix/tile.cu                 \
 							 matrix/transpose.cu            \
 							 random/rand.cu                 \
+							 search/nonzero.cu              \
 							 stat/bincount.cu               \
 							 numpy.cu
