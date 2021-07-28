@@ -206,7 +206,7 @@ struct UnaryOp<UnaryOpCode::CEIL, CODE> {
 
 template <LegateTypeCode CODE>
 struct UnaryOp<UnaryOpCode::CLIP, CODE> {
-  static constexpr bool valid = is_floating_point<CODE>::value;
+  static constexpr bool valid = true;
   using T                     = legate_type_of<CODE>;
 
   UnaryOp() {}
