@@ -27,8 +27,6 @@ struct DiagArgs {
   const Array &diag;
 };
 
-void deserialize(Deserializer &ctx, DiagArgs &args);
-
 class DiagTask : public NumPyTask<DiagTask> {
  public:
   static const int TASK_ID = NUMPY_DIAG;

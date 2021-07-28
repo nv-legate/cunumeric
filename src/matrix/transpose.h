@@ -26,8 +26,6 @@ struct TransposeArgs {
   const Array &in;
 };
 
-void deserialize(Deserializer &ctx, TransposeArgs &args);
-
 class TransposeTask : public NumPyTask<TransposeTask> {
  public:
   static const int TASK_ID = NUMPY_TRANSPOSE;

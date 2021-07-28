@@ -30,8 +30,6 @@ struct BinaryRedArgs {
   std::vector<UntypedScalar> args;
 };
 
-void deserialize(Deserializer &ctx, BinaryRedArgs &args);
-
 class BinaryRedTask : public NumPyTask<BinaryRedTask> {
  public:
   static const int TASK_ID = NUMPY_BINARY_RED;

@@ -43,8 +43,6 @@ template <>
 struct is_arg_reduce<UnaryRedCode::ARGMIN> : std::true_type {
 };
 
-void deserialize(Deserializer &ctx, UnaryRedCode &code);
-
 template <typename Functor, typename... Fnargs>
 constexpr decltype(auto) op_dispatch(UnaryRedCode op_code, Functor f, Fnargs &&... args)
 {

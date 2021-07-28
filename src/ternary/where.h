@@ -28,8 +28,6 @@ struct WhereArgs {
   const Array &in2;
 };
 
-void deserialize(Deserializer &ctx, WhereArgs &args);
-
 class WhereTask : public NumPyTask<WhereTask> {
  public:
   static const int TASK_ID = NUMPY_WHERE;
