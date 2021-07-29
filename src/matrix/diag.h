@@ -30,7 +30,6 @@ struct DiagArgs {
 class DiagTask : public NumPyTask<DiagTask> {
  public:
   static const int TASK_ID = NUMPY_DIAG;
-  static const int REGIONS = 0;
 
  public:
   static void cpu_variant(TaskContext &context);

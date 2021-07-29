@@ -53,10 +53,7 @@ struct UnaryOpImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
 
 namespace  // unnamed
 {
-static void __attribute__((constructor)) register_tasks(void)
-{
-  UnaryOpTask::register_new_variants();
-}
+static void __attribute__((constructor)) register_tasks(void) { UnaryOpTask::register_variants(); }
 }  // namespace
 
 }  // namespace numpy

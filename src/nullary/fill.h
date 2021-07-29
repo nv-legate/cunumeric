@@ -30,7 +30,6 @@ struct FillArgs {
 class FillTask : public NumPyTask<FillTask> {
  public:
   static const int TASK_ID = NUMPY_FILL;
-  static const int REGIONS = 1;
 
  public:
   static void cpu_variant(TaskContext &context);

@@ -37,10 +37,7 @@ struct WriteImplBody<VariantKind::CPU, VAL> {
 
 namespace  // unnamed
 {
-static void __attribute__((constructor)) register_tasks(void)
-{
-  WriteTask::register_new_variants();
-}
+static void __attribute__((constructor)) register_tasks(void) { WriteTask::register_variants(); }
 }  // namespace
 
 }  // namespace numpy

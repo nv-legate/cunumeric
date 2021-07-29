@@ -29,7 +29,6 @@ struct NonzeroArgs {
 class NonzeroTask : public NumPyTask<NonzeroTask> {
  public:
   static const int TASK_ID = NUMPY_NONZERO;
-  static const int REGIONS = 1 + LEGION_MAX_DIM;
 
  public:
   static void cpu_variant(TaskContext &context);

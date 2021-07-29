@@ -64,10 +64,7 @@ struct NonzeroImplBody<VariantKind::CPU, CODE, DIM> {
 
 namespace  // unnamed
 {
-static void __attribute__((constructor)) register_tasks(void)
-{
-  NonzeroTask::register_new_variants();
-}
+static void __attribute__((constructor)) register_tasks(void) { NonzeroTask::register_variants(); }
 }  // namespace
 
 }  // namespace numpy

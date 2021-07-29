@@ -47,7 +47,7 @@ struct RandImplBody<VariantKind::CPU, RNG, VAL, DIM> {
 
 namespace  // unnamed
 {
-static void __attribute__((constructor)) register_tasks(void) { RandTask::register_new_variants(); }
+static void __attribute__((constructor)) register_tasks(void) { RandTask::register_variants(); }
 }  // namespace
 
 }  // namespace numpy

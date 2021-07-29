@@ -39,7 +39,7 @@ struct EyeImplBody<VariantKind::CPU, VAL> {
 
 namespace  // unnamed
 {
-static void __attribute__((constructor)) register_tasks(void) { EyeTask::register_new_variants(); }
+static void __attribute__((constructor)) register_tasks(void) { EyeTask::register_variants(); }
 }  // namespace
 
 }  // namespace numpy

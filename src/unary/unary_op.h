@@ -32,7 +32,6 @@ struct UnaryOpArgs {
 class UnaryOpTask : public NumPyTask<UnaryOpTask> {
  public:
   static const int TASK_ID = NUMPY_UNARY_OP;
-  static const int REGIONS = 2;
 
  public:
   static void cpu_variant(TaskContext &context);

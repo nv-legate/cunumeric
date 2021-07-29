@@ -57,7 +57,7 @@ struct DiagImplBody<VariantKind::CPU, CODE> {
 
 namespace  // unnamed
 {
-static void __attribute__((constructor)) register_tasks(void) { DiagTask::register_new_variants(); }
+static void __attribute__((constructor)) register_tasks(void) { DiagTask::register_variants(); }
 }  // namespace
 
 }  // namespace numpy

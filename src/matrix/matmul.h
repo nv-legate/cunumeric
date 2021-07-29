@@ -30,7 +30,6 @@ struct MatMulArgs {
 class MatMulTask : public NumPyTask<MatMulTask> {
  public:
   static const int TASK_ID = NUMPY_MATMUL;
-  static const int REGIONS = 0;
 
  public:
   static void cpu_variant(TaskContext &context);

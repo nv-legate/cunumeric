@@ -46,7 +46,7 @@ struct TileImplBody<VariantKind::CPU, VAL, OUT_DIM, IN_DIM> {
 
 namespace  // unnamed
 {
-static void __attribute__((constructor)) register_tasks(void) { TileTask::register_new_variants(); }
+static void __attribute__((constructor)) register_tasks(void) { TileTask::register_variants(); }
 }  // namespace
 
 }  // namespace numpy

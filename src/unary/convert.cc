@@ -53,10 +53,7 @@ struct ConvertImplBody<VariantKind::CPU, DST_TYPE, SRC_TYPE, DIM> {
 
 namespace  // unnamed
 {
-static void __attribute__((constructor)) register_tasks(void)
-{
-  ConvertTask::register_new_variants();
-}
+static void __attribute__((constructor)) register_tasks(void) { ConvertTask::register_variants(); }
 }  // namespace
 
 }  // namespace numpy

@@ -24,7 +24,6 @@ namespace numpy {
 class WriteTask : public NumPyTask<WriteTask> {
  public:
   static const int TASK_ID = NUMPY_WRITE;
-  static const int REGIONS = 1;
 
  public:
   static void cpu_variant(TaskContext &context);

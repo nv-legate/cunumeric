@@ -33,7 +33,6 @@ struct BinaryRedArgs {
 class BinaryRedTask : public NumPyTask<BinaryRedTask> {
  public:
   static const int TASK_ID = NUMPY_BINARY_RED;
-  static const int REGIONS = 2;
 
  public:
   static UntypedScalar cpu_variant(TaskContext &context);

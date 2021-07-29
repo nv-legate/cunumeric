@@ -31,7 +31,6 @@ struct MatVecMulArgs {
 class MatVecMulTask : public NumPyTask<MatVecMulTask> {
  public:
   static const int TASK_ID = NUMPY_MATVECMUL;
-  static const int REGIONS = 0;
 
  public:
   static void cpu_variant(TaskContext &context);

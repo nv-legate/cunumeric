@@ -31,7 +31,6 @@ struct WhereArgs {
 class WhereTask : public NumPyTask<WhereTask> {
  public:
   static const int TASK_ID = NUMPY_WHERE;
-  static const int REGIONS = 4;
 
  public:
   static void cpu_variant(TaskContext &context);

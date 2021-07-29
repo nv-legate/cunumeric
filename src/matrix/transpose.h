@@ -29,7 +29,6 @@ struct TransposeArgs {
 class TransposeTask : public NumPyTask<TransposeTask> {
  public:
   static const int TASK_ID = NUMPY_TRANSPOSE;
-  static const int REGIONS = 2;
 
  public:
   static void cpu_variant(TaskContext &context);

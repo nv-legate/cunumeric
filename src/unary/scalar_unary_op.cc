@@ -63,7 +63,7 @@ namespace  // unnamed
 {
 static void __attribute__((constructor)) register_tasks(void)
 {
-  ScalarUnaryOpTask::register_new_variants_with_return<UntypedScalar, UntypedScalar>();
+  ScalarUnaryOpTask::register_variants_with_return<UntypedScalar, UntypedScalar>();
 }
 }  // namespace
 

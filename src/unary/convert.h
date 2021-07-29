@@ -29,7 +29,6 @@ struct ConvertArgs {
 class ConvertTask : public NumPyTask<ConvertTask> {
  public:
   static const int TASK_ID = NUMPY_CONVERT;
-  static const int REGIONS = 2;
 
  public:
   static void cpu_variant(TaskContext &context);

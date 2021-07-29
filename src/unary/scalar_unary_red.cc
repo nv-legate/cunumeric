@@ -108,7 +108,7 @@ namespace  // unnamed
 {
 static void __attribute__((constructor)) register_tasks(void)
 {
-  ScalarUnaryRedTask::register_new_variants_with_return<UntypedScalar, UntypedScalar>();
+  ScalarUnaryRedTask::register_variants_with_return<UntypedScalar, UntypedScalar>();
 }
 }  // namespace
 

@@ -25,7 +25,6 @@ namespace numpy {
 class ScalarUnaryOpTask : public NumPyTask<ScalarUnaryOpTask> {
  public:
   static const int TASK_ID = NUMPY_SCALAR_UNARY_OP;
-  static const int REGIONS = 0;
 
  public:
   static UntypedScalar cpu_variant(TaskContext &context);

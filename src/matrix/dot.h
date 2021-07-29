@@ -29,7 +29,6 @@ struct DotArgs {
 class DotTask : public NumPyTask<DotTask> {
  public:
   static const int TASK_ID = NUMPY_DOT;
-  static const int REGIONS = 2;
 
  public:
   static UntypedScalar cpu_variant(TaskContext &context);

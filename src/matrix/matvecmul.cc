@@ -94,7 +94,7 @@ namespace  // unnamed
 {
 static void __attribute__((constructor)) register_tasks(void)
 {
-  MatVecMulTask::register_new_variants();
+  MatVecMulTask::register_variants();
 }
 }  // namespace
 

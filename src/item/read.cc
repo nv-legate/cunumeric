@@ -36,7 +36,7 @@ namespace  // unnamed
 {
 static void __attribute__((constructor)) register_tasks(void)
 {
-  ReadTask::register_new_variants_with_return<UntypedScalar, UntypedScalar>();
+  ReadTask::register_variants_with_return<UntypedScalar, UntypedScalar>();
 }
 }  // namespace
 

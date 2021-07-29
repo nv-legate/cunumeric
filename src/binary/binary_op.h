@@ -33,7 +33,6 @@ struct BinaryOpArgs {
 class BinaryOpTask : public NumPyTask<BinaryOpTask> {
  public:
   static const int TASK_ID = NUMPY_BINARY_OP;
-  static const int REGIONS = 3;
 
  public:
   static void cpu_variant(TaskContext &context);

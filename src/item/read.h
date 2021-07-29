@@ -25,7 +25,6 @@ namespace numpy {
 class ReadTask : public NumPyTask<ReadTask> {
  public:
   static const int TASK_ID = NUMPY_READ;
-  static const int REGIONS = 1;
 
  public:
   static UntypedScalar cpu_variant(TaskContext &context);

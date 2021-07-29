@@ -59,10 +59,7 @@ struct BincountImplBody<VariantKind::CPU, CODE> {
 
 namespace  // unnamed
 {
-static void __attribute__((constructor)) register_tasks(void)
-{
-  BincountTask::register_new_variants();
-}
+static void __attribute__((constructor)) register_tasks(void) { BincountTask::register_variants(); }
 }  // namespace
 
 }  // namespace numpy

@@ -96,10 +96,7 @@ struct ArgRedImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
 
 namespace  // unnamed
 {
-static void __attribute__((constructor)) register_tasks(void)
-{
-  UnaryRedTask::register_new_variants();
-}
+static void __attribute__((constructor)) register_tasks(void) { UnaryRedTask::register_variants(); }
 }  // namespace
 
 }  // namespace numpy

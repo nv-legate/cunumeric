@@ -34,7 +34,6 @@ struct RandArgs {
 class RandTask : public NumPyTask<RandTask> {
  public:
   static const int TASK_ID = NUMPY_RAND;
-  static const int REGIONS = 1;
 
  public:
   static void cpu_variant(TaskContext &context);

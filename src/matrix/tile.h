@@ -29,7 +29,6 @@ struct TileArgs {
 class TileTask : public NumPyTask<TileTask> {
  public:
   static const int TASK_ID = NUMPY_TILE;
-  static const int REGIONS = 2;
 
  public:
   static void cpu_variant(TaskContext &context);

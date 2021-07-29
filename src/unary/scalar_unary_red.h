@@ -33,7 +33,6 @@ struct ScalarUnaryRedArgs {
 class ScalarUnaryRedTask : public NumPyTask<ScalarUnaryRedTask> {
  public:
   static const int TASK_ID = NUMPY_SCALAR_UNARY_RED;
-  static const int REGIONS = 1;
 
  public:
   static UntypedScalar cpu_variant(TaskContext &context);

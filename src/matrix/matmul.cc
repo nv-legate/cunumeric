@@ -144,10 +144,7 @@ struct MatMulImplBody<VariantKind::CPU, LegateTypeCode::HALF_LT> {
 
 namespace  // unnamed
 {
-static void __attribute__((constructor)) register_tasks(void)
-{
-  MatMulTask::register_new_variants();
-}
+static void __attribute__((constructor)) register_tasks(void) { MatMulTask::register_variants(); }
 }  // namespace
 
 }  // namespace numpy

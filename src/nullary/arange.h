@@ -32,7 +32,6 @@ struct ArangeArgs {
 class ArangeTask : public NumPyTask<ArangeTask> {
  public:
   static const int TASK_ID = NUMPY_ARANGE;
-  static const int REGIONS = 1;
 
  public:
   static void cpu_variant(TaskContext &context);

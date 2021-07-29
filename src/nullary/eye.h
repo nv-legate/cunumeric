@@ -29,7 +29,6 @@ struct EyeArgs {
 class EyeTask : public NumPyTask<EyeTask> {
  public:
   static const int TASK_ID = NUMPY_EYE;
-  static const int REGIONS = 1;
 
  public:
   static void cpu_variant(TaskContext& context);

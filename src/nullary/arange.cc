@@ -41,10 +41,7 @@ struct ArangeImplBody<VariantKind::CPU, VAL> {
 
 namespace  // unnamed
 {
-static void __attribute__((constructor)) register_tasks(void)
-{
-  ArangeTask::register_new_variants();
-}
+static void __attribute__((constructor)) register_tasks(void) { ArangeTask::register_variants(); }
 }  // namespace
 
 }  // namespace numpy

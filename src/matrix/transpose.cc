@@ -107,7 +107,7 @@ namespace  // unnamed
 {
 static void __attribute__((constructor)) register_tasks(void)
 {
-  TransposeTask::register_new_variants();
+  TransposeTask::register_variants();
 }
 }  // namespace
 

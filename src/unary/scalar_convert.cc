@@ -64,7 +64,7 @@ namespace  // unnamed
 {
 static void __attribute__((constructor)) register_tasks(void)
 {
-  ScalarConvertTask::register_new_variants_with_return<UntypedScalar, UntypedScalar>();
+  ScalarConvertTask::register_variants_with_return<UntypedScalar, UntypedScalar>();
 }
 }  // namespace
 

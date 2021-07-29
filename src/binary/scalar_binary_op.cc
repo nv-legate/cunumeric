@@ -88,7 +88,7 @@ namespace  // unnamed
 {
 static void __attribute__((constructor)) register_tasks(void)
 {
-  ScalarBinaryOpTask::register_new_variants_with_return<UntypedScalar, UntypedScalar>();
+  ScalarBinaryOpTask::register_variants_with_return<UntypedScalar, UntypedScalar>();
 }
 }  // namespace
 
