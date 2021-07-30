@@ -49,27 +49,27 @@ DECLARE_IDENTITIES(complex<float>)
 
 #define _REGISTER_REDOP(ID, TYPE) Runtime::register_reduction_op<TYPE>(ID);
 
-#define REGISTER_REDOPS(OFFSET, OP)                                            \
-  {                                                                            \
-    _REGISTER_REDOP(OFFSET + OP<float>::REDOP_ID, OP<float>)                   \
-    _REGISTER_REDOP(OFFSET + OP<double>::REDOP_ID, OP<double>)                 \
-    _REGISTER_REDOP(OFFSET + OP<int8_t>::REDOP_ID, OP<int8_t>)                 \
-    _REGISTER_REDOP(OFFSET + OP<int16_t>::REDOP_ID, OP<int16_t>)               \
-    _REGISTER_REDOP(OFFSET + OP<int32_t>::REDOP_ID, OP<int32_t>)               \
-    _REGISTER_REDOP(OFFSET + OP<int64_t>::REDOP_ID, OP<int64_t>)               \
-    _REGISTER_REDOP(OFFSET + OP<uint8_t>::REDOP_ID, OP<uint8_t>)               \
-    _REGISTER_REDOP(OFFSET + OP<uint16_t>::REDOP_ID, OP<uint16_t>)             \
-    _REGISTER_REDOP(OFFSET + OP<uint32_t>::REDOP_ID, OP<uint32_t>)             \
-    _REGISTER_REDOP(OFFSET + OP<uint64_t>::REDOP_ID, OP<uint64_t>)             \
-    _REGISTER_REDOP(OFFSET + OP<bool>::REDOP_ID, OP<bool>)                     \
-    _REGISTER_REDOP(OFFSET + OP<__half>::REDOP_ID, OP<__half>)                 \
-    _REGISTER_REDOP(OFFSET + OP<complex<float>>::REDOP_ID, OP<complex<float>>) \
+#define REGISTER_REDOPS(OP)                                                                        \
+  {                                                                                                \
+    _REGISTER_REDOP(context.get_reduction_op_id(OP<float>::REDOP_ID), OP<float>)                   \
+    _REGISTER_REDOP(context.get_reduction_op_id(OP<double>::REDOP_ID), OP<double>)                 \
+    _REGISTER_REDOP(context.get_reduction_op_id(OP<int8_t>::REDOP_ID), OP<int8_t>)                 \
+    _REGISTER_REDOP(context.get_reduction_op_id(OP<int16_t>::REDOP_ID), OP<int16_t>)               \
+    _REGISTER_REDOP(context.get_reduction_op_id(OP<int32_t>::REDOP_ID), OP<int32_t>)               \
+    _REGISTER_REDOP(context.get_reduction_op_id(OP<int64_t>::REDOP_ID), OP<int64_t>)               \
+    _REGISTER_REDOP(context.get_reduction_op_id(OP<uint8_t>::REDOP_ID), OP<uint8_t>)               \
+    _REGISTER_REDOP(context.get_reduction_op_id(OP<uint16_t>::REDOP_ID), OP<uint16_t>)             \
+    _REGISTER_REDOP(context.get_reduction_op_id(OP<uint32_t>::REDOP_ID), OP<uint32_t>)             \
+    _REGISTER_REDOP(context.get_reduction_op_id(OP<uint64_t>::REDOP_ID), OP<uint64_t>)             \
+    _REGISTER_REDOP(context.get_reduction_op_id(OP<bool>::REDOP_ID), OP<bool>)                     \
+    _REGISTER_REDOP(context.get_reduction_op_id(OP<__half>::REDOP_ID), OP<__half>)                 \
+    _REGISTER_REDOP(context.get_reduction_op_id(OP<complex<float>>::REDOP_ID), OP<complex<float>>) \
   }
 
-void register_cpu_reduction_operators(ReductionOpID first_redop_id)
+void register_cpu_reduction_operators(LibraryContext &context)
 {
-  REGISTER_REDOPS(first_redop_id, ArgmaxReduction);
-  REGISTER_REDOPS(first_redop_id, ArgminReduction);
+  REGISTER_REDOPS(ArgmaxReduction);
+  REGISTER_REDOPS(ArgminReduction);
 }
 
 }  // namespace numpy

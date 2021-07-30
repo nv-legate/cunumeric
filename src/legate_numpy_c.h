@@ -60,52 +60,6 @@ enum NumPyRedopID {
   NUMPY_SCALAR_ARGMIN_REDOP = 505,
 };
 
-// We provide a global class of projection functions
-// Match these to NumPyProjCode in legate/numpy/config.py
-enum NumPyProjectionCode {
-  // 2D reduction
-  NUMPY_PROJ_2D_1D_X = 1,  // keep x
-  NUMPY_PROJ_2D_1D_Y = 2,  // keep y
-  // 2D broadcast
-  NUMPY_PROJ_2D_2D_X = 3,  // keep x
-  NUMPY_PROJ_2D_2D_Y = 4,  // keep y
-  // 2D promotion
-  NUMPY_PROJ_1D_2D_X = 5,  // 1D point becomes (x, 0)
-  NUMPY_PROJ_1D_2D_Y = 6,  // 1D point becomes (0, x)
-  // 2D transpose
-  NUMPY_PROJ_2D_2D_YX = 7,  // transpose (x,y) to (y,x)
-  // 3D reduction
-  NUMPY_PROJ_3D_2D_XY = 8,   // keep x and y
-  NUMPY_PROJ_3D_2D_XZ = 9,   // keep x and z
-  NUMPY_PROJ_3D_2D_YZ = 10,  // keep y and z
-  NUMPY_PROJ_3D_1D_X  = 11,  // keep x
-  NUMPY_PROJ_3D_1D_Y  = 12,  // keep y
-  NUMPY_PROJ_3D_1D_Z  = 13,  // keep z
-  // 3D broadcast
-  NUMPY_PROJ_3D_3D_XY = 14,  // keep x and y, broadcast z
-  NUMPY_PROJ_3D_3D_XZ = 15,  // keep x and z, broadcast y
-  NUMPY_PROJ_3D_3D_YZ = 16,  // keep y and z, broadcast x
-  NUMPY_PROJ_3D_3D_X  = 17,  // keep x, broadcast y and z
-  NUMPY_PROJ_3D_3D_Y  = 18,  // keep y, broadcast x and z
-  NUMPY_PROJ_3D_3D_Z  = 19,  // keep z, broadcast x and y
-  // Must always be last
-  NUMPY_PROJ_LAST = 49,
-};
-
-// We provide a global class of sharding functions
-enum NumPyShardingCode {
-  NUMPY_SHARD_TILE_1D       = 1,
-  NUMPY_SHARD_TILE_2D       = 2,
-  NUMPY_SHARD_TILE_3D       = 3,
-  NUMPY_SHARD_TILE_2D_YX    = 4,  // transpose
-  NUMPY_SHARD_TILE_3D_2D_XY = 5,
-  NUMPY_SHARD_TILE_3D_2D_XZ = 6,
-  NUMPY_SHARD_TILE_3D_2D_YZ = 7,
-  NUMPY_SHARD_EXTRA         = 91,
-  // Leave space for some extra IDs for transform sharding functions
-  NUMPY_SHARD_LAST = 1024,  // This one must be last
-};
-
 // Match these to NumPyMappingTag in legate/numpy/config.py
 enum NumPyTag {
   NUMPY_SUBRANKABLE_TAG = 0x1,
@@ -132,9 +86,6 @@ extern "C" {
 #endif
 
 void legate_numpy_perform_registration();
-
-void legate_numpy_create_transform_sharding_functor(
-  unsigned first, unsigned offset, unsigned M, unsigned N, const long* transform);
 
 #ifdef __cplusplus
 }

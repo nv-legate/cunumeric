@@ -44,7 +44,6 @@ GEN_CPU_SRC += ternary/where.cc               \
 							 scalar.cc                      \
 							 arg.cc                         \
 							 mapper.cc                      \
-							 shard.cc                       \
 							 numpy.cc # This must always be the last file!
                         # It guarantees we do our registration callback
                         # only after all task variants are recorded

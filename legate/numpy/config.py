@@ -64,8 +64,8 @@ class NumPyLib(Library):
         config.max_tasks = self.shared_object.NUMPY_MAX_TASKS
         config.max_mappers = self.shared_object.NUMPY_MAX_MAPPERS
         config.max_reduction_ops = self.shared_object.NUMPY_MAX_REDOPS
-        config.max_projections = self.shared_object.NUMPY_PROJ_LAST
-        config.max_shardings = self.shared_object.NUMPY_SHARD_LAST
+        config.max_projections = 0
+        config.max_shardings = 0
         return config
 
     def destroy(self):
@@ -277,35 +277,3 @@ class NumPyMappingTag(IntEnum):
     GPU_ONLY_TASK_TAG = legate_numpy.NUMPY_GPU_ONLY_TAG
     NO_MEMOIZE_TAG = 0  # Turn this off for now since it doesn't help
     KEY_REGION_TAG = legate_numpy.NUMPY_KEY_REGION_TAG
-
-
-# Match these to NumPyProjectionCode in legate_numpy_c.h
-@unique
-class NumPyProjCode(IntEnum):
-    # 2D reduction
-    PROJ_2D_1D_X = legate_numpy.NUMPY_PROJ_2D_1D_X
-    PROJ_2D_1D_Y = legate_numpy.NUMPY_PROJ_2D_1D_Y
-    # 2D broadcast
-    PROJ_2D_2D_X = legate_numpy.NUMPY_PROJ_2D_2D_X
-    PROJ_2D_2D_Y = legate_numpy.NUMPY_PROJ_2D_2D_Y
-    # 2D promotion
-    PROJ_1D_2D_X = legate_numpy.NUMPY_PROJ_1D_2D_X
-    PROJ_1D_2D_Y = legate_numpy.NUMPY_PROJ_1D_2D_Y
-    # 2D transpose
-    PROJ_2D_2D_YX = legate_numpy.NUMPY_PROJ_2D_2D_YX
-    # 3D reduction
-    PROJ_3D_2D_XY = legate_numpy.NUMPY_PROJ_3D_2D_XY
-    PROJ_3D_2D_XZ = legate_numpy.NUMPY_PROJ_3D_2D_XZ
-    PROJ_3D_2D_YZ = legate_numpy.NUMPY_PROJ_3D_2D_YZ
-    PROJ_3D_1D_X = legate_numpy.NUMPY_PROJ_3D_1D_X
-    PROJ_3D_1D_Y = legate_numpy.NUMPY_PROJ_3D_1D_Y
-    PROJ_3D_1D_Z = legate_numpy.NUMPY_PROJ_3D_1D_Z
-    # 3D broadcast
-    PROJ_3D_3D_XY = legate_numpy.NUMPY_PROJ_3D_3D_XY
-    PROJ_3D_3D_XZ = legate_numpy.NUMPY_PROJ_3D_3D_XZ
-    PROJ_3D_3D_YZ = legate_numpy.NUMPY_PROJ_3D_3D_YZ
-    PROJ_3D_3D_X = legate_numpy.NUMPY_PROJ_3D_3D_X
-    PROJ_3D_3D_Y = legate_numpy.NUMPY_PROJ_3D_3D_Y
-    PROJ_3D_3D_Z = legate_numpy.NUMPY_PROJ_3D_3D_Z
-    # Must always be last
-    PROJ_LAST = legate_numpy.NUMPY_PROJ_LAST

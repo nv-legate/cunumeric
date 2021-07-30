@@ -14,14 +14,9 @@
  *
  */
 
-#ifndef __NUMPY_MAPPER_H__
-#define __NUMPY_MAPPER_H__
+#pragma once
 
 #include "numpy.h"
-#include "shard.h"
-
-#define RADIX_GEN_SHIFT 5
-#define RADIX_DIM_SHIFT 8
 
 namespace legate {
 namespace numpy {
@@ -143,9 +138,7 @@ class NumPyMapper : public Legion::Mapping::Mapper {
  public:
   NumPyMapper(Legion::Mapping::MapperRuntime* rt,
               Legion::Machine machine,
-              Legion::TaskID first,
-              Legion::TaskID last,
-              Legion::ShardingID init);
+              const LibraryContext& context);
   virtual ~NumPyMapper(void);
 
  private:
@@ -402,13 +395,15 @@ class NumPyMapper : public Legion::Mapping::Mapper {
   void pack_tunable(const int value, Mapper::SelectTunableOutput& output);
   static int find_key_region(const Legion::Task& task);
 
- protected:
-  Legion::ShardingID select_sharding_functor(const Legion::Mapping::MapperContext ctx,
-                                             const Legion::Task& task);
-  Legion::ShardingID select_sharding_functor(const Legion::Copy& copy);
-  Legion::ShardingID select_sharding_functor(const Legion::Partition& partition);
-  Legion::ShardingID select_sharding_functor(const Legion::Fill& fill);
-  NumPyShardingFunctor* find_sharding_functor(Legion::ShardingID sid);
+  /*
+   protected:
+    Legion::ShardingID select_sharding_functor(const Legion::Mapping::MapperContext ctx,
+                                               const Legion::Task& task);
+    Legion::ShardingID select_sharding_functor(const Legion::Copy& copy);
+    Legion::ShardingID select_sharding_functor(const Legion::Partition& partition);
+    Legion::ShardingID select_sharding_functor(const Legion::Fill& fill);
+    NumPyShardingFunctor* find_sharding_functor(Legion::ShardingID sid);
+  */
 
  protected:
   static inline bool physical_sort_func(
@@ -417,23 +412,18 @@ class NumPyMapper : public Legion::Mapping::Mapper {
   {
     return (left.second < right.second);
   }
-  NumPyOpCode decode_task_id(Legion::TaskID tid);
-  static unsigned extract_env(const char* name,
-                              const unsigned default_value,
-                              const unsigned test_value);
+  // NumPyOpCode decode_task_id(Legion::TaskID tid);
 
  public:
   const Legion::Machine machine;
   const Legion::AddressSpace local_node;
   const size_t total_nodes;
   const char* const mapper_name;
-  const Legion::TaskID first_numpy_task_id;
-  const Legion::TaskID last_numpy_task_id;
-  const Legion::ShardingID first_sharding_id;
-  const unsigned min_gpu_chunk;
-  const unsigned min_cpu_chunk;
-  const unsigned min_omp_chunk;
-  const unsigned eager_fraction;
+  LibraryContext context;
+  const uint32_t min_gpu_chunk;
+  const uint32_t min_cpu_chunk;
+  const uint32_t min_omp_chunk;
+  const uint32_t eager_fraction;
 
  protected:
   std::vector<Legion::Processor> local_cpus;
@@ -460,5 +450,3 @@ class NumPyMapper : public Legion::Mapping::Mapper {
 
 }  // namespace numpy
 }  // namespace legate
-
-#endif  // __NUMPY_MAPPER_H__

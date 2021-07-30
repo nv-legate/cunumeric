@@ -16,7 +16,6 @@
 
 #include "mapper.h"
 #include "legion/legion_mapping.h"
-#include "shard.h"
 #include <cstdlib>
 
 using namespace Legion;
@@ -28,15 +27,13 @@ namespace numpy {
 Logger log_numpy("numpy");
 
 //--------------------------------------------------------------------------
-NumPyMapper::NumPyMapper(MapperRuntime* rt, Machine m, TaskID first, TaskID last, ShardingID init)
+NumPyMapper::NumPyMapper(MapperRuntime* rt, Machine m, const LibraryContext& ctx)
   : Mapper(rt),
     machine(m),
     local_node(get_local_node()),
     total_nodes(get_total_nodes(m)),
     mapper_name(create_name(local_node)),
-    first_numpy_task_id(first),
-    last_numpy_task_id(last),
-    first_sharding_id(init),
+    context(ctx),
     min_gpu_chunk(extract_env("NUMPY_MIN_GPU_CHUNK", 1 << 20, 2)),
     min_cpu_chunk(extract_env("NUMPY_MIN_CPU_CHUNK", 1 << 14, 2)),
     min_omp_chunk(extract_env("NUMPY_MIN_OMP_CHUNK", 1 << 17, 2)),
@@ -1110,9 +1107,10 @@ void NumPyMapper::select_sharding_functor(const MapperContext ctx,
                                           SelectShardingFunctorOutput& output)
 //--------------------------------------------------------------------------
 {
-  output.chosen_functor = 0;  // select_sharding_functor(ctx, task);
+  output.chosen_functor = 0;
 }
 
+/*
 //--------------------------------------------------------------------------
 ShardingID NumPyMapper::select_sharding_functor(const MapperContext ctx, const Task& task)
 //--------------------------------------------------------------------------
@@ -1176,6 +1174,7 @@ NumPyShardingFunctor* NumPyMapper::find_sharding_functor(ShardingID sid)
   assert(sid < (first_sharding_id + NUMPY_SHARD_LAST));
   return NumPyShardingFunctor::sharding_functors[sid - first_sharding_id];
 }
+*/
 
 //--------------------------------------------------------------------------
 void NumPyMapper::map_inline(const MapperContext ctx,
@@ -1260,6 +1259,7 @@ void NumPyMapper::map_copy(const MapperContext ctx,
   // we are copying so make concrete source instances
   std::vector<PhysicalInstance> needed_acquires;
   Memory target_memory = local_system_memory;
+  /*
   if (copy.is_index_space) {
     // If we've got GPUs, assume we're using them
     if (!local_gpus.empty() || !local_omps.empty()) {
@@ -1276,6 +1276,8 @@ void NumPyMapper::map_copy(const MapperContext ctx,
       }
     }
   } else {
+  */
+  {
     // If we have just one local GPU then let's use it, otherwise punt to CPU
     // since it's not clear which one we should use
     if (local_frame_buffers.size() == 1) target_memory = local_frame_buffers.begin()->second;
@@ -1499,9 +1501,10 @@ void NumPyMapper::select_sharding_functor(const MapperContext ctx,
                                           SelectShardingFunctorOutput& output)
 //--------------------------------------------------------------------------
 {
-  output.chosen_functor = select_sharding_functor(copy);
+  output.chosen_functor = 0;
 }
 
+/*
 //--------------------------------------------------------------------------
 ShardingID NumPyMapper::select_sharding_functor(const Copy& copy)
 //--------------------------------------------------------------------------
@@ -1518,6 +1521,7 @@ ShardingID NumPyMapper::select_sharding_functor(const Copy& copy)
   // Keep the compiler happy
   return 0;
 }
+*/
 
 //--------------------------------------------------------------------------
 void NumPyMapper::map_close(const MapperContext ctx,
@@ -1748,9 +1752,10 @@ void NumPyMapper::select_sharding_functor(const MapperContext ctx,
                                           SelectShardingFunctorOutput& output)
 //--------------------------------------------------------------------------
 {
-  output.chosen_functor = select_sharding_functor(partition);
+  output.chosen_functor = 0;
 }
 
+/*
 //--------------------------------------------------------------------------
 ShardingID NumPyMapper::select_sharding_functor(const Partition& partition)
 //--------------------------------------------------------------------------
@@ -1765,6 +1770,7 @@ ShardingID NumPyMapper::select_sharding_functor(const Partition& partition)
   // Keep the compiler happy
   return 0;
 }
+*/
 
 //--------------------------------------------------------------------------
 void NumPyMapper::select_sharding_functor(const MapperContext ctx,
@@ -1773,9 +1779,10 @@ void NumPyMapper::select_sharding_functor(const MapperContext ctx,
                                           SelectShardingFunctorOutput& output)
 //--------------------------------------------------------------------------
 {
-  output.chosen_functor = select_sharding_functor(fill);
+  output.chosen_functor = 0;
 }
 
+/*
 //--------------------------------------------------------------------------
 ShardingID NumPyMapper::select_sharding_functor(const Fill& fill)
 //--------------------------------------------------------------------------
@@ -1792,6 +1799,7 @@ ShardingID NumPyMapper::select_sharding_functor(const Fill& fill)
   // Keep the compiler happy
   return 0;
 }
+*/
 
 //--------------------------------------------------------------------------
 void NumPyMapper::configure_context(const MapperContext ctx,
@@ -1927,10 +1935,13 @@ void NumPyMapper::handle_message(const MapperContext ctx, const MapperMessage& m
 
 //--------------------------------------------------------------------------
 void NumPyMapper::handle_task_result(const MapperContext ctx, const MapperTaskResult& result)
-  //--------------------------------------------------------------------------
-  {// Nothing to do since we should never get one of these
-   LEGATE_ABORT}
+//--------------------------------------------------------------------------
+{
+  // Nothing to do since we should never get one of these
+  LEGATE_ABORT
+}
 
+/*
 //--------------------------------------------------------------------------
 NumPyOpCode NumPyMapper::decode_task_id(TaskID tid)
 //--------------------------------------------------------------------------
@@ -1939,21 +1950,7 @@ NumPyOpCode NumPyMapper::decode_task_id(TaskID tid)
   assert((first_numpy_task_id <= tid) && (tid <= last_numpy_task_id));
   return static_cast<NumPyOpCode>(tid - first_numpy_task_id);
 }
-
-//--------------------------------------------------------------------------
-/*static*/ unsigned NumPyMapper::extract_env(const char* env_name,
-                                             const unsigned default_value,
-                                             const unsigned test_value)
-//--------------------------------------------------------------------------
-{
-  const char* legate_test = getenv("NUMPY_TEST");
-  if (legate_test != NULL) return test_value;
-  const char* env_value = getenv(env_name);
-  if (env_value == NULL)
-    return default_value;
-  else
-    return atoi(env_value);
-}
+*/
 
 }  // namespace numpy
 }  // namespace legate
