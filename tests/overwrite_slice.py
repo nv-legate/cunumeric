@@ -54,7 +54,19 @@ def test():
     dnp[0] = enp[1]
     assert np.array_equal(d, dnp)
 
-    return
+    anp = lg.random.random((3, 3))
+    a = anp.__array__()
+
+    anp[:, 0] = anp[:, 1]
+    a[:, 0] = a[:, 1]
+    assert np.array_equal(anp, a)
+
+    anp = lg.random.random((3, 3))
+    a = anp.__array__()
+
+    anp[:, 0:2] = anp[:, 1:3]
+    a[:, 0:2] = a[:, 1:3]
+    assert np.array_equal(anp, a)
 
 
 if __name__ == "__main__":

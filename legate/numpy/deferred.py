@@ -254,7 +254,7 @@ class DeferredArray(NumPyThunk):
         return result
 
     # Copy source array to the destination array
-    def copy(self, rhs, deep, stacklevel, callsite=None):
+    def copy(self, rhs, deep=False, stacklevel=0, callsite=None):
         self.unary_op(
             UnaryOpCode.COPY,
             rhs.dtype,
@@ -414,15 +414,14 @@ class DeferredArray(NumPyThunk):
 
     @auto_convert([2])
     def set_item(self, key, rhs, stacklevel=0):
-        value_array = rhs
-        assert self.dtype == value_array.dtype
+        assert self.dtype == rhs.dtype
         # Check to see if this is advanced indexing or not
         if self._is_advanced_indexing(key):
             # Create the indexing array
             index_array = self._create_indexing_array(
                 key, stacklevel=(stacklevel + 1)
             )
-            if index_array.shape != value_array.shape:
+            if index_array.shape != rhs.shape:
                 raise ValueError(
                     "Advanced indexing array does not match source shape"
                 )
@@ -433,25 +432,25 @@ class DeferredArray(NumPyThunk):
 
             copy = self.context.create_copy()
 
-            copy.add_input(value_array.base)
+            copy.add_input(rhs.base)
             copy.add_target_indirect(index_array.base)
             copy.add_output(self.base)
 
-            copy.add_alignment(index_array.base, value_array.base)
+            copy.add_alignment(index_array.base, rhs.base)
 
             copy.execute()
 
         elif self.size == 1:
-            assert value_array.size == 1
+            assert rhs.size == 1
             # Special case of writing a single value
             # We can just copy the future because they are immutable
-            self.base = value_array.base
+            self.base = rhs.base
         else:
             view = self._get_view(key)
 
             if view.shape == ():
                 # We're just writing a single value
-                assert value_array.size == 1
+                assert rhs.size == 1
 
                 task = self.context.create_task(NumPyOpCode.WRITE)
                 # Since we pass the view with write discard privilege,
@@ -459,7 +458,7 @@ class DeferredArray(NumPyThunk):
                 # instance just for this one-element view or picks one of the
                 # existing valid instances for the parent.
                 task.add_output(view.base)
-                task.add_input(value_array.base)
+                task.add_input(rhs.base)
                 task.execute()
             else:
                 # In Python, any inplace update of form arr[key] op= value
@@ -480,9 +479,17 @@ class DeferredArray(NumPyThunk):
                         view,
                         stacklevel + 1,
                     )
+
+                if view.base.overlaps(rhs.base):
+                    rhs_copy = self.runtime.create_empty_thunk(
+                        rhs.shape, rhs.dtype
+                    )
+                    rhs_copy.copy(rhs, deep=False, stacklevel=(stacklevel + 1))
+                    rhs = rhs_copy
+
                 # Handle an unfortunate case where our subview can
                 # accidentally collapse the last dimension
-                view.copy(value_array, stacklevel=(stacklevel + 1), deep=False)
+                view.copy(rhs, deep=False, stacklevel=(stacklevel + 1))
         if self.runtime.shadow_debug:
             self.shadow.set_item(key, rhs.shadow, stacklevel=(stacklevel + 1))
             self.runtime.check_shadow(self, "set_item")

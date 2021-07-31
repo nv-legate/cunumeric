@@ -1108,7 +1108,7 @@ class ndarray(object):
         )
         if self.size == 1:
             if out is not None:
-                self.copy(out)
+                out._thunk.copy(self._thunk, stacklevel=stacklevel + 1)
                 return out
             else:
                 return self
@@ -1197,7 +1197,7 @@ class ndarray(object):
         )
         if self.size == 1:
             if out is not None:
-                self.copy(out)
+                out._thunk.copy(self._thunk, stacklevel=stacklevel + 1)
                 return out
             else:
                 return self
