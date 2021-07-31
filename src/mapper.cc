@@ -237,29 +237,35 @@ void NumPyMapper::slice_task(const MapperContext ctx,
     sharding_domain = runtime->get_index_space_domain(ctx, task.sharding_space);
   switch (task.target_proc.kind()) {
     case Processor::LOC_PROC: {
+      uint32_t local_index = 0;
       for (Domain::DomainPointIterator itr(input.domain); itr; itr++) {
-        const unsigned local_index = 0;
         // functor->localize(itr.p, sharding_domain, total_nodes, local_node) % local_cpus.size();
-        output.slices.push_back(TaskSlice(
-          Domain(itr.p, itr.p), local_cpus[local_index], false /*recurse*/, false /*stealable*/));
+        output.slices.push_back(TaskSlice(Domain(itr.p, itr.p),
+                                          local_cpus[local_index++ % local_cpus.size()],
+                                          false /*recurse*/,
+                                          false /*stealable*/));
       }
       break;
     }
     case Processor::TOC_PROC: {
+      uint32_t local_index = 0;
       for (Domain::DomainPointIterator itr(input.domain); itr; itr++) {
-        const unsigned local_index = 0;
         // functor->localize(itr.p, sharding_domain, total_nodes, local_node) % local_gpus.size();
-        output.slices.push_back(TaskSlice(
-          Domain(itr.p, itr.p), local_gpus[local_index], false /*recurse*/, false /*stealable*/));
+        output.slices.push_back(TaskSlice(Domain(itr.p, itr.p),
+                                          local_gpus[local_index++ % local_gpus.size()],
+                                          false /*recurse*/,
+                                          false /*stealable*/));
       }
       break;
     }
     case Processor::OMP_PROC: {
+      uint32_t local_index = 0;
       for (Domain::DomainPointIterator itr(input.domain); itr; itr++) {
-        const unsigned local_index = 0;
         // functor->localize(itr.p, sharding_domain, total_nodes, local_node) % local_omps.size();
-        output.slices.push_back(TaskSlice(
-          Domain(itr.p, itr.p), local_omps[local_index], false /*recurse*/, false /*stealable*/));
+        output.slices.push_back(TaskSlice(Domain(itr.p, itr.p),
+                                          local_omps[local_index++ % local_omps.size()],
+                                          false /*recurse*/,
+                                          false /*stealable*/));
       }
       break;
     }
