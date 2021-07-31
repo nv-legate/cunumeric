@@ -14,8 +14,7 @@
  *
  */
 
-#ifndef __CUDA_HELP_H__
-#define __CUDA_HELP_H__
+#pragma once
 
 #include "legate.h"
 #include <cublas_v2.h>
@@ -149,5 +148,3 @@ __device__ __forceinline__ void reduce_bool(Legion::DeferredValue<bool> result, 
 
 }  // namespace numpy
 }  // namespace legate
-
-#endif  // __CUDA_HELP_H__
