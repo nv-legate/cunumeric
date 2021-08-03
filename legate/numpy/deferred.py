@@ -732,6 +732,9 @@ class DeferredArray(NumPyThunk):
             task.add_input(rhs2)
             task.add_scalar_arg(left_matrix, bool)
 
+            task.add_alignment(lhs, rhs1)
+            task.add_alignment(lhs, rhs2)
+
             task.execute()
 
             # If we used an accumulation buffer, we should copy the results
