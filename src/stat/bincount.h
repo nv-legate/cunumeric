@@ -22,9 +22,9 @@ namespace legate {
 namespace numpy {
 
 struct BincountArgs {
-  const Array &lhs;
-  const Array &rhs;
-  const Array &weights;
+  const Array& lhs;
+  const Array& rhs;
+  const Array& weights;
 };
 
 class BincountTask : public NumPyTask<BincountTask> {
@@ -32,12 +32,12 @@ class BincountTask : public NumPyTask<BincountTask> {
   static const int TASK_ID = NUMPY_BINCOUNT;
 
  public:
-  static void cpu_variant(TaskContext &context);
+  static void cpu_variant(TaskContext& context);
 #ifdef LEGATE_USE_OPENMP
-  static void omp_variant(TaskContext &context);
+  static void omp_variant(TaskContext& context);
 #endif
 #ifdef LEGATE_USE_CUDA
-  static void gpu_variant(TaskContext &context);
+  static void gpu_variant(TaskContext& context);
 #endif
 };
 

@@ -25,8 +25,8 @@ using namespace Legion;
 
 template <UnaryOpCode OP_CODE>
 struct UnaryOpImpl {
-  template <LegateTypeCode CODE, std::enable_if_t<UnaryOp<OP_CODE, CODE>::valid> * = nullptr>
-  UntypedScalar operator()(const UntypedScalar &in) const
+  template <LegateTypeCode CODE, std::enable_if_t<UnaryOp<OP_CODE, CODE>::valid>* = nullptr>
+  UntypedScalar operator()(const UntypedScalar& in) const
   {
     using OP  = UnaryOp<OP_CODE, CODE>;
     using ARG = legate_type_of<CODE>;
@@ -35,8 +35,8 @@ struct UnaryOpImpl {
     return UntypedScalar(func(in.value<ARG>()));
   }
 
-  template <LegateTypeCode CODE, std::enable_if_t<!UnaryOp<OP_CODE, CODE>::valid> * = nullptr>
-  UntypedScalar operator()(const UntypedScalar &in) const
+  template <LegateTypeCode CODE, std::enable_if_t<!UnaryOp<OP_CODE, CODE>::valid>* = nullptr>
+  UntypedScalar operator()(const UntypedScalar& in) const
   {
     assert(false);
     return UntypedScalar();
@@ -45,15 +45,15 @@ struct UnaryOpImpl {
 
 struct UnaryOpDispatch {
   template <UnaryOpCode OP_CODE>
-  UntypedScalar operator()(const UntypedScalar &in) const
+  UntypedScalar operator()(const UntypedScalar& in) const
   {
     return type_dispatch(in.code(), UnaryOpImpl<OP_CODE>{}, in);
   }
 };
 
-/*static*/ UntypedScalar ScalarUnaryOpTask::cpu_variant(TaskContext &context)
+/*static*/ UntypedScalar ScalarUnaryOpTask::cpu_variant(TaskContext& context)
 {
-  auto &in     = context.inputs()[0];
+  auto& in     = context.inputs()[0];
   auto op_code = context.scalars()[0].value<UnaryOpCode>();
 
   return op_dispatch(op_code, UnaryOpDispatch{}, in.scalar<UntypedScalar>());

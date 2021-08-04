@@ -25,34 +25,34 @@ namespace numpy {
 class UntypedScalar {
  public:
   UntypedScalar() = default;
-  UntypedScalar(const UntypedScalar &other) noexcept;
-  UntypedScalar(UntypedScalar &&other) noexcept;
+  UntypedScalar(const UntypedScalar& other) noexcept;
+  UntypedScalar(UntypedScalar&& other) noexcept;
   ~UntypedScalar();
 
  public:
-  UntypedScalar &operator=(const UntypedScalar &other) noexcept;
-  UntypedScalar &operator=(UntypedScalar &&other) noexcept;
+  UntypedScalar& operator=(const UntypedScalar& other) noexcept;
+  UntypedScalar& operator=(UntypedScalar&& other) noexcept;
 
  public:
   template <typename T>
-  UntypedScalar(const T &value) : is_argval_(0), code_(legate_type_code_of<T>), data_(new T(value))
+  UntypedScalar(const T& value) : is_argval_(0), code_(legate_type_code_of<T>), data_(new T(value))
   {
   }
   template <typename T>
-  UntypedScalar(const Argval<T> &value)
+  UntypedScalar(const Argval<T>& value)
     : is_argval_(1), code_(legate_type_code_of<T>), data_(new Argval<T>(value))
   {
   }
 
  private:
   void destroy();
-  void copy(const UntypedScalar &other);
-  void move(UntypedScalar &&other);
+  void copy(const UntypedScalar& other);
+  void move(UntypedScalar&& other);
 
  public:
   size_t legion_buffer_size() const;
-  void legion_serialize(void *buffer) const;
-  void legion_deserialize(const void *buffer);
+  void legion_serialize(void* buffer) const;
+  void legion_deserialize(const void* buffer);
 
  public:
   auto code() const { return code_; }
@@ -61,20 +61,20 @@ class UntypedScalar {
 
  public:
   template <typename T>
-  const T &value() const
+  const T& value() const
   {
-    return *static_cast<const T *>(data_);
+    return *static_cast<const T*>(data_);
   }
   template <typename T = void>
-  const T *ptr() const
+  const T* ptr() const
   {
-    return static_cast<const T *>(data_);
+    return static_cast<const T*>(data_);
   }
 
   template <typename T = void>
-  T *ptr()
+  T* ptr()
   {
-    return static_cast<T *>(data_);
+    return static_cast<T*>(data_);
   }
 
   std::string to_string() const;
@@ -82,7 +82,7 @@ class UntypedScalar {
  private:
   int32_t is_argval_{0};
   LegateTypeCode code_{LegateTypeCode::MAX_TYPE_NUMBER};
-  void *data_{nullptr};
+  void* data_{nullptr};
 };
 
 }  // namespace numpy

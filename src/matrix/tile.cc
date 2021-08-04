@@ -24,12 +24,12 @@ using namespace Legion;
 
 template <typename VAL, int32_t OUT_DIM, int32_t IN_DIM>
 struct TileImplBody<VariantKind::CPU, VAL, OUT_DIM, IN_DIM> {
-  void operator()(const Rect<OUT_DIM> &out_rect,
-                  const Pitches<OUT_DIM - 1> &out_pitches,
+  void operator()(const Rect<OUT_DIM>& out_rect,
+                  const Pitches<OUT_DIM - 1>& out_pitches,
                   size_t out_volume,
-                  const Point<IN_DIM> &in_strides,
-                  const AccessorWO<VAL, OUT_DIM> &out,
-                  const AccessorRO<VAL, IN_DIM> &in) const
+                  const Point<IN_DIM>& in_strides,
+                  const AccessorWO<VAL, OUT_DIM>& out,
+                  const AccessorRO<VAL, IN_DIM>& in) const
   {
     for (size_t out_idx = 0; out_idx < out_volume; ++out_idx) {
       const auto out_point = out_pitches.unflatten(out_idx, out_rect.lo);
@@ -39,7 +39,7 @@ struct TileImplBody<VariantKind::CPU, VAL, OUT_DIM, IN_DIM> {
   }
 };
 
-/*static*/ void TileTask::cpu_variant(TaskContext &context)
+/*static*/ void TileTask::cpu_variant(TaskContext& context)
 {
   tile_template<VariantKind::CPU>(context);
 }

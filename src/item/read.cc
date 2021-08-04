@@ -27,7 +27,7 @@ struct ReadImplBody<VariantKind::CPU, VAL> {
   UntypedScalar operator()(AccessorRO<VAL, 1> in) const { return UntypedScalar(in[0]); }
 };
 
-/*static*/ UntypedScalar ReadTask::cpu_variant(TaskContext &context)
+/*static*/ UntypedScalar ReadTask::cpu_variant(TaskContext& context)
 {
   return read_template<VariantKind::CPU>(context);
 }

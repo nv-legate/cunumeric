@@ -23,8 +23,8 @@ namespace legate {
 namespace numpy {
 
 struct UnaryOpArgs {
-  const Array &in;
-  const Array &out;
+  const Array& in;
+  const Array& out;
   UnaryOpCode op_code;
   std::vector<UntypedScalar> args;
 };
@@ -34,12 +34,12 @@ class UnaryOpTask : public NumPyTask<UnaryOpTask> {
   static const int TASK_ID = NUMPY_UNARY_OP;
 
  public:
-  static void cpu_variant(TaskContext &context);
+  static void cpu_variant(TaskContext& context);
 #ifdef LEGATE_USE_OPENMP
-  static void omp_variant(TaskContext &context);
+  static void omp_variant(TaskContext& context);
 #endif
 #ifdef LEGATE_USE_CUDA
-  static void gpu_variant(TaskContext &context);
+  static void gpu_variant(TaskContext& context);
 #endif
 };
 

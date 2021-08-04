@@ -31,16 +31,16 @@ template <LegateTypeCode CODE>
 struct TransposeImplBody<VariantKind::CPU, CODE, 2> {
   using _VAL = legate_type_of<CODE>;
 
-  template <typename VAL = _VAL, std::enable_if_t<sizeof(VAL) == 4> * = nullptr>
-  void operator()(const Rect<2> &out_rect,
-                  const Rect<2> &in_rect,
-                  const AccessorWO<VAL, 2> &out,
-                  const AccessorRO<VAL, 2> &in) const
+  template <typename VAL = _VAL, std::enable_if_t<sizeof(VAL) == 4>* = nullptr>
+  void operator()(const Rect<2>& out_rect,
+                  const Rect<2>& in_rect,
+                  const AccessorWO<VAL, 2>& out,
+                  const AccessorRO<VAL, 2>& in) const
   {
     size_t out_strides[2];
     size_t in_strides[2];
-    auto out_ptr      = reinterpret_cast<float *>(out.ptr(out_rect, out_strides));
-    const auto in_ptr = reinterpret_cast<const float *>(in.ptr(in_rect, in_strides));
+    auto out_ptr      = reinterpret_cast<float*>(out.ptr(out_rect, out_strides));
+    const auto in_ptr = reinterpret_cast<const float*>(in.ptr(in_rect, in_strides));
     const coord_t m   = (in_rect.hi[0] - in_rect.lo[0]) + 1;
     const coord_t n   = (in_rect.hi[1] - in_rect.lo[1]) + 1;
     cblas_somatcopy(CblasRowMajor,
@@ -54,16 +54,16 @@ struct TransposeImplBody<VariantKind::CPU, CODE, 2> {
                     out_strides[0]);
   }
 
-  template <typename VAL = _VAL, std::enable_if_t<sizeof(VAL) == 8> * = nullptr>
-  void operator()(const Rect<2> &out_rect,
-                  const Rect<2> &in_rect,
-                  const AccessorWO<VAL, 2> &out,
-                  const AccessorRO<VAL, 2> &in) const
+  template <typename VAL = _VAL, std::enable_if_t<sizeof(VAL) == 8>* = nullptr>
+  void operator()(const Rect<2>& out_rect,
+                  const Rect<2>& in_rect,
+                  const AccessorWO<VAL, 2>& out,
+                  const AccessorRO<VAL, 2>& in) const
   {
     size_t out_strides[2];
     size_t in_strides[2];
-    auto out_ptr      = reinterpret_cast<double *>(out.ptr(out_rect, out_strides));
-    const auto in_ptr = reinterpret_cast<const double *>(in.ptr(in_rect, in_strides));
+    auto out_ptr      = reinterpret_cast<double*>(out.ptr(out_rect, out_strides));
+    const auto in_ptr = reinterpret_cast<const double*>(in.ptr(in_rect, in_strides));
     const coord_t m   = (in_rect.hi[0] - in_rect.lo[0]) + 1;
     const coord_t n   = (in_rect.hi[1] - in_rect.lo[1]) + 1;
     cblas_domatcopy(CblasRowMajor,
@@ -77,11 +77,11 @@ struct TransposeImplBody<VariantKind::CPU, CODE, 2> {
                     out_strides[0]);
   }
 
-  template <typename VAL = _VAL, std::enable_if_t<sizeof(VAL) != 4 && sizeof(VAL) != 8> * = nullptr>
-  void operator()(const Rect<2> &out_rect,
-                  const Rect<2> &in_rect,
-                  const AccessorWO<VAL, 2> &out,
-                  const AccessorRO<VAL, 2> &in) const
+  template <typename VAL = _VAL, std::enable_if_t<sizeof(VAL) != 4 && sizeof(VAL) != 8>* = nullptr>
+  void operator()(const Rect<2>& out_rect,
+                  const Rect<2>& in_rect,
+                  const AccessorWO<VAL, 2>& out,
+                  const AccessorRO<VAL, 2>& in) const
   {
     constexpr coord_t BF = 128 / sizeof(VAL);
     for (coord_t i1 = in_rect.lo[0]; i1 <= in_rect.hi[0]; i1 += BF) {
@@ -95,7 +95,7 @@ struct TransposeImplBody<VariantKind::CPU, CODE, 2> {
   }
 };
 
-/*static*/ void TransposeTask::cpu_variant(TaskContext &context)
+/*static*/ void TransposeTask::cpu_variant(TaskContext& context)
 {
 #ifdef LEGATE_USE_OPENMP
   openblas_set_num_threads(1);  // make sure this isn't overzealous

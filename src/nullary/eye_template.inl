@@ -28,7 +28,7 @@ struct EyeImplBody;
 template <VariantKind KIND>
 struct EyeImpl {
   template <LegateTypeCode CODE>
-  void operator()(EyeArgs &args) const
+  void operator()(EyeArgs& args) const
   {
     using VAL = legate_type_of<CODE>;
 
@@ -63,7 +63,7 @@ struct EyeImpl {
 };
 
 template <VariantKind KIND>
-static void eye_template(TaskContext &context)
+static void eye_template(TaskContext& context)
 {
   EyeArgs args{context.outputs()[0], context.scalars()[0].value<int32_t>()};
   type_dispatch(args.out.code(), EyeImpl<KIND>{}, args);

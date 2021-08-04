@@ -28,7 +28,7 @@ struct ArangeImplBody;
 template <VariantKind KIND>
 struct ArangeImpl {
   template <LegateTypeCode CODE>
-  void operator()(ArangeArgs &args) const
+  void operator()(ArangeArgs& args) const
   {
     using VAL = legate_type_of<CODE>;
 
@@ -46,9 +46,9 @@ struct ArangeImpl {
 };
 
 template <VariantKind KIND>
-static void arange_template(TaskContext &context)
+static void arange_template(TaskContext& context)
 {
-  auto &inputs = context.inputs();
+  auto& inputs = context.inputs();
   ArangeArgs args{context.outputs()[0], inputs[0], inputs[1], inputs[2]};
   type_dispatch(args.out.code(), ArangeImpl<KIND>{}, args);
 }

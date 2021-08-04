@@ -28,9 +28,9 @@ template <>
 struct MatVecMulImplBody<VariantKind::GPU, LegateTypeCode::FLOAT_LT> {
   void operator()(size_t m,
                   size_t n,
-                  float *lhs,
-                  const float *mat,
-                  const float *vec,
+                  float* lhs,
+                  const float* mat,
+                  const float* vec,
                   size_t mat_stride,
                   bool transpose_mat)
   {
@@ -55,9 +55,9 @@ template <>
 struct MatVecMulImplBody<VariantKind::GPU, LegateTypeCode::DOUBLE_LT> {
   void operator()(size_t m,
                   size_t n,
-                  double *lhs,
-                  const double *mat,
-                  const double *vec,
+                  double* lhs,
+                  const double* mat,
+                  const double* vec,
                   size_t mat_stride,
                   bool transpose_mat)
   {
@@ -82,9 +82,9 @@ template <>
 struct MatVecMulImplBody<VariantKind::GPU, LegateTypeCode::HALF_LT> {
   void operator()(size_t m,
                   size_t n,
-                  float *lhs,
-                  const __half *mat,
-                  const __half *vec,
+                  float* lhs,
+                  const __half* mat,
+                  const __half* vec,
                   size_t mat_stride,
                   bool transpose_mat)
   {
@@ -140,7 +140,7 @@ struct MatVecMulImplBody<VariantKind::GPU, LegateTypeCode::HALF_LT> {
   }
 };
 
-/*static*/ void MatVecMulTask::gpu_variant(TaskContext &context)
+/*static*/ void MatVecMulTask::gpu_variant(TaskContext& context)
 {
   matvecmul_template<VariantKind::GPU>(context);
 }

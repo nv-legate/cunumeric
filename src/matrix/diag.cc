@@ -26,9 +26,9 @@ template <LegateTypeCode CODE>
 struct DiagImplBody<VariantKind::CPU, CODE> {
   using VAL = legate_type_of<CODE>;
 
-  void operator()(const AccessorWO<VAL, 2> &out,
-                  const AccessorRO<VAL, 2> &in,
-                  const Point<2> &start,
+  void operator()(const AccessorWO<VAL, 2>& out,
+                  const AccessorRO<VAL, 2>& in,
+                  const Point<2>& start,
                   size_t distance) const
   {
     for (coord_t idx = 0; idx < distance; ++idx) {
@@ -37,9 +37,9 @@ struct DiagImplBody<VariantKind::CPU, CODE> {
     }
   }
 
-  void operator()(const AccessorRD<SumReduction<VAL>, true, 2> &out,
-                  const AccessorRO<VAL, 2> &in,
-                  const Point<2> &start,
+  void operator()(const AccessorRD<SumReduction<VAL>, true, 2>& out,
+                  const AccessorRO<VAL, 2>& in,
+                  const Point<2>& start,
                   size_t distance) const
   {
     for (coord_t idx = 0; idx < distance; ++idx) {
@@ -50,7 +50,7 @@ struct DiagImplBody<VariantKind::CPU, CODE> {
   }
 };
 
-/*static*/ void DiagTask::cpu_variant(TaskContext &context)
+/*static*/ void DiagTask::cpu_variant(TaskContext& context)
 {
   diag_template<VariantKind::CPU>(context);
 }

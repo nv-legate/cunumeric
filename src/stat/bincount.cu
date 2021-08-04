@@ -25,7 +25,7 @@ namespace numpy {
 using namespace Legion;
 
 template <typename VAL>
-static __device__ inline void _bincount(int32_t *bins,
+static __device__ inline void _bincount(int32_t* bins,
                                         AccessorRO<VAL, 1> rhs,
                                         const size_t volume,
                                         const size_t num_bins,
@@ -53,7 +53,7 @@ static __device__ inline void _bincount(int32_t *bins,
 }
 
 template <typename VAL>
-static __device__ inline void _weighted_bincount(double *bins,
+static __device__ inline void _weighted_bincount(double* bins,
                                                  AccessorRO<VAL, 1> rhs,
                                                  AccessorRO<double, 1> weights,
                                                  const size_t volume,
@@ -90,7 +90,7 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
                      Point<1> origin)
 {
   extern __shared__ char array[];
-  auto bins = reinterpret_cast<int32_t *>(array);
+  auto bins = reinterpret_cast<int32_t*>(array);
   _bincount(bins, rhs, volume, num_bins, origin);
   // Now do the atomics out to global memory
   for (int32_t bin = threadIdx.x; bin < num_bins; bin += blockDim.x) {
@@ -108,7 +108,7 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
                      Point<1> origin)
 {
   extern __shared__ char array[];
-  auto bins = reinterpret_cast<int32_t *>(array);
+  auto bins = reinterpret_cast<int32_t*>(array);
   _bincount(bins, rhs, volume, num_bins, origin);
   // Now do the atomics out to global memory
   for (int32_t bin = threadIdx.x; bin < num_bins; bin += blockDim.x) {
@@ -127,7 +127,7 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
                               Point<1> origin)
 {
   extern __shared__ char array[];
-  auto bins = reinterpret_cast<double *>(array);
+  auto bins = reinterpret_cast<double*>(array);
   _weighted_bincount(bins, rhs, weights, volume, num_bins, origin);
   // Now do the atomics out to global memory
   for (int32_t bin = threadIdx.x; bin < num_bins; bin += blockDim.x) {
@@ -146,7 +146,7 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
                               Point<1> origin)
 {
   extern __shared__ char array[];
-  auto bins = reinterpret_cast<double *>(array);
+  auto bins = reinterpret_cast<double*>(array);
   _weighted_bincount(bins, rhs, weights, volume, num_bins, origin);
   // Now do the atomics out to global memory
   for (int32_t bin = threadIdx.x; bin < num_bins; bin += blockDim.x) {
@@ -160,9 +160,9 @@ struct BincountImplBody<VariantKind::GPU, CODE> {
   using VAL = legate_type_of<CODE>;
 
   void operator()(AccessorRD<SumReduction<int64_t>, false, 1> lhs,
-                  const AccessorRO<VAL, 1> &rhs,
-                  const Rect<1> &rect,
-                  const Rect<1> &lhs_rect) const
+                  const AccessorRO<VAL, 1>& rhs,
+                  const Rect<1>& rect,
+                  const Rect<1>& lhs_rect) const
   {
     const auto volume   = rect.volume();
     const auto num_bins = lhs_rect.volume();
@@ -177,10 +177,10 @@ struct BincountImplBody<VariantKind::GPU, CODE> {
       <<<num_ctas, THREADS_PER_BLOCK, bin_size>>>(lhs, rhs, volume, num_bins, rect.lo);
   }
 
-  void operator()(const AccessorRW<int64_t, 1> &lhs,
-                  const AccessorRO<VAL, 1> &rhs,
-                  const Rect<1> &rect,
-                  const Rect<1> &lhs_rect) const
+  void operator()(const AccessorRW<int64_t, 1>& lhs,
+                  const AccessorRO<VAL, 1>& rhs,
+                  const Rect<1>& rect,
+                  const Rect<1>& lhs_rect) const
   {
     const auto volume   = rect.volume();
     const auto num_bins = lhs_rect.volume();
@@ -196,10 +196,10 @@ struct BincountImplBody<VariantKind::GPU, CODE> {
   }
 
   void operator()(AccessorRD<SumReduction<double>, false, 1> lhs,
-                  const AccessorRO<VAL, 1> &rhs,
-                  const AccessorRO<double, 1> &weights,
-                  const Rect<1> &rect,
-                  const Rect<1> &lhs_rect) const
+                  const AccessorRO<VAL, 1>& rhs,
+                  const AccessorRO<double, 1>& weights,
+                  const Rect<1>& rect,
+                  const Rect<1>& lhs_rect) const
   {
     const auto volume   = rect.volume();
     const auto num_bins = lhs_rect.volume();
@@ -214,11 +214,11 @@ struct BincountImplBody<VariantKind::GPU, CODE> {
       <<<num_ctas, THREADS_PER_BLOCK, bin_size>>>(lhs, rhs, weights, volume, num_bins, rect.lo);
   }
 
-  void operator()(const AccessorRW<double, 1> &lhs,
-                  const AccessorRO<VAL, 1> &rhs,
-                  const AccessorRO<double, 1> &weights,
-                  const Rect<1> &rect,
-                  const Rect<1> &lhs_rect) const
+  void operator()(const AccessorRW<double, 1>& lhs,
+                  const AccessorRO<VAL, 1>& rhs,
+                  const AccessorRO<double, 1>& weights,
+                  const Rect<1>& rect,
+                  const Rect<1>& lhs_rect) const
   {
     const auto volume   = rect.volume();
     const auto num_bins = lhs_rect.volume();
@@ -234,7 +234,7 @@ struct BincountImplBody<VariantKind::GPU, CODE> {
   }
 };
 
-/*static*/ void BincountTask::gpu_variant(TaskContext &context)
+/*static*/ void BincountTask::gpu_variant(TaskContext& context)
 {
   bincount_template<VariantKind::GPU>(context);
 }

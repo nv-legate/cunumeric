@@ -25,10 +25,10 @@ using namespace Legion;
 
 template <BinaryOpCode OP_CODE>
 struct BinaryOpImpl {
-  template <LegateTypeCode CODE, std::enable_if_t<BinaryOp<OP_CODE, CODE>::valid> * = nullptr>
-  UntypedScalar operator()(const UntypedScalar &in1,
-                           const UntypedScalar &in2,
-                           const std::vector<UntypedScalar> &args) const
+  template <LegateTypeCode CODE, std::enable_if_t<BinaryOp<OP_CODE, CODE>::valid>* = nullptr>
+  UntypedScalar operator()(const UntypedScalar& in1,
+                           const UntypedScalar& in2,
+                           const std::vector<UntypedScalar>& args) const
   {
     using OP  = BinaryOp<OP_CODE, CODE>;
     using ARG = legate_type_of<CODE>;
@@ -43,10 +43,10 @@ struct BinaryOpImpl {
     return UntypedScalar(result);
   }
 
-  template <LegateTypeCode CODE, std::enable_if_t<!BinaryOp<OP_CODE, CODE>::valid> * = nullptr>
-  UntypedScalar operator()(const UntypedScalar &in1,
-                           const UntypedScalar &in2,
-                           const std::vector<UntypedScalar> &args) const
+  template <LegateTypeCode CODE, std::enable_if_t<!BinaryOp<OP_CODE, CODE>::valid>* = nullptr>
+  UntypedScalar operator()(const UntypedScalar& in1,
+                           const UntypedScalar& in2,
+                           const std::vector<UntypedScalar>& args) const
   {
     assert(false);
     return UntypedScalar();
@@ -55,22 +55,22 @@ struct BinaryOpImpl {
 
 struct BinaryOpDispatch {
   template <BinaryOpCode OP_CODE>
-  UntypedScalar operator()(const UntypedScalar &in1,
-                           const UntypedScalar &in2,
-                           const std::vector<UntypedScalar> &args) const
+  UntypedScalar operator()(const UntypedScalar& in1,
+                           const UntypedScalar& in2,
+                           const std::vector<UntypedScalar>& args) const
   {
     return type_dispatch(in1.code(), BinaryOpImpl<OP_CODE>{}, in1, in2, args);
   }
 };
 
-/*static*/ UntypedScalar ScalarBinaryOpTask::cpu_variant(TaskContext &context)
+/*static*/ UntypedScalar ScalarBinaryOpTask::cpu_variant(TaskContext& context)
 {
   auto op_code = context.scalars()[0].value<BinaryOpCode>();
 
-  auto &inputs = context.inputs();
+  auto& inputs = context.inputs();
 
-  auto &in1 = inputs[0];
-  auto &in2 = inputs[1];
+  auto& in1 = inputs[0];
+  auto& in2 = inputs[1];
 
   std::vector<UntypedScalar> args;
   for (auto idx = 2; idx < inputs.size(); ++idx)

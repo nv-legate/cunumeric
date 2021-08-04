@@ -25,7 +25,7 @@ struct WriteImplBody;
 template <VariantKind KIND>
 struct WriteImpl {
   template <LegateTypeCode CODE>
-  void operator()(Array &out_arr, Array &in_arr) const
+  void operator()(Array& out_arr, Array& in_arr) const
   {
     using VAL = legate_type_of<CODE>;
     auto out  = out_arr.write_accessor<VAL, 1>();
@@ -35,10 +35,10 @@ struct WriteImpl {
 };
 
 template <VariantKind KIND>
-static void write_template(TaskContext &context)
+static void write_template(TaskContext& context)
 {
-  auto &in  = context.inputs()[0];
-  auto &out = context.outputs()[0];
+  auto& in  = context.inputs()[0];
+  auto& out = context.outputs()[0];
   type_dispatch(out.code(), WriteImpl<KIND>{}, out, in);
 }
 

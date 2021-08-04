@@ -43,10 +43,10 @@ template <LegateTypeCode CODE>
 struct DotImplBody<VariantKind::GPU, CODE> {
   using VAL = legate_type_of<CODE>;
 
-  void operator()(VAL &result,
-                  const AccessorRO<VAL, 1> &rhs1,
-                  const AccessorRO<VAL, 1> &rhs2,
-                  const Rect<1> &rect,
+  void operator()(VAL& result,
+                  const AccessorRO<VAL, 1>& rhs1,
+                  const AccessorRO<VAL, 1>& rhs2,
+                  const Rect<1>& rect,
                   bool dense)
   {
     cudaStream_t stream;
@@ -73,7 +73,7 @@ struct DotImplBody<VariantKind::GPU, CODE> {
   }
 };
 
-/*static*/ UntypedScalar DotTask::gpu_variant(TaskContext &context)
+/*static*/ UntypedScalar DotTask::gpu_variant(TaskContext& context)
 {
   return dot_template<VariantKind::GPU>(context);
 }

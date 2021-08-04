@@ -22,10 +22,10 @@ namespace legate {
 namespace numpy {
 
 struct WhereArgs {
-  const Array &out;
-  const Array &mask;
-  const Array &in1;
-  const Array &in2;
+  const Array& out;
+  const Array& mask;
+  const Array& in1;
+  const Array& in2;
 };
 
 class WhereTask : public NumPyTask<WhereTask> {
@@ -33,12 +33,12 @@ class WhereTask : public NumPyTask<WhereTask> {
   static const int TASK_ID = NUMPY_WHERE;
 
  public:
-  static void cpu_variant(TaskContext &context);
+  static void cpu_variant(TaskContext& context);
 #ifdef LEGATE_USE_OPENMP
-  static void omp_variant(TaskContext &context);
+  static void omp_variant(TaskContext& context);
 #endif
 #ifdef LEGATE_USE_CUDA
-  static void gpu_variant(TaskContext &context);
+  static void gpu_variant(TaskContext& context);
 #endif
 };
 

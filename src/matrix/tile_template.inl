@@ -22,8 +22,8 @@ namespace numpy {
 using namespace Legion;
 
 template <int32_t OUT_DIM, int32_t IN_DIM>
-__CUDA_HD__ inline Point<IN_DIM> get_tile_point(const Point<OUT_DIM> &point,
-                                                const Point<IN_DIM> &strides)
+__CUDA_HD__ inline Point<IN_DIM> get_tile_point(const Point<OUT_DIM>& point,
+                                                const Point<IN_DIM>& strides)
 {
   Point<IN_DIM> result;
   for (int32_t out_idx = OUT_DIM - 1, in_idx = IN_DIM - 1; in_idx >= 0; --out_idx, --in_idx)
@@ -36,8 +36,8 @@ struct TileImplBody;
 
 template <VariantKind KIND, typename VAL>
 struct TileImpl {
-  template <int32_t OUT_DIM, int32_t IN_DIM, std::enable_if_t<IN_DIM <= OUT_DIM> * = nullptr>
-  void operator()(TileArgs &args) const
+  template <int32_t OUT_DIM, int32_t IN_DIM, std::enable_if_t<IN_DIM <= OUT_DIM>* = nullptr>
+  void operator()(TileArgs& args) const
   {
     const auto out_rect = args.out.shape<OUT_DIM>();
     Pitches<OUT_DIM - 1> out_pitches;
@@ -55,8 +55,8 @@ struct TileImpl {
       out_rect, out_pitches, out_volume, in_strides, out, in);
   }
 
-  template <int32_t OUT_DIM, int32_t IN_DIM, std::enable_if_t<!(IN_DIM <= OUT_DIM)> * = nullptr>
-  void operator()(TileArgs &args) const
+  template <int32_t OUT_DIM, int32_t IN_DIM, std::enable_if_t<!(IN_DIM <= OUT_DIM)>* = nullptr>
+  void operator()(TileArgs& args) const
   {
     assert(false);
   }
@@ -65,7 +65,7 @@ struct TileImpl {
 template <VariantKind KIND>
 struct TileDispatch {
   template <LegateTypeCode CODE>
-  void operator()(TileArgs &args) const
+  void operator()(TileArgs& args) const
   {
     using VAL = legate_type_of<CODE>;
     double_dispatch(args.out.dim(), args.in.dim(), TileImpl<KIND, VAL>{}, args);
@@ -73,7 +73,7 @@ struct TileDispatch {
 };
 
 template <VariantKind KIND>
-static void tile_template(TaskContext &context)
+static void tile_template(TaskContext& context)
 {
   TileArgs args{context.inputs()[0], context.outputs()[0]};
   type_dispatch(args.in.code(), TileDispatch<KIND>{}, args);

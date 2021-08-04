@@ -29,15 +29,15 @@ template <LegateTypeCode CODE>
 struct DotImplBody<VariantKind::OMP, CODE> {
   using VAL = legate_type_of<CODE>;
 
-  void operator()(VAL &result,
-                  const AccessorRO<VAL, 1> &rhs1,
-                  const AccessorRO<VAL, 1> &rhs2,
-                  const Rect<1> &rect,
+  void operator()(VAL& result,
+                  const AccessorRO<VAL, 1>& rhs1,
+                  const AccessorRO<VAL, 1>& rhs2,
+                  const Rect<1>& rect,
                   bool dense)
   {
     const auto volume      = rect.volume();
     const auto max_threads = omp_get_max_threads();
-    auto locals            = static_cast<VAL *>(alloca(max_threads * sizeof(VAL)));
+    auto locals            = static_cast<VAL*>(alloca(max_threads * sizeof(VAL)));
     for (auto idx = 0; idx < max_threads; ++idx) locals[idx] = SumReduction<VAL>::identity;
 
     if (dense) {
@@ -69,7 +69,7 @@ struct DotImplBody<VariantKind::OMP, CODE> {
   }
 };
 
-/*static*/ UntypedScalar DotTask::omp_variant(TaskContext &context)
+/*static*/ UntypedScalar DotTask::omp_variant(TaskContext& context)
 {
   return dot_template<VariantKind::OMP>(context);
 }

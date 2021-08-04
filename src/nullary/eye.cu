@@ -34,8 +34,8 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
 
 template <typename VAL>
 struct EyeImplBody<VariantKind::GPU, VAL> {
-  void operator()(const AccessorWO<VAL, 2> &out,
-                  const Point<2> &start,
+  void operator()(const AccessorWO<VAL, 2>& out,
+                  const Point<2>& start,
                   const coord_t distance) const
   {
     const size_t blocks = (distance + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
@@ -43,7 +43,7 @@ struct EyeImplBody<VariantKind::GPU, VAL> {
   }
 };
 
-/*static*/ void EyeTask::gpu_variant(TaskContext &context)
+/*static*/ void EyeTask::gpu_variant(TaskContext& context)
 {
   eye_template<VariantKind::GPU>(context);
 }

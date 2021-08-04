@@ -24,7 +24,7 @@ using namespace Legion;
 
 template <typename Function, typename RES, typename ARG>
 static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-  dense_kernel(size_t volume, Function func, RES *out, const ARG *in1, const ARG *in2)
+  dense_kernel(size_t volume, Function func, RES* out, const ARG* in1, const ARG* in2)
 {
   const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (idx >= volume) return;
@@ -51,8 +51,8 @@ struct BinaryOpImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
                   AccessorWO<RES, DIM> out,
                   AccessorRO<ARG, DIM> in1,
                   AccessorRO<ARG, DIM> in2,
-                  const Pitches<DIM - 1> &pitches,
-                  const Rect<DIM> &rect,
+                  const Pitches<DIM - 1>& pitches,
+                  const Rect<DIM>& rect,
                   bool dense) const
   {
     size_t volume       = rect.volume();
@@ -68,7 +68,7 @@ struct BinaryOpImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
   }
 };
 
-/*static*/ void BinaryOpTask::gpu_variant(TaskContext &context)
+/*static*/ void BinaryOpTask::gpu_variant(TaskContext& context)
 {
   binary_op_template<VariantKind::GPU>(context);
 }

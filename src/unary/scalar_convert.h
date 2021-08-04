@@ -27,7 +27,7 @@ class ScalarConvertTask : public NumPyTask<ScalarConvertTask> {
   static const int TASK_ID = NUMPY_SCALAR_CONVERT;
 
  public:
-  static UntypedScalar cpu_variant(TaskContext &context);
+  static UntypedScalar cpu_variant(TaskContext& context);
 };
 
 }  // namespace numpy

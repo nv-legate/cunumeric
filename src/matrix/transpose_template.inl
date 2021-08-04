@@ -24,8 +24,8 @@ struct TransposeImplBody;
 
 template <VariantKind KIND>
 struct TransposeImpl {
-  template <LegateTypeCode CODE, int32_t DIM, std::enable_if_t<DIM == 2> * = nullptr>
-  void operator()(TransposeArgs &args) const
+  template <LegateTypeCode CODE, int32_t DIM, std::enable_if_t<DIM == 2>* = nullptr>
+  void operator()(TransposeArgs& args) const
   {
     using VAL = legate_type_of<CODE>;
 
@@ -40,15 +40,15 @@ struct TransposeImpl {
     TransposeImplBody<KIND, CODE, DIM>{}(out_rect, in_rect, out, in);
   }
 
-  template <LegateTypeCode CODE, int32_t DIM, std::enable_if_t<DIM != 2> * = nullptr>
-  void operator()(TransposeArgs &args) const
+  template <LegateTypeCode CODE, int32_t DIM, std::enable_if_t<DIM != 2>* = nullptr>
+  void operator()(TransposeArgs& args) const
   {
     assert(false);
   }
 };
 
 template <VariantKind KIND>
-static void transpose_template(TaskContext &context)
+static void transpose_template(TaskContext& context)
 {
   TransposeArgs args{context.outputs()[0], context.inputs()[0]};
   double_dispatch(args.out.dim(), args.in.code(), TransposeImpl<KIND>{}, args);

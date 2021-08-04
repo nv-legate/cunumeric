@@ -30,8 +30,8 @@ struct WhereImplBody<VariantKind::OMP, CODE, DIM> {
                   AccessorRO<bool, DIM> mask,
                   AccessorRO<VAL, DIM> in1,
                   AccessorRO<VAL, DIM> in2,
-                  const Pitches<DIM - 1> &pitches,
-                  const Rect<DIM> &rect,
+                  const Pitches<DIM - 1>& pitches,
+                  const Rect<DIM>& rect,
                   bool dense) const
   {
     const size_t volume = rect.volume();
@@ -54,7 +54,7 @@ struct WhereImplBody<VariantKind::OMP, CODE, DIM> {
   }
 };
 
-/*static*/ void WhereTask::omp_variant(TaskContext &context)
+/*static*/ void WhereTask::omp_variant(TaskContext& context)
 {
   where_template<VariantKind::OMP>(context);
 }

@@ -29,8 +29,8 @@ template <RandGenCode GEN_CODE, VariantKind KIND>
 struct RandImpl {
   template <LegateTypeCode CODE,
             int DIM,
-            std::enable_if_t<RandomGenerator<GEN_CODE, CODE>::valid> * = nullptr>
-  void operator()(RandArgs &args) const
+            std::enable_if_t<RandomGenerator<GEN_CODE, CODE>::valid>* = nullptr>
+  void operator()(RandArgs& args) const
   {
     using VAL = legate_type_of<CODE>;
     using RNG = RandomGenerator<GEN_CODE, CODE>;
@@ -51,8 +51,8 @@ struct RandImpl {
 
   template <LegateTypeCode CODE,
             int DIM,
-            std::enable_if_t<!RandomGenerator<GEN_CODE, CODE>::valid> * = nullptr>
-  void operator()(RandArgs &args) const
+            std::enable_if_t<!RandomGenerator<GEN_CODE, CODE>::valid>* = nullptr>
+  void operator()(RandArgs& args) const
   {
     assert(false);
   }
@@ -61,25 +61,25 @@ struct RandImpl {
 template <VariantKind KIND>
 struct RandDispatch {
   template <RandGenCode GEN_CODE>
-  void operator()(RandArgs &args) const
+  void operator()(RandArgs& args) const
   {
     double_dispatch(args.out.dim(), args.out.code(), RandImpl<GEN_CODE, KIND>{}, args);
   }
 };
 
 template <VariantKind KIND>
-static void rand_template(TaskContext &context)
+static void rand_template(TaskContext& context)
 {
-  auto &inputs  = context.inputs();
-  auto &outputs = context.outputs();
-  auto &scalars = context.scalars();
+  auto& inputs  = context.inputs();
+  auto& outputs = context.outputs();
+  auto& scalars = context.scalars();
 
   auto gen_code = scalars[0].value<RandGenCode>();
   auto epoch    = scalars[1].value<uint32_t>();
   auto strides  = scalars[2].value<DomainPoint>();
 
   std::vector<UntypedScalar> extra_args;
-  for (auto &input : inputs) extra_args.push_back(input.scalar<UntypedScalar>());
+  for (auto& input : inputs) extra_args.push_back(input.scalar<UntypedScalar>());
 
   RandArgs args{outputs[0], gen_code, epoch, strides, std::move(extra_args)};
   op_dispatch(args.gen_code, RandDispatch<KIND>{}, args);

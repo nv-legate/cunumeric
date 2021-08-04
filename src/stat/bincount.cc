@@ -27,9 +27,9 @@ struct BincountImplBody<VariantKind::CPU, CODE> {
   using VAL = legate_type_of<CODE>;
 
   void operator()(AccessorRD<SumReduction<int64_t>, true, 1> lhs,
-                  const AccessorRO<VAL, 1> &rhs,
-                  const Rect<1> &rect,
-                  const Rect<1> &lhs_rect) const
+                  const AccessorRO<VAL, 1>& rhs,
+                  const Rect<1>& rect,
+                  const Rect<1>& lhs_rect) const
   {
     for (size_t idx = rect.lo[0]; idx <= rect.hi[0]; ++idx) {
       auto value = rhs[idx];
@@ -39,10 +39,10 @@ struct BincountImplBody<VariantKind::CPU, CODE> {
   }
 
   void operator()(AccessorRD<SumReduction<double>, true, 1> lhs,
-                  const AccessorRO<VAL, 1> &rhs,
-                  const AccessorRO<double, 1> &weights,
-                  const Rect<1> &rect,
-                  const Rect<1> &lhs_rect) const
+                  const AccessorRO<VAL, 1>& rhs,
+                  const AccessorRO<double, 1>& weights,
+                  const Rect<1>& rect,
+                  const Rect<1>& lhs_rect) const
   {
     for (size_t idx = rect.lo[0]; idx <= rect.hi[0]; ++idx) {
       auto value = rhs[idx];
@@ -52,7 +52,7 @@ struct BincountImplBody<VariantKind::CPU, CODE> {
   }
 };
 
-/*static*/ void BincountTask::cpu_variant(TaskContext &context)
+/*static*/ void BincountTask::cpu_variant(TaskContext& context)
 {
   bincount_template<VariantKind::CPU>(context);
 }

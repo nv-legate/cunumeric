@@ -46,7 +46,7 @@ struct ReadImplBody<VariantKind::GPU, VAL> {
   }
 };
 
-/*static*/ UntypedScalar ReadTask::gpu_variant(TaskContext &context)
+/*static*/ UntypedScalar ReadTask::gpu_variant(TaskContext& context)
 {
   return read_template<VariantKind::GPU>(context);
 }

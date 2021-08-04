@@ -44,7 +44,7 @@ struct is_arg_reduce<UnaryRedCode::ARGMIN> : std::true_type {
 };
 
 template <typename Functor, typename... Fnargs>
-constexpr decltype(auto) op_dispatch(UnaryRedCode op_code, Functor f, Fnargs &&... args)
+constexpr decltype(auto) op_dispatch(UnaryRedCode op_code, Functor f, Fnargs&&... args)
 {
   switch (op_code) {
     case UnaryRedCode::MAX:
@@ -68,8 +68,8 @@ constexpr decltype(auto) op_dispatch(UnaryRedCode op_code, Functor f, Fnargs &&.
 
 template <typename T, int32_t DIM>
 struct ValueConstructor {
-  __CUDA_HD__ inline constexpr T operator()(const Legion::Point<DIM> &,
-                                            const T &value,
+  __CUDA_HD__ inline constexpr T operator()(const Legion::Point<DIM>&,
+                                            const T& value,
                                             int32_t) const
   {
     return value;
@@ -78,8 +78,8 @@ struct ValueConstructor {
 
 template <typename T, int32_t DIM>
 struct ArgvalConstructor {
-  __CUDA_HD__ inline constexpr Argval<T> operator()(const Legion::Point<DIM> &point,
-                                                    const T &value,
+  __CUDA_HD__ inline constexpr Argval<T> operator()(const Legion::Point<DIM>& point,
+                                                    const T& value,
                                                     int32_t collapsed_dim) const
   {
     return Argval<T>(point[collapsed_dim], value);
@@ -99,7 +99,7 @@ struct UnaryRedOp<UnaryRedCode::MAX, TYPE_CODE> {
   using OP  = Legion::MaxReduction<VAL>;
 
   template <bool EXCLUSIVE>
-  __CUDA_HD__ static void fold(VAL &rhs1, VAL rhs2)
+  __CUDA_HD__ static void fold(VAL& rhs1, VAL rhs2)
   {
     OP::template fold<EXCLUSIVE>(rhs1, rhs2);
   }
@@ -118,7 +118,7 @@ struct UnaryRedOp<UnaryRedCode::MIN, TYPE_CODE> {
   using OP  = Legion::MinReduction<VAL>;
 
   template <bool EXCLUSIVE>
-  __CUDA_HD__ static void fold(VAL &rhs1, VAL rhs2)
+  __CUDA_HD__ static void fold(VAL& rhs1, VAL rhs2)
   {
     OP::template fold<EXCLUSIVE>(rhs1, rhs2);
   }
@@ -137,7 +137,7 @@ struct UnaryRedOp<UnaryRedCode::PROD, TYPE_CODE> {
   using OP  = Legion::ProdReduction<VAL>;
 
   template <bool EXCLUSIVE>
-  __CUDA_HD__ static void fold(VAL &rhs1, VAL rhs2)
+  __CUDA_HD__ static void fold(VAL& rhs1, VAL rhs2)
   {
     OP::template fold<EXCLUSIVE>(rhs1, rhs2);
   }
@@ -156,7 +156,7 @@ struct UnaryRedOp<UnaryRedCode::SUM, TYPE_CODE> {
   using OP  = Legion::SumReduction<VAL>;
 
   template <bool EXCLUSIVE>
-  __CUDA_HD__ static void fold(VAL &rhs1, VAL rhs2)
+  __CUDA_HD__ static void fold(VAL& rhs1, VAL rhs2)
   {
     OP::template fold<EXCLUSIVE>(rhs1, rhs2);
   }
@@ -170,7 +170,7 @@ struct UnaryRedOp<UnaryRedCode::ARGMAX, TYPE_CODE> {
   using OP  = ArgmaxReduction<legate_type_of<TYPE_CODE>>;
 
   template <bool EXCLUSIVE>
-  __CUDA_HD__ static void fold(VAL &rhs1, VAL rhs2)
+  __CUDA_HD__ static void fold(VAL& rhs1, VAL rhs2)
   {
     OP::template fold<EXCLUSIVE>(rhs1, rhs2);
   }
@@ -189,7 +189,7 @@ struct UnaryRedOp<UnaryRedCode::ARGMIN, TYPE_CODE> {
   using OP  = ArgminReduction<legate_type_of<TYPE_CODE>>;
 
   template <bool EXCLUSIVE>
-  __CUDA_HD__ static void fold(VAL &rhs1, VAL rhs2)
+  __CUDA_HD__ static void fold(VAL& rhs1, VAL rhs2)
   {
     OP::template fold<EXCLUSIVE>(rhs1, rhs2);
   }
@@ -210,17 +210,17 @@ struct UntypedScalarRedOp {
   template <bool EXCLUSIVE>
   struct apply_fn {
     template <LegateTypeCode TYPE_CODE,
-              std::enable_if_t<UnaryRedOp<OP_CODE, TYPE_CODE>::valid> * = nullptr>
-    void operator()(void *lhs, void *rhs)
+              std::enable_if_t<UnaryRedOp<OP_CODE, TYPE_CODE>::valid>* = nullptr>
+    void operator()(void* lhs, void* rhs)
     {
       using VAL = typename UnaryRedOp<OP_CODE, TYPE_CODE>::VAL;
-      UnaryRedOp<OP_CODE, TYPE_CODE>::OP::template apply<EXCLUSIVE>(*static_cast<VAL *>(lhs),
-                                                                    *static_cast<VAL *>(rhs));
+      UnaryRedOp<OP_CODE, TYPE_CODE>::OP::template apply<EXCLUSIVE>(*static_cast<VAL*>(lhs),
+                                                                    *static_cast<VAL*>(rhs));
     }
 
     template <LegateTypeCode TYPE_CODE,
-              std::enable_if_t<!UnaryRedOp<OP_CODE, TYPE_CODE>::valid> * = nullptr>
-    void operator()(void *lhs, void *rhs)
+              std::enable_if_t<!UnaryRedOp<OP_CODE, TYPE_CODE>::valid>* = nullptr>
+    void operator()(void* lhs, void* rhs)
     {
       assert(false);
     }
@@ -229,17 +229,17 @@ struct UntypedScalarRedOp {
   template <bool EXCLUSIVE>
   struct fold_fn {
     template <LegateTypeCode TYPE_CODE,
-              std::enable_if_t<UnaryRedOp<OP_CODE, TYPE_CODE>::valid> * = nullptr>
-    void operator()(void *lhs, void *rhs)
+              std::enable_if_t<UnaryRedOp<OP_CODE, TYPE_CODE>::valid>* = nullptr>
+    void operator()(void* lhs, void* rhs)
     {
       using VAL = typename UnaryRedOp<OP_CODE, TYPE_CODE>::VAL;
-      UnaryRedOp<OP_CODE, TYPE_CODE>::OP::template fold<EXCLUSIVE>(*static_cast<VAL *>(lhs),
-                                                                   *static_cast<VAL *>(rhs));
+      UnaryRedOp<OP_CODE, TYPE_CODE>::OP::template fold<EXCLUSIVE>(*static_cast<VAL*>(lhs),
+                                                                   *static_cast<VAL*>(rhs));
     }
 
     template <LegateTypeCode TYPE_CODE,
-              std::enable_if_t<!UnaryRedOp<OP_CODE, TYPE_CODE>::valid> * = nullptr>
-    void operator()(void *lhs, void *rhs)
+              std::enable_if_t<!UnaryRedOp<OP_CODE, TYPE_CODE>::valid>* = nullptr>
+    void operator()(void* lhs, void* rhs)
     {
       assert(false);
     }
@@ -247,14 +247,14 @@ struct UntypedScalarRedOp {
 
   template <typename Fn>
   struct dispatch_fn {
-    void operator()(LegateTypeCode code, void *lhs, void *rhs)
+    void operator()(LegateTypeCode code, void* lhs, void* rhs)
     {
       type_dispatch(code, Fn{}, lhs, rhs);
     }
   };
 
   template <bool EXCLUSIVE>
-  static void apply(LHS &lhs, RHS rhs)
+  static void apply(LHS& lhs, RHS rhs)
   {
     assert(EXCLUSIVE);
     if (LegateTypeCode::MAX_TYPE_NUMBER == lhs.code())
@@ -264,7 +264,7 @@ struct UntypedScalarRedOp {
   }
 
   template <bool EXCLUSIVE>
-  static void fold(RHS &rhs1, RHS rhs2)
+  static void fold(RHS& rhs1, RHS rhs2)
   {
     assert(EXCLUSIVE);
     if (LegateTypeCode::MAX_TYPE_NUMBER == rhs1.code())

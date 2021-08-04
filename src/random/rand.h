@@ -24,7 +24,7 @@ namespace legate {
 namespace numpy {
 
 struct RandArgs {
-  const Array &out;
+  const Array& out;
   RandGenCode gen_code;
   uint32_t epoch;
   Legion::DomainPoint strides;
@@ -36,12 +36,12 @@ class RandTask : public NumPyTask<RandTask> {
   static const int TASK_ID = NUMPY_RAND;
 
  public:
-  static void cpu_variant(TaskContext &context);
+  static void cpu_variant(TaskContext& context);
 #ifdef LEGATE_USE_OPENMP
-  static void omp_variant(TaskContext &context);
+  static void omp_variant(TaskContext& context);
 #endif
 #ifdef LEGATE_USE_CUDA
-  static void gpu_variant(TaskContext &context);
+  static void gpu_variant(TaskContext& context);
 #endif
 };
 

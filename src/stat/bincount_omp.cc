@@ -28,21 +28,21 @@ template <LegateTypeCode CODE>
 struct BincountImplBody<VariantKind::OMP, CODE> {
   using VAL = legate_type_of<CODE>;
 
-  std::vector<std::vector<int64_t>> _bincount(const AccessorRO<VAL, 1> &rhs,
-                                              const Rect<1> &rect,
-                                              const Rect<1> &lhs_rect) const
+  std::vector<std::vector<int64_t>> _bincount(const AccessorRO<VAL, 1>& rhs,
+                                              const Rect<1>& rect,
+                                              const Rect<1>& lhs_rect) const
   {
     const int max_threads   = omp_get_max_threads();
     const size_t lhs_volume = lhs_rect.volume();
     std::vector<std::vector<int64_t>> all_local_bins(max_threads);
-    for (auto &local_bins : all_local_bins) {
+    for (auto& local_bins : all_local_bins) {
       auto init  = SumReduction<int64_t>::identity;
       local_bins = std::vector<int64_t>(lhs_volume, init);
     }
 #pragma omp parallel
     {
       auto tid                         = omp_get_thread_num();
-      std::vector<int64_t> &local_bins = all_local_bins[tid];
+      std::vector<int64_t>& local_bins = all_local_bins[tid];
 #pragma omp for schedule(static)
       for (size_t idx = rect.lo[0]; idx <= rect.hi[0]; ++idx) {
         auto value = rhs[idx];
@@ -53,22 +53,22 @@ struct BincountImplBody<VariantKind::OMP, CODE> {
     return std::move(all_local_bins);
   }
 
-  std::vector<std::vector<double>> _bincount(const AccessorRO<VAL, 1> &rhs,
-                                             const AccessorRO<double, 1> &weights,
-                                             const Rect<1> &rect,
-                                             const Rect<1> &lhs_rect) const
+  std::vector<std::vector<double>> _bincount(const AccessorRO<VAL, 1>& rhs,
+                                             const AccessorRO<double, 1>& weights,
+                                             const Rect<1>& rect,
+                                             const Rect<1>& lhs_rect) const
   {
     const int max_threads   = omp_get_max_threads();
     const size_t lhs_volume = lhs_rect.volume();
     std::vector<std::vector<double>> all_local_bins(max_threads);
-    for (auto &local_bins : all_local_bins) {
+    for (auto& local_bins : all_local_bins) {
       auto init  = SumReduction<double>::identity;
       local_bins = std::vector<double>(lhs_volume, init);
     }
 #pragma omp parallel
     {
       auto tid                        = omp_get_thread_num();
-      std::vector<double> &local_bins = all_local_bins[tid];
+      std::vector<double>& local_bins = all_local_bins[tid];
 #pragma omp for schedule(static)
       for (size_t idx = rect.lo[0]; idx <= rect.hi[0]; ++idx) {
         auto value = rhs[idx];
@@ -80,53 +80,53 @@ struct BincountImplBody<VariantKind::OMP, CODE> {
   }
 
   void operator()(AccessorRD<SumReduction<int64_t>, true, 1> lhs,
-                  const AccessorRO<VAL, 1> &rhs,
-                  const Rect<1> &rect,
-                  const Rect<1> &lhs_rect) const
+                  const AccessorRO<VAL, 1>& rhs,
+                  const Rect<1>& rect,
+                  const Rect<1>& lhs_rect) const
   {
     auto all_local_bins = _bincount(rhs, rect, lhs_rect);
-    for (auto &local_bins : all_local_bins)
+    for (auto& local_bins : all_local_bins)
       for (size_t bin_num = 0; bin_num < local_bins.size(); ++bin_num)
         lhs.reduce(bin_num, local_bins[bin_num]);
   }
 
-  void operator()(const AccessorRW<int64_t, 1> &lhs,
-                  const AccessorRO<VAL, 1> &rhs,
-                  const Rect<1> &rect,
-                  const Rect<1> &lhs_rect) const
+  void operator()(const AccessorRW<int64_t, 1>& lhs,
+                  const AccessorRO<VAL, 1>& rhs,
+                  const Rect<1>& rect,
+                  const Rect<1>& lhs_rect) const
   {
     auto all_local_bins = _bincount(rhs, rect, lhs_rect);
-    for (auto &local_bins : all_local_bins)
+    for (auto& local_bins : all_local_bins)
       for (size_t bin_num = 0; bin_num < local_bins.size(); ++bin_num)
         lhs[bin_num] += local_bins[bin_num];
   }
 
   void operator()(AccessorRD<SumReduction<double>, true, 1> lhs,
-                  const AccessorRO<VAL, 1> &rhs,
-                  const AccessorRO<double, 1> &weights,
-                  const Rect<1> &rect,
-                  const Rect<1> &lhs_rect) const
+                  const AccessorRO<VAL, 1>& rhs,
+                  const AccessorRO<double, 1>& weights,
+                  const Rect<1>& rect,
+                  const Rect<1>& lhs_rect) const
   {
     auto all_local_bins = _bincount(rhs, weights, rect, lhs_rect);
-    for (auto &local_bins : all_local_bins)
+    for (auto& local_bins : all_local_bins)
       for (size_t bin_num = 0; bin_num < local_bins.size(); ++bin_num)
         lhs.reduce(bin_num, local_bins[bin_num]);
   }
 
-  void operator()(const AccessorRW<double, 1> &lhs,
-                  const AccessorRO<VAL, 1> &rhs,
-                  const AccessorRO<double, 1> &weights,
-                  const Rect<1> &rect,
-                  const Rect<1> &lhs_rect) const
+  void operator()(const AccessorRW<double, 1>& lhs,
+                  const AccessorRO<VAL, 1>& rhs,
+                  const AccessorRO<double, 1>& weights,
+                  const Rect<1>& rect,
+                  const Rect<1>& lhs_rect) const
   {
     auto all_local_bins = _bincount(rhs, weights, rect, lhs_rect);
-    for (auto &local_bins : all_local_bins)
+    for (auto& local_bins : all_local_bins)
       for (size_t bin_num = 0; bin_num < local_bins.size(); ++bin_num)
         lhs[bin_num] += local_bins[bin_num];
   }
 };
 
-/*static*/ void BincountTask::omp_variant(TaskContext &context)
+/*static*/ void BincountTask::omp_variant(TaskContext& context)
 {
   bincount_template<VariantKind::OMP>(context);
 }

@@ -24,7 +24,7 @@ using namespace Legion;
 
 template <typename VAL>
 static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-  dense_kernel(size_t volume, VAL *out, const bool *mask, const VAL *in1, const VAL *in2)
+  dense_kernel(size_t volume, VAL* out, const bool* mask, const VAL* in1, const VAL* in2)
 {
   const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (idx >= volume) return;
@@ -49,8 +49,8 @@ struct WhereImplBody<VariantKind::GPU, CODE, DIM> {
                   AccessorRO<bool, DIM> mask,
                   AccessorRO<VAL, DIM> in1,
                   AccessorRO<VAL, DIM> in2,
-                  const Pitches<DIM - 1> &pitches,
-                  const Rect<DIM> &rect,
+                  const Pitches<DIM - 1>& pitches,
+                  const Rect<DIM>& rect,
                   bool dense) const
   {
     const size_t volume = rect.volume();
@@ -68,7 +68,7 @@ struct WhereImplBody<VariantKind::GPU, CODE, DIM> {
   }
 };
 
-/*static*/ void WhereTask::gpu_variant(TaskContext &context)
+/*static*/ void WhereTask::gpu_variant(TaskContext& context)
 {
   where_template<VariantKind::GPU>(context);
 }

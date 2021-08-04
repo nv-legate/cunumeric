@@ -26,11 +26,11 @@ template <LegateTypeCode CODE, int32_t DIM>
 struct NonzeroImplBody<VariantKind::CPU, CODE, DIM> {
   using VAL = legate_type_of<CODE>;
 
-  size_t operator()(const AccessorRO<VAL, DIM> &in,
-                    const Pitches<DIM - 1> &pitches,
-                    const Rect<DIM> &rect,
+  size_t operator()(const AccessorRO<VAL, DIM>& in,
+                    const Pitches<DIM - 1>& pitches,
+                    const Rect<DIM>& rect,
                     const size_t volume,
-                    std::vector<DeferredBuffer<int64_t, 1>> &results)
+                    std::vector<DeferredBuffer<int64_t, 1>>& results)
   {
     int64_t size = 0;
 
@@ -39,7 +39,7 @@ struct NonzeroImplBody<VariantKind::CPU, CODE, DIM> {
       size += in[point] != VAL(0);
     }
 
-    for (auto &result : results) {
+    for (auto& result : results) {
       auto hi = std::max<int64_t>(size - 1, 0);
       result  = DeferredBuffer<int64_t, 1>(Rect<1>(0, hi), Memory::Kind::SYSTEM_MEM);
     }
@@ -57,7 +57,7 @@ struct NonzeroImplBody<VariantKind::CPU, CODE, DIM> {
   }
 };
 
-/*static*/ void NonzeroTask::cpu_variant(TaskContext &context)
+/*static*/ void NonzeroTask::cpu_variant(TaskContext& context)
 {
   nonzero_template<VariantKind::CPU>(context);
 }

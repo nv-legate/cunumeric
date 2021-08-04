@@ -29,8 +29,8 @@ template <VariantKind KIND, BinaryOpCode OP_CODE>
 struct BinaryRedImpl {
   template <LegateTypeCode CODE,
             int DIM,
-            std::enable_if_t<BinaryOp<OP_CODE, CODE>::valid> * = nullptr>
-  UntypedScalar operator()(BinaryRedArgs &args) const
+            std::enable_if_t<BinaryOp<OP_CODE, CODE>::valid>* = nullptr>
+  UntypedScalar operator()(BinaryRedArgs& args) const
   {
     using OP  = BinaryOp<OP_CODE, CODE>;
     using ARG = legate_type_of<CODE>;
@@ -59,8 +59,8 @@ struct BinaryRedImpl {
 
   template <LegateTypeCode CODE,
             int DIM,
-            std::enable_if_t<!BinaryOp<OP_CODE, CODE>::valid> * = nullptr>
-  UntypedScalar operator()(BinaryRedArgs &args) const
+            std::enable_if_t<!BinaryOp<OP_CODE, CODE>::valid>* = nullptr>
+  UntypedScalar operator()(BinaryRedArgs& args) const
   {
     assert(false);
     return UntypedScalar();
@@ -70,7 +70,7 @@ struct BinaryRedImpl {
 template <VariantKind KIND>
 struct BinaryRedDispatch {
   template <BinaryOpCode OP_CODE>
-  UntypedScalar operator()(BinaryRedArgs &args) const
+  UntypedScalar operator()(BinaryRedArgs& args) const
   {
     auto dim = std::max(args.in1.dim(), args.in2.dim());
     return double_dispatch(dim, args.in1.code(), BinaryRedImpl<KIND, OP_CODE>{}, args);
@@ -78,10 +78,10 @@ struct BinaryRedDispatch {
 };
 
 template <VariantKind KIND>
-static UntypedScalar binary_red_template(TaskContext &context)
+static UntypedScalar binary_red_template(TaskContext& context)
 {
-  auto &inputs  = context.inputs();
-  auto &scalars = context.scalars();
+  auto& inputs  = context.inputs();
+  auto& scalars = context.scalars();
 
   std::vector<UntypedScalar> extra_args;
   for (size_t idx = 2; idx < inputs.size(); ++idx)

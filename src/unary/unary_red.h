@@ -23,8 +23,8 @@ namespace legate {
 namespace numpy {
 
 struct UnaryRedArgs {
-  const Array &lhs;
-  const Array &rhs;
+  const Array& lhs;
+  const Array& rhs;
   int32_t collapsed_dim;
   UnaryRedCode op_code;
 };
@@ -34,12 +34,12 @@ class UnaryRedTask : public NumPyTask<UnaryRedTask> {
   static const int TASK_ID = NUMPY_UNARY_RED;
 
  public:
-  static void cpu_variant(TaskContext &context);
+  static void cpu_variant(TaskContext& context);
 #ifdef LEGATE_USE_OPENMP
-  static void omp_variant(TaskContext &context);
+  static void omp_variant(TaskContext& context);
 #endif
 #ifdef LEGATE_USE_CUDA
-  static void gpu_variant(TaskContext &context);
+  static void gpu_variant(TaskContext& context);
 #endif
 };
 

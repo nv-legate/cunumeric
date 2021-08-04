@@ -31,8 +31,8 @@ struct UnaryOpImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
   void operator()(OP func,
                   AccessorWO<RES, DIM> out,
                   AccessorRO<ARG, DIM> in,
-                  const Pitches<DIM - 1> &pitches,
-                  const Rect<DIM> &rect,
+                  const Pitches<DIM - 1>& pitches,
+                  const Rect<DIM>& rect,
                   bool dense) const
   {
     const size_t volume = rect.volume();
@@ -46,7 +46,7 @@ struct UnaryOpImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
   }
 };
 
-/*static*/ void UnaryOpTask::cpu_variant(TaskContext &context)
+/*static*/ void UnaryOpTask::cpu_variant(TaskContext& context)
 {
   unary_op_template<VariantKind::CPU>(context);
 }

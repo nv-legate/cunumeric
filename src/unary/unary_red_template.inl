@@ -33,8 +33,8 @@ template <VariantKind KIND, UnaryRedCode OP_CODE>
 struct UnaryRedImpl {
   template <LegateTypeCode CODE,
             int DIM,
-            std::enable_if_t<(DIM > 1) && UnaryRedOp<OP_CODE, CODE>::valid> * = nullptr>
-  void operator()(UnaryRedArgs &args) const
+            std::enable_if_t<(DIM > 1) && UnaryRedOp<OP_CODE, CODE>::valid>* = nullptr>
+  void operator()(UnaryRedArgs& args) const
   {
     using OP  = UnaryRedOp<OP_CODE, CODE>;
     using VAL = legate_type_of<CODE>;
@@ -54,8 +54,8 @@ struct UnaryRedImpl {
 
   template <LegateTypeCode CODE,
             int DIM,
-            std::enable_if_t<DIM <= 1 || !UnaryRedOp<OP_CODE, CODE>::valid> * = nullptr>
-  void operator()(UnaryRedArgs &args) const
+            std::enable_if_t<DIM <= 1 || !UnaryRedOp<OP_CODE, CODE>::valid>* = nullptr>
+  void operator()(UnaryRedArgs& args) const
   {
     assert(false);
   }
@@ -65,8 +65,8 @@ template <VariantKind KIND, UnaryRedCode OP_CODE>
 struct ArgRedImpl {
   template <LegateTypeCode CODE,
             int DIM,
-            std::enable_if_t<(DIM > 1) && UnaryRedOp<OP_CODE, CODE>::valid> * = nullptr>
-  void operator()(UnaryRedArgs &args) const
+            std::enable_if_t<(DIM > 1) && UnaryRedOp<OP_CODE, CODE>::valid>* = nullptr>
+  void operator()(UnaryRedArgs& args) const
   {
     using OP     = UnaryRedOp<OP_CODE, CODE>;
     using VAL    = legate_type_of<CODE>;
@@ -86,8 +86,8 @@ struct ArgRedImpl {
 
   template <LegateTypeCode CODE,
             int DIM,
-            std::enable_if_t<DIM <= 1 || !UnaryRedOp<OP_CODE, CODE>::valid> * = nullptr>
-  void operator()(UnaryRedArgs &args) const
+            std::enable_if_t<DIM <= 1 || !UnaryRedOp<OP_CODE, CODE>::valid>* = nullptr>
+  void operator()(UnaryRedArgs& args) const
   {
     assert(false);
   }
@@ -95,24 +95,24 @@ struct ArgRedImpl {
 
 template <VariantKind KIND>
 struct UnaryRedDispatch {
-  template <UnaryRedCode OP_CODE, std::enable_if_t<!is_arg_reduce<OP_CODE>::value> * = nullptr>
-  void operator()(UnaryRedArgs &args) const
+  template <UnaryRedCode OP_CODE, std::enable_if_t<!is_arg_reduce<OP_CODE>::value>* = nullptr>
+  void operator()(UnaryRedArgs& args) const
   {
     return double_dispatch(args.rhs.dim(), args.rhs.code(), UnaryRedImpl<KIND, OP_CODE>{}, args);
   }
-  template <UnaryRedCode OP_CODE, std::enable_if_t<is_arg_reduce<OP_CODE>::value> * = nullptr>
-  void operator()(UnaryRedArgs &args) const
+  template <UnaryRedCode OP_CODE, std::enable_if_t<is_arg_reduce<OP_CODE>::value>* = nullptr>
+  void operator()(UnaryRedArgs& args) const
   {
     return double_dispatch(args.rhs.dim(), args.rhs.code(), ArgRedImpl<KIND, OP_CODE>{}, args);
   }
 };
 
 template <VariantKind KIND>
-static void unary_red_template(TaskContext &context)
+static void unary_red_template(TaskContext& context)
 {
-  auto &inputs     = context.inputs();
-  auto &reductions = context.reductions();
-  auto &scalars    = context.scalars();
+  auto& inputs     = context.inputs();
+  auto& reductions = context.reductions();
+  auto& scalars    = context.scalars();
 
   UnaryRedArgs args{
     reductions[0], inputs[0], scalars[0].value<int32_t>(), scalars[1].value<UnaryRedCode>()};

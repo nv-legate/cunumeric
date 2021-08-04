@@ -32,8 +32,8 @@ struct BinaryOpImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
                   AccessorWO<RES, DIM> out,
                   AccessorRO<ARG, DIM> in1,
                   AccessorRO<ARG, DIM> in2,
-                  const Pitches<DIM - 1> &pitches,
-                  const Rect<DIM> &rect,
+                  const Pitches<DIM - 1>& pitches,
+                  const Rect<DIM>& rect,
                   bool dense) const
   {
     if (dense) {
@@ -48,7 +48,7 @@ struct BinaryOpImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
   }
 };
 
-/*static*/ void BinaryOpTask::cpu_variant(TaskContext &context)
+/*static*/ void BinaryOpTask::cpu_variant(TaskContext& context)
 {
   binary_op_template<VariantKind::CPU>(context);
 }

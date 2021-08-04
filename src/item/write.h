@@ -26,9 +26,9 @@ class WriteTask : public NumPyTask<WriteTask> {
   static const int TASK_ID = NUMPY_WRITE;
 
  public:
-  static void cpu_variant(TaskContext &context);
+  static void cpu_variant(TaskContext& context);
 #ifdef LEGATE_USE_CUDA
-  static void gpu_variant(TaskContext &context);
+  static void gpu_variant(TaskContext& context);
 #endif
 };
 

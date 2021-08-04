@@ -24,8 +24,8 @@ using namespace Legion;
 
 template <typename VAL>
 struct EyeImplBody<VariantKind::OMP, VAL> {
-  void operator()(const AccessorWO<VAL, 2> &out,
-                  const Point<2> &start,
+  void operator()(const AccessorWO<VAL, 2>& out,
+                  const Point<2>& start,
                   const coord_t distance) const
   {
 #pragma omp parallel for
@@ -33,7 +33,7 @@ struct EyeImplBody<VariantKind::OMP, VAL> {
   }
 };
 
-/*static*/ void EyeTask::omp_variant(TaskContext &context)
+/*static*/ void EyeTask::omp_variant(TaskContext& context)
 {
   eye_template<VariantKind::OMP>(context);
 }

@@ -22,8 +22,8 @@ namespace legate {
 namespace numpy {
 
 struct DotArgs {
-  const Array &rhs1;
-  const Array &rhs2;
+  const Array& rhs1;
+  const Array& rhs2;
 };
 
 class DotTask : public NumPyTask<DotTask> {
@@ -31,12 +31,12 @@ class DotTask : public NumPyTask<DotTask> {
   static const int TASK_ID = NUMPY_DOT;
 
  public:
-  static UntypedScalar cpu_variant(TaskContext &context);
+  static UntypedScalar cpu_variant(TaskContext& context);
 #ifdef LEGATE_USE_OPENMP
-  static UntypedScalar omp_variant(TaskContext &context);
+  static UntypedScalar omp_variant(TaskContext& context);
 #endif
 #ifdef LEGATE_USE_CUDA
-  static UntypedScalar gpu_variant(TaskContext &context);
+  static UntypedScalar gpu_variant(TaskContext& context);
 #endif
 };
 

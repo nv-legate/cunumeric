@@ -87,10 +87,10 @@ template <LegateTypeCode CODE>
 struct TransposeImplBody<VariantKind::GPU, CODE, 2> {
   using VAL = legate_type_of<CODE>;
 
-  void operator()(const Rect<2> &out_rect,
-                  const Rect<2> &in_rect,
-                  const AccessorWO<VAL, 2> &out,
-                  const AccessorRO<VAL, 2> &in) const
+  void operator()(const Rect<2>& out_rect,
+                  const Rect<2>& in_rect,
+                  const AccessorWO<VAL, 2>& out,
+                  const AccessorRO<VAL, 2>& in) const
   {
     const coord_t m = (in_rect.hi[0] - in_rect.lo[0]) + 1;
     const coord_t n = (in_rect.hi[1] - in_rect.lo[1]) + 1;
@@ -101,7 +101,7 @@ struct TransposeImplBody<VariantKind::GPU, CODE, 2> {
   }
 };
 
-/*static*/ void TransposeTask::gpu_variant(TaskContext &context)
+/*static*/ void TransposeTask::gpu_variant(TaskContext& context)
 {
   transpose_template<VariantKind::GPU>(context);
 }

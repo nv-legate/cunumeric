@@ -40,8 +40,8 @@ struct support_matvecmul<LegateTypeCode::HALF_LT> : std::true_type {
 
 template <VariantKind KIND>
 struct MatVecMulImpl {
-  template <LegateTypeCode CODE, std::enable_if_t<support_matvecmul<CODE>::value> * = nullptr>
-  void operator()(MatVecMulArgs &args) const
+  template <LegateTypeCode CODE, std::enable_if_t<support_matvecmul<CODE>::value>* = nullptr>
+  void operator()(MatVecMulArgs& args) const
   {
     using VAL = legate_type_of<CODE>;
     using ACC = typename support_matvecmul<CODE>::ACC_TYPE;
@@ -52,8 +52,8 @@ struct MatVecMulImpl {
 
     size_t mat_stride  = 0;
     bool transpose_mat = false;
-    const VAL *mat     = nullptr;
-    const VAL *vec     = nullptr;
+    const VAL* mat     = nullptr;
+    const VAL* vec     = nullptr;
 
     size_t mat_strides[2];
     size_t vec_strides[2];
@@ -79,19 +79,19 @@ struct MatVecMulImpl {
     MatVecMulImplBody<KIND, CODE>()(m, n, lhs, mat, vec, mat_stride, transpose_mat);
   }
 
-  template <LegateTypeCode CODE, std::enable_if_t<!support_matvecmul<CODE>::value> * = nullptr>
-  void operator()(MatVecMulArgs &args) const
+  template <LegateTypeCode CODE, std::enable_if_t<!support_matvecmul<CODE>::value>* = nullptr>
+  void operator()(MatVecMulArgs& args) const
   {
     assert(false);
   }
 };
 
 template <VariantKind KIND>
-static void matvecmul_template(TaskContext &context)
+static void matvecmul_template(TaskContext& context)
 {
-  auto &reductions = context.reductions();
-  auto &inputs     = context.inputs();
-  auto &scalars    = context.scalars();
+  auto& reductions = context.reductions();
+  auto& inputs     = context.inputs();
+  auto& scalars    = context.scalars();
 
   MatVecMulArgs args{scalars[0].value<bool>(), reductions[0], inputs[0], inputs[1]};
   // Note that we can't dispatch on the lhs's type,

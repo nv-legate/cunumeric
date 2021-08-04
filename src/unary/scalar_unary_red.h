@@ -24,7 +24,7 @@ namespace legate {
 namespace numpy {
 
 struct ScalarUnaryRedArgs {
-  const Array &in;
+  const Array& in;
   UnaryRedCode op_code;
   std::vector<UntypedScalar> args;
 };
@@ -35,12 +35,12 @@ class ScalarUnaryRedTask : public NumPyTask<ScalarUnaryRedTask> {
   static const int TASK_ID = NUMPY_SCALAR_UNARY_RED;
 
  public:
-  static UntypedScalar cpu_variant(TaskContext &context);
+  static UntypedScalar cpu_variant(TaskContext& context);
 #ifdef LEGATE_USE_OPENMP
-  static UntypedScalar omp_variant(TaskContext &context);
+  static UntypedScalar omp_variant(TaskContext& context);
 #endif
 #ifdef LEGATE_USE_CUDA
-  static UntypedScalar gpu_variant(TaskContext &context);
+  static UntypedScalar gpu_variant(TaskContext& context);
 #endif
 };
 

@@ -29,8 +29,8 @@ template <VariantKind KIND, BinaryOpCode OP_CODE>
 struct BinaryOpImpl {
   template <LegateTypeCode CODE,
             int DIM,
-            std::enable_if_t<BinaryOp<OP_CODE, CODE>::valid> * = nullptr>
-  void operator()(BinaryOpArgs &args) const
+            std::enable_if_t<BinaryOp<OP_CODE, CODE>::valid>* = nullptr>
+  void operator()(BinaryOpArgs& args) const
   {
     using OP  = BinaryOp<OP_CODE, CODE>;
     using ARG = legate_type_of<CODE>;
@@ -62,8 +62,8 @@ struct BinaryOpImpl {
 
   template <LegateTypeCode CODE,
             int DIM,
-            std::enable_if_t<!BinaryOp<OP_CODE, CODE>::valid> * = nullptr>
-  void operator()(BinaryOpArgs &args) const
+            std::enable_if_t<!BinaryOp<OP_CODE, CODE>::valid>* = nullptr>
+  void operator()(BinaryOpArgs& args) const
   {
     assert(false);
   }
@@ -72,7 +72,7 @@ struct BinaryOpImpl {
 template <VariantKind KIND>
 struct BinaryOpDispatch {
   template <BinaryOpCode OP_CODE>
-  void operator()(BinaryOpArgs &args) const
+  void operator()(BinaryOpArgs& args) const
   {
     auto dim = std::max(args.in1.dim(), args.in2.dim());
     double_dispatch(dim, args.in1.code(), BinaryOpImpl<KIND, OP_CODE>{}, args);
@@ -80,11 +80,11 @@ struct BinaryOpDispatch {
 };
 
 template <VariantKind KIND>
-static void binary_op_template(TaskContext &context)
+static void binary_op_template(TaskContext& context)
 {
-  auto &inputs  = context.inputs();
-  auto &outputs = context.outputs();
-  auto &scalars = context.scalars();
+  auto& inputs  = context.inputs();
+  auto& outputs = context.outputs();
+  auto& scalars = context.scalars();
 
   std::vector<UntypedScalar> extra_args;
   for (size_t idx = 2; idx < inputs.size(); ++idx)
