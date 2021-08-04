@@ -747,7 +747,9 @@ bool NumPyMapper::map_numpy_array(const MapperContext ctx,
                          footprint,
                          target_memory.id);
         // Remove the GC priority on the old instance back to 0
-        runtime->set_garbage_collection_priority(ctx, info.instance, 0);
+        auto& instance = info.instance;
+        if (!instance.is_external_instance())
+          runtime->set_garbage_collection_priority(ctx, instance, 0);
         // Update everything in place
         info.instance                = result;
         info.bounding_box            = upper_bound;
@@ -791,7 +793,9 @@ bool NumPyMapper::map_numpy_array(const MapperContext ctx,
            it != overlaps.crend();
            it++) {
         // Remove the GC priority on the old instance
-        runtime->set_garbage_collection_priority(ctx, infos.instances[*it].instance, 0);
+        auto& instance = infos.instances[*it].instance;
+        if (!instance.is_external_instance())
+          runtime->set_garbage_collection_priority(ctx, instance, 0);
         infos.erase(*it);
       }
       // Add the new entry
