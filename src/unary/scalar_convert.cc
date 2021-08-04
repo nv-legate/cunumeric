@@ -24,8 +24,8 @@ using namespace Legion;
 
 template <LegateTypeCode SRC_TYPE>
 struct ConvertImpl {
-  template <LegateTypeCode DST_TYPE, std::enable_if_t<SRC_TYPE != DST_TYPE> * = nullptr>
-  UntypedScalar operator()(const UntypedScalar &in_scalar) const
+  template <LegateTypeCode DST_TYPE, std::enable_if_t<SRC_TYPE != DST_TYPE>* = nullptr>
+  UntypedScalar operator()(const UntypedScalar& in_scalar) const
   {
     using OP  = ConvertOp<DST_TYPE, SRC_TYPE>;
     using SRC = legate_type_of<SRC_TYPE>;
@@ -36,8 +36,8 @@ struct ConvertImpl {
     return UntypedScalar(func(in));
   }
 
-  template <LegateTypeCode DST_TYPE, std::enable_if_t<SRC_TYPE == DST_TYPE> * = nullptr>
-  UntypedScalar operator()(const UntypedScalar &in_scalar) const
+  template <LegateTypeCode DST_TYPE, std::enable_if_t<SRC_TYPE == DST_TYPE>* = nullptr>
+  UntypedScalar operator()(const UntypedScalar& in_scalar) const
   {
     assert(false);
     return UntypedScalar();
@@ -46,15 +46,15 @@ struct ConvertImpl {
 
 struct SourceTypeDispatch {
   template <LegateTypeCode SRC_TYPE>
-  UntypedScalar operator()(LegateTypeCode dtype, const UntypedScalar &in) const
+  UntypedScalar operator()(LegateTypeCode dtype, const UntypedScalar& in) const
   {
     return type_dispatch(dtype, ConvertImpl<SRC_TYPE>{}, in);
   }
 };
 
-/*static*/ UntypedScalar ScalarConvertTask::cpu_variant(TaskContext &context)
+/*static*/ UntypedScalar ScalarConvertTask::cpu_variant(TaskContext& context)
 {
-  auto &in   = context.inputs()[0];
+  auto& in   = context.inputs()[0];
   auto dtype = context.scalars()[0].value<LegateTypeCode>();
 
   return type_dispatch(in.code(), SourceTypeDispatch{}, dtype, in.scalar<UntypedScalar>());

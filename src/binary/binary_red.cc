@@ -30,8 +30,8 @@ struct BinaryRedImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
   UntypedScalar operator()(OP func,
                            AccessorRO<ARG, DIM> in1,
                            AccessorRO<ARG, DIM> in2,
-                           const Pitches<DIM - 1> &pitches,
-                           const Rect<DIM> &rect,
+                           const Pitches<DIM - 1>& pitches,
+                           const Rect<DIM>& rect,
                            bool dense) const
   {
     size_t volume = rect.volume();
@@ -51,7 +51,7 @@ struct BinaryRedImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
   }
 };
 
-/*static*/ UntypedScalar BinaryRedTask::cpu_variant(TaskContext &context)
+/*static*/ UntypedScalar BinaryRedTask::cpu_variant(TaskContext& context)
 {
   return binary_red_template<VariantKind::CPU>(context);
 }

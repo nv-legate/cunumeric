@@ -24,8 +24,8 @@ struct BincountImplBody;
 
 template <VariantKind KIND>
 struct BincountImpl {
-  template <LegateTypeCode CODE, std::enable_if_t<is_integral<CODE>::value> * = nullptr>
-  void operator()(BincountArgs &args) const
+  template <LegateTypeCode CODE, std::enable_if_t<is_integral<CODE>::value>* = nullptr>
+  void operator()(BincountArgs& args) const
   {
     using VAL = legate_type_of<CODE>;
 
@@ -46,18 +46,18 @@ struct BincountImpl {
     }
   }
 
-  template <LegateTypeCode CODE, std::enable_if_t<!is_integral<CODE>::value> * = nullptr>
-  void operator()(BincountArgs &args) const
+  template <LegateTypeCode CODE, std::enable_if_t<!is_integral<CODE>::value>* = nullptr>
+  void operator()(BincountArgs& args) const
   {
     assert(false);
   }
 };
 
 template <VariantKind KIND>
-static void bincount_template(TaskContext &context)
+static void bincount_template(TaskContext& context)
 {
-  auto &inputs     = context.inputs();
-  auto &reductions = context.reductions();
+  auto& inputs     = context.inputs();
+  auto& reductions = context.reductions();
   BincountArgs args{reductions[0], inputs[0], inputs[1]};
   type_dispatch(args.rhs.code(), BincountImpl<KIND>{}, args);
 }

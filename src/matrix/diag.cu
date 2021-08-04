@@ -54,18 +54,18 @@ template <LegateTypeCode CODE>
 struct DiagImplBody<VariantKind::GPU, CODE> {
   using VAL = legate_type_of<CODE>;
 
-  void operator()(const AccessorWO<VAL, 2> &out,
-                  const AccessorRO<VAL, 2> &in,
-                  const Point<2> &start,
+  void operator()(const AccessorWO<VAL, 2>& out,
+                  const AccessorRO<VAL, 2>& in,
+                  const Point<2>& start,
                   size_t distance) const
   {
     const size_t blocks = (distance + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
     diag_populate<VAL><<<blocks, THREADS_PER_BLOCK>>>(out, in, distance, start);
   }
 
-  void operator()(const AccessorRD<SumReduction<VAL>, true, 2> &out,
-                  const AccessorRO<VAL, 2> &in,
-                  const Point<2> &start,
+  void operator()(const AccessorRD<SumReduction<VAL>, true, 2>& out,
+                  const AccessorRO<VAL, 2>& in,
+                  const Point<2>& start,
                   size_t distance) const
   {
     const size_t blocks = (distance + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
@@ -73,7 +73,7 @@ struct DiagImplBody<VariantKind::GPU, CODE> {
   }
 };
 
-/*static*/ void DiagTask::gpu_variant(TaskContext &context)
+/*static*/ void DiagTask::gpu_variant(TaskContext& context)
 {
   diag_template<VariantKind::GPU>(context);
 }

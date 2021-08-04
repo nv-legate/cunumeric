@@ -25,10 +25,10 @@ using namespace Legion;
 template <typename RNG, typename VAL, int32_t DIM>
 struct RandImplBody<VariantKind::CPU, RNG, VAL, DIM> {
   void operator()(AccessorWO<VAL, DIM> out,
-                  const RNG &rng,
-                  const Point<DIM> &strides,
-                  const Pitches<DIM - 1> &pitches,
-                  const Rect<DIM> &rect) const
+                  const RNG& rng,
+                  const Point<DIM>& strides,
+                  const Pitches<DIM - 1>& pitches,
+                  const Rect<DIM>& rect) const
   {
     size_t volume = rect.volume();
     for (size_t idx = 0; idx < volume; ++idx) {
@@ -40,7 +40,7 @@ struct RandImplBody<VariantKind::CPU, RNG, VAL, DIM> {
   }
 };
 
-/*static*/ void RandTask::cpu_variant(TaskContext &context)
+/*static*/ void RandTask::cpu_variant(TaskContext& context)
 {
   rand_template<VariantKind::CPU>(context);
 }

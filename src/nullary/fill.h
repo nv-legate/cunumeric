@@ -23,8 +23,8 @@ namespace legate {
 namespace numpy {
 
 struct FillArgs {
-  const Array &out;
-  const Array &fill_value;
+  const Array& out;
+  const Array& fill_value;
 };
 
 class FillTask : public NumPyTask<FillTask> {
@@ -32,12 +32,12 @@ class FillTask : public NumPyTask<FillTask> {
   static const int TASK_ID = NUMPY_FILL;
 
  public:
-  static void cpu_variant(TaskContext &context);
+  static void cpu_variant(TaskContext& context);
 #ifdef LEGATE_USE_OPENMP
-  static void omp_variant(TaskContext &context);
+  static void omp_variant(TaskContext& context);
 #endif
 #ifdef LEGATE_USE_CUDA
-  static void gpu_variant(TaskContext &context);
+  static void gpu_variant(TaskContext& context);
 #endif
 };
 

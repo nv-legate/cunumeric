@@ -66,7 +66,7 @@ DECLARE_IDENTITIES(complex<float>)
     _REGISTER_REDOP(context.get_reduction_op_id(OP<complex<float>>::REDOP_ID), OP<complex<float>>) \
   }
 
-void register_cpu_reduction_operators(LibraryContext &context)
+void register_cpu_reduction_operators(LibraryContext& context)
 {
   REGISTER_REDOPS(ArgmaxReduction);
   REGISTER_REDOPS(ArgminReduction);

@@ -26,10 +26,10 @@ template <LegateTypeCode CODE>
 struct DotImplBody<VariantKind::CPU, CODE> {
   using VAL = legate_type_of<CODE>;
 
-  void operator()(VAL &result,
-                  const AccessorRO<VAL, 1> &rhs1,
-                  const AccessorRO<VAL, 1> &rhs2,
-                  const Rect<1> &rect,
+  void operator()(VAL& result,
+                  const AccessorRO<VAL, 1>& rhs1,
+                  const AccessorRO<VAL, 1>& rhs2,
+                  const Rect<1>& rect,
                   bool dense)
   {
     const auto volume = rect.volume();
@@ -49,7 +49,7 @@ struct DotImplBody<VariantKind::CPU, CODE> {
   }
 };
 
-/*static*/ UntypedScalar DotTask::cpu_variant(TaskContext &context)
+/*static*/ UntypedScalar DotTask::cpu_variant(TaskContext& context)
 {
   return dot_template<VariantKind::CPU>(context);
 }

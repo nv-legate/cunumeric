@@ -23,10 +23,10 @@ namespace legate {
 namespace numpy {
 
 struct ArangeArgs {
-  const Array &out;
-  const Array &start;
-  const Array &stop;
-  const Array &step;
+  const Array& out;
+  const Array& start;
+  const Array& stop;
+  const Array& step;
 };
 
 class ArangeTask : public NumPyTask<ArangeTask> {
@@ -34,12 +34,12 @@ class ArangeTask : public NumPyTask<ArangeTask> {
   static const int TASK_ID = NUMPY_ARANGE;
 
  public:
-  static void cpu_variant(TaskContext &context);
+  static void cpu_variant(TaskContext& context);
 #ifdef LEGATE_USE_OPENMP
-  static void omp_variant(TaskContext &context);
+  static void omp_variant(TaskContext& context);
 #endif
 #ifdef LEGATE_USE_CUDA
-  static void gpu_variant(TaskContext &context);
+  static void gpu_variant(TaskContext& context);
 #endif
 };
 

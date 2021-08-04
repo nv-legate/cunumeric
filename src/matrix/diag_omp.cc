@@ -26,9 +26,9 @@ template <LegateTypeCode CODE>
 struct DiagImplBody<VariantKind::OMP, CODE> {
   using VAL = legate_type_of<CODE>;
 
-  void operator()(const AccessorWO<VAL, 2> &out,
-                  const AccessorRO<VAL, 2> &in,
-                  const Point<2> &start,
+  void operator()(const AccessorWO<VAL, 2>& out,
+                  const AccessorRO<VAL, 2>& in,
+                  const Point<2>& start,
                   size_t distance) const
   {
 #pragma omp parallel for schedule(static)
@@ -38,9 +38,9 @@ struct DiagImplBody<VariantKind::OMP, CODE> {
     }
   }
 
-  void operator()(const AccessorRD<SumReduction<VAL>, true, 2> &out,
-                  const AccessorRO<VAL, 2> &in,
-                  const Point<2> &start,
+  void operator()(const AccessorRD<SumReduction<VAL>, true, 2>& out,
+                  const AccessorRO<VAL, 2>& in,
+                  const Point<2>& start,
                   size_t distance) const
   {
 #pragma omp parallel for schedule(static)
@@ -52,7 +52,7 @@ struct DiagImplBody<VariantKind::OMP, CODE> {
   }
 };
 
-/*static*/ void DiagTask::omp_variant(TaskContext &context)
+/*static*/ void DiagTask::omp_variant(TaskContext& context)
 {
   diag_template<VariantKind::OMP>(context);
 }

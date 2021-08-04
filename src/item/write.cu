@@ -31,13 +31,13 @@ static __global__ void __launch_bounds__(1, 1)
 
 template <typename VAL>
 struct WriteImplBody<VariantKind::GPU, VAL> {
-  void operator()(const AccessorWO<VAL, 1> &out, const AccessorRO<VAL, 1> &value) const
+  void operator()(const AccessorWO<VAL, 1>& out, const AccessorRO<VAL, 1>& value) const
   {
     write_value<VAL><<<1, 1>>>(out, value);
   }
 };
 
-/*static*/ void WriteTask::gpu_variant(TaskContext &context)
+/*static*/ void WriteTask::gpu_variant(TaskContext& context)
 {
   write_template<VariantKind::GPU>(context);
 }

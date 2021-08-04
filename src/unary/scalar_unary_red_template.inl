@@ -29,8 +29,8 @@ template <VariantKind KIND, UnaryRedCode OP_CODE>
 struct ScalarUnaryRedImpl {
   template <LegateTypeCode CODE,
             int DIM,
-            std::enable_if_t<UnaryRedOp<OP_CODE, CODE>::valid> * = nullptr>
-  UntypedScalar operator()(ScalarUnaryRedArgs &args) const
+            std::enable_if_t<UnaryRedOp<OP_CODE, CODE>::valid>* = nullptr>
+  UntypedScalar operator()(ScalarUnaryRedArgs& args) const
   {
     using OP    = UnaryRedOp<OP_CODE, CODE>;
     using LG_OP = typename OP::OP;
@@ -62,8 +62,8 @@ struct ScalarUnaryRedImpl {
 
   template <LegateTypeCode CODE,
             int DIM,
-            std::enable_if_t<!UnaryRedOp<OP_CODE, CODE>::valid> * = nullptr>
-  UntypedScalar operator()(ScalarUnaryRedArgs &args) const
+            std::enable_if_t<!UnaryRedOp<OP_CODE, CODE>::valid>* = nullptr>
+  UntypedScalar operator()(ScalarUnaryRedArgs& args) const
   {
     assert(false);
     return UntypedScalar();
@@ -73,7 +73,7 @@ struct ScalarUnaryRedImpl {
 template <VariantKind KIND>
 struct ScalarUnaryRedImpl<KIND, UnaryRedCode::CONTAINS> {
   template <LegateTypeCode CODE, int DIM>
-  UntypedScalar operator()(ScalarUnaryRedArgs &args) const
+  UntypedScalar operator()(ScalarUnaryRedArgs& args) const
   {
     using VAL = legate_type_of<CODE>;
 
@@ -106,7 +106,7 @@ struct ScalarUnaryRedImpl<KIND, UnaryRedCode::CONTAINS> {
 template <VariantKind KIND>
 struct ScalarUnaryRedImpl<KIND, UnaryRedCode::COUNT_NONZERO> {
   template <LegateTypeCode CODE, int DIM>
-  UntypedScalar operator()(ScalarUnaryRedArgs &args) const
+  UntypedScalar operator()(ScalarUnaryRedArgs& args) const
   {
     using VAL = legate_type_of<CODE>;
 
@@ -138,14 +138,14 @@ struct ScalarUnaryRedImpl<KIND, UnaryRedCode::COUNT_NONZERO> {
 
 template <VariantKind KIND>
 struct ScalarUnaryRedDispatch {
-  template <UnaryRedCode OP_CODE, std::enable_if_t<!is_arg_reduce<OP_CODE>::value> * = nullptr>
-  UntypedScalar operator()(ScalarUnaryRedArgs &args) const
+  template <UnaryRedCode OP_CODE, std::enable_if_t<!is_arg_reduce<OP_CODE>::value>* = nullptr>
+  UntypedScalar operator()(ScalarUnaryRedArgs& args) const
   {
     return double_dispatch(
       args.in.dim(), args.in.code(), ScalarUnaryRedImpl<KIND, OP_CODE>{}, args);
   }
-  template <UnaryRedCode OP_CODE, std::enable_if_t<is_arg_reduce<OP_CODE>::value> * = nullptr>
-  UntypedScalar operator()(ScalarUnaryRedArgs &args) const
+  template <UnaryRedCode OP_CODE, std::enable_if_t<is_arg_reduce<OP_CODE>::value>* = nullptr>
+  UntypedScalar operator()(ScalarUnaryRedArgs& args) const
   {
     assert(false);
     return UntypedScalar();
@@ -153,10 +153,10 @@ struct ScalarUnaryRedDispatch {
 };
 
 template <VariantKind KIND>
-static UntypedScalar scalar_unary_red_template(TaskContext &context)
+static UntypedScalar scalar_unary_red_template(TaskContext& context)
 {
-  auto &inputs  = context.inputs();
-  auto &scalars = context.scalars();
+  auto& inputs  = context.inputs();
+  auto& scalars = context.scalars();
 
   std::vector<UntypedScalar> extra_args;
   for (size_t idx = 1; idx < inputs.size(); ++idx)

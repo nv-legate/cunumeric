@@ -31,9 +31,9 @@ template <>
 struct MatVecMulImplBody<VariantKind::OMP, LegateTypeCode::FLOAT_LT> {
   void operator()(size_t m,
                   size_t n,
-                  float *lhs,
-                  const float *mat,
-                  const float *vec,
+                  float* lhs,
+                  const float* mat,
+                  const float* vec,
                   size_t mat_stride,
                   bool transpose_mat)
   {
@@ -46,9 +46,9 @@ template <>
 struct MatVecMulImplBody<VariantKind::OMP, LegateTypeCode::DOUBLE_LT> {
   void operator()(size_t m,
                   size_t n,
-                  double *lhs,
-                  const double *mat,
-                  const double *vec,
+                  double* lhs,
+                  const double* mat,
+                  const double* vec,
                   size_t mat_stride,
                   bool transpose_mat)
   {
@@ -61,9 +61,9 @@ template <>
 struct MatVecMulImplBody<VariantKind::OMP, LegateTypeCode::HALF_LT> {
   void operator()(size_t m,
                   size_t n,
-                  float *lhs,
-                  const __half *mat,
-                  const __half *vec,
+                  float* lhs,
+                  const __half* mat,
+                  const __half* vec,
                   size_t mat_stride,
                   bool transpose_mat)
   {
@@ -80,7 +80,7 @@ struct MatVecMulImplBody<VariantKind::OMP, LegateTypeCode::HALF_LT> {
   }
 };
 
-/*static*/ void MatVecMulTask::omp_variant(TaskContext &context)
+/*static*/ void MatVecMulTask::omp_variant(TaskContext& context)
 {
   openblas_set_num_threads(omp_get_max_threads());
   matvecmul_template<VariantKind::OMP>(context);

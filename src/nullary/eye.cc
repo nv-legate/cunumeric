@@ -24,15 +24,15 @@ using namespace Legion;
 
 template <typename VAL>
 struct EyeImplBody<VariantKind::CPU, VAL> {
-  void operator()(const AccessorWO<VAL, 2> &out,
-                  const Point<2> &start,
+  void operator()(const AccessorWO<VAL, 2>& out,
+                  const Point<2>& start,
                   const coord_t distance) const
   {
     for (coord_t idx = 0; idx < distance; idx++) out[start[0] + idx][start[1] + idx] = VAL{1};
   }
 };
 
-/*static*/ void EyeTask::cpu_variant(TaskContext &context)
+/*static*/ void EyeTask::cpu_variant(TaskContext& context)
 {
   eye_template<VariantKind::CPU>(context);
 }

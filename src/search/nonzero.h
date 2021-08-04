@@ -22,8 +22,8 @@ namespace legate {
 namespace numpy {
 
 struct NonzeroArgs {
-  const Array &input;
-  std::vector<Array> &results;
+  const Array& input;
+  std::vector<Array>& results;
 };
 
 class NonzeroTask : public NumPyTask<NonzeroTask> {
@@ -31,12 +31,12 @@ class NonzeroTask : public NumPyTask<NonzeroTask> {
   static const int TASK_ID = NUMPY_NONZERO;
 
  public:
-  static void cpu_variant(TaskContext &context);
+  static void cpu_variant(TaskContext& context);
 #ifdef LEGATE_USE_OPENMP
-  static void omp_variant(TaskContext &context);
+  static void omp_variant(TaskContext& context);
 #endif
 #ifdef LEGATE_USE_CUDA
-  static void gpu_variant(TaskContext &context);
+  static void gpu_variant(TaskContext& context);
 #endif
 };
 

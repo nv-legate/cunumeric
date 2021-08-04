@@ -31,8 +31,8 @@ struct ConvertImplBody<VariantKind::CPU, DST_TYPE, SRC_TYPE, DIM> {
   void operator()(OP func,
                   AccessorWO<DST, DIM> out,
                   AccessorRO<SRC, DIM> in,
-                  const Pitches<DIM - 1> &pitches,
-                  const Rect<DIM> &rect,
+                  const Pitches<DIM - 1>& pitches,
+                  const Rect<DIM>& rect,
                   bool dense) const
   {
     const size_t volume = rect.volume();
@@ -46,7 +46,7 @@ struct ConvertImplBody<VariantKind::CPU, DST_TYPE, SRC_TYPE, DIM> {
   }
 };
 
-/*static*/ void ConvertTask::cpu_variant(TaskContext &context)
+/*static*/ void ConvertTask::cpu_variant(TaskContext& context)
 {
   convert_template<VariantKind::CPU>(context);
 }

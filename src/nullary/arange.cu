@@ -34,8 +34,8 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM) ara
 
 template <typename VAL>
 struct ArangeImplBody<VariantKind::GPU, VAL> {
-  void operator()(const AccessorWO<VAL, 1> &out,
-                  const Rect<1> &rect,
+  void operator()(const AccessorWO<VAL, 1>& out,
+                  const Rect<1>& rect,
                   const VAL start,
                   const VAL step) const
   {
@@ -45,7 +45,7 @@ struct ArangeImplBody<VariantKind::GPU, VAL> {
   }
 };
 
-/*static*/ void ArangeTask::gpu_variant(TaskContext &context)
+/*static*/ void ArangeTask::gpu_variant(TaskContext& context)
 {
   arange_template<VariantKind::GPU>(context);
 }

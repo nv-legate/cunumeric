@@ -37,10 +37,10 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM) ran
 template <typename RNG, typename VAL, int32_t DIM>
 struct RandImplBody<VariantKind::GPU, RNG, VAL, DIM> {
   void operator()(AccessorWO<VAL, DIM> out,
-                  const RNG &rng,
-                  const Point<DIM> &strides,
-                  const Pitches<DIM - 1> &pitches,
-                  const Rect<DIM> &rect) const
+                  const RNG& rng,
+                  const Point<DIM>& strides,
+                  const Pitches<DIM - 1>& pitches,
+                  const Rect<DIM>& rect) const
   {
     size_t volume       = rect.volume();
     const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
@@ -48,7 +48,7 @@ struct RandImplBody<VariantKind::GPU, RNG, VAL, DIM> {
   }
 };
 
-/*static*/ void RandTask::gpu_variant(TaskContext &context)
+/*static*/ void RandTask::gpu_variant(TaskContext& context)
 {
   rand_template<VariantKind::GPU>(context);
 }

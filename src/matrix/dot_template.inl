@@ -25,7 +25,7 @@ struct DotImplBody;
 template <VariantKind KIND>
 struct DotImpl {
   template <LegateTypeCode CODE>
-  UntypedScalar operator()(DotArgs &args) const
+  UntypedScalar operator()(DotArgs& args) const
   {
     using VAL = legate_type_of<CODE>;
 
@@ -54,9 +54,9 @@ struct DotImpl {
 };
 
 template <VariantKind KIND>
-static UntypedScalar dot_template(TaskContext &context)
+static UntypedScalar dot_template(TaskContext& context)
 {
-  auto &inputs = context.inputs();
+  auto& inputs = context.inputs();
   DotArgs args{inputs[0], inputs[1]};
   return type_dispatch(args.rhs1.code(), DotImpl<KIND>{}, args);
 }

@@ -22,8 +22,8 @@ namespace legate {
 namespace numpy {
 
 struct TransposeArgs {
-  const Array &out;
-  const Array &in;
+  const Array& out;
+  const Array& in;
 };
 
 class TransposeTask : public NumPyTask<TransposeTask> {
@@ -31,12 +31,12 @@ class TransposeTask : public NumPyTask<TransposeTask> {
   static const int TASK_ID = NUMPY_TRANSPOSE;
 
  public:
-  static void cpu_variant(TaskContext &context);
+  static void cpu_variant(TaskContext& context);
 #ifdef LEGATE_USE_OPENMP
-  static void omp_variant(TaskContext &context);
+  static void omp_variant(TaskContext& context);
 #endif
 #ifdef LEGATE_USE_CUDA
-  static void gpu_variant(TaskContext &context);
+  static void gpu_variant(TaskContext& context);
 #endif
 };
 

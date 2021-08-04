@@ -27,7 +27,7 @@ struct NonzeroImplBody;
 template <VariantKind KIND>
 struct NonzeroImpl {
   template <LegateTypeCode CODE, int32_t DIM>
-  void operator()(NonzeroArgs &args) const
+  void operator()(NonzeroArgs& args) const
   {
     using VAL = legate_type_of<CODE>;
 
@@ -38,7 +38,7 @@ struct NonzeroImpl {
 
     if (volume == 0) {
       DeferredBuffer<int64_t, 1> empty{};
-      for (auto &store : args.results) store.return_data(empty, 0);
+      for (auto& store : args.results) store.return_data(empty, 0);
       return;
     }
 
@@ -51,7 +51,7 @@ struct NonzeroImpl {
 };
 
 template <VariantKind KIND>
-static void nonzero_template(TaskContext &context)
+static void nonzero_template(TaskContext& context)
 {
   NonzeroArgs args{context.inputs()[0], context.outputs()};
   double_dispatch(args.input.dim(), args.input.code(), NonzeroImpl<KIND>{}, args);

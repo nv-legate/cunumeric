@@ -27,7 +27,7 @@ struct WhereImplBody;
 template <VariantKind KIND>
 struct WhereImpl {
   template <LegateTypeCode CODE, int DIM>
-  void operator()(WhereArgs &args) const
+  void operator()(WhereArgs& args) const
   {
     using VAL = legate_type_of<CODE>;
 
@@ -57,9 +57,9 @@ struct WhereImpl {
 };
 
 template <VariantKind KIND>
-static void where_template(TaskContext &context)
+static void where_template(TaskContext& context)
 {
-  auto &inputs = context.inputs();
+  auto& inputs = context.inputs();
   WhereArgs args{context.outputs()[0], inputs[0], inputs[1], inputs[2]};
   double_dispatch(args.out.dim(), args.out.code(), WhereImpl<KIND>{}, args);
 }

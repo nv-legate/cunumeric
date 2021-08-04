@@ -23,9 +23,9 @@ namespace numpy {
 
 struct MatVecMulArgs {
   bool left_matrix;
-  const Array &lhs;
-  const Array &rhs1;
-  const Array &rhs2;
+  const Array& lhs;
+  const Array& rhs1;
+  const Array& rhs2;
 };
 
 class MatVecMulTask : public NumPyTask<MatVecMulTask> {
@@ -33,12 +33,12 @@ class MatVecMulTask : public NumPyTask<MatVecMulTask> {
   static const int TASK_ID = NUMPY_MATVECMUL;
 
  public:
-  static void cpu_variant(TaskContext &context);
+  static void cpu_variant(TaskContext& context);
 #ifdef LEGATE_USE_OPENMP
-  static void omp_variant(TaskContext &context);
+  static void omp_variant(TaskContext& context);
 #endif
 #ifdef LEGATE_USE_CUDA
-  static void gpu_variant(TaskContext &context);
+  static void gpu_variant(TaskContext& context);
 #endif
 };
 

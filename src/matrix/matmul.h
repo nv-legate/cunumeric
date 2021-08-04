@@ -22,9 +22,9 @@ namespace legate {
 namespace numpy {
 
 struct MatMulArgs {
-  const Array &lhs;
-  const Array &rhs1;
-  const Array &rhs2;
+  const Array& lhs;
+  const Array& rhs1;
+  const Array& rhs2;
 };
 
 class MatMulTask : public NumPyTask<MatMulTask> {
@@ -32,12 +32,12 @@ class MatMulTask : public NumPyTask<MatMulTask> {
   static const int TASK_ID = NUMPY_MATMUL;
 
  public:
-  static void cpu_variant(TaskContext &context);
+  static void cpu_variant(TaskContext& context);
 #ifdef LEGATE_USE_OPENMP
-  static void omp_variant(TaskContext &context);
+  static void omp_variant(TaskContext& context);
 #endif
 #ifdef LEGATE_USE_CUDA
-  static void gpu_variant(TaskContext &context);
+  static void gpu_variant(TaskContext& context);
 #endif
 };
 

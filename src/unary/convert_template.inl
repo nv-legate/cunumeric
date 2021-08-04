@@ -27,8 +27,8 @@ struct ConvertImplBody;
 
 template <VariantKind KIND, LegateTypeCode SRC_TYPE>
 struct ConvertImpl {
-  template <LegateTypeCode DST_TYPE, int DIM, std::enable_if_t<SRC_TYPE != DST_TYPE> * = nullptr>
-  void operator()(ConvertArgs &args) const
+  template <LegateTypeCode DST_TYPE, int DIM, std::enable_if_t<SRC_TYPE != DST_TYPE>* = nullptr>
+  void operator()(ConvertArgs& args) const
   {
     using OP  = ConvertOp<DST_TYPE, SRC_TYPE>;
     using SRC = legate_type_of<SRC_TYPE>;
@@ -56,8 +56,8 @@ struct ConvertImpl {
     ConvertImplBody<KIND, DST_TYPE, SRC_TYPE, DIM>()(func, out, in, pitches, rect, dense);
   }
 
-  template <LegateTypeCode DST_TYPE, int DIM, std::enable_if_t<SRC_TYPE == DST_TYPE> * = nullptr>
-  void operator()(ConvertArgs &args) const
+  template <LegateTypeCode DST_TYPE, int DIM, std::enable_if_t<SRC_TYPE == DST_TYPE>* = nullptr>
+  void operator()(ConvertArgs& args) const
   {
     assert(false);
   }
@@ -66,14 +66,14 @@ struct ConvertImpl {
 template <VariantKind KIND>
 struct SourceTypeDispatch {
   template <LegateTypeCode SRC_TYPE>
-  void operator()(ConvertArgs &args) const
+  void operator()(ConvertArgs& args) const
   {
     double_dispatch(args.out.dim(), args.out.code(), ConvertImpl<KIND, SRC_TYPE>{}, args);
   }
 };
 
 template <VariantKind KIND>
-static void convert_template(TaskContext &context)
+static void convert_template(TaskContext& context)
 {
   ConvertArgs args{context.outputs()[0], context.inputs()[0]};
   type_dispatch(args.in.code(), SourceTypeDispatch<KIND>{}, args);

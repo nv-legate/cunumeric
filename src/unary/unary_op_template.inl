@@ -28,8 +28,8 @@ template <VariantKind KIND, UnaryOpCode OP_CODE>
 struct UnaryOpImpl {
   template <LegateTypeCode CODE,
             int DIM,
-            std::enable_if_t<UnaryOp<OP_CODE, CODE>::valid> * = nullptr>
-  void operator()(UnaryOpArgs &args) const
+            std::enable_if_t<UnaryOp<OP_CODE, CODE>::valid>* = nullptr>
+  void operator()(UnaryOpArgs& args) const
   {
     using OP  = UnaryOp<OP_CODE, CODE>;
     using ARG = typename OP::T;
@@ -59,8 +59,8 @@ struct UnaryOpImpl {
 
   template <LegateTypeCode CODE,
             int DIM,
-            std::enable_if_t<!UnaryOp<OP_CODE, CODE>::valid> * = nullptr>
-  void operator()(UnaryOpArgs &args) const
+            std::enable_if_t<!UnaryOp<OP_CODE, CODE>::valid>* = nullptr>
+  void operator()(UnaryOpArgs& args) const
   {
     assert(false);
   }
@@ -69,18 +69,18 @@ struct UnaryOpImpl {
 template <VariantKind KIND>
 struct UnaryOpDispatch {
   template <UnaryOpCode OP_CODE>
-  void operator()(UnaryOpArgs &args) const
+  void operator()(UnaryOpArgs& args) const
   {
     double_dispatch(args.in.dim(), args.in.code(), UnaryOpImpl<KIND, OP_CODE>{}, args);
   }
 };
 
 template <VariantKind KIND>
-static void unary_op_template(TaskContext &context)
+static void unary_op_template(TaskContext& context)
 {
-  auto &inputs  = context.inputs();
-  auto &outputs = context.outputs();
-  auto &scalars = context.scalars();
+  auto& inputs  = context.inputs();
+  auto& outputs = context.outputs();
+  auto& scalars = context.scalars();
 
   std::vector<UntypedScalar> extra_args;
   for (size_t idx = 1; idx < inputs.size(); ++idx)

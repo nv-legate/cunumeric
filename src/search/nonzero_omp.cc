@@ -26,19 +26,19 @@ template <LegateTypeCode CODE, int32_t DIM>
 struct NonzeroImplBody<VariantKind::OMP, CODE, DIM> {
   using VAL = legate_type_of<CODE>;
 
-  size_t operator()(const AccessorRO<VAL, DIM> &in,
-                    const Pitches<DIM - 1> &pitches,
-                    const Rect<DIM> &rect,
+  size_t operator()(const AccessorRO<VAL, DIM>& in,
+                    const Pitches<DIM - 1>& pitches,
+                    const Rect<DIM>& rect,
                     const size_t volume,
-                    std::vector<DeferredBuffer<int64_t, 1>> &results)
+                    std::vector<DeferredBuffer<int64_t, 1>>& results)
   {
     const auto max_threads = omp_get_max_threads();
 
     int64_t size     = 0;
-    int64_t *offsets = static_cast<int64_t *>(alloca(max_threads * sizeof(int64_t)));
+    int64_t* offsets = static_cast<int64_t*>(alloca(max_threads * sizeof(int64_t)));
 
     {
-      int64_t *sizes = static_cast<int64_t *>(alloca(max_threads * sizeof(int64_t)));
+      int64_t* sizes = static_cast<int64_t*>(alloca(max_threads * sizeof(int64_t)));
       for (auto idx = 0; idx < max_threads; ++idx) sizes[idx] = 0;
 #pragma omp parallel
       {
@@ -56,7 +56,7 @@ struct NonzeroImplBody<VariantKind::OMP, CODE, DIM> {
       for (auto idx = 1; idx < max_threads; ++idx) offsets[idx] = offsets[idx - 1] + sizes[idx - 1];
     }
 
-    for (auto &result : results) {
+    for (auto& result : results) {
       auto hi = std::max<int64_t>(size - 1, 0);
       result  = DeferredBuffer<int64_t, 1>(Rect<1>(0, hi), Memory::Kind::SYSTEM_MEM);
     }
@@ -78,7 +78,7 @@ struct NonzeroImplBody<VariantKind::OMP, CODE, DIM> {
   }
 };
 
-/*static*/ void NonzeroTask::omp_variant(TaskContext &context)
+/*static*/ void NonzeroTask::omp_variant(TaskContext& context)
 {
   nonzero_template<VariantKind::OMP>(context);
 }

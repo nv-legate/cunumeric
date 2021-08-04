@@ -28,7 +28,7 @@ struct FillImplBody;
 template <VariantKind KIND>
 struct FillImpl {
   template <typename VAL, int DIM>
-  void fill(FillArgs &args) const
+  void fill(FillArgs& args) const
   {
     auto rect = args.out.shape<DIM>();
 
@@ -51,7 +51,7 @@ struct FillImpl {
   }
 
   template <LegateTypeCode CODE, int DIM>
-  void operator()(FillArgs &args) const
+  void operator()(FillArgs& args) const
   {
     auto fill_value = args.fill_value.scalar<UntypedScalar>();
     if (fill_value.is_argval()) {
@@ -65,7 +65,7 @@ struct FillImpl {
 };
 
 template <VariantKind KIND>
-static void fill_template(TaskContext &context)
+static void fill_template(TaskContext& context)
 {
   FillArgs args{context.outputs()[0], context.inputs()[0]};
   double_dispatch(args.out.dim(), args.out.code(), FillImpl<KIND>{}, args);

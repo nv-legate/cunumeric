@@ -23,8 +23,8 @@ namespace numpy {
 
 struct DiagArgs {
   bool extract;
-  const Array &matrix;
-  const Array &diag;
+  const Array& matrix;
+  const Array& diag;
 };
 
 class DiagTask : public NumPyTask<DiagTask> {
@@ -32,12 +32,12 @@ class DiagTask : public NumPyTask<DiagTask> {
   static const int TASK_ID = NUMPY_DIAG;
 
  public:
-  static void cpu_variant(TaskContext &context);
+  static void cpu_variant(TaskContext& context);
 #ifdef LEGATE_USE_OPENMP
-  static void omp_variant(TaskContext &context);
+  static void omp_variant(TaskContext& context);
 #endif
 #ifdef LEGATE_USE_CUDA
-  static void gpu_variant(TaskContext &context);
+  static void gpu_variant(TaskContext& context);
 #endif
 };
 

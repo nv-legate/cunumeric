@@ -24,15 +24,15 @@ using namespace Legion;
 
 template <typename T>
 struct Identity {
-  constexpr T operator()(const T &in) const { return in; }
+  constexpr T operator()(const T& in) const { return in; }
 };
 
 template <typename VAL, int32_t DIM>
 struct FillImplBody<VariantKind::OMP, VAL, DIM> {
   void operator()(AccessorWO<VAL, DIM> out,
-                  const VAL &fill_value,
-                  const Pitches<DIM - 1> &pitches,
-                  const Rect<DIM> &rect,
+                  const VAL& fill_value,
+                  const Pitches<DIM - 1>& pitches,
+                  const Rect<DIM>& rect,
                   bool dense) const
   {
     size_t volume = rect.volume();
@@ -50,7 +50,7 @@ struct FillImplBody<VariantKind::OMP, VAL, DIM> {
   }
 };
 
-/*static*/ void FillTask::omp_variant(TaskContext &context)
+/*static*/ void FillTask::omp_variant(TaskContext& context)
 {
   fill_template<VariantKind::OMP>(context);
 }

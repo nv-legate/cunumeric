@@ -56,7 +56,7 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
                  Pitches pitches,
                  Point origin,
                  DeferredBuffer<int64_t, 1> offsets,
-                 DeferredBuffer<int64_t *, 1> p_results)
+                 DeferredBuffer<int64_t*, 1> p_results)
 {
   const size_t tid = blockIdx.x * blockDim.x + threadIdx.x;
   if (tid >= volume) return;
@@ -68,7 +68,7 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   }
 }
 
-static void exclusive_sum(int64_t *offsets, size_t volume, cudaStream_t stream)
+static void exclusive_sum(int64_t* offsets, size_t volume, cudaStream_t stream)
 {
   thrust::exclusive_scan(thrust::cuda::par.on(stream), offsets, offsets + volume, offsets);
 }
@@ -77,11 +77,11 @@ template <LegateTypeCode CODE, int32_t DIM>
 struct NonzeroImplBody<VariantKind::GPU, CODE, DIM> {
   using VAL = legate_type_of<CODE>;
 
-  size_t compute_offsets(const AccessorRO<VAL, DIM> &in,
-                         const Pitches<DIM - 1> &pitches,
-                         const Rect<DIM> &rect,
+  size_t compute_offsets(const AccessorRO<VAL, DIM>& in,
+                         const Pitches<DIM - 1>& pitches,
+                         const Rect<DIM>& rect,
                          const size_t volume,
-                         DeferredBuffer<int64_t, 1> &offsets,
+                         DeferredBuffer<int64_t, 1>& offsets,
                          cudaStream_t stream)
   {
     DeferredReduction<SumReduction<int64_t>> size;
@@ -106,16 +106,16 @@ struct NonzeroImplBody<VariantKind::GPU, CODE, DIM> {
     return size.read();
   }
 
-  void populate_nonzeros(const AccessorRO<VAL, DIM> &in,
-                         const Pitches<DIM - 1> &pitches,
-                         const Rect<DIM> &rect,
+  void populate_nonzeros(const AccessorRO<VAL, DIM>& in,
+                         const Pitches<DIM - 1>& pitches,
+                         const Rect<DIM>& rect,
                          const size_t volume,
-                         std::vector<DeferredBuffer<int64_t, 1>> &results,
-                         DeferredBuffer<int64_t, 1> &offsets,
+                         std::vector<DeferredBuffer<int64_t, 1>>& results,
+                         DeferredBuffer<int64_t, 1>& offsets,
                          cudaStream_t stream)
   {
     auto ndims = static_cast<int32_t>(results.size());
-    DeferredBuffer<int64_t *, 1> p_results(Rect<1>(0, ndims - 1), Memory::Kind::Z_COPY_MEM);
+    DeferredBuffer<int64_t*, 1> p_results(Rect<1>(0, ndims - 1), Memory::Kind::Z_COPY_MEM);
     for (int32_t dim = 0; dim < ndims; ++dim) p_results[dim] = results[dim].ptr(0);
 
     const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
@@ -123,11 +123,11 @@ struct NonzeroImplBody<VariantKind::GPU, CODE, DIM> {
       volume, in, pitches, rect.lo, offsets, p_results);
   }
 
-  size_t operator()(const AccessorRO<VAL, DIM> &in,
-                    const Pitches<DIM - 1> &pitches,
-                    const Rect<DIM> &rect,
+  size_t operator()(const AccessorRO<VAL, DIM>& in,
+                    const Pitches<DIM - 1>& pitches,
+                    const Rect<DIM>& rect,
                     const size_t volume,
-                    std::vector<DeferredBuffer<int64_t, 1>> &results)
+                    std::vector<DeferredBuffer<int64_t, 1>>& results)
   {
     cudaStream_t stream;
     cudaStreamCreate(&stream);
@@ -136,7 +136,7 @@ struct NonzeroImplBody<VariantKind::GPU, CODE, DIM> {
 
     int64_t size = compute_offsets(in, pitches, rect, volume, offsets, stream);
 
-    for (auto &result : results) {
+    for (auto& result : results) {
       auto hi = std::max<int64_t>(size - 1, 0);
       result  = DeferredBuffer<int64_t, 1>(Rect<1>(0, hi), Memory::Kind::GPU_FB_MEM);
     }
@@ -155,7 +155,7 @@ struct NonzeroImplBody<VariantKind::GPU, CODE, DIM> {
   }
 };
 
-/*static*/ void NonzeroTask::gpu_variant(TaskContext &context)
+/*static*/ void NonzeroTask::gpu_variant(TaskContext& context)
 {
   nonzero_template<VariantKind::GPU>(context);
 }

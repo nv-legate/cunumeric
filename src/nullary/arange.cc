@@ -24,8 +24,8 @@ using namespace Legion;
 
 template <typename VAL>
 struct ArangeImplBody<VariantKind::CPU, VAL> {
-  void operator()(const AccessorWO<VAL, 1> &out,
-                  const Rect<1> &rect,
+  void operator()(const AccessorWO<VAL, 1>& out,
+                  const Rect<1>& rect,
                   const VAL start,
                   const VAL step) const
   {
@@ -34,7 +34,7 @@ struct ArangeImplBody<VariantKind::CPU, VAL> {
   }
 };
 
-/*static*/ void ArangeTask::cpu_variant(TaskContext &context)
+/*static*/ void ArangeTask::cpu_variant(TaskContext& context)
 {
   arange_template<VariantKind::CPU>(context);
 }

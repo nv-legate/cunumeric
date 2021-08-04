@@ -25,7 +25,7 @@ struct DiagImplBody;
 template <VariantKind KIND>
 struct DiagImpl {
   template <LegateTypeCode CODE>
-  void operator()(DiagArgs &args) const
+  void operator()(DiagArgs& args) const
   {
     using VAL = legate_type_of<CODE>;
 
@@ -67,11 +67,11 @@ struct DiagImpl {
 };
 
 template <VariantKind KIND>
-static void diag_template(TaskContext &context)
+static void diag_template(TaskContext& context)
 {
   auto extract = context.scalars()[0].value<bool>();
-  auto &matrix = extract ? context.inputs()[0] : context.outputs()[0];
-  auto &diag   = extract ? context.reductions()[0] : context.inputs()[1];
+  auto& matrix = extract ? context.inputs()[0] : context.outputs()[0];
+  auto& diag   = extract ? context.reductions()[0] : context.inputs()[1];
   DiagArgs args{extract, matrix, diag};
   type_dispatch(args.matrix.code(), DiagImpl<KIND>{}, args);
 }

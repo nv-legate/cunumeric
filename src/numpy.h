@@ -33,11 +33,11 @@ enum class VariantKind : int {
 
 struct LegateNumPy {
   template <typename... Args>
-  static void record_variant(Args &&... args)
+  static void record_variant(Args&&... args)
   {
     get_registrar().record_variant(std::forward<Args>(args)...);
   }
-  static LegateTaskRegistrar &get_registrar();
+  static LegateTaskRegistrar& get_registrar();
 };
 
 template <typename T>

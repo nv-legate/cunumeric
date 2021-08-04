@@ -89,10 +89,10 @@ struct ScalarUnaryRedImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
   using VAL   = legate_type_of<CODE>;
 
   void operator()(OP func,
-                  VAL &result,
+                  VAL& result,
                   AccessorRO<VAL, DIM> in,
-                  const Rect<DIM> &rect,
-                  const Pitches<DIM - 1> &pitches,
+                  const Rect<DIM>& rect,
+                  const Pitches<DIM - 1>& pitches,
                   bool dense) const
   {
     cudaStream_t stream;
@@ -123,11 +123,11 @@ template <LegateTypeCode CODE, int DIM>
 struct ScalarUnaryRedImplBody<VariantKind::GPU, UnaryRedCode::CONTAINS, CODE, DIM> {
   using VAL = legate_type_of<CODE>;
 
-  void operator()(bool &result,
+  void operator()(bool& result,
                   AccessorRO<VAL, DIM> in,
-                  const UntypedScalar &to_find_scalar,
-                  const Rect<DIM> &rect,
-                  const Pitches<DIM - 1> &pitches,
+                  const UntypedScalar& to_find_scalar,
+                  const Rect<DIM>& rect,
+                  const Pitches<DIM - 1>& pitches,
                   bool dense) const
   {
     cudaStream_t stream;
@@ -159,10 +159,10 @@ template <LegateTypeCode CODE, int DIM>
 struct ScalarUnaryRedImplBody<VariantKind::GPU, UnaryRedCode::COUNT_NONZERO, CODE, DIM> {
   using VAL = legate_type_of<CODE>;
 
-  void operator()(uint64_t &result,
+  void operator()(uint64_t& result,
                   AccessorRO<VAL, DIM> in,
-                  const Rect<DIM> &rect,
-                  const Pitches<DIM - 1> &pitches,
+                  const Rect<DIM>& rect,
+                  const Pitches<DIM - 1>& pitches,
                   bool dense) const
   {
     cudaStream_t stream;
@@ -189,7 +189,7 @@ struct ScalarUnaryRedImplBody<VariantKind::GPU, UnaryRedCode::COUNT_NONZERO, COD
   }
 };
 
-/*static*/ UntypedScalar ScalarUnaryRedTask::gpu_variant(TaskContext &context)
+/*static*/ UntypedScalar ScalarUnaryRedTask::gpu_variant(TaskContext& context)
 {
   return scalar_unary_red_template<VariantKind::GPU>(context);
 }

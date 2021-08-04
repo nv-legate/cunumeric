@@ -30,7 +30,7 @@ struct Split {
 template <int DIM>
 class Splitter {
  public:
-  Split split(const Legion::Rect<DIM> &rect, int must_be_inner)
+  Split split(const Legion::Rect<DIM>& rect, int must_be_inner)
   {
     for (int dim = 0; dim < DIM; ++dim)
       if (dim != must_be_inner) {
@@ -56,7 +56,7 @@ class Splitter {
 
   inline Legion::Point<DIM> combine(size_t outer_idx,
                                     size_t inner_idx,
-                                    const Legion::Point<DIM> &lo) const
+                                    const Legion::Point<DIM>& lo) const
   {
     Legion::Point<DIM> point = lo;
     for (int dim = 0; dim < DIM; ++dim) {
@@ -83,8 +83,8 @@ struct UnaryRedImplBody<VariantKind::OMP, OP_CODE, CODE, DIM> {
 
   void operator()(AccessorRD<LG_OP, true, DIM> lhs,
                   AccessorRO<VAL, DIM> rhs,
-                  const Rect<DIM> &rect,
-                  const Pitches<DIM - 1> &pitches,
+                  const Rect<DIM>& rect,
+                  const Pitches<DIM - 1>& pitches,
                   int collapsed_dim,
                   size_t volume) const
   {
@@ -101,8 +101,8 @@ struct UnaryRedImplBody<VariantKind::OMP, OP_CODE, CODE, DIM> {
 
   void operator()(AccessorRW<VAL, DIM> lhs,
                   AccessorRO<VAL, DIM> rhs,
-                  const Rect<DIM> &rect,
-                  const Pitches<DIM - 1> &pitches,
+                  const Rect<DIM>& rect,
+                  const Pitches<DIM - 1>& pitches,
                   int collapsed_dim,
                   size_t volume) const
   {
@@ -127,8 +127,8 @@ struct ArgRedImplBody<VariantKind::OMP, OP_CODE, CODE, DIM> {
 
   void operator()(AccessorRD<LG_OP, true, DIM> lhs,
                   AccessorRO<VAL, DIM> rhs,
-                  const Rect<DIM> &rect,
-                  const Pitches<DIM - 1> &pitches,
+                  const Rect<DIM>& rect,
+                  const Pitches<DIM - 1>& pitches,
                   int collapsed_dim,
                   size_t volume) const
   {
@@ -145,8 +145,8 @@ struct ArgRedImplBody<VariantKind::OMP, OP_CODE, CODE, DIM> {
 
   void operator()(AccessorRW<ARGVAL, DIM> lhs,
                   AccessorRO<VAL, DIM> rhs,
-                  const Rect<DIM> &rect,
-                  const Pitches<DIM - 1> &pitches,
+                  const Rect<DIM>& rect,
+                  const Pitches<DIM - 1>& pitches,
                   int collapsed_dim,
                   size_t volume) const
   {
@@ -162,7 +162,7 @@ struct ArgRedImplBody<VariantKind::OMP, OP_CODE, CODE, DIM> {
   }
 };
 
-/*static*/ void UnaryRedTask::omp_variant(TaskContext &context)
+/*static*/ void UnaryRedTask::omp_variant(TaskContext& context)
 {
   unary_red_template<VariantKind::OMP>(context);
 }

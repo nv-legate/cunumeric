@@ -41,7 +41,7 @@ static constexpr coord_t WARP_SIZE = 32;
 // which is the size of a wrap.
 template <int32_t DIM>
 struct ThreadBlock {
-  void initialize(const Rect<DIM> &domain, int32_t collapsed_dim)
+  void initialize(const Rect<DIM>& domain, int32_t collapsed_dim)
   {
     auto remaining = static_cast<coord_t>(THREADS_PER_BLOCK);
 
@@ -105,7 +105,7 @@ struct ThreadBlock {
 // volume exceeds the maximum number of CTAs.
 template <int32_t DIM>
 struct ThreadBlocks {
-  void initialize(const Rect<DIM> &domain, int32_t collapsed_dim)
+  void initialize(const Rect<DIM>& domain, int32_t collapsed_dim)
   {
     collapsed_dim_ = collapsed_dim;
     block_.initialize(domain, collapsed_dim);
@@ -135,7 +135,7 @@ struct ThreadBlocks {
   }
 
   // De-linearized the linearized block id and thread it into an N-dimensional point
-  __host__ __device__ Point<DIM> point(coord_t bid, coord_t tid, const Point<DIM> &origin) const
+  __host__ __device__ Point<DIM> point(coord_t bid, coord_t tid, const Point<DIM>& origin) const
   {
     Point<DIM> p = origin;
     for (int32_t dim : dim_order_) {
@@ -146,7 +146,7 @@ struct ThreadBlocks {
     return p;
   }
 
-  void compute_maximum_concurrency(const void *func)
+  void compute_maximum_concurrency(const void* func)
   {
     int32_t num_ctas = 0;
     cudaOccupancyMaxActiveBlocksPerMultiprocessor(&num_ctas, func, num_threads(), 0);
@@ -161,7 +161,7 @@ struct ThreadBlocks {
     collapsed_dim_stride_ = max_num_concurrent_planes * block_.extents_[collapsed_dim_];
   }
 
-  __host__ __device__ inline void next_point(Point<DIM> &point) const
+  __host__ __device__ inline void next_point(Point<DIM>& point) const
   {
     point[collapsed_dim_] += collapsed_dim_stride_;
   }
@@ -184,14 +184,14 @@ struct ThreadBlocks {
 };
 
 template <int32_t DIM>
-std::ostream &operator<<(std::ostream &os, const ThreadBlock<DIM> &block)
+std::ostream& operator<<(std::ostream& os, const ThreadBlock<DIM>& block)
 {
   os << "ThreadBlock(extents: " << block.extents_ << ", pitches: " << block.pitches_ << ")";
   return os;
 }
 
 template <int32_t DIM>
-std::ostream &operator<<(std::ostream &os, const ThreadBlocks<DIM> &blocks)
+std::ostream& operator<<(std::ostream& os, const ThreadBlocks<DIM>& blocks)
 {
   os << "ThreadBlocks(" << blocks.block_ << ", extents: " << blocks.extents_
      << ", pitches: " << blocks.pitches_ << ", num concurrent blocks: " << blocks.num_blocks_
@@ -204,11 +204,11 @@ std::ostream &operator<<(std::ostream &os, const ThreadBlocks<DIM> &blocks)
 
 template <typename REDOP, typename CTOR, typename LHS, typename RHS, int32_t DIM>
 static __device__ __forceinline__ Point<DIM> local_reduce(CTOR ctor,
-                                                          LHS &result,
+                                                          LHS& result,
                                                           AccessorRO<RHS, DIM> in,
                                                           LHS identity,
-                                                          const ThreadBlocks<DIM> &blocks,
-                                                          const Rect<DIM> &domain,
+                                                          const ThreadBlocks<DIM>& blocks,
+                                                          const Rect<DIM>& domain,
                                                           int32_t collapsed_dim)
 {
   const coord_t tid = threadIdx.x;
@@ -227,7 +227,7 @@ static __device__ __forceinline__ Point<DIM> local_reduce(CTOR ctor,
   // with shared memory to reduce memory traffic due to atomic updates
   if (collapsed_dim == DIM - 1) {
     __shared__ uint8_t shmem[THREADS_PER_BLOCK * sizeof(LHS)];
-    LHS *trampoline = reinterpret_cast<LHS *>(shmem);
+    LHS* trampoline = reinterpret_cast<LHS*>(shmem);
     // Check for the case where all the threads in the same warp have
     // the same x value in which case they're all going to conflict
     // so instead we do a warp-level reduction so just one thread ends
@@ -312,8 +312,8 @@ struct UnaryRedImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
 
   void operator()(AccessorRD<LG_OP, false, DIM> lhs,
                   AccessorRO<VAL, DIM> rhs,
-                  const Rect<DIM> &rect,
-                  const Pitches<DIM - 1> &pitches,
+                  const Rect<DIM>& rect,
+                  const Pitches<DIM - 1>& pitches,
                   int collapsed_dim,
                   size_t volume) const
   {
@@ -322,15 +322,15 @@ struct UnaryRedImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
     ThreadBlocks<DIM> blocks;
     blocks.initialize(rect, collapsed_dim);
 
-    blocks.compute_maximum_concurrency(reinterpret_cast<const void *>(Kernel));
+    blocks.compute_maximum_concurrency(reinterpret_cast<const void*>(Kernel));
     Kernel<<<blocks.num_blocks(), blocks.num_threads()>>>(
       lhs, rhs, LG_OP::identity, blocks, rect, collapsed_dim);
   }
 
   void operator()(AccessorRW<VAL, DIM> lhs,
                   AccessorRO<VAL, DIM> rhs,
-                  const Rect<DIM> &rect,
-                  const Pitches<DIM - 1> &pitches,
+                  const Rect<DIM>& rect,
+                  const Pitches<DIM - 1>& pitches,
                   int collapsed_dim,
                   size_t volume) const
   {
@@ -339,7 +339,7 @@ struct UnaryRedImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
     ThreadBlocks<DIM> blocks;
     blocks.initialize(rect, collapsed_dim);
 
-    blocks.compute_maximum_concurrency(reinterpret_cast<const void *>(Kernel));
+    blocks.compute_maximum_concurrency(reinterpret_cast<const void*>(Kernel));
     Kernel<<<blocks.num_blocks(), blocks.num_threads()>>>(
       lhs, rhs, LG_OP::identity, blocks, rect, collapsed_dim);
   }
@@ -355,8 +355,8 @@ struct ArgRedImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
 
   void operator()(AccessorRD<LG_OP, false, DIM> lhs,
                   AccessorRO<RHS, DIM> rhs,
-                  const Rect<DIM> &rect,
-                  const Pitches<DIM - 1> &pitches,
+                  const Rect<DIM>& rect,
+                  const Pitches<DIM - 1>& pitches,
                   int collapsed_dim,
                   size_t volume) const
   {
@@ -365,15 +365,15 @@ struct ArgRedImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
     ThreadBlocks<DIM> blocks;
     blocks.initialize(rect, collapsed_dim);
 
-    blocks.compute_maximum_concurrency(reinterpret_cast<const void *>(Kernel));
+    blocks.compute_maximum_concurrency(reinterpret_cast<const void*>(Kernel));
     Kernel<<<blocks.num_blocks(), blocks.num_threads()>>>(
       lhs, rhs, LG_OP::identity, blocks, rect, collapsed_dim);
   }
 
   void operator()(AccessorRW<LHS, DIM> lhs,
                   AccessorRO<RHS, DIM> rhs,
-                  const Rect<DIM> &rect,
-                  const Pitches<DIM - 1> &pitches,
+                  const Rect<DIM>& rect,
+                  const Pitches<DIM - 1>& pitches,
                   int collapsed_dim,
                   size_t volume) const
   {
@@ -382,13 +382,13 @@ struct ArgRedImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
     ThreadBlocks<DIM> blocks;
     blocks.initialize(rect, collapsed_dim);
 
-    blocks.compute_maximum_concurrency(reinterpret_cast<const void *>(Kernel));
+    blocks.compute_maximum_concurrency(reinterpret_cast<const void*>(Kernel));
     Kernel<<<blocks.num_blocks(), blocks.num_threads()>>>(
       lhs, rhs, LG_OP::identity, blocks, rect, collapsed_dim);
   }
 };
 
-/*static*/ void UnaryRedTask::gpu_variant(TaskContext &context)
+/*static*/ void UnaryRedTask::gpu_variant(TaskContext& context)
 {
   unary_red_template<VariantKind::GPU>(context);
 }

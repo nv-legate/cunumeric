@@ -40,8 +40,8 @@ struct support_matmul<LegateTypeCode::HALF_LT> : std::true_type {
 
 template <VariantKind KIND>
 struct MatMulImpl {
-  template <LegateTypeCode CODE, std::enable_if_t<support_matmul<CODE>::value> * = nullptr>
-  void operator()(MatMulArgs &args) const
+  template <LegateTypeCode CODE, std::enable_if_t<support_matmul<CODE>::value>* = nullptr>
+  void operator()(MatMulArgs& args) const
   {
     using VAL = legate_type_of<CODE>;
     using ACC = typename support_matmul<CODE>::ACC_TYPE;
@@ -86,18 +86,18 @@ struct MatMulImpl {
                                  rhs2_transposed);
   }
 
-  template <LegateTypeCode CODE, std::enable_if_t<!support_matmul<CODE>::value> * = nullptr>
-  void operator()(MatMulArgs &args) const
+  template <LegateTypeCode CODE, std::enable_if_t<!support_matmul<CODE>::value>* = nullptr>
+  void operator()(MatMulArgs& args) const
   {
     assert(false);
   }
 };
 
 template <VariantKind KIND>
-static void matmul_template(TaskContext &context)
+static void matmul_template(TaskContext& context)
 {
-  auto &reductions = context.reductions();
-  auto &inputs     = context.inputs();
+  auto& reductions = context.reductions();
+  auto& inputs     = context.inputs();
 
   MatMulArgs args{reductions[0], inputs[0], inputs[1]};
   // Note that we can't dispatch on the lhs's type,

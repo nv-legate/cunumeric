@@ -27,7 +27,7 @@ class ScalarBinaryOpTask : public NumPyTask<ScalarBinaryOpTask> {
   static const int TASK_ID = NUMPY_SCALAR_BINARY_OP;
 
  public:
-  static UntypedScalar cpu_variant(TaskContext &contex);
+  static UntypedScalar cpu_variant(TaskContext& contex);
 };
 
 }  // namespace numpy

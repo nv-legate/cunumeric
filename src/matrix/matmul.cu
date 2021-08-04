@@ -29,9 +29,9 @@ struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::FLOAT_LT> {
   void operator()(size_t m,
                   size_t n,
                   size_t k,
-                  float *lhs,
-                  const float *rhs1,
-                  const float *rhs2,
+                  float* lhs,
+                  const float* rhs1,
+                  const float* rhs2,
                   size_t lhs_stride,
                   size_t rhs1_stride,
                   size_t rhs2_stride,
@@ -79,9 +79,9 @@ struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::DOUBLE_LT> {
   void operator()(size_t m,
                   size_t n,
                   size_t k,
-                  double *lhs,
-                  const double *rhs1,
-                  const double *rhs2,
+                  double* lhs,
+                  const double* rhs1,
+                  const double* rhs2,
                   size_t lhs_stride,
                   size_t rhs1_stride,
                   size_t rhs2_stride,
@@ -124,9 +124,9 @@ struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::HALF_LT> {
   void operator()(size_t m,
                   size_t n,
                   size_t k,
-                  float *lhs,
-                  const __half *rhs1,
-                  const __half *rhs2,
+                  float* lhs,
+                  const __half* rhs1,
+                  const __half* rhs2,
                   size_t lhs_stride,
                   size_t rhs1_stride,
                   size_t rhs2_stride,
@@ -169,7 +169,7 @@ struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::HALF_LT> {
   }
 };
 
-/*static*/ void MatMulTask::gpu_variant(TaskContext &context)
+/*static*/ void MatMulTask::gpu_variant(TaskContext& context)
 {
   matmul_template<VariantKind::GPU>(context);
 }

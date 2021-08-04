@@ -25,9 +25,9 @@ using namespace Legion;
 template <typename VAL, int32_t DIM>
 struct FillImplBody<VariantKind::CPU, VAL, DIM> {
   void operator()(AccessorWO<VAL, DIM> out,
-                  const VAL &fill_value,
-                  const Pitches<DIM - 1> &pitches,
-                  const Rect<DIM> &rect,
+                  const VAL& fill_value,
+                  const Pitches<DIM - 1>& pitches,
+                  const Rect<DIM>& rect,
                   bool dense) const
   {
     size_t volume = rect.volume();
@@ -43,7 +43,7 @@ struct FillImplBody<VariantKind::CPU, VAL, DIM> {
   }
 };
 
-/*static*/ void FillTask::cpu_variant(TaskContext &context)
+/*static*/ void FillTask::cpu_variant(TaskContext& context)
 {
   fill_template<VariantKind::CPU>(context);
 }
