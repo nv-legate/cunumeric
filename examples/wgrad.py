@@ -21,10 +21,7 @@ import argparse
 import datetime
 import math
 
-try:
-    import legate.numpy as np
-except ImportError:
-    import numpy as np
+import legate.numpy as np
 
 
 def initialize(C, K, B, H, W):
