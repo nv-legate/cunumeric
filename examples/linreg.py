@@ -23,10 +23,7 @@ import math
 
 from benchmark import run_benchmark
 
-try:
-    import legate.numpy as np
-except ImportError:
-    import numpy as np
+import legate.numpy as np
 
 
 def initialize(N, F, T):
