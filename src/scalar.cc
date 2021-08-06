@@ -82,10 +82,15 @@ struct copy_fn {
   void* operator()(bool is_argval, const void* ptr)
   {
     using VAL = legate_type_of<CODE>;
-    if (is_argval)
-      return new Argval<VAL>(*static_cast<const Argval<VAL>*>(ptr));
-    else
-      return new VAL(*static_cast<const VAL*>(ptr));
+    if (is_argval) {
+      auto result = new Argval<VAL>();
+      memcpy(result, ptr, sizeof(Argval<VAL>));
+      return result;
+    } else {
+      auto result = new VAL();
+      memcpy(result, ptr, sizeof(VAL));
+      return result;
+    }
   }
 };
 
