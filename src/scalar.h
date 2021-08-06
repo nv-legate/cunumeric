@@ -61,21 +61,14 @@ class UntypedScalar {
 
  public:
   template <typename T>
-  const T& value() const
+  T value() const
   {
-    return *static_cast<const T*>(data_);
+    T result{};
+    memcpy(&result, data_, sizeof(T));
+    return result;
   }
-  template <typename T = void>
-  const T* ptr() const
-  {
-    return static_cast<const T*>(data_);
-  }
-
-  template <typename T = void>
-  T* ptr()
-  {
-    return static_cast<T*>(data_);
-  }
+  const void* ptr() const { return data_; }
+  void* ptr() { return data_; }
 
   std::string to_string() const;
 
