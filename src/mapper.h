@@ -111,7 +111,7 @@ class NumPyMapper : public Legion::Mapping::Mapper {
         }
       return instances.empty();
     }
-    inline bool erase(unsigned idx)
+    inline void erase(unsigned idx)
     {
       // We also need to update any of the other region mappings
       for (std::map<Legion::LogicalRegion, unsigned>::iterator it = region_mapping.begin();
