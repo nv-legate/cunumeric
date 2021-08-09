@@ -20,7 +20,6 @@ from functools import reduce
 
 import numpy as np
 import pyarrow
-from numpy import broadcast_shapes
 
 from legate.core import Array
 
@@ -29,6 +28,10 @@ from .doc_utils import copy_docstring
 from .runtime import runtime
 from .utils import unimplemented
 
+
+def broadcast_shapes(*args):
+    arrays = [np.empty(x, dtype=[]) for x in args]
+    return np.broadcast(*arrays).shape
 
 @copy_docstring(np.ndarray)
 class ndarray(object):
