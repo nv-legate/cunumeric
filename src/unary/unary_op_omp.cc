@@ -42,7 +42,11 @@ struct UnaryOpImplBody<VariantKind::OMP, OP_CODE, CODE, DIM> {
 #pragma omp parallel for schedule(static)
       for (size_t idx = 0; idx < volume; ++idx) outptr[idx] = func(inptr[idx]);
     } else {
-      OMPLoop<DIM>::unary_loop(func, out, in, rect);
+#pragma omp parallel for schedule(static)
+      for (size_t idx = 0; idx < volume; ++idx) {
+        auto p = pitches.unflatten(idx, rect.lo);
+        out[p] = func(in[p]);
+      }
     }
   }
 };

@@ -17,6 +17,8 @@
 #include "unary/scalar_unary_red.h"
 #include "unary/scalar_unary_red_template.inl"
 
+#include "cuda_help.h"
+
 namespace legate {
 namespace numpy {
 

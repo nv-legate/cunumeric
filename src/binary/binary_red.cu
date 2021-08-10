@@ -17,6 +17,8 @@
 #include "binary/binary_red.h"
 #include "binary/binary_red_template.inl"
 
+#include "cuda_help.h"
+
 namespace legate {
 namespace numpy {
 

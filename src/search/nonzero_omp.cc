@@ -17,6 +17,8 @@
 #include "search/nonzero.h"
 #include "search/nonzero_template.inl"
 
+#include <omp.h>
+
 namespace legate {
 namespace numpy {
 

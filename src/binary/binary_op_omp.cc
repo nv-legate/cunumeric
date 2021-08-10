@@ -36,15 +36,19 @@ struct BinaryOpImplBody<VariantKind::OMP, OP_CODE, CODE, DIM> {
                   const Rect<DIM>& rect,
                   bool dense) const
   {
+    const size_t volume = rect.volume();
     if (dense) {
-      size_t volume = rect.volume();
-      auto outptr   = out.ptr(rect);
-      auto in1ptr   = in1.ptr(rect);
-      auto in2ptr   = in2.ptr(rect);
+      auto outptr = out.ptr(rect);
+      auto in1ptr = in1.ptr(rect);
+      auto in2ptr = in2.ptr(rect);
 #pragma omp parallel for schedule(static)
       for (size_t idx = 0; idx < volume; ++idx) outptr[idx] = func(in1ptr[idx], in2ptr[idx]);
     } else {
-      OMPLoop<DIM>::binary_loop(func, out, in1, in2, rect);
+#pragma omp parallel for schedule(static)
+      for (size_t idx = 0; idx < volume; ++idx) {
+        auto p = pitches.unflatten(idx, rect.lo);
+        out[p] = func(in1[p], in2[p]);
+      }
     }
   }
 };

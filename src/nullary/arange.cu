@@ -17,6 +17,8 @@
 #include "nullary/arange.h"
 #include "nullary/arange_template.inl"
 
+#include "cuda_help.h"
+
 namespace legate {
 namespace numpy {
 

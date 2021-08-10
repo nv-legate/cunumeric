@@ -17,6 +17,8 @@
 #include "unary/scalar_unary_red.h"
 #include "unary/scalar_unary_red_template.inl"
 
+#include <omp.h>
+
 namespace legate {
 namespace numpy {
 
@@ -48,7 +50,15 @@ struct ScalarUnaryRedImplBody<VariantKind::OMP, OP_CODE, CODE, DIM> {
         for (size_t idx = 0; idx < volume; ++idx) OP::template fold<true>(locals[tid], inptr[idx]);
       }
     } else {
-      OMPLoop<DIM>::unary_reduction_loop(OP{}, locals, rect, in);
+#pragma omp parallel
+      {
+        const int tid = omp_get_thread_num();
+#pragma omp for schedule(static)
+        for (size_t idx = 0; idx < volume; ++idx) {
+          auto p = pitches.unflatten(idx, rect.lo);
+          OP::template fold<true>(locals[tid], in[p]);
+        }
+      }
     }
 
     for (auto idx = 0; idx < max_threads; ++idx) OP::template fold<true>(result, locals[idx]);

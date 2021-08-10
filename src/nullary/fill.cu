@@ -17,6 +17,8 @@
 #include "nullary/fill.h"
 #include "nullary/fill_template.inl"
 
+#include "cuda_help.h"
+
 namespace legate {
 namespace numpy {
 

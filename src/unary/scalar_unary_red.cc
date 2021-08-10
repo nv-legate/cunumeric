@@ -39,7 +39,10 @@ struct ScalarUnaryRedImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
       auto inptr = in.ptr(rect);
       for (size_t idx = 0; idx < volume; ++idx) OP::template fold<true>(result, inptr[idx]);
     } else {
-      CPULoop<DIM>::unary_reduction_loop(func, result, rect, in);
+      for (size_t idx = 0; idx < volume; ++idx) {
+        auto p = pitches.unflatten(idx, rect.lo);
+        OP::template fold<true>(result, in[p]);
+      }
     }
   }
 };

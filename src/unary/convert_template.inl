@@ -14,7 +14,7 @@
  *
  */
 
-#include "point_task.h"
+#include "pitches.h"
 #include "unary/convert_util.h"
 
 namespace legate {
