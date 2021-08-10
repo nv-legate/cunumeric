@@ -20,6 +20,8 @@
 #include <thrust/scan.h>
 #include <thrust/execution_policy.h>
 
+#include "cuda_help.h"
+
 namespace legate {
 namespace numpy {
 

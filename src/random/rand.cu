@@ -17,6 +17,8 @@
 #include "random/rand.h"
 #include "random/rand_template.inl"
 
+#include "cuda_help.h"
+
 namespace legate {
 namespace numpy {
 

@@ -41,7 +41,10 @@ struct ConvertImplBody<VariantKind::CPU, DST_TYPE, SRC_TYPE, DIM> {
       auto inptr  = in.ptr(rect);
       for (size_t idx = 0; idx < volume; ++idx) outptr[idx] = func(inptr[idx]);
     } else {
-      CPULoop<DIM>::unary_loop(func, out, in, rect);
+      for (size_t idx = 0; idx < volume; ++idx) {
+        auto p = pitches.unflatten(idx, rect.lo);
+        out[p] = func(in[p]);
+      }
     }
   }
 };

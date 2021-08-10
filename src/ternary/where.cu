@@ -17,6 +17,8 @@
 #include "ternary/where.h"
 #include "ternary/where_template.inl"
 
+#include "cuda_help.h"
+
 namespace legate {
 namespace numpy {
 

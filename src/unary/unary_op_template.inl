@@ -14,7 +14,7 @@
  *
  */
 
-#include "point_task.h"
+#include "pitches.h"
 
 namespace legate {
 namespace numpy {

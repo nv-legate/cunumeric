@@ -17,6 +17,8 @@
 #include "unary/unary_op.h"
 #include "unary/unary_op_template.inl"
 
+#include "cuda_help.h"
+
 namespace legate {
 namespace numpy {
 

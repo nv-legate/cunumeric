@@ -17,6 +17,8 @@
 #include "unary/convert.h"
 #include "unary/convert_template.inl"
 
+#include "cuda_help.h"
+
 namespace legate {
 namespace numpy {
 

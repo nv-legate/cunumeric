@@ -21,13 +21,13 @@ import legate.numpy as lg
 def test(ty):
 
     np.random.seed(42)
-    An = np.random.randn(3, 7).astype(ty)
-    Bn = np.random.randn(7, 11).astype(ty)
-    Cn = An.dot(Bn)
+    A = lg.random.randn(6, 3, 7).astype(ty)
+    B = lg.random.randn(4, 7, 11).astype(ty)
+    C = A[1].dot(B[2])
 
-    A = lg.array(An)
-    B = lg.array(Bn)
-    C = A.dot(B)
+    An = A.__array__()
+    Bn = B.__array__()
+    Cn = An[1].dot(Bn[2])
 
     assert np.allclose(C, Cn)
 

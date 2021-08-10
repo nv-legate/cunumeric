@@ -17,6 +17,8 @@
 #include "binary/binary_op.h"
 #include "binary_op_template.inl"
 
+#include "cuda_help.h"
+
 namespace legate {
 namespace numpy {
 
