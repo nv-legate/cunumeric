@@ -233,7 +233,7 @@ if __name__ == "__main__":
             run_kmeans,
             args.benchmark,
             "KMEANS(D)",
-            run_kmeans(
+            (
                 args.C,
                 args.D,
                 np.float64,
