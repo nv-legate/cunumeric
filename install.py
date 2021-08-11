@@ -112,24 +112,7 @@ def symlink(from_path, to_path):
         os.symlink(from_path, to_path)
 
 
-def has_openmp():
-    cxx = os.getenv("CXX", "g++")
-    temp_dir = tempfile.mkdtemp()
-    try:
-        execute_command(
-            'echo "int main(void) { return 0; }" | '
-            f"{cxx} -o test.omp -x c++ -fopenmp -",
-            shell=True,
-            cwd=temp_dir,
-            verbose=False,
-        )
-    except subprocess.CalledProcessError:
-        return False
-    else:
-        return True
-
-
-def install_openblas(openblas_dir, thread_count, verbose):
+def install_openblas(openblas_dir, openmp, thread_count, verbose):
     print_log("Legate is installing OpenBLAS into a local directory...")
     temp_dir = tempfile.mkdtemp()
     # Pin OpenBLAS at a recent version
@@ -140,35 +123,20 @@ def install_openblas(openblas_dir, thread_count, verbose):
         verbose=verbose,
     )
     # We can just build this directly
-    if has_openmp():
-        execute_command(
-            [
-                "make",
-                "-j",
-                str(thread_count),
-                "USE_THREAD=1",
-                "NO_STATIC=1",
-                "USE_OPENMP=1",
-                "NUM_PARALLEL=32",
-                "LIBNAMESUFFIX=legate",
-            ],
-            cwd=temp_dir,
-            verbose=verbose,
-        )
-    else:
-        execute_command(
-            [
-                "make",
-                "-j",
-                str(thread_count),
-                "USE_THREAD=1",
-                "NO_STATIC=1",
-                "NUM_PARALLEL=32",
-                "LIBNAMESUFFIX=legate",
-            ],
-            cwd=temp_dir,
-            verbose=verbose,
-        )
+    execute_command(
+        [
+            "make",
+            "-j",
+            str(thread_count),
+            "USE_THREAD=1",
+            "NO_STATIC=1",
+            "USE_OPENMP=%s" % (1 if openmp else 0),
+            "NUM_PARALLEL=32",
+            "LIBNAMESUFFIX=legate",
+        ],
+        cwd=temp_dir,
+        verbose=verbose,
+    )
     # Then do the installation to our target directory
     execute_command(
         [
@@ -356,7 +324,7 @@ def install_legate_numpy(
         if openblas_dir is None:
             openblas_dir = os.path.join(legate_dir, "OpenBLAS")
     if not os.path.exists(openblas_dir):
-        install_openblas(openblas_dir, thread_count, verbose)
+        install_openblas(openblas_dir, openmp, thread_count, verbose)
     libs_config["openblas"] = openblas_dir
     with open(
         os.path.join(legate_dir, "share", "legate", ".legate-libs.json"), "w"
