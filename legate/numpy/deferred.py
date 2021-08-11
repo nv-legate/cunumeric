@@ -205,6 +205,7 @@ class DeferredArray(NumPyThunk):
         result = self.runtime.create_empty_thunk(
             self.shape,
             dtype=_complex_field_dtype(self.dtype),
+            inputs=[self],
         )
 
         result.unary_op(
@@ -224,6 +225,7 @@ class DeferredArray(NumPyThunk):
         result = self.runtime.create_empty_thunk(
             self.shape,
             dtype=_complex_field_dtype(self.dtype),
+            inputs=[self],
         )
 
         result.unary_op(
@@ -239,7 +241,11 @@ class DeferredArray(NumPyThunk):
         return result
 
     def conj(self, stacklevel=0, callsite=None):
-        result = self.runtime.create_empty_thunk(self.shape, dtype=self.dtype)
+        result = self.runtime.create_empty_thunk(
+            self.shape,
+            dtype=self.dtype,
+            inputs=[self],
+        )
 
         result.unary_op(
             UnaryOpCode.CONJ,
@@ -377,6 +383,7 @@ class DeferredArray(NumPyThunk):
             result = self.runtime.create_empty_thunk(
                 index_array.base.shape,
                 self.dtype,
+                inputs=[self],
             )
 
             if self.ndim != index_array.ndim:
@@ -398,7 +405,9 @@ class DeferredArray(NumPyThunk):
 
             if result.shape == ():
                 input = result
-                result = self.runtime.create_empty_thunk(1, self.dtype)
+                result = self.runtime.create_empty_thunk(
+                    1, self.dtype, inputs=[self]
+                )
 
                 task = self.context.create_task(NumPyOpCode.READ)
                 task.add_input(input.base)
@@ -482,7 +491,9 @@ class DeferredArray(NumPyThunk):
 
                 if view.base.overlaps(rhs.base):
                     rhs_copy = self.runtime.create_empty_thunk(
-                        rhs.shape, rhs.dtype
+                        rhs.shape,
+                        rhs.dtype,
+                        inputs=[rhs],
                     )
                     rhs_copy.copy(rhs, deep=False, stacklevel=(stacklevel + 1))
                     rhs = rhs_copy
@@ -700,13 +711,14 @@ class DeferredArray(NumPyThunk):
             # for accumulation
             if rhs1_array.dtype == np.float16:
                 lhs_array = self.runtime.create_empty_thunk(
-                    self.shape, np.dtype(np.float32)
+                    self.shape, np.dtype(np.float32), inputs=[self]
                 )
 
             # TODO: We should be able to do this in the core
             lhs_array.fill(
                 np.array(0, dtype=lhs_array.dtype),
                 stacklevel=(stacklevel + 1),
+                callsite=callsite,
             )
 
             left_matrix = rhs1_array.ndim == 2
@@ -766,13 +778,14 @@ class DeferredArray(NumPyThunk):
 
             if rhs1_array.dtype == np.float16:
                 lhs_array = self.runtime.create_empty_thunk(
-                    self.shape, np.dtype(np.float32)
+                    self.shape, np.dtype(np.float32), inputs=[self]
                 )
 
             # TODO: We should be able to do this in the core
             lhs_array.fill(
                 np.array(0, dtype=lhs_array.dtype),
                 stacklevel=(stacklevel + 1),
+                callsite=callsite,
             )
 
             lhs = lhs_array.base.promote(1, K)
@@ -837,11 +850,13 @@ class DeferredArray(NumPyThunk):
             diag_array.fill(
                 np.array(0, dtype=diag_array.dtype),
                 stacklevel=(stacklevel + 1),
+                callsite=callsite,
             )
         else:
             matrix_array.fill(
                 np.array(0, dtype=matrix_array.dtype),
                 stacklevel=(stacklevel + 1),
+                callsite=callsite,
             )
 
         matrix = matrix_array.base
@@ -882,7 +897,11 @@ class DeferredArray(NumPyThunk):
     def eye(self, k, stacklevel=0, callsite=None):
         assert self.ndim == 2  # Only 2-D arrays should be here
         # First issue a fill to zero everything out
-        self.fill(np.array(0, dtype=self.dtype), stacklevel=(stacklevel + 1))
+        self.fill(
+            np.array(0, dtype=self.dtype),
+            stacklevel=(stacklevel + 1),
+            callsite=callsite,
+        )
 
         task = self.context.create_task(NumPyOpCode.EYE)
         task.add_output(self.base)
@@ -1156,6 +1175,7 @@ class DeferredArray(NumPyThunk):
                 lhs_array = self.runtime.create_empty_thunk(
                     lhs_array.shape,
                     dtype=argred_dtype,
+                    inputs=[self],
                 )
 
             # Before we perform region reduction, make sure to have the lhs
