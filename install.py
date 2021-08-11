@@ -51,6 +51,46 @@ else:
     )
 
 
+class BooleanFlag(argparse.Action):
+    def __init__(
+        self,
+        option_strings,
+        dest,
+        default,
+        required=False,
+        help="",
+        metavar=None,
+    ):
+        assert all(not opt.startswith("--no") for opt in option_strings)
+
+        def flatten(list):
+            return [item for sublist in list for item in sublist]
+
+        option_strings = flatten(
+            [
+                [opt, "--no-" + opt[2:], "--no" + opt[2:]]
+                if opt.startswith("--")
+                else [opt]
+                for opt in option_strings
+            ]
+        )
+        super().__init__(
+            option_strings,
+            dest,
+            nargs=0,
+            const=None,
+            default=default,
+            type=bool,
+            choices=None,
+            required=required,
+            help=help,
+            metavar=metavar,
+        )
+
+    def __call__(self, parser, namespace, values, option_string):
+        setattr(namespace, self.dest, not option_string.startswith("--no"))
+
+
 def print_log(*args, **kwargs):
     print(*args, **kwargs)
     sys.stdout.flush()
@@ -426,37 +466,22 @@ def driver():
         help="Path to Thrust installation directory.",
     )
     parser.add_argument(
-        "--no-cuda",
-        dest="cuda",
-        action="store_false",
-        required=False,
-        default=True,
-        help="Build Legate NumPy without CUDA.",
+        "--cuda",
+        action=BooleanFlag,
+        default=os.environ.get("USE_CUDA", "1") == "1",
+        help="Build Legate NumPy with CUDA support.",
     )
     parser.add_argument(
-        "--no-openmp",
-        dest="openmp",
-        action="store_false",
-        required=False,
-        default=True,
-        help="Build Legate NumPy without OpenMP.",
+        "--openmp",
+        action=BooleanFlag,
+        default=os.environ.get("USE_OPENMP", "1") == "1",
+        help="Build Legate NumPy with OpenMP support.",
     )
     parser.add_argument(
         "--cmake",
-        dest="cmake",
-        action="store_true",
-        required=False,
-        default=os.environ["USE_CMAKE"] == "1"
-        if "USE_CMAKE" in os.environ
-        else None,
-        help="Build Legate NumPy with CMake.",
-    )
-    parser.add_argument(
-        "--no-cmake",
-        dest="cmake",
-        action="store_false",
-        required=False,
-        help="Don't build Legate NumPy with CMake (instead use GNU Make).",
+        action=BooleanFlag,
+        default=os.environ.get("USE_CMAKE", "0") == "1",
+        help="Build Legate NumPy with CMake instead of GNU Make.",
     )
     parser.add_argument(
         "--with-cmake",
@@ -467,13 +492,11 @@ def driver():
         help="Path to CMake executable (if not on PATH).",
     )
     parser.add_argument(
-        "--no-clean",
-        "--noclean",
+        "--clean",
         dest="clean_first",
-        action="store_false",
-        required=False,
+        action=BooleanFlag,
         default=True,
-        help="Skip clean before build.",
+        help="Clean before build.",
     )
     parser.add_argument(
         "--python-only",
