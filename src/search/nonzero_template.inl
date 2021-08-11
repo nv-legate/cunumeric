@@ -37,13 +37,13 @@ struct NonzeroImpl {
     size_t volume = pitches.flatten(rect);
 
     if (volume == 0) {
-      DeferredBuffer<int64_t, 1> empty{};
+      auto empty = create_buffer<VAL>(0);
       for (auto& store : args.results) store.return_data(empty, 0);
       return;
     }
 
     auto in = args.input.read_accessor<VAL, DIM>(rect);
-    std::vector<DeferredBuffer<int64_t, 1>> results(DIM);
+    std::vector<Buffer<int64_t>> results(DIM);
     auto size = NonzeroImplBody<KIND, CODE, DIM>()(in, pitches, rect, volume, results);
 
     for (int32_t idx = 0; idx < DIM; ++idx) args.results[idx].return_data(results[idx], size);
