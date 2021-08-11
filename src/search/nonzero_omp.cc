@@ -32,7 +32,7 @@ struct NonzeroImplBody<VariantKind::OMP, CODE, DIM> {
                     const Pitches<DIM - 1>& pitches,
                     const Rect<DIM>& rect,
                     const size_t volume,
-                    std::vector<DeferredBuffer<int64_t, 1>>& results)
+                    std::vector<Buffer<int64_t>>& results)
   {
     const auto max_threads = omp_get_max_threads();
 
@@ -58,10 +58,7 @@ struct NonzeroImplBody<VariantKind::OMP, CODE, DIM> {
       for (auto idx = 1; idx < max_threads; ++idx) offsets[idx] = offsets[idx - 1] + sizes[idx - 1];
     }
 
-    for (auto& result : results) {
-      auto hi = std::max<int64_t>(size - 1, 0);
-      result  = DeferredBuffer<int64_t, 1>(Rect<1>(0, hi), Memory::Kind::SYSTEM_MEM);
-    }
+    for (auto& result : results) result = create_buffer<int64_t>(size, Memory::Kind::SYSTEM_MEM);
 
 #pragma omp parallel
     {

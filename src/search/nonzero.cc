@@ -30,7 +30,7 @@ struct NonzeroImplBody<VariantKind::CPU, CODE, DIM> {
                     const Pitches<DIM - 1>& pitches,
                     const Rect<DIM>& rect,
                     const size_t volume,
-                    std::vector<DeferredBuffer<int64_t, 1>>& results)
+                    std::vector<Buffer<int64_t>>& results)
   {
     int64_t size = 0;
 
@@ -39,10 +39,7 @@ struct NonzeroImplBody<VariantKind::CPU, CODE, DIM> {
       size += in[point] != VAL(0);
     }
 
-    for (auto& result : results) {
-      auto hi = std::max<int64_t>(size - 1, 0);
-      result  = DeferredBuffer<int64_t, 1>(Rect<1>(0, hi), Memory::Kind::SYSTEM_MEM);
-    }
+    for (auto& result : results) result = create_buffer<int64_t>(size, Memory::Kind::SYSTEM_MEM);
 
     int64_t out_idx = 0;
     for (size_t idx = 0; idx < volume; ++idx) {
