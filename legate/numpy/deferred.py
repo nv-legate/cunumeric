@@ -1021,6 +1021,8 @@ class DeferredArray(NumPyThunk):
         task.add_input(weight_array.base)
 
         task.add_broadcast(dst_array.base)
+        if not weight_array.scalar:
+            task.add_alignment(src_array.base, weight_array.base)
 
         task.execute()
 
