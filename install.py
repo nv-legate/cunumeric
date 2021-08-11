@@ -207,20 +207,18 @@ def build_legate_numpy(
         else:
             libname = "openblas"
 
-        make_flags = (
-            [
-                "LEGATE_DIR=%s" % install_dir,
-                "OPEN_BLAS_DIR=%s" % openblas_dir,
-                "DEBUG=%s" % (1 if debug else 0),
-                "DEBUG_RELEASE=%s" % (1 if debug_release else 0),
-                "CHECK_BOUNDS=%s" % (1 if check_bounds else 0),
-                "PREFIX=%s" % install_dir,
-                "OPENBLAS_FLAGS = -L%s/lib -l%s -Wl,-rpath=%s/lib"
-                % (openblas_dir, libname, openblas_dir),
-            ]
-            + (["USE_CUDA=0"] if not cuda else [])
-            + (["USE_OPENMP=0"] if not openmp else [])
-        )
+        make_flags = [
+            "LEGATE_DIR=%s" % install_dir,
+            "OPEN_BLAS_DIR=%s" % openblas_dir,
+            "DEBUG=%s" % (1 if debug else 0),
+            "DEBUG_RELEASE=%s" % (1 if debug_release else 0),
+            "CHECK_BOUNDS=%s" % (1 if check_bounds else 0),
+            "USE_CUDA=%s" % (1 if cuda else 0),
+            "USE_OPENMP=%s" % (1 if openmp else 0),
+            "PREFIX=%s" % install_dir,
+            "OPENBLAS_FLAGS = -L%s/lib -l%s -Wl,-rpath=%s/lib"
+            % (openblas_dir, libname, openblas_dir),
+        ]
         if clean_first:
             execute_command(
                 ["make"] + make_flags + ["clean"], cwd=src_dir, verbose=verbose
@@ -384,7 +382,7 @@ def driver():
         dest="debug",
         action="store_true",
         required=False,
-        default=os.environ.get("DEBUG") == "1",
+        default=os.environ.get("DEBUG", "0") == "1",
         help="Build Legate NumPy with debugging enabled.",
     )
     parser.add_argument(
@@ -392,7 +390,7 @@ def driver():
         dest="debug_release",
         action="store_true",
         required=False,
-        default=os.environ.get("DEBUG_RELEASE") == "1",
+        default=os.environ.get("DEBUG_RELEASE", "0") == "1",
         help="Build Legate NumPy with debugging symbols.",
     )
     parser.add_argument(
