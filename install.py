@@ -228,7 +228,7 @@ def build_legate_numpy(
             "USE_CUDA=%s" % (1 if cuda else 0),
             "USE_OPENMP=%s" % (1 if openmp else 0),
             "PREFIX=%s" % install_dir,
-            "OPENBLAS_FLAGS = -L%s/lib -l%s -Wl,-rpath=%s/lib"
+            "OPENBLAS_FLAGS = -L%s/lib -l%s -Wl,-rpath,%s/lib"
             % (openblas_dir, libname, openblas_dir),
         ]
         if clean_first:
