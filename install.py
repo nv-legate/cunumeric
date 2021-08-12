@@ -27,19 +27,7 @@ import subprocess
 import sys
 import tempfile
 
-_version = sys.version_info.major
-
-
-if _version == 2:  # Python 2.x:
-    _input = raw_input  # noqa: F821
-elif _version == 3:  # Python 3.x:
-    _input = input
-else:
-    raise Exception("Incompatible Python version")
-
-
 os_name = platform.system()
-
 
 if os_name == "Linux":
     dylib_ext = ".so"
@@ -289,7 +277,6 @@ def install_legate_numpy(
     cmake=None,
     cmake_exe=None,
     legate_dir=None,
-    legion_dir=None,
     openblas_dir=None,
     thrust_dir=None,
     cuda=True,
@@ -309,7 +296,6 @@ def install_legate_numpy(
         print_log("cmake: ", cmake, "\n")
         print_log("cmake_exe: ", cmake_exe, "\n")
         print_log("legate_dir: ", legate_dir, "\n")
-        print_log("legion_dir: ", legion_dir, "\n")
         print_log("openblas_dir: ", openblas_dir, "\n")
         print_log("cuda: ", cuda, "\n")
         print_log("openmp: ", openmp, "\n")
