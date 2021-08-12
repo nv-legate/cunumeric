@@ -170,6 +170,7 @@ def install_openblas(openblas_dir, openmp, thread_count, verbose):
             str(thread_count),
             "USE_THREAD=1",
             "NO_STATIC=1",
+            "USE_CUDA=0",
             "USE_OPENMP=%s" % (1 if openmp else 0),
             "NUM_PARALLEL=32",
             "LIBNAMESUFFIX=legate",
