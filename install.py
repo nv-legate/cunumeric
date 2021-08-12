@@ -228,7 +228,7 @@ def build_legate_numpy(
             "USE_CUDA=%s" % (1 if cuda else 0),
             "USE_OPENMP=%s" % (1 if openmp else 0),
             "PREFIX=%s" % install_dir,
-            "OPENBLAS_FLAGS = -L%s/lib -l%s -Wl,-rpath=%s/lib"
+            "OPENBLAS_FLAGS = -L%s/lib -l%s -Wl,-rpath,%s/lib"
             % (openblas_dir, libname, openblas_dir),
         ]
         if clean_first:
@@ -322,9 +322,7 @@ def install_legate_numpy(
         libs_config = json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
         libs_config = {}
-    if "OPEN_BLAS_DIR" in os.environ:
-        openblas_dir = os.environ["OPEN_BLAS_DIR"]
-    elif openblas_dir is None:
+    if openblas_dir is None:
         openblas_dir = libs_config.get("openblas")
         if openblas_dir is None:
             openblas_dir = os.path.join(legate_dir, "OpenBLAS")
@@ -420,6 +418,7 @@ def driver():
         dest="openblas_dir",
         metavar="DIR",
         required=False,
+        default=os.environ.get("OPEN_BLAS_DIR"),
         help="Path to OpenBLAS installation directory. Note that providing a "
         "user-defined BLAS library may lead to dynamic library conflicts with "
         "BLAS loaded by Python's Numpy. When using legate.numpy's BLAS, this "

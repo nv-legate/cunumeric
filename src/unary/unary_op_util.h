@@ -144,6 +144,20 @@ struct UnaryOp<UnaryOpCode::ABSOLUTE, CODE> {
   }
 };
 
+template <>
+struct UnaryOp<UnaryOpCode::ABSOLUTE, LegateTypeCode::COMPLEX64_LT> {
+  static constexpr bool valid = false;
+  UnaryOp() {}
+  UnaryOp(const std::vector<UntypedScalar>& args) {}
+};
+
+template <>
+struct UnaryOp<UnaryOpCode::ABSOLUTE, LegateTypeCode::COMPLEX128_LT> {
+  static constexpr bool valid = false;
+  UnaryOp() {}
+  UnaryOp(const std::vector<UntypedScalar>& args) {}
+};
+
 template <LegateTypeCode CODE>
 struct UnaryOp<UnaryOpCode::ARCCOS, CODE> {
   static constexpr bool valid = true;
