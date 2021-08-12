@@ -25,6 +25,9 @@ import subprocess
 import sys
 import tempfile
 
+# Flush output on newlines
+sys.stdout.reconfigure(line_buffering=True)
+
 os_name = platform.system()
 
 if os_name == "Linux":
@@ -32,9 +35,7 @@ if os_name == "Linux":
 elif os_name == "Darwin":
     dylib_ext = ".dylib"
 else:
-    raise Exception(
-        "install.py script does not work on %s" % platform.system()
-    )
+    raise Exception("install.py script does not work on %s" % os_name)
 
 
 class BooleanFlag(argparse.Action):
@@ -77,14 +78,9 @@ class BooleanFlag(argparse.Action):
         setattr(namespace, self.dest, not option_string.startswith("--no"))
 
 
-def print_log(*args, **kwargs):
-    print(*args, **kwargs)
-    sys.stdout.flush()
-
-
 def execute_command(args, verbose, cwd=None, shell=False):
     if verbose:
-        print_log("EXECUTING: ", args)
+        print("EXECUTING: ", args)
     subprocess.check_call(args, cwd=cwd, shell=shell)
 
 
@@ -139,7 +135,7 @@ def symlink(from_path, to_path):
 
 
 def install_openblas(openblas_dir, openmp, thread_count, verbose):
-    print_log("Legate is installing OpenBLAS into a local directory...")
+    print("Legate is installing OpenBLAS into a local directory...")
     temp_dir = tempfile.mkdtemp()
     # Pin OpenBLAS at a recent version
     git_clone(
@@ -210,10 +206,10 @@ def build_legate_numpy(
 ):
     src_dir = os.path.join(legate_numpy_dir, "src")
     if cmake:
-        print_log(
+        print(
             "Warning: CMake is currently not supported for Legate NumPy build."
         )
-        print_log("Using GNU Make for now.")
+        print("Using GNU Make for now.")
 
     if not python_only:
         openblas_dir = os.path.realpath(openblas_dir)
@@ -277,23 +273,23 @@ def install_legate_numpy(
     verbose,
     unknown,
 ):
-    print_log("Verbose build is ", "on" if verbose else "off")
+    print("Verbose build is ", "on" if verbose else "off")
     if verbose:
-        print_log("Options are:\n")
-        print_log("cmake: ", cmake, "\n")
-        print_log("cmake_exe: ", cmake_exe, "\n")
-        print_log("legate_dir: ", legate_dir, "\n")
-        print_log("openblas_dir: ", openblas_dir, "\n")
-        print_log("cuda: ", cuda, "\n")
-        print_log("openmp: ", openmp, "\n")
-        print_log("debug: ", debug, "\n")
-        print_log("debug_release: ", debug_release, "\n")
-        print_log("check_bounds: ", check_bounds, "\n")
-        print_log("clean_first: ", clean_first, "\n")
-        print_log("python_only: ", python_only, "\n")
-        print_log("thread_count: ", thread_count, "\n")
-        print_log("verbose: ", verbose, "\n")
-        print_log("unknown: ", unknown, "\n")
+        print("Options are:\n")
+        print("cmake: ", cmake, "\n")
+        print("cmake_exe: ", cmake_exe, "\n")
+        print("legate_dir: ", legate_dir, "\n")
+        print("openblas_dir: ", openblas_dir, "\n")
+        print("cuda: ", cuda, "\n")
+        print("openmp: ", openmp, "\n")
+        print("debug: ", debug, "\n")
+        print("debug_release: ", debug_release, "\n")
+        print("check_bounds: ", check_bounds, "\n")
+        print("clean_first: ", clean_first, "\n")
+        print("python_only: ", python_only, "\n")
+        print("thread_count: ", thread_count, "\n")
+        print("verbose: ", verbose, "\n")
+        print("unknown: ", unknown, "\n")
 
     legate_numpy_dir = os.path.dirname(os.path.realpath(__file__))
 
