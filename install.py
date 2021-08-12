@@ -274,21 +274,21 @@ def build_legate_numpy(
 
 
 def install_legate_numpy(
-    cmake=None,
-    cmake_exe=None,
-    legate_dir=None,
-    openblas_dir=None,
-    thrust_dir=None,
-    cuda=True,
-    openmp=True,
-    debug=False,
-    debug_release=False,
-    check_bounds=False,
-    clean_first=False,
-    python_only=False,
-    thread_count=None,
-    verbose=False,
-    unknown=None,
+    cmake,
+    cmake_exe,
+    legate_dir,
+    openblas_dir,
+    thrust_dir,
+    cuda,
+    openmp,
+    debug,
+    debug_release,
+    check_bounds,
+    clean_first,
+    python_only,
+    thread_count,
+    verbose,
+    unknown,
 ):
     print_log("Verbose build is ", "on" if verbose else "off")
     if verbose:
@@ -312,10 +312,6 @@ def install_legate_numpy(
 
     cmake = get_cmake_config(cmake, legate_numpy_dir, default=False)
 
-    if clean_first is None:
-        clean_first = not cmake
-
-    thread_count = thread_count
     if thread_count is None:
         thread_count = multiprocessing.cpu_count()
 
