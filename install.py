@@ -182,17 +182,6 @@ def install_openblas(openblas_dir, openmp, thread_count, verbose):
     shutil.rmtree(temp_dir)
 
 
-def get_cmake_config(cmake, legate_dir, default=None):
-    config_filename = os.path.join(legate_dir, ".cmake.json")
-    if cmake is None:
-        cmake = load_json_config(config_filename)
-        if cmake is None:
-            cmake = default
-    assert cmake in [True, False]
-    dump_json_config(config_filename, cmake)
-    return cmake
-
-
 def find_c_define(define, header):
     with open(header, "r") as f:
         line = f.readline()
@@ -310,7 +299,8 @@ def install_legate_numpy(
 
     legate_numpy_dir = os.path.dirname(os.path.realpath(__file__))
 
-    cmake = get_cmake_config(cmake, legate_numpy_dir, default=False)
+    cmake_config = os.path.join(legate_numpy_dir, ".cmake.json")
+    dump_json_config(cmake_config, cmake)
 
     if thread_count is None:
         thread_count = multiprocessing.cpu_count()
