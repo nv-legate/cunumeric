@@ -332,5 +332,19 @@ struct BinaryOp<BinaryOpCode::ALLCLOSE, CODE> {
   double atol_{0};
 };
 
+template <>
+struct BinaryOp<BinaryOpCode::ALLCLOSE, LegateTypeCode::COMPLEX64_LT> {
+  static constexpr bool valid = false;
+  BinaryOp() {}
+  BinaryOp(const std::vector<UntypedScalar>& args) {}
+};
+
+template <>
+struct BinaryOp<BinaryOpCode::ALLCLOSE, LegateTypeCode::COMPLEX128_LT> {
+  static constexpr bool valid = false;
+  BinaryOp() {}
+  BinaryOp(const std::vector<UntypedScalar>& args) {}
+};
+
 }  // namespace numpy
 }  // namespace legate
