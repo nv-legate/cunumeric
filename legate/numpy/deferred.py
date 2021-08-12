@@ -15,6 +15,7 @@
 
 import warnings
 import weakref
+from functools import reduce
 
 import numpy as np
 
@@ -35,6 +36,10 @@ def _complex_field_dtype(dtype):
         return np.dtype(np.float128)
     else:
         assert False
+
+
+def _prod(tpl):
+    return reduce(lambda a, b: a * b, tpl, 1)
 
 
 def auto_convert(indices, keys=[]):
@@ -507,41 +512,16 @@ class DeferredArray(NumPyThunk):
 
     def reshape(self, newshape, order, stacklevel):
         assert isinstance(newshape, tuple)
-        # Check to see if we can convert the store make to match the new shape
-        # using domain transformations
-        result = self.base
-        if order == "C" or order == "A":
-            out_dim = 0
-            for dim_size in self.shape:
-                size = 1
-                i = 0
-                while size < dim_size:
-                    size *= newshape[out_dim + i]
-                    i += 1
-                if size != dim_size:
-                    result = None
-                    break
-                elif i > 1:
-                    result = result.delinearize(
-                        out_dim,
-                        newshape[out_dim : out_dim + i],
-                    )
-                out_dim += i
-                while out_dim < len(newshape) and newshape[out_dim] == 1:
-                    result = result.promote(out_dim, 1)
-                    out_dim += 1
+        if order == "A":
+            order = "C"
 
-        else:
-            result = None
-
-        if result is None:
+        if order != "C":
             # If we don't have a transform then we need to make a copy
             warnings.warn(
-                "legate.numpy has not implemented reshape/ravel for newshape "
-                + str(newshape)
-                + " which is a non-affine mapping and is falling back to "
-                + "canonical numpy. You may notice significantly decreased "
-                + "performance for this function call.",
+                "legate.numpy has not implemented reshape using Fortran-like "
+                "index order and is falling back to canonical numpy. You may "
+                "notice significantly decreased performance for this "
+                "function call.",
                 stacklevel=(stacklevel + 1),
                 category=RuntimeWarning,
             )
@@ -551,14 +531,168 @@ class DeferredArray(NumPyThunk):
             result = self.runtime.get_numpy_thunk(
                 result_array, stacklevel=(stacklevel + 1)
             )
+
+            if self.runtime.shadow_debug:
+                result.shadow = self.shadow.reshape(
+                    newshape, order, stacklevel=(stacklevel + 1)
+                )
+
+            return result
+
+        if self.shape == newshape:
+            return self
+
+        # Find a combination of domain transformations to convert this store
+        # to the new shape. First we identify a pair of subsets of the source
+        # and target extents whose products are the same, and infer necessary
+        # domain transformations to align the two. In case where the target
+        # isn't a transformed view of the source, the data is copied. This
+        # table summarizes five possible cases:
+        #
+        # +-------+---------+------+-----------------------------------+
+        # |Source | Target  | Copy | Plan                              |
+        # +-------+---------+------+-----------------------------------+
+        # |(a,b,c)| (abc,)  | Yes  | Delinearize(tgt, (a,b,c)) <- src  |
+        # +-------+---------+------+-----------------------------------+
+        # |(abc,) | (a,b,c,)| No   | tgt = Delinearize(src, (a,b,c))   |
+        # +-------+---------+------+-----------------------------------+
+        # |(a,b)  | (c,d)   | Yes  | tmp = new store((ab,))            |
+        # |       |         |      | Delinearize(tmp, (a,b)) <- src    |
+        # |       |         |      | tgt = Delinearize(tmp, (c,d))     |
+        # +-------+---------+------+-----------------------------------+
+        # |(a,1)  | (a,)    | No   | tgt = Project(src, 0, 0)          |
+        # +-------+---------+------+-----------------------------------+
+        # |(a,)   | (a,1)   | No   | tgt = Promote(src, 0, 1)          |
+        # +-------+---------+------+-----------------------------------+
+
+        in_dim = 0
+        out_dim = 0
+
+        in_shape = self.shape
+        out_shape = newshape
+
+        in_ndim = len(in_shape)
+        out_ndim = len(out_shape)
+
+        groups = []
+
+        while in_dim < in_ndim and out_dim < out_ndim:
+            prev_in_dim = in_dim
+            prev_out_dim = out_dim
+
+            in_prod = 1
+            out_prod = 1
+
+            while True:
+                if in_prod < out_prod:
+                    in_prod *= in_shape[in_dim]
+                    in_dim += 1
+                else:
+                    out_prod *= out_shape[out_dim]
+                    out_dim += 1
+                if in_prod == out_prod:
+                    if in_dim < in_ndim and in_shape[in_dim] == 1:
+                        in_dim += 1
+                    break
+
+            in_group = in_shape[prev_in_dim:in_dim]
+            out_group = out_shape[prev_out_dim:out_dim]
+            groups.append((in_group, out_group))
+
+        while in_dim < in_ndim:
+            assert in_shape[in_dim] == 1
+            groups.append(((1,), ()))
+            in_dim += 1
+
+        while out_dim < out_ndim:
+            assert out_shape[out_dim] == 1
+            groups.append(((), (1,)))
+            out_dim += 1
+
+        needs_copy = any(len(src_g) > 1 for src_g, _ in groups)
+
+        tmp_shape = ()
+        for src_g, tgt_g in groups:
+            if len(src_g) > 1 and len(tgt_g) > 1:
+                tmp_shape += (_prod(tgt_g),)
+            else:
+                tmp_shape += tgt_g
+
+        if needs_copy:
+            result = self.runtime.create_empty_thunk(
+                tmp_shape, dtype=self.dtype, inputs=[self]
+            )
+
+            src = self.base
+            tgt = result.base
+
+            src_dim = 0
+            tgt_dim = 0
+            for src_g, tgt_g in groups:
+                diff = 1
+                if src_g == tgt_g:
+                    assert len(src_g) == 1
+                elif len(src_g) == 0:
+                    assert tgt_g == (1,)
+                    src = src.promote(src_dim, 1)
+                elif len(tgt_g) == 0:
+                    assert src_g == (1,)
+                    tgt = tgt.promote(tgt_dim, 1)
+                elif len(src_g) == 1:
+                    src = src.delinearize(src_dim, tgt_g)
+                    diff = len(tgt_g)
+                else:
+                    tgt = tgt.delinearize(tgt_dim, src_g)
+                    diff = len(src_g)
+
+                src_dim += diff
+                tgt_dim += diff
+
+            assert src.shape == tgt.shape
+
+            src_array = DeferredArray(
+                self.runtime, src, self.dtype, self.scalar
+            )
+            tgt_array = DeferredArray(
+                self.runtime, tgt, self.dtype, self.scalar
+            )
+            tgt_array.copy(src_array, deep=True, stacklevel=stacklevel + 1)
+
         else:
-            result = DeferredArray(
-                self.runtime, result, self.dtype, self.scalar
-            )
-        if self.runtime.shadow_debug:
-            result.shadow = self.shadow.reshape(
-                newshape, order, stacklevel=(stacklevel + 1)
-            )
+            src = self.base
+            src_dim = 0
+            for src_g, tgt_g in groups:
+                diff = 1
+                if src_g == tgt_g:
+                    assert len(src_g) == 1
+                elif len(src_g) == 0:
+                    assert tgt_g == (1,)
+                    src = src.promote(src_dim, 1)
+                elif len(tgt_g) == 0:
+                    assert src_g == (1,)
+                    src = src.project(src_dim, 1)
+                    diff = 0
+                elif len(src_g) == 1:
+                    src = src.delinearize(src_dim, tgt_g)
+                    diff = len(tgt_g)
+                else:
+                    # unreachable
+                    assert False
+
+                src_dim += diff
+
+            result = DeferredArray(self.runtime, src, self.dtype, self.scalar)
+
+        if tmp_shape != newshape:
+            tgt = result.base
+            tgt_dim = 0
+            for src_g, tgt_g in groups:
+                if len(src_g) > 1 and len(tgt_g) > 1:
+                    tgt = tgt.delinearize(tgt_dim, tgt_g)
+                tgt_dim += len(tgt_g)
+
+            result = DeferredArray(self.runtime, tgt, self.dtype, self.scalar)
+
         return result
 
     def squeeze(self, axis, stacklevel):
