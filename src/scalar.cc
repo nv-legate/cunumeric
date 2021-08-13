@@ -33,6 +33,7 @@ static const char* TYPE_NAMES[] = {"bool",
                                    "__half",
                                    "float",
                                    "double",
+                                   "complex<__half>",  // not actually used
                                    "complex<float>",
                                    "complex<double>"};
 
