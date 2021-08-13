@@ -74,6 +74,7 @@ constexpr decltype(auto) op_dispatch(BinaryOpCode op_code, Functor f, Fnargs&&..
       return f.template operator()<BinaryOpCode::POWER>(std::forward<Fnargs>(args)...);
     case BinaryOpCode::SUBTRACT:
       return f.template operator()<BinaryOpCode::SUBTRACT>(std::forward<Fnargs>(args)...);
+    default: break;
   }
   assert(false);
   return f.template operator()<BinaryOpCode::ADD>(std::forward<Fnargs>(args)...);
@@ -87,6 +88,7 @@ constexpr decltype(auto) reduce_op_dispatch(BinaryOpCode op_code, Functor f, Fna
       return f.template operator()<BinaryOpCode::EQUAL>(std::forward<Fnargs>(args)...);
     case BinaryOpCode::ALLCLOSE:
       return f.template operator()<BinaryOpCode::ALLCLOSE>(std::forward<Fnargs>(args)...);
+    default: break;
   }
   assert(false);
   return f.template operator()<BinaryOpCode::EQUAL>(std::forward<Fnargs>(args)...);
@@ -322,35 +324,23 @@ struct BinaryOp<BinaryOpCode::ALLCLOSE, CODE> {
     atol_ = args[1].value<double>();
   }
 
-  constexpr bool operator()(const VAL& a, const VAL& b) const
+  template <typename T = VAL, std::enable_if_t<!is_complex<T>::value>* = nullptr>
+  constexpr bool operator()(const T& a, const T& b) const
   {
     using std::fabs;
-    return static_cast<double>(fabs(a - b)) <= atol_ + rtol_ * static_cast<double>(fabs(b));
+    return fabs(static_cast<double>(a) - static_cast<double>(b)) <=
+           atol_ + rtol_ * static_cast<double>(fabs(b));
+  }
+
+  template <typename T = VAL, std::enable_if_t<is_complex<T>::value>* = nullptr>
+  constexpr bool operator()(const T& a, const T& b) const
+  {
+    return static_cast<double>(abs(a - b)) <= atol_ + rtol_ * static_cast<double>(abs(b));
   }
 
   double rtol_{0};
   double atol_{0};
 };
-
-#if defined(__clang__) && !defined(__NVCC__)
-
-// Clang doesn't seem to support fabs for complex types, so we turn them off
-
-template <>
-struct BinaryOp<BinaryOpCode::ALLCLOSE, LegateTypeCode::COMPLEX64_LT> {
-  static constexpr bool valid = false;
-  BinaryOp() {}
-  BinaryOp(const std::vector<UntypedScalar>& args) {}
-};
-
-template <>
-struct BinaryOp<BinaryOpCode::ALLCLOSE, LegateTypeCode::COMPLEX128_LT> {
-  static constexpr bool valid = false;
-  BinaryOp() {}
-  BinaryOp(const std::vector<UntypedScalar>& args) {}
-};
-
-#endif
 
 }  // namespace numpy
 }  // namespace legate
