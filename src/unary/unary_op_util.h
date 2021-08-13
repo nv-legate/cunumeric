@@ -122,7 +122,8 @@ struct UnaryOp<UnaryOpCode::ABSOLUTE, CODE> {
   UnaryOp(const std::vector<UntypedScalar>& args) {}
 
   template <typename _T                                                                  = T,
-            std::enable_if_t<std::is_integral<_T>::value and std::is_signed<_T>::value>* = nullptr>
+            std::enable_if_t<is_complex<_T>::value or
+                             std::is_integral<_T>::value and std::is_signed<_T>::value>* = nullptr>
   constexpr decltype(auto) operator()(const _T& x) const
   {
     return abs(x);
@@ -136,33 +137,14 @@ struct UnaryOp<UnaryOpCode::ABSOLUTE, CODE> {
     return x;
   }
 
-  template <typename _T = T, std::enable_if_t<!std::is_integral<_T>::value>* = nullptr>
+  template <typename _T                                                                = T,
+            std::enable_if_t<!is_complex<_T>::value and !std::is_integral<_T>::value>* = nullptr>
   constexpr decltype(auto) operator()(const _T& x) const
   {
     using std::fabs;
     return fabs(x);
   }
 };
-
-#if defined(__clang__) && !defined(__NVCC__)
-
-// Clang doesn't seem to support fabs for complex types, so we turn them off
-
-template <>
-struct UnaryOp<UnaryOpCode::ABSOLUTE, LegateTypeCode::COMPLEX64_LT> {
-  static constexpr bool valid = false;
-  UnaryOp() {}
-  UnaryOp(const std::vector<UntypedScalar>& args) {}
-};
-
-template <>
-struct UnaryOp<UnaryOpCode::ABSOLUTE, LegateTypeCode::COMPLEX128_LT> {
-  static constexpr bool valid = false;
-  UnaryOp() {}
-  UnaryOp(const std::vector<UntypedScalar>& args) {}
-};
-
-#endif
 
 template <LegateTypeCode CODE>
 struct UnaryOp<UnaryOpCode::ARCCOS, CODE> {
