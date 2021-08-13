@@ -327,7 +327,8 @@ struct BinaryOp<BinaryOpCode::ALLCLOSE, CODE> {
   constexpr bool operator()(const VAL& a, const VAL& b) const
   {
     using std::fabs;
-    return static_cast<double>(fabs(a - b)) <= atol_ + rtol_ * static_cast<double>(fabs(b));
+    return fabs(static_cast<double>(a) - static_cast<double>(b)) <=
+           atol_ + rtol_ * static_cast<double>(fabs(b));
   }
 
   double rtol_{0};
