@@ -15,8 +15,6 @@
 # limitations under the License.
 #
 
-from __future__ import print_function
-
 import argparse
 import json
 import multiprocessing
@@ -27,38 +25,62 @@ import subprocess
 import sys
 import tempfile
 
-_version = sys.version_info.major
-
-
-if _version == 2:  # Python 2.x:
-    _input = raw_input  # noqa: F821
-elif _version == 3:  # Python 3.x:
-    _input = input
-else:
-    raise Exception("Incompatible Python version")
-
+# Flush output on newlines
+sys.stdout.reconfigure(line_buffering=True)
 
 os_name = platform.system()
-
 
 if os_name == "Linux":
     dylib_ext = ".so"
 elif os_name == "Darwin":
     dylib_ext = ".dylib"
 else:
-    raise Exception(
-        "install.py script does not work on %s" % platform.system()
-    )
+    raise Exception("install.py script does not work on %s" % os_name)
 
 
-def print_log(*args, **kwargs):
-    print(*args, **kwargs)
-    sys.stdout.flush()
+class BooleanFlag(argparse.Action):
+    def __init__(
+        self,
+        option_strings,
+        dest,
+        default,
+        required=False,
+        help="",
+        metavar=None,
+    ):
+        assert all(not opt.startswith("--no") for opt in option_strings)
+
+        def flatten(list):
+            return [item for sublist in list for item in sublist]
+
+        option_strings = flatten(
+            [
+                [opt, "--no-" + opt[2:], "--no" + opt[2:]]
+                if opt.startswith("--")
+                else [opt]
+                for opt in option_strings
+            ]
+        )
+        super().__init__(
+            option_strings,
+            dest,
+            nargs=0,
+            const=None,
+            default=default,
+            type=bool,
+            choices=None,
+            required=required,
+            help=help,
+            metavar=metavar,
+        )
+
+    def __call__(self, parser, namespace, values, option_string):
+        setattr(namespace, self.dest, not option_string.startswith("--no"))
 
 
 def execute_command(args, verbose, cwd=None, shell=False):
     if verbose:
-        print_log("EXECUTING: ", args)
+        print("EXECUTING: ", args)
     subprocess.check_call(args, cwd=cwd, shell=shell)
 
 
@@ -112,25 +134,8 @@ def symlink(from_path, to_path):
         os.symlink(from_path, to_path)
 
 
-def has_openmp():
-    cxx = os.getenv("CXX", "g++")
-    temp_dir = tempfile.mkdtemp()
-    try:
-        execute_command(
-            'echo "int main(void) { return 0; }" | '
-            f"{cxx} -o test.omp -x c++ -fopenmp -",
-            shell=True,
-            cwd=temp_dir,
-            verbose=False,
-        )
-    except subprocess.CalledProcessError:
-        return False
-    else:
-        return True
-
-
-def install_openblas(openblas_dir, thread_count, verbose):
-    print_log("Legate is installing OpenBLAS into a local directory...")
+def install_openblas(openblas_dir, openmp, thread_count, verbose):
+    print("Legate is installing OpenBLAS into a local directory...")
     temp_dir = tempfile.mkdtemp()
     # Pin OpenBLAS at a recent version
     git_clone(
@@ -140,35 +145,21 @@ def install_openblas(openblas_dir, thread_count, verbose):
         verbose=verbose,
     )
     # We can just build this directly
-    if has_openmp():
-        execute_command(
-            [
-                "make",
-                "-j",
-                str(thread_count),
-                "USE_THREAD=1",
-                "NO_STATIC=1",
-                "USE_OPENMP=1",
-                "NUM_PARALLEL=32",
-                "LIBNAMESUFFIX=legate",
-            ],
-            cwd=temp_dir,
-            verbose=verbose,
-        )
-    else:
-        execute_command(
-            [
-                "make",
-                "-j",
-                str(thread_count),
-                "USE_THREAD=1",
-                "NO_STATIC=1",
-                "NUM_PARALLEL=32",
-                "LIBNAMESUFFIX=legate",
-            ],
-            cwd=temp_dir,
-            verbose=verbose,
-        )
+    execute_command(
+        [
+            "make",
+            "-j",
+            str(thread_count),
+            "USE_THREAD=1",
+            "NO_STATIC=1",
+            "USE_CUDA=0",
+            "USE_OPENMP=%s" % (1 if openmp else 0),
+            "NUM_PARALLEL=32",
+            "LIBNAMESUFFIX=legate",
+        ],
+        cwd=temp_dir,
+        verbose=verbose,
+    )
     # Then do the installation to our target directory
     execute_command(
         [
@@ -183,17 +174,6 @@ def install_openblas(openblas_dir, thread_count, verbose):
         verbose=verbose,
     )
     shutil.rmtree(temp_dir)
-
-
-def get_cmake_config(cmake, legate_dir, default=None):
-    config_filename = os.path.join(legate_dir, ".cmake.json")
-    if cmake is None:
-        cmake = load_json_config(config_filename)
-        if cmake is None:
-            cmake = default
-    assert cmake in [True, False]
-    dump_json_config(config_filename, cmake)
-    return cmake
 
 
 def find_c_define(define, header):
@@ -226,10 +206,10 @@ def build_legate_numpy(
 ):
     src_dir = os.path.join(legate_numpy_dir, "src")
     if cmake:
-        print_log(
+        print(
             "Warning: CMake is currently not supported for Legate NumPy build."
         )
-        print_log("Using GNU Make for now.")
+        print("Using GNU Make for now.")
 
     if not python_only:
         openblas_dir = os.path.realpath(openblas_dir)
@@ -239,20 +219,18 @@ def build_legate_numpy(
         else:
             libname = "openblas"
 
-        make_flags = (
-            [
-                "LEGATE_DIR=%s" % install_dir,
-                "OPEN_BLAS_DIR=%s" % openblas_dir,
-                "DEBUG=%s" % (1 if debug else 0),
-                "DEBUG_RELEASE=%s" % (1 if debug_release else 0),
-                "CHECK_BOUNDS=%s" % (1 if check_bounds else 0),
-                "PREFIX=%s" % install_dir,
-                "OPENBLAS_FLAGS = -L%s/lib -l%s -Wl,-rpath=%s/lib"
-                % (openblas_dir, libname, openblas_dir),
-            ]
-            + (["USE_CUDA=0"] if not cuda else [])
-            + (["USE_OPENMP=0"] if not openmp else [])
-        )
+        make_flags = [
+            "LEGATE_DIR=%s" % install_dir,
+            "OPEN_BLAS_DIR=%s" % openblas_dir,
+            "DEBUG=%s" % (1 if debug else 0),
+            "DEBUG_RELEASE=%s" % (1 if debug_release else 0),
+            "CHECK_BOUNDS=%s" % (1 if check_bounds else 0),
+            "USE_CUDA=%s" % (1 if cuda else 0),
+            "USE_OPENMP=%s" % (1 if openmp else 0),
+            "PREFIX=%s" % install_dir,
+            "OPENBLAS_FLAGS = -L%s/lib -l%s -Wl,-rpath,%s/lib"
+            % (openblas_dir, libname, openblas_dir),
+        ]
         if clean_first:
             execute_command(
                 ["make"] + make_flags + ["clean"], cwd=src_dir, verbose=verbose
@@ -279,50 +257,45 @@ def build_legate_numpy(
 
 
 def install_legate_numpy(
-    cmake=None,
-    cmake_exe=None,
-    legate_dir=None,
-    legion_dir=None,
-    openblas_dir=None,
-    thrust_dir=None,
-    cuda=True,
-    openmp=True,
-    debug=False,
-    debug_release=False,
-    check_bounds=False,
-    clean_first=False,
-    python_only=False,
-    thread_count=None,
-    verbose=False,
-    unknown=None,
+    cmake,
+    cmake_exe,
+    legate_dir,
+    openblas_dir,
+    thrust_dir,
+    cuda,
+    openmp,
+    debug,
+    debug_release,
+    check_bounds,
+    clean_first,
+    python_only,
+    thread_count,
+    verbose,
+    unknown,
 ):
-    print_log("Verbose build is ", "on" if verbose else "off")
+    print("Verbose build is ", "on" if verbose else "off")
     if verbose:
-        print_log("Options are:\n")
-        print_log("cmake: ", cmake, "\n")
-        print_log("cmake_exe: ", cmake_exe, "\n")
-        print_log("legate_dir: ", legate_dir, "\n")
-        print_log("legion_dir: ", legion_dir, "\n")
-        print_log("openblas_dir: ", openblas_dir, "\n")
-        print_log("cuda: ", cuda, "\n")
-        print_log("openmp: ", openmp, "\n")
-        print_log("debug: ", debug, "\n")
-        print_log("debug_release: ", debug_release, "\n")
-        print_log("check_bounds: ", check_bounds, "\n")
-        print_log("clean_first: ", clean_first, "\n")
-        print_log("python_only: ", python_only, "\n")
-        print_log("thread_count: ", thread_count, "\n")
-        print_log("verbose: ", verbose, "\n")
-        print_log("unknown: ", unknown, "\n")
+        print("Options are:\n")
+        print("cmake: ", cmake, "\n")
+        print("cmake_exe: ", cmake_exe, "\n")
+        print("legate_dir: ", legate_dir, "\n")
+        print("openblas_dir: ", openblas_dir, "\n")
+        print("cuda: ", cuda, "\n")
+        print("openmp: ", openmp, "\n")
+        print("debug: ", debug, "\n")
+        print("debug_release: ", debug_release, "\n")
+        print("check_bounds: ", check_bounds, "\n")
+        print("clean_first: ", clean_first, "\n")
+        print("python_only: ", python_only, "\n")
+        print("thread_count: ", thread_count, "\n")
+        print("verbose: ", verbose, "\n")
+        print("unknown: ", unknown, "\n")
 
     legate_numpy_dir = os.path.dirname(os.path.realpath(__file__))
 
-    cmake = get_cmake_config(cmake, legate_numpy_dir, default=False)
+    cmake_config = os.path.join(legate_numpy_dir, ".cmake.json")
+    dump_json_config(cmake_config, cmake)
 
-    if clean_first is None:
-        clean_first = not cmake
-
-    thread_count = thread_count
     if thread_count is None:
         thread_count = multiprocessing.cpu_count()
 
@@ -349,14 +322,12 @@ def install_legate_numpy(
         libs_config = json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
         libs_config = {}
-    if "OPEN_BLAS_DIR" in os.environ:
-        openblas_dir = os.environ["OPEN_BLAS_DIR"]
-    elif openblas_dir is None:
+    if openblas_dir is None:
         openblas_dir = libs_config.get("openblas")
         if openblas_dir is None:
             openblas_dir = os.path.join(legate_dir, "OpenBLAS")
     if not os.path.exists(openblas_dir):
-        install_openblas(openblas_dir, thread_count, verbose)
+        install_openblas(openblas_dir, openmp, thread_count, verbose)
     libs_config["openblas"] = openblas_dir
     with open(
         os.path.join(legate_dir, "share", "legate", ".legate-libs.json"), "w"
@@ -416,7 +387,7 @@ def driver():
         dest="debug",
         action="store_true",
         required=False,
-        default=os.environ.get("DEBUG") == "1",
+        default=os.environ.get("DEBUG", "0") == "1",
         help="Build Legate NumPy with debugging enabled.",
     )
     parser.add_argument(
@@ -424,7 +395,7 @@ def driver():
         dest="debug_release",
         action="store_true",
         required=False,
-        default=os.environ.get("DEBUG_RELEASE") == "1",
+        default=os.environ.get("DEBUG_RELEASE", "0") == "1",
         help="Build Legate NumPy with debugging symbols.",
     )
     parser.add_argument(
@@ -447,6 +418,7 @@ def driver():
         dest="openblas_dir",
         metavar="DIR",
         required=False,
+        default=os.environ.get("OPEN_BLAS_DIR"),
         help="Path to OpenBLAS installation directory. Note that providing a "
         "user-defined BLAS library may lead to dynamic library conflicts with "
         "BLAS loaded by Python's Numpy. When using legate.numpy's BLAS, this "
@@ -460,37 +432,22 @@ def driver():
         help="Path to Thrust installation directory.",
     )
     parser.add_argument(
-        "--no-cuda",
-        dest="cuda",
-        action="store_false",
-        required=False,
-        default=True,
-        help="Build Legate NumPy without CUDA.",
+        "--cuda",
+        action=BooleanFlag,
+        default=os.environ.get("USE_CUDA", "1") == "1",
+        help="Build Legate NumPy with CUDA support.",
     )
     parser.add_argument(
-        "--no-openmp",
-        dest="openmp",
-        action="store_false",
-        required=False,
-        default=True,
-        help="Build Legate NumPy without OpenMP.",
+        "--openmp",
+        action=BooleanFlag,
+        default=os.environ.get("USE_OPENMP", "1") == "1",
+        help="Build Legate NumPy with OpenMP support.",
     )
     parser.add_argument(
         "--cmake",
-        dest="cmake",
-        action="store_true",
-        required=False,
-        default=os.environ["USE_CMAKE"] == "1"
-        if "USE_CMAKE" in os.environ
-        else None,
-        help="Build Legate NumPy with CMake.",
-    )
-    parser.add_argument(
-        "--no-cmake",
-        dest="cmake",
-        action="store_false",
-        required=False,
-        help="Don't build Legate NumPy with CMake (instead use GNU Make).",
+        action=BooleanFlag,
+        default=os.environ.get("USE_CMAKE", "0") == "1",
+        help="Build Legate NumPy with CMake instead of GNU Make.",
     )
     parser.add_argument(
         "--with-cmake",
@@ -501,13 +458,11 @@ def driver():
         help="Path to CMake executable (if not on PATH).",
     )
     parser.add_argument(
-        "--no-clean",
-        "--noclean",
+        "--clean",
         dest="clean_first",
-        action="store_false",
-        required=False,
+        action=BooleanFlag,
         default=True,
-        help="Skip clean before build.",
+        help="Clean before build.",
     )
     parser.add_argument(
         "--python-only",
