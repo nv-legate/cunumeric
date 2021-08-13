@@ -332,6 +332,10 @@ struct BinaryOp<BinaryOpCode::ALLCLOSE, CODE> {
   double atol_{0};
 };
 
+#if defined(__clang__) && !defined(__NVCC__)
+
+// Clang doesn't seem to support fabs for complex types, so we turn them off
+
 template <>
 struct BinaryOp<BinaryOpCode::ALLCLOSE, LegateTypeCode::COMPLEX64_LT> {
   static constexpr bool valid = false;
@@ -345,6 +349,8 @@ struct BinaryOp<BinaryOpCode::ALLCLOSE, LegateTypeCode::COMPLEX128_LT> {
   BinaryOp() {}
   BinaryOp(const std::vector<UntypedScalar>& args) {}
 };
+
+#endif
 
 }  // namespace numpy
 }  // namespace legate
