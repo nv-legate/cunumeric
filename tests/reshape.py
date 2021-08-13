@@ -18,7 +18,7 @@ import numpy as np
 import legate.numpy as lg
 
 
-def test():
+def test1():
     anp = np.arange(100).reshape(10, 10)
     a = lg.arange(100).reshape((10, 10))
     assert np.array_equal(anp, a)
@@ -44,5 +44,23 @@ def test():
     assert np.array_equal(dnp, d)
 
 
+def test2():
+    anp = np.random.rand(5, 4, 10)
+    a = lg.array(anp)
+
+    for shape in [
+        (10, 2, 10),
+        (20, 10),
+        (5, 40),
+        (200, 1),
+        (1, 200),
+        (10, 20),
+    ]:
+        bnp = np.reshape(anp, shape)
+        b = lg.reshape(a, shape)
+        assert np.array_equal(bnp, b)
+
+
 if __name__ == "__main__":
-    test()
+    test1()
+    test2()
