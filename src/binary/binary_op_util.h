@@ -74,6 +74,7 @@ constexpr decltype(auto) op_dispatch(BinaryOpCode op_code, Functor f, Fnargs&&..
       return f.template operator()<BinaryOpCode::POWER>(std::forward<Fnargs>(args)...);
     case BinaryOpCode::SUBTRACT:
       return f.template operator()<BinaryOpCode::SUBTRACT>(std::forward<Fnargs>(args)...);
+    default: break;
   }
   assert(false);
   return f.template operator()<BinaryOpCode::ADD>(std::forward<Fnargs>(args)...);
@@ -87,6 +88,7 @@ constexpr decltype(auto) reduce_op_dispatch(BinaryOpCode op_code, Functor f, Fna
       return f.template operator()<BinaryOpCode::EQUAL>(std::forward<Fnargs>(args)...);
     case BinaryOpCode::ALLCLOSE:
       return f.template operator()<BinaryOpCode::ALLCLOSE>(std::forward<Fnargs>(args)...);
+    default: break;
   }
   assert(false);
   return f.template operator()<BinaryOpCode::EQUAL>(std::forward<Fnargs>(args)...);

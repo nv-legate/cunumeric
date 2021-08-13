@@ -61,6 +61,7 @@ constexpr decltype(auto) op_dispatch(UnaryRedCode op_code, Functor f, Fnargs&&..
       return f.template operator()<UnaryRedCode::ARGMIN>(std::forward<Fnargs>(args)...);
     case UnaryRedCode::CONTAINS:
       return f.template operator()<UnaryRedCode::CONTAINS>(std::forward<Fnargs>(args)...);
+    default: break;
   }
   assert(false);
   return f.template operator()<UnaryRedCode::MAX>(std::forward<Fnargs>(args)...);
@@ -273,6 +274,20 @@ struct UntypedScalarRedOp {
       type_dispatch(rhs1.code(), fold_fn<EXCLUSIVE>{}, rhs1.ptr(), rhs2.ptr());
   }
 };
+
+// Reassure clang that these are defined somewhere
+template <>
+const UntypedScalar UntypedScalarRedOp<UnaryRedCode::MAX>::identity;
+template <>
+const UntypedScalar UntypedScalarRedOp<UnaryRedCode::MIN>::identity;
+template <>
+const UntypedScalar UntypedScalarRedOp<UnaryRedCode::PROD>::identity;
+template <>
+const UntypedScalar UntypedScalarRedOp<UnaryRedCode::SUM>::identity;
+template <>
+const UntypedScalar UntypedScalarRedOp<UnaryRedCode::ARGMAX>::identity;
+template <>
+const UntypedScalar UntypedScalarRedOp<UnaryRedCode::ARGMIN>::identity;
 
 }  // namespace numpy
 }  // namespace legate
