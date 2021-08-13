@@ -28,8 +28,9 @@ using namespace Legion;
 template <LegateTypeCode CODE>
 struct DotImplBody<VariantKind::OMP, CODE> {
   using VAL = legate_type_of<CODE>;
+  using ACC = acc_type_of<VAL>;
 
-  void operator()(VAL& result,
+  void operator()(ACC& result,
                   const AccessorRO<VAL, 1>& rhs1,
                   const AccessorRO<VAL, 1>& rhs2,
                   const Rect<1>& rect,
@@ -37,8 +38,8 @@ struct DotImplBody<VariantKind::OMP, CODE> {
   {
     const auto volume      = rect.volume();
     const auto max_threads = omp_get_max_threads();
-    auto locals            = static_cast<VAL*>(alloca(max_threads * sizeof(VAL)));
-    for (auto idx = 0; idx < max_threads; ++idx) locals[idx] = SumReduction<VAL>::identity;
+    auto locals            = static_cast<ACC*>(alloca(max_threads * sizeof(ACC)));
+    for (auto idx = 0; idx < max_threads; ++idx) locals[idx] = SumReduction<ACC>::identity;
 
     if (dense) {
       auto rhs1ptr = rhs1.ptr(rect);
@@ -48,8 +49,8 @@ struct DotImplBody<VariantKind::OMP, CODE> {
         const int tid = omp_get_thread_num();
 #pragma omp for schedule(static)
         for (size_t idx = 0; idx < volume; ++idx) {
-          const VAL prod = rhs1ptr[idx] * rhs2ptr[idx];
-          SumReduction<VAL>::template fold<true>(locals[tid], prod);
+          const auto prod = static_cast<ACC>(rhs1ptr[idx]) * static_cast<ACC>(rhs2ptr[idx]);
+          SumReduction<ACC>::template fold<true>(locals[tid], prod);
         }
       }
     } else {
@@ -58,14 +59,14 @@ struct DotImplBody<VariantKind::OMP, CODE> {
         const int tid = omp_get_thread_num();
 #pragma omp for schedule(static)
         for (coord_t idx = rect.lo[0]; idx <= rect.hi[0]; ++idx) {
-          const VAL prod = rhs1[idx] * rhs2[idx];
-          SumReduction<VAL>::template fold<true>(locals[tid], prod);
+          const auto prod = static_cast<ACC>(rhs1[idx]) * static_cast<ACC>(rhs2[idx]);
+          SumReduction<ACC>::template fold<true>(locals[tid], prod);
         }
       }
     }
 
     for (auto idx = 0; idx < max_threads; ++idx)
-      SumReduction<VAL>::template fold<true>(result, locals[idx]);
+      SumReduction<ACC>::template fold<true>(result, locals[idx]);
   }
 };
 

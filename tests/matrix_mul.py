@@ -19,8 +19,8 @@ import legate.numpy as lg
 
 
 def test(ty):
-
     np.random.seed(42)
+
     A = lg.random.randn(6, 3, 7).astype(ty)
     B = lg.random.randn(4, 7, 11).astype(ty)
     C = A[1].dot(B[2])
@@ -72,6 +72,16 @@ def test(ty):
     A3[0] = A3np[0]
     B3[0] = B3np[0]
     C = A3[0].T.dot(B3[0].T)
+
+    assert np.allclose(C, Cn)
+
+    A = lg.random.randn(1, 10).astype(ty)
+    B = lg.random.randn(10, 1).astype(ty)
+    C = A.dot(B)
+
+    An = A.__array__()
+    Bn = B.__array__()
+    Cn = An.dot(Bn)
 
     assert np.allclose(C, Cn)
 

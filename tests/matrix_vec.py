@@ -60,6 +60,26 @@ def test(ty):
 
     assert np.allclose(C, Cn)
 
+    A = lg.random.randn(1, 10).astype(ty)
+    B = lg.random.randn(10).astype(ty)
+    C = A.dot(B)
+
+    An = A.__array__()
+    Bn = B.__array__()
+    Cn = An.dot(Bn)
+
+    assert np.allclose(C, Cn)
+
+    A = lg.random.randn(10).astype(ty)
+    B = lg.random.randn(10, 1).astype(ty)
+    C = A.dot(B)
+
+    An = A.__array__()
+    Bn = B.__array__()
+    Cn = An.dot(Bn)
+
+    assert np.allclose(C, Cn)
+
 
 if __name__ == "__main__":
     test(np.float16)
