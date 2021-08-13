@@ -13,9 +13,8 @@
 # limitations under the License.
 #
 
-from __future__ import absolute_import, division, print_function
-
 import warnings
+from collections.abc import Iterable
 from functools import reduce
 
 import numpy as np
@@ -32,6 +31,7 @@ from .utils import unimplemented
 def broadcast_shapes(*args):
     arrays = [np.empty(x, dtype=[]) for x in args]
     return np.broadcast(*arrays).shape
+
 
 @copy_docstring(np.ndarray)
 class ndarray(object):
@@ -1292,7 +1292,7 @@ class ndarray(object):
     def reshape(self, shape, order="C", stacklevel=1):
         if shape != -1:
             # Check that these sizes are compatible
-            if isinstance(shape, tuple):
+            if isinstance(shape, Iterable):
                 newsize = 1
                 newshape = list()
                 unknown_axis = -1
@@ -1516,7 +1516,7 @@ class ndarray(object):
             axes = tuple(range(self.ndim - 1, -1, -1))
         elif len(axes) == self.ndim:
             result = ndarray(
-                shape=tuple(map(lambda x, y: x[y], self.shape, axes)),
+                shape=tuple(self.shape[idx] for idx in axes),
                 dtype=self.dtype,
                 stacklevel=(stacklevel + 1),
             )
