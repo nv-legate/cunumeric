@@ -144,6 +144,10 @@ struct UnaryOp<UnaryOpCode::ABSOLUTE, CODE> {
   }
 };
 
+#if defined(__clang__) && !defined(__NVCC__)
+
+// Clang doesn't seem to support fabs for complex types, so we turn them off
+
 template <>
 struct UnaryOp<UnaryOpCode::ABSOLUTE, LegateTypeCode::COMPLEX64_LT> {
   static constexpr bool valid = false;
@@ -157,6 +161,8 @@ struct UnaryOp<UnaryOpCode::ABSOLUTE, LegateTypeCode::COMPLEX128_LT> {
   UnaryOp() {}
   UnaryOp(const std::vector<UntypedScalar>& args) {}
 };
+
+#endif
 
 template <LegateTypeCode CODE>
 struct UnaryOp<UnaryOpCode::ARCCOS, CODE> {
