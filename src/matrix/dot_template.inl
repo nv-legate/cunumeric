@@ -22,18 +22,32 @@ using namespace Legion;
 template <VariantKind KIND, LegateTypeCode CODE>
 struct DotImplBody;
 
+template <typename VAL>
+struct AccTypeOf {
+  using type = VAL;
+};
+
+template <>
+struct AccTypeOf<__half> {
+  using type = float;
+};
+
+template <typename VAL>
+using acc_type_of = typename AccTypeOf<VAL>::type;
+
 template <VariantKind KIND>
 struct DotImpl {
   template <LegateTypeCode CODE>
   UntypedScalar operator()(DotArgs& args) const
   {
     using VAL = legate_type_of<CODE>;
+    using ACC = acc_type_of<VAL>;
 
     assert(args.rhs1.dim() == 1);
     assert(args.rhs2.dim() == 1);
 
     auto rect  = args.rhs1.shape<1>();
-    VAL result = SumReduction<VAL>::identity;
+    ACC result = SumReduction<ACC>::identity;
 
     if (rect.empty()) return UntypedScalar(result);
 

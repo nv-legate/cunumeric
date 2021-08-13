@@ -827,6 +827,11 @@ class DeferredArray(NumPyThunk):
                 rhs1_array.size == 1 and rhs2_array.size == 1
             )
 
+            if rhs1_array.dtype == np.float16:
+                lhs_array = self.runtime.create_empty_thunk(
+                    self.shape, np.dtype(np.float32), inputs=[self]
+                )
+
             redop = self.runtime.get_scalar_reduction_op_id(UnaryRedCode.SUM)
 
             task = self.context.create_task(NumPyOpCode.DOT)
@@ -834,12 +839,47 @@ class DeferredArray(NumPyThunk):
             task.add_input(rhs1_array.base)
             task.add_input(rhs2_array.base)
 
+            task.add_alignment(rhs1_array.base, rhs2_array.base)
+
             task.execute()
+
+            if rhs1_array.dtype == np.float16:
+                self.convert(
+                    lhs_array,
+                    stacklevel=stacklevel + 1,
+                    warn=False,
+                    callsite=callsite,
+                )
 
         elif rhs1_array.ndim == 1 or rhs2_array.ndim == 1:
             # Matrix-vector or vector-matrix multiply
             assert lhs_array.ndim == 1
             assert rhs1_array.ndim == 2 or rhs2_array.ndim == 2
+
+            left_matrix = rhs1_array.ndim == 2
+
+            if left_matrix and rhs1_array.shape[0] == 1:
+                rhs1_array = rhs1_array.get_item(
+                    (0, slice(None)), stacklevel + 1
+                )
+                lhs_array.dot(
+                    rhs1_array,
+                    rhs2_array,
+                    stacklevel=stacklevel + 1,
+                    callsite=callsite,
+                )
+                return
+            elif not left_matrix and rhs2_array.shape[1] == 1:
+                rhs2_array = rhs2_array.get_item(
+                    (slice(None), 0), stacklevel + 1
+                )
+                lhs_array.dot(
+                    rhs1_array,
+                    rhs2_array,
+                    stacklevel=stacklevel + 1,
+                    callsite=callsite,
+                )
+                return
 
             # If the inputs are 16-bit floats, we should use 32-bit float
             # for accumulation
@@ -854,8 +894,6 @@ class DeferredArray(NumPyThunk):
                 stacklevel=(stacklevel + 1),
                 callsite=callsite,
             )
-
-            left_matrix = rhs1_array.ndim == 2
 
             if left_matrix:
                 rhs1 = rhs1_array.base
@@ -909,6 +947,21 @@ class DeferredArray(NumPyThunk):
             assert M == rhs1_array.shape[0]  # Check M
             assert N == rhs2_array.shape[1]  # Check N
             assert K == rhs2_array.shape[0]  # Check K
+
+            if M == 1 and N == 1:
+                rhs1_array = rhs1_array.get_item(
+                    (0, slice(None)), stacklevel + 1
+                )
+                rhs2_array = rhs2_array.get_item(
+                    (slice(None), 0), stacklevel + 1
+                )
+                lhs_array.dot(
+                    rhs1_array,
+                    rhs2_array,
+                    stacklevel=stacklevel + 1,
+                    callsite=callsite,
+                )
+                return
 
             if rhs1_array.dtype == np.float16:
                 lhs_array = self.runtime.create_empty_thunk(

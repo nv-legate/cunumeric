@@ -25,8 +25,9 @@ using namespace Legion;
 template <LegateTypeCode CODE>
 struct DotImplBody<VariantKind::CPU, CODE> {
   using VAL = legate_type_of<CODE>;
+  using ACC = acc_type_of<VAL>;
 
-  void operator()(VAL& result,
+  void operator()(ACC& result,
                   const AccessorRO<VAL, 1>& rhs1,
                   const AccessorRO<VAL, 1>& rhs2,
                   const Rect<1>& rect,
@@ -37,13 +38,13 @@ struct DotImplBody<VariantKind::CPU, CODE> {
       auto rhs1ptr = rhs1.ptr(rect);
       auto rhs2ptr = rhs2.ptr(rect);
       for (coord_t idx = 0; idx < volume; ++idx) {
-        const VAL prod = rhs1ptr[idx] * rhs2ptr[idx];
-        SumReduction<VAL>::template fold<true>(result, prod);
+        const auto prod = static_cast<ACC>(rhs1ptr[idx]) * static_cast<ACC>(rhs2ptr[idx]);
+        SumReduction<ACC>::template fold<true>(result, prod);
       }
     } else {
       for (coord_t idx = rect.lo[0]; idx <= rect.hi[0]; ++idx) {
-        const VAL prod = rhs1[idx] * rhs2[idx];
-        SumReduction<VAL>::template fold<true>(result, prod);
+        const auto prod = static_cast<ACC>(rhs1[idx]) * static_cast<ACC>(rhs2[idx]);
+        SumReduction<ACC>::template fold<true>(result, prod);
       }
     }
   }
