@@ -15,6 +15,7 @@
 
 import warnings
 import weakref
+from collections.abc import Iterable
 from functools import reduce
 
 import numpy as np
@@ -511,7 +512,7 @@ class DeferredArray(NumPyThunk):
             self.runtime.check_shadow(self, "set_item")
 
     def reshape(self, newshape, order, stacklevel):
-        assert isinstance(newshape, tuple)
+        assert isinstance(newshape, Iterable)
         if order == "A":
             order = "C"
 
