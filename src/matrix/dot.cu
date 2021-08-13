@@ -32,7 +32,8 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM) red
     const size_t offset = (idx * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (offset < volume) {
       auto point = origin + offset;
-      SumReduction<ACC>::fold<true>(value, rhs1[point] * rhs2[point]);
+      SumReduction<ACC>::fold<true>(value,
+                                    static_cast<ACC>(rhs1[point]) * static_cast<ACC>(rhs2[point]));
     }
   }
   // Every thread in the thread block must participate in the exchange to get correct results
