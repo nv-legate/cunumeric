@@ -9,6 +9,10 @@ on:
 env:
   COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
   PROJECT: github-numpy-ci
+  REF: ${{ github.event.pull_request.head.ref || github.ref }}
+  BASE_REF: ${{ github.event.pull_request.base.ref || github.ref }}
+  EVENT_NAME: ${{ github.event_name }}
+  LABEL: ${{ github.event.pull_request.head.label }}
   # Prevent output buffering
   PYTHONUNBUFFERED: 1
 jobs:
