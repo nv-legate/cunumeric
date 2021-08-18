@@ -1097,11 +1097,6 @@ class DeferredArray(NumPyThunk):
 
         task.execute()
 
-        # See if we are doing shadow debugging
-        if self.runtime.shadow_debug:
-            self.shadow.eye(k=k, stacklevel=(stacklevel + 1))
-            self.runtime.check_shadow(self, "eye")
-
     @profile
     @shadow_debug("arange", [])
     def arange(self, start, stop, step, stacklevel=0, callsite=None):
@@ -1111,10 +1106,6 @@ class DeferredArray(NumPyThunk):
             assert self.shape[0] == 1
             array = np.array(start, dtype=self.dtype)
             dst.set_value(self.runtime.runtime, array.data, array.nbytes)
-            # See if we are doing shadow debugging
-            if self.runtime.shadow_debug:
-                self.shadow.eye(k=k, stacklevel=(stacklevel + 1))
-                self.runtime.check_shadow(self, "arange")
             return
 
         def create_scalar(value, dtype):
