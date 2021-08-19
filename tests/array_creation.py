@@ -27,7 +27,7 @@ def test():
 
     xe = lg.empty((2, 3))
     ye = np.empty((2, 3))
-    assert lg.shape(xe) == np.shape(ye)
+    assert xe.shape == ye.shape
     assert xe.dtype == ye.dtype
 
     xz = lg.zeros((2, 3))
@@ -47,7 +47,7 @@ def test():
 
     xel = lg.empty_like(x)
     yel = np.empty_like(y)
-    assert lg.shape(xel) == np.shape(yel)
+    assert xel.shape == yel.shape
     assert xel.dtype == yel.dtype
 
     xzl = lg.zeros_like(x)
