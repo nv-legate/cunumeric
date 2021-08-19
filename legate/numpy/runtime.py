@@ -262,6 +262,8 @@ class Runtime(object):
         else:
             self.callsite_summaries[callsite] = (1 if accelerated else 0, 1)
 
+    # This function packs data in the format expected by UntypedScalar,
+    # so any Future creation in this library should go through this.
     def create_scalar(self, array, dtype, shape=None, wrap=False):
         if dtype.kind == "V":
             is_arg = True

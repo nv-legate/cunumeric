@@ -504,8 +504,6 @@ class DeferredArray(NumPyThunk):
                     rhs_copy.copy(rhs, deep=False, stacklevel=(stacklevel + 1))
                     rhs = rhs_copy
 
-                # Handle an unfortunate case where our subview can
-                # accidentally collapse the last dimension
                 view.copy(rhs, deep=False, stacklevel=(stacklevel + 1))
         if self.runtime.shadow_debug:
             self.shadow.set_item(key, rhs.shadow, stacklevel=(stacklevel + 1))
@@ -1102,7 +1100,7 @@ class DeferredArray(NumPyThunk):
     def arange(self, start, stop, step, stacklevel=0, callsite=None):
         assert self.ndim == 1  # Only 1-D arrays should be here
         if self.scalar:
-            # Handle the special case of a single values here
+            # Handle the special case of a single value here
             assert self.shape[0] == 1
             array = np.array(start, dtype=self.dtype)
             dst.set_value(self.runtime.runtime, array.data, array.nbytes)

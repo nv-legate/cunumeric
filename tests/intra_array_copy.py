@@ -109,14 +109,14 @@ def full_overlap(lib, ndim):
 
 
 def array_gen(lib, ndim):
-    # no overlap between source and destination array
+    # no overlap between source and destination slice
     yield from no_overlap(lib, ndim, random_array)
     # no overlap at view level, but possible overlap on underlying array
     # TODO: disable until legate.core#40 is fixed
     # yield from no_overlap(lib, ndim, nd_view_of_1d)
-    # partial overlap
+    # partial overlap between source and destination slice
     yield from partial_overlap(lib, ndim)
-    # full overlap
+    # full overlap between source and destination slice
     yield from full_overlap(lib, ndim)
 
 
