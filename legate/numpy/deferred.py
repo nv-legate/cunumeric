@@ -1103,7 +1103,8 @@ class DeferredArray(NumPyThunk):
             # Handle the special case of a single value here
             assert self.shape[0] == 1
             array = np.array(start, dtype=self.dtype)
-            dst.set_value(self.runtime.runtime, array.data, array.nbytes)
+            future = self.runtime.create_scalar(array.data, array.dtype)
+            self.base.set_storage(future)
             return
 
         def create_scalar(value, dtype):

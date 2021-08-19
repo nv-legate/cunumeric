@@ -65,6 +65,11 @@ def test():
     assert np.array_equal(xfl, yfl)
     assert xfl.dtype == yfl.dtype
 
+    x = lg.arange(1)
+    y = np.arange(1)
+    assert np.array_equal(x, y)
+    assert x.dtype == y.dtype
+
     x = lg.arange(10)
     y = np.arange(10)
     assert np.array_equal(x, y)
