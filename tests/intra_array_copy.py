@@ -88,6 +88,22 @@ def full_overlap(lib, ndim):
     x = random_array(lib, ndim)
     x[:] = x
     yield x
+    x = random_array(lib, ndim)
+    y = lib.zeros(ndim * (5,))
+    x[:] = y[:]
+    yield x
+    # special cases of full-overlap self-copy occuring because Python
+    # translates expressions like x[:] += y into x[:] = x[:].__iadd__(y)
+    # which eventually executes x[:] = x[:]
+    x = random_array(lib, ndim)
+    x[ndim * (slice(0, 3),)] += 2
+    yield x
+    x = random_array(lib, ndim)
+    x[ndim * (slice(0, 3),)] = x[ndim * (slice(0, 3),)]
+    yield x
+    x = random_array(lib, ndim)
+    x[:] += 2
+    yield x
     # overlap on a (full) hyperplane
     for d in range(ndim):
         x = random_array(lib, ndim)
