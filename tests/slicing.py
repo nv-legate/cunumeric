@@ -79,10 +79,6 @@ def test():
     # print(thirdslicegold)
     # assert(lg.array_equal(thirdslice, thirdslicegold))
 
-    x = lg.arange(10)
-    x[0:5] = x[5:10]
-    assert np.array_equal(x, [5, 6, 7, 8, 9, 5, 6, 7, 8, 9])
-
     return
 
 
