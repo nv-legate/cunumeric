@@ -160,6 +160,9 @@ class DeferredArray(NumPyThunk):
             None if numpy_array is None else weakref.ref(numpy_array)
         )
 
+    def __str__(self):
+        return f"DeferredArray(base: {self.base})"
+
     @property
     def storage(self):
         if isinstance(self.base, Future):

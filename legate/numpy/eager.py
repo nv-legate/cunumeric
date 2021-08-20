@@ -90,7 +90,7 @@ class EagerArray(NumPyThunk):
             if self.parent is None:
                 assert self.runtime.is_supported_type(self.array.dtype)
                 # We are at the root of the tree so we need to
-                # actually make DeferredArray to use
+                # actually make a DeferredArray to use
                 if self.array.size == 1:
                     self.deferred = self.runtime.create_scalar(
                         self.array.data,

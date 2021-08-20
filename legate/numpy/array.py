@@ -883,9 +883,7 @@ class ndarray(object):
             np.array(min, dtype=self.dtype),
             np.array(max, dtype=self.dtype),
         )
-        if (args[0] is not None and args[0].size != 1) or (
-            args[1] is not None and args[1].size != 1
-        ):
+        if args[0].size != 1 or args[1].size != 1:
             warnings.warn(
                 "legate.numpy has not implemented clip with array-like "
                 "arguments and is falling back to canonical numpy. You "
