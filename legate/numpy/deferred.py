@@ -151,12 +151,11 @@ class DeferredArray(NumPyThunk):
     :meta private:
     """
 
-    def __init__(self, runtime, base, dtype, scalar, numpy_array=None):
+    def __init__(self, runtime, base, dtype, numpy_array=None):
         NumPyThunk.__init__(self, runtime, dtype)
         assert base is not None
         assert isinstance(base, Store)
         self.base = base  # a Legate Store
-        self.scalar = scalar
         self.numpy_array = (
             None if numpy_array is None else weakref.ref(numpy_array)
         )
@@ -277,9 +276,12 @@ class DeferredArray(NumPyThunk):
             callsite=callsite,
         )
 
+    @property
+    def scalar(self):
+        return self.base.scalar
+
     def get_scalar_array(self, stacklevel):
-        assert self.size == 1
-        assert self.base.scalar
+        assert self.scalar
         # Look at the type of the data and figure out how to read this data
         # First four bytes are for the type code, so we need to skip those
         buf = self.base.storage.get_buffer(self.dtype.itemsize + 8)[8:]
@@ -361,7 +363,6 @@ class DeferredArray(NumPyThunk):
             self.runtime,
             base=store,
             dtype=self.dtype,
-            scalar=False,
         )
 
     def _broadcast(self, shape):
@@ -649,12 +650,8 @@ class DeferredArray(NumPyThunk):
 
             assert src.shape == tgt.shape
 
-            src_array = DeferredArray(
-                self.runtime, src, self.dtype, self.scalar
-            )
-            tgt_array = DeferredArray(
-                self.runtime, tgt, self.dtype, self.scalar
-            )
+            src_array = DeferredArray(self.runtime, src, self.dtype)
+            tgt_array = DeferredArray(self.runtime, tgt, self.dtype)
             tgt_array.copy(src_array, deep=True, stacklevel=stacklevel + 1)
 
         else:
@@ -680,7 +677,7 @@ class DeferredArray(NumPyThunk):
 
                 src_dim += diff
 
-            result = DeferredArray(self.runtime, src, self.dtype, self.scalar)
+            result = DeferredArray(self.runtime, src, self.dtype)
 
         if tmp_shape != newshape:
             tgt = result.base
@@ -690,7 +687,7 @@ class DeferredArray(NumPyThunk):
                     tgt = tgt.delinearize(tgt_dim, tgt_g)
                 tgt_dim += len(tgt_g)
 
-            result = DeferredArray(self.runtime, tgt, self.dtype, self.scalar)
+            result = DeferredArray(self.runtime, tgt, self.dtype)
 
         return result
 
@@ -713,7 +710,7 @@ class DeferredArray(NumPyThunk):
             raise TypeError(
                 '"axis" argument for squeeze must be int-like or tuple-like'
             )
-        result = DeferredArray(self.runtime, result, self.dtype, self.scalar)
+        result = DeferredArray(self.runtime, result, self.dtype)
         if self.runtime.shadow_debug:
             result.shadow = self.shadow.squeeze(
                 axis, stacklevel=stacklevel + 1
