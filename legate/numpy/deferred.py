@@ -486,7 +486,7 @@ class DeferredArray(NumPyThunk):
                 # to the arr. Therefore, we skip the copy to avoid redundant
                 # copies if we know that we hit such a scenario.
                 # TODO: We should make this work for the advanced indexing case
-                if view.base == rhs.base:
+                if view.base.storage.same_handle(rhs.base.storage):
                     return
 
                 if self.runtime.shadow_debug:
@@ -504,8 +504,6 @@ class DeferredArray(NumPyThunk):
                     rhs_copy.copy(rhs, deep=False, stacklevel=(stacklevel + 1))
                     rhs = rhs_copy
 
-                # Handle an unfortunate case where our subview can
-                # accidentally collapse the last dimension
                 view.copy(rhs, deep=False, stacklevel=(stacklevel + 1))
         if self.runtime.shadow_debug:
             self.shadow.set_item(key, rhs.shadow, stacklevel=(stacklevel + 1))
@@ -1097,24 +1095,16 @@ class DeferredArray(NumPyThunk):
 
         task.execute()
 
-        # See if we are doing shadow debugging
-        if self.runtime.shadow_debug:
-            self.shadow.eye(k=k, stacklevel=(stacklevel + 1))
-            self.runtime.check_shadow(self, "eye")
-
     @profile
     @shadow_debug("arange", [])
     def arange(self, start, stop, step, stacklevel=0, callsite=None):
         assert self.ndim == 1  # Only 1-D arrays should be here
         if self.scalar:
-            # Handle the special case of a single values here
+            # Handle the special case of a single value here
             assert self.shape[0] == 1
             array = np.array(start, dtype=self.dtype)
-            dst.set_value(self.runtime.runtime, array.data, array.nbytes)
-            # See if we are doing shadow debugging
-            if self.runtime.shadow_debug:
-                self.shadow.eye(k=k, stacklevel=(stacklevel + 1))
-                self.runtime.check_shadow(self, "arange")
+            future = self.runtime.create_scalar(array.data, array.dtype)
+            self.base.set_storage(future)
             return
 
         def create_scalar(value, dtype):
