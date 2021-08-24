@@ -89,7 +89,7 @@ def diag(v, k=0):
     elif array.ndim == 1:
         # Make a diagonal matrix from the array
         N = array.shape[0] + builtins.abs(k)
-        matrix = ndarray((N, N), dtype=array.dtype)
+        matrix = ndarray((N, N), dtype=array.dtype, inputs=(array,))
         matrix._thunk.diag(array._thunk, extract=False, k=k, stacklevel=2)
         return matrix
     elif array.ndim == 2:
@@ -114,7 +114,7 @@ def diag(v, k=0):
             assert stop2[0] < array.shape[0] and stop2[1] < array.shape[1]
             distance = (stop2[0] - start[0]) + 1
             assert distance == ((stop2[1] - start[1]) + 1)
-        vector = ndarray(distance, dtype=array.dtype)
+        vector = ndarray(distance, dtype=array.dtype, inputs=(array,))
         vector._thunk.diag(array._thunk, extract=True, k=k, stacklevel=2)
         return vector
     elif array.ndim > 2:
@@ -1690,7 +1690,7 @@ def vstack(inputs):
         out_shape = (leading_dim,)
         for dim in xrange(1, ndim):
             out_shape += (shape[dim],)
-        out_array = ndarray(shape=out_shape, dtype=dtype)
+        out_array = ndarray(shape=out_shape, dtype=dtype, inputs=legate_inputs)
         # Copy the values over from the inputs
         offset = 0
         for inp in legate_inputs:

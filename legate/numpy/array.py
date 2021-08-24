@@ -124,22 +124,20 @@ class ndarray(object):
             # Convert this into a bool for now, in the future we may want to
             # defer this anyway to avoid blocking deferred execution
             return bool(thunk.get_scalar_array(stacklevel=(stacklevel + 1)))
-        else:
-            # If the type of the thunk is not bool then we need to convert it
-            if obj.dtype != np.bool_:
-                result = ndarray(
-                    thunk.shape,
-                    dtype=np.dtype(np.bool_),
-                    stacklevel=(stacklevel + 1),
-                )
-                result._thunk.convert(
-                    thunk, warn=True, stacklevel=(stacklevel + 1)
-                )
-                return result
-            else:
-                return ndarray(
-                    shape=None, stacklevel=(stacklevel + 1), thunk=thunk
-                )
+        result = ndarray(shape=None, stacklevel=(stacklevel + 1), thunk=thunk)
+        # If the type of the thunk is not bool then we need to convert it
+        if obj.dtype != np.bool_:
+            temp = ndarray(
+                result.shape,
+                dtype=np.dtype(np.bool_),
+                stacklevel=(stacklevel + 1),
+                inputs=(result,),
+            )
+            temp._thunk.convert(
+                result._thunk, warn=True, stacklevel=(stacklevel + 1)
+            )
+            result = temp
+        return result
 
     # Properties for ndarray
 
@@ -301,12 +299,12 @@ class ndarray(object):
         )
 
     def __copy__(self):
-        result = ndarray(self.shape, self.dtype)
+        result = ndarray(self.shape, self.dtype, inputs=(self,))
         result._thunk.copy(self._thunk, deep=False, stacklevel=2)
         return result
 
     def __deepcopy__(self, memo=None):
-        result = ndarray(self.shape, self.dtype)
+        result = ndarray(self.shape, self.dtype, inputs=(self,))
         result._thunk.copy(self._thunk, deep=True, stacklevel=2)
         return result
 
@@ -508,6 +506,7 @@ class ndarray(object):
                 self_array.shape,
                 dtype=common_type,
                 stacklevel=(stacklevel + 1),
+                inputs=(self_array,),
             )
             temp._thunk.convert(
                 self_array._thunk, warn=False, stacklevel=(stacklevel + 1)
@@ -515,7 +514,10 @@ class ndarray(object):
             self_array = temp
         if rhs_array.dtype != common_type:
             temp = ndarray(
-                rhs_array.shape, dtype=common_type, stacklevel=(stacklevel + 1)
+                rhs_array.shape,
+                dtype=common_type,
+                stacklevel=(stacklevel + 1),
+                inputs=(rhs_array,),
             )
             temp._thunk.convert(
                 rhs_array._thunk, warn=False, stacklevel=(stacklevel + 1)
@@ -742,7 +744,9 @@ class ndarray(object):
             raise KeyError("invalid key passed to legate.numpy.ndarray")
         value_array = self.convert_to_legate_ndarray(value)
         if value_array.dtype != self.dtype:
-            temp = ndarray(value_array.shape, dtype=self.dtype)
+            temp = ndarray(
+                value_array.shape, dtype=self.dtype, inputs=(value_array,)
+            )
             temp._thunk.convert(value_array._thunk, stacklevel=2)
             value_array = temp
         if self.size == 1:
@@ -854,7 +858,7 @@ class ndarray(object):
         dtype = np.dtype(dtype)
         if self.dtype == dtype:
             return self
-        result = ndarray(self.shape, dtype=dtype)
+        result = ndarray(self.shape, dtype=dtype, inputs=(self,))
         result._thunk.convert(self._thunk, warn=False, stacklevel=2)
         return result
 
@@ -957,6 +961,28 @@ class ndarray(object):
                 stacklevel=(stacklevel + 1),
             )
         out_dtype = self.find_common_type(self, rhs_array)
+        # Check for type conversion on the way in
+        self_array = self
+        if self_array.dtype != out_dtype:
+            self_array = ndarray(
+                shape=self.shape,
+                dtype=out_dtype,
+                stacklevel=(stacklevel + 1),
+                inputs=(self,),
+            )
+            self_array._thunk.convert(self._thunk, stacklevel=(stacklevel + 1))
+        if rhs_array.dtype != out_dtype:
+            temp_array = ndarray(
+                shape=rhs_array.shape,
+                dtype=out_dtype,
+                stacklevel=(stacklevel + 1),
+                inputs=(rhs_array,),
+            )
+            temp_array._thunk.convert(
+                rhs_array._thunk, stacklevel=(stacklevel + 1)
+            )
+            rhs_array = temp_array
+        # Create output array
         if out is not None:
             out = self.convert_to_legate_ndarray(
                 out, stacklevel=(stacklevel + 1), share=True
@@ -990,7 +1016,10 @@ class ndarray(object):
             if self.ndim == 1 and rhs_array.ndim == 1:
                 # Inner product
                 out = ndarray(
-                    shape=(), dtype=out_dtype, stacklevel=(stacklevel + 1)
+                    shape=(),
+                    dtype=out_dtype,
+                    stacklevel=(stacklevel + 1),
+                    inputs=(self_array, rhs_array),
                 )
             elif self.ndim == 2 and rhs_array.ndim == 2:
                 # Matrix multiply
@@ -1000,6 +1029,7 @@ class ndarray(object):
                     shape=(self.shape[0], rhs_array.shape[1]),
                     dtype=out_dtype,
                     stacklevel=(stacklevel + 1),
+                    inputs=(self_array, rhs_array),
                 )
             elif rhs_array.ndim == 1:
                 if self.shape[-1] != rhs_array.shape[0]:
@@ -1008,6 +1038,7 @@ class ndarray(object):
                     shape=self.shape[:-1],
                     dtype=out_dtype,
                     stacklevel=(stacklevel + 1),
+                    inputs=(self_array, rhs_array),
                 )
             else:
                 if self.shape[-1] != rhs_array.shape[-2]:
@@ -1020,31 +1051,19 @@ class ndarray(object):
                     ),
                     dtype=out_dtype,
                     stacklevel=(stacklevel + 1),
+                    inputs=(self_array, rhs_array),
                 )
-        # Check for type conversion on the way in
-        self_array = self
-        if self_array.dtype != out_dtype:
-            self_array = ndarray(
-                shape=self.shape, dtype=out_dtype, stacklevel=(stacklevel + 1)
-            )
-            self_array._thunk.convert(self._thunk, stacklevel=(stacklevel + 1))
-        if rhs_array.dtype != out_dtype:
-            temp_array = ndarray(
-                shape=rhs_array.shape,
-                dtype=out_dtype,
-                stacklevel=(stacklevel + 1),
-            )
-            temp_array._thunk.convert(
-                rhs_array._thunk, stacklevel=(stacklevel + 1)
-            )
-            rhs_array = temp_array
+        # Perform operation
         out._thunk.dot(
             self_array._thunk, rhs_array._thunk, stacklevel=(stacklevel + 1)
         )
-        # Check type conversion on the way out
+        # Check for type conversion on the way out
         if out.dtype != out_dtype:
             result = ndarray(
-                shape=out.shape, dtype=out_dtype, stacklevel=(stacklevel + 1)
+                shape=out.shape,
+                dtype=out_dtype,
+                stacklevel=(stacklevel + 1),
+                inputs=(out,),
             )
             result._thunk.convert(out._thunk, stacklevel=(stacklevel + 1))
             return result
@@ -1250,6 +1269,7 @@ class ndarray(object):
                 shape=self.shape,
                 dtype=np.dtype(np.int32),
                 stacklevel=(stacklevel + 1),
+                inputs=(self,),
             )
             temp._thunk.convert(self._thunk, stacklevel=(stacklevel + 1))
             self_array = temp
@@ -1447,6 +1467,7 @@ class ndarray(object):
                 shape=self.shape,
                 dtype=np.dtype(np.int32),
                 stacklevel=(stacklevel + 1),
+                inputs=(self,),
             )
             temp._thunk.convert(self._thunk, stacklevel=(stacklevel + 1))
             self_array = temp
@@ -1511,7 +1532,10 @@ class ndarray(object):
             return self
         if axes is None:
             result = ndarray(
-                self.shape[::-1], dtype=self.dtype, stacklevel=(stacklevel + 1)
+                self.shape[::-1],
+                dtype=self.dtype,
+                stacklevel=(stacklevel + 1),
+                inputs=(self,),
             )
             axes = tuple(range(self.ndim - 1, -1, -1))
         elif len(axes) == self.ndim:
@@ -1519,6 +1543,7 @@ class ndarray(object):
                 shape=tuple(self.shape[idx] for idx in axes),
                 dtype=self.dtype,
                 stacklevel=(stacklevel + 1),
+                inputs=(self,),
             )
         else:
             raise ValueError(
@@ -1559,6 +1584,7 @@ class ndarray(object):
                     shape=array.shape,
                     dtype=np.dtype(np.bool_),
                     stacklevel=(stacklevel + 1),
+                    inputs=(array,),
                 )
                 temp._thunk.convert(array._thunk, stacklevel=(stacklevel + 1))
                 array = temp
