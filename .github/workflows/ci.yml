@@ -25,7 +25,10 @@ jobs:
           cd legate-ci/github-ci/legate.numpy
           rm -rf ngc-artifacts || true
           ./build.sh > ${COMMIT}-build.log 2>&1
+      - name: Process Output
+        run: |
           cat *artifacts/*/*
+        if: always()
       - name: Upload Build Log
         if: always()
         uses: actions/upload-artifact@v2
