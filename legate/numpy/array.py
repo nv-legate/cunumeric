@@ -607,7 +607,7 @@ class ndarray(object):
             )
         if self.size == 0:
             return 0
-        return ndarray.perform_unary_reduction(
+        return self.perform_unary_reduction(
             UnaryRedCode.COUNT_NONZERO,
             self,
             axis=axis,
