@@ -127,7 +127,7 @@ struct ScalarUnaryRedImplBody<VariantKind::OMP, UnaryRedCode::COUNT_NONZERO, COD
       {
         const int tid = omp_get_thread_num();
 #pragma omp for schedule(static)
-        for (size_t idx = 0; idx < volume; ++idx) locals[tid] += inptr[idx] != 0;
+        for (size_t idx = 0; idx < volume; ++idx) locals[tid] += inptr[idx] != VAL(0);
       }
     } else {
 #pragma omp parallel
@@ -136,7 +136,7 @@ struct ScalarUnaryRedImplBody<VariantKind::OMP, UnaryRedCode::COUNT_NONZERO, COD
 #pragma omp for schedule(static)
         for (size_t idx = 0; idx < volume; ++idx) {
           auto point = pitches.unflatten(idx, rect.lo);
-          locals[tid] += in[point] != 0;
+          locals[tid] += in[point] != VAL(0);
         }
       }
     }
