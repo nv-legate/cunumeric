@@ -1570,25 +1570,13 @@ class ndarray(object):
     def get_where_thunk(cls, where, out_shape, stacklevel):
         if where is True:
             return True
-        elif where is False:
+        if where is False:
             raise RuntimeError("should have caught this earlier")
-        else:
-            array = cls.convert_to_legate_array(where)
-            if array.shape != out_shape:
-                raise ValueError(
-                    "where parameter must have same shape as output"
-                )
-            # Convert this to a bool array if needed
-            if array.dtype != np.bool_:
-                temp = ndarray(
-                    shape=array.shape,
-                    dtype=np.dtype(np.bool_),
-                    stacklevel=(stacklevel + 1),
-                    inputs=(array,),
-                )
-                temp._thunk.convert(array._thunk, stacklevel=(stacklevel + 1))
-                array = temp
-            return array._thunk
+        if not isinstance(where, ndarray) or where.dtype != np.bool_:
+            raise RuntimeError("should have converted this earlier")
+        if where.shape != out_shape:
+            raise ValueError("where parameter must have same shape as output")
+        return where._thunk
 
     @staticmethod
     def find_common_type(*args):
