@@ -35,7 +35,10 @@ class EagerArray(NumPyThunk):
         self.parent = parent
         self.children = None
         self.key = key
+        #: if this ever becomes set (to a DeferredArray), we forward all
+        #: operations to it
         self.deferred = None
+        #: if True then this is a shadow debugging copy of a DeferredArray
         self.shadow = shadow
         self.escaped = False
 
@@ -165,10 +168,12 @@ class EagerArray(NumPyThunk):
 
     @property
     def scalar(self):
+        if self.deferred is not None:
+            return self.deferred.scalar
         return self.array.size == 1
 
     def get_scalar_array(self, stacklevel):
-        if self.deferred is not None and self.deferred.scalar:
+        if self.deferred is not None:
             return self.deferred.get_scalar_array(stacklevel=(stacklevel + 1))
         return self.array.reshape(())
 
