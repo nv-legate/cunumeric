@@ -268,7 +268,11 @@ class DeferredArray(NumPyThunk):
         return result
 
     # Copy source array to the destination array
+    @auto_convert([1])
     def copy(self, rhs, deep=False, stacklevel=0, callsite=None):
+        if self.scalar and rhs.scalar:
+            self.base.set_storage(rhs.base.storage)
+            return
         self.unary_op(
             UnaryOpCode.COPY,
             rhs.dtype,
@@ -285,8 +289,8 @@ class DeferredArray(NumPyThunk):
 
     def get_scalar_array(self, stacklevel):
         assert self.scalar
-        # Look at the type of the data and figure out how to read this data
-        # First four bytes are for the type code, so we need to skip those
+        # This is packed like an UntypedScalar, so we need to skip 8 bytes of
+        # metadata
         buf = self.base.storage.get_buffer(self.dtype.itemsize + 8)[8:]
         result = np.frombuffer(buf, dtype=self.dtype, count=1)
         return result.reshape(())
