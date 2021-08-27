@@ -120,7 +120,7 @@ class ndarray(object):
             thunk = obj._thunk
         else:
             thunk = runtime.get_numpy_thunk(obj, stacklevel=(stacklevel + 1))
-        if thunk.size == 1:
+        if thunk.scalar:
             # Convert this into a bool for now, in the future we may want to
             # defer this anyway to avoid blocking deferred execution
             return bool(thunk.get_scalar_array(stacklevel=(stacklevel + 1)))
@@ -270,13 +270,13 @@ class ndarray(object):
     #    return self.__array__(stacklevel=2).__array_wrap__(*args, **kwargs)
 
     def __bool__(self):
-        if self.size == 1:
+        if self._thunk.scalar:
             return bool(self._thunk.get_scalar_array(stacklevel=2))
         else:
             return bool(self.__array__(stacklevel=2))
 
     def __complex__(self):
-        if self.size == 1:
+        if self._thunk.scalar:
             return complex(self._thunk.get_scalar_array(stacklevel=2))
         else:
             return complex(self.__array__(stacklevel=2))
@@ -322,7 +322,7 @@ class ndarray(object):
         )
 
     def __float__(self):
-        if self.size == 1:
+        if self._thunk.scalar:
             return float(self._thunk.get_scalar_array(stacklevel=2))
         else:
             return float(self.__array__(stacklevel=2))
@@ -436,7 +436,7 @@ class ndarray(object):
         return self
 
     def __int__(self):
-        if self.size == 1:
+        if self._thunk.scalar:
             return int(self._thunk.get_scalar_array(stacklevel=2))
         else:
             return int(self.__array__(stacklevel=2))
@@ -598,7 +598,7 @@ class ndarray(object):
         # unary_reduction will reduce size 1 arrays to themeslves for
         # deferred arrays.  Because of that, we need to handle size 1
         # explicitly.
-        if self.size == 1:
+        if self._thunk.scalar:
             return self.convert_to_legate_ndarray(
                 int(
                     self._thunk.get_scalar_array(
@@ -619,9 +619,7 @@ class ndarray(object):
         )
 
     def nonzero(self, stacklevel=1):
-        # This case is handled at the high level.  Deferred nonzero expects
-        # the input to not have size 1 (future base).
-        if self.size == 1:
+        if self._thunk.scalar:
             ndim = self.ndim + int(self.ndim == 0)
             if self._thunk.get_scalar_array(stacklevel=stacklevel + 1) == 0:
                 return (
@@ -651,7 +649,7 @@ class ndarray(object):
         )
 
     def __nonzero__(self):
-        if self.size == 1:
+        if self._thunk.scalar:
             return bool(self._thunk.get_scalar_array(stacklevel=2) != 0)
         else:
             return self.__array__(stacklevel=2).__nonzero__()
@@ -694,7 +692,7 @@ class ndarray(object):
         return self.__array__(stacklevel=2).__reduce_ex__(*args, **kwargs)
 
     def __repr__(self):
-        if self.size == 1:
+        if self._thunk.scalar:
             return repr(self._thunk.get_scalar_array(stacklevel=2))
         else:
             return repr(self.__array__(stacklevel=2))
@@ -768,7 +766,7 @@ class ndarray(object):
         return self.perform_binary_op(BinaryOpCode.SUBTRACT, self, rhs_array)
 
     def __str__(self):
-        if self.size == 1:
+        if self._thunk.scalar:
             return str(
                 np.reshape(
                     self._thunk.get_scalar_array(stacklevel=2), self.shape
@@ -1126,7 +1124,8 @@ class ndarray(object):
         where = self.convert_to_predicate_ndarray(
             where, stacklevel=(stacklevel + 1)
         )
-        if self.size == 1:
+        if self._thunk.scalar:
+            # TODO: ignores flags
             if out is not None:
                 out._thunk.copy(self._thunk, stacklevel=stacklevel + 1)
                 return out
@@ -1215,7 +1214,8 @@ class ndarray(object):
         where = self.convert_to_predicate_ndarray(
             where, stacklevel=(stacklevel + 1)
         )
-        if self.size == 1:
+        if self._thunk.scalar:
+            # TODO: ignores flags
             if out is not None:
                 out._thunk.copy(self._thunk, stacklevel=stacklevel + 1)
                 return out
@@ -1252,7 +1252,8 @@ class ndarray(object):
         where=True,
         stacklevel=1,
     ):
-        if self.size == 1:
+        if self._thunk.scalar:
+            # TODO: ignores flags
             if out is not None:
                 self.copy(out)
                 return out
@@ -1448,7 +1449,8 @@ class ndarray(object):
         where=True,
         stacklevel=1,
     ):
-        if self.size == 1:
+        if self._thunk.scalar:
+            # TODO: ignores flags
             if out is not None:
                 self.copy(out)
                 return out

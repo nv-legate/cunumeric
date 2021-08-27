@@ -163,8 +163,12 @@ class EagerArray(NumPyThunk):
                     self.array[:] = rhs.array
             self.runtime.profile_callsite(stacklevel + 1, False)
 
+    @property
+    def scalar(self):
+        return self.array.size == 1
+
     def get_scalar_array(self, stacklevel):
-        if self.deferred is not None:
+        if self.deferred is not None and self.deferred.scalar:
             return self.deferred.get_scalar_array(stacklevel=(stacklevel + 1))
         return self.array.reshape(())
 

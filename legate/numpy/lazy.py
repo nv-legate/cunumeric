@@ -46,6 +46,10 @@ class LazyArray(NumPyThunk):
     def copy(self, rhs, deep, stacklevel):
         raise NotImplementedError("Implement in derived classes")
 
+    @property
+    def scalar(self):
+        raise NotImplementedError("Implement in derived classes")
+
     def get_scalar_array(self, stacklevel):
         raise NotImplementedError("Implement in derived classes")
 

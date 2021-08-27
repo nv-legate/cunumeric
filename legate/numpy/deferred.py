@@ -778,7 +778,9 @@ class DeferredArray(NumPyThunk):
     # Fill the legate array with the value in the numpy array
     @profile
     def _fill(self, value, stacklevel=0, callsite=None):
-        if self.size == 1:
+        assert value.scalar
+
+        if self.scalar:
             # Handle the 0D case special
             self.base.set_storage(value.storage)
         else:
@@ -1133,7 +1135,7 @@ class DeferredArray(NumPyThunk):
         dst_array = self
         assert src_array.ndim <= dst_array.ndim
         assert src_array.dtype == dst_array.dtype
-        if src_array.size == 1:
+        if src_array.scalar:
             self._fill(
                 src_array.base, stacklevel=stacklevel + 1, callsite=callsite
             )

@@ -84,8 +84,8 @@ def array(obj, dtype=None, copy=True, order="K", subok=False, ndmin=0):
 @copy_docstring(np.diag)
 def diag(v, k=0):
     array = ndarray.convert_to_legate_ndarray(v)
-    if array.size == 1:
-        return v
+    if array._thunk.scalar:
+        return array.copy()
     elif array.ndim == 1:
         # Make a diagonal matrix from the array
         N = array.shape[0] + builtins.abs(k)
