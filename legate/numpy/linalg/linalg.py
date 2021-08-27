@@ -21,9 +21,6 @@ from legate.numpy.module import sqrt as _sqrt
 
 def norm(x, ord=None, axis=None, keepdims=False, stacklevel=1):
     lg_array = ndarray.convert_to_legate_ndarray(x)
-    # Easy case to handle
-    if lg_array.size == 1:
-        return lg_array
     if (axis is None and lg_array.ndim == 1) or type(axis) == int:
         # Handle the weird norm cases
         if ord == np.inf:
