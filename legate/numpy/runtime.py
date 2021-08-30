@@ -264,7 +264,7 @@ class Runtime(object):
 
     # This function packs data in the format expected by UntypedScalar,
     # so any Future creation in this library should go through this.
-    def create_scalar(self, array, dtype, shape=None, wrap=False):
+    def create_scalar(self, array: memoryview, dtype, shape=None, wrap=False):
         if dtype.kind == "V":
             is_arg = True
             code = numpy_field_type_offsets[get_arg_value_dtype(dtype)]
