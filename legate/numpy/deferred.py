@@ -1204,25 +1204,6 @@ class DeferredArray(NumPyThunk):
 
         task.execute()
 
-    def count_nonzero(self, stacklevel, axis):
-        # Handle the case in which we have a future
-        if self.size == 1:
-            return ndarray.convert_to_legate_ndarray(
-                int(
-                    self.get_scalar_array(stacklevel=(stacklevel + 1)).item()
-                    != 0
-                ),
-                stacklevel=(stacklevel + 1),
-            )
-        return ndarray.perform_unary_reduction(
-            UnaryRedCode.COUNT_NONZERO,
-            self,
-            axis=axis,
-            dtype=np.dtype(np.uint64),
-            stacklevel=(stacklevel + 1),
-            check_types=False,
-        )
-
     def nonzero(self, stacklevel=0, callsite=None):
         results = tuple(
             self.runtime.create_unbound_thunk(np.dtype(np.int64))

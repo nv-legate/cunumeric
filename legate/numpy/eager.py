@@ -397,16 +397,6 @@ class EagerArray(NumPyThunk):
             )
             self.runtime.profile_callsite(stacklevel + 1, False)
 
-    def count_nonzero(self, axis, stacklevel):
-        if self.deferred is not None:
-            return self.deferred.count_nonzero(stacklevel=(stacklevel + 1))
-        else:
-            result = np.count_nonzero(self.array, axis)
-            if isinstance(result, np.ndarray):
-                return EagerArray(self.runtime, result)
-            else:
-                return result
-
     def nonzero(self, stacklevel):
         if self.deferred is not None:
             return self.deferred.nonzero(stacklevel=(stacklevel + 1))
