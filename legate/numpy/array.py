@@ -382,16 +382,10 @@ class ndarray(object):
     #    return self.__array__(stacklevel=2).__array_wrap__(*args, **kwargs)
 
     def __bool__(self):
-        if self._thunk.scalar:
-            return bool(self._thunk.get_scalar_array(stacklevel=2))
-        else:
-            return bool(self.__array__(stacklevel=2))
+        return bool(self.__array__(stacklevel=2))
 
     def __complex__(self):
-        if self._thunk.scalar:
-            return complex(self._thunk.get_scalar_array(stacklevel=2))
-        else:
-            return complex(self.__array__(stacklevel=2))
+        return complex(self.__array__(stacklevel=2))
 
     def __contains__(self, item):
         if isinstance(item, np.ndarray):
@@ -434,10 +428,7 @@ class ndarray(object):
         )
 
     def __float__(self):
-        if self._thunk.scalar:
-            return float(self._thunk.get_scalar_array(stacklevel=2))
-        else:
-            return float(self.__array__(stacklevel=2))
+        return float(self.__array__(stacklevel=2))
 
     def __floordiv__(self, rhs):
         rhs_array = self.convert_to_legate_ndarray(rhs)
@@ -548,10 +539,7 @@ class ndarray(object):
         return self
 
     def __int__(self):
-        if self._thunk.scalar:
-            return int(self._thunk.get_scalar_array(stacklevel=2))
-        else:
-            return int(self.__array__(stacklevel=2))
+        return int(self.__array__(stacklevel=2))
 
     def __invert__(self):
         if self.dtype == np.bool_:
@@ -727,10 +715,7 @@ class ndarray(object):
         )
 
     def __nonzero__(self):
-        if self._thunk.scalar:
-            return bool(self._thunk.get_scalar_array(stacklevel=2) != 0)
-        else:
-            return self.__array__(stacklevel=2).__nonzero__()
+        return self.__array__(stacklevel=2).__nonzero__()
 
     def __pos__(self):
         # We know these types are already positive
@@ -770,10 +755,7 @@ class ndarray(object):
         return self.__array__(stacklevel=2).__reduce_ex__(*args, **kwargs)
 
     def __repr__(self):
-        if self._thunk.scalar:
-            return repr(self._thunk.get_scalar_array(stacklevel=2))
-        else:
-            return repr(self.__array__(stacklevel=2))
+        return repr(self.__array__(stacklevel=2))
 
     def __rfloordiv__(self, lhs):
         lhs_array = self.convert_to_legate_ndarray(lhs)
@@ -844,14 +826,7 @@ class ndarray(object):
         return self.perform_binary_op(BinaryOpCode.SUBTRACT, self, rhs_array)
 
     def __str__(self):
-        if self._thunk.scalar:
-            return str(
-                np.reshape(
-                    self._thunk.get_scalar_array(stacklevel=2), self.shape
-                )
-            )
-        else:
-            return str(self.__array__(stacklevel=2))
+        return str(self.__array__(stacklevel=2))
 
     def __truediv__(self, rhs, stacklevel=1):
         return self.internal_truediv(
