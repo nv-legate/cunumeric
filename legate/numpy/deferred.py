@@ -1280,7 +1280,7 @@ class DeferredArray(NumPyThunk):
         lhs = self.base
         rhs = src._broadcast(lhs.shape)
 
-        if lhs.scalar:
+        if rhs.scalar:
             task_id = NumPyOpCode.SCALAR_UNARY_OP
         else:
             task_id = NumPyOpCode.UNARY_OP
