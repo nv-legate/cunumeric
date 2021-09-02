@@ -695,19 +695,6 @@ class ndarray(object):
     # __new__
 
     @add_boilerplate()
-    def count_nonzero(self, stacklevel, axis):
-        if self.size == 0:
-            return 0
-        return self.perform_unary_reduction(
-            UnaryRedCode.COUNT_NONZERO,
-            self,
-            axis=axis,
-            dtype=np.dtype(np.uint64),
-            stacklevel=(stacklevel + 1),
-            check_types=False,
-        )
-
-    @add_boilerplate()
     def nonzero(self, stacklevel=1):
         thunks = self._thunk.nonzero(stacklevel=stacklevel + 1)
         return tuple(
