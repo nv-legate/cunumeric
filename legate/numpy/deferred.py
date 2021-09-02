@@ -734,7 +734,7 @@ class DeferredArray(NumPyThunk):
         dims[axis1], dims[axis2] = dims[axis2], dims[axis1]
 
         result = self.base.transpose(dims)
-        result = DeferredArray(self.runtime, result, self.dtype, False)
+        result = DeferredArray(self.runtime, result, self.dtype)
 
         if self.runtime.shadow_debug:
             result.shadow = self.shadow.swapaxes(

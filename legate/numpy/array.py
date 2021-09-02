@@ -35,8 +35,8 @@ def add_boilerplate(*array_params: str):
     Adds required boilerplate to the wrapped Legate ndarray member function.
 
     Every time the wrapped function is called, this wrapper will:
-    * Convert all array-like parameters, plus the special "out" parameter (if
-      present), to Legate ndarrays.
+    * Convert all specified array-like parameters, plus the special "out"
+      parameter (if present), to Legate ndarrays.
     * Convert the special "where" parameter (if present) to a valid predicate.
     * Handle the case of scalar Legate ndarrays, by forwarding the operation
       to the equivalent `()`-shape numpy array.
@@ -96,7 +96,7 @@ def add_boilerplate(*array_params: str):
 
             # Handle the case where all array-like parameters are scalar, by
             # performing the operation on the equivalent scalar numpy arrays.
-            # TODO: Implicitly blocks on the contents of scalar arrays.
+            # NOTE: This mplicitly blocks on the contents of the scalar arrays.
             if all(
                 arg._thunk.scalar
                 for (idx, arg) in enumerate(args)
@@ -1266,7 +1266,7 @@ class ndarray(object):
             kth=kth, axis=axis, kind=kind, order=order
         )
 
-    @add_boilerplate
+    @add_boilerplate()
     def prod(
         self,
         axis=None,
