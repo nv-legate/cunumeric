@@ -78,10 +78,10 @@ class BooleanFlag(argparse.Action):
         setattr(namespace, self.dest, not option_string.startswith("--no"))
 
 
-def execute_command(args, verbose, cwd=None, shell=False):
+def execute_command(args, verbose, cwd=None, shell=False, env=None):
     if verbose:
         print("EXECUTING: ", args)
-    subprocess.check_call(args, cwd=cwd, shell=shell)
+    subprocess.check_call(args, cwd=cwd, shell=shell, env=env)
 
 
 def git_clone(repo_dir, url, verbose, branch=None, tag=None):
@@ -235,27 +235,39 @@ def build_legate_numpy(
             libname = "openblas_legate"
         else:
             libname = "openblas"
-
-        make_flags = [
-            "LEGATE_DIR=%s" % install_dir,
-            "OPEN_BLAS_DIR=%s" % openblas_dir,
-            "DEBUG=%s" % (1 if debug else 0),
-            "DEBUG_RELEASE=%s" % (1 if debug_release else 0),
-            "CHECK_BOUNDS=%s" % (1 if check_bounds else 0),
-            "USE_CUDA=%s" % (1 if cuda else 0),
-            "USE_OPENMP=%s" % (1 if openmp else 0),
-            "PREFIX=%s" % install_dir,
-            "OPENBLAS_FLAGS = -L%s/lib -l%s -Wl,-rpath,%s/lib"
-            % (openblas_dir, libname, openblas_dir),
-        ]
+        make_flags = (
+            [
+                "LEGATE_DIR=%s" % install_dir,
+                "OPEN_BLAS_DIR=%s" % openblas_dir,
+                "DEBUG=%s" % (1 if debug else 0),
+                "DEBUG_RELEASE=%s" % (1 if debug_release else 0),
+                "CHECK_BOUNDS=%s" % (1 if check_bounds else 0),
+                "PREFIX=%s" % install_dir,
+                "OPENBLAS_FLAGS = -L%s/lib -l%s -Wl,-rpath,%s/lib"
+                % (openblas_dir, libname, openblas_dir),
+            ]
+            # These are already defined in config.mk, mirroring what the core
+            # was built with, but the user can explicitly disable them.
+            + (["USE_CUDA=0"] if not cuda else [])
+            + (["USE_OPENMP=0"] if not openmp else [])
+        )
+        # Remove these from the environment, to make sure a USE_X=1 cannnot
+        # override a USE_X ?= 0 in config.mk.
+        make_env = os.environ.copy()
+        make_env.pop("USE_CUDA", None)
+        make_env.pop("USE_OPENMP", None)
         if clean_first:
             execute_command(
-                ["make"] + make_flags + ["clean"], cwd=src_dir, verbose=verbose
+                ["make"] + make_flags + ["clean"],
+                cwd=src_dir,
+                verbose=verbose,
+                env=make_env,
             )
         execute_command(
             ["make"] + make_flags + ["-j", str(thread_count), "install"],
             cwd=src_dir,
             verbose=verbose,
+            env=make_env,
         )
 
     try:
@@ -449,16 +461,22 @@ def driver():
         help="Path to Thrust installation directory.",
     )
     parser.add_argument(
-        "--cuda",
-        action=BooleanFlag,
+        "--no-cuda",
+        dest="cuda",
+        action="store_false",
+        required=False,
         default=os.environ.get("USE_CUDA", "1") == "1",
-        help="Build Legate NumPy with CUDA support.",
+        help="Build Legate NumPy without CUDA, even if Legate Core has CUDA "
+        "support.",
     )
     parser.add_argument(
-        "--openmp",
-        action=BooleanFlag,
+        "--no-openmp",
+        dest="openmp",
+        action="store_false",
+        required=False,
         default=os.environ.get("USE_OPENMP", "1") == "1",
-        help="Build Legate NumPy with OpenMP support.",
+        help="Build Legate NumPy without OpenMP, even if Legate Core has "
+        "OpenMP support.",
     )
     parser.add_argument(
         "--cmake",
