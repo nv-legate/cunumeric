@@ -34,8 +34,12 @@ class NumPyMapper : public mapping::BaseMapper {
   NumPyMapper(const NumPyMapper& rhs) = delete;
   NumPyMapper& operator=(const NumPyMapper& rhs) = delete;
 
+  // Legate mapping functions
  public:
-  Scalar select_tunable_value(TunableID tunable_id) override;
+  virtual bool is_pure() const override { return true; }
+  virtual mapping::TaskTarget task_target(const mapping::Task& task,
+                                          const std::vector<mapping::TaskTarget>& options) override;
+  virtual Scalar tunable_value(TunableID tunable_id) override;
 
  private:
   const int32_t min_gpu_chunk;
