@@ -78,10 +78,10 @@ class BooleanFlag(argparse.Action):
         setattr(namespace, self.dest, not option_string.startswith("--no"))
 
 
-def execute_command(args, verbose, cwd=None, shell=False, env=None):
+def execute_command(args, verbose, cwd=None, shell=False):
     if verbose:
         print("EXECUTING: ", args)
-    subprocess.check_call(args, cwd=cwd, shell=shell, env=env)
+    subprocess.check_call(args, cwd=cwd, shell=shell)
 
 
 def git_clone(repo_dir, url, verbose, branch=None, tag=None):
@@ -210,8 +210,6 @@ def build_legate_numpy(
     openblas_dir,
     cmake,
     cmake_exe,
-    cuda,
-    openmp,
     debug,
     debug_release,
     check_bounds,
@@ -235,39 +233,26 @@ def build_legate_numpy(
             libname = "openblas_legate"
         else:
             libname = "openblas"
-        make_flags = (
-            [
-                "LEGATE_DIR=%s" % install_dir,
-                "OPEN_BLAS_DIR=%s" % openblas_dir,
-                "DEBUG=%s" % (1 if debug else 0),
-                "DEBUG_RELEASE=%s" % (1 if debug_release else 0),
-                "CHECK_BOUNDS=%s" % (1 if check_bounds else 0),
-                "PREFIX=%s" % install_dir,
-                "OPENBLAS_FLAGS = -L%s/lib -l%s -Wl,-rpath,%s/lib"
-                % (openblas_dir, libname, openblas_dir),
-            ]
-            # These are already defined in config.mk, mirroring what the core
-            # was built with, but the user can explicitly disable them.
-            + (["USE_CUDA=0"] if not cuda else [])
-            + (["USE_OPENMP=0"] if not openmp else [])
-        )
-        # Remove these from the environment, to make sure a USE_X=1 cannnot
-        # override a USE_X ?= 0 in config.mk.
-        make_env = os.environ.copy()
-        make_env.pop("USE_CUDA", None)
-        make_env.pop("USE_OPENMP", None)
+        make_flags = [
+            "LEGATE_DIR=%s" % install_dir,
+            "OPEN_BLAS_DIR=%s" % openblas_dir,
+            "DEBUG=%s" % (1 if debug else 0),
+            "DEBUG_RELEASE=%s" % (1 if debug_release else 0),
+            "CHECK_BOUNDS=%s" % (1 if check_bounds else 0),
+            "PREFIX=%s" % install_dir,
+            "OPENBLAS_FLAGS = -L%s/lib -l%s -Wl,-rpath,%s/lib"
+            % (openblas_dir, libname, openblas_dir),
+        ]
         if clean_first:
             execute_command(
                 ["make"] + make_flags + ["clean"],
                 cwd=src_dir,
                 verbose=verbose,
-                env=make_env,
             )
         execute_command(
             ["make"] + make_flags + ["-j", str(thread_count), "install"],
             cwd=src_dir,
             verbose=verbose,
-            env=make_env,
         )
 
     try:
@@ -291,8 +276,6 @@ def install_legate_numpy(
     legate_dir,
     openblas_dir,
     thrust_dir,
-    cuda,
-    openmp,
     debug,
     debug_release,
     check_bounds,
@@ -309,8 +292,6 @@ def install_legate_numpy(
         print("cmake_exe: ", cmake_exe, "\n")
         print("legate_dir: ", legate_dir, "\n")
         print("openblas_dir: ", openblas_dir, "\n")
-        print("cuda: ", cuda, "\n")
-        print("openmp: ", openmp, "\n")
         print("debug: ", debug, "\n")
         print("debug_release: ", debug_release, "\n")
         print("check_bounds: ", check_bounds, "\n")
@@ -396,8 +377,6 @@ def install_legate_numpy(
         openblas_dir,
         cmake,
         cmake_exe,
-        cuda,
-        openmp,
         debug,
         debug_release,
         check_bounds,
@@ -417,7 +396,7 @@ def driver():
         action="store_true",
         required=False,
         default=os.environ.get("DEBUG", "0") == "1",
-        help="Build Legate NumPy with debugging enabled.",
+        help="Build Legate NumPy with no optimizations.",
     )
     parser.add_argument(
         "--debug-release",
@@ -425,7 +404,8 @@ def driver():
         action="store_true",
         required=False,
         default=os.environ.get("DEBUG_RELEASE", "0") == "1",
-        help="Build Legate NumPy with debugging symbols.",
+        help="Build Legate NumPy with optimizations, but include debugging "
+        "symbols.",
     )
     parser.add_argument(
         "--check-bounds",
@@ -459,24 +439,6 @@ def driver():
         metavar="DIR",
         required=False,
         help="Path to Thrust installation directory.",
-    )
-    parser.add_argument(
-        "--no-cuda",
-        dest="cuda",
-        action="store_false",
-        required=False,
-        default=os.environ.get("USE_CUDA", "1") == "1",
-        help="Build Legate NumPy without CUDA, even if Legate Core has CUDA "
-        "support.",
-    )
-    parser.add_argument(
-        "--no-openmp",
-        dest="openmp",
-        action="store_false",
-        required=False,
-        default=os.environ.get("USE_OPENMP", "1") == "1",
-        help="Build Legate NumPy without OpenMP, even if Legate Core has "
-        "OpenMP support.",
     )
     parser.add_argument(
         "--cmake",
