@@ -13,22 +13,24 @@
 # limitations under the License.
 #
 
-import random
-
 import numpy as np
+from test_tools.generators import scalar_gen
 
 import legate.numpy as lg
 
 
 def test():
-    random.seed(13)
-    a = random.randint(1, 42)
-    b = random.randint(1, 3)
-
-    # test true_divide
-    assert np.array_equal(lg.true_divide(a, b), np.true_divide(a, b))
-
-    return
+    test_values = [(42, 17)]
+    for (a, b) in test_values:
+        for (la, lb, na, nb) in zip(
+            scalar_gen(lg, a),
+            scalar_gen(lg, b),
+            scalar_gen(np, a),
+            scalar_gen(np, b),
+        ):
+            assert np.array_equal(
+                lg.true_divide(la, lb), np.true_divide(na, nb)
+            )
 
 
 if __name__ == "__main__":

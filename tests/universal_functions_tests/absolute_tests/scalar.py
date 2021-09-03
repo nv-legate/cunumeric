@@ -14,18 +14,16 @@
 #
 
 import numpy as np
+from test_tools.generators import scalar_gen
 
 import legate.numpy as lg
 
 
 def test():
-    np.random.seed(13)
-    a = np.random.rand() - 0.5
-
-    # test absolute value
-    assert np.array_equal(lg.absolute(a), np.absolute(a))
-
-    return
+    test_values = [-0.5, 0.5]
+    for a in test_values:
+        for (la, na) in zip(scalar_gen(lg, a), scalar_gen(np, a)):
+            assert np.array_equal(lg.absolute(la), np.absolute(na))
 
 
 if __name__ == "__main__":

@@ -14,15 +14,16 @@
 #
 
 import numpy as np
+from test_tools.generators import scalar_gen
 
 import legate.numpy as lg
 
 
 def test():
     test_values = [-1, 0, 1]
-    for x in test_values:
-        assert np.array_equal(lg.arctan(x), np.arctan(x))
-    return
+    for a in test_values:
+        for (la, na) in zip(scalar_gen(lg, a), scalar_gen(np, a)):
+            assert np.array_equal(lg.arctan(la), np.arctan(na))
 
 
 if __name__ == "__main__":

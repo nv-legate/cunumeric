@@ -13,24 +13,18 @@
 # limitations under the License.
 #
 
-import numpy as np
-from test_tools.generators import scalar_gen
-
-import legate.numpy as lg
+from legate.core import LEGATE_MAX_DIM
 
 
-def test():
-    test_values = [(-1, 0), (0, 0), (1, 0)]
-    for (a, b) in test_values:
-        for (la, lb, na, nb) in zip(
-            scalar_gen(lg, a),
-            scalar_gen(lg, b),
-            scalar_gen(np, a),
-            scalar_gen(np, b),
-        ):
-            assert np.array_equal(lg.not_equal(la, lb), np.not_equal(na, nb))
-            assert np.array_equal(la != lb, na != nb)
-
-
-if __name__ == "__main__":
-    test()
+def scalar_gen(lib, val):
+    # pure scalar values
+    yield lib.array(val)
+    # ()-shape arrays
+    yield lib.full((), val)
+    for ndim in range(1, LEGATE_MAX_DIM):  # off-by-one is by design
+        # singleton arrays
+        yield lib.full(ndim * (1,), val)
+        # singleton slices of larger arrays
+        # TODO: disabled; currently core can't handle unary/binary operations
+        # with future-backed output but regionfield-backed inputs
+        # yield lib.full(ndim * (5,), val)[ndim * (slice(1, 2),)]
