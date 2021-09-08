@@ -24,29 +24,29 @@ namespace numpy {
 
 using namespace Legion;
 
-template <typename ARG>
+template <typename ARG, typename ReadAcc>
 static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-  dense_kernel(size_t volume, ARG* out, ARG fill_value)
+  dense_kernel(size_t volume, ARG* out, ReadAcc fill_value)
 {
   const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (idx >= volume) return;
-  out[idx] = fill_value;
+  out[idx] = fill_value[0];
 }
 
-template <typename WriteAcc, typename ARG, typename Pitches, typename Rect>
+template <typename WriteAcc, typename ReadAcc, typename Pitches, typename Rect>
 static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-  generic_kernel(size_t volume, WriteAcc out, ARG fill_value, Pitches pitches, Rect rect)
+  generic_kernel(size_t volume, WriteAcc out, ReadAcc fill_value, Pitches pitches, Rect rect)
 {
   const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (idx >= volume) return;
   auto point = pitches.unflatten(idx, rect.lo);
-  out[point] = fill_value;
+  out[point] = fill_value[0];
 }
 
 template <typename VAL, int32_t DIM>
 struct FillImplBody<VariantKind::GPU, VAL, DIM> {
   void operator()(AccessorWO<VAL, DIM> out,
-                  const VAL& fill_value,
+                  AccessorRO<VAL, 1> in,
                   const Pitches<DIM - 1>& pitches,
                   const Rect<DIM>& rect,
                   bool dense) const
@@ -55,9 +55,9 @@ struct FillImplBody<VariantKind::GPU, VAL, DIM> {
     const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
     if (dense) {
       auto outptr = out.ptr(rect);
-      dense_kernel<<<blocks, THREADS_PER_BLOCK>>>(volume, outptr, fill_value);
+      dense_kernel<<<blocks, THREADS_PER_BLOCK>>>(volume, outptr, in);
     } else {
-      generic_kernel<<<blocks, THREADS_PER_BLOCK>>>(volume, out, fill_value, pitches, rect);
+      generic_kernel<<<blocks, THREADS_PER_BLOCK>>>(volume, out, in, pitches, rect);
     }
   }
 };

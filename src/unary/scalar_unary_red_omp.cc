@@ -71,12 +71,12 @@ struct ScalarUnaryRedImplBody<VariantKind::OMP, UnaryRedCode::CONTAINS, CODE, DI
 
   void operator()(bool& result,
                   AccessorRO<VAL, DIM> in,
-                  const UntypedScalar& to_find_scalar,
+                  const Store& to_find_scalar,
                   const Rect<DIM>& rect,
                   const Pitches<DIM - 1>& pitches,
                   bool dense) const
   {
-    const auto to_find     = to_find_scalar.value<VAL>();
+    const auto to_find     = to_find_scalar.scalar<VAL>();
     const size_t volume    = rect.volume();
     const auto max_threads = omp_get_max_threads();
     auto locals            = static_cast<bool*>(alloca(max_threads * sizeof(VAL)));

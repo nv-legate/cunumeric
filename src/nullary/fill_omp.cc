@@ -30,12 +30,13 @@ struct Identity {
 template <typename VAL, int32_t DIM>
 struct FillImplBody<VariantKind::OMP, VAL, DIM> {
   void operator()(AccessorWO<VAL, DIM> out,
-                  const VAL& fill_value,
+                  AccessorRO<VAL, 1> in,
                   const Pitches<DIM - 1>& pitches,
                   const Rect<DIM>& rect,
                   bool dense) const
   {
-    size_t volume = rect.volume();
+    auto fill_value = in[0];
+    size_t volume   = rect.volume();
     if (dense) {
       auto outptr = out.ptr(rect);
 #pragma omp parallel for schedule(static)

@@ -27,7 +27,7 @@ struct BinaryOpArgs {
   const Array& in2;
   const Array& out;
   BinaryOpCode op_code;
-  std::vector<UntypedScalar> args;
+  std::vector<Store> args;
 };
 
 class BinaryOpTask : public NumPyTask<BinaryOpTask> {

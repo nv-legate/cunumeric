@@ -30,7 +30,7 @@ struct ScalarUnaryRedImpl {
   template <LegateTypeCode CODE,
             int DIM,
             std::enable_if_t<UnaryRedOp<OP_CODE, CODE>::valid>* = nullptr>
-  UntypedScalar operator()(ScalarUnaryRedArgs& args) const
+  void operator()(ScalarUnaryRedArgs& args) const
   {
     using OP    = UnaryRedOp<OP_CODE, CODE>;
     using LG_OP = typename OP::OP;
@@ -42,8 +42,12 @@ struct ScalarUnaryRedImpl {
     size_t volume = pitches.flatten(rect);
 
     VAL result = LG_OP::identity;
+    auto out   = args.out.write_accessor<VAL, 1>();
 
-    if (volume == 0) return UntypedScalar(result);
+    if (volume == 0) {
+      out[0] = result;
+      return;
+    }
 
     auto in = args.in.read_accessor<VAL, DIM>(rect);
 
@@ -56,24 +60,22 @@ struct ScalarUnaryRedImpl {
 #endif
 
     ScalarUnaryRedImplBody<KIND, OP_CODE, CODE, DIM>()(OP{}, result, in, rect, pitches, dense);
-
-    return UntypedScalar(result);
+    out[0] = result;
   }
 
   template <LegateTypeCode CODE,
             int DIM,
             std::enable_if_t<!UnaryRedOp<OP_CODE, CODE>::valid>* = nullptr>
-  UntypedScalar operator()(ScalarUnaryRedArgs& args) const
+  void operator()(ScalarUnaryRedArgs& args) const
   {
     assert(false);
-    return UntypedScalar();
   }
 };
 
 template <VariantKind KIND>
 struct ScalarUnaryRedImpl<KIND, UnaryRedCode::CONTAINS> {
   template <LegateTypeCode CODE, int DIM>
-  UntypedScalar operator()(ScalarUnaryRedArgs& args) const
+  void operator()(ScalarUnaryRedArgs& args) const
   {
     using VAL = legate_type_of<CODE>;
 
@@ -83,8 +85,12 @@ struct ScalarUnaryRedImpl<KIND, UnaryRedCode::CONTAINS> {
     size_t volume = pitches.flatten(rect);
 
     bool result = false;
+    auto out    = args.out.write_accessor<bool, 1>();
 
-    if (volume == 0) return UntypedScalar(result);
+    if (volume == 0) {
+      out[0] = result;
+      return;
+    }
 
     auto in = args.in.read_accessor<VAL, DIM>(rect);
 
@@ -98,15 +104,14 @@ struct ScalarUnaryRedImpl<KIND, UnaryRedCode::CONTAINS> {
 
     ScalarUnaryRedImplBody<KIND, UnaryRedCode::CONTAINS, CODE, DIM>()(
       result, in, args.args[0], rect, pitches, dense);
-
-    return UntypedScalar(result);
+    out[0] = result;
   }
 };
 
 template <VariantKind KIND>
 struct ScalarUnaryRedImpl<KIND, UnaryRedCode::COUNT_NONZERO> {
   template <LegateTypeCode CODE, int DIM>
-  UntypedScalar operator()(ScalarUnaryRedArgs& args) const
+  void operator()(ScalarUnaryRedArgs& args) const
   {
     using VAL = legate_type_of<CODE>;
 
@@ -115,9 +120,13 @@ struct ScalarUnaryRedImpl<KIND, UnaryRedCode::COUNT_NONZERO> {
     Pitches<DIM - 1> pitches;
     size_t volume = pitches.flatten(rect);
 
+    auto out        = args.out.write_accessor<uint64_t, 1>();
     uint64_t result = 0;
 
-    if (volume == 0) return UntypedScalar(result);
+    if (volume == 0) {
+      out[0] = result;
+      return;
+    }
 
     auto in = args.in.read_accessor<VAL, DIM>(rect);
 
@@ -131,43 +140,40 @@ struct ScalarUnaryRedImpl<KIND, UnaryRedCode::COUNT_NONZERO> {
 
     ScalarUnaryRedImplBody<KIND, UnaryRedCode::COUNT_NONZERO, CODE, DIM>()(
       result, in, rect, pitches, dense);
-
-    return UntypedScalar(result);
+    out[0] = result;
   }
 };
 
 template <VariantKind KIND>
 struct ScalarUnaryRedDispatch {
   template <UnaryRedCode OP_CODE, std::enable_if_t<!is_arg_reduce<OP_CODE>::value>* = nullptr>
-  UntypedScalar operator()(ScalarUnaryRedArgs& args) const
+  void operator()(ScalarUnaryRedArgs& args) const
   {
-    return double_dispatch(
-      args.in.dim(), args.in.code(), ScalarUnaryRedImpl<KIND, OP_CODE>{}, args);
+    double_dispatch(args.in.dim(), args.in.code(), ScalarUnaryRedImpl<KIND, OP_CODE>{}, args);
   }
   template <UnaryRedCode OP_CODE, std::enable_if_t<is_arg_reduce<OP_CODE>::value>* = nullptr>
-  UntypedScalar operator()(ScalarUnaryRedArgs& args) const
+  void operator()(ScalarUnaryRedArgs& args) const
   {
     assert(false);
-    return UntypedScalar();
   }
 };
 
 template <VariantKind KIND>
-static UntypedScalar scalar_unary_red_template(TaskContext& context)
+static void scalar_unary_red_template(TaskContext& context)
 {
   auto& inputs  = context.inputs();
   auto& scalars = context.scalars();
 
-  std::vector<UntypedScalar> extra_args;
-  for (size_t idx = 1; idx < inputs.size(); ++idx)
-    extra_args.push_back(inputs[idx].scalar<UntypedScalar>());
+  std::vector<Store> extra_args;
+  for (size_t idx = 1; idx < inputs.size(); ++idx) extra_args.push_back(std::move(inputs[idx]));
 
-  ScalarUnaryRedArgs args{inputs[0], scalars[0].value<UnaryRedCode>(), std::move(extra_args)};
+  ScalarUnaryRedArgs args{
+    context.reductions()[0], inputs[0], scalars[0].value<UnaryRedCode>(), std::move(extra_args)};
   if (args.op_code == UnaryRedCode::COUNT_NONZERO)
-    return double_dispatch(
+    double_dispatch(
       args.in.dim(), args.in.code(), ScalarUnaryRedImpl<KIND, UnaryRedCode::COUNT_NONZERO>{}, args);
   else
-    return op_dispatch(args.op_code, ScalarUnaryRedDispatch<KIND>{}, args);
+    op_dispatch(args.op_code, ScalarUnaryRedDispatch<KIND>{}, args);
 }
 
 }  // namespace numpy

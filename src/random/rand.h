@@ -17,7 +17,6 @@
 #pragma once
 
 #include "numpy.h"
-#include "scalar.h"
 #include "random/rand_util.h"
 
 namespace legate {
@@ -28,7 +27,7 @@ struct RandArgs {
   RandGenCode gen_code;
   uint32_t epoch;
   Legion::DomainPoint strides;
-  std::vector<UntypedScalar> args;
+  std::vector<Store> args;
 };
 
 class RandTask : public NumPyTask<RandTask> {

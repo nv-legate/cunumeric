@@ -74,7 +74,7 @@ struct BinaryOpDispatch {
   template <BinaryOpCode OP_CODE>
   void operator()(BinaryOpArgs& args) const
   {
-    auto dim = std::max(args.in1.dim(), args.in2.dim());
+    auto dim = std::max(1, args.out.dim());
     double_dispatch(dim, args.in1.code(), BinaryOpImpl<KIND, OP_CODE>{}, args);
   }
 };
@@ -86,9 +86,8 @@ static void binary_op_template(TaskContext& context)
   auto& outputs = context.outputs();
   auto& scalars = context.scalars();
 
-  std::vector<UntypedScalar> extra_args;
-  for (size_t idx = 2; idx < inputs.size(); ++idx)
-    extra_args.push_back(inputs[idx].scalar<UntypedScalar>());
+  std::vector<Store> extra_args;
+  for (size_t idx = 2; idx < inputs.size(); ++idx) extra_args.push_back(std::move(inputs[idx]));
 
   BinaryOpArgs args{
     inputs[0], inputs[1], outputs[0], scalars[0].value<BinaryOpCode>(), std::move(extra_args)};

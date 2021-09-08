@@ -78,8 +78,8 @@ static void rand_template(TaskContext& context)
   auto epoch    = scalars[1].value<uint32_t>();
   auto strides  = scalars[2].value<DomainPoint>();
 
-  std::vector<UntypedScalar> extra_args;
-  for (auto& input : inputs) extra_args.push_back(input.scalar<UntypedScalar>());
+  std::vector<Store> extra_args;
+  for (auto& input : inputs) extra_args.push_back(std::move(input));
 
   RandArgs args{outputs[0], gen_code, epoch, strides, std::move(extra_args)};
   op_dispatch(args.gen_code, RandDispatch<KIND>{}, args);

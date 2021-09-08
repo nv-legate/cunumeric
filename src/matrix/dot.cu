@@ -75,9 +75,9 @@ struct DotImplBody<VariantKind::GPU, CODE> {
   }
 };
 
-/*static*/ UntypedScalar DotTask::gpu_variant(TaskContext& context)
+/*static*/ void DotTask::gpu_variant(TaskContext& context)
 {
-  return dot_template<VariantKind::GPU>(context);
+  dot_template<VariantKind::GPU>(context);
 }
 
 }  // namespace numpy

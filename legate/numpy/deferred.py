@@ -282,7 +282,8 @@ class DeferredArray(NumPyThunk):
         assert self.base.scalar
         # Look at the type of the data and figure out how to read this data
         # First four bytes are for the type code, so we need to skip those
-        buf = self.base.storage.get_buffer(self.dtype.itemsize + 8)[8:]
+        # buf = self.base.storage.get_buffer(self.dtype.itemsize + 8)[8:]
+        buf = self.base.storage.get_buffer(self.dtype.itemsize)
         result = np.frombuffer(buf, dtype=self.dtype, count=1)
         return result.reshape(())
 
@@ -761,12 +762,7 @@ class DeferredArray(NumPyThunk):
         lhs = lhs_array.base
         rhs = rhs_array.base
 
-        if rhs.scalar:
-            task_id = NumPyOpCode.SCALAR_CONVERT
-        else:
-            task_id = NumPyOpCode.CONVERT
-
-        task = self.context.create_task(task_id)
+        task = self.context.create_task(NumPyOpCode.CONVERT)
         task.add_output(lhs)
         task.add_input(rhs)
         task.add_dtype_arg(lhs_array.dtype)
@@ -784,16 +780,19 @@ class DeferredArray(NumPyThunk):
         else:
             assert self.base is not None
             dtype = self.dtype
+            argval = False
             # If this is a fill for an arg value, make sure to pass
             # the value dtype so that we get it packed correctly
             if dtype.kind == "V":
                 dtype = get_arg_value_dtype(dtype)
+                argval = True
             else:
                 dtype = None
 
             task = self.context.create_task(NumPyOpCode.FILL)
             task.add_output(self.base)
             task.add_input(value)
+            task.add_scalar_arg(argval, bool)
 
             task.execute()
 
@@ -831,7 +830,9 @@ class DeferredArray(NumPyThunk):
                     self.shape, np.dtype(np.float32), inputs=[self]
                 )
 
-            redop = self.runtime.get_scalar_reduction_op_id(UnaryRedCode.SUM)
+            redop = self.runtime.get_unary_reduction_op_id(
+                UnaryRedCode.SUM, lhs_array.dtype
+            )
 
             task = self.context.create_task(NumPyOpCode.DOT)
             task.add_reduction(lhs_array.base, redop)
@@ -1274,12 +1275,7 @@ class DeferredArray(NumPyThunk):
         lhs = self.base
         rhs = src._broadcast(lhs.shape)
 
-        if lhs.scalar:
-            task_id = NumPyOpCode.SCALAR_UNARY_OP
-        else:
-            task_id = NumPyOpCode.UNARY_OP
-
-        task = self.context.create_task(task_id)
+        task = self.context.create_task(NumPyOpCode.UNARY_OP)
         task.add_output(lhs)
         task.add_input(rhs)
         task.add_scalar_arg(op.value, ty.int32)
@@ -1319,7 +1315,7 @@ class DeferredArray(NumPyThunk):
 
             task = self.context.create_task(NumPyOpCode.SCALAR_UNARY_RED)
 
-            redop = self.runtime.get_scalar_reduction_op_id(op)
+            redop = self.runtime.get_unary_reduction_op_id(op, lhs_array.dtype)
             task.add_reduction(lhs_array.base, redop)
             task.add_input(rhs_array.base)
             task.add_scalar_arg(op, ty.int32)
@@ -1409,14 +1405,7 @@ class DeferredArray(NumPyThunk):
         rhs2 = src2._broadcast(lhs.shape)
 
         # Populate the Legate launcher
-        all_scalar_rhs = rhs1.scalar and rhs2.scalar
-
-        if all_scalar_rhs:
-            task_id = NumPyOpCode.SCALAR_BINARY_OP
-        else:
-            task_id = NumPyOpCode.BINARY_OP
-
-        task = self.context.create_task(task_id)
+        task = self.context.create_task(NumPyOpCode.BINARY_OP)
         task.add_output(lhs)
         task.add_input(rhs1)
         task.add_input(rhs2)
@@ -1444,19 +1433,17 @@ class DeferredArray(NumPyThunk):
             rhs2 = rhs2._broadcast(broadcast)
 
         # Populate the Legate launcher
-        all_scalar_rhs = rhs1.scalar and rhs2.scalar
-
-        if all_scalar_rhs:
-            task_id = NumPyOpCode.SCALAR_BINARY_OP
+        if op == BinaryOpCode.NOT_EQUAL:
+            redop = self.runtime.get_unary_reduction_op_id(
+                UnaryRedCode.SUM, self.dtype
+            )
+            self.fill(np.array(False))
         else:
-            task_id = NumPyOpCode.BINARY_RED
-
-        redop = self.runtime.get_scalar_reduction_op_id(
-            UnaryRedCode.SUM
-            if op == BinaryOpCode.NOT_EQUAL
-            else UnaryRedCode.PROD
-        )
-        task = self.context.create_task(task_id)
+            redop = self.runtime.get_unary_reduction_op_id(
+                UnaryRedCode.PROD, self.dtype
+            )
+            self.fill(np.array(True))
+        task = self.context.create_task(NumPyOpCode.BINARY_RED)
         task.add_reduction(lhs, redop)
         task.add_input(rhs1)
         task.add_input(rhs2)
@@ -1477,14 +1464,7 @@ class DeferredArray(NumPyThunk):
         rhs3 = src3._broadcast(lhs.shape)
 
         # Populate the Legate launcher
-        all_scalar_rhs = rhs1.scalar and rhs2.scalar and rhs3.scalar
-
-        if all_scalar_rhs:
-            task_id = NumPyOpCode.SCALAR_WHERE
-        else:
-            task_id = NumPyOpCode.WHERE
-
-        task = self.context.create_task(task_id)
+        task = self.context.create_task(NumPyOpCode.WHERE)
         task.add_output(lhs)
         task.add_input(rhs1)
         task.add_input(rhs2)

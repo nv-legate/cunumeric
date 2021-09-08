@@ -53,12 +53,12 @@ struct ScalarUnaryRedImplBody<VariantKind::CPU, UnaryRedCode::CONTAINS, CODE, DI
 
   void operator()(bool& result,
                   AccessorRO<VAL, DIM> in,
-                  const UntypedScalar& to_find_scalar,
+                  const Store& to_find_scalar,
                   const Rect<DIM>& rect,
                   const Pitches<DIM - 1>& pitches,
                   bool dense) const
   {
-    const auto to_find  = to_find_scalar.value<VAL>();
+    const auto to_find  = to_find_scalar.scalar<VAL>();
     const size_t volume = rect.volume();
     if (dense) {
       auto inptr = in.ptr(rect);
@@ -102,16 +102,16 @@ struct ScalarUnaryRedImplBody<VariantKind::CPU, UnaryRedCode::COUNT_NONZERO, COD
   }
 };
 
-/*static*/ UntypedScalar ScalarUnaryRedTask::cpu_variant(TaskContext& context)
+/*static*/ void ScalarUnaryRedTask::cpu_variant(TaskContext& context)
 {
-  return scalar_unary_red_template<VariantKind::CPU>(context);
+  scalar_unary_red_template<VariantKind::CPU>(context);
 }
 
 namespace  // unnamed
 {
 static void __attribute__((constructor)) register_tasks(void)
 {
-  ScalarUnaryRedTask::register_variants_with_return<UntypedScalar, UntypedScalar>();
+  ScalarUnaryRedTask::register_variants();
 }
 }  // namespace
 

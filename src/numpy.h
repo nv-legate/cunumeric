@@ -18,7 +18,6 @@
 
 #include "legate.h"
 #include "legate_numpy_c.h"
-#include "scalar.h"
 
 namespace legate {
 namespace numpy {

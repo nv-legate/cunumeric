@@ -50,17 +50,14 @@ struct DotImplBody<VariantKind::CPU, CODE> {
   }
 };
 
-/*static*/ UntypedScalar DotTask::cpu_variant(TaskContext& context)
+/*static*/ void DotTask::cpu_variant(TaskContext& context)
 {
-  return dot_template<VariantKind::CPU>(context);
+  dot_template<VariantKind::CPU>(context);
 }
 
 namespace  // unnamed
 {
-static void __attribute__((constructor)) register_tasks(void)
-{
-  DotTask::register_variants_with_return<UntypedScalar, UntypedScalar>();
-}
+static void __attribute__((constructor)) register_tasks(void) { DotTask::register_variants(); }
 }  // namespace
 
 }  // namespace numpy

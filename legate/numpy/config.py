@@ -106,17 +106,13 @@ class NumPyOpCode(IntEnum):
     TILE = legate_numpy.NUMPY_TILE
     # Type-erased operators
     BINARY_OP = legate_numpy.NUMPY_BINARY_OP
-    SCALAR_BINARY_OP = legate_numpy.NUMPY_SCALAR_BINARY_OP
     FILL = legate_numpy.NUMPY_FILL
     SCALAR_UNARY_RED = legate_numpy.NUMPY_SCALAR_UNARY_RED
     UNARY_RED = legate_numpy.NUMPY_UNARY_RED
     UNARY_OP = legate_numpy.NUMPY_UNARY_OP
-    SCALAR_UNARY_OP = legate_numpy.NUMPY_SCALAR_UNARY_OP
     BINARY_RED = legate_numpy.NUMPY_BINARY_RED
     CONVERT = legate_numpy.NUMPY_CONVERT
-    SCALAR_CONVERT = legate_numpy.NUMPY_SCALAR_CONVERT
     WHERE = legate_numpy.NUMPY_WHERE
-    SCALAR_WHERE = legate_numpy.NUMPY_SCALAR_WHERE
     READ = legate_numpy.NUMPY_READ
     WRITE = legate_numpy.NUMPY_WRITE
     DIAG = legate_numpy.NUMPY_DIAG
@@ -212,6 +208,8 @@ numpy_unary_reduction_op_offsets = {
     UnaryRedCode.MAX: legion.LEGION_REDOP_KIND_MAX,
     UnaryRedCode.ARGMAX: NumPyRedopCode.ARGMAX_REDOP,
     UnaryRedCode.ARGMIN: NumPyRedopCode.ARGMIN_REDOP,
+    UnaryRedCode.CONTAINS: legion.LEGION_REDOP_KIND_SUM,
+    UnaryRedCode.COUNT_NONZERO: legion.LEGION_REDOP_KIND_SUM,
 }
 
 
@@ -248,17 +246,6 @@ numpy_unary_reduction_identities = {
     UnaryRedCode.MAX: max_identity,
     UnaryRedCode.ARGMAX: lambda ty: (np.iinfo(np.int64).min, max_identity(ty)),
     UnaryRedCode.ARGMIN: lambda ty: (np.iinfo(np.int64).min, min_identity(ty)),
-}
-
-numpy_scalar_reduction_op_offsets = {
-    UnaryRedCode.MAX: legate_numpy.NUMPY_SCALAR_MAX_REDOP,
-    UnaryRedCode.MIN: legate_numpy.NUMPY_SCALAR_MIN_REDOP,
-    UnaryRedCode.PROD: legate_numpy.NUMPY_SCALAR_PROD_REDOP,
-    UnaryRedCode.SUM: legate_numpy.NUMPY_SCALAR_SUM_REDOP,
-    UnaryRedCode.CONTAINS: legate_numpy.NUMPY_SCALAR_SUM_REDOP,
-    UnaryRedCode.ARGMAX: legate_numpy.NUMPY_SCALAR_ARGMAX_REDOP,
-    UnaryRedCode.ARGMIN: legate_numpy.NUMPY_SCALAR_ARGMIN_REDOP,
-    UnaryRedCode.COUNT_NONZERO: legate_numpy.NUMPY_SCALAR_SUM_REDOP,
 }
 
 

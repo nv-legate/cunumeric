@@ -17,16 +17,16 @@
 #pragma once
 
 #include "numpy.h"
-#include "scalar.h"
 #include "unary/unary_red_util.h"
 
 namespace legate {
 namespace numpy {
 
 struct ScalarUnaryRedArgs {
+  const Array& out;
   const Array& in;
   UnaryRedCode op_code;
-  std::vector<UntypedScalar> args;
+  std::vector<Store> args;
 };
 
 // Unary reduction task that produces scalar results
@@ -35,12 +35,12 @@ class ScalarUnaryRedTask : public NumPyTask<ScalarUnaryRedTask> {
   static const int TASK_ID = NUMPY_SCALAR_UNARY_RED;
 
  public:
-  static UntypedScalar cpu_variant(TaskContext& context);
+  static void cpu_variant(TaskContext& context);
 #ifdef LEGATE_USE_OPENMP
-  static UntypedScalar omp_variant(TaskContext& context);
+  static void omp_variant(TaskContext& context);
 #endif
 #ifdef LEGATE_USE_CUDA
-  static UntypedScalar gpu_variant(TaskContext& context);
+  static void gpu_variant(TaskContext& context);
 #endif
 };
 

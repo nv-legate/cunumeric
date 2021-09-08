@@ -70,9 +70,9 @@ struct DotImplBody<VariantKind::OMP, CODE> {
   }
 };
 
-/*static*/ UntypedScalar DotTask::omp_variant(TaskContext& context)
+/*static*/ void DotTask::omp_variant(TaskContext& context)
 {
-  return dot_template<VariantKind::OMP>(context);
+  dot_template<VariantKind::OMP>(context);
 }
 
 }  // namespace numpy

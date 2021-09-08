@@ -17,17 +17,17 @@
 #pragma once
 
 #include "numpy.h"
-#include "scalar.h"
 #include "binary/binary_op_util.h"
 
 namespace legate {
 namespace numpy {
 
 struct BinaryRedArgs {
+  const Array& out;
   const Array& in1;
   const Array& in2;
   BinaryOpCode op_code;
-  std::vector<UntypedScalar> args;
+  std::vector<Store> args;
 };
 
 class BinaryRedTask : public NumPyTask<BinaryRedTask> {
@@ -35,12 +35,12 @@ class BinaryRedTask : public NumPyTask<BinaryRedTask> {
   static const int TASK_ID = NUMPY_BINARY_RED;
 
  public:
-  static UntypedScalar cpu_variant(TaskContext& context);
+  static void cpu_variant(TaskContext& context);
 #ifdef LEGATE_USE_OPENMP
-  static UntypedScalar omp_variant(TaskContext& context);
+  static void omp_variant(TaskContext& context);
 #endif
 #ifdef LEGATE_USE_CUDA
-  static UntypedScalar gpu_variant(TaskContext& context);
+  static void gpu_variant(TaskContext& context);
 #endif
 };
 

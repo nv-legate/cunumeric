@@ -22,17 +22,13 @@
 // Match these to NumPyOpCode in legate/numpy/config.py
 enum NumPyOpCode {
   NUMPY_BINARY_OP        = 400000,
-  NUMPY_SCALAR_BINARY_OP = 400002,
   NUMPY_FILL             = 400003,
   NUMPY_SCALAR_UNARY_RED = 400004,
   NUMPY_UNARY_RED        = 400005,
   NUMPY_UNARY_OP         = 400006,
-  NUMPY_SCALAR_UNARY_OP  = 400007,
   NUMPY_BINARY_RED       = 400008,
   NUMPY_CONVERT          = 400010,
-  NUMPY_SCALAR_CONVERT   = 400011,
   NUMPY_WHERE            = 400012,
-  NUMPY_SCALAR_WHERE     = 400013,
   NUMPY_READ             = 400014,
   NUMPY_WRITE            = 400015,
   NUMPY_DIAG             = 400016,
@@ -52,12 +48,6 @@ enum NumPyOpCode {
 enum NumPyRedopID {
   NUMPY_ARGMIN_REDOP = LEGION_REDOP_KIND_TOTAL + 1,
   NUMPY_ARGMAX_REDOP,
-  NUMPY_SCALAR_MAX_REDOP    = 500,
-  NUMPY_SCALAR_MIN_REDOP    = 501,
-  NUMPY_SCALAR_PROD_REDOP   = 502,
-  NUMPY_SCALAR_SUM_REDOP    = 503,
-  NUMPY_SCALAR_ARGMAX_REDOP = 504,
-  NUMPY_SCALAR_ARGMIN_REDOP = 505,
 };
 
 // Match these to NumPyMappingTag in legate/numpy/config.py
