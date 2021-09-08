@@ -163,10 +163,11 @@ class DeferredArray(NumPyThunk):
 
     @property
     def storage(self):
-        if isinstance(self.base, Future):
-            return self.base
+        storage = self.base.storage
+        if self.base.kind == Future:
+            return storage
         else:
-            return (self.base.region, self.base.field.field_id)
+            return (storage.region, storage.field.field_id)
 
     @property
     def shape(self):
