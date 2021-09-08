@@ -17,7 +17,7 @@ import warnings
 from collections.abc import Iterable
 from functools import reduce
 from inspect import signature
-from typing import Optional, Set
+from typing import Optional, Set, Tuple
 
 import numpy as np
 import pyarrow
@@ -1125,30 +1125,35 @@ class ndarray(object):
             "for ndarray.getfield"
         )
 
-    def item(self, *args):
-        if args is None:
-            raise KeyError("invalid key passed to legate.numpy.ndarray")
-        key = self._convert_key(args)
-        result = ndarray(
-            shape=None, thunk=self._thunk.get_item(key, stacklevel=2)
-        )
-        assert result.size == 1
-        if self.dtype.kind == "f":
-            return float(result)
-        elif self.dtype.kind == "i" or self.dtype.kind == "u":
-            return int(result)
-        elif self.dtype.kind == "b":
-            return bool(result)
-        else:
-            raise TypeError("Invalid dtype")
+    def _convert_singleton_key(self, args: Tuple):
+        if len(args) == 0 and self.size == 1:
+            return (0,) * self.ndim
+        if len(args) == 1 and isinstance(args[0], int):
+            flat_idx = args[0]
+            result = ()
+            for dim_size in reversed(self.shape):
+                result = (flat_idx % dim_size,) + result
+                flat_idx //= dim_size
+            return result
+        if len(args) == 1 and isinstance(args[0], tuple):
+            args = args[0]
+        if len(args) != self.ndim or any(not isinstance(x, int) for x in args):
+            raise KeyError("invalid key")
+        return args
 
-    def itemset(self, key, value=0):
-        if key is None:
-            raise KeyError("invalid key passed to legate.numpy.ndarray")
-        key = self._convert_key(key)
-        val = np.array(value, dtype=self.dtype)
-        value_array = self.convert_to_legate_ndarray(val)
-        self._thunk.set_item(key, value_array._thunk, stacklevel=2)
+    def item(self, *args):
+        key = self._convert_singleton_key(args)
+        result = self[key]
+        assert result.shape == ()
+        return result._thunk.__numpy_array__(stacklevel=1)
+
+    def itemset(self, *args):
+        if len(args) == 0:
+            raise KeyError("itemset() requires at least one argument")
+        value = args[-1]
+        args = args[:-1]
+        key = self._convert_singleton_key(args)
+        self[key] = value
 
     @add_boilerplate()
     def max(
