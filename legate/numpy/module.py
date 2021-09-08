@@ -46,6 +46,8 @@ def add_boilerplate(*array_params: str):
     * Convert the special "where" parameter (if present) to a valid predicate.
     * Handle the case of scalar Legate ndarrays, by forwarding the operation
       to the equivalent `()`-shape numpy array.
+
+    NOTE: Assumes that no parameters are mutated besides `out`.
     """
     keys: Set[str] = set(array_params)
 

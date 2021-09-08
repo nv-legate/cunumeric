@@ -30,7 +30,7 @@ from .runtime import runtime
 from .utils import unimplemented
 
 
-def add_boilerplate(*array_params: str):
+def add_boilerplate(*array_params: str, mutates_self: bool = False):
     """
     Adds required boilerplate to the wrapped Legate ndarray member function.
 
@@ -40,6 +40,9 @@ def add_boilerplate(*array_params: str):
     * Convert the special "where" parameter (if present) to a valid predicate.
     * Handle the case of scalar Legate ndarrays, by forwarding the operation
       to the equivalent `()`-shape numpy array.
+
+    NOTE: Assumes that no parameters are mutated besides `out`, and `self` if
+    `mutates_self` is True.
     """
     keys: Set[str] = set(array_params)
 
@@ -65,6 +68,7 @@ def add_boilerplate(*array_params: str):
         assert len(keys - all_formals) == 0, "unkonwn parameter(s)"
 
         def wrapper(*args, **kwargs):
+            self = args[0]
             assert (where_idx is None or len(args) <= where_idx) and (
                 out_idx is None or len(args) <= out_idx
             ), "'where' and 'out' should be passed as keyword arguments"
@@ -128,6 +132,13 @@ def add_boilerplate(*array_params: str):
                 result = ndarray.convert_to_legate_ndarray(
                     getattr(self_scalar, func.__name__)(*args, **kwargs)
                 )
+                if mutates_self:
+                    self._thunk = runtime.create_scalar(
+                        self_scalar.data,
+                        self_scalar.dtype,
+                        shape=self_scalar.shape,
+                        wrap=True,
+                    )
                 if out is not None:
                     out._thunk.copy(result._thunk, stacklevel=stacklevel)
                     result = out
