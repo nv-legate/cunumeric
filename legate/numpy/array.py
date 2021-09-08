@@ -481,14 +481,8 @@ class ndarray(object):
                 key, stacklevel=(stacklevel + 1)
             )._thunk
 
-    def __getitem__(self, key):
-        # If we're a scalar, we're our own value
-        if self.size == 1:
-            if (self.ndim == 0 and key != () and key != Ellipsis) or (
-                key != ((0,) * self.ndim)
-            ):
-                raise KeyError("invalid key passed to legate.numpy.ndarray")
-            return self
+    @add_boilerplate()
+    def __getitem__(self, key, stacklevel=1):
         key = self._convert_key(key)
         return ndarray(
             shape=None, thunk=self._thunk.get_item(key, stacklevel=2)
@@ -795,23 +789,16 @@ class ndarray(object):
 
     # __setattr__
 
-    def __setitem__(self, key, value):
+    @add_boilerplate("value", mutates_self=True)
+    def __setitem__(self, key, value, stacklevel=1):
         if key is None:
             raise KeyError("invalid key passed to legate.numpy.ndarray")
-        value_array = self.convert_to_legate_ndarray(value)
-        if value_array.dtype != self.dtype:
-            temp = ndarray(
-                value_array.shape, dtype=self.dtype, inputs=(value_array,)
-            )
-            temp._thunk.convert(value_array._thunk, stacklevel=2)
-            value_array = temp
-        if self.size == 1:
-            if (self.ndim == 0 and key != () and key != Ellipsis) or (
-                key != ((0,) * self.ndim)
-            ):
-                raise KeyError("invalid key passed to legate.numpy.ndarray")
+        if value.dtype != self.dtype:
+            temp = ndarray(value.shape, dtype=self.dtype, inputs=(value,))
+            temp._thunk.convert(value._thunk, stacklevel=2)
+            value = temp
         key = self._convert_key(key)
-        self._thunk.set_item(key, value_array._thunk, stacklevel=2)
+        self._thunk.set_item(key, value._thunk, stacklevel=2)
 
     def __setstate__(self, state):
         self.__array__(stacklevel=2).__setstate__(state)

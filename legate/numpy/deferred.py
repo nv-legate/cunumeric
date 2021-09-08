@@ -386,7 +386,6 @@ class DeferredArray(NumPyThunk):
         return result
 
     def get_item(self, key, stacklevel, view=None, dim_map=None):
-        assert self.size > 1
         # Check to see if this is advanced indexing or not
         if self._is_advanced_indexing(key):
             # Create the indexing array
@@ -463,11 +462,6 @@ class DeferredArray(NumPyThunk):
 
             copy.execute()
 
-        elif self.size == 1:
-            assert rhs.size == 1
-            # Special case of writing a single value
-            # We can just copy the future because they are immutable
-            self.base = rhs.base
         else:
             view = self._get_view(key)
 
