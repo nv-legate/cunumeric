@@ -112,7 +112,7 @@ def add_boilerplate(*array_params: str):
                     del kwargs["out"]
                 del kwargs["stacklevel"]
                 args = tuple(
-                    arg._thunk.get_scalar_array(stacklevel=stacklevel)
+                    arg._thunk.__numpy_array__(stacklevel=stacklevel)
                     if (idx in indices or idx == 0)
                     and isinstance(arg, ndarray)
                     else arg
@@ -120,7 +120,7 @@ def add_boilerplate(*array_params: str):
                 )
                 for (k, v) in kwargs.items():
                     if (k in keys or k == "where") and isinstance(v, ndarray):
-                        kwargs[k] = v._thunk.get_scalar_array(
+                        kwargs[k] = v._thunk.__numpy_array__(
                             stacklevel=stacklevel
                         )
                 self_scalar = args[0]
@@ -235,7 +235,7 @@ class ndarray(object):
         if thunk.scalar:
             # Convert this into a bool for now, in the future we may want to
             # defer this anyway to avoid blocking deferred execution
-            return bool(thunk.get_scalar_array(stacklevel=(stacklevel + 1)))
+            return bool(thunk.__numpy_array__(stacklevel=(stacklevel + 1)))
         result = ndarray(shape=None, stacklevel=(stacklevel + 1), thunk=thunk)
         # If the type of the thunk is not bool then we need to convert it
         if result.dtype != np.bool_:

@@ -420,7 +420,7 @@ class DeferredArray(NumPyThunk):
             if result.shape == ():
                 input = result
                 result = self.runtime.create_empty_thunk(
-                    1, self.dtype, inputs=[self]
+                    (), self.dtype, inputs=[self]
                 )
 
                 task = self.context.create_task(NumPyOpCode.READ)

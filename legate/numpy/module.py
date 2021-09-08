@@ -118,14 +118,14 @@ def add_boilerplate(*array_params: str):
                     del kwargs["out"]
                 del kwargs["stacklevel"]
                 args = tuple(
-                    arg._thunk.get_scalar_array(stacklevel=stacklevel)
+                    arg._thunk.__numpy_array__(stacklevel=stacklevel)
                     if (idx in indices) and isinstance(arg, ndarray)
                     else arg
                     for (idx, arg) in enumerate(args)
                 )
                 for (k, v) in kwargs.items():
                     if (k in keys or k == "where") and isinstance(v, ndarray):
-                        kwargs[k] = v._thunk.get_scalar_array(
+                        kwargs[k] = v._thunk.__numpy_array__(
                             stacklevel=stacklevel
                         )
                 result = ndarray.convert_to_legate_ndarray(
