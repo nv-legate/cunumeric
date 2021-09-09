@@ -27,7 +27,9 @@ struct BinaryRedImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
   using OP  = BinaryOp<OP_CODE, CODE>;
   using ARG = legate_type_of<CODE>;
 
-  bool operator()(OP func,
+  template <typename AccessorRD>
+  void operator()(OP func,
+                  AccessorRD out,
                   AccessorRO<ARG, DIM> in1,
                   AccessorRO<ARG, DIM> in2,
                   const Pitches<DIM - 1>& pitches,
@@ -39,15 +41,21 @@ struct BinaryRedImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
       auto in1ptr = in1.ptr(rect);
       auto in2ptr = in2.ptr(rect);
       for (size_t idx = 0; idx < volume; ++idx)
-        if (!func(in1ptr[idx], in2ptr[idx])) return false;
+        if (!func(in1ptr[idx], in2ptr[idx])) {
+          out.reduce(0, false);
+          return;
+        }
     } else {
       for (size_t idx = 0; idx < volume; ++idx) {
         auto point = pitches.unflatten(idx, rect.lo);
-        if (!func(in1[point], in2[point])) return false;
+        if (!func(in1[point], in2[point])) {
+          out.reduce(0, false);
+          return;
+        }
       }
     }
 
-    return true;
+    out.reduce(0, true);
   }
 };
 

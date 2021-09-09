@@ -43,17 +43,25 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM) gen
   if (!func(in1[point], in2[point])) out <<= false;
 }
 
+template <typename Buffer, typename RedAcc>
+static __global__ void __launch_bounds__(1, 1) copy_kernel(Buffer result, RedAcc out)
+{
+  out.reduce(0, result.read());
+}
+
 template <BinaryOpCode OP_CODE, LegateTypeCode CODE, int DIM>
 struct BinaryRedImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
   using OP  = BinaryOp<OP_CODE, CODE>;
   using ARG = legate_type_of<CODE>;
 
-  UntypedScalar operator()(OP func,
-                           AccessorRO<ARG, DIM> in1,
-                           AccessorRO<ARG, DIM> in2,
-                           const Pitches<DIM - 1>& pitches,
-                           const Rect<DIM>& rect,
-                           bool dense) const
+  template <typename AccessorRD>
+  void operator()(OP func,
+                  AccessorRD out,
+                  AccessorRO<ARG, DIM> in1,
+                  AccessorRO<ARG, DIM> in2,
+                  const Pitches<DIM - 1>& pitches,
+                  const Rect<DIM>& rect,
+                  bool dense) const
   {
     size_t volume       = rect.volume();
     const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
@@ -69,16 +77,14 @@ struct BinaryRedImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
         volume, func, result, in1, in2, pitches, rect);
     }
 
-    cudaStreamSynchronize(stream);
+    copy_kernel<<<1, 1, 0, stream>>>(result, out);
     cudaStreamDestroy(stream);
-
-    return UntypedScalar(result.read());
   }
 };
 
-/*static*/ UntypedScalar BinaryRedTask::gpu_variant(TaskContext& context)
+/*static*/ void BinaryRedTask::gpu_variant(TaskContext& context)
 {
-  return binary_red_template<VariantKind::GPU>(context);
+  binary_red_template<VariantKind::GPU>(context);
 }
 
 }  // namespace numpy

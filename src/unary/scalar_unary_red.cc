@@ -24,16 +24,18 @@ using namespace Legion;
 
 template <UnaryRedCode OP_CODE, LegateTypeCode CODE, int DIM>
 struct ScalarUnaryRedImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
-  using OP  = UnaryRedOp<OP_CODE, CODE>;
-  using VAL = legate_type_of<CODE>;
+  using OP    = UnaryRedOp<OP_CODE, CODE>;
+  using LG_OP = typename OP::OP;
+  using VAL   = legate_type_of<CODE>;
 
   void operator()(OP func,
-                  VAL& result,
+                  AccessorRD<LG_OP, true, 1> out,
                   AccessorRO<VAL, DIM> in,
                   const Rect<DIM>& rect,
                   const Pitches<DIM - 1>& pitches,
                   bool dense) const
   {
+    auto result         = LG_OP::identity;
     const size_t volume = rect.volume();
     if (dense) {
       auto inptr = in.ptr(rect);
@@ -44,20 +46,24 @@ struct ScalarUnaryRedImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
         OP::template fold<true>(result, in[p]);
       }
     }
+    out.reduce(0, result);
   }
 };
 
 template <LegateTypeCode CODE, int DIM>
 struct ScalarUnaryRedImplBody<VariantKind::CPU, UnaryRedCode::CONTAINS, CODE, DIM> {
-  using VAL = legate_type_of<CODE>;
+  using OP    = UnaryRedOp<UnaryRedCode::SUM, LegateTypeCode::BOOL_LT>;
+  using LG_OP = typename OP::OP;
+  using VAL   = legate_type_of<CODE>;
 
-  void operator()(bool& result,
+  void operator()(AccessorRD<LG_OP, true, 1> out,
                   AccessorRO<VAL, DIM> in,
                   const Store& to_find_scalar,
                   const Rect<DIM>& rect,
                   const Pitches<DIM - 1>& pitches,
                   bool dense) const
   {
+    auto result         = LG_OP::identity;
     const auto to_find  = to_find_scalar.scalar<VAL>();
     const size_t volume = rect.volume();
     if (dense) {
@@ -65,30 +71,34 @@ struct ScalarUnaryRedImplBody<VariantKind::CPU, UnaryRedCode::CONTAINS, CODE, DI
       for (size_t idx = 0; idx < volume; ++idx)
         if (inptr[idx] == to_find) {
           result = true;
-          return;
+          break;
         }
     } else {
       for (size_t idx = 0; idx < volume; ++idx) {
         auto point = pitches.unflatten(idx, rect.lo);
         if (in[point] == to_find) {
           result = true;
-          return;
+          break;
         }
       }
     }
+    out.reduce(0, result);
   }
 };
 
 template <LegateTypeCode CODE, int DIM>
 struct ScalarUnaryRedImplBody<VariantKind::CPU, UnaryRedCode::COUNT_NONZERO, CODE, DIM> {
-  using VAL = legate_type_of<CODE>;
+  using OP    = UnaryRedOp<UnaryRedCode::SUM, LegateTypeCode::UINT64_LT>;
+  using LG_OP = typename OP::OP;
+  using VAL   = legate_type_of<CODE>;
 
-  void operator()(uint64_t& result,
+  void operator()(AccessorRD<LG_OP, true, 1> out,
                   AccessorRO<VAL, DIM> in,
                   const Rect<DIM>& rect,
                   const Pitches<DIM - 1>& pitches,
                   bool dense) const
   {
+    auto result         = LG_OP::identity;
     const size_t volume = rect.volume();
     if (dense) {
       auto inptr = in.ptr(rect);
@@ -99,6 +109,7 @@ struct ScalarUnaryRedImplBody<VariantKind::CPU, UnaryRedCode::COUNT_NONZERO, COD
         result += in[point] != VAL(0);
       }
     }
+    out.reduce(0, result);
   }
 };
 

@@ -30,7 +30,8 @@ struct DotImplBody<VariantKind::OMP, CODE> {
   using VAL = legate_type_of<CODE>;
   using ACC = acc_type_of<VAL>;
 
-  void operator()(ACC& result,
+  template <typename AccessorRD>
+  void operator()(AccessorRD out,
                   const AccessorRO<VAL, 1>& rhs1,
                   const AccessorRO<VAL, 1>& rhs2,
                   const Rect<1>& rect,
@@ -65,8 +66,7 @@ struct DotImplBody<VariantKind::OMP, CODE> {
       }
     }
 
-    for (auto idx = 0; idx < max_threads; ++idx)
-      SumReduction<ACC>::template fold<true>(result, locals[idx]);
+    for (auto idx = 0; idx < max_threads; ++idx) out.reduce(0, locals[idx]);
   }
 };
 

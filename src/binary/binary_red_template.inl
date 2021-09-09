@@ -40,13 +40,7 @@ struct BinaryRedImpl {
     Pitches<DIM - 1> pitches;
     size_t volume = pitches.flatten(rect);
 
-    auto out = args.out.write_accessor<bool, 1>();
-
-    if (volume == 0) {
-      out[0] = true;
-      return;
-    }
-
+    auto out = args.out.reduce_accessor<ProdReduction<bool>, true, 1>();
     auto in1 = args.in1.read_accessor<ARG, DIM>(rect);
     auto in2 = args.in2.read_accessor<ARG, DIM>(rect);
 
@@ -59,9 +53,7 @@ struct BinaryRedImpl {
 #endif
 
     OP func(args.args);
-    auto result =
-      BinaryRedImplBody<KIND, OP_CODE, CODE, DIM>()(func, in1, in2, pitches, rect, dense);
-    out[0] = result;
+    BinaryRedImplBody<KIND, OP_CODE, CODE, DIM>()(func, out, in1, in2, pitches, rect, dense);
   }
 
   template <LegateTypeCode CODE,

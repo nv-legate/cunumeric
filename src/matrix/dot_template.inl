@@ -46,16 +46,8 @@ struct DotImpl {
     assert(args.rhs1.dim() == 1);
     assert(args.rhs2.dim() == 1);
 
-    auto rect  = args.rhs1.shape<1>();
-    ACC result = SumReduction<ACC>::identity;
-
-    auto lhs = args.lhs.write_accessor<ACC, 1>();
-
-    if (rect.empty()) {
-      lhs[0] = result;
-      return;
-    }
-
+    auto rect = args.rhs1.shape<1>();
+    auto lhs  = args.lhs.reduce_accessor<SumReduction<ACC>, true, 1>();
     auto rhs1 = args.rhs1.read_accessor<VAL, 1>(rect);
     auto rhs2 = args.rhs2.read_accessor<VAL, 1>(rect);
 
@@ -67,8 +59,7 @@ struct DotImpl {
     bool dense = false;
 #endif
 
-    DotImplBody<KIND, CODE>()(result, rhs1, rhs2, rect, dense);
-    lhs[0] = result;
+    DotImplBody<KIND, CODE>()(lhs, rhs1, rhs2, rect, dense);
   }
 };
 

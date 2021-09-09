@@ -41,15 +41,8 @@ struct ScalarUnaryRedImpl {
     Pitches<DIM - 1> pitches;
     size_t volume = pitches.flatten(rect);
 
-    VAL result = LG_OP::identity;
-    auto out   = args.out.write_accessor<VAL, 1>();
-
-    if (volume == 0) {
-      out[0] = result;
-      return;
-    }
-
-    auto in = args.in.read_accessor<VAL, DIM>(rect);
+    auto out = args.out.reduce_accessor<LG_OP, true, 1>();
+    auto in  = args.in.read_accessor<VAL, DIM>(rect);
 
 #ifndef LEGION_BOUNDS_CHECKS
     // Check to see if this is dense or not
@@ -59,8 +52,7 @@ struct ScalarUnaryRedImpl {
     bool dense = false;
 #endif
 
-    ScalarUnaryRedImplBody<KIND, OP_CODE, CODE, DIM>()(OP{}, result, in, rect, pitches, dense);
-    out[0] = result;
+    ScalarUnaryRedImplBody<KIND, OP_CODE, CODE, DIM>()(OP{}, out, in, rect, pitches, dense);
   }
 
   template <LegateTypeCode CODE,
@@ -77,22 +69,17 @@ struct ScalarUnaryRedImpl<KIND, UnaryRedCode::CONTAINS> {
   template <LegateTypeCode CODE, int DIM>
   void operator()(ScalarUnaryRedArgs& args) const
   {
-    using VAL = legate_type_of<CODE>;
+    using OP    = UnaryRedOp<UnaryRedCode::SUM, LegateTypeCode::BOOL_LT>;
+    using LG_OP = typename OP::OP;
+    using VAL   = legate_type_of<CODE>;
 
     auto rect = args.in.shape<DIM>();
 
     Pitches<DIM - 1> pitches;
     size_t volume = pitches.flatten(rect);
 
-    bool result = false;
-    auto out    = args.out.write_accessor<bool, 1>();
-
-    if (volume == 0) {
-      out[0] = result;
-      return;
-    }
-
-    auto in = args.in.read_accessor<VAL, DIM>(rect);
+    auto out = args.out.reduce_accessor<LG_OP, true, 1>();
+    auto in  = args.in.read_accessor<VAL, DIM>(rect);
 
 #ifndef LEGION_BOUNDS_CHECKS
     // Check to see if this is dense or not
@@ -103,8 +90,7 @@ struct ScalarUnaryRedImpl<KIND, UnaryRedCode::CONTAINS> {
 #endif
 
     ScalarUnaryRedImplBody<KIND, UnaryRedCode::CONTAINS, CODE, DIM>()(
-      result, in, args.args[0], rect, pitches, dense);
-    out[0] = result;
+      out, in, args.args[0], rect, pitches, dense);
   }
 };
 
@@ -113,22 +99,17 @@ struct ScalarUnaryRedImpl<KIND, UnaryRedCode::COUNT_NONZERO> {
   template <LegateTypeCode CODE, int DIM>
   void operator()(ScalarUnaryRedArgs& args) const
   {
-    using VAL = legate_type_of<CODE>;
+    using OP    = UnaryRedOp<UnaryRedCode::SUM, LegateTypeCode::UINT64_LT>;
+    using LG_OP = typename OP::OP;
+    using VAL   = legate_type_of<CODE>;
 
     auto rect = args.in.shape<DIM>();
 
     Pitches<DIM - 1> pitches;
     size_t volume = pitches.flatten(rect);
 
-    auto out        = args.out.write_accessor<uint64_t, 1>();
-    uint64_t result = 0;
-
-    if (volume == 0) {
-      out[0] = result;
-      return;
-    }
-
-    auto in = args.in.read_accessor<VAL, DIM>(rect);
+    auto out = args.out.reduce_accessor<LG_OP, true, 1>();
+    auto in  = args.in.read_accessor<VAL, DIM>(rect);
 
 #ifndef LEGION_BOUNDS_CHECKS
     // Check to see if this is dense or not
@@ -139,8 +120,7 @@ struct ScalarUnaryRedImpl<KIND, UnaryRedCode::COUNT_NONZERO> {
 #endif
 
     ScalarUnaryRedImplBody<KIND, UnaryRedCode::COUNT_NONZERO, CODE, DIM>()(
-      result, in, rect, pitches, dense);
-    out[0] = result;
+      out, in, rect, pitches, dense);
   }
 };
 
