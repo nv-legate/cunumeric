@@ -177,6 +177,15 @@ class DeferredArray(NumPyThunk):
     def ndim(self):
         return len(self.shape)
 
+    def _copy_if_overlapping(self, other):
+        if not self.base.overlaps(other.base):
+            return self
+        copy = self.runtime.create_empty_thunk(
+            self.shape, self.dtype, inputs=[self]
+        )
+        copy.copy(self, deep=True)
+        return copy
+
     def __numpy_array__(self, stacklevel=0):
         if self.numpy_array is not None:
             result = self.numpy_array()
@@ -898,11 +907,13 @@ class DeferredArray(NumPyThunk):
             if left_matrix:
                 rhs1 = rhs1_array.base
                 (m, n) = rhs1.shape
+                rhs2_array = rhs2_array._copy_if_overlapping(lhs_array)
                 rhs2 = rhs2_array.base.promote(0, m)
                 lhs = lhs_array.base.promote(1, n)
             else:
                 rhs2 = rhs2_array.base
                 (m, n) = rhs2.shape
+                rhs1_array = rhs1_array._copy_if_overlapping(lhs_array)
                 rhs1 = rhs1_array.base.promote(1, n)
                 lhs = lhs_array.base.promote(0, m)
 
@@ -967,6 +978,9 @@ class DeferredArray(NumPyThunk):
                 lhs_array = self.runtime.create_empty_thunk(
                     self.shape, np.dtype(np.float32), inputs=[self]
                 )
+
+            rhs1_array = rhs1_array._copy_if_overlapping(lhs_array)
+            rhs2_array = rhs2_array._copy_if_overlapping(lhs_array)
 
             # TODO: We should be able to do this in the core
             lhs_array.fill(
