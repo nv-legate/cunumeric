@@ -14,18 +14,16 @@
 #
 
 import numpy as np
+from test_tools.generators import scalar_gen
 
 import legate.numpy as lg
 
 
 def test():
-    np.random.seed(13)
-    a = 10.0 * np.random.rand()
-
-    # test floor_divide
-    assert np.array_equal(lg.floor(a), np.floor(a))
-
-    return
+    test_values = [-3.9, -3.1, 3.1, 3.9]
+    for a in test_values:
+        for (la, na) in zip(scalar_gen(lg, a), scalar_gen(np, a)):
+            assert np.array_equal(lg.floor(la), np.floor(na))
 
 
 if __name__ == "__main__":
