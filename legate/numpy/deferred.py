@@ -834,6 +834,12 @@ class DeferredArray(NumPyThunk):
                 UnaryRedCode.SUM, lhs_array.dtype
             )
 
+            lhs_array.fill(
+                np.array(0, dtype=lhs_array.dtype),
+                stacklevel=(stacklevel + 1),
+                callsite=callsite,
+            )
+
             task = self.context.create_task(NumPyOpCode.DOT)
             task.add_reduction(lhs_array.base, redop)
             task.add_input(rhs1_array.base)
@@ -1316,6 +1322,16 @@ class DeferredArray(NumPyThunk):
             task = self.context.create_task(NumPyOpCode.SCALAR_UNARY_RED)
 
             redop = self.runtime.get_unary_reduction_op_id(op, lhs_array.dtype)
+            fill_value = self.runtime.get_reduction_identity(
+                op, rhs_array.dtype
+            )
+
+            lhs_array.fill(
+                np.array(fill_value, dtype=lhs_array.dtype),
+                stacklevel=(stacklevel + 1),
+                callsite=callsite,
+            )
+
             task.add_reduction(lhs_array.base, redop)
             task.add_input(rhs_array.base)
             task.add_scalar_arg(op, ty.int32)

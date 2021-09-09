@@ -246,6 +246,8 @@ numpy_unary_reduction_identities = {
     UnaryRedCode.MAX: max_identity,
     UnaryRedCode.ARGMAX: lambda ty: (np.iinfo(np.int64).min, max_identity(ty)),
     UnaryRedCode.ARGMIN: lambda ty: (np.iinfo(np.int64).min, min_identity(ty)),
+    UnaryRedCode.CONTAINS: lambda _: False,
+    UnaryRedCode.COUNT_NONZERO: lambda _: 0,
 }
 
 
