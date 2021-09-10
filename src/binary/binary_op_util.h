@@ -102,21 +102,18 @@ struct BinaryOp {
 template <LegateTypeCode CODE>
 struct BinaryOp<BinaryOpCode::ADD, CODE> : std::plus<legate_type_of<CODE>> {
   static constexpr bool valid = true;
-  BinaryOp() {}
   BinaryOp(const std::vector<Store>& args) {}
 };
 
 template <LegateTypeCode CODE>
 struct BinaryOp<BinaryOpCode::DIVIDE, CODE> : std::divides<legate_type_of<CODE>> {
   static constexpr bool valid = true;
-  BinaryOp() {}
   BinaryOp(const std::vector<Store>& args) {}
 };
 
 template <LegateTypeCode CODE>
 struct BinaryOp<BinaryOpCode::EQUAL, CODE> : std::equal_to<legate_type_of<CODE>> {
   static constexpr bool valid = true;
-  BinaryOp() {}
   BinaryOp(const std::vector<Store>& args) {}
 };
 
@@ -125,7 +122,6 @@ template <LegateTypeCode CODE>
 struct BinaryOp<BinaryOpCode::FLOOR_DIVIDE, CODE> {
   using T                     = legate_type_of<CODE>;
   static constexpr bool valid = true;
-  BinaryOp() {}
   BinaryOp(const std::vector<Store>& args) {}
   constexpr T operator()(const T& a, const T& b) const { return floor(a / b); }
 };
@@ -133,42 +129,36 @@ struct BinaryOp<BinaryOpCode::FLOOR_DIVIDE, CODE> {
 template <>
 struct BinaryOp<BinaryOpCode::FLOOR_DIVIDE, LegateTypeCode::COMPLEX64_LT> {
   static constexpr bool valid = false;
-  BinaryOp() {}
   BinaryOp(const std::vector<Store>& args) {}
 };
 
 template <>
 struct BinaryOp<BinaryOpCode::FLOOR_DIVIDE, LegateTypeCode::COMPLEX128_LT> {
   static constexpr bool valid = false;
-  BinaryOp() {}
   BinaryOp(const std::vector<Store>& args) {}
 };
 
 template <LegateTypeCode CODE>
 struct BinaryOp<BinaryOpCode::GREATER, CODE> : std::greater<legate_type_of<CODE>> {
   static constexpr bool valid = true;
-  BinaryOp() {}
   BinaryOp(const std::vector<Store>& args) {}
 };
 
 template <LegateTypeCode CODE>
 struct BinaryOp<BinaryOpCode::GREATER_EQUAL, CODE> : std::greater_equal<legate_type_of<CODE>> {
   static constexpr bool valid = true;
-  BinaryOp() {}
   BinaryOp(const std::vector<Store>& args) {}
 };
 
 template <LegateTypeCode CODE>
 struct BinaryOp<BinaryOpCode::LESS, CODE> : std::less<legate_type_of<CODE>> {
   static constexpr bool valid = true;
-  BinaryOp() {}
   BinaryOp(const std::vector<Store>& args) {}
 };
 
 template <LegateTypeCode CODE>
 struct BinaryOp<BinaryOpCode::LESS_EQUAL, CODE> : std::less_equal<legate_type_of<CODE>> {
   static constexpr bool valid = true;
-  BinaryOp() {}
   BinaryOp(const std::vector<Store>& args) {}
 };
 
@@ -176,7 +166,6 @@ template <LegateTypeCode CODE>
 struct BinaryOp<BinaryOpCode::MAXIMUM, CODE> {
   using T                     = legate_type_of<CODE>;
   static constexpr bool valid = true;
-  BinaryOp() {}
   BinaryOp(const std::vector<Store>& args) {}
   constexpr T operator()(const T& a, const T& b) const { return std::max<T>(a, b); }
 };
@@ -185,7 +174,6 @@ template <LegateTypeCode CODE>
 struct BinaryOp<BinaryOpCode::MINIMUM, CODE> {
   using T                     = legate_type_of<CODE>;
   static constexpr bool valid = true;
-  BinaryOp() {}
   BinaryOp(const std::vector<Store>& args) {}
   constexpr T operator()(const T& a, const T& b) const { return std::min<T>(a, b); }
 };
@@ -206,7 +194,6 @@ template <LegateTypeCode CODE>
 struct BinaryOp<BinaryOpCode::MOD, CODE> {
   using T                     = legate_type_of<CODE>;
   static constexpr bool valid = true;
-  BinaryOp() {}
   BinaryOp(const std::vector<Store>& args) {}
   template <typename _T = T, std::enable_if_t<std::is_integral<_T>::value>* = nullptr>
   constexpr _T operator()(const _T& a, const _T& b) const
@@ -224,7 +211,6 @@ struct BinaryOp<BinaryOpCode::MOD, CODE> {
 template <>
 struct BinaryOp<BinaryOpCode::MOD, LegateTypeCode::HALF_LT> {
   static constexpr bool valid = true;
-  BinaryOp() {}
   BinaryOp(const std::vector<Store>& args) {}
   LEGATE_DEVICE_PREFIX __half operator()(const __half& a, const __half& b) const
   {
@@ -235,28 +221,24 @@ struct BinaryOp<BinaryOpCode::MOD, LegateTypeCode::HALF_LT> {
 template <>
 struct BinaryOp<BinaryOpCode::MOD, LegateTypeCode::COMPLEX64_LT> {
   static constexpr bool valid = false;
-  BinaryOp() {}
   BinaryOp(const std::vector<Store>& args) {}
 };
 
 template <>
 struct BinaryOp<BinaryOpCode::MOD, LegateTypeCode::COMPLEX128_LT> {
   static constexpr bool valid = false;
-  BinaryOp() {}
   BinaryOp(const std::vector<Store>& args) {}
 };
 
 template <LegateTypeCode CODE>
 struct BinaryOp<BinaryOpCode::MULTIPLY, CODE> : std::multiplies<legate_type_of<CODE>> {
   static constexpr bool valid = true;
-  BinaryOp() {}
   BinaryOp(const std::vector<Store>& args) {}
 };
 
 template <LegateTypeCode CODE>
 struct BinaryOp<BinaryOpCode::NOT_EQUAL, CODE> : std::not_equal_to<legate_type_of<CODE>> {
   static constexpr bool valid = true;
-  BinaryOp() {}
   BinaryOp(const std::vector<Store>& args) {}
 };
 
@@ -264,7 +246,6 @@ template <LegateTypeCode CODE>
 struct BinaryOp<BinaryOpCode::POWER, CODE> {
   using VAL                   = legate_type_of<CODE>;
   static constexpr bool valid = true;
-  BinaryOp() {}
   BinaryOp(const std::vector<Store>& args) {}
   constexpr VAL operator()(const VAL& a, const VAL& b) const { return std::pow(a, b); }
 };
@@ -272,7 +253,6 @@ struct BinaryOp<BinaryOpCode::POWER, CODE> {
 template <>
 struct BinaryOp<BinaryOpCode::POWER, LegateTypeCode::HALF_LT> {
   static constexpr bool valid = true;
-  BinaryOp() {}
   BinaryOp(const std::vector<Store>& args) {}
   LEGATE_DEVICE_PREFIX __half operator()(const __half& a, const __half& b) const
   {
@@ -283,7 +263,6 @@ struct BinaryOp<BinaryOpCode::POWER, LegateTypeCode::HALF_LT> {
 template <>
 struct BinaryOp<BinaryOpCode::POWER, LegateTypeCode::COMPLEX64_LT> {
   static constexpr bool valid = true;
-  BinaryOp() {}
   BinaryOp(const std::vector<Store>& args) {}
   LEGATE_DEVICE_PREFIX complex<float> operator()(const complex<float>& a,
                                                  const complex<float>& b) const
@@ -295,7 +274,6 @@ struct BinaryOp<BinaryOpCode::POWER, LegateTypeCode::COMPLEX64_LT> {
 template <>
 struct BinaryOp<BinaryOpCode::POWER, LegateTypeCode::COMPLEX128_LT> {
   static constexpr bool valid = true;
-  BinaryOp() {}
   BinaryOp(const std::vector<Store>& args) {}
   LEGATE_DEVICE_PREFIX complex<double> operator()(const complex<double>& a,
                                                   const complex<double>& b) const
@@ -307,7 +285,6 @@ struct BinaryOp<BinaryOpCode::POWER, LegateTypeCode::COMPLEX128_LT> {
 template <LegateTypeCode CODE>
 struct BinaryOp<BinaryOpCode::SUBTRACT, CODE> : std::minus<legate_type_of<CODE>> {
   static constexpr bool valid = true;
-  BinaryOp() {}
   BinaryOp(const std::vector<Store>& args) {}
 };
 
@@ -316,7 +293,6 @@ struct BinaryOp<BinaryOpCode::ALLCLOSE, CODE> {
   using VAL                   = legate_type_of<CODE>;
   static constexpr bool valid = true;
 
-  BinaryOp() {}
   BinaryOp(const std::vector<Store>& args)
   {
     assert(args.size() == 2);

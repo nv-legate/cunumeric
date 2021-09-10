@@ -151,22 +151,25 @@ class DeferredArray(NumPyThunk):
     :meta private:
     """
 
-    def __init__(self, runtime, base, dtype, scalar, numpy_array=None):
+    def __init__(self, runtime, base, dtype, numpy_array=None):
         NumPyThunk.__init__(self, runtime, dtype)
         assert base is not None
         assert isinstance(base, Store)
         self.base = base  # a Legate Store
-        self.scalar = scalar
         self.numpy_array = (
             None if numpy_array is None else weakref.ref(numpy_array)
         )
 
+    def __str__(self):
+        return f"DeferredArray(base: {self.base})"
+
     @property
     def storage(self):
-        if isinstance(self.base, Future):
-            return self.base
+        storage = self.base.storage
+        if self.base.kind == Future:
+            return storage
         else:
-            return (self.base.region, self.base.field.field_id)
+            return (storage.region, storage.field.field_id)
 
     @property
     def shape(self):
@@ -175,6 +178,15 @@ class DeferredArray(NumPyThunk):
     @property
     def ndim(self):
         return len(self.shape)
+
+    def _copy_if_overlapping(self, other):
+        if not self.base.overlaps(other.base):
+            return self
+        copy = self.runtime.create_empty_thunk(
+            self.shape, self.dtype, inputs=[self]
+        )
+        copy.copy(self, deep=True)
+        return copy
 
     def __numpy_array__(self, stacklevel=0):
         if self.numpy_array is not None:
@@ -266,7 +278,11 @@ class DeferredArray(NumPyThunk):
         return result
 
     # Copy source array to the destination array
+    @auto_convert([1])
     def copy(self, rhs, deep=False, stacklevel=0, callsite=None):
+        if self.scalar and rhs.scalar:
+            self.base.set_storage(rhs.base.storage)
+            return
         self.unary_op(
             UnaryOpCode.COPY,
             rhs.dtype,
@@ -277,12 +293,12 @@ class DeferredArray(NumPyThunk):
             callsite=callsite,
         )
 
+    @property
+    def scalar(self):
+        return self.base.scalar
+
     def get_scalar_array(self, stacklevel):
-        assert self.size == 1
-        assert self.base.scalar
-        # Look at the type of the data and figure out how to read this data
-        # First four bytes are for the type code, so we need to skip those
-        # buf = self.base.storage.get_buffer(self.dtype.itemsize + 8)[8:]
+        assert self.scalar
         buf = self.base.storage.get_buffer(self.dtype.itemsize)
         result = np.frombuffer(buf, dtype=self.dtype, count=1)
         return result.reshape(())
@@ -362,7 +378,6 @@ class DeferredArray(NumPyThunk):
             self.runtime,
             base=store,
             dtype=self.dtype,
-            scalar=False,
         )
 
     def _broadcast(self, shape):
@@ -379,7 +394,6 @@ class DeferredArray(NumPyThunk):
         return result
 
     def get_item(self, key, stacklevel, view=None, dim_map=None):
-        assert self.size > 1
         # Check to see if this is advanced indexing or not
         if self._is_advanced_indexing(key):
             # Create the indexing array
@@ -413,7 +427,7 @@ class DeferredArray(NumPyThunk):
             if result.shape == ():
                 input = result
                 result = self.runtime.create_empty_thunk(
-                    1, self.dtype, inputs=[self]
+                    (), self.dtype, inputs=[self]
                 )
 
                 task = self.context.create_task(NumPyOpCode.READ)
@@ -456,11 +470,6 @@ class DeferredArray(NumPyThunk):
 
             copy.execute()
 
-        elif self.size == 1:
-            assert rhs.size == 1
-            # Special case of writing a single value
-            # We can just copy the future because they are immutable
-            self.base = rhs.base
         else:
             view = self._get_view(key)
 
@@ -650,12 +659,8 @@ class DeferredArray(NumPyThunk):
 
             assert src.shape == tgt.shape
 
-            src_array = DeferredArray(
-                self.runtime, src, self.dtype, self.scalar
-            )
-            tgt_array = DeferredArray(
-                self.runtime, tgt, self.dtype, self.scalar
-            )
+            src_array = DeferredArray(self.runtime, src, self.dtype)
+            tgt_array = DeferredArray(self.runtime, tgt, self.dtype)
             tgt_array.copy(src_array, deep=True, stacklevel=stacklevel + 1)
 
         else:
@@ -681,7 +686,7 @@ class DeferredArray(NumPyThunk):
 
                 src_dim += diff
 
-            result = DeferredArray(self.runtime, src, self.dtype, self.scalar)
+            result = DeferredArray(self.runtime, src, self.dtype)
 
         if tmp_shape != newshape:
             tgt = result.base
@@ -691,7 +696,7 @@ class DeferredArray(NumPyThunk):
                     tgt = tgt.delinearize(tgt_dim, tgt_g)
                 tgt_dim += len(tgt_g)
 
-            result = DeferredArray(self.runtime, tgt, self.dtype, self.scalar)
+            result = DeferredArray(self.runtime, tgt, self.dtype)
 
         return result
 
@@ -714,7 +719,7 @@ class DeferredArray(NumPyThunk):
             raise TypeError(
                 '"axis" argument for squeeze must be int-like or tuple-like'
             )
-        result = DeferredArray(self.runtime, result, self.dtype, self.scalar)
+        result = DeferredArray(self.runtime, result, self.dtype)
         if self.runtime.shadow_debug:
             result.shadow = self.shadow.squeeze(
                 axis, stacklevel=stacklevel + 1
@@ -731,7 +736,7 @@ class DeferredArray(NumPyThunk):
         dims[axis1], dims[axis2] = dims[axis2], dims[axis1]
 
         result = self.base.transpose(dims)
-        result = DeferredArray(self.runtime, result, self.dtype, False)
+        result = DeferredArray(self.runtime, result, self.dtype)
 
         if self.runtime.shadow_debug:
             result.shadow = self.shadow.swapaxes(
@@ -774,7 +779,9 @@ class DeferredArray(NumPyThunk):
     # Fill the legate array with the value in the numpy array
     @profile
     def _fill(self, value, stacklevel=0, callsite=None):
-        if self.size == 1:
+        assert value.scalar
+
+        if self.scalar:
             # Handle the 0D case special
             self.base.set_storage(value.storage)
         else:
@@ -904,11 +911,13 @@ class DeferredArray(NumPyThunk):
             if left_matrix:
                 rhs1 = rhs1_array.base
                 (m, n) = rhs1.shape
+                rhs2_array = rhs2_array._copy_if_overlapping(lhs_array)
                 rhs2 = rhs2_array.base.promote(0, m)
                 lhs = lhs_array.base.promote(1, n)
             else:
                 rhs2 = rhs2_array.base
                 (m, n) = rhs2.shape
+                rhs1_array = rhs1_array._copy_if_overlapping(lhs_array)
                 rhs1 = rhs1_array.base.promote(1, n)
                 lhs = lhs_array.base.promote(0, m)
 
@@ -973,6 +982,9 @@ class DeferredArray(NumPyThunk):
                 lhs_array = self.runtime.create_empty_thunk(
                     self.shape, np.dtype(np.float32), inputs=[self]
                 )
+
+            rhs1_array = rhs1_array._copy_if_overlapping(lhs_array)
+            rhs2_array = rhs2_array._copy_if_overlapping(lhs_array)
 
             # TODO: We should be able to do this in the core
             lhs_array.fill(
@@ -1140,7 +1152,7 @@ class DeferredArray(NumPyThunk):
         dst_array = self
         assert src_array.ndim <= dst_array.ndim
         assert src_array.dtype == dst_array.dtype
-        if src_array.size == 1:
+        if src_array.scalar:
             self._fill(
                 src_array.base, stacklevel=stacklevel + 1, callsite=callsite
             )

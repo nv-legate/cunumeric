@@ -35,7 +35,10 @@ class EagerArray(NumPyThunk):
         self.parent = parent
         self.children = None
         self.key = key
+        #: if this ever becomes set (to a DeferredArray), we forward all
+        #: operations to it
         self.deferred = None
+        #: if True then this is a shadow debugging copy of a DeferredArray
         self.shadow = shadow
         self.escaped = False
 
@@ -90,7 +93,7 @@ class EagerArray(NumPyThunk):
             if self.parent is None:
                 assert self.runtime.is_supported_type(self.array.dtype)
                 # We are at the root of the tree so we need to
-                # actually make DeferredArray to use
+                # actually make a DeferredArray to use
                 if self.array.size == 1:
                     self.deferred = self.runtime.create_scalar(
                         self.array.data,
@@ -162,6 +165,12 @@ class EagerArray(NumPyThunk):
                 else:
                     self.array[:] = rhs.array
             self.runtime.profile_callsite(stacklevel + 1, False)
+
+    @property
+    def scalar(self):
+        if self.deferred is not None:
+            return self.deferred.scalar
+        return self.array.size == 1
 
     def get_scalar_array(self, stacklevel):
         if self.deferred is not None:

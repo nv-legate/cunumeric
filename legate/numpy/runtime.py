@@ -262,7 +262,7 @@ class Runtime(object):
         else:
             self.callsite_summaries[callsite] = (1 if accelerated else 0, 1)
 
-    def create_scalar(self, array, dtype, shape=None, wrap=False):
+    def create_scalar(self, array: memoryview, dtype, shape=None, wrap=False):
         data = array.tobytes()
         buf = struct.pack(f"{len(data)}s", data)
         future = self.legate_runtime.create_future(buf, len(buf))
@@ -275,7 +275,7 @@ class Runtime(object):
                 storage=future,
                 optimize_scalar=True,
             )
-            result = DeferredArray(self, store, dtype=dtype, scalar=True)
+            result = DeferredArray(self, store, dtype=dtype)
             if self.shadow_debug:
                 result.shadow = EagerArray(self, np.array(array))
         else:
@@ -316,9 +316,7 @@ class Runtime(object):
             dtype = np.dtype(store.type.to_pandas_dtype())
             primitive = store.storage
             if kind == Future:
-                return DeferredArray(
-                    self, primitive, shape=(), dtype=dtype, scalar=True
-                )
+                return DeferredArray(self, primitive, shape=(), dtype=dtype)
             elif kind == FutureMap:
                 raise NotImplementedError("Need support for FutureMap inputs")
             elif kind == (Region, FieldID):
@@ -331,9 +329,7 @@ class Runtime(object):
                 )
             else:
                 raise TypeError("Unknown LegateStore type")
-            return DeferredArray(
-                self, region_field, region_field.shape, dtype, scalar=False
-            )
+            return DeferredArray(self, region_field, region_field.shape, dtype)
         # See if this is a normal numpy array
         if not isinstance(obj, np.ndarray):
             # If it's not, make it into a numpy array
@@ -545,7 +541,6 @@ class Runtime(object):
                     self,
                     store,
                     dtype=array.dtype,
-                    scalar=(array.size == 1),
                     numpy_array=array if share else None,
                 )
             # If we're doing shadow debug make an EagerArray shadow
@@ -567,8 +562,7 @@ class Runtime(object):
             store = self.legate_context.create_store(
                 dtype, shape=shape, optimize_scalar=True
             )
-            scalar = store.kind == Future
-            result = DeferredArray(self, store, dtype=dtype, scalar=scalar)
+            result = DeferredArray(self, store, dtype=dtype)
             # If we're doing shadow debug make an EagerArray shadow
             if self.shadow_debug:
                 result.shadow = EagerArray(
@@ -582,7 +576,7 @@ class Runtime(object):
 
     def create_unbound_thunk(self, dtype):
         store = self.legate_context.create_store(dtype)
-        return DeferredArray(self, store, dtype=dtype, scalar=False)
+        return DeferredArray(self, store, dtype=dtype)
 
     def is_eager_shape(self, shape):
         volume = calculate_volume(shape)
