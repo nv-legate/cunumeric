@@ -71,7 +71,8 @@ struct UnaryOpDispatch {
   template <UnaryOpCode OP_CODE>
   void operator()(UnaryOpArgs& args) const
   {
-    double_dispatch(args.in.dim(), args.in.code(), UnaryOpImpl<KIND, OP_CODE>{}, args);
+    auto dim = std::max(args.in.dim(), 1);
+    double_dispatch(dim, args.in.code(), UnaryOpImpl<KIND, OP_CODE>{}, args);
   }
 };
 
@@ -82,9 +83,8 @@ static void unary_op_template(TaskContext& context)
   auto& outputs = context.outputs();
   auto& scalars = context.scalars();
 
-  std::vector<UntypedScalar> extra_args;
-  for (size_t idx = 1; idx < inputs.size(); ++idx)
-    extra_args.push_back(inputs[idx].scalar<UntypedScalar>());
+  std::vector<Store> extra_args;
+  for (size_t idx = 1; idx < inputs.size(); ++idx) extra_args.push_back(std::move(inputs[idx]));
 
   UnaryOpArgs args{inputs[0], outputs[0], scalars[0].value<UnaryOpCode>(), std::move(extra_args)};
   op_dispatch(args.op_code, UnaryOpDispatch<KIND>{}, args);

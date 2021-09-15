@@ -38,7 +38,7 @@ using acc_type_of = typename AccTypeOf<VAL>::type;
 template <VariantKind KIND>
 struct DotImpl {
   template <LegateTypeCode CODE>
-  UntypedScalar operator()(DotArgs& args) const
+  void operator()(DotArgs& args) const
   {
     using VAL = legate_type_of<CODE>;
     using ACC = acc_type_of<VAL>;
@@ -46,11 +46,8 @@ struct DotImpl {
     assert(args.rhs1.dim() == 1);
     assert(args.rhs2.dim() == 1);
 
-    auto rect  = args.rhs1.shape<1>();
-    ACC result = SumReduction<ACC>::identity;
-
-    if (rect.empty()) return UntypedScalar(result);
-
+    auto rect = args.rhs1.shape<1>();
+    auto lhs  = args.lhs.reduce_accessor<SumReduction<ACC>, true, 1>();
     auto rhs1 = args.rhs1.read_accessor<VAL, 1>(rect);
     auto rhs2 = args.rhs2.read_accessor<VAL, 1>(rect);
 
@@ -62,17 +59,16 @@ struct DotImpl {
     bool dense = false;
 #endif
 
-    DotImplBody<KIND, CODE>()(result, rhs1, rhs2, rect, dense);
-    return UntypedScalar(result);
+    DotImplBody<KIND, CODE>()(lhs, rhs1, rhs2, rect, dense);
   }
 };
 
 template <VariantKind KIND>
-static UntypedScalar dot_template(TaskContext& context)
+static void dot_template(TaskContext& context)
 {
   auto& inputs = context.inputs();
-  DotArgs args{inputs[0], inputs[1]};
-  return type_dispatch(args.rhs1.code(), DotImpl<KIND>{}, args);
+  DotArgs args{context.reductions()[0], inputs[0], inputs[1]};
+  type_dispatch(args.rhs1.code(), DotImpl<KIND>{}, args);
 }
 
 }  // namespace numpy

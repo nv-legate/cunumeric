@@ -68,7 +68,8 @@ struct SourceTypeDispatch {
   template <LegateTypeCode SRC_TYPE>
   void operator()(ConvertArgs& args) const
   {
-    double_dispatch(args.out.dim(), args.out.code(), ConvertImpl<KIND, SRC_TYPE>{}, args);
+    auto dim = std::max(1, args.out.dim());
+    double_dispatch(dim, args.out.code(), ConvertImpl<KIND, SRC_TYPE>{}, args);
   }
 };
 

@@ -17,7 +17,6 @@
 #pragma once
 
 #include "numpy.h"
-#include "scalar.h"
 #include "random/philox.h"
 
 #define HI_BITS(x) ((unsigned)((x) >> 32))
@@ -57,7 +56,7 @@ struct RandomGenerator<RandGenCode::UNIFORM, CODE> {
   using RNG                   = Philox_2x32<10>;
   static constexpr bool valid = CODE == LegateTypeCode::DOUBLE_LT;
 
-  RandomGenerator(uint32_t ep, const std::vector<UntypedScalar>& args) : epoch(ep) {}
+  RandomGenerator(uint32_t ep, const std::vector<Store>& args) : epoch(ep) {}
 
   __CUDAPREFIX__ double operator()(uint32_t hi, uint32_t lo) const
   {
@@ -72,7 +71,7 @@ struct RandomGenerator<RandGenCode::NORMAL, CODE> {
   using RNG                   = Philox_2x32<10>;
   static constexpr bool valid = CODE == LegateTypeCode::DOUBLE_LT;
 
-  RandomGenerator(uint32_t ep, const std::vector<UntypedScalar>& args) : epoch(ep) {}
+  RandomGenerator(uint32_t ep, const std::vector<Store>& args) : epoch(ep) {}
 
 #ifndef __NVCC__
   static inline double erfinv(double a)
@@ -182,11 +181,11 @@ struct RandomGenerator<RandGenCode::INTEGER, CODE> {
 
   static constexpr bool valid = is_integral<CODE>::value;
 
-  RandomGenerator(uint32_t ep, const std::vector<UntypedScalar>& args) : epoch(ep)
+  RandomGenerator(uint32_t ep, const std::vector<Store>& args) : epoch(ep)
   {
     assert(args.size() == 2);
-    lo   = args[0].value<VAL>();
-    diff = args[1].value<VAL>() - lo;
+    lo   = args[0].scalar<VAL>();
+    diff = args[1].scalar<VAL>() - lo;
   }
 
   __CUDAPREFIX__ double operator()(uint32_t hi_bits, uint32_t lo_bits) const

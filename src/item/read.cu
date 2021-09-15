@@ -24,31 +24,25 @@ using namespace Legion;
 
 template <typename VAL>
 static __global__ void __launch_bounds__(1, 1)
-  read_value(DeferredValue<VAL> value, const AccessorRO<VAL, 1> in)
+  read_value(const AccessorWO<VAL, 1> out, const AccessorRO<VAL, 1> in)
 {
-  value = in[0];
+  out[0] = in[0];
 }
 
 template <typename VAL>
 struct ReadImplBody<VariantKind::GPU, VAL> {
-  UntypedScalar operator()(AccessorRO<VAL, 1> in) const
+  void operator()(AccessorWO<VAL, 1> out, AccessorRO<VAL, 1> in) const
   {
     cudaStream_t stream;
     cudaStreamCreate(&stream);
 
-    DeferredValue<VAL> result(VAL{0});
-    read_value<VAL><<<1, 1, 0, stream>>>(result, in);
-
-    cudaStreamSynchronize(stream);
-    cudaStreamDestroy(stream);
-
-    return UntypedScalar(result.read());
+    read_value<VAL><<<1, 1, 0, stream>>>(out, in);
   }
 };
 
-/*static*/ UntypedScalar ReadTask::gpu_variant(TaskContext& context)
+/*static*/ void ReadTask::gpu_variant(TaskContext& context)
 {
-  return read_template<VariantKind::GPU>(context);
+  read_template<VariantKind::GPU>(context);
 }
 
 }  // namespace numpy

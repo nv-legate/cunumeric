@@ -26,7 +26,7 @@ struct UnaryOpArgs {
   const Array& in;
   const Array& out;
   UnaryOpCode op_code;
-  std::vector<UntypedScalar> args;
+  std::vector<Store> args;
 };
 
 class UnaryOpTask : public NumPyTask<UnaryOpTask> {

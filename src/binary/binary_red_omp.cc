@@ -27,12 +27,14 @@ struct BinaryRedImplBody<VariantKind::OMP, OP_CODE, CODE, DIM> {
   using OP  = BinaryOp<OP_CODE, CODE>;
   using ARG = legate_type_of<CODE>;
 
-  UntypedScalar operator()(OP func,
-                           AccessorRO<ARG, DIM> in1,
-                           AccessorRO<ARG, DIM> in2,
-                           const Pitches<DIM - 1>& pitches,
-                           const Rect<DIM>& rect,
-                           bool dense) const
+  template <typename AccessorRD>
+  void operator()(OP func,
+                  AccessorRD out,
+                  AccessorRO<ARG, DIM> in1,
+                  AccessorRO<ARG, DIM> in2,
+                  const Pitches<DIM - 1>& pitches,
+                  const Rect<DIM>& rect,
+                  bool dense) const
   {
     size_t volume = rect.volume();
     bool result   = true;
@@ -50,13 +52,13 @@ struct BinaryRedImplBody<VariantKind::OMP, OP_CODE, CODE, DIM> {
       }
     }
 
-    return UntypedScalar(result);
+    out.reduce(0, result);
   }
 };
 
-/*static*/ UntypedScalar BinaryRedTask::omp_variant(TaskContext& context)
+/*static*/ void BinaryRedTask::omp_variant(TaskContext& context)
 {
-  return binary_red_template<VariantKind::OMP>(context);
+  binary_red_template<VariantKind::OMP>(context);
 }
 
 }  // namespace numpy

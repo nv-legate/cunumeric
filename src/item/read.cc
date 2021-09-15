@@ -24,20 +24,17 @@ using namespace Legion;
 
 template <typename VAL>
 struct ReadImplBody<VariantKind::CPU, VAL> {
-  UntypedScalar operator()(AccessorRO<VAL, 1> in) const { return UntypedScalar(in[0]); }
+  void operator()(AccessorWO<VAL, 1> out, AccessorRO<VAL, 1> in) const { out[0] = in[0]; }
 };
 
-/*static*/ UntypedScalar ReadTask::cpu_variant(TaskContext& context)
+/*static*/ void ReadTask::cpu_variant(TaskContext& context)
 {
-  return read_template<VariantKind::CPU>(context);
+  read_template<VariantKind::CPU>(context);
 }
 
 namespace  // unnamed
 {
-static void __attribute__((constructor)) register_tasks(void)
-{
-  ReadTask::register_variants_with_return<UntypedScalar, UntypedScalar>();
-}
+static void __attribute__((constructor)) register_tasks(void) { ReadTask::register_variants(); }
 }  // namespace
 
 }  // namespace numpy

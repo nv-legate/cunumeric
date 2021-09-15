@@ -38,8 +38,8 @@ struct ArangeImpl {
 
     auto out = args.out.write_accessor<VAL, 1>();
 
-    const auto start = args.start.scalar<UntypedScalar>().value<VAL>();
-    const auto step  = args.step.scalar<UntypedScalar>().value<VAL>();
+    const auto start = args.start.scalar<VAL>();
+    const auto step  = args.step.scalar<VAL>();
 
     ArangeImplBody<KIND, VAL>{}(out, rect, start, step);
   }

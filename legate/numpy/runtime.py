@@ -40,7 +40,7 @@ from .deferred import DeferredArray
 from .eager import EagerArray
 from .lazy import LazyArray
 from .thunk import NumPyThunk
-from .utils import calculate_volume, get_arg_dtype, get_arg_value_dtype
+from .utils import calculate_volume, get_arg_dtype
 
 
 class Callsite(object):
@@ -262,17 +262,9 @@ class Runtime(object):
         else:
             self.callsite_summaries[callsite] = (1 if accelerated else 0, 1)
 
-    # This function packs data in the format expected by UntypedScalar,
-    # so any Future creation in this library should go through this.
     def create_scalar(self, array: memoryview, dtype, shape=None, wrap=False):
-        if dtype.kind == "V":
-            is_arg = True
-            code = numpy_field_type_offsets[get_arg_value_dtype(dtype)]
-        else:
-            is_arg = False
-            code = numpy_field_type_offsets[dtype.type]
         data = array.tobytes()
-        buf = struct.pack(f"ii{len(data)}s", int(is_arg), code, data)
+        buf = struct.pack(f"{len(data)}s", data)
         future = self.legate_runtime.create_future(buf, len(buf))
         if wrap:
             assert all(extent == 1 for extent in shape)
@@ -668,16 +660,9 @@ class Runtime(object):
         result = base + redop_id * legion.LEGION_TYPE_TOTAL
         return result + numpy_field_type_offsets[field_dtype.type]
 
-    def get_reduction_op_id(self, op, field_dtype):
-        redop_id = numpy_reduction_op_offsets[op]
-        return self._convert_reduction_op_id(redop_id, field_dtype)
-
     def get_unary_reduction_op_id(self, op, field_dtype):
         redop_id = numpy_unary_reduction_op_offsets[op]
         return self._convert_reduction_op_id(redop_id, field_dtype)
-
-    def get_scalar_reduction_op_id(self, op):
-        return self.first_redop_id + numpy_scalar_reduction_op_offsets[op]
 
     def get_reduction_identity(self, op, dtype):
         return numpy_unary_reduction_identities[op](dtype)
