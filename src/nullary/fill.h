@@ -17,7 +17,6 @@
 #pragma once
 
 #include "numpy.h"
-#include "scalar.h"
 
 namespace legate {
 namespace numpy {
@@ -25,6 +24,7 @@ namespace numpy {
 struct FillArgs {
   const Array& out;
   const Array& fill_value;
+  bool is_argval;
 };
 
 class FillTask : public NumPyTask<FillTask> {

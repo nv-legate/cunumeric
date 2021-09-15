@@ -17,7 +17,6 @@
 #pragma once
 
 #include "numpy.h"
-#include "scalar.h"
 
 namespace legate {
 namespace numpy {
@@ -27,9 +26,9 @@ class ReadTask : public NumPyTask<ReadTask> {
   static const int TASK_ID = NUMPY_READ;
 
  public:
-  static UntypedScalar cpu_variant(TaskContext& context);
+  static void cpu_variant(TaskContext& context);
 #ifdef LEGATE_USE_CUDA
-  static UntypedScalar gpu_variant(TaskContext& context);
+  static void gpu_variant(TaskContext& context);
 #endif
 };
 

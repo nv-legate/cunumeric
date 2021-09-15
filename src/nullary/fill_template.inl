@@ -38,7 +38,7 @@ struct FillImpl {
     if (volume == 0) return;
 
     auto out        = args.out.write_accessor<VAL, DIM>(rect);
-    auto fill_value = args.fill_value.scalar<UntypedScalar>().value<VAL>();
+    auto fill_value = args.fill_value.read_accessor<VAL, 1>();
 
 #ifndef LEGION_BOUNDS_CHECKS
     // Check to see if this is dense or not
@@ -53,8 +53,7 @@ struct FillImpl {
   template <LegateTypeCode CODE, int DIM>
   void operator()(FillArgs& args) const
   {
-    auto fill_value = args.fill_value.scalar<UntypedScalar>();
-    if (fill_value.is_argval()) {
+    if (args.is_argval) {
       using VAL = Argval<legate_type_of<CODE>>;
       fill<VAL, DIM>(args);
     } else {
@@ -67,7 +66,7 @@ struct FillImpl {
 template <VariantKind KIND>
 static void fill_template(TaskContext& context)
 {
-  FillArgs args{context.outputs()[0], context.inputs()[0]};
+  FillArgs args{context.outputs()[0], context.inputs()[0], context.scalars()[0].value<bool>()};
   double_dispatch(args.out.dim(), args.out.code(), FillImpl<KIND>{}, args);
 }
 

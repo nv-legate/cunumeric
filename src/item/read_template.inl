@@ -25,19 +25,21 @@ struct ReadImplBody;
 template <VariantKind KIND>
 struct ReadImpl {
   template <LegateTypeCode CODE>
-  UntypedScalar operator()(const Array& in_arr) const
+  void operator()(const Array& out_arr, const Array& in_arr) const
   {
     using VAL = legate_type_of<CODE>;
+    auto out  = out_arr.write_accessor<VAL, 1>();
     auto in   = in_arr.read_accessor<VAL, 1>();
-    return ReadImplBody<KIND, VAL>()(in);
+    ReadImplBody<KIND, VAL>()(out, in);
   }
 };
 
 template <VariantKind KIND>
-static UntypedScalar read_template(TaskContext& context)
+static void read_template(TaskContext& context)
 {
-  auto& in = context.inputs()[0];
-  return type_dispatch(in.code(), ReadImpl<KIND>{}, in);
+  auto& out = context.outputs()[0];
+  auto& in  = context.inputs()[0];
+  type_dispatch(in.code(), ReadImpl<KIND>{}, out, in);
 }
 
 }  // namespace numpy

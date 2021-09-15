@@ -14,15 +14,16 @@
 #
 
 import numpy as np
+from test_tools.generators import scalar_gen
 
 import legate.numpy as lg
 
 
 def test():
-    a = [1, 4, 9]
-    for x in a:
-        assert np.array_equal(lg.sqrt(x), np.sqrt(x))
-    return
+    test_values = [1, 4, 9]
+    for a in test_values:
+        for (la, na) in zip(scalar_gen(lg, a), scalar_gen(np, a)):
+            assert np.array_equal(lg.sqrt(la), np.sqrt(na))
 
 
 if __name__ == "__main__":

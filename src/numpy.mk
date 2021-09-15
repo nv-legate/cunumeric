@@ -17,15 +17,11 @@
 # since we have to add the -fopenmp flag to  CC_FLAGS for them
 GEN_CPU_SRC += ternary/where.cc               \
 							 binary/binary_op.cc            \
-							 binary/scalar_binary_op.cc     \
 							 binary/binary_red.cc           \
 							 unary/scalar_unary_red.cc      \
 							 unary/unary_op.cc              \
 							 unary/unary_red.cc             \
-							 unary/unary_red_util.cc        \
-							 unary/scalar_unary_op.cc       \
 							 unary/convert.cc               \
-							 unary/scalar_convert.cc        \
 							 nullary/arange.cc              \
 							 nullary/eye.cc                 \
 							 nullary/fill.cc                \
@@ -41,7 +37,6 @@ GEN_CPU_SRC += ternary/where.cc               \
 							 random/rand.cc                 \
 							 search/nonzero.cc              \
 							 stat/bincount.cc               \
-							 scalar.cc                      \
 							 arg.cc                         \
 							 mapper.cc                      \
 							 numpy.cc # This must always be the last file!

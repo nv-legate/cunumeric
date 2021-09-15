@@ -40,12 +40,19 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM) red
   reduce_output(out, value);
 }
 
+template <typename Buffer, typename RedAcc>
+static __global__ void __launch_bounds__(1, 1) copy_kernel(Buffer result, RedAcc out)
+{
+  out.reduce(0, result.read());
+}
+
 template <LegateTypeCode CODE>
 struct DotImplBody<VariantKind::GPU, CODE> {
   using VAL = legate_type_of<CODE>;
   using ACC = acc_type_of<VAL>;
 
-  void operator()(ACC& result,
+  template <typename AccessorRD>
+  void operator()(AccessorRD out,
                   const AccessorRO<VAL, 1>& rhs1,
                   const AccessorRO<VAL, 1>& rhs2,
                   const Rect<1>& rect,
@@ -56,28 +63,25 @@ struct DotImplBody<VariantKind::GPU, CODE> {
 
     const auto volume   = rect.volume();
     const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-    DeferredReduction<SumReduction<ACC>> out;
+    DeferredReduction<SumReduction<ACC>> result;
     size_t shmem_size = THREADS_PER_BLOCK / 32 * sizeof(ACC);
 
     if (blocks >= MAX_REDUCTION_CTAS) {
       const size_t iters = (blocks + MAX_REDUCTION_CTAS - 1) / MAX_REDUCTION_CTAS;
       reduction_kernel<<<MAX_REDUCTION_CTAS, THREADS_PER_BLOCK, shmem_size, stream>>>(
-        volume, out, rhs1, rhs2, rect.lo, iters, SumReduction<ACC>::identity);
+        volume, result, rhs1, rhs2, rect.lo, iters, SumReduction<ACC>::identity);
     } else
       reduction_kernel<<<blocks, THREADS_PER_BLOCK, shmem_size, stream>>>(
-        volume, out, rhs1, rhs2, rect.lo, 1, SumReduction<ACC>::identity);
+        volume, result, rhs1, rhs2, rect.lo, 1, SumReduction<ACC>::identity);
 
-    // TODO: We eventually want to unblock this step
-    cudaStreamSynchronize(stream);
+    copy_kernel<<<1, 1, 0, stream>>>(result, out);
     cudaStreamDestroy(stream);
-
-    result = out.read();
   }
 };
 
-/*static*/ UntypedScalar DotTask::gpu_variant(TaskContext& context)
+/*static*/ void DotTask::gpu_variant(TaskContext& context)
 {
-  return dot_template<VariantKind::GPU>(context);
+  dot_template<VariantKind::GPU>(context);
 }
 
 }  // namespace numpy

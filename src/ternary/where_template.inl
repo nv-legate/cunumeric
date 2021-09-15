@@ -61,7 +61,8 @@ static void where_template(TaskContext& context)
 {
   auto& inputs = context.inputs();
   WhereArgs args{context.outputs()[0], inputs[0], inputs[1], inputs[2]};
-  double_dispatch(args.out.dim(), args.out.code(), WhereImpl<KIND>{}, args);
+  auto dim = std::max(1, args.out.dim());
+  double_dispatch(dim, args.out.code(), WhereImpl<KIND>{}, args);
 }
 
 }  // namespace numpy

@@ -134,7 +134,24 @@ def symlink(from_path, to_path):
         os.symlink(from_path, to_path)
 
 
-def install_openblas(openblas_dir, openmp, thread_count, verbose):
+def has_openmp():
+    cxx = os.getenv("CXX", "g++")
+    temp_dir = tempfile.mkdtemp()
+    try:
+        execute_command(
+            'echo "int main(void) { return 0; }" | '
+            f"{cxx} -o test.omp -x c++ -fopenmp -",
+            shell=True,
+            cwd=temp_dir,
+            verbose=False,
+        )
+    except subprocess.CalledProcessError:
+        return False
+    else:
+        return True
+
+
+def install_openblas(openblas_dir, thread_count, verbose):
     print("Legate is installing OpenBLAS into a local directory...")
     temp_dir = tempfile.mkdtemp()
     # Pin OpenBLAS at a recent version
@@ -153,7 +170,7 @@ def install_openblas(openblas_dir, openmp, thread_count, verbose):
             "USE_THREAD=1",
             "NO_STATIC=1",
             "USE_CUDA=0",
-            "USE_OPENMP=%s" % (1 if openmp else 0),
+            "USE_OPENMP=%s" % (1 if has_openmp() else 0),
             "NUM_PARALLEL=32",
             "LIBNAMESUFFIX=legate",
         ],
@@ -193,8 +210,6 @@ def build_legate_numpy(
     openblas_dir,
     cmake,
     cmake_exe,
-    cuda,
-    openmp,
     debug,
     debug_release,
     check_bounds,
@@ -218,22 +233,21 @@ def build_legate_numpy(
             libname = "openblas_legate"
         else:
             libname = "openblas"
-
         make_flags = [
             "LEGATE_DIR=%s" % install_dir,
             "OPEN_BLAS_DIR=%s" % openblas_dir,
             "DEBUG=%s" % (1 if debug else 0),
             "DEBUG_RELEASE=%s" % (1 if debug_release else 0),
             "CHECK_BOUNDS=%s" % (1 if check_bounds else 0),
-            "USE_CUDA=%s" % (1 if cuda else 0),
-            "USE_OPENMP=%s" % (1 if openmp else 0),
             "PREFIX=%s" % install_dir,
             "OPENBLAS_FLAGS = -L%s/lib -l%s -Wl,-rpath,%s/lib"
             % (openblas_dir, libname, openblas_dir),
         ]
         if clean_first:
             execute_command(
-                ["make"] + make_flags + ["clean"], cwd=src_dir, verbose=verbose
+                ["make"] + make_flags + ["clean"],
+                cwd=src_dir,
+                verbose=verbose,
             )
         execute_command(
             ["make"] + make_flags + ["-j", str(thread_count), "install"],
@@ -262,8 +276,6 @@ def install_legate_numpy(
     legate_dir,
     openblas_dir,
     thrust_dir,
-    cuda,
-    openmp,
     debug,
     debug_release,
     check_bounds,
@@ -280,8 +292,6 @@ def install_legate_numpy(
         print("cmake_exe: ", cmake_exe, "\n")
         print("legate_dir: ", legate_dir, "\n")
         print("openblas_dir: ", openblas_dir, "\n")
-        print("cuda: ", cuda, "\n")
-        print("openmp: ", openmp, "\n")
         print("debug: ", debug, "\n")
         print("debug_release: ", debug_release, "\n")
         print("check_bounds: ", check_bounds, "\n")
@@ -327,7 +337,7 @@ def install_legate_numpy(
         if openblas_dir is None:
             openblas_dir = os.path.join(legate_dir, "OpenBLAS")
     if not os.path.exists(openblas_dir):
-        install_openblas(openblas_dir, openmp, thread_count, verbose)
+        install_openblas(openblas_dir, thread_count, verbose)
     libs_config["openblas"] = openblas_dir
     with open(
         os.path.join(legate_dir, "share", "legate", ".legate-libs.json"), "w"
@@ -367,8 +377,6 @@ def install_legate_numpy(
         openblas_dir,
         cmake,
         cmake_exe,
-        cuda,
-        openmp,
         debug,
         debug_release,
         check_bounds,
@@ -388,7 +396,7 @@ def driver():
         action="store_true",
         required=False,
         default=os.environ.get("DEBUG", "0") == "1",
-        help="Build Legate NumPy with debugging enabled.",
+        help="Build Legate NumPy with no optimizations.",
     )
     parser.add_argument(
         "--debug-release",
@@ -396,7 +404,8 @@ def driver():
         action="store_true",
         required=False,
         default=os.environ.get("DEBUG_RELEASE", "0") == "1",
-        help="Build Legate NumPy with debugging symbols.",
+        help="Build Legate NumPy with optimizations, but include debugging "
+        "symbols.",
     )
     parser.add_argument(
         "--check-bounds",
@@ -430,18 +439,6 @@ def driver():
         metavar="DIR",
         required=False,
         help="Path to Thrust installation directory.",
-    )
-    parser.add_argument(
-        "--cuda",
-        action=BooleanFlag,
-        default=os.environ.get("USE_CUDA", "1") == "1",
-        help="Build Legate NumPy with CUDA support.",
-    )
-    parser.add_argument(
-        "--openmp",
-        action=BooleanFlag,
-        default=os.environ.get("USE_OPENMP", "1") == "1",
-        help="Build Legate NumPy with OpenMP support.",
     )
     parser.add_argument(
         "--cmake",

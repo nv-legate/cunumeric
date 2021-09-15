@@ -27,7 +27,8 @@ struct DotImplBody<VariantKind::CPU, CODE> {
   using VAL = legate_type_of<CODE>;
   using ACC = acc_type_of<VAL>;
 
-  void operator()(ACC& result,
+  template <typename AccessorRD>
+  void operator()(AccessorRD out,
                   const AccessorRO<VAL, 1>& rhs1,
                   const AccessorRO<VAL, 1>& rhs2,
                   const Rect<1>& rect,
@@ -39,28 +40,25 @@ struct DotImplBody<VariantKind::CPU, CODE> {
       auto rhs2ptr = rhs2.ptr(rect);
       for (coord_t idx = 0; idx < volume; ++idx) {
         const auto prod = static_cast<ACC>(rhs1ptr[idx]) * static_cast<ACC>(rhs2ptr[idx]);
-        SumReduction<ACC>::template fold<true>(result, prod);
+        out.reduce(0, prod);
       }
     } else {
       for (coord_t idx = rect.lo[0]; idx <= rect.hi[0]; ++idx) {
         const auto prod = static_cast<ACC>(rhs1[idx]) * static_cast<ACC>(rhs2[idx]);
-        SumReduction<ACC>::template fold<true>(result, prod);
+        out.reduce(0, prod);
       }
     }
   }
 };
 
-/*static*/ UntypedScalar DotTask::cpu_variant(TaskContext& context)
+/*static*/ void DotTask::cpu_variant(TaskContext& context)
 {
-  return dot_template<VariantKind::CPU>(context);
+  dot_template<VariantKind::CPU>(context);
 }
 
 namespace  // unnamed
 {
-static void __attribute__((constructor)) register_tasks(void)
-{
-  DotTask::register_variants_with_return<UntypedScalar, UntypedScalar>();
-}
+static void __attribute__((constructor)) register_tasks(void) { DotTask::register_variants(); }
 }  // namespace
 
 }  // namespace numpy

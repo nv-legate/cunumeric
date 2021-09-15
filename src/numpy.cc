@@ -37,22 +37,6 @@ extern void register_gpu_reduction_operators(LibraryContext& context);
 extern void register_cpu_reduction_operators(LibraryContext& context);
 #endif
 
-void register_reduction_operators_for_untyped_scalar(LibraryContext& context)
-{
-#define REGISTER(OP)                                                    \
-  Runtime::register_reduction_op<UntypedScalarRedOp<UnaryRedCode::OP>>( \
-    context.get_reduction_op_id(NUMPY_SCALAR_##OP##_REDOP));
-
-  REGISTER(MAX)
-  REGISTER(MIN)
-  REGISTER(PROD)
-  REGISTER(SUM)
-  REGISTER(ARGMAX)
-  REGISTER(ARGMIN)
-
-#undef REGISTER
-}
-
 void registration_callback(Machine machine,
                            Runtime* runtime,
                            const std::set<Processor>& local_procs)
@@ -71,8 +55,6 @@ void registration_callback(Machine machine,
 #else
   register_cpu_reduction_operators(context);
 #endif
-
-  register_reduction_operators_for_untyped_scalar(context);
 
   // Now we can register our mapper with the runtime
   auto numpy_mapper_id = context.get_mapper_id(0);

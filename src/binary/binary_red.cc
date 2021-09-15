@@ -27,40 +27,48 @@ struct BinaryRedImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
   using OP  = BinaryOp<OP_CODE, CODE>;
   using ARG = legate_type_of<CODE>;
 
-  UntypedScalar operator()(OP func,
-                           AccessorRO<ARG, DIM> in1,
-                           AccessorRO<ARG, DIM> in2,
-                           const Pitches<DIM - 1>& pitches,
-                           const Rect<DIM>& rect,
-                           bool dense) const
+  template <typename AccessorRD>
+  void operator()(OP func,
+                  AccessorRD out,
+                  AccessorRO<ARG, DIM> in1,
+                  AccessorRO<ARG, DIM> in2,
+                  const Pitches<DIM - 1>& pitches,
+                  const Rect<DIM>& rect,
+                  bool dense) const
   {
     size_t volume = rect.volume();
     if (dense) {
       auto in1ptr = in1.ptr(rect);
       auto in2ptr = in2.ptr(rect);
       for (size_t idx = 0; idx < volume; ++idx)
-        if (!func(in1ptr[idx], in2ptr[idx])) return UntypedScalar(false);
+        if (!func(in1ptr[idx], in2ptr[idx])) {
+          out.reduce(0, false);
+          return;
+        }
     } else {
       for (size_t idx = 0; idx < volume; ++idx) {
         auto point = pitches.unflatten(idx, rect.lo);
-        if (!func(in1[point], in2[point])) return UntypedScalar(false);
+        if (!func(in1[point], in2[point])) {
+          out.reduce(0, false);
+          return;
+        }
       }
     }
 
-    return UntypedScalar(true);
+    out.reduce(0, true);
   }
 };
 
-/*static*/ UntypedScalar BinaryRedTask::cpu_variant(TaskContext& context)
+/*static*/ void BinaryRedTask::cpu_variant(TaskContext& context)
 {
-  return binary_red_template<VariantKind::CPU>(context);
+  binary_red_template<VariantKind::CPU>(context);
 }
 
 namespace  // unnamed
 {
 static void __attribute__((constructor)) register_tasks(void)
 {
-  BinaryRedTask::register_variants_with_return<UntypedScalar, UntypedScalar>();
+  BinaryRedTask::register_variants();
 }
 }  // namespace
 
