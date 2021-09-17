@@ -17,6 +17,7 @@ env:
   PYTHONUNBUFFERED: 1
 jobs:
   build:
+    if: ${{ github.repository == 'nv-legate/legate.numpy' }}
     runs-on: self-hosted
     steps:
       - name: Run CI build
@@ -37,6 +38,7 @@ jobs:
           name: build-log
           path: ./**/${{ env.COMMIT }}-build.log.gpg
   test:
+    if: ${{ github.repository == 'nv-legate/legate.numpy' }}
     runs-on: self-hosted
     needs: build
     strategy: 
