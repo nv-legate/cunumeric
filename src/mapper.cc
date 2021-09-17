@@ -64,5 +64,11 @@ Scalar NumPyMapper::tunable_value(TunableID tunable_id)
   LEGATE_ABORT  // unknown tunable value
 }
 
+std::vector<StoreMapping> NumPyMapper::store_mappings(
+  const mapping::Task& task, const std::vector<mapping::StoreTarget>& options)
+{
+  return {};
+}
+
 }  // namespace numpy
 }  // namespace legate
