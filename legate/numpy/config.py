@@ -73,6 +73,8 @@ class NumPyLib(Library):
             self.runtime.destroy()
 
 
+#import pdb
+#pdb.set_trace()
 NUMPY_LIB_NAME = "legate.numpy"
 numpy_lib = NumPyLib(NUMPY_LIB_NAME)
 numpy_context = get_legate_runtime().register_library(numpy_lib)
@@ -129,6 +131,12 @@ class NumPyOpCode(IntEnum):
     ARANGE = legate_numpy.NUMPY_ARANGE
     TRANSPOSE = legate_numpy.NUMPY_TRANSPOSE
     NONZERO = legate_numpy.NUMPY_NONZERO
+    FUSED_OP = legate_numpy.NUMPY_FUSED_OP
+
+
+@unique
+class FusedOpCode(IntEnum):
+    FUSE = 1
 
 
 @unique

@@ -27,7 +27,6 @@ from .config import *  # noqa F403
 from .thunk import NumPyThunk
 from .utils import get_arg_value_dtype
 
-
 def _complex_field_dtype(dtype):
     if dtype == np.complex64:
         return np.dtype(np.float32)
@@ -1397,6 +1396,56 @@ class DeferredArray(NumPyThunk):
                     callsite=callsite,
                 )
 
+# Perform the fused operation and put the result in the lhs array
+    @profile
+    @auto_convert([2, 3, 4,5])
+    @shadow_debug("fused_op", [2, 3, 4,5])
+    def fused_op(
+        self, op_code, src1, src2, temp, src3, where, args, stacklevel=0, callsite=None
+    ):
+        lhs = self.base
+
+        rhs1 = src1._broadcast(lhs.shape)
+        rhs2 = src2._broadcast(lhs.shape)
+        rhs3 = src3._broadcast(lhs.shape)
+        temp1 = temp._broadcast(lhs.shape)
+        # Populate the Legate launcher
+        all_scalar_rhs = rhs1.scalar and rhs2.scalar
+
+        if all_scalar_rhs:
+            task_id = NumPyOpCode.SCALAR_BINARY_OP
+        else:
+            task_id = NumPyOpCode.FUSED_OP
+
+        task = self.context.create_task(task_id)
+        task.add_output(lhs)
+
+        task.add_temp(temp1)
+
+        task.add_output(lhs)
+        task.add_input(rhs1)
+        task.add_input(rhs2)
+        task.add_input(rhs3)
+        task.add_scalar_arg(op_code.value, ty.int32)
+        self.add_arguments(task, args)
+
+        #task.add_broadcast(rhs.base)
+
+        task.add_alignment(lhs, rhs1)
+        task.add_alignment(lhs, rhs2)
+        task.add_alignment(lhs, rhs3)
+
+        task.add_alignment(lhs, temp1)
+        print("about to execute fused_op!!", task_id)
+        print("the shapes:")
+        print(rhs1.shape)
+        print(rhs2.shape)
+        print(rhs3.shape)
+        print("temp1", temp1.shape)
+        task.execute()
+
+
+
     # Perform the binary operation and put the result in the lhs array
     @profile
     @auto_convert([2, 3])
@@ -1415,11 +1464,14 @@ class DeferredArray(NumPyThunk):
             task_id = NumPyOpCode.SCALAR_BINARY_OP
         else:
             task_id = NumPyOpCode.BINARY_OP
-
+        
         task = self.context.create_task(task_id)
+        #print("output",lhs)
+        #print("input",  rhs1, rhs2)
         task.add_output(lhs)
         task.add_input(rhs1)
         task.add_input(rhs2)
+        print("binary op code", op_code.value)
         task.add_scalar_arg(op_code.value, ty.int32)
         self.add_arguments(task, args)
 

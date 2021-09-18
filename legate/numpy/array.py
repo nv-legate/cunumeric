@@ -22,7 +22,8 @@ import pyarrow
 
 from legate.core import Array
 
-from .config import BinaryOpCode, NumPyOpCode, UnaryOpCode, UnaryRedCode
+from .config import BinaryOpCode, NumPyOpCode, UnaryOpCode, UnaryRedCode, FusedOpCode
+#from .config import BinaryOpCode, NumPyOpCode, UnaryOpCode, UnaryRedCode
 from .doc_utils import copy_docstring
 from .runtime import runtime
 from .utils import unimplemented
@@ -345,8 +346,34 @@ class ndarray(object):
             out_dtype=np.dtype(np.bool_),
         )
 
-    # __getattribute__
+    def fuse1(self, rhs1, rhs2):
+        print(type(self))
+        rhs_array1 = self.convert_to_legate_ndarray(rhs1)
+        rhs_array2 = self.convert_to_legate_ndarray(rhs2)
 
+        #a,b,c
+        arrs = [self.convert_to_legate_ndarray(self), rhs_array1, rhs_array2]
+        in_starts = np.ndarray([0,1])
+        in_ends = [1,2]
+        in_starts = self.convert_to_legate_ndarray(in_starts)
+        in_ends = self.convert_to_legate_ndarray(in_starts)
+        #in_ends = self.convert_to_legate_ndarray(in_ends)
+
+        out_starts = [3]
+        out_end = [3]
+        #out_starts = self.convert_to_legate_ndarray(out_starts)
+        #out_end = self.convert_to_legate_ndarray(out_ends)
+
+        print(type(rhs_array1))
+        return self.perform_fused_op(
+            FusedOpCode.FUSE,
+            self,
+            rhs_array1,
+            rhs_array2,
+            check_types=False
+    )
+
+    # __getattribute__
     def _convert_key(self, key, stacklevel=2, first=True):
         # Convert any arrays stored in a key to a legate array
         if (
@@ -1896,6 +1923,172 @@ class ndarray(object):
                 stacklevel=(stacklevel + 1),
             )
         return dst
+
+# Return a new legate array for a binary operation
+    @classmethod
+    def perform_fused_op(
+        cls,
+        op,
+        one,
+        two,
+        three,
+        out=None,
+        dtype=None,
+        args=None,
+        where=True,
+        out_dtype=None,
+        check_types=False,
+        stacklevel=2,
+    ):
+        temp_dtype = cls.find_common_type(one, two)
+        # Compute the output shape
+        if out is None:
+            # Compute the output shape and confirm any broadcasting
+            if isinstance(where, ndarray):
+                print("using where array.py")
+                temp_shape = broadcast_shapes(one.shape, where.shape)
+                out_shape = broadcast_shapes(one.shape, two.shape, where.shape)
+            else:
+                print("not using where array.py")
+                temp_shape = broadcast_shapes(one.shape, two.shape)
+                out_shape = broadcast_shapes(one.shape, two.shape, three.shape)
+                print("out_shape", out_shape)
+                print("temp_shape", temp_shape)
+            if dtype is not None:
+                 temprw = ndarray(
+                    shape=temp_shape,
+                    dtype=temp_dtype,
+                    stacklevel=(stacklevel + 1),
+                    inputs=(one, two, where),
+                )
+                 out = ndarray(
+                    shape=out_shape,
+                    dtype=dtype,
+                    stacklevel=(stacklevel + 1),
+                    inputs=(temp, three, where),
+                )
+            elif out_dtype is not None:
+                temprw = ndarray(
+                    shape=temp_shape,
+                    dtype=temp_dtype,
+                    stacklevel=(stacklevel + 1),
+                    inputs=(one, two, where),
+                )
+
+                out = ndarray(
+                    shape=out_shape,
+                    dtype=out_dtype,
+                    stacklevel=(stacklevel + 1),
+                    inputs=(one, two,three, where),
+                )
+            else:
+                out_dtype = cls.find_common_type(one, two,three)
+                temprw = ndarray(
+                    shape=temp_shape,
+                    dtype=temp_dtype,
+                    stacklevel=(stacklevel + 1),
+                    inputs=(one, two, where),
+                )
+                out = ndarray(
+                    shape=out_shape,
+                    dtype=out_dtype,
+                    stacklevel=(stacklevel + 1),
+                    inputs=(one, two,three, where),
+                )
+        else:
+            if isinstance(where, ndarray):
+                out_shape = broadcast_shapes(
+                    one.shape, two.shape,three.shape, out.shape, where.shape
+                )
+            else:
+                out_shape = broadcast_shapes(one.shape, two.shape, three.shape, out.shape)
+            if out.shape != out_shape:
+                raise ValueError(
+                    "non-broadcastable output operand with shape "
+                    + str(out.shape)
+                    + " doesn't match the broadcast shape "
+                    + str(out_shape)
+                )
+        # Quick exit
+        if where is False:
+            return out
+        if out_dtype is None:
+            out_dtype = cls.find_common_type(one, two)
+            out_dtype = cls.find_common_type(out_dtype, three)
+        if check_types:
+            if one.dtype != two.dtype:
+                common_type = cls.find_common_type(one, two)
+                if one.dtype != common_type:
+                    temp = ndarray(
+                        shape=one.shape,
+                        dtype=common_type,
+                        stacklevel=(stacklevel + 1),
+                        inputs=(one, two, where),
+                    )
+                    temp._thunk.convert(
+                        one._thunk, stacklevel=(stacklevel + 1)
+                    )
+                    one = temp
+                if two.dtype != common_type:
+                    temp = ndarray(
+                        shape=two.shape,
+                        dtype=common_type,
+                        stacklevel=(stacklevel + 1),
+                        inputs=(one, two, where),
+                    )
+                    temp._thunk.convert(
+                        two._thunk, stacklevel=(stacklevel + 1)
+                    )
+                    two = temp
+            if out.dtype != out_dtype:
+                temp = ndarray(
+                    shape=out.shape,
+                    dtype=out_dtype,
+                    stacklevel=(stacklevel + 1),
+                    inputs=(one, two, where),
+                )
+                temp._thunk.binary_op(
+                    op,
+                    one._thunk,
+                    two._thunk,
+                    cls.get_where_thunk(
+                        where, out.shape, stacklevel=(stacklevel + 1)
+                    ),
+                    args,
+                    stacklevel=(stacklevel + 1),
+                )
+                out._thunk.convert(temp._thunk, stacklevel=(stacklevel + 1))
+            else:
+                out._thunk.binary_op(
+                    op,
+                    one._thunk,
+                    two._thunk,
+                    cls.get_where_thunk(
+                        where, out.shape, stacklevel=(stacklevel + 1)
+                    ),
+                    args,
+                    stacklevel=(stacklevel + 1),
+                )
+        #if check_types
+        else:
+            thunks = [one._thunk, two._thunk, three._thunk]
+            print("running fused op with out_shape=", out.shape)
+            out._thunk.fused_op(
+                op,
+                one._thunk,
+                two._thunk,
+                temprw._thunk,
+                three._thunk,
+                cls.get_where_thunk(
+                    where, out.shape, stacklevel=(stacklevel + 1)
+                ),
+                args,
+                stacklevel=(stacklevel + 1),
+            )
+        return out
+
+
+
 
     # Return a new legate array for a binary operation
     @classmethod

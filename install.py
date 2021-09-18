@@ -434,7 +434,7 @@ def driver():
     parser.add_argument(
         "--cuda",
         action=BooleanFlag,
-        default=os.environ.get("USE_CUDA", "1") == "1",
+        default=False, #os.environ.get("USE_CUDA", "1") == "1",
         help="Build Legate NumPy with CUDA support.",
     )
     parser.add_argument(
@@ -461,7 +461,7 @@ def driver():
         "--clean",
         dest="clean_first",
         action=BooleanFlag,
-        default=True,
+        default=False,
         help="Clean before build.",
     )
     parser.add_argument(
