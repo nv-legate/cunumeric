@@ -11,14 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# fused/fused_op.cc
-#fused/fused_op_omp.cc            
-#fused/fused_op.cu            
+# double_binary/double_binary_op.cc
+#double_binary/double_binary_op_omp.cc            
+#double_binary/double_binary_op.cu            
 #
 # List all the application source files that need OpenMP separately
 # since we have to add the -fopenmp flag to  CC_FLAGS for them
 GEN_CPU_SRC += ternary/where.cc               \
-							 fused/fused_op.cc            \
+							 double_binary/double_binary_op.cc            \
+							 fused/fused_op.cc              \
 							 binary/binary_op.cc            \
 							 binary/scalar_binary_op.cc     \
 							 binary/binary_red.cc           \
@@ -53,7 +54,8 @@ GEN_CPU_SRC += ternary/where.cc               \
 
 ifeq ($(strip $(USE_OPENMP)),1)
 GEN_CPU_SRC += ternary/where_omp.cc          \
-							 fused/fused_op_omp.cc       \
+							 double_binary/double_binary_op_omp.cc       \
+							 fused/fused_op_omp.cc         \
 							 binary/binary_op_omp.cc       \
 							 binary/binary_red_omp.cc      \
 							 unary/unary_op_omp.cc         \
@@ -76,7 +78,8 @@ GEN_CPU_SRC += ternary/where_omp.cc          \
 endif
 
 GEN_GPU_SRC += ternary/where.cu               \
-							 fused/fused_op.cu            \
+							 double_binary/double_binary_op.cu            \
+							 fused/fused_op.cu              \
 							 binary/binary_op.cu            \
 							 binary/binary_red.cu           \
 							 unary/scalar_unary_red.cu      \

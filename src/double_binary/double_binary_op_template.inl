@@ -14,7 +14,7 @@
  *
  */
 
-#include "fused/fused_op_util.h"
+#include "double_binary/double_binary_op_util.h"
 #include "pitches.h"
 
 namespace legate {
@@ -22,17 +22,17 @@ namespace numpy {
 
 using namespace Legion;
 
-template <VariantKind KIND, FusedOpCode OP_CODE, LegateTypeCode CODE, int DIM>
-struct FusedOpImplBody;
+template <VariantKind KIND, DoubleBinaryOpCode OP_CODE, LegateTypeCode CODE, int DIM>
+struct DoubleBinaryOpImplBody;
 
-template <VariantKind KIND, FusedOpCode OP_CODE>
-struct FusedOpImpl {
+template <VariantKind KIND, DoubleBinaryOpCode OP_CODE>
+struct DoubleBinaryOpImpl {
   template <LegateTypeCode CODE,
             int DIM,
-            std::enable_if_t<FusedOp<OP_CODE, CODE>::valid>* = nullptr>
-  void operator()(FusedOpArgs& args) const
+            std::enable_if_t<DoubleBinaryOp<OP_CODE, CODE>::valid>* = nullptr>
+  void operator()(DoubleBinaryOpArgs& args) const
   {
-    using OP  = FusedOp<OP_CODE, CODE>;
+    using OP  = DoubleBinaryOp<OP_CODE, CODE>;
     using ARG = legate_type_of<CODE>;
     using RES = std::result_of_t<OP(ARG, ARG)>;
 
@@ -60,47 +60,43 @@ struct FusedOpImpl {
 #endif
 
     OP func{args.args};
-    FusedOpImplBody<KIND, OP_CODE, CODE, DIM>()(func, out,temp, in1, in2,in3, pitches, rect, dense);
+    DoubleBinaryOpImplBody<KIND, OP_CODE, CODE, DIM>()(func, out,temp, in1, in2,in3, pitches, rect, dense);
   }
 
   template <LegateTypeCode CODE,
             int DIM,
-            std::enable_if_t<!FusedOp<OP_CODE, CODE>::valid>* = nullptr>
-  void operator()(FusedOpArgs& args) const
+            std::enable_if_t<!DoubleBinaryOp<OP_CODE, CODE>::valid>* = nullptr>
+  void operator()(DoubleBinaryOpArgs& args) const
   {
     assert(false);
   }
 };
 
 template <VariantKind KIND>
-struct FusedOpDispatch {
-  template <FusedOpCode OP_CODE>
-  void operator()(FusedOpArgs& args) const
+struct DoubleBinaryOpDispatch {
+  template <DoubleBinaryOpCode OP_CODE>
+  void operator()(DoubleBinaryOpArgs& args) const
   {
     auto dim = std::max(args.in1.dim(), args.in2.dim());
     dim = std::max(args.in3.dim(), dim);
-    double_dispatch(dim, args.in1.code(), FusedOpImpl<KIND, OP_CODE>{}, args);
+    double_dispatch(dim, args.in1.code(), DoubleBinaryOpImpl<KIND, OP_CODE>{}, args);
   }
 };
 
 template <VariantKind KIND>
-static void fused_op_template(TaskContext& context)
+static void double_binary_op_template(TaskContext& context)
 {
   auto& inputs  = context.inputs();
   auto& outputs = context.outputs();
-  //auto& scalars = context.scalars();
+  auto& scalars = context.scalars();
 
-  std::cout<<"fused inputs"<<inputs.size()<<std::endl;
-  //std::vector<UntypedScalar> extra_args;
-  //for (size_t idx = 3; idx < inputs.size(); ++idx)
-  //  extra_args.push_back(inputs[idx].scalar<UntypedScalar>());
+  std::vector<UntypedScalar> extra_args;
+  for (size_t idx = 3; idx < inputs.size(); ++idx)
+    extra_args.push_back(inputs[idx].scalar<UntypedScalar>());
 
-
-  //FusedOpArgs args{
-  //  inputs[0], inputs[1], inputs[2], outputs[0], outputs[1], scalars[0].value<FusedOpCode>(), std::move(extra_args)};
-  //op_dispatch(args.op_code, FusedOpDispatch<KIND>{}, args);
-  //op_dispatch(args.op_code1, FusedOpDispatch<KIND>{}, args1);
-  //op_dispatch(args.op_code2, FusedOpDispatch<KIND>{}, args2);
+  DoubleBinaryOpArgs args{
+    inputs[0], inputs[1], inputs[2], outputs[0], outputs[1], scalars[0].value<DoubleBinaryOpCode>(), std::move(extra_args)};
+  op_dispatch(args.op_code, DoubleBinaryOpDispatch<KIND>{}, args);
 }
 
 }  // namespace numpy

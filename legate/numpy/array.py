@@ -22,7 +22,7 @@ import pyarrow
 
 from legate.core import Array
 
-from .config import BinaryOpCode, NumPyOpCode, UnaryOpCode, UnaryRedCode, FusedOpCode
+from .config import BinaryOpCode, NumPyOpCode, UnaryOpCode, UnaryRedCode, FusedOpCode, DoubleBinaryOpCode
 #from .config import BinaryOpCode, NumPyOpCode, UnaryOpCode, UnaryRedCode
 from .doc_utils import copy_docstring
 from .runtime import runtime
@@ -346,7 +346,7 @@ class ndarray(object):
             out_dtype=np.dtype(np.bool_),
         )
 
-    def fuse1(self, rhs1, rhs2):
+    def double_binary(self, rhs1, rhs2):
         print(type(self))
         rhs_array1 = self.convert_to_legate_ndarray(rhs1)
         rhs_array2 = self.convert_to_legate_ndarray(rhs2)
@@ -364,9 +364,8 @@ class ndarray(object):
         #out_starts = self.convert_to_legate_ndarray(out_starts)
         #out_end = self.convert_to_legate_ndarray(out_ends)
 
-        print(type(rhs_array1))
-        return self.perform_fused_op(
-            FusedOpCode.FUSE,
+        return self.perform_double_binary_op(
+            DoubleBinaryOpCode.DOUBLE_BINARY,
             self,
             rhs_array1,
             rhs_array2,
@@ -1926,7 +1925,7 @@ class ndarray(object):
 
 # Return a new legate array for a binary operation
     @classmethod
-    def perform_fused_op(
+    def perform_double_binary_op(
         cls,
         op,
         one,
@@ -2072,8 +2071,8 @@ class ndarray(object):
         #if check_types
         else:
             thunks = [one._thunk, two._thunk, three._thunk]
-            print("running fused op with out_shape=", out.shape)
-            out._thunk.fused_op(
+            print("running double binary op with out_shape=", out.shape)
+            out._thunk.double_binary_op(
                 op,
                 one._thunk,
                 two._thunk,

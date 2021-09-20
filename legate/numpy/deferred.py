@@ -1399,8 +1399,8 @@ class DeferredArray(NumPyThunk):
 # Perform the fused operation and put the result in the lhs array
     @profile
     @auto_convert([2, 3, 4,5])
-    @shadow_debug("fused_op", [2, 3, 4,5])
-    def fused_op(
+    @shadow_debug("double_binary_op", [2, 3, 4,5])
+    def double_binary_op(
         self, op_code, src1, src2, temp, src3, where, args, stacklevel=0, callsite=None
     ):
         lhs = self.base
@@ -1415,14 +1415,14 @@ class DeferredArray(NumPyThunk):
         if all_scalar_rhs:
             task_id = NumPyOpCode.SCALAR_BINARY_OP
         else:
-            task_id = NumPyOpCode.FUSED_OP
+            task_id = NumPyOpCode.DOUBLE_BINARY_OP
 
         task = self.context.create_task(task_id)
+        task.add_output(temp1)
         task.add_output(lhs)
 
-        task.add_temp(temp1)
+        #task.add_temp(temp1)
 
-        task.add_output(lhs)
         task.add_input(rhs1)
         task.add_input(rhs2)
         task.add_input(rhs3)
@@ -1436,7 +1436,7 @@ class DeferredArray(NumPyThunk):
         task.add_alignment(lhs, rhs3)
 
         task.add_alignment(lhs, temp1)
-        print("about to execute fused_op!!", task_id)
+        print("about to execute double_binary_op!!", task_id)
         print("the shapes:")
         print(rhs1.shape)
         print(rhs2.shape)
@@ -1466,12 +1466,9 @@ class DeferredArray(NumPyThunk):
             task_id = NumPyOpCode.BINARY_OP
         
         task = self.context.create_task(task_id)
-        #print("output",lhs)
-        #print("input",  rhs1, rhs2)
         task.add_output(lhs)
         task.add_input(rhs1)
         task.add_input(rhs2)
-        print("binary op code", op_code.value)
         task.add_scalar_arg(op_code.value, ty.int32)
         self.add_arguments(task, args)
 

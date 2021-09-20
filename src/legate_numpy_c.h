@@ -46,7 +46,8 @@ enum NumPyOpCode {
   NUMPY_TRANSPOSE        = 400024,
   NUMPY_TILE             = 400025,
   NUMPY_NONZERO          = 400026,
-  NUMPY_FUSED_OP         = 400027,
+  NUMPY_DOUBLE_BINARY_OP = 400027,
+  NUMPY_FUSED_OP         = 400028,
 };
 
 // Match these to NumPyRedopCode in legate/numpy/config.py

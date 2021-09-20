@@ -131,12 +131,18 @@ class NumPyOpCode(IntEnum):
     ARANGE = legate_numpy.NUMPY_ARANGE
     TRANSPOSE = legate_numpy.NUMPY_TRANSPOSE
     NONZERO = legate_numpy.NUMPY_NONZERO
+    DOUBLE_BINARY_OP = legate_numpy.NUMPY_DOUBLE_BINARY_OP
     FUSED_OP = legate_numpy.NUMPY_FUSED_OP
 
 
 @unique
 class FusedOpCode(IntEnum):
     FUSE = 1
+
+
+@unique
+class DoubleBinaryOpCode(IntEnum):
+    DOUBLE_BINARY = 1
 
 
 @unique
@@ -285,3 +291,7 @@ class NumPyMappingTag(IntEnum):
     GPU_ONLY_TASK_TAG = legate_numpy.NUMPY_GPU_ONLY_TAG
     NO_MEMOIZE_TAG = 0  # Turn this off for now since it doesn't help
     KEY_REGION_TAG = legate_numpy.NUMPY_KEY_REGION_TAG
+
+#hack!!! this is for prototyping reason and needs to be addressed before making a PR
+numpy_context.fused_id = NumPyOpCode.FUSED_OP 
+#numpy_context.fused_id = NumPyOpCode.DOUBLE_BINARY_OP
