@@ -54,6 +54,8 @@ struct MatMulImpl {
     // in their bloated domains.
     auto shape = args.rhs1.shape<3>().intersection(args.rhs2.shape<3>());
 
+    if (shape.empty()) return;
+
     const auto m = shape.hi[0] - shape.lo[0] + 1;
     const auto k = shape.hi[1] - shape.lo[1] + 1;
     const auto n = shape.hi[2] - shape.lo[2] + 1;
