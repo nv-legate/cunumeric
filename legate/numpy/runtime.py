@@ -655,9 +655,6 @@ class Runtime(object):
     def get_task_id(self, op_code):
         return self.first_task_id + op_code.value
 
-    def get_reduction_identity(self, op, dtype):
-        return numpy_unary_reduction_identities[op](dtype)
-
     def check_shadow(self, thunk, op):
         assert thunk.shadow is not None
         # Check the kind of this array and see if we should use allclose or

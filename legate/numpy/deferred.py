@@ -155,6 +155,44 @@ _UNARY_RED_TO_REDUCTION_OPS = {
 }
 
 
+def max_identity(ty):
+    if ty.kind == "i" or ty.kind == "u":
+        return np.iinfo(ty).min
+    elif ty.kind == "f":
+        return np.finfo(ty).min
+    elif ty.kind == "c":
+        return max_identity(np.float64) + max_identity(np.float64) * 1j
+    elif ty.kind == "b":
+        return False
+    else:
+        raise ValueError(f"Unsupported dtype: {ty}")
+
+
+def min_identity(ty):
+    if ty.kind == "i" or ty.kind == "u":
+        return np.iinfo(ty).max
+    elif ty.kind == "f":
+        return np.finfo(ty).max
+    elif ty.kind == "c":
+        return min_identity(np.float64) + min_identity(np.float64) * 1j
+    elif ty.kind == "b":
+        return True
+    else:
+        raise ValueError(f"Unsupported dtype: {ty}")
+
+
+_UNARY_RED_IDENTITIES = {
+    UnaryRedCode.SUM: lambda _: 0,
+    UnaryRedCode.PROD: lambda _: 1,
+    UnaryRedCode.MIN: min_identity,
+    UnaryRedCode.MAX: max_identity,
+    UnaryRedCode.ARGMAX: lambda ty: (np.iinfo(np.int64).min, max_identity(ty)),
+    UnaryRedCode.ARGMIN: lambda ty: (np.iinfo(np.int64).min, min_identity(ty)),
+    UnaryRedCode.CONTAINS: lambda _: False,
+    UnaryRedCode.COUNT_NONZERO: lambda _: 0,
+}
+
+
 class DeferredArray(NumPyThunk):
     """This is a deferred thunk for describing NumPy computations.
     It is backed by either a Legion logical region or a Legion future
@@ -1325,9 +1363,7 @@ class DeferredArray(NumPyThunk):
 
             task = self.context.create_task(NumPyOpCode.SCALAR_UNARY_RED)
 
-            fill_value = self.runtime.get_reduction_identity(
-                op, rhs_array.dtype
-            )
+            fill_value = _UNARY_RED_IDENTITIES[op](rhs_array.dtype)
 
             lhs_array.fill(
                 np.array(fill_value, dtype=lhs_array.dtype),
@@ -1361,9 +1397,7 @@ class DeferredArray(NumPyThunk):
                 assert not argred
                 fill_value = initial
             else:
-                fill_value = self.runtime.get_reduction_identity(
-                    op, rhs_array.dtype
-                )
+                fill_value = _UNARY_RED_IDENTITIES[op](rhs_array.dtype)
             lhs_array.fill(
                 np.array(fill_value, lhs_array.dtype),
                 stacklevel=stacklevel + 1,
