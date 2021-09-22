@@ -103,28 +103,27 @@ numpy_field_type_offsets = {
 # Match these to NumPyOpCode in legate_numpy_c.h
 @unique
 class NumPyOpCode(IntEnum):
-    TILE = legate_numpy.NUMPY_TILE
-    # Type-erased operators
+    ARANGE = legate_numpy.NUMPY_ARANGE
     BINARY_OP = legate_numpy.NUMPY_BINARY_OP
-    FILL = legate_numpy.NUMPY_FILL
-    SCALAR_UNARY_RED = legate_numpy.NUMPY_SCALAR_UNARY_RED
-    UNARY_RED = legate_numpy.NUMPY_UNARY_RED
-    UNARY_OP = legate_numpy.NUMPY_UNARY_OP
     BINARY_RED = legate_numpy.NUMPY_BINARY_RED
+    BINCOUNT = legate_numpy.NUMPY_BINCOUNT
     CONVERT = legate_numpy.NUMPY_CONVERT
-    WHERE = legate_numpy.NUMPY_WHERE
-    READ = legate_numpy.NUMPY_READ
-    WRITE = legate_numpy.NUMPY_WRITE
     DIAG = legate_numpy.NUMPY_DIAG
+    DOT = legate_numpy.NUMPY_DOT
+    EYE = legate_numpy.NUMPY_EYE
+    FILL = legate_numpy.NUMPY_FILL
     MATMUL = legate_numpy.NUMPY_MATMUL
     MATVECMUL = legate_numpy.NUMPY_MATVECMUL
-    DOT = legate_numpy.NUMPY_DOT
-    BINCOUNT = legate_numpy.NUMPY_BINCOUNT
-    EYE = legate_numpy.NUMPY_EYE
-    RAND = legate_numpy.NUMPY_RAND
-    ARANGE = legate_numpy.NUMPY_ARANGE
-    TRANSPOSE = legate_numpy.NUMPY_TRANSPOSE
     NONZERO = legate_numpy.NUMPY_NONZERO
+    RAND = legate_numpy.NUMPY_RAND
+    READ = legate_numpy.NUMPY_READ
+    SCALAR_UNARY_RED = legate_numpy.NUMPY_SCALAR_UNARY_RED
+    TILE = legate_numpy.NUMPY_TILE
+    TRANSPOSE = legate_numpy.NUMPY_TRANSPOSE
+    UNARY_OP = legate_numpy.NUMPY_UNARY_OP
+    UNARY_RED = legate_numpy.NUMPY_UNARY_RED
+    WHERE = legate_numpy.NUMPY_WHERE
+    WRITE = legate_numpy.NUMPY_WRITE
 
 
 @unique
@@ -256,13 +255,3 @@ numpy_unary_reduction_identities = {
 class NumPyTunable(IntEnum):
     NUM_GPUS = legate_numpy.NUMPY_TUNABLE_NUM_GPUS
     MAX_EAGER_VOLUME = legate_numpy.NUMPY_TUNABLE_MAX_EAGER_VOLUME
-
-
-# Match these to NumPyTag in legate_numpy_c.h
-@unique
-class NumPyMappingTag(IntEnum):
-    SUBRANKABLE_TASK_TAG = legate_numpy.NUMPY_SUBRANKABLE_TAG
-    CPU_ONLY_TASK_TAG = legate_numpy.NUMPY_CPU_ONLY_TAG
-    GPU_ONLY_TASK_TAG = legate_numpy.NUMPY_GPU_ONLY_TAG
-    NO_MEMOIZE_TAG = 0  # Turn this off for now since it doesn't help
-    KEY_REGION_TAG = legate_numpy.NUMPY_KEY_REGION_TAG

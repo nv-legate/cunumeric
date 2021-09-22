@@ -21,42 +21,33 @@
 
 // Match these to NumPyOpCode in legate/numpy/config.py
 enum NumPyOpCode {
-  NUMPY_BINARY_OP        = 400000,
-  NUMPY_FILL             = 400003,
-  NUMPY_SCALAR_UNARY_RED = 400004,
-  NUMPY_UNARY_RED        = 400005,
-  NUMPY_UNARY_OP         = 400006,
-  NUMPY_BINARY_RED       = 400008,
-  NUMPY_CONVERT          = 400010,
-  NUMPY_WHERE            = 400012,
-  NUMPY_READ             = 400014,
-  NUMPY_WRITE            = 400015,
-  NUMPY_DIAG             = 400016,
-  NUMPY_MATMUL           = 400017,
-  NUMPY_MATVECMUL        = 400018,
-  NUMPY_DOT              = 400019,
-  NUMPY_BINCOUNT         = 400020,
-  NUMPY_EYE              = 400021,
-  NUMPY_RAND             = 400022,
-  NUMPY_ARANGE           = 400023,
-  NUMPY_TRANSPOSE        = 400024,
-  NUMPY_TILE             = 400025,
-  NUMPY_NONZERO          = 400026,
+  NUMPY_ARANGE           = 1,
+  NUMPY_BINARY_OP        = 2,
+  NUMPY_BINARY_RED       = 3,
+  NUMPY_BINCOUNT         = 4,
+  NUMPY_CONVERT          = 5,
+  NUMPY_DIAG             = 6,
+  NUMPY_DOT              = 7,
+  NUMPY_EYE              = 8,
+  NUMPY_FILL             = 9,
+  NUMPY_MATMUL           = 10,
+  NUMPY_MATVECMUL        = 11,
+  NUMPY_NONZERO          = 12,
+  NUMPY_RAND             = 13,
+  NUMPY_READ             = 14,
+  NUMPY_SCALAR_UNARY_RED = 15,
+  NUMPY_TILE             = 16,
+  NUMPY_TRANSPOSE        = 17,
+  NUMPY_UNARY_OP         = 18,
+  NUMPY_UNARY_RED        = 19,
+  NUMPY_WHERE            = 20,
+  NUMPY_WRITE            = 21,
 };
 
 // Match these to NumPyRedopCode in legate/numpy/config.py
 enum NumPyRedopID {
   NUMPY_ARGMIN_REDOP = LEGION_REDOP_KIND_TOTAL + 1,
   NUMPY_ARGMAX_REDOP,
-};
-
-// Match these to NumPyMappingTag in legate/numpy/config.py
-enum NumPyTag {
-  NUMPY_SUBRANKABLE_TAG = 0x1,
-  NUMPY_CPU_ONLY_TAG    = 0x2,
-  NUMPY_GPU_ONLY_TAG    = 0x4,
-  NUMPY_NO_MEMOIZE_TAG  = 0x8,
-  NUMPY_KEY_REGION_TAG  = 0x10,
 };
 
 // Match these to NumPyTunable in legate/numpy/config.py
