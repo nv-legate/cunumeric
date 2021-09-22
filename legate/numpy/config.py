@@ -196,20 +196,8 @@ class RandGenCode(IntEnum):
 # Match these to NumPyRedopID in legate_numpy_c.h
 @unique
 class NumPyRedopCode(IntEnum):
-    ARGMIN_REDOP = legate_numpy.NUMPY_ARGMIN_REDOP
-    ARGMAX_REDOP = legate_numpy.NUMPY_ARGMAX_REDOP
-
-
-numpy_unary_reduction_op_offsets = {
-    UnaryRedCode.SUM: legion.LEGION_REDOP_KIND_SUM,
-    UnaryRedCode.PROD: legion.LEGION_REDOP_KIND_PROD,
-    UnaryRedCode.MIN: legion.LEGION_REDOP_KIND_MIN,
-    UnaryRedCode.MAX: legion.LEGION_REDOP_KIND_MAX,
-    UnaryRedCode.ARGMAX: NumPyRedopCode.ARGMAX_REDOP,
-    UnaryRedCode.ARGMIN: NumPyRedopCode.ARGMIN_REDOP,
-    UnaryRedCode.CONTAINS: legion.LEGION_REDOP_KIND_SUM,
-    UnaryRedCode.COUNT_NONZERO: legion.LEGION_REDOP_KIND_SUM,
-}
+    ARGMIN = 1
+    ARGMAX = 2
 
 
 def max_identity(ty):

@@ -31,7 +31,6 @@ from legate.core import (
     Future,
     FutureMap,
     Region,
-    legion,
 )
 from legate.core.runtime import RegionField
 
@@ -650,19 +649,6 @@ class Runtime(object):
 
     def get_task_id(self, op_code):
         return self.first_task_id + op_code.value
-
-    def _convert_reduction_op_id(self, redop_id, field_dtype):
-        base = (
-            legion.LEGION_REDOP_BASE
-            if redop_id < legion.LEGION_REDOP_KIND_TOTAL
-            else self.first_redop_id
-        )
-        result = base + redop_id * legion.LEGION_TYPE_TOTAL
-        return result + numpy_field_type_offsets[field_dtype.type]
-
-    def get_unary_reduction_op_id(self, op, field_dtype):
-        redop_id = numpy_unary_reduction_op_offsets[op]
-        return self._convert_reduction_op_id(redop_id, field_dtype)
 
     def get_reduction_identity(self, op, dtype):
         return numpy_unary_reduction_identities[op](dtype)
