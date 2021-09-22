@@ -141,7 +141,6 @@ class Runtime(object):
 
         # Get the initial task ID and mapper ID
         self.mapper_id = legate_context.first_mapper_id
-        self.first_redop_id = legate_context.first_redop_id
 
         self.max_eager_volume = self.legate_context.get_tunable(
             NumPyTunable.MAX_EAGER_VOLUME,
@@ -185,7 +184,13 @@ class Runtime(object):
         if arg_dtype not in type_system:
             # We assign T's type code to Argval<T>
             code = type_system[value_dtype].code
-            type_system.add_type(arg_dtype, arg_dtype.itemsize, code)
+            dtype = type_system.add_type(arg_dtype, arg_dtype.itemsize, code)
+
+            for redop in NumPyRedopCode:
+                redop_id = self.legate_context.get_reduction_op_id(
+                    redop.value * legion.MAX_TYPE_NUMBER + code
+                )
+                dtype.register_reduction_op(redop, redop_id)
         return arg_dtype
 
     def destroy(self):

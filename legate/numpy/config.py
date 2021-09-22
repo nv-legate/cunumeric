@@ -196,8 +196,8 @@ class RandGenCode(IntEnum):
 # Match these to NumPyRedopID in legate_numpy_c.h
 @unique
 class NumPyRedopCode(IntEnum):
-    ARGMIN = 1
-    ARGMAX = 2
+    ARGMAX = 1
+    ARGMIN = 2
 
 
 def max_identity(ty):

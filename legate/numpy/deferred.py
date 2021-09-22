@@ -146,8 +146,8 @@ class _LegateNDarray(object):
 _UNARY_RED_TO_REDUCTION_OPS = {
     UnaryRedCode.SUM: ReductionOp.ADD,
     UnaryRedCode.PROD: ReductionOp.MUL,
-    UnaryRedCode.MIN: ReductionOp.MIN,
     UnaryRedCode.MAX: ReductionOp.MAX,
+    UnaryRedCode.MIN: ReductionOp.MIN,
     UnaryRedCode.ARGMAX: NumPyRedopCode.ARGMAX,
     UnaryRedCode.ARGMIN: NumPyRedopCode.ARGMIN,
     UnaryRedCode.CONTAINS: ReductionOp.ADD,
