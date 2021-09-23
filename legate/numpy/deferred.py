@@ -623,6 +623,16 @@ class DeferredArray(NumPyThunk):
         # +-------+---------+------+-----------------------------------+
         # |(a,)   | (a,1)   | No   | tgt = Promote(src, 0, 1)          |
         # +-------+---------+------+-----------------------------------+
+        #
+        # Update 9/22/2021: the non-affineness with delinearization leads
+        # to non-contiguous subregions in several places, and thus we
+        # decided to avoid using it and make copies instead. This means
+        # the third case in the table above now leads to two copies, one from
+        # the source to a 1-D temporary array and one from that temporary
+        # to the target array. We expect that such reshaping requests are
+        # infrequent enough that the extra copies are causing any noticeable
+        # performance issues, but we will revisit this decision later once
+        # we have enough evidence that that's not the case.
 
         in_dim = 0
         out_dim = 0
@@ -668,16 +678,18 @@ class DeferredArray(NumPyThunk):
             groups.append(((), (1,)))
             out_dim += 1
 
-        needs_copy = any(len(src_g) > 1 for src_g, _ in groups)
-
-        tmp_shape = ()
-        for src_g, tgt_g in groups:
-            if len(src_g) > 1 and len(tgt_g) > 1:
-                tmp_shape += (_prod(tgt_g),)
-            else:
-                tmp_shape += tgt_g
+        needs_linearization = any(len(src_g) > 1 for src_g, _ in groups)
+        needs_delinearization = any(len(tgt_g) > 1 for _, tgt_g in groups)
+        needs_copy = needs_linearization or needs_delinearization
 
         if needs_copy:
+            tmp_shape = ()
+            for src_g, tgt_g in groups:
+                if len(src_g) > 1 and len(tgt_g) > 1:
+                    tmp_shape += (_prod(tgt_g),)
+                else:
+                    tmp_shape += tgt_g
+
             result = self.runtime.create_empty_thunk(
                 tmp_shape, dtype=self.dtype, inputs=[self]
             )
@@ -713,6 +725,21 @@ class DeferredArray(NumPyThunk):
             tgt_array = DeferredArray(self.runtime, tgt, self.dtype)
             tgt_array.copy(src_array, deep=True, stacklevel=stacklevel + 1)
 
+            if needs_delinearization and needs_linearization:
+                src = result.base
+                src_dim = 0
+                for src_g, tgt_g in groups:
+                    if len(src_g) > 1 and len(tgt_g) > 1:
+                        src = src.delinearize(src_dim, tgt_g)
+                        src_dim += len(tgt_g)
+
+                assert src.shape == newshape
+                src_array = DeferredArray(self.runtime, src, self.dtype)
+                result = self.runtime.create_empty_thunk(
+                    newshape, dtype=self.dtype, inputs=[self]
+                )
+                result.copy(src_array, deep=True, stacklevel=stacklevel + 1)
+
         else:
             src = self.base
             src_dim = 0
@@ -727,9 +754,6 @@ class DeferredArray(NumPyThunk):
                     assert src_g == (1,)
                     src = src.project(src_dim, 1)
                     diff = 0
-                elif len(src_g) == 1:
-                    src = src.delinearize(src_dim, tgt_g)
-                    diff = len(tgt_g)
                 else:
                     # unreachable
                     assert False
@@ -737,16 +761,6 @@ class DeferredArray(NumPyThunk):
                 src_dim += diff
 
             result = DeferredArray(self.runtime, src, self.dtype)
-
-        if tmp_shape != newshape:
-            tgt = result.base
-            tgt_dim = 0
-            for src_g, tgt_g in groups:
-                if len(src_g) > 1 and len(tgt_g) > 1:
-                    tgt = tgt.delinearize(tgt_dim, tgt_g)
-                tgt_dim += len(tgt_g)
-
-            result = DeferredArray(self.runtime, tgt, self.dtype)
 
         return result
 
