@@ -194,11 +194,9 @@ class EagerArray(NumPyThunk):
             key, stacklevel=(stacklevel + 1)
         ).array
 
-    def get_item(self, key, stacklevel, view=None, dim_map=None):
+    def get_item(self, key, stacklevel):
         if self.deferred is not None:
-            return self.deferred.get_item(
-                key, stacklevel=(stacklevel + 1), view=view, dim_map=dim_map
-            )
+            return self.deferred.get_item(key, stacklevel=(stacklevel + 1))
         if self._is_advanced_indexing(key):
             index_key = self._create_indexing_key(key, stacklevel + 1)
             out = self.array[index_key]
