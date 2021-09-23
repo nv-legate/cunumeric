@@ -143,6 +143,56 @@ class _LegateNDarray(object):
         }
 
 
+_UNARY_RED_TO_REDUCTION_OPS = {
+    UnaryRedCode.SUM: ReductionOp.ADD,
+    UnaryRedCode.PROD: ReductionOp.MUL,
+    UnaryRedCode.MAX: ReductionOp.MAX,
+    UnaryRedCode.MIN: ReductionOp.MIN,
+    UnaryRedCode.ARGMAX: NumPyRedopCode.ARGMAX,
+    UnaryRedCode.ARGMIN: NumPyRedopCode.ARGMIN,
+    UnaryRedCode.CONTAINS: ReductionOp.ADD,
+    UnaryRedCode.COUNT_NONZERO: ReductionOp.ADD,
+}
+
+
+def max_identity(ty):
+    if ty.kind == "i" or ty.kind == "u":
+        return np.iinfo(ty).min
+    elif ty.kind == "f":
+        return np.finfo(ty).min
+    elif ty.kind == "c":
+        return max_identity(np.float64) + max_identity(np.float64) * 1j
+    elif ty.kind == "b":
+        return False
+    else:
+        raise ValueError(f"Unsupported dtype: {ty}")
+
+
+def min_identity(ty):
+    if ty.kind == "i" or ty.kind == "u":
+        return np.iinfo(ty).max
+    elif ty.kind == "f":
+        return np.finfo(ty).max
+    elif ty.kind == "c":
+        return min_identity(np.float64) + min_identity(np.float64) * 1j
+    elif ty.kind == "b":
+        return True
+    else:
+        raise ValueError(f"Unsupported dtype: {ty}")
+
+
+_UNARY_RED_IDENTITIES = {
+    UnaryRedCode.SUM: lambda _: 0,
+    UnaryRedCode.PROD: lambda _: 1,
+    UnaryRedCode.MIN: min_identity,
+    UnaryRedCode.MAX: max_identity,
+    UnaryRedCode.ARGMAX: lambda ty: (np.iinfo(np.int64).min, max_identity(ty)),
+    UnaryRedCode.ARGMIN: lambda ty: (np.iinfo(np.int64).min, min_identity(ty)),
+    UnaryRedCode.CONTAINS: lambda _: False,
+    UnaryRedCode.COUNT_NONZERO: lambda _: 0,
+}
+
+
 class DeferredArray(NumPyThunk):
     """This is a deferred thunk for describing NumPy computations.
     It is backed by either a Legion logical region or a Legion future
@@ -837,10 +887,6 @@ class DeferredArray(NumPyThunk):
                     self.shape, np.dtype(np.float32), inputs=[self]
                 )
 
-            redop = self.runtime.get_unary_reduction_op_id(
-                UnaryRedCode.SUM, lhs_array.dtype
-            )
-
             lhs_array.fill(
                 np.array(0, dtype=lhs_array.dtype),
                 stacklevel=(stacklevel + 1),
@@ -848,7 +894,7 @@ class DeferredArray(NumPyThunk):
             )
 
             task = self.context.create_task(NumPyOpCode.DOT)
-            task.add_reduction(lhs_array.base, redop)
+            task.add_reduction(lhs_array.base, ty.ReductionOp.ADD)
             task.add_input(rhs1_array.base)
             task.add_input(rhs2_array.base)
 
@@ -921,12 +967,8 @@ class DeferredArray(NumPyThunk):
                 rhs1 = rhs1_array.base.promote(1, n)
                 lhs = lhs_array.base.promote(0, m)
 
-            redop = self.runtime.get_unary_reduction_op_id(
-                UnaryRedCode.SUM, lhs_array.dtype
-            )
-
             task = self.context.create_task(NumPyOpCode.MATVECMUL)
-            task.add_reduction(lhs, redop)
+            task.add_reduction(lhs, ReductionOp.ADD)
             task.add_input(rhs1)
             task.add_input(rhs2)
             task.add_scalar_arg(left_matrix, bool)
@@ -997,12 +1039,8 @@ class DeferredArray(NumPyThunk):
             rhs1 = rhs1_array.base.promote(2, N)
             rhs2 = rhs2_array.base.promote(0, M)
 
-            redop = self.runtime.get_unary_reduction_op_id(
-                UnaryRedCode.SUM, lhs_array.dtype
-            )
-
             task = self.context.create_task(NumPyOpCode.MATMUL)
-            task.add_reduction(lhs, redop)
+            task.add_reduction(lhs, ReductionOp.ADD)
             task.add_input(rhs1)
             task.add_input(rhs2)
 
@@ -1080,10 +1118,7 @@ class DeferredArray(NumPyThunk):
         task = self.context.create_task(NumPyOpCode.DIAG)
 
         if extract:
-            redop = self.runtime.get_unary_reduction_op_id(
-                UnaryRedCode.SUM, diag_array.dtype
-            )
-            task.add_reduction(diag, redop)
+            task.add_reduction(diag, ReductionOp.ADD)
             task.add_input(matrix)
         else:
             task.add_output(matrix)
@@ -1207,13 +1242,8 @@ class DeferredArray(NumPyThunk):
             callsite=callsite,
         )
 
-        redop = self.runtime.get_unary_reduction_op_id(
-            UnaryRedCode.SUM,
-            dst_array.dtype,
-        )
-
         task = self.context.create_task(NumPyOpCode.BINCOUNT)
-        task.add_reduction(dst_array.base, redop)
+        task.add_reduction(dst_array.base, ReductionOp.ADD)
         task.add_input(src_array.base)
         task.add_input(weight_array.base)
 
@@ -1333,10 +1363,7 @@ class DeferredArray(NumPyThunk):
 
             task = self.context.create_task(NumPyOpCode.SCALAR_UNARY_RED)
 
-            redop = self.runtime.get_unary_reduction_op_id(op, lhs_array.dtype)
-            fill_value = self.runtime.get_reduction_identity(
-                op, rhs_array.dtype
-            )
+            fill_value = _UNARY_RED_IDENTITIES[op](rhs_array.dtype)
 
             lhs_array.fill(
                 np.array(fill_value, dtype=lhs_array.dtype),
@@ -1344,7 +1371,7 @@ class DeferredArray(NumPyThunk):
                 callsite=callsite,
             )
 
-            task.add_reduction(lhs_array.base, redop)
+            task.add_reduction(lhs_array.base, _UNARY_RED_TO_REDUCTION_OPS[op])
             task.add_input(rhs_array.base)
             task.add_scalar_arg(op, ty.int32)
 
@@ -1370,9 +1397,7 @@ class DeferredArray(NumPyThunk):
                 assert not argred
                 fill_value = initial
             else:
-                fill_value = self.runtime.get_reduction_identity(
-                    op, rhs_array.dtype
-                )
+                fill_value = _UNARY_RED_IDENTITIES[op](rhs_array.dtype)
             lhs_array.fill(
                 np.array(fill_value, lhs_array.dtype),
                 stacklevel=stacklevel + 1,
@@ -1397,10 +1422,8 @@ class DeferredArray(NumPyThunk):
 
             task = self.context.create_task(NumPyOpCode.UNARY_RED)
 
-            redop = self.runtime.get_unary_reduction_op_id(op, rhs_array.dtype)
-
             task.add_input(rhs_array.base)
-            task.add_reduction(result, redop)
+            task.add_reduction(result, _UNARY_RED_TO_REDUCTION_OPS[op])
             task.add_scalar_arg(axis, ty.int32)
             task.add_scalar_arg(op, ty.int32)
 
@@ -1462,14 +1485,10 @@ class DeferredArray(NumPyThunk):
 
         # Populate the Legate launcher
         if op == BinaryOpCode.NOT_EQUAL:
-            redop = self.runtime.get_unary_reduction_op_id(
-                UnaryRedCode.SUM, self.dtype
-            )
+            redop = ReductionOp.ADD
             self.fill(np.array(False))
         else:
-            redop = self.runtime.get_unary_reduction_op_id(
-                UnaryRedCode.PROD, self.dtype
-            )
+            redop = ReductionOp.MUL
             self.fill(np.array(True))
         task = self.context.create_task(NumPyOpCode.BINARY_RED)
         task.add_reduction(lhs, redop)

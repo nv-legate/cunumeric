@@ -46,8 +46,8 @@ enum NumPyOpCode {
 
 // Match these to NumPyRedopCode in legate/numpy/config.py
 enum NumPyRedopID {
-  NUMPY_ARGMIN_REDOP = LEGION_REDOP_KIND_TOTAL + 1,
-  NUMPY_ARGMAX_REDOP,
+  NUMPY_ARGMAX_REDOP = 1,
+  NUMPY_ARGMIN_REDOP = 2,
 };
 
 // Match these to NumPyTunable in legate/numpy/config.py

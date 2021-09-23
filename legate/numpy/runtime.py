@@ -142,7 +142,6 @@ class Runtime(object):
 
         # Get the initial task ID and mapper ID
         self.mapper_id = legate_context.first_mapper_id
-        self.first_redop_id = legate_context.first_redop_id
 
         self.max_eager_volume = self.legate_context.get_tunable(
             NumPyTunable.MAX_EAGER_VOLUME,
@@ -186,7 +185,13 @@ class Runtime(object):
         if arg_dtype not in type_system:
             # We assign T's type code to Argval<T>
             code = type_system[value_dtype].code
-            type_system.add_type(arg_dtype, arg_dtype.itemsize, code)
+            dtype = type_system.add_type(arg_dtype, arg_dtype.itemsize, code)
+
+            for redop in NumPyRedopCode:
+                redop_id = self.legate_context.get_reduction_op_id(
+                    redop.value * legion.MAX_TYPE_NUMBER + code
+                )
+                dtype.register_reduction_op(redop, redop_id)
         return arg_dtype
 
     def destroy(self):
@@ -650,22 +655,6 @@ class Runtime(object):
 
     def get_task_id(self, op_code):
         return self.first_task_id + op_code.value
-
-    def _convert_reduction_op_id(self, redop_id, field_dtype):
-        base = (
-            legion.LEGION_REDOP_BASE
-            if redop_id < legion.LEGION_REDOP_KIND_TOTAL
-            else self.first_redop_id
-        )
-        result = base + redop_id * legion.LEGION_TYPE_TOTAL
-        return result + numpy_field_type_offsets[field_dtype.type]
-
-    def get_unary_reduction_op_id(self, op, field_dtype):
-        redop_id = numpy_unary_reduction_op_offsets[op]
-        return self._convert_reduction_op_id(redop_id, field_dtype)
-
-    def get_reduction_identity(self, op, dtype):
-        return numpy_unary_reduction_identities[op](dtype)
 
     def check_shadow(self, thunk, op):
         assert thunk.shadow is not None

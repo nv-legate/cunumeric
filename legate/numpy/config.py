@@ -18,9 +18,7 @@ from __future__ import absolute_import, division, print_function
 import os
 from enum import IntEnum, unique
 
-import numpy as np
-
-from legate.core import Library, ResourceConfig, get_legate_runtime, legion
+from legate.core import Library, ResourceConfig, get_legate_runtime
 
 
 # Load the Legate NumPy library first so we have a shard object that
@@ -77,27 +75,6 @@ NUMPY_LIB_NAME = "legate.numpy"
 numpy_lib = NumPyLib(NUMPY_LIB_NAME)
 numpy_context = get_legate_runtime().register_library(numpy_lib)
 legate_numpy = numpy_lib.shared_object
-
-
-# Match these to legate_core_type_code_t in legate_c.h
-numpy_field_type_offsets = {
-    np.bool_: legion.LEGION_TYPE_BOOL,
-    np.int8: legion.LEGION_TYPE_INT8,
-    np.int16: legion.LEGION_TYPE_INT16,
-    np.int: legion.LEGION_TYPE_INT32,
-    np.int32: legion.LEGION_TYPE_INT32,
-    np.int64: legion.LEGION_TYPE_INT64,
-    np.uint8: legion.LEGION_TYPE_UINT8,
-    np.uint16: legion.LEGION_TYPE_UINT16,
-    np.uint32: legion.LEGION_TYPE_UINT32,
-    np.uint64: legion.LEGION_TYPE_UINT64,
-    np.float16: legion.LEGION_TYPE_FLOAT16,
-    np.float: legion.LEGION_TYPE_FLOAT32,
-    np.float32: legion.LEGION_TYPE_FLOAT32,
-    np.float64: legion.LEGION_TYPE_FLOAT64,
-    np.complex64: legion.LEGION_TYPE_COMPLEX64,
-    np.complex128: legion.LEGION_TYPE_COMPLEX128,
-}
 
 
 # Match these to NumPyOpCode in legate_numpy_c.h
@@ -196,58 +173,8 @@ class RandGenCode(IntEnum):
 # Match these to NumPyRedopID in legate_numpy_c.h
 @unique
 class NumPyRedopCode(IntEnum):
-    ARGMIN_REDOP = legate_numpy.NUMPY_ARGMIN_REDOP
-    ARGMAX_REDOP = legate_numpy.NUMPY_ARGMAX_REDOP
-
-
-numpy_unary_reduction_op_offsets = {
-    UnaryRedCode.SUM: legion.LEGION_REDOP_KIND_SUM,
-    UnaryRedCode.PROD: legion.LEGION_REDOP_KIND_PROD,
-    UnaryRedCode.MIN: legion.LEGION_REDOP_KIND_MIN,
-    UnaryRedCode.MAX: legion.LEGION_REDOP_KIND_MAX,
-    UnaryRedCode.ARGMAX: NumPyRedopCode.ARGMAX_REDOP,
-    UnaryRedCode.ARGMIN: NumPyRedopCode.ARGMIN_REDOP,
-    UnaryRedCode.CONTAINS: legion.LEGION_REDOP_KIND_SUM,
-    UnaryRedCode.COUNT_NONZERO: legion.LEGION_REDOP_KIND_SUM,
-}
-
-
-def max_identity(ty):
-    if ty.kind == "i" or ty.kind == "u":
-        return np.iinfo(ty).min
-    elif ty.kind == "f":
-        return np.finfo(ty).min
-    elif ty.kind == "c":
-        return max_identity(np.float64) + max_identity(np.float64) * 1j
-    elif ty.kind == "b":
-        return False
-    else:
-        raise ValueError(f"Unsupported dtype: {ty}")
-
-
-def min_identity(ty):
-    if ty.kind == "i" or ty.kind == "u":
-        return np.iinfo(ty).max
-    elif ty.kind == "f":
-        return np.finfo(ty).max
-    elif ty.kind == "c":
-        return min_identity(np.float64) + min_identity(np.float64) * 1j
-    elif ty.kind == "b":
-        return True
-    else:
-        raise ValueError(f"Unsupported dtype: {ty}")
-
-
-numpy_unary_reduction_identities = {
-    UnaryRedCode.SUM: lambda _: 0,
-    UnaryRedCode.PROD: lambda _: 1,
-    UnaryRedCode.MIN: min_identity,
-    UnaryRedCode.MAX: max_identity,
-    UnaryRedCode.ARGMAX: lambda ty: (np.iinfo(np.int64).min, max_identity(ty)),
-    UnaryRedCode.ARGMIN: lambda ty: (np.iinfo(np.int64).min, min_identity(ty)),
-    UnaryRedCode.CONTAINS: lambda _: False,
-    UnaryRedCode.COUNT_NONZERO: lambda _: 0,
-}
+    ARGMAX = 1
+    ARGMIN = 2
 
 
 # Match these to NumPyTunable in legate_numpy_c.h
