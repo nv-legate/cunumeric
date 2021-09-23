@@ -127,10 +127,6 @@ class Runtime(object):
         "test_mode",
         "shadow_debug",
         "callsite_summaries",
-        "first_task_id",
-        "mapper_id",
-        "first_redop_id",
-        "first_proj_id",
         "destroyed",
     ]
 
@@ -139,9 +135,6 @@ class Runtime(object):
         self.legate_runtime = get_legate_runtime()
         self.current_random_epoch = 0
         self.destroyed = False
-
-        # Get the initial task ID and mapper ID
-        self.mapper_id = legate_context.first_mapper_id
 
         self.max_eager_volume = self.legate_context.get_tunable(
             NumPyTunable.MAX_EAGER_VOLUME,
@@ -416,8 +409,6 @@ class Runtime(object):
         assert div == array.dtype.itemsize
         # Now build the view and dimmap for the parent to create the view
         key = ()
-        view = ()
-        dim_map = ()
         child_idx = 0
         child_strides = tuple(array.strides)
         parent_strides = tuple(array.base.strides)
@@ -428,26 +419,18 @@ class Runtime(object):
                 if child_strides[child_idx] == 0:
                     # Kept an added dimension
                     key += (slice(None, None, None),)
-                    view += (slice(None, None, None),)
-                    dim_map += (0,)
                 else:
                     # Removed an added dimension
                     key += (slice(None, None, None),)
-                    view += (slice(0, 1, 1),)
-                    dim_map += (-1,)
                 child_idx += 1
                 continue
             elif child_idx == array.ndim:
                 key += (slice(offsets[idx], offsets[idx] + 1, 1),)
-                view += (slice(offsets[idx], offsets[idx] + 1, 1),)
-                dim_map += (-1,)
                 continue
             elif child_strides[child_idx] == 0:
                 # Added dimension in the child not in the parent
                 while child_strides[child_idx] == 0:
                     key += (np.newaxis,)
-                    view += (slice(0, 1, 1),)
-                    dim_map += (1,)
                     child_idx += 1
                 # Fall through to the base case
             # Stides in the child should always be greater than or equal
@@ -456,21 +439,17 @@ class Runtime(object):
             start = offsets[idx]
             if child_strides[child_idx] < parent_strides[idx]:
                 key += (slice(start, start + 1, 1),)
-                view += (slice(start, start + 1, 1),)
-                dim_map += (-1,)
                 # Doesn't count against the child_idx
             else:
                 stride = child_strides[child_idx] // parent_strides[idx]
                 stop = start + stride * array.shape[child_idx]
                 key += (slice(start, stop, stride),)
-                view += (slice(start, stop, stride),)
-                dim_map += (0,)
                 child_idx += 1
         assert child_idx <= array.ndim
         if child_idx < array.ndim:
-            return None, None, None
+            return None
         else:
-            return key, view, dim_map
+            return key
 
     def find_or_create_array_thunk(
         self, array, stacklevel, share=False, defer=False
@@ -483,7 +462,7 @@ class Runtime(object):
         # is to always create the thunk for the root array and
         # then create sub-thunks that mirror the array views
         if array.base is not None and isinstance(array.base, np.ndarray):
-            key, view, dim_map = self.compute_parent_child_mapping(array)
+            key = self.compute_parent_child_mapping(array)
             if key is None:
                 # This base array wasn't made with a view
                 if not share:
@@ -506,12 +485,7 @@ class Runtime(object):
             )
             # Don't store this one in the ptr_to_thunk as we only want to
             # store the root ones
-            return parent_thunk.get_item(
-                key=key,
-                stacklevel=(stacklevel + 1),
-                view=view,
-                dim_map=dim_map,
-            )
+            return parent_thunk.get_item(key, stacklevel=(stacklevel + 1))
         elif array.size == 0:
             # We always store completely empty arrays with eager thunks
             assert not defer
@@ -652,9 +626,6 @@ class Runtime(object):
             raise NotImplementedError("convert eager array to lazy array")
         else:
             raise RuntimeError("invalid array type")
-
-    def get_task_id(self, op_code):
-        return self.first_task_id + op_code.value
 
     def check_shadow(self, thunk, op):
         assert thunk.shadow is not None

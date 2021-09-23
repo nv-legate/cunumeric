@@ -443,7 +443,7 @@ class DeferredArray(NumPyThunk):
 
         return result
 
-    def get_item(self, key, stacklevel, view=None, dim_map=None):
+    def get_item(self, key, stacklevel=0):
         # Check to see if this is advanced indexing or not
         if self._is_advanced_indexing(key):
             # Create the indexing array
@@ -488,7 +488,8 @@ class DeferredArray(NumPyThunk):
 
         if self.runtime.shadow_debug:
             result.shadow = self.shadow.get_item(
-                key, stacklevel=(stacklevel + 1), view=view, dim_map=dim_map
+                key,
+                stacklevel=(stacklevel + 1),
             )
         return result
 
