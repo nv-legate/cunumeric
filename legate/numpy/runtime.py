@@ -31,6 +31,7 @@ from legate.core import (
     Future,
     FutureMap,
     Region,
+    legion,
 )
 from legate.core.runtime import RegionField
 
