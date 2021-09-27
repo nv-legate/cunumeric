@@ -227,8 +227,6 @@ def build_cunumeric(
         print("Using GNU Make for now.")
 
     if not python_only:
-        openblas_dir = os.path.realpath(openblas_dir)
-        install_dir = os.path.realpath(install_dir)
         if install_dir == os.path.commonprefix([openblas_dir, install_dir]):
             libname = "openblas_legate"
         else:
@@ -335,6 +333,7 @@ def install_cunumeric(
         openblas_dir = libs_config.get("openblas")
     if openblas_dir is None:
         openblas_dir = os.path.join(legate_dir, "OpenBLAS")
+    openblas_dir = os.path.realpath(openblas_dir)
     if not os.path.exists(openblas_dir):
         install_openblas(openblas_dir, thread_count, verbose)
     libs_config["openblas"] = openblas_dir
