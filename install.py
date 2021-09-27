@@ -292,6 +292,7 @@ def install_cunumeric(
         print("cmake_exe: ", cmake_exe, "\n")
         print("legate_dir: ", legate_dir, "\n")
         print("openblas_dir: ", openblas_dir, "\n")
+        print("thrust_dir: ", thrust_dir, "\n")
         print("debug: ", debug, "\n")
         print("debug_release: ", debug_release, "\n")
         print("check_bounds: ", check_bounds, "\n")
@@ -311,9 +312,7 @@ def install_cunumeric(
 
     # Check to see if we installed Legate Core
     legate_config = os.path.join(cunumeric_dir, ".legate.core.json")
-    if "LEGATE_DIR" in os.environ:
-        legate_dir = os.environ["LEGATE_DIR"]
-    elif legate_dir is None:
+    if legate_dir is None:
         legate_dir = load_json_config(legate_config)
     if legate_dir is None or not os.path.exists(legate_dir):
         raise Exception(
@@ -323,52 +322,45 @@ def install_cunumeric(
     legate_dir = os.path.realpath(legate_dir)
     dump_json_config(legate_config, legate_dir)
 
-    # Check to see if we have an installation of openblas
+    # Find list of already-installed libraries
+    libs_path = os.path.join(legate_dir, "share", ".legate-libs.json")
     try:
-        f = open(
-            os.path.join(legate_dir, "share", "legate", ".legate-libs.json"),
-            "r",
-        )
-        libs_config = json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
+        with open(libs_path, "r") as f:
+            libs_config = json.load(f)
+    except (FileNotFoundError, IOError, json.JSONDecodeError):
         libs_config = {}
+
+    # Install OpenBLAS
     if openblas_dir is None:
         openblas_dir = libs_config.get("openblas")
-        if openblas_dir is None:
-            openblas_dir = os.path.join(legate_dir, "OpenBLAS")
+    if openblas_dir is None:
+        openblas_dir = os.path.join(legate_dir, "OpenBLAS")
     if not os.path.exists(openblas_dir):
         install_openblas(openblas_dir, thread_count, verbose)
     libs_config["openblas"] = openblas_dir
-    with open(
-        os.path.join(legate_dir, "share", "legate", ".legate-libs.json"), "w"
-    ) as f:
+
+    # Record all newly installed libraries in the global configuration
+    with open(libs_path, "w") as f:
         json.dump(libs_config, f)
 
-    if not thrust_dir:
-        try:
-            f = open(
-                os.path.join(legate_dir, "share", "legate", ".thrust.json"),
-                "r",
-            )
-            thrust_dir = json.load(f)
-        except (FileNotFoundError, json.JSONDecodeError):
-            thrust_config = os.path.join(cunumeric_dir, ".thrust.json")
-            if "THRUST_PATH" in os.environ:
-                thrust_dir = os.environ["THRUST_PATH"]
-            elif thrust_dir is None:
-                thrust_dir = load_json_config(thrust_config)
-                if thrust_dir is None:
-                    raise Exception(
-                        "Could not find Thrust installation, "
-                        "use '--with-thrust' to specify a location."
-                    )
-            thrust_dir = os.path.realpath(thrust_dir)
-            dump_json_config(thrust_config, thrust_dir)
-    os.environ["CC_FLAGS"] = (
-        "-I" + thrust_dir + " " + os.environ.get("CC_FLAGS", "")
+    # Find Thrust installation
+    thrust_global_config = os.path.join(
+        legate_dir, "share", "legate", ".thrust.json"
     )
-    os.environ["NVCC_FLAGS"] = (
-        "-I" + thrust_dir + " " + os.environ.get("NVCC_FLAGS", "")
+    if thrust_dir is None:
+        thrust_dir = load_json_config(thrust_global_config)
+    thrust_local_config = os.path.join(cunumeric_dir, ".thrust.json")
+    if thrust_dir is None:
+        thrust_dir = load_json_config(thrust_local_config)
+    if thrust_dir is None:
+        raise Exception(
+            "Could not find Thrust installation, use '--with-thrust' to "
+            " specify a location."
+        )
+    thrust_dir = os.path.realpath(thrust_dir)
+    dump_json_config(thrust_local_config, thrust_dir)
+    os.environ["CXXFLAGS"] = (
+        "-I" + thrust_dir + " " + os.environ.get("CXXFLAGS", "")
     )
 
     build_cunumeric(
@@ -420,6 +412,7 @@ def driver():
         dest="legate_dir",
         metavar="DIR",
         required=False,
+        default=os.environ.get("LEGATE_DIR"),
         help="Path to Legate Core installation directory.",
     )
     parser.add_argument(
@@ -427,7 +420,7 @@ def driver():
         dest="openblas_dir",
         metavar="DIR",
         required=False,
-        default=os.environ.get("OPEN_BLAS_DIR"),
+        default=os.environ.get("OPENBLAS_PATH"),
         help="Path to OpenBLAS installation directory. Note that providing a "
         "user-defined BLAS library may lead to dynamic library conflicts with "
         "BLAS loaded by Python's Numpy. When using cuNumeric's BLAS, this "
@@ -438,6 +431,7 @@ def driver():
         dest="thrust_dir",
         metavar="DIR",
         required=False,
+        default=os.environ.get("THRUST_PATH"),
         help="Path to Thrust installation directory.",
     )
     parser.add_argument(
