@@ -14,8 +14,8 @@
  *
  */
 
-#include "fused/binary_op.h"
-#include "fused/binary_op_template.inl"
+#include "binary/binary_red.h"
+#include "binary/binary_red_template.inl"
 
 namespace legate {
 namespace numpy {
@@ -23,39 +23,40 @@ namespace numpy {
 using namespace Legion;
 
 template <BinaryOpCode OP_CODE, LegateTypeCode CODE, int DIM>
-struct BinaryOpImplBody<VariantKind::OMP, OP_CODE, CODE, DIM> {
+struct BinaryRedImplBody<VariantKind::OMP, OP_CODE, CODE, DIM> {
   using OP  = BinaryOp<OP_CODE, CODE>;
   using ARG = legate_type_of<CODE>;
-  using RES = std::result_of_t<OP(ARG, ARG)>;
 
-  void operator()(OP func,
-                  AccessorWO<RES, DIM> out,
-                  AccessorRO<ARG, DIM> in1,
-                  AccessorRO<ARG, DIM> in2,
-                  const Pitches<DIM - 1>& pitches,
-                  const Rect<DIM>& rect,
-                  bool dense) const
+  UntypedScalar operator()(OP func,
+                           AccessorRO<ARG, DIM> in1,
+                           AccessorRO<ARG, DIM> in2,
+                           const Pitches<DIM - 1>& pitches,
+                           const Rect<DIM>& rect,
+                           bool dense) const
   {
-    const size_t volume = rect.volume();
+    size_t volume = rect.volume();
+    bool result   = true;
     if (dense) {
-      auto outptr = out.ptr(rect);
       auto in1ptr = in1.ptr(rect);
       auto in2ptr = in2.ptr(rect);
 #pragma omp parallel for schedule(static)
-      for (size_t idx = 0; idx < volume; ++idx) outptr[idx] = func(in1ptr[idx], in2ptr[idx]);
+      for (size_t idx = 0; idx < volume; ++idx)
+        if (!func(in1ptr[idx], in2ptr[idx])) result = false;
     } else {
 #pragma omp parallel for schedule(static)
       for (size_t idx = 0; idx < volume; ++idx) {
-        auto p = pitches.unflatten(idx, rect.lo);
-        out[p] = func(in1[p], in2[p]);
+        auto point = pitches.unflatten(idx, rect.lo);
+        if (!func(in1[point], in2[point])) result = false;
       }
     }
+
+    return UntypedScalar(result);
   }
 };
 
-/*static*/ void FusedOpTask::omp_variant(TaskContext& context)
+/*static*/ UntypedScalar BinaryRedTask::omp_variant(TaskContext& context)
 {
-  binary_op_template<VariantKind::OMP>(context);
+  return binary_red_template<VariantKind::OMP>(context);
 }
 
 }  // namespace numpy

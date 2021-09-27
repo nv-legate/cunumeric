@@ -14,8 +14,8 @@
  *
  */
 
-#include "fused/binary_op.h"
-#include "fused_op_template.inl"
+#include "binary/binary_op.h"
+#include "binary_op_template.inl"
 
 #include "cuda_help.h"
 
@@ -43,9 +43,9 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM) gen
   out[point] = func(in1[point], in2[point]);
 }
 
-template <FusedOpCode OP_CODE, LegateTypeCode CODE, int DIM>
-struct FusedOpImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
-  using OP  = FusedOp<OP_CODE, CODE>;
+template <BinaryOpCode OP_CODE, LegateTypeCode CODE, int DIM>
+struct BinaryOpImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
+  using OP  = BinaryOp<OP_CODE, CODE>;
   using ARG = legate_type_of<CODE>;
   using RES = std::result_of_t<OP(ARG, ARG)>;
 
@@ -70,9 +70,9 @@ struct FusedOpImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
   }
 };
 
-/*static*/ void FusedOpTask::gpu_variant(TaskContext& context)
+/*static*/ void BinaryOpTask::gpu_variant(TaskContext& context)
 {
-  fused_op_template<VariantKind::GPU>(context);
+  binary_op_template<VariantKind::GPU>(context);
 }
 
 }  // namespace numpy
