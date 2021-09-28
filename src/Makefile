@@ -16,32 +16,48 @@
 ifndef LEGATE_DIR
 $(error LEGATE_DIR variable is not defined, aborting build)
 endif
-ifndef OPEN_BLAS_DIR
-$(error OPEN_BLAS_DIR variable is not defined, aborting build)
+ifndef OPENBLAS_PATH
+$(error OPENBLAS_PATH variable is not defined, aborting build)
+endif
+ifndef OPENBLAS_LIBNAME
+$(error OPENBLAS_PATH variable is not defined, aborting build)
+endif
+ifndef TBLIS_PATH
+$(error TBLIS_PATH variable is not defined, aborting build)
+endif
+ifndef THRUST_PATH
+$(error THRUST_PATH variable is not defined, aborting build)
 endif
 
 include $(LEGATE_DIR)/share/legate/config.mk
 
-LIBNAME		= libcunumeric
+LIBNAME = libcunumeric
 
 CC_FLAGS ?=
-CC_FLAGS += -I. -I$(OPEN_BLAS_DIR)/include
+CC_FLAGS += -I. -I$(OPENBLAS_PATH)/include -I$(TBLIS_PATH)/include -I$(THRUST_PATH)
+
 LD_FLAGS ?=
-LD_FLAGS += $(OPENBLAS_FLAGS)
+LD_FLAGS += -L$(OPENBLAS_PATH)/lib -l$(OPENBLAS_LIBNAME) -Wl,-rpath,$(OPENBLAS_PATH)/lib
+LD_FLAGS += -L$(TBLIS_PATH)/lib -ltblis -Wl,-rpath,$(TBLIS_PATH)/lib
 ifeq ($(strip $(USE_CUDA)),1)
 LD_FLAGS += -lcufft
 endif
 
 NVCC_FLAGS ?=
-NVCC_FLAGS += -I. -Wno-deprecated-declarations
+NVCC_FLAGS += -I. -I$(THRUST_PATH) -Wno-deprecated-declarations
+
+ifeq ($(strip $(DEBUG)),1)
+CC_FLAGS += -DDEBUG_NUMPY
+NVCC_FLAGS += -DDEBUG_NUMPY
+endif
 
 CHECK_BOUNDS ?= 0
 ifeq ($(strip $(CHECK_BOUNDS)),1)
 CC_FLAGS += -DBOUNDS_CHECKS
 endif
 
-GEN_CPU_SRC	=
-GEN_GPU_SRC	=
+GEN_CPU_SRC =
+GEN_GPU_SRC =
 
 include cunumeric.mk
 

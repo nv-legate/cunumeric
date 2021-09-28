@@ -193,6 +193,43 @@ def install_openblas(openblas_dir, thread_count, verbose):
     shutil.rmtree(temp_dir)
 
 
+def install_tblis(tblis_dir, thread_count, verbose):
+    print("Legate is installing TBLIS into a local directory...")
+    temp_dir = tempfile.mkdtemp()
+    git_clone(
+        temp_dir,
+        url="https://github.com/devinamatthews/tblis.git",
+        branch="master",
+        verbose=verbose,
+    )
+    execute_command(
+        [
+            "./configure",
+            "--prefix",
+            tblis_dir,
+            "--enable-thread-model=openmp"
+            if has_openmp()
+            else "--disable-thread-model",
+            "--with-length-type=int64_t",
+            "--with-stride-type=int64_t",
+            "--with-label-type=int32_t",
+        ],
+        cwd=temp_dir,
+        verbose=verbose,
+    )
+    execute_command(
+        [
+            "make",
+            "-j",
+            str(thread_count),
+            "install",
+        ],
+        cwd=temp_dir,
+        verbose=verbose,
+    )
+    shutil.rmtree(temp_dir)
+
+
 def find_c_define(define, header):
     with open(header, "r") as f:
         line = f.readline()
@@ -208,6 +245,8 @@ def build_cunumeric(
     cunumeric_dir,
     install_dir,
     openblas_dir,
+    tblis_dir,
+    thrust_dir,
     cmake,
     cmake_exe,
     debug,
@@ -233,13 +272,14 @@ def build_cunumeric(
             libname = "openblas"
         make_flags = [
             "LEGATE_DIR=%s" % install_dir,
-            "OPEN_BLAS_DIR=%s" % openblas_dir,
+            "OPENBLAS_PATH=%s" % openblas_dir,
+            "OPENBLAS_LIBNAME=%s" % libname,
+            "TBLIS_PATH=%s" % tblis_dir,
+            "THRUST_PATH=%s" % thrust_dir,
             "DEBUG=%s" % (1 if debug else 0),
             "DEBUG_RELEASE=%s" % (1 if debug_release else 0),
             "CHECK_BOUNDS=%s" % (1 if check_bounds else 0),
             "PREFIX=%s" % install_dir,
-            "OPENBLAS_FLAGS = -L%s/lib -l%s -Wl,-rpath,%s/lib"
-            % (openblas_dir, libname, openblas_dir),
         ]
         if clean_first:
             execute_command(
@@ -273,6 +313,7 @@ def install_cunumeric(
     cmake_exe,
     legate_dir,
     openblas_dir,
+    tblis_dir,
     thrust_dir,
     debug,
     debug_release,
@@ -290,6 +331,7 @@ def install_cunumeric(
         print("cmake_exe: ", cmake_exe, "\n")
         print("legate_dir: ", legate_dir, "\n")
         print("openblas_dir: ", openblas_dir, "\n")
+        print("tblis_dir: ", tblis_dir, "\n")
         print("thrust_dir: ", thrust_dir, "\n")
         print("debug: ", debug, "\n")
         print("debug_release: ", debug_release, "\n")
@@ -338,6 +380,16 @@ def install_cunumeric(
         install_openblas(openblas_dir, thread_count, verbose)
     libs_config["openblas"] = openblas_dir
 
+    # Install TBLIS
+    if tblis_dir is None:
+        tblis_dir = libs_config.get("tblis")
+    if tblis_dir is None:
+        tblis_dir = os.path.join(legate_dir, "TBLIS")
+    tblis_dir = os.path.realpath(tblis_dir)
+    if not os.path.exists(tblis_dir):
+        install_tblis(tblis_dir, thread_count, verbose)
+    libs_config["tblis"] = tblis_dir
+
     # Record all newly installed libraries in the global configuration
     with open(libs_path, "w") as f:
         json.dump(libs_config, f)
@@ -358,14 +410,13 @@ def install_cunumeric(
         )
     thrust_dir = os.path.realpath(thrust_dir)
     dump_json_config(thrust_local_config, thrust_dir)
-    os.environ["CXXFLAGS"] = (
-        "-I" + thrust_dir + " " + os.environ.get("CXXFLAGS", "")
-    )
 
     build_cunumeric(
         cunumeric_dir,
         legate_dir,
         openblas_dir,
+        tblis_dir,
+        thrust_dir,
         cmake,
         cmake_exe,
         debug,
@@ -424,6 +475,14 @@ def driver():
         "user-defined BLAS library may lead to dynamic library conflicts with "
         "BLAS loaded by Python's Numpy. When using cuNumeric's BLAS, this "
         "issue is prevented by a custom library name.",
+    )
+    parser.add_argument(
+        "--with-tblis",
+        dest="tblis_dir",
+        metavar="DIR",
+        required=False,
+        default=os.environ.get("TBLIS_PATH"),
+        help="Path to TBLIS installation directory.",
     )
     parser.add_argument(
         "--with-thrust",
