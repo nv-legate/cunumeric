@@ -65,6 +65,7 @@ void inline_leaf_task(const Task *task,
 void packOp(MakeshiftSerializer& ms, TaskContext& context, int opID)
 {
   //grab all the stores
+  /*
   const int nMetaDataArrs=7;
   Store& inputStartsStore = context.inputs()[0];
   Store& outputStartsStore = context.inputs()[1];
@@ -72,18 +73,29 @@ void packOp(MakeshiftSerializer& ms, TaskContext& context, int opID)
   Store& offsetsStore = context.inputs()[3];
   Store& reductionStartsStore = context.inputs()[4];
   Store& scalarStartsStore = context.inputs()[5];
-
+  */
   //grab pointers to all the metadata arrays
-  using ARG = legate_type_of<LegateTypeCode::INT64_LT>;
-  auto opRect = context.inputs()[0].shape<1>(); //iterator over range(0,nOps)
-  auto offsetMetaRect = context.inputs()[3].shape<1>(); //iter over range(0, nInputs+nOutputs)
-
+  //using ARG = legate_type_of<LegateTypeCode::INT64_LT>;
+  //auto opRect = context.inputs()[0].shape<1>(); //iterator over range(0,nOps)
+  //auto offsetMetaRect = context.inputs()[3].shape<1>(); //iter over range(0, nInputs+nOutputs)
+ 
+  /*
   auto inputStarts = inputStartsStore.read_accessor<ARG, 1>().ptr(opRect);
   auto outputStarts = outputStartsStore.read_accessor<ARG, 1>().ptr(opRect);
   auto offsetStarts = offsetStartsStore.read_accessor<ARG, 1>().ptr(opRect);
   auto offsets = offsetsStore.read_accessor<ARG, 1>().ptr(offsetMetaRect);
   auto reductionStarts = reductionStartsStore.read_accessor<ARG, 1>().ptr(opRect);
   auto scalarStarts = scalarStartsStore.read_accessor<ARG, 1>().ptr(opRect);
+  */
+  auto inputStarts = context.fusionMetadata.inputStarts;
+  auto outputStarts = context.fusionMetadata.outputStarts;
+  auto offsetStarts = context.fusionMetadata.offsetStarts;
+  auto offsets =  context.fusionMetadata.offsets;
+  auto reductionStarts =  context.fusionMetadata.reductionStarts;
+  auto scalarStarts = context.fusionMetadata.scalarStarts;
+
+  //the leaf task cannot be fused ops currently
+  ms.pack((bool) false);
 
   //pack inputs
   unsigned nInputs = (inputStarts[opID+1]-inputStarts[opID]); //want to pack this as a 32 bit uint 
@@ -100,10 +112,8 @@ void packOp(MakeshiftSerializer& ms, TaskContext& context, int opID)
       {
           bufferID--;
           //std::cout<<"packing input "<<bufferID<<std::endl;
-          Store& input = context.inputs()[nMetaDataArrs+inputStart+bufferID];
-          //const RegionRequirement& Physical::Regionget_requirement(void) const;
-          //inline RegionRequirement& TaskLauncher::add_region_requirement(const RegionRequirement &req)
-          //vim legion//runtime/legion.h line 3614 we can get all the region requirements
+          //Store& input = context.inputs()[nMetaDataArrs+inputStart+bufferID];
+          Store& input = context.inputs()[inputStart+bufferID];
           ms.packBuffer(input);
       }
   }
@@ -122,7 +132,6 @@ void packOp(MakeshiftSerializer& ms, TaskContext& context, int opID)
       if (bufferID<0) 
       {
           bufferID = (-bufferID)-1;
-          //std::cout<<"packing output "<<bufferID<<std::endl;
           Store& output = context.outputs()[outputStart+bufferID];
           ms.packBuffer(output);
       }
@@ -144,17 +153,18 @@ void packOp(MakeshiftSerializer& ms, TaskContext& context, int opID)
 /*static*/ void FusedOpTask::cpu_variant(TaskContext& context)
 {
   //const int INLINE_LEAF_TASK_ID =0;
-  int nOps = context.inputs()[0].shape<1>().hi.x;
-  auto offsetMetaRect = context.inputs()[3].shape<1>();
+  //int nOps = context.inputs()[0].shape<1>().hi.x;
+  //auto offsetMetaRect = context.inputs()[3].shape<1>();
   //std::cout<<offsetMetaRect<<std::endl;
-  using ARG = legate_type_of<LegateTypeCode::INT64_LT>;
-  const Store& offsetsStore = context.inputs()[3];
-  auto offsets = offsetsStore.read_accessor<ARG, 1>().ptr(offsetMetaRect);
+  //using ARG = legate_type_of<LegateTypeCode::INT64_LT>;
+  //const Store& offsetsStore = context.inputs()[3];
+  //auto offsets = offsetsStore.read_accessor<ARG, 1>().ptr(offsetMetaRect);
 
-  const Store& taskIDStore = context.inputs()[6];
-  auto opRect = context.inputs()[6].shape<1>();
-  auto taskIDs = offsetsStore.read_accessor<ARG, 1>().ptr(opRect);
+  //const Store& taskIDStore = context.inputs()[6];
+  //auto opRect = context.inputs()[6].shape<1>();
+  //auto taskIDs = offsetsStore.read_accessor<ARG, 1>().ptr(opRect);
 
+  int nOps = context.fusionMetadata.nOps;
   //pack inputs
   for (int i=0; i<nOps; i++)
   {
