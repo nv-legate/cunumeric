@@ -65,11 +65,13 @@ void inline_leaf_task(const Task *task,
 void packOp(MakeshiftSerializer& ms, TaskContext& context, int opID)
 {
   //grab all the stores
-  const int nMetaDataArrs=4;
+  const int nMetaDataArrs=7;
   Store& inputStartsStore = context.inputs()[0];
   Store& outputStartsStore = context.inputs()[1];
   Store& offsetStartsStore = context.inputs()[2];
   Store& offsetsStore = context.inputs()[3];
+  Store& reductionStartsStore = context.inputs()[4];
+  Store& scalarStartsStore = context.inputs()[5];
 
   //grab pointers to all the metadata arrays
   using ARG = legate_type_of<LegateTypeCode::INT64_LT>;
@@ -80,7 +82,8 @@ void packOp(MakeshiftSerializer& ms, TaskContext& context, int opID)
   auto outputStarts = outputStartsStore.read_accessor<ARG, 1>().ptr(opRect);
   auto offsetStarts = offsetStartsStore.read_accessor<ARG, 1>().ptr(opRect);
   auto offsets = offsetsStore.read_accessor<ARG, 1>().ptr(offsetMetaRect);
-
+  auto reductionStarts = reductionStartsStore.read_accessor<ARG, 1>().ptr(opRect);
+  auto scalarStarts = scalarStartsStore.read_accessor<ARG, 1>().ptr(opRect);
 
   //pack inputs
   unsigned nInputs = (inputStarts[opID+1]-inputStarts[opID]); //want to pack this as a 32 bit uint 
@@ -126,18 +129,21 @@ void packOp(MakeshiftSerializer& ms, TaskContext& context, int opID)
   }
 
   //pack reductions
-  int32_t nReductions = 0;
+  int32_t nReductions = (reductionStarts[opID+1]-reductionStarts[opID]);
   ms.pack((uint32_t) nReductions);
 
   //pack scalars
-  int32_t nScalars = 1;
+  int32_t nScalars = (scalarStarts[opID+1]-scalarStarts[opID]);
   ms.pack((uint32_t) nScalars);
-  ms.packScalar(context.scalars()[opID]);
+  for (unsigned i = 0; i<nScalars; i++)
+  {  
+      ms.packScalar(context.scalars()[scalarStarts[opID]+i]);
+  }
 }
 
 /*static*/ void FusedOpTask::cpu_variant(TaskContext& context)
 {
-  const int INLINE_LEAF_TASK_ID =0;
+  //const int INLINE_LEAF_TASK_ID =0;
   int nOps = context.inputs()[0].shape<1>().hi.x;
   auto offsetMetaRect = context.inputs()[3].shape<1>();
   //std::cout<<offsetMetaRect<<std::endl;
@@ -145,12 +151,15 @@ void packOp(MakeshiftSerializer& ms, TaskContext& context, int opID)
   const Store& offsetsStore = context.inputs()[3];
   auto offsets = offsetsStore.read_accessor<ARG, 1>().ptr(offsetMetaRect);
 
+  const Store& taskIDStore = context.inputs()[6];
+  auto opRect = context.inputs()[6].shape<1>();
+  auto taskIDs = offsetsStore.read_accessor<ARG, 1>().ptr(opRect);
+
   //pack inputs
   for (int i=0; i<nOps; i++)
   {
       MakeshiftSerializer ms;
       packOp(ms, context, i);
-      std::cout<<"buff size "<<ms.buffSize()<<std::endl;
       TaskLauncher leaf_launcher(1074141829, TaskArgument(ms.ptr(), ms.buffSize()+8)); 
       leaf_launcher.point = context.task_->index_point;
       for (int i=0; i< context.task_->regions.size();i++)
