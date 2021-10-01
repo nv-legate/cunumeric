@@ -22,30 +22,27 @@ using namespace Legion;
 template <VariantKind KIND, LegateTypeCode CODE>
 struct ContractImplBody;
 
-template <VariantKind KIND, LegateTypeCode CODE>
+template <LegateTypeCode CODE>
 struct support_contract : std::false_type {
 };
-template <VariantKind KIND>
-struct support_contract<KIND, LegateTypeCode::FLOAT_LT> : std::true_type {
-};
-template <VariantKind KIND>
-struct support_contract<KIND, LegateTypeCode::DOUBLE_LT> : std::true_type {
-};
-template <VariantKind KIND>
-struct support_contract<KIND, LegateTypeCode::COMPLEX64_LT> : std::true_type {
-};
-template <VariantKind KIND>
-struct support_contract<KIND, LegateTypeCode::COMPLEX128_LT> : std::true_type {
+template <>
+struct support_contract<LegateTypeCode::FLOAT_LT> : std::true_type {
 };
 template <>
-struct support_contract<VariantKind::GPU, LegateTypeCode::HALF_LT> : std::true_type {
+struct support_contract<LegateTypeCode::DOUBLE_LT> : std::true_type {
+};
+template <>
+struct support_contract<LegateTypeCode::COMPLEX64_LT> : std::true_type {
+};
+template <>
+struct support_contract<LegateTypeCode::COMPLEX128_LT> : std::true_type {
 };
 
 template <VariantKind KIND>
 struct ContractImpl {
   template <LegateTypeCode CODE,
             int DIM,
-            std::enable_if_t<support_contract<KIND, CODE>::value>* = nullptr>
+            std::enable_if_t<support_contract<CODE>::value>* = nullptr>
   void operator()(ContractArgs& args) const
   {
     using T = legate_type_of<CODE>;
@@ -111,7 +108,7 @@ struct ContractImpl {
 
   template <LegateTypeCode CODE,
             int DIM,
-            std::enable_if_t<!support_contract<KIND, CODE>::value>* = nullptr>
+            std::enable_if_t<!support_contract<CODE>::value>* = nullptr>
   void operator()(ContractArgs& args) const
   {
     assert(false);
