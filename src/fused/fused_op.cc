@@ -166,11 +166,12 @@ void packOp(MakeshiftSerializer& ms, TaskContext& context, int opID)
 
   int nOps = context.fusionMetadata.nOps;
   //pack inputs
+  MakeshiftSerializer ms;
   for (int i=0; i<nOps; i++)
   {
-      MakeshiftSerializer ms;
+      ms.zero();
       packOp(ms, context, i);
-      TaskLauncher leaf_launcher(1074141829, TaskArgument(ms.ptr(), ms.buffSize()+8)); 
+      TaskLauncher leaf_launcher(1074141829, TaskArgument(ms.ptr(), ms.buffSize())); 
       leaf_launcher.point = context.task_->index_point;
       for (int i=0; i< context.task_->regions.size();i++)
       {
