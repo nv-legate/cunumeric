@@ -54,11 +54,12 @@ struct ContractImpl {
     size_t lhs_bloated_strides[DIM];
     T* lhs_data = args.lhs.reduce_accessor<SumReduction<T>, true, DIM>(lhs_bloated_shape)
                     .ptr(lhs_bloated_shape, lhs_bloated_strides);
+
     for (int i = 0; i < DIM; ++i) {
-      if (args.lhs_modes[i] == -1) { continue; }
+      if (!args.lhs_dim_mask[i]) { continue; }
       lhs_shape.push_back(lhs_bloated_shape.hi[i] - lhs_bloated_shape.lo[i] + 1);
       lhs_strides.push_back(lhs_bloated_strides[i]);
-      lhs_modes.push_back(args.lhs_modes[i]);
+      lhs_modes.push_back(i);
     }
 
     std::vector<int64_t> rhs1_shape;
@@ -69,10 +70,10 @@ struct ContractImpl {
     const T* rhs1_data = args.rhs1.read_accessor<T, DIM>(rhs1_bloated_shape)
                            .ptr(rhs1_bloated_shape, rhs1_bloated_strides);
     for (int i = 0; i < DIM; ++i) {
-      if (args.rhs1_modes[i] == -1) { continue; }
+      if (!args.rhs1_dim_mask[i]) { continue; }
       rhs1_shape.push_back(rhs1_bloated_shape.hi[i] - rhs1_bloated_shape.lo[i] + 1);
       rhs1_strides.push_back(rhs1_bloated_strides[i]);
-      rhs1_modes.push_back(args.rhs1_modes[i]);
+      rhs1_modes.push_back(i);
     }
 
     std::vector<int64_t> rhs2_shape;
@@ -83,10 +84,10 @@ struct ContractImpl {
     const T* rhs2_data = args.rhs2.read_accessor<T, DIM>(rhs2_bloated_shape)
                            .ptr(rhs2_bloated_shape, rhs2_bloated_strides);
     for (int i = 0; i < DIM; ++i) {
-      if (args.rhs2_modes[i] == -1) { continue; }
+      if (!args.rhs2_dim_mask[i]) { continue; }
       rhs2_shape.push_back(rhs2_bloated_shape.hi[i] - rhs2_bloated_shape.lo[i] + 1);
       rhs2_strides.push_back(rhs2_bloated_strides[i]);
-      rhs2_modes.push_back(args.rhs2_modes[i]);
+      rhs2_modes.push_back(i);
     }
 
     ContractImplBody<KIND, CODE>()(lhs_data,
@@ -125,9 +126,9 @@ static void contract_template(TaskContext& context)
   ContractArgs args{reductions[0],
                     inputs[0],
                     inputs[1],
-                    scalars[0].values<const char>(),
-                    scalars[1].values<const char>(),
-                    scalars[2].values<const char>()};
+                    scalars[0].values<const bool>(),
+                    scalars[1].values<const bool>(),
+                    scalars[2].values<const bool>()};
 
   auto dim  = args.lhs.dim();
   auto code = args.lhs.code();
@@ -135,9 +136,9 @@ static void contract_template(TaskContext& context)
 #ifdef DEBUG_NUMPY
   assert(dim = args.rhs1.dim());
   assert(dim = args.rhs2.dim());
-  assert(dim = args.lhs_modes.size());
-  assert(dim = args.rhs1_modes.size());
-  assert(dim = args.rhs2_modes.size());
+  assert(dim = args.lhs_dim_mask.size());
+  assert(dim = args.rhs1_dim_mask.size());
+  assert(dim = args.rhs2_dim_mask.size());
   assert(code == args.rhs1.code());
   assert(code == args.rhs2.code());
 #endif

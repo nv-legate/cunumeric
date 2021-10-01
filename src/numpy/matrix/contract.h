@@ -25,9 +25,9 @@ struct ContractArgs {
   const Array& lhs;
   const Array& rhs1;
   const Array& rhs2;
-  Span<const char> lhs_modes;
-  Span<const char> rhs1_modes;
-  Span<const char> rhs2_modes;
+  Span<const bool> lhs_dim_mask;
+  Span<const bool> rhs1_dim_mask;
+  Span<const bool> rhs2_dim_mask;
 };
 
 class ContractTask : public NumPyTask<ContractTask> {
