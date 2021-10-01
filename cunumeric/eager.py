@@ -359,6 +359,44 @@ class EagerArray(NumPyThunk):
             self.array = np.flip(rhs.array, axes)
             self.runtime.profile_callsite(stacklevel + 1, False)
 
+    def contract(
+        self,
+        lhs_modes,
+        rhs1_thunk,
+        rhs1_modes,
+        rhs2_thunk,
+        rhs2_modes,
+        mode2extent,
+        stacklevel,
+    ):
+        if self.shadow:
+            rhs1_thunk = self.runtime.to_eager_array(
+                rhs1_thunk, stacklevel=(stacklevel + 1)
+            )
+            rhs2_thunk = self.runtime.to_eager_array(
+                rhs2_thunk, stacklevel=(stacklevel + 1)
+            )
+        elif self.deferred is None:
+            self.check_eager_args((stacklevel + 1), rhs1_thunk, rhs2_thunk)
+        if self.deferred is not None:
+            self.deferred.contract(
+                lhs_modes,
+                rhs1_thunk,
+                rhs1_modes,
+                rhs2_thunk,
+                rhs2_modes,
+                mode2extent,
+                stacklevel=(stacklevel + 1),
+            )
+        else:
+            np.einsum(
+                f"{rhs1_modes},{rhs2_modes}->{lhs_modes}",
+                rhs1_thunk.array,
+                rhs2_thunk.array,
+                out=self.array,
+            )
+            self.runtime.profile_callsite(stacklevel + 1, False)
+
     def diag(self, rhs, extract, k, stacklevel):
         if self.shadow:
             rhs = self.runtime.to_eager_array(rhs, stacklevel=(stacklevel + 1))

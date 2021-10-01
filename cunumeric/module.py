@@ -14,11 +14,14 @@
 #
 
 import math
+import re
 import sys
 from inspect import signature
+from itertools import chain
 from typing import Optional, Set
 
 import numpy as np
+import opt_einsum as oe
 
 from .array import ndarray
 from .config import BinaryOpCode, UnaryOpCode, UnaryRedCode
@@ -45,7 +48,8 @@ def add_boilerplate(*array_params: str):
       parameter (if present), to cuNumeric ndarrays.
     * Convert the special "where" parameter (if present) to a valid predicate.
     * Handle the case of scalar cuNumeric ndarrays, by forwarding the operation
-      to the equivalent `()`-shape numpy array.
+      to the equivalent `()`-shape numpy array (if the operation exists on base
+      numpy).
 
     NOTE: Assumes that no parameters are mutated besides `out`.
     """
@@ -106,15 +110,19 @@ def add_boilerplate(*array_params: str):
 
             # Handle the case where all array-like parameters are scalar, by
             # performing the operation on the equivalent scalar numpy arrays.
-            # NOTE: This mplicitly blocks on the contents of the scalar arrays.
-            if all(
-                arg._thunk.scalar
-                for (idx, arg) in enumerate(args)
-                if (idx in indices) and isinstance(arg, ndarray)
-            ) and all(
-                v._thunk.scalar
-                for (k, v) in kwargs.items()
-                if (k in keys or k == "where") and isinstance(v, ndarray)
+            # NOTE: This implicitly blocks on the contents of these arrays.
+            if (
+                hasattr(np, func.__name__)
+                and all(
+                    arg._thunk.scalar
+                    for (idx, arg) in enumerate(args)
+                    if (idx in indices) and isinstance(arg, ndarray)
+                )
+                and all(
+                    v._thunk.scalar
+                    for (k, v) in kwargs.items()
+                    if (k in keys or k == "where") and isinstance(v, ndarray)
+                )
             ):
                 out = None
                 if "out" in kwargs:
@@ -537,6 +545,116 @@ def dot(a, b, out=None):
     if out is not None:
         out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return a_array.dot(b, out=out, stacklevel=2)
+
+
+# Trivial multi-tensor contraction strategy: contract in input order
+class NullOptimizer(oe.paths.PathOptimizer):
+    def __call__(self, inputs, output, size_dict, memory_limit=None):
+        return [(0, 1)] + [(0, -1)] * (len(inputs) - 2)
+
+
+# Generalized tensor contraction
+@add_boilerplate("a", "b")
+def contract(expr, a, b, out=None, stacklevel=1):
+    # TODO: test for allowable types, handle float16 as a special case
+
+    # Pass the contraction expression through opt_einsum. There's no actual
+    # optimization to do, but this function normalizes the expression (adds the
+    # output part if it's missing, expands '...') and checks for some errors
+    # (mismatch on number of dimensions between operand and expression, wrong
+    # number of operands, unknown modes on output, a mode appearing under two
+    # different non-singleton extents).
+    operands, contractions = oe.contract_path(
+        expr, a, b, einsum_call=True, optimize=NullOptimizer()
+    )
+    assert len(contractions) == 1
+    (a_idx, b_idx), _, expr, _, _ = contractions[0]
+    a = operands[a_idx]
+    b = operands[b_idx]
+
+    # Parse modes out of contraction expression
+    m = re.match(r"([a-zA-Z]+),([a-zA-Z]+)->([a-zA-Z]+)", expr)
+    if m is None:
+        raise NotImplementedError("Non-alphabetic mode labels")
+    a_modes = m.group(1)
+    b_modes = m.group(2)
+    c_modes = m.group(3)
+
+    # Handle duplicate modes
+    if len(set(c_modes)) != len(c_modes):
+        raise ValueError("Duplicate mode labels on output tensor")
+    # TODO: Not supporting duplicate modes on inputs yet
+    if len(set(a_modes)) != len(a_modes) or len(set(b_modes)) != len(b_modes):
+        raise NotImplementedError("Duplicate mode labels on input tensor")
+
+    # Compute extent per mode, allowing for broadcasting
+    mode2extent = {}
+    for (mode, extent) in chain(zip(a_modes, a.shape), zip(b_modes, b.shape)):
+        prev_extent = mode2extent.get(mode, 1)
+        if prev_extent == 1:
+            mode2extent[mode] = extent
+        else:
+            # This should have already been checked by contract_path
+            assert extent == 1 or extent == prev_extent
+
+    # Verify output array has the right shape (input arrays can be broadcasted
+    # up to match the output, but not the other way around)
+    if out is not None:
+        for (mode, extent) in zip(c_modes, out.shape):
+            prev_extent = mode2extent.get(mode, 1)
+            if prev_extent == 1:
+                mode2extent[mode] = extent
+            elif extent != prev_extent:
+                raise ValueError("Wrong shape on output array")
+
+    # Create output array if necessary
+    c_dtype = ndarray.find_common_type(a, b)
+    if out is not None and out.dtype is c_dtype:
+        c = out
+    else:
+        c = ndarray(
+            shape=tuple(mode2extent[mode] for mode in c_modes),
+            dtype=c_dtype,
+            stacklevel=(stacklevel + 1),
+            inputs=(a, b),
+        )
+
+    # Check for type conversion on the way in
+    if a.dtype != c_dtype:
+        temp = ndarray(
+            shape=a.shape,
+            dtype=c_dtype,
+            stacklevel=(stacklevel + 1),
+            inputs=(a,),
+        )
+        temp._thunk.convert(a._thunk, stacklevel=(stacklevel + 1))
+        a = temp
+    if b.dtype != c_dtype:
+        temp = ndarray(
+            shape=b.shape,
+            dtype=c_dtype,
+            stacklevel=(stacklevel + 1),
+            inputs=(b,),
+        )
+        temp._thunk.convert(b._thunk, stacklevel=(stacklevel + 1))
+        b = temp
+
+    # Perform operation
+    c._thunk.contract(
+        c_modes,
+        a._thunk,
+        a_modes,
+        b._thunk,
+        b_modes,
+        mode2extent,
+        stacklevel=(stacklevel + 1),
+    )
+
+    # Check for type conversion on the way out
+    if out is not None and out is not c:
+        out._thunk.convert(c._thunk, stacklevel=(stacklevel + 1))
+        c = out
+    return c
 
 
 @copy_docstring(np.tensordot)

@@ -102,7 +102,7 @@ def add_boilerplate(*array_params: str, mutates_self: bool = False):
 
             # Handle the case where all array-like parameters are scalar, by
             # performing the operation on the equivalent scalar numpy arrays.
-            # NOTE: This mplicitly blocks on the contents of the scalar arrays.
+            # NOTE: This implicitly blocks on the contents of these arrays.
             if all(
                 arg._thunk.scalar
                 for (idx, arg) in enumerate(args)
