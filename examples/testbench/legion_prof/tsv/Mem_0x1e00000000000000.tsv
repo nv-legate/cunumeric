@@ -1,0 +1,8 @@
+level	level_ready	ready	start	end	color	opacity	title	initiation	in	out	children	parents	prof_uid
+7			2064650.117	2224204.270	#00fff6	1.0	Region: ispace:1[0:59999] x fspace:1$Fields: [fid:1048577]$Layout Order: [Struct-of-arrays (SOA)] $Inst: 0x4000000000000001 $Size: 468.750 KiB	6					128
+6			2065147.467	2224388.739	#00fff6	1.0	Region: ispace:1[0:59999] x fspace:1$Fields: [fid:1048578]$Layout Order: [Struct-of-arrays (SOA)] $Inst: 0x4000000000000002 $Size: 468.750 KiB	8					129
+5			2065598.615	2224609.631	#00fff6	1.0	Region: ispace:1[0:59999] x fspace:1$Fields: [fid:1048579]$Layout Order: [Struct-of-arrays (SOA)] $Inst: 0x4000000000000003 $Size: 468.750 KiB	10					125
+4			2069053.346	2224448.793	#ff7a00	1.0	Region: ispace:1[0:59999] x fspace:1$Fields: [fid:1048584]$Layout Order: [Struct-of-arrays (SOA)] $Inst: 0x4000000000000008 $Size: 468.750 KiB	23					130
+3			2069121.527	2224510.529	#ff7a00	1.0	Region: ispace:1[0:59999] x fspace:1$Fields: [fid:1048585]$Layout Order: [Struct-of-arrays (SOA)] $Inst: 0x4000000000000009 $Size: 468.750 KiB	23					131
+2			2071048.359	2224133.183	#ff7a00	1.0	Region: ispace:1[0:59999] x fspace:1$Fields: [fid:1048590]$Layout Order: [Struct-of-arrays (SOA)] $Inst: 0x400000000000000e $Size: 468.750 KiB	35					127
+1			2071113.099	2224556.754	#ff7a00	1.0	Region: ispace:1[0:59999] x fspace:1$Fields: [fid:1048591]$Layout Order: [Struct-of-arrays (SOA)] $Inst: 0x400000000000000f $Size: 468.750 KiB	35					126

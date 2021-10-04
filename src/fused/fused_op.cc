@@ -18,7 +18,9 @@
 #include "fused/binary_op.h"
 #include "fused/binary_op_template.inl"
 #include "legion.h"
-
+#include <set>
+#include <time.h>
+#include <sys/time.h>
 
 namespace legate {
 namespace numpy {
@@ -54,39 +56,11 @@ struct BinaryOpImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
   }
 };
 
-void inline_leaf_task(const Task *task,
-                      const std::vector<PhysicalRegion> &regions,
-                      Context ctx, Runtime *runtime)
-{
-  printf("Hello from 'inline_leaf_task' being inlined into leaf 'fused op'\n");
-}
+
 
 //op id refers not to the op's type, but the index in the list of fused ops
 void packOp(MakeshiftSerializer& ms, TaskContext& context, int opID)
 {
-  //grab all the stores
-  /*
-  const int nMetaDataArrs=7;
-  Store& inputStartsStore = context.inputs()[0];
-  Store& outputStartsStore = context.inputs()[1];
-  Store& offsetStartsStore = context.inputs()[2];
-  Store& offsetsStore = context.inputs()[3];
-  Store& reductionStartsStore = context.inputs()[4];
-  Store& scalarStartsStore = context.inputs()[5];
-  */
-  //grab pointers to all the metadata arrays
-  //using ARG = legate_type_of<LegateTypeCode::INT64_LT>;
-  //auto opRect = context.inputs()[0].shape<1>(); //iterator over range(0,nOps)
-  //auto offsetMetaRect = context.inputs()[3].shape<1>(); //iter over range(0, nInputs+nOutputs)
- 
-  /*
-  auto inputStarts = inputStartsStore.read_accessor<ARG, 1>().ptr(opRect);
-  auto outputStarts = outputStartsStore.read_accessor<ARG, 1>().ptr(opRect);
-  auto offsetStarts = offsetStartsStore.read_accessor<ARG, 1>().ptr(opRect);
-  auto offsets = offsetsStore.read_accessor<ARG, 1>().ptr(offsetMetaRect);
-  auto reductionStarts = reductionStartsStore.read_accessor<ARG, 1>().ptr(opRect);
-  auto scalarStarts = scalarStartsStore.read_accessor<ARG, 1>().ptr(opRect);
-  */
   auto inputStarts = context.fusionMetadata.inputStarts;
   auto outputStarts = context.fusionMetadata.outputStarts;
   auto offsetStarts = context.fusionMetadata.offsetStarts;
@@ -114,6 +88,7 @@ void packOp(MakeshiftSerializer& ms, TaskContext& context, int opID)
           //std::cout<<"packing input "<<bufferID<<std::endl;
           //Store& input = context.inputs()[nMetaDataArrs+inputStart+bufferID];
           Store& input = context.inputs()[inputStart+bufferID];
+          ms.addReqID(input.getReqIdx());
           ms.packBuffer(input);
       }
   }
@@ -133,6 +108,7 @@ void packOp(MakeshiftSerializer& ms, TaskContext& context, int opID)
       {
           bufferID = (-bufferID)-1;
           Store& output = context.outputs()[outputStart+bufferID];
+          ms.addReqID(output.getReqIdx());
           ms.packBuffer(output);
       }
   }
@@ -152,36 +128,34 @@ void packOp(MakeshiftSerializer& ms, TaskContext& context, int opID)
 
 /*static*/ void FusedOpTask::cpu_variant(TaskContext& context)
 {
-  //const int INLINE_LEAF_TASK_ID =0;
-  //int nOps = context.inputs()[0].shape<1>().hi.x;
-  //auto offsetMetaRect = context.inputs()[3].shape<1>();
-  //std::cout<<offsetMetaRect<<std::endl;
-  //using ARG = legate_type_of<LegateTypeCode::INT64_LT>;
-  //const Store& offsetsStore = context.inputs()[3];
-  //auto offsets = offsetsStore.read_accessor<ARG, 1>().ptr(offsetMetaRect);
-
-  //const Store& taskIDStore = context.inputs()[6];
-  //auto opRect = context.inputs()[6].shape<1>();
-  //auto taskIDs = offsetsStore.read_accessor<ARG, 1>().ptr(opRect);
-
   int nOps = context.fusionMetadata.nOps;
-  //pack inputs
+  //struct timeval start, end; 
   MakeshiftSerializer ms;
+  //gettimeofday(&start, NULL);
+  
   for (int i=0; i<nOps; i++)
   {
-      ms.zero();
+      ms.zero(); //reset the serializer, but keep the memory
       packOp(ms, context, i);
       TaskLauncher leaf_launcher(1074141829, TaskArgument(ms.ptr(), ms.buffSize())); 
-      leaf_launcher.point = context.task_->index_point;
-      for (int i=0; i< context.task_->regions.size();i++)
-      {
-          auto& req = context.task_->regions[i];
-          leaf_launcher.add_region_requirement(req);
-      }
-
       leaf_launcher.enable_inlining=true;
+      leaf_launcher.point = context.task_->index_point;
+      
+      //add appropriate region requirements for this op
+      std::vector<int32_t> reqIds = ms.getReqIds();
+      for (int32_t reqIdx : reqIds)
+      {
+          auto& req = context.task_->regions[reqIdx];
+          leaf_launcher.add_region_requirement(req);
+      } 
       context.runtime_->execute_task(context.context_, leaf_launcher);
   }
+    //gettimeofday(&end, NULL);
+  
+  //gettimeofday(&end, NULL);
+  //printf("%ld\n", ((end.tv_sec * 1000000 + end.tv_usec)
+//		  - (start.tv_sec * 1000000 + start.tv_usec)));
+
 }
 
 namespace  // unnamed

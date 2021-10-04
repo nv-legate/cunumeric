@@ -1,0 +1,17 @@
+level	level_ready	ready	start	end	color	opacity	title	initiation	in	out	children	parents	prof_uid
+1	1	478641.174	478641.174	922239.137	#eb00ff	1.0	legion_python_main <1>		[[0, 1, 89], [0, 1, 96]]	[[0, 0, 223], [0, 0, 224], [0, 0, 312]]	[[0, 3, 682], [0, 3, 470], [0, 3, 389], [0, 2, 392], [0, 2, 3], [0, 2, 636], [0, 3, 308], [0, 2, 221], [0, 3, 587], [0, 3, 573], [0, 3, 393], [0, 2, 7], [0, 3, 390], [0, 2, 219], [0, 3, 309], [0, 2, 469], [0, 3, 672], [0, 2, 681], [0, 3, 472], [0, 2, 565], [0, 2, 5], [0, 3, 394]]		8
+1	1	922239.137	922239.137	922397.410	#eb00ff	0.15	legion_python_main <1> (waiting)						8
+1	1	922397.410	922397.410	922497.427	#eb00ff	0.45	legion_python_main <1> (ready)						8
+1	1	922497.427	922497.427	922606.850	#eb00ff	1.0	legion_python_main <1>						8
+1	1	922606.850	922606.850	922766.603	#eb00ff	0.15	legion_python_main <1> (waiting)						8
+1	1	922766.603	922766.603	922815.999	#eb00ff	0.45	legion_python_main <1> (ready)						8
+1	1	922815.999	922815.999	962519.280	#eb00ff	1.0	legion_python_main <1>						8
+1	1	962519.280	962519.280	962704.926	#eb00ff	0.15	legion_python_main <1> (waiting)						8
+1	1	962704.926	962704.926	962723.661	#eb00ff	0.45	legion_python_main <1> (ready)						8
+1	1	962723.661	962723.661	1047360.569	#eb00ff	1.0	legion_python_main <1>						8
+1	1	1047360.569	1047360.569	1048868.455	#eb00ff	0.15	legion_python_main <1> (waiting)						8
+1	1	1048868.455	1048868.455	1048908.961	#eb00ff	0.45	legion_python_main <1> (ready)						8
+1	1	1048908.961	1048908.961	1048924.893	#eb00ff	1.0	legion_python_main <1>						8
+1	1	1048924.893	1048924.893	1050325.359	#eb00ff	0.15	legion_python_main <1> (waiting)						8
+1	1	1050325.359	1050325.359	1050359.631	#eb00ff	0.45	legion_python_main <1> (ready)						8
+1	1	1050359.631	1050359.631	1183469.202	#eb00ff	1.0	legion_python_main <1>						8

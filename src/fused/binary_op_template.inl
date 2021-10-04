@@ -97,7 +97,7 @@ static void binary_op_template(TaskContext& context)
   op_dispatch(args.op_code, BinaryOpDispatch<KIND>{}, args);
 */
   //std::cout<<"fused inputs"<<inputs.size()<<std::endl;
-  int nOps = inputs[0].shape<1>().hi.x;
+  int nOps = 10;// inputs[0].shape<1>().hi.x;
   //std::cout<<"nops "<<nOps<<std::endl;
 
   for (int i=0; i<scalars.size(); i++)
@@ -114,7 +114,7 @@ static void binary_op_template(TaskContext& context)
   //for (size_t idx = 3; idx < inputs.size(); ++idx)
   //  extra_args.push_back(inputs[idx].scalar<UntypedScalar>());
 
-  int inputStart=4;
+  int inputStart=0;
   int outputStart=0;
   
   for (int i=0; i<nOps; i++)

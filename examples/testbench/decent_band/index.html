@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<html>
+  <head>
+    <meta http-equiv="cache-control" content="no-cache">
+    <style>
+      text.locator, text.processor {
+        font-size: 10pt;
+        font-family: Consolas, monospace;
+        fill: #000;
+        -webkit-user-select: none; /* Chrome/Safari */
+        -moz-user-select: none; /* Firefox */
+        -ms-user-select: none; /* IE10+ */
+      }
+
+      text.desc, text.timeline {
+        font-size: 10pt;
+        font-family: Consolas, monospace;
+        fill: #fff;
+        -webkit-user-select: none; /* Chrome/Safari */
+        -moz-user-select: none; /* Firefox */
+        -ms-user-select: none; /* IE10+ */
+      }
+
+      text.help-box, text.search-box, text.expand-box, text.history-box {
+        font-size: 15pt;
+        font-family: Consolas, monospace;
+        text-shadow: 0 2px 3px rgba(0,0,0,.8);
+        color: #fff;
+        fill: #fff;
+        -webkit-user-select: none; /* Chrome/Safari */
+        -moz-user-select: none; /* Firefox */
+        -ms-user-select: none; /* IE10+ */
+      }
+
+      div.scrollable {
+        overflow-x: scroll;
+        overflow-y: scroll;
+        margin-left: 350px;
+        margin-right: 75px;
+      }
+
+      div.fixed-left {
+        position: absolute;
+      }
+
+      rect.select-block {
+        fill: #000;
+        opacity: 0.1;
+      }
+
+      text.select-block {
+        font-size: 15pt;
+        font-family: Consolas, monospace;
+        fill: #000;
+        -webkit-user-select: none; /* Chrome/Safari */
+        -moz-user-select: none; /* Firefox */
+        -ms-user-select: none; /* IE10+ */
+      }
+
+      line.locator {
+        stroke: #000;
+        stroke-width: 1px;
+        opacity: 0.5;
+      }
+
+      path { 
+          stroke-width: 1;
+          fill: none;
+      }
+
+      .axis path,
+      .axis line {
+          fill: none;
+          stroke: grey;
+          stroke-width: 1;
+          shape-rendering: crispEdges;
+      }
+      #node_slider { margin: 3px;
+	  width: 250px;
+      }
+      ui-slider-handle{width: 200px;}
+
+      .select-profile {
+	  overflow-y:scroll;
+	  overflow-x:hidden;
+       }
+
+    </style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-multiselect/0.9.13/css/bootstrap-multiselect.css">
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+<link rel="stylesheet" href="http://code.jquery.com/ui/1.11.3/themes/hot-sneaks/jquery-ui.css">
+
+<script src="https://code.jquery.com/jquery-2.2.0.min.js"></script>
+<script src="https://code.jquery.com/ui/1.11.2/jquery-ui.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-multiselect/0.9.13/js/bootstrap-multiselect.js"></script>
+<script src="http://d3js.org/d3.v3.js"></script>
+<script src="js/util.js"> </script>
+<script src="js/timeline.js"> </script>
+</head>
+<body>
+<div id="profile_update" onclick=profileSelect(event)>
+<div id="node_range"> Node Range: <span id="lowerLimit"></span> :  <span id="upperLimit"> </span> </div>
+<div id="node_slider"></div>
+<select multiple="multiple" name="multiselect4[]" size="3" id="dropdown" class="select-profile"></select>
+<button type="submit" class="btn btn-primary" id="submit-order"> Submit </button>
+</div>
+<div id="overlay" style="position: absolute; left: 0%; top: 0%;"></div>
+<div id="pop-up" style="position: absolute; left: 0%; top: 0%;"></div>
+<div id="loader-icon" style="position: absolute; left: 50%; top: 50%;"></div>
+<div id="processors" class="fixed-left"></div>
+<div id="timeline" class="scrollable"></div>
+</body>
+</html>

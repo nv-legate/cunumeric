@@ -1,0 +1,90 @@
+op_id	desc	proc	level
+1	legion_python_main <1>	Python Processor 0x1d00000000000004	2
+42	legate::numpy::FillTask [CPU] <42>	CPU Processor 0x1d00000000000002	2
+47	legate::numpy::BinaryOpTask [CPU] <47>	CPU Processor 0x1d00000000000002	2
+58	legate::numpy::BinaryOpTask [CPU] <58>	CPU Processor 0x1d00000000000002	2
+71	legate::numpy::BinaryOpTask [CPU] <71>	CPU Processor 0x1d00000000000002	2
+77	legate::numpy::BinaryOpTask [CPU] <77>	CPU Processor 0x1d00000000000002	2
+3	Tunable Operation <3>		
+4	Tunable Operation <4>		
+5	Tunable Operation <5>		
+6	Pending Partition Operation <6>		
+8	Refinement Operation <8>		
+7	legate::numpy::FillTask <7>		
+0	Operation <0>		
+9	legate::numpy::FillTask <9>		
+12	legate::numpy::FillTask <12>		
+11	legate::numpy::FillTask <11>		
+14	Refinement Operation <14>		
+13	legate::numpy::FillTask [CPU] <13>	CPU Processor 0x1d00000000000002	2
+86	Fence Operation <86>		
+89	Deletion Operation <89>		
+88	Deletion Operation <88>		
+87	Deletion Operation <87>		
+15	legate::numpy::FillTask [CPU] <15>	CPU Processor 0x1d00000000000003	2
+48	legate::numpy::BinaryOpTask [CPU] <48>	CPU Processor 0x1d00000000000003	2
+79	Mapping Operation <79>		
+23	legate::numpy::FillTask [CPU] <23>	CPU Processor 0x1d00000000000002	2
+24	legate::numpy::FillTask [CPU] <24>	CPU Processor 0x1d00000000000003	2
+38	legate::numpy::FillTask [CPU] <38>	CPU Processor 0x1d00000000000003	2
+10	legate::numpy::FillTask <10>		
+21	legate::numpy::FillTask <21>		
+22	legate::numpy::FillTask <22>		
+30	legate::numpy::FillTask <30>		
+31	legate::numpy::FillTask <31>		
+34	legate::numpy::FillTask <34>		
+36	legate::numpy::FillTask [CPU] <36>	CPU Processor 0x1d00000000000002	2
+39	Refinement Operation <39>		
+16	legate::numpy::FillTask <16>		
+26	legate::numpy::FillTask <26>		
+20	legate::numpy::FillTask <20>		
+53	legate::numpy::BinaryOpTask [CPU] <53>	CPU Processor 0x1d00000000000003	2
+27	legate::numpy::FillTask <27>		
+40	legate::numpy::FillTask <40>		
+41	legate::numpy::FillTask <41>		
+43	legate::numpy::FillTask [CPU] <43>	CPU Processor 0x1d00000000000003	2
+19	Refinement Operation <19>		
+28	legate::numpy::FillTask <28>		
+32	Refinement Operation <32>		
+33	legate::numpy::FillTask [CPU] <33>	CPU Processor 0x1d00000000000002	2
+35	legate::numpy::FillTask [CPU] <35>	CPU Processor 0x1d00000000000003	2
+44	legate::numpy::BinaryOpTask <44>		
+45	legate::numpy::BinaryOpTask <45>		
+46	legate::numpy::BinaryOpTask <46>		
+25	legate::numpy::FillTask <25>		
+17	legate::numpy::FillTask <17>		
+29	legate::numpy::BinaryOpTask <29>		
+18	legate::numpy::FillTask <18>		
+37	legate::numpy::BinaryOpTask <37>		
+54	legate::numpy::BinaryOpTask <54>		
+59	legate::numpy::BinaryOpTask <59>		
+62	legate::numpy::BinaryOpTask <62>		
+68	legate::numpy::BinaryOpTask <68>		
+73	legate::numpy::BinaryOpTask <73>		
+60	legate::numpy::BinaryOpTask [CPU] <60>	CPU Processor 0x1d00000000000003	2
+66	legate::numpy::BinaryOpTask [CPU] <66>	CPU Processor 0x1d00000000000003	2
+72	legate::numpy::BinaryOpTask [CPU] <72>	CPU Processor 0x1d00000000000003	2
+78	legate::numpy::BinaryOpTask [CPU] <78>	CPU Processor 0x1d00000000000003	2
+52	legate::numpy::BinaryOpTask [CPU] <52>	CPU Processor 0x1d00000000000002	2
+49	legate::numpy::BinaryOpTask <49>		
+50	legate::numpy::BinaryOpTask <50>		
+51	legate::numpy::BinaryOpTask <51>		
+61	legate::numpy::BinaryOpTask <61>		
+63	legate::numpy::BinaryOpTask <63>		
+64	legate::numpy::BinaryOpTask <64>		
+65	legate::numpy::BinaryOpTask [CPU] <65>	CPU Processor 0x1d00000000000002	2
+67	legate::numpy::BinaryOpTask <67>		
+80	Merge Close Operation <80>		
+81	legate::numpy::BinaryOpTask <81>		
+82	legate::numpy::BinaryOpTask <82>		
+83	legate::numpy::BinaryOpTask <83>		
+55	legate::numpy::BinaryOpTask <55>		
+57	legate::numpy::BinaryOpTask <57>		
+69	legate::numpy::BinaryOpTask <69>		
+70	legate::numpy::BinaryOpTask <70>		
+84	legate::numpy::BinaryOpTask [CPU] <84>	CPU Processor 0x1d00000000000002	2
+85	legate::numpy::BinaryOpTask [CPU] <85>	CPU Processor 0x1d00000000000003	2
+56	legate::numpy::BinaryOpTask <56>		
+74	legate::numpy::BinaryOpTask <74>		
+75	legate::numpy::BinaryOpTask <75>		
+76	legate::numpy::BinaryOpTask <76>		

@@ -1,0 +1,12 @@
+level	level_ready	ready	start	end	color	opacity	title	initiation	in	out	children	parents	prof_uid
+11			1278823.735	1844793.065	#00fff6	1.0	Region: ispace:1[0:2499999] x fspace:1$Fields: [fid:1048577]$Layout Order: [Struct-of-arrays (SOA)] $Inst: 0x4000000000000001 $Size: 19.073 MiB	13					68
+10			1279061.877	1845081.180	#00fff6	1.0	Region: ispace:1[2500000:4999999] x fspace:1$Fields: [fid:1048577]$Layout Order: [Struct-of-arrays (SOA)] $Inst: 0x4000000000000002 $Size: 19.073 MiB	15					70
+9			1280061.606	1844985.437	#00fff6	1.0	Region: ispace:1[2500000:4999999] x fspace:1$Fields: [fid:1048578]$Layout Order: [Struct-of-arrays (SOA)] $Inst: 0x4000000000000003 $Size: 19.073 MiB	24					79
+8			1280246.078	1844919.518	#00fff6	1.0	Region: ispace:1[0:2499999] x fspace:1$Fields: [fid:1048578]$Layout Order: [Struct-of-arrays (SOA)] $Inst: 0x4000000000000004 $Size: 19.073 MiB	23					77
+7			1281367.754	1844726.221	#00fff6	1.0	Region: ispace:1[0:2499999] x fspace:1$Fields: [fid:1048579]$Layout Order: [Struct-of-arrays (SOA)] $Inst: 0x4000000000000005 $Size: 19.073 MiB	36					191
+6			1281572.958	1845134.718	#00fff6	1.0	Region: ispace:1[2500000:4999999] x fspace:1$Fields: [fid:1048579]$Layout Order: [Struct-of-arrays (SOA)] $Inst: 0x4000000000000006 $Size: 19.073 MiB	38					81
+5			1282612.241	1844151.087	#ff0038	1.0	Region: ispace:1[0:2499999] x fspace:1$Fields: [fid:1048580]$Layout Order: [Struct-of-arrays (SOA)] $Inst: 0x4000000000000007 $Size: 19.073 MiB	47					71
+4			1282784.125	1844240.657	#ff0038	1.0	Region: ispace:1[2500000:4999999] x fspace:1$Fields: [fid:1048580]$Layout Order: [Struct-of-arrays (SOA)] $Inst: 0x4000000000000008 $Size: 19.073 MiB	48					73
+3			1283563.847	1844857.709	#ff0038	1.0	Region: ispace:1[0:2499999] x fspace:1$Fields: [fid:1048581]$Layout Order: [Struct-of-arrays (SOA)] $Inst: 0x4000000000000009 $Size: 19.073 MiB	52					291
+2			1283746.860	1845119.817	#ff0038	1.0	Region: ispace:1[2500000:4999999] x fspace:1$Fields: [fid:1048581]$Layout Order: [Struct-of-arrays (SOA)] $Inst: 0x400000000000000a $Size: 19.073 MiB	53					148
+1			1307133.149	1844651.511	#ff6e00	1.0	Region: ispace:1[0:4999999] x fspace:1$Fields: [fid:1048580]$Layout Order: [Struct-of-arrays (SOA)] $Inst: 0x400000000000000b $Size: 38.147 MiB	79					75
