@@ -1,5 +1,0 @@
-level	level_ready	ready	start	end	color	opacity	title	initiation	in	out	children	parents	prof_uid
-3			1306638.074	1306645.058	#ffa700	1.0	Intersection Reduction	80					506
-3			1306677.611	1306682.376	#ffa700	1.0	Intersection Reduction	80					649
-3			1306758.499	1306839.247	#ffa700	1.0	Union Reduction	80					650
-3			1307245.719	1307250.230	#ff6e00	1.0	Difference	79					696
