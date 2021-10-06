@@ -85,6 +85,7 @@ class NumPyOpCode(IntEnum):
     BINARY_RED = legate_numpy.NUMPY_BINARY_RED
     BINCOUNT = legate_numpy.NUMPY_BINCOUNT
     CONVERT = legate_numpy.NUMPY_CONVERT
+    CONVOLVE = legate_numpy.NUMPY_CONVOLVE
     DIAG = legate_numpy.NUMPY_DIAG
     DOT = legate_numpy.NUMPY_DOT
     EYE = legate_numpy.NUMPY_EYE

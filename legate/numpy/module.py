@@ -1445,6 +1445,20 @@ def sqrt(a, out=None, where=True, dtype=None, stacklevel=1, **kwargs):
     )
 
 
+@copy_docstring(np.convolve)
+def convolve(a, v, mode="full"):
+    a_lg = ndarray.convert_to_legate_ndarray(a, stacklevel=2)
+    v_lg = ndarray.convert_to_legate_ndarray(v, stacklevel=2)
+
+    if mode != "same":
+        raise NotImplementedError("Need to implement other convolution modes")
+
+    if a_lg.size < v_lg.size:
+        v_lg, a_lg = a_lg, v_lg
+
+    return a_lg.convolve(v_lg, mode, stacklevel=2)
+
+
 # ### SORTING, SEARCHING and COUNTING
 
 # Searching

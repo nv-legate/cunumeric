@@ -1,0 +1,148 @@
+/* Copyright 2021 NVIDIA Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
+#include "numpy/convolution/convolve.h"
+#include "numpy/convolution/convolve_template.inl"
+
+namespace legate {
+namespace numpy {
+
+using namespace Legion;
+
+template <LegateTypeCode CODE, int DIM>
+struct ConvolveImplBody<VariantKind::CPU, CODE, DIM> {
+  using VAL = legate_type_of<CODE>;
+
+  void operator()(AccessorWO<VAL, 1> out,
+                  AccessorRO<VAL, 1> in1,
+                  AccessorRO<VAL, 1> in2,
+                  const Rect<1>& out_rect,
+                  const Rect<1>& filter_rect) const
+  {
+    assert(filter_rect.lo[0] == 0);
+    auto f_extent = filter_rect.hi[0] + 1;
+    auto center   = static_cast<coord_t>(f_extent / 2);
+
+    auto lo = out_rect.lo[0];
+    auto hi = out_rect.hi[0] + 1;
+    for (int64_t out_idx = lo; out_idx < hi; ++out_idx) {
+      VAL acc{0};
+      for (int64_t f_idx = 0; f_idx < f_extent; ++f_idx) {
+        auto in_idx = out_idx + f_idx - center;
+        if (in_idx >= lo && in_idx < hi) acc += in1[in_idx] * in2[f_extent - f_idx - 1];
+      }
+      out[out_idx] = acc;
+    }
+  }
+
+  void operator()(AccessorWO<VAL, 2> out,
+                  AccessorRO<VAL, 2> in1,
+                  AccessorRO<VAL, 2> in2,
+                  const Rect<2>& out_rect,
+                  const Rect<2>& filter_rect) const
+  {
+    assert(filter_rect.lo[0] == 0);
+    assert(filter_rect.lo[1] == 0);
+
+    auto f_extent_x = filter_rect.hi[0] + 1;
+    auto f_extent_y = filter_rect.hi[1] + 1;
+
+    auto center_x = static_cast<coord_t>(f_extent_x / 2);
+    auto center_y = static_cast<coord_t>(f_extent_y / 2);
+
+    auto lo_x = out_rect.lo[0];
+    auto lo_y = out_rect.lo[1];
+    auto hi_x = out_rect.hi[0] + 1;
+    auto hi_y = out_rect.hi[1] + 1;
+    for (int64_t out_x = lo_x; out_x < hi_x; ++out_x)
+      for (int64_t out_y = lo_y; out_y < hi_y; ++out_y) {
+        VAL acc{0};
+        for (int64_t f_x = 0; f_x < f_extent_x; ++f_x) {
+          auto in_x = out_x + f_x - center_x;
+          if (in_x < lo_x || in_x >= hi_x) continue;
+          for (int64_t f_y = 0; f_y < f_extent_y; ++f_y) {
+            auto in_y = out_y + f_y - center_y;
+            if (in_y < lo_y || in_y >= hi_y) continue;
+
+            acc += in1[in_x][in_y] * in2[f_extent_x - f_x - 1][f_extent_y - f_y - 1];
+          }
+        }
+        out[out_x][out_y] = acc;
+      }
+  }
+
+  void operator()(AccessorWO<VAL, 3> out,
+                  AccessorRO<VAL, 3> in1,
+                  AccessorRO<VAL, 3> in2,
+                  const Rect<3>& out_rect,
+                  const Rect<3>& filter_rect) const
+  {
+    assert(filter_rect.lo[0] == 0);
+    assert(filter_rect.lo[1] == 0);
+    assert(filter_rect.lo[2] == 0);
+
+    auto f_extent_x = filter_rect.hi[0] + 1;
+    auto f_extent_y = filter_rect.hi[1] + 1;
+    auto f_extent_z = filter_rect.hi[2] + 1;
+
+    auto center_x = static_cast<coord_t>(f_extent_x / 2);
+    auto center_y = static_cast<coord_t>(f_extent_y / 2);
+    auto center_z = static_cast<coord_t>(f_extent_z / 2);
+
+    auto lo_x = out_rect.lo[0];
+    auto lo_y = out_rect.lo[1];
+    auto lo_z = out_rect.lo[2];
+    auto hi_x = out_rect.hi[0] + 1;
+    auto hi_y = out_rect.hi[1] + 1;
+    auto hi_z = out_rect.hi[2] + 1;
+
+    for (int64_t out_x = lo_x; out_x < hi_x; ++out_x)
+      for (int64_t out_y = lo_y; out_y < hi_y; ++out_y)
+        for (int64_t out_z = lo_z; out_z < hi_z; ++out_z) {
+          VAL acc{0};
+          for (int64_t f_x = 0; f_x < f_extent_x; ++f_x) {
+            auto in_x = out_x + f_x - center_x;
+            if (in_x < lo_x || in_x >= hi_x) continue;
+            for (int64_t f_y = 0; f_y < f_extent_y; ++f_y) {
+              auto in_y = out_y + f_y - center_y;
+              if (in_y < lo_y || in_y >= hi_y) continue;
+
+              for (int64_t f_z = 0; f_z < f_extent_z; ++f_z) {
+                auto in_z = out_z + f_z - center_z;
+                if (in_z < lo_z || in_z >= hi_z) continue;
+
+                acc += in1[in_x][in_y][in_z] *
+                       in2[f_extent_x - f_x - 1][f_extent_y - f_y - 1][f_extent_z - f_z - 1];
+              }
+            }
+          }
+          out[out_x][out_y][out_z] = acc;
+        }
+  }
+};
+
+/*static*/ void ConvolveTask::cpu_variant(TaskContext& context)
+{
+  convolve_template<VariantKind::CPU>(context);
+}
+
+namespace  // unnamed
+{
+static void __attribute__((constructor)) register_tasks(void) { ConvolveTask::register_variants(); }
+}  // namespace
+
+}  // namespace numpy
+}  // namespace legate

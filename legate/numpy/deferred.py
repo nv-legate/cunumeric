@@ -841,6 +841,25 @@ class DeferredArray(NumPyThunk):
 
         task.execute()
 
+    @profile
+    @auto_convert([1, 2])
+    @shadow_debug("convolve", [1, 2])
+    def convolve(self, v, out, mode, stacklevel=0, callsite=None):
+        rhs1 = self.base
+        rhs2 = v.base
+        lhs = out.base
+
+        task = self.context.create_task(NumPyOpCode.CONVOLVE)
+        task.add_output(lhs)
+        task.add_input(rhs1)
+        task.add_input(rhs2)
+
+        task.add_alignment(lhs, rhs1)
+        task.add_broadcast(rhs2)
+        task.add_broadcast(lhs)
+
+        task.execute()
+
     # Fill the legate array with the value in the numpy array
     @profile
     def _fill(self, value, stacklevel=0, callsite=None):
