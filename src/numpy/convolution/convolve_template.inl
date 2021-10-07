@@ -30,16 +30,17 @@ struct ConvolveImpl {
   void operator()(ConvolveArgs& args) const
   {
     using VAL        = legate_type_of<CODE>;
-    auto out_rect    = args.out.shape<DIM>();
-    auto filter_rect = args.in2.shape<DIM>();
+    auto subrect     = args.out.shape<DIM>();
+    auto filter_rect = args.filter.shape<DIM>();
 
-    if (out_rect.empty()) return;
+    if (subrect.empty()) return;
 
-    auto out = args.out.write_accessor<VAL, DIM>(out_rect);
-    auto in1 = args.in1.read_accessor<VAL, DIM>(out_rect);
-    auto in2 = args.in2.read_accessor<VAL, DIM>(filter_rect);
+    auto out    = args.out.write_accessor<VAL, DIM>(subrect);
+    auto filter = args.filter.read_accessor<VAL, DIM>(filter_rect);
+    auto input  = args.inputs[0].read_accessor<VAL, DIM>(subrect);
 
-    ConvolveImplBody<KIND, CODE, DIM>()(out, in1, in2, out_rect, filter_rect);
+    Rect<DIM> root_rect(args.root_domain);
+    ConvolveImplBody<KIND, CODE, DIM>()(out, filter, input, root_rect, subrect, filter_rect);
   }
 
   template <LegateTypeCode CODE, int DIM, std::enable_if_t<!(DIM <= 3)>* = nullptr>
@@ -52,10 +53,22 @@ struct ConvolveImpl {
 template <VariantKind KIND>
 static void convolve_template(TaskContext& context)
 {
+  ConvolveArgs args;
+
   auto& inputs  = context.inputs();
   auto& outputs = context.outputs();
 
-  ConvolveArgs args{inputs[0], inputs[1], outputs[0]};
+  args.out    = std::move(outputs[0]);
+  args.filter = std::move(inputs[0]);
+  for (uint32_t idx = 1; idx < inputs.size(); ++idx) args.inputs.push_back(std::move(inputs[idx]));
+
+  auto shape           = context.scalars()[0].value<DomainPoint>();
+  args.root_domain.dim = shape.dim;
+  for (int32_t dim = 0; dim < shape.dim; ++dim) {
+    args.root_domain.rect_data[dim]             = 0;
+    args.root_domain.rect_data[dim + shape.dim] = shape[dim] - 1;
+  }
+
   double_dispatch(args.out.dim(), args.out.code(), ConvolveImpl<KIND>{}, args);
 }
 

@@ -844,19 +844,21 @@ class DeferredArray(NumPyThunk):
     @profile
     @auto_convert([1, 2])
     @shadow_debug("convolve", [1, 2])
-    def convolve(self, v, out, mode, stacklevel=0, callsite=None):
-        rhs1 = self.base
-        rhs2 = v.base
-        lhs = out.base
+    def convolve(self, v, lhs, mode, stacklevel=0, callsite=None):
+        input = self.base
+        filter = v.base
+        out = lhs.base
 
         task = self.context.create_task(NumPyOpCode.CONVOLVE)
-        task.add_output(lhs)
-        task.add_input(rhs1)
-        task.add_input(rhs2)
 
-        task.add_alignment(lhs, rhs1)
-        task.add_broadcast(rhs2)
-        task.add_broadcast(lhs)
+        task.add_output(out)
+        task.add_input(filter)
+        task.add_input(input)
+
+        task.add_alignment(out, input)
+        task.add_broadcast(filter)
+        task.add_broadcast(out)
+        task.add_scalar_arg(self.shape, (ty.int64,))
 
         task.execute()
 

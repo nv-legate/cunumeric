@@ -22,9 +22,10 @@ namespace legate {
 namespace numpy {
 
 struct ConvolveArgs {
-  const Array& in1;
-  const Array& in2;
-  const Array& out;
+  Array out;
+  Array filter;
+  std::vector<Array> inputs;
+  Legion::Domain root_domain;
 };
 
 class ConvolveTask : public NumPyTask<ConvolveTask> {
