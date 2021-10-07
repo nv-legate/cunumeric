@@ -67,7 +67,16 @@ Scalar NumPyMapper::tunable_value(TunableID tunable_id)
 std::vector<StoreMapping> NumPyMapper::store_mappings(
   const mapping::Task& task, const std::vector<mapping::StoreTarget>& options)
 {
-  return {};
+  if (task.task_id() == NUMPY_CONVOLVE) {
+    std::vector<StoreMapping> mappings;
+    auto& inputs = task.inputs();
+    mappings.push_back(StoreMapping::default_mapping(inputs[0], options.front()));
+    mappings.push_back(StoreMapping::default_mapping(inputs[1], options.front()));
+    auto& input_mapping = mappings.back();
+    for (uint32_t idx = 2; idx < inputs.size(); ++idx) input_mapping.stores.push_back(inputs[idx]);
+    return std::move(mappings);
+  } else
+    return {};
 }
 
 }  // namespace numpy

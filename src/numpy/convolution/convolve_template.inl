@@ -35,9 +35,16 @@ struct ConvolveImpl {
 
     if (subrect.empty()) return;
 
+    auto input_subrect = subrect;
+    for (auto idx = 2; idx < args.inputs.size(); ++idx) {
+      auto image_subrect = args.inputs[idx].shape<DIM>();
+      input_subrect      = input_subrect.union_bbox(image_subrect);
+    }
+
     auto out    = args.out.write_accessor<VAL, DIM>(subrect);
     auto filter = args.filter.read_accessor<VAL, DIM>(filter_rect);
-    auto input  = args.inputs[0].read_accessor<VAL, DIM>(subrect);
+    // This is valid only because we colocate all shifted images with the main tile
+    auto input = args.inputs[0].read_accessor<VAL, DIM>(input_subrect);
 
     Rect<DIM> root_rect(args.root_domain);
     ConvolveImplBody<KIND, CODE, DIM>()(out, filter, input, root_rect, subrect, filter_rect);

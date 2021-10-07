@@ -17,6 +17,7 @@ import warnings
 import weakref
 from collections.abc import Iterable
 from functools import reduce
+from itertools import product
 
 import numpy as np
 
@@ -851,14 +852,30 @@ class DeferredArray(NumPyThunk):
 
         task = self.context.create_task(NumPyOpCode.CONVOLVE)
 
-        task.add_output(out)
-        task.add_input(filter)
-        task.add_input(input)
+        offsets = (filter.shape + 1) // 2
+        stencils = []
+        for offset in offsets:
+            stencils.append((-offset, 0, offset))
+        stencils = list(product(*stencils))
+        stencils.remove((0,) * self.ndim)
 
-        task.add_alignment(out, input)
-        task.add_broadcast(filter)
-        task.add_broadcast(out)
+        p_out = task.declare_partition(out)
+        p_input = task.declare_partition(input)
+        p_stencils = []
+        for _ in stencils:
+            p_stencils.append(task.declare_partition(input, complete=False))
+
+        task.add_output(out, partition=p_out)
+        task.add_input(filter)
+        task.add_input(input, partition=p_input)
+        for p_stencil in p_stencils:
+            task.add_input(input, partition=p_stencil)
         task.add_scalar_arg(self.shape, (ty.int64,))
+
+        task.add_constraint(p_out == p_input)
+        for stencil, p_stencil in zip(stencils, p_stencils):
+            task.add_constraint(p_input + stencil <= p_stencil)
+        task.add_broadcast(filter)
 
         task.execute()
 
