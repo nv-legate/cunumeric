@@ -73,8 +73,8 @@ struct ConvolveImplBody<VariantKind::CPU, CODE, DIM> {
 
     auto lo_x = subrect.lo[0];
     auto lo_y = subrect.lo[1];
-    auto hi_x = root_rect.hi[0];
-    auto hi_y = root_rect.hi[1];
+    auto hi_x = subrect.hi[0];
+    auto hi_y = subrect.hi[1];
 
     auto root_hi_x = root_rect.hi[0];
     auto root_hi_y = root_rect.hi[1];
