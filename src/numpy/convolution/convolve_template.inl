@@ -36,7 +36,7 @@ struct ConvolveImpl {
     if (subrect.empty()) return;
 
     auto input_subrect = subrect;
-    for (auto idx = 2; idx < args.inputs.size(); ++idx) {
+    for (auto idx = 1; idx < args.inputs.size(); ++idx) {
       auto image_subrect = args.inputs[idx].shape<DIM>();
       input_subrect      = input_subrect.union_bbox(image_subrect);
     }
