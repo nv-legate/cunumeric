@@ -22,8 +22,8 @@ namespace numpy {
 
 using namespace Legion;
 
-template <LegateTypeCode CODE, int DIM>
-struct ConvolveImplBody<VariantKind::CPU, CODE, DIM> {
+template <LegateTypeCode CODE>
+struct ConvolveImplBody<VariantKind::CPU, CODE, 1> {
   using VAL = legate_type_of<CODE>;
 
   void operator()(AccessorWO<VAL, 1> out,
@@ -54,6 +54,11 @@ struct ConvolveImplBody<VariantKind::CPU, CODE, DIM> {
       out[out_x] = acc;
     }
   }
+};
+
+template <LegateTypeCode CODE>
+struct ConvolveImplBody<VariantKind::CPU, CODE, 2> {
+  using VAL = legate_type_of<CODE>;
 
   void operator()(AccessorWO<VAL, 2> out,
                   AccessorRO<VAL, 2> filter,
@@ -96,6 +101,11 @@ struct ConvolveImplBody<VariantKind::CPU, CODE, DIM> {
         out[out_x][out_y] = acc;
       }
   }
+};
+
+template <LegateTypeCode CODE>
+struct ConvolveImplBody<VariantKind::CPU, CODE, 3> {
+  using VAL = legate_type_of<CODE>;
 
   void operator()(AccessorWO<VAL, 3> out,
                   AccessorRO<VAL, 3> filter,
