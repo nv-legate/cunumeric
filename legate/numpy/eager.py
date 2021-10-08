@@ -348,6 +348,17 @@ class EagerArray(NumPyThunk):
                 self.array[:] = np.transpose(rhs.array, axes)
             self.runtime.profile_callsite(stacklevel + 1, False)
 
+    def flip(self, rhs, axes, stacklevel):
+        if self.shadow:
+            rhs = self.runtime.to_eager_array(rhs, stacklevel=(stacklevel + 1))
+        elif self.deferred is None:
+            self.check_eager_args((stacklevel + 1), rhs)
+        if self.deferred is not None:
+            self.deferred.flip(rhs, axes, stacklevel=(stacklevel + 1))
+        else:
+            self.array = np.flip(rhs.array, axes)
+            self.runtime.profile_callsite(stacklevel + 1, False)
+
     def diag(self, rhs, extract, k, stacklevel):
         if self.shadow:
             rhs = self.runtime.to_eager_array(rhs, stacklevel=(stacklevel + 1))

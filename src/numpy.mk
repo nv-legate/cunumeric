@@ -38,6 +38,7 @@ GEN_CPU_SRC += numpy/ternary/where.cc               \
 							 numpy/search/nonzero.cc              \
 							 numpy/stat/bincount.cc               \
 							 numpy/convolution/convolve.cc        \
+							 numpy/transform/flip.cc              \
 							 numpy/arg.cc                         \
 							 numpy/mapper.cc                      \
 							 numpy/numpy.cc # This must always be the last file!

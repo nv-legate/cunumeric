@@ -448,6 +448,11 @@ def transpose(a, axes=None):
     return a.transpose(axes=axes)
 
 
+@copy_docstring(np.flip)
+def flip(m, axis=None):
+    return m.flip(axis=axis)
+
+
 # Changing kind of array
 
 
