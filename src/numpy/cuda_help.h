@@ -24,6 +24,12 @@
 #define MIN_CTAS_PER_SM 4
 #define MAX_REDUCTION_CTAS 1024
 
+#define CHECK_CUDA(expr)                      \
+  {                                           \
+    cudaError_t result = (expr);              \
+    check_cuda(result, __FILE__, __LINE__);   \
+  }
+
 #define CHECK_CUBLAS(expr)                    \
   {                                           \
     cublasStatus_t result = (expr);           \
@@ -39,6 +45,19 @@
 
 namespace legate {
 namespace numpy {
+
+__host__ inline void check_cuda(cudaError_t error, const char* file, int line)
+{
+  if (error != cudaSuccess) {
+    fprintf(stderr,
+            "Internal Legate CUDA failure with error %s (%s) in file %s at line %d\n",
+            cudaGetErrorString(error),
+            cudaGetErrorName(error),
+            file,
+            line);
+    exit(error);
+  }
+}
 
 __host__ inline void check_cublas(cublasStatus_t status, const char* file, int line)
 {

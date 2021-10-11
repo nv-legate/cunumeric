@@ -88,4 +88,5 @@ GEN_GPU_SRC += numpy/ternary/where.cu               \
 							 numpy/random/rand.cu                 \
 							 numpy/search/nonzero.cu              \
 							 numpy/stat/bincount.cu               \
+							 numpy/convolution/convolve.cu	      \
 							 numpy/numpy.cu

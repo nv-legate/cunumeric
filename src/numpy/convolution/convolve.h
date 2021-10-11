@@ -38,10 +38,10 @@ class ConvolveTask : public NumPyTask<ConvolveTask> {
 #ifdef LEGATE_USE_OPENMP
   static void omp_variant(TaskContext& context);
 #endif
+  */
 #ifdef LEGATE_USE_CUDA
   static void gpu_variant(TaskContext& context);
 #endif
-*/
 };
 
 }  // namespace numpy
