@@ -91,14 +91,15 @@ convolution_case1a_kernel(const AccessorWO<VAL, DIM> out,
   VAL *input = (VAL*)buffer;
   // Compute the origin point of the block
   size_t offset = blockIdx.x;
-  Point<DIM> block_point = root_rect.lo;
+  Point<DIM> block_point = subrect.lo;
   #pragma unroll
   for (int d = 0; d < DIM; d++)
     block_point[d] += args.grid_pitches[d].divmod(offset, offset) * args.block_tiles[d];
   // Load in the shared memory for this block
   Point<DIM> tile_point;
   const Rect<DIM> input_bounds(block_point - args.delta_lo, block_point + args.delta_hi);
-  if (subrect.contains(input_bounds)) {
+  const bool input_contained = root_rect.contains(input_bounds);
+  if (input_contained) {
     // All the points are contained, so no need for point-wise tests
     // Unroll this four times to try to pipeline loads
     #pragma unroll 4
@@ -120,7 +121,7 @@ convolution_case1a_kernel(const AccessorWO<VAL, DIM> out,
       #pragma unroll
       for (int d = 0; d < DIM; d++)
         tile_point[d] = args.input_pitches[d].divmod(offset,offset);
-      if (!subrect.contains(input_bounds.lo + tile_point))
+      if (!root_rect.contains(input_bounds.lo + tile_point))
         continue;
       VAL value = in[input_bounds.lo + tile_point];
       // Write the value into shared memory
@@ -140,7 +141,7 @@ convolution_case1a_kernel(const AccessorWO<VAL, DIM> out,
       tile_point[d] = args.block_pitches[d].divmod(offset, offset); 
       out_point[d] = block_point[d] + tile_point[d];
     }
-    if (!root_rect.contains(out_point))
+    if (!subrect.contains(out_point))
       continue;
     #pragma unroll
     for (int d = 0; d < DIM; d++)
@@ -150,7 +151,7 @@ convolution_case1a_kernel(const AccessorWO<VAL, DIM> out,
       #pragma unroll
       for (int d = 0; d < DIM; d++)
         in_point[d] = out_point[d] + f_coords[d] - args.filter_centers[d];
-      if (subrect.contains(in_point))
+      if (input_contained || root_rect.contains(in_point))
       {
         offset = 0;
         #pragma unroll
@@ -193,14 +194,15 @@ convolution_case1b_kernel(const AccessorWO<VAL, DIM> out,
   VAL *input = (VAL*)buffer;
   // Compute the origin point of the block
   size_t offset = blockIdx.x;
-  Point<DIM> block_point = root_rect.lo;
+  Point<DIM> block_point = subrect.lo;
   #pragma unroll
   for (int d = 0; d < DIM; d++)
     block_point[d] += args.grid_pitches[d].divmod(offset, offset) * args.block_tiles[d];
   // Load in the shared memory for this block
   Point<DIM> tile_point;
   const Rect<DIM> input_bounds(block_point - args.delta_lo, block_point + args.delta_hi);
-  if (subrect.contains(input_bounds)) {
+  const bool input_contained = root_rect.contains(input_bounds);
+  if (input_contained) {
     // All the points are contained, so no need for point-wise tests
     // Unroll this four times to try to pipeline loads
     #pragma unroll 4
@@ -222,7 +224,7 @@ convolution_case1b_kernel(const AccessorWO<VAL, DIM> out,
       #pragma unroll
       for (int d = 0; d < DIM; d++)
         tile_point[d] = args.input_pitches[d].divmod(offset,offset);
-      if (!subrect.contains(input_bounds.lo + tile_point))
+      if (!root_rect.contains(input_bounds.lo + tile_point))
         continue;
       VAL value = in[input_bounds.lo + tile_point];
       // Write the value into shared memory
@@ -242,7 +244,7 @@ convolution_case1b_kernel(const AccessorWO<VAL, DIM> out,
       tile_point[d] = args.block_pitches[d].divmod(offset, offset); 
       out_point[d] = block_point[d] + tile_point[d];
     }
-    if (!root_rect.contains(out_point))
+    if (!subrect.contains(out_point))
       continue;
     #pragma unroll
     for (int d = 0; d < DIM; d++)
@@ -252,7 +254,7 @@ convolution_case1b_kernel(const AccessorWO<VAL, DIM> out,
       #pragma unroll
       for (int d = 0; d < DIM; d++)
         in_point[d] = out_point[d] + f_coords[d] - args.filter_centers[d];
-      if (subrect.contains(in_point))
+      if (input_contained || root_rect.contains(in_point))
       {
         offset = 0;
         #pragma unroll
@@ -298,7 +300,7 @@ convolution_case3_kernel(const AccessorWO<VAL, DIM> out,
                          const ConvolutionCase3Args<DIM> args)
 {
   // Compute our local point from our block and thread IDs
-  Point<DIM> out_point = root_rect.lo;
+  Point<DIM> out_point = subrect.lo;
   size_t offset = blockIdx.x;
   #pragma unroll
   for (int d = 0; d < DIM; d++)
@@ -308,7 +310,7 @@ convolution_case3_kernel(const AccessorWO<VAL, DIM> out,
   for (int d = 0; d < DIM; d++)
     out_point[d] += args.block_pitches[d].divmod(offset, offset);
   // If we're not computing an output there is nothing for us to do
-  if (!root_rect.contains(out_point))
+  if (!subrect.contains(out_point))
     return;
   coord_t f_coords[DIM];
   #pragma unroll
@@ -320,7 +322,7 @@ convolution_case3_kernel(const AccessorWO<VAL, DIM> out,
     #pragma unroll
     for (int d = 0; d < DIM; d++)
       in_point[d] = out_point[d] + f_coords[d] - args.filter_centers[d];
-    if (subrect.contains(in_point))
+    if (root_rect.contains(in_point))
     {
       #pragma unroll
       for (int d = 0; d < DIM; d++)
@@ -357,7 +359,7 @@ struct ConvolveImplBody<VariantKind::GPU, CODE, DIM> {
     CHECK_CUDA( cudaGetDevice(&device) );
     cudaDeviceProp properties;
     CHECK_CUDA( cudaGetDeviceProperties(&properties, device) );
-    size_t max_smem_size = properties.sharedMemPerBlock;
+    size_t max_smem_size = properties.sharedMemPerBlockOptin;
 
     unsigned extents[DIM];
     unsigned centers[DIM];
@@ -472,7 +474,7 @@ struct ConvolveImplBody<VariantKind::GPU, CODE, DIM> {
       args.filter_volume = 1;
       for (int d = DIM-1; d >= 0; d--) {
         size_t blocks_along_dim =
-          ((root_rect.hi[d] - root_rect.lo[d]) + tile[d]) / tile[d];
+          ((subrect.hi[d] - subrect.lo[d]) + tile[d]) / tile[d];
         args.grid_pitches[d] = FastDivmodU64(blocks);
         blocks *= blocks_along_dim;
         args.block_tiles[d] = tile[d];
@@ -543,7 +545,7 @@ struct ConvolveImplBody<VariantKind::GPU, CODE, DIM> {
         size_t limits[DIM];
         for (int d = 0; d < DIM; d++) {
           tile[d] = 1;
-          limits[d] = root_rect.hi[d] - root_rect.lo[d] + 1;
+          limits[d] = subrect.hi[d] - subrect.lo[d] + 1;
         }
         // 2^5 == 32
         unsigned skip_dims = 0;
@@ -596,7 +598,7 @@ struct ConvolveImplBody<VariantKind::GPU, CODE, DIM> {
         args.filter_volume = 1;
         for (int d = DIM-1; d >= 0; d--) {
           size_t blocks_along_dim =
-            ((root_rect.hi[d] - root_rect.lo[d]) + tile[d]) / tile[d];
+            ((subrect.hi[d] - subrect.lo[d]) + tile[d]) / tile[d];
           args.grid_pitches[d] = FastDivmodU64(blocks);
           blocks *= blocks_along_dim;
           args.block_tiles[d] = tile[d];
