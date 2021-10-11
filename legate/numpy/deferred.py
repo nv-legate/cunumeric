@@ -1267,6 +1267,28 @@ class DeferredArray(NumPyThunk):
         assert lhs_array.ndim == len(axes)
         lhs_array.base = rhs_array.base.transpose(axes)
 
+    @profile
+    @auto_convert([1])
+    @shadow_debug("flip", [1])
+    def flip(self, rhs, axes, stacklevel=0, callsite=None):
+        input = rhs.base
+        output = self.base
+
+        if axes is None:
+            axes = list(range(self.ndim))
+        elif not isinstance(axes, tuple):
+            axes = (axes,)
+
+        task = self.context.create_task(NumPyOpCode.FLIP)
+        task.add_output(output)
+        task.add_input(input)
+        task.add_scalar_arg(axes, (ty.int32,))
+
+        task.add_broadcast(input)
+        task.add_alignment(input, output)
+
+        task.execute()
+
     # Perform a bin count operation on the array
     @profile
     @auto_convert([1], ["weights"])

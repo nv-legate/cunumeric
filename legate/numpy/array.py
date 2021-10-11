@@ -1562,6 +1562,16 @@ class ndarray(object):
         result._thunk.transpose(self._thunk, axes, stacklevel=(stacklevel + 1))
         return result
 
+    def flip(self, axis=None, stacklevel=1):
+        result = ndarray(
+            shape=self.shape,
+            dtype=self.dtype,
+            stacklevel=(stacklevel + 1),
+            inputs=(self,),
+        )
+        result._thunk.flip(self._thunk, axis, stacklevel=(stacklevel + 1))
+        return result
+
     @unimplemented
     def var(self, axis=None, dtype=None, out=None, ddof=0, keepdims=False):
         numpy_array = self.__array__(stacklevel=3).var(

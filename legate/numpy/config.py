@@ -90,6 +90,7 @@ class NumPyOpCode(IntEnum):
     DOT = legate_numpy.NUMPY_DOT
     EYE = legate_numpy.NUMPY_EYE
     FILL = legate_numpy.NUMPY_FILL
+    FLIP = legate_numpy.NUMPY_FLIP
     MATMUL = legate_numpy.NUMPY_MATMUL
     MATVECMUL = legate_numpy.NUMPY_MATVECMUL
     NONZERO = legate_numpy.NUMPY_NONZERO
