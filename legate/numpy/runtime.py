@@ -510,10 +510,14 @@ class Runtime(object):
                 return result
             else:
                 # This is not a scalar so make a field
-                store = self.legate_context.attach_external_allocation(
-                    NumPyAllocation(array),
-                    array.shape,
+                store = self.legate_context.create_store(
                     array.dtype,
+                    shape=array.shape,
+                    optimize_scalar=False,
+                )
+                store.attach_external_allocation(
+                    self.legate_context,
+                    NumPyAllocation(array),
                     share,
                 )
                 result = DeferredArray(
