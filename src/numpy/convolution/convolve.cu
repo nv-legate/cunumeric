@@ -14,6 +14,8 @@
  *
  */
 
+#include <cooperative_groups.h>
+
 #include "numpy/divmod.h"
 #include "numpy/cuda_help.h"
 #include "numpy/convolution/convolve.h"
@@ -44,22 +46,23 @@ using namespace Legion;
 //         that should result in the best performance since we'll be able to
 //         load the data into shared memory and then have the threads loop
 //         over all the points and compute their convolutions
-// Case 2: We couldn't fit the whole tile in shared memory, but we could fit
-//         all the dimensions except one (but not the last one) into shared 
-//         memory. In this case we'll load tiles of N-1 dimensions and walk
-//         along the remaining dimension, with threads maintaining a pencil
-//         of values for the partial convolution computations of points in
-//         that particular dimension. 
-// Case 3: We couldn't fit even a subset of the tile in shared memory. In
-//         this case we will just punt and be at the mercy of the cache
-//         gods in order to get any kind of locality by having each thread
-//         just perform a convolution for an output point directly.
-
-// For case 2 we use warp-specialization for loading the data so we can pipeline
-// the loading of the data. We have two sub-variants of this kernel: one in which
-// the tile can fit into SMEM_PER_CTA/2 shared memory so we can double buffer 
-// for improved memory latency hiding and one in which it can't so we need to 
-// single buffer the loading of data (but still preload into registers).
+// Case 2: We couldn't fit the whole tile in shared memory, so let's go for
+//         the L2 cache. See if the tile fits in the L2 cache, if so grow the
+//         tile up to 75% of the L2 cache size and launch a cooperative group
+//         kernel to perform each tile across all the threads in the GPU, sync
+//         and then move on to the next tile.
+// Case 3: The whole tile couldn't fit in the L2, so pick a subset of the tile
+//         that fits in the L2. See if the aggregate data for walking in the 
+//         remaining dimensions can fit in the register files of all the SMs
+//         in the GPU. If so we can grow the tile size until we hit either
+//         75% of the L2 cache or we exhaust the register budget (depends on
+//         the size of the untiled dimensions). Launch a cooperative group
+//         kernel to iterate the tiles and sync between them to maintain
+//         some degree of coherence in the L2 cache.
+// Case 4: Either we don't support cooperative launches or this is truly
+//         awful convolution and there is no hope for blocking it for 
+//         on-chip memory in a reasonable way, so just give each thread
+//         a point to compute and hope the cache gods are kind to you.
 
 template<int DIM>
 struct ConvolutionCase1Args {
@@ -172,7 +175,7 @@ convolution_case1a_kernel(const AccessorWO<VAL, DIM> out,
           break;
       }
     }
-    out[out_point] = acc;
+    store_streaming(out.ptr(out_point), acc);
   }
 }
 
@@ -275,12 +278,97 @@ convolution_case1b_kernel(const AccessorWO<VAL, DIM> out,
           break;
       }
     }
-    out[out_point] = acc;
+    store_streaming(out.ptr(out_point), acc);
   }
 }
 
 template<int DIM>
-struct ConvolutionCase3Args {
+struct ConvolutionCase2Args {
+  FastDivmodU64 tile_pitches[DIM];
+  size_t tile_strides[DIM];
+  Point<DIM> delta_lo, delta_hi;
+  unsigned filter_centers[DIM];
+  unsigned filter_extents[DIM];
+  unsigned filter_volume;
+  unsigned thread_points;
+  unsigned total_threads;
+  unsigned tile_count;
+};
+
+template<typename VAL, int DIM>
+__global__ static void __launch_bounds__(COOPERATIVE_THREADS,4)
+convolution_case2_kernel(const AccessorWO<VAL, DIM> out,
+                         const AccessorRO<VAL, DIM> filter,
+                         const AccessorRO<VAL, DIM> in,
+                         const Rect<DIM> root_rect,
+                         const Rect<DIM> subrect,
+                         const Rect<DIM> filter_rect,
+                         const ConvolutionCase2Args<DIM> args)
+{
+  Point<DIM> tile_point = subrect.lo;
+  const unsigned tid = blockIdx.x * blockDim.x + threadIdx.x;
+  // Loop over the tiles
+  for (unsigned tile = 0; tile < args.tile_count; tile++) {
+    // Sync before each tile to make sure we aren't thrashing the L2
+    if (tile > 0) 
+      cooperative_groups::sync(cooperative_groups::this_grid());
+    const Rect<DIM> input_bounds(tile_point - args.delta_lo, tile_point + args.delta_hi);
+    const bool input_contained = root_rect.contains(input_bounds);
+    // Loop over our output points and compute their convolutions
+    for (unsigned point = 0; point < args.thread_points; point++) {
+      // Compute our local point
+      Point<DIM> out_point = tile_point;
+      size_t offset = point * args.total_threads + tid;
+      #pragma unroll
+      for (int d = 0; d < DIM; d++)
+        out_point[d] += args.tile_pitches[d].divmod(offset, offset);
+      if (!subrect.contains(out_point))
+        break;
+      unsigned f_coords[DIM];
+      #pragma unroll
+      for (int d = 0; d < DIM; d++)
+        f_coords[d] = 0;
+      VAL acc{0};
+      Point<DIM> in_point, filter_point;
+      for (unsigned idx = 0; idx < args.filter_volume; idx++) {
+        #pragma unroll
+        for (int d = 0; d < DIM; d++)
+          in_point[d] = out_point[d] + f_coords[d] - args.filter_centers[d];
+        if (input_contained || root_rect.contains(in_point))
+        {
+          #pragma unroll
+          for (int d = 0; d < DIM; d++)
+            filter_point[d] = args.filter_extents[d] - f_coords[d] - 1;
+          // Only load inputs into the L2 cache with hope being that 
+          // we'll be keeping the filter in the L1 cache or L2 cache
+          acc = acc + load_l2(in.ptr(in_point)) * filter[filter_point];
+        }
+        // Step the filter coordinates
+        #pragma unroll
+        for (int d = DIM-1; d >= 0; d--) {
+          f_coords[d]++;
+          if (f_coords[d] == args.filter_extents[d])
+            f_coords[d] = 0;
+          else
+            break;
+        }
+      }
+      // Make sure the stores don't pollute the L2
+      store_streaming(out.ptr(out_point), acc);
+    }
+    // Step to the next tile point
+    for (int d = DIM-1; d >= 0; d--) {
+      tile_point[d] += args.tile_strides[d];
+      if (tile_point[d] > subrect.hi[d])
+        tile_point[d] = subrect.lo[d];
+      else
+        break;
+    }
+  }
+}
+
+template<int DIM>
+struct ConvolutionCase4Args {
   FastDivmodU64 grid_pitches[DIM];
   FastDivmodU64 block_pitches[DIM];
   unsigned block_tiles[DIM];
@@ -291,13 +379,13 @@ struct ConvolutionCase3Args {
 
 template<typename VAL, int DIM>
 __global__ static void __launch_bounds__(THREADS_PER_BLOCK, 2)
-convolution_case3_kernel(const AccessorWO<VAL, DIM> out,
+convolution_case4_kernel(const AccessorWO<VAL, DIM> out,
                          const AccessorRO<VAL, DIM> filter,
                          const AccessorRO<VAL, DIM> in,
                          const Rect<DIM> root_rect,
                          const Rect<DIM> subrect,
                          const Rect<DIM> filter_rect,
-                         const ConvolutionCase3Args<DIM> args)
+                         const ConvolutionCase4Args<DIM> args)
 {
   // Compute our local point from our block and thread IDs
   Point<DIM> out_point = subrect.lo;
@@ -339,7 +427,85 @@ convolution_case3_kernel(const AccessorWO<VAL, DIM> out,
         break;
     }
   }
-  out[out_point] = acc;
+  store_streaming(out.ptr(out_point), acc);
+}
+
+template<typename VAL, int DIM>
+__host__ static unsigned 
+roundup_tile(unsigned tile[DIM],
+             const unsigned centers[DIM],
+             const unsigned max_size)
+{
+  if (DIM == 1) {
+    // In this single case we can just solve for this directly
+    unsigned elements = max_size / sizeof(VAL);
+    assert(elements > 2*centers[0]);
+    assert(tile[0] < (elements - 2*centers[0]));
+    tile[0] = elements - 2*centers[0];
+    return (tile[0] + 2*centers[0]) * sizeof(VAL);
+  } else {
+    // Find the two smallest dimensions and increase one of them
+    // until we hit the second smallest one or exceed max_smem_size
+    unsigned result = 0;
+    bool all_same = true;
+    while (true) {
+      int d1 = DIM-1, d2 = -1;
+      int t1 = tile[d1], t2 = 0;
+      for (int d = DIM-2; d >= 0; d--) {
+        if (tile[d] < t1) {
+          d2 = d1;
+          t2 = t1;
+          d1 = d;
+          t1 = tile[d];
+        } else if ((d2 < 0) || (tile[d] < t2)) {
+          d2 = d;
+          t2 = tile[d];
+        }
+      }
+      // If we ever get two dimensions of the same size then we know
+      // that there is no smallest dimension so we can march all the
+      // dimensions together at this point
+      if (t1 == t2)
+        break;
+      // Solve for the max we can walk 
+      unsigned pitch = sizeof(VAL);
+      for (int d = 0; d < DIM; d++)
+        if (d != d1)
+          pitch *= (tile[d] + 2*centers[d]);
+      unsigned elements = max_size / pitch;
+      assert(elements > 2*centers[d1]);
+      assert(t1 < (elements - 2*centers[d1]));
+      unsigned bound = elements - 2*centers[d1];
+      if (bound < t2) {
+        tile[d1] = bound;
+        result = pitch * (bound + 2*centers[d1]);
+        all_same = false;
+        break;
+      } else {
+        tile[d1] = t2;
+        result = pitch * (t2 + 2*centers[d1]);
+      }
+    }
+    if (all_same) {
+      // Step all the dimensions together until we hit
+      // the shared memory upper bound we're targetting
+      // This algorithm is in theory slow, but the max
+      // memory sizes of caches are "small" and the amount
+      // of memory will grow polynomially in the number
+      // of dimensions so it should converge quickly
+      while (true) {
+        unsigned next_size = sizeof(VAL);
+        for (int d = 0; d < DIM; d++)
+          next_size *= (tile[d] + 1 + 2*centers[d]);
+        if (next_size > max_size) 
+          break;
+        result = next_size;
+        for (int d = 0; d < DIM; d++)
+          tile[d]++;
+      }
+    }
+    return result;
+  }
 }
 
 template <LegateTypeCode CODE, int DIM>
@@ -396,74 +562,7 @@ struct ConvolveImplBody<VariantKind::GPU, CODE, DIM> {
         max_smem_size = half_smem;
         halved = true;
       }
-      if (DIM == 1) {
-        // In this single case we can just solve for this directly
-        unsigned elements = max_smem_size / sizeof(VAL);
-        assert(elements > 2*centers[0]);
-        assert(tile[0] < (elements - 2*centers[0]));
-        tile[0] = elements - 2*centers[0];
-        smem_size = (tile[0] + 2*centers[0]) * sizeof(VAL);
-      } else {
-        // Find the two smallest dimensions and increase one of them
-        // until we hit the second smallest one or exceed max_smem_size
-        bool all_same = true;
-        while (true) {
-          int d1 = DIM-1, d2 = -1;
-          int t1 = tile[d1], t2 = 0;
-          for (int d = DIM-2; d >= 0; d--) {
-            if (tile[d] < t1) {
-              d2 = d1;
-              t2 = t1;
-              d1 = d;
-              t1 = tile[d];
-            } else if ((d2 < 0) || (tile[d] < t2)) {
-              d2 = d;
-              t2 = tile[d];
-            }
-          }
-          // If we ever get two dimensions of the same size then we know
-          // that there is no smallest dimension so we can march all the
-          // dimensions together at this point
-          if (t1 == t2)
-            break;
-          // Solve for the max we can walk 
-          unsigned pitch = sizeof(VAL);
-          for (int d = 0; d < DIM; d++)
-            if (d != d1)
-              pitch *= (tile[d] + 2*centers[d]);
-          unsigned elements = max_smem_size / pitch;
-          assert(elements > 2*centers[d1]);
-          assert(t1 < (elements - 2*centers[d1]));
-          unsigned bound = elements - 2*centers[d1];
-          if (bound < t2) {
-            tile[d1] = bound;
-            smem_size = pitch * (bound + 2*centers[d1]);
-            all_same = false;
-            break;
-          } else {
-            tile[d1] = t2;
-            smem_size = pitch * (t2 + 2*centers[d1]);
-          }
-        }
-        if (all_same) {
-          // Step all the dimensions together until we hit
-          // the shared memory upper bound we're targetting
-          // This algorithm is in theory slow, but the max
-          // amount of shared memory is small and the amount
-          // of memory will grow polynomially in the number
-          // of dimensions so it should converge quickly
-          while (true) {
-            unsigned next_smem_size = sizeof(VAL);
-            for (int d = 0; d < DIM; d++)
-              next_smem_size *= (tile[d] + 1 + 2*centers[d]);
-            if (next_smem_size > max_smem_size) 
-              break;
-            smem_size = next_smem_size;
-            for (int d = 0; d < DIM; d++)
-              tile[d]++;
-          }
-        }
-      }
+      smem_size = roundup_tile<VAL,DIM>(tile, centers, max_smem_size);
       // At this point we've got the tile size that we're going to compute
       // and the amount of dynamic shared memory that we need
       // Compute the arguments needed for the kernel launch
@@ -506,112 +605,130 @@ struct ConvolveImplBody<VariantKind::GPU, CODE, DIM> {
           convolution_case1b_kernel<VAL,DIM><<<blocks,1024,smem_size>>>(
               out, filter, in, root_rect, subrect, filter_rect, args);
       }
-    } else {
-#if 0
-      // See if we can find one dimension that is not the last one to walk
-      // over and still be able to fit the tile in shared memory, pick the
-      // smallest dimension that still allows things to fit to minimize the
-      // size of the pencils, break tiles with slower changing dimensions
-      int pencil_dim = -1;
-      for (int d = 0; d < (DIM-1); d++) {
-        size_t alt_size = smem_size / (tile[d] + 2*centers[d]);
-        // If it's still too big then skip it
-        if (alt_size > smem_size)
-          continue;
-        if (pencil_dim >= 0) {
-          if (centers[d] < centers[pencil_dim])
-            pencil_dim = d;
-        } else {
-          pencil_dim = d;
-        }
-      }
-      if (pencil_dim >= 0) {
-        // Case 2: In this case the tile is what it is going to be, we
-        // don't dare make it any bigger lest we risk the wrath of the
-        // compiler spilling registers, especially for very large pencils
-        // Figure out how many points we have and divide them among the
-        // compute warps, then figure out how big the pencil arrays need
-        // to be for each of the compute warps
-
-
-      } else {
-#endif
-      {
-        // Case 3: Punt and launch the dumb help-me-cache-god kernel
-        // Figure out the tile size for the thread block. We want at
-        // least 128B loads along the last dimension if possible. Then
-        // round-robin powers of 2 onto the other dimensions until we 
-        // get the tile to have as many threads as THREADS_PER_BLOCK.
-        size_t limits[DIM];
-        for (int d = 0; d < DIM; d++) {
-          tile[d] = 1;
-          limits[d] = subrect.hi[d] - subrect.lo[d] + 1;
-        }
-        // 2^5 == 32
-        unsigned skip_dims = 0;
-        for (int i = 0; i < 5; i++) {
-          tile[DIM-1] *= 2;
-          if (tile[DIM-1] >= limits[DIM-1]) {
-            skip_dims |= (1 << (DIM-1));
-            break;
-          }
-        }
-        unsigned threads = tile[DIM-1];
-        for (int i = 0; i < 5; i++) {
-          for (int d = DIM-2; d >= 0; d--) {
-            if (skip_dims & (1 << d))
-              continue;
-            tile[d] *= 2;
-            threads *= 2;
-            if (tile[d] >= limits[d]) {
-              skip_dims |= (1 << d);
-              continue;
-            }
-            if (threads == THREADS_PER_BLOCK)
-              break;
-          }
-          if (threads == THREADS_PER_BLOCK)
-            break;
-        }
-        while ((threads < THREADS_PER_BLOCK) &&
-              (skip_dims != ((1 << (DIM+1)) - 1))) {
-          for (int d = DIM-1; d >= 0; d--) {
-            if (skip_dims & (1 << d))
-              continue;
-            tile[d] *= 2;
-            threads *= 2;
-            if (tile[d] >= limits[d]) {
-              skip_dims |= (1 << d);
-              continue;
-            }
-            if (threads == THREADS_PER_BLOCK)
-              break;
-          }
-        }
-        // should either not have enough points or
-        // THREADS_PER_BLOCK should be a power of 2
-        assert(threads <= THREADS_PER_BLOCK);
-        // Compute the arguments needed to launch the kernel
-        ConvolutionCase3Args<DIM> args;
-        threads = 1;
-        size_t blocks = 1;
+      return;
+    }
+    // Check to see if we support cooperative launches
+    if (properties.cooperativeLaunch) {
+      // See if we fit in the L2 cache
+      if (smem_size <= properties.l2CacheSize) {
+        // Grow the tile to be at least 75% of L2 cache if it isn't already
+        const unsigned threequartersl2 = 3 * properties.l2CacheSize / 4;
+        if (smem_size < threequartersl2)
+          roundup_tile<VAL,DIM>(tile, centers, threequartersl2);
+        // Figure out how many blocks we can launch
+        int blocksPerSM = 0;
+        CHECK_CUDA( cudaOccupancyMaxActiveBlocksPerMultiprocessor(&blocksPerSM,
+              convolution_case2_kernel<VAL,DIM>, COOPERATIVE_THREADS, 0) );
+        const size_t total_blocks = blocksPerSM * properties.multiProcessorCount;
+        // Compute the arguments and launch the kernel
+        ConvolutionCase2Args<DIM> args;
+        size_t tile_pitch = 1;
         args.filter_volume = 1;
-        for (int d = DIM-1; d >= 0; d--) {
-          size_t blocks_along_dim =
-            ((subrect.hi[d] - subrect.lo[d]) + tile[d]) / tile[d];
-          args.grid_pitches[d] = FastDivmodU64(blocks);
-          blocks *= blocks_along_dim;
-          args.block_tiles[d] = tile[d];
-          args.block_pitches[d] = FastDivmodU64(threads);
-          threads *= tile[d];
+        args.tile_count = 1;
+        for (int d = (DIM-1); d >= 0; d--) {
+          args.tile_count *=
+            (((subrect.hi[d] - subrect.lo[d]) + tile[d]) / tile[d]);
+          args.tile_pitches[d] = FastDivmodU64(tile_pitch);
+          tile_pitch *= tile[d];
+          args.tile_strides[d] = tile[d];
+          args.delta_lo[d] = centers[d];
+          args.delta_hi[d] = tile[d] + centers[d] - 1;
           args.filter_centers[d] = centers[d]; 
           args.filter_extents[d] = extents[d];
           args.filter_volume *= extents[d];
         }
-        convolution_case3_kernel<VAL,DIM><<<blocks,threads>>>(
-            out, filter, in, root_rect, subrect, filter_rect, args);
+        size_t total_threads = total_blocks * COOPERATIVE_THREADS;
+        args.thread_points = (tile_pitch + total_threads - 1) / total_threads;
+        args.total_threads = total_threads;
+        void *kernel_args[] =
+          { (void*)&out, (void*)&filter, (void*)&in, (void*)&root_rect, 
+            (void*)&subrect, (void*)&filter_rect, (void*)&args };
+        CHECK_CUDA( cudaLaunchCooperativeKernel((void*)convolution_case2_kernel<VAL,DIM>,
+              total_blocks, COOPERATIVE_THREADS, kernel_args, 0/*null stream*/) );
+        return;
+      }
+      // The whole tile doesn't fit in the L2 cache, see if we can 
+      // find a subset that does while keeping all the partial 
+      // convolution results for the remaining dimensions in the 
+      // register files of all the SMs in the GPU
+      
+
+    }
+    // Case 4: Either we don't support cooperative launches or this is just
+    // a truly horrific convolution that it's just hopeless at trying to 
+    // block for any of the on-chip memory so punt!
+    // Figure out the tile size for the thread block. We want at
+    // least 128B loads along the last dimension if possible. Then
+    // round-robin powers of 2 onto the other dimensions until we 
+    // get the tile to have as many threads as THREADS_PER_BLOCK.
+    size_t limits[DIM];
+    for (int d = 0; d < DIM; d++) {
+      tile[d] = 1;
+      limits[d] = subrect.hi[d] - subrect.lo[d] + 1;
+    }
+    // 2^5 == 32
+    unsigned skip_dims = 0;
+    for (int i = 0; i < 5; i++) {
+      tile[DIM-1] *= 2;
+      if (tile[DIM-1] >= limits[DIM-1]) {
+        skip_dims |= (1 << (DIM-1));
+        break;
       }
     }
+    unsigned threads = tile[DIM-1];
+    for (int i = 0; i < 5; i++) {
+      for (int d = DIM-2; d >= 0; d--) {
+        if (skip_dims & (1 << d))
+          continue;
+        tile[d] *= 2;
+        threads *= 2;
+        if (tile[d] >= limits[d]) {
+          skip_dims |= (1 << d);
+          continue;
+        }
+        if (threads == THREADS_PER_BLOCK)
+          break;
+      }
+      if (threads == THREADS_PER_BLOCK)
+        break;
+    }
+    while ((threads < THREADS_PER_BLOCK) &&
+          (skip_dims != ((1 << (DIM+1)) - 1))) {
+      for (int d = DIM-1; d >= 0; d--) {
+        if (skip_dims & (1 << d))
+          continue;
+        tile[d] *= 2;
+        threads *= 2;
+        if (tile[d] >= limits[d]) {
+          skip_dims |= (1 << d);
+          continue;
+        }
+        if (threads == THREADS_PER_BLOCK)
+          break;
+      }
+    }
+    // should either not have enough points or
+    // THREADS_PER_BLOCK should be a power of 2
+    assert(threads <= THREADS_PER_BLOCK);
+    // Compute the arguments needed to launch the kernel
+    ConvolutionCase4Args<DIM> args;
+    threads = 1;
+    size_t blocks = 1;
+    args.filter_volume = 1;
+    for (int d = DIM-1; d >= 0; d--) {
+      size_t blocks_along_dim =
+        ((subrect.hi[d] - subrect.lo[d]) + tile[d]) / tile[d];
+      args.grid_pitches[d] = FastDivmodU64(blocks);
+      blocks *= blocks_along_dim;
+      args.block_tiles[d] = tile[d];
+      args.block_pitches[d] = FastDivmodU64(threads);
+      threads *= tile[d];
+      args.filter_centers[d] = centers[d]; 
+      args.filter_extents[d] = extents[d];
+      args.filter_volume *= extents[d];
+    }
+    convolution_case4_kernel<VAL,DIM><<<blocks,threads>>>(
+        out, filter, in, root_rect, subrect, filter_rect, args);
   }
 };
 
