@@ -40,7 +40,7 @@ from .deferred import DeferredArray
 from .eager import EagerArray
 from .lazy import LazyArray
 from .thunk import NumPyThunk
-from .utils import calculate_volume, get_arg_dtype, get_arg_value_dtype
+from .utils import calculate_volume, get_arg_dtype
 
 
 class Callsite(object):
@@ -127,10 +127,6 @@ class Runtime(object):
         "test_mode",
         "shadow_debug",
         "callsite_summaries",
-        "first_task_id",
-        "mapper_id",
-        "first_redop_id",
-        "first_proj_id",
         "destroyed",
     ]
 
@@ -139,10 +135,6 @@ class Runtime(object):
         self.legate_runtime = get_legate_runtime()
         self.current_random_epoch = 0
         self.destroyed = False
-
-        # Get the initial task ID and mapper ID
-        self.mapper_id = legate_context.first_mapper_id
-        self.first_redop_id = legate_context.first_redop_id
 
         self.max_eager_volume = self.legate_context.get_tunable(
             NumPyTunable.MAX_EAGER_VOLUME,
@@ -186,7 +178,13 @@ class Runtime(object):
         if arg_dtype not in type_system:
             # We assign T's type code to Argval<T>
             code = type_system[value_dtype].code
-            type_system.add_type(arg_dtype, arg_dtype.itemsize, code)
+            dtype = type_system.add_type(arg_dtype, arg_dtype.itemsize, code)
+
+            for redop in NumPyRedopCode:
+                redop_id = self.legate_context.get_reduction_op_id(
+                    redop.value * legion.MAX_TYPE_NUMBER + code
+                )
+                dtype.register_reduction_op(redop, redop_id)
         return arg_dtype
 
     def destroy(self):
@@ -262,17 +260,9 @@ class Runtime(object):
         else:
             self.callsite_summaries[callsite] = (1 if accelerated else 0, 1)
 
-    # This function packs data in the format expected by UntypedScalar,
-    # so any Future creation in this library should go through this.
-    def create_scalar(self, array, dtype, shape=None, wrap=False):
-        if dtype.kind == "V":
-            is_arg = True
-            code = numpy_field_type_offsets[get_arg_value_dtype(dtype)]
-        else:
-            is_arg = False
-            code = numpy_field_type_offsets[dtype.type]
+    def create_scalar(self, array: memoryview, dtype, shape=None, wrap=False):
         data = array.tobytes()
-        buf = struct.pack(f"ii{len(data)}s", int(is_arg), code, data)
+        buf = struct.pack(f"{len(data)}s", data)
         future = self.legate_runtime.create_future(buf, len(buf))
         if wrap:
             assert all(extent == 1 for extent in shape)
@@ -283,7 +273,7 @@ class Runtime(object):
                 storage=future,
                 optimize_scalar=True,
             )
-            result = DeferredArray(self, store, dtype=dtype, scalar=True)
+            result = DeferredArray(self, store, dtype=dtype)
             if self.shadow_debug:
                 result.shadow = EagerArray(self, np.array(array))
         else:
@@ -324,9 +314,7 @@ class Runtime(object):
             dtype = np.dtype(store.type.to_pandas_dtype())
             primitive = store.storage
             if kind == Future:
-                return DeferredArray(
-                    self, primitive, shape=(), dtype=dtype, scalar=True
-                )
+                return DeferredArray(self, primitive, shape=(), dtype=dtype)
             elif kind == FutureMap:
                 raise NotImplementedError("Need support for FutureMap inputs")
             elif kind == (Region, FieldID):
@@ -339,9 +327,7 @@ class Runtime(object):
                 )
             else:
                 raise TypeError("Unknown LegateStore type")
-            return DeferredArray(
-                self, region_field, region_field.shape, dtype, scalar=False
-            )
+            return DeferredArray(self, region_field, region_field.shape, dtype)
         # See if this is a normal numpy array
         if not isinstance(obj, np.ndarray):
             # If it's not, make it into a numpy array
@@ -423,8 +409,6 @@ class Runtime(object):
         assert div == array.dtype.itemsize
         # Now build the view and dimmap for the parent to create the view
         key = ()
-        view = ()
-        dim_map = ()
         child_idx = 0
         child_strides = tuple(array.strides)
         parent_strides = tuple(array.base.strides)
@@ -435,26 +419,18 @@ class Runtime(object):
                 if child_strides[child_idx] == 0:
                     # Kept an added dimension
                     key += (slice(None, None, None),)
-                    view += (slice(None, None, None),)
-                    dim_map += (0,)
                 else:
                     # Removed an added dimension
                     key += (slice(None, None, None),)
-                    view += (slice(0, 1, 1),)
-                    dim_map += (-1,)
                 child_idx += 1
                 continue
             elif child_idx == array.ndim:
                 key += (slice(offsets[idx], offsets[idx] + 1, 1),)
-                view += (slice(offsets[idx], offsets[idx] + 1, 1),)
-                dim_map += (-1,)
                 continue
             elif child_strides[child_idx] == 0:
                 # Added dimension in the child not in the parent
                 while child_strides[child_idx] == 0:
                     key += (np.newaxis,)
-                    view += (slice(0, 1, 1),)
-                    dim_map += (1,)
                     child_idx += 1
                 # Fall through to the base case
             # Stides in the child should always be greater than or equal
@@ -463,21 +439,17 @@ class Runtime(object):
             start = offsets[idx]
             if child_strides[child_idx] < parent_strides[idx]:
                 key += (slice(start, start + 1, 1),)
-                view += (slice(start, start + 1, 1),)
-                dim_map += (-1,)
                 # Doesn't count against the child_idx
             else:
                 stride = child_strides[child_idx] // parent_strides[idx]
                 stop = start + stride * array.shape[child_idx]
                 key += (slice(start, stop, stride),)
-                view += (slice(start, stop, stride),)
-                dim_map += (0,)
                 child_idx += 1
         assert child_idx <= array.ndim
         if child_idx < array.ndim:
-            return None, None, None
+            return None
         else:
-            return key, view, dim_map
+            return key
 
     def find_or_create_array_thunk(
         self, array, stacklevel, share=False, defer=False
@@ -490,7 +462,7 @@ class Runtime(object):
         # is to always create the thunk for the root array and
         # then create sub-thunks that mirror the array views
         if array.base is not None and isinstance(array.base, np.ndarray):
-            key, view, dim_map = self.compute_parent_child_mapping(array)
+            key = self.compute_parent_child_mapping(array)
             if key is None:
                 # This base array wasn't made with a view
                 if not share:
@@ -513,12 +485,7 @@ class Runtime(object):
             )
             # Don't store this one in the ptr_to_thunk as we only want to
             # store the root ones
-            return parent_thunk.get_item(
-                key=key,
-                stacklevel=(stacklevel + 1),
-                view=view,
-                dim_map=dim_map,
-            )
+            return parent_thunk.get_item(key, stacklevel=(stacklevel + 1))
         elif array.size == 0:
             # We always store completely empty arrays with eager thunks
             assert not defer
@@ -543,17 +510,20 @@ class Runtime(object):
                 return result
             else:
                 # This is not a scalar so make a field
-                store = self.legate_context.attach_external_allocation(
-                    NumPyAllocation(array),
-                    array.shape,
+                store = self.legate_context.create_store(
                     array.dtype,
+                    shape=array.shape,
+                    optimize_scalar=False,
+                )
+                store.attach_external_allocation(
+                    self.legate_context,
+                    NumPyAllocation(array),
                     share,
                 )
                 result = DeferredArray(
                     self,
                     store,
                     dtype=array.dtype,
-                    scalar=(array.size == 1),
                     numpy_array=array if share else None,
                 )
             # If we're doing shadow debug make an EagerArray shadow
@@ -575,8 +545,7 @@ class Runtime(object):
             store = self.legate_context.create_store(
                 dtype, shape=shape, optimize_scalar=True
             )
-            scalar = store.kind == Future
-            result = DeferredArray(self, store, dtype=dtype, scalar=scalar)
+            result = DeferredArray(self, store, dtype=dtype)
             # If we're doing shadow debug make an EagerArray shadow
             if self.shadow_debug:
                 result.shadow = EagerArray(
@@ -590,7 +559,7 @@ class Runtime(object):
 
     def create_unbound_thunk(self, dtype):
         store = self.legate_context.create_store(dtype)
-        return DeferredArray(self, store, dtype=dtype, scalar=False)
+        return DeferredArray(self, store, dtype=dtype)
 
     def is_eager_shape(self, shape):
         volume = calculate_volume(shape)
@@ -661,32 +630,6 @@ class Runtime(object):
             raise NotImplementedError("convert eager array to lazy array")
         else:
             raise RuntimeError("invalid array type")
-
-    def get_task_id(self, op_code):
-        return self.first_task_id + op_code.value
-
-    def _convert_reduction_op_id(self, redop_id, field_dtype):
-        base = (
-            legion.LEGION_REDOP_BASE
-            if redop_id < legion.LEGION_REDOP_KIND_TOTAL
-            else self.first_redop_id
-        )
-        result = base + redop_id * legion.LEGION_TYPE_TOTAL
-        return result + numpy_field_type_offsets[field_dtype.type]
-
-    def get_reduction_op_id(self, op, field_dtype):
-        redop_id = numpy_reduction_op_offsets[op]
-        return self._convert_reduction_op_id(redop_id, field_dtype)
-
-    def get_unary_reduction_op_id(self, op, field_dtype):
-        redop_id = numpy_unary_reduction_op_offsets[op]
-        return self._convert_reduction_op_id(redop_id, field_dtype)
-
-    def get_scalar_reduction_op_id(self, op):
-        return self.first_redop_id + numpy_scalar_reduction_op_offsets[op]
-
-    def get_reduction_identity(self, op, dtype):
-        return numpy_unary_reduction_identities[op](dtype)
 
     def check_shadow(self, thunk, op):
         assert thunk.shadow is not None

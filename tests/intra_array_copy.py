@@ -21,7 +21,7 @@ from legate.core import LEGATE_MAX_DIM
 
 def random_array(lib, ndim):
     np.random.seed(42)
-    return lib.asarray(np.random.random_sample(ndim * (5,)))
+    return lib.array(np.random.random_sample(ndim * (5,)))
 
 
 def nd_view_of_1d(lib, ndim):

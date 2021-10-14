@@ -101,8 +101,16 @@ class NumPyThunk(object):
         """
         raise NotImplementedError("Implement in derived classes")
 
+    @property
+    def scalar(self):
+        """If true then this thunk is convertible to a  ()-shape array
+
+        :meta private:
+        """
+        raise NotImplementedError("Implement in derived classes")
+
     def get_scalar_array(self, stacklevel):
-        """Get the actual scalar value of the thunk
+        """Get the actual value out of a scalar thunk, as a ()-shape array
 
         :meta private:
         """

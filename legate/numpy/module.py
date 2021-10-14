@@ -15,11 +15,13 @@
 
 import math
 import sys
+from inspect import signature
+from typing import Optional, Set
 
 import numpy as np
 
 from .array import ndarray
-from .config import BinaryOpCode, UnaryOpCode
+from .config import BinaryOpCode, UnaryOpCode, UnaryRedCode
 from .doc_utils import copy_docstring
 from .runtime import runtime
 
@@ -32,6 +34,116 @@ try:
     import __builtin__ as builtins  # Python 2
 except ModuleNotFoundError:
     import builtins as builtins  # Python 3
+
+
+def add_boilerplate(*array_params: str):
+    """
+    Adds required boilerplate to the wrapped module-level ndarray function.
+
+    Every time the wrapped function is called, this wrapper will:
+    * Convert all specified array-like parameters, plus the special "out"
+      parameter (if present), to Legate ndarrays.
+    * Convert the special "where" parameter (if present) to a valid predicate.
+    * Handle the case of scalar Legate ndarrays, by forwarding the operation
+      to the equivalent `()`-shape numpy array.
+
+    NOTE: Assumes that no parameters are mutated besides `out`.
+    """
+    keys: Set[str] = set(array_params)
+
+    def decorator(func):
+        assert not hasattr(
+            func, "__wrapped__"
+        ), "this decorator must be the innermost"
+
+        # For each parameter specified by name, also consider the case where
+        # it's passed as a positional parameter.
+        indices: Set[int] = set()
+        all_formals: Set[str] = set()
+        where_idx: Optional[int] = None
+        out_idx: Optional[int] = None
+        for (idx, param) in enumerate(signature(func).parameters):
+            all_formals.add(param)
+            if param == "where":
+                where_idx = idx
+            elif param == "out":
+                out_idx = idx
+            elif param in keys:
+                indices.add(idx)
+        assert len(keys - all_formals) == 0, "unkonwn parameter(s)"
+
+        def wrapper(*args, **kwargs):
+            assert (where_idx is None or len(args) <= where_idx) and (
+                out_idx is None or len(args) <= out_idx
+            ), "'where' and 'out' should be passed as keyword arguments"
+            stacklevel = kwargs.get("stacklevel", 0) + 1
+            kwargs["stacklevel"] = stacklevel
+
+            # Convert relevant arguments to Legate ndarrays
+            args = tuple(
+                ndarray.convert_to_legate_ndarray(arg, stacklevel=stacklevel)
+                if idx in indices and arg is not None
+                else arg
+                for (idx, arg) in enumerate(args)
+            )
+            for (k, v) in kwargs.items():
+                if v is None:
+                    continue
+                elif k == "where":
+                    kwargs[k] = ndarray.convert_to_predicate_ndarray(
+                        v, stacklevel=stacklevel
+                    )
+                elif k == "out":
+                    kwargs[k] = ndarray.convert_to_legate_ndarray(
+                        v, stacklevel=stacklevel, share=True
+                    )
+                elif k in keys:
+                    kwargs[k] = ndarray.convert_to_legate_ndarray(
+                        v, stacklevel=stacklevel
+                    )
+
+            # Handle the case where all array-like parameters are scalar, by
+            # performing the operation on the equivalent scalar numpy arrays.
+            # NOTE: This mplicitly blocks on the contents of the scalar arrays.
+            if all(
+                arg._thunk.scalar
+                for (idx, arg) in enumerate(args)
+                if (idx in indices) and isinstance(arg, ndarray)
+            ) and all(
+                v._thunk.scalar
+                for (k, v) in kwargs.items()
+                if (k in keys or k == "where") and isinstance(v, ndarray)
+            ):
+                out = None
+                if "out" in kwargs:
+                    out = kwargs["out"]
+                    del kwargs["out"]
+                del kwargs["stacklevel"]
+                args = tuple(
+                    arg._thunk.__numpy_array__(stacklevel=stacklevel)
+                    if (idx in indices) and isinstance(arg, ndarray)
+                    else arg
+                    for (idx, arg) in enumerate(args)
+                )
+                for (k, v) in kwargs.items():
+                    if (k in keys or k == "where") and isinstance(v, ndarray):
+                        kwargs[k] = v._thunk.__numpy_array__(
+                            stacklevel=stacklevel
+                        )
+                result = ndarray.convert_to_legate_ndarray(
+                    getattr(np, func.__name__)(*args, **kwargs)
+                )
+                if out is not None:
+                    out._thunk.copy(result._thunk, stacklevel=stacklevel)
+                    result = out
+                return result
+
+            return func(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
 
 # ### ARRAY CREATION ROUTINES
 
@@ -84,8 +196,8 @@ def array(obj, dtype=None, copy=True, order="K", subok=False, ndmin=0):
 @copy_docstring(np.diag)
 def diag(v, k=0):
     array = ndarray.convert_to_legate_ndarray(v)
-    if array.size == 1:
-        return v
+    if array._thunk.scalar:
+        return array.copy()
     elif array.ndim == 1:
         # Make a diagonal matrix from the array
         N = array.shape[0] + builtins.abs(k)
@@ -1505,9 +1617,18 @@ def where(a, x=None, y=None):
 
 
 @copy_docstring(np.count_nonzero)
-def count_nonzero(a, axis=None):
-    lg_array = ndarray.convert_to_legate_ndarray(a, stacklevel=2)
-    return lg_array.count_nonzero(axis=axis, stacklevel=2)
+@add_boilerplate("a")
+def count_nonzero(a, axis=None, stacklevel=1):
+    if a.size == 0:
+        return 0
+    return ndarray.perform_unary_reduction(
+        UnaryRedCode.COUNT_NONZERO,
+        a,
+        axis=axis,
+        dtype=np.dtype(np.uint64),
+        stacklevel=(stacklevel + 1),
+        check_types=False,
+    )
 
 
 # ### STATISTICS

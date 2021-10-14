@@ -13,17 +13,17 @@
 # limitations under the License.
 #
 
-import random
-
 import numpy as np
+from test_tools.generators import scalar_gen
 
 import legate.numpy as lg
 
 
 def test():
-    a = random.randint(0, 13)
-    assert np.array_equal(lg.logical_not(a), np.logical_not(a))
-    return
+    test_values = [False, True]
+    for a in test_values:
+        for (la, na) in zip(scalar_gen(lg, a), scalar_gen(np, a)):
+            assert np.array_equal(lg.logical_not(la), np.logical_not(na))
 
 
 if __name__ == "__main__":

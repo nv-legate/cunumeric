@@ -35,7 +35,10 @@ class EagerArray(NumPyThunk):
         self.parent = parent
         self.children = None
         self.key = key
+        #: if this ever becomes set (to a DeferredArray), we forward all
+        #: operations to it
         self.deferred = None
+        #: if True then this is a shadow debugging copy of a DeferredArray
         self.shadow = shadow
         self.escaped = False
 
@@ -90,7 +93,7 @@ class EagerArray(NumPyThunk):
             if self.parent is None:
                 assert self.runtime.is_supported_type(self.array.dtype)
                 # We are at the root of the tree so we need to
-                # actually make DeferredArray to use
+                # actually make a DeferredArray to use
                 if self.array.size == 1:
                     self.deferred = self.runtime.create_scalar(
                         self.array.data,
@@ -163,6 +166,12 @@ class EagerArray(NumPyThunk):
                     self.array[:] = rhs.array
             self.runtime.profile_callsite(stacklevel + 1, False)
 
+    @property
+    def scalar(self):
+        if self.deferred is not None:
+            return self.deferred.scalar
+        return self.array.size == 1
+
     def get_scalar_array(self, stacklevel):
         if self.deferred is not None:
             return self.deferred.get_scalar_array(stacklevel=(stacklevel + 1))
@@ -185,11 +194,9 @@ class EagerArray(NumPyThunk):
             key, stacklevel=(stacklevel + 1)
         ).array
 
-    def get_item(self, key, stacklevel, view=None, dim_map=None):
+    def get_item(self, key, stacklevel):
         if self.deferred is not None:
-            return self.deferred.get_item(
-                key, stacklevel=(stacklevel + 1), view=view, dim_map=dim_map
-            )
+            return self.deferred.get_item(key, stacklevel=(stacklevel + 1))
         if self._is_advanced_indexing(key):
             index_key = self._create_indexing_key(key, stacklevel + 1)
             out = self.array[index_key]

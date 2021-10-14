@@ -64,7 +64,13 @@ def cnd(d):
 
 def black_scholes(S, X, T, R, V):
     sqrt_t = np.sqrt(T)
-    d1 = np.log(S / X) + (R + 0.5 * V * V) * T / (V * sqrt_t)
+    #d1 = np.log(S / X) + (R + 0.5 * V * V) * T / (V * sqrt_t)
+    d1a = np.log(S / X)
+    d1b = (R + 0.5 * V * V) 
+    d1c = d1b*T
+    d1d = d1c/(V * sqrt_t)
+    d1 = d1a+d1d
+
     d2 = d1 - V * sqrt_t
     cnd_d1 = cnd(d1)
     cnd_d2 = cnd(d2)

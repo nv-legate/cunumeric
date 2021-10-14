@@ -15,7 +15,7 @@
  */
 
 #include "fused/binary_op_util.h"
-#include "pitches.h"
+//#include "pitches.h"
 
 namespace legate {
 namespace numpy {

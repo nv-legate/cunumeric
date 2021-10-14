@@ -16,6 +16,8 @@
 import warnings
 from collections.abc import Iterable
 from functools import reduce
+from inspect import signature
+from typing import Optional, Set, Tuple
 
 import numpy as np
 import pyarrow
@@ -27,6 +29,127 @@ from .config import BinaryOpCode, NumPyOpCode, UnaryOpCode, UnaryRedCode, FusedO
 from .doc_utils import copy_docstring
 from .runtime import runtime
 from .utils import unimplemented
+
+
+def add_boilerplate(*array_params: str, mutates_self: bool = False):
+    """
+    Adds required boilerplate to the wrapped Legate ndarray member function.
+
+    Every time the wrapped function is called, this wrapper will:
+    * Convert all specified array-like parameters, plus the special "out"
+      parameter (if present), to Legate ndarrays.
+    * Convert the special "where" parameter (if present) to a valid predicate.
+    * Handle the case of scalar Legate ndarrays, by forwarding the operation
+      to the equivalent `()`-shape numpy array.
+
+    NOTE: Assumes that no parameters are mutated besides `out`, and `self` if
+    `mutates_self` is True.
+    """
+    keys: Set[str] = set(array_params)
+
+    def decorator(func):
+        assert not hasattr(
+            func, "__wrapped__"
+        ), "this decorator must be the innermost"
+
+        # For each parameter specified by name, also consider the case where
+        # it's passed as a positional parameter.
+        indices: Set[int] = set()
+        all_formals: Set[str] = set()
+        where_idx: Optional[int] = None
+        out_idx: Optional[int] = None
+        for (idx, param) in enumerate(signature(func).parameters):
+            all_formals.add(param)
+            if param == "where":
+                where_idx = idx
+            elif param == "out":
+                out_idx = idx
+            elif param in keys:
+                indices.add(idx)
+        assert len(keys - all_formals) == 0, "unkonwn parameter(s)"
+
+        def wrapper(*args, **kwargs):
+            self = args[0]
+            assert (where_idx is None or len(args) <= where_idx) and (
+                out_idx is None or len(args) <= out_idx
+            ), "'where' and 'out' should be passed as keyword arguments"
+            stacklevel = kwargs.get("stacklevel", 0) + 1
+            kwargs["stacklevel"] = stacklevel
+
+            # Convert relevant arguments to Legate ndarrays
+            args = tuple(
+                ndarray.convert_to_legate_ndarray(arg, stacklevel=stacklevel)
+                if idx in indices and arg is not None
+                else arg
+                for (idx, arg) in enumerate(args)
+            )
+            for (k, v) in kwargs.items():
+                if v is None:
+                    continue
+                elif k == "where":
+                    kwargs[k] = ndarray.convert_to_predicate_ndarray(
+                        v, stacklevel=stacklevel
+                    )
+                elif k == "out":
+                    kwargs[k] = ndarray.convert_to_legate_ndarray(
+                        v, stacklevel=stacklevel, share=True
+                    )
+                elif k in keys:
+                    kwargs[k] = ndarray.convert_to_legate_ndarray(
+                        v, stacklevel=stacklevel
+                    )
+
+            # Handle the case where all array-like parameters are scalar, by
+            # performing the operation on the equivalent scalar numpy arrays.
+            # NOTE: This mplicitly blocks on the contents of the scalar arrays.
+            if all(
+                arg._thunk.scalar
+                for (idx, arg) in enumerate(args)
+                if (idx in indices or idx == 0) and isinstance(arg, ndarray)
+            ) and all(
+                v._thunk.scalar
+                for (k, v) in kwargs.items()
+                if (k in keys or k == "where") and isinstance(v, ndarray)
+            ):
+                out = None
+                if "out" in kwargs:
+                    out = kwargs["out"]
+                    del kwargs["out"]
+                del kwargs["stacklevel"]
+                args = tuple(
+                    arg._thunk.__numpy_array__(stacklevel=stacklevel)
+                    if (idx in indices or idx == 0)
+                    and isinstance(arg, ndarray)
+                    else arg
+                    for (idx, arg) in enumerate(args)
+                )
+                for (k, v) in kwargs.items():
+                    if (k in keys or k == "where") and isinstance(v, ndarray):
+                        kwargs[k] = v._thunk.__numpy_array__(
+                            stacklevel=stacklevel
+                        )
+                self_scalar = args[0]
+                args = args[1:]
+                result = ndarray.convert_to_legate_ndarray(
+                    getattr(self_scalar, func.__name__)(*args, **kwargs)
+                )
+                if mutates_self:
+                    self._thunk = runtime.create_scalar(
+                        self_scalar.data,
+                        self_scalar.dtype,
+                        shape=self_scalar.shape,
+                        wrap=True,
+                    )
+                if out is not None:
+                    out._thunk.copy(result._thunk, stacklevel=stacklevel)
+                    result = out
+                return result
+
+            return func(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
 
 
 def broadcast_shapes(*args):
@@ -121,13 +244,13 @@ class ndarray(object):
             thunk = obj._thunk
         else:
             thunk = runtime.get_numpy_thunk(obj, stacklevel=(stacklevel + 1))
-        if thunk.size == 1:
+        if thunk.scalar:
             # Convert this into a bool for now, in the future we may want to
             # defer this anyway to avoid blocking deferred execution
-            return bool(thunk.get_scalar_array(stacklevel=(stacklevel + 1)))
+            return bool(thunk.__numpy_array__(stacklevel=(stacklevel + 1)))
         result = ndarray(shape=None, stacklevel=(stacklevel + 1), thunk=thunk)
         # If the type of the thunk is not bool then we need to convert it
-        if obj.dtype != np.bool_:
+        if result.dtype != np.bool_:
             temp = ndarray(
                 result.shape,
                 dtype=np.dtype(np.bool_),
@@ -271,16 +394,10 @@ class ndarray(object):
     #    return self.__array__(stacklevel=2).__array_wrap__(*args, **kwargs)
 
     def __bool__(self):
-        if self.size == 1:
-            return bool(self._thunk.get_scalar_array(stacklevel=2))
-        else:
-            return bool(self.__array__(stacklevel=2))
+        return bool(self.__array__(stacklevel=2))
 
     def __complex__(self):
-        if self.size == 1:
-            return complex(self._thunk.get_scalar_array(stacklevel=2))
-        else:
-            return complex(self.__array__(stacklevel=2))
+        return complex(self.__array__(stacklevel=2))
 
     def __contains__(self, item):
         if isinstance(item, np.ndarray):
@@ -323,10 +440,7 @@ class ndarray(object):
         )
 
     def __float__(self):
-        if self.size == 1:
-            return float(self._thunk.get_scalar_array(stacklevel=2))
-        else:
-            return float(self.__array__(stacklevel=2))
+        return float(self.__array__(stacklevel=2))
 
     def __floordiv__(self, rhs):
         rhs_array = self.convert_to_legate_ndarray(rhs)
@@ -393,14 +507,8 @@ class ndarray(object):
                 key, stacklevel=(stacklevel + 1)
             )._thunk
 
-    def __getitem__(self, key):
-        # If we're a scalar, we're our own value
-        if self.size == 1:
-            if (self.ndim == 0 and key != () and key != Ellipsis) or (
-                key != ((0,) * self.ndim)
-            ):
-                raise KeyError("invalid key passed to legate.numpy.ndarray")
-            return self
+    @add_boilerplate()
+    def __getitem__(self, key, stacklevel=1):
         key = self._convert_key(key)
         return ndarray(
             shape=None, thunk=self._thunk.get_item(key, stacklevel=2)
@@ -462,10 +570,7 @@ class ndarray(object):
         return self
 
     def __int__(self):
-        if self.size == 1:
-            return int(self._thunk.get_scalar_array(stacklevel=2))
-        else:
-            return int(self.__array__(stacklevel=2))
+        return int(self.__array__(stacklevel=2))
 
     def __invert__(self):
         if self.dtype == np.bool_:
@@ -620,67 +725,15 @@ class ndarray(object):
 
     # __new__
 
-    def count_nonzero(self, stacklevel, axis):
-        # unary_reduction will reduce size 1 arrays to themeslves for
-        # deferred arrays.  Because of that, we need to handle size 1
-        # explicitly.
-        if self.size == 1:
-            return self.convert_to_legate_ndarray(
-                int(
-                    self._thunk.get_scalar_array(
-                        stacklevel=(stacklevel + 1)
-                    ).item()
-                    != 0
-                )
-            )
-        if self.size == 0:
-            return 0
-        return self.perform_unary_reduction(
-            UnaryRedCode.COUNT_NONZERO,
-            self,
-            axis=axis,
-            dtype=np.dtype(np.uint64),
-            stacklevel=(stacklevel + 1),
-            check_types=False,
-        )
-
+    @add_boilerplate()
     def nonzero(self, stacklevel=1):
-        # This case is handled at the high level.  Deferred nonzero expects
-        # the input to not have size 1 (future base).
-        if self.size == 1:
-            ndim = self.ndim + int(self.ndim == 0)
-            if self._thunk.get_scalar_array(stacklevel=stacklevel + 1) == 0:
-                return (
-                    ndarray(
-                        shape=(0,),
-                        thunk=runtime.find_or_create_array_thunk(
-                            np.array([]),
-                            stacklevel=stacklevel + 1,
-                            share=False,
-                        ),
-                    ),
-                ) * ndim
-            else:
-                return (
-                    ndarray(
-                        shape=(1,),
-                        thunk=runtime.find_or_create_array_thunk(
-                            np.array([0]),
-                            stacklevel=stacklevel + 1,
-                            share=False,
-                        ),
-                    ),
-                ) * ndim
         thunks = self._thunk.nonzero(stacklevel=stacklevel + 1)
         return tuple(
             ndarray(shape=thunk.shape, thunk=thunk) for thunk in thunks
         )
 
     def __nonzero__(self):
-        if self.size == 1:
-            return bool(self._thunk.get_scalar_array(stacklevel=2) != 0)
-        else:
-            return self.__array__(stacklevel=2).__nonzero__()
+        return self.__array__(stacklevel=2).__nonzero__()
 
     def __pos__(self):
         # We know these types are already positive
@@ -720,10 +773,7 @@ class ndarray(object):
         return self.__array__(stacklevel=2).__reduce_ex__(*args, **kwargs)
 
     def __repr__(self):
-        if self.size == 1:
-            return repr(self._thunk.get_scalar_array(stacklevel=2))
-        else:
-            return repr(self.__array__(stacklevel=2))
+        return repr(self.__array__(stacklevel=2))
 
     def __rfloordiv__(self, lhs):
         lhs_array = self.convert_to_legate_ndarray(lhs)
@@ -765,23 +815,16 @@ class ndarray(object):
 
     # __setattr__
 
-    def __setitem__(self, key, value):
+    @add_boilerplate("value", mutates_self=True)
+    def __setitem__(self, key, value, stacklevel=1):
         if key is None:
             raise KeyError("invalid key passed to legate.numpy.ndarray")
-        value_array = self.convert_to_legate_ndarray(value)
-        if value_array.dtype != self.dtype:
-            temp = ndarray(
-                value_array.shape, dtype=self.dtype, inputs=(value_array,)
-            )
-            temp._thunk.convert(value_array._thunk, stacklevel=2)
-            value_array = temp
-        if self.size == 1:
-            if (self.ndim == 0 and key != () and key != Ellipsis) or (
-                key != ((0,) * self.ndim)
-            ):
-                raise KeyError("invalid key passed to legate.numpy.ndarray")
+        if value.dtype != self.dtype:
+            temp = ndarray(value.shape, dtype=self.dtype, inputs=(value,))
+            temp._thunk.convert(value._thunk, stacklevel=2)
+            value = temp
         key = self._convert_key(key)
-        self._thunk.set_item(key, value_array._thunk, stacklevel=2)
+        self._thunk.set_item(key, value._thunk, stacklevel=2)
 
     def __setstate__(self, state):
         self.__array__(stacklevel=2).__setstate__(state)
@@ -794,14 +837,7 @@ class ndarray(object):
         return self.perform_binary_op(BinaryOpCode.SUBTRACT, self, rhs_array)
 
     def __str__(self):
-        if self.size == 1:
-            return str(
-                np.reshape(
-                    self._thunk.get_scalar_array(stacklevel=2), self.shape
-                )
-            )
-        else:
-            return str(self.__array__(stacklevel=2))
+        return str(self.__array__(stacklevel=2))
 
     def __truediv__(self, rhs, stacklevel=1):
         return self.internal_truediv(
@@ -909,9 +945,7 @@ class ndarray(object):
             np.array(min, dtype=self.dtype),
             np.array(max, dtype=self.dtype),
         )
-        if (args[0] is not None and args[0].size != 1) or (
-            args[1] is not None and args[1].size != 1
-        ):
+        if args[0].size != 1 or args[1].size != 1:
             warnings.warn(
                 "legate.numpy has not implemented clip with array-like "
                 "arguments and is falling back to canonical numpy. You "
@@ -1117,31 +1151,37 @@ class ndarray(object):
             "for ndarray.getfield"
         )
 
+    def _convert_singleton_key(self, args: Tuple):
+        if len(args) == 0 and self.size == 1:
+            return (0,) * self.ndim
+        if len(args) == 1 and isinstance(args[0], int):
+            flat_idx = args[0]
+            result = ()
+            for dim_size in reversed(self.shape):
+                result = (flat_idx % dim_size,) + result
+                flat_idx //= dim_size
+            return result
+        if len(args) == 1 and isinstance(args[0], tuple):
+            args = args[0]
+        if len(args) != self.ndim or any(not isinstance(x, int) for x in args):
+            raise KeyError("invalid key")
+        return args
+
     def item(self, *args):
-        if args is None:
-            raise KeyError("invalid key passed to legate.numpy.ndarray")
-        key = self._convert_key(args)
-        result = ndarray(
-            shape=None, thunk=self._thunk.get_item(key, stacklevel=2)
-        )
-        assert result.size == 1
-        if self.dtype.kind == "f":
-            return float(result)
-        elif self.dtype.kind == "i" or self.dtype.kind == "u":
-            return int(result)
-        elif self.dtype.kind == "b":
-            return bool(result)
-        else:
-            raise TypeError("Invalid dtype")
+        key = self._convert_singleton_key(args)
+        result = self[key]
+        assert result.shape == ()
+        return result._thunk.__numpy_array__(stacklevel=1)
 
-    def itemset(self, key, value=0):
-        if key is None:
-            raise KeyError("invalid key passed to legate.numpy.ndarray")
-        key = self._convert_key(key)
-        val = np.array(value, dtype=self.dtype)
-        value_array = self.convert_to_legate_ndarray(val)
-        self._thunk.set_item(key, value_array._thunk, stacklevel=2)
+    def itemset(self, *args):
+        if len(args) == 0:
+            raise KeyError("itemset() requires at least one argument")
+        value = args[-1]
+        args = args[:-1]
+        key = self._convert_singleton_key(args)
+        self[key] = value
 
+    @add_boilerplate()
     def max(
         self,
         axis=None,
@@ -1151,19 +1191,6 @@ class ndarray(object):
         where=True,
         stacklevel=1,
     ):
-        where = self.convert_to_predicate_ndarray(
-            where, stacklevel=(stacklevel + 1)
-        )
-        if self.size == 1:
-            if out is not None:
-                out._thunk.copy(self._thunk, stacklevel=stacklevel + 1)
-                return out
-            else:
-                return self
-        if out is not None:
-            out = self.convert_to_legate_ndarray(
-                out, stacklevel=(stacklevel + 1), share=True
-            )
         return self.perform_unary_reduction(
             UnaryRedCode.MAX,
             self,
@@ -1175,6 +1202,7 @@ class ndarray(object):
             stacklevel=(stacklevel + 1),
         )
 
+    @add_boilerplate()
     def mean(
         self, axis=None, dtype=None, out=None, keepdims=False, stacklevel=1
     ):
@@ -1189,10 +1217,6 @@ class ndarray(object):
                 dtype = np.dtype(np.float64)
             else:
                 dtype = self.dtype
-        if out is not None:
-            out = ndarray.convert_to_legate_ndarray(
-                out, stacklevel=(stacklevel + 1), share=True
-            )
         # Do the sum
         if out is not None and out.dtype == dtype:
             sum_array = self.sum(
@@ -1231,6 +1255,7 @@ class ndarray(object):
         else:
             return sum_array
 
+    @add_boilerplate()
     def min(
         self,
         axis=None,
@@ -1240,19 +1265,6 @@ class ndarray(object):
         where=True,
         stacklevel=1,
     ):
-        where = self.convert_to_predicate_ndarray(
-            where, stacklevel=(stacklevel + 1)
-        )
-        if self.size == 1:
-            if out is not None:
-                out._thunk.copy(self._thunk, stacklevel=stacklevel + 1)
-                return out
-            else:
-                return self
-        if out is not None:
-            out = self.convert_to_legate_ndarray(
-                out, stacklevel=(stacklevel + 1), share=True
-            )
         return self.perform_unary_reduction(
             UnaryRedCode.MIN,
             self,
@@ -1270,6 +1282,7 @@ class ndarray(object):
             kth=kth, axis=axis, kind=kind, order=order
         )
 
+    @add_boilerplate()
     def prod(
         self,
         axis=None,
@@ -1280,16 +1293,6 @@ class ndarray(object):
         where=True,
         stacklevel=1,
     ):
-        if self.size == 1:
-            if out is not None:
-                self.copy(out)
-                return out
-            else:
-                return self
-        self_array = self
-        where = self.convert_to_predicate_ndarray(
-            where, stacklevel=(stacklevel + 1)
-        )
         if self.dtype.type == np.bool_:
             temp = ndarray(
                 shape=self.shape,
@@ -1299,10 +1302,8 @@ class ndarray(object):
             )
             temp._thunk.convert(self._thunk, stacklevel=(stacklevel + 1))
             self_array = temp
-        if out is not None:
-            out = self.convert_to_legate_ndarray(
-                out, stacklevel=(stacklevel + 1), share=True
-            )
+        else:
+            self_array = self
         return self.perform_unary_reduction(
             UnaryRedCode.PROD,
             self_array,
@@ -1466,6 +1467,7 @@ class ndarray(object):
         )
         return self.convert_to_legate_ndarray(numpy_array, stacklevel=3)
 
+    @add_boilerplate()
     def sum(
         self,
         axis=None,
@@ -1476,18 +1478,6 @@ class ndarray(object):
         where=True,
         stacklevel=1,
     ):
-        if self.size == 1:
-            if out is not None:
-                self.copy(out)
-                return out
-            else:
-                return np.copy(
-                    self._thunk.get_scalar_array(stacklevel=stacklevel + 1)
-                )
-        self_array = self
-        where = self.convert_to_predicate_ndarray(
-            where, stacklevel=(stacklevel + 1)
-        )
         if self.dtype.type == np.bool_:
             temp = ndarray(
                 shape=self.shape,
@@ -1497,10 +1487,8 @@ class ndarray(object):
             )
             temp._thunk.convert(self._thunk, stacklevel=(stacklevel + 1))
             self_array = temp
-        if out is not None:
-            out = self.convert_to_legate_ndarray(
-                out, stacklevel=(stacklevel + 1), share=True
-            )
+        else:
+            self_array = self
         return self.perform_unary_reduction(
             UnaryRedCode.SUM,
             self_array,
@@ -1596,25 +1584,13 @@ class ndarray(object):
     def get_where_thunk(cls, where, out_shape, stacklevel):
         if where is True:
             return True
-        elif where is False:
+        if where is False:
             raise RuntimeError("should have caught this earlier")
-        else:
-            array = cls.convert_to_legate_array(where)
-            if array.shape != out_shape:
-                raise ValueError(
-                    "where parameter must have same shape as output"
-                )
-            # Convert this to a bool array if needed
-            if array.dtype != np.bool_:
-                temp = ndarray(
-                    shape=array.shape,
-                    dtype=np.dtype(np.bool_),
-                    stacklevel=(stacklevel + 1),
-                    inputs=(array,),
-                )
-                temp._thunk.convert(array._thunk, stacklevel=(stacklevel + 1))
-                array = temp
-            return array._thunk
+        if not isinstance(where, ndarray) or where.dtype != np.bool_:
+            raise RuntimeError("should have converted this earlier")
+        if where.shape != out_shape:
+            raise ValueError("where parameter must have same shape as output")
+        return where._thunk
 
     @staticmethod
     def find_common_type(*args):
