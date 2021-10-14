@@ -1460,6 +1460,11 @@ class DeferredArray(NumPyThunk):
         # Populate the Legate launcher
         all_scalar_rhs = rhs1.scalar and rhs2.scalar
 
+
+        if (src1.scalar):
+            print("is scalar")
+            print("is_ready", src1.base.storage.is_ready())
+
         if all_scalar_rhs:
             task_id = NumPyOpCode.SCALAR_BINARY_OP
         else:

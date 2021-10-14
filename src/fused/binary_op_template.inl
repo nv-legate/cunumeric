@@ -116,8 +116,8 @@ static void binary_op_template(TaskContext& context)
 
   int inputStart=0;
   int outputStart=0;
-  
-  for (int i=0; i<nOps; i++)
+ 
+  for (int i=0; i<1; i++)
   {
     BinaryOpArgs args{
       inputs[inputStart+0], inputs[inputStart+1], outputs[outputStart],  scalars[outputStart].value<BinaryOpCode>(), std::move(extra_args)};

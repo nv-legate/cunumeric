@@ -21,6 +21,7 @@
 #include <set>
 #include <time.h>
 #include <sys/time.h>
+#include <valgrind/callgrind.h>
 
 namespace legate {
 namespace numpy {
@@ -131,13 +132,15 @@ void packOp(MakeshiftSerializer& ms, TaskContext& context, int opID)
   int nOps = context.fusionMetadata.nOps;
   //struct timeval start, end; 
   MakeshiftSerializer ms;
-  //gettimeofday(&start, NULL);
-  
+  //VariantID chosen_variant = 0;
+  //Legion::Internal::VariantImpl* variant_impl = context.runtime_->find_variant(1074141829, 0); 
+  //bool isLeaf = variant_impl->is_leaf();
+  auto opIDs = context.fusionMetadata.opIDs;
   for (int i=0; i<nOps; i++)
   {
       ms.zero(); //reset the serializer, but keep the memory
       packOp(ms, context, i);
-      TaskLauncher leaf_launcher(1074141829, TaskArgument(ms.ptr(), ms.buffSize())); 
+      TaskLauncher leaf_launcher(opIDs[i], TaskArgument(ms.ptr(), ms.buffSize())); 
       leaf_launcher.enable_inlining=true;
       leaf_launcher.point = context.task_->index_point;
       
@@ -148,13 +151,23 @@ void packOp(MakeshiftSerializer& ms, TaskContext& context, int opID)
           auto& req = context.task_->regions[reqIdx];
           leaf_launcher.add_region_requirement(req);
       } 
+      //add appropriate futures
+      auto futureStarts = context.fusionMetadata.futureStarts;
+      for (int32_t fuid = futureStarts[i]; fuid<futureStarts[i+1]; fuid++)
+      {
+          auto& f = context.task_->futures[fuid];
+          leaf_launcher.add_future(f);
+      } 
+
       context.runtime_->execute_task(context.context_, leaf_launcher);
+    //gettimeofday(&start, NULL);
+      //binary_op_template<VariantKind::CPU>(context);
+      //gettimeofday(&end, NULL);
+ // printf("%ld\n", ((end.tv_sec * 1000000 + end.tv_usec)
+//		  - (start.tv_sec * 1000000 + start.tv_usec)));
   }
-    //gettimeofday(&end, NULL);
   
   //gettimeofday(&end, NULL);
-  //printf("%ld\n", ((end.tv_sec * 1000000 + end.tv_usec)
-//		  - (start.tv_sec * 1000000 + start.tv_usec)));
 
 }
 
