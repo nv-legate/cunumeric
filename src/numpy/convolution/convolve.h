@@ -18,6 +18,15 @@
 
 #include "numpy/numpy.h"
 
+// We'll make some assumptions here about cache size
+// that should hold up against most CPUs out there today
+// Most L1 caches are 32-48KB so we'll go with the lower bound
+#define L1_CACHE_SIZE 32768
+// Most L2 caches are at least 256KB
+#define L2_CACHE_SIZE 262144
+// Most caches have 64B lines
+#define CACHE_LINE_SIZE 64
+
 namespace legate {
 namespace numpy {
 
@@ -34,11 +43,9 @@ class ConvolveTask : public NumPyTask<ConvolveTask> {
 
  public:
   static void cpu_variant(TaskContext& context);
-  /*
 #ifdef LEGATE_USE_OPENMP
   static void omp_variant(TaskContext& context);
 #endif
-  */
 #ifdef LEGATE_USE_CUDA
   static void gpu_variant(TaskContext& context);
 #endif
