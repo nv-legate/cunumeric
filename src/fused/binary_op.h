@@ -21,7 +21,7 @@
 
 namespace legate {
 namespace numpy {
-
+/*
 struct BinaryOpArgs {
   const Array& in1;
   const Array& in2;
@@ -29,7 +29,7 @@ struct BinaryOpArgs {
   BinaryOpCode op_code;
   std::vector<UntypedScalar> args;
 };
-
+*/
 class FusedOpTask : public NumPyTask<FusedOpTask> {
  public:
   static const int TASK_ID = NUMPY_FUSED_OP;

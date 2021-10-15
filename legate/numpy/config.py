@@ -113,7 +113,6 @@ class NumPyOpCode(IntEnum):
     UNARY_RED = legate_numpy.NUMPY_UNARY_RED
     WHERE = legate_numpy.NUMPY_WHERE
     WRITE = legate_numpy.NUMPY_WRITE
-    NONZERO = legate_numpy.NUMPY_NONZERO
     DOUBLE_BINARY_OP = legate_numpy.NUMPY_DOUBLE_BINARY_OP
     FUSED_OP = legate_numpy.NUMPY_FUSED_OP
 

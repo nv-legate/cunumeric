@@ -11,15 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# double_binary/double_binary_op.cc
-#double_binary/double_binary_op_omp.cc            
-#double_binary/double_binary_op.cu            
 #
+
 # List all the application source files that need OpenMP separately
 # since we have to add the -fopenmp flag to  CC_FLAGS for them
 GEN_CPU_SRC += numpy/ternary/where.cc               \
-							 fused/fused_op.cc              \
 							 numpy/binary/binary_op.cc            \
+							 numpy/fused/fused_op.cc            \
 							 numpy/binary/binary_red.cc           \
 							 numpy/unary/scalar_unary_red.cc      \
 							 numpy/unary/unary_op.cc              \
@@ -48,8 +46,8 @@ GEN_CPU_SRC += numpy/ternary/where.cc               \
 
 ifeq ($(strip $(USE_OPENMP)),1)
 GEN_CPU_SRC += numpy/ternary/where_omp.cc          \
-							 fused/fused_op_omp.cc         \
 							 numpy/binary/binary_op_omp.cc       \
+							 numpy/fused/fused_op_omp.cc       \
 							 numpy/binary/binary_red_omp.cc      \
 							 numpy/unary/unary_op_omp.cc         \
 							 numpy/unary/scalar_unary_red_omp.cc \

@@ -42,6 +42,8 @@ enum NumPyOpCode {
   NUMPY_UNARY_RED        = 19,
   NUMPY_WHERE            = 20,
   NUMPY_WRITE            = 21,
+  NUMPY_DOUBLE_BINARY_OP  = 23,
+  NUMPY_FUSED_OP            = 24,
 };
 
 // Match these to NumPyRedopCode in legate/numpy/config.py
