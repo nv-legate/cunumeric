@@ -23,7 +23,7 @@ namespace numpy {
 using namespace Legion;
 
 template <LegateTypeCode CODE, int32_t DIM>
-struct FlipImplBody<VariantKind::CPU, CODE, DIM> {
+struct FlipImplBody<VariantKind::OMP, CODE, DIM> {
   using VAL = legate_type_of<CODE>;
 
   void operator()(AccessorWO<VAL, DIM> out,
@@ -33,24 +33,22 @@ struct FlipImplBody<VariantKind::CPU, CODE, DIM> {
                   Span<const int32_t> axes) const
 
   {
-    for (PointInRectIterator<DIM> itr(rect); itr.valid(); ++itr) {
-      auto q = *itr;
+    const size_t volume = rect.volume();
+#pragma omp parallel for schedule(static)
+    for (size_t idx = 0; idx < volume; ++idx) {
+      auto p = pitches.unflatten(idx, rect.lo);
+      auto q = p;
       for (uint32_t idx = 0; idx < axes.size(); ++idx)
         q[axes[idx]] = rect.hi[axes[idx]] - q[axes[idx]];
-      out[*itr] = in[q];
+      out[p] = in[q];
     }
   }
 };
 
-/*static*/ void FlipTask::cpu_variant(TaskContext& context)
+/*static*/ void FlipTask::omp_variant(TaskContext& context)
 {
-  flip_template<VariantKind::CPU>(context);
+  flip_template<VariantKind::OMP>(context);
 }
-
-namespace  // unnamed
-{
-static void __attribute__((constructor)) register_tasks(void) { FlipTask::register_variants(); }
-}  // namespace
 
 }  // namespace numpy
 }  // namespace legate

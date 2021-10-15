@@ -65,7 +65,8 @@ GEN_CPU_SRC += numpy/ternary/where_omp.cc          \
 							 numpy/matrix/util_omp.cc            \
 							 numpy/random/rand_omp.cc            \
 							 numpy/search/nonzero_omp.cc         \
-							 numpy/stat/bincount_omp.cc
+							 numpy/stat/bincount_omp.cc          \
+							 numpy/transform/flip_omp.cc
 endif
 
 GEN_GPU_SRC += numpy/ternary/where.cu               \
@@ -90,4 +91,5 @@ GEN_GPU_SRC += numpy/ternary/where.cu               \
 							 numpy/search/nonzero.cu              \
 							 numpy/stat/bincount.cu               \
 							 numpy/convolution/convolve.cu	      \
+							 numpy/transform/flip.cu              \
 							 numpy/numpy.cu

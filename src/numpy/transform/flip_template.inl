@@ -32,12 +32,16 @@ struct FlipImpl {
     using VAL = legate_type_of<CODE>;
 
     auto rect = args.out.shape<DIM>().intersection(args.in.shape<DIM>());
-    if (rect.empty()) return;
+
+    Pitches<DIM - 1> pitches;
+    size_t volume = pitches.flatten(rect);
+
+    if (volume == 0) return;
 
     auto out = args.out.write_accessor<VAL, DIM>(rect);
     auto in  = args.in.read_accessor<VAL, DIM>(rect);
 
-    FlipImplBody<KIND, CODE, DIM>()(out, in, rect, args.axes);
+    FlipImplBody<KIND, CODE, DIM>()(out, in, pitches, rect, args.axes);
   }
 };
 
