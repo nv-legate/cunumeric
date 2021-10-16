@@ -311,6 +311,64 @@ compute_tiles(Point<DIM>& output_tile,
 
 template<typename VAL, int DIM>
 static unsigned 
+compute_filter_tile(Point<DIM>& tile,
+                    const Point<DIM>& bounds,
+                    const Point<DIM>& output,
+                    const size_t max_size)
+{
+  // Try doubling dimensions until we can't make it any larger
+  unsigned result = 0;
+  bool done = false;
+  while (!done) {
+    done = true;
+    for (int d = DIM-1; d >= 0; d--) {
+      // Skip if it will exceed our bounds
+      if (bounds[d] < (2*tile[d]))
+        continue;
+      unsigned filter_size = sizeof(VAL); 
+      tile[d] *= 2;
+      for (int d2 = 0; d2 < DIM; d2++)
+        filter_size *= tile[d2];
+      unsigned input_size = sizeof(VAL);
+      for (int d2 = 0; d2 < DIM; d2++)
+        input_size *= (output[d2] + 2*(tile[d2]/2));
+      unsigned total_size = filter_size + input_size;
+      if (total_size <= max_size) {
+        result = total_size;
+        done = false;
+      } else
+        tile[d] /= 2;
+    }
+  }
+  // Then try incrementally increasing dimensions until we can't 
+  // make it any larger
+  done = false;
+  while (!done) {
+    done = true;
+    for (int d = DIM-1; d >= 0; d--) {
+      // Skip if it will exceed our bounds
+      if (bounds[d] == tile[d])
+        continue;
+      unsigned filter_size = sizeof(VAL);
+      tile[d]++;
+      for (int d2 = 0; d2 < DIM; d2++)
+        filter_size *= tile[d2];
+      unsigned input_size = sizeof(VAL);
+      for (int d2 = 0; d2 < DIM; d2++)
+        input_size *= (output[d2] + 2*(tile[d2]/2));
+      unsigned total_size = filter_size + input_size;
+      if (total_size <= max_size) {
+        result = total_size;
+        done = false;
+      } else
+        tile[d]--;
+    }
+  }
+  return result;
+}
+
+template<typename VAL, int DIM>
+static unsigned 
 roundup_tile(Point<DIM>& tile,
              const Point<DIM>& bounds,
              const Point<DIM>& padding,
