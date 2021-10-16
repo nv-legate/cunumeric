@@ -33,6 +33,12 @@ class FlipTask : public NumPyTask<FlipTask> {
 
  public:
   static void cpu_variant(TaskContext& context);
+#ifdef LEGATE_USE_OPENMP
+  static void omp_variant(TaskContext& context);
+#endif
+#ifdef LEGATE_USE_CUDA
+  static void gpu_variant(TaskContext& context);
+#endif
 };
 
 }  // namespace numpy
