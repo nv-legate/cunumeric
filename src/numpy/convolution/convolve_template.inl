@@ -81,232 +81,70 @@ static void convolve_template(TaskContext& context)
 }
 
 template<typename VAL, int DIM>
-static void
-compute_tiles(Point<DIM>& output_tile,
-              Point<DIM>& filter_tile,
-              const Point<DIM>& output_bounds,
-              const Point<DIM>& filter_bounds,
-              const unsigned max_size,
-              const unsigned min_lastdim_bytes)
+static unsigned
+compute_output_tile(Point<DIM>& tile,
+                    const Point<DIM>& bounds,
+                    const size_t min_last_elements,
+                    const size_t target_volume)
 {
-  assert(min_lastdim_bytes <= max_size);
-  const unsigned max_elements = max_size / sizeof(VAL);
-  if (DIM == 1) {
-    // Figure out how many elements we can fit in half the max size
-    // for the output tile
-    output_tile[0] = max_elements/2;
-    if (output_bounds[0] < output_tile[0])
-      output_tile[0] = output_bounds[0];
-    // Check to see if we've covered the filter or not
-    if (output_tile[0] < filter_bounds[0]) {
-      // Output tile is less than the filter tile, so we're
-      // going to need to tile the filter also in the other
-      // half of the available space
-      filter_tile[0] = max_elements/2;
-      if (filter_bounds[0] < filter_tile[0])
-        filter_tile[0] = filter_bounds[0];
-    } else {
-      // Output tile covers the entire filter so we can continue
-      // growing the output tile to cover the remaining elements
-      filter_tile[0] = filter_bounds[0];
-      output_tile[0] = max_elements - filter_tile[0];
-      if (output_bounds[0] < output_tile[0])
-        output_tile[0] = output_bounds[0];
-    }
-  } else {
-    // Figure out how many output elements we can fit in half the max size
-    output_tile[DIM-1] = min_lastdim_bytes / sizeof(VAL);
-    if (output_bounds[DIM-1] < output_tile[DIM-1])
-      output_tile[DIM-1] = output_bounds[DIM-1];
-    for (int d = 0; d < (DIM-1); d++)
-      output_tile[d] = 1;
-    // Double all but the last dimensions until we get all the dimensions
-    // equal to the last dimension or we can't grow bigger
-    bool done = false;
-    while (!done) {
-      done = true;
-      for (int d = DIM-2; d >= 0; d--) {
-        if (output_tile[d] == output_tile[DIM-1])
-          continue;
-        if (output_tile[d] == output_bounds[d])
-          continue;
-        // Try doubling the tile on this dimension
-        // and then clamp if necessary
-        const unsigned old = output_tile[d];
-        output_tile[d] *= 2;
-        if (output_bounds[d] < output_tile[d])
-          output_tile[d] = output_bounds[d];
-        if (output_tile[DIM-1] < output_tile[d])
-          output_tile[d] = output_tile[DIM-1];
-        unsigned next_size = 1;
-        for (int d2 = 0; d2 < DIM; d2++)
-          next_size *= output_tile[d2];
-        if (next_size <= (max_elements/2))
-          done = false; // We changed the tiling so we're not done
-        else
-          output_tile[d] = old;
-      }
-    }
-    // We'll iterate dimensions based on how big the filter is in
-    // that dimension to try to increase our chances of covering
-    // the entire filter
-    std::multimap<coord_t,int> filterdims;
-    for (int d = 0; d < DIM; d++)
-      filterdims.insert(std::make_pair(filter_bounds[d], d));
-    int index = 0;
-    int dimorder[DIM];
-    for (std::multimap<coord_t,int>::reverse_iterator it =
-          filterdims.rbegin(); it != filterdims.rend(); it++)
-      dimorder[index++] = it->second;
-    // We've tried to balance out the dimensions, so now try to double
-    // all of the dimensions in row-major order until we can't make it
-    // the tile any larger
-    done = false;
-    while (!done) {
-      done = true;
-      for (int d = 0; d < DIM; d++) {
-        int dim = dimorder[d];
-        if (output_tile[dim] == output_bounds[dim])
-          continue;
-        // Try doubling the tile on this dimension
-        // and then clamp if necessary
-        const unsigned old = output_tile[dim];
-        output_tile[dim] *= 2;
-        if (output_bounds[dim] < output_tile[dim])
-          output_tile[dim] = output_bounds[dim];
-        unsigned next_size = 1;
-        for (int d2 = 0; d2 < DIM; d2++)
-          next_size *= output_tile[d2];
-        if (next_size <= (max_elements/2))
-          done = false; // We changed the tiling so we're not done
-        else
-          output_tile[dim] = old;
-      }
-    }
-    // Finally try to grow dimensions incrementally up to the bounds
-    done = false;
-    while (!done) {
-      done = true;
-      for (int d = 0; d < DIM; d++) {
-        int dim = dimorder[d];
-        if (output_tile[dim] == output_bounds[dim])
-          continue;
-        output_tile[dim]++;
-        unsigned next_size = 1;
-        for (int d2 = 0; d2 < DIM; d2++)
-          next_size *= output_tile[d2];
-        if (next_size <= (max_elements/2))
-          done = false; // We changed the tiling so we're not done
-        else
-          output_tile[dim]--;
-      }
-    }
-    // Check to see if we've covered the filter or not
-    bool filter_covered = true;
-    for (int d = 0; d < DIM; d++) {
-      if (filter_bounds[d] <= output_tile[d])
-        continue;
-      filter_covered = false;
+  for (int d = 0; d < DIM; d++)
+    tile[d] = 1;
+  // Better be a powers of 2
+  assert((min_last_elements & (min_last_elements-1)) == 0);
+  assert((target_volume & (target_volume-1)) == 0);
+  unsigned volume = 1;
+  // Try to make the last dimension at least the min last elements for locality
+  for (int idx = 1; idx < min_last_elements; idx *= 2) {
+    tile[DIM-1] *= 2;
+    if (bounds[DIM-1] < tile[DIM-1]) {
+      tile[DIM-1] /= 2;
       break;
-    }
-    if (filter_covered) {
-      unsigned filter_elements = 1;
-      for (int d = 0; d < DIM; d++) {
-        filter_tile[d] = filter_bounds[d];
-        filter_elements *= filter_bounds[d];
-      }
-      // Figure out what our new size bounds is since we covered the filter
-      const unsigned out_elements = max_elements - filter_elements; 
-      // Go back to prefering row major dimensions here
-      // Start with powers of two increases again
-      done = false;
-      while (!done) {
-        done = true;
-        for (int d = DIM-1; d >= 0; d--) {
-          if (output_tile[d] == output_bounds[d])
-            continue;
-          // Try doubling the tile on this dimension
-          // and then clamp if necessary
-          const unsigned old = output_tile[d];
-          output_tile[d] *= 2;
-          if (output_bounds[d] < output_tile[d])
-            output_tile[d] = output_bounds[d];
-          unsigned next_size = 1;
-          for (int d2 = 0; d2 < DIM; d2++)
-            next_size *= output_tile[d2];
-          if (next_size <= out_elements)
-            done = false; // We changed the tiling so we're not done
-          else
-            output_tile[d] = old;
-        }
-      }
-      // Now do incremental updates
-      done = false;
-      while (!done) {
-        done = true;
-        for (int d = DIM-1; d >= 0; d--) {
-          if (output_tile[d] == output_bounds[d])
-            continue;
-          output_tile[d]++;
-          unsigned next_size = 1;
-          for (int d2 = 0; d2 < DIM; d2++)
-            next_size *= output_tile[d2];
-          if (next_size <= out_elements)
-            done = false; // We changed the tiling so we're not done
-          else
-            output_tile[d]--;
-        }
-      }
     } else {
-      // We didn't cover the filter
-      // Start by tiling the filter the same as the output
-      // but clamp any bounds
-      for (int d = 0; d < DIM; d++) {
-        filter_tile[d] = output_tile[d];
-        if (filter_bounds[d] < filter_tile[d])
-          filter_tile[d] = filter_bounds[d];
-      }
-      // Try to double any remaining dimensions
-      done = false;
-      while (!done) {
-        done = true;
-        for (int d = DIM-1; d >= 0; d--) {
-          if (filter_tile[d] == filter_bounds[d])
-            continue;
-          // Try doubling the tile on this dimension
-          // and then clamp if necessary
-          const unsigned old = filter_tile[d];
-          filter_tile[d] *= 2;
-          if (filter_bounds[d] < filter_tile[d])
-            filter_tile[d] = filter_bounds[d];
-          unsigned next_size = 1;
-          for (int d2 = 0; d2 < DIM; d2++)
-            next_size *= filter_tile[d2];
-          if (next_size <= (max_elements/2))
-            done = false; // We changed the tiling so we're not done
-          else
-            filter_tile[d] = old;
+      volume *= 2;
+    }
+    if (volume == target_volume)
+      break;
+  }
+  int last_dim = DIM-1;
+  // Round-robin powers of 2 onto the other dimensions until 
+  // we hit the max or get all the dimensions balanced
+  if (DIM > 1) {
+    for (int idx = 1; idx < min_last_elements; idx *= 2) {
+      for (int d = DIM-2; d >= 0; d--) {
+        tile[d] *= 2;
+        if (bounds[d] < tile[d])
+          tile[d] /= 2;
+        else {
+          volume *= 2;
+          last_dim = d;
+          if (volume == target_volume)
+            break;
         }
       }
-      // Finally try to grow dimensions incrementally up to the bounds
-      done = false;
-      while (!done) {
-        done = true;
-        for (int d = DIM-1; d >= 0; d--) {
-          if (filter_tile[d] == filter_bounds[d])
-            continue;
-          filter_tile[d]++;
-          unsigned next_size = 1;
-          for (int d2 = 0; d2 < DIM; d2++)
-            next_size *= filter_tile[d2];
-          if (next_size <= (max_elements/2))
-            done = false; // We changed the tiling so we're not done
-          else
-            filter_tile[d]--;
-        }
-      }
+      if (volume == target_volume)
+        break;
     }
   }
+  // If we still have more to go round-robin powers of 2 over
+  // all the dimensions
+  int unchanged = 0;
+  while (volume < target_volume) {
+    if (last_dim == 0)
+      last_dim = DIM-1;
+    else
+      last_dim--;
+    tile[last_dim] *= 2;
+    if (bounds[last_dim] < tile[last_dim]) {
+      tile[last_dim] /= 2;
+      unchanged++;
+      if (unchanged == DIM)
+        break;
+    } else {
+      volume *= 2;
+      unchanged = 0;
+    }
+  }
+  return volume;
 }
 
 template<typename VAL, int DIM>
@@ -316,6 +154,8 @@ compute_filter_tile(Point<DIM>& tile,
                     const Point<DIM>& output,
                     const size_t max_size)
 {
+  for (int d = 0; d < DIM; d++)
+    tile[d] = 1;
   // Try doubling dimensions until we can't make it any larger
   unsigned result = 0;
   bool done = false;

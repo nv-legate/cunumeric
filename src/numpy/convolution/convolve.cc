@@ -96,15 +96,20 @@ struct ConvolveImplBody<VariantKind::CPU, CODE, DIM> {
 
     // Compute the tiles for the L2 cache
     Point<DIM> l2_output_tile, l2_filter_tile;
-    Point<DIM> bounds = subrect.hi - subrect.lo + one;
-    compute_tiles<VAL,DIM>(l2_output_tile, l2_filter_tile, bounds, extents,
-                           L2_CACHE_SIZE, CACHE_LINE_SIZE);
+    const Point<DIM> output_bounds = subrect.hi - subrect.lo + one;
+    // Try to fit the output in 1/4 of the L2 cache and 
+    // and the input and filter in the other 3/4
+    compute_output_tile<VAL,DIM>(l2_output_tile, output_bounds,
+        CACHE_LINE_SIZE/sizeof(VAL), L2_CACHE_SIZE/sizeof(VAL)/4);
+    const Point<DIM> filter_bounds = filter_rect.hi - filter_rect.lo + one;
+    compute_filter_tile<VAL,DIM>(l2_filter_tile, filter_bounds, 
+        l2_output_tile, 3*L2_CACHE_SIZE/4);
     unsigned total_l2_filters = 1;
     for (int d = 0; d < DIM; d++)
       total_l2_filters *= ((extents[d] + l2_filter_tile[d] - 1) / l2_filter_tile[d]);
     unsigned total_l2_outputs = 1;
     for (int d = 0; d < DIM; d++)
-      total_l2_outputs *= ((bounds[d] + l2_output_tile[d] - 1) / l2_output_tile[d]);
+      total_l2_outputs *= ((output_bounds[d] + l2_output_tile[d] - 1) / l2_output_tile[d]);
     
 #if 0
     fprintf(stdout,"L2 Filter Tile: ");
@@ -122,9 +127,12 @@ struct ConvolveImplBody<VariantKind::CPU, CODE, DIM> {
 
     // Compute the tiles for the L1 cache
     Point<DIM> l1_output_tile, l1_filter_tile;
-    compute_tiles<VAL,DIM>(l1_output_tile, l1_filter_tile,
-                           l2_output_tile, l2_filter_tile,
-                           L1_CACHE_SIZE, CACHE_LINE_SIZE);
+    // Try to fit the output in the 1/4 of the L1 cache and 
+    // the filter and input in the other 3/4 of the L1 cache
+    compute_output_tile<VAL,DIM>(l1_output_tile, output_bounds,
+        CACHE_LINE_SIZE/sizeof(VAL), L1_CACHE_SIZE/sizeof(VAL)/4);
+    compute_filter_tile<VAL,DIM>(l1_filter_tile, filter_bounds, 
+        l1_output_tile, 3*L1_CACHE_SIZE/4);
     unsigned total_l1_filters = 1;
     for (int d = 0; d < DIM; d++)
       total_l1_filters *= ((l2_filter_tile[d] + l1_filter_tile[d] - 1) / l1_filter_tile[d]);
