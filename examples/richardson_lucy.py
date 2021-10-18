@@ -25,9 +25,9 @@ float_type = "float32"
 # A simplified implementation of Richardson-Lucy deconvolution
 
 
-def run_richardson_lucy(shape, num_iter, timing):
+def run_richardson_lucy(shape, filter_shape, num_iter, timing):
     image = lg.random.rand(*shape).astype(float_type)
-    psf = lg.random.rand(10, 10, 10).astype(float_type)
+    psf = lg.random.rand(*filter_shape).astype(float_type)
     im_deconv = lg.full(image.shape, 0.5, dtype=float_type)
     psf_mirror = lg.flip(psf)
 
@@ -76,6 +76,27 @@ if __name__ == "__main__":
         help="number of elements in Z dimension",
     )
     parser.add_argument(
+        "-fx",
+        type=int,
+        default=4,
+        dest="FX",
+        help="number of filter weights in X dimension",
+    )
+    parser.add_argument(
+        "-fy",
+        type=int,
+        default=4,
+        dest="FY",
+        help="number of filter weights in Y dimension",
+    )
+    parser.add_argument(
+        "-fz",
+        type=int,
+        default=4,
+        dest="FZ",
+        help="number of filter weights in Z dimension",
+    )
+    parser.add_argument(
         "-t",
         "--time",
         dest="timing",
@@ -96,5 +117,10 @@ if __name__ == "__main__":
         run_richardson_lucy,
         args.benchmark,
         "Richardson Lucy",
-        ((args.X, args.Y, args.Z), args.I, args.timing),
+        (
+            (args.X, args.Y, args.Z),
+            (args.FX, args.FY, args.FZ),
+            args.I,
+            args.timing,
+        ),
     )
