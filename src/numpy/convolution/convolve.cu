@@ -1504,7 +1504,7 @@ cufft_convolution(AccessorWO<VAL, DIM> out,
     const VAL scaling_factor = VAL(1) / pitch;
     Point<DIM> buffer_offset;
     for (int d = 0; d < DIM; d++)
-      buffer_offset[d] = centers[d] +
+      buffer_offset[d] = centers[d] - (((extents[d] % 2) == 0) ? 1 : 0) +
         ((offset_bounds.lo[d] < root_rect.lo[d]) ?
           (subrect.lo[d] - root_rect.lo[d]) : centers[d]);
     Point<DIM> output_bounds = subrect.hi - subrect.lo + one;
