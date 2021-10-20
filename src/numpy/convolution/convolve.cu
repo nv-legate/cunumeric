@@ -84,8 +84,8 @@ convolution_init(const AccessorWO<VAL,DIM> out,
 // exception) has 64K 32-bit registers per SM. We key off that and want
 // to allocate a quarter of those registers for holding the partial accumulations
 // We assume here that sizeof(VAL) is a power of 2
-#define THREAD_OUTPUTS(TYPE) \
-  ((4/*bytes/reg*/ * ((65536/4)/CONVOLUTION_THREADS)/*regs/thread*/) / sizeof(TYPE))
+#define THREAD_OUTPUTS(TYPE) 1
+  //((4/*bytes/reg*/ * ((65536/8)/CONVOLUTION_THREADS)/*regs/thread*/) / sizeof(TYPE))
 
 template<int DIM, int POINTS>
 struct ConvolutionLargeTileArgs {
@@ -129,6 +129,11 @@ convolution_large_tile(const AccessorWO<VAL, DIM> out,
   extern __shared__ uint8_t buffer[];
   // Technically this is illegal C++, but there's no other way to do it
   VAL *sharedmem = (VAL*)buffer;
+  Point<DIM,unsigned> thread_offset;
+  int offset = threadIdx.x;
+  #pragma unroll
+  for (int d = 0; d < DIM; d++)
+    thread_offset[d] = args.l1_output_pitches[d].divmod(offset, offset);
   Point<DIM> l2_output_offset = zero;
   for (unsigned l2_outidx = 0; l2_outidx < args.total_l2_outputs; l2_outidx++) {
     // Do a quick check here to see if all the inputs are contained for this tile
@@ -141,7 +146,7 @@ convolution_large_tile(const AccessorWO<VAL, DIM> out,
     for (unsigned l1_outidx = blockIdx.x; 
           l1_outidx < args.total_l1_outputs; l1_outidx += gridDim.x) {
       Point<DIM,unsigned> l1_output_offset;  
-      int offset = l1_outidx;
+      offset = l1_outidx;
       #pragma unroll
       for (int d = 0; d < DIM; d++)
         l1_output_offset[d] = 
@@ -208,75 +213,122 @@ convolution_large_tile(const AccessorWO<VAL, DIM> out,
         // because we wrote zeros into shared memory for everything that
         // was out of bounds
         Point<DIM,unsigned> filter_point = zero;
-        for (unsigned fidx = 0; fidx < args.l1_filter_points; fidx++) {
-          // Use shared memory broadcasting functionality to avoid bank conflicts
-          const VAL filter_value = sharedmem[fidx]; 
-          // Do the math for each of our points
-          Point<DIM,unsigned> input_point = args.l1_filter_tile - filter_point - one;
-          // There should never be any shared memory bank conflicts here since
-          // the last dimension is indexed by a mod of threadIdx.x
-          if (args.uniform_input_stride) {
-            // Each point is a constant offset in shared from the others
-            unsigned input_offset = args.shared_input_offset;
-            offset = threadIdx.x;
-            #pragma unroll
-            for (int d = 0; d < DIM; d++)
-              input_offset += args.l1_input_pitches[d].divisor *
-                (input_point[d] + args.l1_output_pitches[d].divmod(offset, offset));
-            if (args.shared_input_bound) {
+        if (args.uniform_input_stride) {
+          // Each point is a constant offset in shared from the others
+          unsigned input_offset = args.shared_input_offset;
+          #pragma unroll
+          for (int d = 0; d < DIM; d++)
+            input_offset += args.l1_input_pitches[d].divisor *
+              (thread_offset[d] + args.l1_filter_tile[d] - 1);
+          if (args.shared_input_bound) {
+            for (unsigned fidx = 0; fidx < args.l1_filter_points; fidx++) {
+              // Use shared memory broadcasting functionality to avoid bank conflicts
+              const VAL filter_value = sharedmem[fidx];
+              unsigned point_offset = input_offset;
               #pragma unroll
               for (int p = 0; p < POINTS; p++) {
-                if (args.shared_input_bound <= input_offset)
+                if (args.shared_input_bound <= point_offset)
                   break;
-                acc[p] = acc[p] + filter_value * sharedmem[input_offset];
-                input_offset += args.uniform_input_stride;
+                acc[p] = acc[p] + filter_value * sharedmem[point_offset];
+                point_offset += args.uniform_input_stride;
               }
-            } else {
+              // Step to the next filter point and update the input stride
               #pragma unroll
-              for (int p = 0; p < POINTS; p++) {
-                acc[p] = acc[p] + filter_value * sharedmem[input_offset];
-                input_offset += args.uniform_input_stride;
+              for (int d = DIM-1; d >= 0; d--) {
+                filter_point[d]++;
+                input_offset -= args.l1_input_pitches[d].divisor;
+                if (filter_point[d] == args.l1_filter_tile[d]) {
+                  input_offset += args.l1_filter_tile[d] * args.l1_input_pitches[d].divisor;
+                  filter_point[d] = 0;
+                } else {
+                  break;
+                }
               }
             }
           } else {
-            // Need to compute the input offset uniquely for each point
-            Point<DIM,unsigned> offset_point;
-            offset = threadIdx.x;
-            #pragma unroll
-            for (int d = 0; d < DIM; d++)
-              offset_point[d] = args.l1_output_pitches[d].divmod(offset, offset);
-            if (args.shared_input_bound) {
+            for (unsigned fidx = 0; fidx < args.l1_filter_points; fidx++) {
+              // Use shared memory broadcasting functionality to avoid bank conflicts
+              const VAL filter_value = sharedmem[fidx];
+              unsigned point_offset = input_offset;
               #pragma unroll
               for (int p = 0; p < POINTS; p++) {
-                unsigned input_offset = args.shared_input_offset;
-                #pragma unroll
-                for (int d = 0; d < DIM; d++)
-                  input_offset += args.l1_input_pitches[d].divisor *
-                      (input_point[d] + offset_point[d] + args.point_offsets[p][d]);
-                if (args.shared_input_bound <= input_offset)
-                  break;
-                acc[p] = acc[p] + filter_value * sharedmem[input_offset];
+                acc[p] = acc[p] + filter_value * sharedmem[point_offset];
+                point_offset += args.uniform_input_stride;
               }
-            } else {
+              // Step to the next filter point and update the input stride
               #pragma unroll
-              for (int p = 0; p < POINTS; p++) {
-                unsigned input_offset = args.shared_input_offset;
-                #pragma unroll
-                for (int d = 0; d < DIM; d++)
-                  input_offset += args.l1_input_pitches[d].divisor *
-                      (input_point[d] + offset_point[d] + args.point_offsets[p][d]);
-                acc[p] = acc[p] + filter_value * sharedmem[input_offset];
+              for (int d = DIM-1; d >= 0; d--) {
+                filter_point[d]++;
+                input_offset -= args.l1_input_pitches[d].divisor;
+                if (filter_point[d] == args.l1_filter_tile[d]) {
+                  input_offset += args.l1_filter_tile[d] * args.l1_input_pitches[d].divisor;
+                  filter_point[d] = 0;
+                } else {
+                  break;
+                }
               }
             }
           }
-          // Step to the next filter point
+        } else {
+          // Need to compute the input offset uniquely for each point
+          Point<DIM,unsigned> input_point =
+            thread_offset + args.l1_filter_tile - one;
+          unsigned point_offsets[POINTS];
           #pragma unroll
-          for (int d = DIM-1; d >= 0; d--) {
-            filter_point[d]++;
-            if (filter_point[d] == args.l1_filter_tile[d])
-              filter_point[d] = 0;
-            else
-              break;
+          for (int p = 0; p < POINTS; p++) {
+            point_offsets[p] = args.shared_input_offset;
+            #pragma unroll
+            for (int d = 0; d < DIM; d++)
+              point_offsets[p] +=
+                (input_point[d] + args.point_offsets[p][d]) * args.l1_input_pitches[d].divisor;
+          }
+          unsigned filter_offset = 0;
+          if (args.shared_input_bound) {
+            for (unsigned fidx = 0; fidx < args.l1_filter_points; fidx++) {
+              // Use shared memory broadcasting functionality to avoid bank conflicts
+              const VAL filter_value = sharedmem[fidx];
+              #pragma unroll
+              for (int p = 0; p < POINTS; p++) {
+                unsigned point_offset = point_offsets[p] - filter_offset;
+                if (args.shared_input_bound <= point_offset)
+                  continue;
+                acc[p] = acc[p] + filter_value * sharedmem[point_offset];
+              }
+              // Step to the next filter point
+              #pragma unroll
+              for (int d = DIM-1; d >= 0; d--) {
+                filter_point[d]++;
+                filter_offset += args.l1_input_pitches[d].divisor;
+                if (filter_point[d] == args.l1_filter_tile[d]) {
+                  filter_offset -= args.l1_filter_tile[d] * args.l1_input_pitches[d].divisor;
+                  filter_point[d] = 0;
+                } else {
+                  break;
+                }
+              }
+            }
+          } else {
+            for (unsigned fidx = 0; fidx < args.l1_filter_points; fidx++) {
+              // Use shared memory broadcasting functionality to avoid bank conflicts
+              const VAL filter_value = sharedmem[fidx];
+              #pragma unroll
+              for (int p = 0; p < POINTS; p++) {
+                unsigned point_offset = point_offsets[p] - filter_offset;
+                acc[p] = acc[p] + filter_value * sharedmem[point_offset];
+              }
+              // Step to the next filter point
+              #pragma unroll
+              for (int d = DIM-1; d >= 0; d--) {
+                filter_point[d]++;
+                filter_offset += args.l1_input_pitches[d].divisor;
+                if (filter_point[d] == args.l1_filter_tile[d]) {
+                  filter_offset -= args.l1_filter_tile[d] * args.l1_input_pitches[d].divisor;
+                  filter_point[d] = 0;
+                } else {
+                  break;
+                }
+              }
+            }
           }
         }
         // Step to the next L1 filter tile
@@ -289,12 +341,7 @@ convolution_large_tile(const AccessorWO<VAL, DIM> out,
             break;
         }
       }
-      // Now we can stream our accumulators back to the output
-      Point<DIM,unsigned> thread_offset;
-      offset = threadIdx.x;
-      #pragma unroll
-      for (int d = 0; d < DIM; d++)
-        thread_offset[d] = args.l1_output_pitches[d].divmod(offset, offset);
+      // Now we can stream our accumulators back to the output 
       Point<DIM> output = subrect.lo + l2_output_offset + (l1_output_offset + thread_offset);
       if (input_contained) {
         // If the input was contained, then so is the output
@@ -580,6 +627,82 @@ convolution_small_tile2(const AccessorWO<VAL, DIM> out,
   }
 }
 
+template<typename VAL, int DIM>
+__host__ static inline void
+launch_small_tile_kernel(AccessorWO<VAL, DIM> out,
+                         AccessorRO<VAL, DIM> filter,
+                         AccessorRO<VAL, DIM> in,
+                         const Rect<DIM>& root_rect,
+                         const Rect<DIM>& subrect,
+                         const Rect<DIM>& filter_rect,
+                         const cudaDeviceProp &properties,
+                         const unsigned extents[DIM],
+                         const unsigned centers[DIM],
+                         Point<DIM> &tile,
+                         unsigned smem_size,
+                         size_t max_smem_size)
+{
+  // Make the tile as big as possible so that it fits in shared memory
+  // Try to keep it rectangular to minimize surface-to-volume ratio
+  // and improve the reuse of data
+  // If the current tile is less than half the shared memory in the SM then
+  // decrease the upper bound so we can get 2 CTAs/SM
+  bool halved = false;
+  const unsigned half_smem = properties.sharedMemPerMultiprocessor / 2;
+  if ((smem_size <= (half_smem)) && (half_smem < max_smem_size)) {
+    max_smem_size = half_smem;
+    halved = true;
+  }
+  Point<DIM> padding;
+  for (int d = 0; d < DIM; d++)
+    padding[d] = 2 * centers[d];
+  Point<DIM> bounds = subrect.hi - subrect.lo + Point<DIM>::ONES();
+  smem_size = roundup_tile<VAL,DIM>(tile, bounds, padding, max_smem_size);
+  // At this point we've got the tile size that we're going to compute
+  // and the amount of dynamic shared memory that we need
+  // Compute the arguments needed for the kernel launch
+  ConvolutionSmallTileArgs<DIM> args;
+  size_t blocks = 1;
+  size_t tile_pitch = 1;
+  unsigned input_pitch = 1;
+  args.filter_volume = 1;
+  for (int d = DIM-1; d >= 0; d--) {
+    size_t blocks_along_dim =
+      ((subrect.hi[d] - subrect.lo[d]) + tile[d]) / tile[d];
+    args.grid_pitches[d] = FastDivmodU64(blocks);
+    blocks *= blocks_along_dim;
+    args.block_tiles[d] = tile[d];
+    args.block_pitches[d] = FastDivmodU64(tile_pitch);
+    tile_pitch *= tile[d];
+    args.delta_lo[d] = centers[d];
+    args.delta_hi[d] = tile[d] + centers[d] - 1;
+    args.input_pitches[d] = FastDivmodU64(input_pitch);
+    input_pitch *= (args.delta_lo[d] + args.delta_hi[d] + 1);
+    args.filter_centers[d] = centers[d]; 
+    args.filter_extents[d] = extents[d];
+    args.filter_volume *= extents[d];
+  }
+  args.tile_volume = tile_pitch;
+  args.input_volume = input_pitch;
+  assert((input_pitch * sizeof(VAL)) == smem_size);
+  if (halved) {
+    if (tile_pitch < 512)
+      convolution_small_tile1<VAL,DIM><<<blocks,tile_pitch,smem_size>>>(
+          out, filter, in, root_rect, subrect, filter_rect, args);
+    else
+      convolution_small_tile1<VAL,DIM><<<blocks,512,smem_size>>>(
+          out, filter, in, root_rect, subrect, filter_rect, args);
+  } else {
+    if (tile_pitch < 1024)
+      convolution_small_tile2<VAL,DIM><<<blocks,tile_pitch,smem_size>>>(
+          out, filter, in, root_rect, subrect, filter_rect, args);
+    else
+      convolution_small_tile2<VAL,DIM><<<blocks,1024,smem_size>>>(
+          out, filter, in, root_rect, subrect, filter_rect, args);
+  }
+}
+
+
 template <LegateTypeCode CODE, int DIM>
 struct ConvolveImplBody<VariantKind::GPU, CODE, DIM> {
   using VAL = legate_type_of<CODE>;
@@ -651,64 +774,8 @@ struct ConvolveImplBody<VariantKind::GPU, CODE, DIM> {
       smem_size *= (tile[d] + 2*centers[d]);
     if (smem_size <= max_smem_size) {
       // Small tile case:
-      // Make the tile as big as possible so that it fits in shared memory
-      // Try to keep it rectangular to minimize surface-to-volume ratio
-      // and improve the reuse of data
-      // If the current tile is less than half the shared memory in the SM then
-      // decrease the upper bound so we can get 2 CTAs/SM
-      bool halved = false;
-      const unsigned half_smem = properties.sharedMemPerMultiprocessor / 2;
-      if ((smem_size <= (half_smem)) && (half_smem < max_smem_size)) {
-        max_smem_size = half_smem;
-        halved = true;
-      }
-      Point<DIM> padding;
-      for (int d = 0; d < DIM; d++)
-        padding[d] = 2 * centers[d];
-      Point<DIM> bounds = root_rect.hi - root_rect.lo + Point<DIM>::ONES();
-      smem_size = roundup_tile<VAL,DIM>(tile, bounds, padding, max_smem_size);
-      // At this point we've got the tile size that we're going to compute
-      // and the amount of dynamic shared memory that we need
-      // Compute the arguments needed for the kernel launch
-      ConvolutionSmallTileArgs<DIM> args;
-      size_t blocks = 1;
-      size_t tile_pitch = 1;
-      unsigned input_pitch = 1;
-      args.filter_volume = 1;
-      for (int d = DIM-1; d >= 0; d--) {
-        size_t blocks_along_dim =
-          ((subrect.hi[d] - subrect.lo[d]) + tile[d]) / tile[d];
-        args.grid_pitches[d] = FastDivmodU64(blocks);
-        blocks *= blocks_along_dim;
-        args.block_tiles[d] = tile[d];
-        args.block_pitches[d] = FastDivmodU64(tile_pitch);
-        tile_pitch *= tile[d];
-        args.delta_lo[d] = centers[d];
-        args.delta_hi[d] = tile[d] + centers[d] - 1;
-        args.input_pitches[d] = FastDivmodU64(input_pitch);
-        input_pitch *= (args.delta_lo[d] + args.delta_hi[d] + 1);
-        args.filter_centers[d] = centers[d]; 
-        args.filter_extents[d] = extents[d];
-        args.filter_volume *= extents[d];
-      }
-      args.tile_volume = tile_pitch;
-      args.input_volume = input_pitch;
-      assert((input_pitch * sizeof(VAL)) == smem_size);
-      if (halved) {
-        if (tile_pitch < 512)
-          convolution_small_tile1<VAL,DIM><<<blocks,tile_pitch,smem_size>>>(
-              out, filter, in, root_rect, subrect, filter_rect, args);
-        else
-          convolution_small_tile1<VAL,DIM><<<blocks,512,smem_size>>>(
-              out, filter, in, root_rect, subrect, filter_rect, args);
-      } else {
-        if (tile_pitch < 1024)
-          convolution_small_tile2<VAL,DIM><<<blocks,tile_pitch,smem_size>>>(
-              out, filter, in, root_rect, subrect, filter_rect, args);
-        else
-          convolution_small_tile2<VAL,DIM><<<blocks,1024,smem_size>>>(
-              out, filter, in, root_rect, subrect, filter_rect, args);
-      }
+      launch_small_tile_kernel<VAL,DIM>(out, filter, in, root_rect, subrect,
+          filter_rect, properties, extents, centers, tile, smem_size, max_smem_size);
     } else {
       // Large tile case:
       // If we're going to do this, we need to initialize the output to zeros
@@ -935,10 +1002,13 @@ struct ConvolveImplBody<VariantKind::GPU, CODE, DIM> {
               break;
           }
         }
-        if ((regsteps[0] * THREADVALS) == l1_output_tile[0]) {
-          args.uniform_input_stride = regsteps[0] * args.l1_input_pitches[0].divisor;
-        } else {
+        args.uniform_input_stride = regsteps[0] * args.l1_input_pitches[0].divisor;
+        // Check to make sure this is the uniform input stride case
+        for (int d = 1; d < DIM; d++) {
+          if (regsteps[d] == l1_output_tile[d])
+            continue;
           args.uniform_input_stride = 0;
+          break;
         }
       } else {
         assert(THREADVALS <= l1_output_tile[0]);
@@ -1000,6 +1070,570 @@ struct ConvolveImplBody<VariantKind::GPU, CODE, DIM> {
               l2_input_stop, l1_input_start, zero, one, args);
       }
     }
+  }
+};
+
+template<int DIM>
+struct FFTPitches {
+  size_t pitches[DIM];
+  __host__ inline size_t& 
+    operator[](unsigned idx) { return pitches[idx]; } 
+  __device__ __forceinline__ size_t
+    operator[](unsigned idx) const { return pitches[idx]; }
+};
+
+template<int DIM>
+struct CopyPitches {
+  FastDivmodU64 pitches[DIM]; 
+  __host__ inline FastDivmodU64&
+    operator[](unsigned idx) { return pitches[idx]; }
+  __device__ __forceinline__ const FastDivmodU64&
+    operator[](unsigned idx) const { return pitches[idx]; }
+};
+
+template<typename VAL, int DIM>
+__global__ static void __launch_bounds__(THREADS_PER_BLOCK,4)
+copy_into_buffer(const AccessorRO<VAL,DIM> accessor,
+                 const DeferredBuffer<VAL,DIM> buffer,
+                 const Point<DIM> lo,
+                 const CopyPitches<DIM> copy_pitches,
+                 const size_t volume)
+{
+  size_t offset = blockIdx.x * blockDim.x + threadIdx.x;
+  if (offset >= volume)
+    return;
+  Point<DIM> point;
+  for (int d = 0; d < DIM; d++)
+    point[d] = copy_pitches[d].divmod(offset, offset);
+  buffer[point] = accessor[lo+point];
+}
+
+template<typename VAL, int DIM>
+__global__ static void __launch_bounds__(THREADS_PER_BLOCK,4)
+copy_from_buffer(const VAL* buffer,
+                 const AccessorWO<VAL,DIM> accessor,
+                 const Point<DIM> buffer_lo,
+                 const Point<DIM> accessor_lo,
+                 const CopyPitches<DIM> copy_pitches,
+                 const FFTPitches<DIM> fft_pitches,
+                 const size_t volume, const VAL scaling)
+{
+  size_t offset = blockIdx.x * blockDim.x + threadIdx.x;
+  if (offset >= volume)
+    return;
+  Point<DIM> point;
+  size_t buffer_offset = 0;
+  for (int d = 0; d < DIM; d++) {
+    point[d] = copy_pitches[d].divmod(offset, offset);
+    buffer_offset += (buffer_lo[d] + point[d]) * fft_pitches[d];
+  }
+  accessor[accessor_lo+point] = scaling * buffer[buffer_offset];
+}
+
+template<typename VAL>
+__global__ static void __launch_bounds__(THREADS_PER_BLOCK,4)
+complex_multiply(complex<VAL> *inout,
+                 complex<VAL> *in, const size_t volume)
+{
+  size_t offset = blockIdx.x * blockDim.x + threadIdx.x;
+  if (offset >= volume)
+    return;
+  inout[offset] *= in[offset];
+}
+
+template<typename VAL, int DIM>
+__host__ static inline size_t
+create_forward_plan(cufftHandle plan,
+                    const Point<DIM> &size)
+{
+  // should always call specialized templates
+  assert(false);
+  return 0;
+}
+
+template<>
+__host__ inline size_t
+create_forward_plan<float,1>(cufftHandle plan,
+                             const Point<1> &size)
+{
+  size_t workarea = 0;
+  CHECK_CUFFT( cufftMakePlan1d(plan, size[0], CUFFT_R2C, 1/*batch*/, &workarea) );
+  return workarea;
+}
+
+template<>
+__host__ inline size_t
+create_forward_plan<double,1>(cufftHandle plan,
+                              const Point<1> &size)
+{
+  size_t workarea = 0;
+  CHECK_CUFFT( cufftMakePlan1d(plan, size[0], CUFFT_D2Z, 1/*batch*/, &workarea) );
+  return workarea;
+}
+
+template<>
+__host__ inline size_t
+create_forward_plan<float,2>(cufftHandle plan,
+                             const Point<2> &size)
+{
+  size_t workarea = 0;
+  CHECK_CUFFT( cufftMakePlan2d(plan, size[0], size[1], CUFFT_R2C, &workarea) );
+  return workarea;
+}
+
+template<>
+__host__ inline size_t
+create_forward_plan<double,2>(cufftHandle plan,
+                              const Point<2> &size)
+{
+  size_t workarea = 0;
+  CHECK_CUFFT( cufftMakePlan2d(plan, size[0], size[1], CUFFT_D2Z, &workarea) );
+  return workarea;
+}
+
+template<>
+__host__ inline size_t
+create_forward_plan<float,3>(cufftHandle plan,
+                             const Point<3> &size)
+{
+  size_t workarea = 0;
+  CHECK_CUFFT( cufftMakePlan3d(plan, size[0], size[1], size[2], CUFFT_R2C, &workarea) );
+  return workarea;
+}
+
+template<>
+__host__ inline size_t
+create_forward_plan<double,3>(cufftHandle plan,
+                              const Point<3> &size)
+{
+  size_t workarea = 0;
+  CHECK_CUFFT( cufftMakePlan3d(plan, size[0], size[1], size[2], CUFFT_D2Z, &workarea) );
+  return workarea;
+}
+
+template<typename VAL, int DIM>
+__host__ static inline size_t
+create_backward_plan(cufftHandle plan,
+                     const Point<DIM> &size)
+{
+  // should always call specialized templates
+  assert(false);
+  return 0;
+}
+
+template<>
+__host__ inline size_t
+create_backward_plan<float,1>(cufftHandle plan,
+                              const Point<1> &size)
+{
+  size_t workarea = 0;
+  CHECK_CUFFT( cufftMakePlan1d(plan, size[0], CUFFT_C2R, 1/*batch*/, &workarea) );
+  return workarea;
+}
+
+template<>
+__host__ inline size_t
+create_backward_plan<double,1>(cufftHandle plan,
+                               const Point<1> &size)
+{
+  size_t workarea = 0;
+  CHECK_CUFFT( cufftMakePlan1d(plan, size[0], CUFFT_Z2D, 1/*batch*/, &workarea) );
+  return workarea;
+}
+
+template<>
+__host__ inline size_t
+create_backward_plan<float,2>(cufftHandle plan,
+                              const Point<2> &size)
+{
+  size_t workarea = 0;
+  CHECK_CUFFT( cufftMakePlan2d(plan, size[0], size[1], CUFFT_C2R, &workarea) );
+  return workarea;
+}
+
+template<>
+__host__ inline size_t
+create_backward_plan<double,2>(cufftHandle plan,
+                               const Point<2> &size)
+{
+  size_t workarea = 0;
+  CHECK_CUFFT( cufftMakePlan2d(plan, size[0], size[1], CUFFT_Z2D, &workarea) );
+  return workarea;
+}
+
+template<>
+__host__ inline size_t
+create_backward_plan<float,3>(cufftHandle plan,
+                            const Point<3> &size)
+{
+  size_t workarea = 0;
+  CHECK_CUFFT( cufftMakePlan3d(plan, size[0], size[1], size[2], CUFFT_C2R, &workarea) );
+  return workarea;
+}
+
+template<>
+__host__ inline size_t
+create_backward_plan<double,3>(cufftHandle plan,
+                               const Point<3> &size)
+{
+  size_t workarea = 0;
+  CHECK_CUFFT( cufftMakePlan3d(plan, size[0], size[1], size[2], CUFFT_Z2D, &workarea) );
+  return workarea;
+}
+
+template<typename VAL>
+__host__ static inline void
+cufft_execute_forward(cufftHandle plan, VAL *idata, VAL *odata)
+{
+  assert(false); // should never be called
+}
+
+template<>
+__host__ inline void
+cufft_execute_forward<float>(cufftHandle plan, float *idata, float *odata)
+{
+  CHECK_CUFFT( cufftExecR2C(plan, (cufftReal*)idata, (cufftComplex*)odata) );
+}
+
+template<>
+__host__ inline void
+cufft_execute_forward<double>(cufftHandle plan, double *idata, double *odata)
+{
+  CHECK_CUFFT( cufftExecD2Z(plan, (cufftDoubleReal*)idata, (cufftDoubleComplex*)odata) );
+}
+
+template<typename VAL>
+__host__ static inline void
+cufft_execute_backward(cufftHandle plan, VAL *idata, VAL *odata)
+{
+  assert(false); // should never be called
+}
+
+template<>
+__host__ inline void
+cufft_execute_backward<float>(cufftHandle plan, float *idata, float *odata)
+{
+  CHECK_CUFFT( cufftExecC2R(plan, (cufftComplex*)idata, (cufftReal*)odata) );
+}
+
+template<>
+__host__ inline void
+cufft_execute_backward<double>(cufftHandle plan, double *idata, double *odata)
+{
+  CHECK_CUFFT( cufftExecZ2D(plan, (cufftDoubleComplex*)idata, (cufftDoubleReal*)odata) );
+}
+
+template<typename VAL, int DIM>
+__host__ static inline void
+cufft_convolution(AccessorWO<VAL, DIM> out,
+                  AccessorRO<VAL, DIM> filter,
+                  AccessorRO<VAL, DIM> in,
+                  const Rect<DIM>& root_rect,
+                  const Rect<DIM>& subrect,
+                  const Rect<DIM>& filter_rect)
+{
+  int device;
+  CHECK_CUDA( cudaGetDevice(&device) );
+  cudaDeviceProp properties;
+  CHECK_CUDA( cudaGetDeviceProperties(&properties, device) );
+  size_t max_smem_size = properties.sharedMemPerBlockOptin;
+
+  // Only need to do these calls the first time on each device so 
+  // we use a bit mask to track which devices we've done it for
+  static unsigned long long mask = 0;
+  if (!(mask & (1 << device))) {
+    if (properties.sharedMemPerBlock < max_smem_size) {
+      CHECK_CUDA( cudaFuncSetAttribute(convolution_small_tile1<VAL,DIM>,
+            cudaFuncAttributeMaxDynamicSharedMemorySize, max_smem_size) );
+      CHECK_CUDA( cudaFuncSetAttribute(convolution_small_tile2<VAL,DIM>,
+            cudaFuncAttributeMaxDynamicSharedMemorySize, max_smem_size) );
+    }
+    if (sizeof(VAL) >= 8) {
+    // Only need to set this on the first invocation
+      CHECK_CUDA( cudaFuncSetSharedMemConfig(
+            convolution_small_tile1<VAL,DIM>, cudaSharedMemBankSizeEightByte) );
+      CHECK_CUDA( cudaFuncSetSharedMemConfig(
+            convolution_small_tile2<VAL,DIM>, cudaSharedMemBankSizeEightByte) );
+    }
+    // Make sure we have enough bits for every device
+    assert(device < (8*sizeof(mask)));
+    // Make sure not to race with updates from other GPUs
+    __sync_fetch_and_add(&mask, (1 << device));
+  }
+  unsigned extents[DIM];
+  unsigned centers[DIM];
+  for (int d = 0; d < DIM; d++) {
+    assert(filter_rect.lo[d] == 0);
+    extents[d] = filter_rect.hi[d] + 1;
+    centers[d] = static_cast<coord_t>(extents[d] / 2);
+  }
+  Point<DIM> tile;
+  for (int d = DIM-1; d >= 0; d--) {
+    // Make sure that each tile is at least double the size of the filter
+    // so that we can get some savings in bandwidth needed 
+    tile[d] = 2*centers[d];
+    if (d == (DIM-1)) {
+      // In order to maximize bandwidth, we want to make sure we're loading at
+      // least 128B of contiguous memory along the last axis (row-major) of input
+      const unsigned min_contig_elmts = 128 / sizeof(VAL);
+      if ((tile[d] + 2*centers[d]) < min_contig_elmts)
+        tile[d] = min_contig_elmts - 2*centers[d];
+    }
+  }
+  unsigned smem_size = sizeof(VAL);
+  for (int d = 0; d < DIM; d++)
+    smem_size *= (tile[d] + 2*centers[d]);
+  if (smem_size <= max_smem_size) {
+    launch_small_tile_kernel<VAL,DIM>(out, filter, in, root_rect, subrect,
+          filter_rect, properties, extents, centers, tile, smem_size, max_smem_size);
+  } else {
+    // Instead of doing the large tile case, we can instead do this
+    // by transforming both the input and the filter to the frequency
+    // domain using an FFT, perform the convolution with a point-wise
+    // multiplication, and then transform the result back to the spatial domain
+    cudaStream_t stream;
+    CHECK_CUDA( cudaStreamCreateWithFlags(&stream, cudaStreamNonBlocking) );
+    // First compute how big our temporary allocation needs to be
+    // We'll need two of them to store the zero-padded data for the inputs
+    const Point<DIM> zero = Point<DIM>::ZEROES();
+    const Point<DIM> one = Point<DIM>::ONES();
+    Rect<DIM> offset_bounds;
+    for (int d = 0; d < DIM; d++) {
+      offset_bounds.lo[d] = subrect.lo[d] - centers[d];
+      offset_bounds.hi[d] = subrect.hi[d] + extents[d] - 1 - centers[d];
+    }
+    Rect<DIM> input_bounds = root_rect.intersection(offset_bounds);
+    const Point<DIM> signal_bounds = input_bounds.hi - input_bounds.lo + one;
+    const Point<DIM> filter_bounds = filter_rect.hi - filter_rect.lo + one;
+    Point<DIM> fftsize = signal_bounds + filter_bounds;
+    for (int d = 0; d < DIM; d++) {
+      // Technically we can shrink this by one and still be sound but we'll
+      // only do that if it will make the number even
+      if ((fftsize[d] % 2) == 1)
+        fftsize[d]--;
+    }
+    // Cufft needs the last dimension to have fftsize/2+1 complex elements for 
+    // the temporary buffer
+    // Since we know fftsize is even, we just need to add two to it for the output
+    Point<DIM> buffersize = fftsize;
+    buffersize[DIM-1] += 2;
+    size_t buffervolume = 1;
+    for (int d = 0; d < DIM; d++)
+      buffervolume *= buffersize[d];
+    // Zero pad and copy in the input data
+    DeferredBuffer<VAL,DIM> signal_buffer(Rect<DIM>(zero,buffersize - one),
+        Memory::GPU_FB_MEM, nullptr/*initial*/, 128/*alignment*/);
+    VAL *signal_ptr = signal_buffer.ptr(zero); 
+    CHECK_CUDA( cudaMemsetAsync(signal_ptr, 0, buffervolume*sizeof(VAL), stream) );
+    // Check to see if the input pointer is dense and we can do this with a CUDA memcpy
+    size_t strides[DIM];
+    const VAL *input_ptr = in.ptr(input_bounds, strides);
+    size_t pitch = 1;
+    CopyPitches<DIM> copy_pitches;
+    for (int d = DIM-1; d >= 0; d--) {
+      copy_pitches[d] = FastDivmodU64(pitch);
+      pitch *= signal_bounds[d];
+    }
+    size_t blocks = (pitch + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
+    copy_into_buffer<VAL,DIM><<<blocks,THREADS_PER_BLOCK,0,stream>>>(
+        in, signal_buffer, input_bounds.lo, copy_pitches, pitch);
+    // Zero pad and copy in the filter data
+    DeferredBuffer<VAL,DIM> filter_buffer(Rect<DIM>(zero,buffersize - one),
+        Memory::GPU_FB_MEM, nullptr/*initial*/, 128/*alignment*/);
+    VAL *filter_ptr = filter_buffer.ptr(zero);
+    CHECK_CUDA( cudaMemsetAsync(filter_ptr, 0, buffervolume*sizeof(VAL), stream) );
+    const VAL *filt_ptr = filter.ptr(filter_rect, strides);
+    pitch = 1;
+    for (int d = DIM-1; d >= 0; d--) {
+      copy_pitches[d] = FastDivmodU64(pitch);
+      pitch *= filter_bounds[d];
+    }
+    blocks = (pitch + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
+    copy_into_buffer<VAL,DIM><<<blocks,THREADS_PER_BLOCK,0,stream>>>(
+        filter, filter_buffer, filter_rect.lo, copy_pitches, pitch);
+    // Create the plan and allocate a temporary buffer for it if it needs one
+    cufftHandle forward_plan;
+    CHECK_CUFFT( cufftCreate(&forward_plan) );
+    CHECK_CUFFT( cufftSetAutoAllocation(forward_plan, 0/*we'll do the allocation*/) );
+    size_t workarea_size = create_forward_plan<VAL,DIM>(forward_plan, fftsize); 
+    DeferredBuffer<uint8_t,1> workarea_buffer;
+    if (workarea_size > 0) {
+      const Point<1> zero1d(0);
+      workarea_buffer = DeferredBuffer<uint8_t,1>(
+          Rect<1>(zero1d,Point<1>(workarea_size-1)),
+          Memory::GPU_FB_MEM, nullptr/*initial*/, 128/*alignment*/);
+      void *workarea = workarea_buffer.ptr(zero1d);
+      CHECK_CUFFT( cufftSetWorkArea(forward_plan, workarea) );
+    }
+    CHECK_CUFFT( cufftSetStream(forward_plan, stream) );
+    // FFT the input data
+    cufft_execute_forward<VAL>(forward_plan, signal_ptr, signal_ptr);
+    // FFT the filter data
+    cufft_execute_forward<VAL>(forward_plan, filter_ptr, filter_ptr);
+    // Perform the pointwise multiplcation 
+    {
+      size_t volume = (buffervolume/2);
+      blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
+      complex_multiply<VAL><<<blocks,THREADS_PER_BLOCK,0,stream>>>(
+          (complex<VAL>*)signal_ptr, (complex<VAL>*)filter_ptr, volume);
+    }
+    // Inverse FFT for the ouptut
+    // Make the backwards plan
+    cufftHandle backward_plan;
+    CHECK_CUFFT( cufftCreate(&backward_plan) );
+    CHECK_CUFFT( cufftSetAutoAllocation(backward_plan, 0/*we'll do the allocation*/) );
+    size_t backward_size = create_backward_plan<VAL,DIM>(backward_plan, fftsize);
+    // We're expecting this to be true, it would be quite surprising if it wasn't
+    assert(backward_size <= workarea_size);
+    if (backward_size > 0) {
+      void *workarea = workarea_buffer.ptr(Point<1>(0));
+      CHECK_CUFFT( cufftSetWorkArea(backward_plan, workarea) );
+    }
+    CHECK_CUFFT( cufftSetStream(backward_plan, stream) );
+    // Allow this out-of-place for better performance
+    cufft_execute_backward<VAL>(backward_plan, signal_ptr, filter_ptr);
+
+    // Copy the result data out of the temporary buffer and scale
+    // because CUFFT inverse does not perform the scale for us
+    pitch = 1;
+    FFTPitches<DIM> fft_pitches;
+    for (int d = DIM-1; d >= 0; d--) {
+      fft_pitches[d] = pitch;
+      pitch *= fftsize[d];
+    }
+    const VAL scaling_factor = VAL(1) / pitch;
+    Point<DIM> buffer_offset;
+    for (int d = 0; d < DIM; d++)
+      buffer_offset[d] = centers[d] +
+        ((offset_bounds.lo[d] < root_rect.lo[d]) ?
+          (subrect.lo[d] - root_rect.lo[d]) : centers[d]);
+    Point<DIM> output_bounds = subrect.hi - subrect.lo + one;
+    pitch = 1;
+    for (int d = DIM-1; d >= 0; d--) {
+      copy_pitches[d] = FastDivmodU64(pitch);
+      pitch *= output_bounds[d];
+    }
+    blocks = (pitch + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK; 
+    copy_from_buffer<VAL,DIM><<<blocks,THREADS_PER_BLOCK,0,stream>>>(
+        filter_ptr, out, buffer_offset, subrect.lo, copy_pitches,
+        fft_pitches, pitch, scaling_factor);
+
+#if 0
+    // This is useful debugging code for finding the output
+    VAL *buffer = (VAL*)malloc(buffervolume*sizeof(VAL));
+    CHECK_CUDA( cudaMemcpyAsync(buffer, filter_ptr, buffervolume*sizeof(VAL), cudaMemcpyDeviceToHost, stream) );
+    CHECK_CUDA( cudaStreamSynchronize(stream) );
+    for (unsigned idx = 0; idx < buffervolume; idx++) {
+      if ((idx % fftsize[DIM-1]) == 0)
+        printf("\n");
+      printf("%.8g ", buffer[idx]*scaling_factor);
+    }
+    printf("\n");
+    free(buffer);
+#endif
+
+    // Clean up our resources, DeferredBuffers are cleaned up by Legion
+    CHECK_CUFFT( cufftDestroy(forward_plan) );
+    CHECK_CUFFT( cufftDestroy(backward_plan) );
+    CHECK_CUDA( cudaStreamDestroy(stream) );
+  }
+}
+
+// Below here are specializations of the template for dimensions 1,2,3
+// and fp32 and fp64 so we can use cufft to do the fft
+template<>
+struct ConvolveImplBody<VariantKind::GPU,FLOAT_LT,1> {
+  using VAL = legate_type_of<FLOAT_LT>;
+
+  __host__
+  void operator()(AccessorWO<VAL, 1> out,
+                  AccessorRO<VAL, 1> filter,
+                  AccessorRO<VAL, 1> in,
+                  const Rect<1>& root_rect,
+                  const Rect<1>& subrect,
+                  const Rect<1>& filter_rect) const
+  {
+    cufft_convolution<VAL,1>(out, filter, in, root_rect, subrect, filter_rect);
+  }
+};
+
+template<>
+struct ConvolveImplBody<VariantKind::GPU,FLOAT_LT,2> {
+  using VAL = legate_type_of<FLOAT_LT>;
+
+  __host__
+  void operator()(AccessorWO<VAL, 2> out,
+                  AccessorRO<VAL, 2> filter,
+                  AccessorRO<VAL, 2> in,
+                  const Rect<2>& root_rect,
+                  const Rect<2>& subrect,
+                  const Rect<2>& filter_rect) const
+  {
+    cufft_convolution<VAL,2>(out, filter, in, root_rect, subrect, filter_rect);
+  }
+};
+
+template<>
+struct ConvolveImplBody<VariantKind::GPU,FLOAT_LT,3> {
+  using VAL = legate_type_of<FLOAT_LT>;
+
+  __host__
+  void operator()(AccessorWO<VAL, 3> out,
+                  AccessorRO<VAL, 3> filter,
+                  AccessorRO<VAL, 3> in,
+                  const Rect<3>& root_rect,
+                  const Rect<3>& subrect,
+                  const Rect<3>& filter_rect) const
+  {
+    cufft_convolution<VAL,3>(out, filter, in, root_rect, subrect, filter_rect);
+  }
+};
+
+template<>
+struct ConvolveImplBody<VariantKind::GPU,DOUBLE_LT,1> {
+  using VAL = legate_type_of<DOUBLE_LT>;
+
+  __host__
+  void operator()(AccessorWO<VAL, 1> out,
+                  AccessorRO<VAL, 1> filter,
+                  AccessorRO<VAL, 1> in,
+                  const Rect<1>& root_rect,
+                  const Rect<1>& subrect,
+                  const Rect<1>& filter_rect) const
+  {
+    cufft_convolution<VAL,1>(out, filter, in, root_rect, subrect, filter_rect);
+  }
+};
+
+template<>
+struct ConvolveImplBody<VariantKind::GPU,DOUBLE_LT,2> {
+  using VAL = legate_type_of<DOUBLE_LT>;
+
+  __host__
+  void operator()(AccessorWO<VAL, 2> out,
+                  AccessorRO<VAL, 2> filter,
+                  AccessorRO<VAL, 2> in,
+                  const Rect<2>& root_rect,
+                  const Rect<2>& subrect,
+                  const Rect<2>& filter_rect) const
+  {
+    cufft_convolution<VAL,2>(out, filter, in, root_rect, subrect, filter_rect);
+  }
+};
+
+template<>
+struct ConvolveImplBody<VariantKind::GPU,DOUBLE_LT,3> {
+  using VAL = legate_type_of<DOUBLE_LT>;
+
+  __host__
+  void operator()(AccessorWO<VAL, 3> out,
+                  AccessorRO<VAL, 3> filter,
+                  AccessorRO<VAL, 3> in,
+                  const Rect<3>& root_rect,
+                  const Rect<3>& subrect,
+                  const Rect<3>& filter_rect) const
+  {
+    cufft_convolution<VAL,3>(out, filter, in, root_rect, subrect, filter_rect);
   }
 };
 

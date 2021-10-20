@@ -28,6 +28,8 @@ def test_1d():
 
     out = lg.convolve(a, v, mode="same")
     out_np = np.convolve(anp, vnp, mode="same")
+    #print(out)
+    #print(out_np)
 
     assert lg.allclose(out, out_np)
 

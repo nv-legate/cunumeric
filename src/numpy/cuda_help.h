@@ -19,6 +19,7 @@
 #include "legate.h"
 #include <cublas_v2.h>
 #include <cuda_runtime.h>
+#include <cufft.h>
 
 #define THREADS_PER_BLOCK 128
 #define MIN_CTAS_PER_SM 4
@@ -27,16 +28,22 @@
 #define COOPERATIVE_CTAS_PER_SM 4
 
 #define CHECK_CUDA(expr)                      \
-  {                                           \
+  do {                                        \
     cudaError_t result = (expr);              \
     check_cuda(result, __FILE__, __LINE__);   \
-  }
+  } while (false)
 
 #define CHECK_CUBLAS(expr)                    \
-  {                                           \
+  do {                                        \
     cublasStatus_t result = (expr);           \
     check_cublas(result, __FILE__, __LINE__); \
-  }
+  } while (false)
+
+#define CHECK_CUFFT(expr)                     \
+  do {                                        \
+    cufftResult result = (expr);              \
+    check_cufft(result, __FILE__, __LINE__);  \
+  } while (false)
 
 #ifndef MAX
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
@@ -70,6 +77,18 @@ __host__ inline void check_cublas(cublasStatus_t status, const char* file, int l
             file,
             line);
     exit(status);
+  }
+}
+
+__host__ inline void check_cufft(cufftResult result, const char *file, int line)
+{
+  if (result!= CUFFT_SUCCESS) {
+    fprintf(stderr,
+            "Internal Legate CUFFT failure with error code %d in file %s at line %d\n",
+            result,
+            file,
+            line);
+    exit(result);
   }
 }
 
