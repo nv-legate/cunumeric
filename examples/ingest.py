@@ -70,7 +70,7 @@ def get_local_colors():
     rank = int(os.environ["OMPI_COMM_WORLD_RANK"])
     res = []
     i = 0
-    for color in args.colors:
+    for color in Rect(args.colors):
         if i % num_ranks == rank:
             res.append(color)
         i += 1
