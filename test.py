@@ -64,6 +64,7 @@ disabled_tests = [
     "examples/wgrad.py",
     "tests/reduction_axis.py",
     "examples/lstm_full.py",
+    "examples/ingest.py",
 ]
 
 # filter out disabled tests
