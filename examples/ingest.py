@@ -23,26 +23,33 @@ import pyarrow as pa
 import tifffile as tfl
 
 import legate.numpy as np
-from legate.core import Rect, ingest
+from legate.core import CustomSplit, Rect, TiledSplit, ingest
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
     "scans_dir",
 )
 parser.add_argument(
-    "--tile-shape",
-    type=int,
-    nargs="+",
-    default=[1, 301, 704, 360],
-)
-parser.add_argument(
+    "-c",
     "--colors",
     type=int,
     nargs="+",
     default=[3, 2, 2, 1],
 )
+parser.add_argument("-p", "--custom-partitioning", action="store_true")
+parser.add_argument("-s", "--custom-sharding", action="store_true")
 args = parser.parse_args()
-shape = [ci * di for (ci, di) in zip(args.colors, args.tile_shape)]
+dtype = pa.uint16()
+tile_shape = (1, 301, 704, 360)
+colors = tuple(args.colors)
+shape = tuple(ci * di for (ci, di) in zip(colors, tile_shape))
+
+
+def get_subdomain(color):
+    return Rect(
+        lo=[ci * di for (ci, di) in zip(color, tile_shape)],
+        hi=[(ci + 1) * di for (ci, di) in zip(color, tile_shape)],
+    )
 
 
 def get_buffer(color):
@@ -56,12 +63,8 @@ def get_buffer(color):
     )
     assert len(fnames) == 1
     im = tfl.imread(fnames[0])
-    assert args.tile_shape == [1] + list(im.shape)  # channel dim is implicit
-    subdomain = Rect(
-        lo=[ci * di for (ci, di) in zip(color, args.tile_shape)],
-        hi=[(ci + 1) * di for (ci, di) in zip(color, args.tile_shape)],
-    )
-    return (subdomain, im.data)
+    assert tile_shape == (1,) + im.shape  # channel dimension is implicit
+    return im.data
 
 
 def get_local_colors():
@@ -70,17 +73,25 @@ def get_local_colors():
     rank = int(os.environ["OMPI_COMM_WORLD_RANK"])
     res = []
     i = 0
-    for color in Rect(args.colors):
+    for color in Rect(colors):
         if i % num_ranks == rank:
             res.append(color)
         i += 1
     return res
 
 
-# Legate-managed sharding
-tab = ingest(pa.uint16(), shape, args.colors, get_buffer)
-# Custom sharding
-# tab = ingest(pa.uint16(), shape, args.colors, get_buffer, get_local_colors)
-
+data_split = (
+    CustomSplit(get_subdomain)
+    if args.custom_partitioning
+    else TiledSplit(tile_shape)
+)
+tab = ingest(
+    dtype,
+    shape,
+    colors,
+    data_split,
+    get_buffer,
+    get_local_colors if args.custom_sharding else None,
+)
 arr = np.array(tab)
 b = arr + arr
