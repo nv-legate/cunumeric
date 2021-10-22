@@ -13,16 +13,16 @@
 # limitations under the License.
 #
 
-import legate.numpy as lg
+import cunumeric as num
 
 
 def test():
-    C = lg.random.randn(2, 3, 5)
-    IFOGf = lg.random.randn(2, 3, 20)
+    C = num.random.randn(2, 3, 5)
+    IFOGf = num.random.randn(2, 3, 20)
     C[1] = 1.0
     C[1] += IFOGf[1, :, :5] * IFOGf[1, :, 15:]
     temp = IFOGf[1, :, :5] * IFOGf[1, :, 15:]
-    assert not lg.array_equal(C[1], temp)
+    assert not num.array_equal(C[1], temp)
 
     print(C[1])
     print(temp)

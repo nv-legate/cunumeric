@@ -16,48 +16,48 @@
 import numpy as np
 import scipy.signal as sig
 
-import legate.numpy as lg
+import cunumeric as num
 
 
 def test_1d():
-    a = lg.random.rand(100)
-    v = lg.random.rand(5)
+    a = num.random.rand(100)
+    v = num.random.rand(5)
 
     anp = a.__array__()
     vnp = v.__array__()
 
-    out = lg.convolve(a, v, mode="same")
+    out = num.convolve(a, v, mode="same")
     out_np = np.convolve(anp, vnp, mode="same")
-    #print(out)
-    #print(out_np)
+    # print(out)
+    # print(out_np)
 
-    assert lg.allclose(out, out_np)
+    assert num.allclose(out, out_np)
 
 
 def test_2d():
-    a = lg.random.rand(10, 10)
-    v = lg.random.rand(3, 5)
+    a = num.random.rand(10, 10)
+    v = num.random.rand(3, 5)
 
     anp = a.__array__()
     vnp = v.__array__()
 
-    out = lg.convolve(a, v, mode="same")
+    out = num.convolve(a, v, mode="same")
     out_np = sig.convolve(anp, vnp, mode="same")
 
-    assert lg.allclose(out, out_np)
+    assert num.allclose(out, out_np)
 
 
 def test_3d():
-    a = lg.random.rand(10, 10, 10)
-    v = lg.random.rand(3, 5, 3)
+    a = num.random.rand(10, 10, 10)
+    v = num.random.rand(3, 5, 3)
 
     anp = a.__array__()
     vnp = v.__array__()
 
-    out = lg.convolve(a, v, mode="same")
+    out = num.convolve(a, v, mode="same")
     out_np = sig.convolve(anp, vnp, mode="same")
 
-    assert lg.allclose(out, out_np)
+    assert num.allclose(out, out_np)
 
 
 if __name__ == "__main__":

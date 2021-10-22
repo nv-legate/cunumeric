@@ -15,22 +15,22 @@
 
 import numpy as np
 
-import legate.numpy as lg
+import cunumeric as num
 
 
 def test():
-    x = lg.array([1, 2, -3])
+    x = num.array([1, 2, -3])
     mask = x > 0
     w = x * ~mask
     # print(w)
     assert np.array_equal(w, np.array([0, 0, -3]))
 
-    x = lg.array([1, 2, -3])
+    x = num.array([1, 2, -3])
     mask = x > 0
     w = ~mask * x
     assert np.array_equal(w, [0, 0, -3])
 
-    x = lg.array([1, 2, -3])
+    x = num.array([1, 2, -3])
     mask = x > 0
     w = mask * x
     # print(w)

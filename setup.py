@@ -43,9 +43,9 @@ class my_build_py(build_py):
             # the python library directly
             root_dir = os.path.dirname(os.path.realpath(__file__))
             header_src = os.path.join(
-                root_dir, "src", "numpy", "legate_numpy_c.h"
+                root_dir, "src", "cunumeric", "cunumeric_c.h"
             )
-            output_dir = os.path.join(root_dir, "legate", "numpy")
+            output_dir = os.path.join(root_dir, "cunumeric")
             include_dir = os.path.join(args.prefix, "include")
             header = subprocess.check_output(
                 [
@@ -73,12 +73,12 @@ if args.recurse:
     # Remove the recurse argument from the list
     sys.argv.remove("--recurse")
     setup(
-        name="legate.numpy",
+        name="cunumeric",
         version="0.1",
         packages=[
-            "legate.numpy",
-            "legate.numpy.linalg",
-            "legate.numpy.random",
+            "cunumeric",
+            "cunumeric.linalg",
+            "cunumeric.random",
         ],
         cmdclass={"build_py": my_build_py},
     )

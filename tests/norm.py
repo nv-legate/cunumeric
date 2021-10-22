@@ -15,34 +15,34 @@
 
 import numpy as np
 
-import legate.numpy as lg
+import cunumeric as num
 
 
 def test():
     anp = np.random.randn(10)
-    a = lg.array(anp)
+    a = num.array(anp)
 
-    assert np.allclose(np.linalg.norm(anp), lg.linalg.norm(a))
+    assert np.allclose(np.linalg.norm(anp), num.linalg.norm(a))
     assert np.allclose(
-        np.linalg.norm(anp, ord=np.inf), lg.linalg.norm(a, ord=lg.inf)
+        np.linalg.norm(anp, ord=np.inf), num.linalg.norm(a, ord=num.inf)
     )
     assert np.allclose(
-        np.linalg.norm(anp, ord=-np.inf), lg.linalg.norm(a, ord=-lg.inf)
+        np.linalg.norm(anp, ord=-np.inf), num.linalg.norm(a, ord=-num.inf)
     )
-    assert np.allclose(np.linalg.norm(anp, ord=0), lg.linalg.norm(a, ord=0))
-    assert np.allclose(np.linalg.norm(anp, ord=1), lg.linalg.norm(a, ord=1))
-    # assert(np.allclose(np.linalg.norm(anp, ord=-1), lg.linalg.norm(a, ord=-1))) # noqa E501
-    assert np.allclose(np.linalg.norm(anp, ord=2), lg.linalg.norm(a, ord=2))
-    # assert(np.allclose(np.linalg.norm(anp, ord=-2), lg.linalg.norm(a, ord=-2))) # noqa E501
+    assert np.allclose(np.linalg.norm(anp, ord=0), num.linalg.norm(a, ord=0))
+    assert np.allclose(np.linalg.norm(anp, ord=1), num.linalg.norm(a, ord=1))
+    # assert(np.allclose(np.linalg.norm(anp, ord=-1), num.linalg.norm(a, ord=-1))) # noqa E501
+    assert np.allclose(np.linalg.norm(anp, ord=2), num.linalg.norm(a, ord=2))
+    # assert(np.allclose(np.linalg.norm(anp, ord=-2), num.linalg.norm(a, ord=-2))) # noqa E501
 
     # bnp = np.random.randn(4,5)
-    # b = lg.array(bnp)
-    # assert(np.allclose(np.linalg.norm(bnp, 'fro'), lg.linalg.norm(b, 'fro')))
-    # assert(np.allclose(np.linalg.norm(bnp, 'nuc'), lg.linalg.norm(b, 'nuc')))
-    # assert(np.allclose(np.linalg.norm(bnp, np.inf), lg.linalg.norm(b, lg.inf))) # noqa E501
-    # assert(np.allclose(np.linalg.norm(bnp, -np.inf), lg.linalg.norm(b, -lg.inf))) # noqa E501
-    # assert(np.allclose(np.linalg.norm(bnp, 1), lg.linalg.norm(b, 1)))
-    # assert(np.allclose(np.linalg.norm(bnp, -1), lg.linalg.norm(b, -1)))
+    # b = num.array(bnp)
+    # assert(np.allclose(np.linalg.norm(bnp, 'fro'), num.linalg.norm(b, 'fro')))
+    # assert(np.allclose(np.linalg.norm(bnp, 'nuc'), num.linalg.norm(b, 'nuc')))
+    # assert(np.allclose(np.linalg.norm(bnp, np.inf), num.linalg.norm(b, num.inf))) # noqa E501
+    # assert(np.allclose(np.linalg.norm(bnp, -np.inf), num.linalg.norm(b, -num.inf))) # noqa E501
+    # assert(np.allclose(np.linalg.norm(bnp, 1), num.linalg.norm(b, 1)))
+    # assert(np.allclose(np.linalg.norm(bnp, -1), num.linalg.norm(b, -1)))
 
     return
 

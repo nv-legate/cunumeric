@@ -17,15 +17,15 @@ from __future__ import division
 
 import numpy as np
 
-import legate.numpy as lg
+import cunumeric as num
 
 
 def test():
     numpyX = np.array([[1, 2, 3], [4, 5, 6]])
     numpyY = np.array([[7, 8, 9], [10, 11, 12]])
 
-    x = lg.array(numpyX)
-    y = lg.array(numpyY)
+    x = num.array(numpyX)
+    y = num.array(numpyY)
 
     z = x + y
     assert np.array_equal(z, numpyX + numpyY)

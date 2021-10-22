@@ -15,53 +15,53 @@
 
 import numpy as np
 
-import legate.numpy as lg
+import cunumeric as num
 
 
 def test():
 
     # np.random.seed(42)
     # anp = np.array([1, 54, 4 , 4, 0, 45, 5, 58, 0, 9, 0, 4, 0, 0, 0, 5, 0])
-    # a = lg.array(anp)
-    # assert(lg.array_equal(np.where(anp), lg.where(a)))
+    # a = num.array(anp)
+    # assert(num.array_equal(np.where(anp), num.where(a)))
 
     # cnp = np.array([1, 54, 4 , 4, 0, 45, 5, 58, 0, 9, 0, 4, 0, 0, 0, 5, 0, 1]).reshape((6,3)) # noqa E501
-    # c = lg.array(cnp)
+    # c = num.array(cnp)
     # bnp = np.random.randn(6,3)
-    # b = lg.array(bnp)
-    # assert(lg.array_equal(lg.extract(c, b), np.extract(cnp, bnp)))
+    # b = num.array(bnp)
+    # assert(num.array_equal(num.extract(c, b), np.extract(cnp, bnp)))
 
     anp = np.array([[True, False], [True, True]])
     xnp = np.array([[1, 2], [3, 4]])
     ynp = np.array([[9, 8], [7, 6]])
-    a = lg.array(anp)
-    x = lg.array(xnp)
-    y = lg.array(ynp)
-    assert np.array_equal(np.where(anp, xnp, ynp), lg.where(a, x, y))
+    a = num.array(anp)
+    x = num.array(xnp)
+    y = num.array(ynp)
+    assert np.array_equal(np.where(anp, xnp, ynp), num.where(a, x, y))
 
     anp = np.array([True, False])
     xnp = np.array([[1, 2], [3, 4]])
     ynp = np.array([[9, 8], [7, 6]])
-    a = lg.array(anp)
-    x = lg.array(xnp)
-    y = lg.array(ynp)
-    assert np.array_equal(np.where(anp, xnp, ynp), lg.where(a, x, y))
+    a = num.array(anp)
+    x = num.array(xnp)
+    y = num.array(ynp)
+    assert np.array_equal(np.where(anp, xnp, ynp), num.where(a, x, y))
 
     anp = np.array([[True, False]])
     xnp = np.array([[1, 2], [3, 4]])
     ynp = np.array([[9, 8], [7, 6]])
-    a = lg.array(anp)
-    x = lg.array(xnp)
-    y = lg.array(ynp)
-    assert np.array_equal(np.where(anp, xnp, ynp), lg.where(a, x, y))
+    a = num.array(anp)
+    x = num.array(xnp)
+    y = num.array(ynp)
+    assert np.array_equal(np.where(anp, xnp, ynp), num.where(a, x, y))
 
     anp = np.array(False)
     xnp = np.array([[1, 2], [3, 4]])
     ynp = np.array([[9, 8], [7, 6]])
-    a = lg.array(anp)
-    x = lg.array(xnp)
-    y = lg.array(ynp)
-    assert np.array_equal(np.where(anp, xnp, ynp), lg.where(a, x, y))
+    a = num.array(anp)
+    x = num.array(xnp)
+    y = num.array(ynp)
+    assert np.array_equal(np.where(anp, xnp, ynp), num.where(a, x, y))
 
 
 if __name__ == "__main__":

@@ -15,12 +15,12 @@
 
 import numpy as np
 
-import legate.numpy as lg
+import cunumeric as num
 
 
 def test():
     anp = np.array([[1, 2, 3], [4, 5, 6]])
-    a = lg.array(anp)
+    a = num.array(anp)
     r = a.sum(0)
     assert np.array_equal(r, [5, 7, 9])
 
@@ -28,11 +28,11 @@ def test():
     assert np.array_equal(r, [6, 15])
 
     bnp = np.random.random((2, 3))
-    b = lg.array(bnp)
-    assert np.allclose(lg.sum(b), np.sum(bnp))
+    b = num.array(bnp)
+    assert np.allclose(num.sum(b), np.sum(bnp))
 
     af = np.random.randn(4, 5)
-    bf = lg.array(af)
+    bf = num.array(af)
     assert np.allclose(af.mean(0), bf.mean(0))
     assert np.allclose(af.mean(), bf.mean())
 

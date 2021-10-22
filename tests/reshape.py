@@ -15,12 +15,12 @@
 
 import numpy as np
 
-import legate.numpy as lg
+import cunumeric as num
 
 
 def test1():
     anp = np.arange(100).reshape(10, 10)
-    a = lg.arange(100).reshape((10, 10))
+    a = num.arange(100).reshape((10, 10))
     assert np.array_equal(anp, a)
 
     for shape in [
@@ -32,21 +32,21 @@ def test1():
         (1, 10, 10),
     ]:
         bnp = np.reshape(anp, shape)
-        b = lg.reshape(a, shape)
+        b = num.reshape(a, shape)
         assert np.array_equal(bnp, b)
 
     cnp = np.reshape(anp, (100,))
-    c = lg.reshape(a, (100,))
+    c = num.reshape(a, (100,))
     assert np.array_equal(cnp, c)
 
     dnp = np.ravel(anp)
-    d = lg.ravel(a)
+    d = num.ravel(a)
     assert np.array_equal(dnp, d)
 
 
 def test2():
     anp = np.random.rand(5, 4, 10)
-    a = lg.array(anp)
+    a = num.array(anp)
 
     for shape in [
         (10, 2, 10),
@@ -57,7 +57,7 @@ def test2():
         (10, 20),
     ]:
         bnp = np.reshape(anp, shape)
-        b = lg.reshape(a, shape)
+        b = num.reshape(a, shape)
         assert np.array_equal(bnp, b)
 
 

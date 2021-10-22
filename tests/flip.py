@@ -15,32 +15,32 @@
 
 import numpy as np
 
-import legate.numpy as lg
+import cunumeric as num
 
 
 def test():
-    a = lg.random.random((10, 10, 10))
+    a = num.random.random((10, 10, 10))
     anp = a.__array__()
 
-    b = lg.flip(a)
+    b = num.flip(a)
     bnp = np.flip(anp)
 
-    assert lg.array_equal(b, bnp)
+    assert num.array_equal(b, bnp)
 
-    b = lg.flip(a, axis=0)
+    b = num.flip(a, axis=0)
     bnp = np.flip(anp, axis=0)
 
-    assert lg.array_equal(b, bnp)
+    assert num.array_equal(b, bnp)
 
-    b = lg.flip(a, axis=1)
+    b = num.flip(a, axis=1)
     bnp = np.flip(anp, axis=1)
 
-    assert lg.array_equal(b, bnp)
+    assert num.array_equal(b, bnp)
 
-    b = lg.flip(a, axis=(0, 2))
+    b = num.flip(a, axis=(0, 2))
     bnp = np.flip(anp, axis=(0, 2))
 
-    assert lg.array_equal(b, bnp)
+    assert num.array_equal(b, bnp)
 
 
 if __name__ == "__main__":

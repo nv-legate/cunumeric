@@ -21,7 +21,7 @@ import argparse
 import datetime
 import math
 
-import legate.numpy as np
+import cunumeric as np
 
 
 def initialize(C, K, B, H, W):

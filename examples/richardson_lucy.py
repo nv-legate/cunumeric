@@ -16,9 +16,9 @@
 import argparse
 
 from benchmark import run_benchmark
-
-import legate.numpy as lg
 from legate.timing import time
+
+import cunumeric as np
 
 float_type = "float32"
 
@@ -26,17 +26,17 @@ float_type = "float32"
 
 
 def run_richardson_lucy(shape, filter_shape, num_iter, timing):
-    image = lg.random.rand(*shape).astype(float_type)
-    psf = lg.random.rand(*filter_shape).astype(float_type)
-    im_deconv = lg.full(image.shape, 0.5, dtype=float_type)
-    psf_mirror = lg.flip(psf)
+    image = np.random.rand(*shape).astype(float_type)
+    psf = np.random.rand(*filter_shape).astype(float_type)
+    im_deconv = np.full(image.shape, 0.5, dtype=float_type)
+    psf_mirror = np.flip(psf)
 
     start = time()
 
     for _ in range(num_iter):
-        conv = lg.convolve(im_deconv, psf, mode="same")
+        conv = np.convolve(im_deconv, psf, mode="same")
         relative_blur = image / conv
-        im_deconv *= lg.convolve(relative_blur, psf_mirror, mode="same")
+        im_deconv *= np.convolve(relative_blur, psf_mirror, mode="same")
 
     stop = time()
     total = (stop - start) / 1000.0

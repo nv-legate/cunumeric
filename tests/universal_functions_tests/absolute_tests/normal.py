@@ -15,14 +15,14 @@
 
 import numpy as np
 
-import legate.numpy as lg
+import cunumeric as num
 
 
 def test():
     anp = np.random.randn(4, 5)
-    a = lg.array(anp)
+    a = num.array(anp)
 
-    assert np.array_equal(lg.absolute(a), np.absolute(anp))
+    assert np.array_equal(num.absolute(a), np.absolute(anp))
 
 
 if __name__ == "__main__":

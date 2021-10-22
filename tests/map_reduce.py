@@ -15,7 +15,7 @@
 
 import numpy as np
 
-import legate.numpy as lg
+import cunumeric as num
 
 
 def test():
@@ -25,10 +25,10 @@ def test():
     numpyResult = np.sum(z)
     # print(numpyResult)
 
-    gx = lg.array(x)
-    gy = lg.array(y)
+    gx = num.array(x)
+    gy = num.array(y)
     z = gx + gy
-    legate_oldResult = lg.sum(z)
+    legate_oldResult = num.sum(z)
     # print(legate_oldResult)
 
     assert legate_oldResult == numpyResult

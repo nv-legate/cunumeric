@@ -17,18 +17,18 @@ import random
 
 import numpy as np
 
-import legate.numpy as lg
+import cunumeric as num
 
 
 def test():
     anp = np.random.randn(4, 5)
     b = random.randint(1, 13)
-    a = lg.array(anp)
+    a = num.array(anp)
 
     np.power(anp, b, out=anp)
-    lg.power(a, b, out=a)
+    num.power(a, b, out=a)
 
-    assert lg.allclose(a, anp)
+    assert num.allclose(a, anp)
 
     return
 

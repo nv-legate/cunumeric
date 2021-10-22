@@ -15,84 +15,84 @@
 
 import numpy as np
 
-import legate.numpy as lg
+import cunumeric as num
 
 
 def test():
-    x = lg.array([1, 2, 3])
+    x = num.array([1, 2, 3])
     y = np.array([1, 2, 3])
-    z = lg.array(y)
+    z = num.array(y)
     assert np.array_equal(x, z)
     assert x.dtype == z.dtype
 
-    xe = lg.empty((2, 3))
+    xe = num.empty((2, 3))
     ye = np.empty((2, 3))
     assert xe.shape == ye.shape
     assert xe.dtype == ye.dtype
 
-    xz = lg.zeros((2, 3))
+    xz = num.zeros((2, 3))
     yz = np.zeros((2, 3))
     assert np.array_equal(xz, yz)
     assert xz.dtype == yz.dtype
 
-    xo = lg.ones((2, 3))
+    xo = num.ones((2, 3))
     yo = np.ones((2, 3))
     assert np.array_equal(xo, yo)
     assert xo.dtype == yo.dtype
 
-    xf = lg.full((2, 3), 3)
+    xf = num.full((2, 3), 3)
     yf = np.full((2, 3), 3)
     assert np.array_equal(xf, yf)
     assert xf.dtype == yf.dtype
 
-    xel = lg.empty_like(x)
+    xel = num.empty_like(x)
     yel = np.empty_like(y)
     assert xel.shape == yel.shape
     assert xel.dtype == yel.dtype
 
-    xzl = lg.zeros_like(x)
+    xzl = num.zeros_like(x)
     yzl = np.zeros_like(y)
     assert np.array_equal(xzl, yzl)
     assert xzl.dtype == yzl.dtype
 
-    xol = lg.ones_like(x)
+    xol = num.ones_like(x)
     yol = np.ones_like(y)
     assert np.array_equal(xol, yol)
     assert xol.dtype == yol.dtype
 
-    xfl = lg.full_like(x, 3)
+    xfl = num.full_like(x, 3)
     yfl = np.full_like(y, 3)
     assert np.array_equal(xfl, yfl)
     assert xfl.dtype == yfl.dtype
 
-    x = lg.arange(1)
+    x = num.arange(1)
     y = np.arange(1)
     assert np.array_equal(x, y)
     assert x.dtype == y.dtype
 
-    x = lg.arange(10)
+    x = num.arange(10)
     y = np.arange(10)
     assert np.array_equal(x, y)
     assert x.dtype == y.dtype
 
-    x = lg.arange(10, dtype=np.int32)
+    x = num.arange(10, dtype=np.int32)
     y = np.arange(10, dtype=np.int32)
     assert np.array_equal(x, y)
     assert x.dtype == y.dtype
 
-    x = lg.arange(2.0, 10.0)
+    x = num.arange(2.0, 10.0)
     y = np.arange(2.0, 10.0)
     assert np.array_equal(x, y)
     assert x.dtype == y.dtype
 
-    x = lg.arange(2, 30, 3)
+    x = num.arange(2, 30, 3)
     y = np.arange(2, 30, 3)
     assert np.array_equal(x, y)
     assert x.dtype == y.dtype
 
-    # xfls = lg.full_like(x, '3', dtype=np.str_)
+    # xfls = num.full_like(x, '3', dtype=np.str_)
     # yfls = np.full_like(y, '3', dtype=np.str_)
-    # assert(lg.array_equal(xfls, yfls))
+    # assert(num.array_equal(xfls, yfls))
     # assert(xfls.dtype == yfls.dtype)
 
     return
