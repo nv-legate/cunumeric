@@ -1,4 +1,4 @@
-name: legate_numpy_dev
+name: cunumeric_dev
 channels:
   - conda-forge
   - defaults
