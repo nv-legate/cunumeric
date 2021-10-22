@@ -15,7 +15,7 @@
 
 from __future__ import division
 
-import legate.numpy as lg
+import cunumeric as lg
 
 
 def test():

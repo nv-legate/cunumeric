@@ -14,7 +14,7 @@
 #
 
 # import numpy as np
-import legate.numpy as np
+import cunumeric as np
 
 
 def test():

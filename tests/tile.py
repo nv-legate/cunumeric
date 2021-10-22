@@ -13,7 +13,7 @@
 # limitations under the License.
 #
 
-import legate.numpy as lg
+import cunumeric as lg
 
 
 def test():

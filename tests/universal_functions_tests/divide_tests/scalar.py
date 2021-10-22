@@ -16,7 +16,7 @@
 import numpy as np
 from test_tools.generators import scalar_gen
 
-import legate.numpy as lg
+import cunumeric as lg
 
 
 def test():

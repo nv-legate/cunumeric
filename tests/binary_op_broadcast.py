@@ -17,7 +17,7 @@ from __future__ import division
 
 import numpy as np
 
-import legate.numpy as lg
+import cunumeric as lg
 
 
 def test(shape):

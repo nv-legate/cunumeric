@@ -15,7 +15,7 @@
 
 import numpy as np
 
-import legate.numpy as lg
+import cunumeric as lg
 from legate.core import LEGATE_MAX_DIM
 
 

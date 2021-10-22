@@ -15,7 +15,7 @@
 
 import numpy as np
 
-import legate.numpy as lg
+import cunumeric as lg
 
 
 def assert_equal(lgarr, nparr):

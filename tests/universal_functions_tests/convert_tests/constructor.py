@@ -18,7 +18,7 @@ from __future__ import absolute_import
 import numpy as np
 from test_tools import asserts
 
-import legate.numpy as lg
+import cunumeric as lg
 
 
 def test():

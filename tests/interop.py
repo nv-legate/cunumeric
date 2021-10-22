@@ -19,7 +19,7 @@ import random
 
 import numpy
 
-import legate.numpy
+import cunumeric
 
 
 # Code written using the NumPy interface
@@ -32,7 +32,7 @@ def step2(np, x, y):
 
 
 # Malicious adoption strategy
-numpy_likes = [numpy, legate.numpy]
+numpy_likes = [numpy, cunumeric]
 
 for x in range(10):
     x, y = step1(random.choice(numpy_likes), 1000000)
