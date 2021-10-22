@@ -15,7 +15,7 @@
 
 import numpy as np
 
-import cunumeric as lg
+import cunumeric as num
 
 
 def test():
@@ -24,13 +24,13 @@ def test():
         x_np = np.array(np.random.randn(11), dtype=dtype)
         y_np = np.array(np.random.randn(11), dtype=dtype)
 
-        x_lg = lg.array(x_np)
-        y_lg = lg.array(y_np)
+        x_num = num.array(x_np)
+        y_num = num.array(y_np)
 
         out_np = x_np.dot(y_np)
-        out_lg = x_lg.dot(y_lg)
+        out_num = x_num.dot(y_num)
 
-        assert lg.allclose(out_np, out_lg)
+        assert num.allclose(out_np, out_num)
 
 
 if __name__ == "__main__":

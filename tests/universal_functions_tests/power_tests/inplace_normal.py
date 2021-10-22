@@ -15,7 +15,7 @@
 
 import numpy as np
 
-import cunumeric as lg
+import cunumeric as num
 
 
 def test():
@@ -24,13 +24,13 @@ def test():
     # avoid fractional exponents
     exponents_np = np.random.randint(10, size=(4, 5)).astype(np.float64)
 
-    bases = lg.array(bases_np)
-    exponents = lg.array(exponents_np)
+    bases = num.array(bases_np)
+    exponents = num.array(exponents_np)
 
     np.power(bases_np, exponents_np, out=bases_np)
-    lg.power(bases, exponents, out=bases)
+    num.power(bases, exponents, out=bases)
 
-    assert lg.allclose(bases, bases_np)
+    assert num.allclose(bases, bases_np)
 
 
 if __name__ == "__main__":

@@ -16,14 +16,14 @@
 import numpy as np
 from test_tools.generators import scalar_gen
 
-import cunumeric as lg
+import cunumeric as num
 
 
 def test():
     test_values = [-np.inf, 0.0, 1.0, np.inf, np.nan]
     for a in test_values:
-        for (la, na) in zip(scalar_gen(lg, a), scalar_gen(np, a)):
-            assert np.array_equal(lg.isinf(la), np.isinf(na))
+        for (la, na) in zip(scalar_gen(num, a), scalar_gen(np, a)):
+            assert np.array_equal(num.isinf(la), np.isinf(na))
 
 
 if __name__ == "__main__":

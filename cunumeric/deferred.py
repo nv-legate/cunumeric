@@ -129,7 +129,7 @@ def shadow_debug(func_name, indices, keys=[]):
 # This is a dummy object that is only used as an initializer for the
 # RegionField object above. It is thrown away as soon as the
 # RegionField is constructed.
-class _LegateNDarray(object):
+class _CuNumericNDarray(object):
     __slots__ = ["__array_interface__"]
 
     def __init__(self, shape, field_type, base_ptr, strides, read_only):
@@ -258,7 +258,7 @@ class DeferredArray(NumPyThunk):
             alloc = self.base.get_inline_allocation(self.context)
 
             def construct_ndarray(shape, address, strides):
-                initializer = _LegateNDarray(
+                initializer = _CuNumericNDarray(
                     shape, self.dtype, address, strides, False
                 )
                 return np.asarray(initializer)
@@ -540,7 +540,7 @@ class DeferredArray(NumPyThunk):
                 # In Python, any inplace update of form arr[key] op= value
                 # goes through three steps: 1) __getitem__ fetching the object
                 # for the key, 2) __iop__ for the update, and 3) __setitem__
-                # to set the result back. In Legate Numpy, the object we
+                # to set the result back. In cuNumeric, the object we
                 # return in step (1) is actually a subview to the array arr
                 # through which we make udpates in place, so after step (2) is
                 # done, # the effect of inplace update is already reflected
@@ -578,7 +578,7 @@ class DeferredArray(NumPyThunk):
         if order != "C":
             # If we don't have a transform then we need to make a copy
             warnings.warn(
-                "legate.numpy has not implemented reshape using Fortran-like "
+                "cuNumeric has not implemented reshape using Fortran-like "
                 "index order and is falling back to canonical numpy. You may "
                 "notice significantly decreased performance for this "
                 "function call.",
@@ -821,7 +821,7 @@ class DeferredArray(NumPyThunk):
 
         if warn:
             warnings.warn(
-                "Legate performing implicit type conversion from "
+                "cuNumeric performing implicit type conversion from "
                 + str(rhs_array.dtype)
                 + " to "
                 + str(lhs_array.dtype),
@@ -841,7 +841,7 @@ class DeferredArray(NumPyThunk):
 
         task.execute()
 
-    # Fill the legate array with the value in the numpy array
+    # Fill the cuNumeric array with the value in the numpy array
     @profile
     def _fill(self, value, stacklevel=0, callsite=None):
         assert value.scalar

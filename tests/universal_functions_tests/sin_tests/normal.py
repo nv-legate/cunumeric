@@ -15,13 +15,13 @@
 
 import numpy as np
 
-import cunumeric as lg
+import cunumeric as num
 
 
 def test():
     npa = np.array([0.0, np.pi / 2, np.pi])
-    a = lg.array(npa)
-    assert np.array_equal(lg.sin(a), np.sin(npa))
+    a = num.array(npa)
+    assert np.array_equal(num.sin(a), np.sin(npa))
     return
 
 

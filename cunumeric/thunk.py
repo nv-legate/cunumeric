@@ -24,7 +24,7 @@ from legate.core import Future, Region
 class NumPyThunk(object):
     """This is the base class for NumPy computations. It has methods
     for all the kinds of computations and operations that can be done
-    on Legate NumPy ndarrays.
+    on cuNumeric ndarrays.
 
     :meta private:
     """

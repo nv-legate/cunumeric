@@ -15,15 +15,15 @@
 
 import numpy as np
 
-import cunumeric as lg
+import cunumeric as num
 
 
 def test():
     npa = np.array([1.0, -1.0])
-    a = lg.array(npa)
+    a = num.array(npa)
 
     np.arccos(npa, out=npa)
-    lg.arccos(a, out=a)
+    num.arccos(a, out=a)
 
     assert np.array_equal(a, npa)
     return

@@ -13,12 +13,12 @@
 # limitations under the License.
 #
 
-import cunumeric as lg
+import cunumeric as num
 
 
 def test():
-    lg.random.randint(8000, size=8000)
-    lg.random.randint(8000, size=(8000, 2))
+    num.random.randint(8000, size=8000)
+    num.random.randint(8000, size=(8000, 2))
 
     return
 

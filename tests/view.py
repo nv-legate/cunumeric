@@ -15,25 +15,25 @@
 
 import numpy as np
 
-import cunumeric as lg
+import cunumeric as num
 
 
 def test():
-    lg.random.seed(10)
-    origVals = lg.random.randn(2, 3, 4)
-    sliceUpdate = lg.random.randn(3, 15)
+    num.random.seed(10)
+    origVals = num.random.randn(2, 3, 4)
+    sliceUpdate = num.random.randn(3, 15)
     sliceView = origVals[0]
     origVals[0, :] += sliceUpdate[:, 11:]
-    assert lg.array_equal(origVals[0, 0, :], sliceView[0, :])
+    assert num.array_equal(origVals[0, 0, :], sliceView[0, :])
 
-    sliceView[1, :] = lg.random.randn(4)
-    assert lg.array_equal(origVals[0], sliceView)
+    sliceView[1, :] = num.random.randn(4)
+    assert num.array_equal(origVals[0], sliceView)
 
     xnp = np.array(
         [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12], [13, 14, 15, 16]]
     )
     ynp = xnp[2:, 2:]
-    x = lg.array(xnp)
+    x = num.array(xnp)
     y = x[2:, 2:]
     assert np.array_equal(ynp, y)
 

@@ -13,17 +13,17 @@
 # limitations under the License.
 #
 
-import cunumeric as lg
+import cunumeric as num
 
 
 def test():
-    a = lg.array([0, 1, 2])
+    a = num.array([0, 1, 2])
 
-    b = lg.tile(a, 4)
-    assert lg.array_equal(b, [0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2])
+    b = num.tile(a, 4)
+    assert num.array_equal(b, [0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2])
 
-    c = lg.tile(a, (3, 4))
-    assert lg.array_equal(
+    c = num.tile(a, (3, 4))
+    assert num.array_equal(
         c,
         [
             [0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2],
@@ -32,8 +32,8 @@ def test():
         ],
     )
 
-    d = lg.tile(a, (3, 1, 4))
-    assert lg.array_equal(
+    d = num.tile(a, (3, 1, 4))
+    assert num.array_equal(
         d,
         [
             [[0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2]],
@@ -42,13 +42,13 @@ def test():
         ],
     )
 
-    e = lg.array([[1, 2], [3, 4]])
+    e = num.array([[1, 2], [3, 4]])
 
-    f = lg.tile(e, 2)
-    assert lg.array_equal(f, [[1, 2, 1, 2], [3, 4, 3, 4]])
+    f = num.tile(e, 2)
+    assert num.array_equal(f, [[1, 2, 1, 2], [3, 4, 3, 4]])
 
-    g = lg.tile(e, (2, 1))
-    assert lg.array_equal(g, [[1, 2], [3, 4], [1, 2], [3, 4]])
+    g = num.tile(e, (2, 1))
+    assert num.array_equal(g, [[1, 2], [3, 4], [1, 2], [3, 4]])
 
     return
 

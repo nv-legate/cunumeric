@@ -15,15 +15,15 @@
 
 import numpy as np
 
-import cunumeric as lg
+import cunumeric as num
 
 
 def test():
     anp = np.random.randn(4, 5)
-    a = lg.array(anp)
+    a = num.array(anp)
 
     np.ceil(anp, out=anp)
-    lg.ceil(a, out=a)
+    num.ceil(a, out=a)
 
     assert np.array_equal(a, anp)
 

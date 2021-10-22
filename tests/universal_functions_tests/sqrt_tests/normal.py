@@ -15,25 +15,25 @@
 
 import numpy as np
 
-import cunumeric as lg
+import cunumeric as num
 
 
 def test():
     npa = np.array([1, 4, 9])
-    a = lg.array(npa)
-    assert np.array_equal(lg.sqrt(a), np.sqrt(npa))
+    a = num.array(npa)
+    assert np.array_equal(num.sqrt(a), np.sqrt(npa))
 
     npa = np.array([1, 4, 9], dtype=np.float)
-    a = lg.array(npa)
-    assert np.array_equal(lg.sqrt(a), np.sqrt(npa))
+    a = num.array(npa)
+    assert np.array_equal(num.sqrt(a), np.sqrt(npa))
 
     npa = np.array([1, 4, 9], dtype=np.float32)
-    a = lg.array(npa)
-    assert np.array_equal(lg.sqrt(a), np.sqrt(npa))
+    a = num.array(npa)
+    assert np.array_equal(num.sqrt(a), np.sqrt(npa))
 
     npa = np.array([1, 4, 9], dtype=np.float64)
-    a = lg.array(npa)
-    assert np.array_equal(lg.sqrt(a), np.sqrt(npa))
+    a = num.array(npa)
+    assert np.array_equal(num.sqrt(a), np.sqrt(npa))
     return
 
 

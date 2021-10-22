@@ -15,12 +15,12 @@
 
 import numpy as np
 
-import cunumeric as lg
+import cunumeric as num
 
 
 def test():
-    lg.random.seed(42)
-    x = lg.random.randn(10)
+    num.random.seed(42)
+    x = num.random.randn(10)
     np.random.seed(42)
     xn = np.random.randn(10)
     assert np.allclose(x, xn)

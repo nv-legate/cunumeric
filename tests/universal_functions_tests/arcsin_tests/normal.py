@@ -15,11 +15,11 @@
 
 import numpy as np
 
-import cunumeric as lg
+import cunumeric as num
 
 
 def test():
-    assert np.array_equal(lg.arcsin([1, -1]), np.arcsin([1, -1]))
+    assert np.array_equal(num.arcsin([1, -1]), np.arcsin([1, -1]))
     return
 
 

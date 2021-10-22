@@ -15,12 +15,12 @@
 
 import numpy as np
 
-import cunumeric as lg
+import cunumeric as num
 
 
 def test():
-    x = lg.array([1.0, 2.0, 3.0, 4.0])
-    y = lg.exp(x)
+    x = num.array([1.0, 2.0, 3.0, 4.0])
+    y = num.exp(x)
     # print(y)
     # print(np.exp([1, 2, 3, 4]))
     assert np.allclose(y, np.exp([1, 2, 3, 4]))

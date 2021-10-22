@@ -15,16 +15,16 @@
 
 import numpy as np
 
-import cunumeric as lg
+import cunumeric as num
 
 
 def test():
     x = np.linspace(2.0, 3.0, num=5)
-    y = lg.linspace(2.0, 3.0, num=5)
+    y = num.linspace(2.0, 3.0, num=5)
     assert np.array_equal(x, y)
 
     x = np.linspace(2.0, 3.0, num=5, endpoint=False)
-    y = lg.linspace(2.0, 3.0, num=5, endpoint=False)
+    y = num.linspace(2.0, 3.0, num=5, endpoint=False)
     assert np.array_equal(x, y)
 
     x = np.linspace(2.0, 3.0, num=5, retstep=True)
@@ -34,19 +34,19 @@ def test():
 
     x = np.array([[0, 1], [2, 3]])
     y = np.array([[4, 5], [6, 7]])
-    xp = lg.array(x)
-    yp = lg.array(y)
+    xp = num.array(x)
+    yp = num.array(y)
 
     z = np.linspace(x, y, num=5, axis=0)
-    w = lg.linspace(xp, yp, num=5, axis=0)
+    w = num.linspace(xp, yp, num=5, axis=0)
     assert np.array_equal(z, w)
 
     z = np.linspace(x, y, num=5, axis=1)
-    w = lg.linspace(xp, yp, num=5, axis=1)
+    w = num.linspace(xp, yp, num=5, axis=1)
     assert np.array_equal(z, w)
 
     z = np.linspace(x, y, num=5, axis=2)
-    w = lg.linspace(xp, yp, num=5, axis=2)
+    w = num.linspace(xp, yp, num=5, axis=2)
     assert np.array_equal(z, w)
 
     return

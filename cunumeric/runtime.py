@@ -349,8 +349,7 @@ class Runtime(object):
             bounds = region.index_space.domain
             if not bounds.dense:
                 raise ValueError(
-                    "legate.numpy currently only support "
-                    + "dense legate thunks"
+                    "cuNumeric currently only support dense legate thunks"
                 )
             # figure out the shape and transform for this top-level region
             shape = ()
@@ -375,7 +374,7 @@ class Runtime(object):
             )
         else:
             raise NotImplementedError(
-                "legate.numpy needs to handle " + "subregion legate thunk case"
+                "cuNumeric needs to handle subregion legate thunk case"
             )
         return region_field
 
@@ -473,7 +472,7 @@ class Runtime(object):
                         defer=defer,
                     )
                 raise NotImplementedError(
-                    "legate.numpy does not currently know "
+                    "cuNumeric does not currently know "
                     + "how to attach to array views that are not affine "
                     + "transforms of their parent array."
                 )
@@ -571,7 +570,7 @@ class Runtime(object):
             return False
         # Note the off by 1 case here, technically arrays with size
         # up to LEGATE_MAX_DIM inclusive should be allowed, but we
-        # often use an extra dimension for reductions in legate.numpy
+        # often use an extra dimension for reductions in cuNumeric
         if len(shape) >= LEGATE_MAX_DIM:
             return True
         if len(shape) == 0:
@@ -635,16 +634,16 @@ class Runtime(object):
         assert thunk.shadow is not None
         # Check the kind of this array and see if we should use allclose or
         # array_equal
-        legate_result = thunk.__numpy_array__()
+        cunumeric_result = thunk.__numpy_array__()
         numpy_result = thunk.shadow.__numpy_array__()
 
         if thunk.dtype.kind == "f":
-            passed = np.allclose(legate_result, numpy_result)
+            passed = np.allclose(cunumeric_result, numpy_result)
         else:
-            passed = np.array_equal(legate_result, numpy_result)
+            passed = np.array_equal(cunumeric_result, numpy_result)
         if not passed:
-            print("===== Legate =====")
-            print(legate_result)
+            print("===== cuNumeric =====")
+            print(cunumeric_result)
             print("===== NumPy =====")
             print(numpy_result)
             raise RuntimeError(f"Shadow array check failed for {op}")

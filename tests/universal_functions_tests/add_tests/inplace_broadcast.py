@@ -15,16 +15,16 @@
 
 import numpy as np
 
-import cunumeric as lg
+import cunumeric as num
 
 
 def test():
     anp = np.random.randn(4, 5)
     b = np.random.randint(13)
-    a = lg.array(anp)
+    a = num.array(anp)
 
     np.add(anp, b, out=anp)
-    lg.add(a, b, out=a)
+    num.add(a, b, out=a)
 
     assert np.array_equal(a, anp)
     return

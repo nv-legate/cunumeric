@@ -32,13 +32,13 @@ from .utils import unimplemented
 
 def add_boilerplate(*array_params: str, mutates_self: bool = False):
     """
-    Adds required boilerplate to the wrapped Legate ndarray member function.
+    Adds required boilerplate to the wrapped cuNumeric ndarray member function.
 
     Every time the wrapped function is called, this wrapper will:
     * Convert all specified array-like parameters, plus the special "out"
-      parameter (if present), to Legate ndarrays.
+      parameter (if present), to cuNumeric ndarrays.
     * Convert the special "where" parameter (if present) to a valid predicate.
-    * Handle the case of scalar Legate ndarrays, by forwarding the operation
+    * Handle the case of scalar cuNumeric ndarrays, by forwarding the operation
       to the equivalent `()`-shape numpy array.
 
     NOTE: Assumes that no parameters are mutated besides `out`, and `self` if
@@ -75,9 +75,9 @@ def add_boilerplate(*array_params: str, mutates_self: bool = False):
             stacklevel = kwargs.get("stacklevel", 0) + 1
             kwargs["stacklevel"] = stacklevel
 
-            # Convert relevant arguments to Legate ndarrays
+            # Convert relevant arguments to cuNumeric ndarrays
             args = tuple(
-                ndarray.convert_to_legate_ndarray(arg, stacklevel=stacklevel)
+                ndarray.convert_to_cunumeric_ndarray(arg, stacklevel=stacklevel)
                 if idx in indices and arg is not None
                 else arg
                 for (idx, arg) in enumerate(args)
@@ -90,11 +90,11 @@ def add_boilerplate(*array_params: str, mutates_self: bool = False):
                         v, stacklevel=stacklevel
                     )
                 elif k == "out":
-                    kwargs[k] = ndarray.convert_to_legate_ndarray(
+                    kwargs[k] = ndarray.convert_to_cunumeric_ndarray(
                         v, stacklevel=stacklevel, share=True
                     )
                 elif k in keys:
-                    kwargs[k] = ndarray.convert_to_legate_ndarray(
+                    kwargs[k] = ndarray.convert_to_cunumeric_ndarray(
                         v, stacklevel=stacklevel
                     )
 
@@ -129,7 +129,7 @@ def add_boilerplate(*array_params: str, mutates_self: bool = False):
                         )
                 self_scalar = args[0]
                 args = args[1:]
-                result = ndarray.convert_to_legate_ndarray(
+                result = ndarray.convert_to_cunumeric_ndarray(
                     getattr(self_scalar, func.__name__)(*args, **kwargs)
                 )
                 if mutates_self:
@@ -222,9 +222,9 @@ class ndarray(object):
         return self._legate_data
 
     # A class method for sanitizing inputs by converting them to
-    # Legate ndarray types
+    # cuNumeric ndarray types
     @staticmethod
-    def convert_to_legate_ndarray(obj, stacklevel=2, share=False):
+    def convert_to_cunumeric_ndarray(obj, stacklevel=2, share=False):
         # If this is an instance of one of our ndarrays then we're done
         if isinstance(obj, ndarray):
             return obj
@@ -371,11 +371,11 @@ class ndarray(object):
         return self.perform_unary_op(UnaryOpCode.ABSOLUTE, self)
 
     def __add__(self, rhs):
-        rhs_array = self.convert_to_legate_ndarray(rhs)
+        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         return self.perform_binary_op(BinaryOpCode.ADD, self, rhs_array)
 
     def __and__(self, rhs):
-        rhs_array = self.convert_to_legate_ndarray(rhs)
+        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         return self.perform_binary_op(BinaryOpCode.LOGICAL_AND, rhs_array)
 
     def __array__(self, dtype=None, stacklevel=1):
@@ -429,11 +429,11 @@ class ndarray(object):
         return self.internal_truediv(rhs, inplace=False, stacklevel=2)
 
     def __divmod__(self, rhs):
-        rhs_array = self.convert_to_legate_ndarray(rhs)
+        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         return self.perform_binary_op(BinaryOpCode.DIVMOD, self, rhs_array)
 
     def __eq__(self, rhs):
-        rhs_array = self.convert_to_legate_ndarray(rhs)
+        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         return self.perform_binary_op(
             BinaryOpCode.EQUAL, self, rhs_array, out_dtype=np.dtype(np.bool_)
         )
@@ -442,7 +442,7 @@ class ndarray(object):
         return float(self.__array__(stacklevel=2))
 
     def __floordiv__(self, rhs):
-        rhs_array = self.convert_to_legate_ndarray(rhs)
+        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         return self.perform_binary_op(
             BinaryOpCode.FLOOR_DIVIDE, self, rhs_array
         )
@@ -451,7 +451,7 @@ class ndarray(object):
         return self.__array__(stacklevel=2).__format__(*args, **kwargs)
 
     def __ge__(self, rhs):
-        rhs_array = self.convert_to_legate_ndarray(rhs)
+        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         return self.perform_binary_op(
             BinaryOpCode.GREATER_EQUAL,
             self,
@@ -462,7 +462,7 @@ class ndarray(object):
     # __getattribute__
 
     def _convert_key(self, key, stacklevel=2, first=True):
-        # Convert any arrays stored in a key to a legate array
+        # Convert any arrays stored in a key to a cuNumeric array
         if (
             key is np.newaxis
             or key is Ellipsis
@@ -476,8 +476,8 @@ class ndarray(object):
                 for k in key
             )
         else:
-            # Otherwise convert it to a legate array and get the thunk
-            return self.convert_to_legate_ndarray(
+            # Otherwise convert it to a cuNumeric array and get the thunk
+            return self.convert_to_cunumeric_ndarray(
                 key, stacklevel=(stacklevel + 1)
             )._thunk
 
@@ -489,21 +489,21 @@ class ndarray(object):
         )
 
     def __gt__(self, rhs):
-        rhs_array = self.convert_to_legate_ndarray(rhs)
+        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         return self.perform_binary_op(
             BinaryOpCode.GREATER, self, rhs_array, out_dtype=np.dtype(np.bool_)
         )
 
     def __hash__(self, *args, **kwargs):
-        raise TypeError("unhashable type: legate.numpy.ndarray")
+        raise TypeError("unhashable type: cunumeric.ndarray")
 
     def __iadd__(self, rhs):
-        rhs_array = self.convert_to_legate_ndarray(rhs)
+        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         self.perform_binary_op(BinaryOpCode.ADD, self, rhs_array, out=self)
         return self
 
     def __iand__(self, rhs):
-        rhs_array = self.convert_to_legate_ndarray(rhs)
+        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         self.perform_binary_op(
             BinaryOpCode.LOGICAL_AND, self, rhs_array, out=self
         )
@@ -513,31 +513,31 @@ class ndarray(object):
         return self.internal_truediv(rhs, inplace=True, stacklevel=2)
 
     def __idivmod__(self, rhs):
-        rhs_array = self.convert_to_legate_ndarray(rhs)
+        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         self.perform_binary_op(BinaryOpCode.DIVMOD, self, rhs_array, out=self)
         return self
 
     def __ifloordiv__(self, rhs):
-        rhs_array = self.convert_to_legate_ndarray(rhs)
+        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         self.perform_binary_op(
             BinaryOpCode.FLOOR_DIVIDE, self, rhs_array, out=self
         )
         return self
 
     def __ilshift__(self, rhs):
-        rhs_array = self.convert_to_legate_ndarray(rhs)
+        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         self.perform_binary_op(
             BinaryOpCode.SHIFT_LEFT, self, rhs_array, out=self
         )
         return self
 
     def __imod__(self, rhs):
-        rhs_array = self.convert_to_legate_ndarray(rhs)
+        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         self.perform_binary_op(BinaryOpCode.MODULUS, self, rhs_array, out=self)
         return self
 
     def __imul__(self, rhs):
-        rhs_array = self.convert_to_legate_ndarray(rhs)
+        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         self.perform_binary_op(
             BinaryOpCode.MULTIPLY, self, rhs_array, out=self
         )
@@ -556,19 +556,19 @@ class ndarray(object):
             return self.perform_unary_op(UnaryOpCode.INVERT, self)
 
     def __ior__(self, rhs):
-        rhs_array = self.convert_to_legate_ndarray(rhs)
+        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         self.perform_binary_op(
             BinaryOpCode.LOGICAL_OR, self, rhs_array, out=self
         )
         return self
 
     def __ipow__(self, rhs):
-        rhs_array = self.convert_to_legate_ndarray(rhs)
+        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         self.perform_binary_op(BinaryOpCode.POWER, self, rhs_array, out=self)
         return self
 
     def __irshift__(self, rhs):
-        rhs_array = self.convert_to_legate_ndarray(rhs)
+        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         self.perform_binary_op(
             BinaryOpCode.SHIFT_RIGHT, self, rhs_array, out=self
         )
@@ -578,14 +578,14 @@ class ndarray(object):
         return self.__array__(stacklevel=2).__iter__()
 
     def __isub__(self, rhs):
-        rhs_array = self.convert_to_legate_ndarray(rhs)
+        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         self.perform_binary_op(
             BinaryOpCode.SUBTRACT, self, rhs_array, out=self
         )
         return self
 
     def internal_truediv(self, rhs, inplace, stacklevel):
-        rhs_array = self.convert_to_legate_ndarray(
+        rhs_array = self.convert_to_cunumeric_ndarray(
             rhs, stacklevel=(stacklevel + 1)
         )
         self_array = self
@@ -640,14 +640,14 @@ class ndarray(object):
         return self.internal_truediv(rhs, inplace=True, stacklevel=2)
 
     def __ixor__(self, rhs):
-        rhs_array = self.convert_to_legate_ndarray(rhs)
+        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         self.perform_binary_op(
             BinaryOpCode.LOGICAL_XOR, self, rhs_array, out=self
         )
         return self
 
     def __le__(self, rhs):
-        rhs_array = self.convert_to_legate_ndarray(rhs)
+        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         return self.perform_binary_op(
             BinaryOpCode.LESS_EQUAL,
             self,
@@ -659,11 +659,11 @@ class ndarray(object):
         return self.shape[0]
 
     def __lshift__(self, rhs):
-        rhs_array = self.convert_to_legate_ndarray(rhs)
+        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         return self.perform_binary_op(BinaryOpCode.SHIFT_LEFT, self, rhs_array)
 
     def __lt__(self, rhs):
-        rhs_array = self.convert_to_legate_ndarray(rhs)
+        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         return self.perform_binary_op(
             BinaryOpCode.LESS, self, rhs_array, out_dtype=np.dtype(np.bool_)
         )
@@ -672,15 +672,15 @@ class ndarray(object):
         return self.dot(value, stacklevel=2)
 
     def __mod__(self, rhs):
-        rhs_array = self.convert_to_legate_ndarray(rhs)
+        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         return self.perform_binary_op(BinaryOpCode.MOD, self, rhs_array)
 
     def __mul__(self, rhs):
-        rhs_array = self.convert_to_legate_ndarray(rhs)
+        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         return self.perform_binary_op(BinaryOpCode.MULTIPLY, self, rhs_array)
 
     def __ne__(self, rhs):
-        rhs_array = self.convert_to_legate_ndarray(rhs)
+        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         return self.perform_binary_op(
             BinaryOpCode.NOT_EQUAL,
             self,
@@ -721,23 +721,23 @@ class ndarray(object):
         return self.perform_unary_op(UnaryOpCode.POSITIVE, self)
 
     def __pow__(self, rhs):
-        rhs_array = self.convert_to_legate_ndarray(rhs)
+        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         return self.perform_binary_op(BinaryOpCode.POWER, self, rhs_array)
 
     def __radd__(self, lhs):
-        lhs_array = self.convert_to_legate_ndarray(lhs)
+        lhs_array = self.convert_to_cunumeric_ndarray(lhs)
         return self.perform_binary_op(BinaryOpCode.ADD, lhs_array, self)
 
     def __rand__(self, lhs):
-        lhs_array = self.convert_to_legate_ndarray(lhs)
+        lhs_array = self.convert_to_cunumeric_ndarray(lhs)
         return self.perform_binary_op(BinaryOpCode.LOGICAL_AND, lhs_array, self)
 
     def __rdiv__(self, lhs):
-        lhs_array = self.convert_to_legate_ndarray(lhs)
+        lhs_array = self.convert_to_cunumeric_ndarray(lhs)
         return lhs_array.internal_truediv(self, inplace=False, stacklevel=2)
 
     def __rdivmod__(self, lhs):
-        lhs_array = self.convert_to_legate_ndarray(lhs)
+        lhs_array = self.convert_to_cunumeric_ndarray(lhs)
         return self.perform_binary_op(BinaryOpCode.DIVMOD, lhs_array, self)
 
     def __reduce__(self, *args, **kwargs):
@@ -750,41 +750,41 @@ class ndarray(object):
         return repr(self.__array__(stacklevel=2))
 
     def __rfloordiv__(self, lhs):
-        lhs_array = self.convert_to_legate_ndarray(lhs)
+        lhs_array = self.convert_to_cunumeric_ndarray(lhs)
         return self.perform_binary_op(
             BinaryOpCode.FLOOR_DIVIDE, lhs_array, self
         )
 
     def __rmod__(self, lhs):
-        lhs_array = self.convert_to_legate_ndarray(lhs)
+        lhs_array = self.convert_to_cunumeric_ndarray(lhs)
         return self.perform_binary_op(BinaryOpCode.MOD, lhs_array, self)
 
     def __rmul__(self, lhs):
-        lhs_array = self.convert_to_legate_ndarray(lhs)
+        lhs_array = self.convert_to_cunumeric_ndarray(lhs)
         return self.perform_binary_op(BinaryOpCode.MULTIPLY, lhs_array, self)
 
     def __ror__(self, lhs):
-        lhs_array = self.convert_to_legate_ndarray(lhs)
+        lhs_array = self.convert_to_cunumeric_ndarray(lhs)
         return self.perform_binary_op(BinaryOpCode.LOGICAL_OR, lhs_array, self)
 
     def __rpow__(self, lhs):
-        lhs_array = self.convert_to_legate_ndarray(lhs)
+        lhs_array = self.convert_to_cunumeric_ndarray(lhs)
         return self.perform_binary_op(BinaryOpCode.POWER, lhs_array, self)
 
     def __rshift__(self, rhs):
-        rhs_array = self.convert_to_legate_ndarray(rhs)
+        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         return self.perform_binary_op(BinaryOpCode.SHIFT_RIGHT, self, rhs_array)
 
     def __rsub__(self, lhs):
-        lhs_array = self.convert_to_legate_ndarray(lhs)
+        lhs_array = self.convert_to_cunumeric_ndarray(lhs)
         return self.perform_binary_op(BinaryOpCode.SUBTRACT, lhs_array, self)
 
     def __rtruediv__(self, lhs):
-        lhs_array = self.convert_to_legate_ndarray(lhs)
+        lhs_array = self.convert_to_cunumeric_ndarray(lhs)
         return lhs_array.internal_truediv(self, inplace=False, stacklevel=2)
 
     def __rxor__(self, lhs):
-        lhs_array = self.convert_to_legate_ndarray(lhs)
+        lhs_array = self.convert_to_cunumeric_ndarray(lhs)
         return self.perform_binary_op(BinaryOpCode.LOGICAL_XOR, lhs_array, self)
 
     # __setattr__
@@ -792,7 +792,7 @@ class ndarray(object):
     @add_boilerplate("value", mutates_self=True)
     def __setitem__(self, key, value, stacklevel=1):
         if key is None:
-            raise KeyError("invalid key passed to legate.numpy.ndarray")
+            raise KeyError("invalid key passed to cunumeric.ndarray")
         if value.dtype != self.dtype:
             temp = ndarray(value.shape, dtype=self.dtype, inputs=(value,))
             temp._thunk.convert(value._thunk, stacklevel=2)
@@ -807,7 +807,7 @@ class ndarray(object):
         return self.__array__(stacklevel=2).__sizeof__(*args, **kwargs)
 
     def __sub__(self, rhs):
-        rhs_array = self.convert_to_legate_ndarray(rhs)
+        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         return self.perform_binary_op(BinaryOpCode.SUBTRACT, self, rhs_array)
 
     def __str__(self):
@@ -819,7 +819,7 @@ class ndarray(object):
         )
 
     def __xor__(self, rhs):
-        rhs_array = self.convert_to_legate_ndarray(rhs)
+        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         return self.perform_binary_op(BinaryOpCode.LOGICAL_XOR, rhs_array, self)
 
     @unimplemented
@@ -827,14 +827,14 @@ class ndarray(object):
         numpy_array = self.__array__(stacklevel=3).all(
             axis=axis, out=out, keepdims=keepdims
         )
-        return self.convert_to_legate_ndarray(numpy_array, stacklevel=3)
+        return self.convert_to_cunumeric_ndarray(numpy_array, stacklevel=3)
 
     @unimplemented
     def any(self, axis=None, out=None, keepdims=False):
         numpy_array = self.__array__(stacklevel=3).any(
             axis=axis, out=out, keepdims=keepdims
         )
-        return self.convert_to_legate_ndarray(numpy_array, stacklevel=3)
+        return self.convert_to_cunumeric_ndarray(numpy_array, stacklevel=3)
 
     def argmax(self, axis=None, out=None, stacklevel=1):
         if self.size == 1:
@@ -879,14 +879,14 @@ class ndarray(object):
         numpy_array = self.__array__(stacklevel=3).argpartition(
             kth=kth, axis=axis, kind=kind, order=order
         )
-        return self.convert_to_legate_ndarray(numpy_array, stacklevel=3)
+        return self.convert_to_cunumeric_ndarray(numpy_array, stacklevel=3)
 
     @unimplemented
     def argsort(self, axis=-1, kind=None, order=None):
         numpy_array = self.__array__(stacklevel=3).argsort(
             axis=axis, kind=kind, order=order
         )
-        return self.convert_to_legate_ndarray(numpy_array, stacklevel=3)
+        return self.convert_to_cunumeric_ndarray(numpy_array, stacklevel=3)
 
     def astype(
         self, dtype, order="C", casting="unsafe", subok=True, copy=True
@@ -905,14 +905,14 @@ class ndarray(object):
             return self
         else:
             numpy_array = self.__array__(stacklevel=3).byteswap(inplace=False)
-            return self.convert_to_legate_ndarray(numpy_array, stacklevel=3)
+            return self.convert_to_cunumeric_ndarray(numpy_array, stacklevel=3)
 
     @unimplemented
     def choose(self, choices, out, mode="raise"):
         numpy_array = self.__array__(stacklevel=3).choose(
             choices=choices, out=out, mode=mode
         )
-        return self.convert_to_legate_ndarray(numpy_array, stacklevel=3)
+        return self.convert_to_cunumeric_ndarray(numpy_array, stacklevel=3)
 
     def clip(self, min=None, max=None, out=None):
         args = (
@@ -921,7 +921,7 @@ class ndarray(object):
         )
         if args[0].size != 1 or args[1].size != 1:
             warnings.warn(
-                "legate.numpy has not implemented clip with array-like "
+                "cuNumeric has not implemented clip with array-like "
                 "arguments and is falling back to canonical numpy. You "
                 "may notice significantly decreased performance for this "
                 "function call.",
@@ -930,11 +930,11 @@ class ndarray(object):
             )
             if out is not None:
                 self.__array__(stacklevel=2).clip(min, max, out=out)
-                return self.convert_to_legate_ndarray(
+                return self.convert_to_cunumeric_ndarray(
                     out, stacklevel=2, share=True
                 )
             else:
-                return self.convert_to_legate_ndarray(
+                return self.convert_to_cunumeric_ndarray(
                     self.__array__.clip(min, max)
                 )
         return self.perform_unary_op(
@@ -946,7 +946,7 @@ class ndarray(object):
         numpy_array = self.__array__(stacklevel=3).compress(
             condition, axis=axis, out=out
         )
-        return self.convert_to_legate_ndarray(numpy_array, stacklevel=3)
+        return self.convert_to_cunumeric_ndarray(numpy_array, stacklevel=3)
 
     def conj(self, stacklevel=1):
         if self.dtype.kind == "c":
@@ -959,7 +959,7 @@ class ndarray(object):
         return self.conj(stacklevel)
 
     def copy(self, order="C"):
-        # We don't care about dimension order in legate
+        # We don't care about dimension order in cuNumeric
         return self.__copy__()
 
     @unimplemented
@@ -967,24 +967,24 @@ class ndarray(object):
         numpy_array = self.__array__(stacklevel=3).cumprod(
             axis=axis, dtype=dtype, out=out
         )
-        return self.convert_to_legate_ndarray(numpy_array, stacklevel=3)
+        return self.convert_to_cunumeric_ndarray(numpy_array, stacklevel=3)
 
     @unimplemented
     def cumsum(self, axis=None, dtype=None, out=None):
         numpy_array = self.__array__(stacklevel=3).cumsum(
             axis=axis, dtype=dtype, out=out
         )
-        return self.convert_to_legate_ndarray(numpy_array, stacklevel=3)
+        return self.convert_to_cunumeric_ndarray(numpy_array, stacklevel=3)
 
     @unimplemented
     def diagonal(self, offset=0, axis1=0, axis2=1):
         numpy_array = self.__array__(stacklevel=3).diagonal(
             offset=offset, axis1=axis1, axis2=axis2
         )
-        return self.convert_to_legate_ndarray(numpy_array, stacklevel=3)
+        return self.convert_to_cunumeric_ndarray(numpy_array, stacklevel=3)
 
     def dot(self, rhs, out=None, stacklevel=1):
-        rhs_array = self.convert_to_legate_ndarray(
+        rhs_array = self.convert_to_cunumeric_ndarray(
             rhs, stacklevel=(stacklevel + 1)
         )
         if self.size == 1 or rhs_array.size == 1:
@@ -1018,7 +1018,7 @@ class ndarray(object):
             rhs_array = temp_array
         # Create output array
         if out is not None:
-            out = self.convert_to_legate_ndarray(
+            out = self.convert_to_cunumeric_ndarray(
                 out, stacklevel=(stacklevel + 1), share=True
             )
             if self.ndim == 1 and rhs_array.ndim == 1:
@@ -1117,11 +1117,11 @@ class ndarray(object):
     @unimplemented
     def flatten(self, order="C"):
         numpy_array = self.__array__(stacklevel=3).flatten(order=order)
-        return self.convert_to_legate_ndarray(numpy_array, stacklevel=3)
+        return self.convert_to_cunumeric_ndarray(numpy_array, stacklevel=3)
 
     def getfield(self, dtype, offset=0):
         raise NotImplementedError(
-            "legate.numpy does not currently support type reinterpretation "
+            "cuNumeric does not currently support type reinterpretation "
             "for ndarray.getfield"
         )
 
@@ -1182,7 +1182,7 @@ class ndarray(object):
     ):
         if axis is not None and type(axis) != int:
             raise TypeError(
-                "legate.numpy.mean only supports int types for "
+                "cunumeric.mean only supports int types for "
                 "'axis' currently"
             )
         # Pick our dtype if it wasn't picked yet
@@ -1294,7 +1294,7 @@ class ndarray(object):
         numpy_array = self.__array__(stacklevel=3).ptp(
             axis=axis, out=out, keepdims=keepdims
         )
-        return self.convert_to_legate_ndarray(numpy_array, stacklevel=3)
+        return self.convert_to_cunumeric_ndarray(numpy_array, stacklevel=3)
 
     @unimplemented
     def put(self, indices, values, mode="raise"):
@@ -1308,7 +1308,7 @@ class ndarray(object):
     @unimplemented
     def repeat(self, repeats, axis=None):
         numpy_array = self.__array__(stacklevel=3).repeat(repeats, axis=axis)
-        return self.convert_to_legate_ndarray(numpy_array, stacklevel=3)
+        return self.convert_to_cunumeric_ndarray(numpy_array, stacklevel=3)
 
     def reshape(self, shape, order="C", stacklevel=1):
         if shape != -1:
@@ -1375,25 +1375,25 @@ class ndarray(object):
         numpy_array = self.__array__(stacklevel=3).resize(
             new_shape=new_shape, refcheck=refcheck
         )
-        return self.convert_to_legate_ndarray(numpy_array, stacklevel=3)
+        return self.convert_to_cunumeric_ndarray(numpy_array, stacklevel=3)
 
     @unimplemented
     def round(self, decimals=0, out=None):
         numpy_array = self.__array__(stacklevel=3).round(
             decimals=decimals, out=out
         )
-        return self.convert_to_legate_ndarray(numpy_array, stacklevel=3)
+        return self.convert_to_cunumeric_ndarray(numpy_array, stacklevel=3)
 
     @unimplemented
     def searchsorted(self, v, side="left", sorter=None):
         numpy_array = self.__array__(stacklevel=3).searchsorted(
             v=v, side=side, sorter=sorter
         )
-        return self.convert_to_legate_ndarray(numpy_array, stacklevel=3)
+        return self.convert_to_cunumeric_ndarray(numpy_array, stacklevel=3)
 
     def setfield(self, val, dtype, offset=0):
         raise NotImplementedError(
-            "legate.numpy does not currently support type reinterpretation "
+            "cuNumeric does not currently support type reinterpretation "
             "for ndarray.setfield"
         )
 
@@ -1407,7 +1407,7 @@ class ndarray(object):
         numpy_array = self.__array__(stacklevel=3).sort(
             axis=axis, kind=kind, order=order
         )
-        return self.convert_to_legate_ndarray(numpy_array, stacklevel=3)
+        return self.convert_to_cunumeric_ndarray(numpy_array, stacklevel=3)
 
     def squeeze(self, axis=None):
         if axis is not None:
@@ -1439,7 +1439,7 @@ class ndarray(object):
         numpy_array = self.__array__(stacklevel=3).std(
             axis=axis, dtype=dtype, out=out, ddof=ddof, keepdims=keepdims
         )
-        return self.convert_to_legate_ndarray(numpy_array, stacklevel=3)
+        return self.convert_to_cunumeric_ndarray(numpy_array, stacklevel=3)
 
     @add_boilerplate()
     def sum(
@@ -1492,7 +1492,7 @@ class ndarray(object):
         numpy_array = self.__array__(stacklevel=3).take(
             indices=indices, axis=axis, out=out, mode=mode
         )
-        return self.convert_to_legate_ndarray(numpy_array, stacklevel=3)
+        return self.convert_to_cunumeric_ndarray(numpy_array, stacklevel=3)
 
     def tofile(self, fid, sep="", format="%s"):
         return self.__array__(stacklevel=2).tofile(
@@ -1513,7 +1513,7 @@ class ndarray(object):
         numpy_array = self.__array__(stacklevel=3).trace(
             offset=offset, axis1=axis1, axis2=axis2, dtype=dtype, out=out
         )
-        return self.convert_to_legate_ndarray(numpy_array, stacklevel=3)
+        return self.convert_to_cunumeric_ndarray(numpy_array, stacklevel=3)
 
     def transpose(self, axes=None, stacklevel=1):
         if self.ndim == 1:
@@ -1545,12 +1545,12 @@ class ndarray(object):
         numpy_array = self.__array__(stacklevel=3).var(
             axis=axis, dtype=dtype, out=out, ddof=ddof, keepdims=keepdims
         )
-        return self.convert_to_legate_ndarray(numpy_array, stacklevel=3)
+        return self.convert_to_cunumeric_ndarray(numpy_array, stacklevel=3)
 
     def view(self, dtype=None, type=None):
         if dtype is not None and dtype != self.dtype:
             raise NotImplementedError(
-                "legate.numpy does not currently support type reinterpretation"
+                "cuNumeric does not currently support type reinterpretation"
             )
         return ndarray(shape=self.shape, dtype=self.dtype, thunk=self._thunk)
 
@@ -1873,7 +1873,7 @@ class ndarray(object):
             )
         return dst
 
-    # Return a new legate array for a binary operation
+    # Return a new cuNumeric array for a binary operation
     @classmethod
     def perform_binary_op(
         cls,

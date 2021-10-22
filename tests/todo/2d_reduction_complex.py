@@ -15,7 +15,7 @@
 
 import numpy as np
 
-import cunumeric as lg
+import cunumeric as num
 
 
 def test():
@@ -23,17 +23,17 @@ def test():
     anp = np.array(
         [[1 + 2j, 3 + 4j, 5 + 6j], [7 + 8j, 9 + 10j, 11 + 12j]], np.complex
     )
-    a = lg.array(anp)
+    a = num.array(anp)
 
     r = a.sum(0)
-    assert lg.all(lg.abs(r - anp.sum(0)) < 1e-5)
+    assert num.all(num.abs(r - anp.sum(0)) < 1e-5)
 
     r = a.sum(1)
-    assert lg.all(lg.abs(r - anp.sum(1)) < 1e-5)
+    assert num.all(num.abs(r - anp.sum(1)) < 1e-5)
 
-    assert lg.all(lg.abs(a.mean(0) - anp.mean(0)) < 1e-5)
-    assert lg.all(lg.abs(a.mean(1) - anp.mean(1)) < 1e-5)
-    assert lg.all(lg.abs(a.mean() - anp.mean()) < 1e-5)
+    assert num.all(num.abs(a.mean(0) - anp.mean(0)) < 1e-5)
+    assert num.all(num.abs(a.mean(1) - anp.mean(1)) < 1e-5)
+    assert num.all(num.abs(a.mean() - anp.mean()) < 1e-5)
 
     return
 

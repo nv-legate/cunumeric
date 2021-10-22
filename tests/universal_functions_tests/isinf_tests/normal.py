@@ -15,13 +15,13 @@
 
 import numpy as np
 
-import cunumeric as lg
+import cunumeric as num
 
 
 def test():
     npa = np.array([-np.inf, 0.0, 1.0, np.inf, np.nan])
-    a = lg.array(npa)
-    assert np.array_equal(lg.isinf(a), np.isinf(npa))
+    a = num.array(npa)
+    assert np.array_equal(num.isinf(a), np.isinf(npa))
     return
 
 

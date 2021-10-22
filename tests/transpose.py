@@ -13,21 +13,21 @@
 # limitations under the License.
 #
 
-import cunumeric as lg
+import cunumeric as num
 
 
 def test():
-    x = lg.array([[1, 2, 3], [4, 5, 6]])
-    y = lg.transpose(x)
-    assert lg.array_equal(y, [[1, 4], [2, 5], [3, 6]])
-    z = lg.transpose(y)
-    assert lg.array_equal(x, z)
+    x = num.array([[1, 2, 3], [4, 5, 6]])
+    y = num.transpose(x)
+    assert num.array_equal(y, [[1, 4], [2, 5], [3, 6]])
+    z = num.transpose(y)
+    assert num.array_equal(x, z)
 
-    x = lg.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+    x = num.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
     y = x.transpose()
-    assert lg.array_equal(y, [[1, 4, 7], [2, 5, 8], [3, 6, 9]])
-    z = lg.transpose(y)
-    assert lg.array_equal(x, z)
+    assert num.array_equal(y, [[1, 4, 7], [2, 5, 8], [3, 6, 9]])
+    z = num.transpose(y)
+    assert num.array_equal(x, z)
     return
 
 

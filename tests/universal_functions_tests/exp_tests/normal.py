@@ -15,12 +15,12 @@
 
 import numpy as np
 
-import cunumeric as lg
+import cunumeric as num
 
 
 def test():
     a = [-1.0, 0.0, 1.0]
-    assert np.array_equal(lg.exp(a), np.exp(a))
+    assert np.array_equal(num.exp(a), np.exp(a))
     return
 
 

@@ -24,7 +24,7 @@ def _cut_out_examples(doc):
 
 def copy_docstring(other):
     # Cut out the examples section and on from each docstring,
-    # as it is not quite applicable to Legate Pandas.
+    # as it is not quite applicable to cuNumeric.
     doc = _cut_out_examples(other.__doc__)
 
     def wrapper(obj):

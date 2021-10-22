@@ -13,11 +13,11 @@
 # limitations under the License.
 #
 
-import cunumeric as lg
+import cunumeric as num
 
 
 def test():
-    x = lg.array([1, 2, 3])
+    x = num.array([1, 2, 3])
     assert x[0] == 1
     assert x[1] == 2
     assert x[2] == 3

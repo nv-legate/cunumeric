@@ -15,7 +15,7 @@
 
 import numpy as np
 
-import cunumeric as lg
+import cunumeric as num
 
 
 def test(ty):
@@ -24,8 +24,8 @@ def test(ty):
     Bn = np.random.randn(3).astype(ty)
     Cn = An.dot(Bn)
 
-    A = lg.array(An)
-    B = lg.array(Bn)
+    A = num.array(An)
+    B = num.array(Bn)
     C = A.dot(B)
 
     assert np.allclose(C, Cn)
@@ -34,8 +34,8 @@ def test(ty):
     Bn = np.random.randn(3, 7).astype(ty)
     Cn = An.dot(Bn)
 
-    A = lg.array(An)
-    B = lg.array(Bn)
+    A = num.array(An)
+    B = num.array(Bn)
     C = A.dot(B)
 
     assert np.allclose(C, Cn)
@@ -44,8 +44,8 @@ def test(ty):
     Bn = np.random.randn(3).astype(ty)
     Cn = An.transpose().dot(Bn)
 
-    A = lg.array(An)
-    B = lg.array(Bn)
+    A = num.array(An)
+    B = num.array(Bn)
     C = A.transpose().dot(B)
 
     assert np.allclose(C, Cn)
@@ -54,14 +54,14 @@ def test(ty):
     Bn = np.random.randn(7, 3).astype(ty)
     Cn = An.dot(Bn.transpose())
 
-    A = lg.array(An)
-    B = lg.array(Bn)
+    A = num.array(An)
+    B = num.array(Bn)
     C = A.dot(B.transpose())
 
     assert np.allclose(C, Cn)
 
-    A = lg.random.randn(1, 10).astype(ty)
-    B = lg.random.randn(10).astype(ty)
+    A = num.random.randn(1, 10).astype(ty)
+    B = num.random.randn(10).astype(ty)
     C = A.dot(B)
 
     An = A.__array__()
@@ -70,8 +70,8 @@ def test(ty):
 
     assert np.allclose(C, Cn)
 
-    A = lg.random.randn(10).astype(ty)
-    B = lg.random.randn(10, 1).astype(ty)
+    A = num.random.randn(10).astype(ty)
+    B = num.random.randn(10, 1).astype(ty)
     C = A.dot(B)
 
     An = A.__array__()

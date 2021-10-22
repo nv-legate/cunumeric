@@ -36,7 +36,7 @@ def getPredefinedAttributes(namespace):
 def unimplemented(func):
     def wrapper(*args, **kwargs):
         warnings.warn(
-            "legate.numpy has not implemented "
+            "cuNumeric has not implemented "
             + func.__name__
             + " and is falling back to canonical numpy. You may notice "
             + "significantly decreased performance for this function call.",
@@ -67,7 +67,7 @@ def add_missing_attributes(baseModule, definedModule):
             setattr(definedModule, key, value)
 
 
-# These are the dtypes that we currently support for Legate
+# These are the dtypes that we currently support for cuNumeric
 def is_supported_dtype(dtype):
     assert isinstance(dtype, np.dtype)
     base_type = dtype.type

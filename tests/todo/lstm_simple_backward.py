@@ -17,7 +17,7 @@ from __future__ import division
 
 import numpy as np
 
-import cunumeric as lg
+import cunumeric as num
 
 
 def testtion():
@@ -26,28 +26,28 @@ def testtion():
     hidden_size = 10
     sentence_length = 5
     batch_size = 3
-    lg.random.seed(42)
+    num.random.seed(42)
 
-    WLSTM = lg.random.randn(
+    WLSTM = num.random.randn(
         word_size + hidden_size, 4 * hidden_size
-    ) / lg.sqrt(word_size + hidden_size)
+    ) / num.sqrt(word_size + hidden_size)
 
     xphpb = WLSTM.shape[0]
     d = hidden_size
     n = sentence_length
     b = batch_size
 
-    dHout = lg.random.randn(n, b, d)
-    IFOGf = lg.random.randn(n, b, d * 4)
-    C = lg.random.randn(n, b, d)
-    Ct = lg.random.randn(n, b, d)
-    Hin = lg.random.randn(n, b, xphpb)
+    dHout = num.random.randn(n, b, d)
+    IFOGf = num.random.randn(n, b, d * 4)
+    C = num.random.randn(n, b, d)
+    Ct = num.random.randn(n, b, d)
+    Hin = num.random.randn(n, b, xphpb)
 
-    dIFOG = lg.zeros((n, b, d * 4))
-    dIFOGf = lg.zeros(IFOGf.shape)
-    dHin = lg.zeros(Hin.shape)
-    dC = lg.zeros(C.shape)
-    dh0 = lg.zeros((1, d))
+    dIFOG = num.zeros((n, b, d * 4))
+    dIFOGf = num.zeros(IFOGf.shape)
+    dHin = num.zeros(Hin.shape)
+    dC = num.zeros(C.shape)
+    dh0 = num.zeros((1, d))
 
     for t in reversed(range(n)):
         tanhCt = Ct[t]
@@ -76,7 +76,7 @@ def testtion():
         if t > 0:
             dHout[t - 1, :] += dHin[t, :, word_size:]
         else:
-            dh0[0] += lg.sum(dHin[t, :, word_size:], 0)
+            dh0[0] += num.sum(dHin[t, :, word_size:], 0)
 
     np.random.seed(42)
 

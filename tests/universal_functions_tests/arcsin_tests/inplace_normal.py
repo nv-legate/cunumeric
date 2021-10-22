@@ -15,15 +15,15 @@
 
 import numpy as np
 
-import cunumeric as lg
+import cunumeric as num
 
 
 def test():
     npa = np.array([1.0, -1.0])
-    a = lg.array(npa)
+    a = num.array(npa)
 
     np.arcsin(npa, out=npa)
-    lg.arcsin(a, out=a)
+    num.arcsin(a, out=a)
 
     assert np.array_equal(a, npa)
     return

@@ -15,13 +15,13 @@
 
 import numpy as np
 
-import cunumeric as lg
+import cunumeric as num
 
 
 def test():
     npa = np.array([-np.pi, np.pi / 2, np.pi])
-    a = lg.array(npa)
-    assert np.array_equal(lg.tan(a), np.tan(npa))
+    a = num.array(npa)
+    assert np.array_equal(num.tan(a), np.tan(npa))
     return
 
 

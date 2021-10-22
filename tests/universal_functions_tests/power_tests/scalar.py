@@ -16,19 +16,19 @@
 import numpy as np
 from test_tools.generators import scalar_gen
 
-import cunumeric as lg
+import cunumeric as num
 
 
 def test():
     test_values = [(42, 3)]
     for (a, b) in test_values:
         for (la, lb, na, nb) in zip(
-            scalar_gen(lg, a),
-            scalar_gen(lg, b),
+            scalar_gen(num, a),
+            scalar_gen(num, b),
             scalar_gen(np, a),
             scalar_gen(np, b),
         ):
-            assert np.array_equal(lg.power(la, lb), np.power(na, nb))
+            assert np.array_equal(num.power(la, lb), np.power(na, nb))
             assert np.array_equal(la ** lb, na ** nb)
 
 

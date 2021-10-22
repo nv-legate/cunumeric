@@ -42,9 +42,9 @@ def add_boilerplate(*array_params: str):
 
     Every time the wrapped function is called, this wrapper will:
     * Convert all specified array-like parameters, plus the special "out"
-      parameter (if present), to Legate ndarrays.
+      parameter (if present), to cuNumeric ndarrays.
     * Convert the special "where" parameter (if present) to a valid predicate.
-    * Handle the case of scalar Legate ndarrays, by forwarding the operation
+    * Handle the case of scalar cuNumeric ndarrays, by forwarding the operation
       to the equivalent `()`-shape numpy array.
 
     NOTE: Assumes that no parameters are mutated besides `out`.
@@ -79,9 +79,9 @@ def add_boilerplate(*array_params: str):
             stacklevel = kwargs.get("stacklevel", 0) + 1
             kwargs["stacklevel"] = stacklevel
 
-            # Convert relevant arguments to Legate ndarrays
+            # Convert relevant arguments to cuNumeric ndarrays
             args = tuple(
-                ndarray.convert_to_legate_ndarray(arg, stacklevel=stacklevel)
+                ndarray.convert_to_cunumeric_ndarray(arg, stacklevel=stacklevel)
                 if idx in indices and arg is not None
                 else arg
                 for (idx, arg) in enumerate(args)
@@ -94,11 +94,11 @@ def add_boilerplate(*array_params: str):
                         v, stacklevel=stacklevel
                     )
                 elif k == "out":
-                    kwargs[k] = ndarray.convert_to_legate_ndarray(
+                    kwargs[k] = ndarray.convert_to_cunumeric_ndarray(
                         v, stacklevel=stacklevel, share=True
                     )
                 elif k in keys:
-                    kwargs[k] = ndarray.convert_to_legate_ndarray(
+                    kwargs[k] = ndarray.convert_to_cunumeric_ndarray(
                         v, stacklevel=stacklevel
                     )
 
@@ -130,7 +130,7 @@ def add_boilerplate(*array_params: str):
                         kwargs[k] = v._thunk.__numpy_array__(
                             stacklevel=stacklevel
                         )
-                result = ndarray.convert_to_legate_ndarray(
+                result = ndarray.convert_to_cunumeric_ndarray(
                     getattr(np, func.__name__)(*args, **kwargs)
                 )
                 if out is not None:
@@ -195,7 +195,7 @@ def array(obj, dtype=None, copy=True, order="K", subok=False, ndmin=0):
 
 @copy_docstring(np.diag)
 def diag(v, k=0):
-    array = ndarray.convert_to_legate_ndarray(v)
+    array = ndarray.convert_to_cunumeric_ndarray(v)
     if array._thunk.scalar:
         return array.copy()
     elif array.ndim == 1:
@@ -240,7 +240,7 @@ def empty(shape, dtype=np.float64, stacklevel=1):
 
 @copy_docstring(np.empty_like)
 def empty_like(a, dtype=None, stacklevel=1):
-    array = ndarray.convert_to_legate_ndarray(a, stacklevel=(stacklevel + 1))
+    array = ndarray.convert_to_cunumeric_ndarray(a, stacklevel=(stacklevel + 1))
     shape = array.shape
     if dtype is not None:
         dtype = np.dtype(dtype)
@@ -306,8 +306,8 @@ def linspace(
         raise ValueError("Number of samples, %s, must be non-negative." % num)
     div = (num - 1) if endpoint else num
 
-    start = ndarray.convert_to_legate_ndarray(start)
-    stop = ndarray.convert_to_legate_ndarray(stop)
+    start = ndarray.convert_to_cunumeric_ndarray(start)
+    stop = ndarray.convert_to_cunumeric_ndarray(stop)
 
     dt = np.result_type(start, stop, float(num))
     if dtype is None:
@@ -420,7 +420,7 @@ def zeros_like(a, dtype=None, stacklevel=1):
 
 @copy_docstring(np.copy)
 def copy(a):
-    array = ndarray.convert_to_legate_ndarray(a)
+    array = ndarray.convert_to_cunumeric_ndarray(a)
     result = empty_like(array, dtype=array.dtype, stacklevel=2)
     result._thunk.copy(array._thunk, deep=True, stacklevel=2)
     return result
@@ -433,13 +433,13 @@ def copy(a):
 
 @copy_docstring(np.ravel)
 def ravel(a, order="C"):
-    array = ndarray.convert_to_legate_ndarray(a)
+    array = ndarray.convert_to_cunumeric_ndarray(a)
     return array.ravel(order=order, stacklevel=2)
 
 
 @copy_docstring(np.reshape)
 def reshape(a, newshape, order="C"):
-    array = ndarray.convert_to_legate_ndarray(a)
+    array = ndarray.convert_to_cunumeric_ndarray(a)
     return array.reshape(newshape, order=order, stacklevel=2)
 
 
@@ -470,7 +470,7 @@ def asarray(a, dtype=None, order=None):
 
 @copy_docstring(np.tile)
 def tile(a, reps):
-    array = ndarray.convert_to_legate_ndarray(a)
+    array = ndarray.convert_to_cunumeric_ndarray(a)
     if not hasattr(reps, "__len__"):
         reps = (reps,)
     # Figure out the shape of the destination array
@@ -498,10 +498,10 @@ def tile(a, reps):
 
 @copy_docstring(np.invert)
 def invert(a, out=None, where=True, dtype=None):
-    array = ndarray.convert_to_legate_ndarray(a)
+    array = ndarray.convert_to_cunumeric_ndarray(a)
     where = ndarray.convert_to_predicate_ndarray(where, stacklevel=2)
     if out is not None:
-        out = ndarray.convert_to_legate_ndarray(out, share=True)
+        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     if array.dtype.type == np.bool_:
         # Boolean values are special, just do negatiion
         return ndarray.perform_unary_op(
@@ -523,9 +523,9 @@ def invert(a, out=None, where=True, dtype=None):
 # Matrix and vector products
 @copy_docstring(np.dot)
 def dot(a, b, out=None):
-    a_array = ndarray.convert_to_legate_ndarray(a)
+    a_array = ndarray.convert_to_cunumeric_ndarray(a)
     if out is not None:
-        out = ndarray.convert_to_legate_ndarray(out, share=True)
+        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return a_array.dot(b, out=out, stacklevel=2)
 
 
@@ -601,10 +601,10 @@ def tensordot(a, b, axes=2):
 
 @copy_docstring(np.logical_not)
 def logical_not(a, out=None, where=True, dtype=None, **kwargs):
-    a_array = ndarray.convert_to_legate_ndarray(a)
+    a_array = ndarray.convert_to_cunumeric_ndarray(a)
     where = ndarray.convert_to_predicate_ndarray(where, stacklevel=2)
     if out is not None:
-        out = ndarray.convert_to_legate_ndarray(out, share=True)
+        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return ndarray.perform_unary_op(
         UnaryOpCode.LOGICAL_NOT,
         a_array,
@@ -628,11 +628,11 @@ def logical_not(a, out=None, where=True, dtype=None, **kwargs):
 
 @copy_docstring(np.allclose)
 def allclose(a, b, rtol=1e-5, atol=1e-8, equal_nan=False):
-    a_array = ndarray.convert_to_legate_ndarray(a)
-    b_array = ndarray.convert_to_legate_ndarray(b)
+    a_array = ndarray.convert_to_cunumeric_ndarray(a)
+    b_array = ndarray.convert_to_cunumeric_ndarray(b)
     if equal_nan:
         raise NotImplementedError(
-            "Legate does not support equal NaN yet for allclose"
+            "cuNumeric does not support equal NaN yet for allclose"
         )
     args = (np.array(rtol, dtype=np.float64), np.array(atol, dtype=np.float64))
     return ndarray.perform_binary_reduction(
@@ -646,8 +646,8 @@ def allclose(a, b, rtol=1e-5, atol=1e-8, equal_nan=False):
 
 @copy_docstring(np.array_equal)
 def array_equal(a, b):
-    a_array = ndarray.convert_to_legate_ndarray(a)
-    b_array = ndarray.convert_to_legate_ndarray(b)
+    a_array = ndarray.convert_to_cunumeric_ndarray(a)
+    b_array = ndarray.convert_to_cunumeric_ndarray(b)
     if a_array.ndim != b_array.ndim:
         return False
     if a_array.shape != b_array.shape:
@@ -659,13 +659,13 @@ def array_equal(a, b):
 
 @copy_docstring(np.equal)
 def equal(a, b, out=None, where=True, dtype=np.dtype(np.bool), stacklevel=1):
-    a_array = ndarray.convert_to_legate_ndarray(a, stacklevel=(stacklevel + 1))
-    b_array = ndarray.convert_to_legate_ndarray(b, stacklevel=(stacklevel + 1))
+    a_array = ndarray.convert_to_cunumeric_ndarray(a, stacklevel=(stacklevel + 1))
+    b_array = ndarray.convert_to_cunumeric_ndarray(b, stacklevel=(stacklevel + 1))
     where = ndarray.convert_to_predicate_ndarray(
         where, stacklevel=(stacklevel + 1)
     )
     if out is not None:
-        out = ndarray.convert_to_legate_ndarray(
+        out = ndarray.convert_to_cunumeric_ndarray(
             out, stacklevel=(stacklevel + 1), share=True
         )
     return ndarray.perform_binary_op(
@@ -681,13 +681,13 @@ def equal(a, b, out=None, where=True, dtype=np.dtype(np.bool), stacklevel=1):
 
 @copy_docstring(np.greater)
 def greater(a, b, out=None, where=True, dtype=np.dtype(np.bool), stacklevel=1):
-    a_array = ndarray.convert_to_legate_ndarray(a, stacklevel=(stacklevel + 1))
-    b_array = ndarray.convert_to_legate_ndarray(b, stacklevel=(stacklevel + 1))
+    a_array = ndarray.convert_to_cunumeric_ndarray(a, stacklevel=(stacklevel + 1))
+    b_array = ndarray.convert_to_cunumeric_ndarray(b, stacklevel=(stacklevel + 1))
     where = ndarray.convert_to_predicate_ndarray(
         where, stacklevel=(stacklevel + 1)
     )
     if out is not None:
-        out = ndarray.convert_to_legate_ndarray(
+        out = ndarray.convert_to_cunumeric_ndarray(
             out, stacklevel=(stacklevel + 1), share=True
         )
     return ndarray.perform_binary_op(
@@ -705,13 +705,13 @@ def greater(a, b, out=None, where=True, dtype=np.dtype(np.bool), stacklevel=1):
 def greater_equal(
     a, b, out=None, where=True, dtype=np.dtype(np.bool), stacklevel=1
 ):
-    a_array = ndarray.convert_to_legate_ndarray(a, stacklevel=(stacklevel + 1))
-    b_array = ndarray.convert_to_legate_ndarray(b, stacklevel=(stacklevel + 1))
+    a_array = ndarray.convert_to_cunumeric_ndarray(a, stacklevel=(stacklevel + 1))
+    b_array = ndarray.convert_to_cunumeric_ndarray(b, stacklevel=(stacklevel + 1))
     where = ndarray.convert_to_predicate_ndarray(
         where, stacklevel=(stacklevel + 1)
     )
     if out is not None:
-        out = ndarray.convert_to_legate_ndarray(
+        out = ndarray.convert_to_cunumeric_ndarray(
             out, stacklevel=(stacklevel + 1), share=True
         )
     return ndarray.perform_binary_op(
@@ -727,10 +727,10 @@ def greater_equal(
 
 @copy_docstring(np.isinf)
 def isinf(a, out=None, where=True, dtype=None, **kwargs):
-    a_array = ndarray.convert_to_legate_ndarray(a)
+    a_array = ndarray.convert_to_cunumeric_ndarray(a)
     where = ndarray.convert_to_predicate_ndarray(where, stacklevel=2)
     if out is not None:
-        out = ndarray.convert_to_legate_ndarray(out, share=True)
+        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return ndarray.perform_unary_op(
         UnaryOpCode.ISINF,
         a_array,
@@ -743,10 +743,10 @@ def isinf(a, out=None, where=True, dtype=None, **kwargs):
 
 @copy_docstring(np.isnan)
 def isnan(a, out=None, where=True, dtype=None, **kwargs):
-    a_array = ndarray.convert_to_legate_ndarray(a)
+    a_array = ndarray.convert_to_cunumeric_ndarray(a)
     where = ndarray.convert_to_predicate_ndarray(where, stacklevel=2)
     if out is not None:
-        out = ndarray.convert_to_legate_ndarray(out, share=True)
+        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return ndarray.perform_unary_op(
         UnaryOpCode.ISNAN,
         a_array,
@@ -759,13 +759,13 @@ def isnan(a, out=None, where=True, dtype=None, **kwargs):
 
 @copy_docstring(np.less)
 def less(a, b, out=None, where=True, dtype=np.dtype(np.bool), stacklevel=1):
-    a_array = ndarray.convert_to_legate_ndarray(a, stacklevel=(stacklevel + 1))
-    b_array = ndarray.convert_to_legate_ndarray(b, stacklevel=(stacklevel + 1))
+    a_array = ndarray.convert_to_cunumeric_ndarray(a, stacklevel=(stacklevel + 1))
+    b_array = ndarray.convert_to_cunumeric_ndarray(b, stacklevel=(stacklevel + 1))
     where = ndarray.convert_to_predicate_ndarray(
         where, stacklevel=(stacklevel + 1)
     )
     if out is not None:
-        out = ndarray.convert_to_legate_ndarray(
+        out = ndarray.convert_to_cunumeric_ndarray(
             out, stacklevel=(stacklevel + 1), share=True
         )
     return ndarray.perform_binary_op(
@@ -783,13 +783,13 @@ def less(a, b, out=None, where=True, dtype=np.dtype(np.bool), stacklevel=1):
 def less_equal(
     a, b, out=None, where=True, dtype=np.dtype(np.bool), stacklevel=1
 ):
-    a_array = ndarray.convert_to_legate_ndarray(a, stacklevel=(stacklevel + 1))
-    b_array = ndarray.convert_to_legate_ndarray(b, stacklevel=(stacklevel + 1))
+    a_array = ndarray.convert_to_cunumeric_ndarray(a, stacklevel=(stacklevel + 1))
+    b_array = ndarray.convert_to_cunumeric_ndarray(b, stacklevel=(stacklevel + 1))
     where = ndarray.convert_to_predicate_ndarray(
         where, stacklevel=(stacklevel + 1)
     )
     if out is not None:
-        out = ndarray.convert_to_legate_ndarray(
+        out = ndarray.convert_to_cunumeric_ndarray(
             out, stacklevel=(stacklevel + 1), share=True
         )
     return ndarray.perform_binary_op(
@@ -807,13 +807,13 @@ def less_equal(
 def not_equal(
     a, b, out=None, where=True, dtype=np.dtype(np.bool), stacklevel=1
 ):
-    a_array = ndarray.convert_to_legate_ndarray(a, stacklevel=(stacklevel + 1))
-    b_array = ndarray.convert_to_legate_ndarray(b, stacklevel=(stacklevel + 1))
+    a_array = ndarray.convert_to_cunumeric_ndarray(a, stacklevel=(stacklevel + 1))
+    b_array = ndarray.convert_to_cunumeric_ndarray(b, stacklevel=(stacklevel + 1))
     where = ndarray.convert_to_predicate_ndarray(
         where, stacklevel=(stacklevel + 1)
     )
     if out is not None:
-        out = ndarray.convert_to_legate_ndarray(
+        out = ndarray.convert_to_cunumeric_ndarray(
             out, stacklevel=(stacklevel + 1), share=True
         )
     return ndarray.perform_binary_op(
@@ -832,7 +832,7 @@ def not_equal(
 
 @copy_docstring(np.negative)
 def negative(a, out=None, where=True, dtype=None, **kwargs):
-    a_array = ndarray.convert_to_legate_ndarray(a)
+    a_array = ndarray.convert_to_cunumeric_ndarray(a)
     where = ndarray.convert_to_predicate_ndarray(where, stacklevel=2)
     if (
         a_array.dtype.type == np.uint16
@@ -841,7 +841,7 @@ def negative(a, out=None, where=True, dtype=None, **kwargs):
     ):
         raise TypeError("cannot negate unsigned type " + str(a_array.dtype))
     if out is not None:
-        out = ndarray.convert_to_legate_ndarray(out, share=True)
+        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return ndarray.perform_unary_op(
         UnaryOpCode.NEGATIVE, a_array, dtype=dtype, dst=out, where=where
     )
@@ -852,7 +852,7 @@ def negative(a, out=None, where=True, dtype=None, **kwargs):
 
 @copy_docstring(np.arccos)
 def arccos(a, out=None, where=True, dtype=None, **kwargs):
-    lg_array = ndarray.convert_to_legate_ndarray(a)
+    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
     where = ndarray.convert_to_predicate_ndarray(where, stacklevel=2)
     # Floats keep their floating point kind, otherwise switch to float64
     if lg_array.dtype.kind == "f" or lg_array.dtype.kind == "c":
@@ -860,7 +860,7 @@ def arccos(a, out=None, where=True, dtype=None, **kwargs):
     else:
         out_dtype = np.dtype(np.float64)
     if out is not None:
-        out = ndarray.convert_to_legate_ndarray(out, share=True)
+        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return ndarray.perform_unary_op(
         UnaryOpCode.ARCCOS,
         lg_array,
@@ -873,7 +873,7 @@ def arccos(a, out=None, where=True, dtype=None, **kwargs):
 
 @copy_docstring(np.arcsin)
 def arcsin(a, out=None, where=True, dtype=None, **kwargs):
-    lg_array = ndarray.convert_to_legate_ndarray(a)
+    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
     where = ndarray.convert_to_predicate_ndarray(where, stacklevel=2)
     # Floats keep their floating point kind, otherwise switch to float64
     if lg_array.dtype.kind == "f" or lg_array.dtype.kind == "c":
@@ -881,7 +881,7 @@ def arcsin(a, out=None, where=True, dtype=None, **kwargs):
     else:
         out_dtype = np.dtype(np.float64)
     if out is not None:
-        out = ndarray.convert_to_legate_ndarray(out, share=True)
+        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return ndarray.perform_unary_op(
         UnaryOpCode.ARCSIN,
         lg_array,
@@ -894,7 +894,7 @@ def arcsin(a, out=None, where=True, dtype=None, **kwargs):
 
 @copy_docstring(np.arctan)
 def arctan(a, out=None, where=True, dtype=None, **kwargs):
-    lg_array = ndarray.convert_to_legate_ndarray(a)
+    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
     where = ndarray.convert_to_predicate_ndarray(where, stacklevel=2)
     # Floats keep their floating point kind, otherwise switch to float64
     if lg_array.dtype.kind == "f" or lg_array.dtype.kind == "c":
@@ -902,7 +902,7 @@ def arctan(a, out=None, where=True, dtype=None, **kwargs):
     else:
         out_dtype = np.dtype(np.float64)
     if out is not None:
-        out = ndarray.convert_to_legate_ndarray(out, share=True)
+        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return ndarray.perform_unary_op(
         UnaryOpCode.ARCTAN,
         lg_array,
@@ -915,7 +915,7 @@ def arctan(a, out=None, where=True, dtype=None, **kwargs):
 
 @copy_docstring(np.cos)
 def cos(a, out=None, where=True, dtype=None, **kwargs):
-    lg_array = ndarray.convert_to_legate_ndarray(a)
+    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
     where = ndarray.convert_to_predicate_ndarray(where, stacklevel=2)
     # Floats keep their floating point kind, otherwise switch to float64
     if lg_array.dtype.kind == "f" or lg_array.dtype.kind == "c":
@@ -923,7 +923,7 @@ def cos(a, out=None, where=True, dtype=None, **kwargs):
     else:
         out_dtype = np.dtype(np.float64)
     if out is not None:
-        out = ndarray.convert_to_legate_ndarray(out, share=True)
+        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return ndarray.perform_unary_op(
         UnaryOpCode.COS,
         lg_array,
@@ -936,7 +936,7 @@ def cos(a, out=None, where=True, dtype=None, **kwargs):
 
 @copy_docstring(np.sin)
 def sin(a, out=None, where=True, dtype=None, **kwargs):
-    lg_array = ndarray.convert_to_legate_ndarray(a)
+    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
     where = ndarray.convert_to_predicate_ndarray(where, stacklevel=2)
     # Floats keep their floating point kind, otherwise switch to float64
     if lg_array.dtype.kind == "f" or lg_array.dtype.kind == "c":
@@ -944,7 +944,7 @@ def sin(a, out=None, where=True, dtype=None, **kwargs):
     else:
         out_dtype = np.dtype(np.float64)
     if out is not None:
-        out = ndarray.convert_to_legate_ndarray(out, share=True)
+        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return ndarray.perform_unary_op(
         UnaryOpCode.SIN,
         lg_array,
@@ -957,7 +957,7 @@ def sin(a, out=None, where=True, dtype=None, **kwargs):
 
 @copy_docstring(np.tan)
 def tan(a, out=None, where=True, dtype=None, **kwargs):
-    lg_array = ndarray.convert_to_legate_ndarray(a)
+    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
     where = ndarray.convert_to_predicate_ndarray(where, stacklevel=2)
     # Floats keep their floating point kind, otherwise switch to float64
     if lg_array.dtype.kind == "f" or lg_array.dtype.kind == "c":
@@ -965,7 +965,7 @@ def tan(a, out=None, where=True, dtype=None, **kwargs):
     else:
         out_dtype = np.dtype(np.float64)
     if out is not None:
-        out = ndarray.convert_to_legate_ndarray(out, share=True)
+        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return ndarray.perform_unary_op(
         UnaryOpCode.TAN,
         lg_array,
@@ -981,7 +981,7 @@ def tan(a, out=None, where=True, dtype=None, **kwargs):
 
 @copy_docstring(np.tanh)
 def tanh(a, out=None, where=True, dtype=None, **kwargs):
-    lg_array = ndarray.convert_to_legate_ndarray(a)
+    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
     where = ndarray.convert_to_predicate_ndarray(where, stacklevel=2)
     # Floats keep their floating point kind, otherwise switch to float64
     if lg_array.dtype.kind == "f" or lg_array.dtype.kind == "c":
@@ -989,7 +989,7 @@ def tanh(a, out=None, where=True, dtype=None, **kwargs):
     else:
         out_dtype = np.dtype(np.float64)
     if out is not None:
-        out = ndarray.convert_to_legate_ndarray(out, share=True)
+        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return ndarray.perform_unary_op(
         UnaryOpCode.TANH,
         lg_array,
@@ -1005,13 +1005,13 @@ def tanh(a, out=None, where=True, dtype=None, **kwargs):
 
 @copy_docstring(np.add)
 def add(a, b, out=None, where=True, dtype=None, stacklevel=1):
-    a_array = ndarray.convert_to_legate_ndarray(a, stacklevel=(stacklevel + 1))
-    b_array = ndarray.convert_to_legate_ndarray(b, stacklevel=(stacklevel + 1))
+    a_array = ndarray.convert_to_cunumeric_ndarray(a, stacklevel=(stacklevel + 1))
+    b_array = ndarray.convert_to_cunumeric_ndarray(b, stacklevel=(stacklevel + 1))
     where = ndarray.convert_to_predicate_ndarray(
         where, stacklevel=(stacklevel + 1)
     )
     if out is not None:
-        out = ndarray.convert_to_legate_ndarray(
+        out = ndarray.convert_to_cunumeric_ndarray(
             out, stacklevel=(stacklevel + 1), share=True
         )
     return ndarray.perform_binary_op(
@@ -1032,11 +1032,11 @@ def divide(a, b, out=None, where=True, dtype=None):
         return true_divide(
             a, b, out=out, where=where, dtype=dtype, stacklevel=2
         )
-    a_array = ndarray.convert_to_legate_ndarray(a)
-    b_array = ndarray.convert_to_legate_ndarray(b)
+    a_array = ndarray.convert_to_cunumeric_ndarray(a)
+    b_array = ndarray.convert_to_cunumeric_ndarray(b)
     where = ndarray.convert_to_predicate_ndarray(where, stacklevel=2)
     if out is not None:
-        out = ndarray.convert_to_legate_ndarray(out, share=True)
+        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return ndarray.perform_binary_op(
         BinaryOpCode.DIVIDE,
         a_array,
@@ -1049,11 +1049,11 @@ def divide(a, b, out=None, where=True, dtype=None):
 
 @copy_docstring(np.floor_divide)
 def floor_divide(a, b, out=None, where=True, dtype=None):
-    a_array = ndarray.convert_to_legate_ndarray(a)
-    b_array = ndarray.convert_to_legate_ndarray(b)
+    a_array = ndarray.convert_to_cunumeric_ndarray(a)
+    b_array = ndarray.convert_to_cunumeric_ndarray(b)
     where = ndarray.convert_to_predicate_ndarray(where, stacklevel=2)
     if out is not None:
-        out = ndarray.convert_to_legate_ndarray(out, share=True)
+        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return ndarray.perform_binary_op(
         BinaryOpCode.FLOOR_DIVIDE,
         a_array,
@@ -1066,13 +1066,13 @@ def floor_divide(a, b, out=None, where=True, dtype=None):
 
 @copy_docstring(np.multiply)
 def multiply(a, b, out=None, where=True, dtype=None, stacklevel=1):
-    a_array = ndarray.convert_to_legate_ndarray(a, stacklevel=(stacklevel + 1))
-    b_array = ndarray.convert_to_legate_ndarray(b, stacklevel=(stacklevel + 1))
+    a_array = ndarray.convert_to_cunumeric_ndarray(a, stacklevel=(stacklevel + 1))
+    b_array = ndarray.convert_to_cunumeric_ndarray(b, stacklevel=(stacklevel + 1))
     where = ndarray.convert_to_predicate_ndarray(
         where, stacklevel=(stacklevel + 1)
     )
     if out is not None:
-        out = ndarray.convert_to_legate_ndarray(
+        out = ndarray.convert_to_cunumeric_ndarray(
             out, stacklevel=(stacklevel + 1), share=True
         )
     return ndarray.perform_binary_op(
@@ -1097,11 +1097,11 @@ def prod(
     where=True,
     stacklevel=1,
 ):
-    lg_array = ndarray.convert_to_legate_ndarray(
+    lg_array = ndarray.convert_to_cunumeric_ndarray(
         a, stacklevel=(stacklevel + 1)
     )
     if out is not None:
-        out = ndarray.convert_to_legate_ndarray(
+        out = ndarray.convert_to_cunumeric_ndarray(
             out, stacklevel=(stacklevel + 1), share=True
         )
     return lg_array.prod(
@@ -1117,13 +1117,13 @@ def prod(
 
 @copy_docstring(np.subtract)
 def subtract(a, b, out=None, where=True, dtype=None, stacklevel=1):
-    a_array = ndarray.convert_to_legate_ndarray(a, stacklevel=(stacklevel + 1))
-    b_array = ndarray.convert_to_legate_ndarray(b, stacklevel=(stacklevel + 1))
+    a_array = ndarray.convert_to_cunumeric_ndarray(a, stacklevel=(stacklevel + 1))
+    b_array = ndarray.convert_to_cunumeric_ndarray(b, stacklevel=(stacklevel + 1))
     where = ndarray.convert_to_predicate_ndarray(
         where, stacklevel=(stacklevel + 1)
     )
     if out is not None:
-        out = ndarray.convert_to_legate_ndarray(
+        out = ndarray.convert_to_cunumeric_ndarray(
             out, stacklevel=(stacklevel + 1), share=True
         )
     return ndarray.perform_binary_op(
@@ -1148,14 +1148,14 @@ def sum(
     where=True,
     stacklevel=1,
 ):
-    lg_array = ndarray.convert_to_legate_ndarray(
+    lg_array = ndarray.convert_to_cunumeric_ndarray(
         a, stacklevel=(stacklevel + 1)
     )
     where = ndarray.convert_to_predicate_ndarray(
         where, stacklevel=(stacklevel + 1)
     )
     if out is not None:
-        out = ndarray.convert_to_legate_ndarray(
+        out = ndarray.convert_to_cunumeric_ndarray(
             out, stacklevel=(stacklevel + 1), share=True
         )
     return lg_array.sum(
@@ -1171,8 +1171,8 @@ def sum(
 
 @copy_docstring(np.true_divide)
 def true_divide(a, b, out=None, where=True, dtype=None, stacklevel=1):
-    a_array = ndarray.convert_to_legate_ndarray(a, stacklevel=(stacklevel + 1))
-    b_array = ndarray.convert_to_legate_ndarray(b, stacklevel=(stacklevel + 1))
+    a_array = ndarray.convert_to_cunumeric_ndarray(a, stacklevel=(stacklevel + 1))
+    b_array = ndarray.convert_to_cunumeric_ndarray(b, stacklevel=(stacklevel + 1))
     where = ndarray.convert_to_predicate_ndarray(
         where, stacklevel=(stacklevel + 1)
     )
@@ -1223,7 +1223,7 @@ def true_divide(a, b, out=None, where=True, dtype=None, stacklevel=1):
         )
         b_array = temp
     if out is not None:
-        out = ndarray.convert_to_legate_ndarray(
+        out = ndarray.convert_to_cunumeric_ndarray(
             out, stacklevel=(stacklevel + 1), share=True
         )
     return ndarray.perform_binary_op(
@@ -1242,7 +1242,7 @@ def true_divide(a, b, out=None, where=True, dtype=None, stacklevel=1):
 
 @copy_docstring(np.exp)
 def exp(a, out=None, where=True, dtype=None, stacklevel=1, **kwargs):
-    lg_array = ndarray.convert_to_legate_ndarray(a)
+    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
     where = ndarray.convert_to_predicate_ndarray(
         where, stacklevel=(stacklevel + 1)
     )
@@ -1251,7 +1251,7 @@ def exp(a, out=None, where=True, dtype=None, stacklevel=1, **kwargs):
     else:
         out_dtype = np.dtype(np.float64)
     if out is not None:
-        out = ndarray.convert_to_legate_ndarray(out, share=True)
+        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return ndarray.perform_unary_op(
         UnaryOpCode.EXP,
         lg_array,
@@ -1264,7 +1264,7 @@ def exp(a, out=None, where=True, dtype=None, stacklevel=1, **kwargs):
 
 @copy_docstring(np.log)
 def log(a, out=None, where=True, dtype=None, stacklevel=1, **kwargs):
-    lg_array = ndarray.convert_to_legate_ndarray(a)
+    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
     where = ndarray.convert_to_predicate_ndarray(
         where, stacklevel=(stacklevel + 1)
     )
@@ -1273,7 +1273,7 @@ def log(a, out=None, where=True, dtype=None, stacklevel=1, **kwargs):
     else:
         out_dtype = np.dtype(np.float64)
     if out is not None:
-        out = ndarray.convert_to_legate_ndarray(out, share=True)
+        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return ndarray.perform_unary_op(
         UnaryOpCode.LOG,
         lg_array,
@@ -1286,10 +1286,10 @@ def log(a, out=None, where=True, dtype=None, stacklevel=1, **kwargs):
 
 @copy_docstring(np.power)
 def power(x1, x2, out=None, where=True, dtype=None, stacklevel=1, **kwargs):
-    x1_array = ndarray.convert_to_legate_ndarray(
+    x1_array = ndarray.convert_to_cunumeric_ndarray(
         x1, stacklevel=(stacklevel + 1)
     )
-    x2_array = ndarray.convert_to_legate_ndarray(
+    x2_array = ndarray.convert_to_cunumeric_ndarray(
         x2, stacklevel=(stacklevel + 1)
     )
     where = ndarray.convert_to_predicate_ndarray(
@@ -1309,7 +1309,7 @@ def power(x1, x2, out=None, where=True, dtype=None, stacklevel=1, **kwargs):
                 scalar_types.append(x2_array.dtype)
             dtype = np.find_common_type(array_types, scalar_types)
     if out is not None:
-        out = ndarray.convert_to_legate_ndarray(
+        out = ndarray.convert_to_cunumeric_ndarray(
             out, stacklevel=(stacklevel + 1), share=True
         )
     return ndarray.perform_binary_op(
@@ -1325,10 +1325,10 @@ def power(x1, x2, out=None, where=True, dtype=None, stacklevel=1, **kwargs):
 
 @copy_docstring(np.square)
 def square(a, out=None, where=True, dtype=None, **kwargs):
-    lg_array = ndarray.convert_to_legate_ndarray(a)
+    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
     where = ndarray.convert_to_predicate_ndarray(where, stacklevel=2)
     if out is not None:
-        out = ndarray.convert_to_legate_ndarray(out, share=True)
+        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     # We implement this with multiply for now, locality should
     # be good enough for avoiding too much overhead with extra reads
     return ndarray.perform_binary_op(
@@ -1346,7 +1346,7 @@ def square(a, out=None, where=True, dtype=None, **kwargs):
 
 @copy_docstring(np.absolute)
 def absolute(a, out=None, where=True, **kwargs):
-    lg_array = ndarray.convert_to_legate_ndarray(a)
+    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
     where = ndarray.convert_to_predicate_ndarray(where, stacklevel=2)
     # Handle the nice case of it being unsigned
     if (
@@ -1357,7 +1357,7 @@ def absolute(a, out=None, where=True, **kwargs):
     ):
         return lg_array
     if out is not None:
-        out = ndarray.convert_to_legate_ndarray(out, share=True)
+        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return ndarray.perform_unary_op(
         UnaryOpCode.ABSOLUTE, lg_array, dst=out, where=where
     )
@@ -1368,7 +1368,7 @@ abs = absolute  # alias
 
 @copy_docstring(np.ceil)
 def ceil(a, out=None, where=True, dtype=None, **kwargs):
-    lg_array = ndarray.convert_to_legate_ndarray(a)
+    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
     where = ndarray.convert_to_predicate_ndarray(where, stacklevel=2)
     # If this is an integer array then there is nothing to do for ceil
     if (
@@ -1378,7 +1378,7 @@ def ceil(a, out=None, where=True, dtype=None, **kwargs):
     ):
         return lg_array
     if out is not None:
-        out = ndarray.convert_to_legate_ndarray(out, share=True)
+        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return ndarray.perform_unary_op(
         UnaryOpCode.CEIL, lg_array, dst=out, dtype=dtype, where=where
     )
@@ -1386,22 +1386,22 @@ def ceil(a, out=None, where=True, dtype=None, **kwargs):
 
 @copy_docstring(np.clip)
 def clip(a, a_min, a_max, out=None):
-    lg_array = ndarray.convert_to_legate_ndarray(a)
+    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
     if out is not None:
-        out = ndarray.convert_to_legate_ndarray(out, share=True)
+        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return lg_array.clip(a_min, a_max, out=out)
 
 
 @copy_docstring(np.fabs)
 def fabs(a, out=None, where=True, **kwargs):
     if out is not None:
-        out = ndarray.convert_to_legate_ndarray(out, share=True)
+        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return absolute(a, out=out, where=where, **kwargs)
 
 
 @copy_docstring(np.floor)
 def floor(a, out=None, where=True, dtype=None, **kwargs):
-    lg_array = ndarray.convert_to_legate_ndarray(a)
+    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
     where = ndarray.convert_to_predicate_ndarray(where, stacklevel=2)
     # If this is an integer array then there is nothing to do for floor
     if (
@@ -1411,7 +1411,7 @@ def floor(a, out=None, where=True, dtype=None, **kwargs):
     ):
         return lg_array
     if out is not None:
-        out = ndarray.convert_to_legate_ndarray(out, share=True)
+        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return ndarray.perform_unary_op(
         UnaryOpCode.FLOOR, lg_array, dst=out, dtype=dtype, where=where
     )
@@ -1419,7 +1419,7 @@ def floor(a, out=None, where=True, dtype=None, **kwargs):
 
 @copy_docstring(np.sqrt)
 def sqrt(a, out=None, where=True, dtype=None, stacklevel=1, **kwargs):
-    lg_array = ndarray.convert_to_legate_ndarray(
+    lg_array = ndarray.convert_to_cunumeric_ndarray(
         a, stacklevel=(stacklevel + 1)
     )
     where = ndarray.convert_to_predicate_ndarray(
@@ -1431,7 +1431,7 @@ def sqrt(a, out=None, where=True, dtype=None, stacklevel=1, **kwargs):
     else:
         out_dtype = np.dtype(np.float64)
     if out is not None:
-        out = ndarray.convert_to_legate_ndarray(
+        out = ndarray.convert_to_cunumeric_ndarray(
             out, stacklevel=(stacklevel + 1), share=True
         )
     return ndarray.perform_unary_op(
@@ -1452,29 +1452,29 @@ def sqrt(a, out=None, where=True, dtype=None, stacklevel=1, **kwargs):
 
 @copy_docstring(np.argmax)
 def argmax(a, axis=None, out=None):
-    lg_array = ndarray.convert_to_legate_ndarray(a)
+    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
     if out is not None:
         if out.dtype != np.int64:
             raise ValueError("output array must have int64 dtype")
-        out = ndarray.convert_to_legate_ndarray(out, share=True)
+        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return lg_array.argmax(axis=axis, out=out, stacklevel=2)
 
 
 @copy_docstring(np.argmin)
 def argmin(a, axis=None, out=None):
-    lg_array = ndarray.convert_to_legate_ndarray(a)
+    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
     if out is not None:
         if out is not None and out.dtype != np.int64:
             raise ValueError("output array must have int64 dtype")
-        out = ndarray.convert_to_legate_ndarray(out, share=True)
+        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return lg_array.argmin(axis=axis, out=out, stacklevel=2)
 
 
 @copy_docstring(np.bincount)
 def bincount(a, weights=None, minlength=0):
-    lg_array = ndarray.convert_to_legate_ndarray(a)
+    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
     if weights is not None:
-        lg_weights = ndarray.convert_to_legate_ndarray(weights)
+        lg_weights = ndarray.convert_to_cunumeric_ndarray(weights)
         if lg_weights.shape != lg_array.shape:
             raise ValueError("weights array must be same shape for bincount")
         if lg_weights.dtype.kind == "c":
@@ -1518,7 +1518,7 @@ def bincount(a, weights=None, minlength=0):
 
 @copy_docstring(np.nonzero)
 def nonzero(a):
-    lg_array = ndarray.convert_to_legate_ndarray(a)
+    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
     return lg_array.nonzero()
 
 
@@ -1531,9 +1531,9 @@ def where(a, x=None, y=None):
                 " 'where'"
             )
         return nonzero(a)
-    lg_array = ndarray.convert_to_legate_ndarray(a)
-    x_array = ndarray.convert_to_legate_ndarray(x)
-    y_array = ndarray.convert_to_legate_ndarray(y)
+    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
+    x_array = ndarray.convert_to_cunumeric_ndarray(x)
+    y_array = ndarray.convert_to_cunumeric_ndarray(y)
     # Check all the array types here
     if lg_array.dtype.type != np.bool_:
         temp = ndarray(
@@ -1590,18 +1590,18 @@ def where(a, x=None, y=None):
 #    if a.size == 1:
 #        raise NotImplementedError("Need to drop dimensions here")
 #        return a
-#    lg_array = ndarray.convert_to_legate_ndarray(a)
+#    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
 #    if order is not None:
 #        raise NotImplementedError("No support for non-None 'order' for sort")
 #    if kind != 'quicksort':
-#        warnings.warn("Legate uses a different algorithm than "+str(kind)+
+#        warnings.warn("cuNumeric uses a different algorithm than "+str(kind)+
 #                      " for sorting",
 #                      category=RuntimeWarning, stacklevel=2)
 #    # Make the out array
 #    if lg_array.ndim > 1:
 #        # We only support sorting the full array right now
 #        if axis is not None:
-#            raise NotImplementedError("Legate only supports sorting full "
+#            raise NotImplementedError("cuNumeric only supports sorting full "
 #                                      "arrays at the moment")
 #        # Flatten the output array
 #        out_size = lg_array.shape[0]
@@ -1638,11 +1638,11 @@ def count_nonzero(a, axis=None, stacklevel=1):
 
 @copy_docstring(np.amax)
 def amax(a, axis=None, out=None, keepdims=False, stacklevel=1):
-    lg_array = ndarray.convert_to_legate_ndarray(
+    lg_array = ndarray.convert_to_cunumeric_ndarray(
         a, stacklevel=(stacklevel + 1)
     )
     if out is not None:
-        out = ndarray.convert_to_legate_ndarray(
+        out = ndarray.convert_to_cunumeric_ndarray(
             out, stacklevel=(stacklevel + 1), share=True
         )
     return lg_array.max(
@@ -1652,11 +1652,11 @@ def amax(a, axis=None, out=None, keepdims=False, stacklevel=1):
 
 @copy_docstring(np.amin)
 def amin(a, axis=None, out=None, keepdims=False, stacklevel=1):
-    lg_array = ndarray.convert_to_legate_ndarray(
+    lg_array = ndarray.convert_to_cunumeric_ndarray(
         a, stacklevel=(stacklevel + 1)
     )
     if out is not None:
-        out = ndarray.convert_to_legate_ndarray(
+        out = ndarray.convert_to_cunumeric_ndarray(
             out, stacklevel=(stacklevel + 1), share=True
         )
     return lg_array.min(
@@ -1671,13 +1671,13 @@ def max(a, axis=None, out=None, keepdims=False):
 
 @copy_docstring(np.maximum)
 def maximum(a, b, out=None, where=True, dtype=None, stacklevel=1, **kwargs):
-    a_array = ndarray.convert_to_legate_ndarray(a, stacklevel=(stacklevel + 1))
-    b_array = ndarray.convert_to_legate_ndarray(b, stacklevel=(stacklevel + 1))
+    a_array = ndarray.convert_to_cunumeric_ndarray(a, stacklevel=(stacklevel + 1))
+    b_array = ndarray.convert_to_cunumeric_ndarray(b, stacklevel=(stacklevel + 1))
     where = ndarray.convert_to_predicate_ndarray(
         where, stacklevel=(stacklevel + 1)
     )
     if out is not None:
-        out = ndarray.convert_to_legate_ndarray(
+        out = ndarray.convert_to_cunumeric_ndarray(
             out, stacklevel=(stacklevel + 1), share=True
         )
     return ndarray.perform_binary_op(
@@ -1698,13 +1698,13 @@ def min(a, axis=None, out=None, keepdims=False):
 
 @copy_docstring(np.minimum)
 def minimum(a, b, out=None, where=True, dtype=None, stacklevel=1, **kwargs):
-    a_array = ndarray.convert_to_legate_ndarray(a, stacklevel=(stacklevel + 1))
-    b_array = ndarray.convert_to_legate_ndarray(b, stacklevel=(stacklevel + 1))
+    a_array = ndarray.convert_to_cunumeric_ndarray(a, stacklevel=(stacklevel + 1))
+    b_array = ndarray.convert_to_cunumeric_ndarray(b, stacklevel=(stacklevel + 1))
     where = ndarray.convert_to_predicate_ndarray(
         where, stacklevel=(stacklevel + 1)
     )
     if out is not None:
-        out = ndarray.convert_to_legate_ndarray(
+        out = ndarray.convert_to_cunumeric_ndarray(
             out, stacklevel=(stacklevel + 1), share=True
         )
     return ndarray.perform_binary_op(
@@ -1720,13 +1720,13 @@ def minimum(a, b, out=None, where=True, dtype=None, stacklevel=1, **kwargs):
 
 @copy_docstring(np.add)
 def mod(a, b, out=None, where=True, dtype=None, stacklevel=1):
-    a_array = ndarray.convert_to_legate_ndarray(a, stacklevel=(stacklevel + 1))
-    b_array = ndarray.convert_to_legate_ndarray(b, stacklevel=(stacklevel + 1))
+    a_array = ndarray.convert_to_cunumeric_ndarray(a, stacklevel=(stacklevel + 1))
+    b_array = ndarray.convert_to_cunumeric_ndarray(b, stacklevel=(stacklevel + 1))
     where = ndarray.convert_to_predicate_ndarray(
         where, stacklevel=(stacklevel + 1)
     )
     if out is not None:
-        out = ndarray.convert_to_legate_ndarray(
+        out = ndarray.convert_to_cunumeric_ndarray(
             out, stacklevel=(stacklevel + 1), share=True
         )
     return ndarray.perform_binary_op(
@@ -1745,9 +1745,9 @@ def mod(a, b, out=None, where=True, dtype=None, stacklevel=1):
 
 @copy_docstring(np.mean)
 def mean(a, axis=None, dtype=None, out=None, keepdims=False):
-    lg_array = ndarray.convert_to_legate_ndarray(a)
+    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
     if out is not None:
-        out = ndarray.convert_to_legate_ndarray(out, share=True)
+        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return lg_array.mean(
         axis=axis, dtype=dtype, out=out, keepdims=keepdims, stacklevel=2
     )
@@ -1763,11 +1763,11 @@ def row_stack(inputs):
 
 @copy_docstring(np.vstack)
 def vstack(inputs):
-    # Check to see if we can build a new tuple of legate arrays
+    # Check to see if we can build a new tuple of cuNumeric arrays
     dtype = None
-    legate_inputs = list()
+    cunumeric_inputs = list()
     for inp in inputs:
-        lg_array = ndarray.convert_to_legate_ndarray(inp)
+        lg_array = ndarray.convert_to_cunumeric_ndarray(inp)
         if dtype is None:
             ndim = lg_array.ndim
             shape = lg_array.shape
@@ -1799,22 +1799,22 @@ def vstack(inputs):
             else:
                 leading_dim += lg_array.shape[0]
         # Save the input array for later
-        legate_inputs.append(lg_array)
+        cunumeric_inputs.append(lg_array)
     # Once we are here we have all our inputs arrays, so make the output
     if len(shape) == 1:
         out_shape = (leading_dim,) + shape
-        out_array = ndarray(shape=out_shape, dtype=dtype, inputs=legate_inputs)
+        out_array = ndarray(shape=out_shape, dtype=dtype, inputs=cunumeric_inputs)
         # Copy the values over from the inputs
-        for idx, inp in enumerate(legate_inputs):
+        for idx, inp in enumerate(cunumeric_inputs):
             out_array[idx, :] = inp
     else:
         out_shape = (leading_dim,)
         for dim in xrange(1, ndim):
             out_shape += (shape[dim],)
-        out_array = ndarray(shape=out_shape, dtype=dtype, inputs=legate_inputs)
+        out_array = ndarray(shape=out_shape, dtype=dtype, inputs=cunumeric_inputs)
         # Copy the values over from the inputs
         offset = 0
-        for inp in legate_inputs:
+        for inp in cunumeric_inputs:
             out_array[offset : offset + inp.shape[0], ...] = inp
             offset += inp.shape[0]
     return out_array
@@ -1822,7 +1822,7 @@ def vstack(inputs):
 
 # ### FILE I/O ###
 # For now we just need to do the loading methods to get things converted into
-# Legate arrays. The storing methods can go through the normal NumPy python
+# cuNumeric arrays. The storing methods can go through the normal NumPy python
 
 
 @copy_docstring(np.genfromtxt)
@@ -1876,7 +1876,7 @@ def genfromtxt(
         max_rows=max_rows,
         encoding=encoding,
     )
-    return ndarray.convert_to_legate_ndarray(numpy_array)
+    return ndarray.convert_to_cunumeric_ndarray(numpy_array)
 
 
 @copy_docstring(np.frombuffer)
@@ -1884,7 +1884,7 @@ def frombuffer(buffer, dtype=float, count=-1, offset=0):
     numpy_array = np.frombuffer(
         buffer=buffer, dtype=dtype, count=count, offset=offset
     )
-    return ndarray.convert_to_legate_ndarray(numpy_array)
+    return ndarray.convert_to_cunumeric_ndarray(numpy_array)
 
 
 @copy_docstring(np.fromfile)
@@ -1892,19 +1892,19 @@ def fromfile(file, dtype=float, count=-1, sep="", offset=0):
     numpy_array = np.fromfile(
         file=file, dtype=dtype, count=count, sep=sep, offset=offset
     )
-    return ndarray.convert_to_legate_ndarray(numpy_array)
+    return ndarray.convert_to_cunumeric_ndarray(numpy_array)
 
 
 @copy_docstring(np.fromfunction)
 def fromfunction(function, shape, **kwargs):
     numpy_array = np.fromfunction(function=function, shape=shape, **kwargs)
-    return ndarray.convert_to_legate_ndarray(numpy_array)
+    return ndarray.convert_to_cunumeric_ndarray(numpy_array)
 
 
 @copy_docstring(np.fromiter)
 def fromiter(iterable, dtype, count=-1):
     numpy_array = np.fromiter(iterable=iterable, dtype=dtype, count=count)
-    return ndarray.convert_to_legate_ndarray(numpy_array)
+    return ndarray.convert_to_cunumeric_ndarray(numpy_array)
 
 
 @copy_docstring(np.fromregex)
@@ -1912,7 +1912,7 @@ def fromregex(file, regexp, dtype, encoding=None):
     numpy_array = np.fromregex(
         file=file, regexp=regexp, dtype=dtype, encoding=encoding
     )
-    return ndarray.convert_to_legate_ndarray(numpy_array)
+    return ndarray.convert_to_cunumeric_ndarray(numpy_array)
 
 
 @copy_docstring(np.fromstring)
@@ -1920,7 +1920,7 @@ def fromstring(string, dtype=float, count=-1, sep=""):
     numpy_array = np.fromstring(
         string=string, dtype=dtype, count=count, sep=sep
     )
-    return ndarray.convert_to_legate_ndarray(numpy_array)
+    return ndarray.convert_to_cunumeric_ndarray(numpy_array)
 
 
 @copy_docstring(np.load)
@@ -1938,7 +1938,7 @@ def load(
         fix_imports=fix_imports,
         encoding=encoding,
     )
-    return ndarray.convert_to_legate_ndarray(numpy_array)
+    return ndarray.convert_to_cunumeric_ndarray(numpy_array)
 
 
 @copy_docstring(np.loadtxt)
@@ -1968,7 +1968,7 @@ def loadtxt(
         encoding=encoding,
         max_rows=max_rows,
     )
-    return ndarray.convert_to_legate_ndarray(numpy_array)
+    return ndarray.convert_to_cunumeric_ndarray(numpy_array)
 
 
 @copy_docstring(np.memmap)
@@ -1983,4 +1983,4 @@ def memmap(
         shape=shape,
         order=order,
     )
-    return ndarray.convert_to_legate_ndarray(numpy_array, share=True)
+    return ndarray.convert_to_cunumeric_ndarray(numpy_array, share=True)

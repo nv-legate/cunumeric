@@ -15,13 +15,13 @@
 
 import numpy as np
 
-import cunumeric as lg
+import cunumeric as num
 
 
 def test():
-    x = lg.array([1, 2, 3])
-    y = lg.array([4, 5, 6])
-    z = lg.vstack((x, y))
+    x = num.array([1, 2, 3])
+    y = num.array([4, 5, 6])
+    z = num.vstack((x, y))
 
     xnp = np.array([1, 2, 3])
     ynp = np.array([4, 5, 6])
@@ -29,9 +29,9 @@ def test():
 
     assert np.array_equal(z, znp)
 
-    x = lg.array([[1, 2, 3], [4, 5, 6]])
-    y = lg.array([[7, 8, 9], [10, 11, 12]])
-    z = lg.vstack((x, y))
+    x = num.array([[1, 2, 3], [4, 5, 6]])
+    y = num.array([[7, 8, 9], [10, 11, 12]])
+    z = num.vstack((x, y))
 
     xnp = np.array([[1, 2, 3], [4, 5, 6]])
     ynp = np.array([[7, 8, 9], [10, 11, 12]])
@@ -39,9 +39,9 @@ def test():
 
     assert np.array_equal(z, znp)
 
-    x = lg.array([[[1, 2, 3], [4, 5, 6]], [[7, 8, 9], [10, 11, 12]]])
-    y = lg.array([[[13, 14, 15], [16, 17, 18]], [[19, 20, 21], [22, 23, 24]]])
-    z = lg.vstack((x, y))
+    x = num.array([[[1, 2, 3], [4, 5, 6]], [[7, 8, 9], [10, 11, 12]]])
+    y = num.array([[[13, 14, 15], [16, 17, 18]], [[19, 20, 21], [22, 23, 24]]])
+    z = num.vstack((x, y))
 
     xnp = np.array([[[1, 2, 3], [4, 5, 6]], [[7, 8, 9], [10, 11, 12]]])
     ynp = np.array(

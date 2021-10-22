@@ -15,15 +15,15 @@
 
 import numpy as np
 
-import cunumeric as lg
+import cunumeric as num
 
 
 def test():
     npa = np.array([0.0, np.pi / 2, np.pi])
-    a = lg.array(npa)
+    a = num.array(npa)
 
     np.cos(npa, out=npa)
-    lg.cos(a, out=a)
+    num.cos(a, out=a)
 
     assert np.array_equal(a, npa)
     return

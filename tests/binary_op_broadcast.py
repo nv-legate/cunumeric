@@ -17,33 +17,33 @@ from __future__ import division
 
 import numpy as np
 
-import cunumeric as lg
+import cunumeric as num
 
 
 def test(shape):
     for ndim in range(2, 4):
         print(f"Testing {ndim}D")
         local_shape = shape[:ndim]
-        x = lg.random.random(local_shape)
+        x = num.random.random(local_shape)
         a = x.__array__()
 
         for dim in range(1, ndim):
-            y = lg.random.random(local_shape[-dim:])
+            y = num.random.random(local_shape[-dim:])
             b = y.__array__()
             print(f"  {a.shape} x {b.shape}")
-            assert lg.array_equal(x + y, a + b)
+            assert num.array_equal(x + y, a + b)
 
         for dim in range(ndim):
             rhs_shape = list(local_shape)
             rhs_shape[dim] = 1
             if (np.array(rhs_shape) == 1).all():
                 y = np.random.random(tuple(rhs_shape))
-                b = lg.array(y)
+                b = num.array(y)
             else:
-                y = lg.random.random(tuple(rhs_shape))
+                y = num.random.random(tuple(rhs_shape))
                 b = y.__array__()
             print(f"  {a.shape} x {b.shape}")
-            assert lg.array_equal(x + y, a + b)
+            assert num.array_equal(x + y, a + b)
 
         if ndim > 2:
             for dim in range(ndim):
@@ -51,12 +51,12 @@ def test(shape):
                 rhs_shape[dim] = local_shape[dim]
                 if (np.array(rhs_shape) == 1).all():
                     y = np.random.random(tuple(rhs_shape))
-                    b = lg.array(y)
+                    b = num.array(y)
                 else:
-                    y = lg.random.random(tuple(rhs_shape))
+                    y = num.random.random(tuple(rhs_shape))
                     b = y.__array__()
                 print(f"  {a.shape} x {b.shape}")
-                assert lg.array_equal(x + y, a + b)
+                assert num.array_equal(x + y, a + b)
 
 
 if __name__ == "__main__":

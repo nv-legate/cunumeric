@@ -15,11 +15,11 @@
 
 import numpy as np
 
-import cunumeric as lg
+import cunumeric as num
 
 
 def test():
-    x = lg.array(
+    x = num.array(
         [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12], [13, 14, 15, 16]]
     )
     assert np.array_equal(x[0, :], [1, 2, 3, 4])
@@ -30,7 +30,7 @@ def test():
     assert np.array_equal(x[:, 2], [3, 7, 11, 15])
     assert np.array_equal(x[:, 3], [4, 8, 12, 16])
 
-    x = lg.array(
+    x = num.array(
         [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12], [13, 14, 15, 16]]
     )
     y = x[1:4, 1:3]
@@ -44,13 +44,13 @@ def test():
 
     # TODO: Legate needs partition by phase for this to work efficiently
     # z = x[1:4:2, 1:4:2]
-    # assert(lg.array_equal(z[0, :], [6, 8]))
-    # assert(lg.array_equal(z[1, :], [14, 16]))
+    # assert(num.array_equal(z[0, :], [6, 8]))
+    # assert(num.array_equal(z[1, :], [14, 16]))
 
     dnp = np.random.random((2, 3, 4))
     fnp = np.random.random((3, 2))
-    d = lg.array(dnp)
-    f = lg.array(fnp)
+    d = num.array(dnp)
+    f = num.array(fnp)
     d[1, :, 0] = 1
     d[1, :, 1:3] = f
     dnp[1, :, 0] = 1
@@ -61,7 +61,7 @@ def test():
     print(d)
 
     natest = np.random.random((2, 3, 4))
-    natestg = lg.array(natest)
+    natestg = num.array(natest)
 
     firstslice = natestg[0]
     firstslicegold = natest[0]
@@ -70,14 +70,14 @@ def test():
     # TODO: Legate needs 4-D arrays for this to work correctly
     # secondslice = natestg[:,np.newaxis,:,:]
     # secondslicegold = natest[:,np.newaxis,:,:]
-    # assert(lg.array_equal(secondslice, secondslicegold))
+    # assert(num.array_equal(secondslice, secondslicegold))
 
     # TODO: Legate needs 4-D arrays for this to work correctly
     # thirdslice = natestg[np.newaxis]
     # thirdslicegold = natest[np.newaxis]
     # print(thirdslice)
     # print(thirdslicegold)
-    # assert(lg.array_equal(thirdslice, thirdslicegold))
+    # assert(num.array_equal(thirdslice, thirdslicegold))
 
     return
 

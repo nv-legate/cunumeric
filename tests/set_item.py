@@ -13,11 +13,11 @@
 # limitations under the License.
 #
 
-import cunumeric as lg
+import cunumeric as num
 
 
 def test():
-    x = lg.array([0, 0, 0])
+    x = num.array([0, 0, 0])
     x[0] = 1
     x[1] = 2
     x[2] = 3

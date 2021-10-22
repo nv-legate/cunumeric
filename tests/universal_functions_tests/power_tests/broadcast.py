@@ -17,19 +17,19 @@ import random
 
 import numpy as np
 
-import cunumeric as lg
+import cunumeric as num
 
 
 def test():
     anp = np.random.randn(4, 5)
     b = random.randint(1, 13)
-    a = lg.array(anp)
+    a = num.array(anp)
 
     # test power with scalar on rhs
-    assert lg.allclose(lg.power(a, b), np.power(anp, b))
+    assert num.allclose(num.power(a, b), np.power(anp, b))
 
     # test power with scalar on lhs
-    assert lg.allclose(lg.power(b, a), np.power(b, anp))
+    assert num.allclose(num.power(b, a), np.power(b, anp))
 
     return
 

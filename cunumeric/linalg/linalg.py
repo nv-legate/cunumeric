@@ -20,7 +20,7 @@ from cunumeric.module import sqrt as _sqrt
 
 
 def norm(x, ord=None, axis=None, keepdims=False, stacklevel=1):
-    lg_array = ndarray.convert_to_legate_ndarray(x)
+    lg_array = ndarray.convert_to_cunumeric_ndarray(x)
     if (axis is None and lg_array.ndim == 1) or type(axis) == int:
         # Handle the weird norm cases
         if ord == np.inf:
@@ -61,5 +61,5 @@ def norm(x, ord=None, axis=None, keepdims=False, stacklevel=1):
             raise ValueError("Invalid 'ord' argument passed to norm")
     else:
         raise NotImplementedError(
-            "Legate needs support for other kinds of norms"
+            "cuNumeric needs support for other kinds of norms"
         )

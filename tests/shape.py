@@ -15,11 +15,11 @@
 
 import numpy as np
 
-import cunumeric as lg
+import cunumeric as num
 
 
 def test():
-    a = lg.array([[1, 2, 3], [4, 5, 6]])
+    a = num.array([[1, 2, 3], [4, 5, 6]])
     an = np.array([[1, 2, 3], [4, 5, 6]])
     print(a.shape)
     print(an.shape)
@@ -32,7 +32,7 @@ def test():
     rn = an.sum(0)
     assert r.shape == rn.shape
 
-    y = lg.random.random((5, 6, 7))
+    y = num.random.random((5, 6, 7))
     yn = np.random.random((5, 6, 7))
     assert y.shape == yn.shape
 
@@ -45,7 +45,7 @@ def test():
     assert d == 2.0
 
     # TODO: Reshape is not yet supported in Legate
-    # x = lg.random.random((2,3,4))
+    # x = num.random.random((2,3,4))
     # y = x.reshape((4,3,2))
     # assert(y.shape == (4,3,2))
     # assert(y.size == x.size)

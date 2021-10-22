@@ -15,12 +15,12 @@
 
 import numpy as np
 
-import cunumeric as lg
+import cunumeric as num
 
 
 def test():
-    x = lg.array([1, 2, 3])
-    y = lg.array([1.0, 2.0, 3.0])
+    x = num.array([1, 2, 3])
+    y = num.array([1.0, 2.0, 3.0])
 
     # test data type conversion
     return np.array_equal(x, y)

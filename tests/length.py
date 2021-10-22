@@ -13,29 +13,29 @@
 # limitations under the License.
 #
 
-import cunumeric as lg
+import cunumeric as num
 
 
 def test():
     pythonX = [1, 2, 3]
-    legate_oldX = lg.array(pythonX)
+    legate_oldX = num.array(pythonX)
 
     assert len(legate_oldX) == len(pythonX)
 
     SIZE = 100
-    legate_oldX = lg.random.random(SIZE)
+    legate_oldX = num.random.random(SIZE)
     assert SIZE == len(legate_oldX)
 
-    x = lg.array([1, 2, 3, 4])
-    y = lg.array([1, 2, 3, 4])
+    x = num.array([1, 2, 3, 4])
+    y = num.array([1, 2, 3, 4])
 
     z = x + y
 
     print(len(z))
     assert len(x) == len(y) == len(z)
 
-    x = lg.array(pythonX)
-    x = lg.sqrt(x)
+    x = num.array(pythonX)
+    x = num.sqrt(x)
 
     assert len(x) == len(pythonX)
 

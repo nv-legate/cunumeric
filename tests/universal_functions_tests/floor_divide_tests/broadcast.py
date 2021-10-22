@@ -17,19 +17,19 @@ import random
 
 import numpy as np
 
-import cunumeric as lg
+import cunumeric as num
 
 
 def test():
     anp = np.random.randn(4, 5)
     b = random.randint(1, 13)
-    a = lg.array(anp)
+    a = num.array(anp)
 
     # test floor_divide with scalar on rhs
-    assert np.array_equal(lg.floor_divide(a, b), np.floor_divide(anp, b))
+    assert np.array_equal(num.floor_divide(a, b), np.floor_divide(anp, b))
 
     # test floor_divide with scalar on lhs
-    assert np.array_equal(lg.floor_divide(b, a), np.floor_divide(b, anp))
+    assert np.array_equal(num.floor_divide(b, a), np.floor_divide(b, anp))
 
     return
 

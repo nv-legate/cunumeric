@@ -15,29 +15,29 @@
 
 import numpy as np
 
-import cunumeric as lg
+import cunumeric as num
 
 
 def test():
-    a = lg.array([[1, 2, 3, 4, 5, 6], [4, 5, 6, 7, 8, 9]], dtype=np.float64)
-    b = lg.array(
+    a = num.array([[1, 2, 3, 4, 5, 6], [4, 5, 6, 7, 8, 9]], dtype=np.float64)
+    b = num.array(
         [[10, 11], [12, 13], [14, 15], [16, 17], [18, 19], [20, 21]],
         dtype=np.float64,
     )
     c = a.dot(b)
-    assert lg.array_equal(c, [[350, 371], [620, 659]])
+    assert num.array_equal(c, [[350, 371], [620, 659]])
 
-    d = lg.array([1, 2, 3, 4, 5, 6], dtype=np.float64)
-    e = lg.array([1, 2, 3, 4, 5, 6], dtype=np.float64)
+    d = num.array([1, 2, 3, 4, 5, 6], dtype=np.float64)
+    e = num.array([1, 2, 3, 4, 5, 6], dtype=np.float64)
     f = d.dot(e)
     assert f == 91
 
     # This test does not work ATM. It seems that setting random seed to
     # be the same is not sufficient to make the inputs the same.
 
-    # lg.random.seed(42)
-    # a = lg.random.randn(1, 3, 15)
-    # b = lg.random.randn(15, 16)
+    # num.random.seed(42)
+    # a = num.random.randn(1, 3, 15)
+    # b = num.random.randn(15, 16)
     # c = a[0].dot(b)
 
     # np.random.seed(42)
@@ -45,7 +45,7 @@ def test():
     # bn = np.random.randn(15, 16)
     # cn = an[0].dot(bn)
 
-    # assert lg.allclose(c, cn)
+    # assert num.allclose(c, cn)
 
     return
 

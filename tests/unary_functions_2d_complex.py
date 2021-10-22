@@ -17,20 +17,20 @@ from __future__ import division
 
 import numpy as np
 
-import cunumeric as lg
+import cunumeric as num
 
 
 def test():
     xn = np.array(
         [[1 + 2j, 3 - 4j, 5 + 6j], [7 - 8j, -9 + 10j, -11 - 12j]], np.complex
     )
-    x = lg.array(xn)
+    x = num.array(xn)
 
-    assert lg.all(lg.abs(lg.sin(x) - np.sin(xn)) < 1e-5)
-    assert lg.all(lg.abs(lg.cos(x) - np.cos(xn)) < 1e-5)
-    assert lg.all(lg.abs(lg.exp(x) - np.exp(xn)) < 1e-5)
-    assert lg.all(lg.abs(lg.tanh(x) - np.tanh(xn)) < 1e-5)
-    assert lg.all(lg.abs(lg.sqrt(x) - np.sqrt(xn)) < 1e-5)
+    assert num.all(num.abs(num.sin(x) - np.sin(xn)) < 1e-5)
+    assert num.all(num.abs(num.cos(x) - np.cos(xn)) < 1e-5)
+    assert num.all(num.abs(num.exp(x) - np.exp(xn)) < 1e-5)
+    assert num.all(num.abs(num.tanh(x) - np.tanh(xn)) < 1e-5)
+    assert num.all(num.abs(num.sqrt(x) - np.sqrt(xn)) < 1e-5)
     return
 
 

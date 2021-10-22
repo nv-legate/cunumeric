@@ -17,16 +17,16 @@ import random
 
 import numpy as np
 
-import cunumeric as lg
+import cunumeric as num
 
 
 def test():
     anp = np.random.randn(4, 5)
     b = random.randint(1, 13)
-    a = lg.array(anp)
+    a = num.array(anp)
 
     np.less(anp, b, out=anp)
-    lg.less(a, b, out=a)
+    num.less(a, b, out=a)
 
     assert np.array_equal(a, anp)
 

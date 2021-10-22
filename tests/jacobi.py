@@ -17,14 +17,14 @@ from __future__ import division
 
 import numpy as np
 
-import cunumeric as lg
+import cunumeric as num
 
 
 def test():
 
     height = 10
     width = 10
-    grid = lg.zeros((height + 2, width + 2), np.float32)
+    grid = num.zeros((height + 2, width + 2), np.float32)
     grid[:, 0] = -273.15
     grid[:, -1] = -273.15
     grid[-1, :] = -273.15
@@ -37,7 +37,7 @@ def test():
     for i in range(2):
         average = center + north + east + west + south
         work = 0.2 * average
-        delta = lg.sum(lg.absolute(work - center))
+        delta = num.sum(num.absolute(work - center))
         center[:] = work
     npGrid = np.zeros((height + 2, width + 2), np.float32)
     npGrid[:, 0] = -273.15

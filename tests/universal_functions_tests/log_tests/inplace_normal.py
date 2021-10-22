@@ -15,13 +15,13 @@
 
 import numpy as np
 
-import cunumeric as lg
+import cunumeric as num
 
 
 def test():
     npa = np.array([1, np.e, np.e ** 2])
-    a = lg.array(npa)
-    assert np.array_equal(lg.log(a, out=a), np.log(npa, out=npa))
+    a = num.array(npa)
+    assert np.array_equal(num.log(a, out=a), np.log(npa, out=npa))
     return
 
 

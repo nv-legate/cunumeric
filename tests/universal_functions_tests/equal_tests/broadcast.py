@@ -17,19 +17,19 @@ import random
 
 import numpy as np
 
-import cunumeric as lg
+import cunumeric as num
 
 
 def test():
     anp = np.random.randn(4, 5)
     b = random.randint(1, 13)
-    a = lg.array(anp)
+    a = num.array(anp)
 
     # test with scalar on the rhs
-    assert np.array_equal(lg.equal(a, b), np.equal(anp, b))
+    assert np.array_equal(num.equal(a, b), np.equal(anp, b))
 
     # test with scalar on the lhs
-    assert np.array_equal(lg.equal(b, a), np.equal(b, anp))
+    assert np.array_equal(num.equal(b, a), np.equal(b, anp))
 
     return
 

@@ -15,29 +15,29 @@
 
 import numpy as np
 
-import cunumeric as lg
+import cunumeric as num
 
 
 def test():
     np.random.seed(50)
     datanp = np.random.randn(2000000, 3)
-    data = lg.array(datanp)
-    pointsnp = np.random.choice(lg.arange(len(data)), 4, False)
-    points = lg.array(pointsnp)
+    data = num.array(datanp)
+    pointsnp = np.random.choice(num.arange(len(data)), 4, False)
+    points = num.array(pointsnp)
 
     centroids = data[points]
     centroidsnp = datanp[pointsnp]
-    sqdists = lg.zeros((4, len(data)))
+    sqdists = num.zeros((4, len(data)))
     sqdistsnp = np.zeros((4, len(datanp)))
     for i in range(4):
         vec = data - centroids[i]
         vecnp = datanp - centroidsnp[i]
-        sqdists[i] = lg.linalg.norm(vec, axis=1)
-        sqdistsnp[i] = np.linalg.norm(vecnp, axis=1)
+        sqdists[i] = num.linanum.norm(vec, axis=1)
+        sqdistsnp[i] = np.linanum.norm(vecnp, axis=1)
 
-    clusters = lg.argmin(sqdists, axis=0)
+    clusters = num.argmin(sqdists, axis=0)
     clustersnp = np.argmin(sqdistsnp, axis=0)
-    assert lg.array_equal(lg.where(clusters == 0), np.where(clustersnp == 0))
+    assert num.array_equal(num.where(clusters == 0), np.where(clustersnp == 0))
 
 
 if __name__ == "__main__":

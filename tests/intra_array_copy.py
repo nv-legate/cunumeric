@@ -15,7 +15,7 @@
 
 import numpy as np
 
-import cunumeric as lg
+import cunumeric as num
 from legate.core import LEGATE_MAX_DIM
 
 
@@ -138,8 +138,8 @@ def array_gen(lib, ndim):
 
 def test():
     for ndim in range(1, LEGATE_MAX_DIM):  # off-by-one is by design
-        for np_arr, lg_arr in zip(array_gen(np, ndim), array_gen(lg, ndim)):
-            assert np.array_equal(np_arr, lg_arr)
+        for np_arr, num_arr in zip(array_gen(np, ndim), array_gen(num, ndim)):
+            assert np.array_equal(np_arr, num_arr)
 
 
 if __name__ == "__main__":

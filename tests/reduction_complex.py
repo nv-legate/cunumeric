@@ -15,18 +15,18 @@
 
 import numpy as np
 
-import cunumeric as lg
+import cunumeric as num
 
 
 def test():
     numpyX = np.array([1 + 4j, 2 + 5j, 3 + 6j], np.complex64)
-    x = lg.array(numpyX)
+    x = num.array(numpyX)
 
-    z = lg.sum(x)
-    assert lg.all(lg.abs(z - np.sum(numpyX)) < 1e-5)
+    z = num.sum(x)
+    assert num.all(num.abs(z - np.sum(numpyX)) < 1e-5)
 
-    z = lg.prod(x)
-    assert lg.all(lg.abs(z - np.prod(numpyX)) < 1e-5)
+    z = num.prod(x)
+    assert num.all(num.abs(z - np.prod(numpyX)) < 1e-5)
     return
 
 

@@ -15,14 +15,14 @@
 
 import numpy as np
 
-import cunumeric as lg
+import cunumeric as num
 
 
 def test():
     anp = np.random.randn(4, 5)
-    a = lg.array(anp)
+    a = num.array(anp)
 
-    assert np.array_equal(lg.floor(a), np.floor(anp))
+    assert np.array_equal(num.floor(a), np.floor(anp))
 
 
 if __name__ == "__main__":

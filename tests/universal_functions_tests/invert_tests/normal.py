@@ -15,14 +15,14 @@
 
 import numpy as np
 
-import cunumeric as lg
+import cunumeric as num
 
 
 def test():
     anp = np.random.random_integers(100, size=(4, 5))
-    a = lg.array(anp)
+    a = num.array(anp)
 
-    assert np.array_equal(lg.invert(a), np.invert(anp))
+    assert np.array_equal(num.invert(a), np.invert(anp))
 
     return
 
