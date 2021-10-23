@@ -62,17 +62,19 @@ struct MatVecMulImpl {
     size_t vec_strides[2];
     if (args.left_matrix) {
       // M * v
-      mat           = args.rhs1.read_accessor<VAL, 2>(shape).ptr(shape, mat_strides);
-      vec           = args.rhs2.read_accessor<VAL, 2>(shape).ptr(shape, vec_strides);
-      mat_stride    = std::max(mat_strides[0], mat_strides[1]);
-      transpose_mat = mat_strides[1] == mat_stride;
+      mat        = args.rhs1.read_accessor<VAL, 2>(shape).ptr(shape, mat_strides);
+      vec        = args.rhs2.read_accessor<VAL, 2>(shape).ptr(shape, vec_strides);
+      mat_stride = std::max(mat_strides[0], mat_strides[1]);
+      transpose_mat =
+        (mat_strides[0] != mat_strides[1]) ? (mat_strides[1] == mat_stride) : (mat_stride != 1);
       if (transpose_mat) std::swap(m, n);
     } else {
       // (M^T * v)^T
-      vec           = args.rhs1.read_accessor<VAL, 2>(shape).ptr(shape, vec_strides);
-      mat           = args.rhs2.read_accessor<VAL, 2>(shape).ptr(shape, mat_strides);
-      mat_stride    = std::max(mat_strides[0], mat_strides[1]);
-      transpose_mat = mat_strides[0] == mat_stride;
+      vec        = args.rhs1.read_accessor<VAL, 2>(shape).ptr(shape, vec_strides);
+      mat        = args.rhs2.read_accessor<VAL, 2>(shape).ptr(shape, mat_strides);
+      mat_stride = std::max(mat_strides[0], mat_strides[1]);
+      transpose_mat =
+        (mat_strides[0] != mat_strides[1]) ? (mat_strides[0] == mat_stride) : (mat_stride != 1);
       if (!transpose_mat) std::swap(m, n);
     }
 
