@@ -15,23 +15,23 @@
 
 import numpy as np
 
-import legate.numpy as lg
+import cunumeric as num
 
 
 def test():
     for k in [0, -1, 1, -2, 2]:
         print(f"np.eye(5, k={k})")
-        e_lg = lg.eye(5, k=k)
+        e_lg = num.eye(5, k=k)
         e_np = np.eye(5, k=k)
         assert np.array_equal(e_lg, e_np)
 
         print(f"np.eye(5, 6, k={k})")
-        e_lg = lg.eye(5, 6, k=k)
+        e_lg = num.eye(5, 6, k=k)
         e_np = np.eye(5, 6, k=k)
         assert np.array_equal(e_lg, e_np)
 
         print(f"np.eye(5, 4, k={k})")
-        e_lg = lg.eye(5, 4, k=k)
+        e_lg = num.eye(5, 4, k=k)
         e_np = np.eye(5, 4, k=k)
         assert np.array_equal(e_lg, e_np)
 

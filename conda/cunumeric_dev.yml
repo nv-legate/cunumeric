@@ -1,0 +1,20 @@
+name: cunumeric_dev
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - clang=8.0.1
+  - clang-tools=8.0.1
+  - cffi
+  - numpy
+  - packaging
+  - python>=3.6
+  - flake8=3.8.3
+  - black=19.10
+  - isort=5.0.7
+  - pyarrow=1.0.1
+  - sphinx
+  - sphinx_rtd_theme
+  - sphinx-markdown-tables
+  - sphinx-copybutton
+  - numpydoc

@@ -15,14 +15,14 @@
 
 import numpy as np
 
-import legate.numpy as lg
+import cunumeric as num
 
 
 def test():
     anp = np.random.randn(4, 5)
     bnp = np.full((4, 5), 13)
-    a = lg.array(anp)
-    b = lg.array(bnp)
+    a = num.array(anp)
+    b = num.array(bnp)
 
     anp.fill(13)
     a.fill(13)

@@ -15,13 +15,13 @@
 
 import numpy as np
 
-import legate.numpy as lg
+import cunumeric as num
 
 
 def test():
     npa = np.array([-1, 0, 1])
-    a = lg.array(npa)
-    assert np.array_equal(lg.arctan(a), np.arctan(npa))
+    a = num.array(npa)
+    assert np.array_equal(num.arctan(a), np.arctan(npa))
     return
 
 

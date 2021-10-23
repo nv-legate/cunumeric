@@ -17,16 +17,16 @@ import random
 
 import numpy as np
 
-import legate.numpy as lg
+import cunumeric as num
 
 
 def test():
     anp = np.random.randn(4, 5)
     b = random.randint(1, 13)
-    a = lg.array(anp)
+    a = num.array(anp)
 
     np.floor_divide(anp, b, out=anp)
-    lg.floor_divide(a, b, out=a)
+    num.floor_divide(a, b, out=a)
 
     return
 

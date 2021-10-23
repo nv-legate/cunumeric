@@ -15,16 +15,16 @@
 
 import numpy as np
 
-import legate.numpy as lg
+import cunumeric as num
 
 
 def test():
     anp = np.random.randn(4, 5)
     bnp = np.random.randn(4, 5)
-    a = lg.array(anp)
-    b = lg.array(bnp)
+    a = num.array(anp)
+    b = num.array(bnp)
 
-    assert np.array_equal(lg.floor_divide(a, b), np.floor_divide(anp, bnp))
+    assert np.array_equal(num.floor_divide(a, b), np.floor_divide(anp, bnp))
 
 
 if __name__ == "__main__":

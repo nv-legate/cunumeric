@@ -23,7 +23,7 @@ import math
 
 from benchmark import run_benchmark
 
-import legate.numpy as np
+import cunumeric as np
 
 
 def generate_random(N):

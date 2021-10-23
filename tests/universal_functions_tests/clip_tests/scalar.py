@@ -16,15 +16,15 @@
 import numpy as np
 from test_tools.generators import scalar_gen
 
-import legate.numpy as lg
+import cunumeric as num
 
 
 def test():
     test_values = [(2, 1, 3), (0, 1, 3), (4, 1, 3)]
     for (a, a_min, a_max) in test_values:
-        for (la, na) in zip(scalar_gen(lg, a), scalar_gen(np, a)):
+        for (la, na) in zip(scalar_gen(num, a), scalar_gen(np, a)):
             assert np.array_equal(
-                lg.clip(la, a_min, a_max), np.clip(na, a_min, a_max)
+                num.clip(la, a_min, a_max), np.clip(na, a_min, a_max)
             )
 
 

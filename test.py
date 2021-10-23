@@ -109,7 +109,7 @@ def run_test(
     test_path = os.path.join(root_dir, test_file)
     try:
         cmd(
-            [driver, test_path, "-lg:numpy:test"] + flags + test_flags + opts,
+            [driver, test_path, "-cunumeric:test"] + flags + test_flags + opts,
             env=env,
             cwd=root_dir,
             stdout=FNULL if not verbose else sys.stderr,

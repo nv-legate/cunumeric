@@ -15,37 +15,37 @@
 
 import numpy as np
 
-import legate.numpy as lg
+import cunumeric as num
 
 
 def test():
     a = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
-    a_lg = lg.array(a)
-    b_lg = a_lg.swapaxes(0, 1)
+    a_num = num.array(a)
+    b_num = a_num.swapaxes(0, 1)
 
     print("small")
-    assert lg.array_equal(a_lg.sum(axis=0), b_lg.sum(axis=1))
+    assert num.array_equal(a_num.sum(axis=0), b_num.sum(axis=1))
 
     a_tall = np.concatenate((a,) * 100)
-    a_tall_lg = lg.array(a_tall)
-    b_tall_lg = a_tall_lg.swapaxes(0, 1)
+    a_tall_num = num.array(a_tall)
+    b_tall_num = a_tall_num.swapaxes(0, 1)
 
     print("tall")
-    assert lg.array_equal(a_tall_lg.sum(axis=0), b_tall_lg.sum(axis=1))
+    assert num.array_equal(a_tall_num.sum(axis=0), b_tall_num.sum(axis=1))
 
     a_wide = np.concatenate((a,) * 100, axis=1)
-    a_wide_lg = lg.array(a_wide)
-    b_wide_lg = a_wide_lg.swapaxes(0, 1)
+    a_wide_num = num.array(a_wide)
+    b_wide_num = a_wide_num.swapaxes(0, 1)
 
     print("wide")
-    assert lg.array_equal(a_wide_lg.sum(axis=0), b_wide_lg.sum(axis=1))
+    assert num.array_equal(a_wide_num.sum(axis=0), b_wide_num.sum(axis=1))
 
     a_big = np.concatenate((a_tall,) * 100, axis=1)
-    a_big_lg = lg.array(a_big)
-    b_big_lg = a_big_lg.swapaxes(0, 1)
+    a_big_num = num.array(a_big)
+    b_big_num = a_big_num.swapaxes(0, 1)
 
     print("big")
-    assert lg.array_equal(a_big_lg.sum(axis=0), b_big_lg.sum(axis=1))
+    assert num.array_equal(a_big_num.sum(axis=0), b_big_num.sum(axis=1))
 
 
 if __name__ == "__main__":

@@ -15,13 +15,13 @@
 
 import numpy as np
 
-import legate.numpy as lg
+import cunumeric as num
 
 
 def test():
     npa = np.array([-np.pi, 0, np.pi / 2, np.pi])
-    a = lg.array(npa)
-    assert np.array_equal(lg.tanh(a), np.tanh(npa))
+    a = num.array(npa)
+    assert np.array_equal(num.tanh(a), np.tanh(npa))
     return
 
 
