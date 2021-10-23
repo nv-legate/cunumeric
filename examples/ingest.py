@@ -22,7 +22,7 @@ from glob import glob
 import pyarrow as pa
 import tifffile as tfl
 
-import legate.numpy as np
+import cunumeric as np
 from legate.core import CustomSplit, Rect, TiledSplit, ingest
 
 parser = argparse.ArgumentParser()
