@@ -75,8 +75,8 @@ struct MatVecMulImplBody<VariantKind::OMP, LegateTypeCode::HALF_LT> {
     half_matrix_to_float_omp(mat_copy, mat, m, n, mat_stride);
     half_vector_to_float_omp(vec_copy, vec, vec_size);
 
-    auto trans = transpose_mat ? CblasTrans : CblasNoTrans;
-    cblas_sgemv(CblasRowMajor, trans, m, n, 1, mat_copy, n, vec_copy, 1, 0, lhs, 1);
+    MatVecMulImplBody<VariantKind::OMP, LegateTypeCode::FLOAT_LT>{}(
+      m, n, lhs, mat_copy, vec_copy, n, transpose_mat);
   }
 };
 
