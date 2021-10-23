@@ -288,14 +288,17 @@ static unsigned roundup_tile(Point<DIM>& tile,
         for (int d = 0; d < DIM; d++)
           if (skipdims & (1 << d))
             next_size *= (tile[d] + padding[d]);
-          else if ((tile[d] + 1) == bounds[d]) {
+          else if (tile[d] == bounds[d]) {
             next_size *= (tile[d] + padding[d]);
             skipdims |= (1 << d);
           } else
             next_size *= (tile[d] + 1 + padding[d]);
         if ((next_size > max_size) || (next_size == result)) break;
         result = next_size;
-        for (int d = 0; d < DIM; d++) tile[d]++;
+        for (int d = 0; d < DIM; d++) {
+          if (skipdims && (1 << d)) continue;
+          tile[d]++;
+        }
       }
     }
     return result;
