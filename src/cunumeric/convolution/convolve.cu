@@ -648,7 +648,7 @@ __host__ static inline void launch_small_tile_kernel(AccessorWO<VAL, DIM> out,
     args.delta_lo[d]      = centers[d];
     args.delta_hi[d]      = tile[d] + centers[d] - 1;
     args.input_pitches[d] = FastDivmodU64(input_pitch);
-    input_pitch *= (args.delta_hi[d] - args.delta_lo[d] + 1);
+    input_pitch *= (args.delta_lo[d] + args.delta_hi[d] + 1);
     args.filter_centers[d] = centers[d];
     args.filter_extents[d] = extents[d];
     args.filter_volume *= extents[d];

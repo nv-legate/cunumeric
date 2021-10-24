@@ -249,10 +249,22 @@ static unsigned roundup_tile(Point<DIM>& tile,
         }
         return pitch * (tile[DIM - 1] + padding[DIM - 1]);
       }
-      // If we ever get two dimensions of the same size then we know
-      // that there is no smallest dimension so we can march all the
+      // If we ever get two dimensions of the same size then see what dimension
+      // has the next largest value. If we can't find one that is larger then
+      // we know that there is no smallest dimension so we can march all the
       // dimensions together at this point
-      if (t1 == t2) break;
+      if (t1 == t2) {
+        d2 = -1;
+        for (int d = 0; d < DIM; d++) {
+          if (d == d1) continue;
+          if (tile[d] <= tile[d1]) continue;
+          if ((d2 == -1) || (tile[d] < tile[d2])) {
+            d2 = d;
+            t2 = tile[d];
+          }
+        }
+        if (d2 == -1) break;
+      }
       // Solve for the max we can walk
       unsigned pitch = sizeof(VAL);
       for (int d = 0; d < DIM; d++)
