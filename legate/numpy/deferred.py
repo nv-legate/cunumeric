@@ -248,6 +248,9 @@ class DeferredArray(NumPyThunk):
             return np.empty(shape=self.shape, dtype=self.dtype)
 
         if self.scalar:
+            if not self.base._storage:
+                self.runtime.legate_runtime._launch_outstanding()
+
             result = np.full(
                 self.shape,
                 self.get_scalar_array(stacklevel=(stacklevel + 1)),
@@ -1529,7 +1532,6 @@ class DeferredArray(NumPyThunk):
 
         task.add_alignment(lhs, rhs1)
         task.add_alignment(lhs, rhs2)
-
         task.execute()
 
     @profile

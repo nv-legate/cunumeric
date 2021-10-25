@@ -2132,26 +2132,44 @@ class ndarray(object):
             if one.dtype != two.dtype:
                 common_type = cls.find_common_type(one, two)
                 if one.dtype != common_type:
-                    temp = ndarray(
-                        shape=one.shape,
-                        dtype=common_type,
-                        stacklevel=(stacklevel + 1),
-                        inputs=(one, two, where),
-                    )
-                    temp._thunk.convert(
-                        one._thunk, stacklevel=(stacklevel + 1)
-                    )
+                    if one.shape==():
+                        temp = ndarray(
+                            shape=one.shape,
+                            dtype=common_type, 
+                            buffer = one._thunk.array.astype(common_type),
+                            stacklevel=(stacklevel + 1),
+                            inputs=(one, two, where),
+                        )
+                    else:
+                        temp = ndarray(
+                            shape=one.shape,
+                            dtype=common_type, 
+                            stacklevel=(stacklevel + 1),
+                            inputs=(one, two, where),
+                        )
+                        temp._thunk.convert(
+                            one._thunk, stacklevel=(stacklevel + 1)
+                        )
                     one = temp
                 if two.dtype != common_type:
-                    temp = ndarray(
-                        shape=two.shape,
-                        dtype=common_type,
-                        stacklevel=(stacklevel + 1),
-                        inputs=(one, two, where),
-                    )
-                    temp._thunk.convert(
-                        two._thunk, stacklevel=(stacklevel + 1)
-                    )
+                    if two.shape==():
+                        temp = ndarray(
+                            shape=two.shape,
+                            dtype=common_type, 
+                            buffer = two._thunk.array.astype(common_type),
+                            stacklevel=(stacklevel + 1),
+                            inputs=(one, two, where),
+                        )
+                    else:
+                        temp = ndarray(
+                            shape=two.shape,
+                            dtype=common_type,
+                            stacklevel=(stacklevel + 1),
+                            inputs=(one, two, where),
+                        )
+                        temp._thunk.convert(
+                            two._thunk, stacklevel=(stacklevel + 1)
+                        )
                     two = temp
             if out.dtype != out_dtype:
                 temp = ndarray(

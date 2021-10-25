@@ -138,6 +138,7 @@ void packOp(MakeshiftSerializer& ms, TaskContext& context, int opID)
   auto opIDs = context.fusionMetadata.opIDs;
   for (int i=0; i<nOps; i++)
   {
+     std::cout<<"launching op "<<i<<std::endl;
       ms.zero(); //reset the serializer, but keep the memory
       packOp(ms, context, i);
       TaskLauncher leaf_launcher(opIDs[i], TaskArgument(ms.ptr(), ms.buffSize())); 
@@ -148,6 +149,7 @@ void packOp(MakeshiftSerializer& ms, TaskContext& context, int opID)
       std::vector<int32_t> reqIds = ms.getReqIds();
       for (int32_t reqIdx : reqIds)
       {
+          std::cout<<"req "<<reqIdx<<std::endl;
           auto& req = context.task_->regions[reqIdx];
           leaf_launcher.add_region_requirement(req);
       } 

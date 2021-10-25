@@ -394,6 +394,8 @@ class Runtime(object):
         assert child_ptr >= parent_ptr
         ptr_diff = child_ptr - parent_ptr
         parent_shape = array.base.shape
+        if parent_shape==():
+            parent_shape = [1]
         div = (
             reduce(lambda x, y: x * y, parent_shape)
             if len(parent_shape) > 1
@@ -500,6 +502,7 @@ class Runtime(object):
         ):
             if array.size == 1 and not share:
                 # This is a single value array
+                import pdb; pdb.set_trace()
                 result = self.create_scalar(
                     array.data,
                     array.dtype,
@@ -545,6 +548,7 @@ class Runtime(object):
             store = self.legate_context.create_store(
                 dtype, shape=shape, optimize_scalar=True
             )
+               
             result = DeferredArray(self, store, dtype=dtype)
             # If we're doing shadow debug make an EagerArray shadow
             if self.shadow_debug:

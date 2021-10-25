@@ -64,13 +64,10 @@ def cnd(d):
 
 def black_scholes(S, X, T, R, V):
     sqrt_t = np.sqrt(T)
-    #d1 = np.log(S / X) + (R + 0.5 * V * V) * T / (V * sqrt_t)
-    d1a = np.log(S / X)
-    d1b = (R + 0.5 * V * V) 
-    d1c = d1b*T
-    d1d = d1c/(V * sqrt_t)
-    d1 = d1a+d1d
-
+    sqrt_t = np.sqrt(T)
+    sqrt_t = np.sqrt(T)
+    sqrt_t = np.sqrt(T)
+    d1 = np.log(S / X) + (R + 0.5 * V * V) * T / (V * sqrt_t)
     d2 = d1 - V * sqrt_t
     cnd_d1 = cnd(d1)
     cnd_d2 = cnd(d2)
@@ -81,19 +78,23 @@ def black_scholes(S, X, T, R, V):
 
 
 def run_black_scholes(N, D):
-    print("Running black scholes on %dK options..." % N)
+    #print("Running black scholes on %dK options..." % N)
     N *= 1000
     start = datetime.datetime.now()
     S, X, T, R, V = initialize(N, D)
     call, put = black_scholes(S, X, T, R, V)
     # Check the result for NaNs to synchronize before stopping timing
     call_sum = np.sum(call)
+    call_sum2 = np.sum(call)
     put_sum = np.sum(put)
+    put_sum2 = np.sum(put)
+    #print(call_sum, put_sum)
+    #print(call_sum2, put_sum2)
     assert not math.isnan(call_sum) and not math.isnan(put_sum)
     stop = datetime.datetime.now()
     delta = stop - start
     total = delta.total_seconds() * 1000.0
-    print("Elapsed Time: " + str(total) + " ms")
+    #print("Elapsed Time: " + str(total) + " ms")
     return total
 
 
