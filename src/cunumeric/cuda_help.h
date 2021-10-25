@@ -19,16 +19,31 @@
 #include "legate.h"
 #include <cublas_v2.h>
 #include <cuda_runtime.h>
+#include <cufft.h>
 
 #define THREADS_PER_BLOCK 128
 #define MIN_CTAS_PER_SM 4
 #define MAX_REDUCTION_CTAS 1024
+#define COOPERATIVE_THREADS 256
+#define COOPERATIVE_CTAS_PER_SM 4
+
+#define CHECK_CUDA(expr)                    \
+  do {                                      \
+    cudaError_t result = (expr);            \
+    check_cuda(result, __FILE__, __LINE__); \
+  } while (false)
 
 #define CHECK_CUBLAS(expr)                    \
-  {                                           \
+  do {                                        \
     cublasStatus_t result = (expr);           \
     check_cublas(result, __FILE__, __LINE__); \
-  }
+  } while (false)
+
+#define CHECK_CUFFT(expr)                    \
+  do {                                       \
+    cufftResult result = (expr);             \
+    check_cufft(result, __FILE__, __LINE__); \
+  } while (false)
 
 #ifndef MAX
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
@@ -39,6 +54,19 @@
 
 namespace cunumeric {
 
+__host__ inline void check_cuda(cudaError_t error, const char* file, int line)
+{
+  if (error != cudaSuccess) {
+    fprintf(stderr,
+            "Internal Legate CUDA failure with error %s (%s) in file %s at line %d\n",
+            cudaGetErrorString(error),
+            cudaGetErrorName(error),
+            file,
+            line);
+    exit(error);
+  }
+}
+
 __host__ inline void check_cublas(cublasStatus_t status, const char* file, int line)
 {
   if (status != CUBLAS_STATUS_SUCCESS) {
@@ -48,6 +76,18 @@ __host__ inline void check_cublas(cublasStatus_t status, const char* file, int l
             file,
             line);
     exit(status);
+  }
+}
+
+__host__ inline void check_cufft(cufftResult result, const char* file, int line)
+{
+  if (result != CUFFT_SUCCESS) {
+    fprintf(stderr,
+            "Internal Legate CUFFT failure with error code %d in file %s at line %d\n",
+            result,
+            file,
+            line);
+    exit(result);
   }
 }
 
@@ -143,6 +183,290 @@ __device__ __forceinline__ void reduce_bool(Legion::DeferredValue<bool> result, 
       __threadfence_system();
     }
   }
+}
+
+template <typename T>
+__device__ __forceinline__ T load_cached(const T* ptr)
+{
+  return *ptr;
+}
+
+// Specializations to use PTX cache qualifiers to keep
+// all the input data in as many caches as we can
+// Use .ca qualifier to cache at all levels
+template <>
+__device__ __forceinline__ uint16_t load_cached<uint16_t>(const uint16_t* ptr)
+{
+  uint16_t value;
+  asm volatile("ld.global.ca.u16 %0, [%1];" : "=h"(value) : "l"(ptr) : "memory");
+  return value;
+}
+
+template <>
+__device__ __forceinline__ uint32_t load_cached<uint32_t>(const uint32_t* ptr)
+{
+  uint32_t value;
+  asm volatile("ld.global.ca.u32 %0, [%1];" : "=r"(value) : "l"(ptr) : "memory");
+  return value;
+}
+
+template <>
+__device__ __forceinline__ uint64_t load_cached<uint64_t>(const uint64_t* ptr)
+{
+  uint64_t value;
+  asm volatile("ld.global.ca.u64 %0, [%1];" : "=l"(value) : "l"(ptr) : "memory");
+  return value;
+}
+
+template <>
+__device__ __forceinline__ int16_t load_cached<int16_t>(const int16_t* ptr)
+{
+  int16_t value;
+  asm volatile("ld.global.ca.s16 %0, [%1];" : "=h"(value) : "l"(ptr) : "memory");
+  return value;
+}
+
+template <>
+__device__ __forceinline__ int32_t load_cached<int32_t>(const int32_t* ptr)
+{
+  int32_t value;
+  asm volatile("ld.global.ca.s32 %0, [%1];" : "=r"(value) : "l"(ptr) : "memory");
+  return value;
+}
+
+template <>
+__device__ __forceinline__ int64_t load_cached<int64_t>(const int64_t* ptr)
+{
+  int64_t value;
+  asm volatile("ld.global.ca.s64 %0, [%1];" : "=l"(value) : "l"(ptr) : "memory");
+  return value;
+}
+
+// No half because inline ptx is dumb about the type
+
+template <>
+__device__ __forceinline__ float load_cached<float>(const float* ptr)
+{
+  float value;
+  asm volatile("ld.global.ca.f32 %0, [%1];" : "=f"(value) : "l"(ptr) : "memory");
+  return value;
+}
+
+template <>
+__device__ __forceinline__ double load_cached<double>(const double* ptr)
+{
+  double value;
+  asm volatile("ld.global.ca.f64 %0, [%1];" : "=d"(value) : "l"(ptr) : "memory");
+  return value;
+}
+
+template <typename T>
+__device__ __forceinline__ T load_l2(const T* ptr)
+{
+  return *ptr;
+}
+
+// Specializations to use PTX cache qualifiers to keep
+// data loaded into L2 but no higher in the hierarchy
+// Use .cg qualifier to cache at L2
+template <>
+__device__ __forceinline__ uint16_t load_l2<uint16_t>(const uint16_t* ptr)
+{
+  uint16_t value;
+  asm volatile("ld.global.cg.u16 %0, [%1];" : "=h"(value) : "l"(ptr) : "memory");
+  return value;
+}
+
+template <>
+__device__ __forceinline__ uint32_t load_l2<uint32_t>(const uint32_t* ptr)
+{
+  uint32_t value;
+  asm volatile("ld.global.cg.u32 %0, [%1];" : "=r"(value) : "l"(ptr) : "memory");
+  return value;
+}
+
+template <>
+__device__ __forceinline__ uint64_t load_l2<uint64_t>(const uint64_t* ptr)
+{
+  uint64_t value;
+  asm volatile("ld.global.cg.u64 %0, [%1];" : "=l"(value) : "l"(ptr) : "memory");
+  return value;
+}
+
+template <>
+__device__ __forceinline__ int16_t load_l2<int16_t>(const int16_t* ptr)
+{
+  int16_t value;
+  asm volatile("ld.global.cg.s16 %0, [%1];" : "=h"(value) : "l"(ptr) : "memory");
+  return value;
+}
+
+template <>
+__device__ __forceinline__ int32_t load_l2<int32_t>(const int32_t* ptr)
+{
+  int32_t value;
+  asm volatile("ld.global.cg.s32 %0, [%1];" : "=r"(value) : "l"(ptr) : "memory");
+  return value;
+}
+
+template <>
+__device__ __forceinline__ int64_t load_l2<int64_t>(const int64_t* ptr)
+{
+  int64_t value;
+  asm volatile("ld.global.cg.s64 %0, [%1];" : "=l"(value) : "l"(ptr) : "memory");
+  return value;
+}
+
+// No half because inline ptx is dumb about the type
+
+template <>
+__device__ __forceinline__ float load_l2<float>(const float* ptr)
+{
+  float value;
+  asm volatile("ld.global.cg.f32 %0, [%1];" : "=f"(value) : "l"(ptr) : "memory");
+  return value;
+}
+
+template <>
+__device__ __forceinline__ double load_l2<double>(const double* ptr)
+{
+  double value;
+  asm volatile("ld.global.cg.f64 %0, [%1];" : "=d"(value) : "l"(ptr) : "memory");
+  return value;
+}
+
+template <typename T>
+__device__ __forceinline__ T load_streaming(const T* ptr)
+{
+  return *ptr;
+}
+
+// Specializations to use PTX cache qualifiers to prevent
+// loads from interfering with cache state
+// Use .cs qualifier to mark the line as evict-first
+template <>
+__device__ __forceinline__ uint16_t load_streaming<uint16_t>(const uint16_t* ptr)
+{
+  uint16_t value;
+  asm volatile("ld.global.cs.u16 %0, [%1];" : "=h"(value) : "l"(ptr) : "memory");
+  return value;
+}
+
+template <>
+__device__ __forceinline__ uint32_t load_streaming<uint32_t>(const uint32_t* ptr)
+{
+  uint32_t value;
+  asm volatile("ld.global.cs.u32 %0, [%1];" : "=r"(value) : "l"(ptr) : "memory");
+  return value;
+}
+
+template <>
+__device__ __forceinline__ uint64_t load_streaming<uint64_t>(const uint64_t* ptr)
+{
+  uint64_t value;
+  asm volatile("ld.global.cs.u64 %0, [%1];" : "=l"(value) : "l"(ptr) : "memory");
+  return value;
+}
+
+template <>
+__device__ __forceinline__ int16_t load_streaming<int16_t>(const int16_t* ptr)
+{
+  int16_t value;
+  asm volatile("ld.global.cs.s16 %0, [%1];" : "=h"(value) : "l"(ptr) : "memory");
+  return value;
+}
+
+template <>
+__device__ __forceinline__ int32_t load_streaming<int32_t>(const int32_t* ptr)
+{
+  int32_t value;
+  asm volatile("ld.global.cs.s32 %0, [%1];" : "=r"(value) : "l"(ptr) : "memory");
+  return value;
+}
+
+template <>
+__device__ __forceinline__ int64_t load_streaming<int64_t>(const int64_t* ptr)
+{
+  int64_t value;
+  asm volatile("ld.global.cs.s64 %0, [%1];" : "=l"(value) : "l"(ptr) : "memory");
+  return value;
+}
+
+// No half because inline ptx is dumb about the type
+
+template <>
+__device__ __forceinline__ float load_streaming<float>(const float* ptr)
+{
+  float value;
+  asm volatile("ld.global.cs.f32 %0, [%1];" : "=f"(value) : "l"(ptr) : "memory");
+  return value;
+}
+
+template <>
+__device__ __forceinline__ double load_streaming<double>(const double* ptr)
+{
+  double value;
+  asm volatile("ld.global.cs.f64 %0, [%1];" : "=d"(value) : "l"(ptr) : "memory");
+  return value;
+}
+
+template <typename T>
+__device__ __forceinline__ void store_streaming(T* ptr, T value)
+{
+  *ptr = value;
+}
+
+// Specializations to use PTX cache qualifiers to avoid
+// invalidating read data from caches as we are writing
+// Use .cs qualifier to evict first at all levels
+template <>
+__device__ __forceinline__ void store_streaming<uint16_t>(uint16_t* ptr, uint16_t value)
+{
+  asm volatile("st.global.cs.u16 [%0], %1;" : : "l"(ptr), "h"(value) : "memory");
+}
+
+template <>
+__device__ __forceinline__ void store_streaming<uint32_t>(uint32_t* ptr, uint32_t value)
+{
+  asm volatile("st.global.cs.u32 [%0], %1;" : : "l"(ptr), "r"(value) : "memory");
+}
+
+template <>
+__device__ __forceinline__ void store_streaming<uint64_t>(uint64_t* ptr, uint64_t value)
+{
+  asm volatile("st.global.cs.u64 [%0], %1;" : : "l"(ptr), "l"(value) : "memory");
+}
+
+template <>
+__device__ __forceinline__ void store_streaming<int16_t>(int16_t* ptr, int16_t value)
+{
+  asm volatile("st.global.cs.s16 [%0], %1;" : : "l"(ptr), "h"(value) : "memory");
+}
+
+template <>
+__device__ __forceinline__ void store_streaming<int32_t>(int32_t* ptr, int32_t value)
+{
+  asm volatile("st.global.cs.s32 [%0], %1;" : : "l"(ptr), "r"(value) : "memory");
+}
+
+template <>
+__device__ __forceinline__ void store_streaming<int64_t>(int64_t* ptr, int64_t value)
+{
+  asm volatile("st.global.cs.s64 [%0], %1;" : : "l"(ptr), "l"(value) : "memory");
+}
+
+// No half because inline ptx is dumb about the type
+
+template <>
+__device__ __forceinline__ void store_streaming<float>(float* ptr, float value)
+{
+  asm volatile("st.global.cs.f32 [%0], %1;" : : "l"(ptr), "f"(value) : "memory");
+}
+
+template <>
+__device__ __forceinline__ void store_streaming<double>(double* ptr, double value)
+{
+  asm volatile("st.global.cs.f64 [%0], %1;" : : "l"(ptr), "d"(value) : "memory");
 }
 
 }  // namespace cunumeric

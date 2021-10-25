@@ -24,7 +24,7 @@ import pyarrow
 
 from legate.core import Array
 
-from .config import BinaryOpCode, CuNumericOpCode, UnaryOpCode, UnaryRedCode
+from .config import BinaryOpCode, UnaryOpCode, UnaryRedCode
 from .doc_utils import copy_docstring
 from .runtime import runtime
 from .utils import unimplemented
@@ -77,7 +77,9 @@ def add_boilerplate(*array_params: str, mutates_self: bool = False):
 
             # Convert relevant arguments to cuNumeric ndarrays
             args = tuple(
-                ndarray.convert_to_cunumeric_ndarray(arg, stacklevel=stacklevel)
+                ndarray.convert_to_cunumeric_ndarray(
+                    arg, stacklevel=stacklevel
+                )
                 if idx in indices and arg is not None
                 else arg
                 for (idx, arg) in enumerate(args)
@@ -730,7 +732,9 @@ class ndarray(object):
 
     def __rand__(self, lhs):
         lhs_array = self.convert_to_cunumeric_ndarray(lhs)
-        return self.perform_binary_op(BinaryOpCode.LOGICAL_AND, lhs_array, self)
+        return self.perform_binary_op(
+            BinaryOpCode.LOGICAL_AND, lhs_array, self
+        )
 
     def __rdiv__(self, lhs):
         lhs_array = self.convert_to_cunumeric_ndarray(lhs)
@@ -773,7 +777,9 @@ class ndarray(object):
 
     def __rshift__(self, rhs):
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        return self.perform_binary_op(BinaryOpCode.SHIFT_RIGHT, self, rhs_array)
+        return self.perform_binary_op(
+            BinaryOpCode.SHIFT_RIGHT, self, rhs_array
+        )
 
     def __rsub__(self, lhs):
         lhs_array = self.convert_to_cunumeric_ndarray(lhs)
@@ -785,7 +791,9 @@ class ndarray(object):
 
     def __rxor__(self, lhs):
         lhs_array = self.convert_to_cunumeric_ndarray(lhs)
-        return self.perform_binary_op(BinaryOpCode.LOGICAL_XOR, lhs_array, self)
+        return self.perform_binary_op(
+            BinaryOpCode.LOGICAL_XOR, lhs_array, self
+        )
 
     # __setattr__
 
@@ -820,7 +828,9 @@ class ndarray(object):
 
     def __xor__(self, rhs):
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        return self.perform_binary_op(BinaryOpCode.LOGICAL_XOR, rhs_array, self)
+        return self.perform_binary_op(
+            BinaryOpCode.LOGICAL_XOR, rhs_array, self
+        )
 
     @unimplemented
     def all(self, axis=None, out=None, keepdims=False):
@@ -957,6 +967,28 @@ class ndarray(object):
 
     def conjugate(self, stacklevel=1):
         return self.conj(stacklevel)
+
+    def convolve(self, v, mode, stacklevel=1):
+        assert mode == "same"
+        if self.ndim != v.ndim:
+            raise RuntimeError("Arrays should have the same dimensions")
+        elif self.ndim > 3:
+            raise NotImplementedError(
+                f"{self.ndim}-D arrays are not yet supported"
+            )
+
+        if self.dtype != v.dtype:
+            v = v.astype(self.dtype)
+        out = ndarray(
+            shape=self.shape,
+            dtype=self.dtype,
+            stacklevel=(stacklevel + 1),
+            inputs=(self, v),
+        )
+        self._thunk.convolve(
+            v._thunk, out._thunk, mode, stacklevel=(stacklevel + 1)
+        )
+        return out
 
     def copy(self, order="C"):
         # We don't care about dimension order in cuNumeric
@@ -1538,6 +1570,16 @@ class ndarray(object):
                 "axes must be the same size as ndim for transpose"
             )
         result._thunk.transpose(self._thunk, axes, stacklevel=(stacklevel + 1))
+        return result
+
+    def flip(self, axis=None, stacklevel=1):
+        result = ndarray(
+            shape=self.shape,
+            dtype=self.dtype,
+            stacklevel=(stacklevel + 1),
+            inputs=(self,),
+        )
+        result._thunk.flip(self._thunk, axis, stacklevel=(stacklevel + 1))
         return result
 
     @unimplemented
