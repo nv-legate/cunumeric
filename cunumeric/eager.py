@@ -146,6 +146,17 @@ class EagerArray(NumPyThunk):
 
         return EagerArray(self.runtime, self.array.conj())
 
+    def convolve(self, v, out, mode, stacklevel):
+        if self.deferred is not None:
+            self.deferred(v, out, mode, stacklevel=(stacklevel + 1))
+        else:
+            if self.ndim == 1:
+                out.array = np.convolve(self.array, v.array, mode)
+            else:
+                from scipy.signal import convolve
+
+                out.array = convolve(self.array, v.array, mode)
+
     def copy(self, rhs, deep, stacklevel):
         if self.shadow:
             rhs = self.runtime.to_eager_array(rhs, stacklevel=(stacklevel + 1))
@@ -335,6 +346,17 @@ class EagerArray(NumPyThunk):
                 self.array.fill(rhs.array.item())
             else:
                 self.array[:] = np.transpose(rhs.array, axes)
+            self.runtime.profile_callsite(stacklevel + 1, False)
+
+    def flip(self, rhs, axes, stacklevel):
+        if self.shadow:
+            rhs = self.runtime.to_eager_array(rhs, stacklevel=(stacklevel + 1))
+        elif self.deferred is None:
+            self.check_eager_args((stacklevel + 1), rhs)
+        if self.deferred is not None:
+            self.deferred.flip(rhs, axes, stacklevel=(stacklevel + 1))
+        else:
+            self.array = np.flip(rhs.array, axes)
             self.runtime.profile_callsite(stacklevel + 1, False)
 
     def diag(self, rhs, extract, k, stacklevel):

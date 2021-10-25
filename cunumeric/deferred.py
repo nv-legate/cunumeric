@@ -17,6 +17,7 @@ import warnings
 import weakref
 from collections.abc import Iterable
 from functools import reduce
+from itertools import product
 
 import numpy as np
 
@@ -841,6 +842,43 @@ class DeferredArray(NumPyThunk):
 
         task.execute()
 
+    @profile
+    @auto_convert([1, 2])
+    @shadow_debug("convolve", [1, 2])
+    def convolve(self, v, lhs, mode, stacklevel=0, callsite=None):
+        input = self.base
+        filter = v.base
+        out = lhs.base
+
+        task = self.context.create_task(CuNumericOpCode.CONVOLVE)
+
+        offsets = (filter.shape + 1) // 2
+        stencils = []
+        for offset in offsets:
+            stencils.append((-offset, 0, offset))
+        stencils = list(product(*stencils))
+        stencils.remove((0,) * self.ndim)
+
+        p_out = task.declare_partition(out)
+        p_input = task.declare_partition(input)
+        p_stencils = []
+        for _ in stencils:
+            p_stencils.append(task.declare_partition(input, complete=False))
+
+        task.add_output(out, partition=p_out)
+        task.add_input(filter)
+        task.add_input(input, partition=p_input)
+        for p_stencil in p_stencils:
+            task.add_input(input, partition=p_stencil)
+        task.add_scalar_arg(self.shape, (ty.int64,))
+
+        task.add_constraint(p_out == p_input)
+        for stencil, p_stencil in zip(stencils, p_stencils):
+            task.add_constraint(p_input + stencil <= p_stencil)
+        task.add_broadcast(filter)
+
+        task.execute()
+
     # Fill the cuNumeric array with the value in the numpy array
     @profile
     def _fill(self, value, stacklevel=0, callsite=None):
@@ -1228,6 +1266,28 @@ class DeferredArray(NumPyThunk):
         assert lhs_array.ndim == rhs_array.ndim
         assert lhs_array.ndim == len(axes)
         lhs_array.base = rhs_array.base.transpose(axes)
+
+    @profile
+    @auto_convert([1])
+    @shadow_debug("flip", [1])
+    def flip(self, rhs, axes, stacklevel=0, callsite=None):
+        input = rhs.base
+        output = self.base
+
+        if axes is None:
+            axes = list(range(self.ndim))
+        elif not isinstance(axes, tuple):
+            axes = (axes,)
+
+        task = self.context.create_task(CuNumericOpCode.FLIP)
+        task.add_output(output)
+        task.add_input(input)
+        task.add_scalar_arg(axes, (ty.int32,))
+
+        task.add_broadcast(input)
+        task.add_alignment(input, output)
+
+        task.execute()
 
     # Perform a bin count operation on the array
     @profile
