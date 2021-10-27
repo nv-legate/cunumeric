@@ -182,7 +182,7 @@ def array(obj, dtype=None, copy=True, order="K", subok=False, ndmin=0):
         )
         array = ndarray(shape=None, stacklevel=2, thunk=thunk)
     else:
-        array = array
+        array = obj
     if dtype is not None and array.dtype != dtype:
         array = array.astype(dtype)
     elif copy and obj is array:
