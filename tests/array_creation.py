@@ -25,6 +25,11 @@ def test():
     assert np.array_equal(x, z)
     assert x.dtype == z.dtype
 
+    x = num.array([1, 2, 3])
+    y = num.array(x)
+    assert num.array_equal(x, y)
+    assert x.dtype == y.dtype
+
     xe = num.empty((2, 3))
     ye = np.empty((2, 3))
     assert xe.shape == ye.shape
