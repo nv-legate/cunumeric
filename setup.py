@@ -74,7 +74,7 @@ if args.recurse:
     sys.argv.remove("--recurse")
     setup(
         name="cunumeric",
-        version="0.1",
+        version="21.10.00",
         packages=[
             "cunumeric",
             "cunumeric.linalg",
