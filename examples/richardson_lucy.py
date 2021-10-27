@@ -25,7 +25,7 @@ float_type = "float32"
 # A simplified implementation of Richardson-Lucy deconvolution
 
 
-def run_richardson_lucy(shape, filter_shape, num_iter, timing):
+def run_richardson_lucy(shape, filter_shape, num_iter, warmup, timing):
     image = np.random.rand(*shape).astype(float_type)
     psf = np.random.rand(*filter_shape).astype(float_type)
     im_deconv = np.full(image.shape, 0.5, dtype=float_type)
@@ -33,7 +33,9 @@ def run_richardson_lucy(shape, filter_shape, num_iter, timing):
 
     start = time()
 
-    for _ in range(num_iter):
+    for idx in range(num_iter + warmup):
+        if idx == warmup:
+            start = time()
         conv = np.convolve(im_deconv, psf, mode="same")
         relative_blur = image / conv
         im_deconv *= np.convolve(relative_blur, psf_mirror, mode="same")
@@ -53,6 +55,14 @@ if __name__ == "__main__":
         default=10,
         dest="I",
         help="number of iterations to run",
+    )
+    parser.add_argument(
+        "-w",
+        "--warmup",
+        type=int,
+        default=1,
+        dest="warmup",
+        help="warm-up iterations",
     )
     parser.add_argument(
         "-x",
@@ -121,6 +131,7 @@ if __name__ == "__main__":
             (args.X, args.Y, args.Z),
             (args.FX, args.FY, args.FZ),
             args.I,
+            args.warmup,
             args.timing,
         ),
     )
