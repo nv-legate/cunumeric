@@ -627,7 +627,11 @@ def logical_not(a, out=None, where=True, dtype=None, **kwargs):
 
 
 @copy_docstring(np.allclose)
-def allclose(a, b, rtol=1e-5, atol=1e-8, equal_nan=False):
+def allclose(a, b, rtol=None, atol=1e-8, equal_nan=False):
+    if rtol is None and a.dtype == np.float16:
+        rtol = 1e-3
+    elif rtol is None:
+        rtol = 1e-5
     a_array = ndarray.convert_to_cunumeric_ndarray(a)
     b_array = ndarray.convert_to_cunumeric_ndarray(b)
     if equal_nan:
@@ -642,6 +646,7 @@ def allclose(a, b, rtol=1e-5, atol=1e-8, equal_nan=False):
         dtype=np.dtype(np.bool),
         args=args,
     )
+
 
 
 @copy_docstring(np.array_equal)
