@@ -20,6 +20,7 @@
 #include <cublas_v2.h>
 #include <cuda_runtime.h>
 #include <cufft.h>
+#include <cufftXt.h>
 
 #define THREADS_PER_BLOCK 128
 #define MIN_CTAS_PER_SM 4
@@ -87,6 +88,7 @@ __host__ inline void check_cufft(cufftResult result, const char* file, int line)
             result,
             file,
             line);
+    assert(false);
     exit(result);
   }
 }

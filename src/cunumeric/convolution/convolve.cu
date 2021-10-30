@@ -1068,69 +1068,6 @@ struct ConvolveImplBody<VariantKind::GPU, CODE, DIM> {
   }
 };
 
-template <int DIM>
-struct FFTPitches {
-  size_t pitches[DIM];
-  __host__ inline size_t& operator[](unsigned idx) { return pitches[idx]; }
-  __device__ __forceinline__ size_t operator[](unsigned idx) const { return pitches[idx]; }
-};
-
-template <int DIM>
-struct CopyPitches {
-  FastDivmodU64 pitches[DIM];
-  __host__ inline FastDivmodU64& operator[](unsigned idx) { return pitches[idx]; }
-  __device__ __forceinline__ const FastDivmodU64& operator[](unsigned idx) const
-  {
-    return pitches[idx];
-  }
-};
-
-template <typename VAL, int DIM>
-__global__ static void __launch_bounds__(THREADS_PER_BLOCK, 4)
-  copy_into_buffer(const AccessorRO<VAL, DIM> accessor,
-                   const DeferredBuffer<VAL, DIM> buffer,
-                   const Point<DIM> lo,
-                   const CopyPitches<DIM> copy_pitches,
-                   const size_t volume)
-{
-  size_t offset = blockIdx.x * blockDim.x + threadIdx.x;
-  if (offset >= volume) return;
-  Point<DIM> point;
-  for (int d = 0; d < DIM; d++) point[d] = copy_pitches[d].divmod(offset, offset);
-  buffer[point] = accessor[lo + point];
-}
-
-template <typename VAL, int DIM>
-__global__ static void __launch_bounds__(THREADS_PER_BLOCK, 4)
-  copy_from_buffer(const VAL* buffer,
-                   const AccessorWO<VAL, DIM> accessor,
-                   const Point<DIM> buffer_lo,
-                   const Point<DIM> accessor_lo,
-                   const CopyPitches<DIM> copy_pitches,
-                   const FFTPitches<DIM> fft_pitches,
-                   const size_t volume,
-                   const VAL scaling)
-{
-  size_t offset = blockIdx.x * blockDim.x + threadIdx.x;
-  if (offset >= volume) return;
-  Point<DIM> point;
-  size_t buffer_offset = 0;
-  for (int d = 0; d < DIM; d++) {
-    point[d] = copy_pitches[d].divmod(offset, offset);
-    buffer_offset += (buffer_lo[d] + point[d]) * fft_pitches[d];
-  }
-  accessor[accessor_lo + point] = scaling * buffer[buffer_offset];
-}
-
-template <typename VAL>
-__global__ static void __launch_bounds__(THREADS_PER_BLOCK, 4)
-  complex_multiply(complex<VAL>* inout, complex<VAL>* in, const size_t volume)
-{
-  size_t offset = blockIdx.x * blockDim.x + threadIdx.x;
-  if (offset >= volume) return;
-  inout[offset] *= in[offset];
-}
-
 template <typename VAL, int DIM>
 __host__ static inline size_t create_forward_plan(cufftHandle plan, const Point<DIM>& size)
 {
@@ -1279,6 +1216,204 @@ __host__ inline void cufft_execute_backward<double>(cufftHandle plan, double* id
   CHECK_CUFFT(cufftExecZ2D(plan, (cufftDoubleComplex*)idata, (cufftDoubleReal*)odata));
 }
 
+template<typename VAL>
+__host__ static inline void cufft_set_callback(cufftHandle plan, void *callback, void *data,
+                                               bool forward, bool load)
+{
+  assert(false); // should never be called
+}
+
+template<>
+__host__ inline void cufft_set_callback<float>(cufftHandle plan, void *callback, void *data,
+                                               bool forward, bool load)
+{
+  void *callbacks[1] = { callback };
+  void *datas[1] = { data };
+  CHECK_CUFFT( cufftXtSetCallback(plan, callbacks, 
+        forward ? (load ? CUFFT_CB_LD_REAL : CUFFT_CB_ST_COMPLEX) :
+                  (load ? CUFFT_CB_LD_COMPLEX : CUFFT_CB_ST_REAL), datas) );
+}
+
+template<>
+__host__ inline void cufft_set_callback<double>(cufftHandle plan, void *callback, void *data,
+                                                bool forward, bool load)
+{
+  void *callbacks[1] = { callback };
+  void *datas[1] = { data };
+  CHECK_CUFFT( cufftXtSetCallback(plan, callbacks,
+        forward ? (load ? CUFFT_CB_LD_REAL_DOUBLE : CUFFT_CB_ST_COMPLEX_DOUBLE) :
+                  (load ? CUFFT_CB_LD_COMPLEX_DOUBLE : CUFFT_CB_ST_REAL_DOUBLE), datas) );
+}
+
+struct ZeroPadLoadData {
+  FastDivmodU64 pitches[3];
+  size_t strides[3];
+  size_t bounds[3];
+  int dim;
+};
+
+template<typename T>
+__device__ T load_zero_pad(void *data, size_t offset,
+                           void *callerinfo,
+                           void *sharedptr)
+{
+  const ZeroPadLoadData *info = (const ZeroPadLoadData*)callerinfo;
+  size_t actual = 0;
+  #pragma unroll 3
+  for (int d = 0; d < info->dim; d++) {
+    coord_t coord = info->pitches[d].divmod(offset, offset);
+    if (coord >= info->bounds[d])
+      return 0.f;
+    actual += coord * info->strides[d];
+  }
+  T *ptr = (T*)data;
+  return ptr[actual];
+}
+
+__device__ cufftCallbackLoadR d_load_float_zero_pad = load_zero_pad<cufftReal>;
+__device__ cufftCallbackLoadD d_load_double_zero_pad = load_zero_pad<cufftDoubleReal>;
+
+template<typename VAL>
+__host__ static inline void* load_zero_pad_callback(void)
+{
+  assert(false); // should never be called 
+  return nullptr;
+}
+
+template<>
+__host__ inline void* load_zero_pad_callback<float>(void)
+{
+  void *ptr = nullptr;
+  CHECK_CUDA( cudaMemcpyFromSymbol(&ptr, d_load_float_zero_pad, sizeof(ptr)) );
+  assert(ptr != nullptr);
+  return ptr;
+}
+
+template<>
+__host__ inline void* load_zero_pad_callback<double>(void)
+{
+  void *ptr = nullptr;
+  CHECK_CUDA( cudaMemcpyFromSymbol(&ptr, d_load_double_zero_pad, sizeof(ptr)) );
+  assert(ptr != nullptr);
+  return ptr;
+}
+
+struct LoadComplexData {
+  size_t buffervolume;
+};
+
+
+__device__ cufftComplex load_complex_float_multiply(void *data, size_t offset,
+                                                    void *callerinfo,
+                                                    void *sharedptr)
+{
+  const LoadComplexData *info = (const LoadComplexData*)callerinfo;
+  cufftComplex *ptr = (cufftComplex*)data;
+  cufftComplex lhs = ptr[offset];
+  cufftComplex rhs = ptr[offset+info->buffervolume];
+  return make_cuComplex(lhs.x * rhs.x - lhs.y * rhs.y, lhs.x * rhs.y + lhs.y * rhs.x);
+}
+
+__device__ cufftCallbackLoadC d_complex_float_multiply = load_complex_float_multiply;
+
+__device__ cufftDoubleComplex load_complex_double_multiply(void *data, size_t offset,
+                                                           void *callerinfo,
+                                                           void *sharedptr)
+{
+  const LoadComplexData *info = (const LoadComplexData*)callerinfo;
+  cufftDoubleComplex *ptr = (cufftDoubleComplex*)data;
+  cufftDoubleComplex lhs = ptr[offset];
+  cufftDoubleComplex rhs = ptr[offset+info->buffervolume];
+  return make_cuDoubleComplex(lhs.x * rhs.x - lhs.y * rhs.y, lhs.x * rhs.y + lhs.y * rhs.x);
+}
+
+__device__ cufftCallbackLoadZ d_complex_double_multiply = load_complex_double_multiply;
+
+template<typename VAL>
+__host__ static inline void* load_multiply_callback(void)
+{
+  assert(false); // should never be called 
+  return nullptr;
+}
+
+template<>
+__host__ inline void* load_multiply_callback<float>(void)
+{
+  void *ptr = nullptr;
+  CHECK_CUDA( cudaMemcpyFromSymbol(&ptr, d_complex_float_multiply, sizeof(ptr)) );
+  assert(ptr != nullptr);
+  return ptr;
+}
+
+template<>
+__host__ inline void* load_multiply_callback<double>(void)
+{
+  void *ptr = nullptr;
+  CHECK_CUDA( cudaMemcpyFromSymbol(&ptr, d_complex_double_multiply, sizeof(ptr)) );
+  assert(ptr != nullptr);
+  return ptr;
+}
+
+template<typename T>
+struct StoreOutputData {
+  FastDivmodU64 pitches[3];
+  size_t offsets[3];
+  size_t strides[3];
+  size_t bounds[3];
+  T scale_factor;
+  int dim;
+};
+
+template<typename T>
+__device__ void store_output(void *data, size_t offset,
+                             T value,
+                             void *callerinfo,
+                             void *sharedptr)
+{
+  const StoreOutputData<T> *info = (const StoreOutputData<T>*)callerinfo;
+  size_t actual = 0;
+  #pragma unroll 3
+  for (int d = 0; d < info->dim; d++) {
+    coord_t coord = info->pitches[d].divmod(offset, offset);
+    coord -= info->offsets[d];
+    if (coord < 0)
+      return;
+    if (coord >= info->bounds[d])
+      return;
+    actual += coord * info->strides[d];
+  }
+  T *ptr = (T*)data;
+  ptr[actual] = value * info->scale_factor;
+}
+
+__device__ cufftCallbackStoreR d_store_float_output = store_output<cufftReal>;
+__device__ cufftCallbackStoreD d_store_double_output = store_output<cufftDoubleReal>;
+
+template<typename VAL>
+__host__ static inline void* load_store_callback(void)
+{
+  assert(false); // should never be called 
+  return nullptr;
+}
+
+template<>
+__host__ inline void* load_store_callback<float>(void)
+{
+  void *ptr = nullptr;
+  CHECK_CUDA( cudaMemcpyFromSymbol(&ptr, d_store_float_output, sizeof(ptr)) );
+  assert(ptr != nullptr);
+  return ptr;
+}
+
+template<>
+__host__ inline void* load_store_callback<double>(void)
+{
+  void *ptr = nullptr;
+  CHECK_CUDA( cudaMemcpyFromSymbol(&ptr, d_store_double_output, sizeof(ptr)) );
+  assert(ptr != nullptr);
+  return ptr;
+}
+
 template <typename VAL, int DIM>
 __host__ static inline void cufft_convolution(AccessorWO<VAL, DIM> out,
                                               AccessorRO<VAL, DIM> filter,
@@ -1364,8 +1499,17 @@ __host__ static inline void cufft_convolution(AccessorWO<VAL, DIM> out,
       cufftHandle forward;
       cufftHandle backward;
       Point<DIM> fftshape;
+      void *load_callback; // for loading zero-pad inputs
       size_t workarea_size; 
       unsigned lru_index;
+      ZeroPadLoadData *filter_load_data_d;
+      ZeroPadLoadData filter_load_data;
+      ZeroPadLoadData *signal_load_data_d;
+      ZeroPadLoadData signal_load_data;
+      LoadComplexData *complex_load_data_d;
+      LoadComplexData complex_load_data;
+      StoreOutputData<VAL> *store_output_data_d;
+      StoreOutputData<VAL> store_output_data;
     };
     static cufftPlan cufft_plan_cache[LEGION_MAX_NUM_PROCS][MAX_PLANS];
     // Instead of doing the large tile case, we can instead do this
@@ -1386,54 +1530,25 @@ __host__ static inline void cufft_convolution(AccessorWO<VAL, DIM> out,
     Rect<DIM> input_bounds         = root_rect.intersection(offset_bounds);
     const Point<DIM> signal_bounds = input_bounds.hi - input_bounds.lo + one;
     const Point<DIM> filter_bounds = filter_rect.hi - filter_rect.lo + one;
-    Point<DIM> fftsize             = signal_bounds + filter_bounds;
+    Point<DIM> fftsize = signal_bounds + filter_bounds;
     for (int d = 0; d < DIM; d++) {
-      // Technically we can shrink this by one and still be sound but we'll
-      // only do that if it will make the number even
-      if ((fftsize[d] % 2) == 1) fftsize[d]--;
+      if ((fftsize[d] % 2) == 1)
+        fftsize[d] -= 1;
     }
     // Cufft needs the last dimension to have fftsize/2+1 complex elements for
-    // the temporary buffer
-    // Since we know fftsize is even, we just need to add two to it for the output
+    // the temporary buffer, we know that the last dimension is already even
+    // so we just need to add two elements to the last dim of the fftsize
     Point<DIM> buffersize = fftsize;
-    buffersize[DIM - 1] += 2;
+    buffersize[DIM - 1] = fftsize[DIM - 1] + 2;
     size_t buffervolume = 1;
     for (int d = 0; d < DIM; d++) buffervolume *= buffersize[d];
-    // Zero pad and copy in the input data
-    DeferredBuffer<VAL, DIM> signal_buffer(Rect<DIM>(zero, buffersize - one),
-                                           Memory::GPU_FB_MEM,
-                                           nullptr /*initial*/,
-                                           128 /*alignment*/);
-    VAL* signal_ptr = signal_buffer.ptr(zero);
-    CHECK_CUDA(cudaMemsetAsync(signal_ptr, 0, buffervolume * sizeof(VAL), stream));
-    // Check to see if the input pointer is dense and we can do this with a CUDA memcpy
-    size_t strides[DIM];
-    const VAL* input_ptr = in.ptr(input_bounds, strides);
-    size_t pitch         = 1;
-    CopyPitches<DIM> copy_pitches;
-    for (int d = DIM - 1; d >= 0; d--) {
-      copy_pitches[d] = FastDivmodU64(pitch);
-      pitch *= signal_bounds[d];
-    }
-    size_t blocks = (pitch + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-    copy_into_buffer<VAL, DIM><<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
-      in, signal_buffer, input_bounds.lo, copy_pitches, pitch);
-    // Zero pad and copy in the filter data
-    DeferredBuffer<VAL, DIM> filter_buffer(Rect<DIM>(zero, buffersize - one),
-                                           Memory::GPU_FB_MEM,
-                                           nullptr /*initial*/,
-                                           128 /*alignment*/);
-    VAL* filter_ptr = filter_buffer.ptr(zero);
-    CHECK_CUDA(cudaMemsetAsync(filter_ptr, 0, buffervolume * sizeof(VAL), stream));
-    const VAL* filt_ptr = filter.ptr(filter_rect, strides);
-    pitch               = 1;
-    for (int d = DIM - 1; d >= 0; d--) {
-      copy_pitches[d] = FastDivmodU64(pitch);
-      pitch *= filter_bounds[d];
-    }
-    blocks = (pitch + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-    copy_into_buffer<VAL, DIM><<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
-      filter, filter_buffer, filter_rect.lo, copy_pitches, pitch);
+    // In theory we could do this with a single output buffer by doing
+    // += operations in the second forward FFT kernel into the buffer,
+    // but unfortunately cufft likes to use the output buffer during its
+    // execution and that destroys the data from the first FFT
+    DeferredBuffer<VAL,1> buffer(Rect<1>(Point<1>(0), Point<1>(2*buffervolume-1)),
+                          Memory::GPU_FB_MEM, nullptr /*initial*/, 128 /*alignment*/);
+    VAL* buffer_ptr = buffer.ptr(Point<1>(0));
     // Check to see if the plan is already in the cache
     int plan_index = -1;
     // Some hackiness until Legion can support stateless runtime caches 
@@ -1454,7 +1569,17 @@ __host__ static inline void cufft_convolution(AccessorWO<VAL, DIM> out,
           // Previously uninitialized plan so we can use it
           plan_index = idx;
           // Set the lru_index
-          cufft_plan_cache[proc_idx][idx].lru_index = idx;
+          cufftPlan &plan = cufft_plan_cache[proc_idx][idx];
+          plan.lru_index = idx;
+          plan.load_callback = load_zero_pad_callback<VAL>();
+          CHECK_CUDA(cudaMalloc(&plan.filter_load_data_d, sizeof(ZeroPadLoadData)));
+          plan.filter_load_data.dim = 0;
+          CHECK_CUDA(cudaMalloc(&plan.signal_load_data_d, sizeof(ZeroPadLoadData)));
+          plan.signal_load_data.dim = 0;
+          CHECK_CUDA(cudaMalloc(&plan.complex_load_data_d, sizeof(LoadComplexData)));
+          plan.complex_load_data.buffervolume = 0;
+          CHECK_CUDA(cudaMalloc(&plan.store_output_data_d, sizeof(StoreOutputData<VAL>)));
+          plan.store_output_data.dim = 0;
           break;
         } else if (cufft_plan_cache[proc_idx][idx].lru_index == (MAX_PLANS-1)) {
           // Destroy the resources associated with the previous plan
@@ -1478,13 +1603,17 @@ __host__ static inline void cufft_convolution(AccessorWO<VAL, DIM> out,
       size_t backward_size = create_backward_plan<VAL, DIM>(plan.backward, fftsize);
       if (plan.workarea_size < backward_size)
         plan.workarea_size = backward_size;
+      cufft_set_callback<VAL>(plan.backward, load_multiply_callback<VAL>(),
+          plan.complex_load_data_d, false/*forward*/, true/*load*/);
+      cufft_set_callback<VAL>(plan.backward, load_store_callback<VAL>(),
+          plan.store_output_data_d, false/*forward*/, false/*load*/);
     }
     assert(plan_index >= 0); 
     cufftPlan &plan = cufft_plan_cache[proc_idx][plan_index];
     // Set the stream and working area for the plans
     CHECK_CUFFT(cufftSetStream(plan.forward, stream));
     CHECK_CUFFT(cufftSetStream(plan.backward, stream));
-    // Create the plan and allocate a temporary buffer for it if it needs one
+    // Allocate a temporary buffer for it if it needs one
     DeferredBuffer<uint8_t, 1> workarea_buffer;
     if (plan.workarea_size > 0) {
       const Point<1> zero1d(0);
@@ -1497,56 +1626,123 @@ __host__ static inline void cufft_convolution(AccessorWO<VAL, DIM> out,
       CHECK_CUFFT(cufftSetWorkArea(plan.forward, workarea));
       CHECK_CUFFT(cufftSetWorkArea(plan.backward, workarea));
     }
-    // FFT the input data
-    cufft_execute_forward<VAL>(plan.forward, signal_ptr, signal_ptr);
-    // FFT the filter data
-    cufft_execute_forward<VAL>(plan.forward, filter_ptr, filter_ptr);
-    // Perform the pointwise multiplcation
-    {
-      size_t volume = (buffervolume / 2);
-      blocks        = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-      complex_multiply<VAL><<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
-        (complex<VAL>*)signal_ptr, (complex<VAL>*)filter_ptr, volume);
-    }
-    // Inverse FFT for the ouptut
-    // Allow this out-of-place for better performance
-    cufft_execute_backward<VAL>(plan.backward, signal_ptr, filter_ptr);
-    // Copy the result data out of the temporary buffer and scale
-    // because CUFFT inverse does not perform the scale for us
-    pitch = 1;
-    FFTPitches<DIM> fft_pitches;
-    for (int d = DIM - 1; d >= 0; d--) {
-      fft_pitches[d] = pitch;
+    // FFT the filter data in-place in buffer
+    // Set the load callback
+    size_t strides[DIM];
+    const VAL *filter_ptr = filter.ptr(filter_rect, strides);
+    ZeroPadLoadData &filter_data = plan.filter_load_data;
+    bool need_copy = filter_data.dim != DIM;
+    if (need_copy)
+      filter_data.dim = DIM;
+    size_t pitch = 1;
+    for (int d = DIM-1; d >= 0; d--) {
+      if (need_copy || (filter_data.pitches[d].divisor != pitch)) {
+        filter_data.pitches[d] = FastDivmodU64(pitch);
+        need_copy = true;
+      }
       pitch *= fftsize[d];
+      if (need_copy || (filter_data.strides[d] != strides[d])) {
+        filter_data.strides[d] = strides[d];
+        need_copy = true;
+      }
+      if (need_copy || (filter_data.bounds[d] != filter_bounds[d])) {
+        filter_data.bounds[d] = filter_bounds[d];
+        need_copy = true;
+      }
     }
-    const VAL scaling_factor = VAL(1) / pitch;
+    if (need_copy)
+      CHECK_CUDA(cudaMemcpyAsync(plan.filter_load_data_d, &filter_data,
+            sizeof(ZeroPadLoadData), cudaMemcpyHostToDevice, stream));
+    cufft_set_callback<VAL>(plan.forward, plan.load_callback, plan.filter_load_data_d,
+                            true/*forward*/, true/*load*/);
+    cufft_execute_forward<VAL>(plan.forward, const_cast<VAL*>(filter_ptr), buffer_ptr);
+    // FFT the input data from the input into the buffer
+    // Use a cufft callback to perform point-wise multiplication on the way out
+    // If the signal is dense in memory we don't need a load callback
+    const VAL *signal_ptr = in.ptr(input_bounds, strides);
+    ZeroPadLoadData &signal_data = plan.signal_load_data;
+    need_copy = signal_data.dim != DIM;
+    if (need_copy)
+      signal_data.dim = DIM;
+    pitch = 1;
+    for (int d = DIM-1; d >= 0; d--) {
+      if (need_copy || (signal_data.pitches[d].divisor != pitch)) {
+        signal_data.pitches[d] = FastDivmodU64(pitch);
+        need_copy = true;
+      }
+      pitch *= fftsize[d];
+      if (need_copy || (signal_data.strides[d] != strides[d])) {
+        signal_data.strides[d] = strides[d];
+        need_copy = true;
+      }
+      if (need_copy || (signal_data.bounds[d] != signal_bounds[d])) {
+        signal_data.bounds[d] = signal_bounds[d];
+        need_copy = true;
+      } 
+    }
+    if (need_copy)
+      CHECK_CUDA(cudaMemcpyAsync(plan.signal_load_data_d, &signal_data, 
+              sizeof(ZeroPadLoadData), cudaMemcpyHostToDevice, stream));
+    cufft_set_callback<VAL>(plan.forward, plan.load_callback, plan.signal_load_data_d,
+                            true/*forward*/, true/*load*/);
+    cufft_execute_forward<VAL>(plan.forward, const_cast<VAL*>(signal_ptr),
+                               buffer_ptr+buffervolume/*second half of the buffer*/);
+    // Inverse FFT for the output in-place in the temporary buffer
+    if (plan.complex_load_data.buffervolume != (buffervolume/2)) {
+      plan.complex_load_data.buffervolume = buffervolume/2;
+      CHECK_CUDA(cudaMemcpyAsync(plan.complex_load_data_d, &plan.complex_load_data,
+            sizeof(LoadComplexData), cudaMemcpyHostToDevice, stream));
+    }
+    VAL *output_ptr = out.ptr(subrect, strides);
+    StoreOutputData<VAL> &store_data = plan.store_output_data;
+    need_copy = store_data.dim != DIM;
+    if (need_copy)
+      store_data.dim = DIM;
     Point<DIM> buffer_offset;
     for (int d = 0; d < DIM; d++)
       buffer_offset[d] =
         centers[d] - (((extents[d] % 2) == 0) ? 1 : 0) +
         ((offset_bounds.lo[d] < root_rect.lo[d]) ? (subrect.lo[d] - root_rect.lo[d]) : centers[d]);
+    pitch = 1;
     Point<DIM> output_bounds = subrect.hi - subrect.lo + one;
-    pitch                    = 1;
-    for (int d = DIM - 1; d >= 0; d--) {
-      copy_pitches[d] = FastDivmodU64(pitch);
-      pitch *= output_bounds[d];
+    for (int d = DIM-1; d >= 0; d--) {
+      if (need_copy || (store_data.pitches[d].divisor != pitch)) {
+        store_data.pitches[d] = FastDivmodU64(pitch);
+        need_copy = true;
+      }
+      pitch *= fftsize[d];
+      if (need_copy || (store_data.offsets[d] != buffer_offset[d])) {
+        store_data.offsets[d] = buffer_offset[d];
+        need_copy = true;
+      }
+      if (need_copy || (store_data.strides[d] != strides[d])) {
+        store_data.strides[d] = strides[d];
+        need_copy = true;
+      }
+      if (need_copy || (store_data.bounds[d] != output_bounds[d])) {
+        store_data.bounds[d] = output_bounds[d];
+        need_copy = true;
+      }
     }
-    blocks = (pitch + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-    copy_from_buffer<VAL, DIM><<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
-      filter_ptr, out, buffer_offset, subrect.lo, copy_pitches, fft_pitches, pitch, scaling_factor);
-
+    if (need_copy) {
+      // If all the pitches matched then we know the scale factor is the same
+      store_data.scale_factor = 1.0/pitch;
+      CHECK_CUDA(cudaMemcpyAsync(plan.store_output_data_d, &store_data,
+            sizeof(StoreOutputData<VAL>), cudaMemcpyHostToDevice, stream));
+    }
+    cufft_execute_backward<VAL>(plan.backward, buffer_ptr, output_ptr); 
 #if 0
     // This is useful debugging code for finding the output
-    VAL *buffer = (VAL*)malloc(buffervolume*sizeof(VAL));
-    CHECK_CUDA( cudaMemcpyAsync(buffer, filter_ptr, buffervolume*sizeof(VAL), cudaMemcpyDeviceToHost, stream) );
+    VAL *debug_buffer = (VAL*)malloc(buffervolume*sizeof(VAL));
+    CHECK_CUDA( cudaMemcpyAsync(debug_buffer, buffer_ptr+buffervolume, buffervolume*sizeof(VAL), cudaMemcpyDeviceToHost, stream) );
     CHECK_CUDA( cudaStreamSynchronize(stream) );
     for (unsigned idx = 0; idx < buffervolume; idx++) {
       if ((idx % fftsize[DIM-1]) == 0)
         printf("\n");
-      printf("%.8g ", buffer[idx]*scaling_factor);
+      printf("%.8g ", debug_buffer[idx]*scaling_factor);
     }
     printf("\n");
-    free(buffer);
+    free(debug_buffer);
 #endif
     // Bump the lru_index of any plans that were less than our lru_index
     // and then set our lru_index back to zero
