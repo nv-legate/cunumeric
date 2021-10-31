@@ -64,7 +64,7 @@ def get_buffer(color):
     assert len(fnames) == 1
     im = tfl.imread(fnames[0])
     assert tile_shape == (1,) + im.shape  # channel dimension is implicit
-    return im.data
+    return im.reshape(tile_shape).data
 
 
 def get_local_colors():
