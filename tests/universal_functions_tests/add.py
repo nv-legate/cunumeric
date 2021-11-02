@@ -17,6 +17,7 @@ from __future__ import absolute_import
 
 from .add_tests import (
     broadcast,
+    complex_data,
     inplace_broadcast,
     inplace_normal,
     normal,
@@ -37,6 +38,7 @@ def test():
     operator_inplace_normal.test()
     operator_normal.test()
     scalar.test()
+    complex_data.test()
 
 
 if __name__ == "__main__":

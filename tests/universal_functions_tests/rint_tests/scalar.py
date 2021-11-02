@@ -13,16 +13,17 @@
 # limitations under the License.
 #
 
-from __future__ import absolute_import
+import numpy as np
+from test_tools.generators import scalar_gen
 
-from .arcsin_tests import complex_data, inplace_normal, normal, scalar
+import cunumeric as num
 
 
 def test():
-    inplace_normal.test()
-    normal.test()
-    scalar.test()
-    complex_data.test()
+    test_values = [1, np.e, np.e ** 2]
+    for a in test_values:
+        for (la, na) in zip(scalar_gen(num, a), scalar_gen(np, a)):
+            assert np.array_equal(num.rint(la), np.rint(na))
 
 
 if __name__ == "__main__":

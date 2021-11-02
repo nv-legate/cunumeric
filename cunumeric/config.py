@@ -136,21 +136,25 @@ class UnaryOpCode(IntEnum):
     COPY = 7
     COS = 8
     EXP = 9
-    FLOOR = 10
-    INVERT = 11
-    ISINF = 12
-    ISNAN = 13
-    LOG = 14
-    LOGICAL_NOT = 15
-    NEGATIVE = 16
-    SIN = 17
-    SQRT = 18
-    TAN = 19
-    TANH = 20
-    CONJ = 21
-    REAL = 22
-    IMAG = 23
-    GETARG = 24
+    EXP2 = 10
+    FLOOR = 11
+    INVERT = 12
+    ISINF = 13
+    ISNAN = 14
+    LOG = 15
+    LOG10 = 16
+    LOGICAL_NOT = 17
+    NEGATIVE = 18
+    RINT = 19
+    SIGN = 20
+    SIN = 21
+    SQRT = 22
+    TAN = 23
+    TANH = 24
+    CONJ = 25
+    REAL = 26
+    IMAG = 27
+    GETARG = 28
 
 
 @unique

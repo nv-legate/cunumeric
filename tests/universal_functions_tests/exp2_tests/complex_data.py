@@ -13,16 +13,16 @@
 # limitations under the License.
 #
 
-from __future__ import absolute_import
+import numpy as np
 
-from .arcsin_tests import complex_data, inplace_normal, normal, scalar
+import cunumeric as num
 
 
 def test():
-    inplace_normal.test()
-    normal.test()
-    scalar.test()
-    complex_data.test()
+    anp = np.array([2 + 3j, 4 + 5j])
+    a = num.array(anp)
+    assert num.all(num.abs(num.exp2(a) - np.exp2(anp)) < 1e-5)
+    return
 
 
 if __name__ == "__main__":
