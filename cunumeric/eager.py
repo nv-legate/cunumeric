@@ -561,6 +561,14 @@ class EagerArray(NumPyThunk):
                 if not isinstance(where, EagerArray)
                 else where.array,
             )
+        elif op == UnaryOpCode.EXP2:
+            np.exp2(
+                rhs.array,
+                out=self.array,
+                where=where
+                if not isinstance(where, EagerArray)
+                else where.array,
+            )
         elif op == UnaryOpCode.FLOOR:
             np.floor(
                 rhs.array,
@@ -603,6 +611,14 @@ class EagerArray(NumPyThunk):
                 if not isinstance(where, EagerArray)
                 else where.array,
             )
+        elif op == UnaryOpCode.LOG10:
+            np.log10(
+                rhs.array,
+                out=self.array,
+                where=where
+                if not isinstance(where, EagerArray)
+                else where.array,
+            )
         elif op == UnaryOpCode.LOGICAL_NOT:
             np.logical_not(
                 rhs.array,
@@ -621,6 +637,22 @@ class EagerArray(NumPyThunk):
             )
         elif op == UnaryOpCode.REAL:
             self.array = np.real(rhs.array)
+        elif op == UnaryOpCode.RINT:
+            np.rint(
+                rhs.array,
+                out=self.array,
+                where=where
+                if not isinstance(where, EagerArray)
+                else where.array,
+            )
+        elif op == UnaryOpCode.SIGN:
+            np.sign(
+                rhs.array,
+                out=self.array,
+                where=where
+                if not isinstance(where, EagerArray)
+                else where.array,
+            )
         elif op == UnaryOpCode.SIN:
             np.sin(
                 rhs.array,

@@ -13,16 +13,19 @@
 # limitations under the License.
 #
 
-from __future__ import absolute_import
+import numpy as np
 
-from .arcsin_tests import complex_data, inplace_normal, normal, scalar
+import cunumeric as num
 
 
 def test():
-    inplace_normal.test()
-    normal.test()
-    scalar.test()
-    complex_data.test()
+    np.random.seed(13)
+    anp = 20.0 * np.random.randn(4, 5) + 10.0
+    a = num.array(anp)
+
+    assert np.array_equal(num.rint(a, out=a), np.rint(anp, out=anp))
+
+    return
 
 
 if __name__ == "__main__":

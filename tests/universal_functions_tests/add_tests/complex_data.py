@@ -13,16 +13,21 @@
 # limitations under the License.
 #
 
-from __future__ import absolute_import
+import numpy as np
 
-from .arcsin_tests import complex_data, inplace_normal, normal, scalar
+import cunumeric as num
 
 
 def test():
-    inplace_normal.test()
-    normal.test()
-    scalar.test()
-    complex_data.test()
+    anp = np.random.random(10) + np.random.random(10) * 1j
+    bnp = np.random.random(10) + np.random.random(10) * 1j
+
+    a = num.array(anp)
+    b = num.array(bnp)
+
+    assert np.array_equal(num.add(a, b), np.add(anp, bnp))
+
+    return
 
 
 if __name__ == "__main__":

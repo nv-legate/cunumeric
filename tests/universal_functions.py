@@ -28,6 +28,7 @@ from universal_functions_tests import (
     divide,
     equal,
     exp,
+    exp2,
     floor,
     floor_divide,
     greater,
@@ -38,11 +39,14 @@ from universal_functions_tests import (
     less,
     less_equal,
     log,
+    log10,
     logical_not,
     multiply,
     negative,
     not_equal,
     power,
+    rint,
+    sign,
     sin,
     sqrt,
     subtract,
@@ -65,6 +69,7 @@ def test():
     divide.test()
     equal.test()
     exp.test()
+    exp2.test()
     floor.test()
     floor_divide.test()
     greater.test()
@@ -75,11 +80,14 @@ def test():
     less.test()
     less_equal.test()
     log.test()
+    log10.test()
     logical_not.test()
     multiply.test()
     negative.test()
     not_equal.test()
     power.test()
+    rint.test()
+    sign.test()
     sin.test()
     sqrt.test()
     subtract.test()

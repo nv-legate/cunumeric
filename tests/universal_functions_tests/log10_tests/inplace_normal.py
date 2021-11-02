@@ -13,16 +13,16 @@
 # limitations under the License.
 #
 
-from __future__ import absolute_import
+import numpy as np
 
-from .arcsin_tests import complex_data, inplace_normal, normal, scalar
+import cunumeric as num
 
 
 def test():
-    inplace_normal.test()
-    normal.test()
-    scalar.test()
-    complex_data.test()
+    npa = np.array([1, np.e, np.e ** 2])
+    a = num.array(npa)
+    assert np.array_equal(num.log10(a, out=a), np.log10(npa, out=npa))
+    return
 
 
 if __name__ == "__main__":
