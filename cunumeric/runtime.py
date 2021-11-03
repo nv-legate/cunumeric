@@ -115,7 +115,7 @@ class Runtime(object):
         )
 
         # Make sure that our CuNumericLib object knows about us so it can
-         # destroy us
+        # destroy us
         cunumeric_lib.set_runtime(self)
         self._register_dtypes()
         self._parse_command_args()
