@@ -26,7 +26,6 @@ import legate.core.types as ty
 from legate.core import (
     LEGATE_MAX_DIM,
     AffineTransform,
-    ExternalAllocation,
     FieldID,
     Future,
     FutureMap,
@@ -100,24 +99,6 @@ _supported_dtypes = {
 }
 
 
-class NumPyAllocation(ExternalAllocation):
-    def __init__(self, array):
-        self._array = array
-
-    @property
-    def memoryview(self):
-        return memoryview(self._array.data)
-
-    @property
-    def address(self):
-        return int(self._array.ctypes.data)
-
-    def __eq__(self, other):
-        return (
-            isinstance(other, NumPyAllocation) and self._array is other._array
-        )
-
-
 class Runtime(object):
     __slots__ = [
         "legate_context",
@@ -142,7 +123,7 @@ class Runtime(object):
         )
 
         # Make sure that our CuNumericLib object knows about us so it can
-         # destroy us
+        # destroy us
         cunumeric_lib.set_runtime(self)
         self._register_dtypes()
         self._parse_command_args()
@@ -380,7 +361,7 @@ class Runtime(object):
 
     def has_external_attachment(self, array):
         assert array.base is None or not isinstance(array.base, np.ndarray)
-        return self.legate_runtime.has_attachment(NumPyAllocation(array))
+        return self.legate_runtime.has_attachment(array.data)
 
     @staticmethod
     def compute_parent_child_mapping(array):
@@ -516,7 +497,7 @@ class Runtime(object):
                 )
                 store.attach_external_allocation(
                     self.legate_context,
-                    NumPyAllocation(array),
+                    array.data,
                     share,
                 )
                 result = DeferredArray(
