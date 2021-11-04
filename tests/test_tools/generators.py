@@ -25,6 +25,4 @@ def scalar_gen(lib, val):
         # singleton arrays
         yield lib.full(ndim * (1,), val)
         # singleton slices of larger arrays
-        # TODO: disabled; currently core can't handle unary/binary operations
-        # with future-backed output but regionfield-backed inputs
-        # yield lib.full(ndim * (5,), val)[ndim * (slice(1, 2),)]
+        yield lib.full(ndim * (5,), val)[ndim * (slice(1, 2),)]
