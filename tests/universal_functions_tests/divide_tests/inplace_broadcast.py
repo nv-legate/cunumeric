@@ -17,17 +17,17 @@ import random
 
 import numpy as np
 
-import legate.numpy as lg
+import cunumeric as num
 
 
 def test():
     # test inplace divide
     anp = np.random.randn(4, 5)
     b = random.randint(1, 13)
-    a = lg.array(anp)
+    a = num.array(anp)
 
     np.divide(anp, b, out=anp)
-    lg.divide(a, b, out=a)
+    num.divide(a, b, out=a)
 
     assert np.array_equal(a, anp)
 

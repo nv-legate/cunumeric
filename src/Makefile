@@ -22,7 +22,7 @@ endif
 
 include $(LEGATE_DIR)/share/legate/config.mk
 
-LIBNAME		= liblgnumpy
+LIBNAME		= libcunumeric
 
 CC_FLAGS ?=
 CC_FLAGS += -I. -I$(OPEN_BLAS_DIR)/include
@@ -40,6 +40,6 @@ endif
 GEN_CPU_SRC	=
 GEN_GPU_SRC	=
 
-include numpy.mk
+include cunumeric.mk
 
 include $(LEGATE_DIR)/share/legate/legate.mk

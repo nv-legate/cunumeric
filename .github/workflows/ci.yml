@@ -1,4 +1,4 @@
-name: Build legate.numpy
+name: Build cunumeric
 on: 
   push:
     branches-ignore:
@@ -17,18 +17,18 @@ env:
   PYTHONUNBUFFERED: 1
 jobs:
   build:
-    if: ${{ github.repository == 'nv-legate/legate.numpy' }}
+    if: ${{ github.repository == 'nv-legate/cunumeric' }}
     runs-on: self-hosted
     steps:
       - name: Run CI build
         run: |
           /data/github-runner/legate-bin/setup.sh
-          cd legate-ci/github-ci/legate.numpy
+          cd legate-ci/github-ci/cunumeric
           rm -rf ngc-artifacts || true
           ./build.sh > ${COMMIT}-build.log 2>&1
       - name: Process Output
         run: |
-          cd legate-ci/github-ci/legate.numpy
+          cd legate-ci/github-ci/cunumeric
           cat *artifacts/*/*
         if: always()
       - name: Upload Build Log
@@ -38,7 +38,7 @@ jobs:
           name: build-log
           path: ./**/${{ env.COMMIT }}-build.log.gpg
   test:
-    if: ${{ github.repository == 'nv-legate/legate.numpy' }}
+    if: ${{ github.repository == 'nv-legate/cunumeric' }}
     runs-on: self-hosted
     needs: build
     strategy: 
@@ -56,7 +56,7 @@ jobs:
       - name: Prepare
         run: |
           /data/github-runner/legate-bin/setup.sh
-          cd legate-ci/github-ci/legate.numpy
+          cd legate-ci/github-ci/cunumeric
           if [[ ! -d ngc-artifacts ]]
           then
             mkdir ngc-artifacts
@@ -65,12 +65,12 @@ jobs:
           fi
       - name: Test
         run: |
-          cd legate-ci/github-ci/legate.numpy
+          cd legate-ci/github-ci/cunumeric
           ./test.sh ${{ matrix.options }} -j 1 > ${COMMIT}-test-${{ matrix.log }}.log 2>&1
       - name: Process output
         if: always()
         run: |
-          cd legate-ci/github-ci/legate.numpy
+          cd legate-ci/github-ci/cunumeric
           /data/github-runner/legate-bin/encrypt.sh ${COMMIT}-test-${{ matrix.log }}.log
           cat *artifacts/*/*
       - name: Upload Log

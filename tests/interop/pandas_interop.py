@@ -9,7 +9,7 @@
 # See the LICENSE file for details.
 #
 
-import legate.numpy as np
+import cunumeric as np
 import legate.pandas as pd
 
 

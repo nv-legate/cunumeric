@@ -17,7 +17,7 @@ from __future__ import division
 
 import numpy as np
 
-import legate.numpy as lg
+import cunumeric as num
 
 
 def testtion():
@@ -38,7 +38,7 @@ def testtion():
     n = sentence_length
     b = batch_size
 
-    WLSTM_lg = lg.array(WLSTM_np)
+    WLSTM_num = num.array(WLSTM_np)
 
     dHout_np = np.random.randn(n, b, d)
     IFOGf_np = np.random.randn(n, b, d * 4)
@@ -52,91 +52,91 @@ def testtion():
     dC_np = np.zeros(C_np.shape)
     dh0_np = np.zeros((1, d))
 
-    dHout_lg = lg.array(dHout_np)
-    IFOGf_lg = lg.array(IFOGf_np)
-    C_lg = lg.array(C_np)
-    Ct_lg = lg.array(Ct_np)
-    Hin_lg = lg.array(Hin_np)
+    dHout_num = num.array(dHout_np)
+    IFOGf_num = num.array(IFOGf_np)
+    C_num = num.array(C_np)
+    Ct_num = num.array(Ct_np)
+    Hin_num = num.array(Hin_np)
 
-    dIFOG_lg = lg.zeros((n, b, d * 4))
-    dIFOGf_lg = lg.zeros(IFOGf_lg.shape)
-    dHin_lg = lg.zeros(Hin_lg.shape)
-    dC_lg = lg.zeros(C_lg.shape)
-    dh0_lg = lg.zeros((1, d))
+    dIFOG_num = num.zeros((n, b, d * 4))
+    dIFOGf_num = num.zeros(IFOGf_num.shape)
+    dHin_num = num.zeros(Hin_num.shape)
+    dC_num = num.zeros(C_num.shape)
+    dh0_num = num.zeros((1, d))
 
     for t in reversed(range(n)):
         tanhCt_np = Ct_np[t]
-        tanhCt_lg = Ct_lg[t]
-        # assert lg.allclose(tanhCt_np, tanhCt_lg)
+        tanhCt_num = Ct_num[t]
+        # assert num.allclose(tanhCt_np, tanhCt_num)
 
         dIFOGf_np[t, :, 2 * d : 3 * d] = tanhCt_np * dHout_np[t]
-        dIFOGf_lg[t, :, 2 * d : 3 * d] = tanhCt_lg * dHout_lg[t]
-        # assert lg.allclose(dIFOGf_np[t,:,2*d:3*d], dIFOGf_lg[t,:,2*d:3*d])
+        dIFOGf_num[t, :, 2 * d : 3 * d] = tanhCt_num * dHout_num[t]
+        # assert num.allclose(dIFOGf_np[t,:,2*d:3*d], dIFOGf_num[t,:,2*d:3*d])
 
         # backprop tanh non-linearity first then continue backprop
         dC_np[t] += (1 - tanhCt_np ** 2) * (
             IFOGf_np[t, :, 2 * d : 3 * d] * dHout_np[t]
         )
-        dC_lg[t] += (1 - tanhCt_lg ** 2) * (
-            IFOGf_lg[t, :, 2 * d : 3 * d] * dHout_lg[t]
+        dC_num[t] += (1 - tanhCt_num ** 2) * (
+            IFOGf_num[t, :, 2 * d : 3 * d] * dHout_num[t]
         )
-        # assert lg.allclose(dC_np[t], dC_lg[t])
+        # assert num.allclose(dC_np[t], dC_num[t])
 
         if t > 0:
             dIFOGf_np[t, :, d : 2 * d] = C_np[t - 1] * dC_np[t]
-            dIFOGf_lg[t, :, d : 2 * d] = C_lg[t - 1] * dC_lg[t]
-            # assert lg.allclose(dIFOGf_np[t,:,d:2*d], dIFOGf_lg[t,:,d:2*d])
+            dIFOGf_num[t, :, d : 2 * d] = C_num[t - 1] * dC_num[t]
+            # assert num.allclose(dIFOGf_np[t,:,d:2*d], dIFOGf_num[t,:,d:2*d])
 
             dC_np[t - 1] += IFOGf_np[t, :, d : 2 * d] * dC_np[t]
-            dC_lg[t - 1] += IFOGf_lg[t, :, d : 2 * d] * dC_lg[t]
-            # assert lg.allclose(dC_np[t-1], dC_lg[t-1])
+            dC_num[t - 1] += IFOGf_num[t, :, d : 2 * d] * dC_num[t]
+            # assert num.allclose(dC_np[t-1], dC_num[t-1])
 
         dIFOGf_np[t, :, :d] = IFOGf_np[t, :, 3 * d :] * dC_np[t]
-        dIFOGf_lg[t, :, :d] = IFOGf_lg[t, :, 3 * d :] * dC_lg[t]
-        # assert lg.allclose(dIFOGf_np[t,:,:d], dIFOGf_lg[t,:,:d])
+        dIFOGf_num[t, :, :d] = IFOGf_num[t, :, 3 * d :] * dC_num[t]
+        # assert num.allclose(dIFOGf_np[t,:,:d], dIFOGf_num[t,:,:d])
 
         dIFOGf_np[t, :, 3 * d :] = IFOGf_np[t, :, :d] * dC_np[t]
-        dIFOGf_lg[t, :, 3 * d :] = IFOGf_lg[t, :, :d] * dC_lg[t]
-        # assert lg.allclose(dIFOGf_np, dIFOGf_lg)
+        dIFOGf_num[t, :, 3 * d :] = IFOGf_num[t, :, :d] * dC_num[t]
+        # assert num.allclose(dIFOGf_np, dIFOGf_num)
 
         # backprop activation functions
         dIFOG_np[t, :, 3 * d :] = (
             1 - IFOGf_np[t, :, 3 * d :] ** 2
         ) * dIFOGf_np[t, :, 3 * d :]
-        dIFOG_lg[t, :, 3 * d :] = (
-            1 - IFOGf_lg[t, :, 3 * d :] ** 2
-        ) * dIFOGf_lg[t, :, 3 * d :]
-        # assert lg.allclose(dIFOG_np[t,:,3*d:], dIFOG_lg[t,:,3*d:])
+        dIFOG_num[t, :, 3 * d :] = (
+            1 - IFOGf_num[t, :, 3 * d :] ** 2
+        ) * dIFOGf_num[t, :, 3 * d :]
+        # assert num.allclose(dIFOG_np[t,:,3*d:], dIFOG_num[t,:,3*d:])
 
         y_np = IFOGf_np[t, :, : 3 * d]
-        y_lg = IFOGf_lg[t, :, : 3 * d]
-        # assert lg.allclose(y_np, y_lg)
+        y_num = IFOGf_num[t, :, : 3 * d]
+        # assert num.allclose(y_np, y_num)
 
         dIFOG_np[t, :, : 3 * d] = (y_np * (1.0 - y_np)) * dIFOGf_np[
             t, :, : 3 * d
         ]
-        dIFOG_lg[t, :, : 3 * d] = (y_lg * (1.0 - y_lg)) * dIFOGf_lg[
+        dIFOG_num[t, :, : 3 * d] = (y_num * (1.0 - y_num)) * dIFOGf_num[
             t, :, : 3 * d
         ]
-        # assert lg.allclose(dIFOG_np[t,:,:3*d], dIFOG_lg[t,:,:3*d])
+        # assert num.allclose(dIFOG_np[t,:,:3*d], dIFOG_num[t,:,:3*d])
 
         # backprop matrix multiply
         dHin_np[t] = dIFOG_np[t].dot(WLSTM_np.transpose())
-        dHin_lg[t] = dIFOG_lg[t].dot(WLSTM_lg.transpose())
-        # assert lg.allclose(dHin_np[t], dHin_lg[t])
+        dHin_num[t] = dIFOG_num[t].dot(WLSTM_num.transpose())
+        # assert num.allclose(dHin_np[t], dHin_num[t])
 
         # backprop the identity transforms into Hin
         if t > 0:
             dHout_np[t - 1, :] += dHin_np[t, :, word_size:]
-            dHout_lg[t - 1, :] += dHin_lg[t, :, word_size:]
-            # assert lg.allclose(dHout_np[t-1,:], dHout_lg[t-1,:])
+            dHout_num[t - 1, :] += dHin_num[t, :, word_size:]
+            # assert num.allclose(dHout_np[t-1,:], dHout_num[t-1,:])
         else:
             dh0_np[0] += np.sum(dHin_np[t, :, word_size:], 0)
-            dh0_lg[0] += lg.sum(dHin_lg[t, :, word_size:], 0)
+            dh0_num[0] += num.sum(dHin_num[t, :, word_size:], 0)
             # Check this one at the end
     # print(dh0_np[0])
-    # print(dh0_lg[0])
-    assert np.allclose(dh0_np[0], dh0_lg[0])
+    # print(dh0_num[0])
+    assert np.allclose(dh0_np[0], dh0_num[0])
 
 
 if __name__ == "__main__":

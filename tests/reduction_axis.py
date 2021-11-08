@@ -15,19 +15,19 @@
 
 import numpy as np
 
-import legate.numpy as lg
+import cunumeric as num
 
 
 def test():
     pythonX = np.reshape(np.linspace(0, 10001, 10000, dtype=int), (100, 100))
-    x = lg.array(pythonX)
+    x = num.array(pythonX)
 
     pythonY = np.sum(pythonX, axis=0)
-    y = lg.sum(x, axis=0)
+    y = num.sum(x, axis=0)
     assert np.array_equal(pythonY, y)
 
     pythonY = np.sum(pythonX, axis=1)
-    y = lg.sum(x, axis=1)
+    y = num.sum(x, axis=1)
     assert np.array_equal(pythonY, y)
 
     return

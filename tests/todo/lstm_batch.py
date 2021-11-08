@@ -16,7 +16,7 @@
 """
 This is a batched LSTM forward and backward pass
 """
-import legate.numpy as np
+import cunumeric as np
 
 
 class LSTM:

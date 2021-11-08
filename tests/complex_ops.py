@@ -17,7 +17,7 @@ from __future__ import division
 
 import numpy as np
 
-import legate.numpy as lg
+import cunumeric as num
 
 types = [np.complex64, np.complex128]
 
@@ -25,18 +25,18 @@ types = [np.complex64, np.complex128]
 def test():
     for ty in types:
         x_np = np.array([1 + 4j, 2 + 5j, 3 + 6j], ty)
-        x_lg = lg.array(x_np)
+        x_num = num.array(x_np)
 
-        assert lg.array_equal(x_np.conj(), x_lg.conj())
-        assert lg.array_equal(x_np.real, x_lg.real)
-        assert lg.array_equal(x_np.imag, x_lg.imag)
+        assert num.array_equal(x_np.conj(), x_num.conj())
+        assert num.array_equal(x_np.real, x_num.real)
+        assert num.array_equal(x_np.imag, x_num.imag)
 
         x_np = np.array([3 + 6j], ty)
-        x_lg = lg.array(x_np)
+        x_num = num.array(x_np)
 
-        assert lg.array_equal(x_np.conj(), x_lg.conj())
-        assert lg.array_equal(x_np.real, x_lg.real)
-        assert lg.array_equal(x_np.imag, x_lg.imag)
+        assert num.array_equal(x_np.conj(), x_num.conj())
+        assert num.array_equal(x_np.real, x_num.real)
+        assert num.array_equal(x_np.imag, x_num.imag)
 
 
 if __name__ == "__main__":

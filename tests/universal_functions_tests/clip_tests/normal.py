@@ -15,18 +15,18 @@
 
 import numpy as np
 
-import legate.numpy as lg
+import cunumeric as num
 
 
 def test():
     np.random.seed(13)
     anp = 20.0 * np.random.randn(4, 5) + 10.0
-    a = lg.array(anp)
+    a = num.array(anp)
     a_min = -10.0 * np.random.rand()
     a_max = 10.0 * np.random.rand()
 
     # test clip
-    assert np.array_equal(lg.clip(a, a_min, a_max), np.clip(anp, a_min, a_max))
+    assert np.array_equal(num.clip(a, a_min, a_max), np.clip(anp, a_min, a_max))
 
     return
 

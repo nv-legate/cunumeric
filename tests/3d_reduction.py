@@ -15,16 +15,16 @@
 
 import numpy as np
 
-import legate.numpy as lg
+import cunumeric as num
 
 
 def test():
     np.random.seed(42)
     b = np.random.random((10, 12, 13))
-    a = lg.array(b)
+    a = num.array(b)
     assert np.allclose(a, b)
 
-    lg_sum = lg.sum(a)
+    lg_sum = num.sum(a)
     np_sum = np.sum(b)
     assert np.allclose(np_sum, lg_sum)
 

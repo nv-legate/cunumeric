@@ -15,13 +15,13 @@
 
 import numpy as np
 
-import legate.numpy as lg
+import cunumeric as num
 
 
 def test():
     for k in [0, -1, 1, -2, 2]:
         print(f"diag(k={k})")
-        a = lg.array(
+        a = num.array(
             [
                 [1, 2, 3, 4],
                 [5, 6, 7, 8],
@@ -40,15 +40,15 @@ def test():
             ]
         )
 
-        b = lg.diag(a, k=k)
+        b = num.diag(a, k=k)
         bn = np.diag(an, k=k)
         assert np.array_equal(b, bn)
 
-        c = lg.diag(b, k=k)
+        c = num.diag(b, k=k)
         cn = np.diag(bn, k=k)
         assert np.array_equal(c, cn)
 
-        d = lg.array(
+        d = num.array(
             [
                 [1, 2, 3, 4, 5],
                 [6, 7, 8, 9, 10],
@@ -65,11 +65,11 @@ def test():
             ]
         )
 
-        e = lg.diag(d, k=k)
+        e = num.diag(d, k=k)
         en = np.diag(dn, k=k)
         assert np.array_equal(e, en)
 
-        f = lg.diag(e, k=k)
+        f = num.diag(e, k=k)
         fn = np.diag(en, k=k)
         assert np.array_equal(f, fn)
 

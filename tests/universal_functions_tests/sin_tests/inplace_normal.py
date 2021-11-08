@@ -15,15 +15,15 @@
 
 import numpy as np
 
-import legate.numpy as lg
+import cunumeric as num
 
 
 def test():
     npa = np.array([0.0, np.pi / 2, np.pi])
-    a = lg.array(npa)
+    a = num.array(npa)
 
     np.sin(npa, out=npa)
-    lg.sin(a, out=a)
+    num.sin(a, out=a)
 
     assert np.array_equal(a, npa)
     return

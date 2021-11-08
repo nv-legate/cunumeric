@@ -13,24 +13,24 @@
 # limitations under the License.
 #
 
-import legate.numpy as lg
+import cunumeric as np
 
 
 def test():
-    x = lg.array([1, 2, 3])
+    x = np.array([1, 2, 3])
     y = x < 2
-    assert lg.array_equal(y, [1, 0, 0])
+    assert np.array_equal(y, [1, 0, 0])
     y = x <= 2
-    assert lg.array_equal(y, [1, 1, 0])
+    assert np.array_equal(y, [1, 1, 0])
     y = x > 2
-    assert lg.array_equal(y, [0, 0, 1])
+    assert np.array_equal(y, [0, 0, 1])
     y = x >= 2
-    assert lg.array_equal(y, [0, 1, 1])
+    assert np.array_equal(y, [0, 1, 1])
     y = x == 2
-    assert lg.array_equal(y, [0, 1, 0])
+    assert np.array_equal(y, [0, 1, 0])
 
     y = (x + 2) * [6, 7, 8]
-    assert lg.array_equal(y, [18, 28, 40])
+    assert np.array_equal(y, [18, 28, 40])
 
     return
 
