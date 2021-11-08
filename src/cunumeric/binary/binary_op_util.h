@@ -144,7 +144,8 @@ struct BinaryOp<BinaryOpCode::GREATER, CODE> : std::greater<legate::legate_type_
 };
 
 template <legate::LegateTypeCode CODE>
-struct BinaryOp<BinaryOpCode::GREATER_EQUAL, CODE> : std::greater_equal<legate::legate_type_of<CODE>> {
+struct BinaryOp<BinaryOpCode::GREATER_EQUAL, CODE>
+  : std::greater_equal<legate::legate_type_of<CODE>> {
   static constexpr bool valid = true;
   BinaryOp(const std::vector<legate::Store>& args) {}
 };

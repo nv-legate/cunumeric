@@ -1356,15 +1356,16 @@ __host__ static inline void cufft_convolution(AccessorWO<VAL, DIM> out,
     // cufft plans are awful things that call cudaMalloc/cudaFree which
     // completely destroys asynchronous execution so we need to cache
     // these plans to avoid calling it as often as possible
-    constexpr size_t MAX_PLANS = 4; 
+    constexpr size_t MAX_PLANS = 4;
     struct cufftPlan {
-    public:
-      cufftPlan(void) : fftshape(Point<DIM>::ZEROES()) { }
-    public:
+     public:
+      cufftPlan(void) : fftshape(Point<DIM>::ZEROES()) {}
+
+     public:
       cufftHandle forward;
       cufftHandle backward;
       Point<DIM> fftshape;
-      size_t workarea_size; 
+      size_t workarea_size;
       unsigned lru_index;
     };
     static cufftPlan cufft_plan_cache[LEGION_MAX_NUM_PROCS][MAX_PLANS];
@@ -1436,12 +1437,10 @@ __host__ static inline void cufft_convolution(AccessorWO<VAL, DIM> out,
       filter, filter_buffer, filter_rect.lo, copy_pitches, pitch);
     // Check to see if the plan is already in the cache
     int plan_index = -1;
-    // Some hackiness until Legion can support stateless runtime caches 
-    const unsigned proc_idx = 
-      Processor::get_executing_processor().id & (LEGION_MAX_NUM_PROCS - 1);
+    // Some hackiness until Legion can support stateless runtime caches
+    const unsigned proc_idx = Processor::get_executing_processor().id & (LEGION_MAX_NUM_PROCS - 1);
     for (unsigned idx = 0; idx < MAX_PLANS; idx++) {
-      if (fftsize != cufft_plan_cache[proc_idx][idx].fftshape)
-        continue;
+      if (fftsize != cufft_plan_cache[proc_idx][idx].fftshape) continue;
       plan_index = idx;
       break;
     }
@@ -1456,31 +1455,30 @@ __host__ static inline void cufft_convolution(AccessorWO<VAL, DIM> out,
           // Set the lru_index
           cufft_plan_cache[proc_idx][idx].lru_index = idx;
           break;
-        } else if (cufft_plan_cache[proc_idx][idx].lru_index == (MAX_PLANS-1)) {
+        } else if (cufft_plan_cache[proc_idx][idx].lru_index == (MAX_PLANS - 1)) {
           // Destroy the resources associated with the previous plan
-          cufftPlan &plan = cufft_plan_cache[proc_idx][idx];
+          cufftPlan& plan = cufft_plan_cache[proc_idx][idx];
           CHECK_CUFFT(cufftDestroy(plan.forward));
           CHECK_CUFFT(cufftDestroy(plan.backward));
           plan_index = idx;
           break;
         }
       }
-      assert(plan_index >= 0); 
+      assert(plan_index >= 0);
       // Create the plans for going in both directions
-      cufftPlan &plan = cufft_plan_cache[proc_idx][plan_index];
-      plan.fftshape = fftsize;
+      cufftPlan& plan = cufft_plan_cache[proc_idx][plan_index];
+      plan.fftshape   = fftsize;
       CHECK_CUFFT(cufftCreate(&plan.forward));
       CHECK_CUFFT(cufftSetAutoAllocation(plan.forward, 0 /*we'll do the allocation*/));
       CHECK_CUFFT(cufftSetStream(plan.forward, stream));
-      plan.workarea_size = create_forward_plan<VAL, DIM>(plan.forward, fftsize); 
+      plan.workarea_size = create_forward_plan<VAL, DIM>(plan.forward, fftsize);
       CHECK_CUFFT(cufftCreate(&plan.backward));
       CHECK_CUFFT(cufftSetAutoAllocation(plan.backward, 0 /*we'll do the allocation*/));
       size_t backward_size = create_backward_plan<VAL, DIM>(plan.backward, fftsize);
-      if (plan.workarea_size < backward_size)
-        plan.workarea_size = backward_size;
+      if (plan.workarea_size < backward_size) plan.workarea_size = backward_size;
     }
-    assert(plan_index >= 0); 
-    cufftPlan &plan = cufft_plan_cache[proc_idx][plan_index];
+    assert(plan_index >= 0);
+    cufftPlan& plan = cufft_plan_cache[proc_idx][plan_index];
     // Set the stream and working area for the plans
     CHECK_CUFFT(cufftSetStream(plan.forward, stream));
     CHECK_CUFFT(cufftSetStream(plan.backward, stream));
@@ -1488,12 +1486,12 @@ __host__ static inline void cufft_convolution(AccessorWO<VAL, DIM> out,
     DeferredBuffer<uint8_t, 1> workarea_buffer;
     if (plan.workarea_size > 0) {
       const Point<1> zero1d(0);
-      workarea_buffer = DeferredBuffer<uint8_t, 1>(Rect<1>(zero1d,
-                                                   Point<1>(plan.workarea_size - 1)),
-                                                   Memory::GPU_FB_MEM,
-                                                   nullptr /*initial*/,
-                                                   128 /*alignment*/);
-      void* workarea  = workarea_buffer.ptr(zero1d);
+      workarea_buffer =
+        DeferredBuffer<uint8_t, 1>(Rect<1>(zero1d, Point<1>(plan.workarea_size - 1)),
+                                   Memory::GPU_FB_MEM,
+                                   nullptr /*initial*/,
+                                   128 /*alignment*/);
+      void* workarea = workarea_buffer.ptr(zero1d);
       CHECK_CUFFT(cufftSetWorkArea(plan.forward, workarea));
       CHECK_CUFFT(cufftSetWorkArea(plan.backward, workarea));
     }
@@ -1552,14 +1550,13 @@ __host__ static inline void cufft_convolution(AccessorWO<VAL, DIM> out,
     // and then set our lru_index back to zero
     if (plan.lru_index > 0) {
       for (unsigned idx = 0; idx < MAX_PLANS; idx++) {
-        cufftPlan &other = cufft_plan_cache[proc_idx][idx];
-        if (other.lru_index < plan.lru_index)
-          other.lru_index++;
+        cufftPlan& other = cufft_plan_cache[proc_idx][idx];
+        if (other.lru_index < plan.lru_index) other.lru_index++;
       }
       plan.lru_index = 0;
     }
     // Clean up our resources, DeferredBuffers are cleaned up by Legion
-    CHECK_CUDA( cudaStreamDestroy(stream) );
+    CHECK_CUDA(cudaStreamDestroy(stream));
   }
 }
 
