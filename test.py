@@ -108,7 +108,7 @@ def run_test(
     test_path = os.path.join(root_dir, test_file)
     try:
         cmd(
-            [driver, test_path, "-lg:numpy:test"] + flags + test_flags + opts,
+            [driver, test_path, "-cunumeric:test"] + flags + test_flags + opts,
             env=env,
             cwd=root_dir,
             stdout=FNULL if not verbose else sys.stderr,
@@ -392,7 +392,7 @@ def run_tests(
     env = dict(
         list(os.environ.items())
         + [
-            ("NUMPY_TEST", "1"),
+            ("LEGATE_TEST", "1"),
             ("DEBUG", "1" if debug else "0"),
             ("USE_GASNET", "1" if use_gasnet else "0"),
             ("USE_CUDA", "1" if use_cuda else "0"),

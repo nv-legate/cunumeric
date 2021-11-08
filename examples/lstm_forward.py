@@ -23,10 +23,7 @@ import math
 
 from benchmark import run_benchmark
 
-try:
-    import legate.numpy as np
-except ImportError:
-    import numpy as np
+import cunumeric as np
 
 
 def run_lstm(batch_size, hidden_size, sentence_length, word_size, timing):

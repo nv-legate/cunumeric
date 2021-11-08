@@ -13,11 +13,11 @@
 # limitations under the License.
 #
 
-import legate.numpy as lg
+import cunumeric as num
 
 
 def test():
-    x = lg.array([1, 2, 3, 4, 5])
+    x = num.array([1, 2, 3, 4, 5])
 
     assert 4 in x
     assert 6 not in x

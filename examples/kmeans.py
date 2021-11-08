@@ -24,10 +24,7 @@ import datetime
 
 from benchmark import run_benchmark
 
-try:
-    import legate.numpy as np
-except ImportError:
-    import numpy as np
+import cunumeric as np
 
 
 def initialize(N, D, C, T):
@@ -235,7 +232,7 @@ if __name__ == "__main__":
             run_kmeans,
             args.benchmark,
             "KMEANS(D)",
-            run_kmeans(
+            (
                 args.C,
                 args.D,
                 np.float64,

@@ -15,61 +15,63 @@
 
 import numpy as np
 
-import legate.numpy as lg
+import cunumeric as num
 
 
 def test():
-    a = lg.array(
-        [
-            [1, 2, 3, 4],
-            [5, 6, 7, 8],
-            [9, 10, 11, 12],
-            [13, 14, 15, 16],
-            [17, 18, 19, 20],
-        ]
-    )
-    an = np.array(
-        [
-            [1, 2, 3, 4],
-            [5, 6, 7, 8],
-            [9, 10, 11, 12],
-            [13, 14, 15, 16],
-            [17, 18, 19, 20],
-        ]
-    )
+    for k in [0, -1, 1, -2, 2]:
+        print(f"diag(k={k})")
+        a = num.array(
+            [
+                [1, 2, 3, 4],
+                [5, 6, 7, 8],
+                [9, 10, 11, 12],
+                [13, 14, 15, 16],
+                [17, 18, 19, 20],
+            ]
+        )
+        an = np.array(
+            [
+                [1, 2, 3, 4],
+                [5, 6, 7, 8],
+                [9, 10, 11, 12],
+                [13, 14, 15, 16],
+                [17, 18, 19, 20],
+            ]
+        )
 
-    b = lg.diag(a)
-    bn = np.diag(an)
-    assert np.array_equal(b, bn)
+        b = num.diag(a, k=k)
+        bn = np.diag(an, k=k)
+        assert np.array_equal(b, bn)
 
-    c = lg.diag(b)
-    cn = np.diag(bn)
-    assert np.array_equal(c, cn)
+        c = num.diag(b, k=k)
+        cn = np.diag(bn, k=k)
+        assert np.array_equal(c, cn)
 
-    d = lg.array(
-        [
-            [1, 2, 3, 4, 5],
-            [6, 7, 8, 9, 10],
-            [11, 12, 13, 14, 15],
-            [16, 17, 18, 19, 20],
-        ]
-    )
-    dn = np.array(
-        [
-            [1, 2, 3, 4, 5],
-            [6, 7, 8, 9, 10],
-            [11, 12, 13, 14, 15],
-            [16, 17, 18, 19, 20],
-        ]
-    )
+        d = num.array(
+            [
+                [1, 2, 3, 4, 5],
+                [6, 7, 8, 9, 10],
+                [11, 12, 13, 14, 15],
+                [16, 17, 18, 19, 20],
+            ]
+        )
+        dn = np.array(
+            [
+                [1, 2, 3, 4, 5],
+                [6, 7, 8, 9, 10],
+                [11, 12, 13, 14, 15],
+                [16, 17, 18, 19, 20],
+            ]
+        )
 
-    e = lg.diag(d)
-    en = np.diag(dn)
-    assert np.array_equal(e, en)
+        e = num.diag(d, k=k)
+        en = np.diag(dn, k=k)
+        assert np.array_equal(e, en)
 
-    f = lg.diag(e)
-    fn = np.diag(en)
-    assert np.array_equal(f, fn)
+        f = num.diag(e, k=k)
+        fn = np.diag(en, k=k)
+        assert np.array_equal(f, fn)
 
     return
 

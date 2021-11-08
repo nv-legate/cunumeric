@@ -13,22 +13,23 @@
 # limitations under the License.
 #
 
-import random
-
 import numpy as np
+from test_tools.generators import scalar_gen
 
-import legate.numpy as lg
+import cunumeric as num
 
 
 def test():
-    random.seed(13)
-    a = random.randint(1, 42)
-    b = random.randint(1, 3)
-
-    # test power
-    assert np.array_equal(lg.power(a, b), np.power(a, b))
-
-    return
+    test_values = [(42, 3)]
+    for (a, b) in test_values:
+        for (la, lb, na, nb) in zip(
+            scalar_gen(num, a),
+            scalar_gen(num, b),
+            scalar_gen(np, a),
+            scalar_gen(np, b),
+        ):
+            assert np.array_equal(num.power(la, lb), np.power(na, nb))
+            assert np.array_equal(la ** lb, na ** nb)
 
 
 if __name__ == "__main__":

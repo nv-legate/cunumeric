@@ -4,6 +4,7 @@
 .#*
 .DS_Store
 *.a
+*.d
 *.o
 *.so
 *.gz
@@ -27,6 +28,6 @@ legion
 gasnet*
 legion_defines.h
 realm_defines.h
-legate/numpy/install_info.py
+cunumeric/install_info.py
 /build/*
-/docs/legate/numpy/build
+/docs/cunumeric/build

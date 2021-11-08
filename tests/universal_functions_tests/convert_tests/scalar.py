@@ -13,17 +13,17 @@
 # limitations under the License.
 #
 
-import legate.numpy as lg
+import numpy as np
+from test_tools.generators import scalar_gen
+
+import cunumeric as num
 
 
 def test():
-    # test data type conversion
-    x = lg.array([1, 2, 3])
-    y = lg.array([1.0, 2.0, 3.0])
-
-    assert lg.max(x) == lg.max(y)
-
-    return
+    test_values = [(1, 1.0)]
+    for (a, b) in test_values:
+        for (la, lb) in zip(scalar_gen(num, a), scalar_gen(num, b)):
+            assert np.array_equal(la, lb)
 
 
 if __name__ == "__main__":

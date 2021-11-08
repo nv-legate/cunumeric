@@ -13,12 +13,12 @@
 # limitations under the License.
 #
 
-import legate.numpy as lg
+import cunumeric as num
 
 
 def test():
-    x = lg.array([1, 2, 3])
-    assert lg.min(x) == 1
+    x = num.array([1, 2, 3])
+    assert num.min(x) == 1
 
     return
 

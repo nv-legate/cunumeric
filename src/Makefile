@@ -20,7 +20,9 @@ ifndef OPEN_BLAS_DIR
 $(error OPEN_BLAS_DIR variable is not defined, aborting build)
 endif
 
-LIBNAME		= liblgnumpy
+include $(LEGATE_DIR)/share/legate/config.mk
+
+LIBNAME		= libcunumeric
 
 CC_FLAGS ?=
 CC_FLAGS += -I. -I$(OPEN_BLAS_DIR)/include
@@ -38,6 +40,6 @@ endif
 GEN_CPU_SRC	=
 GEN_GPU_SRC	=
 
-include numpy.mk
+include cunumeric.mk
 
 include $(LEGATE_DIR)/share/legate/legate.mk

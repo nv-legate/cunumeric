@@ -13,19 +13,23 @@
 # limitations under the License.
 #
 
-import random
-
 import numpy as np
+from test_tools.generators import scalar_gen
 
-import legate.numpy as lg
+import cunumeric as num
 
 
 def test():
-    a = random.randint(1, 13)
-    b = random.randint(1, 13)
-    assert np.array_equal(lg.not_equal(a, b), np.not_equal(a, b))
-
-    return
+    test_values = [(-1, 0), (0, 0), (1, 0)]
+    for (a, b) in test_values:
+        for (la, lb, na, nb) in zip(
+            scalar_gen(num, a),
+            scalar_gen(num, b),
+            scalar_gen(np, a),
+            scalar_gen(np, b),
+        ):
+            assert np.array_equal(num.not_equal(la, lb), np.not_equal(na, nb))
+            assert np.array_equal(la != lb, na != nb)
 
 
 if __name__ == "__main__":

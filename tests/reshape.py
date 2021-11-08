@@ -15,25 +15,52 @@
 
 import numpy as np
 
-import legate.numpy as lg
+import cunumeric as num
 
 
-def test():
+def test1():
     anp = np.arange(100).reshape(10, 10)
-    a = lg.array(anp)
+    a = num.arange(100).reshape((10, 10))
+    assert np.array_equal(anp, a)
 
-    bnp = np.reshape(anp, (10, 5, 2))
-    b = lg.reshape(a, (10, 5, 2))
-    assert np.array_equal(bnp, b)
+    for shape in [
+        (10, 5, 2),
+        (5, 2, 10),
+        (5, 2, 5, 2),
+        (10, 10, 1),
+        (10, 1, 10),
+        (1, 10, 10),
+    ]:
+        bnp = np.reshape(anp, shape)
+        b = num.reshape(a, shape)
+        assert np.array_equal(bnp, b)
 
     cnp = np.reshape(anp, (100,))
-    c = lg.reshape(a, (100,))
+    c = num.reshape(a, (100,))
     assert np.array_equal(cnp, c)
 
     dnp = np.ravel(anp)
-    d = lg.ravel(a)
+    d = num.ravel(a)
     assert np.array_equal(dnp, d)
 
 
+def test2():
+    anp = np.random.rand(5, 4, 10)
+    a = num.array(anp)
+
+    for shape in [
+        (10, 2, 10),
+        (20, 10),
+        (5, 40),
+        (200, 1),
+        (1, 200),
+        (10, 20),
+    ]:
+        bnp = np.reshape(anp, shape)
+        b = num.reshape(a, shape)
+        assert np.array_equal(bnp, b)
+
+
 if __name__ == "__main__":
-    test()
+    test1()
+    test2()

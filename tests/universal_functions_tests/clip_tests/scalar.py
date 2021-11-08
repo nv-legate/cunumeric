@@ -14,20 +14,18 @@
 #
 
 import numpy as np
+from test_tools.generators import scalar_gen
 
-import legate.numpy as lg
+import cunumeric as num
 
 
 def test():
-    np.random.seed(13)
-    a = 10.0 * np.random.rand()
-    a_min = 10.0 * np.random.rand()
-    a_max = 10.0 * np.random.rand()
-
-    # test clip
-    assert np.array_equal(lg.clip(a, a_min, a_max), np.clip(a, a_min, a_max))
-
-    return
+    test_values = [(2, 1, 3), (0, 1, 3), (4, 1, 3)]
+    for (a, a_min, a_max) in test_values:
+        for (la, na) in zip(scalar_gen(num, a), scalar_gen(np, a)):
+            assert np.array_equal(
+                num.clip(la, a_min, a_max), np.clip(na, a_min, a_max)
+            )
 
 
 if __name__ == "__main__":

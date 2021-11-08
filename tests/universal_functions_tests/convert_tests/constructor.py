@@ -18,62 +18,62 @@ from __future__ import absolute_import
 import numpy as np
 from test_tools import asserts
 
-import legate.numpy as lg
+import cunumeric as num
 
 
 def test():
-    x = lg.ndarray.convert_to_legate_ndarray([])
+    x = num.ndarray.convert_to_cunumeric_ndarray([])
     y = np.array([])
     asserts.assert_equal(x, y)
-    z = lg.array([])
+    z = num.array([])
     asserts.assert_equal(y, z)
 
-    x = lg.ndarray.convert_to_legate_ndarray([[]])
+    x = num.ndarray.convert_to_cunumeric_ndarray([[]])
     y = np.array([[]])
     asserts.assert_equal(x, y)
-    z = lg.array([[]])
+    z = num.array([[]])
     asserts.assert_equal(y, z)
 
-    x = lg.ndarray.convert_to_legate_ndarray([[[]]])
+    x = num.ndarray.convert_to_cunumeric_ndarray([[[]]])
     y = np.array([[[]]])
     asserts.assert_equal(x, y)
-    z = lg.array([[[]]])
+    z = num.array([[[]]])
     asserts.assert_equal(y, z)
 
-    x = lg.ndarray.convert_to_legate_ndarray([[], []])
+    x = num.ndarray.convert_to_cunumeric_ndarray([[], []])
     y = np.array([[], []])
     asserts.assert_equal(x, y)
-    z = lg.array([[], []])
+    z = num.array([[], []])
     asserts.assert_equal(y, z)
 
-    x = lg.ndarray.convert_to_legate_ndarray([1])
+    x = num.ndarray.convert_to_cunumeric_ndarray([1])
     y = np.array([1])
     asserts.assert_equal(x, y)
-    z = lg.array([1])
+    z = num.array([1])
     asserts.assert_equal(y, z)
 
-    x = lg.ndarray.convert_to_legate_ndarray([[1]])
+    x = num.ndarray.convert_to_cunumeric_ndarray([[1]])
     y = np.array([[1]])
     asserts.assert_equal(x, y)
-    z = lg.array([[1]])
+    z = num.array([[1]])
     asserts.assert_equal(y, z)
 
-    x = lg.ndarray.convert_to_legate_ndarray([[[1]]])
+    x = num.ndarray.convert_to_cunumeric_ndarray([[[1]]])
     y = np.array([[[1]]])
     asserts.assert_equal(x, y)
-    z = lg.array([[[1]]])
+    z = num.array([[[1]]])
     asserts.assert_equal(y, z)
 
-    x = lg.ndarray.convert_to_legate_ndarray([[1], [1]])
+    x = num.ndarray.convert_to_cunumeric_ndarray([[1], [1]])
     y = np.array([[1], [1]])
     asserts.assert_equal(x, y)
-    z = lg.array([[1], [1]])
+    z = num.array([[1], [1]])
     asserts.assert_equal(y, z)
 
-    x = lg.ndarray.convert_to_legate_ndarray([1, 2, 3, 4])
+    x = num.ndarray.convert_to_cunumeric_ndarray([1, 2, 3, 4])
     y = np.array([1, 2, 3, 4])
     asserts.assert_equal(x, y)
-    z = lg.array([1, 2, 3, 4])
+    z = num.array([1, 2, 3, 4])
     asserts.assert_equal(y, z)
 
 

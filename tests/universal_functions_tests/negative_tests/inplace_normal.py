@@ -15,14 +15,14 @@
 
 import numpy as np
 
-import legate.numpy as lg
+import cunumeric as num
 
 
 def test():
     anp = np.random.randn(4, 5)
-    a = lg.array(anp)
+    a = num.array(anp)
 
-    assert np.array_equal(lg.negative(a, out=a), np.negative(anp, out=anp))
+    assert np.array_equal(num.negative(a, out=a), np.negative(anp, out=anp))
 
     return
 

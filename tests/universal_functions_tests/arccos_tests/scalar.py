@@ -14,14 +14,16 @@
 #
 
 import numpy as np
+from test_tools.generators import scalar_gen
 
-import legate.numpy as lg
+import cunumeric as num
 
 
 def test():
-    assert np.array_equal(lg.arccos(1), np.arccos(1))
-    assert np.array_equal(lg.arccos(-1), np.arccos(-1))
-    return
+    test_values = [-1, 0, 1]
+    for a in test_values:
+        for (la, na) in zip(scalar_gen(num, a), scalar_gen(np, a)):
+            assert np.array_equal(num.arccos(la), np.arccos(na))
 
 
 if __name__ == "__main__":

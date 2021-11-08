@@ -17,73 +17,73 @@ from __future__ import division
 
 import numpy as np
 
-import legate.numpy as lg
+import cunumeric as num
 
 
 def test():
     numpyX = np.array([1 + 4j, 2 + 5j, 3 + 6j], np.complex64)
     numpyY = np.array([4 + 7j, 5 + 8j, 6 + 9j], np.complex64)
 
-    x = lg.array(numpyX)
-    y = lg.array(numpyY)
+    x = num.array(numpyX)
+    y = num.array(numpyY)
 
     z = x + y
     # print(z)
-    assert lg.all(lg.abs(z - (numpyX + numpyY)) < 1e-5)
+    assert num.all(num.abs(z - (numpyX + numpyY)) < 1e-5)
 
     z = x + 2
     # print(z)
-    assert lg.all(lg.abs(z - (numpyX + 2)) < 1e-5)
+    assert num.all(num.abs(z - (numpyX + 2)) < 1e-5)
 
     z = 2 + x
     # # print(z)
-    assert lg.all(lg.abs(z - (2 + numpyX)) < 1e-5)
+    assert num.all(num.abs(z - (2 + numpyX)) < 1e-5)
 
     z = x - y
     # # print(z)
-    assert lg.all(lg.abs(z - (numpyX - numpyY)) < 1e-5)
+    assert num.all(num.abs(z - (numpyX - numpyY)) < 1e-5)
 
     z = x - 2
     # print(z)
-    assert lg.all(lg.abs(z - (numpyX - 2)) < 1e-5)
+    assert num.all(num.abs(z - (numpyX - 2)) < 1e-5)
 
     z = 2 - x
     # # print(z)
-    assert lg.all(lg.abs(z - (2 - numpyX)) < 1e-5)
+    assert num.all(num.abs(z - (2 - numpyX)) < 1e-5)
 
     z = x / y
     # print(z)
-    assert lg.all(lg.abs(z - (numpyX / numpyY)) < 1e-5)
+    assert num.all(num.abs(z - (numpyX / numpyY)) < 1e-5)
 
     z = x / 2
     # print(z)
-    assert lg.all(lg.abs(z - (numpyX / 2)) < 1e-5)
+    assert num.all(num.abs(z - (numpyX / 2)) < 1e-5)
 
     z = 2 / x
     # print(z)
-    assert lg.all(lg.abs(z - (2 / numpyX)) < 1e-5)
+    assert num.all(num.abs(z - (2 / numpyX)) < 1e-5)
 
     z = x * y
     # print(z)
-    assert lg.all(lg.abs(z - (numpyX * numpyY)) < 1e-5)
+    assert num.all(num.abs(z - (numpyX * numpyY)) < 1e-5)
 
     z = x * 2
     # print(z)
-    assert lg.all(lg.abs(z - (numpyX * 2)) < 1e-5)
+    assert num.all(num.abs(z - (numpyX * 2)) < 1e-5)
 
     z = 2 * x
     # print(z)
-    assert lg.all(lg.abs(z - (2 * numpyX)) < 1e-5)
+    assert num.all(num.abs(z - (2 * numpyX)) < 1e-5)
 
     z = x ** 5
     # Thrust power computation is not very precise, so 1e-1
-    assert lg.all(lg.abs(z - numpyX ** 5) < 1e-1)
+    assert num.all(num.abs(z - numpyX ** 5) < 1e-1)
 
     z = 5 ** x
-    assert lg.all(lg.abs(z - 5 ** numpyX) < 1e-5)
+    assert num.all(num.abs(z - 5 ** numpyX) < 1e-5)
 
     z = x ** y
-    assert lg.all(lg.abs(z - numpyX ** numpyY) < 1e-5)
+    assert num.all(num.abs(z - numpyX ** numpyY) < 1e-5)
 
     return
 

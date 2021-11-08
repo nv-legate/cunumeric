@@ -14,15 +14,16 @@
 #
 
 import numpy as np
+from test_tools.generators import scalar_gen
 
-import legate.numpy as lg
+import cunumeric as num
 
 
 def test():
-    test_values = [-np.pi, np.pi / 2, np.pi]
-    for x in test_values:
-        assert np.array_equal(lg.tan(x), np.tan(x))
-    return
+    test_values = [-np.pi, 0, np.pi / 2, np.pi]
+    for a in test_values:
+        for (la, na) in zip(scalar_gen(num, a), scalar_gen(np, a)):
+            assert np.array_equal(num.tan(la), np.tan(na))
 
 
 if __name__ == "__main__":
