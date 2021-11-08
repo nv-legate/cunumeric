@@ -14,14 +14,13 @@
  *
  */
 
-#include "numpy/matrix/contract.h"
-#include "numpy/matrix/contract_template.inl"
-#include "numpy/matrix/util.h"
+#include "cunumeric/matrix/contract.h"
+#include "cunumeric/matrix/contract_template.inl"
+#include "cunumeric/matrix/util.h"
 
 #include <tblis/tblis.h>
 
-namespace legate {
-namespace numpy {
+namespace cunumeric {
 
 using namespace Legion;
 using namespace tblis;
@@ -157,7 +156,7 @@ struct ContractImplBody<VariantKind::CPU, LegateTypeCode::COMPLEX128_LT> {
   }
 };
 
-/*static*/ void ContractTask::cpu_variant(TaskContext& context)
+/*static*/ void ContractTask::cpu_variant(legate::TaskContext& context)
 {
   contract_template<VariantKind::CPU>(context);
 }
@@ -167,5 +166,4 @@ namespace  // unnamed
 static void __attribute__((constructor)) register_tasks(void) { ContractTask::register_variants(); }
 }  // namespace
 
-}  // namespace numpy
-}  // namespace legate
+}  // namespace cunumeric

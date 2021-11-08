@@ -14,10 +14,10 @@
  *
  */
 
-namespace legate {
-namespace numpy {
+namespace cunumeric {
 
 using namespace Legion;
+using namespace legate;
 
 template <VariantKind KIND, LegateTypeCode CODE>
 struct ContractImplBody;
@@ -117,7 +117,7 @@ struct ContractImpl {
 };
 
 template <VariantKind KIND>
-static void contract_template(TaskContext& context)
+static void contract_template(legate::TaskContext& context)
 {
   auto& reductions = context.reductions();
   auto& inputs     = context.inputs();
@@ -133,7 +133,7 @@ static void contract_template(TaskContext& context)
   auto dim  = args.lhs.dim();
   auto code = args.lhs.code();
 
-#ifdef DEBUG_NUMPY
+#ifdef DEBUG_CUNUMERIC
   assert(dim = args.rhs1.dim());
   assert(dim = args.rhs2.dim());
   assert(dim = args.lhs_dim_mask.size());
@@ -146,5 +146,4 @@ static void contract_template(TaskContext& context)
   double_dispatch(dim, code, ContractImpl<KIND>{}, args);
 }
 
-}  // namespace numpy
-}  // namespace legate
+}  // namespace cunumeric

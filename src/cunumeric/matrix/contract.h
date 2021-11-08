@@ -16,33 +16,31 @@
 
 #pragma once
 
-#include "numpy/numpy.h"
+#include "cunumeric/cunumeric.h"
 
-namespace legate {
-namespace numpy {
+namespace cunumeric {
 
 struct ContractArgs {
   const Array& lhs;
   const Array& rhs1;
   const Array& rhs2;
-  Span<const bool> lhs_dim_mask;
-  Span<const bool> rhs1_dim_mask;
-  Span<const bool> rhs2_dim_mask;
+  legate::Span<const bool> lhs_dim_mask;
+  legate::Span<const bool> rhs1_dim_mask;
+  legate::Span<const bool> rhs2_dim_mask;
 };
 
-class ContractTask : public NumPyTask<ContractTask> {
+class ContractTask : public CuNumericTask<ContractTask> {
  public:
-  static const int TASK_ID = NUMPY_CONTRACT;
+  static const int TASK_ID = CUNUMERIC_CONTRACT;
 
  public:
-  static void cpu_variant(TaskContext& context);
+  static void cpu_variant(legate::TaskContext& context);
 #ifdef LEGATE_USE_OPENMP
-  static void omp_variant(TaskContext& context);
+  static void omp_variant(legate::TaskContext& context);
 #endif
 #ifdef LEGATE_USE_CUDA
-  static void gpu_variant(TaskContext& context);
+  static void gpu_variant(legate::TaskContext& context);
 #endif
 };
 
-}  // namespace numpy
-}  // namespace legate
+}  // namespace cunumeric
