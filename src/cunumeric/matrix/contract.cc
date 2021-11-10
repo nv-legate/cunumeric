@@ -26,7 +26,12 @@ using namespace Legion;
 using namespace tblis;
 
 // NOTE: The TBLIS tensor constructor requires all arguments to be passed as non-const pointers,
-// so we treat certain arguments as mutable, even though we don't intent to mutate them.
+// so we cast-out the constness from read-only data pointers to appease the type checker. This
+// should be safe since TBLIS will not modify that memory.
+
+// NOTE: TBLIS uses std::complex internally, whereas Legate uses thrust::complex when compiling GPU
+// code. These type are bit-identical, so we can safely cast from one to the other in host code,
+// to appease the type checker.
 
 template <>
 struct ContractImplBody<VariantKind::CPU, LegateTypeCode::FLOAT_LT> {
@@ -109,15 +114,24 @@ struct ContractImplBody<VariantKind::CPU, LegateTypeCode::COMPLEX64_LT> {
                   int32_t* rhs2_modes)
   {
     tblis_tensor lhs;
-    tblis_init_tensor_c(&lhs, lhs_ndim, lhs_shape, lhs_data, lhs_strides);
+    tblis_init_tensor_c(
+      &lhs, lhs_ndim, lhs_shape, reinterpret_cast<std::complex<float>*>(lhs_data), lhs_strides);
 
     tblis_tensor rhs1;
     tblis_init_tensor_c(
-      &rhs1, rhs1_ndim, rhs1_shape, const_cast<complex<float>*>(rhs1_data), rhs1_strides);
+      &rhs1,
+      rhs1_ndim,
+      rhs1_shape,
+      reinterpret_cast<std::complex<float>*>(const_cast<complex<float>*>(rhs1_data)),
+      rhs1_strides);
 
     tblis_tensor rhs2;
     tblis_init_tensor_c(
-      &rhs2, rhs2_ndim, rhs2_shape, const_cast<complex<float>*>(rhs2_data), rhs2_strides);
+      &rhs2,
+      rhs2_ndim,
+      rhs2_shape,
+      reinterpret_cast<std::complex<float>*>(const_cast<complex<float>*>(rhs2_data)),
+      rhs2_strides);
 
     tblis_tensor_mult(tblis_single, NULL, &rhs1, rhs1_modes, &rhs2, rhs2_modes, &lhs, lhs_modes);
   }
@@ -142,15 +156,24 @@ struct ContractImplBody<VariantKind::CPU, LegateTypeCode::COMPLEX128_LT> {
                   int32_t* rhs2_modes)
   {
     tblis_tensor lhs;
-    tblis_init_tensor_z(&lhs, lhs_ndim, lhs_shape, lhs_data, lhs_strides);
+    tblis_init_tensor_z(
+      &lhs, lhs_ndim, lhs_shape, reinterpret_cast<std::complex<double>*>(lhs_data), lhs_strides);
 
     tblis_tensor rhs1;
     tblis_init_tensor_z(
-      &rhs1, rhs1_ndim, rhs1_shape, const_cast<complex<double>*>(rhs1_data), rhs1_strides);
+      &rhs1,
+      rhs1_ndim,
+      rhs1_shape,
+      reinterpret_cast<std::complex<double>*>(const_cast<complex<double>*>(rhs1_data)),
+      rhs1_strides);
 
     tblis_tensor rhs2;
     tblis_init_tensor_z(
-      &rhs2, rhs2_ndim, rhs2_shape, const_cast<complex<double>*>(rhs2_data), rhs2_strides);
+      &rhs2,
+      rhs2_ndim,
+      rhs2_shape,
+      reinterpret_cast<std::complex<double>*>(const_cast<complex<double>*>(rhs2_data)),
+      rhs2_strides);
 
     tblis_tensor_mult(tblis_single, NULL, &rhs1, rhs1_modes, &rhs2, rhs2_modes, &lhs, lhs_modes);
   }
