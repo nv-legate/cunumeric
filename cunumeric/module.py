@@ -1828,6 +1828,24 @@ def mean(a, axis=None, dtype=None, out=None, keepdims=False):
         axis=axis, dtype=dtype, out=out, keepdims=keepdims, stacklevel=2
     )
 
+@copy_docstring(np.std)
+def std(a, axis=None, dtype=None, out=None, keepdims=False):
+    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
+    if out is not None:
+        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
+    return lg_array.std(
+        axis=axis, dtype=dtype, out=out, keepdims=keepdims, stacklevel=2
+    )
+
+@copy_docstring(np.var)
+def var(a, axis=None, dtype=None, out=None, keepdims=False):
+    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
+    if out is not None:
+        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
+    return lg_array.var(
+        axis=axis, dtype=dtype, out=out, keepdims=keepdims, stacklevel=2
+    )
+
 
 # ### STACKING and CONCATENATION ###
 
