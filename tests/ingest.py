@@ -13,8 +13,6 @@
 # limitations under the License.
 #
 
-from math import prod
-
 import numpy as np
 import pyarrow as pa
 
@@ -86,7 +84,10 @@ def test_ingest(custom_partitioning, custom_sharding):
 
 
 def test():
-    np_arr = np.arange(prod(shape)).reshape(shape)
+    size = 1
+    for d in shape:
+        size *= d
+    np_arr = np.arange(size).reshape(shape)
     for lg_arr in [
         test_ingest(False, False),
         test_ingest(False, True),
