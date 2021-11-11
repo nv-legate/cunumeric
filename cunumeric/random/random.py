@@ -96,11 +96,11 @@ def uniform(low, high=None, size=None, dtype=None):
         size = (size,)
     result = ndarray(size, dtype=dtype)
     if high is None:
-        result._thunk.random_integer(low=0, high=low, stacklevel=2)
+        result._thunk.random_uniform_(low=0, high=low, stacklevel=2)
     else:
         if low >= high:
             raise ValueError(
                 "'high' bound must be strictly greater than 'low' "
             )
-        result._thunk.random_uniform(low=low, high=high, stacklevel=2)
+        result._thunk.random_uniform_(low=low, high=high, stacklevel=2)
     return result
