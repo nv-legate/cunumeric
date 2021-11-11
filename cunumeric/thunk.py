@@ -243,6 +243,12 @@ class NumPyThunk(object):
         """
         raise NotImplementedError("Implement in derived classes")
 
+    def random_uniform_(self, low, high, stacklevel):
+        """Fill this array with a random uniform distribution
+        :meta private:
+        """
+        raise NotImplementedError("Implement in derived classes")
+
     def unary_op(self, op, op_type, rhs, where, args, stacklevel):
         """Perform a unary operation and put the result in the dst
         array

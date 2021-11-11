@@ -111,6 +111,9 @@ class LazyArray(NumPyThunk):
     def random_integer(self, low, high, stacklevel):
         raise NotImplementedError("Implement in derived classes")
 
+    def random_uniform_(self, low, high, stacklevel):
+        raise NotImplementedError("Implement in derived classes")
+
     def unary_op(self, op, op_type, rhs, where, args, stacklevel):
         raise NotImplementedError("Implement in derived classes")
 

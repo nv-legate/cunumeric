@@ -80,7 +80,6 @@ def randint(low, high=None, size=None, dtype=None):
     return result
 
 
-
 def uniform(low, high=None, size=None, dtype=None):
     if size is None:
         return nprandom.uniform(low=low, high=high, size=size, dtype=dtype)
@@ -91,13 +90,12 @@ def uniform(low, high=None, size=None, dtype=None):
     # TODO: randint must support unsigned integer dtypes as well
     if dtype.kind != "f":
         raise TypeError(
-            "cunumeric.random.uniform must be given an float dtype"
+            "cunumeric.random.uniform must be given a float dtype"
         )
     if not isinstance(size, tuple):
         size = (size,)
     result = ndarray(size, dtype=dtype)
     if high is None:
-        
         result._thunk.random_integer(low=0, high=low, stacklevel=2)
     else:
         if low >= high:

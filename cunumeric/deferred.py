@@ -1387,6 +1387,18 @@ class DeferredArray(NumPyThunk):
             stacklevel=stacklevel + 1,
             callsite=callsite,
         )
+    
+    def random_uniform_(self, low, high, stacklevel, callsite=None):
+        assert self.dtype.kind == "f"
+        low = np.array(low, self.dtype)
+        high = np.array(high, self.dtype)
+        self.random(
+            RandGenCode.UNIFORM,
+            [low, high],
+            stacklevel=stacklevel + 1,
+            callsite=callsite,
+        )
+
 
     # Perform the unary operation and put the result in the array
     @profile
