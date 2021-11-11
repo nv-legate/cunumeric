@@ -87,7 +87,6 @@ def uniform(low, high=None, size=None, dtype=None):
         dtype = np.dtype(dtype)
     else:
         dtype = np.dtype(np.float64)
-    # TODO: randint must support unsigned integer dtypes as well
     if dtype.kind != "f":
         raise TypeError(
             "cunumeric.random.uniform must be given a float dtype"
