@@ -18,19 +18,12 @@
 #include "cunumeric/matrix/contract_template.inl"
 
 #include <tblis/tblis.h>
+#include <omp.h>
 
 namespace cunumeric {
 
 using namespace Legion;
 using namespace tblis;
-
-// NOTE: The TBLIS tensor constructor requires all arguments to be passed as non-const pointers,
-// so we cast-out the constness from read-only data pointers to appease the type checker. This
-// should be safe since TBLIS will not modify that memory.
-
-// NOTE: TBLIS uses std::complex internally, whereas Legate uses thrust::complex when compiling GPU
-// code. These type are bit-identical, so we can safely cast from one to the other in host code,
-// to appease the type checker.
 
 template <>
 struct ContractImplBody<VariantKind::CPU, LegateTypeCode::FLOAT_LT> {
@@ -59,7 +52,7 @@ struct ContractImplBody<VariantKind::CPU, LegateTypeCode::FLOAT_LT> {
     tblis_tensor rhs2;
     tblis_init_tensor_s(&rhs2, rhs2_ndim, rhs2_shape, const_cast<float*>(rhs2_data), rhs2_strides);
 
-    tblis_tensor_mult(tblis_single, NULL, &rhs1, rhs1_modes, &rhs2, rhs2_modes, &lhs, lhs_modes);
+    tblis_tensor_mult(NULL, NULL, &rhs1, rhs1_modes, &rhs2, rhs2_modes, &lhs, lhs_modes);
   }
 };
 
@@ -90,7 +83,7 @@ struct ContractImplBody<VariantKind::CPU, LegateTypeCode::DOUBLE_LT> {
     tblis_tensor rhs2;
     tblis_init_tensor_d(&rhs2, rhs2_ndim, rhs2_shape, const_cast<double*>(rhs2_data), rhs2_strides);
 
-    tblis_tensor_mult(tblis_single, NULL, &rhs1, rhs1_modes, &rhs2, rhs2_modes, &lhs, lhs_modes);
+    tblis_tensor_mult(NULL, NULL, &rhs1, rhs1_modes, &rhs2, rhs2_modes, &lhs, lhs_modes);
   }
 };
 
@@ -132,7 +125,7 @@ struct ContractImplBody<VariantKind::CPU, LegateTypeCode::COMPLEX64_LT> {
       reinterpret_cast<std::complex<float>*>(const_cast<complex<float>*>(rhs2_data)),
       rhs2_strides);
 
-    tblis_tensor_mult(tblis_single, NULL, &rhs1, rhs1_modes, &rhs2, rhs2_modes, &lhs, lhs_modes);
+    tblis_tensor_mult(NULL, NULL, &rhs1, rhs1_modes, &rhs2, rhs2_modes, &lhs, lhs_modes);
   }
 };
 
@@ -174,18 +167,13 @@ struct ContractImplBody<VariantKind::CPU, LegateTypeCode::COMPLEX128_LT> {
       reinterpret_cast<std::complex<double>*>(const_cast<complex<double>*>(rhs2_data)),
       rhs2_strides);
 
-    tblis_tensor_mult(tblis_single, NULL, &rhs1, rhs1_modes, &rhs2, rhs2_modes, &lhs, lhs_modes);
+    tblis_tensor_mult(NULL, NULL, &rhs1, rhs1_modes, &rhs2, rhs2_modes, &lhs, lhs_modes);
   }
 };
 
-/*static*/ void ContractTask::cpu_variant(legate::TaskContext& context)
+/*static*/ void ContractTask::omp_variant(legate::TaskContext& context)
 {
-  contract_template<VariantKind::CPU>(context);
+  contract_template<VariantKind::OMP>(context);
 }
-
-namespace  // unnamed
-{
-static void __attribute__((constructor)) register_tasks(void) { ContractTask::register_variants(); }
-}  // namespace
 
 }  // namespace cunumeric
