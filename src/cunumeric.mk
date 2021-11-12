@@ -57,6 +57,7 @@ GEN_CPU_SRC += cunumeric/ternary/where_omp.cc          \
 							 cunumeric/nullary/arange_omp.cc         \
 							 cunumeric/nullary/eye_omp.cc            \
 							 cunumeric/nullary/fill_omp.cc           \
+							 cunumeric/matrix/contract_omp.cc        \
 							 cunumeric/matrix/diag_omp.cc            \
 							 cunumeric/matrix/matmul_omp.cc          \
 							 cunumeric/matrix/matvecmul_omp.cc       \

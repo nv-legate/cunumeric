@@ -26,7 +26,7 @@ using namespace Legion;
 using namespace tblis;
 
 template <>
-struct ContractImplBody<VariantKind::CPU, LegateTypeCode::FLOAT_LT> {
+struct ContractImplBody<VariantKind::OMP, LegateTypeCode::FLOAT_LT> {
   void operator()(float* lhs_data,
                   size_t lhs_ndim,
                   int64_t* lhs_shape,
@@ -57,7 +57,7 @@ struct ContractImplBody<VariantKind::CPU, LegateTypeCode::FLOAT_LT> {
 };
 
 template <>
-struct ContractImplBody<VariantKind::CPU, LegateTypeCode::DOUBLE_LT> {
+struct ContractImplBody<VariantKind::OMP, LegateTypeCode::DOUBLE_LT> {
   void operator()(double* lhs_data,
                   size_t lhs_ndim,
                   int64_t* lhs_shape,
@@ -88,7 +88,7 @@ struct ContractImplBody<VariantKind::CPU, LegateTypeCode::DOUBLE_LT> {
 };
 
 template <>
-struct ContractImplBody<VariantKind::CPU, LegateTypeCode::COMPLEX64_LT> {
+struct ContractImplBody<VariantKind::OMP, LegateTypeCode::COMPLEX64_LT> {
   void operator()(complex<float>* lhs_data,
                   size_t lhs_ndim,
                   int64_t* lhs_shape,
@@ -130,7 +130,7 @@ struct ContractImplBody<VariantKind::CPU, LegateTypeCode::COMPLEX64_LT> {
 };
 
 template <>
-struct ContractImplBody<VariantKind::CPU, LegateTypeCode::COMPLEX128_LT> {
+struct ContractImplBody<VariantKind::OMP, LegateTypeCode::COMPLEX128_LT> {
   void operator()(complex<double>* lhs_data,
                   size_t lhs_ndim,
                   int64_t* lhs_shape,

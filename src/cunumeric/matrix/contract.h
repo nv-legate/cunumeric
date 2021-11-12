@@ -38,9 +38,6 @@ class ContractTask : public CuNumericTask<ContractTask> {
 #ifdef LEGATE_USE_OPENMP
   static void omp_variant(legate::TaskContext& context);
 #endif
-#ifdef LEGATE_USE_CUDA
-  static void gpu_variant(legate::TaskContext& context);
-#endif
 };
 
 }  // namespace cunumeric
