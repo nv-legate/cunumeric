@@ -115,14 +115,17 @@ class BinaryOpCode(IntEnum):
     GREATER_EQUAL = 6
     LESS = 7
     LESS_EQUAL = 8
-    MAXIMUM = 9
-    MINIMUM = 10
-    MOD = 11
-    MULTIPLY = 12
-    NOT_EQUAL = 13
-    POWER = 14
-    SUBTRACT = 15
-    ALLCLOSE = 16
+    LOGICAL_AND = 9
+    LOGICAL_OR = 10
+    LOGICAL_XOR = 11
+    MAXIMUM = 12
+    MINIMUM = 13
+    MOD = 14
+    MULTIPLY = 15
+    NOT_EQUAL = 16
+    POWER = 17
+    SUBTRACT = 18
+    ALLCLOSE = 19
 
 
 @unique

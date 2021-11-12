@@ -378,7 +378,9 @@ class ndarray(object):
 
     def __and__(self, rhs):
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        return self.perform_binary_op(BinaryOpCode.LOGICAL_AND, rhs_array)
+        return self.perform_binary_op(
+            BinaryOpCode.LOGICAL_AND, self, rhs_array
+        )
 
     def __array__(self, dtype=None, stacklevel=1):
         if dtype is None:
@@ -710,6 +712,10 @@ class ndarray(object):
 
     def __nonzero__(self):
         return self.__array__(stacklevel=2).__nonzero__()
+
+    def __or__(self, rhs):
+        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
+        return self.perform_binary_op(BinaryOpCode.LOGICAL_OR, self, rhs_array)
 
     def __pos__(self):
         # We know these types are already positive

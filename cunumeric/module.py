@@ -833,6 +833,90 @@ def less_equal(
     )
 
 
+@copy_docstring(np.logical_and)
+def logical_and(
+    a, b, out=None, where=True, dtype=np.dtype(np.bool), stacklevel=1
+):
+    a_array = ndarray.convert_to_cunumeric_ndarray(
+        a, stacklevel=(stacklevel + 1)
+    )
+    b_array = ndarray.convert_to_cunumeric_ndarray(
+        b, stacklevel=(stacklevel + 1)
+    )
+    where = ndarray.convert_to_predicate_ndarray(
+        where, stacklevel=(stacklevel + 1)
+    )
+    if out is not None:
+        out = ndarray.convert_to_cunumeric_ndarray(
+            out, stacklevel=(stacklevel + 1), share=True
+        )
+    return ndarray.perform_binary_op(
+        BinaryOpCode.LOGICAL_AND,
+        a_array,
+        b_array,
+        out=out,
+        out_dtype=dtype,
+        where=where,
+        stacklevel=(stacklevel + 1),
+    )
+
+
+@copy_docstring(np.logical_or)
+def logical_or(
+    a, b, out=None, where=True, dtype=np.dtype(np.bool), stacklevel=1
+):
+    a_array = ndarray.convert_to_cunumeric_ndarray(
+        a, stacklevel=(stacklevel + 1)
+    )
+    b_array = ndarray.convert_to_cunumeric_ndarray(
+        b, stacklevel=(stacklevel + 1)
+    )
+    where = ndarray.convert_to_predicate_ndarray(
+        where, stacklevel=(stacklevel + 1)
+    )
+    if out is not None:
+        out = ndarray.convert_to_cunumeric_ndarray(
+            out, stacklevel=(stacklevel + 1), share=True
+        )
+    return ndarray.perform_binary_op(
+        BinaryOpCode.LOGICAL_OR,
+        a_array,
+        b_array,
+        out=out,
+        out_dtype=dtype,
+        where=where,
+        stacklevel=(stacklevel + 1),
+    )
+
+
+@copy_docstring(np.logical_xor)
+def logical_xor(
+    a, b, out=None, where=True, dtype=np.dtype(np.bool), stacklevel=1
+):
+    a_array = ndarray.convert_to_cunumeric_ndarray(
+        a, stacklevel=(stacklevel + 1)
+    )
+    b_array = ndarray.convert_to_cunumeric_ndarray(
+        b, stacklevel=(stacklevel + 1)
+    )
+    where = ndarray.convert_to_predicate_ndarray(
+        where, stacklevel=(stacklevel + 1)
+    )
+    if out is not None:
+        out = ndarray.convert_to_cunumeric_ndarray(
+            out, stacklevel=(stacklevel + 1), share=True
+        )
+    return ndarray.perform_binary_op(
+        BinaryOpCode.LOGICAL_XOR,
+        a_array,
+        b_array,
+        out=out,
+        out_dtype=dtype,
+        where=where,
+        stacklevel=(stacklevel + 1),
+    )
+
+
 @copy_docstring(np.not_equal)
 def not_equal(
     a, b, out=None, where=True, dtype=np.dtype(np.bool), stacklevel=1

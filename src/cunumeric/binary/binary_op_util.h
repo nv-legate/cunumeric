@@ -29,6 +29,9 @@ enum class BinaryOpCode : int {
   GREATER_EQUAL,
   LESS,
   LESS_EQUAL,
+  LOGICAL_AND,
+  LOGICAL_OR,
+  LOGICAL_XOR,
   MAXIMUM,
   MINIMUM,
   MOD,
@@ -59,6 +62,12 @@ constexpr decltype(auto) op_dispatch(BinaryOpCode op_code, Functor f, Fnargs&&..
       return f.template operator()<BinaryOpCode::LESS>(std::forward<Fnargs>(args)...);
     case BinaryOpCode::LESS_EQUAL:
       return f.template operator()<BinaryOpCode::LESS_EQUAL>(std::forward<Fnargs>(args)...);
+    case BinaryOpCode::LOGICAL_AND:
+      return f.template operator()<BinaryOpCode::LOGICAL_AND>(std::forward<Fnargs>(args)...);
+    case BinaryOpCode::LOGICAL_OR:
+      return f.template operator()<BinaryOpCode::LOGICAL_OR>(std::forward<Fnargs>(args)...);
+    case BinaryOpCode::LOGICAL_XOR:
+      return f.template operator()<BinaryOpCode::LOGICAL_XOR>(std::forward<Fnargs>(args)...);
     case BinaryOpCode::MAXIMUM:
       return f.template operator()<BinaryOpCode::MAXIMUM>(std::forward<Fnargs>(args)...);
     case BinaryOpCode::MINIMUM:
@@ -144,7 +153,8 @@ struct BinaryOp<BinaryOpCode::GREATER, CODE> : std::greater<legate::legate_type_
 };
 
 template <legate::LegateTypeCode CODE>
-struct BinaryOp<BinaryOpCode::GREATER_EQUAL, CODE> : std::greater_equal<legate::legate_type_of<CODE>> {
+struct BinaryOp<BinaryOpCode::GREATER_EQUAL, CODE>
+  : std::greater_equal<legate::legate_type_of<CODE>> {
   static constexpr bool valid = true;
   BinaryOp(const std::vector<legate::Store>& args) {}
 };
@@ -159,6 +169,64 @@ template <legate::LegateTypeCode CODE>
 struct BinaryOp<BinaryOpCode::LESS_EQUAL, CODE> : std::less_equal<legate::legate_type_of<CODE>> {
   static constexpr bool valid = true;
   BinaryOp(const std::vector<legate::Store>& args) {}
+};
+
+template <legate::LegateTypeCode CODE>
+struct BinaryOp<BinaryOpCode::LOGICAL_AND, CODE> {
+  using T                     = legate::legate_type_of<CODE>;
+  static constexpr bool valid = true;
+  BinaryOp(const std::vector<legate::Store>& args) {}
+
+  template <typename _T = T, std::enable_if_t<legate::is_complex<_T>::value>* = nullptr>
+  constexpr bool operator()(const _T& a, const _T& b) const
+  {
+    return static_cast<bool>(a.real()) && static_cast<bool>(b.real());
+  }
+
+  template <typename _T = T, std::enable_if_t<!legate::is_complex<_T>::value>* = nullptr>
+  constexpr bool operator()(const _T& a, const _T& b) const
+  {
+    return static_cast<bool>(a) && static_cast<bool>(b);
+  }
+};
+
+template <legate::LegateTypeCode CODE>
+struct BinaryOp<BinaryOpCode::LOGICAL_OR, CODE> {
+  using T                     = legate::legate_type_of<CODE>;
+  static constexpr bool valid = true;
+
+  BinaryOp(const std::vector<legate::Store>& args) {}
+
+  template <typename _T = T, std::enable_if_t<legate::is_complex<_T>::value>* = nullptr>
+  constexpr bool operator()(const _T& a, const _T& b) const
+  {
+    return static_cast<bool>(a.real()) || static_cast<bool>(b.real());
+  }
+
+  template <typename _T = T, std::enable_if_t<!legate::is_complex<_T>::value>* = nullptr>
+  constexpr bool operator()(const _T& a, const _T& b) const
+  {
+    return static_cast<bool>(a) || static_cast<bool>(b);
+  }
+};
+
+template <legate::LegateTypeCode CODE>
+struct BinaryOp<BinaryOpCode::LOGICAL_XOR, CODE> {
+  using T                     = legate::legate_type_of<CODE>;
+  static constexpr bool valid = true;
+  BinaryOp(const std::vector<legate::Store>& args) {}
+
+  template <typename _T = T, std::enable_if_t<legate::is_complex<_T>::value>* = nullptr>
+  constexpr bool operator()(const _T& a, const _T& b) const
+  {
+    return static_cast<bool>(a.real()) != static_cast<bool>(b.real());
+  }
+
+  template <typename _T = T, std::enable_if_t<!legate::is_complex<_T>::value>* = nullptr>
+  constexpr bool operator()(const _T& a, const _T& b) const
+  {
+    return static_cast<bool>(a) != static_cast<bool>(b);
+  }
 };
 
 template <legate::LegateTypeCode CODE>
