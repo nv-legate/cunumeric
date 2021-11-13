@@ -2132,7 +2132,7 @@ class ndarray(object):
             if one.dtype != two.dtype:
                 common_type = cls.find_common_type(one, two)
                 if one.dtype != common_type:
-                    if one.shape==():
+                    if False and one.shape==():
                         temp = ndarray(
                             shape=one.shape,
                             dtype=common_type, 
@@ -2152,7 +2152,7 @@ class ndarray(object):
                         )
                     one = temp
                 if two.dtype != common_type:
-                    if two.shape==():
+                    if False and two.shape==():
                         temp = ndarray(
                             shape=two.shape,
                             dtype=common_type, 

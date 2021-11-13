@@ -64,9 +64,9 @@ def cnd(d):
 
 def black_scholes(S, X, T, R, V):
     sqrt_t = np.sqrt(T)
-    sqrt_t = np.sqrt(T)
-    sqrt_t = np.sqrt(T)
-    sqrt_t = np.sqrt(T)
+    #sqrt_t = np.sqrt(T)
+    #sqrt_t = np.sqrt(T)
+    #sqrt_t = np.sqrt(T)
     d1 = np.log(S / X) + (R + 0.5 * V * V) * T / (V * sqrt_t)
     d2 = d1 - V * sqrt_t
     cnd_d1 = cnd(d1)
@@ -85,9 +85,9 @@ def run_black_scholes(N, D):
     call, put = black_scholes(S, X, T, R, V)
     # Check the result for NaNs to synchronize before stopping timing
     call_sum = np.sum(call)
-    call_sum2 = np.sum(call)
+   # call_sum2 = np.sum(call)
     put_sum = np.sum(put)
-    put_sum2 = np.sum(put)
+   # put_sum2 = np.sum(put)
     #print(call_sum, put_sum)
     #print(call_sum2, put_sum2)
     assert not math.isnan(call_sum) and not math.isnan(put_sum)

@@ -156,32 +156,7 @@ void packOp(MakeshiftSerializer& ms, TaskContext& context, int opID)
   {
       ms.zero(); //reset the serializer, but keep the memory
       packOp(ms, context, i);
-     /*
-      TaskLauncher leaf_launcher(opIDs[i], TaskArgument(ms.ptr(), ms.buffSize())); 
-      leaf_launcher.enable_inlining=true;
-      leaf_launcher.point = context.task_->index_point;
-      //add appropriate region requirements for this op
-      std::vector<int32_t> reqIds = ms.getReqIds();
-      for (int32_t reqIdx : reqIds)
-      {
-          auto& req = context.task_->regions[reqIdx];
-          leaf_launcher.add_region_requirement(req);
-      } 
-      //add appropriate futures
-      auto futureStarts = context.fusionMetadata.futureStarts;
-      for (int32_t fuid = futureStarts[i]; fuid<futureStarts[i+1]; fuid++)
-      {
-          auto& f = context.task_->futures[fuid];
-          leaf_launcher.add_future(f);
-      } 
-
-      */
       std::vector<Legion::PhysicalRegion> regions;
-      //for (int k : reqIds)
-      {
-          //regions.push_back(context.regions_[k]);
-      }     
-
       //context.runtime_->execute_task(context.context_, leaf_launcher);
 
       //create new context
@@ -235,7 +210,6 @@ void packOp(MakeshiftSerializer& ms, TaskContext& context, int opID)
       }
 
       //pack scalars
-      //std::vector<Scalar> scalars;
       std::vector<Scalar> scalars;
       auto scalarStarts = context.fusionMetadata.scalarStarts;
       int32_t nScalars = (scalarStarts[i+1]-scalarStarts[i]);
@@ -243,12 +217,6 @@ void packOp(MakeshiftSerializer& ms, TaskContext& context, int opID)
       {  
         scalars.push_back(std::move(context.scalars()[scalarStarts[i]+j]));
       }
-
-      /*
-      std::vector<Store> outputs;
-      outputs.push_back(std::move(context.outputs()[i+0]));
-      */
-      //scalars.push_back(std::move(context.scalars()[i+0]));
 
       TaskContext context3(task, (const std::vector<Legion::PhysicalRegion>) regions);// inputs, outputs, scalars);
       context3.inputs_ = std::move(inputs);
@@ -259,18 +227,7 @@ void packOp(MakeshiftSerializer& ms, TaskContext& context, int opID)
       auto descp = Core::cpuDescriptors.find(opIDs[i]);
       auto desc = descp->second;
       desc(context3);
-
-      //move it back??
-      //context.outputs_[i] = std::move(context3.outputs_[i]);
-     
-      //binary_op_template<VariantKind::CPU>(context);
-    //gettimeofday(&start, NULL);
-      //gettimeofday(&end, NULL);
- // printf("%ld\n", ((end.tv_sec * 1000000 + end.tv_usec)
-//		  - (start.tv_sec * 1000000 + start.tv_usec)));
   }
-  
-
 }
 
 namespace  // unnamed

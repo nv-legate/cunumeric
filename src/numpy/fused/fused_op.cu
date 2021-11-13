@@ -87,6 +87,7 @@ struct BinaryOpImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
       auto inputStarts = context.fusionMetadata.inputStarts;
       auto outputStarts = context.fusionMetadata.outputStarts;
       auto offsetStarts = context.fusionMetadata.offsetStarts;
+      auto reductionStarts = context.fusionMetadata.reductionStarts;
       unsigned nInputs = (inputStarts[i+1]-inputStarts[i]); //want to pack this as a 32 bit uint 
       for (unsigned j = 0; j<nInputs; j++)
       {
@@ -110,6 +111,24 @@ struct BinaryOpImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
               outputs.push_back(std::move(output));
       }
 
+      //pack reductions
+      std::vector<Store> reductions;
+      int32_t nReductions = (reductionStarts[i+1]-reductionStarts[i]);
+      for (unsigned j = 0; j<nReductions; j++)
+      {
+          int offsetStart = offsetStarts[i];
+          int reductionStart = reductionStarts[i];
+          int bufferID = offsets[offsetStart+nInputs+nOutputs+j];
+          //all buffer ids are 1 -indexed
+          //negative id is an output, while a positive id is an output
+          if (bufferID<0) 
+          {
+              bufferID = (-bufferID)-1;
+              Store& reduction = context.reductions()[reductionStart+bufferID];
+              reductions.push_back(std::move(reduction));
+          }
+      }
+
       //pack scalars
       //std::vector<Scalar> scalars;
       auto scalarStarts = context.fusionMetadata.scalarStarts;
@@ -120,15 +139,11 @@ struct BinaryOpImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
           scalars.push_back(std::move(context.scalars()[scalarStarts[i]+j]));
       }
 
-      /*
-      std::vector<Store> outputs;
-      outputs.push_back(std::move(context.outputs()[i+0]));
-      */
-      //scalars.push_back(std::move(context.scalars()[i+0]));
 
       TaskContext context3(task, (const std::vector<Legion::PhysicalRegion>) regions);// inputs, outputs, scalars);
       context3.inputs_ = std::move(inputs);
       context3.outputs_ = std::move(outputs); 
+      context3.reductions_ = std::move(reductions);
       context3.scalars_ = std::move(scalars);
 
       //launch
@@ -136,7 +151,6 @@ struct BinaryOpImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
       auto desc = descp->second;
       desc(context3);
   }
-  //binary_op_template<VariantKind::GPU>(context);
 }
 
 }  // namespace numpy
