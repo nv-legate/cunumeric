@@ -15,49 +15,50 @@
 
 import numpy as np
 
-import legate.numpy as lg
+import cunumeric as num
 
 
 def test(ty):
-    a = lg.random.rand(3, 5, 4).astype(ty)
-    b = lg.random.rand(4, 5, 3).astype(ty)
+    rtol=2e-03 if ty == np.float16 else 1e-05
+    a = num.random.rand(3, 5, 4).astype(ty)
+    b = num.random.rand(4, 5, 3).astype(ty)
 
     cn = np.tensordot(a, b, axes=1)
-    c = lg.tensordot(a, b, axes=1)
+    c = num.tensordot(a, b, axes=1)
 
-    assert np.allclose(cn, c)
+    assert np.allclose(cn, c, rtol=rtol)
 
-    a = lg.random.rand(3, 5, 4).astype(ty)
-    b = lg.random.rand(5, 4, 3).astype(ty)
+    a = num.random.rand(3, 5, 4).astype(ty)
+    b = num.random.rand(5, 4, 3).astype(ty)
 
     cn = np.tensordot(a, b)
-    c = lg.tensordot(a, b)
+    c = num.tensordot(a, b)
 
-    assert np.allclose(cn, c)
+    assert np.allclose(cn, c, rtol=rtol)
 
-    a = lg.arange(60.0).reshape((3, 4, 5)).astype(ty)
-    b = lg.arange(24.0).reshape((4, 3, 2)).astype(ty)
+    a = num.arange(60.0).reshape((3, 4, 5)).astype(ty)
+    b = num.arange(24.0).reshape((4, 3, 2)).astype(ty)
 
     cn = np.tensordot(a, b, axes=([1, 0], [0, 1]))
-    c = lg.tensordot(a, b, axes=([1, 0], [0, 1]))
+    c = num.tensordot(a, b, axes=([1, 0], [0, 1]))
 
-    assert np.allclose(cn, c)
+    assert np.allclose(cn, c, rtol=rtol)
 
-    a = lg.random.rand(5, 4).astype(ty)
-    b = lg.random.rand(4, 5).astype(ty)
+    a = num.random.rand(5, 4).astype(ty)
+    b = num.random.rand(4, 5).astype(ty)
 
     cn = np.tensordot(a, b, axes=1)
-    c = lg.tensordot(a, b, axes=1)
+    c = num.tensordot(a, b, axes=1)
 
-    assert np.allclose(cn, c)
+    assert np.allclose(cn, c, rtol=rtol)
 
-    a = lg.random.rand(5, 4).astype(ty)
-    b = lg.random.rand(5, 4).astype(ty)
+    a = num.random.rand(5, 4).astype(ty)
+    b = num.random.rand(5, 4).astype(ty)
 
     cn = np.tensordot(a, b)
-    c = lg.tensordot(a, b)
+    c = num.tensordot(a, b)
 
-    assert np.allclose(cn, c)
+    assert np.allclose(cn, c, rtol=rtol)
 
 
 if __name__ == "__main__":

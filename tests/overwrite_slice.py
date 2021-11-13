@@ -15,23 +15,23 @@
 
 import numpy as np
 
-import legate.numpy as lg
+import cunumeric as num
 
 
 def test():
-    x = lg.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
-    x[0:5] = lg.array([11, 12, 13, 14, 15])
-    x[5:10] = lg.array([16, 17, 18, 19, 20])
-    x[4:8] = lg.array([21, 22, 23, 24])
+    x = num.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+    x[0:5] = num.array([11, 12, 13, 14, 15])
+    x[5:10] = num.array([16, 17, 18, 19, 20])
+    x[4:8] = num.array([21, 22, 23, 24])
     assert np.array_equal(x[5:10], [22, 23, 24, 19, 20])
     assert np.array_equal(x, [11, 12, 13, 14, 21, 22, 23, 24, 19, 20])
 
     anp = np.zeros((5, 6))
     bnp = np.random.random((5, 4))
     cnp = np.random.random((5, 2))
-    a = lg.zeros((5, 6))
-    b = lg.array(bnp)
-    c = lg.array(cnp)
+    a = num.zeros((5, 6))
+    b = num.array(bnp)
+    c = num.array(cnp)
     a[:, :4] = b
     a[:, 0] = 1
     a[:, 3:5] = c
@@ -43,9 +43,9 @@ def test():
     dnp = np.random.random((2, 3, 4))
     enp = np.random.random((2, 3, 4))
     fnp = np.random.random((3, 2))
-    d = lg.array(dnp)
-    e = lg.array(enp)
-    f = lg.array(fnp)
+    d = num.array(dnp)
+    e = num.array(enp)
+    f = num.array(fnp)
     d[1, :, 0] = 1
     d[1, :, 1:3] = f
     d[0] = e[1]
@@ -54,14 +54,14 @@ def test():
     dnp[0] = enp[1]
     assert np.array_equal(d, dnp)
 
-    anp = lg.random.random((3, 3))
+    anp = num.random.random((3, 3))
     a = anp.__array__()
 
     anp[:, 0] = anp[:, 1]
     a[:, 0] = a[:, 1]
     assert np.array_equal(anp, a)
 
-    anp = lg.random.random((3, 3))
+    anp = num.random.random((3, 3))
     a = anp.__array__()
 
     anp[:, 0:2] = anp[:, 1:3]

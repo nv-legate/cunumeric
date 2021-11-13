@@ -204,8 +204,8 @@ def find_c_define(define, header):
     return False
 
 
-def build_legate_numpy(
-    legate_numpy_dir,
+def build_cunumeric(
+    cunumeric_dir,
     install_dir,
     openblas_dir,
     cmake,
@@ -219,10 +219,10 @@ def build_legate_numpy(
     verbose,
     unknown,
 ):
-    src_dir = os.path.join(legate_numpy_dir, "src")
+    src_dir = os.path.join(cunumeric_dir, "src")
     if cmake:
         print(
-            "Warning: CMake is currently not supported for Legate NumPy build."
+            "Warning: CMake is currently not supported for cuNumeric build."
         )
         print("Using GNU Make for now.")
 
@@ -256,7 +256,7 @@ def build_legate_numpy(
         )
 
     try:
-        shutil.rmtree(os.path.join(legate_numpy_dir, "build"))
+        shutil.rmtree(os.path.join(cunumeric_dir, "build"))
     except FileNotFoundError:
         pass
 
@@ -267,10 +267,10 @@ def build_legate_numpy(
             cmd += ["--prefix", str(install_dir)]
     else:
         cmd += ["--prefix", str(install_dir)]
-    execute_command(cmd, cwd=legate_numpy_dir, verbose=verbose)
+    execute_command(cmd, cwd=cunumeric_dir, verbose=verbose)
 
 
-def install_legate_numpy(
+def install_cunumeric(
     cmake,
     cmake_exe,
     legate_dir,
@@ -301,16 +301,16 @@ def install_legate_numpy(
         print("verbose: ", verbose, "\n")
         print("unknown: ", unknown, "\n")
 
-    legate_numpy_dir = os.path.dirname(os.path.realpath(__file__))
+    cunumeric_dir = os.path.dirname(os.path.realpath(__file__))
 
-    cmake_config = os.path.join(legate_numpy_dir, ".cmake.json")
+    cmake_config = os.path.join(cunumeric_dir, ".cmake.json")
     dump_json_config(cmake_config, cmake)
 
     if thread_count is None:
         thread_count = multiprocessing.cpu_count()
 
     # Check to see if we installed Legate Core
-    legate_config = os.path.join(legate_numpy_dir, ".legate.core.json")
+    legate_config = os.path.join(cunumeric_dir, ".legate.core.json")
     if "LEGATE_DIR" in os.environ:
         legate_dir = os.environ["LEGATE_DIR"]
     elif legate_dir is None:
@@ -352,7 +352,7 @@ def install_legate_numpy(
             )
             thrust_dir = json.load(f)
         except (FileNotFoundError, json.JSONDecodeError):
-            thrust_config = os.path.join(legate_numpy_dir, ".thrust.json")
+            thrust_config = os.path.join(cunumeric_dir, ".thrust.json")
             if "THRUST_PATH" in os.environ:
                 thrust_dir = os.environ["THRUST_PATH"]
             elif thrust_dir is None:
@@ -371,8 +371,8 @@ def install_legate_numpy(
         "-I" + thrust_dir + " " + os.environ.get("NVCC_FLAGS", "")
     )
 
-    build_legate_numpy(
-        legate_numpy_dir,
+    build_cunumeric(
+        cunumeric_dir,
         legate_dir,
         openblas_dir,
         cmake,
@@ -389,14 +389,14 @@ def install_legate_numpy(
 
 
 def driver():
-    parser = argparse.ArgumentParser(description="Install Legate NumPy.")
+    parser = argparse.ArgumentParser(description="Install cuNumeric.")
     parser.add_argument(
         "--debug",
         dest="debug",
         action="store_true",
         required=False,
         default=os.environ.get("DEBUG", "0") == "1",
-        help="Build Legate NumPy with no optimizations.",
+        help="Build cuNumeric with no optimizations.",
     )
     parser.add_argument(
         "--debug-release",
@@ -404,7 +404,7 @@ def driver():
         action="store_true",
         required=False,
         default=os.environ.get("DEBUG_RELEASE", "0") == "1",
-        help="Build Legate NumPy with optimizations, but include debugging "
+        help="Build cuNumeric with optimizations, but include debugging "
         "symbols.",
     )
     parser.add_argument(
@@ -413,7 +413,7 @@ def driver():
         action="store_true",
         required=False,
         default=False,
-        help="Build Legate NumPy with bounds checks.",
+        help="Build cuNumeric with bounds checks.",
     )
     parser.add_argument(
         "--with-core",
@@ -430,7 +430,7 @@ def driver():
         default=os.environ.get("OPEN_BLAS_DIR"),
         help="Path to OpenBLAS installation directory. Note that providing a "
         "user-defined BLAS library may lead to dynamic library conflicts with "
-        "BLAS loaded by Python's Numpy. When using legate.numpy's BLAS, this "
+        "BLAS loaded by Python's Numpy. When using cuNumeric's BLAS, this "
         "issue is prevented by a custom library name.",
     )
     parser.add_argument(
@@ -444,7 +444,7 @@ def driver():
         "--cmake",
         action=BooleanFlag,
         default=os.environ.get("USE_CMAKE", "0") == "1",
-        help="Build Legate NumPy with CMake instead of GNU Make.",
+        help="Build cuNumeric with CMake instead of GNU Make.",
     )
     parser.add_argument(
         "--with-cmake",
@@ -488,7 +488,7 @@ def driver():
     )
     args, unknown = parser.parse_known_args()
 
-    install_legate_numpy(unknown=unknown, **vars(args))
+    install_cunumeric(unknown=unknown, **vars(args))
 
 
 if __name__ == "__main__":

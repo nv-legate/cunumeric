@@ -22,7 +22,7 @@ import datetime
 
 from benchmark import run_benchmark
 
-import legate.numpy as np
+import cunumeric as np
 
 
 # This is technically dead code right now, but we'll keep it around in

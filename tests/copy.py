@@ -15,16 +15,16 @@
 
 import numpy as np
 
-import legate.numpy as lg
+import cunumeric as num
 
 
 def test():
-    x = lg.array([[1, 2, 3], [4, 5, 6]])
-    y = lg.array([[7, 8, 9], [10, 11, 12]])
+    x = num.array([[1, 2, 3], [4, 5, 6]])
+    y = num.array([[7, 8, 9], [10, 11, 12]])
     xc = x.copy()
     yc = y.copy()
     x[0, :] = [7, 8, 9]
-    y = lg.array([[10, 12, 13], [25, 26, 27]])
+    y = num.array([[10, 12, 13], [25, 26, 27]])
     w = x + y
     wc = xc + yc
     assert np.array_equal(w, [[17, 20, 22], [29, 31, 33]])

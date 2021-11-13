@@ -17,7 +17,7 @@ from __future__ import division
 
 import numpy as np
 
-import legate.numpy as lg
+import cunumeric as num
 
 M = 32
 alpha = 4.0
@@ -26,13 +26,13 @@ rate = 0.01
 
 
 def test():
-    x = lg.linspace(-4.0, 4.0, M)
+    x = num.linspace(-4.0, 4.0, M)
     dz = 1.0 + 1j * rate * (12 * x ** 2 + 2 * alpha)
 
     xn = np.linspace(-4.0, 4.0, M)
     dzn = 1.0 + 1j * rate * (12 * xn ** 2 + 2 * alpha)
 
-    assert lg.all(lg.abs(dz - dzn) < 1e-6)
+    assert num.all(num.abs(dz - dzn) < 1e-6)
 
 
 if __name__ == "__main__":

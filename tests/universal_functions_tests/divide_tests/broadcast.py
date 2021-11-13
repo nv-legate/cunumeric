@@ -17,19 +17,19 @@ import random
 
 import numpy as np
 
-import legate.numpy as lg
+import cunumeric as num
 
 
 def test():
     anp = np.random.randn(4, 5)
     b = random.randint(1, 13)
-    a = lg.array(anp)
+    a = num.array(anp)
 
     # test divide with scalar on rhs
-    assert np.array_equal(lg.divide(a, b), np.divide(anp, b))
+    assert np.array_equal(num.divide(a, b), np.divide(anp, b))
 
     # test divide with scalar on lhs
-    assert np.array_equal(lg.divide(b, a), np.divide(b, anp))
+    assert np.array_equal(num.divide(b, a), np.divide(b, anp))
 
     return
 

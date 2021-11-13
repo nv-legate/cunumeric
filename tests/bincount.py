@@ -15,25 +15,25 @@
 
 import numpy as np
 
-import legate.numpy as lg
+import cunumeric as num
 
 
 def test(n):
     for dtype in [np.int64, np.int32, np.int16]:
         print(dtype)
-        v_lg = lg.random.randint(0, 9, size=n, dtype=dtype)
-        w_lg = lg.random.randn(n)
+        v_num = num.random.randint(0, 9, size=n, dtype=dtype)
+        w_num = num.random.randn(n)
 
-        v_np = v_lg.__array__()
-        w_np = w_lg.__array__()
+        v_np = v_num.__array__()
+        w_np = w_num.__array__()
 
         out_np = np.bincount(v_np)
-        out_lg = lg.bincount(v_lg)
-        assert lg.array_equal(out_np, out_lg)
+        out_num = num.bincount(v_num)
+        assert num.array_equal(out_np, out_num)
 
         out_np = np.bincount(v_np, weights=w_np)
-        out_lg = lg.bincount(v_lg, weights=w_lg)
-        assert lg.allclose(out_np, out_lg)
+        out_num = num.bincount(v_num, weights=w_num)
+        assert num.allclose(out_np, out_num)
 
     return
 

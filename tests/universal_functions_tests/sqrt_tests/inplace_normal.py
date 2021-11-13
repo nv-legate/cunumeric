@@ -15,25 +15,25 @@
 
 import numpy as np
 
-import legate.numpy as lg
+import cunumeric as num
 
 
 def test():
     npa = np.array([1.0, 4.0, 9.0])
-    a = lg.array(npa)
-    assert np.array_equal(lg.sqrt(a, out=a), np.sqrt(npa, out=npa))
+    a = num.array(npa)
+    assert np.array_equal(num.sqrt(a, out=a), np.sqrt(npa, out=npa))
 
     npa = np.array([1.0, 4.0, 9.0], dtype=np.float)
-    a = lg.array(npa)
-    assert np.array_equal(lg.sqrt(a, out=a), np.sqrt(npa, out=npa))
+    a = num.array(npa)
+    assert np.array_equal(num.sqrt(a, out=a), np.sqrt(npa, out=npa))
 
     npa = np.array([1.0, 4.0, 9.0], dtype=np.float32)
-    a = lg.array(npa)
-    assert np.array_equal(lg.sqrt(a, out=a), np.sqrt(npa, out=npa))
+    a = num.array(npa)
+    assert np.array_equal(num.sqrt(a, out=a), np.sqrt(npa, out=npa))
 
     npa = np.array([1.0, 4.0, 9.0], dtype=np.float64)
-    a = lg.array(npa)
-    assert np.array_equal(lg.sqrt(a, out=a), np.sqrt(npa, out=npa))
+    a = num.array(npa)
+    assert np.array_equal(num.sqrt(a, out=a), np.sqrt(npa, out=npa))
 
     return
 
