@@ -173,6 +173,10 @@ struct ContractImplBody<VariantKind::OMP, LegateTypeCode::COMPLEX128_LT> {
 
 /*static*/ void ContractTask::omp_variant(legate::TaskContext& context)
 {
+  std::stringstream ss;
+  ss << omp_get_max_threads();
+  std::string str = ss.str();
+  setenv("TBLIS_NUM_THREADS", str.data(), false /*overwrite*/);
   contract_template<VariantKind::OMP>(context);
 }
 
