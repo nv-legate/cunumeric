@@ -14,13 +14,13 @@
  *
  */
 
-#include "cunumeric/binary/binary_op_util.h"
+#include "cunumeric/fused/binary_op_util.h"
 #include "cunumeric/pitches.h"
 
-namespace legate {
 namespace cunumeric {
 
 using namespace Legion;
+using namespace legate;
 
 template <VariantKind KIND, BinaryOpCode OP_CODE, LegateTypeCode CODE, int DIM>
 struct BinaryOpImplBody;
@@ -42,10 +42,6 @@ struct BinaryOpImpl {
     size_t volume = pitches.flatten(rect);
 
     if (volume == 0) return;
-    std::cout<<"rect1 "<<rect<<std::endl;
-    std::cout<<"shape1 "<< args.in1.shape<DIM>()<<std::endl;
-    std::cout<<"shape2 "<< args.in2.shape<DIM>()<<std::endl;
-
 
     auto out = args.out.write_accessor<RES, DIM>(rect);
     auto in1 = args.in1.read_accessor<ARG, DIM>(rect);
@@ -86,7 +82,6 @@ struct BinaryOpDispatch {
 template <VariantKind KIND>
 static void binary_op_template(TaskContext& context)
 {
-  /*
   auto& inputs  = context.inputs();
   auto& outputs = context.outputs();
   auto& scalars = context.scalars();
@@ -97,55 +92,6 @@ static void binary_op_template(TaskContext& context)
   BinaryOpArgs args{
     inputs[0], inputs[1], outputs[0], scalars[0].value<BinaryOpCode>(), std::move(extra_args)};
   op_dispatch(args.op_code, BinaryOpDispatch<KIND>{}, args);
-  */
-  auto& inputs  = context.inputs();
-  auto& outputs = context.outputs();
-  auto& scalars = context.scalars();
-/*
-  std::vector<UntypedScalar> extra_args;
-  for (size_t idx = 2; idx < inputs.size(); ++idx)
-    extra_args.push_back(inputs[idx].scalar<UntypedScalar>());
-   std::cout<<"extra args size"<<extra_args.size()<<std::endl;
-  BinaryOpArgs args{
-    inputs[0], inputs[1], outputs[0], scalars[0].value<BinaryOpCode>(), std::move(extra_args)};
-  op_dispatch(args.op_code, BinaryOpDispatch<KIND>{}, args);
-*/
-  //std::cout<<"fused inputs"<<inputs.size()<<std::endl;
-  int nOps = scalars.size();// inputs[0].shape<1>().hi.x;
-  //std::cout<<"nops "<<nOps<<std::endl;
-
-  for (int i=0; i<scalars.size(); i++)
-  {
-    auto opcode = scalars[i].value<BinaryOpCode>();
-    auto opcode_i = static_cast<std::underlying_type<BinaryOpCode>::type>(opcode);
-    //std::cout<<"opcode "<<opcode_i<<std::endl;
-  }
-  for (int i=0; i<4; i++)
-  {
-    //std::cout<<inputs[i].shape<1>().lo.x<<" "<<inputs[i].shape<1>().hi.x<<std::endl;
-  }
-  std::vector<Store> extra_args;
-  //for (size_t idx = 3; idx < inputs.size(); ++idx)
-  //  extra_args.push_back(inputs[idx].scalar<UntypedScalar>());
-
-  int inputStart=0;
-  int outputStart=0;
- 
-  for (int i=0; i<nOps; i++)
-  {
-    std::cout<<"domains"<<std::endl;
-    std::cout<<inputs[inputStart+0].domain()<<std::endl;
-    std::cout<<inputs[inputStart+1].domain()<<std::endl;
-    BinaryOpArgs args{
-      inputs[inputStart+0], inputs[inputStart+1], outputs[outputStart],  scalars[outputStart].value<BinaryOpCode>(), std::move(extra_args)};
-    std::cout<<"dispatching  "<<i<<std::endl;
-    op_dispatch(args.op_code, BinaryOpDispatch<KIND>{}, args);
-    inputStart+=2;
-    outputStart+=1;
-  }
-
-
 }
 
-}  // namespace numpy
-}  // namespace legate
+}  // namespace cunumeric

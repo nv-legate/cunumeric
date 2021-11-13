@@ -17,19 +17,16 @@
 #pragma once
 
 #include "cunumeric/cunumeric.h"
-#include "cunumeric/binary/binary_op_util.h"
+#include "cunumeric/fused/binary_op_util.h"
 
-
-namespace legate {
 namespace cunumeric {
 
 struct BinaryOpArgs {
-  //const Array& in1;
- // const Array& in2;
-  //const Array& out;
- // BinaryOpCode op_code;
- // std::vector<Store> args;
- int a;
+  const Array& in1;
+  const Array& in2;
+  const Array& out;
+  BinaryOpCode op_code;
+  std::vector<legate::Store> args;
 };
 
 class FusedOpTask : public CuNumericTask<FusedOpTask> {
@@ -37,14 +34,13 @@ class FusedOpTask : public CuNumericTask<FusedOpTask> {
   static const int TASK_ID = CUNUMERIC_FUSED_OP;
 
  public:
-  static void cpu_variant(TaskContext& context);
+  static void cpu_variant(legate::TaskContext& context);
 #ifdef LEGATE_USE_OPENMP
-  static void omp_variant(TaskContext& context);
+  static void omp_variant(legate::TaskContext& context);
 #endif
 #ifdef LEGATE_USE_CUDA
-  static void gpu_variant(TaskContext& context);
+  static void gpu_variant(legate::TaskContext& context);
 #endif
 };
 
 }  // namespace cunumeric
-}  // namespace legate

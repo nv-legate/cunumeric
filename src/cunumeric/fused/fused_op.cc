@@ -24,10 +24,10 @@
 #include <time.h>
 #include <sys/time.h>
 
-namespace legate {
-namespace cunmeric {
+namespace cunumeric {
 
 using namespace Legion;
+using namespace legate;
 
 template <BinaryOpCode OP_CODE, LegateTypeCode CODE, int DIM>
 struct BinaryOpImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
@@ -59,7 +59,7 @@ struct BinaryOpImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
 };
 
 
-
+/*
 //op id refers not to the op's type, but the index in the list of fused ops
 void packOp(MakeshiftSerializer& ms, TaskContext& context, int opID)
 {
@@ -127,17 +127,17 @@ void packOp(MakeshiftSerializer& ms, TaskContext& context, int opID)
       ms.packScalar(context.scalars()[scalarStarts[opID]+i]);
   }
 }
-
+*/
 /*static*/ void FusedOpTask::cpu_variant(TaskContext& context)
 {
   int nOps = context.fusionMetadata.nOps;
-  MakeshiftSerializer ms;
+  legate::MakeshiftSerializer ms;
   auto opIDs = context.fusionMetadata.opIDs;
   auto offsets = context.fusionMetadata.offsets;
   for (int i=0; i<nOps; i++)
   {
       ms.zero(); //reset the serializer, but keep the memory
-      packOp(ms, context, i);
+      //packOp(ms, context, i);
      /*
       TaskLauncher leaf_launcher(opIDs[i], TaskArgument(ms.ptr(), ms.buffSize())); 
       leaf_launcher.enable_inlining=true;
@@ -242,4 +242,3 @@ static void __attribute__((constructor)) register_tasks(void) { FusedOpTask::reg
 }  // namespace
 
 }  // namespace numpy
-}  // namespace legate

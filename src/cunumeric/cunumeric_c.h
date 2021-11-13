@@ -42,6 +42,8 @@ enum CuNumericOpCode {
   CUNUMERIC_UNARY_RED        = 19,
   CUNUMERIC_WHERE            = 20,
   CUNUMERIC_WRITE            = 21,
+  CUNUMERIC_DOUBLE_BINARY    = 22,
+  CUNUMERIC_FUSED_OP         = 23,
 };
 
 // Match these to CuNumericRedopCode in cunumeric/config.py

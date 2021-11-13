@@ -4,5 +4,5 @@
 cd ../legate.core/
 python setup.py --no-cuda 
 cd ../legate.numpy/
-python setup.py --clean --with-core ~/legate/legate.core/install/ --verbose
+python setup.py --with-core ~/legate/legate.core/install/ --verbose
 #../legate.core/install/bin/legate examples/testbench/test.py --cpus 2

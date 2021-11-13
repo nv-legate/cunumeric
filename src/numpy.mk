@@ -70,6 +70,7 @@ endif
 
 GEN_GPU_SRC += numpy/ternary/where.cu               \
 							 numpy/binary/binary_op.cu            \
+							 numpy/fused/fused_op.cu            \
 							 numpy/binary/binary_red.cu           \
 							 numpy/unary/scalar_unary_red.cu      \
 							 numpy/unary/unary_red.cu             \

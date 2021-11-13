@@ -24,7 +24,7 @@ import pyarrow
 
 from legate.core import Array
 
-from .config import BinaryOpCode, NumPyOpCode, UnaryOpCode, UnaryRedCode, FusedOpCode, DoubleBinaryOpCode
+from .config import BinaryOpCode, CuNumericOpCode, UnaryOpCode, UnaryRedCode, FusedOpCode#, DoubleBinaryOpCode
 from .doc_utils import copy_docstring
 from .runtime import runtime
 from .utils import unimplemented
