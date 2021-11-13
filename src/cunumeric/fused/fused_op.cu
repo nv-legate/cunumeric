@@ -14,15 +14,16 @@
  *
  */
 
-#include "numpy/fused/binary_op.h"
-#include "numpy/binary/binary_op_template.inl"
+#include "cunumeric/fused/binary_op.h"
+#include "cunumeric/binary/binary_op_template.inl"
 
-#include "numpy/cuda_help.h"
+#include "cunumeric/cuda_help.h"
 
-namespace legate {
-namespace numpy {
+//namespace legate {
+namespace cunumeric {
 
 using namespace Legion;
+using namespace legate;
 /*
 template <typename Function, typename RES, typename ARG>
 static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
@@ -154,4 +155,4 @@ struct BinaryOpImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
 }
 
 }  // namespace numpy
-}  // namespace legate
+//}  // namespace legate

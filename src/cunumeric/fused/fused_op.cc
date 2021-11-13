@@ -24,10 +24,11 @@
 #include <time.h>
 #include <sys/time.h>
 
-namespace legate {
-namespace cunmeric {
+//namespace legate {
+namespace cunumeric {
 
 using namespace Legion;
+using namespace legate;
 
 template <BinaryOpCode OP_CODE, LegateTypeCode CODE, int DIM>
 struct BinaryOpImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
@@ -61,7 +62,7 @@ struct BinaryOpImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
 
 
 //op id refers not to the op's type, but the index in the list of fused ops
-void packOp(MakeshiftSerializer& ms, TaskContext& context, int opID)
+void packOp(legate::MakeshiftSerializer& ms, TaskContext& context, int opID)
 {
   auto inputStarts = context.fusionMetadata.inputStarts;
   auto outputStarts = context.fusionMetadata.outputStarts;
@@ -148,7 +149,7 @@ void packOp(MakeshiftSerializer& ms, TaskContext& context, int opID)
 /*static*/ void FusedOpTask::cpu_variant(TaskContext& context)
 {
   int nOps = context.fusionMetadata.nOps;
-  MakeshiftSerializer ms;
+  legate::MakeshiftSerializer ms;
   auto opIDs = context.fusionMetadata.opIDs;
   auto offsets = context.fusionMetadata.offsets;
   for (int i=0; i<nOps; i++)
@@ -234,5 +235,5 @@ namespace  // unnamed
 static void __attribute__((constructor)) register_tasks(void) { FusedOpTask::register_variants(); }
 }  // namespace
 
-}  // namespace numpy
+//}  // namespace numpy
 }  // namespace legate
