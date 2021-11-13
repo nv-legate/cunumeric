@@ -24,10 +24,10 @@
 #include <time.h>
 #include <sys/time.h>
 
-namespace cunumeric {
+namespace legate {
+namespace cunmeric {
 
 using namespace Legion;
-using namespace legate;
 
 template <BinaryOpCode OP_CODE, LegateTypeCode CODE, int DIM>
 struct BinaryOpImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
@@ -59,7 +59,7 @@ struct BinaryOpImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
 };
 
 
-/*
+
 //op id refers not to the op's type, but the index in the list of fused ops
 void packOp(MakeshiftSerializer& ms, TaskContext& context, int opID)
 {
@@ -117,7 +117,24 @@ void packOp(MakeshiftSerializer& ms, TaskContext& context, int opID)
 
   //pack reductions
   int32_t nReductions = (reductionStarts[opID+1]-reductionStarts[opID]);
-  ms.pack((uint32_t) nReductions);
+  for (unsigned i = 0; i<nReductions; i++)
+  {
+      int offsetStart = offsetStarts[opID];
+      int reductionStart = reductionStarts[opID];
+      int bufferID = offsets[offsetStart+nInputs+nOutputs+i];
+      //all buffer ids are 1 -indexed
+      //negative id is an output, while a positive id is an output
+      if (bufferID<0) 
+      {
+          bufferID = (-bufferID)-1;
+          Store& output = context.reductions()[reductionStart+bufferID];
+          ms.addReqID(output.getReqIdx());
+          ms.packBuffer(output);
+      }
+  }
+
+
+
 
   //pack scalars
   int32_t nScalars = (scalarStarts[opID+1]-scalarStarts[opID]);
@@ -127,17 +144,17 @@ void packOp(MakeshiftSerializer& ms, TaskContext& context, int opID)
       ms.packScalar(context.scalars()[scalarStarts[opID]+i]);
   }
 }
-*/
+
 /*static*/ void FusedOpTask::cpu_variant(TaskContext& context)
 {
   int nOps = context.fusionMetadata.nOps;
-  legate::MakeshiftSerializer ms;
+  MakeshiftSerializer ms;
   auto opIDs = context.fusionMetadata.opIDs;
   auto offsets = context.fusionMetadata.offsets;
   for (int i=0; i<nOps; i++)
   {
       ms.zero(); //reset the serializer, but keep the memory
-      //packOp(ms, context, i);
+      packOp(ms, context, i);
      /*
       TaskLauncher leaf_launcher(opIDs[i], TaskArgument(ms.ptr(), ms.buffSize())); 
       leaf_launcher.enable_inlining=true;
@@ -174,6 +191,7 @@ void packOp(MakeshiftSerializer& ms, TaskContext& context, int opID)
       auto inputStarts = context.fusionMetadata.inputStarts;
       auto outputStarts = context.fusionMetadata.outputStarts;
       auto offsetStarts = context.fusionMetadata.offsetStarts;
+      auto reductionStarts = context.fusionMetadata.reductionStarts;
       unsigned nInputs = (inputStarts[i+1]-inputStarts[i]); //want to pack this as a 32 bit uint 
       for (unsigned j = 0; j<nInputs; j++)
       {
@@ -193,25 +211,43 @@ void packOp(MakeshiftSerializer& ms, TaskContext& context, int opID)
           int outputStart = outputStarts[i];
           int bufferID = offsets[offsetStart+nInputs+j];
           bufferID = (-bufferID)-1;
-              Store& output = context.outputs()[outputStart+bufferID];
-              outputs.push_back(std::move(output));
+          Store& output = context.outputs()[outputStart+bufferID];
+          outputs.push_back(std::move(output));
+      }
+
+      //pack reductions
+      std::vector<Store> reductions;
+      int32_t nReductions = (reductionStarts[i+1]-reductionStarts[i]);
+      for (unsigned j = 0; j<nReductions; j++)
+      {
+          int offsetStart = offsetStarts[i];
+          int reductionStart = reductionStarts[i];
+          int bufferID = offsets[offsetStart+nInputs+nOutputs+j];
+          //all buffer ids are 1 -indexed
+          //negative id is an output, while a positive id is an output
+          if (bufferID<0) 
+          {
+              bufferID = (-bufferID)-1;
+              Store& reduction = context.reductions()[reductionStart+bufferID];
+              reductions.push_back(std::move(reduction));
+          }
       }
 
       //pack scalars
       //std::vector<Scalar> scalars;
+      std::vector<Scalar> scalars;
       auto scalarStarts = context.fusionMetadata.scalarStarts;
       int32_t nScalars = (scalarStarts[i+1]-scalarStarts[i]);
       for (unsigned j = 0; j<nScalars; j++)
       {  
-        //  scalars.push_back(std::move(context.scalars()[scalarStarts[i]+j]));
+        scalars.push_back(std::move(context.scalars()[scalarStarts[i]+j]));
       }
 
       /*
       std::vector<Store> outputs;
       outputs.push_back(std::move(context.outputs()[i+0]));
       */
-      std::vector<Scalar> scalars;
-      scalars.push_back(std::move(context.scalars()[i+0]));
+      //scalars.push_back(std::move(context.scalars()[i+0]));
 
       TaskContext context3(task, (const std::vector<Legion::PhysicalRegion>) regions);// inputs, outputs, scalars);
       context3.inputs_ = std::move(inputs);
@@ -242,3 +278,4 @@ static void __attribute__((constructor)) register_tasks(void) { FusedOpTask::reg
 }  // namespace
 
 }  // namespace numpy
+}  // namespace legate
