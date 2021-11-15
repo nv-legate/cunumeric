@@ -105,6 +105,7 @@ class CuNumericOpCode(IntEnum):
     WRITE = _cunumeric.CUNUMERIC_WRITE
 
 
+# Match these to  BinaryOpCode in binary_op_util.h
 @unique
 class BinaryOpCode(IntEnum):
     ADD = 1
@@ -128,6 +129,7 @@ class BinaryOpCode(IntEnum):
     ALLCLOSE = 19
 
 
+# Match these to UnaryOpCode in unary_op_util.h
 @unique
 class UnaryOpCode(IntEnum):
     ABSOLUTE = 1
@@ -160,16 +162,19 @@ class UnaryOpCode(IntEnum):
     GETARG = 28
 
 
+# Match these to  UnaryRedCode in unary_red_util.h
 @unique
 class UnaryRedCode(IntEnum):
-    MAX = 1
-    MIN = 2
-    PROD = 3
-    SUM = 4
-    ARGMAX = 5
-    ARGMIN = 6
-    CONTAINS = 7
-    COUNT_NONZERO = 8
+    ALL = 1
+    ANY = 2
+    MAX = 3
+    MIN = 4
+    PROD = 5
+    SUM = 6
+    ARGMAX = 7
+    ARGMIN = 8
+    CONTAINS = 9
+    COUNT_NONZERO = 10
 
 
 @unique

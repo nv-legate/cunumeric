@@ -627,11 +627,24 @@ def logical_not(a, out=None, where=True, dtype=None, **kwargs):
 
 # truth value testing
 
-# def all(a, axis = None, out = None, keepdims = False):
-#    raise NotImplementedError("all")
 
-# def any(a, axis = None, out = None, keepdims = False):
-#    raise NotImplementedError("any")
+@copy_docstring(np.all)
+def all(a, axis=None, out=None, keepdims=False, where=True):
+    lg_array = ndarray.convert_to_cunumeric_ndarray(a, stacklevel=2)
+    where = ndarray.convert_to_predicate_ndarray(where, stacklevel=2)
+    if out is not None:
+        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
+    return lg_array.all(axis=axis, out=out, keepdims=keepdims, where=where)
+
+
+@copy_docstring(np.any)
+def any(a, axis=None, out=None, keepdims=False, where=True):
+    lg_array = ndarray.convert_to_cunumeric_ndarray(a, stacklevel=2)
+    where = ndarray.convert_to_predicate_ndarray(where, stacklevel=2)
+    if out is not None:
+        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
+    return lg_array.any(axis=axis, out=out, keepdims=keepdims, where=where)
+
 
 # #Comparison
 
