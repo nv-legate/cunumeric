@@ -158,6 +158,98 @@ struct ScalarUnaryRedImplBody<VariantKind::GPU, UnaryRedCode::CONTAINS, CODE, DI
   }
 };
 
+namespace detail {
+
+template <typename Op,
+          typename Output,
+          typename ReadAcc,
+          typename Pitches,
+          typename Point,
+          typename VAL>
+static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
+  logical_kernel(size_t volume,
+                   Output out,
+                   ReadAcc in,
+                   Pitches pitches,
+                   Point origin,
+                   size_t iters,
+                   VAL identity)
+{
+  auto value = identity;
+  for (size_t idx = 0; idx < iters; idx++) {
+    const size_t offset = (idx * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
+    if (offset < volume) {
+      auto point = pitches.unflatten(offset, origin);
+      Op::template fold<true>(value, convert_to_bool(in[point]));
+    }
+  }
+  // Every thread in the thread block must participate in the exchange to get correct results
+  reduce_output(out, value);
+}
+
+template <typename OP, typename LG_OP, typename VAL, int DIM>
+void logical_operator_gpu(AccessorRD<LG_OP, true, 1> out,
+                      AccessorRO<VAL, DIM> in,
+                      const Rect<DIM>& rect,
+                      const Pitches<DIM - 1>& pitches,
+                      bool dense)
+{
+    cudaStream_t stream;
+    cudaStreamCreate(&stream);
+
+    const size_t volume = rect.volume();
+    const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
+    DeferredReduction<OP> result;
+    size_t shmem_size = THREADS_PER_BLOCK / 32 * sizeof(bool);
+
+    if (blocks >= MAX_REDUCTION_CTAS) {
+      const size_t iters = (blocks + MAX_REDUCTION_CTAS - 1) / MAX_REDUCTION_CTAS;
+      logical_kernel<OP><<<MAX_REDUCTION_CTAS, THREADS_PER_BLOCK, shmem_size, stream>>>(
+        volume, result, in, pitches, rect.lo, 1, LG_OP::identity);
+    } else
+      logical_kernel<OP><<<blocks, THREADS_PER_BLOCK, shmem_size, stream>>>(
+        volume, result, in, pitches, rect.lo, 1, LG_OP::identity);
+
+    copy_kernel<<<1, 1, 0, stream>>>(result, out);
+    cudaStreamDestroy(stream);
+}
+
+}  // namespace detail
+
+template <LegateTypeCode CODE, int DIM>
+struct ScalarUnaryRedImplBody<VariantKind::GPU, UnaryRedCode::ALL, CODE, DIM> {
+  using OP    = UnaryRedOp<UnaryRedCode::PROD, LegateTypeCode::BOOL_LT>;
+  using LG_OP = typename OP::OP;
+  using VAL   = legate_type_of<CODE>;
+
+  void operator()(AccessorRD<LG_OP, true, 1> out,
+                  AccessorRO<VAL, DIM> in,
+                  const Rect<DIM>& rect,
+                  const Pitches<DIM - 1>& pitches,
+                  bool dense) const
+
+  {
+    detail::logical_operator_gpu<ProdReduction<bool>>(out, in, rect, pitches, dense);
+  }
+};
+
+template <LegateTypeCode CODE, int DIM>
+struct ScalarUnaryRedImplBody<VariantKind::GPU, UnaryRedCode::ANY, CODE, DIM> {
+  using OP    = UnaryRedOp<UnaryRedCode::SUM, LegateTypeCode::BOOL_LT>;
+  using LG_OP = typename OP::OP;
+  using VAL   = legate_type_of<CODE>;
+
+  void operator()(AccessorRD<LG_OP, true, 1> out,
+                  AccessorRO<VAL, DIM> in,
+                  const Rect<DIM>& rect,
+                  const Pitches<DIM - 1>& pitches,
+                  bool dense) const
+
+  {
+    detail::logical_operator_gpu<SumReduction<bool>>(out, in, rect, pitches, dense);
+  }
+};
+
 template <LegateTypeCode CODE, int DIM>
 struct ScalarUnaryRedImplBody<VariantKind::GPU, UnaryRedCode::COUNT_NONZERO, CODE, DIM> {
   using OP    = UnaryRedOp<UnaryRedCode::SUM, LegateTypeCode::UINT64_LT>;

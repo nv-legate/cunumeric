@@ -162,14 +162,16 @@ class UnaryOpCode(IntEnum):
 
 @unique
 class UnaryRedCode(IntEnum):
-    MAX = 1
-    MIN = 2
-    PROD = 3
-    SUM = 4
-    ARGMAX = 5
-    ARGMIN = 6
-    CONTAINS = 7
-    COUNT_NONZERO = 8
+    ALL = 1
+    ANY = 2
+    MAX = 3
+    MIN = 4
+    PROD = 5
+    SUM = 6
+    ARGMAX = 7
+    ARGMIN = 8
+    CONTAINS = 9
+    COUNT_NONZERO = 10
 
 
 @unique

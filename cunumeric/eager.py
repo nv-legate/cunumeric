@@ -712,7 +712,47 @@ class EagerArray(NumPyThunk):
                 stacklevel=(stacklevel + 1),
             )
             return
-        if op == UnaryRedCode.ARGMAX:
+        if op == UnaryRedCode.ALL:
+            try:
+                # Try the new version of this interface for NumPy
+                np.all(
+                    rhs.array,
+                    out=self.array,
+                    axis=axes,
+                    keepdims=keepdims,
+                    where=where
+                    if not isinstance(where, EagerArray)
+                    else where.array,
+                )
+            except Exception:
+                np.all(
+                    rhs.array,
+                    out=self.array,
+                    axis=axes,
+                    keepdims=keepdims,
+                    where=where,
+                )
+        elif op == UnaryRedCode.ANY:
+            try:
+                # Try the new version of this interface for NumPy
+                np.any(
+                    rhs.array,
+                    out=self.array,
+                    axis=axes,
+                    keepdims=keepdims,
+                    where=where
+                    if not isinstance(where, EagerArray)
+                    else where.array,
+                )
+            except Exception:
+                np.any(
+                    rhs.array,
+                    out=self.array,
+                    axis=axes,
+                    keepdims=keepdims,
+                    where=where,
+                )
+        elif op == UnaryRedCode.ARGMAX:
             assert len(axes) == 1
             np.argmax(rhs.array, out=self.array, axis=axes[0])
         elif op == UnaryRedCode.ARGMIN:

@@ -43,4 +43,17 @@ class ScalarUnaryRedTask : public CuNumericTask<ScalarUnaryRedTask> {
 #endif
 };
 
+namespace detail {
+template <typename _T, std::enable_if_t<!legate::is_complex<_T>::value>* = nullptr>
+__host__ __device__ inline bool convert_to_bool(const _T& in)
+{
+  return bool(in);
+}
+template <typename _T, std::enable_if_t<legate::is_complex<_T>::value>* = nullptr>
+__host__ __device__ inline bool convert_to_bool(const _T& in)
+{
+  return bool(in.real());
+}
+}
+
 }  // namespace cunumeric
