@@ -119,9 +119,10 @@ struct UnaryOp<UnaryOpCode::ABSOLUTE, CODE> {
 
   UnaryOp(const std::vector<legate::Store>& args) {}
 
-  template <typename _T                                                                  = T,
-            std::enable_if_t<legate::is_complex<_T>::value or
-                             std::is_integral<_T>::value and std::is_signed<_T>::value>* = nullptr>
+  template <
+    typename _T                                                                    = T,
+    std::enable_if_t<legate::is_complex<_T>::value or
+                     (std::is_integral<_T>::value and std::is_signed<_T>::value)>* = nullptr>
   constexpr decltype(auto) operator()(const _T& x) const
   {
     return abs(x);
