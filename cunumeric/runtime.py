@@ -393,7 +393,8 @@ class Runtime(object):
         assert child_ptr >= parent_ptr
         ptr_diff = child_ptr - parent_ptr
         parent_shape = array.base.shape
-        if False and parent_shape==():
+        #if False and parent_shape==():
+        if parent_shape==():
             parent_shape = [1]
         div = (
             reduce(lambda x, y: x * y, parent_shape)

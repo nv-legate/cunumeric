@@ -149,8 +149,21 @@ struct BinaryOpImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
 
       //launch
       auto descp = Core::gpuDescriptors.find(opIDs[i]);
+
       auto desc = descp->second;
       desc(context3);
+      for (unsigned j = 0; j<nOutputs; j++)
+      {
+          int offsetStart = offsetStarts[i];
+          int outputStart = outputStarts[i];
+          int bufferID = offsets[offsetStart+nInputs+j];
+          bufferID = (-bufferID)-1;
+          context.outputs_[outputStart+bufferID] = std::move(context3.outputs_[j]);
+      }
+ 
+
+      //context3.pack_return_values();
+      //context.pack_return_values();
   }
 }
 

@@ -154,8 +154,8 @@ void packOp(legate::MakeshiftSerializer& ms, TaskContext& context, int opID)
   auto offsets = context.fusionMetadata.offsets;
   for (int i=0; i<nOps; i++)
   {
-      ms.zero(); //reset the serializer, but keep the memory
-      packOp(ms, context, i);
+      //ms.zero(); //reset the serializer, but keep the memory
+      //packOp(ms, context, i);
       std::vector<Legion::PhysicalRegion> regions;
       //context.runtime_->execute_task(context.context_, leaf_launcher);
 
@@ -227,6 +227,17 @@ void packOp(legate::MakeshiftSerializer& ms, TaskContext& context, int opID)
       auto descp = Core::cpuDescriptors.find(opIDs[i]);
       auto desc = descp->second;
       desc(context3);
+      for (unsigned j = 0; j<nOutputs; j++)
+      {
+          int offsetStart = offsetStarts[i];
+          int outputStart = outputStarts[i];
+          int bufferID = offsets[offsetStart+nInputs+j];
+          bufferID = (-bufferID)-1;
+          context.outputs_[outputStart+bufferID] = std::move(context3.outputs_[j]);
+      }
+      
+      context3.pack_return_values();
+      context.pack_return_values();
   }
 }
 
