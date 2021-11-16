@@ -93,6 +93,6 @@ GEN_GPU_SRC += cunumeric/ternary/where.cu               \
 							 cunumeric/random/rand.cu                 \
 							 cunumeric/search/nonzero.cu              \
 							 cunumeric/stat/bincount.cu               \
-							 cunumeric/convolution/convolve.cu	      \
+							 cunumeric/convolution/convolve.cu	  \
 							 cunumeric/transform/flip.cu              \
 							 cunumeric/cunumeric.cu
