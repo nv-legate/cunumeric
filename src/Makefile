@@ -25,6 +25,9 @@ endif
 ifndef TBLIS_PATH
 $(error TBLIS_PATH variable is not defined, aborting build)
 endif
+ifndef CUTENSOR_PATH
+$(error CUTENSOR_PATH variable is not defined, aborting build)
+endif
 ifndef THRUST_PATH
 $(error THRUST_PATH variable is not defined, aborting build)
 endif
@@ -41,10 +44,10 @@ LD_FLAGS += -L$(OPENBLAS_PATH)/lib -l$(OPENBLAS_LIBNAME) -Wl,-rpath,$(OPENBLAS_P
 LD_FLAGS += -L$(TBLIS_PATH)/lib -ltblis -Wl,-rpath,$(TBLIS_PATH)/lib
 ifeq ($(strip $(USE_CUDA)),1)
 LD_FLAGS += -lcufft
+LD_FLAGS += -L$(CUTENSOR_PATH)/lib -lcutensor -Wl,-rpath,$(CUTENSOR_PATH)/lib
 endif
-
 NVCC_FLAGS ?=
-NVCC_FLAGS += -I. -I$(THRUST_PATH) -Wno-deprecated-declarations
+NVCC_FLAGS += -I. -I$(CUTENSOR_PATH)/include -I$(THRUST_PATH) -Wno-deprecated-declarations
 
 ifeq ($(strip $(DEBUG)),1)
 CC_FLAGS += -DDEBUG_CUNUMERIC

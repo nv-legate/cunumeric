@@ -20,6 +20,7 @@
 #include <cublas_v2.h>
 #include <cuda_runtime.h>
 #include <cufft.h>
+#include <cutensor.h>
 
 #define THREADS_PER_BLOCK 128
 #define MIN_CTAS_PER_SM 4
@@ -43,6 +44,12 @@
   do {                                       \
     cufftResult result = (expr);             \
     check_cufft(result, __FILE__, __LINE__); \
+  } while (false)
+
+#define CHECK_CUTENSOR(expr)                    \
+  do {                                          \
+    cutensorStatus_t result = (expr);           \
+    check_cutensor(result, __FILE__, __LINE__); \
   } while (false)
 
 #ifndef MAX
@@ -84,6 +91,19 @@ __host__ inline void check_cufft(cufftResult result, const char* file, int line)
   if (result != CUFFT_SUCCESS) {
     fprintf(stderr,
             "Internal Legate CUFFT failure with error code %d in file %s at line %d\n",
+            result,
+            file,
+            line);
+    exit(result);
+  }
+}
+
+__host__ inline void check_cutensor(cutensorStatus_t result, const char* file, int line)
+{
+  if (result != CUTENSOR_STATUS_SUCCESS) {
+    fprintf(stderr,
+            "Internal Legate CUTENSOR failure with error %s (%d) in file %s at line %d\n",
+            cutensorGetErrorString(result),
             result,
             file,
             line);
