@@ -25,9 +25,11 @@ endif
 ifndef TBLIS_PATH
 $(error TBLIS_PATH variable is not defined, aborting build)
 endif
+ifeq ($(strip $(USE_CUDA)),1)
 ifndef CUTENSOR_PATH
 $(error CUTENSOR_PATH variable is not defined, aborting build)
 endif
+endif # ifeq ($(strip $(USE_CUDA)),1)
 ifndef THRUST_PATH
 $(error THRUST_PATH variable is not defined, aborting build)
 endif

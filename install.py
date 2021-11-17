@@ -241,6 +241,15 @@ def find_c_define(define, header):
     return False
 
 
+def find_compile_flag(flag, makefile):
+    with open(makefile, "r") as f:
+        for line in f:
+            toks = line.split()
+            if len(toks) == 3 and toks[0] == flag:
+                return toks[2] == "1"
+    assert False, f"Compile flag '{flag}' not found"
+
+
 def build_cunumeric(
     cunumeric_dir,
     install_dir,
@@ -392,16 +401,20 @@ def install_cunumeric(
         install_tblis(tblis_dir, thread_count, verbose)
     libs_config["tblis"] = tblis_dir
 
-    # Find cuTensor installation
-    if cutensor_dir is None:
-        cutensor_dir = libs_config.get("cutensor")
-    if cutensor_dir is None:
-        raise Exception(
-            "Could not find cuTensor installation, use '--with-cutensor' to "
-            "specify a location."
-        )
-    cutensor_dir = os.path.realpath(cutensor_dir)
-    libs_config["cutensor"] = cutensor_dir
+    # Match the core's setting regarding CUDA support.
+    makefile_path = os.path.join(legate_dir, "share", "legate", "config.mk")
+    cuda = find_compile_flag("USE_CUDA", makefile_path)
+    if cuda:
+        # Find cuTensor installation
+        if cutensor_dir is None:
+            cutensor_dir = libs_config.get("cutensor")
+        if cutensor_dir is None:
+            raise Exception(
+                "Could not find cuTensor installation, use '--with-cutensor' "
+                "to specify a location."
+            )
+        cutensor_dir = os.path.realpath(cutensor_dir)
+        libs_config["cutensor"] = cutensor_dir
 
     # Record all newly installed libraries in the global configuration
     with open(libs_path, "w") as f:
