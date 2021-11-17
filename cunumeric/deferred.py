@@ -963,10 +963,14 @@ class DeferredArray(NumPyThunk):
                     callsite=callsite,
                 )
 
-        elif rhs1_array.ndim == 1 or rhs2_array.ndim == 1:
+        elif (
+            rhs1_array.ndim == 1
+            and rhs2_array.ndim == 2
+            or rhs1_array.ndim == 2
+            and rhs2_array.ndim == 1
+        ):
             # Matrix-vector or vector-matrix multiply
             assert lhs_array.ndim == 1
-            assert rhs1_array.ndim == 2 or rhs2_array.ndim == 2
 
             left_matrix = rhs1_array.ndim == 2
 
@@ -1120,7 +1124,9 @@ class DeferredArray(NumPyThunk):
                     callsite=callsite,
                 )
         else:
-            raise NotImplementedError("Need support for tensor contractions")
+            raise NotImplementedError(
+                f"dot between {rhs1_array.ndim}d and {rhs2_array.ndim}d arrays"
+            )
 
     # Create or extract a diagonal from a matrix
     @profile
