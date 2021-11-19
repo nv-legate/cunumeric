@@ -127,8 +127,6 @@ def test():
         # TODO: Remove these restrictions as we fix the issues
         if (
             len(opers) != 2
-            or len(opers[0]) < 1
-            or len(opers[1]) < 1
             or len(rhs) < 1
             or len(set(opers[0]) - set(opers[1]) - set(rhs)) > 0
             or len(set(opers[1]) - set(opers[0]) - set(rhs)) > 0

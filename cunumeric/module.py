@@ -573,7 +573,7 @@ def contract(expr, a, b, out=None, stacklevel=1):
     b = operands[b_idx]
 
     # Parse modes out of contraction expression
-    m = re.match(r"([a-zA-Z]+),([a-zA-Z]+)->([a-zA-Z]*)", expr)
+    m = re.match(r"([a-zA-Z]*),([a-zA-Z]*)->([a-zA-Z]*)", expr)
     if m is None:
         raise NotImplementedError("Non-alphabetic mode labels")
     a_modes = m.group(1)
