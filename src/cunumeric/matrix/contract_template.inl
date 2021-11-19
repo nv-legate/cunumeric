@@ -59,7 +59,7 @@ struct ContractImpl {
       if (!args.lhs_dim_mask[i]) { continue; }
       lhs_shape.push_back(lhs_bloated_shape.hi[i] - lhs_bloated_shape.lo[i] + 1);
       lhs_strides.push_back(lhs_bloated_strides[i]);
-      lhs_modes.push_back(i);
+      lhs_modes.push_back(i + 'a');
     }
 
     std::vector<int64_t> rhs1_shape;
@@ -73,7 +73,7 @@ struct ContractImpl {
       if (!args.rhs1_dim_mask[i]) { continue; }
       rhs1_shape.push_back(rhs1_bloated_shape.hi[i] - rhs1_bloated_shape.lo[i] + 1);
       rhs1_strides.push_back(rhs1_bloated_strides[i]);
-      rhs1_modes.push_back(i);
+      rhs1_modes.push_back(i + 'a');
     }
 
     std::vector<int64_t> rhs2_shape;
@@ -87,7 +87,7 @@ struct ContractImpl {
       if (!args.rhs2_dim_mask[i]) { continue; }
       rhs2_shape.push_back(rhs2_bloated_shape.hi[i] - rhs2_bloated_shape.lo[i] + 1);
       rhs2_strides.push_back(rhs2_bloated_strides[i]);
-      rhs2_modes.push_back(i);
+      rhs2_modes.push_back(i + 'a');
     }
 
     ContractImplBody<KIND, CODE>()(lhs_data,
