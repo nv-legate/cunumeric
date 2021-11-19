@@ -555,7 +555,7 @@ class NullOptimizer(oe.paths.PathOptimizer):
 
 # Generalized tensor contraction
 @add_boilerplate("a", "b")
-def contract(expr, a, b, out=None, stacklevel=1):
+def contract(expr, a, b, out=None, dtype=None, stacklevel=1):
     # TODO: test for allowable types, handle float16 as a special case
 
     # Pass the contraction expression through opt_einsum. There's no actual
@@ -651,9 +651,19 @@ def contract(expr, a, b, out=None, stacklevel=1):
     )
 
     # Check for type conversion on the way out
-    if out is not None and out is not c:
+    if out is not None:
+        if out is not c:
+            out._thunk.convert(c._thunk, stacklevel=(stacklevel + 1))
+        return out
+    if dtype is not None and c_dtype is not dtype:
+        out = ndarray(
+            shape=c.shape,
+            dtype=dtype,
+            stacklevel=(stacklevel + 1),
+            inputs=(c,),
+        )
         out._thunk.convert(c._thunk, stacklevel=(stacklevel + 1))
-        c = out
+        return out
     return c
 
 
