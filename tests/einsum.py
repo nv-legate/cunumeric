@@ -110,7 +110,7 @@ def gen_array(lib, operand: str):
         for (i, j) in enumerate(axes):
             in_shape[j] = out_shape[i]
         in_shape = tuple(in_shape)
-        in_arr = lib.zeros(in_shape)
+        in_arr = lib.full(in_shape, 2.0)
         if len(in_shape) > 0:
             in_arr[:] = lib.arange(size).reshape(in_shape) / size
         yield in_arr.transpose(axes)
