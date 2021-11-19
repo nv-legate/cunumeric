@@ -1171,10 +1171,6 @@ class DeferredArray(NumPyThunk):
         lhs_dim_mask = []
         rhs1_dim_mask = []
         rhs2_dim_mask = []
-        # print("starting", flush=True)
-        # print(f"rhs2 = {rhs2}", flush=True)
-        # print(f"rhs2_dim_mask = {rhs2_dim_mask}", flush=True)
-        # print(flush=True)
         for (dim, mode) in enumerate(sorted(mode2extent.keys())):
             extent = mode2extent[mode]
 
@@ -1193,10 +1189,6 @@ class DeferredArray(NumPyThunk):
             lhs = add_mode(lhs, lhs_modes, lhs_dim_mask)
             rhs1 = add_mode(rhs1, rhs1_modes, rhs1_dim_mask)
             rhs2 = add_mode(rhs2, rhs2_modes, rhs2_dim_mask)
-            # print(f"added dim={dim}", flush=True)
-            # print(f"rhs2 = {rhs2}", flush=True)
-            # print(f"rhs2_dim_mask = {rhs2_dim_mask}", flush=True)
-            # print(flush=True)
         assert lhs.shape == rhs1.shape
         assert lhs.shape == rhs2.shape
 
