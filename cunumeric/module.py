@@ -81,7 +81,9 @@ def add_boilerplate(*array_params: str):
 
             # Convert relevant arguments to cuNumeric ndarrays
             args = tuple(
-                ndarray.convert_to_cunumeric_ndarray(arg, stacklevel=stacklevel)
+                ndarray.convert_to_cunumeric_ndarray(
+                    arg, stacklevel=stacklevel
+                )
                 if idx in indices and arg is not None
                 else arg
                 for (idx, arg) in enumerate(args)
@@ -240,7 +242,9 @@ def empty(shape, dtype=np.float64, stacklevel=1):
 
 @copy_docstring(np.empty_like)
 def empty_like(a, dtype=None, stacklevel=1):
-    array = ndarray.convert_to_cunumeric_ndarray(a, stacklevel=(stacklevel + 1))
+    array = ndarray.convert_to_cunumeric_ndarray(
+        a, stacklevel=(stacklevel + 1)
+    )
     shape = array.shape
     if dtype is not None:
         dtype = np.dtype(dtype)
@@ -446,6 +450,12 @@ def reshape(a, newshape, order="C"):
 @copy_docstring(np.transpose)
 def transpose(a, axes=None):
     return a.transpose(axes=axes)
+
+
+@copy_docstring(np.flip)
+def flip(m, axis=None):
+    array = ndarray.convert_to_cunumeric_ndarray(m)
+    return array.flip(axis=axis)
 
 
 # Changing kind of array
@@ -659,8 +669,12 @@ def array_equal(a, b):
 
 @copy_docstring(np.equal)
 def equal(a, b, out=None, where=True, dtype=np.dtype(np.bool), stacklevel=1):
-    a_array = ndarray.convert_to_cunumeric_ndarray(a, stacklevel=(stacklevel + 1))
-    b_array = ndarray.convert_to_cunumeric_ndarray(b, stacklevel=(stacklevel + 1))
+    a_array = ndarray.convert_to_cunumeric_ndarray(
+        a, stacklevel=(stacklevel + 1)
+    )
+    b_array = ndarray.convert_to_cunumeric_ndarray(
+        b, stacklevel=(stacklevel + 1)
+    )
     where = ndarray.convert_to_predicate_ndarray(
         where, stacklevel=(stacklevel + 1)
     )
@@ -681,8 +695,12 @@ def equal(a, b, out=None, where=True, dtype=np.dtype(np.bool), stacklevel=1):
 
 @copy_docstring(np.greater)
 def greater(a, b, out=None, where=True, dtype=np.dtype(np.bool), stacklevel=1):
-    a_array = ndarray.convert_to_cunumeric_ndarray(a, stacklevel=(stacklevel + 1))
-    b_array = ndarray.convert_to_cunumeric_ndarray(b, stacklevel=(stacklevel + 1))
+    a_array = ndarray.convert_to_cunumeric_ndarray(
+        a, stacklevel=(stacklevel + 1)
+    )
+    b_array = ndarray.convert_to_cunumeric_ndarray(
+        b, stacklevel=(stacklevel + 1)
+    )
     where = ndarray.convert_to_predicate_ndarray(
         where, stacklevel=(stacklevel + 1)
     )
@@ -705,8 +723,12 @@ def greater(a, b, out=None, where=True, dtype=np.dtype(np.bool), stacklevel=1):
 def greater_equal(
     a, b, out=None, where=True, dtype=np.dtype(np.bool), stacklevel=1
 ):
-    a_array = ndarray.convert_to_cunumeric_ndarray(a, stacklevel=(stacklevel + 1))
-    b_array = ndarray.convert_to_cunumeric_ndarray(b, stacklevel=(stacklevel + 1))
+    a_array = ndarray.convert_to_cunumeric_ndarray(
+        a, stacklevel=(stacklevel + 1)
+    )
+    b_array = ndarray.convert_to_cunumeric_ndarray(
+        b, stacklevel=(stacklevel + 1)
+    )
     where = ndarray.convert_to_predicate_ndarray(
         where, stacklevel=(stacklevel + 1)
     )
@@ -759,8 +781,12 @@ def isnan(a, out=None, where=True, dtype=None, **kwargs):
 
 @copy_docstring(np.less)
 def less(a, b, out=None, where=True, dtype=np.dtype(np.bool), stacklevel=1):
-    a_array = ndarray.convert_to_cunumeric_ndarray(a, stacklevel=(stacklevel + 1))
-    b_array = ndarray.convert_to_cunumeric_ndarray(b, stacklevel=(stacklevel + 1))
+    a_array = ndarray.convert_to_cunumeric_ndarray(
+        a, stacklevel=(stacklevel + 1)
+    )
+    b_array = ndarray.convert_to_cunumeric_ndarray(
+        b, stacklevel=(stacklevel + 1)
+    )
     where = ndarray.convert_to_predicate_ndarray(
         where, stacklevel=(stacklevel + 1)
     )
@@ -783,8 +809,12 @@ def less(a, b, out=None, where=True, dtype=np.dtype(np.bool), stacklevel=1):
 def less_equal(
     a, b, out=None, where=True, dtype=np.dtype(np.bool), stacklevel=1
 ):
-    a_array = ndarray.convert_to_cunumeric_ndarray(a, stacklevel=(stacklevel + 1))
-    b_array = ndarray.convert_to_cunumeric_ndarray(b, stacklevel=(stacklevel + 1))
+    a_array = ndarray.convert_to_cunumeric_ndarray(
+        a, stacklevel=(stacklevel + 1)
+    )
+    b_array = ndarray.convert_to_cunumeric_ndarray(
+        b, stacklevel=(stacklevel + 1)
+    )
     where = ndarray.convert_to_predicate_ndarray(
         where, stacklevel=(stacklevel + 1)
     )
@@ -807,8 +837,12 @@ def less_equal(
 def not_equal(
     a, b, out=None, where=True, dtype=np.dtype(np.bool), stacklevel=1
 ):
-    a_array = ndarray.convert_to_cunumeric_ndarray(a, stacklevel=(stacklevel + 1))
-    b_array = ndarray.convert_to_cunumeric_ndarray(b, stacklevel=(stacklevel + 1))
+    a_array = ndarray.convert_to_cunumeric_ndarray(
+        a, stacklevel=(stacklevel + 1)
+    )
+    b_array = ndarray.convert_to_cunumeric_ndarray(
+        b, stacklevel=(stacklevel + 1)
+    )
     where = ndarray.convert_to_predicate_ndarray(
         where, stacklevel=(stacklevel + 1)
     )
@@ -1005,8 +1039,12 @@ def tanh(a, out=None, where=True, dtype=None, **kwargs):
 
 @copy_docstring(np.add)
 def add(a, b, out=None, where=True, dtype=None, stacklevel=1):
-    a_array = ndarray.convert_to_cunumeric_ndarray(a, stacklevel=(stacklevel + 1))
-    b_array = ndarray.convert_to_cunumeric_ndarray(b, stacklevel=(stacklevel + 1))
+    a_array = ndarray.convert_to_cunumeric_ndarray(
+        a, stacklevel=(stacklevel + 1)
+    )
+    b_array = ndarray.convert_to_cunumeric_ndarray(
+        b, stacklevel=(stacklevel + 1)
+    )
     where = ndarray.convert_to_predicate_ndarray(
         where, stacklevel=(stacklevel + 1)
     )
@@ -1066,8 +1104,12 @@ def floor_divide(a, b, out=None, where=True, dtype=None):
 
 @copy_docstring(np.multiply)
 def multiply(a, b, out=None, where=True, dtype=None, stacklevel=1):
-    a_array = ndarray.convert_to_cunumeric_ndarray(a, stacklevel=(stacklevel + 1))
-    b_array = ndarray.convert_to_cunumeric_ndarray(b, stacklevel=(stacklevel + 1))
+    a_array = ndarray.convert_to_cunumeric_ndarray(
+        a, stacklevel=(stacklevel + 1)
+    )
+    b_array = ndarray.convert_to_cunumeric_ndarray(
+        b, stacklevel=(stacklevel + 1)
+    )
     where = ndarray.convert_to_predicate_ndarray(
         where, stacklevel=(stacklevel + 1)
     )
@@ -1117,8 +1159,12 @@ def prod(
 
 @copy_docstring(np.subtract)
 def subtract(a, b, out=None, where=True, dtype=None, stacklevel=1):
-    a_array = ndarray.convert_to_cunumeric_ndarray(a, stacklevel=(stacklevel + 1))
-    b_array = ndarray.convert_to_cunumeric_ndarray(b, stacklevel=(stacklevel + 1))
+    a_array = ndarray.convert_to_cunumeric_ndarray(
+        a, stacklevel=(stacklevel + 1)
+    )
+    b_array = ndarray.convert_to_cunumeric_ndarray(
+        b, stacklevel=(stacklevel + 1)
+    )
     where = ndarray.convert_to_predicate_ndarray(
         where, stacklevel=(stacklevel + 1)
     )
@@ -1171,8 +1217,12 @@ def sum(
 
 @copy_docstring(np.true_divide)
 def true_divide(a, b, out=None, where=True, dtype=None, stacklevel=1):
-    a_array = ndarray.convert_to_cunumeric_ndarray(a, stacklevel=(stacklevel + 1))
-    b_array = ndarray.convert_to_cunumeric_ndarray(b, stacklevel=(stacklevel + 1))
+    a_array = ndarray.convert_to_cunumeric_ndarray(
+        a, stacklevel=(stacklevel + 1)
+    )
+    b_array = ndarray.convert_to_cunumeric_ndarray(
+        b, stacklevel=(stacklevel + 1)
+    )
     where = ndarray.convert_to_predicate_ndarray(
         where, stacklevel=(stacklevel + 1)
     )
@@ -1445,6 +1495,20 @@ def sqrt(a, out=None, where=True, dtype=None, stacklevel=1, **kwargs):
     )
 
 
+@copy_docstring(np.convolve)
+def convolve(a, v, mode="full"):
+    a_lg = ndarray.convert_to_cunumeric_ndarray(a, stacklevel=2)
+    v_lg = ndarray.convert_to_cunumeric_ndarray(v, stacklevel=2)
+
+    if mode != "same":
+        raise NotImplementedError("Need to implement other convolution modes")
+
+    if a_lg.size < v_lg.size:
+        v_lg, a_lg = a_lg, v_lg
+
+    return a_lg.convolve(v_lg, mode, stacklevel=2)
+
+
 # ### SORTING, SEARCHING and COUNTING
 
 # Searching
@@ -1671,8 +1735,12 @@ def max(a, axis=None, out=None, keepdims=False):
 
 @copy_docstring(np.maximum)
 def maximum(a, b, out=None, where=True, dtype=None, stacklevel=1, **kwargs):
-    a_array = ndarray.convert_to_cunumeric_ndarray(a, stacklevel=(stacklevel + 1))
-    b_array = ndarray.convert_to_cunumeric_ndarray(b, stacklevel=(stacklevel + 1))
+    a_array = ndarray.convert_to_cunumeric_ndarray(
+        a, stacklevel=(stacklevel + 1)
+    )
+    b_array = ndarray.convert_to_cunumeric_ndarray(
+        b, stacklevel=(stacklevel + 1)
+    )
     where = ndarray.convert_to_predicate_ndarray(
         where, stacklevel=(stacklevel + 1)
     )
@@ -1698,8 +1766,12 @@ def min(a, axis=None, out=None, keepdims=False):
 
 @copy_docstring(np.minimum)
 def minimum(a, b, out=None, where=True, dtype=None, stacklevel=1, **kwargs):
-    a_array = ndarray.convert_to_cunumeric_ndarray(a, stacklevel=(stacklevel + 1))
-    b_array = ndarray.convert_to_cunumeric_ndarray(b, stacklevel=(stacklevel + 1))
+    a_array = ndarray.convert_to_cunumeric_ndarray(
+        a, stacklevel=(stacklevel + 1)
+    )
+    b_array = ndarray.convert_to_cunumeric_ndarray(
+        b, stacklevel=(stacklevel + 1)
+    )
     where = ndarray.convert_to_predicate_ndarray(
         where, stacklevel=(stacklevel + 1)
     )
@@ -1720,8 +1792,12 @@ def minimum(a, b, out=None, where=True, dtype=None, stacklevel=1, **kwargs):
 
 @copy_docstring(np.add)
 def mod(a, b, out=None, where=True, dtype=None, stacklevel=1):
-    a_array = ndarray.convert_to_cunumeric_ndarray(a, stacklevel=(stacklevel + 1))
-    b_array = ndarray.convert_to_cunumeric_ndarray(b, stacklevel=(stacklevel + 1))
+    a_array = ndarray.convert_to_cunumeric_ndarray(
+        a, stacklevel=(stacklevel + 1)
+    )
+    b_array = ndarray.convert_to_cunumeric_ndarray(
+        b, stacklevel=(stacklevel + 1)
+    )
     where = ndarray.convert_to_predicate_ndarray(
         where, stacklevel=(stacklevel + 1)
     )
@@ -1803,7 +1879,9 @@ def vstack(inputs):
     # Once we are here we have all our inputs arrays, so make the output
     if len(shape) == 1:
         out_shape = (leading_dim,) + shape
-        out_array = ndarray(shape=out_shape, dtype=dtype, inputs=cunumeric_inputs)
+        out_array = ndarray(
+            shape=out_shape, dtype=dtype, inputs=cunumeric_inputs
+        )
         # Copy the values over from the inputs
         for idx, inp in enumerate(cunumeric_inputs):
             out_array[idx, :] = inp
@@ -1811,7 +1889,9 @@ def vstack(inputs):
         out_shape = (leading_dim,)
         for dim in xrange(1, ndim):
             out_shape += (shape[dim],)
-        out_array = ndarray(shape=out_shape, dtype=dtype, inputs=cunumeric_inputs)
+        out_array = ndarray(
+            shape=out_shape, dtype=dtype, inputs=cunumeric_inputs
+        )
         # Copy the values over from the inputs
         offset = 0
         for inp in cunumeric_inputs:

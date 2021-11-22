@@ -14,7 +14,6 @@
 #
 
 import numpy as np
-
 from cunumeric.array import ndarray
 from cunumeric.module import sqrt as _sqrt
 

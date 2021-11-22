@@ -85,10 +85,12 @@ class CuNumericOpCode(IntEnum):
     BINARY_RED = _cunumeric.CUNUMERIC_BINARY_RED
     BINCOUNT = _cunumeric.CUNUMERIC_BINCOUNT
     CONVERT = _cunumeric.CUNUMERIC_CONVERT
+    CONVOLVE = _cunumeric.CUNUMERIC_CONVOLVE
     DIAG = _cunumeric.CUNUMERIC_DIAG
     DOT = _cunumeric.CUNUMERIC_DOT
     EYE = _cunumeric.CUNUMERIC_EYE
     FILL = _cunumeric.CUNUMERIC_FILL
+    FLIP = _cunumeric.CUNUMERIC_FLIP
     MATMUL = _cunumeric.CUNUMERIC_MATMUL
     MATVECMUL = _cunumeric.CUNUMERIC_MATVECMUL
     NONZERO = _cunumeric.CUNUMERIC_NONZERO

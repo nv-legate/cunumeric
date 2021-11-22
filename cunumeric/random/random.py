@@ -15,7 +15,6 @@
 
 import numpy as np
 import numpy.random as nprandom
-
 from cunumeric.array import ndarray
 from cunumeric.runtime import runtime
 
@@ -59,7 +58,9 @@ def randint(low, high=None, size=None, dtype=None):
         dtype = np.dtype(np.int64)
     # TODO: randint must support unsigned integer dtypes as well
     if dtype.kind != "i":
-        raise TypeError("cunumeric.random.randint must be given an integer dtype")
+        raise TypeError(
+            "cunumeric.random.randint must be given an integer dtype"
+        )
     if not isinstance(size, tuple):
         size = (size,)
     result = ndarray(size, dtype=dtype)

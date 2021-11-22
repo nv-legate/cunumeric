@@ -28,6 +28,9 @@ CC_FLAGS ?=
 CC_FLAGS += -I. -I$(OPEN_BLAS_DIR)/include
 LD_FLAGS ?=
 LD_FLAGS += $(OPENBLAS_FLAGS)
+ifeq ($(strip $(USE_CUDA)),1)
+LD_FLAGS += -lcufft
+endif
 
 NVCC_FLAGS ?=
 NVCC_FLAGS += -I. -Wno-deprecated-declarations

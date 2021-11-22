@@ -23,16 +23,7 @@ from functools import reduce
 import numpy as np
 
 import legate.core.types as ty
-from legate.core import (
-    LEGATE_MAX_DIM,
-    AffineTransform,
-    ExternalAllocation,
-    FieldID,
-    Future,
-    FutureMap,
-    Region,
-    legion,
-)
+from legate.core import LEGATE_MAX_DIM, AffineTransform, legion
 from legate.core.runtime import RegionField
 
 from .config import *  # noqa F403
@@ -100,24 +91,6 @@ _supported_dtypes = {
 }
 
 
-class NumPyAllocation(ExternalAllocation):
-    def __init__(self, array):
-        self._array = array
-
-    @property
-    def memoryview(self):
-        return memoryview(self._array.data)
-
-    @property
-    def address(self):
-        return int(self._array.ctypes.data)
-
-    def __eq__(self, other):
-        return (
-            isinstance(other, NumPyAllocation) and self._array is other._array
-        )
-
-
 class Runtime(object):
     __slots__ = [
         "legate_context",
@@ -142,7 +115,7 @@ class Runtime(object):
         )
 
         # Make sure that our CuNumericLib object knows about us so it can
-         # destroy us
+        # destroy us
         cunumeric_lib.set_runtime(self)
         self._register_dtypes()
         self._parse_command_args()
@@ -310,24 +283,9 @@ class Runtime(object):
             if stores[0] is not None:
                 raise NotImplementedError("Need support for masked arrays")
             store = stores[1]
-            kind = store.kind
-            dtype = np.dtype(store.type.to_pandas_dtype())
-            primitive = store.storage
-            if kind == Future:
-                return DeferredArray(self, primitive, shape=(), dtype=dtype)
-            elif kind == FutureMap:
-                raise NotImplementedError("Need support for FutureMap inputs")
-            elif kind == (Region, FieldID):
-                region_field = self.instantiate_region_field(
-                    primitive[0], primitive[1].field_id, dtype
-                )
-            elif kind == (Region, int):
-                region_field = self.instantiate_region_field(
-                    primitive[0], primitive[1], dtype
-                )
-            else:
-                raise TypeError("Unknown LegateStore type")
-            return DeferredArray(self, region_field, region_field.shape, dtype)
+            if dtype is None:
+                dtype = np.dtype(array.type.to_pandas_dtype())
+            return DeferredArray(self, store, dtype=dtype)
         # See if this is a normal numpy array
         if not isinstance(obj, np.ndarray):
             # If it's not, make it into a numpy array
@@ -380,7 +338,7 @@ class Runtime(object):
 
     def has_external_attachment(self, array):
         assert array.base is None or not isinstance(array.base, np.ndarray)
-        return self.legate_runtime.has_attachment(NumPyAllocation(array))
+        return self.legate_runtime.has_attachment(array.data)
 
     @staticmethod
     def compute_parent_child_mapping(array):
@@ -521,7 +479,7 @@ class Runtime(object):
                 )
                 store.attach_external_allocation(
                     self.legate_context,
-                    NumPyAllocation(array),
+                    array.data,
                     share,
                 )
                 result = DeferredArray(

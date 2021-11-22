@@ -21,7 +21,9 @@ using namespace legate::mapping;
 
 namespace cunumeric {
 
-CuNumericMapper::CuNumericMapper(Legion::Mapping::MapperRuntime* rt, Legion::Machine m, const LibraryContext& ctx)
+CuNumericMapper::CuNumericMapper(Legion::Mapping::MapperRuntime* rt,
+                                 Legion::Machine m,
+                                 const LibraryContext& ctx)
   : BaseMapper(rt, m, ctx),
     min_gpu_chunk(extract_env("CUNUMERIC_MIN_GPU_CHUNK", 1 << 20, 2)),
     min_cpu_chunk(extract_env("CUNUMERIC_MIN_CPU_CHUNK", 1 << 14, 2)),
@@ -63,7 +65,16 @@ Scalar CuNumericMapper::tunable_value(TunableID tunable_id)
 std::vector<StoreMapping> CuNumericMapper::store_mappings(
   const mapping::Task& task, const std::vector<mapping::StoreTarget>& options)
 {
-  return {};
+  if (task.task_id() == CUNUMERIC_CONVOLVE) {
+    std::vector<StoreMapping> mappings;
+    auto& inputs = task.inputs();
+    mappings.push_back(StoreMapping::default_mapping(inputs[0], options.front()));
+    mappings.push_back(StoreMapping::default_mapping(inputs[1], options.front()));
+    auto& input_mapping = mappings.back();
+    for (uint32_t idx = 2; idx < inputs.size(); ++idx) input_mapping.stores.push_back(inputs[idx]);
+    return std::move(mappings);
+  } else
+    return {};
 }
 
 }  // namespace cunumeric

@@ -13,16 +13,16 @@
 # limitations under the License.
 #
 
-from legate.core import LEGATE_MAX_DIM
+import gc
+
+import cunumeric as num
 
 
-def scalar_gen(lib, val):
-    # pure scalar values
-    yield lib.array(val)
-    # ()-shape arrays
-    yield lib.full((), val)
-    for ndim in range(1, LEGATE_MAX_DIM):  # off-by-one is by design
-        # singleton arrays
-        yield lib.full(ndim * (1,), val)
-        # singleton slices of larger arrays
-        yield lib.full(ndim * (5,), val)[ndim * (slice(1, 2),)]
+def test():
+    for i in range(200):
+        for arr in num.ones((2,)):
+            gc.collect()
+
+
+if __name__ == "__main__":
+    test()
