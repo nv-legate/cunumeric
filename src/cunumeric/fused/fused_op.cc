@@ -17,8 +17,8 @@
 #include "core/utilities/makeshift_serializer.h"
 #include "core/runtime/runtime.h"
 #include "core/runtime/context.h"
-#include "cunumeric/fused/binary_op.h"
-#include "cunumeric/fused/binary_op_template.inl"
+#include "cunumeric/fused/fused_op.h"
+//#include "cunumeric/fused/binary_op_template.inl"
 #include "legion.h"
 #include <set>
 #include <time.h>
@@ -29,7 +29,7 @@ namespace cunumeric {
 
 using namespace Legion;
 using namespace legate;
-
+/*
 template <BinaryOpCode OP_CODE, LegateTypeCode CODE, int DIM>
 struct BinaryOpImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
   using OP  = BinaryOp<OP_CODE, CODE>;
@@ -58,7 +58,7 @@ struct BinaryOpImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
     }
   }
 };
-
+*/
 
 
 //op id refers not to the op's type, but the index in the list of fused ops
