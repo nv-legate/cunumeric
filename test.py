@@ -51,7 +51,7 @@ app_cores = max(physical_cores - 2, 1)
 # draw tests from these directories
 legate_tests = []
 legate_tests.extend(glob.glob("tests/*.py"))
-legate_tests.extend(glob.glob("examples/*.py"))
+#legate_tests.extend(glob.glob("examples/*.py"))
 
 # some test programs have additional command line arguments
 test_flags = {

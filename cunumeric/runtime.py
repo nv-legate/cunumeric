@@ -395,12 +395,14 @@ class Runtime(object):
         parent_shape = array.base.shape
         #if False and parent_shape==():
         if parent_shape==():
-            parent_shape = [1]
-        div = (
-            reduce(lambda x, y: x * y, parent_shape)
-            if len(parent_shape) > 1
-            else parent_shape[0]
-        )
+            parent_shape = ()
+            div =1
+        else:
+            div = (
+                reduce(lambda x, y: x * y, parent_shape)
+                if len(parent_shape) > 1
+                else parent_shape[0]
+            )
         div *= array.dtype.itemsize
         offsets = list()
         # Compute the offsets in the parent index
@@ -502,7 +504,6 @@ class Runtime(object):
         ):
             if array.size == 1 and not share:
                 # This is a single value array
-                import pdb; pdb.set_trace()
                 result = self.create_scalar(
                     array.data,
                     array.dtype,
@@ -623,6 +624,7 @@ class Runtime(object):
         elif self.is_lazy_array(array):
             raise NotImplementedError("convert lazy array to deferred array")
         else:
+            print(type(array))
             raise RuntimeError("invalid array type")
 
     def to_lazy_array(self, array, stacklevel):
