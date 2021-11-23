@@ -6,6 +6,7 @@ dependencies:
   - clang=8.0.1
   - clang-tools=8.0.1
   - cffi
+  - cutensor
   - numpy
   - scipy
   - packaging
