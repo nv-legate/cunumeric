@@ -166,15 +166,11 @@ class EagerArray(NumPyThunk):
             self.deferred.copy(rhs, deep=deep, stacklevel=(stacklevel + 1))
         else:
             if self.array.size == 1:
-                if deep:
-                    self.array.fill(rhs.array.item().__deepcopy__(None))
-                else:
-                    self.array.fill(rhs.array.item())
+                self.array.fill(rhs.array.item())
+            elif deep:
+                self.array[:] = rhs.array.__deepcopy__(None)
             else:
-                if deep:
-                    self.array[:] = rhs.array.__deepcopy__(None)
-                else:
-                    self.array[:] = rhs.array
+                self.array[:] = rhs.array
             self.runtime.profile_callsite(stacklevel + 1, False)
 
     @property
