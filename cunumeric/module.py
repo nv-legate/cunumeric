@@ -555,30 +555,23 @@ class NullOptimizer(oe.paths.PathOptimizer):
 
 # Generalized tensor contraction
 @add_boilerplate("a", "b")
-def contract(expr, a, b, out=None, dtype=None, stacklevel=1):
+def _contract(expr, a, b=None, out=None, dtype=None, stacklevel=1):
     # TODO: test for allowable types, handle float16 as a special case
 
-    # Pass the contraction expression through opt_einsum. There's no actual
-    # optimization to do, but this function normalizes the expression (adds the
-    # output part if it's missing, expands '...') and checks for some errors
-    # (mismatch on number of dimensions between operand and expression, wrong
-    # number of operands, unknown modes on output, a mode appearing under two
-    # different non-singleton extents).
-    operands, contractions = oe.contract_path(
-        expr, a, b, einsum_call=True, optimize=NullOptimizer()
-    )
-    assert len(contractions) == 1
-    (a_idx, b_idx), _, expr, _, _ = contractions[0]
-    a = operands[a_idx]
-    b = operands[b_idx]
-
-    # Parse modes out of contraction expression
-    m = re.match(r"([a-zA-Z]*),([a-zA-Z]*)->([a-zA-Z]*)", expr)
-    if m is None:
-        raise NotImplementedError("Non-alphabetic mode labels")
-    a_modes = m.group(1)
-    b_modes = m.group(2)
-    c_modes = m.group(3)
+    # Parse modes out of contraction expression (assuming expression has been
+    # normalized already by contract_path)
+    if b is None:
+        m = re.match(r"([a-zA-Z]*)->([a-zA-Z]*)", expr)
+        assert m is not None
+        a_modes = list(m.group(1))
+        b_modes = []
+        c_modes = list(m.group(2))
+    else:
+        m = re.match(r"([a-zA-Z]*),([a-zA-Z]*)->([a-zA-Z]*)", expr)
+        assert m is not None
+        a_modes = list(m.group(1))
+        b_modes = list(m.group(2))
+        c_modes = list(m.group(3))
 
     # Handle duplicate modes
     if len(set(c_modes)) != len(c_modes):
@@ -587,9 +580,31 @@ def contract(expr, a, b, out=None, dtype=None, stacklevel=1):
     if len(set(a_modes)) != len(a_modes) or len(set(b_modes)) != len(b_modes):
         raise NotImplementedError("Duplicate mode labels on input tensor")
 
+    # Sum-out singleton modes
+    a_reduce = tuple(
+        dim
+        for (dim, mode) in enumerate(a_modes)
+        if mode not in b_modes and mode not in c_modes
+    )
+    if len(a_reduce) > 0:
+        for dim in reversed(a_reduce):
+            a_modes.pop(dim)
+        a = a.sum(axis=a_reduce)
+    b_reduce = tuple(
+        dim
+        for (dim, mode) in enumerate(b_modes)
+        if mode not in a_modes and mode not in c_modes
+    )
+    if len(b_reduce) > 0:
+        for dim in reversed(b_reduce):
+            b_modes.pop(dim)
+        b = b.sum(axis=b_reduce)
+
     # Compute extent per mode, allowing for broadcasting
     mode2extent = {}
-    for (mode, extent) in chain(zip(a_modes, a.shape), zip(b_modes, b.shape)):
+    for (mode, extent) in chain(
+        zip(a_modes, a.shape), zip(b_modes, b.shape) if b is not None else []
+    ):
         prev_extent = mode2extent.get(mode, 1)
         if prev_extent == 1:
             mode2extent[mode] = extent
@@ -606,6 +621,45 @@ def contract(expr, a, b, out=None, dtype=None, stacklevel=1):
                 mode2extent[mode] = extent
             elif extent != prev_extent:
                 raise ValueError("Wrong shape on output array")
+
+    # Test for fallback to unary case
+    if b is not None:
+        if len(a_modes) == 0:
+            a = a * b
+            a_modes = b_modes
+            b = None
+            b_modes = []
+        elif len(b_modes) == 0:
+            a = a * b
+            b = None
+
+    # Unary contraction case
+    if b is None:
+        assert len(a_modes) == len(c_modes)
+        if len(a_modes) == 0:
+            # NumPy doesn't return a view in this case
+            c = copy(a)
+        else:
+            # Shuffle input array according to mode labels
+            axes = [a_modes.index(mode) for mode in c_modes]
+            assert all(ax >= 0 for ax in axes)
+            c = a.transpose(axes, stacklevel=(stacklevel + 1))
+        # Fill output array, if requested
+        if out is not None:
+            out[:] = c
+            return out
+        if dtype is not None and c.dtype is not dtype:
+            out = ndarray(
+                shape=c.shape,
+                dtype=dtype,
+                stacklevel=(stacklevel + 1),
+                inputs=(c,),
+            )
+            out._thunk.convert(c._thunk, stacklevel=(stacklevel + 1))
+            return out
+        return c
+
+    # Binary contraction case
 
     # Create output array if necessary
     c_dtype = ndarray.find_common_type(a, b)
@@ -665,6 +719,29 @@ def contract(expr, a, b, out=None, dtype=None, stacklevel=1):
         out._thunk.convert(c._thunk, stacklevel=(stacklevel + 1))
         return out
     return c
+
+
+@copy_docstring(np.einsum)
+def einsum(expr, *operands, out=None, dtype=None, optimize=False):
+    if not optimize:
+        optimize = NullOptimizer()
+    # This call normalizes the expression (adds the output part if it's
+    # missing, expands '...') and checks for some errors (mismatch on number
+    # of dimensions between operand and expression, wrong number of operands,
+    # unknown modes on output, a mode appearing under two different
+    # non-singleton extents).
+    operands, contractions = oe.contract_path(
+        expr, *operands, einsum_call=True, optimize=optimize
+    )
+    for (indices, _, sub_expr, _, _) in contractions:
+        sub_opers = [operands.pop(i) for i in indices]
+        if len(operands) == 0:  # last iteration
+            sub_result = _contract(sub_expr, *sub_opers, out=out, dtype=dtype)
+        else:
+            sub_result = _contract(sub_expr, *sub_opers)
+        operands.append(sub_result)
+    assert len(operands) == 1
+    return operands[0]
 
 
 @copy_docstring(np.tensordot)
