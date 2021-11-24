@@ -394,6 +394,32 @@ class EagerArray(NumPyThunk):
             )
             self.runtime.profile_callsite(stacklevel + 1, False)
 
+    def choose(
+        self,
+        *args,
+        rhs,
+        stacklevel=0,
+        callsite=None,
+    ):
+        if self.shadow:
+            rhs = self.runtime.to_eager_array(rhs, stacklevel=(stacklevel + 1))
+            for ar in args:
+                ar = self.runtime.to_eager_array(
+                    ar, stacklevel=(stacklevel + 1)
+                )
+        elif self.deferred is None:
+            self.check_eager_args((stacklevel + 1), *args, rhs)
+        if self.deferred is not None:
+            self.deferred.choose(
+                *args,
+                rhs,
+                stacklevel=(stacklevel + 1),
+            )
+        else:
+            choices = tuple(c for c in args)
+            self.array[:] = np.choose(rhs.array, choices, "raise")
+            self.runtime.profile_callsite(stacklevel + 1, False)
+
     def diag(self, rhs, extract, k, stacklevel):
         if self.shadow:
             rhs = self.runtime.to_eager_array(rhs, stacklevel=(stacklevel + 1))

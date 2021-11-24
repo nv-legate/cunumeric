@@ -203,6 +203,12 @@ def array(obj, dtype=None, copy=True, order="K", subok=False, ndmin=0):
     return array
 
 
+@copy_docstring(np.choose)
+def choose(a, choices, out=None, mode="raise"):
+    array = ndarray.convert_to_cunumeric_ndarray(a)
+    return array.choose(choices=choices, out=out, mode=mode, stacklevel=2)
+
+
 @copy_docstring(np.diag)
 def diag(v, k=0):
     array = ndarray.convert_to_cunumeric_ndarray(v)

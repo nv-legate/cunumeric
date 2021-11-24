@@ -487,7 +487,8 @@ struct UnaryOp<UnaryOpCode::RINT, CODE> {
   template <typename _T = T, std::enable_if_t<legate::is_complex<_T>::value>* = nullptr>
   constexpr decltype(auto) operator()(const _T& x) const
   {
-    return (std::rint(x.real()), std::rint(x.imag()));
+    _T result = (std::rint(x.real()), std::rint(x.imag()));
+    return result;
   }
 
   template <typename _T = T, std::enable_if_t<!legate::is_complex<_T>::value>* = nullptr>
@@ -520,9 +521,11 @@ struct UnaryOp<UnaryOpCode::SIGN, CODE> {
   constexpr decltype(auto) operator()(const _T& x) const
   {
     if (x.real() != 0) {
-      return (_sign(x.real()), 0);
+      _T res = (_sign(x.real()), 0);
+      return res;
     } else {
-      return (_sign(x.imag()), 0);
+      _T res = (_sign(x.imag()), 0);
+      return res;
     }
   }
 
@@ -533,10 +536,15 @@ struct UnaryOp<UnaryOpCode::SIGN, CODE> {
   }
 
  private:
-  template <typename _T>
+  template <typename _T, std::enable_if_t<std::is_signed<_T>::value>* = nullptr>
   T _sign(const _T& x) const
   {
     return x > 0 ? T(1) : (x < 0 ? T(-1) : T(0));
+  }
+  template <typename _T, std::enable_if_t<!std::is_signed<_T>::value>* = nullptr>
+  T _sign(const _T& x) const
+  {
+    return x > 0 ? T(1) : T(0);
   }
 };
 
