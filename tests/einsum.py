@@ -17,7 +17,7 @@ from itertools import permutations, product
 from typing import List, Set, Tuple
 
 import numpy as np
-from test_tools.generators import broadcasts_to, permutes_to, seq_array
+from test_tools.generators import permutes_to, seq_array
 
 import cunumeric as num
 
@@ -26,8 +26,6 @@ MAX_OPERANDS = 3
 MAX_OPERAND_DIM = 2
 MAX_RESULT_DIM = 2
 BASE_DIM_LEN = 10
-TEST_ALL_PERMS = True
-TEST_BROADCASTING = False
 
 
 def gen_result(used_modes: int):
@@ -103,17 +101,16 @@ def gen_expr(
         opers.pop()
 
 
-def gen_input(lib, modes: str):
+def gen_input(lib, modes: str, more_combinations: bool):
     shape = tuple(BASE_DIM_LEN + ord(m) - ord("a") for m in modes)
     yield seq_array(lib, shape)
-    if TEST_ALL_PERMS:
+    if more_combinations:
         yield from permutes_to(lib, shape)
-    # TODO: Doesn't work because on broadcasted dimensions leaf tasks don't see
-    # the appropriate size for the tile, but instead see the full region's size
-    # on that dimension. Therefore, broadcasting has to be handled on the
-    # frontend.
-    if TEST_BROADCASTING:
-        yield from broadcasts_to(lib, shape)
+        # TODO: Doesn't work because on broadcasted dimensions leaf tasks don't
+        # see the appropriate size for the tile, but instead see the full
+        # region's size on that dimension. Therefore, broadcasting has to be
+        # handled on the frontend.
+        # yield from broadcasts_to(lib, shape)
 
 
 def test():
@@ -125,8 +122,8 @@ def test():
             continue
         print(f"testing {expr}")
         for (np_inputs, num_inputs) in zip(
-            product(*(gen_input(np, op) for op in opers)),
-            product(*(gen_input(num, op) for op in opers)),
+            product(*(gen_input(np, op, len(opers) <= 2) for op in opers)),
+            product(*(gen_input(num, op, len(opers) <= 2) for op in opers)),
         ):
             assert np.allclose(
                 np.einsum(expr, *np_inputs), num.einsum(expr, *num_inputs)
