@@ -561,6 +561,14 @@ class EagerArray(NumPyThunk):
                 if not isinstance(where, EagerArray)
                 else where.array,
             )
+        elif op == UnaryOpCode.EXP2:
+            np.exp2(
+                rhs.array,
+                out=self.array,
+                where=where
+                if not isinstance(where, EagerArray)
+                else where.array,
+            )
         elif op == UnaryOpCode.FLOOR:
             np.floor(
                 rhs.array,
@@ -603,6 +611,14 @@ class EagerArray(NumPyThunk):
                 if not isinstance(where, EagerArray)
                 else where.array,
             )
+        elif op == UnaryOpCode.LOG10:
+            np.log10(
+                rhs.array,
+                out=self.array,
+                where=where
+                if not isinstance(where, EagerArray)
+                else where.array,
+            )
         elif op == UnaryOpCode.LOGICAL_NOT:
             np.logical_not(
                 rhs.array,
@@ -621,6 +637,22 @@ class EagerArray(NumPyThunk):
             )
         elif op == UnaryOpCode.REAL:
             self.array = np.real(rhs.array)
+        elif op == UnaryOpCode.RINT:
+            np.rint(
+                rhs.array,
+                out=self.array,
+                where=where
+                if not isinstance(where, EagerArray)
+                else where.array,
+            )
+        elif op == UnaryOpCode.SIGN:
+            np.sign(
+                rhs.array,
+                out=self.array,
+                where=where
+                if not isinstance(where, EagerArray)
+                else where.array,
+            )
         elif op == UnaryOpCode.SIN:
             np.sin(
                 rhs.array,
@@ -680,7 +712,27 @@ class EagerArray(NumPyThunk):
                 stacklevel=(stacklevel + 1),
             )
             return
-        if op == UnaryRedCode.ARGMAX:
+        if op == UnaryRedCode.ALL:
+            np.all(
+                rhs.array,
+                out=self.array,
+                axis=axes,
+                keepdims=keepdims,
+                where=where
+                if not isinstance(where, EagerArray)
+                else where.array,
+            )
+        elif op == UnaryRedCode.ANY:
+            np.any(
+                rhs.array,
+                out=self.array,
+                axis=axes,
+                keepdims=keepdims,
+                where=where
+                if not isinstance(where, EagerArray)
+                else where.array,
+            )
+        elif op == UnaryRedCode.ARGMAX:
             assert len(axes) == 1
             np.argmax(rhs.array, out=self.array, axis=axes[0])
         elif op == UnaryRedCode.ARGMIN:
@@ -785,15 +837,15 @@ class EagerArray(NumPyThunk):
                     if not isinstance(where, EagerArray)
                     else where.array,
                 )
-            # elif op == BinaryOpCode.LOGICAL_AND:
-            #    np.logical_and(
-            #        rhs1.array,
-            #        rhs2.array,
-            #        out=self.array,
-            #        where=where
-            #        if not isinstance(where, EagerArray)
-            #        else where.array,
-            #    )
+            elif op == BinaryOpCode.LOGICAL_AND:
+                np.logical_and(
+                    rhs1.array,
+                    rhs2.array,
+                    out=self.array,
+                    where=where
+                    if not isinstance(where, EagerArray)
+                    else where.array,
+                )
             elif op == BinaryOpCode.DIVIDE:
                 np.divide(
                     rhs1.array,
@@ -865,15 +917,15 @@ class EagerArray(NumPyThunk):
                     if not isinstance(where, EagerArray)
                     else where.array,
                 )
-            # elif op == BinaryOpCode.LOGICAL_OR:
-            #    np.logical_or(
-            #        rhs1.array,
-            #        rhs2.array,
-            #        out=self.array,
-            #        where=where
-            #        if not isinstance(where, EagerArray)
-            #        else where.array,
-            #    )
+            elif op == BinaryOpCode.LOGICAL_OR:
+                np.logical_or(
+                    rhs1.array,
+                    rhs2.array,
+                    out=self.array,
+                    where=where
+                    if not isinstance(where, EagerArray)
+                    else where.array,
+                )
             elif op == BinaryOpCode.POWER:
                 np.power(
                     rhs1.array,
@@ -892,15 +944,15 @@ class EagerArray(NumPyThunk):
                     if not isinstance(where, EagerArray)
                     else where.array,
                 )
-            # elif op == BinaryOpCode.LOGICAL_XOR:
-            #    np.logical_xor(
-            #        rhs1.array,
-            #        rhs2.array,
-            #        out=self.array,
-            #        where=where
-            #        if not isinstance(where, EagerArray)
-            #        else where.array,
-            #    )
+            elif op == BinaryOpCode.LOGICAL_XOR:
+                np.logical_xor(
+                    rhs1.array,
+                    rhs2.array,
+                    out=self.array,
+                    where=where
+                    if not isinstance(where, EagerArray)
+                    else where.array,
+                )
             elif op == BinaryOpCode.LESS_EQUAL:
                 np.less_equal(
                     rhs1.array,
