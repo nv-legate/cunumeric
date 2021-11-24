@@ -17,6 +17,7 @@ from itertools import permutations, product
 from typing import List, Set, Tuple
 
 import numpy as np
+from test_tools.generators import broadcasts_to, permutes_to, seq_array
 
 import cunumeric as num
 
@@ -26,6 +27,7 @@ MAX_OPERAND_DIM = 2
 MAX_RESULT_DIM = 2
 BASE_DIM_LEN = 10
 TEST_ALL_PERMS = True
+TEST_BROADCASTING = False
 
 
 def gen_result(used_modes: int):
@@ -101,52 +103,35 @@ def gen_expr(
         opers.pop()
 
 
-def gen_array(lib, operand: str):
-    # Test
-    out_shape = tuple(BASE_DIM_LEN + ord(m) - ord("a") for m in operand)
-    size = np.prod(out_shape)
-    for axes in permutations(range(len(operand))):
-        in_shape = [-1] * len(out_shape)
-        for (i, j) in enumerate(axes):
-            in_shape[j] = out_shape[i]
-        in_shape = tuple(in_shape)
-        in_arr = lib.full(in_shape, 2.0)
-        if len(in_shape) > 0:
-            in_arr[:] = lib.arange(size).reshape(in_shape) / size
-        yield in_arr.transpose(axes)
-        if not TEST_ALL_PERMS:
-            return
+def gen_input(lib, modes: str):
+    shape = tuple(BASE_DIM_LEN + ord(m) - ord("a") for m in modes)
+    yield seq_array(lib, shape)
+    if TEST_ALL_PERMS:
+        yield from permutes_to(lib, shape)
+    # TODO: Doesn't work because on broadcasted dimensions leaf tasks don't see
+    # the appropriate size for the tile, but instead see the full region's size
+    # on that dimension. Therefore, broadcasting has to be handled on the
+    # frontend.
+    if TEST_BROADCASTING:
+        yield from broadcasts_to(lib, shape)
 
 
 def test():
-    total_exprs = 0
-    total_perms = 0
     for expr in gen_expr([], set()):
         lhs, rhs = expr.split("->")
         opers = lhs.split(",")
-        # TODO: Remove these restrictions as we fix the issues
-        if (
-            len(opers) != 2
-            or len(set(opers[0]) - set(opers[1]) - set(rhs)) > 0
-            or len(set(opers[1]) - set(opers[0]) - set(rhs)) > 0
-            or len(set(opers[0])) != len(opers[0])
-            or len(set(opers[1])) != len(opers[1])
-        ):
+        # TODO: Remove this after we handle duplicate modes
+        if any(len(set(op)) != len(op) for op in opers):
             continue
-        perms = 0
-        for (np_arrays, num_arrays) in zip(
-            product(*(gen_array(np, op) for op in opers)),
-            product(*(gen_array(num, op) for op in opers)),
+        print(f"testing {expr}")
+        for (np_inputs, num_inputs) in zip(
+            product(*(gen_input(np, op) for op in opers)),
+            product(*(gen_input(num, op) for op in opers)),
         ):
             assert np.allclose(
-                np.einsum(expr, *np_arrays),
-                num.contract(expr, *num_arrays),  # TODO: switch to num.einsum
+                np.einsum(expr, *np_inputs), num.einsum(expr, *num_inputs)
             )
-            perms += 1
-        total_exprs += 1
-        total_perms += perms
-        print(f"tested {expr} - {perms} permutations")
-    print(f"tested {total_exprs} expressions, {total_perms} permutations")
+    # TODO: test out=, casting, dtype=
 
 
 if __name__ == "__main__":

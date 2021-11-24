@@ -13,6 +13,10 @@
 # limitations under the License.
 #
 
+from itertools import permutations, product
+
+import numpy as np
+
 from legate.core import LEGATE_MAX_DIM
 
 
@@ -26,3 +30,36 @@ def scalar_gen(lib, val):
         yield lib.full(ndim * (1,), val)
         # singleton slices of larger arrays
         yield lib.full(ndim * (5,), val)[ndim * (slice(1, 2),)]
+
+
+def seq_array(lib, shape):
+    arr = lib.full(shape, 0.5)
+    size = np.prod(shape)
+    if size > 1:
+        arr[:] = lib.arange(size).reshape(shape) / size
+    return arr
+
+
+def broadcasts_to(lib, tgt_shape):
+    past_first = False
+    for mask in product([True, False], repeat=len(tgt_shape)):
+        if not past_first:
+            past_first = True
+            continue
+        src_shape = tuple(
+            d if keep else 1 for (d, keep) in zip(tgt_shape, mask)
+        )
+        yield seq_array(lib, src_shape)
+
+
+def permutes_to(lib, tgt_shape):
+    past_first = False
+    for axes in permutations(range(len(tgt_shape))):
+        if not past_first:
+            past_first = True
+            continue
+        src_shape = [-1] * len(tgt_shape)
+        for (i, j) in enumerate(axes):
+            src_shape[j] = tgt_shape[i]
+        src_shape = tuple(src_shape)
+        yield seq_array(lib, src_shape).transpose(axes)
