@@ -378,7 +378,9 @@ class ndarray(object):
 
     def __and__(self, rhs):
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        return self.perform_binary_op(BinaryOpCode.LOGICAL_AND, rhs_array)
+        return self.perform_binary_op(
+            BinaryOpCode.LOGICAL_AND, self, rhs_array
+        )
 
     def __array__(self, dtype=None, stacklevel=1):
         if dtype is None:
@@ -711,6 +713,10 @@ class ndarray(object):
     def __nonzero__(self):
         return self.__array__(stacklevel=2).__nonzero__()
 
+    def __or__(self, rhs):
+        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
+        return self.perform_binary_op(BinaryOpCode.LOGICAL_OR, self, rhs_array)
+
     def __pos__(self):
         # We know these types are already positive
         if (
@@ -832,19 +838,51 @@ class ndarray(object):
             BinaryOpCode.LOGICAL_XOR, rhs_array, self
         )
 
-    @unimplemented
-    def all(self, axis=None, out=None, keepdims=False):
-        numpy_array = self.__array__(stacklevel=3).all(
-            axis=axis, out=out, keepdims=keepdims
+    @add_boilerplate()
+    def all(
+        self,
+        axis=None,
+        out=None,
+        keepdims=False,
+        initial=None,
+        where=True,
+        stacklevel=1,
+    ):
+        return self.perform_unary_reduction(
+            UnaryRedCode.ALL,
+            self,
+            axis=axis,
+            dst=out,
+            keepdims=keepdims,
+            dtype=np.dtype(np.bool_),
+            check_types=False,
+            initial=initial,
+            where=where,
+            stacklevel=(stacklevel + 1),
         )
-        return self.convert_to_cunumeric_ndarray(numpy_array, stacklevel=3)
 
-    @unimplemented
-    def any(self, axis=None, out=None, keepdims=False):
-        numpy_array = self.__array__(stacklevel=3).any(
-            axis=axis, out=out, keepdims=keepdims
+    @add_boilerplate()
+    def any(
+        self,
+        axis=None,
+        out=None,
+        keepdims=False,
+        initial=None,
+        where=True,
+        stacklevel=1,
+    ):
+        return self.perform_unary_reduction(
+            UnaryRedCode.ANY,
+            self,
+            axis=axis,
+            dst=out,
+            keepdims=keepdims,
+            dtype=np.dtype(np.bool_),
+            check_types=False,
+            initial=initial,
+            where=where,
+            stacklevel=(stacklevel + 1),
         )
-        return self.convert_to_cunumeric_ndarray(numpy_array, stacklevel=3)
 
     def argmax(self, axis=None, out=None, stacklevel=1):
         if self.size == 1:

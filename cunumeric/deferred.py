@@ -153,6 +153,8 @@ _UNARY_RED_TO_REDUCTION_OPS = {
     UnaryRedCode.ARGMIN: CuNumericRedopCode.ARGMIN,
     UnaryRedCode.CONTAINS: ReductionOp.ADD,
     UnaryRedCode.COUNT_NONZERO: ReductionOp.ADD,
+    UnaryRedCode.ALL: ReductionOp.MUL,
+    UnaryRedCode.ANY: ReductionOp.ADD,
 }
 
 
@@ -191,6 +193,8 @@ _UNARY_RED_IDENTITIES = {
     UnaryRedCode.ARGMIN: lambda ty: (np.iinfo(np.int64).min, min_identity(ty)),
     UnaryRedCode.CONTAINS: lambda _: False,
     UnaryRedCode.COUNT_NONZERO: lambda _: 0,
+    UnaryRedCode.ALL: lambda _: True,
+    UnaryRedCode.ANY: lambda _: False,
 }
 
 
