@@ -646,7 +646,7 @@ def _contract(expr, a, b=None, out=None, dtype=None, stacklevel=1):
             c = a.transpose(axes, stacklevel=(stacklevel + 1))
         # Fill output array, if requested
         if out is not None:
-            out[:] = c
+            out[...] = c
             return out
         if dtype is not None and c.dtype is not dtype:
             out = ndarray(
