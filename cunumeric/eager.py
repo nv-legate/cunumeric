@@ -447,16 +447,18 @@ class EagerArray(NumPyThunk):
             self.array[:] = np.sort(rhs.array)
             self.runtime.profile_callsite(stacklevel + 1, False)
 
-    def random_uniform(self, stacklevel):
+    def random_uniform(self, low, high, stacklevel):
         assert not self.shadow
         if self.deferred is not None:
             self.deferred.random_uniform(stacklevel=(stacklevel + 1))
         else:
             if self.array.size == 1:
-                self.array.fill(np.random.rand())
+                self.array.fill(np.random.uniform(low, high))
             else:
-                self.array[:] = np.random.rand(*(self.array.shape))
-            self.runtime.profile_callsite(stacklevel + 1, False)
+                self.array[:] = np.random.uniform(
+                    low, high, size=self.array.shape, dtype=self.array.dtype
+                )
+        self.runtime.profile_callsite(stacklevel + 1, False)
 
     def random_normal(self, stacklevel):
         assert not self.shadow
