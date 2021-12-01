@@ -33,7 +33,7 @@ struct MatVecMulImplBody<VariantKind::GPU, LegateTypeCode::FLOAT_LT> {
                   size_t mat_stride,
                   bool transpose_mat)
   {
-    cublasHandle_t cublas_handle = Core::get_cublas();
+    cublasHandle_t cublas_handle = get_cublas();
     // Update the stream because the CUDA hijack can't see inside cuBLAS
     cudaStream_t task_stream;
     cudaStreamCreate(&task_stream);
@@ -60,7 +60,7 @@ struct MatVecMulImplBody<VariantKind::GPU, LegateTypeCode::DOUBLE_LT> {
                   size_t mat_stride,
                   bool transpose_mat)
   {
-    cublasHandle_t cublas_handle = Core::get_cublas();
+    cublasHandle_t cublas_handle = get_cublas();
     // Update the stream because the CUDA hijack can't see inside cuBLAS
     cudaStream_t task_stream;
     cudaStreamCreate(&task_stream);
@@ -87,7 +87,7 @@ struct MatVecMulImplBody<VariantKind::GPU, LegateTypeCode::HALF_LT> {
                   size_t mat_stride,
                   bool transpose_mat)
   {
-    cublasHandle_t cublas_handle = Core::get_cublas();
+    cublasHandle_t cublas_handle = get_cublas();
     // Update the stream because the CUDA hijack can't see inside cuBLAS
     cudaStream_t task_stream;
     cudaStreamCreate(&task_stream);
