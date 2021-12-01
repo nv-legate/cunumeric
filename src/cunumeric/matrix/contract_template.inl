@@ -78,6 +78,11 @@ void print_ptr(const char* title, const T* vals, size_t ndim, int64_t* shape, in
   // Assumes dense data with no padding.
   // Just prints out in memory order w/o considering strides.
   std::cout << title << " =" << std::endl;
+  if (ndim == 0) {
+    std::cout << " " << *vals << std::endl;
+    std::cout.flush();
+    return;
+  }
   size_t col_len = 0;
   size_t num_cols = 1;
   for (size_t d = 0; d < ndim; ++d) {
