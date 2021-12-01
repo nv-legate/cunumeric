@@ -17,6 +17,7 @@
 #pragma once
 
 struct cublasContext;
+struct cusolverDnContext;
 
 namespace cunumeric {
 
@@ -33,9 +34,15 @@ struct CUDALibraries {
  public:
   void finalize();
   cublasContext* get_cublas();
+  cusolverDnContext* get_cusolver();
+
+ private:
+  void finalize_cublas();
+  void finalize_cusolver();
 
  private:
   cublasContext* cublas_;
+  cusolverDnContext* cusolver_;
 };
 
 }  // namespace cunumeric

@@ -92,4 +92,11 @@ cublasContext* get_cublas()
   return lib.get_cublas();
 }
 
+cusolverDnContext* get_cusolver()
+{
+  const auto proc = Processor::get_executing_processor();
+  auto& lib       = get_cuda_libraries(proc);
+  return lib.get_cusolver();
+}
+
 }  // namespace cunumeric

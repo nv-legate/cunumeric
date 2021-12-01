@@ -29,7 +29,7 @@ CC_FLAGS += -I. -I$(OPEN_BLAS_DIR)/include
 LD_FLAGS ?=
 LD_FLAGS += $(OPENBLAS_FLAGS)
 ifeq ($(strip $(USE_CUDA)),1)
-LD_FLAGS += -lcufft
+LD_FLAGS += -lcublas -lcusolver -lcufft
 endif
 
 NVCC_FLAGS ?=
