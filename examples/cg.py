@@ -84,17 +84,11 @@ def solve(A, b, conv_iters, max_iters, verbose):
         min(max_iters, b.shape[0]) if max_iters is not None else b.shape[0]
     )
     for i in range(max_iters):
-        #print("one")
         Ap = A.dot(p)
-        #print("2")
         alpha = rsold / (p.dot(Ap))
-        #print("3")
         x = x + alpha * p
-        #print("4")
         r = r - alpha * Ap
-        #print("5")
         rsnew = r.dot(r)
-        #print("6")
         # We only do the convergence test every conv_iters or on the last
         # iteration
         if (i % conv_iters == 0 or i == (max_iters - 1)) and np.sqrt(
@@ -104,11 +98,8 @@ def solve(A, b, conv_iters, max_iters, verbose):
             break
         if verbose:
             print("Residual: " + str(rsnew))
-        #print("7")
         beta = rsnew / rsold
-        #print("8")
         p = r + beta * p
-        #print("9")
         rsold = rsnew
     if converged < 0:
         print("Convergence FAILURE!")
