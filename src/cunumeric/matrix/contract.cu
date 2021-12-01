@@ -23,6 +23,23 @@ namespace cunumeric {
 
 using namespace Legion;
 
+#if 0  // debugging output
+
+template<typename T>
+void print_dev(const char* title, const T* vals, size_t ndim, int64_t* shape, int64_t* strides)
+{
+  size_t sz = 1;
+  for (size_t d = 0; d < ndim; ++d) {
+    sz *= shape[d];
+  }
+  T* buf = new T[sz];
+  CHECK_CUDA(cudaMemcpy(buf, vals, sz * sizeof(T), cudaMemcpyDeviceToHost));
+  print_ptr(title, buf, ndim, shape, strides);
+  delete buf;
+}
+
+#endif  // debugging output
+
 __host__ cutensorHandle_t* get_cutensor_handle(void)
 {
   static bool initialized[LEGION_MAX_NUM_PROCS];
@@ -57,6 +74,29 @@ __host__ void contract(T* lhs_data,
                        int64_t* rhs2_strides,
                        int32_t* rhs2_modes)
 {
+#if 0   // debugging output
+  std::cout << "start contract kernel:" << std::endl; std::cout.flush();
+  std::cout << "lhs:" << std::endl; std::cout.flush();
+  std::cout << "lhs_ndim = " << lhs_ndim << std::endl; std::cout.flush();
+  print_ptr("lhs_shape", lhs_shape, lhs_ndim);
+  print_ptr("lhs_strides", lhs_strides, lhs_ndim);
+  print_ptr("lhs_modes", lhs_modes, lhs_ndim);
+  print_dev("lhs_data", lhs_data, lhs_ndim, lhs_shape, lhs_strides);
+  std::cout << "rhs1:" << std::endl; std::cout.flush();
+  std::cout << "rhs1_ndim = " << rhs1_ndim << std::endl; std::cout.flush();
+  print_ptr("rhs1_shape", rhs1_shape, rhs1_ndim);
+  print_ptr("rhs1_strides", rhs1_strides, rhs1_ndim);
+  print_ptr("rhs1_modes", rhs1_modes, rhs1_ndim);
+  print_dev("rhs1_data", rhs1_data, rhs1_ndim, rhs1_shape, rhs1_strides);
+  std::cout << "rhs2:" << std::endl; std::cout.flush();
+  std::cout << "rhs2_ndim = " << rhs2_ndim << std::endl; std::cout.flush();
+  print_ptr("rhs2_shape", rhs2_shape, rhs2_ndim);
+  print_ptr("rhs2_strides", rhs2_strides, rhs2_ndim);
+  print_ptr("rhs2_modes", rhs2_modes, rhs2_ndim);
+  print_dev("rhs2_data", rhs2_data, rhs2_ndim, rhs2_shape, rhs2_strides);
+  std::cout << std::endl; std::cout.flush();
+#endif  // debugging output
+
   // Initialization
   cudaStream_t task_stream;
   CHECK_CUDA(cudaStreamCreateWithFlags(&task_stream, cudaStreamNonBlocking));
@@ -123,6 +163,14 @@ __host__ void contract(T* lhs_data,
                                      work,
                                      work_size,
                                      task_stream));
+
+#if 0   // debugging output
+  std::cout << "end contract kernel:" << std::endl; std::cout.flush();
+  print_dev("lhs_data", lhs_data, lhs_ndim, lhs_shape, lhs_strides);
+  print_dev("rhs1_data", rhs1_data, rhs1_ndim, rhs1_shape, rhs1_strides);
+  print_dev("rhs2_data", rhs2_data, rhs2_ndim, rhs2_shape, rhs2_strides);
+  std::cout << std::endl; std::cout.flush();
+#endif  // debugging output
 
   // Cleanup
   CHECK_CUDA(cudaStreamDestroy(task_stream));

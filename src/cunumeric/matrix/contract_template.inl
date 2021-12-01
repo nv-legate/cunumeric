@@ -38,6 +38,67 @@ template <>
 struct support_contract<LegateTypeCode::COMPLEX128_LT> : std::true_type {
 };
 
+#if 0  // debugging output
+
+template<typename T>
+void print_vec(const char* title, const std::vector<T>& vals)
+{
+  std::cout << title << " =";
+  for (const T& v : vals) {
+    std::cout << " " << v;
+  }
+  std::cout << std::endl;
+  std::cout.flush();
+}
+
+template<typename T>
+void print_span(const char* title, legate::Span<T>& vals)
+{
+  std::cout << title << " =";
+  for (size_t i = 0; i < vals.size(); ++i) {
+    std::cout << " " << vals[i];
+  }
+  std::cout << std::endl;
+  std::cout.flush();
+}
+
+template<typename T>
+void print_ptr(const char* title, const T* vals, size_t len) {
+  std::cout << title << " =";
+  for (size_t i = 0; i < len; ++i) {
+    std::cout << " " << vals[i];
+  }
+  std::cout << std::endl;
+  std::cout.flush();
+}
+
+template<typename T>
+void print_ptr(const char* title, const T* vals, size_t ndim, int64_t* shape, int64_t* strides)
+{
+  // Assumes dense data with no padding.
+  // Just prints out in memory order w/o considering strides.
+  std::cout << title << " =" << std::endl;
+  size_t col_len = 0;
+  size_t num_cols = 1;
+  for (size_t d = 0; d < ndim; ++d) {
+    if (strides[d] == 1) {
+      col_len = shape[d];
+    } else {
+      num_cols *= shape[d];
+    }
+  }
+  assert(col_len > 0);
+  for (size_t i = 0; i < num_cols; ++i) {
+    for (size_t j = 0; j < col_len; ++j) {
+      std::cout << " " << vals[i * col_len + j];
+    }
+    std::cout << std::endl;
+  }
+  std::cout.flush();
+}
+
+#endif  // debugging output
+
 template <VariantKind KIND>
 struct ContractImpl {
   template <LegateTypeCode CODE,
