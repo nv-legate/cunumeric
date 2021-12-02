@@ -1138,6 +1138,7 @@ class DeferredArray(NumPyThunk):
     ):
         lhs_thunk = self
 
+        # Casting should have been handled by the frontend
         assert lhs_thunk.dtype is rhs1_thunk.dtype
         assert lhs_thunk.dtype is rhs2_thunk.dtype
 
@@ -1157,6 +1158,13 @@ class DeferredArray(NumPyThunk):
         rhs1 = rhs1_thunk.base
         rhs2 = rhs2_thunk.base
 
+        # The underlying libraries are not guaranteed to work with stride
+        # values of 0. The frontend should therefore handle broadcasting
+        # directly, instead of promoting stores.
+        assert not lhs.has_fake_dims()
+        assert not rhs1.has_fake_dims()
+        assert not rhs2.has_fake_dims()
+
         # Transpose arrays according to alphabetical order of mode labels
         def alphabetical_transpose(store, modes):
             perm = [dim for (_, dim) in sorted(zip(modes, range(len(modes))))]
@@ -1166,8 +1174,7 @@ class DeferredArray(NumPyThunk):
         rhs1 = alphabetical_transpose(rhs1, rhs1_modes)
         rhs2 = alphabetical_transpose(rhs2, rhs2_modes)
 
-        # Promote dimensions as required to align the stores and handle
-        # broadcasting. Keep track of which dimensions were added.
+        # Promote dimensions as required to align the stores
         lhs_dim_mask = []
         rhs1_dim_mask = []
         rhs2_dim_mask = []
@@ -1178,13 +1185,11 @@ class DeferredArray(NumPyThunk):
                 if mode not in modes:
                     dim_mask.append(False)
                     return store.promote(dim, extent)
-                dim_mask.append(True)
-                if store.shape[dim] != extent:
-                    assert store.shape[dim] == 1
-                    # Shouldn't broadcast up the output array
-                    assert store is not lhs
-                    return store.project(dim, 0).promote(dim, extent)
-                return store
+                else:
+                    dim_mask.append(True)
+                    # Broadcasting should have been handled already
+                    assert store.shape[dim] == extent
+                    return store
 
             lhs = add_mode(lhs, lhs_modes, lhs_dim_mask)
             rhs1 = add_mode(rhs1, rhs1_modes, rhs1_dim_mask)

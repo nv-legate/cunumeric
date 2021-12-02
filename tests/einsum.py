@@ -17,7 +17,7 @@ from itertools import permutations, product
 from typing import List, Set, Tuple
 
 import numpy as np
-from test_tools.generators import permutes_to, seq_array
+from test_tools.generators import broadcasts_to, permutes_to, seq_array
 
 import cunumeric as num
 
@@ -106,11 +106,7 @@ def gen_input(lib, modes: str, more_combinations: bool):
     yield seq_array(lib, shape)
     if more_combinations:
         yield from permutes_to(lib, shape)
-        # TODO: Doesn't work because on broadcasted dimensions leaf tasks don't
-        # see the appropriate size for the tile, but instead see the full
-        # region's size on that dimension. Therefore, broadcasting has to be
-        # handled on the frontend.
-        # yield from broadcasts_to(lib, shape)
+        yield from broadcasts_to(lib, shape)
 
 
 def test():
@@ -125,10 +121,16 @@ def test():
             product(*(gen_input(np, op, len(opers) <= 2) for op in opers)),
             product(*(gen_input(num, op, len(opers) <= 2) for op in opers)),
         ):
-            assert np.allclose(
-                np.einsum(expr, *np_inputs), num.einsum(expr, *num_inputs)
-            )
-    # TODO: test out=, casting, dtype=
+            np_res = np.einsum(expr, *np_inputs)
+            num_res = num.einsum(expr, *num_inputs)
+            assert np.allclose(np_res, num_res)
+            if len(opers) <= 2:
+                out = num.zeros(
+                    tuple(BASE_DIM_LEN + ord(m) - ord("a") for m in rhs)
+                )
+                num.einsum(expr, *num_inputs, out=out)
+                assert np.allclose(np_res, out)
+    # TODO: test casting, dtype=
 
 
 if __name__ == "__main__":
