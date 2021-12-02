@@ -94,6 +94,7 @@ class CuNumericOpCode(IntEnum):
     MATMUL = _cunumeric.CUNUMERIC_MATMUL
     MATVECMUL = _cunumeric.CUNUMERIC_MATVECMUL
     NONZERO = _cunumeric.CUNUMERIC_NONZERO
+    POTRF = _cunumeric.CUNUMERIC_POTRF
     RAND = _cunumeric.CUNUMERIC_RAND
     READ = _cunumeric.CUNUMERIC_READ
     SCALAR_UNARY_RED = _cunumeric.CUNUMERIC_SCALAR_UNARY_RED

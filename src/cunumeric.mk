@@ -31,6 +31,7 @@ GEN_CPU_SRC += cunumeric/ternary/where.cc               \
 							 cunumeric/matrix/matmul.cc               \
 							 cunumeric/matrix/matvecmul.cc            \
 							 cunumeric/matrix/dot.cc                  \
+							 cunumeric/matrix/potrf.cc                \
 							 cunumeric/matrix/tile.cc                 \
 							 cunumeric/matrix/transpose.cc            \
 							 cunumeric/matrix/util.cc                 \
@@ -57,6 +58,7 @@ GEN_CPU_SRC += cunumeric/ternary/where_omp.cc          \
 							 cunumeric/matrix/matmul_omp.cc          \
 							 cunumeric/matrix/matvecmul_omp.cc       \
 							 cunumeric/matrix/dot_omp.cc             \
+							 cunumeric/matrix/potrf_omp.cc           \
 							 cunumeric/matrix/tile_omp.cc            \
 							 cunumeric/matrix/transpose_omp.cc       \
 							 cunumeric/matrix/util_omp.cc            \
@@ -91,6 +93,7 @@ GEN_GPU_SRC += cunumeric/ternary/where.cu               \
 							 cunumeric/matrix/matmul.cu               \
 							 cunumeric/matrix/matvecmul.cu            \
 							 cunumeric/matrix/dot.cu                  \
+							 cunumeric/matrix/potrf.cu                \
 							 cunumeric/matrix/tile.cu                 \
 							 cunumeric/matrix/transpose.cu            \
 							 cunumeric/random/rand.cu                 \

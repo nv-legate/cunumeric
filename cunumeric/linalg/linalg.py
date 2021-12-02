@@ -18,6 +18,24 @@ from cunumeric.array import ndarray
 from cunumeric.module import sqrt as _sqrt
 
 
+def cholesky(a):
+    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
+    shape = lg_array.shape
+    if len(shape) < 2:
+        raise ValueError(
+            f"{len(shape)}-dimensional array given. "
+            "Array must be at least two-dimensional"
+        )
+    elif shape[-1] != shape[-2]:
+        raise ValueError("Last 2 dimensions of the array must be square")
+
+    if len(shape) > 2:
+        raise NotImplementedError(
+            "cuNumeric needs to support stacked 2d arrays"
+        )
+    return lg_array.cholesky(stacklevel=2)
+
+
 def norm(x, ord=None, axis=None, keepdims=False, stacklevel=1):
     lg_array = ndarray.convert_to_cunumeric_ndarray(x)
     if (axis is None and lg_array.ndim == 1) or type(axis) == int:

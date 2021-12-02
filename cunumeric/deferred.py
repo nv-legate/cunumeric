@@ -25,6 +25,7 @@ import legate.core.types as ty
 from legate.core import *  # noqa F403
 
 from .config import *  # noqa F403
+from .linalg.cholesky import cholesky
 from .thunk import NumPyThunk
 from .utils import get_arg_value_dtype
 
@@ -1630,3 +1631,9 @@ class DeferredArray(NumPyThunk):
             result = (stride,) + result
             stride *= dim
         return result
+
+    @profile
+    @auto_convert([1])
+    @shadow_debug("cholesky", [1])
+    def cholesky(self, src, stacklevel=0, callsite=None):
+        cholesky(self, src, stacklevel, callsite)

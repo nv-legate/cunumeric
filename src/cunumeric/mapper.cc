@@ -65,16 +65,37 @@ Scalar CuNumericMapper::tunable_value(TunableID tunable_id)
 std::vector<StoreMapping> CuNumericMapper::store_mappings(
   const mapping::Task& task, const std::vector<mapping::StoreTarget>& options)
 {
-  if (task.task_id() == CUNUMERIC_CONVOLVE) {
-    std::vector<StoreMapping> mappings;
-    auto& inputs = task.inputs();
-    mappings.push_back(StoreMapping::default_mapping(inputs[0], options.front()));
-    mappings.push_back(StoreMapping::default_mapping(inputs[1], options.front()));
-    auto& input_mapping = mappings.back();
-    for (uint32_t idx = 2; idx < inputs.size(); ++idx) input_mapping.stores.push_back(inputs[idx]);
-    return std::move(mappings);
-  } else
-    return {};
+  switch (task.task_id()) {
+    case CUNUMERIC_CONVOLVE: {
+      std::vector<StoreMapping> mappings;
+      auto& inputs = task.inputs();
+      mappings.push_back(StoreMapping::default_mapping(inputs[0], options.front()));
+      mappings.push_back(StoreMapping::default_mapping(inputs[1], options.front()));
+      auto& input_mapping = mappings.back();
+      for (uint32_t idx = 2; idx < inputs.size(); ++idx)
+        input_mapping.stores.push_back(inputs[idx]);
+      return std::move(mappings);
+    }
+    case CUNUMERIC_POTRF: {
+      std::vector<StoreMapping> mappings;
+      auto& inputs  = task.inputs();
+      auto& outputs = task.outputs();
+      for (auto& input : inputs) {
+        mappings.push_back(StoreMapping::default_mapping(input, options.front()));
+        mappings.back().policy.ordering.fortran_order();
+      }
+      for (auto& output : outputs) {
+        mappings.push_back(StoreMapping::default_mapping(output, options.front()));
+        mappings.back().policy.ordering.fortran_order();
+      }
+      return std::move(mappings);
+    }
+    default: {
+      return {};
+    }
+  }
+  assert(false);
+  return {};
 }
 
 }  // namespace cunumeric

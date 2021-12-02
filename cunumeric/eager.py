@@ -1049,3 +1049,14 @@ class EagerArray(NumPyThunk):
         else:
             self.array[:] = np.where(rhs1.array, rhs2.array, rhs3.array)
             self.runtime.profile_callsite(stacklevel + 1, False)
+
+    def cholesky(self, src, stacklevel):
+        if self.shadow:
+            src = self.runtime.to_eager_array(src, stacklevel=(stacklevel + 1))
+        elif self.deferred is None:
+            self.check_eager_args((stacklevel + 1), src)
+        if self.deferred is not None:
+            self.deferred.cholesky(src, stacklevel=(stacklevel + 1))
+        else:
+            self.array[:] = np.linalg.cholesky(src.array)
+            self.runtime.profile_callsite(stacklevel + 1, False)

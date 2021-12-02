@@ -962,6 +962,19 @@ class ndarray(object):
         )
         return self.convert_to_cunumeric_ndarray(numpy_array, stacklevel=3)
 
+    def cholesky(self, stacklevel=1):
+        input = self
+        if input.dtype.kind not in ("f", "c"):
+            input = input.astype("float64")
+        output = ndarray(
+            shape=input.shape,
+            dtype=input.dtype,
+            stacklevel=stacklevel + 1,
+            inputs=(input,),
+        )
+        output._thunk.cholesky(input._thunk, stacklevel=(stacklevel + 1))
+        return output
+
     def clip(self, min=None, max=None, out=None):
         args = (
             np.array(min, dtype=self.dtype),
