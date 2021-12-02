@@ -52,7 +52,15 @@
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 #endif
 
+struct cublasContext;
+struct cusolverDnContext;
+
 namespace cunumeric {
+
+// Defined in cunumeric.cu
+
+cublasContext* get_cublas();
+cusolverDnContext* get_cusolver();
 
 __host__ inline void check_cuda(cudaError_t error, const char* file, int line)
 {
