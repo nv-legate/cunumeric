@@ -19,7 +19,7 @@ from typing import List, Set, Tuple
 import numpy as np
 from test_tools.generators import broadcasts_to, permutes_to, seq_array
 
-import cunumeric as num
+import cunumeric as cn
 
 MAX_MODES = 3
 MAX_OPERANDS = 3
@@ -117,18 +117,18 @@ def test():
         if any(len(set(op)) != len(op) for op in opers):
             continue
         print(f"testing {expr}")
-        for (np_inputs, num_inputs) in zip(
+        for (np_inputs, cn_inputs) in zip(
             product(*(gen_input(np, op, len(opers) <= 2) for op in opers)),
-            product(*(gen_input(num, op, len(opers) <= 2) for op in opers)),
+            product(*(gen_input(cn, op, len(opers) <= 2) for op in opers)),
         ):
             np_res = np.einsum(expr, *np_inputs)
-            num_res = num.einsum(expr, *num_inputs)
-            assert np.allclose(np_res, num_res)
+            cn_res = cn.einsum(expr, *cn_inputs)
+            assert np.allclose(np_res, cn_res)
             if len(opers) <= 2:
-                out = num.zeros(
+                out = cn.zeros(
                     tuple(BASE_DIM_LEN + ord(m) - ord("a") for m in rhs)
                 )
-                num.einsum(expr, *num_inputs, out=out)
+                cn.einsum(expr, *cn_inputs, out=out)
                 assert np.allclose(np_res, out)
     # TODO: test casting, dtype=
 
