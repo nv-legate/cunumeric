@@ -120,7 +120,6 @@ struct ContractImpl {
     size_t lhs_bloated_strides[DIM];
     T* lhs_data = args.lhs.reduce_accessor<SumReduction<T>, true, DIM>(lhs_bloated_shape)
                     .ptr(lhs_bloated_shape, lhs_bloated_strides);
-
     for (int i = 0; i < DIM; ++i) {
       if (!args.lhs_dim_mask[i]) { continue; }
       lhs_shape.push_back(lhs_bloated_shape.hi[i] - lhs_bloated_shape.lo[i] + 1);
@@ -155,6 +154,15 @@ struct ContractImpl {
       rhs2_strides.push_back(rhs2_bloated_strides[i]);
       rhs2_modes.push_back(i + 'a');
     }
+
+    // Intersect the bloated shapes of all arrays, to get the accurate shape of the (bloated) tile
+    // we are operating on. Each array on its own will not have accurate bounds information for all
+    // dimensions. Specifically, it will not know the tile bounds on any dimensions it has been
+    // promoted on. However, each dimension should be actually present on at least one array.
+    Rect<DIM> bloated_shape =
+      lhs_bloated_shape.intersection(rhs1_bloated_shape).intersection(rhs2_bloated_shape);
+    // cuTensor will not work correctly with empty domains, so check this here
+    if (bloated_shape.empty()) return;
 
     ContractImplBody<KIND, CODE>()(lhs_data,
                                    lhs_shape.size(),
