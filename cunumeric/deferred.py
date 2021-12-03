@@ -1138,6 +1138,9 @@ class DeferredArray(NumPyThunk):
     ):
         lhs_thunk = self
 
+        # TODO: More sanity checks (no duplicate modes, no singleton modes, no
+        # broadcasting, ...)
+
         # Casting should have been handled by the frontend
         assert lhs_thunk.dtype is rhs1_thunk.dtype
         assert lhs_thunk.dtype is rhs2_thunk.dtype
