@@ -39,10 +39,7 @@ static inline void complex_syrk_template(Syrk syrk, VAL* lhs, const VAL* rhs, in
   auto uplo  = CblasLower;
   auto trans = CblasNoTrans;
 
-  VAL alpha = -1.0;
-  VAL beta  = 1.0;
-
-  syrk(CblasColMajor, uplo, trans, m, n, &alpha, rhs, m, &beta, lhs, m);
+  syrk(CblasColMajor, uplo, trans, m, n, -1.0, rhs, m, 1.0, lhs, m);
 }
 
 template <>
@@ -68,7 +65,7 @@ struct SyrkImplBody<VariantKind::CPU, LegateTypeCode::COMPLEX64_LT> {
     auto lhs = reinterpret_cast<__complex__ float*>(lhs_);
     auto rhs = reinterpret_cast<const __complex__ float*>(rhs_);
 
-    complex_syrk_template(cblas_csyrk, lhs, rhs, m, n);
+    complex_syrk_template(cblas_cherk, lhs, rhs, m, n);
   }
 };
 
@@ -79,7 +76,7 @@ struct SyrkImplBody<VariantKind::CPU, LegateTypeCode::COMPLEX128_LT> {
     auto lhs = reinterpret_cast<__complex__ double*>(lhs_);
     auto rhs = reinterpret_cast<const __complex__ double*>(rhs_);
 
-    complex_syrk_template(cblas_zsyrk, lhs, rhs, m, n);
+    complex_syrk_template(cblas_zherk, lhs, rhs, m, n);
   }
 };
 

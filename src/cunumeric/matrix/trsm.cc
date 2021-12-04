@@ -41,7 +41,7 @@ static inline void complex_trsm_template(Trsm trsm, VAL* lhs, const VAL* rhs, in
 {
   auto side   = CblasRight;
   auto uplo   = CblasLower;
-  auto transa = CblasTrans;
+  auto transa = CblasConjTrans;
   auto diag   = CblasNonUnit;
 
   VAL alpha = 1.0;

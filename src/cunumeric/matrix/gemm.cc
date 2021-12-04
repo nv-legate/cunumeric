@@ -39,7 +39,7 @@ static inline void complex_gemm_template(
   Gemm gemm, VAL* lhs, const VAL* rhs1, const VAL* rhs2, int32_t m, int32_t n, int32_t k)
 {
   auto transa = CblasNoTrans;
-  auto transb = CblasTrans;
+  auto transb = CblasConjTrans;
 
   VAL alpha = -1.0;
   VAL beta  = 1.0;
