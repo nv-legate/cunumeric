@@ -13,6 +13,7 @@
 # limitations under the License.
 #
 
+from functools import lru_cache
 from itertools import permutations, product
 from typing import List, Set, Tuple
 
@@ -101,12 +102,17 @@ def gen_expr(
         opers.pop()
 
 
-def gen_input(lib, modes: str, more_combinations: bool):
+@lru_cache(maxsize=None)
+def mk_inputs(lib, modes: str, more_combinations: bool):
     shape = tuple(BASE_DIM_LEN + ord(m) - ord("a") for m in modes)
-    yield seq_array(lib, shape)
+    inputs = []
+    inputs.append(seq_array(lib, shape))
     if more_combinations:
-        yield from permutes_to(lib, shape)
-        yield from broadcasts_to(lib, shape)
+        for x in permutes_to(lib, shape):
+            inputs.append(x)
+        for x in broadcasts_to(lib, shape):
+            inputs.append(x)
+    return inputs
 
 
 def test():
@@ -117,14 +123,15 @@ def test():
         if any(len(set(op)) != len(op) for op in opers):
             continue
         print(f"testing {expr}")
+        more_combinations = len(opers) <= 2
         for (np_inputs, cn_inputs) in zip(
-            product(*(gen_input(np, op, len(opers) <= 2) for op in opers)),
-            product(*(gen_input(cn, op, len(opers) <= 2) for op in opers)),
+            product(*(mk_inputs(np, op, more_combinations) for op in opers)),
+            product(*(mk_inputs(cn, op, more_combinations) for op in opers)),
         ):
             np_res = np.einsum(expr, *np_inputs)
             cn_res = cn.einsum(expr, *cn_inputs)
             assert np.allclose(np_res, cn_res)
-            if len(opers) <= 2:
+            if more_combinations:
                 out = cn.zeros(
                     tuple(BASE_DIM_LEN + ord(m) - ord("a") for m in rhs)
                 )
