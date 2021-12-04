@@ -153,6 +153,8 @@ _UNARY_RED_TO_REDUCTION_OPS = {
     UnaryRedCode.ARGMIN: CuNumericRedopCode.ARGMIN,
     UnaryRedCode.CONTAINS: ReductionOp.ADD,
     UnaryRedCode.COUNT_NONZERO: ReductionOp.ADD,
+    UnaryRedCode.ALL: ReductionOp.MUL,
+    UnaryRedCode.ANY: ReductionOp.ADD,
 }
 
 
@@ -191,6 +193,8 @@ _UNARY_RED_IDENTITIES = {
     UnaryRedCode.ARGMIN: lambda ty: (np.iinfo(np.int64).min, min_identity(ty)),
     UnaryRedCode.CONTAINS: lambda _: False,
     UnaryRedCode.COUNT_NONZERO: lambda _: 0,
+    UnaryRedCode.ALL: lambda _: True,
+    UnaryRedCode.ANY: lambda _: False,
 }
 
 
@@ -963,10 +967,14 @@ class DeferredArray(NumPyThunk):
                     callsite=callsite,
                 )
 
-        elif rhs1_array.ndim == 1 or rhs2_array.ndim == 1:
+        elif (
+            rhs1_array.ndim == 1
+            and rhs2_array.ndim == 2
+            or rhs1_array.ndim == 2
+            and rhs2_array.ndim == 1
+        ):
             # Matrix-vector or vector-matrix multiply
             assert lhs_array.ndim == 1
-            assert rhs1_array.ndim == 2 or rhs2_array.ndim == 2
 
             left_matrix = rhs1_array.ndim == 2
 
@@ -1120,7 +1128,9 @@ class DeferredArray(NumPyThunk):
                     callsite=callsite,
                 )
         else:
-            raise NotImplementedError("Need support for tensor contractions")
+            raise NotImplementedError(
+                f"dot between {rhs1_array.ndim}d and {rhs2_array.ndim}d arrays"
+            )
 
     @profile
     @auto_convert([2, 4])

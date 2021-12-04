@@ -47,9 +47,17 @@ If you have questions, please contact us at legate(at)nvidia.com.
 
 ## Installation
 
-Pre-built docker images containing all Legate libraries are available on the
-[quickstart](https://github.com/nv-legate/quickstart) repo. The next sections
-describe how to build cuNumeric from source.
+cuNumeric is available on conda:
+
+```
+conda install -c nvidia -c conda-forge -c legate cunumeric
+```
+
+Pre-built docker images containing all Legate libraries, as well as specialized
+install scripts for supported clusters are available on the
+[quickstart](https://github.com/nv-legate/quickstart) repo.
+
+Read on for general instructions on building cuNumeric from source.
 
 ## Dependencies
 

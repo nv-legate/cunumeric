@@ -45,7 +45,7 @@ LD_FLAGS ?=
 LD_FLAGS += -L$(OPENBLAS_PATH)/lib -l$(OPENBLAS_LIBNAME) -Wl,-rpath,$(OPENBLAS_PATH)/lib
 LD_FLAGS += -L$(TBLIS_PATH)/lib -ltblis -Wl,-rpath,$(TBLIS_PATH)/lib
 ifeq ($(strip $(USE_CUDA)),1)
-LD_FLAGS += -lcufft
+LD_FLAGS += -lcublas -lcusolver -lcufft
 LD_FLAGS += -L$(CUTENSOR_PATH)/lib -lcutensor -Wl,-rpath,$(CUTENSOR_PATH)/lib
 endif
 NVCC_FLAGS ?=

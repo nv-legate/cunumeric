@@ -872,11 +872,24 @@ def logical_not(a, out=None, where=True, dtype=None, **kwargs):
 
 # truth value testing
 
-# def all(a, axis = None, out = None, keepdims = False):
-#    raise NotImplementedError("all")
 
-# def any(a, axis = None, out = None, keepdims = False):
-#    raise NotImplementedError("any")
+@copy_docstring(np.all)
+def all(a, axis=None, out=None, keepdims=False, where=True):
+    lg_array = ndarray.convert_to_cunumeric_ndarray(a, stacklevel=2)
+    where = ndarray.convert_to_predicate_ndarray(where, stacklevel=2)
+    if out is not None:
+        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
+    return lg_array.all(axis=axis, out=out, keepdims=keepdims, where=where)
+
+
+@copy_docstring(np.any)
+def any(a, axis=None, out=None, keepdims=False, where=True):
+    lg_array = ndarray.convert_to_cunumeric_ndarray(a, stacklevel=2)
+    where = ndarray.convert_to_predicate_ndarray(where, stacklevel=2)
+    if out is not None:
+        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
+    return lg_array.any(axis=axis, out=out, keepdims=keepdims, where=where)
+
 
 # #Comparison
 
@@ -1078,6 +1091,90 @@ def less_equal(
     )
 
 
+@copy_docstring(np.logical_and)
+def logical_and(
+    a, b, out=None, where=True, dtype=np.dtype(np.bool), stacklevel=1
+):
+    a_array = ndarray.convert_to_cunumeric_ndarray(
+        a, stacklevel=(stacklevel + 1)
+    )
+    b_array = ndarray.convert_to_cunumeric_ndarray(
+        b, stacklevel=(stacklevel + 1)
+    )
+    where = ndarray.convert_to_predicate_ndarray(
+        where, stacklevel=(stacklevel + 1)
+    )
+    if out is not None:
+        out = ndarray.convert_to_cunumeric_ndarray(
+            out, stacklevel=(stacklevel + 1), share=True
+        )
+    return ndarray.perform_binary_op(
+        BinaryOpCode.LOGICAL_AND,
+        a_array,
+        b_array,
+        out=out,
+        out_dtype=dtype,
+        where=where,
+        stacklevel=(stacklevel + 1),
+    )
+
+
+@copy_docstring(np.logical_or)
+def logical_or(
+    a, b, out=None, where=True, dtype=np.dtype(np.bool), stacklevel=1
+):
+    a_array = ndarray.convert_to_cunumeric_ndarray(
+        a, stacklevel=(stacklevel + 1)
+    )
+    b_array = ndarray.convert_to_cunumeric_ndarray(
+        b, stacklevel=(stacklevel + 1)
+    )
+    where = ndarray.convert_to_predicate_ndarray(
+        where, stacklevel=(stacklevel + 1)
+    )
+    if out is not None:
+        out = ndarray.convert_to_cunumeric_ndarray(
+            out, stacklevel=(stacklevel + 1), share=True
+        )
+    return ndarray.perform_binary_op(
+        BinaryOpCode.LOGICAL_OR,
+        a_array,
+        b_array,
+        out=out,
+        out_dtype=dtype,
+        where=where,
+        stacklevel=(stacklevel + 1),
+    )
+
+
+@copy_docstring(np.logical_xor)
+def logical_xor(
+    a, b, out=None, where=True, dtype=np.dtype(np.bool), stacklevel=1
+):
+    a_array = ndarray.convert_to_cunumeric_ndarray(
+        a, stacklevel=(stacklevel + 1)
+    )
+    b_array = ndarray.convert_to_cunumeric_ndarray(
+        b, stacklevel=(stacklevel + 1)
+    )
+    where = ndarray.convert_to_predicate_ndarray(
+        where, stacklevel=(stacklevel + 1)
+    )
+    if out is not None:
+        out = ndarray.convert_to_cunumeric_ndarray(
+            out, stacklevel=(stacklevel + 1), share=True
+        )
+    return ndarray.perform_binary_op(
+        BinaryOpCode.LOGICAL_XOR,
+        a_array,
+        b_array,
+        out=out,
+        out_dtype=dtype,
+        where=where,
+        stacklevel=(stacklevel + 1),
+    )
+
+
 @copy_docstring(np.not_equal)
 def not_equal(
     a, b, out=None, where=True, dtype=np.dtype(np.bool), stacklevel=1
@@ -1123,6 +1220,28 @@ def negative(a, out=None, where=True, dtype=None, **kwargs):
         out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return ndarray.perform_unary_op(
         UnaryOpCode.NEGATIVE, a_array, dtype=dtype, dst=out, where=where
+    )
+
+
+@copy_docstring(np.rint)
+def rint(a, out=None, where=True, dtype=None, stacklevel=1, **kwargs):
+    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
+    where = ndarray.convert_to_predicate_ndarray(
+        where, stacklevel=(stacklevel + 1)
+    )
+    if lg_array.dtype.kind == "f" or lg_array.dtype.kind == "c":
+        out_dtype = lg_array.dtype
+    else:
+        out_dtype = np.dtype(np.float64)
+    if out is not None:
+        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
+    return ndarray.perform_unary_op(
+        UnaryOpCode.RINT,
+        lg_array,
+        dtype=dtype,
+        dst=out,
+        where=where,
+        out_dtype=out_dtype,
     )
 
 
@@ -1205,6 +1324,27 @@ def cos(a, out=None, where=True, dtype=None, **kwargs):
         out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return ndarray.perform_unary_op(
         UnaryOpCode.COS,
+        lg_array,
+        dtype=dtype,
+        dst=out,
+        where=where,
+        out_dtype=out_dtype,
+    )
+
+
+@copy_docstring(np.sign)
+def sign(a, out=None, where=True, dtype=None, **kwargs):
+    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
+    where = ndarray.convert_to_predicate_ndarray(where, stacklevel=2)
+    # Floats keep their floating point kind, otherwise switch to float64
+    if lg_array.dtype.kind == "f" or lg_array.dtype.kind == "c":
+        out_dtype = lg_array.dtype
+    else:
+        out_dtype = np.dtype(np.float64)
+    if out is not None:
+        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
+    return ndarray.perform_unary_op(
+        UnaryOpCode.SIGN,
         lg_array,
         dtype=dtype,
         dst=out,
@@ -1557,6 +1697,28 @@ def exp(a, out=None, where=True, dtype=None, stacklevel=1, **kwargs):
     )
 
 
+@copy_docstring(np.exp2)
+def exp2(a, out=None, where=True, dtype=None, stacklevel=1, **kwargs):
+    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
+    where = ndarray.convert_to_predicate_ndarray(
+        where, stacklevel=(stacklevel + 1)
+    )
+    if lg_array.dtype.kind == "f" or lg_array.dtype.kind == "c":
+        out_dtype = lg_array.dtype
+    else:
+        out_dtype = np.dtype(np.float64)
+    if out is not None:
+        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
+    return ndarray.perform_unary_op(
+        UnaryOpCode.EXP2,
+        lg_array,
+        dtype=dtype,
+        dst=out,
+        where=where,
+        out_dtype=out_dtype,
+    )
+
+
 @copy_docstring(np.log)
 def log(a, out=None, where=True, dtype=None, stacklevel=1, **kwargs):
     lg_array = ndarray.convert_to_cunumeric_ndarray(a)
@@ -1571,6 +1733,28 @@ def log(a, out=None, where=True, dtype=None, stacklevel=1, **kwargs):
         out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return ndarray.perform_unary_op(
         UnaryOpCode.LOG,
+        lg_array,
+        dtype=dtype,
+        dst=out,
+        where=where,
+        out_dtype=out_dtype,
+    )
+
+
+@copy_docstring(np.log10)
+def log10(a, out=None, where=True, dtype=None, stacklevel=1, **kwargs):
+    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
+    where = ndarray.convert_to_predicate_ndarray(
+        where, stacklevel=(stacklevel + 1)
+    )
+    if lg_array.dtype.kind == "f" or lg_array.dtype.kind == "c":
+        out_dtype = lg_array.dtype
+    else:
+        out_dtype = np.dtype(np.float64)
+    if out is not None:
+        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
+    return ndarray.perform_unary_op(
+        UnaryOpCode.LOG10,
         lg_array,
         dtype=dtype,
         dst=out,

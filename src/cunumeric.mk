@@ -41,10 +41,7 @@ GEN_CPU_SRC += cunumeric/ternary/where.cc               \
 							 cunumeric/convolution/convolve.cc        \
 							 cunumeric/transform/flip.cc              \
 							 cunumeric/arg.cc                         \
-							 cunumeric/mapper.cc                      \
-							 cunumeric/cunumeric.cc # This must always be the last file!
-                                      # It guarantees we do our registration callback
-                                      # only after all task variants are recorded
+							 cunumeric/mapper.cc
 
 ifeq ($(strip $(USE_OPENMP)),1)
 GEN_CPU_SRC += cunumeric/ternary/where_omp.cc          \
@@ -71,6 +68,14 @@ GEN_CPU_SRC += cunumeric/ternary/where_omp.cc          \
 							 cunumeric/convolution/convolve_omp.cc   \
 							 cunumeric/transform/flip_omp.cc
 endif
+
+ifeq ($(strip $(USE_CUDA)),1)
+GEN_CPU_SRC += cunumeric/cudalibs.cc
+endif
+
+GEN_CPU_SRC += cunumeric/cunumeric.cc # This must always be the last file!
+                                      # It guarantees we do our registration callback
+                                      # only after all task variants are recorded
 
 GEN_GPU_SRC += cunumeric/ternary/where.cu               \
 							 cunumeric/binary/binary_op.cu            \

@@ -15,13 +15,14 @@
 
 from __future__ import absolute_import
 
-from .arctan_tests import inplace_normal, normal, scalar
+from .arctan_tests import complex_data, inplace_normal, normal, scalar
 
 
 def test():
     inplace_normal.test()
     normal.test()
     scalar.test()
+    complex_data.test()
 
 
 if __name__ == "__main__":
