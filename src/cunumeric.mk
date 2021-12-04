@@ -28,12 +28,15 @@ GEN_CPU_SRC += cunumeric/ternary/where.cc               \
 							 cunumeric/item/read.cc                   \
 							 cunumeric/item/write.cc                  \
 							 cunumeric/matrix/diag.cc                 \
+							 cunumeric/matrix/gemm.cc                 \
 							 cunumeric/matrix/matmul.cc               \
 							 cunumeric/matrix/matvecmul.cc            \
 							 cunumeric/matrix/dot.cc                  \
 							 cunumeric/matrix/potrf.cc                \
+							 cunumeric/matrix/syrk.cc                 \
 							 cunumeric/matrix/tile.cc                 \
 							 cunumeric/matrix/transpose.cc            \
+							 cunumeric/matrix/trsm.cc                 \
 							 cunumeric/matrix/util.cc                 \
 							 cunumeric/random/rand.cc                 \
 							 cunumeric/search/nonzero.cc              \

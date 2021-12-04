@@ -97,6 +97,7 @@ class Runtime(object):
         "legate_runtime",
         "current_random_epoch",
         "max_eager_volume",
+        "num_procs",
         "test_mode",
         "shadow_debug",
         "callsite_summaries",
@@ -112,6 +113,12 @@ class Runtime(object):
         self.max_eager_volume = self.legate_context.get_tunable(
             CuNumericTunable.MAX_EAGER_VOLUME,
             ty.int32,
+        )
+        self.num_procs = int(
+            self.legate_context.get_tunable(
+                CuNumericTunable.NUM_PROCS,
+                ty.int32,
+            )
         )
 
         # Make sure that our CuNumericLib object knows about us so it can

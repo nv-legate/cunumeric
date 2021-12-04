@@ -32,19 +32,22 @@ enum CuNumericOpCode {
   CUNUMERIC_EYE              = 9,
   CUNUMERIC_FILL             = 10,
   CUNUMERIC_FLIP             = 11,
-  CUNUMERIC_MATMUL           = 12,
-  CUNUMERIC_MATVECMUL        = 13,
-  CUNUMERIC_NONZERO          = 14,
-  CUNUMERIC_POTRF            = 15,
-  CUNUMERIC_RAND             = 16,
-  CUNUMERIC_READ             = 17,
-  CUNUMERIC_SCALAR_UNARY_RED = 18,
-  CUNUMERIC_TILE             = 19,
-  CUNUMERIC_TRANSPOSE        = 20,
-  CUNUMERIC_UNARY_OP         = 21,
-  CUNUMERIC_UNARY_RED        = 22,
-  CUNUMERIC_WHERE            = 23,
-  CUNUMERIC_WRITE            = 24,
+  CUNUMERIC_GEMM             = 12,
+  CUNUMERIC_MATMUL           = 13,
+  CUNUMERIC_MATVECMUL        = 14,
+  CUNUMERIC_NONZERO          = 15,
+  CUNUMERIC_POTRF            = 16,
+  CUNUMERIC_RAND             = 17,
+  CUNUMERIC_READ             = 18,
+  CUNUMERIC_SCALAR_UNARY_RED = 19,
+  CUNUMERIC_SYRK             = 20,
+  CUNUMERIC_TILE             = 21,
+  CUNUMERIC_TRANSPOSE        = 22,
+  CUNUMERIC_TRSM             = 23,
+  CUNUMERIC_UNARY_OP         = 24,
+  CUNUMERIC_UNARY_RED        = 25,
+  CUNUMERIC_WHERE            = 26,
+  CUNUMERIC_WRITE            = 27,
 };
 
 // Match these to CuNumericRedopCode in cunumeric/config.py
@@ -56,7 +59,8 @@ enum CuNumericRedopID {
 // Match these to CuNumericTunable in cunumeric/config.py
 enum CuNumericTunable {
   CUNUMERIC_TUNABLE_NUM_GPUS         = 1,
-  CUNUMERIC_TUNABLE_MAX_EAGER_VOLUME = 2,
+  CUNUMERIC_TUNABLE_NUM_PROCS        = 2,
+  CUNUMERIC_TUNABLE_MAX_EAGER_VOLUME = 3,
 };
 
 enum CuNumericBounds {

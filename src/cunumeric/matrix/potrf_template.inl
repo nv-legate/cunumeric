@@ -70,8 +70,6 @@ template <VariantKind KIND>
 static void potrf_template(TaskContext& context)
 {
   auto& array = context.outputs()[0];
-  // Note that we can't dispatch on the lhs's type,
-  // as the lhs can have a different type than the rhs'
   type_dispatch(array.code(), PotrfImpl<KIND>{}, array);
 }
 

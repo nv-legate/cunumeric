@@ -17,10 +17,87 @@
 from cunumeric.config import CuNumericOpCode
 
 
+def get_tile(array, tile_shape, j, i):
+    lo = tile_shape * (j, i)
+    hi = tile_shape * (j + 1, i + 1)
+    slices = tuple(
+        slice(lo, min(hi, m)) for lo, hi, m in zip(lo, hi, array.shape)
+    )
+    print(slices)
+    return array.get_item(slices)
+
+
+def potrf(root, tile_shape, i):
+    array = get_tile(root, tile_shape, i, i)
+
+    task = root.context.create_task(CuNumericOpCode.POTRF)
+    task.add_output(array.base)
+    task.add_input(array.base)
+    task.add_broadcast(array.base)
+    task.execute()
+
+
+def trsm(root, tile_shape, i, lo, hi):
+    rhs = get_tile(root, tile_shape, i, i)
+
+    for j in range(lo, hi):
+        lhs = get_tile(root, tile_shape, j, i)
+
+        task = root.context.create_task(CuNumericOpCode.TRSM)
+        task.add_output(lhs.base)
+        task.add_input(rhs.base)
+        task.add_input(lhs.base)
+        task.add_broadcast(lhs.base)
+        task.add_broadcast(rhs.base)
+        task.execute()
+
+
+def syrk(root, tile_shape, k, i):
+    rhs = get_tile(root, tile_shape, k, i)
+    lhs = get_tile(root, tile_shape, k, k)
+
+    task = root.context.create_task(CuNumericOpCode.SYRK)
+    task.add_output(lhs.base)
+    task.add_input(rhs.base)
+    task.add_input(lhs.base)
+    task.add_broadcast(lhs.base)
+    task.add_broadcast(rhs.base)
+    task.execute()
+
+
+def gemm(root, tile_shape, k, i, lo, hi):
+    if lo >= hi:
+        return
+    rhs2 = get_tile(root, tile_shape, k, i)
+
+    for j in range(lo, hi):
+        lhs = get_tile(root, tile_shape, j, k)
+        rhs1 = get_tile(root, tile_shape, j, i)
+
+        task = root.context.create_task(CuNumericOpCode.GEMM)
+        task.add_output(lhs.base)
+        task.add_input(rhs1.base)
+        task.add_input(rhs2.base)
+        task.add_input(lhs.base)
+        task.add_broadcast(lhs.base)
+        task.add_broadcast(rhs1.base)
+        task.add_broadcast(rhs2.base)
+        task.execute()
+
+
 def cholesky(output, input, stacklevel=0, callsite=None):
     output.copy(input, deep=True, stacklevel=stacklevel + 1, callsite=callsite)
 
-    task = output.context.create_task(CuNumericOpCode.POTRF)
-    task.add_output(output.base)
-    task.add_input(output.base)
-    task.execute()
+    num_procs = output.runtime.num_procs
+    shape = output.base.shape
+    color_shape = (num_procs, num_procs)
+    tile_shape = (shape + color_shape - 1) // color_shape
+    if tile_shape * (num_procs - 1) == shape:
+        num_procs -= 1
+
+    for i in range(num_procs):
+        potrf(output, tile_shape, i)
+        trsm(output, tile_shape, i, i + 1, num_procs)
+        for k in range(i + 1, num_procs):
+            syrk(output, tile_shape, k, i)
+            gemm(output, tile_shape, k, i, k + 1, num_procs)
