@@ -28,7 +28,7 @@ from .config import BinaryOpCode, CuNumericOpCode, UnaryOpCode, UnaryRedCode, Fu
 from .doc_utils import copy_docstring
 from .runtime import runtime
 from .utils import unimplemented
-
+from .deferred import DeferredArray
 
 def add_boilerplate(*array_params: str, mutates_self: bool = False):
     """
@@ -2174,7 +2174,7 @@ class ndarray(object):
             if one.dtype != two.dtype:
                 common_type = cls.find_common_type(one, two)
                 if one.dtype != common_type:
-                    if conOpt and one.shape==():
+                    if conOpt and  isinstance(one._thunk, DeferredArray) and one.shape==():
                         temp = ndarray(
                             shape=one.shape,
                             dtype=common_type, 
@@ -2183,8 +2183,6 @@ class ndarray(object):
                             inputs=(one, two, where),
                         )
                         temp._thunk=  runtime.create_scalar(one._thunk.array.astype(common_type), common_type, shape=one.shape, wrap=True)
-                        #print("ttype", type(temp), type(temp._thunk))
-                        #print("ctype", common_type)
                     else:
                         temp = ndarray(
                             shape=one.shape,
@@ -2197,7 +2195,7 @@ class ndarray(object):
                         )
                     one = temp
                 if two.dtype != common_type:
-                    if conOpt and two.shape==():
+                    if conOpt and  isinstance(two._thunk, DeferredArray) and two.shape==():
                         temp = ndarray(
                             shape=two.shape,
                             dtype=common_type, 
@@ -2206,7 +2204,6 @@ class ndarray(object):
                             inputs=(one, two, where),
                         )
                         temp._thunk =  runtime.create_scalar(two._thunk.array.astype(common_type), common_type, shape=two.shape, wrap=True)
-                        #print("ttype2", type(temp), type(temp._thunk))
                     else:
                         temp = ndarray(
                             shape=two.shape,
@@ -2218,9 +2215,6 @@ class ndarray(object):
                             two._thunk, stacklevel=(stacklevel + 1)
                         )
                     two = temp
-            if (two.dtype != one.dtype):
-                print("u messed up", one.dtype, two.dtype)
-            #print("final", type(one._thunk), type(two._thunk))
             if out.dtype != out_dtype:
                 temp = ndarray(
                     shape=out.shape,
