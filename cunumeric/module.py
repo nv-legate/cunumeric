@@ -430,6 +430,28 @@ def copy(a):
     return result
 
 
+@copy_docstring(np.tril)
+def tril(m, k=0):
+    return trilu(m, k, True)
+
+
+@copy_docstring(np.triu)
+def triu(m, k=0):
+    return trilu(m, k, False)
+
+
+def trilu(m, k, lower, stacklevel=2):
+    array = ndarray.convert_to_cunumeric_ndarray(m)
+    if array.ndim < 1:
+        raise TypeError("Array must be at least 1-D")
+    shape = m.shape if m.ndim >= 2 else m.shape * 2
+    result = ndarray(
+        shape, dtype=array.dtype, stacklevel=stacklevel + 1, inputs=(array,)
+    )
+    result._thunk.trilu(array._thunk, k, lower, stacklevel=2)
+    return result
+
+
 # ### ARRAY MANIPULATION ROUTINES
 
 # Changing array shape
