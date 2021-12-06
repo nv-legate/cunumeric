@@ -14,16 +14,17 @@
 #
 
 from functools import lru_cache
-from itertools import permutations, product
-from typing import List, Set, Tuple
+from itertools import chain, permutations, product
+from typing import List, Optional, Set, Tuple
 
 import numpy as np
 from test_tools.generators import broadcasts_to, permutes_to, seq_array
 
 import cunumeric as cn
 
+# Limits for exhaustive expression generation routines
 MAX_MODES = 3
-MAX_OPERANDS = 3
+MAX_OPERANDS = 2
 MAX_OPERAND_DIM = 2
 MAX_RESULT_DIM = 2
 BASE_DIM_LEN = 10
@@ -38,8 +39,10 @@ def gen_operand(
     used_modes: int,
     dim_lim: int,
     mode_lim: int,
-    op: List[int],
+    op: Optional[List[int]] = None,
 ):
+    if op is None:
+        op = []
     # Yield the operand as constructed thus far
     yield op
     # Grow the operand, if we haven't hit the dimension limit yet
@@ -66,10 +69,16 @@ def gen_operand(
     op.pop()
 
 
+# Exhaustively generate all (normalized) expressions within some limits. These
+# limits are set low by default, to keep the unit test running time low.
 def gen_expr(
-    opers: List[List[int]],
-    cache: Set[Tuple[Tuple[int]]],
+    opers: Optional[List[List[int]]] = None,
+    cache: Optional[Set[Tuple[Tuple[int]]]] = None,
 ):
+    if opers is None:
+        opers = []
+    if cache is None:
+        cache = set()
     # The goal here is to avoid producing duplicate expressions, up to
     # reordering of operands and alpha-renaming, e.g. the following
     # are considered equivalent (for the purposes of testing):
@@ -96,18 +105,18 @@ def gen_expr(
     # Between operands of the same length, put those with the most distinct
     # modes first.
     mode_lim = len(set(opers[-1])) if len(opers) > 0 else MAX_OPERAND_DIM
-    for op in gen_operand(used_modes, dim_lim, mode_lim, []):
+    for op in gen_operand(used_modes, dim_lim, mode_lim):
         opers.append(op)
         yield from gen_expr(opers, cache)
         opers.pop()
 
 
 @lru_cache(maxsize=None)
-def mk_inputs(lib, modes: str, more_combinations: bool):
+def mk_inputs(lib, modes: str, more_configs: bool):
     shape = tuple(BASE_DIM_LEN + ord(m) - ord("a") for m in modes)
     inputs = []
     inputs.append(seq_array(lib, shape))
-    if more_combinations:
+    if more_configs:
         for x in permutes_to(lib, shape):
             inputs.append(x)
         for x in broadcasts_to(lib, shape):
@@ -115,23 +124,64 @@ def mk_inputs(lib, modes: str, more_combinations: bool):
     return inputs
 
 
+# A selection of expressions beyond the limits of the exhaustive generation
+# above
+OTHER_EXPRS = [
+    "ca,da,bc->db",
+    "ad,ac,bd->bd",
+    "ca,dc,da->ad",
+    "ca,dc,ba->bd",
+    "ba,dc,ad->ca",
+    "ab,da,db->bd",
+    "db,dc,ad->ab",
+    "bc,ba,db->ba",
+    "bc,cd,ab->da",
+    "bd,cd,ca->db",
+    "cd,cb,ca->ad",
+    "adb,bdc,bac->cb",
+    "cad,abd,bca->db",
+    "cdb,dac,abd->ab",
+    "cba,cad,dbc->bc",
+    "abc,bda,bcd->bd",
+    "dcb,acd,bac->bc",
+    "dca,bca,cbd->ad",
+    "dba,cbd,cab->cb",
+    "cba,adb,dca->cb",
+    "cdb,acd,cba->da",
+    "bac,cad,cbd->bc",
+    "dac,cbd,abc,abd->cb",
+    "cab,dcb,cda,bca->ca",
+    "dba,bca,cda,adc->dc",
+    "acb,bda,dac,acd->db",
+    "bcd,cba,adb,bca->cd",
+    "cad,dab,cab,acb->ba",
+    "abc,abd,acd,cba->ba",
+    "cba,cda,bad,acb->db",
+    "dca,cba,bdc,bad->cd",
+    "cbd,abd,cad,adc->ca",
+    "adc,bad,bcd,acb->cb",
+]
+
+
 def test():
-    for expr in gen_expr([], set()):
+    for expr in chain(gen_expr(), OTHER_EXPRS):
         lhs, rhs = expr.split("->")
         opers = lhs.split(",")
         # TODO: Remove this after we handle duplicate modes
         if any(len(set(op)) != len(op) for op in opers):
             continue
         print(f"testing {expr}")
-        more_combinations = len(opers) <= 2
+        # Don't test additional configurations in 3+-operand expressions,
+        # since those get decomposed into binary expressions anyway.
+        more_configs = len(opers) <= 2
         for (np_inputs, cn_inputs) in zip(
-            product(*(mk_inputs(np, op, more_combinations) for op in opers)),
-            product(*(mk_inputs(cn, op, more_combinations) for op in opers)),
+            product(*(mk_inputs(np, op, more_configs) for op in opers)),
+            product(*(mk_inputs(cn, op, more_configs) for op in opers)),
         ):
             np_res = np.einsum(expr, *np_inputs)
             cn_res = cn.einsum(expr, *cn_inputs)
             assert np.allclose(np_res, cn_res)
-            if more_combinations:
+            if more_configs:
                 out = cn.zeros(
                     tuple(BASE_DIM_LEN + ord(m) - ord("a") for m in rhs)
                 )
