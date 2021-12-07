@@ -18,6 +18,8 @@
 #include "arg.h"
 #include "cudalibs.h"
 
+#include <mutex>
+
 namespace cunumeric {
 
 using namespace Legion;
@@ -77,7 +79,11 @@ static CUDALibraries& get_cuda_libraries(Processor proc)
     fprintf(stderr, "Illegal request for CUDA libraries for non-GPU processor");
     LEGATE_ABORT
   }
+  static std::mutex mut_cuda_libraries;
   static std::map<Processor, CUDALibraries> cuda_libraries;
+
+  std::lock_guard<std::mutex> guard(mut_cuda_libraries);
+
   auto finder = cuda_libraries.find(proc);
   if (finder != cuda_libraries.end())
     return finder->second;

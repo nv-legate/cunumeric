@@ -102,6 +102,7 @@ class CuNumericOpCode(IntEnum):
     SYRK = _cunumeric.CUNUMERIC_SYRK
     TILE = _cunumeric.CUNUMERIC_TILE
     TRANSPOSE = _cunumeric.CUNUMERIC_TRANSPOSE
+    TRILU = _cunumeric.CUNUMERIC_TRILU
     TRSM = _cunumeric.CUNUMERIC_TRSM
     UNARY_OP = _cunumeric.CUNUMERIC_UNARY_OP
     UNARY_RED = _cunumeric.CUNUMERIC_UNARY_RED

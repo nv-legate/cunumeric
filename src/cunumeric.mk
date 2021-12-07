@@ -36,6 +36,7 @@ GEN_CPU_SRC += cunumeric/ternary/where.cc               \
 							 cunumeric/matrix/syrk.cc                 \
 							 cunumeric/matrix/tile.cc                 \
 							 cunumeric/matrix/transpose.cc            \
+							 cunumeric/matrix/trilu.cc                \
 							 cunumeric/matrix/trsm.cc                 \
 							 cunumeric/matrix/util.cc                 \
 							 cunumeric/random/rand.cc                 \
@@ -66,6 +67,7 @@ GEN_CPU_SRC += cunumeric/ternary/where_omp.cc          \
 							 cunumeric/matrix/syrk_omp.cc            \
 							 cunumeric/matrix/tile_omp.cc            \
 							 cunumeric/matrix/transpose_omp.cc       \
+							 cunumeric/matrix/trilu_omp.cc           \
 							 cunumeric/matrix/trsm_omp.cc            \
 							 cunumeric/matrix/util_omp.cc            \
 							 cunumeric/random/rand_omp.cc            \
@@ -104,6 +106,7 @@ GEN_GPU_SRC += cunumeric/ternary/where.cu               \
 							 cunumeric/matrix/syrk.cu                 \
 							 cunumeric/matrix/tile.cu                 \
 							 cunumeric/matrix/transpose.cu            \
+							 cunumeric/matrix/trilu.cu                \
 							 cunumeric/matrix/trsm.cu                 \
 							 cunumeric/random/rand.cu                 \
 							 cunumeric/search/nonzero.cu              \
