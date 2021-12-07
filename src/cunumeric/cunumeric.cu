@@ -16,9 +16,6 @@
 
 #include "cunumeric.h"
 #include "arg.h"
-#include "cudalibs.h"
-
-#include <mutex>
 
 namespace cunumeric {
 
@@ -71,38 +68,6 @@ void register_gpu_reduction_operators(legate::LibraryContext& context)
 {
   REGISTER_REDOPS(ArgmaxReduction);
   REGISTER_REDOPS(ArgminReduction);
-}
-
-static CUDALibraries& get_cuda_libraries(Processor proc)
-{
-  if (proc.kind() != Processor::TOC_PROC) {
-    fprintf(stderr, "Illegal request for CUDA libraries for non-GPU processor");
-    LEGATE_ABORT
-  }
-  static std::mutex mut_cuda_libraries;
-  static std::map<Processor, CUDALibraries> cuda_libraries;
-
-  std::lock_guard<std::mutex> guard(mut_cuda_libraries);
-
-  auto finder = cuda_libraries.find(proc);
-  if (finder != cuda_libraries.end())
-    return finder->second;
-  else
-    return cuda_libraries[proc];
-}
-
-cublasContext* get_cublas()
-{
-  const auto proc = Processor::get_executing_processor();
-  auto& lib       = get_cuda_libraries(proc);
-  return lib.get_cublas();
-}
-
-cusolverDnContext* get_cusolver()
-{
-  const auto proc = Processor::get_executing_processor();
-  auto& lib       = get_cuda_libraries(proc);
-  return lib.get_cusolver();
 }
 
 }  // namespace cunumeric
