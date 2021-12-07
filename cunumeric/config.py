@@ -100,6 +100,7 @@ class CuNumericOpCode(IntEnum):
     SCALAR_UNARY_RED = _cunumeric.CUNUMERIC_SCALAR_UNARY_RED
     TILE = _cunumeric.CUNUMERIC_TILE
     TRANSPOSE = _cunumeric.CUNUMERIC_TRANSPOSE
+    TRILU = _cunumeric.CUNUMERIC_TRILU
     UNARY_OP = _cunumeric.CUNUMERIC_UNARY_OP
     UNARY_RED = _cunumeric.CUNUMERIC_UNARY_RED
     WHERE = _cunumeric.CUNUMERIC_WHERE

@@ -74,7 +74,7 @@ cublasContext* CUDALibraries::get_cublas()
               status);
       abort();
     }
-    const char* disable_tensor_cores = getenv("LEGATE_DISABLE_TENSOR_CORES");
+    const char* disable_tensor_cores = getenv("CUNUMERIC_DISABLE_TENSOR_CORES");
     if (nullptr == disable_tensor_cores) {
       // No request to disable tensor cores so turn them on
       status = cublasSetMathMode(cublas_, CUBLAS_TENSOR_OP_MATH);

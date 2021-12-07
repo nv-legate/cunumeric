@@ -1369,6 +1369,24 @@ class DeferredArray(NumPyThunk):
 
     @profile
     @auto_convert([1])
+    @shadow_debug("trilu", [1])
+    def trilu(self, rhs, k, lower, stacklevel=0, callsite=None):
+        lhs = self.base
+        rhs = rhs._broadcast(lhs.shape)
+
+        task = self.context.create_task(CuNumericOpCode.TRILU)
+
+        task.add_output(lhs)
+        task.add_input(rhs)
+        task.add_scalar_arg(lower, bool)
+        task.add_scalar_arg(k, ty.int32)
+
+        task.add_alignment(lhs, rhs)
+
+        task.execute()
+
+    @profile
+    @auto_convert([1])
     @shadow_debug("flip", [1])
     def flip(self, rhs, axes, stacklevel=0, callsite=None):
         input = rhs.base
@@ -1661,10 +1679,10 @@ class DeferredArray(NumPyThunk):
         # Populate the Legate launcher
         if op == BinaryOpCode.NOT_EQUAL:
             redop = ReductionOp.ADD
-            self.fill(np.array(False))
+            self.fill(np.array(False), stacklevel=stacklevel + 1)
         else:
             redop = ReductionOp.MUL
-            self.fill(np.array(True))
+            self.fill(np.array(True), stacklevel=stacklevel + 1)
         task = self.context.create_task(CuNumericOpCode.BINARY_RED)
         task.add_reduction(lhs, redop)
         task.add_input(rhs1)

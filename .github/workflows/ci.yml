@@ -8,7 +8,7 @@ on:
       - gh-pages  # deployment target branch (this workflow should not exist on that branch anyway)
 env:
   COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
-  PROJECT: github-numpy-ci
+  PROJECT: github-cunumeric-ci
   REF: ${{ github.event.pull_request.head.ref || github.ref }}
   BASE_REF: ${{ github.event.pull_request.base.ref || github.ref }}
   EVENT_NAME: ${{ github.event_name }}
