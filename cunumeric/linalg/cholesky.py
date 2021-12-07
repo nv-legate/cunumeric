@@ -23,7 +23,6 @@ def get_tile(array, tile_shape, j, i):
     slices = tuple(
         slice(lo, min(hi, m)) for lo, hi, m in zip(lo, hi, array.shape)
     )
-    print(slices)
     return array.get_item(slices)
 
 
@@ -101,3 +100,5 @@ def cholesky(output, input, stacklevel=0, callsite=None):
         for k in range(i + 1, num_procs):
             syrk(output, tile_shape, k, i)
             gemm(output, tile_shape, k, i, k + 1, num_procs)
+
+    output.trilu(output, 0, True, stacklevel=stacklevel + 1, callsite=callsite)

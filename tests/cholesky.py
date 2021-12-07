@@ -29,12 +29,7 @@ def test_real(n):
     b = a + a.T + num.eye(n) * n
     c = num.linalg.cholesky(b)
     c_np = np.linalg.cholesky(b.__array__())
-    # assert num.allclose(c, c_np)
-
-    np.set_printoptions(precision=3)
-    # print(b)
-    print(c)
-    print(c_np)
+    assert num.allclose(c, c_np)
 
 
 def test_complex(n):
@@ -42,12 +37,7 @@ def test_complex(n):
     b = a + a.T.conj() + num.eye(n) * n
     c = num.linalg.cholesky(b)
     c_np = np.linalg.cholesky(b.__array__())
-    # assert num.allclose(c, c_np)
-
-    np.set_printoptions(precision=3, linewidth=200)
-    # print(b)
-    print(c)
-    print(c_np)
+    assert num.allclose(c, c_np)
 
 
 if __name__ == "__main__":
