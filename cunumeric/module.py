@@ -598,24 +598,16 @@ def _contract(expr, a, b=None, out=None, dtype=None, stacklevel=1):
                 b_modes.pop(dim)
 
     # Sum-out modes appearing on one argument, and missing from the result
-    a_reduce = tuple(
-        dim
-        for (dim, mode) in enumerate(a_modes)
-        if mode not in b_modes and mode not in out_modes
-    )
-    if len(a_reduce) > 0:
-        for dim in reversed(a_reduce):
+    # TODO: If we supported sum on multiple axes we could do the full sum in a
+    # single operation, and avoid intermediates.
+    for (dim, mode) in reversed(list(enumerate(a_modes))):
+        if mode not in b_modes and mode not in out_modes:
             a_modes.pop(dim)
-        a = a.sum(axis=a_reduce)
-    b_reduce = tuple(
-        dim
-        for (dim, mode) in enumerate(b_modes)
-        if mode not in a_modes and mode not in out_modes
-    )
-    if len(b_reduce) > 0:
-        for dim in reversed(b_reduce):
+            a = a.sum(axis=dim)
+    for (dim, mode) in reversed(list(enumerate(b_modes))):
+        if mode not in a_modes and mode not in out_modes:
             b_modes.pop(dim)
-        b = b.sum(axis=b_reduce)
+            b = b.sum(axis=dim)
 
     # Compute extent per mode. No need to consider broadcasting at this stage,
     # since it has been handled above.
