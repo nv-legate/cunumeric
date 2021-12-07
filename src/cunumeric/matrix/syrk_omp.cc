@@ -18,6 +18,7 @@
 #include "cunumeric/matrix/syrk_template.inl"
 
 #include <cblas.h>
+#include <omp.h>
 
 namespace cunumeric {
 
@@ -76,17 +77,10 @@ struct SyrkImplBody<VariantKind::CPU, LegateTypeCode::COMPLEX128_LT> {
   }
 };
 
-/*static*/ void SyrkTask::cpu_variant(TaskContext& context)
+/*static*/ void SyrkTask::omp_variant(TaskContext& context)
 {
-#ifdef LEGATE_USE_OPENMP
-  openblas_set_num_threads(1);  // make sure this isn't overzealous
-#endif
+  openblas_set_num_threads(omp_get_max_threads());
   syrk_template<VariantKind::CPU>(context);
 }
-
-namespace  // unnamed
-{
-static void __attribute__((constructor)) register_tasks(void) { SyrkTask::register_variants(); }
-}  // namespace
 
 }  // namespace cunumeric
