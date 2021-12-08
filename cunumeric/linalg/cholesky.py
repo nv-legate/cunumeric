@@ -26,62 +26,62 @@ def get_tile(array, tile_shape, j, i):
     return array.get_item(slices)
 
 
-def potrf(root, tile_shape, i):
-    array = get_tile(root, tile_shape, i, i)
-
-    task = root.context.create_task(CuNumericOpCode.POTRF)
-    task.add_output(array.base)
-    task.add_input(array.base)
-    task.add_broadcast(array.base)
+def potrf(context, part, i):
+    task = context.create_task(CuNumericOpCode.POTRF)
+    task.add_output(part)
+    task.add_input(part)
+    task.set_launch_domain((i, i), (i + 1, i + 1))
     task.execute()
 
 
-def trsm(root, tile_shape, i, lo, hi):
-    rhs = get_tile(root, tile_shape, i, i)
-
-    for j in range(lo, hi):
-        lhs = get_tile(root, tile_shape, j, i)
-
-        task = root.context.create_task(CuNumericOpCode.TRSM)
-        task.add_output(lhs.base)
-        task.add_input(rhs.base)
-        task.add_input(lhs.base)
-        task.add_broadcast(lhs.base)
-        task.add_broadcast(rhs.base)
-        task.execute()
-
-
-def syrk(root, tile_shape, k, i):
-    rhs = get_tile(root, tile_shape, k, i)
-    lhs = get_tile(root, tile_shape, k, k)
-
-    task = root.context.create_task(CuNumericOpCode.SYRK)
-    task.add_output(lhs.base)
-    task.add_input(rhs.base)
-    task.add_input(lhs.base)
-    task.add_broadcast(lhs.base)
-    task.add_broadcast(rhs.base)
-    task.execute()
-
-
-def gemm(root, tile_shape, k, i, lo, hi):
+def trsm(context, part, i, lo, hi):
     if lo >= hi:
         return
-    rhs2 = get_tile(root, tile_shape, k, i)
 
-    for j in range(lo, hi):
-        lhs = get_tile(root, tile_shape, j, k)
-        rhs1 = get_tile(root, tile_shape, j, i)
+    rhs = part.get_child_store(i, i)
+    lhs = part
 
-        task = root.context.create_task(CuNumericOpCode.GEMM)
-        task.add_output(lhs.base)
-        task.add_input(rhs1.base)
-        task.add_input(rhs2.base)
-        task.add_input(lhs.base)
-        task.add_broadcast(lhs.base)
-        task.add_broadcast(rhs1.base)
-        task.add_broadcast(rhs2.base)
-        task.execute()
+    task = context.create_task(CuNumericOpCode.TRSM)
+    task.add_output(lhs)
+    task.add_input(rhs)
+    task.add_input(lhs)
+    task.add_broadcast(rhs)
+    task.set_launch_domain((lo, i), (hi, i + 1))
+    task.execute()
+
+
+def syrk(context, part, k, i):
+    rhs = part.get_child_store(k, i)
+    lhs = part
+
+    task = context.create_task(CuNumericOpCode.SYRK)
+    task.add_output(lhs)
+    task.add_input(rhs)
+    task.add_input(lhs)
+    task.add_broadcast(rhs)
+    task.set_launch_domain((k, k), (k + 1, k + 1))
+    task.execute()
+
+
+def gemm(context, part, k, i, lo, hi):
+    if lo >= hi:
+        return
+
+    rhs2 = part.get_child_store(k, i)
+    lhs = part
+    rhs1 = part
+
+    task = context.create_task(CuNumericOpCode.GEMM)
+    task.add_output(lhs)
+    task.add_input(rhs1, proj=lambda p: (p[0], i))
+    task.add_input(rhs2)
+    task.add_input(lhs)
+    task.add_broadcast(rhs2)
+    task.set_launch_domain((lo, k), (hi, k + 1))
+    # TODO: We should be able to prove this by materializing
+    #       the colors of subregions to be accessed
+    task.require_interference_check(False)
+    task.execute()
 
 
 def cholesky(output, input, stacklevel=0, callsite=None):
@@ -94,11 +94,14 @@ def cholesky(output, input, stacklevel=0, callsite=None):
     if tile_shape * (num_procs - 1) == shape:
         num_procs -= 1
 
+    p_output = output.base.partition_by_tiling(tile_shape)
+    context = output.context
+
     for i in range(num_procs):
-        potrf(output, tile_shape, i)
-        trsm(output, tile_shape, i, i + 1, num_procs)
+        potrf(context, p_output, i)
+        trsm(context, p_output, i, i + 1, num_procs)
         for k in range(i + 1, num_procs):
-            syrk(output, tile_shape, k, i)
-            gemm(output, tile_shape, k, i, k + 1, num_procs)
+            syrk(context, p_output, k, i)
+            gemm(context, p_output, k, i, k + 1, num_procs)
 
     output.trilu(output, 0, True, stacklevel=stacklevel + 1, callsite=callsite)
