@@ -18,6 +18,7 @@
 
 #include "legate.h"
 #include <cublas_v2.h>
+#include <cusolverDn.h>
 #include <cuda_runtime.h>
 #include <cufft.h>
 #include <cutensor.h>
@@ -59,15 +60,12 @@
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 #endif
 
-struct cublasContext;
-struct cusolverDnContext;
-
 namespace cunumeric {
 
-// Defined in cunumeric.cu
+// Defined in cudalibs.cu
 
-cublasContext* get_cublas();
-cusolverDnContext* get_cusolver();
+cublasHandle_t get_cublas();
+cusolverDnHandle_t get_cusolver();
 
 __host__ inline void check_cuda(cudaError_t error, const char* file, int line)
 {
