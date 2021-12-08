@@ -14,14 +14,16 @@
  *
  */
 
-#include <stdio.h>
-
-#include <cublas_v2.h>
-#include <cusolverDn.h>
+#include "legate.h"
 
 #include "cudalibs.h"
 
+#include <mutex>
+#include <stdio.h>
+
 namespace cunumeric {
+
+using namespace Legion;
 
 CUDALibraries::CUDALibraries() : cublas_(nullptr), cusolver_(nullptr) {}
 
@@ -59,7 +61,7 @@ void CUDALibraries::finalize_cusolver()
   cusolver_ = nullptr;
 }
 
-cublasContext* CUDALibraries::get_cublas()
+cublasHandle_t CUDALibraries::get_cublas()
 {
   if (nullptr == cublas_) {
     cublasStatus_t status = cublasCreate(&cublas_);
@@ -81,7 +83,7 @@ cublasContext* CUDALibraries::get_cublas()
   return cublas_;
 }
 
-cusolverDnContext* CUDALibraries::get_cusolver()
+cusolverDnHandle_t CUDALibraries::get_cusolver()
 {
   if (nullptr == cusolver_) {
     cusolverStatus_t status = cusolverDnCreate(&cusolver_);
@@ -94,6 +96,38 @@ cusolverDnContext* CUDALibraries::get_cusolver()
     }
   }
   return cusolver_;
+}
+
+static CUDALibraries& get_cuda_libraries(Processor proc)
+{
+  if (proc.kind() != Processor::TOC_PROC) {
+    fprintf(stderr, "Illegal request for CUDA libraries for non-GPU processor");
+    LEGATE_ABORT
+  }
+  static std::mutex mut_cuda_libraries;
+  static std::map<Processor, CUDALibraries> cuda_libraries;
+
+  std::lock_guard<std::mutex> guard(mut_cuda_libraries);
+
+  auto finder = cuda_libraries.find(proc);
+  if (finder != cuda_libraries.end())
+    return finder->second;
+  else
+    return cuda_libraries[proc];
+}
+
+cublasContext* get_cublas()
+{
+  const auto proc = Processor::get_executing_processor();
+  auto& lib       = get_cuda_libraries(proc);
+  return lib.get_cublas();
+}
+
+cusolverDnContext* get_cusolver()
+{
+  const auto proc = Processor::get_executing_processor();
+  auto& lib       = get_cuda_libraries(proc);
+  return lib.get_cusolver();
 }
 
 }  // namespace cunumeric
