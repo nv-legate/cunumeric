@@ -105,11 +105,4 @@ cusolverDnContext* get_cusolver()
   return lib.get_cusolver();
 }
 
-cutensorHandle_t* get_cutensor()
-{
-  const auto proc = Processor::get_executing_processor();
-  auto& lib       = get_cuda_libraries(proc);
-  return lib.get_cutensor();
-}
-
 }  // namespace cunumeric

@@ -40,6 +40,23 @@ void print_dev(const char* title, const T* vals, size_t ndim, int64_t* shape, in
 
 #endif  // debugging output
 
+__host__ cutensorHandle_t* get_cutensor_handle(void)
+{
+  static bool initialized[LEGION_MAX_NUM_PROCS];
+  static cutensorHandle_t handles[LEGION_MAX_NUM_PROCS];
+  Processor proc = Processor::get_executing_processor();
+  if (proc.kind() != Processor::TOC_PROC) {
+    fprintf(stderr, "Illegal request for cuTensor handle on non-GPU processor");
+    LEGATE_ABORT
+  }
+  unsigned proc_idx = proc.id & (LEGION_MAX_NUM_PROCS - 1);
+  if (!initialized[proc_idx]) {
+    CHECK_CUTENSOR(cutensorInit(&(handles[proc_idx])));
+    initialized[proc_idx] = true;
+  }
+  return &(handles[proc_idx]);
+}
+
 template <cudaDataType_t DATA_TYPE_CODE, cutensorComputeType_t COMPUTE_TYPE_CODE, typename T>
 __host__ void contract(T* lhs_data,
                        size_t lhs_ndim,
@@ -83,7 +100,7 @@ __host__ void contract(T* lhs_data,
   // Initialization
   cudaStream_t task_stream;
   CHECK_CUDA(cudaStreamCreateWithFlags(&task_stream, cudaStreamNonBlocking));
-  cutensorHandle_t* handle = get_cutensor();
+  cutensorHandle_t* handle = get_cutensor_handle();
 
   // Create tensor descriptors
   cutensorTensorDescriptor_t lhs_desc;

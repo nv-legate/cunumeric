@@ -16,11 +16,14 @@
 
 #include <stdio.h>
 
+#include <cublas_v2.h>
+#include <cusolverDn.h>
+
 #include "cudalibs.h"
 
 namespace cunumeric {
 
-CUDALibraries::CUDALibraries() : cublas_(nullptr), cusolver_(nullptr), cutensor_(nullptr) {}
+CUDALibraries::CUDALibraries() : cublas_(nullptr), cusolver_(nullptr) {}
 
 CUDALibraries::~CUDALibraries() { finalize(); }
 
@@ -28,7 +31,6 @@ void CUDALibraries::finalize()
 {
   if (cublas_ != nullptr) finalize_cublas();
   if (cusolver_ != nullptr) finalize_cusolver();
-  if (cutensor_ != nullptr) finalize_cutensor();
 }
 
 void CUDALibraries::finalize_cublas()
@@ -55,12 +57,6 @@ void CUDALibraries::finalize_cusolver()
     abort();
   }
   cusolver_ = nullptr;
-}
-
-void CUDALibraries::finalize_cutensor()
-{
-  delete cutensor_;
-  cutensor_ = nullptr;
 }
 
 cublasContext* CUDALibraries::get_cublas()
@@ -98,22 +94,6 @@ cusolverDnContext* CUDALibraries::get_cusolver()
     }
   }
   return cusolver_;
-}
-
-cutensorHandle_t* CUDALibraries::get_cutensor()
-{
-  if (nullptr == cutensor_) {
-    cutensor_               = new cutensorHandle_t;
-    cutensorStatus_t status = cutensorInit(cutensor_);
-    if (status != CUTENSOR_STATUS_SUCCESS) {
-      fprintf(stderr,
-              "Internal cuTENSOR initialization failure "
-              "with error code %d in cuNumeric\n",
-              status);
-      abort();
-    }
-  }
-  return cutensor_;
 }
 
 }  // namespace cunumeric

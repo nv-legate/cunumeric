@@ -20,7 +20,6 @@
 #include <cublas_v2.h>
 #include <cuda_runtime.h>
 #include <cufft.h>
-#include <cusolverDn.h>
 #include <cutensor.h>
 
 #define THREADS_PER_BLOCK 128
@@ -60,13 +59,15 @@
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 #endif
 
+struct cublasContext;
+struct cusolverDnContext;
+
 namespace cunumeric {
 
 // Defined in cunumeric.cu
 
 cublasContext* get_cublas();
 cusolverDnContext* get_cusolver();
-cutensorHandle_t* get_cutensor();
 
 __host__ inline void check_cuda(cudaError_t error, const char* file, int line)
 {
