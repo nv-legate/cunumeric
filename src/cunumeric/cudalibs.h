@@ -18,6 +18,7 @@
 
 #include <cublas_v2.h>
 #include <cusolverDn.h>
+#include <cutensor.h>
 
 namespace cunumeric {
 
@@ -35,14 +36,17 @@ struct CUDALibraries {
   void finalize();
   cublasHandle_t get_cublas();
   cusolverDnHandle_t get_cusolver();
+  cutensorHandle_t* get_cutensor();
 
  private:
   void finalize_cublas();
   void finalize_cusolver();
+  void finalize_cutensor();
 
  private:
   cublasContext* cublas_;
   cusolverDnContext* cusolver_;
+  cutensorHandle_t* cutensor_;
 };
 
 }  // namespace cunumeric

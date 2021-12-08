@@ -66,6 +66,7 @@ namespace cunumeric {
 
 cublasHandle_t get_cublas();
 cusolverDnHandle_t get_cusolver();
+cutensorHandle_t* get_cutensor();
 
 __host__ inline void check_cuda(cudaError_t error, const char* file, int line)
 {
