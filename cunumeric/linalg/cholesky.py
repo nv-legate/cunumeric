@@ -16,21 +16,16 @@
 
 from cunumeric.config import CuNumericOpCode
 
-
-def get_tile(array, tile_shape, j, i):
-    lo = tile_shape * (j, i)
-    hi = tile_shape * (j + 1, i + 1)
-    slices = tuple(
-        slice(lo, min(hi, m)) for lo, hi, m in zip(lo, hi, array.shape)
-    )
-    return array.get_item(slices)
+from legate.core import Rect
 
 
 def potrf(context, part, i):
-    task = context.create_task(CuNumericOpCode.POTRF)
+    launch_domain = Rect(lo=(i, i), hi=(i + 1, i + 1))
+    task = context.create_task(
+        CuNumericOpCode.POTRF, manual=True, launch_domain=launch_domain
+    )
     task.add_output(part)
     task.add_input(part)
-    task.set_launch_domain((i, i), (i + 1, i + 1))
     task.execute()
 
 
@@ -41,12 +36,13 @@ def trsm(context, part, i, lo, hi):
     rhs = part.get_child_store(i, i)
     lhs = part
 
-    task = context.create_task(CuNumericOpCode.TRSM)
+    launch_domain = Rect(lo=(lo, i), hi=(hi, i + 1))
+    task = context.create_task(
+        CuNumericOpCode.TRSM, manual=True, launch_domain=launch_domain
+    )
     task.add_output(lhs)
     task.add_input(rhs)
     task.add_input(lhs)
-    task.add_broadcast(rhs)
-    task.set_launch_domain((lo, i), (hi, i + 1))
     task.execute()
 
 
@@ -54,12 +50,13 @@ def syrk(context, part, k, i):
     rhs = part.get_child_store(k, i)
     lhs = part
 
-    task = context.create_task(CuNumericOpCode.SYRK)
+    launch_domain = Rect(lo=(k, k), hi=(k + 1, k + 1))
+    task = context.create_task(
+        CuNumericOpCode.SYRK, manual=True, launch_domain=launch_domain
+    )
     task.add_output(lhs)
     task.add_input(rhs)
     task.add_input(lhs)
-    task.add_broadcast(rhs)
-    task.set_launch_domain((k, k), (k + 1, k + 1))
     task.execute()
 
 
@@ -71,16 +68,14 @@ def gemm(context, part, k, i, lo, hi):
     lhs = part
     rhs1 = part
 
-    task = context.create_task(CuNumericOpCode.GEMM)
+    launch_domain = Rect(lo=(lo, k), hi=(hi, k + 1))
+    task = context.create_task(
+        CuNumericOpCode.GEMM, manual=True, launch_domain=launch_domain
+    )
     task.add_output(lhs)
     task.add_input(rhs1, proj=lambda p: (p[0], i))
     task.add_input(rhs2)
     task.add_input(lhs)
-    task.add_broadcast(rhs2)
-    task.set_launch_domain((lo, k), (hi, k + 1))
-    # TODO: We should be able to prove this by materializing
-    #       the colors of subregions to be accessed
-    task.require_interference_check(False)
     task.execute()
 
 
