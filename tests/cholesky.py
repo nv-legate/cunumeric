@@ -41,6 +41,7 @@ def test_complex(n):
 
 
 if __name__ == "__main__":
-    # test_diagonal()
-    test_real(8)
-    test_complex(8)
+    test_diagonal()
+    for size in [8, 9, 255, 512]:
+        test_real(size)
+        test_complex(size)
