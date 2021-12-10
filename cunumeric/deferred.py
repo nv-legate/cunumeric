@@ -235,13 +235,13 @@ class DeferredArray(NumPyThunk):
     def ndim(self):
         return len(self.shape)
 
-    def _copy_if_overlapping(self, other):
+    def _copy_if_overlapping(self, other, stacklevel=0):
         if not self.base.overlaps(other.base):
             return self
         copy = self.runtime.create_empty_thunk(
             self.shape, self.dtype, inputs=[self]
         )
-        copy.copy(self, deep=True)
+        copy.copy(self, deep=True, stacklevel=stacklevel)
         return copy
 
     def __numpy_array__(self, stacklevel=0):
@@ -548,12 +548,12 @@ class DeferredArray(NumPyThunk):
                 # for the key, 2) __iop__ for the update, and 3) __setitem__
                 # to set the result back. In cuNumeric, the object we
                 # return in step (1) is actually a subview to the array arr
-                # through which we make udpates in place, so after step (2) is
+                # through which we make updates in place, so after step (2) is
                 # done, # the effect of inplace update is already reflected
                 # to the arr. Therefore, we skip the copy to avoid redundant
                 # copies if we know that we hit such a scenario.
                 # TODO: We should make this work for the advanced indexing case
-                if view.base.storage.same_handle(rhs.base.storage):
+                if view.base == rhs.base:
                     return
 
                 if self.runtime.shadow_debug:
@@ -1019,13 +1019,17 @@ class DeferredArray(NumPyThunk):
             if left_matrix:
                 rhs1 = rhs1_array.base
                 (m, n) = rhs1.shape
-                rhs2_array = rhs2_array._copy_if_overlapping(lhs_array)
+                rhs2_array = rhs2_array._copy_if_overlapping(
+                    lhs_array, stacklevel=stacklevel + 1
+                )
                 rhs2 = rhs2_array.base.promote(0, m)
                 lhs = lhs_array.base.promote(1, n)
             else:
                 rhs2 = rhs2_array.base
                 (m, n) = rhs2.shape
-                rhs1_array = rhs1_array._copy_if_overlapping(lhs_array)
+                rhs1_array = rhs1_array._copy_if_overlapping(
+                    lhs_array, stacklevel=stacklevel + 1
+                )
                 rhs1 = rhs1_array.base.promote(1, n)
                 lhs = lhs_array.base.promote(0, m)
 
@@ -1087,8 +1091,12 @@ class DeferredArray(NumPyThunk):
                     self.shape, np.dtype(np.float32), inputs=[self]
                 )
 
-            rhs1_array = rhs1_array._copy_if_overlapping(lhs_array)
-            rhs2_array = rhs2_array._copy_if_overlapping(lhs_array)
+            rhs1_array = rhs1_array._copy_if_overlapping(
+                lhs_array, stacklevel=stacklevel + 1
+            )
+            rhs2_array = rhs2_array._copy_if_overlapping(
+                lhs_array, stacklevel=stacklevel + 1
+            )
 
             # TODO: We should be able to do this in the core
             lhs_array.fill(
