@@ -1,6 +1,3 @@
-* auto-gen TOC:
-{:toc}
-
 # Contributing to cuNumeric
 
 CuNumeric is an open-source project released under the [Apache license](LICENSE).  We welcome any and all contributions, and we hope that you can help us develop a strong community.
@@ -67,3 +64,9 @@ Please use your real name and a valid email address at which you can be reached.
 We are really grateful that you are thinking of contributing to cuNumeric.  We will make every effort to review your contributions as soon as possible.  
 
 As we suggested at the beginning of this document, it will be really helpful to start with an issue unless your proposed change is really trivial.  An issue will help to save work in the review process (e.g., maybe somebody is already working on exactly the same thing you want to work on).  After you open your pull request (PR), there usually will be a community feedback that often will require further changes to your contribution (the usual open-source process).  Usually, this will conclude in the PR being merged by a maintainer, but on rare occasions a PR may be rejected.  This may happen, for example, if the PR appears abandoned (no response to the community feedback) or if the PR does not seem to be approaching community acceptance in a reasonable time frame.  In any case, an explanation will always be given why a PR is closed.  Even if a PR is closed for some reason, it may always be reopened if the situation evolves (feel free to comment on closed PRs to discuss reopening them).
+
+## Code Formatting Requirements
+
+CuNumeric has a set of coding standards that are expected from all the code merged into the project.  The coding standards are defined by the set of tools we use to format our code.  We use the [pre-commit](https://pre-commit.com/) framework to run our formatting tools.  Our specific setup of pre-commit is defined in [.pre-commit-config.yaml](.pre-commit-config.yaml).  The easiest way to meet the coding standards is to simply use the pre-commit framework to run all the checks for you.  Please visit the [pre-commit project page](https://pre-commit.com/) for pre-commit installation and usage instructions.  Once pre-commit is installed in the cuNumeric repo, all the checks and formatting will be run on every commit, but one can also run the checks explicitly as detailed in pre-commit documentation.
+
+We hope that the automation of our formatting checks will make it easy to comply with our coding standards.  If you encounter problems with code formatting, however, please let us know in a comment on your PR, and we will do our best to help.
