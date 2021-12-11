@@ -26,7 +26,9 @@ def test():
     a_max = 10.0 * np.random.rand()
 
     # test clip
-    assert np.array_equal(num.clip(a, a_min, a_max), np.clip(anp, a_min, a_max))
+    assert np.array_equal(
+        num.clip(a, a_min, a_max), np.clip(anp, a_min, a_max)
+    )
 
     return
 
