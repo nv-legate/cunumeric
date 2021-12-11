@@ -39,6 +39,12 @@ def test_complex(n):
     c_np = np.linalg.cholesky(b.__array__())
     assert num.allclose(c, c_np)
 
+    d = num.empty((2, n, n))
+    d[1] = b
+    c = num.linalg.cholesky(d[1])
+    c_np = np.linalg.cholesky(d[1].__array__())
+    assert num.allclose(c, c_np)
+
 
 if __name__ == "__main__":
     test_diagonal()
