@@ -37,7 +37,7 @@ struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::FLOAT_LT> {
                   bool rhs1_transposed,
                   bool rhs2_transposed)
   {
-    cublasHandle_t cublas_handle = Core::get_cublas();
+    cublasHandle_t cublas_handle = get_cublas();
     // Update the stream because the CUDA hijack can't see inside cuBLAS
     cudaStream_t task_stream;
     cudaStreamCreate(&task_stream);
@@ -87,7 +87,7 @@ struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::DOUBLE_LT> {
                   bool rhs1_transposed,
                   bool rhs2_transposed)
   {
-    cublasHandle_t cublas_handle = Core::get_cublas();
+    cublasHandle_t cublas_handle = get_cublas();
     // Update the stream because the CUDA hijack can't see inside cuBLAS
     cudaStream_t task_stream;
     cudaStreamCreate(&task_stream);
@@ -132,7 +132,7 @@ struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::HALF_LT> {
                   bool rhs1_transposed,
                   bool rhs2_transposed)
   {
-    cublasHandle_t cublas_handle = Core::get_cublas();
+    cublasHandle_t cublas_handle = get_cublas();
     // Update the stream because the CUDA hijack can't see inside cuBLAS
     cudaStream_t task_stream;
     cudaStreamCreate(&task_stream);

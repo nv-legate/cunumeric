@@ -37,8 +37,8 @@ def test():
 
     # bnp = np.random.randn(4,5)
     # b = num.array(bnp)
-    # assert(np.allclose(np.linalg.norm(bnp, 'fro'), num.linalg.norm(b, 'fro')))
-    # assert(np.allclose(np.linalg.norm(bnp, 'nuc'), num.linalg.norm(b, 'nuc')))
+    # assert(np.allclose(np.linalg.norm(bnp, 'fro'), num.linalg.norm(b, 'fro'))) # noqa E501
+    # assert(np.allclose(np.linalg.norm(bnp, 'nuc'), num.linalg.norm(b, 'nuc'))) # noqa E501
     # assert(np.allclose(np.linalg.norm(bnp, np.inf), num.linalg.norm(b, num.inf))) # noqa E501
     # assert(np.allclose(np.linalg.norm(bnp, -np.inf), num.linalg.norm(b, -num.inf))) # noqa E501
     # assert(np.allclose(np.linalg.norm(bnp, 1), num.linalg.norm(b, 1)))

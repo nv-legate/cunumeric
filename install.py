@@ -221,9 +221,7 @@ def build_cunumeric(
 ):
     src_dir = os.path.join(cunumeric_dir, "src")
     if cmake:
-        print(
-            "Warning: CMake is currently not supported for cuNumeric build."
-        )
+        print("Warning: CMake is currently not supported for cuNumeric build.")
         print("Using GNU Make for now.")
 
     if not python_only:

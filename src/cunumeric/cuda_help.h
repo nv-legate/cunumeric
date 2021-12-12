@@ -18,6 +18,7 @@
 
 #include "legate.h"
 #include <cublas_v2.h>
+#include <cusolverDn.h>
 #include <cuda_runtime.h>
 #include <cufft.h>
 
@@ -53,6 +54,11 @@
 #endif
 
 namespace cunumeric {
+
+// Defined in cudalibs.cu
+
+cublasHandle_t get_cublas();
+cusolverDnHandle_t get_cusolver();
 
 __host__ inline void check_cuda(cudaError_t error, const char* file, int line)
 {

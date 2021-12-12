@@ -20,6 +20,7 @@
 #include "cunumeric/arg.h"
 
 #include <math.h>
+#include <complex>
 
 namespace cunumeric {
 
@@ -33,13 +34,17 @@ enum class UnaryOpCode : int {
   COPY,
   COS,
   EXP,
+  EXP2,
   FLOOR,
   INVERT,
   ISINF,
   ISNAN,
   LOG,
+  LOG10,
   LOGICAL_NOT,
   NEGATIVE,
+  RINT,
+  SIGN,
   SIN,
   SQRT,
   TAN,
@@ -47,7 +52,7 @@ enum class UnaryOpCode : int {
   CONJ,
   REAL,
   IMAG,
-  GETARG,
+  GETARG
 };
 
 template <typename Functor, typename... Fnargs>
@@ -72,6 +77,8 @@ constexpr decltype(auto) op_dispatch(UnaryOpCode op_code, Functor f, Fnargs&&...
       return f.template operator()<UnaryOpCode::COS>(std::forward<Fnargs>(args)...);
     case UnaryOpCode::EXP:
       return f.template operator()<UnaryOpCode::EXP>(std::forward<Fnargs>(args)...);
+    case UnaryOpCode::EXP2:
+      return f.template operator()<UnaryOpCode::EXP2>(std::forward<Fnargs>(args)...);
     case UnaryOpCode::FLOOR:
       return f.template operator()<UnaryOpCode::FLOOR>(std::forward<Fnargs>(args)...);
     case UnaryOpCode::INVERT:
@@ -82,10 +89,16 @@ constexpr decltype(auto) op_dispatch(UnaryOpCode op_code, Functor f, Fnargs&&...
       return f.template operator()<UnaryOpCode::ISNAN>(std::forward<Fnargs>(args)...);
     case UnaryOpCode::LOG:
       return f.template operator()<UnaryOpCode::LOG>(std::forward<Fnargs>(args)...);
+    case UnaryOpCode::LOG10:
+      return f.template operator()<UnaryOpCode::LOG10>(std::forward<Fnargs>(args)...);
     case UnaryOpCode::LOGICAL_NOT:
       return f.template operator()<UnaryOpCode::LOGICAL_NOT>(std::forward<Fnargs>(args)...);
     case UnaryOpCode::NEGATIVE:
       return f.template operator()<UnaryOpCode::NEGATIVE>(std::forward<Fnargs>(args)...);
+    case UnaryOpCode::RINT:
+      return f.template operator()<UnaryOpCode::RINT>(std::forward<Fnargs>(args)...);
+    case UnaryOpCode::SIGN:
+      return f.template operator()<UnaryOpCode::SIGN>(std::forward<Fnargs>(args)...);
     case UnaryOpCode::SIN:
       return f.template operator()<UnaryOpCode::SIN>(std::forward<Fnargs>(args)...);
     case UnaryOpCode::SQRT:
@@ -259,6 +272,45 @@ struct UnaryOp<UnaryOpCode::EXP, CODE> {
 };
 
 template <legate::LegateTypeCode CODE>
+struct UnaryOp<UnaryOpCode::EXP2, CODE> {
+  static constexpr bool valid = true;
+  using T                     = legate::legate_type_of<CODE>;
+
+  UnaryOp(const std::vector<legate::Store>& args) {}
+
+  template <typename _T = T, std::enable_if_t<!legate::is_complex<_T>::value>* = nullptr>
+  constexpr decltype(auto) operator()(const T& x) const
+  {
+    return std::exp2(x);
+  }
+
+  template <typename _T = T, std::enable_if_t<legate::is_complex<_T>::value>* = nullptr>
+  constexpr decltype(auto) operator()(const T& x) const
+  {
+    using std::exp;
+    using std::log;
+#ifdef __NVCC__
+    using thrust::exp;
+    using thrust::log;
+#endif
+    // FIXME this is not the most performant implementation
+    return exp(T(log(2), 0) * x);
+  }
+};
+
+#if defined(__NVCC__) || defined(__CUDACC__)
+template <>
+struct UnaryOp<UnaryOpCode::EXP2, legate::LegateTypeCode::HALF_LT> {
+  static constexpr bool valid = true;
+  using T                     = __half;
+
+  UnaryOp(const std::vector<legate::Store>& args) {}
+
+  __device__ __half operator()(const __half& x) const { return hexp2(x); }
+};
+#endif
+
+template <legate::LegateTypeCode CODE>
 struct UnaryOp<UnaryOpCode::FLOOR, CODE> {
   static constexpr bool valid = legate::is_floating_point<CODE>::value;
   using T                     = legate::legate_type_of<CODE>;
@@ -370,6 +422,32 @@ struct UnaryOp<UnaryOpCode::LOG, CODE> {
 };
 
 template <legate::LegateTypeCode CODE>
+struct UnaryOp<UnaryOpCode::LOG10, CODE> {
+  static constexpr bool valid = true;
+  using T                     = legate::legate_type_of<CODE>;
+
+  UnaryOp(const std::vector<legate::Store>& args) {}
+
+  constexpr decltype(auto) operator()(const T& x) const
+  {
+    using std::log10;
+    return log10(x);
+  }
+};
+
+#if defined(__NVCC__) || defined(__CUDACC__)
+template <>
+struct UnaryOp<UnaryOpCode::LOG10, legate::LegateTypeCode::HALF_LT> {
+  static constexpr bool valid = true;
+  using T                     = __half;
+
+  UnaryOp(const std::vector<legate::Store>& args) {}
+
+  __device__ __half operator()(const __half& x) const { return hlog10(x); }
+};
+#endif
+
+template <legate::LegateTypeCode CODE>
 struct UnaryOp<UnaryOpCode::LOGICAL_NOT, CODE> {
   static constexpr bool valid = true;
   using T                     = legate::legate_type_of<CODE>;
@@ -398,6 +476,89 @@ struct UnaryOp<UnaryOpCode::NEGATIVE, CODE> {
 
   constexpr decltype(auto) operator()(const T& x) const { return -x; }
 };
+
+template <legate::LegateTypeCode CODE>
+struct UnaryOp<UnaryOpCode::RINT, CODE> {
+  static constexpr bool valid = true;
+  using T                     = legate::legate_type_of<CODE>;
+
+  UnaryOp(const std::vector<legate::Store>& args) {}
+
+  template <typename _T = T, std::enable_if_t<legate::is_complex<_T>::value>* = nullptr>
+  constexpr decltype(auto) operator()(const _T& x) const
+  {
+    return (std::rint(x.real()), std::rint(x.imag()));
+  }
+
+  template <typename _T = T, std::enable_if_t<!legate::is_complex<_T>::value>* = nullptr>
+  constexpr decltype(auto) operator()(const _T& x) const
+  {
+    return std::rint(x);
+  }
+};
+
+#if defined(__NVCC__) || defined(__CUDACC__)
+template <>
+struct UnaryOp<UnaryOpCode::RINT, legate::LegateTypeCode::HALF_LT> {
+  static constexpr bool valid = true;
+  using T                     = __half;
+
+  UnaryOp(const std::vector<legate::Store>& args) {}
+
+  __device__ __half operator()(const __half& x) const { return hrint(x); }
+};
+#endif
+
+template <legate::LegateTypeCode CODE>
+struct UnaryOp<UnaryOpCode::SIGN, CODE> {
+  static constexpr bool valid = true;
+  using T                     = legate::legate_type_of<CODE>;
+
+  UnaryOp(const std::vector<legate::Store>& args) {}
+
+  template <typename _T = T, std::enable_if_t<legate::is_complex<_T>::value>* = nullptr>
+  constexpr decltype(auto) operator()(const _T& x) const
+  {
+    if (x.real() != 0) {
+      return (_sign(x.real()), 0);
+    } else {
+      return (_sign(x.imag()), 0);
+    }
+  }
+
+  template <typename _T = T, std::enable_if_t<!legate::is_complex<_T>::value>* = nullptr>
+  constexpr decltype(auto) operator()(const _T& x) const
+  {
+    return _sign(x);
+  }
+
+ private:
+  template <typename _T>
+  T _sign(const _T& x) const
+  {
+    return x > 0 ? T(1) : (x < 0 ? T(-1) : T(0));
+  }
+};
+
+#if defined(__NVCC__) || defined(__CUDACC__)
+template <>
+struct UnaryOp<UnaryOpCode::SIGN, legate::LegateTypeCode::HALF_LT> {
+  static constexpr bool valid = true;
+  using T                     = __half;
+
+  UnaryOp(const std::vector<legate::Store>& args) {}
+
+  __device__ __half operator()(const __half& x) const
+  {
+    if (__heq(x, 0))
+      return 0;
+    else if (__hgt(x, 0))
+      return 1;
+    else
+      return -1;
+  }
+};
+#endif
 
 template <legate::LegateTypeCode CODE>
 struct UnaryOp<UnaryOpCode::SIN, CODE> {

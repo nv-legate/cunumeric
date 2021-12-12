@@ -99,6 +99,7 @@ class CuNumericOpCode(IntEnum):
     SCALAR_UNARY_RED = _cunumeric.CUNUMERIC_SCALAR_UNARY_RED
     TILE = _cunumeric.CUNUMERIC_TILE
     TRANSPOSE = _cunumeric.CUNUMERIC_TRANSPOSE
+    TRILU = _cunumeric.CUNUMERIC_TRILU
     UNARY_OP = _cunumeric.CUNUMERIC_UNARY_OP
     UNARY_RED = _cunumeric.CUNUMERIC_UNARY_RED
     WHERE = _cunumeric.CUNUMERIC_WHERE
@@ -110,6 +111,7 @@ class FusedOpCode(IntEnum):
     FUSE = 1
 
 
+# Match these to  BinaryOpCode in binary_op_util.h
 @unique
 class BinaryOpCode(IntEnum):
     ADD = 1
@@ -120,16 +122,20 @@ class BinaryOpCode(IntEnum):
     GREATER_EQUAL = 6
     LESS = 7
     LESS_EQUAL = 8
-    MAXIMUM = 9
-    MINIMUM = 10
-    MOD = 11
-    MULTIPLY = 12
-    NOT_EQUAL = 13
-    POWER = 14
-    SUBTRACT = 15
-    ALLCLOSE = 16
+    LOGICAL_AND = 9
+    LOGICAL_OR = 10
+    LOGICAL_XOR = 11
+    MAXIMUM = 12
+    MINIMUM = 13
+    MOD = 14
+    MULTIPLY = 15
+    NOT_EQUAL = 16
+    POWER = 17
+    SUBTRACT = 18
+    ALLCLOSE = 19
 
 
+# Match these to UnaryOpCode in unary_op_util.h
 @unique
 class UnaryOpCode(IntEnum):
     ABSOLUTE = 1
@@ -141,33 +147,40 @@ class UnaryOpCode(IntEnum):
     COPY = 7
     COS = 8
     EXP = 9
-    FLOOR = 10
-    INVERT = 11
-    ISINF = 12
-    ISNAN = 13
-    LOG = 14
-    LOGICAL_NOT = 15
-    NEGATIVE = 16
-    SIN = 17
-    SQRT = 18
-    TAN = 19
-    TANH = 20
-    CONJ = 21
-    REAL = 22
-    IMAG = 23
-    GETARG = 24
+    EXP2 = 10
+    FLOOR = 11
+    INVERT = 12
+    ISINF = 13
+    ISNAN = 14
+    LOG = 15
+    LOG10 = 16
+    LOGICAL_NOT = 17
+    NEGATIVE = 18
+    RINT = 19
+    SIGN = 20
+    SIN = 21
+    SQRT = 22
+    TAN = 23
+    TANH = 24
+    CONJ = 25
+    REAL = 26
+    IMAG = 27
+    GETARG = 28
 
 
+# Match these to  UnaryRedCode in unary_red_util.h
 @unique
 class UnaryRedCode(IntEnum):
-    MAX = 1
-    MIN = 2
-    PROD = 3
-    SUM = 4
-    ARGMAX = 5
-    ARGMIN = 6
-    CONTAINS = 7
-    COUNT_NONZERO = 8
+    ALL = 1
+    ANY = 2
+    MAX = 3
+    MIN = 4
+    PROD = 5
+    SUM = 6
+    ARGMAX = 7
+    ARGMIN = 8
+    CONTAINS = 9
+    COUNT_NONZERO = 10
 
 
 @unique

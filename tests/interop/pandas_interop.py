@@ -9,8 +9,9 @@
 # See the LICENSE file for details.
 #
 
-import cunumeric as np
 import legate.pandas as pd
+
+import cunumeric as np
 
 
 def test():

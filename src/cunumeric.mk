@@ -34,6 +34,7 @@ GEN_CPU_SRC += cunumeric/ternary/where.cc               \
 							 cunumeric/matrix/dot.cc                  \
 							 cunumeric/matrix/tile.cc                 \
 							 cunumeric/matrix/transpose.cc            \
+							 cunumeric/matrix/trilu.cc                \
 							 cunumeric/matrix/util.cc                 \
 							 cunumeric/random/rand.cc                 \
 							 cunumeric/search/nonzero.cc              \
@@ -41,10 +42,7 @@ GEN_CPU_SRC += cunumeric/ternary/where.cc               \
 							 cunumeric/convolution/convolve.cc        \
 							 cunumeric/transform/flip.cc              \
 							 cunumeric/arg.cc                         \
-							 cunumeric/mapper.cc                      \
-							 cunumeric/cunumeric.cc # This must always be the last file!
-                                      # It guarantees we do our registration callback
-                                      # only after all task variants are recorded
+							 cunumeric/mapper.cc
 
 ifeq ($(strip $(USE_OPENMP)),1)
 GEN_CPU_SRC += cunumeric/ternary/where_omp.cc          \
@@ -64,6 +62,7 @@ GEN_CPU_SRC += cunumeric/ternary/where_omp.cc          \
 							 cunumeric/matrix/dot_omp.cc             \
 							 cunumeric/matrix/tile_omp.cc            \
 							 cunumeric/matrix/transpose_omp.cc       \
+							 cunumeric/matrix/trilu_omp.cc           \
 							 cunumeric/matrix/util_omp.cc            \
 							 cunumeric/random/rand_omp.cc            \
 							 cunumeric/search/nonzero_omp.cc         \
@@ -71,6 +70,10 @@ GEN_CPU_SRC += cunumeric/ternary/where_omp.cc          \
 							 cunumeric/convolution/convolve_omp.cc   \
 							 cunumeric/transform/flip_omp.cc
 endif
+
+GEN_CPU_SRC += cunumeric/cunumeric.cc # This must always be the last file!
+                                      # It guarantees we do our registration callback
+                                      # only after all task variants are recorded
 
 GEN_GPU_SRC += cunumeric/ternary/where.cu               \
 							 cunumeric/binary/binary_op.cu            \
@@ -91,9 +94,11 @@ GEN_GPU_SRC += cunumeric/ternary/where.cu               \
 							 cunumeric/matrix/dot.cu                  \
 							 cunumeric/matrix/tile.cu                 \
 							 cunumeric/matrix/transpose.cu            \
+							 cunumeric/matrix/trilu.cu                \
 							 cunumeric/random/rand.cu                 \
 							 cunumeric/search/nonzero.cu              \
 							 cunumeric/stat/bincount.cu               \
 							 cunumeric/convolution/convolve.cu	      \
 							 cunumeric/transform/flip.cu              \
+							 cunumeric/cudalibs.cu                    \
 							 cunumeric/cunumeric.cu
