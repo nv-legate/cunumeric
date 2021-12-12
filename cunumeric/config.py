@@ -103,7 +103,6 @@ class CuNumericOpCode(IntEnum):
     UNARY_RED = _cunumeric.CUNUMERIC_UNARY_RED
     WHERE = _cunumeric.CUNUMERIC_WHERE
     WRITE = _cunumeric.CUNUMERIC_WRITE
-    DOUBLE_BINARY_OP = _cunumeric.CUNUMERIC_DOUBLE_BINARY
     FUSED_OP = _cunumeric.CUNUMERIC_FUSED_OP
 
 @unique
