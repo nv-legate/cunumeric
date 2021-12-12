@@ -84,7 +84,7 @@ def run_black_scholes(N, D):
     start = datetime.datetime.now()
     S, X, T, R, V = initialize(N, D)
     #return
-    trials = 100
+    trials = 300
     ends = [None for i in range(trials)]
     for i in range(trials):
         call, put = black_scholes(S, X, T, R, V)

@@ -15,8 +15,6 @@
  */
 
 #include "cunumeric/fused/fused_op.h"
-//#include "cunumeric/binary/binary_op_template.inl"
-
 #include "cunumeric/cuda_help.h"
 
 //namespace legate {

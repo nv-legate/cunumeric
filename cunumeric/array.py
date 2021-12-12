@@ -462,7 +462,6 @@ class ndarray(object):
         )
 
     def double_binary(self, rhs1, rhs2):
-        print(type(self))
         rhs_array1 = self.convert_to_legate_ndarray(rhs1)
         rhs_array2 = self.convert_to_legate_ndarray(rhs2)
 
@@ -2170,11 +2169,11 @@ class ndarray(object):
         if out_dtype is None:
             out_dtype = cls.find_common_type(one, two)
         if check_types:
-            conOpt = True
+            conOpt = isinstance(one._thunk, DeferredArray) or isinstance(two._thunk, DeferredArray) 
             if one.dtype != two.dtype:
                 common_type = cls.find_common_type(one, two)
                 if one.dtype != common_type:
-                    if conOpt and  isinstance(one._thunk, DeferredArray) and one.shape==():
+                    if conOpt and one.shape==():
                         temp = ndarray(
                             shape=one.shape,
                             dtype=common_type, 
