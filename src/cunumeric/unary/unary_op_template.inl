@@ -56,7 +56,7 @@ struct UnaryOpImpl {
     OP func{args.args};
     UnaryOpImplBody<KIND, OP_CODE, CODE, DIM>()(func, out, in, pitches, rect, dense);
   }
-
+  
   template <LegateTypeCode CODE,
             int DIM,
             std::enable_if_t<!UnaryOp<OP_CODE, CODE>::valid>* = nullptr>
@@ -64,6 +64,7 @@ struct UnaryOpImpl {
   {
     assert(false);
   }
+  
 };
 
 template <VariantKind KIND>
