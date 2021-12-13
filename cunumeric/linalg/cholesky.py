@@ -16,25 +16,40 @@
 
 from cunumeric.config import CuNumericOpCode
 
-from legate.core import Rect
+from legate.core import Rect, types as ty
 
 
-def potrf(context, part, i):
+def transpose_copy(context, launch_domain, p_input, p_output):
+    task = context.create_task(
+        CuNumericOpCode.TRANSPOSE_COPY_2D,
+        manual=True,
+        launch_domain=launch_domain,
+    )
+    task.add_output(p_output)
+    task.add_input(p_input)
+    # Output has the same shape as input, but is mapped
+    # to a column major instance
+    task.add_scalar_arg(False, ty.int32)
+
+    task.execute()
+
+
+def potrf(context, p_output, i):
     launch_domain = Rect(lo=(i, i), hi=(i + 1, i + 1))
     task = context.create_task(
         CuNumericOpCode.POTRF, manual=True, launch_domain=launch_domain
     )
-    task.add_output(part)
-    task.add_input(part)
+    task.add_output(p_output)
+    task.add_input(p_output)
     task.execute()
 
 
-def trsm(context, part, i, lo, hi):
+def trsm(context, p_output, i, lo, hi):
     if lo >= hi:
         return
 
-    rhs = part.get_child_store(i, i)
-    lhs = part
+    rhs = p_output.get_child_store(i, i)
+    lhs = p_output
 
     launch_domain = Rect(lo=(lo, i), hi=(hi, i + 1))
     task = context.create_task(
@@ -46,9 +61,9 @@ def trsm(context, part, i, lo, hi):
     task.execute()
 
 
-def syrk(context, part, k, i):
-    rhs = part.get_child_store(k, i)
-    lhs = part
+def syrk(context, p_output, k, i):
+    rhs = p_output.get_child_store(k, i)
+    lhs = p_output
 
     launch_domain = Rect(lo=(k, k), hi=(k + 1, k + 1))
     task = context.create_task(
@@ -60,13 +75,13 @@ def syrk(context, part, k, i):
     task.execute()
 
 
-def gemm(context, part, k, i, lo, hi):
+def gemm(context, p_output, k, i, lo, hi):
     if lo >= hi:
         return
 
-    rhs2 = part.get_child_store(k, i)
-    lhs = part
-    rhs1 = part
+    rhs2 = p_output.get_child_store(k, i)
+    lhs = p_output
+    rhs1 = p_output
 
     launch_domain = Rect(lo=(lo, k), hi=(hi, k + 1))
     task = context.create_task(
@@ -80,17 +95,18 @@ def gemm(context, part, k, i, lo, hi):
 
 
 def cholesky(output, input, stacklevel=0, callsite=None):
-    output.copy(input, deep=True, stacklevel=stacklevel + 1, callsite=callsite)
-
     num_procs = output.runtime.num_procs
     shape = output.base.shape
     color_shape = (num_procs, num_procs)
     tile_shape = (shape + color_shape - 1) // color_shape
     if tile_shape * (num_procs - 1) == shape:
         num_procs -= 1
+        color_shape = (num_procs, num_procs)
 
-    p_output = output.base.partition_by_tiling(tile_shape)
     context = output.context
+    p_input = input.base.partition_by_tiling(tile_shape)
+    p_output = output.base.partition_by_tiling(tile_shape)
+    transpose_copy(context, Rect(hi=color_shape), p_input, p_output)
 
     for i in range(num_procs):
         potrf(context, p_output, i)

@@ -265,7 +265,7 @@ class Runtime(object):
 
     def get_next_random_epoch(self):
         result = self.current_random_epoch
-        self.current_random_epoch += 1
+        # self.current_random_epoch += 1
         return result
 
     def is_supported_type(self, dtype):

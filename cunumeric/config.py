@@ -101,7 +101,7 @@ class CuNumericOpCode(IntEnum):
     SCALAR_UNARY_RED = _cunumeric.CUNUMERIC_SCALAR_UNARY_RED
     SYRK = _cunumeric.CUNUMERIC_SYRK
     TILE = _cunumeric.CUNUMERIC_TILE
-    TRANSPOSE = _cunumeric.CUNUMERIC_TRANSPOSE
+    TRANSPOSE_COPY_2D = _cunumeric.CUNUMERIC_TRANSPOSE_COPY_2D
     TRILU = _cunumeric.CUNUMERIC_TRILU
     TRSM = _cunumeric.CUNUMERIC_TRSM
     UNARY_OP = _cunumeric.CUNUMERIC_UNARY_OP
