@@ -21,7 +21,7 @@ namespace cunumeric {
 using namespace Legion;
 using namespace legate;
 
-/*static*/ void FusedOpTask::gpu_variant(TaskContext& context){
+/*static*/ void FusedOpTask::omp_variant(TaskContext& context){
 
   int nOps = context.fusionMetadata.nOps;
   auto opIDs = context.fusionMetadata.opIDs;
@@ -111,10 +111,4 @@ using namespace legate;
   }
 }
 
-<<<<<<< HEAD
-}  // namespace numpy
-//}  // namespace legate
-=======
 }  // namespace cunumeric
-}  // namespace legate
->>>>>>> 4c104dde6d8d3b15c8cbe60f57d2c997604a9033
