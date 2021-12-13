@@ -17,18 +17,9 @@
 #pragma once
 
 #include "cunumeric/cunumeric.h"
-//#include "cunumeric/fused/binary_op_util.h"
 
 namespace cunumeric {
-/*
-struct BinaryOpArgs {
-  const Array& in1;
-  const Array& in2;
-  const Array& out;
-  BinaryOpCode op_code;
-  std::vector<legate::Store> args;
-};
-*/
+
 class FusedOpTask : public CuNumericTask<FusedOpTask> {
  public:
   static const int TASK_ID = CUNUMERIC_FUSED_OP;

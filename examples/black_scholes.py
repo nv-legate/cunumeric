@@ -28,7 +28,6 @@ import cunumeric as np
 
 def generate_random(N, min, max, D):
     diff = D(max) - D(min)
-    #print("diff", diff)
     rands = np.random.random(N).astype(D)
     rands = rands * diff
     rands = rands + D(min)
@@ -65,9 +64,6 @@ def cnd(d):
 
 def black_scholes(S, X, T, R, V):
     sqrt_t = np.sqrt(T)
-    #sqrt_t = np.sqrt(T)
-    #sqrt_t = np.sqrt(T)
-    #sqrt_t = np.sqrt(T)
     d1 = np.log(S / X) + (R + 0.5 * V * V) * T / (V * sqrt_t)
     d2 = d1 - V * sqrt_t
     cnd_d1 = cnd(d1)
@@ -79,23 +75,18 @@ def black_scholes(S, X, T, R, V):
 
 
 def run_black_scholes(N, D):
-    #print("Running black scholes on %dK options..." % N)
+    print("Running black scholes on %dK options..." % N)
     N *= 1000
     start = datetime.datetime.now()
     S, X, T, R, V = initialize(N, D)
-    #return
     trials = 300
     ends = [None for i in range(trials)]
     for i in range(trials):
         call, put = black_scholes(S, X, T, R, V)
         # Check the result for NaNs to synchronize before stopping timing
         call_sum = np.sum(call)
-        #call_sum2 = np.sum(call)
         put_sum = np.sum(put)
         ends[i] = (call_sum, put_sum)
-        #assert not math.isnan(call_sum) and not math.isnan(put_sum)
-        #put_sum2 = np.sum(put)
-        #print(call_sum2, put_sum2)
     for i in range(trials):
         call_sum, put_sum = ends[i]  
         assert not math.isnan(call_sum) and not math.isnan(put_sum)
@@ -103,7 +94,6 @@ def run_black_scholes(N, D):
     delta = stop - start
     total = delta.total_seconds() * 1000.0
     print("Elapsed Time: " + str(total) + " ms")
-    #print(call_sum, put_sum)
     return total
 
 

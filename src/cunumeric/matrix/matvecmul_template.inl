@@ -83,12 +83,7 @@ struct MatVecMulImpl {
 
     size_t lhs_strides[2];
     auto lhs = args.lhs.reduce_accessor<SumReduction<ACC>, true, 2>().ptr(shape, lhs_strides);
-    //std::cout<<args.lhs.shape<2>()<<std::endl;
-    //std::cout<<lhs_strides[0]<<" " <<lhs_strides[1]<<std::endl;
-    //std::cout<<mat_strides[0]<<" " <<mat_strides[1]<<std::endl;
-    //std::cout<<vec_strides[0]<<" " <<vec_strides[1]<<std::endl;
-    //std::cout<<args.rhs2.shape<2>()<<" "<<std::endl;
-    //std::cout<<lhs<<std::endl;
+
     MatVecMulImplBody<KIND, CODE>()(m, n, lhs, mat, vec, mat_stride, transpose_mat);
   }
 

@@ -44,7 +44,7 @@ def run(grid, I, N):  # noqa: E741
     west = grid[1:-1, 0:-2]
     south = grid[2:, 1:-1]
     for i in range(I):
-        average = center + north + south + east + west
+        average = center + north + east + west + south
         work = 0.2 * average
         # delta = np.sum(np.absolute(work - center))
         center[:] = work

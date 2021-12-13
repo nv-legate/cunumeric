@@ -351,16 +351,11 @@ class Runtime(object):
         assert child_ptr >= parent_ptr
         ptr_diff = child_ptr - parent_ptr
         parent_shape = array.base.shape
-        #if False and parent_shape==():
-        if parent_shape==():
-            parent_shape = ()
-            div =1
-        else:
-            div = (
-                reduce(lambda x, y: x * y, parent_shape)
-                if len(parent_shape) > 1
-                else parent_shape[0]
-            )
+        div = (
+            reduce(lambda x, y: x * y, parent_shape)
+            if len(parent_shape) > 1
+            else parent_shape[0]
+        )
         div *= array.dtype.itemsize
         offsets = list()
         # Compute the offsets in the parent index
@@ -507,7 +502,6 @@ class Runtime(object):
             store = self.legate_context.create_store(
                 dtype, shape=shape, optimize_scalar=True
             )
-               
             result = DeferredArray(self, store, dtype=dtype)
             # If we're doing shadow debug make an EagerArray shadow
             if self.shadow_debug:
@@ -582,7 +576,6 @@ class Runtime(object):
         elif self.is_lazy_array(array):
             raise NotImplementedError("convert lazy array to deferred array")
         else:
-            print(type(array))
             raise RuntimeError("invalid array type")
 
     def to_lazy_array(self, array, stacklevel):
