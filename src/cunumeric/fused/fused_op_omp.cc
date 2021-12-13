@@ -58,5 +58,5 @@ struct BinaryOpImplBody<VariantKind::OMP, OP_CODE, CODE, DIM> {
   binary_op_template<VariantKind::OMP>(context);
 }
 
-}  // namespace numpy
+}  // namespace cunumeric
 }  // namespace legate

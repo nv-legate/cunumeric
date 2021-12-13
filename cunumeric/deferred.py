@@ -28,6 +28,7 @@ from .config import *  # noqa F403
 from .thunk import NumPyThunk
 from .utils import get_arg_value_dtype
 
+
 def _complex_field_dtype(dtype):
     if dtype == np.complex64:
         return np.dtype(np.float32)
