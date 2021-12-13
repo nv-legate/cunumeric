@@ -202,5 +202,4 @@ class CuNumericRedopCode(IntEnum):
 class CuNumericTunable(IntEnum):
     NUM_GPUS = _cunumeric.CUNUMERIC_TUNABLE_NUM_GPUS
     MAX_EAGER_VOLUME = _cunumeric.CUNUMERIC_TUNABLE_MAX_EAGER_VOLUME
-#hack!!! this is for prototyping reason and needs to be addressed before making a PR
 cunumeric_context.fused_id = CuNumericOpCode.FUSED_OP 

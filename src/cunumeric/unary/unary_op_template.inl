@@ -64,7 +64,6 @@ struct UnaryOpImpl {
   {
     assert(false);
   }
-
 };
 
 template <VariantKind KIND>
