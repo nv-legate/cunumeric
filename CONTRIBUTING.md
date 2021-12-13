@@ -4,7 +4,7 @@ CuNumeric is an open-source project released under the [Apache license](LICENSE)
 
 ## How to begin
 
-Most of the time, the best thing is to begin by [opening and issue](https://github.com/nv-legate/cunumeric/issues).  This gives us a chance to discuss the contribution and to define the problem or feature that it addresses.   Often, opening of the issue first may help prevent you from doing unnecessary work or to enhance and further develop your idea.
+Most of the time, the best thing is to begin by [opening an issue](https://github.com/nv-legate/cunumeric/issues).  This gives us a chance to discuss the contribution and to define the problem or feature that it addresses.   Often, opening of the issue first may help prevent you from doing unnecessary work or to enhance and further develop your idea.
 
 Once you are ready to start development, we ask you to work on a [fork](https://help.github.com/en/articles/fork-a-repo) of our repository.  The next step is to create a (pull request)[https://help.github.com/en/articles/about-pull-requests].  Feel free to open the pull request as soon as you begin your development (just mark it [as a draft](https://github.blog/2019-02-14-introducing-draft-pull-requests/)) or when you are ready to have your contribution merged.
 
