@@ -21,10 +21,10 @@ namespace cunumeric {
 using namespace Legion;
 using namespace legate;
 
-/*static*/ void FusedOpTask::omp_variant(TaskContext& context){
-
-  int nOps = context.fusionMetadata.nOps;
-  auto opIDs = context.fusionMetadata.opIDs;
+/*static*/ void FusedOpTask::omp_variant(TaskContext& context)
+{
+  int nOps     = context.fusionMetadata.nOps;
+  auto opIDs   = context.fusionMetadata.opIDs;
   auto offsets = context.fusionMetadata.offsets;
   for (int i = 0; i < nOps; i++) {
     std::vector<Legion::PhysicalRegion> regions;
