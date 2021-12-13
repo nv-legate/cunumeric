@@ -88,7 +88,7 @@ def run_black_scholes(N, D):
         put_sum = np.sum(put)
         ends[i] = (call_sum, put_sum)
     for i in range(trials):
-        call_sum, put_sum = ends[i]  
+        call_sum, put_sum = ends[i]
         assert not math.isnan(call_sum) and not math.isnan(put_sum)
     stop = datetime.datetime.now()
     delta = stop - start

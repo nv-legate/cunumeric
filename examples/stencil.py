@@ -49,7 +49,7 @@ def run(grid, I, N):  # noqa: E741
         # delta = np.sum(np.absolute(work - center))
         center[:] = work
     total = np.sum(center)
-    #return total
+    # return total
     return total / (N ** 2)
 
 

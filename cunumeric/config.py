@@ -106,6 +106,7 @@ class CuNumericOpCode(IntEnum):
     WRITE = _cunumeric.CUNUMERIC_WRITE
     FUSED_OP = _cunumeric.CUNUMERIC_FUSED_OP
 
+
 @unique
 class FusedOpCode(IntEnum):
     FUSE = 1
@@ -203,3 +204,4 @@ class CuNumericTunable(IntEnum):
     NUM_GPUS = _cunumeric.CUNUMERIC_TUNABLE_NUM_GPUS
     MAX_EAGER_VOLUME = _cunumeric.CUNUMERIC_TUNABLE_MAX_EAGER_VOLUME
 cunumeric_context.fused_id = CuNumericOpCode.FUSED_OP 
+
