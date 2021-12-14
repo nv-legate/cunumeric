@@ -43,6 +43,7 @@ If you have questions, please contact us at legate(at)nvidia.com.
 1. [Supported Types and Dimensions](#supported-types-and-dimensions)
 1. [Documentation](#documentation)
 1. [Future Directions](#future-directions)
+1. [Contributing](#contributing)
 1. [Known Bugs](#known-bugs)
 
 ## Installation
@@ -177,6 +178,10 @@ with cuNumeric going forward:
   features of Legion from inside the Python interpreter.
 
 We are open to comments, suggestions, and ideas.
+
+## Contributing
+
+See the discussion of contributing in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Known Bugs
 

@@ -28,7 +28,9 @@ def test():
             scalar_gen(np, a),
             scalar_gen(np, b),
         ):
-            assert np.array_equal(num.less_equal(la, lb), np.less_equal(na, nb))
+            assert np.array_equal(
+                num.less_equal(la, lb), np.less_equal(na, nb)
+            )
             assert np.array_equal(la <= lb, na <= nb)
 
 
