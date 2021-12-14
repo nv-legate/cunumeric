@@ -216,6 +216,13 @@ class NumPyThunk(object):
         """
         raise NotImplementedError("Implement in derived classes")
 
+    def diagonal(self, rhs, offset, axis1, axis2, extract, stacklevel):
+        """Fill a diagonal from an array
+
+        :meta private:
+        """
+        raise NotImplementedError("Implement in derived classes")
+
     def eye(self, k, stacklevel):
         """Fill in our thunk with an identity pattern
 

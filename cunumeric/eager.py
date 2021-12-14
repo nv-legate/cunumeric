@@ -431,6 +431,53 @@ class EagerArray(NumPyThunk):
             self.array[:] = np.diag(rhs.array, k)
             self.runtime.profile_callsite(stacklevel + 1, False)
 
+    def diag_helper(
+        self,
+        rhs,
+        diag_size,
+        offset,
+        naxes,
+        extract,
+        stacklevel=0,
+        callsite=None,
+    ):
+        if self.shadow:
+            rhs = self.runtime.to_eager_array(rhs, stacklevel=(stacklevel + 1))
+        elif self.deferred is None:
+            self.check_eager_args((stacklevel + 1), rhs)
+        if self.deferred is not None:
+            self.deferred.diag_helper(
+                rhs,
+                diag_size,
+                offset,
+                naxes,
+                extract,
+                stacklevel=(stacklevel + 1),
+            )
+        else:
+            # this should be called only if number of axes <=2
+            if naxes == 2:
+                ndims = rhs.array.ndim
+                self.array[:] = np.diagonal(
+                    rhs.array, offset=offset, axis1=ndims - 2, axis2=ndims - 1
+                )
+            if naxes < 2:
+                self.array[:] = np.diag(rhs.array, offset)
+            self.runtime.profile_callsite(stacklevel + 1, False)
+
+    def diagonal(self, rhs, offset, axis1, axis2, extract, stacklevel):
+        if self.shadow:
+            rhs = self.runtime.to_eager_array(rhs, stacklevel=(stacklevel + 1))
+        elif self.deferred is None:
+            self.check_eager_args((stacklevel + 1), rhs)
+        if self.deferred is not None:
+            self.deferred.diagonal(
+                rhs, offset, axis1, axis2, extract, stacklevel=(stacklevel + 1)
+            )
+        else:
+            self.array[:] = np.diagonal(rhs.array, offset, axis1, axis2)
+            self.runtime.profile_callsite(stacklevel + 1, False)
+
     def eye(self, k, stacklevel):
         if self.deferred is not None:
             self.deferred.eye(k, stacklevel=(stacklevel + 1))

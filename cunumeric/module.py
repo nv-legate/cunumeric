@@ -33,11 +33,6 @@ try:
 except NameError:
     xrange = range  # Python 3
 
-try:
-    import __builtin__ as builtins  # Python 2
-except ModuleNotFoundError:
-    import builtins as builtins  # Python 3
-
 
 def add_boilerplate(*array_params: str):
     """
@@ -215,38 +210,19 @@ def diag(v, k=0):
     if array._thunk.scalar:
         return array.copy()
     elif array.ndim == 1:
-        # Make a diagonal matrix from the array
-        N = array.shape[0] + builtins.abs(k)
-        matrix = ndarray((N, N), dtype=array.dtype, inputs=(array,))
-        matrix._thunk.diag(array._thunk, extract=False, k=k, stacklevel=2)
-        return matrix
+        return array.diagonal(offset=k, axis1=0, axis2=1, extract=False)
     elif array.ndim == 2:
-        # Extract the diagonal from the matrix
-        # Solve for the size of the diagonal
-        if k > 0:
-            if k >= array.shape[1]:
-                raise ValueError("'k' for diag must be in range")
-            start = (0, k)
-        elif k < 0:
-            if -k >= array.shape[0]:
-                raise ValueError("'k' for diag must be in range")
-            start = (-k, 0)
-        else:
-            start = (0, 0)
-        stop1 = (array.shape[0] - 1, array.shape[0] - 1 + k)
-        stop2 = (array.shape[1] - 1 - k, array.shape[1] - 1)
-        if stop1[0] < array.shape[0] and stop1[1] < array.shape[1]:
-            distance = (stop1[0] - start[0]) + 1
-            assert distance == ((stop1[1] - start[1]) + 1)
-        else:
-            assert stop2[0] < array.shape[0] and stop2[1] < array.shape[1]
-            distance = (stop2[0] - start[0]) + 1
-            assert distance == ((stop2[1] - start[1]) + 1)
-        vector = ndarray(distance, dtype=array.dtype, inputs=(array,))
-        vector._thunk.diag(array._thunk, extract=True, k=k, stacklevel=2)
-        return vector
+        return array.diagonal(offset=k, axis1=0, axis2=1, extract=True)
     elif array.ndim > 2:
-        raise ValueError("diag requires 1- or 2-D array")
+        raise ValueError("diag requires 1- or 2-D array, use diagonal instead")
+
+
+@copy_docstring(np.diagonal)
+def diagonal(a, offset=0, axis1=0, axis2=1, extract=True):
+    array = ndarray.convert_to_cunumeric_ndarray(a)
+    return array.diagonal(
+        offset=offset, axis1=axis1, axis2=axis2, extract=extract
+    )
 
 
 @copy_docstring(np.empty)

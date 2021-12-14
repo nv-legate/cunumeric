@@ -1139,12 +1139,89 @@ class ndarray(object):
         )
         return self.convert_to_cunumeric_ndarray(numpy_array, stacklevel=3)
 
-    @unimplemented
-    def diagonal(self, offset=0, axis1=0, axis2=1):
-        numpy_array = self.__array__(stacklevel=3).diagonal(
-            offset=offset, axis1=axis1, axis2=axis2
+    # diagonal helper. Will return diagonal for arbitrary number of axes;
+    # currently offset option is implemented only for the case of number of
+    # axes=2. This restriction can be lifted in the future if there is a
+    # use case of having arbitrary number of offsets
+    def diag_helper(self, offset=0, axes=None, extract=True):
+        N = len(axes)
+        # diag_helper can be used only for arrays with dim>=1
+        if self.ndim < 1:
+            raise RuntimeError("diag_helper is implemented for dim>=1")
+        elif self.ndim == 1:
+            m = self.shape[0] + np.abs(offset)
+            out = ndarray((m, m), dtype=self.dtype, inputs=(self,))
+            diag_size = self.shape[0]
+            out._thunk.diag_helper(
+                self._thunk,
+                diag_size=diag_size,
+                offset=offset,
+                naxes=0,
+                extract=False,
+                stacklevel=3,
+            )
+        else:
+            if self.ndim < N:
+                raise ValueError(
+                    "Dimension of input array shouldn't be less"
+                    "than number of axes"
+                )
+            # pack the axes that are not going to change
+            transpose_axes = tuple(
+                ax for ax in range(self.ndim) if ax not in axes
+            )
+            # only 2 axes provided, we transpose based on the offset
+            if N == 2:
+                if offset >= 0:
+                    a = self.transpose(transpose_axes + (axes[0], axes[1]))
+                else:
+                    a = self.transpose(transpose_axes + (axes[1], axes[0]))
+                    offset = -offset
+
+                if offset >= a.shape[self.ndim - 1]:
+                    raise ValueError(
+                        "'offset' for diag or diagonal must be in range"
+                    )
+
+                diag_size = max(0, min(a.shape[-2], a.shape[-1] - offset))
+            # more than 2 axes provided:
+            elif N > 2:
+                # offsets are supported only when naxes=2
+                assert offset == 0
+                # sort axes along which diagonal is calculated by size
+                axes.sort(reverse=True, key=lambda i: a.shape[i])
+                # transpose a so axes for which diagonal is calculated are at
+                #  at the end
+                a = self.transpose(transpose_axes + axes)
+                sizes = tuple(a.shape[i] for i in axes)
+                diag_size = max(0, min(sizes))
+            elif N < 2:
+                raise ValueError(
+                    "number of axes passed to the diag_helper"
+                    " should be more than 1"
+                )
+
+            tr_shape = tuple(a.shape[i] for i in range(a.ndim - N))
+            # calculate shape of the output array
+            out_shape = tr_shape + (diag_size,)
+            out = ndarray(
+                shape=out_shape, dtype=self.dtype, stacklevel=3, inputs=(self)
+            )
+
+            out._thunk.diag_helper(
+                a._thunk,
+                diag_size=diag_size,
+                offset=offset,
+                naxes=N,
+                extract=extract,
+                stacklevel=3,
+            )
+        return out
+
+    def diagonal(self, offset=0, axis1=0, axis2=1, extract=True):
+        return self.diag_helper(
+            offset=offset, axes=(axis1, axis2), extract=extract
         )
-        return self.convert_to_cunumeric_ndarray(numpy_array, stacklevel=3)
 
     def dot(self, rhs, out=None, stacklevel=1):
         rhs_array = self.convert_to_cunumeric_ndarray(

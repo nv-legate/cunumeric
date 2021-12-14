@@ -1266,64 +1266,115 @@ class DeferredArray(NumPyThunk):
     # Create or extract a diagonal from a matrix
     @profile
     @auto_convert([1])
-    @shadow_debug("diag", [1])
-    def diag(self, rhs, extract, k, stacklevel=0, callsite=None):
-        if extract:
-            matrix_array = rhs
-            diag_array = self
-        else:
-            matrix_array = self
-            diag_array = rhs
-
-        assert diag_array.ndim == 1
-        assert matrix_array.ndim == 2
-        assert diag_array.shape[0] <= min(
-            matrix_array.shape[0], matrix_array.shape[1]
+    @shadow_debug("diag_helper", [1])
+    def diag_helper(
+        self,
+        rhs,
+        diag_size,
+        offset,
+        naxes,
+        extract,
+        stacklevel=0,
+        callsite=None,
+    ):
+        # fill output array with 0
+        self.fill(
+            np.array(0, dtype=self.dtype),
+            stacklevel=(stacklevel + 1),
+            callsite=callsite,
         )
-        assert rhs.dtype == self.dtype
-
-        # Issue a fill operation to get the output initialized
         if extract:
-            diag_array.fill(
-                np.array(0, dtype=diag_array.dtype),
-                stacklevel=(stacklevel + 1),
-                callsite=callsite,
-            )
+            diag = self.base
+            matrix = rhs.base
+            ndim = rhs.ndim
+            start = self.ndim - naxes + 1
+            n = ndim - 1
+            if naxes == 2:
+                # get slice of the original array by the offset
+                if offset > 0:
+                    matrix = matrix.slice(start + 1, slice(offset, None))
+                if matrix.shape[n - 1] < matrix.shape[n]:
+                    diag = diag.promote(start + 1, matrix.shape[ndim - 1])
+                else:
+                    diag = diag.promote(start, matrix.shape[ndim - 2])
+            else:
+                # promote output to the shape of the input  array
+                for i in range(1, naxes):
+                    diag = diag.promote(start, matrix.shape[-i - 1])
+            if diag.shape[n] != matrix.shape[n]:
+                diag = diag.project(n, 0).promote(n, matrix.shape[n])
         else:
-            matrix_array.fill(
-                np.array(0, dtype=matrix_array.dtype),
-                stacklevel=(stacklevel + 1),
-                callsite=callsite,
-            )
+            matrix = self.base
+            diag = rhs.base
+            ndim = self.ndim
+            n = ndim - 1
+            # get slice of the original array by the offset
+            if offset > 0:
+                matrix = matrix.slice(1, slice(offset, None))
+            elif offset < 0:
+                matrix = matrix.slice(0, slice(-offset, None))
 
-        matrix = matrix_array.base
-        diag = diag_array.base
-
-        if k > 0:
-            matrix = matrix.slice(1, slice(k, None))
-        elif k < 0:
-            matrix = matrix.slice(0, slice(-k, None))
-
-        if matrix.shape[0] < matrix.shape[1]:
-            diag = diag.promote(1, matrix.shape[1])
-        else:
-            diag = diag.promote(0, matrix.shape[0])
+            if matrix.shape[0] < matrix.shape[1]:
+                diag = diag.promote(1, matrix.shape[1])
+            else:
+                diag = diag.promote(0, matrix.shape[0])
 
         task = self.context.create_task(CuNumericOpCode.DIAG)
 
         if extract:
             task.add_reduction(diag, ReductionOp.ADD)
             task.add_input(matrix)
+            task.add_alignment(matrix, diag)
         else:
             task.add_output(matrix)
-            task.add_input(matrix)
             task.add_input(diag)
+            task.add_input(matrix)
+            task.add_alignment(diag, matrix)
 
+        task.add_scalar_arg(diag_size, ty.int32)
+        task.add_scalar_arg(offset, ty.int32)
+        task.add_scalar_arg(naxes, ty.int32)
         task.add_scalar_arg(extract, bool)
 
-        task.add_alignment(matrix, diag)
-
         task.execute()
+
+    @profile
+    @auto_convert([1])
+    @shadow_debug("diagonal", [1])
+    def diagonal(
+        self,
+        rhs,
+        offset=0,
+        axis1=0,
+        axis2=1,
+        extract=True,
+        stacklevel=0,
+        callsite=None,
+    ):
+        axes = (axis1, axis2)
+        if rhs.ndim < 2:
+            raise RuntimeError("diagonal works for dim>=2")
+
+        tr = tuple(ax for ax in range(rhs.ndim) if ax not in axes)
+        #        for ax in range(self.ndim):
+        #            if ax not in axes:
+        #                tr = tr + (ax,)
+
+        if offset >= 0:
+            a = self.transpose(tr + (axes[0], axes[1]))
+        else:
+            a = self.transpose(tr + (axes[1], axes[0]))
+            offset = -offset
+        diag_size = max(0, min(a.shape[-2], a.shape[-1] - offset))
+
+        self.diag_helper(
+            rhs=rhs,
+            diag_size=diag_size,
+            offset=offset,
+            naxes=2,
+            extract=extract,
+            stacklevel=3,
+        )
 
     # Create an identity array with the ones offset from the diagonal by k
     @profile

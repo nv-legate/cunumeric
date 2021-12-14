@@ -108,6 +108,13 @@ class LazyArray(NumPyThunk):
         """
         raise NotImplementedError("Implement in derived classes")
 
+    def diagonal(self, rhs, offset, axis1, axis2, extract, stacklevel):
+        """Fill in or extract a diagonal from array
+
+        :meta private:
+        """
+        raise NotImplementedError("Implement in derived classes")
+
     def eye(self, k, stacklevel):
         raise NotImplementedError("Implement in derived classes")
 

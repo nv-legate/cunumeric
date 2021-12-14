@@ -13,14 +13,18 @@
 # limitations under the License.
 #
 
+import random
+
 import numpy as np
-from test_tools.generators import mk_seq_array
 
 import cunumeric as num
 from legate.core import LEGATE_MAX_DIM
-
+from test_tools.generators import mk_seq_array
 
 def test():
+    # --------------------------------------------------------------
+    # choose operator
+    # --------------------------------------------------------------
     choices1 = [
         [0, 1, 2, 3],
         [10, 11, 12, 13],
@@ -92,6 +96,31 @@ def test():
                     num_res = num.choose(num_choices, (num_rhs1, num_rhs2))
                     assert np.array_equal(np_res, num_res)
 
+    # --------------------------------------------------------------
+    # diagonal operator
+    # --------------------------------------------------------------
+    ad = np.arange(24).reshape(4, 3, 2)
+    num_ad = num.array(ad)
+    assert np.array_equal(ad.diagonal(), num_ad.diagonal())
+    assert np.array_equal(ad.diagonal(0, 1, 2), num_ad.diagonal(0, 1, 2))
+    assert np.array_equal(ad.diagonal(1, 0, 2), num_ad.diagonal(1, 0, 2))
+
+    for ndim in range(2, LEGATE_MAX_DIM + 1):
+        a_shape = tuple(random.randint(1, 9) for i in range(ndim))
+        np_array = mk_seq_array(np, a_shape)
+        num_array = mk_seq_array(num, a_shape)
+        if ndim == 2:
+            axis1 = 0
+            axis2 = 1
+        else:
+            axis1 = random.randint(0, ndim - 2)
+            axis2 = random.randint(axis1 + 1, ndim - 1)
+        diag_size = min(a_shape[axis1], a_shape[axis2]) - 1
+        offset = random.randint(-diag_size, diag_size)
+        assert np.array_equal(
+            np_array.diagonal(offset, axis1, axis2),
+            num_array.diagonal(offset, axis1, axis2),
+        )
     return
 
 
