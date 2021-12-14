@@ -81,29 +81,6 @@ struct ContractImplBody<VariantKind::CPU, LegateTypeCode::DOUBLE_LT> {
                   int64_t* rhs2_strides,
                   int32_t* rhs2_modes)
   {
-#if 0   // debugging output
-  std::cout << "start contract kernel:" << std::endl; std::cout.flush();
-  std::cout << "lhs:" << std::endl; std::cout.flush();
-  std::cout << "lhs_ndim = " << lhs_ndim << std::endl; std::cout.flush();
-  print_ptr("lhs_shape", lhs_shape, lhs_ndim);
-  print_ptr("lhs_strides", lhs_strides, lhs_ndim);
-  print_ptr("lhs_modes", lhs_modes, lhs_ndim);
-  print_ptr("lhs_data", lhs_data, lhs_ndim, lhs_shape, lhs_strides);
-  std::cout << "rhs1:" << std::endl; std::cout.flush();
-  std::cout << "rhs1_ndim = " << rhs1_ndim << std::endl; std::cout.flush();
-  print_ptr("rhs1_shape", rhs1_shape, rhs1_ndim);
-  print_ptr("rhs1_strides", rhs1_strides, rhs1_ndim);
-  print_ptr("rhs1_modes", rhs1_modes, rhs1_ndim);
-  print_ptr("rhs1_data", rhs1_data, rhs1_ndim, rhs1_shape, rhs1_strides);
-  std::cout << "rhs2:" << std::endl; std::cout.flush();
-  std::cout << "rhs2_ndim = " << rhs2_ndim << std::endl; std::cout.flush();
-  print_ptr("rhs2_shape", rhs2_shape, rhs2_ndim);
-  print_ptr("rhs2_strides", rhs2_strides, rhs2_ndim);
-  print_ptr("rhs2_modes", rhs2_modes, rhs2_ndim);
-  print_ptr("rhs2_data", rhs2_data, rhs2_ndim, rhs2_shape, rhs2_strides);
-  std::cout << std::endl; std::cout.flush();
-#endif  // debugging output
-
     tblis_tensor lhs;
     tblis_init_tensor_d(&lhs, lhs_ndim, lhs_shape, lhs_data, lhs_strides);
 
@@ -114,14 +91,6 @@ struct ContractImplBody<VariantKind::CPU, LegateTypeCode::DOUBLE_LT> {
     tblis_init_tensor_d(&rhs2, rhs2_ndim, rhs2_shape, const_cast<double*>(rhs2_data), rhs2_strides);
 
     tblis_tensor_mult(tblis_single, nullptr, &rhs1, rhs1_modes, &rhs2, rhs2_modes, &lhs, lhs_modes);
-
-#if 0   // debugging output
-  std::cout << "end contract kernel:" << std::endl; std::cout.flush();
-  print_ptr("lhs_data", lhs_data, lhs_ndim, lhs_shape, lhs_strides);
-  print_ptr("rhs1_data", rhs1_data, rhs1_ndim, rhs1_shape, rhs1_strides);
-  print_ptr("rhs2_data", rhs2_data, rhs2_ndim, rhs2_shape, rhs2_strides);
-  std::cout << std::endl; std::cout.flush();
-#endif  // debugging output
   }
 };
 

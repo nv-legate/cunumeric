@@ -14,6 +14,11 @@
  *
  */
 
+#if 0  // debugging output
+#include "core/utilities/debug.h"
+#include <unistd.h>
+#endif
+
 namespace cunumeric {
 
 using namespace Legion;
@@ -40,69 +45,34 @@ struct support_contract<LegateTypeCode::COMPLEX128_LT> : std::true_type {
 
 #if 0  // debugging output
 
-template<typename T>
+template <typename T>
 void print_vec(const char* title, const std::vector<T>& vals)
 {
   std::cout << title << " =";
-  for (const T& v : vals) {
-    std::cout << " " << v;
-  }
+  for (const T& v : vals) std::cout << " " << v;
   std::cout << std::endl;
   std::cout.flush();
 }
 
-template<typename T>
+template <typename T>
 void print_span(const char* title, legate::Span<T>& vals)
 {
   std::cout << title << " =";
-  for (size_t i = 0; i < vals.size(); ++i) {
-    std::cout << " " << vals[i];
-  }
+  for (size_t i = 0; i < vals.size(); ++i) std::cout << " " << vals[i];
   std::cout << std::endl;
   std::cout.flush();
 }
 
-template<typename T>
-void print_ptr(const char* title, const T* vals, size_t len) {
-  std::cout << title << " =";
-  for (size_t i = 0; i < len; ++i) {
-    std::cout << " " << vals[i];
-  }
-  std::cout << std::endl;
-  std::cout.flush();
-}
-
-template<typename T>
-void print_ptr(const char* title, const T* vals, size_t ndim, int64_t* shape, int64_t* strides)
+template <typename T>
+void print_ptr(const char* title, const T* vals, size_t len)
 {
-  // Assumes dense data with no padding.
-  // Just prints out in memory order w/o considering strides.
-  std::cout << title << " =" << std::endl;
-  if (ndim == 0) {
-    std::cout << " " << *vals << std::endl;
-    std::cout.flush();
-    return;
-  }
-  size_t col_len = 0;
-  size_t num_cols = 1;
-  for (size_t d = 0; d < ndim; ++d) {
-    if (strides[d] == 1) {
-      col_len = shape[d];
-    } else {
-      num_cols *= shape[d];
-    }
-  }
-  assert(col_len > 0);
-  for (size_t i = 0; i < num_cols; ++i) {
-    for (size_t j = 0; j < col_len; ++j) {
-      std::cout << " " << vals[i * col_len + j];
-    }
-    std::cout << std::endl;
-  }
+  std::cout << title << " =";
+  for (size_t i = 0; i < len; ++i) std::cout << " " << vals[i];
+  std::cout << std::endl;
   std::cout.flush();
 }
 
-#endif  // debugging output
+#endif
 
 template <VariantKind KIND>
 struct ContractImpl {
@@ -118,8 +88,9 @@ struct ContractImpl {
     std::vector<int32_t> lhs_modes;
     Rect<DIM> lhs_bloated_shape = args.lhs.shape<DIM>();
     size_t lhs_bloated_strides[DIM];
-    T* lhs_data = args.lhs.reduce_accessor<SumReduction<T>, true, DIM>(lhs_bloated_shape)
-                    .ptr(lhs_bloated_shape, lhs_bloated_strides);
+    AccessorRD<SumReduction<T>, true, DIM> lhs_acc =
+      args.lhs.reduce_accessor<SumReduction<T>, true, DIM>(lhs_bloated_shape);
+    T* lhs_data = lhs_acc.ptr(lhs_bloated_shape, lhs_bloated_strides);
     for (int i = 0; i < DIM; ++i) {
       if (!args.lhs_dim_mask[i]) { continue; }
       lhs_shape.push_back(lhs_bloated_shape.hi[i] - lhs_bloated_shape.lo[i] + 1);
@@ -132,8 +103,8 @@ struct ContractImpl {
     std::vector<int32_t> rhs1_modes;
     Rect<DIM> rhs1_bloated_shape = args.rhs1.shape<DIM>();
     size_t rhs1_bloated_strides[DIM];
-    const T* rhs1_data = args.rhs1.read_accessor<T, DIM>(rhs1_bloated_shape)
-                           .ptr(rhs1_bloated_shape, rhs1_bloated_strides);
+    AccessorRO<T, DIM> rhs1_acc = args.rhs1.read_accessor<T, DIM>(rhs1_bloated_shape);
+    const T* rhs1_data          = rhs1_acc.ptr(rhs1_bloated_shape, rhs1_bloated_strides);
     for (int i = 0; i < DIM; ++i) {
       if (!args.rhs1_dim_mask[i]) { continue; }
       rhs1_shape.push_back(rhs1_bloated_shape.hi[i] - rhs1_bloated_shape.lo[i] + 1);
@@ -146,8 +117,8 @@ struct ContractImpl {
     std::vector<int32_t> rhs2_modes;
     Rect<DIM> rhs2_bloated_shape = args.rhs2.shape<DIM>();
     size_t rhs2_bloated_strides[DIM];
-    const T* rhs2_data = args.rhs2.read_accessor<T, DIM>(rhs2_bloated_shape)
-                           .ptr(rhs2_bloated_shape, rhs2_bloated_strides);
+    AccessorRO<T, DIM> rhs2_acc = args.rhs2.read_accessor<T, DIM>(rhs2_bloated_shape);
+    const T* rhs2_data          = rhs2_acc.ptr(rhs2_bloated_shape, rhs2_bloated_strides);
     for (int i = 0; i < DIM; ++i) {
       if (!args.rhs2_dim_mask[i]) { continue; }
       rhs2_shape.push_back(rhs2_bloated_shape.hi[i] - rhs2_bloated_shape.lo[i] + 1);
@@ -164,6 +135,38 @@ struct ContractImpl {
     // cuTensor will not work correctly with empty domains, so check this here
     if (bloated_shape.empty()) return;
 
+#if 0  // debugging output
+    // Stagger the debugging output from different processors
+    sleep(Processor::get_executing_processor().id % 4);
+    std::cout << "start contract kernel:" << std::endl;
+    std::cout << "lhs:" << std::endl;
+    std::cout << "lhs_bloated_shape = " << lhs_bloated_shape << std::endl;
+    print_ptr("lhs_bloated_strides", lhs_bloated_strides, DIM);
+    print_span("lhs_dim_mask", args.lhs_dim_mask);
+    print_vec("lhs_shape", lhs_shape);
+    print_vec("lhs_strides", lhs_strides);
+    print_vec("lhs_modes", lhs_modes);
+    std::cout << "lhs_data = " << print_dense_array(lhs_acc, lhs_bloated_shape) << std::endl;
+    std::cout << "rhs1:" << std::endl;
+    std::cout << "rhs1_bloated_shape = " << rhs1_bloated_shape << std::endl;
+    print_ptr("rhs1_bloated_strides", rhs1_bloated_strides, DIM);
+    print_span("rhs1_dim_mask", args.rhs1_dim_mask);
+    print_vec("rhs1_shape", rhs1_shape);
+    print_vec("rhs1_strides", rhs1_strides);
+    print_vec("rhs1_modes", rhs1_modes);
+    std::cout << "rhs1_data = " << print_dense_array(rhs1_acc, rhs1_bloated_shape) << std::endl;
+    std::cout << "rhs2:" << std::endl;
+    std::cout << "rhs2_bloated_shape = " << rhs2_bloated_shape << std::endl;
+    print_ptr("rhs2_bloated_strides", rhs2_bloated_strides, DIM);
+    print_span("rhs2_dim_mask", args.rhs2_dim_mask);
+    print_vec("rhs2_shape", rhs2_shape);
+    print_vec("rhs2_strides", rhs2_strides);
+    print_vec("rhs2_modes", rhs2_modes);
+    std::cout << "rhs2_data = " << print_dense_array(rhs2_acc, rhs2_bloated_shape) << std::endl;
+    std::cout << std::endl;
+    std::cout.flush();
+#endif
+
     ContractImplBody<KIND, CODE>()(lhs_data,
                                    lhs_shape.size(),
                                    lhs_shape.data(),
@@ -179,6 +182,15 @@ struct ContractImpl {
                                    rhs2_shape.data(),
                                    rhs2_strides.data(),
                                    rhs2_modes.data());
+
+#if 0  // debugging output
+    std::cout << "end contract kernel:" << std::endl;
+    std::cout << "lhs_data = " << print_dense_array(lhs_acc, lhs_bloated_shape) << std::endl;
+    std::cout << "rhs1_data = " << print_dense_array(rhs1_acc, rhs1_bloated_shape) << std::endl;
+    std::cout << "rhs2_data = " << print_dense_array(rhs2_acc, rhs2_bloated_shape) << std::endl;
+    std::cout << std::endl;
+    std::cout.flush();
+#endif
   }
 
   template <LegateTypeCode CODE,
