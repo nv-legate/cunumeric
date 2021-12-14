@@ -14,14 +14,14 @@
 #
 
 import numpy as np
+from test_tools.generators import seq_array
 
 import cunumeric as num
 from legate.core import LEGATE_MAX_DIM
 
 
 def random_array(lib, ndim):
-    np.random.seed(42)
-    return lib.array(np.random.random_sample(ndim * (5,)))
+    return seq_array(lib, ndim * (5,))
 
 
 def nd_view_of_1d(lib, ndim):
