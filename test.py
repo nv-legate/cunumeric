@@ -109,7 +109,7 @@ def run_test(
     test_path = os.path.join(root_dir, test_file)
     try:
         cmd(
-            [driver, test_path, "-cunumeric:test"] + flags + test_flags + opts,
+            [driver, test_path] + flags + test_flags + opts,
             env=env,
             cwd=root_dir,
             stdout=FNULL if not verbose else sys.stderr,
@@ -298,7 +298,6 @@ def run_tests(
     interop_tests=False,
     workers=None,
 ):
-
     if interop_tests:
         legate_tests.extend(glob.glob("tests/interop/*.py"))
 
@@ -322,11 +321,12 @@ def run_tests(
     def feature_enabled(feature, default=True):
         return option_enabled(feature, use_features, "USE_", default)
 
+    use_eager = feature_enabled("eager", False)
     use_cuda = feature_enabled("cuda", False)
     use_openmp = feature_enabled("openmp", False)
     use_cpus = feature_enabled("cpus", False)
 
-    if not (use_cpus or use_cuda or use_openmp):
+    if not (use_eager or use_cpus or use_cuda or use_openmp):
         use_cpus = True
 
     # Report test suite configuration
@@ -335,31 +335,50 @@ def run_tests(
     print("###")
     print("### Test Suite Configuration")
     print("###")
-    print("### CPUs:                %s" % use_cpus)
-    print("### CUDA:                %s" % use_cuda)
-    print("### OpenMP:              %s" % use_openmp)
-    print("### Integration Tests:   %s" % interop_tests)
+    print("### Eager NumPy fallback: %s" % use_eager)
+    print("### CPUs:                 %s" % use_cpus)
+    print("### CUDA:                 %s" % use_cuda)
+    print("### OpenMP:               %s" % use_openmp)
+    print("### Integration tests:    %s" % interop_tests)
     print("###")
     print("#" * 60)
     print()
     sys.stdout.flush()
 
     # Normalize the test environment.
-    env = dict(
-        list(os.environ.items())
-        + [
-            ("LEGATE_TEST", "1"),
-        ]
-    )
+    env = dict(list(os.environ.items()) + [("LEGATE_TEST", "1")])
 
     total_pass, total_count = 0, 0
+    if use_eager:
+        with Stage("Eager tests"):
+            count = run_test_legate(
+                "Eager",
+                root_dir,
+                legate_dir,
+                ["--cpus", "1"],
+                dict(
+                    list(env.items())
+                    + [
+                        # Set these limits high, to force eager execution
+                        ("CUNUMERIC_MIN_CPU_CHUNK", "2000000000"),
+                        ("CUNUMERIC_MIN_OMP_CHUNK", "2000000000"),
+                        ("CUNUMERIC_MIN_GPU_CHUNK", "2000000000"),
+                    ]
+                ),
+                verbose,
+                options,
+                workers,
+                1,
+            )
+            total_pass += count
+            total_count += len(legate_tests)
     if use_cpus:
         with Stage("CPU tests"):
             count = run_test_legate(
                 "CPU",
                 root_dir,
                 legate_dir,
-                ["--cpus", str(cpus)],
+                ["-cunumeric:test", "--cpus", str(cpus)],
                 env,
                 verbose,
                 options,
@@ -374,7 +393,7 @@ def run_tests(
                 "GPU",
                 root_dir,
                 legate_dir,
-                ["--gpus", str(gpus)],
+                ["-cunumeric:test", "--gpus", str(gpus)],
                 env,
                 verbose,
                 options,
@@ -389,7 +408,13 @@ def run_tests(
                 "OMP",
                 root_dir,
                 legate_dir,
-                ["--omps", str(openmp), "--ompthreads", str(ompthreads)],
+                [
+                    "-cunumeric:test",
+                    "--omps",
+                    str(openmp),
+                    "--ompthreads",
+                    str(ompthreads),
+                ],
                 env,
                 verbose,
                 options,
@@ -458,6 +483,7 @@ def driver():
         dest="use_features",
         action=ExtendAction,
         choices=MultipleChoiceList(
+            "eager",
             "cuda",
             "openmp",
             "cpus",
