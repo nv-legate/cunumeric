@@ -285,45 +285,7 @@ class Stage(object):
         sys.stdout.flush()
 
 
-def report_mode(
-    debug,
-    use_gasnet,
-    use_cuda,
-    use_openmp,
-    use_llvm,
-    use_hdf,
-    use_spy,
-    use_gcov,
-    use_cmake,
-    use_cpus,
-    interop_tests,
-):
-    print()
-    print("#" * 60)
-    print("### Test Suite Configuration")
-    print("###")
-    print("### Debug:               %s" % debug)
-    print("###")
-    print("### Test Flags:")
-    print("###   * CPUs:            %s" % use_cpus)
-    print("###   * GASNet:          %s" % use_gasnet)
-    print("###   * CUDA:            %s" % use_cuda)
-    print("###   * OpenMP:          %s" % use_openmp)
-    print("###   * LLVM:            %s" % use_llvm)
-    print("###   * HDF5:            %s" % use_hdf)
-    print("###   * Spy:             %s" % use_spy)
-    print("###   * Gcov:            %s" % use_gcov)
-    print("###   * CMake:           %s" % use_cmake)
-    print("###")
-    print("### Integration Tests:   %s" % interop_tests)
-    print("###")
-    print("#" * 60)
-    print()
-    sys.stdout.flush()
-
-
 def run_tests(
-    debug=True,
     use_features=None,
     cpus=None,
     gpus=None,
@@ -360,73 +322,34 @@ def run_tests(
     def feature_enabled(feature, default=True):
         return option_enabled(feature, use_features, "USE_", default)
 
-    use_gasnet = feature_enabled("gasnet", False)
     use_cuda = feature_enabled("cuda", False)
     use_openmp = feature_enabled("openmp", False)
-    use_llvm = feature_enabled("llvm", False)
-    use_hdf = feature_enabled("hdf", False)
-    use_spy = feature_enabled("spy", False)
-    use_gcov = feature_enabled("gcov", False)
-    use_cmake = feature_enabled("cmake", False)
     use_cpus = feature_enabled("cpus", False)
 
     if not (use_cpus or use_cuda or use_openmp):
         use_cpus = True
 
-    gcov_flags = " -ftest-coverage -fprofile-arcs"
-
-    report_mode(
-        debug,
-        use_gasnet,
-        use_cuda,
-        use_openmp,
-        use_llvm,
-        use_hdf,
-        use_spy,
-        use_gcov,
-        use_cmake,
-        use_cpus,
-        interop_tests,
-    )
+    # Report test suite configuration
+    print()
+    print("#" * 60)
+    print("###")
+    print("### Test Suite Configuration")
+    print("###")
+    print("### CPUs:                %s" % use_cpus)
+    print("### CUDA:                %s" % use_cuda)
+    print("### OpenMP:              %s" % use_openmp)
+    print("### Integration Tests:   %s" % interop_tests)
+    print("###")
+    print("#" * 60)
+    print()
+    sys.stdout.flush()
 
     # Normalize the test environment.
     env = dict(
         list(os.environ.items())
         + [
             ("LEGATE_TEST", "1"),
-            ("DEBUG", "1" if debug else "0"),
-            ("USE_GASNET", "1" if use_gasnet else "0"),
-            ("USE_CUDA", "1" if use_cuda else "0"),
-            ("USE_OPENMP", "1" if use_openmp else "0"),
-            ("USE_PYTHON", "1"),  # Always need python for Legate
-            ("USE_LLVM", "1" if use_llvm else "0"),
-            ("USE_HDF", "1" if use_hdf else "0"),
-            ("USE_SPY", "1" if use_spy else "0"),
         ]
-        + (
-            # Gcov doesn't get a USE_GCOV flag, but instead stuff the GCC
-            # options for Gcov on to the compile and link flags.
-            [
-                (
-                    "CC_FLAGS",
-                    (
-                        os.environ["CC_FLAGS"] + gcov_flags
-                        if "CC_FLAGS" in os.environ
-                        else gcov_flags
-                    ),
-                ),
-                (
-                    "LD_FLAGS",
-                    (
-                        os.environ["LD_FLAGS"] + gcov_flags
-                        if "LD_FLAGS" in os.environ
-                        else gcov_flags
-                    ),
-                ),
-            ]
-            if use_gcov
-            else []
-        )
     )
 
     total_pass, total_count = 0, 0
@@ -531,31 +454,12 @@ def driver():
 
     # Run options:
     parser.add_argument(
-        "--debug",
-        dest="debug",
-        action="store_true",
-        default=os.environ["DEBUG"] == "1" if "DEBUG" in os.environ else True,
-        help="Invoke Legate in debug mode (also via DEBUG).",
-    )
-    parser.add_argument(
-        "--no-debug",
-        dest="debug",
-        action="store_false",
-        help="Disable debug mode (equivalent to DEBUG=0).",
-    )
-    parser.add_argument(
         "--use",
         dest="use_features",
         action=ExtendAction,
         choices=MultipleChoiceList(
-            "gasnet",
             "cuda",
             "openmp",
-            "llvm",
-            "hdf",
-            "spy",
-            "gcov",
-            "cmake",
             "cpus",
         ),
         type=lambda s: s.split(","),
