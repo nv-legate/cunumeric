@@ -58,7 +58,7 @@ class EagerArray(NumPyThunk):
         # Track when this escapes. If it escapes we have
         # to be more careful in how we do our attach
         self.record_escape()
-        return self.array
+        return self.array.__array__()
 
     def record_escape(self):
         if self.parent is None:
