@@ -36,33 +36,34 @@ def scalar_gen(lib, val):
         yield lib.full(ndim * (5,), val)[ndim * (slice(1, 2),)]
 
 
-def seq_array(lib, shape):
+def mk_0to1_array(lib, shape):
     """
     Constructs an array of the required shape, containing (in C order)
-    sequential values uniformly spaced in the range (0,1].
-
-    Such arrays should (hopefully) make good candidates for test inputs,
-    because they:
-
-    - are fast to construct
-    - do not contain duplicate values
-    - contain small values, unlikely to cause arithmetic blowup
-    - don't require RNG to construct, which is awkward to use in a determinstic
-      way in a distributed setting
-    - don't contain zeros, which are more likely to cause arithmetic issues or
-      produce degenerate outputs
+    sequential real values uniformly spaced in the range (0,1].
     """
-    arr = lib.full(shape, 0.5)
     size = np.prod(shape)
-    if size > 1:
-        # Don't return the reshaped array directly, instead use it to update
-        # the contents of an existing array of the same shape, thus producing a
-        # Store without transformations, that has been tiled in the natural way
-        arr[:] = lib.arange(1, size + 1).reshape(shape) / size
+    if size == 1:
+        # Avoid zeros, since those are more likely to cause arithmetic issues
+        # or produce degenerate outputs.
+        return lib.full(shape, 0.5)
+    return mk_seq_array(lib, shape) / size
+
+
+def mk_seq_array(lib, shape):
+    """
+    Constructs an array of the required shape, containing (in C order)
+    sequential integer values starting from 1.
+    """
+    arr = lib.zeros(shape, dtype=int)
+    size = np.prod(shape)
+    # Don't return the reshaped array directly, instead use it to update
+    # the contents of an existing array of the same shape, thus producing a
+    # Store without transformations, that has been tiled in the natural way
+    arr[:] = lib.arange(1, size + 1).reshape(shape)
     return arr
 
 
-def broadcasts_to(lib, tgt_shape):
+def broadcasts_to(lib, tgt_shape, mk_array=mk_0to1_array):
     """
     Generates a collection of arrays that will broadcast to the given shape.
     """
@@ -74,10 +75,10 @@ def broadcasts_to(lib, tgt_shape):
         src_shape = tuple(
             d if keep else 1 for (d, keep) in zip(tgt_shape, mask)
         )
-        yield seq_array(lib, src_shape)
+        yield mk_array(lib, src_shape)
 
 
-def permutes_to(lib, tgt_shape):
+def permutes_to(lib, tgt_shape, mk_array=mk_0to1_array):
     """
     Generates all the possible ways that an array can be transposed to meet a
     given shape.
@@ -94,4 +95,4 @@ def permutes_to(lib, tgt_shape):
         for (i, j) in enumerate(axes):
             src_shape[j] = tgt_shape[i]
         src_shape = tuple(src_shape)
-        yield seq_array(lib, src_shape).transpose(axes)
+        yield mk_array(lib, src_shape).transpose(axes)

@@ -20,31 +20,31 @@ using namespace Legion;
 
 namespace cunumeric {
 
-#define DECLARE_ARGMAX_IDENTITY(TYPE) \
-  template <>                         \
+#define DEFINE_ARGMAX_IDENTITY(TYPE) \
+  template <>                        \
   const Argval<TYPE> ArgmaxReduction<TYPE>::identity = Argval<TYPE>(MaxReduction<TYPE>::identity);
 
-#define DECLARE_ARGMIN_IDENTITY(TYPE) \
-  template <>                         \
+#define DEFINE_ARGMIN_IDENTITY(TYPE) \
+  template <>                        \
   const Argval<TYPE> ArgminReduction<TYPE>::identity = Argval<TYPE>(MinReduction<TYPE>::identity);
 
-#define DECLARE_IDENTITIES(TYPE) \
-  DECLARE_ARGMAX_IDENTITY(TYPE)  \
-  DECLARE_ARGMIN_IDENTITY(TYPE)
+#define DEFINE_IDENTITIES(TYPE) \
+  DEFINE_ARGMAX_IDENTITY(TYPE)  \
+  DEFINE_ARGMIN_IDENTITY(TYPE)
 
-DECLARE_IDENTITIES(__half)
-DECLARE_IDENTITIES(float)
-DECLARE_IDENTITIES(double)
-DECLARE_IDENTITIES(bool)
-DECLARE_IDENTITIES(int8_t)
-DECLARE_IDENTITIES(int16_t)
-DECLARE_IDENTITIES(int32_t)
-DECLARE_IDENTITIES(int64_t)
-DECLARE_IDENTITIES(uint8_t)
-DECLARE_IDENTITIES(uint16_t)
-DECLARE_IDENTITIES(uint32_t)
-DECLARE_IDENTITIES(uint64_t)
-DECLARE_IDENTITIES(complex<float>)
+DEFINE_IDENTITIES(__half)
+DEFINE_IDENTITIES(float)
+DEFINE_IDENTITIES(double)
+DEFINE_IDENTITIES(bool)
+DEFINE_IDENTITIES(int8_t)
+DEFINE_IDENTITIES(int16_t)
+DEFINE_IDENTITIES(int32_t)
+DEFINE_IDENTITIES(int64_t)
+DEFINE_IDENTITIES(uint8_t)
+DEFINE_IDENTITIES(uint16_t)
+DEFINE_IDENTITIES(uint32_t)
+DEFINE_IDENTITIES(uint64_t)
+DEFINE_IDENTITIES(complex<float>)
 
 #define _REGISTER_REDOP(ID, TYPE) Runtime::register_reduction_op<TYPE>(ID);
 
