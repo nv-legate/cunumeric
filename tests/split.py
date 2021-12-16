@@ -35,7 +35,7 @@ def test(min_size, max_size):
     for i in range(min_size, max_size):
         for j in range(min_size, max_size):
             for k in range(min_size, max_size):
-                a = num.random.randn(i, j, k)
+                a = np.random.randn(i, j, k)
                 for axis in range(a.ndim):
                     input_arr = []
                     even_div = None  # a.shape[axis]
@@ -54,6 +54,8 @@ def test(min_size, max_size):
                     # indivisble integer
                     if even_div != uneven_div and uneven_div is not None:
                         input_arr.append(uneven_div)
+                    # integer larger than shape[axis]
+                    input_arr.append(a.shape[axis] + np.random.randint(1, 10))
                     # indices array which has points
                     # within the target dimension of the src array
                     if a.shape[axis] > 1:
@@ -88,9 +90,8 @@ def test(min_size, max_size):
                     ):
                         # test divisible integer or indices
                         print(
-                            "Testing np.{}({}, {}, {}) -> ".format(
-                                routine, a.shape, input_opt, axis
-                            ),
+                            f"Testing np.{routine}({a.shape}, {input_opt}"
+                            f", {axis}) -> ",
                             end="",
                         )
                         b_result = True
@@ -106,30 +107,45 @@ def test(min_size, max_size):
                         except ValueError:
                             c_result = False
                         if b_result and c_result:
-                            for each in zip(b, c):
-                                sub_set = list(each)
-                                if not np.array_equal(sub_set[0], sub_set[1]):
-                                    print(" Failed")
-                                    print(a)
-                                    print(
-                                        "numpy result: {}".format(sub_set[0])
-                                    )
-                                    print(
-                                        "cunumeric result: {}".format(
-                                            sub_set[1]
-                                        )
-                                    )
-                                    raise ValueError(
-                                        (
-                                            "cunumeric and numpy shows "
-                                            "different result\n"
-                                            "array({},{},{}), "
-                                            "routine: {}, "
-                                            "indices: {}, axis: {}"
-                                        ).format(
-                                            i, j, k, routine, input_opt, axis
-                                        )
-                                    )
+                            not_equal = False
+                            err_arr = None
+                            if len(b) != len(c):
+                                not_equal = True
+                                err_arr = [b, c]
+                            else:
+                                for each in zip(b, c):
+                                    sub_set = list(each)
+                                    if not np.array_equal(
+                                        sub_set[0], sub_set[1]
+                                    ):
+                                        err_arr = sub_set
+                                        not_equal = True
+                                        break
+
+                            if not_equal:
+                                print(
+                                    f"""
+                                     numpy result: {err_arr[0]}
+                                     cunumeric_result: {err_arr[1]}
+                                     """
+                                )
+                                raise ValueError(
+                                    f"cunumeric and numpy shows"
+                                    f"different result\n"
+                                    f"array({i},{j},{k}),"
+                                    f"routine: {routine},"
+                                    f"indices: {input_opt}, axis: {axis}"
+                                )
+
+                        elif b_result != c_result:
+                            raise ValueError(
+                                f"cunumeric and numpy shows "
+                                f"different errors\n"
+                                f"numpy: {b_result}, cunumeric: {c_result}"
+                                f"array({i},{j},{k}), "
+                                f"routine: {routine}, "
+                                f"indices: {input_opt}, axis: {axis}"
+                            )
                         print(" Passed")
     return
 
