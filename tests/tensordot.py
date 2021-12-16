@@ -19,13 +19,14 @@ import cunumeric as num
 
 
 def test(ty):
+    rtol = 2e-03 if ty == np.float16 else 1e-05
     a = num.random.rand(3, 5, 4).astype(ty)
     b = num.random.rand(4, 5, 3).astype(ty)
 
     cn = np.tensordot(a, b, axes=1)
     c = num.tensordot(a, b, axes=1)
 
-    assert np.allclose(cn, c)
+    assert np.allclose(cn, c, rtol=rtol)
 
     a = num.random.rand(3, 5, 4).astype(ty)
     b = num.random.rand(5, 4, 3).astype(ty)
@@ -33,7 +34,7 @@ def test(ty):
     cn = np.tensordot(a, b)
     c = num.tensordot(a, b)
 
-    assert np.allclose(cn, c)
+    assert np.allclose(cn, c, rtol=rtol)
 
     a = num.arange(60.0).reshape((3, 4, 5)).astype(ty)
     b = num.arange(24.0).reshape((4, 3, 2)).astype(ty)
@@ -41,7 +42,7 @@ def test(ty):
     cn = np.tensordot(a, b, axes=([1, 0], [0, 1]))
     c = num.tensordot(a, b, axes=([1, 0], [0, 1]))
 
-    assert np.allclose(cn, c)
+    assert np.allclose(cn, c, rtol=rtol)
 
     a = num.random.rand(5, 4).astype(ty)
     b = num.random.rand(4, 5).astype(ty)
@@ -49,7 +50,7 @@ def test(ty):
     cn = np.tensordot(a, b, axes=1)
     c = num.tensordot(a, b, axes=1)
 
-    assert np.allclose(cn, c)
+    assert np.allclose(cn, c, rtol=rtol)
 
     a = num.random.rand(5, 4).astype(ty)
     b = num.random.rand(5, 4).astype(ty)
@@ -57,7 +58,7 @@ def test(ty):
     cn = np.tensordot(a, b)
     c = num.tensordot(a, b)
 
-    assert np.allclose(cn, c)
+    assert np.allclose(cn, c, rtol=rtol)
 
 
 if __name__ == "__main__":

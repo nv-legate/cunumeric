@@ -235,7 +235,7 @@ static __device__ __forceinline__ Point<DIM> local_reduce(CTOR ctor,
     // up doing the full atomic
     coord_t bucket = 0;
     for (int32_t dim = DIM - 2; dim >= 0; --dim)
-      bucket = bucket * (domain.hi[dim + 1] - domain.lo[dim + 1] + 1) + point[dim];
+      bucket = bucket * (domain.hi[dim] - domain.lo[dim] + 1) + point[dim] - domain.lo[dim];
 
     const uint32_t same_mask = __match_any_sync(0xffffffff, bucket);
     int32_t laneid;

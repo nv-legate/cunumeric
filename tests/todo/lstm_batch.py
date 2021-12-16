@@ -178,7 +178,7 @@ class LSTM:
 
 
 def checkSequentialMatchesBatch():
-    """ check LSTM I/O forward/backward interactions """
+    """check LSTM I/O forward/backward interactions"""
 
     n, b, d = (5, 3, 4)  # sequence length, batch size, hidden size
     input_size = 10

@@ -95,9 +95,15 @@ def test():
     asserts.assert_equal(num.sum(x, axis=0), np.sum(x_np, axis=0))
     asserts.assert_equal(num.sum(x, axis=1), np.sum(x_np, axis=1))
     asserts.assert_equal(num.sum(x, axis=2), np.sum(x_np, axis=2))
-    asserts.assert_equal(num.add.reduce(x, axis=0), np.add.reduce(x_np, axis=0))
-    asserts.assert_equal(num.add.reduce(x, axis=1), np.add.reduce(x_np, axis=1))
-    asserts.assert_equal(num.add.reduce(x, axis=2), np.add.reduce(x_np, axis=2))
+    asserts.assert_equal(
+        num.add.reduce(x, axis=0), np.add.reduce(x_np, axis=0)
+    )
+    asserts.assert_equal(
+        num.add.reduce(x, axis=1), np.add.reduce(x_np, axis=1)
+    )
+    asserts.assert_equal(
+        num.add.reduce(x, axis=2), np.add.reduce(x_np, axis=2)
+    )
     asserts.assert_equal(num.sum(x), np.sum(x_np))
     asserts.assert_equal(num.add.reduce(x), np.add.reduce(x_np))
 
@@ -107,9 +113,15 @@ def test():
     asserts.assert_equal(num.sum(x, axis=1), np.sum(x_np, axis=1))
     asserts.assert_equal(num.sum(x, axis=2), np.sum(x_np, axis=2))
     asserts.assert_equal(num.sum(x), np.sum(x_np))
-    asserts.assert_equal(num.add.reduce(x, axis=0), np.add.reduce(x_np, axis=0))
-    asserts.assert_equal(num.add.reduce(x, axis=1), np.add.reduce(x_np, axis=1))
-    asserts.assert_equal(num.add.reduce(x, axis=2), np.add.reduce(x_np, axis=2))
+    asserts.assert_equal(
+        num.add.reduce(x, axis=0), np.add.reduce(x_np, axis=0)
+    )
+    asserts.assert_equal(
+        num.add.reduce(x, axis=1), np.add.reduce(x_np, axis=1)
+    )
+    asserts.assert_equal(
+        num.add.reduce(x, axis=2), np.add.reduce(x_np, axis=2)
+    )
     asserts.assert_equal(num.add.reduce(x), np.add.reduce(x_np))
 
     x_np = np.random.randn(100)
