@@ -18,7 +18,7 @@ from itertools import chain, permutations, product
 from typing import List, Optional, Set, Tuple
 
 import numpy as np
-from test_tools.generators import broadcasts_to, permutes_to, seq_array
+from test_tools.generators import broadcasts_to, mk_0to1_array, permutes_to
 
 import cunumeric as cn
 
@@ -115,7 +115,7 @@ def gen_expr(
 def mk_inputs(lib, modes: str, more_configs: bool):
     shape = tuple(BASE_DIM_LEN + ord(m) - ord("a") for m in modes)
     inputs = []
-    inputs.append(seq_array(lib, shape))
+    inputs.append(mk_0to1_array(lib, shape))
     if more_configs:
         for x in permutes_to(lib, shape):
             inputs.append(x)
