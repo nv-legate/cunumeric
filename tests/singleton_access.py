@@ -14,7 +14,7 @@
 #
 
 import numpy as np
-from test_tools.generators import scalar_gen, seq_array
+from test_tools.generators import mk_0to1_array, scalar_gen
 
 import cunumeric as num
 from legate.core import LEGATE_MAX_DIM
@@ -22,7 +22,7 @@ from legate.core import LEGATE_MAX_DIM
 
 def nonscalar_gen(lib):
     for ndim in range(1, LEGATE_MAX_DIM):  # off-by-one is by design
-        yield seq_array(lib, ndim * (5,))
+        yield mk_0to1_array(lib, ndim * (5,))
 
 
 def tuple_set(tup, idx, val):
