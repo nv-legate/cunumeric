@@ -95,24 +95,23 @@ def gemm(context, p_output, k, i, lo, hi):
 
 
 def cholesky(output, input, stacklevel=0, callsite=None):
-    num_procs = output.runtime.num_procs
+    num_procs = output.runtime.num_procs * 2
     shape = output.base.shape
     color_shape = (num_procs, num_procs)
     tile_shape = (shape + color_shape - 1) // color_shape
-    if tile_shape * (num_procs - 1) == shape:
-        num_procs -= 1
-        color_shape = (num_procs, num_procs)
+    color_shape = (shape + tile_shape - 1) // tile_shape
+    n = color_shape[0]
 
     context = output.context
     p_input = input.base.partition_by_tiling(tile_shape)
     p_output = output.base.partition_by_tiling(tile_shape)
     transpose_copy(context, Rect(hi=color_shape), p_input, p_output)
 
-    for i in range(num_procs):
+    for i in range(n):
         potrf(context, p_output, i)
-        trsm(context, p_output, i, i + 1, num_procs)
-        for k in range(i + 1, num_procs):
+        trsm(context, p_output, i, i + 1, n)
+        for k in range(i + 1, n):
             syrk(context, p_output, k, i)
-            gemm(context, p_output, k, i, k + 1, num_procs)
+            gemm(context, p_output, k, i, k + 1, n)
 
     output.trilu(output, 0, True, stacklevel=stacklevel + 1, callsite=callsite)
