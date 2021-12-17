@@ -137,7 +137,7 @@ def array_gen(lib, ndim):
 
 
 def test():
-    for ndim in range(1, LEGATE_MAX_DIM):  # off-by-one is by design
+    for ndim in range(1, LEGATE_MAX_DIM + 1):
         for np_arr, num_arr in zip(array_gen(np, ndim), array_gen(num, ndim)):
             assert np.array_equal(np_arr, num_arr)
 

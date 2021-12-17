@@ -21,7 +21,7 @@ from legate.core import LEGATE_MAX_DIM
 
 
 def nonscalar_gen(lib):
-    for ndim in range(1, LEGATE_MAX_DIM):  # off-by-one is by design
+    for ndim in range(1, LEGATE_MAX_DIM + 1):
         yield mk_0to1_array(lib, ndim * (5,))
 
 
