@@ -58,7 +58,7 @@ void registration_callback(Machine machine,
 
   // Now we can register our mapper with the runtime
   auto cunumeric_mapper_id = context.get_mapper_id(0);
-  auto mapper              = new CuNumericMapper(runtime->get_mapper_runtime(), machine, context);
+  auto mapper              = new CuNumericMapper(runtime, machine, context);
   // This will register it with all the processors on the node
   runtime->add_mapper(cunumeric_mapper_id, mapper);
 }
