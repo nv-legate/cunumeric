@@ -386,7 +386,8 @@ class EagerArray(NumPyThunk):
             )
         else:
             np.einsum(
-                f"{rhs1_modes},{rhs2_modes}->{lhs_modes}",
+                f"{''.join(rhs1_modes)},{''.join(rhs2_modes)}"
+                f"->{''.join(lhs_modes)}",
                 rhs1_thunk.array,
                 rhs2_thunk.array,
                 out=self.array,
