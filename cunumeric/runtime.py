@@ -526,10 +526,7 @@ class Runtime(object):
         # If we're testing then the answer is always no
         if self.test_mode:
             return False
-        # Note the off by 1 case here, technically arrays with size
-        # up to LEGATE_MAX_DIM inclusive should be allowed, but we
-        # often use an extra dimension for reductions in cuNumeric
-        if len(shape) >= LEGATE_MAX_DIM:
+        if len(shape) > LEGATE_MAX_DIM:
             return True
         if len(shape) == 0:
             return self.max_eager_volume > 0
