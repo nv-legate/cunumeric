@@ -167,6 +167,7 @@ def install_openblas(openblas_dir, thread_count, verbose):
             "make",
             "-j",
             str(thread_count),
+            "CROSS=1",
             "USE_THREAD=1",
             "NO_STATIC=1",
             "USE_CUDA=0",

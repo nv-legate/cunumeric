@@ -24,7 +24,7 @@ namespace cunumeric {
 
 class CuNumericMapper : public legate::mapping::BaseMapper {
  public:
-  CuNumericMapper(Legion::Mapping::MapperRuntime* rt,
+  CuNumericMapper(Legion::Runtime* rt,
                   Legion::Machine machine,
                   const legate::LibraryContext& context);
   virtual ~CuNumericMapper(void) {}

@@ -21,9 +21,7 @@ using namespace legate::mapping;
 
 namespace cunumeric {
 
-CuNumericMapper::CuNumericMapper(Legion::Mapping::MapperRuntime* rt,
-                                 Legion::Machine m,
-                                 const LibraryContext& ctx)
+CuNumericMapper::CuNumericMapper(Legion::Runtime* rt, Legion::Machine m, const LibraryContext& ctx)
   : BaseMapper(rt, m, ctx),
     min_gpu_chunk(extract_env("CUNUMERIC_MIN_GPU_CHUNK", 1 << 20, 2)),
     min_cpu_chunk(extract_env("CUNUMERIC_MIN_CPU_CHUNK", 1 << 14, 2)),

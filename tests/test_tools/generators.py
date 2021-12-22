@@ -29,7 +29,7 @@ def scalar_gen(lib, val):
     yield lib.array(val)
     # ()-shape arrays
     yield lib.full((), val)
-    for ndim in range(1, LEGATE_MAX_DIM):  # off-by-one is by design
+    for ndim in range(1, LEGATE_MAX_DIM + 1):
         # singleton arrays
         yield lib.full(ndim * (1,), val)
         # singleton slices of larger arrays
