@@ -96,6 +96,7 @@ struct TransposeImplBody<VariantKind::OMP, CODE, 2> {
 
 /*static*/ void TransposeTask::omp_variant(TaskContext& context)
 {
+  openblas_set_num_threads(omp_get_max_threads());
   transpose_template<VariantKind::OMP>(context);
 }
 

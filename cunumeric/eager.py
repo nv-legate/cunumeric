@@ -166,15 +166,11 @@ class EagerArray(NumPyThunk):
             self.deferred.copy(rhs, deep=deep, stacklevel=(stacklevel + 1))
         else:
             if self.array.size == 1:
-                if deep:
-                    self.array.fill(rhs.array.item().__deepcopy__(None))
-                else:
-                    self.array.fill(rhs.array.item())
+                self.array.fill(rhs.array.item())
+            elif deep:
+                self.array[:] = rhs.array.__deepcopy__(None)
             else:
-                if deep:
-                    self.array[:] = rhs.array.__deepcopy__(None)
-                else:
-                    self.array[:] = rhs.array
+                self.array[:] = rhs.array
             self.runtime.profile_callsite(stacklevel + 1, False)
 
     @property
@@ -357,6 +353,45 @@ class EagerArray(NumPyThunk):
             self.deferred.flip(rhs, axes, stacklevel=(stacklevel + 1))
         else:
             self.array = np.flip(rhs.array, axes)
+            self.runtime.profile_callsite(stacklevel + 1, False)
+
+    def contract(
+        self,
+        lhs_modes,
+        rhs1_thunk,
+        rhs1_modes,
+        rhs2_thunk,
+        rhs2_modes,
+        mode2extent,
+        stacklevel,
+    ):
+        if self.shadow:
+            rhs1_thunk = self.runtime.to_eager_array(
+                rhs1_thunk, stacklevel=(stacklevel + 1)
+            )
+            rhs2_thunk = self.runtime.to_eager_array(
+                rhs2_thunk, stacklevel=(stacklevel + 1)
+            )
+        elif self.deferred is None:
+            self.check_eager_args((stacklevel + 1), rhs1_thunk, rhs2_thunk)
+        if self.deferred is not None:
+            self.deferred.contract(
+                lhs_modes,
+                rhs1_thunk,
+                rhs1_modes,
+                rhs2_thunk,
+                rhs2_modes,
+                mode2extent,
+                stacklevel=(stacklevel + 1),
+            )
+        else:
+            np.einsum(
+                f"{''.join(rhs1_modes)},{''.join(rhs2_modes)}"
+                f"->{''.join(lhs_modes)}",
+                rhs1_thunk.array,
+                rhs2_thunk.array,
+                out=self.array,
+            )
             self.runtime.profile_callsite(stacklevel + 1, False)
 
     def diag(self, rhs, extract, k, stacklevel):

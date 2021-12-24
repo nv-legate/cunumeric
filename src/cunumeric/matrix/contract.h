@@ -16,37 +16,31 @@
 
 #pragma once
 
-#include <cublas_v2.h>
-#include <cusolverDn.h>
-#include <cutensor.h>
+#include "cunumeric/cunumeric.h"
 
 namespace cunumeric {
 
-struct CUDALibraries {
+struct ContractArgs {
+  const Array& lhs;
+  const Array& rhs1;
+  const Array& rhs2;
+  legate::Span<const bool> lhs_dim_mask;
+  legate::Span<const bool> rhs1_dim_mask;
+  legate::Span<const bool> rhs2_dim_mask;
+};
+
+class ContractTask : public CuNumericTask<ContractTask> {
  public:
-  CUDALibraries();
-  ~CUDALibraries();
-
- private:
-  // Prevent copying and overwriting
-  CUDALibraries(const CUDALibraries& rhs) = delete;
-  CUDALibraries& operator=(const CUDALibraries& rhs) = delete;
+  static const int TASK_ID = CUNUMERIC_CONTRACT;
 
  public:
-  void finalize();
-  cublasHandle_t get_cublas();
-  cusolverDnHandle_t get_cusolver();
-  cutensorHandle_t* get_cutensor();
-
- private:
-  void finalize_cublas();
-  void finalize_cusolver();
-  void finalize_cutensor();
-
- private:
-  cublasContext* cublas_;
-  cusolverDnContext* cusolver_;
-  cutensorHandle_t* cutensor_;
+  static void cpu_variant(legate::TaskContext& context);
+#ifdef LEGATE_USE_OPENMP
+  static void omp_variant(legate::TaskContext& context);
+#endif
+#ifdef LEGATE_USE_CUDA
+  static void gpu_variant(legate::TaskContext& context);
+#endif
 };
 
 }  // namespace cunumeric

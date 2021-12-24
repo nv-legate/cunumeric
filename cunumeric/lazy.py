@@ -80,6 +80,18 @@ class LazyArray(NumPyThunk):
     def transpose(self, rhs, axes, stacklevel):
         raise NotImplementedError("Implement in derived classes")
 
+    def contract(
+        self,
+        lhs_modes,
+        rhs1_thunk,
+        rhs1_modes,
+        rhs2_thunk,
+        rhs2_modes,
+        mode2extent,
+        stacklevel,
+    ):
+        raise NotImplementedError("Implement in derived classes")
+
     def diag(self, rhs, extract, k, stacklevel):
         """Fill in or extract a diagonal from a matrix
 

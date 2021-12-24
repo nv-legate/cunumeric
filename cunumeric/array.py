@@ -62,6 +62,7 @@ def add_boilerplate(*array_params: str, mutates_self: bool = False):
             if param == "where":
                 where_idx = idx
             elif param == "out":
+                assert not mutates_self
                 out_idx = idx
             elif param in keys:
                 indices.add(idx)
@@ -102,7 +103,7 @@ def add_boilerplate(*array_params: str, mutates_self: bool = False):
 
             # Handle the case where all array-like parameters are scalar, by
             # performing the operation on the equivalent scalar numpy arrays.
-            # NOTE: This mplicitly blocks on the contents of the scalar arrays.
+            # NOTE: This implicitly blocks on the contents of these arrays.
             if all(
                 arg._thunk.scalar
                 for (idx, arg) in enumerate(args)
@@ -131,8 +132,8 @@ def add_boilerplate(*array_params: str, mutates_self: bool = False):
                         )
                 self_scalar = args[0]
                 args = args[1:]
-                result = ndarray.convert_to_cunumeric_ndarray(
-                    getattr(self_scalar, func.__name__)(*args, **kwargs)
+                res_scalar = getattr(self_scalar, func.__name__)(
+                    *args, **kwargs
                 )
                 if mutates_self:
                     self._thunk = runtime.create_scalar(
@@ -141,6 +142,8 @@ def add_boilerplate(*array_params: str, mutates_self: bool = False):
                         shape=self_scalar.shape,
                         wrap=True,
                     )
+                    return
+                result = ndarray.convert_to_cunumeric_ndarray(res_scalar)
                 if out is not None:
                     out._thunk.copy(result._thunk, stacklevel=stacklevel)
                     result = out

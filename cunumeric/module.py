@@ -14,11 +14,14 @@
 #
 
 import math
+import re
 import sys
 from inspect import signature
+from itertools import chain
 from typing import Optional, Set
 
 import numpy as np
+import opt_einsum as oe
 
 from .array import ndarray
 from .config import BinaryOpCode, UnaryOpCode, UnaryRedCode
@@ -45,7 +48,8 @@ def add_boilerplate(*array_params: str):
       parameter (if present), to cuNumeric ndarrays.
     * Convert the special "where" parameter (if present) to a valid predicate.
     * Handle the case of scalar cuNumeric ndarrays, by forwarding the operation
-      to the equivalent `()`-shape numpy array.
+      to the equivalent `()`-shape numpy array (if the operation exists on base
+      numpy).
 
     NOTE: Assumes that no parameters are mutated besides `out`.
     """
@@ -106,15 +110,19 @@ def add_boilerplate(*array_params: str):
 
             # Handle the case where all array-like parameters are scalar, by
             # performing the operation on the equivalent scalar numpy arrays.
-            # NOTE: This mplicitly blocks on the contents of the scalar arrays.
-            if all(
-                arg._thunk.scalar
-                for (idx, arg) in enumerate(args)
-                if (idx in indices) and isinstance(arg, ndarray)
-            ) and all(
-                v._thunk.scalar
-                for (k, v) in kwargs.items()
-                if (k in keys or k == "where") and isinstance(v, ndarray)
+            # NOTE: This implicitly blocks on the contents of these arrays.
+            if (
+                hasattr(np, func.__name__)
+                and all(
+                    arg._thunk.scalar
+                    for (idx, arg) in enumerate(args)
+                    if (idx in indices) and isinstance(arg, ndarray)
+                )
+                and all(
+                    v._thunk.scalar
+                    for (k, v) in kwargs.items()
+                    if (k in keys or k == "where") and isinstance(v, ndarray)
+                )
             ):
                 out = None
                 if "out" in kwargs:
@@ -559,6 +567,237 @@ def dot(a, b, out=None):
     if out is not None:
         out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return a_array.dot(b, out=out, stacklevel=2)
+
+
+# Trivial multi-tensor contraction strategy: contract in input order
+class NullOptimizer(oe.paths.PathOptimizer):
+    def __call__(self, inputs, output, size_dict, memory_limit=None):
+        return [(0, 1)] + [(0, -1)] * (len(inputs) - 2)
+
+
+# Generalized tensor contraction
+@add_boilerplate("a", "b")
+def _contract(expr, a, b=None, out=None, stacklevel=1):
+    # Parse modes out of contraction expression (assuming expression has been
+    # normalized already by contract_path)
+    if b is None:
+        m = re.match(r"([a-zA-Z]*)->([a-zA-Z]*)", expr)
+        assert m is not None
+        a_modes = list(m.group(1))
+        b_modes = []
+        out_modes = list(m.group(2))
+    else:
+        m = re.match(r"([a-zA-Z]*),([a-zA-Z]*)->([a-zA-Z]*)", expr)
+        assert m is not None
+        a_modes = list(m.group(1))
+        b_modes = list(m.group(2))
+        out_modes = list(m.group(3))
+
+    # Sanity checks
+    if out is not None and len(out_modes) != out.ndim:
+        raise ValueError(
+            f"Expected {len(out_modes)}-d output array but got {out.ndim}-d"
+        )
+    if len(set(out_modes)) != len(out_modes):
+        raise ValueError("Duplicate mode labels on output tensor")
+
+    # TODO: Handle duplicate modes on inputs
+    if len(set(a_modes)) != len(a_modes) or len(set(b_modes)) != len(b_modes):
+        raise NotImplementedError("Duplicate mode labels on input tensor")
+
+    # Drop modes corresponding to singleton dimensions. This handles cases of
+    # broadcasting.
+    for dim in reversed(range(a.ndim)):
+        if a.shape[dim] == 1:
+            a = a.squeeze(dim)
+            a_modes.pop(dim)
+    if b is not None:
+        for dim in reversed(range(b.ndim)):
+            if b.shape[dim] == 1:
+                b = b.squeeze(dim)
+                b_modes.pop(dim)
+
+    # Sum-out modes appearing on one argument, and missing from the result
+    # TODO: If we supported sum on multiple axes we could do the full sum in a
+    # single operation, and avoid intermediates.
+    for (dim, mode) in reversed(list(enumerate(a_modes))):
+        if mode not in b_modes and mode not in out_modes:
+            a_modes.pop(dim)
+            a = a.sum(axis=dim)
+    for (dim, mode) in reversed(list(enumerate(b_modes))):
+        if mode not in a_modes and mode not in out_modes:
+            b_modes.pop(dim)
+            b = b.sum(axis=dim)
+
+    # Compute extent per mode. No need to consider broadcasting at this stage,
+    # since it has been handled above.
+    mode2extent = {}
+    for (mode, extent) in chain(
+        zip(a_modes, a.shape), zip(b_modes, b.shape) if b is not None else []
+    ):
+        prev_extent = mode2extent.get(mode)
+        # This should have already been checked by contract_path
+        assert prev_extent is None or extent == prev_extent
+        mode2extent[mode] = extent
+
+    # Any modes appearing only on the result must have originally been present
+    # on one of the operands, but got dropped by the broadcast-handling code.
+    out_shape = (
+        out.shape
+        if out is not None
+        else tuple(mode2extent.get(mode, 1) for mode in out_modes)
+    )
+    c_modes = []
+    c_shape = ()
+    c_bloated_shape = ()
+    for (mode, extent) in zip(out_modes, out_shape):
+        if mode not in a_modes and mode not in b_modes:
+            c_bloated_shape += (1,)
+        else:
+            assert extent > 1
+            c_modes.append(mode)
+            c_shape += (extent,)
+            c_bloated_shape += (extent,)
+
+    # Verify output array has the right shape (input arrays can be broadcasted
+    # up to match the output, but not the other way around). There should be no
+    # unknown or singleton modes on the result at this point.
+    for (mode, extent) in zip(c_modes, c_shape):
+        prev_extent = mode2extent[mode]
+        assert prev_extent != 1
+        if extent != prev_extent:
+            raise ValueError("Wrong shape on output array")
+
+    # Test for fallback to unary case
+    if b is not None:
+        if len(a_modes) == 0:
+            a = a * b
+            a_modes = b_modes
+            b = None
+            b_modes = []
+        elif len(b_modes) == 0:
+            a = a * b
+            b = None
+
+    # Handle types
+    c_dtype = ndarray.find_common_type(a, b) if b is not None else a.dtype
+    out_dtype = out.dtype if out is not None else c_dtype
+    if b is None or c_dtype in [
+        np.float32,
+        np.float64,
+        np.complex64,
+        np.complex128,
+    ]:
+        # Can support this type directly
+        pass
+    elif np.can_cast(c_dtype, np.float64):
+        # Will have to go through a supported type, and cast the result back to
+        # the input type (or the type of the provided output array)
+        c_dtype = np.float64
+    else:
+        raise TypeError(f"Unsupported type: {c_dtype}")
+
+    if b is None:
+        # Unary contraction case
+        assert len(a_modes) == len(c_modes) and set(a_modes) == set(c_modes)
+        if len(a_modes) == 0:
+            # NumPy doesn't return a view in this case
+            c = copy(a)
+        elif a_modes == c_modes:
+            c = a
+        else:
+            # Shuffle input array according to mode labels
+            axes = [a_modes.index(mode) for mode in c_modes]
+            assert all(ax >= 0 for ax in axes)
+            c = a.transpose(axes, stacklevel=(stacklevel + 1))
+
+    else:
+        # Binary contraction case
+        # Create result array, if output array can't be directly targeted
+        if out is not None and out_dtype == c_dtype and out_shape == c_shape:
+            c = out
+        else:
+            c = ndarray(
+                shape=c_shape,
+                dtype=c_dtype,
+                stacklevel=(stacklevel + 1),
+                inputs=(a, b),
+            )
+        # Check for type conversion on the way in
+        if a.dtype != c.dtype:
+            temp = ndarray(
+                shape=a.shape,
+                dtype=c.dtype,
+                stacklevel=(stacklevel + 1),
+                inputs=(a,),
+            )
+            temp._thunk.convert(a._thunk, stacklevel=(stacklevel + 1))
+            a = temp
+        if b.dtype != c.dtype:
+            temp = ndarray(
+                shape=b.shape,
+                dtype=c.dtype,
+                stacklevel=(stacklevel + 1),
+                inputs=(b,),
+            )
+            temp._thunk.convert(b._thunk, stacklevel=(stacklevel + 1))
+            b = temp
+        # Perform operation
+        c._thunk.contract(
+            c_modes,
+            a._thunk,
+            a_modes,
+            b._thunk,
+            b_modes,
+            mode2extent,
+            stacklevel=(stacklevel + 1),
+        )
+
+    # Postprocess result before returning
+    if out is c:
+        # We already decided above to use the output array directly
+        return out
+    if out_dtype != c_dtype or out_shape != c_bloated_shape:
+        # We need to broadcast the result of the contraction or switch types
+        # before returning
+        if out is None:
+            out = zeros(out_shape, out_dtype, stacklevel=(stacklevel + 1))
+        out[...] = c.reshape(c_bloated_shape)
+        return out
+    if out is None and out_shape != c_shape:
+        # We need to add missing dimensions, but they are all of size 1, so
+        # we don't need to broadcast
+        assert c_bloated_shape == out_shape
+        return c.reshape(out_shape)
+    if out is not None:
+        # The output and result arrays are fully compatible, but we still
+        # need to copy
+        out[...] = c
+        return out
+    return c
+
+
+@copy_docstring(np.einsum)
+def einsum(expr, *operands, out=None, optimize=False):
+    if not optimize:
+        optimize = NullOptimizer()
+    # This call normalizes the expression (adds the output part if it's
+    # missing, expands '...') and checks for some errors (mismatch on number
+    # of dimensions between operand and expression, wrong number of operands,
+    # unknown modes on output, a mode appearing under two different
+    # non-singleton extents).
+    operands, contractions = oe.contract_path(
+        expr, *operands, einsum_call=True, optimize=optimize
+    )
+    for (indices, _, sub_expr, _, _) in contractions:
+        sub_opers = [operands.pop(i) for i in indices]
+        if len(operands) == 0:  # last iteration
+            sub_result = _contract(sub_expr, *sub_opers, out=out)
+        else:
+            sub_result = _contract(sub_expr, *sub_opers)
+        operands.append(sub_result)
+    assert len(operands) == 1
+    return operands[0]
 
 
 @copy_docstring(np.tensordot)

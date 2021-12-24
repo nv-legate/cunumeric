@@ -1132,6 +1132,96 @@ class DeferredArray(NumPyThunk):
                 f"dot between {rhs1_array.ndim}d and {rhs2_array.ndim}d arrays"
             )
 
+    @profile
+    @auto_convert([2, 4])
+    @shadow_debug("contract", [2, 4])
+    def contract(
+        self,
+        lhs_modes,
+        rhs1_thunk,
+        rhs1_modes,
+        rhs2_thunk,
+        rhs2_modes,
+        mode2extent,
+        stacklevel=0,
+        callsite=None,
+    ):
+        lhs_thunk = self
+
+        # TODO: More sanity checks (no duplicate modes, no singleton modes, no
+        # broadcasting, ...)
+
+        # Casting should have been handled by the frontend
+        assert lhs_thunk.dtype is rhs1_thunk.dtype
+        assert lhs_thunk.dtype is rhs2_thunk.dtype
+
+        # Handle store overlap
+        rhs1_thunk = rhs1_thunk._copy_if_overlapping(lhs_thunk)
+        rhs2_thunk = rhs2_thunk._copy_if_overlapping(lhs_thunk)
+
+        # Clear output array
+        # TODO: We should be able to do this in the core
+        lhs_thunk.fill(
+            np.array(0, dtype=lhs_thunk.dtype),
+            stacklevel=(stacklevel + 1),
+            callsite=callsite,
+        )
+
+        lhs = lhs_thunk.base
+        rhs1 = rhs1_thunk.base
+        rhs2 = rhs2_thunk.base
+
+        # The underlying libraries are not guaranteed to work with stride
+        # values of 0. The frontend should therefore handle broadcasting
+        # directly, instead of promoting stores.
+        assert not lhs.has_fake_dims()
+        assert not rhs1.has_fake_dims()
+        assert not rhs2.has_fake_dims()
+
+        # Transpose arrays according to alphabetical order of mode labels
+        def alphabetical_transpose(store, modes):
+            perm = [dim for (_, dim) in sorted(zip(modes, range(len(modes))))]
+            return store.transpose(perm)
+
+        lhs = alphabetical_transpose(lhs, lhs_modes)
+        rhs1 = alphabetical_transpose(rhs1, rhs1_modes)
+        rhs2 = alphabetical_transpose(rhs2, rhs2_modes)
+
+        # Promote dimensions as required to align the stores
+        lhs_dim_mask = []
+        rhs1_dim_mask = []
+        rhs2_dim_mask = []
+        for (dim, mode) in enumerate(sorted(mode2extent.keys())):
+            extent = mode2extent[mode]
+
+            def add_mode(store, modes, dim_mask):
+                if mode not in modes:
+                    dim_mask.append(False)
+                    return store.promote(dim, extent)
+                else:
+                    dim_mask.append(True)
+                    # Broadcasting should have been handled already
+                    assert store.shape[dim] == extent
+                    return store
+
+            lhs = add_mode(lhs, lhs_modes, lhs_dim_mask)
+            rhs1 = add_mode(rhs1, rhs1_modes, rhs1_dim_mask)
+            rhs2 = add_mode(rhs2, rhs2_modes, rhs2_dim_mask)
+        assert lhs.shape == rhs1.shape
+        assert lhs.shape == rhs2.shape
+
+        # Prepare the launch
+        task = self.context.create_task(CuNumericOpCode.CONTRACT)
+        task.add_reduction(lhs, ReductionOp.ADD)
+        task.add_input(rhs1)
+        task.add_input(rhs2)
+        task.add_scalar_arg(tuple(lhs_dim_mask), (bool,))
+        task.add_scalar_arg(tuple(rhs1_dim_mask), (bool,))
+        task.add_scalar_arg(tuple(rhs2_dim_mask), (bool,))
+        task.add_alignment(lhs, rhs1)
+        task.add_alignment(lhs, rhs2)
+        task.execute()
+
     # Create or extract a diagonal from a matrix
     @profile
     @auto_convert([1])
