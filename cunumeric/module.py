@@ -577,9 +577,7 @@ class NullOptimizer(oe.paths.PathOptimizer):
 
 # Generalized tensor contraction
 @add_boilerplate("a", "b")
-def _contract(expr, a, b=None, out=None, dtype=None, stacklevel=1):
-    # TODO: test for allowable types, handle float16 as a special case
-
+def _contract(expr, a, b=None, out=None, stacklevel=1):
     # Parse modes out of contraction expression (assuming expression has been
     # normalized already by contract_path)
     if b is None:
@@ -642,15 +640,6 @@ def _contract(expr, a, b=None, out=None, dtype=None, stacklevel=1):
         assert prev_extent is None or extent == prev_extent
         mode2extent[mode] = extent
 
-    # Compute characteristics of the result array
-    c_dtype = ndarray.find_common_type(a, b) if b is not None else a.dtype
-    out_dtype = (
-        out.dtype
-        if out is not None
-        else dtype
-        if dtype is not None
-        else c_dtype
-    )
     # Any modes appearing only on the result must have originally been present
     # on one of the operands, but got dropped by the broadcast-handling code.
     out_shape = (
@@ -690,6 +679,24 @@ def _contract(expr, a, b=None, out=None, dtype=None, stacklevel=1):
             a = a * b
             b = None
 
+    # Handle types
+    c_dtype = ndarray.find_common_type(a, b) if b is not None else a.dtype
+    out_dtype = out.dtype if out is not None else c_dtype
+    if b is None or c_dtype in [
+        np.float32,
+        np.float64,
+        np.complex64,
+        np.complex128,
+    ]:
+        # Can support this type directly
+        pass
+    elif np.can_cast(c_dtype, np.float64):
+        # Will have to go through a supported type, and cast the result back to
+        # the input type (or the type of the provided output array)
+        c_dtype = np.float64
+    else:
+        raise TypeError(f"Unsupported type: {c_dtype}")
+
     if b is None:
         # Unary contraction case
         assert len(a_modes) == len(c_modes) and set(a_modes) == set(c_modes)
@@ -707,7 +714,7 @@ def _contract(expr, a, b=None, out=None, dtype=None, stacklevel=1):
     else:
         # Binary contraction case
         # Create result array, if output array can't be directly targeted
-        if out is not None and out_dtype is c_dtype and out_shape == c_shape:
+        if out is not None and out_dtype == c_dtype and out_shape == c_shape:
             c = out
         else:
             c = ndarray(
@@ -750,16 +757,11 @@ def _contract(expr, a, b=None, out=None, dtype=None, stacklevel=1):
     if out is c:
         # We already decided above to use the output array directly
         return out
-    if out_dtype is not c_dtype or out_shape != c_bloated_shape:
+    if out_dtype != c_dtype or out_shape != c_bloated_shape:
         # We need to broadcast the result of the contraction or switch types
         # before returning
         if out is None:
-            out = ndarray(
-                shape=out_shape,
-                dtype=out_dtype,
-                stacklevel=(stacklevel + 1),
-                inputs=(c,),
-            )
+            out = zeros(out_shape, out_dtype, stacklevel=(stacklevel + 1))
         out[...] = c.reshape(c_bloated_shape)
         return out
     if out is None and out_shape != c_shape:
@@ -776,7 +778,7 @@ def _contract(expr, a, b=None, out=None, dtype=None, stacklevel=1):
 
 
 @copy_docstring(np.einsum)
-def einsum(expr, *operands, out=None, dtype=None, optimize=False):
+def einsum(expr, *operands, out=None, optimize=False):
     if not optimize:
         optimize = NullOptimizer()
     # This call normalizes the expression (adds the output part if it's
@@ -790,7 +792,7 @@ def einsum(expr, *operands, out=None, dtype=None, optimize=False):
     for (indices, _, sub_expr, _, _) in contractions:
         sub_opers = [operands.pop(i) for i in indices]
         if len(operands) == 0:  # last iteration
-            sub_result = _contract(sub_expr, *sub_opers, out=out, dtype=dtype)
+            sub_result = _contract(sub_expr, *sub_opers, out=out)
         else:
             sub_result = _contract(sub_expr, *sub_opers)
         operands.append(sub_result)

@@ -13,7 +13,6 @@
 # limitations under the License.
 #
 
-from functools import lru_cache
 from itertools import chain, permutations, product
 from typing import List, Optional, Set, Tuple
 
@@ -111,19 +110,6 @@ def gen_expr(
         opers.pop()
 
 
-@lru_cache(maxsize=None)
-def mk_inputs(lib, modes: str, more_configs: bool):
-    shape = tuple(BASE_DIM_LEN + ord(m) - ord("a") for m in modes)
-    inputs = []
-    inputs.append(mk_0to1_array(lib, shape))
-    if more_configs:
-        for x in permutes_to(lib, shape):
-            inputs.append(x)
-        for x in broadcasts_to(lib, shape):
-            inputs.append(x)
-    return inputs
-
-
 # A selection of expressions beyond the limits of the exhaustive generation
 # above
 OTHER_EXPRS = [
@@ -163,6 +149,38 @@ OTHER_EXPRS = [
 ]
 
 
+def test_np_vs_cn(expr, input_gen=None, out_gen=None):
+    lhs, rhs = expr.split("->")
+    opers = lhs.split(",")
+    in_shapes = [
+        tuple(BASE_DIM_LEN + ord(m) - ord("a") for m in op) for op in opers
+    ]
+    out_shape = tuple(BASE_DIM_LEN + ord(m) - ord("a") for m in rhs)
+    if input_gen is None:
+
+        def input_gen(lib, sh):
+            yield mk_0to1_array(lib, sh)
+
+    for (np_inputs, cn_inputs) in zip(
+        product(*(input_gen(np, sh) for sh in in_shapes)),
+        product(*(input_gen(cn, sh) for sh in in_shapes)),
+    ):
+        np_res = np.einsum(expr, *np_inputs)
+        cn_res = cn.einsum(expr, *cn_inputs)
+        assert np.allclose(np_res, cn_res)
+        if out_gen is not None:
+            for out in out_gen(cn, out_shape):
+                cn.einsum(expr, *cn_inputs, out=out)
+                assert np.allclose(np_res, out)
+
+
+def gen_various_types(lib, sh):
+    yield lib.ones(sh, np.int16)
+    yield lib.ones(sh, np.float16)
+    yield lib.ones(sh, np.float64)
+    yield lib.ones(sh, np.complex64)
+
+
 def test():
     for expr in chain(gen_expr(), OTHER_EXPRS):
         lhs, rhs = expr.split("->")
@@ -171,23 +189,18 @@ def test():
         if any(len(set(op)) != len(op) for op in opers):
             continue
         print(f"testing {expr}")
+        # Test default mode
+        test_np_vs_cn(expr)
         # Don't test additional configurations in 3+-operand expressions,
         # since those get decomposed into binary expressions anyway.
-        more_configs = len(opers) <= 2
-        for (np_inputs, cn_inputs) in zip(
-            product(*(mk_inputs(np, op, more_configs) for op in opers)),
-            product(*(mk_inputs(cn, op, more_configs) for op in opers)),
-        ):
-            np_res = np.einsum(expr, *np_inputs)
-            cn_res = cn.einsum(expr, *cn_inputs)
-            assert np.allclose(np_res, cn_res)
-            if more_configs:
-                out = cn.zeros(
-                    tuple(BASE_DIM_LEN + ord(m) - ord("a") for m in rhs)
-                )
-                cn.einsum(expr, *cn_inputs, out=out)
-                assert np.allclose(np_res, out)
-    # TODO: test casting, dtype=
+        if len(opers) > 2:
+            continue
+        # Test permutations on input arrays
+        test_np_vs_cn(expr, permutes_to)
+        # Test broadcasting on input arrays
+        test_np_vs_cn(expr, broadcasts_to)
+        # Test various types on input and output arrays
+        test_np_vs_cn(expr, gen_various_types, out_gen=gen_various_types)
 
 
 if __name__ == "__main__":
