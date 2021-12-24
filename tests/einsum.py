@@ -13,6 +13,7 @@
 # limitations under the License.
 #
 
+from functools import lru_cache
 from itertools import chain, permutations, product
 from typing import List, Optional, Set, Tuple
 
@@ -149,36 +150,57 @@ OTHER_EXPRS = [
 ]
 
 
-def test_np_vs_cn(expr, input_gen=None, out_gen=None):
+@lru_cache(maxsize=None)
+def mk_default_inputs(lib, shape):
+    return [mk_0to1_array(lib, shape)]
+
+
+@lru_cache(maxsize=None)
+def mk_inputs_that_permute_to(lib, shape):
+    return [x for x in permutes_to(lib, shape)]
+
+
+@lru_cache(maxsize=None)
+def mk_inputs_that_broadcast_to(lib, shape):
+    return [x for x in broadcasts_to(lib, shape)]
+
+
+@lru_cache(maxsize=None)
+def mk_inputs_of_various_types(lib, shape):
+    return [
+        lib.ones(shape, np.int16),
+        lib.ones(shape, np.float32),
+        lib.ones(shape, np.complex64),
+    ]
+
+
+# Can't cache these, because they get overwritten by the operation
+def mk_outputs_of_various_types(lib, shape):
+    return [
+        lib.zeros(shape, np.int16),
+        lib.zeros(shape, np.float32),
+        lib.zeros(shape, np.complex64),
+    ]
+
+
+def test_np_vs_cn(expr, mk_inputs, mk_outputs=None):
     lhs, rhs = expr.split("->")
     opers = lhs.split(",")
     in_shapes = [
         tuple(BASE_DIM_LEN + ord(m) - ord("a") for m in op) for op in opers
     ]
     out_shape = tuple(BASE_DIM_LEN + ord(m) - ord("a") for m in rhs)
-    if input_gen is None:
-
-        def input_gen(lib, sh):
-            yield mk_0to1_array(lib, sh)
-
     for (np_inputs, cn_inputs) in zip(
-        product(*(input_gen(np, sh) for sh in in_shapes)),
-        product(*(input_gen(cn, sh) for sh in in_shapes)),
+        product(*(mk_inputs(np, sh) for sh in in_shapes)),
+        product(*(mk_inputs(cn, sh) for sh in in_shapes)),
     ):
         np_res = np.einsum(expr, *np_inputs)
         cn_res = cn.einsum(expr, *cn_inputs)
         assert np.allclose(np_res, cn_res)
-        if out_gen is not None:
-            for out in out_gen(cn, out_shape):
+        if mk_outputs is not None:
+            for out in mk_outputs(cn, out_shape):
                 cn.einsum(expr, *cn_inputs, out=out)
                 assert np.allclose(np_res, out)
-
-
-def gen_various_types(lib, sh):
-    yield lib.ones(sh, np.int16)
-    yield lib.ones(sh, np.float16)
-    yield lib.ones(sh, np.float64)
-    yield lib.ones(sh, np.complex64)
 
 
 def test():
@@ -190,17 +212,19 @@ def test():
             continue
         print(f"testing {expr}")
         # Test default mode
-        test_np_vs_cn(expr)
+        test_np_vs_cn(expr, mk_default_inputs)
         # Don't test additional configurations in 3+-operand expressions,
         # since those get decomposed into binary expressions anyway.
         if len(opers) > 2:
             continue
         # Test permutations on input arrays
-        test_np_vs_cn(expr, permutes_to)
+        test_np_vs_cn(expr, mk_inputs_that_permute_to)
         # Test broadcasting on input arrays
-        test_np_vs_cn(expr, broadcasts_to)
+        test_np_vs_cn(expr, mk_inputs_that_broadcast_to)
         # Test various types on input and output arrays
-        test_np_vs_cn(expr, gen_various_types, out_gen=gen_various_types)
+        test_np_vs_cn(
+            expr, mk_inputs_of_various_types, mk_outputs_of_various_types
+        )
 
 
 if __name__ == "__main__":
