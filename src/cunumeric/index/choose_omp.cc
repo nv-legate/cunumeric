@@ -27,7 +27,7 @@ struct ChooseImplBody<VariantKind::OMP, CODE, DIM> {
   using VAL = legate_type_of<CODE>;
 
   void operator()(const AccessorWO<VAL, DIM>& out,
-                  const AccessorRO<int, DIM>& index_arr,
+                  const AccessorRO<int64_t, DIM>& index_arr,
                   const std::vector<AccessorRO<VAL, DIM>>& choices,
                   const Rect<DIM>& rect,
                   const Pitches<DIM - 1>& pitches,
@@ -39,7 +39,9 @@ struct ChooseImplBody<VariantKind::OMP, CODE, DIM> {
       auto indexptr = index_arr.ptr(rect);
 #pragma omp parallel for schedule(static)
       for (size_t idx = 0; idx < volume; ++idx) {
+#ifdef CUNUMERIC_DEBUG
         assert(indexptr[idx] < choices.size());
+#endif
         auto chptr  = choices[indexptr[idx]].ptr(rect);
         outptr[idx] = chptr[idx];
       }

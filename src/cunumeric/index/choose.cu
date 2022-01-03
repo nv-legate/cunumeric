@@ -24,9 +24,9 @@ using namespace Legion;
 
 template <typename VAL, int DIM>
 __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-  choose_from_tuple_kernel(const AccessorWO<VAL, DIM> out,
-                           const AccessorRO<int, DIM> index_arr,
-                           const AccessorRO<VAL, DIM>* choices,
+  choose_kernel(const AccessorWO<VAL, DIM> out,
+                           const AccessorRO<int64_t, DIM> index_arr,
+                           const DeferredBuffer<AccessorRO<VAL, DIM>, 1> choices,
                            const Rect<DIM> rect,
                            const Pitches<DIM - 1> pitches,
                            int volume)
@@ -37,12 +37,27 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   out[p] = choices[index_arr[p]][p];
 }
 
+//dense version
+template <typename VAL, int DIM, typename OUT, typename IN>
+__global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
+  choose_kernel_dense( OUT* outptr,
+                           const IN*  indexptr,
+                           const DeferredBuffer<AccessorRO<VAL, DIM>, 1> choices,
+                           const Rect<DIM> rect,
+                           int volume)
+{
+  const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+  if (idx >= volume) return;
+  auto chptr  = choices[indexptr[idx]].ptr(rect); 
+  outptr[idx] = chptr[idx];
+}
+
 template <LegateTypeCode CODE, int DIM>
 struct ChooseImplBody<VariantKind::GPU, CODE, DIM> {
   using VAL = legate_type_of<CODE>;
 
   void operator()(const AccessorWO<VAL, DIM>& out,
-                  const AccessorRO<int, DIM>& index_arr,
+                  const AccessorRO<int64_t, DIM>& index_arr,
                   const std::vector<AccessorRO<VAL, DIM>>& choices,
                   const Rect<DIM>& rect,
                   const Pitches<DIM - 1>& pitches,
@@ -51,15 +66,20 @@ struct ChooseImplBody<VariantKind::GPU, CODE, DIM> {
     const size_t volume = rect.volume();
     const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
 
-    AccessorRO<VAL, DIM>* ch_arr;
-    cudaMalloc((void**)&ch_arr, choices.size() * sizeof(AccessorRO<VAL, DIM>));
-    cudaMemcpy(ch_arr,
-               choices.data(),
-               choices.size() * sizeof(AccessorRO<VAL, DIM>),
-               cudaMemcpyHostToDevice);
-    choose_from_tuple_kernel<VAL, DIM>
-      <<<blocks, THREADS_PER_BLOCK>>>(out, index_arr, ch_arr, rect, pitches, volume);
-    cudaFree(ch_arr);
+    DeferredBuffer<AccessorRO<VAL, DIM>, 1> ch_arr(Memory::Kind::Z_COPY_MEM,
+      Rect<1>(0, choices.size() - 1));
+    for (uint32_t idx = 0; idx < choices.size(); ++idx)
+      ch_arr[idx] = choices[idx];
+
+    if (dense){
+      auto outptr   = out.ptr(rect);
+      auto indexptr = index_arr.ptr(rect);
+      choose_kernel_dense<VAL, DIM><<<blocks, THREADS_PER_BLOCK>>>(outptr,
+        indexptr, ch_arr, rect, volume);
+    }else{
+      choose_kernel<VAL, DIM><<<blocks, THREADS_PER_BLOCK>>>(out,
+        index_arr, ch_arr, rect, pitches, volume);
+    }
   }
 };
 

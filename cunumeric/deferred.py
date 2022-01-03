@@ -1242,7 +1242,6 @@ class DeferredArray(NumPyThunk):
     ):
         # convert all arrays to deferred
         index_arr = self.runtime.to_deferred_array(rhs, stacklevel=stacklevel)
-        out_arr = self.runtime.to_deferred_array(self, stacklevel=stacklevel)
         ch_def = tuple(
             self.runtime.to_deferred_array(c, stacklevel=stacklevel)
             for c in args
