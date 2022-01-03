@@ -39,8 +39,18 @@ Scalar CuNumericMapper::tunable_value(TunableID tunable_id)
 {
   switch (tunable_id) {
     case CUNUMERIC_TUNABLE_NUM_GPUS: {
-      int32_t num_gpus = local_gpus.empty() ? 0 : local_gpus.size() * total_nodes;
+      int32_t num_gpus = local_gpus.size() * total_nodes;
       return Scalar(num_gpus);
+    }
+    case CUNUMERIC_TUNABLE_NUM_PROCS: {
+      int32_t num_procs = 0;
+      if (!local_gpus.empty())
+        num_procs = local_gpus.size() * total_nodes;
+      else if (!local_omps.empty())
+        num_procs = local_omps.size() * total_nodes;
+      else
+        num_procs = local_cpus.size() * total_nodes;
+      return Scalar(num_procs);
     }
     case CUNUMERIC_TUNABLE_MAX_EAGER_VOLUME: {
       int32_t eager_volume = 0;
@@ -63,16 +73,54 @@ Scalar CuNumericMapper::tunable_value(TunableID tunable_id)
 std::vector<StoreMapping> CuNumericMapper::store_mappings(
   const mapping::Task& task, const std::vector<mapping::StoreTarget>& options)
 {
-  if (task.task_id() == CUNUMERIC_CONVOLVE) {
-    std::vector<StoreMapping> mappings;
-    auto& inputs = task.inputs();
-    mappings.push_back(StoreMapping::default_mapping(inputs[0], options.front()));
-    mappings.push_back(StoreMapping::default_mapping(inputs[1], options.front()));
-    auto& input_mapping = mappings.back();
-    for (uint32_t idx = 2; idx < inputs.size(); ++idx) input_mapping.stores.push_back(inputs[idx]);
-    return std::move(mappings);
-  } else
-    return {};
+  switch (task.task_id()) {
+    case CUNUMERIC_CONVOLVE: {
+      std::vector<StoreMapping> mappings;
+      auto& inputs = task.inputs();
+      mappings.push_back(StoreMapping::default_mapping(inputs[0], options.front()));
+      mappings.push_back(StoreMapping::default_mapping(inputs[1], options.front()));
+      auto& input_mapping = mappings.back();
+      for (uint32_t idx = 2; idx < inputs.size(); ++idx)
+        input_mapping.stores.push_back(inputs[idx]);
+      return std::move(mappings);
+    }
+    case CUNUMERIC_TRANSPOSE_COPY_2D: {
+      auto logical = task.scalars()[0].value<bool>();
+      if (!logical) {
+        std::vector<StoreMapping> mappings;
+        auto& outputs = task.outputs();
+        mappings.push_back(StoreMapping::default_mapping(outputs[0], options.front()));
+        mappings.back().policy.ordering.fortran_order();
+        mappings.back().policy.exact = true;
+        return std::move(mappings);
+      } else
+        return {};
+    }
+    case CUNUMERIC_POTRF:
+    case CUNUMERIC_TRSM:
+    case CUNUMERIC_SYRK:
+    case CUNUMERIC_GEMM: {
+      std::vector<StoreMapping> mappings;
+      auto& inputs  = task.inputs();
+      auto& outputs = task.outputs();
+      for (auto& input : inputs) {
+        mappings.push_back(StoreMapping::default_mapping(input, options.front()));
+        mappings.back().policy.ordering.fortran_order();
+        mappings.back().policy.exact = true;
+      }
+      for (auto& output : outputs) {
+        mappings.push_back(StoreMapping::default_mapping(output, options.front()));
+        mappings.back().policy.ordering.fortran_order();
+        mappings.back().policy.exact = true;
+      }
+      return std::move(mappings);
+    }
+    default: {
+      return {};
+    }
+  }
+  assert(false);
+  return {};
 }
 
 }  // namespace cunumeric

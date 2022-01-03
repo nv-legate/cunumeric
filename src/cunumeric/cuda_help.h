@@ -47,6 +47,12 @@
     check_cufft(result, __FILE__, __LINE__); \
   } while (false)
 
+#define CHECK_CUSOLVER(expr)                    \
+  do {                                          \
+    cusolverStatus_t result = (expr);           \
+    check_cusolver(result, __FILE__, __LINE__); \
+  } while (false)
+
 #define CHECK_CUTENSOR(expr)                    \
   do {                                          \
     cutensorStatus_t result = (expr);           \
@@ -72,7 +78,7 @@ __host__ inline void check_cuda(cudaError_t error, const char* file, int line)
 {
   if (error != cudaSuccess) {
     fprintf(stderr,
-            "Internal Legate CUDA failure with error %s (%s) in file %s at line %d\n",
+            "Internal CUDA failure with error %s (%s) in file %s at line %d\n",
             cudaGetErrorString(error),
             cudaGetErrorName(error),
             file,
@@ -85,7 +91,7 @@ __host__ inline void check_cublas(cublasStatus_t status, const char* file, int l
 {
   if (status != CUBLAS_STATUS_SUCCESS) {
     fprintf(stderr,
-            "Internal Legate CUBLAS failure with error code %d in file %s at line %d\n",
+            "Internal cuBLAS failure with error code %d in file %s at line %d\n",
             status,
             file,
             line);
@@ -97,11 +103,23 @@ __host__ inline void check_cufft(cufftResult result, const char* file, int line)
 {
   if (result != CUFFT_SUCCESS) {
     fprintf(stderr,
-            "Internal Legate CUFFT failure with error code %d in file %s at line %d\n",
+            "Internal cuFFT failure with error code %d in file %s at line %d\n",
             result,
             file,
             line);
     exit(result);
+  }
+}
+
+__host__ inline void check_cusolver(cusolverStatus_t status, const char* file, int line)
+{
+  if (status != CUSOLVER_STATUS_SUCCESS) {
+    fprintf(stderr,
+            "Internal cuSOLVER failure with error code %d in file %s at line %d\n",
+            status,
+            file,
+            line);
+    exit(status);
   }
 }
 

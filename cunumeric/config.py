@@ -92,15 +92,19 @@ class CuNumericOpCode(IntEnum):
     EYE = _cunumeric.CUNUMERIC_EYE
     FILL = _cunumeric.CUNUMERIC_FILL
     FLIP = _cunumeric.CUNUMERIC_FLIP
+    GEMM = _cunumeric.CUNUMERIC_GEMM
     MATMUL = _cunumeric.CUNUMERIC_MATMUL
     MATVECMUL = _cunumeric.CUNUMERIC_MATVECMUL
     NONZERO = _cunumeric.CUNUMERIC_NONZERO
+    POTRF = _cunumeric.CUNUMERIC_POTRF
     RAND = _cunumeric.CUNUMERIC_RAND
     READ = _cunumeric.CUNUMERIC_READ
     SCALAR_UNARY_RED = _cunumeric.CUNUMERIC_SCALAR_UNARY_RED
+    SYRK = _cunumeric.CUNUMERIC_SYRK
     TILE = _cunumeric.CUNUMERIC_TILE
-    TRANSPOSE = _cunumeric.CUNUMERIC_TRANSPOSE
+    TRANSPOSE_COPY_2D = _cunumeric.CUNUMERIC_TRANSPOSE_COPY_2D
     TRILU = _cunumeric.CUNUMERIC_TRILU
+    TRSM = _cunumeric.CUNUMERIC_TRSM
     UNARY_OP = _cunumeric.CUNUMERIC_UNARY_OP
     UNARY_RED = _cunumeric.CUNUMERIC_UNARY_RED
     WHERE = _cunumeric.CUNUMERIC_WHERE
@@ -197,4 +201,5 @@ class CuNumericRedopCode(IntEnum):
 @unique
 class CuNumericTunable(IntEnum):
     NUM_GPUS = _cunumeric.CUNUMERIC_TUNABLE_NUM_GPUS
+    NUM_PROCS = _cunumeric.CUNUMERIC_TUNABLE_NUM_PROCS
     MAX_EAGER_VOLUME = _cunumeric.CUNUMERIC_TUNABLE_MAX_EAGER_VOLUME

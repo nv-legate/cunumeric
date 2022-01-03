@@ -20,6 +20,7 @@
 #include "legate_preamble.h"
 
 // Match these to CuNumericOpCode in cunumeric/config.py
+// Also, sort these alphabetically except the first one for easy lookup later
 enum CuNumericOpCode {
   _CUNUMERIC_OP_CODE_BASE = 0,
   CUNUMERIC_ARANGE,
@@ -34,15 +35,19 @@ enum CuNumericOpCode {
   CUNUMERIC_EYE,
   CUNUMERIC_FILL,
   CUNUMERIC_FLIP,
+  CUNUMERIC_GEMM,
   CUNUMERIC_MATMUL,
   CUNUMERIC_MATVECMUL,
   CUNUMERIC_NONZERO,
+  CUNUMERIC_POTRF,
   CUNUMERIC_RAND,
   CUNUMERIC_READ,
   CUNUMERIC_SCALAR_UNARY_RED,
+  CUNUMERIC_SYRK,
   CUNUMERIC_TILE,
-  CUNUMERIC_TRANSPOSE,
+  CUNUMERIC_TRANSPOSE_COPY_2D,
   CUNUMERIC_TRILU,
+  CUNUMERIC_TRSM,
   CUNUMERIC_UNARY_OP,
   CUNUMERIC_UNARY_RED,
   CUNUMERIC_WHERE,
@@ -58,7 +63,8 @@ enum CuNumericRedopID {
 // Match these to CuNumericTunable in cunumeric/config.py
 enum CuNumericTunable {
   CUNUMERIC_TUNABLE_NUM_GPUS         = 1,
-  CUNUMERIC_TUNABLE_MAX_EAGER_VOLUME = 2,
+  CUNUMERIC_TUNABLE_NUM_PROCS        = 2,
+  CUNUMERIC_TUNABLE_MAX_EAGER_VOLUME = 3,
 };
 
 enum CuNumericBounds {

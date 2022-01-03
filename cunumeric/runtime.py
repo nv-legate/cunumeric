@@ -97,6 +97,7 @@ class Runtime(object):
         "legate_runtime",
         "current_random_epoch",
         "max_eager_volume",
+        "num_procs",
         "test_mode",
         "shadow_debug",
         "callsite_summaries",
@@ -112,6 +113,12 @@ class Runtime(object):
         self.max_eager_volume = self.legate_context.get_tunable(
             CuNumericTunable.MAX_EAGER_VOLUME,
             ty.int32,
+        )
+        self.num_procs = int(
+            self.legate_context.get_tunable(
+                CuNumericTunable.NUM_PROCS,
+                ty.int32,
+            )
         )
 
         # Make sure that our CuNumericLib object knows about us so it can
@@ -258,7 +265,7 @@ class Runtime(object):
 
     def get_next_random_epoch(self):
         result = self.current_random_epoch
-        self.current_random_epoch += 1
+        # self.current_random_epoch += 1
         return result
 
     def is_supported_type(self, dtype):

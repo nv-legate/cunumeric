@@ -20,15 +20,9 @@
 
 namespace cunumeric {
 
-struct TransposeArgs {
-  const Array& out;
-  const Array& in;
-  bool logical;
-};
-
-class TransposeTask : public CuNumericTask<TransposeTask> {
+class PotrfTask : public CuNumericTask<PotrfTask> {
  public:
-  static const int TASK_ID = CUNUMERIC_TRANSPOSE_COPY_2D;
+  static const int TASK_ID = CUNUMERIC_POTRF;
 
  public:
   static void cpu_variant(legate::TaskContext& context);
