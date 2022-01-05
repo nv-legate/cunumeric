@@ -29,9 +29,7 @@ static inline void gemm_template(
   Gemm gemm, VAL* lhs, const VAL* rhs1, const VAL* rhs2, int32_t m, int32_t n, int32_t k)
 {
   auto context = get_cublas();
-
-  cudaStream_t stream;
-  cudaStreamCreate(&stream);
+  auto stream = get_cached_stream();
   CHECK_CUBLAS(cublasSetStream(context, stream));
 
   auto transa = CUBLAS_OP_N;
@@ -41,8 +39,6 @@ static inline void gemm_template(
   VAL beta  = 1.0;
 
   gemm(context, transa, transb, m, n, k, &alpha, rhs1, m, rhs2, n, &beta, lhs, m);
-
-  cudaStreamDestroy(stream);
 }
 
 template <typename Gemm, typename VAL, typename CTOR>
@@ -50,9 +46,7 @@ static inline void complex_gemm_template(
   Gemm gemm, VAL* lhs, const VAL* rhs1, const VAL* rhs2, int32_t m, int32_t n, int32_t k, CTOR ctor)
 {
   auto context = get_cublas();
-
-  cudaStream_t stream;
-  cudaStreamCreate(&stream);
+  auto stream = get_cached_stream();
   CHECK_CUBLAS(cublasSetStream(context, stream));
 
   auto transa = CUBLAS_OP_N;
@@ -62,8 +56,6 @@ static inline void complex_gemm_template(
   auto beta  = ctor(1.0, 0.0);
 
   gemm(context, transa, transb, m, n, k, &alpha, rhs1, m, rhs2, n, &beta, lhs, m);
-
-  cudaStreamDestroy(stream);
 }
 
 template <>

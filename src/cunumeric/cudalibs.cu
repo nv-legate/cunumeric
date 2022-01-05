@@ -17,6 +17,7 @@
 #include "legate.h"
 
 #include "cudalibs.h"
+#include "cuda_help.h"
 
 #include <mutex>
 #include <stdio.h>
@@ -25,9 +26,16 @@ namespace cunumeric {
 
 using namespace Legion;
 
-CUDALibraries::CUDALibraries() : cublas_(nullptr), cusolver_(nullptr), cutensor_(nullptr) {}
+CUDALibraries::CUDALibraries() : cublas_(nullptr), cusolver_(nullptr), cutensor_(nullptr)
+{
+  CHECK_CUDA(cudaStreamCreateWithFlags(&stream_, cudaStreamNonBlocking));
+}
 
-CUDALibraries::~CUDALibraries() { finalize(); }
+CUDALibraries::~CUDALibraries()
+{
+  finalize();
+  cudaStreamDestroy(stream_);
+}
 
 void CUDALibraries::finalize()
 {
@@ -66,6 +74,11 @@ void CUDALibraries::finalize_cutensor()
 {
   delete cutensor_;
   cutensor_ = nullptr;
+}
+
+cudaStream_t CUDALibraries::get_cached_stream()
+{
+  return stream_;
 }
 
 cublasHandle_t CUDALibraries::get_cublas()
@@ -137,6 +150,13 @@ static CUDALibraries& get_cuda_libraries(Processor proc)
     return finder->second;
   else
     return cuda_libraries[proc];
+}
+
+cudaStream_t get_cached_stream()
+{
+  const auto proc = Processor::get_executing_processor();
+  auto& lib       = get_cuda_libraries(proc);
+  return lib.get_cached_stream();
 }
 
 cublasContext* get_cublas()

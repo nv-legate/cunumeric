@@ -29,9 +29,7 @@ static inline void trsm_template(
   Trsm trsm, VAL* lhs, const VAL* rhs, int32_t m, int32_t n, VAL alpha)
 {
   auto context = get_cublas();
-
-  cudaStream_t stream;
-  cudaStreamCreate(&stream);
+  auto stream = get_cached_stream();
   CHECK_CUBLAS(cublasSetStream(context, stream));
 
   // TODO: We need to expose these parameters to the API later we port scipy.linalg
@@ -41,8 +39,6 @@ static inline void trsm_template(
   auto diag   = CUBLAS_DIAG_NON_UNIT;
 
   trsm(context, side, uplo, transa, diag, m, n, &alpha, rhs, n, lhs, m);
-
-  cudaStreamDestroy(stream);
 }
 
 template <>
