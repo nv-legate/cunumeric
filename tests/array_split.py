@@ -28,7 +28,7 @@ def test(min_size, max_size):
     # Seed the random generator with a random number
     np.random.seed(416)
     print("test split")
-    test_routine = ["array_split", "split"]
+    test_routine = ["array_split"]
     # test the split routines on 3D array [1:10, 1:10, 1:10] w/ integers,
     # list of indicies. vsplit, hsplit, dsplit are included
     # in the following loops(axis = 0: vsplit, 1: hsplit, 2: dsplit)
@@ -89,64 +89,39 @@ def test(min_size, max_size):
                         test_routine, input_arr
                     ):
                         # test divisible integer or indices
-                        print(
-                            f"Testing np.{routine}({a.shape}, {input_opt}"
-                            f", {axis}) -> ",
-                            end="",
+                        print_msg = (
+                            f"np.{routine}({a.shape}, {input_opt}" f", {axis})"
                         )
-                        b_result = True
-                        c_result = True
                         # Check if both impls produce the error
                         # for non-viable options
-                        try:
-                            b = getattr(np, routine)(a, input_opt, axis)
-                        except ValueError:
-                            b_result = False
-                        try:
-                            c = getattr(num, routine)(a, input_opt, axis)
-                        except ValueError:
-                            c_result = False
-                        if b_result and c_result:
-                            not_equal = False
-                            err_arr = None
-                            if len(b) != len(c):
-                                not_equal = True
-                                err_arr = [b, c]
-                            else:
-                                for each in zip(b, c):
-                                    sub_set = list(each)
-                                    if not np.array_equal(
-                                        sub_set[0], sub_set[1]
-                                    ):
-                                        err_arr = sub_set
-                                        not_equal = True
-                                        break
+                        b = getattr(np, routine)(a, input_opt, axis)
+                        c = getattr(num, routine)(a, input_opt, axis)
+                        is_equal = True
+                        err_arr = [b, c]
 
-                            if not_equal:
-                                print(
-                                    f"""
-                                     numpy result: {err_arr[0]}
-                                     cunumeric_result: {err_arr[1]}
-                                     """
-                                )
-                                raise ValueError(
-                                    f"cunumeric and numpy shows"
-                                    f"different result\n"
-                                    f"array({i},{j},{k}),"
-                                    f"routine: {routine},"
-                                    f"indices: {input_opt}, axis: {axis}"
-                                )
+                        if len(b) != len(c):
+                            is_equal = False
+                            err_arr = [b, c]
+                        else:
+                            for each in zip(b, c):
+                                sub_set = list(each)
+                                if not np.array_equal(sub_set[0], sub_set[1]):
+                                    err_arr = sub_set
+                                    is_equal = False
+                                    break
 
-                        elif b_result != c_result:
-                            raise ValueError(
-                                f"cunumeric and numpy shows "
-                                f"different errors\n"
-                                f"numpy: {b_result}, cunumeric: {c_result}"
-                                f"array({i},{j},{k}), "
-                                f"routine: {routine}, "
-                                f"indices: {input_opt}, axis: {axis}"
-                            )
-                        print(" Passed")
+                        assert is_equal, (
+                            f"Failed, {print_msg}"
+                            f"numpy result: {err_arr[0]}"
+                            f"cunumeric_result: {err_arr[1]}"
+                            f"cunumeric and numpy shows"
+                            f"different result\n"
+                            f"array({i},{j},{k}),"
+                            f"routine: {routine},"
+                            f"indices: {input_opt}, axis: {axis}"
+                        )
+
+                        print(f"Passed, {print_msg}")
     return
 
 
