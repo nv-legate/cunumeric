@@ -31,8 +31,7 @@ static inline void potrf_template(
   auto uplo = CUBLAS_FILL_MODE_LOWER;
 
   auto context = get_cusolver();
-  cudaStream_t stream;
-  cudaStreamCreate(&stream);
+  auto stream = get_cached_stream();
   CHECK_CUSOLVER(cusolverDnSetStream(context, stream));
 
   int32_t bufferSize;
@@ -42,8 +41,6 @@ static inline void potrf_template(
   auto info   = create_buffer<int32_t>(1, Memory::Kind::Z_COPY_MEM);
 
   CHECK_CUSOLVER(potrf(context, uplo, n, array, m, buffer.ptr(0), bufferSize, info.ptr(0)));
-
-  cudaStreamDestroy(stream);
 }
 
 template <>

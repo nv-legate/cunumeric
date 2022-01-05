@@ -37,10 +37,9 @@ struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::FLOAT_LT> {
                   bool rhs1_transposed,
                   bool rhs2_transposed)
   {
-    cublasHandle_t cublas_handle = get_cublas();
+    auto cublas_handle = get_cublas();
     // Update the stream because the CUDA hijack can't see inside cuBLAS
-    cudaStream_t task_stream;
-    cudaStreamCreate(&task_stream);
+    auto task_stream = get_cached_stream();
     CHECK_CUBLAS(cublasSetStream(cublas_handle, task_stream));
 
     const float alpha = 1.f;
@@ -68,8 +67,6 @@ struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::FLOAT_LT> {
                                lhs,
                                CUDA_R_32F,
                                lhs_stride));
-
-    cudaStreamDestroy(task_stream);
   }
 };
 
@@ -87,10 +84,9 @@ struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::DOUBLE_LT> {
                   bool rhs1_transposed,
                   bool rhs2_transposed)
   {
-    cublasHandle_t cublas_handle = get_cublas();
+    auto cublas_handle = get_cublas();
     // Update the stream because the CUDA hijack can't see inside cuBLAS
-    cudaStream_t task_stream;
-    cudaStreamCreate(&task_stream);
+    auto task_stream = get_cached_stream();
     CHECK_CUBLAS(cublasSetStream(cublas_handle, task_stream));
 
     const double alpha = 1.f;
@@ -113,8 +109,6 @@ struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::DOUBLE_LT> {
                              &beta,
                              lhs,
                              lhs_stride));
-
-    cudaStreamDestroy(task_stream);
   }
 };
 
@@ -132,10 +126,9 @@ struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::HALF_LT> {
                   bool rhs1_transposed,
                   bool rhs2_transposed)
   {
-    cublasHandle_t cublas_handle = get_cublas();
+    auto cublas_handle = get_cublas();
     // Update the stream because the CUDA hijack can't see inside cuBLAS
-    cudaStream_t task_stream;
-    cudaStreamCreate(&task_stream);
+    auto task_stream = get_cached_stream();
     CHECK_CUBLAS(cublasSetStream(cublas_handle, task_stream));
 
     const float alpha = 1.f;
@@ -163,8 +156,6 @@ struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::HALF_LT> {
                                lhs,
                                CUDA_R_32F,
                                lhs_stride));
-
-    cudaStreamDestroy(task_stream);
   }
 };
 

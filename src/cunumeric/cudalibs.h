@@ -34,6 +34,7 @@ struct CUDALibraries {
 
  public:
   void finalize();
+  cudaStream_t get_cached_stream();
   cublasHandle_t get_cublas();
   cusolverDnHandle_t get_cusolver();
   cutensorHandle_t* get_cutensor();
@@ -44,6 +45,7 @@ struct CUDALibraries {
   void finalize_cutensor();
 
  private:
+  cudaStream_t stream_;
   cublasContext* cublas_;
   cusolverDnContext* cusolver_;
   cutensorHandle_t* cutensor_;

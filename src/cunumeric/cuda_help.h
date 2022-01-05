@@ -70,6 +70,8 @@ namespace cunumeric {
 
 // Defined in cudalibs.cu
 
+// Return a cached stream for the current GPU
+cudaStream_t get_cached_stream();
 cublasHandle_t get_cublas();
 cusolverDnHandle_t get_cusolver();
 cutensorHandle_t* get_cutensor();

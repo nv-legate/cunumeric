@@ -41,9 +41,8 @@ __host__ void contract(T* lhs_data,
                        int32_t* rhs2_modes)
 {
   // Initialization
-  cudaStream_t task_stream;
-  CHECK_CUDA(cudaStreamCreateWithFlags(&task_stream, cudaStreamNonBlocking));
-  cutensorHandle_t* handle = get_cutensor();
+  auto handle = get_cutensor();
+  auto task_stream = get_cached_stream();
 
   // Create tensor descriptors
   cutensorTensorDescriptor_t lhs_desc;
@@ -106,9 +105,6 @@ __host__ void contract(T* lhs_data,
                                      work,
                                      work_size,
                                      task_stream));
-
-  // Cleanup
-  CHECK_CUDA(cudaStreamDestroy(task_stream));
 }
 
 template <>
