@@ -94,10 +94,38 @@ def gemm(context, p_output, k, i, lo, hi):
     task.execute()
 
 
+MIN_CHOLESKY_TILE_SIZE = 2048
+MIN_CHOLESKY_MATRIX_SIZE = 8192
+
+
+# TODO: We need a better cost model
+def choose_color_shape(runtime, shape):
+    if runtime.test_mode:
+        num_tiles = runtime.num_procs * 2
+        return (num_tiles, num_tiles)
+    else:
+        extent = shape[0]
+        # If there's only one processor or the matrix is too small,
+        # don't even bother to partition it at all
+        if runtime.num_procs == 1 or extent <= MIN_CHOLESKY_MATRIX_SIZE:
+            return (1, 1)
+
+        # If the matrix is big enough to warrant partitioning,
+        # pick the granularity that the tile size is greater than a threshold
+        num_tiles = runtime.num_procs
+        max_num_tiles = runtime.num_procs * 4
+        while (
+            (extent + num_tiles - 1) // num_tiles > MIN_CHOLESKY_TILE_SIZE
+            and num_tiles * 2 <= max_num_tiles
+        ):
+            num_tiles *= 2
+
+        return (num_tiles, num_tiles)
+
+
 def cholesky(output, input, stacklevel=0, callsite=None):
-    num_procs = output.runtime.num_procs * 2
     shape = output.base.shape
-    color_shape = (num_procs, num_procs)
+    color_shape = choose_color_shape(output.runtime, shape)
     tile_shape = (shape + color_shape - 1) // color_shape
     color_shape = (shape + tile_shape - 1) // tile_shape
     n = color_shape[0]
