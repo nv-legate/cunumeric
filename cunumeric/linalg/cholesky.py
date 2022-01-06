@@ -113,5 +113,3 @@ def cholesky(output, input, stacklevel=0, callsite=None):
         for k in range(i + 1, n):
             syrk(context, p_output, k, i)
             gemm(context, p_output, k, i, k + 1, n)
-
-    output.trilu(output, 0, True, stacklevel=stacklevel + 1, callsite=callsite)
