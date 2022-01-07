@@ -21,6 +21,7 @@
 
 namespace cunumeric {
 
+// Match these to UnaryRedCode in config.py
 enum class UnaryRedCode : int {
   ALL           = 1,
   ANY           = 2,
