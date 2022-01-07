@@ -41,7 +41,7 @@ __host__ void contract(T* lhs_data,
                        int32_t* rhs2_modes)
 {
   // Initialization
-  auto handle = get_cutensor();
+  auto handle      = get_cutensor();
   auto task_stream = get_cached_stream();
 
   // Create tensor descriptors

@@ -76,10 +76,7 @@ void CUDALibraries::finalize_cutensor()
   cutensor_ = nullptr;
 }
 
-cudaStream_t CUDALibraries::get_cached_stream()
-{
-  return stream_;
-}
+cudaStream_t CUDALibraries::get_cached_stream() { return stream_; }
 
 cublasHandle_t CUDALibraries::get_cublas()
 {
