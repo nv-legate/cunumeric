@@ -24,6 +24,7 @@
 
 namespace cunumeric {
 
+// Match these to RandGenCode in config.py
 enum class RandGenCode : int32_t {
   UNIFORM = 1,
   NORMAL  = 2,

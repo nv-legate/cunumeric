@@ -19,7 +19,7 @@
 
 #include "legate_preamble.h"
 
-// Match these to CuNumericOpCode in cunumeric/config.py
+// Match these to CuNumericOpCode in config.py
 // Also, sort these alphabetically except the first one for easy lookup later
 enum CuNumericOpCode {
   _CUNUMERIC_OP_CODE_BASE = 0,
@@ -54,13 +54,13 @@ enum CuNumericOpCode {
   CUNUMERIC_WRITE,
 };
 
-// Match these to CuNumericRedopCode in cunumeric/config.py
+// Match these to CuNumericRedopCode in config.py
 enum CuNumericRedopID {
   CUNUMERIC_ARGMAX_REDOP = 1,
   CUNUMERIC_ARGMIN_REDOP = 2,
 };
 
-// Match these to CuNumericTunable in cunumeric/config.py
+// Match these to CuNumericTunable in config.py
 enum CuNumericTunable {
   CUNUMERIC_TUNABLE_NUM_GPUS         = 1,
   CUNUMERIC_TUNABLE_NUM_PROCS        = 2,
