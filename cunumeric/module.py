@@ -587,7 +587,11 @@ def array_split(a, indices, axis=0, equal=False):
                 )
                 first_idx = (len_subarr + 1) * res
         split_pts.extend(range(first_idx, end_idx + 1, len_subarr))
-    elif dtype == np.array or dtype == list or dtype == tuple:
+    elif (
+        (dtype == np.ndarray and indices.dtype == int)
+        or dtype == list
+        or dtype == tuple
+    ):
         split_pts = list(indices)
         # adding the size of the target dimension.
         # This helps create dummy or last subarray correctly
@@ -610,6 +614,10 @@ def array_split(a, indices, axis=0, equal=False):
             out_shape.append(1)
 
     for pts in split_pts:
+        if type(pts) is not int:
+            raise ValueError(
+                "Split points in the passed `indices` should be integer"
+            )
         end_idx = pts
         # For a split point, which is larger than the dimension for splitting,
         # The last non-empty subarray should be copied from
