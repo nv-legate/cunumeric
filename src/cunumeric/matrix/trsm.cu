@@ -29,7 +29,7 @@ static inline void trsm_template(
   Trsm trsm, VAL* lhs, const VAL* rhs, int32_t m, int32_t n, VAL alpha)
 {
   auto context = get_cublas();
-  auto stream = get_cached_stream();
+  auto stream  = get_cached_stream();
   CHECK_CUBLAS(cublasSetStream(context, stream));
 
   // TODO: We need to expose these parameters to the API later we port scipy.linalg

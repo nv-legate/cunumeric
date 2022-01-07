@@ -29,7 +29,7 @@ static inline void gemm_template(
   Gemm gemm, VAL* lhs, const VAL* rhs1, const VAL* rhs2, int32_t m, int32_t n, int32_t k)
 {
   auto context = get_cublas();
-  auto stream = get_cached_stream();
+  auto stream  = get_cached_stream();
   CHECK_CUBLAS(cublasSetStream(context, stream));
 
   auto transa = CUBLAS_OP_N;
@@ -46,7 +46,7 @@ static inline void complex_gemm_template(
   Gemm gemm, VAL* lhs, const VAL* rhs1, const VAL* rhs2, int32_t m, int32_t n, int32_t k, CTOR ctor)
 {
   auto context = get_cublas();
-  auto stream = get_cached_stream();
+  auto stream  = get_cached_stream();
   CHECK_CUBLAS(cublasSetStream(context, stream));
 
   auto transa = CUBLAS_OP_N;

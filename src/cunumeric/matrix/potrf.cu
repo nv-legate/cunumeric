@@ -31,7 +31,7 @@ static inline void potrf_template(
   auto uplo = CUBLAS_FILL_MODE_LOWER;
 
   auto context = get_cusolver();
-  auto stream = get_cached_stream();
+  auto stream  = get_cached_stream();
   CHECK_CUSOLVER(cusolverDnSetStream(context, stream));
 
   int32_t bufferSize;

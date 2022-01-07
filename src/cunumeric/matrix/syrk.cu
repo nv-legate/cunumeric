@@ -29,7 +29,7 @@ static inline void syrk_template(
   Syrk syrk, VAL* lhs, const VAL* rhs, int32_t m, int32_t n, CONS _fake_param_for_type_inference)
 {
   auto context = get_cublas();
-  auto stream = get_cached_stream();
+  auto stream  = get_cached_stream();
   CHECK_CUBLAS(cublasSetStream(context, stream));
 
   auto uplo  = CUBLAS_FILL_MODE_LOWER;
