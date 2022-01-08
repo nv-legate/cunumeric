@@ -38,18 +38,16 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
 }
 
 //dense version
-template <typename VAL, int DIM, typename OUT, typename IN>
+template <typename VAL>
 __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-  choose_kernel_dense( OUT* outptr,
-                           const IN*  indexptr,
-                           const DeferredBuffer<AccessorRO<VAL, DIM>, 1> choices,
-                           const Rect<DIM> rect,
+  choose_kernel_dense( VAL* outptr,
+                           const int64_t*  indexptr,
+                           DeferredBuffer<const VAL*,1> choices,
                            int volume)
 {
   const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (idx >= volume) return;
-  auto chptr  = choices[indexptr[idx]].ptr(rect); 
-  outptr[idx] = chptr[idx];
+  outptr[idx] = choices[indexptr[idx]][idx];
 }
 
 template <LegateTypeCode CODE, int DIM>
@@ -66,17 +64,21 @@ struct ChooseImplBody<VariantKind::GPU, CODE, DIM> {
     const size_t volume = rect.volume();
     const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
 
-    DeferredBuffer<AccessorRO<VAL, DIM>, 1> ch_arr(Memory::Kind::Z_COPY_MEM,
-      Rect<1>(0, choices.size() - 1));
-    for (uint32_t idx = 0; idx < choices.size(); ++idx)
-      ch_arr[idx] = choices[idx];
 
     if (dense){
-      auto outptr   = out.ptr(rect);
-      auto indexptr = index_arr.ptr(rect);
-      choose_kernel_dense<VAL, DIM><<<blocks, THREADS_PER_BLOCK>>>(outptr,
-        indexptr, ch_arr, rect, volume);
+      DeferredBuffer<const VAL*, 1> ch_arr(Memory::Kind::Z_COPY_MEM,
+      Rect<1>(0, choices.size() - 1));
+      for (uint32_t idx = 0; idx < choices.size(); ++idx)
+        ch_arr[idx] = choices[idx].ptr(rect);
+      VAL* outptr   = out.ptr(rect);
+      const int64_t* indexptr = index_arr.ptr(rect);
+      choose_kernel_dense<VAL><<<blocks, THREADS_PER_BLOCK>>>(outptr,
+        indexptr, ch_arr, volume);
     }else{
+      DeferredBuffer<AccessorRO<VAL, DIM>, 1> ch_arr(Memory::Kind::Z_COPY_MEM,
+      Rect<1>(0, choices.size() - 1));
+      for (uint32_t idx = 0; idx < choices.size(); ++idx)
+        ch_arr[idx] = choices[idx];
       choose_kernel<VAL, DIM><<<blocks, THREADS_PER_BLOCK>>>(out,
         index_arr, ch_arr, rect, pitches, volume);
     }
