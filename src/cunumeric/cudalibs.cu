@@ -76,10 +76,7 @@ void CUDALibraries::finalize_cutensor()
   cutensor_ = nullptr;
 }
 
-cudaStream_t CUDALibraries::get_cached_stream()
-{
-  return stream_;
-}
+cudaStream_t CUDALibraries::get_cached_stream() { return stream_; }
 
 cublasHandle_t CUDALibraries::get_cublas()
 {
@@ -138,7 +135,7 @@ static CUDALibraries& get_cuda_libraries(Processor proc)
 {
   if (proc.kind() != Processor::TOC_PROC) {
     fprintf(stderr, "Illegal request for CUDA libraries for non-GPU processor");
-    LEGATE_ABORT
+    LEGATE_ABORT;
   }
   static std::mutex mut_cuda_libraries;
   static std::map<Processor, CUDALibraries> cuda_libraries;

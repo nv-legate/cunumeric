@@ -1784,4 +1784,5 @@ class DeferredArray(NumPyThunk):
     @auto_convert([1])
     @shadow_debug("cholesky", [1])
     def cholesky(self, src, stacklevel=0, callsite=None):
-        cholesky(self, src, stacklevel, callsite)
+        cholesky(self, src, stacklevel=stacklevel + 1, callsite=callsite)
+        self.trilu(self, 0, True, stacklevel=stacklevel + 1, callsite=callsite)

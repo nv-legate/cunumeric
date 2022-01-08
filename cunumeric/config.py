@@ -112,7 +112,7 @@ class CuNumericOpCode(IntEnum):
     WRITE = _cunumeric.CUNUMERIC_WRITE
 
 
-# Match these to  BinaryOpCode in binary_op_util.h
+# Match these to BinaryOpCode in binary_op_util.h
 @unique
 class BinaryOpCode(IntEnum):
     ADD = 1
@@ -169,7 +169,7 @@ class UnaryOpCode(IntEnum):
     GETARG = 28
 
 
-# Match these to  UnaryRedCode in unary_red_util.h
+# Match these to UnaryRedCode in unary_red_util.h
 @unique
 class UnaryRedCode(IntEnum):
     ALL = 1
@@ -184,6 +184,7 @@ class UnaryRedCode(IntEnum):
     COUNT_NONZERO = 10
 
 
+# Match these to RandGenCode in rand_util.h
 @unique
 class RandGenCode(IntEnum):
     UNIFORM = 1

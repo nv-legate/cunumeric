@@ -15,8 +15,7 @@ repos:
       rev: 'v13.0.0'  # Use the sha / tag you want to point at
       hooks:
         - id: clang-format
-          entry: clang-format -i
           files: \.(cu|cuh|h|cc|inl)$
-          args: ['-fallback-style=none']
+          types_or: []
 default_language_version:
     python: python3

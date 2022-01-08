@@ -24,6 +24,7 @@
 
 namespace cunumeric {
 
+// Match these to UnaryOpCode in config.py
 enum class UnaryOpCode : int {
   ABSOLUTE = 1,
   ARCCOS,

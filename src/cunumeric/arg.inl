@@ -113,10 +113,12 @@ __CUDA_HD__ inline void Argval<T>::apply(const Argval<T>& rhs)
 }
 
 #define DECLARE_ARGMAX_IDENTITY(TYPE) \
-  template <> const Argval<TYPE> ArgmaxReduction<TYPE>::identity;
+  template <>                         \
+  const Argval<TYPE> ArgmaxReduction<TYPE>::identity;
 
 #define DECLARE_ARGMIN_IDENTITY(TYPE) \
-  template <> const Argval<TYPE> ArgminReduction<TYPE>::identity;
+  template <>                         \
+  const Argval<TYPE> ArgminReduction<TYPE>::identity;
 
 #define DECLARE_IDENTITIES(TYPE) \
   DECLARE_ARGMAX_IDENTITY(TYPE)  \
