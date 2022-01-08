@@ -57,10 +57,10 @@ struct RandomGenerator<RandGenCode::UNIFORM, CODE> {
 
   static constexpr bool valid = CODE == legate::LegateTypeCode::DOUBLE_LT;
 
-  RandomGenerator(uint32_t ep, const std::vector<legate::Store>& args) : epoch(ep) 
+  RandomGenerator(uint32_t ep, const std::vector<legate::Store>& args) : epoch(ep)
   {
-    assert(args.size()==2);
-    lo = args[0].scalar<VAL>();
+    assert(args.size() == 2);
+    lo   = args[0].scalar<VAL>();
     diff = args[1].scalar<VAL>() - lo;
   }
 
