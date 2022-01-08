@@ -222,7 +222,7 @@ class NumPyThunk(object):
         """
         raise NotImplementedError("Implement in derived classes")
 
-    def random_uniform(self,low, high, stacklevel):
+    def random_uniform(self, low, high, stacklevel):
         """Fill this array with a random uniform distribution
 
         :meta private:
