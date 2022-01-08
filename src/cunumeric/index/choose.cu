@@ -25,11 +25,11 @@ using namespace Legion;
 template <typename VAL, int DIM>
 __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   choose_kernel(const AccessorWO<VAL, DIM> out,
-                           const AccessorRO<int64_t, DIM> index_arr,
-                           const DeferredBuffer<AccessorRO<VAL, DIM>, 1> choices,
-                           const Rect<DIM> rect,
-                           const Pitches<DIM - 1> pitches,
-                           int volume)
+                const AccessorRO<int64_t, DIM> index_arr,
+                const DeferredBuffer<AccessorRO<VAL, DIM>, 1> choices,
+                const Rect<DIM> rect,
+                const Pitches<DIM - 1> pitches,
+                int volume)
 {
   const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (idx >= volume) return;
@@ -37,13 +37,10 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   out[p] = choices[index_arr[p]][p];
 }
 
-//dense version
+// dense version
 template <typename VAL>
-__global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-  choose_kernel_dense( VAL* outptr,
-                           const int64_t*  indexptr,
-                           DeferredBuffer<const VAL*,1> choices,
-                           int volume)
+__global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM) choose_kernel_dense(
+  VAL* outptr, const int64_t* indexptr, DeferredBuffer<const VAL*, 1> choices, int volume)
 {
   const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (idx >= volume) return;
@@ -64,23 +61,19 @@ struct ChooseImplBody<VariantKind::GPU, CODE, DIM> {
     const size_t volume = rect.volume();
     const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
 
-
-    if (dense){
+    if (dense) {
       DeferredBuffer<const VAL*, 1> ch_arr(Memory::Kind::Z_COPY_MEM,
-      Rect<1>(0, choices.size() - 1));
-      for (uint32_t idx = 0; idx < choices.size(); ++idx)
-        ch_arr[idx] = choices[idx].ptr(rect);
-      VAL* outptr   = out.ptr(rect);
+                                           Rect<1>(0, choices.size() - 1));
+      for (uint32_t idx = 0; idx < choices.size(); ++idx) ch_arr[idx] = choices[idx].ptr(rect);
+      VAL* outptr             = out.ptr(rect);
       const int64_t* indexptr = index_arr.ptr(rect);
-      choose_kernel_dense<VAL><<<blocks, THREADS_PER_BLOCK>>>(outptr,
-        indexptr, ch_arr, volume);
-    }else{
+      choose_kernel_dense<VAL><<<blocks, THREADS_PER_BLOCK>>>(outptr, indexptr, ch_arr, volume);
+    } else {
       DeferredBuffer<AccessorRO<VAL, DIM>, 1> ch_arr(Memory::Kind::Z_COPY_MEM,
-      Rect<1>(0, choices.size() - 1));
-      for (uint32_t idx = 0; idx < choices.size(); ++idx)
-        ch_arr[idx] = choices[idx];
-      choose_kernel<VAL, DIM><<<blocks, THREADS_PER_BLOCK>>>(out,
-        index_arr, ch_arr, rect, pitches, volume);
+                                                     Rect<1>(0, choices.size() - 1));
+      for (uint32_t idx = 0; idx < choices.size(); ++idx) ch_arr[idx] = choices[idx];
+      choose_kernel<VAL, DIM>
+        <<<blocks, THREADS_PER_BLOCK>>>(out, index_arr, ch_arr, rect, pitches, volume);
     }
   }
 };
