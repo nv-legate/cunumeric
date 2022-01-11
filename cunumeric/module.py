@@ -16,6 +16,7 @@
 import math
 import re
 import sys
+from collections import Counter
 from inspect import signature
 from itertools import chain
 from typing import Optional, Set
@@ -690,10 +691,25 @@ def _contract(expr, a, b=None, out=None, stacklevel=1):
     if len(set(out_modes)) != len(out_modes):
         raise ValueError("Duplicate mode labels on output tensor")
 
-    # TODO: Handle duplicate modes on inputs
-    if len(set(a_modes)) != len(a_modes) or len(set(b_modes)) != len(b_modes):
-        raise NotImplementedError("Duplicate mode labels on input tensor")
-
+    # Handle duplicate modes on inputs
+    c_a_modes = Counter(a_modes)
+    for mode in c_a_modes:
+        count = c_a_modes[mode]
+        if count > 1:
+            axes = [i for (i, m) in enumerate(a_modes) if m == mode]
+            a = a.diag_helper(axes=axes)
+            # diagonal is stored on last axis
+            for _ in range(count - 1):
+                a_modes.remove(mode)
+    c_b_modes = Counter(b_modes)
+    for mode in c_b_modes:
+        count = c_b_modes[mode]
+        if count > 1:
+            axes = [i for (i, m) in enumerate(b_modes) if m == mode]
+            b = b.diag_helper(axes=axes)
+            # diagonal is stored on last axis
+            for _ in range(count - 1):
+                b_modes.remove(mode)
     # Drop modes corresponding to singleton dimensions. This handles cases of
     # broadcasting.
     for dim in reversed(range(a.ndim)):

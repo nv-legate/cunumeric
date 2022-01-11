@@ -207,9 +207,6 @@ def test():
     for expr in chain(gen_expr(), OTHER_EXPRS):
         lhs, rhs = expr.split("->")
         opers = lhs.split(",")
-        # TODO: Remove this after we handle duplicate modes
-        if any(len(set(op)) != len(op) for op in opers):
-            continue
         print(f"testing {expr}")
         # Test default mode
         test_np_vs_cn(expr, mk_default_inputs)
