@@ -1587,7 +1587,6 @@ class DeferredArray(NumPyThunk):
         lhs_array = self
         rhs_array = src
         assert lhs_array.ndim <= rhs_array.ndim
-        assert rhs_array.size > 1
 
         # See if we are doing reduction to a point or another region
         if lhs_array.size == 1:
