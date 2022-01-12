@@ -531,6 +531,113 @@ def tile(a, reps):
     return result
 
 
+# Spliting arrays
+@copy_docstring(np.vsplit)
+def vsplit(a, indices):
+    return split(a, indices, axis=0)
+
+
+@copy_docstring(np.hsplit)
+def hsplit(a, indices):
+    return split(a, indices, axis=1)
+
+
+@copy_docstring(np.dsplit)
+def dsplit(a, indices):
+    return split(a, indices, axis=2)
+
+
+@copy_docstring(np.split)
+def split(a, indices, axis=0):
+    return array_split(a, indices, axis, equal=True)
+
+
+@copy_docstring(np.array_split)
+def array_split(a, indices, axis=0, equal=False):
+    array = ndarray.convert_to_cunumeric_ndarray(a)
+    dtype = type(indices)
+    split_pts = []
+    if axis >= array.ndim:
+        raise ValueError(
+            f"array({array.shape}) has less dimensions than axis({axis})"
+        )
+
+    if dtype == int:
+        res = array.shape[axis] % indices
+        if equal and res != 0:
+            raise ValueError("array split does not result in an equal divison")
+
+        len_subarr = array.shape[axis] // indices
+        end_idx = array.shape[axis]
+        first_idx = len_subarr
+
+        # the requested # of subarray is larger than the size of array
+        # -> size of 1 subarrays + empty subarrays
+        if len_subarr == 0:
+            len_subarr = 1
+            first_idx = len_subarr
+            end_idx = indices
+        else:
+            if res != 0:
+                # The first 'res' groups have len_subarr+1 elements
+                split_pts = list(
+                    range(
+                        len_subarr + 1, (len_subarr + 1) * res, len_subarr + 1
+                    )
+                )
+                first_idx = (len_subarr + 1) * res
+        split_pts.extend(range(first_idx, end_idx + 1, len_subarr))
+    elif (
+        (dtype == np.ndarray and indices.dtype == int)
+        or dtype == list
+        or dtype == tuple
+    ):
+        split_pts = list(indices)
+        # adding the size of the target dimension.
+        # This helps create dummy or last subarray correctly
+        split_pts.append(array.shape[axis])
+    else:
+        raise ValueError("Integer or array for split should be provided")
+
+    result = []
+    start_idx = 0
+    end_idx = 0
+    out_shape = []
+    in_shape = []
+
+    for i in range(array.ndim):
+        if i != axis:
+            in_shape.append(slice(array.shape[i]))
+            out_shape.append(array.shape[i])
+        else:
+            in_shape.append(1)
+            out_shape.append(1)
+
+    for pts in split_pts:
+        if type(pts) is not int:
+            raise ValueError(
+                "Split points in the passed `indices` should be integer"
+            )
+        end_idx = pts
+        # For a split point, which is larger than the dimension for splitting,
+        # The last non-empty subarray should be copied from
+        # array[last_elem:array.shape[axis]]
+        if pts > array.shape[axis]:
+            end_idx = array.shape[axis]
+        out_shape[axis] = (end_idx - start_idx) + 1
+        in_shape[axis] = slice(start_idx, end_idx)
+        new_subarray = None
+        if start_idx < array.shape[axis] and start_idx < end_idx:
+            new_subarray = array[tuple(in_shape)].view()
+        else:
+            out_shape[axis] = 0
+            new_subarray = ndarray(tuple(out_shape), dtype=array.dtype)
+        result.append(new_subarray)
+        start_idx = pts
+
+    return result
+
+
 # ### BINARY OPERATIONS
 
 # Elementwise bit operations
