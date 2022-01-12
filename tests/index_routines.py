@@ -38,6 +38,7 @@ def test():
         np.choose(a1, choices1, out=aout),
         num.choose(num_a1, num_choices1, out=num_aout),
     )
+    assert np.array_equal(aout, num_aout)
 
     b = [2, 4, 1, 0]
     num_b = num.array(b)
@@ -68,7 +69,7 @@ def test():
         np.choose(a3, (c1, c2)), num.choose(num_a3, (num_c1, num_c2))
     )
 
-    for ndim in range(1, LEGATE_MAX_DIM):
+    for ndim in range(1, LEGATE_MAX_DIM + 1):
         tgt_shape = (5,) * ndim
         # try various shapes that broadcast to the target shape
         shapes = [tgt_shape]
