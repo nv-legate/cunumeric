@@ -488,8 +488,7 @@ struct UnaryOp<UnaryOpCode::RINT, CODE> {
   template <typename _T = T, std::enable_if_t<legate::is_complex<_T>::value>* = nullptr>
   constexpr decltype(auto) operator()(const _T& x) const
   {
-    _T result = (std::rint(x.real()), std::rint(x.imag()));
-    return result;
+    return _T(std::rint(x.real()), std::rint(x.imag()));
   }
 
   template <typename _T = T, std::enable_if_t<!legate::is_complex<_T>::value>* = nullptr>
@@ -511,6 +510,22 @@ struct UnaryOp<UnaryOpCode::RINT, legate::LegateTypeCode::HALF_LT> {
 };
 #endif
 
+namespace detail {
+
+template <typename T, std::enable_if_t<std::is_signed<T>::value>* = nullptr>
+constexpr T sign(const T& x)
+{
+  return x > 0 ? T(1) : (x < 0 ? T(-1) : T(0));
+}
+
+template <typename T, std::enable_if_t<!std::is_signed<T>::value>* = nullptr>
+constexpr T sign(const T& x)
+{
+  return x > 0 ? T(1) : T(0);
+}
+
+}  // namespace detail
+
 template <legate::LegateTypeCode CODE>
 struct UnaryOp<UnaryOpCode::SIGN, CODE> {
   static constexpr bool valid = true;
@@ -522,30 +537,16 @@ struct UnaryOp<UnaryOpCode::SIGN, CODE> {
   constexpr decltype(auto) operator()(const _T& x) const
   {
     if (x.real() != 0) {
-      _T res = (_sign(x.real()), 0);
-      return res;
+      return _T(detail::sign(x.real()), 0);
     } else {
-      _T res = (_sign(x.imag()), 0);
-      return res;
+      return _T(detail::sign(x.imag()), 0);
     }
   }
 
   template <typename _T = T, std::enable_if_t<!legate::is_complex<_T>::value>* = nullptr>
   constexpr decltype(auto) operator()(const _T& x) const
   {
-    return _sign(x);
-  }
-
- private:
-  template <typename _T, std::enable_if_t<std::is_signed<_T>::value>* = nullptr>
-  T _sign(const _T& x) const
-  {
-    return x > 0 ? T(1) : (x < 0 ? T(-1) : T(0));
-  }
-  template <typename _T, std::enable_if_t<!std::is_signed<_T>::value>* = nullptr>
-  T _sign(const _T& x) const
-  {
-    return x > 0 ? T(1) : T(0);
+    return detail::sign(x);
   }
 };
 
