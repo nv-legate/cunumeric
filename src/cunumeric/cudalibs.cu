@@ -14,7 +14,7 @@
  *
  */
 
-#include "legate.h"
+#include "cunumeric.h"
 
 #include "cudalibs.h"
 #include "cuda_help.h"
@@ -26,22 +26,22 @@ namespace cunumeric {
 
 using namespace Legion;
 
-CUDALibraries::CUDALibraries() : cublas_(nullptr), cusolver_(nullptr), cutensor_(nullptr)
+CUDALibraries::CUDALibraries()
+  : finalized_(false), cublas_(nullptr), cusolver_(nullptr), cutensor_(nullptr)
 {
   CHECK_CUDA(cudaStreamCreateWithFlags(&stream_, cudaStreamNonBlocking));
 }
 
-CUDALibraries::~CUDALibraries()
-{
-  finalize();
-  cudaStreamDestroy(stream_);
-}
+CUDALibraries::~CUDALibraries() { finalize(); }
 
 void CUDALibraries::finalize()
 {
+  if (finalized_) return;
   if (cublas_ != nullptr) finalize_cublas();
   if (cusolver_ != nullptr) finalize_cusolver();
   if (cutensor_ != nullptr) finalize_cutensor();
+  cudaStreamDestroy(stream_);
+  finalized_ = true;
 }
 
 void CUDALibraries::finalize_cublas()
@@ -175,6 +175,40 @@ cutensorHandle_t* get_cutensor()
   const auto proc = Processor::get_executing_processor();
   auto& lib       = get_cuda_libraries(proc);
   return lib.get_cutensor();
+}
+
+class LoadCUDALibsTask : public CuNumericTask<LoadCUDALibsTask> {
+ public:
+  static const int TASK_ID = CUNUMERIC_LOAD_CUDALIBS;
+
+ public:
+  static void gpu_variant(legate::TaskContext& context)
+  {
+    const auto proc = Processor::get_executing_processor();
+    auto& lib       = get_cuda_libraries(proc);
+    lib.get_cublas();
+    lib.get_cusolver();
+    lib.get_cutensor();
+  }
+};
+
+class UnloadCUDALibsTask : public CuNumericTask<UnloadCUDALibsTask> {
+ public:
+  static const int TASK_ID = CUNUMERIC_UNLOAD_CUDALIBS;
+
+ public:
+  static void gpu_variant(legate::TaskContext& context)
+  {
+    const auto proc = Processor::get_executing_processor();
+    auto& lib       = get_cuda_libraries(proc);
+    lib.finalize();
+  }
+};
+
+static void __attribute__((constructor)) register_tasks(void)
+{
+  LoadCUDALibsTask::register_variants();
+  UnloadCUDALibsTask::register_variants();
 }
 
 }  // namespace cunumeric
