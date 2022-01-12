@@ -84,6 +84,7 @@ class CuNumericOpCode(IntEnum):
     BINARY_OP = _cunumeric.CUNUMERIC_BINARY_OP
     BINARY_RED = _cunumeric.CUNUMERIC_BINARY_RED
     BINCOUNT = _cunumeric.CUNUMERIC_BINCOUNT
+    CHOOSE = _cunumeric.CUNUMERIC_CHOOSE
     CONTRACT = _cunumeric.CUNUMERIC_CONTRACT
     CONVERT = _cunumeric.CUNUMERIC_CONVERT
     CONVOLVE = _cunumeric.CUNUMERIC_CONVOLVE

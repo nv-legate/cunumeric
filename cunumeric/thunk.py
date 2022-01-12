@@ -195,6 +195,20 @@ class NumPyThunk(object):
         """
         raise NotImplementedError("Implement in derived classes")
 
+    def choose(
+        self,
+        *args,
+        rhs,
+        stacklevel=0,
+        callsite=None,
+    ):
+        """Construct an array from an index array and a
+            list of arrays to choose from.
+
+        :meta private:
+        """
+        raise NotImplementedError("Implement in derived classes")
+
     def diag(self, rhs, extract, k, stacklevel):
         """Fill in or extract a diagonal from a matrix
 

@@ -442,7 +442,7 @@ class DeferredArray(NumPyThunk):
         for dim in range(diff):
             result = result.promote(dim, shape[dim])
 
-        for dim in range(shape.ndim):
+        for dim in range(len(shape)):
             if result.shape[dim] != shape[dim]:
                 assert result.shape[dim] == 1
                 result = result.project(dim, 0).promote(dim, shape[dim])
@@ -1229,6 +1229,38 @@ class DeferredArray(NumPyThunk):
         task.add_scalar_arg(tuple(rhs2_dim_mask), (bool,))
         task.add_alignment(lhs, rhs1)
         task.add_alignment(lhs, rhs2)
+        task.execute()
+
+    # Create array from input array and indices
+    @profile
+    def choose(
+        self,
+        *args,
+        rhs,
+        stacklevel=0,
+        callsite=None,
+    ):
+        # convert all arrays to deferred
+        index_arr = self.runtime.to_deferred_array(rhs, stacklevel=stacklevel)
+        ch_def = tuple(
+            self.runtime.to_deferred_array(c, stacklevel=stacklevel)
+            for c in args
+        )
+
+        out_arr = self.base
+        # broadcast input array and all choices arrays to the same shape
+        index_arr = index_arr._broadcast(out_arr.shape)
+        ch_tuple = tuple(c._broadcast(out_arr.shape) for c in ch_def)
+
+        task = self.context.create_task(CuNumericOpCode.CHOOSE)
+        task.add_output(out_arr)
+        task.add_input(index_arr)
+        for c in ch_tuple:
+            task.add_input(c)
+
+        task.add_alignment(index_arr, out_arr)
+        for c in ch_tuple:
+            task.add_alignment(index_arr, c)
         task.execute()
 
     # Create or extract a diagonal from a matrix
