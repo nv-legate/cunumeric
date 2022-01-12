@@ -171,6 +171,7 @@ class Runtime(object):
             launch_domain=Rect(lo=(0,), hi=(self.num_gpus,)),
         )
         task.execute()
+        self.legate_runtime.issue_execution_fence(block=True)
 
     def _unload_cudalibs(self):
         task = self.legate_context.create_task(
