@@ -46,27 +46,13 @@ void CUDALibraries::finalize()
 
 void CUDALibraries::finalize_cublas()
 {
-  cublasStatus_t status = cublasDestroy(cublas_);
-  if (status != CUBLAS_STATUS_SUCCESS) {
-    fprintf(stderr,
-            "Internal cuBLAS destruction failure "
-            "with error code %d in cuNumeric\n",
-            status);
-    abort();
-  }
+  CHECK_CUBLAS(cublasDestroy(cublas_));
   cublas_ = nullptr;
 }
 
 void CUDALibraries::finalize_cusolver()
 {
-  cusolverStatus_t status = cusolverDnDestroy(cusolver_);
-  if (status != CUSOLVER_STATUS_SUCCESS) {
-    fprintf(stderr,
-            "Internal cuSOLVER destruction failure "
-            "with error code %d in cuNumeric\n",
-            status);
-    abort();
-  }
+  CHECK_CUSOLVER(cusolverDnDestroy(cusolver_));
   cusolver_ = nullptr;
 }
 
@@ -81,18 +67,11 @@ cudaStream_t CUDALibraries::get_cached_stream() { return stream_; }
 cublasHandle_t CUDALibraries::get_cublas()
 {
   if (nullptr == cublas_) {
-    cublasStatus_t status = cublasCreate(&cublas_);
-    if (status != CUBLAS_STATUS_SUCCESS) {
-      fprintf(stderr,
-              "Internal cuBLAS initialization failure "
-              "with error code %d in cuNumeric\n",
-              status);
-      abort();
-    }
+    CHECK_CUBLAS(cublasCreate(&cublas_));
     const char* disable_tensor_cores = getenv("CUNUMERIC_DISABLE_TENSOR_CORES");
     if (nullptr == disable_tensor_cores) {
       // No request to disable tensor cores so turn them on
-      status = cublasSetMathMode(cublas_, CUBLAS_TENSOR_OP_MATH);
+      cublasStatus_t status = cublasSetMathMode(cublas_, CUBLAS_TENSOR_OP_MATH);
       if (status != CUBLAS_STATUS_SUCCESS)
         fprintf(stderr, "WARNING: cuBLAS does not support Tensor cores!");
     }
@@ -102,31 +81,15 @@ cublasHandle_t CUDALibraries::get_cublas()
 
 cusolverDnHandle_t CUDALibraries::get_cusolver()
 {
-  if (nullptr == cusolver_) {
-    cusolverStatus_t status = cusolverDnCreate(&cusolver_);
-    if (status != CUSOLVER_STATUS_SUCCESS) {
-      fprintf(stderr,
-              "Internal cuSOLVER initialization failure "
-              "with error code %d in cuNumeric\n",
-              status);
-      abort();
-    }
-  }
+  if (nullptr == cusolver_) CHECK_CUSOLVER(cusolverDnCreate(&cusolver_));
   return cusolver_;
 }
 
 cutensorHandle_t* CUDALibraries::get_cutensor()
 {
   if (nullptr == cutensor_) {
-    cutensor_               = new cutensorHandle_t;
-    cutensorStatus_t status = cutensorInit(cutensor_);
-    if (status != CUTENSOR_STATUS_SUCCESS) {
-      fprintf(stderr,
-              "Internal cuTENSOR initialization failure "
-              "with error code %d in cuNumeric\n",
-              status);
-      abort();
-    }
+    cutensor_ = new cutensorHandle_t;
+    CHECK_CUTENSOR(cutensorInit(cutensor_));
   }
   return cutensor_;
 }
