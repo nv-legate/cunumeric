@@ -93,6 +93,7 @@ class CuNumericOpCode(IntEnum):
     FILL = _cunumeric.CUNUMERIC_FILL
     FLIP = _cunumeric.CUNUMERIC_FLIP
     GEMM = _cunumeric.CUNUMERIC_GEMM
+    LOAD_CUDALIBS = _cunumeric.CUNUMERIC_LOAD_CUDALIBS
     MATMUL = _cunumeric.CUNUMERIC_MATMUL
     MATVECMUL = _cunumeric.CUNUMERIC_MATVECMUL
     NONZERO = _cunumeric.CUNUMERIC_NONZERO
@@ -107,6 +108,7 @@ class CuNumericOpCode(IntEnum):
     TRSM = _cunumeric.CUNUMERIC_TRSM
     UNARY_OP = _cunumeric.CUNUMERIC_UNARY_OP
     UNARY_RED = _cunumeric.CUNUMERIC_UNARY_RED
+    UNLOAD_CUDALIBS = _cunumeric.CUNUMERIC_UNLOAD_CUDALIBS
     WHERE = _cunumeric.CUNUMERIC_WHERE
     WRITE = _cunumeric.CUNUMERIC_WRITE
 

@@ -45,6 +45,7 @@ struct CUDALibraries {
   void finalize_cutensor();
 
  private:
+  bool finalized_;
   cudaStream_t stream_;
   cublasContext* cublas_;
   cusolverDnContext* cusolver_;
