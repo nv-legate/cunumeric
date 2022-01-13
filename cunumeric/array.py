@@ -945,8 +945,23 @@ class ndarray(object):
         dtype = np.dtype(dtype)
         if self.dtype == dtype:
             return self
-        result = ndarray(self.shape, dtype=dtype, inputs=(self,))
-        result._thunk.convert(self._thunk, warn=False, stacklevel=2)
+
+        casting_allowed = np.can_cast(self.dtype, dtype, casting)
+        if casting_allowed:
+            # For numeric to non-numeric casting, the dest dtype should be
+            # retrived from 'promote_types' to preserve values
+            # e.g. ) float 64 to str, np.dtype(dtype) == '<U'
+            # this dtype is not safe to store
+            if dtype == np.dtype("str"):
+                dtype = np.promote_types(self.dtype, dtype)
+            result = ndarray(self.shape, dtype=dtype, inputs=(self,))
+            result._thunk.convert(self._thunk, warn=False, stacklevel=2)
+        else:
+            raise TypeError(
+                f"Cannot cast array data"
+                f"from '{self.dtype}' to '{dtype}' "
+                f"to the rule '{casting}'"
+            )
         return result
 
     @unimplemented
