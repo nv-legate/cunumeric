@@ -668,8 +668,6 @@ def invert(a, out=None, where=True, dtype=None):
 @copy_docstring(np.dot)
 def dot(a, b, out=None):
     a_array = ndarray.convert_to_cunumeric_ndarray(a)
-    if out is not None:
-        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return a_array.dot(b, out=out, stacklevel=2)
 
 

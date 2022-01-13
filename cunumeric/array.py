@@ -1148,11 +1148,16 @@ class ndarray(object):
         rhs_array = self.convert_to_cunumeric_ndarray(
             rhs, stacklevel=(stacklevel + 1)
         )
+        if out is not None:
+            out = self.convert_to_cunumeric_ndarray(
+                out, stacklevel=(stacklevel + 1), share=True
+            )
         if self.size == 1 or rhs_array.size == 1:
             return self.perform_binary_op(
                 BinaryOpCode.MULTIPLY,
                 self,
                 rhs_array,
+                out=out,
                 stacklevel=(stacklevel + 1),
             )
         out_dtype = self.find_common_type(self, rhs_array)
@@ -1177,93 +1182,50 @@ class ndarray(object):
                 rhs_array._thunk, stacklevel=(stacklevel + 1)
             )
             rhs_array = temp_array
-        # Create output array
-        if out is not None:
-            out = self.convert_to_cunumeric_ndarray(
-                out, stacklevel=(stacklevel + 1), share=True
-            )
-            if self.ndim == 1 and rhs_array.ndim == 1:
-                if self.shape[0] != rhs.shape[0]:
-                    raise ValueError("Dimension mismatch for dot")
-                if out.ndim != 0:
-                    raise ValueError("Dimension mismatch for dot")
-            elif self.ndim == 2 and rhs_array.ndim == 2:
-                # Matrix multiply
-                if self.shape[1] != rhs_array.shape[0]:
-                    raise ValueError("Dimension mismatch for dot")
-                if out.shape != (self.shape[0], rhs_array.shape[1]):
-                    raise ValueError("Dimension mismatch for dot")
-            elif rhs_array.ndim == 1:
-                if self.shape[-1] != rhs_array.shape[0]:
-                    raise ValueError("Dimension mismatch for dot")
-                if out.shape != self.shape[:-1]:
-                    raise ValueError("Dimension mismatch for dot")
-            else:
-                if self.shape[-1] != rhs_array.shape[-2]:
-                    raise ValueError("Dimension mismatch for dot")
-                if out.shape != (
-                    self.shape[:-1]
-                    + rhs_array.shape[:-2]
-                    + (rhs_array.shape[-1],)
-                ):
-                    raise ValueError("Dimension mismatch for dot")
+        # Shape check
+        if self.ndim == 1 and rhs_array.ndim == 1:
+            if self.shape[0] != rhs.shape[0]:
+                raise ValueError("Dimension mismatch for dot")
+            out_shape = ()
+        elif self.ndim == 2 and rhs_array.ndim == 2:
+            if self.shape[1] != rhs_array.shape[0]:
+                raise ValueError("Dimension mismatch for dot")
+            out_shape = (self.shape[0], rhs_array.shape[1])
+        elif rhs_array.ndim == 1:
+            if self.shape[-1] != rhs_array.shape[0]:
+                raise ValueError("Dimension mismatch for dot")
+            out_shape = self.shape[:-1]
         else:
-            if self.ndim == 1 and rhs_array.ndim == 1:
-                # Inner product
-                out = ndarray(
-                    shape=(),
-                    dtype=out_dtype,
-                    stacklevel=(stacklevel + 1),
-                    inputs=(self_array, rhs_array),
-                )
-            elif self.ndim == 2 and rhs_array.ndim == 2:
-                # Matrix multiply
-                if self.shape[1] != rhs_array.shape[0]:
-                    raise ValueError("Dimension mismatch for dot")
-                out = ndarray(
-                    shape=(self.shape[0], rhs_array.shape[1]),
-                    dtype=out_dtype,
-                    stacklevel=(stacklevel + 1),
-                    inputs=(self_array, rhs_array),
-                )
-            elif rhs_array.ndim == 1:
-                if self.shape[-1] != rhs_array.shape[0]:
-                    raise ValueError("Dimension mismatch for dot")
-                out = ndarray(
-                    shape=self.shape[:-1],
-                    dtype=out_dtype,
-                    stacklevel=(stacklevel + 1),
-                    inputs=(self_array, rhs_array),
-                )
-            else:
-                if self.shape[-1] != rhs_array.shape[-2]:
-                    raise ValueError("Dimension mismatch for dot")
-                out = ndarray(
-                    shape=(
-                        self.shape[:-1]
-                        + rhs_array.shape[:-2]
-                        + (rhs_array.shape[-1],)
-                    ),
-                    dtype=out_dtype,
-                    stacklevel=(stacklevel + 1),
-                    inputs=(self_array, rhs_array),
-                )
+            if self.shape[-1] != rhs_array.shape[-2]:
+                raise ValueError("Dimension mismatch for dot")
+            out_shape = (
+                self.shape[:-1] + rhs_array.shape[:-2] + (rhs_array.shape[-1],)
+            )
+        if out is not None and out.shape != out_shape:
+            raise ValueError(
+                f"expected output array with shape {out_shape} but got "
+                f"{out.shape}"
+            )
+        # Check if output array can be used in-place
+        if out is not None and out.dtype == out_dtype:
+            out_array = out
+        else:
+            out_array = ndarray(
+                shape=out_shape,
+                dtype=out_dtype,
+                stacklevel=(stacklevel + 1),
+                inputs=(self_array, rhs_array),
+            )
         # Perform operation
-        out._thunk.dot(
+        out_array._thunk.dot(
             self_array._thunk, rhs_array._thunk, stacklevel=(stacklevel + 1)
         )
         # Check for type conversion on the way out
-        if out.dtype != out_dtype:
-            result = ndarray(
-                shape=out.shape,
-                dtype=out_dtype,
-                stacklevel=(stacklevel + 1),
-                inputs=(out,),
-            )
-            result._thunk.convert(out._thunk, stacklevel=(stacklevel + 1))
-            return result
-        else:
+        if out is not None and out.dtype != out_dtype:
+            out._thunk.convert(out_array._thunk, stacklevel=(stacklevel + 1))
             return out
+        else:
+            return out_array
 
     def dump(self, file):
         self.__array__(stacklevel=2).dump(file=file)
