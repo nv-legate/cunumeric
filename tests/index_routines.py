@@ -16,10 +16,11 @@
 import random
 
 import numpy as np
+from test_tools.generators import mk_seq_array
 
 import cunumeric as num
 from legate.core import LEGATE_MAX_DIM
-from test_tools.generators import mk_seq_array
+
 
 def test():
     # --------------------------------------------------------------
