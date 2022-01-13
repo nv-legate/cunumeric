@@ -13,6 +13,7 @@
 # limitations under the License.
 #
 
+import builtins
 import math
 import re
 import sys
@@ -27,16 +28,6 @@ from .array import ndarray
 from .config import BinaryOpCode, UnaryOpCode, UnaryRedCode
 from .doc_utils import copy_docstring
 from .runtime import runtime
-
-try:
-    xrange  # Python 2
-except NameError:
-    xrange = range  # Python 3
-
-try:
-    import __builtin__ as builtins  # Python 2
-except ModuleNotFoundError:
-    import builtins as builtins  # Python 3
 
 
 def add_boilerplate(*array_params: str):
@@ -526,10 +517,10 @@ def tile(a, reps):
         reps = (1,) + reps
     out_shape = ()
     # Prepend dimensions if necessary
-    for dim in xrange(out_dims - array.ndim):
+    for dim in range(out_dims - array.ndim):
         out_shape += (reps[dim],)
     offset = len(out_shape)
-    for dim in xrange(array.ndim):
+    for dim in range(array.ndim):
         out_shape += (array.shape[dim] * reps[offset + dim],)
     assert len(out_shape) == out_dims
     result = ndarray(out_shape, dtype=array.dtype, inputs=(array,))
@@ -2227,7 +2218,7 @@ def where(a, x=None, y=None):
 #                                      "arrays at the moment")
 #        # Flatten the output array
 #        out_size = lg_array.shape[0]
-#        for d in xrange(1,lg_array.ndim):
+#        for d in range(1,lg_array.ndim):
 #            out_size *= lg_array.shape[d]
 #        out = ndarray((out_size,), dtype=lg_array.dtype)
 #    else:
@@ -2418,7 +2409,7 @@ def vstack(inputs):
                     " dimensions"
                 )
             if ndim > 1:
-                for dim in xrange(1, ndim):
+                for dim in range(1, ndim):
                     if shape[dim] != lg_array.shape[dim]:
                         raise TypeError(
                             "All arguments to vstack must have the same "
@@ -2445,7 +2436,7 @@ def vstack(inputs):
             out_array[idx, :] = inp
     else:
         out_shape = (leading_dim,)
-        for dim in xrange(1, ndim):
+        for dim in range(1, ndim):
             out_shape += (shape[dim],)
         out_array = ndarray(
             shape=out_shape, dtype=dtype, inputs=cunumeric_inputs

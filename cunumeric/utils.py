@@ -13,16 +13,11 @@
 # limitations under the License.
 #
 
-import functools
 import inspect
 import warnings
+from functools import reduce
 
 import numpy as np
-
-try:
-    reduce  # Python 2
-except NameError:
-    reduce = functools.reduce
 
 
 # Get the list of attributes defined in a namespace
