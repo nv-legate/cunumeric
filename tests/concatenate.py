@@ -27,7 +27,7 @@ def run_test(arr, test_routine):
         input_arr.append(axis)
 
     for routine, input_opt, dtype in itertools.product(
-        test_routine, input_arr, [None, str]
+        test_routine, input_arr, [None, float]
     ):
         b = getattr(np, routine)(arr, input_opt, dtype=dtype)
         c = getattr(num, routine)(arr, input_opt, dtype=dtype)
@@ -73,17 +73,32 @@ def test(min_size, max_size):
     # test np.concatenate w/ 1D, 2D and 3D arrays
     # test 1D arrays
     for i in range(min_size, max_size):
-        a = tuple([np.random.randn(i) for num_arr in range(3)])
+        a = tuple(
+            [
+                np.random.randint(low=0, high=100, size=(i))
+                for num_arr in range(3)
+            ]
+        )
         run_test(a, test_routine)
 
         # test 2D arrays
         for j in range(min_size, max_size):
-            b = tuple([np.random.randn(i, j) for num_arr in range(3)])
+            b = tuple(
+                [
+                    np.random.randint(low=0, high=100, size=(i, j))
+                    for num_arr in range(3)
+                ]
+            )
             run_test(b, test_routine)
 
             # test 3D arrays
             for k in range(min_size, max_size):
-                c = tuple([np.random.randn(i, j, k) for num_arr in range(3)])
+                c = tuple(
+                    [
+                        np.random.randint(low=0, high=100, size=(i, j, k))
+                        for num_arr in range(3)
+                    ]
+                )
                 run_test(c, test_routine)
     return
 
