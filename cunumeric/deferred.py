@@ -25,6 +25,7 @@ import legate.core.types as ty
 from legate.core import *  # noqa F403
 
 from .config import *  # noqa F403
+from .linalg.cholesky import cholesky
 from .thunk import NumPyThunk
 from .utils import get_arg_value_dtype
 
@@ -234,13 +235,13 @@ class DeferredArray(NumPyThunk):
     def ndim(self):
         return len(self.shape)
 
-    def _copy_if_overlapping(self, other):
+    def _copy_if_overlapping(self, other, stacklevel=0):
         if not self.base.overlaps(other.base):
             return self
         copy = self.runtime.create_empty_thunk(
             self.shape, self.dtype, inputs=[self]
         )
-        copy.copy(self, deep=True)
+        copy.copy(self, deep=True, stacklevel=stacklevel)
         return copy
 
     def __numpy_array__(self, stacklevel=0):
@@ -441,7 +442,7 @@ class DeferredArray(NumPyThunk):
         for dim in range(diff):
             result = result.promote(dim, shape[dim])
 
-        for dim in range(shape.ndim):
+        for dim in range(len(shape)):
             if result.shape[dim] != shape[dim]:
                 assert result.shape[dim] == 1
                 result = result.project(dim, 0).promote(dim, shape[dim])
@@ -547,12 +548,12 @@ class DeferredArray(NumPyThunk):
                 # for the key, 2) __iop__ for the update, and 3) __setitem__
                 # to set the result back. In cuNumeric, the object we
                 # return in step (1) is actually a subview to the array arr
-                # through which we make udpates in place, so after step (2) is
+                # through which we make updates in place, so after step (2) is
                 # done, # the effect of inplace update is already reflected
                 # to the arr. Therefore, we skip the copy to avoid redundant
                 # copies if we know that we hit such a scenario.
                 # TODO: We should make this work for the advanced indexing case
-                if view.base.storage.same_handle(rhs.base.storage):
+                if view.base == rhs.base:
                     return
 
                 if self.runtime.shadow_debug:
@@ -1018,13 +1019,17 @@ class DeferredArray(NumPyThunk):
             if left_matrix:
                 rhs1 = rhs1_array.base
                 (m, n) = rhs1.shape
-                rhs2_array = rhs2_array._copy_if_overlapping(lhs_array)
+                rhs2_array = rhs2_array._copy_if_overlapping(
+                    lhs_array, stacklevel=stacklevel + 1
+                )
                 rhs2 = rhs2_array.base.promote(0, m)
                 lhs = lhs_array.base.promote(1, n)
             else:
                 rhs2 = rhs2_array.base
                 (m, n) = rhs2.shape
-                rhs1_array = rhs1_array._copy_if_overlapping(lhs_array)
+                rhs1_array = rhs1_array._copy_if_overlapping(
+                    lhs_array, stacklevel=stacklevel + 1
+                )
                 rhs1 = rhs1_array.base.promote(1, n)
                 lhs = lhs_array.base.promote(0, m)
 
@@ -1086,8 +1091,12 @@ class DeferredArray(NumPyThunk):
                     self.shape, np.dtype(np.float32), inputs=[self]
                 )
 
-            rhs1_array = rhs1_array._copy_if_overlapping(lhs_array)
-            rhs2_array = rhs2_array._copy_if_overlapping(lhs_array)
+            rhs1_array = rhs1_array._copy_if_overlapping(
+                lhs_array, stacklevel=stacklevel + 1
+            )
+            rhs2_array = rhs2_array._copy_if_overlapping(
+                lhs_array, stacklevel=stacklevel + 1
+            )
 
             # TODO: We should be able to do this in the core
             lhs_array.fill(
@@ -1131,6 +1140,128 @@ class DeferredArray(NumPyThunk):
             raise NotImplementedError(
                 f"dot between {rhs1_array.ndim}d and {rhs2_array.ndim}d arrays"
             )
+
+    @profile
+    @auto_convert([2, 4])
+    @shadow_debug("contract", [2, 4])
+    def contract(
+        self,
+        lhs_modes,
+        rhs1_thunk,
+        rhs1_modes,
+        rhs2_thunk,
+        rhs2_modes,
+        mode2extent,
+        stacklevel=0,
+        callsite=None,
+    ):
+        lhs_thunk = self
+
+        # TODO: More sanity checks (no duplicate modes, no singleton modes, no
+        # broadcasting, ...)
+
+        # Casting should have been handled by the frontend
+        assert lhs_thunk.dtype is rhs1_thunk.dtype
+        assert lhs_thunk.dtype is rhs2_thunk.dtype
+
+        # Handle store overlap
+        rhs1_thunk = rhs1_thunk._copy_if_overlapping(lhs_thunk)
+        rhs2_thunk = rhs2_thunk._copy_if_overlapping(lhs_thunk)
+
+        # Clear output array
+        # TODO: We should be able to do this in the core
+        lhs_thunk.fill(
+            np.array(0, dtype=lhs_thunk.dtype),
+            stacklevel=(stacklevel + 1),
+            callsite=callsite,
+        )
+
+        lhs = lhs_thunk.base
+        rhs1 = rhs1_thunk.base
+        rhs2 = rhs2_thunk.base
+
+        # The underlying libraries are not guaranteed to work with stride
+        # values of 0. The frontend should therefore handle broadcasting
+        # directly, instead of promoting stores.
+        assert not lhs.has_fake_dims()
+        assert not rhs1.has_fake_dims()
+        assert not rhs2.has_fake_dims()
+
+        # Transpose arrays according to alphabetical order of mode labels
+        def alphabetical_transpose(store, modes):
+            perm = [dim for (_, dim) in sorted(zip(modes, range(len(modes))))]
+            return store.transpose(perm)
+
+        lhs = alphabetical_transpose(lhs, lhs_modes)
+        rhs1 = alphabetical_transpose(rhs1, rhs1_modes)
+        rhs2 = alphabetical_transpose(rhs2, rhs2_modes)
+
+        # Promote dimensions as required to align the stores
+        lhs_dim_mask = []
+        rhs1_dim_mask = []
+        rhs2_dim_mask = []
+        for (dim, mode) in enumerate(sorted(mode2extent.keys())):
+            extent = mode2extent[mode]
+
+            def add_mode(store, modes, dim_mask):
+                if mode not in modes:
+                    dim_mask.append(False)
+                    return store.promote(dim, extent)
+                else:
+                    dim_mask.append(True)
+                    # Broadcasting should have been handled already
+                    assert store.shape[dim] == extent
+                    return store
+
+            lhs = add_mode(lhs, lhs_modes, lhs_dim_mask)
+            rhs1 = add_mode(rhs1, rhs1_modes, rhs1_dim_mask)
+            rhs2 = add_mode(rhs2, rhs2_modes, rhs2_dim_mask)
+        assert lhs.shape == rhs1.shape
+        assert lhs.shape == rhs2.shape
+
+        # Prepare the launch
+        task = self.context.create_task(CuNumericOpCode.CONTRACT)
+        task.add_reduction(lhs, ReductionOp.ADD)
+        task.add_input(rhs1)
+        task.add_input(rhs2)
+        task.add_scalar_arg(tuple(lhs_dim_mask), (bool,))
+        task.add_scalar_arg(tuple(rhs1_dim_mask), (bool,))
+        task.add_scalar_arg(tuple(rhs2_dim_mask), (bool,))
+        task.add_alignment(lhs, rhs1)
+        task.add_alignment(lhs, rhs2)
+        task.execute()
+
+    # Create array from input array and indices
+    @profile
+    def choose(
+        self,
+        *args,
+        rhs,
+        stacklevel=0,
+        callsite=None,
+    ):
+        # convert all arrays to deferred
+        index_arr = self.runtime.to_deferred_array(rhs, stacklevel=stacklevel)
+        ch_def = tuple(
+            self.runtime.to_deferred_array(c, stacklevel=stacklevel)
+            for c in args
+        )
+
+        out_arr = self.base
+        # broadcast input array and all choices arrays to the same shape
+        index_arr = index_arr._broadcast(out_arr.shape)
+        ch_tuple = tuple(c._broadcast(out_arr.shape) for c in ch_def)
+
+        task = self.context.create_task(CuNumericOpCode.CHOOSE)
+        task.add_output(out_arr)
+        task.add_input(index_arr)
+        for c in ch_tuple:
+            task.add_input(c)
+
+        task.add_alignment(index_arr, out_arr)
+        for c in ch_tuple:
+            task.add_alignment(index_arr, c)
+        task.execute()
 
     # Create or extract a diagonal from a matrix
     @profile
@@ -1276,6 +1407,24 @@ class DeferredArray(NumPyThunk):
         assert lhs_array.ndim == rhs_array.ndim
         assert lhs_array.ndim == len(axes)
         lhs_array.base = rhs_array.base.transpose(axes)
+
+    @profile
+    @auto_convert([1])
+    @shadow_debug("trilu", [1])
+    def trilu(self, rhs, k, lower, stacklevel=0, callsite=None):
+        lhs = self.base
+        rhs = rhs._broadcast(lhs.shape)
+
+        task = self.context.create_task(CuNumericOpCode.TRILU)
+
+        task.add_output(lhs)
+        task.add_input(rhs)
+        task.add_scalar_arg(lower, bool)
+        task.add_scalar_arg(k, ty.int32)
+
+        task.add_alignment(lhs, rhs)
+
+        task.execute()
 
     @profile
     @auto_convert([1])
@@ -1440,7 +1589,6 @@ class DeferredArray(NumPyThunk):
         lhs_array = self
         rhs_array = src
         assert lhs_array.ndim <= rhs_array.ndim
-        assert rhs_array.size > 1
 
         # See if we are doing reduction to a point or another region
         if lhs_array.size == 1:
@@ -1573,10 +1721,10 @@ class DeferredArray(NumPyThunk):
         # Populate the Legate launcher
         if op == BinaryOpCode.NOT_EQUAL:
             redop = ReductionOp.ADD
-            self.fill(np.array(False))
+            self.fill(np.array(False), stacklevel=stacklevel + 1)
         else:
             redop = ReductionOp.MUL
-            self.fill(np.array(True))
+            self.fill(np.array(True), stacklevel=stacklevel + 1)
         task = self.context.create_task(CuNumericOpCode.BINARY_RED)
         task.add_reduction(lhs, redop)
         task.add_input(rhs1)
@@ -1632,3 +1780,13 @@ class DeferredArray(NumPyThunk):
             result = (stride,) + result
             stride *= dim
         return result
+
+    @profile
+    @auto_convert([1])
+    @shadow_debug("cholesky", [1])
+    def cholesky(self, src, no_tril=False, stacklevel=0, callsite=None):
+        cholesky(self, src, stacklevel=stacklevel + 1, callsite=callsite)
+        if not no_tril:
+            self.trilu(
+                self, 0, True, stacklevel=stacklevel + 1, callsite=callsite
+            )

@@ -62,6 +62,7 @@ def add_boilerplate(*array_params: str, mutates_self: bool = False):
             if param == "where":
                 where_idx = idx
             elif param == "out":
+                assert not mutates_self
                 out_idx = idx
             elif param in keys:
                 indices.add(idx)
@@ -102,7 +103,7 @@ def add_boilerplate(*array_params: str, mutates_self: bool = False):
 
             # Handle the case where all array-like parameters are scalar, by
             # performing the operation on the equivalent scalar numpy arrays.
-            # NOTE: This mplicitly blocks on the contents of the scalar arrays.
+            # NOTE: This implicitly blocks on the contents of these arrays.
             if all(
                 arg._thunk.scalar
                 for (idx, arg) in enumerate(args)
@@ -131,8 +132,8 @@ def add_boilerplate(*array_params: str, mutates_self: bool = False):
                         )
                 self_scalar = args[0]
                 args = args[1:]
-                result = ndarray.convert_to_cunumeric_ndarray(
-                    getattr(self_scalar, func.__name__)(*args, **kwargs)
+                res_scalar = getattr(self_scalar, func.__name__)(
+                    *args, **kwargs
                 )
                 if mutates_self:
                     self._thunk = runtime.create_scalar(
@@ -141,6 +142,8 @@ def add_boilerplate(*array_params: str, mutates_self: bool = False):
                         shape=self_scalar.shape,
                         wrap=True,
                     )
+                    return
+                result = ndarray.convert_to_cunumeric_ndarray(res_scalar)
                 if out is not None:
                     out._thunk.copy(result._thunk, stacklevel=stacklevel)
                     result = out
@@ -955,12 +958,102 @@ class ndarray(object):
             numpy_array = self.__array__(stacklevel=3).byteswap(inplace=False)
             return self.convert_to_cunumeric_ndarray(numpy_array, stacklevel=3)
 
-    @unimplemented
-    def choose(self, choices, out, mode="raise"):
-        numpy_array = self.__array__(stacklevel=3).choose(
-            choices=choices, out=out, mode=mode
+    def choose(self, choices, out=None, mode="raise", stacklevel=2):
+        a = self
+        if out is not None:
+            out = out.convert_to_cunumeric_ndarray(out)
+
+        if isinstance(choices, list):
+            choices = tuple(choices)
+        is_tuple = isinstance(choices, tuple)
+        if is_tuple:
+            n = len(choices)
+            dtypes = [ch.dtype for ch in choices]
+            ch_dtype = np.find_common_type(dtypes, [])
+            choices = tuple(
+                self.convert_to_cunumeric_ndarray(choices[i]).astype(ch_dtype)
+                for i in range(n)
+            )
+
+        else:
+            choices = self.convert_to_cunumeric_ndarray(choices)
+            n = choices.shape[0]
+            ch_dtype = choices.dtype
+            choices = tuple(choices[i, ...] for i in range(n))
+
+        if not np.issubdtype(self.dtype, np.integer):
+            raise TypeError("a array should be integer type")
+        if self.dtype is not np.int64:
+            a = a.astype(np.int64)
+        if mode == "raise":
+            if (a < 0).any() | (a >= n).any():
+                raise ValueError("invalid entry in choice array")
+        elif mode == "wrap":
+            a = a % n
+        elif mode == "clip":
+            a = a.clip(0, n - 1)
+        else:
+            raise ValueError(
+                f"mode={mode} not understood. Must "
+                "be 'raise', 'wrap', or 'clip'"
+            )
+
+        # we need to broadcast all arrays in choices with
+        # input and output arrays
+        if out is not None:
+            out_shape = broadcast_shapes(a.shape, choices[0].shape, out.shape)
+        else:
+            out_shape = broadcast_shapes(a.shape, choices[0].shape)
+
+        for c in choices:
+            out_shape = broadcast_shapes(out_shape, c.shape)
+
+        # if output is provided, it shape should be the same as out_shape
+        if out is not None and out.shape != out_shape:
+            raise ValueError(
+                f"non-broadcastable output operand with shape "
+                f" {str(out.shape)}"
+                f" doesn't match the broadcast shape {out_shape}"
+            )
+
+        if out is not None and out.dtype == ch_dtype:
+            out_arr = out
+
+        else:
+            # no output, create one
+            out_arr = ndarray(
+                shape=out_shape,
+                dtype=ch_dtype,
+                stacklevel=stacklevel + 1,
+                inputs=(a, choices),
+            )
+
+        ch = tuple(c._thunk for c in choices)  #
+        out_arr._thunk.choose(
+            *ch,
+            rhs=a._thunk,
+            stacklevel=(stacklevel + 1),
         )
-        return self.convert_to_cunumeric_ndarray(numpy_array, stacklevel=3)
+        if out is not None and out.dtype != ch_dtype:
+            out._thunk.convert(out_arr._thunk, stacklevel=(stacklevel + 1))
+            return out
+        else:
+            return out_arr
+
+    def cholesky(self, no_tril=False, stacklevel=1):
+        input = self
+        if input.dtype.kind not in ("f", "c"):
+            input = input.astype("float64")
+        output = ndarray(
+            shape=input.shape,
+            dtype=input.dtype,
+            stacklevel=stacklevel + 1,
+            inputs=(input,),
+        )
+        output._thunk.cholesky(
+            input._thunk, no_tril=no_tril, stacklevel=(stacklevel + 1)
+        )
+        return output
 
     def clip(self, min=None, max=None, out=None):
         args = (

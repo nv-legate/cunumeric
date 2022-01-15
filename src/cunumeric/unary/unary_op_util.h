@@ -24,6 +24,7 @@
 
 namespace cunumeric {
 
+// Match these to UnaryOpCode in config.py
 enum class UnaryOpCode : int {
   ABSOLUTE = 1,
   ARCCOS,
@@ -487,7 +488,7 @@ struct UnaryOp<UnaryOpCode::RINT, CODE> {
   template <typename _T = T, std::enable_if_t<legate::is_complex<_T>::value>* = nullptr>
   constexpr decltype(auto) operator()(const _T& x) const
   {
-    return (std::rint(x.real()), std::rint(x.imag()));
+    return _T(std::rint(x.real()), std::rint(x.imag()));
   }
 
   template <typename _T = T, std::enable_if_t<!legate::is_complex<_T>::value>* = nullptr>
@@ -509,6 +510,22 @@ struct UnaryOp<UnaryOpCode::RINT, legate::LegateTypeCode::HALF_LT> {
 };
 #endif
 
+namespace detail {
+
+template <typename T, std::enable_if_t<std::is_signed<T>::value>* = nullptr>
+constexpr T sign(const T& x)
+{
+  return x > 0 ? T(1) : (x < 0 ? T(-1) : T(0));
+}
+
+template <typename T, std::enable_if_t<!std::is_signed<T>::value>* = nullptr>
+constexpr T sign(const T& x)
+{
+  return x > 0 ? T(1) : T(0);
+}
+
+}  // namespace detail
+
 template <legate::LegateTypeCode CODE>
 struct UnaryOp<UnaryOpCode::SIGN, CODE> {
   static constexpr bool valid = true;
@@ -520,23 +537,16 @@ struct UnaryOp<UnaryOpCode::SIGN, CODE> {
   constexpr decltype(auto) operator()(const _T& x) const
   {
     if (x.real() != 0) {
-      return (_sign(x.real()), 0);
+      return _T(detail::sign(x.real()), 0);
     } else {
-      return (_sign(x.imag()), 0);
+      return _T(detail::sign(x.imag()), 0);
     }
   }
 
   template <typename _T = T, std::enable_if_t<!legate::is_complex<_T>::value>* = nullptr>
   constexpr decltype(auto) operator()(const _T& x) const
   {
-    return _sign(x);
-  }
-
- private:
-  template <typename _T>
-  T _sign(const _T& x) const
-  {
-    return x > 0 ? T(1) : (x < 0 ? T(-1) : T(0));
+    return detail::sign(x);
   }
 };
 

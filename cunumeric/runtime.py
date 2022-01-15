@@ -23,7 +23,7 @@ from functools import reduce
 import numpy as np
 
 import legate.core.types as ty
-from legate.core import LEGATE_MAX_DIM, AffineTransform, legion
+from legate.core import LEGATE_MAX_DIM, AffineTransform, Rect, legion
 from legate.core.runtime import RegionField
 
 from .config import *  # noqa F403
@@ -93,14 +93,17 @@ _supported_dtypes = {
 
 class Runtime(object):
     __slots__ = [
+        "callsite_summaries",
+        "current_random_epoch",
+        "destroyed",
         "legate_context",
         "legate_runtime",
-        "current_random_epoch",
         "max_eager_volume",
-        "test_mode",
+        "num_gpus",
+        "num_procs",
+        "preload_cudalibs",
         "shadow_debug",
-        "callsite_summaries",
-        "destroyed",
+        "test_mode",
     ]
 
     def __init__(self, legate_context):
@@ -113,12 +116,22 @@ class Runtime(object):
             CuNumericTunable.MAX_EAGER_VOLUME,
             ty.int32,
         )
+        self.num_procs = self.legate_context.get_tunable(
+            CuNumericTunable.NUM_PROCS,
+            ty.int32,
+        )
+        self.num_gpus = self.legate_context.get_tunable(
+            CuNumericTunable.NUM_GPUS,
+            ty.int32,
+        )
 
         # Make sure that our CuNumericLib object knows about us so it can
         # destroy us
         cunumeric_lib.set_runtime(self)
         self._register_dtypes()
         self._parse_command_args()
+        if self.num_gpus > 0 and self.preload_cudalibs:
+            self._load_cudalibs()
 
     def _register_dtypes(self):
         type_system = self.legate_context.type_system
@@ -144,6 +157,29 @@ class Runtime(object):
             self.callsite_summaries = dict()
         except ValueError:
             self.callsite_summaries = None
+        try:
+            # Prune it out so the application does not see it
+            sys.argv.remove("-cunumeric:preload-cudalibs")
+            self.preload_cudalibs = True
+        except ValueError:
+            self.preload_cudalibs = False
+
+    def _load_cudalibs(self):
+        task = self.legate_context.create_task(
+            CuNumericOpCode.LOAD_CUDALIBS,
+            manual=True,
+            launch_domain=Rect(lo=(0,), hi=(self.num_gpus,)),
+        )
+        task.execute()
+        self.legate_runtime.issue_execution_fence(block=True)
+
+    def _unload_cudalibs(self):
+        task = self.legate_context.create_task(
+            CuNumericOpCode.UNLOAD_CUDALIBS,
+            manual=True,
+            launch_domain=Rect(lo=(0,), hi=(self.num_gpus,)),
+        )
+        task.execute()
 
     def get_arg_dtype(self, value_dtype):
         arg_dtype = get_arg_dtype(value_dtype)
@@ -162,11 +198,9 @@ class Runtime(object):
 
     def destroy(self):
         assert not self.destroyed
+        if self.num_gpus > 0:
+            self._unload_cudalibs()
         if self.callsite_summaries is not None:
-            num_gpus = self.legate_context.get_tunable(
-                CuNumericTunable.NUM_GPUS,
-                ty.int32,
-            )
             print(
                 "---------------- cuNumeric Callsite Summaries "
                 "----------------"
@@ -187,7 +221,7 @@ class Runtime(object):
                     + str(callsite.lineno)
                 )
                 print("  Invocations: " + str(counts[1]))
-                if num_gpus > 0:
+                if self.num_gpus > 0:
                     print(
                         "  Legion GPU Accelerated: %d (%.2f%%)"
                         % (counts[0], (100.0 * counts[0]) / counts[1])
@@ -258,7 +292,7 @@ class Runtime(object):
 
     def get_next_random_epoch(self):
         result = self.current_random_epoch
-        self.current_random_epoch += 1
+        # self.current_random_epoch += 1
         return result
 
     def is_supported_type(self, dtype):
@@ -526,10 +560,7 @@ class Runtime(object):
         # If we're testing then the answer is always no
         if self.test_mode:
             return False
-        # Note the off by 1 case here, technically arrays with size
-        # up to LEGATE_MAX_DIM inclusive should be allowed, but we
-        # often use an extra dimension for reductions in cuNumeric
-        if len(shape) >= LEGATE_MAX_DIM:
+        if len(shape) > LEGATE_MAX_DIM:
             return True
         if len(shape) == 0:
             return self.max_eager_volume > 0

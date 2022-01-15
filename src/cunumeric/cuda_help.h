@@ -18,8 +18,10 @@
 
 #include "legate.h"
 #include <cublas_v2.h>
+#include <cusolverDn.h>
 #include <cuda_runtime.h>
 #include <cufft.h>
+#include <cutensor.h>
 
 #define THREADS_PER_BLOCK 128
 #define MIN_CTAS_PER_SM 4
@@ -45,6 +47,18 @@
     check_cufft(result, __FILE__, __LINE__); \
   } while (false)
 
+#define CHECK_CUSOLVER(expr)                    \
+  do {                                          \
+    cusolverStatus_t result = (expr);           \
+    check_cusolver(result, __FILE__, __LINE__); \
+  } while (false)
+
+#define CHECK_CUTENSOR(expr)                    \
+  do {                                          \
+    cutensorStatus_t result = (expr);           \
+    check_cutensor(result, __FILE__, __LINE__); \
+  } while (false)
+
 #ifndef MAX
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
 #endif
@@ -52,21 +66,21 @@
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 #endif
 
-struct cublasContext;
-struct cusolverDnContext;
-
 namespace cunumeric {
 
-// Defined in cunumeric.cu
+// Defined in cudalibs.cu
 
-cublasContext* get_cublas();
-cusolverDnContext* get_cusolver();
+// Return a cached stream for the current GPU
+cudaStream_t get_cached_stream();
+cublasHandle_t get_cublas();
+cusolverDnHandle_t get_cusolver();
+cutensorHandle_t* get_cutensor();
 
 __host__ inline void check_cuda(cudaError_t error, const char* file, int line)
 {
   if (error != cudaSuccess) {
     fprintf(stderr,
-            "Internal Legate CUDA failure with error %s (%s) in file %s at line %d\n",
+            "Internal CUDA failure with error %s (%s) in file %s at line %d\n",
             cudaGetErrorString(error),
             cudaGetErrorName(error),
             file,
@@ -79,7 +93,7 @@ __host__ inline void check_cublas(cublasStatus_t status, const char* file, int l
 {
   if (status != CUBLAS_STATUS_SUCCESS) {
     fprintf(stderr,
-            "Internal Legate CUBLAS failure with error code %d in file %s at line %d\n",
+            "Internal cuBLAS failure with error code %d in file %s at line %d\n",
             status,
             file,
             line);
@@ -91,7 +105,32 @@ __host__ inline void check_cufft(cufftResult result, const char* file, int line)
 {
   if (result != CUFFT_SUCCESS) {
     fprintf(stderr,
-            "Internal Legate CUFFT failure with error code %d in file %s at line %d\n",
+            "Internal cuFFT failure with error code %d in file %s at line %d\n",
+            result,
+            file,
+            line);
+    exit(result);
+  }
+}
+
+__host__ inline void check_cusolver(cusolverStatus_t status, const char* file, int line)
+{
+  if (status != CUSOLVER_STATUS_SUCCESS) {
+    fprintf(stderr,
+            "Internal cuSOLVER failure with error code %d in file %s at line %d\n",
+            status,
+            file,
+            line);
+    exit(status);
+  }
+}
+
+__host__ inline void check_cutensor(cutensorStatus_t result, const char* file, int line)
+{
+  if (result != CUTENSOR_STATUS_SUCCESS) {
+    fprintf(stderr,
+            "Internal Legate CUTENSOR failure with error %s (%d) in file %s at line %d\n",
+            cutensorGetErrorString(result),
             result,
             file,
             line);

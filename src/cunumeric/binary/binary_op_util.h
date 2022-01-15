@@ -20,6 +20,7 @@
 
 namespace cunumeric {
 
+// Match these to BinaryOpCode in config.py
 enum class BinaryOpCode : int {
   ADD = 1,
   DIVIDE,

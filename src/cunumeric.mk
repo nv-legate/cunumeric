@@ -25,14 +25,21 @@ GEN_CPU_SRC += cunumeric/ternary/where.cc               \
 							 cunumeric/nullary/arange.cc              \
 							 cunumeric/nullary/eye.cc                 \
 							 cunumeric/nullary/fill.cc                \
+                                                         cunumeric/index/choose.cc                \
 							 cunumeric/item/read.cc                   \
 							 cunumeric/item/write.cc                  \
+							 cunumeric/matrix/contract.cc             \
 							 cunumeric/matrix/diag.cc                 \
+							 cunumeric/matrix/gemm.cc                 \
 							 cunumeric/matrix/matmul.cc               \
 							 cunumeric/matrix/matvecmul.cc            \
 							 cunumeric/matrix/dot.cc                  \
+							 cunumeric/matrix/potrf.cc                \
+							 cunumeric/matrix/syrk.cc                 \
 							 cunumeric/matrix/tile.cc                 \
 							 cunumeric/matrix/transpose.cc            \
+							 cunumeric/matrix/trilu.cc                \
+							 cunumeric/matrix/trsm.cc                 \
 							 cunumeric/matrix/util.cc                 \
 							 cunumeric/random/rand.cc                 \
 							 cunumeric/search/nonzero.cc              \
@@ -53,22 +60,25 @@ GEN_CPU_SRC += cunumeric/ternary/where_omp.cc          \
 							 cunumeric/nullary/arange_omp.cc         \
 							 cunumeric/nullary/eye_omp.cc            \
 							 cunumeric/nullary/fill_omp.cc           \
+                                                         cunumeric/index/choose_omp.cc           \
+							 cunumeric/matrix/contract_omp.cc        \
 							 cunumeric/matrix/diag_omp.cc            \
+							 cunumeric/matrix/gemm_omp.cc            \
 							 cunumeric/matrix/matmul_omp.cc          \
 							 cunumeric/matrix/matvecmul_omp.cc       \
 							 cunumeric/matrix/dot_omp.cc             \
+							 cunumeric/matrix/potrf_omp.cc           \
+							 cunumeric/matrix/syrk_omp.cc            \
 							 cunumeric/matrix/tile_omp.cc            \
 							 cunumeric/matrix/transpose_omp.cc       \
+							 cunumeric/matrix/trilu_omp.cc           \
+							 cunumeric/matrix/trsm_omp.cc            \
 							 cunumeric/matrix/util_omp.cc            \
 							 cunumeric/random/rand_omp.cc            \
 							 cunumeric/search/nonzero_omp.cc         \
 							 cunumeric/stat/bincount_omp.cc          \
 							 cunumeric/convolution/convolve_omp.cc   \
 							 cunumeric/transform/flip_omp.cc
-endif
-
-ifeq ($(strip $(USE_CUDA)),1)
-GEN_CPU_SRC += cunumeric/cudalibs.cc
 endif
 
 GEN_CPU_SRC += cunumeric/cunumeric.cc # This must always be the last file!
@@ -87,15 +97,23 @@ GEN_GPU_SRC += cunumeric/ternary/where.cu               \
 							 cunumeric/nullary/fill.cu                \
 							 cunumeric/item/read.cu                   \
 							 cunumeric/item/write.cu                  \
+                                                         cunumeric/index/choose.cu                \
+							 cunumeric/matrix/contract.cu             \
 							 cunumeric/matrix/diag.cu                 \
+							 cunumeric/matrix/gemm.cu                 \
 							 cunumeric/matrix/matmul.cu               \
 							 cunumeric/matrix/matvecmul.cu            \
 							 cunumeric/matrix/dot.cu                  \
+							 cunumeric/matrix/potrf.cu                \
+							 cunumeric/matrix/syrk.cu                 \
 							 cunumeric/matrix/tile.cu                 \
 							 cunumeric/matrix/transpose.cu            \
+							 cunumeric/matrix/trilu.cu                \
+							 cunumeric/matrix/trsm.cu                 \
 							 cunumeric/random/rand.cu                 \
 							 cunumeric/search/nonzero.cu              \
 							 cunumeric/stat/bincount.cu               \
-							 cunumeric/convolution/convolve.cu	      \
+							 cunumeric/convolution/convolve.cu	  \
 							 cunumeric/transform/flip.cu              \
+							 cunumeric/cudalibs.cu                    \
 							 cunumeric/cunumeric.cu

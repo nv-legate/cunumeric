@@ -14,16 +14,15 @@
 #
 
 import numpy as np
-from test_tools.generators import scalar_gen
+from test_tools.generators import mk_0to1_array, scalar_gen
 
 import cunumeric as num
 from legate.core import LEGATE_MAX_DIM
 
 
 def nonscalar_gen(lib):
-    for ndim in range(1, LEGATE_MAX_DIM):  # off-by-one is by design
-        np.random.seed(42)
-        yield lib.array(np.random.random_sample((5,) * ndim))
+    for ndim in range(1, LEGATE_MAX_DIM + 1):
+        yield mk_0to1_array(lib, ndim * (5,))
 
 
 def tuple_set(tup, idx, val):

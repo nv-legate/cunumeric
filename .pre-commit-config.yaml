@@ -1,24 +1,21 @@
 repos:
-    - repo: https://github.com/timothycrosley/isort
-      rev: 5.7.0
+    - repo: https://github.com/PyCQA/isort
+      rev: 5.10.1
       hooks:
             - id: isort
-    - repo: https://github.com/ambv/black
-      rev: 20.8b1
+    - repo: https://github.com/psf/black
+      rev: 21.12b0
       hooks:
             - id: black
-    - repo: https://gitlab.com/pycqa/flake8
-      rev: 3.8.4
+    - repo: https://github.com/PyCQA/flake8
+      rev: 4.0.1
       hooks:
             - id: flake8
-    - repo: local
+    - repo: https://github.com/pre-commit/mirrors-clang-format
+      rev: 'v13.0.0'  # Use the sha / tag you want to point at
       hooks:
-            - id: clang-format
-              name: clang-format
-              description: Format files with ClangFormat.
-              entry: clang-format -i
-              language: system
-              files: \.(cu|cuh|h|cc|inl)$
-              args: ['-fallback-style=none']
+        - id: clang-format
+          files: \.(cu|cuh|h|cc|inl)$
+          types_or: []
 default_language_version:
     python: python3

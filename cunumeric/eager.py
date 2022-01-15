@@ -58,7 +58,7 @@ class EagerArray(NumPyThunk):
         # Track when this escapes. If it escapes we have
         # to be more careful in how we do our attach
         self.record_escape()
-        return self.array
+        return self.array.__array__()
 
     def record_escape(self):
         if self.parent is None:
@@ -166,15 +166,11 @@ class EagerArray(NumPyThunk):
             self.deferred.copy(rhs, deep=deep, stacklevel=(stacklevel + 1))
         else:
             if self.array.size == 1:
-                if deep:
-                    self.array.fill(rhs.array.item().__deepcopy__(None))
-                else:
-                    self.array.fill(rhs.array.item())
+                self.array.fill(rhs.array.item())
+            elif deep:
+                self.array[:] = rhs.array.__deepcopy__(None)
             else:
-                if deep:
-                    self.array[:] = rhs.array.__deepcopy__(None)
-                else:
-                    self.array[:] = rhs.array
+                self.array[:] = rhs.array
             self.runtime.profile_callsite(stacklevel + 1, False)
 
     @property
@@ -357,6 +353,71 @@ class EagerArray(NumPyThunk):
             self.deferred.flip(rhs, axes, stacklevel=(stacklevel + 1))
         else:
             self.array = np.flip(rhs.array, axes)
+            self.runtime.profile_callsite(stacklevel + 1, False)
+
+    def contract(
+        self,
+        lhs_modes,
+        rhs1_thunk,
+        rhs1_modes,
+        rhs2_thunk,
+        rhs2_modes,
+        mode2extent,
+        stacklevel,
+    ):
+        if self.shadow:
+            rhs1_thunk = self.runtime.to_eager_array(
+                rhs1_thunk, stacklevel=(stacklevel + 1)
+            )
+            rhs2_thunk = self.runtime.to_eager_array(
+                rhs2_thunk, stacklevel=(stacklevel + 1)
+            )
+        elif self.deferred is None:
+            self.check_eager_args((stacklevel + 1), rhs1_thunk, rhs2_thunk)
+        if self.deferred is not None:
+            self.deferred.contract(
+                lhs_modes,
+                rhs1_thunk,
+                rhs1_modes,
+                rhs2_thunk,
+                rhs2_modes,
+                mode2extent,
+                stacklevel=(stacklevel + 1),
+            )
+        else:
+            np.einsum(
+                f"{''.join(rhs1_modes)},{''.join(rhs2_modes)}"
+                f"->{''.join(lhs_modes)}",
+                rhs1_thunk.array,
+                rhs2_thunk.array,
+                out=self.array,
+            )
+            self.runtime.profile_callsite(stacklevel + 1, False)
+
+    def choose(
+        self,
+        *args,
+        rhs,
+        stacklevel=0,
+        callsite=None,
+    ):
+        if self.shadow:
+            rhs = self.runtime.to_eager_array(rhs, stacklevel=(stacklevel + 1))
+            args = tuple(
+                self.runtime.to_eager_array(ar, stacklevel=(stacklevel + 1))
+                for ar in args
+            )
+        elif self.deferred is None:
+            self.check_eager_args((stacklevel + 1), *args, rhs)
+        if self.deferred is not None:
+            self.deferred.choose(
+                *args,
+                rhs,
+                stacklevel=(stacklevel + 1),
+            )
+        else:
+            choices = tuple(c.array for c in args)
+            self.array[:] = np.choose(rhs.array, choices, mode="raise")
             self.runtime.profile_callsite(stacklevel + 1, False)
 
     def diag(self, rhs, extract, k, stacklevel):
@@ -1050,4 +1111,29 @@ class EagerArray(NumPyThunk):
             self.deferred.where(rhs1, rhs2, rhs3, stacklevel=(stacklevel + 1))
         else:
             self.array[:] = np.where(rhs1.array, rhs2.array, rhs3.array)
+            self.runtime.profile_callsite(stacklevel + 1, False)
+
+    def trilu(self, rhs, k, lower, stacklevel):
+        if self.shadow:
+            rhs = self.runtime.to_eager_array(rhs, stacklevel=stacklevel + 1)
+        elif self.deferred is None:
+            self.check_eager_args(stacklevel + 1, rhs)
+        if self.deferred is not None:
+            self.deferred.trilu(rhs, k, lower, stacklevel=stacklevel + 1)
+        else:
+            if lower:
+                self.array[:] = np.tril(rhs.array, k)
+            else:
+                self.array[:] = np.triu(rhs.array, k)
+            self.runtime.profile_callsite(stacklevel + 1, False)
+
+    def cholesky(self, src, no_tril, stacklevel):
+        if self.shadow:
+            src = self.runtime.to_eager_array(src, stacklevel=(stacklevel + 1))
+        elif self.deferred is None:
+            self.check_eager_args((stacklevel + 1), src)
+        if self.deferred is not None:
+            self.deferred.cholesky(src, stacklevel=(stacklevel + 1))
+        else:
+            self.array[:] = np.linalg.cholesky(src.array)
             self.runtime.profile_callsite(stacklevel + 1, False)

@@ -179,6 +179,36 @@ class NumPyThunk(object):
         """
         raise NotImplementedError("Implement in derived classes")
 
+    def contract(
+        self,
+        lhs_modes,
+        rhs1_thunk,
+        rhs1_modes,
+        rhs2_thunk,
+        rhs2_modes,
+        mode2extent,
+        stacklevel,
+    ):
+        """Perform a generalized tensor contraction onto our thunk
+
+        :meta private:
+        """
+        raise NotImplementedError("Implement in derived classes")
+
+    def choose(
+        self,
+        *args,
+        rhs,
+        stacklevel=0,
+        callsite=None,
+    ):
+        """Construct an array from an index array and a
+            list of arrays to choose from.
+
+        :meta private:
+        """
+        raise NotImplementedError("Implement in derived classes")
+
     def diag(self, rhs, extract, k, stacklevel):
         """Fill in or extract a diagonal from a matrix
 
