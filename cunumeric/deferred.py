@@ -1518,11 +1518,13 @@ class DeferredArray(NumPyThunk):
         if self.runtime.shadow_debug:
             self.shadow = self.runtime.to_eager_array(self, stacklevel + 1)
 
-    def random_uniform(self, stacklevel, callsite=None):
+    def random_uniform(self, stacklevel, low=0, high=1, callsite=None):
         assert self.dtype == np.float64
+        low = np.array(low, self.dtype)
+        high = np.array(high, self.dtype)
         self.random(
             RandGenCode.UNIFORM,
-            [],
+            [low, high],
             stacklevel=stacklevel + 1,
             callsite=callsite,
         )

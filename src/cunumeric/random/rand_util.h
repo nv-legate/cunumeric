@@ -54,16 +54,23 @@ struct RandomGenerator {
 template <legate::LegateTypeCode CODE>
 struct RandomGenerator<RandGenCode::UNIFORM, CODE> {
   using RNG                   = Philox_2x32<10>;
+  using VAL                   = legate::legate_type_of<CODE>;
   static constexpr bool valid = CODE == legate::LegateTypeCode::DOUBLE_LT;
 
-  RandomGenerator(uint32_t ep, const std::vector<legate::Store>& args) : epoch(ep) {}
-
+  RandomGenerator(uint32_t ep, const std::vector<legate::Store>& args) : epoch(ep)
+  {
+    assert(args.size() == 2);
+    lo   = args[0].scalar<VAL>();
+    diff = args[1].scalar<VAL>() - lo;
+  }
   __CUDAPREFIX__ double operator()(uint32_t hi, uint32_t lo) const
   {
-    return RNG::rand_double(epoch, hi, lo);
+    return static_cast<VAL>(lo + RNG::rand_long(epoch, hi, lo, diff));
   };
 
   uint32_t epoch;
+  VAL lo;
+  VAL diff;
 };
 
 template <legate::LegateTypeCode CODE>

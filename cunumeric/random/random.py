@@ -78,3 +78,26 @@ def randint(low, high=None, size=None, dtype=None):
             )
         result._thunk.random_integer(low=low, high=high, stacklevel=2)
     return result
+
+
+def uniform(low, high=None, size=None, dtype=None):
+    if size is None:
+        return nprandom.uniform(low=low, high=high, size=size, dtype=dtype)
+    if dtype is not None:
+        dtype = np.dtype(dtype)
+    else:
+        dtype = np.dtype(np.float64)
+    if dtype.kind != "f":
+        raise TypeError("cunumeric.random.uniform must be given a float dtype")
+    if not isinstance(size, tuple):
+        size = (size,)
+    result = ndarray(size, dtype=dtype)
+    if high is None:
+        result._thunk.random_uniform(low=0, high=low, stacklevel=2)
+    else:
+        if low >= high:
+            raise ValueError(
+                "'high' bound must be strictly greater than 'low' "
+            )
+        result._thunk.random_uniform(low=low, high=high, stacklevel=2)
+    return result
