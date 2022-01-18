@@ -1236,6 +1236,30 @@ class DeferredArray(NumPyThunk):
 
         task.execute()
 
+    # Repeat elements of an array.
+    @auto_convert([1])
+    def repeat(self, rhs, repeats, axis, scalar_repeats):
+        if not scalar_repeats:
+            repeats = self.runtime.to_deferred_array(repeats)
+            repeats = repeats.base
+
+        input_arr = rhs.base
+        output_arr = self.base
+        task = self.context.create_task(CuNumericOpCode.REPEAT)
+        task.add_output(output_arr)
+        task.add_input(input_arr)
+        task.add_broadcast(input_arr)
+        task.add_scalar_arg(axis, ty.int32)
+        task.add_scalar_arg(scalar_repeats, bool)
+        # repeats is a scalar.
+        if scalar_repeats:
+            task.add_scalar_arg(repeats, ty.int64)
+        else:
+            task.add_input(repeats)
+            task.add_broadcast(repeats)
+
+        task.execute()
+
     @auto_convert([1])
     def flip(self, rhs, axes):
         input = rhs.base

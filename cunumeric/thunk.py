@@ -90,6 +90,10 @@ class NumPyThunk(ABC):
     def copy(self, rhs, deep):
         ...
 
+    @abstractmethod
+    def repeat(self, rhs, repeats, axis, scalar_repeats, stacklevel):
+        ...
+
     @property
     @abstractmethod
     def scalar(self):

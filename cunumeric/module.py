@@ -15,6 +15,7 @@
 
 import math
 import re
+import warnings
 from collections import Counter
 from functools import wraps
 from inspect import signature
@@ -1904,6 +1905,130 @@ def tile(A, reps):
     assert len(out_shape) == out_dims
     result = ndarray(out_shape, dtype=A.dtype, inputs=(A,))
     result._thunk.tile(A._thunk, reps)
+    return result
+
+
+def repeat(a, repeats, axis=None):
+    """
+    Repeat elements of an array.
+
+    Parameters
+    ----------
+    a : array_like
+        Input array.
+    repeats : int or array of ints
+        The number of repetitions for each element. repeats is
+        broadcasted to fit the shape of the given axis.
+    axis : int, optional
+        The axis along which to repeat values. By default, use the
+        flattened input array, and return a flat output array.
+
+    Returns
+    -------
+    repeated_array : ndarray
+        Output array which has the same shape as a, except along the
+        given axis.
+
+    See Also
+    --------
+    numpy.repeat
+
+    Availability
+    --------
+    GPU, CPU
+    """
+
+    # when array is a scalar
+    if np.ndim(a) == 0:
+        if np.ndim(repeats) == 0:
+            return full((repeats,), a)
+        else:
+            raise ValueError(
+                "`repeat` with a scalar parameter `a` is only "
+                "implemented for scalar values of the parameter `repeats`."
+            )
+
+    # array is an array
+    array = ndarray.convert_to_cunumeric_ndarray(a)
+    if np.ndim(repeats) != 0:
+        repeats = ndarray.convert_to_cunumeric_ndarray(repeats)
+
+    # if no axes specified, flatten array
+    if axis is None:
+        array = array.ravel()
+        axis = 0
+        if np.ndim(repeats) != 0:
+            repeats.ravel()
+            if repeats.shape != array.shape:
+                return ValueError(
+                    "size of repeats shoul be equalt to array size"
+                )
+
+    # axes should be integer type
+    assert isinstance(axis, int)
+    if type(axis) is not np.int32:
+        axis = np.int32(axis)
+
+    if axis > array.ndim:
+        return ValueError("axis exceed dimension of the input array")
+
+    # If repeats is on a zero sized axis, then return the array.
+    if array.shape[axis] == 0:
+        return array
+
+    # repeats is a scalar.
+    if np.ndim(repeats) == 0:
+        # repeats is 0
+        if repeats == 0:
+            empty_shape = list(array.shape)
+            empty_shape[axis] = 0
+            empty_shape = tuple(empty_shape)
+            return ndarray(shape=empty_shape, dtype=array.dtype)
+        # repeats should be integer type
+        if type(repeats) is not np.int64:
+            warnings.warn(
+                "converting repeats to int64 type",
+                stacklevel=2,
+                category=RuntimeWarning,
+            )
+            repeats = np.int64(repeats)
+
+        result_shape = [array.shape[i] for i in range(0, array.ndim)]
+        result_shape[axis] = result_shape[axis] * repeats
+        result_shape = tuple(result_shape)
+        result = ndarray(result_shape, dtype=array.dtype, inputs=(array,))
+        result._thunk.repeat(
+            array._thunk,
+            repeats=repeats,
+            axis=axis,
+            scalar_repeats=True,
+        )
+    # repeats is an array
+    else:
+        # repeats should be integer type
+        if repeats.dtype is not np.int64:
+            warnings.warn(
+                "converting repeats to int64 type",
+                stacklevel=2,
+                category=RuntimeWarning,
+            )
+            repeats = repeats.astype(np.int64)
+        if repeats.shape[0] != array.shape[axis]:
+            return ValueError("incorect shape of repeats array")
+        total_repeats = repeats.sum(dtype=np.int64)
+        result_shape = tuple(array.shape[i] for i in range(0, axis))
+        size = np.int64(total_repeats)
+        result_shape = result_shape + (size,)
+        result_shape = result_shape + tuple(
+            array.shape[i] for i in range(axis + 1, array.ndim)
+        )
+        result = ndarray(result_shape, dtype=array.dtype, inputs=(array,))
+        result._thunk.repeat(
+            array._thunk,
+            repeats=repeats._thunk,
+            axis=axis,
+            scalar_repeats=False,
+        )
     return result
 
 
