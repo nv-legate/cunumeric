@@ -31,3 +31,4 @@ realm_defines.h
 cunumeric/install_info.py
 /build/*
 /docs/cunumeric/build
+*.egg-info
