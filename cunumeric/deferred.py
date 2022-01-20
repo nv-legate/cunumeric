@@ -1301,8 +1301,6 @@ class DeferredArray(NumPyThunk):
                 # promote output to the shape of the input  array
                 for i in range(1, naxes):
                     diag = diag.promote(start, matrix.shape[-i - 1])
-            if diag.shape[n] != matrix.shape[n]:
-                diag = diag.project(n, 0).promote(n, matrix.shape[n])
         else:
             matrix = self.base
             diag = rhs.base
