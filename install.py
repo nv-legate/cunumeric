@@ -308,7 +308,14 @@ def build_cunumeric(
     except FileNotFoundError:
         pass
 
-    cmd = [sys.executable, "setup.py", "install", "--recurse"]
+    cmd = [
+        sys.executable,
+        "setup.py",
+        "install",
+        "--recurse",
+        "--single-version-externally-managed",
+        "--root=/",
+    ]
     if unknown is not None:
         cmd += unknown
         if "--prefix" not in unknown:
