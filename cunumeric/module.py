@@ -208,8 +208,8 @@ def choose(a, choices, out=None, mode="raise"):
 @copy_docstring(np.diag)
 def diag(v, k=0):
     array = ndarray.convert_to_cunumeric_ndarray(v)
-    if array._thunk.scalar:
-        return array.copy()
+    if array.ndim == 0:
+        raise ValueError("Input must be 1- or 2-d")
     elif array.ndim == 1:
         return array.diagonal(offset=k, axis1=0, axis2=1, extract=False)
     elif array.ndim == 2:
@@ -218,11 +218,31 @@ def diag(v, k=0):
         raise ValueError("diag requires 1- or 2-D array, use diagonal instead")
 
 
-@copy_docstring(np.diagonal)
-def diagonal(a, offset=0, axis1=0, axis2=1, extract=True):
+def diagonal(a, offset=0, axis1=None, axis2=None, extract=True, axes=None):
+    """
+    Return specified diagonals.
+
+    See description in numpy
+    ------------------------
+    https://numpy.org/doc/stable/reference/generated/numpy.diag.html
+    https://numpy.org/doc/stable/reference/generated/numpy.diagonal.html#numpy.diagonal
+    https://numpy.org/doc/stable/reference/generated/numpy.ndarray.diagonal.html
+
+
+    cuNumeric implementation differences:
+    ------------------------------------
+    - It never returns a view
+    - support 1D arrays (similar to `diag`)
+    - support extra arguments:
+         -- extract: used to create diagonal from 1D array vs extracting
+           the diagonal from"
+         -- axes: list of axes for diagonal ( size of the list should be in
+           between 2 and size of the array)
+
+    """
     array = ndarray.convert_to_cunumeric_ndarray(a)
     return array.diagonal(
-        offset=offset, axis1=axis1, axis2=axis2, extract=extract
+        offset=offset, axis1=axis1, axis2=axis2, extract=extract, axes=axes
     )
 
 
@@ -693,23 +713,19 @@ def _contract(expr, a, b=None, out=None, stacklevel=1):
 
     # Handle duplicate modes on inputs
     c_a_modes = Counter(a_modes)
-    for mode in c_a_modes:
-        count = c_a_modes[mode]
+    for (mode, count) in c_a_modes.items():
         if count > 1:
             axes = [i for (i, m) in enumerate(a_modes) if m == mode]
             a = a.diag_helper(axes=axes)
             # diagonal is stored on last axis
-            for _ in range(count - 1):
-                a_modes.remove(mode)
+            a_modes = [m for m in a_modes if m != mode] + [mode]
     c_b_modes = Counter(b_modes)
-    for mode in c_b_modes:
-        count = c_b_modes[mode]
+    for (mode, count) in c_b_modes.items():
         if count > 1:
             axes = [i for (i, m) in enumerate(b_modes) if m == mode]
             b = b.diag_helper(axes=axes)
             # diagonal is stored on last axis
-            for _ in range(count - 1):
-                b_modes.remove(mode)
+            b_modes = [m for m in b_modes if m != mode] + [mode]
     # Drop modes corresponding to singleton dimensions. This handles cases of
     # broadcasting.
     for dim in reversed(range(a.ndim)):

@@ -29,8 +29,8 @@ struct DiagImplBody<VariantKind::CPU, CODE, DIM, true> {
   void operator()(const AccessorRD<SumReduction<VAL>, true, DIM>& out,
                   const AccessorRO<VAL, DIM>& in,
                   const coord_t& start,
-                  Pitches<DIM - 1>& m_pitches,
-                  Rect<DIM>& m_shape,
+                  const Pitches<DIM - 1>& m_pitches,
+                  const Rect<DIM>& m_shape,
                   const size_t naxes,
                   const coord_t distance) const
   {
@@ -42,15 +42,11 @@ struct DiagImplBody<VariantKind::CPU, CODE, DIM, true> {
     }
     const size_t volume = m_shape.volume();
     for (size_t idx = 0; idx < volume; idx += skip_size) {
-      Point<DIM> in_p  = m_pitches.unflatten(idx, m_shape.lo);
-      Point<DIM> out_p = in_p;
+      Point<DIM> p = m_pitches.unflatten(idx, m_shape.lo);
       for (coord_t d = 0; d < distance; ++d) {
-        for (size_t i = DIM - naxes; i < DIM; i++) {
-          in_p[i]  = start + d;
-          out_p[i] = start + d;
-        }
-        auto v = in[in_p];
-        out.reduce(out_p, v);
+        for (size_t i = DIM - naxes; i < DIM; i++) { p[i] = start + d; }
+        auto v = in[p];
+        out.reduce(p, v);
       }
     }
   }
@@ -63,14 +59,12 @@ struct DiagImplBody<VariantKind::CPU, CODE, 2, false> {
 
   void operator()(const AccessorRO<VAL, 2>& in,
                   const AccessorRW<VAL, 2>& out,
-                  const int offset,
-                  const Point<2> start,
+                  const Point<2>& start,
                   const coord_t distance)
   {
     for (coord_t idx = 0; idx < distance; idx++) {
-      Point<2> in_p(start[0] + idx, start[1] + idx);
-      Point<2> out_p(start[0] + idx, start[1] + idx);
-      out[out_p] = in[in_p];
+      Point<2> p(start[0] + idx, start[1] + idx);
+      out[p] = in[p];
     }
   }
 };

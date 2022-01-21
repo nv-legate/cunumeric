@@ -101,14 +101,15 @@ class LazyArray(NumPyThunk):
     ):
         raise NotImplementedError("Implement in derived classes")
 
-    def diag(self, rhs, extract, k, stacklevel):
-        """Fill in or extract a diagonal from a matrix
-
-        :meta private:
-        """
-        raise NotImplementedError("Implement in derived classes")
-
-    def diagonal(self, rhs, offset, axis1, axis2, extract, stacklevel):
+    def diag_helper(
+        self,
+        rhs,
+        offset,
+        naxes,
+        extract,
+        stacklevel=0,
+        callsite=None,
+    ):
         """Fill in or extract a diagonal from array
 
         :meta private:

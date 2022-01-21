@@ -14,8 +14,10 @@
 #
 
 import random
+from itertools import permutations
 
 import numpy as np
+from cunumeric.eager import diagonal_reference
 from test_tools.generators import mk_seq_array
 
 import cunumeric as num
@@ -105,23 +107,91 @@ def test():
     assert np.array_equal(ad.diagonal(), num_ad.diagonal())
     assert np.array_equal(ad.diagonal(0, 1, 2), num_ad.diagonal(0, 1, 2))
     assert np.array_equal(ad.diagonal(1, 0, 2), num_ad.diagonal(1, 0, 2))
+    assert np.array_equal(ad.diagonal(-1, 0, 2), num_ad.diagonal(-1, 0, 2))
 
+    # test diagonal
     for ndim in range(2, LEGATE_MAX_DIM + 1):
         a_shape = tuple(random.randint(1, 9) for i in range(ndim))
         np_array = mk_seq_array(np, a_shape)
         num_array = mk_seq_array(num, a_shape)
-        if ndim == 2:
-            axis1 = 0
-            axis2 = 1
-        else:
-            axis1 = random.randint(0, ndim - 2)
-            axis2 = random.randint(axis1 + 1, ndim - 1)
-        diag_size = min(a_shape[axis1], a_shape[axis2]) - 1
-        offset = random.randint(-diag_size, diag_size)
-        assert np.array_equal(
-            np_array.diagonal(offset, axis1, axis2),
-            num_array.diagonal(offset, axis1, axis2),
+
+        # test diagonal
+        for axes in permutations(range(ndim), 2):
+            diag_size = min(a_shape[axes[0]], a_shape[axes[1]]) - 1
+            for offset in range(-diag_size + 1, diag_size):
+                assert np.array_equal(
+                    np_array.diagonal(offset, axes[0], axes[1]),
+                    num_array.diagonal(offset, axes[0], axes[1]),
+                )
+
+    # test for diagonal_helper
+    for ndim in range(3, LEGATE_MAX_DIM + 1):
+        a_shape = tuple(random.randint(1, 9) for i in range(ndim))
+        np_array = mk_seq_array(np, a_shape)
+        np_array = mk_seq_array(np, a_shape)
+        num_array = mk_seq_array(num, a_shape)
+        for num_axes in range(3, ndim + 1):
+            for axes in permutations(range(ndim), num_axes):
+                res_num = num.diagonal(
+                    num_array, offset=0, extract=True, axes=axes
+                )
+                res_ref = diagonal_reference(np_array, axes)
+                assert np.array_equal(res_num, res_ref)
+
+    for k in [0, -1, 1, -2, 2]:
+        print(f"diag(k={k})")
+        a = num.array(
+            [
+                [1, 2, 3, 4],
+                [5, 6, 7, 8],
+                [9, 10, 11, 12],
+                [13, 14, 15, 16],
+                [17, 18, 19, 20],
+            ]
         )
+        an = np.array(
+            [
+                [1, 2, 3, 4],
+                [5, 6, 7, 8],
+                [9, 10, 11, 12],
+                [13, 14, 15, 16],
+                [17, 18, 19, 20],
+            ]
+        )
+
+        b = num.diag(a, k=k)
+        bn = np.diag(an, k=k)
+        assert np.array_equal(b, bn)
+
+        c = num.diag(b, k=k)
+        cn = np.diag(bn, k=k)
+        assert np.array_equal(c, cn)
+
+        d = num.array(
+            [
+                [1, 2, 3, 4, 5],
+                [6, 7, 8, 9, 10],
+                [11, 12, 13, 14, 15],
+                [16, 17, 18, 19, 20],
+            ]
+        )
+        dn = np.array(
+            [
+                [1, 2, 3, 4, 5],
+                [6, 7, 8, 9, 10],
+                [11, 12, 13, 14, 15],
+                [16, 17, 18, 19, 20],
+            ]
+        )
+
+        e = num.diag(d, k=k)
+        en = np.diag(dn, k=k)
+        assert np.array_equal(e, en)
+
+        f = num.diag(e, k=k)
+        fn = np.diag(en, k=k)
+        assert np.array_equal(f, fn)
+
     return
 
 

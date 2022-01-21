@@ -31,8 +31,8 @@ struct DiagImplBody<VariantKind::OMP, CODE, DIM, true> {
                   const coord_t& start,
                   const Pitches<DIM - 1>& m_pitches,
                   const Rect<DIM>& m_shape,
-                  const size_t& naxes,
-                  const coord_t& distance) const
+                  const size_t naxes,
+                  const coord_t distance) const
   {
     size_t skip_size = 1;
 
@@ -64,8 +64,7 @@ struct DiagImplBody<VariantKind::OMP, CODE, 2, false> {
 
   void operator()(const AccessorRO<VAL, 2>& in,
                   const AccessorRW<VAL, 2>& out,
-                  const int offset,
-                  const Point<2> start,
+                  const Point<2>& start,
                   const coord_t distance)
   {
 #pragma omp parallel for schedule(static)

@@ -1270,7 +1270,6 @@ class DeferredArray(NumPyThunk):
     def diag_helper(
         self,
         rhs,
-        diag_size,
         offset,
         naxes,
         extract,
@@ -1287,7 +1286,7 @@ class DeferredArray(NumPyThunk):
             diag = self.base
             matrix = rhs.base
             ndim = rhs.ndim
-            start = self.ndim - naxes + 1
+            start = matrix.ndim - naxes
             n = ndim - 1
             if naxes == 2:
                 # get slice of the original array by the offset
@@ -1305,7 +1304,6 @@ class DeferredArray(NumPyThunk):
             matrix = self.base
             diag = rhs.base
             ndim = self.ndim
-            n = ndim - 1
             # get slice of the original array by the offset
             if offset > 0:
                 matrix = matrix.slice(1, slice(offset, None))
@@ -1329,50 +1327,10 @@ class DeferredArray(NumPyThunk):
             task.add_input(matrix)
             task.add_alignment(diag, matrix)
 
-        task.add_scalar_arg(diag_size, ty.int32)
-        task.add_scalar_arg(offset, ty.int32)
         task.add_scalar_arg(naxes, ty.int32)
         task.add_scalar_arg(extract, bool)
 
         task.execute()
-
-    @profile
-    @auto_convert([1])
-    @shadow_debug("diagonal", [1])
-    def diagonal(
-        self,
-        rhs,
-        offset=0,
-        axis1=0,
-        axis2=1,
-        extract=True,
-        stacklevel=0,
-        callsite=None,
-    ):
-        axes = (axis1, axis2)
-        if rhs.ndim < 2:
-            raise RuntimeError("diagonal works for dim>=2")
-
-        tr = tuple(ax for ax in range(rhs.ndim) if ax not in axes)
-        #        for ax in range(self.ndim):
-        #            if ax not in axes:
-        #                tr = tr + (ax,)
-
-        if offset >= 0:
-            a = self.transpose(tr + (axes[0], axes[1]))
-        else:
-            a = self.transpose(tr + (axes[1], axes[0]))
-            offset = -offset
-        diag_size = max(0, min(a.shape[-2], a.shape[-1] - offset))
-
-        self.diag_helper(
-            rhs=rhs,
-            diag_size=diag_size,
-            offset=offset,
-            naxes=2,
-            extract=extract,
-            stacklevel=3,
-        )
 
     # Create an identity array with the ones offset from the diagonal by k
     @profile

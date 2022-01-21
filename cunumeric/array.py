@@ -1144,26 +1144,34 @@ class ndarray(object):
     # axes=2. This restriction can be lifted in the future if there is a
     # use case of having arbitrary number of offsets
     def diag_helper(self, offset=0, axes=None, extract=True):
-        N = len(axes)
         # diag_helper can be used only for arrays with dim>=1
         if self.ndim < 1:
-            raise RuntimeError("diag_helper is implemented for dim>=1")
+            raise ValueError("diag_helper is implemented for dim>=1")
         elif self.ndim == 1:
+            if axes is not None:
+                raise ValueError(
+                    "Axes shouldn't be specified when getting "
+                    "diagonal for 1D array"
+                )
             m = self.shape[0] + np.abs(offset)
             out = ndarray((m, m), dtype=self.dtype, inputs=(self,))
             diag_size = self.shape[0]
             out._thunk.diag_helper(
                 self._thunk,
-                diag_size=diag_size,
                 offset=offset,
                 naxes=0,
                 extract=False,
                 stacklevel=3,
             )
         else:
+            N = len(axes)
+            if len(axes) != len(set(axes)):
+                raise ValueError(
+                    "axes passed to diag_helper should be all different"
+                )
             if self.ndim < N:
                 raise ValueError(
-                    "Dimension of input array shouldn't be less"
+                    "Dimension of input array shouldn't be less "
                     "than number of axes"
                 )
             # pack the axes that are not going to change
@@ -1187,14 +1195,17 @@ class ndarray(object):
             # more than 2 axes provided:
             elif N > 2:
                 # offsets are supported only when naxes=2
-                assert offset == 0
+                if offset != 0:
+                    raise ValueError(
+                        "offset supported for number of axes == 2"
+                    )
                 # sort axes along which diagonal is calculated by size
-                axes.sort(reverse=True, key=lambda i: a.shape[i])
+                axes = sorted(axes, reverse=True, key=lambda i: self.shape[i])
+                axes = tuple(axes)
                 # transpose a so axes for which diagonal is calculated are at
                 #  at the end
                 a = self.transpose(transpose_axes + axes)
-                sizes = tuple(a.shape[i] for i in axes)
-                diag_size = max(0, min(sizes))
+                diag_size = a.shape[a.ndim - 1]
             elif N < 2:
                 raise ValueError(
                     "number of axes passed to the diag_helper"
@@ -1210,7 +1221,6 @@ class ndarray(object):
 
             out._thunk.diag_helper(
                 a._thunk,
-                diag_size=diag_size,
                 offset=offset,
                 naxes=N,
                 extract=extract,
@@ -1218,10 +1228,28 @@ class ndarray(object):
             )
         return out
 
-    def diagonal(self, offset=0, axis1=0, axis2=1, extract=True):
-        return self.diag_helper(
-            offset=offset, axes=(axis1, axis2), extract=extract
-        )
+    def diagonal(
+        self, offset=0, axis1=None, axis2=None, extract=True, axes=None
+    ):
+        if self.ndim == 1:
+            if extract is True:
+                raise ValueError("extract can be true only for Ndim >=2")
+            axes = None
+        else:
+            if type(axis1) == int and type(axis2) == int:
+                if axes is not None:
+                    raise ValueError(
+                        "Either axis1/axis2 or axes must be supplied"
+                    )
+                axes = (axis1, axis2)
+            # default values for axes
+            elif (axis1 is None) and (axis2 is None) and (axes is None):
+                axes = (0, 1)
+            elif (axes is not None) and (
+                (axis1 is not None) or (axis2 is not None)
+            ):
+                raise ValueError("Either axis1/axis2 or axes must be supplied")
+        return self.diag_helper(offset=offset, axes=axes, extract=extract)
 
     def dot(self, rhs, out=None, stacklevel=1):
         rhs_array = self.convert_to_cunumeric_ndarray(

@@ -46,9 +46,10 @@ struct DiagImpl {
         end   = std::min(end, shape_in.hi[i]);
       }
       coord_t distance = end - start + 1;
-      if (distance < 0) distance = 0;
+
       auto in  = args.matrix.read_accessor<VAL, DIM>(shape_in);
       auto out = args.diag.reduce_accessor<SumReduction<VAL>, true, DIM>(shape_out);
+      if (distance < 0) return;
 
       DiagImplBody<KIND, CODE, DIM, true>()(
         out, in, start, pitches_in, shape_in, args.naxes, distance);
@@ -89,7 +90,7 @@ struct DiagImpl {
 
       auto in  = args.diag.read_accessor<VAL, 2>(shape_in);
       auto out = args.matrix.read_write_accessor<VAL, 2>(shape_out);
-      DiagImplBody<KIND, CODE, 2, false>()(in, out, args.offset, start, distance);
+      DiagImplBody<KIND, CODE, 2, false>()(in, out, start, distance);
     }
   }
 };
@@ -97,13 +98,11 @@ struct DiagImpl {
 template <VariantKind KIND>
 static void diag_template(TaskContext& context)
 {
-  int diag_size = context.scalars()[0].value<int>();
-  int offset    = context.scalars()[1].value<int>();
-  int naxes     = context.scalars()[2].value<int>();
-  bool extract  = context.scalars()[3].value<bool>();
+  int naxes     = context.scalars()[0].value<int>();
+  bool extract  = context.scalars()[1].value<bool>();
   Array& matrix = extract ? context.inputs()[0] : context.outputs()[0];
   Array& diag   = extract ? context.reductions()[0] : context.inputs()[0];
-  DiagArgs args{diag_size, offset, naxes, extract, matrix, diag};
+  DiagArgs args{naxes, extract, matrix, diag};
   double_dispatch(matrix.dim(), matrix.code(), DiagImpl<KIND>{}, args);
 }
 

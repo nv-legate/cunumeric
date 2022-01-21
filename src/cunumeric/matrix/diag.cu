@@ -98,8 +98,7 @@ struct DiagImplBody<VariantKind::GPU, CODE, 2, false> {
 
   void operator()(const AccessorRO<VAL, 2>& in,
                   const AccessorRW<VAL, 2>& out,
-                  const int offset,
-                  Point<2> start,
+                  const Point<2>& start,
                   const size_t distance)
   {
     const size_t blocks = (distance + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
