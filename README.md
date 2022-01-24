@@ -147,11 +147,12 @@ to your code if possible too so we can see how you are using the feature in cont
 
 ## Supported Types and Dimensions
 
-cuNumeric currently supports the following NumPy types: `float16`, `float32`, `float64`,
-`int16`, `int32`, `int64`, `uint16`, `uint32`, `uint64`, `bool`, `complex64`, and `complex128`.
-Legate currently also only works on up to 3D arrays at the moment. We're currently working
-on support for N-D arrays. If you have a need for arrays with more than three
-dimensions please let us know about it.
+cuNumeric currently supports the following NumPy types: `float16`, `float32`,
+`float64`, `int16`, `int32`, `int64`, `uint16`, `uint32`, `uint64`, `bool`,
+`complex64`, and `complex128`.
+
+cuNumeric supports up to 4D arrays by default, you can adjust this setting by
+installing legate.core with a larger `--max-dim`.
 
 ## Documentation
 
