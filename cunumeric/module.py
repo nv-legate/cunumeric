@@ -679,29 +679,27 @@ class NullOptimizer(oe.paths.PathOptimizer):
 
 # Generalized tensor contraction
 @add_boilerplate("a", "b")
-def _contract(expr, a, b=None, out=None, stacklevel=1):
-    # Parse modes out of contraction expression (assuming expression has been
-    # normalized already by contract_path)
-    if b is None:
-        m = re.match(r"([a-zA-Z]*)->([a-zA-Z]*)", expr)
-        assert m is not None
-        a_modes = list(m.group(1))
-        b_modes = []
-        out_modes = list(m.group(2))
-    else:
-        m = re.match(r"([a-zA-Z]*),([a-zA-Z]*)->([a-zA-Z]*)", expr)
-        assert m is not None
-        a_modes = list(m.group(1))
-        b_modes = list(m.group(2))
-        out_modes = list(m.group(3))
-
+def _contract(a_modes, b_modes, out_modes, a, b=None, out=None, stacklevel=1):
     # Sanity checks
+    if len(a_modes) != a.ndim:
+        raise ValueError(
+            f"Expected {len(a_modes)}-d input array but got {a.ndim}-d"
+        )
+    if b is None:
+        if len(b_modes) != 0:
+            raise ValueError("Missing input array")
+    elif len(b_modes) != b.ndim:
+        raise ValueError(
+            f"Expected {len(b_modes)}-d input array but got {b.ndim}-d"
+        )
     if out is not None and len(out_modes) != out.ndim:
         raise ValueError(
             f"Expected {len(out_modes)}-d output array but got {out.ndim}-d"
         )
     if len(set(out_modes)) != len(out_modes):
-        raise ValueError("Duplicate mode labels on output tensor")
+        raise ValueError("Duplicate mode labels on output")
+    if len(set(out_modes) - set(a_modes) - set(b_modes)) > 0:
+        raise ValueError("Unknown mode labels on output")
 
     # TODO: Handle duplicate modes on inputs
     if len(set(a_modes)) != len(a_modes) or len(set(b_modes)) != len(b_modes):
@@ -738,8 +736,11 @@ def _contract(expr, a, b=None, out=None, stacklevel=1):
         zip(a_modes, a.shape), zip(b_modes, b.shape) if b is not None else []
     ):
         prev_extent = mode2extent.get(mode)
-        # This should have already been checked by contract_path
-        assert prev_extent is None or extent == prev_extent
+        if prev_extent is not None and extent != prev_extent:
+            raise ValueError(
+                f"Mode {mode} appears under two different non-singleton "
+                f"extents: {extent} and {prev_extent}"
+            )
         mode2extent[mode] = extent
 
     # Any modes appearing only on the result must have originally been present
@@ -892,11 +893,31 @@ def einsum(expr, *operands, out=None, optimize=False):
         expr, *operands, einsum_call=True, optimize=optimize
     )
     for (indices, _, sub_expr, _, _) in contractions:
-        sub_opers = [operands.pop(i) for i in indices]
-        if len(operands) == 0:  # last iteration
-            sub_result = _contract(sub_expr, *sub_opers, out=out)
+        assert len(indices) == 1 or len(indices) == 2
+        a = operands.pop(indices[0])
+        b = operands.pop(indices[1]) if len(indices) == 2 else None
+        if b is None:
+            m = re.match(r"([a-zA-Z]*)->([a-zA-Z]*)", sub_expr)
+            if m is None:
+                raise NotImplementedError("Non-alphabetic mode labels")
+            a_modes = list(m.group(1))
+            b_modes = []
+            out_modes = list(m.group(2))
         else:
-            sub_result = _contract(sub_expr, *sub_opers)
+            m = re.match(r"([a-zA-Z]*),([a-zA-Z]*)->([a-zA-Z]*)", sub_expr)
+            if m is None:
+                raise NotImplementedError("Non-alphabetic mode labels")
+            a_modes = list(m.group(1))
+            b_modes = list(m.group(2))
+            out_modes = list(m.group(3))
+        sub_result = _contract(
+            a_modes,
+            b_modes,
+            out_modes,
+            a,
+            b,
+            out=(out if len(operands) == 0 else None),
+        )
         operands.append(sub_result)
     assert len(operands) == 1
     return operands[0]

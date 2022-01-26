@@ -15,6 +15,7 @@
 
 import warnings
 import weakref
+from collections import Counter
 from collections.abc import Iterable
 from functools import reduce
 from itertools import product
@@ -1098,7 +1099,6 @@ class DeferredArray(NumPyThunk):
                 lhs_array, stacklevel=stacklevel + 1
             )
 
-            # TODO: We should be able to do this in the core
             lhs_array.fill(
                 np.array(0, dtype=lhs_array.dtype),
                 stacklevel=(stacklevel + 1),
@@ -1157,8 +1157,22 @@ class DeferredArray(NumPyThunk):
     ):
         lhs_thunk = self
 
-        # TODO: More sanity checks (no duplicate modes, no singleton modes, no
-        # broadcasting, ...)
+        # Sanity checks
+        # no duplicate modes within an array
+        assert len(lhs_modes) == len(set(lhs_modes))
+        assert len(rhs1_modes) == len(set(rhs1_modes))
+        assert len(rhs2_modes) == len(set(rhs2_modes))
+        # no singleton modes
+        mode_counts = Counter()
+        mode_counts.update(lhs_modes)
+        mode_counts.update(rhs1_modes)
+        mode_counts.update(rhs2_modes)
+        for count in mode_counts.values():
+            assert count == 2 or count == 3
+        # arrays and mode lists agree on dimensionality
+        assert lhs_thunk.ndim == len(lhs_modes)
+        assert rhs1_thunk.ndim == len(rhs1_modes)
+        assert rhs2_thunk.ndim == len(rhs2_modes)
 
         # Casting should have been handled by the frontend
         assert lhs_thunk.dtype is rhs1_thunk.dtype
@@ -1169,7 +1183,6 @@ class DeferredArray(NumPyThunk):
         rhs2_thunk = rhs2_thunk._copy_if_overlapping(lhs_thunk)
 
         # Clear output array
-        # TODO: We should be able to do this in the core
         lhs_thunk.fill(
             np.array(0, dtype=lhs_thunk.dtype),
             stacklevel=(stacklevel + 1),
