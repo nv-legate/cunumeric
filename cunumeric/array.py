@@ -1040,7 +1040,7 @@ class ndarray(object):
         else:
             return out_arr
 
-    def cholesky(self, stacklevel=1):
+    def cholesky(self, no_tril=False, stacklevel=1):
         input = self
         if input.dtype.kind not in ("f", "c"):
             input = input.astype("float64")
@@ -1050,7 +1050,9 @@ class ndarray(object):
             stacklevel=stacklevel + 1,
             inputs=(input,),
         )
-        output._thunk.cholesky(input._thunk, stacklevel=(stacklevel + 1))
+        output._thunk.cholesky(
+            input._thunk, no_tril=no_tril, stacklevel=(stacklevel + 1)
+        )
         return output
 
     def clip(self, min=None, max=None, out=None):

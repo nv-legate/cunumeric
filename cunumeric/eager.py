@@ -1125,7 +1125,7 @@ class EagerArray(NumPyThunk):
                 self.array[:] = np.triu(rhs.array, k)
             self.runtime.profile_callsite(stacklevel + 1, False)
 
-    def cholesky(self, src, stacklevel):
+    def cholesky(self, src, no_tril, stacklevel):
         if self.shadow:
             src = self.runtime.to_eager_array(src, stacklevel=(stacklevel + 1))
         elif self.deferred is None:
