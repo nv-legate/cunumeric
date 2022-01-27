@@ -13,7 +13,6 @@
 # limitations under the License.
 #
 
-import warnings
 from collections.abc import Iterable
 from functools import reduce
 from inspect import signature
@@ -1006,7 +1005,7 @@ class ndarray(object):
             np.array(max, dtype=self.dtype),
         )
         if args[0].size != 1 or args[1].size != 1:
-            warnings.warn(
+            runtime.warn(
                 "cuNumeric has not implemented clip with array-like "
                 "arguments and is falling back to canonical numpy. You "
                 "may notice significantly decreased performance for this "

@@ -13,7 +13,6 @@
 # limitations under the License.
 #
 
-import warnings
 import weakref
 from collections.abc import Iterable
 from functools import reduce
@@ -504,7 +503,7 @@ class DeferredArray(NumPyThunk):
 
         if order != "C":
             # If we don't have a transform then we need to make a copy
-            warnings.warn(
+            self.runtime.warn(
                 "cuNumeric has not implemented reshape using Fortran-like "
                 "index order and is falling back to canonical numpy. You may "
                 "notice significantly decreased performance for this "
@@ -727,7 +726,7 @@ class DeferredArray(NumPyThunk):
         assert lhs_array.dtype != rhs_array.dtype
 
         if warn:
-            warnings.warn(
+            self.runtime.warn(
                 "cuNumeric performing implicit type conversion from "
                 + str(rhs_array.dtype)
                 + " to "

@@ -13,10 +13,9 @@
 # limitations under the License.
 #
 
-from __future__ import absolute_import, division, print_function
-
 import struct
 import sys
+import warnings
 from functools import reduce
 
 import numpy as np
@@ -34,7 +33,7 @@ from .config import (
 from .deferred import DeferredArray
 from .eager import EagerArray
 from .thunk import NumPyThunk
-from .utils import calculate_volume, get_arg_dtype
+from .utils import calculate_volume, find_last_user_stacklevel, get_arg_dtype
 
 _supported_dtypes = {
     np.bool_: ty.bool_,
@@ -68,6 +67,7 @@ class Runtime(object):
         "num_procs",
         "preload_cudalibs",
         "test_mode",
+        "warning",
     ]
 
     def __init__(self, legate_context):
@@ -115,6 +115,12 @@ class Runtime(object):
             self.preload_cudalibs = True
         except ValueError:
             self.preload_cudalibs = False
+        try:
+            # Prune it out so the application does not see it
+            sys.argv.remove("-cunumeric:warn")
+            self.warning = True
+        except ValueError:
+            self.warning = self.test_mode
 
     def _load_cudalibs(self):
         task = self.legate_context.create_task(
@@ -433,6 +439,12 @@ class Runtime(object):
             return array.to_deferred_array()
         else:
             raise RuntimeError("invalid array type")
+
+    def warn(self, msg, category=UserWarning):
+        if not self.warning:
+            return
+        stacklevel = find_last_user_stacklevel()
+        warnings.warn(msg, stacklevel=stacklevel, category=category)
 
 
 runtime = Runtime(cunumeric_context)
