@@ -102,7 +102,6 @@ class Runtime(object):
         "num_gpus",
         "num_procs",
         "preload_cudalibs",
-        "shadow_debug",
         "test_mode",
     ]
 
@@ -139,12 +138,6 @@ class Runtime(object):
             type_system.make_alias(np.dtype(numpy_type), core_type)
 
     def _parse_command_args(self):
-        try:
-            # Prune it out so the application does not see it
-            sys.argv.remove("-cunumeric:shadow")
-            self.shadow_debug = True
-        except ValueError:
-            self.shadow_debug = False
         try:
             # Prune it out so the application does not see it
             sys.argv.remove("-cunumeric:test")
@@ -281,8 +274,6 @@ class Runtime(object):
                 optimize_scalar=True,
             )
             result = DeferredArray(self, store, dtype=dtype)
-            if self.shadow_debug:
-                result.shadow = EagerArray(self, np.array(array))
         else:
             result = future
         return result
@@ -517,9 +508,6 @@ class Runtime(object):
                     dtype=array.dtype,
                     numpy_array=array if share else None,
                 )
-            # If we're doing shadow debug make an EagerArray shadow
-            if self.shadow_debug:
-                result.shadow = EagerArray(self, array.copy(), shadow=True)
         else:
             assert not defer
             # Make this into an eager evaluated thunk
@@ -536,15 +524,7 @@ class Runtime(object):
             store = self.legate_context.create_store(
                 dtype, shape=shape, optimize_scalar=True
             )
-            result = DeferredArray(self, store, dtype=dtype)
-            # If we're doing shadow debug make an EagerArray shadow
-            if self.shadow_debug:
-                result.shadow = EagerArray(
-                    self,
-                    np.empty(shape, dtype=dtype),
-                    shadow=True,
-                )
-            return result
+            return DeferredArray(self, store, dtype=dtype)
         else:
             return EagerArray(self, np.empty(shape, dtype=dtype))
 
@@ -618,24 +598,6 @@ class Runtime(object):
             raise NotImplementedError("convert eager array to lazy array")
         else:
             raise RuntimeError("invalid array type")
-
-    def check_shadow(self, thunk, op):
-        assert thunk.shadow is not None
-        # Check the kind of this array and see if we should use allclose or
-        # array_equal
-        cunumeric_result = thunk.__numpy_array__()
-        numpy_result = thunk.shadow.__numpy_array__()
-
-        if thunk.dtype.kind == "f":
-            passed = np.allclose(cunumeric_result, numpy_result)
-        else:
-            passed = np.array_equal(cunumeric_result, numpy_result)
-        if not passed:
-            print("===== cuNumeric =====")
-            print(cunumeric_result)
-            print("===== NumPy =====")
-            print(numpy_result)
-            raise RuntimeError(f"Shadow array check failed for {op}")
 
 
 runtime = Runtime(cunumeric_context)
