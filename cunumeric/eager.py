@@ -29,7 +29,7 @@ class EagerArray(NumPyThunk):
     :meta private:
     """
 
-    def __init__(self, runtime, array, parent=None, key=None, shadow=False):
+    def __init__(self, runtime, array, parent=None, key=None):
         NumPyThunk.__init__(self, runtime, array.dtype)
         self.array = array
         self.parent = parent
@@ -38,8 +38,6 @@ class EagerArray(NumPyThunk):
         #: if this ever becomes set (to a DeferredArray), we forward all
         #: operations to it
         self.deferred = None
-        #: if True then this is a shadow debugging copy of a DeferredArray
-        self.shadow = shadow
         self.escaped = False
 
     @property
@@ -86,7 +84,6 @@ class EagerArray(NumPyThunk):
         to be converted then we do it for all of them.
         :meta private:
         """
-        assert not self.shadow
         # Check to see if we already have our deferred array
         # or whether we need to go up the tree to have it made
         if self.deferred is None:
@@ -158,9 +155,7 @@ class EagerArray(NumPyThunk):
                 out.array = convolve(self.array, v.array, mode)
 
     def copy(self, rhs, deep, stacklevel):
-        if self.shadow:
-            rhs = self.runtime.to_eager_array(rhs, stacklevel=(stacklevel + 1))
-        elif self.deferred is None:
+        if self.deferred is None:
             self.check_eager_args((stacklevel + 1), rhs)
         if self.deferred is not None:
             self.deferred.copy(rhs, deep=deep, stacklevel=(stacklevel + 1))
@@ -217,11 +212,7 @@ class EagerArray(NumPyThunk):
         return result
 
     def set_item(self, key, value, stacklevel):
-        if self.shadow:
-            value = self.runtime.to_eager_array(
-                value, stacklevel=(stacklevel + 1)
-            )
-        elif self.deferred is None:
+        if self.deferred is None:
             self.check_eager_args((stacklevel + 1), value)
         if self.deferred is not None:
             self.deferred.set_item(key, value, stacklevel=(stacklevel + 1))
@@ -292,9 +283,7 @@ class EagerArray(NumPyThunk):
         return result
 
     def convert(self, rhs, stacklevel, warn=True):
-        if self.shadow:
-            rhs = self.runtime.to_eager_array(rhs, stacklevel=(stacklevel + 1))
-        elif self.deferred is None:
+        if self.deferred is None:
             self.check_eager_args((stacklevel + 1), rhs)
         if self.deferred is not None:
             return self.deferred.convert(
@@ -315,14 +304,7 @@ class EagerArray(NumPyThunk):
             self.runtime.profile_callsite(stacklevel + 1, False)
 
     def dot(self, rhs1, rhs2, stacklevel):
-        if self.shadow:
-            rhs1 = self.runtime.to_eager_array(
-                rhs1, stacklevel=(stacklevel + 1)
-            )
-            rhs2 = self.runtime.to_eager_array(
-                rhs2, stacklevel=(stacklevel + 1)
-            )
-        elif self.deferred is None:
+        if self.deferred is None:
             self.check_eager_args((stacklevel + 1), rhs1, rhs2)
         if self.deferred is not None:
             self.deferred.dot(rhs1, rhs2, stacklevel=(stacklevel + 1))
@@ -331,9 +313,7 @@ class EagerArray(NumPyThunk):
             self.runtime.profile_callsite(stacklevel + 1, False)
 
     def transpose(self, rhs, axes, stacklevel):
-        if self.shadow:
-            rhs = self.runtime.to_eager_array(rhs, stacklevel=(stacklevel + 1))
-        elif self.deferred is None:
+        if self.deferred is None:
             self.check_eager_args((stacklevel + 1), rhs)
         if self.deferred is not None:
             self.deferred.transpose(rhs, axes, stacklevel=(stacklevel + 1))
@@ -345,9 +325,7 @@ class EagerArray(NumPyThunk):
             self.runtime.profile_callsite(stacklevel + 1, False)
 
     def flip(self, rhs, axes, stacklevel):
-        if self.shadow:
-            rhs = self.runtime.to_eager_array(rhs, stacklevel=(stacklevel + 1))
-        elif self.deferred is None:
+        if self.deferred is None:
             self.check_eager_args((stacklevel + 1), rhs)
         if self.deferred is not None:
             self.deferred.flip(rhs, axes, stacklevel=(stacklevel + 1))
@@ -365,14 +343,7 @@ class EagerArray(NumPyThunk):
         mode2extent,
         stacklevel,
     ):
-        if self.shadow:
-            rhs1_thunk = self.runtime.to_eager_array(
-                rhs1_thunk, stacklevel=(stacklevel + 1)
-            )
-            rhs2_thunk = self.runtime.to_eager_array(
-                rhs2_thunk, stacklevel=(stacklevel + 1)
-            )
-        elif self.deferred is None:
+        if self.deferred is None:
             self.check_eager_args((stacklevel + 1), rhs1_thunk, rhs2_thunk)
         if self.deferred is not None:
             self.deferred.contract(
@@ -401,13 +372,7 @@ class EagerArray(NumPyThunk):
         stacklevel=0,
         callsite=None,
     ):
-        if self.shadow:
-            rhs = self.runtime.to_eager_array(rhs, stacklevel=(stacklevel + 1))
-            args = tuple(
-                self.runtime.to_eager_array(ar, stacklevel=(stacklevel + 1))
-                for ar in args
-            )
-        elif self.deferred is None:
+        if self.deferred is None:
             self.check_eager_args((stacklevel + 1), *args, rhs)
         if self.deferred is not None:
             self.deferred.choose(
@@ -421,9 +386,7 @@ class EagerArray(NumPyThunk):
             self.runtime.profile_callsite(stacklevel + 1, False)
 
     def diag(self, rhs, extract, k, stacklevel):
-        if self.shadow:
-            rhs = self.runtime.to_eager_array(rhs, stacklevel=(stacklevel + 1))
-        elif self.deferred is None:
+        if self.deferred is None:
             self.check_eager_args((stacklevel + 1), rhs)
         if self.deferred is not None:
             self.deferred.diag(rhs, extract, k, stacklevel=(stacklevel + 1))
@@ -453,9 +416,7 @@ class EagerArray(NumPyThunk):
             self.runtime.profile_callsite(stacklevel + 1, False)
 
     def tile(self, rhs, reps, stacklevel):
-        if self.shadow:
-            rhs = self.runtime.to_eager_array(rhs, stacklevel=(stacklevel + 1))
-        elif self.deferred is None:
+        if self.deferred is None:
             self.check_eager_args((stacklevel + 1), rhs)
         if self.deferred is not None:
             self.deferred.tile(rhs, reps, stacklevel=(stacklevel + 1))
@@ -464,13 +425,7 @@ class EagerArray(NumPyThunk):
             self.runtime.profile_callsite(stacklevel + 1, False)
 
     def bincount(self, rhs, stacklevel, weights=None):
-        if self.shadow:
-            rhs = self.runtime.to_eager_array(rhs, stacklevel=(stacklevel + 1))
-            if weights is not None:
-                weights = self.runtime.to_eager_array(
-                    weights, stacklevel=(stacklevel + 1)
-                )
-        elif self.deferred is None:
+        if self.deferred is None:
             if weights is not None:
                 self.check_eager_args((stacklevel + 1), rhs, weights)
             else:
@@ -498,9 +453,7 @@ class EagerArray(NumPyThunk):
             return result
 
     def sort(self, rhs, stacklevel):
-        if self.shadow:
-            rhs = self.runtime.to_eager_array(rhs, stacklevel=(stacklevel + 1))
-        elif self.deferred is None:
+        if self.deferred is None:
             self.check_eager_args((stacklevel + 1), rhs)
         if self.deferred is not None:
             self.deferred.sort(rhs, stacklevel=(stacklevel + 1))
@@ -509,7 +462,6 @@ class EagerArray(NumPyThunk):
             self.runtime.profile_callsite(stacklevel + 1, False)
 
     def random_uniform(self, stacklevel):
-        assert not self.shadow
         if self.deferred is not None:
             self.deferred.random_uniform(stacklevel=(stacklevel + 1))
         else:
@@ -520,7 +472,6 @@ class EagerArray(NumPyThunk):
             self.runtime.profile_callsite(stacklevel + 1, False)
 
     def random_normal(self, stacklevel):
-        assert not self.shadow
         if self.deferred is not None:
             self.deferred.random_normal(stacklevel=(stacklevel + 1))
         else:
@@ -531,7 +482,6 @@ class EagerArray(NumPyThunk):
             self.runtime.profile_callsite(stacklevel + 1, False)
 
     def random_integer(self, low, high, stacklevel):
-        assert not self.shadow
         if self.deferred is not None:
             self.deferred.random_integer(stacklevel=(stacklevel + 1))
         else:
@@ -544,13 +494,7 @@ class EagerArray(NumPyThunk):
             self.runtime.profile_callsite(stacklevel + 1, False)
 
     def unary_op(self, op, op_type, rhs, where, args, stacklevel):
-        if self.shadow:
-            rhs = self.runtime.to_eager_array(rhs, stacklevel=(stacklevel + 1))
-            if where is not None and isinstance(where, NumPyThunk):
-                where = self.runtime.to_eager_array(
-                    where, stacklevel=(stacklevel + 1)
-                )
-        elif self.deferred is None:
+        if self.deferred is None:
             if where is not None and isinstance(where, NumPyThunk):
                 self.check_eager_args((stacklevel + 1), rhs, where)
             else:
@@ -753,13 +697,7 @@ class EagerArray(NumPyThunk):
     def unary_reduction(
         self, op, rhs, where, axes, keepdims, args, initial, stacklevel
     ):
-        if self.shadow:
-            rhs = self.runtime.to_eager_array(rhs, stacklevel=(stacklevel + 1))
-            if isinstance(where, NumPyThunk):
-                where = self.runtime.to_eager_array(
-                    where, stacklevel=(stacklevel + 1)
-                )
-        elif self.deferred is None:
+        if self.deferred is None:
             self.check_eager_args((stacklevel + 1), rhs)
         if self.deferred is not None:
             self.deferred.unary_reduction(
@@ -868,18 +806,7 @@ class EagerArray(NumPyThunk):
         self.runtime.profile_callsite(stacklevel + 1, False)
 
     def binary_op(self, op, rhs1, rhs2, where, args, stacklevel):
-        if self.shadow:
-            rhs1 = self.runtime.to_eager_array(
-                rhs1, stacklevel=(stacklevel + 1)
-            )
-            rhs2 = self.runtime.to_eager_array(
-                rhs2, stacklevel=(stacklevel + 1)
-            )
-            if where is not None and isinstance(where, NumPyThunk):
-                where = self.runtime.to_eager_array(
-                    where, stacklevel=(stacklevel + 1)
-                )
-        elif self.deferred is None:
+        if self.deferred is None:
             if where is not None and isinstance(where, NumPyThunk):
                 self.check_eager_args((stacklevel + 1), rhs1, rhs2, where)
             else:
@@ -1064,14 +991,7 @@ class EagerArray(NumPyThunk):
             self.runtime.profile_callsite(stacklevel + 1, False)
 
     def binary_reduction(self, op, rhs1, rhs2, broadcast, args, stacklevel):
-        if self.shadow:
-            rhs1 = self.runtime.to_eager_array(
-                rhs1, stacklevel=(stacklevel + 1)
-            )
-            rhs2 = self.runtime.to_eager_array(
-                rhs2, stacklevel=(stacklevel + 1)
-            )
-        elif self.deferred is None:
+        if self.deferred is None:
             self.check_eager_args((stacklevel + 1), rhs1, rhs2)
         if self.deferred is not None:
             self.deferred.binary_reduction(
@@ -1093,17 +1013,7 @@ class EagerArray(NumPyThunk):
             self.runtime.profile_callsite(stacklevel + 1, False)
 
     def where(self, rhs1, rhs2, rhs3, stacklevel):
-        if self.shadow:
-            rhs1 = self.runtime.to_eager_array(
-                rhs1, stacklevel=(stacklevel + 1)
-            )
-            rhs2 = self.runtime.to_eager_array(
-                rhs2, stacklevel=(stacklevel + 1)
-            )
-            rhs3 = self.runtime.to_eager_array(
-                rhs3, stacklevel=(stacklevel + 1)
-            )
-        elif self.deferred is None:
+        if self.deferred is None:
             self.check_eager_args((stacklevel + 1), rhs1, rhs2, rhs3)
         if self.deferred is not None:
             self.deferred.where(rhs1, rhs2, rhs3, stacklevel=(stacklevel + 1))
@@ -1112,9 +1022,7 @@ class EagerArray(NumPyThunk):
             self.runtime.profile_callsite(stacklevel + 1, False)
 
     def trilu(self, rhs, k, lower, stacklevel):
-        if self.shadow:
-            rhs = self.runtime.to_eager_array(rhs, stacklevel=stacklevel + 1)
-        elif self.deferred is None:
+        if self.deferred is None:
             self.check_eager_args(stacklevel + 1, rhs)
         if self.deferred is not None:
             self.deferred.trilu(rhs, k, lower, stacklevel=stacklevel + 1)
@@ -1126,9 +1034,7 @@ class EagerArray(NumPyThunk):
             self.runtime.profile_callsite(stacklevel + 1, False)
 
     def cholesky(self, src, no_tril, stacklevel):
-        if self.shadow:
-            src = self.runtime.to_eager_array(src, stacklevel=(stacklevel + 1))
-        elif self.deferred is None:
+        if self.deferred is None:
             self.check_eager_args((stacklevel + 1), src)
         if self.deferred is not None:
             self.deferred.cholesky(src, stacklevel=(stacklevel + 1))
