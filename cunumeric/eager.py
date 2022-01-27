@@ -282,7 +282,10 @@ class EagerArray(NumPyThunk):
             if self.array.size == 1:
                 self.array.fill(rhs.array.item())
             else:
-                self.array[:] = rhs.array
+                if rhs.array.dtype.kind == "c" and self.array.dtype != "c":
+                    self.array[:] = rhs.array.real
+                else:
+                    self.array[:] = rhs.array
 
     def fill(self, value):
         if self.deferred is not None:
