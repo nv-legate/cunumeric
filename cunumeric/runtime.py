@@ -22,8 +22,7 @@ from functools import reduce
 import numpy as np
 
 import legate.core.types as ty
-from legate.core import LEGATE_MAX_DIM, AffineTransform, Rect, legion
-from legate.core.runtime import RegionField
+from legate.core import LEGATE_MAX_DIM, Rect, legion
 
 from .config import *  # noqa F403
 from .deferred import DeferredArray
@@ -212,41 +211,6 @@ class Runtime(object):
         elif not share:
             obj = obj.copy()
         return self.find_or_create_array_thunk(obj, share=share)
-
-    def instantiate_region_field(self, region, fid, dtype):
-        if region.parent is None:
-            # This is just a top-level region so the conversion is easy
-            bounds = region.index_space.domain
-            if not bounds.dense:
-                raise ValueError(
-                    "cuNumeric currently only support dense legate thunks"
-                )
-            # figure out the shape and transform for this top-level region
-            shape = ()
-            need_transform = False
-            for idx in range(bounds.rect.dim):
-                if bounds.rect.lo[idx] != 0:
-                    shape += ((bounds.rect.hi[idx] - bounds.rect.lo[idx]) + 1,)
-                    need_transform = True
-                else:
-                    shape += (bounds.rect.hi[idx] + 1,)
-            # Make the field
-            field = Field(self.runtime, region, fid, dtype, shape, own=False)
-            # If we need a transform then compute that now
-            if need_transform:
-                transform = AffineTransform(len(shape), len(shape), True)
-                for idx in range(bounds.rect.dim):
-                    transform.offset[idx] = bounds.rect[idx]
-            else:
-                transform = None
-            region_field = RegionField(
-                self, region, field, shape, transform=transform
-            )
-        else:
-            raise NotImplementedError(
-                "cuNumeric needs to handle subregion legate thunk case"
-            )
-        return region_field
 
     def has_external_attachment(self, array):
         assert array.base is None or not isinstance(array.base, np.ndarray)
