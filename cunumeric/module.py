@@ -679,7 +679,16 @@ class NullOptimizer(oe.paths.PathOptimizer):
 
 # Generalized tensor contraction
 @add_boilerplate("a", "b")
-def _contract(a_modes, b_modes, out_modes, a, b=None, out=None, stacklevel=1):
+def _contract(
+    a_modes,
+    b_modes,
+    out_modes,
+    a,
+    b=None,
+    out=None,
+    broadcast=True,
+    stacklevel=1,
+):
     # Sanity checks
     if len(a_modes) != a.ndim:
         raise ValueError(
@@ -707,15 +716,16 @@ def _contract(a_modes, b_modes, out_modes, a, b=None, out=None, stacklevel=1):
 
     # Drop modes corresponding to singleton dimensions. This handles cases of
     # broadcasting.
-    for dim in reversed(range(a.ndim)):
-        if a.shape[dim] == 1:
-            a = a.squeeze(dim)
-            a_modes.pop(dim)
-    if b is not None:
-        for dim in reversed(range(b.ndim)):
-            if b.shape[dim] == 1:
-                b = b.squeeze(dim)
-                b_modes.pop(dim)
+    if broadcast:
+        for dim in reversed(range(a.ndim)):
+            if a.shape[dim] == 1:
+                a = a.squeeze(dim)
+                a_modes.pop(dim)
+        if b is not None:
+            for dim in reversed(range(b.ndim)):
+                if b.shape[dim] == 1:
+                    b = b.squeeze(dim)
+                    b_modes.pop(dim)
 
     # Sum-out modes appearing on one argument, and missing from the result
     # TODO: If we supported sum on multiple axes we could do the full sum in a
@@ -738,8 +748,8 @@ def _contract(a_modes, b_modes, out_modes, a, b=None, out=None, stacklevel=1):
         prev_extent = mode2extent.get(mode)
         if prev_extent is not None and extent != prev_extent:
             raise ValueError(
-                f"Mode {mode} appears under two different non-singleton "
-                f"extents: {extent} and {prev_extent}"
+                f"Incompatible sizes between matched dimensions: {extent} vs "
+                f"{prev_extent}"
             )
         mode2extent[mode] = extent
 
