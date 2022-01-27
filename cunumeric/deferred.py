@@ -1173,8 +1173,16 @@ class DeferredArray(NumPyThunk):
         assert lhs_thunk.ndim == len(lhs_modes)
         assert rhs1_thunk.ndim == len(rhs1_modes)
         assert rhs2_thunk.ndim == len(rhs2_modes)
-
-        # Casting should have been handled by the frontend
+        # array shapes agree with mode extents (broadcasting should have been
+        # handled by the frontend)
+        assert all(
+            mode2extent[mode] == dim_sz
+            for (mode, dim_sz) in zip(
+                lhs_modes + rhs1_modes + rhs2_modes,
+                lhs_thunk.shape + rhs1_thunk.shape + rhs2_thunk.shape,
+            )
+        )
+        # casting has been handled by the frontend
         assert lhs_thunk.dtype is rhs1_thunk.dtype
         assert lhs_thunk.dtype is rhs2_thunk.dtype
 
@@ -1222,8 +1230,6 @@ class DeferredArray(NumPyThunk):
                     return store.promote(dim, extent)
                 else:
                     dim_mask.append(True)
-                    # Broadcasting should have been handled already
-                    assert store.shape[dim] == extent
                     return store
 
             lhs = add_mode(lhs, lhs_modes, lhs_dim_mask)
