@@ -15,7 +15,6 @@
 
 import math
 import re
-import sys
 from inspect import signature
 from itertools import chain
 from typing import Optional, Set
@@ -1387,22 +1386,7 @@ def add(a, b, out=None, where=True, dtype=None):
 
 
 def divide(a, b, out=None, where=True, dtype=None):
-    # For python 3 switch this to truedivide
-    if sys.version_info > (3,):
-        return true_divide(a, b, out=out, where=where, dtype=dtype)
-    a_array = ndarray.convert_to_cunumeric_ndarray(a)
-    b_array = ndarray.convert_to_cunumeric_ndarray(b)
-    where = ndarray.convert_to_predicate_ndarray(where)
-    if out is not None:
-        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
-    return ndarray.perform_binary_op(
-        BinaryOpCode.DIVIDE,
-        a_array,
-        b_array,
-        out=out,
-        out_dtype=dtype,
-        where=where,
-    )
+    return true_divide(a, b, out=out, where=where, dtype=dtype)
 
 
 def floor_divide(a, b, out=None, where=True, dtype=None):
