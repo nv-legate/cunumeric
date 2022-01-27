@@ -32,7 +32,6 @@ class NumPyThunk(object):
     def __init__(self, runtime, dtype):
         self.runtime = runtime
         self.context = runtime.legate_context
-        self.legate_runtime = runtime.legate_runtime
         self.dtype = dtype
 
     # From Legate Store class
