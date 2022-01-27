@@ -25,7 +25,6 @@ import opt_einsum as oe
 
 from .array import ndarray
 from .config import BinaryOpCode, UnaryOpCode, UnaryRedCode
-from .doc_utils import copy_docstring
 from .runtime import runtime
 
 try:
@@ -147,7 +146,6 @@ def add_boilerplate(*array_params: str):
 # ### ARRAY CREATION ROUTINES
 
 
-@copy_docstring(np.arange)
 def arange(*args, dtype=None):
     if len(args) == 1:
         (stop,) = args
@@ -173,7 +171,6 @@ def arange(*args, dtype=None):
     return result
 
 
-@copy_docstring(np.array)
 def array(obj, dtype=None, copy=True, order="K", subok=False, ndmin=0):
     if not isinstance(obj, ndarray):
         thunk = runtime.get_numpy_thunk(obj, share=(not copy), dtype=dtype)
@@ -190,13 +187,11 @@ def array(obj, dtype=None, copy=True, order="K", subok=False, ndmin=0):
     return array
 
 
-@copy_docstring(np.choose)
 def choose(a, choices, out=None, mode="raise"):
     array = ndarray.convert_to_cunumeric_ndarray(a)
     return array.choose(choices=choices, out=out, mode=mode)
 
 
-@copy_docstring(np.diag)
 def diag(v, k=0):
     array = ndarray.convert_to_cunumeric_ndarray(v)
     if array._thunk.scalar:
@@ -236,12 +231,10 @@ def diag(v, k=0):
         raise ValueError("diag requires 1- or 2-D array")
 
 
-@copy_docstring(np.empty)
 def empty(shape, dtype=np.float64):
     return ndarray(shape=shape, dtype=dtype)
 
 
-@copy_docstring(np.empty_like)
 def empty_like(a, dtype=None):
     array = ndarray.convert_to_cunumeric_ndarray(a)
     shape = array.shape
@@ -252,7 +245,6 @@ def empty_like(a, dtype=None):
     return ndarray(shape, dtype=dtype, inputs=(array,))
 
 
-@copy_docstring(np.eye)
 def eye(N, M=None, k=0, dtype=np.float64):
     if dtype is not None:
         dtype = np.dtype(dtype)
@@ -263,7 +255,6 @@ def eye(N, M=None, k=0, dtype=np.float64):
     return result
 
 
-@copy_docstring(np.full)
 def full(shape, value, dtype=None):
     if dtype is None:
         val = np.array(value)
@@ -275,7 +266,6 @@ def full(shape, value, dtype=None):
     return result
 
 
-@copy_docstring(np.full_like)
 def full_like(a, value, dtype=None):
     if dtype is not None:
         dtype = np.dtype(dtype)
@@ -287,12 +277,10 @@ def full_like(a, value, dtype=None):
     return result
 
 
-@copy_docstring(np.identity)
 def identity(n, dtype=float):
     return eye(N=n, M=n, dtype=dtype)
 
 
-@copy_docstring(np.linspace)
 def linspace(
     start,
     stop,
@@ -390,12 +378,10 @@ def linspace(
         return y.astype(dtype, copy=False)
 
 
-@copy_docstring(np.ones)
 def ones(shape, dtype=np.float64):
     return full(shape, 1, dtype=dtype)
 
 
-@copy_docstring(np.ones_like)
 def ones_like(a, dtype=None):
     usedtype = a.dtype
     if dtype is not None:
@@ -403,14 +389,12 @@ def ones_like(a, dtype=None):
     return full_like(a, 1, dtype=usedtype)
 
 
-@copy_docstring(np.zeros)
 def zeros(shape, dtype=np.float64):
     if dtype is not None:
         dtype = np.dtype(dtype)
     return full(shape, 0, dtype=dtype)
 
 
-@copy_docstring(np.zeros_like)
 def zeros_like(a, dtype=None):
     usedtype = a.dtype
     if dtype is not None:
@@ -418,7 +402,6 @@ def zeros_like(a, dtype=None):
     return full_like(a, 0, dtype=usedtype)
 
 
-@copy_docstring(np.copy)
 def copy(a):
     array = ndarray.convert_to_cunumeric_ndarray(a)
     result = empty_like(array, dtype=array.dtype)
@@ -426,12 +409,10 @@ def copy(a):
     return result
 
 
-@copy_docstring(np.tril)
 def tril(m, k=0):
     return trilu(m, k, True)
 
 
-@copy_docstring(np.triu)
 def triu(m, k=0):
     return trilu(m, k, False)
 
@@ -451,24 +432,20 @@ def trilu(m, k, lower):
 # Changing array shape
 
 
-@copy_docstring(np.ravel)
 def ravel(a, order="C"):
     array = ndarray.convert_to_cunumeric_ndarray(a)
     return array.ravel(order=order)
 
 
-@copy_docstring(np.reshape)
 def reshape(a, newshape, order="C"):
     array = ndarray.convert_to_cunumeric_ndarray(a)
     return array.reshape(newshape, order=order)
 
 
-@copy_docstring(np.transpose)
 def transpose(a, axes=None):
     return a.transpose(axes=axes)
 
 
-@copy_docstring(np.flip)
 def flip(m, axis=None):
     array = ndarray.convert_to_cunumeric_ndarray(m)
     return array.flip(axis=axis)
@@ -477,7 +454,6 @@ def flip(m, axis=None):
 # Changing kind of array
 
 
-@copy_docstring(np.asarray)
 def asarray(a, dtype=None, order=None):
     if not isinstance(a, ndarray):
         thunk = runtime.get_numpy_thunk(a, share=True, dtype=dtype)
@@ -492,7 +468,6 @@ def asarray(a, dtype=None, order=None):
 # Tiling
 
 
-@copy_docstring(np.tile)
 def tile(a, reps):
     array = ndarray.convert_to_cunumeric_ndarray(a)
     if not hasattr(reps, "__len__"):
@@ -516,27 +491,22 @@ def tile(a, reps):
 
 
 # Spliting arrays
-@copy_docstring(np.vsplit)
 def vsplit(a, indices):
     return split(a, indices, axis=0)
 
 
-@copy_docstring(np.hsplit)
 def hsplit(a, indices):
     return split(a, indices, axis=1)
 
 
-@copy_docstring(np.dsplit)
 def dsplit(a, indices):
     return split(a, indices, axis=2)
 
 
-@copy_docstring(np.split)
 def split(a, indices, axis=0):
     return array_split(a, indices, axis, equal=True)
 
 
-@copy_docstring(np.array_split)
 def array_split(a, indices, axis=0, equal=False):
     array = ndarray.convert_to_cunumeric_ndarray(a)
     dtype = type(indices)
@@ -627,7 +597,6 @@ def array_split(a, indices, axis=0, equal=False):
 # Elementwise bit operations
 
 
-@copy_docstring(np.invert)
 def invert(a, out=None, where=True, dtype=None):
     array = ndarray.convert_to_cunumeric_ndarray(a)
     where = ndarray.convert_to_predicate_ndarray(where)
@@ -652,7 +621,6 @@ def invert(a, out=None, where=True, dtype=None):
 # ### LINEAR ALGEBRA
 
 # Matrix and vector products
-@copy_docstring(np.dot)
 def dot(a, b, out=None):
     a_array = ndarray.convert_to_cunumeric_ndarray(a)
     if out is not None:
@@ -864,7 +832,6 @@ def _contract(expr, a, b=None, out=None):
     return c
 
 
-@copy_docstring(np.einsum)
 def einsum(expr, *operands, out=None, optimize=False):
     if not optimize:
         optimize = NullOptimizer()
@@ -887,7 +854,6 @@ def einsum(expr, *operands, out=None, optimize=False):
     return operands[0]
 
 
-@copy_docstring(np.tensordot)
 def tensordot(a, b, axes=2):
     # This is the exact same code as the canonical numpy.
     # See https://github.com/numpy/numpy/blob/v1.21.0/numpy/core/numeric.py#L943-L1133. # noqa:  E501
@@ -957,7 +923,6 @@ def tensordot(a, b, axes=2):
 # ### LOGIC FUNCTIONS
 
 
-@copy_docstring(np.logical_not)
 def logical_not(a, out=None, where=True, dtype=None, **kwargs):
     a_array = ndarray.convert_to_cunumeric_ndarray(a)
     where = ndarray.convert_to_predicate_ndarray(where)
@@ -976,7 +941,6 @@ def logical_not(a, out=None, where=True, dtype=None, **kwargs):
 # truth value testing
 
 
-@copy_docstring(np.all)
 def all(a, axis=None, out=None, keepdims=False, where=True):
     lg_array = ndarray.convert_to_cunumeric_ndarray(a)
     where = ndarray.convert_to_predicate_ndarray(where)
@@ -985,7 +949,6 @@ def all(a, axis=None, out=None, keepdims=False, where=True):
     return lg_array.all(axis=axis, out=out, keepdims=keepdims, where=where)
 
 
-@copy_docstring(np.any)
 def any(a, axis=None, out=None, keepdims=False, where=True):
     lg_array = ndarray.convert_to_cunumeric_ndarray(a)
     where = ndarray.convert_to_predicate_ndarray(where)
@@ -997,7 +960,6 @@ def any(a, axis=None, out=None, keepdims=False, where=True):
 # #Comparison
 
 
-@copy_docstring(np.allclose)
 def allclose(a, b, rtol=1e-5, atol=1e-8, equal_nan=False):
     a_array = ndarray.convert_to_cunumeric_ndarray(a)
     b_array = ndarray.convert_to_cunumeric_ndarray(b)
@@ -1015,7 +977,6 @@ def allclose(a, b, rtol=1e-5, atol=1e-8, equal_nan=False):
     )
 
 
-@copy_docstring(np.array_equal)
 def array_equal(a, b):
     a_array = ndarray.convert_to_cunumeric_ndarray(a)
     b_array = ndarray.convert_to_cunumeric_ndarray(b)
@@ -1028,7 +989,6 @@ def array_equal(a, b):
     )
 
 
-@copy_docstring(np.equal)
 def equal(a, b, out=None, where=True, dtype=np.dtype(np.bool)):
     a_array = ndarray.convert_to_cunumeric_ndarray(a)
     b_array = ndarray.convert_to_cunumeric_ndarray(b)
@@ -1045,7 +1005,6 @@ def equal(a, b, out=None, where=True, dtype=np.dtype(np.bool)):
     )
 
 
-@copy_docstring(np.greater)
 def greater(a, b, out=None, where=True, dtype=np.dtype(np.bool)):
     a_array = ndarray.convert_to_cunumeric_ndarray(a)
     b_array = ndarray.convert_to_cunumeric_ndarray(b)
@@ -1062,7 +1021,6 @@ def greater(a, b, out=None, where=True, dtype=np.dtype(np.bool)):
     )
 
 
-@copy_docstring(np.greater_equal)
 def greater_equal(a, b, out=None, where=True, dtype=np.dtype(np.bool)):
     a_array = ndarray.convert_to_cunumeric_ndarray(a)
     b_array = ndarray.convert_to_cunumeric_ndarray(b)
@@ -1079,7 +1037,6 @@ def greater_equal(a, b, out=None, where=True, dtype=np.dtype(np.bool)):
     )
 
 
-@copy_docstring(np.isinf)
 def isinf(a, out=None, where=True, dtype=None, **kwargs):
     a_array = ndarray.convert_to_cunumeric_ndarray(a)
     where = ndarray.convert_to_predicate_ndarray(where)
@@ -1095,7 +1052,6 @@ def isinf(a, out=None, where=True, dtype=None, **kwargs):
     )
 
 
-@copy_docstring(np.isnan)
 def isnan(a, out=None, where=True, dtype=None, **kwargs):
     a_array = ndarray.convert_to_cunumeric_ndarray(a)
     where = ndarray.convert_to_predicate_ndarray(where)
@@ -1111,7 +1067,6 @@ def isnan(a, out=None, where=True, dtype=None, **kwargs):
     )
 
 
-@copy_docstring(np.less)
 def less(a, b, out=None, where=True, dtype=np.dtype(np.bool)):
     a_array = ndarray.convert_to_cunumeric_ndarray(a)
     b_array = ndarray.convert_to_cunumeric_ndarray(b)
@@ -1128,7 +1083,6 @@ def less(a, b, out=None, where=True, dtype=np.dtype(np.bool)):
     )
 
 
-@copy_docstring(np.less_equal)
 def less_equal(a, b, out=None, where=True, dtype=np.dtype(np.bool)):
     a_array = ndarray.convert_to_cunumeric_ndarray(a)
     b_array = ndarray.convert_to_cunumeric_ndarray(b)
@@ -1145,7 +1099,6 @@ def less_equal(a, b, out=None, where=True, dtype=np.dtype(np.bool)):
     )
 
 
-@copy_docstring(np.logical_and)
 def logical_and(a, b, out=None, where=True, dtype=np.dtype(np.bool)):
     a_array = ndarray.convert_to_cunumeric_ndarray(a)
     b_array = ndarray.convert_to_cunumeric_ndarray(b)
@@ -1162,7 +1115,6 @@ def logical_and(a, b, out=None, where=True, dtype=np.dtype(np.bool)):
     )
 
 
-@copy_docstring(np.logical_or)
 def logical_or(a, b, out=None, where=True, dtype=np.dtype(np.bool)):
     a_array = ndarray.convert_to_cunumeric_ndarray(a)
     b_array = ndarray.convert_to_cunumeric_ndarray(b)
@@ -1179,7 +1131,6 @@ def logical_or(a, b, out=None, where=True, dtype=np.dtype(np.bool)):
     )
 
 
-@copy_docstring(np.logical_xor)
 def logical_xor(a, b, out=None, where=True, dtype=np.dtype(np.bool)):
     a_array = ndarray.convert_to_cunumeric_ndarray(a)
     b_array = ndarray.convert_to_cunumeric_ndarray(b)
@@ -1196,7 +1147,6 @@ def logical_xor(a, b, out=None, where=True, dtype=np.dtype(np.bool)):
     )
 
 
-@copy_docstring(np.not_equal)
 def not_equal(a, b, out=None, where=True, dtype=np.dtype(np.bool)):
     a_array = ndarray.convert_to_cunumeric_ndarray(a)
     b_array = ndarray.convert_to_cunumeric_ndarray(b)
@@ -1216,7 +1166,6 @@ def not_equal(a, b, out=None, where=True, dtype=np.dtype(np.bool)):
 # ### MATHEMATICAL FUNCTIONS
 
 
-@copy_docstring(np.negative)
 def negative(a, out=None, where=True, dtype=None, **kwargs):
     a_array = ndarray.convert_to_cunumeric_ndarray(a)
     where = ndarray.convert_to_predicate_ndarray(where)
@@ -1233,7 +1182,6 @@ def negative(a, out=None, where=True, dtype=None, **kwargs):
     )
 
 
-@copy_docstring(np.rint)
 def rint(a, out=None, where=True, dtype=None, **kwargs):
     lg_array = ndarray.convert_to_cunumeric_ndarray(a)
     where = ndarray.convert_to_predicate_ndarray(where)
@@ -1256,7 +1204,6 @@ def rint(a, out=None, where=True, dtype=None, **kwargs):
 # Trigonometric functions
 
 
-@copy_docstring(np.arccos)
 def arccos(a, out=None, where=True, dtype=None, **kwargs):
     lg_array = ndarray.convert_to_cunumeric_ndarray(a)
     where = ndarray.convert_to_predicate_ndarray(where)
@@ -1277,7 +1224,6 @@ def arccos(a, out=None, where=True, dtype=None, **kwargs):
     )
 
 
-@copy_docstring(np.arcsin)
 def arcsin(a, out=None, where=True, dtype=None, **kwargs):
     lg_array = ndarray.convert_to_cunumeric_ndarray(a)
     where = ndarray.convert_to_predicate_ndarray(where)
@@ -1298,7 +1244,6 @@ def arcsin(a, out=None, where=True, dtype=None, **kwargs):
     )
 
 
-@copy_docstring(np.arctan)
 def arctan(a, out=None, where=True, dtype=None, **kwargs):
     lg_array = ndarray.convert_to_cunumeric_ndarray(a)
     where = ndarray.convert_to_predicate_ndarray(where)
@@ -1319,7 +1264,6 @@ def arctan(a, out=None, where=True, dtype=None, **kwargs):
     )
 
 
-@copy_docstring(np.cos)
 def cos(a, out=None, where=True, dtype=None, **kwargs):
     lg_array = ndarray.convert_to_cunumeric_ndarray(a)
     where = ndarray.convert_to_predicate_ndarray(where)
@@ -1340,7 +1284,6 @@ def cos(a, out=None, where=True, dtype=None, **kwargs):
     )
 
 
-@copy_docstring(np.sign)
 def sign(a, out=None, where=True, dtype=None, **kwargs):
     lg_array = ndarray.convert_to_cunumeric_ndarray(a)
     where = ndarray.convert_to_predicate_ndarray(where)
@@ -1361,7 +1304,6 @@ def sign(a, out=None, where=True, dtype=None, **kwargs):
     )
 
 
-@copy_docstring(np.sin)
 def sin(a, out=None, where=True, dtype=None, **kwargs):
     lg_array = ndarray.convert_to_cunumeric_ndarray(a)
     where = ndarray.convert_to_predicate_ndarray(where)
@@ -1382,7 +1324,6 @@ def sin(a, out=None, where=True, dtype=None, **kwargs):
     )
 
 
-@copy_docstring(np.tan)
 def tan(a, out=None, where=True, dtype=None, **kwargs):
     lg_array = ndarray.convert_to_cunumeric_ndarray(a)
     where = ndarray.convert_to_predicate_ndarray(where)
@@ -1406,7 +1347,6 @@ def tan(a, out=None, where=True, dtype=None, **kwargs):
 # Hyperbolic functions
 
 
-@copy_docstring(np.tanh)
 def tanh(a, out=None, where=True, dtype=None, **kwargs):
     lg_array = ndarray.convert_to_cunumeric_ndarray(a)
     where = ndarray.convert_to_predicate_ndarray(where)
@@ -1430,7 +1370,6 @@ def tanh(a, out=None, where=True, dtype=None, **kwargs):
 # Sums, products, differences
 
 
-@copy_docstring(np.add)
 def add(a, b, out=None, where=True, dtype=None):
     a_array = ndarray.convert_to_cunumeric_ndarray(a)
     b_array = ndarray.convert_to_cunumeric_ndarray(b)
@@ -1447,7 +1386,6 @@ def add(a, b, out=None, where=True, dtype=None):
     )
 
 
-@copy_docstring(np.divide)
 def divide(a, b, out=None, where=True, dtype=None):
     # For python 3 switch this to truedivide
     if sys.version_info > (3,):
@@ -1467,7 +1405,6 @@ def divide(a, b, out=None, where=True, dtype=None):
     )
 
 
-@copy_docstring(np.floor_divide)
 def floor_divide(a, b, out=None, where=True, dtype=None):
     a_array = ndarray.convert_to_cunumeric_ndarray(a)
     b_array = ndarray.convert_to_cunumeric_ndarray(b)
@@ -1484,7 +1421,6 @@ def floor_divide(a, b, out=None, where=True, dtype=None):
     )
 
 
-@copy_docstring(np.multiply)
 def multiply(a, b, out=None, where=True, dtype=None):
     a_array = ndarray.convert_to_cunumeric_ndarray(a)
     b_array = ndarray.convert_to_cunumeric_ndarray(b)
@@ -1501,7 +1437,6 @@ def multiply(a, b, out=None, where=True, dtype=None):
     )
 
 
-@copy_docstring(np.prod)
 def prod(
     a,
     axis=None,
@@ -1524,7 +1459,6 @@ def prod(
     )
 
 
-@copy_docstring(np.subtract)
 def subtract(a, b, out=None, where=True, dtype=None):
     a_array = ndarray.convert_to_cunumeric_ndarray(a)
     b_array = ndarray.convert_to_cunumeric_ndarray(b)
@@ -1541,7 +1475,6 @@ def subtract(a, b, out=None, where=True, dtype=None):
     )
 
 
-@copy_docstring(np.sum)
 def sum(
     a,
     axis=None,
@@ -1565,7 +1498,6 @@ def sum(
     )
 
 
-@copy_docstring(np.true_divide)
 def true_divide(a, b, out=None, where=True, dtype=None):
     a_array = ndarray.convert_to_cunumeric_ndarray(a)
     b_array = ndarray.convert_to_cunumeric_ndarray(b)
@@ -1625,7 +1557,6 @@ def true_divide(a, b, out=None, where=True, dtype=None):
 # Exponents and logarithms
 
 
-@copy_docstring(np.exp)
 def exp(a, out=None, where=True, dtype=None, **kwargs):
     lg_array = ndarray.convert_to_cunumeric_ndarray(a)
     where = ndarray.convert_to_predicate_ndarray(where)
@@ -1645,7 +1576,6 @@ def exp(a, out=None, where=True, dtype=None, **kwargs):
     )
 
 
-@copy_docstring(np.exp2)
 def exp2(a, out=None, where=True, dtype=None, **kwargs):
     lg_array = ndarray.convert_to_cunumeric_ndarray(a)
     where = ndarray.convert_to_predicate_ndarray(where)
@@ -1665,7 +1595,6 @@ def exp2(a, out=None, where=True, dtype=None, **kwargs):
     )
 
 
-@copy_docstring(np.log)
 def log(a, out=None, where=True, dtype=None, **kwargs):
     lg_array = ndarray.convert_to_cunumeric_ndarray(a)
     where = ndarray.convert_to_predicate_ndarray(where)
@@ -1685,7 +1614,6 @@ def log(a, out=None, where=True, dtype=None, **kwargs):
     )
 
 
-@copy_docstring(np.log10)
 def log10(a, out=None, where=True, dtype=None, **kwargs):
     lg_array = ndarray.convert_to_cunumeric_ndarray(a)
     where = ndarray.convert_to_predicate_ndarray(where)
@@ -1705,7 +1633,6 @@ def log10(a, out=None, where=True, dtype=None, **kwargs):
     )
 
 
-@copy_docstring(np.power)
 def power(x1, x2, out=None, where=True, dtype=None, **kwargs):
     x1_array = ndarray.convert_to_cunumeric_ndarray(x1)
     x2_array = ndarray.convert_to_cunumeric_ndarray(x2)
@@ -1735,7 +1662,6 @@ def power(x1, x2, out=None, where=True, dtype=None, **kwargs):
     )
 
 
-@copy_docstring(np.square)
 def square(a, out=None, where=True, dtype=None, **kwargs):
     lg_array = ndarray.convert_to_cunumeric_ndarray(a)
     where = ndarray.convert_to_predicate_ndarray(where)
@@ -1756,7 +1682,6 @@ def square(a, out=None, where=True, dtype=None, **kwargs):
 # Miscellaneous
 
 
-@copy_docstring(np.absolute)
 def absolute(a, out=None, where=True, **kwargs):
     lg_array = ndarray.convert_to_cunumeric_ndarray(a)
     where = ndarray.convert_to_predicate_ndarray(where)
@@ -1778,7 +1703,6 @@ def absolute(a, out=None, where=True, **kwargs):
 abs = absolute  # alias
 
 
-@copy_docstring(np.ceil)
 def ceil(a, out=None, where=True, dtype=None, **kwargs):
     lg_array = ndarray.convert_to_cunumeric_ndarray(a)
     where = ndarray.convert_to_predicate_ndarray(where)
@@ -1796,7 +1720,6 @@ def ceil(a, out=None, where=True, dtype=None, **kwargs):
     )
 
 
-@copy_docstring(np.clip)
 def clip(a, a_min, a_max, out=None):
     lg_array = ndarray.convert_to_cunumeric_ndarray(a)
     if out is not None:
@@ -1804,14 +1727,12 @@ def clip(a, a_min, a_max, out=None):
     return lg_array.clip(a_min, a_max, out=out)
 
 
-@copy_docstring(np.fabs)
 def fabs(a, out=None, where=True, **kwargs):
     if out is not None:
         out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return absolute(a, out=out, where=where, **kwargs)
 
 
-@copy_docstring(np.floor)
 def floor(a, out=None, where=True, dtype=None, **kwargs):
     lg_array = ndarray.convert_to_cunumeric_ndarray(a)
     where = ndarray.convert_to_predicate_ndarray(where)
@@ -1829,7 +1750,6 @@ def floor(a, out=None, where=True, dtype=None, **kwargs):
     )
 
 
-@copy_docstring(np.sqrt)
 def sqrt(a, out=None, where=True, dtype=None, **kwargs):
     lg_array = ndarray.convert_to_cunumeric_ndarray(a)
     where = ndarray.convert_to_predicate_ndarray(where)
@@ -1850,7 +1770,6 @@ def sqrt(a, out=None, where=True, dtype=None, **kwargs):
     )
 
 
-@copy_docstring(np.convolve)
 def convolve(a, v, mode="full"):
     a_lg = ndarray.convert_to_cunumeric_ndarray(a)
     v_lg = ndarray.convert_to_cunumeric_ndarray(v)
@@ -1869,7 +1788,6 @@ def convolve(a, v, mode="full"):
 # Searching
 
 
-@copy_docstring(np.argmax)
 def argmax(a, axis=None, out=None):
     lg_array = ndarray.convert_to_cunumeric_ndarray(a)
     if out is not None:
@@ -1879,7 +1797,6 @@ def argmax(a, axis=None, out=None):
     return lg_array.argmax(axis=axis, out=out)
 
 
-@copy_docstring(np.argmin)
 def argmin(a, axis=None, out=None):
     lg_array = ndarray.convert_to_cunumeric_ndarray(a)
     if out is not None:
@@ -1889,7 +1806,6 @@ def argmin(a, axis=None, out=None):
     return lg_array.argmin(axis=axis, out=out)
 
 
-@copy_docstring(np.bincount)
 def bincount(a, weights=None, minlength=0):
     lg_array = ndarray.convert_to_cunumeric_ndarray(a)
     if weights is not None:
@@ -1933,13 +1849,11 @@ def bincount(a, weights=None, minlength=0):
     return out
 
 
-@copy_docstring(np.nonzero)
 def nonzero(a):
     lg_array = ndarray.convert_to_cunumeric_ndarray(a)
     return lg_array.nonzero()
 
 
-@copy_docstring(np.where)
 def where(a, x=None, y=None):
     if x is None or y is None:
         if x is not None or y is not None:
@@ -1999,7 +1913,6 @@ def where(a, x=None, y=None):
     )
 
 
-@copy_docstring(np.count_nonzero)
 @add_boilerplate("a")
 def count_nonzero(a, axis=None):
     if a.size == 0:
@@ -2018,7 +1931,6 @@ def count_nonzero(a, axis=None):
 # Order statistics
 
 
-@copy_docstring(np.amax)
 def amax(a, axis=None, out=None, keepdims=False):
     lg_array = ndarray.convert_to_cunumeric_ndarray(a)
     if out is not None:
@@ -2026,7 +1938,6 @@ def amax(a, axis=None, out=None, keepdims=False):
     return lg_array.max(axis=axis, out=out, keepdims=keepdims)
 
 
-@copy_docstring(np.amin)
 def amin(a, axis=None, out=None, keepdims=False):
     lg_array = ndarray.convert_to_cunumeric_ndarray(a)
     if out is not None:
@@ -2034,12 +1945,10 @@ def amin(a, axis=None, out=None, keepdims=False):
     return lg_array.min(axis=axis, out=out, keepdims=keepdims)
 
 
-@copy_docstring(np.max)
 def max(a, axis=None, out=None, keepdims=False):
     return amax(a, axis=axis, out=out, keepdims=keepdims)
 
 
-@copy_docstring(np.maximum)
 def maximum(a, b, out=None, where=True, dtype=None, **kwargs):
     a_array = ndarray.convert_to_cunumeric_ndarray(a)
     b_array = ndarray.convert_to_cunumeric_ndarray(b)
@@ -2056,12 +1965,10 @@ def maximum(a, b, out=None, where=True, dtype=None, **kwargs):
     )
 
 
-@copy_docstring(np.min)
 def min(a, axis=None, out=None, keepdims=False):
     return amin(a, axis=axis, out=out, keepdims=keepdims)
 
 
-@copy_docstring(np.minimum)
 def minimum(a, b, out=None, where=True, dtype=None, **kwargs):
     a_array = ndarray.convert_to_cunumeric_ndarray(a)
     b_array = ndarray.convert_to_cunumeric_ndarray(b)
@@ -2078,7 +1985,6 @@ def minimum(a, b, out=None, where=True, dtype=None, **kwargs):
     )
 
 
-@copy_docstring(np.add)
 def mod(a, b, out=None, where=True, dtype=None):
     a_array = ndarray.convert_to_cunumeric_ndarray(a)
     b_array = ndarray.convert_to_cunumeric_ndarray(b)
@@ -2098,7 +2004,6 @@ def mod(a, b, out=None, where=True, dtype=None):
 # Averages and variances
 
 
-@copy_docstring(np.mean)
 def mean(a, axis=None, dtype=None, out=None, keepdims=False):
     lg_array = ndarray.convert_to_cunumeric_ndarray(a)
     if out is not None:
@@ -2109,12 +2014,10 @@ def mean(a, axis=None, dtype=None, out=None, keepdims=False):
 # ### STACKING and CONCATENATION ###
 
 
-@copy_docstring(np.row_stack)
 def row_stack(inputs):
     return vstack(inputs)
 
 
-@copy_docstring(np.vstack)
 def vstack(inputs):
     # Check to see if we can build a new tuple of cuNumeric arrays
     dtype = None
@@ -2182,7 +2085,6 @@ def vstack(inputs):
 # cuNumeric arrays. The storing methods can go through the normal NumPy python
 
 
-@copy_docstring(np.genfromtxt)
 def genfromtxt(
     fname,
     dtype=float,
@@ -2236,7 +2138,6 @@ def genfromtxt(
     return ndarray.convert_to_cunumeric_ndarray(numpy_array)
 
 
-@copy_docstring(np.frombuffer)
 def frombuffer(buffer, dtype=float, count=-1, offset=0):
     numpy_array = np.frombuffer(
         buffer=buffer, dtype=dtype, count=count, offset=offset
@@ -2244,7 +2145,6 @@ def frombuffer(buffer, dtype=float, count=-1, offset=0):
     return ndarray.convert_to_cunumeric_ndarray(numpy_array)
 
 
-@copy_docstring(np.fromfile)
 def fromfile(file, dtype=float, count=-1, sep="", offset=0):
     numpy_array = np.fromfile(
         file=file, dtype=dtype, count=count, sep=sep, offset=offset
@@ -2252,19 +2152,16 @@ def fromfile(file, dtype=float, count=-1, sep="", offset=0):
     return ndarray.convert_to_cunumeric_ndarray(numpy_array)
 
 
-@copy_docstring(np.fromfunction)
 def fromfunction(function, shape, **kwargs):
     numpy_array = np.fromfunction(function=function, shape=shape, **kwargs)
     return ndarray.convert_to_cunumeric_ndarray(numpy_array)
 
 
-@copy_docstring(np.fromiter)
 def fromiter(iterable, dtype, count=-1):
     numpy_array = np.fromiter(iterable=iterable, dtype=dtype, count=count)
     return ndarray.convert_to_cunumeric_ndarray(numpy_array)
 
 
-@copy_docstring(np.fromregex)
 def fromregex(file, regexp, dtype, encoding=None):
     numpy_array = np.fromregex(
         file=file, regexp=regexp, dtype=dtype, encoding=encoding
@@ -2272,7 +2169,6 @@ def fromregex(file, regexp, dtype, encoding=None):
     return ndarray.convert_to_cunumeric_ndarray(numpy_array)
 
 
-@copy_docstring(np.fromstring)
 def fromstring(string, dtype=float, count=-1, sep=""):
     numpy_array = np.fromstring(
         string=string, dtype=dtype, count=count, sep=sep
@@ -2280,7 +2176,6 @@ def fromstring(string, dtype=float, count=-1, sep=""):
     return ndarray.convert_to_cunumeric_ndarray(numpy_array)
 
 
-@copy_docstring(np.load)
 def load(
     file,
     mmap_mode=None,
@@ -2298,7 +2193,6 @@ def load(
     return ndarray.convert_to_cunumeric_ndarray(numpy_array)
 
 
-@copy_docstring(np.loadtxt)
 def loadtxt(
     fname,
     dtype=float,
@@ -2328,7 +2222,6 @@ def loadtxt(
     return ndarray.convert_to_cunumeric_ndarray(numpy_array)
 
 
-@copy_docstring(np.memmap)
 def memmap(
     filename, dtype=np.uint8, mode="r+", offset=0, shape=None, order="C"
 ):

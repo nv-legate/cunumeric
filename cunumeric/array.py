@@ -25,7 +25,6 @@ import pyarrow
 from legate.core import Array
 
 from .config import BinaryOpCode, UnaryOpCode, UnaryRedCode
-from .doc_utils import copy_docstring
 from .runtime import runtime
 from .utils import unimplemented
 
@@ -150,7 +149,6 @@ def broadcast_shapes(*args):
     return np.broadcast(*arrays).shape
 
 
-@copy_docstring(np.ndarray)
 class ndarray(object):
     def __init__(
         self,
