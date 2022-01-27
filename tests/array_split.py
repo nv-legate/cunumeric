@@ -14,7 +14,6 @@
 #
 
 import argparse
-import itertools
 import math
 
 import numpy as np
@@ -26,18 +25,26 @@ def test(dim):
     # Seed the random generator with a random number
     np.random.seed(416)
     print("test split")
-    test_routine = ["array_split"]
+    routine = "array_split"
     # test the split routines on empty, singleton, 2D and 3D arrays
     # w/ integers, list of indicies. vsplit, hsplit, dsplit are included
     # in the following loops(axis = 0: vsplit, 1: hsplit, 2: dsplit)
 
-    input_shapes = [(0), (1), (1, 1), (1, 1, 1), (dim, dim), (dim, dim, dim)]
+    input_shapes = [
+        (0),
+        (0, 10),
+        (1),
+        (1, 1),
+        (1, 1, 1),
+        (dim, dim),
+        (dim, dim, dim),
+    ]
     for shape in input_shapes:
         a = np.random.randint(low=0, high=100, size=shape)
         for axis in range(a.ndim):
             input_arr = []
-            even_div = None  # a.shape[axis]
-            uneven_div = None  # a.shape[axis]
+            even_div = None
+            uneven_div = None
             for div in range(1, (int)(math.sqrt(a.shape[axis]) + 1)):
                 if a.shape[axis] % div == 0:
                     even_div = div
@@ -79,9 +86,7 @@ def test(dim):
                 )
             )
 
-            for routine, input_opt in itertools.product(
-                test_routine, input_arr
-            ):
+            for input_opt in input_arr:
                 # test divisible integer or indices
                 print_msg = f"np.{routine}({a.shape}, {input_opt}" f", {axis})"
                 # Check if both impls produce the error
@@ -96,9 +101,8 @@ def test(dim):
                     err_arr = [b, c]
                 else:
                     for each in zip(b, c):
-                        sub_set = list(each)
-                        if not np.array_equal(sub_set[0], sub_set[1]):
-                            err_arr = sub_set
+                        if not np.array_equal(each[0], each[1]):
+                            err_arr = each
                             is_equal = False
                             break
 
