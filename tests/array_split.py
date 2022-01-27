@@ -22,127 +22,110 @@ import numpy as np
 import cunumeric as num
 
 
-def test(min_size, max_size):
-    if min_size >= max_size:
-        max_size = min_size + 1
+def test(dim):
     # Seed the random generator with a random number
     np.random.seed(416)
     print("test split")
     test_routine = ["array_split"]
-    # test the split routines on 3D array [1:10, 1:10, 1:10] w/ integers,
-    # list of indicies. vsplit, hsplit, dsplit are included
+    # test the split routines on empty, singleton, 2D and 3D arrays
+    # w/ integers, list of indicies. vsplit, hsplit, dsplit are included
     # in the following loops(axis = 0: vsplit, 1: hsplit, 2: dsplit)
-    for i in range(min_size, max_size):
-        for j in range(min_size, max_size):
-            for k in range(min_size, max_size):
-                a = np.random.randn(i, j, k)
-                for axis in range(a.ndim):
-                    input_arr = []
-                    even_div = None  # a.shape[axis]
-                    uneven_div = None  # a.shape[axis]
-                    for div in range(1, (int)(math.sqrt(a.shape[axis]) + 1)):
-                        if a.shape[axis] % div == 0:
-                            even_div = div
-                        else:
-                            uneven_div = div
-                        if even_div is not None and uneven_div is not None:
-                            break
-                    if even_div is None:
-                        even_div = a.shape[axis]
-                    # divisible integer
-                    input_arr.append(even_div)
-                    # indivisble integer
-                    if even_div != uneven_div and uneven_div is not None:
-                        input_arr.append(uneven_div)
-                    # integer larger than shape[axis]
-                    input_arr.append(a.shape[axis] + np.random.randint(1, 10))
-                    # indices array which has points
-                    # within the target dimension of the src array
-                    if a.shape[axis] > 1:
-                        input_arr.append(
-                            list(range(1, a.shape[axis], even_div))
-                        )
-                    # indices array which has points
-                    # out of the target dimension of the src array
-                    input_arr.append(
-                        list(
-                            range(
-                                0,
-                                a.shape[axis]
-                                + even_div * np.random.randint(1, 10),
-                                even_div,
-                            )
-                        )
-                    )
-                    input_arr.append(
-                        list(
-                            range(
-                                a.shape[axis]
-                                + even_div * np.random.randint(1, 10),
-                                0,
-                                -even_div,
-                            )
-                        )
-                    )
 
-                    for routine, input_opt in itertools.product(
-                        test_routine, input_arr
-                    ):
-                        # test divisible integer or indices
-                        print_msg = (
-                            f"np.{routine}({a.shape}, {input_opt}" f", {axis})"
-                        )
-                        # Check if both impls produce the error
-                        # for non-viable options
-                        b = getattr(np, routine)(a, input_opt, axis)
-                        c = getattr(num, routine)(a, input_opt, axis)
-                        is_equal = True
-                        err_arr = [b, c]
+    input_shapes = [(0), (1), (1, 1), (1, 1, 1), (dim, dim), (dim, dim, dim)]
+    for shape in input_shapes:
+        a = np.random.randint(low=0, high=100, size=shape)
+        for axis in range(a.ndim):
+            input_arr = []
+            even_div = None  # a.shape[axis]
+            uneven_div = None  # a.shape[axis]
+            for div in range(1, (int)(math.sqrt(a.shape[axis]) + 1)):
+                if a.shape[axis] % div == 0:
+                    even_div = div
+                else:
+                    uneven_div = div
+                if even_div is not None and uneven_div is not None:
+                    break
+            if even_div is None:
+                even_div = a.shape[axis] if (a.shape[axis] >= 1) else 1
+            # divisible integer
+            input_arr.append(even_div)
+            # indivisble integer
+            if even_div != uneven_div and uneven_div is not None:
+                input_arr.append(uneven_div)
+            # integer larger than shape[axis]
+            input_arr.append(a.shape[axis] + np.random.randint(1, 10))
+            # indices array which has points
+            # within the target dimension of the src array
+            if a.shape[axis] > 1:
+                input_arr.append(list(range(1, a.shape[axis], even_div)))
+            # indices array which has points
+            # out of the target dimension of the src array
+            input_arr.append(
+                list(
+                    range(
+                        0,
+                        a.shape[axis] + even_div * np.random.randint(1, 10),
+                        even_div,
+                    )
+                )
+            )
+            input_arr.append(
+                list(
+                    range(
+                        a.shape[axis] + even_div * np.random.randint(1, 10),
+                        0,
+                        -even_div,
+                    )
+                )
+            )
 
-                        if len(b) != len(c):
+            for routine, input_opt in itertools.product(
+                test_routine, input_arr
+            ):
+                # test divisible integer or indices
+                print_msg = f"np.{routine}({a.shape}, {input_opt}" f", {axis})"
+                # Check if both impls produce the error
+                # for non-viable options
+                b = getattr(np, routine)(a, input_opt, axis)
+                c = getattr(num, routine)(a, input_opt, axis)
+                is_equal = True
+                err_arr = [b, c]
+
+                if len(b) != len(c):
+                    is_equal = False
+                    err_arr = [b, c]
+                else:
+                    for each in zip(b, c):
+                        sub_set = list(each)
+                        if not np.array_equal(sub_set[0], sub_set[1]):
+                            err_arr = sub_set
                             is_equal = False
-                            err_arr = [b, c]
-                        else:
-                            for each in zip(b, c):
-                                sub_set = list(each)
-                                if not np.array_equal(sub_set[0], sub_set[1]):
-                                    err_arr = sub_set
-                                    is_equal = False
-                                    break
+                            break
 
-                        assert is_equal, (
-                            f"Failed, {print_msg}"
-                            f"numpy result: {err_arr[0]}"
-                            f"cunumeric_result: {err_arr[1]}"
-                            f"cunumeric and numpy shows"
-                            f"different result\n"
-                            f"array({i},{j},{k}),"
-                            f"routine: {routine},"
-                            f"indices: {input_opt}, axis: {axis}"
-                        )
+                assert is_equal, (
+                    f"Failed, {print_msg}"
+                    f"numpy result: {err_arr[0]}"
+                    f"cunumeric_result: {err_arr[1]}"
+                    f"cunumeric and numpy shows"
+                    f"different result\n"
+                    f"array({shape}),"
+                    f"routine: {routine},"
+                    f"indices: {input_opt}, axis: {axis}"
+                )
 
-                        print(f"Passed, {print_msg}")
+                print(f"Passed, {print_msg}")
     return
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "-e",
-        "--max",
+        "-s",
+        "--size",
         type=int,
         default=10,
-        dest="max_size",
-        help="maximum number of elements in each dimension",
+        dest="dim_size",
+        help="number of elements in each dimension",
     )
-    parser.add_argument(
-        "-b",
-        "--min",
-        type=int,
-        default=1,
-        dest="min_size",
-        help="minimum number of elements in each dimension",
-    )
-
     args = parser.parse_args()
-    test(args.min_size, args.max_size)
+    test(args.dim_size)
