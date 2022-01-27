@@ -65,6 +65,8 @@ class EagerArray(NumPyThunk):
             self.parent.record_escape()
 
     def check_eager_args(self, *args):
+        if self.deferred is not None:
+            return
         for arg in args:
             if self.runtime.is_eager_array(arg):
                 if arg.deferred is not None:
@@ -73,6 +75,8 @@ class EagerArray(NumPyThunk):
             elif self.runtime.is_deferred_array(arg):
                 self.to_deferred_array()
                 break
+            elif arg is None or not isinstance(arg, NumPyThunk):
+                pass
             else:
                 raise RuntimeError("bad argument type")
 
@@ -152,8 +156,7 @@ class EagerArray(NumPyThunk):
                 out.array = convolve(self.array, v.array, mode)
 
     def copy(self, rhs, deep):
-        if self.deferred is None:
-            self.check_eager_args(rhs)
+        self.check_eager_args(rhs)
         if self.deferred is not None:
             self.deferred.copy(rhs, deep=deep)
         else:
@@ -206,8 +209,7 @@ class EagerArray(NumPyThunk):
         return result
 
     def set_item(self, key, value):
-        if self.deferred is None:
-            self.check_eager_args(value)
+        self.check_eager_args(value)
         if self.deferred is not None:
             self.deferred.set_item(key, value)
         else:
@@ -273,8 +275,7 @@ class EagerArray(NumPyThunk):
         return result
 
     def convert(self, rhs, warn=True):
-        if self.deferred is None:
-            self.check_eager_args(rhs)
+        self.check_eager_args(rhs)
         if self.deferred is not None:
             return self.deferred.convert(rhs, warn=warn)
         else:
@@ -290,16 +291,14 @@ class EagerArray(NumPyThunk):
             self.array.fill(value)
 
     def dot(self, rhs1, rhs2):
-        if self.deferred is None:
-            self.check_eager_args(rhs1, rhs2)
+        self.check_eager_args(rhs1, rhs2)
         if self.deferred is not None:
             self.deferred.dot(rhs1, rhs2)
         else:
             np.dot(rhs1.array, rhs2.array, out=self.array)
 
     def transpose(self, rhs, axes):
-        if self.deferred is None:
-            self.check_eager_args(rhs)
+        self.check_eager_args(rhs)
         if self.deferred is not None:
             self.deferred.transpose(rhs, axes)
         else:
@@ -309,8 +308,7 @@ class EagerArray(NumPyThunk):
                 self.array[:] = np.transpose(rhs.array, axes)
 
     def flip(self, rhs, axes):
-        if self.deferred is None:
-            self.check_eager_args(rhs)
+        self.check_eager_args(rhs)
         if self.deferred is not None:
             self.deferred.flip(rhs, axes)
         else:
@@ -325,8 +323,7 @@ class EagerArray(NumPyThunk):
         rhs2_modes,
         mode2extent,
     ):
-        if self.deferred is None:
-            self.check_eager_args(rhs1_thunk, rhs2_thunk)
+        self.check_eager_args(rhs1_thunk, rhs2_thunk)
         if self.deferred is not None:
             self.deferred.contract(
                 lhs_modes,
@@ -346,8 +343,7 @@ class EagerArray(NumPyThunk):
             )
 
     def choose(self, *args, rhs):
-        if self.deferred is None:
-            self.check_eager_args(*args, rhs)
+        self.check_eager_args(*args, rhs)
         if self.deferred is not None:
             self.deferred.choose(
                 *args,
@@ -358,8 +354,7 @@ class EagerArray(NumPyThunk):
             self.array[:] = np.choose(rhs.array, choices, mode="raise")
 
     def diag(self, rhs, extract, k):
-        if self.deferred is None:
-            self.check_eager_args(rhs)
+        self.check_eager_args(rhs)
         if self.deferred is not None:
             self.deferred.diag(rhs, extract, k)
         else:
@@ -383,19 +378,14 @@ class EagerArray(NumPyThunk):
             self.array = np.arange(start, stop, step, self.dtype)
 
     def tile(self, rhs, reps):
-        if self.deferred is None:
-            self.check_eager_args(rhs)
+        self.check_eager_args(rhs)
         if self.deferred is not None:
             self.deferred.tile(rhs, reps)
         else:
             self.array[:] = np.tile(rhs.array, reps)
 
     def bincount(self, rhs, weights=None):
-        if self.deferred is None:
-            if weights is not None:
-                self.check_eager_args(rhs, weights)
-            else:
-                self.check_eager_args(rhs)
+        self.check_eager_args(rhs, weights)
         if self.deferred is not None:
             self.deferred.bincount(rhs, weights=weights)
         else:
@@ -416,8 +406,7 @@ class EagerArray(NumPyThunk):
             return result
 
     def sort(self, rhs):
-        if self.deferred is None:
-            self.check_eager_args(rhs)
+        self.check_eager_args(rhs)
         if self.deferred is not None:
             self.deferred.sort(rhs)
         else:
@@ -453,11 +442,7 @@ class EagerArray(NumPyThunk):
                 )
 
     def unary_op(self, op, op_type, rhs, where, args):
-        if self.deferred is None:
-            if where is not None and isinstance(where, NumPyThunk):
-                self.check_eager_args(rhs, where)
-            else:
-                self.check_eager_args(rhs)
+        self.check_eager_args(rhs, where)
         if self.deferred is not None:
             self.deferred.unary_op(op, op_type, rhs, where, args)
             return
@@ -651,8 +636,7 @@ class EagerArray(NumPyThunk):
             raise RuntimeError("unsupported unary op " + str(op))
 
     def unary_reduction(self, op, rhs, where, axes, keepdims, args, initial):
-        if self.deferred is None:
-            self.check_eager_args(rhs)
+        self.check_eager_args(rhs)
         if self.deferred is not None:
             self.deferred.unary_reduction(
                 op,
@@ -758,11 +742,7 @@ class EagerArray(NumPyThunk):
             raise RuntimeError("unsupported unary reduction op " + str(op))
 
     def binary_op(self, op, rhs1, rhs2, where, args):
-        if self.deferred is None:
-            if where is not None and isinstance(where, NumPyThunk):
-                self.check_eager_args(rhs1, rhs2, where)
-            else:
-                self.check_eager_args(rhs1, rhs2)
+        self.check_eager_args(rhs1, rhs2, where)
         if self.deferred is not None:
             self.deferred.binary_op(op, rhs1, rhs2, where, args)
         else:
@@ -940,8 +920,7 @@ class EagerArray(NumPyThunk):
                 raise RuntimeError("unsupported binary op " + str(op))
 
     def binary_reduction(self, op, rhs1, rhs2, broadcast, args):
-        if self.deferred is None:
-            self.check_eager_args(rhs1, rhs2)
+        self.check_eager_args(rhs1, rhs2)
         if self.deferred is not None:
             self.deferred.binary_reduction(op, rhs1, rhs2, broadcast, args)
         else:
@@ -959,16 +938,14 @@ class EagerArray(NumPyThunk):
                 )
 
     def where(self, rhs1, rhs2, rhs3):
-        if self.deferred is None:
-            self.check_eager_args(rhs1, rhs2, rhs3)
+        self.check_eager_args(rhs1, rhs2, rhs3)
         if self.deferred is not None:
             self.deferred.where(rhs1, rhs2, rhs3)
         else:
             self.array[:] = np.where(rhs1.array, rhs2.array, rhs3.array)
 
     def trilu(self, rhs, k, lower):
-        if self.deferred is None:
-            self.check_eager_args(rhs)
+        self.check_eager_args(rhs)
         if self.deferred is not None:
             self.deferred.trilu(rhs, k, lower)
         else:
@@ -978,8 +955,7 @@ class EagerArray(NumPyThunk):
                 self.array[:] = np.triu(rhs.array, k)
 
     def cholesky(self, src, no_tril):
-        if self.deferred is None:
-            self.check_eager_args(src)
+        self.check_eager_args(src)
         if self.deferred is not None:
             self.deferred.cholesky(src)
         else:
