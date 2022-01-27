@@ -66,7 +66,7 @@ class NumPyThunk(object):
             s *= p
         return s
 
-    def __numpy_array__(self, stacklevel):
+    def __numpy_array__(self):
         """Return a NumPy array that shares storage for this thunk
 
         :meta private:
@@ -80,21 +80,21 @@ class NumPyThunk(object):
         """
         pass
 
-    def imag(self, stacklevel):
+    def imag(self):
         """Return a thunk for the imaginary part of this complex array
 
         :meta private:
         """
         raise NotImplementedError("Implement in derived classes")
 
-    def real(self, stacklevel):
+    def real(self):
         """Return a thunk for the real part of this complex array
 
         :meta private:
         """
         raise NotImplementedError("Implement in derived classes")
 
-    def copy(self, rhs, deep, stacklevel):
+    def copy(self, rhs, deep):
         """Make a copy of the thunk
 
         :meta private:
@@ -109,70 +109,70 @@ class NumPyThunk(object):
         """
         raise NotImplementedError("Implement in derived classes")
 
-    def get_scalar_array(self, stacklevel):
+    def get_scalar_array(self):
         """Get the actual value out of a scalar thunk, as a ()-shape array
 
         :meta private:
         """
         raise NotImplementedError("Implement in derived classes")
 
-    def get_item(self, key, stacklevel, view=None, dim_map=None):
+    def get_item(self, key, view=None, dim_map=None):
         """Get an item from the thunk
 
         :meta private:
         """
         raise NotImplementedError("Implement in derived classes")
 
-    def set_item(self, key, value, stacklevel):
+    def set_item(self, key, value):
         """Set an item in the thunk
 
         :meta private:
         """
         raise NotImplementedError("Implement in derived classes")
 
-    def reshape(self, newshape, order, stacklevel):
+    def reshape(self, newshape, order):
         """Reshape the array using the same backing storage if possible
 
         :meta private:
         """
         raise NotImplementedError("Implement in derived classes")
 
-    def squeeze(self, axis, stacklevel):
+    def squeeze(self, axis):
         """Remove dimensions of size 1 from the shape of the array
 
         :meta private:
         """
         raise NotImplementedError("Implement in derived classes")
 
-    def swapaxes(self, axis1, axis2, stacklevel):
+    def swapaxes(self, axis1, axis2):
         """Swap two axes in the representation of the array
 
         :meta private:
         """
         raise NotImplementedError("Implement in derived classes")
 
-    def convert(self, rhs, stacklevel, warn=True):
+    def convert(self, rhs, warn=True):
         """Convert the data in our thunk to the type in the target array
 
         :meta private:
         """
         raise NotImplementedError("Implement in derived classes")
 
-    def fill(self, value, stacklevel):
+    def fill(self, value):
         """Fill this thunk with the given value
 
         :meta private:
         """
         raise NotImplementedError("Implement in derived classes")
 
-    def dot(self, rhs1, rhs2, stacklevel):
+    def dot(self, rhs1, rhs2):
         """Perform a dot operation on our thunk
 
         :meta private:
         """
         raise NotImplementedError("Implement in derived classes")
 
-    def transpose(self, rhs, axes, stacklevel):
+    def transpose(self, rhs, axes):
         """Perform a transpose operation on our thunk
 
         :meta private:
@@ -187,7 +187,6 @@ class NumPyThunk(object):
         rhs2_thunk,
         rhs2_modes,
         mode2extent,
-        stacklevel,
     ):
         """Perform a generalized tensor contraction onto our thunk
 
@@ -195,13 +194,7 @@ class NumPyThunk(object):
         """
         raise NotImplementedError("Implement in derived classes")
 
-    def choose(
-        self,
-        *args,
-        rhs,
-        stacklevel=0,
-        callsite=None,
-    ):
+    def choose(self, *args, rhs):
         """Construct an array from an index array and a
             list of arrays to choose from.
 
@@ -209,35 +202,35 @@ class NumPyThunk(object):
         """
         raise NotImplementedError("Implement in derived classes")
 
-    def diag(self, rhs, extract, k, stacklevel):
+    def diag(self, rhs, extract, k):
         """Fill in or extract a diagonal from a matrix
 
         :meta private:
         """
         raise NotImplementedError("Implement in derived classes")
 
-    def eye(self, k, stacklevel):
+    def eye(self, k):
         """Fill in our thunk with an identity pattern
 
         :meta private:
         """
         raise NotImplementedError("Implement in derived classes")
 
-    def tile(self, rhs, reps, stacklevel):
+    def tile(self, rhs, reps):
         """Tile our thunk onto the target
 
         :meta private:
         """
         raise NotImplementedError("Implement in derived classes")
 
-    def bincount(self, rhs, stacklevel, weights=None):
+    def bincount(self, rhs, weights=None):
         """Compute the bincount for the array
 
         :meta private:
         """
         raise NotImplementedError("Implement in derived classes")
 
-    def nonzero(self, stacklevel):
+    def nonzero(self):
         """Return a tuple of thunks for the non-zero indices in each "
         "dimension
 
@@ -245,35 +238,35 @@ class NumPyThunk(object):
         """
         raise NotImplementedError("Implement in derived classes")
 
-    def sort(self, rhs, stacklevel):
+    def sort(self, rhs):
         """Sort the array
 
         :meta private:
         """
         raise NotImplementedError("Implement in derived classes")
 
-    def random_uniform(self, stacklevel):
+    def random_uniform(self):
         """Fill this array with a random uniform distribution
 
         :meta private:
         """
         raise NotImplementedError("Implement in derived classes")
 
-    def random_normal(self, stacklevel):
+    def random_normal(self):
         """Fill this array with a random normal distribution
 
         :meta private:
         """
         raise NotImplementedError("Implement in derived classes")
 
-    def random_integer(self, low, high, stacklevel):
+    def random_integer(self, low, high):
         """Fill this array with a random integer distribution
 
         :meta private:
         """
         raise NotImplementedError("Implement in derived classes")
 
-    def unary_op(self, op, op_type, rhs, where, args, stacklevel):
+    def unary_op(self, op, op_type, rhs, where, args):
         """Perform a unary operation and put the result in the dst
         array
 
@@ -282,7 +275,15 @@ class NumPyThunk(object):
         raise NotImplementedError("Implement in derived classes")
 
     def unary_reduction(
-        self, op, redop, rhs, where, axes, keepdims, args, initial, stacklevel
+        self,
+        op,
+        redop,
+        rhs,
+        where,
+        axes,
+        keepdims,
+        args,
+        initial,
     ):
         """Perform a unary reduction and put the result in the dst
         array
@@ -291,7 +292,7 @@ class NumPyThunk(object):
         """
         raise NotImplementedError("Implement in derived classes")
 
-    def binary_op(self, op, rhs1, rhs2, where, args, stacklevel):
+    def binary_op(self, op, rhs1, rhs2, where, args):
         """Perform a binary operation with src and put the result in the
         dst array
 
@@ -299,7 +300,7 @@ class NumPyThunk(object):
         """
         raise NotImplementedError("Implement in derived classes")
 
-    def binary_reduction(self, op, rhs1, rhs2, broadcast, args, stacklevel):
+    def binary_reduction(self, op, rhs1, rhs2, broadcast, args):
         """Perform a binary reduction with src and put the result in the
         dst array
 
@@ -307,7 +308,7 @@ class NumPyThunk(object):
         """
         raise NotImplementedError("Implement in derived classes")
 
-    def ternary_op(self, op, rhs1, rhs2, rhs3, where, args, stacklevel):
+    def ternary_op(self, op, rhs1, rhs2, rhs3, where, args):
         """Perform a ternary op with one and two and put the result in
         the dst array
 

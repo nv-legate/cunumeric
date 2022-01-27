@@ -29,7 +29,7 @@ def rand(*shapeargs):
     if shapeargs is None:
         return nprandom.rand()
     result = ndarray(shapeargs, dtype=np.dtype(np.float64))
-    result._thunk.random_uniform(stacklevel=2)
+    result._thunk.random_uniform()
     return result
 
 
@@ -37,7 +37,7 @@ def randn(*shapeargs):
     if shapeargs is None:
         return nprandom.randn()
     result = ndarray(shapeargs, dtype=np.dtype(np.float64))
-    result._thunk.random_normal(stacklevel=2)
+    result._thunk.random_normal()
     return result
 
 
@@ -45,7 +45,7 @@ def random(shape=None):
     if shape is None:
         return nprandom.random()
     result = ndarray(shape, dtype=np.dtype(np.float64))
-    result._thunk.random_uniform(stacklevel=2)
+    result._thunk.random_uniform()
     return result
 
 
@@ -69,12 +69,12 @@ def randint(low, high=None, size=None, dtype=None):
             raise ValueError(
                 "bound must be strictly greater than 0 for randint"
             )
-        result._thunk.random_integer(low=0, high=low, stacklevel=2)
+        result._thunk.random_integer(low=0, high=low)
     else:
         if low >= high:
             raise ValueError(
                 "'high' bound must be strictly greater than 'low' "
                 "bound for randint"
             )
-        result._thunk.random_integer(low=low, high=high, stacklevel=2)
+        result._thunk.random_integer(low=low, high=high)
     return result
