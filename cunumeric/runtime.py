@@ -22,9 +22,15 @@ from functools import reduce
 import numpy as np
 
 import legate.core.types as ty
-from legate.core import LEGATE_MAX_DIM, Rect, legion
+from legate.core import LEGATE_MAX_DIM, Rect, get_legate_runtime, legion
 
-from .config import *  # noqa F403
+from .config import (
+    CuNumericOpCode,
+    CuNumericRedopCode,
+    CuNumericTunable,
+    cunumeric_context,
+    cunumeric_lib,
+)
 from .deferred import DeferredArray
 from .eager import EagerArray
 from .thunk import NumPyThunk

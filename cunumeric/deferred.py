@@ -22,9 +22,16 @@ from itertools import product
 import numpy as np
 
 import legate.core.types as ty
-from legate.core import *  # noqa F403
+from legate.core import Future, ReductionOp, Store
 
-from .config import *  # noqa F403
+from .config import (
+    BinaryOpCode,
+    CuNumericOpCode,
+    CuNumericRedopCode,
+    RandGenCode,
+    UnaryOpCode,
+    UnaryRedCode,
+)
 from .linalg.cholesky import cholesky
 from .thunk import NumPyThunk
 from .utils import get_arg_value_dtype
