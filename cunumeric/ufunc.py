@@ -34,100 +34,47 @@ from .module import (
 )
 
 
-# Base ufunc class
-class ufunc(object):
-    @staticmethod
-    def reduce_impl(
-        a, reduceOpString, axis=0, dtype=None, out=None, keepdims=False
-    ):
-        raise NotImplementedError("reduce ufunc")
+def _ufunc(fun, reduce_fn=None):
+    class BaseUfunc(object):
+        def __new__(cls, a, b, out=None, where=True):
+            return fun(a, b, out=out, where=where)
+
+    result = BaseUfunc
+
+    if reduce_fn is not None:
+
+        class ReducibleUfunc(BaseUfunc):
+            @staticmethod
+            def reduce(a, axis=0, dtype=None, out=None, keepdims=False):
+                return reduce_fn(
+                    a, axis=axis, dtype=dtype, out=out, keepdims=keepdims
+                )
+
+        result = ReducibleUfunc
+
+    return result
 
 
-# ufunc-add class
-class add(ufunc):
-    def __new__(cls, a, b, out=None, where=True):
-        return _add(a, b, out=out, where=where)
+add = _ufunc(_add, _sum)
 
-    @staticmethod
-    def reduce(a, axis=0, dtype=None, out=None, keepdims=False):
-        return _sum(a, axis=axis, dtype=dtype, out=out, keepdims=keepdims)
+multiply = _ufunc(_mul, _prod)
 
+true_divide = _ufunc(_tdiv)
 
-# ufunc-multiply class
-class multiply(ufunc):
-    def __new__(cls, a, b, out=None, where=True):
-        return _mul(a, b, out=out, where=where)
+maximum = _ufunc(_max2, _max)
 
-    @staticmethod
-    def reduce(a, axis=0, dtype=None, out=None, keepdims=False):
-        return _prod(a, axis=axis, dtype=dtype, out=out, keepdims=keepdims)
+minimum = _ufunc(_min2, _min)
 
+mod = _ufunc(_mod)
 
-# ufunc-true_divide class
-class true_divide(ufunc):
-    def __new__(cls, a, b, out=None, where=True):
-        return _tdiv(a, b, out=out, where=where)
+greater = _ufunc(_gt)
 
+greater_equal = _ufunc(_geq)
 
-# ufunc-maximum class
-class maximum(ufunc):
-    def __new__(cls, a, b, out=None, where=True):
-        return _max2(a, b, out=out, where=where)
+less = _ufunc(_lt)
 
-    @staticmethod
-    def reduce(a, axis=0, dtype=None, out=None, keepdims=False):
-        assert dtype is None
-        return _max(a, axis=axis, out=out, keepdims=keepdims)
+less_equal = _ufunc(_leq)
 
+equal = _ufunc(_eq)
 
-# ufunc-minimum class
-class minimum(ufunc):
-    def __new__(cls, a, b, out=None, where=True):
-        return _min2(a, b, out=out, where=where)
-
-    @staticmethod
-    def reduce(a, axis=0, dtype=None, out=None, keepdims=False):
-        assert dtype is None
-        return _min(a, axis=axis, out=out, keepdims=keepdims)
-
-
-# ufunc-mod class
-class mod(ufunc):
-    def __new__(cls, a, b, out=None, where=True):
-        return _mod(a, b, out=out, where=where)
-
-
-# ufunc-greater class
-class greater(ufunc):
-    def __new__(cls, a, b, out=None, where=True):
-        return _gt(a, b, out=out, where=where)
-
-
-# ufunc-greater_equal class
-class greater_equal(ufunc):
-    def __new__(cls, a, b, out=None, where=True):
-        return _geq(a, b, out=out, where=where)
-
-
-# ufunc-less class
-class less(ufunc):
-    def __new__(cls, a, b, out=None, where=True):
-        return _lt(a, b, out=out, where=where)
-
-
-# ufunc-less_equal class
-class less_equal(ufunc):
-    def __new__(cls, a, b, out=None, where=True):
-        return _leq(a, b, out=out, where=where)
-
-
-# ufunc-equal class
-class equal(ufunc):
-    def __new__(cls, a, b, out=None, where=True):
-        return _eq(a, b, out=out, where=where)
-
-
-# ufunc-not_equal class
-class not_equal(ufunc):
-    def __new__(cls, a, b, out=None, where=True):
-        return _neq(a, b, out=out, where=where)
+not_equal = _ufunc(_neq)
