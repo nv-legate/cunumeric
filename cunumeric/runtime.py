@@ -29,7 +29,6 @@ from legate.core.runtime import RegionField
 from .config import *  # noqa F403
 from .deferred import DeferredArray
 from .eager import EagerArray
-from .lazy import LazyArray
 from .thunk import NumPyThunk
 from .utils import calculate_volume, get_arg_dtype
 
@@ -565,17 +564,11 @@ class Runtime(object):
     def is_deferred_array(array):
         return isinstance(array, DeferredArray)
 
-    @staticmethod
-    def is_lazy_array(array):
-        return isinstance(array, LazyArray)
-
     def to_eager_array(self, array, stacklevel):
         if self.is_eager_array(array):
             return array
         elif self.is_deferred_array(array):
             return EagerArray(self, array.__numpy_array__())
-        elif self.is_lazy_array(array):
-            raise NotImplementedError("convert lazy array to eager array")
         else:
             raise RuntimeError("invalid array type")
 
@@ -584,18 +577,6 @@ class Runtime(object):
             return array
         elif self.is_eager_array(array):
             return array.to_deferred_array(stacklevel=(stacklevel + 1))
-        elif self.is_lazy_array(array):
-            raise NotImplementedError("convert lazy array to deferred array")
-        else:
-            raise RuntimeError("invalid array type")
-
-    def to_lazy_array(self, array, stacklevel):
-        if self.is_lazy_array(array):
-            return array
-        elif self.is_deferred_array(array):
-            raise NotImplementedError("convert deferred array to lazy array")
-        elif self.is_eager_array(array):
-            raise NotImplementedError("convert eager array to lazy array")
         else:
             raise RuntimeError("invalid array type")
 
