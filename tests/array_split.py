@@ -13,7 +13,6 @@
 # limitations under the License.
 #
 
-import argparse
 import math
 
 import numpy as np
@@ -45,20 +44,23 @@ def test(dim):
             input_arr = []
             even_div = None
             uneven_div = None
-            for div in range(1, (int)(math.sqrt(a.shape[axis]) + 1)):
-                if a.shape[axis] % div == 0:
-                    even_div = div
-                else:
-                    uneven_div = div
-                if even_div is not None and uneven_div is not None:
-                    break
-            if even_div is None:
-                even_div = a.shape[axis] if (a.shape[axis] >= 1) else 1
+
+            if a.shape[axis] > 1:
+                for div in range(1, (int)(math.sqrt(a.shape[axis]) + 1)):
+                    if a.shape[axis] % div == 0:
+                        even_div = div
+                    else:
+                        uneven_div = div
+                    if even_div is not None and uneven_div is not None:
+                        break
+            else:
+                even_div = 2
+                uneven_div = 1
+
             # divisible integer
             input_arr.append(even_div)
             # indivisble integer
-            if even_div != uneven_div and uneven_div is not None:
-                input_arr.append(uneven_div)
+            input_arr.append(uneven_div)
             # integer larger than shape[axis]
             input_arr.append(a.shape[axis] + np.random.randint(1, 10))
             # indices array which has points
@@ -122,14 +124,4 @@ def test(dim):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "-s",
-        "--size",
-        type=int,
-        default=10,
-        dest="dim_size",
-        help="number of elements in each dimension",
-    )
-    args = parser.parse_args()
-    test(args.dim_size)
+    test(20)
