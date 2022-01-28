@@ -18,6 +18,52 @@ import numpy as np
 from .config import BinaryOpCode, UnaryOpCode, UnaryRedCode
 from .thunk import NumPyThunk
 
+_UNARY_OPS = {
+    UnaryOpCode.ABSOLUTE: np.absolute,
+    UnaryOpCode.ARCCOS: np.arccos,
+    UnaryOpCode.ARCSIN: np.arcsin,
+    UnaryOpCode.ARCTAN: np.arctan,
+    UnaryOpCode.CEIL: np.ceil,
+    UnaryOpCode.COS: np.cos,
+    UnaryOpCode.EXP: np.exp,
+    UnaryOpCode.EXP2: np.exp2,
+    UnaryOpCode.FLOOR: np.floor,
+    UnaryOpCode.INVERT: np.invert,
+    UnaryOpCode.ISINF: np.isinf,
+    UnaryOpCode.ISNAN: np.isnan,
+    UnaryOpCode.LOG: np.log,
+    UnaryOpCode.LOG10: np.log10,
+    UnaryOpCode.LOGICAL_NOT: np.logical_not,
+    UnaryOpCode.NEGATIVE: np.negative,
+    UnaryOpCode.RINT: np.rint,
+    UnaryOpCode.SIGN: np.sign,
+    UnaryOpCode.SIN: np.sin,
+    UnaryOpCode.SQRT: np.sqrt,
+    UnaryOpCode.TAN: np.tan,
+    UnaryOpCode.TANH: np.tanh,
+}
+
+_BINARY_OPS = {
+    BinaryOpCode.ADD: np.add,
+    BinaryOpCode.LOGICAL_AND: np.logical_and,
+    BinaryOpCode.DIVIDE: np.divide,
+    BinaryOpCode.EQUAL: np.equal,
+    BinaryOpCode.FLOOR_DIVIDE: np.floor_divide,
+    BinaryOpCode.GREATER_EQUAL: np.greater_equal,
+    BinaryOpCode.GREATER: np.greater,
+    BinaryOpCode.MOD: np.mod,
+    BinaryOpCode.MULTIPLY: np.multiply,
+    BinaryOpCode.LOGICAL_OR: np.logical_or,
+    BinaryOpCode.POWER: np.power,
+    BinaryOpCode.SUBTRACT: np.subtract,
+    BinaryOpCode.LOGICAL_XOR: np.logical_xor,
+    BinaryOpCode.LESS_EQUAL: np.less_equal,
+    BinaryOpCode.LESS: np.less,
+    BinaryOpCode.MAXIMUM: np.maximum,
+    BinaryOpCode.MINIMUM: np.minimum,
+    BinaryOpCode.NOT_EQUAL: np.not_equal,
+}
+
 
 class EagerArray(NumPyThunk):
     """This is an eager thunk for describing NumPy computations.
@@ -440,40 +486,10 @@ class EagerArray(NumPyThunk):
         if self.deferred is not None:
             self.deferred.unary_op(op, op_type, rhs, where, args)
             return
-        if op == UnaryOpCode.ABSOLUTE:
-            np.absolute(
-                rhs.array,
-                out=self.array,
-                where=where
-                if not isinstance(where, EagerArray)
-                else where.array,
-            )
-        elif op == UnaryOpCode.ARCCOS:
-            np.arccos(
-                rhs.array,
-                out=self.array,
-                where=where
-                if not isinstance(where, EagerArray)
-                else where.array,
-            )
-        elif op == UnaryOpCode.ARCSIN:
-            np.arcsin(
-                rhs.array,
-                out=self.array,
-                where=where
-                if not isinstance(where, EagerArray)
-                else where.array,
-            )
-        elif op == UnaryOpCode.ARCTAN:
-            np.arctan(
-                rhs.array,
-                out=self.array,
-                where=where
-                if not isinstance(where, EagerArray)
-                else where.array,
-            )
-        elif op == UnaryOpCode.CEIL:
-            np.ceil(
+
+        if op in _UNARY_OPS:
+            func = _UNARY_OPS[op]
+            func(
                 rhs.array,
                 out=self.array,
                 where=where
@@ -482,150 +498,14 @@ class EagerArray(NumPyThunk):
             )
         elif op == UnaryOpCode.CLIP:
             np.clip(rhs.array, out=self.array, a_min=args[0], a_max=args[1])
-        elif op == UnaryOpCode.CONJ:
-            np.conj(rhs.array, out=self.array)
         elif op == UnaryOpCode.COPY:
             self.array[:] = rhs.array[:]
-        elif op == UnaryOpCode.COS:
-            np.cos(
-                rhs.array,
-                out=self.array,
-                where=where
-                if not isinstance(where, EagerArray)
-                else where.array,
-            )
-        elif op == UnaryOpCode.EXP:
-            np.exp(
-                rhs.array,
-                out=self.array,
-                where=where
-                if not isinstance(where, EagerArray)
-                else where.array,
-            )
-        elif op == UnaryOpCode.EXP2:
-            np.exp2(
-                rhs.array,
-                out=self.array,
-                where=where
-                if not isinstance(where, EagerArray)
-                else where.array,
-            )
-        elif op == UnaryOpCode.FLOOR:
-            np.floor(
-                rhs.array,
-                out=self.array,
-                where=where
-                if not isinstance(where, EagerArray)
-                else where.array,
-            )
         elif op == UnaryOpCode.IMAG:
             self.array = np.imag(rhs.array)
-        elif op == UnaryOpCode.INVERT:
-            np.invert(
-                rhs.array,
-                out=self.array,
-                where=where
-                if not isinstance(where, EagerArray)
-                else where.array,
-            )
-        elif op == UnaryOpCode.ISINF:
-            np.isinf(
-                rhs.array,
-                out=self.array,
-                where=where
-                if not isinstance(where, EagerArray)
-                else where.array,
-            )
-        elif op == UnaryOpCode.ISNAN:
-            np.isnan(
-                rhs.array,
-                out=self.array,
-                where=where
-                if not isinstance(where, EagerArray)
-                else where.array,
-            )
-        elif op == UnaryOpCode.LOG:
-            np.log(
-                rhs.array,
-                out=self.array,
-                where=where
-                if not isinstance(where, EagerArray)
-                else where.array,
-            )
-        elif op == UnaryOpCode.LOG10:
-            np.log10(
-                rhs.array,
-                out=self.array,
-                where=where
-                if not isinstance(where, EagerArray)
-                else where.array,
-            )
-        elif op == UnaryOpCode.LOGICAL_NOT:
-            np.logical_not(
-                rhs.array,
-                out=self.array,
-                where=where
-                if not isinstance(where, EagerArray)
-                else where.array,
-            )
-        elif op == UnaryOpCode.NEGATIVE:
-            np.negative(
-                rhs.array,
-                out=self.array,
-                where=where
-                if not isinstance(where, EagerArray)
-                else where.array,
-            )
         elif op == UnaryOpCode.REAL:
             self.array = np.real(rhs.array)
-        elif op == UnaryOpCode.RINT:
-            np.rint(
-                rhs.array,
-                out=self.array,
-                where=where
-                if not isinstance(where, EagerArray)
-                else where.array,
-            )
-        elif op == UnaryOpCode.SIGN:
-            np.sign(
-                rhs.array,
-                out=self.array,
-                where=where
-                if not isinstance(where, EagerArray)
-                else where.array,
-            )
-        elif op == UnaryOpCode.SIN:
-            np.sin(
-                rhs.array,
-                out=self.array,
-                where=where
-                if not isinstance(where, EagerArray)
-                else where.array,
-            )
-        elif op == UnaryOpCode.SQRT:
-            np.sqrt(
-                rhs.array,
-                out=self.array,
-                where=where
-                if not isinstance(where, EagerArray)
-                else where.array,
-            )
-        elif op == UnaryOpCode.TAN:
-            np.tan(
-                rhs.array,
-                out=self.array,
-                where=where
-                if not isinstance(where, EagerArray)
-                else where.array,
-            )
-        elif op == UnaryOpCode.TANH:
-            np.tanh(
-                rhs.array,
-                out=self.array,
-                where=where
-                if not isinstance(where, EagerArray)
-                else where.array,
-            )
+        elif op == UnaryOpCode.CONJ:
+            np.conj(rhs.array, out=self.array)
         else:
             raise RuntimeError("unsupported unary op " + str(op))
 
@@ -740,178 +620,17 @@ class EagerArray(NumPyThunk):
         if self.deferred is not None:
             self.deferred.binary_op(op, rhs1, rhs2, where, args)
         else:
-            if op == BinaryOpCode.ADD:
-                np.add(
-                    rhs1.array,
-                    rhs2.array,
-                    out=self.array,
-                    where=where
-                    if not isinstance(where, EagerArray)
-                    else where.array,
-                )
-            elif op == BinaryOpCode.LOGICAL_AND:
-                np.logical_and(
-                    rhs1.array,
-                    rhs2.array,
-                    out=self.array,
-                    where=where
-                    if not isinstance(where, EagerArray)
-                    else where.array,
-                )
-            elif op == BinaryOpCode.DIVIDE:
-                np.divide(
-                    rhs1.array,
-                    rhs2.array,
-                    out=self.array,
-                    where=where
-                    if not isinstance(where, EagerArray)
-                    else where.array,
-                )
-            elif op == BinaryOpCode.EQUAL:
-                np.equal(
-                    rhs1.array,
-                    rhs2.array,
-                    out=self.array,
-                    where=where
-                    if not isinstance(where, EagerArray)
-                    else where.array,
-                )
-            elif op == BinaryOpCode.FLOOR_DIVIDE:
-                np.floor_divide(
-                    rhs1.array,
-                    rhs2.array,
-                    out=self.array,
-                    where=where
-                    if not isinstance(where, EagerArray)
-                    else where.array,
-                )
-            elif op == BinaryOpCode.GREATER_EQUAL:
-                np.greater_equal(
-                    rhs1.array,
-                    rhs2.array,
-                    out=self.array,
-                    where=where
-                    if not isinstance(where, EagerArray)
-                    else where.array,
-                )
-            elif op == BinaryOpCode.GREATER:
-                np.greater(
-                    rhs1.array,
-                    rhs2.array,
-                    out=self.array,
-                    where=where
-                    if not isinstance(where, EagerArray)
-                    else where.array,
-                )
-            # elif op == BinaryOpCode.SHIFT_LEFT:
-            #    np.left_shift(rhs1.array, rhs2.array, out=self.array,
-            #            where=where if not isinstance(where, EagerArray)
-            #                        else where.array)
-            # elif op == BinaryOpCode.SHIFT_RIGHT:
-            #    np.right_shift(rhs1.array, rhs2.array, out=self.array,
-            #            where=where if not isinstance(where, EagerArray)
-            #                        else where.array)
-            elif op == BinaryOpCode.MOD:
-                np.mod(
-                    rhs1.array,
-                    rhs2.array,
-                    out=self.array,
-                    where=where
-                    if not isinstance(where, EagerArray)
-                    else where.array,
-                )
-            elif op == BinaryOpCode.MULTIPLY:
-                np.multiply(
-                    rhs1.array,
-                    rhs2.array,
-                    out=self.array,
-                    where=where
-                    if not isinstance(where, EagerArray)
-                    else where.array,
-                )
-            elif op == BinaryOpCode.LOGICAL_OR:
-                np.logical_or(
-                    rhs1.array,
-                    rhs2.array,
-                    out=self.array,
-                    where=where
-                    if not isinstance(where, EagerArray)
-                    else where.array,
-                )
-            elif op == BinaryOpCode.POWER:
-                np.power(
-                    rhs1.array,
-                    rhs2.array,
-                    out=self.array,
-                    where=where
-                    if not isinstance(where, EagerArray)
-                    else where.array,
-                )
-            elif op == BinaryOpCode.SUBTRACT:
-                np.subtract(
-                    rhs1.array,
-                    rhs2.array,
-                    out=self.array,
-                    where=where
-                    if not isinstance(where, EagerArray)
-                    else where.array,
-                )
-            elif op == BinaryOpCode.LOGICAL_XOR:
-                np.logical_xor(
-                    rhs1.array,
-                    rhs2.array,
-                    out=self.array,
-                    where=where
-                    if not isinstance(where, EagerArray)
-                    else where.array,
-                )
-            elif op == BinaryOpCode.LESS_EQUAL:
-                np.less_equal(
-                    rhs1.array,
-                    rhs2.array,
-                    out=self.array,
-                    where=where
-                    if not isinstance(where, EagerArray)
-                    else where.array,
-                )
-            elif op == BinaryOpCode.LESS:
-                np.less(
-                    rhs1.array,
-                    rhs2.array,
-                    out=self.array,
-                    where=where
-                    if not isinstance(where, EagerArray)
-                    else where.array,
-                )
-            elif op == BinaryOpCode.MAXIMUM:
-                np.maximum(
-                    rhs1.array,
-                    rhs2.array,
-                    out=self.array,
-                    where=where
-                    if not isinstance(where, EagerArray)
-                    else where.array,
-                )
-            elif op == BinaryOpCode.MINIMUM:
-                np.minimum(
-                    rhs1.array,
-                    rhs2.array,
-                    out=self.array,
-                    where=where
-                    if not isinstance(where, EagerArray)
-                    else where.array,
-                )
-            elif op == BinaryOpCode.NOT_EQUAL:
-                np.not_equal(
-                    rhs1.array,
-                    rhs2.array,
-                    out=self.array,
-                    where=where
-                    if not isinstance(where, EagerArray)
-                    else where.array,
-                )
-            else:
+            func = _BINARY_OPS.get(op, None)
+            if func is None:
                 raise RuntimeError("unsupported binary op " + str(op))
+            func(
+                rhs1.array,
+                rhs2.array,
+                out=self.array,
+                where=where
+                if not isinstance(where, EagerArray)
+                else where.array,
+            )
 
     def binary_reduction(self, op, rhs1, rhs2, broadcast, args):
         self.check_eager_args(rhs1, rhs2)
