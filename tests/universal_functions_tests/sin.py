@@ -13,8 +13,6 @@
 # limitations under the License.
 #
 
-from __future__ import absolute_import
-
 from .sin_tests import inplace_normal, normal, scalar
 
 

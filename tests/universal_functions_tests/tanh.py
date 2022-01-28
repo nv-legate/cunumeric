@@ -13,8 +13,6 @@
 # limitations under the License.
 #
 
-from __future__ import absolute_import
-
 from .tanh_tests import inplace_normal, normal, scalar
 
 
