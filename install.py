@@ -25,6 +25,8 @@ import subprocess
 import sys
 import tempfile
 
+import setuptools
+
 # Flush output on newlines
 sys.stdout.reconfigure(line_buffering=True)
 
@@ -313,9 +315,10 @@ def build_cunumeric(
         "setup.py",
         "install",
         "--recurse",
-        "--single-version-externally-managed",
-        "--root=/",
     ]
+    # Work around breaking change in setuptools 60
+    if int(setuptools.__version__.split(".")[0]) >= 60:
+        cmd += ["--single-version-externally-managed", "--root=/"]
     if unknown is not None:
         cmd += unknown
         if "--prefix" not in unknown:
