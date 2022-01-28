@@ -954,14 +954,14 @@ class ndarray(object):
             # this dtype is not safe to store
             if dtype == np.dtype("str"):
                 dtype = np.promote_types(self.dtype, dtype)
-            result = ndarray(self.shape, dtype=dtype, inputs=(self,))
-            result._thunk.convert(self._thunk, warn=False, stacklevel=2)
         else:
             raise TypeError(
                 f"Cannot cast array data"
                 f"from '{self.dtype}' to '{dtype}' "
                 f"to the rule '{casting}'"
             )
+        result = ndarray(self.shape, dtype=dtype, inputs=(self,))
+        result._thunk.convert(self._thunk, warn=False, stacklevel=2)
         return result
 
     @unimplemented
