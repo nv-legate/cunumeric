@@ -23,9 +23,8 @@ import cunumeric as num
 def test(dim):
     # Seed the random generator with a random number
     np.random.seed(416)
-    print("test split")
-    routine = "array_split"
-    # test the split routines on empty, singleton, 2D and 3D arrays
+    print("test array_split")
+    # test the array_split routines on empty, singleton, 2D and 3D arrays
     # w/ integers, list of indicies. vsplit, hsplit, dsplit are included
     # in the following loops(axis = 0: vsplit, 1: hsplit, 2: dsplit)
 
@@ -90,11 +89,13 @@ def test(dim):
 
             for input_opt in input_arr:
                 # test divisible integer or indices
-                print_msg = f"np.{routine}({a.shape}, {input_opt}" f", {axis})"
+                print_msg = (
+                    f"np.array_split({a.shape}, {input_opt}" f", {axis})"
+                )
                 # Check if both impls produce the error
                 # for non-viable options
-                b = getattr(np, routine)(a, input_opt, axis)
-                c = getattr(num, routine)(a, input_opt, axis)
+                b = np.array_split(a, input_opt, axis)
+                c = num.array_split(a, input_opt, axis)
                 is_equal = True
                 err_arr = [b, c]
 
@@ -115,7 +116,7 @@ def test(dim):
                     f"cunumeric and numpy shows"
                     f"different result\n"
                     f"array({shape}),"
-                    f"routine: {routine},"
+                    f"routine: array_split,"
                     f"indices: {input_opt}, axis: {axis}"
                 )
 
