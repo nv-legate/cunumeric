@@ -25,7 +25,6 @@ from legate.core import Array
 
 from .config import BinaryOpCode, UnaryOpCode, UnaryRedCode
 from .runtime import runtime
-from .utils import unimplemented
 
 
 def add_boilerplate(*array_params: str, mutates_self: bool = False):
@@ -874,20 +873,6 @@ class ndarray(object):
             check_types=False,
         )
 
-    @unimplemented
-    def argpartition(self, kth, axis=-1, kind="introselect", order=None):
-        numpy_array = self.__array__().argpartition(
-            kth=kth, axis=axis, kind=kind, order=order
-        )
-        return self.convert_to_cunumeric_ndarray(numpy_array)
-
-    @unimplemented
-    def argsort(self, axis=-1, kind=None, order=None):
-        numpy_array = self.__array__().argsort(
-            axis=axis, kind=kind, order=order
-        )
-        return self.convert_to_cunumeric_ndarray(numpy_array)
-
     def astype(
         self, dtype, order="C", casting="unsafe", subok=True, copy=True
     ):
@@ -897,15 +882,6 @@ class ndarray(object):
         result = ndarray(self.shape, dtype=dtype, inputs=(self,))
         result._thunk.convert(self._thunk, warn=False)
         return result
-
-    @unimplemented
-    def byteswap(self, inplace=False):
-        if inplace:
-            self.__array__().byteswap(inplace=True)
-            return self
-        else:
-            numpy_array = self.__array__().byteswap(inplace=False)
-            return self.convert_to_cunumeric_ndarray(numpy_array)
 
     def choose(self, choices, out=None, mode="raise"):
         a = self
@@ -1023,11 +999,6 @@ class ndarray(object):
             UnaryOpCode.CLIP, self, dst=out, args=args
         )
 
-    @unimplemented
-    def compress(self, condition, axis=None, out=None):
-        numpy_array = self.__array__().compress(condition, axis=axis, out=out)
-        return self.convert_to_cunumeric_ndarray(numpy_array)
-
     def conj(self):
         if self.dtype.kind == "c":
             result = self._thunk.conj()
@@ -1060,23 +1031,6 @@ class ndarray(object):
     def copy(self, order="C"):
         # We don't care about dimension order in cuNumeric
         return self.__copy__()
-
-    @unimplemented
-    def cumprod(self, axis=None, dtype=None, out=None):
-        numpy_array = self.__array__().cumprod(axis=axis, dtype=dtype, out=out)
-        return self.convert_to_cunumeric_ndarray(numpy_array)
-
-    @unimplemented
-    def cumsum(self, axis=None, dtype=None, out=None):
-        numpy_array = self.__array__().cumsum(axis=axis, dtype=dtype, out=out)
-        return self.convert_to_cunumeric_ndarray(numpy_array)
-
-    @unimplemented
-    def diagonal(self, offset=0, axis1=0, axis2=1):
-        numpy_array = self.__array__().diagonal(
-            offset=offset, axis1=axis1, axis2=axis2
-        )
-        return self.convert_to_cunumeric_ndarray(numpy_array)
 
     def dot(self, rhs, out=None):
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
@@ -1192,11 +1146,6 @@ class ndarray(object):
     def fill(self, value):
         val = np.array(value, dtype=self.dtype)
         self._thunk.fill(val)
-
-    @unimplemented
-    def flatten(self, order="C"):
-        numpy_array = self.__array__().flatten(order=order)
-        return self.convert_to_cunumeric_ndarray(numpy_array)
 
     def getfield(self, dtype, offset=0):
         raise NotImplementedError(
@@ -1320,10 +1269,6 @@ class ndarray(object):
             where=where,
         )
 
-    @unimplemented
-    def partition(self, kth, axis=-1, kind="introselect", order=None):
-        self.__array__().partition(kth=kth, axis=axis, kind=kind, order=order)
-
     @add_boilerplate()
     def prod(
         self,
@@ -1354,24 +1299,8 @@ class ndarray(object):
             where=where,
         )
 
-    @unimplemented
-    def ptp(self, axis=None, out=None, keepdims=False):
-        numpy_array = self.__array__().ptp(
-            axis=axis, out=out, keepdims=keepdims
-        )
-        return self.convert_to_cunumeric_ndarray(numpy_array)
-
-    @unimplemented
-    def put(self, indices, values, mode="raise"):
-        self.__array__().put(indices=indices, values=values, mode=mode)
-
     def ravel(self, order="C"):
         return self.reshape(-1, order=order)
-
-    @unimplemented
-    def repeat(self, repeats, axis=None):
-        numpy_array = self.__array__().repeat(repeats, axis=axis)
-        return self.convert_to_cunumeric_ndarray(numpy_array)
 
     def reshape(self, shape, order="C"):
         if shape != -1:
@@ -1431,25 +1360,6 @@ class ndarray(object):
             thunk=self._thunk.reshape(shape, order),
         )
 
-    @unimplemented
-    def resize(self, new_shape, refcheck=True):
-        numpy_array = self.__array__().resize(
-            new_shape=new_shape, refcheck=refcheck
-        )
-        return self.convert_to_cunumeric_ndarray(numpy_array)
-
-    @unimplemented
-    def round(self, decimals=0, out=None):
-        numpy_array = self.__array__().round(decimals=decimals, out=out)
-        return self.convert_to_cunumeric_ndarray(numpy_array)
-
-    @unimplemented
-    def searchsorted(self, v, side="left", sorter=None):
-        numpy_array = self.__array__().searchsorted(
-            v=v, side=side, sorter=sorter
-        )
-        return self.convert_to_cunumeric_ndarray(numpy_array)
-
     def setfield(self, val, dtype, offset=0):
         raise NotImplementedError(
             "cuNumeric does not currently support type reinterpretation "
@@ -1458,11 +1368,6 @@ class ndarray(object):
 
     def setflags(self, write=None, align=None, uic=None):
         self.__array__().setflags(write=write, align=align, uic=uic)
-
-    @unimplemented
-    def sort(self, axis=-1, kind=None, order=None):
-        numpy_array = self.__array__().sort(axis=axis, kind=kind, order=order)
-        return self.convert_to_cunumeric_ndarray(numpy_array)
 
     def squeeze(self, axis=None):
         if axis is not None:
@@ -1486,13 +1391,6 @@ class ndarray(object):
                             "all axes to squeeze must have extent of one"
                         )
         return ndarray(shape=None, thunk=self._thunk.squeeze(axis))
-
-    @unimplemented
-    def std(self, axis=None, dtype=None, out=None, ddof=0, keepdims=False):
-        numpy_array = self.__array__().std(
-            axis=axis, dtype=dtype, out=out, ddof=ddof, keepdims=keepdims
-        )
-        return self.convert_to_cunumeric_ndarray(numpy_array)
 
     @add_boilerplate()
     def sum(
@@ -1535,13 +1433,6 @@ class ndarray(object):
             )
         return ndarray(shape=None, thunk=self._thunk.swapaxes(axis1, axis2))
 
-    @unimplemented
-    def take(self, indices, axis=None, out=None, mode="raise"):
-        numpy_array = self.__array__().take(
-            indices=indices, axis=axis, out=out, mode=mode
-        )
-        return self.convert_to_cunumeric_ndarray(numpy_array)
-
     def tofile(self, fid, sep="", format="%s"):
         return self.__array__().tofile(fid=fid, sep=sep, format=format)
 
@@ -1553,13 +1444,6 @@ class ndarray(object):
 
     def tostring(self, order="C"):
         return self.__array__().tostring(order=order)
-
-    @unimplemented
-    def trace(self, offset=0, axis1=0, axis2=1, dtype=None, out=None):
-        numpy_array = self.__array__().trace(
-            offset=offset, axis1=axis1, axis2=axis2, dtype=dtype, out=out
-        )
-        return self.convert_to_cunumeric_ndarray(numpy_array)
 
     def transpose(self, axes=None):
         if self.ndim == 1:
@@ -1592,13 +1476,6 @@ class ndarray(object):
         )
         result._thunk.flip(self._thunk, axis)
         return result
-
-    @unimplemented
-    def var(self, axis=None, dtype=None, out=None, ddof=0, keepdims=False):
-        numpy_array = self.__array__().var(
-            axis=axis, dtype=dtype, out=out, ddof=ddof, keepdims=keepdims
-        )
-        return self.convert_to_cunumeric_ndarray(numpy_array)
 
     def view(self, dtype=None, type=None):
         if dtype is not None and dtype != self.dtype:
