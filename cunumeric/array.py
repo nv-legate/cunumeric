@@ -186,7 +186,6 @@ class ndarray(object):
                 self._thunk = runtime.create_empty_thunk(shape, dtype, inputs)
         else:
             self._thunk = thunk
-        self._thunk.wrap(self)
         self._legate_data = None
 
     # Support for the Legate data interface

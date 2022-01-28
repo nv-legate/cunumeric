@@ -13,8 +13,6 @@
 # limitations under the License.
 #
 
-from __future__ import absolute_import, division, print_function
-
 import numpy as np
 
 from .config import BinaryOpCode, UnaryOpCode, UnaryRedCode
@@ -407,13 +405,6 @@ class EagerArray(NumPyThunk):
             for array in arrays:
                 result += (EagerArray(self.runtime, array),)
             return result
-
-    def sort(self, rhs):
-        self.check_eager_args(rhs)
-        if self.deferred is not None:
-            self.deferred.sort(rhs)
-        else:
-            self.array[:] = np.sort(rhs.array)
 
     def random_uniform(self):
         if self.deferred is not None:
