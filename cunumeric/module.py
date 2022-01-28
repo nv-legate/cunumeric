@@ -26,15 +26,8 @@ from .array import ndarray
 from .config import BinaryOpCode, UnaryOpCode, UnaryRedCode
 from .runtime import runtime
 
-try:
-    xrange  # Python 2
-except NameError:
-    xrange = range  # Python 3
-
-try:
-    import __builtin__ as builtins  # Python 2
-except ModuleNotFoundError:
-    import builtins as builtins  # Python 3
+_builtin_abs = abs
+_builtin_all = all
 
 
 def add_boilerplate(*array_params: str):
@@ -103,15 +96,13 @@ def add_boilerplate(*array_params: str):
             # NOTE: This implicitly blocks on the contents of these arrays.
             if (
                 hasattr(np, func.__name__)
-                and all(
-                    arg._thunk.scalar
-                    for (idx, arg) in enumerate(args)
-                    if (idx in indices) and isinstance(arg, ndarray)
+                and _builtin_all(
+                    isinstance(args[idx], ndarray) and args[idx]._thunk.scalar
+                    for idx in indices
                 )
-                and all(
-                    v._thunk.scalar
-                    for (k, v) in kwargs.items()
-                    if (k in keys or k == "where") and isinstance(v, ndarray)
+                and _builtin_all(
+                    isinstance(v, ndarray) and v._thunk.scalar
+                    for v in (kwargs.get("where", None),)
                 )
             ):
                 out = None
@@ -131,7 +122,10 @@ def add_boilerplate(*array_params: str):
                     getattr(np, func.__name__)(*args, **kwargs)
                 )
                 if out is not None:
-                    out._thunk.copy(result._thunk)
+                    if out._thunk.dtype != result._thunk.dtype:
+                        out._thunk.convert(result._thunk, warn=False)
+                    else:
+                        out._thunk.copy(result._thunk)
                     result = out
                 return result
 
@@ -173,60 +167,58 @@ def arange(*args, dtype=None):
 def array(obj, dtype=None, copy=True, order="K", subok=False, ndmin=0):
     if not isinstance(obj, ndarray):
         thunk = runtime.get_numpy_thunk(obj, share=(not copy), dtype=dtype)
-        array = ndarray(shape=None, thunk=thunk)
+        result = ndarray(shape=None, thunk=thunk)
     else:
-        array = obj
-    if dtype is not None and array.dtype != dtype:
-        array = array.astype(dtype)
-    elif copy and obj is array:
-        array = array.copy()
-    if array.ndim < ndmin:
-        shape = (np.newaxis,) * (ndmin - array.ndim) + array.shape
-        array = array.reshape(shape)
-    return array
+        result = obj
+    if dtype is not None and result.dtype != dtype:
+        result = result.astype(dtype)
+    elif copy and obj is result:
+        result = result.copy()
+    if result.ndim < ndmin:
+        shape = (np.newaxis,) * (ndmin - result.ndim) + result.shape
+        result = result.reshape(shape)
+    return result
 
 
+@add_boilerplate("a")
 def choose(a, choices, out=None, mode="raise"):
-    array = ndarray.convert_to_cunumeric_ndarray(a)
-    return array.choose(choices=choices, out=out, mode=mode)
+    return a.choose(choices=choices, out=out, mode=mode)
 
 
+@add_boilerplate("v")
 def diag(v, k=0):
-    array = ndarray.convert_to_cunumeric_ndarray(v)
-    if array._thunk.scalar:
-        return array.copy()
-    elif array.ndim == 1:
+    if v.ndim == 1:
         # Make a diagonal matrix from the array
-        N = array.shape[0] + builtins.abs(k)
-        matrix = ndarray((N, N), dtype=array.dtype, inputs=(array,))
-        matrix._thunk.diag(array._thunk, extract=False, k=k)
+        N = v.shape[0] + _builtin_abs(k)
+        matrix = ndarray((N, N), dtype=v.dtype, inputs=(v,))
+        matrix._thunk.diag(v._thunk, extract=False, k=k)
         return matrix
-    elif array.ndim == 2:
+    elif v.ndim == 2:
         # Extract the diagonal from the matrix
         # Solve for the size of the diagonal
         if k > 0:
-            if k >= array.shape[1]:
+            if k >= v.shape[1]:
                 raise ValueError("'k' for diag must be in range")
             start = (0, k)
         elif k < 0:
-            if -k >= array.shape[0]:
+            if -k >= v.shape[0]:
                 raise ValueError("'k' for diag must be in range")
             start = (-k, 0)
         else:
             start = (0, 0)
-        stop1 = (array.shape[0] - 1, array.shape[0] - 1 + k)
-        stop2 = (array.shape[1] - 1 - k, array.shape[1] - 1)
-        if stop1[0] < array.shape[0] and stop1[1] < array.shape[1]:
+        stop1 = (v.shape[0] - 1, v.shape[0] - 1 + k)
+        stop2 = (v.shape[1] - 1 - k, v.shape[1] - 1)
+        if stop1[0] < v.shape[0] and stop1[1] < v.shape[1]:
             distance = (stop1[0] - start[0]) + 1
             assert distance == ((stop1[1] - start[1]) + 1)
         else:
-            assert stop2[0] < array.shape[0] and stop2[1] < array.shape[1]
+            assert stop2[0] < v.shape[0] and stop2[1] < v.shape[1]
             distance = (stop2[0] - start[0]) + 1
             assert distance == ((stop2[1] - start[1]) + 1)
-        vector = ndarray(distance, dtype=array.dtype, inputs=(array,))
-        vector._thunk.diag(array._thunk, extract=True, k=k)
+        vector = ndarray(distance, dtype=v.dtype, inputs=(v,))
+        vector._thunk.diag(v._thunk, extract=True, k=k)
         return vector
-    elif array.ndim > 2:
+    elif v.ndim > 2:
         raise ValueError("diag requires 1- or 2-D array")
 
 
@@ -234,14 +226,14 @@ def empty(shape, dtype=np.float64):
     return ndarray(shape=shape, dtype=dtype)
 
 
+@add_boilerplate("a")
 def empty_like(a, dtype=None):
-    array = ndarray.convert_to_cunumeric_ndarray(a)
-    shape = array.shape
+    shape = a.shape
     if dtype is not None:
         dtype = np.dtype(dtype)
     else:
         dtype = a.dtype
-    return ndarray(shape, dtype=dtype, inputs=(array,))
+    return ndarray(shape, dtype=dtype, inputs=(a,))
 
 
 def eye(N, M=None, k=0, dtype=np.float64):
@@ -280,6 +272,7 @@ def identity(n, dtype=float):
     return eye(N=n, M=n, dtype=dtype)
 
 
+@add_boilerplate("start", "stop")
 def linspace(
     start,
     stop,
@@ -292,9 +285,6 @@ def linspace(
     if num < 0:
         raise ValueError("Number of samples, %s, must be non-negative." % num)
     div = (num - 1) if endpoint else num
-
-    start = ndarray.convert_to_cunumeric_ndarray(start)
-    stop = ndarray.convert_to_cunumeric_ndarray(stop)
 
     dt = np.result_type(start, stop, float(num))
     if dtype is None:
@@ -401,10 +391,10 @@ def zeros_like(a, dtype=None):
     return full_like(a, 0, dtype=usedtype)
 
 
+@add_boilerplate("a")
 def copy(a):
-    array = ndarray.convert_to_cunumeric_ndarray(a)
-    result = empty_like(array, dtype=array.dtype)
-    result._thunk.copy(array._thunk, deep=True)
+    result = empty_like(a, dtype=a.dtype)
+    result._thunk.copy(a._thunk, deep=True)
     return result
 
 
@@ -416,13 +406,13 @@ def triu(m, k=0):
     return trilu(m, k, False)
 
 
+@add_boilerplate("m")
 def trilu(m, k, lower):
-    array = ndarray.convert_to_cunumeric_ndarray(m)
-    if array.ndim < 1:
+    if m.ndim < 1:
         raise TypeError("Array must be at least 1-D")
     shape = m.shape if m.ndim >= 2 else m.shape * 2
-    result = ndarray(shape, dtype=array.dtype, inputs=(array,))
-    result._thunk.trilu(array._thunk, k, lower)
+    result = ndarray(shape, dtype=m.dtype, inputs=(m,))
+    result._thunk.trilu(m._thunk, k, lower)
     return result
 
 
@@ -431,23 +421,24 @@ def trilu(m, k, lower):
 # Changing array shape
 
 
+@add_boilerplate("a")
 def ravel(a, order="C"):
-    array = ndarray.convert_to_cunumeric_ndarray(a)
-    return array.ravel(order=order)
+    return a.ravel(order=order)
 
 
+@add_boilerplate("a")
 def reshape(a, newshape, order="C"):
-    array = ndarray.convert_to_cunumeric_ndarray(a)
-    return array.reshape(newshape, order=order)
+    return a.reshape(newshape, order=order)
 
 
+@add_boilerplate("a")
 def transpose(a, axes=None):
     return a.transpose(axes=axes)
 
 
+@add_boilerplate("m")
 def flip(m, axis=None):
-    array = ndarray.convert_to_cunumeric_ndarray(m)
-    return array.flip(axis=axis)
+    return m.flip(axis=axis)
 
 
 # Changing kind of array
@@ -467,25 +458,25 @@ def asarray(a, dtype=None, order=None):
 # Tiling
 
 
+@add_boilerplate("a")
 def tile(a, reps):
-    array = ndarray.convert_to_cunumeric_ndarray(a)
     if not hasattr(reps, "__len__"):
         reps = (reps,)
     # Figure out the shape of the destination array
-    out_dims = array.ndim if array.ndim > len(reps) else len(reps)
+    out_dims = a.ndim if a.ndim > len(reps) else len(reps)
     # Prepend ones until the dimensions match
     while len(reps) < out_dims:
         reps = (1,) + reps
     out_shape = ()
     # Prepend dimensions if necessary
-    for dim in xrange(out_dims - array.ndim):
+    for dim in range(out_dims - a.ndim):
         out_shape += (reps[dim],)
     offset = len(out_shape)
-    for dim in xrange(array.ndim):
-        out_shape += (array.shape[dim] * reps[offset + dim],)
+    for dim in range(a.ndim):
+        out_shape += (a.shape[dim] * reps[offset + dim],)
     assert len(out_shape) == out_dims
-    result = ndarray(out_shape, dtype=array.dtype, inputs=(array,))
-    result._thunk.tile(array._thunk, reps)
+    result = ndarray(out_shape, dtype=a.dtype, inputs=(a,))
+    result._thunk.tile(a._thunk, reps)
     return result
 
 
@@ -596,16 +587,13 @@ def array_split(a, indices, axis=0, equal=False):
 # Elementwise bit operations
 
 
+@add_boilerplate("a")
 def invert(a, out=None, where=True, dtype=None):
-    array = ndarray.convert_to_cunumeric_ndarray(a)
-    where = ndarray.convert_to_predicate_ndarray(where)
-    if out is not None:
-        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
-    if array.dtype.type == np.bool_:
+    if a.dtype.type == np.bool_:
         # Boolean values are special, just do negatiion
         return ndarray.perform_unary_op(
             UnaryOpCode.LOGICAL_NOT,
-            array,
+            a,
             dst=out,
             dtype=dtype,
             out_dtype=np.dtype(np.bool_),
@@ -613,18 +601,16 @@ def invert(a, out=None, where=True, dtype=None):
         )
     else:
         return ndarray.perform_unary_op(
-            UnaryOpCode.INVERT, array, dst=out, dtype=dtype, where=where
+            UnaryOpCode.INVERT, a, dst=out, dtype=dtype, where=where
         )
 
 
 # ### LINEAR ALGEBRA
 
 # Matrix and vector products
+@add_boilerplate("a", "b")
 def dot(a, b, out=None):
-    a_array = ndarray.convert_to_cunumeric_ndarray(a)
-    if out is not None:
-        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
-    return a_array.dot(b, out=out)
+    return a.dot(b, out=out)
 
 
 # Trivial multi-tensor contraction strategy: contract in input order
@@ -766,7 +752,7 @@ def _contract(expr, a, b=None, out=None):
         else:
             # Shuffle input array according to mode labels
             axes = [a_modes.index(mode) for mode in c_modes]
-            assert all(ax >= 0 for ax in axes)
+            assert _builtin_all(ax >= 0 for ax in axes)
             c = a.transpose(axes)
 
     else:
@@ -922,14 +908,11 @@ def tensordot(a, b, axes=2):
 # ### LOGIC FUNCTIONS
 
 
+@add_boilerplate("a")
 def logical_not(a, out=None, where=True, dtype=None, **kwargs):
-    a_array = ndarray.convert_to_cunumeric_ndarray(a)
-    where = ndarray.convert_to_predicate_ndarray(where)
-    if out is not None:
-        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return ndarray.perform_unary_op(
         UnaryOpCode.LOGICAL_NOT,
-        a_array,
+        a,
         dtype=dtype,
         dst=out,
         where=where,
@@ -940,28 +923,21 @@ def logical_not(a, out=None, where=True, dtype=None, **kwargs):
 # truth value testing
 
 
+@add_boilerplate("a")
 def all(a, axis=None, out=None, keepdims=False, where=True):
-    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
-    where = ndarray.convert_to_predicate_ndarray(where)
-    if out is not None:
-        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
-    return lg_array.all(axis=axis, out=out, keepdims=keepdims, where=where)
+    return a.all(axis=axis, out=out, keepdims=keepdims, where=where)
 
 
+@add_boilerplate("a")
 def any(a, axis=None, out=None, keepdims=False, where=True):
-    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
-    where = ndarray.convert_to_predicate_ndarray(where)
-    if out is not None:
-        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
-    return lg_array.any(axis=axis, out=out, keepdims=keepdims, where=where)
+    return a.any(axis=axis, out=out, keepdims=keepdims, where=where)
 
 
 # #Comparison
 
 
+@add_boilerplate("a", "b")
 def allclose(a, b, rtol=1e-5, atol=1e-8, equal_nan=False):
-    a_array = ndarray.convert_to_cunumeric_ndarray(a)
-    b_array = ndarray.convert_to_cunumeric_ndarray(b)
     if equal_nan:
         raise NotImplementedError(
             "cuNumeric does not support equal NaN yet for allclose"
@@ -969,81 +945,63 @@ def allclose(a, b, rtol=1e-5, atol=1e-8, equal_nan=False):
     args = (np.array(rtol, dtype=np.float64), np.array(atol, dtype=np.float64))
     return ndarray.perform_binary_reduction(
         BinaryOpCode.ALLCLOSE,
-        a_array,
-        b_array,
+        a,
+        b,
         dtype=np.dtype(np.bool),
         args=args,
     )
 
 
+@add_boilerplate("a", "b")
 def array_equal(a, b):
-    a_array = ndarray.convert_to_cunumeric_ndarray(a)
-    b_array = ndarray.convert_to_cunumeric_ndarray(b)
-    if a_array.ndim != b_array.ndim:
-        return False
-    if a_array.shape != b_array.shape:
+    if a.shape != b.shape:
         return False
     return ndarray.perform_binary_reduction(
-        BinaryOpCode.EQUAL, a_array, b_array, dtype=np.dtype(np.bool_)
+        BinaryOpCode.EQUAL, a, b, dtype=np.dtype(np.bool_)
     )
 
 
+@add_boilerplate("a", "b")
 def equal(a, b, out=None, where=True, dtype=np.dtype(np.bool)):
-    a_array = ndarray.convert_to_cunumeric_ndarray(a)
-    b_array = ndarray.convert_to_cunumeric_ndarray(b)
-    where = ndarray.convert_to_predicate_ndarray(where)
-    if out is not None:
-        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return ndarray.perform_binary_op(
         BinaryOpCode.EQUAL,
-        a_array,
-        b_array,
+        a,
+        b,
         out=out,
         out_dtype=dtype,
         where=where,
     )
 
 
+@add_boilerplate("a", "b")
 def greater(a, b, out=None, where=True, dtype=np.dtype(np.bool)):
-    a_array = ndarray.convert_to_cunumeric_ndarray(a)
-    b_array = ndarray.convert_to_cunumeric_ndarray(b)
-    where = ndarray.convert_to_predicate_ndarray(where)
-    if out is not None:
-        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return ndarray.perform_binary_op(
         BinaryOpCode.GREATER,
-        a_array,
-        b_array,
+        a,
+        b,
         out=out,
         out_dtype=dtype,
         where=where,
     )
 
 
+@add_boilerplate("a", "b")
 def greater_equal(a, b, out=None, where=True, dtype=np.dtype(np.bool)):
-    a_array = ndarray.convert_to_cunumeric_ndarray(a)
-    b_array = ndarray.convert_to_cunumeric_ndarray(b)
-    where = ndarray.convert_to_predicate_ndarray(where)
-    if out is not None:
-        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return ndarray.perform_binary_op(
         BinaryOpCode.GREATER_EQUAL,
-        a_array,
-        b_array,
+        a,
+        b,
         out=out,
         out_dtype=dtype,
         where=where,
     )
 
 
+@add_boilerplate("a")
 def isinf(a, out=None, where=True, dtype=None, **kwargs):
-    a_array = ndarray.convert_to_cunumeric_ndarray(a)
-    where = ndarray.convert_to_predicate_ndarray(where)
-    if out is not None:
-        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return ndarray.perform_unary_op(
         UnaryOpCode.ISINF,
-        a_array,
+        a,
         dst=out,
         dtype=dtype,
         where=where,
@@ -1051,14 +1009,11 @@ def isinf(a, out=None, where=True, dtype=None, **kwargs):
     )
 
 
+@add_boilerplate("a")
 def isnan(a, out=None, where=True, dtype=None, **kwargs):
-    a_array = ndarray.convert_to_cunumeric_ndarray(a)
-    where = ndarray.convert_to_predicate_ndarray(where)
-    if out is not None:
-        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return ndarray.perform_unary_op(
         UnaryOpCode.ISNAN,
-        a_array,
+        a,
         dst=out,
         dtype=dtype,
         where=where,
@@ -1066,96 +1021,72 @@ def isnan(a, out=None, where=True, dtype=None, **kwargs):
     )
 
 
+@add_boilerplate("a", "b")
 def less(a, b, out=None, where=True, dtype=np.dtype(np.bool)):
-    a_array = ndarray.convert_to_cunumeric_ndarray(a)
-    b_array = ndarray.convert_to_cunumeric_ndarray(b)
-    where = ndarray.convert_to_predicate_ndarray(where)
-    if out is not None:
-        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return ndarray.perform_binary_op(
         BinaryOpCode.LESS,
-        a_array,
-        b_array,
+        a,
+        b,
         out=out,
         out_dtype=dtype,
         where=where,
     )
 
 
+@add_boilerplate("a", "b")
 def less_equal(a, b, out=None, where=True, dtype=np.dtype(np.bool)):
-    a_array = ndarray.convert_to_cunumeric_ndarray(a)
-    b_array = ndarray.convert_to_cunumeric_ndarray(b)
-    where = ndarray.convert_to_predicate_ndarray(where)
-    if out is not None:
-        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return ndarray.perform_binary_op(
         BinaryOpCode.LESS_EQUAL,
-        a_array,
-        b_array,
+        a,
+        b,
         out=out,
         out_dtype=dtype,
         where=where,
     )
 
 
+@add_boilerplate("a", "b")
 def logical_and(a, b, out=None, where=True, dtype=np.dtype(np.bool)):
-    a_array = ndarray.convert_to_cunumeric_ndarray(a)
-    b_array = ndarray.convert_to_cunumeric_ndarray(b)
-    where = ndarray.convert_to_predicate_ndarray(where)
-    if out is not None:
-        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return ndarray.perform_binary_op(
         BinaryOpCode.LOGICAL_AND,
-        a_array,
-        b_array,
+        a,
+        b,
         out=out,
         out_dtype=dtype,
         where=where,
     )
 
 
+@add_boilerplate("a", "b")
 def logical_or(a, b, out=None, where=True, dtype=np.dtype(np.bool)):
-    a_array = ndarray.convert_to_cunumeric_ndarray(a)
-    b_array = ndarray.convert_to_cunumeric_ndarray(b)
-    where = ndarray.convert_to_predicate_ndarray(where)
-    if out is not None:
-        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return ndarray.perform_binary_op(
         BinaryOpCode.LOGICAL_OR,
-        a_array,
-        b_array,
+        a,
+        b,
         out=out,
         out_dtype=dtype,
         where=where,
     )
 
 
+@add_boilerplate("a", "b")
 def logical_xor(a, b, out=None, where=True, dtype=np.dtype(np.bool)):
-    a_array = ndarray.convert_to_cunumeric_ndarray(a)
-    b_array = ndarray.convert_to_cunumeric_ndarray(b)
-    where = ndarray.convert_to_predicate_ndarray(where)
-    if out is not None:
-        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return ndarray.perform_binary_op(
         BinaryOpCode.LOGICAL_XOR,
-        a_array,
-        b_array,
+        a,
+        b,
         out=out,
         out_dtype=dtype,
         where=where,
     )
 
 
+@add_boilerplate("a", "b")
 def not_equal(a, b, out=None, where=True, dtype=np.dtype(np.bool)):
-    a_array = ndarray.convert_to_cunumeric_ndarray(a)
-    b_array = ndarray.convert_to_cunumeric_ndarray(b)
-    where = ndarray.convert_to_predicate_ndarray(where)
-    if out is not None:
-        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return ndarray.perform_binary_op(
         BinaryOpCode.NOT_EQUAL,
-        a_array,
-        b_array,
+        a,
+        b,
         out=out,
         out_dtype=dtype,
         where=where,
@@ -1165,220 +1096,144 @@ def not_equal(a, b, out=None, where=True, dtype=np.dtype(np.bool)):
 # ### MATHEMATICAL FUNCTIONS
 
 
+@add_boilerplate("a")
 def negative(a, out=None, where=True, dtype=None, **kwargs):
-    a_array = ndarray.convert_to_cunumeric_ndarray(a)
-    where = ndarray.convert_to_predicate_ndarray(where)
-    if (
-        a_array.dtype.type == np.uint16
-        or a_array.dtype.type == np.uint32
-        or a_array.dtype.type == np.uint64
-    ):
-        raise TypeError("cannot negate unsigned type " + str(a_array.dtype))
-    if out is not None:
-        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return ndarray.perform_unary_op(
-        UnaryOpCode.NEGATIVE, a_array, dtype=dtype, dst=out, where=where
+        UnaryOpCode.NEGATIVE, a, dtype=dtype, dst=out, where=where
     )
 
 
-def rint(a, out=None, where=True, dtype=None, **kwargs):
-    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
-    where = ndarray.convert_to_predicate_ndarray(where)
-    if lg_array.dtype.kind == "f" or lg_array.dtype.kind == "c":
-        out_dtype = lg_array.dtype
+def _output_float_dtype(input):
+    # Floats keep their floating point kind, otherwise switch to float64
+    if input.dtype.kind in ("f", "c"):
+        return input.dtype
     else:
-        out_dtype = np.dtype(np.float64)
-    if out is not None:
-        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
+        return np.dtype(np.float64)
+
+
+@add_boilerplate("a")
+def rint(a, out=None, where=True, dtype=None, **kwargs):
     return ndarray.perform_unary_op(
         UnaryOpCode.RINT,
-        lg_array,
+        a,
         dtype=dtype,
         dst=out,
         where=where,
-        out_dtype=out_dtype,
+        out_dtype=_output_float_dtype(a),
     )
 
 
 # Trigonometric functions
 
 
+@add_boilerplate("a")
 def arccos(a, out=None, where=True, dtype=None, **kwargs):
-    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
-    where = ndarray.convert_to_predicate_ndarray(where)
-    # Floats keep their floating point kind, otherwise switch to float64
-    if lg_array.dtype.kind == "f" or lg_array.dtype.kind == "c":
-        out_dtype = lg_array.dtype
-    else:
-        out_dtype = np.dtype(np.float64)
-    if out is not None:
-        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return ndarray.perform_unary_op(
         UnaryOpCode.ARCCOS,
-        lg_array,
+        a,
         dtype=dtype,
         dst=out,
         where=where,
-        out_dtype=out_dtype,
+        out_dtype=_output_float_dtype(a),
     )
 
 
+@add_boilerplate("a")
 def arcsin(a, out=None, where=True, dtype=None, **kwargs):
-    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
-    where = ndarray.convert_to_predicate_ndarray(where)
-    # Floats keep their floating point kind, otherwise switch to float64
-    if lg_array.dtype.kind == "f" or lg_array.dtype.kind == "c":
-        out_dtype = lg_array.dtype
-    else:
-        out_dtype = np.dtype(np.float64)
-    if out is not None:
-        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return ndarray.perform_unary_op(
         UnaryOpCode.ARCSIN,
-        lg_array,
+        a,
         dtype=dtype,
         dst=out,
         where=where,
-        out_dtype=out_dtype,
+        out_dtype=_output_float_dtype(a),
     )
 
 
+@add_boilerplate("a")
 def arctan(a, out=None, where=True, dtype=None, **kwargs):
-    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
-    where = ndarray.convert_to_predicate_ndarray(where)
-    # Floats keep their floating point kind, otherwise switch to float64
-    if lg_array.dtype.kind == "f" or lg_array.dtype.kind == "c":
-        out_dtype = lg_array.dtype
-    else:
-        out_dtype = np.dtype(np.float64)
-    if out is not None:
-        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return ndarray.perform_unary_op(
         UnaryOpCode.ARCTAN,
-        lg_array,
+        a,
         dtype=dtype,
         dst=out,
         where=where,
-        out_dtype=out_dtype,
+        out_dtype=_output_float_dtype(a),
     )
 
 
+@add_boilerplate("a")
 def cos(a, out=None, where=True, dtype=None, **kwargs):
-    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
-    where = ndarray.convert_to_predicate_ndarray(where)
-    # Floats keep their floating point kind, otherwise switch to float64
-    if lg_array.dtype.kind == "f" or lg_array.dtype.kind == "c":
-        out_dtype = lg_array.dtype
-    else:
-        out_dtype = np.dtype(np.float64)
-    if out is not None:
-        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return ndarray.perform_unary_op(
         UnaryOpCode.COS,
-        lg_array,
+        a,
         dtype=dtype,
         dst=out,
         where=where,
-        out_dtype=out_dtype,
+        out_dtype=_output_float_dtype(a),
     )
 
 
+@add_boilerplate("a")
 def sign(a, out=None, where=True, dtype=None, **kwargs):
-    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
-    where = ndarray.convert_to_predicate_ndarray(where)
-    # Floats keep their floating point kind, otherwise switch to float64
-    if lg_array.dtype.kind == "f" or lg_array.dtype.kind == "c":
-        out_dtype = lg_array.dtype
-    else:
-        out_dtype = np.dtype(np.float64)
-    if out is not None:
-        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return ndarray.perform_unary_op(
         UnaryOpCode.SIGN,
-        lg_array,
+        a,
         dtype=dtype,
         dst=out,
         where=where,
-        out_dtype=out_dtype,
+        out_dtype=_output_float_dtype(a),
     )
 
 
+@add_boilerplate("a")
 def sin(a, out=None, where=True, dtype=None, **kwargs):
-    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
-    where = ndarray.convert_to_predicate_ndarray(where)
-    # Floats keep their floating point kind, otherwise switch to float64
-    if lg_array.dtype.kind == "f" or lg_array.dtype.kind == "c":
-        out_dtype = lg_array.dtype
-    else:
-        out_dtype = np.dtype(np.float64)
-    if out is not None:
-        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return ndarray.perform_unary_op(
         UnaryOpCode.SIN,
-        lg_array,
+        a,
         dtype=dtype,
         dst=out,
         where=where,
-        out_dtype=out_dtype,
+        out_dtype=_output_float_dtype(a),
     )
 
 
+@add_boilerplate("a")
 def tan(a, out=None, where=True, dtype=None, **kwargs):
-    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
-    where = ndarray.convert_to_predicate_ndarray(where)
-    # Floats keep their floating point kind, otherwise switch to float64
-    if lg_array.dtype.kind == "f" or lg_array.dtype.kind == "c":
-        out_dtype = lg_array.dtype
-    else:
-        out_dtype = np.dtype(np.float64)
-    if out is not None:
-        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return ndarray.perform_unary_op(
         UnaryOpCode.TAN,
-        lg_array,
+        a,
         dtype=dtype,
         dst=out,
         where=where,
-        out_dtype=out_dtype,
+        out_dtype=_output_float_dtype(a),
     )
 
 
 # Hyperbolic functions
 
 
+@add_boilerplate("a")
 def tanh(a, out=None, where=True, dtype=None, **kwargs):
-    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
-    where = ndarray.convert_to_predicate_ndarray(where)
-    # Floats keep their floating point kind, otherwise switch to float64
-    if lg_array.dtype.kind == "f" or lg_array.dtype.kind == "c":
-        out_dtype = lg_array.dtype
-    else:
-        out_dtype = np.dtype(np.float64)
-    if out is not None:
-        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return ndarray.perform_unary_op(
         UnaryOpCode.TANH,
-        lg_array,
+        a,
         dtype=dtype,
         dst=out,
         where=where,
-        out_dtype=out_dtype,
+        out_dtype=_output_float_dtype(a),
     )
 
 
 # Sums, products, differences
 
 
+@add_boilerplate("a", "b")
 def add(a, b, out=None, where=True, dtype=None):
-    a_array = ndarray.convert_to_cunumeric_ndarray(a)
-    b_array = ndarray.convert_to_cunumeric_ndarray(b)
-    where = ndarray.convert_to_predicate_ndarray(where)
-    if out is not None:
-        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return ndarray.perform_binary_op(
         BinaryOpCode.ADD,
-        a_array,
-        b_array,
+        a,
+        b,
         out=out,
         out_dtype=dtype,
         where=where,
@@ -1389,38 +1244,31 @@ def divide(a, b, out=None, where=True, dtype=None):
     return true_divide(a, b, out=out, where=where, dtype=dtype)
 
 
+@add_boilerplate("a", "b")
 def floor_divide(a, b, out=None, where=True, dtype=None):
-    a_array = ndarray.convert_to_cunumeric_ndarray(a)
-    b_array = ndarray.convert_to_cunumeric_ndarray(b)
-    where = ndarray.convert_to_predicate_ndarray(where)
-    if out is not None:
-        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return ndarray.perform_binary_op(
         BinaryOpCode.FLOOR_DIVIDE,
-        a_array,
-        b_array,
+        a,
+        b,
         out=out,
         out_dtype=dtype,
         where=where,
     )
 
 
+@add_boilerplate("a", "b")
 def multiply(a, b, out=None, where=True, dtype=None):
-    a_array = ndarray.convert_to_cunumeric_ndarray(a)
-    b_array = ndarray.convert_to_cunumeric_ndarray(b)
-    where = ndarray.convert_to_predicate_ndarray(where)
-    if out is not None:
-        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return ndarray.perform_binary_op(
         BinaryOpCode.MULTIPLY,
-        a_array,
-        b_array,
+        a,
+        b,
         out=out,
         out_dtype=dtype,
         where=where,
     )
 
 
+@add_boilerplate("a")
 def prod(
     a,
     axis=None,
@@ -1430,10 +1278,7 @@ def prod(
     initial=None,
     where=True,
 ):
-    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
-    if out is not None:
-        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
-    return lg_array.prod(
+    return a.prod(
         axis=axis,
         dtype=dtype,
         out=out,
@@ -1443,22 +1288,19 @@ def prod(
     )
 
 
+@add_boilerplate("a", "b")
 def subtract(a, b, out=None, where=True, dtype=None):
-    a_array = ndarray.convert_to_cunumeric_ndarray(a)
-    b_array = ndarray.convert_to_cunumeric_ndarray(b)
-    where = ndarray.convert_to_predicate_ndarray(where)
-    if out is not None:
-        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return ndarray.perform_binary_op(
         BinaryOpCode.SUBTRACT,
-        a_array,
-        b_array,
+        a,
+        b,
         out=out,
         out_dtype=dtype,
         where=where,
     )
 
 
+@add_boilerplate("a")
 def sum(
     a,
     axis=None,
@@ -1468,11 +1310,7 @@ def sum(
     initial=None,
     where=True,
 ):
-    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
-    where = ndarray.convert_to_predicate_ndarray(where)
-    if out is not None:
-        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
-    return lg_array.sum(
+    return a.sum(
         axis=axis,
         dtype=dtype,
         out=out,
@@ -1482,56 +1320,52 @@ def sum(
     )
 
 
+@add_boilerplate("a", "b")
 def true_divide(a, b, out=None, where=True, dtype=None):
-    a_array = ndarray.convert_to_cunumeric_ndarray(a)
-    b_array = ndarray.convert_to_cunumeric_ndarray(b)
-    where = ndarray.convert_to_predicate_ndarray(where)
     # Convert any non-floats to floating point arrays
-    if a_array.dtype.kind != "f":
+    if a.dtype.kind != "f":
         a_type = np.dtype(np.float64)
     else:
-        a_type = a_array.dtype
-    if b_array.dtype.kind != "f":
+        a_type = a.dtype
+    if b.dtype.kind != "f":
         b_type = np.dtype(np.float64)
     else:
-        b_type = b_array.dtype
+        b_type = b.dtype
     # If the types don't match then align them
     if a_type != b_type:
         array_types = list()
         scalar_types = list()
-        if a_array.ndim > 0:
+        if a.ndim > 0:
             array_types.append(a_type)
         else:
             scalar_types.append(a_type)
-        if b_array.ndim > 0:
+        if b.ndim > 0:
             array_types.append(b_type)
         else:
             scalar_types.append(b_type)
         common_type = np.find_common_type(array_types, scalar_types)
     else:
         common_type = a_type
-    if a_array.dtype != common_type:
+    if a.dtype != common_type:
         temp = ndarray(
-            a_array.shape,
+            a.shape,
             dtype=common_type,
-            inputs=(a_array, b_array),
+            inputs=(a, b),
         )
-        temp._thunk.convert(a_array._thunk, warn=False)
-        a_array = temp
-    if b_array.dtype != common_type:
+        temp._thunk.convert(a._thunk, warn=False)
+        a = temp
+    if b.dtype != common_type:
         temp = ndarray(
-            b_array.shape,
+            b.shape,
             dtype=common_type,
-            inputs=(a_array, b_array),
+            inputs=(a, b),
         )
-        temp._thunk.convert(b_array._thunk, warn=False)
-        b_array = temp
-    if out is not None:
-        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
+        temp._thunk.convert(b._thunk, warn=False)
+        b = temp
     return ndarray.perform_binary_op(
         BinaryOpCode.DIVIDE,
-        a_array,
-        b_array,
+        a,
+        b,
         out=out,
         out_dtype=dtype,
         where=where,
@@ -1541,105 +1375,73 @@ def true_divide(a, b, out=None, where=True, dtype=None):
 # Exponents and logarithms
 
 
+@add_boilerplate("a")
 def exp(a, out=None, where=True, dtype=None, **kwargs):
-    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
-    where = ndarray.convert_to_predicate_ndarray(where)
-    if lg_array.dtype.kind == "f" or lg_array.dtype.kind == "c":
-        out_dtype = lg_array.dtype
-    else:
-        out_dtype = np.dtype(np.float64)
-    if out is not None:
-        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return ndarray.perform_unary_op(
         UnaryOpCode.EXP,
-        lg_array,
+        a,
         dtype=dtype,
         dst=out,
         where=where,
-        out_dtype=out_dtype,
+        out_dtype=_output_float_dtype(a),
     )
 
 
+@add_boilerplate("a")
 def exp2(a, out=None, where=True, dtype=None, **kwargs):
-    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
-    where = ndarray.convert_to_predicate_ndarray(where)
-    if lg_array.dtype.kind == "f" or lg_array.dtype.kind == "c":
-        out_dtype = lg_array.dtype
-    else:
-        out_dtype = np.dtype(np.float64)
-    if out is not None:
-        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return ndarray.perform_unary_op(
         UnaryOpCode.EXP2,
-        lg_array,
+        a,
         dtype=dtype,
         dst=out,
         where=where,
-        out_dtype=out_dtype,
+        out_dtype=_output_float_dtype(a),
     )
 
 
+@add_boilerplate("a")
 def log(a, out=None, where=True, dtype=None, **kwargs):
-    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
-    where = ndarray.convert_to_predicate_ndarray(where)
-    if lg_array.dtype.kind == "f" or lg_array.dtype.kind == "c":
-        out_dtype = lg_array.dtype
-    else:
-        out_dtype = np.dtype(np.float64)
-    if out is not None:
-        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return ndarray.perform_unary_op(
         UnaryOpCode.LOG,
-        lg_array,
+        a,
         dtype=dtype,
         dst=out,
         where=where,
-        out_dtype=out_dtype,
+        out_dtype=_output_float_dtype(a),
     )
 
 
+@add_boilerplate("a")
 def log10(a, out=None, where=True, dtype=None, **kwargs):
-    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
-    where = ndarray.convert_to_predicate_ndarray(where)
-    if lg_array.dtype.kind == "f" or lg_array.dtype.kind == "c":
-        out_dtype = lg_array.dtype
-    else:
-        out_dtype = np.dtype(np.float64)
-    if out is not None:
-        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return ndarray.perform_unary_op(
         UnaryOpCode.LOG10,
-        lg_array,
+        a,
         dtype=dtype,
         dst=out,
         where=where,
-        out_dtype=out_dtype,
+        out_dtype=_output_float_dtype(a),
     )
 
 
+@add_boilerplate("x1", "x2")
 def power(x1, x2, out=None, where=True, dtype=None, **kwargs):
-    x1_array = ndarray.convert_to_cunumeric_ndarray(x1)
-    x2_array = ndarray.convert_to_cunumeric_ndarray(x2)
-    where = ndarray.convert_to_predicate_ndarray(where)
     if out is None and dtype is None:
-        if x1_array.dtype.kind == "f" or x2_array.dtype.kind == "f":
+        if x1.dtype.kind == "f" or x2.dtype.kind == "f":
             array_types = list()
             scalar_types = list()
-            if x1_array.ndim > 0:
-                array_types.append(x1_array.dtype)
+            if x1.ndim > 0:
+                array_types.append(x1.dtype)
             else:
-                scalar_types.append(x1_array.dtype)
-            if x2_array.ndim > 0:
-                array_types.append(x2_array.dtype)
+                scalar_types.append(x1.dtype)
+            if x2.ndim > 0:
+                array_types.append(x2.dtype)
             else:
-                scalar_types.append(x2_array.dtype)
+                scalar_types.append(x2.dtype)
             dtype = np.find_common_type(array_types, scalar_types)
-    if out is not None:
-        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return ndarray.perform_binary_op(
         BinaryOpCode.POWER,
-        x1_array,
-        x2_array,
+        x1,
+        x2,
         out=out,
         out_dtype=dtype,
         where=where,
@@ -1647,124 +1449,75 @@ def power(x1, x2, out=None, where=True, dtype=None, **kwargs):
 
 
 def square(a, out=None, where=True, dtype=None, **kwargs):
-    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
-    where = ndarray.convert_to_predicate_ndarray(where)
-    if out is not None:
-        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
-    # We implement this with multiply for now, locality should
-    # be good enough for avoiding too much overhead with extra reads
-    return ndarray.perform_binary_op(
-        BinaryOpCode.MULTIPLY,
-        lg_array,
-        lg_array,
-        out=out,
-        out_dtype=dtype,
-        where=where,
-    )
+    return multiply(a, a, out=out, where=where, dtype=dtype)
 
 
 # Miscellaneous
 
 
+@add_boilerplate("a")
 def absolute(a, out=None, where=True, **kwargs):
-    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
-    where = ndarray.convert_to_predicate_ndarray(where)
     # Handle the nice case of it being unsigned
-    if (
-        lg_array.dtype.type == np.uint16
-        or lg_array.dtype.type == np.uint32
-        or lg_array.dtype.type == np.uint64
-        or lg_array.dtype.type == np.bool_
-    ):
-        return lg_array
-    if out is not None:
-        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
+    if a.dtype.type in (np.uint16, np.uint32, np.uint64, np.bool_):
+        return a
     return ndarray.perform_unary_op(
-        UnaryOpCode.ABSOLUTE, lg_array, dst=out, where=where
+        UnaryOpCode.ABSOLUTE, a, dst=out, where=where
     )
 
 
 abs = absolute  # alias
 
 
+@add_boilerplate("a")
 def ceil(a, out=None, where=True, dtype=None, **kwargs):
-    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
-    where = ndarray.convert_to_predicate_ndarray(where)
     # If this is an integer array then there is nothing to do for ceil
-    if (
-        lg_array.dtype.kind == "i"
-        or lg_array.dtype.kind == "u"
-        or lg_array.dtype.kind == "b"
-    ):
-        return lg_array
-    if out is not None:
-        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
+    if a.dtype.kind in ("i", "u", "b"):
+        return a
     return ndarray.perform_unary_op(
-        UnaryOpCode.CEIL, lg_array, dst=out, dtype=dtype, where=where
+        UnaryOpCode.CEIL, a, dst=out, dtype=dtype, where=where
     )
 
 
+@add_boilerplate("a")
 def clip(a, a_min, a_max, out=None):
-    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
-    if out is not None:
-        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
-    return lg_array.clip(a_min, a_max, out=out)
+    return a.clip(a_min, a_max, out=out)
 
 
 def fabs(a, out=None, where=True, **kwargs):
-    if out is not None:
-        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return absolute(a, out=out, where=where, **kwargs)
 
 
+@add_boilerplate("a")
 def floor(a, out=None, where=True, dtype=None, **kwargs):
-    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
-    where = ndarray.convert_to_predicate_ndarray(where)
     # If this is an integer array then there is nothing to do for floor
-    if (
-        lg_array.dtype.kind == "i"
-        or lg_array.dtype.kind == "u"
-        or lg_array.dtype.kind == "b"
-    ):
-        return lg_array
-    if out is not None:
-        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
+    if a.dtype.kind in ("i", "u", "b"):
+        return a
     return ndarray.perform_unary_op(
-        UnaryOpCode.FLOOR, lg_array, dst=out, dtype=dtype, where=where
+        UnaryOpCode.FLOOR, a, dst=out, dtype=dtype, where=where
     )
 
 
+@add_boilerplate("a")
 def sqrt(a, out=None, where=True, dtype=None, **kwargs):
-    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
-    where = ndarray.convert_to_predicate_ndarray(where)
-    # Floats keep their floating point kind, otherwise switch to float64
-    if lg_array.dtype.kind == "f" or lg_array.dtype.kind == "c":
-        out_dtype = lg_array.dtype
-    else:
-        out_dtype = np.dtype(np.float64)
-    if out is not None:
-        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return ndarray.perform_unary_op(
         UnaryOpCode.SQRT,
-        lg_array,
+        a,
         dtype=dtype,
         dst=out,
         where=where,
-        out_dtype=out_dtype,
+        out_dtype=_output_float_dtype(a),
     )
 
 
+@add_boilerplate("a", "v")
 def convolve(a, v, mode="full"):
-    a_lg = ndarray.convert_to_cunumeric_ndarray(a)
-    v_lg = ndarray.convert_to_cunumeric_ndarray(v)
-
     if mode != "same":
         raise NotImplementedError("Need to implement other convolution modes")
 
-    if a_lg.size < v_lg.size:
-        v_lg, a_lg = a_lg, v_lg
+    if a.size < v.size:
+        v, a = a, v
 
-    return a_lg.convolve(v_lg, mode)
+    return a.convolve(v, mode)
 
 
 # ### SORTING, SEARCHING and COUNTING
@@ -1772,47 +1525,44 @@ def convolve(a, v, mode="full"):
 # Searching
 
 
+@add_boilerplate("a")
 def argmax(a, axis=None, out=None):
-    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
     if out is not None:
         if out.dtype != np.int64:
             raise ValueError("output array must have int64 dtype")
-        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
-    return lg_array.argmax(axis=axis, out=out)
+    return a.argmax(axis=axis, out=out)
 
 
+@add_boilerplate("a")
 def argmin(a, axis=None, out=None):
-    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
     if out is not None:
         if out is not None and out.dtype != np.int64:
             raise ValueError("output array must have int64 dtype")
-        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
-    return lg_array.argmin(axis=axis, out=out)
+    return a.argmin(axis=axis, out=out)
 
 
+@add_boilerplate("a", "weights")
 def bincount(a, weights=None, minlength=0):
-    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
     if weights is not None:
-        lg_weights = ndarray.convert_to_cunumeric_ndarray(weights)
-        if lg_weights.shape != lg_array.shape:
+        if weights.shape != a.shape:
             raise ValueError("weights array must be same shape for bincount")
-        if lg_weights.dtype.kind == "c":
+        if weights.dtype.kind == "c":
             raise ValueError("weights must be convertible to float64")
         # Make sure the weights are float64
-        lg_weights = lg_weights.astype(np.float64)
-    if lg_array.dtype.kind != "i" and lg_array.dtype.kind != "u":
+        weights = weights.astype(np.float64)
+    if a.dtype.kind != "i" and a.dtype.kind != "u":
         raise TypeError("input array for bincount must be integer type")
     # If nobody told us the size then compute it
     if minlength <= 0:
-        minlength = int(amax(lg_array)) + 1
-    if lg_array.size == 1:
+        minlength = int(amax(a)) + 1
+    if a.size == 1:
         # Handle the special case of 0-D array
         if weights is None:
             out = zeros((minlength,), dtype=np.dtype(np.int64))
-            out[lg_array[0]] = 1
+            out[a[0]] = 1
         else:
-            out = zeros((minlength,), dtype=lg_weights.dtype)
-            index = lg_array[0]
+            out = zeros((minlength,), dtype=weights.dtype)
+            index = a[0]
             out[index] = weights[index]
     else:
         # Normal case of bincount
@@ -1820,24 +1570,25 @@ def bincount(a, weights=None, minlength=0):
             out = ndarray(
                 (minlength,),
                 dtype=np.dtype(np.int64),
-                inputs=(lg_array, weights),
+                inputs=(a, weights),
             )
-            out._thunk.bincount(lg_array._thunk)
+            out._thunk.bincount(a._thunk)
         else:
             out = ndarray(
                 (minlength,),
-                dtype=lg_weights.dtype,
-                inputs=(lg_array, weights),
+                dtype=weights.dtype,
+                inputs=(a, weights),
             )
-            out._thunk.bincount(lg_array._thunk, weights=lg_weights._thunk)
+            out._thunk.bincount(a._thunk, weights=weights._thunk)
     return out
 
 
+@add_boilerplate("a")
 def nonzero(a):
-    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
-    return lg_array.nonzero()
+    return a.nonzero()
 
 
+@add_boilerplate("a", "x", "y")
 def where(a, x=None, y=None):
     if x is None or y is None:
         if x is not None or y is not None:
@@ -1846,52 +1597,49 @@ def where(a, x=None, y=None):
                 " 'where'"
             )
         return nonzero(a)
-    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
-    x_array = ndarray.convert_to_cunumeric_ndarray(x)
-    y_array = ndarray.convert_to_cunumeric_ndarray(y)
     # Check all the array types here
-    if lg_array.dtype.type != np.bool_:
+    if a.dtype.type != np.bool_:
         temp = ndarray(
-            shape=lg_array.shape,
+            shape=a.shape,
             dtype=np.dtype(np.bool_),
-            inputs=(lg_array, x_array, y_array),
+            inputs=(a, x, y),
         )
-        temp._thunk.convert(lg_array._thunk)
-        lg_array = temp
-    if x_array.dtype != y_array.dtype:
+        temp._thunk.convert(a._thunk)
+        a = temp
+    if x.dtype != y.dtype:
         array_types = list()
         scalar_types = list()
-        if x_array.size == 1:
-            scalar_types.append(x_array.dtype)
+        if x.size == 1:
+            scalar_types.append(x.dtype)
         else:
-            array_types.append(x_array.dtype)
-        if y_array.size == 1:
-            scalar_types.append(y_array.dtype)
+            array_types.append(x.dtype)
+        if y.size == 1:
+            scalar_types.append(y.dtype)
         else:
-            array_types.append(y_array.dtype)
+            array_types.append(y.dtype)
         common_type = np.find_common_type(array_types, scalar_types)
-        if x_array.dtype != common_type:
+        if x.dtype != common_type:
             temp = ndarray(
-                shape=x_array.shape,
+                shape=x.shape,
                 dtype=common_type,
-                inputs=(lg_array, x_array, y_array),
+                inputs=(a, x, y),
             )
-            temp._thunk.convert(x_array._thunk)
-            x_array = temp
-        if y_array.dtype != common_type:
+            temp._thunk.convert(x._thunk)
+            x = temp
+        if y.dtype != common_type:
             temp = ndarray(
-                shape=y_array.shape,
+                shape=y.shape,
                 dtype=common_type,
-                inputs=(lg_array, x_array, y_array),
+                inputs=(a, x, y),
             )
-            temp._thunk.convert(y_array._thunk)
-            y_array = temp
+            temp._thunk.convert(y._thunk)
+            y = temp
     else:
-        common_type = x_array.dtype
+        common_type = x.dtype
     return ndarray.perform_where(
-        lg_array,
-        x_array,
-        y_array,
+        a,
+        x,
+        y,
         out_dtype=common_type,
         check_types=False,
     )
@@ -1915,34 +1663,26 @@ def count_nonzero(a, axis=None):
 # Order statistics
 
 
+@add_boilerplate("a")
 def amax(a, axis=None, out=None, keepdims=False):
-    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
-    if out is not None:
-        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
-    return lg_array.max(axis=axis, out=out, keepdims=keepdims)
+    return a.max(axis=axis, out=out, keepdims=keepdims)
 
 
+@add_boilerplate("a")
 def amin(a, axis=None, out=None, keepdims=False):
-    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
-    if out is not None:
-        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
-    return lg_array.min(axis=axis, out=out, keepdims=keepdims)
+    return a.min(axis=axis, out=out, keepdims=keepdims)
 
 
 def max(a, axis=None, out=None, keepdims=False):
     return amax(a, axis=axis, out=out, keepdims=keepdims)
 
 
+@add_boilerplate("a", "b")
 def maximum(a, b, out=None, where=True, dtype=None, **kwargs):
-    a_array = ndarray.convert_to_cunumeric_ndarray(a)
-    b_array = ndarray.convert_to_cunumeric_ndarray(b)
-    where = ndarray.convert_to_predicate_ndarray(where)
-    if out is not None:
-        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return ndarray.perform_binary_op(
         BinaryOpCode.MAXIMUM,
-        a_array,
-        b_array,
+        a,
+        b,
         out=out,
         out_dtype=dtype,
         where=where,
@@ -1953,32 +1693,24 @@ def min(a, axis=None, out=None, keepdims=False):
     return amin(a, axis=axis, out=out, keepdims=keepdims)
 
 
+@add_boilerplate("a", "b")
 def minimum(a, b, out=None, where=True, dtype=None, **kwargs):
-    a_array = ndarray.convert_to_cunumeric_ndarray(a)
-    b_array = ndarray.convert_to_cunumeric_ndarray(b)
-    where = ndarray.convert_to_predicate_ndarray(where)
-    if out is not None:
-        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return ndarray.perform_binary_op(
         BinaryOpCode.MINIMUM,
-        a_array,
-        b_array,
+        a,
+        b,
         out=out,
         out_dtype=dtype,
         where=where,
     )
 
 
+@add_boilerplate("a", "b")
 def mod(a, b, out=None, where=True, dtype=None):
-    a_array = ndarray.convert_to_cunumeric_ndarray(a)
-    b_array = ndarray.convert_to_cunumeric_ndarray(b)
-    where = ndarray.convert_to_predicate_ndarray(where)
-    if out is not None:
-        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
     return ndarray.perform_binary_op(
         BinaryOpCode.MOD,
-        a_array,
-        b_array,
+        a,
+        b,
         out=out,
         out_dtype=dtype,
         where=where,
@@ -1988,11 +1720,9 @@ def mod(a, b, out=None, where=True, dtype=None):
 # Averages and variances
 
 
+@add_boilerplate("a")
 def mean(a, axis=None, dtype=None, out=None, keepdims=False):
-    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
-    if out is not None:
-        out = ndarray.convert_to_cunumeric_ndarray(out, share=True)
-    return lg_array.mean(axis=axis, dtype=dtype, out=out, keepdims=keepdims)
+    return a.mean(axis=axis, dtype=dtype, out=out, keepdims=keepdims)
 
 
 # ### STACKING and CONCATENATION ###
@@ -2024,7 +1754,7 @@ def vstack(inputs):
                     " dimensions"
                 )
             if ndim > 1:
-                for dim in xrange(1, ndim):
+                for dim in range(1, ndim):
                     if shape[dim] != lg_array.shape[dim]:
                         raise TypeError(
                             "All arguments to vstack must have the same "
@@ -2051,7 +1781,7 @@ def vstack(inputs):
             out_array[idx, :] = inp
     else:
         out_shape = (leading_dim,)
-        for dim in xrange(1, ndim):
+        for dim in range(1, ndim):
             out_shape += (shape[dim],)
         out_array = ndarray(
             shape=out_shape, dtype=dtype, inputs=cunumeric_inputs
