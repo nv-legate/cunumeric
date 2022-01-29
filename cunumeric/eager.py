@@ -189,7 +189,9 @@ class EagerArray(NumPyThunk):
         if self.children is not None:
             assert self.runtime.is_deferred_array(self.deferred)
             for child in self.children:
-                child.deferred = self.deferred.get_item(child.key)
+                func = getattr(self.deferred, child.key[0])
+                args = child.key[1:]
+                child.deferred = func(*args)
             # After we've made all the deferred views for each child then
             # we can traverse down. Do it this way so we can get partition
             # coalescing where possible
@@ -271,7 +273,9 @@ class EagerArray(NumPyThunk):
             result = EagerArray(self.runtime, out)
         else:
             child = self.array[key]
-            result = EagerArray(self.runtime, child, parent=self, key=key)
+            result = EagerArray(
+                self.runtime, child, parent=self, key=("get_item", key)
+            )
             if self.children is None:
                 self.children = list()
             self.children.append(result)
