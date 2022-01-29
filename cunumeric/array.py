@@ -225,25 +225,10 @@ class ndarray(object):
         # Keep all boolean types as they are
         if obj is True or obj is False:
             return obj
-        if isinstance(obj, ndarray):
-            thunk = obj._thunk
-        else:
-            thunk = runtime.get_numpy_thunk(obj)
-        if thunk.scalar:
-            # Convert this into a bool for now, in the future we may want to
-            # defer this anyway to avoid blocking deferred execution
-            return bool(thunk.__numpy_array__())
-        result = ndarray(shape=None, thunk=thunk)
-        # If the type of the thunk is not bool then we need to convert it
-        if result.dtype != np.bool_:
-            temp = ndarray(
-                result.shape,
-                dtype=np.dtype(np.bool_),
-                inputs=(result,),
-            )
-            temp._thunk.convert(result._thunk, warn=True)
-            result = temp
-        return result
+        # GH #135
+        raise NotImplementedError(
+            "the `where` parameter is currently not supported"
+        )
 
     # Properties for ndarray
 
@@ -1010,7 +995,7 @@ class ndarray(object):
                     self.__array__.clip(min, max)
                 )
         return self.perform_unary_op(
-            UnaryOpCode.CLIP, self, dst=out, args=args
+            UnaryOpCode.CLIP, self, dst=out, extra_args=args
         )
 
     def conj(self):
@@ -1629,6 +1614,13 @@ class ndarray(object):
                 array_types.append(array.dtype)
         return np.find_common_type(array_types, scalar_types)
 
+    def _maybe_convert(self, dtype, *hints):
+        if self.dtype == dtype:
+            return self
+        copy = ndarray(shape=self.shape, dtype=dtype, inputs=hints)
+        copy._thunk.convert(self._thunk)
+        return copy
+
     # For performing normal/broadcast unary operations
     @classmethod
     def perform_unary_op(
@@ -1636,11 +1628,10 @@ class ndarray(object):
         op,
         src,
         dst=None,
-        args=None,
+        extra_args=None,
         dtype=None,
         where=True,
         out_dtype=None,
-        check_types=True,
     ):
         if dst is not None:
             # If the shapes don't match see if we can broadcast
@@ -1677,72 +1668,66 @@ class ndarray(object):
                     else np.dtype(np.float64),
                     inputs=(src, where),
                 )
+
         # Quick exit
         if where is False:
             return dst
+
         op_dtype = (
             dst.dtype
             if out_dtype is None
             and not (op == UnaryOpCode.ABSOLUTE and src.dtype.kind == "c")
             else src.dtype
         )
-        if check_types:
-            if out_dtype is None:
-                if dst.dtype != src.dtype and not (
-                    op == UnaryOpCode.ABSOLUTE and src.dtype.kind == "c"
-                ):
-                    temp = ndarray(
-                        dst.shape,
-                        dtype=src.dtype,
-                        inputs=(src, where),
-                    )
-                    temp._thunk.unary_op(
-                        op,
-                        op_dtype,
-                        src._thunk,
-                        cls.get_where_thunk(where, dst.shape),
-                        args,
-                    )
-                    dst._thunk.convert(temp._thunk)
-                else:
-                    dst._thunk.unary_op(
-                        op,
-                        op_dtype,
-                        src._thunk,
-                        cls.get_where_thunk(where, dst.shape),
-                        args,
-                    )
+
+        if out_dtype is None:
+            if dst.dtype != src.dtype and not (
+                op == UnaryOpCode.ABSOLUTE and src.dtype.kind == "c"
+            ):
+                temp = ndarray(
+                    dst.shape,
+                    dtype=src.dtype,
+                    inputs=(src, where),
+                )
+                temp._thunk.unary_op(
+                    op,
+                    op_dtype,
+                    src._thunk,
+                    cls.get_where_thunk(where, dst.shape),
+                    extra_args,
+                )
+                dst._thunk.convert(temp._thunk)
             else:
-                if dst.dtype != out_dtype:
-                    temp = ndarray(
-                        dst.shape,
-                        dtype=out_dtype,
-                        inputs=(src, where),
-                    )
-                    temp._thunk.unary_op(
-                        op,
-                        op_dtype,
-                        src._thunk,
-                        cls.get_where_thunk(where, dst.shape),
-                        args,
-                    )
-                    dst._thunk.convert(temp._thunk)
-                else:
-                    dst._thunk.unary_op(
-                        op,
-                        op_dtype,
-                        src._thunk,
-                        cls.get_where_thunk(where, dst.shape),
-                        args,
-                    )
+                dst._thunk.unary_op(
+                    op,
+                    op_dtype,
+                    src._thunk,
+                    cls.get_where_thunk(where, dst.shape),
+                    extra_args,
+                )
         else:
-            dst._thunk.unary_op(
-                op,
-                op_dtype,
-                src._thunk,
-                cls.get_where_thunk(where, dst.shape),
-                args,
-            )
+            if dst.dtype != out_dtype:
+                temp = ndarray(
+                    dst.shape,
+                    dtype=out_dtype,
+                    inputs=(src, where),
+                )
+                temp._thunk.unary_op(
+                    op,
+                    op_dtype,
+                    src._thunk,
+                    cls.get_where_thunk(where, dst.shape),
+                    extra_args,
+                )
+                dst._thunk.convert(temp._thunk)
+            else:
+                dst._thunk.unary_op(
+                    op,
+                    op_dtype,
+                    src._thunk,
+                    cls.get_where_thunk(where, dst.shape),
+                    extra_args,
+                )
         return dst
 
     # For performing reduction unary operations
@@ -1895,44 +1880,26 @@ class ndarray(object):
         two,
         out=None,
         dtype=None,
-        args=None,
-        where=True,
         out_dtype=None,
-        check_types=True,
+        where=True,
+        extra_args=None,
     ):
+        args = (one, two, where)
+
         # Compute the output shape
-        if out is None:
-            # Compute the output shape and confirm any broadcasting
-            if isinstance(where, ndarray):
-                out_shape = broadcast_shapes(one.shape, two.shape, where.shape)
-            else:
-                out_shape = broadcast_shapes(one.shape, two.shape)
-            if dtype is not None:
-                out = ndarray(
-                    shape=out_shape,
-                    dtype=dtype,
-                    inputs=(one, two, where),
-                )
-            elif out_dtype is not None:
-                out = ndarray(
-                    shape=out_shape,
-                    dtype=out_dtype,
-                    inputs=(one, two, where),
-                )
-            else:
-                out_dtype = cls.find_common_type(one, two)
-                out = ndarray(
-                    shape=out_shape,
-                    dtype=out_dtype,
-                    inputs=(one, two, where),
-                )
-        else:
-            if isinstance(where, ndarray):
-                out_shape = broadcast_shapes(
-                    one.shape, two.shape, out.shape, where.shape
-                )
-            else:
-                out_shape = broadcast_shapes(one.shape, two.shape, out.shape)
+        shapes = [one.shape, two.shape]
+        if isinstance(where, ndarray):
+            shapes.append(where.shape)
+        if out is not None:
+            shapes.append(out.shape)
+        out_shape = broadcast_shapes(*shapes)
+
+        if out_dtype is None:
+            out_dtype = (
+                dtype if dtype is not None else cls.find_common_type(one, two)
+            )
+
+        if out is not None:
             if out.shape != out_shape:
                 raise ValueError(
                     "non-broadcastable output operand with shape "
@@ -1940,59 +1907,34 @@ class ndarray(object):
                     + " doesn't match the broadcast shape "
                     + str(out_shape)
                 )
+        else:
+            out = ndarray(shape=out_shape, dtype=out_dtype, inputs=args)
+
         # Quick exit
         if where is False:
             return out
-        if out_dtype is None:
-            out_dtype = cls.find_common_type(one, two)
-        if check_types:
-            if one.dtype != two.dtype:
-                common_type = cls.find_common_type(one, two)
-                if one.dtype != common_type:
-                    temp = ndarray(
-                        shape=one.shape,
-                        dtype=common_type,
-                        inputs=(one, two, where),
-                    )
-                    temp._thunk.convert(one._thunk)
-                    one = temp
-                if two.dtype != common_type:
-                    temp = ndarray(
-                        shape=two.shape,
-                        dtype=common_type,
-                        inputs=(one, two, where),
-                    )
-                    temp._thunk.convert(two._thunk)
-                    two = temp
-            if out.dtype != out_dtype:
-                temp = ndarray(
-                    shape=out.shape,
-                    dtype=out_dtype,
-                    inputs=(one, two, where),
-                )
-                temp._thunk.binary_op(
-                    op,
-                    one._thunk,
-                    two._thunk,
-                    cls.get_where_thunk(where, out.shape),
-                    args,
-                )
-                out._thunk.convert(temp._thunk)
-            else:
-                out._thunk.binary_op(
-                    op,
-                    one._thunk,
-                    two._thunk,
-                    cls.get_where_thunk(where, out.shape),
-                    args,
-                )
+
+        common_type = cls.find_common_type(one, two)
+        one = one._maybe_convert(common_type, args)
+        two = two._maybe_convert(common_type, args)
+
+        if out.dtype != out_dtype:
+            temp = ndarray(shape=out_shape, dtype=out_dtype, inputs=args)
+            temp._thunk.binary_op(
+                op,
+                one._thunk,
+                two._thunk,
+                cls.get_where_thunk(where, out_shape),
+                extra_args,
+            )
+            out._thunk.convert(temp._thunk)
         else:
             out._thunk.binary_op(
                 op,
                 one._thunk,
                 two._thunk,
-                cls.get_where_thunk(where, out.shape),
-                args,
+                cls.get_where_thunk(where, out_shape),
+                extra_args,
             )
         return out
 
@@ -2002,10 +1944,11 @@ class ndarray(object):
         op,
         one,
         two,
-        dtype=None,
-        args=None,
-        check_types=True,
+        dtype,
+        extra_args=None,
     ):
+        args = (one, two)
+
         # We only handle bool types here for now
         assert dtype is not None and dtype == np.dtype(np.bool_)
         # Collapsing down to a single value in this case
@@ -2014,134 +1957,33 @@ class ndarray(object):
             broadcast = broadcast_shapes(one.shape, two.shape)
         else:
             broadcast = None
-        dst = ndarray(
-            shape=(),
-            dtype=dtype,
-            inputs=(one, two),
-        )
-        if check_types and one.dtype != two.dtype:
-            if one.dtype != two.dtype:
-                common_type = cls.find_common_type(one, two)
-                if one.dtype != common_type:
-                    temp = ndarray(
-                        shape=one.shape,
-                        dtype=common_type,
-                        inputs=(one, two),
-                    )
-                    temp._thunk.convert(one._thunk)
-                    one = temp
-                if two.dtype != common_type:
-                    temp = ndarray(
-                        shape=two.shape,
-                        dtype=common_type,
-                        inputs=(one, two),
-                    )
-                    temp._thunk.convert(two._thunk)
-                    two = temp
+
+        common_type = cls.find_common_type(one, two)
+        one = one._maybe_convert(common_type, args)._thunk
+        two = two._maybe_convert(common_type, args)._thunk
+
+        dst = ndarray(shape=(), dtype=dtype, inputs=args)
         dst._thunk.binary_reduction(
             op,
-            one._thunk,
-            two._thunk,
+            one,
+            two,
             broadcast,
-            args,
+            extra_args,
         )
         return dst
 
     @classmethod
-    def perform_where(
-        cls,
-        one,
-        two,
-        three,
-        out=None,
-        dtype=None,
-        out_dtype=None,
-        check_types=True,
-    ):
+    def perform_where(cls, mask, one, two):
+        args = (mask, one, two)
+
+        mask = mask._maybe_convert(np.dtype(np.bool_), args)._thunk
+
+        common_type = cls.find_common_type(one, two)
+        one = one._maybe_convert(common_type, args)._thunk
+        two = two._maybe_convert(common_type, args)._thunk
+
         # Compute the output shape
-        if out is None:
-            # Compute the output shape and confirm any broadcasting
-            out_shape = broadcast_shapes(one.shape, two.shape, three.shape)
-            if dtype is not None:
-                out = ndarray(
-                    shape=out_shape,
-                    dtype=dtype,
-                    inputs=(one, two, three),
-                )
-            elif out_dtype is not None:
-                out = ndarray(
-                    shape=out_shape,
-                    dtype=out_dtype,
-                    inputs=(one, two, three),
-                )
-            else:
-                out = ndarray(
-                    shape=out_shape,
-                    dtype=np.result_type(one, two, three),
-                    inputs=(one, two, three),
-                )
-        else:
-            out_shape = broadcast_shapes(
-                one.shape, two.shape, three.shape, out.shape
-            )
-            if out.shape != out_shape:
-                raise ValueError(
-                    "out array shape "
-                    + str(out.shape)
-                    + " does not match expected shape "
-                    + str(out_shape)
-                )
-        if out_dtype is None:
-            out_dtype = np.result_type(one, two, three)
-        if check_types:
-            if one.dtype != two.dtype or one.dtype != three.dtype:
-                common_type = cls.find_common_type(one, two, three)
-                if one.dtype != common_type:
-                    temp = ndarray(
-                        shape=one.shape,
-                        dtype=common_type,
-                        inputs=(one, two, three),
-                    )
-                    temp._thunk.convert(one._thunk)
-                    one = temp
-                if two.dtype != common_type:
-                    temp = ndarray(
-                        shape=two.shape,
-                        dtype=common_type,
-                        inputs=(one, two, three),
-                    )
-                    temp._thunk.convert(two._thunk)
-                    two = temp
-                if three.dtype != common_type:
-                    temp = ndarray(
-                        shape=three.shape,
-                        dtype=common_type,
-                        inputs=(one, two, three),
-                    )
-                    temp._thunk.convert(three._thunk)
-                    three = temp
-            if out.dtype != out_dtype:
-                temp = ndarray(
-                    shape=out.shape,
-                    dtype=out_dtype,
-                    inputs=(one, two, three),
-                )
-                temp._thunk.where(
-                    one._thunk,
-                    two._thunk,
-                    three._thunk,
-                )
-                out._thunk.convert(temp._thunk)
-            else:
-                out._thunk.where(
-                    one._thunk,
-                    two._thunk,
-                    three._thunk,
-                )
-        else:
-            out._thunk.where(
-                one._thunk,
-                two._thunk,
-                three._thunk,
-            )
+        out_shape = broadcast_shapes(mask.shape, one.shape, two.shape)
+        out = ndarray(shape=out_shape, dtype=common_type, inputs=args)
+        out._thunk.where(mask, one, two)
         return out

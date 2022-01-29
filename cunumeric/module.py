@@ -1143,7 +1143,7 @@ def allclose(a, b, rtol=1e-5, atol=1e-8, equal_nan=False):
         a,
         b,
         dtype=np.dtype(np.bool),
-        args=args,
+        extra_args=args,
     )
 
 
@@ -1163,6 +1163,7 @@ def equal(a, b, out=None, where=True, dtype=np.dtype(np.bool)):
         a,
         b,
         out=out,
+        dtype=dtype,
         out_dtype=dtype,
         where=where,
     )
@@ -1175,6 +1176,7 @@ def greater(a, b, out=None, where=True, dtype=np.dtype(np.bool)):
         a,
         b,
         out=out,
+        dtype=dtype,
         out_dtype=dtype,
         where=where,
     )
@@ -1187,6 +1189,7 @@ def greater_equal(a, b, out=None, where=True, dtype=np.dtype(np.bool)):
         a,
         b,
         out=out,
+        dtype=dtype,
         out_dtype=dtype,
         where=where,
     )
@@ -1223,6 +1226,7 @@ def less(a, b, out=None, where=True, dtype=np.dtype(np.bool)):
         a,
         b,
         out=out,
+        dtype=dtype,
         out_dtype=dtype,
         where=where,
     )
@@ -1235,6 +1239,7 @@ def less_equal(a, b, out=None, where=True, dtype=np.dtype(np.bool)):
         a,
         b,
         out=out,
+        dtype=dtype,
         out_dtype=dtype,
         where=where,
     )
@@ -1247,6 +1252,7 @@ def logical_and(a, b, out=None, where=True, dtype=np.dtype(np.bool)):
         a,
         b,
         out=out,
+        dtype=dtype,
         out_dtype=dtype,
         where=where,
     )
@@ -1259,6 +1265,7 @@ def logical_or(a, b, out=None, where=True, dtype=np.dtype(np.bool)):
         a,
         b,
         out=out,
+        dtype=dtype,
         out_dtype=dtype,
         where=where,
     )
@@ -1271,6 +1278,7 @@ def logical_xor(a, b, out=None, where=True, dtype=np.dtype(np.bool)):
         a,
         b,
         out=out,
+        dtype=dtype,
         out_dtype=dtype,
         where=where,
     )
@@ -1283,6 +1291,7 @@ def not_equal(a, b, out=None, where=True, dtype=np.dtype(np.bool)):
         a,
         b,
         out=out,
+        dtype=dtype,
         out_dtype=dtype,
         where=where,
     )
@@ -1430,6 +1439,7 @@ def add(a, b, out=None, where=True, dtype=None):
         a,
         b,
         out=out,
+        dtype=dtype,
         out_dtype=dtype,
         where=where,
     )
@@ -1446,6 +1456,7 @@ def floor_divide(a, b, out=None, where=True, dtype=None):
         a,
         b,
         out=out,
+        dtype=dtype,
         out_dtype=dtype,
         where=where,
     )
@@ -1458,6 +1469,7 @@ def multiply(a, b, out=None, where=True, dtype=None):
         a,
         b,
         out=out,
+        dtype=dtype,
         out_dtype=dtype,
         where=where,
     )
@@ -1490,6 +1502,7 @@ def subtract(a, b, out=None, where=True, dtype=None):
         a,
         b,
         out=out,
+        dtype=dtype,
         out_dtype=dtype,
         where=where,
     )
@@ -1562,6 +1575,7 @@ def true_divide(a, b, out=None, where=True, dtype=None):
         a,
         b,
         out=out,
+        dtype=dtype,
         out_dtype=dtype,
         where=where,
     )
@@ -1638,6 +1652,7 @@ def power(x1, x2, out=None, where=True, dtype=None, **kwargs):
         x1,
         x2,
         out=out,
+        dtype=dtype,
         out_dtype=dtype,
         where=where,
     )
@@ -1792,52 +1807,7 @@ def where(a, x=None, y=None):
                 " 'where'"
             )
         return nonzero(a)
-    # Check all the array types here
-    if a.dtype.type != np.bool_:
-        temp = ndarray(
-            shape=a.shape,
-            dtype=np.dtype(np.bool_),
-            inputs=(a, x, y),
-        )
-        temp._thunk.convert(a._thunk)
-        a = temp
-    if x.dtype != y.dtype:
-        array_types = list()
-        scalar_types = list()
-        if x.size == 1:
-            scalar_types.append(x.dtype)
-        else:
-            array_types.append(x.dtype)
-        if y.size == 1:
-            scalar_types.append(y.dtype)
-        else:
-            array_types.append(y.dtype)
-        common_type = np.find_common_type(array_types, scalar_types)
-        if x.dtype != common_type:
-            temp = ndarray(
-                shape=x.shape,
-                dtype=common_type,
-                inputs=(a, x, y),
-            )
-            temp._thunk.convert(x._thunk)
-            x = temp
-        if y.dtype != common_type:
-            temp = ndarray(
-                shape=y.shape,
-                dtype=common_type,
-                inputs=(a, x, y),
-            )
-            temp._thunk.convert(y._thunk)
-            y = temp
-    else:
-        common_type = x.dtype
-    return ndarray.perform_where(
-        a,
-        x,
-        y,
-        out_dtype=common_type,
-        check_types=False,
-    )
+    return ndarray.perform_where(a, x, y)
 
 
 @add_boilerplate("a")
@@ -1879,6 +1849,7 @@ def maximum(a, b, out=None, where=True, dtype=None, **kwargs):
         a,
         b,
         out=out,
+        dtype=dtype,
         out_dtype=dtype,
         where=where,
     )
@@ -1895,6 +1866,7 @@ def minimum(a, b, out=None, where=True, dtype=None, **kwargs):
         a,
         b,
         out=out,
+        dtype=dtype,
         out_dtype=dtype,
         where=where,
     )
@@ -1907,6 +1879,7 @@ def mod(a, b, out=None, where=True, dtype=None):
         a,
         b,
         out=out,
+        dtype=dtype,
         out_dtype=dtype,
         where=where,
     )
