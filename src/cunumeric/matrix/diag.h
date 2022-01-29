@@ -21,6 +21,7 @@
 namespace cunumeric {
 
 struct DiagArgs {
+  int naxes;
   bool extract;
   const Array& matrix;
   const Array& diag;

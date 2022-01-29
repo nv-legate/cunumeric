@@ -18,7 +18,7 @@ from itertools import chain, permutations, product
 from typing import List, Optional, Set, Tuple
 
 import numpy as np
-from test_tools.generators import broadcasts_to, mk_0to1_array, permutes_to
+from test_tools.generators import mk_0to1_array, permutes_to
 
 import cunumeric as cn
 
@@ -161,8 +161,22 @@ def mk_inputs_that_permute_to(lib, shape):
 
 
 @lru_cache(maxsize=None)
-def mk_inputs_that_broadcast_to(lib, shape):
-    return [x for x in broadcasts_to(lib, shape)]
+def mk_inputs_that_broadcast_to(lib, tgt_shape):
+    # If an operand contains the same mode multiple times, then we can't set
+    # just one of them to 1. Consider the operation 'aab->ab': (10,10,11),
+    # (10,10,1), (1,1,11), (1,1,1) are all acceptable input shapes, but
+    # (1,10,11) is not.
+    tgt_sizes = list(sorted(set(tgt_shape)))
+    res = []
+    for mask in product([True, False], repeat=len(tgt_sizes)):
+        if all(mask):
+            continue
+        tgt2src_size = {
+            d: (d if keep else 1) for (keep, d) in zip(mask, tgt_sizes)
+        }
+        src_shape = tuple(tgt2src_size[d] for d in tgt_shape)
+        res.append(mk_0to1_array(lib, src_shape))
+    return res
 
 
 @lru_cache(maxsize=None)
@@ -207,9 +221,6 @@ def test():
     for expr in chain(gen_expr(), OTHER_EXPRS):
         lhs, rhs = expr.split("->")
         opers = lhs.split(",")
-        # TODO: Remove this after we handle duplicate modes
-        if any(len(set(op)) != len(op) for op in opers):
-            continue
         print(f"testing {expr}")
         # Test default mode
         test_np_vs_cn(expr, mk_default_inputs)

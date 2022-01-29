@@ -65,6 +65,31 @@ _BINARY_OPS = {
 }
 
 
+def eye_reference(shape, dtype, axes):
+    n = min(shape[ax] for ax in axes)
+    res = np.zeros(shape, dtype=dtype)
+    for i in range(n):
+        sl = tuple(
+            i if ax in axes else slice(None) for ax in range(len(shape))
+        )
+        res[sl] = 1
+    return res
+
+
+def diagonal_reference(a, axes):
+    transpose_axes = tuple(ax for ax in range(a.ndim) if ax not in axes)
+    axes = sorted(axes, reverse=False, key=lambda i: a.shape[i])
+    axes = tuple(axes)
+    a = a.transpose(transpose_axes + axes)
+    diff = a.ndim - len(axes)
+    axes = tuple((diff + ax) for ax in range(0, len(axes)))
+    eye = eye_reference(a.shape, a.dtype, axes)
+    res = a * eye
+    for ax in list(reversed(sorted(axes)))[:-1]:
+        res = res.sum(axis=ax)
+    return res
+
+
 class EagerArray(NumPyThunk):
     """This is an eager thunk for describing NumPy computations.
     It is backed by a standard NumPy array that stores the result
@@ -400,12 +425,33 @@ class EagerArray(NumPyThunk):
             choices = tuple(c.array for c in args)
             self.array[:] = np.choose(rhs.array, choices, mode="raise")
 
-    def diag(self, rhs, extract, k):
+    def diag_helper(
+        self,
+        rhs,
+        offset,
+        naxes,
+        extract,
+    ):
         self.check_eager_args(rhs)
         if self.deferred is not None:
-            self.deferred.diag(rhs, extract, k)
+            self.deferred.diag_helper(
+                rhs,
+                offset,
+                naxes,
+                extract,
+            )
         else:
-            self.array[:] = np.diag(rhs.array, k)
+            if (naxes == 2) and extract:
+                ndims = rhs.array.ndim
+                self.array[:] = np.diagonal(
+                    rhs.array, offset=offset, axis1=ndims - 2, axis2=ndims - 1
+                )
+            elif (naxes < 2) and not extract:
+                self.array[:] = np.diag(rhs.array, offset)
+            else:  # naxes>2
+                ndims = rhs.array.ndim
+                axes = tuple(range(ndims - naxes, ndims))
+                self.array = diagonal_reference(rhs.array, axes)
 
     def eye(self, k):
         if self.deferred is not None:
