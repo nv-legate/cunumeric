@@ -68,9 +68,9 @@ def test(dim):
     test_routine = ["concatenate", "stack", "vstack", "hstack", "dstack"]
     # test np.concatenate & *stack w/ 1D, 2D and 3D arrays
     input_arr = [
-        (0),
+        (0,),
         (0, 10),
-        (1),
+        (1,),
         (1, 1),
         (1, 1, 1),
         (1, dim),
@@ -78,15 +78,17 @@ def test(dim):
         (dim, dim, dim),
     ]
     for routine, input_size in itertools.product(test_routine, input_arr):
-        a = tuple(
-            [
-                np.random.randint(low=0, high=100, size=(input_size))
-                for num_arr in range(3)
-            ]
-        )
-        run_test(a, routine, input_size)
+        a = [
+            np.random.randint(low=0, high=100, size=(input_size))
+            for num_arr in range(3)
+        ]
+        # test the exception for 1D array on vstack and dstack
+        if routine == "vstack" or routine == "dstack":
+            if len(input_size) == 2 and input_size == (1, dim):
+                a.append(np.random.randint(low=0, high=100, size=(dim,)))
+        run_test(tuple(a), routine, input_size)
     return
 
 
 if __name__ == "__main__":
-    test(20)
+    test(10)

@@ -649,9 +649,12 @@ class ArrayInfo:
         self.dtype = dtype
 
 
-def check_shape_dtype(inputs, func_name, dtype=None, casting="same_kind"):
+def check_shape_dtype(
+    inputs, func_name, axis, dtype=None, casting="same_kind"
+):
     checked = []
     ndim = None
+    shape = None
     for inp in inputs:
         lg_array = ndarray.convert_to_cunumeric_ndarray(inp)
         if ndim is None:
@@ -661,14 +664,14 @@ def check_shape_dtype(inputs, func_name, dtype=None, casting="same_kind"):
             # Check that the types and shapes match
             if lg_array.ndim != ndim:
                 raise TypeError(
-                    f"All arguments to {func_name}"
-                    "must have the same number of"
+                    f"All arguments to {func_name} "
+                    "must have the same number of dimensions"
                 )
             if ndim > 1:
                 for dim in range(1, ndim):
-                    if shape[dim] != lg_array.shape[dim]:
+                    if dim != axis and shape[dim] != lg_array.shape[dim]:
                         raise TypeError(
-                            f"All arguments to {func_name}"
+                            f"All arguments to {func_name} "
                             "must have the same "
                             "dimension size in all dimensions "
                             "except the target axis"
@@ -700,8 +703,9 @@ def _concatenate(
     # Check to see if we can build a new tuple of cuNumeric arrays
     leading_dim = 0
     cunumeric_inputs = inputs
-
-    leading_dim = common_info.shape[axis] * len(cunumeric_inputs)
+    for arr in cunumeric_inputs:
+        leading_dim += arr.shape[axis]
+    # leading_dim = common_info.shape[axis] * len(cunumeric_inputs)
 
     out_shape = list(common_info.shape)
     out_shape[axis] = leading_dim
@@ -742,11 +746,14 @@ def column_stack(array_list):
 def vstack(array_list):
     fname = vstack.__name__
     # Reshape arrays in the `array_list` if needed before concatenation
-    array_list, common_info = check_shape_dtype(array_list, fname)
-    if common_info.ndim == 1:
-        for i, arr in enumerate(array_list):
-            array_list[i] = arr.reshape([1, arr.shape[0]])
-        common_info.shape = array_list[0].shape
+    reshaped = []
+    for i, arr in enumerate(array_list):
+        lg_array = ndarray.convert_to_cunumeric_ndarray(arr)
+        if lg_array.ndim == 1:
+            lg_array = lg_array.reshape([1, lg_array.shape[0]])
+        reshaped.append(lg_array)
+    array_list, common_info = check_shape_dtype(reshaped, fname, 0)
+    common_info.shape = array_list[0].shape
     return _concatenate(
         array_list,
         axis=0,
@@ -758,7 +765,7 @@ def vstack(array_list):
 @copy_docstring(np.hstack)
 def hstack(array_list):
     fname = hstack.__name__
-    array_list, common_info = check_shape_dtype(array_list, fname)
+    array_list, common_info = check_shape_dtype(array_list, fname, 1)
     if (
         common_info.ndim == 1
     ):  # When ndim == 1, hstack concatenates arrays along the first axis
@@ -780,16 +787,18 @@ def hstack(array_list):
 @copy_docstring(np.dstack)
 def dstack(array_list):
     fname = dstack.__name__
-    array_list, common_info = check_shape_dtype(array_list, fname)
     # Reshape arrays to (1,N,1) for ndim ==1 or (M,N,1) for ndim == 2:
-    if common_info.ndim <= 2:
-        shape = list(array_list[0].shape)
-        if common_info.ndim == 1:
-            shape.insert(0, 1)
-        shape.append(1)
-        common_info.shape = shape
-        for i, arr in enumerate(array_list):
-            array_list[i] = arr.reshape(shape)
+    reshaped = []
+    for i, arr in enumerate(array_list):
+        lg_array = ndarray.convert_to_cunumeric_ndarray(arr)
+        if lg_array.ndim <= 2:
+            shape = list(lg_array.shape)
+            if lg_array.ndim == 1:
+                shape.insert(0, 1)
+            shape.append(1)
+            lg_array = lg_array.reshape(shape)
+        reshaped.append(lg_array)
+    array_list, common_info = check_shape_dtype(reshaped, fname, 2)
     return _concatenate(
         array_list,
         axis=2,
@@ -801,7 +810,7 @@ def dstack(array_list):
 @copy_docstring(np.stack)
 def stack(array_list, axis=0, out=None):
     fname = stack.__name__
-    array_list, common_info = check_shape_dtype(array_list, fname)
+    array_list, common_info = check_shape_dtype(array_list, fname, axis)
     if axis > common_info.ndim:
         raise ValueError(
             "The target axis should be smaller or"
@@ -821,7 +830,7 @@ def stack(array_list, axis=0, out=None):
 def concatenate(inputs, axis=0, out=None, dtype=None, casting="same_kind"):
     # Check to see if we can build a new tuple of cuNumeric arrays
     cunumeric_inputs, common_info = check_shape_dtype(
-        inputs, concatenate.__name__, dtype, casting
+        inputs, concatenate.__name__, axis, dtype, casting
     )
     return _concatenate(
         cunumeric_inputs, axis, out, dtype, casting, common_info
