@@ -1121,9 +1121,7 @@ class ndarray(object):
             tr_shape = tuple(a.shape[i] for i in range(a.ndim - N))
             # calculate shape of the output array
             out_shape = tr_shape + (diag_size,)
-            out = ndarray(
-                shape=out_shape, dtype=self.dtype, inputs=(self)
-            )
+            out = ndarray(shape=out_shape, dtype=self.dtype, inputs=(self))
 
             out._thunk.diag_helper(
                 a._thunk,
