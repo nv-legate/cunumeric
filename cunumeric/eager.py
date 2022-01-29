@@ -21,6 +21,31 @@ from .config import BinaryOpCode, UnaryOpCode, UnaryRedCode
 from .thunk import NumPyThunk
 
 
+def eye_reference(shape, dtype, axes):
+    n = min(shape[ax] for ax in axes)
+    res = np.zeros(shape, dtype=dtype)
+    for i in range(n):
+        sl = tuple(
+            i if ax in axes else slice(None) for ax in range(len(shape))
+        )
+        res[sl] = 1
+    return res
+
+
+def diagonal_reference(a, axes):
+    transpose_axes = tuple(ax for ax in range(a.ndim) if ax not in axes)
+    axes = sorted(axes, reverse=False, key=lambda i: a.shape[i])
+    axes = tuple(axes)
+    a = a.transpose(transpose_axes + axes)
+    diff = a.ndim - len(axes)
+    axes = tuple((diff + ax) for ax in range(0, len(axes)))
+    eye = eye_reference(a.shape, a.dtype, axes)
+    res = a * eye
+    for ax in list(reversed(sorted(axes)))[:-1]:
+        res = res.sum(axis=ax)
+    return res
+
+
 class EagerArray(NumPyThunk):
     """This is an eager thunk for describing NumPy computations.
     It is backed by a standard NumPy array that stores the result
@@ -420,15 +445,39 @@ class EagerArray(NumPyThunk):
             self.array[:] = np.choose(rhs.array, choices, mode="raise")
             self.runtime.profile_callsite(stacklevel + 1, False)
 
-    def diag(self, rhs, extract, k, stacklevel):
+    def diag_helper(
+        self,
+        rhs,
+        offset,
+        naxes,
+        extract,
+        stacklevel=0,
+        callsite=None,
+    ):
         if self.shadow:
             rhs = self.runtime.to_eager_array(rhs, stacklevel=(stacklevel + 1))
         elif self.deferred is None:
             self.check_eager_args((stacklevel + 1), rhs)
         if self.deferred is not None:
-            self.deferred.diag(rhs, extract, k, stacklevel=(stacklevel + 1))
+            self.deferred.diag_helper(
+                rhs,
+                offset,
+                naxes,
+                extract,
+                stacklevel=(stacklevel + 1),
+            )
         else:
-            self.array[:] = np.diag(rhs.array, k)
+            if (naxes == 2) and extract:
+                ndims = rhs.array.ndim
+                self.array[:] = np.diagonal(
+                    rhs.array, offset=offset, axis1=ndims - 2, axis2=ndims - 1
+                )
+            elif (naxes < 2) and not extract:
+                self.array[:] = np.diag(rhs.array, offset)
+            else:  # naxes>2
+                ndims = rhs.array.ndim
+                axes = tuple(range(ndims - naxes, ndims))
+                self.array = diagonal_reference(rhs.array, axes)
             self.runtime.profile_callsite(stacklevel + 1, False)
 
     def eye(self, k, stacklevel):

@@ -16,6 +16,7 @@
 import math
 import re
 import sys
+from collections import Counter
 from inspect import signature
 from itertools import chain
 from typing import Optional, Set
@@ -32,11 +33,6 @@ try:
     xrange  # Python 2
 except NameError:
     xrange = range  # Python 3
-
-try:
-    import __builtin__ as builtins  # Python 2
-except ModuleNotFoundError:
-    import builtins as builtins  # Python 3
 
 
 def add_boilerplate(*array_params: str):
@@ -212,41 +208,42 @@ def choose(a, choices, out=None, mode="raise"):
 @copy_docstring(np.diag)
 def diag(v, k=0):
     array = ndarray.convert_to_cunumeric_ndarray(v)
-    if array._thunk.scalar:
-        return array.copy()
+    if array.ndim == 0:
+        raise ValueError("Input must be 1- or 2-d")
     elif array.ndim == 1:
-        # Make a diagonal matrix from the array
-        N = array.shape[0] + builtins.abs(k)
-        matrix = ndarray((N, N), dtype=array.dtype, inputs=(array,))
-        matrix._thunk.diag(array._thunk, extract=False, k=k, stacklevel=2)
-        return matrix
+        return array.diagonal(offset=k, axis1=0, axis2=1, extract=False)
     elif array.ndim == 2:
-        # Extract the diagonal from the matrix
-        # Solve for the size of the diagonal
-        if k > 0:
-            if k >= array.shape[1]:
-                raise ValueError("'k' for diag must be in range")
-            start = (0, k)
-        elif k < 0:
-            if -k >= array.shape[0]:
-                raise ValueError("'k' for diag must be in range")
-            start = (-k, 0)
-        else:
-            start = (0, 0)
-        stop1 = (array.shape[0] - 1, array.shape[0] - 1 + k)
-        stop2 = (array.shape[1] - 1 - k, array.shape[1] - 1)
-        if stop1[0] < array.shape[0] and stop1[1] < array.shape[1]:
-            distance = (stop1[0] - start[0]) + 1
-            assert distance == ((stop1[1] - start[1]) + 1)
-        else:
-            assert stop2[0] < array.shape[0] and stop2[1] < array.shape[1]
-            distance = (stop2[0] - start[0]) + 1
-            assert distance == ((stop2[1] - start[1]) + 1)
-        vector = ndarray(distance, dtype=array.dtype, inputs=(array,))
-        vector._thunk.diag(array._thunk, extract=True, k=k, stacklevel=2)
-        return vector
+        return array.diagonal(offset=k, axis1=0, axis2=1, extract=True)
     elif array.ndim > 2:
-        raise ValueError("diag requires 1- or 2-D array")
+        raise ValueError("diag requires 1- or 2-D array, use diagonal instead")
+
+
+def diagonal(a, offset=0, axis1=None, axis2=None, extract=True, axes=None):
+    """
+    Return specified diagonals.
+
+    See description in numpy
+    ------------------------
+    https://numpy.org/doc/stable/reference/generated/numpy.diag.html
+    https://numpy.org/doc/stable/reference/generated/numpy.diagonal.html#numpy.diagonal
+    https://numpy.org/doc/stable/reference/generated/numpy.ndarray.diagonal.html
+
+
+    cuNumeric implementation differences:
+    ------------------------------------
+    - It never returns a view
+    - support 1D arrays (similar to `diag`)
+    - support extra arguments:
+         -- extract: used to create diagonal from 1D array vs extracting
+           the diagonal from"
+         -- axes: list of axes for diagonal ( size of the list should be in
+           between 2 and size of the array)
+
+    """
+    array = ndarray.convert_to_cunumeric_ndarray(a)
+    return array.diagonal(
+        offset=offset, axis1=axis1, axis2=axis2, extract=extract, axes=axes
+    )
 
 
 @copy_docstring(np.empty)
@@ -714,10 +711,21 @@ def _contract(expr, a, b=None, out=None, stacklevel=1):
     if len(set(out_modes)) != len(out_modes):
         raise ValueError("Duplicate mode labels on output tensor")
 
-    # TODO: Handle duplicate modes on inputs
-    if len(set(a_modes)) != len(a_modes) or len(set(b_modes)) != len(b_modes):
-        raise NotImplementedError("Duplicate mode labels on input tensor")
-
+    # Handle duplicate modes on inputs
+    c_a_modes = Counter(a_modes)
+    for (mode, count) in c_a_modes.items():
+        if count > 1:
+            axes = [i for (i, m) in enumerate(a_modes) if m == mode]
+            a = a.diag_helper(axes=axes)
+            # diagonal is stored on last axis
+            a_modes = [m for m in a_modes if m != mode] + [mode]
+    c_b_modes = Counter(b_modes)
+    for (mode, count) in c_b_modes.items():
+        if count > 1:
+            axes = [i for (i, m) in enumerate(b_modes) if m == mode]
+            b = b.diag_helper(axes=axes)
+            # diagonal is stored on last axis
+            b_modes = [m for m in b_modes if m != mode] + [mode]
     # Drop modes corresponding to singleton dimensions. This handles cases of
     # broadcasting.
     for dim in reversed(range(a.ndim)):
