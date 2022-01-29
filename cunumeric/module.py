@@ -29,6 +29,7 @@ from .runtime import runtime
 
 _builtin_abs = abs
 _builtin_all = all
+_builtin_any = any
 
 
 def add_boilerplate(*array_params: str):
@@ -595,43 +596,34 @@ class ArrayInfo:
 
 
 def check_shape_dtype(inputs, func_name, dtype=None, casting="same_kind"):
-    checked = []
-    ndim = None
-    for inp in inputs:
-        lg_array = ndarray.convert_to_cunumeric_ndarray(inp)
-        if ndim is None:
-            ndim = lg_array.ndim
-            shape = lg_array.shape
-        else:
-            # Check that the types and shapes match
-            if lg_array.ndim != ndim:
-                raise TypeError(
-                    f"All arguments to {func_name}"
-                    "must have the same number of"
-                )
-            if ndim > 1:
-                for dim in range(1, ndim):
-                    if shape[dim] != lg_array.shape[dim]:
-                        raise TypeError(
-                            f"All arguments to {func_name}"
-                            "must have the same "
-                            "dimension size in all dimensions "
-                            "except the target axis"
-                        )
-        checked.append(lg_array)
+    if len(inputs) == 0:
+        raise ValueError("need at least one array to concatenate")
+
+    inputs = list(ndarray.convert_to_cunumeric_ndarray(inp) for inp in inputs)
+    ndim = inputs[0].ndim
+    shape = inputs[0].shape
+
+    if _builtin_any(ndim != inp.ndim for inp in inputs):
+        raise ValueError(
+            f"All arguments to {func_name} "
+            "must have the same number of dimensions"
+        )
+    if ndim > 1 and _builtin_any(shape[1:] != inp.shape[1:] for inp in inputs):
+        raise ValueError(
+            f"All arguments to {func_name}"
+            "must have the same "
+            "dimension size in all dimensions "
+            "except the target axis"
+        )
 
     # Cast arrays with the passed arguments (dtype, casting)
-    desired_dtype = np.dtype(dtype)
     if dtype is None:
-        desired_dtype = np.min_scalar_type(checked)
+        dtype = np.min_scalar_type(inputs)
+    else:
+        dtype = np.dtype(dtype)
 
-    for i in range(len(checked)):
-        if checked[i].dtype != desired_dtype:
-            checked[i] = checked[i].astype(
-                dtype=desired_dtype, casting=casting
-            )
-            desired_dtype = checked[i].dtype
-    return checked, ArrayInfo(ndim, shape, desired_dtype)
+    converted = list(inp.astype(dtype, casting=casting) for inp in inputs)
+    return converted, ArrayInfo(ndim, shape, dtype)
 
 
 def _concatenate(
