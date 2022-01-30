@@ -556,7 +556,7 @@ def driver():
         "--clean",
         dest="clean_first",
         action=BooleanFlag,
-        default=True,
+        default=False,
         help="Clean before build.",
     )
     parser.add_argument(

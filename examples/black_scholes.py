@@ -79,11 +79,17 @@ def run_black_scholes(N, D):
     N *= 1000
     start = datetime.datetime.now()
     S, X, T, R, V = initialize(N, D)
-    call, put = black_scholes(S, X, T, R, V)
-    # Check the result for NaNs to synchronize before stopping timing
-    call_sum = np.sum(call)
-    put_sum = np.sum(put)
-    assert not math.isnan(call_sum) and not math.isnan(put_sum)
+    trials = 300
+    ends = [None for i in range(trials)]
+    for i in range(trials):
+        call, put = black_scholes(S, X, T, R, V)
+        # Check the result for NaNs to synchronize before stopping timing
+        call_sum = np.sum(call)
+        put_sum = np.sum(put)
+        ends[i] = (call_sum, put_sum)
+    for i in range(trials):
+        call_sum, put_sum = ends[i]
+        assert not math.isnan(call_sum) and not math.isnan(put_sum)
     stop = datetime.datetime.now()
     delta = stop - start
     total = delta.total_seconds() * 1000.0

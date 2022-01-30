@@ -112,6 +112,12 @@ class CuNumericOpCode(IntEnum):
     UNLOAD_CUDALIBS = _cunumeric.CUNUMERIC_UNLOAD_CUDALIBS
     WHERE = _cunumeric.CUNUMERIC_WHERE
     WRITE = _cunumeric.CUNUMERIC_WRITE
+    FUSED_OP = _cunumeric.CUNUMERIC_FUSED_OP
+
+
+@unique
+class FusedOpCode(IntEnum):
+    FUSE = 1
 
 
 # Match these to BinaryOpCode in binary_op_util.h
@@ -207,3 +213,6 @@ class CuNumericTunable(IntEnum):
     NUM_GPUS = _cunumeric.CUNUMERIC_TUNABLE_NUM_GPUS
     NUM_PROCS = _cunumeric.CUNUMERIC_TUNABLE_NUM_PROCS
     MAX_EAGER_VOLUME = _cunumeric.CUNUMERIC_TUNABLE_MAX_EAGER_VOLUME
+
+
+cunumeric_context.fused_id = CuNumericOpCode.FUSED_OP

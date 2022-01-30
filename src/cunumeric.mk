@@ -17,6 +17,7 @@
 # since we have to add the -fopenmp flag to  CC_FLAGS for them
 GEN_CPU_SRC += cunumeric/ternary/where.cc               \
 							 cunumeric/binary/binary_op.cc            \
+							 cunumeric/fused/fused_op.cc            \
 							 cunumeric/binary/binary_red.cc           \
 							 cunumeric/unary/scalar_unary_red.cc      \
 							 cunumeric/unary/unary_op.cc              \
@@ -52,6 +53,7 @@ GEN_CPU_SRC += cunumeric/ternary/where.cc               \
 ifeq ($(strip $(USE_OPENMP)),1)
 GEN_CPU_SRC += cunumeric/ternary/where_omp.cc          \
 							 cunumeric/binary/binary_op_omp.cc       \
+							 cunumeric/fused/fused_op_omp.cc       \
 							 cunumeric/binary/binary_red_omp.cc      \
 							 cunumeric/unary/unary_op_omp.cc         \
 							 cunumeric/unary/scalar_unary_red_omp.cc \
@@ -87,6 +89,7 @@ GEN_CPU_SRC += cunumeric/cunumeric.cc # This must always be the last file!
 
 GEN_GPU_SRC += cunumeric/ternary/where.cu               \
 							 cunumeric/binary/binary_op.cu            \
+							 cunumeric/fused/fused_op.cu            \
 							 cunumeric/binary/binary_red.cu           \
 							 cunumeric/unary/scalar_unary_red.cu      \
 							 cunumeric/unary/unary_red.cu             \

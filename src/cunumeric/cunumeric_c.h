@@ -55,6 +55,7 @@ enum CuNumericOpCode {
   CUNUMERIC_UNLOAD_CUDALIBS,
   CUNUMERIC_WHERE,
   CUNUMERIC_WRITE,
+  CUNUMERIC_FUSED_OP,
 };
 
 // Match these to CuNumericRedopCode in config.py

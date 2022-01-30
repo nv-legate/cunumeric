@@ -24,7 +24,14 @@ import pyarrow
 
 from legate.core import Array
 
-from .config import BinaryOpCode, UnaryOpCode, UnaryRedCode
+from .config import (
+    BinaryOpCode,
+    CuNumericOpCode,
+    FusedOpCode,
+    UnaryOpCode,
+    UnaryRedCode,
+)
+from .deferred import DeferredArray
 from .doc_utils import copy_docstring
 from .runtime import runtime
 from .utils import unimplemented
@@ -467,7 +474,6 @@ class ndarray(object):
         )
 
     # __getattribute__
-
     def _convert_key(self, key, stacklevel=2, first=True):
         # Convert any arrays stored in a key to a cuNumeric array
         if (
@@ -2166,7 +2172,7 @@ class ndarray(object):
             )
         return dst
 
-    # Return a new cuNumeric array for a binary operation
+    # Return a new legate array for a binary operation
     @classmethod
     def perform_binary_op(
         cls,
@@ -2230,29 +2236,64 @@ class ndarray(object):
         if out_dtype is None:
             out_dtype = cls.find_common_type(one, two)
         if check_types:
+            isDeferred = isinstance(one._thunk, DeferredArray) or isinstance(
+                two._thunk, DeferredArray
+            )
             if one.dtype != two.dtype:
                 common_type = cls.find_common_type(one, two)
                 if one.dtype != common_type:
-                    temp = ndarray(
-                        shape=one.shape,
-                        dtype=common_type,
-                        stacklevel=(stacklevel + 1),
-                        inputs=(one, two, where),
-                    )
-                    temp._thunk.convert(
-                        one._thunk, stacklevel=(stacklevel + 1)
-                    )
+                    # remove convert ops
+                    if isDeferred and one.shape == ():
+                        temp = ndarray(
+                            shape=one.shape,
+                            dtype=common_type,
+                            # buffer = one._thunk.array.astype(common_type),
+                            stacklevel=(stacklevel + 1),
+                            inputs=(one, two, where),
+                        )
+                        temp._thunk = runtime.create_scalar(
+                            one._thunk.array.astype(common_type),
+                            common_type,
+                            shape=one.shape,
+                            wrap=True,
+                        )
+                    else:
+                        temp = ndarray(
+                            shape=one.shape,
+                            dtype=common_type,
+                            stacklevel=(stacklevel + 1),
+                            inputs=(one, two, where),
+                        )
+                        temp._thunk.convert(
+                            one._thunk, stacklevel=(stacklevel + 1)
+                        )
                     one = temp
                 if two.dtype != common_type:
-                    temp = ndarray(
-                        shape=two.shape,
-                        dtype=common_type,
-                        stacklevel=(stacklevel + 1),
-                        inputs=(one, two, where),
-                    )
-                    temp._thunk.convert(
-                        two._thunk, stacklevel=(stacklevel + 1)
-                    )
+                    # remove convert ops
+                    if isDeferred and two.shape == ():
+                        temp = ndarray(
+                            shape=two.shape,
+                            dtype=common_type,
+                            # buffer = two._thunk.array.astype(common_type),
+                            stacklevel=(stacklevel + 1),
+                            inputs=(one, two, where),
+                        )
+                        temp._thunk = runtime.create_scalar(
+                            two._thunk.array.astype(common_type),
+                            common_type,
+                            shape=two.shape,
+                            wrap=True,
+                        )
+                    else:
+                        temp = ndarray(
+                            shape=two.shape,
+                            dtype=common_type,
+                            stacklevel=(stacklevel + 1),
+                            inputs=(one, two, where),
+                        )
+                        temp._thunk.convert(
+                            two._thunk, stacklevel=(stacklevel + 1)
+                        )
                     two = temp
             if out.dtype != out_dtype:
                 temp = ndarray(
