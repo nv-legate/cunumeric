@@ -62,27 +62,30 @@ struct MatVecMulImpl {
     size_t vec_strides[2];
     if (args.left_matrix) {
       // M * v
-      mat        = args.rhs1.read_accessor<VAL, 2>(shape).ptr(shape, mat_strides);
-      vec        = args.rhs2.read_accessor<VAL, 2>(shape).ptr(shape, vec_strides);
-      mat_stride = std::max(mat_strides[0], mat_strides[1]);
-      if (mat_strides[0] != mat_strides[1])
-        transpose_mat = mat_strides[1] == mat_stride;
-      else {
-        transpose_mat = false;
-        if (m == 1) mat_stride = n;
-      }
+      mat           = args.rhs1.read_accessor<VAL, 2>(shape).ptr(shape, mat_strides);
+      vec           = args.rhs2.read_accessor<VAL, 2>(shape).ptr(shape, vec_strides);
+      mat_stride    = std::max(mat_strides[0], mat_strides[1]);
+      transpose_mat = mat_strides[0] == 1;
       if (transpose_mat) std::swap(m, n);
     } else {
       // (M^T * v)^T
       vec           = args.rhs1.read_accessor<VAL, 2>(shape).ptr(shape, vec_strides);
       mat           = args.rhs2.read_accessor<VAL, 2>(shape).ptr(shape, mat_strides);
       mat_stride    = std::max(mat_strides[0], mat_strides[1]);
-      transpose_mat = (mat_strides[0] != mat_strides[1]) ? (mat_strides[0] == mat_stride) : true;
+      transpose_mat = mat_strides[1] == 1;
       if (!transpose_mat) std::swap(m, n);
     }
 
     size_t lhs_strides[2];
     auto lhs = args.lhs.reduce_accessor<SumReduction<ACC>, true, 2>().ptr(shape, lhs_strides);
+
+#ifdef CUNUMERIC_DEBUG
+    assert(mat_strides[0] == 1 || mat_strides[1] == 1);
+    assert(vec_strides[0] == 0 && vec_strides[1] == 1 ||
+           vec_strides[0] == 1 && vec_strides[1] == 0);
+    assert(lhs_strides[0] == 0 && lhs_strides[1] == 1 ||
+           lhs_strides[0] == 1 && lhs_strides[1] == 0);
+#endif
 
     MatVecMulImplBody<KIND, CODE>()(m, n, lhs, mat, vec, mat_stride, transpose_mat);
   }

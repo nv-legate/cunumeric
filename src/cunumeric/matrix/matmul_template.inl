@@ -68,12 +68,16 @@ struct MatMulImpl {
     auto rhs2 = args.rhs2.read_accessor<VAL, 3>(shape).ptr(shape, rhs2_strides);
     auto lhs  = args.lhs.reduce_accessor<SumReduction<ACC>, true, 3>(shape).ptr(shape, lhs_strides);
 
-    auto rhs1_stride = std::max(rhs1_strides[0], rhs1_strides[1]);
-    auto rhs2_stride = std::max(rhs2_strides[1], rhs2_strides[2]);
-    auto rhs1_transposed =
-      (rhs1_strides[0] != rhs1_strides[1]) ? (rhs1_strides[1] == rhs1_stride) : (rhs1_stride != k);
-    auto rhs2_transposed =
-      (rhs2_strides[1] != rhs2_strides[2]) ? (rhs2_strides[2] == rhs2_stride) : (rhs2_stride != n);
+#ifdef CUNUMERIC_DEBUG
+    assert((rhs1_strides[0] == 1 || rhs1_strides[1] == 1) && rhs1_strides[2] == 0);
+    assert((rhs2_strides[1] == 1 || rhs2_strides[2] == 1) && rhs2_strides[0] == 0);
+    assert(lhs_strides[2] == 1 && lhs_strides[1] == 0);
+#endif
+
+    auto rhs1_stride     = std::max(rhs1_strides[0], rhs1_strides[1]);
+    auto rhs2_stride     = std::max(rhs2_strides[1], rhs2_strides[2]);
+    auto rhs1_transposed = rhs1_strides[0] == 1;
+    auto rhs2_transposed = rhs2_strides[1] == 1;
 
     MatMulImplBody<KIND, CODE>()(m,
                                  n,
