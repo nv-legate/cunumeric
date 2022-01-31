@@ -73,9 +73,9 @@ def test():
     # print(z)
     assert np.array_equal(z, 2 * numpyX)
 
-    z = x ** 5
+    z = x**5
     # print(z)
-    assert np.array_equal(z, numpyX ** 5)
+    assert np.array_equal(z, numpyX**5)
 
     return
 

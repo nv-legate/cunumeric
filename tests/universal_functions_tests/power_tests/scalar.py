@@ -29,7 +29,7 @@ def test():
             scalar_gen(np, b),
         ):
             assert np.array_equal(num.power(la, lb), np.power(na, nb))
-            assert np.array_equal(la ** lb, na ** nb)
+            assert np.array_equal(la**lb, na**nb)
 
 
 if __name__ == "__main__":

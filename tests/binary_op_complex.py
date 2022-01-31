@@ -73,15 +73,15 @@ def test():
     # print(z)
     assert num.all(num.abs(z - (2 * numpyX)) < 1e-5)
 
-    z = x ** 5
+    z = x**5
     # Thrust power computation is not very precise, so 1e-1
-    assert num.all(num.abs(z - numpyX ** 5) < 1e-1)
+    assert num.all(num.abs(z - numpyX**5) < 1e-1)
 
-    z = 5 ** x
-    assert num.all(num.abs(z - 5 ** numpyX) < 1e-5)
+    z = 5**x
+    assert num.all(num.abs(z - 5**numpyX) < 1e-5)
 
-    z = x ** y
-    assert num.all(num.abs(z - numpyX ** numpyY) < 1e-5)
+    z = x**y
+    assert num.all(num.abs(z - numpyX**numpyY) < 1e-5)
 
     return
 

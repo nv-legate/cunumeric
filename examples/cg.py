@@ -41,17 +41,17 @@ def generate_2D(N, corners):
     if corners:
         print(
             "Generating %dx%d 2-D adjacency system with corners..."
-            % (N ** 2, N ** 2)
+            % (N**2, N**2)
         )
-        A = np.zeros((N ** 2, N ** 2)) + 8 * np.eye(N ** 2)
+        A = np.zeros((N**2, N**2)) + 8 * np.eye(N**2)
     else:
         print(
             "Generating %dx%d 2-D adjacency system without corners..."
-            % (N ** 2, N ** 2)
+            % (N**2, N**2)
         )
-        A = np.zeros((N ** 2, N ** 2)) + 4 * np.eye(N ** 2)
+        A = np.zeros((N**2, N**2)) + 4 * np.eye(N**2)
     # These are the same for both cases
-    off_one = np.full(N ** 2 - 1, -1, dtype=np.float64)
+    off_one = np.full(N**2 - 1, -1, dtype=np.float64)
     A += np.diag(off_one, k=1)
     A += np.diag(off_one, k=-1)
     off_N = np.full(N * (N - 1), -1, dtype=np.float64)
@@ -66,7 +66,7 @@ def generate_2D(N, corners):
         A += np.diag(off_N_minus, k=N - 1)
         A += np.diag(off_N_minus, k=-(N - 1))
     # Then we can generate a random b matrix
-    b = np.random.rand(N ** 2)
+    b = np.random.rand(N**2)
     return A, b
 
 
@@ -108,10 +108,10 @@ def solve(A, b, conv_iters, max_iters, verbose):
 
 def precondition(A, N, corners):
     if corners:
-        d = 8 * (N ** 2)
+        d = 8 * (N**2)
     else:
-        d = 4 * (N ** 2)
-    M = np.diag(np.full(N ** 2, 1.0 / d))
+        d = 4 * (N**2)
+    M = np.diag(np.full(N**2, 1.0 / d))
     return M
 
 
