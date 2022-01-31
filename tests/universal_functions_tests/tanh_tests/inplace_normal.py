@@ -23,7 +23,7 @@ def test():
     a = num.array(npa)
     num.tanh(a, out=a)
     np.tanh(npa, out=npa)
-    assert np.array_equal(a, npa)
+    assert np.allclose(a, npa)
     return
 
 

@@ -13,8 +13,6 @@
 # limitations under the License.
 #
 
-from __future__ import absolute_import
-
 from .logical_xor_tests import (
     broadcast,
     inplace_broadcast,

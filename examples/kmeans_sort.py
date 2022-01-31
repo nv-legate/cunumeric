@@ -17,8 +17,6 @@
 
 # Derived from https://github.com/bryancatanzaro/kmeans
 
-from __future__ import print_function
-
 import argparse
 import datetime
 

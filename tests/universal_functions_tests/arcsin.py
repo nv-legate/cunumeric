@@ -13,8 +13,6 @@
 # limitations under the License.
 #
 
-from __future__ import absolute_import
-
 from .arcsin_tests import complex_data, inplace_normal, normal, scalar
 
 
