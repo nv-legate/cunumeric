@@ -66,13 +66,16 @@ Users must have a working installation of the
 [Legate Core](https://github.com/nv-legate/legate.core)
 library prior to installing cuNumeric.
 
-cuNumeric requires Python >= 3.6. We provide a
-[conda environment file](conda/cunumeric_dev.yml) that
-installs all needed dependencies in one step. Use the following command to
-create a conda environment with it:
-```
-conda env create -n legate -f conda/cunumeric_dev.yml
-```
+cuNumeric has similar dependencies to Legate Core:
+
+  - Python >= 3.7
+  - [CUDA](https://developer.nvidia.com/cuda-downloads) >= 8.0
+  - C++14 compatible compiler (g++, clang, or nvc++)
+  - the Python packages listed in the [conda environment file](conda/cunumeric_dev.yml)
+
+See the [corresponding section](https://github.com/nv-legate/legate.core#dependencies)
+on the Legate Core instructions for help on installing the required Python packages
+using conda.
 
 ## Building from Source
 
@@ -103,6 +106,7 @@ Of particular interest to cuNumeric users will likely be the option for
 specifying an installation of [OpenBLAS](https://www.openblas.net/) to use.
 If you already have an installation of OpenBLAS on your machine you can
 inform the `install.py` script about its location using the `--with-openblas` flag:
+
 ```
 python setup.py --with-openblas /path/to/open/blas/
 ```
