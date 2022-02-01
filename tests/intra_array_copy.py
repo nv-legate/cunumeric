@@ -25,7 +25,7 @@ def random_array(lib, ndim):
 
 
 def nd_view_of_1d(lib, ndim):
-    return lib.arange(5 ** ndim).reshape(ndim * (5,))
+    return lib.arange(5**ndim).reshape(ndim * (5,))
 
 
 def tuple_set(tup, idx, val):
