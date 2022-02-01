@@ -315,16 +315,19 @@ def build_cunumeric(
         "setup.py",
         "install",
         "--recurse",
+        "--prefix",
+        install_dir,
     ]
     # Work around breaking change in setuptools 60
     if int(setuptools.__version__.split(".")[0]) >= 60:
         cmd += ["--single-version-externally-managed", "--root=/"]
     if unknown is not None:
+        if "--prefix" in unknown:
+            raise Exception(
+                "cuNumeric cannot be installed in a different location than "
+                "Legate Core, please remove the --prefix argument"
+            )
         cmd += unknown
-        if "--prefix" not in unknown:
-            cmd += ["--prefix", str(install_dir)]
-    else:
-        cmd += ["--prefix", str(install_dir)]
     execute_command(cmd, cwd=cunumeric_dir, verbose=verbose)
 
 

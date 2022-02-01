@@ -88,12 +88,7 @@ python setup.py --with-core <path-to-legate-core-installation>
 ```
 
 This will build cuNumeric against the Legate Core installation and then
-install cuNumeric into the same location. Users can also install cuNumeric
-into an alternative location with the canonical `--prefix` flag as well.
-
-```
-python setup.py --prefix <install-dir> --with-core <path-to-legate-core-installation>
-```
+install cuNumeric into the same location.
 
 Note that after the first invocation of `setup.py` this repository will remember
 which Legate Core installation to use and the `--with-core` option can be
