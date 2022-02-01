@@ -41,7 +41,7 @@ struct MatVecMulImplBody<VariantKind::GPU, LegateTypeCode::FLOAT_LT> {
     const float alpha = 1.f;
     const float beta  = 0.f;
 
-#if CUDART_VERSION >= 11400
+#if CUDART_VERSION >= 11040
     auto trans = transpose_mat ? CUBLAS_OP_N : CUBLAS_OP_T;
     CHECK_CUBLAS(
       cublasSgemv(cublas_handle, trans, n, m, &alpha, mat, mat_stride, vec, 1, &beta, lhs, 1));
@@ -98,7 +98,7 @@ struct MatVecMulImplBody<VariantKind::GPU, LegateTypeCode::DOUBLE_LT> {
     const double alpha = 1.f;
     const double beta  = 0.f;
 
-#if CUDART_VERSION >= 11400
+#if CUDART_VERSION >= 11040
     auto trans = transpose_mat ? CUBLAS_OP_N : CUBLAS_OP_T;
     CHECK_CUBLAS(
       cublasDgemv(cublas_handle, trans, n, m, &alpha, mat, mat_stride, vec, 1, &beta, lhs, 1));
