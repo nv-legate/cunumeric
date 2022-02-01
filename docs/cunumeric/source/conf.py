@@ -45,8 +45,8 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
+    "sphinx.ext.napoleon",
     "sphinx_copybutton",
-    "numpydoc",
     "sphinx_markdown_tables",
     "recommonmark",
 ]
@@ -93,11 +93,13 @@ html_static_path = ["_static"]
 
 pygments_style = "sphinx"
 
-intersphinx_mapping = {"https://docs.python.org/": None}
+intersphinx_mapping = {
+    "python": ("https://docs.python.org/3/", None),
+    "numpy": ("https://numpy.org/doc/stable/", None),
+}
 
-# Config numpydoc
-numpydoc_show_inherited_class_members = True
-numpydoc_class_members_toctree = False
+# Config napolean
+napoleon_custom_sections = ["Availability"]
 
 autoclass_content = "init"
 
