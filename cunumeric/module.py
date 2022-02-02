@@ -143,19 +143,13 @@ def add_boilerplate(*array_params: str):
 # ### ARRAY CREATION ROUTINES
 
 
-def arange(*args, dtype=None):
-    if len(args) == 1:
-        (stop,) = args
+def arange(start, stop=None, step=1, dtype=None):
+    if stop is None:
+        stop = start
         start = 0
+
+    if step is None:
         step = 1
-    elif len(args) == 2:
-        (
-            start,
-            stop,
-        ) = args
-        step = 1
-    elif len(args) == 3:
-        (start, stop, step) = args
 
     if dtype is None:
         dtype = np.array([stop]).dtype
