@@ -84,7 +84,6 @@ Tiling arrays
    :toctree: generated/
 
    tile
-   repeat
 
 
 Rearranging elements

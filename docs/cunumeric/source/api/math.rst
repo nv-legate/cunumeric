@@ -88,6 +88,18 @@ Handling complex numbers
    conjugate
 
 
+Extrema Finding
+---------------
+
+.. autosummary::
+   :toctree: generated/
+
+   maximum
+   amax
+   minimum
+   amin
+
+
 Miscellaneous
 -------------
 
@@ -101,5 +113,3 @@ Miscellaneous
    absolute
    fabs
    sign
-   maximum
-   minimum

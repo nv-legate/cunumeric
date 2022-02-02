@@ -12,7 +12,6 @@ Matrix and vector products
    :toctree: generated/
 
    dot
-   matmul
    tensordot
    einsum
 

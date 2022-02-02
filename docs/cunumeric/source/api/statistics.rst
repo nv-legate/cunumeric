@@ -3,16 +3,6 @@ Statistics
 
 .. currentmodule:: cunumeric
 
-Order statistics
-----------------
-
-.. autosummary::
-   :toctree: generated/
-
-   amin
-   amax
-
-
 Averages and variances
 ----------------------
 
