@@ -36,3 +36,4 @@ help:
 	rm -rf build/html/docs
 	mkdir -p build/html/docs
 	cp -r ../figures build/html/docs/
+	find source/ -name "generated" | xargs rm -rf
