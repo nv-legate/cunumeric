@@ -42,6 +42,7 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
     "sphinx.ext.intersphinx",
+    "sphinx.ext.mathjax",
     "sphinx.ext.napoleon",
     "sphinx_copybutton",
     "sphinx_markdown_tables",
@@ -84,12 +85,11 @@ intersphinx_mapping = {
 }
 
 # Config napolean
-napoleon_custom_sections = ["Availability"]
+napoleon_custom_sections = [("Availability", "returns_style")]
 
 autosummary_generate = True
 
-# Config AutoStructify
-github_doc_root = "https://github.com/rtfd/recommonmark/tree/master/doc/"
+mathjax_path = "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
 
 
 def setup(app):
