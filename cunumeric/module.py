@@ -31,6 +31,8 @@ from .runtime import runtime
 _builtin_abs = abs
 _builtin_all = all
 _builtin_any = any
+_builtin_max = max
+_builtin_min = min
 
 
 def add_boilerplate(*array_params: str):
@@ -140,87 +142,19 @@ def add_boilerplate(*array_params: str):
     return decorator
 
 
-# ### ARRAY CREATION ROUTINES
-
-
-def arange(start, stop=None, step=1, dtype=None):
-    if stop is None:
-        stop = start
-        start = 0
-
-    if step is None:
-        step = 1
-
-    if dtype is None:
-        dtype = np.array([stop]).dtype
+def _output_float_dtype(input):
+    # Floats keep their floating point kind, otherwise switch to float64
+    if input.dtype.kind in ("f", "c"):
+        return input.dtype
     else:
-        dtype = np.dtype(dtype)
-
-    N = math.ceil((stop - start) / step)
-    result = ndarray((N,), dtype)
-    result._thunk.arange(start, stop, step)
-    return result
+        return np.dtype(np.float64)
 
 
-def array(obj, dtype=None, copy=True, order="K", subok=False, ndmin=0):
-    if not isinstance(obj, ndarray):
-        thunk = runtime.get_numpy_thunk(obj, share=(not copy), dtype=dtype)
-        result = ndarray(shape=None, thunk=thunk)
-    else:
-        result = obj
-    if dtype is not None and result.dtype != dtype:
-        result = result.astype(dtype)
-    elif copy and obj is result:
-        result = result.copy()
-    if result.ndim < ndmin:
-        shape = (np.newaxis,) * (ndmin - result.ndim) + result.shape
-        result = result.reshape(shape)
-    return result
+#########################
+# Array creation routines
+#########################
 
-
-@add_boilerplate("a")
-def choose(a, choices, out=None, mode="raise"):
-    return a.choose(choices=choices, out=out, mode=mode)
-
-
-@add_boilerplate("v")
-def diag(v, k=0):
-    if v.ndim == 0:
-        raise ValueError("Input must be 1- or 2-d")
-    elif v.ndim == 1:
-        return v.diagonal(offset=k, axis1=0, axis2=1, extract=False)
-    elif v.ndim == 2:
-        return v.diagonal(offset=k, axis1=0, axis2=1, extract=True)
-    elif v.ndim > 2:
-        raise ValueError("diag requires 1- or 2-D array, use diagonal instead")
-
-
-@add_boilerplate("a")
-def diagonal(a, offset=0, axis1=None, axis2=None, extract=True, axes=None):
-    """
-    Return specified diagonals.
-
-    See description in numpy
-    ------------------------
-    https://numpy.org/doc/stable/reference/generated/numpy.diag.html
-    https://numpy.org/doc/stable/reference/generated/numpy.diagonal.html#numpy.diagonal
-    https://numpy.org/doc/stable/reference/generated/numpy.ndarray.diagonal.html
-
-
-    cuNumeric implementation differences:
-    ------------------------------------
-    - It never returns a view
-    - support 1D arrays (similar to `diag`)
-    - support extra arguments:
-         -- extract: used to create diagonal from 1D array vs extracting
-           the diagonal from"
-         -- axes: list of axes for diagonal ( size of the list should be in
-           between 2 and size of the array)
-
-    """
-    return a.diagonal(
-        offset=offset, axis1=axis1, axis2=axis2, extract=extract, axes=axes
-    )
+# From shape or value
 
 
 def empty(shape, dtype=np.float64):
@@ -247,6 +181,34 @@ def eye(N, M=None, k=0, dtype=np.float64):
     return result
 
 
+def identity(n, dtype=float):
+    return eye(N=n, M=n, dtype=dtype)
+
+
+def ones(shape, dtype=np.float64):
+    return full(shape, 1, dtype=dtype)
+
+
+def ones_like(a, dtype=None):
+    usedtype = a.dtype
+    if dtype is not None:
+        usedtype = np.dtype(dtype)
+    return full_like(a, 1, dtype=usedtype)
+
+
+def zeros(shape, dtype=np.float64):
+    if dtype is not None:
+        dtype = np.dtype(dtype)
+    return full(shape, 0, dtype=dtype)
+
+
+def zeros_like(a, dtype=None):
+    usedtype = a.dtype
+    if dtype is not None:
+        usedtype = np.dtype(dtype)
+    return full_like(a, 0, dtype=usedtype)
+
+
 def full(shape, value, dtype=None):
     if dtype is None:
         val = np.array(value)
@@ -269,8 +231,63 @@ def full_like(a, value, dtype=None):
     return result
 
 
-def identity(n, dtype=float):
-    return eye(N=n, M=n, dtype=dtype)
+# From existing data
+
+
+def array(obj, dtype=None, copy=True, order="K", subok=False, ndmin=0):
+    if not isinstance(obj, ndarray):
+        thunk = runtime.get_numpy_thunk(obj, share=(not copy), dtype=dtype)
+        result = ndarray(shape=None, thunk=thunk)
+    else:
+        result = obj
+    if dtype is not None and result.dtype != dtype:
+        result = result.astype(dtype)
+    elif copy and obj is result:
+        result = result.copy()
+    if result.ndim < ndmin:
+        shape = (np.newaxis,) * (ndmin - result.ndim) + result.shape
+        result = result.reshape(shape)
+    return result
+
+
+def asarray(a, dtype=None, order=None):
+    if not isinstance(a, ndarray):
+        thunk = runtime.get_numpy_thunk(a, share=True, dtype=dtype)
+        array = ndarray(shape=None, thunk=thunk)
+    else:
+        array = a
+    if dtype is not None and array.dtype != dtype:
+        array = array.astype(dtype)
+    return array
+
+
+@add_boilerplate("a")
+def copy(a):
+    result = empty_like(a, dtype=a.dtype)
+    result._thunk.copy(a._thunk, deep=True)
+    return result
+
+
+# Numerical ranges
+
+
+def arange(start, stop=None, step=1, dtype=None):
+    if stop is None:
+        stop = start
+        start = 0
+
+    if step is None:
+        step = 1
+
+    if dtype is None:
+        dtype = np.array([stop]).dtype
+    else:
+        dtype = np.dtype(dtype)
+
+    N = math.ceil((stop - start) / step)
+    result = ndarray((N,), dtype)
+    result._thunk.arange(start, stop, step)
+    return result
 
 
 @add_boilerplate("start", "stop")
@@ -368,43 +385,19 @@ def linspace(
         return y.astype(dtype, copy=False)
 
 
-def ones(shape, dtype=np.float64):
-    return full(shape, 1, dtype=dtype)
+# Building matrices
 
 
-def ones_like(a, dtype=None):
-    usedtype = a.dtype
-    if dtype is not None:
-        usedtype = np.dtype(dtype)
-    return full_like(a, 1, dtype=usedtype)
-
-
-def zeros(shape, dtype=np.float64):
-    if dtype is not None:
-        dtype = np.dtype(dtype)
-    return full(shape, 0, dtype=dtype)
-
-
-def zeros_like(a, dtype=None):
-    usedtype = a.dtype
-    if dtype is not None:
-        usedtype = np.dtype(dtype)
-    return full_like(a, 0, dtype=usedtype)
-
-
-@add_boilerplate("a")
-def copy(a):
-    result = empty_like(a, dtype=a.dtype)
-    result._thunk.copy(a._thunk, deep=True)
-    return result
-
-
-def tril(m, k=0):
-    return trilu(m, k, True)
-
-
-def triu(m, k=0):
-    return trilu(m, k, False)
+@add_boilerplate("v")
+def diag(v, k=0):
+    if v.ndim == 0:
+        raise ValueError("Input must be 1- or 2-d")
+    elif v.ndim == 1:
+        return v.diagonal(offset=k, axis1=0, axis2=1, extract=False)
+    elif v.ndim == 2:
+        return v.diagonal(offset=k, axis1=0, axis2=1, extract=True)
+    elif v.ndim > 2:
+        raise ValueError("diag requires 1- or 2-D array, use diagonal instead")
 
 
 @add_boilerplate("m")
@@ -417,7 +410,25 @@ def trilu(m, k, lower):
     return result
 
 
-# ### ARRAY MANIPULATION ROUTINES
+def tril(m, k=0):
+    return trilu(m, k, True)
+
+
+def triu(m, k=0):
+    return trilu(m, k, False)
+
+
+#############################
+# Array manipulation routines
+#############################
+
+# Basic operations
+
+
+@add_boilerplate("a")
+def shape(a):
+    return a.shape
+
 
 # Changing array shape
 
@@ -432,66 +443,201 @@ def reshape(a, newshape, order="C"):
     return a.reshape(newshape, order=order)
 
 
+# Transpose-like operations
+
+
+@add_boilerplate("a")
+def swapaxes(a, axis1, axis2):
+    return a.swapaxes(axis1, axis2)
+
+
 @add_boilerplate("a")
 def transpose(a, axes=None):
     return a.transpose(axes=axes)
 
 
-@add_boilerplate("m")
-def flip(m, axis=None):
-    return m.flip(axis=axis)
-
-
-# Changing kind of array
-
-
-def asarray(a, dtype=None, order=None):
-    if not isinstance(a, ndarray):
-        thunk = runtime.get_numpy_thunk(a, share=True, dtype=dtype)
-        array = ndarray(shape=None, thunk=thunk)
-    else:
-        array = a
-    if dtype is not None and array.dtype != dtype:
-        array = array.astype(dtype)
-    return array
-
-
-# Tiling
+# Changing number of dimensions
 
 
 @add_boilerplate("a")
-def tile(a, reps):
-    if not hasattr(reps, "__len__"):
-        reps = (reps,)
-    # Figure out the shape of the destination array
-    out_dims = a.ndim if a.ndim > len(reps) else len(reps)
-    # Prepend ones until the dimensions match
-    while len(reps) < out_dims:
-        reps = (1,) + reps
-    out_shape = ()
-    # Prepend dimensions if necessary
-    for dim in range(out_dims - a.ndim):
-        out_shape += (reps[dim],)
-    offset = len(out_shape)
-    for dim in range(a.ndim):
-        out_shape += (a.shape[dim] * reps[offset + dim],)
-    assert len(out_shape) == out_dims
-    result = ndarray(out_shape, dtype=a.dtype, inputs=(a,))
-    result._thunk.tile(a._thunk, reps)
-    return result
+def squeeze(a, axis=None):
+    return a.squeeze(a, axis=axis)
 
 
-# Spliting arrays
-def vsplit(a, indices):
-    return split(a, indices, axis=0)
+# Joining arrays
 
 
-def hsplit(a, indices):
-    return split(a, indices, axis=1)
+class ArrayInfo:
+    def __init__(self, ndim, shape, dtype):
+        self.ndim = ndim
+        self.shape = shape
+        self.dtype = dtype
 
 
-def dsplit(a, indices):
-    return split(a, indices, axis=2)
+def check_shape_dtype(inputs, func_name, dtype=None, casting="same_kind"):
+    if len(inputs) == 0:
+        raise ValueError("need at least one array to concatenate")
+
+    inputs = list(ndarray.convert_to_cunumeric_ndarray(inp) for inp in inputs)
+    ndim = inputs[0].ndim
+    shape = inputs[0].shape
+
+    if _builtin_any(ndim != inp.ndim for inp in inputs):
+        raise ValueError(
+            f"All arguments to {func_name} "
+            "must have the same number of dimensions"
+        )
+    if ndim > 1 and _builtin_any(shape[1:] != inp.shape[1:] for inp in inputs):
+        raise ValueError(
+            f"All arguments to {func_name}"
+            "must have the same "
+            "dimension size in all dimensions "
+            "except the target axis"
+        )
+
+    # Cast arrays with the passed arguments (dtype, casting)
+    if dtype is None:
+        dtype = np.min_scalar_type(inputs)
+    else:
+        dtype = np.dtype(dtype)
+
+    converted = list(inp.astype(dtype, casting=casting) for inp in inputs)
+    return converted, ArrayInfo(ndim, shape, dtype)
+
+
+def _concatenate(
+    inputs,
+    axis=0,
+    out=None,
+    dtype=None,
+    casting="same_kind",
+    common_info=None,
+):
+    # Check to see if we can build a new tuple of cuNumeric arrays
+    leading_dim = 0
+    cunumeric_inputs = inputs
+
+    leading_dim = common_info.shape[axis] * len(cunumeric_inputs)
+
+    out_shape = list(common_info.shape)
+    out_shape[axis] = leading_dim
+
+    out_array = ndarray(
+        shape=out_shape, dtype=common_info.dtype, inputs=cunumeric_inputs
+    )
+
+    # Copy the values over from the inputs
+    offset = 0
+    idx_arr = []
+    for i in range(0, axis):
+        idx_arr.append(slice(out_shape[i]))
+
+    idx_arr.append(0)
+
+    for i in range(axis + 1, common_info.ndim):
+        idx_arr.append(slice(out_shape[i]))
+
+    for inp in cunumeric_inputs:
+        idx_arr[axis] = slice(offset, offset + inp.shape[axis])
+        out_array[tuple(idx_arr)] = inp
+        offset += inp.shape[axis]
+    return out_array
+
+
+def concatenate(inputs, axis=0, out=None, dtype=None, casting="same_kind"):
+    # Check to see if we can build a new tuple of cuNumeric arrays
+    cunumeric_inputs, common_info = check_shape_dtype(
+        inputs, concatenate.__name__, dtype, casting
+    )
+    return _concatenate(
+        cunumeric_inputs, axis, out, dtype, casting, common_info
+    )
+
+
+def stack(array_list, axis=0, out=None):
+    fname = stack.__name__
+    array_list, common_info = check_shape_dtype(array_list, fname)
+    if axis > common_info.ndim:
+        raise ValueError(
+            "The target axis should be smaller or"
+            " equal to the number of dimensions"
+            " of input arrays"
+        )
+    else:
+        shape = list(common_info.shape)
+        shape.insert(axis, 1)
+        for i, arr in enumerate(array_list):
+            array_list[i] = arr.reshape(shape)
+        common_info.shape = shape
+    return _concatenate(array_list, axis, out=out, common_info=common_info)
+
+
+def vstack(array_list):
+    fname = vstack.__name__
+    # Reshape arrays in the `array_list` if needed before concatenation
+    array_list, common_info = check_shape_dtype(array_list, fname)
+    if common_info.ndim == 1:
+        for i, arr in enumerate(array_list):
+            array_list[i] = arr.reshape([1, arr.shape[0]])
+        common_info.shape = array_list[0].shape
+    return _concatenate(
+        array_list,
+        axis=0,
+        dtype=common_info.dtype,
+        common_info=common_info,
+    )
+
+
+def hstack(array_list):
+    fname = hstack.__name__
+    array_list, common_info = check_shape_dtype(array_list, fname)
+    if (
+        common_info.ndim == 1
+    ):  # When ndim == 1, hstack concatenates arrays along the first axis
+        return _concatenate(
+            array_list,
+            axis=0,
+            dtype=common_info.dtype,
+            common_info=common_info,
+        )
+    else:
+        return _concatenate(
+            array_list,
+            axis=1,
+            dtype=common_info.dtype,
+            common_info=common_info,
+        )
+
+
+def dstack(array_list):
+    fname = dstack.__name__
+    array_list, common_info = check_shape_dtype(array_list, fname)
+    # Reshape arrays to (1,N,1) for ndim ==1 or (M,N,1) for ndim == 2:
+    if common_info.ndim <= 2:
+        shape = list(array_list[0].shape)
+        if common_info.ndim == 1:
+            shape.insert(0, 1)
+        shape.append(1)
+        common_info.shape = shape
+        for i, arr in enumerate(array_list):
+            array_list[i] = arr.reshape(shape)
+    return _concatenate(
+        array_list,
+        axis=2,
+        dtype=common_info.dtype,
+        common_info=common_info,
+    )
+
+
+def column_stack(array_list):
+    return hstack(array_list)
+
+
+def row_stack(inputs):
+    return vstack(inputs)
+
+
+# Splitting arrays
 
 
 def split(a, indices, axis=0):
@@ -583,178 +729,54 @@ def array_split(a, indices, axis=0, equal=False):
     return result
 
 
-# stack / concat operations ###
-class ArrayInfo:
-    def __init__(self, ndim, shape, dtype):
-        self.ndim = ndim
-        self.shape = shape
-        self.dtype = dtype
+def dsplit(a, indices):
+    return split(a, indices, axis=2)
 
 
-def check_shape_dtype(inputs, func_name, dtype=None, casting="same_kind"):
-    if len(inputs) == 0:
-        raise ValueError("need at least one array to concatenate")
-
-    inputs = list(ndarray.convert_to_cunumeric_ndarray(inp) for inp in inputs)
-    ndim = inputs[0].ndim
-    shape = inputs[0].shape
-
-    if _builtin_any(ndim != inp.ndim for inp in inputs):
-        raise ValueError(
-            f"All arguments to {func_name} "
-            "must have the same number of dimensions"
-        )
-    if ndim > 1 and _builtin_any(shape[1:] != inp.shape[1:] for inp in inputs):
-        raise ValueError(
-            f"All arguments to {func_name}"
-            "must have the same "
-            "dimension size in all dimensions "
-            "except the target axis"
-        )
-
-    # Cast arrays with the passed arguments (dtype, casting)
-    if dtype is None:
-        dtype = np.min_scalar_type(inputs)
-    else:
-        dtype = np.dtype(dtype)
-
-    converted = list(inp.astype(dtype, casting=casting) for inp in inputs)
-    return converted, ArrayInfo(ndim, shape, dtype)
+def hsplit(a, indices):
+    return split(a, indices, axis=1)
 
 
-def _concatenate(
-    inputs,
-    axis=0,
-    out=None,
-    dtype=None,
-    casting="same_kind",
-    common_info=None,
-):
-    # Check to see if we can build a new tuple of cuNumeric arrays
-    leading_dim = 0
-    cunumeric_inputs = inputs
-
-    leading_dim = common_info.shape[axis] * len(cunumeric_inputs)
-
-    out_shape = list(common_info.shape)
-    out_shape[axis] = leading_dim
-
-    out_array = ndarray(
-        shape=out_shape, dtype=common_info.dtype, inputs=cunumeric_inputs
-    )
-
-    # Copy the values over from the inputs
-    offset = 0
-    idx_arr = []
-    for i in range(0, axis):
-        idx_arr.append(slice(out_shape[i]))
-
-    idx_arr.append(0)
-
-    for i in range(axis + 1, common_info.ndim):
-        idx_arr.append(slice(out_shape[i]))
-
-    for inp in cunumeric_inputs:
-        idx_arr[axis] = slice(offset, offset + inp.shape[axis])
-        out_array[tuple(idx_arr)] = inp
-        offset += inp.shape[axis]
-    return out_array
+def vsplit(a, indices):
+    return split(a, indices, axis=0)
 
 
-def row_stack(inputs):
-    return vstack(inputs)
+# Tiling arrays
 
 
-def column_stack(array_list):
-    return hstack(array_list)
+@add_boilerplate("a")
+def tile(a, reps):
+    if not hasattr(reps, "__len__"):
+        reps = (reps,)
+    # Figure out the shape of the destination array
+    out_dims = a.ndim if a.ndim > len(reps) else len(reps)
+    # Prepend ones until the dimensions match
+    while len(reps) < out_dims:
+        reps = (1,) + reps
+    out_shape = ()
+    # Prepend dimensions if necessary
+    for dim in range(out_dims - a.ndim):
+        out_shape += (reps[dim],)
+    offset = len(out_shape)
+    for dim in range(a.ndim):
+        out_shape += (a.shape[dim] * reps[offset + dim],)
+    assert len(out_shape) == out_dims
+    result = ndarray(out_shape, dtype=a.dtype, inputs=(a,))
+    result._thunk.tile(a._thunk, reps)
+    return result
 
 
-def vstack(array_list):
-    fname = vstack.__name__
-    # Reshape arrays in the `array_list` if needed before concatenation
-    array_list, common_info = check_shape_dtype(array_list, fname)
-    if common_info.ndim == 1:
-        for i, arr in enumerate(array_list):
-            array_list[i] = arr.reshape([1, arr.shape[0]])
-        common_info.shape = array_list[0].shape
-    return _concatenate(
-        array_list,
-        axis=0,
-        dtype=common_info.dtype,
-        common_info=common_info,
-    )
+# Rearranging elements
 
 
-def hstack(array_list):
-    fname = hstack.__name__
-    array_list, common_info = check_shape_dtype(array_list, fname)
-    if (
-        common_info.ndim == 1
-    ):  # When ndim == 1, hstack concatenates arrays along the first axis
-        return _concatenate(
-            array_list,
-            axis=0,
-            dtype=common_info.dtype,
-            common_info=common_info,
-        )
-    else:
-        return _concatenate(
-            array_list,
-            axis=1,
-            dtype=common_info.dtype,
-            common_info=common_info,
-        )
+@add_boilerplate("m")
+def flip(m, axis=None):
+    return m.flip(axis=axis)
 
 
-def dstack(array_list):
-    fname = dstack.__name__
-    array_list, common_info = check_shape_dtype(array_list, fname)
-    # Reshape arrays to (1,N,1) for ndim ==1 or (M,N,1) for ndim == 2:
-    if common_info.ndim <= 2:
-        shape = list(array_list[0].shape)
-        if common_info.ndim == 1:
-            shape.insert(0, 1)
-        shape.append(1)
-        common_info.shape = shape
-        for i, arr in enumerate(array_list):
-            array_list[i] = arr.reshape(shape)
-    return _concatenate(
-        array_list,
-        axis=2,
-        dtype=common_info.dtype,
-        common_info=common_info,
-    )
-
-
-def stack(array_list, axis=0, out=None):
-    fname = stack.__name__
-    array_list, common_info = check_shape_dtype(array_list, fname)
-    if axis > common_info.ndim:
-        raise ValueError(
-            "The target axis should be smaller or"
-            " equal to the number of dimensions"
-            " of input arrays"
-        )
-    else:
-        shape = list(common_info.shape)
-        shape.insert(axis, 1)
-        for i, arr in enumerate(array_list):
-            array_list[i] = arr.reshape(shape)
-        common_info.shape = shape
-    return _concatenate(array_list, axis, out=out, common_info=common_info)
-
-
-def concatenate(inputs, axis=0, out=None, dtype=None, casting="same_kind"):
-    # Check to see if we can build a new tuple of cuNumeric arrays
-    cunumeric_inputs, common_info = check_shape_dtype(
-        inputs, concatenate.__name__, dtype, casting
-    )
-    return _concatenate(
-        cunumeric_inputs, axis, out, dtype, casting, common_info
-    )
-
-
-# ### BINARY OPERATIONS
+###################
+# Binary operations
+###################
 
 # Elementwise bit operations
 
@@ -777,12 +799,142 @@ def invert(a, out=None, where=True, dtype=None):
         )
 
 
-# ### LINEAR ALGEBRA
+###################
+# Indexing routines
+###################
+
+# Generating index arrays
+
+
+@add_boilerplate("a")
+def nonzero(a):
+    return a.nonzero()
+
+
+@add_boilerplate("a", "x", "y")
+def where(a, x=None, y=None):
+    if x is None or y is None:
+        if x is not None or y is not None:
+            raise ValueError(
+                "both 'x' and 'y' parameters must be specified together for"
+                " 'where'"
+            )
+        return nonzero(a)
+    return ndarray.perform_where(a, x, y)
+
+
+# Indexing-like operations
+
+
+@add_boilerplate("a")
+def choose(a, choices, out=None, mode="raise"):
+    return a.choose(choices=choices, out=out, mode=mode)
+
+
+@add_boilerplate("a")
+def diagonal(a, offset=0, axis1=None, axis2=None, extract=True, axes=None):
+    """
+    Return specified diagonals.
+
+    See description in numpy
+    ------------------------
+    https://numpy.org/doc/stable/reference/generated/numpy.diag.html
+    https://numpy.org/doc/stable/reference/generated/numpy.diagonal.html#numpy.diagonal
+    https://numpy.org/doc/stable/reference/generated/numpy.ndarray.diagonal.html
+
+
+    cuNumeric implementation differences:
+    ------------------------------------
+    - It never returns a view
+    - support 1D arrays (similar to `diag`)
+    - support extra arguments:
+         -- extract: used to create diagonal from 1D array vs extracting
+           the diagonal from"
+         -- axes: list of axes for diagonal ( size of the list should be in
+           between 2 and size of the array)
+
+    """
+    return a.diagonal(
+        offset=offset, axis1=axis1, axis2=axis2, extract=extract, axes=axes
+    )
+
+
+################
+# Linear algebra
+################
 
 # Matrix and vector products
+
+
 @add_boilerplate("a", "b")
 def dot(a, b, out=None):
     return a.dot(b, out=out)
+
+
+def tensordot(a, b, axes=2):
+    # This is the exact same code as the canonical numpy.
+    # See https://github.com/numpy/numpy/blob/v1.21.0/numpy/core/numeric.py#L943-L1133. # noqa:  E501
+    try:
+        iter(axes)
+    except Exception:
+        axes_a = list(range(-axes, 0))
+        axes_b = list(range(0, axes))
+    else:
+        axes_a, axes_b = axes
+    try:
+        na = len(axes_a)
+        axes_a = list(axes_a)
+    except TypeError:
+        axes_a = [axes_a]
+        na = 1
+    try:
+        nb = len(axes_b)
+        axes_b = list(axes_b)
+    except TypeError:
+        axes_b = [axes_b]
+        nb = 1
+
+    as_ = a.shape
+    nda = a.ndim
+    bs = b.shape
+    ndb = b.ndim
+    equal = True
+    if na != nb:
+        equal = False
+    else:
+        for k in range(na):
+            if as_[axes_a[k]] != bs[axes_b[k]]:
+                equal = False
+                break
+            if axes_a[k] < 0:
+                axes_a[k] += nda
+            if axes_b[k] < 0:
+                axes_b[k] += ndb
+    if not equal:
+        raise ValueError("shape-mismatch for sum")
+
+    # Move the axes to sum over to the end of "a"
+    # and to the front of "b"
+    notin = [k for k in range(nda) if k not in axes_a]
+    newaxes_a = notin + axes_a
+    N2 = 1
+    for axis in axes_a:
+        N2 *= as_[axis]
+    newshape_a = (int(np.multiply.reduce([as_[ax] for ax in notin])), N2)
+    olda = [as_[axis] for axis in notin]
+
+    notin = [k for k in range(ndb) if k not in axes_b]
+    newaxes_b = axes_b + notin
+    N2 = 1
+    for axis in axes_b:
+        N2 *= bs[axis]
+    newshape_b = (N2, int(np.multiply.reduce([bs[ax] for ax in notin])))
+    oldb = [bs[axis] for axis in notin]
+
+    at = a.transpose(newaxes_a).reshape(newshape_a)
+    bt = b.transpose(newaxes_b).reshape(newshape_b)
+    res = dot(at, bt)
+    return res.reshape(olda + oldb)
 
 
 # Trivial multi-tensor contraction strategy: contract in input order
@@ -1022,73 +1174,77 @@ def einsum(expr, *operands, out=None, optimize=False):
     return operands[0]
 
 
-def tensordot(a, b, axes=2):
-    # This is the exact same code as the canonical numpy.
-    # See https://github.com/numpy/numpy/blob/v1.21.0/numpy/core/numeric.py#L943-L1133. # noqa:  E501
-    try:
-        iter(axes)
-    except Exception:
-        axes_a = list(range(-axes, 0))
-        axes_b = list(range(0, axes))
-    else:
-        axes_a, axes_b = axes
-    try:
-        na = len(axes_a)
-        axes_a = list(axes_a)
-    except TypeError:
-        axes_a = [axes_a]
-        na = 1
-    try:
-        nb = len(axes_b)
-        axes_b = list(axes_b)
-    except TypeError:
-        axes_b = [axes_b]
-        nb = 1
+#################
+# Logic functions
+#################
 
-    as_ = a.shape
-    nda = a.ndim
-    bs = b.shape
-    ndb = b.ndim
-    equal = True
-    if na != nb:
-        equal = False
-    else:
-        for k in range(na):
-            if as_[axes_a[k]] != bs[axes_b[k]]:
-                equal = False
-                break
-            if axes_a[k] < 0:
-                axes_a[k] += nda
-            if axes_b[k] < 0:
-                axes_b[k] += ndb
-    if not equal:
-        raise ValueError("shape-mismatch for sum")
-
-    # Move the axes to sum over to the end of "a"
-    # and to the front of "b"
-    notin = [k for k in range(nda) if k not in axes_a]
-    newaxes_a = notin + axes_a
-    N2 = 1
-    for axis in axes_a:
-        N2 *= as_[axis]
-    newshape_a = (int(np.multiply.reduce([as_[ax] for ax in notin])), N2)
-    olda = [as_[axis] for axis in notin]
-
-    notin = [k for k in range(ndb) if k not in axes_b]
-    newaxes_b = axes_b + notin
-    N2 = 1
-    for axis in axes_b:
-        N2 *= bs[axis]
-    newshape_b = (N2, int(np.multiply.reduce([bs[ax] for ax in notin])))
-    oldb = [bs[axis] for axis in notin]
-
-    at = a.transpose(newaxes_a).reshape(newshape_a)
-    bt = b.transpose(newaxes_b).reshape(newshape_b)
-    res = dot(at, bt)
-    return res.reshape(olda + oldb)
+# Truth value testing
 
 
-# ### LOGIC FUNCTIONS
+@add_boilerplate("a")
+def all(a, axis=None, out=None, keepdims=False, where=True):
+    return a.all(axis=axis, out=out, keepdims=keepdims, where=where)
+
+
+@add_boilerplate("a")
+def any(a, axis=None, out=None, keepdims=False, where=True):
+    return a.any(axis=axis, out=out, keepdims=keepdims, where=where)
+
+
+# Array contents
+
+
+@add_boilerplate("a")
+def isinf(a, out=None, where=True, dtype=None, **kwargs):
+    return ndarray.perform_unary_op(
+        UnaryOpCode.ISINF,
+        a,
+        dst=out,
+        dtype=dtype,
+        where=where,
+        out_dtype=np.dtype(np.bool_),
+    )
+
+
+@add_boilerplate("a")
+def isnan(a, out=None, where=True, dtype=None, **kwargs):
+    return ndarray.perform_unary_op(
+        UnaryOpCode.ISNAN,
+        a,
+        dst=out,
+        dtype=dtype,
+        where=where,
+        out_dtype=np.dtype(np.bool_),
+    )
+
+
+# Logic operations
+
+
+@add_boilerplate("a", "b")
+def logical_and(a, b, out=None, where=True, dtype=np.dtype(np.bool)):
+    return ndarray.perform_binary_op(
+        BinaryOpCode.LOGICAL_AND,
+        a,
+        b,
+        out=out,
+        dtype=dtype,
+        out_dtype=dtype,
+        where=where,
+    )
+
+
+@add_boilerplate("a", "b")
+def logical_or(a, b, out=None, where=True, dtype=np.dtype(np.bool)):
+    return ndarray.perform_binary_op(
+        BinaryOpCode.LOGICAL_OR,
+        a,
+        b,
+        out=out,
+        dtype=dtype,
+        out_dtype=dtype,
+        where=where,
+    )
 
 
 @add_boilerplate("a")
@@ -1103,20 +1259,20 @@ def logical_not(a, out=None, where=True, dtype=None, **kwargs):
     )
 
 
-# truth value testing
+@add_boilerplate("a", "b")
+def logical_xor(a, b, out=None, where=True, dtype=np.dtype(np.bool)):
+    return ndarray.perform_binary_op(
+        BinaryOpCode.LOGICAL_XOR,
+        a,
+        b,
+        out=out,
+        dtype=dtype,
+        out_dtype=dtype,
+        where=where,
+    )
 
 
-@add_boilerplate("a")
-def all(a, axis=None, out=None, keepdims=False, where=True):
-    return a.all(axis=axis, out=out, keepdims=keepdims, where=where)
-
-
-@add_boilerplate("a")
-def any(a, axis=None, out=None, keepdims=False, where=True):
-    return a.any(axis=axis, out=out, keepdims=keepdims, where=where)
-
-
-# #Comparison
+# Comparison
 
 
 @add_boilerplate("a", "b")
@@ -1145,19 +1301,6 @@ def array_equal(a, b):
 
 
 @add_boilerplate("a", "b")
-def equal(a, b, out=None, where=True, dtype=np.dtype(np.bool)):
-    return ndarray.perform_binary_op(
-        BinaryOpCode.EQUAL,
-        a,
-        b,
-        out=out,
-        dtype=dtype,
-        out_dtype=dtype,
-        where=where,
-    )
-
-
-@add_boilerplate("a", "b")
 def greater(a, b, out=None, where=True, dtype=np.dtype(np.bool)):
     return ndarray.perform_binary_op(
         BinaryOpCode.GREATER,
@@ -1180,30 +1323,6 @@ def greater_equal(a, b, out=None, where=True, dtype=np.dtype(np.bool)):
         dtype=dtype,
         out_dtype=dtype,
         where=where,
-    )
-
-
-@add_boilerplate("a")
-def isinf(a, out=None, where=True, dtype=None, **kwargs):
-    return ndarray.perform_unary_op(
-        UnaryOpCode.ISINF,
-        a,
-        dst=out,
-        dtype=dtype,
-        where=where,
-        out_dtype=np.dtype(np.bool_),
-    )
-
-
-@add_boilerplate("a")
-def isnan(a, out=None, where=True, dtype=None, **kwargs):
-    return ndarray.perform_unary_op(
-        UnaryOpCode.ISNAN,
-        a,
-        dst=out,
-        dtype=dtype,
-        where=where,
-        out_dtype=np.dtype(np.bool_),
     )
 
 
@@ -1234,35 +1353,9 @@ def less_equal(a, b, out=None, where=True, dtype=np.dtype(np.bool)):
 
 
 @add_boilerplate("a", "b")
-def logical_and(a, b, out=None, where=True, dtype=np.dtype(np.bool)):
+def equal(a, b, out=None, where=True, dtype=np.dtype(np.bool)):
     return ndarray.perform_binary_op(
-        BinaryOpCode.LOGICAL_AND,
-        a,
-        b,
-        out=out,
-        dtype=dtype,
-        out_dtype=dtype,
-        where=where,
-    )
-
-
-@add_boilerplate("a", "b")
-def logical_or(a, b, out=None, where=True, dtype=np.dtype(np.bool)):
-    return ndarray.perform_binary_op(
-        BinaryOpCode.LOGICAL_OR,
-        a,
-        b,
-        out=out,
-        dtype=dtype,
-        out_dtype=dtype,
-        where=where,
-    )
-
-
-@add_boilerplate("a", "b")
-def logical_xor(a, b, out=None, where=True, dtype=np.dtype(np.bool)):
-    return ndarray.perform_binary_op(
-        BinaryOpCode.LOGICAL_XOR,
+        BinaryOpCode.EQUAL,
         a,
         b,
         out=out,
@@ -1285,67 +1378,17 @@ def not_equal(a, b, out=None, where=True, dtype=np.dtype(np.bool)):
     )
 
 
-# ### MATHEMATICAL FUNCTIONS
-
-
-@add_boilerplate("a")
-def negative(a, out=None, where=True, dtype=None, **kwargs):
-    return ndarray.perform_unary_op(
-        UnaryOpCode.NEGATIVE, a, dtype=dtype, dst=out, where=where
-    )
-
-
-def _output_float_dtype(input):
-    # Floats keep their floating point kind, otherwise switch to float64
-    if input.dtype.kind in ("f", "c"):
-        return input.dtype
-    else:
-        return np.dtype(np.float64)
-
-
-@add_boilerplate("a")
-def rint(a, out=None, where=True, dtype=None, **kwargs):
-    return ndarray.perform_unary_op(
-        UnaryOpCode.RINT,
-        a,
-        dtype=dtype,
-        dst=out,
-        where=where,
-        out_dtype=_output_float_dtype(a),
-    )
-
+########################
+# Mathematical functions
+########################
 
 # Trigonometric functions
 
 
 @add_boilerplate("a")
-def arccos(a, out=None, where=True, dtype=None, **kwargs):
+def sin(a, out=None, where=True, dtype=None, **kwargs):
     return ndarray.perform_unary_op(
-        UnaryOpCode.ARCCOS,
-        a,
-        dtype=dtype,
-        dst=out,
-        where=where,
-        out_dtype=_output_float_dtype(a),
-    )
-
-
-@add_boilerplate("a")
-def arcsin(a, out=None, where=True, dtype=None, **kwargs):
-    return ndarray.perform_unary_op(
-        UnaryOpCode.ARCSIN,
-        a,
-        dtype=dtype,
-        dst=out,
-        where=where,
-        out_dtype=_output_float_dtype(a),
-    )
-
-
-@add_boilerplate("a")
-def arctan(a, out=None, where=True, dtype=None, **kwargs):
-    return ndarray.perform_unary_op(
-        UnaryOpCode.ARCTAN,
+        UnaryOpCode.SIN,
         a,
         dtype=dtype,
         dst=out,
@@ -1367,33 +1410,45 @@ def cos(a, out=None, where=True, dtype=None, **kwargs):
 
 
 @add_boilerplate("a")
-def sign(a, out=None, where=True, dtype=None, **kwargs):
-    return ndarray.perform_unary_op(
-        UnaryOpCode.SIGN,
-        a,
-        dtype=dtype,
-        dst=out,
-        where=where,
-        out_dtype=_output_float_dtype(a),
-    )
-
-
-@add_boilerplate("a")
-def sin(a, out=None, where=True, dtype=None, **kwargs):
-    return ndarray.perform_unary_op(
-        UnaryOpCode.SIN,
-        a,
-        dtype=dtype,
-        dst=out,
-        where=where,
-        out_dtype=_output_float_dtype(a),
-    )
-
-
-@add_boilerplate("a")
 def tan(a, out=None, where=True, dtype=None, **kwargs):
     return ndarray.perform_unary_op(
         UnaryOpCode.TAN,
+        a,
+        dtype=dtype,
+        dst=out,
+        where=where,
+        out_dtype=_output_float_dtype(a),
+    )
+
+
+@add_boilerplate("a")
+def arcsin(a, out=None, where=True, dtype=None, **kwargs):
+    return ndarray.perform_unary_op(
+        UnaryOpCode.ARCSIN,
+        a,
+        dtype=dtype,
+        dst=out,
+        where=where,
+        out_dtype=_output_float_dtype(a),
+    )
+
+
+@add_boilerplate("a")
+def arccos(a, out=None, where=True, dtype=None, **kwargs):
+    return ndarray.perform_unary_op(
+        UnaryOpCode.ARCCOS,
+        a,
+        dtype=dtype,
+        dst=out,
+        where=where,
+        out_dtype=_output_float_dtype(a),
+    )
+
+
+@add_boilerplate("a")
+def arctan(a, out=None, where=True, dtype=None, **kwargs):
+    return ndarray.perform_unary_op(
+        UnaryOpCode.ARCTAN,
         a,
         dtype=dtype,
         dst=out,
@@ -1417,50 +1472,42 @@ def tanh(a, out=None, where=True, dtype=None, **kwargs):
     )
 
 
+# Rounding
+
+
+@add_boilerplate("a")
+def rint(a, out=None, where=True, dtype=None, **kwargs):
+    return ndarray.perform_unary_op(
+        UnaryOpCode.RINT,
+        a,
+        dtype=dtype,
+        dst=out,
+        where=where,
+        out_dtype=_output_float_dtype(a),
+    )
+
+
+@add_boilerplate("a")
+def floor(a, out=None, where=True, dtype=None, **kwargs):
+    # If this is an integer array then there is nothing to do for floor
+    if a.dtype.kind in ("i", "u", "b"):
+        return a
+    return ndarray.perform_unary_op(
+        UnaryOpCode.FLOOR, a, dst=out, dtype=dtype, where=where
+    )
+
+
+@add_boilerplate("a")
+def ceil(a, out=None, where=True, dtype=None, **kwargs):
+    # If this is an integer array then there is nothing to do for ceil
+    if a.dtype.kind in ("i", "u", "b"):
+        return a
+    return ndarray.perform_unary_op(
+        UnaryOpCode.CEIL, a, dst=out, dtype=dtype, where=where
+    )
+
+
 # Sums, products, differences
-
-
-@add_boilerplate("a", "b")
-def add(a, b, out=None, where=True, dtype=None):
-    return ndarray.perform_binary_op(
-        BinaryOpCode.ADD,
-        a,
-        b,
-        out=out,
-        dtype=dtype,
-        out_dtype=dtype,
-        where=where,
-    )
-
-
-def divide(a, b, out=None, where=True, dtype=None):
-    return true_divide(a, b, out=out, where=where, dtype=dtype)
-
-
-@add_boilerplate("a", "b")
-def floor_divide(a, b, out=None, where=True, dtype=None):
-    return ndarray.perform_binary_op(
-        BinaryOpCode.FLOOR_DIVIDE,
-        a,
-        b,
-        out=out,
-        dtype=dtype,
-        out_dtype=dtype,
-        where=where,
-    )
-
-
-@add_boilerplate("a", "b")
-def multiply(a, b, out=None, where=True, dtype=None):
-    return ndarray.perform_binary_op(
-        BinaryOpCode.MULTIPLY,
-        a,
-        b,
-        out=out,
-        dtype=dtype,
-        out_dtype=dtype,
-        where=where,
-    )
 
 
 @add_boilerplate("a")
@@ -1483,19 +1530,6 @@ def prod(
     )
 
 
-@add_boilerplate("a", "b")
-def subtract(a, b, out=None, where=True, dtype=None):
-    return ndarray.perform_binary_op(
-        BinaryOpCode.SUBTRACT,
-        a,
-        b,
-        out=out,
-        dtype=dtype,
-        out_dtype=dtype,
-        where=where,
-    )
-
-
 @add_boilerplate("a")
 def sum(
     a,
@@ -1512,6 +1546,136 @@ def sum(
         out=out,
         keepdims=keepdims,
         initial=initial,
+        where=where,
+    )
+
+
+# Exponents and logarithms
+
+
+@add_boilerplate("a")
+def exp(a, out=None, where=True, dtype=None, **kwargs):
+    return ndarray.perform_unary_op(
+        UnaryOpCode.EXP,
+        a,
+        dtype=dtype,
+        dst=out,
+        where=where,
+        out_dtype=_output_float_dtype(a),
+    )
+
+
+@add_boilerplate("a")
+def exp2(a, out=None, where=True, dtype=None, **kwargs):
+    return ndarray.perform_unary_op(
+        UnaryOpCode.EXP2,
+        a,
+        dtype=dtype,
+        dst=out,
+        where=where,
+        out_dtype=_output_float_dtype(a),
+    )
+
+
+@add_boilerplate("a")
+def log(a, out=None, where=True, dtype=None, **kwargs):
+    return ndarray.perform_unary_op(
+        UnaryOpCode.LOG,
+        a,
+        dtype=dtype,
+        dst=out,
+        where=where,
+        out_dtype=_output_float_dtype(a),
+    )
+
+
+@add_boilerplate("a")
+def log10(a, out=None, where=True, dtype=None, **kwargs):
+    return ndarray.perform_unary_op(
+        UnaryOpCode.LOG10,
+        a,
+        dtype=dtype,
+        dst=out,
+        where=where,
+        out_dtype=_output_float_dtype(a),
+    )
+
+
+# Arithmetic operations
+
+
+@add_boilerplate("a", "b")
+def add(a, b, out=None, where=True, dtype=None):
+    return ndarray.perform_binary_op(
+        BinaryOpCode.ADD,
+        a,
+        b,
+        out=out,
+        dtype=dtype,
+        out_dtype=dtype,
+        where=where,
+    )
+
+
+@add_boilerplate("a")
+def negative(a, out=None, where=True, dtype=None, **kwargs):
+    return ndarray.perform_unary_op(
+        UnaryOpCode.NEGATIVE, a, dtype=dtype, dst=out, where=where
+    )
+
+
+@add_boilerplate("a", "b")
+def multiply(a, b, out=None, where=True, dtype=None):
+    return ndarray.perform_binary_op(
+        BinaryOpCode.MULTIPLY,
+        a,
+        b,
+        out=out,
+        dtype=dtype,
+        out_dtype=dtype,
+        where=where,
+    )
+
+
+def divide(a, b, out=None, where=True, dtype=None):
+    return true_divide(a, b, out=out, where=where, dtype=dtype)
+
+
+@add_boilerplate("x1", "x2")
+def power(x1, x2, out=None, where=True, dtype=None, **kwargs):
+    if out is None and dtype is None:
+        if x1.dtype.kind == "f" or x2.dtype.kind == "f":
+            array_types = list()
+            scalar_types = list()
+            if x1.ndim > 0:
+                array_types.append(x1.dtype)
+            else:
+                scalar_types.append(x1.dtype)
+            if x2.ndim > 0:
+                array_types.append(x2.dtype)
+            else:
+                scalar_types.append(x2.dtype)
+            dtype = np.find_common_type(array_types, scalar_types)
+    return ndarray.perform_binary_op(
+        BinaryOpCode.POWER,
+        x1,
+        x2,
+        out=out,
+        dtype=dtype,
+        out_dtype=dtype,
+        where=where,
+    )
+
+
+@add_boilerplate("a", "b")
+def subtract(a, b, out=None, where=True, dtype=None):
+    return ndarray.perform_binary_op(
+        BinaryOpCode.SUBTRACT,
+        a,
+        b,
+        out=out,
+        dtype=dtype,
+        out_dtype=dtype,
         where=where,
     )
 
@@ -1569,76 +1733,12 @@ def true_divide(a, b, out=None, where=True, dtype=None):
     )
 
 
-# Exponents and logarithms
-
-
-@add_boilerplate("a")
-def exp(a, out=None, where=True, dtype=None, **kwargs):
-    return ndarray.perform_unary_op(
-        UnaryOpCode.EXP,
-        a,
-        dtype=dtype,
-        dst=out,
-        where=where,
-        out_dtype=_output_float_dtype(a),
-    )
-
-
-@add_boilerplate("a")
-def exp2(a, out=None, where=True, dtype=None, **kwargs):
-    return ndarray.perform_unary_op(
-        UnaryOpCode.EXP2,
-        a,
-        dtype=dtype,
-        dst=out,
-        where=where,
-        out_dtype=_output_float_dtype(a),
-    )
-
-
-@add_boilerplate("a")
-def log(a, out=None, where=True, dtype=None, **kwargs):
-    return ndarray.perform_unary_op(
-        UnaryOpCode.LOG,
-        a,
-        dtype=dtype,
-        dst=out,
-        where=where,
-        out_dtype=_output_float_dtype(a),
-    )
-
-
-@add_boilerplate("a")
-def log10(a, out=None, where=True, dtype=None, **kwargs):
-    return ndarray.perform_unary_op(
-        UnaryOpCode.LOG10,
-        a,
-        dtype=dtype,
-        dst=out,
-        where=where,
-        out_dtype=_output_float_dtype(a),
-    )
-
-
-@add_boilerplate("x1", "x2")
-def power(x1, x2, out=None, where=True, dtype=None, **kwargs):
-    if out is None and dtype is None:
-        if x1.dtype.kind == "f" or x2.dtype.kind == "f":
-            array_types = list()
-            scalar_types = list()
-            if x1.ndim > 0:
-                array_types.append(x1.dtype)
-            else:
-                scalar_types.append(x1.dtype)
-            if x2.ndim > 0:
-                array_types.append(x2.dtype)
-            else:
-                scalar_types.append(x2.dtype)
-            dtype = np.find_common_type(array_types, scalar_types)
+@add_boilerplate("a", "b")
+def floor_divide(a, b, out=None, where=True, dtype=None):
     return ndarray.perform_binary_op(
-        BinaryOpCode.POWER,
-        x1,
-        x2,
+        BinaryOpCode.FLOOR_DIVIDE,
+        a,
+        b,
         out=out,
         dtype=dtype,
         out_dtype=dtype,
@@ -1646,11 +1746,116 @@ def power(x1, x2, out=None, where=True, dtype=None, **kwargs):
     )
 
 
-def square(a, out=None, where=True, dtype=None, **kwargs):
-    return multiply(a, a, out=out, where=where, dtype=dtype)
+@add_boilerplate("a", "b")
+def mod(a, b, out=None, where=True, dtype=None):
+    return ndarray.perform_binary_op(
+        BinaryOpCode.MOD,
+        a,
+        b,
+        out=out,
+        dtype=dtype,
+        out_dtype=dtype,
+        where=where,
+    )
 
+
+# Handling complex numbers
+
+
+@add_boilerplate("val")
+def real(val):
+    return val.real
+
+
+@add_boilerplate("val")
+def imag(val):
+    return val.imag
+
+
+@add_boilerplate("x")
+def conj(x):
+    return x.conj()
+
+
+conjugate = conj
+
+# Extrema Finding
+
+
+@add_boilerplate("a", "b")
+def maximum(a, b, out=None, where=True, dtype=None, **kwargs):
+    return ndarray.perform_binary_op(
+        BinaryOpCode.MAXIMUM,
+        a,
+        b,
+        out=out,
+        dtype=dtype,
+        out_dtype=dtype,
+        where=where,
+    )
+
+
+@add_boilerplate("a")
+def amax(a, axis=None, out=None, keepdims=False):
+    return a.max(axis=axis, out=out, keepdims=keepdims)
+
+
+max = amax
+
+
+@add_boilerplate("a", "b")
+def minimum(a, b, out=None, where=True, dtype=None, **kwargs):
+    return ndarray.perform_binary_op(
+        BinaryOpCode.MINIMUM,
+        a,
+        b,
+        out=out,
+        dtype=dtype,
+        out_dtype=dtype,
+        where=where,
+    )
+
+
+@add_boilerplate("a")
+def amin(a, axis=None, out=None, keepdims=False):
+    return a.min(axis=axis, out=out, keepdims=keepdims)
+
+
+min = amin
 
 # Miscellaneous
+
+
+@add_boilerplate("a", "v")
+def convolve(a, v, mode="full"):
+    if mode != "same":
+        raise NotImplementedError("Need to implement other convolution modes")
+
+    if a.size < v.size:
+        v, a = a, v
+
+    return a.convolve(v, mode)
+
+
+@add_boilerplate("a")
+def clip(a, a_min, a_max, out=None):
+    return a.clip(a_min, a_max, out=out)
+
+
+@add_boilerplate("a")
+def sqrt(a, out=None, where=True, dtype=None, **kwargs):
+    return ndarray.perform_unary_op(
+        UnaryOpCode.SQRT,
+        a,
+        dtype=dtype,
+        dst=out,
+        where=where,
+        out_dtype=_output_float_dtype(a),
+    )
+
+
+def square(a, out=None, where=True, dtype=None, **kwargs):
+    return multiply(a, a, out=out, where=where, dtype=dtype)
 
 
 @add_boilerplate("a")
@@ -1666,39 +1871,14 @@ def absolute(a, out=None, where=True, **kwargs):
 abs = absolute  # alias
 
 
-@add_boilerplate("a")
-def ceil(a, out=None, where=True, dtype=None, **kwargs):
-    # If this is an integer array then there is nothing to do for ceil
-    if a.dtype.kind in ("i", "u", "b"):
-        return a
-    return ndarray.perform_unary_op(
-        UnaryOpCode.CEIL, a, dst=out, dtype=dtype, where=where
-    )
-
-
-@add_boilerplate("a")
-def clip(a, a_min, a_max, out=None):
-    return a.clip(a_min, a_max, out=out)
-
-
 def fabs(a, out=None, where=True, **kwargs):
     return absolute(a, out=out, where=where, **kwargs)
 
 
 @add_boilerplate("a")
-def floor(a, out=None, where=True, dtype=None, **kwargs):
-    # If this is an integer array then there is nothing to do for floor
-    if a.dtype.kind in ("i", "u", "b"):
-        return a
+def sign(a, out=None, where=True, dtype=None, **kwargs):
     return ndarray.perform_unary_op(
-        UnaryOpCode.FLOOR, a, dst=out, dtype=dtype, where=where
-    )
-
-
-@add_boilerplate("a")
-def sqrt(a, out=None, where=True, dtype=None, **kwargs):
-    return ndarray.perform_unary_op(
-        UnaryOpCode.SQRT,
+        UnaryOpCode.SIGN,
         a,
         dtype=dtype,
         dst=out,
@@ -1707,18 +1887,9 @@ def sqrt(a, out=None, where=True, dtype=None, **kwargs):
     )
 
 
-@add_boilerplate("a", "v")
-def convolve(a, v, mode="full"):
-    if mode != "same":
-        raise NotImplementedError("Need to implement other convolution modes")
-
-    if a.size < v.size:
-        v, a = a, v
-
-    return a.convolve(v, mode)
-
-
-# ### SORTING, SEARCHING and COUNTING
+##################################
+# Sorting, searching, and counting
+##################################
 
 # Searching
 
@@ -1737,6 +1908,37 @@ def argmin(a, axis=None, out=None):
         if out is not None and out.dtype != np.int64:
             raise ValueError("output array must have int64 dtype")
     return a.argmin(axis=axis, out=out)
+
+
+# Counting
+
+
+@add_boilerplate("a")
+def count_nonzero(a, axis=None):
+    if a.size == 0:
+        return 0
+    return ndarray.perform_unary_reduction(
+        UnaryRedCode.COUNT_NONZERO,
+        a,
+        axis=axis,
+        dtype=np.dtype(np.uint64),
+        check_types=False,
+    )
+
+
+############
+# Statistics
+############
+
+# Averages and variances
+
+
+@add_boilerplate("a")
+def mean(a, axis=None, dtype=None, out=None, keepdims=False):
+    return a.mean(axis=axis, dtype=dtype, out=out, keepdims=keepdims)
+
+
+# Histograms
 
 
 @add_boilerplate("a", "weights")
@@ -1779,103 +1981,3 @@ def bincount(a, weights=None, minlength=0):
             )
             out._thunk.bincount(a._thunk, weights=weights._thunk)
     return out
-
-
-@add_boilerplate("a")
-def nonzero(a):
-    return a.nonzero()
-
-
-@add_boilerplate("a", "x", "y")
-def where(a, x=None, y=None):
-    if x is None or y is None:
-        if x is not None or y is not None:
-            raise ValueError(
-                "both 'x' and 'y' parameters must be specified together for"
-                " 'where'"
-            )
-        return nonzero(a)
-    return ndarray.perform_where(a, x, y)
-
-
-@add_boilerplate("a")
-def count_nonzero(a, axis=None):
-    if a.size == 0:
-        return 0
-    return ndarray.perform_unary_reduction(
-        UnaryRedCode.COUNT_NONZERO,
-        a,
-        axis=axis,
-        dtype=np.dtype(np.uint64),
-        check_types=False,
-    )
-
-
-# ### STATISTICS
-
-# Order statistics
-
-
-@add_boilerplate("a")
-def amax(a, axis=None, out=None, keepdims=False):
-    return a.max(axis=axis, out=out, keepdims=keepdims)
-
-
-@add_boilerplate("a")
-def amin(a, axis=None, out=None, keepdims=False):
-    return a.min(axis=axis, out=out, keepdims=keepdims)
-
-
-def max(a, axis=None, out=None, keepdims=False):
-    return amax(a, axis=axis, out=out, keepdims=keepdims)
-
-
-@add_boilerplate("a", "b")
-def maximum(a, b, out=None, where=True, dtype=None, **kwargs):
-    return ndarray.perform_binary_op(
-        BinaryOpCode.MAXIMUM,
-        a,
-        b,
-        out=out,
-        dtype=dtype,
-        out_dtype=dtype,
-        where=where,
-    )
-
-
-def min(a, axis=None, out=None, keepdims=False):
-    return amin(a, axis=axis, out=out, keepdims=keepdims)
-
-
-@add_boilerplate("a", "b")
-def minimum(a, b, out=None, where=True, dtype=None, **kwargs):
-    return ndarray.perform_binary_op(
-        BinaryOpCode.MINIMUM,
-        a,
-        b,
-        out=out,
-        dtype=dtype,
-        out_dtype=dtype,
-        where=where,
-    )
-
-
-@add_boilerplate("a", "b")
-def mod(a, b, out=None, where=True, dtype=None):
-    return ndarray.perform_binary_op(
-        BinaryOpCode.MOD,
-        a,
-        b,
-        out=out,
-        dtype=dtype,
-        out_dtype=dtype,
-        where=where,
-    )
-
-
-# Averages and variances
-
-
-@add_boilerplate("a")
-def mean(a, axis=None, dtype=None, out=None, keepdims=False):
-    return a.mean(axis=axis, dtype=dtype, out=out, keepdims=keepdims)
