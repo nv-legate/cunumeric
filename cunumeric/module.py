@@ -16,6 +16,7 @@
 import math
 import re
 from collections import Counter
+from functools import wraps
 from inspect import signature
 from itertools import chain
 from typing import Optional, Set
@@ -69,6 +70,7 @@ def add_boilerplate(*array_params: str):
                 indices.add(idx)
         assert len(keys - all_formals) == 0, "unkonwn parameter(s)"
 
+        @wraps(func)
         def wrapper(*args, **kwargs):
             assert (where_idx is None or len(args) <= where_idx) and (
                 out_idx is None or len(args) <= out_idx
