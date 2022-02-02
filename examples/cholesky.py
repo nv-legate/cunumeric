@@ -26,7 +26,7 @@ def cholesky(n, dtype):
     start = time()
     input.cholesky(no_tril=True)
     stop = time()
-    flops = (n ** 3) / 3 + 2 * n / 3
+    flops = (n**3) / 3 + 2 * n / 3
     print(f"{(stop - start) * 1e-3} ms, {flops / (stop - start) * 1e-3} GOP/s")
 
 

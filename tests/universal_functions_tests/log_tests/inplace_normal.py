@@ -19,7 +19,7 @@ import cunumeric as num
 
 
 def test():
-    npa = np.array([1, np.e, np.e ** 2])
+    npa = np.array([1, np.e, np.e**2])
     a = num.array(npa)
     assert np.array_equal(num.log(a, out=a), np.log(npa, out=npa))
     return

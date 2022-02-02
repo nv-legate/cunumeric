@@ -45,8 +45,8 @@ def run_test(arr, routine, input_size):
                     err_arr = sub_set
                     is_equal = False
                     break
-
-        print_msg = f"np.{routine}(array({arr[0].shape}) * 3)" f", {args[1:]})"
+        shape_list = list(inp.shape for inp in arr)
+        print_msg = f"np.{routine}(array({shape_list})" f", {args[1:]})"
         assert is_equal, (
             f"Failed, {print_msg}\n"
             f"numpy result: {err_arr[0]}, {b.shape}\n"

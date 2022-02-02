@@ -15,13 +15,8 @@
 # limitations under the License.
 #
 
-from __future__ import print_function
-
 import math
-import sys
-
-if sys.version_info > (3, 0):
-    from functools import reduce
+from functools import reduce
 
 
 # A helper method for benchmarking applications

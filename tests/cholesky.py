@@ -21,7 +21,7 @@ import cunumeric as num
 def test_diagonal():
     a = num.eye(10) * 10.0
     b = num.linalg.cholesky(a)
-    assert num.allclose(b ** 2.0, a)
+    assert num.allclose(b**2.0, a)
 
 
 def test_real(n):

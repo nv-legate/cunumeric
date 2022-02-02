@@ -13,7 +13,6 @@
 # limitations under the License.
 #
 
-import warnings
 from collections.abc import Iterable
 from functools import reduce
 from inspect import signature
@@ -25,9 +24,7 @@ import pyarrow
 from legate.core import Array
 
 from .config import BinaryOpCode, UnaryOpCode, UnaryRedCode
-from .doc_utils import copy_docstring
 from .runtime import runtime
-from .utils import unimplemented
 
 
 def add_boilerplate(*array_params: str, mutates_self: bool = False):
@@ -73,14 +70,10 @@ def add_boilerplate(*array_params: str, mutates_self: bool = False):
             assert (where_idx is None or len(args) <= where_idx) and (
                 out_idx is None or len(args) <= out_idx
             ), "'where' and 'out' should be passed as keyword arguments"
-            stacklevel = kwargs.get("stacklevel", 0) + 1
-            kwargs["stacklevel"] = stacklevel
 
             # Convert relevant arguments to cuNumeric ndarrays
             args = tuple(
-                ndarray.convert_to_cunumeric_ndarray(
-                    arg, stacklevel=stacklevel
-                )
+                ndarray.convert_to_cunumeric_ndarray(arg)
                 if idx in indices and arg is not None
                 else arg
                 for (idx, arg) in enumerate(args)
@@ -89,17 +82,13 @@ def add_boilerplate(*array_params: str, mutates_self: bool = False):
                 if v is None:
                     continue
                 elif k == "where":
-                    kwargs[k] = ndarray.convert_to_predicate_ndarray(
-                        v, stacklevel=stacklevel
-                    )
+                    kwargs[k] = ndarray.convert_to_predicate_ndarray(v)
                 elif k == "out":
                     kwargs[k] = ndarray.convert_to_cunumeric_ndarray(
-                        v, stacklevel=stacklevel, share=True
+                        v, share=True
                     )
                 elif k in keys:
-                    kwargs[k] = ndarray.convert_to_cunumeric_ndarray(
-                        v, stacklevel=stacklevel
-                    )
+                    kwargs[k] = ndarray.convert_to_cunumeric_ndarray(v)
 
             # Handle the case where all array-like parameters are scalar, by
             # performing the operation on the equivalent scalar numpy arrays.
@@ -117,9 +106,8 @@ def add_boilerplate(*array_params: str, mutates_self: bool = False):
                 if "out" in kwargs:
                     out = kwargs["out"]
                     del kwargs["out"]
-                del kwargs["stacklevel"]
                 args = tuple(
-                    arg._thunk.__numpy_array__(stacklevel=stacklevel)
+                    arg._thunk.__numpy_array__()
                     if (idx in indices or idx == 0)
                     and isinstance(arg, ndarray)
                     else arg
@@ -127,9 +115,7 @@ def add_boilerplate(*array_params: str, mutates_self: bool = False):
                 )
                 for (k, v) in kwargs.items():
                     if (k in keys or k == "where") and isinstance(v, ndarray):
-                        kwargs[k] = v._thunk.__numpy_array__(
-                            stacklevel=stacklevel
-                        )
+                        kwargs[k] = v._thunk.__numpy_array__()
                 self_scalar = args[0]
                 args = args[1:]
                 res_scalar = getattr(self_scalar, func.__name__)(
@@ -145,7 +131,7 @@ def add_boilerplate(*array_params: str, mutates_self: bool = False):
                     return
                 result = ndarray.convert_to_cunumeric_ndarray(res_scalar)
                 if out is not None:
-                    out._thunk.copy(result._thunk, stacklevel=stacklevel)
+                    out._thunk.copy(result._thunk)
                     result = out
                 return result
 
@@ -161,7 +147,6 @@ def broadcast_shapes(*args):
     return np.broadcast(*arrays).shape
 
 
-@copy_docstring(np.ndarray)
 class ndarray(object):
     def __init__(
         self,
@@ -172,7 +157,6 @@ class ndarray(object):
         strides=None,
         order=None,
         thunk=None,
-        stacklevel=2,
         inputs=None,
     ):
         if thunk is None:
@@ -189,7 +173,7 @@ class ndarray(object):
                     order=order,
                 )
                 self._thunk = runtime.find_or_create_array_thunk(
-                    np_array, stacklevel=(stacklevel + 1), share=False
+                    np_array, share=False
                 )
             else:
                 # Filter the inputs if necessary
@@ -202,7 +186,6 @@ class ndarray(object):
                 self._thunk = runtime.create_empty_thunk(shape, dtype, inputs)
         else:
             self._thunk = thunk
-        self._thunk.wrap(self)
         self._legate_data = None
 
     # Support for the Legate data interface
@@ -229,43 +212,23 @@ class ndarray(object):
     # A class method for sanitizing inputs by converting them to
     # cuNumeric ndarray types
     @staticmethod
-    def convert_to_cunumeric_ndarray(obj, stacklevel=2, share=False):
+    def convert_to_cunumeric_ndarray(obj, share=False):
         # If this is an instance of one of our ndarrays then we're done
         if isinstance(obj, ndarray):
             return obj
         # Ask the runtime to make a numpy thunk for this object
-        thunk = runtime.get_numpy_thunk(
-            obj, stacklevel=(stacklevel + 1), share=share
-        )
-        return ndarray(shape=None, stacklevel=(stacklevel + 1), thunk=thunk)
+        thunk = runtime.get_numpy_thunk(obj, share=share)
+        return ndarray(shape=None, thunk=thunk)
 
     @staticmethod
-    def convert_to_predicate_ndarray(obj, stacklevel):
+    def convert_to_predicate_ndarray(obj):
         # Keep all boolean types as they are
         if obj is True or obj is False:
             return obj
-        if isinstance(obj, ndarray):
-            thunk = obj._thunk
-        else:
-            thunk = runtime.get_numpy_thunk(obj, stacklevel=(stacklevel + 1))
-        if thunk.scalar:
-            # Convert this into a bool for now, in the future we may want to
-            # defer this anyway to avoid blocking deferred execution
-            return bool(thunk.__numpy_array__(stacklevel=(stacklevel + 1)))
-        result = ndarray(shape=None, stacklevel=(stacklevel + 1), thunk=thunk)
-        # If the type of the thunk is not bool then we need to convert it
-        if result.dtype != np.bool_:
-            temp = ndarray(
-                result.shape,
-                dtype=np.dtype(np.bool_),
-                stacklevel=(stacklevel + 1),
-                inputs=(result,),
-            )
-            temp._thunk.convert(
-                result._thunk, warn=True, stacklevel=(stacklevel + 1)
-            )
-            result = temp
-        return result
+        # GH #135
+        raise NotImplementedError(
+            "the `where` parameter is currently not supported"
+        )
 
     # Properties for ndarray
 
@@ -275,27 +238,27 @@ class ndarray(object):
 
     # @property
     # def __array_interface__(self):
-    #    return self.__array__(stacklevel=2).__array_interface__
+    #    return self.__array__().__array_interface__
 
     # @property
     # def __array_priority__(self):
-    #    return self.__array__(stacklevel=2).__array_priority__
+    #    return self.__array__().__array_priority__
 
     # @property
     # def __array_struct__(self):
-    #    return self.__array__(stacklevel=2).__array_struct__
+    #    return self.__array__().__array_struct__
 
     @property
     def T(self):
-        return self.transpose(stacklevel=2)
+        return self.transpose()
 
     @property
     def base(self):
-        return self.__array__(stacklevel=2).base
+        return self.__array__().base
 
     @property
     def data(self):
-        return self.__array__(stacklevel=2).data
+        return self.__array__().data
 
     @property
     def dtype(self):
@@ -303,21 +266,19 @@ class ndarray(object):
 
     @property
     def flags(self):
-        return self.__array__(stacklevel=2).flags
+        return self.__array__().flags
 
     @property
     def flat(self):
-        return self.__array__(stacklevel=2).flat
+        return self.__array__().flat
 
     @property
     def imag(self):
         if self.dtype.kind == "c":
-            return ndarray(
-                shape=self.shape, thunk=self._thunk.imag(stacklevel=2)
-            )
+            return ndarray(shape=self.shape, thunk=self._thunk.imag())
         else:
             result = ndarray(self.shape, self.dtype)
-            result.fill(0, stacklevel=2)
+            result.fill(0)
             return result
 
     @property
@@ -327,9 +288,7 @@ class ndarray(object):
     @property
     def real(self):
         if self.dtype.kind == "c":
-            return ndarray(
-                shape=self.shape, thunk=self._thunk.real(stacklevel=2)
-            )
+            return ndarray(shape=self.shape, thunk=self._thunk.real())
         else:
             return self
 
@@ -356,11 +315,11 @@ class ndarray(object):
 
     @property
     def strides(self):
-        return self.__array__(stacklevel=2).strides
+        return self.__array__().strides
 
     @property
     def ctypes(self):
-        return self.__array__(stacklevel=2).ctypes
+        return self.__array__().ctypes
 
     # Methods for ndarray
 
@@ -385,25 +344,23 @@ class ndarray(object):
             BinaryOpCode.LOGICAL_AND, self, rhs_array
         )
 
-    def __array__(self, dtype=None, stacklevel=1):
+    def __array__(self, dtype=None):
         if dtype is None:
-            return self._thunk.__numpy_array__(stacklevel=(stacklevel + 1))
+            return self._thunk.__numpy_array__()
         else:
-            return self._thunk.__numpy_array__(
-                stacklevel=(stacklevel + 1)
-            ).__array__(dtype)
+            return self._thunk.__numpy_array__().__array__(dtype)
 
     # def __array_prepare__(self, *args, **kwargs):
-    #    return self.__array__(stacklevel=2).__array_prepare__(*args, **kwargs)
+    #    return self.__array__().__array_prepare__(*args, **kwargs)
 
     # def __array_wrap__(self, *args, **kwargs):
-    #    return self.__array__(stacklevel=2).__array_wrap__(*args, **kwargs)
+    #    return self.__array__().__array_wrap__(*args, **kwargs)
 
     def __bool__(self):
-        return bool(self.__array__(stacklevel=2))
+        return bool(self.__array__())
 
     def __complex__(self):
-        return complex(self.__array__(stacklevel=2))
+        return complex(self.__array__())
 
     def __contains__(self, item):
         if isinstance(item, np.ndarray):
@@ -419,21 +376,20 @@ class ndarray(object):
             dtype=np.dtype(np.bool_),
             args=args,
             check_types=False,
-            stacklevel=2,
         )
 
     def __copy__(self):
         result = ndarray(self.shape, self.dtype, inputs=(self,))
-        result._thunk.copy(self._thunk, deep=False, stacklevel=2)
+        result._thunk.copy(self._thunk, deep=False)
         return result
 
     def __deepcopy__(self, memo=None):
         result = ndarray(self.shape, self.dtype, inputs=(self,))
-        result._thunk.copy(self._thunk, deep=True, stacklevel=2)
+        result._thunk.copy(self._thunk, deep=True)
         return result
 
     def __div__(self, rhs):
-        return self.internal_truediv(rhs, inplace=False, stacklevel=2)
+        return self.internal_truediv(rhs, inplace=False)
 
     def __divmod__(self, rhs):
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
@@ -446,7 +402,7 @@ class ndarray(object):
         )
 
     def __float__(self):
-        return float(self.__array__(stacklevel=2))
+        return float(self.__array__())
 
     def __floordiv__(self, rhs):
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
@@ -455,7 +411,7 @@ class ndarray(object):
         )
 
     def __format__(self, *args, **kwargs):
-        return self.__array__(stacklevel=2).__format__(*args, **kwargs)
+        return self.__array__().__format__(*args, **kwargs)
 
     def __ge__(self, rhs):
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
@@ -468,7 +424,7 @@ class ndarray(object):
 
     # __getattribute__
 
-    def _convert_key(self, key, stacklevel=2, first=True):
+    def _convert_key(self, key, first=True):
         # Convert any arrays stored in a key to a cuNumeric array
         if (
             key is np.newaxis
@@ -478,22 +434,15 @@ class ndarray(object):
         ):
             return (key,) if first else key
         elif isinstance(key, tuple) and first:
-            return tuple(
-                self._convert_key(k, stacklevel=(stacklevel + 1), first=False)
-                for k in key
-            )
+            return tuple(self._convert_key(k, first=False) for k in key)
         else:
             # Otherwise convert it to a cuNumeric array and get the thunk
-            return self.convert_to_cunumeric_ndarray(
-                key, stacklevel=(stacklevel + 1)
-            )._thunk
+            return self.convert_to_cunumeric_ndarray(key)._thunk
 
     @add_boilerplate()
-    def __getitem__(self, key, stacklevel=1):
+    def __getitem__(self, key):
         key = self._convert_key(key)
-        return ndarray(
-            shape=None, thunk=self._thunk.get_item(key, stacklevel=2)
-        )
+        return ndarray(shape=None, thunk=self._thunk.get_item(key))
 
     def __gt__(self, rhs):
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
@@ -517,7 +466,7 @@ class ndarray(object):
         return self
 
     def __idiv__(self, rhs):
-        return self.internal_truediv(rhs, inplace=True, stacklevel=2)
+        return self.internal_truediv(rhs, inplace=True)
 
     def __idivmod__(self, rhs):
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
@@ -551,7 +500,7 @@ class ndarray(object):
         return self
 
     def __int__(self):
-        return int(self.__array__(stacklevel=2))
+        return int(self.__array__())
 
     def __invert__(self):
         if self.dtype == np.bool_:
@@ -582,7 +531,7 @@ class ndarray(object):
         return self
 
     def __iter__(self):
-        return self.__array__(stacklevel=2).__iter__()
+        return self.__array__().__iter__()
 
     def __isub__(self, rhs):
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
@@ -591,10 +540,8 @@ class ndarray(object):
         )
         return self
 
-    def internal_truediv(self, rhs, inplace, stacklevel):
-        rhs_array = self.convert_to_cunumeric_ndarray(
-            rhs, stacklevel=(stacklevel + 1)
-        )
+    def internal_truediv(self, rhs, inplace):
+        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         self_array = self
         # Convert any non-floats to floating point arrays
         if self_array.dtype.kind != "f" and self_array.dtype.kind != "c":
@@ -617,34 +564,27 @@ class ndarray(object):
             temp = ndarray(
                 self_array.shape,
                 dtype=common_type,
-                stacklevel=(stacklevel + 1),
                 inputs=(self_array,),
             )
-            temp._thunk.convert(
-                self_array._thunk, warn=False, stacklevel=(stacklevel + 1)
-            )
+            temp._thunk.convert(self_array._thunk, warn=False)
             self_array = temp
         if rhs_array.dtype != common_type:
             temp = ndarray(
                 rhs_array.shape,
                 dtype=common_type,
-                stacklevel=(stacklevel + 1),
                 inputs=(rhs_array,),
             )
-            temp._thunk.convert(
-                rhs_array._thunk, warn=False, stacklevel=(stacklevel + 1)
-            )
+            temp._thunk.convert(rhs_array._thunk, warn=False)
             rhs_array = temp
         return self.perform_binary_op(
             BinaryOpCode.DIVIDE,
             self_array,
             rhs_array,
             out=self if inplace else None,
-            stacklevel=(stacklevel + 1),
         )
 
     def __itruediv__(self, rhs):
-        return self.internal_truediv(rhs, inplace=True, stacklevel=2)
+        return self.internal_truediv(rhs, inplace=True)
 
     def __ixor__(self, rhs):
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
@@ -676,7 +616,7 @@ class ndarray(object):
         )
 
     def __matmul__(self, value):
-        return self.dot(value, stacklevel=2)
+        return self.dot(value)
 
     def __mod__(self, rhs):
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
@@ -707,14 +647,14 @@ class ndarray(object):
     # __new__
 
     @add_boilerplate()
-    def nonzero(self, stacklevel=1):
-        thunks = self._thunk.nonzero(stacklevel=stacklevel + 1)
+    def nonzero(self):
+        thunks = self._thunk.nonzero()
         return tuple(
             ndarray(shape=thunk.shape, thunk=thunk) for thunk in thunks
         )
 
     def __nonzero__(self):
-        return self.__array__(stacklevel=2).__nonzero__()
+        return self.__array__().__nonzero__()
 
     def __or__(self, rhs):
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
@@ -747,20 +687,20 @@ class ndarray(object):
 
     def __rdiv__(self, lhs):
         lhs_array = self.convert_to_cunumeric_ndarray(lhs)
-        return lhs_array.internal_truediv(self, inplace=False, stacklevel=2)
+        return lhs_array.internal_truediv(self, inplace=False)
 
     def __rdivmod__(self, lhs):
         lhs_array = self.convert_to_cunumeric_ndarray(lhs)
         return self.perform_binary_op(BinaryOpCode.DIVMOD, lhs_array, self)
 
     def __reduce__(self, *args, **kwargs):
-        return self.__array__(stacklevel=2).__reduce__(*args, **kwargs)
+        return self.__array__().__reduce__(*args, **kwargs)
 
     def __reduce_ex__(self, *args, **kwargs):
-        return self.__array__(stacklevel=2).__reduce_ex__(*args, **kwargs)
+        return self.__array__().__reduce_ex__(*args, **kwargs)
 
     def __repr__(self):
-        return repr(self.__array__(stacklevel=2))
+        return repr(self.__array__())
 
     def __rfloordiv__(self, lhs):
         lhs_array = self.convert_to_cunumeric_ndarray(lhs)
@@ -796,7 +736,7 @@ class ndarray(object):
 
     def __rtruediv__(self, lhs):
         lhs_array = self.convert_to_cunumeric_ndarray(lhs)
-        return lhs_array.internal_truediv(self, inplace=False, stacklevel=2)
+        return lhs_array.internal_truediv(self, inplace=False)
 
     def __rxor__(self, lhs):
         lhs_array = self.convert_to_cunumeric_ndarray(lhs)
@@ -807,33 +747,31 @@ class ndarray(object):
     # __setattr__
 
     @add_boilerplate("value", mutates_self=True)
-    def __setitem__(self, key, value, stacklevel=1):
+    def __setitem__(self, key, value):
         if key is None:
             raise KeyError("invalid key passed to cunumeric.ndarray")
         if value.dtype != self.dtype:
             temp = ndarray(value.shape, dtype=self.dtype, inputs=(value,))
-            temp._thunk.convert(value._thunk, stacklevel=2)
+            temp._thunk.convert(value._thunk)
             value = temp
         key = self._convert_key(key)
-        self._thunk.set_item(key, value._thunk, stacklevel=2)
+        self._thunk.set_item(key, value._thunk)
 
     def __setstate__(self, state):
-        self.__array__(stacklevel=2).__setstate__(state)
+        self.__array__().__setstate__(state)
 
     def __sizeof__(self, *args, **kwargs):
-        return self.__array__(stacklevel=2).__sizeof__(*args, **kwargs)
+        return self.__array__().__sizeof__(*args, **kwargs)
 
     def __sub__(self, rhs):
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         return self.perform_binary_op(BinaryOpCode.SUBTRACT, self, rhs_array)
 
     def __str__(self):
-        return str(self.__array__(stacklevel=2))
+        return str(self.__array__())
 
-    def __truediv__(self, rhs, stacklevel=1):
-        return self.internal_truediv(
-            rhs, inplace=False, stacklevel=(stacklevel + 1)
-        )
+    def __truediv__(self, rhs):
+        return self.internal_truediv(rhs, inplace=False)
 
     def __xor__(self, rhs):
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
@@ -849,7 +787,6 @@ class ndarray(object):
         keepdims=False,
         initial=None,
         where=True,
-        stacklevel=1,
     ):
         return self.perform_unary_reduction(
             UnaryRedCode.ALL,
@@ -861,7 +798,6 @@ class ndarray(object):
             check_types=False,
             initial=initial,
             where=where,
-            stacklevel=(stacklevel + 1),
         )
 
     @add_boilerplate()
@@ -872,7 +808,6 @@ class ndarray(object):
         keepdims=False,
         initial=None,
         where=True,
-        stacklevel=1,
     ):
         return self.perform_unary_reduction(
             UnaryRedCode.ANY,
@@ -884,10 +819,9 @@ class ndarray(object):
             check_types=False,
             initial=initial,
             where=where,
-            stacklevel=(stacklevel + 1),
         )
 
-    def argmax(self, axis=None, out=None, stacklevel=1):
+    def argmax(self, axis=None, out=None):
         if self.size == 1:
             return 0
         if axis is None:
@@ -903,10 +837,9 @@ class ndarray(object):
             dtype=np.dtype(np.int64),
             dst=out,
             check_types=False,
-            stacklevel=(stacklevel + 1),
         )
 
-    def argmin(self, axis=None, out=None, stacklevel=1):
+    def argmin(self, axis=None, out=None):
         if self.size == 1:
             return 0
         if axis is None:
@@ -922,22 +855,7 @@ class ndarray(object):
             dtype=np.dtype(np.int64),
             dst=out,
             check_types=False,
-            stacklevel=(stacklevel + 1),
         )
-
-    @unimplemented
-    def argpartition(self, kth, axis=-1, kind="introselect", order=None):
-        numpy_array = self.__array__(stacklevel=3).argpartition(
-            kth=kth, axis=axis, kind=kind, order=order
-        )
-        return self.convert_to_cunumeric_ndarray(numpy_array, stacklevel=3)
-
-    @unimplemented
-    def argsort(self, axis=-1, kind=None, order=None):
-        numpy_array = self.__array__(stacklevel=3).argsort(
-            axis=axis, kind=kind, order=order
-        )
-        return self.convert_to_cunumeric_ndarray(numpy_array, stacklevel=3)
 
     def astype(
         self, dtype, order="C", casting="unsafe", subok=True, copy=True
@@ -961,19 +879,10 @@ class ndarray(object):
                 f"to the rule '{casting}'"
             )
         result = ndarray(self.shape, dtype=dtype, inputs=(self,))
-        result._thunk.convert(self._thunk, warn=False, stacklevel=2)
+        result._thunk.convert(self._thunk, warn=False)
         return result
 
-    @unimplemented
-    def byteswap(self, inplace=False):
-        if inplace:
-            self.__array__(stacklevel=3).byteswap(inplace=True)
-            return self
-        else:
-            numpy_array = self.__array__(stacklevel=3).byteswap(inplace=False)
-            return self.convert_to_cunumeric_ndarray(numpy_array, stacklevel=3)
-
-    def choose(self, choices, out=None, mode="raise", stacklevel=2):
+    def choose(self, choices, out=None, mode="raise"):
         a = self
         if out is not None:
             out = out.convert_to_cunumeric_ndarray(out)
@@ -1039,7 +948,6 @@ class ndarray(object):
             out_arr = ndarray(
                 shape=out_shape,
                 dtype=ch_dtype,
-                stacklevel=stacklevel + 1,
                 inputs=(a, choices),
             )
 
@@ -1047,27 +955,23 @@ class ndarray(object):
         out_arr._thunk.choose(
             *ch,
             rhs=a._thunk,
-            stacklevel=(stacklevel + 1),
         )
         if out is not None and out.dtype != ch_dtype:
-            out._thunk.convert(out_arr._thunk, stacklevel=(stacklevel + 1))
+            out._thunk.convert(out_arr._thunk)
             return out
         else:
             return out_arr
 
-    def cholesky(self, no_tril=False, stacklevel=1):
+    def cholesky(self, no_tril=False):
         input = self
         if input.dtype.kind not in ("f", "c"):
             input = input.astype("float64")
         output = ndarray(
             shape=input.shape,
             dtype=input.dtype,
-            stacklevel=stacklevel + 1,
             inputs=(input,),
         )
-        output._thunk.cholesky(
-            input._thunk, no_tril=no_tril, stacklevel=(stacklevel + 1)
-        )
+        output._thunk.cholesky(input._thunk, no_tril=no_tril)
         return output
 
     def clip(self, min=None, max=None, out=None):
@@ -1076,45 +980,35 @@ class ndarray(object):
             np.array(max, dtype=self.dtype),
         )
         if args[0].size != 1 or args[1].size != 1:
-            warnings.warn(
+            runtime.warn(
                 "cuNumeric has not implemented clip with array-like "
                 "arguments and is falling back to canonical numpy. You "
                 "may notice significantly decreased performance for this "
                 "function call.",
-                stacklevel=2,
                 category=RuntimeWarning,
             )
             if out is not None:
-                self.__array__(stacklevel=2).clip(min, max, out=out)
-                return self.convert_to_cunumeric_ndarray(
-                    out, stacklevel=2, share=True
-                )
+                self.__array__().clip(min, max, out=out)
+                return self.convert_to_cunumeric_ndarray(out, share=True)
             else:
                 return self.convert_to_cunumeric_ndarray(
                     self.__array__.clip(min, max)
                 )
         return self.perform_unary_op(
-            UnaryOpCode.CLIP, self, dst=out, args=args
+            UnaryOpCode.CLIP, self, dst=out, extra_args=args
         )
 
-    @unimplemented
-    def compress(self, condition, axis=None, out=None):
-        numpy_array = self.__array__(stacklevel=3).compress(
-            condition, axis=axis, out=out
-        )
-        return self.convert_to_cunumeric_ndarray(numpy_array, stacklevel=3)
-
-    def conj(self, stacklevel=1):
+    def conj(self):
         if self.dtype.kind == "c":
-            result = self._thunk.conj(stacklevel=stacklevel + 1)
+            result = self._thunk.conj()
             return ndarray(self.shape, dtype=self.dtype, thunk=result)
         else:
             return self
 
-    def conjugate(self, stacklevel=1):
-        return self.conj(stacklevel)
+    def conjugate(self):
+        return self.conj()
 
-    def convolve(self, v, mode, stacklevel=1):
+    def convolve(self, v, mode):
         assert mode == "same"
         if self.ndim != v.ndim:
             raise RuntimeError("Arrays should have the same dimensions")
@@ -1128,31 +1022,14 @@ class ndarray(object):
         out = ndarray(
             shape=self.shape,
             dtype=self.dtype,
-            stacklevel=(stacklevel + 1),
             inputs=(self, v),
         )
-        self._thunk.convolve(
-            v._thunk, out._thunk, mode, stacklevel=(stacklevel + 1)
-        )
+        self._thunk.convolve(v._thunk, out._thunk, mode)
         return out
 
     def copy(self, order="C"):
         # We don't care about dimension order in cuNumeric
         return self.__copy__()
-
-    @unimplemented
-    def cumprod(self, axis=None, dtype=None, out=None):
-        numpy_array = self.__array__(stacklevel=3).cumprod(
-            axis=axis, dtype=dtype, out=out
-        )
-        return self.convert_to_cunumeric_ndarray(numpy_array, stacklevel=3)
-
-    @unimplemented
-    def cumsum(self, axis=None, dtype=None, out=None):
-        numpy_array = self.__array__(stacklevel=3).cumsum(
-            axis=axis, dtype=dtype, out=out
-        )
-        return self.convert_to_cunumeric_ndarray(numpy_array, stacklevel=3)
 
     # diagonal helper. Will return diagonal for arbitrary number of axes;
     # currently offset option is implemented only for the case of number of
@@ -1176,7 +1053,6 @@ class ndarray(object):
                 offset=offset,
                 naxes=0,
                 extract=False,
-                stacklevel=3,
             )
         else:
             N = len(axes)
@@ -1230,16 +1106,13 @@ class ndarray(object):
             tr_shape = tuple(a.shape[i] for i in range(a.ndim - N))
             # calculate shape of the output array
             out_shape = tr_shape + (diag_size,)
-            out = ndarray(
-                shape=out_shape, dtype=self.dtype, stacklevel=3, inputs=(self)
-            )
+            out = ndarray(shape=out_shape, dtype=self.dtype, inputs=(self))
 
             out._thunk.diag_helper(
                 a._thunk,
                 offset=offset,
                 naxes=N,
                 extract=extract,
-                stacklevel=3,
             )
         return out
 
@@ -1266,16 +1139,13 @@ class ndarray(object):
                 raise ValueError("Either axis1/axis2 or axes must be supplied")
         return self.diag_helper(offset=offset, axes=axes, extract=extract)
 
-    def dot(self, rhs, out=None, stacklevel=1):
-        rhs_array = self.convert_to_cunumeric_ndarray(
-            rhs, stacklevel=(stacklevel + 1)
-        )
+    def dot(self, rhs, out=None):
+        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         if self.size == 1 or rhs_array.size == 1:
             return self.perform_binary_op(
                 BinaryOpCode.MULTIPLY,
                 self,
                 rhs_array,
-                stacklevel=(stacklevel + 1),
             )
         out_dtype = self.find_common_type(self, rhs_array)
         # Check for type conversion on the way in
@@ -1284,26 +1154,20 @@ class ndarray(object):
             self_array = ndarray(
                 shape=self.shape,
                 dtype=out_dtype,
-                stacklevel=(stacklevel + 1),
                 inputs=(self,),
             )
-            self_array._thunk.convert(self._thunk, stacklevel=(stacklevel + 1))
+            self_array._thunk.convert(self._thunk)
         if rhs_array.dtype != out_dtype:
             temp_array = ndarray(
                 shape=rhs_array.shape,
                 dtype=out_dtype,
-                stacklevel=(stacklevel + 1),
                 inputs=(rhs_array,),
             )
-            temp_array._thunk.convert(
-                rhs_array._thunk, stacklevel=(stacklevel + 1)
-            )
+            temp_array._thunk.convert(rhs_array._thunk)
             rhs_array = temp_array
         # Create output array
         if out is not None:
-            out = self.convert_to_cunumeric_ndarray(
-                out, stacklevel=(stacklevel + 1), share=True
-            )
+            out = self.convert_to_cunumeric_ndarray(out, share=True)
             if self.ndim == 1 and rhs_array.ndim == 1:
                 if self.shape[0] != rhs.shape[0]:
                     raise ValueError("Dimension mismatch for dot")
@@ -1335,7 +1199,6 @@ class ndarray(object):
                 out = ndarray(
                     shape=(),
                     dtype=out_dtype,
-                    stacklevel=(stacklevel + 1),
                     inputs=(self_array, rhs_array),
                 )
             elif self.ndim == 2 and rhs_array.ndim == 2:
@@ -1345,7 +1208,6 @@ class ndarray(object):
                 out = ndarray(
                     shape=(self.shape[0], rhs_array.shape[1]),
                     dtype=out_dtype,
-                    stacklevel=(stacklevel + 1),
                     inputs=(self_array, rhs_array),
                 )
             elif rhs_array.ndim == 1:
@@ -1354,7 +1216,6 @@ class ndarray(object):
                 out = ndarray(
                     shape=self.shape[:-1],
                     dtype=out_dtype,
-                    stacklevel=(stacklevel + 1),
                     inputs=(self_array, rhs_array),
                 )
             else:
@@ -1367,40 +1228,31 @@ class ndarray(object):
                         + (rhs_array.shape[-1],)
                     ),
                     dtype=out_dtype,
-                    stacklevel=(stacklevel + 1),
                     inputs=(self_array, rhs_array),
                 )
         # Perform operation
-        out._thunk.dot(
-            self_array._thunk, rhs_array._thunk, stacklevel=(stacklevel + 1)
-        )
+        out._thunk.dot(self_array._thunk, rhs_array._thunk)
         # Check for type conversion on the way out
         if out.dtype != out_dtype:
             result = ndarray(
                 shape=out.shape,
                 dtype=out_dtype,
-                stacklevel=(stacklevel + 1),
                 inputs=(out,),
             )
-            result._thunk.convert(out._thunk, stacklevel=(stacklevel + 1))
+            result._thunk.convert(out._thunk)
             return result
         else:
             return out
 
     def dump(self, file):
-        self.__array__(stacklevel=2).dump(file=file)
+        self.__array__().dump(file=file)
 
     def dumps(self):
-        return self.__array__(stacklevel=2).dumps()
+        return self.__array__().dumps()
 
-    def fill(self, value, stacklevel=1):
+    def fill(self, value):
         val = np.array(value, dtype=self.dtype)
-        self._thunk.fill(val, stacklevel=stacklevel + 1)
-
-    @unimplemented
-    def flatten(self, order="C"):
-        numpy_array = self.__array__(stacklevel=3).flatten(order=order)
-        return self.convert_to_cunumeric_ndarray(numpy_array, stacklevel=3)
+        self._thunk.fill(val)
 
     def getfield(self, dtype, offset=0):
         raise NotImplementedError(
@@ -1428,7 +1280,7 @@ class ndarray(object):
         key = self._convert_singleton_key(args)
         result = self[key]
         assert result.shape == ()
-        return result._thunk.__numpy_array__(stacklevel=1)
+        return result._thunk.__numpy_array__()
 
     def itemset(self, *args):
         if len(args) == 0:
@@ -1446,7 +1298,6 @@ class ndarray(object):
         keepdims=False,
         initial=None,
         where=True,
-        stacklevel=1,
     ):
         return self.perform_unary_reduction(
             UnaryRedCode.MAX,
@@ -1456,13 +1307,10 @@ class ndarray(object):
             keepdims=keepdims,
             initial=initial,
             where=where,
-            stacklevel=(stacklevel + 1),
         )
 
     @add_boilerplate()
-    def mean(
-        self, axis=None, dtype=None, out=None, keepdims=False, stacklevel=1
-    ):
+    def mean(self, axis=None, dtype=None, out=None, keepdims=False):
         if axis is not None and type(axis) != int:
             raise TypeError(
                 "cunumeric.mean only supports int types for "
@@ -1481,14 +1329,12 @@ class ndarray(object):
                 dtype=dtype,
                 out=out,
                 keepdims=keepdims,
-                stacklevel=(stacklevel + 1),
             )
         else:
             sum_array = self.sum(
                 axis=axis,
                 dtype=dtype,
                 keepdims=keepdims,
-                stacklevel=(stacklevel + 1),
             )
         if axis is None:
             divisor = reduce(lambda x, y: x * y, self.shape, 1)
@@ -1500,14 +1346,13 @@ class ndarray(object):
             sum_array.internal_truediv(
                 np.array(divisor, dtype=sum_array.dtype),
                 inplace=True,
-                stacklevel=(stacklevel + 1),
             )
         else:
             sum_array.__ifloordiv__(np.array(divisor, dtype=sum_array.dtype))
         # Convert to the output we didn't already put it there
         if out is not None and sum_array is not out:
             assert out.dtype != sum_array.dtype
-            out._thunk.convert(sum_array._thunk, stacklevel=(stacklevel + 1))
+            out._thunk.convert(sum_array._thunk)
             return out
         else:
             return sum_array
@@ -1520,7 +1365,6 @@ class ndarray(object):
         keepdims=False,
         initial=None,
         where=True,
-        stacklevel=1,
     ):
         return self.perform_unary_reduction(
             UnaryRedCode.MIN,
@@ -1530,13 +1374,6 @@ class ndarray(object):
             keepdims=keepdims,
             initial=initial,
             where=where,
-            stacklevel=(stacklevel + 1),
-        )
-
-    @unimplemented
-    def partition(self, kth, axis=-1, kind="introselect", order=None):
-        self.__array__(stacklevel=3).partition(
-            kth=kth, axis=axis, kind=kind, order=order
         )
 
     @add_boilerplate()
@@ -1548,16 +1385,14 @@ class ndarray(object):
         keepdims=False,
         initial=None,
         where=True,
-        stacklevel=1,
     ):
         if self.dtype.type == np.bool_:
             temp = ndarray(
                 shape=self.shape,
                 dtype=np.dtype(np.int32),
-                stacklevel=(stacklevel + 1),
                 inputs=(self,),
             )
-            temp._thunk.convert(self._thunk, stacklevel=(stacklevel + 1))
+            temp._thunk.convert(self._thunk)
             self_array = temp
         else:
             self_array = self
@@ -1569,31 +1404,12 @@ class ndarray(object):
             keepdims=keepdims,
             initial=initial,
             where=where,
-            stacklevel=(stacklevel + 1),
         )
 
-    @unimplemented
-    def ptp(self, axis=None, out=None, keepdims=False):
-        numpy_array = self.__array__(stacklevel=3).ptp(
-            axis=axis, out=out, keepdims=keepdims
-        )
-        return self.convert_to_cunumeric_ndarray(numpy_array, stacklevel=3)
+    def ravel(self, order="C"):
+        return self.reshape(-1, order=order)
 
-    @unimplemented
-    def put(self, indices, values, mode="raise"):
-        self.__array__(stacklevel=3).put(
-            indices=indices, values=values, mode=mode
-        )
-
-    def ravel(self, order="C", stacklevel=1):
-        return self.reshape(-1, order=order, stacklevel=(stacklevel + 1))
-
-    @unimplemented
-    def repeat(self, repeats, axis=None):
-        numpy_array = self.__array__(stacklevel=3).repeat(repeats, axis=axis)
-        return self.convert_to_cunumeric_ndarray(numpy_array, stacklevel=3)
-
-    def reshape(self, shape, order="C", stacklevel=1):
+    def reshape(self, shape, order="C"):
         if shape != -1:
             # Check that these sizes are compatible
             if isinstance(shape, Iterable):
@@ -1648,31 +1464,8 @@ class ndarray(object):
             return self
         return ndarray(
             shape=None,
-            thunk=self._thunk.reshape(
-                shape, order, stacklevel=(stacklevel + 1)
-            ),
+            thunk=self._thunk.reshape(shape, order),
         )
-
-    @unimplemented
-    def resize(self, new_shape, refcheck=True):
-        numpy_array = self.__array__(stacklevel=3).resize(
-            new_shape=new_shape, refcheck=refcheck
-        )
-        return self.convert_to_cunumeric_ndarray(numpy_array, stacklevel=3)
-
-    @unimplemented
-    def round(self, decimals=0, out=None):
-        numpy_array = self.__array__(stacklevel=3).round(
-            decimals=decimals, out=out
-        )
-        return self.convert_to_cunumeric_ndarray(numpy_array, stacklevel=3)
-
-    @unimplemented
-    def searchsorted(self, v, side="left", sorter=None):
-        numpy_array = self.__array__(stacklevel=3).searchsorted(
-            v=v, side=side, sorter=sorter
-        )
-        return self.convert_to_cunumeric_ndarray(numpy_array, stacklevel=3)
 
     def setfield(self, val, dtype, offset=0):
         raise NotImplementedError(
@@ -1681,16 +1474,7 @@ class ndarray(object):
         )
 
     def setflags(self, write=None, align=None, uic=None):
-        self.__array__(stacklevel=2).setflags(
-            write=write, align=align, uic=uic
-        )
-
-    @unimplemented
-    def sort(self, axis=-1, kind=None, order=None):
-        numpy_array = self.__array__(stacklevel=3).sort(
-            axis=axis, kind=kind, order=order
-        )
-        return self.convert_to_cunumeric_ndarray(numpy_array, stacklevel=3)
+        self.__array__().setflags(write=write, align=align, uic=uic)
 
     def squeeze(self, axis=None):
         if axis is not None:
@@ -1713,16 +1497,7 @@ class ndarray(object):
                         raise ValueError(
                             "all axes to squeeze must have extent of one"
                         )
-        return ndarray(
-            shape=None, thunk=self._thunk.squeeze(axis, stacklevel=2)
-        )
-
-    @unimplemented
-    def std(self, axis=None, dtype=None, out=None, ddof=0, keepdims=False):
-        numpy_array = self.__array__(stacklevel=3).std(
-            axis=axis, dtype=dtype, out=out, ddof=ddof, keepdims=keepdims
-        )
-        return self.convert_to_cunumeric_ndarray(numpy_array, stacklevel=3)
+        return ndarray(shape=None, thunk=self._thunk.squeeze(axis))
 
     @add_boilerplate()
     def sum(
@@ -1733,16 +1508,14 @@ class ndarray(object):
         keepdims=False,
         initial=None,
         where=True,
-        stacklevel=1,
     ):
         if self.dtype.type == np.bool_:
             temp = ndarray(
                 shape=self.shape,
                 dtype=np.dtype(np.int32),
-                stacklevel=(stacklevel + 1),
                 inputs=(self,),
             )
-            temp._thunk.convert(self._thunk, stacklevel=(stacklevel + 1))
+            temp._thunk.convert(self._thunk)
             self_array = temp
         else:
             self_array = self
@@ -1754,7 +1527,6 @@ class ndarray(object):
             keepdims=keepdims,
             initial=initial,
             where=where,
-            stacklevel=(stacklevel + 1),
         )
 
     def swapaxes(self, axis1, axis2):
@@ -1766,46 +1538,27 @@ class ndarray(object):
             raise ValueError(
                 "axis2=" + str(axis2) + " is too large for swapaxes"
             )
-        return ndarray(
-            shape=None, thunk=self._thunk.swapaxes(axis1, axis2, stacklevel=2)
-        )
-
-    @unimplemented
-    def take(self, indices, axis=None, out=None, mode="raise"):
-        numpy_array = self.__array__(stacklevel=3).take(
-            indices=indices, axis=axis, out=out, mode=mode
-        )
-        return self.convert_to_cunumeric_ndarray(numpy_array, stacklevel=3)
+        return ndarray(shape=None, thunk=self._thunk.swapaxes(axis1, axis2))
 
     def tofile(self, fid, sep="", format="%s"):
-        return self.__array__(stacklevel=2).tofile(
-            fid=fid, sep=sep, format=format
-        )
+        return self.__array__().tofile(fid=fid, sep=sep, format=format)
 
     def tobytes(self, order="C"):
-        return self.__array__(stacklevel=2).tobytes(order=order)
+        return self.__array__().tobytes(order=order)
 
     def tolist(self):
-        return self.__array__(stacklevel=2).tolist()
+        return self.__array__().tolist()
 
     def tostring(self, order="C"):
-        return self.__array__(stacklevel=2).tostring(order=order)
+        return self.__array__().tostring(order=order)
 
-    @unimplemented
-    def trace(self, offset=0, axis1=0, axis2=1, dtype=None, out=None):
-        numpy_array = self.__array__(stacklevel=3).trace(
-            offset=offset, axis1=axis1, axis2=axis2, dtype=dtype, out=out
-        )
-        return self.convert_to_cunumeric_ndarray(numpy_array, stacklevel=3)
-
-    def transpose(self, axes=None, stacklevel=1):
+    def transpose(self, axes=None):
         if self.ndim == 1:
             return self
         if axes is None:
             result = ndarray(
                 self.shape[::-1],
                 dtype=self.dtype,
-                stacklevel=(stacklevel + 1),
                 inputs=(self,),
             )
             axes = tuple(range(self.ndim - 1, -1, -1))
@@ -1813,32 +1566,23 @@ class ndarray(object):
             result = ndarray(
                 shape=tuple(self.shape[idx] for idx in axes),
                 dtype=self.dtype,
-                stacklevel=(stacklevel + 1),
                 inputs=(self,),
             )
         else:
             raise ValueError(
                 "axes must be the same size as ndim for transpose"
             )
-        result._thunk.transpose(self._thunk, axes, stacklevel=(stacklevel + 1))
+        result._thunk.transpose(self._thunk, axes)
         return result
 
-    def flip(self, axis=None, stacklevel=1):
+    def flip(self, axis=None):
         result = ndarray(
             shape=self.shape,
             dtype=self.dtype,
-            stacklevel=(stacklevel + 1),
             inputs=(self,),
         )
-        result._thunk.flip(self._thunk, axis, stacklevel=(stacklevel + 1))
+        result._thunk.flip(self._thunk, axis)
         return result
-
-    @unimplemented
-    def var(self, axis=None, dtype=None, out=None, ddof=0, keepdims=False):
-        numpy_array = self.__array__(stacklevel=3).var(
-            axis=axis, dtype=dtype, out=out, ddof=ddof, keepdims=keepdims
-        )
-        return self.convert_to_cunumeric_ndarray(numpy_array, stacklevel=3)
 
     def view(self, dtype=None, type=None):
         if dtype is not None and dtype != self.dtype:
@@ -1848,7 +1592,7 @@ class ndarray(object):
         return ndarray(shape=self.shape, dtype=self.dtype, thunk=self._thunk)
 
     @classmethod
-    def get_where_thunk(cls, where, out_shape, stacklevel):
+    def get_where_thunk(cls, where, out_shape):
         if where is True:
             return True
         if where is False:
@@ -1870,6 +1614,13 @@ class ndarray(object):
                 array_types.append(array.dtype)
         return np.find_common_type(array_types, scalar_types)
 
+    def _maybe_convert(self, dtype, *hints):
+        if self.dtype == dtype:
+            return self
+        copy = ndarray(shape=self.shape, dtype=dtype, inputs=hints)
+        copy._thunk.convert(self._thunk)
+        return copy
+
     # For performing normal/broadcast unary operations
     @classmethod
     def perform_unary_op(
@@ -1877,12 +1628,10 @@ class ndarray(object):
         op,
         src,
         dst=None,
-        args=None,
+        extra_args=None,
         dtype=None,
         where=True,
         out_dtype=None,
-        check_types=True,
-        stacklevel=2,
     ):
         if dst is not None:
             # If the shapes don't match see if we can broadcast
@@ -1901,14 +1650,12 @@ class ndarray(object):
                 dst = ndarray(
                     shape=out_shape,
                     dtype=dtype,
-                    stacklevel=(stacklevel + 1),
                     inputs=(src, where),
                 )
             elif out_dtype is not None:
                 dst = ndarray(
                     shape=out_shape,
                     dtype=out_dtype,
-                    stacklevel=(stacklevel + 1),
                     inputs=(src, where),
                 )
             else:
@@ -1919,96 +1666,68 @@ class ndarray(object):
                     else np.dtype(np.float32)
                     if src.dtype == np.dtype(np.complex64)
                     else np.dtype(np.float64),
-                    stacklevel=(stacklevel + 1),
                     inputs=(src, where),
                 )
+
         # Quick exit
         if where is False:
             return dst
+
         op_dtype = (
             dst.dtype
             if out_dtype is None
             and not (op == UnaryOpCode.ABSOLUTE and src.dtype.kind == "c")
             else src.dtype
         )
-        if check_types:
-            if out_dtype is None:
-                if dst.dtype != src.dtype and not (
-                    op == UnaryOpCode.ABSOLUTE and src.dtype.kind == "c"
-                ):
-                    temp = ndarray(
-                        dst.shape,
-                        dtype=src.dtype,
-                        stacklevel=(stacklevel + 1),
-                        inputs=(src, where),
-                    )
-                    temp._thunk.unary_op(
-                        op,
-                        op_dtype,
-                        src._thunk,
-                        cls.get_where_thunk(
-                            where, dst.shape, stacklevel=(stacklevel + 1)
-                        ),
-                        args,
-                        stacklevel=(stacklevel + 1),
-                    )
-                    dst._thunk.convert(
-                        temp._thunk, stacklevel=(stacklevel + 1)
-                    )
-                else:
-                    dst._thunk.unary_op(
-                        op,
-                        op_dtype,
-                        src._thunk,
-                        cls.get_where_thunk(
-                            where, dst.shape, stacklevel=(stacklevel + 1)
-                        ),
-                        args,
-                        stacklevel=(stacklevel + 1),
-                    )
+
+        if out_dtype is None:
+            if dst.dtype != src.dtype and not (
+                op == UnaryOpCode.ABSOLUTE and src.dtype.kind == "c"
+            ):
+                temp = ndarray(
+                    dst.shape,
+                    dtype=src.dtype,
+                    inputs=(src, where),
+                )
+                temp._thunk.unary_op(
+                    op,
+                    op_dtype,
+                    src._thunk,
+                    cls.get_where_thunk(where, dst.shape),
+                    extra_args,
+                )
+                dst._thunk.convert(temp._thunk)
             else:
-                if dst.dtype != out_dtype:
-                    temp = ndarray(
-                        dst.shape,
-                        dtype=out_dtype,
-                        stacklevel=(stacklevel + 1),
-                        inputs=(src, where),
-                    )
-                    temp._thunk.unary_op(
-                        op,
-                        op_dtype,
-                        src._thunk,
-                        cls.get_where_thunk(
-                            where, dst.shape, stacklevel=(stacklevel + 1)
-                        ),
-                        args,
-                        stacklevel=(stacklevel + 1),
-                    )
-                    dst._thunk.convert(
-                        temp._thunk, stacklevel=(stacklevel + 1)
-                    )
-                else:
-                    dst._thunk.unary_op(
-                        op,
-                        op_dtype,
-                        src._thunk,
-                        cls.get_where_thunk(
-                            where, dst.shape, stacklevel=(stacklevel + 1)
-                        ),
-                        args,
-                        stacklevel=(stacklevel + 1),
-                    )
+                dst._thunk.unary_op(
+                    op,
+                    op_dtype,
+                    src._thunk,
+                    cls.get_where_thunk(where, dst.shape),
+                    extra_args,
+                )
         else:
-            dst._thunk.unary_op(
-                op,
-                op_dtype,
-                src._thunk,
-                cls.get_where_thunk(
-                    where, dst.shape, stacklevel=(stacklevel + 1)
-                ),
-                args,
-                stacklevel=(stacklevel + 1),
-            )
+            if dst.dtype != out_dtype:
+                temp = ndarray(
+                    dst.shape,
+                    dtype=out_dtype,
+                    inputs=(src, where),
+                )
+                temp._thunk.unary_op(
+                    op,
+                    op_dtype,
+                    src._thunk,
+                    cls.get_where_thunk(where, dst.shape),
+                    extra_args,
+                )
+                dst._thunk.convert(temp._thunk)
+            else:
+                dst._thunk.unary_op(
+                    op,
+                    op_dtype,
+                    src._thunk,
+                    cls.get_where_thunk(where, dst.shape),
+                    extra_args,
+                )
         return dst
 
     # For performing reduction unary operations
@@ -2025,7 +1744,6 @@ class ndarray(object):
         check_types=True,
         initial=None,
         where=True,
-        stacklevel=2,
     ):
         # TODO: Need to require initial to be given when the array is empty
         #       or a where mask is given.
@@ -2081,14 +1799,12 @@ class ndarray(object):
                 dst = ndarray(
                     shape=out_shape,
                     dtype=dtype,
-                    stacklevel=(stacklevel + 1),
                     inputs=(src, where),
                 )
             else:
                 dst = ndarray(
                     shape=out_shape,
                     dtype=src.dtype,
-                    stacklevel=(stacklevel + 1),
                     inputs=(src, where),
                 )
         else:
@@ -2112,57 +1828,46 @@ class ndarray(object):
                 temp = ndarray(
                     src.shape,
                     dtype=out_dtype,
-                    stacklevel=(stacklevel + 1),
                     inputs=(src, where),
                 )
-                temp._thunk.convert(src._thunk, stacklevel=(stacklevel + 1))
+                temp._thunk.convert(src._thunk)
                 src = temp
             if dst.dtype != out_dtype:
                 temp = ndarray(
                     dst.shape,
                     dtype=out_dtype,
-                    stacklevel=(stacklevel + 1),
                     inputs=(src, where),
                 )
 
                 temp._thunk.unary_reduction(
                     op,
                     src._thunk,
-                    cls.get_where_thunk(
-                        where, dst.shape, stacklevel=(stacklevel + 1)
-                    ),
+                    cls.get_where_thunk(where, dst.shape),
                     axes,
                     keepdims,
                     args,
                     initial,
-                    stacklevel=(stacklevel + 1),
                 )
-                dst._thunk.convert(temp._thunk, stacklevel=(stacklevel + 1))
+                dst._thunk.convert(temp._thunk)
             else:
                 dst._thunk.unary_reduction(
                     op,
                     src._thunk,
-                    cls.get_where_thunk(
-                        where, dst.shape, stacklevel=(stacklevel + 1)
-                    ),
+                    cls.get_where_thunk(where, dst.shape),
                     axes,
                     keepdims,
                     args,
                     initial,
-                    stacklevel=(stacklevel + 1),
                 )
         else:
             dst._thunk.unary_reduction(
                 op,
                 src._thunk,
-                cls.get_where_thunk(
-                    where, dst.shape, stacklevel=(stacklevel + 1)
-                ),
+                cls.get_where_thunk(where, dst.shape),
                 axes,
                 keepdims,
                 args,
                 initial,
-                stacklevel=(stacklevel + 1),
             )
         return dst
 
@@ -2175,48 +1880,26 @@ class ndarray(object):
         two,
         out=None,
         dtype=None,
-        args=None,
-        where=True,
         out_dtype=None,
-        check_types=True,
-        stacklevel=2,
+        where=True,
+        extra_args=None,
     ):
+        args = (one, two, where)
+
         # Compute the output shape
-        if out is None:
-            # Compute the output shape and confirm any broadcasting
-            if isinstance(where, ndarray):
-                out_shape = broadcast_shapes(one.shape, two.shape, where.shape)
-            else:
-                out_shape = broadcast_shapes(one.shape, two.shape)
-            if dtype is not None:
-                out = ndarray(
-                    shape=out_shape,
-                    dtype=dtype,
-                    stacklevel=(stacklevel + 1),
-                    inputs=(one, two, where),
-                )
-            elif out_dtype is not None:
-                out = ndarray(
-                    shape=out_shape,
-                    dtype=out_dtype,
-                    stacklevel=(stacklevel + 1),
-                    inputs=(one, two, where),
-                )
-            else:
-                out_dtype = cls.find_common_type(one, two)
-                out = ndarray(
-                    shape=out_shape,
-                    dtype=out_dtype,
-                    stacklevel=(stacklevel + 1),
-                    inputs=(one, two, where),
-                )
-        else:
-            if isinstance(where, ndarray):
-                out_shape = broadcast_shapes(
-                    one.shape, two.shape, out.shape, where.shape
-                )
-            else:
-                out_shape = broadcast_shapes(one.shape, two.shape, out.shape)
+        shapes = [one.shape, two.shape]
+        if isinstance(where, ndarray):
+            shapes.append(where.shape)
+        if out is not None:
+            shapes.append(out.shape)
+        out_shape = broadcast_shapes(*shapes)
+
+        if out_dtype is None:
+            out_dtype = (
+                dtype if dtype is not None else cls.find_common_type(one, two)
+            )
+
+        if out is not None:
             if out.shape != out_shape:
                 raise ValueError(
                     "non-broadcastable output operand with shape "
@@ -2224,75 +1907,34 @@ class ndarray(object):
                     + " doesn't match the broadcast shape "
                     + str(out_shape)
                 )
+        else:
+            out = ndarray(shape=out_shape, dtype=out_dtype, inputs=args)
+
         # Quick exit
         if where is False:
             return out
-        if out_dtype is None:
-            out_dtype = cls.find_common_type(one, two)
-        if check_types:
-            if one.dtype != two.dtype:
-                common_type = cls.find_common_type(one, two)
-                if one.dtype != common_type:
-                    temp = ndarray(
-                        shape=one.shape,
-                        dtype=common_type,
-                        stacklevel=(stacklevel + 1),
-                        inputs=(one, two, where),
-                    )
-                    temp._thunk.convert(
-                        one._thunk, stacklevel=(stacklevel + 1)
-                    )
-                    one = temp
-                if two.dtype != common_type:
-                    temp = ndarray(
-                        shape=two.shape,
-                        dtype=common_type,
-                        stacklevel=(stacklevel + 1),
-                        inputs=(one, two, where),
-                    )
-                    temp._thunk.convert(
-                        two._thunk, stacklevel=(stacklevel + 1)
-                    )
-                    two = temp
-            if out.dtype != out_dtype:
-                temp = ndarray(
-                    shape=out.shape,
-                    dtype=out_dtype,
-                    stacklevel=(stacklevel + 1),
-                    inputs=(one, two, where),
-                )
-                temp._thunk.binary_op(
-                    op,
-                    one._thunk,
-                    two._thunk,
-                    cls.get_where_thunk(
-                        where, out.shape, stacklevel=(stacklevel + 1)
-                    ),
-                    args,
-                    stacklevel=(stacklevel + 1),
-                )
-                out._thunk.convert(temp._thunk, stacklevel=(stacklevel + 1))
-            else:
-                out._thunk.binary_op(
-                    op,
-                    one._thunk,
-                    two._thunk,
-                    cls.get_where_thunk(
-                        where, out.shape, stacklevel=(stacklevel + 1)
-                    ),
-                    args,
-                    stacklevel=(stacklevel + 1),
-                )
+
+        common_type = cls.find_common_type(one, two)
+        one = one._maybe_convert(common_type, args)
+        two = two._maybe_convert(common_type, args)
+
+        if out.dtype != out_dtype:
+            temp = ndarray(shape=out_shape, dtype=out_dtype, inputs=args)
+            temp._thunk.binary_op(
+                op,
+                one._thunk,
+                two._thunk,
+                cls.get_where_thunk(where, out_shape),
+                extra_args,
+            )
+            out._thunk.convert(temp._thunk)
         else:
             out._thunk.binary_op(
                 op,
                 one._thunk,
                 two._thunk,
-                cls.get_where_thunk(
-                    where, out.shape, stacklevel=(stacklevel + 1)
-                ),
-                args,
-                stacklevel=(stacklevel + 1),
+                cls.get_where_thunk(where, out_shape),
+                extra_args,
             )
         return out
 
@@ -2302,11 +1944,11 @@ class ndarray(object):
         op,
         one,
         two,
-        dtype=None,
-        args=None,
-        check_types=True,
-        stacklevel=2,
+        dtype,
+        extra_args=None,
     ):
+        args = (one, two)
+
         # We only handle bool types here for now
         assert dtype is not None and dtype == np.dtype(np.bool_)
         # Collapsing down to a single value in this case
@@ -2315,159 +1957,33 @@ class ndarray(object):
             broadcast = broadcast_shapes(one.shape, two.shape)
         else:
             broadcast = None
-        dst = ndarray(
-            shape=(),
-            dtype=dtype,
-            stacklevel=(stacklevel + 1),
-            inputs=(one, two),
-        )
-        if check_types and one.dtype != two.dtype:
-            if one.dtype != two.dtype:
-                common_type = cls.find_common_type(one, two)
-                if one.dtype != common_type:
-                    temp = ndarray(
-                        shape=one.shape,
-                        dtype=common_type,
-                        stacklevel=(stacklevel + 1),
-                        inputs=(one, two),
-                    )
-                    temp._thunk.convert(
-                        one._thunk, stacklevel=(stacklevel + 1)
-                    )
-                    one = temp
-                if two.dtype != common_type:
-                    temp = ndarray(
-                        shape=two.shape,
-                        dtype=common_type,
-                        stacklevel=(stacklevel + 1),
-                        inputs=(one, two),
-                    )
-                    temp._thunk.convert(
-                        two._thunk, stacklevel=(stacklevel + 1)
-                    )
-                    two = temp
+
+        common_type = cls.find_common_type(one, two)
+        one = one._maybe_convert(common_type, args)._thunk
+        two = two._maybe_convert(common_type, args)._thunk
+
+        dst = ndarray(shape=(), dtype=dtype, inputs=args)
         dst._thunk.binary_reduction(
             op,
-            one._thunk,
-            two._thunk,
+            one,
+            two,
             broadcast,
-            args,
-            stacklevel=(stacklevel + 1),
+            extra_args,
         )
         return dst
 
     @classmethod
-    def perform_where(
-        cls,
-        one,
-        two,
-        three,
-        out=None,
-        dtype=None,
-        out_dtype=None,
-        check_types=True,
-        stacklevel=2,
-    ):
+    def perform_where(cls, mask, one, two):
+        args = (mask, one, two)
+
+        mask = mask._maybe_convert(np.dtype(np.bool_), args)._thunk
+
+        common_type = cls.find_common_type(one, two)
+        one = one._maybe_convert(common_type, args)._thunk
+        two = two._maybe_convert(common_type, args)._thunk
+
         # Compute the output shape
-        if out is None:
-            # Compute the output shape and confirm any broadcasting
-            out_shape = broadcast_shapes(one.shape, two.shape, three.shape)
-            if dtype is not None:
-                out = ndarray(
-                    shape=out_shape,
-                    dtype=dtype,
-                    stacklevel=(stacklevel + 1),
-                    inputs=(one, two, three),
-                )
-            elif out_dtype is not None:
-                out = ndarray(
-                    shape=out_shape,
-                    dtype=out_dtype,
-                    stacklevel=(stacklevel + 1),
-                    inputs=(one, two, three),
-                )
-            else:
-                out = ndarray(
-                    shape=out_shape,
-                    dtype=np.result_type(one, two, three),
-                    stacklevel=(stacklevel + 1),
-                    inputs=(one, two, three),
-                )
-        else:
-            out_shape = broadcast_shapes(
-                one.shape, two.shape, three.shape, out.shape
-            )
-            if out.shape != out_shape:
-                raise ValueError(
-                    "out array shape "
-                    + str(out.shape)
-                    + " does not match expected shape "
-                    + str(out_shape)
-                )
-        if out_dtype is None:
-            out_dtype = np.result_type(one, two, three)
-        if check_types:
-            if one.dtype != two.dtype or one.dtype != three.dtype:
-                common_type = cls.find_common_type(one, two, three)
-                if one.dtype != common_type:
-                    temp = ndarray(
-                        shape=one.shape,
-                        dtype=common_type,
-                        stacklevel=(stacklevel + 1),
-                        inputs=(one, two, three),
-                    )
-                    temp._thunk.convert(
-                        one._thunk, stacklevel=(stacklevel + 1)
-                    )
-                    one = temp
-                if two.dtype != common_type:
-                    temp = ndarray(
-                        shape=two.shape,
-                        dtype=common_type,
-                        stacklevel=(stacklevel + 1),
-                        inputs=(one, two, three),
-                    )
-                    temp._thunk.convert(
-                        two._thunk, stacklevel=(stacklevel + 1)
-                    )
-                    two = temp
-                if three.dtype != common_type:
-                    temp = ndarray(
-                        shape=three.shape,
-                        dtype=common_type,
-                        stacklevel=(stacklevel + 1),
-                        inputs=(one, two, three),
-                    )
-                    temp._thunk.convert(
-                        three._thunk, stacklevel=(stacklevel + 1)
-                    )
-                    three = temp
-            if out.dtype != out_dtype:
-                temp = ndarray(
-                    shape=out.shape,
-                    dtype=out_dtype,
-                    stacklevel=(stacklevel + 1),
-                    inputs=(one, two, three),
-                )
-                temp._thunk.where(
-                    one._thunk,
-                    two._thunk,
-                    three._thunk,
-                    stacklevel=(stacklevel + 1),
-                )
-                out._thunk.convert(temp._thunk, stacklevel=(stacklevel + 1))
-            else:
-                out._thunk.where(
-                    one._thunk,
-                    two._thunk,
-                    three._thunk,
-                    stacklevel=(stacklevel + 1),
-                )
-        else:
-            out._thunk.where(
-                one._thunk,
-                two._thunk,
-                three._thunk,
-                stacklevel=(stacklevel + 1),
-            )
+        out_shape = broadcast_shapes(mask.shape, one.shape, two.shape)
+        out = ndarray(shape=out_shape, dtype=common_type, inputs=args)
+        out._thunk.where(mask, one, two)
         return out

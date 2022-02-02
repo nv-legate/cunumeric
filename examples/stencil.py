@@ -15,8 +15,6 @@
 # limitations under the License.
 #
 
-from __future__ import print_function
-
 import argparse
 import datetime
 import math
@@ -49,7 +47,7 @@ def run(grid, I, N):  # noqa: E741
         # delta = np.sum(np.absolute(work - center))
         center[:] = work
     total = np.sum(center)
-    return total / (N ** 2)
+    return total / (N**2)
 
 
 def run_stencil(N, I, timing):  # noqa: E741

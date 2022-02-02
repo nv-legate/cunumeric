@@ -13,16 +13,12 @@
 # limitations under the License.
 #
 
-import functools
 import inspect
+import traceback
 import warnings
+from functools import reduce
 
 import numpy as np
-
-try:
-    reduce  # Python 2
-except NameError:
-    reduce = functools.reduce
 
 
 # Get the list of attributes defined in a namespace
@@ -33,8 +29,19 @@ def getPredefinedAttributes(namespace):
     return preDefined
 
 
+def find_last_user_stacklevel():
+    stacklevel = 1
+    for (frame, _) in traceback.walk_stack(None):
+        if not frame.f_globals["__name__"].startswith("cunumeric"):
+            break
+        stacklevel += 1
+    return stacklevel
+
+
 def unimplemented(func):
     def wrapper(*args, **kwargs):
+        find_last_user_stacklevel()
+
         warnings.warn(
             "cuNumeric has not implemented "
             + func.__name__

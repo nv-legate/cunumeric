@@ -13,8 +13,6 @@
 # limitations under the License.
 #
 
-from __future__ import absolute_import
-
 from .invert_tests import inplace_normal, normal, operator_normal, scalar
 
 

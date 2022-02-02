@@ -66,13 +66,16 @@ Users must have a working installation of the
 [Legate Core](https://github.com/nv-legate/legate.core)
 library prior to installing cuNumeric.
 
-cuNumeric requires Python >= 3.6. We provide a
-[conda environment file](conda/cunumeric_dev.yml) that
-installs all needed dependencies in one step. Use the following command to
-create a conda environment with it:
-```
-conda env create -n legate -f conda/cunumeric_dev.yml
-```
+cuNumeric has similar dependencies to Legate Core:
+
+  - Python >= 3.7
+  - [CUDA](https://developer.nvidia.com/cuda-downloads) >= 8.0
+  - C++14 compatible compiler (g++, clang, or nvc++)
+  - the Python packages listed in the [conda environment file](conda/cunumeric_dev.yml)
+
+See the [corresponding section](https://github.com/nv-legate/legate.core#dependencies)
+on the Legate Core instructions for help on installing the required Python packages
+using conda.
 
 ## Building from Source
 
@@ -85,12 +88,7 @@ python setup.py --with-core <path-to-legate-core-installation>
 ```
 
 This will build cuNumeric against the Legate Core installation and then
-install cuNumeric into the same location. Users can also install cuNumeric
-into an alternative location with the canonical `--prefix` flag as well.
-
-```
-python setup.py --prefix <install-dir> --with-core <path-to-legate-core-installation>
-```
+install cuNumeric into the same location.
 
 Note that after the first invocation of `setup.py` this repository will remember
 which Legate Core installation to use and the `--with-core` option can be
@@ -103,6 +101,7 @@ Of particular interest to cuNumeric users will likely be the option for
 specifying an installation of [OpenBLAS](https://www.openblas.net/) to use.
 If you already have an installation of OpenBLAS on your machine you can
 inform the `install.py` script about its location using the `--with-openblas` flag:
+
 ```
 python setup.py --with-openblas /path/to/open/blas/
 ```
@@ -193,3 +192,5 @@ See the discussion of contributing in [CONTRIBUTING.md](CONTRIBUTING.md).
    likely will not show up on most Apple machines for quite some time. You may have
    to manually patch your implementation of libc++. If you have trouble doing this
    please contact us and we will be able to help you.
+ * cuNumeric can return `Internal cuBLAS failure with error code 7` when executing
+   `dot` operation on large matrices if cuda is older than 11.5.0.

@@ -123,7 +123,7 @@ def choose_color_shape(runtime, shape):
         return (num_tiles, num_tiles)
 
 
-def cholesky(output, input, stacklevel=0, callsite=None):
+def cholesky(output, input):
     shape = output.base.shape
     color_shape = choose_color_shape(output.runtime, shape)
     tile_shape = (shape + color_shape - 1) // color_shape

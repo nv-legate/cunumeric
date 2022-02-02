@@ -33,45 +33,33 @@ def cholesky(a):
         raise NotImplementedError(
             "cuNumeric needs to support stacked 2d arrays"
         )
-    return lg_array.cholesky(stacklevel=2)
+    return lg_array.cholesky()
 
 
-def norm(x, ord=None, axis=None, keepdims=False, stacklevel=1):
+def norm(x, ord=None, axis=None, keepdims=False):
     lg_array = ndarray.convert_to_cunumeric_ndarray(x)
     if (axis is None and lg_array.ndim == 1) or type(axis) == int:
         # Handle the weird norm cases
         if ord == np.inf:
-            return abs(lg_array).max(
-                axis=axis, keepdims=keepdims, stacklevel=(stacklevel + 1)
-            )
+            return abs(lg_array).max(axis=axis, keepdims=keepdims)
         elif ord == -np.inf:
-            return abs(lg_array).min(
-                axis=axis, keepdims=keepdims, stacklevel=(stacklevel + 1)
-            )
+            return abs(lg_array).min(axis=axis, keepdims=keepdims)
         elif ord == 0:
             # Check for where things are not zero and convert to integer
             # for sum
             temp = (lg_array != 0).astype(np.int64)
-            return temp.sum(
-                axis=axis, keepdims=keepdims, stacklevel=(stacklevel + 1)
-            )
+            return temp.sum(axis=axis, keepdims=keepdims)
         elif ord == 1:
-            return abs(lg_array).sum(
-                axis=axis, keepdims=keepdims, stacklevel=stacklevel + 1
-            )
+            return abs(lg_array).sum(axis=axis, keepdims=keepdims)
         elif ord is None or ord == 2:
             s = (lg_array.conj() * lg_array).real
-            return _sqrt(
-                s.sum(axis=axis, keepdims=keepdims, stacklevel=stacklevel + 1)
-            )
+            return _sqrt(s.sum(axis=axis, keepdims=keepdims))
         elif isinstance(ord, str):
             raise ValueError(f"Invalid norm order '{ord}' for vectors")
         elif type(ord) == int:
             absx = abs(lg_array)
             absx **= ord
-            ret = absx.sum(
-                axis=axis, keepdims=keepdims, stacklevel=(stacklevel + 1)
-            )
+            ret = absx.sum(axis=axis, keepdims=keepdims)
             ret **= 1 / ord
             return ret
         else:
