@@ -4,7 +4,7 @@ Array creation routines
 .. currentmodule:: cunumeric
 
 From shape or value
---------------
+-------------------
 
 .. autosummary::
    :toctree: generated/

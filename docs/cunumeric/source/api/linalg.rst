@@ -1,7 +1,7 @@
 .. module:: cunumeric.linalg
 
 Linear algebra (:mod:`cunumeric.linalg`)
-===================================
+========================================
 
 .. currentmodule:: cunumeric
 

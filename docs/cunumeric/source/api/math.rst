@@ -74,6 +74,7 @@ Arithmetic operations
    true_divide
    floor_divide
    mod
+   remainder
 
 
 Handling complex numbers
