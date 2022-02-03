@@ -156,7 +156,7 @@ installing legate.core with a larger `--max-dim`.
 ## Documentation
 
 A complete list of available features can is provided in the [API
-reference](https://nv-legate.github.io/cunumeric/api.html).
+reference](https://nv-legate.github.io/cunumeric/api/index.html).
 
 ## Future Directions
 
@@ -192,5 +192,3 @@ See the discussion of contributing in [CONTRIBUTING.md](CONTRIBUTING.md).
    likely will not show up on most Apple machines for quite some time. You may have
    to manually patch your implementation of libc++. If you have trouble doing this
    please contact us and we will be able to help you.
- * cuNumeric can return `Internal cuBLAS failure with error code 7` when executing
-   `dot` operation on large matrices if cuda is older than 11.5.0.

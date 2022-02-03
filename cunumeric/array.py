@@ -1312,7 +1312,7 @@ class ndarray(object):
     @add_boilerplate()
     def mean(self, axis=None, dtype=None, out=None, keepdims=False):
         if axis is not None and type(axis) != int:
-            raise TypeError(
+            raise NotImplementedError(
                 "cunumeric.mean only supports int types for "
                 "'axis' currently"
             )
