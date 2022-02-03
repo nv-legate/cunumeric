@@ -677,7 +677,20 @@ def row_stack(inputs):
 
 
 def column_stack(array_list):
-    return hstack(array_list)
+    inputs = list(
+        ndarray.convert_to_cunumeric_ndarray(inp) for inp in array_list
+    )
+    inputs, common_info = check_shape_dtype(inputs, column_stack.__name__, 1)
+    # When ndim == 1, hstack concatenates arrays along the first axis
+    if common_info.ndim == 1:
+        inputs = list(inp.reshape([inp.shape[0], 1]) for inp in inputs)
+        common_info.shape = inputs[0].shape
+    return _concatenate(
+        inputs,
+        axis=1,
+        dtype=common_info.dtype,
+        common_info=common_info,
+    )
 
 
 def vstack(array_list):

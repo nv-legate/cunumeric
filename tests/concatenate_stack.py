@@ -65,7 +65,14 @@ def run_test(arr, routine, input_size):
 
 def test(dim):
     print("test np.concatenate / *stack")
-    test_routine = ["concatenate", "stack", "vstack", "hstack", "dstack"]
+    test_routine = [
+        "concatenate",
+        "stack",
+        "vstack",
+        "hstack",
+        "dstack",
+        "column_stack",
+    ]
     # test np.concatenate & *stack w/ 1D, 2D and 3D arrays
     input_arr = [
         (0,),
