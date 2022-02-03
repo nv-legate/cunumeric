@@ -58,6 +58,7 @@ def unimplemented(func):
 # Copy attributes from one module to another.
 # Works only on modules and doesnt add submodules
 def add_missing_attributes(baseModule, definedModule):
+    internal_attrs = set(["__dir__", "__getattr__"])
     preDefined = getPredefinedAttributes(definedModule)
     attrList = {}
     for attr in dir(baseModule):
@@ -68,7 +69,11 @@ def add_missing_attributes(baseModule, definedModule):
 
     # add the attributes
     for key, value in attrList.items():
-        if callable(value) and not isinstance(value, type):
+        if (
+            callable(value)
+            and not isinstance(value, type)
+            and key not in internal_attrs
+        ):
             setattr(definedModule, key, unimplemented(value))
         else:
             setattr(definedModule, key, value)

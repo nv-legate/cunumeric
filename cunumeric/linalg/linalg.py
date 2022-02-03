@@ -19,6 +19,42 @@ from cunumeric.module import sqrt as _sqrt
 
 
 def cholesky(a):
+    """
+    Cholesky decomposition.
+
+    Return the Cholesky decomposition, `L * L.H`, of the square matrix `a`,
+    where `L` is lower-triangular and .H is the conjugate transpose operator
+    (which is the ordinary transpose if `a` is real-valued).  `a` must be
+    Hermitian (symmetric if real-valued) and positive-definite. No
+    checking is performed to verify whether `a` is Hermitian or not.
+    In addition, only the lower-triangular and diagonal elements of `a`
+    are used. Only `L` is actually returned.
+
+    Parameters
+    ----------
+    a : (..., M, M) array_like
+        Hermitian (symmetric if all elements are real), positive-definite
+        input matrix.
+
+    Returns
+    -------
+    L : (..., M, M) array_like
+        Upper or lower-triangular Cholesky factor of `a`.  Returns a
+        matrix object if `a` is a matrix object.
+
+    Notes
+    -----
+    The current implementation kills the process when the decomposition fails.
+
+    See Also
+    --------
+    numpy.linalg.cholesky
+
+    Availability
+    --------
+    GPU, CPU
+    """
+
     lg_array = ndarray.convert_to_cunumeric_ndarray(a)
     shape = lg_array.shape
     if len(shape) < 2:
