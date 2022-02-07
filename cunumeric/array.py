@@ -159,6 +159,8 @@ class ndarray(object):
         thunk=None,
         inputs=None,
     ):
+        # `inputs` being a cuNumeric ndarray is definitely a bug
+        assert not isinstance(inputs, ndarray)
         if thunk is None:
             if not isinstance(dtype, np.dtype):
                 dtype = np.dtype(dtype)
@@ -1106,7 +1108,7 @@ class ndarray(object):
             tr_shape = tuple(a.shape[i] for i in range(a.ndim - N))
             # calculate shape of the output array
             out_shape = tr_shape + (diag_size,)
-            out = ndarray(shape=out_shape, dtype=self.dtype, inputs=(self))
+            out = ndarray(shape=out_shape, dtype=self.dtype, inputs=(self,))
 
             out._thunk.diag_helper(
                 a._thunk,
