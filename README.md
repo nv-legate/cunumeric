@@ -183,8 +183,22 @@ We are open to comments, suggestions, and ideas.
 
 See the discussion of contributing in [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## Known Bugs
+## Known Issues
 
+ * When using certain operations with high scratch space requirements (e.g.
+   `einsum` or `convolve`) you might run into the following error:
+   ```
+   LEGION ERROR: Failed to allocate DeferredBuffer/Value/Reduction in task [some task] because [some memory] is full. This is an eager allocation ...
+   ```
+   Currently, Legion splits its memory reservations between two pools: the
+   "deferred" pool, used for allocating cuNumeric `ndarray`s, and the "eager"
+   pool, used for allocating scratch memory for operations. The above error
+   message signifies that not enough memory was available for an operation's
+   scratch space requirements. You can work around this by allocating more
+   memory overall to cuNumeric (e.g. adjusting `--sysmem`, `--numamem` or
+   `--fbmem`), and/or by adjusting the split between the two pools (e.g. by
+   passing `-lg:eager_alloc_percentage 60` on the command line to allocate 60%
+   of memory to the eager pool, up from the default of 50%).
  * cuNumeric can exercise a bug in OpenBLAS when it is run with
    [multiple OpenMP processors](https://github.com/xianyi/OpenBLAS/issues/2146)
  * On Mac OSX, cuNumeric can trigger a bug in Apple's implementation of libc++.
