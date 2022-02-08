@@ -1,4 +1,4 @@
-# Copyright 2021 NVIDIA Corporation
+# Copyright 2021-2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ import cunumeric as num
 
 
 def test(ty):
+    rtol = 2e-03 if ty == np.float16 else 1e-05
     np.random.seed(42)
 
     A = num.random.randn(6, 3, 7).astype(ty)
@@ -29,7 +30,7 @@ def test(ty):
     Bn = B.__array__()
     Cn = An[1].dot(Bn[2])
 
-    assert np.allclose(C, Cn)
+    assert np.allclose(C, Cn, rtol=rtol)
 
     An = np.random.randn(3, 7).astype(ty)
     Bn = np.random.randn(11, 7).astype(ty)
@@ -39,7 +40,7 @@ def test(ty):
     BT = num.array(Bn)
     C = A.dot(BT.transpose())
 
-    assert np.allclose(C, Cn)
+    assert np.allclose(C, Cn, rtol=rtol)
 
     An = np.random.randn(7, 3).astype(ty)
     Bn = np.random.randn(7, 11).astype(ty)
@@ -49,7 +50,7 @@ def test(ty):
     B = num.array(Bn)
     C = AT.transpose().dot(B)
 
-    assert np.allclose(C, Cn)
+    assert np.allclose(C, Cn, rtol=rtol)
 
     An = np.random.randn(7, 3).astype(ty)
     Bn = np.random.randn(11, 7).astype(ty)
@@ -59,7 +60,7 @@ def test(ty):
     BT = num.array(Bn)
     C = AT.transpose().dot(BT.transpose())
 
-    assert np.allclose(C, Cn)
+    assert np.allclose(C, Cn, rtol=rtol)
 
     A3np = np.empty((2, 7, 3), dtype=ty)
     B3np = np.empty((2, 11, 7), dtype=ty)
@@ -73,7 +74,7 @@ def test(ty):
     B3[0] = B3np[0]
     C = A3[0].T.dot(B3[0].T)
 
-    assert np.allclose(C, Cn)
+    assert np.allclose(C, Cn, rtol=rtol)
 
     A = num.random.randn(1, 10).astype(ty)
     B = num.random.randn(10, 1).astype(ty)
@@ -83,7 +84,7 @@ def test(ty):
     Bn = B.__array__()
     Cn = An.dot(Bn)
 
-    assert np.allclose(C, Cn)
+    assert np.allclose(C, Cn, rtol=rtol)
 
 
 if __name__ == "__main__":

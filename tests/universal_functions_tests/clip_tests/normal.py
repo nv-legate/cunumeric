@@ -1,4 +1,4 @@
-# Copyright 2021 NVIDIA Corporation
+# Copyright 2021-2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,7 +26,9 @@ def test():
     a_max = 10.0 * np.random.rand()
 
     # test clip
-    assert np.array_equal(num.clip(a, a_min, a_max), np.clip(anp, a_min, a_max))
+    assert np.array_equal(
+        num.clip(a, a_min, a_max), np.clip(anp, a_min, a_max)
+    )
 
     return
 

@@ -1,4 +1,4 @@
-# Copyright 2021 NVIDIA Corporation
+# Copyright 2021-2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,12 +13,81 @@
 # limitations under the License.
 #
 
-from __future__ import absolute_import, division, print_function
-
 import numpy as np
 
 from .config import BinaryOpCode, UnaryOpCode, UnaryRedCode
 from .thunk import NumPyThunk
+
+_UNARY_OPS = {
+    UnaryOpCode.ABSOLUTE: np.absolute,
+    UnaryOpCode.ARCCOS: np.arccos,
+    UnaryOpCode.ARCSIN: np.arcsin,
+    UnaryOpCode.ARCTAN: np.arctan,
+    UnaryOpCode.CEIL: np.ceil,
+    UnaryOpCode.COS: np.cos,
+    UnaryOpCode.EXP: np.exp,
+    UnaryOpCode.EXP2: np.exp2,
+    UnaryOpCode.FLOOR: np.floor,
+    UnaryOpCode.INVERT: np.invert,
+    UnaryOpCode.ISINF: np.isinf,
+    UnaryOpCode.ISNAN: np.isnan,
+    UnaryOpCode.LOG: np.log,
+    UnaryOpCode.LOG10: np.log10,
+    UnaryOpCode.LOGICAL_NOT: np.logical_not,
+    UnaryOpCode.NEGATIVE: np.negative,
+    UnaryOpCode.RINT: np.rint,
+    UnaryOpCode.SIGN: np.sign,
+    UnaryOpCode.SIN: np.sin,
+    UnaryOpCode.SQRT: np.sqrt,
+    UnaryOpCode.TAN: np.tan,
+    UnaryOpCode.TANH: np.tanh,
+}
+
+_BINARY_OPS = {
+    BinaryOpCode.ADD: np.add,
+    BinaryOpCode.LOGICAL_AND: np.logical_and,
+    BinaryOpCode.DIVIDE: np.divide,
+    BinaryOpCode.EQUAL: np.equal,
+    BinaryOpCode.FLOOR_DIVIDE: np.floor_divide,
+    BinaryOpCode.GREATER_EQUAL: np.greater_equal,
+    BinaryOpCode.GREATER: np.greater,
+    BinaryOpCode.MOD: np.mod,
+    BinaryOpCode.MULTIPLY: np.multiply,
+    BinaryOpCode.LOGICAL_OR: np.logical_or,
+    BinaryOpCode.POWER: np.power,
+    BinaryOpCode.SUBTRACT: np.subtract,
+    BinaryOpCode.LOGICAL_XOR: np.logical_xor,
+    BinaryOpCode.LESS_EQUAL: np.less_equal,
+    BinaryOpCode.LESS: np.less,
+    BinaryOpCode.MAXIMUM: np.maximum,
+    BinaryOpCode.MINIMUM: np.minimum,
+    BinaryOpCode.NOT_EQUAL: np.not_equal,
+}
+
+
+def eye_reference(shape, dtype, axes):
+    n = min(shape[ax] for ax in axes)
+    res = np.zeros(shape, dtype=dtype)
+    for i in range(n):
+        sl = tuple(
+            i if ax in axes else slice(None) for ax in range(len(shape))
+        )
+        res[sl] = 1
+    return res
+
+
+def diagonal_reference(a, axes):
+    transpose_axes = tuple(ax for ax in range(a.ndim) if ax not in axes)
+    axes = sorted(axes, reverse=False, key=lambda i: a.shape[i])
+    axes = tuple(axes)
+    a = a.transpose(transpose_axes + axes)
+    diff = a.ndim - len(axes)
+    axes = tuple((diff + ax) for ax in range(0, len(axes)))
+    eye = eye_reference(a.shape, a.dtype, axes)
+    res = a * eye
+    for ax in list(reversed(sorted(axes)))[:-1]:
+        res = res.sum(axis=ax)
+    return res
 
 
 class EagerArray(NumPyThunk):
@@ -29,7 +98,7 @@ class EagerArray(NumPyThunk):
     :meta private:
     """
 
-    def __init__(self, runtime, array, parent=None, key=None, shadow=False):
+    def __init__(self, runtime, array, parent=None, key=None):
         NumPyThunk.__init__(self, runtime, array.dtype)
         self.array = array
         self.parent = parent
@@ -38,27 +107,25 @@ class EagerArray(NumPyThunk):
         #: if this ever becomes set (to a DeferredArray), we forward all
         #: operations to it
         self.deferred = None
-        #: if True then this is a shadow debugging copy of a DeferredArray
-        self.shadow = shadow
         self.escaped = False
 
     @property
     def storage(self):
         if self.deferred is None:
-            self.to_deferred_array(stacklevel=2)
+            self.to_deferred_array()
         return self.deferred.storage
 
     @property
     def shape(self):
         return self.array.shape
 
-    def __numpy_array__(self, stacklevel=0):
+    def __numpy_array__(self):
         if self.deferred is not None:
-            return self.deferred.__numpy_array__(stacklevel=(stacklevel + 1))
+            return self.deferred.__numpy_array__()
         # Track when this escapes. If it escapes we have
         # to be more careful in how we do our attach
         self.record_escape()
-        return self.array
+        return self.array.__array__()
 
     def record_escape(self):
         if self.parent is None:
@@ -66,19 +133,23 @@ class EagerArray(NumPyThunk):
         else:
             self.parent.record_escape()
 
-    def check_eager_args(self, stacklevel, *args):
+    def check_eager_args(self, *args):
+        if self.deferred is not None:
+            return
         for arg in args:
             if self.runtime.is_eager_array(arg):
                 if arg.deferred is not None:
-                    self.to_deferred_array(stacklevel=(stacklevel + 1))
+                    self.to_deferred_array()
                     break
             elif self.runtime.is_deferred_array(arg):
-                self.to_deferred_array(stacklevel=(stacklevel + 1))
+                self.to_deferred_array()
                 break
+            elif arg is None or not isinstance(arg, NumPyThunk):
+                pass
             else:
                 raise RuntimeError("bad argument type")
 
-    def to_deferred_array(self, stacklevel):
+    def to_deferred_array(self):
         """This is a really important method. It will convert a tree of
         eager NumPy arrays into an equivalent tree of deferred arrays that
         are mirrored by an equivalent logical region tree. To be consistent
@@ -86,7 +157,6 @@ class EagerArray(NumPyThunk):
         to be converted then we do it for all of them.
         :meta private:
         """
-        assert not self.shadow
         # Check to see if we already have our deferred array
         # or whether we need to go up the tree to have it made
         if self.deferred is None:
@@ -104,13 +174,12 @@ class EagerArray(NumPyThunk):
                 else:
                     self.deferred = self.runtime.find_or_create_array_thunk(
                         self.array,
-                        stacklevel=(stacklevel + 1),
                         share=self.escaped,
                         defer=True,
                     )
             else:
                 # Traverse up the tree to make the deferred array
-                self.parent.to_deferred_array(stacklevel=(stacklevel + 1))
+                self.parent.to_deferred_array()
                 assert self.deferred is not None
                 # No need to traverse down the parent did it for us
                 return self.deferred
@@ -120,51 +189,54 @@ class EagerArray(NumPyThunk):
         if self.children is not None:
             assert self.runtime.is_deferred_array(self.deferred)
             for child in self.children:
-                child.deferred = self.deferred.get_item(
-                    child.key, stacklevel=(stacklevel + 1)
-                )
+                func = getattr(self.deferred, child.key[0])
+                args = child.key[1:]
+                child.deferred = func(*args)
             # After we've made all the deferred views for each child then
             # we can traverse down. Do it this way so we can get partition
             # coalescing where possible
             for child in self.children:
-                child.to_deferred_array(stacklevel=(stacklevel + 1))
+                child.to_deferred_array()
         return self.deferred
 
-    def imag(self, stacklevel):
+    def imag(self):
         if self.deferred is not None:
-            return self.deferred.imag(stacklevel=(stacklevel + 1))
+            return self.deferred.imag()
         return EagerArray(self.runtime, self.array.imag)
 
-    def real(self, stacklevel):
+    def real(self):
         if self.deferred is not None:
-            return self.deferred.imag(stacklevel=(stacklevel + 1))
+            return self.deferred.imag()
         return EagerArray(self.runtime, self.array.real)
 
-    def conj(self, stacklevel):
+    def conj(self):
         if self.deferred is not None:
-            return self.deferred.conj(stacklevel=(stacklevel + 1))
+            return self.deferred.conj()
 
         return EagerArray(self.runtime, self.array.conj())
 
-    def copy(self, rhs, deep, stacklevel):
-        if self.shadow:
-            rhs = self.runtime.to_eager_array(rhs, stacklevel=(stacklevel + 1))
-        elif self.deferred is None:
-            self.check_eager_args((stacklevel + 1), rhs)
+    def convolve(self, v, out, mode):
         if self.deferred is not None:
-            self.deferred.copy(rhs, deep=deep, stacklevel=(stacklevel + 1))
+            self.deferred(v, out, mode)
+        else:
+            if self.ndim == 1:
+                out.array = np.convolve(self.array, v.array, mode)
+            else:
+                from scipy.signal import convolve
+
+                out.array = convolve(self.array, v.array, mode)
+
+    def copy(self, rhs, deep=False):
+        self.check_eager_args(rhs)
+        if self.deferred is not None:
+            self.deferred.copy(rhs, deep=deep)
         else:
             if self.array.size == 1:
-                if deep:
-                    self.array.fill(rhs.array.item().__deepcopy__(None))
-                else:
-                    self.array.fill(rhs.array.item())
+                self.array.fill(rhs.array.item())
+            elif deep:
+                self.array[:] = rhs.array.__deepcopy__(None)
             else:
-                if deep:
-                    self.array[:] = rhs.array.__deepcopy__(None)
-                else:
-                    self.array[:] = rhs.array
-            self.runtime.profile_callsite(stacklevel + 1, False)
+                self.array[:] = rhs.array
 
     @property
     def scalar(self):
@@ -172,12 +244,12 @@ class EagerArray(NumPyThunk):
             return self.deferred.scalar
         return self.array.size == 1
 
-    def get_scalar_array(self, stacklevel):
+    def get_scalar_array(self):
         if self.deferred is not None:
-            return self.deferred.get_scalar_array(stacklevel=(stacklevel + 1))
+            return self.deferred.get_scalar_array()
         return self.array.reshape(())
 
-    def _create_indexing_key(self, key, stacklevel):
+    def _create_indexing_key(self, key):
         if key is None or key is Ellipsis:
             return key
         if isinstance(key, int):
@@ -187,40 +259,35 @@ class EagerArray(NumPyThunk):
         if isinstance(key, tuple):
             result = ()
             for k in key:
-                result += (self._create_indexing_key(k, stacklevel + 1),)
+                result += (self._create_indexing_key(k),)
             return result
         assert isinstance(key, NumPyThunk)
-        return self.runtime.to_eager_array(
-            key, stacklevel=(stacklevel + 1)
-        ).array
+        return self.runtime.to_eager_array(key).array
 
-    def get_item(self, key, stacklevel):
+    def get_item(self, key):
         if self.deferred is not None:
-            return self.deferred.get_item(key, stacklevel=(stacklevel + 1))
+            return self.deferred.get_item(key)
         if self._is_advanced_indexing(key):
-            index_key = self._create_indexing_key(key, stacklevel + 1)
+            index_key = self._create_indexing_key(key)
             out = self.array[index_key]
             result = EagerArray(self.runtime, out)
         else:
             child = self.array[key]
-            result = EagerArray(self.runtime, child, parent=self, key=key)
+            result = EagerArray(
+                self.runtime, child, parent=self, key=("get_item", key)
+            )
             if self.children is None:
                 self.children = list()
             self.children.append(result)
         return result
 
-    def set_item(self, key, value, stacklevel):
-        if self.shadow:
-            value = self.runtime.to_eager_array(
-                value, stacklevel=(stacklevel + 1)
-            )
-        elif self.deferred is None:
-            self.check_eager_args((stacklevel + 1), value)
+    def set_item(self, key, value):
+        self.check_eager_args(value)
         if self.deferred is not None:
-            self.deferred.set_item(key, value, stacklevel=(stacklevel + 1))
+            self.deferred.set_item(key, value)
         else:
             if self._is_advanced_indexing(key):
-                index_key = self._create_indexing_key(key, stacklevel + 1)
+                index_key = self._create_indexing_key(key)
                 if isinstance(value, EagerArray):
                     self.array[index_key] = value.array
                 else:
@@ -231,11 +298,9 @@ class EagerArray(NumPyThunk):
                 else:
                     self.array[key] = value
 
-    def reshape(self, newshape, order, stacklevel):
+    def reshape(self, newshape, order):
         if self.deferred is not None:
-            return self.deferred.reshape(
-                newshape, order, stacklevel=(stacklevel + 1)
-            )
+            return self.deferred.reshape(newshape, order)
         child = self.array.reshape(newshape, order=order)
         # See if we are aliased or not
         if child.base is not self.array:
@@ -254,9 +319,9 @@ class EagerArray(NumPyThunk):
             self.children.append(result)
         return result
 
-    def squeeze(self, axis, stacklevel):
+    def squeeze(self, axis):
         if self.deferred is not None:
-            return self.deferred.squeeze(axis, stacklevel=(stacklevel + 1))
+            return self.deferred.squeeze(axis)
         child = self.array.squeeze(axis)
         # Should be aliased with parent region
         assert child.base is not None
@@ -268,11 +333,9 @@ class EagerArray(NumPyThunk):
         self.children.append(result)
         return result
 
-    def swapaxes(self, axis1, axis2, stacklevel):
+    def swapaxes(self, axis1, axis2):
         if self.deferred is not None:
-            return self.deferred.swapaxes(
-                axis1, axis2, stacklevel=(stacklevel + 1)
-            )
+            return self.deferred.swapaxes(axis1, axis2)
         child = self.array.swapaxes(axis1, axis2)
         # Should be aliased with parent region
         assert child.base is not None
@@ -284,73 +347,119 @@ class EagerArray(NumPyThunk):
         self.children.append(result)
         return result
 
-    def convert(self, rhs, stacklevel, warn=True):
-        if self.shadow:
-            rhs = self.runtime.to_eager_array(rhs, stacklevel=(stacklevel + 1))
-        elif self.deferred is None:
-            self.check_eager_args((stacklevel + 1), rhs)
+    def convert(self, rhs, warn=True):
+        self.check_eager_args(rhs)
         if self.deferred is not None:
-            return self.deferred.convert(
-                rhs, stacklevel=(stacklevel + 1), warn=warn
-            )
+            return self.deferred.convert(rhs, warn=warn)
         else:
             if self.array.size == 1:
                 self.array.fill(rhs.array.item())
             else:
-                self.array[:] = rhs.array
-            self.runtime.profile_callsite(stacklevel + 1, False)
+                if rhs.array.dtype.kind == "c" and self.array.dtype != "c":
+                    self.array[:] = rhs.array.real
+                else:
+                    self.array[:] = rhs.array
 
-    def fill(self, value, stacklevel):
+    def fill(self, value):
         if self.deferred is not None:
-            self.deferred.fill(value, stacklevel=(stacklevel + 1))
+            self.deferred.fill(value)
         else:
             self.array.fill(value)
-            self.runtime.profile_callsite(stacklevel + 1, False)
 
-    def dot(self, rhs1, rhs2, stacklevel):
-        if self.shadow:
-            rhs1 = self.runtime.to_eager_array(
-                rhs1, stacklevel=(stacklevel + 1)
-            )
-            rhs2 = self.runtime.to_eager_array(
-                rhs2, stacklevel=(stacklevel + 1)
-            )
-        elif self.deferred is None:
-            self.check_eager_args((stacklevel + 1), rhs1, rhs2)
+    def dot(self, rhs1, rhs2):
+        self.check_eager_args(rhs1, rhs2)
         if self.deferred is not None:
-            self.deferred.dot(rhs1, rhs2, stacklevel=(stacklevel + 1))
+            self.deferred.dot(rhs1, rhs2)
         else:
             np.dot(rhs1.array, rhs2.array, out=self.array)
-            self.runtime.profile_callsite(stacklevel + 1, False)
 
-    def transpose(self, rhs, axes, stacklevel):
-        if self.shadow:
-            rhs = self.runtime.to_eager_array(rhs, stacklevel=(stacklevel + 1))
-        elif self.deferred is None:
-            self.check_eager_args((stacklevel + 1), rhs)
+    def transpose(self, rhs, axes):
+        self.check_eager_args(rhs)
         if self.deferred is not None:
-            self.deferred.transpose(rhs, axes, stacklevel=(stacklevel + 1))
+            self.deferred.transpose(rhs, axes)
         else:
             if self.array.size == 1:
                 self.array.fill(rhs.array.item())
             else:
                 self.array[:] = np.transpose(rhs.array, axes)
-            self.runtime.profile_callsite(stacklevel + 1, False)
 
-    def diag(self, rhs, extract, k, stacklevel):
-        if self.shadow:
-            rhs = self.runtime.to_eager_array(rhs, stacklevel=(stacklevel + 1))
-        elif self.deferred is None:
-            self.check_eager_args((stacklevel + 1), rhs)
+    def flip(self, rhs, axes):
+        self.check_eager_args(rhs)
         if self.deferred is not None:
-            self.deferred.diag(rhs, extract, k, stacklevel=(stacklevel + 1))
+            self.deferred.flip(rhs, axes)
         else:
-            self.array[:] = np.diag(rhs.array, k)
-            self.runtime.profile_callsite(stacklevel + 1, False)
+            self.array = np.flip(rhs.array, axes)
 
-    def eye(self, k, stacklevel):
+    def contract(
+        self,
+        lhs_modes,
+        rhs1_thunk,
+        rhs1_modes,
+        rhs2_thunk,
+        rhs2_modes,
+        mode2extent,
+    ):
+        self.check_eager_args(rhs1_thunk, rhs2_thunk)
         if self.deferred is not None:
-            self.deferred.eye(k, stacklevel=(stacklevel + 1))
+            self.deferred.contract(
+                lhs_modes,
+                rhs1_thunk,
+                rhs1_modes,
+                rhs2_thunk,
+                rhs2_modes,
+                mode2extent,
+            )
+        else:
+            np.einsum(
+                f"{''.join(rhs1_modes)},{''.join(rhs2_modes)}"
+                f"->{''.join(lhs_modes)}",
+                rhs1_thunk.array,
+                rhs2_thunk.array,
+                out=self.array,
+            )
+
+    def choose(self, *args, rhs):
+        self.check_eager_args(*args, rhs)
+        if self.deferred is not None:
+            self.deferred.choose(
+                *args,
+                rhs,
+            )
+        else:
+            choices = tuple(c.array for c in args)
+            self.array[:] = np.choose(rhs.array, choices, mode="raise")
+
+    def diag_helper(
+        self,
+        rhs,
+        offset,
+        naxes,
+        extract,
+    ):
+        self.check_eager_args(rhs)
+        if self.deferred is not None:
+            self.deferred.diag_helper(
+                rhs,
+                offset,
+                naxes,
+                extract,
+            )
+        else:
+            if (naxes == 2) and extract:
+                ndims = rhs.array.ndim
+                self.array[:] = np.diagonal(
+                    rhs.array, offset=offset, axis1=ndims - 2, axis2=ndims - 1
+                )
+            elif (naxes < 2) and not extract:
+                self.array[:] = np.diag(rhs.array, offset)
+            else:  # naxes>2
+                ndims = rhs.array.ndim
+                axes = tuple(range(ndims - naxes, ndims))
+                self.array = diagonal_reference(rhs.array, axes)
+
+    def eye(self, k):
+        if self.deferred is not None:
+            self.deferred.eye(k)
         else:
             if self.array.size == 1:
                 self.array.fill(1)
@@ -358,55 +467,34 @@ class EagerArray(NumPyThunk):
                 self.array[:] = np.eye(
                     self.shape[0], self.shape[1], k, dtype=self.dtype
                 )
-            self.runtime.profile_callsite(stacklevel + 1, False)
 
-    def arange(self, start, stop, step, stacklevel):
+    def arange(self, start, stop, step):
         if self.deferred is not None:
-            self.deferred.arange(
-                start, stop, step, stacklevel=(stacklevel + 1)
-            )
+            self.deferred.arange(start, stop, step)
         else:
             self.array = np.arange(start, stop, step, self.dtype)
-            self.runtime.profile_callsite(stacklevel + 1, False)
 
-    def tile(self, rhs, reps, stacklevel):
-        if self.shadow:
-            rhs = self.runtime.to_eager_array(rhs, stacklevel=(stacklevel + 1))
-        elif self.deferred is None:
-            self.check_eager_args((stacklevel + 1), rhs)
+    def tile(self, rhs, reps):
+        self.check_eager_args(rhs)
         if self.deferred is not None:
-            self.deferred.tile(rhs, reps, stacklevel=(stacklevel + 1))
+            self.deferred.tile(rhs, reps)
         else:
             self.array[:] = np.tile(rhs.array, reps)
-            self.runtime.profile_callsite(stacklevel + 1, False)
 
-    def bincount(self, rhs, stacklevel, weights=None):
-        if self.shadow:
-            rhs = self.runtime.to_eager_array(rhs, stacklevel=(stacklevel + 1))
-            if weights is not None:
-                weights = self.runtime.to_eager_array(
-                    weights, stacklevel=(stacklevel + 1)
-                )
-        elif self.deferred is None:
-            if weights is not None:
-                self.check_eager_args((stacklevel + 1), rhs, weights)
-            else:
-                self.check_eager_args((stacklevel + 1), rhs)
+    def bincount(self, rhs, weights=None):
+        self.check_eager_args(rhs, weights)
         if self.deferred is not None:
-            self.deferred.bincount(
-                rhs, stacklevel=(stacklevel + 1), weights=weights
-            )
+            self.deferred.bincount(rhs, weights=weights)
         else:
             self.array[:] = np.bincount(
                 rhs.array,
                 weights.array if weights is not None else None,
                 minlength=self.array.size,
             )
-            self.runtime.profile_callsite(stacklevel + 1, False)
 
-    def nonzero(self, stacklevel):
+    def nonzero(self):
         if self.deferred is not None:
-            return self.deferred.nonzero(stacklevel=(stacklevel + 1))
+            return self.deferred.nonzero()
         else:
             arrays = self.array.nonzero()
             result = ()
@@ -414,43 +502,27 @@ class EagerArray(NumPyThunk):
                 result += (EagerArray(self.runtime, array),)
             return result
 
-    def sort(self, rhs, stacklevel):
-        if self.shadow:
-            rhs = self.runtime.to_eager_array(rhs, stacklevel=(stacklevel + 1))
-        elif self.deferred is None:
-            self.check_eager_args((stacklevel + 1), rhs)
+    def random_uniform(self):
         if self.deferred is not None:
-            self.deferred.sort(rhs, stacklevel=(stacklevel + 1))
-        else:
-            self.array[:] = np.sort(rhs.array)
-            self.runtime.profile_callsite(stacklevel + 1, False)
-
-    def random_uniform(self, stacklevel):
-        assert not self.shadow
-        if self.deferred is not None:
-            self.deferred.random_uniform(stacklevel=(stacklevel + 1))
+            self.deferred.random_uniform()
         else:
             if self.array.size == 1:
                 self.array.fill(np.random.rand())
             else:
                 self.array[:] = np.random.rand(*(self.array.shape))
-            self.runtime.profile_callsite(stacklevel + 1, False)
 
-    def random_normal(self, stacklevel):
-        assert not self.shadow
+    def random_normal(self):
         if self.deferred is not None:
-            self.deferred.random_normal(stacklevel=(stacklevel + 1))
+            self.deferred.random_normal()
         else:
             if self.array.size == 1:
                 self.array.fill(np.random.randn())
             else:
                 self.array[:] = np.random.randn(*(self.array.shape))
-            self.runtime.profile_callsite(stacklevel + 1, False)
 
-    def random_integer(self, low, high, stacklevel):
-        assert not self.shadow
+    def random_integer(self, low, high):
         if self.deferred is not None:
-            self.deferred.random_integer(stacklevel=(stacklevel + 1))
+            self.deferred.random_integer()
         else:
             if self.array.size == 1:
                 self.array.fill(np.random.randint(low, high))
@@ -458,59 +530,16 @@ class EagerArray(NumPyThunk):
                 self.array[:] = np.random.randint(
                     low, high, size=self.array.shape, dtype=self.array.dtype
                 )
-            self.runtime.profile_callsite(stacklevel + 1, False)
 
-    def unary_op(self, op, op_type, rhs, where, args, stacklevel):
-        if self.shadow:
-            rhs = self.runtime.to_eager_array(rhs, stacklevel=(stacklevel + 1))
-            if where is not None and isinstance(where, NumPyThunk):
-                where = self.runtime.to_eager_array(
-                    where, stacklevel=(stacklevel + 1)
-                )
-        elif self.deferred is None:
-            if where is not None and isinstance(where, NumPyThunk):
-                self.check_eager_args((stacklevel + 1), rhs, where)
-            else:
-                self.check_eager_args((stacklevel + 1), rhs)
+    def unary_op(self, op, op_type, rhs, where, args):
+        self.check_eager_args(rhs, where)
         if self.deferred is not None:
-            self.deferred.unary_op(
-                op, op_type, rhs, where, args, stacklevel=(stacklevel + 1)
-            )
+            self.deferred.unary_op(op, op_type, rhs, where, args)
             return
-        if op == UnaryOpCode.ABSOLUTE:
-            np.absolute(
-                rhs.array,
-                out=self.array,
-                where=where
-                if not isinstance(where, EagerArray)
-                else where.array,
-            )
-        elif op == UnaryOpCode.ARCCOS:
-            np.arccos(
-                rhs.array,
-                out=self.array,
-                where=where
-                if not isinstance(where, EagerArray)
-                else where.array,
-            )
-        elif op == UnaryOpCode.ARCSIN:
-            np.arcsin(
-                rhs.array,
-                out=self.array,
-                where=where
-                if not isinstance(where, EagerArray)
-                else where.array,
-            )
-        elif op == UnaryOpCode.ARCTAN:
-            np.arctan(
-                rhs.array,
-                out=self.array,
-                where=where
-                if not isinstance(where, EagerArray)
-                else where.array,
-            )
-        elif op == UnaryOpCode.CEIL:
-            np.ceil(
+
+        if op in _UNARY_OPS:
+            func = _UNARY_OPS[op]
+            func(
                 rhs.array,
                 out=self.array,
                 where=where
@@ -519,133 +548,19 @@ class EagerArray(NumPyThunk):
             )
         elif op == UnaryOpCode.CLIP:
             np.clip(rhs.array, out=self.array, a_min=args[0], a_max=args[1])
-        elif op == UnaryOpCode.CONJ:
-            np.conj(rhs.array, out=self.array)
         elif op == UnaryOpCode.COPY:
             self.array[:] = rhs.array[:]
-        elif op == UnaryOpCode.COS:
-            np.cos(
-                rhs.array,
-                out=self.array,
-                where=where
-                if not isinstance(where, EagerArray)
-                else where.array,
-            )
-        elif op == UnaryOpCode.EXP:
-            np.exp(
-                rhs.array,
-                out=self.array,
-                where=where
-                if not isinstance(where, EagerArray)
-                else where.array,
-            )
-        elif op == UnaryOpCode.FLOOR:
-            np.floor(
-                rhs.array,
-                out=self.array,
-                where=where
-                if not isinstance(where, EagerArray)
-                else where.array,
-            )
         elif op == UnaryOpCode.IMAG:
             self.array = np.imag(rhs.array)
-        elif op == UnaryOpCode.INVERT:
-            np.invert(
-                rhs.array,
-                out=self.array,
-                where=where
-                if not isinstance(where, EagerArray)
-                else where.array,
-            )
-        elif op == UnaryOpCode.ISINF:
-            np.isinf(
-                rhs.array,
-                out=self.array,
-                where=where
-                if not isinstance(where, EagerArray)
-                else where.array,
-            )
-        elif op == UnaryOpCode.ISNAN:
-            np.isnan(
-                rhs.array,
-                out=self.array,
-                where=where
-                if not isinstance(where, EagerArray)
-                else where.array,
-            )
-        elif op == UnaryOpCode.LOG:
-            np.log(
-                rhs.array,
-                out=self.array,
-                where=where
-                if not isinstance(where, EagerArray)
-                else where.array,
-            )
-        elif op == UnaryOpCode.LOGICAL_NOT:
-            np.logical_not(
-                rhs.array,
-                out=self.array,
-                where=where
-                if not isinstance(where, EagerArray)
-                else where.array,
-            )
-        elif op == UnaryOpCode.NEGATIVE:
-            np.negative(
-                rhs.array,
-                out=self.array,
-                where=where
-                if not isinstance(where, EagerArray)
-                else where.array,
-            )
         elif op == UnaryOpCode.REAL:
             self.array = np.real(rhs.array)
-        elif op == UnaryOpCode.SIN:
-            np.sin(
-                rhs.array,
-                out=self.array,
-                where=where
-                if not isinstance(where, EagerArray)
-                else where.array,
-            )
-        elif op == UnaryOpCode.SQRT:
-            np.sqrt(
-                rhs.array,
-                out=self.array,
-                where=where
-                if not isinstance(where, EagerArray)
-                else where.array,
-            )
-        elif op == UnaryOpCode.TAN:
-            np.tan(
-                rhs.array,
-                out=self.array,
-                where=where
-                if not isinstance(where, EagerArray)
-                else where.array,
-            )
-        elif op == UnaryOpCode.TANH:
-            np.tanh(
-                rhs.array,
-                out=self.array,
-                where=where
-                if not isinstance(where, EagerArray)
-                else where.array,
-            )
+        elif op == UnaryOpCode.CONJ:
+            np.conj(rhs.array, out=self.array)
         else:
             raise RuntimeError("unsupported unary op " + str(op))
-        self.runtime.profile_callsite(stacklevel + 1, False)
 
-    def unary_reduction(
-        self, op, rhs, where, axes, keepdims, args, initial, stacklevel
-    ):
-        if self.shadow:
-            rhs = self.runtime.to_eager_array(rhs, stacklevel=(stacklevel + 1))
-            if isinstance(where, NumPyThunk):
-                where = self.runtime.to_eager_array(
-                    where, stacklevel=(stacklevel + 1)
-                )
-        elif self.deferred is None:
-            self.check_eager_args((stacklevel + 1), rhs)
+    def unary_reduction(self, op, rhs, where, axes, keepdims, args, initial):
+        self.check_eager_args(rhs)
         if self.deferred is not None:
             self.deferred.unary_reduction(
                 op,
@@ -655,10 +570,29 @@ class EagerArray(NumPyThunk):
                 keepdims,
                 args,
                 initial,
-                stacklevel=(stacklevel + 1),
             )
             return
-        if op == UnaryRedCode.ARGMAX:
+        if op == UnaryRedCode.ALL:
+            np.all(
+                rhs.array,
+                out=self.array,
+                axis=axes,
+                keepdims=keepdims,
+                where=where
+                if not isinstance(where, EagerArray)
+                else where.array,
+            )
+        elif op == UnaryRedCode.ANY:
+            np.any(
+                rhs.array,
+                out=self.array,
+                axis=axes,
+                keepdims=keepdims,
+                where=where
+                if not isinstance(where, EagerArray)
+                else where.array,
+            )
+        elif op == UnaryRedCode.ARGMAX:
             assert len(axes) == 1
             np.argmax(rhs.array, out=self.array, axis=axes[0])
         elif op == UnaryRedCode.ARGMIN:
@@ -730,218 +664,28 @@ class EagerArray(NumPyThunk):
             self.array[()] = np.count_nonzero(rhs.array, axis=axes)
         else:
             raise RuntimeError("unsupported unary reduction op " + str(op))
-        self.runtime.profile_callsite(stacklevel + 1, False)
 
-    def binary_op(self, op, rhs1, rhs2, where, args, stacklevel):
-        if self.shadow:
-            rhs1 = self.runtime.to_eager_array(
-                rhs1, stacklevel=(stacklevel + 1)
-            )
-            rhs2 = self.runtime.to_eager_array(
-                rhs2, stacklevel=(stacklevel + 1)
-            )
-            if where is not None and isinstance(where, NumPyThunk):
-                where = self.runtime.to_eager_array(
-                    where, stacklevel=(stacklevel + 1)
-                )
-        elif self.deferred is None:
-            if where is not None and isinstance(where, NumPyThunk):
-                self.check_eager_args((stacklevel + 1), rhs1, rhs2, where)
-            else:
-                self.check_eager_args((stacklevel + 1), rhs1, rhs2)
+    def binary_op(self, op, rhs1, rhs2, where, args):
+        self.check_eager_args(rhs1, rhs2, where)
         if self.deferred is not None:
-            self.deferred.binary_op(
-                op, rhs1, rhs2, where, args, stacklevel=(stacklevel + 1)
-            )
+            self.deferred.binary_op(op, rhs1, rhs2, where, args)
         else:
-            if op == BinaryOpCode.ADD:
-                np.add(
-                    rhs1.array,
-                    rhs2.array,
-                    out=self.array,
-                    where=where
-                    if not isinstance(where, EagerArray)
-                    else where.array,
-                )
-            # elif op == BinaryOpCode.LOGICAL_AND:
-            #    np.logical_and(
-            #        rhs1.array,
-            #        rhs2.array,
-            #        out=self.array,
-            #        where=where
-            #        if not isinstance(where, EagerArray)
-            #        else where.array,
-            #    )
-            elif op == BinaryOpCode.DIVIDE:
-                np.divide(
-                    rhs1.array,
-                    rhs2.array,
-                    out=self.array,
-                    where=where
-                    if not isinstance(where, EagerArray)
-                    else where.array,
-                )
-            elif op == BinaryOpCode.EQUAL:
-                np.equal(
-                    rhs1.array,
-                    rhs2.array,
-                    out=self.array,
-                    where=where
-                    if not isinstance(where, EagerArray)
-                    else where.array,
-                )
-            elif op == BinaryOpCode.FLOOR_DIVIDE:
-                np.floor_divide(
-                    rhs1.array,
-                    rhs2.array,
-                    out=self.array,
-                    where=where
-                    if not isinstance(where, EagerArray)
-                    else where.array,
-                )
-            elif op == BinaryOpCode.GREATER_EQUAL:
-                np.greater_equal(
-                    rhs1.array,
-                    rhs2.array,
-                    out=self.array,
-                    where=where
-                    if not isinstance(where, EagerArray)
-                    else where.array,
-                )
-            elif op == BinaryOpCode.GREATER:
-                np.greater(
-                    rhs1.array,
-                    rhs2.array,
-                    out=self.array,
-                    where=where
-                    if not isinstance(where, EagerArray)
-                    else where.array,
-                )
-            # elif op == BinaryOpCode.SHIFT_LEFT:
-            #    np.left_shift(rhs1.array, rhs2.array, out=self.array,
-            #            where=where if not isinstance(where, EagerArray)
-            #                        else where.array)
-            # elif op == BinaryOpCode.SHIFT_RIGHT:
-            #    np.right_shift(rhs1.array, rhs2.array, out=self.array,
-            #            where=where if not isinstance(where, EagerArray)
-            #                        else where.array)
-            elif op == BinaryOpCode.MOD:
-                np.mod(
-                    rhs1.array,
-                    rhs2.array,
-                    out=self.array,
-                    where=where
-                    if not isinstance(where, EagerArray)
-                    else where.array,
-                )
-            elif op == BinaryOpCode.MULTIPLY:
-                np.multiply(
-                    rhs1.array,
-                    rhs2.array,
-                    out=self.array,
-                    where=where
-                    if not isinstance(where, EagerArray)
-                    else where.array,
-                )
-            # elif op == BinaryOpCode.LOGICAL_OR:
-            #    np.logical_or(
-            #        rhs1.array,
-            #        rhs2.array,
-            #        out=self.array,
-            #        where=where
-            #        if not isinstance(where, EagerArray)
-            #        else where.array,
-            #    )
-            elif op == BinaryOpCode.POWER:
-                np.power(
-                    rhs1.array,
-                    rhs2.array,
-                    out=self.array,
-                    where=where
-                    if not isinstance(where, EagerArray)
-                    else where.array,
-                )
-            elif op == BinaryOpCode.SUBTRACT:
-                np.subtract(
-                    rhs1.array,
-                    rhs2.array,
-                    out=self.array,
-                    where=where
-                    if not isinstance(where, EagerArray)
-                    else where.array,
-                )
-            # elif op == BinaryOpCode.LOGICAL_XOR:
-            #    np.logical_xor(
-            #        rhs1.array,
-            #        rhs2.array,
-            #        out=self.array,
-            #        where=where
-            #        if not isinstance(where, EagerArray)
-            #        else where.array,
-            #    )
-            elif op == BinaryOpCode.LESS_EQUAL:
-                np.less_equal(
-                    rhs1.array,
-                    rhs2.array,
-                    out=self.array,
-                    where=where
-                    if not isinstance(where, EagerArray)
-                    else where.array,
-                )
-            elif op == BinaryOpCode.LESS:
-                np.less(
-                    rhs1.array,
-                    rhs2.array,
-                    out=self.array,
-                    where=where
-                    if not isinstance(where, EagerArray)
-                    else where.array,
-                )
-            elif op == BinaryOpCode.MAXIMUM:
-                np.maximum(
-                    rhs1.array,
-                    rhs2.array,
-                    out=self.array,
-                    where=where
-                    if not isinstance(where, EagerArray)
-                    else where.array,
-                )
-            elif op == BinaryOpCode.MINIMUM:
-                np.minimum(
-                    rhs1.array,
-                    rhs2.array,
-                    out=self.array,
-                    where=where
-                    if not isinstance(where, EagerArray)
-                    else where.array,
-                )
-            elif op == BinaryOpCode.NOT_EQUAL:
-                np.not_equal(
-                    rhs1.array,
-                    rhs2.array,
-                    out=self.array,
-                    where=where
-                    if not isinstance(where, EagerArray)
-                    else where.array,
-                )
-            else:
+            func = _BINARY_OPS.get(op, None)
+            if func is None:
                 raise RuntimeError("unsupported binary op " + str(op))
-            self.runtime.profile_callsite(stacklevel + 1, False)
+            func(
+                rhs1.array,
+                rhs2.array,
+                out=self.array,
+                where=where
+                if not isinstance(where, EagerArray)
+                else where.array,
+            )
 
-    def binary_reduction(self, op, rhs1, rhs2, broadcast, args, stacklevel):
-        if self.shadow:
-            rhs1 = self.runtime.to_eager_array(
-                rhs1, stacklevel=(stacklevel + 1)
-            )
-            rhs2 = self.runtime.to_eager_array(
-                rhs2, stacklevel=(stacklevel + 1)
-            )
-        elif self.deferred is None:
-            self.check_eager_args((stacklevel + 1), rhs1, rhs2)
+    def binary_reduction(self, op, rhs1, rhs2, broadcast, args):
+        self.check_eager_args(rhs1, rhs2)
         if self.deferred is not None:
-            self.deferred.binary_reduction(
-                op, rhs1, rhs2, broadcast, args, stacklevel=(stacklevel + 1)
-            )
+            self.deferred.binary_reduction(op, rhs1, rhs2, broadcast, args)
         else:
             if op == BinaryOpCode.ALLCLOSE:
                 self.array = np.array(
@@ -955,23 +699,27 @@ class EagerArray(NumPyThunk):
                 raise RuntimeError(
                     "unsupported binary reduction op " + str(op)
                 )
-            self.runtime.profile_callsite(stacklevel + 1, False)
 
-    def where(self, rhs1, rhs2, rhs3, stacklevel):
-        if self.shadow:
-            rhs1 = self.runtime.to_eager_array(
-                rhs1, stacklevel=(stacklevel + 1)
-            )
-            rhs2 = self.runtime.to_eager_array(
-                rhs2, stacklevel=(stacklevel + 1)
-            )
-            rhs3 = self.runtime.to_eager_array(
-                rhs3, stacklevel=(stacklevel + 1)
-            )
-        elif self.deferred is None:
-            self.check_eager_args((stacklevel + 1), rhs1, rhs2, rhs3)
+    def where(self, rhs1, rhs2, rhs3):
+        self.check_eager_args(rhs1, rhs2, rhs3)
         if self.deferred is not None:
-            self.deferred.where(rhs1, rhs2, rhs3, stacklevel=(stacklevel + 1))
+            self.deferred.where(rhs1, rhs2, rhs3)
         else:
             self.array[:] = np.where(rhs1.array, rhs2.array, rhs3.array)
-            self.runtime.profile_callsite(stacklevel + 1, False)
+
+    def trilu(self, rhs, k, lower):
+        self.check_eager_args(rhs)
+        if self.deferred is not None:
+            self.deferred.trilu(rhs, k, lower)
+        else:
+            if lower:
+                self.array[:] = np.tril(rhs.array, k)
+            else:
+                self.array[:] = np.triu(rhs.array, k)
+
+    def cholesky(self, src, no_tril):
+        self.check_eager_args(src)
+        if self.deferred is not None:
+            self.deferred.cholesky(src)
+        else:
+            self.array[:] = np.linalg.cholesky(src.array)

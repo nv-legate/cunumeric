@@ -1,4 +1,4 @@
-# Copyright 2021 NVIDIA Corporation
+# Copyright 2021-2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
-from __future__ import absolute_import, division, print_function
 
 import os
 from enum import IntEnum, unique
@@ -84,25 +82,37 @@ class CuNumericOpCode(IntEnum):
     BINARY_OP = _cunumeric.CUNUMERIC_BINARY_OP
     BINARY_RED = _cunumeric.CUNUMERIC_BINARY_RED
     BINCOUNT = _cunumeric.CUNUMERIC_BINCOUNT
+    CHOOSE = _cunumeric.CUNUMERIC_CHOOSE
+    CONTRACT = _cunumeric.CUNUMERIC_CONTRACT
     CONVERT = _cunumeric.CUNUMERIC_CONVERT
+    CONVOLVE = _cunumeric.CUNUMERIC_CONVOLVE
     DIAG = _cunumeric.CUNUMERIC_DIAG
     DOT = _cunumeric.CUNUMERIC_DOT
     EYE = _cunumeric.CUNUMERIC_EYE
     FILL = _cunumeric.CUNUMERIC_FILL
+    FLIP = _cunumeric.CUNUMERIC_FLIP
+    GEMM = _cunumeric.CUNUMERIC_GEMM
+    LOAD_CUDALIBS = _cunumeric.CUNUMERIC_LOAD_CUDALIBS
     MATMUL = _cunumeric.CUNUMERIC_MATMUL
     MATVECMUL = _cunumeric.CUNUMERIC_MATVECMUL
     NONZERO = _cunumeric.CUNUMERIC_NONZERO
+    POTRF = _cunumeric.CUNUMERIC_POTRF
     RAND = _cunumeric.CUNUMERIC_RAND
     READ = _cunumeric.CUNUMERIC_READ
     SCALAR_UNARY_RED = _cunumeric.CUNUMERIC_SCALAR_UNARY_RED
+    SYRK = _cunumeric.CUNUMERIC_SYRK
     TILE = _cunumeric.CUNUMERIC_TILE
-    TRANSPOSE = _cunumeric.CUNUMERIC_TRANSPOSE
+    TRANSPOSE_COPY_2D = _cunumeric.CUNUMERIC_TRANSPOSE_COPY_2D
+    TRILU = _cunumeric.CUNUMERIC_TRILU
+    TRSM = _cunumeric.CUNUMERIC_TRSM
     UNARY_OP = _cunumeric.CUNUMERIC_UNARY_OP
     UNARY_RED = _cunumeric.CUNUMERIC_UNARY_RED
+    UNLOAD_CUDALIBS = _cunumeric.CUNUMERIC_UNLOAD_CUDALIBS
     WHERE = _cunumeric.CUNUMERIC_WHERE
     WRITE = _cunumeric.CUNUMERIC_WRITE
 
 
+# Match these to BinaryOpCode in binary_op_util.h
 @unique
 class BinaryOpCode(IntEnum):
     ADD = 1
@@ -113,16 +123,20 @@ class BinaryOpCode(IntEnum):
     GREATER_EQUAL = 6
     LESS = 7
     LESS_EQUAL = 8
-    MAXIMUM = 9
-    MINIMUM = 10
-    MOD = 11
-    MULTIPLY = 12
-    NOT_EQUAL = 13
-    POWER = 14
-    SUBTRACT = 15
-    ALLCLOSE = 16
+    LOGICAL_AND = 9
+    LOGICAL_OR = 10
+    LOGICAL_XOR = 11
+    MAXIMUM = 12
+    MINIMUM = 13
+    MOD = 14
+    MULTIPLY = 15
+    NOT_EQUAL = 16
+    POWER = 17
+    SUBTRACT = 18
+    ALLCLOSE = 19
 
 
+# Match these to UnaryOpCode in unary_op_util.h
 @unique
 class UnaryOpCode(IntEnum):
     ABSOLUTE = 1
@@ -134,35 +148,43 @@ class UnaryOpCode(IntEnum):
     COPY = 7
     COS = 8
     EXP = 9
-    FLOOR = 10
-    INVERT = 11
-    ISINF = 12
-    ISNAN = 13
-    LOG = 14
-    LOGICAL_NOT = 15
-    NEGATIVE = 16
-    SIN = 17
-    SQRT = 18
-    TAN = 19
-    TANH = 20
-    CONJ = 21
-    REAL = 22
-    IMAG = 23
-    GETARG = 24
+    EXP2 = 10
+    FLOOR = 11
+    INVERT = 12
+    ISINF = 13
+    ISNAN = 14
+    LOG = 15
+    LOG10 = 16
+    LOGICAL_NOT = 17
+    NEGATIVE = 18
+    RINT = 19
+    SIGN = 20
+    SIN = 21
+    SQRT = 22
+    TAN = 23
+    TANH = 24
+    CONJ = 25
+    REAL = 26
+    IMAG = 27
+    GETARG = 28
 
 
+# Match these to UnaryRedCode in unary_red_util.h
 @unique
 class UnaryRedCode(IntEnum):
-    MAX = 1
-    MIN = 2
-    PROD = 3
-    SUM = 4
-    ARGMAX = 5
-    ARGMIN = 6
-    CONTAINS = 7
-    COUNT_NONZERO = 8
+    ALL = 1
+    ANY = 2
+    MAX = 3
+    MIN = 4
+    PROD = 5
+    SUM = 6
+    ARGMAX = 7
+    ARGMIN = 8
+    CONTAINS = 9
+    COUNT_NONZERO = 10
 
 
+# Match these to RandGenCode in rand_util.h
 @unique
 class RandGenCode(IntEnum):
     UNIFORM = 1
@@ -181,4 +203,5 @@ class CuNumericRedopCode(IntEnum):
 @unique
 class CuNumericTunable(IntEnum):
     NUM_GPUS = _cunumeric.CUNUMERIC_TUNABLE_NUM_GPUS
+    NUM_PROCS = _cunumeric.CUNUMERIC_TUNABLE_NUM_PROCS
     MAX_EAGER_VOLUME = _cunumeric.CUNUMERIC_TUNABLE_MAX_EAGER_VOLUME

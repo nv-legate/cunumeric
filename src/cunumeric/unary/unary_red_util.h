@@ -1,4 +1,4 @@
-/* Copyright 2021 NVIDIA Corporation
+/* Copyright 2021-2022 NVIDIA Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,15 +21,18 @@
 
 namespace cunumeric {
 
+// Match these to UnaryRedCode in config.py
 enum class UnaryRedCode : int {
-  MAX           = 1,
-  MIN           = 2,
-  PROD          = 3,
-  SUM           = 4,
-  ARGMAX        = 5,
-  ARGMIN        = 6,
-  CONTAINS      = 7,
-  COUNT_NONZERO = 8,
+  ALL           = 1,
+  ANY           = 2,
+  MAX           = 3,
+  MIN           = 4,
+  PROD          = 5,
+  SUM           = 6,
+  ARGMAX        = 7,
+  ARGMIN        = 8,
+  CONTAINS      = 9,
+  COUNT_NONZERO = 10,
 };
 
 template <UnaryRedCode OP_CODE>
@@ -46,6 +49,10 @@ template <typename Functor, typename... Fnargs>
 constexpr decltype(auto) op_dispatch(UnaryRedCode op_code, Functor f, Fnargs&&... args)
 {
   switch (op_code) {
+    case UnaryRedCode::ALL:
+      return f.template operator()<UnaryRedCode::ALL>(std::forward<Fnargs>(args)...);
+    case UnaryRedCode::ANY:
+      return f.template operator()<UnaryRedCode::ANY>(std::forward<Fnargs>(args)...);
     case UnaryRedCode::MAX:
       return f.template operator()<UnaryRedCode::MAX>(std::forward<Fnargs>(args)...);
     case UnaryRedCode::MIN:
@@ -89,6 +96,39 @@ struct ArgvalConstructor {
 template <UnaryRedCode OP_CODE, legate::LegateTypeCode TYPE_CODE>
 struct UnaryRedOp {
   static constexpr bool valid = false;
+};
+
+template <legate::LegateTypeCode TYPE_CODE>
+struct UnaryRedOp<UnaryRedCode::ALL, TYPE_CODE> {
+  static constexpr bool valid = true;
+
+  using VAL = legate::legate_type_of<TYPE_CODE>;
+  using OP  = Legion::ProdReduction<VAL>;
+
+  template <bool EXCLUSIVE>
+  __CUDA_HD__ static void fold(VAL& rhs1, VAL rhs2)
+  {
+    OP::template fold<EXCLUSIVE>(rhs1, rhs2);
+  }
+};
+
+template <>
+struct UnaryRedOp<UnaryRedCode::ALL, legate::LegateTypeCode::COMPLEX128_LT> {
+  static constexpr bool valid = false;
+};
+
+template <legate::LegateTypeCode TYPE_CODE>
+struct UnaryRedOp<UnaryRedCode::ANY, TYPE_CODE> {
+  static constexpr bool valid = true;
+
+  using VAL = legate::legate_type_of<TYPE_CODE>;
+  using OP  = Legion::SumReduction<VAL>;
+
+  template <bool EXCLUSIVE>
+  __CUDA_HD__ static void fold(VAL& rhs1, VAL rhs2)
+  {
+    OP::template fold<EXCLUSIVE>(rhs1, rhs2);
+  }
 };
 
 template <legate::LegateTypeCode TYPE_CODE>

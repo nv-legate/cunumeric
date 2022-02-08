@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2021 NVIDIA Corporation
+# Copyright 2021-2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -74,7 +74,7 @@ if args.recurse:
     sys.argv.remove("--recurse")
     setup(
         name="cunumeric",
-        version="21.10.00",
+        version="22.01.00",
         packages=[
             "cunumeric",
             "cunumeric.linalg",

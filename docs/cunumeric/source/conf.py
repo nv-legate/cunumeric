@@ -1,4 +1,4 @@
-# Copyright 2021 NVIDIA Corporation
+# Copyright 2021-2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,14 +25,11 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-import os
-
-from recommonmark.transform import AutoStructify
 
 # -- Project information -----------------------------------------------------
 
 project = "cunumeric"
-copyright = "2021, NVIDIA"
+copyright = "2021-2022, NVIDIA"
 author = "NVIDIA"
 
 
@@ -42,11 +39,12 @@ author = "NVIDIA"
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    "sphinx.ext.intersphinx",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
+    "sphinx.ext.intersphinx",
+    "sphinx.ext.mathjax",
+    "sphinx.ext.napoleon",
     "sphinx_copybutton",
-    "numpydoc",
     "sphinx_markdown_tables",
     "recommonmark",
 ]
@@ -72,19 +70,7 @@ exclude_patterns = []
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = "sphinx_rtd_theme"
-
-# on_rtd is whether we are on readthedocs.org
-on_rtd = os.environ.get("READTHEDOCS", None) == "True"
-
-if not on_rtd:
-    # only import and set the theme if we're building docs locally
-    # otherwise, readthedocs.org uses their theme by default,
-    # so no need to specify it
-    import sphinx_rtd_theme
-
-    html_theme = "sphinx_rtd_theme"
-    html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
+html_theme = "pydata_sphinx_theme"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -93,27 +79,19 @@ html_static_path = ["_static"]
 
 pygments_style = "sphinx"
 
-intersphinx_mapping = {"https://docs.python.org/": None}
+intersphinx_mapping = {
+    "python": ("https://docs.python.org/3/", None),
+    "numpy": ("https://numpy.org/doc/stable/", None),
+}
 
-# Config numpydoc
-numpydoc_show_inherited_class_members = True
-numpydoc_class_members_toctree = False
+# Config napolean
+napoleon_custom_sections = [("Availability", "returns_style")]
 
-autoclass_content = "init"
+autosummary_generate = True
 
-# Config AutoStructify
-github_doc_root = "https://github.com/rtfd/recommonmark/tree/master/doc/"
+mathjax_path = "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
 
 
 def setup(app):
     app.add_js_file("copybutton_pydocs.js")
     app.add_css_file("params.css")
-    app.add_config_value(
-        "recommonmark_config",
-        {
-            "url_resolver": lambda url: github_doc_root + url,
-            "auto_toc_tree_section": "Contents",
-        },
-        True,
-    )
-    app.add_transform(AutoStructify)

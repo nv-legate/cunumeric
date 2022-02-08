@@ -1,4 +1,4 @@
-/* Copyright 2021 NVIDIA Corporation
+/* Copyright 2021-2022 NVIDIA Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,11 +23,12 @@ namespace cunumeric {
 struct TransposeArgs {
   const Array& out;
   const Array& in;
+  bool logical;
 };
 
 class TransposeTask : public CuNumericTask<TransposeTask> {
  public:
-  static const int TASK_ID = CUNUMERIC_TRANSPOSE;
+  static const int TASK_ID = CUNUMERIC_TRANSPOSE_COPY_2D;
 
  public:
   static void cpu_variant(legate::TaskContext& context);

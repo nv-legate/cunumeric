@@ -3,18 +3,20 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - clang=8.0.1
-  - clang-tools=8.0.1
   - cffi
+  - clang>=8
+  - clang-tools>=8
+  - cutensor>=1.3.3
   - numpy
+  - numpydoc
+  - opt_einsum
   - packaging
-  - python>=3.6
-  - flake8=3.8.3
-  - black=19.10
-  - isort=5.0.7
-  - pyarrow=1.0.1
+  - pre-commit
+  - pyarrow>=5
+  - python>=3.7
+  - scipy
+  - setuptools>=60
   - sphinx
-  - sphinx_rtd_theme
+  - pydata-sphinx-theme
   - sphinx-markdown-tables
   - sphinx-copybutton
-  - numpydoc

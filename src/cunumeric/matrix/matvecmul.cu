@@ -1,4 +1,4 @@
-/* Copyright 2021 NVIDIA Corporation
+/* Copyright 2021-2022 NVIDIA Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,20 +33,50 @@ struct MatVecMulImplBody<VariantKind::GPU, LegateTypeCode::FLOAT_LT> {
                   size_t mat_stride,
                   bool transpose_mat)
   {
-    cublasHandle_t cublas_handle = Core::get_cublas();
+    auto cublas_handle = get_cublas();
     // Update the stream because the CUDA hijack can't see inside cuBLAS
-    cudaStream_t task_stream;
-    cudaStreamCreate(&task_stream);
+    auto task_stream = get_cached_stream();
     CHECK_CUBLAS(cublasSetStream(cublas_handle, task_stream));
 
     const float alpha = 1.f;
     const float beta  = 0.f;
 
+#if CUDART_VERSION >= 11040
     auto trans = transpose_mat ? CUBLAS_OP_N : CUBLAS_OP_T;
     CHECK_CUBLAS(
       cublasSgemv(cublas_handle, trans, n, m, &alpha, mat, mat_stride, vec, 1, &beta, lhs, 1));
-
-    cudaStreamDestroy(task_stream);
+#else
+    if (transpose_mat)
+      CHECK_CUBLAS(cublasSgemm(cublas_handle,
+                               CUBLAS_OP_N,
+                               CUBLAS_OP_N,
+                               n,
+                               1,
+                               m,
+                               &alpha,
+                               mat,
+                               mat_stride,
+                               vec,
+                               m,
+                               &beta,
+                               lhs,
+                               n));
+    else
+      CHECK_CUBLAS(cublasSgemm(cublas_handle,
+                               CUBLAS_OP_T,
+                               CUBLAS_OP_N,
+                               m,
+                               1,
+                               n,
+                               &alpha,
+                               mat,
+                               mat_stride,
+                               vec,
+                               n,
+                               &beta,
+                               lhs,
+                               m));
+#endif
   }
 };
 
@@ -60,20 +90,50 @@ struct MatVecMulImplBody<VariantKind::GPU, LegateTypeCode::DOUBLE_LT> {
                   size_t mat_stride,
                   bool transpose_mat)
   {
-    cublasHandle_t cublas_handle = Core::get_cublas();
+    auto cublas_handle = get_cublas();
     // Update the stream because the CUDA hijack can't see inside cuBLAS
-    cudaStream_t task_stream;
-    cudaStreamCreate(&task_stream);
+    auto task_stream = get_cached_stream();
     CHECK_CUBLAS(cublasSetStream(cublas_handle, task_stream));
 
     const double alpha = 1.f;
     const double beta  = 0.f;
 
+#if CUDART_VERSION >= 11040
     auto trans = transpose_mat ? CUBLAS_OP_N : CUBLAS_OP_T;
     CHECK_CUBLAS(
       cublasDgemv(cublas_handle, trans, n, m, &alpha, mat, mat_stride, vec, 1, &beta, lhs, 1));
-
-    cudaStreamDestroy(task_stream);
+#else
+    if (transpose_mat)
+      CHECK_CUBLAS(cublasDgemm(cublas_handle,
+                               CUBLAS_OP_N,
+                               CUBLAS_OP_N,
+                               n,
+                               1,
+                               m,
+                               &alpha,
+                               mat,
+                               mat_stride,
+                               vec,
+                               m,
+                               &beta,
+                               lhs,
+                               n));
+    else
+      CHECK_CUBLAS(cublasDgemm(cublas_handle,
+                               CUBLAS_OP_T,
+                               CUBLAS_OP_N,
+                               m,
+                               1,
+                               n,
+                               &alpha,
+                               mat,
+                               mat_stride,
+                               vec,
+                               n,
+                               &beta,
+                               lhs,
+                               m));
+#endif
   }
 };
 
@@ -87,10 +147,9 @@ struct MatVecMulImplBody<VariantKind::GPU, LegateTypeCode::HALF_LT> {
                   size_t mat_stride,
                   bool transpose_mat)
   {
-    cublasHandle_t cublas_handle = Core::get_cublas();
+    auto cublas_handle = get_cublas();
     // Update the stream because the CUDA hijack can't see inside cuBLAS
-    cudaStream_t task_stream;
-    cudaStreamCreate(&task_stream);
+    auto task_stream = get_cached_stream();
     CHECK_CUBLAS(cublasSetStream(cublas_handle, task_stream));
 
     const float alpha = 1.f;
@@ -134,8 +193,6 @@ struct MatVecMulImplBody<VariantKind::GPU, LegateTypeCode::HALF_LT> {
                                  CUDA_R_32F,
                                  m));
     }
-
-    cudaStreamDestroy(task_stream);
   }
 };
 

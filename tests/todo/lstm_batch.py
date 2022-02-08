@@ -1,4 +1,4 @@
-# Copyright 2021 NVIDIA Corporation
+# Copyright 2021-2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -139,7 +139,7 @@ class LSTM:
             tanhCt = Ct[t]
             dIFOGf[t, :, 2 * d : 3 * d] = tanhCt * dHout[t]
             # backprop tanh non-linearity first then continue backprop
-            dC[t] += (1 - tanhCt ** 2) * (
+            dC[t] += (1 - tanhCt**2) * (
                 IFOGf[t, :, 2 * d : 3 * d] * dHout[t]
             )
             if t > 0:
@@ -178,7 +178,7 @@ class LSTM:
 
 
 def checkSequentialMatchesBatch():
-    """ check LSTM I/O forward/backward interactions """
+    """check LSTM I/O forward/backward interactions"""
 
     n, b, d = (5, 3, 4)  # sequence length, batch size, hidden size
     input_size = 10

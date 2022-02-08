@@ -1,4 +1,4 @@
-# Copyright 2021 NVIDIA Corporation
+# Copyright 2021-2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,18 +14,18 @@
 #
 
 import numpy as np
+from test_tools.generators import mk_0to1_array
 
 import cunumeric as num
 from legate.core import LEGATE_MAX_DIM
 
 
 def random_array(lib, ndim):
-    np.random.seed(42)
-    return lib.array(np.random.random_sample(ndim * (5,)))
+    return mk_0to1_array(lib, ndim * (5,))
 
 
 def nd_view_of_1d(lib, ndim):
-    return lib.arange(5 ** ndim).reshape(ndim * (5,))
+    return lib.arange(5**ndim).reshape(ndim * (5,))
 
 
 def tuple_set(tup, idx, val):
@@ -137,7 +137,7 @@ def array_gen(lib, ndim):
 
 
 def test():
-    for ndim in range(1, LEGATE_MAX_DIM):  # off-by-one is by design
+    for ndim in range(1, LEGATE_MAX_DIM + 1):
         for np_arr, num_arr in zip(array_gen(np, ndim), array_gen(num, ndim)):
             assert np.array_equal(np_arr, num_arr)
 

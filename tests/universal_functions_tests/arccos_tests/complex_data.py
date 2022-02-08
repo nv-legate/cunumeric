@@ -1,4 +1,4 @@
-# Copyright 2021 NVIDIA Corporation
+# Copyright 2021-2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,25 +13,18 @@
 # limitations under the License.
 #
 
-import re
+import numpy as np
 
-regex = re.compile(r"[\s]*Examples[^\n]*")
-
-
-def _cut_out_examples(doc):
-    return doc.split("Examples")[0].rstrip()
+import cunumeric as num
 
 
-def copy_docstring(other):
-    # Cut out the examples section and on from each docstring,
-    # as it is not quite applicable to cuNumeric.
-    doc = _cut_out_examples(other.__doc__)
+def test():
+    anp = np.random.random(3) + np.random.random(3) * 1j
+    a = num.array(anp)
 
-    def wrapper(obj):
-        if callable(obj):
-            obj.__doc__ = doc
-        else:
-            obj = property(obj.fget, obj.fset, obj.fdel, doc)
-        return obj
+    assert num.all(num.abs(num.arccos(a) - np.arccos(anp)) < 1e-5)
+    return
 
-    return wrapper
+
+if __name__ == "__main__":
+    test()

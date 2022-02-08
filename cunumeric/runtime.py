@@ -1,4 +1,4 @@
-# Copyright 2021 NVIDIA Corporation
+# Copyright 2021-2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,71 +13,27 @@
 # limitations under the License.
 #
 
-from __future__ import absolute_import, division, print_function
-
-import inspect
 import struct
 import sys
+import warnings
 from functools import reduce
 
 import numpy as np
 
 import legate.core.types as ty
-from legate.core import (
-    LEGATE_MAX_DIM,
-    AffineTransform,
-    ExternalAllocation,
-    FieldID,
-    Future,
-    FutureMap,
-    Region,
-    legion,
-)
-from legate.core.runtime import RegionField
+from legate.core import LEGATE_MAX_DIM, Rect, get_legate_runtime, legion
 
-from .config import *  # noqa F403
+from .config import (
+    CuNumericOpCode,
+    CuNumericRedopCode,
+    CuNumericTunable,
+    cunumeric_context,
+    cunumeric_lib,
+)
 from .deferred import DeferredArray
 from .eager import EagerArray
-from .lazy import LazyArray
 from .thunk import NumPyThunk
-from .utils import calculate_volume, get_arg_dtype
-
-
-class Callsite(object):
-    def __init__(self, filename, lineno, funcname, context=None, index=None):
-        self.filename = filename
-        self.lineno = lineno
-        self.funcname = funcname
-        if context is not None:
-            self.line = context[index]
-        else:
-            self.line = None
-
-    def __eq__(self, rhs):
-        if self.filename != rhs.filename:
-            return False
-        if self.lineno != rhs.lineno:
-            return False
-        if self.funcname != rhs.funcname:
-            return False
-        return True
-
-    def __hash__(self):
-        return hash(self.filename) ^ hash(self.lineno) ^ hash(self.funcname)
-
-    def __repr__(self):
-        return (
-            "Callsite "
-            + str(self.filename)
-            + ":"
-            + str(self.lineno)
-            + " "
-            + str(self.funcname)
-            + ("\n" + self.line)
-            if self.line is not None
-            else ""
-        )
-
+from .utils import calculate_volume, find_last_user_stacklevel, get_arg_dtype
 
 _supported_dtypes = {
     np.bool_: ty.bool_,
@@ -100,34 +56,18 @@ _supported_dtypes = {
 }
 
 
-class NumPyAllocation(ExternalAllocation):
-    def __init__(self, array):
-        self._array = array
-
-    @property
-    def memoryview(self):
-        return memoryview(self._array.data)
-
-    @property
-    def address(self):
-        return int(self._array.ctypes.data)
-
-    def __eq__(self, other):
-        return (
-            isinstance(other, NumPyAllocation) and self._array is other._array
-        )
-
-
 class Runtime(object):
     __slots__ = [
+        "current_random_epoch",
+        "destroyed",
         "legate_context",
         "legate_runtime",
-        "current_random_epoch",
         "max_eager_volume",
+        "num_gpus",
+        "num_procs",
+        "preload_cudalibs",
         "test_mode",
-        "shadow_debug",
-        "callsite_summaries",
-        "destroyed",
+        "warning",
     ]
 
     def __init__(self, legate_context):
@@ -140,12 +80,22 @@ class Runtime(object):
             CuNumericTunable.MAX_EAGER_VOLUME,
             ty.int32,
         )
+        self.num_procs = self.legate_context.get_tunable(
+            CuNumericTunable.NUM_PROCS,
+            ty.int32,
+        )
+        self.num_gpus = self.legate_context.get_tunable(
+            CuNumericTunable.NUM_GPUS,
+            ty.int32,
+        )
 
         # Make sure that our CuNumericLib object knows about us so it can
-         # destroy us
+        # destroy us
         cunumeric_lib.set_runtime(self)
         self._register_dtypes()
         self._parse_command_args()
+        if self.num_gpus > 0 and self.preload_cudalibs:
+            self._load_cudalibs()
 
     def _register_dtypes(self):
         type_system = self.legate_context.type_system
@@ -155,22 +105,39 @@ class Runtime(object):
     def _parse_command_args(self):
         try:
             # Prune it out so the application does not see it
-            sys.argv.remove("-cunumeric:shadow")
-            self.shadow_debug = True
-        except ValueError:
-            self.shadow_debug = False
-        try:
-            # Prune it out so the application does not see it
             sys.argv.remove("-cunumeric:test")
             self.test_mode = True
         except ValueError:
             self.test_mode = False
         try:
             # Prune it out so the application does not see it
-            sys.argv.remove("-cunumeric:summarize")
-            self.callsite_summaries = dict()
+            sys.argv.remove("-cunumeric:preload-cudalibs")
+            self.preload_cudalibs = True
         except ValueError:
-            self.callsite_summaries = None
+            self.preload_cudalibs = False
+        try:
+            # Prune it out so the application does not see it
+            sys.argv.remove("-cunumeric:warn")
+            self.warning = True
+        except ValueError:
+            self.warning = self.test_mode
+
+    def _load_cudalibs(self):
+        task = self.legate_context.create_task(
+            CuNumericOpCode.LOAD_CUDALIBS,
+            manual=True,
+            launch_domain=Rect(lo=(0,), hi=(self.num_gpus,)),
+        )
+        task.execute()
+        self.legate_runtime.issue_execution_fence(block=True)
+
+    def _unload_cudalibs(self):
+        task = self.legate_context.create_task(
+            CuNumericOpCode.UNLOAD_CUDALIBS,
+            manual=True,
+            launch_domain=Rect(lo=(0,), hi=(self.num_gpus,)),
+        )
+        task.execute()
 
     def get_arg_dtype(self, value_dtype):
         arg_dtype = get_arg_dtype(value_dtype)
@@ -189,76 +156,9 @@ class Runtime(object):
 
     def destroy(self):
         assert not self.destroyed
-        if self.callsite_summaries is not None:
-            num_gpus = self.legate_context.get_tunable(
-                CuNumericTunable.NUM_GPUS,
-                ty.int32,
-            )
-            print(
-                "---------------- cuNumeric Callsite Summaries "
-                "----------------"
-            )
-            for callsite, counts in sorted(
-                self.callsite_summaries.items(),
-                key=lambda site: (
-                    site[0].filename,
-                    site[0].lineno,
-                    site[0].funcname,
-                ),
-            ):
-                print(
-                    str(callsite.funcname)
-                    + " @ "
-                    + str(callsite.filename)
-                    + ":"
-                    + str(callsite.lineno)
-                )
-                print("  Invocations: " + str(counts[1]))
-                if num_gpus > 0:
-                    print(
-                        "  Legion GPU Accelerated: %d (%.2f%%)"
-                        % (counts[0], (100.0 * counts[0]) / counts[1])
-                    )
-                else:
-                    print(
-                        "  Legion CPU Accelerated: %d (%.2f%%)"
-                        % (counts[0], (100.0 * counts[0]) / counts[1])
-                    )
-            print(
-                "-------------------------------------------------------------"
-                "----"
-            )
-            self.callsite_summaries = None
+        if self.num_gpus > 0:
+            self._unload_cudalibs()
         self.destroyed = True
-
-    def create_callsite(self, stacklevel):
-        assert stacklevel > 0
-        stack = inspect.stack()
-        caller_frame = stack[stacklevel]
-        callee_frame = stack[stacklevel - 1]
-        return Callsite(
-            caller_frame[1],
-            caller_frame[2],
-            callee_frame[3],
-            caller_frame[4],
-            caller_frame[5],
-        )
-
-    def profile_callsite(self, stacklevel, accelerated, callsite=None):
-        if self.callsite_summaries is None:
-            return
-        if callsite is None:
-            callsite = self.create_callsite(stacklevel + 1)
-        assert isinstance(callsite, Callsite)
-        # Record the callsite if we haven't done so already
-        if callsite in self.callsite_summaries:
-            counts = self.callsite_summaries[callsite]
-            self.callsite_summaries[callsite] = (
-                counts[0] + 1 if accelerated else 0,
-                counts[1] + 1,
-            )
-        else:
-            self.callsite_summaries[callsite] = (1 if accelerated else 0, 1)
 
     def create_scalar(self, array: memoryview, dtype, shape=None, wrap=False):
         data = array.tobytes()
@@ -274,8 +174,6 @@ class Runtime(object):
                 optimize_scalar=True,
             )
             result = DeferredArray(self, store, dtype=dtype)
-            if self.shadow_debug:
-                result.shadow = EagerArray(self, np.array(array))
         else:
             result = future
         return result
@@ -285,13 +183,13 @@ class Runtime(object):
 
     def get_next_random_epoch(self):
         result = self.current_random_epoch
-        self.current_random_epoch += 1
+        # self.current_random_epoch += 1
         return result
 
     def is_supported_type(self, dtype):
         return np.dtype(dtype) in self.legate_context.type_system
 
-    def get_numpy_thunk(self, obj, stacklevel, share=False, dtype=None):
+    def get_numpy_thunk(self, obj, share=False, dtype=None):
         # Check to see if this object implements the Legate data interface
         if hasattr(obj, "__legate_data_interface__"):
             legate_data = obj.__legate_data_interface__
@@ -310,24 +208,9 @@ class Runtime(object):
             if stores[0] is not None:
                 raise NotImplementedError("Need support for masked arrays")
             store = stores[1]
-            kind = store.kind
-            dtype = np.dtype(store.type.to_pandas_dtype())
-            primitive = store.storage
-            if kind == Future:
-                return DeferredArray(self, primitive, shape=(), dtype=dtype)
-            elif kind == FutureMap:
-                raise NotImplementedError("Need support for FutureMap inputs")
-            elif kind == (Region, FieldID):
-                region_field = self.instantiate_region_field(
-                    primitive[0], primitive[1].field_id, dtype
-                )
-            elif kind == (Region, int):
-                region_field = self.instantiate_region_field(
-                    primitive[0], primitive[1], dtype
-                )
-            else:
-                raise TypeError("Unknown LegateStore type")
-            return DeferredArray(self, region_field, region_field.shape, dtype)
+            if dtype is None:
+                dtype = np.dtype(array.type.to_pandas_dtype())
+            return DeferredArray(self, store, dtype=dtype)
         # See if this is a normal numpy array
         if not isinstance(obj, np.ndarray):
             # If it's not, make it into a numpy array
@@ -339,48 +222,11 @@ class Runtime(object):
             obj = obj.astype(dtype)
         elif not share:
             obj = obj.copy()
-        return self.find_or_create_array_thunk(
-            obj, stacklevel=(stacklevel + 1), share=share
-        )
-
-    def instantiate_region_field(self, region, fid, dtype):
-        if region.parent is None:
-            # This is just a top-level region so the conversion is easy
-            bounds = region.index_space.domain
-            if not bounds.dense:
-                raise ValueError(
-                    "cuNumeric currently only support dense legate thunks"
-                )
-            # figure out the shape and transform for this top-level region
-            shape = ()
-            need_transform = False
-            for idx in range(bounds.rect.dim):
-                if bounds.rect.lo[idx] != 0:
-                    shape += ((bounds.rect.hi[idx] - bounds.rect.lo[idx]) + 1,)
-                    need_transform = True
-                else:
-                    shape += (bounds.rect.hi[idx] + 1,)
-            # Make the field
-            field = Field(self.runtime, region, fid, dtype, shape, own=False)
-            # If we need a transform then compute that now
-            if need_transform:
-                transform = AffineTransform(len(shape), len(shape), True)
-                for idx in range(bounds.rect.dim):
-                    transform.offset[idx] = bounds.rect[idx]
-            else:
-                transform = None
-            region_field = RegionField(
-                self, region, field, shape, transform=transform
-            )
-        else:
-            raise NotImplementedError(
-                "cuNumeric needs to handle subregion legate thunk case"
-            )
-        return region_field
+        return self.find_or_create_array_thunk(obj, share=share)
 
     def has_external_attachment(self, array):
         assert array.base is None or not isinstance(array.base, np.ndarray)
-        return self.legate_runtime.has_attachment(NumPyAllocation(array))
+        return self.legate_runtime.has_attachment(array.data)
 
     @staticmethod
     def compute_parent_child_mapping(array):
@@ -450,9 +296,7 @@ class Runtime(object):
         else:
             return key
 
-    def find_or_create_array_thunk(
-        self, array, stacklevel, share=False, defer=False
-    ):
+    def find_or_create_array_thunk(self, array, share=False, defer=False):
         assert isinstance(array, np.ndarray)
         # We have to be really careful here to handle the case of
         # aliased numpy arrays that are passed in from the application
@@ -467,7 +311,6 @@ class Runtime(object):
                 if not share:
                     return self.find_or_create_array_thunk(
                         array.copy(),
-                        stacklevel=(stacklevel + 1),
                         share=False,
                         defer=defer,
                     )
@@ -478,13 +321,12 @@ class Runtime(object):
                 )
             parent_thunk = self.find_or_create_array_thunk(
                 array.base,
-                stacklevel=(stacklevel + 1),
                 share=share,
                 defer=defer,
             )
             # Don't store this one in the ptr_to_thunk as we only want to
             # store the root ones
-            return parent_thunk.get_item(key, stacklevel=(stacklevel + 1))
+            return parent_thunk.get_item(key)
         elif array.size == 0:
             # We always store completely empty arrays with eager thunks
             assert not defer
@@ -516,7 +358,7 @@ class Runtime(object):
                 )
                 store.attach_external_allocation(
                     self.legate_context,
-                    NumPyAllocation(array),
+                    array.data,
                     share,
                 )
                 result = DeferredArray(
@@ -525,9 +367,6 @@ class Runtime(object):
                     dtype=array.dtype,
                     numpy_array=array if share else None,
                 )
-            # If we're doing shadow debug make an EagerArray shadow
-            if self.shadow_debug:
-                result.shadow = EagerArray(self, array.copy(), shadow=True)
         else:
             assert not defer
             # Make this into an eager evaluated thunk
@@ -544,15 +383,7 @@ class Runtime(object):
             store = self.legate_context.create_store(
                 dtype, shape=shape, optimize_scalar=True
             )
-            result = DeferredArray(self, store, dtype=dtype)
-            # If we're doing shadow debug make an EagerArray shadow
-            if self.shadow_debug:
-                result.shadow = EagerArray(
-                    self,
-                    np.empty(shape, dtype=dtype),
-                    shadow=True,
-                )
-            return result
+            return DeferredArray(self, store, dtype=dtype)
         else:
             return EagerArray(self, np.empty(shape, dtype=dtype))
 
@@ -568,10 +399,7 @@ class Runtime(object):
         # If we're testing then the answer is always no
         if self.test_mode:
             return False
-        # Note the off by 1 case here, technically arrays with size
-        # up to LEGATE_MAX_DIM inclusive should be allowed, but we
-        # often use an extra dimension for reductions in cuNumeric
-        if len(shape) >= LEGATE_MAX_DIM:
+        if len(shape) > LEGATE_MAX_DIM:
             return True
         if len(shape) == 0:
             return self.max_eager_volume > 0
@@ -596,57 +424,27 @@ class Runtime(object):
     def is_deferred_array(array):
         return isinstance(array, DeferredArray)
 
-    @staticmethod
-    def is_lazy_array(array):
-        return isinstance(array, LazyArray)
-
-    def to_eager_array(self, array, stacklevel):
+    def to_eager_array(self, array):
         if self.is_eager_array(array):
             return array
         elif self.is_deferred_array(array):
             return EagerArray(self, array.__numpy_array__())
-        elif self.is_lazy_array(array):
-            raise NotImplementedError("convert lazy array to eager array")
         else:
             raise RuntimeError("invalid array type")
 
-    def to_deferred_array(self, array, stacklevel):
+    def to_deferred_array(self, array):
         if self.is_deferred_array(array):
             return array
         elif self.is_eager_array(array):
-            return array.to_deferred_array(stacklevel=(stacklevel + 1))
-        elif self.is_lazy_array(array):
-            raise NotImplementedError("convert lazy array to deferred array")
+            return array.to_deferred_array()
         else:
             raise RuntimeError("invalid array type")
 
-    def to_lazy_array(self, array, stacklevel):
-        if self.is_lazy_array(array):
-            return array
-        elif self.is_deferred_array(array):
-            raise NotImplementedError("convert deferred array to lazy array")
-        elif self.is_eager_array(array):
-            raise NotImplementedError("convert eager array to lazy array")
-        else:
-            raise RuntimeError("invalid array type")
-
-    def check_shadow(self, thunk, op):
-        assert thunk.shadow is not None
-        # Check the kind of this array and see if we should use allclose or
-        # array_equal
-        cunumeric_result = thunk.__numpy_array__()
-        numpy_result = thunk.shadow.__numpy_array__()
-
-        if thunk.dtype.kind == "f":
-            passed = np.allclose(cunumeric_result, numpy_result)
-        else:
-            passed = np.array_equal(cunumeric_result, numpy_result)
-        if not passed:
-            print("===== cuNumeric =====")
-            print(cunumeric_result)
-            print("===== NumPy =====")
-            print(numpy_result)
-            raise RuntimeError(f"Shadow array check failed for {op}")
+    def warn(self, msg, category=UserWarning):
+        if not self.warning:
+            return
+        stacklevel = find_last_user_stacklevel()
+        warnings.warn(msg, stacklevel=stacklevel, category=category)
 
 
 runtime = Runtime(cunumeric_context)

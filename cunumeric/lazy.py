@@ -1,4 +1,4 @@
-# Copyright 2021 NVIDIA Corporation
+# Copyright 2021-2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -80,8 +80,37 @@ class LazyArray(NumPyThunk):
     def transpose(self, rhs, axes, stacklevel):
         raise NotImplementedError("Implement in derived classes")
 
-    def diag(self, rhs, extract, k, stacklevel):
-        """Fill in or extract a diagonal from a matrix
+    def contract(
+        self,
+        lhs_modes,
+        rhs1_thunk,
+        rhs1_modes,
+        rhs2_thunk,
+        rhs2_modes,
+        mode2extent,
+        stacklevel,
+    ):
+        raise NotImplementedError("Implement in derived classes")
+
+    def choose(
+        self,
+        *args,
+        rhs,
+        stacklevel=0,
+        callsite=None,
+    ):
+        raise NotImplementedError("Implement in derived classes")
+
+    def diag_helper(
+        self,
+        rhs,
+        offset,
+        naxes,
+        extract,
+        stacklevel=0,
+        callsite=None,
+    ):
+        """Fill in or extract a diagonal from array
 
         :meta private:
         """

@@ -8,7 +8,7 @@ on:
       - gh-pages  # deployment target branch (this workflow should not exist on that branch anyway)
 env:
   COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
-  PROJECT: github-numpy-ci
+  PROJECT: github-cunumeric-ci
   REF: ${{ github.event.pull_request.head.ref || github.ref }}
   BASE_REF: ${{ github.event.pull_request.base.ref || github.ref }}
   EVENT_NAME: ${{ github.event_name }}
@@ -51,6 +51,7 @@ jobs:
           - {name: 2 GPUs test, options: --use cuda --gpus 2, log: gpus}
           - {name: OpenMP test, options: --use openmp --omps 1 --ompthreads 2, log: omp}
           - {name: 2 OpenMPs test, options: --use openmp --omps 2 --ompthreads 2, log: omps}
+          - {name: Eager execution test, options: --use eager, log: eager}
     name: ${{ matrix.name }}
     steps:
       - name: Prepare

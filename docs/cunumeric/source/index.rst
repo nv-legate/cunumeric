@@ -2,9 +2,10 @@ Welcome to cuNumeric's documentation!
 =========================================
 
 .. toctree::
+  :maxdepth: 2
 
   Overview <README.md>
-  API Reference <api.rst>
+  API Reference <api/index.rst>
 
 
 

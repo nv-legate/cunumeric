@@ -1,4 +1,4 @@
-/* Copyright 2021 NVIDIA Corporation
+/* Copyright 2021-2022 NVIDIA Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -61,6 +61,64 @@ struct ScalarUnaryRedImpl {
   void operator()(ScalarUnaryRedArgs& args) const
   {
     assert(false);
+  }
+};
+
+template <VariantKind KIND>
+struct ScalarUnaryRedImpl<KIND, UnaryRedCode::ALL> {
+  template <LegateTypeCode CODE, int DIM>
+  void operator()(ScalarUnaryRedArgs& args) const
+  {
+    using OP    = UnaryRedOp<UnaryRedCode::PROD, LegateTypeCode::BOOL_LT>;
+    using LG_OP = typename OP::OP;
+    using VAL   = legate_type_of<CODE>;
+
+    auto rect = args.in.shape<DIM>();
+
+    Pitches<DIM - 1> pitches;
+    size_t volume = pitches.flatten(rect);
+
+    auto out = args.out.reduce_accessor<LG_OP, true, 1>();
+    auto in  = args.in.read_accessor<VAL, DIM>(rect);
+
+#ifndef LEGION_BOUNDS_CHECKS
+    // Check to see if this is dense or not
+    bool dense = in.accessor.is_dense_row_major(rect);
+#else
+    // No dense execution if we're doing bounds checks
+    bool dense = false;
+#endif
+
+    ScalarUnaryRedImplBody<KIND, UnaryRedCode::ALL, CODE, DIM>()(out, in, rect, pitches, dense);
+  }
+};
+
+template <VariantKind KIND>
+struct ScalarUnaryRedImpl<KIND, UnaryRedCode::ANY> {
+  template <LegateTypeCode CODE, int DIM>
+  void operator()(ScalarUnaryRedArgs& args) const
+  {
+    using OP    = UnaryRedOp<UnaryRedCode::SUM, LegateTypeCode::BOOL_LT>;
+    using LG_OP = typename OP::OP;
+    using VAL   = legate_type_of<CODE>;
+
+    auto rect = args.in.shape<DIM>();
+
+    Pitches<DIM - 1> pitches;
+    size_t volume = pitches.flatten(rect);
+
+    auto out = args.out.reduce_accessor<LG_OP, true, 1>();
+    auto in  = args.in.read_accessor<VAL, DIM>(rect);
+
+#ifndef LEGION_BOUNDS_CHECKS
+    // Check to see if this is dense or not
+    bool dense = in.accessor.is_dense_row_major(rect);
+#else
+    // No dense execution if we're doing bounds checks
+    bool dense = false;
+#endif
+
+    ScalarUnaryRedImplBody<KIND, UnaryRedCode::ANY, CODE, DIM>()(out, in, rect, pitches, dense);
   }
 };
 

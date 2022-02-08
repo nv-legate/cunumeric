@@ -1,4 +1,4 @@
-/* Copyright 2021 NVIDIA Corporation
+/* Copyright 2021-2022 NVIDIA Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,41 +19,55 @@
 
 #include "legate_preamble.h"
 
-// Match these to CuNumericOpCode in cunumeric/config.py
+// Match these to CuNumericOpCode in config.py
+// Also, sort these alphabetically except the first one for easy lookup later
 enum CuNumericOpCode {
-  CUNUMERIC_ARANGE           = 1,
-  CUNUMERIC_BINARY_OP        = 2,
-  CUNUMERIC_BINARY_RED       = 3,
-  CUNUMERIC_BINCOUNT         = 4,
-  CUNUMERIC_CONVERT          = 5,
-  CUNUMERIC_DIAG             = 6,
-  CUNUMERIC_DOT              = 7,
-  CUNUMERIC_EYE              = 8,
-  CUNUMERIC_FILL             = 9,
-  CUNUMERIC_MATMUL           = 10,
-  CUNUMERIC_MATVECMUL        = 11,
-  CUNUMERIC_NONZERO          = 12,
-  CUNUMERIC_RAND             = 13,
-  CUNUMERIC_READ             = 14,
-  CUNUMERIC_SCALAR_UNARY_RED = 15,
-  CUNUMERIC_TILE             = 16,
-  CUNUMERIC_TRANSPOSE        = 17,
-  CUNUMERIC_UNARY_OP         = 18,
-  CUNUMERIC_UNARY_RED        = 19,
-  CUNUMERIC_WHERE            = 20,
-  CUNUMERIC_WRITE            = 21,
+  _CUNUMERIC_OP_CODE_BASE = 0,
+  CUNUMERIC_ARANGE,
+  CUNUMERIC_BINARY_OP,
+  CUNUMERIC_BINARY_RED,
+  CUNUMERIC_BINCOUNT,
+  CUNUMERIC_CHOOSE,
+  CUNUMERIC_CONTRACT,
+  CUNUMERIC_CONVERT,
+  CUNUMERIC_CONVOLVE,
+  CUNUMERIC_DIAG,
+  CUNUMERIC_DOT,
+  CUNUMERIC_EYE,
+  CUNUMERIC_FILL,
+  CUNUMERIC_FLIP,
+  CUNUMERIC_GEMM,
+  CUNUMERIC_LOAD_CUDALIBS,
+  CUNUMERIC_MATMUL,
+  CUNUMERIC_MATVECMUL,
+  CUNUMERIC_NONZERO,
+  CUNUMERIC_POTRF,
+  CUNUMERIC_RAND,
+  CUNUMERIC_READ,
+  CUNUMERIC_SCALAR_UNARY_RED,
+  CUNUMERIC_SYRK,
+  CUNUMERIC_TILE,
+  CUNUMERIC_TRANSPOSE_COPY_2D,
+  CUNUMERIC_TRILU,
+  CUNUMERIC_TRSM,
+  CUNUMERIC_UNARY_OP,
+  CUNUMERIC_UNARY_RED,
+  CUNUMERIC_UNLOAD_CUDALIBS,
+  CUNUMERIC_WHERE,
+  CUNUMERIC_WRITE,
 };
 
-// Match these to CuNumericRedopCode in cunumeric/config.py
+// Match these to CuNumericRedopCode in config.py
 enum CuNumericRedopID {
   CUNUMERIC_ARGMAX_REDOP = 1,
   CUNUMERIC_ARGMIN_REDOP = 2,
 };
 
-// Match these to CuNumericTunable in cunumeric/config.py
+// Match these to CuNumericTunable in config.py
 enum CuNumericTunable {
   CUNUMERIC_TUNABLE_NUM_GPUS         = 1,
-  CUNUMERIC_TUNABLE_MAX_EAGER_VOLUME = 2,
+  CUNUMERIC_TUNABLE_NUM_PROCS        = 2,
+  CUNUMERIC_TUNABLE_MAX_EAGER_VOLUME = 3,
 };
 
 enum CuNumericBounds {

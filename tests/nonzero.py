@@ -1,4 +1,4 @@
-# Copyright 2021 NVIDIA Corporation
+# Copyright 2021-2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -68,18 +68,18 @@ def test():
     # x = num.array([[[0, 1], [1, 1], [7, 0], [1, 0], [0, 1]], [[3, 0], [0, 3], [0, 0], [2, 2], [0, 19]]]) # noqa E501
     # x_np = np.array([[[0, 1], [1, 1], [7, 0], [1, 0], [0, 1]], [[3, 0], [0, 3], [0, 0], [2, 2], [0, 19]]]) # noqa E501
     # assert (num.count_nonzero(x) == np.count_nonzero(x_np))
-    # assert_equal(num.count_nonzero(x, axis=0), np.count_nonzero(x_np, axis=0))
-    # assert_equal(num.count_nonzero(x, axis=1), np.count_nonzero(x_np, axis=1))
-    # assert_equal(num.count_nonzero(x, axis=2), np.count_nonzero(x_np, axis=2))
+    # assert_equal(num.count_nonzero(x, axis=0), np.count_nonzero(x_np, axis=0)) # noqa E501
+    # assert_equal(num.count_nonzero(x, axis=1), np.count_nonzero(x_np, axis=1)) # noqa E501
+    # assert_equal(num.count_nonzero(x, axis=2), np.count_nonzero(x_np, axis=2)) # noqa E501
     # assert (num.count_nonzero(x, axis=(0, 1, 2)) == np.count_nonzero(x_np, axis=(0, 1, 2))) # noqa E501
     # assert_equal(num.nonzero(x), np.nonzero(x_np))
 
     # x_np = np.concatenate((x_np,) * 2000, axis=1)
     # x = num.array(x_np)
     # assert (num.count_nonzero(x) == np.count_nonzero(x_np))
-    # assert_equal(num.count_nonzero(x, axis=0), np.count_nonzero(x_np, axis=0))
-    # assert_equal(num.count_nonzero(x, axis=1), np.count_nonzero(x_np, axis=1))
-    # assert_equal(num.count_nonzero(x, axis=2), np.count_nonzero(x_np, axis=2))
+    # assert_equal(num.count_nonzero(x, axis=0), np.count_nonzero(x_np, axis=0)) # noqa E501
+    # assert_equal(num.count_nonzero(x, axis=1), np.count_nonzero(x_np, axis=1)) # noqa E501
+    # assert_equal(num.count_nonzero(x, axis=2), np.count_nonzero(x_np, axis=2)) # noqa E501
     # assert (num.count_nonzero(x, axis=(0, 1, 2)) == np.count_nonzero(x_np, axis=(0, 1, 2))) # noqa E501
     # assert_equal(num.nonzero(x), np.nonzero(x_np))
 

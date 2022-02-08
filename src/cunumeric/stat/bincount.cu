@@ -1,4 +1,4 @@
-/* Copyright 2021 NVIDIA Corporation
+/* Copyright 2021-2022 NVIDIA Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,7 +43,7 @@ static __device__ inline void _bincount(int32_t* bins,
     const auto x   = origin[0] + offset;
     const auto bin = rhs[x];
     assert(bin < num_bins);
-    atomicAdd(bins + bin, 1);
+    SumReduction<int32_t>::fold<false>(bins[bin], 1);
     // Now get the next offset
     offset += stride;
   }
@@ -72,7 +72,7 @@ static __device__ inline void _weighted_bincount(double* bins,
     const auto x   = origin[0] + offset;
     const auto bin = rhs[x];
     assert(bin < num_bins);
-    atomicAdd(bins + bin, weights[x]);
+    SumReduction<double>::fold<false>(bins[bin], weights[x]);
     // Now get the next offset
     offset += stride;
   }

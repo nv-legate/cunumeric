@@ -1,4 +1,4 @@
-/* Copyright 2021 NVIDIA Corporation
+/* Copyright 2021-2022 NVIDIA Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ using namespace legate::mapping;
 
 namespace cunumeric {
 
-CuNumericMapper::CuNumericMapper(Legion::Mapping::MapperRuntime* rt, Legion::Machine m, const LibraryContext& ctx)
+CuNumericMapper::CuNumericMapper(Legion::Runtime* rt, Legion::Machine m, const LibraryContext& ctx)
   : BaseMapper(rt, m, ctx),
     min_gpu_chunk(extract_env("CUNUMERIC_MIN_GPU_CHUNK", 1 << 20, 2)),
     min_cpu_chunk(extract_env("CUNUMERIC_MIN_CPU_CHUNK", 1 << 14, 2)),
@@ -39,8 +39,18 @@ Scalar CuNumericMapper::tunable_value(TunableID tunable_id)
 {
   switch (tunable_id) {
     case CUNUMERIC_TUNABLE_NUM_GPUS: {
-      int32_t num_gpus = local_gpus.empty() ? 0 : local_gpus.size() * total_nodes;
+      int32_t num_gpus = local_gpus.size() * total_nodes;
       return Scalar(num_gpus);
+    }
+    case CUNUMERIC_TUNABLE_NUM_PROCS: {
+      int32_t num_procs = 0;
+      if (!local_gpus.empty())
+        num_procs = local_gpus.size() * total_nodes;
+      else if (!local_omps.empty())
+        num_procs = local_omps.size() * total_nodes;
+      else
+        num_procs = local_cpus.size() * total_nodes;
+      return Scalar(num_procs);
     }
     case CUNUMERIC_TUNABLE_MAX_EAGER_VOLUME: {
       int32_t eager_volume = 0;
@@ -57,12 +67,59 @@ Scalar CuNumericMapper::tunable_value(TunableID tunable_id)
     }
     default: break;
   }
-  LEGATE_ABORT  // unknown tunable value
+  LEGATE_ABORT;  // unknown tunable value
 }
 
 std::vector<StoreMapping> CuNumericMapper::store_mappings(
   const mapping::Task& task, const std::vector<mapping::StoreTarget>& options)
 {
+  switch (task.task_id()) {
+    case CUNUMERIC_CONVOLVE: {
+      std::vector<StoreMapping> mappings;
+      auto& inputs = task.inputs();
+      mappings.push_back(StoreMapping::default_mapping(inputs[0], options.front()));
+      mappings.push_back(StoreMapping::default_mapping(inputs[1], options.front()));
+      auto& input_mapping = mappings.back();
+      for (uint32_t idx = 2; idx < inputs.size(); ++idx)
+        input_mapping.stores.push_back(inputs[idx]);
+      return std::move(mappings);
+    }
+    case CUNUMERIC_TRANSPOSE_COPY_2D: {
+      auto logical = task.scalars()[0].value<bool>();
+      if (!logical) {
+        std::vector<StoreMapping> mappings;
+        auto& outputs = task.outputs();
+        mappings.push_back(StoreMapping::default_mapping(outputs[0], options.front()));
+        mappings.back().policy.ordering.fortran_order();
+        mappings.back().policy.exact = true;
+        return std::move(mappings);
+      } else
+        return {};
+    }
+    case CUNUMERIC_POTRF:
+    case CUNUMERIC_TRSM:
+    case CUNUMERIC_SYRK:
+    case CUNUMERIC_GEMM: {
+      std::vector<StoreMapping> mappings;
+      auto& inputs  = task.inputs();
+      auto& outputs = task.outputs();
+      for (auto& input : inputs) {
+        mappings.push_back(StoreMapping::default_mapping(input, options.front()));
+        mappings.back().policy.ordering.fortran_order();
+        mappings.back().policy.exact = true;
+      }
+      for (auto& output : outputs) {
+        mappings.push_back(StoreMapping::default_mapping(output, options.front()));
+        mappings.back().policy.ordering.fortran_order();
+        mappings.back().policy.exact = true;
+      }
+      return std::move(mappings);
+    }
+    default: {
+      return {};
+    }
+  }
+  assert(false);
   return {};
 }
 

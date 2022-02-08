@@ -1,4 +1,4 @@
-/* Copyright 2021 NVIDIA Corporation
+/* Copyright 2021-2022 NVIDIA Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,5 +42,18 @@ class ScalarUnaryRedTask : public CuNumericTask<ScalarUnaryRedTask> {
   static void gpu_variant(legate::TaskContext& context);
 #endif
 };
+
+namespace detail {
+template <typename _T, std::enable_if_t<!legate::is_complex<_T>::value>* = nullptr>
+__CUDA_HD__ inline bool convert_to_bool(const _T& in)
+{
+  return bool(in);
+}
+template <typename _T, std::enable_if_t<legate::is_complex<_T>::value>* = nullptr>
+__CUDA_HD__ inline bool convert_to_bool(const _T& in)
+{
+  return bool(in.real());
+}
+}  // namespace detail
 
 }  // namespace cunumeric

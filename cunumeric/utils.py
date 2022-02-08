@@ -1,4 +1,4 @@
-# Copyright 2021 NVIDIA Corporation
+# Copyright 2021-2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,16 +13,12 @@
 # limitations under the License.
 #
 
-import functools
 import inspect
+import traceback
 import warnings
+from functools import reduce
 
 import numpy as np
-
-try:
-    reduce  # Python 2
-except NameError:
-    reduce = functools.reduce
 
 
 # Get the list of attributes defined in a namespace
@@ -33,8 +29,19 @@ def getPredefinedAttributes(namespace):
     return preDefined
 
 
+def find_last_user_stacklevel():
+    stacklevel = 1
+    for (frame, _) in traceback.walk_stack(None):
+        if not frame.f_globals["__name__"].startswith("cunumeric"):
+            break
+        stacklevel += 1
+    return stacklevel
+
+
 def unimplemented(func):
     def wrapper(*args, **kwargs):
+        find_last_user_stacklevel()
+
         warnings.warn(
             "cuNumeric has not implemented "
             + func.__name__
@@ -51,6 +58,7 @@ def unimplemented(func):
 # Copy attributes from one module to another.
 # Works only on modules and doesnt add submodules
 def add_missing_attributes(baseModule, definedModule):
+    internal_attrs = set(["__dir__", "__getattr__"])
     preDefined = getPredefinedAttributes(definedModule)
     attrList = {}
     for attr in dir(baseModule):
@@ -61,7 +69,11 @@ def add_missing_attributes(baseModule, definedModule):
 
     # add the attributes
     for key, value in attrList.items():
-        if callable(value) and not isinstance(value, type):
+        if (
+            callable(value)
+            and not isinstance(value, type)
+            and key not in internal_attrs
+        ):
             setattr(definedModule, key, unimplemented(value))
         else:
             setattr(definedModule, key, value)

@@ -1,4 +1,4 @@
-# Copyright 2021 NVIDIA Corporation
+# Copyright 2021-2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ import cunumeric as num
 def test():
     npa = np.array([-np.pi, 0, np.pi / 2, np.pi])
     a = num.array(npa)
-    assert np.array_equal(num.tanh(a), np.tanh(npa))
+    assert np.allclose(num.tanh(a), np.tanh(npa))
     return
 
 

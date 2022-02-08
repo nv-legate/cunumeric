@@ -1,4 +1,4 @@
-/* Copyright 2021 NVIDIA Corporation
+/* Copyright 2021-2022 NVIDIA Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@
 
 namespace cunumeric {
 
+// Match these to RandGenCode in config.py
 enum class RandGenCode : int32_t {
   UNIFORM = 1,
   NORMAL  = 2,

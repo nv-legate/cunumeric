@@ -1,4 +1,4 @@
-# Copyright 2021 NVIDIA Corporation
+# Copyright 2021-2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,24 +13,25 @@
 # limitations under the License.
 #
 
+from itertools import permutations
+
 import numpy as np
 
-import cunumeric as num
+import cunumeric as cn
+
+
+def gen_result(lib):
+    # Try various non-square shapes, to nudge the core towards trying many
+    # different partitionings.
+    for shape in permutations((3, 4, 5)):
+        x = lib.ones(shape)
+        for axis in range(len(shape)):
+            yield x.sum(axis=axis)
 
 
 def test():
-    pythonX = np.reshape(np.linspace(0, 10001, 10000, dtype=int), (100, 100))
-    x = num.array(pythonX)
-
-    pythonY = np.sum(pythonX, axis=0)
-    y = num.sum(x, axis=0)
-    assert np.array_equal(pythonY, y)
-
-    pythonY = np.sum(pythonX, axis=1)
-    y = num.sum(x, axis=1)
-    assert np.array_equal(pythonY, y)
-
-    return
+    for (np_res, cn_res) in zip(gen_result(np), gen_result(cn)):
+        assert np.array_equal(np_res, cn_res)
 
 
 if __name__ == "__main__":

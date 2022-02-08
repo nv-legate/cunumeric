@@ -1,4 +1,4 @@
-# Copyright 2021 NVIDIA Corporation
+# Copyright 2021-2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -29,7 +29,7 @@ def test():
             scalar_gen(np, b),
         ):
             assert np.array_equal(num.power(la, lb), np.power(na, nb))
-            assert np.array_equal(la ** lb, na ** nb)
+            assert np.array_equal(la**lb, na**nb)
 
 
 if __name__ == "__main__":

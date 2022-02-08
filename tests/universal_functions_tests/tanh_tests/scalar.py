@@ -1,4 +1,4 @@
-# Copyright 2021 NVIDIA Corporation
+# Copyright 2021-2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ def test():
     test_values = [-np.pi, 0, np.pi / 2, np.pi]
     for a in test_values:
         for (la, na) in zip(scalar_gen(num, a), scalar_gen(np, a)):
-            assert np.array_equal(num.tanh(la), np.tanh(na))
+            assert np.allclose(num.tanh(la), np.tanh(na))
 
 
 if __name__ == "__main__":

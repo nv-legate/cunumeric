@@ -1,4 +1,4 @@
-# Copyright 2021 NVIDIA Corporation
+# Copyright 2021-2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,15 +13,14 @@
 # limitations under the License.
 #
 
-from __future__ import absolute_import
-
-from .arcsin_tests import inplace_normal, normal, scalar
+from .arcsin_tests import complex_data, inplace_normal, normal, scalar
 
 
 def test():
     inplace_normal.test()
     normal.test()
     scalar.test()
+    complex_data.test()
 
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-/* Copyright 2021 NVIDIA Corporation
+/* Copyright 2021-2022 NVIDIA Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -107,6 +107,79 @@ struct ScalarUnaryRedImplBody<VariantKind::OMP, UnaryRedCode::CONTAINS, CODE, DI
     }
 
     for (auto idx = 0; idx < max_threads; ++idx) out.reduce(0, locals[idx]);
+  }
+};
+
+namespace detail {
+
+template <typename OP, typename LG_OP, typename VAL, int DIM>
+void logical_operator_omp(AccessorRO<VAL, DIM> in,
+                          AccessorRD<LG_OP, true, 1> out,
+                          const Rect<DIM>& rect,
+                          const Pitches<DIM - 1>& pitches,
+                          bool dense)
+{
+  const size_t volume    = rect.volume();
+  const auto max_threads = omp_get_max_threads();
+  auto locals            = static_cast<bool*>(alloca(max_threads * sizeof(bool)));
+  for (auto idx = 0; idx < max_threads; ++idx) locals[idx] = LG_OP::identity;
+  if (dense) {
+    auto inptr = in.ptr(rect);
+#pragma omp parallel
+    {
+      const int tid = omp_get_thread_num();
+#pragma omp for schedule(static)
+      for (size_t idx = 0; idx < volume; ++idx)
+        OP::template fold<true>(locals[tid], convert_to_bool(inptr[idx]));
+    }
+  } else {
+#pragma omp parallel
+    {
+      const int tid = omp_get_thread_num();
+#pragma omp for schedule(static)
+      for (size_t idx = 0; idx < volume; ++idx) {
+        auto p = pitches.unflatten(idx, rect.lo);
+        OP::template fold<true>(locals[tid], convert_to_bool(in[p]));
+      }
+    }
+  }
+
+  for (auto idx = 0; idx < max_threads; ++idx) out.reduce(0, locals[idx]);
+}
+
+}  // namespace detail
+
+template <LegateTypeCode CODE, int DIM>
+struct ScalarUnaryRedImplBody<VariantKind::OMP, UnaryRedCode::ALL, CODE, DIM> {
+  using OP    = UnaryRedOp<UnaryRedCode::PROD, LegateTypeCode::BOOL_LT>;
+  using LG_OP = typename OP::OP;
+  using VAL   = legate_type_of<CODE>;
+
+  void operator()(AccessorRD<LG_OP, true, 1> out,
+                  AccessorRO<VAL, DIM> in,
+                  const Rect<DIM>& rect,
+                  const Pitches<DIM - 1>& pitches,
+                  bool dense) const
+
+  {
+    detail::logical_operator_omp<OP, LG_OP>(in, out, rect, pitches, dense);
+  }
+};
+
+template <LegateTypeCode CODE, int DIM>
+struct ScalarUnaryRedImplBody<VariantKind::OMP, UnaryRedCode::ANY, CODE, DIM> {
+  using OP    = UnaryRedOp<UnaryRedCode::SUM, LegateTypeCode::BOOL_LT>;
+  using LG_OP = typename OP::OP;
+  using VAL   = legate_type_of<CODE>;
+
+  void operator()(AccessorRD<LG_OP, true, 1> out,
+                  AccessorRO<VAL, DIM> in,
+                  const Rect<DIM>& rect,
+                  const Pitches<DIM - 1>& pitches,
+                  bool dense) const
+
+  {
+    detail::logical_operator_omp<OP, LG_OP>(in, out, rect, pitches, dense);
   }
 };
 

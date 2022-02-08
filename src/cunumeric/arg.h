@@ -1,4 +1,4 @@
-/* Copyright 2021 NVIDIA Corporation
+/* Copyright 2021-2022 NVIDIA Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -62,7 +62,8 @@ class ArgmaxReduction {
   using RHS = Argval<T>;
 
   static const Argval<T> identity;
-  static const int32_t REDOP_ID = CUNUMERIC_ARGMAX_REDOP * MAX_TYPE_NUMBER + legate::legate_type_code_of<T>;
+  static const int32_t REDOP_ID =
+    CUNUMERIC_ARGMAX_REDOP * MAX_TYPE_NUMBER + legate::legate_type_code_of<T>;
 
   template <bool EXCLUSIVE>
   __CUDA_HD__ inline static void apply(LHS& lhs, RHS rhs)
@@ -83,7 +84,8 @@ class ArgminReduction {
   using RHS = Argval<T>;
 
   static const Argval<T> identity;
-  static const int32_t REDOP_ID = CUNUMERIC_ARGMIN_REDOP * MAX_TYPE_NUMBER + legate::legate_type_code_of<T>;
+  static const int32_t REDOP_ID =
+    CUNUMERIC_ARGMIN_REDOP * MAX_TYPE_NUMBER + legate::legate_type_code_of<T>;
 
   template <bool EXCLUSIVE>
   __CUDA_HD__ inline static void apply(LHS& lhs, RHS rhs)

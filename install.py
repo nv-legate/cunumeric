@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2021 NVIDIA Corporation
+# Copyright 2021-2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,6 +24,8 @@ import shutil
 import subprocess
 import sys
 import tempfile
+
+import setuptools
 
 # Flush output on newlines
 sys.stdout.reconfigure(line_buffering=True)
@@ -167,6 +169,7 @@ def install_openblas(openblas_dir, thread_count, verbose):
             "make",
             "-j",
             str(thread_count),
+            "CROSS=1",
             "USE_THREAD=1",
             "NO_STATIC=1",
             "USE_CUDA=0",
@@ -193,6 +196,43 @@ def install_openblas(openblas_dir, thread_count, verbose):
     shutil.rmtree(temp_dir)
 
 
+def install_tblis(tblis_dir, thread_count, verbose):
+    print("Legate is installing TBLIS into a local directory...")
+    temp_dir = tempfile.mkdtemp()
+    git_clone(
+        temp_dir,
+        url="https://github.com/devinamatthews/tblis.git",
+        branch="master",
+        verbose=verbose,
+    )
+    execute_command(
+        [
+            "./configure",
+            "--prefix",
+            tblis_dir,
+            "--enable-thread-model=openmp"
+            if has_openmp()
+            else "--disable-thread-model",
+            "--with-length-type=int64_t",
+            "--with-stride-type=int64_t",
+            "--with-label-type=int32_t",
+        ],
+        cwd=temp_dir,
+        verbose=verbose,
+    )
+    execute_command(
+        [
+            "make",
+            "-j",
+            str(thread_count),
+            "install",
+        ],
+        cwd=temp_dir,
+        verbose=verbose,
+    )
+    shutil.rmtree(temp_dir)
+
+
 def find_c_define(define, header):
     with open(header, "r") as f:
         line = f.readline()
@@ -204,10 +244,22 @@ def find_c_define(define, header):
     return False
 
 
+def find_compile_flag(flag, makefile):
+    with open(makefile, "r") as f:
+        for line in f:
+            toks = line.split()
+            if len(toks) == 3 and toks[0] == flag:
+                return toks[2] == "1"
+    assert False, f"Compile flag '{flag}' not found"
+
+
 def build_cunumeric(
     cunumeric_dir,
     install_dir,
     openblas_dir,
+    tblis_dir,
+    cutensor_dir,
+    thrust_dir,
     cmake,
     cmake_exe,
     debug,
@@ -221,27 +273,25 @@ def build_cunumeric(
 ):
     src_dir = os.path.join(cunumeric_dir, "src")
     if cmake:
-        print(
-            "Warning: CMake is currently not supported for cuNumeric build."
-        )
+        print("Warning: CMake is currently not supported for cuNumeric build.")
         print("Using GNU Make for now.")
 
     if not python_only:
-        openblas_dir = os.path.realpath(openblas_dir)
-        install_dir = os.path.realpath(install_dir)
         if install_dir == os.path.commonprefix([openblas_dir, install_dir]):
             libname = "openblas_legate"
         else:
             libname = "openblas"
         make_flags = [
             "LEGATE_DIR=%s" % install_dir,
-            "OPEN_BLAS_DIR=%s" % openblas_dir,
+            "OPENBLAS_PATH=%s" % openblas_dir,
+            "OPENBLAS_LIBNAME=%s" % libname,
+            "TBLIS_PATH=%s" % tblis_dir,
+            "CUTENSOR_PATH=%s" % cutensor_dir,
+            "THRUST_PATH=%s" % thrust_dir,
             "DEBUG=%s" % (1 if debug else 0),
             "DEBUG_RELEASE=%s" % (1 if debug_release else 0),
             "CHECK_BOUNDS=%s" % (1 if check_bounds else 0),
             "PREFIX=%s" % install_dir,
-            "OPENBLAS_FLAGS = -L%s/lib -l%s -Wl,-rpath,%s/lib"
-            % (openblas_dir, libname, openblas_dir),
         ]
         if clean_first:
             execute_command(
@@ -260,13 +310,24 @@ def build_cunumeric(
     except FileNotFoundError:
         pass
 
-    cmd = [sys.executable, "setup.py", "install", "--recurse"]
+    cmd = [
+        sys.executable,
+        "setup.py",
+        "install",
+        "--recurse",
+        "--prefix",
+        install_dir,
+    ]
+    # Work around breaking change in setuptools 60
+    if int(setuptools.__version__.split(".")[0]) >= 60:
+        cmd += ["--single-version-externally-managed", "--root=/"]
     if unknown is not None:
+        if "--prefix" in unknown:
+            raise Exception(
+                "cuNumeric cannot be installed in a different location than "
+                "Legate Core, please remove the --prefix argument"
+            )
         cmd += unknown
-        if "--prefix" not in unknown:
-            cmd += ["--prefix", str(install_dir)]
-    else:
-        cmd += ["--prefix", str(install_dir)]
     execute_command(cmd, cwd=cunumeric_dir, verbose=verbose)
 
 
@@ -275,6 +336,8 @@ def install_cunumeric(
     cmake_exe,
     legate_dir,
     openblas_dir,
+    tblis_dir,
+    cutensor_dir,
     thrust_dir,
     debug,
     debug_release,
@@ -292,6 +355,9 @@ def install_cunumeric(
         print("cmake_exe: ", cmake_exe, "\n")
         print("legate_dir: ", legate_dir, "\n")
         print("openblas_dir: ", openblas_dir, "\n")
+        print("tblis_dir: ", tblis_dir, "\n")
+        print("cutensor_dir: ", cutensor_dir, "\n")
+        print("thrust_dir: ", thrust_dir, "\n")
         print("debug: ", debug, "\n")
         print("debug_release: ", debug_release, "\n")
         print("check_bounds: ", check_bounds, "\n")
@@ -311,70 +377,87 @@ def install_cunumeric(
 
     # Check to see if we installed Legate Core
     legate_config = os.path.join(cunumeric_dir, ".legate.core.json")
-    if "LEGATE_DIR" in os.environ:
-        legate_dir = os.environ["LEGATE_DIR"]
-    elif legate_dir is None:
+    if legate_dir is None:
         legate_dir = load_json_config(legate_config)
     if legate_dir is None or not os.path.exists(legate_dir):
         raise Exception(
-            "You need to provide a Legate Core installation using"
-            " the '--with-core' flag"
+            "You need to provide a Legate Core installation using "
+            "the '--with-core' flag"
         )
     legate_dir = os.path.realpath(legate_dir)
     dump_json_config(legate_config, legate_dir)
 
-    # Check to see if we have an installation of openblas
+    # Find list of already-installed libraries
+    libs_path = os.path.join(legate_dir, "share", ".legate-libs.json")
     try:
-        f = open(
-            os.path.join(legate_dir, "share", "legate", ".legate-libs.json"),
-            "r",
-        )
-        libs_config = json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
+        with open(libs_path, "r") as f:
+            libs_config = json.load(f)
+    except (FileNotFoundError, IOError, json.JSONDecodeError):
         libs_config = {}
+
+    # Install OpenBLAS
     if openblas_dir is None:
         openblas_dir = libs_config.get("openblas")
-        if openblas_dir is None:
-            openblas_dir = os.path.join(legate_dir, "OpenBLAS")
+    if openblas_dir is None:
+        openblas_dir = os.path.join(legate_dir, "OpenBLAS")
+    openblas_dir = os.path.realpath(openblas_dir)
     if not os.path.exists(openblas_dir):
         install_openblas(openblas_dir, thread_count, verbose)
     libs_config["openblas"] = openblas_dir
-    with open(
-        os.path.join(legate_dir, "share", "legate", ".legate-libs.json"), "w"
-    ) as f:
+
+    # Install TBLIS
+    if tblis_dir is None:
+        tblis_dir = libs_config.get("tblis")
+    if tblis_dir is None:
+        tblis_dir = os.path.join(legate_dir, "TBLIS")
+    tblis_dir = os.path.realpath(tblis_dir)
+    if not os.path.exists(tblis_dir):
+        install_tblis(tblis_dir, thread_count, verbose)
+    libs_config["tblis"] = tblis_dir
+
+    # Match the core's setting regarding CUDA support.
+    makefile_path = os.path.join(legate_dir, "share", "legate", "config.mk")
+    cuda = find_compile_flag("USE_CUDA", makefile_path)
+    if cuda:
+        # Find cuTensor installation
+        if cutensor_dir is None:
+            cutensor_dir = libs_config.get("cutensor")
+        if cutensor_dir is None:
+            raise Exception(
+                "Could not find cuTensor installation, use '--with-cutensor' "
+                "to specify a location."
+            )
+        cutensor_dir = os.path.realpath(cutensor_dir)
+        libs_config["cutensor"] = cutensor_dir
+
+    # Record all newly installed libraries in the global configuration
+    with open(libs_path, "w") as f:
         json.dump(libs_config, f)
 
-    if not thrust_dir:
-        try:
-            f = open(
-                os.path.join(legate_dir, "share", "legate", ".thrust.json"),
-                "r",
-            )
-            thrust_dir = json.load(f)
-        except (FileNotFoundError, json.JSONDecodeError):
-            thrust_config = os.path.join(cunumeric_dir, ".thrust.json")
-            if "THRUST_PATH" in os.environ:
-                thrust_dir = os.environ["THRUST_PATH"]
-            elif thrust_dir is None:
-                thrust_dir = load_json_config(thrust_config)
-                if thrust_dir is None:
-                    raise Exception(
-                        "Could not find Thrust installation, "
-                        "use '--with-thrust' to specify a location."
-                    )
-            thrust_dir = os.path.realpath(thrust_dir)
-            dump_json_config(thrust_config, thrust_dir)
-    os.environ["CC_FLAGS"] = (
-        "-I" + thrust_dir + " " + os.environ.get("CC_FLAGS", "")
+    # Find Thrust installation
+    thrust_global_config = os.path.join(
+        legate_dir, "share", "legate", ".thrust.json"
     )
-    os.environ["NVCC_FLAGS"] = (
-        "-I" + thrust_dir + " " + os.environ.get("NVCC_FLAGS", "")
-    )
+    if thrust_dir is None:
+        thrust_dir = load_json_config(thrust_global_config)
+    thrust_local_config = os.path.join(cunumeric_dir, ".thrust.json")
+    if thrust_dir is None:
+        thrust_dir = load_json_config(thrust_local_config)
+    if thrust_dir is None:
+        raise Exception(
+            "Could not find Thrust installation, use '--with-thrust' to "
+            "specify a location."
+        )
+    thrust_dir = os.path.realpath(thrust_dir)
+    dump_json_config(thrust_local_config, thrust_dir)
 
     build_cunumeric(
         cunumeric_dir,
         legate_dir,
         openblas_dir,
+        tblis_dir,
+        cutensor_dir,
+        thrust_dir,
         cmake,
         cmake_exe,
         debug,
@@ -420,6 +503,7 @@ def driver():
         dest="legate_dir",
         metavar="DIR",
         required=False,
+        default=os.environ.get("LEGATE_DIR"),
         help="Path to Legate Core installation directory.",
     )
     parser.add_argument(
@@ -427,17 +511,34 @@ def driver():
         dest="openblas_dir",
         metavar="DIR",
         required=False,
-        default=os.environ.get("OPEN_BLAS_DIR"),
+        default=os.environ.get("OPENBLAS_PATH"),
         help="Path to OpenBLAS installation directory. Note that providing a "
         "user-defined BLAS library may lead to dynamic library conflicts with "
         "BLAS loaded by Python's Numpy. When using cuNumeric's BLAS, this "
         "issue is prevented by a custom library name.",
     )
     parser.add_argument(
+        "--with-tblis",
+        dest="tblis_dir",
+        metavar="DIR",
+        required=False,
+        default=os.environ.get("TBLIS_PATH"),
+        help="Path to TBLIS installation directory.",
+    )
+    parser.add_argument(
+        "--with-cutensor",
+        dest="cutensor_dir",
+        metavar="DIR",
+        required=False,
+        default=os.environ.get("CUTENSOR_PATH"),
+        help="Path to cuTensor installation directory.",
+    )
+    parser.add_argument(
         "--with-thrust",
         dest="thrust_dir",
         metavar="DIR",
         required=False,
+        default=os.environ.get("THRUST_PATH"),
         help="Path to Thrust installation directory.",
     )
     parser.add_argument(
