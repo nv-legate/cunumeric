@@ -5846,3 +5846,31 @@ def bincount(a, weights=None, minlength=0):
             )
             out._thunk.bincount(a._thunk, weights=weights._thunk)
     return out
+
+# Sorting
+
+def argsort(a, axis=-1, kind="stable", order=None):
+    array = ndarray.convert_to_cunumeric_ndarray(a)
+    return array.argsort(axis=axis, kind=kind, order=order)
+
+
+def lexsort(a, axis=-1):
+    raise NotImplementedError("Not yet implemented")
+
+
+def msort(a):
+    return sort(a)
+
+
+def sort(a, axis=-1, kind="stable", order=None):
+    array = ndarray.convert_to_cunumeric_ndarray(a)
+    out = array.copy()
+    out_array = ndarray.convert_to_cunumeric_ndarray(out)
+    out_array._thunk.sort(axis=axis, kind=kind, order=order)
+    return out_array
+
+
+def sort_complex(a):
+    return sort(a)
+
+

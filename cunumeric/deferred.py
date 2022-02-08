@@ -1517,3 +1517,11 @@ class DeferredArray(NumPyThunk):
         cholesky(self, src)
         if not no_tril:
             self.trilu(self, 0, True)
+
+    def sort(self, axis=-1, kind="stable", order=None):
+        # TODO support axis parameter
+        self.runtime.legate_runtime.issue_execution_fence(block=True)
+        task = self.context.create_task(CuNumericOpCode.SORT)
+        task.add_output(self.base)
+        task.execute()
+        self.runtime.legate_runtime.issue_execution_fence(block=True)

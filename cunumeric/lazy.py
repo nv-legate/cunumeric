@@ -128,7 +128,7 @@ class LazyArray(NumPyThunk):
     def nonzero(self, stacklevel):
         raise NotImplementedError("Implement in derived classes")
 
-    def sort(self, rhs, stacklevel):
+    def sort(self, axis, kind, order):
         raise NotImplementedError("Implement in derived classes")
 
     def random_uniform(self, stacklevel):
