@@ -19,6 +19,7 @@
 
 #include <thrust/scan.h>
 #include <thrust/sort.h>
+#include <thrust/device_vector.h>
 #include <thrust/execution_policy.h>
 
 #include "cunumeric/cuda_help.h"
