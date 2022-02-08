@@ -31,11 +31,11 @@ def test():
     # pdb.set_trace()
     sortA_num = num.sort(A_num)
     print("Result cunumeric: " + str(sortA_num))
+    assert num.allclose(sortA_np, sortA_num)
 
     A_num.sort()
     print("Result (inplace): " + str(A_num))
-
-    assert num.allclose(sortA_np, sortA_num)
+    assert num.allclose(sortA_np, A_num)
 
     return
 

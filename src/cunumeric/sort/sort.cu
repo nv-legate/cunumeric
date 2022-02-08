@@ -39,7 +39,14 @@ struct SortImplBody<VariantKind::GPU, CODE, DIM> {
                   Legion::DomainPoint index_point,
                   Legion::Domain domain)
   {
-    thrust::sort(inptr, inptr + volume);
+#ifdef DEBUG_CUNUMERIC
+    std::cout << "GPU(" << index_point[0] << "): local size = " << volume
+              << ", dist. = " << is_index_space << ", index_point = " << index_point
+              << ", domain/volume = " << domain << "/" << domain.get_volume() << std::endl;
+#endif
+
+    thrust::device_ptr<VAL> dev_ptr(inptr);
+    thrust::stable_sort(dev_ptr, dev_ptr + volume);
 
     // in case of distributed data we need to switch to sample sort
     if (is_index_space) {

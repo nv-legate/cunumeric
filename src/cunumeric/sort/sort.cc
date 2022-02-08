@@ -35,12 +35,13 @@ struct SortImplBody<VariantKind::CPU, CODE, DIM> {
                   Legion::DomainPoint index_point,
                   Legion::Domain domain)
   {
-    // std::cout << "local size = " << volume << ", dist. = " << is_index_space << ", index_point =
-    // "
-    //           << index_point << ", domain/volume = " << domain << "/" << domain.get_volume() <<
-    //           std::endl;
+#ifdef DEBUG_CUNUMERIC
+    std::cout << "CPU(" << index_point[0] << "): local size = " << volume
+              << ", dist. = " << is_index_space << ", index_point = " << index_point
+              << ", domain/volume = " << domain << "/" << domain.get_volume() << std::endl;
+#endif
 
-    std::sort(inptr, inptr + volume);
+    std::stable_sort(inptr, inptr + volume);
 
     // in case of distributed data we need to switch to sample sort
     if (is_index_space) {
@@ -71,9 +72,9 @@ struct SortImplBody<VariantKind::CPU, CODE, DIM> {
       std::unique_ptr<SampleEntry<VAL>[]> global_samples(new SampleEntry<VAL>[num_global_samples]);
 
       // sort all samples (utilize 2nd and 3rd sort criteria as well)
-      std::sort(&(global_samples[0]),
-                &(global_samples[0]) + num_global_samples,
-                SampleEntryComparator<VAL>());
+      std::stable_sort(&(global_samples[0]),
+                       &(global_samples[0]) + num_global_samples,
+                       SampleEntryComparator<VAL>());
 
       // define splitters
       auto splitters = std::make_unique<SampleEntry<VAL>[]>(domain.get_volume() - 1);
