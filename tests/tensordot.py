@@ -20,6 +20,7 @@ import cunumeric as num
 
 def test(ty):
     rtol = 2e-03 if ty == np.float16 else 1e-05
+  
     a = num.random.rand(3, 5, 4).astype(ty)
     b = num.random.rand(4, 5, 3).astype(ty)
 
