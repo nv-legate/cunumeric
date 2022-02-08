@@ -84,15 +84,23 @@ struct SortImplBody<VariantKind::CPU, CODE, DIM> {
 
       do {
         // compute local package sizes for every process based on splitters
-        std::unique_ptr<size_t> local_partition_size(new size_t[domain.get_volume()]);
+        std::unique_ptr<size_t[]> local_partition_size(new size_t[domain.get_volume()]);
         {
           size_t range_start    = 0;
           size_t local_position = 0;
-          for (int p_index = 0; p_index < domain.get_volume(); ++p) {
-            while (local_position < volume && still smaller or equal) { local_position++; }
+          for (int p_index = 0; p_index < domain.get_volume(); ++p_index) {
+            // move as long current value is lesser or equaöl to current splitter
+            while (local_position < volume &&
+                   (inptr[local_position] < splitters[p_index].value ||
+                    (inptr[local_position] == splitters[p_index].value &&
+                     (local_rank < splitters[p_index].rank ||
+                      (local_rank == splitters[p_index].rank &&
+                       local_position <= splitters[p_index].local_id))))) {
+              local_position++;
+            }
 
-            local_partition_size[partition_index++] = local_position - range_start;
-            range_start                             = local_position;
+            local_partition_size[p_index++] = local_position - range_start;
+            range_start                     = local_position;
           }
         }
 
