@@ -1474,7 +1474,41 @@ class ndarray(object):
         )
 
     def setflags(self, write=None, align=None, uic=None):
-        self.__array__().setflags(write=write, align=align, uic=uic)
+        self.__array__(stacklevel=2).setflags(
+            write=write, align=align, uic=uic
+        )
+
+    def sort(self, axis=-1, kind="stable", order=None):
+        if kind != "stable":
+            runtime.warn(
+                "cuNumeric uses a different (stable) algorithm than "
+                + str(kind)
+                + " for sorting",
+                category=RuntimeWarning,
+                stacklevel=2,
+            )
+        if order is not None:
+            raise NotImplementedError(
+                "cuNumeric does not support sorting with 'order' as "
+                "ndarray only supports numeric values"
+            )
+        if axis >= self.ndim or axis < -self.ndim:
+            raise ValueError("invalid axis")
+
+        if self._thunk.scalar:
+            # nothing to do
+            return
+        elif self.ndim == 1:
+            # this is the default -- sorting of 1D array
+            self._thunk.sort(axis=axis)
+            return
+        else:
+            raise NotImplementedError(
+                "cuNumeric only supports sorting 1D arrays at the moment"
+            )
+
+            # no return value
+            return
 
     def squeeze(self, axis=None):
         if axis is not None:
