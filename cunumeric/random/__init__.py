@@ -17,7 +17,7 @@ import sys as _sys
 
 import numpy.random as _nprandom
 from cunumeric.random.random import *
-from cunumeric.utils import (
+from cunumeric.coverage import (
     add_missing_attributes as _add_missing_attributes,
 )
 
