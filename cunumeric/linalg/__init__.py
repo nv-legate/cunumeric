@@ -17,7 +17,7 @@ import sys as _sys
 
 import numpy.linalg as _nplinalg
 from cunumeric.linalg.linalg import *
-from cunumeric.utils import (
+from cunumeric.coverage import (
     add_missing_attributes as _add_missing_attributes,
 )
 

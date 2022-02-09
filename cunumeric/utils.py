@@ -13,20 +13,10 @@
 # limitations under the License.
 #
 
-import inspect
 import traceback
-import warnings
 from functools import reduce
 
 import numpy as np
-
-
-# Get the list of attributes defined in a namespace
-def getPredefinedAttributes(namespace):
-    preDefined = {}
-    for attr in dir(namespace):
-        preDefined[attr] = getattr(namespace, attr)
-    return preDefined
 
 
 def find_last_user_stacklevel():
@@ -38,45 +28,28 @@ def find_last_user_stacklevel():
     return stacklevel
 
 
-def unimplemented(func):
-    def wrapper(*args, **kwargs):
-        find_last_user_stacklevel()
-
-        warnings.warn(
-            "cuNumeric has not implemented "
-            + func.__name__
-            + " and is falling back to canonical numpy. You may notice "
-            + "significantly decreased performance for this function call.",
-            stacklevel=2,
-            category=RuntimeWarning,
-        )
-        return func(*args, **kwargs)
-
-    return wrapper
+def get_line_number_from_frame(frame):
+    return f"{frame.f_code.co_filename}:{frame.f_lineno}"
 
 
-# Copy attributes from one module to another.
-# Works only on modules and doesnt add submodules
-def add_missing_attributes(baseModule, definedModule):
-    internal_attrs = set(["__dir__", "__getattr__"])
-    preDefined = getPredefinedAttributes(definedModule)
-    attrList = {}
-    for attr in dir(baseModule):
-        if attr in preDefined:
-            pass
-        elif not inspect.ismodule(getattr(baseModule, attr)):
-            attrList[attr] = getattr(baseModule, attr)
+def find_last_user_frames(top_only=True):
+    last = None
+    for (frame, _) in traceback.walk_stack(None):
+        last = frame
+        if not frame.f_globals["__name__"].startswith("cunumeric"):
+            break
 
-    # add the attributes
-    for key, value in attrList.items():
-        if (
-            callable(value)
-            and not isinstance(value, type)
-            and key not in internal_attrs
-        ):
-            setattr(definedModule, key, unimplemented(value))
-        else:
-            setattr(definedModule, key, value)
+    if top_only:
+        return get_line_number_from_frame(last)
+
+    frames = []
+    curr = last
+    while curr is not None:
+        if "legion_top.py" in curr.f_code.co_filename:
+            break
+        frames.append(curr)
+        curr = curr.f_back
+    return "|".join(get_line_number_from_frame(f) for f in frames)
 
 
 # These are the dtypes that we currently support for cuNumeric

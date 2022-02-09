@@ -30,7 +30,7 @@ from cunumeric import linalg, random
 from cunumeric.array import ndarray
 from cunumeric.module import *
 from cunumeric.ufunc import *
-from cunumeric.utils import (
+from cunumeric.coverage import (
     add_missing_attributes as _add_missing_attributes,
 )
 
