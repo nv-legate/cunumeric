@@ -1296,6 +1296,15 @@ def _concatenate(
     return out_array
 
 
+def append(arr, values, axis=None):
+    # Check to see if we can build a new tuple of cuNumeric arrays
+    cunumeric_inputs, common_info = check_shape_dtype(
+        [arr, values], concatenate.__name__, axis
+    )
+
+    return _concatenate(cunumeric_inputs, axis)
+
+
 def concatenate(inputs, axis=0, out=None, dtype=None, casting="same_kind"):
     """
 
@@ -1335,10 +1344,16 @@ def concatenate(inputs, axis=0, out=None, dtype=None, casting="same_kind"):
     --------
     GPU, CPU
     """
+    # flatten arrays if axis == None and concatenate arrays on the first axis
+    if axis is None:
+        inputs = list(inp.ravel() for inp in inputs)
+        axis = 0
+
     # Check to see if we can build a new tuple of cuNumeric arrays
     cunumeric_inputs, common_info = check_shape_dtype(
         inputs, concatenate.__name__, axis, dtype, casting
     )
+
     return _concatenate(
         cunumeric_inputs, axis, out, dtype, casting, common_info
     )
@@ -1379,20 +1394,23 @@ def stack(arrays, axis=0, out=None):
     --------
     GPU, CPU
     """
-    fname = stack.__name__
-    arrays, common_info = check_shape_dtype(arrays, fname, axis)
+    if type(axis) is not int:
+        raise ValueError("The target axis should be an integer")
+
+    arrays, common_info = check_shape_dtype(arrays, stack.__name__, axis)
+
     if axis > common_info.ndim:
         raise ValueError(
             "The target axis should be smaller or"
             " equal to the number of dimensions"
             " of input arrays"
         )
-    else:
-        shape = list(common_info.shape)
-        shape.insert(axis, 1)
-        for i, arr in enumerate(arrays):
-            arrays[i] = arr.reshape(shape)
-        common_info.shape = shape
+
+    shape = list(common_info.shape)
+    shape.insert(axis, 1)
+    for i, arr in enumerate(arrays):
+        arrays[i] = arr.reshape(shape)
+    common_info.shape = shape
     return _concatenate(arrays, axis, out=out, common_info=common_info)
 
 
@@ -1572,8 +1590,7 @@ def column_stack(tup):
     --------
     GPU, CPU
     """
-    inputs = list(ndarray.convert_to_cunumeric_ndarray(inp) for inp in tup)
-    tup, common_info = check_shape_dtype(inputs, column_stack.__name__, 1)
+    tup, common_info = check_shape_dtype(tup, column_stack.__name__, 1)
     # When ndim == 1, hstack concatenates arrays along the first axis
     if common_info.ndim == 1:
         tup = list(inp.reshape([inp.shape[0], 1]) for inp in tup)

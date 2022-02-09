@@ -25,6 +25,9 @@ def run_test(arr, routine, input_size):
     if routine == "concatenate" or routine == "stack":
         # 'axis' options
         input_arr.append([axis for axis in range(arr[0].ndim)])
+        # test axis == 'None' for concatenate
+        if routine == "concatenate":
+            input_arr[-1].append(None)
         # 'out' argument
         input_arr.append([None])
     test_args = itertools.product(*input_arr)
