@@ -1,4 +1,4 @@
-# Copyright 2021 NVIDIA Corporation
+# Copyright 2021-2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -30,7 +30,7 @@ from cunumeric import linalg, random
 from cunumeric.array import ndarray
 from cunumeric.module import *
 from cunumeric.ufunc import *
-from cunumeric.utils import (
+from cunumeric.coverage import (
     add_missing_attributes as _add_missing_attributes,
 )
 
