@@ -5850,6 +5850,37 @@ def bincount(a, weights=None, minlength=0):
 # Sorting
 
 
+# Sorting
+
+
+@add_boilerplate("a")
+def argsort(a, axis=-1, kind="stable", order=None):
+    return a.argsort(axis=axis, kind=kind, order=order)
+
+
+def lexsort(a, axis=-1):
+    raise NotImplementedError("Not yet implemented")
+
+
+def msort(a):
+    return sort(a)
+
+
+@add_boilerplate("a")
+def sort(a, axis=-1, kind="stable", order=None):
+    out = a.copy()
+    out_array = ndarray.convert_to_cunumeric_ndarray(out)
+    out_array._thunk.sort(axis=axis, kind=kind, order=order)
+    return out_array
+
+
+def sort_complex(a):
+    return sort(a)
+
+
+# Counting
+
+
 @add_boilerplate("a")
 def argsort(a, axis=-1, kind="stable", order=None):
     return a.argsort(axis=axis, kind=kind, order=order)
