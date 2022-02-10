@@ -1296,15 +1296,6 @@ def _concatenate(
     return out_array
 
 
-def append(arr, values, axis=None):
-    # Check to see if we can build a new tuple of cuNumeric arrays
-    cunumeric_inputs, common_info = check_shape_dtype(
-        [arr, values], concatenate.__name__, axis
-    )
-
-    return _concatenate(cunumeric_inputs, axis)
-
-
 def concatenate(inputs, axis=0, out=None, dtype=None, casting="same_kind"):
     """
 
