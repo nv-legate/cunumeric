@@ -1519,9 +1519,34 @@ class DeferredArray(NumPyThunk):
             self.trilu(self, 0, True)
 
     def sort(self, axis=-1, kind="stable", order=None):
-        # TODO support axis parameter
-        self.runtime.legate_runtime.issue_execution_fence(block=True)
-        task = self.context.create_task(CuNumericOpCode.SORT)
-        task.add_output(self.base)
-        task.execute()
-        self.runtime.legate_runtime.issue_execution_fence(block=True)
+        axis_normalized = axis
+        if axis_normalized < 0:
+            axis_normalized = self.ndim + axis
+
+        if axis_normalized is not self.ndim - 1:
+            assert axis_normalized < self.ndim - 1 and axis_normalized >= 0
+
+            # swap axes
+            swapped = self.swapaxes(axis_normalized, self.ndim - 1)
+
+            # FIXME: ensure *new* distribution does not split last axis (!)
+            swapped_copy = self.runtime.create_empty_thunk(
+                swapped.shape, dtype=self.dtype, inputs=[self, swapped]
+            )
+            swapped_copy.copy(swapped, deep=True)
+
+            # run sort on last axis
+            swapped_copy.sort(self.ndim - 1)
+
+            self.base = swapped_copy.swapaxes(
+                axis_normalized, self.ndim - 1
+            ).base
+            self.numpy_array = None
+        else:
+            # run actual sort task
+            self.runtime.legate_runtime.issue_execution_fence(block=True)
+            task = self.context.create_task(CuNumericOpCode.SORT)
+            task.add_output(self.base)
+            task.add_scalar_arg(self.base.shape[self.ndim - 1], ty.uint64)
+            task.execute()
+            self.runtime.legate_runtime.issue_execution_fence(block=True)

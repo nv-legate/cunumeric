@@ -1500,16 +1500,9 @@ class ndarray(object):
         if self._thunk.scalar:
             # nothing to do
             return
-        elif self.ndim == 1:
-            # this is the default -- sorting of 1D array
-            self._thunk.sort(axis=axis)
-            return
         else:
-            raise NotImplementedError(
-                "cuNumeric only supports sorting 1D arrays at the moment"
-            )
-
-            # no return value
+            # this is the default -- sorting of N-D array
+            self._thunk.sort(axis=axis)
             return
 
     def squeeze(self, axis=None):

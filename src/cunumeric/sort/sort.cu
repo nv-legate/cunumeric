@@ -36,6 +36,7 @@ struct SortImplBody<VariantKind::GPU, CODE, DIM> {
                   const Pitches<DIM - 1>& pitches,
                   const Rect<DIM>& rect,
                   const size_t volume,
+                  const size_t sort_dim_size,
                   bool is_index_space,
                   Legion::DomainPoint index_point,
                   Legion::Domain domain)
@@ -47,10 +48,12 @@ struct SortImplBody<VariantKind::GPU, CODE, DIM> {
 #endif
 
     thrust::device_ptr<VAL> dev_ptr(inptr);
-    thrust::stable_sort(dev_ptr, dev_ptr + volume);
+    for (uint32_t start_idx = 0; start_idx < volume; start_idx += sort_dim_size) {
+      thrust::stable_sort(dev_ptr + start_idx, dev_ptr + start_idx + sort_dim_size);
+    }
 
     // in case of distributed data we need to switch to sample sort
-    if (is_index_space) {
+    if (is_index_space && DIM == 1) {
       // not implemented yet
       assert(false);
     }
