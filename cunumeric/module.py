@@ -1805,9 +1805,9 @@ def where(a, x=None, y=None):
 # Sorting
 
 
+@add_boilerplate("a")
 def argsort(a, axis=-1, kind="stable", order=None):
-    array = ndarray.convert_to_cunumeric_ndarray(a)
-    return array.argsort(axis=axis, kind=kind, order=order)
+    return a.argsort(axis=axis, kind=kind, order=order)
 
 
 def lexsort(a, axis=-1):
@@ -1818,9 +1818,9 @@ def msort(a):
     return sort(a)
 
 
+@add_boilerplate("a")
 def sort(a, axis=-1, kind="stable", order=None):
-    array = ndarray.convert_to_cunumeric_ndarray(a)
-    out = array.copy()
+    out = a.copy()
     out_array = ndarray.convert_to_cunumeric_ndarray(out)
     out_array._thunk.sort(axis=axis, kind=kind, order=order)
     return out_array

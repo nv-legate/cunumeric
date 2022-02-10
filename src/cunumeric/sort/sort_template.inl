@@ -36,13 +36,33 @@ struct SortImpl {
     Pitches<DIM - 1> pitches;
     size_t volume = pitches.flatten(rect);
 
-    // TODO -- we cannot stop! need to proceed as partition might be filled later
-    if (volume == 0) { return; }
-
     auto inout = args.output.read_write_accessor<VAL, DIM>(rect);
 
-    SortImplBody<KIND, CODE, DIM>()(
-      inout.ptr(rect), pitches, rect, volume, args.is_index_space, args.index_point, args.domain);
+    /*
+     * Assumptions:
+     * 1. Sort is always requested for the 'last' dimension within rect
+     * 2. We have product_of_all_other_dimensions independent sort ranges
+     * 3. if we have more than one participants:
+     *  a) 1D-case: we need to perform parallel sort (e.g. via sampling)
+     *  b) ND-case: rect needs to be the full domain in that last dimension
+     */
+
+#ifdef DEBUG_CUNUMERIC
+    std::cout << "DIM=" << DIM << ", rect=" << rect << ", sort_dim_size=" << args.sort_dim_size
+              << std::endl;
+
+    assert((DIM == 1 || (rect.hi[DIM - 1] - rect.lo[DIM - 1] + 1 == args.sort_dim_size)) &&
+           "multi-dimensional array should not be distributed in last (sort) dimension");
+#endif
+
+    SortImplBody<KIND, CODE, DIM>()(inout.ptr(rect),
+                                    pitches,
+                                    rect,
+                                    volume,
+                                    args.sort_dim_size,
+                                    args.is_index_space,
+                                    args.index_point,
+                                    args.domain);
   }
 };
 
@@ -50,6 +70,7 @@ template <VariantKind KIND>
 static void sort_template(TaskContext& context)
 {
   SortArgs args{context.outputs()[0],
+                context.scalars()[0].value<size_t>(),
                 context.task_->is_index_space,
                 context.task_->index_point,
                 context.task_->index_domain};

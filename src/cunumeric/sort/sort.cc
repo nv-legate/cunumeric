@@ -31,6 +31,7 @@ struct SortImplBody<VariantKind::CPU, CODE, DIM> {
                   const Pitches<DIM - 1>& pitches,
                   const Rect<DIM>& rect,
                   const size_t volume,
+                  const size_t sort_dim_size,
                   bool is_index_space,
                   Legion::DomainPoint index_point,
                   Legion::Domain domain)
@@ -39,12 +40,20 @@ struct SortImplBody<VariantKind::CPU, CODE, DIM> {
     std::cout << "CPU(" << index_point[0] << "): local size = " << volume
               << ", dist. = " << is_index_space << ", index_point = " << index_point
               << ", domain/volume = " << domain << "/" << domain.get_volume() << std::endl;
+
+    if (volume <= 30) {
+      std::cout << "inptr = [ ";
+      for (size_t i = 0; i < volume; ++i) { std::cout << (i > 0 ? ", " : " ") << inptr[i]; }
+      std::cout << "]" << std::endl;
+    }
 #endif
 
-    std::stable_sort(inptr, inptr + volume);
+    for (uint32_t start_idx = 0; start_idx < volume; start_idx += sort_dim_size) {
+      std::stable_sort(inptr + start_idx, inptr + start_idx + sort_dim_size);
+    }
 
-    // in case of distributed data we need to switch to sample sort
-    if (is_index_space) {
+    // in case of distributed data (1D) we need to switch to sample sort
+    if (is_index_space && DIM == 1) {
       // create (starting) sample of (at most) domain.get_volume() equidistant values
       // also enrich values with additional indexes rank & local position in order to handle
       // duplicate values
