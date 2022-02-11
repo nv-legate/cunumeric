@@ -1248,7 +1248,7 @@ def check_shape_dtype(
 
     # Cast arrays with the passed arguments (dtype, casting)
     if dtype is None:
-        dtype = np.min_scalar_type(inputs)
+        dtype = np.find_common_type([inp.dtype for inp in inputs], [])
     else:
         dtype = np.dtype(dtype)
 
