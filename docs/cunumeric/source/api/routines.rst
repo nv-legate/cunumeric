@@ -13,5 +13,6 @@ Routines
    logic
    math
    random
+   set
    sorting
    statistics
