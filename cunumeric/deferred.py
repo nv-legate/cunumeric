@@ -1517,3 +1517,6 @@ class DeferredArray(NumPyThunk):
         cholesky(self, src)
         if not no_tril:
             self.trilu(self, 0, True)
+
+    def unique(self):
+        raise NotImplementedError("not yet implemented")

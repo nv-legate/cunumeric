@@ -723,3 +723,9 @@ class EagerArray(NumPyThunk):
             self.deferred.cholesky(src)
         else:
             self.array[:] = np.linalg.cholesky(src.array)
+
+    def unique(self):
+        if self.deferred is not None:
+            return self.deferred.unique()
+        else:
+            return EagerArray(self.runtime, np.unique(self.array))

@@ -5642,7 +5642,8 @@ def unique(
         raise NotImplementedError(
             "Keyword arguments for `unique` are not yet supported"
         )
-    pass
+
+    return ar.unique()
 
 
 ##################################
