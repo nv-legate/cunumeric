@@ -1519,4 +1519,15 @@ class DeferredArray(NumPyThunk):
             self.trilu(self, 0, True)
 
     def unique(self):
-        raise NotImplementedError("not yet implemented")
+        result = self.runtime.create_unbound_thunk(self.dtype)
+
+        task = self.context.create_task(CuNumericOpCode.UNIQUE)
+
+        task.add_output(result.base)
+        task.add_input(self.base)
+
+        task.add_broadcast(self.base)
+
+        task.execute()
+
+        return result
