@@ -48,7 +48,7 @@ If you have questions, please contact us at legate(at)nvidia.com.
 
 ## Installation
 
-cuNumeric is available on conda:
+cuNumeric is available [on conda](https://anaconda.org/legate/cunumeric):
 
 ```
 conda install -c nvidia -c conda-forge -c legate cunumeric
