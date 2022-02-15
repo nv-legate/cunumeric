@@ -165,13 +165,6 @@ class NumPyThunk(object):
         """
         raise NotImplementedError("Implement in derived classes")
 
-    def dot(self, rhs1, rhs2, stacklevel):
-        """Perform a dot operation on our thunk
-
-        :meta private:
-        """
-        raise NotImplementedError("Implement in derived classes")
-
     def transpose(self, rhs, axes, stacklevel):
         """Perform a transpose operation on our thunk
 

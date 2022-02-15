@@ -927,221 +927,6 @@ class DeferredArray(NumPyThunk):
         self._fill(store, stacklevel=stacklevel + 1, callsite=callsite)
 
     @profile
-    @auto_convert([1, 2])
-    @shadow_debug("dot", [1, 2])
-    def dot(self, src1, src2, stacklevel=0, callsite=None):
-        rhs1_array = src1
-        rhs2_array = src2
-        lhs_array = self
-
-        if rhs1_array.ndim == 1 and rhs2_array.ndim == 1:
-            # Vector dot product case
-            assert lhs_array.size == 1
-            assert rhs1_array.shape == rhs2_array.shape or (
-                rhs1_array.size == 1 and rhs2_array.size == 1
-            )
-
-            if rhs1_array.dtype == np.float16:
-                lhs_array = self.runtime.create_empty_thunk(
-                    self.shape, np.dtype(np.float32), inputs=[self]
-                )
-
-            lhs_array.fill(
-                np.array(0, dtype=lhs_array.dtype),
-                stacklevel=(stacklevel + 1),
-                callsite=callsite,
-            )
-
-            task = self.context.create_task(CuNumericOpCode.DOT)
-            task.add_reduction(lhs_array.base, ty.ReductionOp.ADD)
-            task.add_input(rhs1_array.base)
-            task.add_input(rhs2_array.base)
-
-            task.add_alignment(rhs1_array.base, rhs2_array.base)
-
-            task.execute()
-
-            if rhs1_array.dtype == np.float16:
-                self.convert(
-                    lhs_array,
-                    stacklevel=stacklevel + 1,
-                    warn=False,
-                    callsite=callsite,
-                )
-
-        elif (
-            rhs1_array.ndim == 1
-            and rhs2_array.ndim == 2
-            or rhs1_array.ndim == 2
-            and rhs2_array.ndim == 1
-        ):
-            # Matrix-vector or vector-matrix multiply
-            assert lhs_array.ndim == 1
-
-            left_matrix = rhs1_array.ndim == 2
-
-            if left_matrix and rhs1_array.shape[0] == 1:
-                rhs1_array = rhs1_array.get_item(
-                    (0, slice(None)), stacklevel + 1
-                )
-                lhs_array.dot(
-                    rhs1_array,
-                    rhs2_array,
-                    stacklevel=stacklevel + 1,
-                    callsite=callsite,
-                )
-                return
-            elif not left_matrix and rhs2_array.shape[1] == 1:
-                rhs2_array = rhs2_array.get_item(
-                    (slice(None), 0), stacklevel + 1
-                )
-                lhs_array.dot(
-                    rhs1_array,
-                    rhs2_array,
-                    stacklevel=stacklevel + 1,
-                    callsite=callsite,
-                )
-                return
-
-            # If the inputs are 16-bit floats, we should use 32-bit float
-            # for accumulation
-            if rhs1_array.dtype == np.float16:
-                lhs_array = self.runtime.create_empty_thunk(
-                    self.shape, np.dtype(np.float32), inputs=[self]
-                )
-
-            # TODO: We should be able to do this in the core
-            lhs_array.fill(
-                np.array(0, dtype=lhs_array.dtype),
-                stacklevel=(stacklevel + 1),
-                callsite=callsite,
-            )
-
-            if left_matrix:
-                rhs1 = rhs1_array.base
-                (m, n) = rhs1.shape
-                rhs2_array = rhs2_array._copy_if_overlapping(
-                    lhs_array, stacklevel=stacklevel + 1
-                )
-                rhs2 = rhs2_array.base.promote(0, m)
-                lhs = lhs_array.base.promote(1, n)
-            else:
-                rhs2 = rhs2_array.base
-                (m, n) = rhs2.shape
-                rhs1_array = rhs1_array._copy_if_overlapping(
-                    lhs_array, stacklevel=stacklevel + 1
-                )
-                rhs1 = rhs1_array.base.promote(1, n)
-                lhs = lhs_array.base.promote(0, m)
-
-            task = self.context.create_task(CuNumericOpCode.MATVECMUL)
-            task.add_reduction(lhs, ReductionOp.ADD)
-            task.add_input(rhs1)
-            task.add_input(rhs2)
-            task.add_scalar_arg(left_matrix, bool)
-
-            task.add_alignment(lhs, rhs1)
-            task.add_alignment(lhs, rhs2)
-
-            task.execute()
-
-            # If we used an accumulation buffer, we should copy the results
-            # back to the lhs
-            if rhs1_array.dtype == np.float16:
-                # Since we're still in the middle of operation, we haven't had
-                # a chance to get the shadow array for this intermediate array,
-                # so we manually attach a shadow array for it
-                if self.runtime.shadow_debug:
-                    lhs_array.shadow = self.runtime.to_eager_array(
-                        lhs_array,
-                        stacklevel + 1,
-                    )
-                self.convert(
-                    lhs_array,
-                    stacklevel=stacklevel + 1,
-                    warn=False,
-                    callsite=callsite,
-                )
-
-        elif rhs1_array.ndim == 2 and rhs2_array.ndim == 2:
-            # Matrix-matrix multiply
-            M = lhs_array.shape[0]
-            N = lhs_array.shape[1]
-            K = rhs1_array.shape[1]
-            assert M == rhs1_array.shape[0]  # Check M
-            assert N == rhs2_array.shape[1]  # Check N
-            assert K == rhs2_array.shape[0]  # Check K
-
-            if M == 1 and N == 1:
-                rhs1_array = rhs1_array.get_item(
-                    (0, slice(None)), stacklevel + 1
-                )
-                rhs2_array = rhs2_array.get_item(
-                    (slice(None), 0), stacklevel + 1
-                )
-                lhs_array.dot(
-                    rhs1_array,
-                    rhs2_array,
-                    stacklevel=stacklevel + 1,
-                    callsite=callsite,
-                )
-                return
-
-            if rhs1_array.dtype == np.float16:
-                lhs_array = self.runtime.create_empty_thunk(
-                    self.shape, np.dtype(np.float32), inputs=[self]
-                )
-
-            rhs1_array = rhs1_array._copy_if_overlapping(
-                lhs_array, stacklevel=stacklevel + 1
-            )
-            rhs2_array = rhs2_array._copy_if_overlapping(
-                lhs_array, stacklevel=stacklevel + 1
-            )
-
-            lhs_array.fill(
-                np.array(0, dtype=lhs_array.dtype),
-                stacklevel=(stacklevel + 1),
-                callsite=callsite,
-            )
-
-            lhs = lhs_array.base.promote(1, K)
-            rhs1 = rhs1_array.base.promote(2, N)
-            rhs2 = rhs2_array.base.promote(0, M)
-
-            task = self.context.create_task(CuNumericOpCode.MATMUL)
-            task.add_reduction(lhs, ReductionOp.ADD)
-            task.add_input(rhs1)
-            task.add_input(rhs2)
-
-            task.add_alignment(lhs, rhs1)
-            task.add_alignment(lhs, rhs2)
-
-            task.execute()
-
-            # If we used an accumulation buffer, we should copy the results
-            # back to the lhs
-            if rhs1_array.dtype == np.float16:
-                # Since we're still in the middle of operation, we haven't had
-                # a chance to get the shadow array for this intermediate array,
-                # so we manually attach a shadow array for it
-                if self.runtime.shadow_debug:
-                    lhs_array.shadow = self.runtime.to_eager_array(
-                        lhs_array,
-                        stacklevel + 1,
-                    )
-                self.convert(
-                    lhs_array,
-                    stacklevel=stacklevel + 1,
-                    warn=False,
-                    callsite=callsite,
-                )
-        else:
-            raise NotImplementedError(
-                f"dot between {rhs1_array.ndim}d and {rhs2_array.ndim}d arrays"
-            )
-
-    @profile
     @auto_convert([2, 4])
     @shadow_debug("contract", [2, 4])
     def contract(
@@ -1190,6 +975,38 @@ class DeferredArray(NumPyThunk):
         rhs1_thunk = rhs1_thunk._copy_if_overlapping(lhs_thunk)
         rhs2_thunk = rhs2_thunk._copy_if_overlapping(lhs_thunk)
 
+        # Test for special cases where we can use BLAS
+        blas_op = None
+        if lhs_thunk.dtype in [np.float16, np.float32, np.float64] and all(
+            c == 2 for c in mode_counts.values()
+        ):
+            if (
+                len(lhs_modes) == 0
+                and len(rhs1_modes) == 1
+                and len(rhs2_modes) == 1
+            ):
+                blas_op = "vv"
+            elif len(lhs_modes) == 1 and (
+                len(rhs1_modes) == 2
+                and len(rhs2_modes) == 1
+                or len(rhs1_modes) == 1
+                and len(rhs2_modes) == 2
+            ):
+                blas_op = "mv"
+            elif (
+                len(lhs_modes) == 2
+                and len(rhs1_modes) == 2
+                and len(rhs2_modes) == 2
+            ):
+                blas_op = "mm"
+
+        # Our half-precision BLAS tasks require a single-precision accumulator,
+        # so they can utilize tensor cores.
+        if blas_op is not None and lhs_thunk.dtype == np.float16:
+            lhs_thunk = self.runtime.create_empty_thunk(
+                lhs_thunk.shape, np.dtype(np.float32), inputs=[lhs_thunk]
+            )
+
         # Clear output array
         lhs_thunk.fill(
             np.array(0, dtype=lhs_thunk.dtype),
@@ -1197,6 +1014,7 @@ class DeferredArray(NumPyThunk):
             callsite=callsite,
         )
 
+        # Pull out the stores
         lhs = lhs_thunk.base
         rhs1 = rhs1_thunk.base
         rhs2 = rhs2_thunk.base
@@ -1207,6 +1025,100 @@ class DeferredArray(NumPyThunk):
         assert not lhs.has_fake_dims()
         assert not rhs1.has_fake_dims()
         assert not rhs2.has_fake_dims()
+
+        # Special cases where we can use BLAS
+        if blas_op is not None:
+
+            if blas_op == "vv":
+                # Vector dot product
+                task = self.context.create_task(CuNumericOpCode.DOT)
+                task.add_reduction(lhs, ReductionOp.ADD)
+                task.add_input(rhs1)
+                task.add_input(rhs2)
+                task.add_alignment(rhs1, rhs2)
+                task.execute()
+
+            elif blas_op == "mv":
+                # Matrix-vector or vector-matrix multiply
+
+                left_matrix = len(rhs1_modes) == 2
+                if left_matrix:
+                    # ba,b->a --> ab,b->a
+                    if rhs1_modes[0] == rhs2_modes[0]:
+                        rhs1 = rhs1.transpose([1, 0])
+                        rhs1_modes = [rhs1_modes[1], rhs1_modes[0]]
+                    (m, n) = rhs1.shape
+                    rhs2 = rhs2.promote(0, m)
+                    lhs = lhs.promote(1, n)
+                else:
+                    # b,ab->a --> b,ba->a
+                    if rhs1_modes[0] == rhs2_modes[1]:
+                        rhs2 = rhs2.transpose([1, 0])
+                        rhs2_modes = [rhs2_modes[1], rhs2_modes[0]]
+                    (m, n) = rhs2.shape
+                    rhs1 = rhs1.promote(1, n)
+                    lhs = lhs.promote(0, m)
+
+                task = self.context.create_task(CuNumericOpCode.MATVECMUL)
+                task.add_reduction(lhs, ReductionOp.ADD)
+                task.add_input(rhs1)
+                task.add_input(rhs2)
+                task.add_scalar_arg(left_matrix, bool)
+                task.add_alignment(lhs, rhs1)
+                task.add_alignment(lhs, rhs2)
+                task.execute()
+
+            elif blas_op == "mm":
+                # Matrix-matrix multiply
+
+                # (cb/bc),(ab/ba)->ac --> (ab/ba),(cb/bc)->ac
+                if lhs_modes[0] not in rhs1_modes:
+                    rhs1, rhs2 = rhs2, rhs1
+                    rhs1_modes, rhs2_modes = rhs2_modes, rhs1_modes
+                assert (
+                    lhs_modes[0] in rhs1_modes and lhs_modes[1] in rhs2_modes
+                )
+                # ba,?->ac --> ab,?->ac
+                if lhs_modes[0] != rhs1_modes[0]:
+                    rhs1 = rhs1.transpose([1, 0])
+                    rhs1_modes = [rhs1_modes[1], rhs1_modes[0]]
+                # ?,cb->ac --> ?,bc->ac
+                if lhs_modes[1] != rhs2_modes[1]:
+                    rhs2 = rhs2.transpose([1, 0])
+                    rhs2_modes = [rhs2_modes[1], rhs2_modes[0]]
+
+                m = lhs.shape[0]
+                n = lhs.shape[1]
+                k = rhs1.shape[1]
+                assert m == rhs1.shape[0]
+                assert n == rhs2.shape[1]
+                assert k == rhs2.shape[0]
+                lhs = lhs.promote(1, k)
+                rhs1 = rhs1.promote(2, n)
+                rhs2 = rhs2.promote(0, m)
+
+                task = self.context.create_task(CuNumericOpCode.MATMUL)
+                task.add_reduction(lhs, ReductionOp.ADD)
+                task.add_input(rhs1)
+                task.add_input(rhs2)
+                task.add_alignment(lhs, rhs1)
+                task.add_alignment(lhs, rhs2)
+                task.execute()
+
+            else:
+                assert False
+
+            # If we used a single-precision intermediate accumulator, cast the
+            # result back to half-precision.
+            if rhs1_thunk.dtype == np.float16:
+                self.convert(
+                    lhs_thunk,
+                    stacklevel=(stacklevel + 1),
+                    warn=False,
+                    callsite=callsite,
+                )
+
+            return
 
         # Transpose arrays according to alphabetical order of mode labels
         def alphabetical_transpose(store, modes):

@@ -17,6 +17,7 @@ import warnings
 from collections.abc import Iterable
 from functools import reduce
 from inspect import signature
+from string import ascii_lowercase, ascii_uppercase
 from typing import Optional, Set, Tuple
 
 import numpy as np
@@ -1146,88 +1147,45 @@ class ndarray(object):
         )
         return self.convert_to_cunumeric_ndarray(numpy_array, stacklevel=3)
 
+    @add_boilerplate("rhs")
     def dot(self, rhs, out=None, stacklevel=1):
-        rhs_array = self.convert_to_cunumeric_ndarray(
-            rhs, stacklevel=(stacklevel + 1)
-        )
-        if out is not None:
-            out = self.convert_to_cunumeric_ndarray(
-                out, stacklevel=(stacklevel + 1), share=True
-            )
-        if self.size == 1 or rhs_array.size == 1:
+        from .module import _contract  # work around circular import
+
+        if self.size == 1 or rhs.size == 1:
             return self.perform_binary_op(
                 BinaryOpCode.MULTIPLY,
                 self,
-                rhs_array,
+                rhs,
                 out=out,
                 stacklevel=(stacklevel + 1),
             )
-        out_dtype = self.find_common_type(self, rhs_array)
-        # Check for type conversion on the way in
-        self_array = self
-        if self_array.dtype != out_dtype:
-            self_array = ndarray(
-                shape=self.shape,
-                dtype=out_dtype,
-                stacklevel=(stacklevel + 1),
-                inputs=(self,),
-            )
-            self_array._thunk.convert(self._thunk, stacklevel=(stacklevel + 1))
-        if rhs_array.dtype != out_dtype:
-            temp_array = ndarray(
-                shape=rhs_array.shape,
-                dtype=out_dtype,
-                stacklevel=(stacklevel + 1),
-                inputs=(rhs_array,),
-            )
-            temp_array._thunk.convert(
-                rhs_array._thunk, stacklevel=(stacklevel + 1)
-            )
-            rhs_array = temp_array
-        # Shape check
-        if self.ndim == 1 and rhs_array.ndim == 1:
-            if self.shape[0] != rhs.shape[0]:
-                raise ValueError("Dimension mismatch for dot")
-            out_shape = ()
-        elif self.ndim == 2 and rhs_array.ndim == 2:
-            if self.shape[1] != rhs_array.shape[0]:
-                raise ValueError("Dimension mismatch for dot")
-            out_shape = (self.shape[0], rhs_array.shape[1])
-        elif rhs_array.ndim == 1:
-            if self.shape[-1] != rhs_array.shape[0]:
-                raise ValueError("Dimension mismatch for dot")
-            out_shape = self.shape[:-1]
+        if self.ndim == 1 and rhs.ndim == 1:
+            self_modes = ["a"]
+            rhs_modes = ["a"]
+            out_modes = []
+        elif self.ndim == 2 and rhs.ndim == 2:
+            self_modes = ["a", "b"]
+            rhs_modes = ["b", "c"]
+            out_modes = ["a", "c"]
+        elif rhs.ndim == 1:
+            self_modes = list(ascii_lowercase[: self.ndim])
+            rhs_modes = [self_modes[-1]]
+            out_modes = self_modes[:-1]
         else:
-            if self.shape[-1] != rhs_array.shape[-2]:
-                raise ValueError("Dimension mismatch for dot")
-            out_shape = (
-                self.shape[:-1] + rhs_array.shape[:-2] + (rhs_array.shape[-1],)
-            )
-        if out is not None and out.shape != out_shape:
-            raise ValueError(
-                f"expected output array with shape {out_shape} but got "
-                f"{out.shape}"
-            )
-        # Check if output array can be used in-place
-        if out is not None and out.dtype == out_dtype:
-            out_array = out
-        else:
-            out_array = ndarray(
-                shape=out_shape,
-                dtype=out_dtype,
-                stacklevel=(stacklevel + 1),
-                inputs=(self_array, rhs_array),
-            )
-        # Perform operation
-        out_array._thunk.dot(
-            self_array._thunk, rhs_array._thunk, stacklevel=(stacklevel + 1)
+            self_modes = list(ascii_lowercase[: self.ndim])
+            rhs_modes = list(ascii_uppercase[: rhs.ndim])
+            rhs_modes[-2] = self_modes[-1]
+            out_modes = self_modes[:-1] + rhs_modes[:-2] + [rhs_modes[-1]]
+        return _contract(
+            self_modes,
+            rhs_modes,
+            out_modes,
+            self,
+            rhs,
+            out=out,
+            broadcast=False,
+            stacklevel=(stacklevel + 1),
         )
-        # Check for type conversion on the way out
-        if out is not None and out.dtype != out_dtype:
-            out._thunk.convert(out_array._thunk, stacklevel=(stacklevel + 1))
-            return out
-        else:
-            return out_array
 
     def dump(self, file):
         self.__array__(stacklevel=2).dump(file=file)

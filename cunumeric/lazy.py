@@ -74,9 +74,6 @@ class LazyArray(NumPyThunk):
     def fill(self, value, stacklevel):
         raise NotImplementedError("Implement in derived classes")
 
-    def dot(self, rhs1, rhs2, stacklevel):
-        raise NotImplementedError("Implement in derived classes")
-
     def transpose(self, rhs, axes, stacklevel):
         raise NotImplementedError("Implement in derived classes")
 
