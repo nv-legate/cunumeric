@@ -1526,7 +1526,10 @@ class DeferredArray(NumPyThunk):
         task.add_output(result.base)
         task.add_input(self.base)
 
-        task.add_broadcast(self.base)
+        if self.runtime.num_gpus > 0:
+            task.add_nccl_communicator()
+        else:
+            task.add_broadcast(self.base)
 
         task.execute()
 

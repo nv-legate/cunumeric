@@ -27,7 +27,11 @@ struct UniqueImplBody;
 template <VariantKind KIND>
 struct UniqueImpl {
   template <LegateTypeCode CODE, int32_t DIM>
-  void operator()(Array& output, Array& input) const
+  void operator()(Array& output,
+                  Array& input,
+                  std::vector<comm::Communicator>& comms,
+                  const DomainPoint& point,
+                  const Domain& launch_domain) const
   {
     using VAL = legate_type_of<CODE>;
 
@@ -35,16 +39,11 @@ struct UniqueImpl {
     Pitches<DIM - 1> pitches;
     size_t volume = pitches.flatten(rect);
 
-    if (volume == 0) {
-      auto empty = create_buffer<VAL>(0);
-      output.return_data(empty, 0);
-      return;
-    }
-
     auto in = input.read_accessor<VAL, DIM>(rect);
     size_t size;
     Buffer<VAL> result;
-    std::tie(result, size) = UniqueImplBody<KIND, CODE, DIM>()(in, pitches, rect, volume);
+    std::tie(result, size) =
+      UniqueImplBody<KIND, CODE, DIM>()(in, pitches, rect, volume, comms, point, launch_domain);
 
     output.return_data(result, size);
   }
@@ -55,7 +54,15 @@ static void unique_template(TaskContext& context)
 {
   auto& input  = context.inputs()[0];
   auto& output = context.outputs()[0];
-  double_dispatch(input.dim(), input.code(), UniqueImpl<KIND>{}, output, input);
+  auto& comms  = context.communicators();
+  double_dispatch(input.dim(),
+                  input.code(),
+                  UniqueImpl<KIND>{},
+                  output,
+                  input,
+                  comms,
+                  context.get_task_index(),
+                  context.get_launch_domain());
 }
 
 }  // namespace cunumeric

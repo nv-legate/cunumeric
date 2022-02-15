@@ -19,6 +19,7 @@
 
 #include "cunumeric/cuda_help.h"
 
+#include <thrust/merge.h>
 #include <thrust/sort.h>
 #include <thrust/unique.h>
 #include <thrust/execution_policy.h>
@@ -42,14 +43,107 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   out[offset] = accessor[lo + point];
 }
 
+template <typename VAL>
+using Piece = std::pair<Buffer<VAL>, size_t>;
+
+auto get_aligned_size = [](auto size) { return std::max<size_t>(16, (size + 15) / 16 * 16); };
+
+template <typename VAL>
+static Piece<VAL> tree_reduce(
+  Piece<VAL> my_piece, size_t my_id, size_t num_ranks, cudaStream_t stream, ncclComm_t* comm)
+{
+  size_t remaining = num_ranks;
+  size_t radix     = (remaining + 1) / 2;
+  auto all_sizes   = create_buffer<size_t>(num_ranks, Memory::Z_COPY_MEM);
+
+  while (remaining > 1) {
+    // TODO: This could be point-to-point, as we don't need all the sizes,
+    //       but I suspect point-to-point can be slower...
+    all_sizes[my_id] = my_piece.second;
+    CHECK_NCCL(ncclAllGather(all_sizes.ptr(my_id), all_sizes.ptr(0), 1, ncclUint64, *comm, stream));
+    CHECK_CUDA(cudaStreamSynchronize(stream));
+
+    Piece<VAL> other_piece;
+    CHECK_NCCL(ncclGroupStart());
+    if (my_id < radix)  // This is one of the receivers
+    {
+      auto other_id = my_id + radix;
+      if (other_id < remaining)  // Make sure someone's sending anything
+      {
+        auto other_size = all_sizes[other_id];
+        auto recv_size  = get_aligned_size(other_size * sizeof(VAL));
+        auto buf_size   = (recv_size + sizeof(VAL) - 1) / sizeof(VAL);
+        assert(other_size <= buf_size);
+        other_piece.second = other_size;
+        other_piece.first  = create_buffer<VAL>(buf_size);
+        CHECK_NCCL(
+          ncclRecv(other_piece.first.ptr(0), recv_size, ncclInt8, other_id, *comm, stream));
+      }
+    } else if (my_id < remaining)  // This is one of the senders
+    {
+      auto other_id  = my_id - radix;
+      auto send_size = get_aligned_size(my_piece.second * sizeof(VAL));
+      CHECK_NCCL(ncclSend(my_piece.first.ptr(0), send_size, ncclInt8, other_id, *comm, stream));
+    }
+    CHECK_NCCL(ncclGroupEnd());
+
+    // Now we merge our pieces with others and deduplicate the merged ones
+    if (my_id < radix && my_id + radix < remaining) {
+      auto merged_size = my_piece.second + other_piece.second;
+      auto merged      = create_buffer<VAL>(merged_size);
+      auto p_merged    = merged.ptr(0);
+      auto p_mine      = my_piece.first.ptr(0);
+      auto p_other     = other_piece.first.ptr(0);
+
+      thrust::merge(thrust::cuda::par.on(stream),
+                    p_mine,
+                    p_mine + my_piece.second,
+                    p_other,
+                    p_other + other_piece.second,
+                    p_merged);
+      auto* end = thrust::unique(thrust::cuda::par.on(stream), p_merged, p_merged + merged_size);
+
+      // Make sure we release the memory so that we can reuse it
+      my_piece.first.destroy();
+      other_piece.first.destroy();
+
+      my_piece.second = end - p_merged;
+      auto buf_size =
+        (get_aligned_size(my_piece.second * sizeof(VAL)) + sizeof(VAL) - 1) / sizeof(VAL);
+      assert(my_piece.second <= buf_size);
+      my_piece.first = create_buffer<VAL>(buf_size);
+
+      cudaMemcpyAsync(my_piece.first.ptr(0),
+                      p_merged,
+                      sizeof(VAL) * my_piece.second,
+                      cudaMemcpyDeviceToDevice,
+                      stream);
+      merged.destroy();
+    }
+
+    remaining = radix;
+    radix     = (remaining + 1) / 2;
+  }
+
+  if (my_id != 0) {
+    my_piece.second = 0;
+    my_piece.first  = create_buffer<VAL>(0);
+  }
+
+  return my_piece;
+}
+
 template <LegateTypeCode CODE, int32_t DIM>
 struct UniqueImplBody<VariantKind::GPU, CODE, DIM> {
   using VAL = legate_type_of<CODE>;
 
-  std::pair<Buffer<VAL>, size_t> operator()(const AccessorRO<VAL, DIM>& in,
-                                            const Pitches<DIM - 1>& pitches,
-                                            const Rect<DIM>& rect,
-                                            const size_t volume)
+  Piece<VAL> operator()(const AccessorRO<VAL, DIM>& in,
+                        const Pitches<DIM - 1>& pitches,
+                        const Rect<DIM>& rect,
+                        const size_t volume,
+                        const std::vector<comm::Communicator>& comms,
+                        const DomainPoint& point,
+                        const Domain& launch_domain)
   {
     auto stream = get_cached_stream();
 
@@ -69,11 +163,23 @@ struct UniqueImplBody<VariantKind::GPU, CODE, DIM> {
     thrust::sort(thrust::cuda::par.on(stream), ptr, ptr + volume);
     auto* end = thrust::unique(thrust::cuda::par.on(stream), ptr, ptr + volume);
 
+    Piece<VAL> result;
+    result.second = end - ptr;
+    auto buf_size = (get_aligned_size(result.second * sizeof(VAL)) + sizeof(VAL) - 1) / sizeof(VAL);
+    assert(end - ptr <= buf_size);
+    result.first = create_buffer<VAL>(buf_size);
+    cudaMemcpyAsync(
+      result.first.ptr(0), ptr, sizeof(VAL) * result.second, cudaMemcpyDeviceToDevice, stream);
+
+    if (comms.size() > 0) {
+      // The launch domain is 1D because of the output region
+      assert(point.dim == 1);
+      auto comm = comms[0].get<ncclComm_t*>();
+      result    = tree_reduce(result, point[0], launch_domain.get_volume(), stream, comm);
+    }
+
     // Finally we pack the result
-    size_t size = end - ptr;
-    auto result = create_buffer<VAL>(size);
-    cudaMemcpyAsync(result.ptr(0), ptr, sizeof(VAL) * size, cudaMemcpyDeviceToDevice, stream);
-    return std::make_pair(result, size);
+    return result;
   }
 };
 

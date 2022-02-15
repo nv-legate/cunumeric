@@ -29,7 +29,10 @@ struct UniqueImplBody<VariantKind::CPU, CODE, DIM> {
   std::pair<Buffer<VAL>, size_t> operator()(const AccessorRO<VAL, DIM>& in,
                                             const Pitches<DIM - 1>& pitches,
                                             const Rect<DIM>& rect,
-                                            const size_t volume)
+                                            const size_t volume,
+                                            const std::vector<comm::Communicator>& comms,
+                                            const DomainPoint& point,
+                                            const Domain& launch_domain)
   {
     std::set<VAL> dedup_set;
 
