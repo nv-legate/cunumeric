@@ -1183,7 +1183,6 @@ class ndarray(object):
             self,
             rhs,
             out=out,
-            broadcast=False,
             stacklevel=(stacklevel + 1),
         )
 

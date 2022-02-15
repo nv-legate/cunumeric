@@ -686,7 +686,6 @@ def _contract(
     a,
     b=None,
     out=None,
-    broadcast=True,
     stacklevel=1,
 ):
     # Sanity checks
@@ -716,16 +715,15 @@ def _contract(
 
     # Drop modes corresponding to singleton dimensions. This handles cases of
     # broadcasting.
-    if broadcast:
-        for dim in reversed(range(a.ndim)):
-            if a.shape[dim] == 1:
-                a = a.squeeze(dim)
-                a_modes.pop(dim)
-        if b is not None:
-            for dim in reversed(range(b.ndim)):
-                if b.shape[dim] == 1:
-                    b = b.squeeze(dim)
-                    b_modes.pop(dim)
+    for dim in reversed(range(a.ndim)):
+        if a.shape[dim] == 1:
+            a = a.squeeze(dim)
+            a_modes.pop(dim)
+    if b is not None:
+        for dim in reversed(range(b.ndim)):
+            if b.shape[dim] == 1:
+                b = b.squeeze(dim)
+                b_modes.pop(dim)
 
     # Sum-out modes appearing on one argument, and missing from the result
     # TODO: If we supported sum on multiple axes we could do the full sum in a
