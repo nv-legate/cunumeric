@@ -13,3 +13,4 @@ Functions in :mod:`cunumeric.random`
    randint
    randn
    random
+   seed
