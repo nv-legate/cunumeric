@@ -22,6 +22,8 @@ namespace cunumeric {
 
 float* allocate_buffer(size_t size);
 
+// The following assume that the float array was created using allocate_buffer
+
 void half_vector_to_float(float* out, const __half* ptr, size_t n);
 
 void float_vector_to_half(__half* out, const float* ptr, size_t n);

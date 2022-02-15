@@ -20,6 +20,10 @@
 
 namespace cunumeric {
 
+float* allocate_buffer_omp(size_t size);
+
+// The following assume that the float array was created using allocate_buffer
+
 void half_vector_to_float_omp(float* out, const __half* ptr, size_t n);
 
 void half_matrix_to_float_omp(float* out, const __half* ptr, size_t m, size_t n, size_t pitch);

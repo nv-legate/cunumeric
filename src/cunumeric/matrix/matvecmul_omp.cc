@@ -16,7 +16,6 @@
 
 #include "cunumeric/matrix/matvecmul.h"
 #include "cunumeric/matrix/matvecmul_template.inl"
-#include "cunumeric/matrix/util.h"
 #include "cunumeric/matrix/util_omp.h"
 
 #include <cblas.h>
@@ -69,8 +68,8 @@ struct MatVecMulImplBody<VariantKind::OMP, LegateTypeCode::HALF_LT> {
   {
     auto vec_size = transpose_mat ? m : n;
 
-    auto mat_copy = allocate_buffer(m * n);
-    auto vec_copy = allocate_buffer(vec_size);
+    auto mat_copy = allocate_buffer_omp(m * n);
+    auto vec_copy = allocate_buffer_omp(vec_size);
 
     half_matrix_to_float_omp(mat_copy, mat, m, n, mat_stride);
     half_vector_to_float_omp(vec_copy, vec, vec_size);

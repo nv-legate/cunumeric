@@ -21,6 +21,14 @@ namespace cunumeric {
 
 using namespace Legion;
 
+float* allocate_buffer_omp(size_t size)
+{
+  Rect<1> bounds(0, size - 1);
+  // We will not call this function on GPUs
+  DeferredBuffer<float, 1> buffer(Memory::Kind::SOCKET_MEM, bounds);
+  return buffer.ptr(0);
+}
+
 void half_vector_to_float_omp(float* out, const __half* ptr, size_t n)
 {
 #pragma omp parallel for schedule(static)
