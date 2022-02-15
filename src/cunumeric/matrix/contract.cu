@@ -108,6 +108,42 @@ __host__ void contract(T* lhs_data,
 }
 
 template <>
+struct ContractImplBody<VariantKind::GPU, LegateTypeCode::HALF_LT> {
+  void operator()(__half* lhs_data,
+                  size_t lhs_ndim,
+                  int64_t* lhs_shape,
+                  int64_t* lhs_strides,
+                  int32_t* lhs_modes,
+                  const __half* rhs1_data,
+                  size_t rhs1_ndim,
+                  int64_t* rhs1_shape,
+                  int64_t* rhs1_strides,
+                  int32_t* rhs1_modes,
+                  const __half* rhs2_data,
+                  size_t rhs2_ndim,
+                  int64_t* rhs2_shape,
+                  int64_t* rhs2_strides,
+                  int32_t* rhs2_modes)
+  {
+    contract<CUDA_R_16F, CUTENSOR_COMPUTE_16F>(lhs_data,
+                                               lhs_ndim,
+                                               lhs_shape,
+                                               lhs_strides,
+                                               lhs_modes,
+                                               rhs1_data,
+                                               rhs1_ndim,
+                                               rhs1_shape,
+                                               rhs1_strides,
+                                               rhs1_modes,
+                                               rhs2_data,
+                                               rhs2_ndim,
+                                               rhs2_shape,
+                                               rhs2_strides,
+                                               rhs2_modes);
+  }
+};
+
+template <>
 struct ContractImplBody<VariantKind::GPU, LegateTypeCode::FLOAT_LT> {
   void operator()(float* lhs_data,
                   size_t lhs_ndim,

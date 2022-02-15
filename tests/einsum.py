@@ -168,7 +168,7 @@ def mk_inputs_that_broadcast_to(lib, shape):
 @lru_cache(maxsize=None)
 def mk_inputs_of_various_types(lib, shape):
     return [
-        lib.ones(shape, np.int16),
+        lib.ones(shape, np.float16),
         lib.ones(shape, np.float32),
         lib.ones(shape, np.complex64),
     ]
@@ -177,7 +177,7 @@ def mk_inputs_of_various_types(lib, shape):
 # Can't cache these, because they get overwritten by the operation
 def mk_outputs_of_various_types(lib, shape):
     return [
-        lib.zeros(shape, np.int16),
+        lib.zeros(shape, np.float16),
         lib.zeros(shape, np.float32),
         lib.zeros(shape, np.complex64),
     ]

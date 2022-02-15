@@ -20,6 +20,23 @@
 
 namespace cunumeric {
 
+inline int64_t unflatten_with_strides(int64_t flat_idx,
+                                      size_t ndim,
+                                      const int64_t* shape,
+                                      const int64_t* strides)
+{
+  std::vector<int64_t> coords(ndim);
+  for (int d = ndim - 1; d >= 0; --d) {
+    coords[d] = flat_idx % shape[d];
+    flat_idx /= shape[d];
+  }
+  int64_t idx = 0;
+  for (int d = 0; d < ndim; ++d) { idx += coords[d] * strides[d]; }
+  return idx;
+}
+
+int64_t calculate_volume(size_t ndim, const int64_t* shape, int64_t* strides = nullptr);
+
 float* allocate_buffer(size_t size);
 
 // The following assume that the float array was created using allocate_buffer
@@ -31,5 +48,11 @@ void float_vector_to_half(__half* out, const float* ptr, size_t n);
 void half_matrix_to_float(float* out, const __half* ptr, size_t m, size_t n, size_t pitch);
 
 void float_matrix_to_half(__half* out, const float* ptr, size_t m, size_t n, size_t pitch);
+
+void half_tensor_to_float(
+  float* out, const __half* in, size_t ndim, const int64_t* shape, const int64_t* in_strides);
+
+void float_tensor_to_half(
+  __half* out, const float* in, size_t ndim, const int64_t* shape, const int64_t* out_strides);
 
 }  // namespace cunumeric
