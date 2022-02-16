@@ -13,31 +13,15 @@
 # limitations under the License.
 #
 
-import numpy as np
 import scipy.signal as sig
 
 import cunumeric as num
 
-
-def test_1d():
-    a = num.random.rand(100)
-    v = num.random.rand(5)
-
-    anp = a.__array__()
-    vnp = v.__array__()
-
-    out = num.convolve(a, v, mode="same")
-    out_np = np.convolve(anp, vnp, mode="same")
-    # print(out)
-    # print(out_np)
-
-    assert num.allclose(out, out_np)
+shapes = ((100,), (10, 10), (10, 10, 10))
+filter_shapes = ((5,), (3, 5), (3, 5, 3))
 
 
-def test_2d():
-    a = num.random.rand(10, 10)
-    v = num.random.rand(3, 5)
-
+def test_convolve(a, v):
     anp = a.__array__()
     vnp = v.__array__()
 
@@ -47,20 +31,22 @@ def test_2d():
     assert num.allclose(out, out_np)
 
 
-def test_3d():
-    a = num.random.rand(10, 10, 10)
-    v = num.random.rand(3, 5, 3)
+def test_double():
+    for shape, filter_shape in zip(shapes, filter_shapes):
+        a = num.random.rand(*shape)
+        v = num.random.rand(*filter_shape)
 
-    anp = a.__array__()
-    vnp = v.__array__()
+        test_convolve(a, v)
 
-    out = num.convolve(a, v, mode="same")
-    out_np = sig.convolve(anp, vnp, mode="same")
 
-    assert num.allclose(out, out_np)
+def test_int():
+    for shape, filter_shape in zip(shapes, filter_shapes):
+        a = num.random.randint(0, 5, shape)
+        v = num.random.randint(0, 5, filter_shape)
+
+        test_convolve(a, v)
 
 
 if __name__ == "__main__":
-    test_1d()
-    test_2d()
-    test_3d()
+    test_double()
+    test_int()
