@@ -125,7 +125,7 @@ struct ContractImplBody<VariantKind::GPU, LegateTypeCode::HALF_LT> {
                   int64_t* rhs2_strides,
                   int32_t* rhs2_modes)
   {
-    contract<CUDA_R_16F, CUTENSOR_COMPUTE_16F>(lhs_data,
+    contract<CUDA_R_16F, CUTENSOR_COMPUTE_32F>(lhs_data,
                                                lhs_ndim,
                                                lhs_shape,
                                                lhs_strides,

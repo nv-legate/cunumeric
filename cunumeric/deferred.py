@@ -968,8 +968,8 @@ class DeferredArray(NumPyThunk):
             )
         )
         # casting has been handled by the frontend
-        assert lhs_thunk.dtype is rhs1_thunk.dtype
-        assert lhs_thunk.dtype is rhs2_thunk.dtype
+        assert lhs_thunk.dtype == rhs1_thunk.dtype
+        assert lhs_thunk.dtype == rhs2_thunk.dtype
 
         # Handle store overlap
         rhs1_thunk = rhs1_thunk._copy_if_overlapping(lhs_thunk)
@@ -977,31 +977,38 @@ class DeferredArray(NumPyThunk):
 
         # Test for special cases where we can use BLAS
         blas_op = None
-        if lhs_thunk.dtype in [np.float16, np.float32, np.float64] and all(
-            c == 2 for c in mode_counts.values()
+        if any(c != 2 for c in mode_counts.values()):
+            pass
+        elif (
+            len(lhs_modes) == 0
+            and len(rhs1_modes) == 1
+            and len(rhs2_modes) == 1
         ):
-            if (
-                len(lhs_modes) == 0
-                and len(rhs1_modes) == 1
-                and len(rhs2_modes) == 1
-            ):
-                blas_op = "vv"
-            elif len(lhs_modes) == 1 and (
+            blas_op = "vv"
+        elif (
+            lhs_thunk.dtype in [np.float16, np.float32, np.float64]
+            and len(lhs_modes) == 1
+            and (
                 len(rhs1_modes) == 2
                 and len(rhs2_modes) == 1
                 or len(rhs1_modes) == 1
                 and len(rhs2_modes) == 2
-            ):
-                blas_op = "mv"
-            elif (
-                len(lhs_modes) == 2
-                and len(rhs1_modes) == 2
-                and len(rhs2_modes) == 2
-            ):
-                blas_op = "mm"
+            )
+        ):
+            blas_op = "mv"
+        elif (
+            lhs_thunk.dtype in [np.float16, np.float32, np.float64]
+            and len(lhs_modes) == 2
+            and len(rhs1_modes) == 2
+            and len(rhs2_modes) == 2
+        ):
+            blas_op = "mm"
 
-        # Our half-precision BLAS tasks require a single-precision accumulator,
-        # so they can utilize tensor cores.
+        # Our half-precision BLAS tasks expect a single-precision accumulator.
+        # This is done to avoid the precision loss that results from repeated
+        # reductions into a half-precision accumulator, and to enable the use
+        # of tensor cores. In the general-purpose tensor contraction case
+        # below the tasks do this adjustment internally.
         if blas_op is not None and lhs_thunk.dtype == np.float16:
             lhs_thunk = self.runtime.create_empty_thunk(
                 lhs_thunk.shape, np.dtype(np.float32), inputs=[lhs_thunk]
@@ -1119,6 +1126,16 @@ class DeferredArray(NumPyThunk):
                 )
 
             return
+
+        # General-purpose contraction
+        if lhs_thunk.dtype not in [
+            np.float16,
+            np.float32,
+            np.float64,
+            np.complex64,
+            np.complex128,
+        ]:
+            raise TypeError(f"Unsupported type: {lhs_thunk.dtype}")
 
         # Transpose arrays according to alphabetical order of mode labels
         def alphabetical_transpose(store, modes):

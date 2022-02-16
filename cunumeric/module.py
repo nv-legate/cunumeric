@@ -793,14 +793,6 @@ def _contract(
     # Handle types
     c_dtype = ndarray.find_common_type(a, b) if b is not None else a.dtype
     out_dtype = out.dtype if out is not None else c_dtype
-    if b is not None and c_dtype not in [
-        np.float16,
-        np.float32,
-        np.float64,
-        np.complex64,
-        np.complex128,
-    ]:
-        raise TypeError(f"Unsupported type: {c_dtype}")
 
     if b is None:
         # Unary contraction case
