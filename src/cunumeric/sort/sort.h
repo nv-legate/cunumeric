@@ -22,7 +22,8 @@ namespace cunumeric {
 
 struct SortArgs {
   Array& output;
-  size_t sort_dim_size;
+  uint32_t sort_axis;
+  Legion::DomainPoint global_shape;
   bool is_index_space;
   Legion::DomainPoint index_point;
   Legion::Domain domain;

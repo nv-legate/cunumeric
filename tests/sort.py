@@ -22,10 +22,11 @@ def test_sort_axis(a_np, a_num, axis):
     assert num.allclose(a_np, a_num)
     print("Sorting axis " + str(axis) + ":")
     sort_np = np.sort(a_np, axis)
-    sort_num = num.sort(a_num, axis, kind="merge")
-    # print(sort_np)
-    # print(sort_num)
-    assert num.allclose(sort_np, sort_num)
+    sort_num = num.sort(a_num, axis)
+    if not num.allclose(sort_np, sort_num):
+        print(sort_np)
+        print(sort_num)
+        assert False
 
 
 def test_1D():
@@ -64,6 +65,7 @@ def test_2D():
 
     test_sort_axis(A_np, A_num, 1)
     test_sort_axis(A_np, A_num, 0)
+    test_sort_axis(A_np, A_num, axis=None)
 
     return
 
@@ -84,22 +86,22 @@ def test_3D():
     test_sort_axis(A_np, A_num, 2)
     test_sort_axis(A_np, A_num, 1)
     test_sort_axis(A_np, A_num, 0)
+    test_sort_axis(A_np, A_num, axis=None)
 
     return
 
 
 def test_custom():
-    a = np.arange(2 * 4).reshape(2, 4)
-    a_transpose = np.transpose(a)
+    a = np.arange(4 * 4 * 5 * 2 * 3 * 2 * 2 * 2 * 4).reshape(
+        4, 4, 5, 2, 3, 2, 2, 2, 4
+    )
 
-    a_transposed_num = num.array([[0, 4], [1, 5], [2, 6], [3, 7]])
     a_num = num.array(a)
-    a_num_transposed = a_num.swapaxes(0, 1)
 
     test_sort_axis(a, a_num, 1)
-    test_sort_axis(a_transpose, a_transposed_num, 1)
-    test_sort_axis(a_transpose, a_num_transposed, 1)
-    test_sort_axis(a_transpose, a_num_transposed, 0)
+    test_sort_axis(a, a_num, 2)
+    test_sort_axis(a, a_num, 7)
+    test_sort_axis(a, a_num, 4)
 
     return
 

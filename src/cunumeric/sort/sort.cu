@@ -20,6 +20,8 @@
 #include <thrust/scan.h>
 #include <thrust/sort.h>
 #include <thrust/device_vector.h>
+#include <thrust/iterator/zip_iterator.h>
+#include <thrust/tuple.h>
 #include <thrust/execution_policy.h>
 
 #include "cunumeric/cuda_help.h"
@@ -36,7 +38,8 @@ struct SortImplBody<VariantKind::GPU, CODE, DIM> {
                   const Pitches<DIM - 1>& pitches,
                   const Rect<DIM>& rect,
                   const size_t volume,
-                  const size_t sort_dim_size,
+                  const uint32_t sort_axis,
+                  Legion::DomainPoint global_shape,
                   bool is_index_space,
                   Legion::DomainPoint index_point,
                   Legion::Domain domain)
@@ -47,9 +50,60 @@ struct SortImplBody<VariantKind::GPU, CODE, DIM> {
               << ", domain/volume = " << domain << "/" << domain.get_volume() << std::endl;
 #endif
 
+    const size_t sort_dim_size = global_shape[sort_axis];
     thrust::device_ptr<VAL> dev_ptr(inptr);
-    for (uint32_t start_idx = 0; start_idx < volume; start_idx += sort_dim_size) {
-      thrust::stable_sort(dev_ptr + start_idx, dev_ptr + start_idx + sort_dim_size);
+
+    // same approach as cupy implemntation --> combine multiple individual sorts into single
+    // kernel with data tuples - (id_sub-sort, actual_data)
+    if (DIM == 1) {
+      thrust::stable_sort(dev_ptr, dev_ptr + volume);
+    } else {
+      // in this case we know we are sorting for the *last* index
+      const uint64_t max_elements_per_kernel =
+        1 << 22;  // TODO check amount of available GPU memory from config
+      const uint64_t number_sorts_per_kernel =
+        std::max(1ul, std::min(volume, max_elements_per_kernel) / sort_dim_size);
+      const uint64_t number_sorts = volume / sort_dim_size;
+
+      // std::cout << "Number of sorts per kernel: " << number_sorts_per_kernel << std::endl;
+
+      if (number_sorts_per_kernel >=
+          32)  // key-tuple sort has quite some overhead -- only utilize if beneficial
+      {
+        // allocate memory for keys (iterating +=1 for each individual sort dimension)
+        // ensure keys have minimal bit-length (needs values up to number_sorts_per_kernel-1)!
+        // TODO!!!!
+        auto keys_array = create_buffer<uint32_t>(number_sorts_per_kernel * sort_dim_size,
+                                                  Legion::Memory::Kind::GPU_FB_MEM);
+        thrust::device_ptr<uint32_t> dev_key_ptr(keys_array.ptr(0));
+
+        for (uint64_t sort_part = 0; sort_part < number_sorts;
+             sort_part += number_sorts_per_kernel) {
+          // compute size of batch (might be smaller for the last call)
+          const uint64_t num_elements =
+            std::min(number_sorts - sort_part, max_elements_per_kernel) * sort_dim_size;
+          const uint64_t offset = sort_part * sort_dim_size;
+
+          // reinit keys
+          thrust::transform(thrust::make_counting_iterator<uint64_t>(0),
+                            thrust::make_counting_iterator<uint64_t>(num_elements),
+                            thrust::make_constant_iterator<uint64_t>(sort_dim_size),
+                            dev_key_ptr,
+                            thrust::divides<uint64_t>());
+
+          // sort
+          auto combined =
+            thrust::make_zip_iterator(thrust::make_tuple(dev_key_ptr, dev_ptr + offset));
+          thrust::stable_sort(
+            combined, combined + num_elements, thrust::less<thrust::tuple<size_t, VAL>>());
+        }
+      } else {
+        // number_sorts_per_kernel == 1 ----> we don't need keys
+        for (uint64_t sort_part = 0; sort_part < number_sorts; sort_part++) {
+          const uint64_t offset = sort_part * sort_dim_size;
+          thrust::stable_sort(dev_ptr + offset, dev_ptr + offset + sort_dim_size);
+        }
+      }
     }
 
     // in case of distributed data we need to switch to sample sort

@@ -24,8 +24,8 @@ from benchmark import run_benchmark
 import cunumeric
 
 
-def check_sorted(a, a_numpy):
-    a_sorted = numpy.sort(a_numpy)
+def check_sorted(a, a_numpy, axis=-1):
+    a_sorted = numpy.sort(a_numpy, axis)
     print("Checking result...")
     if cunumeric.allclose(a_sorted, a):
         print("PASS!")
@@ -35,20 +35,40 @@ def check_sorted(a, a_numpy):
         print("CUNUMERIC: " + str(a))
 
 
-def run_sort(N, perform_check, timing):
+def run_sort(N, shape, axis, datatype, perform_check, timing):
 
     numpy.random.seed(42)
-    a_numpy = numpy.array(
-        numpy.random.randint(1000, size=N), dtype=numpy.int32
-    )
+    newtype = numpy.dtype(datatype).type
+
+    if numpy.issubdtype(newtype, numpy.integer):
+        a_numpy = numpy.array(
+            numpy.random.randint(
+                numpy.iinfo(newtype).min, numpy.iinfo(newtype).max, size=N
+            ),
+            dtype=newtype,
+        )
+    elif numpy.issubdtype(newtype, numpy.floating):
+        a_numpy = numpy.array(numpy.random.random(size=N), dtype=newtype)
+    elif numpy.issubdtype(newtype, numpy.complexfloating):
+        a_numpy = numpy.array(
+            numpy.random.random(size=N) + numpy.random.random(size=N) * 1j,
+            dtype=newtype,
+        )
+    else:
+        print("UNKNOWN type " + str(newtype))
+        assert False
+
+    if shape is not None:
+        a_numpy = a_numpy.reshape(tuple(shape))
+
     a = cunumeric.array(a_numpy)
 
     start = datetime.datetime.now()
-    a_sorted = cunumeric.sort(a)
+    a_sorted = cunumeric.sort(a, axis)
     stop = datetime.datetime.now()
 
     if perform_check:
-        check_sorted(a_sorted, a_numpy)
+        check_sorted(a_sorted, a_numpy, axis)
     else:
         # do we need to synchronize?
         assert True
@@ -84,6 +104,31 @@ if __name__ == "__main__":
         help="perform timing",
     )
     parser.add_argument(
+        "-s",
+        "--shape",
+        type=int,
+        nargs="+",
+        default=None,
+        dest="shape",
+        help="array reshape (default 'None')",
+    )
+    parser.add_argument(
+        "-d",
+        "--datatype",
+        type=str,
+        default="uint32",
+        dest="datatype",
+        help="data type (default numpy.int32)",
+    )
+    parser.add_argument(
+        "-a",
+        "--axis",
+        type=int,
+        default=-1,
+        dest="axis",
+        help="sort axis (default -1)",
+    )
+    parser.add_argument(
         "-b",
         "--benchmark",
         type=int,
@@ -98,5 +143,12 @@ if __name__ == "__main__":
         run_sort,
         args.benchmark,
         "Sort",
-        (args.N, args.check, args.timing),
+        (
+            args.N,
+            args.shape,
+            args.axis,
+            args.datatype,
+            args.check,
+            args.timing,
+        ),
     )

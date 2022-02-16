@@ -1494,7 +1494,7 @@ class ndarray(object):
                 "cuNumeric does not support sorting with 'order' as "
                 "ndarray only supports numeric values"
             )
-        if axis >= self.ndim or axis < -self.ndim:
+        if axis is not None and (axis >= self.ndim or axis < -self.ndim):
             raise ValueError("invalid axis")
 
         if self._thunk.scalar:

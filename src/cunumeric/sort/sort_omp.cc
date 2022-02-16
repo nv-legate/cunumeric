@@ -33,7 +33,8 @@ struct SortImplBody<VariantKind::OMP, CODE, DIM> {
                   const Pitches<DIM - 1>& pitches,
                   const Rect<DIM>& rect,
                   const size_t volume,
-                  const size_t sort_dim_size,
+                  const uint32_t sort_axis,
+                  Legion::DomainPoint global_shape,
                   bool is_index_space,
                   Legion::DomainPoint index_point,
                   Legion::Domain domain)
@@ -44,7 +45,7 @@ struct SortImplBody<VariantKind::OMP, CODE, DIM> {
               << ", index_point = " << index_point << ", domain/volume = " << domain << "/"
               << domain.get_volume() << std::endl;
 #endif
-
+    const size_t sort_dim_size = global_shape[sort_axis];
     if (volume / sort_dim_size > omp_get_max_threads() / 2)  // TODO fine tune
     {
 #pragma omp do schedule(dynamic)
