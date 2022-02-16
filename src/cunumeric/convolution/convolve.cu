@@ -24,6 +24,10 @@ namespace cunumeric {
 using namespace Legion;
 using namespace legate;
 
+////////////////////////////////////
+// Direct convolution implementation
+////////////////////////////////////
+
 // Convolution should be able to hit FMA throughput limits
 // on the GPU due to the amount of FLOPs needed to be performed
 // given the amount of data loaded. This is especially true of
@@ -673,400 +677,400 @@ __host__ static inline void launch_small_tile_kernel(AccessorWO<VAL, DIM> out,
   }
 }
 
-template <LegateTypeCode CODE, int DIM>
-struct ConvolveImplBody<VariantKind::GPU, CODE, DIM> {
-  using VAL = legate_type_of<CODE>;
+template <typename VAL, int32_t DIM>
+__host__ void direct_convolution(AccessorWO<VAL, DIM> out,
+                                 AccessorRO<VAL, DIM> filter,
+                                 AccessorRO<VAL, DIM> in,
+                                 const Rect<DIM>& root_rect,
+                                 const Rect<DIM>& subrect,
+                                 const Rect<DIM>& filter_rect)
+{
+  constexpr int THREADVALS = THREAD_OUTPUTS(VAL);
+  // Get the maximum amount of shared memory per threadblock
+  int device;
+  CHECK_CUDA(cudaGetDevice(&device));
+  cudaDeviceProp properties;
+  CHECK_CUDA(cudaGetDeviceProperties(&properties, device));
+  size_t max_smem_size = properties.sharedMemPerBlockOptin;
 
-  __host__ void operator()(AccessorWO<VAL, DIM> out,
-                           AccessorRO<VAL, DIM> filter,
-                           AccessorRO<VAL, DIM> in,
-                           const Rect<DIM>& root_rect,
-                           const Rect<DIM>& subrect,
-                           const Rect<DIM>& filter_rect) const
-  {
-    constexpr int THREADVALS = THREAD_OUTPUTS(VAL);
-    // Get the maximum amount of shared memory per threadblock
-    int device;
-    CHECK_CUDA(cudaGetDevice(&device));
-    cudaDeviceProp properties;
-    CHECK_CUDA(cudaGetDeviceProperties(&properties, device));
-    size_t max_smem_size = properties.sharedMemPerBlockOptin;
-
-    // Only need to do these calls the first time on each device so
-    // we use a bit mask to track which devices we've done it for
-    static unsigned long long mask = 0;
-    if (!(mask & (1 << device))) {
-      if (properties.sharedMemPerBlock < max_smem_size) {
-        CHECK_CUDA(cudaFuncSetAttribute(convolution_small_tile1<VAL, DIM>,
-                                        cudaFuncAttributeMaxDynamicSharedMemorySize,
-                                        max_smem_size));
-        CHECK_CUDA(cudaFuncSetAttribute(convolution_small_tile2<VAL, DIM>,
-                                        cudaFuncAttributeMaxDynamicSharedMemorySize,
-                                        max_smem_size));
-        CHECK_CUDA(cudaFuncSetAttribute(convolution_large_tile<VAL, DIM, THREADVALS>,
-                                        cudaFuncAttributeMaxDynamicSharedMemorySize,
-                                        max_smem_size));
-      }
-      if (sizeof(VAL) >= 8) {
-        // Only need to set this on the first invocation
-        CHECK_CUDA(cudaFuncSetSharedMemConfig(convolution_small_tile1<VAL, DIM>,
-                                              cudaSharedMemBankSizeEightByte));
-        CHECK_CUDA(cudaFuncSetSharedMemConfig(convolution_small_tile2<VAL, DIM>,
-                                              cudaSharedMemBankSizeEightByte));
-        CHECK_CUDA(cudaFuncSetSharedMemConfig(convolution_large_tile<VAL, DIM, THREADVALS>,
-                                              cudaSharedMemBankSizeEightByte));
-      }
-      // Make sure we have enough bits for every device
-      assert(device < (8 * sizeof(mask)));
-      // Make sure not to race with updates from other GPUs
-      __sync_fetch_and_add(&mask, (1 << device));
+  // Only need to do these calls the first time on each device so
+  // we use a bit mask to track which devices we've done it for
+  static unsigned long long mask = 0;
+  if (!(mask & (1 << device))) {
+    if (properties.sharedMemPerBlock < max_smem_size) {
+      CHECK_CUDA(cudaFuncSetAttribute(convolution_small_tile1<VAL, DIM>,
+                                      cudaFuncAttributeMaxDynamicSharedMemorySize,
+                                      max_smem_size));
+      CHECK_CUDA(cudaFuncSetAttribute(convolution_small_tile2<VAL, DIM>,
+                                      cudaFuncAttributeMaxDynamicSharedMemorySize,
+                                      max_smem_size));
+      CHECK_CUDA(cudaFuncSetAttribute(convolution_large_tile<VAL, DIM, THREADVALS>,
+                                      cudaFuncAttributeMaxDynamicSharedMemorySize,
+                                      max_smem_size));
     }
-    unsigned extents[DIM];
-    unsigned centers[DIM];
-    for (int d = 0; d < DIM; d++) {
-      assert(filter_rect.lo[d] == 0);
-      extents[d] = filter_rect.hi[d] + 1;
-      centers[d] = static_cast<coord_t>(extents[d] / 2);
+    if (sizeof(VAL) >= 8) {
+      // Only need to set this on the first invocation
+      CHECK_CUDA(cudaFuncSetSharedMemConfig(convolution_small_tile1<VAL, DIM>,
+                                            cudaSharedMemBankSizeEightByte));
+      CHECK_CUDA(cudaFuncSetSharedMemConfig(convolution_small_tile2<VAL, DIM>,
+                                            cudaSharedMemBankSizeEightByte));
+      CHECK_CUDA(cudaFuncSetSharedMemConfig(convolution_large_tile<VAL, DIM, THREADVALS>,
+                                            cudaSharedMemBankSizeEightByte));
     }
-    Point<DIM> tile;
+    // Make sure we have enough bits for every device
+    assert(device < (8 * sizeof(mask)));
+    // Make sure not to race with updates from other GPUs
+    __sync_fetch_and_add(&mask, (1 << device));
+  }
+  unsigned extents[DIM];
+  unsigned centers[DIM];
+  for (int d = 0; d < DIM; d++) {
+    assert(filter_rect.lo[d] == 0);
+    extents[d] = filter_rect.hi[d] + 1;
+    centers[d] = static_cast<coord_t>(extents[d] / 2);
+  }
+  Point<DIM> tile;
+  for (int d = DIM - 1; d >= 0; d--) {
+    // Make sure that each tile is at least double the size of the filter
+    // so that we can get some savings in bandwidth needed
+    tile[d] = 2 * centers[d];
+    if (d == (DIM - 1)) {
+      // In order to maximize bandwidth, we want to make sure we're loading at
+      // least 128B of contiguous memory along the last axis (row-major) of input
+      const unsigned min_contig_elmts = 128 / sizeof(VAL);
+      if ((tile[d] + 2 * centers[d]) < min_contig_elmts)
+        tile[d] = min_contig_elmts - 2 * centers[d];
+    }
+  }
+  unsigned smem_size = sizeof(VAL);
+  for (int d = 0; d < DIM; d++) smem_size *= (tile[d] + 2 * centers[d]);
+  if (smem_size <= max_smem_size) {
+    // Small tile case:
+    launch_small_tile_kernel<VAL, DIM>(out,
+                                       filter,
+                                       in,
+                                       root_rect,
+                                       subrect,
+                                       filter_rect,
+                                       properties,
+                                       extents,
+                                       centers,
+                                       tile,
+                                       smem_size,
+                                       max_smem_size);
+  } else {
+    // Large tile case:
+    // If we're going to do this, we need to initialize the output to zeros
+    // so we can kick that off to the GPU while we figure out how to launch
+    // the rest of the kernels to do the convolution
+    size_t strides[DIM];
+    VAL* out_ptr = out.ptr(subrect, strides);
+    // Check to see if the output is dense
+    bool out_dense   = true;
+    size_t out_pitch = 1;
     for (int d = DIM - 1; d >= 0; d--) {
-      // Make sure that each tile is at least double the size of the filter
-      // so that we can get some savings in bandwidth needed
-      tile[d] = 2 * centers[d];
-      if (d == (DIM - 1)) {
-        // In order to maximize bandwidth, we want to make sure we're loading at
-        // least 128B of contiguous memory along the last axis (row-major) of input
-        const unsigned min_contig_elmts = 128 / sizeof(VAL);
-        if ((tile[d] + 2 * centers[d]) < min_contig_elmts)
-          tile[d] = min_contig_elmts - 2 * centers[d];
+      if (strides[d] != out_pitch) {
+        out_dense = false;
+        break;
       }
+      out_pitch *= strides[d];
     }
-    unsigned smem_size = sizeof(VAL);
-    for (int d = 0; d < DIM; d++) smem_size *= (tile[d] + 2 * centers[d]);
-    if (smem_size <= max_smem_size) {
-      // Small tile case:
-      launch_small_tile_kernel<VAL, DIM>(out,
-                                         filter,
-                                         in,
-                                         root_rect,
-                                         subrect,
-                                         filter_rect,
-                                         properties,
-                                         extents,
-                                         centers,
-                                         tile,
-                                         smem_size,
-                                         max_smem_size);
+    if (out_dense) {
+      size_t bytes = sizeof(VAL) * out_pitch;
+      CHECK_CUDA(cudaMemsetAsync(out_ptr, 0, bytes));
     } else {
-      // Large tile case:
-      // If we're going to do this, we need to initialize the output to zeros
-      // so we can kick that off to the GPU while we figure out how to launch
-      // the rest of the kernels to do the convolution
-      size_t strides[DIM];
-      VAL* out_ptr = out.ptr(subrect, strides);
-      // Check to see if the output is dense
-      bool out_dense   = true;
-      size_t out_pitch = 1;
+      out_pitch = 1;
+      ConvolutionInitArgs<DIM> args;
       for (int d = DIM - 1; d >= 0; d--) {
-        if (strides[d] != out_pitch) {
-          out_dense = false;
-          break;
-        }
-        out_pitch *= strides[d];
+        args.pitches[d] = FastDivmodU64(out_pitch);
+        out_pitch *= (subrect.hi[d] - subrect.lo[d] + 1);
       }
-      if (out_dense) {
-        size_t bytes = sizeof(VAL) * out_pitch;
-        CHECK_CUDA(cudaMemsetAsync(out_ptr, 0, bytes));
-      } else {
-        out_pitch = 1;
-        ConvolutionInitArgs<DIM> args;
-        for (int d = DIM - 1; d >= 0; d--) {
-          args.pitches[d] = FastDivmodU64(out_pitch);
-          out_pitch *= (subrect.hi[d] - subrect.lo[d] + 1);
-        }
-        size_t blocks = (out_pitch + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-        convolution_init<VAL, DIM><<<blocks, THREADS_PER_BLOCK>>>(out, subrect.lo, args, out_pitch);
+      size_t blocks = (out_pitch + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
+      convolution_init<VAL, DIM><<<blocks, THREADS_PER_BLOCK>>>(out, subrect.lo, args, out_pitch);
+    }
+    // Figure out the shape of the L1 output tile based on the number of
+    // points that we can fit into registers
+    Point<DIM> l1_output_tile;
+    const unsigned max_l1_output_volume = CONVOLUTION_THREADS * THREADVALS;
+    // Make sure the max_l1_output_volume doesn't consume more than half of shared memory
+    unsigned target_l1_output_volume = max_l1_output_volume;
+    while ((max_smem_size / 2) < (target_l1_output_volume * sizeof(VAL)))
+      target_l1_output_volume /= 2;
+    const Point<DIM> output_bounds = subrect.hi - subrect.lo + Point<DIM>::ONES();
+    const unsigned l1_output_volume =
+      compute_output_tile<VAL, DIM>(l1_output_tile,
+                                    output_bounds,
+                                    128 /*cache line size*/ / sizeof(VAL),
+                                    target_l1_output_volume);
+    // At this point we've got our output tile, compute how big a filter
+    // tile we can make and still fit both the filter tile and the
+    // input tile into the maximum amount of shared memory for this GPU
+    Point<DIM> l1_filter_tile;
+    const Point<DIM> filter_bounds = filter_rect.hi - filter_rect.lo + Point<DIM>::ONES();
+    unsigned dynamic_smem =
+      compute_filter_tile<VAL, DIM>(l1_filter_tile, filter_bounds, l1_output_tile, max_smem_size);
+    unsigned input_smem_offset = 1;
+    for (int d = 0; d < DIM; d++) input_smem_offset *= l1_filter_tile[d];
+    // Tile the number of SMs on this GPU to compute the shape of the
+    // L2 output tile for this kernel
+    // We assume here that the number of SMs is easily factorable
+    // into primes of 2, 3, and 5. It would be strange if we have a
+    // GPU with a number of SMs these days that can't be factored
+    // this way. If we do report a warning.
+    unsigned l2_tiles[DIM];
+    for (int d = 0; d < DIM; d++) l2_tiles[d] = 1;
+    if (DIM > 1) {
+      unsigned twos = 0, threes = 0, fives = 0;
+      unsigned remainder = properties.multiProcessorCount;
+      while ((remainder > 1) && ((remainder % 2) == 0)) {
+        twos++;
+        remainder /= 2;
       }
-      // Figure out the shape of the L1 output tile based on the number of
-      // points that we can fit into registers
-      Point<DIM> l1_output_tile;
-      const unsigned max_l1_output_volume = CONVOLUTION_THREADS * THREADVALS;
-      // Make sure the max_l1_output_volume doesn't consume more than half of shared memory
-      unsigned target_l1_output_volume = max_l1_output_volume;
-      while ((max_smem_size / 2) < (target_l1_output_volume * sizeof(VAL)))
-        target_l1_output_volume /= 2;
-      const Point<DIM> output_bounds = subrect.hi - subrect.lo + Point<DIM>::ONES();
-      const unsigned l1_output_volume =
-        compute_output_tile<VAL, DIM>(l1_output_tile,
-                                      output_bounds,
-                                      128 /*cache line size*/ / sizeof(VAL),
-                                      target_l1_output_volume);
-      // At this point we've got our output tile, compute how big a filter
-      // tile we can make and still fit both the filter tile and the
-      // input tile into the maximum amount of shared memory for this GPU
-      Point<DIM> l1_filter_tile;
-      const Point<DIM> filter_bounds = filter_rect.hi - filter_rect.lo + Point<DIM>::ONES();
-      unsigned dynamic_smem =
-        compute_filter_tile<VAL, DIM>(l1_filter_tile, filter_bounds, l1_output_tile, max_smem_size);
-      unsigned input_smem_offset = 1;
-      for (int d = 0; d < DIM; d++) input_smem_offset *= l1_filter_tile[d];
-      // Tile the number of SMs on this GPU to compute the shape of the
-      // L2 output tile for this kernel
-      // We assume here that the number of SMs is easily factorable
-      // into primes of 2, 3, and 5. It would be strange if we have a
-      // GPU with a number of SMs these days that can't be factored
-      // this way. If we do report a warning.
-      unsigned l2_tiles[DIM];
-      for (int d = 0; d < DIM; d++) l2_tiles[d] = 1;
-      if (DIM > 1) {
-        unsigned twos = 0, threes = 0, fives = 0;
-        unsigned remainder = properties.multiProcessorCount;
-        while ((remainder > 1) && ((remainder % 2) == 0)) {
-          twos++;
-          remainder /= 2;
-        }
-        while ((remainder > 1) && ((remainder % 3) == 0)) {
-          threes++;
-          remainder /= 3;
-        }
-        while ((remainder > 1) && ((remainder % 5) == 0)) {
-          fives++;
-          remainder /= 5;
-        }
-        if (remainder > 1) {
-          fprintf(stdout,
-                  "WARNING: %d is an unusual number of SMs "
-                  "for GPU convolution. Please report your GPU kind and "
-                  "the number of SMs in a Legate NumPy issue.",
-                  properties.multiProcessorCount);
-          l2_tiles[DIM - 1] = remainder;
-        }
-        for (unsigned idx = 0; idx < fives; idx++) {
-          int smallest = 0;
-          for (int d = 1; d < DIM; d++) {
-            if (l2_tiles[smallest] < l2_tiles[d]) continue;
-            smallest = d;
-          }
-          l2_tiles[smallest] *= 5;
-        }
-        for (unsigned idx = 0; idx < threes; idx++) {
-          int smallest = 0;
-          for (int d = 1; d < DIM; d++) {
-            if (l2_tiles[smallest] < l2_tiles[d]) continue;
-            smallest = d;
-          }
-          l2_tiles[smallest] *= 3;
-        }
-        for (unsigned idx = 0; idx < twos; idx++) {
-          int smallest = 0;
-          for (int d = 1; d < DIM; d++) {
-            if (l2_tiles[smallest] < l2_tiles[d]) continue;
-            smallest = d;
-          }
-          l2_tiles[smallest] *= 2;
-        }
-      } else {
-        l2_tiles[0] = properties.multiProcessorCount;
+      while ((remainder > 1) && ((remainder % 3) == 0)) {
+        threes++;
+        remainder /= 3;
       }
-      // Now that we've got a tiling of the l1 output blocks across
-      // the SMs compute how big it is in memory and see if it is less
-      // than a quarter of the L2 cache so we can block for the L2
-      Point<DIM> l2_output_tile;
-      size_t l2_output_tile_size = sizeof(VAL);
-      for (int d = 0; d < DIM; d++) {
-        l2_output_tile[d] = l2_tiles[d] * l1_output_tile[d];
-        l2_output_tile_size *= l2_output_tile[d];
+      while ((remainder > 1) && ((remainder % 5) == 0)) {
+        fives++;
+        remainder /= 5;
       }
-      Point<DIM> l2_filter_tile;
-      size_t total_l2_filters = 1;
-      if (l2_output_tile_size <= (properties.l2CacheSize / 4)) {
-        for (int d = 0; d < DIM; d++) l2_filter_tile[d] = 1;
-        // Compute the L2 filter tile size so that the L2 filter and the
-        // corresponding L2 input tile will fit in the L2 cache
-        compute_filter_tile<VAL, DIM>(
-          l2_filter_tile, filter_bounds, l2_output_tile, 3 * properties.l2CacheSize / 4);
-        for (int d = 0; d < DIM; d++)
-          total_l2_filters *= (filter_bounds[d] + l2_filter_tile[d] - 1) / l2_filter_tile[d];
-      } else {
-        // It's likely this tile is too big to block for the L2 cache
-        // so we're not going to bother blocking for the L2 and just
-        // run everything out of the framebuffer memory. The upside is
-        // that we'll only need to make a single pass over the input
-        for (int d = 0; d < DIM; d++) l2_filter_tile[d] = filter_rect.hi[d] - filter_rect.lo[d] + 1;
+      if (remainder > 1) {
+        fprintf(stdout,
+                "WARNING: %d is an unusual number of SMs "
+                "for GPU convolution. Please report your GPU kind and "
+                "the number of SMs in a Legate NumPy issue.",
+                properties.multiProcessorCount);
+        l2_tiles[DIM - 1] = remainder;
       }
-      // Construct the arguments for the kernel launches
-      ConvolutionLargeTileArgs<DIM, THREADVALS> args;
-      int pitch = 1;
-      for (int d = DIM - 1; d >= 0; d--) {
-        args.l1_input_pitches[d] = FastDivmod(pitch);
-        pitch *= (l1_output_tile[d] + 2 * (l1_filter_tile[d] / 2));
-      }
-      pitch = 1;
-      for (int d = DIM - 1; d >= 0; d--) {
-        args.l1_filter_pitches[d] = FastDivmod(pitch);
-        pitch *= l1_filter_tile[d];
-      }
-      pitch = 1;
-      for (int d = DIM - 1; d >= 0; d--) {
-        args.l1_output_pitches[d] = FastDivmod(pitch);
-        pitch *= l1_output_tile[d];
-      }
-      args.l2_output_tile      = l2_output_tile;
-      args.l2_filter_tile      = l2_filter_tile;
-      args.l1_output_tile      = l1_output_tile;
-      args.l1_filter_tile      = l1_filter_tile;
-      args.l2_output_limits    = output_bounds;
-      args.shared_input_offset = input_smem_offset;
-      args.total_l2_outputs    = 1;
-      args.total_l1_outputs    = 1;
-      args.total_l1_filters    = 1;
-      args.l1_filter_points    = 1;
-      args.l1_input_points     = 1;
-      pitch                    = 1;
-      for (int d = DIM - 1; d >= 0; d--) {
-        args.total_l2_outputs *= (output_bounds[d] + l2_output_tile[d] - 1) / l2_output_tile[d];
-        args.l1_output_tile_pitches[d] = FastDivmod(pitch);
-        pitch *= (l2_output_tile[d] + l1_output_tile[d] - 1) / l1_output_tile[d];
-        args.total_l1_filters *= (l2_filter_tile[d] + l1_filter_tile[d] - 1) / l1_filter_tile[d];
-        args.l1_filter_points *= l1_filter_tile[d];
-        args.l1_input_points *= (l1_output_tile[d] + 2 * (l1_filter_tile[d] / 2));
-      }
-      args.total_l1_outputs = pitch;
-      // Figure out how to tile the points across the l1_output_tile
-      if (DIM > 1) {
-        unsigned regsteps[DIM];
-        for (int d = 0; d < DIM; d++) regsteps[d] = 0;
-        unsigned remainder = THREADVALS;
-        // Handle the case here where we aren't going to use all
-        // the points in the registers so we need to scale back
-        if (l1_output_volume < max_l1_output_volume) {
-          assert((max_l1_output_volume % l1_output_volume) == 0);
-          remainder /= (max_l1_output_volume / l1_output_volume);
-          if (remainder == 0) remainder = 1;
-        }
-        for (int d = 0; d < DIM; d++) {
-          if (remainder == 1) {
-            regsteps[d] = l1_output_tile[d];
-          } else if (remainder <= l1_output_tile[d]) {
-            // All powers of two so should always divide
-            assert((l1_output_tile[d] % remainder) == 0);
-            regsteps[d] = l1_output_tile[d] / remainder;
-            remainder   = 1;
-          } else {
-            // All powers of two so should always divide
-            assert((remainder % l1_output_tile[d]) == 0);
-            regsteps[d] = 1;
-            remainder /= l1_output_tile[d];
-          }
-        }
-        assert(remainder == 1);
-        Point<DIM, unsigned> offset = Point<DIM, unsigned>::ZEROES();
-        for (int p = 0; p < THREADVALS; p++) {
-          args.point_offsets[p] = offset;
-          // Step to the next offset
-          for (int d = DIM - 1; d >= 0; d--) {
-            offset[d] += regsteps[d];
-            if (offset[d] == l1_output_tile[d]) {
-              if ((d == 0) && (p != (THREADVALS - 1)))
-                // Allow overflow in this case to handle the case
-                // where we have more points than we need for the l1 output tile
-                assert(l1_output_volume < max_l1_output_volume);
-              else
-                offset[d] = 0;
-            } else
-              break;
-          }
-        }
-        args.uniform_input_stride = regsteps[0] * args.l1_input_pitches[0].divisor;
-        // Check to make sure this is the uniform input stride case
+      for (unsigned idx = 0; idx < fives; idx++) {
+        int smallest = 0;
         for (int d = 1; d < DIM; d++) {
-          if (regsteps[d] == l1_output_tile[d]) continue;
-          args.uniform_input_stride = 0;
-          break;
+          if (l2_tiles[smallest] < l2_tiles[d]) continue;
+          smallest = d;
         }
-      } else {
-        assert(THREADVALS <= l1_output_tile[0]);
-        unsigned remainder = THREADVALS;
-        // Handle the case here where we aren't going to use all
-        // the points in the registers so we need to scale back
-        if (l1_output_volume < max_l1_output_volume) {
-          assert((max_l1_output_volume % l1_output_volume) == 0);
-          remainder /= (max_l1_output_volume / l1_output_volume);
-          if (remainder == 0) remainder = 1;
-        }
-        assert((l1_output_tile[0] % remainder) == 0);
-        unsigned regstep = l1_output_tile[0] / remainder;
-        for (int p = 0; p < THREADVALS; p++) args.point_offsets[p][0] = p * regstep;
-        args.uniform_input_stride = regstep * args.l1_input_pitches[0].divisor;
+        l2_tiles[smallest] *= 5;
       }
+      for (unsigned idx = 0; idx < threes; idx++) {
+        int smallest = 0;
+        for (int d = 1; d < DIM; d++) {
+          if (l2_tiles[smallest] < l2_tiles[d]) continue;
+          smallest = d;
+        }
+        l2_tiles[smallest] *= 3;
+      }
+      for (unsigned idx = 0; idx < twos; idx++) {
+        int smallest = 0;
+        for (int d = 1; d < DIM; d++) {
+          if (l2_tiles[smallest] < l2_tiles[d]) continue;
+          smallest = d;
+        }
+        l2_tiles[smallest] *= 2;
+      }
+    } else {
+      l2_tiles[0] = properties.multiProcessorCount;
+    }
+    // Now that we've got a tiling of the l1 output blocks across
+    // the SMs compute how big it is in memory and see if it is less
+    // than a quarter of the L2 cache so we can block for the L2
+    Point<DIM> l2_output_tile;
+    size_t l2_output_tile_size = sizeof(VAL);
+    for (int d = 0; d < DIM; d++) {
+      l2_output_tile[d] = l2_tiles[d] * l1_output_tile[d];
+      l2_output_tile_size *= l2_output_tile[d];
+    }
+    Point<DIM> l2_filter_tile;
+    size_t total_l2_filters = 1;
+    if (l2_output_tile_size <= (properties.l2CacheSize / 4)) {
+      for (int d = 0; d < DIM; d++) l2_filter_tile[d] = 1;
+      // Compute the L2 filter tile size so that the L2 filter and the
+      // corresponding L2 input tile will fit in the L2 cache
+      compute_filter_tile<VAL, DIM>(
+        l2_filter_tile, filter_bounds, l2_output_tile, 3 * properties.l2CacheSize / 4);
+      for (int d = 0; d < DIM; d++)
+        total_l2_filters *= (filter_bounds[d] + l2_filter_tile[d] - 1) / l2_filter_tile[d];
+    } else {
+      // It's likely this tile is too big to block for the L2 cache
+      // so we're not going to bother blocking for the L2 and just
+      // run everything out of the framebuffer memory. The upside is
+      // that we'll only need to make a single pass over the input
+      for (int d = 0; d < DIM; d++) l2_filter_tile[d] = filter_rect.hi[d] - filter_rect.lo[d] + 1;
+    }
+    // Construct the arguments for the kernel launches
+    ConvolutionLargeTileArgs<DIM, THREADVALS> args;
+    int pitch = 1;
+    for (int d = DIM - 1; d >= 0; d--) {
+      args.l1_input_pitches[d] = FastDivmod(pitch);
+      pitch *= (l1_output_tile[d] + 2 * (l1_filter_tile[d] / 2));
+    }
+    pitch = 1;
+    for (int d = DIM - 1; d >= 0; d--) {
+      args.l1_filter_pitches[d] = FastDivmod(pitch);
+      pitch *= l1_filter_tile[d];
+    }
+    pitch = 1;
+    for (int d = DIM - 1; d >= 0; d--) {
+      args.l1_output_pitches[d] = FastDivmod(pitch);
+      pitch *= l1_output_tile[d];
+    }
+    args.l2_output_tile      = l2_output_tile;
+    args.l2_filter_tile      = l2_filter_tile;
+    args.l1_output_tile      = l1_output_tile;
+    args.l1_filter_tile      = l1_filter_tile;
+    args.l2_output_limits    = output_bounds;
+    args.shared_input_offset = input_smem_offset;
+    args.total_l2_outputs    = 1;
+    args.total_l1_outputs    = 1;
+    args.total_l1_filters    = 1;
+    args.l1_filter_points    = 1;
+    args.l1_input_points     = 1;
+    pitch                    = 1;
+    for (int d = DIM - 1; d >= 0; d--) {
+      args.total_l2_outputs *= (output_bounds[d] + l2_output_tile[d] - 1) / l2_output_tile[d];
+      args.l1_output_tile_pitches[d] = FastDivmod(pitch);
+      pitch *= (l2_output_tile[d] + l1_output_tile[d] - 1) / l1_output_tile[d];
+      args.total_l1_filters *= (l2_filter_tile[d] + l1_filter_tile[d] - 1) / l1_filter_tile[d];
+      args.l1_filter_points *= l1_filter_tile[d];
+      args.l1_input_points *= (l1_output_tile[d] + 2 * (l1_filter_tile[d] / 2));
+    }
+    args.total_l1_outputs = pitch;
+    // Figure out how to tile the points across the l1_output_tile
+    if (DIM > 1) {
+      unsigned regsteps[DIM];
+      for (int d = 0; d < DIM; d++) regsteps[d] = 0;
+      unsigned remainder = THREADVALS;
+      // Handle the case here where we aren't going to use all
+      // the points in the registers so we need to scale back
       if (l1_output_volume < max_l1_output_volume) {
-        args.shared_input_bound = dynamic_smem / sizeof(VAL);
-        args.total_l1_points    = l1_output_volume;
-      } else {
-        args.shared_input_bound = 0;
-        args.total_l1_points    = 0;
+        assert((max_l1_output_volume % l1_output_volume) == 0);
+        remainder /= (max_l1_output_volume / l1_output_volume);
+        if (remainder == 0) remainder = 1;
       }
-      // Launch as many kernels as we need to walk over the entire filter
-      // Given the L2 filter tile that we came up with
-      const Point<DIM, unsigned> zero = Point<DIM, unsigned>::ZEROES();
-      const Point<DIM, unsigned> one  = Point<DIM, unsigned>::ONES();
-      if (total_l2_filters > 1) {
-        Point<DIM> l2_filter_lo = filter_rect.lo;
-        for (unsigned idx = 0; idx < total_l2_filters; idx++) {
-          Rect<DIM> l2_filter_rect(l2_filter_lo, l2_filter_lo + l2_filter_tile - one);
-          l2_filter_rect = l2_filter_rect.intersection(filter_rect);
-          const Point<DIM> l1_input_start =
-            subrect.lo + Point<DIM>(extents) - l2_filter_lo - l1_filter_tile - Point<DIM>(centers);
-          const Point<DIM> l2_input_start =
-            subrect.lo + Point<DIM>(extents) - l2_filter_rect.hi - one - Point<DIM>(centers);
-          const Point<DIM> l2_input_stop = subrect.lo + l2_output_tile - one + Point<DIM>(extents) -
-                                           l2_filter_rect.lo - one - Point<DIM>(centers);
-          convolution_large_tile<VAL, DIM, THREADVALS>
-            <<<properties.multiProcessorCount, CONVOLUTION_THREADS, dynamic_smem>>>(out,
-                                                                                    filter,
-                                                                                    in,
-                                                                                    root_rect,
-                                                                                    subrect,
-                                                                                    l2_filter_rect,
-                                                                                    l2_input_start,
-                                                                                    l2_input_stop,
-                                                                                    l1_input_start,
-                                                                                    zero,
-                                                                                    one,
-                                                                                    args);
-          // Step to the next filter
-          for (int d = DIM - 1; d >= 0; d--) {
-            l2_filter_lo[d] += l2_filter_tile[d];
-            if (filter_rect.hi[d] < l2_filter_lo[d])
-              l2_filter_lo[d] = filter_rect.lo[d];
-            else
-              break;
-          }
+      for (int d = 0; d < DIM; d++) {
+        if (remainder == 1) {
+          regsteps[d] = l1_output_tile[d];
+        } else if (remainder <= l1_output_tile[d]) {
+          // All powers of two so should always divide
+          assert((l1_output_tile[d] % remainder) == 0);
+          regsteps[d] = l1_output_tile[d] / remainder;
+          remainder   = 1;
+        } else {
+          // All powers of two so should always divide
+          assert((remainder % l1_output_tile[d]) == 0);
+          regsteps[d] = 1;
+          remainder /= l1_output_tile[d];
         }
-      } else {
-        assert(total_l2_filters == 1);
+      }
+      assert(remainder == 1);
+      Point<DIM, unsigned> offset = Point<DIM, unsigned>::ZEROES();
+      for (int p = 0; p < THREADVALS; p++) {
+        args.point_offsets[p] = offset;
+        // Step to the next offset
+        for (int d = DIM - 1; d >= 0; d--) {
+          offset[d] += regsteps[d];
+          if (offset[d] == l1_output_tile[d]) {
+            if ((d == 0) && (p != (THREADVALS - 1)))
+              // Allow overflow in this case to handle the case
+              // where we have more points than we need for the l1 output tile
+              assert(l1_output_volume < max_l1_output_volume);
+            else
+              offset[d] = 0;
+          } else
+            break;
+        }
+      }
+      args.uniform_input_stride = regsteps[0] * args.l1_input_pitches[0].divisor;
+      // Check to make sure this is the uniform input stride case
+      for (int d = 1; d < DIM; d++) {
+        if (regsteps[d] == l1_output_tile[d]) continue;
+        args.uniform_input_stride = 0;
+        break;
+      }
+    } else {
+      assert(THREADVALS <= l1_output_tile[0]);
+      unsigned remainder = THREADVALS;
+      // Handle the case here where we aren't going to use all
+      // the points in the registers so we need to scale back
+      if (l1_output_volume < max_l1_output_volume) {
+        assert((max_l1_output_volume % l1_output_volume) == 0);
+        remainder /= (max_l1_output_volume / l1_output_volume);
+        if (remainder == 0) remainder = 1;
+      }
+      assert((l1_output_tile[0] % remainder) == 0);
+      unsigned regstep = l1_output_tile[0] / remainder;
+      for (int p = 0; p < THREADVALS; p++) args.point_offsets[p][0] = p * regstep;
+      args.uniform_input_stride = regstep * args.l1_input_pitches[0].divisor;
+    }
+    if (l1_output_volume < max_l1_output_volume) {
+      args.shared_input_bound = dynamic_smem / sizeof(VAL);
+      args.total_l1_points    = l1_output_volume;
+    } else {
+      args.shared_input_bound = 0;
+      args.total_l1_points    = 0;
+    }
+    // Launch as many kernels as we need to walk over the entire filter
+    // Given the L2 filter tile that we came up with
+    const Point<DIM, unsigned> zero = Point<DIM, unsigned>::ZEROES();
+    const Point<DIM, unsigned> one  = Point<DIM, unsigned>::ONES();
+    if (total_l2_filters > 1) {
+      Point<DIM> l2_filter_lo = filter_rect.lo;
+      for (unsigned idx = 0; idx < total_l2_filters; idx++) {
+        Rect<DIM> l2_filter_rect(l2_filter_lo, l2_filter_lo + l2_filter_tile - one);
+        l2_filter_rect = l2_filter_rect.intersection(filter_rect);
         const Point<DIM> l1_input_start =
-          subrect.lo + Point<DIM>(extents) - filter_rect.lo - l1_filter_tile - Point<DIM>(centers);
-        const Point<DIM> l2_input_start = subrect.lo - Point<DIM>(centers);
-        const Point<DIM> l2_input_stop  = subrect.lo + l2_output_tile - one + Point<DIM>(extents) -
-                                         filter_rect.lo - one - Point<DIM>(centers);
+          subrect.lo + Point<DIM>(extents) - l2_filter_lo - l1_filter_tile - Point<DIM>(centers);
+        const Point<DIM> l2_input_start =
+          subrect.lo + Point<DIM>(extents) - l2_filter_rect.hi - one - Point<DIM>(centers);
+        const Point<DIM> l2_input_stop = subrect.lo + l2_output_tile - one + Point<DIM>(extents) -
+                                         l2_filter_rect.lo - one - Point<DIM>(centers);
         convolution_large_tile<VAL, DIM, THREADVALS>
           <<<properties.multiProcessorCount, CONVOLUTION_THREADS, dynamic_smem>>>(out,
                                                                                   filter,
                                                                                   in,
                                                                                   root_rect,
                                                                                   subrect,
-                                                                                  filter_rect,
+                                                                                  l2_filter_rect,
                                                                                   l2_input_start,
                                                                                   l2_input_stop,
                                                                                   l1_input_start,
                                                                                   zero,
                                                                                   one,
                                                                                   args);
+        // Step to the next filter
+        for (int d = DIM - 1; d >= 0; d--) {
+          l2_filter_lo[d] += l2_filter_tile[d];
+          if (filter_rect.hi[d] < l2_filter_lo[d])
+            l2_filter_lo[d] = filter_rect.lo[d];
+          else
+            break;
+        }
       }
+    } else {
+      assert(total_l2_filters == 1);
+      const Point<DIM> l1_input_start =
+        subrect.lo + Point<DIM>(extents) - filter_rect.lo - l1_filter_tile - Point<DIM>(centers);
+      const Point<DIM> l2_input_start = subrect.lo - Point<DIM>(centers);
+      const Point<DIM> l2_input_stop  = subrect.lo + l2_output_tile - one + Point<DIM>(extents) -
+                                       filter_rect.lo - one - Point<DIM>(centers);
+      convolution_large_tile<VAL, DIM, THREADVALS>
+        <<<properties.multiProcessorCount, CONVOLUTION_THREADS, dynamic_smem>>>(out,
+                                                                                filter,
+                                                                                in,
+                                                                                root_rect,
+                                                                                subrect,
+                                                                                filter_rect,
+                                                                                l2_input_start,
+                                                                                l2_input_stop,
+                                                                                l1_input_start,
+                                                                                zero,
+                                                                                one,
+                                                                                args);
     }
   }
-};
+}
+
+///////////////////////////////////////
+// FFT-based convolution implementation
+///////////////////////////////////////
 
 template <int DIM>
 struct FFTPitches {
@@ -1132,149 +1136,43 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, 4)
 }
 
 template <typename VAL, int DIM>
-__host__ static inline size_t create_forward_plan(cufftHandle plan, const Point<DIM>& size)
+__host__ static inline size_t create_forward_plan(cufftHandle plan, const Point<DIM>& point)
 {
-  // should always call specialized templates
-  assert(false);
-  return 0;
-}
-
-template <>
-__host__ inline size_t create_forward_plan<float, 1>(cufftHandle plan, const Point<1>& size)
-{
+  int32_t size[DIM];
+  for (int32_t dim = 0; dim < DIM; ++dim) size[dim] = point[dim];
   size_t workarea = 0;
-  CHECK_CUFFT(cufftMakePlan1d(plan, size[0], CUFFT_R2C, 1 /*batch*/, &workarea));
-  return workarea;
-}
-
-template <>
-__host__ inline size_t create_forward_plan<double, 1>(cufftHandle plan, const Point<1>& size)
-{
-  size_t workarea = 0;
-  CHECK_CUFFT(cufftMakePlan1d(plan, size[0], CUFFT_D2Z, 1 /*batch*/, &workarea));
-  return workarea;
-}
-
-template <>
-__host__ inline size_t create_forward_plan<float, 2>(cufftHandle plan, const Point<2>& size)
-{
-  size_t workarea = 0;
-  CHECK_CUFFT(cufftMakePlan2d(plan, size[0], size[1], CUFFT_R2C, &workarea));
-  return workarea;
-}
-
-template <>
-__host__ inline size_t create_forward_plan<double, 2>(cufftHandle plan, const Point<2>& size)
-{
-  size_t workarea = 0;
-  CHECK_CUFFT(cufftMakePlan2d(plan, size[0], size[1], CUFFT_D2Z, &workarea));
-  return workarea;
-}
-
-template <>
-__host__ inline size_t create_forward_plan<float, 3>(cufftHandle plan, const Point<3>& size)
-{
-  size_t workarea = 0;
-  CHECK_CUFFT(cufftMakePlan3d(plan, size[0], size[1], size[2], CUFFT_R2C, &workarea));
-  return workarea;
-}
-
-template <>
-__host__ inline size_t create_forward_plan<double, 3>(cufftHandle plan, const Point<3>& size)
-{
-  size_t workarea = 0;
-  CHECK_CUFFT(cufftMakePlan3d(plan, size[0], size[1], size[2], CUFFT_D2Z, &workarea));
+  CHECK_CUFFT(cufftMakePlanMany(
+    plan, DIM, size, nullptr, 1, 1, nullptr, 1, 1, CUFFT_R2C, 1 /*batch*/, &workarea));
   return workarea;
 }
 
 template <typename VAL, int DIM>
-__host__ static inline size_t create_backward_plan(cufftHandle plan, const Point<DIM>& size)
+__host__ static inline size_t create_backward_plan(cufftHandle plan, const Point<DIM>& point)
 {
-  // should always call specialized templates
-  assert(false);
-  return 0;
-}
-
-template <>
-__host__ inline size_t create_backward_plan<float, 1>(cufftHandle plan, const Point<1>& size)
-{
+  int32_t size[DIM];
+  for (int32_t dim = 0; dim < DIM; ++dim) size[dim] = point[dim];
   size_t workarea = 0;
-  CHECK_CUFFT(cufftMakePlan1d(plan, size[0], CUFFT_C2R, 1 /*batch*/, &workarea));
+  CHECK_CUFFT(cufftMakePlanMany(
+    plan, DIM, size, nullptr, 1, 1, nullptr, 1, 1, CUFFT_C2R, 1 /*batch*/, &workarea));
   return workarea;
 }
 
-template <>
-__host__ inline size_t create_backward_plan<double, 1>(cufftHandle plan, const Point<1>& size)
-{
-  size_t workarea = 0;
-  CHECK_CUFFT(cufftMakePlan1d(plan, size[0], CUFFT_Z2D, 1 /*batch*/, &workarea));
-  return workarea;
-}
-
-template <>
-__host__ inline size_t create_backward_plan<float, 2>(cufftHandle plan, const Point<2>& size)
-{
-  size_t workarea = 0;
-  CHECK_CUFFT(cufftMakePlan2d(plan, size[0], size[1], CUFFT_C2R, &workarea));
-  return workarea;
-}
-
-template <>
-__host__ inline size_t create_backward_plan<double, 2>(cufftHandle plan, const Point<2>& size)
-{
-  size_t workarea = 0;
-  CHECK_CUFFT(cufftMakePlan2d(plan, size[0], size[1], CUFFT_Z2D, &workarea));
-  return workarea;
-}
-
-template <>
-__host__ inline size_t create_backward_plan<float, 3>(cufftHandle plan, const Point<3>& size)
-{
-  size_t workarea = 0;
-  CHECK_CUFFT(cufftMakePlan3d(plan, size[0], size[1], size[2], CUFFT_C2R, &workarea));
-  return workarea;
-}
-
-template <>
-__host__ inline size_t create_backward_plan<double, 3>(cufftHandle plan, const Point<3>& size)
-{
-  size_t workarea = 0;
-  CHECK_CUFFT(cufftMakePlan3d(plan, size[0], size[1], size[2], CUFFT_Z2D, &workarea));
-  return workarea;
-}
-
-template <typename VAL>
-__host__ static inline void cufft_execute_forward(cufftHandle plan, VAL* idata, VAL* odata)
-{
-  assert(false);  // should never be called
-}
-
-template <>
-__host__ inline void cufft_execute_forward<float>(cufftHandle plan, float* idata, float* odata)
+__host__ inline void cufft_execute_forward(cufftHandle plan, float* idata, float* odata)
 {
   CHECK_CUFFT(cufftExecR2C(plan, (cufftReal*)idata, (cufftComplex*)odata));
 }
 
-template <>
-__host__ inline void cufft_execute_forward<double>(cufftHandle plan, double* idata, double* odata)
+__host__ inline void cufft_execute_forward(cufftHandle plan, double* idata, double* odata)
 {
   CHECK_CUFFT(cufftExecD2Z(plan, (cufftDoubleReal*)idata, (cufftDoubleComplex*)odata));
 }
 
-template <typename VAL>
-__host__ static inline void cufft_execute_backward(cufftHandle plan, VAL* idata, VAL* odata)
-{
-  assert(false);  // should never be called
-}
-
-template <>
-__host__ inline void cufft_execute_backward<float>(cufftHandle plan, float* idata, float* odata)
+__host__ inline void cufft_execute_backward(cufftHandle plan, float* idata, float* odata)
 {
   CHECK_CUFFT(cufftExecC2R(plan, (cufftComplex*)idata, (cufftReal*)odata));
 }
 
-template <>
-__host__ inline void cufft_execute_backward<double>(cufftHandle plan, double* idata, double* odata)
+__host__ inline void cufft_execute_backward(cufftHandle plan, double* idata, double* odata)
 {
   CHECK_CUFFT(cufftExecZ2D(plan, (cufftDoubleComplex*)idata, (cufftDoubleReal*)odata));
 }
@@ -1496,9 +1394,9 @@ __host__ static inline void cufft_convolution(AccessorWO<VAL, DIM> out,
       CHECK_CUFFT(cufftSetWorkArea(plan.backward, workarea));
     }
     // FFT the input data
-    cufft_execute_forward<VAL>(plan.forward, signal_ptr, signal_ptr);
+    cufft_execute_forward(plan.forward, signal_ptr, signal_ptr);
     // FFT the filter data
-    cufft_execute_forward<VAL>(plan.forward, filter_ptr, filter_ptr);
+    cufft_execute_forward(plan.forward, filter_ptr, filter_ptr);
     // Perform the pointwise multiplcation
     {
       size_t volume = (buffervolume / 2);
@@ -1508,7 +1406,7 @@ __host__ static inline void cufft_convolution(AccessorWO<VAL, DIM> out,
     }
     // Inverse FFT for the ouptut
     // Allow this out-of-place for better performance
-    cufft_execute_backward<VAL>(plan.backward, signal_ptr, filter_ptr);
+    cufft_execute_backward(plan.backward, signal_ptr, filter_ptr);
     // Copy the result data out of the temporary buffer and scale
     // because CUFFT inverse does not perform the scale for us
     pitch = 1;
@@ -1560,95 +1458,49 @@ __host__ static inline void cufft_convolution(AccessorWO<VAL, DIM> out,
   }
 }
 
-// Below here are specializations of the template for dimensions 1,2,3
-// and fp32 and fp64 so we can use cufft to do the fft
-template <>
-struct ConvolveImplBody<VariantKind::GPU, FLOAT_LT, 1> {
-  using VAL = legate_type_of<FLOAT_LT>;
+/////////////
+// Dispatcher
+/////////////
 
-  __host__ void operator()(AccessorWO<VAL, 1> out,
-                           AccessorRO<VAL, 1> filter,
-                           AccessorRO<VAL, 1> in,
-                           const Rect<1>& root_rect,
-                           const Rect<1>& subrect,
-                           const Rect<1>& filter_rect) const
-  {
-    cufft_convolution<VAL, 1>(out, filter, in, root_rect, subrect, filter_rect);
-  }
+template <typename VAL, int DIM>
+struct UseCUFFT {
+  static constexpr bool value = 1 <= DIM && DIM <= 3 && std::is_floating_point<VAL>::value;
 };
 
-template <>
-struct ConvolveImplBody<VariantKind::GPU, FLOAT_LT, 2> {
-  using VAL = legate_type_of<FLOAT_LT>;
+template <LegateTypeCode CODE, int DIM>
+struct ConvolveImplBody<VariantKind::GPU, CODE, DIM> {
+  using VAL = legate_type_of<CODE>;
 
-  __host__ void operator()(AccessorWO<VAL, 2> out,
-                           AccessorRO<VAL, 2> filter,
-                           AccessorRO<VAL, 2> in,
-                           const Rect<2>& root_rect,
-                           const Rect<2>& subrect,
-                           const Rect<2>& filter_rect) const
+  template <typename _VAL, int32_t _DIM, std::enable_if_t<UseCUFFT<_VAL, _DIM>::value>* = nullptr>
+  __host__ void dispatch(AccessorWO<_VAL, _DIM> out,
+                         AccessorRO<_VAL, _DIM> filter,
+                         AccessorRO<_VAL, _DIM> in,
+                         const Rect<_DIM>& root_rect,
+                         const Rect<_DIM>& subrect,
+                         const Rect<_DIM>& filter_rect) const
   {
-    cufft_convolution<VAL, 2>(out, filter, in, root_rect, subrect, filter_rect);
+    cufft_convolution<_VAL, _DIM>(out, filter, in, root_rect, subrect, filter_rect);
   }
-};
 
-template <>
-struct ConvolveImplBody<VariantKind::GPU, FLOAT_LT, 3> {
-  using VAL = legate_type_of<FLOAT_LT>;
-
-  __host__ void operator()(AccessorWO<VAL, 3> out,
-                           AccessorRO<VAL, 3> filter,
-                           AccessorRO<VAL, 3> in,
-                           const Rect<3>& root_rect,
-                           const Rect<3>& subrect,
-                           const Rect<3>& filter_rect) const
+  template <typename _VAL, int32_t _DIM, std::enable_if_t<!UseCUFFT<_VAL, _DIM>::value>* = nullptr>
+  __host__ void dispatch(AccessorWO<_VAL, _DIM> out,
+                         AccessorRO<_VAL, _DIM> filter,
+                         AccessorRO<_VAL, _DIM> in,
+                         const Rect<_DIM>& root_rect,
+                         const Rect<_DIM>& subrect,
+                         const Rect<_DIM>& filter_rect) const
   {
-    cufft_convolution<VAL, 3>(out, filter, in, root_rect, subrect, filter_rect);
+    direct_convolution<_VAL, _DIM>(out, filter, in, root_rect, subrect, filter_rect);
   }
-};
 
-template <>
-struct ConvolveImplBody<VariantKind::GPU, DOUBLE_LT, 1> {
-  using VAL = legate_type_of<DOUBLE_LT>;
-
-  __host__ void operator()(AccessorWO<VAL, 1> out,
-                           AccessorRO<VAL, 1> filter,
-                           AccessorRO<VAL, 1> in,
-                           const Rect<1>& root_rect,
-                           const Rect<1>& subrect,
-                           const Rect<1>& filter_rect) const
+  __host__ void operator()(AccessorWO<VAL, DIM> out,
+                           AccessorRO<VAL, DIM> filter,
+                           AccessorRO<VAL, DIM> in,
+                           const Rect<DIM>& root_rect,
+                           const Rect<DIM>& subrect,
+                           const Rect<DIM>& filter_rect) const
   {
-    cufft_convolution<VAL, 1>(out, filter, in, root_rect, subrect, filter_rect);
-  }
-};
-
-template <>
-struct ConvolveImplBody<VariantKind::GPU, DOUBLE_LT, 2> {
-  using VAL = legate_type_of<DOUBLE_LT>;
-
-  __host__ void operator()(AccessorWO<VAL, 2> out,
-                           AccessorRO<VAL, 2> filter,
-                           AccessorRO<VAL, 2> in,
-                           const Rect<2>& root_rect,
-                           const Rect<2>& subrect,
-                           const Rect<2>& filter_rect) const
-  {
-    cufft_convolution<VAL, 2>(out, filter, in, root_rect, subrect, filter_rect);
-  }
-};
-
-template <>
-struct ConvolveImplBody<VariantKind::GPU, DOUBLE_LT, 3> {
-  using VAL = legate_type_of<DOUBLE_LT>;
-
-  __host__ void operator()(AccessorWO<VAL, 3> out,
-                           AccessorRO<VAL, 3> filter,
-                           AccessorRO<VAL, 3> in,
-                           const Rect<3>& root_rect,
-                           const Rect<3>& subrect,
-                           const Rect<3>& filter_rect) const
-  {
-    cufft_convolution<VAL, 3>(out, filter, in, root_rect, subrect, filter_rect);
+    dispatch(out, filter, in, root_rect, subrect, filter_rect);
   }
 };
 
