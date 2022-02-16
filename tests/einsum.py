@@ -156,13 +156,18 @@ def mk_default_inputs(lib, shape):
 
 
 @lru_cache(maxsize=None)
-def mk_inputs_that_permute_to(lib, shape):
-    return [x for x in permutes_to(lib, shape)]
+def mk_inputs_that_permute_to(lib, tgt_shape):
+    return [
+        mk_0to1_array(lib, src_shape).transpose(axes)
+        for (axes, src_shape) in permutes_to(tgt_shape)
+    ]
 
 
 @lru_cache(maxsize=None)
-def mk_inputs_that_broadcast_to(lib, shape):
-    return [x for x in broadcasts_to(lib, shape)]
+def mk_inputs_that_broadcast_to(lib, tgt_shape):
+    return [
+        mk_0to1_array(lib, src_shape) for src_shape in broadcasts_to(tgt_shape)
+    ]
 
 
 @lru_cache(maxsize=None)
