@@ -5262,6 +5262,9 @@ def convolve(a, v, mode="full"):
     if mode != "same":
         raise NotImplementedError("Need to implement other convolution modes")
 
+    if a.ndim == 1 and a.size < v.size:
+        v, a = a, v
+
     return a.convolve(v, mode)
 
 

@@ -13,6 +13,7 @@
 # limitations under the License.
 #
 
+import numpy as np
 import scipy.signal as sig
 
 import cunumeric as num
@@ -26,7 +27,10 @@ def test_convolve(a, v):
     vnp = v.__array__()
 
     out = num.convolve(a, v, mode="same")
-    out_np = sig.convolve(anp, vnp, mode="same")
+    if a.ndim > 1:
+        out_np = sig.convolve(anp, vnp, mode="same")
+    else:
+        out_np = np.convolve(anp, vnp, mode="same")
 
     assert num.allclose(out, out_np)
 
