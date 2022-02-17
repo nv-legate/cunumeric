@@ -175,6 +175,15 @@ class Runtime(object):
                 dtype.register_reduction_op(redop, redop_id)
         return arg_dtype
 
+    def add_point_type(self, n):
+        type_system = self.legate_context.type_system
+        point_type = "point" + str(n)
+        if point_type not in type_system:
+            code = type_system[ty.int64].code
+            size_in_bytes = 8 * n
+            type_system.add_type(point_type, size_in_bytes, code)
+        return point_type
+
     def _report_coverage(self):
         total = len(self.api_calls)
         implemented = sum(int(impl) for (_, _, impl) in self.api_calls)

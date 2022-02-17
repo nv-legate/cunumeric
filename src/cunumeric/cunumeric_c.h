@@ -59,6 +59,7 @@ enum CuNumericOpCode {
   CUNUMERIC_UNLOAD_CUDALIBS,
   CUNUMERIC_WHERE,
   CUNUMERIC_WRITE,
+  CUNUMERIC_ZIP,
 };
 
 // Match these to UnaryOpCode in config.py

@@ -305,37 +305,129 @@ class DeferredArray(NumPyThunk):
         result = np.frombuffer(buf, dtype=self.dtype, count=1)
         return result.reshape(())
 
+    def _zip_indices(self, arrays):
+        if not isinstance(arrays, tuple):
+            raise TypeError("zip_indices expect tuple of arrays")
+        arrays = tuple(self.runtime.to_deferred_array(a) for a in arrays)
+        # all arrays should have the same shape and type
+        shape = arrays[0].shape
+        data_type = arrays[0].dtype
+        if not np.issubdtype(data_type, np.integer):
+            raise TypeError("a array should be integer type")
+        for a in arrays:
+            if a.shape != shape:
+                raise TypeError(
+                    "shape of all index arrrays should be the same"
+                )
+            if data_type != a.dtype:
+                raise TypeError("type of all index arrrays should be the same")
+        # create output array which will store Point<N> field where
+        # N is number of index arrays
+        # shape of the output array should be the same as the shape of each
+        # index array
+        # NOTE: We need to instantiate a RegionField of non-primitive
+        # dtype, to store N-dimensional index points, to be used as the
+        # indirection field in a copy.
+        # Such dtypes are technically not supported,
+        # but it should be safe to directly create a DeferredArray
+        # of that dtype, so long as we don't try to convert it to a
+        # NumPy array.
+        N = len(arrays)
+        pointN_dtype = self.runtime.add_point_type(N)
+        store = self.context.create_store(
+            pointN_dtype, shape=shape, optimize_scalar=True
+        )
+        output_arr = DeferredArray(
+            self.runtime, base=store, dtype=pointN_dtype
+        )
+        # call ZIP function to combine index arrays into a singe array
+        task = self.context.create_task(CuNumericOpCode.ZIP)
+        task.add_output(output_arr.base)
+        for index_arr in arrays:
+            task.add_input(index_arr.base)
+            task.add_alignment(output_arr.base, index_arr.base)
+        task.execute()
+
+        return output_arr
+
     def _create_indexing_array(self, key):
         # Convert everything into deferred arrays of int64
+        store = self.base
+        shift = 0
         if isinstance(key, tuple):
             tuple_of_arrays = ()
-            for k in key:
-                if not isinstance(k, NumPyThunk):
-                    raise NotImplementedError(
-                        "need support for mixed advanced indexing"
+            # for k in key:
+            for dim, k in enumerate(key):
+                if np.isscalar(k):
+                    if k < 0:
+                        k += store.shape[dim + shift]
+                    store = store.project(dim + shift, k)
+                    shift -= 1
+                elif isinstance(k, slice):
+                    store = store.slice(dim + shift, k)
+                elif isinstance(k, NumPyThunk):
+                    if k.dtype == np.bool:
+                        k = k.nonzero()
+                else:
+                    raise TypeError(
+                        "Unsupported entry type passed to advanced",
+                        "indexing operation",
                     )
-                tuple_of_arrays += (k,)
+                tuple_of_arrays += (self.runtime.to_deferred_array(k),)
         else:
             assert isinstance(key, NumPyThunk)
             # Handle the boolean array case
-            if key.dtype == bool:
+            if key.dtype == np.bool:
+                # irina fixme
                 if key.ndim != self.ndim:
                     raise TypeError(
                         "Boolean advanced indexing dimension mismatch"
                     )
-                # For boolean arrays do the non-zero operation to make
-                # them into a normal indexing array
+                # IRINA fixme: replace `nonzero` case with the task with
+                # output regions
                 tuple_of_arrays = key.nonzero()
             else:
-                tuple_of_arrays = (key,)
-        if len(tuple_of_arrays) != self.ndim:
+                tuple_of_arrays = (self.runtime.to_deferred_array(key),)
+
+        if len(tuple_of_arrays) > self.ndim:
             raise TypeError("Advanced indexing dimension mismatch")
-        if self.ndim > 1:
-            # Check that all the arrays can be broadcast together
-            # Concatenate all the arrays into a single array
-            raise NotImplementedError("need support for concatenating arrays")
+
+        if len(tuple_of_arrays) > 1:
+            # shape = tuple_of_arrays[0].shape
+            # for i in range(1, len(tuple_of_arrays)):
+            #    if shape != tuple_of_arrays[i].shape:
+            #        raise ValueError("index arrays should be the same shape")
+
+            # create output array which will store Point<N> field where
+            # N is number of index arrays
+            # shape of the output array should be the same as the shape of each
+            # index array
+            # NOTE: We need to instantiate a RegionField of non-primitive
+            # dtype, to store N-dimensional index points, to be used as the
+            # indirection field in a copy.
+            # Such dtypes are technically not supported,
+            # but it should be safe to directly create a DeferredArray
+            # of that dtype, so long as we don't try to convert it to a
+            # NumPy array.
+            # out_dtype = np.dtype((np.int64, (len(tuple_of_arrays),)))
+            # output_arr = DeferredArray(
+            #     self.runtime,
+            #     base=tuple_of_arrays[0].base,
+            #     dtype=out_dtype,
+            # )
+
+            # # call ZIP function to combine index arrays into a singe array
+            # task = self.context.create_task(CuNumericOpCode.ZIP)
+            # task.add_output(output_arr.base)
+            # for index_arr in tuple_of_arrays:
+            #     task.add_input(index_arr.base)
+            #     task.add_alignment(index_arr.base, output_arr.base)
+            # task.execute()
+
+            output_arr = tuple_of_arrays[0]._zip_indices(tuple_of_arrays)
+            return store, output_arr
         else:
-            return self.runtime.to_deferred_array(tuple_of_arrays[0])
+            return store, tuple_of_arrays[0]
 
     @staticmethod
     def _unpack_ellipsis(key, ndim):
@@ -397,28 +489,24 @@ class DeferredArray(NumPyThunk):
         # Check to see if this is advanced indexing or not
         if self._is_advanced_indexing(key):
             # Create the indexing array
-            index_array = self._create_indexing_array(key)
+            store, index_array = self._create_indexing_array(key)
+
             # Create a new array to be the result
             result = self.runtime.create_empty_thunk(
                 index_array.base.shape,
                 self.dtype,
                 inputs=[self],
             )
-
-            if self.ndim != index_array.ndim:
-                raise NotImplementedError(
-                    "need support for indirect partitioning"
-                )
-
             copy = self.context.create_copy()
 
-            copy.add_input(self.base)
+            copy.add_input(store)
             copy.add_source_indirect(index_array.base)
             copy.add_output(result.base)
 
-            copy.add_alignment(index_array.base, result.base)
+            # copy.add_alignment(index_array.base, result.base)
 
             copy.execute()
+
         else:
             result = self._get_view(key)
 

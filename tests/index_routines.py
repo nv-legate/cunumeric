@@ -24,6 +24,45 @@ import cunumeric as num
 from legate.core import LEGATE_MAX_DIM
 
 
+def advanced_indexing():
+
+    arr = num.array([1, 2, 3, 4, 5, 6, 7])
+    indx = num.array([1, 3, 5])
+    res = arr[indx]
+    z = np.array(
+        [
+            [[0, 1, 2, 3], [4, 5, 6, 7], [8, 9, 10, 11]],
+            [[12, 13, 14, 15], [16, 17, 18, 19], [20, 21, 22, 23]],
+        ]
+    )
+    # ind0 = np.array([True, False])
+    z_num = num.array(z)
+    # ind0_num = np.array(ind0)
+    # res = z_num[-1, :]
+    # print(res)
+    # print(z[-1, :])
+
+    # indx0_num = num.array([0, 0])
+    # indx1_num = num.array([1, 1])
+    # indx2_num = num.array([2, 2])
+
+    # indx0_num._thunk._zip_indices(
+    #  (indx0_num._thunk, indx1_num._thunk, indx2_num._thunk,))
+
+    indx0_num = num.array([[0, 0], [0, 0], [0, 0]])
+    indx1_num = num.array([[1, 1], [1, 1], [1, 1]])
+    indx2_num = num.array([[2, 2], [2, 2], [2, 2]])
+
+    # indx0_num._thunk._zip_indices((indx0_num._thunk,
+    #  indx1_num._thunk, indx2_num._thunk,))
+
+    res = z_num[indx0_num, indx1_num, indx2_num]
+    print(res)
+
+    # res = z_num[ind0_num, :, indx]
+    return
+
+
 def test():
     # --------------------------------------------------------------
     # choose operator
@@ -191,6 +230,10 @@ def test():
         f = num.diag(e, k=k)
         fn = np.diag(en, k=k)
         assert np.array_equal(f, fn)
+
+    advanced_indexing()
+
+    return
 
 
 if __name__ == "__main__":
