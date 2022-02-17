@@ -37,6 +37,7 @@ def test_double():
         v = num.random.rand(*filter_shape)
 
         test_convolve(a, v)
+        test_convolve(v, a)
 
 
 def test_int():
