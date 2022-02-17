@@ -113,6 +113,7 @@ class CuNumericOpCode(IntEnum):
     UNLOAD_CUDALIBS = _cunumeric.CUNUMERIC_UNLOAD_CUDALIBS
     WHERE = _cunumeric.CUNUMERIC_WHERE
     WRITE = _cunumeric.CUNUMERIC_WRITE
+    ZIP = _cunumeric.CUNUMERIC_ZIP
 
 
 # Match these to BinaryOpCode in binary_op_util.h
