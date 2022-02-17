@@ -86,6 +86,7 @@ class CuNumericOpCode(IntEnum):
     CONTRACT = _cunumeric.CUNUMERIC_CONTRACT
     CONVERT = _cunumeric.CUNUMERIC_CONVERT
     CONVOLVE = _cunumeric.CUNUMERIC_CONVOLVE
+    CUMSUM = _cunumeric.CUNUMERIC_CUMSUM
     DIAG = _cunumeric.CUNUMERIC_DIAG
     DOT = _cunumeric.CUNUMERIC_DOT
     EYE = _cunumeric.CUNUMERIC_EYE

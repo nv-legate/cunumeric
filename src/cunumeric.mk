@@ -16,6 +16,7 @@
 # List all the application source files that need OpenMP separately
 # since we have to add the -fopenmp flag to  CC_FLAGS for them
 GEN_CPU_SRC += cunumeric/ternary/where.cc               \
+							 cunumeric/scan/cumsum.cc                 \
 							 cunumeric/binary/binary_op.cc            \
 							 cunumeric/binary/binary_red.cc           \
 							 cunumeric/unary/scalar_unary_red.cc      \
@@ -51,6 +52,7 @@ GEN_CPU_SRC += cunumeric/ternary/where.cc               \
 
 ifeq ($(strip $(USE_OPENMP)),1)
 GEN_CPU_SRC += cunumeric/ternary/where_omp.cc          \
+							 cunumeric/scan/cumsum_omp.cc            \
 							 cunumeric/binary/binary_op_omp.cc       \
 							 cunumeric/binary/binary_red_omp.cc      \
 							 cunumeric/unary/unary_op_omp.cc         \
@@ -86,6 +88,7 @@ GEN_CPU_SRC += cunumeric/cunumeric.cc # This must always be the last file!
                                       # only after all task variants are recorded
 
 GEN_GPU_SRC += cunumeric/ternary/where.cu               \
+							 cunumeric/scan/cumsum.cu                 \
 							 cunumeric/binary/binary_op.cu            \
 							 cunumeric/binary/binary_red.cu           \
 							 cunumeric/unary/scalar_unary_red.cu      \

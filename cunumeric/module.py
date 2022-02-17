@@ -5567,6 +5567,47 @@ def sign(a, out=None, where=True, dtype=None, **kwargs):
     )
 
 
+# Scan/prefix operations
+
+
+@add_boilerplate("a")
+def cumsum(a, axis=None, dtype=None, out=None):
+    """
+    Return the cumulative sum of the elements along a given axis.
+
+    Parameters
+    ----------
+    a : array_like
+        Input array.
+    dtype : dtype, optional
+        Type of the returned array and of the accumulator in which the elements
+        are summed. If dtype is not specified, it defaults to the dtype of a,
+        unless a has an integer dtype with a precision less than that of the
+        default platform integer. In that case, the default platform integer is
+        used.
+    out : ndarray, optional
+        Alternative output array in which to place the result. It must have the
+        same shape and buffer length as the expected output but the type will
+        be cast if necessary. See Output type determination for more details.
+
+    Returns
+    -------
+    cumsum_along_axis : ndarray.
+        A new array holding the result is returned unless out is specified, in
+        which case a reference to out is returned. The result has the same size
+        as a, and the same shape as a if axis is not None or a is a 1-d array.
+
+    See Also
+    --------
+    numpy.cumsum
+
+    Availability
+    --------
+    GPU, CPU
+    """
+    return a.cumsum(axis=axis, dtype=dtype, out=out)
+
+
 ##################################
 # Sorting, searching, and counting
 ##################################

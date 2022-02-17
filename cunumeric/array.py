@@ -1033,6 +1033,22 @@ class ndarray(object):
         # We don't care about dimension order in cuNumeric
         return self.__copy__()
 
+    # RRRR incomplete, must handle axis and add the actual calls.
+    def cumsum(self, axis=None, dtype=None, out=None):
+        if dtype is None:
+            dtype = self.dtype
+        if out is not None:
+            if out.dtype == dtype:
+                out = out.convert_to_cunumeric_ndarray(out)
+            else :
+                # Perform cumsum into temporary out
+                temp = ndarray(shape=self.shape, dtype=dtype)
+        else :
+            out = ndarray(shape=self.shape, dtype=dtype)
+        return out
+            
+
+
     # diagonal helper. Will return diagonal for arbitrary number of axes;
     # currently offset option is implemented only for the case of number of
     # axes=2. This restriction can be lifted in the future if there is a
