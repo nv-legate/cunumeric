@@ -1135,28 +1135,6 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, 4)
   inout[offset] *= in[offset];
 }
 
-template <typename VAL, int DIM>
-__host__ static inline size_t create_forward_plan(cufftHandle plan, const Point<DIM>& point)
-{
-  int32_t size[DIM];
-  for (int32_t dim = 0; dim < DIM; ++dim) size[dim] = point[dim];
-  size_t workarea = 0;
-  CHECK_CUFFT(cufftMakePlanMany(
-    plan, DIM, size, nullptr, 1, 1, nullptr, 1, 1, CUFFT_R2C, 1 /*batch*/, &workarea));
-  return workarea;
-}
-
-template <typename VAL, int DIM>
-__host__ static inline size_t create_backward_plan(cufftHandle plan, const Point<DIM>& point)
-{
-  int32_t size[DIM];
-  for (int32_t dim = 0; dim < DIM; ++dim) size[dim] = point[dim];
-  size_t workarea = 0;
-  CHECK_CUFFT(cufftMakePlanMany(
-    plan, DIM, size, nullptr, 1, 1, nullptr, 1, 1, CUFFT_C2R, 1 /*batch*/, &workarea));
-  return workarea;
-}
-
 __host__ inline void cufft_execute_forward(cufftHandle plan, float* idata, float* odata)
 {
   CHECK_CUFFT(cufftExecR2C(plan, (cufftReal*)idata, (cufftComplex*)odata));
@@ -1176,6 +1154,32 @@ __host__ inline void cufft_execute_backward(cufftHandle plan, double* idata, dou
 {
   CHECK_CUFFT(cufftExecZ2D(plan, (cufftDoubleComplex*)idata, (cufftDoubleReal*)odata));
 }
+
+template <typename VAL>
+struct ForwardPlanType;
+
+template <>
+struct ForwardPlanType<float> {
+  static constexpr cufftType value = CUFFT_R2C;
+};
+
+template <>
+struct ForwardPlanType<double> {
+  static constexpr cufftType value = CUFFT_D2Z;
+};
+
+template <typename VAL>
+struct BackwardPlanType;
+
+template <>
+struct BackwardPlanType<float> {
+  static constexpr cufftType value = CUFFT_C2R;
+};
+
+template <>
+struct BackwardPlanType<double> {
+  static constexpr cufftType value = CUFFT_Z2D;
+};
 
 template <typename VAL, int DIM>
 __host__ static inline void cufft_convolution(AccessorWO<VAL, DIM> out,
@@ -1251,28 +1255,11 @@ __host__ static inline void cufft_convolution(AccessorWO<VAL, DIM> out,
                                        smem_size,
                                        max_smem_size);
   } else {
-    // cufft plans are awful things that call cudaMalloc/cudaFree which
-    // completely destroys asynchronous execution so we need to cache
-    // these plans to avoid calling it as often as possible
-    constexpr size_t MAX_PLANS = 4;
-    struct cufftPlan {
-     public:
-      cufftPlan(void) : fftshape(Point<DIM>::ZEROES()) {}
-
-     public:
-      cufftHandle forward;
-      cufftHandle backward;
-      Point<DIM> fftshape;
-      size_t workarea_size;
-      unsigned lru_index;
-    };
-    static cufftPlan cufft_plan_cache[LEGION_MAX_NUM_PROCS][MAX_PLANS];
     // Instead of doing the large tile case, we can instead do this
     // by transforming both the input and the filter to the frequency
     // domain using an FFT, perform the convolution with a point-wise
     // multiplication, and then transform the result back to the spatial domain
-    cudaStream_t stream;
-    CHECK_CUDA(cudaStreamCreateWithFlags(&stream, cudaStreamNonBlocking));
+    auto stream = get_cached_stream();
     // First compute how big our temporary allocation needs to be
     // We'll need two of them to store the zero-padded data for the inputs
     const Point<DIM> zero = Point<DIM>::ZEROES();
@@ -1333,70 +1320,32 @@ __host__ static inline void cufft_convolution(AccessorWO<VAL, DIM> out,
     blocks = (pitch + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
     copy_into_buffer<VAL, DIM><<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
       filter, filter_buffer, filter_rect.lo, copy_pitches, pitch);
-    // Check to see if the plan is already in the cache
-    int plan_index = -1;
-    // Some hackiness until Legion can support stateless runtime caches
-    const unsigned proc_idx = Processor::get_executing_processor().id & (LEGION_MAX_NUM_PROCS - 1);
-    for (unsigned idx = 0; idx < MAX_PLANS; idx++) {
-      if (fftsize != cufft_plan_cache[proc_idx][idx].fftshape) continue;
-      plan_index = idx;
-      break;
-    }
-    if (plan_index < 0) {
-      // If we didn't find it, then we'll need to allocate an index for it,
-      // see if there are any unused ones, otherwise fine the one that was
-      // least recently-used
-      for (unsigned idx = 0; idx < MAX_PLANS; idx++) {
-        if (zero == cufft_plan_cache[proc_idx][idx].fftshape) {
-          // Previously uninitialized plan so we can use it
-          plan_index = idx;
-          // Set the lru_index
-          cufft_plan_cache[proc_idx][idx].lru_index = idx;
-          break;
-        } else if (cufft_plan_cache[proc_idx][idx].lru_index == (MAX_PLANS - 1)) {
-          // Destroy the resources associated with the previous plan
-          cufftPlan& plan = cufft_plan_cache[proc_idx][idx];
-          CHECK_CUFFT(cufftDestroy(plan.forward));
-          CHECK_CUFFT(cufftDestroy(plan.backward));
-          plan_index = idx;
-          break;
-        }
-      }
-      assert(plan_index >= 0);
-      // Create the plans for going in both directions
-      cufftPlan& plan = cufft_plan_cache[proc_idx][plan_index];
-      plan.fftshape   = fftsize;
-      CHECK_CUFFT(cufftCreate(&plan.forward));
-      CHECK_CUFFT(cufftSetAutoAllocation(plan.forward, 0 /*we'll do the allocation*/));
-      CHECK_CUFFT(cufftSetStream(plan.forward, stream));
-      plan.workarea_size = create_forward_plan<VAL, DIM>(plan.forward, fftsize);
-      CHECK_CUFFT(cufftCreate(&plan.backward));
-      CHECK_CUFFT(cufftSetAutoAllocation(plan.backward, 0 /*we'll do the allocation*/));
-      size_t backward_size = create_backward_plan<VAL, DIM>(plan.backward, fftsize);
-      if (plan.workarea_size < backward_size) plan.workarea_size = backward_size;
-    }
-    assert(plan_index >= 0);
-    cufftPlan& plan = cufft_plan_cache[proc_idx][plan_index];
+
+    auto* forward_plan  = get_cufft_plan(ForwardPlanType<VAL>::value, fftsize);
+    auto* backward_plan = get_cufft_plan(BackwardPlanType<VAL>::value, fftsize);
+
     // Set the stream and working area for the plans
-    CHECK_CUFFT(cufftSetStream(plan.forward, stream));
-    CHECK_CUFFT(cufftSetStream(plan.backward, stream));
+    CHECK_CUFFT(cufftSetStream(forward_plan->handle, stream));
+    CHECK_CUFFT(cufftSetStream(backward_plan->handle, stream));
+
+    auto workarea_size = std::max(forward_plan->workarea_size, backward_plan->workarea_size);
+
     // Create the plan and allocate a temporary buffer for it if it needs one
     DeferredBuffer<uint8_t, 1> workarea_buffer;
-    if (plan.workarea_size > 0) {
+    if (workarea_size > 0) {
       const Point<1> zero1d(0);
-      workarea_buffer =
-        DeferredBuffer<uint8_t, 1>(Rect<1>(zero1d, Point<1>(plan.workarea_size - 1)),
-                                   Memory::GPU_FB_MEM,
-                                   nullptr /*initial*/,
-                                   128 /*alignment*/);
-      void* workarea = workarea_buffer.ptr(zero1d);
-      CHECK_CUFFT(cufftSetWorkArea(plan.forward, workarea));
-      CHECK_CUFFT(cufftSetWorkArea(plan.backward, workarea));
+      workarea_buffer = DeferredBuffer<uint8_t, 1>(Rect<1>(zero1d, Point<1>(workarea_size - 1)),
+                                                   Memory::GPU_FB_MEM,
+                                                   nullptr /*initial*/,
+                                                   128 /*alignment*/);
+      void* workarea  = workarea_buffer.ptr(zero1d);
+      CHECK_CUFFT(cufftSetWorkArea(forward_plan->handle, workarea));
+      CHECK_CUFFT(cufftSetWorkArea(backward_plan->handle, workarea));
     }
     // FFT the input data
-    cufft_execute_forward(plan.forward, signal_ptr, signal_ptr);
+    cufft_execute_forward(forward_plan->handle, signal_ptr, signal_ptr);
     // FFT the filter data
-    cufft_execute_forward(plan.forward, filter_ptr, filter_ptr);
+    cufft_execute_forward(forward_plan->handle, filter_ptr, filter_ptr);
     // Perform the pointwise multiplcation
     {
       size_t volume = (buffervolume / 2);
@@ -1406,7 +1355,7 @@ __host__ static inline void cufft_convolution(AccessorWO<VAL, DIM> out,
     }
     // Inverse FFT for the ouptut
     // Allow this out-of-place for better performance
-    cufft_execute_backward(plan.backward, signal_ptr, filter_ptr);
+    cufft_execute_backward(backward_plan->handle, signal_ptr, filter_ptr);
     // Copy the result data out of the temporary buffer and scale
     // because CUFFT inverse does not perform the scale for us
     pitch = 1;
@@ -1444,17 +1393,6 @@ __host__ static inline void cufft_convolution(AccessorWO<VAL, DIM> out,
     printf("\n");
     free(buffer);
 #endif
-    // Bump the lru_index of any plans that were less than our lru_index
-    // and then set our lru_index back to zero
-    if (plan.lru_index > 0) {
-      for (unsigned idx = 0; idx < MAX_PLANS; idx++) {
-        cufftPlan& other = cufft_plan_cache[proc_idx][idx];
-        if (other.lru_index < plan.lru_index) other.lru_index++;
-      }
-      plan.lru_index = 0;
-    }
-    // Clean up our resources, DeferredBuffers are cleaned up by Legion
-    CHECK_CUDA(cudaStreamDestroy(stream));
   }
 }
 
