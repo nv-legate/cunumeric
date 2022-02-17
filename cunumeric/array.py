@@ -1151,7 +1151,7 @@ class ndarray(object):
     def dot(self, rhs, out=None, stacklevel=1):
         from .module import _contract  # work around circular import
 
-        if self.size == 1 or rhs.size == 1:
+        if self.ndim == 0 or rhs.ndim == 0:
             return self.perform_binary_op(
                 BinaryOpCode.MULTIPLY,
                 self,
@@ -1159,15 +1159,7 @@ class ndarray(object):
                 out=out,
                 stacklevel=(stacklevel + 1),
             )
-        if self.ndim == 1 and rhs.ndim == 1:
-            self_modes = ["a"]
-            rhs_modes = ["a"]
-            out_modes = []
-        elif self.ndim == 2 and rhs.ndim == 2:
-            self_modes = ["a", "b"]
-            rhs_modes = ["b", "c"]
-            out_modes = ["a", "c"]
-        elif rhs.ndim == 1:
+        if rhs.ndim == 1:
             self_modes = list(ascii_lowercase[: self.ndim])
             rhs_modes = [self_modes[-1]]
             out_modes = self_modes[:-1]

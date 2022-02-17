@@ -157,7 +157,7 @@ class EagerArray(NumPyThunk):
 
                 out.array = convolve(self.array, v.array, mode)
 
-    def copy(self, rhs, deep, stacklevel):
+    def copy(self, rhs, deep=False, stacklevel=1):
         if self.shadow:
             rhs = self.runtime.to_eager_array(rhs, stacklevel=(stacklevel + 1))
         elif self.deferred is None:
