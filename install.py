@@ -340,7 +340,6 @@ def install_cunumeric(
     openblas_dir,
     tblis_dir,
     cutensor_dir,
-    nccl_dir,
     thrust_dir,
     debug,
     debug_release,
@@ -433,16 +432,13 @@ def install_cunumeric(
         cutensor_dir = os.path.realpath(cutensor_dir)
         libs_config["cutensor"] = cutensor_dir
 
-        # Find NCCL installation
-        if nccl_dir is None:
-            nccl_dir = libs_config.get("nccl")
-        if nccl_dir is None:
+        if "nccl" not in libs_config:
             raise Exception(
-                "Could not find NCCL installation, use '--with-nccl' "
-                "to specify a location."
+                "Failed to find NCCL path in the Legate installation. "
+                "Make sure you installed Legate core correctly. "
+                "If the problem persists, please open a GitHub issue for it. "
             )
-        nccl_dir = os.path.realpath(nccl_dir)
-        libs_config["nccl"] = nccl_dir
+        nccl_dir = libs_config["nccl"]
 
     # Record all newly installed libraries in the global configuration
     with open(libs_path, "w") as f:
@@ -547,14 +543,6 @@ def driver():
         required=False,
         default=os.environ.get("CUTENSOR_PATH"),
         help="Path to cuTensor installation directory.",
-    )
-    parser.add_argument(
-        "--with-nccl",
-        dest="nccl_dir",
-        metavar="DIR",
-        required=False,
-        default=os.environ.get("NCCL_PATH"),
-        help="Path to NCCL installation directory.",
     )
     parser.add_argument(
         "--with-thrust",
