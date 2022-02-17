@@ -14,7 +14,7 @@
 #
 
 from functools import lru_cache
-from itertools import chain, permutations, product
+from itertools import permutations, product
 from typing import List, Optional, Set, Tuple
 
 import numpy as np
@@ -111,9 +111,8 @@ def gen_expr(
         opers.pop()
 
 
-# A selection of expressions beyond the limits of the exhaustive generation
-# above
-OTHER_EXPRS = [
+# Selection of expressions beyond the limits of the exhaustive generation above
+LARGE_EXPRS = [
     "ca,da,bc->db",
     "ad,ac,bd->bd",
     "ca,dc,da->ad",
@@ -150,13 +149,28 @@ OTHER_EXPRS = [
 ]
 
 
+# Selection of small expressions
+SMALL_EXPRS = [
+    "->",
+    "a->",
+    "a->a",
+    "a,->",
+    "a,->a",
+    "a,a->",
+    "a,a->a",
+    "a,b->ab",
+    "ab,ca->a",
+    "ab,ca->b",
+]
+
+
 @lru_cache(maxsize=None)
-def mk_default_inputs(lib, shape):
+def mk_input_default(lib, shape):
     return [mk_0to1_array(lib, shape)]
 
 
 @lru_cache(maxsize=None)
-def mk_inputs_that_permute_to(lib, tgt_shape):
+def mk_input_that_permutes_to(lib, tgt_shape):
     return [
         mk_0to1_array(lib, src_shape).transpose(axes)
         for (axes, src_shape) in permutes_to(tgt_shape)
@@ -164,23 +178,23 @@ def mk_inputs_that_permute_to(lib, tgt_shape):
 
 
 @lru_cache(maxsize=None)
-def mk_inputs_that_broadcast_to(lib, tgt_shape):
+def mk_input_that_broadcasts_to(lib, tgt_shape):
     return [
         mk_0to1_array(lib, src_shape) for src_shape in broadcasts_to(tgt_shape)
     ]
 
 
 @lru_cache(maxsize=None)
-def mk_inputs_of_various_types(lib, shape):
+def mk_typed_input(lib, shape):
     return [
-        lib.ones(shape, np.float16),
-        lib.ones(shape, np.float32),
-        lib.ones(shape, np.complex64),
+        mk_0to1_array(lib, shape, np.float16),
+        mk_0to1_array(lib, shape, np.float32),
+        mk_0to1_array(lib, shape, np.complex64),
     ]
 
 
 # Can't cache these, because they get overwritten by the operation
-def mk_outputs_of_various_types(lib, shape):
+def mk_typed_output(lib, shape):
     return [
         lib.zeros(shape, np.float16),
         lib.zeros(shape, np.float32),
@@ -188,7 +202,7 @@ def mk_outputs_of_various_types(lib, shape):
     ]
 
 
-def test_np_vs_cn(expr, mk_inputs, mk_outputs=None):
+def test_np_vs_cn(expr, mk_input, mk_output=None):
     lhs, rhs = expr.split("->")
     opers = lhs.split(",")
     in_shapes = [
@@ -196,40 +210,47 @@ def test_np_vs_cn(expr, mk_inputs, mk_outputs=None):
     ]
     out_shape = tuple(BASE_DIM_LEN + ord(m) - ord("a") for m in rhs)
     for (np_inputs, cn_inputs) in zip(
-        product(*(mk_inputs(np, sh) for sh in in_shapes)),
-        product(*(mk_inputs(cn, sh) for sh in in_shapes)),
+        product(*(mk_input(np, sh) for sh in in_shapes)),
+        product(*(mk_input(cn, sh) for sh in in_shapes)),
     ):
         np_res = np.einsum(expr, *np_inputs)
         cn_res = cn.einsum(expr, *cn_inputs)
-        assert np.allclose(np_res, cn_res)
-        if mk_outputs is not None:
-            for out in mk_outputs(cn, out_shape):
-                cn.einsum(expr, *cn_inputs, out=out)
-                assert np.allclose(np_res, out)
+        rtol = (
+            2e-03 if any(x.dtype == np.float16 for x in np_inputs) else 1e-05
+        )
+        assert np.allclose(np_res, cn_res, rtol=rtol)
+        if mk_output is not None:
+            for (np_out, cn_out) in zip(
+                mk_output(np, out_shape),
+                mk_output(cn, out_shape),
+            ):
+                np.einsum(expr, *np_inputs, out=np_out, casting="unsafe")
+                cn.einsum(expr, *cn_inputs, out=cn_out)
+                rtol = (
+                    2e-03
+                    if any(x.dtype == np.float16 for x in np_inputs)
+                    or np_out.dtype == np.float16
+                    else 1e-05
+                )
+                assert np.allclose(np_out, cn_out, rtol=rtol)
 
 
 def test():
-    for expr in chain(gen_expr(), OTHER_EXPRS):
+    for expr in gen_expr():
         lhs, rhs = expr.split("->")
         opers = lhs.split(",")
         # TODO: Remove this after we handle duplicate modes
         if any(len(set(op)) != len(op) for op in opers):
             continue
-        print(f"testing {expr}")
-        # Test default mode
-        test_np_vs_cn(expr, mk_default_inputs)
-        # Don't test additional configurations in 3+-operand expressions,
-        # since those get decomposed into binary expressions anyway.
-        if len(opers) > 2:
-            continue
-        # Test permutations on input arrays
-        test_np_vs_cn(expr, mk_inputs_that_permute_to)
-        # Test broadcasting on input arrays
-        test_np_vs_cn(expr, mk_inputs_that_broadcast_to)
-        # Test various types on input and output arrays
-        test_np_vs_cn(
-            expr, mk_inputs_of_various_types, mk_outputs_of_various_types
-        )
+        print(f"testing {expr} (permutations and broadcasting)")
+        test_np_vs_cn(expr, mk_input_that_permutes_to)
+        test_np_vs_cn(expr, mk_input_that_broadcasts_to)
+    for expr in LARGE_EXPRS:
+        print(f"testing {expr} (default mode)")
+        test_np_vs_cn(expr, mk_input_default)
+    for expr in SMALL_EXPRS:
+        print(f"testing {expr} (casting)")
+        test_np_vs_cn(expr, mk_typed_input, mk_typed_output)
 
 
 if __name__ == "__main__":
