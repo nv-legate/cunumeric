@@ -5215,32 +5215,29 @@ min = amin
 def convolve(a, v, mode="full"):
     """
 
-    Returns the discrete, linear convolution of two one-dimensional sequences.
+    Returns the discrete, linear convolution of two ndarrays.
 
-    If `v` is longer than `a`, the arrays are swapped before computation.
+    If `a` and `v` are both 1-D and `v` is longer than `a`, the two are
+    swapped before computation. For N-D cases, the arguments are never swapped.
 
     Parameters
     ----------
     a : (N,) array_like
-        First one-dimensional input array.
+        First input ndarray.
     v : (M,) array_like
-        Second one-dimensional input array.
+        Second input ndarray.
     mode : {'full', 'valid', 'same'}, optional
-        'full':
-          By default, mode is 'full'.  This returns the convolution
-          at each point of overlap, with an output shape of (N+M-1,). At
-          the end-points of the convolution, the signals do not overlap
-          completely, and boundary effects may be seen.
-
         'same':
-          Mode 'same' returns output of length ``max(M, N)``.  Boundary
-          effects are still visible.
+          The output is the same size as `a`, centered with respect to
+          the 'full' output. (default)
+
+        'full':
+          The output is the full discrete linear convolution of the inputs.
 
         'valid':
-          Mode 'valid' returns output of length
-          ``max(M, N) - min(M, N) + 1``.  The convolution product is only given
-          for points where the signals overlap completely.  Values outside
-          the signal boundary have no effect.
+          The output consists only of those elements that do not
+          rely on the zero-padding. In 'valid' mode, either `a` or `v`
+          must be at least as large as the other in every dimension.
 
     Returns
     -------
@@ -5255,6 +5252,9 @@ def convolve(a, v, mode="full"):
     -----
     The current implementation only supports the 'same' mode.
 
+    Unlike `numpy.convolve`, `cunumeric.convolve` supports N-dimensional
+    inputs, but it follows NumPy's behavior for 1-D inputs.
+
     Availability
     --------
     GPU, CPU
@@ -5262,7 +5262,7 @@ def convolve(a, v, mode="full"):
     if mode != "same":
         raise NotImplementedError("Need to implement other convolution modes")
 
-    if a.size < v.size:
+    if a.ndim == 1 and a.size < v.size:
         v, a = a, v
 
     return a.convolve(v, mode)
