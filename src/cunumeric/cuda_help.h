@@ -29,34 +29,34 @@
 #define COOPERATIVE_THREADS 256
 #define COOPERATIVE_CTAS_PER_SM 4
 
-#define CHECK_CUDA(expr)                    \
-  do {                                      \
-    cudaError_t result = (expr);            \
-    check_cuda(result, __FILE__, __LINE__); \
-  } while (false)
-
-#define CHECK_CUBLAS(expr)                    \
-  do {                                        \
-    cublasStatus_t result = (expr);           \
-    check_cublas(result, __FILE__, __LINE__); \
-  } while (false)
-
-#define CHECK_CUFFT(expr)                    \
-  do {                                       \
-    cufftResult result = (expr);             \
-    check_cufft(result, __FILE__, __LINE__); \
-  } while (false)
-
-#define CHECK_CUSOLVER(expr)                    \
+#define CHECK_CUDA(expr)                        \
   do {                                          \
-    cusolverStatus_t result = (expr);           \
-    check_cusolver(result, __FILE__, __LINE__); \
+    cudaError_t __result__ = (expr);            \
+    check_cuda(__result__, __FILE__, __LINE__); \
   } while (false)
 
-#define CHECK_CUTENSOR(expr)                    \
-  do {                                          \
-    cutensorStatus_t result = (expr);           \
-    check_cutensor(result, __FILE__, __LINE__); \
+#define CHECK_CUBLAS(expr)                        \
+  do {                                            \
+    cublasStatus_t __result__ = (expr);           \
+    check_cublas(__result__, __FILE__, __LINE__); \
+  } while (false)
+
+#define CHECK_CUFFT(expr)                        \
+  do {                                           \
+    cufftResult __result__ = (expr);             \
+    check_cufft(__result__, __FILE__, __LINE__); \
+  } while (false)
+
+#define CHECK_CUSOLVER(expr)                        \
+  do {                                              \
+    cusolverStatus_t __result__ = (expr);           \
+    check_cusolver(__result__, __FILE__, __LINE__); \
+  } while (false)
+
+#define CHECK_CUTENSOR(expr)                        \
+  do {                                              \
+    cutensorStatus_t __result__ = (expr);           \
+    check_cutensor(__result__, __FILE__, __LINE__); \
   } while (false)
 
 #ifndef MAX
@@ -68,6 +68,11 @@
 
 namespace cunumeric {
 
+struct cufftPlan {
+  cufftHandle handle;
+  size_t workarea_size;
+};
+
 // Defined in cudalibs.cu
 
 // Return a cached stream for the current GPU
@@ -75,6 +80,7 @@ cudaStream_t get_cached_stream();
 cublasHandle_t get_cublas();
 cusolverDnHandle_t get_cusolver();
 cutensorHandle_t* get_cutensor();
+cufftPlan* get_cufft_plan(cufftType type, const Legion::DomainPoint& size);
 
 __host__ inline void check_cuda(cudaError_t error, const char* file, int line)
 {
