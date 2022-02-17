@@ -21,8 +21,10 @@
 namespace cunumeric {
 
 struct SortArgs {
+  const Array& input;
   Array& output;
-  uint32_t sort_axis;
+  bool descending;
+  bool argsort;
   Legion::DomainPoint global_shape;
   bool is_index_space;
   Legion::DomainPoint index_point;

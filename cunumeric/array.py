@@ -1481,29 +1481,8 @@ class ndarray(object):
         )
 
     def sort(self, axis=-1, kind="stable", order=None):
-        if kind != "stable":
-            runtime.warn(
-                "cuNumeric uses a different (stable) algorithm than "
-                + str(kind)
-                + " for sorting",
-                category=RuntimeWarning,
-                stacklevel=2,
-            )
-        if order is not None:
-            raise NotImplementedError(
-                "cuNumeric does not support sorting with 'order' as "
-                "ndarray only supports numeric values"
-            )
-        if axis is not None and (axis >= self.ndim or axis < -self.ndim):
-            raise ValueError("invalid axis")
-
-        if self._thunk.scalar:
-            # nothing to do
-            return
-        else:
-            # this is the default -- sorting of N-D array
-            self._thunk.sort(axis=axis)
-            return
+        self._thunk.sort(rhs=self._thunk, axis=axis, kind=kind, order=order)
+        return
 
     def squeeze(self, axis=None):
         if axis is not None:

@@ -70,11 +70,8 @@ def test_2D():
     return
 
 
-def test_3D():
+def test_3D(x_dim, y_dim, z_dim):
     np.random.seed(42)
-    x_dim = 5
-    y_dim = 3
-    z_dim = 7
     A_np = np.array(
         np.random.randint(10, size=x_dim * y_dim * z_dim), dtype=np.int32
     ).reshape(x_dim, y_dim, z_dim)
@@ -91,7 +88,33 @@ def test_3D():
     return
 
 
+def test_3D_complex(x_dim, y_dim, z_dim):
+    np.random.seed(42)
+    A_np = np.array(
+        np.random.random(size=x_dim * y_dim * z_dim), dtype=np.complex64
+    ).reshape(x_dim, y_dim, z_dim)
+
+    A_num = num.array(A_np)
+    print("Sorting 3d tensor:\n")
+    print(A_np)
+
+    test_sort_axis(A_np, A_num, 2)
+    test_sort_axis(A_np, A_num, 1)
+    test_sort_axis(A_np, A_num, 0)
+    test_sort_axis(A_np, A_num, axis=None)
+
+    return
+
+
 def test_custom():
+    # 4D still works, >=5D always falls back to numpy
+    a = np.arange(4 * 2 * 2 * 4).reshape(4, 2, 2, 4)
+    a_num = num.array(a)
+
+    test_sort_axis(a, a_num, 1)
+    test_sort_axis(a, a_num, 2)
+    test_sort_axis(a, a_num, a.ndim - 1)
+
     a = np.arange(4 * 4 * 5 * 2 * 3 * 2 * 2 * 2 * 4).reshape(
         4, 4, 5, 2, 3, 2, 2, 2, 4
     )
@@ -106,15 +129,48 @@ def test_custom():
     return
 
 
+def test_other_api():
+    a = np.arange(4 * 2 * 3).reshape(4, 2, 3)
+    a_num = num.array(a)
+
+    # msort
+    assert num.allclose(np.msort(a), num.msort(a_num))
+
+    # sort_complex
+    assert num.allclose(np.sort_complex(a), num.sort_complex(a_num))
+
+    # reverse order sort
+    # TODO
+
+    # in-place sort
+    copy_a = a.copy()
+    copy_a_num = a_num.copy()
+    copy_a.sort()
+    copy_a_num.sort()
+    assert num.allclose(copy_a, copy_a_num)
+
+    # reverse order sort (in place)
+    # TODO
+
+    # argsort
+    # TODO
+
+    return
+
+
 def test():
-    print("\n\n -----------  Custom test ---------------\n")
-    test_custom()
-    print("\n\n -----------  2D test ---------------\n")
-    test_2D()
-    print("\n\n -----------  3D test ---------------\n")
-    test_3D()
     print("\n\n -----------  1D test ---------------\n")
     test_1D()
+    print("\n\n -----------  2D test ---------------\n")
+    test_2D()
+    print("\n\n -----------  3D test (int32) -------\n")
+    test_3D(51, 23, 17)
+    print("\n\n -----------  3D test (complex) -----\n")
+    test_3D_complex(27, 30, 45)
+    print("\n\n -----------  4D/5D test-------------\n")
+    test_custom()
+    print("\n\n -----------  API test --------------\n")
+    test_other_api()
 
 
 if __name__ == "__main__":

@@ -27,118 +27,51 @@ template <LegateTypeCode CODE, int32_t DIM>
 struct SortImplBody<VariantKind::CPU, CODE, DIM> {
   using VAL = legate_type_of<CODE>;
 
-  void operator()(VAL* inptr,
+  void std_sort(const VAL* inptr, VAL* outptr, const size_t volume, const size_t sort_dim_size)
+  {
+    std::copy(inptr, inptr + volume, outptr);
+    for (uint64_t start_idx = 0; start_idx < volume; start_idx += sort_dim_size) {
+      std::stable_sort(outptr + start_idx, outptr + start_idx + sort_dim_size);
+    }
+  }
+
+  void operator()(AccessorRO<VAL, DIM> input,
+                  AccessorWO<VAL, DIM> output,
                   const Pitches<DIM - 1>& pitches,
                   const Rect<DIM>& rect,
+                  const bool dense,
                   const size_t volume,
-                  const uint32_t sort_axis,
-                  Legion::DomainPoint global_shape,
-                  bool is_index_space,
-                  Legion::DomainPoint index_point,
-                  Legion::Domain domain)
+                  const Legion::DomainPoint global_shape,
+                  const bool is_index_space,
+                  const Legion::DomainPoint index_point,
+                  const Legion::Domain domain)
   {
 #ifdef DEBUG_CUNUMERIC
     std::cout << "CPU(" << index_point[0] << "): local size = " << volume
               << ", dist. = " << is_index_space << ", index_point = " << index_point
-              << ", domain/volume = " << domain << "/" << domain.get_volume() << std::endl;
-
-    if (volume <= 30) {
-      std::cout << "inptr = [ ";
-      for (size_t i = 0; i < volume; ++i) { std::cout << (i > 0 ? ", " : " ") << inptr[i]; }
-      std::cout << "]" << std::endl;
-    }
+              << ", domain/volume = " << domain << "/" << domain.get_volume()
+              << ", dense = " << dense << std::endl;
 #endif
-    const size_t sort_dim_size = global_shape[sort_axis];
-    for (uint32_t start_idx = 0; start_idx < volume; start_idx += sort_dim_size) {
-      std::stable_sort(inptr + start_idx, inptr + start_idx + sort_dim_size);
-    }
-
-    // in case of distributed data (1D) we need to switch to sample sort
-    if (is_index_space && DIM == 1) {
-      // not implemented yet
-      assert(false);
-
-      // create (starting) sample of (at most) domain.get_volume() equidistant values
-      // also enrich values with additional indexes rank & local position in order to handle
-      // duplicate values
-      size_t num_local_samples = std::min(domain.get_volume(), volume);
-      size_t local_rank        = index_point[0];
-      auto local_samples       = std::make_unique<SampleEntry<VAL>[]>(num_local_samples);
-      for (int i = 0; i < num_local_samples; ++i) {
-        const size_t index        = (i + 1) * volume / num_local_samples - 1;
-        local_samples[i].value    = inptr[index];
-        local_samples[i].rank     = local_rank;
-        local_samples[i].local_id = index;
+    const size_t sort_dim_size = global_shape[DIM - 1];
+    assert(!is_index_space || DIM > 1);  // not implemented for now
+    if (dense) {
+      std_sort(input.ptr(rect), output.ptr(rect), volume, sort_dim_size);
+    } else {
+      // compute contiguous memory block
+      int contiguous_elements = 1;
+      for (int i = DIM - 1; i >= 0; i--) {
+        auto diff = 1 + rect.hi[i] - rect.lo[i];
+        contiguous_elements *= diff;
+        if (diff < global_shape[i]) { break; }
       }
 
-      // std::cout << "local samples: size = " << num_local_samples << std::endl;
-      // std::cout << "first = (" << local_samples[0].value << "," << local_samples[0].rank << ","<<
-      // local_samples[0].local_id << ")" << std::endl; std::cout << "last = (" <<
-      // local_samples[num_local_samples-1].value << "," << local_samples[num_local_samples-1].rank
-      // << ","<< local_samples[num_local_samples-1].local_id << ")" << std::endl;
-
-      // all2all those samples
-      // TODO broadcast package size
-      // TODO allocate targets
-      // TODO broadcast samples
-      size_t num_global_samples = 15;
-      std::unique_ptr<SampleEntry<VAL>[]> global_samples(new SampleEntry<VAL>[num_global_samples]);
-
-      // sort all samples (utilize 2nd and 3rd sort criteria as well)
-      std::stable_sort(&(global_samples[0]),
-                       &(global_samples[0]) + num_global_samples,
-                       SampleEntryComparator<VAL>());
-
-      // define splitters
-      auto splitters = std::make_unique<SampleEntry<VAL>[]>(domain.get_volume() - 1);
-      for (int i = 0; i < domain.get_volume() - 1; ++i) {
-        const size_t index = (i + 1) * num_global_samples / domain.get_volume() - 1;
-        splitters[i]       = global_samples[index];
+      uint64_t elements_processed = 0;
+      while (elements_processed < volume) {
+        Legion::Point<DIM> start_point = pitches.unflatten(elements_processed, rect.lo);
+        std_sort(
+          input.ptr(start_point), output.ptr(start_point), contiguous_elements, sort_dim_size);
+        elements_processed += contiguous_elements;
       }
-
-      do {
-        // compute local package sizes for every process based on splitters
-        std::unique_ptr<size_t[]> local_partition_size(new size_t[domain.get_volume()]);
-        {
-          size_t range_start    = 0;
-          size_t local_position = 0;
-          for (int p_index = 0; p_index < domain.get_volume(); ++p_index) {
-            // move as long current value is lesser or equaöl to current splitter
-            while (local_position < volume &&
-                   (inptr[local_position] < splitters[p_index].value ||
-                    (inptr[local_position] == splitters[p_index].value &&
-                     (local_rank < splitters[p_index].rank ||
-                      (local_rank == splitters[p_index].rank &&
-                       local_position <= splitters[p_index].local_id))))) {
-              local_position++;
-            }
-
-            local_partition_size[p_index++] = local_position - range_start;
-            range_start                     = local_position;
-          }
-        }
-
-        // communicate local package-sizes all2all
-        // TODO
-
-        // evaluate distribution result??
-        // TODO
-
-        // if (good enough) break;
-        // TODO
-        break;
-        // else iterate/improve splitters
-        // TODO
-
-      } while (true);
-
-      // all2all accepted distribution
-      // package sizes should already be known
-      // all2all communication
-      // TODO
-
-      // final merge sort of received packages
-      // TODO
     }
   }
 };

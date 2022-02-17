@@ -5576,27 +5576,135 @@ def sign(a, out=None, where=True, dtype=None, **kwargs):
 
 @add_boilerplate("a")
 def argsort(a, axis=-1, kind="stable", order=None):
+    """
+
+    Returns the indices that would sort an array.
+
+    Parameters
+    ----------
+    a : array_like
+        Input array.
+    axis : int or None, optional
+        Axis to sort. By default, the index -1 (the last axis) is used. If
+        None, the flattened array is used.
+    kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, optional
+        Currently only 'stable' sort is supported
+    order : str or list of str, optional
+        Currently not supported
+
+    Returns
+    -------
+    index_array : ndarray of ints
+        Array of indices that sort a along the specified axis. It has the
+        same shape as `a.shape` or is flattened in case of `axis` is None.
+
+    See Also
+    --------
+    numpy.argsort
+
+    Availability
+    --------
+    GPU, CPU
+    """
     return a.argsort(axis=axis, kind=kind, order=order)
 
 
-def lexsort(a, axis=-1):
-    raise NotImplementedError("Not yet implemented")
-
-
 def msort(a):
-    return sort(a)
+    """
+
+    Returns a sorted copy of an array sorted along the first axis.
+
+    Parameters
+    ----------
+    a : array_like
+        Input array.
+
+    Returns
+    -------
+    out : ndarray
+        Sorted array with same dtype and shape as `a`.
+
+    See Also
+    --------
+    numpy.msort
+
+    Availability
+    --------
+    GPU, CPU
+    """
+    return sort(a, axis=0)
 
 
 @add_boilerplate("a")
 def sort(a, axis=-1, kind="stable", order=None):
-    out = a.copy()
-    out_array = ndarray.convert_to_cunumeric_ndarray(out)
-    out_array._thunk.sort(axis=axis, kind=kind, order=order)
-    return out_array
+    """
+
+    Returns a sorted copy of an array.
+
+    Parameters
+    ----------
+    a : array_like
+        Input array.
+    axis : int or None, optional
+        Axis to sort. By default, the index -1 (the last axis) is used. If
+        None, the flattened array is used.
+    kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, optional
+        Currently only 'stable' sort is supported
+    order : str or list of str, optional
+        Currently not supported
+
+    Returns
+    -------
+    out : ndarray
+        Sorted array with same dtype and shape as `a`. In case `axis` is
+        None the result is flattened.
+
+    See Also
+    --------
+    numpy.sort
+
+    Availability
+    --------
+    GPU, CPU
+    """
+    result = ndarray(a.shape, a.dtype)
+    result._thunk.sort(rhs=a._thunk, axis=axis, kind=kind, order=order)
+    return result
 
 
+@add_boilerplate("a")
 def sort_complex(a):
-    return sort(a)
+    """
+
+    Returns a sorted copy of an array sorted along the last axis. Sorts the
+    real part first, the imaginary part second.
+
+    Parameters
+    ----------
+    a : array_like
+        Input array.
+
+    Returns
+    -------
+    out : ndarray, complex
+        Sorted array with same shape as `a`.
+
+    See Also
+    --------
+    numpy.sort_complex
+
+    Availability
+    --------
+    GPU, CPU
+    """
+
+    # force complex result
+    if np.issubdtype(a.dtype, np.complexfloating):
+        out = a
+    else:
+        out = a.astype(np.complex64, copy=True)
+
+    return sort(out)
 
 
 # Searching

@@ -29,38 +29,59 @@ template <LegateTypeCode CODE, int32_t DIM>
 struct SortImplBody<VariantKind::OMP, CODE, DIM> {
   using VAL = legate_type_of<CODE>;
 
-  void operator()(VAL* inptr,
-                  const Pitches<DIM - 1>& pitches,
-                  const Rect<DIM>& rect,
-                  const size_t volume,
-                  const uint32_t sort_axis,
-                  Legion::DomainPoint global_shape,
-                  bool is_index_space,
-                  Legion::DomainPoint index_point,
-                  Legion::Domain domain)
+  void std_sort_omp(const VAL* inptr, VAL* outptr, const size_t volume, const size_t sort_dim_size)
   {
-#ifdef DEBUG_CUNUMERIC
-    std::cout << "OMP(" << index_point[0] << ":" << omp_get_max_threads() << ":" << omp_get_nested()
-              << "): local size = " << volume << ", dist. = " << is_index_space
-              << ", index_point = " << index_point << ", domain/volume = " << domain << "/"
-              << domain.get_volume() << std::endl;
-#endif
-    const size_t sort_dim_size = global_shape[sort_axis];
+    std::copy(inptr, inptr + volume, outptr);
     if (volume / sort_dim_size > omp_get_max_threads() / 2)  // TODO fine tune
     {
 #pragma omp do schedule(dynamic)
       for (uint32_t start_idx = 0; start_idx < volume; start_idx += sort_dim_size) {
-        std::stable_sort(inptr + start_idx, inptr + start_idx + sort_dim_size);
+        std::stable_sort(outptr + start_idx, outptr + start_idx + sort_dim_size);
       }
     } else {
       for (uint32_t start_idx = 0; start_idx < volume; start_idx += sort_dim_size) {
-        __gnu_parallel::stable_sort(inptr + start_idx, inptr + start_idx + sort_dim_size);
+        __gnu_parallel::stable_sort(outptr + start_idx, outptr + start_idx + sort_dim_size);
       }
     }
+  }
 
-    if (is_index_space && DIM == 1) {
-      // not implemented yet
-      assert(false);
+  void operator()(AccessorRO<VAL, DIM> input,
+                  AccessorWO<VAL, DIM> output,
+                  const Pitches<DIM - 1>& pitches,
+                  const Rect<DIM>& rect,
+                  const bool dense,
+                  const size_t volume,
+                  const Legion::DomainPoint global_shape,
+                  const bool is_index_space,
+                  const Legion::DomainPoint index_point,
+                  const Legion::Domain domain)
+  {
+#ifdef DEBUG_CUNUMERIC
+    std::cout << "CPU(" << index_point[0] << "): local size = " << volume
+              << ", dist. = " << is_index_space << ", index_point = " << index_point
+              << ", domain/volume = " << domain << "/" << domain.get_volume()
+              << ", dense = " << dense << std::endl;
+#endif
+    const size_t sort_dim_size = global_shape[DIM - 1];
+    assert(!is_index_space || DIM > 1);  // not implemented for now
+    if (dense) {
+      std_sort_omp(input.ptr(rect), output.ptr(rect), volume, sort_dim_size);
+    } else {
+      // compute contiguous memory block
+      int contiguous_elements = 1;
+      for (int i = DIM - 1; i >= 0; i--) {
+        auto diff = 1 + rect.hi[i] - rect.lo[i];
+        contiguous_elements *= diff;
+        if (diff < global_shape[i]) { break; }
+      }
+
+      uint64_t elements_processed = 0;
+      while (elements_processed < volume) {
+        Legion::Point<DIM> start_point = pitches.unflatten(elements_processed, rect.lo);
+        std_sort_omp(
+          input.ptr(start_point), output.ptr(start_point), contiguous_elements, sort_dim_size);
+        elements_processed += contiguous_elements;
+      }
     }
   }
 };

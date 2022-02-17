@@ -34,29 +34,15 @@ template <LegateTypeCode CODE, int32_t DIM>
 struct SortImplBody<VariantKind::GPU, CODE, DIM> {
   using VAL = legate_type_of<CODE>;
 
-  void operator()(VAL* inptr,
-                  const Pitches<DIM - 1>& pitches,
-                  const Rect<DIM>& rect,
-                  const size_t volume,
-                  const uint32_t sort_axis,
-                  Legion::DomainPoint global_shape,
-                  bool is_index_space,
-                  Legion::DomainPoint index_point,
-                  Legion::Domain domain)
+  void thrust_sort(const VAL* inptr, VAL* outptr, const size_t volume, const size_t sort_dim_size)
   {
-#ifdef DEBUG_CUNUMERIC
-    std::cout << "GPU(" << index_point[0] << "): local size = " << volume
-              << ", dist. = " << is_index_space << ", index_point = " << index_point
-              << ", domain/volume = " << domain << "/" << domain.get_volume() << std::endl;
-#endif
-
-    const size_t sort_dim_size = global_shape[sort_axis];
-    thrust::device_ptr<VAL> dev_ptr(inptr);
-
+    thrust::device_ptr<const VAL> dev_input_ptr(inptr);
+    thrust::device_ptr<VAL> dev_output_ptr(outptr);
+    thrust::copy(dev_input_ptr, dev_input_ptr + volume, dev_output_ptr);
     // same approach as cupy implemntation --> combine multiple individual sorts into single
     // kernel with data tuples - (id_sub-sort, actual_data)
     if (DIM == 1) {
-      thrust::stable_sort(dev_ptr, dev_ptr + volume);
+      thrust::stable_sort(dev_output_ptr, dev_output_ptr + volume);
     } else {
       // in this case we know we are sorting for the *last* index
       const uint64_t max_elements_per_kernel =
@@ -93,23 +79,57 @@ struct SortImplBody<VariantKind::GPU, CODE, DIM> {
 
           // sort
           auto combined =
-            thrust::make_zip_iterator(thrust::make_tuple(dev_key_ptr, dev_ptr + offset));
+            thrust::make_zip_iterator(thrust::make_tuple(dev_key_ptr, dev_output_ptr + offset));
           thrust::stable_sort(
             combined, combined + num_elements, thrust::less<thrust::tuple<size_t, VAL>>());
         }
       } else {
-        // number_sorts_per_kernel == 1 ----> we don't need keys
+        // number_sorts_per_kernel too small ----> we sort one after another
         for (uint64_t sort_part = 0; sort_part < number_sorts; sort_part++) {
           const uint64_t offset = sort_part * sort_dim_size;
-          thrust::stable_sort(dev_ptr + offset, dev_ptr + offset + sort_dim_size);
+          thrust::stable_sort(dev_output_ptr + offset, dev_output_ptr + offset + sort_dim_size);
         }
       }
     }
+  }
 
-    // in case of distributed data we need to switch to sample sort
-    if (is_index_space && DIM == 1) {
-      // not implemented yet
-      assert(false);
+  void operator()(AccessorRO<VAL, DIM> input,
+                  AccessorWO<VAL, DIM> output,
+                  const Pitches<DIM - 1>& pitches,
+                  const Rect<DIM>& rect,
+                  const bool dense,
+                  const size_t volume,
+                  const Legion::DomainPoint global_shape,
+                  const bool is_index_space,
+                  const Legion::DomainPoint index_point,
+                  const Legion::Domain domain)
+  {
+#ifdef DEBUG_CUNUMERIC
+    std::cout << "GPU(" << index_point[0] << "): local size = " << volume
+              << ", dist. = " << is_index_space << ", index_point = " << index_point
+              << ", domain/volume = " << domain << "/" << domain.get_volume()
+              << ", dense = " << dense << std::endl;
+#endif
+    const size_t sort_dim_size = global_shape[DIM - 1];
+    assert(!is_index_space || DIM > 1);  // not implemented for now
+    if (dense) {
+      thrust_sort(input.ptr(rect), output.ptr(rect), volume, sort_dim_size);
+    } else {
+      // compute contiguous memory block
+      int contiguous_elements = 1;
+      for (int i = DIM - 1; i >= 0; i--) {
+        auto diff = 1 + rect.hi[i] - rect.lo[i];
+        contiguous_elements *= diff;
+        if (diff < global_shape[i]) { break; }
+      }
+
+      uint64_t elements_processed = 0;
+      while (elements_processed < volume) {
+        Legion::Point<DIM> start_point = pitches.unflatten(elements_processed, rect.lo);
+        thrust_sort(
+          input.ptr(start_point), output.ptr(start_point), contiguous_elements, sort_dim_size);
+        elements_processed += contiguous_elements;
+      }
     }
   }
 };

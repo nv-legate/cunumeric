@@ -1518,53 +1518,89 @@ class DeferredArray(NumPyThunk):
         if not no_tril:
             self.trilu(self, 0, True)
 
-    def sort(self, axis=-1, kind="stable", order=None):
-        if axis is None and self.ndim > 1:
-            flattened = self.reshape((self.size,), order="C")
+    @auto_convert([1])
+    def sort(self, rhs, axis=-1, kind="stable", order=None):
+
+        if kind != "stable":
+            self.runtime.warn(
+                "cuNumeric uses a different (stable) algorithm than "
+                + str(kind)
+                + " for sorting",
+                category=RuntimeWarning,
+                stacklevel=2,
+            )
+        if order is not None:
+            raise NotImplementedError(
+                "cuNumeric does not support sorting with 'order' as "
+                "ndarray only supports numeric values"
+            )
+        if axis is not None and (axis >= rhs.ndim or axis < -rhs.ndim):
+            raise ValueError("invalid axis")
+
+        if axis is None and rhs.ndim > 1:
+            flattened = rhs.reshape((rhs.size,), order="C")
             flattened_copy = self.runtime.create_empty_thunk(
-                flattened.shape, dtype=self.dtype, inputs=[self, flattened]
+                flattened.shape, dtype=rhs.dtype, inputs=[rhs, flattened]
             )
             flattened_copy.copy(flattened, deep=True)
 
-            # run sort on last axis -- return 1D solution
-            flattened_copy.sort()
+            # run sort flattened -- return 1D solution
+            flattened_copy.sort(flattened_copy)
             self.base = flattened_copy.base
             self.numpy_array = None
+
         else:
             if axis is None:
                 sort_axis = 0
             elif axis < 0:
-                sort_axis = self.ndim + axis
+                sort_axis = rhs.ndim + axis
             else:
                 sort_axis = axis
 
-            if sort_axis is not self.ndim - 1:
-                assert sort_axis < self.ndim - 1 and sort_axis >= 0
+            if sort_axis is not rhs.ndim - 1:
+                assert sort_axis < rhs.ndim - 1 and sort_axis >= 0
 
                 # swap axes
-                swapped = self.swapaxes(sort_axis, self.ndim - 1)
+                swapped = rhs.swapaxes(sort_axis, rhs.ndim - 1)
 
                 swapped_copy = self.runtime.create_empty_thunk(
-                    swapped.shape, dtype=self.dtype, inputs=[self, swapped]
+                    swapped.shape, dtype=rhs.dtype, inputs=[rhs, swapped]
                 )
                 swapped_copy.copy(swapped, deep=True)
 
                 # run sort on last axis
-                swapped_copy.sort(self.ndim - 1)
+                swapped_copy.sort(swapped_copy)
 
-                self.base = swapped_copy.swapaxes(
-                    self.ndim - 1, sort_axis
-                ).base
+                self.base = swapped_copy.swapaxes(rhs.ndim - 1, sort_axis).base
                 self.numpy_array = None
+
             else:
                 # run actual sort task
-                self.runtime.legate_runtime.issue_execution_fence(block=True)
+                needs_communication = self.runtime.num_gpus > 1 or (
+                    self.runtime.num_gpus == 0 and self.runtime.num_procs > 1
+                )
+
+                if needs_communication:
+                    self.runtime.legate_runtime.issue_execution_fence(
+                        block=True
+                    )
+
                 task = self.context.create_task(CuNumericOpCode.SORT)
                 task.add_output(self.base)
-                task.add_input(self.base)
+                task.add_input(rhs.base)
+                task.add_alignment(self.base, rhs.base)
                 if self.ndim > 1:
-                    task.add_broadcast(self.base, self.ndim - 1)
-                task.add_scalar_arg(self.ndim - 1, ty.int32)
-                task.add_scalar_arg(self.base.shape, (ty.int32,))
+                    task.add_broadcast(rhs.base, rhs.ndim - 1)
+                elif needs_communication:
+                    # print("Distributed 1D sort --> broadcast")
+                    task.add_broadcast(rhs.base)
+
+                task.add_scalar_arg(False, bool)  # descending flag
+                task.add_scalar_arg(False, bool)  # return indices flag
+                task.add_scalar_arg(rhs.base.shape, (ty.int32,))
                 task.execute()
-                self.runtime.legate_runtime.issue_execution_fence(block=True)
+
+                if needs_communication:
+                    self.runtime.legate_runtime.issue_execution_fence(
+                        block=True
+                    )
