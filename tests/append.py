@@ -1,4 +1,4 @@
-# Copyright 2021 NVIDIA Corporation
+# Copyright 2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -30,9 +30,8 @@ def run_test(arr, values, test_args):
             err_arr = [b, c]
         else:
             for each in zip(b, c):
-                sub_set = list(each)
-                if not np.array_equal(sub_set[0], sub_set[1]):
-                    err_arr = sub_set
+                if not np.array_equal(*each):
+                    err_arr = each
                     is_equal = False
                     break
         print_msg = (
@@ -53,7 +52,7 @@ def run_test(arr, values, test_args):
 
 def test(dim):
     print("test append")
-    # test np.concatenate & *stack w/ 1D, 2D and 3D arrays
+    # test append w/ 1D, 2D and 3D arrays
     input_arr = [
         (0,),
         (0, 10),
@@ -67,15 +66,14 @@ def test(dim):
     for input_size in input_arr:
         a = np.random.randint(low=0, high=100, size=(input_size))
 
-        test_args = [axis for axis in range(a.ndim)]
+        test_args = list(range(a.ndim))
         test_args.append(None)
-        # test the exception for 1D array on vstack and dstack
+        # test the exception for 1D array on append
         run_test(a, a, test_args)
         if a.ndim > 1:
             # 1D array
             b = np.random.randint(low=0, high=100, size=(dim,))
-            test_args = [None]
-            run_test(a, b, test_args)
+            run_test(a, b, [None])
     return
 
 

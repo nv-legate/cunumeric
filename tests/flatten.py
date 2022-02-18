@@ -1,4 +1,4 @@
-# Copyright 2021 NVIDIA Corporation
+# Copyright 2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -32,9 +32,8 @@ def run_test(np_arr, num_arr):
             err_arr = [b, c]
         else:
             for each in zip(b, c):
-                sub_set = list(each)
-                if not np.array_equal(sub_set[0], sub_set[1]):
-                    err_arr = sub_set
+                if not np.array_equal(*each):
+                    err_arr = each
                     is_equal = False
                     break
         print_msg = f"np & cunumeric.ndarray({np_arr.shape}).flatten({order}))"
@@ -53,7 +52,7 @@ def run_test(np_arr, num_arr):
 
 def test(dim):
     print("test flatten")
-    # test np.concatenate & *stack w/ 1D, 2D and 3D arrays
+    # test ndarray.flatten w/ 1D, 2D and 3D arrays
     input_arr = [
         (0,),
         (0, 10),
