@@ -18,15 +18,24 @@ import numpy as np
 import cunumeric as num
 
 
+def compare_assert(a_np, a_num):
+    if not num.allclose(a_np, a_num):
+        print("numpy:")
+        print(a_np)
+        print("cuNumeric:")
+        print(a_num)
+        assert False
+
+
 def test_sort_axis(a_np, a_num, axis):
-    assert num.allclose(a_np, a_num)
+    compare_assert(a_np, a_num)
     print("Sorting axis " + str(axis) + ":")
     sort_np = np.sort(a_np, axis)
     sort_num = num.sort(a_num, axis)
-    if not num.allclose(sort_np, sort_num):
-        print(sort_np)
-        print(sort_num)
-        assert False
+    compare_assert(sort_np, sort_num)
+    argsort_np = np.sort(a_np, axis)
+    argsort_num = num.sort(a_num, axis)
+    compare_assert(argsort_np, argsort_num)
 
 
 def test_1D():
@@ -42,11 +51,11 @@ def test_1D():
     # pdb.set_trace()
     sortA_num = num.sort(A_num)
     print("Result cunumeric: " + str(sortA_num))
-    assert num.allclose(sortA_np, sortA_num)
+    compare_assert(sortA_np, sortA_num)
 
     A_num.sort()
     print("Result (inplace): " + str(A_num))
-    assert num.allclose(sortA_np, A_num)
+    compare_assert(sortA_np, A_num)
 
     return
 
@@ -129,15 +138,25 @@ def test_custom():
     return
 
 
-def test_other_api():
-    a = np.arange(4 * 2 * 3).reshape(4, 2, 3)
+def test_api(a=None):
+    if a is None:
+        a = np.arange(4 * 2 * 3).reshape(4, 2, 3)
     a_num = num.array(a)
 
+    # sort axes
+    for i in range(a.ndim):
+        compare_assert(np.sort(a, axis=i, kind="stable"), num.sort(a_num, i))
+
+    # flatten
+    compare_assert(
+        np.sort(a, axis=None, kind="stable"), num.sort(a_num, axis=None)
+    )
+
     # msort
-    assert num.allclose(np.msort(a), num.msort(a_num))
+    compare_assert(np.msort(a), num.msort(a_num))
 
     # sort_complex
-    assert num.allclose(np.sort_complex(a), num.sort_complex(a_num))
+    compare_assert(np.sort_complex(a), num.sort_complex(a_num))
 
     # reverse order sort
     # TODO
@@ -147,13 +166,70 @@ def test_other_api():
     copy_a_num = a_num.copy()
     copy_a.sort()
     copy_a_num.sort()
-    assert num.allclose(copy_a, copy_a_num)
+    compare_assert(copy_a, copy_a_num)
 
     # reverse order sort (in place)
     # TODO
 
     # argsort
-    # TODO
+    for i in range(a.ndim):
+        compare_assert(a, a_num)
+        compare_assert(
+            np.argsort(a, axis=i, kind="stable"), num.argsort(a_num, axis=i)
+        )
+
+    # flatten
+    compare_assert(
+        np.argsort(a, axis=None, kind="stable"), num.argsort(a_num, axis=None)
+    )
+
+    return
+
+
+def generate_random(shape, datatype):
+    print("Generate random for " + str(datatype))
+    a_np = None
+    volume = 1
+    for i in shape:
+        volume *= i
+
+    if np.issubdtype(datatype, np.integer):
+        a_np = np.array(
+            np.random.randint(
+                np.iinfo(datatype).min, np.iinfo(datatype).max, size=volume
+            ),
+            dtype=datatype,
+        )
+    elif np.issubdtype(datatype, np.floating):
+        a_np = np.array(np.random.random(size=volume), dtype=datatype)
+    elif np.issubdtype(datatype, np.complexfloating):
+        a_np = np.array(
+            np.random.random(size=volume) + np.random.random(size=volume) * 1j,
+            dtype=datatype,
+        )
+    else:
+        print("UNKNOWN type " + str(datatype))
+        assert False
+    return a_np
+
+
+def test_dtypes():
+    np.random.seed(42)
+    test_api(generate_random((2, 5, 7), np.uint8))
+    test_api(generate_random((8, 5), np.uint16))
+    test_api(generate_random((22, 5, 7), np.uint32))
+
+    test_api(generate_random((2, 5, 7), np.int8))
+    test_api(generate_random((8, 5), np.int16))
+    test_api(generate_random((22, 5, 7), np.int32))
+    test_api(generate_random((2, 5, 7), np.int64))
+
+    test_api(generate_random((8, 5), np.float32))
+    test_api(generate_random((8, 5), np.float64))
+    test_api(generate_random((22, 5, 7), np.double))
+
+    test_api(generate_random((2, 5, 7), np.complex64))
+    test_api(generate_random((2, 5, 7), np.complex128))
 
     return
 
@@ -170,7 +246,9 @@ def test():
     print("\n\n -----------  4D/5D test-------------\n")
     test_custom()
     print("\n\n -----------  API test --------------\n")
-    test_other_api()
+    test_api()
+    print("\n\n -----------  dtype test ------------\n")
+    test_dtypes()
 
 
 if __name__ == "__main__":

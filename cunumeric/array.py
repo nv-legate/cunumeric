@@ -1484,6 +1484,12 @@ class ndarray(object):
         self._thunk.sort(rhs=self._thunk, axis=axis, kind=kind, order=order)
         return
 
+    def argsort(self, axis=-1, kind="stable", order=None):
+        self._thunk.sort(
+            rhs=self._thunk, argsort=True, axis=axis, kind=kind, order=order
+        )
+        return
+
     def squeeze(self, axis=None):
         if axis is not None:
             if isinstance(axis, int):

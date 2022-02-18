@@ -1519,7 +1519,7 @@ class DeferredArray(NumPyThunk):
             self.trilu(self, 0, True)
 
     @auto_convert([1])
-    def sort(self, rhs, axis=-1, kind="stable", order=None):
+    def sort(self, rhs, argsort=False, axis=-1, kind="stable", order=None):
 
         if kind != "stable":
             self.runtime.warn(
@@ -1545,8 +1545,11 @@ class DeferredArray(NumPyThunk):
             flattened_copy.copy(flattened, deep=True)
 
             # run sort flattened -- return 1D solution
-            flattened_copy.sort(flattened_copy)
-            self.base = flattened_copy.base
+            sort_result = self.runtime.create_empty_thunk(
+                flattened_copy.shape, dtype=self.dtype, inputs=[flattened_copy]
+            )
+            sort_result.sort(rhs=flattened_copy, argsort=argsort)
+            self.base = sort_result.base
             self.numpy_array = None
 
         else:
@@ -1569,9 +1572,12 @@ class DeferredArray(NumPyThunk):
                 swapped_copy.copy(swapped, deep=True)
 
                 # run sort on last axis
-                swapped_copy.sort(swapped_copy)
+                sort_result = self.runtime.create_empty_thunk(
+                    swapped_copy.shape, dtype=self.dtype, inputs=[swapped_copy]
+                )
+                sort_result.sort(rhs=swapped_copy, argsort=argsort)
 
-                self.base = swapped_copy.swapaxes(rhs.ndim - 1, sort_axis).base
+                self.base = sort_result.swapaxes(rhs.ndim - 1, sort_axis).base
                 self.numpy_array = None
 
             else:
@@ -1586,6 +1592,7 @@ class DeferredArray(NumPyThunk):
                     )
 
                 task = self.context.create_task(CuNumericOpCode.SORT)
+
                 task.add_output(self.base)
                 task.add_input(rhs.base)
                 task.add_alignment(self.base, rhs.base)
@@ -1595,8 +1602,7 @@ class DeferredArray(NumPyThunk):
                     # print("Distributed 1D sort --> broadcast")
                     task.add_broadcast(rhs.base)
 
-                task.add_scalar_arg(False, bool)  # descending flag
-                task.add_scalar_arg(False, bool)  # return indices flag
+                task.add_scalar_arg(argsort, bool)  # return indices flag
                 task.add_scalar_arg(rhs.base.shape, (ty.int32,))
                 task.execute()
 

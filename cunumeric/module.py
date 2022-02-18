@@ -5606,7 +5606,12 @@ def argsort(a, axis=-1, kind="stable", order=None):
     --------
     GPU, CPU
     """
-    return a.argsort(axis=axis, kind=kind, order=order)
+
+    result = ndarray(a.shape, np.int32)
+    result._thunk.sort(
+        rhs=a._thunk, argsort=True, axis=axis, kind=kind, order=order
+    )
+    return result
 
 
 def msort(a):

@@ -23,12 +23,11 @@ namespace cunumeric {
 struct SortArgs {
   const Array& input;
   Array& output;
-  bool descending;
   bool argsort;
   Legion::DomainPoint global_shape;
   bool is_index_space;
-  Legion::DomainPoint index_point;
-  Legion::Domain domain;
+  Legion::DomainPoint task_index;
+  Legion::Domain launch_domain;
 };
 
 template <typename VAL>

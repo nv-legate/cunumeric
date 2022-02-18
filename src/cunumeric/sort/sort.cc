@@ -17,14 +17,16 @@
 #include "cunumeric/sort/sort.h"
 #include "cunumeric/sort/sort_template.inl"
 
+#include <numeric>
+
 namespace cunumeric {
 
 using namespace Legion;
 using namespace legate;
 
-// general routine
+// general routine SORT
 template <LegateTypeCode CODE, int32_t DIM>
-struct SortImplBody<VariantKind::CPU, CODE, DIM> {
+struct SortImplBody<VariantKind::CPU, false, CODE, DIM> {
   using VAL = legate_type_of<CODE>;
 
   void std_sort(const VAL* inptr, VAL* outptr, const size_t volume, const size_t sort_dim_size)
@@ -41,13 +43,14 @@ struct SortImplBody<VariantKind::CPU, CODE, DIM> {
                   const Rect<DIM>& rect,
                   const bool dense,
                   const size_t volume,
+                  const bool argsort,
                   const Legion::DomainPoint global_shape,
                   const bool is_index_space,
                   const Legion::DomainPoint index_point,
                   const Legion::Domain domain)
   {
 #ifdef DEBUG_CUNUMERIC
-    std::cout << "CPU(" << index_point[0] << "): local size = " << volume
+    std::cout << "CPU(" << getRank(domain, index_point) << "): local size = " << volume
               << ", dist. = " << is_index_space << ", index_point = " << index_point
               << ", domain/volume = " << domain << "/" << domain.get_volume()
               << ", dense = " << dense << std::endl;
@@ -69,6 +72,69 @@ struct SortImplBody<VariantKind::CPU, CODE, DIM> {
       while (elements_processed < volume) {
         Legion::Point<DIM> start_point = pitches.unflatten(elements_processed, rect.lo);
         std_sort(
+          input.ptr(start_point), output.ptr(start_point), contiguous_elements, sort_dim_size);
+        elements_processed += contiguous_elements;
+      }
+    }
+  }
+};
+
+// general routine ARGSORT
+template <LegateTypeCode CODE, int32_t DIM>
+struct SortImplBody<VariantKind::CPU, true, CODE, DIM> {
+  using VAL = legate_type_of<CODE>;
+
+  void std_argsort(const VAL* inptr,
+                   int32_t* outptr,
+                   const size_t volume,
+                   const size_t sort_dim_size)
+  {
+    for (uint64_t start_idx = 0; start_idx < volume; start_idx += sort_dim_size) {
+      int32_t* segmentKeys     = outptr + start_idx;
+      const VAL* segmentValues = inptr + start_idx;
+      std::iota(segmentKeys, segmentKeys + sort_dim_size, 0);
+      std::stable_sort(
+        segmentKeys, segmentKeys + sort_dim_size, [segmentValues](int32_t i1, int32_t i2) {
+          return segmentValues[i1] < segmentValues[i2];
+        });
+    }
+  }
+
+  void operator()(AccessorRO<VAL, DIM> input,
+                  AccessorWO<int32_t, DIM> output,
+                  const Pitches<DIM - 1>& pitches,
+                  const Rect<DIM>& rect,
+                  const bool dense,
+                  const size_t volume,
+                  const bool argsort,
+                  const Legion::DomainPoint global_shape,
+                  const bool is_index_space,
+                  const Legion::DomainPoint index_point,
+                  const Legion::Domain domain)
+  {
+#ifdef DEBUG_CUNUMERIC
+    std::cout << "CPU(" << getRank(domain, index_point) << "): local size = " << volume
+              << ", dist. = " << is_index_space << ", index_point = " << index_point
+              << ", domain/volume = " << domain << "/" << domain.get_volume()
+              << ", dense = " << dense << std::endl;
+#endif
+    const size_t sort_dim_size = global_shape[DIM - 1];
+    assert(!is_index_space || DIM > 1);  // not implemented for now
+    if (dense) {
+      std_argsort(input.ptr(rect), output.ptr(rect), volume, sort_dim_size);
+    } else {
+      // compute contiguous memory block
+      int contiguous_elements = 1;
+      for (int i = DIM - 1; i >= 0; i--) {
+        auto diff = 1 + rect.hi[i] - rect.lo[i];
+        contiguous_elements *= diff;
+        if (diff < global_shape[i]) { break; }
+      }
+
+      uint64_t elements_processed = 0;
+      while (elements_processed < volume) {
+        Legion::Point<DIM> start_point = pitches.unflatten(elements_processed, rect.lo);
+        std_argsort(
           input.ptr(start_point), output.ptr(start_point), contiguous_elements, sort_dim_size);
         elements_processed += contiguous_elements;
       }

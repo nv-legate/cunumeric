@@ -21,8 +21,18 @@ namespace cunumeric {
 using namespace Legion;
 using namespace legate;
 
-template <VariantKind KIND, LegateTypeCode CODE, int32_t DIM>
+template <VariantKind KIND, bool ARGSORT, LegateTypeCode CODE, int32_t DIM>
 struct SortImplBody;
+
+static int getRank(Domain domain, DomainPoint index_point)
+{
+  int domain_index = 0;
+  for (int i = 0; i < domain.get_dim(); ++i) {
+    if (i > 0) domain_index *= domain.hi()[i] - domain.lo()[i] + 1;
+    domain_index += index_point[i];
+  }
+  return domain_index;
+}
 
 template <VariantKind KIND>
 struct SortImpl {
@@ -40,9 +50,6 @@ struct SortImpl {
     Pitches<DIM - 1> pitches;
     size_t volume = pitches.flatten(rect);
 
-    auto input  = args.input.read_accessor<VAL, DIM>(rect);
-    auto output = args.output.write_accessor<VAL, DIM>(rect);
-
     /*
      * Assumptions:
      * 1. Sort is always requested for the 'last' dimension within rect
@@ -55,32 +62,60 @@ struct SortImpl {
 
 #ifdef DEBUG_CUNUMERIC
     std::cout << "DIM=" << DIM << ", rect=" << rect << ", shape=" << args.global_shape
-              << ", descending=" << args.descending << ", argsort=" << args.argsort
-              << ", sort_dim_size=" << args.global_shape[DIM - 1] << std::endl;
+              << ", argsort=" << args.argsort << ", sort_dim_size=" << args.global_shape[DIM - 1]
+              << std::endl;
 
     assert((DIM == 1 || (rect.hi[DIM - 1] - rect.lo[DIM - 1] + 1 == args.global_shape[DIM - 1])) &&
            "multi-dimensional array should not be distributed in (sort) dimension");
 #endif
 
+    auto input = args.input.read_accessor<VAL, DIM>(rect);
+
+    if (args.argsort) {
+      auto output = args.output.write_accessor<int32_t, DIM>(rect);
+
 #ifndef LEGION_BOUNDS_CHECKS
-    bool dense =
-      input.accessor.is_dense_row_major(rect) && output.accessor.is_dense_row_major(rect);
+      bool dense =
+        input.accessor.is_dense_row_major(rect) && output.accessor.is_dense_row_major(rect);
 #else
-    bool dense = false;
+      bool dense = false;
 #endif
+      assert(dense || !args.is_index_space || DIM > 1);
 
-    assert(dense || !args.is_index_space || DIM > 1);
+      SortImplBody<KIND, true, CODE, DIM>()(input,
+                                            output,
+                                            pitches,
+                                            rect,
+                                            dense,
+                                            volume,
+                                            args.argsort,
+                                            args.global_shape,
+                                            args.is_index_space,
+                                            args.task_index,
+                                            args.launch_domain);
 
-    SortImplBody<KIND, CODE, DIM>()(input,
-                                    output,
-                                    pitches,
-                                    rect,
-                                    dense,
-                                    volume,
-                                    args.global_shape,
-                                    args.is_index_space,
-                                    args.index_point,
-                                    args.domain);
+    } else {
+      auto output = args.output.write_accessor<VAL, DIM>(rect);
+
+#ifndef LEGION_BOUNDS_CHECKS
+      bool dense =
+        input.accessor.is_dense_row_major(rect) && output.accessor.is_dense_row_major(rect);
+#else
+      bool dense = false;
+#endif
+      assert(dense || !args.is_index_space || DIM > 1);
+      SortImplBody<KIND, false, CODE, DIM>()(input,
+                                             output,
+                                             pitches,
+                                             rect,
+                                             dense,
+                                             volume,
+                                             args.argsort,
+                                             args.global_shape,
+                                             args.is_index_space,
+                                             args.task_index,
+                                             args.launch_domain);
+    }
   }
 };
 
@@ -89,7 +124,7 @@ static void sort_template(TaskContext& context)
 {
   DomainPoint global_shape;
   {
-    auto shape_span  = context.scalars()[2].values<int32_t>();
+    auto shape_span  = context.scalars()[1].values<int32_t>();
     global_shape.dim = shape_span.size();
     for (int32_t dim = 0; dim < global_shape.dim; ++dim) { global_shape[dim] = shape_span[dim]; }
   }
@@ -97,12 +132,11 @@ static void sort_template(TaskContext& context)
   SortArgs args{context.inputs()[0],
                 context.outputs()[0],
                 context.scalars()[0].value<bool>(),
-                context.scalars()[1].value<bool>(),
                 global_shape,
-                context.task_->is_index_space,
-                context.task_->index_point,
-                context.task_->index_domain};
-  double_dispatch(args.output.dim(), args.output.code(), SortImpl<KIND>{}, args);
+                !context.is_single_task(),
+                context.get_task_index(),
+                context.get_launch_domain()};
+  double_dispatch(args.input.dim(), args.input.code(), SortImpl<KIND>{}, args);
 }
 
 }  // namespace cunumeric
