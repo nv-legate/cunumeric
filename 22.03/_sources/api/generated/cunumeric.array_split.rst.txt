@@ -1,0 +1,6 @@
+﻿cunumeric.array\_split
+======================
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: array_split

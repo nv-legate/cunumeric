@@ -1,0 +1,6 @@
+﻿cunumeric.count\_nonzero
+========================
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: count_nonzero

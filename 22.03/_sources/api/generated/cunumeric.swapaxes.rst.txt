@@ -1,0 +1,6 @@
+﻿cunumeric.swapaxes
+==================
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: swapaxes

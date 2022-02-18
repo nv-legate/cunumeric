@@ -1,0 +1,6 @@
+﻿cunumeric.isinf
+===============
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: isinf
