@@ -5610,13 +5610,18 @@ def argsort(a, axis=-1, kind="stable", order=None):
         Array of indices that sort a along the specified axis. It has the
         same shape as `a.shape` or is flattened in case of `axis` is None.
 
+    Notes
+    -----
+    The current implementation has only limited support for distributed data.
+    Distributed 1-D or flattened data will be broadcasted.
+
     See Also
     --------
     numpy.argsort
 
     Availability
     --------
-    GPU, CPU
+    Single GPU, Single CPU
     """
 
     result = ndarray(a.shape, np.int32)
@@ -5641,13 +5646,18 @@ def msort(a):
     out : ndarray
         Sorted array with same dtype and shape as `a`.
 
+    Notes
+    -----
+    The current implementation has only limited support for distributed data.
+    Distributed 1-D  data will be broadcasted.
+
     See Also
     --------
     numpy.msort
 
     Availability
     --------
-    GPU, CPU
+    Single GPU, Single CPU
     """
     return sort(a, axis=0)
 
@@ -5676,13 +5686,18 @@ def sort(a, axis=-1, kind="stable", order=None):
         Sorted array with same dtype and shape as `a`. In case `axis` is
         None the result is flattened.
 
+    Notes
+    -----
+    The current implementation has only limited support for distributed data.
+    Distributed 1-D or flattened data will be broadcasted.
+
     See Also
     --------
     numpy.sort
 
     Availability
     --------
-    GPU, CPU
+    Single GPU, Single CPU
     """
     result = ndarray(a.shape, a.dtype)
     result._thunk.sort(rhs=a._thunk, axis=axis, kind=kind, order=order)
@@ -5706,13 +5721,18 @@ def sort_complex(a):
     out : ndarray, complex
         Sorted array with same shape as `a`.
 
+    Notes
+    -----
+    The current implementation has only limited support for distributed data.
+    Distributed 1-D data will be broadcasted.
+
     See Also
     --------
     numpy.sort_complex
 
     Availability
     --------
-    GPU, CPU
+    Single GPU, Single CPU
     """
 
     # force complex result
