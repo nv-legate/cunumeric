@@ -6,7 +6,8 @@ Welcome to cuNumeric's documentation!
 
   Overview <README.md>
   API Reference <api/index.rst>
-
+  API coverage <comparison/comparison.rst>
+  Versions <versions.rst>
 
 
 Indices and tables

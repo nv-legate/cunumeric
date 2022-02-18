@@ -26,6 +26,17 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
 
+import os
+import sys
+
+sys.path.insert(0, os.path.abspath("comparison"))
+sys.path.insert(0, os.path.abspath("../../../"))
+import _comparison_generator  # noqa: E402
+
+# Generate comparison table.
+with open("comparison/comparison_table.rst.inc", "w") as f:
+    f.write(_comparison_generator.generate("cunumeric"))
+
 # -- Project information -----------------------------------------------------
 
 project = "cunumeric"
@@ -78,6 +89,18 @@ html_theme = "pydata_sphinx_theme"
 html_static_path = ["_static"]
 
 pygments_style = "sphinx"
+
+nitpick_ignore = [
+    ("py:class", "type"),
+    ("py:class", "scalar"),
+    ("py:class", "array_like"),
+    ("py:class", "dtype"),
+    ("py:class", "optional"),
+    ("py:class", "tuple of ints"),
+    ("py:class", "M"),
+    ("py:class", "numpy.isnan"),
+    ("py:class", "boolean ndarray"),
+]
 
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3/", None),
