@@ -36,7 +36,7 @@ def _filter(obj, n):
             and n[0].islower()  # starts with lower char
             and not n.startswith("__")  # not special methods
         )
-    except ValueError:
+    except:  # noqa: E722
         return False
 
 
