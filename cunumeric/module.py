@@ -33,6 +33,7 @@ _builtin_all = all
 _builtin_any = any
 _builtin_max = max
 _builtin_min = min
+_builtin_sum = sum
 
 
 def add_boilerplate(*array_params: str):
@@ -1248,7 +1249,7 @@ def check_shape_dtype(
 
     # Cast arrays with the passed arguments (dtype, casting)
     if dtype is None:
-        dtype = np.find_common_type([inp.dtype for inp in inputs], [])
+        dtype = np.find_common_type((inp.dtype for inp in inputs), [])
     else:
         dtype = np.dtype(dtype)
 
@@ -1264,18 +1265,12 @@ def _concatenate(
     casting="same_kind",
     common_info=None,
 ):
-    # Check to see if we can build a new tuple of cuNumeric arrays
-    leading_dim = 0
-    cunumeric_inputs = inputs
-    for arr in cunumeric_inputs:
-        leading_dim += arr.shape[axis]
-    # leading_dim = common_info.shape[axis] * len(cunumeric_inputs)
-
+    leading_dim = _builtin_sum(arr.shape[axis] for arr in inputs)
     out_shape = list(common_info.shape)
     out_shape[axis] = leading_dim
 
     out_array = ndarray(
-        shape=out_shape, dtype=common_info.dtype, inputs=cunumeric_inputs
+        shape=out_shape, dtype=common_info.dtype, inputs=inputs
     )
 
     # Copy the values over from the inputs
@@ -1289,7 +1284,7 @@ def _concatenate(
     for i in range(axis + 1, common_info.ndim):
         idx_arr.append(slice(out_shape[i]))
 
-    for inp in cunumeric_inputs:
+    for inp in inputs:
         idx_arr[axis] = slice(offset, offset + inp.shape[axis])
         out_array[tuple(idx_arr)] = inp
         offset += inp.shape[axis]
@@ -1399,8 +1394,7 @@ def stack(arrays, axis=0, out=None):
 
     shape = list(common_info.shape)
     shape.insert(axis, 1)
-    for i, arr in enumerate(arrays):
-        arrays[i] = arr.reshape(shape)
+    arrays = [arr.reshape(shape) for arr in arrays]
     common_info.shape = shape
     return _concatenate(arrays, axis, out=out, common_info=common_info)
 
@@ -1536,12 +1530,10 @@ def dstack(tup):
     reshaped = []
     inputs = list(ndarray.convert_to_cunumeric_ndarray(inp) for inp in tup)
     for arr in inputs:
-        if arr.ndim <= 2:
-            shape = list(arr.shape)
-            if arr.ndim == 1:
-                shape.insert(0, 1)
-            shape.append(1)
-            arr = arr.reshape(shape)
+        if arr.ndim == 1:
+            arr = arr.reshape((1,) + arr.shape + (1,))
+        elif arr.ndim == 2:
+            arr = arr.reshape(arr.shape + (1,))
         reshaped.append(arr)
     tup, common_info = check_shape_dtype(reshaped, dstack.__name__, 2)
 

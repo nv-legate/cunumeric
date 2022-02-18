@@ -93,7 +93,7 @@ def test(dim):
             for num_arr in range(3)
         ]
         # test the exception for 1D array on vstack and dstack
-        if routine == "vstack" or routine == "dstack":
+        if routine in ("vstack", "dstack"):
             if len(input_size) == 2 and input_size == (1, dim):
                 a.append(np.random.randint(low=0, high=100, size=(dim,)))
         run_test(tuple(a), routine, input_size)
