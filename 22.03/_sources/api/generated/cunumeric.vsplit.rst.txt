@@ -1,0 +1,6 @@
+﻿cunumeric.vsplit
+================
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: vsplit

@@ -1,0 +1,6 @@
+﻿cunumeric.random.randint
+========================
+
+.. currentmodule:: cunumeric.random
+
+.. autofunction:: randint
