@@ -32,6 +32,7 @@ from .config import (
     UnaryRedCode,
 )
 from .linalg.cholesky import cholesky
+from .sorting.sorting import sorting
 from .thunk import NumPyThunk
 from .utils import get_arg_value_dtype
 
@@ -1537,76 +1538,4 @@ class DeferredArray(NumPyThunk):
         if axis is not None and (axis >= rhs.ndim or axis < -rhs.ndim):
             raise ValueError("invalid axis")
 
-        if axis is None and rhs.ndim > 1:
-            flattened = rhs.reshape((rhs.size,), order="C")
-            flattened_copy = self.runtime.create_empty_thunk(
-                flattened.shape, dtype=rhs.dtype, inputs=[rhs, flattened]
-            )
-            flattened_copy.copy(flattened, deep=True)
-
-            # run sort flattened -- return 1D solution
-            sort_result = self.runtime.create_empty_thunk(
-                flattened_copy.shape, dtype=self.dtype, inputs=[flattened_copy]
-            )
-            sort_result.sort(rhs=flattened_copy, argsort=argsort)
-            self.base = sort_result.base
-            self.numpy_array = None
-
-        else:
-            if axis is None:
-                sort_axis = 0
-            elif axis < 0:
-                sort_axis = rhs.ndim + axis
-            else:
-                sort_axis = axis
-
-            if sort_axis is not rhs.ndim - 1:
-                assert sort_axis < rhs.ndim - 1 and sort_axis >= 0
-
-                # swap axes
-                swapped = rhs.swapaxes(sort_axis, rhs.ndim - 1)
-
-                swapped_copy = self.runtime.create_empty_thunk(
-                    swapped.shape, dtype=rhs.dtype, inputs=[rhs, swapped]
-                )
-                swapped_copy.copy(swapped, deep=True)
-
-                # run sort on last axis
-                sort_result = self.runtime.create_empty_thunk(
-                    swapped_copy.shape, dtype=self.dtype, inputs=[swapped_copy]
-                )
-                sort_result.sort(rhs=swapped_copy, argsort=argsort)
-
-                self.base = sort_result.swapaxes(rhs.ndim - 1, sort_axis).base
-                self.numpy_array = None
-
-            else:
-                # run actual sort task
-                needs_communication = self.runtime.num_gpus > 1 or (
-                    self.runtime.num_gpus == 0 and self.runtime.num_procs > 1
-                )
-
-                if needs_communication:
-                    self.runtime.legate_runtime.issue_execution_fence(
-                        block=True
-                    )
-
-                task = self.context.create_task(CuNumericOpCode.SORT)
-
-                task.add_output(self.base)
-                task.add_input(rhs.base)
-                task.add_alignment(self.base, rhs.base)
-                if self.ndim > 1:
-                    task.add_broadcast(rhs.base, rhs.ndim - 1)
-                elif needs_communication:
-                    # print("Distributed 1D sort --> broadcast")
-                    task.add_broadcast(rhs.base)
-
-                task.add_scalar_arg(argsort, bool)  # return indices flag
-                task.add_scalar_arg(rhs.base.shape, (ty.int32,))
-                task.execute()
-
-                if needs_communication:
-                    self.runtime.legate_runtime.issue_execution_fence(
-                        block=True
-                    )
+        sorting(self, rhs, argsort, axis)
