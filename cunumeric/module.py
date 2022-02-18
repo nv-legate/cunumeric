@@ -181,7 +181,7 @@ def empty(shape, dtype=np.float64):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return ndarray(shape=shape, dtype=dtype)
 
@@ -214,7 +214,7 @@ def empty_like(a, dtype=None):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     shape = a.shape
     if dtype is not None:
@@ -254,7 +254,7 @@ def eye(N, M=None, k=0, dtype=np.float64):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     if dtype is not None:
         dtype = np.dtype(dtype)
@@ -292,7 +292,7 @@ def identity(n, dtype=float):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return eye(N=n, M=n, dtype=dtype)
 
@@ -320,7 +320,7 @@ def ones(shape, dtype=np.float64):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return full(shape, 1, dtype=dtype)
 
@@ -349,7 +349,7 @@ def ones_like(a, dtype=None):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     usedtype = a.dtype
     if dtype is not None:
@@ -381,7 +381,7 @@ def zeros(shape, dtype=np.float64):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     if dtype is not None:
         dtype = np.dtype(dtype)
@@ -412,7 +412,7 @@ def zeros_like(a, dtype=None):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     usedtype = a.dtype
     if dtype is not None:
@@ -446,7 +446,7 @@ def full(shape, value, dtype=None):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     if dtype is None:
         val = np.array(value)
@@ -484,7 +484,7 @@ def full_like(a, value, dtype=None):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     if dtype is not None:
         dtype = np.dtype(dtype)
@@ -556,7 +556,7 @@ def array(obj, dtype=None, copy=True, order="K", subok=False, ndmin=0):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
 
     if not isinstance(obj, ndarray):
@@ -600,7 +600,7 @@ def asarray(a, dtype=None):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     if not isinstance(a, ndarray):
         thunk = runtime.get_numpy_thunk(a, share=True, dtype=dtype)
@@ -634,7 +634,7 @@ def copy(a):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     result = empty_like(a, dtype=a.dtype)
     result._thunk.copy(a._thunk, deep=True)
@@ -692,7 +692,7 @@ def arange(start, stop=None, step=1, dtype=None):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     if stop is None:
         stop = start
@@ -773,7 +773,7 @@ def linspace(
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     if num < 0:
         raise ValueError("Number of samples, %s, must be non-negative." % num)
@@ -896,7 +896,7 @@ def diag(v, k=0):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     if v.ndim == 0:
         raise ValueError("Input must be 1- or 2-d")
@@ -944,7 +944,7 @@ def tril(m, k=0):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return trilu(m, k, True)
 
@@ -965,7 +965,7 @@ def triu(m, k=0):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return trilu(m, k, False)
 
@@ -1000,7 +1000,7 @@ def shape(a):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return a.shape
 
@@ -1050,7 +1050,7 @@ def ravel(a, order="C"):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return a.ravel(order=order)
 
@@ -1097,7 +1097,7 @@ def reshape(a, newshape, order="C"):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return a.reshape(newshape, order=order)
 
@@ -1132,7 +1132,7 @@ def swapaxes(a, axis1, axis2):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return a.swapaxes(axis1, axis2)
 
@@ -1163,7 +1163,7 @@ def transpose(a, axes=None):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return a.transpose(axes=axes)
 
@@ -1204,7 +1204,7 @@ def squeeze(a, axis=None):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return a.squeeze(a, axis=axis)
 
@@ -1326,7 +1326,7 @@ def concatenate(inputs, axis=0, out=None, dtype=None, casting="same_kind"):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     # Check to see if we can build a new tuple of cuNumeric arrays
     cunumeric_inputs, common_info = check_shape_dtype(
@@ -1370,7 +1370,7 @@ def stack(arrays, axis=0, out=None):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     fname = stack.__name__
     arrays, common_info = check_shape_dtype(arrays, fname)
@@ -1420,7 +1420,7 @@ def vstack(tup):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     fname = vstack.__name__
     # Reshape arrays in the `tup` if needed before concatenation
@@ -1468,7 +1468,7 @@ def hstack(tup):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     fname = hstack.__name__
     tup, common_info = check_shape_dtype(tup, fname)
@@ -1522,7 +1522,7 @@ def dstack(tup):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     fname = dstack.__name__
     tup, common_info = check_shape_dtype(tup, fname)
@@ -1569,7 +1569,7 @@ def column_stack(tup):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return hstack(tup)
 
@@ -1624,7 +1624,7 @@ def split(a, indices, axis=0):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return array_split(a, indices, axis, equal=True)
 
@@ -1647,7 +1647,7 @@ def array_split(a, indices, axis=0, equal=False):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     array = ndarray.convert_to_cunumeric_ndarray(a)
     dtype = type(indices)
@@ -1748,7 +1748,7 @@ def dsplit(a, indices):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return split(a, indices, axis=2)
 
@@ -1768,7 +1768,7 @@ def hsplit(a, indices):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return split(a, indices, axis=1)
 
@@ -1788,7 +1788,7 @@ def vsplit(a, indices):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return split(a, indices, axis=0)
 
@@ -1832,7 +1832,7 @@ def tile(A, reps):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     if not hasattr(reps, "__len__"):
         reps = (reps,)
@@ -1888,7 +1888,7 @@ def flip(m, axis=None):
 
     Availability
     --------
-    Single GPU/CPU only
+    Single GPU, Single CPU
     """
     return m.flip(axis=axis)
 
@@ -1941,7 +1941,7 @@ def invert(a, out=None, where=True, dtype=None):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     if a.dtype.type == np.bool_:
         # Boolean values are special, just do negatiion
@@ -1992,7 +1992,7 @@ def nonzero(a):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return a.nonzero()
 
@@ -2024,7 +2024,7 @@ def where(a, x=None, y=None):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     if x is None or y is None:
         if x is not None or y is not None:
@@ -2105,7 +2105,7 @@ def choose(a, choices, out=None, mode="raise"):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return a.choose(choices=choices, out=out, mode=mode)
 
@@ -2166,7 +2166,7 @@ def diagonal(a, offset=0, axis1=None, axis2=None, extract=True, axes=None):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
 
     """
     return a.diagonal(
@@ -2244,7 +2244,7 @@ def dot(a, b, out=None):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return a.dot(b, out=out)
 
@@ -2290,7 +2290,7 @@ def tensordot(a, b, axes=2):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     # This is the exact same code as the canonical numpy.
     # See https://github.com/numpy/numpy/blob/v1.21.0/numpy/core/numeric.py#L943-L1133. # noqa:  E501
@@ -2612,7 +2612,7 @@ def einsum(expr, *operands, out=None, optimize=False):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     if not optimize:
         optimize = NullOptimizer()
@@ -2689,7 +2689,7 @@ def all(a, axis=None, out=None, keepdims=False, where=True):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return a.all(axis=axis, out=out, keepdims=keepdims, where=where)
 
@@ -2743,7 +2743,7 @@ def any(a, axis=None, out=None, keepdims=False, where=True):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return a.any(axis=axis, out=out, keepdims=keepdims, where=where)
 
@@ -2791,7 +2791,7 @@ def isinf(a, out=None, where=True, dtype=None, **kwargs):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return ndarray.perform_unary_op(
         UnaryOpCode.ISINF,
@@ -2840,7 +2840,7 @@ def isnan(a, out=None, where=True, dtype=None, **kwargs):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return ndarray.perform_unary_op(
         UnaryOpCode.ISNAN,
@@ -2894,7 +2894,7 @@ def logical_and(a, b, out=None, where=True, dtype=np.dtype(np.bool), **kwargs):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return ndarray.perform_binary_op(
         BinaryOpCode.LOGICAL_AND,
@@ -2947,7 +2947,7 @@ def logical_or(a, b, out=None, where=True, dtype=np.dtype(np.bool), **kwargs):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return ndarray.perform_binary_op(
         BinaryOpCode.LOGICAL_OR,
@@ -2998,7 +2998,7 @@ def logical_not(a, out=None, where=True, dtype=None, **kwargs):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return ndarray.perform_unary_op(
         UnaryOpCode.LOGICAL_NOT,
@@ -3050,7 +3050,7 @@ def logical_xor(a, b, out=None, where=True, dtype=np.dtype(np.bool), **kwargs):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return ndarray.perform_binary_op(
         BinaryOpCode.LOGICAL_XOR,
@@ -3105,7 +3105,7 @@ def allclose(a, b, rtol=1e-5, atol=1e-8, equal_nan=False):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     if equal_nan:
         raise NotImplementedError(
@@ -3143,7 +3143,7 @@ def array_equal(a, b):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     if a.shape != b.shape:
         return False
@@ -3191,7 +3191,7 @@ def greater(a, b, out=None, where=True, dtype=np.dtype(np.bool), **kwargs):
 
         Availability
         --------
-        GPU, CPU
+        Multiple GPUs, Multiple CPUs
     """
     return ndarray.perform_binary_op(
         BinaryOpCode.GREATER,
@@ -3245,7 +3245,7 @@ def greater_equal(
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return ndarray.perform_binary_op(
         BinaryOpCode.GREATER_EQUAL,
@@ -3297,7 +3297,7 @@ def less(a, b, out=None, where=True, dtype=np.dtype(np.bool), **kwargs):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return ndarray.perform_binary_op(
         BinaryOpCode.LESS,
@@ -3349,7 +3349,7 @@ def less_equal(a, b, out=None, where=True, dtype=np.dtype(np.bool), **kwargs):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return ndarray.perform_binary_op(
         BinaryOpCode.LESS_EQUAL,
@@ -3401,7 +3401,7 @@ def equal(a, b, out=None, where=True, dtype=np.dtype(np.bool), **kwargs):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return ndarray.perform_binary_op(
         BinaryOpCode.EQUAL,
@@ -3453,7 +3453,7 @@ def not_equal(a, b, out=None, where=True, dtype=np.dtype(np.bool), **kwargs):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return ndarray.perform_binary_op(
         BinaryOpCode.NOT_EQUAL,
@@ -3510,7 +3510,7 @@ def sin(a, out=None, where=True, dtype=None, **kwargs):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return ndarray.perform_unary_op(
         UnaryOpCode.SIN,
@@ -3564,7 +3564,7 @@ def cos(a, out=None, where=True, dtype=None, **kwargs):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return ndarray.perform_unary_op(
         UnaryOpCode.COS,
@@ -3618,7 +3618,7 @@ def tan(a, out=None, where=True, dtype=None, **kwargs):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return ndarray.perform_unary_op(
         UnaryOpCode.TAN,
@@ -3668,7 +3668,7 @@ def arcsin(a, out=None, where=True, dtype=None, **kwargs):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return ndarray.perform_unary_op(
         UnaryOpCode.ARCSIN,
@@ -3721,7 +3721,7 @@ def arccos(a, out=None, where=True, dtype=None, **kwargs):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return ndarray.perform_unary_op(
         UnaryOpCode.ARCCOS,
@@ -3772,7 +3772,7 @@ def arctan(a, out=None, where=True, dtype=None, **kwargs):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return ndarray.perform_unary_op(
         UnaryOpCode.ARCTAN,
@@ -3829,7 +3829,7 @@ def tanh(a, out=None, where=True, dtype=None, **kwargs):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return ndarray.perform_unary_op(
         UnaryOpCode.TANH,
@@ -3881,7 +3881,7 @@ def rint(a, out=None, where=True, dtype=None, **kwargs):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return ndarray.perform_unary_op(
         UnaryOpCode.RINT,
@@ -3933,7 +3933,7 @@ def floor(a, out=None, where=True, dtype=None, **kwargs):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     # If this is an integer array then there is nothing to do for floor
     if a.dtype.kind in ("i", "u", "b"):
@@ -3983,7 +3983,7 @@ def ceil(a, out=None, where=True, dtype=None, **kwargs):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     # If this is an integer array then there is nothing to do for ceil
     if a.dtype.kind in ("i", "u", "b"):
@@ -4064,7 +4064,7 @@ def prod(
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return a.prod(
         axis=axis,
@@ -4144,7 +4144,7 @@ def sum(
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return a.sum(
         axis=axis,
@@ -4196,7 +4196,7 @@ def exp(a, out=None, where=True, dtype=None, **kwargs):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return ndarray.perform_unary_op(
         UnaryOpCode.EXP,
@@ -4245,7 +4245,7 @@ def exp2(a, out=None, where=True, dtype=None, **kwargs):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return ndarray.perform_unary_op(
         UnaryOpCode.EXP2,
@@ -4298,7 +4298,7 @@ def log(a, out=None, where=True, dtype=None, **kwargs):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return ndarray.perform_unary_op(
         UnaryOpCode.LOG,
@@ -4348,7 +4348,7 @@ def log10(a, out=None, where=True, dtype=None, **kwargs):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return ndarray.perform_unary_op(
         UnaryOpCode.LOG10,
@@ -4406,7 +4406,7 @@ def add(a, b, out=None, where=True, dtype=None):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return ndarray.perform_binary_op(
         BinaryOpCode.ADD,
@@ -4456,7 +4456,7 @@ def negative(a, out=None, where=True, dtype=None, **kwargs):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return ndarray.perform_unary_op(
         UnaryOpCode.NEGATIVE, a, dtype=dtype, dst=out, where=where
@@ -4506,7 +4506,7 @@ def multiply(a, b, out=None, where=True, dtype=None):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return ndarray.perform_binary_op(
         BinaryOpCode.MULTIPLY,
@@ -4563,7 +4563,7 @@ def power(x1, x2, out=None, where=True, dtype=None, **kwargs):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     if out is None and dtype is None:
         if x1.dtype.kind == "f" or x2.dtype.kind == "f":
@@ -4632,7 +4632,7 @@ def subtract(a, b, out=None, where=True, dtype=None, **kwargs):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return ndarray.perform_binary_op(
         BinaryOpCode.SUBTRACT,
@@ -4699,7 +4699,7 @@ def true_divide(a, b, out=None, where=True, dtype=None, **kwargs):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     # Convert any non-floats to floating point arrays
     if a.dtype.kind != "f":
@@ -4798,7 +4798,7 @@ def floor_divide(a, b, out=None, where=True, dtype=None, **kwargs):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return ndarray.perform_binary_op(
         BinaryOpCode.FLOOR_DIVIDE,
@@ -4855,7 +4855,7 @@ def remainder(a, b, out=None, where=True, dtype=None):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return ndarray.perform_binary_op(
         BinaryOpCode.MOD,
@@ -4896,7 +4896,7 @@ def real(val):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return val.real
 
@@ -4925,7 +4925,7 @@ def imag(val):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return val.imag
 
@@ -4959,7 +4959,7 @@ def conjugate(x):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return x.conj()
 
@@ -5015,7 +5015,7 @@ def maximum(a, b, out=None, where=True, dtype=None, **kwargs):
 
         Availability
         --------
-        GPU, CPU
+        Multiple GPUs, Multiple CPUs
     """
     return ndarray.perform_binary_op(
         BinaryOpCode.MAXIMUM,
@@ -5081,7 +5081,7 @@ def amax(a, axis=None, out=None, keepdims=False):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return a.max(axis=axis, out=out, keepdims=keepdims)
 
@@ -5135,7 +5135,7 @@ def minimum(a, b, out=None, where=True, dtype=None, **kwargs):
 
         Availability
         --------
-        GPU, CPU
+        Multiple GPUs, Multiple CPUs
     """
     return ndarray.perform_binary_op(
         BinaryOpCode.MINIMUM,
@@ -5201,7 +5201,7 @@ def amin(a, axis=None, out=None, keepdims=False):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return a.min(axis=axis, out=out, keepdims=keepdims)
 
@@ -5257,7 +5257,7 @@ def convolve(a, v, mode="full"):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     if mode != "same":
         raise NotImplementedError("Need to implement other convolution modes")
@@ -5313,7 +5313,7 @@ def clip(a, a_min, a_max, out=None):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return a.clip(a_min, a_max, out=out)
 
@@ -5360,7 +5360,7 @@ def sqrt(a, out=None, where=True, dtype=None, **kwargs):
 
         Availability
         --------
-        GPU, CPU
+        Multiple GPUs, Multiple CPUs
     """
     return ndarray.perform_unary_op(
         UnaryOpCode.SQRT,
@@ -5408,7 +5408,7 @@ def square(a, out=None, where=True, dtype=None, **kwargs):
 
         Availability
         --------
-        GPU, CPU
+        Multiple GPUs, Multiple CPUs
     """
     return multiply(a, a, out=out, where=where, dtype=dtype)
 
@@ -5451,7 +5451,7 @@ def absolute(a, out=None, where=True, **kwargs):
 
         Availability
         --------
-        GPU, CPU
+        Multiple GPUs, Multiple CPUs
     """
     # Handle the nice case of it being unsigned
     if a.dtype.type in (np.uint16, np.uint32, np.uint64, np.bool_):
@@ -5505,7 +5505,7 @@ def fabs(a, out=None, where=True, **kwargs):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return absolute(a, out=out, where=where, **kwargs)
 
@@ -5555,7 +5555,7 @@ def sign(a, out=None, where=True, dtype=None, **kwargs):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return ndarray.perform_unary_op(
         UnaryOpCode.SIGN,
@@ -5603,7 +5603,7 @@ def argmax(a, axis=None, out=None):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     if out is not None:
         if out.dtype != np.int64:
@@ -5640,7 +5640,7 @@ def argmin(a, axis=None, out=None):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     if out is not None:
         if out is not None and out.dtype != np.int64:
@@ -5679,7 +5679,7 @@ def count_nonzero(a, axis=None):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     if a.size == 0:
         return 0
@@ -5753,7 +5753,7 @@ def mean(a, axis=None, dtype=None, out=None, keepdims=False):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return a.mean(axis=axis, dtype=dtype, out=out, keepdims=keepdims)
 
@@ -5806,7 +5806,7 @@ def bincount(a, weights=None, minlength=0):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     if weights is not None:
         if weights.shape != a.shape:

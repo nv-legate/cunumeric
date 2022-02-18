@@ -51,7 +51,7 @@ def rand(*shapeargs):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
 
     if shapeargs is None:
@@ -95,7 +95,7 @@ def randint(low, high=None, size=None, dtype=None):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
 
     if size is None:
@@ -153,7 +153,7 @@ def randn(*shapeargs):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
 
     if shapeargs is None:
@@ -175,7 +175,7 @@ def random(shape=None):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     if shape is None:
         return nprandom.random()

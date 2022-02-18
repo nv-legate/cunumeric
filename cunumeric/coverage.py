@@ -30,6 +30,7 @@ def getPredefinedAttributes(namespace):
 
 def unimplemented(func):
     def wrapper(*args, **kwargs):
+        """Unimplemented"""
         stacklevel = find_last_user_stacklevel()
 
         warnings.warn(
