@@ -29,10 +29,9 @@
 import os
 import sys
 
-import _comparison_generator
-
 sys.path.insert(0, os.path.abspath("comparison"))
 sys.path.insert(0, os.path.abspath("../../../"))
+import _comparison_generator  # noqa: E402
 
 # Generate comparison table.
 with open("comparison/comparison_table.rst.inc", "w") as f:

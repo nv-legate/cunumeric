@@ -25,6 +25,9 @@ def run_test(arr, routine, input_size):
     if routine == "concatenate" or routine == "stack":
         # 'axis' options
         input_arr.append([axis for axis in range(arr[0].ndim)])
+        # test axis == 'None' for concatenate
+        if routine == "concatenate":
+            input_arr[-1].append(None)
         # 'out' argument
         input_arr.append([None])
     test_args = itertools.product(*input_arr)
@@ -45,8 +48,8 @@ def run_test(arr, routine, input_size):
                     err_arr = sub_set
                     is_equal = False
                     break
-
-        print_msg = f"np.{routine}(array({arr[0].shape}) * 3)" f", {args[1:]})"
+        shape_list = list(inp.shape for inp in arr)
+        print_msg = f"np.{routine}(array({shape_list})" f", {args[1:]})"
         assert is_equal, (
             f"Failed, {print_msg}\n"
             f"numpy result: {err_arr[0]}, {b.shape}\n"
@@ -65,12 +68,19 @@ def run_test(arr, routine, input_size):
 
 def test(dim):
     print("test np.concatenate / *stack")
-    test_routine = ["concatenate", "stack", "vstack", "hstack", "dstack"]
+    test_routine = [
+        "concatenate",
+        "stack",
+        "vstack",
+        "hstack",
+        "dstack",
+        "column_stack",
+    ]
     # test np.concatenate & *stack w/ 1D, 2D and 3D arrays
     input_arr = [
-        (0),
+        (0,),
         (0, 10),
-        (1),
+        (1,),
         (1, 1),
         (1, 1, 1),
         (1, dim),
@@ -78,15 +88,17 @@ def test(dim):
         (dim, dim, dim),
     ]
     for routine, input_size in itertools.product(test_routine, input_arr):
-        a = tuple(
-            [
-                np.random.randint(low=0, high=100, size=(input_size))
-                for num_arr in range(3)
-            ]
-        )
-        run_test(a, routine, input_size)
+        a = [
+            np.random.randint(low=0, high=100, size=(input_size))
+            for num_arr in range(3)
+        ]
+        # test the exception for 1D array on vstack and dstack
+        if routine in ("vstack", "dstack"):
+            if len(input_size) == 2 and input_size == (1, dim):
+                a.append(np.random.randint(low=0, high=100, size=(dim,)))
+        run_test(tuple(a), routine, input_size)
     return
 
 
 if __name__ == "__main__":
-    test(20)
+    test(10)
