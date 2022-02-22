@@ -1285,10 +1285,19 @@ def _concatenate(
         idx_arr.append(slice(out_shape[i]))
 
     for inp in inputs:
-        idx_arr[axis] = slice(offset, offset + inp.shape[axis])
-        out_array[tuple(idx_arr)] = inp
-        offset += inp.shape[axis]
+        if inp.size > 0:
+            idx_arr[axis] = slice(offset, offset + inp.shape[axis])
+            out_array[tuple(idx_arr)] = inp
+            offset += inp.shape[axis]
     return out_array
+
+
+def append(arr, values, axis=None):
+    # Check to see if we can build a new tuple of cuNumeric arrays
+    inputs = list(
+        ndarray.convert_to_cunumeric_ndarray(inp) for inp in [arr, values]
+    )
+    return concatenate(inputs, axis)
 
 
 def concatenate(inputs, axis=0, out=None, dtype=None, casting="same_kind"):
