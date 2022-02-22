@@ -100,4 +100,4 @@ def test(dim):
 
 
 if __name__ == "__main__":
-    test(1000)
+    test(10)
