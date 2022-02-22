@@ -91,7 +91,7 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def repeat(self, rhs, repeats, axis, scalar_repeats, stacklevel):
+    def repeat(self, rhs, repeats, axis, scalar_repeats):
         ...
 
     @property

@@ -15,7 +15,6 @@
 
 import math
 import re
-import warnings
 from collections import Counter
 from functools import wraps
 from inspect import signature
@@ -1947,34 +1946,30 @@ def repeat(a, repeats, axis=None):
                 "`repeat` with a scalar parameter `a` is only "
                 "implemented for scalar values of the parameter `repeats`."
             )
+    if np.ndim(repeats) > 1:
+        raise ValueError("`repeats` should be scalar or 1D array")
 
     # array is an array
     array = ndarray.convert_to_cunumeric_ndarray(a)
-    if np.ndim(repeats) != 0:
+    if np.ndim(repeats) == 1:
         repeats = ndarray.convert_to_cunumeric_ndarray(repeats)
 
     # if no axes specified, flatten array
     if axis is None:
         array = array.ravel()
         axis = 0
-        if np.ndim(repeats) != 0:
-            repeats.ravel()
-            if repeats.shape != array.shape:
-                return ValueError(
-                    "size of repeats shoul be equalt to array size"
-                )
 
     # axes should be integer type
-    assert isinstance(axis, int)
-    if type(axis) is not np.int32:
-        axis = np.int32(axis)
+    if not isinstance(axis, int):
+        raise ValueError("Axis should be integer type")
+    axis = np.int32(axis)
 
-    if axis > array.ndim:
-        return ValueError("axis exceed dimension of the input array")
+    if axis >= array.ndim:
+        return ValueError("axis exceeds dimension of the input array")
 
     # If repeats is on a zero sized axis, then return the array.
     if array.shape[axis] == 0:
-        return array
+        return array.copy()
 
     # repeats is a scalar.
     if np.ndim(repeats) == 0:
@@ -1985,15 +1980,14 @@ def repeat(a, repeats, axis=None):
             empty_shape = tuple(empty_shape)
             return ndarray(shape=empty_shape, dtype=array.dtype)
         # repeats should be integer type
-        if type(repeats) is not np.int64:
-            warnings.warn(
-                "converting repeats to int64 type",
-                stacklevel=2,
+        if not isinstance(repeats, int):
+            runtime.warn(
+                "converting repeats to an integer type",
                 category=RuntimeWarning,
             )
-            repeats = np.int64(repeats)
+        repeats = np.int64(repeats)
 
-        result_shape = [array.shape[i] for i in range(0, array.ndim)]
+        result_shape = list(array.shape)
         result_shape[axis] = result_shape[axis] * repeats
         result_shape = tuple(result_shape)
         result = ndarray(result_shape, dtype=array.dtype, inputs=(array,))
@@ -2006,15 +2000,14 @@ def repeat(a, repeats, axis=None):
     # repeats is an array
     else:
         # repeats should be integer type
-        if repeats.dtype is not np.int64:
-            warnings.warn(
-                "converting repeats to int64 type",
-                stacklevel=2,
+        if not isinstance(repeats, int):
+            runtime.warn(
+                "converting repeats to an integer type",
                 category=RuntimeWarning,
             )
-            repeats = repeats.astype(np.int64)
+        repeats = repeats.astype(np.int64)
         if repeats.shape[0] != array.shape[axis]:
-            return ValueError("incorect shape of repeats array")
+            return ValueError("incorrect shape of repeats array")
         total_repeats = repeats.sum(dtype=np.int64)
         result_shape = tuple(array.shape[i] for i in range(0, axis))
         size = np.int64(total_repeats)

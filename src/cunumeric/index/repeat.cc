@@ -1,4 +1,4 @@
-/* Copyright 2021 NVIDIA Corporation
+/* Copyright 2021-2022 NVIDIA Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -54,7 +54,7 @@ struct RepeatImplBody<VariantKind::CPU, CODE, DIM> {
   {
     const size_t volume = rect.volume();
 
-    // First, generate array of offsets; it will have size of the axis dimention
+    // First, generate array of offsets; it will have size of the axis dimension
     // for the output array
     std::vector<int64_t> offsets;
 
