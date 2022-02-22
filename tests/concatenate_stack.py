@@ -43,9 +43,8 @@ def run_test(arr, routine, input_size):
             err_arr = [b, c]
         else:
             for each in zip(b, c):
-                sub_set = list(each)
-                if not np.array_equal(sub_set[0], sub_set[1]):
-                    err_arr = sub_set
+                if not np.array_equal(*each):
+                    err_arr = each
                     is_equal = False
                     break
         shape_list = list(inp.shape for inp in arr)
@@ -101,4 +100,4 @@ def test(dim):
 
 
 if __name__ == "__main__":
-    test(10)
+    test(1000)
