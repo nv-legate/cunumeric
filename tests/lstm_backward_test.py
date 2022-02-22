@@ -1,4 +1,4 @@
-# Copyright 2021 NVIDIA Corporation
+# Copyright 2021-2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
-from __future__ import division
 
 import numpy as np
 
@@ -74,10 +72,10 @@ def testtion():
         # assert num.allclose(dIFOGf_np[t,:,2*d:3*d], dIFOGf_num[t,:,2*d:3*d])
 
         # backprop tanh non-linearity first then continue backprop
-        dC_np[t] += (1 - tanhCt_np ** 2) * (
+        dC_np[t] += (1 - tanhCt_np**2) * (
             IFOGf_np[t, :, 2 * d : 3 * d] * dHout_np[t]
         )
-        dC_num[t] += (1 - tanhCt_num ** 2) * (
+        dC_num[t] += (1 - tanhCt_num**2) * (
             IFOGf_num[t, :, 2 * d : 3 * d] * dHout_num[t]
         )
         # assert num.allclose(dC_np[t], dC_num[t])

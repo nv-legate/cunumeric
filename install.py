@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2021 NVIDIA Corporation
+# Copyright 2021-2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,6 +24,8 @@ import shutil
 import subprocess
 import sys
 import tempfile
+
+import setuptools
 
 # Flush output on newlines
 sys.stdout.reconfigure(line_buffering=True)
@@ -313,15 +315,19 @@ def build_cunumeric(
         "setup.py",
         "install",
         "--recurse",
-        "--single-version-externally-managed",
-        "--root=/",
+        "--prefix",
+        install_dir,
     ]
+    # Work around breaking change in setuptools 60
+    if int(setuptools.__version__.split(".")[0]) >= 60:
+        cmd += ["--single-version-externally-managed", "--root=/"]
     if unknown is not None:
+        if "--prefix" in unknown:
+            raise Exception(
+                "cuNumeric cannot be installed in a different location than "
+                "Legate Core, please remove the --prefix argument"
+            )
         cmd += unknown
-        if "--prefix" not in unknown:
-            cmd += ["--prefix", str(install_dir)]
-    else:
-        cmd += ["--prefix", str(install_dir)]
     execute_command(cmd, cwd=cunumeric_dir, verbose=verbose)
 
 

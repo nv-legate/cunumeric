@@ -1,4 +1,4 @@
-# Copyright 2021 NVIDIA Corporation
+# Copyright 2021-2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -36,3 +36,4 @@ help:
 	rm -rf build/html/docs
 	mkdir -p build/html/docs
 	cp -r ../figures build/html/docs/
+	find source/ -name "generated" | xargs rm -rf

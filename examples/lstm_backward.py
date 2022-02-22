@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2021 NVIDIA Corporation
+# Copyright 2021-2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,8 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
-from __future__ import print_function
 
 import argparse
 import datetime
@@ -54,7 +52,7 @@ def run_lstm(batch_size, hidden_size, sentence_length, word_size, timing):
         tanhCt = Ct[t]
         dIFOGf[t, :, 2 * d : 3 * d] = tanhCt * dHout[t]
         # backprop tanh non-linearity first then continue backprop
-        dC[t] += (1 - tanhCt ** 2) * (IFOGf[t, :, 2 * d : 3 * d] * dHout[t])
+        dC[t] += (1 - tanhCt**2) * (IFOGf[t, :, 2 * d : 3 * d] * dHout[t])
 
         if t > 0:
             dIFOGf[t, :, d : 2 * d] = C[t - 1] * dC[t]

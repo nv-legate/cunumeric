@@ -1,4 +1,4 @@
-# Copyright 2021 NVIDIA Corporation
+# Copyright 2021-2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -123,7 +123,7 @@ def choose_color_shape(runtime, shape):
         return (num_tiles, num_tiles)
 
 
-def cholesky(output, input, stacklevel=0, callsite=None):
+def cholesky(output, input):
     shape = output.base.shape
     color_shape = choose_color_shape(output.runtime, shape)
     tile_shape = (shape + color_shape - 1) // color_shape

@@ -1,4 +1,4 @@
-# Copyright 2021 NVIDIA Corporation
+# Copyright 2021-2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ import cunumeric as num
 def test_diagonal():
     a = num.eye(10) * 10.0
     b = num.linalg.cholesky(a)
-    assert num.allclose(b ** 2.0, a)
+    assert num.allclose(b**2.0, a)
 
 
 def test_real(n):

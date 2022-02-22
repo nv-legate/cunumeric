@@ -1,4 +1,4 @@
-# Copyright 2021 NVIDIA Corporation
+# Copyright 2021-2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
 # limitations under the License.
 #
 
-import warnings
 import weakref
 from collections import Counter
 from collections.abc import Iterable
@@ -23,9 +22,16 @@ from itertools import product
 import numpy as np
 
 import legate.core.types as ty
-from legate.core import *  # noqa F403
+from legate.core import Future, ReductionOp, Store
 
-from .config import *  # noqa F403
+from .config import (
+    BinaryOpCode,
+    CuNumericOpCode,
+    CuNumericRedopCode,
+    RandGenCode,
+    UnaryOpCode,
+    UnaryRedCode,
+)
 from .linalg.cholesky import cholesky
 from .thunk import NumPyThunk
 from .utils import get_arg_value_dtype
@@ -52,77 +58,19 @@ def auto_convert(indices, keys=[]):
     def decorator(func):
         def wrapper(*args, **kwargs):
             self = args[0]
-            stacklevel = kwargs.get("stacklevel") + 1
 
             args = tuple(
-                self.runtime.to_deferred_array(arg, stacklevel=stacklevel)
-                if idx in indices
-                else arg
+                self.runtime.to_deferred_array(arg) if idx in indices else arg
                 for (idx, arg) in enumerate(args)
             )
             for key in keys:
                 v = kwargs.get(key, None)
                 if v is None:
                     continue
-                v = self.runtime.to_deferred_array(v, stacklevel=stacklevel)
+                v = self.runtime.to_deferred_array(v)
                 kwargs[key] = v
-            kwargs["stacklevel"] = stacklevel
 
             return func(*args, **kwargs)
-
-        return wrapper
-
-    return decorator
-
-
-def profile(func):
-    def wrapper(*args, **kwargs):
-        self = args[0]
-        stacklevel = kwargs.get("stacklevel") + 1
-        callsite = kwargs.get("callsite")
-        kwargs["stacklevel"] = stacklevel
-
-        result = func(*args, **kwargs)
-
-        self.runtime.profile_callsite(stacklevel, True, callsite)
-
-        return result
-
-    return wrapper
-
-
-def shadow_debug(func_name, indices, keys=[]):
-    indices = set(indices)
-
-    def decorator(func):
-        def wrapper(*args, **kwargs):
-            self = args[0]
-            if not self.runtime.shadow_debug:
-                return func(*args, **kwargs)
-
-            stacklevel = kwargs.get("stacklevel") + 1
-            kwargs["stacklevel"] = stacklevel
-            result = func(*args, **kwargs)
-
-            shadow_args = tuple(
-                arg.shadow if idx in indices else arg
-                for (idx, arg) in enumerate(args)
-            )
-            shadow_args = shadow_args[1:]
-            shadow_kwargs = kwargs.copy()
-            if "callsite" in shadow_kwargs:
-                del shadow_kwargs["callsite"]
-            for key in keys:
-                v = shadow_kwargs.get(key, None)
-                if v is None:
-                    continue
-                shadow_kwargs[key] = v.shadow
-
-            assert self.shadow.shadow
-            getattr(self.shadow, func_name)(*shadow_args, **shadow_kwargs)
-            self.runtime.check_shadow(self, func_name)
-
-            return result
 
         return wrapper
 
@@ -236,16 +184,16 @@ class DeferredArray(NumPyThunk):
     def ndim(self):
         return len(self.shape)
 
-    def _copy_if_overlapping(self, other, stacklevel=0):
+    def _copy_if_overlapping(self, other):
         if not self.base.overlaps(other.base):
             return self
         copy = self.runtime.create_empty_thunk(
             self.shape, self.dtype, inputs=[self]
         )
-        copy.copy(self, deep=True, stacklevel=stacklevel)
+        copy.copy(self, deep=True)
         return copy
 
-    def __numpy_array__(self, stacklevel=0):
+    def __numpy_array__(self):
         if self.numpy_array is not None:
             result = self.numpy_array()
             if result is not None:
@@ -258,7 +206,7 @@ class DeferredArray(NumPyThunk):
         if self.scalar:
             result = np.full(
                 self.shape,
-                self.get_scalar_array(stacklevel=(stacklevel + 1)),
+                self.get_scalar_array(),
                 dtype=self.dtype,
             )
         else:
@@ -276,7 +224,7 @@ class DeferredArray(NumPyThunk):
         return result
 
     # TODO: We should return a view of the field instead of a copy
-    def imag(self, stacklevel=0, callsite=None):
+    def imag(self):
         result = self.runtime.create_empty_thunk(
             self.shape,
             dtype=_complex_field_dtype(self.dtype),
@@ -289,14 +237,12 @@ class DeferredArray(NumPyThunk):
             self,
             True,
             [],
-            stacklevel=stacklevel + 1,
-            callsite=callsite,
         )
 
         return result
 
     # TODO: We should return a view of the field instead of a copy
-    def real(self, stacklevel=0, callsite=None):
+    def real(self):
         result = self.runtime.create_empty_thunk(
             self.shape,
             dtype=_complex_field_dtype(self.dtype),
@@ -309,13 +255,11 @@ class DeferredArray(NumPyThunk):
             self,
             True,
             [],
-            stacklevel=stacklevel + 1,
-            callsite=callsite,
         )
 
         return result
 
-    def conj(self, stacklevel=0, callsite=None):
+    def conj(self):
         result = self.runtime.create_empty_thunk(
             self.shape,
             dtype=self.dtype,
@@ -328,15 +272,13 @@ class DeferredArray(NumPyThunk):
             self,
             True,
             [],
-            stacklevel=stacklevel + 1,
-            callsite=callsite,
         )
 
         return result
 
     # Copy source array to the destination array
     @auto_convert([1])
-    def copy(self, rhs, deep=False, stacklevel=0, callsite=None):
+    def copy(self, rhs, deep=False):
         if self.scalar and rhs.scalar:
             self.base.set_storage(rhs.base.storage)
             return
@@ -346,21 +288,19 @@ class DeferredArray(NumPyThunk):
             rhs,
             True,
             [],
-            stacklevel=stacklevel + 1,
-            callsite=callsite,
         )
 
     @property
     def scalar(self):
         return self.base.scalar
 
-    def get_scalar_array(self, stacklevel):
+    def get_scalar_array(self):
         assert self.scalar
         buf = self.base.storage.get_buffer(self.dtype.itemsize)
         result = np.frombuffer(buf, dtype=self.dtype, count=1)
         return result.reshape(())
 
-    def _create_indexing_array(self, key, stacklevel):
+    def _create_indexing_array(self, key):
         # Convert everything into deferred arrays of int64
         if isinstance(key, tuple):
             tuple_of_arrays = ()
@@ -380,7 +320,7 @@ class DeferredArray(NumPyThunk):
                     )
                 # For boolean arrays do the non-zero operation to make
                 # them into a normal indexing array
-                tuple_of_arrays = key.nonzero(stacklevel + 1)
+                tuple_of_arrays = key.nonzero()
             else:
                 tuple_of_arrays = (key,)
         if len(tuple_of_arrays) != self.ndim:
@@ -390,9 +330,7 @@ class DeferredArray(NumPyThunk):
             # Concatenate all the arrays into a single array
             raise NotImplementedError("need support for concatenating arrays")
         else:
-            return self.runtime.to_deferred_array(
-                tuple_of_arrays[0], stacklevel=(stacklevel + 1)
-            )
+            return self.runtime.to_deferred_array(tuple_of_arrays[0])
 
     @staticmethod
     def _unpack_ellipsis(key, ndim):
@@ -450,13 +388,11 @@ class DeferredArray(NumPyThunk):
 
         return result
 
-    def get_item(self, key, stacklevel=0):
+    def get_item(self, key):
         # Check to see if this is advanced indexing or not
         if self._is_advanced_indexing(key):
             # Create the indexing array
-            index_array = self._create_indexing_array(
-                key, stacklevel=(stacklevel + 1)
-            )
+            index_array = self._create_indexing_array(key)
             # Create a new array to be the result
             result = self.runtime.create_empty_thunk(
                 index_array.base.shape,
@@ -493,22 +429,15 @@ class DeferredArray(NumPyThunk):
 
                 task.execute()
 
-        if self.runtime.shadow_debug:
-            result.shadow = self.shadow.get_item(
-                key,
-                stacklevel=(stacklevel + 1),
-            )
         return result
 
     @auto_convert([2])
-    def set_item(self, key, rhs, stacklevel=0):
+    def set_item(self, key, rhs):
         assert self.dtype == rhs.dtype
         # Check to see if this is advanced indexing or not
         if self._is_advanced_indexing(key):
             # Create the indexing array
-            index_array = self._create_indexing_array(
-                key, stacklevel=(stacklevel + 1)
-            )
+            index_array = self._create_indexing_array(key)
             if index_array.shape != rhs.shape:
                 raise ValueError(
                     "Advanced indexing array does not match source shape"
@@ -557,52 +486,35 @@ class DeferredArray(NumPyThunk):
                 if view.base == rhs.base:
                     return
 
-                if self.runtime.shadow_debug:
-                    view.shadow = self.runtime.to_eager_array(
-                        view,
-                        stacklevel + 1,
-                    )
-
                 if view.base.overlaps(rhs.base):
                     rhs_copy = self.runtime.create_empty_thunk(
                         rhs.shape,
                         rhs.dtype,
                         inputs=[rhs],
                     )
-                    rhs_copy.copy(rhs, deep=False, stacklevel=(stacklevel + 1))
+                    rhs_copy.copy(rhs, deep=False)
                     rhs = rhs_copy
 
-                view.copy(rhs, deep=False, stacklevel=(stacklevel + 1))
-        if self.runtime.shadow_debug:
-            self.shadow.set_item(key, rhs.shadow, stacklevel=(stacklevel + 1))
-            self.runtime.check_shadow(self, "set_item")
+                view.copy(rhs, deep=False)
 
-    def reshape(self, newshape, order, stacklevel):
+    def reshape(self, newshape, order):
         assert isinstance(newshape, Iterable)
         if order == "A":
             order = "C"
 
         if order != "C":
             # If we don't have a transform then we need to make a copy
-            warnings.warn(
+            self.runtime.warn(
                 "cuNumeric has not implemented reshape using Fortran-like "
                 "index order and is falling back to canonical numpy. You may "
                 "notice significantly decreased performance for this "
                 "function call.",
-                stacklevel=(stacklevel + 1),
                 category=RuntimeWarning,
             )
-            numpy_array = self.__numpy_array__(stacklevel=(stacklevel + 1))
+            numpy_array = self.__numpy_array__()
             # Force a copy here because we know we can't build a view
             result_array = numpy_array.reshape(newshape, order=order).copy()
-            result = self.runtime.get_numpy_thunk(
-                result_array, stacklevel=(stacklevel + 1)
-            )
-
-            if self.runtime.shadow_debug:
-                result.shadow = self.shadow.reshape(
-                    newshape, order, stacklevel=(stacklevel + 1)
-                )
+            result = self.runtime.get_numpy_thunk(result_array)
 
             return result
 
@@ -731,7 +643,7 @@ class DeferredArray(NumPyThunk):
 
             src_array = DeferredArray(self.runtime, src, self.dtype)
             tgt_array = DeferredArray(self.runtime, tgt, self.dtype)
-            tgt_array.copy(src_array, deep=True, stacklevel=stacklevel + 1)
+            tgt_array.copy(src_array, deep=True)
 
             if needs_delinearization and needs_linearization:
                 src = result.base
@@ -746,7 +658,7 @@ class DeferredArray(NumPyThunk):
                 result = self.runtime.create_empty_thunk(
                     newshape, dtype=self.dtype, inputs=[self]
                 )
-                result.copy(src_array, deep=True, stacklevel=stacklevel + 1)
+                result.copy(src_array, deep=True)
 
         else:
             src = self.base
@@ -772,7 +684,7 @@ class DeferredArray(NumPyThunk):
 
         return result
 
-    def squeeze(self, axis, stacklevel):
+    def squeeze(self, axis):
         result = self.base
         if axis is None:
             shift = 0
@@ -791,14 +703,9 @@ class DeferredArray(NumPyThunk):
             raise TypeError(
                 '"axis" argument for squeeze must be int-like or tuple-like'
             )
-        result = DeferredArray(self.runtime, result, self.dtype)
-        if self.runtime.shadow_debug:
-            result.shadow = self.shadow.squeeze(
-                axis, stacklevel=stacklevel + 1
-            )
-        return result
+        return DeferredArray(self.runtime, result, self.dtype)
 
-    def swapaxes(self, axis1, axis2, stacklevel=0):
+    def swapaxes(self, axis1, axis2):
         if self.size == 1 or axis1 == axis2:
             return self
         # Make a new deferred array object and swap the results
@@ -810,30 +717,22 @@ class DeferredArray(NumPyThunk):
         result = self.base.transpose(dims)
         result = DeferredArray(self.runtime, result, self.dtype)
 
-        if self.runtime.shadow_debug:
-            result.shadow = self.shadow.swapaxes(
-                axis1, axis2, stacklevel=stacklevel + 1
-            )
-
         return result
 
     # Convert the source array to the destination array
-    @profile
     @auto_convert([1])
-    @shadow_debug("convert", [1])
-    def convert(self, rhs, stacklevel=0, warn=True, callsite=None):
+    def convert(self, rhs, warn=True):
         lhs_array = self
         rhs_array = rhs
         assert lhs_array.dtype != rhs_array.dtype
 
         if warn:
-            warnings.warn(
+            self.runtime.warn(
                 "cuNumeric performing implicit type conversion from "
                 + str(rhs_array.dtype)
                 + " to "
                 + str(lhs_array.dtype),
                 category=UserWarning,
-                stacklevel=(stacklevel + 1),
             )
 
         lhs = lhs_array.base
@@ -848,10 +747,8 @@ class DeferredArray(NumPyThunk):
 
         task.execute()
 
-    @profile
     @auto_convert([1, 2])
-    @shadow_debug("convolve", [1, 2])
-    def convolve(self, v, lhs, mode, stacklevel=0, callsite=None):
+    def convolve(self, v, lhs, mode):
         input = self.base
         filter = v.base
         out = lhs.base
@@ -886,8 +783,7 @@ class DeferredArray(NumPyThunk):
         task.execute()
 
     # Fill the cuNumeric array with the value in the numpy array
-    @profile
-    def _fill(self, value, stacklevel=0, callsite=None):
+    def _fill(self, value):
         assert value.scalar
 
         if self.scalar:
@@ -912,8 +808,7 @@ class DeferredArray(NumPyThunk):
 
             task.execute()
 
-    @shadow_debug("fill", [])
-    def fill(self, numpy_array, stacklevel=0, callsite=None):
+    def fill(self, numpy_array):
         assert isinstance(numpy_array, np.ndarray)
         assert numpy_array.size == 1
         assert self.dtype == numpy_array.dtype
@@ -924,11 +819,9 @@ class DeferredArray(NumPyThunk):
         store = self.context.create_store(
             self.dtype, shape=(1,), storage=value, optimize_scalar=True
         )
-        self._fill(store, stacklevel=stacklevel + 1, callsite=callsite)
+        self._fill(store)
 
-    @profile
     @auto_convert([2, 4])
-    @shadow_debug("contract", [2, 4])
     def contract(
         self,
         lhs_modes,
@@ -937,8 +830,6 @@ class DeferredArray(NumPyThunk):
         rhs2_thunk,
         rhs2_modes,
         mode2extent,
-        stacklevel=0,
-        callsite=None,
     ):
         lhs_thunk = self
 
@@ -1015,11 +906,7 @@ class DeferredArray(NumPyThunk):
             )
 
         # Clear output array
-        lhs_thunk.fill(
-            np.array(0, dtype=lhs_thunk.dtype),
-            stacklevel=(stacklevel + 1),
-            callsite=callsite,
-        )
+        lhs_thunk.fill(np.array(0, dtype=lhs_thunk.dtype))
 
         # Pull out the stores
         lhs = lhs_thunk.base
@@ -1120,9 +1007,7 @@ class DeferredArray(NumPyThunk):
             if rhs1_thunk.dtype == np.float16:
                 self.convert(
                     lhs_thunk,
-                    stacklevel=(stacklevel + 1),
                     warn=False,
-                    callsite=callsite,
                 )
 
             return
@@ -1180,20 +1065,10 @@ class DeferredArray(NumPyThunk):
         task.execute()
 
     # Create array from input array and indices
-    @profile
-    def choose(
-        self,
-        *args,
-        rhs,
-        stacklevel=0,
-        callsite=None,
-    ):
+    def choose(self, *args, rhs):
         # convert all arrays to deferred
-        index_arr = self.runtime.to_deferred_array(rhs, stacklevel=stacklevel)
-        ch_def = tuple(
-            self.runtime.to_deferred_array(c, stacklevel=stacklevel)
-            for c in args
-        )
+        index_arr = self.runtime.to_deferred_array(rhs)
+        ch_def = tuple(self.runtime.to_deferred_array(c) for c in args)
 
         out_arr = self.base
         # broadcast input array and all choices arrays to the same shape
@@ -1212,78 +1087,71 @@ class DeferredArray(NumPyThunk):
         task.execute()
 
     # Create or extract a diagonal from a matrix
-    @profile
     @auto_convert([1])
-    @shadow_debug("diag", [1])
-    def diag(self, rhs, extract, k, stacklevel=0, callsite=None):
+    def diag_helper(
+        self,
+        rhs,
+        offset,
+        naxes,
+        extract,
+    ):
+        # fill output array with 0
+        self.fill(np.array(0, dtype=self.dtype))
         if extract:
-            matrix_array = rhs
-            diag_array = self
+            diag = self.base
+            matrix = rhs.base
+            ndim = rhs.ndim
+            start = matrix.ndim - naxes
+            n = ndim - 1
+            if naxes == 2:
+                # get slice of the original array by the offset
+                if offset > 0:
+                    matrix = matrix.slice(start + 1, slice(offset, None))
+                if matrix.shape[n - 1] < matrix.shape[n]:
+                    diag = diag.promote(start + 1, matrix.shape[ndim - 1])
+                else:
+                    diag = diag.promote(start, matrix.shape[ndim - 2])
+            else:
+                # promote output to the shape of the input  array
+                for i in range(1, naxes):
+                    diag = diag.promote(start, matrix.shape[-i - 1])
         else:
-            matrix_array = self
-            diag_array = rhs
+            matrix = self.base
+            diag = rhs.base
+            ndim = self.ndim
+            # get slice of the original array by the offset
+            if offset > 0:
+                matrix = matrix.slice(1, slice(offset, None))
+            elif offset < 0:
+                matrix = matrix.slice(0, slice(-offset, None))
 
-        assert diag_array.ndim == 1
-        assert matrix_array.ndim == 2
-        assert diag_array.shape[0] <= min(
-            matrix_array.shape[0], matrix_array.shape[1]
-        )
-        assert rhs.dtype == self.dtype
-
-        # Issue a fill operation to get the output initialized
-        if extract:
-            diag_array.fill(
-                np.array(0, dtype=diag_array.dtype),
-                stacklevel=(stacklevel + 1),
-                callsite=callsite,
-            )
-        else:
-            matrix_array.fill(
-                np.array(0, dtype=matrix_array.dtype),
-                stacklevel=(stacklevel + 1),
-                callsite=callsite,
-            )
-
-        matrix = matrix_array.base
-        diag = diag_array.base
-
-        if k > 0:
-            matrix = matrix.slice(1, slice(k, None))
-        elif k < 0:
-            matrix = matrix.slice(0, slice(-k, None))
-
-        if matrix.shape[0] < matrix.shape[1]:
-            diag = diag.promote(1, matrix.shape[1])
-        else:
-            diag = diag.promote(0, matrix.shape[0])
+            if matrix.shape[0] < matrix.shape[1]:
+                diag = diag.promote(1, matrix.shape[1])
+            else:
+                diag = diag.promote(0, matrix.shape[0])
 
         task = self.context.create_task(CuNumericOpCode.DIAG)
 
         if extract:
             task.add_reduction(diag, ReductionOp.ADD)
             task.add_input(matrix)
+            task.add_alignment(matrix, diag)
         else:
             task.add_output(matrix)
-            task.add_input(matrix)
             task.add_input(diag)
+            task.add_input(matrix)
+            task.add_alignment(diag, matrix)
 
+        task.add_scalar_arg(naxes, ty.int32)
         task.add_scalar_arg(extract, bool)
-
-        task.add_alignment(matrix, diag)
 
         task.execute()
 
     # Create an identity array with the ones offset from the diagonal by k
-    @profile
-    @shadow_debug("eye", [])
-    def eye(self, k, stacklevel=0, callsite=None):
+    def eye(self, k):
         assert self.ndim == 2  # Only 2-D arrays should be here
         # First issue a fill to zero everything out
-        self.fill(
-            np.array(0, dtype=self.dtype),
-            stacklevel=(stacklevel + 1),
-            callsite=callsite,
-        )
+        self.fill(np.array(0, dtype=self.dtype))
 
         task = self.context.create_task(CuNumericOpCode.EYE)
         task.add_output(self.base)
@@ -1291,9 +1159,7 @@ class DeferredArray(NumPyThunk):
 
         task.execute()
 
-    @profile
-    @shadow_debug("arange", [])
-    def arange(self, start, stop, step, stacklevel=0, callsite=None):
+    def arange(self, start, stop, step):
         assert self.ndim == 1  # Only 1-D arrays should be here
         if self.scalar:
             # Handle the special case of a single value here
@@ -1321,18 +1187,14 @@ class DeferredArray(NumPyThunk):
         task.execute()
 
     # Tile the src array onto the destination array
-    @profile
     @auto_convert([1])
-    @shadow_debug("tile", [1])
-    def tile(self, rhs, reps, stacklevel=0, callsite=None):
+    def tile(self, rhs, reps):
         src_array = rhs
         dst_array = self
         assert src_array.ndim <= dst_array.ndim
         assert src_array.dtype == dst_array.dtype
         if src_array.scalar:
-            self._fill(
-                src_array.base, stacklevel=stacklevel + 1, callsite=callsite
-            )
+            self._fill(src_array.base)
             return
 
         task = self.context.create_task(CuNumericOpCode.TILE)
@@ -1345,10 +1207,8 @@ class DeferredArray(NumPyThunk):
         task.execute()
 
     # Transpose the matrix dimensions
-    @profile
     @auto_convert([1])
-    @shadow_debug("transpose", [1])
-    def transpose(self, rhs, axes, stacklevel=0, callsite=None):
+    def transpose(self, rhs, axes):
         rhs_array = rhs
         lhs_array = self
         assert lhs_array.dtype == rhs_array.dtype
@@ -1356,10 +1216,8 @@ class DeferredArray(NumPyThunk):
         assert lhs_array.ndim == len(axes)
         lhs_array.base = rhs_array.base.transpose(axes)
 
-    @profile
     @auto_convert([1])
-    @shadow_debug("trilu", [1])
-    def trilu(self, rhs, k, lower, stacklevel=0, callsite=None):
+    def trilu(self, rhs, k, lower):
         lhs = self.base
         rhs = rhs._broadcast(lhs.shape)
 
@@ -1374,10 +1232,8 @@ class DeferredArray(NumPyThunk):
 
         task.execute()
 
-    @profile
     @auto_convert([1])
-    @shadow_debug("flip", [1])
-    def flip(self, rhs, axes, stacklevel=0, callsite=None):
+    def flip(self, rhs, axes):
         input = rhs.base
         output = self.base
 
@@ -1397,10 +1253,8 @@ class DeferredArray(NumPyThunk):
         task.execute()
 
     # Perform a bin count operation on the array
-    @profile
     @auto_convert([1], ["weights"])
-    @shadow_debug("bincount", [1])
-    def bincount(self, rhs, stacklevel=0, weights=None, callsite=None):
+    def bincount(self, rhs, weights=None):
         weight_array = weights
         src_array = rhs
         dst_array = self
@@ -1418,11 +1272,7 @@ class DeferredArray(NumPyThunk):
                 wrap=True,
             )
 
-        dst_array.fill(
-            np.array(0, dst_array.dtype),
-            stacklevel=stacklevel + 1,
-            callsite=callsite,
-        )
+        dst_array.fill(np.array(0, dst_array.dtype))
 
         task = self.context.create_task(CuNumericOpCode.BINCOUNT)
         task.add_reduction(dst_array.base, ReductionOp.ADD)
@@ -1435,7 +1285,7 @@ class DeferredArray(NumPyThunk):
 
         task.execute()
 
-    def nonzero(self, stacklevel=0, callsite=None):
+    def nonzero(self):
         results = tuple(
             self.runtime.create_unbound_thunk(np.dtype(np.int64))
             for _ in range(self.ndim)
@@ -1450,8 +1300,7 @@ class DeferredArray(NumPyThunk):
         task.execute()
         return results
 
-    @profile
-    def random(self, gen_code, args, stacklevel=0, callsite=None):
+    def random(self, gen_code, args=[]):
         task = self.context.create_task(CuNumericOpCode.RAND)
 
         task.add_output(self.base)
@@ -1463,45 +1312,23 @@ class DeferredArray(NumPyThunk):
 
         task.execute()
 
-        if self.runtime.shadow_debug:
-            self.shadow = self.runtime.to_eager_array(self, stacklevel + 1)
-
-    def random_uniform(self, stacklevel, callsite=None):
+    def random_uniform(self):
         assert self.dtype == np.float64
-        self.random(
-            RandGenCode.UNIFORM,
-            [],
-            stacklevel=stacklevel + 1,
-            callsite=callsite,
-        )
+        self.random(RandGenCode.UNIFORM)
 
-    def random_normal(self, stacklevel, callsite=None):
+    def random_normal(self):
         assert self.dtype == np.float64
-        self.random(
-            RandGenCode.NORMAL,
-            [],
-            stacklevel=stacklevel + 1,
-            callsite=callsite,
-        )
+        self.random(RandGenCode.NORMAL)
 
-    def random_integer(self, low, high, stacklevel, callsite=None):
+    def random_integer(self, low, high):
         assert self.dtype.kind == "i"
         low = np.array(low, self.dtype)
         high = np.array(high, self.dtype)
-        self.random(
-            RandGenCode.INTEGER,
-            [low, high],
-            stacklevel=stacklevel + 1,
-            callsite=callsite,
-        )
+        self.random(RandGenCode.INTEGER, [low, high])
 
     # Perform the unary operation and put the result in the array
-    @profile
     @auto_convert([3])
-    @shadow_debug("unary_op", [3])
-    def unary_op(
-        self, op, op_dtype, src, where, args, stacklevel=0, callsite=None
-    ):
+    def unary_op(self, op, op_dtype, src, where, args):
         lhs = self.base
         rhs = src._broadcast(lhs.shape)
 
@@ -1517,9 +1344,7 @@ class DeferredArray(NumPyThunk):
 
     # Perform a unary reduction operation from one set of dimensions down to
     # fewer
-    @profile
     @auto_convert([2])
-    @shadow_debug("unary_reduction", [2])
     def unary_reduction(
         self,
         op,
@@ -1529,8 +1354,6 @@ class DeferredArray(NumPyThunk):
         keepdims,
         args,
         initial,
-        stacklevel=0,
-        callsite=None,
     ):
         lhs_array = self
         rhs_array = src
@@ -1546,11 +1369,7 @@ class DeferredArray(NumPyThunk):
 
             fill_value = _UNARY_RED_IDENTITIES[op](rhs_array.dtype)
 
-            lhs_array.fill(
-                np.array(fill_value, dtype=lhs_array.dtype),
-                stacklevel=(stacklevel + 1),
-                callsite=callsite,
-            )
+            lhs_array.fill(np.array(fill_value, dtype=lhs_array.dtype))
 
             task.add_reduction(lhs_array.base, _UNARY_RED_TO_REDUCTION_OPS[op])
             task.add_input(rhs_array.base)
@@ -1579,11 +1398,7 @@ class DeferredArray(NumPyThunk):
                 fill_value = initial
             else:
                 fill_value = _UNARY_RED_IDENTITIES[op](rhs_array.dtype)
-            lhs_array.fill(
-                np.array(fill_value, lhs_array.dtype),
-                stacklevel=stacklevel + 1,
-                callsite=callsite,
-            )
+            lhs_array.fill(np.array(fill_value, lhs_array.dtype))
 
             # If output dims is not 0, then we must have axes
             assert axes is not None
@@ -1621,17 +1436,11 @@ class DeferredArray(NumPyThunk):
                     lhs_array,
                     True,
                     [],
-                    stacklevel=stacklevel + 1,
-                    callsite=callsite,
                 )
 
     # Perform the binary operation and put the result in the lhs array
-    @profile
     @auto_convert([2, 3])
-    @shadow_debug("binary_op", [2, 3])
-    def binary_op(
-        self, op_code, src1, src2, where, args, stacklevel=0, callsite=None
-    ):
+    def binary_op(self, op_code, src1, src2, where, args):
         lhs = self.base
         rhs1 = src1._broadcast(lhs.shape)
         rhs2 = src2._broadcast(lhs.shape)
@@ -1649,12 +1458,8 @@ class DeferredArray(NumPyThunk):
 
         task.execute()
 
-    @profile
     @auto_convert([2, 3])
-    @shadow_debug("binary_reduction", [2, 3])
-    def binary_reduction(
-        self, op, src1, src2, broadcast, args, stacklevel=0, callsite=None
-    ):
+    def binary_reduction(self, op, src1, src2, broadcast, args):
         lhs = self.base
         rhs1 = src1.base
         rhs2 = src2.base
@@ -1667,10 +1472,10 @@ class DeferredArray(NumPyThunk):
         # Populate the Legate launcher
         if op == BinaryOpCode.NOT_EQUAL:
             redop = ReductionOp.ADD
-            self.fill(np.array(False), stacklevel=stacklevel + 1)
+            self.fill(np.array(False))
         else:
             redop = ReductionOp.MUL
-            self.fill(np.array(True), stacklevel=stacklevel + 1)
+            self.fill(np.array(True))
         task = self.context.create_task(CuNumericOpCode.BINARY_RED)
         task.add_reduction(lhs, redop)
         task.add_input(rhs1)
@@ -1682,10 +1487,8 @@ class DeferredArray(NumPyThunk):
 
         task.execute()
 
-    @profile
     @auto_convert([1, 2, 3])
-    @shadow_debug("where", [1, 2, 3])
-    def where(self, src1, src2, src3, stacklevel=0, callsite=None):
+    def where(self, src1, src2, src3):
         lhs = self.base
         rhs1 = src1._broadcast(lhs.shape)
         rhs2 = src2._broadcast(lhs.shape)
@@ -1727,12 +1530,8 @@ class DeferredArray(NumPyThunk):
             stride *= dim
         return result
 
-    @profile
     @auto_convert([1])
-    @shadow_debug("cholesky", [1])
-    def cholesky(self, src, no_tril=False, stacklevel=0, callsite=None):
-        cholesky(self, src, stacklevel=stacklevel + 1, callsite=callsite)
+    def cholesky(self, src, no_tril=False):
+        cholesky(self, src)
         if not no_tril:
-            self.trilu(
-                self, 0, True, stacklevel=stacklevel + 1, callsite=callsite
-            )
+            self.trilu(self, 0, True)

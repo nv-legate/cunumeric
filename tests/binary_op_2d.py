@@ -1,4 +1,4 @@
-# Copyright 2021 NVIDIA Corporation
+# Copyright 2021-2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
-from __future__ import division
 
 import numpy as np
 
@@ -74,9 +72,9 @@ def test():
     # print(z)
     assert np.array_equal(z, 2 * numpyX)
 
-    z = x ** 5
+    z = x**5
     # print(z)
-    assert np.array_equal(z, numpyX ** 5)
+    assert np.array_equal(z, numpyX**5)
 
     return
 

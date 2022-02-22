@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2021 NVIDIA Corporation
+# Copyright 2021-2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,13 +15,8 @@
 # limitations under the License.
 #
 
-from __future__ import print_function
-
 import math
-import sys
-
-if sys.version_info > (3, 0):
-    from functools import reduce
+from functools import reduce
 
 
 # A helper method for benchmarking applications

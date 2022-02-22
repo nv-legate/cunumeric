@@ -1,4 +1,4 @@
-/* Copyright 2021 NVIDIA Corporation
+/* Copyright 2021-2022 NVIDIA Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,11 +16,11 @@
 
 #pragma once
 
-#include <cublas_v2.h>
-#include <cusolverDn.h>
-#include <cutensor.h>
+#include "cuda_help.h"
 
 namespace cunumeric {
+
+struct cufftPlanCache;
 
 struct CUDALibraries {
  public:
@@ -38,6 +38,7 @@ struct CUDALibraries {
   cublasHandle_t get_cublas();
   cusolverDnHandle_t get_cusolver();
   cutensorHandle_t* get_cutensor();
+  cufftPlan* get_cufft_plan(cufftType type, const Legion::DomainPoint& size);
 
  private:
   void finalize_cublas();
@@ -50,6 +51,7 @@ struct CUDALibraries {
   cublasContext* cublas_;
   cusolverDnContext* cusolver_;
   cutensorHandle_t* cutensor_;
+  std::map<cufftType, cufftPlanCache*> plan_caches_;
 };
 
 }  // namespace cunumeric

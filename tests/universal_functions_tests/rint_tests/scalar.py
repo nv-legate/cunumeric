@@ -1,4 +1,4 @@
-# Copyright 2021 NVIDIA Corporation
+# Copyright 2021-2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import cunumeric as num
 
 
 def test():
-    test_values = [1, np.e, np.e ** 2]
+    test_values = [1, np.e, np.e**2]
     for a in test_values:
         for (la, na) in zip(scalar_gen(num, a), scalar_gen(np, a)):
             assert np.array_equal(num.rint(la), np.rint(na))

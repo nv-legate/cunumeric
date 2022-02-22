@@ -1,4 +1,4 @@
-# Copyright 2021 NVIDIA Corporation
+# Copyright 2021-2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ def cholesky(n, dtype):
     start = time()
     input.cholesky(no_tril=True)
     stop = time()
-    flops = (n ** 3) / 3 + 2 * n / 3
+    flops = (n**3) / 3 + 2 * n / 3
     print(f"{(stop - start) * 1e-3} ms, {flops / (stop - start) * 1e-3} GOP/s")
 
 

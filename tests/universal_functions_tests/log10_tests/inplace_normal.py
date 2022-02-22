@@ -1,4 +1,4 @@
-# Copyright 2021 NVIDIA Corporation
+# Copyright 2021-2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ import cunumeric as num
 
 
 def test():
-    npa = np.array([1, np.e, np.e ** 2])
+    npa = np.array([1, np.e, np.e**2])
     a = num.array(npa)
     assert np.array_equal(num.log10(a, out=a), np.log10(npa, out=npa))
     return

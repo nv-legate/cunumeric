@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2021 NVIDIA Corporation
+# Copyright 2021-2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,8 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
-from __future__ import print_function
 
 import argparse
 import datetime
@@ -49,7 +47,7 @@ def run(grid, I, N):  # noqa: E741
         # delta = np.sum(np.absolute(work - center))
         center[:] = work
     total = np.sum(center)
-    return total / (N ** 2)
+    return total / (N**2)
 
 
 def run_stencil(N, I, timing):  # noqa: E741

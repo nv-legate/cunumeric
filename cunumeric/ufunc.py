@@ -1,4 +1,4 @@
-# Copyright 2021 NVIDIA Corporation
+# Copyright 2021-2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -34,104 +34,116 @@ from .module import (
 )
 
 
-# Base ufunc class
 class ufunc(object):
-    @staticmethod
-    def reduce_impl(
-        a, reduceOpString, axis=0, dtype=None, out=None, keepdims=False
+    def __init__(self, name, func, red_func=None):
+        self._name = name
+        self._func = func
+        self._red_func = red_func
+        self.__doc__ = func.__doc__
+
+    def __call__(self, *args, **kwargs):
+        return self._func(*args, **kwargs)
+
+    def reduce(
+        self,
+        array,
+        axis=0,
+        dtype=None,
+        out=None,
+        keepdims=False,
+        initial=None,
+        where=True,
     ):
-        raise NotImplementedError("reduce ufunc")
+        """
+        reduce(array, axis=0, dtype=None, out=None, keepdims=False, initial=<no
+        value>, where=True)
 
+        Reduces `array`'s dimension by one, by applying ufunc along one axis.
 
-# ufunc-add class
-class add(ufunc):
-    def __new__(cls, a, b, out=None, where=True):
-        return _add(a, b, out=out, where=where, stacklevel=2)
+        For example, add.reduce() is equivalent to sum().
 
-    @staticmethod
-    def reduce(a, axis=0, dtype=None, out=None, keepdims=False):
-        return _sum(
-            a, axis=axis, dtype=dtype, out=out, keepdims=keepdims, stacklevel=2
+        Parameters
+        ----------
+        array : array_like
+            The array to act on.
+        axis : None or int or tuple of ints, optional
+            Axis or axes along which a reduction is performed.  The default
+            (`axis` = 0) is perform a reduction over the first dimension of the
+            input array. `axis` may be negative, in which case it counts from
+            the last to the first axis.
+        dtype : data-type code, optional
+            The type used to represent the intermediate results. Defaults to
+            the data-type of the output array if this is provided, or the
+            data-type
+            of the input array if no output array is provided.
+        out : ndarray, None, or tuple of ndarray and None, optional
+            A location into which the result is stored. If not provided or
+            None, a freshly-allocated array is returned. For consistency with
+            ``ufunc.__call__``, if given as a keyword, this may be wrapped in a
+            1-element tuple.
+        keepdims : bool, optional
+            If this is set to True, the axes which are reduced are left in the
+            result as dimensions with size one. With this option, the result
+            will broadcast correctly against the original `array`.
+        initial : scalar, optional
+            The value with which to start the reduction.  If the ufunc has no
+            identity or the dtype is object, this defaults to None - otherwise
+            it defaults to ufunc.identity.  If ``None`` is given, the first
+            element of the reduction is used, and an error is thrown if the
+            reduction is empty.
+        where : array_like of bool, optional
+            A boolean array which is broadcasted to match the dimensions of
+            `array`, and selects elements to include in the reduction. Note
+            that for ufuncs like ``minimum`` that do not have an identity
+            defined, one has to pass in also ``initial``.
+
+        Returns
+        -------
+        r : ndarray
+            The reduced array. If `out` was supplied, `r` is a reference to it.
+
+        See Also
+        --------
+        numpy.ufunc.reduce
+        """
+        if self._red_func is None:
+            raise NotImplementedError(
+                f"reduction for {self} is not yet implemented"
+            )
+        return self._red_func(
+            array,
+            axis=axis,
+            dtype=dtype,
+            out=out,
+            keepdims=keepdims,
+            initial=initial,
+            where=where,
         )
 
-
-# ufunc-multiply class
-class multiply(ufunc):
-    def __new__(cls, a, b, out=None, where=True):
-        return _mul(a, b, out=out, where=where, stacklevel=2)
-
-    @staticmethod
-    def reduce(a, axis=0, dtype=None, out=None, keepdims=False):
-        return _prod(
-            a, axis=axis, dtype=dtype, out=out, keepdims=keepdims, stacklevel=2
-        )
+    def __repr__(self):
+        return f"<ufunc {self.name}>"
 
 
-# ufunc-true_divide class
-class true_divide(ufunc):
-    def __new__(cls, a, b, out=None, where=True):
-        return _tdiv(a, b, out=out, where=where, stacklevel=2)
+add = ufunc("add", _add, red_func=_sum)
 
+multiply = ufunc("mul", _mul, red_func=_prod)
 
-# ufunc-maximum class
-class maximum(ufunc):
-    def __new__(cls, a, b, out=None, where=True):
-        return _max2(a, b, out=out, where=where, stacklevel=2)
+true_divide = ufunc("true_divide", _tdiv)
 
-    @staticmethod
-    def reduce(a, axis=0, dtype=None, out=None, keepdims=False):
-        assert dtype is None
-        return _max(a, axis=axis, out=out, keepdims=keepdims, stacklevel=2)
+maximum = ufunc("maximum", _max2, red_func=_max)
 
+minimum = ufunc("minimum", _min2, red_func=_min)
 
-# ufunc-minimum class
-class minimum(ufunc):
-    def __new__(cls, a, b, out=None, where=True):
-        return _min2(a, b, out=out, where=where, stacklevel=2)
+mod = ufunc("mod", _mod)
 
-    @staticmethod
-    def reduce(a, axis=0, dtype=None, out=None, keepdims=False):
-        assert dtype is None
-        return _min(a, axis=axis, out=out, keepdims=keepdims, stacklevel=2)
+greater = ufunc("greater", _gt)
 
+greater_equal = ufunc("greater_equal", _geq)
 
-# ufunc-mod class
-class mod(ufunc):
-    def __new__(cls, a, b, out=None, where=True):
-        return _mod(a, b, out=out, where=where, stacklevel=2)
+less = ufunc("less", _lt)
 
+less_equal = ufunc("less_equal", _leq)
 
-# ufunc-greater class
-class greater(ufunc):
-    def __new__(cls, a, b, out=None, where=True):
-        return _gt(a, b, out=out, where=where, stacklevel=2)
+equal = ufunc("equal", _eq)
 
-
-# ufunc-greater_equal class
-class greater_equal(ufunc):
-    def __new__(cls, a, b, out=None, where=True):
-        return _geq(a, b, out=out, where=where, stacklevel=2)
-
-
-# ufunc-less class
-class less(ufunc):
-    def __new__(cls, a, b, out=None, where=True):
-        return _lt(a, b, out=out, where=where, stacklevel=2)
-
-
-# ufunc-less_equal class
-class less_equal(ufunc):
-    def __new__(cls, a, b, out=None, where=True):
-        return _leq(a, b, out=out, where=where, stacklevel=2)
-
-
-# ufunc-equal class
-class equal(ufunc):
-    def __new__(cls, a, b, out=None, where=True):
-        return _eq(a, b, out=out, where=where, stacklevel=2)
-
-
-# ufunc-not_equal class
-class not_equal(ufunc):
-    def __new__(cls, a, b, out=None, where=True):
-        return _neq(a, b, out=out, where=where, stacklevel=2)
+not_equal = ufunc("not_equal", _neq)

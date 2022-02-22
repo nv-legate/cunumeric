@@ -1,4 +1,4 @@
-# Copyright 2021 NVIDIA Corporation
+# Copyright 2021-2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ def test():
     a = num.array(npa)
     num.tanh(a, out=a)
     np.tanh(npa, out=npa)
-    assert np.array_equal(a, npa)
+    assert np.allclose(a, npa)
     return
 
 

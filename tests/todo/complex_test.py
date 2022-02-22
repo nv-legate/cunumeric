@@ -1,4 +1,4 @@
-# Copyright 2021 NVIDIA Corporation
+# Copyright 2021-2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,8 +13,6 @@
 # limitations under the License.
 #
 
-from __future__ import division
-
 import numpy as np
 
 import cunumeric as num
@@ -27,10 +25,10 @@ rate = 0.01
 
 def test():
     x = num.linspace(-4.0, 4.0, M)
-    dz = 1.0 + 1j * rate * (12 * x ** 2 + 2 * alpha)
+    dz = 1.0 + 1j * rate * (12 * x**2 + 2 * alpha)
 
     xn = np.linspace(-4.0, 4.0, M)
-    dzn = 1.0 + 1j * rate * (12 * xn ** 2 + 2 * alpha)
+    dzn = 1.0 + 1j * rate * (12 * xn**2 + 2 * alpha)
 
     assert num.all(num.abs(dz - dzn) < 1e-6)
 

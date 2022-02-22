@@ -1,4 +1,4 @@
-/* Copyright 2021 NVIDIA Corporation
+/* Copyright 2021-2022 NVIDIA Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,54 +14,83 @@
  *
  */
 
+#include "cunumeric/pitches.h"
+
 namespace cunumeric {
 
 using namespace Legion;
 using namespace legate;
 
-template <VariantKind KIND, LegateTypeCode CODE>
+template <VariantKind KIND, LegateTypeCode CODE, int DIM, bool extract>
 struct DiagImplBody;
 
 template <VariantKind KIND>
 struct DiagImpl {
-  template <LegateTypeCode CODE>
+  template <LegateTypeCode CODE, int DIM>
   void operator()(DiagArgs& args) const
   {
     using VAL = legate_type_of<CODE>;
 
-    auto shape = args.matrix.shape<2>();
-
-    // Solve for the start
-    // y = x
-    // x >= shape.lo[0]
-    const Point<2> start1(shape.lo[0], shape.lo[0]);
-    // y >= shape.lo[1]
-    const Point<2> start2(shape.lo[1], shape.lo[1]);
-    // See if our shape intersects with the diagonal
-    if (!shape.contains(start1) && !shape.contains(start2)) return;
-
-    // Pick whichever one fits in our rect
-    const Point<2> start = shape.contains(start1) ? start1 : start2;
-    // Now do the same thing for the end
-    // x <= shape.hi[0]
-    const Point<2> stop1(shape.hi[0], shape.hi[0]);
-    // y <= shape.hi[1]
-    const Point<2> stop2(shape.hi[1], shape.hi[1]);
-    assert(shape.contains(stop1) || shape.contains(stop2));
-    const Point<2> stop = shape.contains(stop1) ? stop1 : stop2;
-    // Walk the path from the stop to the start
-    const coord_t distance = (stop[0] - start[0]) + 1;
-    // Should be the same along both dimensions
-    assert(distance == ((stop[1] - start[1]) + 1));
-
     if (args.extract) {
-      auto in  = args.matrix.read_accessor<VAL, 2>(shape);
-      auto out = args.diag.reduce_accessor<SumReduction<VAL>, true, 2>(shape);
-      DiagImplBody<KIND, CODE>()(out, in, start, distance);
-    } else {
-      auto in  = args.diag.read_accessor<VAL, 2>(shape);
-      auto out = args.matrix.write_accessor<VAL, 2>(shape);
-      DiagImplBody<KIND, CODE>()(out, in, start, distance);
+      auto shape_in = args.matrix.shape<DIM>();
+      Pitches<DIM - 1> pitches_in;
+      size_t volume_in = pitches_in.flatten(shape_in);
+      if (volume_in == 0) return;
+      auto shape_out        = args.diag.shape<DIM>();
+      size_t diag_start_dim = DIM - args.naxes;
+      coord_t start         = shape_in.lo[diag_start_dim];
+      coord_t end           = shape_in.hi[diag_start_dim];
+
+      for (int i = diag_start_dim + 1; i < DIM; i++) {
+        start = std::max(start, shape_in.lo[i]);
+        end   = std::min(end, shape_in.hi[i]);
+      }
+      coord_t distance = end - start + 1;
+
+      auto in  = args.matrix.read_accessor<VAL, DIM>(shape_in);
+      auto out = args.diag.reduce_accessor<SumReduction<VAL>, true, DIM>(shape_out);
+      if (distance < 0) return;
+
+      DiagImplBody<KIND, CODE, DIM, true>()(
+        out, in, start, pitches_in, shape_in, args.naxes, distance);
+
+    } else {  // extract=False version: returning diagonal matrix from 1d array
+      auto shape = args.matrix.shape<2>();
+
+      // Solve for the start
+      // y = x
+      // x >= shape.lo[0]
+      const Point<2> start1(shape.lo[0], shape.lo[0]);
+      // y >= shape.lo[1]
+      const Point<2> start2(shape.lo[1], shape.lo[1]);
+      // See if our shape intersects with the diagonal
+      if (!shape.contains(start1) && !shape.contains(start2)) return;
+
+      // Pick whichever one fits in our rect
+      const Point<2> start = shape.contains(start1) ? start1 : start2;
+      // Now do the same thing for the end
+      // x <= shape.hi[0]
+      const Point<2> stop1(shape.hi[0], shape.hi[0]);
+      // y <= shape.hi[1]
+      const Point<2> stop2(shape.hi[1], shape.hi[1]);
+#ifdef CUNUMERIC_DEBUG
+      assert(shape.contains(stop1) || shape.contains(stop2));
+#endif
+      const Point<2> stop = shape.contains(stop1) ? stop1 : stop2;
+      // Walk the path from the stop to the start
+      const coord_t distance = (stop[0] - start[0]) + 1;
+#ifdef CUNUMERIC_DEBUG
+      // Should be the same along both dimensions
+      assert(distance == ((stop[1] - start[1]) + 1));
+      // no extract is supported only for 1d input array (2d output)
+      assert(DIM == 2);
+#endif
+      auto shape_out = args.matrix.shape<2>();
+      auto shape_in  = args.diag.shape<2>();
+
+      auto in  = args.diag.read_accessor<VAL, 2>(shape_in);
+      auto out = args.matrix.read_write_accessor<VAL, 2>(shape_out);
+      DiagImplBody<KIND, CODE, 2, false>()(in, out, start, distance);
     }
   }
 };
@@ -69,11 +98,12 @@ struct DiagImpl {
 template <VariantKind KIND>
 static void diag_template(TaskContext& context)
 {
-  auto extract = context.scalars()[0].value<bool>();
-  auto& matrix = extract ? context.inputs()[0] : context.outputs()[0];
-  auto& diag   = extract ? context.reductions()[0] : context.inputs()[1];
-  DiagArgs args{extract, matrix, diag};
-  type_dispatch(args.matrix.code(), DiagImpl<KIND>{}, args);
+  int naxes     = context.scalars()[0].value<int>();
+  bool extract  = context.scalars()[1].value<bool>();
+  Array& matrix = extract ? context.inputs()[0] : context.outputs()[0];
+  Array& diag   = extract ? context.reductions()[0] : context.inputs()[0];
+  DiagArgs args{naxes, extract, matrix, diag};
+  double_dispatch(matrix.dim(), matrix.code(), DiagImpl<KIND>{}, args);
 }
 
 }  // namespace cunumeric

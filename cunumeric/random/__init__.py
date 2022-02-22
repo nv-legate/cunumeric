@@ -1,4 +1,4 @@
-# Copyright 2021 NVIDIA Corporation
+# Copyright 2021-2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@ import sys as _sys
 
 import numpy.random as _nprandom
 from cunumeric.random.random import *
-from cunumeric.utils import (
+from cunumeric.coverage import (
     add_missing_attributes as _add_missing_attributes,
 )
 

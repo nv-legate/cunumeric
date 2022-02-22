@@ -1,5 +1,5 @@
 <!--
-Copyright 2021 NVIDIA Corporation
+Copyright 2021-2022 NVIDIA Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -48,7 +48,7 @@ If you have questions, please contact us at legate(at)nvidia.com.
 
 ## Installation
 
-cuNumeric is available on conda:
+cuNumeric is available [on conda](https://anaconda.org/legate/cunumeric):
 
 ```
 conda install -c nvidia -c conda-forge -c legate cunumeric
@@ -66,13 +66,18 @@ Users must have a working installation of the
 [Legate Core](https://github.com/nv-legate/legate.core)
 library prior to installing cuNumeric.
 
-cuNumeric requires Python >= 3.6. We provide a
-[conda environment file](conda/cunumeric_dev.yml) that
-installs all needed dependencies in one step. Use the following command to
-create a conda environment with it:
-```
-conda env create -n legate -f conda/cunumeric_dev.yml
-```
+cuNumeric requires the following:
+
+  - Python >= 3.7
+  - [CUDA](https://developer.nvidia.com/cuda-downloads) >= 8.0
+  - GNU Make
+  - C++14 compatible compiler (g++, clang, or nvc++)
+  - Fortran compiler (for building OpenBLAS; not necessary if you provide a pre-built version of OpenBLAS)
+  - the Python packages listed in the [conda environment file](conda/cunumeric_dev.yml)
+
+See the [corresponding section](https://github.com/nv-legate/legate.core#dependencies)
+on the Legate Core instructions for help on installing the required Python packages
+using conda.
 
 ## Building from Source
 
@@ -85,12 +90,7 @@ python setup.py --with-core <path-to-legate-core-installation>
 ```
 
 This will build cuNumeric against the Legate Core installation and then
-install cuNumeric into the same location. Users can also install cuNumeric
-into an alternative location with the canonical `--prefix` flag as well.
-
-```
-python setup.py --prefix <install-dir> --with-core <path-to-legate-core-installation>
-```
+install cuNumeric into the same location.
 
 Note that after the first invocation of `setup.py` this repository will remember
 which Legate Core installation to use and the `--with-core` option can be
@@ -103,6 +103,7 @@ Of particular interest to cuNumeric users will likely be the option for
 specifying an installation of [OpenBLAS](https://www.openblas.net/) to use.
 If you already have an installation of OpenBLAS on your machine you can
 inform the `install.py` script about its location using the `--with-openblas` flag:
+
 ```
 python setup.py --with-openblas /path/to/open/blas/
 ```
@@ -157,7 +158,7 @@ installing legate.core with a larger `--max-dim`.
 ## Documentation
 
 A complete list of available features can is provided in the [API
-reference](https://nv-legate.github.io/cunumeric/api.html).
+reference](https://nv-legate.github.io/cunumeric/api/index.html).
 
 ## Future Directions
 
@@ -184,8 +185,22 @@ We are open to comments, suggestions, and ideas.
 
 See the discussion of contributing in [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## Known Bugs
+## Known Issues
 
+ * When using certain operations with high scratch space requirements (e.g.
+   `einsum` or `convolve`) you might run into the following error:
+   ```
+   LEGION ERROR: Failed to allocate DeferredBuffer/Value/Reduction in task [some task] because [some memory] is full. This is an eager allocation ...
+   ```
+   Currently, Legion splits its memory reservations between two pools: the
+   "deferred" pool, used for allocating cuNumeric `ndarray`s, and the "eager"
+   pool, used for allocating scratch memory for operations. The above error
+   message signifies that not enough memory was available for an operation's
+   scratch space requirements. You can work around this by allocating more
+   memory overall to cuNumeric (e.g. adjusting `--sysmem`, `--numamem` or
+   `--fbmem`), and/or by adjusting the split between the two pools (e.g. by
+   passing `-lg:eager_alloc_percentage 60` on the command line to allocate 60%
+   of memory to the eager pool, up from the default of 50%).
  * cuNumeric can exercise a bug in OpenBLAS when it is run with
    [multiple OpenMP processors](https://github.com/xianyi/OpenBLAS/issues/2146)
  * On Mac OSX, cuNumeric can trigger a bug in Apple's implementation of libc++.
