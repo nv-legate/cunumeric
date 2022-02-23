@@ -1293,6 +1293,36 @@ def _concatenate(
 
 
 def append(arr, values, axis=None):
+    """
+
+    Append values to the end of an array.
+
+    Parameters
+    ----------
+    arr :  array_like
+        Values are appended to a copy of this array.
+    values : array_like
+        These values are appended to a copy of arr. It must be of the correct
+        shape (the same shape as arr, excluding axis). If axis is not
+        specified, values can be any shape and will be flattened before use.
+    axis : int, optional
+        The axis along which values are appended. If axis is not given, both
+        `arr` and `values` are flattened before use.
+
+    Returns
+    -------
+    res : ndarray
+        A copy of arr with values appended to axis.
+
+    See Also
+    --------
+    numpy.append
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+
+    """
     # Check to see if we can build a new tuple of cuNumeric arrays
     inputs = list(
         ndarray.convert_to_cunumeric_ndarray(inp) for inp in [arr, values]

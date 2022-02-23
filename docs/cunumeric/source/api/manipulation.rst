@@ -62,6 +62,7 @@ Joining arrays
    :toctree: generated/
    :template: function.rst
 
+   append
    concatenate
    stack
    vstack
