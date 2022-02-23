@@ -32,7 +32,8 @@ Transpose-like operations
 
    swapaxes
    transpose
-   ndarray.T
+
+See also :attr:`cunumeric.ndarray.T` property.
 
 Changing number of dimensions
 -----------------------------
