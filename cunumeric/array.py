@@ -1256,6 +1256,10 @@ class ndarray(object):
         val = np.array(value, dtype=self.dtype)
         self._thunk.fill(val)
 
+    def flatten(self, order="C"):
+        # Same as 'ravel' because cuNumeric creates a new array by 'reshape'
+        return self.reshape(-1, order=order)
+
     def getfield(self, dtype, offset=0):
         raise NotImplementedError(
             "cuNumeric does not currently support type reinterpretation "
