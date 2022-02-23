@@ -166,7 +166,7 @@ def empty(shape, dtype=np.float64):
 
     Parameters
     ----------
-    shape : int or tuple of int
+    shape : int or tuple[int]
         Shape of the empty array.
     dtype : data-type, optional
         Desired output data-type for the array. Default is `cunumeric.float64`.
@@ -245,9 +245,9 @@ def eye(N, M=None, k=0, dtype=np.float64):
 
     Returns
     -------
-    I : ndarray of shape (N,M)
-      An array where all elements are equal to zero, except for the `k`-th
-      diagonal, whose values are equal to one.
+    I : ndarray
+      An array  of shape (N, M) where all elements are equal to zero, except
+      for the `k`-th diagonal, whose values are equal to one.
 
     See Also
     --------
@@ -305,7 +305,7 @@ def ones(shape, dtype=np.float64):
 
     Parameters
     ----------
-    shape : int or sequence of ints
+    shape : int or Sequence[int]
         Shape of the new array.
     dtype : data-type, optional
         The desired data-type for the array. Default is `cunumeric.float64`.
@@ -366,7 +366,7 @@ def zeros(shape, dtype=np.float64):
 
     Parameters
     ----------
-    shape : int or tuple of ints
+    shape : int or tuple[int]
         Shape of the new array.
     dtype : data-type, optional
         The desired data-type for the array.  Default is `cunumeric.float64`.
@@ -428,7 +428,7 @@ def full(shape, value, dtype=None):
 
     Parameters
     ----------
-    shape : int or sequence of ints
+    shape : int or Sequence[int]
         Shape of the new array.
     fill_value : scalar
         Fill value.
@@ -520,7 +520,7 @@ def array(obj, dtype=None, copy=True, order="K", subok=False, ndmin=0):
         only be made if __array__ returns a copy, if obj is a nested sequence,
         or if a copy is needed to satisfy any of the other requirements
         (`dtype`, `order`, etc.).
-    order : {'K', 'A', 'C', 'F'}, optional
+    order : ``{'K', 'A', 'C', 'F'}``, optional
         Specify the memory layout of the array. If object is not an array, the
         newly created array will be in C order (row major) unless 'F' is
         specified, in which case it will be in Fortran order (column major).
@@ -661,19 +661,19 @@ def arange(start, stop=None, step=1, dtype=None):
 
     Parameters
     ----------
-    start : number, optional
+    start : int or float, optional
         Start of interval.  The interval includes this value.  The default
         start value is 0.
-    stop : number
+    stop : int or float
         End of interval.  The interval does not include this value, except
         in some cases where `step` is not an integer and floating point
         round-off affects the length of `out`.
-    step : number, optional
+    step : int or float, optional
         Spacing between values.  For any output `out`, this is the distance
         between two adjacent values, ``out[i+1] - out[i]``.  The default
         step size is 1.  If `step` is specified as a position argument,
         `start` must also be given.
-    dtype : dtype
+    dtype : data-type
         The type of the output array.  If `dtype` is not given, infer the data
         type from the other input arguments.
 
@@ -749,7 +749,7 @@ def linspace(
     retstep : bool, optional
         If True, return (`samples`, `step`), where `step` is the spacing
         between samples.
-    dtype : dtype, optional
+    dtype : data-type, optional
         The type of the output array.  If `dtype` is not given, infer the data
         type from the other input arguments.
     axis : int, optional
@@ -928,15 +928,15 @@ def tril(m, k=0):
 
     Parameters
     ----------
-    m : array_like, shape (M, N)
-        Input array.
+    m : array_like
+        Input array of shape (M, N).
     k : int, optional
         Diagonal above which to zero elements.  `k = 0` (the default) is the
         main diagonal, `k < 0` is below it and `k > 0` is above.
 
     Returns
     -------
-    tril : ndarray, shape (M, N)
+    tril : ndarray
         Lower triangle of `m`, of same shape and data-type as `m`.
 
     See Also
@@ -991,7 +991,7 @@ def shape(a):
 
     Returns
     -------
-    shape : tuple of ints
+    shape : tuple[int]
         The elements of the shape tuple give the lengths of the
         corresponding array dimensions.
 
@@ -1022,7 +1022,7 @@ def ravel(a, order="C"):
     a : array_like
         Input array.  The elements in `a` are read in the order specified by
         `order`, and packed as a 1-D array.
-    order : {'C','F', 'A', 'K'}, optional
+    order : ``{'C','F', 'A', 'K'}``, optional
         The elements of `a` are read using this index order. 'C' means
         to index the elements in row-major, C-style order,
         with the last axis index changing fastest, back to the first
@@ -1066,12 +1066,12 @@ def reshape(a, newshape, order="C"):
     ----------
     a : array_like
         Array to be reshaped.
-    newshape : int or tuple of ints
+    newshape : int or tuple[int]
         The new shape should be compatible with the original shape. If
         an integer, then the result will be a 1-D array of that length.
         One shape dimension can be -1. In this case, the value is
         inferred from the length of the array and remaining dimensions.
-    order : {'C', 'F', 'A'}, optional
+    order : ``{'C', 'F', 'A'}``, optional
         Read the elements of `a` using this index order, and place the
         elements into the reshaped array using this index order.  'C'
         means to read / write the elements using C-like index order,
@@ -1148,7 +1148,7 @@ def transpose(a, axes=None):
     ----------
     a : array_like
         Input array.
-    axes : list of ints, optional
+    axes : list[int], optional
         By default, reverse the dimensions, otherwise permute the axes
         according to the values given.
 
@@ -1182,7 +1182,7 @@ def squeeze(a, axis=None):
     ----------
     a : array_like
         Input data.
-    axis : None or int or tuple of ints, optional
+    axis : None or int or tuple[int], optional
         Selects a subset of the single-dimensional entries in the
         shape. If an axis is selected with shape entry greater than
         one, an error is raised.
@@ -1340,7 +1340,7 @@ def concatenate(inputs, axis=0, out=None, dtype=None, casting="same_kind"):
 
     Parameters
     ----------
-    a1, a2, ... : sequence of array_like
+    a1, a2, ... : Sequence[array_like]
         The arrays must have the same shape, except in the dimension
         corresponding to `axis` (the first, by default).
     axis : int, optional
@@ -1350,10 +1350,10 @@ def concatenate(inputs, axis=0, out=None, dtype=None, casting="same_kind"):
         If provided, the destination to place the result. The shape must be
         correct, matching that of what concatenate would have returned if no
         out argument were specified.
-    dtype : str or dtype
+    dtype : str or data-type
         If provided, the destination array will have this dtype. Cannot be
         provided together with `out`.
-    casting : {'no', 'equiv', 'safe', 'same_kind', 'unsafe'}, optional
+    casting : ``{'no', 'equiv', 'safe', 'same_kind', 'unsafe'}``, optional
         Controls what kind of data casting may occur. Defaults to 'same_kind'.
 
     Returns
@@ -1395,7 +1395,7 @@ def stack(arrays, axis=0, out=None):
 
     Parameters
     ----------
-    arrays : sequence of array_like
+    arrays : Sequence[array_like]
         Each array must have the same shape.
 
     axis : int, optional
@@ -1454,7 +1454,7 @@ def vstack(tup):
 
     Parameters
     ----------
-    tup : sequence of ndarrays
+    tup : Sequence[ndarray]
         The arrays must have the same shape along all but the first axis.
         1-D arrays must have the same length.
 
@@ -1504,7 +1504,7 @@ def hstack(tup):
 
     Parameters
     ----------
-    tup : sequence of ndarrays
+    tup : Sequence[ndarray]
         The arrays must have the same shape along all but the second axis,
         except 1-D arrays which can be any length.
 
@@ -1548,7 +1548,7 @@ def dstack(tup):
 
     Parameters
     ----------
-    tup : sequence of arrays
+    tup : Sequence[ndarray]
         The arrays must have the same shape along all but the third axis.
         1-D or 2-D arrays must have the same shape.
 
@@ -1596,13 +1596,14 @@ def column_stack(tup):
 
     Parameters
     ----------
-    tup : sequence of 1-D or 2-D arrays.
-        Arrays to stack. All of them must have the same first dimension.
+    tup : Sequence[ndarray]
+        1-D or 2-D arrays to stack. All of them must have the same
+        first dimension.
 
     Returns
     -------
-    stacked : 2-D array
-        The array formed by stacking the given arrays.
+    stacked : ndarray
+        The 2-D array formed by stacking the given arrays.
 
     See Also
     --------
@@ -1640,7 +1641,7 @@ def split(a, indices, axis=0):
     ----------
     ary : ndarray
         Array to be divided into sub-arrays.
-    indices_or_sections : int or 1-D array
+    indices_or_sections : int or ndarray
         If `indices_or_sections` is an integer, N, the array will be divided
         into N equal arrays along `axis`.  If such a split is not possible,
         an error is raised.
@@ -1660,7 +1661,7 @@ def split(a, indices, axis=0):
 
     Returns
     -------
-    sub-arrays : list of ndarrays
+    sub-arrays : list[ndarray]
         A list of sub-arrays as views into `ary`.
 
     Raises
@@ -1919,7 +1920,7 @@ def flip(m, axis=None):
     ----------
     m : array_like
         Input array.
-    axis : None or int or tuple of ints, optional
+    axis : None or int or tuple[int], optional
          Axis or axes along which to flip over. The default, axis=None, will
          flip over all of the axes of the input array.  If axis is negative it
          counts from the last to the first axis.
@@ -1964,7 +1965,7 @@ def invert(a, out=None, where=True, dtype=None):
     ----------
     x : array_like
         Only integer and boolean types are handled.
-    out : ndarray, None, or tuple of ndarray and None, optional
+    out : ndarray, None, or tuple[ndarray or None], optional
         A location into which the result is stored. If provided, it must have
         a shape that the inputs broadcast to. If not provided or None,
         a freshly-allocated array is returned. A tuple (possible only as a
@@ -2119,29 +2120,29 @@ def choose(a, choices, out=None, mode="raise"):
 
     Parameters
     ----------
-    a : int array
+    a : ndarray[int]
         This array must contain integers in ``[0, n-1]``, where ``n`` is the
         number of choices, unless ``mode=wrap`` or ``mode=clip``, in which
         cases any integers are permissible.
-    choices : sequence of arrays
+    choices : Sequence[ndarray]
         Choice arrays. `a` and all of the choices must be broadcastable to the
         same shape.  If `choices` is itself an array (not recommended), then
         its outermost dimension (i.e., the one corresponding to
         ``choices.shape[0]``) is taken as defining the "sequence".
-    out : array, optional
+    out : ndarray, optional
         If provided, the result will be inserted into this array. It should
         be of the appropriate shape and dtype. Note that `out` is always
         buffered if ``mode='raise'``; use other modes for better performance.
-    mode : {'raise' (default), 'wrap', 'clip'}, optional
+    mode : ``{'raise', 'wrap', 'clip'}``, optional
         Specifies how indices outside ``[0, n-1]`` will be treated:
 
-          * 'raise' : an exception is raised
+          * 'raise' : an exception is raised (default)
           * 'wrap' : value becomes value mod ``n``
           * 'clip' : values < 0 are mapped to 0, values > n-1 are mapped to n-1
 
     Returns
     -------
-    merged_array : array
+    merged_array : ndarray
         The merged result.
 
     Raises
@@ -2242,7 +2243,7 @@ def dot(a, b, out=None):
       (without complex conjugation).
 
     - If both `a` and `b` are 2-D arrays, it is matrix multiplication,
-      but using :func:`matmul` or ``a @ b`` is preferred.
+      but using ``a @ b`` is preferred.
 
     - If either `a` or `b` is 0-D (scalar), it is equivalent to
       :func:`multiply` and using ``cunumeric.multiply(a, b)`` or ``a * b`` is
@@ -2317,7 +2318,7 @@ def tensordot(a, b, axes=2):
     a, b : array_like
         Tensors to "dot".
 
-    axes : int or (2,) array_like
+    axes : int or array_like
         * integer_like
           If an int N, sum over the last N axes of `a` and the first N axes
           of `b` in order. The sizes of the corresponding axes must match.
@@ -2643,11 +2644,11 @@ def einsum(expr, *operands, out=None, optimize=False):
         subscript labels. An implicit (classical Einstein summation)
         calculation is performed unless the explicit indicator '->' is
         included as well as subscript labels of the precise output form.
-    operands : list of array_like
+    operands : list[array_like]
         These are the arrays for the operation.
     out : ndarray, optional
         If provided, the calculation is done into this array.
-    optimize : {False, True, 'greedy', 'optimal'}, optional
+    optimize : ``{False, True, 'greedy', 'optimal'}``, optional
         Controls if intermediate optimization should occur. No optimization
         will occur if False. Uses opt_einsum to find an optimized contraction
         plan if True.
@@ -2702,7 +2703,7 @@ def all(a, axis=None, out=None, keepdims=False, where=True):
     ----------
     a : array_like
         Input array or object that can be converted to an array.
-    axis : None or int or tuple of ints, optional
+    axis : None or int or tuple[int], optional
         Axis or axes along which a logical AND reduction is performed.
         The default (``axis=None``) is to perform a logical AND over all
         the dimensions of the input array. `axis` may be negative, in
@@ -2756,7 +2757,7 @@ def any(a, axis=None, out=None, keepdims=False, where=True):
     ----------
     a : array_like
         Input array or object that can be converted to an array.
-    axis : None or int or tuple of ints, optional
+    axis : None or int or tuple[int], optional
         Axis or axes along which a logical OR reduction is performed.
         The default (``axis=None``) is to perform a logical OR over all
         the dimensions of the input array. `axis` may be negative, in
@@ -2814,7 +2815,7 @@ def isinf(a, out=None, where=True, dtype=None, **kwargs):
     ----------
     x : array_like
         Input values
-    out : ndarray, None, or tuple of ndarray and None, optional
+    out : ndarray, None, or tuple[ndarray or None], optional
         A location into which the result is stored. If provided, it must have
         a shape that the inputs broadcast to. If not provided or None,
         a freshly-allocated array is returned. A tuple (possible only as a
@@ -2832,7 +2833,7 @@ def isinf(a, out=None, where=True, dtype=None, **kwargs):
 
     Returns
     -------
-    y : bool (scalar) or boolean ndarray
+    y : bool (scalar) or ndarray[bool]
         True where ``x`` is positive or negative infinity, false otherwise.
         This is a scalar if `x` is a scalar.
 
@@ -2863,7 +2864,7 @@ def isnan(a, out=None, where=True, dtype=None, **kwargs):
     ----------
     x : array_like
         Input array.
-    out : ndarray, None, or tuple of ndarray and None, optional
+    out : ndarray, None, or tuple[ndarray or None], optional
         A location into which the result is stored. If provided, it must have
         a shape that the inputs broadcast to. If not provided or None,
         a freshly-allocated array is returned. A tuple (possible only as a
@@ -2916,7 +2917,7 @@ def logical_and(a, b, out=None, where=True, dtype=np.dtype(np.bool), **kwargs):
     x1, x2 : array_like
         Input arrays. If ``x1.shape != x2.shape``, they must be broadcastable
         to a common shape (which becomes the shape of the output).
-    out : ndarray, None, or tuple of ndarray and None, optional
+    out : ndarray, None, or tuple[ndarray or None], optional
         A location into which the result is stored. If provided, it must have
         a shape that the inputs broadcast to. If not provided or None,
         a freshly-allocated array is returned. A tuple (possible only as a
@@ -2969,7 +2970,7 @@ def logical_or(a, b, out=None, where=True, dtype=np.dtype(np.bool), **kwargs):
         Logical OR is applied to the elements of `x1` and `x2`.
         If ``x1.shape != x2.shape``, they must be broadcastable to a common
         shape (which becomes the shape of the output).
-    out : ndarray, None, or tuple of ndarray and None, optional
+    out : ndarray, None, or tuple[ndarray or None], optional
         A location into which the result is stored. If provided, it must have
         a shape that the inputs broadcast to. If not provided or None,
         a freshly-allocated array is returned. A tuple (possible only as a
@@ -3020,7 +3021,7 @@ def logical_not(a, out=None, where=True, dtype=None, **kwargs):
     ----------
     x : array_like
         Logical NOT is applied to the elements of `x`.
-    out : ndarray, None, or tuple of ndarray and None, optional
+    out : ndarray, None, or tuple[ndarray or None], optional
         A location into which the result is stored. If provided, it must have
         a shape that the inputs broadcast to. If not provided or None,
         a freshly-allocated array is returned. A tuple (possible only as a
@@ -3038,7 +3039,7 @@ def logical_not(a, out=None, where=True, dtype=None, **kwargs):
 
     Returns
     -------
-    y : bool or ndarray of bool
+    y : bool or ndarray[bool]
         Boolean result with the same shape as `x` of the NOT operation
         on elements of `x`.
         This is a scalar if `x` is a scalar.
@@ -3072,7 +3073,7 @@ def logical_xor(a, b, out=None, where=True, dtype=np.dtype(np.bool), **kwargs):
         Logical XOR is applied to the elements of `x1` and `x2`. If ``x1.shape
         != x2.shape``, they must be broadcastable to a common shape (which
         becomes the shape of the output).
-    out : ndarray, None, or tuple of ndarray and None, optional
+    out : ndarray, None, or tuple[ndarray or None], optional
         A location into which the result is stored. If provided, it must have
         a shape that the inputs broadcast to. If not provided or None,
         a freshly-allocated array is returned. A tuple (possible only as a
@@ -3090,7 +3091,7 @@ def logical_xor(a, b, out=None, where=True, dtype=np.dtype(np.bool), **kwargs):
 
     Returns
     -------
-    y : bool or ndarray of bool
+    y : bool or ndarray[bool]
         Boolean result of the logical XOR operation applied to the elements
         of `x1` and `x2`; the shape is determined by broadcasting.
         This is a scalar if both `x1` and `x2` are scalars.
@@ -3213,7 +3214,7 @@ def greater(a, b, out=None, where=True, dtype=np.dtype(np.bool), **kwargs):
     x1, x2 : array_like
         Input arrays. If ``x1.shape != x2.shape``, they must be broadcastable
         to a common shape (which becomes the shape of the output).
-    out : ndarray, None, or tuple of ndarray and None, optional
+    out : ndarray, None, or tuple[ndarray or None], optional
         A location into which the result is stored. If provided, it must have
         a shape that the inputs broadcast to. If not provided or None,
         a freshly-allocated array is returned. A tuple (possible only as a
@@ -3267,7 +3268,7 @@ def greater_equal(
     x1, x2 : array_like
         Input arrays. If ``x1.shape != x2.shape``, they must be broadcastable
         to a common shape (which becomes the shape of the output).
-    out : ndarray, None, or tuple of ndarray and None, optional
+    out : ndarray, None, or tuple[ndarray or None], optional
         A location into which the result is stored. If provided, it must have
         a shape that the inputs broadcast to. If not provided or None,
         a freshly-allocated array is returned. A tuple (possible only as a
@@ -3285,7 +3286,7 @@ def greater_equal(
 
     Returns
     -------
-    out : bool or ndarray of bool
+    out : bool or ndarray[bool]
         Output array, element-wise comparison of `x1` and `x2`.
         Typically of type bool, unless ``dtype=object`` is passed.
         This is a scalar if both `x1` and `x2` are scalars.
@@ -3319,7 +3320,7 @@ def less(a, b, out=None, where=True, dtype=np.dtype(np.bool), **kwargs):
     x1, x2 : array_like
         Input arrays. If ``x1.shape != x2.shape``, they must be broadcastable
         to a common shape (which becomes the shape of the output).
-    out : ndarray, None, or tuple of ndarray and None, optional
+    out : ndarray, None, or tuple[ndarray or None], optional
         A location into which the result is stored. If provided, it must have
         a shape that the inputs broadcast to. If not provided or None,
         a freshly-allocated array is returned. A tuple (possible only as a
@@ -3371,7 +3372,7 @@ def less_equal(a, b, out=None, where=True, dtype=np.dtype(np.bool), **kwargs):
     x1, x2 : array_like
         Input arrays. If ``x1.shape != x2.shape``, they must be broadcastable
         to a common shape (which becomes the shape of the output).
-    out : ndarray, None, or tuple of ndarray and None, optional
+    out : ndarray, None, or tuple[ndarray or None], optional
         A location into which the result is stored. If provided, it must have
         a shape that the inputs broadcast to. If not provided or None,
         a freshly-allocated array is returned. A tuple (possible only as a
@@ -3423,7 +3424,7 @@ def equal(a, b, out=None, where=True, dtype=np.dtype(np.bool), **kwargs):
     x1, x2 : array_like
         Input arrays. If ``x1.shape != x2.shape``, they must be broadcastable
         to a common shape (which becomes the shape of the output).
-    out : ndarray, None, or tuple of ndarray and None, optional
+    out : ndarray, None, or tuple[ndarray or None], optional
         A location into which the result is stored. If provided, it must have
         a shape that the inputs broadcast to. If not provided or None,
         a freshly-allocated array is returned. A tuple (possible only as a
@@ -3475,7 +3476,7 @@ def not_equal(a, b, out=None, where=True, dtype=np.dtype(np.bool), **kwargs):
     x1, x2 : array_like
         Input arrays.  If ``x1.shape != x2.shape``, they must be broadcastable
         to a common shape (which becomes the shape of the output).
-    out : ndarray, None, or tuple of ndarray and None, optional
+    out : ndarray, None, or tuple[ndarray or None], optional
         A location into which the result is stored. If provided, it must have
         a shape that the inputs broadcast to. If not provided or None,
         a freshly-allocated array is returned. A tuple (possible only as a
@@ -3533,7 +3534,7 @@ def sin(a, out=None, where=True, dtype=None, **kwargs):
     ----------
     x : array_like
         Angle, in radians (:math:`2 \\pi` rad equals 360 degrees).
-    out : ndarray, None, or tuple of ndarray and None, optional
+    out : ndarray, None, or tuple[ndarray or None], optional
         A location into which the result is stored. If provided, it must have
         a shape that the inputs broadcast to. If not provided or None,
         a freshly-allocated array is returned. A tuple (possible only as a
@@ -3582,7 +3583,7 @@ def cos(a, out=None, where=True, dtype=None, **kwargs):
     ----------
     x : array_like
         Input array in radians.
-    out : ndarray, None, or tuple of ndarray and None, optional
+    out : ndarray, None, or tuple[ndarray or None], optional
         A location into which the result is stored. If provided, it must have
         a shape that the inputs broadcast to. If not provided or None,
         a freshly-allocated array is returned. A tuple (possible only as a
@@ -3636,7 +3637,7 @@ def tan(a, out=None, where=True, dtype=None, **kwargs):
     ----------
     x : array_like
         Input array.
-    out : ndarray, None, or tuple of ndarray and None, optional
+    out : ndarray, None, or tuple[ndarray or None], optional
         A location into which the result is stored. If provided, it must have
         a shape that the inputs broadcast to. If not provided or None,
         a freshly-allocated array is returned. A tuple (possible only as a
@@ -3690,7 +3691,7 @@ def arcsin(a, out=None, where=True, dtype=None, **kwargs):
     ----------
     x : array_like
         `y`-coordinate on the unit circle.
-    out : ndarray, None, or tuple of ndarray and None, optional
+    out : ndarray, None, or tuple[ndarray or None], optional
         A location into which the result is stored. If provided, it must have
         a shape that the inputs broadcast to. If not provided or None,
         a freshly-allocated array is returned. A tuple (possible only as a
@@ -3743,7 +3744,7 @@ def arccos(a, out=None, where=True, dtype=None, **kwargs):
     x : array_like
         `x`-coordinate on the unit circle.
         For real arguments, the domain is [-1, 1].
-    out : ndarray, None, or tuple of ndarray and None, optional
+    out : ndarray, None, or tuple[ndarray or None], optional
         A location into which the result is stored. If provided, it must have
         a shape that the inputs broadcast to. If not provided or None,
         a freshly-allocated array is returned. A tuple (possible only as a
@@ -3794,7 +3795,7 @@ def arctan(a, out=None, where=True, dtype=None, **kwargs):
     Parameters
     ----------
     x : array_like
-    out : ndarray, None, or tuple of ndarray and None, optional
+    out : ndarray, None, or tuple[ndarray or None], optional
         A location into which the result is stored. If provided, it must have
         a shape that the inputs broadcast to. If not provided or None,
         a freshly-allocated array is returned. A tuple (possible only as a
@@ -3847,7 +3848,7 @@ def tanh(a, out=None, where=True, dtype=None, **kwargs):
     ----------
     x : array_like
         Input array.
-    out : ndarray, None, or tuple of ndarray and None, optional
+    out : ndarray, None, or tuple[ndarray or None], optional
         A location into which the result is stored. If provided, it must have
         a shape that the inputs broadcast to. If not provided or None,
         a freshly-allocated array is returned. A tuple (possible only as a
@@ -3904,7 +3905,7 @@ def rint(a, out=None, where=True, dtype=None, **kwargs):
     ----------
     x : array_like
         Input array.
-    out : ndarray, None, or tuple of ndarray and None, optional
+    out : ndarray, None, or tuple[ndarray or None], optional
         A location into which the result is stored. If provided, it must have
         a shape that the inputs broadcast to. If not provided or None,
         a freshly-allocated array is returned. A tuple (possible only as a
@@ -3956,7 +3957,7 @@ def floor(a, out=None, where=True, dtype=None, **kwargs):
     ----------
     x : array_like
         Input data.
-    out : ndarray, None, or tuple of ndarray and None, optional
+    out : ndarray, None, or tuple[ndarray or None], optional
         A location into which the result is stored. If provided, it must have
         a shape that the inputs broadcast to. If not provided or None,
         a freshly-allocated array is returned. A tuple (possible only as a
@@ -4006,7 +4007,7 @@ def ceil(a, out=None, where=True, dtype=None, **kwargs):
     ----------
     x : array_like
         Input data.
-    out : ndarray, None, or tuple of ndarray and None, optional
+    out : ndarray, None, or tuple[ndarray or None], optional
         A location into which the result is stored. If provided, it must have
         a shape that the inputs broadcast to. If not provided or None,
         a freshly-allocated array is returned. A tuple (possible only as a
@@ -4065,7 +4066,7 @@ def prod(
     ----------
     a : array_like
         Input data.
-    axis : None or int or tuple of ints, optional
+    axis : None or int or tuple[int], optional
         Axis or axes along which a product is performed.  The default,
         axis=None, will calculate the product of all the elements in the
         input array. If axis is negative it counts from the last to the
@@ -4074,7 +4075,7 @@ def prod(
         If axis is a tuple of ints, a product is performed on all of the
         axes specified in the tuple instead of a single axis or all the
         axes as before.
-    dtype : dtype, optional
+    dtype : data-type, optional
         The type of the returned array, as well as of the accumulator in
         which the elements are multiplied.  The dtype of `a` is used by
         default unless `a` has an integer dtype of less precision than the
@@ -4099,7 +4100,7 @@ def prod(
         The starting value for this product. See `~cunumeric.ufunc.reduce` for
         details.
 
-    where : array_like of bool, optional
+    where : array_like[bool], optional
         Elements to include in the product. See `~cunumeric.ufunc.reduce` for
         details.
 
@@ -4145,7 +4146,7 @@ def sum(
     ----------
     a : array_like
         Elements to sum.
-    axis : None or int or tuple of ints, optional
+    axis : None or int or tuple[int], optional
         Axis or axes along which a sum is performed.  The default,
         axis=None, will sum all of the elements of the input array.  If
         axis is negative it counts from the last to the first axis.
@@ -4153,7 +4154,7 @@ def sum(
         If axis is a tuple of ints, a sum is performed on all of the axes
         specified in the tuple instead of a single axis or all the axes as
         before.
-    dtype : dtype, optional
+    dtype : data-type, optional
         The type of the returned array and of the accumulator in which the
         elements are summed.  The dtype of `a` is used by default unless `a`
         has an integer dtype of less precision than the default platform
@@ -4177,7 +4178,7 @@ def sum(
     initial : scalar, optional
         Starting value for the sum. See `~cunumeric.ufunc.reduce` for details.
 
-    where : array_like of bool, optional
+    where : array_like[bool], optional
         Elements to include in the sum. See `~cunumeric.ufunc.reduce` for
         details.
 
@@ -4219,7 +4220,7 @@ def exp(a, out=None, where=True, dtype=None, **kwargs):
     ----------
     x : array_like
         Input values.
-    out : ndarray, None, or tuple of ndarray and None, optional
+    out : ndarray, None, or tuple[ndarray or None], optional
         A location into which the result is stored. If provided, it must have
         a shape that the inputs broadcast to. If not provided or None,
         a freshly-allocated array is returned. A tuple (possible only as a
@@ -4268,7 +4269,7 @@ def exp2(a, out=None, where=True, dtype=None, **kwargs):
     ----------
     x : array_like
         Input values.
-    out : ndarray, None, or tuple of ndarray and None, optional
+    out : ndarray, None, or tuple[ndarray or None], optional
         A location into which the result is stored. If provided, it must have
         a shape that the inputs broadcast to. If not provided or None,
         a freshly-allocated array is returned. A tuple (possible only as a
@@ -4321,7 +4322,7 @@ def log(a, out=None, where=True, dtype=None, **kwargs):
     ----------
     x : array_like
         Input value.
-    out : ndarray, None, or tuple of ndarray and None, optional
+    out : ndarray, None, or tuple[ndarray or None], optional
         A location into which the result is stored. If provided, it must have
         a shape that the inputs broadcast to. If not provided or None,
         a freshly-allocated array is returned. A tuple (possible only as a
@@ -4370,7 +4371,7 @@ def log10(a, out=None, where=True, dtype=None, **kwargs):
     ----------
     x : array_like
         Input values.
-    out : ndarray, None, or tuple of ndarray and None, optional
+    out : ndarray, None, or tuple[ndarray or None], optional
         A location into which the result is stored. If provided, it must have
         a shape that the inputs broadcast to. If not provided or None,
         a freshly-allocated array is returned. A tuple (possible only as a
@@ -4425,7 +4426,7 @@ def add(a, b, out=None, where=True, dtype=None):
         The arrays to be added. If ``x1.shape != x2.shape``, they must be
         broadcastable to a common shape (which becomes the shape of the
         output).
-    out : ndarray, None, or tuple of ndarray and None, optional
+    out : ndarray, None, or tuple[ndarray or None], optional
         A location into which the result is stored. If provided, it must have
         a shape that the inputs broadcast to. If not provided or None,
         a freshly-allocated array is returned. A tuple (possible only as a
@@ -4479,7 +4480,7 @@ def negative(a, out=None, where=True, dtype=None, **kwargs):
     ----------
     x : array_like or scalar
         Input array.
-    out : ndarray, None, or tuple of ndarray and None, optional
+    out : ndarray, None, or tuple[ndarray or None], optional
         A location into which the result is stored. If provided, it must have
         a shape that the inputs broadcast to. If not provided or None,
         a freshly-allocated array is returned. A tuple (possible only as a
@@ -4525,7 +4526,7 @@ def multiply(a, b, out=None, where=True, dtype=None):
         Input arrays to be multiplied. If ``x1.shape != x2.shape``, they must
         be broadcastable to a common shape (which becomes the shape of the
         output).
-    out : ndarray, None, or tuple of ndarray and None, optional
+    out : ndarray, None, or tuple[ndarray or None], optional
         A location into which the result is stored. If provided, it must have
         a shape that the inputs broadcast to. If not provided or None,
         a freshly-allocated array is returned. A tuple (possible only as a
@@ -4586,7 +4587,7 @@ def power(x1, x2, out=None, where=True, dtype=None, **kwargs):
     x2 : array_like
         The exponents. If ``x1.shape != x2.shape``, they must be broadcastable
         to a common shape (which becomes the shape of the output).
-    out : ndarray, None, or tuple of ndarray and None, optional
+    out : ndarray, None, or tuple[ndarray or None], optional
         A location into which the result is stored. If provided, it must have
         a shape that the inputs broadcast to. If not provided or None,
         a freshly-allocated array is returned. A tuple (possible only as a
@@ -4651,7 +4652,7 @@ def subtract(a, b, out=None, where=True, dtype=None, **kwargs):
         The arrays to be subtracted from each other. If ``x1.shape !=
         x2.shape``, they must be broadcastable to a common shape (which becomes
         the shape of the output).
-    out : ndarray, None, or tuple of ndarray and None, optional
+    out : ndarray, None, or tuple[ndarray or None], optional
         A location into which the result is stored. If provided, it must have
         a shape that the inputs broadcast to. If not provided or None,
         a freshly-allocated array is returned. A tuple (possible only as a
@@ -4712,7 +4713,7 @@ def true_divide(a, b, out=None, where=True, dtype=None, **kwargs):
     x2 : array_like
         Divisor array. If ``x1.shape != x2.shape``, they must be broadcastable
         to a common shape (which becomes the shape of the output).
-    out : ndarray, None, or tuple of ndarray and None, optional
+    out : ndarray, None, or tuple[ndarray or None], optional
         A location into which the result is stored. If provided, it must have
         a shape that the inputs broadcast to. If not provided or None,
         a freshly-allocated array is returned. A tuple (possible only as a
@@ -4821,7 +4822,7 @@ def floor_divide(a, b, out=None, where=True, dtype=None, **kwargs):
     x2 : array_like
         Denominator. If ``x1.shape != x2.shape``, they must be broadcastable to
         a common shape (which becomes the shape of the output).
-    out : ndarray, None, or tuple of ndarray and None, optional
+    out : ndarray, None, or tuple[ndarray or None], optional
         A location into which the result is stored. If provided, it must have
         a shape that the inputs broadcast to. If not provided or None,
         a freshly-allocated array is returned. A tuple (possible only as a
@@ -4878,7 +4879,7 @@ def remainder(a, b, out=None, where=True, dtype=None):
     x2 : array_like
         Divisor array. If ``x1.shape != x2.shape``, they must be broadcastable
         to a common shape (which becomes the shape of the output).
-    out : ndarray, None, or tuple of ndarray and None, optional
+    out : ndarray, None, or tuple[ndarray or None], optional
         A location into which the result is stored. If provided, it must have
         a shape that the inputs broadcast to. If not provided or None,
         a freshly-allocated array is returned. A tuple (possible only as a
@@ -5038,7 +5039,7 @@ def maximum(a, b, out=None, where=True, dtype=None, **kwargs):
         The arrays holding the elements to be compared. If ``x1.shape !=
         x2.shape``, they must be broadcastable to a common shape (which becomes
         the shape of the output).
-    out : ndarray, None, or tuple of ndarray and None, optional
+    out : ndarray, None, or tuple[ndarray or None], optional
         A location into which the result is stored. If provided, it must have
         a shape that the inputs broadcast to. If not provided or None,
         a freshly-allocated array is returned. A tuple (possible only as a
@@ -5089,7 +5090,7 @@ def amax(a, axis=None, out=None, keepdims=False):
     ----------
     a : array_like
         Input data.
-    axis : None or int or tuple of ints, optional
+    axis : None or int or tuple[int], optional
         Axis or axes along which to operate.  By default, flattened input is
         used.
 
@@ -5115,7 +5116,7 @@ def amax(a, axis=None, out=None, keepdims=False):
         The minimum value of an output element. Must be present to allow
         computation on empty slice. See `~cunumeric.ufunc.reduce` for details.
 
-    where : array_like of bool, optional
+    where : array_like[bool], optional
         Elements to compare for the maximum. See `~cunumeric.ufunc.reduce`
         for details.
 
@@ -5158,7 +5159,7 @@ def minimum(a, b, out=None, where=True, dtype=None, **kwargs):
         The arrays holding the elements to be compared. If ``x1.shape !=
         x2.shape``, they must be broadcastable to a common shape (which becomes
         the shape of the output).
-    out : ndarray, None, or tuple of ndarray and None, optional
+    out : ndarray, None, or tuple[ndarray or None], optional
         A location into which the result is stored. If provided, it must have
         a shape that the inputs broadcast to. If not provided or None,
         a freshly-allocated array is returned. A tuple (possible only as a
@@ -5209,7 +5210,7 @@ def amin(a, axis=None, out=None, keepdims=False):
     ----------
     a : array_like
         Input data.
-    axis : None or int or tuple of ints, optional
+    axis : None or int or tuple[int], optional
         Axis or axes along which to operate.  By default, flattened input is
         used.
 
@@ -5235,7 +5236,7 @@ def amin(a, axis=None, out=None, keepdims=False):
         The maximum value of an output element. Must be present to allow
         computation on empty slice. See `~cunumeric.ufunc.reduce` for details.
 
-    where : array_like of bool, optional
+    where : array_like[bool], optional
         Elements to compare for the minimum. See `~cunumeric.ufunc.reduce`
         for details.
 
@@ -5277,7 +5278,7 @@ def convolve(a, v, mode="full"):
         First input ndarray.
     v : (M,) array_like
         Second input ndarray.
-    mode : {'full', 'valid', 'same'}, optional
+    mode : ``{'full', 'valid', 'same'}``, optional
         'same':
           The output is the same size as `a`, centered with respect to
           the 'full' output. (default)
@@ -5378,7 +5379,7 @@ def sqrt(a, out=None, where=True, dtype=None, **kwargs):
     ----------
     x : array_like
         The values whose square-roots are required.
-    out : ndarray, None, or tuple of ndarray and None, optional
+    out : ndarray, None, or tuple[ndarray or None], optional
         A location into which the result is stored. If provided, it must have
         a shape that the inputs broadcast to. If not provided or None,
         a freshly-allocated array is returned. A tuple (possible only as a
@@ -5431,7 +5432,7 @@ def square(a, out=None, where=True, dtype=None, **kwargs):
     ----------
     x : array_like
         Input data.
-    out : ndarray, None, or tuple of ndarray and None, optional
+    out : ndarray, None, or tuple[ndarray or None], optional
         A location into which the result is stored. If provided, it must have
         a shape that the inputs broadcast to. If not provided or None,
         a freshly-allocated array is returned. A tuple (possible only as a
@@ -5473,7 +5474,7 @@ def absolute(a, out=None, where=True, **kwargs):
     ----------
     x : array_like
         Input array.
-    out : ndarray, None, or tuple of ndarray and None, optional
+    out : ndarray, None, or tuple[ndarray or None], optional
         A location into which the result is stored. If provided, it must have
         a shape that the inputs broadcast to. If not provided or None,
         a freshly-allocated array is returned. A tuple (possible only as a
@@ -5528,7 +5529,7 @@ def fabs(a, out=None, where=True, **kwargs):
     x : array_like
         The array of numbers for which the absolute values are required. If
         `x` is a scalar, the result `y` will also be a scalar.
-    out : ndarray, None, or tuple of ndarray and None, optional
+    out : ndarray, None, or tuple[ndarray or None], optional
         A location into which the result is stored. If provided, it must have
         a shape that the inputs broadcast to. If not provided or None,
         a freshly-allocated array is returned. A tuple (possible only as a
@@ -5578,7 +5579,7 @@ def sign(a, out=None, where=True, dtype=None, **kwargs):
     ----------
     x : array_like
         Input values.
-    out : ndarray, None, or tuple of ndarray and None, optional
+    out : ndarray, None, or tuple[ndarray or None], optional
         A location into which the result is stored. If provided, it must have
         a shape that the inputs broadcast to. If not provided or None,
         a freshly-allocated array is returned. A tuple (possible only as a
@@ -5638,13 +5639,13 @@ def argmax(a, axis=None, out=None):
     axis : int, optional
         By default, the index is into the flattened array, otherwise
         along the specified axis.
-    out : array, optional
+    out : ndarray, optional
         If provided, the result will be inserted into this array. It should
         be of the appropriate shape and dtype.
 
     Returns
     -------
-    index_array : ndarray of ints
+    index_array : ndarray[int]
         Array of indices into the array. It has the same shape as `a.shape`
         with the dimension along `axis` removed.
 
@@ -5675,13 +5676,13 @@ def argmin(a, axis=None, out=None):
     axis : int, optional
         By default, the index is into the flattened array, otherwise
         along the specified axis.
-    out : array, optional
+    out : ndarray, optional
         If provided, the result will be inserted into this array. It should
         be of the appropriate shape and dtype.
 
     Returns
     -------
-    index_array : ndarray of ints
+    index_array : ndarray[int]
         Array of indices into the array. It has the same shape as `a.shape`
         with the dimension along `axis` removed.
 
@@ -5719,7 +5720,7 @@ def count_nonzero(a, axis=None):
 
     Returns
     -------
-    count : int or array of int
+    count : int or ndarray[int]
         Number of non-zero values in the array along a given axis.
         Otherwise, the total number of non-zero values in the array
         is returned.
@@ -5765,7 +5766,7 @@ def mean(a, axis=None, dtype=None, out=None, keepdims=False):
     a : array_like
         Array containing numbers whose mean is desired. If `a` is not an
         array, a conversion is attempted.
-    axis : None or int or tuple of ints, optional
+    axis : None or int or tuple[int], optional
         Axis or axes along which the means are computed. The default is to
         compute the mean of the flattened array.
 
@@ -5794,9 +5795,10 @@ def mean(a, axis=None, dtype=None, out=None, keepdims=False):
 
     Returns
     -------
-    m : ndarray, see dtype parameter above
-        If `out=None`, returns a new array containing the mean values,
-        otherwise a reference to the output array is returned.
+    m : ndarray
+        If `out=None`, returns a new array of the same dtype a above
+        containing the mean values, otherwise a reference to the output
+        array is returned.
 
     See Also
     --------
@@ -5830,8 +5832,8 @@ def bincount(a, weights=None, minlength=0):
 
     Parameters
     ----------
-    x : array_like, 1 dimension, nonnegative ints
-        Input array.
+    x : array_like
+        1-D input array of non-negative ints.
     weights : array_like, optional
         Weights, array of the same shape as `x`.
     minlength : int, optional
@@ -5839,7 +5841,7 @@ def bincount(a, weights=None, minlength=0):
 
     Returns
     -------
-    out : ndarray of ints
+    out : ndarray[int]
         The result of binning the input array.
         The length of `out` is equal to ``cunumeric.amax(x)+1``.
 
