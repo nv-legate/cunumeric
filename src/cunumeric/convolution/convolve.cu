@@ -1321,14 +1321,14 @@ __host__ static inline void cufft_convolution(AccessorWO<VAL, DIM> out,
     copy_into_buffer<VAL, DIM><<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
       filter, filter_buffer, filter_rect.lo, copy_pitches, pitch);
 
-    auto* forward_plan  = get_cufft_plan(ForwardPlanType<VAL>::value, fftsize);
-    auto* backward_plan = get_cufft_plan(BackwardPlanType<VAL>::value, fftsize);
+    auto forward_plan  = get_cufft_plan(ForwardPlanType<VAL>::value, fftsize);
+    auto backward_plan = get_cufft_plan(BackwardPlanType<VAL>::value, fftsize);
 
     // Set the stream and working area for the plans
-    CHECK_CUFFT(cufftSetStream(forward_plan->handle, stream));
-    CHECK_CUFFT(cufftSetStream(backward_plan->handle, stream));
+    CHECK_CUFFT(cufftSetStream(forward_plan.handle(), stream));
+    CHECK_CUFFT(cufftSetStream(backward_plan.handle(), stream));
 
-    auto workarea_size = std::max(forward_plan->workarea_size, backward_plan->workarea_size);
+    auto workarea_size = std::max(forward_plan.workareaSize(), backward_plan.workareaSize());
 
     // Create the plan and allocate a temporary buffer for it if it needs one
     DeferredBuffer<uint8_t, 1> workarea_buffer;
@@ -1339,13 +1339,13 @@ __host__ static inline void cufft_convolution(AccessorWO<VAL, DIM> out,
                                                    nullptr /*initial*/,
                                                    128 /*alignment*/);
       void* workarea  = workarea_buffer.ptr(zero1d);
-      CHECK_CUFFT(cufftSetWorkArea(forward_plan->handle, workarea));
-      CHECK_CUFFT(cufftSetWorkArea(backward_plan->handle, workarea));
+      CHECK_CUFFT(cufftSetWorkArea(forward_plan.handle(), workarea));
+      CHECK_CUFFT(cufftSetWorkArea(backward_plan.handle(), workarea));
     }
     // FFT the input data
-    cufft_execute_forward(forward_plan->handle, signal_ptr, signal_ptr);
+    cufft_execute_forward(forward_plan.handle(), signal_ptr, signal_ptr);
     // FFT the filter data
-    cufft_execute_forward(forward_plan->handle, filter_ptr, filter_ptr);
+    cufft_execute_forward(forward_plan.handle(), filter_ptr, filter_ptr);
     // Perform the pointwise multiplcation
     {
       size_t volume = (buffervolume / 2);
@@ -1355,7 +1355,7 @@ __host__ static inline void cufft_convolution(AccessorWO<VAL, DIM> out,
     }
     // Inverse FFT for the ouptut
     // Allow this out-of-place for better performance
-    cufft_execute_backward(backward_plan->handle, signal_ptr, filter_ptr);
+    cufft_execute_backward(backward_plan.handle(), signal_ptr, filter_ptr);
     // Copy the result data out of the temporary buffer and scale
     // because CUFFT inverse does not perform the scale for us
     pitch = 1;
