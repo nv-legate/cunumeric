@@ -8,6 +8,7 @@ Trigonometric functions
 
 .. autosummary::
    :toctree: generated/
+   :template: function.rst
 
    sin
    cos
@@ -22,6 +23,7 @@ Hyperbolic functions
 
 .. autosummary::
    :toctree: generated/
+   :template: function.rst
 
    tanh
 
@@ -31,6 +33,7 @@ Rounding
 
 .. autosummary::
    :toctree: generated/
+   :template: function.rst
 
    rint
    floor
@@ -42,6 +45,7 @@ Sums, products, differences
 
 .. autosummary::
    :toctree: generated/
+   :template: function.rst
 
    prod
    sum
@@ -52,6 +56,7 @@ Exponents and logarithms
 
 .. autosummary::
    :toctree: generated/
+   :template: function.rst
 
    exp
    exp2
@@ -64,6 +69,7 @@ Arithmetic operations
 
 .. autosummary::
    :toctree: generated/
+   :template: function.rst
 
    add
    negative
@@ -82,6 +88,7 @@ Handling complex numbers
 
 .. autosummary::
    :toctree: generated/
+   :template: function.rst
 
    real
    imag
@@ -94,6 +101,7 @@ Extrema Finding
 
 .. autosummary::
    :toctree: generated/
+   :template: function.rst
 
    maximum
    amax
@@ -106,6 +114,7 @@ Miscellaneous
 
 .. autosummary::
    :toctree: generated/
+   :template: function.rst
 
    convolve
    clip

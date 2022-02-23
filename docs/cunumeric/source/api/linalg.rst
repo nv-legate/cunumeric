@@ -10,6 +10,7 @@ Matrix and vector products
 
 .. autosummary::
    :toctree: generated/
+   :template: function.rst
 
    dot
    tensordot
@@ -20,6 +21,7 @@ Decompositions
 
 .. autosummary::
    :toctree: generated/
+   :template: function.rst
 
    linalg.cholesky
 
@@ -28,5 +30,6 @@ Norms and other numbers
 
 .. autosummary::
    :toctree: generated/
+   :template: function.rst
 
    linalg.norm

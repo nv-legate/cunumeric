@@ -8,6 +8,7 @@ Searching
 
 .. autosummary::
    :toctree: generated/
+   :template: method.rst
 
    argmax
    argmin
@@ -19,5 +20,6 @@ Counting
 
 .. autosummary::
    :toctree: generated/
+   :template: method.rst
 
    count_nonzero

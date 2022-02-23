@@ -8,6 +8,7 @@ Truth value testing
 
 .. autosummary::
    :toctree: generated/
+   :template: method.rst
 
    all
    any
@@ -18,6 +19,7 @@ Array contents
 
 .. autosummary::
    :toctree: generated/
+   :template: function.rst
 
    isinf
    isnan
@@ -28,6 +30,7 @@ Logic operations
 
 .. autosummary::
    :toctree: generated/
+   :template: function.rst
 
    logical_and
    logical_or
@@ -40,6 +43,7 @@ Comparison
 
 .. autosummary::
    :toctree: generated/
+   :template: function.rst
 
    allclose
    array_equal
