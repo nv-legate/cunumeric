@@ -125,7 +125,7 @@ def _section(header, mod_ext, other_lib, klass=None, exclude_mod=None):
         "",
         ".. Summary:",
         "   Number of NumPy functions: {}".format(len(base_funcs)),
-        "   Number of functions covered by ",
+        "   Number of functions covered by "
         f"{other_lib}: {len(lg_funcs & base_funcs)}",
         "   {} specific functions:".format(other_lib),
     ]
