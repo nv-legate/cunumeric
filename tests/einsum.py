@@ -242,15 +242,21 @@ def test_np_vs_cn(expr, mk_input, mk_output=None):
 
 
 def test():
+    print(
+        "Test exhaustive expression enumeration "
+        + "(permutations and broadcasting):"
+    )
     for expr in gen_expr():
-        print(f"testing {expr} (permutations and broadcasting)")
+        print(expr)
         test_np_vs_cn(expr, mk_input_that_permutes_to)
         test_np_vs_cn(expr, mk_input_that_broadcasts_to)
+    print("Test large arrays (default execution only):")
     for expr in LARGE_EXPRS:
-        print(f"testing {expr} (default mode)")
+        print(expr)
         test_np_vs_cn(expr, mk_input_default)
+    print("Test casting:")
     for expr in SMALL_EXPRS:
-        print(f"testing {expr} (casting)")
+        print(expr)
         test_np_vs_cn(expr, mk_typed_input, mk_typed_output)
 
 
