@@ -60,31 +60,19 @@ struct MatVecMulImpl {
 
     size_t mat_strides[2];
     size_t vec_strides[2];
-    if (args.left_matrix) {
-      // M * v
-      mat           = args.rhs1.read_accessor<VAL, 2>(shape).ptr(shape, mat_strides);
-      vec           = args.rhs2.read_accessor<VAL, 2>(shape).ptr(shape, vec_strides);
-      mat_stride    = std::max(mat_strides[0], mat_strides[1]);
-      transpose_mat = mat_strides[0] == 1;
-      if (transpose_mat) std::swap(m, n);
-    } else {
-      // (M^T * v)^T
-      vec           = args.rhs1.read_accessor<VAL, 2>(shape).ptr(shape, vec_strides);
-      mat           = args.rhs2.read_accessor<VAL, 2>(shape).ptr(shape, mat_strides);
-      mat_stride    = std::max(mat_strides[0], mat_strides[1]);
-      transpose_mat = mat_strides[1] == 1;
-      if (!transpose_mat) std::swap(m, n);
-    }
+    mat           = args.rhs1.read_accessor<VAL, 2>(shape).ptr(shape, mat_strides);
+    vec           = args.rhs2.read_accessor<VAL, 2>(shape).ptr(shape, vec_strides);
+    mat_stride    = std::max(mat_strides[0], mat_strides[1]);
+    transpose_mat = mat_strides[0] == 1;
+    if (transpose_mat) std::swap(m, n);
 
     size_t lhs_strides[2];
     auto lhs = args.lhs.reduce_accessor<SumReduction<ACC>, true, 2>().ptr(shape, lhs_strides);
 
 #ifdef CUNUMERIC_DEBUG
     assert(mat_strides[0] == 1 || mat_strides[1] == 1);
-    assert(vec_strides[0] == 0 && vec_strides[1] == 1 ||
-           vec_strides[0] == 1 && vec_strides[1] == 0);
-    assert(lhs_strides[0] == 0 && lhs_strides[1] == 1 ||
-           lhs_strides[0] == 1 && lhs_strides[1] == 0);
+    assert(vec_strides[0] == 0 && vec_strides[1] == 1);
+    assert(lhs_strides[0] == 1 && lhs_strides[1] == 0);
 #endif
 
     MatVecMulImplBody<KIND, CODE>()(m, n, lhs, mat, vec, mat_stride, transpose_mat);
@@ -102,9 +90,8 @@ static void matvecmul_template(TaskContext& context)
 {
   auto& reductions = context.reductions();
   auto& inputs     = context.inputs();
-  auto& scalars    = context.scalars();
 
-  MatVecMulArgs args{scalars[0].value<bool>(), reductions[0], inputs[0], inputs[1]};
+  MatVecMulArgs args{reductions[0], inputs[0], inputs[1]};
   // Note that we can't dispatch on the lhs's type,
   // as the lhs can have a different type than the rhs'
   type_dispatch(args.rhs1.code(), MatVecMulImpl<KIND>{}, args);

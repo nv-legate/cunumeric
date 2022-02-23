@@ -935,29 +935,23 @@ class DeferredArray(NumPyThunk):
             elif blas_op == "mv":
                 # Matrix-vector or vector-matrix multiply
 
-                left_matrix = len(rhs1_modes) == 2
-                if left_matrix:
-                    # ba,b->a --> ab,b->a
-                    if rhs1_modes[0] == rhs2_modes[0]:
-                        rhs1 = rhs1.transpose([1, 0])
-                        rhs1_modes = [rhs1_modes[1], rhs1_modes[0]]
-                    (m, n) = rhs1.shape
-                    rhs2 = rhs2.promote(0, m)
-                    lhs = lhs.promote(1, n)
-                else:
-                    # b,ab->a --> b,ba->a
-                    if rhs1_modes[0] == rhs2_modes[1]:
-                        rhs2 = rhs2.transpose([1, 0])
-                        rhs2_modes = [rhs2_modes[1], rhs2_modes[0]]
-                    (m, n) = rhs2.shape
-                    rhs1 = rhs1.promote(1, n)
-                    lhs = lhs.promote(0, m)
+                # b,(ab/ba)->a --> (ab/ba),b->a
+                if len(rhs1_modes) == 1:
+                    rhs1, rhs2 = rhs2, rhs1
+                    rhs1_modes, rhs2_modes = rhs2_modes, rhs1_modes
+                # ba,b->a --> ab,b->a
+                if rhs1_modes[0] == rhs2_modes[0]:
+                    rhs1 = rhs1.transpose([1, 0])
+                    rhs1_modes = [rhs1_modes[1], rhs1_modes[0]]
+
+                (m, n) = rhs1.shape
+                rhs2 = rhs2.promote(0, m)
+                lhs = lhs.promote(1, n)
 
                 task = self.context.create_task(CuNumericOpCode.MATVECMUL)
                 task.add_reduction(lhs, ReductionOp.ADD)
                 task.add_input(rhs1)
                 task.add_input(rhs2)
-                task.add_scalar_arg(left_matrix, bool)
                 task.add_alignment(lhs, rhs1)
                 task.add_alignment(lhs, rhs2)
                 task.execute()
