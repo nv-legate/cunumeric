@@ -30,6 +30,8 @@ def gen_shapes(a_modes, b_modes):
 
 
 def gen_inputs_of_various_shapes(lib, modes):
+    # 5x5x...x5, with up to one dimension set to 1
+    # making sure common modes appear with the same extent on both arrays
     (a_modes, b_modes, out_modes) = modes
     for (a_shape, b_shape) in gen_shapes(a_modes, b_modes):
         if lib == cn:
@@ -97,10 +99,7 @@ def _test_contraction(modes, operation, gen_inputs, gen_output=None):
         assert np.allclose(np_res, cn_res, rtol=rtol)
         if gen_output is not None:
             for cn_out in gen_output(cn, modes, *cn_inputs):
-                try:
-                    operation(cn, *cn_inputs, out=cn_out)
-                except TypeError:  # out not supported
-                    return
+                operation(cn, *cn_inputs, out=cn_out)
                 rtol = (
                     2e-03
                     if any(x.dtype == np.float16 for x in np_inputs)
@@ -117,7 +116,6 @@ def test_contraction(name, modes, operation):
         # because we may need to promote arrays so that one includes all modes.
         return
     print(f"testing {name} (various shapes)")
-    # (5x5x...x5, with up to one dimension set to 1)
     _test_contraction(modes, operation, gen_inputs_of_various_shapes)
     print(f"testing {name} (permutations)")
     _test_contraction(modes, operation, gen_transposed_inputs)

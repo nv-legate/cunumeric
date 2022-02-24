@@ -2226,8 +2226,8 @@ def dot(a, b, out=None):
         Second argument.
     out : ndarray, optional
         Output argument. This must have the exact shape that would be returned
-        by ``dot(a,b)``. If its dtype is not what would be returned by
-        ``dot(a,b)`` then the result will be (unsafely) cast to `out`.
+        if it was not present. If its dtype is not what would be expected from
+        this operation, then the result will be (unsafely) cast to `out`.
 
     Returns
     -------
@@ -2252,7 +2252,7 @@ def dot(a, b, out=None):
 
 
 @add_boilerplate("a", "b")
-def tensordot(a, b, axes=2):
+def tensordot(a, b, axes=2, out=None):
     """
     Compute tensor dot product along specified axes.
 
@@ -2274,11 +2274,16 @@ def tensordot(a, b, axes=2):
         * (2,) array_like
           Or, a list of axes to be summed over, first sequence applying to `a`,
           second to `b`. Both elements array_like must be of the same length.
+    out : ndarray, optional
+        Output argument. This must have the exact shape that would be returned
+        if it was not present. If its dtype is not what would be expected from
+        this operation, then the result will be (unsafely) cast to `out`.
 
     Returns
     -------
     output : ndarray
-        The tensor dot product of the input.
+        The tensor dot product of the inputs. If `out` is given, then it is
+        returned.
 
     Notes
     -----
@@ -2295,7 +2300,7 @@ def tensordot(a, b, axes=2):
     Multiple GPUs, Multiple CPUs
     """
     (a_modes, b_modes, out_modes) = tensordot_modes(a.ndim, b.ndim, axes)
-    return _contract(a_modes, b_modes, out_modes, a, b)
+    return _contract(a_modes, b_modes, out_modes, a, b, out=out)
 
 
 # Trivial multi-tensor contraction strategy: contract in input order
