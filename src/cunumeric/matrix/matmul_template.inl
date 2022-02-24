@@ -14,6 +14,8 @@
  *
  */
 
+#include "cunumeric/matrix/util.h"
+
 namespace cunumeric {
 
 using namespace Legion;
@@ -69,15 +71,15 @@ struct MatMulImpl {
     auto lhs  = args.lhs.reduce_accessor<SumReduction<ACC>, true, 3>(shape).ptr(shape, lhs_strides);
 
 #ifdef CUNUMERIC_DEBUG
-    assert((rhs1_strides[0] == 1 || rhs1_strides[1] == 1) && rhs1_strides[2] == 0);
-    assert((rhs2_strides[1] == 1 || rhs2_strides[2] == 1) && rhs2_strides[0] == 0);
+    assert(rhs1_strides[2] == 0);
+    assert(rhs2_strides[0] == 0);
     assert(lhs_strides[2] == 1 && lhs_strides[1] == 0);
 #endif
 
-    auto rhs1_stride     = std::max(rhs1_strides[0], rhs1_strides[1]);
-    auto rhs2_stride     = std::max(rhs2_strides[1], rhs2_strides[2]);
-    auto rhs1_transposed = rhs1_strides[0] == 1;
-    auto rhs2_transposed = rhs2_strides[1] == 1;
+    bool rhs1_transposed;
+    bool rhs2_transposed;
+    size_t rhs1_stride = stride_for_blas(m, k, rhs1_strides[0], rhs1_strides[1], rhs1_transposed);
+    size_t rhs2_stride = stride_for_blas(k, n, rhs2_strides[1], rhs2_strides[2], rhs2_transposed);
 
     MatMulImplBody<KIND, CODE>()(m,
                                  n,

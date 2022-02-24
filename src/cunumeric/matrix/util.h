@@ -20,6 +20,8 @@
 
 namespace cunumeric {
 
+size_t stride_for_blas(size_t m, size_t n, size_t x_stride, size_t y_stride, bool& transpose);
+
 inline int64_t unflatten_with_strides(int64_t flat_idx,
                                       size_t ndim,
                                       const int64_t* shape,
