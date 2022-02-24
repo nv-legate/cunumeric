@@ -2196,7 +2196,6 @@ def diagonal(a, offset=0, axis1=None, axis2=None, extract=True, axes=None):
 @add_boilerplate("a", "b")
 def dot(a, b, out=None):
     """
-
     Dot product of two arrays. Specifically,
 
     - If both `a` and `b` are 1-D arrays, it is inner product of vectors
@@ -2225,30 +2224,20 @@ def dot(a, b, out=None):
     b : array_like
         Second argument.
     out : ndarray, optional
-        Output argument. This must have the exact kind that would be returned
-        if it was not used. In particular, it must have the right type, must be
-        C-contiguous, and its dtype must be the dtype that would be returned
-        for `dot(a,b)`. This is a performance feature. Therefore, if these
-        conditions are not met, an exception is raised, instead of attempting
-        to be flexible.
+        Output argument. This must have the exact shape that would be returned
+        by ``dot(a,b)``. If its dtype is not what would be returned by
+        ``dot(a,b)`` then the result will be (unsafely) cast to `out`.
 
     Returns
     -------
     output : ndarray
-        Returns the dot product of `a` and `b`.  If `a` and `b` are both
-        scalars or both 1-D arrays then a scalar is returned; otherwise
-        an array is returned.
-        If `out` is given, then it is returned.
-
-    Raises
-    ------
-    ValueError
-        If the last dimension of `a` is not the same size as
-        the second-to-last dimension of `b`.
+        Returns the dot product of `a` and `b`. If `out` is given, then it is
+        returned.
 
     Notes
     -----
-    The current implementation only supports 1-D or 2-D input arrays.
+    The cuNumeric implementation is a little more liberal than NumPy in terms
+    of allowed broadcasting, e.g. ``dot(ones((3,1)), ones((4,5)))`` is allowed.
 
     See Also
     --------
@@ -2263,7 +2252,6 @@ def dot(a, b, out=None):
 
 def tensordot(a, b, axes=2):
     """
-
     Compute tensor dot product along specified axes.
 
     Given two tensors, `a` and `b`, and an array_like object containing
@@ -2277,11 +2265,10 @@ def tensordot(a, b, axes=2):
     ----------
     a, b : array_like
         Tensors to "dot".
-
     axes : int or (2,) array_like
         * integer_like
           If an int N, sum over the last N axes of `a` and the first N axes
-          of `b` in order. The sizes of the corresponding axes must match.
+          of `b` in order.
         * (2,) array_like
           Or, a list of axes to be summed over, first sequence applying to `a`,
           second to `b`. Both elements array_like must be of the same length.
@@ -2293,8 +2280,9 @@ def tensordot(a, b, axes=2):
 
     Notes
     -----
-    The current implementation inherits the limitation of `dot`; i.e., it only
-    supports 1-D or 2-D input arrays.
+    The cuNumeric implementation is a little more liberal than NumPy in terms
+    of allowed broadcasting, e.g. ``tensordot(ones((3,1)), ones((1,4)))`` is
+    allowed.
 
     See Also
     --------
