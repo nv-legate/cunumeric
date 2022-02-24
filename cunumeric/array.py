@@ -1560,6 +1560,27 @@ class ndarray(object):
         return self.__array__().tostring(order=order)
 
     def transpose(self, axes=None):
+        """
+        Reverse or permute the axes of an array; returns the modified array.
+        For an array a with two axes, a.transpose gives the matrix transpose.
+
+        Parameters
+        ----------
+        axes : tuple[int] or list[int], optional
+            By default, reverse the dimensions, otherwise permute the axes
+            according to the values given.
+
+        Returns
+        -------
+        p : ndarray
+            `a` with its axes permuted.  A view is returned whenever
+            possible.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         if self.ndim == 1:
             return self
         if axes is None:
@@ -1583,6 +1604,32 @@ class ndarray(object):
         return result
 
     def flip(self, axis=None):
+        """
+        Reverse the order of elements in an array along the given axis.
+
+        The shape of the array is preserved, but the elements are reordered.
+
+        Parameters
+        ----------
+        axis : None or int or tuple[int], optional
+            Axis or axes along which to flip over. The default, axis=None, will
+            flip over all of the axes of the input array.  If axis is negative
+            it counts from the last to the first axis.
+
+            If axis is a tuple of ints, flipping is performed on all of the
+            axes specified in the tuple.
+
+        Returns
+        -------
+        out : array_like
+            A view of `m` with the entries of axis reversed.  Since a view is
+            returned, this operation is done in constant time.
+
+        Availability
+        --------
+        Single GPU, Single CPU
+
+        """
         result = ndarray(
             shape=self.shape,
             dtype=self.dtype,
