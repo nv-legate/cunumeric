@@ -13,7 +13,6 @@
 # limitations under the License.
 #
 
-from itertools import permutations
 from string import ascii_lowercase, ascii_uppercase
 
 import numpy as np
@@ -21,8 +20,6 @@ from test_tools.generators import mk_0to1_array
 
 import cunumeric as cn
 from legate.core import LEGATE_MAX_DIM
-
-TYPES = [np.float16, np.float32, np.complex64]
 
 
 def gen_shapes(a_modes, b_modes):
@@ -40,11 +37,21 @@ def gen_inputs_of_various_shapes(lib, a_modes, b_modes):
         yield (mk_0to1_array(lib, a_shape), mk_0to1_array(lib, b_shape))
 
 
+def gen_permutations(ndim):
+    yield tuple(range(ndim))  # e.g. (0, 1, 2, 3)
+    if ndim > 1:
+        yield tuple(range(ndim - 1, -1, -1))  # e.g. (3, 2, 1, 0)
+    if ndim > 2:
+        yield (
+            tuple(range(ndim // 2)) + tuple(range(ndim - 1, ndim // 2 - 1, -1))
+        )  # e.g. (0, 1, 3, 2)
+
+
 def gen_transposed_inputs(lib, a_modes, b_modes):
     a = mk_0to1_array(lib, (5,) * len(a_modes))
     b = mk_0to1_array(lib, (5,) * len(b_modes))
-    for a_axes in permutations(range(len(a_modes))):
-        for b_axes in permutations(range(len(b_modes))):
+    for a_axes in gen_permutations(len(a_modes)):
+        for b_axes in gen_permutations(len(b_modes)):
             if lib == cn:
                 print(f"  transpose{a_axes} x transpose{b_axes}")
             yield (a.transpose(a_axes), b.transpose(b_axes))
@@ -53,14 +60,18 @@ def gen_transposed_inputs(lib, a_modes, b_modes):
 def gen_typed_inputs(lib, a_modes, b_modes):
     a_shape = (5,) * len(a_modes)
     b_shape = (5,) * len(b_modes)
-    for a_dtype in TYPES:
-        for b_dtype in TYPES:
-            if lib == cn:
-                print(f"  {a_dtype} x {b_dtype}")
-            yield (
-                mk_0to1_array(lib, a_shape, a_dtype),
-                mk_0to1_array(lib, b_shape, b_dtype),
-            )
+    for (a_dtype, b_dtype) in [
+        (np.float16, np.float16),
+        (np.float16, np.float32),
+        (np.float32, np.float32),
+        (np.complex64, np.complex64),
+    ]:
+        if lib == cn:
+            print(f"  {a_dtype} x {b_dtype}")
+        yield (
+            mk_0to1_array(lib, a_shape, a_dtype),
+            mk_0to1_array(lib, b_shape, b_dtype),
+        )
 
 
 def gen_typed_output(lib, a_modes, b_modes):
@@ -70,7 +81,7 @@ def gen_typed_output(lib, a_modes, b_modes):
         out_ndim = len(a_modes)
     else:
         out_ndim = len(a_modes) + len(b_modes) - 2
-    for out_dtype in TYPES:
+    for out_dtype in [np.float32]:
         if lib == cn:
             print(f"  -> {out_dtype}")
         yield lib.zeros((5,) * out_ndim, out_dtype)
@@ -116,11 +127,14 @@ def test():
             test_np_vs_cn(a_modes, b_modes, gen_inputs_of_various_shapes)
             print(f"testing {a_ndim} x {b_ndim} (permutations)")
             test_np_vs_cn(a_modes, b_modes, gen_transposed_inputs)
-            if a_ndim <= 2 and b_ndim <= 2:
-                print(f"testing {a_ndim} x {b_ndim} (casting)")
+            if a_ndim <= 1 and b_ndim <= 2 or a_ndim <= 2 and b_ndim <= 1:
+                print(f"testing {a_ndim} x {b_ndim} (casting & out=)")
                 test_np_vs_cn(
                     a_modes, b_modes, gen_typed_inputs, gen_typed_output
                 )
+            elif a_ndim <= 2 and b_ndim <= 2:
+                print(f"testing {a_ndim} x {b_ndim} (casting)")
+                test_np_vs_cn(a_modes, b_modes, gen_typed_inputs)
 
 
 if __name__ == "__main__":
