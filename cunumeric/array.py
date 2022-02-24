@@ -825,6 +825,29 @@ class ndarray(object):
         )
 
     def argmax(self, axis=None, out=None):
+        """
+        Returns the indices of the maximum values along an axis.
+
+        Parameters
+        ----------
+        axis : int, optional
+            By default, the index is into the flattened array, otherwise
+            along the specified axis.
+        out : ndarray, optional
+            If provided, the result will be inserted into this array. It should
+            be of the appropriate shape and dtype.
+
+        Returns
+        -------
+        index_array : ndarray[int]
+            Array of indices into the array. It has the same shape as `a.shape`
+            with the dimension along `axis` removed.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         if self.size == 1:
             return 0
         if axis is None:
@@ -843,6 +866,34 @@ class ndarray(object):
         )
 
     def argmin(self, axis=None, out=None):
+        """
+        Returns the indices of the minimum values along an axis.
+
+        Parameters
+        ----------
+        axis : int, optional
+            By default, the index is into the flattened array, otherwise
+            along the specified axis.
+        out : ndarray, optional
+            If provided, the result will be inserted into this array. It should
+            be of the appropriate shape and dtype.
+
+        Returns
+        -------
+        index_array : ndarray[int]
+            Array of indices into the array. It has the same shape as `a.shape`
+            with the dimension along `axis` removed.
+
+        See Also
+        --------
+        cunumeric.argmin, ndarray.argmax
+        amin : The minimum value along a given axis.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         if self.size == 1:
             return 0
         if axis is None:
