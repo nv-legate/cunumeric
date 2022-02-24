@@ -14,7 +14,7 @@
 #
 
 from collections.abc import Iterable
-from functools import reduce
+from functools import reduce, wraps
 from inspect import signature
 from typing import Optional, Set, Tuple
 
@@ -65,6 +65,7 @@ def add_boilerplate(*array_params: str, mutates_self: bool = False):
                 indices.add(idx)
         assert len(keys - all_formals) == 0, "unkonwn parameter(s)"
 
+        @wraps(func)
         def wrapper(*args, **kwargs):
             self = args[0]
             assert (where_idx is None or len(args) <= where_idx) and (
