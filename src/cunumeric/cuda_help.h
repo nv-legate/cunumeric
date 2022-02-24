@@ -71,7 +71,7 @@ namespace cunumeric {
 
 struct cufftPlan {
   cufftHandle handle;
-  size_t workarea_size;
+  size_t workarea;
 };
 
 class cufftContext {
@@ -89,12 +89,12 @@ class cufftContext {
 
  public:
   cufftHandle handle();
-  size_t workareaSize();
-  void setCallback(cufftXtCallbackType type, void* callback, void* data);
+  size_t workarea_size();
+  void set_callback(cufftXtCallbackType type, void* callback, void* data);
 
  private:
   cufftPlan* plan_{nullptr};
-  std::vector<cufftXtCallbackType> callback_types_{};
+  std::set<cufftXtCallbackType> callback_types_{};
 };
 
 // Defined in cudalibs.cu
