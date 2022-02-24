@@ -16,7 +16,6 @@
 from collections.abc import Iterable
 from functools import reduce
 from inspect import signature
-from string import ascii_lowercase, ascii_uppercase
 from typing import Optional, Set, Tuple
 
 import numpy as np
@@ -26,6 +25,7 @@ from legate.core import Array
 
 from .config import BinaryOpCode, UnaryOpCode, UnaryRedCode
 from .runtime import runtime
+from .utils import dot_modes
 
 
 def add_boilerplate(*array_params: str, mutates_self: bool = False):
@@ -1153,15 +1153,7 @@ class ndarray(object):
                 rhs,
                 out=out,
             )
-        if rhs.ndim == 1:
-            self_modes = list(ascii_lowercase[: self.ndim])
-            rhs_modes = [self_modes[-1]]
-            out_modes = self_modes[:-1]
-        else:
-            self_modes = list(ascii_lowercase[: self.ndim])
-            rhs_modes = list(ascii_uppercase[: rhs.ndim])
-            rhs_modes[-2] = self_modes[-1]
-            out_modes = self_modes[:-1] + rhs_modes[:-2] + [rhs_modes[-1]]
+        (self_modes, rhs_modes, out_modes) = dot_modes(self.ndim, rhs.ndim)
         return _contract(
             self_modes,
             rhs_modes,

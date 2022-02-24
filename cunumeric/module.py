@@ -19,7 +19,6 @@ from collections import Counter
 from functools import wraps
 from inspect import signature
 from itertools import chain
-from string import ascii_lowercase, ascii_uppercase
 from typing import Optional, Set
 
 import numpy as np
@@ -28,6 +27,7 @@ import opt_einsum as oe
 from .array import ndarray
 from .config import BinaryOpCode, UnaryOpCode, UnaryRedCode
 from .runtime import runtime
+from .utils import tensordot_modes
 
 _builtin_abs = abs
 _builtin_all = all
@@ -2294,32 +2294,7 @@ def tensordot(a, b, axes=2):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    if isinstance(axes, int):
-        if axes > a.ndim or axes > b.ndim:
-            raise ValueError("Invalid axes argument")
-        axes = (list(range(a.ndim - axes, a.ndim)), list(range(axes)))
-    a_axes, b_axes = axes
-    if (
-        len(a_axes) != len(b_axes)
-        or len(a_axes) > a.ndim
-        or len(b_axes) > b.ndim
-        or len(a_axes) != len(set(a_axes))
-        or len(b_axes) != len(set(b_axes))
-        or _builtin_any(ax < 0 for ax in a_axes)
-        or _builtin_any(ax < 0 for ax in b_axes)
-        or _builtin_any(ax >= a.ndim for ax in a_axes)
-        or _builtin_any(ax >= b.ndim for ax in b_axes)
-    ):
-        raise ValueError("Invalid axes argument")
-
-    a_modes = list(ascii_lowercase[: a.ndim])
-    b_modes = list(ascii_uppercase[: b.ndim])
-    for (a_i, b_i) in zip(a_axes, b_axes):
-        b_modes[b_i] = a_modes[a_i]
-    out_modes = [
-        a_modes[a_i] for a_i in sorted(set(range(a.ndim)) - set(a_axes))
-    ] + [b_modes[b_i] for b_i in sorted(set(range(b.ndim)) - set(b_axes))]
-
+    (a_modes, b_modes, out_modes) = tensordot_modes(a.ndim, b.ndim, axes)
     return _contract(a_modes, b_modes, out_modes, a, b)
 
 
