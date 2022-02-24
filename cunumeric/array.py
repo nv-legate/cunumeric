@@ -791,6 +791,60 @@ class ndarray(object):
         initial=None,
         where=True,
     ):
+        """
+        Test whether all array elements along a given axis evaluate to True.
+
+        Parameters
+        ----------
+        axis : None or int or tuple[int], optional
+            Axis or axes along which a logical AND reduction is performed.
+            The default (``axis=None``) is to perform a logical AND over all
+            the dimensions of the input array. `axis` may be negative, in
+            which case it counts from the last to the first axis.
+
+            If this is a tuple of ints, a reduction is performed on multiple
+            axes, instead of a single axis or all the axes as before.
+
+        out : ndarray, optional
+            Alternate output array in which to place the result.
+            It must have the same shape as the expected output and its
+            type is preserved (e.g., if ``dtype(out)`` is float, the result
+            will consist of 0.0's and 1.0's).
+
+        keepdims : bool, optional
+            If this is set to True, the axes which are reduced are left
+            in the result as dimensions with size one. With this option,
+            the result will broadcast correctly against the input array.
+
+            If the default value is passed, then `keepdims` will not be
+            passed through to the `all` method of sub-classes of
+            `ndarray`, however any non-default value will be.  If the
+            sub-class' method does not implement `keepdims` any
+            exceptions will be raised.
+
+        initial : bool, optional
+            The starting value for this product. See `~cunumeric.ufunc.reduce`
+            for details.
+
+        where : array_like[bool], optional
+            Elements to include in checking for all `True` values.
+            See `~numpy.ufunc.reduce` for details.
+
+        Returns
+        -------
+        all : ndarray, bool
+            A new boolean or array is returned unless `out` is specified,
+            in which case a reference to `out` is returned.
+
+        See Also
+        --------
+        cunumeric.all, ndarray.any
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         return self.perform_unary_reduction(
             UnaryRedCode.ALL,
             self,
@@ -812,6 +866,62 @@ class ndarray(object):
         initial=None,
         where=True,
     ):
+        """
+        Test whether any array element along a given axis evaluates to True.
+
+        Returns single boolean unless `axis` is not ``None``
+
+        Parameters
+        ----------
+        axis : None or int or tuple[int], optional
+            Axis or axes along which a logical OR reduction is performed.
+            The default (``axis=None``) is to perform a logical OR over all
+            the dimensions of the input array. `axis` may be negative, in
+            which case it counts from the last to the first axis.
+
+            If this is a tuple of ints, a reduction is performed on multiple
+            axes, instead of a single axis or all the axes as before.
+
+        out : ndarray, optional
+            Alternate output array in which to place the result.  It must have
+            the same shape as the expected output and its type is preserved
+            (e.g., if it is of type float, then it will remain so, returning
+            1.0 for True and 0.0 for False, regardless of the type of `a`).
+
+        keepdims : bool, optional
+            If this is set to True, the axes which are reduced are left
+            in the result as dimensions with size one. With this option,
+            the result will broadcast correctly against the input array.
+
+            If the default value is passed, then `keepdims` will not be
+            passed through to the `any` method of sub-classes of
+            `ndarray`, however any non-default value will be.  If the
+            sub-class' method does not implement `keepdims` any
+            exceptions will be raised.
+
+        initial : bool, optional
+            The starting value for this product. See `~cunumeric.ufunc.reduce`
+            for details.
+
+        where : array_like[bool], optional
+            Elements to include in checking for any `True` values.
+            See `~numpy.ufunc.reduce` for details.
+
+        Returns
+        -------
+        any : bool or ndarray
+            A new boolean or `ndarray` is returned unless `out` is specified,
+            in which case a reference to `out` is returned.
+
+        See Also
+        --------
+        cunumeric.any, ndarray.all
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         return self.perform_unary_reduction(
             UnaryRedCode.ANY,
             self,
