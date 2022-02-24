@@ -19,6 +19,7 @@ from collections import Counter
 from functools import wraps
 from inspect import signature
 from itertools import chain
+from string import ascii_lowercase, ascii_uppercase
 from typing import Optional, Set
 
 import numpy as np
@@ -2250,6 +2251,7 @@ def dot(a, b, out=None):
     return a.dot(b, out=out)
 
 
+@add_boilerplate("a", "b")
 def tensordot(a, b, axes=2):
     """
     Compute tensor dot product along specified axes.
@@ -2292,69 +2294,33 @@ def tensordot(a, b, axes=2):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    # This is the exact same code as the canonical numpy.
-    # See https://github.com/numpy/numpy/blob/v1.21.0/numpy/core/numeric.py#L943-L1133. # noqa:  E501
-    try:
-        iter(axes)
-    except Exception:
-        axes_a = list(range(-axes, 0))
-        axes_b = list(range(0, axes))
-    else:
-        axes_a, axes_b = axes
-    try:
-        na = len(axes_a)
-        axes_a = list(axes_a)
-    except TypeError:
-        axes_a = [axes_a]
-        na = 1
-    try:
-        nb = len(axes_b)
-        axes_b = list(axes_b)
-    except TypeError:
-        axes_b = [axes_b]
-        nb = 1
+    if isinstance(axes, int):
+        if axes > a.ndim or axes > b.ndim:
+            raise ValueError("Invalid axes argument")
+        axes = (list(range(a.ndim - axes, a.ndim)), list(range(axes)))
+    a_axes, b_axes = axes
+    if (
+        len(a_axes) != len(b_axes)
+        or len(a_axes) > a.ndim
+        or len(b_axes) > b.ndim
+        or len(a_axes) != len(set(a_axes))
+        or len(b_axes) != len(set(b_axes))
+        or _builtin_any(ax < 0 for ax in a_axes)
+        or _builtin_any(ax < 0 for ax in b_axes)
+        or _builtin_any(ax >= a.ndim for ax in a_axes)
+        or _builtin_any(ax >= b.ndim for ax in b_axes)
+    ):
+        raise ValueError("Invalid axes argument")
 
-    as_ = a.shape
-    nda = a.ndim
-    bs = b.shape
-    ndb = b.ndim
-    equal = True
-    if na != nb:
-        equal = False
-    else:
-        for k in range(na):
-            if as_[axes_a[k]] != bs[axes_b[k]]:
-                equal = False
-                break
-            if axes_a[k] < 0:
-                axes_a[k] += nda
-            if axes_b[k] < 0:
-                axes_b[k] += ndb
-    if not equal:
-        raise ValueError("shape-mismatch for sum")
+    a_modes = list(ascii_lowercase[: a.ndim])
+    b_modes = list(ascii_uppercase[: b.ndim])
+    for (a_i, b_i) in zip(a_axes, b_axes):
+        b_modes[b_i] = a_modes[a_i]
+    out_modes = [
+        a_modes[a_i] for a_i in sorted(set(range(a.ndim)) - set(a_axes))
+    ] + [b_modes[b_i] for b_i in sorted(set(range(b.ndim)) - set(b_axes))]
 
-    # Move the axes to sum over to the end of "a"
-    # and to the front of "b"
-    notin = [k for k in range(nda) if k not in axes_a]
-    newaxes_a = notin + axes_a
-    N2 = 1
-    for axis in axes_a:
-        N2 *= as_[axis]
-    newshape_a = (int(np.multiply.reduce([as_[ax] for ax in notin])), N2)
-    olda = [as_[axis] for axis in notin]
-
-    notin = [k for k in range(ndb) if k not in axes_b]
-    newaxes_b = axes_b + notin
-    N2 = 1
-    for axis in axes_b:
-        N2 *= bs[axis]
-    newshape_b = (N2, int(np.multiply.reduce([bs[ax] for ax in notin])))
-    oldb = [bs[axis] for axis in notin]
-
-    at = a.transpose(newaxes_a).reshape(newshape_a)
-    bt = b.transpose(newaxes_b).reshape(newshape_b)
-    res = dot(at, bt)
-    return res.reshape(olda + oldb)
+    return _contract(a_modes, b_modes, out_modes, a, b)
 
 
 # Trivial multi-tensor contraction strategy: contract in input order
