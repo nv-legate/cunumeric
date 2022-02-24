@@ -13,9 +13,8 @@
 # limitations under the License.
 #
 
-from string import ascii_lowercase, ascii_uppercase
-
 import numpy as np
+from cunumeric.utils import dot_modes
 from test_tools.generators import mk_0to1_array
 
 import cunumeric as cn
@@ -30,7 +29,8 @@ def gen_shapes(a_modes, b_modes):
         yield (a_shape, b_shape)
 
 
-def gen_inputs_of_various_shapes(lib, a_modes, b_modes):
+def gen_inputs_of_various_shapes(lib, modes):
+    (a_modes, b_modes, out_modes) = modes
     for (a_shape, b_shape) in gen_shapes(a_modes, b_modes):
         if lib == cn:
             print(f"  {a_shape} x {b_shape}")
@@ -47,7 +47,8 @@ def gen_permutations(ndim):
         )  # e.g. (0, 1, 3, 2)
 
 
-def gen_transposed_inputs(lib, a_modes, b_modes):
+def gen_transposed_inputs(lib, modes):
+    (a_modes, b_modes, out_modes) = modes
     a = mk_0to1_array(lib, (5,) * len(a_modes))
     b = mk_0to1_array(lib, (5,) * len(b_modes))
     for a_axes in gen_permutations(len(a_modes)):
@@ -57,7 +58,8 @@ def gen_transposed_inputs(lib, a_modes, b_modes):
             yield (a.transpose(a_axes), b.transpose(b_axes))
 
 
-def gen_typed_inputs(lib, a_modes, b_modes):
+def gen_typed_inputs(lib, modes):
+    (a_modes, b_modes, out_modes) = modes
     a_shape = (5,) * len(a_modes)
     b_shape = (5,) * len(b_modes)
     for (a_dtype, b_dtype) in [
@@ -74,33 +76,31 @@ def gen_typed_inputs(lib, a_modes, b_modes):
         )
 
 
-def gen_typed_output(lib, a_modes, b_modes):
-    if len(a_modes) == 0:
-        out_ndim = len(b_modes)
-    elif len(b_modes) == 0:
-        out_ndim = len(a_modes)
-    else:
-        out_ndim = len(a_modes) + len(b_modes) - 2
-    for out_dtype in [np.float32]:
-        if lib == cn:
-            print(f"  -> {out_dtype}")
-        yield lib.zeros((5,) * out_ndim, out_dtype)
+def gen_typed_output(lib, modes, a, b):
+    (a_modes, b_modes, out_modes) = modes
+    out_shape = (5,) * len(out_modes)
+    out_dtype = np.float32
+    if lib == cn:
+        print(f"  -> {out_dtype}")
+    yield lib.zeros(out_shape, out_dtype)
 
 
-def test_np_vs_cn(a_modes, b_modes, gen_inputs, gen_output=None):
+def _test_contraction(modes, operation, gen_inputs, gen_output=None):
     for (np_inputs, cn_inputs) in zip(
-        gen_inputs(np, a_modes, b_modes),
-        gen_inputs(cn, a_modes, b_modes),
+        gen_inputs(np, modes), gen_inputs(cn, modes)
     ):
-        np_res = np.dot(*np_inputs)
-        cn_res = cn.dot(*cn_inputs)
+        np_res = operation(np, *np_inputs)
+        cn_res = operation(cn, *cn_inputs)
         rtol = (
             2e-03 if any(x.dtype == np.float16 for x in np_inputs) else 1e-05
         )
         assert np.allclose(np_res, cn_res, rtol=rtol)
         if gen_output is not None:
-            for cn_out in gen_output(cn, a_modes, b_modes):
-                cn.dot(*cn_inputs, out=cn_out)
+            for cn_out in gen_output(cn, modes, *cn_inputs):
+                try:
+                    operation(cn, *cn_inputs, out=cn_out)
+                except TypeError:  # out not supported
+                    return
                 rtol = (
                     2e-03
                     if any(x.dtype == np.float16 for x in np_inputs)
@@ -110,31 +110,31 @@ def test_np_vs_cn(a_modes, b_modes, gen_inputs, gen_output=None):
                 assert np.allclose(cn_out, cn_res, rtol=rtol)
 
 
+def test_contraction(name, modes, operation):
+    (a_modes, b_modes, out_modes) = modes
+    if len(set(a_modes) | set(b_modes)) > LEGATE_MAX_DIM:
+        # Total number of distinct modes can't exceed maximum Legion dimension,
+        # because we may need to promote arrays so that one includes all modes.
+        return
+    print(f"testing {name} (various shapes)")
+    # (5x5x...x5, with up to one dimension set to 1)
+    _test_contraction(modes, operation, gen_inputs_of_various_shapes)
+    print(f"testing {name} (permutations)")
+    _test_contraction(modes, operation, gen_transposed_inputs)
+    print(f"testing {name} (casting & out=)")
+    _test_contraction(modes, operation, gen_typed_inputs, gen_typed_output)
+
+
+def run_dot(lib, *args, **kwargs):
+    return lib.dot(*args, **kwargs)
+
+
 def test():
     for a_ndim in range(LEGATE_MAX_DIM + 1):
         for b_ndim in range(LEGATE_MAX_DIM + 1):
-            if a_ndim + b_ndim - 1 > LEGATE_MAX_DIM:
-                # Total number of distinct modes can't exceed maximum Legion
-                # dimension, because we may need to promote arrays so that
-                # each one includes all modes.
-                continue
-            a_modes = list(ascii_lowercase[:a_ndim])
-            b_modes = list(ascii_uppercase[:b_ndim])
-            if a_ndim >= 1 and b_ndim >= 1:
-                b_modes[-1 if b_ndim == 1 else -2] = a_modes[-1]
-            print(f"testing {a_ndim} x {b_ndim} (various shapes)")
-            # (5x5x...x5, with up to one dimension set to 1)
-            test_np_vs_cn(a_modes, b_modes, gen_inputs_of_various_shapes)
-            print(f"testing {a_ndim} x {b_ndim} (permutations)")
-            test_np_vs_cn(a_modes, b_modes, gen_transposed_inputs)
-            if a_ndim <= 1 and b_ndim <= 2 or a_ndim <= 2 and b_ndim <= 1:
-                print(f"testing {a_ndim} x {b_ndim} (casting & out=)")
-                test_np_vs_cn(
-                    a_modes, b_modes, gen_typed_inputs, gen_typed_output
-                )
-            elif a_ndim <= 2 and b_ndim <= 2:
-                print(f"testing {a_ndim} x {b_ndim} (casting)")
-                test_np_vs_cn(a_modes, b_modes, gen_typed_inputs)
+            name = f"dot({a_ndim} x {b_ndim})"
+            modes = dot_modes(a_ndim, b_ndim)
+            test_contraction(name, modes, run_dot)
 
 
 if __name__ == "__main__":
