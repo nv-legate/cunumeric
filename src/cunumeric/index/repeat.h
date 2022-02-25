@@ -21,7 +21,7 @@
 namespace cunumeric {
 
 struct RepeatArgs {
-  const Array& output;
+  Array& output;
   const Array& input;
   const Array& repeats_arr;
   int64_t repeats;

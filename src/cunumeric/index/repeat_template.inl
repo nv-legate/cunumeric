@@ -29,26 +29,33 @@ struct RepeatImpl {
   template <LegateTypeCode CODE, int DIM>
   void operator()(RepeatArgs& args) const
   {
-    using VAL        = legate_type_of<CODE>;
-    auto output_rect = args.output.shape<DIM>();
-
-    Pitches<DIM - 1> output_pitches;
-    size_t volume = output_pitches.flatten(output_rect);
-    if (volume == 0) return;
-
-    auto output_arr = args.output.write_accessor<VAL, DIM>(output_rect);
+    using VAL       = legate_type_of<CODE>;
     auto input_rect = args.input.shape<DIM>();
     auto input_arr  = args.input.read_accessor<VAL, DIM>(input_rect);
+    Pitches<DIM - 1> input_pitches;
+    Buffer<VAL> output_arr;
+    size_t volume = input_pitches.flatten(input_rect);
+    if (volume == 0) {
+      auto empty = create_buffer<VAL>(0);
+      args.output.return_data(empty, 0);
+      return;
+    }
 
     if (args.scalar_repeats) {
-      RepeatImplBody<KIND, CODE, DIM>{}(
-        output_arr, input_arr, args.repeats, args.axis, output_pitches, output_rect);
+      auto size = RepeatImplBody<KIND, CODE, DIM>{}(
+        output_arr, input_arr, args.repeats, args.axis, input_pitches, input_rect);
+      args.output.return_data(output_arr, size);
 
     } else {
-      auto r_rect      = args.repeats_arr.shape<1>();
-      auto repeats_arr = args.repeats_arr.read_accessor<int64_t, 1>(r_rect);
-      RepeatImplBody<KIND, CODE, DIM>{}(
-        output_arr, input_arr, repeats_arr, args.axis, output_pitches, output_rect, r_rect.hi[0]);
+      auto r_rect      = args.repeats_arr.shape<DIM>();
+      auto repeats_arr = args.repeats_arr.read_accessor<int64_t, DIM>(r_rect);
+#ifdef CUNUMERIC_DEBUG
+      // repeats should have the same shape and partitioning as an input array
+      assert(r_rect == input_rect);
+#endif
+      auto size = RepeatImplBody<KIND, CODE, DIM>{}(
+        output_arr, input_arr, repeats_arr, args.axis, input_pitches, input_rect);
+      args.output.return_data(output_arr, size);
     }
   }
 };

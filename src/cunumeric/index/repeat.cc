@@ -26,48 +26,58 @@ template <LegateTypeCode CODE, int DIM>
 struct RepeatImplBody<VariantKind::CPU, CODE, DIM> {
   using VAL = legate_type_of<CODE>;
 
-  void operator()(const AccessorWO<VAL, DIM>& out,
-                  const AccessorRO<VAL, DIM>& in,
-                  const int64_t repeats,
-                  const int32_t axis,
-                  const Pitches<DIM - 1>& pitches,
-                  const Rect<DIM>& rect) const
+  size_t operator()(Buffer<VAL>& out,
+                    const AccessorRO<VAL, DIM>& in,
+                    const int64_t repeats,
+                    const int32_t axis,
+                    const Pitches<DIM - 1>& pitches,
+                    const Rect<DIM>& rect) const
   {
     const size_t volume = rect.volume();
+    size_t size         = volume * repeats;
+    out                 = create_buffer<VAL>(size, Memory::Kind::SYSTEM_MEM);
 
+    int64_t out_idx = 0;
     for (size_t idx = 0; idx < volume; ++idx) {
-      auto p            = pitches.unflatten(idx, rect.lo);
-      int64_t input_idx = p[axis] / repeats;
-      auto in_p         = p;
-      in_p[axis]        = input_idx;
-      out[p]            = in[in_p];
+      auto p = pitches.unflatten(idx, rect.lo);
+      for (size_t r = 0; r < repeats; r++) {
+        out[out_idx] = in[p];
+        ++out_idx;
+      }
     }
+#ifdef CUNUMERIC_DEBUG
+    assert(size == out_idx);
+#endif
+    return size;
   }
 
-  void operator()(const AccessorWO<VAL, DIM>& out,
-                  const AccessorRO<VAL, DIM>& in,
-                  const AccessorRO<int64_t, 1>& repeats,
-                  const int32_t axis,
-                  const Pitches<DIM - 1>& pitches,
-                  const Rect<DIM>& rect,
-                  size_t repeats_size) const
+  size_t operator()(Buffer<VAL>& out,
+                    const AccessorRO<VAL, DIM>& in,
+                    const AccessorRO<int64_t, DIM>& repeats,
+                    const int32_t axis,
+                    const Pitches<DIM - 1>& pitches,
+                    const Rect<DIM>& rect) const
   {
     const size_t volume = rect.volume();
-
-    // First, generate array of offsets; it will have size of the axis dimension
-    // for the output array
-    std::vector<int64_t> offsets;
-
-    for (size_t r = 0; r <= repeats_size; r++) {
-      for (size_t i = 0; i < repeats[r]; i++) { offsets.push_back(r); }
-    }
-
+    size_t size         = 0;
     for (size_t idx = 0; idx < volume; ++idx) {
-      auto p     = pitches.unflatten(idx, rect.lo);
-      auto in_p  = p;
-      in_p[axis] = offsets[p[axis]];
-      out[p]     = in[in_p];
+      auto point = pitches.unflatten(idx, rect.lo);
+      size += repeats[point];
     }
+    out = create_buffer<VAL>(size, Memory::Kind::SYSTEM_MEM);
+
+    int64_t out_idx = 0;
+    for (size_t idx = 0; idx < volume; ++idx) {
+      auto p = pitches.unflatten(idx, rect.lo);
+      for (size_t r = 0; r < repeats[p]; r++) {
+        out[out_idx] = in[p];
+        ++out_idx;
+      }
+    }
+#ifdef CUNUMERIC_DEBUG
+    assert(size == out_idx);
+#endif
+    return size;
   }
 };
 

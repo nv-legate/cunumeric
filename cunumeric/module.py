@@ -1986,13 +1986,7 @@ def repeat(a, repeats, axis=None):
                 category=RuntimeWarning,
             )
         repeats = np.int64(repeats)
-
-        result_shape = list(array.shape)
-        result_shape[axis] = result_shape[axis] * repeats
-        result_shape = tuple(result_shape)
-        result = ndarray(result_shape, dtype=array.dtype, inputs=(array,))
-        result._thunk.repeat(
-            array._thunk,
+        result = array._thunk.repeat(
             repeats=repeats,
             axis=axis,
             scalar_repeats=True,
@@ -2008,21 +2002,10 @@ def repeat(a, repeats, axis=None):
         repeats = repeats.astype(np.int64)
         if repeats.shape[0] != array.shape[axis]:
             return ValueError("incorrect shape of repeats array")
-        total_repeats = repeats.sum(dtype=np.int64)
-        result_shape = tuple(array.shape[i] for i in range(0, axis))
-        size = np.int64(total_repeats)
-        result_shape = result_shape + (size,)
-        result_shape = result_shape + tuple(
-            array.shape[i] for i in range(axis + 1, array.ndim)
+        result = array._thunk.repeat(
+            repeats=repeats._thunk, axis=axis, scalar_repeats=False
         )
-        result = ndarray(result_shape, dtype=array.dtype, inputs=(array,))
-        result._thunk.repeat(
-            array._thunk,
-            repeats=repeats._thunk,
-            axis=axis,
-            scalar_repeats=False,
-        )
-    return result
+    return ndarray(shape=result.shape, thunk=result)
 
 
 # Rearranging elements
