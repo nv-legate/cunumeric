@@ -1480,9 +1480,7 @@ class ndarray(object):
         )
 
     def setflags(self, write=None, align=None, uic=None):
-        self.__array__(stacklevel=2).setflags(
-            write=write, align=align, uic=uic
-        )
+        self.__array__().setflags(write=write, align=align, uic=uic)
 
     def sort(self, axis=-1, kind="stable", order=None):
         self._thunk.sort(rhs=self._thunk, axis=axis, kind=kind, order=order)
