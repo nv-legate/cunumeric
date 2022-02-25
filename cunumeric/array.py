@@ -412,6 +412,7 @@ class ndarray(object):
     @property
     def real(self):
         """
+
         The real part of the array.
 
         """
@@ -423,6 +424,7 @@ class ndarray(object):
     @property
     def shape(self):
         """
+
         Tuple of array dimensions.
 
         See Also
@@ -462,16 +464,19 @@ class ndarray(object):
     @property
     def itemsize(self):
         """
+
         The element size of this data-type object.
 
         For 18 of the 21 types this number is fixed by the data-type.
         For the flexible data-types, this number can be anything.
+
         """
         return self._thunk.dtype.itemsize
 
     @property
     def nbytes(self):
         """
+
         Total bytes consumed by the elements of the array.
 
         Notes
@@ -520,6 +525,15 @@ class ndarray(object):
     # Methods for ndarray
 
     def __abs__(self):
+        """a.__abs__(/)
+
+        Return ``abs(self)``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         # Handle the nice case of it being unsigned
         if (
             self.dtype.type == np.uint16
@@ -531,16 +545,41 @@ class ndarray(object):
         return self.perform_unary_op(UnaryOpCode.ABSOLUTE, self)
 
     def __add__(self, rhs):
+        """a.__add__(value, /)
+
+        Return ``self+value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         return self.perform_binary_op(BinaryOpCode.ADD, self, rhs_array)
 
     def __and__(self, rhs):
+        """a.__and__(value, /)
+
+        Return ``self&value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         return self.perform_binary_op(
             BinaryOpCode.LOGICAL_AND, self, rhs_array
         )
 
     def __array__(self, dtype=None):
+        """a.__array__([dtype], /)
+
+        Returns either a new reference to self if dtype is not given or a new
+        array of provided data type if dtype is different from the current
+        dtype of the array.
+
+        """
         if dtype is None:
             return self._thunk.__numpy_array__()
         else:
@@ -553,12 +592,27 @@ class ndarray(object):
     #    return self.__array__().__array_wrap__(*args, **kwargs)
 
     def __bool__(self):
+        """a.__bool__(/)
+
+        Return ``self!=0``
+
+        """
         return bool(self.__array__())
 
     def __complex__(self):
+        """a.__complex__(/)"""
         return complex(self.__array__())
 
     def __contains__(self, item):
+        """a.__contains__(key, /)
+
+        Return ``key in self``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         if isinstance(item, np.ndarray):
             args = (item.astype(self.dtype),)
         else:  # Otherwise convert it to a scalar numpy array of our type
@@ -575,32 +629,96 @@ class ndarray(object):
         )
 
     def __copy__(self):
+        """a.__copy__()
+
+        Used if :func:`copy.copy` is called on an array. Returns a copy
+        of the array.
+
+        Equivalent to ``a.copy(order='K')``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         result = ndarray(self.shape, self.dtype, inputs=(self,))
         result._thunk.copy(self._thunk, deep=False)
         return result
 
     def __deepcopy__(self, memo=None):
+        """a.__deepcopy__(memo, /)
+
+        Deep copy of array.
+
+        Used if :func:`copy.deepcopy` is called on an array.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         result = ndarray(self.shape, self.dtype, inputs=(self,))
         result._thunk.copy(self._thunk, deep=True)
         return result
 
     def __div__(self, rhs):
+        """a.__div__(value, /)
+
+        Return ``self/value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         return self.internal_truediv(rhs, inplace=False)
 
     def __divmod__(self, rhs):
+        """a.__divmod__(value, /)
+
+        Return ``divmod(self, value)``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         return self.perform_binary_op(BinaryOpCode.DIVMOD, self, rhs_array)
 
     def __eq__(self, rhs):
+        """a.__eq__(value, /)
+
+        Return ``self==value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         return self.perform_binary_op(
             BinaryOpCode.EQUAL, self, rhs_array, out_dtype=np.dtype(np.bool_)
         )
 
     def __float__(self):
+        """a.__float__(/)
+
+        Return ``float(self)``.
+
+        """
         return float(self.__array__())
 
     def __floordiv__(self, rhs):
+        """a.__floordiv__(value, /)
+
+        Return ``self//value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         return self.perform_binary_op(
             BinaryOpCode.FLOOR_DIVIDE, self, rhs_array
@@ -610,6 +728,15 @@ class ndarray(object):
         return self.__array__().__format__(*args, **kwargs)
 
     def __ge__(self, rhs):
+        """a.__ge__(value, /)
+
+        Return ``self>=value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         return self.perform_binary_op(
             BinaryOpCode.GREATER_EQUAL,
@@ -637,10 +764,24 @@ class ndarray(object):
 
     @add_boilerplate()
     def __getitem__(self, key):
+        """a.__getitem__(key, /)
+
+        Return ``self[key]``.
+
+        """
         key = self._convert_key(key)
         return ndarray(shape=None, thunk=self._thunk.get_item(key))
 
     def __gt__(self, rhs):
+        """a.__gt__(value, /)
+
+        Return ``self>value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         return self.perform_binary_op(
             BinaryOpCode.GREATER, self, rhs_array, out_dtype=np.dtype(np.bool_)
@@ -650,11 +791,29 @@ class ndarray(object):
         raise TypeError("unhashable type: cunumeric.ndarray")
 
     def __iadd__(self, rhs):
+        """a.__iadd__(value, /)
+
+        Return ``self+=value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         self.perform_binary_op(BinaryOpCode.ADD, self, rhs_array, out=self)
         return self
 
     def __iand__(self, rhs):
+        """a.__iand__(value, /)
+
+        Return ``self&=value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         self.perform_binary_op(
             BinaryOpCode.LOGICAL_AND, self, rhs_array, out=self
@@ -662,6 +821,15 @@ class ndarray(object):
         return self
 
     def __idiv__(self, rhs):
+        """a.__idiv__(value, /)
+
+        Return ``self/=value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         return self.internal_truediv(rhs, inplace=True)
 
     def __idivmod__(self, rhs):
@@ -670,6 +838,15 @@ class ndarray(object):
         return self
 
     def __ifloordiv__(self, rhs):
+        """a.__ifloordiv__(value, /)
+
+        Return ``self//=value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         self.perform_binary_op(
             BinaryOpCode.FLOOR_DIVIDE, self, rhs_array, out=self
@@ -677,6 +854,15 @@ class ndarray(object):
         return self
 
     def __ilshift__(self, rhs):
+        """a.__ilshift__(value, /)
+
+        Return ``self<<=value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         self.perform_binary_op(
             BinaryOpCode.SHIFT_LEFT, self, rhs_array, out=self
@@ -684,11 +870,29 @@ class ndarray(object):
         return self
 
     def __imod__(self, rhs):
+        """a.__imod__(value, /)
+
+        Return ``self%=value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         self.perform_binary_op(BinaryOpCode.MODULUS, self, rhs_array, out=self)
         return self
 
     def __imul__(self, rhs):
+        """a.__imul__(value, /)
+
+        Return ``self*=value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         self.perform_binary_op(
             BinaryOpCode.MULTIPLY, self, rhs_array, out=self
@@ -696,9 +900,23 @@ class ndarray(object):
         return self
 
     def __int__(self):
+        """a.__int__(/)
+
+        Return ``int(self)``.
+
+        """
         return int(self.__array__())
 
     def __invert__(self):
+        """a.__invert__(/)
+
+        Return ``~self``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         if self.dtype == np.bool_:
             # Boolean values are special, just do logical NOT
             return self.perform_unary_op(
@@ -708,6 +926,15 @@ class ndarray(object):
             return self.perform_unary_op(UnaryOpCode.INVERT, self)
 
     def __ior__(self, rhs):
+        """a.__ior__(/)
+
+        Return ``self|=value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         self.perform_binary_op(
             BinaryOpCode.LOGICAL_OR, self, rhs_array, out=self
@@ -715,11 +942,29 @@ class ndarray(object):
         return self
 
     def __ipow__(self, rhs):
+        """a.__pow__(/)
+
+        Return ``self**=value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         self.perform_binary_op(BinaryOpCode.POWER, self, rhs_array, out=self)
         return self
 
     def __irshift__(self, rhs):
+        """a.__irshift__(/)
+
+        Return ``self>>=value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         self.perform_binary_op(
             BinaryOpCode.SHIFT_RIGHT, self, rhs_array, out=self
@@ -727,9 +972,19 @@ class ndarray(object):
         return self
 
     def __iter__(self):
+        """a.__iter__(/)"""
         return self.__array__().__iter__()
 
     def __isub__(self, rhs):
+        """a.__isub__(/)
+
+        Return ``self-=value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         self.perform_binary_op(
             BinaryOpCode.SUBTRACT, self, rhs_array, out=self
@@ -780,9 +1035,27 @@ class ndarray(object):
         )
 
     def __itruediv__(self, rhs):
+        """a.__itruediv__(/)
+
+        Return ``self/=value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         return self.internal_truediv(rhs, inplace=True)
 
     def __ixor__(self, rhs):
+        """a.__ixor__(/)
+
+        Return ``self^=value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         self.perform_binary_op(
             BinaryOpCode.LOGICAL_XOR, self, rhs_array, out=self
@@ -790,6 +1063,15 @@ class ndarray(object):
         return self
 
     def __le__(self, rhs):
+        """a.__le__(value, /)
+
+        Return ``self<=value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         return self.perform_binary_op(
             BinaryOpCode.LESS_EQUAL,
@@ -799,30 +1081,89 @@ class ndarray(object):
         )
 
     def __len__(self):
+        """a.__len__(/)
+
+        Return ``len(self)``.
+
+        """
         return self.shape[0]
 
     def __lshift__(self, rhs):
+        """a.__lshift__(value, /)
+
+        Return ``self<<value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         return self.perform_binary_op(BinaryOpCode.SHIFT_LEFT, self, rhs_array)
 
     def __lt__(self, rhs):
+        """a.__lt__(value, /)
+
+        Return ``self<value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         return self.perform_binary_op(
             BinaryOpCode.LESS, self, rhs_array, out_dtype=np.dtype(np.bool_)
         )
 
     def __matmul__(self, value):
+        """a.__matmul__(value, /)
+
+        Return ``self@value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         return self.dot(value)
 
     def __mod__(self, rhs):
+        """a.__mod__(value, /)
+
+        Return ``self%value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         return self.perform_binary_op(BinaryOpCode.MOD, self, rhs_array)
 
     def __mul__(self, rhs):
+        """a.__mul__(value, /)
+
+        Return ``self*value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         return self.perform_binary_op(BinaryOpCode.MULTIPLY, self, rhs_array)
 
     def __ne__(self, rhs):
+        """a.__ne__(value, /)
+
+        Return ``self!=value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         return self.perform_binary_op(
             BinaryOpCode.NOT_EQUAL,
@@ -832,6 +1173,15 @@ class ndarray(object):
         )
 
     def __neg__(self):
+        """a.__neg__(value, /)
+
+        Return ``-self``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         if (
             self.dtype.type == np.uint16
             or self.dtype.type == np.uint32
@@ -850,13 +1200,46 @@ class ndarray(object):
         )
 
     def __nonzero__(self):
+        """a.nonzero(/)
+
+        Return the indices of the elements that are non-zero.
+
+        Refer to `cunumeric.nonzero` for full documentation.
+
+        See Also
+        --------
+        cunumeric.nonzero : equivalent function
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         return self.__array__().__nonzero__()
 
     def __or__(self, rhs):
+        """a.__or__(value, /)
+
+        Return ``self|value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         return self.perform_binary_op(BinaryOpCode.LOGICAL_OR, self, rhs_array)
 
     def __pos__(self):
+        """a.__pos__(value, /)
+
+        Return ``+self``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         # We know these types are already positive
         if (
             self.dtype.type == np.uint16
@@ -868,73 +1251,213 @@ class ndarray(object):
         return self.perform_unary_op(UnaryOpCode.POSITIVE, self)
 
     def __pow__(self, rhs):
+        """__pow__(value, /)
+
+        Return ``pow(self, value)``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         return self.perform_binary_op(BinaryOpCode.POWER, self, rhs_array)
 
     def __radd__(self, lhs):
+        """a.__radd__(value, /)
+
+        Return ``value+self``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         lhs_array = self.convert_to_cunumeric_ndarray(lhs)
         return self.perform_binary_op(BinaryOpCode.ADD, lhs_array, self)
 
     def __rand__(self, lhs):
+        """a.__rand__(value, /)
+
+        Return ``value&self``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         lhs_array = self.convert_to_cunumeric_ndarray(lhs)
         return self.perform_binary_op(
             BinaryOpCode.LOGICAL_AND, lhs_array, self
         )
 
     def __rdiv__(self, lhs):
+        """a.__rdiv__(value, /)
+
+        Return ``value/self``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         lhs_array = self.convert_to_cunumeric_ndarray(lhs)
         return lhs_array.internal_truediv(self, inplace=False)
 
     def __rdivmod__(self, lhs):
+        """a.__rdivmod__(value, /)
+
+        Return ``divmod(value, self)``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         lhs_array = self.convert_to_cunumeric_ndarray(lhs)
         return self.perform_binary_op(BinaryOpCode.DIVMOD, lhs_array, self)
 
     def __reduce__(self, *args, **kwargs):
+        """a.__reduce__(/)
+
+        For pickling.
+
+        """
         return self.__array__().__reduce__(*args, **kwargs)
 
     def __reduce_ex__(self, *args, **kwargs):
         return self.__array__().__reduce_ex__(*args, **kwargs)
 
     def __repr__(self):
+        """a.__repr__(/)
+
+        Return ``repr(self)``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         return repr(self.__array__())
 
     def __rfloordiv__(self, lhs):
+        """a.__rfloordiv__(value, /)
+
+        Return ``value//self``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         lhs_array = self.convert_to_cunumeric_ndarray(lhs)
         return self.perform_binary_op(
             BinaryOpCode.FLOOR_DIVIDE, lhs_array, self
         )
 
     def __rmod__(self, lhs):
+        """a.__rmod__(value, /)
+
+        Return ``value%self``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         lhs_array = self.convert_to_cunumeric_ndarray(lhs)
         return self.perform_binary_op(BinaryOpCode.MOD, lhs_array, self)
 
     def __rmul__(self, lhs):
+        """a.__rmul__(value, /)
+
+        Return ``value*self``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         lhs_array = self.convert_to_cunumeric_ndarray(lhs)
         return self.perform_binary_op(BinaryOpCode.MULTIPLY, lhs_array, self)
 
     def __ror__(self, lhs):
+        """a.__ror__(value, /)
+
+        Return ``value|self``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         lhs_array = self.convert_to_cunumeric_ndarray(lhs)
         return self.perform_binary_op(BinaryOpCode.LOGICAL_OR, lhs_array, self)
 
     def __rpow__(self, lhs):
+        """__rpow__(value, /)
+
+        Return ``pow(value, self)``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         lhs_array = self.convert_to_cunumeric_ndarray(lhs)
         return self.perform_binary_op(BinaryOpCode.POWER, lhs_array, self)
 
     def __rshift__(self, rhs):
+        """a.__rshift__(value, /)
+
+        Return ``self>>value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         return self.perform_binary_op(
             BinaryOpCode.SHIFT_RIGHT, self, rhs_array
         )
 
     def __rsub__(self, lhs):
+        """a.__rsub__(value, /)
+
+        Return ``value-self``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         lhs_array = self.convert_to_cunumeric_ndarray(lhs)
         return self.perform_binary_op(BinaryOpCode.SUBTRACT, lhs_array, self)
 
     def __rtruediv__(self, lhs):
+        """a.__rtruediv__(value, /)
+
+        Return ``value/self``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         lhs_array = self.convert_to_cunumeric_ndarray(lhs)
         return lhs_array.internal_truediv(self, inplace=False)
 
     def __rxor__(self, lhs):
+        """a.__rxor__(value, /)
+
+        Return ``value^self``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         lhs_array = self.convert_to_cunumeric_ndarray(lhs)
         return self.perform_binary_op(
             BinaryOpCode.LOGICAL_XOR, lhs_array, self
@@ -944,6 +1467,11 @@ class ndarray(object):
 
     @add_boilerplate("value", mutates_self=True)
     def __setitem__(self, key, value):
+        """__setitem__(key, value, /)
+
+        Set ``self[key]=value``.
+
+        """
         if key is None:
             raise KeyError("invalid key passed to cunumeric.ndarray")
         if value.dtype != self.dtype:
@@ -954,22 +1482,76 @@ class ndarray(object):
         self._thunk.set_item(key, value._thunk)
 
     def __setstate__(self, state):
+        """a.__setstate__(state, /)
+
+        For unpickling.
+
+        The `state` argument must be a sequence that contains the following
+        elements:
+
+        Parameters
+        ----------
+        version : int
+            optional pickle version. If omitted defaults to 0.
+        shape : tuple
+        dtype : data-type
+        isFortran : bool
+        rawdata : str or list
+            a binary string with the data, or a list if 'a' is an object array
+
+        """
         self.__array__().__setstate__(state)
 
     def __sizeof__(self, *args, **kwargs):
         return self.__array__().__sizeof__(*args, **kwargs)
 
     def __sub__(self, rhs):
+        """a.__sub__(value, /)
+
+        Return ``self-value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         return self.perform_binary_op(BinaryOpCode.SUBTRACT, self, rhs_array)
 
     def __str__(self):
+        """a.__str__(/)
+
+        Return ``str(self)``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         return str(self.__array__())
 
     def __truediv__(self, rhs):
+        """a.__truediv__(value, /)
+
+        Return ``self/value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         return self.internal_truediv(rhs, inplace=False)
 
     def __xor__(self, rhs):
+        """a.__xor__(value, /)
+
+        Return ``self^value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         return self.perform_binary_op(
             BinaryOpCode.LOGICAL_XOR, rhs_array, self
