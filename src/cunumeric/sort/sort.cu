@@ -70,7 +70,7 @@ struct multiply : public thrust::unary_function<int, int> {
 
 template <class VAL>
 void cub_local_sort_inplace(
-  VAL* inptr, int32_t* argptr, const size_t volume, const size_t sort_dim_size, cudaStream_t stream)
+  VAL* inptr, int64_t* argptr, const size_t volume, const size_t sort_dim_size, cudaStream_t stream)
 {
   // make a copy of input --> we want inptr to return sorted values
   auto keys_in = create_buffer<VAL>(volume, Legion::Memory::Kind::GPU_FB_MEM);
@@ -125,13 +125,13 @@ void cub_local_sort_inplace(
                                               stream);
     }
   } else {
-    auto idx_in = create_buffer<int32_t>(volume, Legion::Memory::Kind::GPU_FB_MEM);
+    auto idx_in = create_buffer<int64_t>(volume, Legion::Memory::Kind::GPU_FB_MEM);
     thrust::transform(thrust::cuda::par.on(stream),
-                      thrust::make_counting_iterator<int32_t>(0),
-                      thrust::make_counting_iterator<int32_t>(volume),
-                      thrust::make_constant_iterator<int32_t>(sort_dim_size),
+                      thrust::make_counting_iterator<int64_t>(0),
+                      thrust::make_counting_iterator<int64_t>(volume),
+                      thrust::make_constant_iterator<int64_t>(sort_dim_size),
                       idx_in.ptr(0),
-                      thrust::modulus<int32_t>());
+                      thrust::modulus<int64_t>());
 
     if (volume == sort_dim_size) {
       // argsort
@@ -202,13 +202,13 @@ void cub_local_sort_inplace(
 
 template <class VAL>
 void thrust_local_sort_inplace(
-  VAL* inptr, int32_t* argptr, const size_t volume, const size_t sort_dim_size, cudaStream_t stream)
+  VAL* inptr, int64_t* argptr, const size_t volume, const size_t sort_dim_size, cudaStream_t stream)
 {
   if (argptr == nullptr) {
     if (volume == sort_dim_size) {
       thrust::stable_sort(thrust::cuda::par.on(stream), inptr, inptr + volume);
     } else {
-      auto sort_id = create_buffer<uint32_t>(volume, Legion::Memory::Kind::GPU_FB_MEM);
+      auto sort_id = create_buffer<uint64_t>(volume, Legion::Memory::Kind::GPU_FB_MEM);
       // init combined keys
       thrust::transform(thrust::cuda::par.on(stream),
                         thrust::make_counting_iterator<uint64_t>(0),
@@ -226,16 +226,16 @@ void thrust_local_sort_inplace(
   } else {
     // intialize indices
     thrust::transform(thrust::cuda::par.on(stream),
-                      thrust::make_counting_iterator<int32_t>(0),
-                      thrust::make_counting_iterator<int32_t>(volume),
-                      thrust::make_constant_iterator<int32_t>(sort_dim_size),
+                      thrust::make_counting_iterator<int64_t>(0),
+                      thrust::make_counting_iterator<int64_t>(volume),
+                      thrust::make_constant_iterator<int64_t>(sort_dim_size),
                       argptr,
-                      thrust::modulus<int32_t>());
+                      thrust::modulus<int64_t>());
 
     if (volume == sort_dim_size) {
       thrust::stable_sort_by_key(thrust::cuda::par.on(stream), inptr, inptr + volume, argptr);
     } else {
-      auto sort_id = create_buffer<uint32_t>(volume, Legion::Memory::Kind::GPU_FB_MEM);
+      auto sort_id = create_buffer<uint64_t>(volume, Legion::Memory::Kind::GPU_FB_MEM);
       // init combined keys
       thrust::transform(thrust::cuda::par.on(stream),
                         thrust::make_counting_iterator<uint64_t>(0),
@@ -266,7 +266,7 @@ struct support_cub<LegateTypeCode::COMPLEX128_LT> : std::false_type {
 
 template <LegateTypeCode CODE, std::enable_if_t<support_cub<CODE>::value>* = nullptr>
 void local_sort_inplace(legate_type_of<CODE>* inptr,
-                        int32_t* argptr,
+                        int64_t* argptr,
                         const size_t volume,
                         const size_t sort_dim_size,
                         cudaStream_t stream)
@@ -277,7 +277,7 @@ void local_sort_inplace(legate_type_of<CODE>* inptr,
 
 template <LegateTypeCode CODE, std::enable_if_t<!support_cub<CODE>::value>* = nullptr>
 void local_sort_inplace(legate_type_of<CODE>* inptr,
-                        int32_t* argptr,
+                        int64_t* argptr,
                         const size_t volume,
                         const size_t sort_dim_size,
                         cudaStream_t stream)
@@ -333,7 +333,7 @@ struct SortImplBody<VariantKind::GPU, CODE, DIM> {
 
     // we need a buffer for argsort
     auto indices_buffer =
-      create_buffer<int32_t>(argsort ? volume : 0, Legion::Memory::Kind::GPU_FB_MEM);
+      create_buffer<int64_t>(argsort ? volume : 0, Legion::Memory::Kind::GPU_FB_MEM);
 
     // sort data
     local_sort_inplace<CODE>(dense_input_copy.ptr(0),
@@ -345,10 +345,10 @@ struct SortImplBody<VariantKind::GPU, CODE, DIM> {
     // copy back data (we assume output partition to be aliged to input!)
     if (dense) {
       if (argsort) {
-        AccessorWO<int32_t, DIM> output = output_array.write_accessor<int32_t, DIM>(rect);
+        AccessorWO<int64_t, DIM> output = output_array.write_accessor<int64_t, DIM>(rect);
         cudaMemcpyAsync(output.ptr(rect.lo),
                         indices_buffer.ptr(0),
-                        sizeof(int32_t) * volume,
+                        sizeof(int64_t) * volume,
                         cudaMemcpyDeviceToDevice,
                         stream);
       } else {
@@ -362,7 +362,7 @@ struct SortImplBody<VariantKind::GPU, CODE, DIM> {
     } else {
       const size_t num_blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
       if (argsort) {
-        AccessorWO<int32_t, DIM> output = output_array.write_accessor<int32_t, DIM>(rect);
+        AccessorWO<int64_t, DIM> output = output_array.write_accessor<int64_t, DIM>(rect);
         copy_into_output<<<num_blocks, THREADS_PER_BLOCK, 0, stream>>>(
           output, indices_buffer.ptr(0), rect.lo, pitches, volume);
       } else {

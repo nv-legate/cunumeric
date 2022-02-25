@@ -33,7 +33,7 @@ struct SortImplBody<VariantKind::CPU, CODE, DIM> {
 
   // sorts inptr in-place, if argptr not nullptr it returns sort indices
   void thrust_local_sort_inplace(VAL* inptr,
-                                 int32_t* argptr,
+                                 int64_t* argptr,
                                  const size_t volume,
                                  const size_t sort_dim_size)
   {
@@ -45,7 +45,7 @@ struct SortImplBody<VariantKind::CPU, CODE, DIM> {
     } else {
       // argsort
       for (uint64_t start_idx = 0; start_idx < volume; start_idx += sort_dim_size) {
-        int32_t* segmentValues = argptr + start_idx;
+        int64_t* segmentValues = argptr + start_idx;
         VAL* segmentKeys       = inptr + start_idx;
         std::iota(segmentValues, segmentValues + sort_dim_size, 0);  // init
         thrust::stable_sort_by_key(
@@ -93,7 +93,7 @@ struct SortImplBody<VariantKind::CPU, CODE, DIM> {
     }
 
     // we need a buffer for argsort
-    auto indices_buffer = create_buffer<int32_t>(argsort ? volume : 0);
+    auto indices_buffer = create_buffer<int64_t>(argsort ? volume : 0);
 
     // sort data
     thrust_local_sort_inplace(
@@ -102,7 +102,7 @@ struct SortImplBody<VariantKind::CPU, CODE, DIM> {
     // copy back data (we assume output partition to be aliged to input!)
     if (dense) {
       if (argsort) {
-        AccessorWO<int32_t, DIM> output = output_array.write_accessor<int32_t, DIM>(rect);
+        AccessorWO<int64_t, DIM> output = output_array.write_accessor<int64_t, DIM>(rect);
         std::copy(indices_buffer.ptr(0), indices_buffer.ptr(0) + volume, output.ptr(rect.lo));
       } else {
         AccessorWO<VAL, DIM> output = output_array.write_accessor<VAL, DIM>(rect);
@@ -110,7 +110,7 @@ struct SortImplBody<VariantKind::CPU, CODE, DIM> {
       }
     } else {
       if (argsort) {
-        AccessorWO<int32_t, DIM> output = output_array.write_accessor<int32_t, DIM>(rect);
+        AccessorWO<int64_t, DIM> output = output_array.write_accessor<int64_t, DIM>(rect);
         auto* source                    = indices_buffer.ptr(0);
         for (size_t offset = 0; offset < volume; ++offset) {
           auto point              = pitches.unflatten(offset, rect.lo);

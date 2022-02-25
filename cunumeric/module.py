@@ -5633,7 +5633,7 @@ def argsort(a, axis=-1, kind="stable", order=None):
     Single GPU, Single CPU
     """
 
-    result = ndarray(a.shape, np.int32)
+    result = ndarray(a.shape, np.int64)
     result._thunk.sort(
         rhs=a._thunk, argsort=True, axis=axis, kind=kind, order=order
     )
