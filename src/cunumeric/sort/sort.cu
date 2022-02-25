@@ -32,6 +32,34 @@ namespace cunumeric {
 
 using namespace Legion;
 
+template <typename VAL, int DIM>
+__global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
+  copy_into_buffer(VAL* out,
+                   const AccessorRO<VAL, DIM> accessor,
+                   const Point<DIM> lo,
+                   const Pitches<DIM - 1> pitches,
+                   const size_t volume)
+{
+  size_t offset = blockIdx.x * blockDim.x + threadIdx.x;
+  if (offset >= volume) return;
+  auto point  = pitches.unflatten(offset, lo);
+  out[offset] = accessor[lo + point];
+}
+
+template <typename VAL, int DIM>
+__global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
+  copy_into_output(AccessorWO<VAL, DIM> accessor,
+                   const VAL* data,
+                   const Point<DIM> lo,
+                   const Pitches<DIM - 1> pitches,
+                   const size_t volume)
+{
+  size_t offset = blockIdx.x * blockDim.x + threadIdx.x;
+  if (offset >= volume) return;
+  auto point           = pitches.unflatten(offset, lo);
+  accessor[lo + point] = data[offset];
+}
+
 struct multiply : public thrust::unary_function<int, int> {
   const int constant;
 
@@ -41,239 +69,187 @@ struct multiply : public thrust::unary_function<int, int> {
 };
 
 template <class VAL>
-void cub_sort(const VAL* inptr, VAL* outptr, const size_t volume, const size_t sort_dim_size)
+void cub_local_sort_inplace(
+  VAL* inptr, int32_t* argptr, const size_t volume, const size_t sort_dim_size, cudaStream_t stream)
 {
-  if (volume == sort_dim_size) {
-    size_t temp_storage_bytes = 0;
-    cub::DeviceRadixSort::SortKeys(NULL, temp_storage_bytes, inptr, outptr, volume);
-
-    auto temp_storage =
-      create_buffer<unsigned char>(temp_storage_bytes, Legion::Memory::Kind::GPU_FB_MEM);
-
-    cub::DeviceRadixSort::SortKeys(temp_storage.ptr(0), temp_storage_bytes, inptr, outptr, volume);
-  } else {
-    auto off_start_it =
-      thrust::make_transform_iterator(thrust::make_counting_iterator(0), multiply(sort_dim_size));
-    auto off_end_it =
-      thrust::make_transform_iterator(thrust::make_counting_iterator(1), multiply(sort_dim_size));
-
-    size_t temp_storage_bytes = 0;
-    cub::DeviceSegmentedRadixSort::SortKeys(NULL,
-                                            temp_storage_bytes,
-                                            inptr,
-                                            outptr,
-                                            volume,
-                                            volume / sort_dim_size,
-                                            off_start_it,
-                                            off_end_it);
-    auto temp_storage =
-      create_buffer<unsigned char>(temp_storage_bytes, Legion::Memory::Kind::GPU_FB_MEM);
-
-    cub::DeviceSegmentedRadixSort::SortKeys(temp_storage.ptr(0),
-                                            temp_storage_bytes,
-                                            inptr,
-                                            outptr,
-                                            volume,
-                                            volume / sort_dim_size,
-                                            off_start_it,
-                                            off_end_it);
-  }
-}
-
-template <class VAL>
-void thrust_sort(const VAL* inptr, VAL* outptr, const size_t volume, const size_t sort_dim_size)
-{
-  thrust::device_ptr<const VAL> dev_input_ptr(inptr);
-  thrust::device_ptr<VAL> dev_output_ptr(outptr);
-  thrust::copy(dev_input_ptr, dev_input_ptr + volume, dev_output_ptr);
-  // same approach as cupy implemntation --> combine multiple individual sorts into single
-  // kernel with data tuples - (id_sub-sort, actual_data)
-  if (volume == sort_dim_size) {
-    thrust::stable_sort(dev_output_ptr, dev_output_ptr + volume);
-  } else {
-    // in this case we know we are sorting for the *last* index
-    const uint64_t max_elements_per_kernel =
-      1 << 22;  // TODO check amount of available GPU memory from config
-    const uint64_t number_sorts_per_kernel =
-      std::max(1ul, std::min(volume, max_elements_per_kernel) / sort_dim_size);
-    const uint64_t number_sorts = volume / sort_dim_size;
-
-    // std::cout << "Number of sorts per kernel: " << number_sorts_per_kernel << std::endl;
-
-    if (number_sorts_per_kernel >=
-        32)  // key-tuple sort has quite some overhead -- only utilize if beneficial
-    {
-      // allocate memory for keys (iterating +=1 for each individual sort dimension)
-      // ensure keys have minimal bit-length (needs values up to number_sorts_per_kernel-1)!
-      // TODO!!!!
-      auto keys_array = create_buffer<uint32_t>(number_sorts_per_kernel * sort_dim_size,
-                                                Legion::Memory::Kind::GPU_FB_MEM);
-      thrust::device_ptr<uint32_t> dev_key_ptr(keys_array.ptr(0));
-
-      for (uint64_t sort_part = 0; sort_part < number_sorts; sort_part += number_sorts_per_kernel) {
-        // compute size of batch (might be smaller for the last call)
-        const uint64_t num_elements =
-          std::min(number_sorts - sort_part, max_elements_per_kernel) * sort_dim_size;
-        const uint64_t offset = sort_part * sort_dim_size;
-
-        // reinit keys
-        thrust::transform(thrust::make_counting_iterator<uint64_t>(0),
-                          thrust::make_counting_iterator<uint64_t>(num_elements),
-                          thrust::make_constant_iterator<uint64_t>(sort_dim_size),
-                          dev_key_ptr,
-                          thrust::divides<uint64_t>());
-
-        // sort
-        auto combined =
-          thrust::make_zip_iterator(thrust::make_tuple(dev_key_ptr, dev_output_ptr + offset));
-        thrust::stable_sort(
-          combined, combined + num_elements, thrust::less<thrust::tuple<size_t, VAL>>());
-      }
+  // make a copy of input --> we want inptr to return sorted values
+  auto keys_in = create_buffer<VAL>(volume, Legion::Memory::Kind::GPU_FB_MEM);
+  cudaMemcpyAsync(keys_in.ptr(0), inptr, sizeof(VAL) * volume, cudaMemcpyDeviceToDevice, stream);
+  size_t temp_storage_bytes = 0;
+  if (argptr == nullptr) {
+    if (volume == sort_dim_size) {
+      // sort
+      cub::DeviceRadixSort::SortKeys(
+        NULL, temp_storage_bytes, keys_in.ptr(0), inptr, volume, 0, sizeof(VAL) * 8, stream);
+      auto temp_storage =
+        create_buffer<unsigned char>(temp_storage_bytes, Legion::Memory::Kind::GPU_FB_MEM);
+      cub::DeviceRadixSort::SortKeys(temp_storage.ptr(0),
+                                     temp_storage_bytes,
+                                     keys_in.ptr(0),
+                                     inptr,
+                                     volume,
+                                     0,
+                                     sizeof(VAL) * 8,
+                                     stream);
     } else {
-      // number_sorts_per_kernel too small ----> we sort one after another
-      for (uint64_t sort_part = 0; sort_part < number_sorts; sort_part++) {
-        const uint64_t offset = sort_part * sort_dim_size;
-        thrust::stable_sort(dev_output_ptr + offset, dev_output_ptr + offset + sort_dim_size);
-      }
+      // segmented sort
+      auto off_start_it =
+        thrust::make_transform_iterator(thrust::make_counting_iterator(0), multiply(sort_dim_size));
+      auto off_end_it =
+        thrust::make_transform_iterator(thrust::make_counting_iterator(1), multiply(sort_dim_size));
+
+      cub::DeviceSegmentedRadixSort::SortKeys(NULL,
+                                              temp_storage_bytes,
+                                              keys_in.ptr(0),
+                                              inptr,
+                                              volume,
+                                              volume / sort_dim_size,
+                                              off_start_it,
+                                              off_end_it,
+                                              0,
+                                              sizeof(VAL) * 8,
+                                              stream);
+      auto temp_storage =
+        create_buffer<unsigned char>(temp_storage_bytes, Legion::Memory::Kind::GPU_FB_MEM);
+
+      cub::DeviceSegmentedRadixSort::SortKeys(temp_storage.ptr(0),
+                                              temp_storage_bytes,
+                                              keys_in.ptr(0),
+                                              inptr,
+                                              volume,
+                                              volume / sort_dim_size,
+                                              off_start_it,
+                                              off_end_it,
+                                              0,
+                                              sizeof(VAL) * 8,
+                                              stream);
+    }
+  } else {
+    auto idx_in = create_buffer<int32_t>(volume, Legion::Memory::Kind::GPU_FB_MEM);
+    thrust::transform(thrust::cuda::par.on(stream),
+                      thrust::make_counting_iterator<int32_t>(0),
+                      thrust::make_counting_iterator<int32_t>(volume),
+                      thrust::make_constant_iterator<int32_t>(sort_dim_size),
+                      idx_in.ptr(0),
+                      thrust::modulus<int32_t>());
+
+    if (volume == sort_dim_size) {
+      // argsort
+      cub::DeviceRadixSort::SortPairs(NULL,
+                                      temp_storage_bytes,
+                                      keys_in.ptr(0),
+                                      inptr,
+                                      idx_in.ptr(0),
+                                      argptr,
+                                      volume,
+                                      0,
+                                      sizeof(VAL) * 8,
+                                      stream);
+
+      auto temp_storage =
+        create_buffer<unsigned char>(temp_storage_bytes, Legion::Memory::Kind::GPU_FB_MEM);
+
+      cub::DeviceRadixSort::SortPairs(temp_storage.ptr(0),
+                                      temp_storage_bytes,
+                                      keys_in.ptr(0),
+                                      inptr,
+                                      idx_in.ptr(0),
+                                      argptr,
+                                      volume,
+                                      0,
+                                      sizeof(VAL) * 8,
+                                      stream);
+    } else {
+      // segmented argsort
+      auto off_start_it =
+        thrust::make_transform_iterator(thrust::make_counting_iterator(0), multiply(sort_dim_size));
+      auto off_end_it =
+        thrust::make_transform_iterator(thrust::make_counting_iterator(1), multiply(sort_dim_size));
+
+      cub::DeviceSegmentedRadixSort::SortPairs(NULL,
+                                               temp_storage_bytes,
+                                               keys_in.ptr(0),
+                                               inptr,
+                                               idx_in.ptr(0),
+                                               argptr,
+                                               volume,
+                                               volume / sort_dim_size,
+                                               off_start_it,
+                                               off_end_it,
+                                               0,
+                                               sizeof(VAL) * 8,
+                                               stream);
+
+      auto temp_storage =
+        create_buffer<unsigned char>(temp_storage_bytes, Legion::Memory::Kind::GPU_FB_MEM);
+
+      cub::DeviceSegmentedRadixSort::SortPairs(temp_storage.ptr(0),
+                                               temp_storage_bytes,
+                                               keys_in.ptr(0),
+                                               inptr,
+                                               idx_in.ptr(0),
+                                               argptr,
+                                               volume,
+                                               volume / sort_dim_size,
+                                               off_start_it,
+                                               off_end_it,
+                                               0,
+                                               sizeof(VAL) * 8,
+                                               stream);
     }
   }
 }
 
 template <class VAL>
-void cub_argsort(const VAL* inptr, int32_t* outptr, const size_t volume, const size_t sort_dim_size)
+void thrust_local_sort_inplace(
+  VAL* inptr, int32_t* argptr, const size_t volume, const size_t sort_dim_size, cudaStream_t stream)
 {
-  auto keys_out = create_buffer<VAL>(volume, Legion::Memory::Kind::GPU_FB_MEM);
-  thrust::device_ptr<VAL> dev_key_out_ptr(keys_out.ptr(0));
-
-  auto idx_in = create_buffer<int32_t>(volume, Legion::Memory::Kind::GPU_FB_MEM);
-  thrust::device_ptr<int32_t> dev_idx_in_ptr(idx_in.ptr(0));
-  thrust::transform(thrust::make_counting_iterator<int32_t>(0),
-                    thrust::make_counting_iterator<int32_t>(volume),
-                    thrust::make_constant_iterator<int32_t>(sort_dim_size),
-                    dev_idx_in_ptr,
-                    thrust::modulus<int32_t>());
-
-  if (volume == sort_dim_size) {
-    size_t temp_storage_bytes = 0;
-    cub::DeviceRadixSort::SortPairs(
-      NULL, temp_storage_bytes, inptr, keys_out.ptr(0), idx_in.ptr(0), outptr, volume);
-
-    auto temp_storage =
-      create_buffer<unsigned char>(temp_storage_bytes, Legion::Memory::Kind::GPU_FB_MEM);
-
-    cub::DeviceRadixSort::SortPairs(temp_storage.ptr(0),
-                                    temp_storage_bytes,
-                                    inptr,
-                                    keys_out.ptr(0),
-                                    idx_in.ptr(0),
-                                    outptr,
-                                    volume);
-  } else {
-    auto off_start_it =
-      thrust::make_transform_iterator(thrust::make_counting_iterator(0), multiply(sort_dim_size));
-    auto off_end_it =
-      thrust::make_transform_iterator(thrust::make_counting_iterator(1), multiply(sort_dim_size));
-
-    size_t temp_storage_bytes = 0;
-    cub::DeviceSegmentedRadixSort::SortPairs(NULL,
-                                             temp_storage_bytes,
-                                             inptr,
-                                             keys_out.ptr(0),
-                                             idx_in.ptr(0),
-                                             outptr,
-                                             volume,
-                                             volume / sort_dim_size,
-                                             off_start_it,
-                                             off_end_it);
-
-    auto temp_storage =
-      create_buffer<unsigned char>(temp_storage_bytes, Legion::Memory::Kind::GPU_FB_MEM);
-
-    cub::DeviceSegmentedRadixSort::SortPairs(temp_storage.ptr(0),
-                                             temp_storage_bytes,
-                                             inptr,
-                                             keys_out.ptr(0),
-                                             idx_in.ptr(0),
-                                             outptr,
-                                             volume,
-                                             volume / sort_dim_size,
-                                             off_start_it,
-                                             off_end_it);
-  }
-}
-
-template <class VAL>
-void thrust_argsort(const VAL* inptr,
-                    int32_t* outptr,
-                    const size_t volume,
-                    const size_t sort_dim_size)
-{
-  thrust::device_ptr<const VAL> dev_input_ptr(inptr);
-
-  auto keys_copy = create_buffer<VAL>(volume, Legion::Memory::Kind::GPU_FB_MEM);
-  thrust::device_ptr<VAL> dev_keys_copy_ptr(keys_copy.ptr(0));
-  thrust::copy(dev_input_ptr, dev_input_ptr + volume, dev_keys_copy_ptr);
-
-  thrust::device_ptr<int32_t> dev_output_ptr(outptr);
-  thrust::transform(thrust::make_counting_iterator<int32_t>(0),
-                    thrust::make_counting_iterator<int32_t>(volume),
-                    thrust::make_constant_iterator<int32_t>(sort_dim_size),
-                    dev_output_ptr,
-                    thrust::modulus<int32_t>());
-
-  // same approach as cupy implemntation --> combine multiple individual sorts into single
-  // kernel with data tuples - (id_sub-sort, actual_data)
-  if (volume == sort_dim_size) {
-    thrust::stable_sort_by_key(dev_keys_copy_ptr, dev_keys_copy_ptr + volume, dev_output_ptr);
-  } else {
-    // in this case we know we are sorting for the *last* index
-    const uint64_t max_elements_per_kernel =
-      1 << 22;  // TODO check amount of available GPU memory from config
-    const uint64_t number_sorts_per_kernel =
-      std::max(1ul, std::min(volume, max_elements_per_kernel) / sort_dim_size);
-    const uint64_t number_sorts = volume / sort_dim_size;
-
-    // std::cout << "Number of sorts per kernel: " << number_sorts_per_kernel << std::endl;
-
-    if (number_sorts_per_kernel >=
-        32)  // key-tuple sort has quite some overhead -- only utilize if beneficial
-    {
-      // allocate memory for keys (iterating +=1 for each individual sort dimension)
-      // ensure keys have minimal bit-length (needs values up to number_sorts_per_kernel-1)!
-      // TODO!!!!
-      auto keys_array = create_buffer<uint32_t>(number_sorts_per_kernel * sort_dim_size,
-                                                Legion::Memory::Kind::GPU_FB_MEM);
-      thrust::device_ptr<uint32_t> dev_key_ptr(keys_array.ptr(0));
-
-      for (uint64_t sort_part = 0; sort_part < number_sorts; sort_part += number_sorts_per_kernel) {
-        // compute size of batch (might be smaller for the last call)
-        const uint64_t num_elements =
-          std::min(number_sorts - sort_part, max_elements_per_kernel) * sort_dim_size;
-        const uint64_t offset = sort_part * sort_dim_size;
-
-        // reinit keys
-        thrust::transform(thrust::make_counting_iterator<uint64_t>(0),
-                          thrust::make_counting_iterator<uint64_t>(num_elements),
-                          thrust::make_constant_iterator<uint64_t>(sort_dim_size),
-                          dev_key_ptr,
-                          thrust::divides<uint64_t>());
-
-        // sort
-        auto combined =
-          thrust::make_zip_iterator(thrust::make_tuple(dev_key_ptr, dev_keys_copy_ptr + offset));
-        thrust::stable_sort_by_key(combined,
-                                   combined + num_elements,
-                                   dev_output_ptr + offset,
-                                   thrust::less<thrust::tuple<size_t, VAL>>());
-      }
+  if (argptr == nullptr) {
+    if (volume == sort_dim_size) {
+      thrust::stable_sort(thrust::cuda::par.on(stream), inptr, inptr + volume);
     } else {
-      // number_sorts_per_kernel too small ----> we sort one after another
-      for (uint64_t sort_part = 0; sort_part < number_sorts; sort_part++) {
-        const uint64_t offset = sort_part * sort_dim_size;
-        thrust::stable_sort_by_key(dev_keys_copy_ptr + offset,
-                                   dev_keys_copy_ptr + offset + sort_dim_size,
-                                   dev_output_ptr + offset);
-      }
+      auto sort_id = create_buffer<uint32_t>(volume, Legion::Memory::Kind::GPU_FB_MEM);
+      // init combined keys
+      thrust::transform(thrust::cuda::par.on(stream),
+                        thrust::make_counting_iterator<uint64_t>(0),
+                        thrust::make_counting_iterator<uint64_t>(volume),
+                        thrust::make_constant_iterator<uint64_t>(sort_dim_size),
+                        sort_id.ptr(0),
+                        thrust::divides<uint64_t>());
+      auto combined = thrust::make_zip_iterator(thrust::make_tuple(sort_id.ptr(0), inptr));
+
+      thrust::stable_sort(thrust::cuda::par.on(stream),
+                          combined,
+                          combined + volume,
+                          thrust::less<thrust::tuple<size_t, VAL>>());
+    }
+  } else {
+    // intialize indices
+    thrust::transform(thrust::cuda::par.on(stream),
+                      thrust::make_counting_iterator<int32_t>(0),
+                      thrust::make_counting_iterator<int32_t>(volume),
+                      thrust::make_constant_iterator<int32_t>(sort_dim_size),
+                      argptr,
+                      thrust::modulus<int32_t>());
+
+    if (volume == sort_dim_size) {
+      thrust::stable_sort_by_key(thrust::cuda::par.on(stream), inptr, inptr + volume, argptr);
+    } else {
+      auto sort_id = create_buffer<uint32_t>(volume, Legion::Memory::Kind::GPU_FB_MEM);
+      // init combined keys
+      thrust::transform(thrust::cuda::par.on(stream),
+                        thrust::make_counting_iterator<uint64_t>(0),
+                        thrust::make_counting_iterator<uint64_t>(volume),
+                        thrust::make_constant_iterator<uint64_t>(sort_dim_size),
+                        sort_id.ptr(0),
+                        thrust::divides<uint64_t>());
+      auto combined = thrust::make_zip_iterator(thrust::make_tuple(sort_id.ptr(0), inptr));
+
+      thrust::stable_sort_by_key(thrust::cuda::par.on(stream),
+                                 combined,
+                                 combined + volume,
+                                 argptr,
+                                 thrust::less<thrust::tuple<size_t, VAL>>());
     }
   }
 }
@@ -289,54 +265,35 @@ struct support_cub<LegateTypeCode::COMPLEX128_LT> : std::false_type {
 };
 
 template <LegateTypeCode CODE, std::enable_if_t<support_cub<CODE>::value>* = nullptr>
-void sort_stable(const legate_type_of<CODE>* inptr,
-                 legate_type_of<CODE>* outptr,
-                 const size_t volume,
-                 const size_t sort_dim_size)
+void local_sort_inplace(legate_type_of<CODE>* inptr,
+                        int32_t* argptr,
+                        const size_t volume,
+                        const size_t sort_dim_size,
+                        cudaStream_t stream)
 {
   using VAL = legate_type_of<CODE>;
-  cub_sort<VAL>(inptr, outptr, volume, sort_dim_size);
+  cub_local_sort_inplace<VAL>(inptr, argptr, volume, sort_dim_size, stream);
 }
 
 template <LegateTypeCode CODE, std::enable_if_t<!support_cub<CODE>::value>* = nullptr>
-void sort_stable(const legate_type_of<CODE>* inptr,
-                 legate_type_of<CODE>* outptr,
-                 const size_t volume,
-                 const size_t sort_dim_size)
+void local_sort_inplace(legate_type_of<CODE>* inptr,
+                        int32_t* argptr,
+                        const size_t volume,
+                        const size_t sort_dim_size,
+                        cudaStream_t stream)
 {
   using VAL = legate_type_of<CODE>;
-  thrust_sort<VAL>(inptr, outptr, volume, sort_dim_size);
-}
-
-template <LegateTypeCode CODE, std::enable_if_t<support_cub<CODE>::value>* = nullptr>
-void argsort_stable(const legate_type_of<CODE>* inptr,
-                    int32_t* outptr,
-                    const size_t volume,
-                    const size_t sort_dim_size)
-{
-  using VAL = legate_type_of<CODE>;
-  cub_argsort<VAL>(inptr, outptr, volume, sort_dim_size);
-}
-
-template <LegateTypeCode CODE, std::enable_if_t<!support_cub<CODE>::value>* = nullptr>
-void argsort_stable(const legate_type_of<CODE>* inptr,
-                    int32_t* outptr,
-                    const size_t volume,
-                    const size_t sort_dim_size)
-{
-  using VAL = legate_type_of<CODE>;
-  thrust_argsort<VAL>(inptr, outptr, volume, sort_dim_size);
+  thrust_local_sort_inplace<VAL>(inptr, argptr, volume, sort_dim_size, stream);
 }
 
 template <LegateTypeCode CODE, int32_t DIM>
-struct SortImplBody<VariantKind::GPU, false, CODE, DIM> {
+struct SortImplBody<VariantKind::GPU, CODE, DIM> {
   using VAL = legate_type_of<CODE>;
 
-  void operator()(AccessorRO<VAL, DIM> input,
-                  AccessorWO<VAL, DIM> output,
+  void operator()(const Array& input_array,
+                  Array& output_array,
                   const Pitches<DIM - 1>& pitches,
                   const Rect<DIM>& rect,
-                  const bool dense,
                   const size_t volume,
                   const bool argsort,
                   const Legion::DomainPoint global_shape,
@@ -344,81 +301,77 @@ struct SortImplBody<VariantKind::GPU, false, CODE, DIM> {
                   const Legion::DomainPoint index_point,
                   const Legion::Domain domain)
   {
+    AccessorRO<VAL, DIM> input = input_array.read_accessor<VAL, DIM>(rect);
+
+    bool dense = input.accessor.is_dense_row_major(rect);
+
 #ifdef DEBUG_CUNUMERIC
     std::cout << "GPU(" << getRank(domain, index_point) << "): local size = " << volume
               << ", dist. = " << is_index_space << ", index_point = " << index_point
               << ", domain/volume = " << domain << "/" << domain.get_volume()
-              << ", dense = " << dense << std::endl;
+              << ", dense = " << dense << ", argsort. = " << argsort << std::endl;
 #endif
-    assert(!argsort);
+
+    auto stream = get_cached_stream();
+
     const size_t sort_dim_size = global_shape[DIM - 1];
     assert(!is_index_space || DIM > 1);  // not implemented for now
-    if (dense) {
-      sort_stable<CODE>(input.ptr(rect), output.ptr(rect), volume, sort_dim_size);
-    } else {
-      // compute contiguous memory block
-      int contiguous_elements = 1;
-      for (int i = DIM - 1; i >= 0; i--) {
-        auto diff = 1 + rect.hi[i] - rect.lo[i];
-        contiguous_elements *= diff;
-        if (diff < global_shape[i]) { break; }
-      }
 
-      uint64_t elements_processed = 0;
-      while (elements_processed < volume) {
-        Legion::Point<DIM> start_point = pitches.unflatten(elements_processed, rect.lo);
-        sort_stable<CODE>(
-          input.ptr(start_point), output.ptr(start_point), contiguous_elements, sort_dim_size);
-        elements_processed += contiguous_elements;
+    // make a copy of the input
+    auto dense_input_copy = create_buffer<VAL>(volume, Legion::Memory::Kind::GPU_FB_MEM);
+    if (dense) {
+      cudaMemcpyAsync(dense_input_copy.ptr(0),
+                      input.ptr(rect.lo),
+                      sizeof(VAL) * volume,
+                      cudaMemcpyDeviceToDevice,
+                      stream);
+    } else {
+      const size_t num_blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
+      copy_into_buffer<<<num_blocks, THREADS_PER_BLOCK, 0, stream>>>(
+        dense_input_copy.ptr(0), input, rect.lo, pitches, volume);
+    }
+
+    // we need a buffer for argsort
+    auto indices_buffer =
+      create_buffer<int32_t>(argsort ? volume : 0, Legion::Memory::Kind::GPU_FB_MEM);
+
+    // sort data
+    local_sort_inplace<CODE>(dense_input_copy.ptr(0),
+                             argsort ? indices_buffer.ptr(0) : nullptr,
+                             volume,
+                             sort_dim_size,
+                             stream);
+
+    // copy back data (we assume output partition to be aliged to input!)
+    if (dense) {
+      if (argsort) {
+        AccessorWO<int32_t, DIM> output = output_array.write_accessor<int32_t, DIM>(rect);
+        cudaMemcpyAsync(output.ptr(rect.lo),
+                        indices_buffer.ptr(0),
+                        sizeof(int32_t) * volume,
+                        cudaMemcpyDeviceToDevice,
+                        stream);
+      } else {
+        AccessorWO<VAL, DIM> output = output_array.write_accessor<VAL, DIM>(rect);
+        cudaMemcpyAsync(output.ptr(rect.lo),
+                        dense_input_copy.ptr(0),
+                        sizeof(VAL) * volume,
+                        cudaMemcpyDeviceToDevice,
+                        stream);
+      }
+    } else {
+      const size_t num_blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
+      if (argsort) {
+        AccessorWO<int32_t, DIM> output = output_array.write_accessor<int32_t, DIM>(rect);
+        copy_into_output<<<num_blocks, THREADS_PER_BLOCK, 0, stream>>>(
+          output, indices_buffer.ptr(0), rect.lo, pitches, volume);
+      } else {
+        AccessorWO<VAL, DIM> output = output_array.write_accessor<VAL, DIM>(rect);
+        copy_into_output<<<num_blocks, THREADS_PER_BLOCK, 0, stream>>>(
+          output, dense_input_copy.ptr(0), rect.lo, pitches, volume);
       }
     }
-  }
-};
-
-template <LegateTypeCode CODE, int32_t DIM>
-struct SortImplBody<VariantKind::GPU, true, CODE, DIM> {
-  using VAL = legate_type_of<CODE>;
-
-  void operator()(AccessorRO<VAL, DIM> input,
-                  AccessorWO<int32_t, DIM> output,
-                  const Pitches<DIM - 1>& pitches,
-                  const Rect<DIM>& rect,
-                  const bool dense,
-                  const size_t volume,
-                  const bool argsort,
-                  const Legion::DomainPoint global_shape,
-                  const bool is_index_space,
-                  const Legion::DomainPoint index_point,
-                  const Legion::Domain domain)
-  {
-#ifdef DEBUG_CUNUMERIC
-    std::cout << "GPU(" << getRank(domain, index_point) << "): local size = " << volume
-              << ", dist. = " << is_index_space << ", index_point = " << index_point
-              << ", domain/volume = " << domain << "/" << domain.get_volume()
-              << ", dense = " << dense << std::endl;
-#endif
-    assert(argsort);
-    const size_t sort_dim_size = global_shape[DIM - 1];
-    assert(!is_index_space || DIM > 1);  // not implemented for now
-    if (dense) {
-      argsort_stable<CODE>(input.ptr(rect), output.ptr(rect), volume, sort_dim_size);
-    } else {
-      // compute contiguous memory block
-      int contiguous_elements = 1;
-      for (int i = DIM - 1; i >= 0; i--) {
-        auto diff = 1 + rect.hi[i] - rect.lo[i];
-        contiguous_elements *= diff;
-        if (diff < global_shape[i]) { break; }
-      }
-
-      uint64_t elements_processed = 0;
-      while (elements_processed < volume) {
-        Legion::Point<DIM> start_point = pitches.unflatten(elements_processed, rect.lo);
-        argsort_stable<CODE>(
-          input.ptr(start_point), output.ptr(start_point), contiguous_elements, sort_dim_size);
-        elements_processed += contiguous_elements;
-      }
-    }
+    CHECK_CUDA(cudaStreamSynchronize(stream));
   }
 };
 

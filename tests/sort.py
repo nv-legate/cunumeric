@@ -218,6 +218,7 @@ def test_dtypes():
     test_api(generate_random((2, 5, 7), np.uint8))
     test_api(generate_random((8, 5), np.uint16))
     test_api(generate_random((22, 5, 7), np.uint32))
+    test_api(generate_random((220,), np.uint32))
 
     test_api(generate_random((2, 5, 7), np.int8))
     test_api(generate_random((8, 5), np.int16))
@@ -227,9 +228,11 @@ def test_dtypes():
     test_api(generate_random((8, 5), np.float32))
     test_api(generate_random((8, 5), np.float64))
     test_api(generate_random((22, 5, 7), np.double))
+    test_api(generate_random((220,), np.double))
 
     test_api(generate_random((2, 5, 7), np.complex64))
     test_api(generate_random((2, 5, 7), np.complex128))
+    test_api(generate_random((220,), np.complex128))
 
     return
 

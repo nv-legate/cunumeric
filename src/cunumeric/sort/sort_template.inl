@@ -21,7 +21,7 @@ namespace cunumeric {
 using namespace Legion;
 using namespace legate;
 
-template <VariantKind KIND, bool ARGSORT, LegateTypeCode CODE, int32_t DIM>
+template <VariantKind KIND, LegateTypeCode CODE, int32_t DIM>
 struct SortImplBody;
 
 static int getRank(Domain domain, DomainPoint index_point)
@@ -69,53 +69,16 @@ struct SortImpl {
            "multi-dimensional array should not be distributed in (sort) dimension");
 #endif
 
-    auto input = args.input.read_accessor<VAL, DIM>(rect);
-
-    if (args.argsort) {
-      auto output = args.output.write_accessor<int32_t, DIM>(rect);
-
-#ifndef LEGION_BOUNDS_CHECKS
-      bool dense =
-        input.accessor.is_dense_row_major(rect) && output.accessor.is_dense_row_major(rect);
-#else
-      bool dense = false;
-#endif
-      assert(dense || !args.is_index_space || DIM > 1);
-
-      SortImplBody<KIND, true, CODE, DIM>()(input,
-                                            output,
-                                            pitches,
-                                            rect,
-                                            dense,
-                                            volume,
-                                            args.argsort,
-                                            args.global_shape,
-                                            args.is_index_space,
-                                            args.task_index,
-                                            args.launch_domain);
-
-    } else {
-      auto output = args.output.write_accessor<VAL, DIM>(rect);
-
-#ifndef LEGION_BOUNDS_CHECKS
-      bool dense =
-        input.accessor.is_dense_row_major(rect) && output.accessor.is_dense_row_major(rect);
-#else
-      bool dense = false;
-#endif
-      assert(dense || !args.is_index_space || DIM > 1);
-      SortImplBody<KIND, false, CODE, DIM>()(input,
-                                             output,
-                                             pitches,
-                                             rect,
-                                             dense,
-                                             volume,
-                                             args.argsort,
-                                             args.global_shape,
-                                             args.is_index_space,
-                                             args.task_index,
-                                             args.launch_domain);
-    }
+    SortImplBody<KIND, CODE, DIM>()(args.input,
+                                    args.output,
+                                    pitches,
+                                    rect,
+                                    volume,
+                                    args.argsort,
+                                    args.global_shape,
+                                    args.is_index_space,
+                                    args.task_index,
+                                    args.launch_domain);
   }
 };
 
