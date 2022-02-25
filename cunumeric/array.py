@@ -832,11 +832,6 @@ class ndarray(object):
         """
         return self.internal_truediv(rhs, inplace=True)
 
-    def __idivmod__(self, rhs):
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        self.perform_binary_op(BinaryOpCode.DIVMOD, self, rhs_array, out=self)
-        return self
-
     def __ifloordiv__(self, rhs):
         """a.__ifloordiv__(value, /)
 
