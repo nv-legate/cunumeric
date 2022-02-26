@@ -43,6 +43,7 @@ GEN_CPU_SRC += cunumeric/ternary/where.cc               \
 							 cunumeric/matrix/util.cc                 \
 							 cunumeric/random/rand.cc                 \
 							 cunumeric/set/unique.cc                  \
+							 cunumeric/set/unique_reduce.cc           \
 							 cunumeric/search/nonzero.cc              \
 							 cunumeric/stat/bincount.cc               \
 							 cunumeric/convolution/convolve.cc        \

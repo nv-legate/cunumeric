@@ -1528,9 +1528,12 @@ class DeferredArray(NumPyThunk):
 
         if self.runtime.num_gpus > 0:
             task.add_nccl_communicator()
-        else:
-            task.add_broadcast(self.base)
 
         task.execute()
+
+        if self.runtime.num_gpus == 0 and self.runtime.num_procs > 1:
+            result.base = self.context.tree_reduce(
+                CuNumericOpCode.UNIQUE_REDUCE, result.base
+            )
 
         return result
