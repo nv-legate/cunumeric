@@ -8,7 +8,6 @@ Functions in :mod:`cunumeric.random`
 
 .. autosummary::
    :toctree: generated/
-   :template: function.rst
 
    rand
    randint

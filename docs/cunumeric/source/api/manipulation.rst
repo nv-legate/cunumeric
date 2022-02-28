@@ -8,7 +8,6 @@ Basic operations
 
 .. autosummary::
    :toctree: generated/
-   :template: function.rst
 
    shape
 
@@ -18,7 +17,6 @@ Changing array shape
 
 .. autosummary::
    :toctree: generated/
-   :template: function.rst
 
    reshape
    ravel
@@ -28,7 +26,6 @@ Transpose-like operations
 
 .. autosummary::
    :toctree: generated/
-   :template: function.rst
 
    swapaxes
    transpose
@@ -40,7 +37,6 @@ Changing number of dimensions
 
 .. autosummary::
    :toctree: generated/
-   :template: function.rst
 
    squeeze
 
@@ -50,7 +46,6 @@ Changing kind of array
 
 .. autosummary::
    :toctree: generated/
-   :template: function.rst
 
    asarray
 
@@ -60,7 +55,6 @@ Joining arrays
 
 .. autosummary::
    :toctree: generated/
-   :template: function.rst
 
    append
    concatenate
@@ -77,7 +71,6 @@ Splitting arrays
 
 .. autosummary::
    :toctree: generated/
-   :template: function.rst
 
    split
    array_split
@@ -91,7 +84,6 @@ Tiling arrays
 
 .. autosummary::
    :toctree: generated/
-   :template: function.rst
 
    tile
 
@@ -101,6 +93,5 @@ Rearranging elements
 
 .. autosummary::
    :toctree: generated/
-   :template: function.rst
 
    flip
