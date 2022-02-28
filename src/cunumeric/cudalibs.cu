@@ -27,6 +27,29 @@ using namespace Legion;
 
 static Logger log_cudalibs("cunumeric.cudalibs");
 
+cufftContext::cufftContext(cufftPlan* plan) : plan_(plan) {}
+
+cufftContext::~cufftContext()
+{
+  auto hdl = handle();
+  for (auto type : callback_types_) CHECK_CUFFT(cufftXtClearCallback(hdl, type));
+}
+
+cufftHandle cufftContext::handle() { return plan_->handle; }
+
+size_t cufftContext::workarea_size() { return plan_->workarea; }
+
+void cufftContext::set_callback(cufftXtCallbackType type, void* callback, void* data)
+{
+  auto hdl = handle();
+  if (callback_types_.find(type) != callback_types_.end())
+    CHECK_CUFFT(cufftXtClearCallback(hdl, type));
+  void* callbacks[1] = {callback};
+  void* datas[1]     = {data};
+  CHECK_CUFFT(cufftXtSetCallback(hdl, callbacks, type, datas));
+  callback_types_.insert(type);
+}
+
 struct cufftPlanCache {
  private:
   // Maximum number of plans to keep per dimension
@@ -119,7 +142,7 @@ cufftPlan* cufftPlanCache::get_cufft_plan(const DomainPoint& size)
                                   1,
                                   type_,
                                   1 /*batch*/,
-                                  &result->workarea_size));
+                                  &result->workarea));
   }
   // Otherwise, we return the cached plan and adjust the LRU count
   else {
@@ -206,7 +229,7 @@ cutensorHandle_t* CUDALibraries::get_cutensor()
   return cutensor_;
 }
 
-cufftPlan* CUDALibraries::get_cufft_plan(cufftType type, const DomainPoint& size)
+cufftContext CUDALibraries::get_cufft_plan(cufftType type, const DomainPoint& size)
 {
   auto finder = plan_caches_.find(type);
   cufftPlanCache* cache{nullptr};
@@ -216,7 +239,7 @@ cufftPlan* CUDALibraries::get_cufft_plan(cufftType type, const DomainPoint& size
     plan_caches_[type] = cache;
   } else
     cache = finder->second;
-  return cache->get_cufft_plan(size);
+  return cufftContext(cache->get_cufft_plan(size));
 }
 
 static CUDALibraries& get_cuda_libraries(Processor proc)
@@ -265,7 +288,7 @@ cutensorHandle_t* get_cutensor()
   return lib.get_cutensor();
 }
 
-cufftPlan* get_cufft_plan(cufftType type, const Legion::DomainPoint& size)
+cufftContext get_cufft_plan(cufftType type, const Legion::DomainPoint& size)
 {
   const auto proc = Processor::get_executing_processor();
   auto& lib       = get_cuda_libraries(proc);

@@ -117,3 +117,5 @@ GEN_GPU_SRC += cunumeric/ternary/where.cu               \
 							 cunumeric/transform/flip.cu              \
 							 cunumeric/cudalibs.cu                    \
 							 cunumeric/cunumeric.cu
+
+GEN_DEVICE_SRC += cunumeric/convolution/convolve_callbacks.cu
