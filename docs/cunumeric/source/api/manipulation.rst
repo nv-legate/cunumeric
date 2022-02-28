@@ -29,7 +29,8 @@ Transpose-like operations
 
    swapaxes
    transpose
-   ndarray.T
+
+See also :attr:`cunumeric.ndarray.T` property.
 
 Changing number of dimensions
 -----------------------------
@@ -55,6 +56,7 @@ Joining arrays
 .. autosummary::
    :toctree: generated/
 
+   append
    concatenate
    stack
    vstack
