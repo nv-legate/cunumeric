@@ -261,7 +261,8 @@ class ndarray(object):
 
         See Also
         --------
-        transpose
+        cunumeric.transpose
+        ndarray.transpose
 
         """
         return self.transpose()
@@ -505,7 +506,7 @@ class ndarray(object):
         Imagine an array of 32-bit integers (each 4 bytes)::
 
             x = np.array([[0, 1, 2, 3, 4],
-                        [5, 6, 7, 8, 9]], dtype=np.int32)
+                         [5, 6, 7, 8, 9]], dtype=np.int32)
 
         This array is stored in memory as 40 bytes, one after the other
         (known as a contiguous block of memory).  The strides of an array tell
@@ -937,7 +938,7 @@ class ndarray(object):
         return self
 
     def __ipow__(self, rhs):
-        """a.__pow__(/)
+        """a.__ipow__(/)
 
         Return ``self**=value``.
 
@@ -1189,6 +1190,21 @@ class ndarray(object):
 
     @add_boilerplate()
     def nonzero(self):
+        """a.nonzero()
+
+        Return the indices of the elements that are non-zero.
+
+        Refer to :func:`cunumeric.nonzero` for full documentation.
+
+        See Also
+        --------
+        cunumeric.nonzero : equivalent function
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         thunks = self._thunk.nonzero()
         return tuple(
             ndarray(shape=thunk.shape, thunk=thunk) for thunk in thunks
@@ -1199,7 +1215,7 @@ class ndarray(object):
 
         Return the indices of the elements that are non-zero.
 
-        Refer to `cunumeric.nonzero` for full documentation.
+        Refer to :func:`cunumeric.nonzero` for full documentation.
 
         See Also
         --------
@@ -1246,7 +1262,7 @@ class ndarray(object):
         return self.perform_unary_op(UnaryOpCode.POSITIVE, self)
 
     def __pow__(self, rhs):
-        """__pow__(value, /)
+        """a.__pow__(value, /)
 
         Return ``pow(self, value)``.
 
@@ -1561,54 +1577,15 @@ class ndarray(object):
         initial=None,
         where=True,
     ):
-        """
-        Test whether all array elements along a given axis evaluate to True.
+        """a.all(axis=None, out=None, keepdims=False, initial=None, where=True)
 
-        Parameters
-        ----------
-        axis : None or int or tuple[int], optional
-            Axis or axes along which a logical AND reduction is performed.
-            The default (``axis=None``) is to perform a logical AND over all
-            the dimensions of the input array. `axis` may be negative, in
-            which case it counts from the last to the first axis.
+        Returns True if all elements evaluate to True.
 
-            If this is a tuple of ints, a reduction is performed on multiple
-            axes, instead of a single axis or all the axes as before.
-
-        out : ndarray, optional
-            Alternate output array in which to place the result.
-            It must have the same shape as the expected output and its
-            type is preserved (e.g., if ``dtype(out)`` is float, the result
-            will consist of 0.0's and 1.0's).
-
-        keepdims : bool, optional
-            If this is set to True, the axes which are reduced are left
-            in the result as dimensions with size one. With this option,
-            the result will broadcast correctly against the input array.
-
-            If the default value is passed, then `keepdims` will not be
-            passed through to the `all` method of sub-classes of
-            `ndarray`, however any non-default value will be.  If the
-            sub-class' method does not implement `keepdims` any
-            exceptions will be raised.
-
-        initial : bool, optional
-            The starting value for this product. See `~cunumeric.ufunc.reduce`
-            for details.
-
-        where : array_like[bool], optional
-            Elements to include in checking for all `True` values.
-            See `~numpy.ufunc.reduce` for details.
-
-        Returns
-        -------
-        all : ndarray, bool
-            A new boolean or array is returned unless `out` is specified,
-            in which case a reference to `out` is returned.
+        Refer to :func:`cunumeric.all` for full documentation.
 
         See Also
         --------
-        cunumeric.all, ndarray.any
+        cunumeric.all : equivalent function
 
         Availability
         --------
@@ -1636,56 +1613,15 @@ class ndarray(object):
         initial=None,
         where=True,
     ):
-        """
-        Test whether any array element along a given axis evaluates to True.
+        """a.any(axis=None, out=None, keepdims=False, initial=None, where=True)
 
-        Returns single boolean unless `axis` is not ``None``
+        Returns True if any of the elements of `a` evaluate to True.
 
-        Parameters
-        ----------
-        axis : None or int or tuple[int], optional
-            Axis or axes along which a logical OR reduction is performed.
-            The default (``axis=None``) is to perform a logical OR over all
-            the dimensions of the input array. `axis` may be negative, in
-            which case it counts from the last to the first axis.
-
-            If this is a tuple of ints, a reduction is performed on multiple
-            axes, instead of a single axis or all the axes as before.
-
-        out : ndarray, optional
-            Alternate output array in which to place the result.  It must have
-            the same shape as the expected output and its type is preserved
-            (e.g., if it is of type float, then it will remain so, returning
-            1.0 for True and 0.0 for False, regardless of the type of `a`).
-
-        keepdims : bool, optional
-            If this is set to True, the axes which are reduced are left
-            in the result as dimensions with size one. With this option,
-            the result will broadcast correctly against the input array.
-
-            If the default value is passed, then `keepdims` will not be
-            passed through to the `any` method of sub-classes of
-            `ndarray`, however any non-default value will be.  If the
-            sub-class' method does not implement `keepdims` any
-            exceptions will be raised.
-
-        initial : bool, optional
-            The starting value for this product. See `~cunumeric.ufunc.reduce`
-            for details.
-
-        where : array_like[bool], optional
-            Elements to include in checking for any `True` values.
-            See `~numpy.ufunc.reduce` for details.
-
-        Returns
-        -------
-        any : bool or ndarray
-            A new boolean or `ndarray` is returned unless `out` is specified,
-            in which case a reference to `out` is returned.
+        Refer to :func:`cunumeric.any` for full documentation.
 
         See Also
         --------
-        cunumeric.any, ndarray.all
+        cunumeric.any : equivalent function
 
         Availability
         --------
@@ -1705,23 +1641,15 @@ class ndarray(object):
         )
 
     def argmax(self, axis=None, out=None):
-        """
-        Returns the indices of the maximum values along an axis.
+        """a.argmax(axis=None, out=None)
 
-        Parameters
-        ----------
-        axis : int, optional
-            By default, the index is into the flattened array, otherwise
-            along the specified axis.
-        out : ndarray, optional
-            If provided, the result will be inserted into this array. It should
-            be of the appropriate shape and dtype.
+        Return indices of the maximum values along the given axis.
 
-        Returns
-        -------
-        index_array : ndarray[int]
-            Array of indices into the array. It has the same shape as `a.shape`
-            with the dimension along `axis` removed.
+        Refer to :func:`cunumeric.argmax` for full documentation.
+
+        See Also
+        --------
+        cunumeric.argmax : equivalent function
 
         Availability
         --------
@@ -1746,28 +1674,15 @@ class ndarray(object):
         )
 
     def argmin(self, axis=None, out=None):
-        """
-        Returns the indices of the minimum values along an axis.
+        """a.argmin(axis=None, out=None)
 
-        Parameters
-        ----------
-        axis : int, optional
-            By default, the index is into the flattened array, otherwise
-            along the specified axis.
-        out : ndarray, optional
-            If provided, the result will be inserted into this array. It should
-            be of the appropriate shape and dtype.
+        Return indices of the minimum values along the given axis.
 
-        Returns
-        -------
-        index_array : ndarray[int]
-            Array of indices into the array. It has the same shape as `a.shape`
-            with the dimension along `axis` removed.
+        Refer to :func:`cunumeric.argmin` for detailed documentation.
 
         See Also
         --------
-        cunumeric.argmin, ndarray.argmax
-        amin : The minimum value along a given axis.
+        cunumeric.argmin : equivalent function
 
         Availability
         --------
@@ -1794,6 +1709,58 @@ class ndarray(object):
     def astype(
         self, dtype, order="C", casting="unsafe", subok=True, copy=True
     ):
+        """a.astype(dtype, order='C', casting='unsafe', subok=True, copy=True)
+
+        Copy of the array, cast to a specified type.
+
+        Parameters
+        ----------
+        dtype : str or data-type
+            Typecode or data-type to which the array is cast.
+
+        order : ``{'C', 'F', 'A', 'K'}``, optional
+            Controls the memory layout order of the result.
+            'C' means C order, 'F' means Fortran order, 'A'
+            means 'F' order if all the arrays are Fortran contiguous,
+            'C' order otherwise, and 'K' means as close to the
+            order the array elements appear in memory as possible.
+            Default is 'K'.
+
+        casting : ``{'no', 'equiv', 'safe', 'same_kind', 'unsafe'}``, optional
+            Controls what kind of data casting may occur. Defaults to 'unsafe'
+            for backwards compatibility.
+
+            * 'no' means the data types should not be cast at all.
+            * 'equiv' means only byte-order changes are allowed.
+            * 'safe' means only casts which can preserve values are allowed.
+            * 'same_kind' means only safe casts or casts within a kind,
+                like float64 to float32, are allowed.
+            * 'unsafe' means any data conversions may be done.
+
+        subok : bool, optional
+            If True, then sub-classes will be passed-through (default),
+            otherwise the returned array will be forced to be a base-class
+            array.
+
+        copy : bool, optional
+            By default, astype always returns a newly allocated array. If this
+            is set to false, and the `dtype`, `order`, and `subok`
+            requirements are satisfied, the input array is returned instead
+            of a copy.
+
+        Returns
+        -------
+        arr_t : ndarray
+            Unless `copy` is False and the other conditions for returning the
+            input array are satisfied (see description for `copy` input
+            parameter), `arr_t` is a new array of the same shape as the input
+            array, with dtype, order given by `dtype`, `order`.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         dtype = np.dtype(dtype)
         if self.dtype == dtype:
             return self
@@ -1817,6 +1784,21 @@ class ndarray(object):
         return result
 
     def choose(self, choices, out=None, mode="raise"):
+        """a.choose(choices, out=None, mode='raise')
+
+        Use an index array to construct a new array from a set of choices.
+
+        Refer to :func:`cunumeric.choose` for full documentation.
+
+        See Also
+        --------
+        cunumeric.choose : equivalent function
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         a = self
         if out is not None:
             out = out.convert_to_cunumeric_ndarray(out)
@@ -1897,6 +1879,7 @@ class ndarray(object):
             return out_arr
 
     def cholesky(self, no_tril=False):
+        """ """
         input = self
         if input.dtype.kind not in ("f", "c"):
             input = input.astype("float64")
@@ -1909,6 +1892,23 @@ class ndarray(object):
         return output
 
     def clip(self, min=None, max=None, out=None):
+        """a.clip(min=None, max=None, out=None)
+
+        Return an array whose values are limited to ``[min, max]``.
+
+        One of max or min must be given.
+
+        Refer to :func:`cunumeric.clip` for full documentation.
+
+        See Also
+        --------
+        cunumeric.clip : equivalent function
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         args = (
             np.array(min, dtype=self.dtype),
             np.array(max, dtype=self.dtype),
@@ -1933,6 +1933,21 @@ class ndarray(object):
         )
 
     def conj(self):
+        """a.conj()
+
+        Complex-conjugate all elements.
+
+        Refer to :func:`cunumeric.conjugate` for full documentation.
+
+        See Also
+        --------
+        cunumeric.conjugate : equivalent function
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         if self.dtype.kind == "c":
             result = self._thunk.conj()
             return ndarray(self.shape, dtype=self.dtype, thunk=result)
@@ -1940,9 +1955,25 @@ class ndarray(object):
             return self
 
     def conjugate(self):
+        """a.conjugate()
+
+        Return the complex conjugate, element-wise.
+
+        Refer to :func:`cunumeric.conjugate` for full documentation.
+
+        See Also
+        --------
+        cunumeric.conjugate : equivalent function
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         return self.conj()
 
     def convolve(self, v, mode):
+        """ """
         assert mode == "same"
         if self.ndim != v.ndim:
             raise RuntimeError("Arrays should have the same dimensions")
@@ -1962,6 +1993,15 @@ class ndarray(object):
         return out
 
     def copy(self, order="C"):
+        """copy()
+
+        Get a copy of the iterator as a 1-D array.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         # We don't care about dimension order in cuNumeric
         return self.__copy__()
 
@@ -2053,6 +2093,21 @@ class ndarray(object):
     def diagonal(
         self, offset=0, axis1=None, axis2=None, extract=True, axes=None
     ):
+        """a.diagonal(offset=0, axis1=None, axis2=None)
+
+        Return specified diagonals.
+
+        Refer to :func:`cunumeric.diagonal` for full documentation.
+
+        See Also
+        --------
+        cunumeric.diagonal : equivalent function
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         if self.ndim == 1:
             if extract is True:
                 raise ValueError("extract can be true only for Ndim >=2")
@@ -2074,6 +2129,21 @@ class ndarray(object):
         return self.diag_helper(offset=offset, axes=axes, extract=extract)
 
     def dot(self, rhs, out=None):
+        """a.dot(rhs, out=None)
+
+        Return the dot product of this array with ``rhs``.
+
+        Refer to :func:`cunumeric.dot` for full documentation.
+
+        See Also
+        --------
+        cunumeric.dot : equivalent function
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         if self.size == 1 or rhs_array.size == 1:
             return self.perform_binary_op(
@@ -2179,16 +2249,91 @@ class ndarray(object):
             return out
 
     def dump(self, file):
+        """a.dump(file)
+
+        Dump a pickle of the array to the specified file.
+
+        The array can be read back with pickle.load or cunumeric.load.
+
+        Parameters
+        ----------
+        file : str or `pathlib.Path`
+            A string naming the dump file.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         self.__array__().dump(file=file)
 
     def dumps(self):
+        """a.dumps()
+
+        Returns the pickle of the array as a string.
+
+        pickle.loads will convert the string back to an array.
+
+        Parameters
+        ----------
+        None
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         return self.__array__().dumps()
 
     def fill(self, value):
+        """a.fill(value)
+
+        Fill the array with a scalar value.
+
+        Parameters
+        ----------
+        value : scalar
+            All elements of `a` will be assigned this value.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         val = np.array(value, dtype=self.dtype)
         self._thunk.fill(val)
 
     def flatten(self, order="C"):
+        """a.flatten(order='C')
+
+        Return a copy of the array collapsed into one dimension.
+
+        Parameters
+        ----------
+        order : ``{'C', 'F', 'A', 'K'}``, optional
+            'C' means to flatten in row-major (C-style) order.
+            'F' means to flatten in column-major (Fortran-
+            style) order. 'A' means to flatten in column-major
+            order if `a` is Fortran *contiguous* in memory,
+            row-major order otherwise. 'K' means to flatten
+            `a` in the order the elements occur in memory.
+            The default is 'C'.
+
+        Returns
+        -------
+        y : ndarray
+            A copy of the input array, flattened to one dimension.
+
+        See Also
+        --------
+        ravel : Return a flattened array.
+        flat : A 1-D flat iterator over the array.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         # Same as 'ravel' because cuNumeric creates a new array by 'reshape'
         return self.reshape(-1, order=order)
 
@@ -2215,12 +2360,84 @@ class ndarray(object):
         return args
 
     def item(self, *args):
+        """a.item(*args)
+
+        Copy an element of an array to a standard Python scalar and return it.
+
+        Parameters
+        ----------
+        \\*args :
+
+            * none: in this case, the method only works for arrays
+                with one element (`a.size == 1`), which element is
+                copied into a standard Python scalar object and returned.
+            * int_type: this argument is interpreted as a flat index into
+                the array, specifying which element to copy and return.
+            * tuple of int_types: functions as does a single int_type
+                argument, except that the argument is interpreted as an
+                nd-index into the array.
+
+        Returns
+        -------
+        z : scalar
+            A copy of the specified element of the array as a suitable
+            Python scalar
+
+        Notes
+        -----
+        When the data type of `a` is longdouble or clongdouble, item() returns
+        a scalar array object because there is no available Python scalar that
+        would not lose information. Void arrays return a buffer object for
+        item(), unless fields are defined, in which case a tuple is returned.
+        `item` is very similar to a[args], except, instead of an array scalar,
+        a standard Python scalar is returned. This can be useful for speeding
+        up access to elements of the array and doing arithmetic on elements of
+        the array using Python's optimized math.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         key = self._convert_singleton_key(args)
         result = self[key]
         assert result.shape == ()
         return result._thunk.__numpy_array__()
 
     def itemset(self, *args):
+        """a.itemset(*args)
+
+        Insert scalar into an array (scalar is cast to array's dtype,
+        if possible)
+
+        There must be at least 1 argument, and define the last argument
+        as *item*.  Then, ``a.itemset(*args)`` is equivalent to but faster
+        than ``a[args] = item``.  The item should be a scalar value and `args`
+        must select a single item in the array `a`.
+
+        Parameters
+        ----------
+        \\*args :
+            If one argument: a scalar, only used in case `a` is of size 1.
+            If two arguments: the last argument is the value to be set
+            and must be a scalar, the first argument specifies a single array
+            element location. It is either an int or a tuple.
+
+        Notes
+        -----
+        Compared to indexing syntax, `itemset` provides some speed increase
+        for placing a scalar into a particular location in an `ndarray`,
+        if you must do this.  However, generally this is discouraged:
+        among other problems, it complicates the appearance of the code.
+        Also, when using `itemset` (and `item`) inside a loop, be sure
+        to assign the methods to a local variable to avoid the attribute
+        look-up at each loop iteration.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         if len(args) == 0:
             raise KeyError("itemset() requires at least one argument")
         value = args[-1]
@@ -2237,6 +2454,21 @@ class ndarray(object):
         initial=None,
         where=True,
     ):
+        """a.max(axis=None, out=None, keepdims=False, initial=<no value>, where=True)
+
+        Return the maximum along a given axis.
+
+        Refer to :func:`cunumeric.amax` for full documentation.
+
+        See Also
+        --------
+        cunumeric.amax : equivalent function
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         return self.perform_unary_reduction(
             UnaryRedCode.MAX,
             self,
@@ -2249,6 +2481,21 @@ class ndarray(object):
 
     @add_boilerplate()
     def mean(self, axis=None, dtype=None, out=None, keepdims=False):
+        """a.mean(axis=None, dtype=None, out=None, keepdims=False)
+
+        Returns the average of the array elements along given axis.
+
+        Refer to :func:`cunumeric.mean` for full documentation.
+
+        See Also
+        --------
+        cunumeric.mean : equivalent function
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         if axis is not None and type(axis) != int:
             raise NotImplementedError(
                 "cunumeric.mean only supports int types for "
@@ -2304,6 +2551,21 @@ class ndarray(object):
         initial=None,
         where=True,
     ):
+        """a.min(axis=None, out=None, keepdims=False, initial=<no value>, where=True)
+
+        Return the minimum along a given axis.
+
+        Refer to :func:`cunumeric.amin` for full documentation.
+
+        See Also
+        --------
+        cunumeric.amin : equivalent function
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         return self.perform_unary_reduction(
             UnaryRedCode.MIN,
             self,
@@ -2324,6 +2586,22 @@ class ndarray(object):
         initial=None,
         where=True,
     ):
+        """a.prod(axis=None, dtype=None, out=None, keepdims=False, initial=1,
+        where=True)
+
+        Return the product of the array elements over the given axis
+
+        Refer to :func:`cunumeric.prod` for full documentation.
+
+        See Also
+        --------
+        cunumeric.prod : equivalent function
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         if self.dtype.type == np.bool_:
             temp = ndarray(
                 shape=self.shape,
@@ -2345,9 +2623,40 @@ class ndarray(object):
         )
 
     def ravel(self, order="C"):
+        """a.ravel(order="C")
+
+        Return a flattened array.
+
+        Refer to :func:`cunumeric.ravel` for full documentation.
+
+        See Also
+        --------
+        cunumeric.ravel : equivalent function
+        ndarray.flat : a flat iterator on the array.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         return self.reshape(-1, order=order)
 
     def reshape(self, shape, order="C"):
+        """a.reshape(shape, order='C')
+
+        Returns an array containing the same data with a new shape.
+
+        Refer to :func:`cunumeric.reshape` for full documentation.
+
+        See Also
+        --------
+        cunumeric.reshape : equivalent function
+
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+        """
         if shape != -1:
             # Check that these sizes are compatible
             if isinstance(shape, Iterable):
@@ -2412,9 +2721,72 @@ class ndarray(object):
         )
 
     def setflags(self, write=None, align=None, uic=None):
+        """a.setflags(write=None, align=None, uic=None)
+
+        Set array flags WRITEABLE, ALIGNED, WRITEBACKIFCOPY,
+        respectively.
+
+        These Boolean-valued flags affect how numpy interprets the memory
+        area used by `a` (see Notes below). The ALIGNED flag can only
+        be set to True if the data is actually aligned according to the type.
+        The WRITEBACKIFCOPY and flag can never be set
+        to True. The flag WRITEABLE can only be set to True if the array owns
+        its own memory, or the ultimate owner of the memory exposes a
+        writeable buffer interface, or is a string. (The exception for string
+        is made so that unpickling can be done without copying memory.)
+
+        Parameters
+        ----------
+        write : bool, optional
+            Describes whether or not `a` can be written to.
+        align : bool, optional
+            Describes whether or not `a` is aligned properly for its type.
+        uic : bool, optional
+            Describes whether or not `a` is a copy of another "base" array.
+
+        Notes
+        -----
+        Array flags provide information about how the memory area used
+        for the array is to be interpreted. There are 7 Boolean flags
+        in use, only four of which can be changed by the user:
+        WRITEBACKIFCOPY, WRITEABLE, and ALIGNED.
+
+        WRITEABLE (W) the data area can be written to;
+
+        ALIGNED (A) the data and strides are aligned appropriately for the
+        hardware (as determined by the compiler);
+
+        WRITEBACKIFCOPY (X) this array is a copy of some other array
+        (referenced by .base). When the C-API function
+        PyArray_ResolveWritebackIfCopy is called, the base array will be
+        updated with the contents of this array.
+
+        All flags can be accessed using the single (upper case) letter as well
+        as the full name.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         self.__array__().setflags(write=write, align=align, uic=uic)
 
     def squeeze(self, axis=None):
+        """a.squeeze(axis=None)
+
+        Remove axes of length one from `a`.
+
+        Refer to :func:`cunumeric.squeeze` for full documentation.
+
+        See Also
+        --------
+        cunumeric.squeeze : equivalent function
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         if axis is not None:
             if isinstance(axis, int):
                 if axis >= self.ndim:
@@ -2447,6 +2819,22 @@ class ndarray(object):
         initial=None,
         where=True,
     ):
+        """a.sum(axis=None, dtype=None, out=None, keepdims=False, initial=0,
+        where=True)
+
+        Return the sum of the array elements over the given axis.
+
+        Refer to :func:`cunumeric.sum` for full documentation.
+
+        See Also
+        --------
+        cunumeric.sum : equivalent function
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         if self.dtype.type == np.bool_:
             temp = ndarray(
                 shape=self.shape,
@@ -2468,6 +2856,21 @@ class ndarray(object):
         )
 
     def swapaxes(self, axis1, axis2):
+        """a.swapaxes(axis1, axis2)
+
+        Return a view of the array with `axis1` and `axis2` interchanged.
+
+        Refer to :func:`cunumeric.swapaxes` for full documentation.
+
+        See Also
+        --------
+        cunumeric.swapaxes : equivalent function
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         if axis1 >= self.ndim:
             raise ValueError(
                 "axis1=" + str(axis1) + " is too large for swapaxes"
@@ -2479,33 +2882,162 @@ class ndarray(object):
         return ndarray(shape=None, thunk=self._thunk.swapaxes(axis1, axis2))
 
     def tofile(self, fid, sep="", format="%s"):
-        return self.__array__().tofile(fid=fid, sep=sep, format=format)
+        """a.tofile(fid, sep="", format="%s")
 
-    def tobytes(self, order="C"):
-        return self.__array__().tobytes(order=order)
+        Write array to a file as text or binary (default).
 
-    def tolist(self):
-        return self.__array__().tolist()
-
-    def tostring(self, order="C"):
-        return self.__array__().tostring(order=order)
-
-    def transpose(self, axes=None):
-        """
-        Reverse or permute the axes of an array; returns the modified array.
-        For an array a with two axes, a.transpose gives the matrix transpose.
+        Data is always written in 'C' order, independent of the order of `a`.
+        The data produced by this method can be recovered using the function
+        fromfile().
 
         Parameters
         ----------
-        axes : tuple[int] or list[int], optional
-            By default, reverse the dimensions, otherwise permute the axes
-            according to the values given.
+        fid : ``file`` or str or pathlib.Path
+            An open file object, or a string containing a filename.
+        sep : str
+            Separator between array items for text output.
+            If "" (empty), a binary file is written, equivalent to
+            ``file.write(a.tobytes())``.
+        format : str
+            Format string for text file output.
+            Each entry in the array is formatted to text by first converting
+            it to the closest Python type, and then using "format" % item.
+
+        Notes
+        -----
+        This is a convenience function for quick storage of array data.
+        Information on endianness and precision is lost, so this method is not
+        a good choice for files intended to archive data or transport data
+        between machines with different endianness. Some of these problems can
+        be overcome by outputting the data as text files, at the expense of
+        speed and file size.
+
+        When fid is a file object, array contents are directly written to the
+        file, bypassing the file object's ``write`` method. As a result,
+        tofile cannot be used with files objects supporting compression (e.g.,
+        GzipFile) or file-like objects that do not support ``fileno()`` (e.g.,
+        BytesIO).
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        return self.__array__().tofile(fid=fid, sep=sep, format=format)
+
+    def tobytes(self, order="C"):
+        """a.tobytes(order='C')
+
+        Construct Python bytes containing the raw data bytes in the array.
+
+        Constructs Python bytes showing a copy of the raw contents of
+        data memory. The bytes object is produced in C-order by default.
+
+        This behavior is controlled by the ``order`` parameter.
+
+        Parameters
+        ----------
+        order : ``{'C', 'F', 'A'}``, optional
+            Controls the memory layout of the bytes object. 'C' means C-order,
+            'F' means F-order, 'A' (short for *Any*) means 'F' if `a` is
+            Fortran contiguous, 'C' otherwise. Default is 'C'.
 
         Returns
         -------
-        p : ndarray
-            `a` with its axes permuted.  A view is returned whenever
-            possible.
+        s : bytes
+            Python bytes exhibiting a copy of `a`'s raw data.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        return self.__array__().tobytes(order=order)
+
+    def tolist(self):
+        """a.tolist()
+
+        Return the array as an ``a.ndim``-levels deep nested list of Python
+        scalars.
+
+        Return a copy of the array data as a (nested) Python list.
+        Data items are converted to the nearest compatible builtin Python
+        type, via the `~cunumeric.ndarray.item` function.
+
+        If ``a.ndim`` is 0, then since the depth of the nested list is 0, it
+        will not be a list at all, but a simple Python scalar.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        y : Any
+            The possibly nested list of array elements. (object, or list of
+            object, or list of list of object, or ...)
+
+        Notes
+        -----
+        The array may be recreated via ``a = cunumeric.array(a.tolist())``,
+        although this may sometimes lose precision.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        return self.__array__().tolist()
+
+    def tostring(self, order="C"):
+        """a.tostring(order='C')
+
+        A compatibility alias for `tobytes`, with exactly the same behavior.
+        Despite its name, it returns `bytes` not `str`.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        return self.__array__().tostring(order=order)
+
+    def transpose(self, axes=None):
+        """a.transpose(axes=None)
+
+        Returns a view of the array with axes transposed.
+
+        For a 1-D array this has no effect, as a transposed vector is simply
+        the same vector. To convert a 1-D array into a 2D column vector, an
+        additional dimension must be added. `np.atleast2d(a).T` achieves this,
+        as does `a[:, np.newaxis]`.
+
+        For a 2-D array, this is a standard matrix transpose.
+
+        For an n-D array, if axes are given, their order indicates how the
+        axes are permuted (see Examples). If axes are not provided and
+        ``a.shape = (i[0], i[1], ... i[n-2], i[n-1])``, then
+        ``a.transpose().shape = (i[n-1], i[n-2], ... i[1], i[0])``.
+
+        Parameters
+        ----------
+        axes : None or tuple[int]
+
+            * None or no argument: reverses the order of the axes.
+            * tuple of ints: `i` in the `j`-th place in the tuple means `a`'s
+                `i`-th axis becomes `a.transpose()`'s `j`-th axis.
+
+        Returns
+        -------
+        out : ndarray
+            View of `a`, with axes suitably permuted.
+
+        See Also
+        --------
+        transpose : Equivalent function
+        ndarray.T : Array property returning the array transposed.
+        ndarray.reshape : Give a new shape to an array without changing its
+            data.
 
         Availability
         --------
