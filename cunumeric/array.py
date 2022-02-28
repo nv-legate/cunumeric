@@ -14,7 +14,7 @@
 #
 
 from collections.abc import Iterable
-from functools import reduce
+from functools import reduce, wraps
 from inspect import signature
 from typing import Optional, Set, Tuple
 
@@ -65,6 +65,7 @@ def add_boilerplate(*array_params: str, mutates_self: bool = False):
                 indices.add(idx)
         assert len(keys - all_formals) == 0, "unkonwn parameter(s)"
 
+        @wraps(func)
         def wrapper(*args, **kwargs):
             self = args[0]
             assert (where_idx is None or len(args) <= where_idx) and (
@@ -1255,6 +1256,10 @@ class ndarray(object):
     def fill(self, value):
         val = np.array(value, dtype=self.dtype)
         self._thunk.fill(val)
+
+    def flatten(self, order="C"):
+        # Same as 'ravel' because cuNumeric creates a new array by 'reshape'
+        return self.reshape(-1, order=order)
 
     def getfield(self, dtype, offset=0):
         raise NotImplementedError(

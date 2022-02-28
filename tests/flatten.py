@@ -1,4 +1,4 @@
-# Copyright 2021-2022 NVIDIA Corporation
+# Copyright 2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,28 +13,17 @@
 # limitations under the License.
 #
 
-import itertools
-
 import numpy as np
 
 import cunumeric as num
 
 
-def run_test(arr, routine, input_size):
-    input_arr = [[arr]]
-    if routine == "concatenate" or routine == "stack":
-        # 'axis' options
-        input_arr.append([axis for axis in range(arr[0].ndim)])
-        # test axis == 'None' for concatenate
-        if routine == "concatenate":
-            input_arr[-1].append(None)
-        # 'out' argument
-        input_arr.append([None])
-    test_args = itertools.product(*input_arr)
-
-    for args in test_args:
-        b = getattr(np, routine)(*args)
-        c = getattr(num, routine)(*args)
+def run_test(np_arr, num_arr):
+    # We don't support 'K' yet, which will be supported later
+    test_orders = ["C", "F", "A"]
+    for order in test_orders:
+        b = np_arr.flatten(order)
+        c = num_arr.flatten(order)
         is_equal = True
         err_arr = [b, c]
 
@@ -47,17 +36,13 @@ def run_test(arr, routine, input_size):
                     err_arr = each
                     is_equal = False
                     break
-        shape_list = list(inp.shape for inp in arr)
-        print_msg = f"np.{routine}(array({shape_list})" f", {args[1:]})"
+        print_msg = f"np & cunumeric.ndarray({np_arr.shape}).flatten({order}))"
         assert is_equal, (
             f"Failed, {print_msg}\n"
             f"numpy result: {err_arr[0]}, {b.shape}\n"
             f"cunumeric_result: {err_arr[1]}, {c.shape}\n"
             f"cunumeric and numpy shows"
             f" different result\n"
-            f"array({arr}),"
-            f"routine: {routine},"
-            f"args: {args[1:]}"
         )
         print(
             f"Passed, {print_msg}, np: ({b.shape}, {b.dtype})"
@@ -66,16 +51,8 @@ def run_test(arr, routine, input_size):
 
 
 def test(dim):
-    print("test np.concatenate / *stack")
-    test_routine = [
-        "concatenate",
-        "stack",
-        "vstack",
-        "hstack",
-        "dstack",
-        "column_stack",
-    ]
-    # test np.concatenate & *stack w/ 1D, 2D and 3D arrays
+    print("test flatten")
+    # test ndarray.flatten w/ 1D, 2D and 3D arrays
     input_arr = [
         (0,),
         (0, 10),
@@ -83,19 +60,14 @@ def test(dim):
         (1, 1),
         (1, 1, 1),
         (1, dim),
+        (1, dim, 1),
         (dim, dim),
         (dim, dim, dim),
     ]
-    for routine, input_size in itertools.product(test_routine, input_arr):
-        a = [
-            np.random.randint(low=0, high=100, size=(input_size))
-            for num_arr in range(3)
-        ]
-        # test the exception for 1D array on vstack and dstack
-        if routine in ("vstack", "dstack"):
-            if len(input_size) == 2 and input_size == (1, dim):
-                a.append(np.random.randint(low=0, high=100, size=(dim,)))
-        run_test(tuple(a), routine, input_size)
+    for input_size in input_arr:
+        a = np.random.randint(low=0, high=100, size=(input_size))
+        b = num.ndarray.convert_to_cunumeric_ndarray(a)
+        run_test(a, b)
     return
 
 

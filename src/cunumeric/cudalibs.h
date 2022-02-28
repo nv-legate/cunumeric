@@ -16,11 +16,11 @@
 
 #pragma once
 
-#include <cublas_v2.h>
-#include <cusolverDn.h>
-#include <cutensor.h>
+#include "cuda_help.h"
 
 namespace cunumeric {
+
+struct cufftPlanCache;
 
 struct CUDALibraries {
  public:
@@ -38,6 +38,7 @@ struct CUDALibraries {
   cublasHandle_t get_cublas();
   cusolverDnHandle_t get_cusolver();
   cutensorHandle_t* get_cutensor();
+  cufftContext get_cufft_plan(cufftType type, const Legion::DomainPoint& size);
 
  private:
   void finalize_cublas();
@@ -50,6 +51,7 @@ struct CUDALibraries {
   cublasContext* cublas_;
   cusolverDnContext* cusolver_;
   cutensorHandle_t* cutensor_;
+  std::map<cufftType, cufftPlanCache*> plan_caches_;
 };
 
 }  // namespace cunumeric
