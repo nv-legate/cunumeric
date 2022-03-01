@@ -119,6 +119,12 @@ def tensordot_modes(a_ndim, b_ndim, axes):
             raise ValueError("Invalid axes argument")
         axes = (list(range(a_ndim - axes, a_ndim)), list(range(axes)))
     a_axes, b_axes = axes
+    if isinstance(a_axes, int):
+        a_axes = [a_axes]
+    if isinstance(b_axes, int):
+        b_axes = [b_axes]
+    a_axes = [ax + a_ndim if ax < 0 else ax for ax in a_axes]
+    b_axes = [ax + b_ndim if ax < 0 else ax for ax in b_axes]
     if (
         len(a_axes) != len(b_axes)
         or len(a_axes) > a_ndim
