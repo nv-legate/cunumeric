@@ -113,6 +113,17 @@ def dot_modes(a_ndim, b_ndim):
     return (a_modes, b_modes, out_modes)
 
 
+def inner_modes(a_ndim, b_ndim):
+    a_modes = list(ascii_lowercase[:a_ndim])
+    b_modes = list(ascii_uppercase[:b_ndim])
+    if a_ndim == 0 or b_ndim == 0:
+        out_modes = a_modes + b_modes
+    else:
+        b_modes[-1] = a_modes[-1]
+        out_modes = a_modes[:-1] + b_modes[:-1]
+    return (a_modes, b_modes, out_modes)
+
+
 def tensordot_modes(a_ndim, b_ndim, axes):
     if isinstance(axes, int):
         if axes > a_ndim or axes > b_ndim:

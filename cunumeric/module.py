@@ -27,7 +27,7 @@ import opt_einsum as oe
 from .array import ndarray
 from .config import BinaryOpCode, UnaryOpCode, UnaryRedCode
 from .runtime import runtime
-from .utils import tensordot_modes
+from .utils import inner_modes, tensordot_modes
 
 _builtin_abs = abs
 _builtin_all = all
@@ -2192,6 +2192,50 @@ def diagonal(a, offset=0, axis1=None, axis2=None, extract=True, axes=None):
 ################
 
 # Matrix and vector products
+
+
+@add_boilerplate("a", "b")
+def inner(a, b, out=None):
+    """
+    Inner product of two arrays.
+
+    Ordinary inner product of vectors for 1-D arrays (without complex
+    conjugation), in higher dimensions a sum product over the last axes.
+
+    Parameters
+    ----------
+    a, b : array_like
+    out : ndarray, optional
+        Output argument. This must have the exact shape that would be returned
+        if it was not present. If its dtype is not what would be expected from
+        this operation, then the result will be (unsafely) cast to `out`.
+
+    Returns
+    -------
+    output : ndarray
+        If `a` and `b` are both
+        scalars or both 1-D arrays then a scalar is returned; otherwise
+        an array is returned.
+        ``output.shape = (*a.shape[:-1], *b.shape[:-1])``
+        If `out` is given, then it is returned.
+
+    Notes
+    -----
+    The cuNumeric implementation is a little more liberal than NumPy in terms
+    of allowed broadcasting, e.g. ``inner(ones((1,)), ones((4,)))`` is allowed.
+
+    See Also
+    --------
+    numpy.inner
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    if a.ndim == 0 or b.ndim == 0:
+        return multiply(a, b, out=out)
+    (a_modes, b_modes, out_modes) = inner_modes(a.ndim, b.ndim)
+    return _contract(a_modes, b_modes, out_modes, a, b, out=out)
 
 
 @add_boilerplate("a", "b")
