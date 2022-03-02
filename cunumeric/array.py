@@ -672,7 +672,7 @@ class ndarray(object):
         Multiple GPUs, Multiple CPUs
 
         """
-        return self.internal_truediv(rhs, inplace=False)
+        return self._internal_truediv(rhs, inplace=False)
 
     def __divmod__(self, rhs):
         """a.__divmod__(value, /)
@@ -831,7 +831,7 @@ class ndarray(object):
         Multiple GPUs, Multiple CPUs
 
         """
-        return self.internal_truediv(rhs, inplace=True)
+        return self._internal_truediv(rhs, inplace=True)
 
     def __ifloordiv__(self, rhs):
         """a.__ifloordiv__(value, /)
@@ -989,7 +989,7 @@ class ndarray(object):
         )
         return self
 
-    def internal_truediv(self, rhs, inplace):
+    def _internal_truediv(self, rhs, inplace):
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         self_array = self
         # Convert any non-floats to floating point arrays
@@ -1042,7 +1042,7 @@ class ndarray(object):
         Multiple GPUs, Multiple CPUs
 
         """
-        return self.internal_truediv(rhs, inplace=True)
+        return self._internal_truediv(rhs, inplace=True)
 
     def __ixor__(self, rhs):
         """a.__ixor__(/)
@@ -1319,7 +1319,7 @@ class ndarray(object):
 
         """
         lhs_array = self.convert_to_cunumeric_ndarray(lhs)
-        return lhs_array.internal_truediv(self, inplace=False)
+        return lhs_array._internal_truediv(self, inplace=False)
 
     def __rdivmod__(self, lhs):
         """a.__rdivmod__(value, /)
@@ -1465,7 +1465,7 @@ class ndarray(object):
 
         """
         lhs_array = self.convert_to_cunumeric_ndarray(lhs)
-        return lhs_array.internal_truediv(self, inplace=False)
+        return lhs_array._internal_truediv(self, inplace=False)
 
     def __rxor__(self, lhs):
         """a.__rxor__(value, /)
@@ -1559,7 +1559,7 @@ class ndarray(object):
         Multiple GPUs, Multiple CPUs
 
         """
-        return self.internal_truediv(rhs, inplace=False)
+        return self._internal_truediv(rhs, inplace=False)
 
     def __xor__(self, rhs):
         """a.__xor__(value, /)
@@ -2536,7 +2536,7 @@ class ndarray(object):
         # Divide by the number of things in the collapsed dimensions
         # Pick the right kinds of division based on the dtype
         if dtype.kind == "f":
-            sum_array.internal_truediv(
+            sum_array._internal_truediv(
                 np.array(divisor, dtype=sum_array.dtype),
                 inplace=True,
             )
