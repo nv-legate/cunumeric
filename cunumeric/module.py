@@ -5688,7 +5688,13 @@ def unique(
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
+
+    Notes
+    --------
+    Keyword arguments for optional outputs are not yet supported.
+    `axis` is also not handled currently.
+
     """
     if any((return_index, return_inverse, return_counts, axis)):
         raise NotImplementedError(
