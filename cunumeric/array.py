@@ -3117,7 +3117,7 @@ class ndarray(object):
         return ndarray(shape=self.shape, dtype=self.dtype, thunk=self._thunk)
 
     @classmethod
-    def get_where_thunk(cls, where, out_shape):
+    def _get_where_thunk(cls, where, out_shape):
         if where is True:
             return True
         if where is False:
@@ -3218,7 +3218,7 @@ class ndarray(object):
                     op,
                     op_dtype,
                     src._thunk,
-                    cls.get_where_thunk(where, dst.shape),
+                    cls._get_where_thunk(where, dst.shape),
                     extra_args,
                 )
                 dst._thunk.convert(temp._thunk)
@@ -3227,7 +3227,7 @@ class ndarray(object):
                     op,
                     op_dtype,
                     src._thunk,
-                    cls.get_where_thunk(where, dst.shape),
+                    cls._get_where_thunk(where, dst.shape),
                     extra_args,
                 )
         else:
@@ -3241,7 +3241,7 @@ class ndarray(object):
                     op,
                     op_dtype,
                     src._thunk,
-                    cls.get_where_thunk(where, dst.shape),
+                    cls._get_where_thunk(where, dst.shape),
                     extra_args,
                 )
                 dst._thunk.convert(temp._thunk)
@@ -3250,7 +3250,7 @@ class ndarray(object):
                     op,
                     op_dtype,
                     src._thunk,
-                    cls.get_where_thunk(where, dst.shape),
+                    cls._get_where_thunk(where, dst.shape),
                     extra_args,
                 )
         return dst
@@ -3367,7 +3367,7 @@ class ndarray(object):
                 temp._thunk.unary_reduction(
                     op,
                     src._thunk,
-                    cls.get_where_thunk(where, dst.shape),
+                    cls._get_where_thunk(where, dst.shape),
                     axes,
                     keepdims,
                     args,
@@ -3378,7 +3378,7 @@ class ndarray(object):
                 dst._thunk.unary_reduction(
                     op,
                     src._thunk,
-                    cls.get_where_thunk(where, dst.shape),
+                    cls._get_where_thunk(where, dst.shape),
                     axes,
                     keepdims,
                     args,
@@ -3388,7 +3388,7 @@ class ndarray(object):
             dst._thunk.unary_reduction(
                 op,
                 src._thunk,
-                cls.get_where_thunk(where, dst.shape),
+                cls._get_where_thunk(where, dst.shape),
                 axes,
                 keepdims,
                 args,
@@ -3449,7 +3449,7 @@ class ndarray(object):
                 op,
                 one._thunk,
                 two._thunk,
-                cls.get_where_thunk(where, out_shape),
+                cls._get_where_thunk(where, out_shape),
                 extra_args,
             )
             out._thunk.convert(temp._thunk)
@@ -3458,7 +3458,7 @@ class ndarray(object):
                 op,
                 one._thunk,
                 two._thunk,
-                cls.get_where_thunk(where, out_shape),
+                cls._get_where_thunk(where, out_shape),
                 extra_args,
             )
         return out
