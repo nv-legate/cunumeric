@@ -2296,6 +2296,52 @@ def dot(a, b, out=None):
 
 
 @add_boilerplate("a", "b")
+def vdot(a, b, out=None):
+    """
+    Return the dot product of two vectors.
+
+    The vdot(`a`, `b`) function handles complex numbers differently than
+    dot(`a`, `b`).  If the first argument is complex the complex conjugate
+    of the first argument is used for the calculation of the dot product.
+
+    Note that `vdot` handles multidimensional arrays differently than `dot`:
+    it does *not* perform a matrix product, but flattens input arguments
+    to 1-D vectors first. Consequently, it should only be used for vectors.
+
+    Parameters
+    ----------
+    a : array_like
+        If `a` is complex the complex conjugate is taken before calculation
+        of the dot product.
+    b : array_like
+        Second argument to the dot product.
+    out : ndarray, optional
+        Output argument. This must have the exact shape that would be returned
+        if it was not present. If its dtype is not what would be expected from
+        this operation, then the result will be (unsafely) cast to `out`.
+
+    Returns
+    -------
+    output : ndarray
+        Dot product of `a` and `b`. If `out` is given, then it is returned.
+
+    Notes
+    -----
+    The cuNumeric implementation is a little more liberal than NumPy in terms
+    of allowed broadcasting, e.g. ``vdot(ones((1,)), ones((4,)))`` is allowed.
+
+    See Also
+    --------
+    numpy.vdot
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    return inner(a.ravel().conj(), b.ravel(), out=out)
+
+
+@add_boilerplate("a", "b")
 def tensordot(a, b, axes=2, out=None):
     """
     Compute tensor dot product along specified axes.
