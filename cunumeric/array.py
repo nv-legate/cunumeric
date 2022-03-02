@@ -3490,7 +3490,7 @@ class ndarray(object):
         return dst
 
     @classmethod
-    def perform_where(cls, mask, one, two):
+    def _perform_where(cls, mask, one, two):
         args = (mask, one, two)
 
         mask = mask._maybe_convert(np.dtype(np.bool_), args)._thunk

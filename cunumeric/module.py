@@ -2085,7 +2085,7 @@ def where(a, x=None, y=None):
                 " 'where'"
             )
         return nonzero(a)
-    return ndarray.perform_where(a, x, y)
+    return ndarray._perform_where(a, x, y)
 
 
 # Indexing-like operations
