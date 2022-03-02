@@ -168,9 +168,7 @@ Calculation
 .. autosummary::
    :toctree: generated/
 
-   ndarray.cholesky
    ndarray.conjugate
-   ndarray.convolve
    ndarray.dot
    ndarray.flip
 

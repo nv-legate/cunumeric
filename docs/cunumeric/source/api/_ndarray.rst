@@ -1,4 +1,4 @@
-﻿.. This is a generated autosummary file, edited and checked-in in order to 
+﻿.. This is a generated autosummary file, edited and checked-in in order to
 .. exclude specific methods that should not be publicly documented:
 ..
 .. cunumeric.ndarray.convert_to_cunumeric_ndarray
@@ -24,26 +24,24 @@ cunumeric.ndarray
 
 .. autoclass:: ndarray
 
-   
+
    .. automethod:: __init__
 
-   
+
    .. rubric:: Methods
 
    .. autosummary::
-   
+
       ~ndarray.__init__
       ~ndarray.all
       ~ndarray.any
       ~ndarray.argmax
       ~ndarray.argmin
       ~ndarray.astype
-      ~ndarray.cholesky
       ~ndarray.choose
       ~ndarray.clip
       ~ndarray.conj
       ~ndarray.conjugate
-      ~ndarray.convolve
       ~ndarray.copy
       ~ndarray.diagonal
       ~ndarray.dot
@@ -73,15 +71,15 @@ cunumeric.ndarray
       ~ndarray.tostring
       ~ndarray.transpose
       ~ndarray.view
-   
-   
 
-   
-   
+
+
+
+
    .. rubric:: Attributes
 
    .. autosummary::
-   
+
       ~ndarray.T
       ~ndarray.base
       ~ndarray.data
@@ -96,5 +94,4 @@ cunumeric.ndarray
       ~ndarray.shape
       ~ndarray.size
       ~ndarray.strides
-   
-   
+

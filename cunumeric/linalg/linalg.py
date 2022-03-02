@@ -15,7 +15,7 @@
 
 import numpy as np
 from cunumeric.array import convert_to_cunumeric_ndarray
-from cunumeric.module import sqrt as _sqrt
+from cunumeric.module import cholesky as _cholesky, sqrt as _sqrt
 
 
 def cholesky(a):
@@ -69,7 +69,7 @@ def cholesky(a):
         raise NotImplementedError(
             "cuNumeric needs to support stacked 2d arrays"
         )
-    return lg_array.cholesky()
+    return _cholesky(lg_array)
 
 
 def norm(x, ord=None, axis=None, keepdims=False):

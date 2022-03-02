@@ -1882,19 +1882,6 @@ class ndarray(object):
         else:
             return out_arr
 
-    def cholesky(self, no_tril=False):
-        """ """
-        input = self
-        if input.dtype.kind not in ("f", "c"):
-            input = input.astype("float64")
-        output = ndarray(
-            shape=input.shape,
-            dtype=input.dtype,
-            inputs=(input,),
-        )
-        output._thunk.cholesky(input._thunk, no_tril=no_tril)
-        return output
-
     def clip(self, min=None, max=None, out=None):
         """a.clip(min=None, max=None, out=None)
 
@@ -1975,26 +1962,6 @@ class ndarray(object):
 
         """
         return self.conj()
-
-    def convolve(self, v, mode):
-        """ """
-        assert mode == "same"
-        if self.ndim != v.ndim:
-            raise RuntimeError("Arrays should have the same dimensions")
-        elif self.ndim > 3:
-            raise NotImplementedError(
-                f"{self.ndim}-D arrays are not yet supported"
-            )
-
-        if self.dtype != v.dtype:
-            v = v.astype(self.dtype)
-        out = ndarray(
-            shape=self.shape,
-            dtype=self.dtype,
-            inputs=(self, v),
-        )
-        self._thunk.convolve(v._thunk, out._thunk, mode)
-        return out
 
     def copy(self, order="C"):
         """copy()
