@@ -27,7 +27,7 @@ import opt_einsum as oe
 from .array import ndarray
 from .config import BinaryOpCode, UnaryOpCode, UnaryRedCode
 from .runtime import runtime
-from .utils import inner_modes, tensordot_modes
+from .utils import inner_modes, matmul_modes, tensordot_modes
 
 _builtin_abs = abs
 _builtin_all = all
@@ -2293,6 +2293,75 @@ def dot(a, b, out=None):
     Multiple GPUs, Multiple CPUs
     """
     return a.dot(b, out=out)
+
+
+@add_boilerplate("a", "b")
+def matmul(a, b, out=None):
+    """
+    Matrix product of two arrays.
+
+    Parameters
+    ----------
+    x1, x2 : array_like
+        Input arrays, scalars not allowed.
+    out : ndarray, optional
+        A location into which the result is stored. If provided, it must have
+        a shape that matches the signature `(n,k),(k,m)->(n,m)`. If its dtype
+        is not what would be expected from this operation, then the result will
+        be (unsafely) cast to `out`.
+
+    Returns
+    -------
+    output : ndarray
+        The matrix product of the inputs.
+        This is a scalar only when both x1, x2 are 1-d vectors.
+        If `out` is given, then it is returned.
+
+    Notes
+    -----
+    The behavior depends on the arguments in the following way.
+
+    - If both arguments are 2-D they are multiplied like conventional
+      matrices.
+    - If either argument is N-D, N > 2, it is treated as a stack of
+      matrices residing in the last two indexes and broadcast accordingly.
+    - If the first argument is 1-D, it is promoted to a matrix by
+      prepending a 1 to its dimensions. After matrix multiplication
+      the prepended 1 is removed.
+    - If the second argument is 1-D, it is promoted to a matrix by
+      appending a 1 to its dimensions. After matrix multiplication
+      the appended 1 is removed.
+
+    ``matmul`` differs from ``dot`` in two important ways:
+
+    - Multiplication by scalars is not allowed, use ``*`` instead.
+    - Stacks of matrices are broadcast together as if the matrices
+      were elements, respecting the signature ``(n,k),(k,m)->(n,m)``:
+
+      >>> a = ones([9, 5, 7, 4])
+      >>> c = ones([9, 5, 4, 3])
+      >>> dot(a, c).shape
+      (9, 5, 7, 9, 5, 3)
+      >>> matmul(a, c).shape
+      (9, 5, 7, 3)
+      >>> # n is 7, k is 4, m is 3
+
+    The cuNumeric implementation is a little more liberal than NumPy in terms
+    of allowed broadcasting, e.g. ``matmul(ones((3,1)), ones((4,5)))`` is
+    allowed.
+
+    See Also
+    --------
+    numpy.matmul
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    if a.ndim == 0 or b.ndim == 0:
+        raise ValueError("Scalars not allowed in matmul")
+    (a_modes, b_modes, out_modes) = matmul_modes(a.ndim, b.ndim)
+    return _contract(a_modes, b_modes, out_modes, a, b, out=out)
 
 
 @add_boilerplate("a", "b")

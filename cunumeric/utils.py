@@ -124,6 +124,26 @@ def inner_modes(a_ndim, b_ndim):
     return (a_modes, b_modes, out_modes)
 
 
+def matmul_modes(a_ndim, b_ndim):
+    assert a_ndim >= 1 and b_ndim >= 1
+    a_modes = list(ascii_lowercase[-a_ndim:])
+    b_modes = list(ascii_lowercase[-b_ndim:])
+    if b_ndim >= 2:
+        a_modes[-1] = "A"
+        b_modes[-2] = "A"
+    if b_ndim == 1:
+        out_modes = a_modes[:-1]
+    elif a_ndim == 1:
+        out_modes = b_modes[:-2] + [b_modes[-1]]
+    else:
+        out_modes = (
+            list(ascii_lowercase[-max(a_ndim, b_ndim) : -2])
+            + [a_modes[-2]]
+            + [b_modes[-1]]
+        )
+    return (a_modes, b_modes, out_modes)
+
+
 def tensordot_modes(a_ndim, b_ndim, axes):
     if isinstance(axes, int):
         if axes > a_ndim or axes > b_ndim:
