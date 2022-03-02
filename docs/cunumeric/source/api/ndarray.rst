@@ -9,11 +9,10 @@ Constructing arrays
 New arrays can be constructed using the routines detailed in Array creation
 routines, and also by using the low-level ndarray constructor:
 
-.. toctree::
-   :maxdepth: 2
+.. autosummary::
+   :toctree: generated/
 
-   _ndarray
-
+   ndarray
 
 
 Calculation
@@ -48,6 +47,7 @@ Memory Layout
    ndarray.itemsize
    ndarray.nbytes
    ndarray.base
+   ndarray.ctypes
 
 Data Type
 ~~~~~~~~~

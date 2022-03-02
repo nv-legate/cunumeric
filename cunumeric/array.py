@@ -487,15 +487,16 @@ class ndarray(object):
     @property
     def strides(self):
         """
-            Tuple of bytes to step in each dimension when traversing an array.
 
-            The byte offset of element ``(i[0], i[1], ..., i[n])`` in an array
-            `a` is::
+        Tuple of bytes to step in each dimension when traversing an array.
 
-                offset = sum(np.array(i) * a.strides)
+        The byte offset of element ``(i[0], i[1], ..., i[n])`` in an array
+        `a` is::
 
-            A more detailed explanation of strides can be found in the
-            "ndarray.rst" file in the NumPy reference guide.
+            offset = sum(np.array(i) * a.strides)
+
+        A more detailed explanation of strides can be found in the
+        "ndarray.rst" file in the NumPy reference guide.
 
         Notes
         -----
@@ -517,6 +518,28 @@ class ndarray(object):
 
     @property
     def ctypes(self):
+        """
+
+        An object to simplify the interaction of the array with the ctypes
+        module.
+
+        This attribute creates an object that makes it easier to use arrays
+        when calling shared libraries with the ctypes module. The returned
+        object has, among others, data, shape, and strides attributes (see
+        :external+numpy:attr:`numpy.ndarray.ctypes` for details) which
+        themselves return ctypes objects that can be used as arguments to a
+        shared library.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        c : object
+            Possessing attributes data, shape, strides, etc.
+
+        """
         return self.__array__().ctypes
 
     # Methods for ndarray
