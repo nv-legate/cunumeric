@@ -1070,7 +1070,7 @@ class DeferredArray(NumPyThunk):
 
     # Create or extract a diagonal from a matrix
     @auto_convert([1])
-    def diag_helper(
+    def _diag_helper(
         self,
         rhs,
         offset,

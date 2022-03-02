@@ -14,7 +14,7 @@
 #
 
 import numpy as np
-from cunumeric.array import ndarray
+from cunumeric.array import convert_to_cunumeric_ndarray
 from cunumeric.module import sqrt as _sqrt
 
 
@@ -55,7 +55,7 @@ def cholesky(a):
     Multiple GPUs, Multiple CPUs
     """
 
-    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
+    lg_array = convert_to_cunumeric_ndarray(a)
     shape = lg_array.shape
     if len(shape) < 2:
         raise ValueError(
@@ -116,7 +116,7 @@ def norm(x, ord=None, axis=None, keepdims=False):
     Multiple GPUs, Multiple CPUs
     """
 
-    lg_array = ndarray.convert_to_cunumeric_ndarray(x)
+    lg_array = convert_to_cunumeric_ndarray(x)
     if (axis is None and lg_array.ndim == 1) or type(axis) == int:
         # Handle the weird norm cases
         if ord == np.inf:

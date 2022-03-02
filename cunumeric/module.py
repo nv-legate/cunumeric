@@ -24,7 +24,11 @@ from typing import Optional, Set
 import numpy as np
 import opt_einsum as oe
 
-from .array import ndarray
+from .array import (
+    convert_to_cunumeric_ndarray,
+    convert_to_predicate_ndarray,
+    ndarray,
+)
 from .config import BinaryOpCode, UnaryOpCode, UnaryRedCode
 from .runtime import runtime
 
@@ -81,7 +85,7 @@ def add_boilerplate(*array_params: str):
 
             # Convert relevant arguments to cuNumeric ndarrays
             args = tuple(
-                ndarray.convert_to_cunumeric_ndarray(arg)
+                convert_to_cunumeric_ndarray(arg)
                 if idx in indices and arg is not None
                 else arg
                 for (idx, arg) in enumerate(args)
@@ -90,13 +94,11 @@ def add_boilerplate(*array_params: str):
                 if v is None:
                     continue
                 elif k == "where":
-                    kwargs[k] = ndarray.convert_to_predicate_ndarray(v)
+                    kwargs[k] = convert_to_predicate_ndarray(v)
                 elif k == "out":
-                    kwargs[k] = ndarray.convert_to_cunumeric_ndarray(
-                        v, share=True
-                    )
+                    kwargs[k] = convert_to_cunumeric_ndarray(v, share=True)
                 elif k in keys:
-                    kwargs[k] = ndarray.convert_to_cunumeric_ndarray(v)
+                    kwargs[k] = convert_to_cunumeric_ndarray(v)
 
             # Handle the case where all array-like parameters are scalar, by
             # performing the operation on the equivalent scalar numpy arrays.
@@ -125,7 +127,7 @@ def add_boilerplate(*array_params: str):
                 for (k, v) in kwargs.items():
                     if (k in keys or k == "where") and isinstance(v, ndarray):
                         kwargs[k] = v._thunk.__numpy_array__()
-                result = ndarray.convert_to_cunumeric_ndarray(
+                result = convert_to_cunumeric_ndarray(
                     getattr(np, func.__name__)(*args, **kwargs)
                 )
                 if out is not None:
@@ -1226,7 +1228,7 @@ def check_shape_dtype(
     if len(inputs) == 0:
         raise ValueError("need at least one array to concatenate")
 
-    inputs = list(ndarray.convert_to_cunumeric_ndarray(inp) for inp in inputs)
+    inputs = list(convert_to_cunumeric_ndarray(inp) for inp in inputs)
     ndim = inputs[0].ndim
     shape = inputs[0].shape
 
@@ -1324,9 +1326,7 @@ def append(arr, values, axis=None):
 
     """
     # Check to see if we can build a new tuple of cuNumeric arrays
-    inputs = list(
-        ndarray.convert_to_cunumeric_ndarray(inp) for inp in [arr, values]
-    )
+    inputs = list(convert_to_cunumeric_ndarray(inp) for inp in [arr, values])
     return concatenate(inputs, axis)
 
 
@@ -1472,7 +1472,7 @@ def vstack(tup):
     Multiple GPUs, Multiple CPUs
     """
     # Reshape arrays in the `array_list` if needed before concatenation
-    inputs = list(ndarray.convert_to_cunumeric_ndarray(inp) for inp in tup)
+    inputs = list(convert_to_cunumeric_ndarray(inp) for inp in tup)
     reshaped = list(
         inp.reshape([1, inp.shape[0]]) if inp.ndim == 1 else inp
         for inp in inputs
@@ -1567,7 +1567,7 @@ def dstack(tup):
     """
     # Reshape arrays to (1,N,1) for ndim ==1 or (M,N,1) for ndim == 2:
     reshaped = []
-    inputs = list(ndarray.convert_to_cunumeric_ndarray(inp) for inp in tup)
+    inputs = list(convert_to_cunumeric_ndarray(inp) for inp in tup)
     for arr in inputs:
         if arr.ndim == 1:
             arr = arr.reshape((1,) + arr.shape + (1,))
@@ -1701,7 +1701,7 @@ def array_split(a, indices, axis=0, equal=False):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    array = ndarray.convert_to_cunumeric_ndarray(a)
+    array = convert_to_cunumeric_ndarray(a)
     dtype = type(indices)
     split_pts = []
     if axis >= array.ndim:
@@ -2446,14 +2446,14 @@ def _contract(expr, a, b=None, out=None):
     for (mode, count) in c_a_modes.items():
         if count > 1:
             axes = [i for (i, m) in enumerate(a_modes) if m == mode]
-            a = a.diag_helper(axes=axes)
+            a = a._diag_helper(axes=axes)
             # diagonal is stored on last axis
             a_modes = [m for m in a_modes if m != mode] + [mode]
     c_b_modes = Counter(b_modes)
     for (mode, count) in c_b_modes.items():
         if count > 1:
             axes = [i for (i, m) in enumerate(b_modes) if m == mode]
-            b = b.diag_helper(axes=axes)
+            b = b._diag_helper(axes=axes)
             # diagonal is stored on last axis
             b_modes = [m for m in b_modes if m != mode] + [mode]
     # Drop modes corresponding to singleton dimensions. This handles cases of

@@ -74,7 +74,7 @@ def add_boilerplate(*array_params: str, mutates_self: bool = False):
 
             # Convert relevant arguments to cuNumeric ndarrays
             args = tuple(
-                ndarray.convert_to_cunumeric_ndarray(arg)
+                convert_to_cunumeric_ndarray(arg)
                 if idx in indices and arg is not None
                 else arg
                 for (idx, arg) in enumerate(args)
@@ -83,13 +83,11 @@ def add_boilerplate(*array_params: str, mutates_self: bool = False):
                 if v is None:
                     continue
                 elif k == "where":
-                    kwargs[k] = ndarray.convert_to_predicate_ndarray(v)
+                    kwargs[k] = convert_to_predicate_ndarray(v)
                 elif k == "out":
-                    kwargs[k] = ndarray.convert_to_cunumeric_ndarray(
-                        v, share=True
-                    )
+                    kwargs[k] = convert_to_cunumeric_ndarray(v, share=True)
                 elif k in keys:
-                    kwargs[k] = ndarray.convert_to_cunumeric_ndarray(v)
+                    kwargs[k] = convert_to_cunumeric_ndarray(v)
 
             # Handle the case where all array-like parameters are scalar, by
             # performing the operation on the equivalent scalar numpy arrays.
@@ -130,7 +128,7 @@ def add_boilerplate(*array_params: str, mutates_self: bool = False):
                         wrap=True,
                     )
                     return
-                result = ndarray.convert_to_cunumeric_ndarray(res_scalar)
+                result = convert_to_cunumeric_ndarray(res_scalar)
                 if out is not None:
                     out._thunk.copy(result._thunk)
                     result = out
@@ -146,6 +144,25 @@ def add_boilerplate(*array_params: str, mutates_self: bool = False):
 def broadcast_shapes(*args):
     arrays = [np.empty(x, dtype=[]) for x in args]
     return np.broadcast(*arrays).shape
+
+
+def convert_to_cunumeric_ndarray(obj, share=False):
+    # If this is an instance of one of our ndarrays then we're done
+    if isinstance(obj, ndarray):
+        return obj
+    # Ask the runtime to make a numpy thunk for this object
+    thunk = runtime.get_numpy_thunk(obj, share=share)
+    return ndarray(shape=None, thunk=thunk)
+
+
+def convert_to_predicate_ndarray(obj):
+    # Keep all boolean types as they are
+    if obj is True or obj is False:
+        return obj
+    # GH #135
+    raise NotImplementedError(
+        "the `where` parameter is currently not supported"
+    )
 
 
 class ndarray(object):
@@ -211,27 +228,6 @@ class ndarray(object):
             data[field] = array
             self._legate_data["data"] = data
         return self._legate_data
-
-    # A class method for sanitizing inputs by converting them to
-    # cuNumeric ndarray types
-    @staticmethod
-    def convert_to_cunumeric_ndarray(obj, share=False):
-        # If this is an instance of one of our ndarrays then we're done
-        if isinstance(obj, ndarray):
-            return obj
-        # Ask the runtime to make a numpy thunk for this object
-        thunk = runtime.get_numpy_thunk(obj, share=share)
-        return ndarray(shape=None, thunk=thunk)
-
-    @staticmethod
-    def convert_to_predicate_ndarray(obj):
-        # Keep all boolean types as they are
-        if obj is True or obj is False:
-            return obj
-        # GH #135
-        raise NotImplementedError(
-            "the `where` parameter is currently not supported"
-        )
 
     # Properties for ndarray
 
@@ -555,7 +551,7 @@ class ndarray(object):
         Multiple GPUs, Multiple CPUs
 
         """
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
         return self._perform_binary_op(BinaryOpCode.ADD, self, rhs_array)
 
     def __and__(self, rhs):
@@ -568,7 +564,7 @@ class ndarray(object):
         Multiple GPUs, Multiple CPUs
 
         """
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
         return self._perform_binary_op(
             BinaryOpCode.LOGICAL_AND, self, rhs_array
         )
@@ -684,7 +680,7 @@ class ndarray(object):
         Multiple GPUs, Multiple CPUs
 
         """
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
         return self._perform_binary_op(BinaryOpCode.DIVMOD, self, rhs_array)
 
     def __eq__(self, rhs):
@@ -697,7 +693,7 @@ class ndarray(object):
         Multiple GPUs, Multiple CPUs
 
         """
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
         return self._perform_binary_op(
             BinaryOpCode.EQUAL, self, rhs_array, out_dtype=np.dtype(np.bool_)
         )
@@ -720,7 +716,7 @@ class ndarray(object):
         Multiple GPUs, Multiple CPUs
 
         """
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
         return self._perform_binary_op(
             BinaryOpCode.FLOOR_DIVIDE, self, rhs_array
         )
@@ -738,7 +734,7 @@ class ndarray(object):
         Multiple GPUs, Multiple CPUs
 
         """
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
         return self._perform_binary_op(
             BinaryOpCode.GREATER_EQUAL,
             self,
@@ -761,7 +757,7 @@ class ndarray(object):
             return tuple(self._convert_key(k, first=False) for k in key)
         else:
             # Otherwise convert it to a cuNumeric array and get the thunk
-            return self.convert_to_cunumeric_ndarray(key)._thunk
+            return convert_to_cunumeric_ndarray(key)._thunk
 
     @add_boilerplate()
     def __getitem__(self, key):
@@ -783,7 +779,7 @@ class ndarray(object):
         Multiple GPUs, Multiple CPUs
 
         """
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
         return self._perform_binary_op(
             BinaryOpCode.GREATER, self, rhs_array, out_dtype=np.dtype(np.bool_)
         )
@@ -801,7 +797,7 @@ class ndarray(object):
         Multiple GPUs, Multiple CPUs
 
         """
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
         self._perform_binary_op(BinaryOpCode.ADD, self, rhs_array, out=self)
         return self
 
@@ -815,7 +811,7 @@ class ndarray(object):
         Multiple GPUs, Multiple CPUs
 
         """
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
         self._perform_binary_op(
             BinaryOpCode.LOGICAL_AND, self, rhs_array, out=self
         )
@@ -843,7 +839,7 @@ class ndarray(object):
         Multiple GPUs, Multiple CPUs
 
         """
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
         self._perform_binary_op(
             BinaryOpCode.FLOOR_DIVIDE, self, rhs_array, out=self
         )
@@ -859,7 +855,7 @@ class ndarray(object):
         Multiple GPUs, Multiple CPUs
 
         """
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
         self._perform_binary_op(
             BinaryOpCode.SHIFT_LEFT, self, rhs_array, out=self
         )
@@ -875,7 +871,7 @@ class ndarray(object):
         Multiple GPUs, Multiple CPUs
 
         """
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
         self._perform_binary_op(
             BinaryOpCode.MODULUS, self, rhs_array, out=self
         )
@@ -891,7 +887,7 @@ class ndarray(object):
         Multiple GPUs, Multiple CPUs
 
         """
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
         self._perform_binary_op(
             BinaryOpCode.MULTIPLY, self, rhs_array, out=self
         )
@@ -933,7 +929,7 @@ class ndarray(object):
         Multiple GPUs, Multiple CPUs
 
         """
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
         self._perform_binary_op(
             BinaryOpCode.LOGICAL_OR, self, rhs_array, out=self
         )
@@ -949,7 +945,7 @@ class ndarray(object):
         Multiple GPUs, Multiple CPUs
 
         """
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
         self._perform_binary_op(BinaryOpCode.POWER, self, rhs_array, out=self)
         return self
 
@@ -963,7 +959,7 @@ class ndarray(object):
         Multiple GPUs, Multiple CPUs
 
         """
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
         self._perform_binary_op(
             BinaryOpCode.SHIFT_RIGHT, self, rhs_array, out=self
         )
@@ -983,14 +979,14 @@ class ndarray(object):
         Multiple GPUs, Multiple CPUs
 
         """
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
         self._perform_binary_op(
             BinaryOpCode.SUBTRACT, self, rhs_array, out=self
         )
         return self
 
     def _internal_truediv(self, rhs, inplace):
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
         self_array = self
         # Convert any non-floats to floating point arrays
         if self_array.dtype.kind != "f" and self_array.dtype.kind != "c":
@@ -1054,7 +1050,7 @@ class ndarray(object):
         Multiple GPUs, Multiple CPUs
 
         """
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
         self._perform_binary_op(
             BinaryOpCode.LOGICAL_XOR, self, rhs_array, out=self
         )
@@ -1070,7 +1066,7 @@ class ndarray(object):
         Multiple GPUs, Multiple CPUs
 
         """
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
         return self._perform_binary_op(
             BinaryOpCode.LESS_EQUAL,
             self,
@@ -1096,7 +1092,7 @@ class ndarray(object):
         Multiple GPUs, Multiple CPUs
 
         """
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
         return self._perform_binary_op(
             BinaryOpCode.SHIFT_LEFT, self, rhs_array
         )
@@ -1111,7 +1107,7 @@ class ndarray(object):
         Multiple GPUs, Multiple CPUs
 
         """
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
         return self._perform_binary_op(
             BinaryOpCode.LESS, self, rhs_array, out_dtype=np.dtype(np.bool_)
         )
@@ -1138,7 +1134,7 @@ class ndarray(object):
         Multiple GPUs, Multiple CPUs
 
         """
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
         return self._perform_binary_op(BinaryOpCode.MOD, self, rhs_array)
 
     def __mul__(self, rhs):
@@ -1151,7 +1147,7 @@ class ndarray(object):
         Multiple GPUs, Multiple CPUs
 
         """
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
         return self._perform_binary_op(BinaryOpCode.MULTIPLY, self, rhs_array)
 
     def __ne__(self, rhs):
@@ -1164,7 +1160,7 @@ class ndarray(object):
         Multiple GPUs, Multiple CPUs
 
         """
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
         return self._perform_binary_op(
             BinaryOpCode.NOT_EQUAL,
             self,
@@ -1242,7 +1238,7 @@ class ndarray(object):
         Multiple GPUs, Multiple CPUs
 
         """
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
         return self._perform_binary_op(
             BinaryOpCode.LOGICAL_OR, self, rhs_array
         )
@@ -1277,7 +1273,7 @@ class ndarray(object):
         Multiple GPUs, Multiple CPUs
 
         """
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
         return self._perform_binary_op(BinaryOpCode.POWER, self, rhs_array)
 
     def __radd__(self, lhs):
@@ -1290,7 +1286,7 @@ class ndarray(object):
         Multiple GPUs, Multiple CPUs
 
         """
-        lhs_array = self.convert_to_cunumeric_ndarray(lhs)
+        lhs_array = convert_to_cunumeric_ndarray(lhs)
         return self._perform_binary_op(BinaryOpCode.ADD, lhs_array, self)
 
     def __rand__(self, lhs):
@@ -1303,7 +1299,7 @@ class ndarray(object):
         Multiple GPUs, Multiple CPUs
 
         """
-        lhs_array = self.convert_to_cunumeric_ndarray(lhs)
+        lhs_array = convert_to_cunumeric_ndarray(lhs)
         return self._perform_binary_op(
             BinaryOpCode.LOGICAL_AND, lhs_array, self
         )
@@ -1318,7 +1314,7 @@ class ndarray(object):
         Multiple GPUs, Multiple CPUs
 
         """
-        lhs_array = self.convert_to_cunumeric_ndarray(lhs)
+        lhs_array = convert_to_cunumeric_ndarray(lhs)
         return lhs_array._internal_truediv(self, inplace=False)
 
     def __rdivmod__(self, lhs):
@@ -1331,7 +1327,7 @@ class ndarray(object):
         Multiple GPUs, Multiple CPUs
 
         """
-        lhs_array = self.convert_to_cunumeric_ndarray(lhs)
+        lhs_array = convert_to_cunumeric_ndarray(lhs)
         return self._perform_binary_op(BinaryOpCode.DIVMOD, lhs_array, self)
 
     def __reduce__(self, *args, **kwargs):
@@ -1367,7 +1363,7 @@ class ndarray(object):
         Multiple GPUs, Multiple CPUs
 
         """
-        lhs_array = self.convert_to_cunumeric_ndarray(lhs)
+        lhs_array = convert_to_cunumeric_ndarray(lhs)
         return self._perform_binary_op(
             BinaryOpCode.FLOOR_DIVIDE, lhs_array, self
         )
@@ -1382,7 +1378,7 @@ class ndarray(object):
         Multiple GPUs, Multiple CPUs
 
         """
-        lhs_array = self.convert_to_cunumeric_ndarray(lhs)
+        lhs_array = convert_to_cunumeric_ndarray(lhs)
         return self._perform_binary_op(BinaryOpCode.MOD, lhs_array, self)
 
     def __rmul__(self, lhs):
@@ -1395,7 +1391,7 @@ class ndarray(object):
         Multiple GPUs, Multiple CPUs
 
         """
-        lhs_array = self.convert_to_cunumeric_ndarray(lhs)
+        lhs_array = convert_to_cunumeric_ndarray(lhs)
         return self._perform_binary_op(BinaryOpCode.MULTIPLY, lhs_array, self)
 
     def __ror__(self, lhs):
@@ -1408,7 +1404,7 @@ class ndarray(object):
         Multiple GPUs, Multiple CPUs
 
         """
-        lhs_array = self.convert_to_cunumeric_ndarray(lhs)
+        lhs_array = convert_to_cunumeric_ndarray(lhs)
         return self._perform_binary_op(
             BinaryOpCode.LOGICAL_OR, lhs_array, self
         )
@@ -1423,7 +1419,7 @@ class ndarray(object):
         Multiple GPUs, Multiple CPUs
 
         """
-        lhs_array = self.convert_to_cunumeric_ndarray(lhs)
+        lhs_array = convert_to_cunumeric_ndarray(lhs)
         return self._perform_binary_op(BinaryOpCode.POWER, lhs_array, self)
 
     def __rshift__(self, rhs):
@@ -1436,7 +1432,7 @@ class ndarray(object):
         Multiple GPUs, Multiple CPUs
 
         """
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
         return self._perform_binary_op(
             BinaryOpCode.SHIFT_RIGHT, self, rhs_array
         )
@@ -1451,7 +1447,7 @@ class ndarray(object):
         Multiple GPUs, Multiple CPUs
 
         """
-        lhs_array = self.convert_to_cunumeric_ndarray(lhs)
+        lhs_array = convert_to_cunumeric_ndarray(lhs)
         return self._perform_binary_op(BinaryOpCode.SUBTRACT, lhs_array, self)
 
     def __rtruediv__(self, lhs):
@@ -1464,7 +1460,7 @@ class ndarray(object):
         Multiple GPUs, Multiple CPUs
 
         """
-        lhs_array = self.convert_to_cunumeric_ndarray(lhs)
+        lhs_array = convert_to_cunumeric_ndarray(lhs)
         return lhs_array._internal_truediv(self, inplace=False)
 
     def __rxor__(self, lhs):
@@ -1477,7 +1473,7 @@ class ndarray(object):
         Multiple GPUs, Multiple CPUs
 
         """
-        lhs_array = self.convert_to_cunumeric_ndarray(lhs)
+        lhs_array = convert_to_cunumeric_ndarray(lhs)
         return self._perform_binary_op(
             BinaryOpCode.LOGICAL_XOR, lhs_array, self
         )
@@ -1534,7 +1530,7 @@ class ndarray(object):
         Multiple GPUs, Multiple CPUs
 
         """
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
         return self._perform_binary_op(BinaryOpCode.SUBTRACT, self, rhs_array)
 
     def __str__(self):
@@ -1571,7 +1567,7 @@ class ndarray(object):
         Multiple GPUs, Multiple CPUs
 
         """
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
         return self._perform_binary_op(
             BinaryOpCode.LOGICAL_XOR, rhs_array, self
         )
@@ -1809,7 +1805,7 @@ class ndarray(object):
         """
         a = self
         if out is not None:
-            out = out.convert_to_cunumeric_ndarray(out)
+            out = convert_to_cunumeric_ndarray(out)
 
         if isinstance(choices, list):
             choices = tuple(choices)
@@ -1819,12 +1815,12 @@ class ndarray(object):
             dtypes = [ch.dtype for ch in choices]
             ch_dtype = np.find_common_type(dtypes, [])
             choices = tuple(
-                self.convert_to_cunumeric_ndarray(choices[i]).astype(ch_dtype)
+                convert_to_cunumeric_ndarray(choices[i]).astype(ch_dtype)
                 for i in range(n)
             )
 
         else:
-            choices = self.convert_to_cunumeric_ndarray(choices)
+            choices = convert_to_cunumeric_ndarray(choices)
             n = choices.shape[0]
             ch_dtype = choices.dtype
             choices = tuple(choices[i, ...] for i in range(n))
@@ -1931,9 +1927,9 @@ class ndarray(object):
             )
             if out is not None:
                 self.__array__().clip(min, max, out=out)
-                return self.convert_to_cunumeric_ndarray(out, share=True)
+                return convert_to_cunumeric_ndarray(out, share=True)
             else:
-                return self.convert_to_cunumeric_ndarray(
+                return convert_to_cunumeric_ndarray(
                     self.__array__.clip(min, max)
                 )
         return self._perform_unary_op(
@@ -2017,10 +2013,10 @@ class ndarray(object):
     # currently offset option is implemented only for the case of number of
     # axes=2. This restriction can be lifted in the future if there is a
     # use case of having arbitrary number of offsets
-    def diag_helper(self, offset=0, axes=None, extract=True):
-        # diag_helper can be used only for arrays with dim>=1
+    def _diag_helper(self, offset=0, axes=None, extract=True):
+        # _diag_helper can be used only for arrays with dim>=1
         if self.ndim < 1:
-            raise ValueError("diag_helper is implemented for dim>=1")
+            raise ValueError("_diag_helper is implemented for dim>=1")
         elif self.ndim == 1:
             if axes is not None:
                 raise ValueError(
@@ -2030,7 +2026,7 @@ class ndarray(object):
             m = self.shape[0] + np.abs(offset)
             out = ndarray((m, m), dtype=self.dtype, inputs=(self,))
             diag_size = self.shape[0]
-            out._thunk.diag_helper(
+            out._thunk._diag_helper(
                 self._thunk,
                 offset=offset,
                 naxes=0,
@@ -2040,7 +2036,7 @@ class ndarray(object):
             N = len(axes)
             if len(axes) != len(set(axes)):
                 raise ValueError(
-                    "axes passed to diag_helper should be all different"
+                    "axes passed to _diag_helper should be all different"
                 )
             if self.ndim < N:
                 raise ValueError(
@@ -2081,7 +2077,7 @@ class ndarray(object):
                 diag_size = a.shape[a.ndim - 1]
             elif N < 2:
                 raise ValueError(
-                    "number of axes passed to the diag_helper"
+                    "number of axes passed to the _diag_helper"
                     " should be more than 1"
                 )
 
@@ -2090,7 +2086,7 @@ class ndarray(object):
             out_shape = tr_shape + (diag_size,)
             out = ndarray(shape=out_shape, dtype=self.dtype, inputs=(self,))
 
-            out._thunk.diag_helper(
+            out._thunk._diag_helper(
                 a._thunk,
                 offset=offset,
                 naxes=N,
@@ -2134,7 +2130,7 @@ class ndarray(object):
                 (axis1 is not None) or (axis2 is not None)
             ):
                 raise ValueError("Either axis1/axis2 or axes must be supplied")
-        return self.diag_helper(offset=offset, axes=axes, extract=extract)
+        return self._diag_helper(offset=offset, axes=axes, extract=extract)
 
     def dot(self, rhs, out=None):
         """a.dot(rhs, out=None)
@@ -2152,7 +2148,7 @@ class ndarray(object):
         Multiple GPUs, Multiple CPUs
 
         """
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
         if self.size == 1 or rhs_array.size == 1:
             return self._perform_binary_op(
                 BinaryOpCode.MULTIPLY,
@@ -2179,7 +2175,7 @@ class ndarray(object):
             rhs_array = temp_array
         # Create output array
         if out is not None:
-            out = self.convert_to_cunumeric_ndarray(out, share=True)
+            out = convert_to_cunumeric_ndarray(out, share=True)
             if self.ndim == 1 and rhs_array.ndim == 1:
                 if self.shape[0] != rhs.shape[0]:
                     raise ValueError("Dimension mismatch for dot")
