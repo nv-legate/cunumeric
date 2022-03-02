@@ -53,7 +53,7 @@ static Piece<VAL> tree_reduce(
   Piece<VAL> my_piece, size_t my_id, size_t num_ranks, cudaStream_t stream, ncclComm_t* comm)
 {
   size_t remaining = num_ranks;
-  size_t radix     = (remaining + 1) / 2;
+  size_t radix     = 2;
   auto all_sizes   = create_buffer<size_t>(num_ranks, Memory::Z_COPY_MEM);
 
   while (remaining > 1) {
@@ -64,11 +64,13 @@ static Piece<VAL> tree_reduce(
     CHECK_CUDA(cudaStreamSynchronize(stream));
 
     Piece<VAL> other_piece;
+    size_t offset           = radix / 2;
+    bool received_something = false;
     CHECK_NCCL(ncclGroupStart());
-    if (my_id < radix)  // This is one of the receivers
+    if (my_id % radix == 0)  // This is one of the receivers
     {
-      auto other_id = my_id + radix;
-      if (other_id < remaining)  // Make sure someone's sending anything
+      auto other_id = my_id + offset;
+      if (other_id < num_ranks)  // Make sure someone's sending anything
       {
         auto other_size = all_sizes[other_id];
         auto recv_size  = get_aligned_size(other_size * sizeof(VAL));
@@ -78,17 +80,18 @@ static Piece<VAL> tree_reduce(
         other_piece.first  = create_buffer<VAL>(buf_size);
         CHECK_NCCL(
           ncclRecv(other_piece.first.ptr(0), recv_size, ncclInt8, other_id, *comm, stream));
+        received_something = true;
       }
-    } else if (my_id < remaining)  // This is one of the senders
+    } else if (my_id % radix == offset)  // This is one of the senders
     {
-      auto other_id  = my_id - radix;
+      auto other_id  = my_id - offset;
       auto send_size = get_aligned_size(my_piece.second * sizeof(VAL));
       CHECK_NCCL(ncclSend(my_piece.first.ptr(0), send_size, ncclInt8, other_id, *comm, stream));
     }
     CHECK_NCCL(ncclGroupEnd());
 
     // Now we merge our pieces with others and deduplicate the merged ones
-    if (my_id < radix && my_id + radix < remaining) {
+    if (received_something) {
       auto merged_size = my_piece.second + other_piece.second;
       auto merged      = create_buffer<VAL>(merged_size);
       auto p_merged    = merged.ptr(0);
@@ -121,8 +124,8 @@ static Piece<VAL> tree_reduce(
       merged.destroy();
     }
 
-    remaining = radix;
-    radix     = (remaining + 1) / 2;
+    remaining = (remaining + 1) / 2;
+    radix *= 2;
   }
 
   if (my_id != 0) {
