@@ -3456,7 +3456,7 @@ class ndarray(object):
         return out
 
     @classmethod
-    def perform_binary_reduction(
+    def _perform_binary_reduction(
         cls,
         op,
         one,
