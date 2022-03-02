@@ -37,15 +37,11 @@ static int getRank(Domain domain, DomainPoint index_point)
 template <VariantKind KIND>
 struct SortImpl {
   template <LegateTypeCode CODE, int32_t DIM>
-  void operator()(SortArgs& args) const
+  void operator()(SortArgs& args, std::vector<comm::Communicator>& comms) const
   {
     using VAL = legate_type_of<CODE>;
 
     auto rect = args.input.shape<DIM>();
-
-    // we shall not return on empty rectangle in case of distributed data
-    // as the process might still participate in the parallel sort
-    if ((DIM > 1 || !args.is_index_space) && rect.empty()) return;
 
     Pitches<DIM - 1> pitches;
     size_t volume = pitches.flatten(rect);
@@ -55,8 +51,8 @@ struct SortImpl {
      * 1. Sort is always requested for the 'last' dimension within rect
      * 2. We have product_of_all_other_dimensions independent sort ranges
      * 3. if we have more than one participants:
-     *  a) 1D-case: we need to perform parallel sort (e.g. via sampling) -- not implemented yet
-     *  b) ND-case: rect needs to be the full domain in that last dimension
+     *  a) 1D-case: we need to perform parallel sort (e.g. via sampling) -- (only implemented for
+     * GPU) b) ND-case: rect needs to be the full domain in that last dimension
      *
      */
 
@@ -69,6 +65,10 @@ struct SortImpl {
            "multi-dimensional array should not be distributed in (sort) dimension");
 #endif
 
+    // we shall not return on empty rectangle in case of distributed data
+    // as the process might still participate in the parallel sort
+    if ((DIM > 1 || !args.is_index_space) && rect.empty()) return;
+
     SortImplBody<KIND, CODE, DIM>()(args.input,
                                     args.output,
                                     pitches,
@@ -78,7 +78,8 @@ struct SortImpl {
                                     args.global_shape,
                                     args.is_index_space,
                                     args.task_index,
-                                    args.launch_domain);
+                                    args.launch_domain,
+                                    comms);
   }
 };
 
@@ -99,7 +100,8 @@ static void sort_template(TaskContext& context)
                 !context.is_single_task(),
                 context.get_task_index(),
                 context.get_launch_domain()};
-  double_dispatch(args.input.dim(), args.input.code(), SortImpl<KIND>{}, args);
+  double_dispatch(
+    args.input.dim(), args.input.code(), SortImpl<KIND>{}, args, context.communicators());
 }
 
 }  // namespace cunumeric

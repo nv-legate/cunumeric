@@ -63,7 +63,8 @@ struct SortImplBody<VariantKind::CPU, CODE, DIM> {
                   const Legion::DomainPoint global_shape,
                   const bool is_index_space,
                   const Legion::DomainPoint index_point,
-                  const Legion::Domain domain)
+                  const Legion::Domain domain,
+                  const std::vector<comm::Communicator>& comms)
   {
     AccessorRO<VAL, DIM> input = input_array.read_accessor<VAL, DIM>(rect);
 
