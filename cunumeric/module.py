@@ -1997,7 +1997,7 @@ def invert(a, out=None, where=True, dtype=None):
     """
     if a.dtype.type == np.bool_:
         # Boolean values are special, just do negatiion
-        return ndarray.perform_unary_op(
+        return ndarray._perform_unary_op(
             UnaryOpCode.LOGICAL_NOT,
             a,
             dst=out,
@@ -2006,7 +2006,7 @@ def invert(a, out=None, where=True, dtype=None):
             where=where,
         )
     else:
-        return ndarray.perform_unary_op(
+        return ndarray._perform_unary_op(
             UnaryOpCode.INVERT, a, dst=out, dtype=dtype, where=where
         )
 
@@ -2845,7 +2845,7 @@ def isinf(a, out=None, where=True, dtype=None, **kwargs):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_unary_op(
+    return ndarray._perform_unary_op(
         UnaryOpCode.ISINF,
         a,
         dst=out,
@@ -2894,7 +2894,7 @@ def isnan(a, out=None, where=True, dtype=None, **kwargs):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_unary_op(
+    return ndarray._perform_unary_op(
         UnaryOpCode.ISNAN,
         a,
         dst=out,
@@ -3052,7 +3052,7 @@ def logical_not(a, out=None, where=True, dtype=None, **kwargs):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_unary_op(
+    return ndarray._perform_unary_op(
         UnaryOpCode.LOGICAL_NOT,
         a,
         dtype=dtype,
@@ -3564,7 +3564,7 @@ def sin(a, out=None, where=True, dtype=None, **kwargs):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_unary_op(
+    return ndarray._perform_unary_op(
         UnaryOpCode.SIN,
         a,
         dtype=dtype,
@@ -3618,7 +3618,7 @@ def cos(a, out=None, where=True, dtype=None, **kwargs):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_unary_op(
+    return ndarray._perform_unary_op(
         UnaryOpCode.COS,
         a,
         dtype=dtype,
@@ -3672,7 +3672,7 @@ def tan(a, out=None, where=True, dtype=None, **kwargs):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_unary_op(
+    return ndarray._perform_unary_op(
         UnaryOpCode.TAN,
         a,
         dtype=dtype,
@@ -3722,7 +3722,7 @@ def arcsin(a, out=None, where=True, dtype=None, **kwargs):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_unary_op(
+    return ndarray._perform_unary_op(
         UnaryOpCode.ARCSIN,
         a,
         dtype=dtype,
@@ -3775,7 +3775,7 @@ def arccos(a, out=None, where=True, dtype=None, **kwargs):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_unary_op(
+    return ndarray._perform_unary_op(
         UnaryOpCode.ARCCOS,
         a,
         dtype=dtype,
@@ -3826,7 +3826,7 @@ def arctan(a, out=None, where=True, dtype=None, **kwargs):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_unary_op(
+    return ndarray._perform_unary_op(
         UnaryOpCode.ARCTAN,
         a,
         dtype=dtype,
@@ -3883,7 +3883,7 @@ def tanh(a, out=None, where=True, dtype=None, **kwargs):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_unary_op(
+    return ndarray._perform_unary_op(
         UnaryOpCode.TANH,
         a,
         dtype=dtype,
@@ -3935,7 +3935,7 @@ def rint(a, out=None, where=True, dtype=None, **kwargs):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_unary_op(
+    return ndarray._perform_unary_op(
         UnaryOpCode.RINT,
         a,
         dtype=dtype,
@@ -3990,7 +3990,7 @@ def floor(a, out=None, where=True, dtype=None, **kwargs):
     # If this is an integer array then there is nothing to do for floor
     if a.dtype.kind in ("i", "u", "b"):
         return a
-    return ndarray.perform_unary_op(
+    return ndarray._perform_unary_op(
         UnaryOpCode.FLOOR, a, dst=out, dtype=dtype, where=where
     )
 
@@ -4040,7 +4040,7 @@ def ceil(a, out=None, where=True, dtype=None, **kwargs):
     # If this is an integer array then there is nothing to do for ceil
     if a.dtype.kind in ("i", "u", "b"):
         return a
-    return ndarray.perform_unary_op(
+    return ndarray._perform_unary_op(
         UnaryOpCode.CEIL, a, dst=out, dtype=dtype, where=where
     )
 
@@ -4250,7 +4250,7 @@ def exp(a, out=None, where=True, dtype=None, **kwargs):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_unary_op(
+    return ndarray._perform_unary_op(
         UnaryOpCode.EXP,
         a,
         dtype=dtype,
@@ -4299,7 +4299,7 @@ def exp2(a, out=None, where=True, dtype=None, **kwargs):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_unary_op(
+    return ndarray._perform_unary_op(
         UnaryOpCode.EXP2,
         a,
         dtype=dtype,
@@ -4352,7 +4352,7 @@ def log(a, out=None, where=True, dtype=None, **kwargs):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_unary_op(
+    return ndarray._perform_unary_op(
         UnaryOpCode.LOG,
         a,
         dtype=dtype,
@@ -4402,7 +4402,7 @@ def log10(a, out=None, where=True, dtype=None, **kwargs):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_unary_op(
+    return ndarray._perform_unary_op(
         UnaryOpCode.LOG10,
         a,
         dtype=dtype,
@@ -4510,7 +4510,7 @@ def negative(a, out=None, where=True, dtype=None, **kwargs):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_unary_op(
+    return ndarray._perform_unary_op(
         UnaryOpCode.NEGATIVE, a, dtype=dtype, dst=out, where=where
     )
 
@@ -5414,7 +5414,7 @@ def sqrt(a, out=None, where=True, dtype=None, **kwargs):
         --------
         Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_unary_op(
+    return ndarray._perform_unary_op(
         UnaryOpCode.SQRT,
         a,
         dtype=dtype,
@@ -5508,7 +5508,7 @@ def absolute(a, out=None, where=True, **kwargs):
     # Handle the nice case of it being unsigned
     if a.dtype.type in (np.uint16, np.uint32, np.uint64, np.bool_):
         return a
-    return ndarray.perform_unary_op(
+    return ndarray._perform_unary_op(
         UnaryOpCode.ABSOLUTE, a, dst=out, where=where
     )
 
@@ -5609,7 +5609,7 @@ def sign(a, out=None, where=True, dtype=None, **kwargs):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_unary_op(
+    return ndarray._perform_unary_op(
         UnaryOpCode.SIGN,
         a,
         dtype=dtype,

@@ -543,7 +543,7 @@ class ndarray(object):
             or self.dtype.type == np.bool_
         ):
             return self
-        return self.perform_unary_op(UnaryOpCode.ABSOLUTE, self)
+        return self._perform_unary_op(UnaryOpCode.ABSOLUTE, self)
 
     def __add__(self, rhs):
         """a.__add__(value, /)
@@ -917,11 +917,11 @@ class ndarray(object):
         """
         if self.dtype == np.bool_:
             # Boolean values are special, just do logical NOT
-            return self.perform_unary_op(
+            return self._perform_unary_op(
                 UnaryOpCode.LOGICAL_NOT, self, out_dtype=np.dtype(np.bool_)
             )
         else:
-            return self.perform_unary_op(UnaryOpCode.INVERT, self)
+            return self._perform_unary_op(UnaryOpCode.INVERT, self)
 
     def __ior__(self, rhs):
         """a.__ior__(/)
@@ -1188,7 +1188,7 @@ class ndarray(object):
             or self.dtype.type == np.uint64
         ):
             raise TypeError("cannot negate unsigned type " + str(self.dtype))
-        return self.perform_unary_op(UnaryOpCode.NEGATIVE, self)
+        return self._perform_unary_op(UnaryOpCode.NEGATIVE, self)
 
     # __new__
 
@@ -1265,7 +1265,7 @@ class ndarray(object):
             or self.dtype.type == np.bool_
         ):
             return self
-        return self.perform_unary_op(UnaryOpCode.POSITIVE, self)
+        return self._perform_unary_op(UnaryOpCode.POSITIVE, self)
 
     def __pow__(self, rhs):
         """a.__pow__(value, /)
@@ -1936,7 +1936,7 @@ class ndarray(object):
                 return self.convert_to_cunumeric_ndarray(
                     self.__array__.clip(min, max)
                 )
-        return self.perform_unary_op(
+        return self._perform_unary_op(
             UnaryOpCode.CLIP, self, dst=out, extra_args=args
         )
 
@@ -3148,7 +3148,7 @@ class ndarray(object):
 
     # For performing normal/broadcast unary operations
     @classmethod
-    def perform_unary_op(
+    def _perform_unary_op(
         cls,
         op,
         src,
