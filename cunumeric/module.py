@@ -2342,6 +2342,49 @@ def vdot(a, b, out=None):
 
 
 @add_boilerplate("a", "b")
+def outer(a, b, out=None):
+    """
+    Compute the outer product of two vectors.
+
+    Given two vectors, ``a = [a0, a1, ..., aM]`` and ``b = [b0, b1, ..., bN]``,
+    the outer product is::
+
+      [[a0*b0  a0*b1 ... a0*bN ]
+       [a1*b0    .
+       [ ...          .
+       [aM*b0            aM*bN ]]
+
+    Parameters
+    ----------
+    a : (M,) array_like
+        First input vector. Input is flattened if not already 1-dimensional.
+    b : (N,) array_like
+        Second input vector. Input is flattened if not already 1-dimensional.
+    out : (M, N) ndarray, optional
+        A location where the result is stored. If its dtype is not what would
+        be expected from this operation, then the result will be (unsafely)
+        cast to `out`.
+
+    Returns
+    -------
+    output : (M, N) ndarray
+        ``output[i, j] = a[i] * b[j]``
+        If `out` is given, then it is returned.
+
+    See Also
+    --------
+    numpy.outer
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    return multiply(
+        a.ravel()[:, np.newaxis], b.ravel()[np.newaxis, :], out=out
+    )
+
+
+@add_boilerplate("a", "b")
 def tensordot(a, b, axes=2, out=None):
     """
     Compute tensor dot product along specified axes.
