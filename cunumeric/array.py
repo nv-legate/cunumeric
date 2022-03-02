@@ -3130,6 +3130,24 @@ class ndarray(object):
 
     @staticmethod
     def find_common_type(*args):
+        """Determine common type following standard coercion rules.
+
+        Parameters
+        ----------
+        \\*args :
+            A list of dtypes or dtype convertible objects representing arrays
+            or scalars.
+
+
+        Returns
+        -------
+        datatype : data-type
+            The common data type, which is the maximum of the array types,
+            ignoring any scalar types , unless the maximum scalar type is of a
+            different kind (`dtype.kind`). If the kind is not understood, then
+            None is returned.
+
+        """
         array_types = list()
         scalar_types = list()
         for array in args:

@@ -6,7 +6,7 @@ The N-Dimensional array (:class:`cunumeric.ndarray`)
 Constructing arrays
 -------------------
 
-New arrays can be constructed using the routines detailed in Array creation 
+New arrays can be constructed using the routines detailed in Array creation
 routines, and also by using the low-level ndarray constructor:
 
 .. toctree::
@@ -56,6 +56,7 @@ Data Type
    :toctree: generated/
 
    ndarray.dtype
+   ndarray.find_common_type
 
 Other Attributes
 ~~~~~~~~~~~~~~~~
@@ -280,7 +281,7 @@ Container customization: (see Indexing)
    ndarray.__setitem__
    ndarray.__contains__
 
-Conversion; 
+Conversion;
 .. the operations int(), float() and complex(). They work only on arrays that have one element in them and return the appropriate scalar.
 
 .. autosummary::
