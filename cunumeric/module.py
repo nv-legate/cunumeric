@@ -15,7 +15,7 @@
 
 import math
 import re
-from collections import Counter
+from collections import Counter, deque
 from functools import wraps
 from inspect import signature
 from itertools import chain
@@ -1328,6 +1328,69 @@ def append(arr, values, axis=None):
         ndarray.convert_to_cunumeric_ndarray(inp) for inp in [arr, values]
     )
     return concatenate(inputs, axis)
+
+def block(arrays):
+    # arrays should concatenate in DFS way
+    # the 'arrays' should be balanced tree
+    active_arr = deque()
+    active_arr.append((0, arrays))
+
+    level = 0
+    leaf_map = dict()
+    idx = 0
+    # check if the 'arrays' is a balanced tree
+    while len(active_arr) > 0:
+        top = active_arr.pop()
+        if type(top[1]) is list:
+            # check if this is a leaf
+            nlist = 0
+            for arr in top[1]:
+                if type(arr) is list:
+                    active_arr.append(((*top[0], nlist), arr))
+                    nlist += 1
+            # this is a leaf
+            if nlist == 0:
+                leaf_map[len(top[0])] = top[1]
+            elif nlist < len(top[1]):
+                ValueError(
+                    f"some elements in depth {len(top[0])} "
+                    f"have different depths"
+                )
+    ref = leaf_map[-1].key
+    for leaf in leaf_map:
+        if len(leaf.key) != len(ref):
+            ValueError(
+                f"List depths for innermost elements are not matched"
+                f"array[leaf.key] is at depth {len(leaf.key)}"
+                f"array[ref] is at depth {len(ref)}"
+            )
+
+    level = 0
+    # concatenate elements in 'arrays' like DFS
+    active_arr.push((0, arrays))
+    while len(active_arr) > 1:
+        elem = active_arr.pop()
+        level = len(elem[0])
+        # leaf nodes in the tree are array-like
+        if type(elem[1]) is not list:
+            siblings = []
+            while len(active_arr[-1][0]) == level:
+                siblings.append(active_arr.pop())
+            inputs = list(
+                ndarray.convert_to_cunumeric_ndarray(inp) for inp in siblings
+            )
+            reshaped = list(
+                inp.reshape([1, inp.shape[0]]) if inp.ndim == 1 else inp
+                for inp in inputs
+            )
+            merged = concatenate(reshaped, level)
+            active_arr.appendleft(elem[0][:-1], merged)
+        # the `elem` has list having more than one elements
+        elif elem[1] is list:
+            for each, idx in enumerate(elem[1]):
+                active_arr.append((*elem[0], idx), each)
+
+    return active_arr[0]
 
 
 def concatenate(inputs, axis=0, out=None, dtype=None, casting="same_kind"):
