@@ -23,6 +23,7 @@
 #include <cufft.h>
 #include <cufftXt.h>
 #include <cutensor.h>
+#include <nccl.h>
 
 #define THREADS_PER_BLOCK 128
 #define MIN_CTAS_PER_SM 4
@@ -58,6 +59,12 @@
   do {                                              \
     cutensorStatus_t __result__ = (expr);           \
     check_cutensor(__result__, __FILE__, __LINE__); \
+  } while (false)
+
+#define CHECK_NCCL(expr)                    \
+  do {                                      \
+    ncclResult_t result = (expr);           \
+    check_nccl(result, __FILE__, __LINE__); \
   } while (false)
 
 #ifndef MAX
@@ -165,6 +172,18 @@ __host__ inline void check_cutensor(cutensorStatus_t result, const char* file, i
             file,
             line);
     exit(result);
+  }
+}
+
+__host__ inline void check_nccl(ncclResult_t error, const char* file, int line)
+{
+  if (error != ncclSuccess) {
+    fprintf(stderr,
+            "Internal NCCL failure with error %s in file %s at line %d\n",
+            ncclGetErrorString(error),
+            file,
+            line);
+    exit(error);
   }
 }
 

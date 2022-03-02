@@ -3108,6 +3108,10 @@ class ndarray(object):
             )
         return ndarray(shape=self.shape, dtype=self.dtype, thunk=self._thunk)
 
+    def unique(self):
+        thunk = self._thunk.unique()
+        return ndarray(shape=thunk.shape, thunk=thunk)
+
     @classmethod
     def get_where_thunk(cls, where, out_shape):
         if where is True:
