@@ -5735,7 +5735,7 @@ def count_nonzero(a, axis=None):
     """
     if a.size == 0:
         return 0
-    return ndarray.perform_unary_reduction(
+    return ndarray._perform_unary_reduction(
         UnaryRedCode.COUNT_NONZERO,
         a,
         axis=axis,

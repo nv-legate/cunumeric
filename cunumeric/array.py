@@ -620,7 +620,7 @@ class ndarray(object):
             args = (np.array(item, dtype=self.dtype),)
         if args[0].size != 1:
             raise ValueError("contains needs scalar item")
-        return self.perform_unary_reduction(
+        return self._perform_unary_reduction(
             UnaryRedCode.CONTAINS,
             self,
             axis=None,
@@ -1600,7 +1600,7 @@ class ndarray(object):
         Multiple GPUs, Multiple CPUs
 
         """
-        return self.perform_unary_reduction(
+        return self._perform_unary_reduction(
             UnaryRedCode.ALL,
             self,
             axis=axis,
@@ -1636,7 +1636,7 @@ class ndarray(object):
         Multiple GPUs, Multiple CPUs
 
         """
-        return self.perform_unary_reduction(
+        return self._perform_unary_reduction(
             UnaryRedCode.ANY,
             self,
             axis=axis,
@@ -1672,7 +1672,7 @@ class ndarray(object):
             raise TypeError("'axis' argument for argmax must be an 'int'")
         elif axis < 0 or axis >= self.ndim:
             raise TypeError("invalid 'axis' argument for argmax " + str(axis))
-        return self.perform_unary_reduction(
+        return self._perform_unary_reduction(
             UnaryRedCode.ARGMAX,
             self,
             axis=axis,
@@ -1705,7 +1705,7 @@ class ndarray(object):
             raise TypeError("'axis' argument for argmin must be an 'int'")
         elif axis < 0 or axis >= self.ndim:
             raise TypeError("invalid 'axis' argument for argmin " + str(axis))
-        return self.perform_unary_reduction(
+        return self._perform_unary_reduction(
             UnaryRedCode.ARGMIN,
             self,
             axis=axis,
@@ -2477,7 +2477,7 @@ class ndarray(object):
         Multiple GPUs, Multiple CPUs
 
         """
-        return self.perform_unary_reduction(
+        return self._perform_unary_reduction(
             UnaryRedCode.MAX,
             self,
             axis=axis,
@@ -2574,7 +2574,7 @@ class ndarray(object):
         Multiple GPUs, Multiple CPUs
 
         """
-        return self.perform_unary_reduction(
+        return self._perform_unary_reduction(
             UnaryRedCode.MIN,
             self,
             axis=axis,
@@ -2620,7 +2620,7 @@ class ndarray(object):
             self_array = temp
         else:
             self_array = self
-        return self.perform_unary_reduction(
+        return self._perform_unary_reduction(
             UnaryRedCode.PROD,
             self_array,
             axis=axis,
@@ -2853,7 +2853,7 @@ class ndarray(object):
             self_array = temp
         else:
             self_array = self
-        return self.perform_unary_reduction(
+        return self._perform_unary_reduction(
             UnaryRedCode.SUM,
             self_array,
             axis=axis,
@@ -3257,7 +3257,7 @@ class ndarray(object):
 
     # For performing reduction unary operations
     @classmethod
-    def perform_unary_reduction(
+    def _perform_unary_reduction(
         cls,
         op,
         src,
