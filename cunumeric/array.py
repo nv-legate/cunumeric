@@ -556,7 +556,7 @@ class ndarray(object):
 
         """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        return self.perform_binary_op(BinaryOpCode.ADD, self, rhs_array)
+        return self._perform_binary_op(BinaryOpCode.ADD, self, rhs_array)
 
     def __and__(self, rhs):
         """a.__and__(value, /)
@@ -569,7 +569,7 @@ class ndarray(object):
 
         """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        return self.perform_binary_op(
+        return self._perform_binary_op(
             BinaryOpCode.LOGICAL_AND, self, rhs_array
         )
 
@@ -685,7 +685,7 @@ class ndarray(object):
 
         """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        return self.perform_binary_op(BinaryOpCode.DIVMOD, self, rhs_array)
+        return self._perform_binary_op(BinaryOpCode.DIVMOD, self, rhs_array)
 
     def __eq__(self, rhs):
         """a.__eq__(value, /)
@@ -698,7 +698,7 @@ class ndarray(object):
 
         """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        return self.perform_binary_op(
+        return self._perform_binary_op(
             BinaryOpCode.EQUAL, self, rhs_array, out_dtype=np.dtype(np.bool_)
         )
 
@@ -721,7 +721,7 @@ class ndarray(object):
 
         """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        return self.perform_binary_op(
+        return self._perform_binary_op(
             BinaryOpCode.FLOOR_DIVIDE, self, rhs_array
         )
 
@@ -739,7 +739,7 @@ class ndarray(object):
 
         """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        return self.perform_binary_op(
+        return self._perform_binary_op(
             BinaryOpCode.GREATER_EQUAL,
             self,
             rhs_array,
@@ -784,7 +784,7 @@ class ndarray(object):
 
         """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        return self.perform_binary_op(
+        return self._perform_binary_op(
             BinaryOpCode.GREATER, self, rhs_array, out_dtype=np.dtype(np.bool_)
         )
 
@@ -802,7 +802,7 @@ class ndarray(object):
 
         """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        self.perform_binary_op(BinaryOpCode.ADD, self, rhs_array, out=self)
+        self._perform_binary_op(BinaryOpCode.ADD, self, rhs_array, out=self)
         return self
 
     def __iand__(self, rhs):
@@ -816,7 +816,7 @@ class ndarray(object):
 
         """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        self.perform_binary_op(
+        self._perform_binary_op(
             BinaryOpCode.LOGICAL_AND, self, rhs_array, out=self
         )
         return self
@@ -844,7 +844,7 @@ class ndarray(object):
 
         """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        self.perform_binary_op(
+        self._perform_binary_op(
             BinaryOpCode.FLOOR_DIVIDE, self, rhs_array, out=self
         )
         return self
@@ -860,7 +860,7 @@ class ndarray(object):
 
         """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        self.perform_binary_op(
+        self._perform_binary_op(
             BinaryOpCode.SHIFT_LEFT, self, rhs_array, out=self
         )
         return self
@@ -876,7 +876,9 @@ class ndarray(object):
 
         """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        self.perform_binary_op(BinaryOpCode.MODULUS, self, rhs_array, out=self)
+        self._perform_binary_op(
+            BinaryOpCode.MODULUS, self, rhs_array, out=self
+        )
         return self
 
     def __imul__(self, rhs):
@@ -890,7 +892,7 @@ class ndarray(object):
 
         """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        self.perform_binary_op(
+        self._perform_binary_op(
             BinaryOpCode.MULTIPLY, self, rhs_array, out=self
         )
         return self
@@ -932,7 +934,7 @@ class ndarray(object):
 
         """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        self.perform_binary_op(
+        self._perform_binary_op(
             BinaryOpCode.LOGICAL_OR, self, rhs_array, out=self
         )
         return self
@@ -948,7 +950,7 @@ class ndarray(object):
 
         """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        self.perform_binary_op(BinaryOpCode.POWER, self, rhs_array, out=self)
+        self._perform_binary_op(BinaryOpCode.POWER, self, rhs_array, out=self)
         return self
 
     def __irshift__(self, rhs):
@@ -962,7 +964,7 @@ class ndarray(object):
 
         """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        self.perform_binary_op(
+        self._perform_binary_op(
             BinaryOpCode.SHIFT_RIGHT, self, rhs_array, out=self
         )
         return self
@@ -982,7 +984,7 @@ class ndarray(object):
 
         """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        self.perform_binary_op(
+        self._perform_binary_op(
             BinaryOpCode.SUBTRACT, self, rhs_array, out=self
         )
         return self
@@ -1023,7 +1025,7 @@ class ndarray(object):
             )
             temp._thunk.convert(rhs_array._thunk, warn=False)
             rhs_array = temp
-        return self.perform_binary_op(
+        return self._perform_binary_op(
             BinaryOpCode.DIVIDE,
             self_array,
             rhs_array,
@@ -1053,7 +1055,7 @@ class ndarray(object):
 
         """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        self.perform_binary_op(
+        self._perform_binary_op(
             BinaryOpCode.LOGICAL_XOR, self, rhs_array, out=self
         )
         return self
@@ -1069,7 +1071,7 @@ class ndarray(object):
 
         """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        return self.perform_binary_op(
+        return self._perform_binary_op(
             BinaryOpCode.LESS_EQUAL,
             self,
             rhs_array,
@@ -1095,7 +1097,9 @@ class ndarray(object):
 
         """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        return self.perform_binary_op(BinaryOpCode.SHIFT_LEFT, self, rhs_array)
+        return self._perform_binary_op(
+            BinaryOpCode.SHIFT_LEFT, self, rhs_array
+        )
 
     def __lt__(self, rhs):
         """a.__lt__(value, /)
@@ -1108,7 +1112,7 @@ class ndarray(object):
 
         """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        return self.perform_binary_op(
+        return self._perform_binary_op(
             BinaryOpCode.LESS, self, rhs_array, out_dtype=np.dtype(np.bool_)
         )
 
@@ -1135,7 +1139,7 @@ class ndarray(object):
 
         """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        return self.perform_binary_op(BinaryOpCode.MOD, self, rhs_array)
+        return self._perform_binary_op(BinaryOpCode.MOD, self, rhs_array)
 
     def __mul__(self, rhs):
         """a.__mul__(value, /)
@@ -1148,7 +1152,7 @@ class ndarray(object):
 
         """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        return self.perform_binary_op(BinaryOpCode.MULTIPLY, self, rhs_array)
+        return self._perform_binary_op(BinaryOpCode.MULTIPLY, self, rhs_array)
 
     def __ne__(self, rhs):
         """a.__ne__(value, /)
@@ -1161,7 +1165,7 @@ class ndarray(object):
 
         """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        return self.perform_binary_op(
+        return self._perform_binary_op(
             BinaryOpCode.NOT_EQUAL,
             self,
             rhs_array,
@@ -1239,7 +1243,9 @@ class ndarray(object):
 
         """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        return self.perform_binary_op(BinaryOpCode.LOGICAL_OR, self, rhs_array)
+        return self._perform_binary_op(
+            BinaryOpCode.LOGICAL_OR, self, rhs_array
+        )
 
     def __pos__(self):
         """a.__pos__(value, /)
@@ -1272,7 +1278,7 @@ class ndarray(object):
 
         """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        return self.perform_binary_op(BinaryOpCode.POWER, self, rhs_array)
+        return self._perform_binary_op(BinaryOpCode.POWER, self, rhs_array)
 
     def __radd__(self, lhs):
         """a.__radd__(value, /)
@@ -1285,7 +1291,7 @@ class ndarray(object):
 
         """
         lhs_array = self.convert_to_cunumeric_ndarray(lhs)
-        return self.perform_binary_op(BinaryOpCode.ADD, lhs_array, self)
+        return self._perform_binary_op(BinaryOpCode.ADD, lhs_array, self)
 
     def __rand__(self, lhs):
         """a.__rand__(value, /)
@@ -1298,7 +1304,7 @@ class ndarray(object):
 
         """
         lhs_array = self.convert_to_cunumeric_ndarray(lhs)
-        return self.perform_binary_op(
+        return self._perform_binary_op(
             BinaryOpCode.LOGICAL_AND, lhs_array, self
         )
 
@@ -1326,7 +1332,7 @@ class ndarray(object):
 
         """
         lhs_array = self.convert_to_cunumeric_ndarray(lhs)
-        return self.perform_binary_op(BinaryOpCode.DIVMOD, lhs_array, self)
+        return self._perform_binary_op(BinaryOpCode.DIVMOD, lhs_array, self)
 
     def __reduce__(self, *args, **kwargs):
         """a.__reduce__(/)
@@ -1362,7 +1368,7 @@ class ndarray(object):
 
         """
         lhs_array = self.convert_to_cunumeric_ndarray(lhs)
-        return self.perform_binary_op(
+        return self._perform_binary_op(
             BinaryOpCode.FLOOR_DIVIDE, lhs_array, self
         )
 
@@ -1377,7 +1383,7 @@ class ndarray(object):
 
         """
         lhs_array = self.convert_to_cunumeric_ndarray(lhs)
-        return self.perform_binary_op(BinaryOpCode.MOD, lhs_array, self)
+        return self._perform_binary_op(BinaryOpCode.MOD, lhs_array, self)
 
     def __rmul__(self, lhs):
         """a.__rmul__(value, /)
@@ -1390,7 +1396,7 @@ class ndarray(object):
 
         """
         lhs_array = self.convert_to_cunumeric_ndarray(lhs)
-        return self.perform_binary_op(BinaryOpCode.MULTIPLY, lhs_array, self)
+        return self._perform_binary_op(BinaryOpCode.MULTIPLY, lhs_array, self)
 
     def __ror__(self, lhs):
         """a.__ror__(value, /)
@@ -1403,7 +1409,9 @@ class ndarray(object):
 
         """
         lhs_array = self.convert_to_cunumeric_ndarray(lhs)
-        return self.perform_binary_op(BinaryOpCode.LOGICAL_OR, lhs_array, self)
+        return self._perform_binary_op(
+            BinaryOpCode.LOGICAL_OR, lhs_array, self
+        )
 
     def __rpow__(self, lhs):
         """__rpow__(value, /)
@@ -1416,7 +1424,7 @@ class ndarray(object):
 
         """
         lhs_array = self.convert_to_cunumeric_ndarray(lhs)
-        return self.perform_binary_op(BinaryOpCode.POWER, lhs_array, self)
+        return self._perform_binary_op(BinaryOpCode.POWER, lhs_array, self)
 
     def __rshift__(self, rhs):
         """a.__rshift__(value, /)
@@ -1429,7 +1437,7 @@ class ndarray(object):
 
         """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        return self.perform_binary_op(
+        return self._perform_binary_op(
             BinaryOpCode.SHIFT_RIGHT, self, rhs_array
         )
 
@@ -1444,7 +1452,7 @@ class ndarray(object):
 
         """
         lhs_array = self.convert_to_cunumeric_ndarray(lhs)
-        return self.perform_binary_op(BinaryOpCode.SUBTRACT, lhs_array, self)
+        return self._perform_binary_op(BinaryOpCode.SUBTRACT, lhs_array, self)
 
     def __rtruediv__(self, lhs):
         """a.__rtruediv__(value, /)
@@ -1470,7 +1478,7 @@ class ndarray(object):
 
         """
         lhs_array = self.convert_to_cunumeric_ndarray(lhs)
-        return self.perform_binary_op(
+        return self._perform_binary_op(
             BinaryOpCode.LOGICAL_XOR, lhs_array, self
         )
 
@@ -1527,7 +1535,7 @@ class ndarray(object):
 
         """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        return self.perform_binary_op(BinaryOpCode.SUBTRACT, self, rhs_array)
+        return self._perform_binary_op(BinaryOpCode.SUBTRACT, self, rhs_array)
 
     def __str__(self):
         """a.__str__(/)
@@ -1564,7 +1572,7 @@ class ndarray(object):
 
         """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        return self.perform_binary_op(
+        return self._perform_binary_op(
             BinaryOpCode.LOGICAL_XOR, rhs_array, self
         )
 
@@ -2146,7 +2154,7 @@ class ndarray(object):
         """
         rhs_array = self.convert_to_cunumeric_ndarray(rhs)
         if self.size == 1 or rhs_array.size == 1:
-            return self.perform_binary_op(
+            return self._perform_binary_op(
                 BinaryOpCode.MULTIPLY,
                 self,
                 rhs_array,
@@ -3390,7 +3398,7 @@ class ndarray(object):
 
     # Return a new cuNumeric array for a binary operation
     @classmethod
-    def perform_binary_op(
+    def _perform_binary_op(
         cls,
         op,
         one,

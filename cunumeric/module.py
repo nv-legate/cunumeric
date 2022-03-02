@@ -2948,7 +2948,7 @@ def logical_and(a, b, out=None, where=True, dtype=np.dtype(np.bool), **kwargs):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_binary_op(
+    return ndarray._perform_binary_op(
         BinaryOpCode.LOGICAL_AND,
         a,
         b,
@@ -3001,7 +3001,7 @@ def logical_or(a, b, out=None, where=True, dtype=np.dtype(np.bool), **kwargs):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_binary_op(
+    return ndarray._perform_binary_op(
         BinaryOpCode.LOGICAL_OR,
         a,
         b,
@@ -3104,7 +3104,7 @@ def logical_xor(a, b, out=None, where=True, dtype=np.dtype(np.bool), **kwargs):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_binary_op(
+    return ndarray._perform_binary_op(
         BinaryOpCode.LOGICAL_XOR,
         a,
         b,
@@ -3245,7 +3245,7 @@ def greater(a, b, out=None, where=True, dtype=np.dtype(np.bool), **kwargs):
         --------
         Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_binary_op(
+    return ndarray._perform_binary_op(
         BinaryOpCode.GREATER,
         a,
         b,
@@ -3299,7 +3299,7 @@ def greater_equal(
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_binary_op(
+    return ndarray._perform_binary_op(
         BinaryOpCode.GREATER_EQUAL,
         a,
         b,
@@ -3351,7 +3351,7 @@ def less(a, b, out=None, where=True, dtype=np.dtype(np.bool), **kwargs):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_binary_op(
+    return ndarray._perform_binary_op(
         BinaryOpCode.LESS,
         a,
         b,
@@ -3403,7 +3403,7 @@ def less_equal(a, b, out=None, where=True, dtype=np.dtype(np.bool), **kwargs):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_binary_op(
+    return ndarray._perform_binary_op(
         BinaryOpCode.LESS_EQUAL,
         a,
         b,
@@ -3455,7 +3455,7 @@ def equal(a, b, out=None, where=True, dtype=np.dtype(np.bool), **kwargs):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_binary_op(
+    return ndarray._perform_binary_op(
         BinaryOpCode.EQUAL,
         a,
         b,
@@ -3507,7 +3507,7 @@ def not_equal(a, b, out=None, where=True, dtype=np.dtype(np.bool), **kwargs):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_binary_op(
+    return ndarray._perform_binary_op(
         BinaryOpCode.NOT_EQUAL,
         a,
         b,
@@ -4460,7 +4460,7 @@ def add(a, b, out=None, where=True, dtype=None):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_binary_op(
+    return ndarray._perform_binary_op(
         BinaryOpCode.ADD,
         a,
         b,
@@ -4560,7 +4560,7 @@ def multiply(a, b, out=None, where=True, dtype=None):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_binary_op(
+    return ndarray._perform_binary_op(
         BinaryOpCode.MULTIPLY,
         a,
         b,
@@ -4630,7 +4630,7 @@ def power(x1, x2, out=None, where=True, dtype=None, **kwargs):
             else:
                 scalar_types.append(x2.dtype)
             dtype = np.find_common_type(array_types, scalar_types)
-    return ndarray.perform_binary_op(
+    return ndarray._perform_binary_op(
         BinaryOpCode.POWER,
         x1,
         x2,
@@ -4686,7 +4686,7 @@ def subtract(a, b, out=None, where=True, dtype=None, **kwargs):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_binary_op(
+    return ndarray._perform_binary_op(
         BinaryOpCode.SUBTRACT,
         a,
         b,
@@ -4793,7 +4793,7 @@ def true_divide(a, b, out=None, where=True, dtype=None, **kwargs):
         )
         temp._thunk.convert(b._thunk, warn=False)
         b = temp
-    return ndarray.perform_binary_op(
+    return ndarray._perform_binary_op(
         BinaryOpCode.DIVIDE,
         a,
         b,
@@ -4852,7 +4852,7 @@ def floor_divide(a, b, out=None, where=True, dtype=None, **kwargs):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_binary_op(
+    return ndarray._perform_binary_op(
         BinaryOpCode.FLOOR_DIVIDE,
         a,
         b,
@@ -4909,7 +4909,7 @@ def remainder(a, b, out=None, where=True, dtype=None):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_binary_op(
+    return ndarray._perform_binary_op(
         BinaryOpCode.MOD,
         a,
         b,
@@ -5069,7 +5069,7 @@ def maximum(a, b, out=None, where=True, dtype=None, **kwargs):
         --------
         Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_binary_op(
+    return ndarray._perform_binary_op(
         BinaryOpCode.MAXIMUM,
         a,
         b,
@@ -5189,7 +5189,7 @@ def minimum(a, b, out=None, where=True, dtype=None, **kwargs):
         --------
         Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_binary_op(
+    return ndarray._perform_binary_op(
         BinaryOpCode.MINIMUM,
         a,
         b,
