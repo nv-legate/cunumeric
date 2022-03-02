@@ -1341,6 +1341,8 @@ class DeferredArray(NumPyThunk):
         rhs_array = src
         assert lhs_array.ndim <= rhs_array.ndim
 
+        argred = op in (UnaryRedCode.ARGMAX, UnaryRedCode.ARGMIN)
+
         # See if we are doing reduction to a point or another region
         if lhs_array.size == 1:
             assert axes is None or len(axes) == (
@@ -1349,7 +1351,11 @@ class DeferredArray(NumPyThunk):
 
             task = self.context.create_task(CuNumericOpCode.SCALAR_UNARY_RED)
 
-            fill_value = _UNARY_RED_IDENTITIES[op](rhs_array.dtype)
+            if initial is not None:
+                assert not argred
+                fill_value = initial
+            else:
+                fill_value = _UNARY_RED_IDENTITIES[op](rhs_array.dtype)
 
             lhs_array.fill(np.array(fill_value, dtype=lhs_array.dtype))
 
@@ -1362,8 +1368,6 @@ class DeferredArray(NumPyThunk):
             task.execute()
 
         else:
-            argred = op in (UnaryRedCode.ARGMAX, UnaryRedCode.ARGMIN)
-
             if argred:
                 argred_dtype = self.runtime.get_arg_dtype(rhs_array.dtype)
                 lhs_array = self.runtime.create_empty_thunk(
