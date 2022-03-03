@@ -16,9 +16,9 @@
 
 #include "cunumeric/matrix/dot.h"
 #include "cunumeric/matrix/dot_template.inl"
+#include "cunumeric/omp_help.h"
 
 #include <omp.h>
-#include <alloca.h>
 
 namespace cunumeric {
 
@@ -39,7 +39,7 @@ struct DotImplBody<VariantKind::OMP, CODE> {
   {
     const auto volume      = rect.volume();
     const auto max_threads = omp_get_max_threads();
-    auto locals            = static_cast<ACC*>(alloca(max_threads * sizeof(ACC)));
+    ThreadLocalStorage<ACC> locals(max_threads);
     for (auto idx = 0; idx < max_threads; ++idx) locals[idx] = SumReduction<ACC>::identity;
 
     if (dense) {
