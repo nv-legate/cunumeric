@@ -16,6 +16,7 @@
 
 #include "cunumeric/search/nonzero.h"
 #include "cunumeric/search/nonzero_template.inl"
+#include "cunumeric/omp_help.h"
 
 #include <omp.h>
 
@@ -36,11 +37,11 @@ struct NonzeroImplBody<VariantKind::OMP, CODE, DIM> {
   {
     const auto max_threads = omp_get_max_threads();
 
-    int64_t size     = 0;
-    int64_t* offsets = static_cast<int64_t*>(alloca(max_threads * sizeof(int64_t)));
+    int64_t size = 0;
+    ThreadLocalStorage<int64_t> offsets(max_threads);
 
     {
-      int64_t* sizes = static_cast<int64_t*>(alloca(max_threads * sizeof(int64_t)));
+      ThreadLocalStorage<int64_t> sizes(max_threads);
       for (auto idx = 0; idx < max_threads; ++idx) sizes[idx] = 0;
 #pragma omp parallel
       {

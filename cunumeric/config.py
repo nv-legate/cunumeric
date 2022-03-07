@@ -108,6 +108,8 @@ class CuNumericOpCode(IntEnum):
     TRSM = _cunumeric.CUNUMERIC_TRSM
     UNARY_OP = _cunumeric.CUNUMERIC_UNARY_OP
     UNARY_RED = _cunumeric.CUNUMERIC_UNARY_RED
+    UNIQUE = _cunumeric.CUNUMERIC_UNIQUE
+    UNIQUE_REDUCE = _cunumeric.CUNUMERIC_UNIQUE_REDUCE
     UNLOAD_CUDALIBS = _cunumeric.CUNUMERIC_UNLOAD_CUDALIBS
     WHERE = _cunumeric.CUNUMERIC_WHERE
     WRITE = _cunumeric.CUNUMERIC_WRITE

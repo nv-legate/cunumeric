@@ -21,7 +21,9 @@
 #include <cusolverDn.h>
 #include <cuda_runtime.h>
 #include <cufft.h>
+#include <cufftXt.h>
 #include <cutensor.h>
+#include <nccl.h>
 
 #define THREADS_PER_BLOCK 128
 #define MIN_CTAS_PER_SM 4
@@ -59,6 +61,12 @@
     check_cutensor(__result__, __FILE__, __LINE__); \
   } while (false)
 
+#define CHECK_NCCL(expr)                    \
+  do {                                      \
+    ncclResult_t result = (expr);           \
+    check_nccl(result, __FILE__, __LINE__); \
+  } while (false)
+
 #ifndef MAX
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
 #endif
@@ -70,7 +78,30 @@ namespace cunumeric {
 
 struct cufftPlan {
   cufftHandle handle;
-  size_t workarea_size;
+  size_t workarea;
+};
+
+class cufftContext {
+ public:
+  cufftContext(cufftPlan* plan);
+  ~cufftContext();
+
+ public:
+  cufftContext(const cufftContext&) = delete;
+  cufftContext& operator=(const cufftContext&) = delete;
+
+ public:
+  cufftContext(cufftContext&&) = default;
+  cufftContext& operator=(cufftContext&&) = default;
+
+ public:
+  cufftHandle handle();
+  size_t workarea_size();
+  void set_callback(cufftXtCallbackType type, void* callback, void* data);
+
+ private:
+  cufftPlan* plan_{nullptr};
+  std::set<cufftXtCallbackType> callback_types_{};
 };
 
 // Defined in cudalibs.cu
@@ -80,7 +111,7 @@ cudaStream_t get_cached_stream();
 cublasHandle_t get_cublas();
 cusolverDnHandle_t get_cusolver();
 cutensorHandle_t* get_cutensor();
-cufftPlan* get_cufft_plan(cufftType type, const Legion::DomainPoint& size);
+cufftContext get_cufft_plan(cufftType type, const Legion::DomainPoint& size);
 
 __host__ inline void check_cuda(cudaError_t error, const char* file, int line)
 {
@@ -141,6 +172,18 @@ __host__ inline void check_cutensor(cutensorStatus_t result, const char* file, i
             file,
             line);
     exit(result);
+  }
+}
+
+__host__ inline void check_nccl(ncclResult_t error, const char* file, int line)
+{
+  if (error != ncclSuccess) {
+    fprintf(stderr,
+            "Internal NCCL failure with error %s in file %s at line %d\n",
+            ncclGetErrorString(error),
+            file,
+            line);
+    exit(error);
   }
 }
 

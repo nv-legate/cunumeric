@@ -31,4 +31,6 @@ realm_defines.h
 cunumeric/install_info.py
 /build/*
 /docs/cunumeric/build
+/docs/cunumeric/source/api/generated
+/docs/cunumeric/source/comparison/comparison_table.rst.inc
 *.egg-info
