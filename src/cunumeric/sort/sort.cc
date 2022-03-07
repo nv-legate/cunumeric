@@ -78,19 +78,15 @@ struct SortImplBody<VariantKind::CPU, CODE, DIM> {
 #endif
 
     const size_t sort_dim_size = global_shape[DIM - 1];
+
+    assert(dense);
     assert(!is_index_space || DIM > 1);  // not implemented for now
 
     // make a copy of the input
     auto dense_input_copy = create_buffer<VAL>(volume);
-    if (dense) {
+    {
       auto* src = input.ptr(rect.lo);
       std::copy(src, src + volume, dense_input_copy.ptr(0));
-    } else {
-      auto* target = dense_input_copy.ptr(0);
-      for (size_t offset = 0; offset < volume; ++offset) {
-        auto point     = pitches.unflatten(offset, rect.lo);
-        target[offset] = input[rect.lo + point];
-      }
     }
 
     // we need a buffer for argsort
@@ -108,22 +104,6 @@ struct SortImplBody<VariantKind::CPU, CODE, DIM> {
       } else {
         AccessorWO<VAL, DIM> output = output_array.write_accessor<VAL, DIM>(rect);
         std::copy(dense_input_copy.ptr(0), dense_input_copy.ptr(0) + volume, output.ptr(rect.lo));
-      }
-    } else {
-      if (argsort) {
-        AccessorWO<int64_t, DIM> output = output_array.write_accessor<int64_t, DIM>(rect);
-        auto* source                    = indices_buffer.ptr(0);
-        for (size_t offset = 0; offset < volume; ++offset) {
-          auto point              = pitches.unflatten(offset, rect.lo);
-          output[rect.lo + point] = source[offset];
-        }
-      } else {
-        AccessorWO<VAL, DIM> output = output_array.write_accessor<VAL, DIM>(rect);
-        auto* source                = dense_input_copy.ptr(0);
-        for (size_t offset = 0; offset < volume; ++offset) {
-          auto point              = pitches.unflatten(offset, rect.lo);
-          output[rect.lo + point] = source[offset];
-        }
       }
     }
   }
