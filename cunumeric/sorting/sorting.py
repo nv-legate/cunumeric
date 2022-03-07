@@ -57,30 +57,34 @@ def sort_swapped(output, input, argsort, sort_axis):
 
 
 def sort_task(output, input, argsort):
-    needs_communication = output.runtime.num_gpus > 1 or (
-        output.runtime.num_gpus == 0 and output.runtime.num_procs > 1
-    )
-
-    if needs_communication:
-        output.runtime.legate_runtime.issue_execution_fence(block=True)
-
     task = output.context.create_task(CuNumericOpCode.SORT)
 
-    task.add_output(output.base)
+    needs_unbound_output = output.runtime.num_gpus > 1 and input.ndim == 1
+
+    if needs_unbound_output:
+        unbound = output.runtime.create_unbound_thunk(dtype=output.dtype)
+        task.add_output(unbound.base)
+    else:
+        task.add_output(output.base)
+        task.add_alignment(output.base, input.base)
+
     task.add_input(input.base)
-    task.add_alignment(output.base, input.base)
+
     if output.ndim > 1:
         task.add_broadcast(input.base, input.ndim - 1)
-    elif needs_communication:
-        # print("Distributed 1D sort --> broadcast")
+    elif output.runtime.num_gpus > 0:
+        task.add_nccl_communicator()
+    elif output.runtime.num_procs > 1:
+        # Distributed 1D sort on CPU not supported yet
         task.add_broadcast(input.base)
 
     task.add_scalar_arg(argsort, bool)  # return indices flag
     task.add_scalar_arg(input.base.shape, (ty.int32,))
     task.execute()
 
-    if needs_communication:
-        output.runtime.legate_runtime.issue_execution_fence(block=True)
+    if needs_unbound_output:
+        output.base = unbound.base
+        output.numpy_array = None
 
 
 def sorting(output, input, argsort, axis=-1):

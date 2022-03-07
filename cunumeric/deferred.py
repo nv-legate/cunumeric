@@ -1342,6 +1342,8 @@ class DeferredArray(NumPyThunk):
         rhs_array = src
         assert lhs_array.ndim <= rhs_array.ndim
 
+        argred = op in (UnaryRedCode.ARGMAX, UnaryRedCode.ARGMIN)
+
         # See if we are doing reduction to a point or another region
         if lhs_array.size == 1:
             assert axes is None or len(axes) == (
@@ -1350,7 +1352,11 @@ class DeferredArray(NumPyThunk):
 
             task = self.context.create_task(CuNumericOpCode.SCALAR_UNARY_RED)
 
-            fill_value = _UNARY_RED_IDENTITIES[op](rhs_array.dtype)
+            if initial is not None:
+                assert not argred
+                fill_value = initial
+            else:
+                fill_value = _UNARY_RED_IDENTITIES[op](rhs_array.dtype)
 
             lhs_array.fill(np.array(fill_value, dtype=lhs_array.dtype))
 
@@ -1363,8 +1369,6 @@ class DeferredArray(NumPyThunk):
             task.execute()
 
         else:
-            argred = op in (UnaryRedCode.ARGMAX, UnaryRedCode.ARGMIN)
-
             if argred:
                 argred_dtype = self.runtime.get_arg_dtype(rhs_array.dtype)
                 lhs_array = self.runtime.create_empty_thunk(
@@ -1518,6 +1522,26 @@ class DeferredArray(NumPyThunk):
         cholesky(self, src)
         if not no_tril:
             self.trilu(self, 0, True)
+
+    def unique(self):
+        result = self.runtime.create_unbound_thunk(self.dtype)
+
+        task = self.context.create_task(CuNumericOpCode.UNIQUE)
+
+        task.add_output(result.base)
+        task.add_input(self.base)
+
+        if self.runtime.num_gpus > 0:
+            task.add_nccl_communicator()
+
+        task.execute()
+
+        if self.runtime.num_gpus == 0 and self.runtime.num_procs > 1:
+            result.base = self.context.tree_reduce(
+                CuNumericOpCode.UNIQUE_REDUCE, result.base
+            )
+
+        return result
 
     @auto_convert([1])
     def sort(self, rhs, argsort=False, axis=-1, kind="stable", order=None):

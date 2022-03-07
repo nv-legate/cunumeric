@@ -20,9 +20,9 @@ import cunumeric as num
 
 def compare_assert(a_np, a_num):
     if not num.allclose(a_np, a_num):
-        print("numpy:")
+        print("numpy, shape " + str(a_np.shape) + ":")
         print(a_np)
-        print("cuNumeric:")
+        print("cuNumeric, shape " + str(a_num.shape) + ":")
         print(a_num)
         assert False
 
@@ -30,11 +30,11 @@ def compare_assert(a_np, a_num):
 def test_sort_axis(a_np, a_num, axis):
     compare_assert(a_np, a_num)
     print("Sorting axis " + str(axis) + ":")
-    sort_np = np.sort(a_np, axis)
+    sort_np = np.sort(a_np, axis, kind="stable")
     sort_num = num.sort(a_num, axis)
     compare_assert(sort_np, sort_num)
-    argsort_np = np.sort(a_np, axis)
-    argsort_num = num.sort(a_num, axis)
+    argsort_np = np.argsort(a_np, axis, kind="stable")
+    argsort_num = num.argsort(a_num, axis)
     compare_assert(argsort_np, argsort_num)
 
 
@@ -48,7 +48,6 @@ def test_1D():
     sortA_np = np.sort(A_np)
     print("Result numpy    : " + str(sortA_np))
 
-    # pdb.set_trace()
     sortA_num = num.sort(A_num)
     print("Result cunumeric: " + str(sortA_num))
     compare_assert(sortA_np, sortA_num)
@@ -116,24 +115,13 @@ def test_3D_complex(x_dim, y_dim, z_dim):
 
 
 def test_custom():
-    # 4D still works, >=5D always falls back to numpy
-    a = np.arange(4 * 2 * 2 * 4).reshape(4, 2, 2, 4)
-    a_num = num.array(a)
-
-    test_sort_axis(a, a_num, 1)
-    test_sort_axis(a, a_num, 2)
-    test_sort_axis(a, a_num, a.ndim - 1)
-
-    a = np.arange(4 * 4 * 5 * 2 * 3 * 2 * 2 * 2 * 4).reshape(
-        4, 4, 5, 2, 3, 2, 2, 2, 4
-    )
+    np.random.seed(42)
+    a = generate_random((4,), np.uint8)
+    print("Matrix A")
+    print(a)
 
     a_num = num.array(a)
-
-    test_sort_axis(a, a_num, 1)
-    test_sort_axis(a, a_num, 2)
-    test_sort_axis(a, a_num, 7)
-    test_sort_axis(a, a_num, 4)
+    compare_assert(np.sort_complex(a), num.sort_complex(a_num))
 
     return
 
@@ -145,17 +133,21 @@ def test_api(a=None):
 
     # sort axes
     for i in range(a.ndim):
+        print("sort axis " + str(i))
         compare_assert(np.sort(a, axis=i, kind="stable"), num.sort(a_num, i))
 
     # flatten
+    print("sort flattened")
     compare_assert(
         np.sort(a, axis=None, kind="stable"), num.sort(a_num, axis=None)
     )
 
     # msort
+    print("msort")
     compare_assert(np.msort(a), num.msort(a_num))
 
     # sort_complex
+    print("sort_complex")
     compare_assert(np.sort_complex(a), num.sort_complex(a_num))
 
     # reverse order sort
@@ -174,11 +166,13 @@ def test_api(a=None):
     # argsort
     for i in range(a.ndim):
         compare_assert(a, a_num)
+        print("argsort axis " + str(i))
         compare_assert(
             np.argsort(a, axis=i, kind="stable"), num.argsort(a_num, axis=i)
         )
 
     # flatten
+    print("argsort flattened")
     compare_assert(
         np.argsort(a, axis=None, kind="stable"), num.argsort(a_num, axis=None)
     )
@@ -210,7 +204,7 @@ def generate_random(shape, datatype):
     else:
         print("UNKNOWN type " + str(datatype))
         assert False
-    return a_np
+    return a_np.reshape(shape)
 
 
 def test_dtypes():
@@ -246,8 +240,6 @@ def test():
     test_3D(51, 23, 17)
     print("\n\n -----------  3D test (complex) -----\n")
     test_3D_complex(27, 30, 45)
-    # print("\n\n -----------  4D/5D test-------------\n")
-    # test_custom()
     print("\n\n -----------  API test --------------\n")
     test_api()
     print("\n\n -----------  dtype test ------------\n")
@@ -256,3 +248,4 @@ def test():
 
 if __name__ == "__main__":
     test()
+    # test_custom()

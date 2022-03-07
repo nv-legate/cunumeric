@@ -46,10 +46,10 @@ struct DiagImpl {
         end   = std::min(end, shape_in.hi[i]);
       }
       coord_t distance = end - start + 1;
+      if (distance < 0) return;
 
       auto in  = args.matrix.read_accessor<VAL, DIM>(shape_in);
       auto out = args.diag.reduce_accessor<SumReduction<VAL>, true, DIM>(shape_out);
-      if (distance < 0) return;
 
       DiagImplBody<KIND, CODE, DIM, true>()(
         out, in, start, pitches_in, shape_in, args.naxes, distance);
