@@ -5860,13 +5860,12 @@ def sort_complex(a):
     Single GPU, Single CPU
     """
 
-    # force complex result
-    if np.issubdtype(a.dtype, np.complexfloating):
-        out = a
+    result = sort(a)
+    # force complex result upon return
+    if np.issubdtype(result.dtype, np.complexfloating):
+        return result
     else:
-        out = a.astype(np.complex64, copy=True)
-
-    return sort(out)
+        return result.astype(np.complex64, copy=True)
 
 
 # Searching
