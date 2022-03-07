@@ -5333,54 +5333,6 @@ def convolve(a, v, mode="full"):
     return out
 
 
-def cholesky(a, no_tril=False):
-    """Cholesky decomposition.
-
-    Return the Cholesky decomposition, `L * L.H`, of the square matrix `a`,
-    where `L` is lower-triangular and .H is the conjugate transpose operator
-    (which is the ordinary transpose if `a` is real-valued).  `a` must be
-    Hermitian (symmetric if real-valued) and positive-definite. No
-    checking is performed to verify whether `a` is Hermitian or not.
-    In addition, only the lower-triangular and diagonal elements of `a`
-    are used. Only `L` is actually returned.
-
-    Parameters
-    ----------
-    a : (..., M, M) array_like
-        Hermitian (symmetric if all elements are real), positive-definite
-        input matrix.
-
-    Returns
-    -------
-    L : (..., M, M) array_like
-        Upper or lower-triangular Cholesky factor of `a`.  Returns a
-        matrix object if `a` is a matrix object.
-
-    Notes
-    -----
-    The current implementation kills the process when the decomposition fails.
-
-    See Also
-    --------
-    numpy.linalg.cholesky
-
-    Availability
-    --------
-    Multiple GPUs, Multiple CPUs
-
-    """
-    input = a
-    if input.dtype.kind not in ("f", "c"):
-        input = input.astype("float64")
-    output = ndarray(
-        shape=input.shape,
-        dtype=input.dtype,
-        inputs=(input,),
-    )
-    output._thunk.cholesky(input._thunk, no_tril=no_tril)
-    return output
-
-
 @add_boilerplate("a")
 def clip(a, a_min, a_max, out=None):
     """

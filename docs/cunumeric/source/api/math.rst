@@ -107,7 +107,6 @@ Miscellaneous
 .. autosummary::
    :toctree: generated/
 
-   cholesky
    convolve
    clip
    sqrt

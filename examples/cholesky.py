@@ -24,7 +24,7 @@ def cholesky(n, dtype):
     input = np.eye(n, dtype=dtype)
 
     start = time()
-    np.cholesky(input, no_tril=True)
+    np.linalg.cholesky(input)
     stop = time()
     flops = (n**3) / 3 + 2 * n / 3
     print(f"{(stop - start) * 1e-3} ms, {flops / (stop - start) * 1e-3} GOP/s")
