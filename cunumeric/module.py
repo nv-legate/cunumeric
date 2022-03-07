@@ -15,7 +15,7 @@
 
 import math
 import re
-from collections import Counter, deque
+from collections import Counter, defaultdict, deque
 from functools import wraps
 from inspect import signature
 from itertools import chain
@@ -1265,6 +1265,8 @@ def _concatenate(
     casting="same_kind",
     common_info=None,
 ):
+    if axis < 0:
+        axis += len(common_info.shape)
     leading_dim = _builtin_sum(arr.shape[axis] for arr in inputs)
     out_shape = list(common_info.shape)
     out_shape[axis] = leading_dim
@@ -1329,18 +1331,68 @@ def append(arr, values, axis=None):
     )
     return concatenate(inputs, axis)
 
+
 def block(arrays):
-    # arrays should concatenate in DFS way
+    """
+    Assemble an nd-array from nested lists of blocks.
+
+    Blocks in the innermost lists are concatenated (see concatenate)
+    along the last dimension (-1), then these are concatenated along
+    the second-last dimension (-2), and so on until the outermost
+    list is reached.
+
+    Blocks can be of any dimension, but will not be broadcasted using
+    the normal rules. Instead, leading axes of size 1 are inserted,
+    to make block.ndim the same for all blocks. This is primarily useful
+    for working with scalars, and means that code like np.block([v, 1])
+    is valid, where v.ndim == 1.
+
+    When the nested list is two levels deep, this allows block matrices
+    to be constructed from their components.
+
+    Parameters
+    ----------
+    arrays : nested list of array_like or scalars (but not tuples)
+        If passed a single ndarray or scalar (a nested list of depth 0),
+        this is returned unmodified (and not copied).
+
+        Elements shapes must match along the appropriate axes (without
+        broadcasting), but leading 1s will be prepended to the shape as
+        necessary to make the dimensions match.
+
+    Returns
+    -------
+    block_array : ndarray
+        The array assembled from the given blocks.
+        The dimensionality of the output is equal to the greatest of: * the
+        dimensionality of all the inputs * the depth to which the input list
+        is nested
+
+    Raises
+    ------
+    ValueError
+        If list depths are mismatched - for instance, [[a, b], c] is
+        illegal, and should be spelt [[a, b], [c]]
+        If lists are empty - for instance, [[a, b], []]
+
+    See Also
+    --------
+    numpy.block
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+
+    """
+    # arrays should concatenate from innermost subarrays
     # the 'arrays' should be balanced tree
     active_arr = deque()
-    active_arr.append((0, arrays))
+    active_arr.append(((0,), arrays))
+    leaf_map = defaultdict(list)
 
-    level = 0
-    leaf_map = dict()
-    idx = 0
     # check if the 'arrays' is a balanced tree
     while len(active_arr) > 0:
-        top = active_arr.pop()
+        top = active_arr.popleft()
         if type(top[1]) is list:
             # check if this is a leaf
             nlist = 0
@@ -1350,47 +1402,59 @@ def block(arrays):
                     nlist += 1
             # this is a leaf
             if nlist == 0:
-                leaf_map[len(top[0])] = top[1]
+                if len(top[1]) == 0:
+                    ValueError(f"List at {top[0]} " f"cannot be empty")
+                leaf_map[len(top[0])].append((top[0], top[1]))
             elif nlist < len(top[1]):
                 ValueError(
                     f"some elements in depth {len(top[0])} "
                     f"have different depths"
                 )
-    ref = leaf_map[-1].key
-    for leaf in leaf_map:
-        if len(leaf.key) != len(ref):
-            ValueError(
-                f"List depths for innermost elements are not matched"
-                f"array[leaf.key] is at depth {len(leaf.key)}"
-                f"array[ref] is at depth {len(ref)}"
-            )
+    keys = list(leaf_map.keys())
+    if len(keys) > 1:
+        ValueError(
+            f"List depths for innermost elements are not matched"
+            f"array[keys[0]] is at depth {len(keys[0])}"
+            f"array[keys[1]] is at depth {len(keys[1])}"
+        )
+    # fill the working deque w/ innermost arrays
+    active_arr.extend(*leaf_map.values())
+    depth = keys[0]
 
-    level = 0
-    # concatenate elements in 'arrays' like DFS
-    active_arr.push((0, arrays))
-    while len(active_arr) > 1:
+    while len(active_arr) > 0 and len(active_arr[-1][0]) > 0:
         elem = active_arr.pop()
-        level = len(elem[0])
-        # leaf nodes in the tree are array-like
-        if type(elem[1]) is not list:
-            siblings = []
-            while len(active_arr[-1][0]) == level:
-                siblings.append(active_arr.pop())
-            inputs = list(
-                ndarray.convert_to_cunumeric_ndarray(inp) for inp in siblings
-            )
-            reshaped = list(
-                inp.reshape([1, inp.shape[0]]) if inp.ndim == 1 else inp
-                for inp in inputs
-            )
-            merged = concatenate(reshaped, level)
-            active_arr.appendleft(elem[0][:-1], merged)
-        # the `elem` has list having more than one elements
-        elif elem[1] is list:
-            for each, idx in enumerate(elem[1]):
-                active_arr.append((*elem[0], idx), each)
+        cur_depth = len(elem[0])
+        siblings = []
+        max_ndim = 0
+        # collect siblings under the same parent
+        while len(active_arr) > 0 and active_arr[-1][0] == elem[0]:
+            siblings.append(active_arr.pop()[1])
 
-    return active_arr[0]
+        if len(siblings) > 0 or cur_depth < depth:
+            siblings.append(elem[1])
+        elif cur_depth == depth:
+            siblings = elem[1]
+
+        inputs = list(
+            ndarray.convert_to_cunumeric_ndarray(inp) for inp in siblings
+        )
+        # Computes the maximum number of dimensions for the concatenation
+        max_list = list(inp.ndim for inp in inputs)
+        max_list.append(1 + (depth - cur_depth))
+        max_ndim = _builtin_max(max_list)
+        # Append leading 1's to make elements to have the same 'ndim'
+        reshaped = list(
+            inp.reshape((1,) * (max_ndim - inp.ndim) + inp.shape)
+            if max_ndim > inp.ndim
+            else inp
+            for inp in inputs
+        )
+
+        merged = concatenate(reshaped, axis=-1 + (cur_depth - depth))
+        active_arr.appendleft((elem[0][:-1], merged))
+
+    # return what's left in the deque
+    return active_arr[0][1]
 
 
 def concatenate(inputs, axis=0, out=None, dtype=None, casting="same_kind"):
