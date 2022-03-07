@@ -32,6 +32,7 @@ from .config import (
     UnaryRedCode,
 )
 from .linalg.cholesky import cholesky
+from .sorting.sorting import sorting
 from .thunk import NumPyThunk
 from .utils import get_arg_value_dtype
 
@@ -1541,3 +1542,24 @@ class DeferredArray(NumPyThunk):
             )
 
         return result
+
+    @auto_convert([1])
+    def sort(self, rhs, argsort=False, axis=-1, kind="stable", order=None):
+
+        if kind != "stable":
+            self.runtime.warn(
+                "cuNumeric uses a different (stable) algorithm than "
+                + str(kind)
+                + " for sorting",
+                category=RuntimeWarning,
+                stacklevel=2,
+            )
+        if order is not None:
+            raise NotImplementedError(
+                "cuNumeric does not support sorting with 'order' as "
+                "ndarray only supports numeric values"
+            )
+        if axis is not None and (axis >= rhs.ndim or axis < -rhs.ndim):
+            raise ValueError("invalid axis")
+
+        sorting(self, rhs, argsort, axis)
