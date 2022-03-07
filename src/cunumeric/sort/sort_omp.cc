@@ -83,7 +83,7 @@ struct SortImplBody<VariantKind::OMP, CODE, DIM> {
     assert(!is_index_space || DIM > 1);  // not implemented for now
 
     // make a copy of the input
-    auto dense_input_copy = create_buffer<VAL>(volume, Legion::Memory::Kind::SOCKET_MEM);
+    auto dense_input_copy = create_buffer<VAL>(volume);
     if (dense) {
       auto* src = input.ptr(rect.lo);
       std::copy(src, src + volume, dense_input_copy.ptr(0));
@@ -96,8 +96,7 @@ struct SortImplBody<VariantKind::OMP, CODE, DIM> {
     }
 
     // we need a buffer for argsort
-    auto indices_buffer =
-      create_buffer<int64_t>(argsort ? volume : 0, Legion::Memory::Kind::SOCKET_MEM);
+    auto indices_buffer = create_buffer<int64_t>(argsort ? volume : 0);
 
     // sort data
     thrust_local_sort_inplace(
