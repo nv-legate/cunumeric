@@ -65,6 +65,15 @@ Scalar CuNumericMapper::tunable_value(TunableID tunable_id)
       }
       return Scalar(eager_volume);
     }
+    case CUNUMERIC_TUNABLE_HAS_NUMAMEM: {
+      // TODO: This assumes that either all OpenMP processors across the machine have a NUMA
+      // memory or none does.
+      Legion::Machine::MemoryQuery query(machine);
+      query.local_address_space();
+      query.only_kind(Legion::Memory::SOCKET_MEM);
+      int32_t has_numamem = query.count() > 0;
+      return Scalar(has_numamem);
+    }
     default: break;
   }
   LEGATE_ABORT;  // unknown tunable value
