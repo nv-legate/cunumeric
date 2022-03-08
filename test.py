@@ -105,6 +105,7 @@ def run_test(
     env,
     root_dir,
     verbose,
+    only_pattern,
 ):
     test_path = os.path.join(root_dir, test_file)
     try:
@@ -161,7 +162,15 @@ def run_test_legate(
     opts,
     workers,
     num_procs,
+    only_pattern,
 ):
+    if only_pattern is not None:
+        legate_tests.clear()
+        to_test = set(
+            glob.glob("**/*" + only_pattern + "*.py", recursive=True)
+        )
+        legate_tests.extend(to_test)
+
     if test_name == "GPU":
         try:
             import pynvml
@@ -198,6 +207,7 @@ def run_test_legate(
                 env,
                 root_dir,
                 verbose,
+                only_pattern,
             )
             total_pass += report_result(test_name, result)
     else:
@@ -220,6 +230,7 @@ def run_test_legate(
                         env,
                         root_dir,
                         verbose,
+                        only_pattern,
                     ),
                 )
             )
@@ -297,9 +308,18 @@ def run_tests(
     options=[],
     interop_tests=False,
     workers=None,
+    only_pattern=None,
 ):
     if interop_tests:
-        legate_tests.extend(glob.glob("tests/interop/*.py"))
+        legate_tests.extend(glob.glob("tests/interop/*.py"))  # noqa: F823
+
+    if only_pattern is not None:
+        if only_pattern is not None:
+            legate_tests.clear()
+            to_test = set(
+                glob.glob("**/*" + only_pattern + "*.py", recursive=True)
+            )
+            legate_tests.extend(to_test)
 
     if root_dir is None:
         root_dir = os.path.dirname(os.path.realpath(__file__))
@@ -369,6 +389,7 @@ def run_tests(
                 options,
                 workers,
                 1,
+                only_pattern,
             )
             total_pass += count
             total_count += len(legate_tests)
@@ -384,6 +405,7 @@ def run_tests(
                 options,
                 workers,
                 cpus,
+                only_pattern,
             )
             total_pass += count
             total_count += len(legate_tests)
@@ -399,6 +421,7 @@ def run_tests(
                 options,
                 workers,
                 gpus,
+                only_pattern,
             )
             total_pass += count
             total_count += len(legate_tests)
@@ -420,6 +443,7 @@ def run_tests(
                 options,
                 workers,
                 openmp * ompthreads,
+                only_pattern,
             )
             total_pass += count
             total_count += len(legate_tests)
@@ -555,6 +579,14 @@ def driver():
         default=None,
         dest="workers",
         help="Number of parallel workers for testing",
+    )
+    parser.add_argument(
+        "--only",
+        dest="only_pattern",
+        type=str,
+        required=False,
+        default=None,
+        help="Glob pattern selecting test cases to run.",
     )
 
     args, opts = parser.parse_known_args()
