@@ -14,61 +14,62 @@
 #
 
 import numpy as np
+from cunumeric.array import convert_to_cunumeric_ndarray
 from test_tools import asserts
 
 import cunumeric as num
 
 
 def test():
-    x = num.ndarray.convert_to_cunumeric_ndarray([])
+    x = convert_to_cunumeric_ndarray([])
     y = np.array([])
     asserts.assert_equal(x, y)
     z = num.array([])
     asserts.assert_equal(y, z)
 
-    x = num.ndarray.convert_to_cunumeric_ndarray([[]])
+    x = convert_to_cunumeric_ndarray([[]])
     y = np.array([[]])
     asserts.assert_equal(x, y)
     z = num.array([[]])
     asserts.assert_equal(y, z)
 
-    x = num.ndarray.convert_to_cunumeric_ndarray([[[]]])
+    x = convert_to_cunumeric_ndarray([[[]]])
     y = np.array([[[]]])
     asserts.assert_equal(x, y)
     z = num.array([[[]]])
     asserts.assert_equal(y, z)
 
-    x = num.ndarray.convert_to_cunumeric_ndarray([[], []])
+    x = convert_to_cunumeric_ndarray([[], []])
     y = np.array([[], []])
     asserts.assert_equal(x, y)
     z = num.array([[], []])
     asserts.assert_equal(y, z)
 
-    x = num.ndarray.convert_to_cunumeric_ndarray([1])
+    x = convert_to_cunumeric_ndarray([1])
     y = np.array([1])
     asserts.assert_equal(x, y)
     z = num.array([1])
     asserts.assert_equal(y, z)
 
-    x = num.ndarray.convert_to_cunumeric_ndarray([[1]])
+    x = convert_to_cunumeric_ndarray([[1]])
     y = np.array([[1]])
     asserts.assert_equal(x, y)
     z = num.array([[1]])
     asserts.assert_equal(y, z)
 
-    x = num.ndarray.convert_to_cunumeric_ndarray([[[1]]])
+    x = convert_to_cunumeric_ndarray([[[1]]])
     y = np.array([[[1]]])
     asserts.assert_equal(x, y)
     z = num.array([[[1]]])
     asserts.assert_equal(y, z)
 
-    x = num.ndarray.convert_to_cunumeric_ndarray([[1], [1]])
+    x = convert_to_cunumeric_ndarray([[1], [1]])
     y = np.array([[1], [1]])
     asserts.assert_equal(x, y)
     z = num.array([[1], [1]])
     asserts.assert_equal(y, z)
 
-    x = num.ndarray.convert_to_cunumeric_ndarray([1, 2, 3, 4])
+    x = convert_to_cunumeric_ndarray([1, 2, 3, 4])
     y = np.array([1, 2, 3, 4])
     asserts.assert_equal(x, y)
     z = num.array([1, 2, 3, 4])
