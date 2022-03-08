@@ -67,7 +67,7 @@ struct MatVecMulImpl {
     size_t lhs_strides[2];
     auto lhs = args.lhs.reduce_accessor<SumReduction<ACC>, true, 2>().ptr(shape, lhs_strides);
 
-#ifdef CUNUMERIC_DEBUG
+#ifdef DEBUG_CUNUMERIC
     assert(vec_strides[0] == 0 && vec_strides[1] == 1);
     assert(lhs_strides[0] == 1 && lhs_strides[1] == 0);
 #endif

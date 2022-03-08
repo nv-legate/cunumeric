@@ -70,7 +70,7 @@ struct MatMulImpl {
     auto rhs2 = args.rhs2.read_accessor<VAL, 3>(shape).ptr(shape, rhs2_strides);
     auto lhs  = args.lhs.reduce_accessor<SumReduction<ACC>, true, 3>(shape).ptr(shape, lhs_strides);
 
-#ifdef CUNUMERIC_DEBUG
+#ifdef DEBUG_CUNUMERIC
     assert(rhs1_strides[2] == 0);
     assert(rhs2_strides[0] == 0);
     assert(lhs_strides[2] == 1 && lhs_strides[1] == 0);

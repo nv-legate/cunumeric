@@ -27,14 +27,14 @@ size_t stride_for_blas(size_t m, size_t n, size_t x_stride, size_t y_stride, boo
   if (n == 1) {
     // Column matrix: Every row has exactly 1 element, therefore it is trivially contiguous. Any
     // stride between rows is acceptable.
-#ifdef CUNUMERIC_DEBUG
+#ifdef DEBUG_CUNUMERIC
     assert(x_stride >= 1);
 #endif
     blas_stride = x_stride;
     transpose   = false;
   } else if (m == 1) {
     // Row matrix
-#ifdef CUNUMERIC_DEBUG
+#ifdef DEBUG_CUNUMERIC
     assert(y_stride >= 1);
 #endif
     if (y_stride == 1) {
@@ -52,7 +52,7 @@ size_t stride_for_blas(size_t m, size_t n, size_t x_stride, size_t y_stride, boo
     // General case: One dimension needs to be contiguous. If that's not the last dimension, then
     // the matrix represents the transpose of a row-major nxm matrix. We then tell the BLAS library
     // that we are passing a row-major nxm matrix, and ask for the matrix to be transposed.
-#ifdef CUNUMERIC_DEBUG
+#ifdef DEBUG_CUNUMERIC
     assert(x_stride == 1 && y_stride > 1 || y_stride == 1 && x_stride > 1);
 #endif
     blas_stride = std::max(x_stride, y_stride);
