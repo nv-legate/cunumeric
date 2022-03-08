@@ -30,7 +30,7 @@ def gen_result(lib):
 
 def test():
     for (np_res, cn_res) in zip(gen_result(np), gen_result(cn)):
-        assert np.array_equal(np_res, cn_res)
+        assert np.allclose(np_res, cn_res)
 
 
 if __name__ == "__main__":
