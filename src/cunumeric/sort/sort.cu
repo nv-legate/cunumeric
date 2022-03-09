@@ -205,7 +205,7 @@ void thrust_local_sort_inplace(
 {
   if (argptr == nullptr) {
     if (volume == sort_dim_size) {
-      thrust::stable_sort(thrust::cuda::par.on(stream), inptr, inptr + volume);
+      thrust::sort(thrust::cuda::par.on(stream), inptr, inptr + volume);
     } else {
       auto sort_id = create_buffer<uint64_t>(volume, Legion::Memory::Kind::GPU_FB_MEM);
       // init combined keys
@@ -217,10 +217,10 @@ void thrust_local_sort_inplace(
                         thrust::divides<uint64_t>());
       auto combined = thrust::make_zip_iterator(thrust::make_tuple(sort_id.ptr(0), inptr));
 
-      thrust::stable_sort(thrust::cuda::par.on(stream),
-                          combined,
-                          combined + volume,
-                          thrust::less<thrust::tuple<size_t, VAL>>());
+      thrust::sort(thrust::cuda::par.on(stream),
+                   combined,
+                   combined + volume,
+                   thrust::less<thrust::tuple<size_t, VAL>>());
     }
   } else {
     if (volume == sort_dim_size) {

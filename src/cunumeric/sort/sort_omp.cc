@@ -41,7 +41,7 @@ struct SortImplBody<VariantKind::OMP, CODE, DIM> {
       // sort (in place)
 #pragma omp parallel for
       for (size_t start_idx = 0; start_idx < volume; start_idx += sort_dim_size) {
-        thrust::stable_sort(thrust::host, inptr + start_idx, inptr + start_idx + sort_dim_size);
+        thrust::sort(thrust::host, inptr + start_idx, inptr + start_idx + sort_dim_size);
       }
     } else {
       // argsort
