@@ -1518,9 +1518,7 @@ class DeferredArray(NumPyThunk):
 
     @auto_convert([1])
     def cholesky(self, src, no_tril=False):
-        cholesky(self, src)
-        if not no_tril:
-            self.trilu(self, 0, True)
+        cholesky(self, src, no_tril)
 
     def unique(self):
         result = self.runtime.create_unbound_thunk(self.dtype)
