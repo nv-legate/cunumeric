@@ -263,7 +263,7 @@ void local_sort_inplace(legate_type_of<CODE>* inptr,
                         cudaStream_t stream)
 {
   using VAL = legate_type_of<CODE>;
-  if (volume > 0) { cub_local_sort_inplace<VAL>(inptr, argptr, volume, sort_dim_size, stream); }
+  cub_local_sort_inplace<VAL>(inptr, argptr, volume, sort_dim_size, stream);
 }
 
 template <LegateTypeCode CODE, std::enable_if_t<!support_cub<CODE>::value>* = nullptr>
@@ -274,7 +274,7 @@ void local_sort_inplace(legate_type_of<CODE>* inptr,
                         cudaStream_t stream)
 {
   using VAL = legate_type_of<CODE>;
-  if (volume > 0) { thrust_local_sort_inplace<VAL>(inptr, argptr, volume, sort_dim_size, stream); }
+  thrust_local_sort_inplace<VAL>(inptr, argptr, volume, sort_dim_size, stream);
 }
 
 // auto align to multiples of 16 bytes
@@ -576,48 +576,66 @@ struct SortImplBody<VariantKind::GPU, CODE, DIM> {
 
     auto stream = get_cached_stream();
 
-    // make a copy of the input
-    auto dense_input_copy = create_buffer<VAL>(volume, Legion::Memory::Kind::GPU_FB_MEM);
-    CHECK_CUDA(cudaMemcpyAsync(dense_input_copy.ptr(0),
-                               input.ptr(rect.lo),
-                               sizeof(VAL) * volume,
-                               cudaMemcpyDeviceToDevice,
-                               stream));
+    // initialize sort pointers
+    SortPiece<VAL> local_sorted;
+    int64_t* indices_ptr = nullptr;
+    VAL* values_ptr      = nullptr;
+    if (argsort) {
+      // make a buffer for input
+      auto input_copy = create_buffer<VAL>(volume, Legion::Memory::Kind::GPU_FB_MEM);
+      values_ptr      = input_copy.ptr(0);
 
-    // we need a buffer for argsort
-    auto indices_buffer =
-      create_buffer<int64_t>(argsort ? volume : 0, Legion::Memory::Kind::GPU_FB_MEM);
-    if (argsort && volume > 0) {
-      // intialize
+      // initialize indices
+      if (output_array.dim() == -1) {
+        auto indices_buffer  = create_buffer<int64_t>(volume, Legion::Memory::Kind::GPU_FB_MEM);
+        indices_ptr          = indices_buffer.ptr(0);
+        local_sorted.values  = input_copy;
+        local_sorted.indices = indices_buffer;
+        local_sorted.size    = volume;
+      } else {
+        AccessorWO<int64_t, DIM> output = output_array.write_accessor<int64_t, DIM>(rect);
+        assert(output.accessor.is_dense_row_major(rect));
+        indices_ptr = output.ptr(rect.lo);
+      }
       if (DIM == 1) {
         size_t offset = DIM > 1 ? 0 : rect.lo[0];
-        thrust::sequence(thrust::cuda::par.on(stream),
-                         indices_buffer.ptr(0),
-                         indices_buffer.ptr(0) + volume,
-                         offset);
+        if (volume > 0) {
+          thrust::sequence(thrust::cuda::par.on(stream), indices_ptr, indices_ptr + volume, offset);
+        }
       } else {
         thrust::transform(thrust::cuda::par.on(stream),
                           thrust::make_counting_iterator<int64_t>(0),
                           thrust::make_counting_iterator<int64_t>(volume),
                           thrust::make_constant_iterator<int64_t>(sort_dim_size),
-                          indices_buffer.ptr(0),
+                          indices_ptr,
                           thrust::modulus<int64_t>());
+      }
+    } else {
+      // initialize output
+      if (output_array.dim() == -1) {
+        auto input_copy      = create_buffer<VAL>(volume, Legion::Memory::Kind::GPU_FB_MEM);
+        values_ptr           = input_copy.ptr(0);
+        local_sorted.values  = input_copy;
+        local_sorted.indices = create_buffer<int64_t>(0, Legion::Memory::Kind::GPU_FB_MEM);
+        ;
+        local_sorted.size = volume;
+      } else {
+        AccessorWO<VAL, DIM> output = output_array.write_accessor<VAL, DIM>(rect);
+        assert(output.accessor.is_dense_row_major(rect));
+        values_ptr = output.ptr(rect.lo);
       }
     }
 
-    // sort data
-    local_sort_inplace<CODE>(dense_input_copy.ptr(0),
-                             argsort ? indices_buffer.ptr(0) : nullptr,
-                             volume,
-                             sort_dim_size,
-                             stream);
+    if (volume > 0) {
+      CHECK_CUDA(cudaMemcpyAsync(
+        values_ptr, input.ptr(rect.lo), sizeof(VAL) * volume, cudaMemcpyDeviceToDevice, stream));
 
-    // this is linked to the decision in sorting.py on when to use adn 'unbounded' output array.
+      // sort data (locally)
+      local_sort_inplace<CODE>(values_ptr, indices_ptr, volume, sort_dim_size, stream);
+    }
+
+    // this is linked to the decision in sorting.py on when to use an 'unbounded' output array.
     if (output_array.dim() == -1) {
-      SortPiece<VAL> local_sorted;
-      local_sorted.values  = dense_input_copy;
-      local_sorted.indices = indices_buffer;
-      local_sorted.size    = volume;
       SortPiece<VAL> local_sorted_repartitioned =
         is_index_space
           ? sample_sort_nccl(
@@ -629,25 +647,6 @@ struct SortImplBody<VariantKind::GPU, CODE, DIM> {
       } else {
         output_array.return_data(local_sorted_repartitioned.values,
                                  local_sorted_repartitioned.size);
-      }
-    } else {
-      // copy back data (we assume output partition to be aliged to input!)
-      if (argsort) {
-        AccessorWO<int64_t, DIM> output = output_array.write_accessor<int64_t, DIM>(rect);
-        assert(output.accessor.is_dense_row_major(rect));
-        CHECK_CUDA(cudaMemcpyAsync(output.ptr(rect.lo),
-                                   indices_buffer.ptr(0),
-                                   sizeof(int64_t) * volume,
-                                   cudaMemcpyDeviceToDevice,
-                                   stream));
-      } else {
-        AccessorWO<VAL, DIM> output = output_array.write_accessor<VAL, DIM>(rect);
-        assert(output.accessor.is_dense_row_major(rect));
-        CHECK_CUDA(cudaMemcpyAsync(output.ptr(rect.lo),
-                                   dense_input_copy.ptr(0),
-                                   sizeof(VAL) * volume,
-                                   cudaMemcpyDeviceToDevice,
-                                   stream));
       }
     }
   }

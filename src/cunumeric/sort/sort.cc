@@ -71,27 +71,29 @@ struct SortImplBody<VariantKind::CPU, CODE, DIM> {
     assert(input.accessor.is_dense_row_major(rect));
     assert(!is_index_space || DIM > 1);  // not implemented for now
 
-    // make a copy of the input
-    auto dense_input_copy = create_buffer<VAL>(volume);
-    {
-      auto* src = input.ptr(rect.lo);
-      std::copy(src, src + volume, dense_input_copy.ptr(0));
-    }
-
-    // we need a buffer for argsort
-    auto indices_buffer = create_buffer<int64_t>(argsort ? volume : 0);
-
-    // sort data
-    thrust_local_sort_inplace(
-      dense_input_copy.ptr(0), argsort ? indices_buffer.ptr(0) : nullptr, volume, sort_dim_size);
-
-    // copy back data (we assume output partition to be aliged to input!)
     if (argsort) {
+      // make copy of the input
+      auto dense_input_copy = create_buffer<VAL>(volume);
+      {
+        auto* src = input.ptr(rect.lo);
+        std::copy(src, src + volume, dense_input_copy.ptr(0));
+      }
+
       AccessorWO<int64_t, DIM> output = output_array.write_accessor<int64_t, DIM>(rect);
-      std::copy(indices_buffer.ptr(0), indices_buffer.ptr(0) + volume, output.ptr(rect.lo));
+
+      // sort data in place
+      thrust_local_sort_inplace(
+        dense_input_copy.ptr(0), output.ptr(rect.lo), volume, sort_dim_size);
+
     } else {
       AccessorWO<VAL, DIM> output = output_array.write_accessor<VAL, DIM>(rect);
-      std::copy(dense_input_copy.ptr(0), dense_input_copy.ptr(0) + volume, output.ptr(rect.lo));
+
+      // init output values
+      auto* src = input.ptr(rect.lo);
+      std::copy(src, src + volume, output.ptr(rect.lo));
+
+      // sort data in place
+      thrust_local_sort_inplace(output.ptr(rect.lo), nullptr, volume, sort_dim_size);
     }
   }
 };
