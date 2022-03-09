@@ -81,7 +81,7 @@ void cub_local_sort_inplace(
   size_t temp_storage_bytes = 0;
   if (argptr == nullptr) {
     if (volume == sort_dim_size) {
-      // sort (initial call to compute bufffer size)
+      // sort (initial call to compute buffer size)
       cub::DeviceRadixSort::SortKeys(
         nullptr, temp_storage_bytes, keys_in.ptr(0), inptr, volume, 0, sizeof(VAL) * 8, stream);
       auto temp_storage =
@@ -95,10 +95,11 @@ void cub_local_sort_inplace(
                                      sizeof(VAL) * 8,
                                      stream);
     } else {
-      // segmented sort (initial call to compute bufffer size)
-      auto off_start_it =
+      // segmented sort (initial call to compute buffer size)
+      // generate start/end positions for all segments via iterators to avoid allocating buffers
+      auto off_start_pos_it =
         thrust::make_transform_iterator(thrust::make_counting_iterator(0), multiply(sort_dim_size));
-      auto off_end_it =
+      auto off_end_pos_it =
         thrust::make_transform_iterator(thrust::make_counting_iterator(1), multiply(sort_dim_size));
 
       cub::DeviceSegmentedRadixSort::SortKeys(nullptr,
@@ -107,8 +108,8 @@ void cub_local_sort_inplace(
                                               inptr,
                                               volume,
                                               volume / sort_dim_size,
-                                              off_start_it,
-                                              off_end_it,
+                                              off_start_pos_it,
+                                              off_end_pos_it,
                                               0,
                                               sizeof(VAL) * 8,
                                               stream);
@@ -121,8 +122,8 @@ void cub_local_sort_inplace(
                                               inptr,
                                               volume,
                                               volume / sort_dim_size,
-                                              off_start_it,
-                                              off_end_it,
+                                              off_start_pos_it,
+                                              off_end_pos_it,
                                               0,
                                               sizeof(VAL) * 8,
                                               stream);
@@ -133,7 +134,7 @@ void cub_local_sort_inplace(
       idx_in.ptr(0), argptr, sizeof(int64_t) * volume, cudaMemcpyDeviceToDevice, stream));
 
     if (volume == sort_dim_size) {
-      // argsort (initial call to compute bufffer size)
+      // argsort (initial call to compute buffer size)
       cub::DeviceRadixSort::SortPairs(nullptr,
                                       temp_storage_bytes,
                                       keys_in.ptr(0),
@@ -159,10 +160,11 @@ void cub_local_sort_inplace(
                                       sizeof(VAL) * 8,
                                       stream);
     } else {
-      // segmented argsort (initial call to compute bufffer size)
-      auto off_start_it =
+      // segmented argsort (initial call to compute buffer size)
+      // generate start/end positions for all segments via iterators to avoid allocating buffers
+      auto off_start_pos_it =
         thrust::make_transform_iterator(thrust::make_counting_iterator(0), multiply(sort_dim_size));
-      auto off_end_it =
+      auto off_end_pos_it =
         thrust::make_transform_iterator(thrust::make_counting_iterator(1), multiply(sort_dim_size));
 
       cub::DeviceSegmentedRadixSort::SortPairs(nullptr,
@@ -173,8 +175,8 @@ void cub_local_sort_inplace(
                                                argptr,
                                                volume,
                                                volume / sort_dim_size,
-                                               off_start_it,
-                                               off_end_it,
+                                               off_start_pos_it,
+                                               off_end_pos_it,
                                                0,
                                                sizeof(VAL) * 8,
                                                stream);
@@ -190,8 +192,8 @@ void cub_local_sort_inplace(
                                                argptr,
                                                volume,
                                                volume / sort_dim_size,
-                                               off_start_it,
-                                               off_end_it,
+                                               off_start_pos_it,
+                                               off_end_pos_it,
                                                0,
                                                sizeof(VAL) * 8,
                                                stream);
