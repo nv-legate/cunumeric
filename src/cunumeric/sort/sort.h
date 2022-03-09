@@ -1,4 +1,4 @@
-/* Copyright 2021-2022 NVIDIA Corporation
+/* Copyright 2022 NVIDIA Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,10 +24,11 @@ struct SortArgs {
   const Array& input;
   Array& output;
   bool argsort;
-  Legion::DomainPoint global_shape;
+  bool stable;
+  size_t sort_dim_size;
   bool is_index_space;
-  Legion::DomainPoint task_index;
-  Legion::Domain launch_domain;
+  size_t local_rank;
+  size_t num_ranks;
 };
 
 template <typename VAL>
@@ -35,23 +36,6 @@ struct SampleEntry {
   VAL value;
   size_t rank;
   size_t local_id;
-};
-
-template <typename VAL>
-struct SampleEntryComparator {
-  bool operator()(const SampleEntry<VAL>& a, const SampleEntry<VAL>& b) const
-  {
-    if (a.value < b.value) {
-      return true;
-    } else if (a.value == b.value) {
-      if (a.rank < b.rank) {
-        return true;
-      } else if (a.rank == b.rank) {
-        return a.local_id < b.local_id;
-      }
-    }
-    return false;
-  }
 };
 
 class SortTask : public CuNumericTask<SortTask> {

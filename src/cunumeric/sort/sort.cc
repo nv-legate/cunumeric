@@ -1,4 +1,4 @@
-/* Copyright 2021-2022 NVIDIA Corporation
+/* Copyright 2022 NVIDIA Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -59,27 +59,16 @@ struct SortImplBody<VariantKind::CPU, CODE, DIM> {
                   const Pitches<DIM - 1>& pitches,
                   const Rect<DIM>& rect,
                   const size_t volume,
+                  const size_t sort_dim_size,
                   const bool argsort,
-                  const Legion::DomainPoint global_shape,
+                  const bool stable,
                   const bool is_index_space,
-                  const Legion::DomainPoint index_point,
-                  const Legion::Domain domain,
+                  const size_t local_rank,
+                  const size_t num_ranks,
                   const std::vector<comm::Communicator>& comms)
   {
-    AccessorRO<VAL, DIM> input = input_array.read_accessor<VAL, DIM>(rect);
-
-    bool dense = input.accessor.is_dense_row_major(rect);
-
-#ifdef DEBUG_CUNUMERIC
-    std::cout << "CPU(" << getRank(domain, index_point) << "): local size = " << volume
-              << ", dist. = " << is_index_space << ", index_point = " << index_point
-              << ", domain/volume = " << domain << "/" << domain.get_volume()
-              << ", dense = " << dense << ", argsort. = " << argsort << std::endl;
-#endif
-
-    const size_t sort_dim_size = global_shape[DIM - 1];
-
-    assert(dense);
+    auto input = input_array.read_accessor<VAL, DIM>(rect);
+    assert(input.accessor.is_dense_row_major(rect));
     assert(!is_index_space || DIM > 1);  // not implemented for now
 
     // make a copy of the input
@@ -97,14 +86,12 @@ struct SortImplBody<VariantKind::CPU, CODE, DIM> {
       dense_input_copy.ptr(0), argsort ? indices_buffer.ptr(0) : nullptr, volume, sort_dim_size);
 
     // copy back data (we assume output partition to be aliged to input!)
-    if (dense) {
-      if (argsort) {
-        AccessorWO<int64_t, DIM> output = output_array.write_accessor<int64_t, DIM>(rect);
-        std::copy(indices_buffer.ptr(0), indices_buffer.ptr(0) + volume, output.ptr(rect.lo));
-      } else {
-        AccessorWO<VAL, DIM> output = output_array.write_accessor<VAL, DIM>(rect);
-        std::copy(dense_input_copy.ptr(0), dense_input_copy.ptr(0) + volume, output.ptr(rect.lo));
-      }
+    if (argsort) {
+      AccessorWO<int64_t, DIM> output = output_array.write_accessor<int64_t, DIM>(rect);
+      std::copy(indices_buffer.ptr(0), indices_buffer.ptr(0) + volume, output.ptr(rect.lo));
+    } else {
+      AccessorWO<VAL, DIM> output = output_array.write_accessor<VAL, DIM>(rect);
+      std::copy(dense_input_copy.ptr(0), dense_input_copy.ptr(0) + volume, output.ptr(rect.lo));
     }
   }
 };

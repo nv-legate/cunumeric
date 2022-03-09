@@ -1,4 +1,4 @@
-/* Copyright 2021-2022 NVIDIA Corporation
+/* Copyright 2022 NVIDIA Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -76,13 +76,14 @@ void cub_local_sort_inplace(
 {
   // make a copy of input --> we want inptr to return sorted values
   auto keys_in = create_buffer<VAL>(volume, Legion::Memory::Kind::GPU_FB_MEM);
-  cudaMemcpyAsync(keys_in.ptr(0), inptr, sizeof(VAL) * volume, cudaMemcpyDeviceToDevice, stream);
+  CHECK_CUDA(
+    cudaMemcpyAsync(keys_in.ptr(0), inptr, sizeof(VAL) * volume, cudaMemcpyDeviceToDevice, stream));
   size_t temp_storage_bytes = 0;
   if (argptr == nullptr) {
     if (volume == sort_dim_size) {
-      // sort
+      // sort (initial call to compute bufffer size)
       cub::DeviceRadixSort::SortKeys(
-        NULL, temp_storage_bytes, keys_in.ptr(0), inptr, volume, 0, sizeof(VAL) * 8, stream);
+        nullptr, temp_storage_bytes, keys_in.ptr(0), inptr, volume, 0, sizeof(VAL) * 8, stream);
       auto temp_storage =
         create_buffer<unsigned char>(temp_storage_bytes, Legion::Memory::Kind::GPU_FB_MEM);
       cub::DeviceRadixSort::SortKeys(temp_storage.ptr(0),
@@ -94,13 +95,13 @@ void cub_local_sort_inplace(
                                      sizeof(VAL) * 8,
                                      stream);
     } else {
-      // segmented sort
+      // segmented sort (initial call to compute bufffer size)
       auto off_start_it =
         thrust::make_transform_iterator(thrust::make_counting_iterator(0), multiply(sort_dim_size));
       auto off_end_it =
         thrust::make_transform_iterator(thrust::make_counting_iterator(1), multiply(sort_dim_size));
 
-      cub::DeviceSegmentedRadixSort::SortKeys(NULL,
+      cub::DeviceSegmentedRadixSort::SortKeys(nullptr,
                                               temp_storage_bytes,
                                               keys_in.ptr(0),
                                               inptr,
@@ -128,12 +129,12 @@ void cub_local_sort_inplace(
     }
   } else {
     auto idx_in = create_buffer<int64_t>(volume, Legion::Memory::Kind::GPU_FB_MEM);
-    cudaMemcpyAsync(
-      idx_in.ptr(0), argptr, sizeof(int64_t) * volume, cudaMemcpyDeviceToDevice, stream);
+    CHECK_CUDA(cudaMemcpyAsync(
+      idx_in.ptr(0), argptr, sizeof(int64_t) * volume, cudaMemcpyDeviceToDevice, stream));
 
     if (volume == sort_dim_size) {
-      // argsort
-      cub::DeviceRadixSort::SortPairs(NULL,
+      // argsort (initial call to compute bufffer size)
+      cub::DeviceRadixSort::SortPairs(nullptr,
                                       temp_storage_bytes,
                                       keys_in.ptr(0),
                                       inptr,
@@ -158,13 +159,13 @@ void cub_local_sort_inplace(
                                       sizeof(VAL) * 8,
                                       stream);
     } else {
-      // segmented argsort
+      // segmented argsort (initial call to compute bufffer size)
       auto off_start_it =
         thrust::make_transform_iterator(thrust::make_counting_iterator(0), multiply(sort_dim_size));
       auto off_end_it =
         thrust::make_transform_iterator(thrust::make_counting_iterator(1), multiply(sort_dim_size));
 
-      cub::DeviceSegmentedRadixSort::SortPairs(NULL,
+      cub::DeviceSegmentedRadixSort::SortPairs(nullptr,
                                                temp_storage_bytes,
                                                keys_in.ptr(0),
                                                inptr,
@@ -276,19 +277,6 @@ void local_sort_inplace(legate_type_of<CODE>* inptr,
   if (volume > 0) { thrust_local_sort_inplace<VAL>(inptr, argptr, volume, sort_dim_size, stream); }
 }
 
-template <typename VAL>
-__global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-  print_subset(const VAL* data, const size_t volume, const size_t rank)
-{
-  const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
-
-  if (idx == 0) {
-    printf("data(%d) = [ ", rank);
-    for (int i = 0; i < volume; ++i) { printf("%d ", data[i]); }
-    printf("]\n");
-  }
-}
-
 // auto align to multiples of 16 bytes
 auto get_aligned_size = [](auto size) { return std::max<size_t>(16, (size + 15) / 16 * 16); };
 
@@ -341,7 +329,6 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
     samples[offset + sample_idx].value    = data[index];
     samples[offset + sample_idx].rank     = rank;
     samples[offset + sample_idx].position = index;
-    // printf("Sample rank %lu position %lu offset %lu\n", rank, index, (offset+sample_idx));
   } else {
     // edge case where num_local_samples > volume
     if (sample_idx < volume) {
@@ -381,8 +368,6 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   } else {
     split_positions[splitter_idx] = splitter.position + 1;
   }
-  // printf("Splitter position id %lu rank %lu position %lu num_samples %lu\n", splitter_idx, rank,
-  // split_positions[splitter_idx], num_samples);
 }
 
 template <typename VAL>
@@ -473,7 +458,7 @@ static SortPiece<VAL> sample_sort_nccl(SortPiece<VAL> local_sorted,
   // all2all exchange send/receive sizes
   auto size_recv = create_buffer<size_t>(num_ranks, Memory::Z_COPY_MEM);
   CHECK_NCCL(ncclGroupStart());
-  for (int r = 0; r < num_ranks; r++) {
+  for (size_t r = 0; r < num_ranks; r++) {
     CHECK_NCCL(ncclSend(size_send.ptr(r), 1, ncclUint64, r, *comm, stream));
     CHECK_NCCL(ncclRecv(size_recv.ptr(r), 1, ncclUint64, r, *comm, stream));
   }
@@ -485,7 +470,7 @@ static SortPiece<VAL> sample_sort_nccl(SortPiece<VAL> local_sorted,
   // allocate merge targets, data transfer...
   std::vector<SortPiece<VAL>> merge_buffers(num_ranks);
 
-  for (int i = 0; i < merge_buffers.size(); ++i) {
+  for (size_t i = 0; i < num_ranks; ++i) {
     // align buffer to allow data transfer of 16byte blocks
     auto recv_size_aligned   = get_aligned_size(size_recv[i] * sizeof(VAL));
     auto buf_size            = (recv_size_aligned + sizeof(VAL) - 1) / sizeof(VAL);
@@ -495,7 +480,7 @@ static SortPiece<VAL> sample_sort_nccl(SortPiece<VAL> local_sorted,
   }
   size_t send_pos = 0;
   CHECK_NCCL(ncclGroupStart());
-  for (int r = 0; r < num_ranks; r++) {
+  for (size_t r = 0; r < num_ranks; r++) {
     CHECK_NCCL(ncclSend(local_sorted.values.ptr(send_pos),
                         get_aligned_size(size_send[r] * sizeof(VAL)),
                         ncclInt8,
@@ -545,7 +530,6 @@ static SortPiece<VAL> sample_sort_nccl(SortPiece<VAL> local_sorted,
                              p_indices2,
                              p_merged_values,
                              p_merged_indices);
-        CHECK_CUDA(cudaStreamSynchronize(stream));
         source1.indices.destroy();
       } else {
         thrust::merge(thrust::cuda::par.on(stream),
@@ -554,7 +538,6 @@ static SortPiece<VAL> sample_sort_nccl(SortPiece<VAL> local_sorted,
                       p_values2,
                       p_values2 + source2.size,
                       p_merged_values);
-        CHECK_CUDA(cudaStreamSynchronize(stream));
       }
 
       source1.values.destroy();
@@ -578,37 +561,28 @@ struct SortImplBody<VariantKind::GPU, CODE, DIM> {
                   const Pitches<DIM - 1>& pitches,
                   const Rect<DIM>& rect,
                   const size_t volume,
+                  const size_t sort_dim_size,
                   const bool argsort,
-                  const Legion::DomainPoint global_shape,
+                  const bool stable,
                   const bool is_index_space,
-                  const Legion::DomainPoint index_point,
-                  const Legion::Domain domain,
+                  const size_t local_rank,
+                  const size_t num_ranks,
                   const std::vector<comm::Communicator>& comms)
   {
-    AccessorRO<VAL, DIM> input = input_array.read_accessor<VAL, DIM>(rect);
+    auto input = input_array.read_accessor<VAL, DIM>(rect);
 
-    size_t my_rank = getRank(domain, index_point);
-
-#ifdef DEBUG_CUNUMERIC
-    std::cout << "GPU(" << my_rank << "): local size = " << volume << ", dist. = " << is_index_space
-              << ", index_point = " << index_point << ", domain/volume = " << domain << "/"
-              << domain.get_volume() << ", dense = " << input.accessor.is_dense_row_major(rect)
-              << ", argsort. = " << argsort << std::endl;
-#endif
-
+    // we allow empty domains for distributed sorting
     assert(rect.empty() || input.accessor.is_dense_row_major(rect));
 
     auto stream = get_cached_stream();
 
-    const size_t sort_dim_size = DIM == 1 ? volume : global_shape[DIM - 1];
-
     // make a copy of the input
     auto dense_input_copy = create_buffer<VAL>(volume, Legion::Memory::Kind::GPU_FB_MEM);
-    cudaMemcpyAsync(dense_input_copy.ptr(0),
-                    input.ptr(rect.lo),
-                    sizeof(VAL) * volume,
-                    cudaMemcpyDeviceToDevice,
-                    stream);
+    CHECK_CUDA(cudaMemcpyAsync(dense_input_copy.ptr(0),
+                               input.ptr(rect.lo),
+                               sizeof(VAL) * volume,
+                               cudaMemcpyDeviceToDevice,
+                               stream));
 
     // we need a buffer for argsort
     auto indices_buffer =
@@ -641,17 +615,14 @@ struct SortImplBody<VariantKind::GPU, CODE, DIM> {
     // this is linked to the decision in sorting.py on when to use adn 'unbounded' output array.
     if (output_array.dim() == -1) {
       SortPiece<VAL> local_sorted;
-      local_sorted.values                       = dense_input_copy;
-      local_sorted.indices                      = indices_buffer;
-      local_sorted.size                         = volume;
-      SortPiece<VAL> local_sorted_repartitioned = is_index_space
-                                                    ? sample_sort_nccl(local_sorted,
-                                                                       my_rank,
-                                                                       domain.get_volume(),
-                                                                       argsort,
-                                                                       stream,
-                                                                       comms[0].get<ncclComm_t*>())
-                                                    : local_sorted;
+      local_sorted.values  = dense_input_copy;
+      local_sorted.indices = indices_buffer;
+      local_sorted.size    = volume;
+      SortPiece<VAL> local_sorted_repartitioned =
+        is_index_space
+          ? sample_sort_nccl(
+              local_sorted, local_rank, num_ranks, argsort, stream, comms[0].get<ncclComm_t*>())
+          : local_sorted;
       if (argsort) {
         output_array.return_data(local_sorted_repartitioned.indices,
                                  local_sorted_repartitioned.size);
@@ -664,22 +635,21 @@ struct SortImplBody<VariantKind::GPU, CODE, DIM> {
       if (argsort) {
         AccessorWO<int64_t, DIM> output = output_array.write_accessor<int64_t, DIM>(rect);
         assert(output.accessor.is_dense_row_major(rect));
-        cudaMemcpyAsync(output.ptr(rect.lo),
-                        indices_buffer.ptr(0),
-                        sizeof(int64_t) * volume,
-                        cudaMemcpyDeviceToDevice,
-                        stream);
+        CHECK_CUDA(cudaMemcpyAsync(output.ptr(rect.lo),
+                                   indices_buffer.ptr(0),
+                                   sizeof(int64_t) * volume,
+                                   cudaMemcpyDeviceToDevice,
+                                   stream));
       } else {
         AccessorWO<VAL, DIM> output = output_array.write_accessor<VAL, DIM>(rect);
         assert(output.accessor.is_dense_row_major(rect));
-        cudaMemcpyAsync(output.ptr(rect.lo),
-                        dense_input_copy.ptr(0),
-                        sizeof(VAL) * volume,
-                        cudaMemcpyDeviceToDevice,
-                        stream);
+        CHECK_CUDA(cudaMemcpyAsync(output.ptr(rect.lo),
+                                   dense_input_copy.ptr(0),
+                                   sizeof(VAL) * volume,
+                                   cudaMemcpyDeviceToDevice,
+                                   stream));
       }
     }
-    CHECK_CUDA(cudaStreamSynchronize(stream));
   }
 };
 
