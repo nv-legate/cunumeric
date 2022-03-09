@@ -1,4 +1,4 @@
-# Copyright 2021-2022 NVIDIA Corporation
+# Copyright 2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,44 +19,40 @@ from cunumeric.config import CuNumericOpCode
 from legate.core import types as ty
 
 
-def sort_flattened(output, input, argsort):
+def sort_flattened(output, input, argsort, stable):
     flattened = input.reshape((input.size,), order="C")
-    flattened_copy = output.runtime.create_empty_thunk(
-        flattened.shape, dtype=input.dtype, inputs=[input, flattened]
-    )
-    flattened_copy.copy(flattened, deep=True)
 
     # run sort flattened -- return 1D solution
     sort_result = output.runtime.create_empty_thunk(
-        flattened_copy.shape, dtype=output.dtype, inputs=[flattened_copy]
+        flattened.shape, dtype=output.dtype, inputs=(flattened,)
     )
-    sorting(sort_result, flattened_copy, argsort)
+    sorting(sort_result, flattened, argsort, stable=stable)
     output.base = sort_result.base
     output.numpy_array = None
 
 
-def sort_swapped(output, input, argsort, sort_axis):
+def sort_swapped(output, input, argsort, sort_axis, stable):
     assert sort_axis < input.ndim - 1 and sort_axis >= 0
 
     # swap axes
     swapped = input.swapaxes(sort_axis, input.ndim - 1)
 
     swapped_copy = output.runtime.create_empty_thunk(
-        swapped.shape, dtype=input.dtype, inputs=[input, swapped]
+        swapped.shape, dtype=input.dtype, inputs=(input, swapped)
     )
     swapped_copy.copy(swapped, deep=True)
 
     # run sort on last axis
     sort_result = output.runtime.create_empty_thunk(
-        swapped_copy.shape, dtype=output.dtype, inputs=[swapped_copy]
+        swapped_copy.shape, dtype=output.dtype, inputs=(swapped_copy,)
     )
-    sorting(sort_result, swapped_copy, argsort)
+    sorting(sort_result, swapped_copy, argsort, stable=stable)
 
     output.base = sort_result.swapaxes(input.ndim - 1, sort_axis).base
     output.numpy_array = None
 
 
-def sort_task(output, input, argsort):
+def sort_task(output, input, argsort, stable):
     task = output.context.create_task(CuNumericOpCode.SORT)
 
     needs_unbound_output = output.runtime.num_gpus > 1 and input.ndim == 1
@@ -80,6 +76,7 @@ def sort_task(output, input, argsort):
 
     task.add_scalar_arg(argsort, bool)  # return indices flag
     task.add_scalar_arg(input.base.shape, (ty.int32,))
+    task.add_scalar_arg(stable, bool)
     task.execute()
 
     if needs_unbound_output:
@@ -87,20 +84,18 @@ def sort_task(output, input, argsort):
         output.numpy_array = None
 
 
-def sorting(output, input, argsort, axis=-1):
+def sorting(output, input, argsort, axis=-1, stable=False):
     if axis is None and input.ndim > 1:
-        sort_flattened(output, input, argsort)
+        sort_flattened(output, input, argsort, stable)
     else:
         if axis is None:
-            sort_axis = 0
+            axis = 0
         elif axis < 0:
-            sort_axis = input.ndim + axis
-        else:
-            sort_axis = axis
+            axis = input.ndim + axis
 
-        if sort_axis is not input.ndim - 1:
-            sort_swapped(output, input, argsort, sort_axis)
+        if axis is not input.ndim - 1:
+            sort_swapped(output, input, argsort, axis, stable)
 
         else:
             # run actual sort task
-            sort_task(output, input, argsort)
+            sort_task(output, input, argsort, stable)

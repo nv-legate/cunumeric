@@ -2771,15 +2771,13 @@ class ndarray(object):
         """
         self.__array__().setflags(write=write, align=align, uic=uic)
 
-    def sort(self, axis=-1, kind="stable", order=None):
+    def sort(self, axis=-1, kind="quicksort", order=None):
         self._thunk.sort(rhs=self._thunk, axis=axis, kind=kind, order=order)
-        return
 
-    def argsort(self, axis=-1, kind="stable", order=None):
+    def argsort(self, axis=-1, kind="quicksort", order=None):
         self._thunk.sort(
             rhs=self._thunk, argsort=True, axis=axis, kind=kind, order=order
         )
-        return
 
     def squeeze(self, axis=None):
         """a.squeeze(axis=None)

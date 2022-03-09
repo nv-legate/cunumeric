@@ -1,4 +1,4 @@
-# Copyright 2021 NVIDIA Corporation
+# Copyright 2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -56,8 +56,6 @@ def test_1D():
     print("Result (inplace): " + str(A_num))
     compare_assert(sortA_np, A_num)
 
-    return
-
 
 def test_2D():
     np.random.seed(42)
@@ -75,8 +73,6 @@ def test_2D():
     test_sort_axis(A_np, A_num, 0)
     test_sort_axis(A_np, A_num, axis=None)
 
-    return
-
 
 def test_3D(x_dim, y_dim, z_dim):
     np.random.seed(42)
@@ -93,8 +89,6 @@ def test_3D(x_dim, y_dim, z_dim):
     test_sort_axis(A_np, A_num, 0)
     test_sort_axis(A_np, A_num, axis=None)
 
-    return
-
 
 def test_3D_complex(x_dim, y_dim, z_dim):
     np.random.seed(42)
@@ -110,20 +104,6 @@ def test_3D_complex(x_dim, y_dim, z_dim):
     test_sort_axis(A_np, A_num, 1)
     test_sort_axis(A_np, A_num, 0)
     test_sort_axis(A_np, A_num, axis=None)
-
-    return
-
-
-def test_custom():
-    np.random.seed(42)
-    a = generate_random((4,), np.uint8)
-    print("Matrix A")
-    print(a)
-
-    a_num = num.array(a)
-    compare_assert(np.sort_complex(a), num.sort_complex(a_num))
-
-    return
 
 
 def test_api(a=None):
@@ -150,18 +130,12 @@ def test_api(a=None):
     print("sort_complex")
     compare_assert(np.sort_complex(a), num.sort_complex(a_num))
 
-    # reverse order sort
-    # TODO
-
     # in-place sort
     copy_a = a.copy()
     copy_a_num = a_num.copy()
     copy_a.sort()
     copy_a_num.sort()
     compare_assert(copy_a, copy_a_num)
-
-    # reverse order sort (in place)
-    # TODO
 
     # argsort
     for i in range(a.ndim):
@@ -176,8 +150,6 @@ def test_api(a=None):
     compare_assert(
         np.argsort(a, axis=None, kind="stable"), num.argsort(a_num, axis=None)
     )
-
-    return
 
 
 def generate_random(shape, datatype):
@@ -228,8 +200,6 @@ def test_dtypes():
     test_api(generate_random((2, 5, 7), np.complex128))
     test_api(generate_random((220,), np.complex128))
 
-    return
-
 
 def test():
     print("\n\n -----------  1D test ---------------\n")
@@ -248,4 +218,3 @@ def test():
 
 if __name__ == "__main__":
     test()
-    # test_custom()

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2021 NVIDIA Corporation
+# Copyright 2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,64 +16,66 @@
 #
 
 import argparse
-import datetime
 
 import numpy
 from benchmark import run_benchmark
+from legate.timing import time
 
 import cunumeric
 
 
-def check_sorted(a, a_numpy, axis=-1):
-    a_sorted = numpy.sort(a_numpy, axis)
+def check_sorted(a, a_sorted, axis=-1):
+    a_numpy = a.__array__()
+    a_numpy_sorted = numpy.sort(a_numpy, axis)
     print("Checking result...")
-    if cunumeric.allclose(a_sorted, a):
+    if cunumeric.allclose(a_numpy_sorted, a_sorted):
         print("PASS!")
     else:
         print("FAIL!")
-        print("NUMPY    : " + str(a_sorted))
-        print("CUNUMERIC: " + str(a))
+        print("NUMPY    : " + str(a_numpy_sorted))
+        print("CUNUMERIC: " + str(a_sorted))
+        assert False
 
 
-def run_sort(N, shape, axis, datatype, perform_check, timing):
+def run_sort(N, shape, axis, datatype, lower, upper, perform_check, timing):
 
-    numpy.random.seed(42)
+    cunumeric.random.seed(42)
     newtype = numpy.dtype(datatype).type
+    if shape is not None:
+        shape = tuple(shape)
+    else:
+        shape = (N,)
 
     if numpy.issubdtype(newtype, numpy.integer):
-        a_numpy = numpy.array(
-            numpy.random.randint(
-                numpy.iinfo(newtype).min, numpy.iinfo(newtype).max, size=N
-            ),
-            dtype=newtype,
+        if lower is None:
+            lower = numpy.iinfo(newtype).min
+        if upper is None:
+            upper = numpy.iinfo(newtype).max
+        a = cunumeric.random.randint(low=lower, high=upper, size=N).astype(
+            newtype
         )
+        a = a.reshape(shape)
     elif numpy.issubdtype(newtype, numpy.floating):
-        a_numpy = numpy.array(numpy.random.random(size=N), dtype=newtype)
+        a = cunumeric.random.random(shape).astype(newtype)
     elif numpy.issubdtype(newtype, numpy.complexfloating):
-        a_numpy = numpy.array(
-            numpy.random.random(size=N) + numpy.random.random(size=N) * 1j,
-            dtype=newtype,
-        )
+        a = cunumeric.array(
+            cunumeric.random.random(shape)
+            + cunumeric.random.random(shape) * 1j
+        ).astype(newtype)
     else:
         print("UNKNOWN type " + str(newtype))
         assert False
 
-    if shape is not None:
-        a_numpy = a_numpy.reshape(tuple(shape))
-
-    a = cunumeric.array(a_numpy)
-
-    start = datetime.datetime.now()
+    start = time()
     a_sorted = cunumeric.sort(a, axis)
-    stop = datetime.datetime.now()
+    stop = time()
 
     if perform_check:
-        check_sorted(a_sorted, a_numpy, axis)
+        check_sorted(a, a_sorted, axis)
     else:
         # do we need to synchronize?
         assert True
-    delta = stop - start
-    total = delta.total_seconds() * 1000.0
+    total = (stop - start) * 1e-3
     if timing:
         print("Elapsed Time: " + str(total) + " ms")
     return total
@@ -121,6 +123,22 @@ if __name__ == "__main__":
         help="data type (default numpy.int32)",
     )
     parser.add_argument(
+        "-l",
+        "--lower",
+        type=int,
+        default=None,
+        dest="lower",
+        help="lower bound for integer based arrays (inclusive)",
+    )
+    parser.add_argument(
+        "-u",
+        "--upper",
+        type=int,
+        default=None,
+        dest="upper",
+        help="upper bound for integer based arrays (exclusive)",
+    )
+    parser.add_argument(
         "-a",
         "--axis",
         type=int,
@@ -148,6 +166,8 @@ if __name__ == "__main__":
             args.shape,
             args.axis,
             args.datatype,
+            args.lower,
+            args.upper,
             args.check,
             args.timing,
         ),

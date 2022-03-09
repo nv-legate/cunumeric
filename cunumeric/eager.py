@@ -502,7 +502,7 @@ class EagerArray(NumPyThunk):
                 result += (EagerArray(self.runtime, array),)
             return result
 
-    def sort(self, rhs, argsort=False, axis=-1, kind="stable", order=None):
+    def sort(self, rhs, argsort=False, axis=-1, kind="quicksort", order=None):
         self.check_eager_args(rhs, axis, kind, order)
         if self.deferred is not None:
             self.deferred.sort(rhs, argsort, axis, kind, order)

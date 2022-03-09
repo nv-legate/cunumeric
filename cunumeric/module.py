@@ -5712,7 +5712,7 @@ def unique(
 
 
 @add_boilerplate("a")
-def argsort(a, axis=-1, kind="stable", order=None):
+def argsort(a, axis=-1, kind="quicksort", order=None):
     """
 
     Returns the indices that would sort an array.
@@ -5725,7 +5725,8 @@ def argsort(a, axis=-1, kind="stable", order=None):
         Axis to sort. By default, the index -1 (the last axis) is used. If
         None, the flattened array is used.
     kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, optional
-        Currently only 'stable' sort is supported
+        Default is 'quicksort'. The underlying sort algorithm might vary.
+        The code basically supports 'stable' or *not* 'stable'.
     order : str or list of str, optional
         Currently not supported
 
@@ -5746,7 +5747,7 @@ def argsort(a, axis=-1, kind="stable", order=None):
 
     Availability
     --------
-    Single GPU, Single CPU
+    Multiple GPUs, Single CPU
     """
 
     result = ndarray(a.shape, np.int64)
@@ -5782,13 +5783,13 @@ def msort(a):
 
     Availability
     --------
-    Single GPU, Single CPU
+    Multiple GPUs, Single CPU
     """
     return sort(a, axis=0)
 
 
 @add_boilerplate("a")
-def sort(a, axis=-1, kind="stable", order=None):
+def sort(a, axis=-1, kind="quicksort", order=None):
     """
 
     Returns a sorted copy of an array.
@@ -5801,7 +5802,8 @@ def sort(a, axis=-1, kind="stable", order=None):
         Axis to sort. By default, the index -1 (the last axis) is used. If
         None, the flattened array is used.
     kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, optional
-        Currently only 'stable' sort is supported
+        Default is 'quicksort'. The underlying sort algorithm might vary.
+        The code basically supports 'stable' or *not* 'stable'.
     order : str or list of str, optional
         Currently not supported
 
@@ -5822,7 +5824,7 @@ def sort(a, axis=-1, kind="stable", order=None):
 
     Availability
     --------
-    Single GPU, Single CPU
+    Multiple GPUs, Single CPU
     """
     result = ndarray(a.shape, a.dtype)
     result._thunk.sort(rhs=a._thunk, axis=axis, kind=kind, order=order)
@@ -5857,7 +5859,7 @@ def sort_complex(a):
 
     Availability
     --------
-    Single GPU, Single CPU
+    Multiple GPUs, Single CPU
     """
 
     result = sort(a)
