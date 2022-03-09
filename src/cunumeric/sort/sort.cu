@@ -380,8 +380,10 @@ static SortPiece<VAL> sample_sort_nccl(SortPiece<VAL> local_sorted,
 {
   size_t volume = local_sorted.size;
 
-  // collect local samples
-  size_t num_local_samples  = num_ranks;  // handle case numRanks > volume!!
+  // collect local samples - for now we take num_ranks samples for every node
+  // worst case this leads to 2*N/ranks elements on a single node
+  size_t num_local_samples = num_ranks;
+
   size_t num_global_samples = num_local_samples * num_ranks;
   auto samples              = create_buffer<Sample<VAL>>(num_global_samples, Memory::GPU_FB_MEM);
 
@@ -451,9 +453,6 @@ static SortPiece<VAL> sample_sort_nccl(SortPiece<VAL> local_sorted,
     }
     size_send[num_ranks - 1] = volume - last_position;
   }
-
-  // need to sync as we share values in between host/device
-  CHECK_CUDA(cudaStreamSynchronize(stream));
 
   // all2all exchange send/receive sizes
   auto size_recv = create_buffer<size_t>(num_ranks, Memory::Z_COPY_MEM);

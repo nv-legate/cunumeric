@@ -69,7 +69,7 @@ struct SortImplBody<VariantKind::CPU, CODE, DIM> {
   {
     auto input = input_array.read_accessor<VAL, DIM>(rect);
     assert(input.accessor.is_dense_row_major(rect));
-    assert(!is_index_space || DIM > 1);  // not implemented for now
+    assert(!is_index_space || DIM > 1);
 
     if (argsort) {
       // make copy of the input
