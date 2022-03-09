@@ -53,20 +53,10 @@ struct SortImpl {
      * 1. Sort is always requested for the 'last' dimension within rect
      * 2. We have product_of_all_other_dimensions independent sort ranges
      * 3. if we have more than one participants:
-     *  a) 1D-case: we perform parallel sort (via sampling) -- (only implemented for GPU)
+     *  a) 1D-case: we perform parallel sort (via sampling)
      *  b) ND-case: rect needs to be the full domain in that last dimension
      *
      */
-
-#ifdef DEBUG_CUNUMERIC
-    std::cout << typeid(KIND).name() << "(" << args.local_rank << "/" << args.num_ranks
-              << "): volume = " << volume << ", DIM=" << DIM << ", rect=" << rect
-              << ", dist. = " << args.is_index_space << ", stable. = " << args.stable
-              << ", argsort. = " << args.argsort << std::endl;
-
-    assert((DIM == 1 || (rect.hi[DIM - 1] - rect.lo[DIM - 1] + 1 == args.sort_dim_size)) &&
-           "multi-dimensional array should not be distributed in (sort) dimension");
-#endif
 
     // we shall not return on empty rectangle in case of distributed data
     // as the process might still participate in the parallel sort

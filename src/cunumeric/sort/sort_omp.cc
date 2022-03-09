@@ -35,7 +35,8 @@ struct SortImplBody<VariantKind::OMP, CODE, DIM> {
   void thrust_local_sort_inplace(VAL* inptr,
                                  int64_t* argptr,
                                  const size_t volume,
-                                 const size_t sort_dim_size)
+                                 const size_t sort_dim_size,
+                                 const bool stable_argsort)
   {
     if (argptr == nullptr) {
       // sort (in place)
@@ -50,8 +51,13 @@ struct SortImplBody<VariantKind::OMP, CODE, DIM> {
         int64_t* segmentValues = argptr + start_idx;
         VAL* segmentKeys       = inptr + start_idx;
         std::iota(segmentValues, segmentValues + sort_dim_size, 0);  // init
-        thrust::stable_sort_by_key(
-          thrust::host, segmentKeys, segmentKeys + sort_dim_size, segmentValues);
+        if (stable_argsort) {
+          thrust::stable_sort_by_key(
+            thrust::host, segmentKeys, segmentKeys + sort_dim_size, segmentValues);
+        } else {
+          thrust::sort_by_key(
+            thrust::host, segmentKeys, segmentKeys + sort_dim_size, segmentValues);
+        }
       }
     }
   }
@@ -85,7 +91,7 @@ struct SortImplBody<VariantKind::OMP, CODE, DIM> {
 
       // sort data in place
       thrust_local_sort_inplace(
-        dense_input_copy.ptr(0), output.ptr(rect.lo), volume, sort_dim_size);
+        dense_input_copy.ptr(0), output.ptr(rect.lo), volume, sort_dim_size, stable);
 
     } else {
       AccessorWO<VAL, DIM> output = output_array.write_accessor<VAL, DIM>(rect);
@@ -95,7 +101,7 @@ struct SortImplBody<VariantKind::OMP, CODE, DIM> {
       std::copy(src, src + volume, output.ptr(rect.lo));
 
       // sort data in place
-      thrust_local_sort_inplace(output.ptr(rect.lo), nullptr, volume, sort_dim_size);
+      thrust_local_sort_inplace(output.ptr(rect.lo), nullptr, volume, sort_dim_size, stable);
     }
   }
 };

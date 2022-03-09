@@ -200,8 +200,12 @@ void cub_local_sort_inplace(
 }
 
 template <class VAL>
-void thrust_local_sort_inplace(
-  VAL* inptr, int64_t* argptr, const size_t volume, const size_t sort_dim_size, cudaStream_t stream)
+void thrust_local_sort_inplace(VAL* inptr,
+                               int64_t* argptr,
+                               const size_t volume,
+                               const size_t sort_dim_size,
+                               const bool stable_argsort,
+                               cudaStream_t stream)
 {
   if (argptr == nullptr) {
     if (volume == sort_dim_size) {
@@ -224,7 +228,11 @@ void thrust_local_sort_inplace(
     }
   } else {
     if (volume == sort_dim_size) {
-      thrust::stable_sort_by_key(thrust::cuda::par.on(stream), inptr, inptr + volume, argptr);
+      if (stable_argsort) {
+        thrust::stable_sort_by_key(thrust::cuda::par.on(stream), inptr, inptr + volume, argptr);
+      } else {
+        thrust::sort_by_key(thrust::cuda::par.on(stream), inptr, inptr + volume, argptr);
+      }
     } else {
       auto sort_id = create_buffer<uint64_t>(volume, Legion::Memory::Kind::GPU_FB_MEM);
       // init combined keys
@@ -236,11 +244,19 @@ void thrust_local_sort_inplace(
                         thrust::divides<uint64_t>());
       auto combined = thrust::make_zip_iterator(thrust::make_tuple(sort_id.ptr(0), inptr));
 
-      thrust::stable_sort_by_key(thrust::cuda::par.on(stream),
-                                 combined,
-                                 combined + volume,
-                                 argptr,
-                                 thrust::less<thrust::tuple<size_t, VAL>>());
+      if (stable_argsort) {
+        thrust::stable_sort_by_key(thrust::cuda::par.on(stream),
+                                   combined,
+                                   combined + volume,
+                                   argptr,
+                                   thrust::less<thrust::tuple<size_t, VAL>>());
+      } else {
+        thrust::sort_by_key(thrust::cuda::par.on(stream),
+                            combined,
+                            combined + volume,
+                            argptr,
+                            thrust::less<thrust::tuple<size_t, VAL>>());
+      }
     }
   }
 }
@@ -260,6 +276,7 @@ void local_sort_inplace(legate_type_of<CODE>* inptr,
                         int64_t* argptr,
                         const size_t volume,
                         const size_t sort_dim_size,
+                        const bool stable_argsort,  // cub sort is always stable
                         cudaStream_t stream)
 {
   using VAL = legate_type_of<CODE>;
@@ -271,10 +288,11 @@ void local_sort_inplace(legate_type_of<CODE>* inptr,
                         int64_t* argptr,
                         const size_t volume,
                         const size_t sort_dim_size,
+                        const bool stable_argsort,
                         cudaStream_t stream)
 {
   using VAL = legate_type_of<CODE>;
-  thrust_local_sort_inplace<VAL>(inptr, argptr, volume, sort_dim_size, stream);
+  thrust_local_sort_inplace<VAL>(inptr, argptr, volume, sort_dim_size, stable_argsort, stream);
 }
 
 // auto align to multiples of 16 bytes
@@ -630,7 +648,7 @@ struct SortImplBody<VariantKind::GPU, CODE, DIM> {
         values_ptr, input.ptr(rect.lo), sizeof(VAL) * volume, cudaMemcpyDeviceToDevice, stream));
 
       // sort data (locally)
-      local_sort_inplace<CODE>(values_ptr, indices_ptr, volume, sort_dim_size, stream);
+      local_sort_inplace<CODE>(values_ptr, indices_ptr, volume, sort_dim_size, stable, stream);
     }
 
     // this is linked to the decision in sorting.py on when to use an 'unbounded' output array.
