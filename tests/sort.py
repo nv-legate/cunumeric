@@ -31,10 +31,13 @@ def test_sort_axis(a_np, a_num, axis):
     compare_assert(a_np, a_num)
     print("Sorting axis " + str(axis) + ":")
     sort_np = np.sort(a_np, axis, kind="stable")
+    sort_num = num.sort(a_num, axis, kind="stable")
+    compare_assert(sort_np, sort_num)
+    sort_np = np.sort(a_np, axis)
     sort_num = num.sort(a_num, axis)
     compare_assert(sort_np, sort_num)
     argsort_np = np.argsort(a_np, axis, kind="stable")
-    argsort_num = num.argsort(a_num, axis)
+    argsort_num = num.argsort(a_num, axis, kind="stable")
     compare_assert(argsort_np, argsort_num)
 
 
@@ -118,12 +121,20 @@ def test_api(a=None):
             np.sort(a, axis=i, kind="stable"),
             num.sort(a_num, i, kind="stable"),
         )
+        compare_assert(
+            np.sort(a, axis=i),
+            num.sort(a_num, i),
+        )
 
     # flatten
     print("sort flattened")
     compare_assert(
         np.sort(a, axis=None, kind="stable"),
         num.sort(a_num, axis=None, kind="stable"),
+    )
+    compare_assert(
+        np.sort(a, axis=None),
+        num.sort(a_num, axis=None),
     )
 
     # msort
@@ -149,6 +160,7 @@ def test_api(a=None):
             np.argsort(a, axis=i, kind="stable"),
             num.argsort(a_num, axis=i, kind="stable"),
         )
+        num.argsort(a_num, axis=i)  # cannot be compared
 
     # flatten
     print("argsort flattened")
@@ -156,6 +168,7 @@ def test_api(a=None):
         np.argsort(a, axis=None, kind="stable"),
         num.argsort(a_num, axis=None, kind="stable"),
     )
+    num.argsort(a_num, axis=None)  # cannot be compared
 
 
 def generate_random(shape, datatype):
