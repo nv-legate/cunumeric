@@ -17,57 +17,54 @@
 
 import argparse
 
-import numpy
+import numpy as np
 from benchmark import run_benchmark
 from legate.timing import time
 
-import cunumeric
+import cunumeric as num
 
 
 def check_sorted(a, a_sorted, axis=-1):
-    a_numpy = a.__array__()
-    a_numpy_sorted = numpy.sort(a_numpy, axis)
+    a_np = a.__array__()
+    a_np_sorted = np.sort(a_np, axis)
     print("Checking result...")
-    if cunumeric.allclose(a_numpy_sorted, a_sorted):
+    if num.allclose(a_np_sorted, a_sorted):
         print("PASS!")
     else:
         print("FAIL!")
-        print("NUMPY    : " + str(a_numpy_sorted))
+        print("NUMPY    : " + str(a_np_sorted))
         print("CUNUMERIC: " + str(a_sorted))
         assert False
 
 
 def run_sort(N, shape, axis, datatype, lower, upper, perform_check, timing):
 
-    cunumeric.random.seed(42)
-    newtype = numpy.dtype(datatype).type
+    num.random.seed(42)
+    newtype = np.dtype(datatype).type
     if shape is not None:
         shape = tuple(shape)
     else:
         shape = (N,)
 
-    if numpy.issubdtype(newtype, numpy.integer):
+    if np.issubdtype(newtype, np.integer):
         if lower is None:
-            lower = numpy.iinfo(newtype).min
+            lower = np.iinfo(newtype).min
         if upper is None:
-            upper = numpy.iinfo(newtype).max
-        a = cunumeric.random.randint(low=lower, high=upper, size=N).astype(
-            newtype
-        )
+            upper = np.iinfo(newtype).max
+        a = num.random.randint(low=lower, high=upper, size=N).astype(newtype)
         a = a.reshape(shape)
-    elif numpy.issubdtype(newtype, numpy.floating):
-        a = cunumeric.random.random(shape).astype(newtype)
-    elif numpy.issubdtype(newtype, numpy.complexfloating):
-        a = cunumeric.array(
-            cunumeric.random.random(shape)
-            + cunumeric.random.random(shape) * 1j
+    elif np.issubdtype(newtype, np.floating):
+        a = num.random.random(shape).astype(newtype)
+    elif np.issubdtype(newtype, np.complexfloating):
+        a = num.array(
+            num.random.random(shape) + num.random.random(shape) * 1j
         ).astype(newtype)
     else:
         print("UNKNOWN type " + str(newtype))
         assert False
 
     start = time()
-    a_sorted = cunumeric.sort(a, axis)
+    a_sorted = num.sort(a, axis)
     stop = time()
 
     if perform_check:
@@ -120,7 +117,7 @@ if __name__ == "__main__":
         type=str,
         default="uint32",
         dest="datatype",
-        help="data type (default numpy.int32)",
+        help="data type (default np.int32)",
     )
     parser.add_argument(
         "-l",
