@@ -114,12 +114,16 @@ def test_api(a=None):
     # sort axes
     for i in range(a.ndim):
         print("sort axis " + str(i))
-        compare_assert(np.sort(a, axis=i, kind="stable"), num.sort(a_num, i))
+        compare_assert(
+            np.sort(a, axis=i, kind="stable"),
+            num.sort(a_num, i, kind="stable"),
+        )
 
     # flatten
     print("sort flattened")
     compare_assert(
-        np.sort(a, axis=None, kind="stable"), num.sort(a_num, axis=None)
+        np.sort(a, axis=None, kind="stable"),
+        num.sort(a_num, axis=None, kind="stable"),
     )
 
     # msort
@@ -142,13 +146,15 @@ def test_api(a=None):
         compare_assert(a, a_num)
         print("argsort axis " + str(i))
         compare_assert(
-            np.argsort(a, axis=i, kind="stable"), num.argsort(a_num, axis=i)
+            np.argsort(a, axis=i, kind="stable"),
+            num.argsort(a_num, axis=i, kind="stable"),
         )
 
     # flatten
     print("argsort flattened")
     compare_assert(
-        np.argsort(a, axis=None, kind="stable"), num.argsort(a_num, axis=None)
+        np.argsort(a, axis=None, kind="stable"),
+        num.argsort(a_num, axis=None, kind="stable"),
     )
 
 
