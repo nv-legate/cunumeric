@@ -1033,18 +1033,22 @@ class ndarray(object):
         # We don't care about dimension order in cuNumeric
         return self.__copy__()
 
-    # RRRR incomplete, must handle axis and add the actual calls.
     def cumsum(self, axis=None, dtype=None, out=None):
         if dtype is None:
             dtype = self.dtype
         if out is not None:
+            assert out.shape == self.shape
             if out.dtype == dtype:
                 out = out.convert_to_cunumeric_ndarray(out)
+                out._thunk.cumsum(self._thunk, axis=self.axis, dtype=self.dtype)
             else :
                 # Perform cumsum into temporary out
                 temp = ndarray(shape=self.shape, dtype=dtype)
+                temp._thunk.cumsum(self._thunk, axis=self.axis, dtype=self.dtype)
+                out._thunk.convert(temp._thunk)
         else :
             out = ndarray(shape=self.shape, dtype=dtype)
+            out._thunk.cumsum(self._thunk, axis=self.axis, dtype=self.dtype)
         return out
             
 

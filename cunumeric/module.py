@@ -5579,6 +5579,11 @@ def cumsum(a, axis=None, dtype=None, out=None):
     ----------
     a : array_like
         Input array.
+
+    axis : int, optional
+        Axis along which the cumulative sum is computed. The default (None) is
+        to compute the cumsum over the flattened array.
+
     dtype : dtype, optional
         Type of the returned array and of the accumulator in which the elements
         are summed. If dtype is not specified, it defaults to the dtype of a,

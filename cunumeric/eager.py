@@ -723,3 +723,10 @@ class EagerArray(NumPyThunk):
             self.deferred.cholesky(src)
         else:
             self.array[:] = np.linalg.cholesky(src.array)
+
+    def cumsum(self, rhs, axis, dtype):
+        self.check_eager_args(rhs)
+        if self.deferred is not None:
+            self.deferred.cumsum(rhs, axis, dtype)
+        else:
+            np.cumsum(rhs.array, axis, dtype, self.array[:])

@@ -156,3 +156,10 @@ class LazyArray(NumPyThunk):
 
     def ternary_op(self, op, rhs1, rhs2, rhs3, where, args, stacklevel):
         raise NotImplementedError("Implement in derived classes")
+
+    def choose(self, *args, rhs, stacklevel):
+        raise NotImplementedError("Implement in derived classes")
+
+    def choose(self, rhs, axis, dtype, stacklevel):
+        raise NotImplementedError("Implement in derived classes")
+    
