@@ -1934,7 +1934,7 @@ def repeat(a, repeats, axis=None):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
 
     # when array is a scalar
@@ -1950,9 +1950,9 @@ def repeat(a, repeats, axis=None):
         raise ValueError("`repeats` should be scalar or 1D array")
 
     # array is an array
-    array = ndarray.convert_to_cunumeric_ndarray(a)
+    array = convert_to_cunumeric_ndarray(a)
     if np.ndim(repeats) == 1:
-        repeats = ndarray.convert_to_cunumeric_ndarray(repeats)
+        repeats = convert_to_cunumeric_ndarray(repeats)
 
     # if no axes specified, flatten array
     if axis is None:
@@ -1983,7 +1983,7 @@ def repeat(a, repeats, axis=None):
         if not isinstance(repeats, int):
             runtime.warn(
                 "converting repeats to an integer type",
-                category=RuntimeWarning,
+                category=UserWarning,
             )
         repeats = np.int64(repeats)
         result = array._thunk.repeat(

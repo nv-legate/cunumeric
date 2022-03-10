@@ -1,4 +1,4 @@
-/* Copyright 2021-2022 NVIDIA Corporation
+/* Copyright 2022 NVIDIA Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -57,10 +57,10 @@ struct RepeatImplBody<VariantKind::OMP, CODE, DIM> {
   {
     const size_t volume = rect.volume();
     int64_t size        = 0;
-    int64_t* offsets    = static_cast<int64_t*>(alloca(volume * sizeof(int64_t)));
+    int64_t* offsets    = (int64_t*)malloc(volume * sizeof(int64_t));
 
     {
-      int64_t* sizes = static_cast<int64_t*>(alloca(volume * sizeof(int64_t)));
+      int64_t* sizes = (int64_t*)malloc(volume * sizeof(int64_t));
 #pragma omp parallel for schedule(static)
       for (auto idx = 0; idx < volume; ++idx) sizes[idx] = 0;
 #pragma omp parallel for schedule(static)

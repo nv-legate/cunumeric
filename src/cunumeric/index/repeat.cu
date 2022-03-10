@@ -1,4 +1,4 @@
-/* Copyright 2021-2022 NVIDIA Corporation
+/* Copyright 2022 NVIDIA Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -61,12 +61,9 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
 {
   const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (idx >= volume) return;
-  auto p         = pitches.unflatten(idx, rect.lo);
-  size_t out_idx = idx * repeats;
-  for (size_t r = 0; r < repeats; r++) {
-    out[out_idx] = in[p];
-    ++out_idx;
-  }
+  int64_t i = idx / repeats;
+  auto p    = pitches.unflatten(i, rect.lo);
+  out[idx]  = in[p];
 }
 
 template <typename VAL, int DIM>
@@ -103,12 +100,12 @@ struct RepeatImplBody<VariantKind::GPU, CODE, DIM> {
   {
     const size_t volume = rect.volume();
     size_t size         = volume * repeats;
-    const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
+    const size_t blocks = (size + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
 
     out = create_buffer<VAL>(size, Memory::Kind::GPU_FB_MEM);
 
     repeat_kernel<VAL, DIM>
-      <<<blocks, THREADS_PER_BLOCK>>>(out, in, repeats, axis, rect, pitches, volume);
+      <<<blocks, THREADS_PER_BLOCK>>>(out, in, repeats, axis, rect, pitches, size);
     return size;
   }
 

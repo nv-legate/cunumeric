@@ -201,7 +201,7 @@ def test():
     assert np.array_equal(num.repeat([3, 1], 4), np.repeat([3, 1], 4))
     anp = np.array([1, 2, 3, 4, 5])
     a = num.array(anp)
-    repnp = [1, 2, 1, 2, 1]
+    repnp = np.array([1, 2, 1, 2, 1])
     rep = num.array(repnp)
     print(num.repeat(a, rep, axis=0))
     print(np.repeat(anp, repnp, axis=0))

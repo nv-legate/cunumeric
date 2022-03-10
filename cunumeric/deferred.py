@@ -1244,7 +1244,9 @@ class DeferredArray(NumPyThunk):
         # for ND I would need to promore `repeats` to allign with A
         # and  constrain the tiling
         if self.ndim > 1:
-            raise ValueError("repeat operation is supported only for 1D")
+            raise NotImplementedError(
+                "repeat operation is supported only for 1D"
+            )
         out = self.runtime.create_unbound_thunk(self.dtype)
         task = self.context.create_task(CuNumericOpCode.REPEAT)
         task.add_input(self.base)
