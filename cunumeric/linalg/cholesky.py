@@ -123,7 +123,23 @@ def choose_color_shape(runtime, shape):
         return (num_tiles, num_tiles)
 
 
-def cholesky(output, input):
+def tril(context, p_output, n):
+    launch_domain = Rect((n, n))
+    task = context.create_task(
+        CuNumericOpCode.TRILU, manual=True, launch_domain=launch_domain
+    )
+
+    task.add_output(p_output)
+    task.add_input(p_output)
+    task.add_scalar_arg(True, bool)
+    task.add_scalar_arg(0, ty.int32)
+    # Add a fake task argument to indicate that this is for Cholesky
+    task.add_scalar_arg(True, bool)
+
+    task.execute()
+
+
+def cholesky(output, input, no_tril):
     shape = output.base.shape
     color_shape = choose_color_shape(output.runtime, shape)
     tile_shape = (shape + color_shape - 1) // color_shape
@@ -141,3 +157,8 @@ def cholesky(output, input):
         for k in range(i + 1, n):
             syrk(context, p_output, k, i)
             gemm(context, p_output, k, i, k + 1, n)
+
+    if no_tril:
+        return
+
+    tril(context, p_output, n)

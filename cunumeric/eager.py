@@ -429,7 +429,7 @@ class EagerArray(NumPyThunk):
             choices = tuple(c.array for c in args)
             self.array[:] = np.choose(rhs.array, choices, mode="raise")
 
-    def diag_helper(
+    def _diag_helper(
         self,
         rhs,
         offset,
@@ -438,7 +438,7 @@ class EagerArray(NumPyThunk):
     ):
         self.check_eager_args(rhs)
         if self.deferred is not None:
-            self.deferred.diag_helper(
+            self.deferred._diag_helper(
                 rhs,
                 offset,
                 naxes,

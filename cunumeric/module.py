@@ -24,7 +24,11 @@ from typing import Optional, Set
 import numpy as np
 import opt_einsum as oe
 
-from .array import ndarray
+from .array import (
+    convert_to_cunumeric_ndarray,
+    convert_to_predicate_ndarray,
+    ndarray,
+)
 from .config import BinaryOpCode, UnaryOpCode, UnaryRedCode
 from .runtime import runtime
 
@@ -81,7 +85,7 @@ def add_boilerplate(*array_params: str):
 
             # Convert relevant arguments to cuNumeric ndarrays
             args = tuple(
-                ndarray.convert_to_cunumeric_ndarray(arg)
+                convert_to_cunumeric_ndarray(arg)
                 if idx in indices and arg is not None
                 else arg
                 for (idx, arg) in enumerate(args)
@@ -90,13 +94,11 @@ def add_boilerplate(*array_params: str):
                 if v is None:
                     continue
                 elif k == "where":
-                    kwargs[k] = ndarray.convert_to_predicate_ndarray(v)
+                    kwargs[k] = convert_to_predicate_ndarray(v)
                 elif k == "out":
-                    kwargs[k] = ndarray.convert_to_cunumeric_ndarray(
-                        v, share=True
-                    )
+                    kwargs[k] = convert_to_cunumeric_ndarray(v, share=True)
                 elif k in keys:
-                    kwargs[k] = ndarray.convert_to_cunumeric_ndarray(v)
+                    kwargs[k] = convert_to_cunumeric_ndarray(v)
 
             # Handle the case where all array-like parameters are scalar, by
             # performing the operation on the equivalent scalar numpy arrays.
@@ -125,7 +127,7 @@ def add_boilerplate(*array_params: str):
                 for (k, v) in kwargs.items():
                     if (k in keys or k == "where") and isinstance(v, ndarray):
                         kwargs[k] = v._thunk.__numpy_array__()
-                result = ndarray.convert_to_cunumeric_ndarray(
+                result = convert_to_cunumeric_ndarray(
                     getattr(np, func.__name__)(*args, **kwargs)
                 )
                 if out is not None:
@@ -1226,7 +1228,7 @@ def check_shape_dtype(
     if len(inputs) == 0:
         raise ValueError("need at least one array to concatenate")
 
-    inputs = list(ndarray.convert_to_cunumeric_ndarray(inp) for inp in inputs)
+    inputs = list(convert_to_cunumeric_ndarray(inp) for inp in inputs)
     ndim = inputs[0].ndim
     shape = inputs[0].shape
 
@@ -1324,9 +1326,7 @@ def append(arr, values, axis=None):
 
     """
     # Check to see if we can build a new tuple of cuNumeric arrays
-    inputs = list(
-        ndarray.convert_to_cunumeric_ndarray(inp) for inp in [arr, values]
-    )
+    inputs = list(convert_to_cunumeric_ndarray(inp) for inp in [arr, values])
     return concatenate(inputs, axis)
 
 
@@ -1472,7 +1472,7 @@ def vstack(tup):
     Multiple GPUs, Multiple CPUs
     """
     # Reshape arrays in the `array_list` if needed before concatenation
-    inputs = list(ndarray.convert_to_cunumeric_ndarray(inp) for inp in tup)
+    inputs = list(convert_to_cunumeric_ndarray(inp) for inp in tup)
     reshaped = list(
         inp.reshape([1, inp.shape[0]]) if inp.ndim == 1 else inp
         for inp in inputs
@@ -1567,7 +1567,7 @@ def dstack(tup):
     """
     # Reshape arrays to (1,N,1) for ndim ==1 or (M,N,1) for ndim == 2:
     reshaped = []
-    inputs = list(ndarray.convert_to_cunumeric_ndarray(inp) for inp in tup)
+    inputs = list(convert_to_cunumeric_ndarray(inp) for inp in tup)
     for arr in inputs:
         if arr.ndim == 1:
             arr = arr.reshape((1,) + arr.shape + (1,))
@@ -1701,7 +1701,7 @@ def array_split(a, indices, axis=0, equal=False):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    array = ndarray.convert_to_cunumeric_ndarray(a)
+    array = convert_to_cunumeric_ndarray(a)
     dtype = type(indices)
     split_pts = []
     if axis >= array.ndim:
@@ -1997,7 +1997,7 @@ def invert(a, out=None, where=True, dtype=None):
     """
     if a.dtype.type == np.bool_:
         # Boolean values are special, just do negatiion
-        return ndarray.perform_unary_op(
+        return ndarray._perform_unary_op(
             UnaryOpCode.LOGICAL_NOT,
             a,
             dst=out,
@@ -2006,7 +2006,7 @@ def invert(a, out=None, where=True, dtype=None):
             where=where,
         )
     else:
-        return ndarray.perform_unary_op(
+        return ndarray._perform_unary_op(
             UnaryOpCode.INVERT, a, dst=out, dtype=dtype, where=where
         )
 
@@ -2085,7 +2085,7 @@ def where(a, x=None, y=None):
                 " 'where'"
             )
         return nonzero(a)
-    return ndarray.perform_where(a, x, y)
+    return ndarray._perform_where(a, x, y)
 
 
 # Indexing-like operations
@@ -2446,14 +2446,14 @@ def _contract(expr, a, b=None, out=None):
     for (mode, count) in c_a_modes.items():
         if count > 1:
             axes = [i for (i, m) in enumerate(a_modes) if m == mode]
-            a = a.diag_helper(axes=axes)
+            a = a._diag_helper(axes=axes)
             # diagonal is stored on last axis
             a_modes = [m for m in a_modes if m != mode] + [mode]
     c_b_modes = Counter(b_modes)
     for (mode, count) in c_b_modes.items():
         if count > 1:
             axes = [i for (i, m) in enumerate(b_modes) if m == mode]
-            b = b.diag_helper(axes=axes)
+            b = b._diag_helper(axes=axes)
             # diagonal is stored on last axis
             b_modes = [m for m in b_modes if m != mode] + [mode]
     # Drop modes corresponding to singleton dimensions. This handles cases of
@@ -2845,7 +2845,7 @@ def isinf(a, out=None, where=True, dtype=None, **kwargs):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_unary_op(
+    return ndarray._perform_unary_op(
         UnaryOpCode.ISINF,
         a,
         dst=out,
@@ -2894,7 +2894,7 @@ def isnan(a, out=None, where=True, dtype=None, **kwargs):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_unary_op(
+    return ndarray._perform_unary_op(
         UnaryOpCode.ISNAN,
         a,
         dst=out,
@@ -2948,7 +2948,7 @@ def logical_and(a, b, out=None, where=True, dtype=np.dtype(np.bool), **kwargs):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_binary_op(
+    return ndarray._perform_binary_op(
         BinaryOpCode.LOGICAL_AND,
         a,
         b,
@@ -3001,7 +3001,7 @@ def logical_or(a, b, out=None, where=True, dtype=np.dtype(np.bool), **kwargs):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_binary_op(
+    return ndarray._perform_binary_op(
         BinaryOpCode.LOGICAL_OR,
         a,
         b,
@@ -3052,7 +3052,7 @@ def logical_not(a, out=None, where=True, dtype=None, **kwargs):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_unary_op(
+    return ndarray._perform_unary_op(
         UnaryOpCode.LOGICAL_NOT,
         a,
         dtype=dtype,
@@ -3104,7 +3104,7 @@ def logical_xor(a, b, out=None, where=True, dtype=np.dtype(np.bool), **kwargs):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_binary_op(
+    return ndarray._perform_binary_op(
         BinaryOpCode.LOGICAL_XOR,
         a,
         b,
@@ -3164,7 +3164,7 @@ def allclose(a, b, rtol=1e-5, atol=1e-8, equal_nan=False):
             "cuNumeric does not support equal NaN yet for allclose"
         )
     args = (np.array(rtol, dtype=np.float64), np.array(atol, dtype=np.float64))
-    return ndarray.perform_binary_reduction(
+    return ndarray._perform_binary_reduction(
         BinaryOpCode.ALLCLOSE,
         a,
         b,
@@ -3199,7 +3199,7 @@ def array_equal(a, b):
     """
     if a.shape != b.shape:
         return False
-    return ndarray.perform_binary_reduction(
+    return ndarray._perform_binary_reduction(
         BinaryOpCode.EQUAL, a, b, dtype=np.dtype(np.bool_)
     )
 
@@ -3245,7 +3245,7 @@ def greater(a, b, out=None, where=True, dtype=np.dtype(np.bool), **kwargs):
         --------
         Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_binary_op(
+    return ndarray._perform_binary_op(
         BinaryOpCode.GREATER,
         a,
         b,
@@ -3299,7 +3299,7 @@ def greater_equal(
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_binary_op(
+    return ndarray._perform_binary_op(
         BinaryOpCode.GREATER_EQUAL,
         a,
         b,
@@ -3351,7 +3351,7 @@ def less(a, b, out=None, where=True, dtype=np.dtype(np.bool), **kwargs):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_binary_op(
+    return ndarray._perform_binary_op(
         BinaryOpCode.LESS,
         a,
         b,
@@ -3403,7 +3403,7 @@ def less_equal(a, b, out=None, where=True, dtype=np.dtype(np.bool), **kwargs):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_binary_op(
+    return ndarray._perform_binary_op(
         BinaryOpCode.LESS_EQUAL,
         a,
         b,
@@ -3455,7 +3455,7 @@ def equal(a, b, out=None, where=True, dtype=np.dtype(np.bool), **kwargs):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_binary_op(
+    return ndarray._perform_binary_op(
         BinaryOpCode.EQUAL,
         a,
         b,
@@ -3507,7 +3507,7 @@ def not_equal(a, b, out=None, where=True, dtype=np.dtype(np.bool), **kwargs):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_binary_op(
+    return ndarray._perform_binary_op(
         BinaryOpCode.NOT_EQUAL,
         a,
         b,
@@ -3564,7 +3564,7 @@ def sin(a, out=None, where=True, dtype=None, **kwargs):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_unary_op(
+    return ndarray._perform_unary_op(
         UnaryOpCode.SIN,
         a,
         dtype=dtype,
@@ -3618,7 +3618,7 @@ def cos(a, out=None, where=True, dtype=None, **kwargs):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_unary_op(
+    return ndarray._perform_unary_op(
         UnaryOpCode.COS,
         a,
         dtype=dtype,
@@ -3672,7 +3672,7 @@ def tan(a, out=None, where=True, dtype=None, **kwargs):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_unary_op(
+    return ndarray._perform_unary_op(
         UnaryOpCode.TAN,
         a,
         dtype=dtype,
@@ -3722,7 +3722,7 @@ def arcsin(a, out=None, where=True, dtype=None, **kwargs):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_unary_op(
+    return ndarray._perform_unary_op(
         UnaryOpCode.ARCSIN,
         a,
         dtype=dtype,
@@ -3775,7 +3775,7 @@ def arccos(a, out=None, where=True, dtype=None, **kwargs):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_unary_op(
+    return ndarray._perform_unary_op(
         UnaryOpCode.ARCCOS,
         a,
         dtype=dtype,
@@ -3826,7 +3826,7 @@ def arctan(a, out=None, where=True, dtype=None, **kwargs):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_unary_op(
+    return ndarray._perform_unary_op(
         UnaryOpCode.ARCTAN,
         a,
         dtype=dtype,
@@ -3883,7 +3883,7 @@ def tanh(a, out=None, where=True, dtype=None, **kwargs):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_unary_op(
+    return ndarray._perform_unary_op(
         UnaryOpCode.TANH,
         a,
         dtype=dtype,
@@ -3935,7 +3935,7 @@ def rint(a, out=None, where=True, dtype=None, **kwargs):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_unary_op(
+    return ndarray._perform_unary_op(
         UnaryOpCode.RINT,
         a,
         dtype=dtype,
@@ -3990,7 +3990,7 @@ def floor(a, out=None, where=True, dtype=None, **kwargs):
     # If this is an integer array then there is nothing to do for floor
     if a.dtype.kind in ("i", "u", "b"):
         return a
-    return ndarray.perform_unary_op(
+    return ndarray._perform_unary_op(
         UnaryOpCode.FLOOR, a, dst=out, dtype=dtype, where=where
     )
 
@@ -4040,7 +4040,7 @@ def ceil(a, out=None, where=True, dtype=None, **kwargs):
     # If this is an integer array then there is nothing to do for ceil
     if a.dtype.kind in ("i", "u", "b"):
         return a
-    return ndarray.perform_unary_op(
+    return ndarray._perform_unary_op(
         UnaryOpCode.CEIL, a, dst=out, dtype=dtype, where=where
     )
 
@@ -4250,7 +4250,7 @@ def exp(a, out=None, where=True, dtype=None, **kwargs):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_unary_op(
+    return ndarray._perform_unary_op(
         UnaryOpCode.EXP,
         a,
         dtype=dtype,
@@ -4299,7 +4299,7 @@ def exp2(a, out=None, where=True, dtype=None, **kwargs):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_unary_op(
+    return ndarray._perform_unary_op(
         UnaryOpCode.EXP2,
         a,
         dtype=dtype,
@@ -4352,7 +4352,7 @@ def log(a, out=None, where=True, dtype=None, **kwargs):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_unary_op(
+    return ndarray._perform_unary_op(
         UnaryOpCode.LOG,
         a,
         dtype=dtype,
@@ -4402,7 +4402,7 @@ def log10(a, out=None, where=True, dtype=None, **kwargs):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_unary_op(
+    return ndarray._perform_unary_op(
         UnaryOpCode.LOG10,
         a,
         dtype=dtype,
@@ -4460,7 +4460,7 @@ def add(a, b, out=None, where=True, dtype=None):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_binary_op(
+    return ndarray._perform_binary_op(
         BinaryOpCode.ADD,
         a,
         b,
@@ -4510,7 +4510,7 @@ def negative(a, out=None, where=True, dtype=None, **kwargs):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_unary_op(
+    return ndarray._perform_unary_op(
         UnaryOpCode.NEGATIVE, a, dtype=dtype, dst=out, where=where
     )
 
@@ -4560,7 +4560,7 @@ def multiply(a, b, out=None, where=True, dtype=None):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_binary_op(
+    return ndarray._perform_binary_op(
         BinaryOpCode.MULTIPLY,
         a,
         b,
@@ -4630,7 +4630,7 @@ def power(x1, x2, out=None, where=True, dtype=None, **kwargs):
             else:
                 scalar_types.append(x2.dtype)
             dtype = np.find_common_type(array_types, scalar_types)
-    return ndarray.perform_binary_op(
+    return ndarray._perform_binary_op(
         BinaryOpCode.POWER,
         x1,
         x2,
@@ -4686,7 +4686,7 @@ def subtract(a, b, out=None, where=True, dtype=None, **kwargs):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_binary_op(
+    return ndarray._perform_binary_op(
         BinaryOpCode.SUBTRACT,
         a,
         b,
@@ -4793,7 +4793,7 @@ def true_divide(a, b, out=None, where=True, dtype=None, **kwargs):
         )
         temp._thunk.convert(b._thunk, warn=False)
         b = temp
-    return ndarray.perform_binary_op(
+    return ndarray._perform_binary_op(
         BinaryOpCode.DIVIDE,
         a,
         b,
@@ -4852,7 +4852,7 @@ def floor_divide(a, b, out=None, where=True, dtype=None, **kwargs):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_binary_op(
+    return ndarray._perform_binary_op(
         BinaryOpCode.FLOOR_DIVIDE,
         a,
         b,
@@ -4909,7 +4909,7 @@ def remainder(a, b, out=None, where=True, dtype=None):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_binary_op(
+    return ndarray._perform_binary_op(
         BinaryOpCode.MOD,
         a,
         b,
@@ -5069,7 +5069,7 @@ def maximum(a, b, out=None, where=True, dtype=None, **kwargs):
         --------
         Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_binary_op(
+    return ndarray._perform_binary_op(
         BinaryOpCode.MAXIMUM,
         a,
         b,
@@ -5189,7 +5189,7 @@ def minimum(a, b, out=None, where=True, dtype=None, **kwargs):
         --------
         Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_binary_op(
+    return ndarray._perform_binary_op(
         BinaryOpCode.MINIMUM,
         a,
         b,
@@ -5314,10 +5314,23 @@ def convolve(a, v, mode="full"):
     if mode != "same":
         raise NotImplementedError("Need to implement other convolution modes")
 
+    if a.ndim != v.ndim:
+        raise RuntimeError("Arrays should have the same dimensions")
+    elif a.ndim > 3:
+        raise NotImplementedError(f"{a.ndim}-D arrays are not yet supported")
+
     if a.ndim == 1 and a.size < v.size:
         v, a = a, v
 
-    return a.convolve(v, mode)
+    if a.dtype != v.dtype:
+        v = v.astype(a.dtype)
+    out = ndarray(
+        shape=a.shape,
+        dtype=a.dtype,
+        inputs=(a, v),
+    )
+    a._thunk.convolve(v._thunk, out._thunk, mode)
+    return out
 
 
 @add_boilerplate("a")
@@ -5414,7 +5427,7 @@ def sqrt(a, out=None, where=True, dtype=None, **kwargs):
         --------
         Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_unary_op(
+    return ndarray._perform_unary_op(
         UnaryOpCode.SQRT,
         a,
         dtype=dtype,
@@ -5508,7 +5521,7 @@ def absolute(a, out=None, where=True, **kwargs):
     # Handle the nice case of it being unsigned
     if a.dtype.type in (np.uint16, np.uint32, np.uint64, np.bool_):
         return a
-    return ndarray.perform_unary_op(
+    return ndarray._perform_unary_op(
         UnaryOpCode.ABSOLUTE, a, dst=out, where=where
     )
 
@@ -5609,7 +5622,7 @@ def sign(a, out=None, where=True, dtype=None, **kwargs):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray.perform_unary_op(
+    return ndarray._perform_unary_op(
         UnaryOpCode.SIGN,
         a,
         dtype=dtype,
@@ -5982,7 +5995,7 @@ def count_nonzero(a, axis=None):
     """
     if a.size == 0:
         return 0
-    return ndarray.perform_unary_reduction(
+    return ndarray._perform_unary_reduction(
         UnaryRedCode.COUNT_NONZERO,
         a,
         axis=axis,
