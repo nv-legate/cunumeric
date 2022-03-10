@@ -105,6 +105,23 @@ std::vector<StoreMapping> CuNumericMapper::store_mappings(
       } else
         return {};
     }
+    case CUNUMERIC_MATMUL:
+    case CUNUMERIC_MATVECMUL: {
+      // TODO: Our actual requirements are a little less strict than this; we require each array or
+      // vector to have a stride of 1 on at least one dimension.
+      std::vector<StoreMapping> mappings;
+      auto& inputs  = task.inputs();
+      auto& outputs = task.outputs();
+      for (auto& input : inputs) {
+        mappings.push_back(StoreMapping::default_mapping(input, options.front()));
+        mappings.back().policy.exact = true;
+      }
+      for (auto& output : outputs) {
+        mappings.push_back(StoreMapping::default_mapping(output, options.front()));
+        mappings.back().policy.exact = true;
+      }
+      return std::move(mappings);
+    }
     case CUNUMERIC_POTRF:
     case CUNUMERIC_TRSM:
     case CUNUMERIC_SYRK:
