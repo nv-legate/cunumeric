@@ -24,11 +24,11 @@ namespace cunumeric {
 using namespace Legion;
 using namespace legate;
 
-template <typename VAL, int32_t DIM, bool LOWER>
+template <typename VAL, int32_t DIM, bool LOWER, bool C_ORDER>
 static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   trilu_kernel(AccessorWO<VAL, DIM> out,
                AccessorRO<VAL, DIM> in,
-               Pitches<DIM - 1> pitches,
+               Pitches<DIM - 1, C_ORDER> pitches,
                Point<DIM> lo,
                size_t volume,
                int32_t k)
@@ -55,15 +55,17 @@ template <LegateTypeCode CODE, int32_t DIM, bool LOWER>
 struct TriluImplBody<VariantKind::GPU, CODE, DIM, LOWER> {
   using VAL = legate_type_of<CODE>;
 
+  template <bool C_ORDER>
   void operator()(const AccessorWO<VAL, DIM>& out,
                   const AccessorRO<VAL, DIM>& in,
-                  const Pitches<DIM - 1>& pitches,
+                  const Pitches<DIM - 1, C_ORDER>& pitches,
                   const Point<DIM>& lo,
                   size_t volume,
                   int32_t k) const
   {
     const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-    trilu_kernel<VAL, DIM, LOWER><<<blocks, THREADS_PER_BLOCK>>>(out, in, pitches, lo, volume, k);
+    trilu_kernel<VAL, DIM, LOWER, C_ORDER>
+      <<<blocks, THREADS_PER_BLOCK>>>(out, in, pitches, lo, volume, k);
   }
 };
 
