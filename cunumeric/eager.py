@@ -502,6 +502,16 @@ class EagerArray(NumPyThunk):
                 result += (EagerArray(self.runtime, array),)
             return result
 
+    def sort(self, rhs, argsort=False, axis=-1, kind="quicksort", order=None):
+        self.check_eager_args(rhs, axis, kind, order)
+        if self.deferred is not None:
+            self.deferred.sort(rhs, argsort, axis, kind, order)
+        else:
+            if argsort:
+                self.array = np.argsort(rhs.array, axis, kind, order)
+            else:
+                self.array = np.sort(rhs.array, axis, kind, order)
+
     def random_uniform(self):
         if self.deferred is not None:
             self.deferred.random_uniform()
