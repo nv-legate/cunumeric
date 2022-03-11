@@ -298,7 +298,10 @@ void local_sort_inplace(legate_type_of<CODE>* inptr,
 }
 
 // auto align to multiples of 16 bytes
-auto get_aligned_size = [](auto size) { return std::max<size_t>(16, (size + 15) / 16 * 16); };
+auto get_16b_aligned = [](auto bytes) { return std::max<size_t>(16, (bytes + 15) / 16 * 16); };
+auto get_16b_aligned_count = [](auto count, auto element_bytes) {
+  return (get_16b_aligned(count * element_bytes) + element_bytes - 1) / element_bytes;
+};
 
 template <typename VAL>
 struct SortPiece {
@@ -488,39 +491,95 @@ static SortPiece<VAL> sample_sort_nccl(SortPiece<VAL> local_sorted,
 
   // allocate merge targets, data transfer...
   std::vector<SortPiece<VAL>> merge_buffers(num_ranks);
+  std::vector<size_t> aligned_pos_vals_send(num_ranks);
+  std::vector<size_t> aligned_pos_idcs_send(num_ranks);
 
+  size_t buf_size_send_vals_total = 0;
+  size_t buf_size_send_idcs_total = 0;
   for (size_t i = 0; i < num_ranks; ++i) {
     // align buffer to allow data transfer of 16byte blocks
-    auto recv_size_aligned   = get_aligned_size(size_recv[i] * sizeof(VAL));
-    auto buf_size            = (recv_size_aligned + sizeof(VAL) - 1) / sizeof(VAL);
-    merge_buffers[i].values  = create_buffer<VAL>(buf_size, Memory::GPU_FB_MEM);
-    merge_buffers[i].indices = create_buffer<int64_t>(argsort ? buf_size : 0, Memory::GPU_FB_MEM);
-    merge_buffers[i].size    = size_recv[i];
+    auto buf_size_vals_recv = get_16b_aligned_count(size_recv[i], sizeof(VAL));
+    merge_buffers[i].values = create_buffer<VAL>(buf_size_vals_recv, Memory::GPU_FB_MEM);
+    merge_buffers[i].size   = size_recv[i];
+
+    aligned_pos_vals_send[i] = buf_size_send_vals_total;
+    buf_size_send_vals_total += get_16b_aligned_count(size_send[i], sizeof(VAL));
+
+    if (argsort) {
+      auto buf_size_idcs_recv  = get_16b_aligned_count(size_recv[i], sizeof(int64_t));
+      merge_buffers[i].indices = create_buffer<int64_t>(buf_size_idcs_recv, Memory::GPU_FB_MEM);
+      aligned_pos_idcs_send[i] = buf_size_send_idcs_total;
+      buf_size_send_idcs_total += get_16b_aligned_count(size_send[i], sizeof(int64_t));
+    } else {
+      merge_buffers[i].indices = create_buffer<int64_t>(0, Memory::GPU_FB_MEM);
+    }
   }
-  size_t send_pos = 0;
+
+  // copy values into aligned send buffer
+  auto val_send_buf = local_sorted.values;
+  if (buf_size_send_vals_total > volume) {
+    val_send_buf = create_buffer<VAL>(buf_size_send_vals_total, Memory::GPU_FB_MEM);
+    size_t pos   = 0;
+    for (size_t r = 0; r < num_ranks; ++r) {
+      CHECK_CUDA(cudaMemcpyAsync(val_send_buf.ptr(aligned_pos_vals_send[r]),
+                                 local_sorted.values.ptr(pos),
+                                 sizeof(VAL) * size_send[r],
+                                 cudaMemcpyDeviceToDevice,
+                                 stream));
+      pos += size_send[r];
+    }
+  }
+
+  // copy indices into aligned send buffer
+  auto idc_send_buf = local_sorted.indices;
+  if (argsort && buf_size_send_idcs_total > volume) {
+    idc_send_buf = create_buffer<int64_t>(buf_size_send_idcs_total, Memory::GPU_FB_MEM);
+    size_t pos   = 0;
+    for (size_t r = 0; r < num_ranks; ++r) {
+      CHECK_CUDA(cudaMemcpyAsync(idc_send_buf.ptr(aligned_pos_idcs_send[r]),
+                                 local_sorted.indices.ptr(pos),
+                                 sizeof(int64_t) * size_send[r],
+                                 cudaMemcpyDeviceToDevice,
+                                 stream));
+      pos += size_send[r];
+    }
+  }
+
   CHECK_NCCL(ncclGroupStart());
   for (size_t r = 0; r < num_ranks; r++) {
-    CHECK_NCCL(ncclSend(local_sorted.values.ptr(send_pos),
-                        get_aligned_size(size_send[r] * sizeof(VAL)),
+    CHECK_NCCL(ncclSend(val_send_buf.ptr(aligned_pos_vals_send[r]),
+                        get_16b_aligned(size_send[r] * sizeof(VAL)),
                         ncclInt8,
                         r,
                         *comm,
                         stream));
     CHECK_NCCL(ncclRecv(merge_buffers[r].values.ptr(0),
-                        get_aligned_size(size_recv[r] * sizeof(VAL)),
+                        get_16b_aligned(size_recv[r] * sizeof(VAL)),
                         ncclInt8,
                         r,
                         *comm,
                         stream));
-    if (argsort) {
-      CHECK_NCCL(
-        ncclSend(local_sorted.indices.ptr(send_pos), size_send[r], ncclInt64, r, *comm, stream));
-      CHECK_NCCL(
-        ncclRecv(merge_buffers[r].indices.ptr(0), size_recv[r], ncclInt64, r, *comm, stream));
-    }
-    send_pos += size_send[r];
   }
   CHECK_NCCL(ncclGroupEnd());
+
+  if (argsort) {
+    CHECK_NCCL(ncclGroupStart());
+    for (size_t r = 0; r < num_ranks; r++) {
+      CHECK_NCCL(ncclSend(idc_send_buf.ptr(aligned_pos_idcs_send[r]),
+                          get_16b_aligned_count(size_send[r], sizeof(int64_t)),
+                          ncclInt64,
+                          r,
+                          *comm,
+                          stream));
+      CHECK_NCCL(ncclRecv(merge_buffers[r].indices.ptr(0),
+                          get_16b_aligned_count(size_recv[r], sizeof(int64_t)),
+                          ncclInt64,
+                          r,
+                          *comm,
+                          stream));
+    }
+    CHECK_NCCL(ncclGroupEnd());
+  }
 
   // now merge sort all into the result buffer
   // maybe k-way merge is more efficient here...
