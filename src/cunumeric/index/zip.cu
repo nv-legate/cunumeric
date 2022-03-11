@@ -35,7 +35,6 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   if (idx >= volume) return;
   auto p = pitches.unflatten(idx, rect.lo);
   out[p] = Legion::Point<N>(index_arrays[Is][p]...);
-  printf("IRINA DEBUG point = %d %d %d \n", out[p][0], out[p][1], out[p][2]);
 }
 
 template <int DIM, int N, size_t... Is>
@@ -49,11 +48,6 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (idx >= volume) return;
   out[idx] = Legion::Point<N>(index_arrays[Is][idx]...);
-  printf("IRINA DEBUG dense point = %d %d %d \n", out[idx][0], out[idx][1], out[idx][2]);
-  printf("IRINA DEBUG dense index_arr = %d %d %d \n",
-         index_arrays[0][idx],
-         index_arrays[1][idx],
-         index_arrays[2][idx]);
 }
 
 template <int DIM, int N>
