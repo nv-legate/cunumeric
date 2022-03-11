@@ -53,39 +53,39 @@ def test():
     assert num.count_nonzero(x) == 4
     assert_equal(num.nonzero(x), np.nonzero(x_np))
 
-    # TBD: this will work once nonzero returns output in row-major output
-    # x = num.array([[0, 1, 0], [2, 0, 3]])
-    # x_np = np.array([[0, 1, 0], [2, 0, 3]])
-    # assert (num.count_nonzero(x) == 3)
-    # assert_equal(num.nonzero(x), np.nonzero(x_np))
-
     x_lg = num.eye(3)
     x_np = np.eye(3)
     assert num.count_nonzero(x_lg) == np.count_nonzero(x_np)
     assert_equal(num.nonzero(x_lg), np.nonzero(x_np))
 
-    # TBD: this will work once nonzero returns output in row-major output
-    # x = num.array([[[0, 1], [1, 1], [7, 0], [1, 0], [0, 1]], [[3, 0], [0, 3], [0, 0], [2, 2], [0, 19]]]) # noqa E501
-    # x_np = np.array([[[0, 1], [1, 1], [7, 0], [1, 0], [0, 1]], [[3, 0], [0, 3], [0, 0], [2, 2], [0, 19]]]) # noqa E501
-    # assert (num.count_nonzero(x) == np.count_nonzero(x_np))
-    # assert_equal(num.count_nonzero(x, axis=0), np.count_nonzero(x_np, axis=0)) # noqa E501
-    # assert_equal(num.count_nonzero(x, axis=1), np.count_nonzero(x_np, axis=1)) # noqa E501
-    # assert_equal(num.count_nonzero(x, axis=2), np.count_nonzero(x_np, axis=2)) # noqa E501
-    # assert (num.count_nonzero(x, axis=(0, 1, 2)) == np.count_nonzero(x_np, axis=(0, 1, 2))) # noqa E501
-    # assert_equal(num.nonzero(x), np.nonzero(x_np))
+    x = num.array([[0, 1, 0] * 5, [2, 0, 3] * 5])
+    x_np = np.array([[0, 1, 0] * 5, [2, 0, 3] * 5])
+    assert num.count_nonzero(x) == 15
+    assert_equal(num.nonzero(x), np.nonzero(x_np))
 
-    # x_np = np.concatenate((x_np,) * 2000, axis=1)
-    # x = num.array(x_np)
-    # assert (num.count_nonzero(x) == np.count_nonzero(x_np))
-    # assert_equal(num.count_nonzero(x, axis=0), np.count_nonzero(x_np, axis=0)) # noqa E501
-    # assert_equal(num.count_nonzero(x, axis=1), np.count_nonzero(x_np, axis=1)) # noqa E501
-    # assert_equal(num.count_nonzero(x, axis=2), np.count_nonzero(x_np, axis=2)) # noqa E501
-    # assert (num.count_nonzero(x, axis=(0, 1, 2)) == np.count_nonzero(x_np, axis=(0, 1, 2))) # noqa E501
-    # assert_equal(num.nonzero(x), np.nonzero(x_np))
-
-    # lg_nonzero = num.nonzero(x)
-    # np_nonzero = np.nonzero(x_np)
-    # assert_equal(lg_nonzero, np_nonzero)
+    x = num.array(
+        [
+            [[0, 1], [1, 1], [7, 0], [1, 0], [0, 1]],
+            [[3, 0], [0, 3], [0, 0], [2, 2], [0, 19]],
+        ]
+    )
+    x_np = np.array(
+        [
+            [[0, 1], [1, 1], [7, 0], [1, 0], [0, 1]],
+            [[3, 0], [0, 3], [0, 0], [2, 2], [0, 19]],
+        ]
+    )
+    assert num.count_nonzero(x) == np.count_nonzero(x_np)
+    assert num.count_nonzero(x, axis=(0, 1, 2)) == np.count_nonzero(
+        x_np, axis=(0, 1, 2)
+    )
+    # TODO: Put this back once we have per-axis count_nonzero
+    # for axis in range(3):
+    #    assert_equal(
+    #        num.count_nonzero(x, axis=axis),
+    #        np.count_nonzero(x_np, axis=axis),
+    #    )
+    assert_equal(num.nonzero(x), np.nonzero(x_np))
 
     assert_equal(num.nonzero(0), ([],))
     assert_equal(num.nonzero(1), ([0],))
@@ -100,15 +100,6 @@ def test():
     lg_nonzero = num.nonzero(x)
     np_nonzero = np.nonzero(x_np)
     assert_equal(lg_nonzero, np_nonzero)
-
-    # x_np = x_np.reshape(10, 10)
-    # x = num.array(x_np)
-    # assert (num.count_nonzero(x) == np.count_nonzero(x_np))
-    # lg_nonzero = num.nonzero(x)
-    # np_nonzero = np.nonzero(x_np)
-    # assert_equal(lg_nonzero, np_nonzero)
-
-    return
 
 
 if __name__ == "__main__":
