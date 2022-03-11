@@ -25,10 +25,24 @@ from legate.core import LEGATE_MAX_DIM
 
 
 def advanced_indexing():
+    # simple advance indexing:
+    print("advance indexing test 1")
+    x = np.array([1, 2, 3, 4, 5, 6, 7])
+    indx = np.array([1, 3, 5])
+    res = x[indx]
+    x_num = num.array(x)
+    indx_num = num.array(indx)
+    res_num = x_num[indx_num]
+    assert np.array_equal(res, res_num)
 
-    arr = num.array([1, 2, 3, 4, 5, 6, 7])
-    indx = num.array([1, 3, 5])
-    res = arr[indx]
+    # advance indexing test when a.ndim ==1 , indx.ndim >1
+    print("advance indexing test 2")
+    y = np.array([0, -1, -2, -3, -4, -5])
+    y_num = num.array(y)
+    index = np.array([[1, 0, 1, 3, 0, 0], [2, 4, 0, 4, 4, 4]])
+    index_num = num.array(index)
+    assert np.array_equal(y[index], y_num[index_num])
+
     z = np.array(
         [
             [[0, 1, 2, 3], [4, 5, 6, 7], [8, 9, 10, 11]],
@@ -37,32 +51,28 @@ def advanced_indexing():
     )
     z_num = num.array(z)
 
-    # simple advance indexing:
-    y = np.array([0, -1, -2, -3, -4, -5])
-    y_num = num.array(y)
-    index = np.array([2, 4, 0, 4, 4, 4])
-    index_num = num.array(index)
-    assert np.array_equal(y[index], y_num[index_num])
-
     # simple 2D case
-    # fixme dimension mismatch case
-    # index_2d = np.array([[ 1,  2,  0],
-    #                 [ 5,  5,  5],
-    #                 [ 2,  3,  4]])
-    # index_2d_num = num.array(index_2d)
-    # assert np.array_equal(y[index_2d], y_num[index_2d_num])
+    print("advance indexing test 3")
+    index_2d = np.array([[1, 2, 0], [5, 5, 5], [2, 3, 4]])
+    index_2d_num = num.array(index_2d)
+    assert np.array_equal(y[index_2d], y_num[index_2d_num])
 
     # mismatch dimesion case:
-    # indx_bool = np.array([True, True])
+    # print ("advance indexing test 4")
+    # indx_bool = np.array([True, False])
     # indx_bool_num = num.array(indx_bool)
     # res = z[indx_bool]
-    # res_num = z_num[indx_bool_num]
-    # print ("bool array as indx np:")
+    # print("IRINA DEBUG")
+    # assert np.array_equal(indx_bool.nonzero(), indx_bool_num.nonzero())
+    # print("bool array as indx np:")
     # print(res)
-    # print ("cunumeric:")
-    # print (res_num)
+    # print("cunumeric:")
+    # res_num = z_num[indx_bool_num]
+    # print(res_num)
+    # assert np.array_equal(res, res_num)
 
     # test for bool array of the same dimension
+    print("advance indexing test 5")
     indx_bool = np.array(
         [
             [
@@ -80,20 +90,20 @@ def advanced_indexing():
     indx_bool_num = num.array(indx_bool)
     res = z[indx_bool]
     res_num = z_num[indx_bool_num]
-    print("bool array as indx np:")
-    print(res)
-    print(z[indx_bool.nonzero()])
-    print("cunumeric:")
-    print(res_num)
-    # fixme unomment when nonzero is fixed
-    # assert np.array_equal(res, res_num)
+    # print("bool array as indx np:")
+    # print(res)
+    # print("cunumeric:")
+    # print(res_num)
+    assert np.array_equal(res, res_num)
 
     # test mixed data
+    print("advance indexing test 6")
     res = z[-1, :]
     res_num = z_num[-1, :]
     assert np.array_equal(res, res_num)
 
-    # case when multiple number of arays is send
+    # case when multiple number of arays is passed
+    print("advance indexing test 7")
     indx0 = np.array([[0, 1], [1, 0], [0, 0]])
     indx1 = np.array([[0, 1], [2, 0], [1, 2]])
     indx2 = np.array([[3, 2], [1, 0], [3, 2]])
@@ -110,35 +120,47 @@ def advanced_indexing():
     assert np.array_equal(res, res_np)
 
     # FIXME: Combining Basic and Advanced Indexing Schemes:
-    # ind0 = np.array([True, True])
-    # ind0_num=num.array(ind0)
+    # print ("advance indexing test 8")
+    # ind0 = np.array([1, 1])
+    # ind0_num = num.array(ind0)
     # res = z[ind0, :, -1]
     # res_num = z_num[ind0_num, :, -1]
-    # print (res)
-    # fixme error
+    # print(res)
     # print(res_num)
     # assert np.array_equal(res, res_num)
 
     # In-Place & Augmented Assignments via Advanced Indexing
-    x = np.array(
-        [
-            [0.38, -0.16, 0.38, -0.41, -0.04],
-            [-0.47, -0.01, -0.18, -0.5, -0.49],
-            [0.02, 0.4, 0.33, 0.33, -0.13],
-        ]
-    )
-    indx0 = np.array([0, 2])
-    indx1 = np.array([2, 4])
+    # simple 1d case
+    # y = np.array([0, -1, -2, -3, -4, -5])
+    # y_num = num.array(y)
+    # index = np.array([2, 4, 0, 4, 4, 4])
+    # index_num = num.array(index)
+    # print (y[index])
+    # print(y_num[index])
+    # y[index] = 0
+    # y_num[index_num] =0
+    # print (y_num)
+
+    # 2D test
+    # x = np.array(
+    #    [
+    #        [0.38, -0.16, 0.38, -0.41, -0.04],
+    #        [-0.47, -0.01, -0.18, -0.5, -0.49],
+    #        [0.02, 0.4, 0.33, 0.33, -0.13],
+    #    ]
+    # )
+    # indx0 = np.array([0, 1])
+    # indx1 = np.array([1, 2])
     # x_num = num.array(x)
     # indx0_num = num.array(indx0)
     # indx1_num = num.array(indx1)
-    print(x[indx0, indx1])
+    # print(x[indx0, indx1])
     # FIXME 0:
     # print (x_num[indx0_num,indx1_num])
     # assert np.array_equal(x[indx0, indx1], x_num[indx0_num, indx1_num])
     # print (x_num[indx0_num, indx1_num])
-    x[indx0, indx1] = 0.0
-    print(x)
+    # x[indx0, indx1] = 0.0
+    # print(x)
     # x_num[indx0_num, indx1_num] =0.0
 
     return
