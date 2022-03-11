@@ -26,9 +26,10 @@ template <LegateTypeCode CODE, int32_t DIM, bool LOWER>
 struct TriluImplBody<VariantKind::CPU, CODE, DIM, LOWER> {
   using VAL = legate_type_of<CODE>;
 
+  template <bool C_ORDER>
   void operator()(const AccessorWO<VAL, DIM>& out,
                   const AccessorRO<VAL, DIM>& in,
-                  const Pitches<DIM - 1>& pitches,
+                  const Pitches<DIM - 1, C_ORDER>& pitches,
                   const Point<DIM>& lo,
                   size_t volume,
                   int32_t k) const

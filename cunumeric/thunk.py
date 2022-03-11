@@ -152,7 +152,7 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def diag_helper(
+    def _diag_helper(
         self,
         rhs,
         offset,
@@ -229,4 +229,8 @@ class NumPyThunk(ABC):
 
     @abstractmethod
     def cholesky(self, src, no_tril):
+        ...
+
+    @abstractmethod
+    def unique(self):
         ...

@@ -141,6 +141,17 @@ std::vector<StoreMapping> CuNumericMapper::store_mappings(
       }
       return std::move(mappings);
     }
+    case CUNUMERIC_TRILU: {
+      if (task.scalars().size() == 2) return {};
+      // If we're here, this task was the post-processing for Cholesky.
+      // So we will request fortran ordering
+      std::vector<StoreMapping> mappings;
+      auto& input = task.inputs().front();
+      mappings.push_back(StoreMapping::default_mapping(input, options.front()));
+      mappings.back().policy.ordering.fortran_order();
+      mappings.back().policy.exact = true;
+      return std::move(mappings);
+    }
     default: {
       return {};
     }

@@ -81,17 +81,23 @@ class Runtime(object):
         self.destroyed = False
         self.api_calls = []
 
-        self.max_eager_volume = self.legate_context.get_tunable(
-            CuNumericTunable.MAX_EAGER_VOLUME,
-            ty.int32,
+        self.max_eager_volume = int(
+            self.legate_context.get_tunable(
+                CuNumericTunable.MAX_EAGER_VOLUME,
+                ty.int32,
+            )
         )
-        self.num_procs = self.legate_context.get_tunable(
-            CuNumericTunable.NUM_PROCS,
-            ty.int32,
+        self.num_procs = int(
+            self.legate_context.get_tunable(
+                CuNumericTunable.NUM_PROCS,
+                ty.int32,
+            )
         )
-        self.num_gpus = self.legate_context.get_tunable(
-            CuNumericTunable.NUM_GPUS,
-            ty.int32,
+        self.num_gpus = int(
+            self.legate_context.get_tunable(
+                CuNumericTunable.NUM_GPUS,
+                ty.int32,
+            )
         )
 
         # Make sure that our CuNumericLib object knows about us so it can

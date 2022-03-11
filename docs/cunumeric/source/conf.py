@@ -94,12 +94,10 @@ nitpick_ignore = [
     ("py:class", "type"),
     ("py:class", "scalar"),
     ("py:class", "array_like"),
-    ("py:class", "dtype"),
     ("py:class", "optional"),
-    ("py:class", "tuple of ints"),
+    ("py:class", "data-type"),
     ("py:class", "M"),
-    ("py:class", "numpy.isnan"),
-    ("py:class", "boolean ndarray"),
+    ("py:class", "N"),
 ]
 
 intersphinx_mapping = {
