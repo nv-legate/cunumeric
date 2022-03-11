@@ -382,9 +382,21 @@ class DeferredArray(NumPyThunk):
                     )
         else:
             assert isinstance(key, NumPyThunk)
-            # irina fixme
-            if key.ndim != self.ndim:
-                raise TypeError("Advanced indexing dimension mismatch")
+            if key.ndim < store.ndim:
+                raise TypeError("Unimplimented")
+                # FIXME advance indexing task
+                # diff = store.ndim - key.ndim
+                # print ("IRINA DEBUG store ndim = " , store)
+                # for i in range(diff):
+                #    store = store.slice((store.ndim - i - 1), slice(None))
+                #    print ("IRINA DEBUG store ndim = " , store)
+            elif key.ndim > store.ndim:
+                if store.ndim != 1:
+                    raise ValueError("Advance indexing dimention mismatch")
+                diff = store.ndim - key.ndim
+                for i in range(diff):
+                    store = store.promote(i + 1, store.shape[0])
+
             # Handle the boolean array case
             if key.dtype == np.bool:
                 # IRINA fixme: replace `nonzero` case with the task with
@@ -463,7 +475,6 @@ class DeferredArray(NumPyThunk):
         if self._is_advanced_indexing(key):
             # Create the indexing array
             store, index_array = self._create_indexing_array(key)
-
             # Create a new array to be the result
             result = self.runtime.create_empty_thunk(
                 index_array.base.shape,
@@ -501,23 +512,31 @@ class DeferredArray(NumPyThunk):
         # Check to see if this is advanced indexing or not
         if self._is_advanced_indexing(key):
             # Create the indexing array
-            index_array = self._create_indexing_array(key)
-            if index_array.shape != rhs.shape:
-                raise ValueError(
-                    "Advanced indexing array does not match source shape"
+            store, index_array = self._create_indexing_array(key)
+            # if index_array.shape != rhs.shape:
+            #    raise ValueError(
+            #        "Advanced indexing array does not match source shape"
+            #    )
+            # if self.ndim != index_array.ndim:
+            #    raise NotImplementedError(
+            #        "need support for indirect partitioning"
+            #    )
+            if rhs.ndim == 0:
+                shape = store.shape
+                val = rhs
+                rhs = self.runtime.create_empty_thunk(
+                    shape,
+                    self.dtype,
+                    inputs=[self],
                 )
-            if self.ndim != index_array.ndim:
-                raise NotImplementedError(
-                    "need support for indirect partitioning"
-                )
-
+                rhs.fill(val)
             copy = self.context.create_copy()
 
-            copy.add_input(rhs.base)
+            copy.add_input(store)
             copy.add_target_indirect(index_array.base)
             copy.add_output(self.base)
 
-            copy.add_alignment(index_array.base, rhs.base)
+            # copy.add_alignment(index_array.base, rhs.base)
 
             copy.execute()
 
