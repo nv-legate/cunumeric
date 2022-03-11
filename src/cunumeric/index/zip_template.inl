@@ -37,9 +37,6 @@ struct ZipImpl {
     size_t volume = pitches.flatten(index_rect);
     if (volume == 0) return;
 
-    std::cout << "IRINA DEBUG N=" << N << " , D = " << DIM << std::endl;
-
-    std::cout << "IRINA DEBUG idex_rect = " << index_rect << "out_rect = " << out_rect << std::endl;
 #ifndef LEGION_BOUNDS_CHECKS
     bool dense = out.accessor.is_dense_row_major(out_rect);
 #endif

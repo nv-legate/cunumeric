@@ -35,31 +35,112 @@ def advanced_indexing():
             [[12, 13, 14, 15], [16, 17, 18, 19], [20, 21, 22, 23]],
         ]
     )
-    # ind0 = np.array([True, False])
     z_num = num.array(z)
-    # ind0_num = np.array(ind0)
-    # res = z_num[-1, :]
+
+    # simple advance indexing:
+    y = np.array([0, -1, -2, -3, -4, -5])
+    y_num = num.array(y)
+    index = np.array([2, 4, 0, 4, 4, 4])
+    index_num = num.array(index)
+    assert np.array_equal(y[index], y_num[index_num])
+
+    # simple 2D case
+    # fixme dimension mismatch case
+    # index_2d = np.array([[ 1,  2,  0],
+    #                 [ 5,  5,  5],
+    #                 [ 2,  3,  4]])
+    # index_2d_num = num.array(index_2d)
+    # assert np.array_equal(y[index_2d], y_num[index_2d_num])
+
+    # mismatch dimesion case:
+    # indx_bool = np.array([True, True])
+    # indx_bool_num = num.array(indx_bool)
+    # res = z[indx_bool]
+    # res_num = z_num[indx_bool_num]
+    # print ("bool array as indx np:")
     # print(res)
-    # print(z[-1, :])
+    # print ("cunumeric:")
+    # print (res_num)
 
-    # indx0_num = num.array([0, 0])
-    # indx1_num = num.array([1, 1])
-    # indx2_num = num.array([2, 2])
+    # test for bool array of the same dimension
+    indx_bool = np.array(
+        [
+            [
+                [False, True, False, False],
+                [True, True, False, False],
+                [True, False, True, False],
+            ],
+            [
+                [False, True, False, False],
+                [True, True, False, False],
+                [True, False, True, False],
+            ],
+        ]
+    )
+    indx_bool_num = num.array(indx_bool)
+    res = z[indx_bool]
+    res_num = z_num[indx_bool_num]
+    print("bool array as indx np:")
+    print(res)
+    print(z[indx_bool.nonzero()])
+    print("cunumeric:")
+    print(res_num)
+    # fixme unomment when nonzero is fixed
+    # assert np.array_equal(res, res_num)
 
-    # indx0_num._thunk._zip_indices(
-    #  (indx0_num._thunk, indx1_num._thunk, indx2_num._thunk,))
+    # test mixed data
+    res = z[-1, :]
+    res_num = z_num[-1, :]
+    assert np.array_equal(res, res_num)
 
-    indx0_num = num.array([[0, 0], [0, 0], [0, 0]])
-    indx1_num = num.array([[1, 1], [1, 1], [1, 1]])
-    indx2_num = num.array([[2, 2], [2, 2], [2, 2]])
+    # case when multiple number of arays is send
+    indx0 = np.array([[0, 1], [1, 0], [0, 0]])
+    indx1 = np.array([[0, 1], [2, 0], [1, 2]])
+    indx2 = np.array([[3, 2], [1, 0], [3, 2]])
+
+    indx0_num = num.array(indx0)
+    indx1_num = num.array(indx1)
+    indx2_num = num.array(indx2)
 
     # indx0_num._thunk._zip_indices((indx0_num._thunk,
     #  indx1_num._thunk, indx2_num._thunk,))
 
     res = z_num[indx0_num, indx1_num, indx2_num]
-    print(res)
+    res_np = z[indx0, indx1, indx2]
+    assert np.array_equal(res, res_np)
 
-    # res = z_num[ind0_num, :, indx]
+    # FIXME: Combining Basic and Advanced Indexing Schemes:
+    # ind0 = np.array([True, True])
+    # ind0_num=num.array(ind0)
+    # res = z[ind0, :, -1]
+    # res_num = z_num[ind0_num, :, -1]
+    # print (res)
+    # fixme error
+    # print(res_num)
+    # assert np.array_equal(res, res_num)
+
+    # In-Place & Augmented Assignments via Advanced Indexing
+    x = np.array(
+        [
+            [0.38, -0.16, 0.38, -0.41, -0.04],
+            [-0.47, -0.01, -0.18, -0.5, -0.49],
+            [0.02, 0.4, 0.33, 0.33, -0.13],
+        ]
+    )
+    indx0 = np.array([0, 2])
+    indx1 = np.array([2, 4])
+    # x_num = num.array(x)
+    # indx0_num = num.array(indx0)
+    # indx1_num = num.array(indx1)
+    print(x[indx0, indx1])
+    # FIXME 0:
+    # print (x_num[indx0_num,indx1_num])
+    # assert np.array_equal(x[indx0, indx1], x_num[indx0_num, indx1_num])
+    # print (x_num[indx0_num, indx1_num])
+    x[indx0, indx1] = 0.0
+    print(x)
+    # x_num[indx0_num, indx1_num] =0.0
+
     return
 
 
