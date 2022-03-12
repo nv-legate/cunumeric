@@ -163,8 +163,8 @@ struct MatVecMulImplBody<VariantKind::GPU, LegateTypeCode::COMPLEX64_LT> {
     auto task_stream   = get_cached_stream();
     CHECK_CUBLAS(cublasSetStream(cublas_handle, task_stream));
 
-    const cuComplex alpha = 1.0;
-    const cuComplex beta  = 0.0;
+    const cuComplex alpha = make_float2(1.0, 0.0);
+    const cuComplex beta  = make_float2(0.0, 0.0);
 
     auto trans = transpose_mat ? CUBLAS_OP_N : CUBLAS_OP_T;
 #if CUDART_VERSION >= 11040
@@ -210,8 +210,8 @@ struct MatVecMulImplBody<VariantKind::GPU, LegateTypeCode::COMPLEX128_LT> {
     auto task_stream   = get_cached_stream();
     CHECK_CUBLAS(cublasSetStream(cublas_handle, task_stream));
 
-    const cuDoubleComplex alpha = 1.0;
-    const cuDoubleComplex beta  = 0.0;
+    const cuDoubleComplex alpha = make_double2(1.0, 0.0);
+    const cuDoubleComplex beta  = make_double2(0.0, 0.0);
 
     auto trans = transpose_mat ? CUBLAS_OP_N : CUBLAS_OP_T;
 #if CUDART_VERSION >= 11040
