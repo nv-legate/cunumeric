@@ -2324,6 +2324,8 @@ def dot(a, b, out=None):
     The cuNumeric implementation is a little more liberal than NumPy in terms
     of allowed broadcasting, e.g. ``dot(ones((3,1)), ones((4,5)))`` is allowed.
 
+    Except for the inner-product case, only floating-point types are supported.
+
     See Also
     --------
     numpy.dot
@@ -2389,6 +2391,8 @@ def matmul(a, b, out=None):
     The cuNumeric implementation is a little more liberal than NumPy in terms
     of allowed broadcasting, e.g. ``matmul(ones((3,1)), ones((4,5)))`` is
     allowed.
+
+    Only floating-point types are supported.
 
     See Also
     --------
@@ -2533,6 +2537,8 @@ def tensordot(a, b, axes=2, out=None):
     The cuNumeric implementation is a little more liberal than NumPy in terms
     of allowed broadcasting, e.g. ``tensordot(ones((3,1)), ones((1,4)))`` is
     allowed.
+
+    Except for the inner-product case, only floating-point types are supported.
 
     See Also
     --------
@@ -2789,6 +2795,10 @@ def einsum(expr, *operands, out=None, optimize=False):
     -------
     output : ndarray
         The calculation based on the Einstein summation convention.
+
+    Notes
+    -----
+    For most expressions, only floating-point types are supported.
 
     See Also
     --------
