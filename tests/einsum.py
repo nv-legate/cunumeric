@@ -226,14 +226,14 @@ def test_np_vs_cn(expr, mk_input, mk_output=None):
         np_res = np.einsum(expr, *np_inputs)
         cn_res = cn.einsum(expr, *cn_inputs)
         rtol = (
-            2e-03 if any(x.dtype == np.float16 for x in np_inputs) else 1e-05
+            1e-02 if any(x.dtype == np.float16 for x in np_inputs) else 1e-05
         )
         assert np.allclose(np_res, cn_res, rtol=rtol)
         if mk_output is not None:
             for cn_out in mk_output(cn, out_shape):
                 cn.einsum(expr, *cn_inputs, out=cn_out)
                 rtol = (
-                    2e-03
+                    1e-02
                     if any(x.dtype == np.float16 for x in np_inputs)
                     or cn_out.dtype == np.float16
                     else 1e-05
