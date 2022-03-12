@@ -831,6 +831,13 @@ class DeferredArray(NumPyThunk):
         rhs2_modes,
         mode2extent,
     ):
+        supported_dtypes = [
+            np.float16,
+            np.float32,
+            np.float64,
+            np.complex64,
+            np.complex128,
+        ]
         lhs_thunk = self
 
         # Sanity checks
@@ -875,9 +882,10 @@ class DeferredArray(NumPyThunk):
             and len(rhs1_modes) == 1
             and len(rhs2_modes) == 1
         ):
+            # this case works for any arithmetic type, not just floats
             blas_op = "vv"
         elif (
-            lhs_thunk.dtype in [np.float16, np.float32, np.float64]
+            lhs_thunk.dtype in supported_dtypes
             and len(lhs_modes) == 1
             and (
                 len(rhs1_modes) == 2
@@ -888,7 +896,7 @@ class DeferredArray(NumPyThunk):
         ):
             blas_op = "mv"
         elif (
-            lhs_thunk.dtype in [np.float16, np.float32, np.float64]
+            lhs_thunk.dtype in supported_dtypes
             and len(lhs_modes) == 2
             and len(rhs1_modes) == 2
             and len(rhs2_modes) == 2
@@ -1007,13 +1015,7 @@ class DeferredArray(NumPyThunk):
             return
 
         # General-purpose contraction
-        if lhs_thunk.dtype not in [
-            np.float16,
-            np.float32,
-            np.float64,
-            np.complex64,
-            np.complex128,
-        ]:
+        if lhs_thunk.dtype not in supported_dtypes:
             raise TypeError(f"Unsupported type: {lhs_thunk.dtype}")
 
         # Transpose arrays according to alphabetical order of mode labels

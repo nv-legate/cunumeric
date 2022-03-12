@@ -39,6 +39,14 @@ template <>
 struct support_matvecmul<LegateTypeCode::HALF_LT> : std::true_type {
   using ACC_TYPE = float;
 };
+template <>
+struct support_matvecmul<LegateTypeCode::COMPLEX64_LT> : std::true_type {
+  using ACC_TYPE = complex<float>;
+};
+template <>
+struct support_matvecmul<LegateTypeCode::COMPLEX128_LT> : std::true_type {
+  using ACC_TYPE = complex<double>;
+};
 
 template <VariantKind KIND>
 struct MatVecMulImpl {

@@ -39,6 +39,14 @@ template <>
 struct support_matmul<LegateTypeCode::HALF_LT> : std::true_type {
   using ACC_TYPE = float;
 };
+template <>
+struct support_matmul<LegateTypeCode::COMPLEX64_LT> : std::true_type {
+  using ACC_TYPE = complex<float>;
+};
+template <>
+struct support_matmul<LegateTypeCode::COMPLEX128_LT> : std::true_type {
+  using ACC_TYPE = complex<double>;
+};
 
 template <VariantKind KIND>
 struct MatMulImpl {
