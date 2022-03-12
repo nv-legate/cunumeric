@@ -2143,7 +2143,7 @@ class ndarray(object):
         from .module import _contract  # work around circular import
 
         if self.ndim == 0 or rhs.ndim == 0:
-            return self.perform_binary_op(
+            return self._perform_binary_op(
                 BinaryOpCode.MULTIPLY,
                 self,
                 rhs,
