@@ -35,14 +35,12 @@ struct Cumsum_gImplBody<VariantKind::CPU, CODE, DIM> {
 		    const DomainPoint& partition_index)
 
   {
-    if(axis == NULL){
-      // case where no axis is used, flattened scan.
-      // RRRR condition currently invalid!
+    if(axis == -1){
+      // case where no axis is used, flattened scan (input is guaranteed to be flattened)
       auto outptr = out.ptr(rect);
       auto inptr = in.ptr(rect);
       auto sum_valsptr = sum_vals.ptr(rect);
       outptr[0] = inptr[0];
-      // RRRR could use std instead.
       for(size_t idx = 1; idx < volume; idx++){
 	outptr[idx] = outptr[idx-1] + inptr[idx];
       }
@@ -50,6 +48,7 @@ struct Cumsum_gImplBody<VariantKind::CPU, CODE, DIM> {
       sum_valsptr[partition_index] = outptr[idx];
     } else {
       // RRRR should do prefix sum only over axis (how does this work?!)
+      
 
     }
   }
