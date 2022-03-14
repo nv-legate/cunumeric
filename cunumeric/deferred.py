@@ -314,13 +314,16 @@ class DeferredArray(NumPyThunk):
         data_type = arrays[0].dtype
         if not np.issubdtype(data_type, np.integer):
             raise TypeError("a array should be integer type")
+        new_arrays = tuple()
         for a in arrays:
-            if a.shape != shape:
-                raise TypeError(
-                    "shape of all index arrrays should be the same"
-                )
             if data_type != a.dtype:
                 raise TypeError("type of all index arrrays should be the same")
+            if a.shape != shape:
+                a = a._broadcast(shape)
+            else:
+                a = a.base
+            new_arrays = new_arrays + (a,)
+        arrays = new_arrays
         # create output array which will store Point<N> field where
         # N is number of index arrays
         # shape of the output array should be the same as the shape of each
@@ -345,8 +348,8 @@ class DeferredArray(NumPyThunk):
         task = self.context.create_task(CuNumericOpCode.ZIP)
         task.add_output(output_arr.base)
         for index_arr in arrays:
-            task.add_input(index_arr.base)
-            task.add_alignment(output_arr.base, index_arr.base)
+            task.add_input(index_arr)
+            task.add_alignment(output_arr.base, index_arr)
         task.execute()
 
         return output_arr
@@ -365,6 +368,7 @@ class DeferredArray(NumPyThunk):
                     store = store.project(dim + shift, k)
                     shift -= 1
                 elif isinstance(k, slice):
+                    # FIXME do we need to transform the store here?
                     store = store.slice(dim + shift, k)
                 elif isinstance(k, NumPyThunk):
                     if k.dtype == np.bool:
@@ -379,15 +383,7 @@ class DeferredArray(NumPyThunk):
                     )
         else:
             assert isinstance(key, NumPyThunk)
-            if key.ndim < store.ndim:
-                raise TypeError("Unimplimented")
-                # FIXME advance indexing task
-                # diff = store.ndim - key.ndim
-                # print ("IRINA DEBUG store ndim = " , store)
-                # for i in range(diff):
-                #    store = store.slice((store.ndim - i - 1), slice(None))
-                #    print ("IRINA DEBUG store ndim = " , store)
-            elif key.ndim > store.ndim:
+            if key.ndim > store.ndim:
                 if store.ndim != 1:
                     raise ValueError("Advance indexing dimention mismatch")
                 diff = store.ndim - key.ndim
@@ -399,17 +395,33 @@ class DeferredArray(NumPyThunk):
                 # IRINA fixme: replace `nonzero` case with the task with
                 # output regions
                 tuple_of_arrays = key.nonzero()
+            elif key.ndim < store.ndim:
+                # FIXME test and see if it works for 2D
+                diff = store.ndim - key.ndim
+                indx = np.expand_dims(key, list(range(diff, self.ndim)))
+                tuple_of_arrays = (indx,)
+                for dim in range(diff, self.ndim):
+                    indx = np.expand_dims(
+                        np.arrange(
+                            self.shape[dim],
+                            list(i for i in range(self.ndim) if i != dim),
+                        )
+                    )
+                    tuple_of_arrays = tuple_of_arrays + (indx,)
             else:
                 tuple_of_arrays = (self.runtime.to_deferred_array(key),)
 
         if len(tuple_of_arrays) > self.ndim:
             raise TypeError("Advanced indexing dimension mismatch")
 
-        if len(tuple_of_arrays) > 1:
+        if len(tuple_of_arrays) == self.ndim and self.ndim > 1:
+
             output_arr = tuple_of_arrays[0]._zip_indices(tuple_of_arrays)
             return store, output_arr
-        else:
+        elif len(tuple_of_arrays) == 1 and self.ndim == 1:
             return store, tuple_of_arrays[0]
+        else:
+            raise ValueError("Advance indexing dimention mismatch")
 
     @staticmethod
     def _unpack_ellipsis(key, ndim):

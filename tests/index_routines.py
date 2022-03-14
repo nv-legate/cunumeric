@@ -25,8 +25,8 @@ from legate.core import LEGATE_MAX_DIM
 
 
 def advanced_indexing():
-    # simple advance indexing:
-    print("advance indexing test 1")
+    # simple advanced indexing:
+    print("advanced indexing test 1")
     x = np.array([1, 2, 3, 4, 5, 6, 7])
     indx = np.array([1, 3, 5])
     res = x[indx]
@@ -35,8 +35,8 @@ def advanced_indexing():
     res_num = x_num[indx_num]
     assert np.array_equal(res, res_num)
 
-    # advance indexing test when a.ndim ==1 , indx.ndim >1
-    print("advance indexing test 2")
+    # advanced indexing test when a.ndim ==1 , indx.ndim >1
+    print("advanced indexing test 2")
     y = np.array([0, -1, -2, -3, -4, -5])
     y_num = num.array(y)
     index = np.array([[1, 0, 1, 3, 0, 0], [2, 4, 0, 4, 4, 4]])
@@ -52,7 +52,7 @@ def advanced_indexing():
     z_num = num.array(z)
 
     # simple 2D case
-    print("advance indexing test 3")
+    print("advanced indexing test 3")
     index_2d = np.array([[1, 2, 0], [5, 5, 5], [2, 3, 4]])
     index_2d_num = num.array(index_2d)
     assert np.array_equal(y[index_2d], y_num[index_2d_num])
@@ -72,7 +72,7 @@ def advanced_indexing():
     # assert np.array_equal(res, res_num)
 
     # test for bool array of the same dimension
-    print("advance indexing test 5")
+    print("advanced indexing test 5")
     indx_bool = np.array(
         [
             [
@@ -97,13 +97,13 @@ def advanced_indexing():
     assert np.array_equal(res, res_num)
 
     # test mixed data
-    print("advance indexing test 6")
+    print("advanced indexing test 6")
     res = z[-1, :]
     res_num = z_num[-1, :]
     assert np.array_equal(res, res_num)
 
     # case when multiple number of arays is passed
-    print("advance indexing test 7")
+    print("advanced indexing test 7")
     indx0 = np.array([[0, 1], [1, 0], [0, 0]])
     indx1 = np.array([[0, 1], [2, 0], [1, 2]])
     indx2 = np.array([[3, 2], [1, 0], [3, 2]])
@@ -119,8 +119,20 @@ def advanced_indexing():
     res_np = z[indx0, indx1, indx2]
     assert np.array_equal(res, res_np)
 
+    # indices with broadcast:
+    indx0 = np.array([[0, 1], [1, 0], [0, 0]])
+    indx1 = np.array([[0, 1]])
+    indx2 = np.array([[3, 2], [1, 0], [3, 2]])
+
+    indx0_num = num.array(indx0)
+    indx1_num = num.array(indx1)
+    indx2_num = num.array(indx2)
+    res = z_num[indx0_num, indx1_num, indx2_num]
+    res_np = z[indx0, indx1, indx2]
+    assert np.array_equal(res, res_np)
+
     # FIXME: Combining Basic and Advanced Indexing Schemes:
-    # print ("advance indexing test 8")
+    # print ("advanced indexing test 8")
     # ind0 = np.array([1, 1])
     # ind0_num = num.array(ind0)
     # res = z[ind0, :, -1]
