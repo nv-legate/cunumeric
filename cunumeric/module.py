@@ -1393,26 +1393,26 @@ def block(arrays):
     # check if the 'arrays' is a balanced tree
     while len(active_arr) > 0:
         top = active_arr.popleft()
-        if type(top[1]) is list:
+        if isinstance(top[1], list):
             # check if this is a leaf
             nlist = 0
             for arr in top[1]:
-                if type(arr) is list:
+                if isinstance(arr, list):
                     active_arr.append(((*top[0], nlist), arr))
                     nlist += 1
             # this is a leaf
             if nlist == 0:
                 if len(top[1]) == 0:
-                    ValueError(f"List at {top[0]} " f"cannot be empty")
+                    raise ValueError(f"List at {top[0]} " f"cannot be empty")
                 leaf_map[len(top[0])].append((top[0], top[1]))
             elif nlist < len(top[1]):
-                ValueError(
+                raise ValueError(
                     f"some elements in depth {len(top[0])} "
                     f"have different depths"
                 )
     keys = list(leaf_map.keys())
     if len(keys) > 1:
-        ValueError(
+        raise ValueError(
             f"List depths for innermost elements are not matched"
             f"array[keys[0]] is at depth {len(keys[0])}"
             f"array[keys[1]] is at depth {len(keys[1])}"
@@ -1432,12 +1432,12 @@ def block(arrays):
 
         if len(siblings) > 0 or cur_depth < depth:
             siblings.append(elem[1])
+            inputs = siblings
         elif cur_depth == depth:
             siblings = elem[1]
-
-        inputs = list(
-            ndarray.convert_to_cunumeric_ndarray(inp) for inp in siblings
-        )
+            inputs = list(
+                ndarray.convert_to_cunumeric_ndarray(inp) for inp in siblings
+            )
         # Computes the maximum number of dimensions for the concatenation
         max_list = list(inp.ndim for inp in inputs)
         max_list.append(1 + (depth - cur_depth))
