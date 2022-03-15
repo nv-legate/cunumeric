@@ -375,6 +375,8 @@ class DeferredArray(NumPyThunk):
                     store = store.slice(dim + shift, k)
                 elif isinstance(k, NumPyThunk):
                     if k.dtype == np.bool:
+                        # in case of the mixed indises we all nonzero
+                        # for the bool array
                         k = k.nonzero()
                         tuple_of_arrays += k
                     else:
@@ -395,22 +397,36 @@ class DeferredArray(NumPyThunk):
 
             # Handle the boolean array case
             if key.dtype == np.bool:
+                if key.shape == self.shape:
+                    out = self.runtime.create_unbound_thunk(self.dtype)
+                    task = self.context.create_task(
+                        CuNumericOpCode.ADVANCED_INDX
+                    )
+                    task.add_output(out.base)
+                    task.add_input(self.base)
+                    task.add_input(key.base)
+                    task.add_alignment(self.base, key.base)
+                    task.execute()
+                    return False, store, out
                 # IRINA fixme: replace `nonzero` case with the task with
-                # output regions
+                # output regions when ND output regions are available
                 tuple_of_arrays = key.nonzero()
             elif key.ndim < store.ndim:
-                # FIXME test and see if it works for 2D
-                diff = store.ndim - key.ndim
-                indx = np.expand_dims(key, list(range(diff, self.ndim)))
-                tuple_of_arrays = (indx,)
-                for dim in range(diff, self.ndim):
-                    indx = np.expand_dims(
-                        np.arrange(
-                            self.shape[dim],
-                            list(i for i in range(self.ndim) if i != dim),
-                        )
-                    )
-                    tuple_of_arrays = tuple_of_arrays + (indx,)
+                raise ValueError("Advance indexing dimention mismatch")
+                # FIXME add extensions to ZIP taskD
+                # ndim_out = store.ndim + key.ndim-1
+                # indx = key._expand_dims(list(range(key.ndim, ndim_out)))
+                # np.expand_dims(key, list(range(key.ndim, ndim_out)))
+                # print("IRINA DEBUG shape key " , indx.shape)
+                # tuple_of_arrays = (indx,)
+                # for dim in range(1, store.ndim):
+                #    dims=  list(i for i in range(ndim_out) if i
+                # not in range(dim+key.ndim-1,dim+2*key.ndim-1))
+                #    print("IRINA DEBUG dims = ", dims)
+
+                #    indx = np.arrange(
+                #            self.shape[dim])._expand_dims(dims)
+                #    tuple_of_arrays = tuple_of_arrays + (indx,)
             else:
                 tuple_of_arrays = (self.runtime.to_deferred_array(key),)
 
@@ -420,9 +436,9 @@ class DeferredArray(NumPyThunk):
         if len(tuple_of_arrays) == self.ndim and self.ndim > 1:
 
             output_arr = tuple_of_arrays[0]._zip_indices(tuple_of_arrays)
-            return store, output_arr
+            return True, store, output_arr
         elif len(tuple_of_arrays) == 1 and self.ndim == 1:
-            return store, tuple_of_arrays[0]
+            return True, store, tuple_of_arrays[0]
         else:
             raise ValueError("Advance indexing dimention mismatch")
 
@@ -486,20 +502,23 @@ class DeferredArray(NumPyThunk):
         # Check to see if this is advanced indexing or not
         if self._is_advanced_indexing(key):
             # Create the indexing array
-            store, index_array = self._create_indexing_array(key)
-            # Create a new array to be the result
-            result = self.runtime.create_empty_thunk(
-                index_array.base.shape,
-                self.dtype,
-                inputs=[self],
-            )
-            copy = self.context.create_copy()
+            copy_needed, store, index_array = self._create_indexing_array(key)
+            if copy_needed:
+                # Create a new array to be the result
+                result = self.runtime.create_empty_thunk(
+                    index_array.base.shape,
+                    self.dtype,
+                    inputs=[self],
+                )
+                copy = self.context.create_copy()
 
-            copy.add_input(store)
-            copy.add_source_indirect(index_array.base)
-            copy.add_output(result.base)
+                copy.add_input(store)
+                copy.add_source_indirect(index_array.base)
+                copy.add_output(result.base)
 
-            copy.execute()
+                copy.execute()
+            else:
+                return index_array
 
         else:
             result = self._get_view(key)

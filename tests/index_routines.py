@@ -57,6 +57,18 @@ def advanced_indexing():
     index_2d_num = num.array(index_2d)
     assert np.array_equal(y[index_2d], y_num[index_2d_num])
 
+    # mismatch dimesion case integers:
+    # print ("advance indexing test 4")
+    # indx = np.array([1, 1])
+    # indx_num = num.array(indx)
+    # res = z[indx]
+    # print("bool array as indx np:")
+    # print(res)
+    # print("cunumeric:")
+    # res_num = z_num[indx_num]
+    # print(res_num)
+    # assert np.array_equal(res, res_num)
+
     # mismatch dimesion case:
     # print ("advance indexing test 4")
     # indx_bool = np.array([True, False])
@@ -73,6 +85,12 @@ def advanced_indexing():
 
     # test for bool array of the same dimension
     print("advanced indexing test 5")
+    index = np.array([True, False, False, True, True, False])
+    index_num = num.array(index)
+    assert np.array_equal(y[index], y_num[index_num])
+
+    # test for bool array of the same dimension 2D
+    print("advanced indexing test 6")
     indx_bool = np.array(
         [
             [
@@ -90,20 +108,16 @@ def advanced_indexing():
     indx_bool_num = num.array(indx_bool)
     res = z[indx_bool]
     res_num = z_num[indx_bool_num]
-    # print("bool array as indx np:")
-    # print(res)
-    # print("cunumeric:")
-    # print(res_num)
     assert np.array_equal(res, res_num)
 
     # test mixed data
-    print("advanced indexing test 6")
+    print("advanced indexing test 7")
     res = z[-1, :]
     res_num = z_num[-1, :]
     assert np.array_equal(res, res_num)
 
     # case when multiple number of arays is passed
-    print("advanced indexing test 7")
+    print("advanced indexing test 8")
     indx0 = np.array([[0, 1], [1, 0], [0, 0]])
     indx1 = np.array([[0, 1], [2, 0], [1, 2]])
     indx2 = np.array([[3, 2], [1, 0], [3, 2]])
@@ -120,6 +134,7 @@ def advanced_indexing():
     assert np.array_equal(res, res_np)
 
     # indices with broadcast:
+    print("advanced indexing test 9")
     indx0 = np.array([[0, 1], [1, 0], [0, 0]])
     indx1 = np.array([[0, 1]])
     indx2 = np.array([[3, 2], [1, 0], [3, 2]])
@@ -132,7 +147,7 @@ def advanced_indexing():
     assert np.array_equal(res, res_np)
 
     # FIXME: Combining Basic and Advanced Indexing Schemes:
-    # print ("advanced indexing test 8")
+    # print ("advanced indexing test 10")
     # ind0 = np.array([1, 1])
     # ind0_num = num.array(ind0)
     # res = z[ind0, :, -1]
