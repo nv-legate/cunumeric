@@ -1257,6 +1257,46 @@ def check_shape_dtype(
     return converted, ArrayInfo(ndim, shape, dtype)
 
 
+def _block_recur(arr, cur_depth, depth):
+    if len(arr) > 0 and cur_depth < depth:
+        groups = []
+        cur_idx = None
+        cur_siblings = []
+        # collect subtrees by comparing indicies[0:cur_depth+1]
+        for child in arr:
+            if cur_idx != child[0][: cur_depth + 1]:
+                if len(cur_siblings) > 0:
+                    groups.append(cur_siblings)
+                    cur_siblings = []
+                cur_idx = child[0][: cur_depth + 1]
+            cur_siblings.append(child)
+        groups.append(cur_siblings)
+        # do recursive calls for each subtree
+        # and collect the results of subtrees as siblings
+        siblings = list(
+            _block_recur(each, cur_depth + 1, depth) for each in groups
+        )
+        inputs = siblings
+    elif cur_depth == depth:
+        inputs = list(
+            ndarray.convert_to_cunumeric_ndarray(inp) for inp in arr[0][1]
+        )
+
+    # Computes the maximum number of dimensions for the concatenation
+    max_list = list(inp.ndim for inp in inputs)
+    max_list.append(1 + (depth - cur_depth))
+    max_ndim = _builtin_max(max_list)
+    # Append leading 1's to make elements to have the same 'ndim'
+    reshaped = list(
+        inp.reshape((1,) * (max_ndim - inp.ndim) + inp.shape)
+        if max_ndim > inp.ndim
+        else inp
+        for inp in inputs
+    )
+
+    return concatenate(reshaped, axis=-1 + (cur_depth - depth))
+
+
 def _concatenate(
     inputs,
     axis=0,
@@ -1421,40 +1461,9 @@ def block(arrays):
     active_arr.extend(*leaf_map.values())
     depth = keys[0]
 
-    while len(active_arr) > 0 and len(active_arr[-1][0]) > 0:
-        elem = active_arr.pop()
-        cur_depth = len(elem[0])
-        siblings = []
-        max_ndim = 0
-        # collect siblings under the same parent
-        while len(active_arr) > 0 and active_arr[-1][0] == elem[0]:
-            siblings.append(active_arr.pop()[1])
+    result = _block_recur(active_arr, 1, depth)
 
-        if len(siblings) > 0 or cur_depth < depth:
-            siblings.append(elem[1])
-            inputs = siblings
-        elif cur_depth == depth:
-            siblings = elem[1]
-            inputs = list(
-                ndarray.convert_to_cunumeric_ndarray(inp) for inp in siblings
-            )
-        # Computes the maximum number of dimensions for the concatenation
-        max_list = list(inp.ndim for inp in inputs)
-        max_list.append(1 + (depth - cur_depth))
-        max_ndim = _builtin_max(max_list)
-        # Append leading 1's to make elements to have the same 'ndim'
-        reshaped = list(
-            inp.reshape((1,) * (max_ndim - inp.ndim) + inp.shape)
-            if max_ndim > inp.ndim
-            else inp
-            for inp in inputs
-        )
-
-        merged = concatenate(reshaped, axis=-1 + (cur_depth - depth))
-        active_arr.appendleft((elem[0][:-1], merged))
-
-    # return what's left in the deque
-    return active_arr[0][1]
+    return result
 
 
 def concatenate(inputs, axis=0, out=None, dtype=None, casting="same_kind"):
