@@ -19,8 +19,8 @@
 #include "cunumeric/cunumeric.h"
 #include "cunumeric/random/philox.h"
 
-#define HI_BITS(x) ((unsigned)((x) >> 32))
-#define LO_BITS(x) ((unsigned)((x)&0x00000000FFFFFFFF))
+#define HI_BITS(x) (static_cast<unsigned>((x) >> 32))
+#define LO_BITS(x) (static_cast<unsigned>((x)&0x00000000FFFFFFFF))
 
 namespace cunumeric {
 
