@@ -23,6 +23,7 @@
 // Also, sort these alphabetically except the first one for easy lookup later
 enum CuNumericOpCode {
   _CUNUMERIC_OP_CODE_BASE = 0,
+  CUNUMERIC_ADVANCED_INDEXING,
   CUNUMERIC_ARANGE,
   CUNUMERIC_BINARY_OP,
   CUNUMERIC_BINARY_RED,

@@ -78,6 +78,7 @@ _cunumeric = cunumeric_lib.shared_object
 # Match these to CuNumericOpCode in cunumeric_c.h
 @unique
 class CuNumericOpCode(IntEnum):
+    ADVANCED_INDX = _cunumeric.CUNUMERIC_ADVANCED_INDEXING
     ARANGE = _cunumeric.CUNUMERIC_ARANGE
     BINARY_OP = _cunumeric.CUNUMERIC_BINARY_OP
     BINARY_RED = _cunumeric.CUNUMERIC_BINARY_RED
