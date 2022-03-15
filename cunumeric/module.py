@@ -15,7 +15,7 @@
 
 import math
 import re
-from collections import Counter, defaultdict, deque
+from collections import Counter, defaultdict
 from functools import wraps
 from inspect import signature
 from itertools import chain
@@ -1220,6 +1220,27 @@ class ArrayInfo:
         self.dtype = dtype
 
 
+def check_list_depth(active_arr, leaf_map):
+    for each in active_arr:
+        if isinstance(each[1], list):
+            nlist = 0
+            for arr in each[1]:
+                if isinstance(arr, list):
+                    # check the depth of elements in this subarray
+                    check_list_depth([((*each[0], nlist), arr)], leaf_map)
+                    nlist += 1
+            # this is a leaf
+            if nlist == 0:
+                if len(each[1]) == 0:
+                    raise ValueError(f"List at {each[0]} " f"cannot be empty")
+                leaf_map[len(each[0])].append((each[0], each[1]))
+            elif nlist < len(each[1]):
+                raise ValueError(
+                    f"some elements in depth {len(each[0])} "
+                    f"have different depths"
+                )
+
+
 def check_shape_dtype(
     inputs, func_name, axis, dtype=None, casting="same_kind"
 ):
@@ -1257,7 +1278,7 @@ def check_shape_dtype(
     return converted, ArrayInfo(ndim, shape, dtype)
 
 
-def _block_recur(arr, cur_depth, depth):
+def _block(arr, cur_depth, depth):
     if len(arr) > 0 and cur_depth < depth:
         groups = []
         cur_idx = None
@@ -1273,9 +1294,7 @@ def _block_recur(arr, cur_depth, depth):
         groups.append(cur_siblings)
         # do recursive calls for each subtree
         # and collect the results of subtrees as siblings
-        siblings = list(
-            _block_recur(each, cur_depth + 1, depth) for each in groups
-        )
+        siblings = list(_block(each, cur_depth + 1, depth) for each in groups)
         inputs = siblings
     elif cur_depth == depth:
         inputs = list(
@@ -1426,30 +1445,12 @@ def block(arrays):
     """
     # arrays should concatenate from innermost subarrays
     # the 'arrays' should be balanced tree
-    active_arr = deque()
-    active_arr.append(((0,), arrays))
+    active_arr = [((0,), arrays)]
     leaf_map = defaultdict(list)
 
     # check if the 'arrays' is a balanced tree
-    while len(active_arr) > 0:
-        top = active_arr.popleft()
-        if isinstance(top[1], list):
-            # check if this is a leaf
-            nlist = 0
-            for arr in top[1]:
-                if isinstance(arr, list):
-                    active_arr.append(((*top[0], nlist), arr))
-                    nlist += 1
-            # this is a leaf
-            if nlist == 0:
-                if len(top[1]) == 0:
-                    raise ValueError(f"List at {top[0]} " f"cannot be empty")
-                leaf_map[len(top[0])].append((top[0], top[1]))
-            elif nlist < len(top[1]):
-                raise ValueError(
-                    f"some elements in depth {len(top[0])} "
-                    f"have different depths"
-                )
+    check_list_depth(active_arr, leaf_map)
+    # this should be 1 because all leaf nodes should be at the same depth
     keys = list(leaf_map.keys())
     if len(keys) > 1:
         raise ValueError(
@@ -1458,11 +1459,8 @@ def block(arrays):
             f"array[keys[1]] is at depth {len(keys[1])}"
         )
     # fill the working deque w/ innermost arrays
-    active_arr.extend(*leaf_map.values())
     depth = keys[0]
-
-    result = _block_recur(active_arr, 1, depth)
-
+    result = _block(*leaf_map.values(), 1, depth)
     return result
 
 
