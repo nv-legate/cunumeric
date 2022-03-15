@@ -1280,6 +1280,8 @@ class DeferredArray(NumPyThunk):
         for result in results:
             task.add_output(result.base)
 
+        task.add_broadcast(self.base, axes=range(1, self.ndim))
+
         task.execute()
         return results
 
