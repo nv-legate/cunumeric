@@ -26,7 +26,7 @@ def sort_flattened(output, input, argsort, stable):
     sort_result = output.runtime.create_empty_thunk(
         flattened.shape, dtype=output.dtype, inputs=(flattened,)
     )
-    sorting(sort_result, flattened, argsort, stable=stable)
+    sort(sort_result, flattened, argsort, stable=stable)
     output.base = sort_result.base
     output.numpy_array = None
 
@@ -46,7 +46,7 @@ def sort_swapped(output, input, argsort, sort_axis, stable):
     sort_result = output.runtime.create_empty_thunk(
         swapped_copy.shape, dtype=output.dtype, inputs=(swapped_copy,)
     )
-    sorting(sort_result, swapped_copy, argsort, stable=stable)
+    sort(sort_result, swapped_copy, argsort, stable=stable)
 
     output.base = sort_result.swapaxes(input.ndim - 1, sort_axis).base
     output.numpy_array = None
@@ -84,7 +84,7 @@ def sort_task(output, input, argsort, stable):
         output.numpy_array = None
 
 
-def sorting(output, input, argsort, axis=-1, stable=False):
+def sort(output, input, argsort, axis=-1, stable=False):
     if axis is None and input.ndim > 1:
         sort_flattened(output, input, argsort, stable)
     else:
