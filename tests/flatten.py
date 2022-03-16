@@ -14,8 +14,7 @@
 #
 
 import numpy as np
-
-import cunumeric as num
+from cunumeric.array import convert_to_cunumeric_ndarray
 
 
 def run_test(np_arr, num_arr):
@@ -66,7 +65,7 @@ def test(dim):
     ]
     for input_size in input_arr:
         a = np.random.randint(low=0, high=100, size=(input_size))
-        b = num.ndarray.convert_to_cunumeric_ndarray(a)
+        b = convert_to_cunumeric_ndarray(a)
         run_test(a, b)
     return
 

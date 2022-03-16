@@ -22,7 +22,7 @@ namespace cunumeric {
 
 // This is a small helper class that will also work if we have zero-sized arrays
 // We also need to have this instead of std::array so that it works on devices
-template <int DIM>
+template <int DIM, bool C_ORDER = true>
 class Pitches {
  public:
   __CUDA_HD__
@@ -57,9 +57,46 @@ class Pitches {
  private:
   size_t pitches[DIM];
 };
+
+template <int DIM>
+class Pitches<DIM, false /*C_ORDER*/> {
+ public:
+  __CUDA_HD__
+  inline size_t flatten(const Legion::Rect<DIM + 1>& rect)
+  {
+    size_t pitch  = 1;
+    size_t volume = 1;
+    for (int d = 0; d <= DIM; ++d) {
+      // Quick exit for empty rectangle dimensions
+      if (rect.lo[d] > rect.hi[d]) return 0;
+      const size_t diff = rect.hi[d] - rect.lo[d] + 1;
+      volume *= diff;
+      if (d < DIM) {
+        pitch *= diff;
+        pitches[d] = pitch;
+      }
+    }
+    return volume;
+  }
+  __CUDA_HD__
+  inline Legion::Point<DIM + 1> unflatten(size_t index, const Legion::Point<DIM + 1>& lo) const
+  {
+    Legion::Point<DIM + 1> point = lo;
+    for (int d = DIM - 1; d >= 0; --d) {
+      point[d + 1] += index / pitches[d];
+      index = index % pitches[d];
+    }
+    point[0] += index;
+    return point;
+  }
+
+ private:
+  size_t pitches[DIM];
+};
+
 // Specialization for the zero-sized case
-template <>
-class Pitches<0> {
+template <bool C_ORDER>
+class Pitches<0, C_ORDER> {
  public:
   __CUDA_HD__
   inline size_t flatten(const Legion::Rect<1>& rect)

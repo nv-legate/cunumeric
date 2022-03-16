@@ -289,7 +289,7 @@ struct FastDivmod {
     // Use IMUL.HI if div != 1, else simply copy the source.
     quo = (div != 1) ? __umulhi(src, mul) >> shr : src;
 #else
-    quo = int((div != 1) ? int(((int64_t)src * mul) >> 32) >> shr : src);
+    quo = (div != 1) ? static_cast<int>((int64_t{src} * mul) >> 32) >> shr : src;
 #endif
     // The remainder.
     rem = src - (quo * div);
