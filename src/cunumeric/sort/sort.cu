@@ -282,7 +282,12 @@ void local_sort_inplace(legate_type_of<CODE>* inptr,
                         cudaStream_t stream)
 {
   using VAL = legate_type_of<CODE>;
-  cub_local_sort_inplace<VAL>(inptr, argptr, volume, sort_dim_size, stream);
+  // fallback to thrust approach as segmented radix sort is not suited for small segments
+  if (volume == sort_dim_size || sort_dim_size > 300) {
+    cub_local_sort_inplace<VAL>(inptr, argptr, volume, sort_dim_size, stream);
+  } else {
+    thrust_local_sort_inplace<VAL>(inptr, argptr, volume, sort_dim_size, stable_argsort, stream);
+  }
 }
 
 template <LegateTypeCode CODE, std::enable_if_t<!support_cub<CODE>::value>* = nullptr>
@@ -450,7 +455,6 @@ static SortPiece<VAL> sample_sort_nccl(SortPiece<VAL> local_sorted,
   auto split_positions       = create_buffer<size_t>(num_splitters, Memory::Z_COPY_MEM);
   {
     const size_t num_blocks = (num_splitters + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-    VAL init_value          = std::numeric_limits<VAL>::max();
     extract_split_positions<<<num_blocks, THREADS_PER_BLOCK, 0, stream>>>(
       local_sorted.values.ptr(0),
       volume,

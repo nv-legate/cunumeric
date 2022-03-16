@@ -32,7 +32,7 @@ from .config import (
     UnaryRedCode,
 )
 from .linalg.cholesky import cholesky
-from .sorting import sorting
+from .sort import sort
 from .thunk import NumPyThunk
 from .utils import get_arg_value_dtype
 
@@ -1559,4 +1559,4 @@ class DeferredArray(NumPyThunk):
         if axis is not None and (axis >= rhs.ndim or axis < -rhs.ndim):
             raise ValueError("invalid axis")
 
-        sorting(self, rhs, argsort, axis, stable)
+        sort(self, rhs, argsort, axis, stable)

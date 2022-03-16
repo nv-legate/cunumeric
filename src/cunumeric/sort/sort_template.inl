@@ -58,6 +58,9 @@ struct SortImpl {
      *
      */
 
+    assert((DIM == 1 || (rect.hi[DIM - 1] - rect.lo[DIM - 1] + 1 == args.sort_dim_size)) &&
+           "multi-dimensional array should not be distributed in (sort) dimension");
+
     // we shall not return on empty rectangle in case of distributed data
     // as the process might still participate in the parallel sort
     if ((DIM > 1 || !args.is_index_space) && rect.empty()) return;

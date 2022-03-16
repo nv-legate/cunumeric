@@ -37,14 +37,15 @@ def check_sorted(a, a_sorted, axis=-1):
         assert False
 
 
-def run_sort(N, shape, axis, datatype, lower, upper, perform_check, timing):
+def run_sort(shape, axis, datatype, lower, upper, perform_check, timing):
 
     num.random.seed(42)
     newtype = np.dtype(datatype).type
-    if shape is not None:
-        shape = tuple(shape)
-    else:
-        shape = (N,)
+
+    N = 1
+    for e in shape:
+        N *= e
+    shape = tuple(shape)
 
     if np.issubdtype(newtype, np.integer):
         if lower is None:
@@ -88,14 +89,6 @@ if __name__ == "__main__":
         help="check the result of the solve",
     )
     parser.add_argument(
-        "-n",
-        "--num",
-        type=int,
-        default=1000000,
-        dest="N",
-        help="number of elements in one dimension",
-    )
-    parser.add_argument(
         "-t",
         "--time",
         dest="timing",
@@ -107,9 +100,9 @@ if __name__ == "__main__":
         "--shape",
         type=int,
         nargs="+",
-        default=None,
+        default=[1000000],
         dest="shape",
-        help="array reshape (default 'None')",
+        help="array reshape (default '[1000000]')",
     )
     parser.add_argument(
         "-d",
@@ -159,7 +152,6 @@ if __name__ == "__main__":
         args.benchmark,
         "Sort",
         (
-            args.N,
             args.shape,
             args.axis,
             args.datatype,

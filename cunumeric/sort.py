@@ -68,9 +68,9 @@ def sort_task(output, input, argsort, stable):
 
     if output.ndim > 1:
         task.add_broadcast(input.base, input.ndim - 1)
-    elif output.runtime.num_gpus > 0:
+    elif output.runtime.num_gpus > 1:
         task.add_nccl_communicator()
-    elif output.runtime.num_procs > 1:
+    elif output.runtime.num_gpus == 0 and output.runtime.num_procs > 1:
         # Distributed 1D sort on CPU not supported yet
         task.add_broadcast(input.base)
 
