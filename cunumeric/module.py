@@ -15,7 +15,7 @@
 
 import math
 import re
-from collections import Counter, defaultdict
+from collections import Counter
 from functools import wraps
 from inspect import signature
 from itertools import chain
@@ -1220,25 +1220,27 @@ class ArrayInfo:
         self.dtype = dtype
 
 
-def check_list_depth(active_arr, leaf_map):
-    for each in active_arr:
-        if isinstance(each[1], list):
-            nlist = 0
-            for arr in each[1]:
-                if isinstance(arr, list):
-                    # check the depth of elements in this subarray
-                    check_list_depth([((*each[0], nlist), arr)], leaf_map)
-                    nlist += 1
-            # this is a leaf
-            if nlist == 0:
-                if len(each[1]) == 0:
-                    raise ValueError(f"List at {each[0]} " f"cannot be empty")
-                leaf_map[len(each[0])].append((each[0], each[1]))
-            elif nlist < len(each[1]):
+def check_list_depth(arr, prefix=(0,)):
+    if not isinstance(arr, list):
+        return 0
+    elif len(arr) == 0:
+        raise ValueError(f"List at {prefix} cannot be empty")
+
+    depths = [
+        check_list_depth(each, (*prefix, idx)) for idx, each in enumerate(arr)
+    ]
+    if len(set(depths)) != len(depths):
+        # If we're here elements don't have the same depth
+        first_depth = depths[0]
+        for other_depth in depths[1:]:
+            if other_depth != first_depth:
                 raise ValueError(
-                    f"some elements in depth {len(each[0])} "
-                    f"have different depths"
+                    "List depths are mismatched. First element was at depth "
+                    f"{first_depth}, but there is an element at"
+                    f" depth {other_depth} "
                 )
+
+    return depths[0] + 1
 
 
 def check_shape_dtype(
@@ -1279,28 +1281,13 @@ def check_shape_dtype(
 
 
 def _block(arr, cur_depth, depth):
-    if len(arr) > 0 and cur_depth < depth:
-        groups = []
-        cur_idx = None
-        cur_siblings = []
-        # collect subtrees by comparing indicies[0:cur_depth+1]
-        for child in arr:
-            if cur_idx != child[0][: cur_depth + 1]:
-                if len(cur_siblings) > 0:
-                    groups.append(cur_siblings)
-                    cur_siblings = []
-                cur_idx = child[0][: cur_depth + 1]
-            cur_siblings.append(child)
-        groups.append(cur_siblings)
-        # do recursive calls for each subtree
-        # and collect the results of subtrees as siblings
-        siblings = list(_block(each, cur_depth + 1, depth) for each in groups)
-        inputs = siblings
-    elif cur_depth == depth:
-        inputs = list(
-            ndarray.convert_to_cunumeric_ndarray(inp) for inp in arr[0][1]
-        )
+    if cur_depth < depth:
+        inputs = list(_block(each, cur_depth + 1, depth) for each in arr)
+    else:
+        inputs = list(ndarray.convert_to_cunumeric_ndarray(inp) for inp in arr)
 
+    # this reshape of elements could be replaced
+    # w/ np.atleast_*d when they're implemented
     # Computes the maximum number of dimensions for the concatenation
     max_list = list(inp.ndim for inp in inputs)
     max_list.append(1 + (depth - cur_depth))
@@ -1312,7 +1299,6 @@ def _block(arr, cur_depth, depth):
         else inp
         for inp in inputs
     )
-
     return concatenate(reshaped, axis=-1 + (cur_depth - depth))
 
 
@@ -1445,22 +1431,10 @@ def block(arrays):
     """
     # arrays should concatenate from innermost subarrays
     # the 'arrays' should be balanced tree
-    active_arr = [((0,), arrays)]
-    leaf_map = defaultdict(list)
-
     # check if the 'arrays' is a balanced tree
-    check_list_depth(active_arr, leaf_map)
-    # this should be 1 because all leaf nodes should be at the same depth
-    keys = list(leaf_map.keys())
-    if len(keys) > 1:
-        raise ValueError(
-            f"List depths for innermost elements are not matched"
-            f"array[keys[0]] is at depth {len(keys[0])}"
-            f"array[keys[1]] is at depth {len(keys[1])}"
-        )
-    # fill the working deque w/ innermost arrays
-    depth = keys[0]
-    result = _block(*leaf_map.values(), 1, depth)
+    depth = check_list_depth(arrays)
+
+    result = _block(arrays, 1, depth)
     return result
 
 
