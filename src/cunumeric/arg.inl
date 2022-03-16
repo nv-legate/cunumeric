@@ -84,7 +84,7 @@ __CUDA_HD__ inline void Argval<T>::apply(const Argval<T>& rhs)
     // Spin until no one else is doing their comparison
     // We use -1 as a guard to indicate we're doing our
     // comparison since we know all indexes should be >= 0
-    volatile long long* ptr = (volatile long long*)&arg;
+    volatile long long* ptr = reinterpret_cast<volatile long long*>(&arg);
     long long next          = *ptr;
     long long current;
     do {
