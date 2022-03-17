@@ -1286,7 +1286,7 @@ def _block(arr, cur_depth, depth):
     if cur_depth < depth:
         inputs = list(_block(each, cur_depth + 1, depth) for each in arr)
     else:
-        inputs = list(ndarray.convert_to_cunumeric_ndarray(inp) for inp in arr)
+        inputs = list(convert_to_cunumeric_ndarray(inp) for inp in arr)
 
     # this reshape of elements could be replaced
     # w/ np.atleast_*d when they're implemented
