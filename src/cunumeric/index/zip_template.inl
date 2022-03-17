@@ -37,8 +37,12 @@ struct ZipImpl {
     size_t volume = pitches.flatten(index_rect);
     if (volume == 0) return;
 
+#ifdef CUNUMERIC_DEBUG
+    assert(out_rect == index_rect)
+#endif
+
 #ifndef LEGION_BOUNDS_CHECKS
-    bool dense = out.accessor.is_dense_row_major(out_rect);
+      bool dense = out.accessor.is_dense_row_major(out_rect);
 #endif
     std::vector<AccessorRO<VAL, DIM>> index_arrays;
     for (int i = 0; i < args.inputs.size(); i++) {
@@ -52,17 +56,18 @@ struct ZipImpl {
 #ifdef LEGION_BOUNDS_CHECKS
     bool dense = false;
 #endif
-
     ZipImplBody<KIND, DIM, N>()(
-      out, index_arrays, index_rect, pitches, dense, std::make_index_sequence<N>());
+      out, index_arrays, index_rect, pitches, dense, args.key_dim, std::make_index_sequence<N>());
   }
 };
 
 template <VariantKind KIND>
 static void zip_template(TaskContext& context)
 {
-  ZipArgs args{context.outputs()[0], context.inputs()};
-  double_dispatch(args.inputs[0].dim(), args.inputs.size(), ZipImpl<KIND>{}, args);
+  int64_t N       = context.scalars()[0].value<int64_t>();
+  int64_t key_dim = context.scalars()[1].value<int64_t>();
+  ZipArgs args{context.outputs()[0], context.inputs(), N, key_dim};
+  double_dispatch(args.inputs[0].dim(), N, ZipImpl<KIND>{}, args);
 }
 
 }  // namespace cunumeric

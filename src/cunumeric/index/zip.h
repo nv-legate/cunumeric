@@ -23,6 +23,8 @@ namespace cunumeric {
 struct ZipArgs {
   const Array& out;
   const std::vector<Array>& inputs;
+  const int64_t N;
+  const int64_t key_dim;
 };
 
 class ZipTask : public CuNumericTask<ZipTask> {
