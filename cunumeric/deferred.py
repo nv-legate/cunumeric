@@ -16,6 +16,7 @@
 import weakref
 from collections import Counter
 from collections.abc import Iterable
+from enum import IntEnum, unique
 from functools import reduce
 from itertools import product
 
@@ -146,6 +147,13 @@ _UNARY_RED_IDENTITIES = {
     UnaryRedCode.ALL: lambda _: True,
     UnaryRedCode.ANY: lambda _: False,
 }
+
+
+@unique
+class BlasOperation(IntEnum):
+    VV = 1
+    MV = 2
+    MM = 3
 
 
 class DeferredArray(NumPyThunk):
@@ -883,7 +891,7 @@ class DeferredArray(NumPyThunk):
             and len(rhs2_modes) == 1
         ):
             # this case works for any arithmetic type, not just floats
-            blas_op = "vv"
+            blas_op = BlasOperation.VV
         elif (
             lhs_thunk.dtype in supported_dtypes
             and len(lhs_modes) == 1
@@ -894,14 +902,14 @@ class DeferredArray(NumPyThunk):
                 and len(rhs2_modes) == 2
             )
         ):
-            blas_op = "mv"
+            blas_op = BlasOperation.MV
         elif (
             lhs_thunk.dtype in supported_dtypes
             and len(lhs_modes) == 2
             and len(rhs1_modes) == 2
             and len(rhs2_modes) == 2
         ):
-            blas_op = "mm"
+            blas_op = BlasOperation.MM
 
         # Our half-precision BLAS tasks expect a single-precision accumulator.
         # This is done to avoid the precision loss that results from repeated
@@ -931,7 +939,7 @@ class DeferredArray(NumPyThunk):
         # Special cases where we can use BLAS
         if blas_op is not None:
 
-            if blas_op == "vv":
+            if blas_op == BlasOperation.VV:
                 # Vector dot product
                 task = self.context.create_task(CuNumericOpCode.DOT)
                 task.add_reduction(lhs, ReductionOp.ADD)
@@ -940,7 +948,7 @@ class DeferredArray(NumPyThunk):
                 task.add_alignment(rhs1, rhs2)
                 task.execute()
 
-            elif blas_op == "mv":
+            elif blas_op == BlasOperation.MV:
                 # Matrix-vector or vector-matrix multiply
 
                 # b,(ab/ba)->a --> (ab/ba),b->a
@@ -964,7 +972,7 @@ class DeferredArray(NumPyThunk):
                 task.add_alignment(lhs, rhs2)
                 task.execute()
 
-            elif blas_op == "mm":
+            elif blas_op == BlasOperation.MM:
                 # Matrix-matrix multiply
 
                 # (cb/bc),(ab/ba)->ac --> (ab/ba),(cb/bc)->ac
