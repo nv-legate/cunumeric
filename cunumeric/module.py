@@ -1222,24 +1222,31 @@ class ArrayInfo:
         self.dtype = dtype
 
 
+def convert_to_array_form(indices):
+    return "".join(f"[{coord}]" for coord in indices)
+
+
 def check_list_depth(arr, prefix=(0,)):
     if not isinstance(arr, list):
         return 0
     elif len(arr) == 0:
-        raise ValueError(f"List at {prefix} cannot be empty")
+        raise ValueError(
+            f"List at arrays{convert_to_array_form(prefix)} cannot be empty"
+        )
 
     depths = [
-        check_list_depth(each, (*prefix, idx)) for idx, each in enumerate(arr)
+        check_list_depth(each, prefix + (idx,)) for idx, each in enumerate(arr)
     ]
-    if len(set(depths)) != len(depths):
+    if len(set(depths)) != 1:  # this should be one
         # If we're here elements don't have the same depth
         first_depth = depths[0]
-        for other_depth in depths[1:]:
+        for idx, other_depth in enumerate(depths[1:]):
             if other_depth != first_depth:
                 raise ValueError(
                     "List depths are mismatched. First element was at depth "
                     f"{first_depth}, but there is an element at"
-                    f" depth {other_depth} "
+                    f" depth {other_depth}, "
+                    f"arrays{convert_to_array_form(prefix+(idx+1,))}"
                 )
 
     return depths[0] + 1
@@ -1291,9 +1298,9 @@ def _block(arr, cur_depth, depth):
     # this reshape of elements could be replaced
     # w/ np.atleast_*d when they're implemented
     # Computes the maximum number of dimensions for the concatenation
-    max_list = list(inp.ndim for inp in inputs)
-    max_list.append(1 + (depth - cur_depth))
-    max_ndim = _builtin_max(max_list)
+    max_ndim = _builtin_max(
+        1 + (depth - cur_depth), *(inp.ndim for inp in inputs)
+    )
     # Append leading 1's to make elements to have the same 'ndim'
     reshaped = list(
         inp.reshape((1,) * (max_ndim - inp.ndim) + inp.shape)
