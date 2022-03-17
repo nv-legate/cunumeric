@@ -318,14 +318,28 @@ class DeferredArray(NumPyThunk):
         if not np.issubdtype(data_type, np.integer):
             raise TypeError("a array should be integer type")
         new_arrays = tuple()
-        for a in arrays:
-            if data_type != a.dtype:
-                raise TypeError("type of all index arrrays should be the same")
-            if a.shape != shape:
-                a = a._broadcast(shape)
-            else:
-                a = a.base
-            new_arrays = new_arrays + (a,)
+        key_dim = len(arrays[0].shape)
+
+        if len(arrays) == 1:
+            # special case when a single index array is passed and it's dim <
+            # self.ndims
+            shape = shape + tuple(self.shape[i] for i in range(1, self.ndim))
+            array = arrays[0].base
+            start = key_dim - 1
+            for i in range(1, self.ndim):
+                array = array.promote(start + i, self.shape[i])
+            new_arrays += (array,)
+        else:
+            for a in arrays:
+                if data_type != a.dtype:
+                    raise TypeError(
+                        "type of all index arrrays should be the same"
+                    )
+                if a.shape != shape:
+                    a = a._broadcast(shape)
+                else:
+                    a = a.base
+                new_arrays = new_arrays + (a,)
         arrays = new_arrays
         # create output array which will store Point<N> field where
         # N is number of index arrays
@@ -338,7 +352,7 @@ class DeferredArray(NumPyThunk):
         # but it should be safe to directly create a DeferredArray
         # of that dtype, so long as we don't try to convert it to a
         # NumPy array.
-        N = len(arrays)
+        N = self.ndim
         pointN_dtype = self.runtime.add_point_type(N)
         store = self.context.create_store(
             pointN_dtype, shape=shape, optimize_scalar=True
@@ -350,9 +364,18 @@ class DeferredArray(NumPyThunk):
         # call ZIP function to combine index arrays into a singe array
         task = self.context.create_task(CuNumericOpCode.ZIP)
         task.add_output(output_arr.base)
-        for index_arr in arrays:
-            task.add_input(index_arr)
-            task.add_alignment(output_arr.base, index_arr)
+        if len(arrays) == 1:
+            task.add_input(arrays[0])
+            task.add_alignment(arrays[0], output_arr.base)
+            task.add_scalar_arg(self.ndim, ty.int64)
+            task.add_scalar_arg(key_dim, ty.int64)
+            task.add_broadcast(arrays[0], axes=range(1, len(shape)))
+        else:
+            task.add_scalar_arg(self.ndim, ty.int64)
+            task.add_scalar_arg(self.ndim, ty.int64)
+            for index_arr in arrays:
+                task.add_input(index_arr)
+                task.add_alignment(output_arr.base, index_arr)
         task.execute()
 
         return output_arr
@@ -412,21 +435,8 @@ class DeferredArray(NumPyThunk):
                 # output regions when ND output regions are available
                 tuple_of_arrays = key.nonzero()
             elif key.ndim < store.ndim:
-                raise ValueError("Advance indexing dimention mismatch")
-                # FIXME add extensions to ZIP taskD
-                # ndim_out = store.ndim + key.ndim-1
-                # indx = key._expand_dims(list(range(key.ndim, ndim_out)))
-                # np.expand_dims(key, list(range(key.ndim, ndim_out)))
-                # print("IRINA DEBUG shape key " , indx.shape)
-                # tuple_of_arrays = (indx,)
-                # for dim in range(1, store.ndim):
-                #    dims=  list(i for i in range(ndim_out) if i
-                # not in range(dim+key.ndim-1,dim+2*key.ndim-1))
-                #    print("IRINA DEBUG dims = ", dims)
-
-                #    indx = np.arrange(
-                #            self.shape[dim])._expand_dims(dims)
-                #    tuple_of_arrays = tuple_of_arrays + (indx,)
+                output_arr = self._zip_indices((key,))
+                return True, store, output_arr
             else:
                 tuple_of_arrays = (self.runtime.to_deferred_array(key),)
 
@@ -435,7 +445,7 @@ class DeferredArray(NumPyThunk):
 
         if len(tuple_of_arrays) == self.ndim and self.ndim > 1:
 
-            output_arr = tuple_of_arrays[0]._zip_indices(tuple_of_arrays)
+            output_arr = self._zip_indices(tuple_of_arrays)
             return True, store, output_arr
         elif len(tuple_of_arrays) == 1 and self.ndim == 1:
             return True, store, tuple_of_arrays[0]

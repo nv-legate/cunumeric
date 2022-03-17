@@ -32,22 +32,34 @@ struct ZipImplBody<VariantKind::OMP, DIM, N> {
                   const Rect<DIM>& rect,
                   const Pitches<DIM - 1>& pitches,
                   bool dense,
+                  const int64_t key_dim,
                   std::index_sequence<Is...>) const
   {
     const size_t volume = rect.volume();
-    if (dense) {
-      auto outptr = out.ptr(rect);
+    if (index_arrays.size() > 1) {
+      if (dense) {
+        auto outptr = out.ptr(rect);
 #pragma omp parallel for schedule(static)
-      for (size_t idx = 0; idx < volume; ++idx) {
-        outptr[idx] = Legion::Point<N>(index_arrays[Is].ptr(rect)[idx]...);
-      }
-    } else {
+        for (size_t idx = 0; idx < volume; ++idx) {
+          outptr[idx] = Legion::Point<N>(index_arrays[Is].ptr(rect)[idx]...);
+        }
+      } else {
+#pragma omp parallel for schedule(static)
+        for (size_t idx = 0; idx < volume; ++idx) {
+          auto p = pitches.unflatten(idx, rect.lo);
+          out[p] = Legion::Point<N>(index_arrays[Is][p]...);
+        }
+      }  // else
+    } else if (index_arrays.size() == 1) {
 #pragma omp parallel for schedule(static)
       for (size_t idx = 0; idx < volume; ++idx) {
         auto p = pitches.unflatten(idx, rect.lo);
-        out[p] = Legion::Point<N>(index_arrays[Is][p]...);
+        Legion::Point<N> new_point;
+        new_point[0] = index_arrays[0][p];
+        for (size_t i = 1; i < N; i++) { new_point[i] = p[key_dim + i - 1]; }
+        out[p] = new_point;
       }
-    }  // else
+    }
   }
 };
 

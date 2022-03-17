@@ -58,18 +58,21 @@ def advanced_indexing():
     assert np.array_equal(y[index_2d], y_num[index_2d_num])
 
     # mismatch dimesion case integers:
-    # print ("advance indexing test 4")
-    # indx = np.array([1, 1])
-    # indx_num = num.array(indx)
-    # res = z[indx]
-    # print("bool array as indx np:")
-    # print(res)
-    # print("cunumeric:")
-    # res_num = z_num[indx_num]
-    # print(res_num)
-    # assert np.array_equal(res, res_num)
+    print("advanced indexing test 4")
+    indx = np.array([1, 1])
+    indx_num = num.array(indx)
+    res = z[indx]
+    res_num = z_num[indx_num]
+    assert np.array_equal(res, res_num)
 
-    # mismatch dimesion case:
+    # 2d:
+    indx = np.array([[1, 1], [1, 0]])
+    indx_num = num.array(indx)
+    res = z[indx]
+    res_num = z_num[indx_num]
+    assert np.array_equal(res, res_num)
+
+    # mismatch dimesion case bool:
     # print ("advance indexing test 4")
     # indx_bool = np.array([True, False])
     # indx_bool_num = num.array(indx_bool)
