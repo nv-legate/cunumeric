@@ -24,6 +24,7 @@ import pyarrow
 from legate.core import Array
 
 from .config import BinaryOpCode, UnaryOpCode, UnaryRedCode
+from .coverage import clone_class
 from .runtime import runtime
 from .utils import dot_modes
 
@@ -166,7 +167,8 @@ def convert_to_predicate_ndarray(obj):
     )
 
 
-class ndarray(object):
+@clone_class(np.ndarray)
+class ndarray:
     def __init__(
         self,
         shape,

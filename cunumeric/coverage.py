@@ -16,8 +16,8 @@ from __future__ import annotations
 
 import warnings
 from functools import wraps
-from types import FunctionType, ModuleType
-from typing import Any, Container, Optional
+from types import FunctionType, MethodDescriptorType, MethodType, ModuleType
+from typing import Any, Callable, Container, Optional
 
 from .runtime import runtime
 from .utils import find_last_user_frames, find_last_user_stacklevel
@@ -32,6 +32,17 @@ FALLBACK_WARNING = (
 )
 
 MOD_INTERNAL = {"__dir__", "__getattr__"}
+
+NDARRAY_INTERNAL = {
+    "__array_finalize__",
+    "__array_function__",
+    "__array_interface__",
+    "__array_prepare__",
+    "__array_priority__",
+    "__array_struct__",
+    "__array_ufunc__",
+    "__array_wrap__",
+}
 
 
 def filter_namespace(
@@ -132,3 +143,53 @@ def clone_module(
             )
         else:
             new_globals[attr] = value
+
+
+def clone_class(origin_class: type) -> Callable[[type], type]:
+    """Copy attributes from one class to another
+
+    Method types are wrapped with a decorator to report API calls. All
+    other values are copied as-is.
+
+    Parameters
+    ----------
+    origin_class : type
+        Existing class type to clone attributes from
+
+    """
+
+    def decorator(cls: type) -> type:
+        class_name = f"{origin_class.__module__}.{origin_class.__name__}"
+
+        missing = filter_namespace(
+            origin_class.__dict__,
+            # this simply omits ndarray internal methods for any class. If
+            # we ever need to wrap more classes we may need to generalize to
+            # per-class specification of internal names to skip
+            omit_names=set(cls.__dict__).union(NDARRAY_INTERNAL),
+        )
+
+        if runtime.report_coverage:
+            for attr, value in cls.__dict__.items():
+                if isinstance(
+                    value, (FunctionType, MethodType, MethodDescriptorType)
+                ):
+                    setattr(cls, attr, implemented(value, class_name))
+
+        for attr, value in missing.items():
+            if isinstance(
+                value, (FunctionType, MethodType, MethodDescriptorType)
+            ):
+                setattr(
+                    cls,
+                    attr,
+                    unimplemented(
+                        value, class_name, reporting=runtime.report_coverage
+                    ),
+                )
+            else:
+                setattr(cls, attr, value)
+
+        return cls
+
+    return decorator
