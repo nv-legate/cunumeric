@@ -21,6 +21,56 @@ namespace cunumeric {
 
 using namespace Legion;
 
+size_t stride_for_blas(size_t m, size_t n, size_t x_stride, size_t y_stride, bool& transpose)
+{
+  size_t blas_stride;
+  if (n == 1) {
+    // Column matrix: Every row has exactly 1 element, therefore it is trivially contiguous. Any
+    // stride between rows is acceptable.
+#ifdef DEBUG_CUNUMERIC
+    assert(x_stride >= 1);
+#endif
+    blas_stride = x_stride;
+    transpose   = false;
+  } else if (m == 1) {
+    // Row matrix
+#ifdef DEBUG_CUNUMERIC
+    assert(y_stride >= 1);
+#endif
+    if (y_stride == 1) {
+      // Row elements are contiguous, so there is nothing to do. There is only one row, so the row
+      // stride is irrelevant, but we have to pass a value >= n to appease the BLAS library.
+      blas_stride = n;
+      transpose   = false;
+    } else {
+      // If the elements in the row are s>1 slots apart, present the input to the BLAS library as a
+      // row-major nx1 matrix with row stride equal to s, and ask for the matrix to be transposed.
+      blas_stride = y_stride;
+      transpose   = true;
+    }
+  } else {
+    // General case: One dimension needs to be contiguous. If that's not the last dimension, then
+    // the matrix represents the transpose of a row-major nxm matrix. We then tell the BLAS library
+    // that we are passing a row-major nxm matrix, and ask for the matrix to be transposed.
+#ifdef DEBUG_CUNUMERIC
+    assert(x_stride == 1 && y_stride > 1 || y_stride == 1 && x_stride > 1);
+#endif
+    blas_stride = std::max(x_stride, y_stride);
+    transpose   = x_stride == 1;
+  }
+  return blas_stride;
+}
+
+int64_t calculate_volume(size_t ndim, const int64_t* shape, int64_t* strides)
+{
+  int64_t volume = 1;
+  for (int d = ndim - 1; d >= 0; --d) {
+    if (strides != nullptr) { strides[d] = volume; }
+    volume *= shape[d];
+  }
+  return volume;
+}
+
 float* allocate_buffer(size_t size)
 {
   Rect<1> bounds(0, size - 1);
@@ -49,6 +99,26 @@ void float_matrix_to_half(__half* out, const float* ptr, size_t m, size_t n, siz
 {
   for (unsigned i = 0; i < m; i++)
     for (unsigned j = 0; j < n; j++) out[i * pitch + j] = ptr[i * n + j];
+}
+
+void half_tensor_to_float(
+  float* out, const __half* in, size_t ndim, const int64_t* shape, const int64_t* in_strides)
+{
+  int64_t volume = calculate_volume(ndim, shape);
+  for (int64_t out_idx = 0; out_idx < volume; ++out_idx) {
+    int64_t in_idx = unflatten_with_strides(out_idx, ndim, shape, in_strides);
+    out[out_idx]   = in[in_idx];
+  }
+}
+
+void float_tensor_to_half(
+  __half* out, const float* in, size_t ndim, const int64_t* shape, const int64_t* out_strides)
+{
+  int64_t volume = calculate_volume(ndim, shape);
+  for (int64_t in_idx = 0; in_idx < volume; ++in_idx) {
+    int64_t out_idx = unflatten_with_strides(in_idx, ndim, shape, out_strides);
+    out[out_idx]    = in[in_idx];
+  }
 }
 
 }  // namespace cunumeric

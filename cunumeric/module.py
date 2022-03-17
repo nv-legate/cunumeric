@@ -31,6 +31,7 @@ from .array import (
 )
 from .config import BinaryOpCode, UnaryOpCode, UnaryRedCode
 from .runtime import runtime
+from .utils import inner_modes, matmul_modes, tensordot_modes
 
 _builtin_abs = abs
 _builtin_all = all
@@ -2234,9 +2235,52 @@ def diagonal(a, offset=0, axis1=None, axis2=None, extract=True, axes=None):
 
 
 @add_boilerplate("a", "b")
+def inner(a, b, out=None):
+    """
+    Inner product of two arrays.
+
+    Ordinary inner product of vectors for 1-D arrays (without complex
+    conjugation), in higher dimensions a sum product over the last axes.
+
+    Parameters
+    ----------
+    a, b : array_like
+    out : ndarray, optional
+        Output argument. This must have the exact shape that would be returned
+        if it was not present. If its dtype is not what would be expected from
+        this operation, then the result will be (unsafely) cast to `out`.
+
+    Returns
+    -------
+    output : ndarray
+        If `a` and `b` are both
+        scalars or both 1-D arrays then a scalar is returned; otherwise
+        an array is returned.
+        ``output.shape = (*a.shape[:-1], *b.shape[:-1])``
+        If `out` is given, then it is returned.
+
+    Notes
+    -----
+    The cuNumeric implementation is a little more liberal than NumPy in terms
+    of allowed broadcasting, e.g. ``inner(ones((1,)), ones((4,)))`` is allowed.
+
+    See Also
+    --------
+    numpy.inner
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    if a.ndim == 0 or b.ndim == 0:
+        return multiply(a, b, out=out)
+    (a_modes, b_modes, out_modes) = inner_modes(a.ndim, b.ndim)
+    return _contract(a_modes, b_modes, out_modes, a, b, out=out)
+
+
+@add_boilerplate("a", "b")
 def dot(a, b, out=None):
     """
-
     Dot product of two arrays. Specifically,
 
     - If both `a` and `b` are 1-D arrays, it is inner product of vectors
@@ -2265,30 +2309,22 @@ def dot(a, b, out=None):
     b : array_like
         Second argument.
     out : ndarray, optional
-        Output argument. This must have the exact kind that would be returned
-        if it was not used. In particular, it must have the right type, must be
-        C-contiguous, and its dtype must be the dtype that would be returned
-        for `dot(a,b)`. This is a performance feature. Therefore, if these
-        conditions are not met, an exception is raised, instead of attempting
-        to be flexible.
+        Output argument. This must have the exact shape that would be returned
+        if it was not present. If its dtype is not what would be expected from
+        this operation, then the result will be (unsafely) cast to `out`.
 
     Returns
     -------
     output : ndarray
-        Returns the dot product of `a` and `b`.  If `a` and `b` are both
-        scalars or both 1-D arrays then a scalar is returned; otherwise
-        an array is returned.
-        If `out` is given, then it is returned.
-
-    Raises
-    ------
-    ValueError
-        If the last dimension of `a` is not the same size as
-        the second-to-last dimension of `b`.
+        Returns the dot product of `a` and `b`. If `out` is given, then it is
+        returned.
 
     Notes
     -----
-    The current implementation only supports 1-D or 2-D input arrays.
+    The cuNumeric implementation is a little more liberal than NumPy in terms
+    of allowed broadcasting, e.g. ``dot(ones((3,1)), ones((4,5)))`` is allowed.
+
+    Except for the inner-product case, only floating-point types are supported.
 
     See Also
     --------
@@ -2301,9 +2337,169 @@ def dot(a, b, out=None):
     return a.dot(b, out=out)
 
 
-def tensordot(a, b, axes=2):
+@add_boilerplate("a", "b")
+def matmul(a, b, out=None):
     """
+    Matrix product of two arrays.
 
+    Parameters
+    ----------
+    x1, x2 : array_like
+        Input arrays, scalars not allowed.
+    out : ndarray, optional
+        A location into which the result is stored. If provided, it must have
+        a shape that matches the signature `(n,k),(k,m)->(n,m)`. If its dtype
+        is not what would be expected from this operation, then the result will
+        be (unsafely) cast to `out`.
+
+    Returns
+    -------
+    output : ndarray
+        The matrix product of the inputs.
+        This is a scalar only when both x1, x2 are 1-d vectors.
+        If `out` is given, then it is returned.
+
+    Notes
+    -----
+    The behavior depends on the arguments in the following way.
+
+    - If both arguments are 2-D they are multiplied like conventional
+      matrices.
+    - If either argument is N-D, N > 2, it is treated as a stack of
+      matrices residing in the last two indexes and broadcast accordingly.
+    - If the first argument is 1-D, it is promoted to a matrix by
+      prepending a 1 to its dimensions. After matrix multiplication
+      the prepended 1 is removed.
+    - If the second argument is 1-D, it is promoted to a matrix by
+      appending a 1 to its dimensions. After matrix multiplication
+      the appended 1 is removed.
+
+    ``matmul`` differs from ``dot`` in two important ways:
+
+    - Multiplication by scalars is not allowed, use ``*`` instead.
+    - Stacks of matrices are broadcast together as if the matrices
+      were elements, respecting the signature ``(n,k),(k,m)->(n,m)``:
+
+      >>> a = ones([9, 5, 7, 4])
+      >>> c = ones([9, 5, 4, 3])
+      >>> dot(a, c).shape
+      (9, 5, 7, 9, 5, 3)
+      >>> matmul(a, c).shape
+      (9, 5, 7, 3)
+      >>> # n is 7, k is 4, m is 3
+
+    The cuNumeric implementation is a little more liberal than NumPy in terms
+    of allowed broadcasting, e.g. ``matmul(ones((3,1)), ones((4,5)))`` is
+    allowed.
+
+    Only floating-point types are supported.
+
+    See Also
+    --------
+    numpy.matmul
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    if a.ndim == 0 or b.ndim == 0:
+        raise ValueError("Scalars not allowed in matmul")
+    (a_modes, b_modes, out_modes) = matmul_modes(a.ndim, b.ndim)
+    return _contract(a_modes, b_modes, out_modes, a, b, out=out)
+
+
+@add_boilerplate("a", "b")
+def vdot(a, b, out=None):
+    """
+    Return the dot product of two vectors.
+
+    The vdot(`a`, `b`) function handles complex numbers differently than
+    dot(`a`, `b`).  If the first argument is complex the complex conjugate
+    of the first argument is used for the calculation of the dot product.
+
+    Note that `vdot` handles multidimensional arrays differently than `dot`:
+    it does *not* perform a matrix product, but flattens input arguments
+    to 1-D vectors first. Consequently, it should only be used for vectors.
+
+    Parameters
+    ----------
+    a : array_like
+        If `a` is complex the complex conjugate is taken before calculation
+        of the dot product.
+    b : array_like
+        Second argument to the dot product.
+    out : ndarray, optional
+        Output argument. This must have the exact shape that would be returned
+        if it was not present. If its dtype is not what would be expected from
+        this operation, then the result will be (unsafely) cast to `out`.
+
+    Returns
+    -------
+    output : ndarray
+        Dot product of `a` and `b`. If `out` is given, then it is returned.
+
+    Notes
+    -----
+    The cuNumeric implementation is a little more liberal than NumPy in terms
+    of allowed broadcasting, e.g. ``vdot(ones((1,)), ones((4,)))`` is allowed.
+
+    See Also
+    --------
+    numpy.vdot
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    return inner(a.ravel().conj(), b.ravel(), out=out)
+
+
+@add_boilerplate("a", "b")
+def outer(a, b, out=None):
+    """
+    Compute the outer product of two vectors.
+
+    Given two vectors, ``a = [a0, a1, ..., aM]`` and ``b = [b0, b1, ..., bN]``,
+    the outer product is::
+
+      [[a0*b0  a0*b1 ... a0*bN ]
+       [a1*b0    .
+       [ ...          .
+       [aM*b0            aM*bN ]]
+
+    Parameters
+    ----------
+    a : (M,) array_like
+        First input vector. Input is flattened if not already 1-dimensional.
+    b : (N,) array_like
+        Second input vector. Input is flattened if not already 1-dimensional.
+    out : (M, N) ndarray, optional
+        A location where the result is stored. If its dtype is not what would
+        be expected from this operation, then the result will be (unsafely)
+        cast to `out`.
+
+    Returns
+    -------
+    output : (M, N) ndarray
+        ``output[i, j] = a[i] * b[j]``
+        If `out` is given, then it is returned.
+
+    See Also
+    --------
+    numpy.outer
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    return multiply(
+        a.ravel()[:, np.newaxis], b.ravel()[np.newaxis, :], out=out
+    )
+
+
+@add_boilerplate("a", "b")
+def tensordot(a, b, axes=2, out=None):
+    """
     Compute tensor dot product along specified axes.
 
     Given two tensors, `a` and `b`, and an array_like object containing
@@ -2321,20 +2517,28 @@ def tensordot(a, b, axes=2):
     axes : int or array_like
         * integer_like
           If an int N, sum over the last N axes of `a` and the first N axes
-          of `b` in order. The sizes of the corresponding axes must match.
+          of `b` in order.
         * (2,) array_like
           Or, a list of axes to be summed over, first sequence applying to `a`,
           second to `b`. Both elements array_like must be of the same length.
+    out : ndarray, optional
+        Output argument. This must have the exact shape that would be returned
+        if it was not present. If its dtype is not what would be expected from
+        this operation, then the result will be (unsafely) cast to `out`.
 
     Returns
     -------
     output : ndarray
-        The tensor dot product of the input.
+        The tensor dot product of the inputs. If `out` is given, then it is
+        returned.
 
     Notes
     -----
-    The current implementation inherits the limitation of `dot`; i.e., it only
-    supports 1-D or 2-D input arrays.
+    The cuNumeric implementation is a little more liberal than NumPy in terms
+    of allowed broadcasting, e.g. ``tensordot(ones((3,1)), ones((1,4)))`` is
+    allowed.
+
+    Except for the inner-product case, only floating-point types are supported.
 
     See Also
     --------
@@ -2344,69 +2548,8 @@ def tensordot(a, b, axes=2):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    # This is the exact same code as the canonical numpy.
-    # See https://github.com/numpy/numpy/blob/v1.21.0/numpy/core/numeric.py#L943-L1133. # noqa:  E501
-    try:
-        iter(axes)
-    except Exception:
-        axes_a = list(range(-axes, 0))
-        axes_b = list(range(0, axes))
-    else:
-        axes_a, axes_b = axes
-    try:
-        na = len(axes_a)
-        axes_a = list(axes_a)
-    except TypeError:
-        axes_a = [axes_a]
-        na = 1
-    try:
-        nb = len(axes_b)
-        axes_b = list(axes_b)
-    except TypeError:
-        axes_b = [axes_b]
-        nb = 1
-
-    as_ = a.shape
-    nda = a.ndim
-    bs = b.shape
-    ndb = b.ndim
-    equal = True
-    if na != nb:
-        equal = False
-    else:
-        for k in range(na):
-            if as_[axes_a[k]] != bs[axes_b[k]]:
-                equal = False
-                break
-            if axes_a[k] < 0:
-                axes_a[k] += nda
-            if axes_b[k] < 0:
-                axes_b[k] += ndb
-    if not equal:
-        raise ValueError("shape-mismatch for sum")
-
-    # Move the axes to sum over to the end of "a"
-    # and to the front of "b"
-    notin = [k for k in range(nda) if k not in axes_a]
-    newaxes_a = notin + axes_a
-    N2 = 1
-    for axis in axes_a:
-        N2 *= as_[axis]
-    newshape_a = (int(np.multiply.reduce([as_[ax] for ax in notin])), N2)
-    olda = [as_[axis] for axis in notin]
-
-    notin = [k for k in range(ndb) if k not in axes_b]
-    newaxes_b = axes_b + notin
-    N2 = 1
-    for axis in axes_b:
-        N2 *= bs[axis]
-    newshape_b = (N2, int(np.multiply.reduce([bs[ax] for ax in notin])))
-    oldb = [bs[axis] for axis in notin]
-
-    at = a.transpose(newaxes_a).reshape(newshape_a)
-    bt = b.transpose(newaxes_b).reshape(newshape_b)
-    res = dot(at, bt)
-    return res.reshape(olda + oldb)
+    (a_modes, b_modes, out_modes) = tensordot_modes(a.ndim, b.ndim, axes)
+    return _contract(a_modes, b_modes, out_modes, a, b, out=out)
 
 
 # Trivial multi-tensor contraction strategy: contract in input order
@@ -2417,29 +2560,34 @@ class NullOptimizer(oe.paths.PathOptimizer):
 
 # Generalized tensor contraction
 @add_boilerplate("a", "b")
-def _contract(expr, a, b=None, out=None):
-    # Parse modes out of contraction expression (assuming expression has been
-    # normalized already by contract_path)
-    if b is None:
-        m = re.match(r"([a-zA-Z]*)->([a-zA-Z]*)", expr)
-        assert m is not None
-        a_modes = list(m.group(1))
-        b_modes = []
-        out_modes = list(m.group(2))
-    else:
-        m = re.match(r"([a-zA-Z]*),([a-zA-Z]*)->([a-zA-Z]*)", expr)
-        assert m is not None
-        a_modes = list(m.group(1))
-        b_modes = list(m.group(2))
-        out_modes = list(m.group(3))
-
+def _contract(
+    a_modes,
+    b_modes,
+    out_modes,
+    a,
+    b=None,
+    out=None,
+):
     # Sanity checks
+    if len(a_modes) != a.ndim:
+        raise ValueError(
+            f"Expected {len(a_modes)}-d input array but got {a.ndim}-d"
+        )
+    if b is None:
+        if len(b_modes) != 0:
+            raise ValueError("Missing input array")
+    elif len(b_modes) != b.ndim:
+        raise ValueError(
+            f"Expected {len(b_modes)}-d input array but got {b.ndim}-d"
+        )
     if out is not None and len(out_modes) != out.ndim:
         raise ValueError(
             f"Expected {len(out_modes)}-d output array but got {out.ndim}-d"
         )
     if len(set(out_modes)) != len(out_modes):
-        raise ValueError("Duplicate mode labels on output tensor")
+        raise ValueError("Duplicate mode labels on output")
+    if len(set(out_modes) - set(a_modes) - set(b_modes)) > 0:
+        raise ValueError("Unknown mode labels on output")
 
     # Handle duplicate modes on inputs
     c_a_modes = Counter(a_modes)
@@ -2456,6 +2604,7 @@ def _contract(expr, a, b=None, out=None):
             b = b._diag_helper(axes=axes)
             # diagonal is stored on last axis
             b_modes = [m for m in b_modes if m != mode] + [mode]
+
     # Drop modes corresponding to singleton dimensions. This handles cases of
     # broadcasting.
     for dim in reversed(range(a.ndim)):
@@ -2487,8 +2636,11 @@ def _contract(expr, a, b=None, out=None):
         zip(a_modes, a.shape), zip(b_modes, b.shape) if b is not None else []
     ):
         prev_extent = mode2extent.get(mode)
-        # This should have already been checked by contract_path
-        assert prev_extent is None or extent == prev_extent
+        if prev_extent is not None and extent != prev_extent:
+            raise ValueError(
+                f"Incompatible sizes between matched dimensions: {extent} vs "
+                f"{prev_extent}"
+            )
         mode2extent[mode] = extent
 
     # Any modes appearing only on the result must have originally been present
@@ -2533,20 +2685,6 @@ def _contract(expr, a, b=None, out=None):
     # Handle types
     c_dtype = ndarray.find_common_type(a, b) if b is not None else a.dtype
     out_dtype = out.dtype if out is not None else c_dtype
-    if b is None or c_dtype in [
-        np.float32,
-        np.float64,
-        np.complex64,
-        np.complex128,
-    ]:
-        # Can support this type directly
-        pass
-    elif np.can_cast(c_dtype, np.float64):
-        # Will have to go through a supported type, and cast the result back to
-        # the input type (or the type of the provided output array)
-        c_dtype = np.float64
-    else:
-        raise TypeError(f"Unsupported type: {c_dtype}")
 
     if b is None:
         # Unary contraction case
@@ -2658,6 +2796,10 @@ def einsum(expr, *operands, out=None, optimize=False):
     output : ndarray
         The calculation based on the Einstein summation convention.
 
+    Notes
+    -----
+    For most expressions, only floating-point types are supported.
+
     See Also
     --------
     numpy.einsum
@@ -2677,11 +2819,31 @@ def einsum(expr, *operands, out=None, optimize=False):
         expr, *operands, einsum_call=True, optimize=optimize
     )
     for (indices, _, sub_expr, _, _) in contractions:
-        sub_opers = [operands.pop(i) for i in indices]
-        if len(operands) == 0:  # last iteration
-            sub_result = _contract(sub_expr, *sub_opers, out=out)
+        assert len(indices) == 1 or len(indices) == 2
+        a = operands.pop(indices[0])
+        b = operands.pop(indices[1]) if len(indices) == 2 else None
+        if b is None:
+            m = re.match(r"([a-zA-Z]*)->([a-zA-Z]*)", sub_expr)
+            if m is None:
+                raise NotImplementedError("Non-alphabetic mode labels")
+            a_modes = list(m.group(1))
+            b_modes = []
+            out_modes = list(m.group(2))
         else:
-            sub_result = _contract(sub_expr, *sub_opers)
+            m = re.match(r"([a-zA-Z]*),([a-zA-Z]*)->([a-zA-Z]*)", sub_expr)
+            if m is None:
+                raise NotImplementedError("Non-alphabetic mode labels")
+            a_modes = list(m.group(1))
+            b_modes = list(m.group(2))
+            out_modes = list(m.group(3))
+        sub_result = _contract(
+            a_modes,
+            b_modes,
+            out_modes,
+            a,
+            b,
+            out=(out if len(operands) == 0 else None),
+        )
         operands.append(sub_result)
     assert len(operands) == 1
     return operands[0]

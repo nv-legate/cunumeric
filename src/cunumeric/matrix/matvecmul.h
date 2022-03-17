@@ -21,7 +21,6 @@
 namespace cunumeric {
 
 struct MatVecMulArgs {
-  bool left_matrix;
   const Array& lhs;
   const Array& rhs1;
   const Array& rhs2;

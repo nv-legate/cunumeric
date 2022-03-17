@@ -128,10 +128,6 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def dot(self, rhs1, rhs2):
-        ...
-
-    @abstractmethod
     def transpose(self, rhs, axes):
         ...
 

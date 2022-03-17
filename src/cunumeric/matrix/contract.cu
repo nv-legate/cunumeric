@@ -23,7 +23,50 @@ namespace cunumeric {
 
 using namespace Legion;
 
-template <cudaDataType_t DATA_TYPE_CODE, cutensorComputeType_t COMPUTE_TYPE_CODE, typename T>
+namespace {  // anonymous
+
+template <typename T>
+struct contract_helper {
+};
+
+template <>
+struct contract_helper<__half> {
+  static const cudaDataType_t data_type_code           = CUDA_R_16F;
+  static const cutensorComputeType_t compute_type_code = CUTENSOR_COMPUTE_32F;
+  using scalar_t                                       = float;
+};
+
+template <>
+struct contract_helper<float> {
+  static const cudaDataType_t data_type_code           = CUDA_R_32F;
+  static const cutensorComputeType_t compute_type_code = CUTENSOR_COMPUTE_32F;
+  using scalar_t                                       = float;
+};
+
+template <>
+struct contract_helper<double> {
+  static const cudaDataType_t data_type_code           = CUDA_R_64F;
+  static const cutensorComputeType_t compute_type_code = CUTENSOR_COMPUTE_64F;
+  using scalar_t                                       = double;
+};
+
+template <>
+struct contract_helper<complex<float>> {
+  static const cudaDataType_t data_type_code           = CUDA_C_32F;
+  static const cutensorComputeType_t compute_type_code = CUTENSOR_COMPUTE_32F;
+  using scalar_t                                       = complex<float>;
+};
+
+template <>
+struct contract_helper<complex<double>> {
+  static const cudaDataType_t data_type_code           = CUDA_C_64F;
+  static const cutensorComputeType_t compute_type_code = CUTENSOR_COMPUTE_64F;
+  using scalar_t                                       = complex<double>;
+};
+
+}  // anonymous namespace
+
+template <typename T>
 __host__ void contract(T* lhs_data,
                        size_t lhs_ndim,
                        int64_t* lhs_shape,
@@ -45,15 +88,16 @@ __host__ void contract(T* lhs_data,
   auto task_stream = get_cached_stream();
 
   // Create tensor descriptors
+  cudaDataType_t data_type_code = contract_helper<T>::data_type_code;
   cutensorTensorDescriptor_t lhs_desc;
   cutensorTensorDescriptor_t rhs1_desc;
   cutensorTensorDescriptor_t rhs2_desc;
   CHECK_CUTENSOR(cutensorInitTensorDescriptor(
-    handle, &lhs_desc, lhs_ndim, lhs_shape, lhs_strides, DATA_TYPE_CODE, CUTENSOR_OP_IDENTITY));
+    handle, &lhs_desc, lhs_ndim, lhs_shape, lhs_strides, data_type_code, CUTENSOR_OP_IDENTITY));
   CHECK_CUTENSOR(cutensorInitTensorDescriptor(
-    handle, &rhs1_desc, rhs1_ndim, rhs1_shape, rhs1_strides, DATA_TYPE_CODE, CUTENSOR_OP_IDENTITY));
+    handle, &rhs1_desc, rhs1_ndim, rhs1_shape, rhs1_strides, data_type_code, CUTENSOR_OP_IDENTITY));
   CHECK_CUTENSOR(cutensorInitTensorDescriptor(
-    handle, &rhs2_desc, rhs2_ndim, rhs2_shape, rhs2_strides, DATA_TYPE_CODE, CUTENSOR_OP_IDENTITY));
+    handle, &rhs2_desc, rhs2_ndim, rhs2_shape, rhs2_strides, data_type_code, CUTENSOR_OP_IDENTITY));
 
   // Prepare algorithm description
   uint32_t lhs_req;
@@ -77,7 +121,7 @@ __host__ void contract(T* lhs_data,
                                                    &lhs_desc,
                                                    lhs_modes,
                                                    lhs_req,
-                                                   COMPUTE_TYPE_CODE));
+                                                   contract_helper<T>::compute_type_code));
   cutensorContractionFind_t find;
   CHECK_CUTENSOR(cutensorInitContractionFind(handle, &find, CUTENSOR_ALGO_DEFAULT));
 
@@ -92,8 +136,8 @@ __host__ void contract(T* lhs_data,
   // Execute contraction
   cutensorContractionPlan_t plan;
   CHECK_CUTENSOR(cutensorInitContractionPlan(handle, &plan, &desc, &find, work_size));
-  const T alpha = 1.0;
-  const T beta  = 0.0;
+  const typename contract_helper<T>::scalar_t alpha = 1.0;
+  const typename contract_helper<T>::scalar_t beta  = 0.0;
   CHECK_CUTENSOR(cutensorContraction(handle,
                                      &plan,
                                      &alpha,
@@ -106,6 +150,42 @@ __host__ void contract(T* lhs_data,
                                      work_size,
                                      task_stream));
 }
+
+template <>
+struct ContractImplBody<VariantKind::GPU, LegateTypeCode::HALF_LT> {
+  void operator()(__half* lhs_data,
+                  size_t lhs_ndim,
+                  int64_t* lhs_shape,
+                  int64_t* lhs_strides,
+                  int32_t* lhs_modes,
+                  const __half* rhs1_data,
+                  size_t rhs1_ndim,
+                  int64_t* rhs1_shape,
+                  int64_t* rhs1_strides,
+                  int32_t* rhs1_modes,
+                  const __half* rhs2_data,
+                  size_t rhs2_ndim,
+                  int64_t* rhs2_shape,
+                  int64_t* rhs2_strides,
+                  int32_t* rhs2_modes)
+  {
+    contract(lhs_data,
+             lhs_ndim,
+             lhs_shape,
+             lhs_strides,
+             lhs_modes,
+             rhs1_data,
+             rhs1_ndim,
+             rhs1_shape,
+             rhs1_strides,
+             rhs1_modes,
+             rhs2_data,
+             rhs2_ndim,
+             rhs2_shape,
+             rhs2_strides,
+             rhs2_modes);
+  }
+};
 
 template <>
 struct ContractImplBody<VariantKind::GPU, LegateTypeCode::FLOAT_LT> {
@@ -125,21 +205,21 @@ struct ContractImplBody<VariantKind::GPU, LegateTypeCode::FLOAT_LT> {
                   int64_t* rhs2_strides,
                   int32_t* rhs2_modes)
   {
-    contract<CUDA_R_32F, CUTENSOR_COMPUTE_32F>(lhs_data,
-                                               lhs_ndim,
-                                               lhs_shape,
-                                               lhs_strides,
-                                               lhs_modes,
-                                               rhs1_data,
-                                               rhs1_ndim,
-                                               rhs1_shape,
-                                               rhs1_strides,
-                                               rhs1_modes,
-                                               rhs2_data,
-                                               rhs2_ndim,
-                                               rhs2_shape,
-                                               rhs2_strides,
-                                               rhs2_modes);
+    contract(lhs_data,
+             lhs_ndim,
+             lhs_shape,
+             lhs_strides,
+             lhs_modes,
+             rhs1_data,
+             rhs1_ndim,
+             rhs1_shape,
+             rhs1_strides,
+             rhs1_modes,
+             rhs2_data,
+             rhs2_ndim,
+             rhs2_shape,
+             rhs2_strides,
+             rhs2_modes);
   }
 };
 
@@ -161,21 +241,21 @@ struct ContractImplBody<VariantKind::GPU, LegateTypeCode::DOUBLE_LT> {
                   int64_t* rhs2_strides,
                   int32_t* rhs2_modes)
   {
-    contract<CUDA_R_64F, CUTENSOR_COMPUTE_64F>(lhs_data,
-                                               lhs_ndim,
-                                               lhs_shape,
-                                               lhs_strides,
-                                               lhs_modes,
-                                               rhs1_data,
-                                               rhs1_ndim,
-                                               rhs1_shape,
-                                               rhs1_strides,
-                                               rhs1_modes,
-                                               rhs2_data,
-                                               rhs2_ndim,
-                                               rhs2_shape,
-                                               rhs2_strides,
-                                               rhs2_modes);
+    contract(lhs_data,
+             lhs_ndim,
+             lhs_shape,
+             lhs_strides,
+             lhs_modes,
+             rhs1_data,
+             rhs1_ndim,
+             rhs1_shape,
+             rhs1_strides,
+             rhs1_modes,
+             rhs2_data,
+             rhs2_ndim,
+             rhs2_shape,
+             rhs2_strides,
+             rhs2_modes);
   }
 };
 
@@ -197,21 +277,21 @@ struct ContractImplBody<VariantKind::GPU, LegateTypeCode::COMPLEX64_LT> {
                   int64_t* rhs2_strides,
                   int32_t* rhs2_modes)
   {
-    contract<CUDA_C_32F, CUTENSOR_COMPUTE_32F>(lhs_data,
-                                               lhs_ndim,
-                                               lhs_shape,
-                                               lhs_strides,
-                                               lhs_modes,
-                                               rhs1_data,
-                                               rhs1_ndim,
-                                               rhs1_shape,
-                                               rhs1_strides,
-                                               rhs1_modes,
-                                               rhs2_data,
-                                               rhs2_ndim,
-                                               rhs2_shape,
-                                               rhs2_strides,
-                                               rhs2_modes);
+    contract(lhs_data,
+             lhs_ndim,
+             lhs_shape,
+             lhs_strides,
+             lhs_modes,
+             rhs1_data,
+             rhs1_ndim,
+             rhs1_shape,
+             rhs1_strides,
+             rhs1_modes,
+             rhs2_data,
+             rhs2_ndim,
+             rhs2_shape,
+             rhs2_strides,
+             rhs2_modes);
   }
 };
 
@@ -233,21 +313,21 @@ struct ContractImplBody<VariantKind::GPU, LegateTypeCode::COMPLEX128_LT> {
                   int64_t* rhs2_strides,
                   int32_t* rhs2_modes)
   {
-    contract<CUDA_C_64F, CUTENSOR_COMPUTE_64F>(lhs_data,
-                                               lhs_ndim,
-                                               lhs_shape,
-                                               lhs_strides,
-                                               lhs_modes,
-                                               rhs1_data,
-                                               rhs1_ndim,
-                                               rhs1_shape,
-                                               rhs1_strides,
-                                               rhs1_modes,
-                                               rhs2_data,
-                                               rhs2_ndim,
-                                               rhs2_shape,
-                                               rhs2_strides,
-                                               rhs2_modes);
+    contract(lhs_data,
+             lhs_ndim,
+             lhs_shape,
+             lhs_strides,
+             lhs_modes,
+             rhs1_data,
+             rhs1_ndim,
+             rhs1_shape,
+             rhs1_strides,
+             rhs1_modes,
+             rhs2_data,
+             rhs2_ndim,
+             rhs2_shape,
+             rhs2_strides,
+             rhs2_modes);
   }
 };
 

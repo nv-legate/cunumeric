@@ -1,4 +1,4 @@
-# Copyright 2021-2022 NVIDIA Corporation
+# Copyright 2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,31 +13,22 @@
 # limitations under the License.
 #
 
-from cunumeric.utils import dot_modes
-from test_tools.contractions import (
-    test_default,
-    test_permutations,
-    test_shapes,
-    test_types,
-)
+from cunumeric.utils import matmul_modes
+from test_tools.contractions import test_default
 
 from legate.core import LEGATE_MAX_DIM
 
 
 def test():
-    for a_ndim in range(LEGATE_MAX_DIM + 1):
-        for b_ndim in range(LEGATE_MAX_DIM + 1):
-            name = f"dot({a_ndim} x {b_ndim})"
-            modes = dot_modes(a_ndim, b_ndim)
+    for a_ndim in range(1, LEGATE_MAX_DIM + 1):
+        for b_ndim in range(1, LEGATE_MAX_DIM + 1):
+            name = f"matmul({a_ndim} x {b_ndim})"
+            modes = matmul_modes(a_ndim, b_ndim)
 
             def operation(lib, *args, **kwargs):
-                return lib.dot(*args, **kwargs)
+                return lib.matmul(*args, **kwargs)
 
             test_default(name, modes, operation)
-            test_permutations(name, modes, operation)
-            test_shapes(name, modes, operation)
-            if a_ndim <= 2 and b_ndim <= 2:
-                test_types(name, modes, operation)
 
 
 if __name__ == "__main__":

@@ -15,6 +15,7 @@
 
 import traceback
 from functools import reduce
+from string import ascii_lowercase, ascii_uppercase
 
 import numpy as np
 
@@ -96,3 +97,83 @@ def get_arg_dtype(dtype):
 
 def get_arg_value_dtype(dtype):
     return dtype.fields["arg_value"][0].type
+
+
+def dot_modes(a_ndim, b_ndim):
+    a_modes = list(ascii_lowercase[:a_ndim])
+    b_modes = list(ascii_uppercase[:b_ndim])
+    if a_ndim == 0 or b_ndim == 0:
+        out_modes = a_modes + b_modes
+    elif b_ndim == 1:
+        b_modes[-1] = a_modes[-1]
+        out_modes = a_modes[:-1]
+    else:
+        b_modes[-2] = a_modes[-1]
+        out_modes = a_modes[:-1] + b_modes[:-2] + [b_modes[-1]]
+    return (a_modes, b_modes, out_modes)
+
+
+def inner_modes(a_ndim, b_ndim):
+    a_modes = list(ascii_lowercase[:a_ndim])
+    b_modes = list(ascii_uppercase[:b_ndim])
+    if a_ndim == 0 or b_ndim == 0:
+        out_modes = a_modes + b_modes
+    else:
+        b_modes[-1] = a_modes[-1]
+        out_modes = a_modes[:-1] + b_modes[:-1]
+    return (a_modes, b_modes, out_modes)
+
+
+def matmul_modes(a_ndim, b_ndim):
+    assert a_ndim >= 1 and b_ndim >= 1
+    a_modes = list(ascii_lowercase[-a_ndim:])
+    b_modes = list(ascii_lowercase[-b_ndim:])
+    if b_ndim >= 2:
+        a_modes[-1] = "A"
+        b_modes[-2] = "A"
+    if b_ndim == 1:
+        out_modes = a_modes[:-1]
+    elif a_ndim == 1:
+        out_modes = b_modes[:-2] + [b_modes[-1]]
+    else:
+        out_modes = (
+            list(ascii_lowercase[-max(a_ndim, b_ndim) : -2])
+            + [a_modes[-2]]
+            + [b_modes[-1]]
+        )
+    return (a_modes, b_modes, out_modes)
+
+
+def tensordot_modes(a_ndim, b_ndim, axes):
+    if isinstance(axes, int):
+        if axes > a_ndim or axes > b_ndim:
+            raise ValueError("Invalid axes argument")
+        axes = (list(range(a_ndim - axes, a_ndim)), list(range(axes)))
+    a_axes, b_axes = axes
+    if isinstance(a_axes, int):
+        a_axes = [a_axes]
+    if isinstance(b_axes, int):
+        b_axes = [b_axes]
+    a_axes = [ax + a_ndim if ax < 0 else ax for ax in a_axes]
+    b_axes = [ax + b_ndim if ax < 0 else ax for ax in b_axes]
+    if (
+        len(a_axes) != len(b_axes)
+        or len(a_axes) > a_ndim
+        or len(b_axes) > b_ndim
+        or len(a_axes) != len(set(a_axes))
+        or len(b_axes) != len(set(b_axes))
+        or any(ax < 0 for ax in a_axes)
+        or any(ax < 0 for ax in b_axes)
+        or any(ax >= a_ndim for ax in a_axes)
+        or any(ax >= b_ndim for ax in b_axes)
+    ):
+        raise ValueError("Invalid axes argument")
+
+    a_modes = list(ascii_lowercase[:a_ndim])
+    b_modes = list(ascii_uppercase[:b_ndim])
+    for (a_i, b_i) in zip(a_axes, b_axes):
+        b_modes[b_i] = a_modes[a_i]
+    out_modes = [
+        a_modes[a_i] for a_i in sorted(set(range(a_ndim)) - set(a_axes))
+    ] + [b_modes[b_i] for b_i in sorted(set(range(b_ndim)) - set(b_axes))]
+    return (a_modes, b_modes, out_modes)

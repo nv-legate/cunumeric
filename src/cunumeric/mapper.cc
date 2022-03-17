@@ -65,6 +65,15 @@ Scalar CuNumericMapper::tunable_value(TunableID tunable_id)
       }
       return Scalar(eager_volume);
     }
+    case CUNUMERIC_TUNABLE_HAS_NUMAMEM: {
+      // TODO: This assumes that either all OpenMP processors across the machine have a NUMA
+      // memory or none does.
+      Legion::Machine::MemoryQuery query(machine);
+      query.local_address_space();
+      query.only_kind(Legion::Memory::SOCKET_MEM);
+      int32_t has_numamem = query.count() > 0;
+      return Scalar(has_numamem);
+    }
     default: break;
   }
   LEGATE_ABORT;  // unknown tunable value
@@ -95,6 +104,23 @@ std::vector<StoreMapping> CuNumericMapper::store_mappings(
         return std::move(mappings);
       } else
         return {};
+    }
+    case CUNUMERIC_MATMUL:
+    case CUNUMERIC_MATVECMUL: {
+      // TODO: Our actual requirements are a little less strict than this; we require each array or
+      // vector to have a stride of 1 on at least one dimension.
+      std::vector<StoreMapping> mappings;
+      auto& inputs  = task.inputs();
+      auto& outputs = task.outputs();
+      for (auto& input : inputs) {
+        mappings.push_back(StoreMapping::default_mapping(input, options.front()));
+        mappings.back().policy.exact = true;
+      }
+      for (auto& output : outputs) {
+        mappings.push_back(StoreMapping::default_mapping(output, options.front()));
+        mappings.back().policy.exact = true;
+      }
+      return std::move(mappings);
     }
     case CUNUMERIC_POTRF:
     case CUNUMERIC_TRSM:
