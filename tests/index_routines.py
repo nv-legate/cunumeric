@@ -115,8 +115,8 @@ def advanced_indexing():
 
     # test mixed data
     print("advanced indexing test 7")
-    res = z[-1, :]
-    res_num = z_num[-1, :]
+    res = z[:, -1]
+    res_num = z_num[:, -1]
     assert np.array_equal(res, res_num)
 
     # case when multiple number of arays is passed
@@ -149,15 +149,17 @@ def advanced_indexing():
     res_np = z[indx0, indx1, indx2]
     assert np.array_equal(res, res_np)
 
-    # FIXME: Combining Basic and Advanced Indexing Schemes:
-    # print ("advanced indexing test 10")
-    # ind0 = np.array([1, 1])
-    # ind0_num = num.array(ind0)
-    # res = z[ind0, :, -1]
-    # res_num = z_num[ind0_num, :, -1]
+    # Combining Basic and Advanced Indexing Schemes:
+    print("advanced indexing test 10")
+    ind0 = np.array([1, 1])
+    ind0_num = num.array(ind0)
+    res = z[ind0, :, -1]
+    res_num = z_num[ind0_num, :, -1]
+    # res = z[ind0,-1]
     # print(res)
+    # res_num = z_num[ind0,-1]
     # print(res_num)
-    # assert np.array_equal(res, res_num)
+    assert np.array_equal(res, res_num)
 
     # In-Place & Augmented Assignments via Advanced Indexing
     # simple 1d case

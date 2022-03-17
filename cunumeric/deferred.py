@@ -392,10 +392,22 @@ class DeferredArray(NumPyThunk):
                     if k < 0:
                         k += store.shape[dim + shift]
                     store = store.project(dim + shift, k)
+                    store_to_copy = DeferredArray(
+                        self.runtime,
+                        base=store,
+                        dtype=self.dtype,
+                    )
+                    store_copy = self.runtime.create_empty_thunk(
+                        store_to_copy.shape,
+                        self.dtype,
+                        inputs=[store_to_copy],
+                    )
+                    store_copy.copy(store_to_copy, deep=True)
+                    self = store_copy
+                    store = store_copy.base
                     shift -= 1
                 elif isinstance(k, slice):
-                    # FIXME do we need to transform the store here?
-                    store = store.slice(dim + shift, k)
+                    store = store
                 elif isinstance(k, NumPyThunk):
                     if k.dtype == np.bool:
                         # in case of the mixed indises we all nonzero
@@ -443,7 +455,9 @@ class DeferredArray(NumPyThunk):
         if len(tuple_of_arrays) > self.ndim:
             raise TypeError("Advanced indexing dimension mismatch")
 
-        if len(tuple_of_arrays) == self.ndim and self.ndim > 1:
+        if (len(tuple_of_arrays) == self.ndim and self.ndim > 1) or (
+            len(tuple_of_arrays) < self.ndim > 1
+        ):
 
             output_arr = self._zip_indices(tuple_of_arrays)
             return True, store, output_arr
