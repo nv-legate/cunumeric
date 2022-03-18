@@ -313,46 +313,33 @@ class DeferredArray(NumPyThunk):
         return np.broadcast(*arrays).shape
 
     def _zip_indices(self, start_index, arrays):
-
         if not isinstance(arrays, tuple):
-            raise TypeError("zip_indices expect tuple of arrays")
+            raise TypeError("zip_indices expects tuple of arrays")
+        # start_index is the index from witch indices arrays are passed
+        # for example of arr[:, indx, :], start_index =1
         if start_index == -1:
             start_index = 0
+
         arrays = tuple(self.runtime.to_deferred_array(a) for a in arrays)
         # all arrays should have the same shape and type
         data_type = arrays[0].dtype
         if not np.issubdtype(data_type, np.integer):
             raise TypeError("a array should be integer type")
 
+        # find a broadcasted shape for all arrays passed as indices
         shapes = tuple(a.shape for a in arrays)
         if len(arrays) > 1:
             b_shape = self.broadcast_shapes(shapes)
         else:
             b_shape = arrays[0].shape
+
+        # key dim - dimension of indices arrays
         key_dim = len(b_shape)
         out_shape = b_shape
 
-        if len(arrays) == 1:
-            # special case when a single index array is passed and it's dim <
-            # self.ndims
-            out_shape = (
-                tuple(self.shape[i] for i in range(0, start_index))
-                + b_shape
-                + tuple(
-                    self.shape[i] for i in range(start_index + 1, self.ndim)
-                )
-            )
-            array = arrays[0].base
-            start = key_dim - 1
-            new_arrays = tuple()
-            for i in range(0, start_index):
-                array = array.promote(i, self.shape[i])
-            for i in range(start_index + 1, self.ndim):
-                array = array.promote(start + i, self.shape[i])
-            if array.shape != out_shape:
-                raise ValueError("Wrong shape calculation")
-            new_arrays += (array,)
-        elif len(arrays) < self.ndim:
+        if len(arrays) < self.ndim:
+            # the case when # of arrays passed is smaller than dimension of
+            # the input array
             N = len(arrays)
             # broadcast shapes
             new_arrays = tuple()
@@ -375,7 +362,7 @@ class DeferredArray(NumPyThunk):
                 )
             )
             new_arrays = tuple()
-            start = key_dim - 1
+            # promote all index arrays to have the same shape as output
             for a in arrays:
                 for i in range(0, start_index):
                     a = a.promote(i, self.shape[i])
@@ -385,6 +372,10 @@ class DeferredArray(NumPyThunk):
             arrays = new_arrays
 
         else:
+            # the use case when # of arrays passed is equal to the dimension
+            # of the input array
+            if len(arrays) > self.ndim:
+                raise ValueError("wrong number of index arrays passed")
             new_arrays = tuple()
             for a in arrays:
                 if data_type != a.dtype:
@@ -397,6 +388,7 @@ class DeferredArray(NumPyThunk):
                     a = a.base
                 new_arrays = new_arrays + (a,)
         arrays = new_arrays
+
         # create output array which will store Point<N> field where
         # N is number of index arrays
         # shape of the output array should be the same as the shape of each
@@ -490,6 +482,7 @@ class DeferredArray(NumPyThunk):
                     )
         else:
             assert isinstance(key, NumPyThunk)
+            # the use case when index array ndim >1 and input array ndim ==1
             if key.ndim > store.ndim:
                 if store.ndim != 1:
                     raise ValueError("Advance indexing dimention mismatch")
@@ -517,7 +510,7 @@ class DeferredArray(NumPyThunk):
                     task.execute()
                     return False, store, out
                 else:
-                    # IRINA fixme: replace `nonzero` case with the task with
+                    # FIXME: replace `nonzero` case with the task with
                     # output regions when ND output regions are available
                     tuple_of_arrays = key.nonzero()
             elif key.ndim < store.ndim:
@@ -530,7 +523,7 @@ class DeferredArray(NumPyThunk):
             raise TypeError("Advanced indexing dimension mismatch")
 
         if (len(tuple_of_arrays) == self.ndim and self.ndim > 1) or (
-            len(tuple_of_arrays) < self.ndim > 1
+            len(tuple_of_arrays) < self.ndim and self.ndim > 1
         ):
 
             output_arr = self._zip_indices(start_index, tuple_of_arrays)

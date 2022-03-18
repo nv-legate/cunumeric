@@ -56,19 +56,19 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
              const DeferredBuffer<AccessorRO<int64_t, DIM>, 1> index_arrays,
              const Rect<DIM> rect,
              const Pitches<DIM - 1> pitches,
+             int narrays,
              int volume,
-             const int64_t key_dim,
-             const int64_t start_index,
-             int num_arrays)
+             int key_dim,
+             int start_index)
 {
   const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (idx >= volume) return;
   auto p = pitches.unflatten(idx, rect.lo);
   Legion::Point<N> new_point;
   for (size_t i = 0; i < start_index; i++) { new_point[i] = p[i]; }
-  for (size_t i = 0; i < num_arrays; i++) { new_point[start_index + i] = index_arrays[i][p]; }
-  for (size_t i = (start_index + num_arrays); i < N; i++) {
-    int64_t j    = key_dim + i - 1 - (num_arrays);
+  for (size_t i = 0; i < narrays; i++) { new_point[start_index + i] = index_arrays[i][p]; }
+  for (size_t i = (start_index + narrays); i < N; i++) {
+    int64_t j    = key_dim + i - 1 - (narrays - 1);
     new_point[i] = p[j];
   }
   out[p] = new_point;
@@ -90,7 +90,7 @@ struct ZipImplBody<VariantKind::GPU, DIM, N> {
   {
     const size_t volume = rect.volume();
     const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-    if (index_arrays.size() > 1) {
+    if (index_arrays.size() == N) {
       if (dense) {
         DeferredBuffer<const int64_t*, 1> idx_arr(Memory::Kind::Z_COPY_MEM,
                                                   Rect<1>(0, index_arrays.size() - 1));
@@ -106,13 +106,13 @@ struct ZipImplBody<VariantKind::GPU, DIM, N> {
         zip_kernel<DIM, N><<<blocks, THREADS_PER_BLOCK>>>(
           out, idx_arr, rect, pitches, volume, std::make_index_sequence<N>());
       }
-    } else if (index_arrays.size() == 1) {
+    } else if (index_arrays.size() < N) {
       DeferredBuffer<AccessorRO<VAL, DIM>, 1> idx_arr(Memory::Kind::Z_COPY_MEM,
                                                       Rect<1>(0, index_arrays.size() - 1));
       for (uint32_t idx = 0; idx < index_arrays.size(); ++idx) idx_arr[idx] = index_arrays[idx];
       int num_arrays = index_arrays.size();
       zip_kernel<DIM, N><<<blocks, THREADS_PER_BLOCK>>>(
-        out, idx_arr, rect, pitches, num_arrays, key_dim, start_index, num_arrays);
+        out, idx_arr, rect, pitches, num_arrays, volume, key_dim, start_index);
     }
   }
 };

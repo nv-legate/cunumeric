@@ -63,7 +63,10 @@ struct AdvancedIndexingImplBody<VariantKind::OMP, CODE, DIM1, DIM2> {
       offsets[0] = 0;
       for (auto idx = 1; idx < max_threads; ++idx) offsets[idx] = offsets[idx - 1] + sizes[idx - 1];
     }
-    out = create_buffer<VAL>(size, Memory::Kind::SYSTEM_MEM);
+
+    Memory::Kind kind =
+      CuNumeric::has_numamem ? Memory::Kind::SOCKET_MEM : Memory::Kind::SYSTEM_MEM;
+    out = create_buffer<VAL>(size, kind);
 
 #pragma omp parallel
     {

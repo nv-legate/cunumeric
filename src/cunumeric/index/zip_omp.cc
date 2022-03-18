@@ -37,7 +37,7 @@ struct ZipImplBody<VariantKind::OMP, DIM, N> {
                   std::index_sequence<Is...>) const
   {
     const size_t volume = rect.volume();
-    if (index_arrays.size() > 1) {
+    if (index_arrays.size() == N) {
       if (dense) {
         auto outptr = out.ptr(rect);
 #pragma omp parallel for schedule(static)
@@ -51,12 +51,11 @@ struct ZipImplBody<VariantKind::OMP, DIM, N> {
           out[p] = Legion::Point<N>(index_arrays[Is][p]...);
         }
       }  // else
-    } else if (index_arrays.size() == 1) {
+    } else if (index_arrays.size() < N) {
 #pragma omp parallel for schedule(static)
       for (size_t idx = 0; idx < volume; ++idx) {
         auto p = pitches.unflatten(idx, rect.lo);
         Legion::Point<N> new_point;
-        std::cout << "IRINA DEBUG 2" << std::endl;
         for (size_t i = 0; i < start_index; i++) { new_point[i] = p[i]; }
         for (size_t i = 0; i < index_arrays.size(); i++) {
           new_point[start_index + i] = index_arrays[i][p];
@@ -66,7 +65,6 @@ struct ZipImplBody<VariantKind::OMP, DIM, N> {
           new_point[i] = p[j];
         }
         out[p] = new_point;
-        std::cout << "IRINA DEBUG 3 " << out[p] << std::endl;
       }
     }
   }
