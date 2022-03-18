@@ -43,25 +43,35 @@ struct multiply : public thrust::unary_function<int, int> {
 };
 
 template <class VAL>
-void cub_local_sort_inplace(
-  VAL* inptr, int64_t* argptr, const size_t volume, const size_t sort_dim_size, cudaStream_t stream)
+void cub_local_sort(const VAL* values_in,
+                    VAL* values_out,
+                    const int64_t* indices_in,
+                    int64_t* indices_out,
+                    const size_t volume,
+                    const size_t sort_dim_size,
+                    cudaStream_t stream)
 {
-  // make a copy of input --> we want inptr to return sorted values
-  auto keys_in = create_buffer<VAL>(volume, Legion::Memory::Kind::GPU_FB_MEM);
-  CHECK_CUDA(
-    cudaMemcpyAsync(keys_in.ptr(0), inptr, sizeof(VAL) * volume, cudaMemcpyDeviceToDevice, stream));
+  Buffer<VAL> keys_in;
+  const VAL* values_in_cub = values_in;
+  if (values_in == values_out) {
+    keys_in       = create_buffer<VAL>(volume, Legion::Memory::Kind::GPU_FB_MEM);
+    values_in_cub = keys_in.ptr(0);
+    CHECK_CUDA(cudaMemcpyAsync(
+      keys_in.ptr(0), values_out, sizeof(VAL) * volume, cudaMemcpyDeviceToDevice, stream));
+  }
+
   size_t temp_storage_bytes = 0;
-  if (argptr == nullptr) {
+  if (indices_out == nullptr) {
     if (volume == sort_dim_size) {
       // sort (initial call to compute buffer size)
       cub::DeviceRadixSort::SortKeys(
-        nullptr, temp_storage_bytes, keys_in.ptr(0), inptr, volume, 0, sizeof(VAL) * 8, stream);
+        nullptr, temp_storage_bytes, values_in_cub, values_out, volume, 0, sizeof(VAL) * 8, stream);
       auto temp_storage =
         create_buffer<unsigned char>(temp_storage_bytes, Legion::Memory::Kind::GPU_FB_MEM);
       cub::DeviceRadixSort::SortKeys(temp_storage.ptr(0),
                                      temp_storage_bytes,
-                                     keys_in.ptr(0),
-                                     inptr,
+                                     values_in_cub,
+                                     values_out,
                                      volume,
                                      0,
                                      sizeof(VAL) * 8,
@@ -77,8 +87,8 @@ void cub_local_sort_inplace(
 
       cub::DeviceSegmentedRadixSort::SortKeys(nullptr,
                                               temp_storage_bytes,
-                                              keys_in.ptr(0),
-                                              inptr,
+                                              values_in_cub,
+                                              values_out,
                                               volume,
                                               volume / sort_dim_size,
                                               off_start_pos_it,
@@ -91,8 +101,8 @@ void cub_local_sort_inplace(
 
       cub::DeviceSegmentedRadixSort::SortKeys(temp_storage.ptr(0),
                                               temp_storage_bytes,
-                                              keys_in.ptr(0),
-                                              inptr,
+                                              values_in_cub,
+                                              values_out,
                                               volume,
                                               volume / sort_dim_size,
                                               off_start_pos_it,
@@ -103,18 +113,23 @@ void cub_local_sort_inplace(
       temp_storage.destroy();
     }
   } else {
-    auto idx_in = create_buffer<int64_t>(volume, Legion::Memory::Kind::GPU_FB_MEM);
-    CHECK_CUDA(cudaMemcpyAsync(
-      idx_in.ptr(0), argptr, sizeof(int64_t) * volume, cudaMemcpyDeviceToDevice, stream));
+    Buffer<int64_t> idx_in;
+    const int64_t* indices_in_cub = indices_in;
+    if (indices_in == indices_out) {
+      auto idx_in    = create_buffer<int64_t>(volume, Legion::Memory::Kind::GPU_FB_MEM);
+      indices_in_cub = idx_in.ptr(0);
+      CHECK_CUDA(cudaMemcpyAsync(
+        idx_in.ptr(0), indices_out, sizeof(int64_t) * volume, cudaMemcpyDeviceToDevice, stream));
+    }
 
     if (volume == sort_dim_size) {
       // argsort (initial call to compute buffer size)
       cub::DeviceRadixSort::SortPairs(nullptr,
                                       temp_storage_bytes,
-                                      keys_in.ptr(0),
-                                      inptr,
-                                      idx_in.ptr(0),
-                                      argptr,
+                                      values_in_cub,
+                                      values_out,
+                                      indices_in_cub,
+                                      indices_out,
                                       volume,
                                       0,
                                       sizeof(VAL) * 8,
@@ -125,10 +140,10 @@ void cub_local_sort_inplace(
 
       cub::DeviceRadixSort::SortPairs(temp_storage.ptr(0),
                                       temp_storage_bytes,
-                                      keys_in.ptr(0),
-                                      inptr,
-                                      idx_in.ptr(0),
-                                      argptr,
+                                      values_in_cub,
+                                      values_out,
+                                      indices_in_cub,
+                                      indices_out,
                                       volume,
                                       0,
                                       sizeof(VAL) * 8,
@@ -144,10 +159,10 @@ void cub_local_sort_inplace(
 
       cub::DeviceSegmentedRadixSort::SortPairs(nullptr,
                                                temp_storage_bytes,
-                                               keys_in.ptr(0),
-                                               inptr,
-                                               idx_in.ptr(0),
-                                               argptr,
+                                               values_in_cub,
+                                               values_out,
+                                               indices_in_cub,
+                                               indices_out,
                                                volume,
                                                volume / sort_dim_size,
                                                off_start_pos_it,
@@ -161,10 +176,10 @@ void cub_local_sort_inplace(
 
       cub::DeviceSegmentedRadixSort::SortPairs(temp_storage.ptr(0),
                                                temp_storage_bytes,
-                                               keys_in.ptr(0),
-                                               inptr,
-                                               idx_in.ptr(0),
-                                               argptr,
+                                               values_in_cub,
+                                               values_out,
+                                               indices_in_cub,
+                                               indices_out,
                                                volume,
                                                volume / sort_dim_size,
                                                off_start_pos_it,
@@ -174,22 +189,36 @@ void cub_local_sort_inplace(
                                                stream);
       temp_storage.destroy();
     }
-    idx_in.destroy();
+    if (indices_in == indices_out) idx_in.destroy();
   }
-  keys_in.destroy();
+
+  if (values_in == values_out) keys_in.destroy();
 }
 
 template <class VAL>
-void thrust_local_sort_inplace(VAL* inptr,
-                               int64_t* argptr,
-                               const size_t volume,
-                               const size_t sort_dim_size,
-                               const bool stable_argsort,
-                               cudaStream_t stream)
+void thrust_local_sort(const VAL* values_in,
+                       VAL* values_out,
+                       const int64_t* indices_in,
+                       int64_t* indices_out,
+                       const size_t volume,
+                       const size_t sort_dim_size,
+                       const bool stable_argsort,
+                       cudaStream_t stream)
 {
-  if (argptr == nullptr) {
+  if (values_in != values_out) {
+    // not in-place --> need a copy
+    CHECK_CUDA(cudaMemcpyAsync(
+      values_out, values_in, sizeof(VAL) * volume, cudaMemcpyDeviceToDevice, stream));
+  }
+  if (indices_in != indices_out) {
+    // not in-place --> need a copy
+    CHECK_CUDA(cudaMemcpyAsync(
+      indices_out, values_in, sizeof(int64_t) * volume, cudaMemcpyDeviceToDevice, stream));
+  }
+
+  if (indices_out == nullptr) {
     if (volume == sort_dim_size) {
-      thrust::sort(thrust::cuda::par.on(stream), inptr, inptr + volume);
+      thrust::sort(thrust::cuda::par.on(stream), values_out, values_out + volume);
     } else {
       auto sort_id = create_buffer<uint64_t>(volume, Legion::Memory::Kind::GPU_FB_MEM);
       // init combined keys
@@ -199,7 +228,7 @@ void thrust_local_sort_inplace(VAL* inptr,
                         thrust::make_constant_iterator<uint64_t>(sort_dim_size),
                         sort_id.ptr(0),
                         thrust::divides<uint64_t>());
-      auto combined = thrust::make_zip_iterator(thrust::make_tuple(sort_id.ptr(0), inptr));
+      auto combined = thrust::make_zip_iterator(thrust::make_tuple(sort_id.ptr(0), values_out));
 
       thrust::sort(thrust::cuda::par.on(stream),
                    combined,
@@ -211,9 +240,11 @@ void thrust_local_sort_inplace(VAL* inptr,
   } else {
     if (volume == sort_dim_size) {
       if (stable_argsort) {
-        thrust::stable_sort_by_key(thrust::cuda::par.on(stream), inptr, inptr + volume, argptr);
+        thrust::stable_sort_by_key(
+          thrust::cuda::par.on(stream), values_out, values_out + volume, indices_out);
       } else {
-        thrust::sort_by_key(thrust::cuda::par.on(stream), inptr, inptr + volume, argptr);
+        thrust::sort_by_key(
+          thrust::cuda::par.on(stream), values_out, values_out + volume, indices_out);
       }
     } else {
       auto sort_id = create_buffer<uint64_t>(volume, Legion::Memory::Kind::GPU_FB_MEM);
@@ -224,19 +255,19 @@ void thrust_local_sort_inplace(VAL* inptr,
                         thrust::make_constant_iterator<uint64_t>(sort_dim_size),
                         sort_id.ptr(0),
                         thrust::divides<uint64_t>());
-      auto combined = thrust::make_zip_iterator(thrust::make_tuple(sort_id.ptr(0), inptr));
+      auto combined = thrust::make_zip_iterator(thrust::make_tuple(sort_id.ptr(0), values_out));
 
       if (stable_argsort) {
         thrust::stable_sort_by_key(thrust::cuda::par.on(stream),
                                    combined,
                                    combined + volume,
-                                   argptr,
+                                   indices_out,
                                    thrust::less<thrust::tuple<size_t, VAL>>());
       } else {
         thrust::sort_by_key(thrust::cuda::par.on(stream),
                             combined,
                             combined + volume,
-                            argptr,
+                            indices_out,
                             thrust::less<thrust::tuple<size_t, VAL>>());
       }
 
@@ -256,32 +287,45 @@ struct support_cub<LegateTypeCode::COMPLEX128_LT> : std::false_type {
 };
 
 template <LegateTypeCode CODE, std::enable_if_t<support_cub<CODE>::value>* = nullptr>
-void local_sort_inplace(legate_type_of<CODE>* inptr,
-                        int64_t* argptr,
-                        const size_t volume,
-                        const size_t sort_dim_size,
-                        const bool stable_argsort,  // cub sort is always stable
-                        cudaStream_t stream)
+void local_sort(const legate_type_of<CODE>* values_in,
+                legate_type_of<CODE>* values_out,
+                const int64_t* indices_in,
+                int64_t* indices_out,
+                const size_t volume,
+                const size_t sort_dim_size,
+                const bool stable_argsort,  // cub sort is always stable
+                cudaStream_t stream)
 {
   using VAL = legate_type_of<CODE>;
   // fallback to thrust approach as segmented radix sort is not suited for small segments
   if (volume == sort_dim_size || sort_dim_size > 300) {
-    cub_local_sort_inplace<VAL>(inptr, argptr, volume, sort_dim_size, stream);
+    cub_local_sort<VAL>(
+      values_in, values_out, indices_in, indices_out, volume, sort_dim_size, stream);
   } else {
-    thrust_local_sort_inplace<VAL>(inptr, argptr, volume, sort_dim_size, stable_argsort, stream);
+    thrust_local_sort<VAL>(values_in,
+                           values_out,
+                           indices_in,
+                           indices_out,
+                           volume,
+                           sort_dim_size,
+                           stable_argsort,
+                           stream);
   }
 }
 
 template <LegateTypeCode CODE, std::enable_if_t<!support_cub<CODE>::value>* = nullptr>
-void local_sort_inplace(legate_type_of<CODE>* inptr,
-                        int64_t* argptr,
-                        const size_t volume,
-                        const size_t sort_dim_size,
-                        const bool stable_argsort,
-                        cudaStream_t stream)
+void local_sort(const legate_type_of<CODE>* values_in,
+                legate_type_of<CODE>* values_out,
+                const int64_t* indices_in,
+                int64_t* indices_out,
+                const size_t volume,
+                const size_t sort_dim_size,
+                const bool stable_argsort,
+                cudaStream_t stream)
 {
   using VAL = legate_type_of<CODE>;
-  thrust_local_sort_inplace<VAL>(inptr, argptr, volume, sort_dim_size, stable_argsort, stream);
+  thrust_local_sort<VAL>(
+    values_in, values_out, indices_in, indices_out, volume, sort_dim_size, stable_argsort, stream);
 }
 
 // auto align to multiples of 16 bytes
@@ -709,7 +753,14 @@ struct SortImplBody<VariantKind::GPU, CODE, DIM> {
         values_ptr, input.ptr(rect.lo), sizeof(VAL) * volume, cudaMemcpyDeviceToDevice, stream));
 
       // sort data (locally)
-      local_sort_inplace<CODE>(values_ptr, indices_ptr, volume, sort_dim_size, stable, stream);
+      local_sort<CODE>(input.ptr(rect.lo),
+                       values_ptr,
+                       indices_ptr,
+                       indices_ptr,
+                       volume,
+                       sort_dim_size,
+                       stable,
+                       stream);
     }
 
     // this is linked to the decision in sorting.py on when to use an 'unbounded' output array.
