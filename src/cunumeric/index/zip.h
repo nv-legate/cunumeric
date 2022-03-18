@@ -25,6 +25,7 @@ struct ZipArgs {
   const std::vector<Array>& inputs;
   const int64_t N;
   const int64_t key_dim;
+  const int64_t start_index;
 };
 
 class ZipTask : public CuNumericTask<ZipTask> {

@@ -309,9 +309,12 @@ class DeferredArray(NumPyThunk):
         arrays = [np.empty(x, dtype=[]) for x in shapes]
         return np.broadcast(*arrays).shape
 
-    def _zip_indices(self, arrays):
+    def _zip_indices(self, start_index, arrays):
+
         if not isinstance(arrays, tuple):
             raise TypeError("zip_indices expect tuple of arrays")
+        if start_index == -1:
+            start_index = 0
         arrays = tuple(self.runtime.to_deferred_array(a) for a in arrays)
         # all arrays should have the same shape and type
         data_type = arrays[0].dtype
@@ -324,20 +327,27 @@ class DeferredArray(NumPyThunk):
         else:
             b_shape = arrays[0].shape
         key_dim = len(b_shape)
-        print("IRINA DEBUG key_dim", key_dim, b_shape)
         out_shape = b_shape
 
         if len(arrays) == 1:
             # special case when a single index array is passed and it's dim <
             # self.ndims
-            out_shape = b_shape + tuple(
-                self.shape[i] for i in range(1, self.ndim)
+            out_shape = (
+                tuple(self.shape[i] for i in range(0, start_index))
+                + b_shape
+                + tuple(
+                    self.shape[i] for i in range(start_index + 1, self.ndim)
+                )
             )
             array = arrays[0].base
             start = key_dim - 1
             new_arrays = tuple()
-            for i in range(1, self.ndim):
+            for i in range(0, start_index):
+                array = array.promote(i, self.shape[i])
+            for i in range(start_index + 1, self.ndim):
                 array = array.promote(start + i, self.shape[i])
+            if array.shape != out_shape:
+                raise ValueError("Wrong shape calculation")
             new_arrays += (array,)
         elif len(arrays) < self.ndim:
             N = len(arrays)
@@ -354,16 +364,21 @@ class DeferredArray(NumPyThunk):
                     new_arrays += (a.base,)
             arrays = new_arrays
             # output shape
-            out_shape = b_shape + tuple(
-                self.shape[i] for i in range(N, self.ndim)
+            out_shape = (
+                tuple(self.shape[i] for i in range(0, start_index))
+                + b_shape
+                + tuple(
+                    self.shape[i] for i in range(start_index + N, self.ndim)
+                )
             )
-            print("IRINA DEBUG out_shape = ", out_shape)
             new_arrays = tuple()
             start = key_dim - 1
             for a in arrays:
-                for i in range(N, self.ndim):
+                for i in range(0, start_index):
+                    a = a.promote(i, self.shape[i])
+                for i in range(start_index + N, self.ndim):
                     a = a.promote(key_dim + i - N, self.shape[i])
-                    new_arrays += (a,)
+                new_arrays += (a,)
             arrays = new_arrays
 
         else:
@@ -405,13 +420,18 @@ class DeferredArray(NumPyThunk):
         if len(arrays) < self.ndim:
             task.add_scalar_arg(self.ndim, ty.int64)  # N of points in Point<N>
             task.add_scalar_arg(key_dim, ty.int64)  # key_dim
+            task.add_scalar_arg(start_index, ty.int64)  # start_index
             for a in arrays:
                 task.add_input(a)
                 task.add_alignment(a, output_arr.base)
-                task.add_broadcast(a, axes=range(1, len(out_shape)))
+                task.add_broadcast(a, axes=tuple(range(1, len(out_shape))))
+                task.add_broadcast(
+                    output_arr.base, axes=tuple(range(1, len(out_shape)))
+                )
         else:
             task.add_scalar_arg(self.ndim, ty.int64)
             task.add_scalar_arg(self.ndim, ty.int64)
+            task.add_scalar_arg(start_index, ty.int64)
             for index_arr in arrays:
                 task.add_input(index_arr)
                 task.add_alignment(output_arr.base, index_arr)
@@ -423,6 +443,7 @@ class DeferredArray(NumPyThunk):
         # Convert everything into deferred arrays of int64
         store = self.base
         shift = 0
+        start_index = -1
         if isinstance(key, tuple):
             tuple_of_arrays = ()
             # for k in key:
@@ -448,6 +469,10 @@ class DeferredArray(NumPyThunk):
                 elif isinstance(k, slice):
                     store = store
                 elif isinstance(k, NumPyThunk):
+                    # the very first time we get cunumeric array, record
+                    # start_index
+                    if start_index == -1:
+                        start_index = dim
                     if k.dtype == np.bool:
                         # in case of the mixed indises we all nonzero
                         # for the bool array
@@ -480,13 +505,20 @@ class DeferredArray(NumPyThunk):
                     task.add_input(self.base)
                     task.add_input(key.base)
                     task.add_alignment(self.base, key.base)
+                    task.add_broadcast(
+                        self.base, axes=tuple(range(1, len(self.shape)))
+                    )
+                    task.add_broadcast(
+                        key.base, axes=tuple(range(1, len(key.shape)))
+                    )
                     task.execute()
                     return False, store, out
-                # IRINA fixme: replace `nonzero` case with the task with
-                # output regions when ND output regions are available
-                tuple_of_arrays = key.nonzero()
+                else:
+                    # IRINA fixme: replace `nonzero` case with the task with
+                    # output regions when ND output regions are available
+                    tuple_of_arrays = key.nonzero()
             elif key.ndim < store.ndim:
-                output_arr = self._zip_indices((key,))
+                output_arr = self._zip_indices(start_index, (key,))
                 return True, store, output_arr
             else:
                 tuple_of_arrays = (self.runtime.to_deferred_array(key),)
@@ -498,7 +530,7 @@ class DeferredArray(NumPyThunk):
             len(tuple_of_arrays) < self.ndim > 1
         ):
 
-            output_arr = self._zip_indices(tuple_of_arrays)
+            output_arr = self._zip_indices(start_index, tuple_of_arrays)
             return True, store, output_arr
         elif len(tuple_of_arrays) == 1 and self.ndim == 1:
             return True, store, tuple_of_arrays[0]

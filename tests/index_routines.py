@@ -57,12 +57,22 @@ def advanced_indexing():
     index_2d_num = num.array(index_2d)
     assert np.array_equal(y[index_2d], y_num[index_2d_num])
 
-    # mismatch dimesion case integers:
+    # mismatch dimesion case:
     print("advanced indexing test 4")
     indx = np.array([1, 1])
     indx_num = num.array(indx)
     res = z[indx]
     res_num = z_num[indx_num]
+    print(res)
+    print(res_num)
+    assert np.array_equal(res, res_num)
+
+    res = z[:, :, indx]
+    res_num = z_num[:, :, indx_num]
+    assert np.array_equal(res, res_num)
+
+    res = z[:, indx, :]
+    res_num = z_num[:, indx_num, :]
     assert np.array_equal(res, res_num)
 
     # 2d:
@@ -72,13 +82,21 @@ def advanced_indexing():
     res_num = z_num[indx_num]
     assert np.array_equal(res, res_num)
 
-    # 2 arrays passed do 3d array
+    res = z[:, indx]
+    res_num = z_num[:, indx_num]
+    assert np.array_equal(res, res_num)
+
+    # 2 arrays passed to 3d array
     indx0 = np.array([1, 1])
     indx1 = np.array([1, 0])
     indx0_num = num.array(indx0)
     indx1_num = num.array(indx1)
     res = z[indx0, indx1]
     res_num = z_num[indx0_num, indx1_num]
+    assert np.array_equal(res, res_num)
+
+    res = z[:, indx0, indx1]
+    res_num = z_num[:, indx0_num, indx1_num]
     assert np.array_equal(res, res_num)
 
     # 2 arrays with broadcasting
@@ -91,18 +109,11 @@ def advanced_indexing():
     assert np.array_equal(res, res_num)
 
     # mismatch dimesion case bool:
-    # print ("advance indexing test 4")
-    # indx_bool = np.array([True, False])
-    # indx_bool_num = num.array(indx_bool)
-    # res = z[indx_bool]
-    # print("IRINA DEBUG")
-    # assert np.array_equal(indx_bool.nonzero(), indx_bool_num.nonzero())
-    # print("bool array as indx np:")
-    # print(res)
-    # print("cunumeric:")
-    # res_num = z_num[indx_bool_num]
-    # print(res_num)
-    # assert np.array_equal(res, res_num)
+    indx_bool = np.array([True, False])
+    indx_bool_num = num.array(indx_bool)
+    res = z[indx_bool]
+    res_num = z_num[indx_bool_num]
+    assert np.array_equal(res, res_num)
 
     # test for bool array of the same dimension
     print("advanced indexing test 5")
@@ -147,9 +158,6 @@ def advanced_indexing():
     indx1_num = num.array(indx1)
     indx2_num = num.array(indx2)
 
-    # indx0_num._thunk._zip_indices((indx0_num._thunk,
-    #  indx1_num._thunk, indx2_num._thunk,))
-
     res = z_num[indx0_num, indx1_num, indx2_num]
     res_np = z[indx0, indx1, indx2]
     assert np.array_equal(res, res_np)
@@ -173,10 +181,6 @@ def advanced_indexing():
     ind0_num = num.array(ind0)
     res = z[ind0, :, -1]
     res_num = z_num[ind0_num, :, -1]
-    # res = z[ind0,-1]
-    # print(res)
-    # res_num = z_num[ind0,-1]
-    # print(res_num)
     assert np.array_equal(res, res_num)
 
     # In-Place & Augmented Assignments via Advanced Indexing
