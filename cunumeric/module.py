@@ -1928,6 +1928,10 @@ def repeat(a, repeats, axis=None):
         Output array which has the same shape as a, except along the
         given axis.
 
+    Notes
+    -----
+    Currently, repeat operations supports only 1D arrays
+
     See Also
     --------
     numpy.repeat
@@ -1961,7 +1965,7 @@ def repeat(a, repeats, axis=None):
 
     # axes should be integer type
     if not isinstance(axis, int):
-        raise ValueError("Axis should be integer type")
+        raise TypeError("Axis should be integer type")
     axis = np.int32(axis)
 
     if axis >= array.ndim:
@@ -1970,6 +1974,10 @@ def repeat(a, repeats, axis=None):
     # If repeats is on a zero sized axis, then return the array.
     if array.shape[axis] == 0:
         return array.copy()
+
+    if np.ndim(repeats) == 1:
+        if repeats.shape[0] == 1 and repeats.shape[0] != array.shape[axis]:
+            repeats = repeats[0]
 
     # repeats is a scalar.
     if np.ndim(repeats) == 0:
@@ -1994,7 +2002,7 @@ def repeat(a, repeats, axis=None):
     # repeats is an array
     else:
         # repeats should be integer type
-        if not isinstance(repeats, int):
+        if repeats.dtype != np.int64:
             runtime.warn(
                 "converting repeats to an integer type",
                 category=RuntimeWarning,

@@ -1237,7 +1237,6 @@ class DeferredArray(NumPyThunk):
         task.execute()
 
     # Repeat elements of an array.
-    @auto_convert([1])
     def repeat(self, repeats, axis, scalar_repeats):
         # FIXME current implementation supports only 1D, waiting on
         # issue 242 to be addressed to support ND arrays

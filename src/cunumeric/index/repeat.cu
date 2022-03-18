@@ -118,8 +118,7 @@ struct RepeatImplBody<VariantKind::GPU, CODE, DIM> {
   {
     const size_t volume = rect.volume();
 
-    cudaStream_t stream;
-    cudaStreamCreate(&stream);
+    auto stream = get_cached_stream();
 
     // compute offsets
     Buffer<int64_t> offsets = create_buffer<int64_t>(volume, Memory::Kind::GPU_FB_MEM);
@@ -127,7 +126,7 @@ struct RepeatImplBody<VariantKind::GPU, CODE, DIM> {
     const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
     size_t shmem_size   = THREADS_PER_BLOCK / 32 * sizeof(int64_t);
 
-    if (blocks >= MAX_REDUCTION_CTAS) {
+    if (blocks > MAX_REDUCTION_CTAS) {
       const size_t iters = (blocks + MAX_REDUCTION_CTAS - 1) / MAX_REDUCTION_CTAS;
       count_repeat_kernel<<<MAX_REDUCTION_CTAS, THREADS_PER_BLOCK, shmem_size, stream>>>(
         volume, size, repeats, pitches, rect.lo, iters, offsets);

@@ -37,8 +37,7 @@ struct RepeatImplBody<VariantKind::OMP, CODE, DIM> {
     const size_t volume = rect.volume();
     size_t size         = volume * repeats;
 
-    out             = create_buffer<VAL>(size, Memory::Kind::SYSTEM_MEM);
-    int64_t out_idx = 0;
+    out = create_buffer<VAL>(size, Memory::Kind::SYSTEM_MEM);
 #pragma omp parallel for schedule(static)
     for (size_t idx = 0; idx < size; ++idx) {
       size_t p_idx = idx / repeats;
@@ -57,12 +56,12 @@ struct RepeatImplBody<VariantKind::OMP, CODE, DIM> {
   {
     const size_t volume = rect.volume();
     int64_t size        = 0;
-    int64_t* offsets    = (int64_t*)malloc(volume * sizeof(int64_t));
+    Memory::Kind kind =
+      CuNumeric::has_numamem ? Memory::Kind::SOCKET_MEM : Memory::Kind::SYSTEM_MEM;
+    DeferredBuffer<int64_t, 1> offsets(kind, Rect<1>(0, volume - 1));
 
     {
-      int64_t* sizes = (int64_t*)malloc(volume * sizeof(int64_t));
-#pragma omp parallel for schedule(static)
-      for (auto idx = 0; idx < volume; ++idx) sizes[idx] = 0;
+      DeferredBuffer<int64_t, 1> sizes(kind, Rect<1>(0, volume - 1));
 #pragma omp parallel for schedule(static)
       for (size_t idx = 0; idx < volume; ++idx) {
         auto point = pitches.unflatten(idx, rect.lo);
@@ -75,7 +74,7 @@ struct RepeatImplBody<VariantKind::OMP, CODE, DIM> {
       for (auto idx = 1; idx < volume; ++idx) offsets[idx] = offsets[idx - 1] + sizes[idx - 1];
     }  // end section
 
-    out = create_buffer<VAL>(size, Memory::Kind::SYSTEM_MEM);
+    out = create_buffer<VAL>(size, kind);
 
 #pragma omp parallel for schedule(static)
     for (size_t idx = 0; idx < volume; ++idx) {
