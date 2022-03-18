@@ -81,6 +81,48 @@ struct MatVecMulImplBody<VariantKind::CPU, LegateTypeCode::HALF_LT> {
   }
 };
 
+template <>
+struct MatVecMulImplBody<VariantKind::CPU, LegateTypeCode::COMPLEX64_LT> {
+  void operator()(size_t m,
+                  size_t n,
+                  complex<float>* lhs_,
+                  const complex<float>* mat_,
+                  const complex<float>* vec_,
+                  size_t mat_stride,
+                  bool transpose_mat)
+  {
+    __complex__ float* lhs       = reinterpret_cast<__complex__ float*>(lhs_);
+    const __complex__ float* mat = reinterpret_cast<const __complex__ float*>(mat_);
+    const __complex__ float* vec = reinterpret_cast<const __complex__ float*>(vec_);
+    __complex__ float alpha      = 1.0;
+    __complex__ float beta       = 0.0;
+
+    auto trans = transpose_mat ? CblasTrans : CblasNoTrans;
+    cblas_cgemv(CblasRowMajor, trans, m, n, &alpha, mat, mat_stride, vec, 1, &beta, lhs, 1);
+  }
+};
+
+template <>
+struct MatVecMulImplBody<VariantKind::CPU, LegateTypeCode::COMPLEX128_LT> {
+  void operator()(size_t m,
+                  size_t n,
+                  complex<double>* lhs_,
+                  const complex<double>* mat_,
+                  const complex<double>* vec_,
+                  size_t mat_stride,
+                  bool transpose_mat)
+  {
+    __complex__ double* lhs       = reinterpret_cast<__complex__ double*>(lhs_);
+    const __complex__ double* mat = reinterpret_cast<const __complex__ double*>(mat_);
+    const __complex__ double* vec = reinterpret_cast<const __complex__ double*>(vec_);
+    __complex__ double alpha      = 1.0;
+    __complex__ double beta       = 0.0;
+
+    auto trans = transpose_mat ? CblasTrans : CblasNoTrans;
+    cblas_zgemv(CblasRowMajor, trans, m, n, &alpha, mat, mat_stride, vec, 1, &beta, lhs, 1);
+  }
+};
+
 /*static*/ void MatVecMulTask::cpu_variant(TaskContext& context)
 {
 #ifdef LEGATE_USE_OPENMP

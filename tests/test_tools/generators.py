@@ -36,7 +36,7 @@ def scalar_gen(lib, val):
         yield lib.full(ndim * (5,), val)[ndim * (slice(1, 2),)]
 
 
-def mk_0to1_array(lib, shape):
+def mk_0to1_array(lib, shape, dtype=np.float64):
     """
     Constructs an array of the required shape, containing (in C order)
     sequential real values uniformly spaced in the range (0,1].
@@ -45,8 +45,8 @@ def mk_0to1_array(lib, shape):
     if size == 1:
         # Avoid zeros, since those are more likely to cause arithmetic issues
         # or produce degenerate outputs.
-        return lib.full(shape, 0.5)
-    return mk_seq_array(lib, shape) / size
+        return lib.full(shape, 0.5, dtype=dtype)
+    return (mk_seq_array(lib, shape) / size).astype(dtype)
 
 
 def mk_seq_array(lib, shape):
@@ -63,36 +63,21 @@ def mk_seq_array(lib, shape):
     return arr
 
 
-def broadcasts_to(lib, tgt_shape, mk_array=mk_0to1_array):
+def broadcasts_to(tgt_shape):
     """
-    Generates a collection of arrays that will broadcast to the given shape.
+    Generates all shapes that broadcast to `tgt_shape`.
     """
-    past_first = False
     for mask in product([True, False], repeat=len(tgt_shape)):
-        if not past_first:
-            past_first = True
-            continue
-        src_shape = tuple(
-            d if keep else 1 for (d, keep) in zip(tgt_shape, mask)
-        )
-        yield mk_array(lib, src_shape)
+        yield tuple(d if keep else 1 for (d, keep) in zip(tgt_shape, mask))
 
 
-def permutes_to(lib, tgt_shape, mk_array=mk_0to1_array):
+def permutes_to(tgt_shape):
     """
-    Generates all the possible ways that an array can be transposed to meet a
-    given shape.
-
-    All arrays returned will have the same shape, `tgt_shape`, but are the
-    result of tranposing a base array of a different shape.
+    Generates all the possible `(axes, src_shape)` pairs for which
+    `x.transpose(axes).shape == tgt_shape`, where `x.shape == src_shape`.
     """
-    past_first = False
     for axes in permutations(range(len(tgt_shape))):
-        if not past_first:
-            past_first = True
-            continue
         src_shape = [-1] * len(tgt_shape)
         for (i, j) in enumerate(axes):
             src_shape[j] = tgt_shape[i]
-        src_shape = tuple(src_shape)
-        yield mk_array(lib, src_shape).transpose(axes)
+        yield (axes, tuple(src_shape))

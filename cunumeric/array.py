@@ -25,6 +25,7 @@ from legate.core import Array
 
 from .config import BinaryOpCode, UnaryOpCode, UnaryRedCode
 from .runtime import runtime
+from .utils import dot_modes
 
 
 def add_boilerplate(*array_params: str, mutates_self: bool = False):
@@ -2122,6 +2123,7 @@ class ndarray(object):
                 raise ValueError("Either axis1/axis2 or axes must be supplied")
         return self._diag_helper(offset=offset, axes=axes, extract=extract)
 
+    @add_boilerplate("rhs")
     def dot(self, rhs, out=None):
         """a.dot(rhs, out=None)
 
@@ -2138,109 +2140,24 @@ class ndarray(object):
         Multiple GPUs, Multiple CPUs
 
         """
-        rhs_array = convert_to_cunumeric_ndarray(rhs)
-        if self.size == 1 or rhs_array.size == 1:
+        from .module import _contract  # work around circular import
+
+        if self.ndim == 0 or rhs.ndim == 0:
             return self._perform_binary_op(
                 BinaryOpCode.MULTIPLY,
                 self,
-                rhs_array,
+                rhs,
+                out=out,
             )
-        out_dtype = self.find_common_type(self, rhs_array)
-        # Check for type conversion on the way in
-        self_array = self
-        if self_array.dtype != out_dtype:
-            self_array = ndarray(
-                shape=self.shape,
-                dtype=out_dtype,
-                inputs=(self,),
-            )
-            self_array._thunk.convert(self._thunk)
-        if rhs_array.dtype != out_dtype:
-            temp_array = ndarray(
-                shape=rhs_array.shape,
-                dtype=out_dtype,
-                inputs=(rhs_array,),
-            )
-            temp_array._thunk.convert(rhs_array._thunk)
-            rhs_array = temp_array
-        # Create output array
-        if out is not None:
-            out = convert_to_cunumeric_ndarray(out, share=True)
-            if self.ndim == 1 and rhs_array.ndim == 1:
-                if self.shape[0] != rhs.shape[0]:
-                    raise ValueError("Dimension mismatch for dot")
-                if out.ndim != 0:
-                    raise ValueError("Dimension mismatch for dot")
-            elif self.ndim == 2 and rhs_array.ndim == 2:
-                # Matrix multiply
-                if self.shape[1] != rhs_array.shape[0]:
-                    raise ValueError("Dimension mismatch for dot")
-                if out.shape != (self.shape[0], rhs_array.shape[1]):
-                    raise ValueError("Dimension mismatch for dot")
-            elif rhs_array.ndim == 1:
-                if self.shape[-1] != rhs_array.shape[0]:
-                    raise ValueError("Dimension mismatch for dot")
-                if out.shape != self.shape[:-1]:
-                    raise ValueError("Dimension mismatch for dot")
-            else:
-                if self.shape[-1] != rhs_array.shape[-2]:
-                    raise ValueError("Dimension mismatch for dot")
-                if out.shape != (
-                    self.shape[:-1]
-                    + rhs_array.shape[:-2]
-                    + (rhs_array.shape[-1],)
-                ):
-                    raise ValueError("Dimension mismatch for dot")
-        else:
-            if self.ndim == 1 and rhs_array.ndim == 1:
-                # Inner product
-                out = ndarray(
-                    shape=(),
-                    dtype=out_dtype,
-                    inputs=(self_array, rhs_array),
-                )
-            elif self.ndim == 2 and rhs_array.ndim == 2:
-                # Matrix multiply
-                if self.shape[1] != rhs_array.shape[0]:
-                    raise ValueError("Dimension mismatch for dot")
-                out = ndarray(
-                    shape=(self.shape[0], rhs_array.shape[1]),
-                    dtype=out_dtype,
-                    inputs=(self_array, rhs_array),
-                )
-            elif rhs_array.ndim == 1:
-                if self.shape[-1] != rhs_array.shape[0]:
-                    raise ValueError("Dimension mismatch for dot")
-                out = ndarray(
-                    shape=self.shape[:-1],
-                    dtype=out_dtype,
-                    inputs=(self_array, rhs_array),
-                )
-            else:
-                if self.shape[-1] != rhs_array.shape[-2]:
-                    raise ValueError("Dimension mismatch for dot")
-                out = ndarray(
-                    shape=(
-                        self.shape[:-1]
-                        + rhs_array.shape[:-2]
-                        + (rhs_array.shape[-1],)
-                    ),
-                    dtype=out_dtype,
-                    inputs=(self_array, rhs_array),
-                )
-        # Perform operation
-        out._thunk.dot(self_array._thunk, rhs_array._thunk)
-        # Check for type conversion on the way out
-        if out.dtype != out_dtype:
-            result = ndarray(
-                shape=out.shape,
-                dtype=out_dtype,
-                inputs=(out,),
-            )
-            result._thunk.convert(out._thunk)
-            return result
-        else:
-            return out
+        (self_modes, rhs_modes, out_modes) = dot_modes(self.ndim, rhs.ndim)
+        return _contract(
+            self_modes,
+            rhs_modes,
+            out_modes,
+            self,
+            rhs,
+            out=out,
+        )
 
     def dump(self, file):
         """a.dump(file)

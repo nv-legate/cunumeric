@@ -1,4 +1,4 @@
-# Copyright 2021-2022 NVIDIA Corporation
+# Copyright 2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,30 +13,22 @@
 # limitations under the License.
 #
 
-from cunumeric.utils import tensordot_modes
+from cunumeric.utils import inner_modes
 from test_tools.contractions import test_default
 
 from legate.core import LEGATE_MAX_DIM
 
 
-def gen_axes(a_ndim, b_ndim):
-    yield from range(min(a_ndim, b_ndim, 2) + 1)
-    if a_ndim >= 2 and b_ndim >= 2:
-        yield ([0, 1], [0, 1])
-        yield ([0, 1], [1, 0])
-
-
 def test():
     for a_ndim in range(LEGATE_MAX_DIM + 1):
         for b_ndim in range(LEGATE_MAX_DIM + 1):
-            for axes in gen_axes(a_ndim, b_ndim):
-                name = f"tensordot({a_ndim} x {b_ndim}, axes={axes})"
-                modes = tensordot_modes(a_ndim, b_ndim, axes)
+            name = f"inner({a_ndim} x {b_ndim})"
+            modes = inner_modes(a_ndim, b_ndim)
 
-                def operation(lib, *args, **kwargs):
-                    return lib.tensordot(*args, **kwargs, axes=axes)
+            def operation(lib, *args, **kwargs):
+                return lib.inner(*args, **kwargs)
 
-                test_default(name, modes, operation)
+            test_default(name, modes, operation)
 
 
 if __name__ == "__main__":

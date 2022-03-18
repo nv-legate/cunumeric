@@ -16,6 +16,7 @@
 
 #include "cunumeric/matrix/contract.h"
 #include "cunumeric/matrix/contract_template.inl"
+#include "cunumeric/matrix/util.h"
 
 #include <tblis/tblis.h>
 
@@ -29,7 +30,7 @@ using namespace tblis;
 // should be safe since TBLIS will not modify that memory.
 
 // NOTE: TBLIS uses std::complex internally, whereas Legate uses thrust::complex when compiling GPU
-// code. These type are bit-identical, so we can safely cast from one to the other in host code,
+// code. These types are bit-identical, so we can safely cast from one to the other in host code,
 // to appease the type checker.
 
 template <>
@@ -91,6 +92,62 @@ struct ContractImplBody<VariantKind::CPU, LegateTypeCode::DOUBLE_LT> {
     tblis_init_tensor_d(&rhs2, rhs2_ndim, rhs2_shape, const_cast<double*>(rhs2_data), rhs2_strides);
 
     tblis_tensor_mult(tblis_single, nullptr, &rhs1, rhs1_modes, &rhs2, rhs2_modes, &lhs, lhs_modes);
+  }
+};
+
+template <>
+struct ContractImplBody<VariantKind::CPU, LegateTypeCode::HALF_LT> {
+  void operator()(__half* lhs_data,
+                  size_t lhs_ndim,
+                  int64_t* lhs_shape,
+                  int64_t* lhs_strides,
+                  int32_t* lhs_modes,
+                  const __half* rhs1_data,
+                  size_t rhs1_ndim,
+                  int64_t* rhs1_shape,
+                  int64_t* rhs1_strides,
+                  int32_t* rhs1_modes,
+                  const __half* rhs2_data,
+                  size_t rhs2_ndim,
+                  int64_t* rhs2_shape,
+                  int64_t* rhs2_strides,
+                  int32_t* rhs2_modes)
+  {
+    // TBLIS doesn't handle half-precision floating point directly, so we have to go through a
+    // conversion to single-precision.
+
+    std::vector<int64_t> lhs_copy_strides(lhs_ndim);
+    int64_t lhs_size     = calculate_volume(lhs_ndim, lhs_shape, lhs_copy_strides.data());
+    float* lhs_copy_data = allocate_buffer(lhs_size);
+    half_tensor_to_float(lhs_copy_data, lhs_data, lhs_ndim, lhs_shape, lhs_strides);
+
+    std::vector<int64_t> rhs1_copy_strides(rhs1_ndim);
+    int64_t rhs1_size     = calculate_volume(rhs1_ndim, rhs1_shape, rhs1_copy_strides.data());
+    float* rhs1_copy_data = allocate_buffer(rhs1_size);
+    half_tensor_to_float(rhs1_copy_data, rhs1_data, rhs1_ndim, rhs1_shape, rhs1_strides);
+
+    std::vector<int64_t> rhs2_copy_strides(rhs2_ndim);
+    int64_t rhs2_size     = calculate_volume(rhs2_ndim, rhs2_shape, rhs2_copy_strides.data());
+    float* rhs2_copy_data = allocate_buffer(rhs2_size);
+    half_tensor_to_float(rhs2_copy_data, rhs2_data, rhs2_ndim, rhs2_shape, rhs2_strides);
+
+    ContractImplBody<VariantKind::CPU, LegateTypeCode::FLOAT_LT>{}(lhs_copy_data,
+                                                                   lhs_ndim,
+                                                                   lhs_shape,
+                                                                   lhs_copy_strides.data(),
+                                                                   lhs_modes,
+                                                                   rhs1_copy_data,
+                                                                   rhs1_ndim,
+                                                                   rhs1_shape,
+                                                                   rhs1_copy_strides.data(),
+                                                                   rhs1_modes,
+                                                                   rhs2_copy_data,
+                                                                   rhs2_ndim,
+                                                                   rhs2_shape,
+                                                                   rhs2_copy_strides.data(),
+                                                                   rhs2_modes);
+
+    float_tensor_to_half(lhs_data, lhs_copy_data, lhs_ndim, lhs_shape, lhs_strides);
   }
 };
 

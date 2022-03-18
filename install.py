@@ -419,6 +419,7 @@ def install_cunumeric(
 
     # Match the core's setting regarding CUDA support.
     makefile_path = os.path.join(legate_dir, "share", "legate", "config.mk")
+    nccl_dir = None
     cuda = find_compile_flag("USE_CUDA", makefile_path)
     if cuda:
         # Find cuTensor installation

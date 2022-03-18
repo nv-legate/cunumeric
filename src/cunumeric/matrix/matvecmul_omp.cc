@@ -16,7 +16,6 @@
 
 #include "cunumeric/matrix/matvecmul.h"
 #include "cunumeric/matrix/matvecmul_template.inl"
-#include "cunumeric/matrix/util.h"
 #include "cunumeric/matrix/util_omp.h"
 
 #include <cblas.h>
@@ -69,14 +68,56 @@ struct MatVecMulImplBody<VariantKind::OMP, LegateTypeCode::HALF_LT> {
   {
     auto vec_size = transpose_mat ? m : n;
 
-    auto mat_copy = allocate_buffer(m * n);
-    auto vec_copy = allocate_buffer(vec_size);
+    auto mat_copy = allocate_buffer_omp(m * n);
+    auto vec_copy = allocate_buffer_omp(vec_size);
 
     half_matrix_to_float_omp(mat_copy, mat, m, n, mat_stride);
     half_vector_to_float_omp(vec_copy, vec, vec_size);
 
     MatVecMulImplBody<VariantKind::OMP, LegateTypeCode::FLOAT_LT>{}(
       m, n, lhs, mat_copy, vec_copy, n, transpose_mat);
+  }
+};
+
+template <>
+struct MatVecMulImplBody<VariantKind::OMP, LegateTypeCode::COMPLEX64_LT> {
+  void operator()(size_t m,
+                  size_t n,
+                  complex<float>* lhs_,
+                  const complex<float>* mat_,
+                  const complex<float>* vec_,
+                  size_t mat_stride,
+                  bool transpose_mat)
+  {
+    __complex__ float* lhs       = reinterpret_cast<__complex__ float*>(lhs_);
+    const __complex__ float* mat = reinterpret_cast<const __complex__ float*>(mat_);
+    const __complex__ float* vec = reinterpret_cast<const __complex__ float*>(vec_);
+    __complex__ float alpha      = 1.0;
+    __complex__ float beta       = 0.0;
+
+    auto trans = transpose_mat ? CblasTrans : CblasNoTrans;
+    cblas_cgemv(CblasRowMajor, trans, m, n, &alpha, mat, mat_stride, vec, 1, &beta, lhs, 1);
+  }
+};
+
+template <>
+struct MatVecMulImplBody<VariantKind::OMP, LegateTypeCode::COMPLEX128_LT> {
+  void operator()(size_t m,
+                  size_t n,
+                  complex<double>* lhs_,
+                  const complex<double>* mat_,
+                  const complex<double>* vec_,
+                  size_t mat_stride,
+                  bool transpose_mat)
+  {
+    __complex__ double* lhs       = reinterpret_cast<__complex__ double*>(lhs_);
+    const __complex__ double* mat = reinterpret_cast<const __complex__ double*>(mat_);
+    const __complex__ double* vec = reinterpret_cast<const __complex__ double*>(vec_);
+    __complex__ double alpha      = 1.0;
+    __complex__ double beta       = 0.0;
+
+    auto trans = transpose_mat ? CblasTrans : CblasNoTrans;
+    cblas_zgemv(CblasRowMajor, trans, m, n, &alpha, mat, mat_stride, vec, 1, &beta, lhs, 1);
   }
 };
 
