@@ -116,7 +116,7 @@ void cub_local_sort(const VAL* values_in,
     Buffer<int64_t> idx_in;
     const int64_t* indices_in_cub = indices_in;
     if (indices_in == indices_out) {
-      idx_in    = create_buffer<int64_t>(volume, Legion::Memory::Kind::GPU_FB_MEM);
+      idx_in         = create_buffer<int64_t>(volume, Legion::Memory::Kind::GPU_FB_MEM);
       indices_in_cub = idx_in.ptr(0);
       CHECK_CUDA(cudaMemcpyAsync(
         idx_in.ptr(0), indices_out, sizeof(int64_t) * volume, cudaMemcpyDeviceToDevice, stream));
