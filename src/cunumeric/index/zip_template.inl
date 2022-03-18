@@ -34,9 +34,11 @@ struct ZipImpl {
     auto out        = args.out.write_accessor<Point<N>, DIM>(out_rect);
     auto index_rect = args.inputs[0].shape<DIM>();
     Pitches<DIM - 1> pitches;
-    size_t volume = pitches.flatten(index_rect);
+    size_t volume = pitches.flatten(out_rect);
     if (volume == 0) return;
 
+    std::cout << "IRINA DEBUG out rect = " << out_rect << ", index rect = " << index_rect
+              << std::endl;
 #ifdef CUNUMERIC_DEBUG
     assert(out_rect == index_rect)
 #endif
@@ -56,17 +58,24 @@ struct ZipImpl {
 #ifdef LEGION_BOUNDS_CHECKS
     bool dense = false;
 #endif
-    ZipImplBody<KIND, DIM, N>()(
-      out, index_arrays, index_rect, pitches, dense, args.key_dim, std::make_index_sequence<N>());
+    ZipImplBody<KIND, DIM, N>()(out,
+                                index_arrays,
+                                index_rect,
+                                pitches,
+                                dense,
+                                args.key_dim,
+                                args.start_index,
+                                std::make_index_sequence<N>());
   }
 };
 
 template <VariantKind KIND>
 static void zip_template(TaskContext& context)
 {
-  int64_t N       = context.scalars()[0].value<int64_t>();
-  int64_t key_dim = context.scalars()[1].value<int64_t>();
-  ZipArgs args{context.outputs()[0], context.inputs(), N, key_dim};
+  int64_t N           = context.scalars()[0].value<int64_t>();
+  int64_t key_dim     = context.scalars()[1].value<int64_t>();
+  int64_t start_index = context.scalars()[2].value<int64_t>();
+  ZipArgs args{context.outputs()[0], context.inputs(), N, key_dim, start_index};
   double_dispatch(args.inputs[0].dim(), N, ZipImpl<KIND>{}, args);
 }
 

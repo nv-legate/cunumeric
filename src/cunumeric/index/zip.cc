@@ -33,6 +33,7 @@ struct ZipImplBody<VariantKind::CPU, DIM, N> {
                   const Pitches<DIM - 1>& pitches,
                   bool dense,
                   const int64_t key_dim,
+                  const int64_t start_index,
                   std::index_sequence<Is...>) const
   {
     if (index_arrays.size() == N) {
@@ -53,12 +54,14 @@ struct ZipImplBody<VariantKind::CPU, DIM, N> {
       for (size_t idx = 0; idx < volume; ++idx) {
         auto p = pitches.unflatten(idx, rect.lo);
         Legion::Point<N> new_point;
-        for (size_t i = 0; i < index_arrays.size(); i++) new_point[i] = index_arrays[i][p];
-        for (size_t i = index_arrays.size(); i < N; i++) {
+        for (size_t i = 0; i < start_index; i++) { new_point[i] = p[i]; }
+        for (size_t i = 0; i < index_arrays.size(); i++) {
+          new_point[start_index + i] = index_arrays[i][p];
+        }
+        for (size_t i = (start_index + index_arrays.size()); i < N; i++) {
           int64_t j    = key_dim + i - 1 - (index_arrays.size() - 1);
           new_point[i] = p[j];
         }
-        std::cout << "IRINA DEBUG" << new_point << std::endl;
         out[p] = new_point;
       }
     }
