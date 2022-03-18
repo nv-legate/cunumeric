@@ -115,7 +115,9 @@ def precondition(A, N, corners):
     return M
 
 
-def preconditioned_solve(A, M, b, conv_iters, max_iters, conv_threshold, verbose):
+def preconditioned_solve(
+    A, M, b, conv_iters, max_iters, conv_threshold, verbose
+):
     print("Solving system with preconditioner...")
     x = np.zeros(A.shape[1])
     r = b - A.dot(x)
@@ -178,9 +180,11 @@ def run_cg(
     A, b = generate_2D(N, corners)
     if preconditioner:
         M = precondition(A, N, corners)
-        x = preconditioned_solve(A, M, b, conv_iters, max_iters, conv_threshold, verbose)
+        x = preconditioned_solve(
+            A, M, b, conv_iters, max_iters, conv_threshold, verbose
+        )
     else:
-        x = solve(A, b, conv_iters, max_iters, conv_threshold,   verbose)
+        x = solve(A, b, conv_iters, max_iters, conv_threshold, verbose)
     if perform_check:
         check(A, x, b)
     stop = datetime.datetime.now()
