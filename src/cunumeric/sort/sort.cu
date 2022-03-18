@@ -34,34 +34,6 @@ namespace cunumeric {
 
 using namespace Legion;
 
-template <typename VAL, int DIM>
-__global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-  copy_into_buffer(VAL* out,
-                   const AccessorRO<VAL, DIM> accessor,
-                   const Point<DIM> lo,
-                   const Pitches<DIM - 1> pitches,
-                   const size_t volume)
-{
-  size_t offset = blockIdx.x * blockDim.x + threadIdx.x;
-  if (offset >= volume) return;
-  auto point  = pitches.unflatten(offset, lo);
-  out[offset] = accessor[lo + point];
-}
-
-template <typename VAL, int DIM>
-__global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-  copy_into_output(AccessorWO<VAL, DIM> accessor,
-                   const VAL* data,
-                   const Point<DIM> lo,
-                   const Pitches<DIM - 1> pitches,
-                   const size_t volume)
-{
-  size_t offset = blockIdx.x * blockDim.x + threadIdx.x;
-  if (offset >= volume) return;
-  auto point           = pitches.unflatten(offset, lo);
-  accessor[lo + point] = data[offset];
-}
-
 struct multiply : public thrust::unary_function<int, int> {
   const int constant;
 
@@ -94,6 +66,7 @@ void cub_local_sort_inplace(
                                      0,
                                      sizeof(VAL) * 8,
                                      stream);
+      temp_storage.destroy();
     } else {
       // segmented sort (initial call to compute buffer size)
       // generate start/end positions for all segments via iterators to avoid allocating buffers
@@ -127,6 +100,7 @@ void cub_local_sort_inplace(
                                               0,
                                               sizeof(VAL) * 8,
                                               stream);
+      temp_storage.destroy();
     }
   } else {
     auto idx_in = create_buffer<int64_t>(volume, Legion::Memory::Kind::GPU_FB_MEM);
@@ -159,6 +133,7 @@ void cub_local_sort_inplace(
                                       0,
                                       sizeof(VAL) * 8,
                                       stream);
+      temp_storage.destroy();
     } else {
       // segmented argsort (initial call to compute buffer size)
       // generate start/end positions for all segments via iterators to avoid allocating buffers
@@ -197,8 +172,11 @@ void cub_local_sort_inplace(
                                                0,
                                                sizeof(VAL) * 8,
                                                stream);
+      temp_storage.destroy();
     }
+    idx_in.destroy();
   }
+  keys_in.destroy();
 }
 
 template <class VAL>
@@ -227,6 +205,8 @@ void thrust_local_sort_inplace(VAL* inptr,
                    combined,
                    combined + volume,
                    thrust::less<thrust::tuple<size_t, VAL>>());
+
+      sort_id.destroy();
     }
   } else {
     if (volume == sort_dim_size) {
@@ -259,6 +239,8 @@ void thrust_local_sort_inplace(VAL* inptr,
                             argptr,
                             thrust::less<thrust::tuple<size_t, VAL>>());
       }
+
+      sort_id.destroy();
     }
   }
 }
@@ -481,6 +463,10 @@ static SortPiece<VAL> sample_sort_nccl(SortPiece<VAL> local_sorted,
     size_send[num_ranks - 1] = volume - last_position;
   }
 
+  // cleanup intermediate data structures
+  samples.destroy();
+  split_positions.destroy();
+
   // all2all exchange send/receive sizes
   auto size_recv = create_buffer<size_t>(num_ranks, Memory::Z_COPY_MEM);
   CHECK_NCCL(ncclGroupStart());
@@ -493,29 +479,18 @@ static SortPiece<VAL> sample_sort_nccl(SortPiece<VAL> local_sorted,
   // need to sync as we share values in between host/device
   CHECK_CUDA(cudaStreamSynchronize(stream));
 
-  // allocate merge targets, data transfer...
-  std::vector<SortPiece<VAL>> merge_buffers(num_ranks);
+  // handle alignment
   std::vector<size_t> aligned_pos_vals_send(num_ranks);
   std::vector<size_t> aligned_pos_idcs_send(num_ranks);
-
   size_t buf_size_send_vals_total = 0;
   size_t buf_size_send_idcs_total = 0;
   for (size_t i = 0; i < num_ranks; ++i) {
     // align buffer to allow data transfer of 16byte blocks
-    auto buf_size_vals_recv = get_16b_aligned_count(size_recv[i], sizeof(VAL));
-    merge_buffers[i].values = create_buffer<VAL>(buf_size_vals_recv, Memory::GPU_FB_MEM);
-    merge_buffers[i].size   = size_recv[i];
-
     aligned_pos_vals_send[i] = buf_size_send_vals_total;
     buf_size_send_vals_total += get_16b_aligned_count(size_send[i], sizeof(VAL));
-
     if (argsort) {
-      auto buf_size_idcs_recv  = get_16b_aligned_count(size_recv[i], sizeof(int64_t));
-      merge_buffers[i].indices = create_buffer<int64_t>(buf_size_idcs_recv, Memory::GPU_FB_MEM);
       aligned_pos_idcs_send[i] = buf_size_send_idcs_total;
       buf_size_send_idcs_total += get_16b_aligned_count(size_send[i], sizeof(int64_t));
-    } else {
-      merge_buffers[i].indices = create_buffer<int64_t>(0, Memory::GPU_FB_MEM);
     }
   }
 
@@ -532,6 +507,7 @@ static SortPiece<VAL> sample_sort_nccl(SortPiece<VAL> local_sorted,
                                  stream));
       pos += size_send[r];
     }
+    local_sorted.values.destroy();
   }
 
   // copy indices into aligned send buffer
@@ -546,6 +522,21 @@ static SortPiece<VAL> sample_sort_nccl(SortPiece<VAL> local_sorted,
                                  cudaMemcpyDeviceToDevice,
                                  stream));
       pos += size_send[r];
+    }
+    local_sorted.indices.destroy();
+  }
+
+  // allocate target buffers
+  std::vector<SortPiece<VAL>> merge_buffers(num_ranks);
+  for (size_t i = 0; i < num_ranks; ++i) {
+    auto buf_size_vals_recv = get_16b_aligned_count(size_recv[i], sizeof(VAL));
+    merge_buffers[i].values = create_buffer<VAL>(buf_size_vals_recv, Memory::GPU_FB_MEM);
+    merge_buffers[i].size   = size_recv[i];
+    if (argsort) {
+      auto buf_size_idcs_recv  = get_16b_aligned_count(size_recv[i], sizeof(int64_t));
+      merge_buffers[i].indices = create_buffer<int64_t>(buf_size_idcs_recv, Memory::GPU_FB_MEM);
+    } else {
+      merge_buffers[i].indices = create_buffer<int64_t>(0, Memory::GPU_FB_MEM);
     }
   }
 
@@ -584,6 +575,12 @@ static SortPiece<VAL> sample_sort_nccl(SortPiece<VAL> local_sorted,
     }
     CHECK_NCCL(ncclGroupEnd());
   }
+
+  // cleanup remaining buffers
+  size_send.destroy();
+  size_recv.destroy();
+  val_send_buf.destroy();
+  idc_send_buf.destroy();
 
   // now merge sort all into the result buffer
   // maybe k-way merge is more efficient here...
@@ -664,14 +661,14 @@ struct SortImplBody<VariantKind::GPU, CODE, DIM> {
     VAL* values_ptr      = nullptr;
     if (argsort) {
       // make a buffer for input
-      auto input_copy = create_buffer<VAL>(volume, Legion::Memory::Kind::GPU_FB_MEM);
-      values_ptr      = input_copy.ptr(0);
+      auto input_copy     = create_buffer<VAL>(volume, Legion::Memory::Kind::GPU_FB_MEM);
+      local_sorted.values = input_copy;
+      values_ptr          = input_copy.ptr(0);
 
       // initialize indices
       if (output_array.dim() == -1) {
         auto indices_buffer  = create_buffer<int64_t>(volume, Legion::Memory::Kind::GPU_FB_MEM);
         indices_ptr          = indices_buffer.ptr(0);
-        local_sorted.values  = input_copy;
         local_sorted.indices = indices_buffer;
         local_sorted.size    = volume;
       } else {
@@ -699,8 +696,7 @@ struct SortImplBody<VariantKind::GPU, CODE, DIM> {
         values_ptr           = input_copy.ptr(0);
         local_sorted.values  = input_copy;
         local_sorted.indices = create_buffer<int64_t>(0, Legion::Memory::Kind::GPU_FB_MEM);
-        ;
-        local_sorted.size = volume;
+        local_sorted.size    = volume;
       } else {
         AccessorWO<VAL, DIM> output = output_array.write_accessor<VAL, DIM>(rect);
         assert(output.accessor.is_dense_row_major(rect));
@@ -730,6 +726,9 @@ struct SortImplBody<VariantKind::GPU, CODE, DIM> {
         output_array.return_data(local_sorted_repartitioned.values,
                                  local_sorted_repartitioned.size);
       }
+    } else if (argsort) {
+      // cleanup
+      local_sorted.values.destroy();
     }
   }
 };
