@@ -19,6 +19,7 @@
 
 #include <thrust/sort.h>
 #include <thrust/execution_policy.h>
+#include <thrust/system/omp/execution_policy.h>
 #include <numeric>
 #include <omp.h>
 
@@ -40,23 +41,21 @@ struct SortImplBody<VariantKind::OMP, CODE, DIM> {
   {
     if (argptr == nullptr) {
       // sort (in place)
-#pragma omp parallel for
       for (size_t start_idx = 0; start_idx < volume; start_idx += sort_dim_size) {
-        thrust::sort(thrust::host, inptr + start_idx, inptr + start_idx + sort_dim_size);
+        thrust::sort(thrust::omp::par, inptr + start_idx, inptr + start_idx + sort_dim_size);
       }
     } else {
       // argsort
-#pragma omp parallel for
       for (uint64_t start_idx = 0; start_idx < volume; start_idx += sort_dim_size) {
         int64_t* segmentValues = argptr + start_idx;
         VAL* segmentKeys       = inptr + start_idx;
         std::iota(segmentValues, segmentValues + sort_dim_size, 0);  // init
         if (stable_argsort) {
           thrust::stable_sort_by_key(
-            thrust::host, segmentKeys, segmentKeys + sort_dim_size, segmentValues);
+            thrust::omp::par, segmentKeys, segmentKeys + sort_dim_size, segmentValues);
         } else {
           thrust::sort_by_key(
-            thrust::host, segmentKeys, segmentKeys + sort_dim_size, segmentValues);
+            thrust::omp::par, segmentKeys, segmentKeys + sort_dim_size, segmentValues);
         }
       }
     }
