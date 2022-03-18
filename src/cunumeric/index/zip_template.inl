@@ -37,8 +37,6 @@ struct ZipImpl {
     size_t volume = pitches.flatten(out_rect);
     if (volume == 0) return;
 
-    std::cout << "IRINA DEBUG out rect = " << out_rect << ", index rect = " << index_rect
-              << std::endl;
 #ifdef CUNUMERIC_DEBUG
     assert(out_rect == index_rect)
 #endif

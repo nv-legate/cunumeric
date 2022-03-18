@@ -63,8 +63,6 @@ def advanced_indexing():
     indx_num = num.array(indx)
     res = z[indx]
     res_num = z_num[indx_num]
-    print(res)
-    print(res_num)
     assert np.array_equal(res, res_num)
 
     res = z[:, :, indx]
@@ -216,6 +214,30 @@ def advanced_indexing():
     # x[indx0, indx1] = 0.0
     # print(x)
     # x_num[indx0_num, indx1_num] =0.0
+
+    # we do less than LEGATE_MAX_DIM becasue the dimension will be increased by
+    # 1 when passig 2d index array
+    for ndim in range(2, LEGATE_MAX_DIM):
+        a_shape = tuple(random.randint(2, 9) for i in range(ndim))
+        np_array = mk_seq_array(np, a_shape)
+        num_array = mk_seq_array(num, a_shape)
+        # check when N of index arrays == N of dims
+        num_tuple_of_indices = tuple()
+        np_tuple_of_indices = tuple()
+        for i in range(ndim):
+            i_shape = (2, 4)
+            idx_arr_np = mk_seq_array(np, i_shape) % np_array.shape[i]
+            idx_arr_num = num.array(idx_arr_np)
+            np_tuple_of_indices += (idx_arr_np,)
+            num_tuple_of_indices += (idx_arr_num,)
+        assert np.array_equal(
+            np_array[np_tuple_of_indices], num_array[num_tuple_of_indices]
+        )
+        # check when N of index arrays == N of dims
+        i_shape = (2, 2)
+        idx_arr_np = mk_seq_array(np, i_shape) % np_array.shape[0]
+        idx_arr_num = num.array(idx_arr_np)
+        assert np.array_equal(np_array[idx_arr_np], num_array[idx_arr_num])
 
     return
 
