@@ -72,6 +72,24 @@ def advanced_indexing():
     res_num = z_num[indx_num]
     assert np.array_equal(res, res_num)
 
+    # 2 arrays passed do 3d array
+    indx0 = np.array([1, 1])
+    indx1 = np.array([1, 0])
+    indx0_num = num.array(indx0)
+    indx1_num = num.array(indx1)
+    res = z[indx0, indx1]
+    res_num = z_num[indx0_num, indx1_num]
+    assert np.array_equal(res, res_num)
+
+    # 2 arrays with broadcasting
+    indx0 = np.array([1, 1])
+    indx1 = np.array([[1, 0], [1, 0]])
+    indx0_num = num.array(indx0)
+    indx1_num = num.array(indx1)
+    res = z[indx0, indx1]
+    res_num = z_num[indx0_num, indx1_num]
+    assert np.array_equal(res, res_num)
+
     # mismatch dimesion case bool:
     # print ("advance indexing test 4")
     # indx_bool = np.array([True, False])

@@ -308,35 +308,76 @@ class DeferredArray(NumPyThunk):
         result = np.frombuffer(buf, dtype=self.dtype, count=1)
         return result.reshape(())
 
+    def broadcast_shapes(self, shapes):
+        arrays = [np.empty(x, dtype=[]) for x in shapes]
+        return np.broadcast(*arrays).shape
+
     def _zip_indices(self, arrays):
         if not isinstance(arrays, tuple):
             raise TypeError("zip_indices expect tuple of arrays")
         arrays = tuple(self.runtime.to_deferred_array(a) for a in arrays)
         # all arrays should have the same shape and type
-        shape = arrays[0].shape
         data_type = arrays[0].dtype
         if not np.issubdtype(data_type, np.integer):
             raise TypeError("a array should be integer type")
-        new_arrays = tuple()
-        key_dim = len(arrays[0].shape)
+
+        shapes = tuple(a.shape for a in arrays)
+        if len(arrays) > 1:
+            b_shape = self.broadcast_shapes(shapes)
+        else:
+            b_shape = arrays[0].shape
+        key_dim = len(b_shape)
+        print("IRINA DEBUG key_dim", key_dim, b_shape)
+        out_shape = b_shape
 
         if len(arrays) == 1:
             # special case when a single index array is passed and it's dim <
             # self.ndims
-            shape = shape + tuple(self.shape[i] for i in range(1, self.ndim))
+            out_shape = b_shape + tuple(
+                self.shape[i] for i in range(1, self.ndim)
+            )
             array = arrays[0].base
             start = key_dim - 1
+            new_arrays = tuple()
             for i in range(1, self.ndim):
                 array = array.promote(start + i, self.shape[i])
             new_arrays += (array,)
-        else:
+        elif len(arrays) < self.ndim:
+            N = len(arrays)
+            # broadcast shapes
+            new_arrays = tuple()
             for a in arrays:
                 if data_type != a.dtype:
                     raise TypeError(
                         "type of all index arrrays should be the same"
                     )
-                if a.shape != shape:
-                    a = a._broadcast(shape)
+                if a.shape != b_shape:
+                    new_arrays += (a._broadcast(b_shape),)
+                else:
+                    new_arrays += (a.base,)
+            arrays = new_arrays
+            # output shape
+            out_shape = b_shape + tuple(
+                self.shape[i] for i in range(N, self.ndim)
+            )
+            print("IRINA DEBUG out_shape = ", out_shape)
+            new_arrays = tuple()
+            start = key_dim - 1
+            for a in arrays:
+                for i in range(N, self.ndim):
+                    a = a.promote(key_dim + i - N, self.shape[i])
+                    new_arrays += (a,)
+            arrays = new_arrays
+
+        else:
+            new_arrays = tuple()
+            for a in arrays:
+                if data_type != a.dtype:
+                    raise TypeError(
+                        "type of all index arrrays should be the same"
+                    )
+                if a.shape != b_shape:
+                    a = a._broadcast(b_shape)
                 else:
                     a = a.base
                 new_arrays = new_arrays + (a,)
@@ -355,7 +396,7 @@ class DeferredArray(NumPyThunk):
         N = self.ndim
         pointN_dtype = self.runtime.add_point_type(N)
         store = self.context.create_store(
-            pointN_dtype, shape=shape, optimize_scalar=True
+            pointN_dtype, shape=out_shape, optimize_scalar=True
         )
         output_arr = DeferredArray(
             self.runtime, base=store, dtype=pointN_dtype
@@ -364,12 +405,13 @@ class DeferredArray(NumPyThunk):
         # call ZIP function to combine index arrays into a singe array
         task = self.context.create_task(CuNumericOpCode.ZIP)
         task.add_output(output_arr.base)
-        if len(arrays) == 1:
-            task.add_input(arrays[0])
-            task.add_alignment(arrays[0], output_arr.base)
-            task.add_scalar_arg(self.ndim, ty.int64)
-            task.add_scalar_arg(key_dim, ty.int64)
-            task.add_broadcast(arrays[0], axes=range(1, len(shape)))
+        if len(arrays) < self.ndim:
+            task.add_scalar_arg(self.ndim, ty.int64)  # N of points in Point<N>
+            task.add_scalar_arg(key_dim, ty.int64)  # key_dim
+            for a in arrays:
+                task.add_input(a)
+                task.add_alignment(a, output_arr.base)
+                task.add_broadcast(a, axes=range(1, len(out_shape)))
         else:
             task.add_scalar_arg(self.ndim, ty.int64)
             task.add_scalar_arg(self.ndim, ty.int64)
