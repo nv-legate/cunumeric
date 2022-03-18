@@ -36,8 +36,9 @@ struct RepeatImplBody<VariantKind::OMP, CODE, DIM> {
   {
     const size_t volume = rect.volume();
     size_t size         = volume * repeats;
-
-    out = create_buffer<VAL>(size, Memory::Kind::SYSTEM_MEM);
+    Memory::Kind kind =
+      CuNumeric::has_numamem ? Memory::Kind::SOCKET_MEM : Memory::Kind::SYSTEM_MEM;
+    out = create_buffer<VAL>(size, kind);
 #pragma omp parallel for schedule(static)
     for (size_t idx = 0; idx < size; ++idx) {
       size_t p_idx = idx / repeats;
