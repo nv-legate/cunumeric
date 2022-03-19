@@ -80,8 +80,8 @@ def run_einsum(expr, N, iters, dtype):
     print(f"Total Size: {space / 1e6} MB")
 
     # Initialize arrays
-    A = np.random.random((N,) * len(a_modes)).astype(dtype)
-    B = np.random.random((N,) * len(b_modes)).astype(dtype)
+    A = np.ones((N,) * len(a_modes), dtype=dtype)
+    B = np.ones((N,) * len(b_modes), dtype=dtype)
     C = np.zeros((N,) * len(c_modes), dtype=dtype)
 
     # Run contraction
