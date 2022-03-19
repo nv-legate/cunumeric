@@ -15,7 +15,8 @@
 
 import numpy as np
 from cunumeric.array import convert_to_cunumeric_ndarray
-from cunumeric.module import ndarray, sqrt as _sqrt
+from cunumeric.module import ndarray
+from cunumeric.ufunc.math import sqrt as _sqrt
 
 
 def cholesky(a):

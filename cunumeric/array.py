@@ -3123,13 +3123,6 @@ class ndarray(object):
         if where is False:
             return dst
 
-        op_dtype = (
-            dst.dtype
-            if out_dtype is None
-            and not (op == UnaryOpCode.ABSOLUTE and src.dtype.kind == "c")
-            else src.dtype
-        )
-
         if out_dtype is None:
             if dst.dtype != src.dtype and not (
                 op == UnaryOpCode.ABSOLUTE and src.dtype.kind == "c"
@@ -3141,7 +3134,6 @@ class ndarray(object):
                 )
                 temp._thunk.unary_op(
                     op,
-                    op_dtype,
                     src._thunk,
                     cls._get_where_thunk(where, dst.shape),
                     extra_args,
@@ -3150,7 +3142,6 @@ class ndarray(object):
             else:
                 dst._thunk.unary_op(
                     op,
-                    op_dtype,
                     src._thunk,
                     cls._get_where_thunk(where, dst.shape),
                     extra_args,
@@ -3164,7 +3155,6 @@ class ndarray(object):
                 )
                 temp._thunk.unary_op(
                     op,
-                    op_dtype,
                     src._thunk,
                     cls._get_where_thunk(where, dst.shape),
                     extra_args,
@@ -3173,7 +3163,6 @@ class ndarray(object):
             else:
                 dst._thunk.unary_op(
                     op,
-                    op_dtype,
                     src._thunk,
                     cls._get_where_thunk(where, dst.shape),
                     extra_args,

@@ -629,11 +629,21 @@ struct UnaryOp<UnaryOpCode::TANH, CODE> {
 template <legate::LegateTypeCode CODE>
 struct UnaryOp<UnaryOpCode::CONJ, CODE> {
   using T                     = legate::legate_type_of<CODE>;
-  static constexpr bool valid = legate::is_complex<T>::value;
+  static constexpr bool valid = true;
 
   UnaryOp(const std::vector<legate::Store>& args) {}
 
-  constexpr decltype(auto) operator()(const T& x) const { return T{x.real(), -x.imag()}; }
+  template <typename _T = T, std::enable_if_t<legate::is_complex<_T>::value>* = nullptr>
+  constexpr T operator()(const T& x) const
+  {
+    return T{x.real(), -x.imag()};
+  }
+
+  template <typename _T = T, std::enable_if_t<!legate::is_complex<_T>::value>* = nullptr>
+  constexpr T operator()(const T& x) const
+  {
+    return x;
+  }
 };
 
 template <legate::LegateTypeCode CODE>

@@ -531,10 +531,10 @@ class EagerArray(NumPyThunk):
                     low, high, size=self.array.shape, dtype=self.array.dtype
                 )
 
-    def unary_op(self, op, op_type, rhs, where, args):
+    def unary_op(self, op, rhs, where, args):
         self.check_eager_args(rhs, where)
         if self.deferred is not None:
-            self.deferred.unary_op(op, op_type, rhs, where, args)
+            self.deferred.unary_op(op, rhs, where, args)
             return
 
         if op in _UNARY_OPS:

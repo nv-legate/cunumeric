@@ -198,7 +198,7 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def unary_op(self, op, op_type, rhs, where, args):
+    def unary_op(self, op, rhs, where, args):
         ...
 
     @abstractmethod

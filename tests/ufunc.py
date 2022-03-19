@@ -37,7 +37,7 @@ def check_result(op, in_np, out_np, out_num):
         assert False
 
 
-def test(ops, in_np):
+def test(ops, in_np, out_dtype="d"):
     for op in ops:
         op_np = getattr(np, op)
         op_num = getattr(num, op)
@@ -51,8 +51,8 @@ def test(ops, in_np):
 
         check_result(op, in_np, out_np, out_num)
 
-        out_np = np.empty(out_np.shape, dtype="d")
-        out_num = num.empty(out_num.shape, dtype="d")
+        out_np = np.empty(out_np.shape, dtype=out_dtype)
+        out_num = num.empty(out_num.shape, dtype=out_dtype)
 
         op_np(*in_np, out=out_np)
         op_num(*in_num, out=out_num)
@@ -69,10 +69,8 @@ def test_all_unary_ops():
 
     # Math operations
     ops = [
-        # "abs",
         "absolute",
-        # "conj",
-        # "conjugate",
+        "conjugate",
         "exp",
         "exp2",
         # "expm1",
@@ -99,7 +97,8 @@ def test_all_unary_ops():
         "sqrt",
     ]
     test(ops, (np.random.randn(4, 5) + 3,))
-    test(ops, ((np.random.randn(4, 5) + 3).astype("f"),))
+    test(ops, (np.random.randn(4, 5).astype("f") + 3,))
+    test(ops, (np.random.randn(4, 5).astype("F") + 3,), out_dtype="D")
     test(ops, (np.random.randint(3, 10, size=(4, 5)),))
     test(ops, (np.random.randn(1)[0] + 3,))
 
@@ -131,6 +130,7 @@ def test_all_unary_ops():
         "invert",
     ]
     test(ops, (np.random.randint(0, 2, size=(4, 5)),))
+    test(ops, (np.random.randint(0, 1, size=(4, 5), dtype="?"),))
 
     # Comparison functions
     ops = [
@@ -153,6 +153,7 @@ def test_all_unary_ops():
     test(ops, (np.random.randn(4, 5) + 3,))
     test(ops, ((np.random.randn(4, 5) + 3).astype("f"),))
     test(ops, (np.random.randint(3, 10, size=(4, 5)),))
+    test(ops, (np.random.randint(3, 10, size=(4, 5), dtype="I"),))
     test(ops, (np.random.randn(1)[0] + 3,))
 
     ops = [

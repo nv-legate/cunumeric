@@ -241,7 +241,6 @@ class DeferredArray(NumPyThunk):
 
         result.unary_op(
             UnaryOpCode.IMAG,
-            result.dtype,
             self,
             True,
             [],
@@ -259,7 +258,6 @@ class DeferredArray(NumPyThunk):
 
         result.unary_op(
             UnaryOpCode.REAL,
-            result.dtype,
             self,
             True,
             [],
@@ -276,7 +274,6 @@ class DeferredArray(NumPyThunk):
 
         result.unary_op(
             UnaryOpCode.CONJ,
-            result.dtype,
             self,
             True,
             [],
@@ -292,7 +289,6 @@ class DeferredArray(NumPyThunk):
             return
         self.unary_op(
             UnaryOpCode.COPY,
-            rhs.dtype,
             rhs,
             True,
             [],
@@ -1333,8 +1329,8 @@ class DeferredArray(NumPyThunk):
         self.random(RandGenCode.INTEGER, [low, high])
 
     # Perform the unary operation and put the result in the array
-    @auto_convert([3])
-    def unary_op(self, op, op_dtype, src, where, args):
+    @auto_convert([2])
+    def unary_op(self, op, src, where, args):
         lhs = self.base
         rhs = src._broadcast(lhs.shape)
 
@@ -1442,7 +1438,6 @@ class DeferredArray(NumPyThunk):
             if argred:
                 self.unary_op(
                     UnaryOpCode.GETARG,
-                    self.dtype,
                     lhs_array,
                     True,
                     [],
