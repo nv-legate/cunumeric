@@ -37,8 +37,8 @@ def run_einsum(expr, N, iters, dtype):
     assert len(b_modes) == len(set(b_modes))
     assert len(c_modes) == len(set(c_modes))
     assert all(m in a_modes or m in b_modes for m in c_modes)
-    assert len(a_modes) == len(b_modes)
-    assert len(a_modes) == len(c_modes)
+    assert len(a_modes) == len(c_modes) or len(b_modes) == len(c_modes)
+    swap_a_c = len(a_modes) == len(c_modes)
 
     # Count types of modes
     batch_modes = 0
@@ -90,11 +90,15 @@ def run_einsum(expr, N, iters, dtype):
         # We use out= to avoid the use of intermediates, thus reducing memory
         # pressure and allowing us to use larger arrays.
         np.einsum(expr, A, B, out=C)
-        # We rotate the tensors to create a true data dependence between
-        # successive iterations. This means that all tensors need to have the
-        # same shape, and an equal extent on all dimensions. Therefore, we can
-        # only test expressions with the same number of modes on each tensor.
-        A, B, C = B, C, A
+        # We make the output tensor an input to the next iteration, to create a
+        # true data dependence between successive iterations. This means that
+        # at least one of the input tensors needs to have the same shape as the
+        # output tensor. Therefore, we can only use expressions where the
+        # result has the same number of modes as one of the arguments.
+        if swap_a_c:
+            A, C = C, A
+        else:
+            B, C = C, B
     stop = time()
 
     # Print statistics
