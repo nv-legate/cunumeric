@@ -15,6 +15,10 @@ Trigonometric functions
    arcsin
    arccos
    arctan
+   degrees
+   radians
+   deg2rad
+   rad2deg
 
 
 Hyperbolic functions
@@ -23,7 +27,12 @@ Hyperbolic functions
 .. autosummary::
    :toctree: generated/
 
+   sinh
+   cosh
    tanh
+   arcsinh
+   arccosh
+   arctanh
 
 
 Rounding
@@ -35,6 +44,7 @@ Rounding
    rint
    floor
    ceil
+   trunc
 
 
 Sums, products, differences
@@ -54,9 +64,21 @@ Exponents and logarithms
    :toctree: generated/
 
    exp
+   expm1
    exp2
    log
    log10
+   log2
+   log1p
+
+
+Exponents and logarithms
+------------------------
+
+.. autosummary::
+   :toctree: generated/
+
+   signbit
 
 
 Arithmetic operations
@@ -66,6 +88,8 @@ Arithmetic operations
    :toctree: generated/
 
    add
+   reciprocal
+   positive
    negative
    multiply
    divide
@@ -110,6 +134,7 @@ Miscellaneous
    convolve
    clip
    sqrt
+   cbrt
    square
    absolute
    fabs

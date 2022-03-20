@@ -115,6 +115,6 @@ rad2deg = create_unary_ufunc(
     ["e", "f", "d"],
 )
 
-degress = rad2deg
+degrees = rad2deg
 
 radians = deg2rad
