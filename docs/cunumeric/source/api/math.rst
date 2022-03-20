@@ -114,3 +114,6 @@ Miscellaneous
    absolute
    fabs
    sign
+   inner
+   outer
+   vdot
