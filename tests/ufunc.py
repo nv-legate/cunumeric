@@ -34,6 +34,7 @@ def check_result(op, in_np, out_np, out_num):
         print("cuNumeric output:")
         print(out_num)
         print(f"dtype: {out_num.dtype}")
+        print(out_num - out_np)
         assert False
 
 
@@ -78,7 +79,7 @@ def test_all_unary_ops():
         "logical_not",
         "negative",
         "positive",
-        # "reciprocal",
+        "reciprocal",
         "rint",
         "sign",
         "square",
@@ -86,7 +87,7 @@ def test_all_unary_ops():
     test(ops, (np.random.randn(4, 5),))
     test(ops, (np.random.randn(4, 5).astype("e"),))
     test(ops, (np.random.randn(4, 5).astype("f"),))
-    test(ops, (np.random.randint(0, 10, size=(4, 5)),))
+    test(ops, (np.random.randint(1, 10, size=(4, 5)),))
     test(ops, (np.random.randn(1)[0],))
 
     ops = [
@@ -120,8 +121,8 @@ def test_all_unary_ops():
         "arctanh",
         "cos",
         "cosh",
-        # "deg2rad",
-        # "rad2deg",
+        "deg2rad",
+        "rad2deg",
         "sin",
         "sinh",
         "tan",
@@ -141,7 +142,6 @@ def test_all_unary_ops():
 
     # Bit-twiddling functions
     ops = [
-        # "bitwise_not",
         "invert",
     ]
     test(ops, (np.random.randint(0, 2, size=(4, 5)),))
@@ -161,18 +161,19 @@ def test_all_unary_ops():
         # "fmod",
         # "frexp",
         # "modf",
-        # "signbit",
+        "signbit",
         # "spacing",
-        # "trunc",
+        "trunc",
     ]
-    test(ops, (np.random.randn(4, 5) + 3,))
-    test(ops, ((np.random.randn(4, 5) + 3).astype("f"),))
-    test(ops, (np.random.randint(3, 10, size=(4, 5)),))
-    test(ops, (np.random.randint(3, 10, size=(4, 5), dtype="I"),))
+    test(ops, (np.random.randn(4, 5),))
+    test(ops, (np.random.randn(4, 5).astype("f"),))
+    test(ops, (np.random.randn(4, 5).astype("e"),))
+    test(ops, (np.random.randint(0, 10, size=(4, 5)),))
+    test(ops, (np.random.randint(0, 10, size=(4, 5), dtype="I"),))
     test(ops, (np.random.randn(1)[0] + 3,))
 
     ops = [
-        # "isfinite",
+        "isfinite",
         "isinf",
         "isnan",
         # "isnat",

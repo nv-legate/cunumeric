@@ -100,3 +100,21 @@ arctanh = create_unary_ufunc(
     UnaryOpCode.ARCTANH,
     ["e", "f", "d", "F", "D"],
 )
+
+deg2rad = create_unary_ufunc(
+    "Convert angles from degrees to radians.",
+    "deg2rad",
+    UnaryOpCode.DEG2RAD,
+    ["e", "f", "d"],
+)
+
+rad2deg = create_unary_ufunc(
+    "Convert angles from radians to degrees.",
+    "rad2deg",
+    UnaryOpCode.RAD2DEG,
+    ["e", "f", "d"],
+)
+
+degress = rad2deg
+
+radians = deg2rad

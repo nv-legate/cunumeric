@@ -155,6 +155,7 @@ class UnaryOpCode(IntEnum):
     COPY = _cunumeric.CUNUMERIC_UOP_COPY
     COS = _cunumeric.CUNUMERIC_UOP_COS
     COSH = _cunumeric.CUNUMERIC_UOP_COSH
+    DEG2RAD = _cunumeric.CUNUMERIC_UOP_DEG2RAD
     EXP = _cunumeric.CUNUMERIC_UOP_EXP
     EXP2 = _cunumeric.CUNUMERIC_UOP_EXP2
     EXPM1 = _cunumeric.CUNUMERIC_UOP_EXPM1
@@ -162,6 +163,7 @@ class UnaryOpCode(IntEnum):
     GETARG = _cunumeric.CUNUMERIC_UOP_GETARG
     IMAG = _cunumeric.CUNUMERIC_UOP_IMAG
     INVERT = _cunumeric.CUNUMERIC_UOP_INVERT
+    ISFINITE = _cunumeric.CUNUMERIC_UOP_ISFINITE
     ISINF = _cunumeric.CUNUMERIC_UOP_ISINF
     ISNAN = _cunumeric.CUNUMERIC_UOP_ISNAN
     LOG = _cunumeric.CUNUMERIC_UOP_LOG
@@ -171,15 +173,19 @@ class UnaryOpCode(IntEnum):
     LOGICAL_NOT = _cunumeric.CUNUMERIC_UOP_LOGICAL_NOT
     NEGATIVE = _cunumeric.CUNUMERIC_UOP_NEGATIVE
     POSITIVE = _cunumeric.CUNUMERIC_UOP_POSITIVE
+    RAD2DEG = _cunumeric.CUNUMERIC_UOP_RAD2DEG
     REAL = _cunumeric.CUNUMERIC_UOP_REAL
+    RECIPROCAL = _cunumeric.CUNUMERIC_UOP_RECIPROCAL
     RINT = _cunumeric.CUNUMERIC_UOP_RINT
     SIGN = _cunumeric.CUNUMERIC_UOP_SIGN
+    SIGNBIT = _cunumeric.CUNUMERIC_UOP_SIGNBIT
     SIN = _cunumeric.CUNUMERIC_UOP_SIN
     SINH = _cunumeric.CUNUMERIC_UOP_SINH
     SQUARE = _cunumeric.CUNUMERIC_UOP_SQUARE
     SQRT = _cunumeric.CUNUMERIC_UOP_SQRT
     TAN = _cunumeric.CUNUMERIC_UOP_TAN
     TANH = _cunumeric.CUNUMERIC_UOP_TANH
+    TRUNC = _cunumeric.CUNUMERIC_UOP_TRUNC
 
 
 # Match these to UnaryRedCode in unary_red_util.h

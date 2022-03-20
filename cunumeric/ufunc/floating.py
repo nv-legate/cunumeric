@@ -17,6 +17,14 @@ from cunumeric.config import UnaryOpCode
 
 from .ufunc import create_unary_ufunc
 
+isfinite = create_unary_ufunc(
+    "Test element-wise for finiteness (not infinity and not Not a Number).",
+    "isfinite",
+    UnaryOpCode.ISFINITE,
+    ["e?", "f?", "d?", "F?", "D?"],
+)
+
+
 isinf = create_unary_ufunc(
     "Test element-wise for positive or negative infinity.",
     "isinf",
@@ -33,6 +41,22 @@ isnan = create_unary_ufunc(
 )
 
 
+fabs = create_unary_ufunc(
+    "Compute the absolute values element-wise.",
+    "fabs",
+    UnaryOpCode.ABSOLUTE,
+    ["e", "f", "d"],
+)
+
+
+signbit = create_unary_ufunc(
+    "Returns element-wise True where signbit is set (less than zero).",
+    "signbit",
+    UnaryOpCode.SIGNBIT,
+    ["e?", "f?", "d?"],
+)
+
+
 floor = create_unary_ufunc(
     "Return the floor of the input, element-wise.",
     "floor",
@@ -45,4 +69,11 @@ ceil = create_unary_ufunc(
     "ceil",
     UnaryOpCode.CEIL,
     ["e", "f", "d"],
+)
+
+trunc = create_unary_ufunc(
+    "Return the truncated value of the input, element-wise.",
+    "trunc",
+    UnaryOpCode.TRUNC,
+    ["e", "f", "d", "F", "D"],
 )

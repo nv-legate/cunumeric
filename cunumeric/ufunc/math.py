@@ -89,13 +89,6 @@ absolute = create_unary_ufunc(
 
 abs = absolute
 
-fabs = create_unary_ufunc(
-    "Compute the absolute values element-wise.",
-    "fabs",
-    UnaryOpCode.ABSOLUTE,
-    ["e", "f", "d"],
-)
-
 rint = create_unary_ufunc(
     "Round elements of the array to the nearest integer.",
     "rint",
@@ -237,4 +230,28 @@ cbrt = create_unary_ufunc(
     "cbrt",
     UnaryOpCode.CBRT,
     ["e", "f", "d"],
+)
+
+reciprocal = create_unary_ufunc(
+    "Return the reciprocal of the argument, element-wise.",
+    "reciprocal",
+    UnaryOpCode.RECIPROCAL,
+    [
+        "b",
+        "B",
+        "h",
+        "H",
+        "i",
+        "I",
+        "l",
+        "L",
+        "q",
+        "Q",
+        "e",
+        "f",
+        "d",
+        "g",
+        "F",
+        "D",
+    ],
 )
