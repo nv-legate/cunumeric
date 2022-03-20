@@ -138,37 +138,37 @@ class BinaryOpCode(IntEnum):
     ALLCLOSE = 19
 
 
-# Match these to UnaryOpCode in unary_op_util.h
+# Match these to CuNumericUnaryOpCode in cunumeric_c.h
 @unique
 class UnaryOpCode(IntEnum):
-    ABSOLUTE = 1
-    ARCCOS = 2
-    ARCSIN = 3
-    ARCTAN = 4
-    CEIL = 5
-    CLIP = 6
-    COPY = 7
-    COS = 8
-    EXP = 9
-    EXP2 = 10
-    FLOOR = 11
-    INVERT = 12
-    ISINF = 13
-    ISNAN = 14
-    LOG = 15
-    LOG10 = 16
-    LOGICAL_NOT = 17
-    NEGATIVE = 18
-    RINT = 19
-    SIGN = 20
-    SIN = 21
-    SQRT = 22
-    TAN = 23
-    TANH = 24
-    CONJ = 25
-    REAL = 26
-    IMAG = 27
-    GETARG = 28
+    ABSOLUTE = _cunumeric.CUNUMERIC_UOP_ABSOLUTE
+    ARCCOS = _cunumeric.CUNUMERIC_UOP_ARCCOS
+    ARCSIN = _cunumeric.CUNUMERIC_UOP_ARCSIN
+    ARCTAN = _cunumeric.CUNUMERIC_UOP_ARCTAN
+    CEIL = _cunumeric.CUNUMERIC_UOP_CEIL
+    CLIP = _cunumeric.CUNUMERIC_UOP_CLIP
+    CONJ = _cunumeric.CUNUMERIC_UOP_CONJ
+    COPY = _cunumeric.CUNUMERIC_UOP_COPY
+    COS = _cunumeric.CUNUMERIC_UOP_COS
+    EXP = _cunumeric.CUNUMERIC_UOP_EXP
+    EXP2 = _cunumeric.CUNUMERIC_UOP_EXP2
+    FLOOR = _cunumeric.CUNUMERIC_UOP_FLOOR
+    GETARG = _cunumeric.CUNUMERIC_UOP_GETARG
+    IMAG = _cunumeric.CUNUMERIC_UOP_IMAG
+    INVERT = _cunumeric.CUNUMERIC_UOP_INVERT
+    ISINF = _cunumeric.CUNUMERIC_UOP_ISINF
+    ISNAN = _cunumeric.CUNUMERIC_UOP_ISNAN
+    LOG = _cunumeric.CUNUMERIC_UOP_LOG
+    LOG10 = _cunumeric.CUNUMERIC_UOP_LOG10
+    LOGICAL_NOT = _cunumeric.CUNUMERIC_UOP_LOGICAL_NOT
+    NEGATIVE = _cunumeric.CUNUMERIC_UOP_NEGATIVE
+    REAL = _cunumeric.CUNUMERIC_UOP_REAL
+    RINT = _cunumeric.CUNUMERIC_UOP_RINT
+    SIGN = _cunumeric.CUNUMERIC_UOP_SIGN
+    SIN = _cunumeric.CUNUMERIC_UOP_SIN
+    SQRT = _cunumeric.CUNUMERIC_UOP_SQRT
+    TAN = _cunumeric.CUNUMERIC_UOP_TAN
+    TANH = _cunumeric.CUNUMERIC_UOP_TANH
 
 
 # Match these to UnaryRedCode in unary_red_util.h
