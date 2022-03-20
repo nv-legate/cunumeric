@@ -59,9 +59,44 @@ arctan = create_unary_ufunc(
     ["e", "f", "d", "F", "D"],
 )
 
+sinh = create_unary_ufunc(
+    "Hyperbolic sine, element-wise.",
+    "sinh",
+    UnaryOpCode.SINH,
+    ["e", "f", "d", "F", "D"],
+)
+
+cosh = create_unary_ufunc(
+    "Hyperbolic cosine, element-wise.",
+    "cos",
+    UnaryOpCode.COSH,
+    ["e", "f", "d", "F", "D"],
+)
+
 tanh = create_unary_ufunc(
     "Compute hyperbolic tangent element-wise.",
     "tanh",
     UnaryOpCode.TANH,
+    ["e", "f", "d", "F", "D"],
+)
+
+arcsinh = create_unary_ufunc(
+    "Inverse hyperbolic sine element-wise.",
+    "arcsinh",
+    UnaryOpCode.ARCSINH,
+    ["e", "f", "d", "F", "D"],
+)
+
+arccosh = create_unary_ufunc(
+    "Inverse hyperbolic cosine, element-wise.",
+    "arccosh",
+    UnaryOpCode.ARCCOSH,
+    ["e", "f", "d", "F", "D"],
+)
+
+arctanh = create_unary_ufunc(
+    "Inverse hyperbolic tangent element-wise.",
+    "arctanh",
+    UnaryOpCode.ARCTANH,
     ["e", "f", "d", "F", "D"],
 )

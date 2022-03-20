@@ -40,6 +40,29 @@ negative = create_unary_ufunc(
     ],
 )
 
+positive = create_unary_ufunc(
+    "Numerical positive, element-wise.",
+    "positive",
+    UnaryOpCode.POSITIVE,
+    [
+        "b",
+        "B",
+        "h",
+        "H",
+        "i",
+        "I",
+        "l",
+        "L",
+        "q",
+        "Q",
+        "e",
+        "f",
+        "d",
+        "F",
+        "D",
+    ],
+)
+
 absolute = create_unary_ufunc(
     "Calculate the absolute value element-wise.",
     "absolute",
@@ -150,6 +173,13 @@ log = create_unary_ufunc(
     ["e", "f", "d", "F", "D"],
 )
 
+log2 = create_unary_ufunc(
+    "Base-2 logarithm of x.",
+    "log2",
+    UnaryOpCode.LOG2,
+    ["e", "f", "d", "F", "D"],
+)
+
 log10 = create_unary_ufunc(
     "Return the base 10 logarithm of the input array, element-wise.",
     "log10",
@@ -157,9 +187,54 @@ log10 = create_unary_ufunc(
     ["e", "f", "d", "F", "D"],
 )
 
+expm1 = create_unary_ufunc(
+    "Calculate ``exp(x) - 1`` for all elements in the array.",
+    "expm1",
+    UnaryOpCode.EXPM1,
+    ["e", "f", "d", "F", "D"],
+)
+
+log1p = create_unary_ufunc(
+    "Return the natural logarithm of one plus the input array, element-wise.",
+    "log1p",
+    UnaryOpCode.LOG1P,
+    ["e", "f", "d", "F", "D"],
+)
+
+square = create_unary_ufunc(
+    "Return the element-wise square of the input.",
+    "square",
+    UnaryOpCode.SQUARE,
+    [
+        "b",
+        "B",
+        "h",
+        "H",
+        "i",
+        "I",
+        "l",
+        "L",
+        "q",
+        "Q",
+        "e",
+        "f",
+        "d",
+        "g",
+        "F",
+        "D",
+    ],
+)
+
 sqrt = create_unary_ufunc(
     "Return the non-negative square-root of an array, element-wise.",
     "sqrt",
     UnaryOpCode.SQRT,
     ["e", "f", "d", "F", "D"],
+)
+
+cbrt = create_unary_ufunc(
+    "Return the cube-root of an array, element-wise.",
+    "cbrt",
+    UnaryOpCode.CBRT,
+    ["e", "f", "d"],
 )

@@ -21,24 +21,36 @@ from .thunk import NumPyThunk
 _UNARY_OPS = {
     UnaryOpCode.ABSOLUTE: np.absolute,
     UnaryOpCode.ARCCOS: np.arccos,
+    UnaryOpCode.ARCCOSH: np.arccosh,
     UnaryOpCode.ARCSIN: np.arcsin,
+    UnaryOpCode.ARCSINH: np.arcsinh,
     UnaryOpCode.ARCTAN: np.arctan,
+    UnaryOpCode.ARCTANH: np.arctanh,
+    UnaryOpCode.CBRT: np.cbrt,
     UnaryOpCode.CEIL: np.ceil,
+    UnaryOpCode.CONJ: np.conj,
     UnaryOpCode.COS: np.cos,
-    UnaryOpCode.EXP: np.exp,
+    UnaryOpCode.COSH: np.cosh,
     UnaryOpCode.EXP2: np.exp2,
+    UnaryOpCode.EXP: np.exp,
+    UnaryOpCode.EXPM1: np.expm1,
     UnaryOpCode.FLOOR: np.floor,
     UnaryOpCode.INVERT: np.invert,
     UnaryOpCode.ISINF: np.isinf,
     UnaryOpCode.ISNAN: np.isnan,
-    UnaryOpCode.LOG: np.log,
     UnaryOpCode.LOG10: np.log10,
+    UnaryOpCode.LOG1P: np.log1p,
+    UnaryOpCode.LOG2: np.log2,
+    UnaryOpCode.LOG: np.log,
     UnaryOpCode.LOGICAL_NOT: np.logical_not,
     UnaryOpCode.NEGATIVE: np.negative,
+    UnaryOpCode.POSITIVE: np.positive,
     UnaryOpCode.RINT: np.rint,
     UnaryOpCode.SIGN: np.sign,
     UnaryOpCode.SIN: np.sin,
+    UnaryOpCode.SINH: np.sinh,
     UnaryOpCode.SQRT: np.sqrt,
+    UnaryOpCode.SQUARE: np.square,
     UnaryOpCode.TAN: np.tan,
     UnaryOpCode.TANH: np.tanh,
 }
@@ -554,8 +566,6 @@ class EagerArray(NumPyThunk):
             self.array = np.imag(rhs.array)
         elif op == UnaryOpCode.REAL:
             self.array = np.real(rhs.array)
-        elif op == UnaryOpCode.CONJ:
-            np.conj(rhs.array, out=self.array)
         else:
             raise RuntimeError("unsupported unary op " + str(op))
 

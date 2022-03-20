@@ -73,56 +73,71 @@ def test_all_unary_ops():
         "conjugate",
         "exp",
         "exp2",
-        # "expm1",
+        "expm1",
         "fabs",
         "logical_not",
         "negative",
-        # "positive",
+        "positive",
         # "reciprocal",
         "rint",
         "sign",
-        # "square",
+        "square",
     ]
     test(ops, (np.random.randn(4, 5),))
+    test(ops, (np.random.randn(4, 5).astype("e"),))
     test(ops, (np.random.randn(4, 5).astype("f"),))
     test(ops, (np.random.randint(0, 10, size=(4, 5)),))
     test(ops, (np.random.randn(1)[0],))
 
     ops = [
-        # "cbrt",
         "log",
         "log10",
-        # "log1p",
-        # "log2",
+        "log1p",
+        "log2",
         "sqrt",
     ]
     test(ops, (np.random.randn(4, 5) + 3,))
+    test(ops, (np.random.randn(4, 5).astype("e") + 3,))
     test(ops, (np.random.randn(4, 5).astype("f") + 3,))
     test(ops, (np.random.randn(4, 5).astype("F") + 3,), out_dtype="D")
     test(ops, (np.random.randint(3, 10, size=(4, 5)),))
     test(ops, (np.random.randn(1)[0] + 3,))
 
+    ops = [
+        "cbrt",
+    ]
+    test(ops, (np.random.randn(4, 5),))
+    test(ops, (np.random.randn(4, 5).astype("e"),))
+    test(ops, (np.random.randn(4, 5).astype("f"),))
+    test(ops, (np.random.randint(0, 10, size=(4, 5)),))
+    test(ops, (np.random.randn(1)[0] + 3,))
+
     # Trigonometric functions
     ops = [
         "arccos",
-        # "arccosh",
         "arcsin",
-        # "arcsinh",
         "arctan",
-        # "arctanh",
+        "arctanh",
         "cos",
-        # "cosh",
+        "cosh",
         # "deg2rad",
-        # "degrees",
         # "rad2deg",
-        # "radians",
         "sin",
-        # "sinh",
+        "sinh",
         "tan",
         "tanh",
     ]
     test(ops, (np.random.uniform(low=-1, high=1, size=(4, 5)),))
+    test(ops, (np.random.uniform(low=-1, high=1, size=(4, 5)).astype("e"),))
     test(ops, (np.array(np.random.uniform(low=-1, high=1)),))
+
+    ops = [
+        "arccosh",
+        "arcsinh",
+    ]
+    test(ops, (np.random.uniform(low=1, high=5, size=(4, 5)),))
+    test(ops, (np.random.uniform(low=1, high=5, size=(4, 5)).astype("e"),))
+    test(ops, (np.array(np.random.uniform(low=1, high=5)),))
 
     # Bit-twiddling functions
     ops = [

@@ -1202,12 +1202,6 @@ class ndarray(object):
         Multiple GPUs, Multiple CPUs
 
         """
-        if (
-            self.dtype.type == np.uint16
-            or self.dtype.type == np.uint32
-            or self.dtype.type == np.uint64
-        ):
-            raise TypeError("cannot negate unsigned type " + str(self.dtype))
         return self._perform_unary_op(UnaryOpCode.NEGATIVE, self)
 
     # __new__
@@ -1277,15 +1271,8 @@ class ndarray(object):
         Multiple GPUs, Multiple CPUs
 
         """
-        # We know these types are already positive
-        if (
-            self.dtype.type == np.uint16
-            or self.dtype.type == np.uint32
-            or self.dtype.type == np.uint64
-            or self.dtype.type == np.bool_
-        ):
-            return self
-        return self._perform_unary_op(UnaryOpCode.POSITIVE, self)
+        # the positive opeartor is equivalent to copy
+        return self._perform_unary_op(UnaryOpCode.COPY, self)
 
     def __pow__(self, rhs):
         """a.__pow__(value, /)
