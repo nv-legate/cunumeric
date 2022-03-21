@@ -341,7 +341,6 @@ class binary_ufunc(ufunc):
                 result = out
 
         x1, x2 = arrs
-        print(self._op_code)
         result._thunk.binary_op(self._op_code, x1._thunk, x2._thunk, where, ())
 
         if out is not result:

@@ -114,28 +114,28 @@ class CuNumericOpCode(IntEnum):
     WRITE = _cunumeric.CUNUMERIC_WRITE
 
 
-# Match these to BinaryOpCode in binary_op_util.h
+# Match these to CuNumericBinaryOpCode in cunumeric_c.h
 @unique
 class BinaryOpCode(IntEnum):
-    ADD = 1
-    DIVIDE = 2
-    EQUAL = 3
-    FLOOR_DIVIDE = 4
-    GREATER = 5
-    GREATER_EQUAL = 6
-    LESS = 7
-    LESS_EQUAL = 8
-    LOGICAL_AND = 9
-    LOGICAL_OR = 10
-    LOGICAL_XOR = 11
-    MAXIMUM = 12
-    MINIMUM = 13
-    MOD = 14
-    MULTIPLY = 15
-    NOT_EQUAL = 16
-    POWER = 17
-    SUBTRACT = 18
-    ALLCLOSE = 19
+    ADD = _cunumeric.CUNUMERIC_BINOP_ADD
+    ALLCLOSE = _cunumeric.CUNUMERIC_BINOP_ALLCLOSE
+    DIVIDE = _cunumeric.CUNUMERIC_BINOP_DIVIDE
+    EQUAL = _cunumeric.CUNUMERIC_BINOP_EQUAL
+    FLOOR_DIVIDE = _cunumeric.CUNUMERIC_BINOP_FLOOR_DIVIDE
+    GREATER = _cunumeric.CUNUMERIC_BINOP_GREATER
+    GREATER_EQUAL = _cunumeric.CUNUMERIC_BINOP_GREATER_EQUAL
+    LESS = _cunumeric.CUNUMERIC_BINOP_LESS
+    LESS_EQUAL = _cunumeric.CUNUMERIC_BINOP_LESS_EQUAL
+    LOGICAL_AND = _cunumeric.CUNUMERIC_BINOP_LOGICAL_AND
+    LOGICAL_OR = _cunumeric.CUNUMERIC_BINOP_LOGICAL_OR
+    LOGICAL_XOR = _cunumeric.CUNUMERIC_BINOP_LOGICAL_XOR
+    MAXIMUM = _cunumeric.CUNUMERIC_BINOP_MAXIMUM
+    MINIMUM = _cunumeric.CUNUMERIC_BINOP_MINIMUM
+    MOD = _cunumeric.CUNUMERIC_BINOP_MOD
+    MULTIPLY = _cunumeric.CUNUMERIC_BINOP_MULTIPLY
+    NOT_EQUAL = _cunumeric.CUNUMERIC_BINOP_NOT_EQUAL
+    POWER = _cunumeric.CUNUMERIC_BINOP_POWER
+    SUBTRACT = _cunumeric.CUNUMERIC_BINOP_SUBTRACT
 
 
 # Match these to CuNumericUnaryOpCode in cunumeric_c.h
