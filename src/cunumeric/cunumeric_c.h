@@ -109,6 +109,21 @@ enum CuNumericUnaryOpCode {
   CUNUMERIC_UOP_TRUNC,
 };
 
+// Match these to UnaryRedCode in config.py
+// Also, sort these alphabetically for easy lookup later
+enum CuNumericUnaryRedCode {
+  CUNUMERIC_RED_ALL = 1,
+  CUNUMERIC_RED_ANY,
+  CUNUMERIC_RED_ARGMAX,
+  CUNUMERIC_RED_ARGMIN,
+  CUNUMERIC_RED_CONTAINS,
+  CUNUMERIC_RED_COUNT_NONZERO,
+  CUNUMERIC_RED_MAX,
+  CUNUMERIC_RED_MIN,
+  CUNUMERIC_RED_PROD,
+  CUNUMERIC_RED_SUM,
+};
+
 // Match these to BinaryOpCode in config.py
 // Also, sort these alphabetically for easy lookup later
 enum CuNumericBinaryOpCode {

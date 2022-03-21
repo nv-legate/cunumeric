@@ -114,30 +114,6 @@ class CuNumericOpCode(IntEnum):
     WRITE = _cunumeric.CUNUMERIC_WRITE
 
 
-# Match these to CuNumericBinaryOpCode in cunumeric_c.h
-@unique
-class BinaryOpCode(IntEnum):
-    ADD = _cunumeric.CUNUMERIC_BINOP_ADD
-    ALLCLOSE = _cunumeric.CUNUMERIC_BINOP_ALLCLOSE
-    DIVIDE = _cunumeric.CUNUMERIC_BINOP_DIVIDE
-    EQUAL = _cunumeric.CUNUMERIC_BINOP_EQUAL
-    FLOOR_DIVIDE = _cunumeric.CUNUMERIC_BINOP_FLOOR_DIVIDE
-    GREATER = _cunumeric.CUNUMERIC_BINOP_GREATER
-    GREATER_EQUAL = _cunumeric.CUNUMERIC_BINOP_GREATER_EQUAL
-    LESS = _cunumeric.CUNUMERIC_BINOP_LESS
-    LESS_EQUAL = _cunumeric.CUNUMERIC_BINOP_LESS_EQUAL
-    LOGICAL_AND = _cunumeric.CUNUMERIC_BINOP_LOGICAL_AND
-    LOGICAL_OR = _cunumeric.CUNUMERIC_BINOP_LOGICAL_OR
-    LOGICAL_XOR = _cunumeric.CUNUMERIC_BINOP_LOGICAL_XOR
-    MAXIMUM = _cunumeric.CUNUMERIC_BINOP_MAXIMUM
-    MINIMUM = _cunumeric.CUNUMERIC_BINOP_MINIMUM
-    MOD = _cunumeric.CUNUMERIC_BINOP_MOD
-    MULTIPLY = _cunumeric.CUNUMERIC_BINOP_MULTIPLY
-    NOT_EQUAL = _cunumeric.CUNUMERIC_BINOP_NOT_EQUAL
-    POWER = _cunumeric.CUNUMERIC_BINOP_POWER
-    SUBTRACT = _cunumeric.CUNUMERIC_BINOP_SUBTRACT
-
-
 # Match these to CuNumericUnaryOpCode in cunumeric_c.h
 @unique
 class UnaryOpCode(IntEnum):
@@ -188,19 +164,43 @@ class UnaryOpCode(IntEnum):
     TRUNC = _cunumeric.CUNUMERIC_UOP_TRUNC
 
 
-# Match these to UnaryRedCode in unary_red_util.h
+# Match these to CuNumericRedopCode in cunumeric_c.h
 @unique
 class UnaryRedCode(IntEnum):
-    ALL = 1
-    ANY = 2
-    MAX = 3
-    MIN = 4
-    PROD = 5
-    SUM = 6
-    ARGMAX = 7
-    ARGMIN = 8
-    CONTAINS = 9
-    COUNT_NONZERO = 10
+    ALL = _cunumeric.CUNUMERIC_RED_ALL
+    ANY = _cunumeric.CUNUMERIC_RED_ANY
+    ARGMAX = _cunumeric.CUNUMERIC_RED_ARGMAX
+    ARGMIN = _cunumeric.CUNUMERIC_RED_ARGMIN
+    CONTAINS = _cunumeric.CUNUMERIC_RED_CONTAINS
+    COUNT_NONZERO = _cunumeric.CUNUMERIC_RED_COUNT_NONZERO
+    MAX = _cunumeric.CUNUMERIC_RED_MAX
+    MIN = _cunumeric.CUNUMERIC_RED_MIN
+    PROD = _cunumeric.CUNUMERIC_RED_PROD
+    SUM = _cunumeric.CUNUMERIC_RED_SUM
+
+
+# Match these to CuNumericBinaryOpCode in cunumeric_c.h
+@unique
+class BinaryOpCode(IntEnum):
+    ADD = _cunumeric.CUNUMERIC_BINOP_ADD
+    ALLCLOSE = _cunumeric.CUNUMERIC_BINOP_ALLCLOSE
+    DIVIDE = _cunumeric.CUNUMERIC_BINOP_DIVIDE
+    EQUAL = _cunumeric.CUNUMERIC_BINOP_EQUAL
+    FLOOR_DIVIDE = _cunumeric.CUNUMERIC_BINOP_FLOOR_DIVIDE
+    GREATER = _cunumeric.CUNUMERIC_BINOP_GREATER
+    GREATER_EQUAL = _cunumeric.CUNUMERIC_BINOP_GREATER_EQUAL
+    LESS = _cunumeric.CUNUMERIC_BINOP_LESS
+    LESS_EQUAL = _cunumeric.CUNUMERIC_BINOP_LESS_EQUAL
+    LOGICAL_AND = _cunumeric.CUNUMERIC_BINOP_LOGICAL_AND
+    LOGICAL_OR = _cunumeric.CUNUMERIC_BINOP_LOGICAL_OR
+    LOGICAL_XOR = _cunumeric.CUNUMERIC_BINOP_LOGICAL_XOR
+    MAXIMUM = _cunumeric.CUNUMERIC_BINOP_MAXIMUM
+    MINIMUM = _cunumeric.CUNUMERIC_BINOP_MINIMUM
+    MOD = _cunumeric.CUNUMERIC_BINOP_MOD
+    MULTIPLY = _cunumeric.CUNUMERIC_BINOP_MULTIPLY
+    NOT_EQUAL = _cunumeric.CUNUMERIC_BINOP_NOT_EQUAL
+    POWER = _cunumeric.CUNUMERIC_BINOP_POWER
+    SUBTRACT = _cunumeric.CUNUMERIC_BINOP_SUBTRACT
 
 
 # Match these to RandGenCode in rand_util.h
