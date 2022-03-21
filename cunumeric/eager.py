@@ -373,7 +373,10 @@ class EagerArray(NumPyThunk):
             if self.array.size == 1:
                 self.array.fill(rhs.array.item())
             else:
-                if rhs.array.dtype.kind == "c" and self.array.dtype != "c":
+                if (
+                    rhs.array.dtype.kind == "c"
+                    and self.array.dtype.kind != "c"
+                ):
                     self.array[:] = rhs.array.real
                 else:
                     self.array[:] = rhs.array

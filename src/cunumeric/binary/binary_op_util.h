@@ -115,9 +115,22 @@ struct BinaryOp<BinaryOpCode::ADD, CODE> : std::plus<legate::legate_type_of<CODE
 };
 
 template <legate::LegateTypeCode CODE>
-struct BinaryOp<BinaryOpCode::DIVIDE, CODE> : std::divides<legate::legate_type_of<CODE>> {
+struct BinaryOp<BinaryOpCode::DIVIDE, CODE> {
+  using T                     = legate::legate_type_of<CODE>;
   static constexpr bool valid = true;
   BinaryOp(const std::vector<legate::Store>& args) {}
+
+  template <typename _T = T, std::enable_if_t<std::is_integral<_T>::value>* = nullptr>
+  constexpr double operator()(const T& a, const T& b) const
+  {
+    return static_cast<double>(a) / b;
+  }
+
+  template <typename _T = T, std::enable_if_t<!std::is_integral<_T>::value>* = nullptr>
+  constexpr T operator()(const T& a, const T& b) const
+  {
+    return a / b;
+  }
 };
 
 template <legate::LegateTypeCode CODE>
@@ -132,7 +145,27 @@ struct BinaryOp<BinaryOpCode::FLOOR_DIVIDE, CODE> {
   using T                     = legate::legate_type_of<CODE>;
   static constexpr bool valid = true;
   BinaryOp(const std::vector<legate::Store>& args) {}
-  constexpr T operator()(const T& a, const T& b) const { return floor(a / b); }
+
+  template <typename _T                                                                  = T,
+            std::enable_if_t<std::is_integral<_T>::value and std::is_signed<_T>::value>* = nullptr>
+  constexpr T operator()(const T& a, const T& b) const
+  {
+    auto r = a / b;
+    return r - (((a < 0) != (b < 0)) && r * b != a);
+  }
+
+  template <typename _T                                                                   = T,
+            std::enable_if_t<std::is_integral<_T>::value and !std::is_signed<_T>::value>* = nullptr>
+  constexpr T operator()(const T& a, const T& b) const
+  {
+    return a / b;
+  }
+
+  template <typename _T = T, std::enable_if_t<!std::is_integral<_T>::value>* = nullptr>
+  constexpr T operator()(const T& a, const T& b) const
+  {
+    return floor(a / b);
+  }
 };
 
 template <>

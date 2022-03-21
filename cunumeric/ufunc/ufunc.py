@@ -52,12 +52,32 @@ integer_dtypes = [
 
 all_but_boolean = integer_dtypes + float_and_complex
 
+all_dtypes = ["?"] + all_but_boolean
+
 
 def predicate_types_of(dtypes):
     return [ty + "?" for ty in dtypes]
 
 
-class unary_ufunc(object):
+def relation_types_of(dtypes):
+    return [ty * 2 + "?" for ty in dtypes]
+
+
+class ufunc:
+    def _maybe_cast_input(self, arr, to_dtype, casting):
+        if arr.dtype == to_dtype:
+            return arr
+
+        if not np_can_cast(arr.dtype, to_dtype):
+            raise TypeError(
+                f"Cannot cast ufunc '{self._name}' input from "
+                f"{arr.dtype} to {to_dtype} with casting rule '{casting}'"
+            )
+
+        return arr.astype(to_dtype)
+
+
+class unary_ufunc(ufunc):
     def __init__(self, name, doc, op_code, types, overrides):
         self._name = name
         self._op_code = op_code
@@ -76,25 +96,11 @@ class unary_ufunc(object):
 
     @property
     def types(self):
-        return list(
-            f"{in_ty}->{out_ty}" for in_ty, out_ty in self._types.items()
-        )
+        return [f"{in_ty}->{out_ty}" for in_ty, out_ty in self._types.items()]
 
     @property
     def ntypes(self):
         return len(self._types)
-
-    def _maybe_cast_input(self, arr, to_dtype, casting):
-        if arr.dtype == to_dtype:
-            return arr
-
-        if not np_can_cast(arr.dtype, to_dtype):
-            raise TypeError(
-                f"Cannot cast ufunc '{self._name}' input from "
-                f"{arr.dtype} to {to_dtype} with casting rule '{casting}'"
-            )
-
-        return arr.astype(to_dtype)
 
     def _resolve_dtype(self, arr, casting, precision_fixed):
         if arr.dtype.char in self._types:
@@ -102,7 +108,7 @@ class unary_ufunc(object):
 
         if arr.dtype in self._resolution_cache:
             to_dtype = self._resolution_cache[arr.dtype]
-            arr = self._maybe_cast_input(arr, to_dtype, casting)
+            arr = arr.astype(to_dtype)
             return arr, np_dtype(self._types[to_dtype.char])
 
         chosen = None
@@ -158,9 +164,7 @@ class unary_ufunc(object):
         # If no dtype is given to prescribe the accuracy, we use the dtype
         # of the input
         precision_fixed = False
-        if dtype is None:
-            dtype = x.dtype
-        else:
+        if dtype is not None:
             # If a dtype is given, that determines the precision
             # of the computation.
             precision_fixed = True
@@ -200,6 +204,155 @@ class unary_ufunc(object):
         return f"<ufunc {self._name}>"
 
 
+class binary_ufunc(ufunc):
+    def __init__(self, name, doc, op_code, types):
+        self._name = name
+        self._op_code = op_code
+        self._types = types
+        self._resolution_cache = {}
+        self.__doc__ = doc
+
+    @property
+    def nin(self):
+        return 2
+
+    @property
+    def nout(self):
+        return 1
+
+    @property
+    def types(self):
+        return [
+            f"{''.join(in_tys)}->{out_ty}"
+            for in_tys, out_ty in self._types.items()
+        ]
+
+    @property
+    def ntypes(self):
+        return len(self._types)
+
+    def _resolve_dtype(self, arrs, casting, precision_fixed):
+        common_dtype = ndarray.find_common_type(*arrs)
+
+        key = (common_dtype.char, common_dtype.char)
+        if key in self._types:
+            arrs = [arr.astype(common_dtype) for arr in arrs]
+            return arrs, np_dtype(self._types[key])
+
+        if key in self._resolution_cache:
+            to_dtypes = self._resolution_cache[key]
+            arrs = [
+                arr.astype(to_dtype) for arr, to_dtype in zip(arrs, to_dtypes)
+            ]
+            return arrs, np_dtype(self._types[to_dtypes])
+
+        chosen = None
+        if not precision_fixed:
+            for in_dtypes in self._types.keys():
+                if all(
+                    np_can_cast(arr.dtype, to_dtype)
+                    for arr, to_dtype in zip(arrs, in_dtypes)
+                ):
+                    chosen = in_dtypes
+                    break
+
+        if chosen is None:
+            raise TypeError(
+                f"No matching signature of ufunc {self._name} is found "
+                "for the given casting"
+            )
+
+        self._resolution_cache[key] = chosen
+        arrs = [arr.astype(to_dtype) for arr, to_dtype in zip(arrs, chosen)]
+
+        return arrs, np_dtype(self._types[chosen])
+
+    def __call__(
+        self,
+        x1,
+        x2,
+        out=None,
+        where=True,
+        casting="same_kind",
+        order="K",
+        dtype=None,
+        **kwargs,
+    ):
+        arrs = [convert_to_cunumeric_ndarray(arr) for arr in (x1, x2)]
+
+        if out is not None:
+            if isinstance(out, tuple):
+                if len(out) != 1:
+                    raise ValueError(
+                        "The 'out' tuple must have exactly one entry "
+                        "per ufunc output"
+                    )
+                out = out[0]
+
+            if not isinstance(out, ndarray):
+                raise TypeError("return arrays must be of ArrayType")
+
+            # Check if the broadcasting is possible
+            out_shape = broadcast_shapes(
+                arrs[0].shape, arrs[1].shape, out.shape
+            )
+        else:
+            # Check if the broadcasting is possible
+            out_shape = broadcast_shapes(arrs[0].shape, arrs[1].shape)
+
+        if not isinstance(where, bool) or not where:
+            raise NotImplementedError(
+                "the 'where' keyword is not yet supported"
+            )
+
+        # If no dtype is given to prescribe the accuracy, we use the dtype
+        # of the input
+        precision_fixed = False
+        if dtype is not None:
+            # If a dtype is given, that determines the precision
+            # of the computation.
+            precision_fixed = True
+            arrs = [
+                self._maybe_cast_input(arr, dtype, casting) for arr in arrs
+            ]
+
+        # Resolve the dtype to use for the computation and cast the input
+        # if necessary. If the dtype is already fixed by the caller,
+        # the dtype must be one of the dtypes supported by this operation.
+        arrs, res_dtype = self._resolve_dtype(arrs, casting, precision_fixed)
+
+        if out is None:
+            result = ndarray(
+                shape=out_shape, dtype=res_dtype, inputs=(*arrs, where)
+            )
+            out = result
+        else:
+            if out.dtype != res_dtype:
+                if not np_can_cast(res_dtype, out.dtype):
+                    raise TypeError(
+                        f"Cannot cast ufunc '{self._name}' output from "
+                        f"{res_dtype} to {out.dtype} with casting rule "
+                        f"'{casting}'"
+                    )
+                result = ndarray(
+                    shape=out.shape, dtype=res_dtype, inputs=(*arrs, where)
+                )
+            else:
+                result = out
+
+        x1, x2 = arrs
+        print(self._op_code)
+        result._thunk.binary_op(self._op_code, x1._thunk, x2._thunk, where, ())
+
+        if out is not result:
+            out._thunk.convert(result._thunk, warn=False)
+
+        return out
+
+    def __repr__(self):
+        return f"<ufunc {self._name}>"
+
+
 def _parse_unary_ufunc_type(ty):
     if len(ty) == 1:
         return (ty, ty)
@@ -213,3 +366,24 @@ def create_unary_ufunc(summary, name, op_code, types, overrides={}):
     doc = _DOCSTRING_TEMPLATE.format(summary, name)
     types = dict(_parse_unary_ufunc_type(ty) for ty in types)
     return unary_ufunc(name, doc, op_code, types, overrides)
+
+
+def _parse_binary_ufunc_type(ty):
+    if len(ty) == 1:
+        return ((ty, ty), ty)
+    else:
+        if len(ty) != 3:
+            raise NotImplementedError(
+                "Binary ufunc must have two inputs and one output"
+            )
+        elif ty[0] != ty[1]:
+            raise NotImplementedError(
+                "Operands of binary ufunc must have the same dtype"
+            )
+        return ((ty[0], ty[1]), ty[2])
+
+
+def create_binary_ufunc(summary, name, op_code, types):
+    doc = _DOCSTRING_TEMPLATE.format(summary, name)
+    types = dict(_parse_binary_ufunc_type(ty) for ty in types)
+    return binary_ufunc(name, doc, op_code, types)

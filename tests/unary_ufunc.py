@@ -34,7 +34,6 @@ def check_result(op, in_np, out_np, out_num):
         print("cuNumeric output:")
         print(out_num)
         print(f"dtype: {out_num.dtype}")
-        print(out_num - out_np)
         assert False
 
 
@@ -182,17 +181,17 @@ def test_all_unary_ops():
     test(ops, (np.array(np.inf),))
 
 
-def test_binary():
-    pass
-
-
 def parse_inputs(in_str, dtype_str):
     dtypes = tuple(np.dtype(dtype) for dtype in dtype_str.split(":"))
-    tokens = in_str.split(",")
-    return tuple(
-        np.array(token.split(","), dtype=dtype)
-        for token, dtype in zip(tokens, dtypes)
-    )
+    tokens = in_str.split(":")
+    inputs = []
+    for token, dtype in zip(tokens, dtypes):
+        split = token.split(",")
+        if len(split) == 1:
+            inputs.append(dtype.type(split[0]))
+        else:
+            inputs.append(np.array(split, dtype=dtype))
+    return inputs
 
 
 if __name__ == "__main__":
@@ -222,4 +221,3 @@ if __name__ == "__main__":
         test([args.op], in_np)
     else:
         test_all_unary_ops()
-        test_binary()

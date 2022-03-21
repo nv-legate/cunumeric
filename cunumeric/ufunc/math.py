@@ -13,16 +13,58 @@
 # limitations under the License.
 #
 
-from cunumeric.config import UnaryOpCode
+from cunumeric.config import BinaryOpCode, UnaryOpCode
 
 from .ufunc import (
     all_but_boolean,
+    all_dtypes,
     complex_dtypes,
+    create_binary_ufunc,
     create_unary_ufunc,
     float_and_complex,
     float_dtypes,
     integer_dtypes,
 )
+
+add = create_binary_ufunc(
+    "Add arguments element-wise.",
+    "add",
+    BinaryOpCode.ADD,
+    all_dtypes,
+)
+
+subtract = create_binary_ufunc(
+    "Subtract arguments, element-wise.",
+    "subtract",
+    BinaryOpCode.SUBTRACT,
+    all_dtypes,
+)
+
+multiply = create_binary_ufunc(
+    "Multiply arguments element-wise.",
+    "multiply",
+    BinaryOpCode.MULTIPLY,
+    all_dtypes,
+)
+
+true_divide = create_binary_ufunc(
+    "Returns a true division of the inputs, element-wise.",
+    "true_divide",
+    BinaryOpCode.DIVIDE,
+    [ty + ty + "d" for ty in integer_dtypes] + float_and_complex,
+)
+
+floor_divide = create_binary_ufunc(
+    """Return the largest integer smaller or equal to the division of the inputs.
+It is equivalent to the Python ``//`` operator and pairs with the
+Python ``%`` (`remainder`), function so that ``a = a % b + b * (a // b)``
+up to roundoff.""",
+    "floor_divide",
+    BinaryOpCode.FLOOR_DIVIDE,
+    all_dtypes,
+)
+
+divide = true_divide
 
 negative = create_unary_ufunc(
     "Numerical negative, element-wise.",
@@ -37,6 +79,22 @@ positive = create_unary_ufunc(
     UnaryOpCode.POSITIVE,
     all_but_boolean,
 )
+
+power = create_binary_ufunc(
+    "First array elements raised to powers from second array, element-wise.",
+    "power",
+    BinaryOpCode.POWER,
+    all_dtypes,
+)
+
+remainder = create_binary_ufunc(
+    "Return element-wise remainder of division.",
+    "remainder",
+    BinaryOpCode.MOD,
+    all_dtypes,
+)
+
+mod = remainder
 
 absolute = create_unary_ufunc(
     "Calculate the absolute value element-wise.",
