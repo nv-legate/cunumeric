@@ -108,6 +108,7 @@ maximum = create_binary_ufunc(
     red_code=UnaryRedCode.MAX,
 )
 
+fmax = maximum
 
 minimum = create_binary_ufunc(
     "Element-wise minimum of array elements.",
@@ -116,3 +117,5 @@ minimum = create_binary_ufunc(
     all_dtypes,
     red_code=UnaryRedCode.MIN,
 )
+
+fmin = minimum

@@ -34,6 +34,8 @@ enum class BinaryOpCode : int {
   LEFT_SHIFT    = CUNUMERIC_BINOP_LEFT_SHIFT,
   LESS          = CUNUMERIC_BINOP_LESS,
   LESS_EQUAL    = CUNUMERIC_BINOP_LESS_EQUAL,
+  LOGADDEXP     = CUNUMERIC_BINOP_LOGADDEXP,
+  LOGADDEXP2    = CUNUMERIC_BINOP_LOGADDEXP2,
   LOGICAL_AND   = CUNUMERIC_BINOP_LOGICAL_AND,
   LOGICAL_OR    = CUNUMERIC_BINOP_LOGICAL_OR,
   LOGICAL_XOR   = CUNUMERIC_BINOP_LOGICAL_XOR,
@@ -75,6 +77,10 @@ constexpr decltype(auto) op_dispatch(BinaryOpCode op_code, Functor f, Fnargs&&..
       return f.template operator()<BinaryOpCode::LESS>(std::forward<Fnargs>(args)...);
     case BinaryOpCode::LESS_EQUAL:
       return f.template operator()<BinaryOpCode::LESS_EQUAL>(std::forward<Fnargs>(args)...);
+    case BinaryOpCode::LOGADDEXP:
+      return f.template operator()<BinaryOpCode::LOGADDEXP>(std::forward<Fnargs>(args)...);
+    case BinaryOpCode::LOGADDEXP2:
+      return f.template operator()<BinaryOpCode::LOGADDEXP2>(std::forward<Fnargs>(args)...);
     case BinaryOpCode::LOGICAL_AND:
       return f.template operator()<BinaryOpCode::LOGICAL_AND>(std::forward<Fnargs>(args)...);
     case BinaryOpCode::LOGICAL_OR:
@@ -310,6 +316,46 @@ template <legate::LegateTypeCode CODE>
 struct BinaryOp<BinaryOpCode::LESS_EQUAL, CODE> : std::less_equal<legate::legate_type_of<CODE>> {
   static constexpr bool valid = true;
   BinaryOp(const std::vector<legate::Store>& args) {}
+};
+
+template <legate::LegateTypeCode CODE>
+struct BinaryOp<BinaryOpCode::LOGADDEXP, CODE> {
+  using T                     = legate::legate_type_of<CODE>;
+  static constexpr bool valid = legate::is_floating_point<CODE>::value;
+
+  BinaryOp(const std::vector<legate::Store>& args) {}
+
+  constexpr decltype(auto) operator()(const T& a, const T& b) const
+  {
+    using std::exp;
+    using std::fabs;
+    using std::fmax;
+    using std::log1p;
+    if (a == b)
+      return a + log(T{2.0});
+    else
+      return fmax(a, b) + log1p(exp(-fabs(a - b)));
+  }
+};
+
+template <legate::LegateTypeCode CODE>
+struct BinaryOp<BinaryOpCode::LOGADDEXP2, CODE> {
+  using T                     = legate::legate_type_of<CODE>;
+  static constexpr bool valid = legate::is_floating_point<CODE>::value;
+
+  BinaryOp(const std::vector<legate::Store>& args) {}
+
+  constexpr decltype(auto) operator()(const T& a, const T& b) const
+  {
+    using std::exp2;
+    using std::fabs;
+    using std::fmax;
+    using std::log2;
+    if (a == b)
+      return a + T{1.0};
+    else
+      return fmax(a, b) + log2(T{1} + exp2(-fabs(a - b)));
+  }
 };
 
 template <legate::LegateTypeCode CODE>

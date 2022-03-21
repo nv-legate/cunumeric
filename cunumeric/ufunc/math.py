@@ -68,6 +68,20 @@ up to roundoff.""",
 
 divide = true_divide
 
+logaddexp = create_binary_ufunc(
+    "Logarithm of the sum of exponentiations of the inputs.",
+    "logaddexp",
+    BinaryOpCode.LOGADDEXP,
+    float_dtypes,
+)
+
+logaddexp2 = create_binary_ufunc(
+    "Logarithm of the sum of exponentiations of the inputs in base-2.",
+    "logaddexp2",
+    BinaryOpCode.LOGADDEXP2,
+    float_dtypes,
+)
+
 negative = create_unary_ufunc(
     "Numerical negative, element-wise.",
     "negative",

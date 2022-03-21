@@ -76,8 +76,8 @@ def test_all_binary_ops():
         # "divmod",
         "equal",
         # "float_power",
-        # "fmax",
-        # "fmin",
+        "fmax",
+        "fmin",
         # "fmod",
         # "gcd",
         "greater",
@@ -89,8 +89,6 @@ def test_all_binary_ops():
         # "left_shift",
         "less",
         "less_equal",
-        # "logaddexp",
-        # "logaddexp2",
         "logical_and",
         "logical_or",
         "logical_xor",
@@ -128,6 +126,8 @@ def test_all_binary_ops():
 
     ops = [
         "floor_divide",
+        "logaddexp",
+        "logaddexp2",
     ]
 
     for arr1, arr2 in product(arrs[:-1], arrs[:-1]):

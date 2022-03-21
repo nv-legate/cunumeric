@@ -74,6 +74,8 @@ _BINARY_OPS = {
     BinaryOpCode.LEFT_SHIFT: np.left_shift,
     BinaryOpCode.LESS: np.less,
     BinaryOpCode.LESS_EQUAL: np.less_equal,
+    BinaryOpCode.LOGADDEXP: np.logaddexp,
+    BinaryOpCode.LOGADDEXP2: np.logaddexp2,
     BinaryOpCode.LOGICAL_AND: np.logical_and,
     BinaryOpCode.LOGICAL_OR: np.logical_or,
     BinaryOpCode.LOGICAL_XOR: np.logical_xor,
