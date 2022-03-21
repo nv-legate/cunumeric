@@ -72,9 +72,6 @@ def test_all_binary_ops():
     ops = [
         "add",
         # "arctan2",
-        # "bitwise_and",
-        # "bitwise_or",
-        # "bitwise_xor",
         # "copysign",
         # "divmod",
         "equal",
@@ -161,15 +158,32 @@ def test_all_binary_ops():
         "remainder",
     ]
 
-    for arr1, arr2 in product(arrs[:-2], arrs[:-2]):
+    for arr1, arr2 in product(arrs[:1], arrs[:1]):
         test(ops, (arr1, arr2))
 
-    for arr, scalar in product(arrs[:-2], scalars[:-2]):
+    for arr, scalar in product(arrs[:1], scalars[:-2]):
         test(ops, (arr, arr))
         test(ops, (scalar, arr))
 
     for scalar1, scalar2 in product(scalars[:-2], scalars[:-2]):
         test(ops, (scalar1, scalar2))
+
+    ops = [
+        "bitwise_and",
+        "bitwise_or",
+        "bitwise_xor",
+        "left_shift",
+        "right_shift",
+    ]
+
+    test(ops, (arr1[0], arr2[0]))
+
+    test(ops, (arrs[0], scalars[0]))
+    test(ops, (arrs[0], scalars[1]))
+    test(ops, (scalars[0], arrs[0]))
+    test(ops, (scalars[1], arrs[0]))
+
+    test(ops, (scalars[0], scalars[0]))
 
 
 def parse_inputs(in_str, dtype_str):

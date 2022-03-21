@@ -93,7 +93,7 @@ remainder = create_binary_ufunc(
     "Return element-wise remainder of division.",
     "remainder",
     BinaryOpCode.MOD,
-    all_dtypes,
+    ["?"] + integer_dtypes + float_dtypes,
 )
 
 mod = remainder
