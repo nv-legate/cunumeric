@@ -60,6 +60,7 @@ class Runtime(object):
     __slots__ = [
         "api_calls",
         "current_random_epoch",
+        "current_random_bitgenid", # module: random Bit generator ID
         "destroyed",
         "legate_context",
         "legate_runtime",
@@ -78,6 +79,7 @@ class Runtime(object):
         self.legate_context = legate_context
         self.legate_runtime = get_legate_runtime()
         self.current_random_epoch = 0
+        self.current_random_bitgenid = 0
         self.destroyed = False
         self.api_calls = []
 
@@ -231,6 +233,18 @@ class Runtime(object):
         else:
             result = future
         return result
+
+    def bitgenerator_create(self,generatorType):
+        task = self.legate_context.create_task(CuNumericOpCode.BITGENERATOR,
+            manual=True,
+            launch_domain=Rect(lo=(0,), hi=(self.num_procs,)),
+        )
+        self.current_random_bitgenid = self.current_random_bitgenid + 1
+        task.add_scalar_arg(1, ty.int32) # OP_CREATE
+        task.add_scalar_arg(self.current_random_bitgenid, ty.uint32)
+        task.add_scalar_arg(generatorType, ty.uint64)
+        task.execute()
+        return self.current_random_bitgenid
 
     def set_next_random_epoch(self, epoch):
         self.current_random_epoch = epoch
