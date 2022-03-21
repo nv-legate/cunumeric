@@ -15,13 +15,13 @@
 
 from cunumeric.config import UnaryOpCode
 
-from .ufunc import create_unary_ufunc
+from .ufunc import create_unary_ufunc, integer_dtypes
 
 invert = create_unary_ufunc(
     "Compute bit-wise inversion, or bit-wise NOT, element-wise.",
     "invert",
     UnaryOpCode.INVERT,
-    ["?", "b", "B", "h", "H", "i", "I", "l", "L", "q", "Q"],
+    ["?"] + integer_dtypes,
     overrides={"?": UnaryOpCode.LOGICAL_NOT},
 )
 

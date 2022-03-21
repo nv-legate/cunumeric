@@ -15,76 +15,39 @@
 
 from cunumeric.config import UnaryOpCode
 
-from .ufunc import create_unary_ufunc
+from .ufunc import (
+    all_but_boolean,
+    complex_dtypes,
+    create_unary_ufunc,
+    float_and_complex,
+    float_dtypes,
+    integer_dtypes,
+)
 
 negative = create_unary_ufunc(
     "Numerical negative, element-wise.",
     "negative",
     UnaryOpCode.NEGATIVE,
-    [
-        "b",
-        "B",
-        "h",
-        "H",
-        "i",
-        "I",
-        "l",
-        "L",
-        "q",
-        "Q",
-        "e",
-        "f",
-        "d",
-        "F",
-        "D",
-    ],
+    all_but_boolean,
 )
 
 positive = create_unary_ufunc(
     "Numerical positive, element-wise.",
     "positive",
     UnaryOpCode.POSITIVE,
-    [
-        "b",
-        "B",
-        "h",
-        "H",
-        "i",
-        "I",
-        "l",
-        "L",
-        "q",
-        "Q",
-        "e",
-        "f",
-        "d",
-        "F",
-        "D",
-    ],
+    all_but_boolean,
 )
 
 absolute = create_unary_ufunc(
     "Calculate the absolute value element-wise.",
     "absolute",
     UnaryOpCode.ABSOLUTE,
-    [
-        "?",
-        "b",
-        "B",
-        "h",
-        "H",
-        "i",
-        "I",
-        "l",
-        "L",
-        "q",
-        "Q",
-        "e",
-        "f",
-        "d",
-        "Ff",
-        "Dd",
-    ],
+    (
+        ["?"]
+        + integer_dtypes
+        + float_dtypes
+        + [ty + ty.lower() for ty in complex_dtypes]
+    ),
 )
 
 abs = absolute
@@ -93,54 +56,21 @@ rint = create_unary_ufunc(
     "Round elements of the array to the nearest integer.",
     "rint",
     UnaryOpCode.RINT,
-    ["e", "f", "d"],
+    float_and_complex,
 )
 
 sign = create_unary_ufunc(
     "Returns an element-wise indication of the sign of a number.",
     "sign",
     UnaryOpCode.SIGN,
-    [
-        "b",
-        "B",
-        "h",
-        "H",
-        "i",
-        "I",
-        "l",
-        "L",
-        "q",
-        "Q",
-        "e",
-        "f",
-        "d",
-        "F",
-        "D",
-    ],
+    all_but_boolean,
 )
 
 conjugate = create_unary_ufunc(
     "Return the complex conjugate, element-wise.",
     "conjugate",
     UnaryOpCode.CONJ,
-    [
-        "b",
-        "B",
-        "h",
-        "H",
-        "i",
-        "I",
-        "l",
-        "L",
-        "q",
-        "Q",
-        "e",
-        "f",
-        "d",
-        "g",
-        "F",
-        "D",
-    ],
+    all_but_boolean,
 )
 
 conj = conjugate
@@ -149,109 +79,75 @@ exp = create_unary_ufunc(
     "Calculate the exponential of all elements in the input array.",
     "exp",
     UnaryOpCode.EXP,
-    ["e", "f", "d", "F", "D"],
+    float_and_complex,
 )
 
 exp2 = create_unary_ufunc(
     "Calculate `2**p` for all `p` in the input array.",
     "exp2",
     UnaryOpCode.EXP2,
-    ["e", "f", "d", "F", "D"],
+    float_and_complex,
 )
 
 log = create_unary_ufunc(
     "Natural logarithm, element-wise.",
     "log",
     UnaryOpCode.LOG,
-    ["e", "f", "d", "F", "D"],
+    float_and_complex,
 )
 
 log2 = create_unary_ufunc(
     "Base-2 logarithm of x.",
     "log2",
     UnaryOpCode.LOG2,
-    ["e", "f", "d", "F", "D"],
+    float_and_complex,
 )
 
 log10 = create_unary_ufunc(
     "Return the base 10 logarithm of the input array, element-wise.",
     "log10",
     UnaryOpCode.LOG10,
-    ["e", "f", "d", "F", "D"],
+    float_and_complex,
 )
 
 expm1 = create_unary_ufunc(
     "Calculate ``exp(x) - 1`` for all elements in the array.",
     "expm1",
     UnaryOpCode.EXPM1,
-    ["e", "f", "d", "F", "D"],
+    float_and_complex,
 )
 
 log1p = create_unary_ufunc(
     "Return the natural logarithm of one plus the input array, element-wise.",
     "log1p",
     UnaryOpCode.LOG1P,
-    ["e", "f", "d", "F", "D"],
+    float_and_complex,
 )
 
 square = create_unary_ufunc(
     "Return the element-wise square of the input.",
     "square",
     UnaryOpCode.SQUARE,
-    [
-        "b",
-        "B",
-        "h",
-        "H",
-        "i",
-        "I",
-        "l",
-        "L",
-        "q",
-        "Q",
-        "e",
-        "f",
-        "d",
-        "g",
-        "F",
-        "D",
-    ],
+    all_but_boolean,
 )
 
 sqrt = create_unary_ufunc(
     "Return the non-negative square-root of an array, element-wise.",
     "sqrt",
     UnaryOpCode.SQRT,
-    ["e", "f", "d", "F", "D"],
+    float_and_complex,
 )
 
 cbrt = create_unary_ufunc(
     "Return the cube-root of an array, element-wise.",
     "cbrt",
     UnaryOpCode.CBRT,
-    ["e", "f", "d"],
+    float_dtypes,
 )
 
 reciprocal = create_unary_ufunc(
     "Return the reciprocal of the argument, element-wise.",
     "reciprocal",
     UnaryOpCode.RECIPROCAL,
-    [
-        "b",
-        "B",
-        "h",
-        "H",
-        "i",
-        "I",
-        "l",
-        "L",
-        "q",
-        "Q",
-        "e",
-        "f",
-        "d",
-        "g",
-        "F",
-        "D",
-    ],
+    all_but_boolean,
 )

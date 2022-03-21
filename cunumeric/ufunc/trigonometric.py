@@ -15,104 +15,104 @@
 
 from cunumeric.config import UnaryOpCode
 
-from .ufunc import create_unary_ufunc
+from .ufunc import create_unary_ufunc, float_and_complex, float_dtypes
 
 sin = create_unary_ufunc(
     "Trigonometric sine, element-wise.",
     "sin",
     UnaryOpCode.SIN,
-    ["e", "f", "d", "F", "D"],
+    float_and_complex,
 )
 
 cos = create_unary_ufunc(
     "Cosine element-wise.",
     "cos",
     UnaryOpCode.COS,
-    ["e", "f", "d", "F", "D"],
+    float_and_complex,
 )
 
 tan = create_unary_ufunc(
     "Compute tangent element-wise.",
     "tan",
     UnaryOpCode.TAN,
-    ["e", "f", "d", "F", "D"],
+    float_and_complex,
 )
 
 arcsin = create_unary_ufunc(
     "Inverse sine, element-wise.",
     "arcsin",
     UnaryOpCode.ARCSIN,
-    ["e", "f", "d", "F", "D"],
+    float_and_complex,
 )
 
 arccos = create_unary_ufunc(
     "Trigonometric inverse cosine, element-wise.",
     "arccos",
     UnaryOpCode.ARCCOS,
-    ["e", "f", "d", "F", "D"],
+    float_and_complex,
 )
 
 arctan = create_unary_ufunc(
     "Trigonometric inverse tangent, element-wise.",
     "arctan",
     UnaryOpCode.ARCTAN,
-    ["e", "f", "d", "F", "D"],
+    float_and_complex,
 )
 
 sinh = create_unary_ufunc(
     "Hyperbolic sine, element-wise.",
     "sinh",
     UnaryOpCode.SINH,
-    ["e", "f", "d", "F", "D"],
+    float_and_complex,
 )
 
 cosh = create_unary_ufunc(
     "Hyperbolic cosine, element-wise.",
     "cos",
     UnaryOpCode.COSH,
-    ["e", "f", "d", "F", "D"],
+    float_and_complex,
 )
 
 tanh = create_unary_ufunc(
     "Compute hyperbolic tangent element-wise.",
     "tanh",
     UnaryOpCode.TANH,
-    ["e", "f", "d", "F", "D"],
+    float_and_complex,
 )
 
 arcsinh = create_unary_ufunc(
     "Inverse hyperbolic sine element-wise.",
     "arcsinh",
     UnaryOpCode.ARCSINH,
-    ["e", "f", "d", "F", "D"],
+    float_and_complex,
 )
 
 arccosh = create_unary_ufunc(
     "Inverse hyperbolic cosine, element-wise.",
     "arccosh",
     UnaryOpCode.ARCCOSH,
-    ["e", "f", "d", "F", "D"],
+    float_and_complex,
 )
 
 arctanh = create_unary_ufunc(
     "Inverse hyperbolic tangent element-wise.",
     "arctanh",
     UnaryOpCode.ARCTANH,
-    ["e", "f", "d", "F", "D"],
+    float_and_complex,
 )
 
 deg2rad = create_unary_ufunc(
     "Convert angles from degrees to radians.",
     "deg2rad",
     UnaryOpCode.DEG2RAD,
-    ["e", "f", "d"],
+    float_dtypes,
 )
 
 rad2deg = create_unary_ufunc(
     "Convert angles from radians to degrees.",
     "rad2deg",
     UnaryOpCode.RAD2DEG,
-    ["e", "f", "d"],
+    float_dtypes,
 )
 
 degrees = rad2deg

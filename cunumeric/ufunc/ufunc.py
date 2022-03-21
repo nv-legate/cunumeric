@@ -20,8 +20,7 @@ from cunumeric.array import (
 )
 from numpy import can_cast as np_can_cast, dtype as np_dtype
 
-# Define ufuns for binary operations
-_UNARY_DOCSTRING_TEMPLATE = """{}
+_DOCSTRING_TEMPLATE = """{}
 
 See Also
 --------
@@ -31,6 +30,31 @@ Availability
 --------
 Multiple GPUs, Multiple CPUs
 """
+
+float_dtypes = ["e", "f", "d"]
+
+complex_dtypes = ["F", "D"]
+
+float_and_complex = float_dtypes + complex_dtypes
+
+integer_dtypes = [
+    "b",
+    "B",
+    "h",
+    "H",
+    "i",
+    "I",
+    "l",
+    "L",
+    "q",
+    "Q",
+]
+
+all_but_boolean = integer_dtypes + float_and_complex
+
+
+def predicate_types_of(dtypes):
+    return [ty + "?" for ty in dtypes]
 
 
 class unary_ufunc(object):
@@ -186,6 +210,6 @@ def _parse_unary_ufunc_type(ty):
 
 
 def create_unary_ufunc(summary, name, op_code, types, overrides={}):
-    doc = _UNARY_DOCSTRING_TEMPLATE.format(summary, name)
+    doc = _DOCSTRING_TEMPLATE.format(summary, name)
     types = dict(_parse_unary_ufunc_type(ty) for ty in types)
     return unary_ufunc(name, doc, op_code, types, overrides)

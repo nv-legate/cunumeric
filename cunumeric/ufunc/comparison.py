@@ -15,27 +15,21 @@
 
 from cunumeric.config import UnaryOpCode
 
-from .ufunc import create_unary_ufunc
+from .ufunc import (
+    create_unary_ufunc,
+    float_dtypes,
+    integer_dtypes,
+    predicate_types_of,
+)
 
 logical_not = create_unary_ufunc(
     "Compute bit-wise inversion, or bit-wise NOT, element-wise.",
     "invert",
     UnaryOpCode.LOGICAL_NOT,
-    [
-        "??",
-        "b?",
-        "B?",
-        "h?",
-        "H?",
-        "i?",
-        "I?",
-        "l?",
-        "L?",
-        "q?",
-        "Q?",
-        "e?",
-        "f?",
-        "d?",
-    ],
+    (
+        ["??"]
+        + predicate_types_of(integer_dtypes)
+        + predicate_types_of(float_dtypes)
+    ),
     overrides={"?": UnaryOpCode.LOGICAL_NOT},
 )
