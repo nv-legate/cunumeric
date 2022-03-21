@@ -99,6 +99,7 @@ class CuNumericOpCode(IntEnum):
     POTRF = _cunumeric.CUNUMERIC_POTRF
     RAND = _cunumeric.CUNUMERIC_RAND
     READ = _cunumeric.CUNUMERIC_READ
+    REPEAT = _cunumeric.CUNUMERIC_REPEAT
     SCALAR_UNARY_RED = _cunumeric.CUNUMERIC_SCALAR_UNARY_RED
     SYRK = _cunumeric.CUNUMERIC_SYRK
     TILE = _cunumeric.CUNUMERIC_TILE

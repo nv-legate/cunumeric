@@ -1236,6 +1236,32 @@ class DeferredArray(NumPyThunk):
 
         task.execute()
 
+    # Repeat elements of an array.
+    def repeat(self, repeats, axis, scalar_repeats):
+        # FIXME current implementation supports only 1D, waiting on
+        # issue 242 to be addressed to support ND arrays
+        # for ND I would need to promore `repeats` to allign with A
+        # and  constrain the tiling
+        if self.ndim > 1:
+            raise NotImplementedError(
+                "repeat operation is supported only for 1D"
+            )
+        out = self.runtime.create_unbound_thunk(self.dtype)
+        task = self.context.create_task(CuNumericOpCode.REPEAT)
+        task.add_input(self.base)
+        task.add_output(out.base)
+        # We pass axis now but don't use for 1D case (will use for ND case
+        task.add_scalar_arg(axis, ty.int32)
+        task.add_scalar_arg(scalar_repeats, bool)
+        if scalar_repeats:
+            task.add_scalar_arg(repeats, ty.int64)
+        else:
+            repeats = self.runtime.to_deferred_array(repeats)
+            task.add_input(repeats.base)
+            task.add_alignment(self.base, repeats.base)
+        task.execute()
+        return out
+
     @auto_convert([1])
     def flip(self, rhs, axes):
         input = rhs.base

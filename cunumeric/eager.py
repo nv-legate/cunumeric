@@ -383,6 +383,22 @@ class EagerArray(NumPyThunk):
             else:
                 self.array[:] = np.transpose(rhs.array, axes)
 
+    def repeat(self, repeats, axis, scalar_repeats):
+        if not scalar_repeats:
+            self.check_eager_args(repeats)
+        if self.deferred is not None:
+            return self.deferred.repeat(
+                repeats,
+                axis,
+                scalar_repeats,
+            )
+        else:
+            if not scalar_repeats:
+                array = np.repeat(self.array, repeats.array, axis)
+            else:
+                array = np.repeat(self.array, repeats, axis)
+            return EagerArray(self.runtime, array)
+
     def flip(self, rhs, axes):
         self.check_eager_args(rhs)
         if self.deferred is not None:
