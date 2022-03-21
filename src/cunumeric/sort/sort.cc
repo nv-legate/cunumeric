@@ -95,11 +95,12 @@ struct SortImplBody<VariantKind::CPU, CODE, DIM> {
       AccessorWO<VAL, DIM> output = output_array.write_accessor<VAL, DIM>(rect);
 
       // init output values
-      auto* src = input.ptr(rect.lo);
-      std::copy(src, src + volume, output.ptr(rect.lo));
+      auto* src    = input.ptr(rect.lo);
+      auto* target = output.ptr(rect.lo);
+      if (src != target) std::copy(src, src + volume, target);
 
       // sort data in place
-      thrust_local_sort_inplace(output.ptr(rect.lo), nullptr, volume, sort_dim_size, stable);
+      thrust_local_sort_inplace(target, nullptr, volume, sort_dim_size, stable);
     }
   }
 };

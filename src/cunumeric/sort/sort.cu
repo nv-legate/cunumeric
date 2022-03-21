@@ -583,7 +583,6 @@ static SortPiece<VAL> sample_sort_nccl(SortPiece<VAL> local_sorted,
       merge_buffers[i].indices = create_buffer<int64_t>(0, Memory::GPU_FB_MEM);
     }
   }
-
   CHECK_NCCL(ncclGroupStart());
   for (size_t r = 0; r < num_ranks; r++) {
     CHECK_NCCL(ncclSend(val_send_buf.ptr(aligned_pos_vals_send[r]),
@@ -747,11 +746,7 @@ struct SortImplBody<VariantKind::GPU, CODE, DIM> {
         values_ptr = output.ptr(rect.lo);
       }
     }
-
     if (volume > 0) {
-      CHECK_CUDA(cudaMemcpyAsync(
-        values_ptr, input.ptr(rect.lo), sizeof(VAL) * volume, cudaMemcpyDeviceToDevice, stream));
-
       // sort data (locally)
       local_sort<CODE>(input.ptr(rect.lo),
                        values_ptr,

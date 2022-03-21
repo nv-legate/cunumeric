@@ -43,13 +43,17 @@ def sort_swapped(output, input, argsort, sort_axis, stable):
     swapped_copy.copy(swapped, deep=True)
 
     # run sort on last axis
-    sort_result = output.runtime.create_empty_thunk(
-        swapped_copy.shape, dtype=output.dtype, inputs=(swapped_copy,)
-    )
-    sort(sort_result, swapped_copy, argsort, stable=stable)
-
-    output.base = sort_result.swapaxes(input.ndim - 1, sort_axis).base
-    output.numpy_array = None
+    if argsort is True:
+        sort_result = output.runtime.create_empty_thunk(
+            swapped_copy.shape, dtype=output.dtype, inputs=(swapped_copy,)
+        )
+        sort(sort_result, swapped_copy, argsort, stable=stable)
+        output.base = sort_result.swapaxes(input.ndim - 1, sort_axis).base
+        output.numpy_array = None
+    else:
+        sort(swapped_copy, swapped_copy, argsort, stable=stable)
+        output.base = swapped_copy.swapaxes(input.ndim - 1, sort_axis).base
+        output.numpy_array = None
 
 
 def sort_task(output, input, argsort, stable):
