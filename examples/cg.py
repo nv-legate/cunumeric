@@ -70,7 +70,7 @@ def generate_2D(N, corners):
     return A, b
 
 
-def solve(A, b, conv_iters, max_iters, verbose):
+def solve(A, b, conv_iters, max_iters, conv_threshold, verbose):
     print("Solving system...")
     x = np.zeros(A.shape[1])
     r = b - A.dot(x)
@@ -91,7 +91,7 @@ def solve(A, b, conv_iters, max_iters, verbose):
         # iteration
         if (i % conv_iters == 0 or i == (max_iters - 1)) and np.sqrt(
             rsnew
-        ) < 1e-10:
+        ) < conv_threshold:
             converged = i
             break
         if verbose:
@@ -115,7 +115,9 @@ def precondition(A, N, corners):
     return M
 
 
-def preconditioned_solve(A, M, b, conv_iters, max_iters, verbose):
+def preconditioned_solve(
+    A, M, b, conv_iters, max_iters, conv_threshold, verbose
+):
     print("Solving system with preconditioner...")
     x = np.zeros(A.shape[1])
     r = b - A.dot(x)
@@ -137,7 +139,7 @@ def preconditioned_solve(A, M, b, conv_iters, max_iters, verbose):
         # last iteration
         if (i % conv_iters == 0 or i == (max_iters - 1)) and np.sqrt(
             rznew
-        ) < 1e-10:
+        ) < conv_threshold:
             converged = i
             break
         if verbose:
@@ -168,6 +170,7 @@ def run_cg(
     preconditioner,
     conv_iters,
     max_iters,
+    conv_threshold,
     perform_check,
     timing,
     verbose,
@@ -177,9 +180,11 @@ def run_cg(
     A, b = generate_2D(N, corners)
     if preconditioner:
         M = precondition(A, N, corners)
-        x = preconditioned_solve(A, M, b, conv_iters, max_iters, verbose)
+        x = preconditioned_solve(
+            A, M, b, conv_iters, max_iters, conv_threshold, verbose
+        )
     else:
-        x = solve(A, b, conv_iters, max_iters, verbose)
+        x = solve(A, b, conv_iters, max_iters, conv_threshold, verbose)
     if perform_check:
         check(A, x, b)
     stop = datetime.datetime.now()
@@ -260,6 +265,13 @@ if __name__ == "__main__":
         help="number of times to benchmark this application (default 1 - "
         "normal execution)",
     )
+    parser.add_argument(
+        "--threshold",
+        type=float,
+        default=1e-10,
+        dest="conv_threshold",
+        help="convergence check threshold",
+    )
 
     args = parser.parse_args()
     run_benchmark(
@@ -272,6 +284,7 @@ if __name__ == "__main__":
             args.precondition,
             args.conv_iters,
             args.max_iters,
+            args.conv_threshold,
             args.check,
             args.timing,
             args.verbose,
