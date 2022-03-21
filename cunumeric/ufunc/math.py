@@ -13,7 +13,7 @@
 # limitations under the License.
 #
 
-from cunumeric.config import BinaryOpCode, UnaryOpCode
+from cunumeric.config import BinaryOpCode, UnaryOpCode, UnaryRedCode
 
 from .ufunc import (
     all_but_boolean,
@@ -31,6 +31,7 @@ add = create_binary_ufunc(
     "add",
     BinaryOpCode.ADD,
     all_dtypes,
+    red_code=UnaryRedCode.SUM,
 )
 
 subtract = create_binary_ufunc(
@@ -45,6 +46,7 @@ multiply = create_binary_ufunc(
     "multiply",
     BinaryOpCode.MULTIPLY,
     all_dtypes,
+    red_code=UnaryRedCode.PROD,
 )
 
 true_divide = create_binary_ufunc(

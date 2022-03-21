@@ -13,7 +13,7 @@
 # limitations under the License.
 #
 
-from cunumeric.config import BinaryOpCode, UnaryOpCode
+from cunumeric.config import BinaryOpCode, UnaryOpCode, UnaryRedCode
 
 from .ufunc import (
     all_dtypes,
@@ -105,6 +105,7 @@ maximum = create_binary_ufunc(
     "maximum",
     BinaryOpCode.MAXIMUM,
     all_dtypes,
+    red_code=UnaryRedCode.MAX,
 )
 
 
@@ -113,4 +114,5 @@ minimum = create_binary_ufunc(
     "minimum",
     BinaryOpCode.MINIMUM,
     all_dtypes,
+    red_code=UnaryRedCode.MIN,
 )

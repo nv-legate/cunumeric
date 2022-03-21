@@ -205,11 +205,12 @@ class unary_ufunc(ufunc):
 
 
 class binary_ufunc(ufunc):
-    def __init__(self, name, doc, op_code, types):
+    def __init__(self, name, doc, op_code, types, red_code=None):
         self._name = name
         self._op_code = op_code
         self._types = types
         self._resolution_cache = {}
+        self._red_code = red_code
         self.__doc__ = doc
 
     @property
@@ -348,6 +349,99 @@ class binary_ufunc(ufunc):
 
         return out
 
+    def reduce(
+        self,
+        array,
+        axis=0,
+        dtype=None,
+        out=None,
+        keepdims=False,
+        initial=None,
+        where=True,
+    ):
+        """
+        reduce(array, axis=0, dtype=None, out=None, keepdims=False, initial=<no
+        value>, where=True)
+
+        Reduces `array`'s dimension by one, by applying ufunc along one axis.
+
+        For example, add.reduce() is equivalent to sum().
+
+        Parameters
+        ----------
+        array : array_like
+            The array to act on.
+        axis : None or int or tuple of ints, optional
+            Axis or axes along which a reduction is performed.  The default
+            (`axis` = 0) is perform a reduction over the first dimension of the
+            input array. `axis` may be negative, in which case it counts from
+            the last to the first axis.
+        dtype : data-type code, optional
+            The type used to represent the intermediate results. Defaults to
+            the data-type of the output array if this is provided, or the
+            data-type
+            of the input array if no output array is provided.
+        out : ndarray, None, or tuple of ndarray and None, optional
+            A location into which the result is stored. If not provided or
+            None, a freshly-allocated array is returned. For consistency with
+            ``ufunc.__call__``, if given as a keyword, this may be wrapped in a
+            1-element tuple.
+        keepdims : bool, optional
+            If this is set to True, the axes which are reduced are left in the
+            result as dimensions with size one. With this option, the result
+            will broadcast correctly against the original `array`.
+        initial : scalar, optional
+            The value with which to start the reduction.  If the ufunc has no
+            identity or the dtype is object, this defaults to None - otherwise
+            it defaults to ufunc.identity.  If ``None`` is given, the first
+            element of the reduction is used, and an error is thrown if the
+            reduction is empty.
+        where : array_like of bool, optional
+            A boolean array which is broadcasted to match the dimensions of
+            `array`, and selects elements to include in the reduction. Note
+            that for ufuncs like ``minimum`` that do not have an identity
+            defined, one has to pass in also ``initial``.
+
+        Returns
+        -------
+        r : ndarray
+            The reduced array. If `out` was supplied, `r` is a reference to it.
+
+        See Also
+        --------
+        numpy.ufunc.reduce
+        """
+        array = convert_to_cunumeric_ndarray(array)
+
+        if self._red_code is None:
+            raise NotImplementedError(
+                f"reduction for {self} is not yet implemented"
+            )
+        if out is not None:
+            raise NotImplementedError(
+                "reduction for {self} does not take an `out` argument"
+            )
+        if not isinstance(where, bool) or not where:
+            raise NotImplementedError(
+                "the 'where' keyword is not yet supported"
+            )
+
+        # NumPy seems to be using None as the default axis value for scalars
+        if array.ndim == 0 and axis == 0:
+            axis = None
+
+        # TODO: Unary reductions still need to be refactored
+        return array._perform_unary_reduction(
+            self._red_code,
+            array,
+            axis=axis,
+            dtype=dtype,
+            # out=out,
+            keepdims=keepdims,
+            initial=initial,
+            where=where,
+        )
+
     def __repr__(self):
         return f"<ufunc {self._name}>"
 
@@ -382,7 +476,7 @@ def _parse_binary_ufunc_type(ty):
         return ((ty[0], ty[1]), ty[2])
 
 
-def create_binary_ufunc(summary, name, op_code, types):
+def create_binary_ufunc(summary, name, op_code, types, red_code=None):
     doc = _DOCSTRING_TEMPLATE.format(summary, name)
     types = dict(_parse_binary_ufunc_type(ty) for ty in types)
-    return binary_ufunc(name, doc, op_code, types)
+    return binary_ufunc(name, doc, op_code, types, red_code)

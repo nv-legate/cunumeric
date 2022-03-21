@@ -23,8 +23,9 @@ from typing import Optional, Set
 
 import numpy as np
 import opt_einsum as oe
+from cunumeric.ufunc.comparison import maximum, minimum
 from cunumeric.ufunc.floating import floor
-from cunumeric.ufunc.math import multiply
+from cunumeric.ufunc.math import add, multiply
 
 from .array import (
     convert_to_cunumeric_ndarray,
@@ -3086,7 +3087,8 @@ def prod(
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return a.prod(
+    return multiply.reduce(
+        a,
         axis=axis,
         dtype=dtype,
         out=out,
@@ -3166,7 +3168,8 @@ def sum(
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return a.sum(
+    return add.reduce(
+        a,
         axis=axis,
         dtype=dtype,
         out=out,
@@ -3246,7 +3249,15 @@ def imag(val):
 
 
 @add_boilerplate("a")
-def amax(a, axis=None, out=None, keepdims=False):
+def amax(
+    a,
+    axis=None,
+    dtype=None,
+    out=None,
+    keepdims=False,
+    initial=None,
+    where=True,
+):
     """
 
     Return the maximum of an array or maximum along an axis.
@@ -3300,14 +3311,30 @@ def amax(a, axis=None, out=None, keepdims=False):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return a.max(axis=axis, out=out, keepdims=keepdims)
+    return maximum.reduce(
+        a,
+        axis=axis,
+        dtype=dtype,
+        out=out,
+        keepdims=keepdims,
+        initial=initial,
+        where=where,
+    )
 
 
 max = amax
 
 
 @add_boilerplate("a")
-def amin(a, axis=None, out=None, keepdims=False):
+def amin(
+    a,
+    axis=None,
+    dtype=None,
+    out=None,
+    keepdims=False,
+    initial=None,
+    where=True,
+):
     """
 
     Return the minimum of an array or minimum along an axis.
@@ -3361,7 +3388,15 @@ def amin(a, axis=None, out=None, keepdims=False):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return a.min(axis=axis, out=out, keepdims=keepdims)
+    return minimum.reduce(
+        a,
+        axis=axis,
+        dtype=dtype,
+        out=out,
+        keepdims=keepdims,
+        initial=initial,
+        where=where,
+    )
 
 
 min = amin
