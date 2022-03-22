@@ -15,6 +15,8 @@ Trigonometric functions
    arcsin
    arccos
    arctan
+   hypot
+   arctan2
    degrees
    radians
    deg2rad
@@ -70,6 +72,8 @@ Exponents and logarithms
    log10
    log2
    log1p
+   logaddexp
+   logaddexp2
 
 
 Exponents and logarithms
@@ -79,6 +83,18 @@ Exponents and logarithms
    :toctree: generated/
 
    signbit
+   copysign
+   nextafter
+
+
+Rational routines
+------------------------
+
+.. autosummary::
+   :toctree: generated/
+
+   lcm
+   gcd
 
 
 Arithmetic operations
@@ -97,6 +113,8 @@ Arithmetic operations
    subtract
    true_divide
    floor_divide
+   float_power
+   fmod
    mod
    remainder
 
@@ -120,8 +138,10 @@ Extrema Finding
    :toctree: generated/
 
    maximum
+   fmax
    amax
    minimum
+   fmin
    amin
 
 
