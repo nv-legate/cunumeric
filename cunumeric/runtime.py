@@ -156,9 +156,9 @@ class Runtime(object):
         except ValueError:
             self.report_dump_csv = None
 
-    def record_api_call(self, func_name, location, implemented):
+    def record_api_call(self, name, location, implemented):
         assert self.report_coverage
-        self.api_calls.append((func_name, location, implemented))
+        self.api_calls.append((name, location, implemented))
 
     def _load_cudalibs(self):
         task = self.legate_context.create_task(
@@ -196,10 +196,13 @@ class Runtime(object):
         total = len(self.api_calls)
         implemented = sum(int(impl) for (_, _, impl) in self.api_calls)
 
-        print(
-            f"cuNumeric API coverage: {implemented}/{total} "
-            f"({implemented / total * 100}%)"
-        )
+        if total == 0:
+            print("cuNumeric API coverage: 0/0")
+        else:
+            print(
+                f"cuNumeric API coverage: {implemented}/{total} "
+                f"({implemented / total * 100}%)"
+            )
         if self.report_dump_csv is not None:
             with open(self.report_dump_csv, "w") as f:
                 print("function_name,location,implemented", file=f)
