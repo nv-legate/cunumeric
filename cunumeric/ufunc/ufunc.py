@@ -20,7 +20,71 @@ from cunumeric.array import (
 )
 from numpy import can_cast as np_can_cast, dtype as np_dtype
 
-_DOCSTRING_TEMPLATE = """{}
+_UNARY_DOCSTRING_TEMPLATE = """{}
+
+Parameters
+----------
+x : array_like
+    Only integer and boolean types are handled.
+out : ndarray, None, or tuple[ndarray or None], optional
+    A location into which the result is stored. If provided, it must have
+    a shape that the inputs broadcast to. If not provided or None,
+    a freshly-allocated array is returned. A tuple (possible only as a
+    keyword argument) must have length equal to the number of outputs.
+where : array_like, optional
+    This condition is broadcast over the input. At locations where the
+    condition is True, the `out` array will be set to the ufunc result.
+    Elsewhere, the `out` array will retain its original value.
+    Note that if an uninitialized `out` array is created via the default
+    ``out=None``, locations within it where the condition is False will
+    remain uninitialized.
+**kwargs
+    For other keyword-only arguments, see the
+    :ref:`ufunc docs <ufuncs.kwargs>`.
+
+Returns
+-------
+out : ndarray or scalar
+    Result.
+    This is a scalar if `x` is a scalar.
+
+See Also
+--------
+numpy.{}
+
+Availability
+--------
+Multiple GPUs, Multiple CPUs
+"""
+
+_BINARY_DOCSTRING_TEMPLATE = """{}
+
+Parameters
+----------
+x1, x2 : array_like
+    Input arrays. If ``x1.shape != x2.shape``, they must be broadcastable
+    to a common shape (which becomes the shape of the output).
+out : ndarray, None, or tuple[ndarray or None], optional
+    A location into which the result is stored. If provided, it must have
+    a shape that the inputs broadcast to. If not provided or None,
+    a freshly-allocated array is returned. A tuple (possible only as a
+    keyword argument) must have length equal to the number of outputs.
+where : array_like, optional
+    This condition is broadcast over the input. At locations where the
+    condition is True, the `out` array will be set to the ufunc result.
+    Elsewhere, the `out` array will retain its original value.
+    Note that if an uninitialized `out` array is created via the default
+    ``out=None``, locations within it where the condition is False will
+    remain uninitialized.
+**kwargs
+    For other keyword-only arguments, see the
+    :ref:`ufunc docs <ufuncs.kwargs>`.
+
+Returns
+-------
+y : ndarray or scalar
+    Result.
+    This is a scalar if both `x1` and `x2` are scalars.
 
 See Also
 --------
@@ -456,7 +520,7 @@ def _parse_unary_ufunc_type(ty):
 
 
 def create_unary_ufunc(summary, name, op_code, types, overrides={}):
-    doc = _DOCSTRING_TEMPLATE.format(summary, name)
+    doc = _UNARY_DOCSTRING_TEMPLATE.format(summary, name)
     types = dict(_parse_unary_ufunc_type(ty) for ty in types)
     return unary_ufunc(name, doc, op_code, types, overrides)
 
@@ -477,6 +541,6 @@ def _parse_binary_ufunc_type(ty):
 
 
 def create_binary_ufunc(summary, name, op_code, types, red_code=None):
-    doc = _DOCSTRING_TEMPLATE.format(summary, name)
+    doc = _BINARY_DOCSTRING_TEMPLATE.format(summary, name)
     types = dict(_parse_binary_ufunc_type(ty) for ty in types)
     return binary_ufunc(name, doc, op_code, types, red_code)
