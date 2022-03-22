@@ -23,17 +23,20 @@ namespace cunumeric {
 enum class BinaryOpCode : int {
   ADD           = CUNUMERIC_BINOP_ADD,
   ALLCLOSE      = CUNUMERIC_BINOP_ALLCLOSE,
+  ARCTAN2       = CUNUMERIC_BINOP_ARCTAN2,
   BITWISE_AND   = CUNUMERIC_BINOP_BITWISE_AND,
   BITWISE_OR    = CUNUMERIC_BINOP_BITWISE_OR,
   BITWISE_XOR   = CUNUMERIC_BINOP_BITWISE_XOR,
   COPYSIGN      = CUNUMERIC_BINOP_COPYSIGN,
   DIVIDE        = CUNUMERIC_BINOP_DIVIDE,
   EQUAL         = CUNUMERIC_BINOP_EQUAL,
+  FLOAT_POWER   = CUNUMERIC_BINOP_FLOAT_POWER,
   FLOOR_DIVIDE  = CUNUMERIC_BINOP_FLOOR_DIVIDE,
   FMOD          = CUNUMERIC_BINOP_FMOD,
   GCD           = CUNUMERIC_BINOP_GCD,
   GREATER       = CUNUMERIC_BINOP_GREATER,
   GREATER_EQUAL = CUNUMERIC_BINOP_GREATER_EQUAL,
+  HYPOT         = CUNUMERIC_BINOP_HYPOT,
   LCM           = CUNUMERIC_BINOP_LCM,
   LEFT_SHIFT    = CUNUMERIC_BINOP_LEFT_SHIFT,
   LESS          = CUNUMERIC_BINOP_LESS,
@@ -60,6 +63,8 @@ constexpr decltype(auto) op_dispatch(BinaryOpCode op_code, Functor f, Fnargs&&..
   switch (op_code) {
     case BinaryOpCode::ADD:
       return f.template operator()<BinaryOpCode::ADD>(std::forward<Fnargs>(args)...);
+    case BinaryOpCode::ARCTAN2:
+      return f.template operator()<BinaryOpCode::ARCTAN2>(std::forward<Fnargs>(args)...);
     case BinaryOpCode::BITWISE_AND:
       return f.template operator()<BinaryOpCode::BITWISE_AND>(std::forward<Fnargs>(args)...);
     case BinaryOpCode::BITWISE_OR:
@@ -72,6 +77,8 @@ constexpr decltype(auto) op_dispatch(BinaryOpCode op_code, Functor f, Fnargs&&..
       return f.template operator()<BinaryOpCode::DIVIDE>(std::forward<Fnargs>(args)...);
     case BinaryOpCode::EQUAL:
       return f.template operator()<BinaryOpCode::EQUAL>(std::forward<Fnargs>(args)...);
+    case BinaryOpCode::FLOAT_POWER:
+      return f.template operator()<BinaryOpCode::FLOAT_POWER>(std::forward<Fnargs>(args)...);
     case BinaryOpCode::FMOD:
       return f.template operator()<BinaryOpCode::FMOD>(std::forward<Fnargs>(args)...);
     case BinaryOpCode::GCD:
@@ -82,6 +89,8 @@ constexpr decltype(auto) op_dispatch(BinaryOpCode op_code, Functor f, Fnargs&&..
       return f.template operator()<BinaryOpCode::GREATER>(std::forward<Fnargs>(args)...);
     case BinaryOpCode::GREATER_EQUAL:
       return f.template operator()<BinaryOpCode::GREATER_EQUAL>(std::forward<Fnargs>(args)...);
+    case BinaryOpCode::HYPOT:
+      return f.template operator()<BinaryOpCode::HYPOT>(std::forward<Fnargs>(args)...);
     case BinaryOpCode::LCM:
       return f.template operator()<BinaryOpCode::LCM>(std::forward<Fnargs>(args)...);
     case BinaryOpCode::LEFT_SHIFT:
@@ -123,10 +132,6 @@ constexpr decltype(auto) op_dispatch(BinaryOpCode op_code, Functor f, Fnargs&&..
   assert(false);
   return f.template operator()<BinaryOpCode::ADD>(std::forward<Fnargs>(args)...);
 }
-
-template <legate::LegateTypeCode CODE>
-static constexpr bool is_floating_point =
-  legate::is_floating_point<CODE>::value || CODE == legate::LegateTypeCode::HALF_LT;
 
 template <typename Functor, typename... Fnargs>
 constexpr decltype(auto) reduce_op_dispatch(BinaryOpCode op_code, Functor f, Fnargs&&... args)
@@ -184,6 +189,33 @@ struct BinaryOp<BinaryOpCode::ALLCLOSE, CODE> {
 };
 
 template <legate::LegateTypeCode CODE>
+struct BinaryOp<BinaryOpCode::ARCTAN2, CODE> {
+  using T                     = legate::legate_type_of<CODE>;
+  static constexpr bool valid = legate::is_floating_point<CODE>::value;
+
+  BinaryOp(const std::vector<legate::Store>& args) {}
+
+  constexpr decltype(auto) operator()(const T& a, const T& b) const
+  {
+    using std::atan2;
+    return atan2(a, b);
+  }
+};
+
+template <>
+struct BinaryOp<BinaryOpCode::ARCTAN2, legate::LegateTypeCode::HALF_LT> {
+  using T                     = __half;
+  static constexpr bool valid = true;
+  BinaryOp(const std::vector<legate::Store>& args) {}
+
+  __CUDA_HD__ __half operator()(const __half& a, const __half& b) const
+  {
+    using std::atan2;
+    return __half{atan2(static_cast<float>(a), static_cast<float>(b))};
+  }
+};
+
+template <legate::LegateTypeCode CODE>
 struct BinaryOp<BinaryOpCode::BITWISE_AND, CODE> {
   using T                     = legate::legate_type_of<CODE>;
   static constexpr bool valid = std::is_integral<T>::value;
@@ -225,13 +257,26 @@ struct BinaryOp<BinaryOpCode::BITWISE_XOR, CODE> {
 template <legate::LegateTypeCode CODE>
 struct BinaryOp<BinaryOpCode::COPYSIGN, CODE> {
   using T                     = legate::legate_type_of<CODE>;
-  static constexpr bool valid = std::is_floating_point<T>::value;
+  static constexpr bool valid = legate::is_floating_point<CODE>::value;
   BinaryOp(const std::vector<legate::Store>& args) {}
 
   constexpr T operator()(const T& a, const T& b) const
   {
     using std::copysign;
     return copysign(a, b);
+  }
+};
+
+template <>
+struct BinaryOp<BinaryOpCode::COPYSIGN, legate::LegateTypeCode::HALF_LT> {
+  using T                     = __half;
+  static constexpr bool valid = true;
+  BinaryOp(const std::vector<legate::Store>& args) {}
+
+  __CUDA_HD__ __half operator()(const __half& a, const __half& b) const
+  {
+    using std::copysign;
+    return __half{copysign(static_cast<float>(a), static_cast<float>(b))};
   }
 };
 
@@ -258,6 +303,33 @@ template <legate::LegateTypeCode CODE>
 struct BinaryOp<BinaryOpCode::EQUAL, CODE> : std::equal_to<legate::legate_type_of<CODE>> {
   static constexpr bool valid = true;
   BinaryOp(const std::vector<legate::Store>& args) {}
+};
+
+template <legate::LegateTypeCode CODE>
+struct BinaryOp<BinaryOpCode::FLOAT_POWER, CODE> {
+  using T = legate::legate_type_of<CODE>;
+  static constexpr bool valid =
+    CODE == legate::LegateTypeCode::DOUBLE_LT or CODE == legate::LegateTypeCode::COMPLEX128_LT;
+  BinaryOp(const std::vector<legate::Store>& args) {}
+
+  constexpr T operator()(const T& a, const T& b) const
+  {
+    using std::pow;
+    return pow(a, b);
+  }
+};
+
+template <>
+struct BinaryOp<BinaryOpCode::FLOAT_POWER, legate::LegateTypeCode::COMPLEX64_LT> {
+  using T                     = complex<float>;
+  static constexpr bool valid = true;
+  BinaryOp(const std::vector<legate::Store>& args) {}
+
+  __CUDA_HD__ complex<double> operator()(const complex<float>& a, const complex<float>& b) const
+  {
+    using std::pow;
+    return pow(static_cast<complex<double>>(a), static_cast<complex<double>>(b));
+  }
 };
 
 template <legate::LegateTypeCode CODE>
@@ -384,6 +456,20 @@ struct BinaryOp<BinaryOpCode::GREATER_EQUAL, CODE>
   : std::greater_equal<legate::legate_type_of<CODE>> {
   static constexpr bool valid = true;
   BinaryOp(const std::vector<legate::Store>& args) {}
+};
+
+template <legate::LegateTypeCode CODE>
+struct BinaryOp<BinaryOpCode::HYPOT, CODE> {
+  using T                     = legate::legate_type_of<CODE>;
+  static constexpr bool valid = legate::is_floating_point<CODE>::value;
+
+  BinaryOp(const std::vector<legate::Store>& args) {}
+
+  constexpr decltype(auto) operator()(const T& a, const T& b) const
+  {
+    using std::hypot;
+    return hypot(a, b);
+  }
 };
 
 template <legate::LegateTypeCode CODE>
@@ -625,13 +711,26 @@ struct BinaryOp<BinaryOpCode::MULTIPLY, CODE> : std::multiplies<legate::legate_t
 template <legate::LegateTypeCode CODE>
 struct BinaryOp<BinaryOpCode::NEXTAFTER, CODE> {
   using T                     = legate::legate_type_of<CODE>;
-  static constexpr bool valid = std::is_floating_point<T>::value;
+  static constexpr bool valid = legate::is_floating_point<CODE>::value;
   BinaryOp(const std::vector<legate::Store>& args) {}
 
   constexpr T operator()(const T& a, const T& b) const
   {
     using std::nextafter;
     return nextafter(a, b);
+  }
+};
+
+template <>
+struct BinaryOp<BinaryOpCode::NEXTAFTER, legate::LegateTypeCode::HALF_LT> {
+  using T                     = __half;
+  static constexpr bool valid = true;
+  BinaryOp(const std::vector<legate::Store>& args) {}
+
+  __CUDA_HD__ __half operator()(const __half& a, const __half& b) const
+  {
+    using std::nextafter;
+    return __half{nextafter(static_cast<float>(a), static_cast<float>(b))};
   }
 };
 

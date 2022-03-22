@@ -13,9 +13,14 @@
 # limitations under the License.
 #
 
-from cunumeric.config import UnaryOpCode
+from cunumeric.config import BinaryOpCode, UnaryOpCode
 
-from .ufunc import create_unary_ufunc, float_and_complex, float_dtypes
+from .ufunc import (
+    create_binary_ufunc,
+    create_unary_ufunc,
+    float_and_complex,
+    float_dtypes,
+)
 
 sin = create_unary_ufunc(
     "Trigonometric sine, element-wise.",
@@ -57,6 +62,20 @@ arctan = create_unary_ufunc(
     "arctan",
     UnaryOpCode.ARCTAN,
     float_and_complex,
+)
+
+arctan2 = create_binary_ufunc(
+    "Element-wise arc tangent of ``x1/x2`` choosing the quadrant correctly.",
+    "arctan2",
+    BinaryOpCode.ARCTAN2,
+    float_dtypes,
+)
+
+hypot = create_binary_ufunc(
+    "Given the “legs” of a right triangle, return its hypotenuse.",
+    "hypot",
+    BinaryOpCode.HYPOT,
+    float_dtypes,
 )
 
 sinh = create_unary_ufunc(

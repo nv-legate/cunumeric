@@ -103,6 +103,18 @@ power = create_binary_ufunc(
     all_dtypes,
 )
 
+float_power = create_binary_ufunc(
+    """First array elements raised to powers from second array, element-wise.
+
+This differs from the power function in that integers, float16, and float32 are
+promoted to floats with a minimum precision of float64 so that the result is
+always inexact. The intent is that the function will return a usable result for
+negative powers and seldom overflow for positive powers.""",
+    "float_power",
+    BinaryOpCode.FLOAT_POWER,
+    ["d", "FFD", "D"],
+)
+
 remainder = create_binary_ufunc(
     "Return element-wise remainder of division.",
     "remainder",

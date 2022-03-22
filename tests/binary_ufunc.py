@@ -71,16 +71,13 @@ def test_all_binary_ops():
     # Math operations
     ops = [
         "add",
-        # "arctan2",
         # "divmod",
         "equal",
-        # "float_power",
         "fmax",
         "fmin",
         "greater",
         "greater_equal",
         # "heaviside",
-        # "hypot",
         # "ldexp",
         "less",
         "less_equal",
@@ -118,9 +115,11 @@ def test_all_binary_ops():
         test(ops, (scalar1, scalar2))
 
     ops = [
+        "arctan2",
         "copysign",
         "floor_divide",
         "fmod",
+        "hypot",
         "logaddexp",
         "logaddexp2",
         "nextafter",
@@ -138,17 +137,20 @@ def test_all_binary_ops():
 
     ops = [
         "power",
+        "float_power",
     ]
 
     for arr1, arr2 in product(arrs, arrs):
         test(ops, (arr1, arr2))
 
-    for arr, scalar in product(arrs, scalars[:1]):
-        test(ops, (arr, scalar))
-        test(ops, (scalar, arr))
+    for arr in arrs:
+        test(ops, (arr, scalars[0]))
+        test(ops, (scalars[0], arr))
+        test(ops, (arr, scalars[3]))
+        test(ops, (scalars[3], scalars[3]))
 
-    for scalar1, scalar2 in product(scalars[:1], scalars[:1]):
-        test(ops, (scalar1, scalar2))
+    test(ops, (scalars[0], scalars[3]))
+    test(ops, (scalars[3], scalars[0]))
 
     ops = [
         "remainder",
