@@ -114,8 +114,8 @@ Shape manipulation
    ndarray.ravel
    ndarray.squeeze
 
-Item selectiona and manipulation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Item selection and manipulation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autosummary::
    :toctree: generated/
@@ -157,6 +157,7 @@ Calculation
    .. ndarray.cumprod
    ndarray.all
    ndarray.any
+   ndarray.unique
 
 
 EXTRA

@@ -30,7 +30,11 @@ def _filter(obj, n):
                 "set_numeric_ops",
                 "size",
                 "sometrue",
-            ]  # not in blacklist
+                "loads",
+                "mafromtxt",
+                "matmul",
+                "ndfromtxt",
+            ]  # not in blocklist
             and callable(getattr(obj, n))  # callable
             and not isinstance(getattr(obj, n), type)  # not class
             and n[0].islower()  # starts with lower char

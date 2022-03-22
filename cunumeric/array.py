@@ -3020,6 +3020,21 @@ class ndarray(object):
         return ndarray(shape=self.shape, dtype=self.dtype, thunk=self._thunk)
 
     def unique(self):
+        """a.unique()
+
+        Find the unique elements of an array.
+
+        Refer to :func:`cunumeric.unique` for full documentation.
+
+        See Also
+        --------
+        cunumeric.unique : equivalent function
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         thunk = self._thunk.unique()
         return ndarray(shape=thunk.shape, thunk=thunk)
 
