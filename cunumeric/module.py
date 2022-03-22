@@ -5992,6 +5992,168 @@ def unique(
 # Sorting, searching, and counting
 ##################################
 
+# Sorting
+
+
+@add_boilerplate("a")
+def argsort(a, axis=-1, kind="quicksort", order=None):
+    """
+
+    Returns the indices that would sort an array.
+
+    Parameters
+    ----------
+    a : array_like
+        Input array.
+    axis : int or None, optional
+        Axis to sort. By default, the index -1 (the last axis) is used. If
+        None, the flattened array is used.
+    kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, optional
+        Default is 'quicksort'. The underlying sort algorithm might vary.
+        The code basically supports 'stable' or *not* 'stable'.
+    order : str or list of str, optional
+        Currently not supported
+
+    Returns
+    -------
+    index_array : ndarray of ints
+        Array of indices that sort a along the specified axis. It has the
+        same shape as `a.shape` or is flattened in case of `axis` is None.
+
+    Notes
+    -----
+    The current implementation has only limited support for distributed data.
+    Distributed 1-D or flattened data will be broadcasted.
+
+    See Also
+    --------
+    numpy.argsort
+
+    Availability
+    --------
+    Multiple GPUs, Single CPU
+    """
+
+    result = ndarray(a.shape, np.int64)
+    result._thunk.sort(
+        rhs=a._thunk, argsort=True, axis=axis, kind=kind, order=order
+    )
+    return result
+
+
+def msort(a):
+    """
+
+    Returns a sorted copy of an array sorted along the first axis.
+
+    Parameters
+    ----------
+    a : array_like
+        Input array.
+
+    Returns
+    -------
+    out : ndarray
+        Sorted array with same dtype and shape as `a`.
+
+    Notes
+    -----
+    The current implementation has only limited support for distributed data.
+    Distributed 1-D  data will be broadcasted.
+
+    See Also
+    --------
+    numpy.msort
+
+    Availability
+    --------
+    Multiple GPUs, Single CPU
+    """
+    return sort(a, axis=0)
+
+
+@add_boilerplate("a")
+def sort(a, axis=-1, kind="quicksort", order=None):
+    """
+
+    Returns a sorted copy of an array.
+
+    Parameters
+    ----------
+    a : array_like
+        Input array.
+    axis : int or None, optional
+        Axis to sort. By default, the index -1 (the last axis) is used. If
+        None, the flattened array is used.
+    kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, optional
+        Default is 'quicksort'. The underlying sort algorithm might vary.
+        The code basically supports 'stable' or *not* 'stable'.
+    order : str or list of str, optional
+        Currently not supported
+
+    Returns
+    -------
+    out : ndarray
+        Sorted array with same dtype and shape as `a`. In case `axis` is
+        None the result is flattened.
+
+    Notes
+    -----
+    The current implementation has only limited support for distributed data.
+    Distributed 1-D or flattened data will be broadcasted.
+
+    See Also
+    --------
+    numpy.sort
+
+    Availability
+    --------
+    Multiple GPUs, Single CPU
+    """
+    result = ndarray(a.shape, a.dtype)
+    result._thunk.sort(rhs=a._thunk, axis=axis, kind=kind, order=order)
+    return result
+
+
+@add_boilerplate("a")
+def sort_complex(a):
+    """
+
+    Returns a sorted copy of an array sorted along the last axis. Sorts the
+    real part first, the imaginary part second.
+
+    Parameters
+    ----------
+    a : array_like
+        Input array.
+
+    Returns
+    -------
+    out : ndarray, complex
+        Sorted array with same shape as `a`.
+
+    Notes
+    -----
+    The current implementation has only limited support for distributed data.
+    Distributed 1-D data will be broadcasted.
+
+    See Also
+    --------
+    numpy.sort_complex
+
+    Availability
+    --------
+    Multiple GPUs, Single CPU
+    """
+
+    result = sort(a)
+    # force complex result upon return
+    if np.issubdtype(result.dtype, np.complexfloating):
+        return result
+    else:
+        return result.astype(np.complex64, copy=True)
+
+
 # Searching
 
 
