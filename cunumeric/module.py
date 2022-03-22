@@ -1910,6 +1910,115 @@ def tile(A, reps):
     return result
 
 
+def repeat(a, repeats, axis=None):
+    """
+    Repeat elements of an array.
+
+    Parameters
+    ----------
+    a : array_like
+        Input array.
+    repeats : int or array of ints
+        The number of repetitions for each element. repeats is
+        broadcasted to fit the shape of the given axis.
+    axis : int, optional
+        The axis along which to repeat values. By default, use the
+        flattened input array, and return a flat output array.
+
+    Returns
+    -------
+    repeated_array : ndarray
+        Output array which has the same shape as a, except along the
+        given axis.
+
+    Notes
+    -----
+    Currently, repeat operations supports only 1D arrays
+
+    See Also
+    --------
+    numpy.repeat
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+
+    # when array is a scalar
+    if np.ndim(a) == 0:
+        if np.ndim(repeats) == 0:
+            return full((repeats,), a)
+        else:
+            raise ValueError(
+                "`repeat` with a scalar parameter `a` is only "
+                "implemented for scalar values of the parameter `repeats`."
+            )
+    if np.ndim(repeats) > 1:
+        raise ValueError("`repeats` should be scalar or 1D array")
+
+    # array is an array
+    array = convert_to_cunumeric_ndarray(a)
+    if np.ndim(repeats) == 1:
+        repeats = convert_to_cunumeric_ndarray(repeats)
+
+    # if no axes specified, flatten array
+    if axis is None:
+        array = array.ravel()
+        axis = 0
+
+    # axes should be integer type
+    if not isinstance(axis, int):
+        raise TypeError("Axis should be integer type")
+    axis = np.int32(axis)
+
+    if axis >= array.ndim:
+        return ValueError("axis exceeds dimension of the input array")
+
+    # If repeats is on a zero sized axis, then return the array.
+    if array.shape[axis] == 0:
+        return array.copy()
+
+    if np.ndim(repeats) == 1:
+        if repeats.shape[0] == 1 and repeats.shape[0] != array.shape[axis]:
+            repeats = repeats[0]
+
+    # repeats is a scalar.
+    if np.ndim(repeats) == 0:
+        # repeats is 0
+        if repeats == 0:
+            empty_shape = list(array.shape)
+            empty_shape[axis] = 0
+            empty_shape = tuple(empty_shape)
+            return ndarray(shape=empty_shape, dtype=array.dtype)
+        # repeats should be integer type
+        if not isinstance(repeats, int):
+            runtime.warn(
+                "converting repeats to an integer type",
+                category=UserWarning,
+            )
+        repeats = np.int64(repeats)
+        result = array._thunk.repeat(
+            repeats=repeats,
+            axis=axis,
+            scalar_repeats=True,
+        )
+    # repeats is an array
+    else:
+        # repeats should be integer type
+        if repeats.dtype != np.int64:
+            runtime.warn(
+                "converting repeats to an integer type",
+                category=RuntimeWarning,
+            )
+        repeats = repeats.astype(np.int64)
+        if repeats.shape[0] != array.shape[axis]:
+            return ValueError("incorrect shape of repeats array")
+        result = array._thunk.repeat(
+            repeats=repeats._thunk, axis=axis, scalar_repeats=False
+        )
+    return ndarray(shape=result.shape, thunk=result)
+
+
 # Rearranging elements
 
 
@@ -3612,6 +3721,168 @@ def unique(
 ##################################
 # Sorting, searching, and counting
 ##################################
+
+# Sorting
+
+
+@add_boilerplate("a")
+def argsort(a, axis=-1, kind="quicksort", order=None):
+    """
+
+    Returns the indices that would sort an array.
+
+    Parameters
+    ----------
+    a : array_like
+        Input array.
+    axis : int or None, optional
+        Axis to sort. By default, the index -1 (the last axis) is used. If
+        None, the flattened array is used.
+    kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, optional
+        Default is 'quicksort'. The underlying sort algorithm might vary.
+        The code basically supports 'stable' or *not* 'stable'.
+    order : str or list of str, optional
+        Currently not supported
+
+    Returns
+    -------
+    index_array : ndarray of ints
+        Array of indices that sort a along the specified axis. It has the
+        same shape as `a.shape` or is flattened in case of `axis` is None.
+
+    Notes
+    -----
+    The current implementation has only limited support for distributed data.
+    Distributed 1-D or flattened data will be broadcasted.
+
+    See Also
+    --------
+    numpy.argsort
+
+    Availability
+    --------
+    Multiple GPUs, Single CPU
+    """
+
+    result = ndarray(a.shape, np.int64)
+    result._thunk.sort(
+        rhs=a._thunk, argsort=True, axis=axis, kind=kind, order=order
+    )
+    return result
+
+
+def msort(a):
+    """
+
+    Returns a sorted copy of an array sorted along the first axis.
+
+    Parameters
+    ----------
+    a : array_like
+        Input array.
+
+    Returns
+    -------
+    out : ndarray
+        Sorted array with same dtype and shape as `a`.
+
+    Notes
+    -----
+    The current implementation has only limited support for distributed data.
+    Distributed 1-D  data will be broadcasted.
+
+    See Also
+    --------
+    numpy.msort
+
+    Availability
+    --------
+    Multiple GPUs, Single CPU
+    """
+    return sort(a, axis=0)
+
+
+@add_boilerplate("a")
+def sort(a, axis=-1, kind="quicksort", order=None):
+    """
+
+    Returns a sorted copy of an array.
+
+    Parameters
+    ----------
+    a : array_like
+        Input array.
+    axis : int or None, optional
+        Axis to sort. By default, the index -1 (the last axis) is used. If
+        None, the flattened array is used.
+    kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, optional
+        Default is 'quicksort'. The underlying sort algorithm might vary.
+        The code basically supports 'stable' or *not* 'stable'.
+    order : str or list of str, optional
+        Currently not supported
+
+    Returns
+    -------
+    out : ndarray
+        Sorted array with same dtype and shape as `a`. In case `axis` is
+        None the result is flattened.
+
+    Notes
+    -----
+    The current implementation has only limited support for distributed data.
+    Distributed 1-D or flattened data will be broadcasted.
+
+    See Also
+    --------
+    numpy.sort
+
+    Availability
+    --------
+    Multiple GPUs, Single CPU
+    """
+    result = ndarray(a.shape, a.dtype)
+    result._thunk.sort(rhs=a._thunk, axis=axis, kind=kind, order=order)
+    return result
+
+
+@add_boilerplate("a")
+def sort_complex(a):
+    """
+
+    Returns a sorted copy of an array sorted along the last axis. Sorts the
+    real part first, the imaginary part second.
+
+    Parameters
+    ----------
+    a : array_like
+        Input array.
+
+    Returns
+    -------
+    out : ndarray, complex
+        Sorted array with same shape as `a`.
+
+    Notes
+    -----
+    The current implementation has only limited support for distributed data.
+    Distributed 1-D data will be broadcasted.
+
+    See Also
+    --------
+    numpy.sort_complex
+
+    Availability
+    --------
+    Multiple GPUs, Single CPU
+    """
+
+    result = sort(a)
+    # force complex result upon return
+    if np.issubdtype(result.dtype, np.complexfloating):
+        return result
+    else:
+        return result.astype(np.complex64, copy=True)
+
 
 # Searching
 

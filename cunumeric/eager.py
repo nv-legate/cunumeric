@@ -419,6 +419,22 @@ class EagerArray(NumPyThunk):
             else:
                 self.array[:] = np.transpose(rhs.array, axes)
 
+    def repeat(self, repeats, axis, scalar_repeats):
+        if not scalar_repeats:
+            self.check_eager_args(repeats)
+        if self.deferred is not None:
+            return self.deferred.repeat(
+                repeats,
+                axis,
+                scalar_repeats,
+            )
+        else:
+            if not scalar_repeats:
+                array = np.repeat(self.array, repeats.array, axis)
+            else:
+                array = np.repeat(self.array, repeats, axis)
+            return EagerArray(self.runtime, array)
+
     def flip(self, rhs, axes):
         self.check_eager_args(rhs)
         if self.deferred is not None:
@@ -537,6 +553,16 @@ class EagerArray(NumPyThunk):
             for array in arrays:
                 result += (EagerArray(self.runtime, array),)
             return result
+
+    def sort(self, rhs, argsort=False, axis=-1, kind="quicksort", order=None):
+        self.check_eager_args(rhs, axis, kind, order)
+        if self.deferred is not None:
+            self.deferred.sort(rhs, argsort, axis, kind, order)
+        else:
+            if argsort:
+                self.array = np.argsort(rhs.array, axis, kind, order)
+            else:
+                self.array = np.sort(rhs.array, axis, kind, order)
 
     def random_uniform(self):
         if self.deferred is not None:

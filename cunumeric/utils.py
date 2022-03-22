@@ -37,6 +37,8 @@ def find_last_user_frames(top_only=True):
     last = None
     for (frame, _) in traceback.walk_stack(None):
         last = frame
+        if "__name__" not in frame.f_globals:
+            continue
         if not frame.f_globals["__name__"].startswith("cunumeric"):
             break
 

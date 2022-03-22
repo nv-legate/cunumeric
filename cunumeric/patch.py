@@ -12,12 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+""" This module may be imported in order to globably replace NumPy with
+CuNumeric.
 
-import numpy.random as _nprandom
-from cunumeric.random.random import *
-from cunumeric.coverage import clone_module
+In order to function properly, this module must be imported early (ideally
+at the very start of a script).  The ``numpy`` module in ``sys.modules``
+will be replaced with ``cunumeric`` so that any subsequent use of the
+``numpy`` module will use ``cunumeric`` instead.
 
-clone_module(_nprandom, globals())
+This module is primarily intended for quick demonstrations or proofs of
+concept.
 
-del clone_module
-del _nprandom
+"""
+
+import sys
+
+import cunumeric
+
+sys.modules["numpy"] = cunumeric

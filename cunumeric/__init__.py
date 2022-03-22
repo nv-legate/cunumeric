@@ -23,9 +23,8 @@ with GPU acceleration.
 :meta private:
 """
 
-import sys as _sys
-
 import numpy as _np
+
 from cunumeric import linalg, random
 from cunumeric.array import ndarray
 from cunumeric.module import *
@@ -34,14 +33,9 @@ from cunumeric.ufunc.comparison import *
 from cunumeric.ufunc.math import *
 from cunumeric.ufunc.floating import *
 from cunumeric.ufunc.trigonometric import *
-from cunumeric.coverage import (
-    add_missing_attributes as _add_missing_attributes,
-)
+from cunumeric.coverage import clone_module
 
-_thismodule = _sys.modules[__name__]
+clone_module(_np, globals())
 
-# map any undefined attributes to numpy
-_add_missing_attributes(_np, _thismodule)
-
-# Remote this method from the scope
-del _add_missing_attributes
+del clone_module
+del _np
