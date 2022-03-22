@@ -13,12 +13,14 @@
 # limitations under the License.
 #
 
-from cunumeric.config import UnaryOpCode
+from cunumeric.config import BinaryOpCode, UnaryOpCode
 
 from .ufunc import (
+    create_binary_ufunc,
     create_unary_ufunc,
     float_and_complex,
     float_dtypes,
+    integer_dtypes,
     predicate_types_of,
 )
 
@@ -61,6 +63,26 @@ signbit = create_unary_ufunc(
     predicate_types_of(float_dtypes),
 )
 
+copysign = create_binary_ufunc(
+    "Change the sign of x1 to that of x2, element-wise.",
+    "copysign",
+    BinaryOpCode.COPYSIGN,
+    float_dtypes,
+)
+
+nextafter = create_binary_ufunc(
+    "Return the next floating-point value after x1 towards x2, element-wise.",
+    "nextafter",
+    BinaryOpCode.NEXTAFTER,
+    float_dtypes,
+)
+
+fmod = create_binary_ufunc(
+    "Returns the element-wise remainder of division.",
+    "fmod",
+    BinaryOpCode.FMOD,
+    integer_dtypes + float_dtypes,
+)
 
 floor = create_unary_ufunc(
     "Return the floor of the input, element-wise.",

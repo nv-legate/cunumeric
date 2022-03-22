@@ -225,3 +225,17 @@ reciprocal = create_unary_ufunc(
     UnaryOpCode.RECIPROCAL,
     all_but_boolean,
 )
+
+gcd = create_binary_ufunc(
+    "Returns the greatest common divisor of ``|x1|`` and ``|x2|``",
+    "gcd",
+    BinaryOpCode.GCD,
+    integer_dtypes,
+)
+
+lcm = create_binary_ufunc(
+    "Returns the lowest common multiple of ``|x1|`` and ``|x2|``",
+    "lcm",
+    BinaryOpCode.LCM,
+    integer_dtypes,
+)

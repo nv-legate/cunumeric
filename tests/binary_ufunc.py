@@ -72,21 +72,16 @@ def test_all_binary_ops():
     ops = [
         "add",
         # "arctan2",
-        # "copysign",
         # "divmod",
         "equal",
         # "float_power",
         "fmax",
         "fmin",
-        # "fmod",
-        # "gcd",
         "greater",
         "greater_equal",
         # "heaviside",
         # "hypot",
-        # "lcm",
         # "ldexp",
-        # "left_shift",
         "less",
         "less_equal",
         "logical_and",
@@ -95,9 +90,7 @@ def test_all_binary_ops():
         "maximum",
         "minimum",
         "multiply",
-        # "nextafter",
         "not_equal",
-        # "right_shift",
         "subtract",
         "true_divide",
     ]
@@ -118,23 +111,26 @@ def test_all_binary_ops():
         test(ops, (arr1, arr2))
 
     for arr, scalar in product(arrs, scalars):
-        test(ops, (arr, arr))
+        test(ops, (arr, scalar))
         test(ops, (scalar, arr))
 
     for scalar1, scalar2 in product(scalars, scalars):
         test(ops, (scalar1, scalar2))
 
     ops = [
+        "copysign",
         "floor_divide",
+        "fmod",
         "logaddexp",
         "logaddexp2",
+        "nextafter",
     ]
 
     for arr1, arr2 in product(arrs[:-1], arrs[:-1]):
         test(ops, (arr1, arr2))
 
     for arr, scalar in product(arrs[:-1], scalars[:-1]):
-        test(ops, (arr, arr))
+        test(ops, (arr, scalar))
         test(ops, (scalar, arr))
 
     for scalar1, scalar2 in product(scalars[:-1], scalars[:-1]):
@@ -148,7 +144,7 @@ def test_all_binary_ops():
         test(ops, (arr1, arr2))
 
     for arr, scalar in product(arrs, scalars[:1]):
-        test(ops, (arr, arr))
+        test(ops, (arr, scalar))
         test(ops, (scalar, arr))
 
     for scalar1, scalar2 in product(scalars[:1], scalars[:1]):
@@ -162,7 +158,7 @@ def test_all_binary_ops():
         test(ops, (arr1, arr2))
 
     for arr, scalar in product(arrs[:1], scalars[:-2]):
-        test(ops, (arr, arr))
+        test(ops, (arr, scalar))
         test(ops, (scalar, arr))
 
     for scalar1, scalar2 in product(scalars[:-2], scalars[:-2]):
@@ -172,7 +168,9 @@ def test_all_binary_ops():
         "bitwise_and",
         "bitwise_or",
         "bitwise_xor",
+        "gcd",
         "left_shift",
+        "lcm",
         "right_shift",
     ]
 
