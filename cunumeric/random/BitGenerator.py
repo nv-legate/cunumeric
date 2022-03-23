@@ -33,8 +33,11 @@ class BitGenerator:
         "handle", # handle to the runtime id
     ]
 
-    def __init__(self, seed=None, generatorID=DEFAULT):
-        handle = runtime.bitgenerator_create(generatorID)
+    def __init__(self, seed=None, generatorType=DEFAULT):
+        self.handle = runtime.bitgenerator_create(generatorType)
+
+    def __del__(self):
+        runtime.bitgenerator_destroy(self.handle)
 
     def random_raw(self, size=None, output=True):
         raise NotImplementedError('Not Implemented')
