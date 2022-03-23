@@ -1204,12 +1204,6 @@ class ndarray:
         Multiple GPUs, Multiple CPUs
 
         """
-        if (
-            self.dtype.type == np.uint16
-            or self.dtype.type == np.uint32
-            or self.dtype.type == np.uint64
-        ):
-            raise TypeError("cannot negate unsigned type " + str(self.dtype))
         return self._perform_unary_op(UnaryOpCode.NEGATIVE, self)
 
     # __new__
@@ -1279,15 +1273,8 @@ class ndarray:
         Multiple GPUs, Multiple CPUs
 
         """
-        # We know these types are already positive
-        if (
-            self.dtype.type == np.uint16
-            or self.dtype.type == np.uint32
-            or self.dtype.type == np.uint64
-            or self.dtype.type == np.bool_
-        ):
-            return self
-        return self._perform_unary_op(UnaryOpCode.POSITIVE, self)
+        # the positive opeartor is equivalent to copy
+        return self._perform_unary_op(UnaryOpCode.COPY, self)
 
     def __pow__(self, rhs):
         """a.__pow__(value, /)
@@ -3148,13 +3135,6 @@ class ndarray:
         if where is False:
             return dst
 
-        op_dtype = (
-            dst.dtype
-            if out_dtype is None
-            and not (op == UnaryOpCode.ABSOLUTE and src.dtype.kind == "c")
-            else src.dtype
-        )
-
         if out_dtype is None:
             if dst.dtype != src.dtype and not (
                 op == UnaryOpCode.ABSOLUTE and src.dtype.kind == "c"
@@ -3166,7 +3146,6 @@ class ndarray:
                 )
                 temp._thunk.unary_op(
                     op,
-                    op_dtype,
                     src._thunk,
                     cls._get_where_thunk(where, dst.shape),
                     extra_args,
@@ -3175,7 +3154,6 @@ class ndarray:
             else:
                 dst._thunk.unary_op(
                     op,
-                    op_dtype,
                     src._thunk,
                     cls._get_where_thunk(where, dst.shape),
                     extra_args,
@@ -3189,7 +3167,6 @@ class ndarray:
                 )
                 temp._thunk.unary_op(
                     op,
-                    op_dtype,
                     src._thunk,
                     cls._get_where_thunk(where, dst.shape),
                     extra_args,
@@ -3198,7 +3175,6 @@ class ndarray:
             else:
                 dst._thunk.unary_op(
                     op,
-                    op_dtype,
                     src._thunk,
                     cls._get_where_thunk(where, dst.shape),
                     extra_args,

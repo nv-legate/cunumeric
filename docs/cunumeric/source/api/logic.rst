@@ -19,6 +19,7 @@ Array contents
 .. autosummary::
    :toctree: generated/
 
+   isfinite
    isinf
    isnan
 
