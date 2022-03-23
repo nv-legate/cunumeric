@@ -205,7 +205,7 @@ void thrust_local_sort(const VAL* values_in,
                        const bool stable_argsort,
                        cudaStream_t stream)
 {
-  auto alloc       = DeferredBufferAllocator(Memory::GPU_FB_MEM);
+  auto alloc       = IntraTaskAllocator(Memory::GPU_FB_MEM);
   auto exec_policy = thrust::cuda::par(alloc).on(stream);
 
   if (values_in != values_out) {
@@ -463,7 +463,7 @@ static SortPiece<VAL> sample_sort_nccl(SortPiece<VAL> local_sorted,
                            stream));
 
   // sort samples on device
-  auto alloc       = DeferredBufferAllocator(Memory::GPU_FB_MEM);
+  auto alloc       = IntraTaskAllocator(Memory::GPU_FB_MEM);
   auto exec_policy = thrust::cuda::par(alloc).on(stream);
   thrust::stable_sort(
     exec_policy, samples.ptr(0), samples.ptr(0) + num_global_samples, SampleComparator<VAL>());
