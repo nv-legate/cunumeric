@@ -16,15 +16,20 @@
 import os
 from subprocess import run
 
+import pytest
+
+# TODO: (bev) This probably only works in bash. Skipping the tests until
+# something more reliable can be implemented.
 legate = os.environ["_"]
 
-
+@pytest.mark.skip
 def test_no_patch() -> None:
     cmd = "import sys; import cunumeric; import numpy; sys.exit(numpy is cunumeric)"  # noqa E501
     proc = run([legate, "-c", cmd])
     assert proc.returncode == 0, "numpy is unexpectedly patched"
 
 
+@pytest.mark.skip
 def test_patch() -> None:
     cmd = "import sys; import cunumeric.patch; import numpy; sys.exit(numpy is cunumeric)"  # noqa E501
     proc = run([legate, "-c", cmd])

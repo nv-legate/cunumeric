@@ -77,7 +77,7 @@ def is_supported_dtype(dtype):
         base_type == np.uint16
         or base_type == np.uint32
         or base_type == np.uint64
-    ):  # noqa E501
+    ):
         return True
     if base_type == np.bool_ or base_type == bool:
         return True

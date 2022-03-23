@@ -57,23 +57,6 @@ _supported_dtypes = {
 
 
 class Runtime(object):
-    __slots__ = [
-        "api_calls",
-        "current_random_epoch",
-        "destroyed",
-        "legate_context",
-        "legate_runtime",
-        "max_eager_volume",
-        "num_gpus",
-        "num_procs",
-        "preload_cudalibs",
-        "report_coverage",
-        "report_dump_callstack",
-        "report_dump_csv",
-        "test_mode",
-        "warning",
-    ]
-
     def __init__(self, legate_context):
         self.legate_context = legate_context
         self.legate_runtime = get_legate_runtime()
