@@ -246,6 +246,17 @@ class Runtime(object):
         task.execute()
         return self.current_random_bitgenid
 
+    def bitgenerator_destroy(self,handle):
+        task = self.legate_context.create_task(CuNumericOpCode.BITGENERATOR,
+            manual=True,
+            launch_domain=Rect(lo=(0,), hi=(self.num_procs,)),
+        )
+        self.current_random_bitgenid = self.current_random_bitgenid + 1
+        task.add_scalar_arg(2, ty.int32) # OP_DESTROY
+        task.add_scalar_arg(handle, ty.uint32)
+        task.add_scalar_arg(0, ty.uint64)
+        task.execute()
+
     def set_next_random_epoch(self, epoch):
         self.current_random_epoch = epoch
 
