@@ -28,7 +28,6 @@
 #include <cub/device/device_segmented_radix_sort.cuh>
 #include <cub/thread/thread_search.cuh>
 
-#include "cunumeric/allocator.h"
 #include "cunumeric/cuda_help.h"
 
 namespace cunumeric {
