@@ -83,7 +83,7 @@ struct SortImpl {
 template <VariantKind KIND>
 static void sort_template(TaskContext& context)
 {
-  auto shape_span      = context.scalars()[1].values<int32_t>();
+  auto shape_span      = context.scalars()[1].values<int64_t>();
   size_t sort_dim_size = shape_span[shape_span.size() - 1];
   size_t local_rank    = get_rank(context.get_launch_domain(), context.get_task_index());
   size_t num_ranks     = context.get_launch_domain().get_volume();
