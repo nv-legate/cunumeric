@@ -560,8 +560,7 @@ struct UnaryOp<UnaryOpCode::EXP2, legate::LegateTypeCode::HALF_LT> {
 template <legate::LegateTypeCode CODE>
 struct UnaryOp<UnaryOpCode::EXPM1, CODE> {
   static constexpr bool valid = is_floating_or_complex<CODE>;
-  ;
-  using T = legate::legate_type_of<CODE>;
+  using T                     = legate::legate_type_of<CODE>;
 
   UnaryOp(const std::vector<legate::Store>& args) {}
 
@@ -576,7 +575,7 @@ struct UnaryOp<UnaryOpCode::EXPM1, CODE> {
   constexpr decltype(auto) operator()(const T& x) const
   {
     using std::exp;
-    return exp(x) - 1;
+    return exp(x) - T(1);
   }
 };
 
@@ -800,7 +799,7 @@ struct UnaryOp<UnaryOpCode::LOG1P, CODE> {
   constexpr decltype(auto) operator()(const T& x) const
   {
     using std::log;
-    return log(1 + x);
+    return log(T(1) + x);
   }
 };
 
@@ -928,7 +927,7 @@ struct UnaryOp<UnaryOpCode::RECIPROCAL, CODE> {
   constexpr T operator()(const T& x) const
   {
     // TODO: We should raise an exception for any divide-by-zero attempt
-    return x != 0 ? 1 / x : 0;
+    return x != T(0) ? T(1) / x : 0;
   }
 };
 
