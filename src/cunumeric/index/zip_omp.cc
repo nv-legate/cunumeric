@@ -39,10 +39,12 @@ struct ZipImplBody<VariantKind::OMP, DIM, N> {
     const size_t volume = rect.volume();
     if (index_arrays.size() == N) {
       if (dense) {
+        std::vector<const VAL*> indx_ptrs;
+        for (auto a : index_arrays) indx_ptrs.push_back(a.ptr(rect));
         auto outptr = out.ptr(rect);
 #pragma omp parallel for schedule(static)
         for (size_t idx = 0; idx < volume; ++idx) {
-          outptr[idx] = Legion::Point<N>(index_arrays[Is].ptr(rect)[idx]...);
+          outptr[idx] = Legion::Point<N>(indx_ptrs[Is][idx]...);
         }
       } else {
 #pragma omp parallel for schedule(static)
