@@ -136,10 +136,8 @@ def clone_module(
 
     for attr, value in missing.items():
         if isinstance(value, FunctionType):
-            new_globals[attr] = (
-                unimplemented(
-                    value, module_name, reporting=runtime.report_coverage
-                ),
+            new_globals[attr] = unimplemented(
+                value, module_name, reporting=runtime.report_coverage
             )
         else:
             new_globals[attr] = value
