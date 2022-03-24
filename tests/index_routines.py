@@ -97,6 +97,21 @@ def advanced_indexing():
     res_num = z_num[:, indx0_num, indx1_num]
     assert np.array_equal(res, res_num)
 
+    # 2 index arrays passed in a sparse way:
+    x = mk_seq_array(np, (3, 4, 5, 6))
+    x_num = mk_seq_array(num, (3, 4, 5, 6))
+    res = x[:, [0, 1], :, [0, 1]]
+    res_num = x_num[:, [0, 1], :, [0, 1]]
+    assert np.array_equal(res, res_num)
+
+    res = x[[0, 1], :, [0, 1], 1:]
+    res_num = x_num[[0, 1], :, [0, 1], 1:]
+    assert np.array_equal(res, res_num)
+
+    res = x[:, [0, 1], :, 1:]
+    res_num = x_num[:, [0, 1], :, 1:]
+    assert np.array_equal(res, res_num)
+
     # 2 arrays with broadcasting
     indx0 = np.array([1, 1])
     indx1 = np.array([[1, 0], [1, 0]])
@@ -181,6 +196,32 @@ def advanced_indexing():
     res_num = z_num[ind0_num, :, -1]
     assert np.array_equal(res, res_num)
 
+    res = z[ind0, :, [False, True, False, True]]
+    res_num = z_num[ind0_num, :, [False, True, False, True]]
+    assert np.array_equal(res, res_num)
+
+    res = z[ind0, :, ind0]
+    res_num = z_num[ind0_num, :, ind0_num]
+    assert np.array_equal(res, res_num)
+
+    res = z[ind0, :, 1:3]
+    res_num = z_num[ind0_num, :, 1:3]
+    assert np.array_equal(res, res_num)
+
+    res = z[1, :, ind0]
+    res_num = z_num[1, :, ind0_num]
+    assert np.array_equal(res, res_num)
+
+    x = mk_seq_array(np, (3, 4, 5, 6))
+    x_num = mk_seq_array(num, (3, 4, 5, 6))
+    res = x[[0, 1], [0, 1], :, 2]
+    res_num = x_num[[0, 1], [0, 1], :, 2]
+    assert np.array_equal(res, res_num)
+
+    res = x[..., [0, 1], 2]
+    res_num = x_num[..., [0, 1], 2]
+    assert np.array_equal(res, res_num)
+
     # In-Place & Augmented Assignments via Advanced Indexing
     # simple 1d case
     # y = np.array([0, -1, -2, -3, -4, -5])
@@ -238,6 +279,24 @@ def advanced_indexing():
         idx_arr_np = mk_seq_array(np, i_shape) % np_array.shape[0]
         idx_arr_num = num.array(idx_arr_np)
         assert np.array_equal(np_array[idx_arr_np], num_array[idx_arr_num])
+        idx_arr_np = np.array([[1, 0, 1], [1, 1, 0]])
+        idx_arr_num = num.array(idx_arr_np)
+        assert np.array_equal(
+            np_array[:, idx_arr_np], num_array[:, idx_arr_num]
+        )
+        if ndim > 2:
+            assert np.array_equal(
+                np_array[1, :, idx_arr_np], num_array[1, :, idx_arr_num]
+            )
+            assert np.array_equal(
+                np_array[:, idx_arr_np, idx_arr_np],
+                num_array[:, idx_arr_num, idx_arr_num],
+            )
+        if ndim > 3:
+            assert np.array_equal(
+                np_array[:, idx_arr_np, :, idx_arr_np],
+                num_array[:, idx_arr_num, :, idx_arr_num],
+            )
 
     return
 

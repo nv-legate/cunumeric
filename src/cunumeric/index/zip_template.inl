@@ -43,6 +43,8 @@ struct ZipImpl {
 
 #ifndef LEGION_BOUNDS_CHECKS
       bool dense = out.accessor.is_dense_row_major(out_rect);
+#else
+    bool dense = false;
 #endif
     std::vector<AccessorRO<VAL, DIM>> index_arrays;
     for (int i = 0; i < args.inputs.size(); i++) {
@@ -53,12 +55,9 @@ struct ZipImpl {
       dense = dense && index_arrays[i].accessor.is_dense_row_major(out_rect);
     }
 
-#ifdef LEGION_BOUNDS_CHECKS
-    bool dense = false;
-#endif
     ZipImplBody<KIND, DIM, N>()(out,
                                 index_arrays,
-                                index_rect,
+                                out_rect,
                                 pitches,
                                 dense,
                                 args.key_dim,
