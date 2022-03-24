@@ -79,7 +79,7 @@ def sort_task(output, input, argsort, stable):
         task.add_broadcast(input.base)
 
     task.add_scalar_arg(argsort, bool)  # return indices flag
-    task.add_scalar_arg(input.base.shape, (ty.int32,))
+    task.add_scalar_arg(input.base.shape, (ty.int64,))
     task.add_scalar_arg(stable, bool)
     task.execute()
 
