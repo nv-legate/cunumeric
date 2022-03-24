@@ -34,6 +34,20 @@ namespace cunumeric {
 
 using namespace Legion;
 
+class ThrustAllocator : public ScopedAllocator {
+ public:
+  using value_type = char;
+
+  ThrustAllocator(Legion::Memory::Kind kind, bool scoped = true, size_t alignment = 16)
+    : ScopedAllocator(kind, scoped, alignment)
+  {
+  }
+
+  char* allocate(size_t num_bytes) { return (char*)ScopedAllocator::allocate(num_bytes); }
+
+  void deallocate(char* ptr, size_t n) { ScopedAllocator::deallocate(ptr); }
+};
+
 struct multiply : public thrust::unary_function<int, int> {
   const int constant;
 
@@ -202,10 +216,10 @@ void thrust_local_sort(const VAL* values_in,
                        int64_t* indices_out,
                        const size_t volume,
                        const size_t sort_dim_size,
-                       const bool stable_argsort,
+                       const bool stable,
                        cudaStream_t stream)
 {
-  auto alloc       = IntraTaskAllocator(Memory::GPU_FB_MEM);
+  auto alloc       = ThrustAllocator(Memory::GPU_FB_MEM);
   auto exec_policy = thrust::cuda::par(alloc).on(stream);
 
   if (values_in != values_out) {
@@ -221,7 +235,11 @@ void thrust_local_sort(const VAL* values_in,
 
   if (indices_out == nullptr) {
     if (volume == sort_dim_size) {
-      thrust::sort(exec_policy, values_out, values_out + volume);
+      if (stable) {
+        thrust::stable_sort(exec_policy, values_out, values_out + volume);
+      } else {
+        thrust::sort(exec_policy, values_out, values_out + volume);
+      }
     } else {
       auto sort_id = create_buffer<uint64_t>(volume, Legion::Memory::Kind::GPU_FB_MEM);
       // init combined keys
@@ -233,14 +251,19 @@ void thrust_local_sort(const VAL* values_in,
                         thrust::divides<uint64_t>());
       auto combined = thrust::make_zip_iterator(thrust::make_tuple(sort_id.ptr(0), values_out));
 
-      thrust::sort(
-        exec_policy, combined, combined + volume, thrust::less<thrust::tuple<size_t, VAL>>());
+      if (stable) {
+        thrust::stable_sort(
+          exec_policy, combined, combined + volume, thrust::less<thrust::tuple<size_t, VAL>>());
+      } else {
+        thrust::sort(
+          exec_policy, combined, combined + volume, thrust::less<thrust::tuple<size_t, VAL>>());
+      }
 
       sort_id.destroy();
     }
   } else {
     if (volume == sort_dim_size) {
-      if (stable_argsort) {
+      if (stable) {
         thrust::stable_sort_by_key(exec_policy, values_out, values_out + volume, indices_out);
       } else {
         thrust::sort_by_key(exec_policy, values_out, values_out + volume, indices_out);
@@ -256,7 +279,7 @@ void thrust_local_sort(const VAL* values_in,
                         thrust::divides<uint64_t>());
       auto combined = thrust::make_zip_iterator(thrust::make_tuple(sort_id.ptr(0), values_out));
 
-      if (stable_argsort) {
+      if (stable) {
         thrust::stable_sort_by_key(exec_policy,
                                    combined,
                                    combined + volume,
@@ -292,23 +315,17 @@ void local_sort(const legate_type_of<CODE>* values_in,
                 int64_t* indices_out,
                 const size_t volume,
                 const size_t sort_dim_size,
-                const bool stable_argsort,  // cub sort is always stable
+                const bool stable,  // cub sort is always stable
                 cudaStream_t stream)
 {
   using VAL = legate_type_of<CODE>;
   // fallback to thrust approach as segmented radix sort is not suited for small segments
-  if (volume == sort_dim_size || sort_dim_size > 300) {
+  if (volume == sort_dim_size || sort_dim_size > 400) {
     cub_local_sort<VAL>(
       values_in, values_out, indices_in, indices_out, volume, sort_dim_size, stream);
   } else {
-    thrust_local_sort<VAL>(values_in,
-                           values_out,
-                           indices_in,
-                           indices_out,
-                           volume,
-                           sort_dim_size,
-                           stable_argsort,
-                           stream);
+    thrust_local_sort<VAL>(
+      values_in, values_out, indices_in, indices_out, volume, sort_dim_size, stable, stream);
   }
 }
 
@@ -319,12 +336,12 @@ void local_sort(const legate_type_of<CODE>* values_in,
                 int64_t* indices_out,
                 const size_t volume,
                 const size_t sort_dim_size,
-                const bool stable_argsort,
+                const bool stable,
                 cudaStream_t stream)
 {
   using VAL = legate_type_of<CODE>;
   thrust_local_sort<VAL>(
-    values_in, values_out, indices_in, indices_out, volume, sort_dim_size, stable_argsort, stream);
+    values_in, values_out, indices_in, indices_out, volume, sort_dim_size, stable, stream);
 }
 
 // auto align to multiples of 16 bytes
@@ -463,7 +480,7 @@ static SortPiece<VAL> sample_sort_nccl(SortPiece<VAL> local_sorted,
                            stream));
 
   // sort samples on device
-  auto alloc       = IntraTaskAllocator(Memory::GPU_FB_MEM);
+  auto alloc       = ThrustAllocator(Memory::GPU_FB_MEM);
   auto exec_policy = thrust::cuda::par(alloc).on(stream);
   thrust::stable_sort(
     exec_policy, samples.ptr(0), samples.ptr(0) + num_global_samples, SampleComparator<VAL>());
