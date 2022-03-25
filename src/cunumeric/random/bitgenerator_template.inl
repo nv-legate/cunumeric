@@ -17,6 +17,8 @@
 #include "cunumeric/arg.h"
 #include "cunumeric/pitches.h"
 
+#include "bitgenerator_util.h"
+
 namespace cunumeric {
 
 using namespace Legion;
@@ -29,7 +31,7 @@ template <VariantKind KIND>
 struct BitGeneratorImpl {
   void operator()(BitGeneratorArgs& args) const
   {
-    BitGeneratorImplBody<KIND>{}(args.bitgen_op, args.generatorID, args.parameter, args.args);
+    BitGeneratorImplBody<KIND>{}(args.bitgen_op, args.generatorID, args.parameter, args.output, args.args);
   }
 };
 
@@ -46,7 +48,10 @@ static void bitgenerator_template(TaskContext& context)
   std::vector<Store> extra_args;
   for (auto& input : inputs) extra_args.push_back(std::move(input));
 
-  BitGeneratorArgs args{bitgen_op, generatorID, parameter, std::move(extra_args)};
+  std::vector<Store> optional_output;
+  for (auto& output : outputs) optional_output.push_back(std::move(output));
+
+  BitGeneratorArgs args{bitgen_op, generatorID, parameter, std::move(optional_output), std::move(extra_args)};
   BitGeneratorImpl<KIND>{}(args);
 }
 

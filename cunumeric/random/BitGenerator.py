@@ -20,6 +20,7 @@ class BitGenerator:
     # see bitgenerator_util.h
     OP_CREATE = 1
     OP_DESTROY = 2
+    OP_RAND_RAW = 3
 
     # see bitgenerator_util.h
     DEFAULT = 0
@@ -39,5 +40,38 @@ class BitGenerator:
     def __del__(self):
         runtime.bitgenerator_destroy(self.handle)
 
-    def random_raw(self, size=None, output=True):
-        raise NotImplementedError('Not Implemented')
+    # when output is false => skip ahead
+    def random_raw(self, shape=None, output=True):
+        if shape is None:
+            raise NotImplementedError('Empty shape not implemented')
+        if not isinstance(shape, tuple):
+            shape = (shape,)
+        if output:
+            raise NotImplementedError('Actual output not implemented')
+            # res = ndarray(size, dtype=dtype)
+            # res.bitgenerator_random_raw(self.handle, shape)
+        else:
+            res = None
+            runtime.bitgenerator_random_raw(self.handle, shape)
+        return res
+
+class XORWOW(BitGenerator):
+    def __init__(self, seed=None):
+        super().__init__(seed, BitGenerator.XORWOW)
+
+class MRG32k3a(BitGenerator):
+    def __init__(self, seed=None):
+        super().__init__(seed, BitGenerator.MRG32K3A)
+
+class MTGP32(BitGenerator):
+    def __init__(self, seed=None):
+        super().__init__(seed, BitGenerator.MTGP32)
+
+class MT19937(BitGenerator):
+    def __init__(self, seed=None):
+        super().__init__(seed, BitGenerator.MT19937)
+
+class PHILOX4_32_10(BitGenerator):
+    def __init__(self, seed=None):
+        super().__init__(seed, BitGenerator.PHILOX4_32_10)
+
