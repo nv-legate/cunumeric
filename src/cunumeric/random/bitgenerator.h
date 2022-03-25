@@ -25,6 +25,7 @@ struct BitGeneratorArgs {
   BitGeneratorOperation bitgen_op;
   int32_t generatorID;
   uint64_t parameter;
+  std::vector<legate::Store> output; // size 0 or 1
   std::vector<legate::Store> args;
 };
 

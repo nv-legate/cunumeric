@@ -23,6 +23,7 @@ namespace cunumeric {
 enum class BitGeneratorOperation : int32_t {
     CREATE = 1,
     DESTROY = 2,
+    RAND_RAW = 3,
 };
 
 enum class BitGeneratorType : int32_t {
