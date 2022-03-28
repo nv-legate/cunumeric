@@ -1332,6 +1332,14 @@ class DeferredArray(NumPyThunk):
         task.execute()
         return results
 
+    def bitgenerator_random_raw(self, handle):
+        task = self.context.create_task(CuNumericOpCode.BITGENERATOR)
+        task.add_output(self.base)
+        task.add_scalar_arg(3, ty.int32) # OP_RAND_RAW
+        task.add_scalar_arg(handle, ty.uint32)
+        task.add_scalar_arg(0, ty.uint64) # with no output => size of the output
+        task.execute()
+
     def random(self, gen_code, args=[]):
         task = self.context.create_task(CuNumericOpCode.RAND)
 

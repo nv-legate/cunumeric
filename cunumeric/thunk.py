@@ -190,6 +190,10 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
+    def bitgenerator_random_raw(self, bitgen):
+        ...
+
+    @abstractmethod
     def random_uniform(self):
         ...
 

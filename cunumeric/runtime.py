@@ -268,10 +268,10 @@ class Runtime(object):
         )
         task.add_scalar_arg(3, ty.int32) # OP_RAND_RAW
         task.add_scalar_arg(handle, ty.uint32)
-        skipcount=1
+        gencount=1
         for sz in size:
-            skipcount = skipcount * sz
-        task.add_scalar_arg(skipcount, ty.uint64) # with no output => size of the output
+            gencount = gencount * sz
+        task.add_scalar_arg(gencount, ty.uint64) # size of the output
         task.execute()
 
     def set_next_random_epoch(self, epoch):

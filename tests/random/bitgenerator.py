@@ -41,9 +41,11 @@ def test_bitgenerator():
 
 def test_bitgenerator_type(t):
     print("testing for type = " + str(t))
-    a = t()
-    a.random_raw(256, False)
-    a.random_raw((512,256), False)
+    bitgen = t()
+    bitgen.random_raw(256, False)
+    bitgen.random_raw((512,256), False)
+    r = bitgen.random_raw(256) # deferred is None
+    r = bitgen.random_raw(1024*1024)
     a = None
     runtime.legate_runtime.issue_execution_fence(block=True)
     print("DONE for type = " + str(t))
