@@ -22,11 +22,52 @@ namespace cunumeric {
 using namespace Legion;
 using namespace legate;
 
-template <LegateTypeCode CODE, int DIM1, int DIM2>
-struct AdvancedIndexingImplBody<VariantKind::CPU, CODE, DIM1, DIM2> {
+template <LegateTypeCode CODE, int DIM1, int DIM2, bool IS_SET>
+struct AdvancedIndexingImplBody<VariantKind::CPU, CODE, DIM1, DIM2, IS_SET> {
   using VAL = legate_type_of<CODE>;
 
-  size_t operator()(Buffer<VAL>& out,
+  void compute_output(Buffer<VAL>& out,
+                      const AccessorRO<VAL, DIM1>& input,
+                      const AccessorRO<bool, DIM2>& index,
+                      const Pitches<DIM1 - 1>& pitches_input,
+                      const Rect<DIM1>& rect_input,
+                      const Pitches<DIM2 - 1>& pitches_index,
+                      const Rect<DIM2>& rect_index,
+                      int volume) const
+  {
+    int64_t out_idx = 0;
+    for (size_t idx = 0; idx < volume; ++idx) {
+      auto p       = pitches_index.unflatten(idx, rect_index.lo);
+      auto p_input = pitches_input.unflatten(idx, rect_input.lo);
+      if (index[p] == true) {
+        out[out_idx] = input[p_input];
+        out_idx++;
+      }
+    }
+  }
+
+  void compute_output(Buffer<Point<DIM1>>& out,
+                      const AccessorRO<VAL, DIM1>&,
+                      const AccessorRO<bool, DIM2>& index,
+                      const Pitches<DIM1 - 1>& pitches_input,
+                      const Rect<DIM1>& rect_input,
+                      const Pitches<DIM2 - 1>& pitches_index,
+                      const Rect<DIM2>& rect_index,
+                      int volume) const
+  {
+    int64_t out_idx = 0;
+    for (size_t idx = 0; idx < volume; ++idx) {
+      auto p       = pitches_index.unflatten(idx, rect_index.lo);
+      auto p_input = pitches_input.unflatten(idx, rect_input.lo);
+      if (index[p] == true) {
+        out[out_idx] = p_input;
+        out_idx++;
+      }
+    }
+  }
+
+  template <typename OUT_TYPE>
+  size_t operator()(Buffer<OUT_TYPE>& out,
                     const AccessorRO<VAL, DIM1>& input,
                     const AccessorRO<bool, DIM2>& index,
                     const Pitches<DIM1 - 1>& pitches_input,
@@ -45,17 +86,9 @@ struct AdvancedIndexingImplBody<VariantKind::CPU, CODE, DIM1, DIM2> {
       if (index[p] == true) { size++; }
     }
 
-    out = create_buffer<VAL>(size, Memory::Kind::SYSTEM_MEM);
+    out = create_buffer<OUT_TYPE>(size, Memory::Kind::SYSTEM_MEM);
 
-    int64_t out_idx = 0;
-    for (size_t idx = 0; idx < volume; ++idx) {
-      auto p       = pitches_index.unflatten(idx, rect_index.lo);
-      auto p_input = pitches_input.unflatten(idx, rect_input.lo);
-      if (index[p] == true) {
-        out[out_idx] = input[p_input];
-        out_idx++;
-      }
-    }
+    compute_output(out, input, index, pitches_input, rect_input, pitches_index, rect_index, volume);
     return size;
   }
 };

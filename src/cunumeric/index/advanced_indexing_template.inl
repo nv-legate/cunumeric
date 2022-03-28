@@ -21,7 +21,7 @@ namespace cunumeric {
 using namespace Legion;
 using namespace legate;
 
-template <VariantKind KIND, LegateTypeCode CODE, int DIM1, int DIM2>
+template <VariantKind KIND, LegateTypeCode CODE, int DIM1, int DIM2, bool IS_SET>
 struct AdvancedIndexingImplBody;
 
 template <VariantKind KIND, LegateTypeCode CODE, int DIM1>
@@ -34,6 +34,7 @@ struct AdvancedIndexingImpl {
     auto input_arr  = args.input_array.read_accessor<VAL, DIM1>(input_rect);
     Pitches<DIM1 - 1> input_pitches;
     Buffer<VAL> output_arr;
+    Buffer<Point<DIM1>> output_arr_set;
     size_t volume1 = input_pitches.flatten(input_rect);
 
     auto index_rect = args.indexing_array.shape<DIM2>();
@@ -49,13 +50,27 @@ struct AdvancedIndexingImpl {
 
     int64_t size = 0;
     if (DIM1 == DIM2) {
-      size = AdvancedIndexingImplBody<KIND, CODE, DIM1, DIM2>{}(
-        output_arr, input_arr, index_arr, input_pitches, input_rect, index_pitches, index_rect);
+      if (args.is_set) {
+        size = AdvancedIndexingImplBody<KIND, CODE, DIM1, DIM2, true>{}(output_arr_set,
+                                                                        input_arr,
+                                                                        index_arr,
+                                                                        input_pitches,
+                                                                        input_rect,
+                                                                        index_pitches,
+                                                                        index_rect);
+      } else {
+        size = AdvancedIndexingImplBody<KIND, CODE, DIM1, DIM2, false>{}(
+          output_arr, input_arr, index_arr, input_pitches, input_rect, index_pitches, index_rect);
+      }
     } else {
       // should never go here, not implemented
       assert(false);
     }
-    args.output.return_data(output_arr, size);
+    if (args.is_set) {
+      args.output.return_data(output_arr_set, size);
+    } else {
+      args.output.return_data(output_arr, size);
+    }
   }
 };
 
@@ -71,7 +86,9 @@ struct AdvancedIndexingHelper {
 template <VariantKind KIND>
 static void advanced_indexing_template(TaskContext& context)
 {
-  AdvancedIndexingArgs args{context.outputs()[0], context.inputs()[0], context.inputs()[1]};
+  // is_set flag is used to fill Point<N> field for in-place assignment operation
+  bool is_set = context.scalars()[0].value<bool>();
+  AdvancedIndexingArgs args{context.outputs()[0], context.inputs()[0], context.inputs()[1], is_set};
   double_dispatch(
     args.input_array.dim(), args.input_array.code(), AdvancedIndexingHelper<KIND>{}, args);
 }

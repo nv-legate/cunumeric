@@ -134,6 +134,12 @@ def advanced_indexing():
     index_num = num.array(index)
     assert np.array_equal(y[index], y_num[index_num])
 
+    # test in-place assignment fir the case when idx arr
+    # is 1d bool array:
+    y[index] = 3
+    y_num[index_num] = 3
+    assert np.array_equal(y, y_num)
+
     # test for bool array of the same dimension 2D
     print("advanced indexing test 6")
     indx_bool = np.array(
@@ -155,6 +161,12 @@ def advanced_indexing():
     res_num = z_num[indx_bool_num]
     assert np.array_equal(res, res_num)
 
+    # test in-place assignment fir the case when idx arr
+    # is 2d bool array:
+    z[indx_bool] = 1
+    z_num[indx_bool] = 1
+    assert np.array_equal(z, z_num)
+
     # test mixed data
     print("advanced indexing test 7")
     res = z[:, -1]
@@ -174,6 +186,12 @@ def advanced_indexing():
     res = z_num[indx0_num, indx1_num, indx2_num]
     res_np = z[indx0, indx1, indx2]
     assert np.array_equal(res, res_np)
+
+    # test in-place assignment fir the case when
+    # several index arrays passed
+    z_num[indx0_num, indx1_num, indx2_num] = -2
+    z[indx0, indx1, indx2] = -2
+    assert np.array_equal(z, z_num)
 
     # indices with broadcast:
     print("advanced indexing test 9")
@@ -224,37 +242,38 @@ def advanced_indexing():
 
     # In-Place & Augmented Assignments via Advanced Indexing
     # simple 1d case
-    # y = np.array([0, -1, -2, -3, -4, -5])
-    # y_num = num.array(y)
-    # index = np.array([2, 4, 0, 4, 4, 4])
-    # index_num = num.array(index)
-    # print (y[index])
-    # print(y_num[index])
-    # y[index] = 0
-    # y_num[index_num] =0
-    # print (y_num)
+    y = np.array([0, -1, -2, -3, -4, -5])
+    y_num = num.array(y)
+    index = np.array([2, 4, 0, 4, 4, 4])
+    index_num = num.array(index)
+    y[index] = 0
+    y_num[index_num] = 0
+    assert np.array_equal(y, y_num)
+
+    y[index] = np.array([1, 2, 3, 4, 5, 6])
+    y_num[index_num] = num.array([1, 2, 3, 4, 5, 6])
+    print(y)
+    print(y_num)
+    # Order on which data is updated in case when indexing array points to the
+    # same daya in the original array is not guaranteed, so we can't call
+    # assert np.array_equal(y, y_num) here
 
     # 2D test
-    # x = np.array(
-    #    [
-    #        [0.38, -0.16, 0.38, -0.41, -0.04],
-    #        [-0.47, -0.01, -0.18, -0.5, -0.49],
-    #        [0.02, 0.4, 0.33, 0.33, -0.13],
-    #    ]
-    # )
-    # indx0 = np.array([0, 1])
-    # indx1 = np.array([1, 2])
-    # x_num = num.array(x)
-    # indx0_num = num.array(indx0)
-    # indx1_num = num.array(indx1)
-    # print(x[indx0, indx1])
-    # FIXME 0:
-    # print (x_num[indx0_num,indx1_num])
-    # assert np.array_equal(x[indx0, indx1], x_num[indx0_num, indx1_num])
-    # print (x_num[indx0_num, indx1_num])
-    # x[indx0, indx1] = 0.0
-    # print(x)
-    # x_num[indx0_num, indx1_num] =0.0
+    x = np.array(
+        [
+            [0.38, -0.16, 0.38, -0.41, -0.04],
+            [-0.47, -0.01, -0.18, -0.5, -0.49],
+            [0.02, 0.4, 0.33, 0.33, -0.13],
+        ]
+    )
+    indx0 = np.array([0, 1])
+    indx1 = np.array([1, 2])
+    x_num = num.array(x)
+    indx0_num = num.array(indx0)
+    indx1_num = num.array(indx1)
+    x[indx0, indx1] = 2.0
+    x_num[indx0_num, indx1_num] = 2.0
+    assert np.array_equal(x, x_num)
 
     # we do less than LEGATE_MAX_DIM becasue the dimension will be increased by
     # 1 when passig 2d index array
@@ -279,11 +298,19 @@ def advanced_indexing():
         idx_arr_np = mk_seq_array(np, i_shape) % np_array.shape[0]
         idx_arr_num = num.array(idx_arr_np)
         assert np.array_equal(np_array[idx_arr_np], num_array[idx_arr_num])
+        # test in-place assignment
+        np_array[idx_arr_np] = 2
+        num_array[idx_arr_num] = 2
+        assert np.array_equal(num_array, np_array)
         idx_arr_np = np.array([[1, 0, 1], [1, 1, 0]])
         idx_arr_num = num.array(idx_arr_np)
         assert np.array_equal(
             np_array[:, idx_arr_np], num_array[:, idx_arr_num]
         )
+        # test in-place assignment
+        np_array[:, idx_arr_np] = 3
+        num_array[:, idx_arr_num] = 3
+        assert np.array_equal(num_array, np_array)
         if ndim > 2:
             assert np.array_equal(
                 np_array[1, :, idx_arr_np], num_array[1, :, idx_arr_num]

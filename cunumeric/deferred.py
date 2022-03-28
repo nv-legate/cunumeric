@@ -431,8 +431,9 @@ class DeferredArray(NumPyThunk):
 
         return output_arr
 
-    def _create_indexing_array(self, key):
+    def _create_indexing_array(self, key, is_set=False):
         store = self.base
+        rhs = self
         # the index where the first index_array is passed to the [] operator
         start_index = -1
         if isinstance(key, tuple):
@@ -496,8 +497,6 @@ class DeferredArray(NumPyThunk):
                         "Unsupported entry type passed to advanced",
                         "indexing operation",
                     )
-            # if len(tuple_of_arrays) == 1:
-            #    transpose_needed = False
             if transpose_needed:
                 copy_needed = True
                 start_index = 0
@@ -521,7 +520,7 @@ class DeferredArray(NumPyThunk):
                     inputs=[store_to_copy],
                 )
                 store_copy.copy(store_to_copy, deep=True)
-                self = store_copy
+                rhs = store_copy
                 store = store_copy.base
         else:
             assert isinstance(key, NumPyThunk)
@@ -536,13 +535,19 @@ class DeferredArray(NumPyThunk):
             # Handle the boolean array case
             if key.dtype == np.bool:
                 if key.shape == self.shape:
-                    out = self.runtime.create_unbound_thunk(self.dtype)
+                    out_dtype = self.dtype
+                    if is_set:
+                        N = self.ndim
+                        out_dtype = self.runtime.add_point_type(N)
+
+                    out = self.runtime.create_unbound_thunk(out_dtype)
                     task = self.context.create_task(
                         CuNumericOpCode.ADVANCED_INDX
                     )
                     task.add_output(out.base)
                     task.add_input(self.base)
                     task.add_input(key.base)
+                    task.add_scalar_arg(is_set, bool)
                     task.add_alignment(self.base, key.base)
                     task.add_broadcast(
                         self.base, axes=tuple(range(1, len(self.shape)))
@@ -562,16 +567,13 @@ class DeferredArray(NumPyThunk):
             else:
                 tuple_of_arrays = (self.runtime.to_deferred_array(key),)
 
-        if len(tuple_of_arrays) > self.ndim:
+        if len(tuple_of_arrays) > rhs.ndim:
             raise TypeError("Advanced indexing dimension mismatch")
 
-        if (len(tuple_of_arrays) == self.ndim and self.ndim > 1) or (
-            len(tuple_of_arrays) < self.ndim and self.ndim > 1
-        ):
-
-            output_arr = self._zip_indices(start_index, tuple_of_arrays)
+        if len(tuple_of_arrays) <= rhs.ndim and rhs.ndim > 1:
+            output_arr = rhs._zip_indices(start_index, tuple_of_arrays)
             return True, store, output_arr
-        elif len(tuple_of_arrays) == 1 and self.ndim == 1:
+        elif len(tuple_of_arrays) == 1 and rhs.ndim == 1:
             return True, store, tuple_of_arrays[0]
         else:
             raise ValueError("Advance indexing dimention mismatch")
@@ -676,34 +678,65 @@ class DeferredArray(NumPyThunk):
         assert self.dtype == rhs.dtype
         # Check to see if this is advanced indexing or not
         if self._is_advanced_indexing(key):
+            view_copy = False
             # Create the indexing array
-            store, index_array = self._create_indexing_array(key)
-            # if index_array.shape != rhs.shape:
-            #    raise ValueError(
-            #        "Advanced indexing array does not match source shape"
-            #    )
-            # if self.ndim != index_array.ndim:
-            #    raise NotImplementedError(
-            #        "need support for indirect partitioning"
-            #    )
+            copy_needed, store, index_array = self._create_indexing_array(
+                key, True
+            )
+            if copy_needed:
+                if self.base.transform.bottom:
+                    lhs = self
+                else:
+                    # if  store is transformed we need to to return a copy of
+                    # the store since Copy operation can't be done on
+                    # the store with transformation
+                    store_to_copy = DeferredArray(
+                        self.runtime,
+                        base=store,
+                        dtype=self.dtype,
+                    )
+                    store_copy = self.runtime.create_empty_thunk(
+                        store_to_copy.shape,
+                        self.dtype,
+                        inputs=[store_to_copy],
+                    )
+                    store_copy.copy(store_to_copy, deep=True)
+
+                    lhs = store_copy
+                    view_copy = True
+            else:
+                lhs = self
+                view_copy = False
+
             if rhs.ndim == 0:
-                shape = store.shape
-                val = rhs
-                rhs = self.runtime.create_empty_thunk(
-                    shape,
+                rhs_tmp = self.runtime.create_empty_thunk(
+                    index_array.base.shape,
                     self.dtype,
-                    inputs=[self],
+                    inputs=[index_array],
                 )
-                rhs.fill(val)
+                task = self.context.create_task(CuNumericOpCode.FILL)
+                task.add_output(rhs_tmp.base)
+                task.add_input(rhs.base)
+                task.add_scalar_arg(False, bool)
+                task.execute()
+                rhs = rhs_tmp.base
+            else:
+                if rhs.shape != index_array.shape:
+                    rhs = rhs._broadcast(index_array.base.shape)
+                else:
+                    rhs = rhs.base
+
             copy = self.context.create_copy()
-
-            copy.add_input(store)
+            copy.add_input(rhs)
             copy.add_target_indirect(index_array.base)
-            copy.add_output(self.base)
-
-            # copy.add_alignment(index_array.base, rhs.base)
-
+            copy.add_output(lhs.base)
             copy.execute()
+
+            if view_copy:
+                print("IRINA DEBUG", self.shape, lhs.shape)
+                print(self.base.transform.bottom)
+                print(self)
+                self.copy(lhs, deep=True)
 
         else:
             view = self._get_view(key)

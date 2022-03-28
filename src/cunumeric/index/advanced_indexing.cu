@@ -71,8 +71,32 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
     out[offset]    = in[point_input];
   }
 }
-template <LegateTypeCode CODE, int DIM1, int DIM2>
-struct AdvancedIndexingImplBody<VariantKind::GPU, CODE, DIM1, DIM2> {
+
+template <typename VAL, int DIM1, int DIM2>
+static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
+  advanced_indexing_kernel(size_t volume,
+                           AccessorRO<VAL, DIM1> in,
+                           AccessorRO<bool, DIM2> index,
+                           Buffer<Point<DIM1>> out,
+                           Pitches<DIM1 - 1> pitches_input,
+                           Point<DIM1> origin_input,
+                           Pitches<DIM2 - 1> pitches_index,
+                           Point<DIM2> origin_index,
+                           Buffer<int64_t> offsets)
+{
+  // FIXME works only when DIM1==DIM2
+  const size_t tid = blockIdx.x * blockDim.x + threadIdx.x;
+  if (tid >= volume) return;
+  auto point       = pitches_index.unflatten(tid, origin_index);
+  auto point_input = pitches_input.unflatten(tid, origin_input);
+  if (index[point] == true) {
+    int64_t offset = offsets[tid];
+    out[offset]    = point_input;
+  }
+}
+
+template <LegateTypeCode CODE, int DIM1, int DIM2, bool IS_SET>
+struct AdvancedIndexingImplBody<VariantKind::GPU, CODE, DIM1, DIM2, IS_SET> {
   using VAL = legate_type_of<CODE>;
 
   int64_t compute_size(const AccessorRO<bool, DIM2>& in,
@@ -103,7 +127,8 @@ struct AdvancedIndexingImplBody<VariantKind::GPU, CODE, DIM1, DIM2> {
     return size.read();
   }
 
-  size_t operator()(Buffer<VAL>& out,
+  template <typename OUT_TYPE>
+  size_t operator()(Buffer<OUT_TYPE>& out,
                     const AccessorRO<VAL, DIM1>& input,
                     const AccessorRO<bool, DIM2>& index,
                     const Pitches<DIM1 - 1>& pitches_input,
@@ -123,7 +148,7 @@ struct AdvancedIndexingImplBody<VariantKind::GPU, CODE, DIM1, DIM2> {
     auto offsets = create_buffer<int64_t>(volume, Memory::Kind::GPU_FB_MEM);
     size         = compute_size(index, pitches_index, rect_index, volume, stream, offsets);
 
-    out = create_buffer<VAL>(size, Memory::Kind::GPU_FB_MEM);
+    out = create_buffer<OUT_TYPE>(size, Memory::Kind::GPU_FB_MEM);
     // populate output
     if (size > 0) {
       const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;

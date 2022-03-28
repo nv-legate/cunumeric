@@ -24,11 +24,54 @@ namespace cunumeric {
 using namespace Legion;
 using namespace legate;
 
-template <LegateTypeCode CODE, int DIM1, int DIM2>
-struct AdvancedIndexingImplBody<VariantKind::OMP, CODE, DIM1, DIM2> {
+template <LegateTypeCode CODE, int DIM1, int DIM2, bool IS_SET>
+struct AdvancedIndexingImplBody<VariantKind::OMP, CODE, DIM1, DIM2, IS_SET> {
   using VAL = legate_type_of<CODE>;
 
-  size_t operator()(Buffer<VAL>& out,
+  void compute_output(Buffer<VAL>& out,
+                      const AccessorRO<VAL, DIM1>& input,
+                      const AccessorRO<bool, DIM2>& index,
+                      const Pitches<DIM1 - 1>& pitches_input,
+                      const Rect<DIM1>& rect_input,
+                      const Pitches<DIM2 - 1>& pitches_index,
+                      const Rect<DIM2>& rect_index,
+                      int volume,
+                      int64_t out_idx) const
+  {
+#pragma omp for schedule(static)
+    for (size_t idx = 0; idx < volume; ++idx) {
+      auto p       = pitches_index.unflatten(idx, rect_index.lo);
+      auto p_input = pitches_input.unflatten(idx, rect_input.lo);
+      if (index[p] == true) {
+        out[out_idx] = input[p_input];
+        out_idx++;
+      }
+    }
+  }
+
+  void compute_output(Buffer<Point<DIM1>>& out,
+                      const AccessorRO<VAL, DIM1>&,
+                      const AccessorRO<bool, DIM2>& index,
+                      const Pitches<DIM1 - 1>& pitches_input,
+                      const Rect<DIM1>& rect_input,
+                      const Pitches<DIM2 - 1>& pitches_index,
+                      const Rect<DIM2>& rect_index,
+                      int volume,
+                      int64_t out_idx) const
+  {
+#pragma omp for schedule(static)
+    for (size_t idx = 0; idx < volume; ++idx) {
+      auto p       = pitches_index.unflatten(idx, rect_index.lo);
+      auto p_input = pitches_input.unflatten(idx, rect_input.lo);
+      if (index[p] == true) {
+        out[out_idx] = p_input;
+        out_idx++;
+      }
+    }
+  }
+
+  template <typename OUT_TYPE>
+  size_t operator()(Buffer<OUT_TYPE>& out,
                     const AccessorRO<VAL, DIM1>& input,
                     const AccessorRO<bool, DIM2>& index,
                     const Pitches<DIM1 - 1>& pitches_input,
@@ -66,21 +109,14 @@ struct AdvancedIndexingImplBody<VariantKind::OMP, CODE, DIM1, DIM2> {
 
     Memory::Kind kind =
       CuNumeric::has_numamem ? Memory::Kind::SOCKET_MEM : Memory::Kind::SYSTEM_MEM;
-    out = create_buffer<VAL>(size, kind);
+    out = create_buffer<OUT_TYPE>(size, kind);
 
 #pragma omp parallel
     {
       const int tid   = omp_get_thread_num();
       int64_t out_idx = offsets[tid];
-#pragma omp for schedule(static)
-      for (size_t idx = 0; idx < volume; ++idx) {
-        auto point       = pitches_index.unflatten(idx, rect_index.lo);
-        auto point_input = pitches_input.unflatten(idx, rect_input.lo);
-        if (index[point] == true) {
-          out[out_idx] = input[point_input];
-          ++out_idx;
-        }
-      }
+      compute_output(
+        out, input, index, pitches_input, rect_input, pitches_index, rect_index, volume, out_idx);
     }
 
     return size;
