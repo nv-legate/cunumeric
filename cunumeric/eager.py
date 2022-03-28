@@ -564,6 +564,17 @@ class EagerArray(NumPyThunk):
             else:
                 self.array = np.sort(rhs.array, axis, kind, order)
 
+    def bitgenerator_random_raw(self, handle):
+        if self.deferred is not None:
+            print("eager.py - bitgenerator_random_raw - deferred is not None")
+            self.deferred.bitgenerator_random_raw(handle)
+        else:
+            print("eager.py - bitgenerator_random_raw - deferred is None")
+            if self.array.size == 1:
+                self.array.fill(np.random.rand())
+            else:
+                self.array[:] = np.random.rand(*(self.array.shape))
+
     def random_uniform(self):
         if self.deferred is not None:
             self.deferred.random_uniform()

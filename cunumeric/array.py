@@ -1989,6 +1989,9 @@ class ndarray:
         # We don't care about dimension order in cuNumeric
         return self.__copy__()
 
+    def bitgenerator_random_raw(self, handle):
+        self._thunk.bitgenerator_random_raw(handle)
+
     # diagonal helper. Will return diagonal for arbitrary number of axes;
     # currently offset option is implemented only for the case of number of
     # axes=2. This restriction can be lifted in the future if there is a

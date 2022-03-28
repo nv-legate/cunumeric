@@ -13,6 +13,9 @@
 # limitations under the License.
 #
 
+import numpy as np
+
+from cunumeric.array import ndarray
 from cunumeric.config import CuNumericOpCode
 from cunumeric.runtime import runtime
 
@@ -47,13 +50,11 @@ class BitGenerator:
         if not isinstance(shape, tuple):
             shape = (shape,)
         if output:
-            raise NotImplementedError('Actual output not implemented')
-            # res = ndarray(size, dtype=dtype)
-            # res.bitgenerator_random_raw(self.handle, shape)
+            res = ndarray(shape,dtype=np.dtype(np.uint32))
+            res.bitgenerator_random_raw(self.handle)
+            return res
         else:
-            res = None
-            runtime.bitgenerator_random_raw(self.handle, shape)
-        return res
+            return runtime.bitgenerator_random_raw(self.handle, shape)
 
 class XORWOW(BitGenerator):
     def __init__(self, seed=None):
