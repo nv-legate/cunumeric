@@ -69,6 +69,8 @@ def implemented(func: Any, prefix: str) -> Any:
         runtime.record_api_call(name=name, location=location, implemented=True)
         return func(*args, **kwargs)
 
+    wrapper._cunumeric_implemented = True
+
     return wrapper
 
 
@@ -96,6 +98,8 @@ def unimplemented(func: Any, prefix: str, *, reporting: bool = True) -> Any:
                 category=RuntimeWarning,
             )
             return func(*args, **kwargs)
+
+    wrapper._cunumeric_implemented = False
 
     return wrapper
 
@@ -129,10 +133,12 @@ def clone_module(
         omit_types=(ModuleType,),
     )
 
-    if runtime.report_coverage:
-        for attr, value in new_globals.items():
-            if isinstance(value, FunctionType):
+    for attr, value in new_globals.items():
+        if isinstance(value, FunctionType):
+            if runtime.report_coverage:
                 new_globals[attr] = implemented(value, module_name)
+            else:
+                value._cunumeric_implemented = True
 
     for attr, value in missing.items():
         if isinstance(value, FunctionType):
@@ -167,12 +173,14 @@ def clone_class(origin_class: type) -> Callable[[type], type]:
             omit_names=set(cls.__dict__).union(NDARRAY_INTERNAL),
         )
 
-        if runtime.report_coverage:
-            for attr, value in cls.__dict__.items():
-                if isinstance(
-                    value, (FunctionType, MethodType, MethodDescriptorType)
-                ):
+        for attr, value in cls.__dict__.items():
+            if isinstance(
+                value, (FunctionType, MethodType, MethodDescriptorType)
+            ):
+                if runtime.report_coverage:
                     setattr(cls, attr, implemented(value, class_name))
+                else:
+                    value._cunumeric_implemented = True
 
         for attr, value in missing.items():
             if isinstance(
