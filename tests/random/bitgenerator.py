@@ -39,50 +39,29 @@ def test_bitgenerator():
     print("DONE")
     pass
 
-def test_bitgenerator_sub(a):
-    print("testing for type = " + str(type(a)))
+def test_bitgenerator_type(t):
+    print("testing for type = " + str(t))
+    a = t()
     a.random_raw(256, False)
     a.random_raw((512,256), False)
+    a = None
+    runtime.legate_runtime.issue_execution_fence(block=True)
+    print("DONE for type = " + str(t))
 
 def test_bitgenerator_XORWOW():
-    a = cunumeric.random.XORWOW()
-    test_bitgenerator_sub(a)
-    a = None
-    runtime.legate_runtime.issue_execution_fence(block=True)
-    print("DONE")
-    pass
+    test_bitgenerator_type(cunumeric.random.XORWOW)
 
 def test_bitgenerator_MRG32k3a():
-    a = cunumeric.random.MRG32k3a()
-    test_bitgenerator_sub(a)
-    a = None
-    runtime.legate_runtime.issue_execution_fence(block=True)    
-    print("DONE")
-    pass
+    test_bitgenerator_type(cunumeric.random.MRG32k3a)
 
 def test_bitgenerator_MTGP32():
-    a = cunumeric.random.MTGP32()
-    test_bitgenerator_sub(a)
-    a = None
-    runtime.legate_runtime.issue_execution_fence(block=True)
-    print("DONE")
-    pass
+    test_bitgenerator_type(cunumeric.random.MTGP32)
 
 def test_bitgenerator_MT19937():
-    a = cunumeric.random.MT19937()
-    test_bitgenerator_sub(a)
-    a = None
-    runtime.legate_runtime.issue_execution_fence(block=True)    
-    print("DONE")
-    pass
+    test_bitgenerator_type(cunumeric.random.MT19937)
 
 def test_bitgenerator_PHILOX4_32_10():
-    a = cunumeric.random.PHILOX4_32_10()
-    test_bitgenerator_sub(a)
-    a = None
-    runtime.legate_runtime.issue_execution_fence(block=True)    
-    print("DONE")
-    pass 
+    test_bitgenerator_type(cunumeric.random.PHILOX4_32_10)
 
 if __name__ == "__main__":
     test_bitgenerator()
