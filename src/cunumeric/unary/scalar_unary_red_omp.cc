@@ -16,6 +16,7 @@
 
 #include "cunumeric/unary/scalar_unary_red.h"
 #include "cunumeric/unary/scalar_unary_red_template.inl"
+#include "cunumeric/omp_help.h"
 
 #include <omp.h>
 
@@ -40,7 +41,7 @@ struct ScalarUnaryRedImplBody<VariantKind::OMP, OP_CODE, CODE, DIM> {
     auto result            = LG_OP::identity;
     const size_t volume    = rect.volume();
     const auto max_threads = omp_get_max_threads();
-    auto locals            = static_cast<VAL*>(alloca(max_threads * sizeof(VAL)));
+    ThreadLocalStorage<VAL> locals(max_threads);
     for (auto idx = 0; idx < max_threads; ++idx) locals[idx] = LG_OP::identity;
     if (dense) {
       auto inptr = in.ptr(rect);
@@ -83,7 +84,7 @@ struct ScalarUnaryRedImplBody<VariantKind::OMP, UnaryRedCode::CONTAINS, CODE, DI
     const auto to_find     = to_find_scalar.scalar<VAL>();
     const size_t volume    = rect.volume();
     const auto max_threads = omp_get_max_threads();
-    auto locals            = static_cast<bool*>(alloca(max_threads * sizeof(VAL)));
+    ThreadLocalStorage<bool> locals(max_threads);
     for (auto idx = 0; idx < max_threads; ++idx) locals[idx] = false;
     if (dense) {
       auto inptr = in.ptr(rect);
@@ -121,7 +122,7 @@ void logical_operator_omp(AccessorRO<VAL, DIM> in,
 {
   const size_t volume    = rect.volume();
   const auto max_threads = omp_get_max_threads();
-  auto locals            = static_cast<bool*>(alloca(max_threads * sizeof(bool)));
+  ThreadLocalStorage<bool> locals(max_threads);
   for (auto idx = 0; idx < max_threads; ++idx) locals[idx] = LG_OP::identity;
   if (dense) {
     auto inptr = in.ptr(rect);
@@ -198,7 +199,7 @@ struct ScalarUnaryRedImplBody<VariantKind::OMP, UnaryRedCode::COUNT_NONZERO, COD
     auto result            = LG_OP::identity;
     const size_t volume    = rect.volume();
     const auto max_threads = omp_get_max_threads();
-    auto locals            = static_cast<uint64_t*>(alloca(max_threads * sizeof(VAL)));
+    ThreadLocalStorage<uint64_t> locals(max_threads);
     for (auto idx = 0; idx < max_threads; ++idx) locals[idx] = 0;
     if (dense) {
       auto inptr = in.ptr(rect);

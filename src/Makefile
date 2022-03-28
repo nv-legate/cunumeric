@@ -29,6 +29,9 @@ ifeq ($(strip $(USE_CUDA)),1)
 ifndef CUTENSOR_PATH
 $(error CUTENSOR_PATH variable is not defined, aborting build)
 endif
+ifndef NCCL_PATH
+$(error NCCL_PATH variable is not defined, aborting build)
+endif
 endif # ifeq ($(strip $(USE_CUDA)),1)
 ifndef THRUST_PATH
 $(error THRUST_PATH variable is not defined, aborting build)
@@ -40,16 +43,19 @@ LIBNAME = libcunumeric
 
 CC_FLAGS ?=
 CC_FLAGS += -I. -I$(OPENBLAS_PATH)/include -I$(TBLIS_PATH)/include -I$(THRUST_PATH)
+CC_FLAGS += -DTHRUST_HOST_SYSTEM=THRUST_HOST_SYSTEM_CPP -DTHRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_OMP
 
 LD_FLAGS ?=
 LD_FLAGS += -L$(OPENBLAS_PATH)/lib -l$(OPENBLAS_LIBNAME) -Wl,-rpath,$(OPENBLAS_PATH)/lib
 LD_FLAGS += -L$(TBLIS_PATH)/lib -ltblis -Wl,-rpath,$(TBLIS_PATH)/lib
 ifeq ($(strip $(USE_CUDA)),1)
-LD_FLAGS += -lcublas -lcusolver -lcufft
+DEVICE_LD_FLAGS += -lcufft_static
+LD_FLAGS += -lcublas -lcusolver -lcufft_static -lculibos
 LD_FLAGS += -L$(CUTENSOR_PATH)/lib -lcutensor -Wl,-rpath,$(CUTENSOR_PATH)/lib
+LD_FLAGS += -L$(NCCL_PATH)/lib -lnccl -Wl,-rpath,$(NCCL_PATH)/lib
 endif
 NVCC_FLAGS ?=
-NVCC_FLAGS += -I. -I$(CUTENSOR_PATH)/include -I$(THRUST_PATH) -Wno-deprecated-declarations
+NVCC_FLAGS += -I. -I$(CUTENSOR_PATH)/include -I$(NCCL_PATH)/include -I$(THRUST_PATH) -Wno-deprecated-declarations
 
 ifeq ($(strip $(DEBUG)),1)
 CC_FLAGS += -DDEBUG_CUNUMERIC

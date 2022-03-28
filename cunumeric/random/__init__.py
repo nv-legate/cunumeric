@@ -13,17 +13,11 @@
 # limitations under the License.
 #
 
-import sys as _sys
-
 import numpy.random as _nprandom
 from cunumeric.random.random import *
-from cunumeric.coverage import (
-    add_missing_attributes as _add_missing_attributes,
-)
+from cunumeric.coverage import clone_module
 
-_thismodule = _sys.modules[__name__]
+clone_module(_nprandom, globals())
 
-# map any undefined attributes to numpy
-_add_missing_attributes(_nprandom, _thismodule)
-
-del _add_missing_attributes
+del clone_module
+del _nprandom

@@ -14,7 +14,7 @@
 #
 
 from collections.abc import Iterable
-from functools import reduce
+from functools import reduce, wraps
 from inspect import signature
 from typing import Optional, Set, Tuple
 
@@ -24,7 +24,9 @@ import pyarrow
 from legate.core import Array
 
 from .config import BinaryOpCode, UnaryOpCode, UnaryRedCode
+from .coverage import clone_class
 from .runtime import runtime
+from .utils import dot_modes
 
 
 def add_boilerplate(*array_params: str, mutates_self: bool = False):
@@ -65,6 +67,7 @@ def add_boilerplate(*array_params: str, mutates_self: bool = False):
                 indices.add(idx)
         assert len(keys - all_formals) == 0, "unkonwn parameter(s)"
 
+        @wraps(func)
         def wrapper(*args, **kwargs):
             self = args[0]
             assert (where_idx is None or len(args) <= where_idx) and (
@@ -73,7 +76,7 @@ def add_boilerplate(*array_params: str, mutates_self: bool = False):
 
             # Convert relevant arguments to cuNumeric ndarrays
             args = tuple(
-                ndarray.convert_to_cunumeric_ndarray(arg)
+                convert_to_cunumeric_ndarray(arg)
                 if idx in indices and arg is not None
                 else arg
                 for (idx, arg) in enumerate(args)
@@ -82,13 +85,11 @@ def add_boilerplate(*array_params: str, mutates_self: bool = False):
                 if v is None:
                     continue
                 elif k == "where":
-                    kwargs[k] = ndarray.convert_to_predicate_ndarray(v)
+                    kwargs[k] = convert_to_predicate_ndarray(v)
                 elif k == "out":
-                    kwargs[k] = ndarray.convert_to_cunumeric_ndarray(
-                        v, share=True
-                    )
+                    kwargs[k] = convert_to_cunumeric_ndarray(v, share=True)
                 elif k in keys:
-                    kwargs[k] = ndarray.convert_to_cunumeric_ndarray(v)
+                    kwargs[k] = convert_to_cunumeric_ndarray(v)
 
             # Handle the case where all array-like parameters are scalar, by
             # performing the operation on the equivalent scalar numpy arrays.
@@ -129,7 +130,7 @@ def add_boilerplate(*array_params: str, mutates_self: bool = False):
                         wrap=True,
                     )
                     return
-                result = ndarray.convert_to_cunumeric_ndarray(res_scalar)
+                result = convert_to_cunumeric_ndarray(res_scalar)
                 if out is not None:
                     out._thunk.copy(result._thunk)
                     result = out
@@ -147,7 +148,27 @@ def broadcast_shapes(*args):
     return np.broadcast(*arrays).shape
 
 
-class ndarray(object):
+def convert_to_cunumeric_ndarray(obj, share=False):
+    # If this is an instance of one of our ndarrays then we're done
+    if isinstance(obj, ndarray):
+        return obj
+    # Ask the runtime to make a numpy thunk for this object
+    thunk = runtime.get_numpy_thunk(obj, share=share)
+    return ndarray(shape=None, thunk=thunk)
+
+
+def convert_to_predicate_ndarray(obj):
+    # Keep all boolean types as they are
+    if obj is True or obj is False:
+        return obj
+    # GH #135
+    raise NotImplementedError(
+        "the `where` parameter is currently not supported"
+    )
+
+
+@clone_class(np.ndarray)
+class ndarray:
     def __init__(
         self,
         shape,
@@ -211,27 +232,6 @@ class ndarray(object):
             self._legate_data["data"] = data
         return self._legate_data
 
-    # A class method for sanitizing inputs by converting them to
-    # cuNumeric ndarray types
-    @staticmethod
-    def convert_to_cunumeric_ndarray(obj, share=False):
-        # If this is an instance of one of our ndarrays then we're done
-        if isinstance(obj, ndarray):
-            return obj
-        # Ask the runtime to make a numpy thunk for this object
-        thunk = runtime.get_numpy_thunk(obj, share=share)
-        return ndarray(shape=None, thunk=thunk)
-
-    @staticmethod
-    def convert_to_predicate_ndarray(obj):
-        # Keep all boolean types as they are
-        if obj is True or obj is False:
-            return obj
-        # GH #135
-        raise NotImplementedError(
-            "the `where` parameter is currently not supported"
-        )
-
     # Properties for ndarray
 
     # Disable these since they seem to cause problems
@@ -252,30 +252,148 @@ class ndarray(object):
 
     @property
     def T(self):
+        """
+
+        The transposed array.
+
+        Same as ``self.transpose()``.
+
+        See Also
+        --------
+        cunumeric.transpose
+        ndarray.transpose
+
+        """
         return self.transpose()
 
     @property
     def base(self):
+        """
+        Returns dtype for the base element of the subarrays,
+        regardless of their dimension or shape.
+
+        See Also
+        --------
+        numpy.dtype.subdtype
+
+        """
         return self.__array__().base
 
     @property
     def data(self):
+        """
+        Python buffer object pointing to the start of the array's data.
+
+        """
         return self.__array__().data
 
     @property
     def dtype(self):
+        """
+        Data-type of the array's elements.
+
+        See Also
+        --------
+        astype : Cast the values contained in the array to a new data-type.
+        view : Create a view of the same data but a different data-type.
+        numpy.dtype
+
+        """
         return self._thunk.dtype
 
     @property
     def flags(self):
+        """
+        Information about the memory layout of the array.
+
+        Attributes
+        ----------
+        C_CONTIGUOUS (C)
+            The data is in a single, C-style contiguous segment.
+        F_CONTIGUOUS (F)
+            The data is in a single, Fortran-style contiguous segment.
+        OWNDATA (O)
+            The array owns the memory it uses or borrows it from another
+            object.
+        WRITEABLE (W)
+            The data area can be written to.  Setting this to False locks
+            the data, making it read-only.  A view (slice, etc.) inherits
+            WRITEABLE from its base array at creation time, but a view of a
+            writeable array may be subsequently locked while the base array
+            remains writeable. (The opposite is not true, in that a view of a
+            locked array may not be made writeable.  However, currently,
+            locking a base object does not lock any views that already
+            reference it, so under that circumstance it is possible to alter
+            the contents of a locked array via a previously created writeable
+            view onto it.)  Attempting to change a non-writeable array raises
+            a RuntimeError exception.
+        ALIGNED (A)
+            The data and all elements are aligned appropriately for the
+            hardware.
+        WRITEBACKIFCOPY (X)
+            This array is a copy of some other array. The C-API function
+            PyArray_ResolveWritebackIfCopy must be called before deallocating
+            to the base array will be updated with the contents of this array.
+        FNC
+            F_CONTIGUOUS and not C_CONTIGUOUS.
+        FORC
+            F_CONTIGUOUS or C_CONTIGUOUS (one-segment test).
+        BEHAVED (B)
+            ALIGNED and WRITEABLE.
+        CARRAY (CA)
+            BEHAVED and C_CONTIGUOUS.
+        FARRAY (FA)
+            BEHAVED and F_CONTIGUOUS and not C_CONTIGUOUS.
+
+        Notes
+        -----
+        The `flags` object can be accessed dictionary-like (as in
+        ``a.flags['WRITEABLE']``), or by using lowercased attribute names (as
+        in ``a.flags.writeable``). Short flag names are only supported in
+        dictionary access.
+
+        Only the WRITEBACKIFCOPY, WRITEABLE, and ALIGNED flags can be
+        changed by the user, via direct assignment to the attribute or
+        dictionary entry, or by calling `ndarray.setflags`.
+
+        The array flags cannot be set arbitrarily:
+        - WRITEBACKIFCOPY can only be set ``False``.
+        - ALIGNED can only be set ``True`` if the data is truly aligned.
+        - WRITEABLE can only be set ``True`` if the array owns its own memory
+        or the ultimate owner of the memory exposes a writeable buffer
+        interface or is a string.
+
+        Arrays can be both C-style and Fortran-style contiguous
+        simultaneously. This is clear for 1-dimensional arrays, but can also
+        be true for higher dimensional arrays.
+
+        Even for contiguous arrays a stride for a given dimension
+        ``arr.strides[dim]`` may be *arbitrary* if ``arr.shape[dim] == 1``
+        or the array has no elements.
+        It does not generally hold that ``self.strides[-1] == self.itemsize``
+        for C-style contiguous arrays or ``self.strides[0] == self.itemsize``
+        for Fortran-style contiguous arrays is true.
+        """
         return self.__array__().flags
 
     @property
     def flat(self):
+        """
+        A 1-D iterator over the array.
+
+        See Also
+        --------
+        flatten : Return a copy of the array collapsed into one dimension.
+
+        """
         return self.__array__().flat
 
     @property
     def imag(self):
+        """
+        The imaginary part of the array.
+
+        """
         if self.dtype.kind == "c":
             return ndarray(shape=self.shape, thunk=self._thunk.imag())
         else:
@@ -285,10 +403,19 @@ class ndarray(object):
 
     @property
     def ndim(self):
+        """
+        Number of array dimensions.
+
+        """
         return self._thunk.ndim
 
     @property
     def real(self):
+        """
+
+        The real part of the array.
+
+        """
         if self.dtype.kind == "c":
             return ndarray(shape=self.shape, thunk=self._thunk.real())
         else:
@@ -296,10 +423,37 @@ class ndarray(object):
 
     @property
     def shape(self):
+        """
+
+        Tuple of array dimensions.
+
+        See Also
+        --------
+        shape : Equivalent getter function.
+        reshape : Function forsetting ``shape``.
+        ndarray.reshape : Method for setting ``shape``.
+
+        """
         return self._thunk.shape
 
     @property
     def size(self):
+        """
+
+        Number of elements in the array.
+
+        Equal to ``np.prod(a.shape)``, i.e., the product of the array's
+        dimensions.
+
+        Notes
+        -----
+        `a.size` returns a standard arbitrary precision Python integer. This
+        may not be the case with other methods of obtaining the same value
+        (like the suggested ``np.prod(a.shape)``, which returns an instance
+        of ``np.int_``), and may be relevant if the value is used further in
+        calculations that may overflow a fixed size integer type.
+
+        """
         s = 1
         if self.ndim == 0:
             return s
@@ -309,23 +463,100 @@ class ndarray(object):
 
     @property
     def itemsize(self):
+        """
+
+        The element size of this data-type object.
+
+        For 18 of the 21 types this number is fixed by the data-type.
+        For the flexible data-types, this number can be anything.
+
+        """
         return self._thunk.dtype.itemsize
 
     @property
     def nbytes(self):
+        """
+
+        Total bytes consumed by the elements of the array.
+
+        Notes
+        -----
+        Does not include memory consumed by non-element attributes of the
+        array object.
+
+        """
         return self.itemsize * self.size
 
     @property
     def strides(self):
+        """
+
+        Tuple of bytes to step in each dimension when traversing an array.
+
+        The byte offset of element ``(i[0], i[1], ..., i[n])`` in an array
+        `a` is::
+
+            offset = sum(np.array(i) * a.strides)
+
+        A more detailed explanation of strides can be found in the
+        "ndarray.rst" file in the NumPy reference guide.
+
+        Notes
+        -----
+        Imagine an array of 32-bit integers (each 4 bytes)::
+
+            x = np.array([[0, 1, 2, 3, 4],
+                         [5, 6, 7, 8, 9]], dtype=np.int32)
+
+        This array is stored in memory as 40 bytes, one after the other
+        (known as a contiguous block of memory).  The strides of an array tell
+        us how many bytes we have to skip in memory to move to the next
+        position along a certain axis.  For example, we have to skip 4 bytes
+        (1 value) to move to the next column, but 20 bytes (5 values) to get
+        to the same position in the next row.  As such, the strides for the
+        array `x` will be ``(20, 4)``.
+
+        """
         return self.__array__().strides
 
     @property
     def ctypes(self):
+        """
+
+        An object to simplify the interaction of the array with the ctypes
+        module.
+
+        This attribute creates an object that makes it easier to use arrays
+        when calling shared libraries with the ctypes module. The returned
+        object has, among others, data, shape, and strides attributes (see
+        :external+numpy:attr:`numpy.ndarray.ctypes` for details) which
+        themselves return ctypes objects that can be used as arguments to a
+        shared library.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        c : object
+            Possessing attributes data, shape, strides, etc.
+
+        """
         return self.__array__().ctypes
 
     # Methods for ndarray
 
     def __abs__(self):
+        """a.__abs__(/)
+
+        Return ``abs(self)``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         # Handle the nice case of it being unsigned
         if (
             self.dtype.type == np.uint16
@@ -334,19 +565,44 @@ class ndarray(object):
             or self.dtype.type == np.bool_
         ):
             return self
-        return self.perform_unary_op(UnaryOpCode.ABSOLUTE, self)
+        return self._perform_unary_op(UnaryOpCode.ABSOLUTE, self)
 
     def __add__(self, rhs):
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        return self.perform_binary_op(BinaryOpCode.ADD, self, rhs_array)
+        """a.__add__(value, /)
+
+        Return ``self+value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
+        return self._perform_binary_op(BinaryOpCode.ADD, self, rhs_array)
 
     def __and__(self, rhs):
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        return self.perform_binary_op(
+        """a.__and__(value, /)
+
+        Return ``self&value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
+        return self._perform_binary_op(
             BinaryOpCode.LOGICAL_AND, self, rhs_array
         )
 
     def __array__(self, dtype=None):
+        """a.__array__([dtype], /)
+
+        Returns either a new reference to self if dtype is not given or a new
+        array of provided data type if dtype is different from the current
+        dtype of the array.
+
+        """
         if dtype is None:
             return self._thunk.__numpy_array__()
         else:
@@ -359,19 +615,34 @@ class ndarray(object):
     #    return self.__array__().__array_wrap__(*args, **kwargs)
 
     def __bool__(self):
+        """a.__bool__(/)
+
+        Return ``self!=0``
+
+        """
         return bool(self.__array__())
 
     def __complex__(self):
+        """a.__complex__(/)"""
         return complex(self.__array__())
 
     def __contains__(self, item):
+        """a.__contains__(key, /)
+
+        Return ``key in self``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         if isinstance(item, np.ndarray):
             args = (item.astype(self.dtype),)
         else:  # Otherwise convert it to a scalar numpy array of our type
             args = (np.array(item, dtype=self.dtype),)
         if args[0].size != 1:
             raise ValueError("contains needs scalar item")
-        return self.perform_unary_reduction(
+        return self._perform_unary_reduction(
             UnaryRedCode.CONTAINS,
             self,
             axis=None,
@@ -381,34 +652,98 @@ class ndarray(object):
         )
 
     def __copy__(self):
+        """a.__copy__()
+
+        Used if :func:`copy.copy` is called on an array. Returns a copy
+        of the array.
+
+        Equivalent to ``a.copy(order='K')``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         result = ndarray(self.shape, self.dtype, inputs=(self,))
         result._thunk.copy(self._thunk, deep=False)
         return result
 
     def __deepcopy__(self, memo=None):
+        """a.__deepcopy__(memo, /)
+
+        Deep copy of array.
+
+        Used if :func:`copy.deepcopy` is called on an array.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         result = ndarray(self.shape, self.dtype, inputs=(self,))
         result._thunk.copy(self._thunk, deep=True)
         return result
 
     def __div__(self, rhs):
-        return self.internal_truediv(rhs, inplace=False)
+        """a.__div__(value, /)
+
+        Return ``self/value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        return self._internal_truediv(rhs, inplace=False)
 
     def __divmod__(self, rhs):
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        return self.perform_binary_op(BinaryOpCode.DIVMOD, self, rhs_array)
+        """a.__divmod__(value, /)
+
+        Return ``divmod(self, value)``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
+        return self._perform_binary_op(BinaryOpCode.DIVMOD, self, rhs_array)
 
     def __eq__(self, rhs):
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        return self.perform_binary_op(
+        """a.__eq__(value, /)
+
+        Return ``self==value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
+        return self._perform_binary_op(
             BinaryOpCode.EQUAL, self, rhs_array, out_dtype=np.dtype(np.bool_)
         )
 
     def __float__(self):
+        """a.__float__(/)
+
+        Return ``float(self)``.
+
+        """
         return float(self.__array__())
 
     def __floordiv__(self, rhs):
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        return self.perform_binary_op(
+        """a.__floordiv__(value, /)
+
+        Return ``self//value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
+        return self._perform_binary_op(
             BinaryOpCode.FLOOR_DIVIDE, self, rhs_array
         )
 
@@ -416,8 +751,17 @@ class ndarray(object):
         return self.__array__().__format__(*args, **kwargs)
 
     def __ge__(self, rhs):
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        return self.perform_binary_op(
+        """a.__ge__(value, /)
+
+        Return ``self>=value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
+        return self._perform_binary_op(
             BinaryOpCode.GREATER_EQUAL,
             self,
             rhs_array,
@@ -439,16 +783,30 @@ class ndarray(object):
             return tuple(self._convert_key(k, first=False) for k in key)
         else:
             # Otherwise convert it to a cuNumeric array and get the thunk
-            return self.convert_to_cunumeric_ndarray(key)._thunk
+            return convert_to_cunumeric_ndarray(key)._thunk
 
     @add_boilerplate()
     def __getitem__(self, key):
+        """a.__getitem__(key, /)
+
+        Return ``self[key]``.
+
+        """
         key = self._convert_key(key)
         return ndarray(shape=None, thunk=self._thunk.get_item(key))
 
     def __gt__(self, rhs):
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        return self.perform_binary_op(
+        """a.__gt__(value, /)
+
+        Return ``self>value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
+        return self._perform_binary_op(
             BinaryOpCode.GREATER, self, rhs_array, out_dtype=np.dtype(np.bool_)
         )
 
@@ -456,94 +814,205 @@ class ndarray(object):
         raise TypeError("unhashable type: cunumeric.ndarray")
 
     def __iadd__(self, rhs):
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        self.perform_binary_op(BinaryOpCode.ADD, self, rhs_array, out=self)
+        """a.__iadd__(value, /)
+
+        Return ``self+=value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
+        self._perform_binary_op(BinaryOpCode.ADD, self, rhs_array, out=self)
         return self
 
     def __iand__(self, rhs):
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        self.perform_binary_op(
+        """a.__iand__(value, /)
+
+        Return ``self&=value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
+        self._perform_binary_op(
             BinaryOpCode.LOGICAL_AND, self, rhs_array, out=self
         )
         return self
 
     def __idiv__(self, rhs):
-        return self.internal_truediv(rhs, inplace=True)
+        """a.__idiv__(value, /)
 
-    def __idivmod__(self, rhs):
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        self.perform_binary_op(BinaryOpCode.DIVMOD, self, rhs_array, out=self)
-        return self
+        Return ``self/=value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        return self._internal_truediv(rhs, inplace=True)
 
     def __ifloordiv__(self, rhs):
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        self.perform_binary_op(
+        """a.__ifloordiv__(value, /)
+
+        Return ``self//=value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
+        self._perform_binary_op(
             BinaryOpCode.FLOOR_DIVIDE, self, rhs_array, out=self
         )
         return self
 
     def __ilshift__(self, rhs):
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        self.perform_binary_op(
+        """a.__ilshift__(value, /)
+
+        Return ``self<<=value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
+        self._perform_binary_op(
             BinaryOpCode.SHIFT_LEFT, self, rhs_array, out=self
         )
         return self
 
     def __imod__(self, rhs):
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        self.perform_binary_op(BinaryOpCode.MODULUS, self, rhs_array, out=self)
+        """a.__imod__(value, /)
+
+        Return ``self%=value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
+        self._perform_binary_op(
+            BinaryOpCode.MODULUS, self, rhs_array, out=self
+        )
         return self
 
     def __imul__(self, rhs):
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        self.perform_binary_op(
+        """a.__imul__(value, /)
+
+        Return ``self*=value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
+        self._perform_binary_op(
             BinaryOpCode.MULTIPLY, self, rhs_array, out=self
         )
         return self
 
     def __int__(self):
+        """a.__int__(/)
+
+        Return ``int(self)``.
+
+        """
         return int(self.__array__())
 
     def __invert__(self):
+        """a.__invert__(/)
+
+        Return ``~self``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         if self.dtype == np.bool_:
             # Boolean values are special, just do logical NOT
-            return self.perform_unary_op(
+            return self._perform_unary_op(
                 UnaryOpCode.LOGICAL_NOT, self, out_dtype=np.dtype(np.bool_)
             )
         else:
-            return self.perform_unary_op(UnaryOpCode.INVERT, self)
+            return self._perform_unary_op(UnaryOpCode.INVERT, self)
 
     def __ior__(self, rhs):
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        self.perform_binary_op(
+        """a.__ior__(/)
+
+        Return ``self|=value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
+        self._perform_binary_op(
             BinaryOpCode.LOGICAL_OR, self, rhs_array, out=self
         )
         return self
 
     def __ipow__(self, rhs):
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        self.perform_binary_op(BinaryOpCode.POWER, self, rhs_array, out=self)
+        """a.__ipow__(/)
+
+        Return ``self**=value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
+        self._perform_binary_op(BinaryOpCode.POWER, self, rhs_array, out=self)
         return self
 
     def __irshift__(self, rhs):
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        self.perform_binary_op(
+        """a.__irshift__(/)
+
+        Return ``self>>=value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
+        self._perform_binary_op(
             BinaryOpCode.SHIFT_RIGHT, self, rhs_array, out=self
         )
         return self
 
     def __iter__(self):
+        """a.__iter__(/)"""
         return self.__array__().__iter__()
 
     def __isub__(self, rhs):
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        self.perform_binary_op(
+        """a.__isub__(/)
+
+        Return ``self-=value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
+        self._perform_binary_op(
             BinaryOpCode.SUBTRACT, self, rhs_array, out=self
         )
         return self
 
-    def internal_truediv(self, rhs, inplace):
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
+    def _internal_truediv(self, rhs, inplace):
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
         self_array = self
         # Convert any non-floats to floating point arrays
         if self_array.dtype.kind != "f" and self_array.dtype.kind != "c":
@@ -578,7 +1047,7 @@ class ndarray(object):
             )
             temp._thunk.convert(rhs_array._thunk, warn=False)
             rhs_array = temp
-        return self.perform_binary_op(
+        return self._perform_binary_op(
             BinaryOpCode.DIVIDE,
             self_array,
             rhs_array,
@@ -586,18 +1055,45 @@ class ndarray(object):
         )
 
     def __itruediv__(self, rhs):
-        return self.internal_truediv(rhs, inplace=True)
+        """a.__itruediv__(/)
+
+        Return ``self/=value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        return self._internal_truediv(rhs, inplace=True)
 
     def __ixor__(self, rhs):
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        self.perform_binary_op(
+        """a.__ixor__(/)
+
+        Return ``self^=value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
+        self._perform_binary_op(
             BinaryOpCode.LOGICAL_XOR, self, rhs_array, out=self
         )
         return self
 
     def __le__(self, rhs):
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        return self.perform_binary_op(
+        """a.__le__(value, /)
+
+        Return ``self<=value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
+        return self._perform_binary_op(
             BinaryOpCode.LESS_EQUAL,
             self,
             rhs_array,
@@ -605,32 +1101,93 @@ class ndarray(object):
         )
 
     def __len__(self):
+        """a.__len__(/)
+
+        Return ``len(self)``.
+
+        """
         return self.shape[0]
 
     def __lshift__(self, rhs):
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        return self.perform_binary_op(BinaryOpCode.SHIFT_LEFT, self, rhs_array)
+        """a.__lshift__(value, /)
+
+        Return ``self<<value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
+        return self._perform_binary_op(
+            BinaryOpCode.SHIFT_LEFT, self, rhs_array
+        )
 
     def __lt__(self, rhs):
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        return self.perform_binary_op(
+        """a.__lt__(value, /)
+
+        Return ``self<value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
+        return self._perform_binary_op(
             BinaryOpCode.LESS, self, rhs_array, out_dtype=np.dtype(np.bool_)
         )
 
     def __matmul__(self, value):
+        """a.__matmul__(value, /)
+
+        Return ``self@value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         return self.dot(value)
 
     def __mod__(self, rhs):
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        return self.perform_binary_op(BinaryOpCode.MOD, self, rhs_array)
+        """a.__mod__(value, /)
+
+        Return ``self%value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
+        return self._perform_binary_op(BinaryOpCode.MOD, self, rhs_array)
 
     def __mul__(self, rhs):
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        return self.perform_binary_op(BinaryOpCode.MULTIPLY, self, rhs_array)
+        """a.__mul__(value, /)
+
+        Return ``self*value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
+        return self._perform_binary_op(BinaryOpCode.MULTIPLY, self, rhs_array)
 
     def __ne__(self, rhs):
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        return self.perform_binary_op(
+        """a.__ne__(value, /)
+
+        Return ``self!=value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
+        return self._perform_binary_op(
             BinaryOpCode.NOT_EQUAL,
             self,
             rhs_array,
@@ -638,111 +1195,299 @@ class ndarray(object):
         )
 
     def __neg__(self):
-        if (
-            self.dtype.type == np.uint16
-            or self.dtype.type == np.uint32
-            or self.dtype.type == np.uint64
-        ):
-            raise TypeError("cannot negate unsigned type " + str(self.dtype))
-        return self.perform_unary_op(UnaryOpCode.NEGATIVE, self)
+        """a.__neg__(value, /)
+
+        Return ``-self``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        return self._perform_unary_op(UnaryOpCode.NEGATIVE, self)
 
     # __new__
 
     @add_boilerplate()
     def nonzero(self):
+        """a.nonzero()
+
+        Return the indices of the elements that are non-zero.
+
+        Refer to :func:`cunumeric.nonzero` for full documentation.
+
+        See Also
+        --------
+        cunumeric.nonzero : equivalent function
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         thunks = self._thunk.nonzero()
         return tuple(
             ndarray(shape=thunk.shape, thunk=thunk) for thunk in thunks
         )
 
     def __nonzero__(self):
+        """a.nonzero(/)
+
+        Return the indices of the elements that are non-zero.
+
+        Refer to :func:`cunumeric.nonzero` for full documentation.
+
+        See Also
+        --------
+        cunumeric.nonzero : equivalent function
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         return self.__array__().__nonzero__()
 
     def __or__(self, rhs):
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        return self.perform_binary_op(BinaryOpCode.LOGICAL_OR, self, rhs_array)
+        """a.__or__(value, /)
+
+        Return ``self|value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
+        return self._perform_binary_op(
+            BinaryOpCode.LOGICAL_OR, self, rhs_array
+        )
 
     def __pos__(self):
-        # We know these types are already positive
-        if (
-            self.dtype.type == np.uint16
-            or self.dtype.type == np.uint32
-            or self.dtype.type == np.uint64
-            or self.dtype.type == np.bool_
-        ):
-            return self
-        return self.perform_unary_op(UnaryOpCode.POSITIVE, self)
+        """a.__pos__(value, /)
+
+        Return ``+self``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        # the positive opeartor is equivalent to copy
+        return self._perform_unary_op(UnaryOpCode.COPY, self)
 
     def __pow__(self, rhs):
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        return self.perform_binary_op(BinaryOpCode.POWER, self, rhs_array)
+        """a.__pow__(value, /)
+
+        Return ``pow(self, value)``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
+        return self._perform_binary_op(BinaryOpCode.POWER, self, rhs_array)
 
     def __radd__(self, lhs):
-        lhs_array = self.convert_to_cunumeric_ndarray(lhs)
-        return self.perform_binary_op(BinaryOpCode.ADD, lhs_array, self)
+        """a.__radd__(value, /)
+
+        Return ``value+self``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        lhs_array = convert_to_cunumeric_ndarray(lhs)
+        return self._perform_binary_op(BinaryOpCode.ADD, lhs_array, self)
 
     def __rand__(self, lhs):
-        lhs_array = self.convert_to_cunumeric_ndarray(lhs)
-        return self.perform_binary_op(
+        """a.__rand__(value, /)
+
+        Return ``value&self``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        lhs_array = convert_to_cunumeric_ndarray(lhs)
+        return self._perform_binary_op(
             BinaryOpCode.LOGICAL_AND, lhs_array, self
         )
 
     def __rdiv__(self, lhs):
-        lhs_array = self.convert_to_cunumeric_ndarray(lhs)
-        return lhs_array.internal_truediv(self, inplace=False)
+        """a.__rdiv__(value, /)
+
+        Return ``value/self``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        lhs_array = convert_to_cunumeric_ndarray(lhs)
+        return lhs_array._internal_truediv(self, inplace=False)
 
     def __rdivmod__(self, lhs):
-        lhs_array = self.convert_to_cunumeric_ndarray(lhs)
-        return self.perform_binary_op(BinaryOpCode.DIVMOD, lhs_array, self)
+        """a.__rdivmod__(value, /)
+
+        Return ``divmod(value, self)``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        lhs_array = convert_to_cunumeric_ndarray(lhs)
+        return self._perform_binary_op(BinaryOpCode.DIVMOD, lhs_array, self)
 
     def __reduce__(self, *args, **kwargs):
+        """a.__reduce__(/)
+
+        For pickling.
+
+        """
         return self.__array__().__reduce__(*args, **kwargs)
 
     def __reduce_ex__(self, *args, **kwargs):
         return self.__array__().__reduce_ex__(*args, **kwargs)
 
     def __repr__(self):
+        """a.__repr__(/)
+
+        Return ``repr(self)``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         return repr(self.__array__())
 
     def __rfloordiv__(self, lhs):
-        lhs_array = self.convert_to_cunumeric_ndarray(lhs)
-        return self.perform_binary_op(
+        """a.__rfloordiv__(value, /)
+
+        Return ``value//self``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        lhs_array = convert_to_cunumeric_ndarray(lhs)
+        return self._perform_binary_op(
             BinaryOpCode.FLOOR_DIVIDE, lhs_array, self
         )
 
     def __rmod__(self, lhs):
-        lhs_array = self.convert_to_cunumeric_ndarray(lhs)
-        return self.perform_binary_op(BinaryOpCode.MOD, lhs_array, self)
+        """a.__rmod__(value, /)
+
+        Return ``value%self``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        lhs_array = convert_to_cunumeric_ndarray(lhs)
+        return self._perform_binary_op(BinaryOpCode.MOD, lhs_array, self)
 
     def __rmul__(self, lhs):
-        lhs_array = self.convert_to_cunumeric_ndarray(lhs)
-        return self.perform_binary_op(BinaryOpCode.MULTIPLY, lhs_array, self)
+        """a.__rmul__(value, /)
+
+        Return ``value*self``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        lhs_array = convert_to_cunumeric_ndarray(lhs)
+        return self._perform_binary_op(BinaryOpCode.MULTIPLY, lhs_array, self)
 
     def __ror__(self, lhs):
-        lhs_array = self.convert_to_cunumeric_ndarray(lhs)
-        return self.perform_binary_op(BinaryOpCode.LOGICAL_OR, lhs_array, self)
+        """a.__ror__(value, /)
+
+        Return ``value|self``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        lhs_array = convert_to_cunumeric_ndarray(lhs)
+        return self._perform_binary_op(
+            BinaryOpCode.LOGICAL_OR, lhs_array, self
+        )
 
     def __rpow__(self, lhs):
-        lhs_array = self.convert_to_cunumeric_ndarray(lhs)
-        return self.perform_binary_op(BinaryOpCode.POWER, lhs_array, self)
+        """__rpow__(value, /)
+
+        Return ``pow(value, self)``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        lhs_array = convert_to_cunumeric_ndarray(lhs)
+        return self._perform_binary_op(BinaryOpCode.POWER, lhs_array, self)
 
     def __rshift__(self, rhs):
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        return self.perform_binary_op(
+        """a.__rshift__(value, /)
+
+        Return ``self>>value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
+        return self._perform_binary_op(
             BinaryOpCode.SHIFT_RIGHT, self, rhs_array
         )
 
     def __rsub__(self, lhs):
-        lhs_array = self.convert_to_cunumeric_ndarray(lhs)
-        return self.perform_binary_op(BinaryOpCode.SUBTRACT, lhs_array, self)
+        """a.__rsub__(value, /)
+
+        Return ``value-self``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        lhs_array = convert_to_cunumeric_ndarray(lhs)
+        return self._perform_binary_op(BinaryOpCode.SUBTRACT, lhs_array, self)
 
     def __rtruediv__(self, lhs):
-        lhs_array = self.convert_to_cunumeric_ndarray(lhs)
-        return lhs_array.internal_truediv(self, inplace=False)
+        """a.__rtruediv__(value, /)
+
+        Return ``value/self``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        lhs_array = convert_to_cunumeric_ndarray(lhs)
+        return lhs_array._internal_truediv(self, inplace=False)
 
     def __rxor__(self, lhs):
-        lhs_array = self.convert_to_cunumeric_ndarray(lhs)
-        return self.perform_binary_op(
+        """a.__rxor__(value, /)
+
+        Return ``value^self``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        lhs_array = convert_to_cunumeric_ndarray(lhs)
+        return self._perform_binary_op(
             BinaryOpCode.LOGICAL_XOR, lhs_array, self
         )
 
@@ -750,6 +1495,11 @@ class ndarray(object):
 
     @add_boilerplate("value", mutates_self=True)
     def __setitem__(self, key, value):
+        """__setitem__(key, value, /)
+
+        Set ``self[key]=value``.
+
+        """
         if key is None:
             raise KeyError("invalid key passed to cunumeric.ndarray")
         if value.dtype != self.dtype:
@@ -760,24 +1510,78 @@ class ndarray(object):
         self._thunk.set_item(key, value._thunk)
 
     def __setstate__(self, state):
+        """a.__setstate__(state, /)
+
+        For unpickling.
+
+        The `state` argument must be a sequence that contains the following
+        elements:
+
+        Parameters
+        ----------
+        version : int
+            optional pickle version. If omitted defaults to 0.
+        shape : tuple
+        dtype : data-type
+        isFortran : bool
+        rawdata : str or list
+            a binary string with the data, or a list if 'a' is an object array
+
+        """
         self.__array__().__setstate__(state)
 
     def __sizeof__(self, *args, **kwargs):
         return self.__array__().__sizeof__(*args, **kwargs)
 
     def __sub__(self, rhs):
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        return self.perform_binary_op(BinaryOpCode.SUBTRACT, self, rhs_array)
+        """a.__sub__(value, /)
+
+        Return ``self-value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
+        return self._perform_binary_op(BinaryOpCode.SUBTRACT, self, rhs_array)
 
     def __str__(self):
+        """a.__str__(/)
+
+        Return ``str(self)``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         return str(self.__array__())
 
     def __truediv__(self, rhs):
-        return self.internal_truediv(rhs, inplace=False)
+        """a.__truediv__(value, /)
+
+        Return ``self/value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        return self._internal_truediv(rhs, inplace=False)
 
     def __xor__(self, rhs):
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        return self.perform_binary_op(
+        """a.__xor__(value, /)
+
+        Return ``self^value``.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        rhs_array = convert_to_cunumeric_ndarray(rhs)
+        return self._perform_binary_op(
             BinaryOpCode.LOGICAL_XOR, rhs_array, self
         )
 
@@ -790,7 +1594,22 @@ class ndarray(object):
         initial=None,
         where=True,
     ):
-        return self.perform_unary_reduction(
+        """a.all(axis=None, out=None, keepdims=False, initial=None, where=True)
+
+        Returns True if all elements evaluate to True.
+
+        Refer to :func:`cunumeric.all` for full documentation.
+
+        See Also
+        --------
+        cunumeric.all : equivalent function
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        return self._perform_unary_reduction(
             UnaryRedCode.ALL,
             self,
             axis=axis,
@@ -811,7 +1630,22 @@ class ndarray(object):
         initial=None,
         where=True,
     ):
-        return self.perform_unary_reduction(
+        """a.any(axis=None, out=None, keepdims=False, initial=None, where=True)
+
+        Returns True if any of the elements of `a` evaluate to True.
+
+        Refer to :func:`cunumeric.any` for full documentation.
+
+        See Also
+        --------
+        cunumeric.any : equivalent function
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        return self._perform_unary_reduction(
             UnaryRedCode.ANY,
             self,
             axis=axis,
@@ -824,6 +1658,21 @@ class ndarray(object):
         )
 
     def argmax(self, axis=None, out=None):
+        """a.argmax(axis=None, out=None)
+
+        Return indices of the maximum values along the given axis.
+
+        Refer to :func:`cunumeric.argmax` for full documentation.
+
+        See Also
+        --------
+        cunumeric.argmax : equivalent function
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         if self.size == 1:
             return 0
         if axis is None:
@@ -832,7 +1681,7 @@ class ndarray(object):
             raise TypeError("'axis' argument for argmax must be an 'int'")
         elif axis < 0 or axis >= self.ndim:
             raise TypeError("invalid 'axis' argument for argmax " + str(axis))
-        return self.perform_unary_reduction(
+        return self._perform_unary_reduction(
             UnaryRedCode.ARGMAX,
             self,
             axis=axis,
@@ -842,6 +1691,21 @@ class ndarray(object):
         )
 
     def argmin(self, axis=None, out=None):
+        """a.argmin(axis=None, out=None)
+
+        Return indices of the minimum values along the given axis.
+
+        Refer to :func:`cunumeric.argmin` for detailed documentation.
+
+        See Also
+        --------
+        cunumeric.argmin : equivalent function
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         if self.size == 1:
             return 0
         if axis is None:
@@ -850,7 +1714,7 @@ class ndarray(object):
             raise TypeError("'axis' argument for argmin must be an 'int'")
         elif axis < 0 or axis >= self.ndim:
             raise TypeError("invalid 'axis' argument for argmin " + str(axis))
-        return self.perform_unary_reduction(
+        return self._perform_unary_reduction(
             UnaryRedCode.ARGMIN,
             self,
             axis=axis,
@@ -862,6 +1726,58 @@ class ndarray(object):
     def astype(
         self, dtype, order="C", casting="unsafe", subok=True, copy=True
     ):
+        """a.astype(dtype, order='C', casting='unsafe', subok=True, copy=True)
+
+        Copy of the array, cast to a specified type.
+
+        Parameters
+        ----------
+        dtype : str or data-type
+            Typecode or data-type to which the array is cast.
+
+        order : ``{'C', 'F', 'A', 'K'}``, optional
+            Controls the memory layout order of the result.
+            'C' means C order, 'F' means Fortran order, 'A'
+            means 'F' order if all the arrays are Fortran contiguous,
+            'C' order otherwise, and 'K' means as close to the
+            order the array elements appear in memory as possible.
+            Default is 'K'.
+
+        casting : ``{'no', 'equiv', 'safe', 'same_kind', 'unsafe'}``, optional
+            Controls what kind of data casting may occur. Defaults to 'unsafe'
+            for backwards compatibility.
+
+            * 'no' means the data types should not be cast at all.
+            * 'equiv' means only byte-order changes are allowed.
+            * 'safe' means only casts which can preserve values are allowed.
+            * 'same_kind' means only safe casts or casts within a kind,
+                like float64 to float32, are allowed.
+            * 'unsafe' means any data conversions may be done.
+
+        subok : bool, optional
+            If True, then sub-classes will be passed-through (default),
+            otherwise the returned array will be forced to be a base-class
+            array.
+
+        copy : bool, optional
+            By default, astype always returns a newly allocated array. If this
+            is set to false, and the `dtype`, `order`, and `subok`
+            requirements are satisfied, the input array is returned instead
+            of a copy.
+
+        Returns
+        -------
+        arr_t : ndarray
+            Unless `copy` is False and the other conditions for returning the
+            input array are satisfied (see description for `copy` input
+            parameter), `arr_t` is a new array of the same shape as the input
+            array, with dtype, order given by `dtype`, `order`.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         dtype = np.dtype(dtype)
         if self.dtype == dtype:
             return self
@@ -885,9 +1801,24 @@ class ndarray(object):
         return result
 
     def choose(self, choices, out=None, mode="raise"):
+        """a.choose(choices, out=None, mode='raise')
+
+        Use an index array to construct a new array from a set of choices.
+
+        Refer to :func:`cunumeric.choose` for full documentation.
+
+        See Also
+        --------
+        cunumeric.choose : equivalent function
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         a = self
         if out is not None:
-            out = out.convert_to_cunumeric_ndarray(out)
+            out = convert_to_cunumeric_ndarray(out)
 
         if isinstance(choices, list):
             choices = tuple(choices)
@@ -897,12 +1828,12 @@ class ndarray(object):
             dtypes = [ch.dtype for ch in choices]
             ch_dtype = np.find_common_type(dtypes, [])
             choices = tuple(
-                self.convert_to_cunumeric_ndarray(choices[i]).astype(ch_dtype)
+                convert_to_cunumeric_ndarray(choices[i]).astype(ch_dtype)
                 for i in range(n)
             )
 
         else:
-            choices = self.convert_to_cunumeric_ndarray(choices)
+            choices = convert_to_cunumeric_ndarray(choices)
             n = choices.shape[0]
             ch_dtype = choices.dtype
             choices = tuple(choices[i, ...] for i in range(n))
@@ -964,19 +1895,24 @@ class ndarray(object):
         else:
             return out_arr
 
-    def cholesky(self, no_tril=False):
-        input = self
-        if input.dtype.kind not in ("f", "c"):
-            input = input.astype("float64")
-        output = ndarray(
-            shape=input.shape,
-            dtype=input.dtype,
-            inputs=(input,),
-        )
-        output._thunk.cholesky(input._thunk, no_tril=no_tril)
-        return output
-
     def clip(self, min=None, max=None, out=None):
+        """a.clip(min=None, max=None, out=None)
+
+        Return an array whose values are limited to ``[min, max]``.
+
+        One of max or min must be given.
+
+        Refer to :func:`cunumeric.clip` for full documentation.
+
+        See Also
+        --------
+        cunumeric.clip : equivalent function
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         args = (
             np.array(min, dtype=self.dtype),
             np.array(max, dtype=self.dtype),
@@ -991,16 +1927,31 @@ class ndarray(object):
             )
             if out is not None:
                 self.__array__().clip(min, max, out=out)
-                return self.convert_to_cunumeric_ndarray(out, share=True)
+                return convert_to_cunumeric_ndarray(out, share=True)
             else:
-                return self.convert_to_cunumeric_ndarray(
+                return convert_to_cunumeric_ndarray(
                     self.__array__.clip(min, max)
                 )
-        return self.perform_unary_op(
+        return self._perform_unary_op(
             UnaryOpCode.CLIP, self, dst=out, extra_args=args
         )
 
     def conj(self):
+        """a.conj()
+
+        Complex-conjugate all elements.
+
+        Refer to :func:`cunumeric.conjugate` for full documentation.
+
+        See Also
+        --------
+        cunumeric.conjugate : equivalent function
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         if self.dtype.kind == "c":
             result = self._thunk.conj()
             return ndarray(self.shape, dtype=self.dtype, thunk=result)
@@ -1008,28 +1959,33 @@ class ndarray(object):
             return self
 
     def conjugate(self):
+        """a.conjugate()
+
+        Return the complex conjugate, element-wise.
+
+        Refer to :func:`cunumeric.conjugate` for full documentation.
+
+        See Also
+        --------
+        cunumeric.conjugate : equivalent function
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         return self.conj()
 
-    def convolve(self, v, mode):
-        assert mode == "same"
-        if self.ndim != v.ndim:
-            raise RuntimeError("Arrays should have the same dimensions")
-        elif self.ndim > 3:
-            raise NotImplementedError(
-                f"{self.ndim}-D arrays are not yet supported"
-            )
-
-        if self.dtype != v.dtype:
-            v = v.astype(self.dtype)
-        out = ndarray(
-            shape=self.shape,
-            dtype=self.dtype,
-            inputs=(self, v),
-        )
-        self._thunk.convolve(v._thunk, out._thunk, mode)
-        return out
-
     def copy(self, order="C"):
+        """copy()
+
+        Get a copy of the iterator as a 1-D array.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         # We don't care about dimension order in cuNumeric
         return self.__copy__()
 
@@ -1057,10 +2013,10 @@ class ndarray(object):
     # currently offset option is implemented only for the case of number of
     # axes=2. This restriction can be lifted in the future if there is a
     # use case of having arbitrary number of offsets
-    def diag_helper(self, offset=0, axes=None, extract=True):
-        # diag_helper can be used only for arrays with dim>=1
+    def _diag_helper(self, offset=0, axes=None, extract=True):
+        # _diag_helper can be used only for arrays with dim>=1
         if self.ndim < 1:
-            raise ValueError("diag_helper is implemented for dim>=1")
+            raise ValueError("_diag_helper is implemented for dim>=1")
         elif self.ndim == 1:
             if axes is not None:
                 raise ValueError(
@@ -1070,7 +2026,7 @@ class ndarray(object):
             m = self.shape[0] + np.abs(offset)
             out = ndarray((m, m), dtype=self.dtype, inputs=(self,))
             diag_size = self.shape[0]
-            out._thunk.diag_helper(
+            out._thunk._diag_helper(
                 self._thunk,
                 offset=offset,
                 naxes=0,
@@ -1080,7 +2036,7 @@ class ndarray(object):
             N = len(axes)
             if len(axes) != len(set(axes)):
                 raise ValueError(
-                    "axes passed to diag_helper should be all different"
+                    "axes passed to _diag_helper should be all different"
                 )
             if self.ndim < N:
                 raise ValueError(
@@ -1121,7 +2077,7 @@ class ndarray(object):
                 diag_size = a.shape[a.ndim - 1]
             elif N < 2:
                 raise ValueError(
-                    "number of axes passed to the diag_helper"
+                    "number of axes passed to the _diag_helper"
                     " should be more than 1"
                 )
 
@@ -1130,7 +2086,7 @@ class ndarray(object):
             out_shape = tr_shape + (diag_size,)
             out = ndarray(shape=out_shape, dtype=self.dtype, inputs=(self,))
 
-            out._thunk.diag_helper(
+            out._thunk._diag_helper(
                 a._thunk,
                 offset=offset,
                 naxes=N,
@@ -1141,6 +2097,21 @@ class ndarray(object):
     def diagonal(
         self, offset=0, axis1=None, axis2=None, extract=True, axes=None
     ):
+        """a.diagonal(offset=0, axis1=None, axis2=None)
+
+        Return specified diagonals.
+
+        Refer to :func:`cunumeric.diagonal` for full documentation.
+
+        See Also
+        --------
+        cunumeric.diagonal : equivalent function
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         if self.ndim == 1:
             if extract is True:
                 raise ValueError("extract can be true only for Ndim >=2")
@@ -1159,122 +2130,132 @@ class ndarray(object):
                 (axis1 is not None) or (axis2 is not None)
             ):
                 raise ValueError("Either axis1/axis2 or axes must be supplied")
-        return self.diag_helper(offset=offset, axes=axes, extract=extract)
+        return self._diag_helper(offset=offset, axes=axes, extract=extract)
 
+    @add_boilerplate("rhs")
     def dot(self, rhs, out=None):
-        rhs_array = self.convert_to_cunumeric_ndarray(rhs)
-        if self.size == 1 or rhs_array.size == 1:
-            return self.perform_binary_op(
+        """a.dot(rhs, out=None)
+
+        Return the dot product of this array with ``rhs``.
+
+        Refer to :func:`cunumeric.dot` for full documentation.
+
+        See Also
+        --------
+        cunumeric.dot : equivalent function
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        from .module import _contract  # work around circular import
+
+        if self.ndim == 0 or rhs.ndim == 0:
+            return self._perform_binary_op(
                 BinaryOpCode.MULTIPLY,
                 self,
-                rhs_array,
+                rhs,
+                out=out,
             )
-        out_dtype = self.find_common_type(self, rhs_array)
-        # Check for type conversion on the way in
-        self_array = self
-        if self_array.dtype != out_dtype:
-            self_array = ndarray(
-                shape=self.shape,
-                dtype=out_dtype,
-                inputs=(self,),
-            )
-            self_array._thunk.convert(self._thunk)
-        if rhs_array.dtype != out_dtype:
-            temp_array = ndarray(
-                shape=rhs_array.shape,
-                dtype=out_dtype,
-                inputs=(rhs_array,),
-            )
-            temp_array._thunk.convert(rhs_array._thunk)
-            rhs_array = temp_array
-        # Create output array
-        if out is not None:
-            out = self.convert_to_cunumeric_ndarray(out, share=True)
-            if self.ndim == 1 and rhs_array.ndim == 1:
-                if self.shape[0] != rhs.shape[0]:
-                    raise ValueError("Dimension mismatch for dot")
-                if out.ndim != 0:
-                    raise ValueError("Dimension mismatch for dot")
-            elif self.ndim == 2 and rhs_array.ndim == 2:
-                # Matrix multiply
-                if self.shape[1] != rhs_array.shape[0]:
-                    raise ValueError("Dimension mismatch for dot")
-                if out.shape != (self.shape[0], rhs_array.shape[1]):
-                    raise ValueError("Dimension mismatch for dot")
-            elif rhs_array.ndim == 1:
-                if self.shape[-1] != rhs_array.shape[0]:
-                    raise ValueError("Dimension mismatch for dot")
-                if out.shape != self.shape[:-1]:
-                    raise ValueError("Dimension mismatch for dot")
-            else:
-                if self.shape[-1] != rhs_array.shape[-2]:
-                    raise ValueError("Dimension mismatch for dot")
-                if out.shape != (
-                    self.shape[:-1]
-                    + rhs_array.shape[:-2]
-                    + (rhs_array.shape[-1],)
-                ):
-                    raise ValueError("Dimension mismatch for dot")
-        else:
-            if self.ndim == 1 and rhs_array.ndim == 1:
-                # Inner product
-                out = ndarray(
-                    shape=(),
-                    dtype=out_dtype,
-                    inputs=(self_array, rhs_array),
-                )
-            elif self.ndim == 2 and rhs_array.ndim == 2:
-                # Matrix multiply
-                if self.shape[1] != rhs_array.shape[0]:
-                    raise ValueError("Dimension mismatch for dot")
-                out = ndarray(
-                    shape=(self.shape[0], rhs_array.shape[1]),
-                    dtype=out_dtype,
-                    inputs=(self_array, rhs_array),
-                )
-            elif rhs_array.ndim == 1:
-                if self.shape[-1] != rhs_array.shape[0]:
-                    raise ValueError("Dimension mismatch for dot")
-                out = ndarray(
-                    shape=self.shape[:-1],
-                    dtype=out_dtype,
-                    inputs=(self_array, rhs_array),
-                )
-            else:
-                if self.shape[-1] != rhs_array.shape[-2]:
-                    raise ValueError("Dimension mismatch for dot")
-                out = ndarray(
-                    shape=(
-                        self.shape[:-1]
-                        + rhs_array.shape[:-2]
-                        + (rhs_array.shape[-1],)
-                    ),
-                    dtype=out_dtype,
-                    inputs=(self_array, rhs_array),
-                )
-        # Perform operation
-        out._thunk.dot(self_array._thunk, rhs_array._thunk)
-        # Check for type conversion on the way out
-        if out.dtype != out_dtype:
-            result = ndarray(
-                shape=out.shape,
-                dtype=out_dtype,
-                inputs=(out,),
-            )
-            result._thunk.convert(out._thunk)
-            return result
-        else:
-            return out
+        (self_modes, rhs_modes, out_modes) = dot_modes(self.ndim, rhs.ndim)
+        return _contract(
+            self_modes,
+            rhs_modes,
+            out_modes,
+            self,
+            rhs,
+            out=out,
+        )
 
     def dump(self, file):
+        """a.dump(file)
+
+        Dump a pickle of the array to the specified file.
+
+        The array can be read back with pickle.load or cunumeric.load.
+
+        Parameters
+        ----------
+        file : str or `pathlib.Path`
+            A string naming the dump file.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         self.__array__().dump(file=file)
 
     def dumps(self):
+        """a.dumps()
+
+        Returns the pickle of the array as a string.
+
+        pickle.loads will convert the string back to an array.
+
+        Parameters
+        ----------
+        None
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         return self.__array__().dumps()
 
     def fill(self, value):
+        """a.fill(value)
+
+        Fill the array with a scalar value.
+
+        Parameters
+        ----------
+        value : scalar
+            All elements of `a` will be assigned this value.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         val = np.array(value, dtype=self.dtype)
         self._thunk.fill(val)
+
+    def flatten(self, order="C"):
+        """a.flatten(order='C')
+
+        Return a copy of the array collapsed into one dimension.
+
+        Parameters
+        ----------
+        order : ``{'C', 'F', 'A', 'K'}``, optional
+            'C' means to flatten in row-major (C-style) order.
+            'F' means to flatten in column-major (Fortran-
+            style) order. 'A' means to flatten in column-major
+            order if `a` is Fortran *contiguous* in memory,
+            row-major order otherwise. 'K' means to flatten
+            `a` in the order the elements occur in memory.
+            The default is 'C'.
+
+        Returns
+        -------
+        y : ndarray
+            A copy of the input array, flattened to one dimension.
+
+        See Also
+        --------
+        ravel : Return a flattened array.
+        flat : A 1-D flat iterator over the array.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        # Same as 'ravel' because cuNumeric creates a new array by 'reshape'
+        return self.reshape(-1, order=order)
 
     def getfield(self, dtype, offset=0):
         raise NotImplementedError(
@@ -1299,12 +2280,84 @@ class ndarray(object):
         return args
 
     def item(self, *args):
+        """a.item(*args)
+
+        Copy an element of an array to a standard Python scalar and return it.
+
+        Parameters
+        ----------
+        \\*args :
+
+            * none: in this case, the method only works for arrays
+                with one element (`a.size == 1`), which element is
+                copied into a standard Python scalar object and returned.
+            * int_type: this argument is interpreted as a flat index into
+                the array, specifying which element to copy and return.
+            * tuple of int_types: functions as does a single int_type
+                argument, except that the argument is interpreted as an
+                nd-index into the array.
+
+        Returns
+        -------
+        z : scalar
+            A copy of the specified element of the array as a suitable
+            Python scalar
+
+        Notes
+        -----
+        When the data type of `a` is longdouble or clongdouble, item() returns
+        a scalar array object because there is no available Python scalar that
+        would not lose information. Void arrays return a buffer object for
+        item(), unless fields are defined, in which case a tuple is returned.
+        `item` is very similar to a[args], except, instead of an array scalar,
+        a standard Python scalar is returned. This can be useful for speeding
+        up access to elements of the array and doing arithmetic on elements of
+        the array using Python's optimized math.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         key = self._convert_singleton_key(args)
         result = self[key]
         assert result.shape == ()
         return result._thunk.__numpy_array__()
 
     def itemset(self, *args):
+        """a.itemset(*args)
+
+        Insert scalar into an array (scalar is cast to array's dtype,
+        if possible)
+
+        There must be at least 1 argument, and define the last argument
+        as *item*.  Then, ``a.itemset(*args)`` is equivalent to but faster
+        than ``a[args] = item``.  The item should be a scalar value and `args`
+        must select a single item in the array `a`.
+
+        Parameters
+        ----------
+        \\*args :
+            If one argument: a scalar, only used in case `a` is of size 1.
+            If two arguments: the last argument is the value to be set
+            and must be a scalar, the first argument specifies a single array
+            element location. It is either an int or a tuple.
+
+        Notes
+        -----
+        Compared to indexing syntax, `itemset` provides some speed increase
+        for placing a scalar into a particular location in an `ndarray`,
+        if you must do this.  However, generally this is discouraged:
+        among other problems, it complicates the appearance of the code.
+        Also, when using `itemset` (and `item`) inside a loop, be sure
+        to assign the methods to a local variable to avoid the attribute
+        look-up at each loop iteration.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         if len(args) == 0:
             raise KeyError("itemset() requires at least one argument")
         value = args[-1]
@@ -1321,7 +2374,22 @@ class ndarray(object):
         initial=None,
         where=True,
     ):
-        return self.perform_unary_reduction(
+        """a.max(axis=None, out=None, keepdims=False, initial=<no value>, where=True)
+
+        Return the maximum along a given axis.
+
+        Refer to :func:`cunumeric.amax` for full documentation.
+
+        See Also
+        --------
+        cunumeric.amax : equivalent function
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        return self._perform_unary_reduction(
             UnaryRedCode.MAX,
             self,
             axis=axis,
@@ -1333,6 +2401,21 @@ class ndarray(object):
 
     @add_boilerplate()
     def mean(self, axis=None, dtype=None, out=None, keepdims=False):
+        """a.mean(axis=None, dtype=None, out=None, keepdims=False)
+
+        Returns the average of the array elements along given axis.
+
+        Refer to :func:`cunumeric.mean` for full documentation.
+
+        See Also
+        --------
+        cunumeric.mean : equivalent function
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         if axis is not None and type(axis) != int:
             raise NotImplementedError(
                 "cunumeric.mean only supports int types for "
@@ -1365,7 +2448,7 @@ class ndarray(object):
         # Divide by the number of things in the collapsed dimensions
         # Pick the right kinds of division based on the dtype
         if dtype.kind == "f":
-            sum_array.internal_truediv(
+            sum_array._internal_truediv(
                 np.array(divisor, dtype=sum_array.dtype),
                 inplace=True,
             )
@@ -1388,7 +2471,22 @@ class ndarray(object):
         initial=None,
         where=True,
     ):
-        return self.perform_unary_reduction(
+        """a.min(axis=None, out=None, keepdims=False, initial=<no value>, where=True)
+
+        Return the minimum along a given axis.
+
+        Refer to :func:`cunumeric.amin` for full documentation.
+
+        See Also
+        --------
+        cunumeric.amin : equivalent function
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        return self._perform_unary_reduction(
             UnaryRedCode.MIN,
             self,
             axis=axis,
@@ -1408,6 +2506,22 @@ class ndarray(object):
         initial=None,
         where=True,
     ):
+        """a.prod(axis=None, dtype=None, out=None, keepdims=False, initial=1,
+        where=True)
+
+        Return the product of the array elements over the given axis
+
+        Refer to :func:`cunumeric.prod` for full documentation.
+
+        See Also
+        --------
+        cunumeric.prod : equivalent function
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         if self.dtype.type == np.bool_:
             temp = ndarray(
                 shape=self.shape,
@@ -1418,7 +2532,7 @@ class ndarray(object):
             self_array = temp
         else:
             self_array = self
-        return self.perform_unary_reduction(
+        return self._perform_unary_reduction(
             UnaryRedCode.PROD,
             self_array,
             axis=axis,
@@ -1429,9 +2543,40 @@ class ndarray(object):
         )
 
     def ravel(self, order="C"):
+        """a.ravel(order="C")
+
+        Return a flattened array.
+
+        Refer to :func:`cunumeric.ravel` for full documentation.
+
+        See Also
+        --------
+        cunumeric.ravel : equivalent function
+        ndarray.flat : a flat iterator on the array.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         return self.reshape(-1, order=order)
 
     def reshape(self, shape, order="C"):
+        """a.reshape(shape, order='C')
+
+        Returns an array containing the same data with a new shape.
+
+        Refer to :func:`cunumeric.reshape` for full documentation.
+
+        See Also
+        --------
+        cunumeric.reshape : equivalent function
+
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+        """
         if shape != -1:
             # Check that these sizes are compatible
             if isinstance(shape, Iterable):
@@ -1496,9 +2641,80 @@ class ndarray(object):
         )
 
     def setflags(self, write=None, align=None, uic=None):
+        """a.setflags(write=None, align=None, uic=None)
+
+        Set array flags WRITEABLE, ALIGNED, WRITEBACKIFCOPY,
+        respectively.
+
+        These Boolean-valued flags affect how numpy interprets the memory
+        area used by `a` (see Notes below). The ALIGNED flag can only
+        be set to True if the data is actually aligned according to the type.
+        The WRITEBACKIFCOPY and flag can never be set
+        to True. The flag WRITEABLE can only be set to True if the array owns
+        its own memory, or the ultimate owner of the memory exposes a
+        writeable buffer interface, or is a string. (The exception for string
+        is made so that unpickling can be done without copying memory.)
+
+        Parameters
+        ----------
+        write : bool, optional
+            Describes whether or not `a` can be written to.
+        align : bool, optional
+            Describes whether or not `a` is aligned properly for its type.
+        uic : bool, optional
+            Describes whether or not `a` is a copy of another "base" array.
+
+        Notes
+        -----
+        Array flags provide information about how the memory area used
+        for the array is to be interpreted. There are 7 Boolean flags
+        in use, only four of which can be changed by the user:
+        WRITEBACKIFCOPY, WRITEABLE, and ALIGNED.
+
+        WRITEABLE (W) the data area can be written to;
+
+        ALIGNED (A) the data and strides are aligned appropriately for the
+        hardware (as determined by the compiler);
+
+        WRITEBACKIFCOPY (X) this array is a copy of some other array
+        (referenced by .base). When the C-API function
+        PyArray_ResolveWritebackIfCopy is called, the base array will be
+        updated with the contents of this array.
+
+        All flags can be accessed using the single (upper case) letter as well
+        as the full name.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         self.__array__().setflags(write=write, align=align, uic=uic)
 
+    def sort(self, axis=-1, kind="quicksort", order=None):
+        self._thunk.sort(rhs=self._thunk, axis=axis, kind=kind, order=order)
+
+    def argsort(self, axis=-1, kind="quicksort", order=None):
+        self._thunk.sort(
+            rhs=self._thunk, argsort=True, axis=axis, kind=kind, order=order
+        )
+
     def squeeze(self, axis=None):
+        """a.squeeze(axis=None)
+
+        Remove axes of length one from `a`.
+
+        Refer to :func:`cunumeric.squeeze` for full documentation.
+
+        See Also
+        --------
+        cunumeric.squeeze : equivalent function
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         if axis is not None:
             if isinstance(axis, int):
                 if axis >= self.ndim:
@@ -1531,6 +2747,22 @@ class ndarray(object):
         initial=None,
         where=True,
     ):
+        """a.sum(axis=None, dtype=None, out=None, keepdims=False, initial=0,
+        where=True)
+
+        Return the sum of the array elements over the given axis.
+
+        Refer to :func:`cunumeric.sum` for full documentation.
+
+        See Also
+        --------
+        cunumeric.sum : equivalent function
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         if self.dtype.type == np.bool_:
             temp = ndarray(
                 shape=self.shape,
@@ -1541,7 +2773,7 @@ class ndarray(object):
             self_array = temp
         else:
             self_array = self
-        return self.perform_unary_reduction(
+        return self._perform_unary_reduction(
             UnaryRedCode.SUM,
             self_array,
             axis=axis,
@@ -1552,6 +2784,21 @@ class ndarray(object):
         )
 
     def swapaxes(self, axis1, axis2):
+        """a.swapaxes(axis1, axis2)
+
+        Return a view of the array with `axis1` and `axis2` interchanged.
+
+        Refer to :func:`cunumeric.swapaxes` for full documentation.
+
+        See Also
+        --------
+        cunumeric.swapaxes : equivalent function
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         if axis1 >= self.ndim:
             raise ValueError(
                 "axis1=" + str(axis1) + " is too large for swapaxes"
@@ -1563,18 +2810,168 @@ class ndarray(object):
         return ndarray(shape=None, thunk=self._thunk.swapaxes(axis1, axis2))
 
     def tofile(self, fid, sep="", format="%s"):
+        """a.tofile(fid, sep="", format="%s")
+
+        Write array to a file as text or binary (default).
+
+        Data is always written in 'C' order, independent of the order of `a`.
+        The data produced by this method can be recovered using the function
+        fromfile().
+
+        Parameters
+        ----------
+        fid : ``file`` or str or pathlib.Path
+            An open file object, or a string containing a filename.
+        sep : str
+            Separator between array items for text output.
+            If "" (empty), a binary file is written, equivalent to
+            ``file.write(a.tobytes())``.
+        format : str
+            Format string for text file output.
+            Each entry in the array is formatted to text by first converting
+            it to the closest Python type, and then using "format" % item.
+
+        Notes
+        -----
+        This is a convenience function for quick storage of array data.
+        Information on endianness and precision is lost, so this method is not
+        a good choice for files intended to archive data or transport data
+        between machines with different endianness. Some of these problems can
+        be overcome by outputting the data as text files, at the expense of
+        speed and file size.
+
+        When fid is a file object, array contents are directly written to the
+        file, bypassing the file object's ``write`` method. As a result,
+        tofile cannot be used with files objects supporting compression (e.g.,
+        GzipFile) or file-like objects that do not support ``fileno()`` (e.g.,
+        BytesIO).
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         return self.__array__().tofile(fid=fid, sep=sep, format=format)
 
     def tobytes(self, order="C"):
+        """a.tobytes(order='C')
+
+        Construct Python bytes containing the raw data bytes in the array.
+
+        Constructs Python bytes showing a copy of the raw contents of
+        data memory. The bytes object is produced in C-order by default.
+
+        This behavior is controlled by the ``order`` parameter.
+
+        Parameters
+        ----------
+        order : ``{'C', 'F', 'A'}``, optional
+            Controls the memory layout of the bytes object. 'C' means C-order,
+            'F' means F-order, 'A' (short for *Any*) means 'F' if `a` is
+            Fortran contiguous, 'C' otherwise. Default is 'C'.
+
+        Returns
+        -------
+        s : bytes
+            Python bytes exhibiting a copy of `a`'s raw data.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         return self.__array__().tobytes(order=order)
 
     def tolist(self):
+        """a.tolist()
+
+        Return the array as an ``a.ndim``-levels deep nested list of Python
+        scalars.
+
+        Return a copy of the array data as a (nested) Python list.
+        Data items are converted to the nearest compatible builtin Python
+        type, via the `~cunumeric.ndarray.item` function.
+
+        If ``a.ndim`` is 0, then since the depth of the nested list is 0, it
+        will not be a list at all, but a simple Python scalar.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        y : Any
+            The possibly nested list of array elements. (object, or list of
+            object, or list of list of object, or ...)
+
+        Notes
+        -----
+        The array may be recreated via ``a = cunumeric.array(a.tolist())``,
+        although this may sometimes lose precision.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         return self.__array__().tolist()
 
     def tostring(self, order="C"):
+        """a.tostring(order='C')
+
+        A compatibility alias for `tobytes`, with exactly the same behavior.
+        Despite its name, it returns `bytes` not `str`.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         return self.__array__().tostring(order=order)
 
     def transpose(self, axes=None):
+        """a.transpose(axes=None)
+
+        Returns a view of the array with axes transposed.
+
+        For a 1-D array this has no effect, as a transposed vector is simply
+        the same vector. To convert a 1-D array into a 2D column vector, an
+        additional dimension must be added. `np.atleast2d(a).T` achieves this,
+        as does `a[:, np.newaxis]`.
+
+        For a 2-D array, this is a standard matrix transpose.
+
+        For an n-D array, if axes are given, their order indicates how the
+        axes are permuted (see Examples). If axes are not provided and
+        ``a.shape = (i[0], i[1], ... i[n-2], i[n-1])``, then
+        ``a.transpose().shape = (i[n-1], i[n-2], ... i[1], i[0])``.
+
+        Parameters
+        ----------
+        axes : None or tuple[int]
+
+            * None or no argument: reverses the order of the axes.
+            * tuple of ints: `i` in the `j`-th place in the tuple means `a`'s
+                `i`-th axis becomes `a.transpose()`'s `j`-th axis.
+
+        Returns
+        -------
+        out : ndarray
+            View of `a`, with axes suitably permuted.
+
+        See Also
+        --------
+        transpose : Equivalent function
+        ndarray.T : Array property returning the array transposed.
+        ndarray.reshape : Give a new shape to an array without changing its
+            data.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         if self.ndim == 1:
             return self
         if axes is None:
@@ -1598,6 +2995,32 @@ class ndarray(object):
         return result
 
     def flip(self, axis=None):
+        """
+        Reverse the order of elements in an array along the given axis.
+
+        The shape of the array is preserved, but the elements are reordered.
+
+        Parameters
+        ----------
+        axis : None or int or tuple[int], optional
+            Axis or axes along which to flip over. The default, axis=None, will
+            flip over all of the axes of the input array.  If axis is negative
+            it counts from the last to the first axis.
+
+            If axis is a tuple of ints, flipping is performed on all of the
+            axes specified in the tuple.
+
+        Returns
+        -------
+        out : array_like
+            A view of `m` with the entries of axis reversed.  Since a view is
+            returned, this operation is done in constant time.
+
+        Availability
+        --------
+        Single GPU, Single CPU
+
+        """
         result = ndarray(
             shape=self.shape,
             dtype=self.dtype,
@@ -1613,8 +3036,27 @@ class ndarray(object):
             )
         return ndarray(shape=self.shape, dtype=self.dtype, thunk=self._thunk)
 
+    def unique(self):
+        """a.unique()
+
+        Find the unique elements of an array.
+
+        Refer to :func:`cunumeric.unique` for full documentation.
+
+        See Also
+        --------
+        cunumeric.unique : equivalent function
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        thunk = self._thunk.unique()
+        return ndarray(shape=thunk.shape, thunk=thunk)
+
     @classmethod
-    def get_where_thunk(cls, where, out_shape):
+    def _get_where_thunk(cls, where, out_shape):
         if where is True:
             return True
         if where is False:
@@ -1627,6 +3069,24 @@ class ndarray(object):
 
     @staticmethod
     def find_common_type(*args):
+        """Determine common type following standard coercion rules.
+
+        Parameters
+        ----------
+        \\*args :
+            A list of dtypes or dtype convertible objects representing arrays
+            or scalars.
+
+
+        Returns
+        -------
+        datatype : data-type
+            The common data type, which is the maximum of the array types,
+            ignoring any scalar types , unless the maximum scalar type is of a
+            different kind (`dtype.kind`). If the kind is not understood, then
+            None is returned.
+
+        """
         array_types = list()
         scalar_types = list()
         for array in args:
@@ -1645,7 +3105,7 @@ class ndarray(object):
 
     # For performing normal/broadcast unary operations
     @classmethod
-    def perform_unary_op(
+    def _perform_unary_op(
         cls,
         op,
         src,
@@ -1695,13 +3155,6 @@ class ndarray(object):
         if where is False:
             return dst
 
-        op_dtype = (
-            dst.dtype
-            if out_dtype is None
-            and not (op == UnaryOpCode.ABSOLUTE and src.dtype.kind == "c")
-            else src.dtype
-        )
-
         if out_dtype is None:
             if dst.dtype != src.dtype and not (
                 op == UnaryOpCode.ABSOLUTE and src.dtype.kind == "c"
@@ -1713,18 +3166,16 @@ class ndarray(object):
                 )
                 temp._thunk.unary_op(
                     op,
-                    op_dtype,
                     src._thunk,
-                    cls.get_where_thunk(where, dst.shape),
+                    cls._get_where_thunk(where, dst.shape),
                     extra_args,
                 )
                 dst._thunk.convert(temp._thunk)
             else:
                 dst._thunk.unary_op(
                     op,
-                    op_dtype,
                     src._thunk,
-                    cls.get_where_thunk(where, dst.shape),
+                    cls._get_where_thunk(where, dst.shape),
                     extra_args,
                 )
         else:
@@ -1736,25 +3187,23 @@ class ndarray(object):
                 )
                 temp._thunk.unary_op(
                     op,
-                    op_dtype,
                     src._thunk,
-                    cls.get_where_thunk(where, dst.shape),
+                    cls._get_where_thunk(where, dst.shape),
                     extra_args,
                 )
                 dst._thunk.convert(temp._thunk)
             else:
                 dst._thunk.unary_op(
                     op,
-                    op_dtype,
                     src._thunk,
-                    cls.get_where_thunk(where, dst.shape),
+                    cls._get_where_thunk(where, dst.shape),
                     extra_args,
                 )
         return dst
 
     # For performing reduction unary operations
     @classmethod
-    def perform_unary_reduction(
+    def _perform_unary_reduction(
         cls,
         op,
         src,
@@ -1864,7 +3313,7 @@ class ndarray(object):
                 temp._thunk.unary_reduction(
                     op,
                     src._thunk,
-                    cls.get_where_thunk(where, dst.shape),
+                    cls._get_where_thunk(where, dst.shape),
                     axes,
                     keepdims,
                     args,
@@ -1875,7 +3324,7 @@ class ndarray(object):
                 dst._thunk.unary_reduction(
                     op,
                     src._thunk,
-                    cls.get_where_thunk(where, dst.shape),
+                    cls._get_where_thunk(where, dst.shape),
                     axes,
                     keepdims,
                     args,
@@ -1885,7 +3334,7 @@ class ndarray(object):
             dst._thunk.unary_reduction(
                 op,
                 src._thunk,
-                cls.get_where_thunk(where, dst.shape),
+                cls._get_where_thunk(where, dst.shape),
                 axes,
                 keepdims,
                 args,
@@ -1895,7 +3344,7 @@ class ndarray(object):
 
     # Return a new cuNumeric array for a binary operation
     @classmethod
-    def perform_binary_op(
+    def _perform_binary_op(
         cls,
         op,
         one,
@@ -1946,7 +3395,7 @@ class ndarray(object):
                 op,
                 one._thunk,
                 two._thunk,
-                cls.get_where_thunk(where, out_shape),
+                cls._get_where_thunk(where, out_shape),
                 extra_args,
             )
             out._thunk.convert(temp._thunk)
@@ -1955,13 +3404,13 @@ class ndarray(object):
                 op,
                 one._thunk,
                 two._thunk,
-                cls.get_where_thunk(where, out_shape),
+                cls._get_where_thunk(where, out_shape),
                 extra_args,
             )
         return out
 
     @classmethod
-    def perform_binary_reduction(
+    def _perform_binary_reduction(
         cls,
         op,
         one,
@@ -1995,7 +3444,7 @@ class ndarray(object):
         return dst
 
     @classmethod
-    def perform_where(cls, mask, one, two):
+    def _perform_where(cls, mask, one, two):
         args = (mask, one, two)
 
         mask = mask._maybe_convert(np.dtype(np.bool_), args)._thunk

@@ -49,7 +49,7 @@ class Philox_2x32 {
       prod_hi = __umulhi(ctr_lo, PHILOX_M2x32_0x);
       prod_lo = ctr_lo * PHILOX_M2x32_0x;
 #else
-      u64 prod = ((u64)ctr_lo) * PHILOX_M2x32_0x;
+      u64 prod = u64{ctr_lo} * PHILOX_M2x32_0x;
       prod_hi  = prod >> 32;
       prod_lo  = prod;
 #endif
@@ -57,7 +57,7 @@ class Philox_2x32 {
       ctr_hi = prod_lo;
       key += PHILOX_W32_0x;
     }
-    return (((u64)ctr_hi) << 32) + ctr_lo;
+    return (u64{ctr_hi} << 32) + ctr_lo;
   }
 
   // Helper function for CPU hi 64-bit multiplication
@@ -90,7 +90,7 @@ class Philox_2x32 {
 #ifdef __NVCC__
     return __umulhi(bits, n);
 #else
-    return (((u64)bits) * ((u64)bits)) >> 32;
+    return (u64{bits} * u64{bits}) >> 32;
 #endif
   }
 

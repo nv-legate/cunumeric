@@ -14,6 +14,8 @@
  *
  */
 
+#include "cunumeric/matrix/util.h"
+
 namespace cunumeric {
 
 using namespace Legion;
@@ -36,6 +38,14 @@ struct support_matmul<LegateTypeCode::FLOAT_LT> : std::true_type {
 template <>
 struct support_matmul<LegateTypeCode::HALF_LT> : std::true_type {
   using ACC_TYPE = float;
+};
+template <>
+struct support_matmul<LegateTypeCode::COMPLEX64_LT> : std::true_type {
+  using ACC_TYPE = complex<float>;
+};
+template <>
+struct support_matmul<LegateTypeCode::COMPLEX128_LT> : std::true_type {
+  using ACC_TYPE = complex<double>;
 };
 
 template <VariantKind KIND>
@@ -68,12 +78,16 @@ struct MatMulImpl {
     auto rhs2 = args.rhs2.read_accessor<VAL, 3>(shape).ptr(shape, rhs2_strides);
     auto lhs  = args.lhs.reduce_accessor<SumReduction<ACC>, true, 3>(shape).ptr(shape, lhs_strides);
 
-    auto rhs1_stride = std::max(rhs1_strides[0], rhs1_strides[1]);
-    auto rhs2_stride = std::max(rhs2_strides[1], rhs2_strides[2]);
-    auto rhs1_transposed =
-      (rhs1_strides[0] != rhs1_strides[1]) ? (rhs1_strides[1] == rhs1_stride) : (rhs1_stride != k);
-    auto rhs2_transposed =
-      (rhs2_strides[1] != rhs2_strides[2]) ? (rhs2_strides[2] == rhs2_stride) : (rhs2_stride != n);
+#ifdef DEBUG_CUNUMERIC
+    assert(rhs1_strides[2] == 0);
+    assert(rhs2_strides[0] == 0);
+    assert(lhs_strides[2] == 1 && lhs_strides[1] == 0);
+#endif
+
+    bool rhs1_transposed;
+    bool rhs2_transposed;
+    size_t rhs1_stride = stride_for_blas(m, k, rhs1_strides[0], rhs1_strides[1], rhs1_transposed);
+    size_t rhs2_stride = stride_for_blas(k, n, rhs2_strides[1], rhs2_strides[2], rhs2_transposed);
 
     MatMulImplBody<KIND, CODE>()(m,
                                  n,

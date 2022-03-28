@@ -32,18 +32,28 @@ struct TriluImpl {
     using VAL = legate_type_of<CODE>;
 
     auto shape = args.output.shape<DIM>();
-
-    Pitches<DIM - 1> pitches;
-    size_t volume = pitches.flatten(shape);
-
-    if (volume == 0) return;
+    if (shape.empty()) return;
 
     auto out = args.output.write_accessor<VAL, DIM>(shape);
     auto in  = args.input.read_accessor<VAL, DIM>(shape);
-    if (args.lower)
-      TriluImplBody<KIND, CODE, DIM, true>()(out, in, pitches, shape.lo, volume, args.k);
-    else
-      TriluImplBody<KIND, CODE, DIM, false>()(out, in, pitches, shape.lo, volume, args.k);
+
+    if (out.accessor.is_dense_col_major(shape)) {
+      Pitches<DIM - 1, false /*C_ORDER*/> pitches;
+      size_t volume = pitches.flatten(shape);
+
+      if (args.lower)
+        TriluImplBody<KIND, CODE, DIM, true>()(out, in, pitches, shape.lo, volume, args.k);
+      else
+        TriluImplBody<KIND, CODE, DIM, false>()(out, in, pitches, shape.lo, volume, args.k);
+    } else {
+      Pitches<DIM - 1> pitches;
+      size_t volume = pitches.flatten(shape);
+
+      if (args.lower)
+        TriluImplBody<KIND, CODE, DIM, true>()(out, in, pitches, shape.lo, volume, args.k);
+      else
+        TriluImplBody<KIND, CODE, DIM, false>()(out, in, pitches, shape.lo, volume, args.k);
+    }
   }
 
   template <LegateTypeCode CODE, int32_t DIM, std::enable_if_t<(DIM < 2)>* = nullptr>

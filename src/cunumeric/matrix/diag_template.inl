@@ -46,10 +46,10 @@ struct DiagImpl {
         end   = std::min(end, shape_in.hi[i]);
       }
       coord_t distance = end - start + 1;
+      if (distance < 0) return;
 
       auto in  = args.matrix.read_accessor<VAL, DIM>(shape_in);
       auto out = args.diag.reduce_accessor<SumReduction<VAL>, true, DIM>(shape_out);
-      if (distance < 0) return;
 
       DiagImplBody<KIND, CODE, DIM, true>()(
         out, in, start, pitches_in, shape_in, args.naxes, distance);
@@ -73,13 +73,13 @@ struct DiagImpl {
       const Point<2> stop1(shape.hi[0], shape.hi[0]);
       // y <= shape.hi[1]
       const Point<2> stop2(shape.hi[1], shape.hi[1]);
-#ifdef CUNUMERIC_DEBUG
+#ifdef DEBUG_CUNUMERIC
       assert(shape.contains(stop1) || shape.contains(stop2));
 #endif
       const Point<2> stop = shape.contains(stop1) ? stop1 : stop2;
       // Walk the path from the stop to the start
       const coord_t distance = (stop[0] - start[0]) + 1;
-#ifdef CUNUMERIC_DEBUG
+#ifdef DEBUG_CUNUMERIC
       // Should be the same along both dimensions
       assert(distance == ((stop[1] - start[1]) + 1));
       // no extract is supported only for 1d input array (2d output)

@@ -23,6 +23,12 @@ namespace cunumeric {
 
 using namespace Legion;
 
+// NOTE:
+// cuBLAS doesn't support row-major, so reverse the matrix order so it thinks things are
+// column-major. Effectively we get NxM = NxK * KxM.
+// Use the extended (*gemmEx) interface where possible, so we use tensor cores if they are available
+// for this matrix shape and GPU.
+
 template <>
 struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::FLOAT_LT> {
   void operator()(size_t m,
@@ -38,18 +44,12 @@ struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::FLOAT_LT> {
                   bool rhs2_transposed)
   {
     auto cublas_handle = get_cublas();
-    // Update the stream because the CUDA hijack can't see inside cuBLAS
-    auto task_stream = get_cached_stream();
+    auto task_stream   = get_cached_stream();
     CHECK_CUBLAS(cublasSetStream(cublas_handle, task_stream));
 
-    const float alpha = 1.f;
-    const float beta  = 0.f;
+    const float alpha = 1.0;
+    const float beta  = 0.0;
 
-    // cublas is dumb and doesn't support row-major, so reverse the matrix
-    // order to help cublas think things are column-major
-    // effectively we get NxM = NxK * KxM
-    // Use the extended sgemm interface so we can use tensor cores
-    // if they are available for this matrix shape and GPU
     CHECK_CUBLAS(cublasSgemmEx(cublas_handle,
                                rhs2_transposed ? CUBLAS_OP_T : CUBLAS_OP_N,
                                rhs1_transposed ? CUBLAS_OP_T : CUBLAS_OP_N,
@@ -85,16 +85,12 @@ struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::DOUBLE_LT> {
                   bool rhs2_transposed)
   {
     auto cublas_handle = get_cublas();
-    // Update the stream because the CUDA hijack can't see inside cuBLAS
-    auto task_stream = get_cached_stream();
+    auto task_stream   = get_cached_stream();
     CHECK_CUBLAS(cublasSetStream(cublas_handle, task_stream));
 
-    const double alpha = 1.f;
-    const double beta  = 0.f;
+    const double alpha = 1.0;
+    const double beta  = 0.0;
 
-    // cublas is dumb and doesn't support row-major, so reverse the matrix
-    // order to help cublas think things are column-major
-    // effectively we get NxM = NxK * KxM
     CHECK_CUBLAS(cublasDgemm(cublas_handle,
                              rhs2_transposed ? CUBLAS_OP_T : CUBLAS_OP_N,
                              rhs1_transposed ? CUBLAS_OP_T : CUBLAS_OP_N,
@@ -127,18 +123,12 @@ struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::HALF_LT> {
                   bool rhs2_transposed)
   {
     auto cublas_handle = get_cublas();
-    // Update the stream because the CUDA hijack can't see inside cuBLAS
-    auto task_stream = get_cached_stream();
+    auto task_stream   = get_cached_stream();
     CHECK_CUBLAS(cublasSetStream(cublas_handle, task_stream));
 
-    const float alpha = 1.f;
-    const float beta  = 0.f;
+    const float alpha = 1.0;
+    const float beta  = 0.0;
 
-    // cublas is dumb and doesn't support row-major, so reverse the matrix
-    // order to help cublas think things are column-major
-    // effectively we get NxM = NxK * KxM
-    // Use the extended sgemm interface so we can use tensor cores
-    // if they are available for this matrix shape and GPU
     CHECK_CUBLAS(cublasSgemmEx(cublas_handle,
                                rhs2_transposed ? CUBLAS_OP_T : CUBLAS_OP_N,
                                rhs1_transposed ? CUBLAS_OP_T : CUBLAS_OP_N,
@@ -156,6 +146,93 @@ struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::HALF_LT> {
                                lhs,
                                CUDA_R_32F,
                                lhs_stride));
+  }
+};
+
+template <>
+struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::COMPLEX64_LT> {
+  void operator()(size_t m,
+                  size_t n,
+                  size_t k,
+                  complex<float>* lhs_,
+                  const complex<float>* rhs1_,
+                  const complex<float>* rhs2_,
+                  size_t lhs_stride,
+                  size_t rhs1_stride,
+                  size_t rhs2_stride,
+                  bool rhs1_transposed,
+                  bool rhs2_transposed)
+  {
+    cuComplex* lhs        = reinterpret_cast<cuComplex*>(lhs_);
+    const cuComplex* rhs1 = reinterpret_cast<const cuComplex*>(rhs1_);
+    const cuComplex* rhs2 = reinterpret_cast<const cuComplex*>(rhs2_);
+
+    auto cublas_handle = get_cublas();
+    auto task_stream   = get_cached_stream();
+    CHECK_CUBLAS(cublasSetStream(cublas_handle, task_stream));
+
+    const cuComplex alpha = make_float2(1.0, 0.0);
+    const cuComplex beta  = make_float2(0.0, 0.0);
+
+    CHECK_CUBLAS(cublasCgemmEx(cublas_handle,
+                               rhs2_transposed ? CUBLAS_OP_T : CUBLAS_OP_N,
+                               rhs1_transposed ? CUBLAS_OP_T : CUBLAS_OP_N,
+                               n,
+                               m,
+                               k,
+                               &alpha,
+                               rhs2,
+                               CUDA_C_32F,
+                               rhs2_stride,
+                               rhs1,
+                               CUDA_C_32F,
+                               rhs1_stride,
+                               &beta,
+                               lhs,
+                               CUDA_C_32F,
+                               lhs_stride));
+  }
+};
+
+template <>
+struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::COMPLEX128_LT> {
+  void operator()(size_t m,
+                  size_t n,
+                  size_t k,
+                  complex<double>* lhs_,
+                  const complex<double>* rhs1_,
+                  const complex<double>* rhs2_,
+                  size_t lhs_stride,
+                  size_t rhs1_stride,
+                  size_t rhs2_stride,
+                  bool rhs1_transposed,
+                  bool rhs2_transposed)
+  {
+    cuDoubleComplex* lhs        = reinterpret_cast<cuDoubleComplex*>(lhs_);
+    const cuDoubleComplex* rhs1 = reinterpret_cast<const cuDoubleComplex*>(rhs1_);
+    const cuDoubleComplex* rhs2 = reinterpret_cast<const cuDoubleComplex*>(rhs2_);
+
+    auto cublas_handle = get_cublas();
+    auto task_stream   = get_cached_stream();
+    CHECK_CUBLAS(cublasSetStream(cublas_handle, task_stream));
+
+    const cuDoubleComplex alpha = make_double2(1.0, 0.0);
+    const cuDoubleComplex beta  = make_double2(0.0, 0.0);
+
+    CHECK_CUBLAS(cublasZgemm(cublas_handle,
+                             rhs2_transposed ? CUBLAS_OP_T : CUBLAS_OP_N,
+                             rhs1_transposed ? CUBLAS_OP_T : CUBLAS_OP_N,
+                             n,
+                             m,
+                             k,
+                             &alpha,
+                             rhs2,
+                             rhs2_stride,
+                             rhs1,
+                             rhs1_stride,
+                             &beta,
+                             lhs,
+                             lhs_stride));
   }
 };
 

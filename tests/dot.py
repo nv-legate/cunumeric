@@ -13,24 +13,31 @@
 # limitations under the License.
 #
 
-import numpy as np
+from cunumeric.utils import dot_modes
+from test_tools.contractions import (
+    test_default,
+    test_permutations,
+    test_shapes,
+    test_types,
+)
 
-import cunumeric as num
+from legate.core import LEGATE_MAX_DIM
 
 
 def test():
-    for dtype in [np.double, np.complex64]:
-        np.random.seed(42)
-        x_np = np.array(np.random.randn(11), dtype=dtype)
-        y_np = np.array(np.random.randn(11), dtype=dtype)
+    for a_ndim in range(LEGATE_MAX_DIM + 1):
+        for b_ndim in range(LEGATE_MAX_DIM + 1):
+            name = f"dot({a_ndim} x {b_ndim})"
+            modes = dot_modes(a_ndim, b_ndim)
 
-        x_num = num.array(x_np)
-        y_num = num.array(y_np)
+            def operation(lib, *args, **kwargs):
+                return lib.dot(*args, **kwargs)
 
-        out_np = x_np.dot(y_np)
-        out_num = x_num.dot(y_num)
-
-        assert num.allclose(out_np, out_num)
+            test_default(name, modes, operation)
+            test_permutations(name, modes, operation)
+            test_shapes(name, modes, operation)
+            if a_ndim <= 2 and b_ndim <= 2:
+                test_types(name, modes, operation)
 
 
 if __name__ == "__main__":

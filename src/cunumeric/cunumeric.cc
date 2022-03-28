@@ -25,6 +25,9 @@ namespace cunumeric {
 
 static const char* const cunumeric_library_name = "cunumeric";
 
+/*static*/ bool CuNumeric::has_numamem   = false;
+/*static*/ MapperID CuNumeric::mapper_id = -1;
+
 /*static*/ LegateTaskRegistrar& CuNumeric::get_registrar()
 {
   static LegateTaskRegistrar registrar;
@@ -57,10 +60,10 @@ void registration_callback(Machine machine,
 #endif
 
   // Now we can register our mapper with the runtime
-  auto cunumeric_mapper_id = context.get_mapper_id(0);
-  auto mapper              = new CuNumericMapper(runtime, machine, context);
+  CuNumeric::mapper_id = context.get_mapper_id(0);
+  auto mapper          = new CuNumericMapper(runtime, machine, context);
   // This will register it with all the processors on the node
-  runtime->add_mapper(cunumeric_mapper_id, mapper);
+  runtime->add_mapper(CuNumeric::mapper_id, mapper);
 }
 
 }  // namespace cunumeric
@@ -73,5 +76,11 @@ void cunumeric_perform_registration(void)
   // in before the runtime starts and make it global so that we know
   // that this call back is invoked everywhere across all nodes
   Runtime::perform_registration_callback(cunumeric::registration_callback, true /*global*/);
+
+  Runtime* runtime = Runtime::get_runtime();
+  Context ctx      = Runtime::get_context();
+  Future fut       = runtime->select_tunable_value(
+    ctx, CUNUMERIC_TUNABLE_HAS_NUMAMEM, cunumeric::CuNumeric::mapper_id);
+  if (fut.get_result<int32_t>() != 0) cunumeric::CuNumeric::has_numamem = true;
 }
 }
