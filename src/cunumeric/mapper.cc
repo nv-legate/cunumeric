@@ -93,6 +93,14 @@ std::vector<StoreMapping> CuNumericMapper::store_mappings(
         input_mapping.stores.push_back(inputs[idx]);
       return std::move(mappings);
     }
+    case CUNUMERIC_FFT: {
+      std::vector<StoreMapping> mappings;
+      auto& inputs  = task.inputs();
+      auto& outputs = task.outputs();
+      mappings.push_back(StoreMapping::default_mapping(inputs[0],  options.front()));
+      mappings.push_back(StoreMapping::default_mapping(outputs[0], options.front()));
+      return std::move(mappings);
+    }
     case CUNUMERIC_TRANSPOSE_COPY_2D: {
       auto logical = task.scalars()[0].value<bool>();
       if (!logical) {

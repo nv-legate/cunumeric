@@ -23,7 +23,7 @@ import pyarrow
 
 from legate.core import Array
 
-from .config import UnaryOpCode, UnaryRedCode
+from .config import UnaryOpCode, UnaryRedCode, FFTCode, FFTDirection, FFTNormalization
 from .coverage import clone_class
 from .runtime import runtime
 from .utils import broadcast_shapes, dot_modes
@@ -2110,6 +2110,98 @@ class ndarray:
 
         """
         return self.__array__().dumps()
+
+    def _normalize_axes_shape(self, axes, s):
+        user_axes  = axes is not None
+        user_sizes = s is not None
+        if user_axes and user_sizes and len(axes) != len(s):
+            raise ValueError(
+                "Shape and axes have different lengths"
+                )
+        if user_axes:
+            fft_axes = axes
+        else:
+            fft_axes = range(len(s)) if user_sizes else range(self.ndim)
+        if np.max(np.abs(list(fft_axes))) > self.ndim:
+            raise ValueError(
+                "Axis is out of bounds for array of size {}".format(self.ndim)
+            )
+        fft_axes = [x % self.ndim for x in fft_axes]
+        fft_s    = list(self.shape)
+        if user_sizes:
+            for idx, ax in enumerate(fft_axes):
+                fft_s[ax] = s[idx]
+        return fft_axes, fft_s
+
+    def fft(self, s, axes, kind, direction, norm):
+        # Dimensions check
+        if self.ndim > 3:
+            raise NotImplementedError(
+                f"{self.ndim}-D arrays are not supported yet"
+            )
+
+        # Type
+        fft_output_type = kind.output_dtype
+
+        # Axes and sizes
+        user_axes  = axes is not None
+        user_sizes = s is not None
+        fft_axes, fft_s = self._normalize_axes_shape(axes, s)
+
+        # Shape
+        fft_input        = self
+        fft_output_shape = self.shape
+        if user_sizes:
+            # Zero padding if any of the user sizes is larger than input
+            zero_padded_input = self
+            if np.any(np.greater(fft_s, fft_input.shape)):
+                # Create array with superset shape, fill with zeros, and copy input in
+                max_size = tuple(np.maximum(fft_s,fft_input.shape))
+                zero_padded_input = ndarray(shape=max_size, dtype=fft_input.dtype)
+                zero_padded_input.fill(0)
+                zero_padded_input._thunk.set_item(tuple(slice(0,i) for i in fft_input.shape), fft_input._thunk)
+
+            # Slicing according to final shape
+            fft_input_shape = list(fft_input.shape)
+            for idx, ax in enumerate(fft_axes):
+                fft_input_shape[ax] = s[idx]
+            fft_input_shape = tuple(fft_input_shape)
+            # TODO: always copying is not the best idea, sometimes a view of the original input will do
+            fft_input  = ndarray(shape=fft_input_shape, thunk=zero_padded_input._thunk.get_item(tuple(slice(0,i) for i in fft_s))).copy()
+            fft_output_shape = fft_input_shape
+
+        # R2C/C2R require different output shapes
+        if fft_output_type != self.dtype:
+            fft_output_shape = list(fft_output_shape)
+            # R2C/C2R dimension is the last axis
+            if direction == FFTDirection.FORWARD:
+                fft_output_shape[fft_axes[-1]] = fft_output_shape[fft_axes[-1]]//2 + 1
+            else:
+                fft_output_shape[fft_axes[-1]] = s[-1] if user_sizes else 2 * (fft_input.shape[fft_axes[-1]] - 1)
+            fft_output_shape = tuple(fft_output_shape)
+
+        # Execute FFT backend
+        out = ndarray(
+            shape=fft_output_shape,
+            dtype=fft_output_type,
+        )
+        fft_input._thunk.fft(out._thunk, fft_axes, kind, direction)
+
+        # Normalization
+        fft_normalization = FFTNormalization.from_string(norm)
+        do_normalization  = any([
+                                fft_normalization == FFTNormalization.ORTHOGONAL,
+                                fft_normalization == FFTNormalization.FORWARD and direction == FFTDirection.FORWARD,
+                                fft_normalization == FFTNormalization.INVERSE and direction == FFTDirection.INVERSE
+                                ])
+        if do_normalization:
+            norm_shape = fft_input.shape if direction == FFTDirection.FORWARD else out.shape
+            norm_shape_along_axes = [norm_shape[ax] for ax in fft_axes]
+            factor = np.product(norm_shape_along_axes)
+            factor = np.sqrt(factor) if (fft_normalization == FFTNormalization.ORTHOGONAL) else factor
+            return out * 1./factor
+
+        return out
 
     def fill(self, value):
         """a.fill(value)

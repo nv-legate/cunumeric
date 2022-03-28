@@ -260,6 +260,12 @@ class EagerArray(NumPyThunk):
 
                 out.array = convolve(self.array, v.array, mode)
 
+    def fft(self, out, axes, kind, direction):
+        if self.deferred is not None:
+            self.deferred(out, kind, direction)
+        else:
+            print('NOT IMPLEMENTED')
+
     def copy(self, rhs, deep=False):
         self.check_eager_args(rhs)
         if self.deferred is not None:
