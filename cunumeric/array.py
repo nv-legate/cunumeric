@@ -2134,6 +2134,21 @@ class ndarray:
         return fft_axes, fft_s
 
     def fft(self, s, axes, kind, direction, norm):
+        """a.fft(s, axes, kind, direction, norm)
+
+        Return the ``kind`` ``direction`` FFT of this array with normalization ``norm``.
+
+        Common entrypoint for FFT functionality in cunumeric.fft module.
+
+        See Also
+        --------
+        cunumeric.fft : FFT functions for different ``kind`` and ``direction`` arguments
+
+        Availability
+        --------
+        Single GPU
+
+        """
         # Dimensions check
         if self.ndim > 3:
             raise NotImplementedError(
