@@ -32,7 +32,7 @@ from .array import (
     convert_to_predicate_ndarray,
     ndarray,
 )
-from .config import BinaryOpCode, UnaryOpCode, UnaryRedCode, FFTCode, FFTDirection, FFTNormalization
+from .config import BinaryOpCode, UnaryRedCode
 from .runtime import runtime
 from .utils import inner_modes, matmul_modes, tensordot_modes
 

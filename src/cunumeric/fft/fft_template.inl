@@ -22,17 +22,22 @@ namespace cunumeric {
 using namespace Legion;
 using namespace legate;
 
-template <VariantKind KIND, fftType FFT_TYPE, LegateTypeCode CODE_OUT, LegateTypeCode CODE_IN, int DIM>
+template <VariantKind KIND,
+          fftType FFT_TYPE,
+          LegateTypeCode CODE_OUT,
+          LegateTypeCode CODE_IN,
+          int DIM>
 struct FFTImplBody;
 
 template <VariantKind KIND, fftType FFT_TYPE>
 struct FFTImpl {
-
-  template <LegateTypeCode CODE_IN, int DIM, std::enable_if_t<( (DIM <= 3) && FFT<FFT_TYPE,CODE_IN>::valid) >* = nullptr>
+  template <LegateTypeCode CODE_IN,
+            int DIM,
+            std::enable_if_t<((DIM <= 3) && FFT<FFT_TYPE, CODE_IN>::valid)>* = nullptr>
   void operator()(FFTArgs& args) const
   {
-    using INPUT_TYPE   = legate_type_of<CODE_IN>;
-    using OUTPUT_TYPE  = legate_type_of<FFT<FFT_TYPE,CODE_IN>::CODE_OUT>;
+    using INPUT_TYPE  = legate_type_of<CODE_IN>;
+    using OUTPUT_TYPE = legate_type_of<FFT<FFT_TYPE, CODE_IN>::CODE_OUT>;
 
     auto in_rect  = args.input.shape<DIM>();
     auto out_rect = args.output.shape<DIM>();
@@ -41,11 +46,14 @@ struct FFTImpl {
     auto input  = args.input.read_accessor<INPUT_TYPE, DIM>(in_rect);
     auto output = args.output.write_accessor<OUTPUT_TYPE, DIM>(out_rect);
 
-    FFTImplBody<KIND, FFT_TYPE, FFT<FFT_TYPE,CODE_IN>::CODE_OUT, CODE_IN, DIM>()(output, input, out_rect, in_rect, args.axes, args.direction, args.operate_over_axes);
+    FFTImplBody<KIND, FFT_TYPE, FFT<FFT_TYPE, CODE_IN>::CODE_OUT, CODE_IN, DIM>()(
+      output, input, out_rect, in_rect, args.axes, args.direction, args.operate_over_axes);
   }
 
   // We only support up to 3D FFTs for now
-  template <LegateTypeCode CODE_IN, int DIM, std::enable_if_t<( (DIM > 3) || !FFT<FFT_TYPE,CODE_IN>::valid )>* = nullptr>
+  template <LegateTypeCode CODE_IN,
+            int DIM,
+            std::enable_if_t<((DIM > 3) || !FFT<FFT_TYPE, CODE_IN>::valid)>* = nullptr>
   void operator()(FFTArgs& args) const
   {
     assert(false);
@@ -69,18 +77,18 @@ static void fft_template(TaskContext& context)
 {
   FFTArgs args;
 
-  auto& inputs   = context.inputs();
-  auto& outputs  = context.outputs();
-  auto& scalars  = context.scalars();
+  auto& inputs  = context.inputs();
+  auto& outputs = context.outputs();
+  auto& scalars = context.scalars();
 
-  args.output            = std::move(outputs[0]);
-  args.input             = std::move(inputs[0]);
+  args.output = std::move(outputs[0]);
+  args.input  = std::move(inputs[0]);
   // Scalar arguments. Pay attention to indexes / ranges when adding or reordering arguments
   args.type              = scalars[0].value<fftType>();
   args.direction         = scalars[1].value<fftDirection>();
   args.operate_over_axes = static_cast<bool>(scalars[2].value<uint8_t>());
 
-  for(size_t i = 3; i < scalars.size(); ++i) args.axes.push_back(scalars[i].value<int64_t>());
+  for (size_t i = 3; i < scalars.size(); ++i) args.axes.push_back(scalars[i].value<int64_t>());
 
   fft_dispatch(args.type, FFTDispatch<KIND>{}, args);
 }

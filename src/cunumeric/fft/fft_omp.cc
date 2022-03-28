@@ -21,8 +21,6 @@ namespace cunumeric {
 
 using namespace Legion;
 
-/*static*/ void FFTTask::omp_variant(TaskContext& context)
-{
-};
+/*static*/ void FFTTask::omp_variant(TaskContext& context){};
 
 }  // namespace cunumeric

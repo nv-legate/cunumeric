@@ -22,11 +22,11 @@
 namespace cunumeric {
 
 struct FFTArgs {
-  Array            output;
-  Array            input;
-  fftType          type;
-  fftDirection     direction;
-  bool             operate_over_axes;
+  Array output;
+  Array input;
+  fftType type;
+  fftDirection direction;
+  bool operate_over_axes;
   std::vector<int64_t> axes;
 };
 
@@ -35,9 +35,9 @@ class FFTTask : public CuNumericTask<FFTTask> {
   static const int TASK_ID = CUNUMERIC_FFT;
 
  public:
-   static void cpu_variant(legate::TaskContext& context);
+  static void cpu_variant(legate::TaskContext& context);
 #ifdef LEGATE_USE_OPENMP
-   static void omp_variant(legate::TaskContext& context);
+  static void omp_variant(legate::TaskContext& context);
 #endif
 #ifdef LEGATE_USE_CUDA
   static void gpu_variant(legate::TaskContext& context);

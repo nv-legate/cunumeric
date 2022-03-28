@@ -97,7 +97,7 @@ std::vector<StoreMapping> CuNumericMapper::store_mappings(
       std::vector<StoreMapping> mappings;
       auto& inputs  = task.inputs();
       auto& outputs = task.outputs();
-      mappings.push_back(StoreMapping::default_mapping(inputs[0],  options.front()));
+      mappings.push_back(StoreMapping::default_mapping(inputs[0], options.front()));
       mappings.push_back(StoreMapping::default_mapping(outputs[0], options.front()));
       return std::move(mappings);
     }

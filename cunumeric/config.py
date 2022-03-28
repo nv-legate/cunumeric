@@ -14,8 +14,9 @@
 #
 
 import os
-import numpy as np
 from enum import IntEnum, unique
+
+import numpy as np
 
 from legate.core import Library, ResourceConfig, get_legate_runtime
 
@@ -249,11 +250,11 @@ class CuNumericTunable(IntEnum):
 # Match these to fftType in fft_util.h
 @unique
 class FFTCode(IntEnum):
-    FFT_R2C = 0x2a
-    FFT_C2R = 0x2c
+    FFT_R2C = 0x2A
+    FFT_C2R = 0x2C
     FFT_C2C = 0x29
-    FFT_D2Z = 0x6a
-    FFT_Z2D = 0x6c
+    FFT_D2Z = 0x6A
+    FFT_Z2D = 0x6C
     FFT_Z2Z = 0x69
 
     @staticmethod
@@ -263,7 +264,12 @@ class FFTCode(IntEnum):
         elif dtype == np.float32:
             return FFTCode.FFT_R2C
         else:
-            raise TypeError("Data type for FFT not supported (supported types are float32 and float64)")
+            raise TypeError(
+                (
+                    "Data type for FFT not supported "
+                    "(supported types are float32 and float64)"
+                )
+            )
 
     @staticmethod
     def complex_to_real_code(dtype):
@@ -272,7 +278,12 @@ class FFTCode(IntEnum):
         elif dtype == np.complex64:
             return FFTCode.FFT_C2R
         else:
-            raise TypeError("Data type for FFT not supported (supported types are complex64 and complex128)")
+            raise TypeError(
+                (
+                    "Data type for FFT not supported "
+                    "(supported types are complex64 and complex128)"
+                )
+            )
 
     @property
     def complex(self):
@@ -297,7 +308,13 @@ class FFTCode(IntEnum):
         elif self == FFTCode.FFT_C2C:
             return np.complex64
         else:
-            raise TypeError("Type of FFT not supported (supported types are C2C, R2C, C2R, Z2Z, D2Z, Z2D)")
+            raise TypeError(
+                (
+                    "Type of FFT not supported "
+                    "(supported types are C2C, "
+                    " R2C, C2R, Z2Z, D2Z, Z2D)"
+                )
+            )
 
     @property
     def output_dtype(self):
@@ -314,35 +331,43 @@ class FFTCode(IntEnum):
         elif self == FFTCode.FFT_C2C:
             return np.complex64
         else:
-            raise TypeError("Type of FFT not supported (supported types are C2C, R2C, C2R, Z2Z, D2Z, Z2D)")
+            raise TypeError(
+                (
+                    "Type of FFT not supported "
+                    "(supported types are C2C, R2C, "
+                    " C2R, Z2Z, D2Z, Z2D)"
+                )
+            )
+
 
 @unique
 class FFTDirection(IntEnum):
     FORWARD = -1
-    INVERSE =  1
+    INVERSE = 1
+
 
 @unique
 class FFTNormalization(IntEnum):
-    FORWARD    =  1
-    INVERSE    =  2
-    ORTHOGONAL =  3
-    
+    FORWARD = 1
+    INVERSE = 2
+    ORTHOGONAL = 3
+
     @staticmethod
     def from_string(in_string):
-        if in_string == 'forward':
+        if in_string == "forward":
             return FFTNormalization.FORWARD
-        elif in_string == 'ortho':
+        elif in_string == "ortho":
             return FFTNormalization.ORTHOGONAL
-        elif in_string == 'backward' or in_string is None:
+        elif in_string == "backward" or in_string is None:
             return FFTNormalization.INVERSE
         else:
             return None
 
     @staticmethod
     def reverse(in_string):
-        if in_string == 'forward':
-            return 'backward'
-        elif in_string == 'backward' or in_string is None:
-            return 'forward'
+        if in_string == "forward":
+            return "backward"
+        elif in_string == "backward" or in_string is None:
+            return "forward"
         else:
             return in_string

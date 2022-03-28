@@ -21,9 +21,7 @@ namespace cunumeric {
 
 using namespace Legion;
 
-/*static*/ void FFTTask::cpu_variant(TaskContext& context)
-{
-}
+/*static*/ void FFTTask::cpu_variant(TaskContext& context) {}
 
 namespace  // unnamed
 {

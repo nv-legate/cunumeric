@@ -264,7 +264,7 @@ class EagerArray(NumPyThunk):
         if self.deferred is not None:
             self.deferred(out, kind, direction)
         else:
-            print('NOT IMPLEMENTED')
+            print("NOT IMPLEMENTED")
 
     def copy(self, rhs, deep=False):
         self.check_eager_args(rhs)

@@ -13,10 +13,8 @@
 # limitations under the License.
 
 import numpy as np
-
-from cunumeric.array import ndarray
-from cunumeric.module import add_boilerplate
 from cunumeric.config import FFTCode, FFTDirection, FFTNormalization
+from cunumeric.module import add_boilerplate
 
 
 def _sanitize_user_axes(a, s, axes, is_c2r=False):
@@ -37,7 +35,11 @@ def _sanitize_user_axes(a, s, axes, is_c2r=False):
 
 
 def _operate_by_axes(a, axes):
-    return len(axes) != len(set(axes)) or len(axes) != a.ndim or tuple(axes) != tuple(sorted(axes))
+    return (
+        len(axes) != len(set(axes))
+        or len(axes) != a.ndim
+        or tuple(axes) != tuple(sorted(axes))
+    )
 
 
 @add_boilerplate("a")
@@ -91,7 +93,7 @@ def fft(a, n=None, axis=-1, norm=None):
 
 
 @add_boilerplate("a")
-def fft2(a, s=None, axes=(-2,-1), norm=None):
+def fft2(a, s=None, axes=(-2, -1), norm=None):
     """
     Compute the 2-dimensional discrete Fourier Transform.
 
@@ -202,8 +204,14 @@ def fftn(a, s=None, axes=None, norm=None):
     elif a.dtype == np.complex64:
         fft_type = FFTCode.FFT_C2C
     else:
-        raise TypeError("FFT input not supported (missing a conversion?)")
-    return a.fft(s=s, axes=axes, kind=fft_type, direction=FFTDirection.FORWARD, norm=norm)
+        raise TypeError(("FFT input not supported " "(missing a conversion?)"))
+    return a.fft(
+        s=s,
+        axes=axes,
+        kind=fft_type,
+        direction=FFTDirection.FORWARD,
+        norm=norm,
+    )
 
 
 @add_boilerplate("a")
@@ -272,7 +280,7 @@ def ifft(a, n=None, axis=-1, norm=None):
 
 
 @add_boilerplate("a")
-def ifft2(a, s=None, axes=(-2,-1), norm=None):
+def ifft2(a, s=None, axes=(-2, -1), norm=None):
     """
     Compute the 2-dimensional inverse discrete Fourier Transform.
 
@@ -401,7 +409,13 @@ def ifftn(a, s=None, axes=None, norm=None):
         fft_type = FFTCode.FFT_C2C
     else:
         raise TypeError("FFT input not supported (missing a conversion?)")
-    return a.fft(s=s, axes=axes, kind=fft_type, direction=FFTDirection.INVERSE, norm=norm)
+    return a.fft(
+        s=s,
+        axes=axes,
+        kind=fft_type,
+        direction=FFTDirection.INVERSE,
+        norm=norm,
+    )
 
 
 @add_boilerplate("a")
@@ -457,7 +471,7 @@ def rfft(a, n=None, axis=-1, norm=None):
 
 
 @add_boilerplate("a")
-def rfft2(a, s=None, axes=(-2,-1), norm=None):
+def rfft2(a, s=None, axes=(-2, -1), norm=None):
     """
     Compute the 2-dimensional FFT of a real array.
 
@@ -558,14 +572,32 @@ def rfftn(a, s=None, axes=None, norm=None):
 
     # Operate by axes
     if _operate_by_axes(a, axes):
-        r2c = a.fft(s=[s[-1]], axes=[axes[-1]], kind=fft_type, direction=FFTDirection.FORWARD, norm=norm)
+        r2c = a.fft(
+            s=[s[-1]],
+            axes=[axes[-1]],
+            kind=fft_type,
+            direction=FFTDirection.FORWARD,
+            norm=norm,
+        )
         if len(axes) > 1:
-            return r2c.fft(s=s[0:-1], axes=axes[0:-1], kind=fft_type.complex, direction=FFTDirection.FORWARD, norm=norm)
+            return r2c.fft(
+                s=s[0:-1],
+                axes=axes[0:-1],
+                kind=fft_type.complex,
+                direction=FFTDirection.FORWARD,
+                norm=norm,
+            )
         else:
             return r2c
     # Operate as a single FFT
     else:
-        return a.fft(s=s, axes=axes, kind=fft_type, direction=FFTDirection.FORWARD, norm=norm)
+        return a.fft(
+            s=s,
+            axes=axes,
+            kind=fft_type,
+            direction=FFTDirection.FORWARD,
+            norm=norm,
+        )
 
 
 @add_boilerplate("a")
@@ -631,7 +663,7 @@ def irfft(a, n=None, axis=-1, norm=None):
 
 
 @add_boilerplate("a")
-def irfft2(a, s=None, axes=(-2,-1), norm=None):
+def irfft2(a, s=None, axes=(-2, -1), norm=None):
     """
     Computes the inverse of `rfft2`.
 
@@ -748,15 +780,34 @@ def irfftn(a, s=None, axes=None, norm=None):
     # Operate by axes
     if _operate_by_axes(a, axes):
         if len(axes) > 1:
-            c2r = a.fft(s=s[0:-1], axes=axes[0:-1], kind=fft_type.complex, direction=FFTDirection.INVERSE, norm=norm)
+            c2r = a.fft(
+                s=s[0:-1],
+                axes=axes[0:-1],
+                kind=fft_type.complex,
+                direction=FFTDirection.INVERSE,
+                norm=norm,
+            )
         else:
             c2r = a
-        return c2r.fft(s=[s[-1]], axes=[axes[-1]], kind=fft_type, direction=FFTDirection.INVERSE, norm=norm)
+        return c2r.fft(
+            s=[s[-1]],
+            axes=[axes[-1]],
+            kind=fft_type,
+            direction=FFTDirection.INVERSE,
+            norm=norm,
+        )
     # Operate as a single FFT
     else:
-        # cuFFT out-of-place C2R always overwrites the input buffer, which is not what we want here, so copy
+        # cuFFT out-of-place C2R always overwrites the input buffer,
+        # which is not what we want here, so copy
         b = a.copy()
-        return b.fft(s=s, axes=axes, kind=fft_type, direction=FFTDirection.INVERSE, norm=norm)
+        return b.fft(
+            s=s,
+            axes=axes,
+            kind=fft_type,
+            direction=FFTDirection.INVERSE,
+            norm=norm,
+        )
 
 
 @add_boilerplate("a")
@@ -808,8 +859,11 @@ def hfft(a, n=None, axis=-1, norm=None):
     s = (n,) if n is not None else None
     axis = (axis,) if axis is not None else None
     # Add checks to ensure input is hermitian?
-    # Essentially a C2R FFT, with reverse sign (forward transform, forward norm)
-    return irfftn(a=a.conjugate(), s=s, axes=axis, norm=FFTNormalization.reverse(norm))
+    # Essentially a C2R FFT, with reverse sign
+    # (forward transform, forward norm)
+    return irfftn(
+        a=a.conjugate(), s=s, axes=axis, norm=FFTNormalization.reverse(norm)
+    )
 
 
 @add_boilerplate("a")
@@ -853,5 +907,8 @@ def ihfft(a, n=None, axis=-1, norm=None):
     s = (n,) if n is not None else None
     axis = (axis,) if axis is not None else None
     # Add checks to ensure input is hermitian?
-    # Essentially a R2C FFT, with reverse sign (inverse transform, inverse norm)
-    return rfftn(a=a, s=s, axes=axis, norm=FFTNormalization.reverse(norm)).conjugate()
+    # Essentially a R2C FFT, with reverse sign
+    # (inverse transform, inverse norm)
+    return rfftn(
+        a=a, s=s, axes=axis, norm=FFTNormalization.reverse(norm)
+    ).conjugate()
