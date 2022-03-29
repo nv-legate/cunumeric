@@ -527,7 +527,11 @@ class EagerArray(NumPyThunk):
             if self.array.size == 1:
                 self.array.fill(np.random.rand())
             else:
-                self.array[:] = np.random.rand(*(self.array.shape))
+                a = np.random.randint(
+                    0, 2 ** 32 - 1, *(self.array.shape),
+                    dtype=self.array.dtype
+                )
+                self.array[:] = a[:]
 
     def random_uniform(self):
         if self.deferred is not None:

@@ -31,19 +31,22 @@ template <VariantKind KIND>
 struct BitGeneratorImpl {
   void operator()(BitGeneratorArgs& args) const
   {
-    BitGeneratorImplBody<KIND>{}(args.bitgen_op, args.generatorID, args.parameter, args.output, args.args);
+    BitGeneratorImplBody<KIND>{}(
+      args.bitgen_op, args.generatorID, args.parameter, args.strides, args.output, args.args);
   }
 };
 
 template <VariantKind KIND>
 static void bitgenerator_template(TaskContext& context)
 {
-  auto& inputs  = context.inputs();
-  auto& outputs = context.outputs();
-  auto& scalars = context.scalars();
+  auto& inputs     = context.inputs();
+  auto& outputs    = context.outputs();
+  auto& scalars    = context.scalars();
   auto bitgen_op   = scalars[0].value<BitGeneratorOperation>();
   auto generatorID = scalars[1].value<int32_t>();
   auto parameter   = scalars[2].value<uint64_t>();
+  DomainPoint strides;  // optional parameter
+  if (scalars.size() > 3) strides = scalars[3].value<DomainPoint>();
 
   std::vector<Store> extra_args;
   for (auto& input : inputs) extra_args.push_back(std::move(input));
@@ -51,7 +54,8 @@ static void bitgenerator_template(TaskContext& context)
   std::vector<Store> optional_output;
   for (auto& output : outputs) optional_output.push_back(std::move(output));
 
-  BitGeneratorArgs args{bitgen_op, generatorID, parameter, std::move(optional_output), std::move(extra_args)};
+  BitGeneratorArgs args{
+    bitgen_op, generatorID, parameter, strides, std::move(optional_output), std::move(extra_args)};
   BitGeneratorImpl<KIND>{}(args);
 }
 

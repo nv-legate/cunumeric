@@ -60,7 +60,7 @@ class Runtime(object):
     __slots__ = [
         "api_calls",
         "current_random_epoch",
-        "current_random_bitgenid", # module: random Bit generator ID
+        "current_random_bitgenid",  # module: random Bit generator ID
         "destroyed",
         "legate_context",
         "legate_runtime",
@@ -234,45 +234,61 @@ class Runtime(object):
             result = future
         return result
 
-    def bitgenerator_create(self,generatorType):
-        task = self.legate_context.create_task(CuNumericOpCode.BITGENERATOR,
+    def bitgenerator_create(self, generatorType):
+        task = self.legate_context.create_task(
+            CuNumericOpCode.BITGENERATOR,
             manual=True,
             launch_domain=Rect(lo=(0,), hi=(self.num_procs,)),
         )
         self.current_random_bitgenid = self.current_random_bitgenid + 1
-        task.add_scalar_arg(1, ty.int32) # OP_CREATE
+        task.add_scalar_arg(1, ty.int32)  # OP_CREATE
         task.add_scalar_arg(self.current_random_bitgenid, ty.uint32)
         task.add_scalar_arg(generatorType, ty.uint64)
         task.execute()
-        # TODO: verify if block is required.
-        self.legate_runtime.issue_execution_fence(block=True)
+        self.legate_runtime.issue_execution_fence()
         return self.current_random_bitgenid
 
-    def bitgenerator_destroy(self,handle):
-        # TODO: verify if block is required.
-        self.legate_runtime.issue_execution_fence(block=True)
-        task = self.legate_context.create_task(CuNumericOpCode.BITGENERATOR,
+    def bitgenerator_destroy(self, handle):
+        self.legate_runtime.issue_execution_fence()
+        task = self.legate_context.create_task(
+            CuNumericOpCode.BITGENERATOR,
             manual=True,
             launch_domain=Rect(lo=(0,), hi=(self.num_procs,)),
         )
-        task.add_scalar_arg(2, ty.int32) # OP_DESTROY
+        task.add_scalar_arg(2, ty.int32)  # OP_DESTROY
         task.add_scalar_arg(handle, ty.uint32)
         task.add_scalar_arg(0, ty.uint64)
         task.execute()
 
-    def bitgenerator_random_raw(self,handle,size):
-        # here, no output: we discard generated numbers... - just a skipahead
-        task = self.legate_context.create_task(CuNumericOpCode.BITGENERATOR,
+    def bitgenerator_set_seed(self, handle, seed):
+        if not isinstance(seed, int):
+            raise NotImplementedError('Non integer seed is not implemented')
+        task = self.legate_context.create_task(
+            CuNumericOpCode.BITGENERATOR,
             manual=True,
             launch_domain=Rect(lo=(0,), hi=(self.num_procs,)),
         )
-        task.add_scalar_arg(3, ty.int32) # OP_RAND_RAW
+        task.add_scalar_arg(4, ty.int32)  # OP_SET_SEED
         task.add_scalar_arg(handle, ty.uint32)
-        gencount=1
+        task.add_scalar_arg(seed, ty.uint64)
+        task.execute()
+
+    def bitgenerator_random_raw(self, handle, size):
+        # here, no output: we discard generated numbers... - just a skipahead
+        task = self.legate_context.create_task(
+            CuNumericOpCode.BITGENERATOR,
+            manual=True,
+            launch_domain=Rect(lo=(0,), hi=(self.num_procs,)),
+        )
+        task.add_scalar_arg(3, ty.int32)  # OP_RAND_RAW
+        task.add_scalar_arg(handle, ty.uint32)
+        gencount = 1
         for sz in size:
             gencount = gencount * sz
-        task.add_scalar_arg(gencount, ty.uint64) # size of the output
+        task.add_scalar_arg(gencount, ty.uint64)  # size of the output
         task.execute()
+        # for consistent random ordering
+        self.legate_runtime.issue_execution_fence()
 
     def set_next_random_epoch(self, epoch):
         self.current_random_epoch = epoch

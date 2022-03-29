@@ -29,52 +29,49 @@ namespace cunumeric {
 using namespace Legion;
 using namespace legate;
 
-template<>
+template <>
 struct BitGeneratorImplBody<VariantKind::CPU> {
-  thread_local static std::map<int, curandGenerator_t> m_generators ;
+  thread_local static std::map<int, curandGenerator_t> m_generators;
+
   void operator()(BitGeneratorOperation op,
-        int32_t generatorID, 
-        uint64_t parameter,
-        std::vector<legate::Store>& output,
-        std::vector<legate::Store>& args)
+                  int32_t generatorID,
+                  uint64_t parameter,
+                  const DomainPoint& strides,
+                  std::vector<legate::Store>& output,
+                  std::vector<legate::Store>& args)
   {
     // ::fprintf(stderr, "[TRACE] : bitgenerator tid = %d\n", syscall(SYS_gettid));
-    switch (op)
-    {
-      case BitGeneratorOperation::CREATE:
-        {
-          if (m_generators.find(generatorID) != m_generators.end())
-          {
-            ::fprintf(stderr, "[ERROR] : internal error : generator ID <%d> already in use !\n", generatorID);
-            ::exit(1); 
-          }
-          curandGenerator_t gen ;
-          CHECK_CURAND(::curandCreateGeneratorHost(&gen, get_curandRngType((BitGeneratorType)parameter)));
-          m_generators[generatorID] = gen ;
+    switch (op) {
+      case BitGeneratorOperation::CREATE: {
+        if (m_generators.find(generatorID) != m_generators.end()) {
+          ::fprintf(
+            stderr, "[ERROR] : internal error : generator ID <%d> already in use !\n", generatorID);
+          assert(false);
         }
-        break ;
-      case BitGeneratorOperation::DESTROY:
-        {
-          if (m_generators.find(generatorID) == m_generators.end())
-          {
-            ::fprintf(stderr, "[ERROR] : internal error : generator ID <%d> does not exist !\n", generatorID);
-            ::exit(1); 
-          }
-          curandGenerator_t gen = m_generators[generatorID];
-          CHECK_CURAND(::curandDestroyGenerator(gen));
-          m_generators.erase(generatorID);
+        curandGenerator_t gen;
+        CHECK_CURAND(
+          ::curandCreateGeneratorHost(&gen, get_curandRngType((BitGeneratorType)parameter)));
+        m_generators[generatorID] = gen;
+      } break;
+      case BitGeneratorOperation::DESTROY: {
+        if (m_generators.find(generatorID) == m_generators.end()) {
+          ::fprintf(
+            stderr, "[ERROR] : internal error : generator ID <%d> does not exist !\n", generatorID);
+          assert(false);
         }
-        break ;
-      default:
-        {
-          ::fprintf(stderr, "[ERROR] : unknown BitGenerator operation") ;
-          ::exit(1);              
-        }
+        curandGenerator_t gen = m_generators[generatorID];
+        CHECK_CURAND(::curandDestroyGenerator(gen));
+        m_generators.erase(generatorID);
+      } break;
+      default: {
+        ::fprintf(stderr, "[ERROR] : unknown BitGenerator operation");
+        assert(false);
+      }
     }
   }
 };
 
-thread_local std::map<int,curandGenerator_t> BitGeneratorImplBody<VariantKind::CPU>::m_generators ;
+thread_local std::map<int, curandGenerator_t> BitGeneratorImplBody<VariantKind::CPU>::m_generators;
 
 /*static*/ void BitGeneratorTask::cpu_variant(TaskContext& context)
 {
