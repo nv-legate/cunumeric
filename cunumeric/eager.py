@@ -574,8 +574,7 @@ class EagerArray(NumPyThunk):
                 self.array.fill(np.random.rand())
             else:
                 a = np.random.randint(
-                    0, 2 ** 32 - 1, *(self.array.shape),
-                    dtype=self.array.dtype
+                    0, 2**32 - 1, *(self.array.shape), dtype=self.array.dtype
                 )
                 self.array[:] = a[:]
 

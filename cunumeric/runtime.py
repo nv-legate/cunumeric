@@ -265,7 +265,7 @@ class Runtime(object):
 
     def bitgenerator_set_seed(self, handle, seed):
         if not isinstance(seed, int):
-            raise NotImplementedError('Non integer seed is not implemented')
+            raise NotImplementedError("Non integer seed is not implemented")
         task = self.legate_context.create_task(
             CuNumericOpCode.BITGENERATOR,
             manual=True,

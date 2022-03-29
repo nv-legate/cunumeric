@@ -47,7 +47,7 @@ class BitGenerator:
     # when output is false => skip ahead
     def random_raw(self, shape=None, output=True):
         if shape is None:
-            raise NotImplementedError('Empty shape not implemented')
+            raise NotImplementedError("Empty shape not implemented")
         if not isinstance(shape, tuple):
             shape = (shape,)
         if output:
