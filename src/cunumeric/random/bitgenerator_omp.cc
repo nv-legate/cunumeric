@@ -22,21 +22,23 @@ namespace cunumeric {
 using namespace Legion;
 using namespace legate;
 
-template<>
+template <>
 struct BitGeneratorImplBody<VariantKind::OMP> {
   void operator()(BitGeneratorOperation op,
-        int32_t generatorID, 
-        uint64_t parameter,
-        std::vector<legate::Store>& args)
+                  int32_t generatorID,
+                  uint64_t parameter,
+                  const DomainPoint& strides,
+                  std::vector<legate::Store>& output,
+                  std::vector<legate::Store>& args)
   {
-      printf("[INFO] : @ %s : %d\n", __FILE__, __LINE__);
-      ::exit(1);
+    printf("[INFO] : @ %s : %d\n", __FILE__, __LINE__);
+    assert(false);
   }
 };
 
 /*static*/ void BitGeneratorTask::omp_variant(legate::TaskContext& context)
 {
-    bitgenerator_template<VariantKind::OMP>(context);
+  bitgenerator_template<VariantKind::OMP>(context);
 }
 
 }  // namespace cunumeric

@@ -14,10 +14,9 @@
 #
 
 import numpy as np
-
 from cunumeric.array import ndarray
-from cunumeric.config import CuNumericOpCode
 from cunumeric.runtime import runtime
+
 
 class BitGenerator:
     # see bitgenerator_util.h
@@ -32,13 +31,15 @@ class BitGenerator:
     MTGP32 = 3
     MT19937 = 4
     PHILOX4_32_10 = 5
-    
+
     __slots__ = [
-        "handle", # handle to the runtime id
+        "handle",  # handle to the runtime id
     ]
 
     def __init__(self, seed=None, generatorType=DEFAULT):
         self.handle = runtime.bitgenerator_create(generatorType)
+        if seed is not None:
+            runtime.bitgenerator_set_seed(self.handle, seed)
 
     def __del__(self):
         runtime.bitgenerator_destroy(self.handle)
@@ -50,29 +51,33 @@ class BitGenerator:
         if not isinstance(shape, tuple):
             shape = (shape,)
         if output:
-            res = ndarray(shape,dtype=np.dtype(np.uint32))
-            res.bitgenerator_random_raw(self.handle)
+            res = ndarray(shape, dtype=np.dtype(np.uint32))
+            res._thunk.bitgenerator_random_raw(self.handle)
             return res
         else:
-            return runtime.bitgenerator_random_raw(self.handle, shape)
+            runtime.bitgenerator_random_raw(self.handle, shape)
+
 
 class XORWOW(BitGenerator):
     def __init__(self, seed=None):
         super().__init__(seed, BitGenerator.XORWOW)
 
+
 class MRG32k3a(BitGenerator):
     def __init__(self, seed=None):
         super().__init__(seed, BitGenerator.MRG32K3A)
+
 
 class MTGP32(BitGenerator):
     def __init__(self, seed=None):
         super().__init__(seed, BitGenerator.MTGP32)
 
+
 class MT19937(BitGenerator):
     def __init__(self, seed=None):
         super().__init__(seed, BitGenerator.MT19937)
 
+
 class PHILOX4_32_10(BitGenerator):
     def __init__(self, seed=None):
         super().__init__(seed, BitGenerator.PHILOX4_32_10)
-

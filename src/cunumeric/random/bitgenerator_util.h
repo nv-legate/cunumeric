@@ -21,18 +21,19 @@
 namespace cunumeric {
 
 enum class BitGeneratorOperation : int32_t {
-    CREATE = 1,
-    DESTROY = 2,
-    RAND_RAW = 3,
+  CREATE   = 1,
+  DESTROY  = 2,
+  RAND_RAW = 3,
+  SET_SEED = 4,
 };
 
 enum class BitGeneratorType : int32_t {
-    DEFAULT = 0,
-    XORWOW = 1,
-    MRG32K3A = 2,
-    MTGP32 = 3,
-    MT19937 = 4,
-    PHILOX4_32_10 = 5,
+  DEFAULT       = 0,
+  XORWOW        = 1,
+  MRG32K3A      = 2,
+  MTGP32        = 3,
+  MT19937       = 4,
+  PHILOX4_32_10 = 5,
 };
 
 }  // namespace cunumeric
