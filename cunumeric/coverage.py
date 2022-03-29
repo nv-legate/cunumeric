@@ -60,8 +60,8 @@ def filter_namespace(
 
 
 # todo: (bev) use callback protocol type starting with 3.8
-def implemented(func: Any, prefix: str) -> Any:
-    name = f"{prefix}.{func.__name__}"
+def implemented(func: Any, prefix: str, name: str) -> Any:
+    name = f"{prefix}.{name}"
 
     @wraps(func)
     def wrapper(*args: Any, **kwargs: Any) -> Any:
@@ -75,8 +75,10 @@ def implemented(func: Any, prefix: str) -> Any:
 
 
 # todo: (bev) use callback protocol type starting with 3.8
-def unimplemented(func: Any, prefix: str, *, reporting: bool = True) -> Any:
-    name = f"{prefix}.{func.__name__}"
+def unimplemented(
+    func: Any, prefix: str, name: str, *, reporting: bool = True
+) -> Any:
+    name = f"{prefix}.{name}"
     if reporting:
 
         @wraps(func)
@@ -133,17 +135,21 @@ def clone_module(
         omit_types=(ModuleType,),
     )
 
+    from numpy import ufunc as npufunc
+
+    from .ufunc.ufunc import ufunc as lgufunc
+
     for attr, value in new_globals.items():
-        if isinstance(value, FunctionType):
+        if isinstance(value, (FunctionType, lgufunc)):
             if runtime.report_coverage:
-                new_globals[attr] = implemented(value, module_name)
+                new_globals[attr] = implemented(value, module_name, attr)
             else:
                 value._cunumeric_implemented = True
 
     for attr, value in missing.items():
-        if isinstance(value, FunctionType):
+        if isinstance(value, (FunctionType, npufunc)):
             new_globals[attr] = unimplemented(
-                value, module_name, reporting=runtime.report_coverage
+                value, module_name, attr, reporting=runtime.report_coverage
             )
         else:
             new_globals[attr] = value
@@ -178,7 +184,7 @@ def clone_class(origin_class: type) -> Callable[[type], type]:
                 value, (FunctionType, MethodType, MethodDescriptorType)
             ):
                 if runtime.report_coverage:
-                    setattr(cls, attr, implemented(value, class_name))
+                    setattr(cls, attr, implemented(value, class_name, attr))
                 else:
                     value._cunumeric_implemented = True
 
@@ -190,7 +196,10 @@ def clone_class(origin_class: type) -> Callable[[type], type]:
                     cls,
                     attr,
                     unimplemented(
-                        value, class_name, reporting=runtime.report_coverage
+                        value,
+                        class_name,
+                        attr,
+                        reporting=runtime.report_coverage,
                     ),
                 )
             else:
