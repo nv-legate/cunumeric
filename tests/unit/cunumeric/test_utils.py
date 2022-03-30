@@ -14,6 +14,7 @@
 #
 
 import inspect
+from typing import List, Tuple, Union
 
 import cunumeric.utils as m  # module under test
 import numpy as np
@@ -121,41 +122,92 @@ def test_get_arg_value_dtype() -> None:
     assert m.get_arg_value_dtype(dt) is np.float32
 
 
-def test_dot_modes() -> None:
-    assert m.dot_modes(0, 0) == ([], [], [])
-    assert m.dot_modes(0, 1) == ([], ["A"], ["A"])
-    assert m.dot_modes(1, 0) == (["a"], [], ["a"])
-    assert m.dot_modes(1, 1) == (["a"], ["a"], [])
-    assert m.dot_modes(2, 0) == (["a", "b"], [], ["a", "b"])
-    assert m.dot_modes(0, 2) == ([], ["A", "B"], ["A", "B"])
-    assert m.dot_modes(2, 1) == (["a", "b"], ["b"], ["a"])
-    assert m.dot_modes(1, 2) == (["a"], ["a", "B"], ["B"])
-    assert m.dot_modes(2, 2) == (["a", "b"], ["b", "B"], ["a", "B"])
+def _dot_modes_oracle(a_ndim: int, b_ndim: int) -> bool:
+    a_modes, b_modes, out_modes = m.dot_modes(a_ndim, b_ndim)
+    expr = f"{''.join(a_modes)},{''.join(b_modes)}->{''.join(out_modes)}"
+    a = np.random.randint(100, size=3**a_ndim).reshape((3,) * a_ndim)
+    b = np.random.randint(100, size=3**b_ndim).reshape((3,) * b_ndim)
+    return np.array_equal(np.einsum(expr, a, b), np.dot(a, b))
 
 
-def test_inner_modes() -> None:
-    assert m.inner_modes(0, 0) == ([], [], [])
-    assert m.inner_modes(0, 1) == ([], ["A"], ["A"])
-    assert m.inner_modes(1, 0) == (["a"], [], ["a"])
-    assert m.inner_modes(1, 1) == (["a"], ["a"], [])
-    assert m.inner_modes(2, 0) == (["a", "b"], [], ["a", "b"])
-    assert m.inner_modes(0, 2) == ([], ["A", "B"], ["A", "B"])
-    assert m.inner_modes(2, 1) == (["a", "b"], ["b"], ["a"])
-    assert m.inner_modes(1, 2) == (["a"], ["A", "a"], ["A"])
-    assert m.inner_modes(2, 2) == (["a", "b"], ["A", "b"], ["a", "A"])
+@pytest.mark.parametrize(
+    "a, b",
+    [
+        (0, 0),
+        (0, 1),
+        (1, 0),
+        (1, 1),
+        (2, 0),
+        (0, 2),
+        (2, 1),
+        (1, 2),
+        (2, 2),
+        (5, 1),
+        (1, 5),
+    ],
+)
+def test_dot_modes(a: int, b: int) -> None:
+    assert _dot_modes_oracle(a, b)
 
 
-@pytest.mark.parametrize("a_ndim, b_ndim", [(0, 0), (0, 1), (1, 0)])
-def test_matmul_modes_bad(a_ndim, b_ndim) -> None:
+def _inner_modes_oracle(a_ndim: int, b_ndim: int) -> bool:
+    a_modes, b_modes, out_modes = m.inner_modes(a_ndim, b_ndim)
+    expr = f"{''.join(a_modes)},{''.join(b_modes)}->{''.join(out_modes)}"
+    a = np.random.randint(100, size=3**a_ndim).reshape((3,) * a_ndim)
+    b = np.random.randint(100, size=3**b_ndim).reshape((3,) * b_ndim)
+    return np.array_equal(np.einsum(expr, a, b), np.inner(a, b))
+
+
+@pytest.mark.parametrize(
+    "a, b",
+    [
+        (0, 0),
+        (0, 1),
+        (1, 0),
+        (1, 1),
+        (2, 0),
+        (0, 2),
+        (2, 1),
+        (1, 2),
+        (2, 2),
+        (5, 1),
+        (1, 5),
+    ],
+)
+def test_inner_modes(a: int, b: int) -> None:
+    assert _inner_modes_oracle(a, b)
+
+
+@pytest.mark.parametrize("a, b", [(0, 0), (0, 1), (1, 0)])
+def test_matmul_modes_bad(a: int, b: int) -> None:
     with pytest.raises(AssertionError):  # should be ValueError?
-        m.matmul_modes(a_ndim, b_ndim)
+        m.matmul_modes(a, b)
 
 
-def test_matmul_modes() -> None:
-    assert m.matmul_modes(1, 1) == (["z"], ["z"], [])
-    assert m.matmul_modes(2, 1) == (["y", "z"], ["z"], ["y"])
-    assert m.matmul_modes(1, 2) == (["A"], ["A", "z"], ["z"])
-    assert m.matmul_modes(2, 2) == (["y", "A"], ["A", "z"], ["y", "z"])
+def _matmul_modes_oracle(a_ndim: int, b_ndim: int) -> bool:
+    a_modes, b_modes, out_modes = m.matmul_modes(a_ndim, b_ndim)
+    expr = f"{''.join(a_modes)},{''.join(b_modes)}->{''.join(out_modes)}"
+    a = np.random.randint(100, size=3**a_ndim).reshape((3,) * a_ndim)
+    b = np.random.randint(100, size=3**b_ndim).reshape((3,) * b_ndim)
+    return np.array_equal(np.einsum(expr, a, b), np.matmul(a, b))
+
+
+@pytest.mark.parametrize(
+    "a, b", [(1, 1), (2, 1), (1, 2), (2, 2), (5, 1), (1, 5)]
+)
+def test_matmul_modes(a: int, b: int) -> None:
+    assert _matmul_modes_oracle(a, b)
+
+
+AxesType = Union[int, Tuple[int, int], Tuple[List[int], List[int]]]
+
+
+def _tensordot_modes_oracle(a_ndim: int, b_ndim: int, axes: AxesType) -> bool:
+    a_modes, b_modes, out_modes = m.tensordot_modes(a_ndim, b_ndim, axes)
+    expr = f"{''.join(a_modes)},{''.join(b_modes)}->{''.join(out_modes)}"
+    a = np.random.randint(100, size=3**a_ndim).reshape((3,) * a_ndim)
+    b = np.random.randint(100, size=3**b_ndim).reshape((3,) * b_ndim)
+    return np.array_equal(np.einsum(expr, a, b), np.tensordot(a, b, axes))
 
 
 class Test_tensordot_modes:
@@ -167,84 +219,63 @@ class Test_tensordot_modes:
             m.tensordot_modes(a_ndim, b_ndim, axes)
 
     def test_bad_axes_length(self) -> None:
+
         with pytest.raises(ValueError):
-            m.tensordot_modes(1, 3, [(1, 2), (1, 2)])  # len(a_axes) > a_ndim
+            # len(a_axes) > a_ndim
+            m.tensordot_modes(1, 3, [(1, 2), (1, 2)])
+
         with pytest.raises(ValueError):
-            m.tensordot_modes(3, 1, [(1, 2), (1, 2)])  # len(b_axes) > b_ndim
+            # len(b_axes) > b_ndim
+            m.tensordot_modes(3, 1, [(1, 2), (1, 2)])
 
     def test_bad_negative_axes(self) -> None:
+
         with pytest.raises(ValueError):
-            m.tensordot_modes(
-                3, 2, [(1, -1), (1, 2)]
-            )  # any(ax < 0 for ax in a_axes)
+            # any(ax < 0 for ax in a_axes)
+            m.tensordot_modes(3, 2, [(1, -1), (1, 2)])
+
         with pytest.raises(ValueError):
-            m.tensordot_modes(
-                3, 2, [(1, 2), (1, -1)]
-            )  # any(ax < 0 for ax in b_axes)
+            # any(ax < 0 for ax in b_axes)
+            m.tensordot_modes(3, 2, [(1, 2), (1, -1)])
 
     def test_bad_mismatched_axes(self) -> None:
+
         with pytest.raises(ValueError):
-            m.tensordot_modes(
-                4, 4, [(1, 1, 2), (1, 3, 2)]
-            )  # len(a_axes) != len(set(a_axes))
+            # len(a_axes) != len(set(a_axes))
+            m.tensordot_modes(4, 4, [(1, 1, 2), (1, 3, 2)])
+
         with pytest.raises(ValueError):
-            m.tensordot_modes(
-                4, 4, [(1, 3, 2), (1, 1, 2)]
-            )  # len(b_axes) != len(set(b_axes))
+            # len(b_axes) != len(set(b_axes))
+            m.tensordot_modes(4, 4, [(1, 3, 2), (1, 1, 2)])
 
     def test_bad_axes_oob(self) -> None:
+
         with pytest.raises(ValueError):
-            m.tensordot_modes(
-                1, 2, [(1, 3), (1, 2)]
-            )  # any(ax >= a_ndim for ax in a_axes)
+            # any(ax >= a_ndim for ax in a_axes)
+            m.tensordot_modes(1, 2, [(1, 3), (1, 2)])
+
         with pytest.raises(ValueError):
-            m.tensordot_modes(
-                2, 1, [(1, 2), (1, 3)]
-            )  # any(ax >= b_ndim for ax in b_axes)
+            # any(ax >= b_ndim for ax in b_axes)
+            m.tensordot_modes(2, 1, [(1, 2), (1, 3)])
 
-    def test_single_axis(self):
-        assert m.tensordot_modes(0, 0, 0) == ([], [], [])
-        assert m.tensordot_modes(2, 2, 1) == (
-            ["a", "b"],
-            ["b", "B"],
-            ["a", "B"],
-        )
+    @pytest.mark.parametrize("a, b, axes", [(0, 0, 0), (2, 2, 1)])
+    def test_single_axis(self, a: int, b: int, axes: AxesType):
+        assert _tensordot_modes_oracle(a, b, axes)
 
-    def test_tuple_axis(self):
-        assert m.tensordot_modes(2, 2, (1, 0)) == (
-            ["a", "b"],
-            ["b", "B"],
-            ["a", "B"],
-        )
-        assert m.tensordot_modes(2, 2, (0, 1)) == (
-            ["a", "b"],
-            ["A", "a"],
-            ["b", "A"],
-        )
-        assert m.tensordot_modes(2, 2, (1, 1)) == (
-            ["a", "b"],
-            ["A", "b"],
-            ["a", "A"],
-        )
+    @pytest.mark.parametrize(
+        "a, b, axes", [(2, 2, (1, 0)), (2, 2, (0, 1)), (2, 2, (1, 1))]
+    )
+    def test_tuple_axis(self, a: int, b: int, axes: AxesType):
+        assert _tensordot_modes_oracle(a, b, axes)
 
-    def test_explicit_axis(self):
-        assert m.tensordot_modes(2, 2, ([1], [0])) == (
-            ["a", "b"],
-            ["b", "B"],
-            ["a", "B"],
-        )
-        assert m.tensordot_modes(2, 2, ([0], [1])) == (
-            ["a", "b"],
-            ["A", "a"],
-            ["b", "A"],
-        )
-        assert m.tensordot_modes(2, 2, ([1], [1])) == (
-            ["a", "b"],
-            ["A", "b"],
-            ["a", "A"],
-        )
-        assert m.tensordot_modes(2, 2, ([1, 0], [0, 1])) == (
-            ["a", "b"],
-            ["b", "a"],
-            [],
-        )
+    @pytest.mark.parametrize(
+        "a, b, axes",
+        [
+            (2, 2, ([1], [0])),
+            (2, 2, ([0], [1])),
+            (2, 2, ([1], [1])),
+            (2, 2, ([1, 0], [0, 1])),
+        ],
+    )
+    def test_explicit_axis(self, a: int, b: int, axes: AxesType):
+        assert _tensordot_modes_oracle(a, b, axes)
