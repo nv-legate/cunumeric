@@ -86,7 +86,7 @@ class Test_is_supported_dtype:
         "value", ["foo", 10, 10.2, [], (), {}, set(), None]
     )
     def test_type_bad(self, value) -> None:
-        with pytest.raises(AssertionError):  # should be TypeError?
+        with pytest.raises(TypeError):
             m.is_supported_dtype(value)
 
     @pytest.mark.parametrize("value", SUPPORTED_DTYPES)
@@ -180,7 +180,7 @@ def test_inner_modes(a: int, b: int) -> None:
 
 @pytest.mark.parametrize("a, b", [(0, 0), (0, 1), (1, 0)])
 def test_matmul_modes_bad(a: int, b: int) -> None:
-    with pytest.raises(AssertionError):  # should be ValueError?
+    with pytest.raises(ValueError):
         m.matmul_modes(a, b)
 
 
