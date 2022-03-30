@@ -23,9 +23,9 @@ from typing import Optional, Set
 
 import numpy as np
 import opt_einsum as oe
-from cunumeric.ufunc.comparison import maximum, minimum
-from cunumeric.ufunc.floating import floor
-from cunumeric.ufunc.math import add, multiply
+from cunumeric._ufunc.comparison import maximum, minimum
+from cunumeric._ufunc.floating import floor
+from cunumeric._ufunc.math import add, multiply
 
 from .array import (
     convert_to_cunumeric_ndarray,
