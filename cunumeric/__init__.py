@@ -28,11 +28,7 @@ import numpy as _np
 from cunumeric import linalg, random
 from cunumeric.array import ndarray
 from cunumeric.module import *
-from cunumeric.ufunc.bit_twiddling import *
-from cunumeric.ufunc.comparison import *
-from cunumeric.ufunc.math import *
-from cunumeric.ufunc.floating import *
-from cunumeric.ufunc.trigonometric import *
+from cunumeric._ufunc import *
 from cunumeric.coverage import clone_module
 
 clone_module(_np, globals())
