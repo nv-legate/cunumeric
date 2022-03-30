@@ -22,6 +22,7 @@ import pytest
 # something more reliable can be implemented.
 legate = os.environ["_"]
 
+
 @pytest.mark.skip
 def test_no_patch() -> None:
     cmd = "import sys; import cunumeric; import numpy; sys.exit(numpy is cunumeric)"  # noqa E501

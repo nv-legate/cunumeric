@@ -155,7 +155,9 @@ class Test_unimplemented:
 
     @patch("cunumeric.runtime.record_api_call")
     def test_reporting_False(self, mock_record_api_call: MagicMock) -> None:
-        wrapped = m.unimplemented(_test_func, "foo", "_test_func", reporting=False)
+        wrapped = m.unimplemented(
+            _test_func, "foo", "_test_func", reporting=False
+        )
 
         assert wrapped.__doc__ == _test_func.__doc__
         assert wrapped.__wrapped__ is _test_func
