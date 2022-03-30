@@ -73,7 +73,7 @@ def _section(header, mod_ext, other_lib, klass=None, exclude_mod=None):
     lg_funcs = []
     for f in _get_functions(lg_obj):
         obj = getattr(lg_obj, f)
-        if obj.__doc__ is None or "Unimplemented" not in obj.__doc__:
+        if getattr(obj, "_cunumeric_implemented", False):
             lg_funcs.append(f)
     lg_funcs = set(lg_funcs)
 
