@@ -137,7 +137,7 @@ def clone_module(
 
     from numpy import ufunc as npufunc
 
-    from .ufunc.ufunc import ufunc as lgufunc
+    from ._ufunc.ufunc import ufunc as lgufunc
 
     for attr, value in new_globals.items():
         if isinstance(value, (FunctionType, lgufunc)):
