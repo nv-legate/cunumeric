@@ -29,11 +29,9 @@ def allclose(A, B):
         return np.allclose(A, B)
 
 
-def test_1d(dtype=np.float64):
-    Z = (
-        np.random.rand(1000001).astype(dtype)
-        + np.random.rand(1000001).astype(dtype) * 1j
-    )
+# N = 1000001
+def test_1d(N, dtype=np.float64):
+    Z = np.random.rand(N).astype(dtype) + np.random.rand(N).astype(dtype) * 1j
     Z_num = num.array(Z)
 
     out = np.fft.fft(Z)
@@ -42,11 +40,17 @@ def test_1d(dtype=np.float64):
     out = np.fft.fft(Z, norm="forward")
     out_num = num.fft.fft(Z_num, norm="forward")
     assert allclose(out, out_num)
-    out = np.fft.fft(Z, n=5001)
-    out_num = num.fft.fft(Z_num, n=5001)
+    out = np.fft.fft(Z, n=N // 2)
+    out_num = num.fft.fft(Z_num, n=N // 2)
     assert allclose(out, out_num)
-    out = np.fft.fft(Z, n=1001001)
-    out_num = num.fft.fft(Z_num, n=1001001)
+    out = np.fft.fft(Z, n=N // 2 + 1)
+    out_num = num.fft.fft(Z_num, n=N // 2 + 1)
+    assert allclose(out, out_num)
+    out = np.fft.fft(Z, n=N * 2)
+    out_num = num.fft.fft(Z_num, n=N * 2)
+    assert allclose(out, out_num)
+    out = np.fft.fft(Z, n=N * 2 + 1)
+    out_num = num.fft.fft(Z_num, n=N * 2 + 1)
     assert allclose(out, out_num)
     out = np.fft.ifft(Z, norm="forward")
     out_num = num.fft.ifft(Z_num, norm="forward")
@@ -65,10 +69,11 @@ def test_1d(dtype=np.float64):
     assert allclose(Z, Z_num)
 
 
-def test_2d(dtype=np.float64):
+# N = (128, 512)
+def test_2d(N, dtype=np.float64):
     Z = (
-        np.random.rand(128, 512).astype(dtype)
-        + np.random.rand(128, 512).astype(dtype) * 1j
+        np.random.rand(*N).astype(dtype)
+        + np.random.rand(*N).astype(dtype) * 1j
     )
     Z_num = num.array(Z)
 
@@ -78,14 +83,14 @@ def test_2d(dtype=np.float64):
     out = np.fft.fft2(Z, norm="forward")
     out_num = num.fft.fft2(Z_num, norm="forward")
     assert allclose(out, out_num)
-    out = np.fft.fft2(Z, s=(64, 490))
-    out_num = num.fft.fft2(Z_num, s=(64, 490))
+    out = np.fft.fft2(Z, s=(N[0] // 2, N[1] - 2))
+    out_num = num.fft.fft2(Z_num, s=(N[0] // 2, N[1] - 2))
     assert allclose(out, out_num)
-    out = np.fft.fft2(Z, s=(129, 600))
-    out_num = num.fft.fft2(Z_num, s=(129, 600))
+    out = np.fft.fft2(Z, s=(N[0] + 1, N[0] + 2))
+    out_num = num.fft.fft2(Z_num, s=(N[0] + 1, N[0] + 2))
     assert allclose(out, out_num)
-    out = np.fft.fft2(Z, s=(29, 610))
-    out_num = num.fft.fft2(Z_num, s=(29, 610))
+    out = np.fft.fft2(Z, s=(N[0] // 2 + 1, N[0] + 2))
+    out_num = num.fft.fft2(Z_num, s=(N[0] // 2 + 1, N[0] + 2))
     assert allclose(out, out_num)
     out = np.fft.fft2(Z, axes=[0])
     out_num = num.fft.fft2(Z_num, axes=[0])
@@ -114,14 +119,14 @@ def test_2d(dtype=np.float64):
     out = np.fft.ifft2(Z, norm="forward")
     out_num = num.fft.ifft2(Z_num, norm="forward")
     assert allclose(out, out_num)
-    out = np.fft.ifft2(Z, s=(64, 490))
-    out_num = num.fft.ifft2(Z_num, s=(64, 490))
+    out = np.fft.ifft2(Z, s=(N[0] // 2, N[1] - 2))
+    out_num = num.fft.ifft2(Z_num, s=(N[0] // 2, N[1] - 2))
     assert allclose(out, out_num)
-    out = np.fft.ifft2(Z, s=(129, 600))
-    out_num = num.fft.ifft2(Z_num, s=(129, 600))
+    out = np.fft.ifft2(Z, s=(N[0] + 1, N[0] + 2))
+    out_num = num.fft.ifft2(Z_num, s=(N[0] + 1, N[0] + 2))
     assert allclose(out, out_num)
-    out = np.fft.ifft2(Z, s=(29, 610))
-    out_num = num.fft.ifft2(Z_num, s=(29, 610))
+    out = np.fft.ifft2(Z, s=(N[0] // 2 + 1, N[0] + 2))
+    out_num = num.fft.ifft2(Z_num, s=(N[0] // 2 + 1, N[0] + 2))
     assert allclose(out, out_num)
     out = np.fft.ifft2(Z, axes=[0])
     out_num = num.fft.ifft2(Z_num, axes=[0])
@@ -154,10 +159,11 @@ def test_2d(dtype=np.float64):
     assert allclose(Z, Z_num)
 
 
-def test_3d(dtype=np.float64):
+# N = (64, 40, 100)
+def test_3d(N, dtype=np.float64):
     Z = (
-        np.random.rand(64, 40, 100).astype(dtype)
-        + np.random.rand(64, 40, 100).astype(dtype) * 1j
+        np.random.rand(*N).astype(dtype)
+        + np.random.rand(*N).astype(dtype) * 1j
     )
     Z_num = num.array(Z)
 
@@ -170,11 +176,11 @@ def test_3d(dtype=np.float64):
     out = np.fft.fftn(Z, norm="ortho")
     out_num = num.fft.fftn(Z_num, norm="ortho")
     assert allclose(out, out_num)
-    out = np.fft.fftn(Z, s=(63, 20, 99))
-    out_num = num.fft.fftn(Z_num, s=(63, 20, 99))
+    out = np.fft.fftn(Z, s=(N[0] - 1, N[1] - 2, N[2] // 2))
+    out_num = num.fft.fftn(Z_num, s=(N[0] - 1, N[1] - 2, N[2] // 2))
     assert allclose(out, out_num)
-    out = np.fft.fftn(Z, s=(65, 43, 109))
-    out_num = num.fft.fftn(Z_num, s=(65, 43, 109))
+    out = np.fft.fftn(Z, s=(N[0] + 1, N[1] + 2, N[2] + 3))
+    out_num = num.fft.fftn(Z_num, s=(N[0] + 1, N[1] + 2, N[2] + 3))
     assert allclose(out, out_num)
     out = np.fft.fftn(Z, axes=[0])
     out_num = num.fft.fftn(Z_num, axes=[0])
@@ -212,11 +218,11 @@ def test_3d(dtype=np.float64):
     out = np.fft.ifftn(Z, norm="ortho")
     out_num = num.fft.ifftn(Z_num, norm="ortho")
     assert allclose(out, out_num)
-    out = np.fft.ifftn(Z, s=(63, 20, 99))
-    out_num = num.fft.ifftn(Z_num, s=(63, 20, 99))
+    out = np.fft.ifftn(Z, s=(N[0] - 1, N[1] - 2, N[2] // 2))
+    out_num = num.fft.ifftn(Z_num, s=(N[0] - 1, N[1] - 2, N[2] // 2))
     assert allclose(out, out_num)
-    out = np.fft.ifftn(Z, s=(65, 43, 109))
-    out_num = num.fft.ifftn(Z_num, s=(65, 43, 109))
+    out = np.fft.ifftn(Z, s=(N[0] + 1, N[1] + 2, N[2] + 3))
+    out_num = num.fft.ifftn(Z_num, s=(N[0] + 1, N[1] + 2, N[2] + 3))
     assert allclose(out, out_num)
     out = np.fft.ifftn(Z, axes=[0])
     out_num = num.fft.ifftn(Z_num, axes=[0])
@@ -255,8 +261,8 @@ def test_3d(dtype=np.float64):
     assert allclose(Z, Z_num)
 
 
-def test_1d_r2c(dtype=np.float64):
-    Z = np.random.rand(1000001).astype(dtype)
+def test_1d_r2c(N, dtype=np.float64):
+    Z = np.random.rand(N).astype(dtype)
     Z_num = num.array(Z)
 
     out = np.fft.rfft(Z)
@@ -265,17 +271,17 @@ def test_1d_r2c(dtype=np.float64):
     out = np.fft.rfft(Z, norm="forward")
     out_num = num.fft.rfft(Z_num, norm="forward")
     assert allclose(out, out_num)
-    out = np.fft.rfft(Z, n=5001)
-    out_num = num.fft.rfft(Z_num, n=5001)
+    out = np.fft.rfft(Z, n=N // 2)
+    out_num = num.fft.rfft(Z_num, n=N // 2)
     assert allclose(out, out_num)
-    out = np.fft.rfft(Z, n=500)
-    out_num = num.fft.rfft(Z_num, n=500)
+    out = np.fft.rfft(Z, n=N // 2 + 1)
+    out_num = num.fft.rfft(Z_num, n=N // 2 + 1)
     assert allclose(out, out_num)
-    out = np.fft.rfft(Z, n=1100)
-    out_num = num.fft.rfft(Z_num, n=1100)
+    out = np.fft.rfft(Z, n=N * 2)
+    out_num = num.fft.rfft(Z_num, n=N * 2)
     assert allclose(out, out_num)
-    out = np.fft.rfft(Z, n=1001001)
-    out_num = num.fft.rfft(Z_num, n=1001001)
+    out = np.fft.rfft(Z, n=N * 2 + 1)
+    out_num = num.fft.rfft(Z_num, n=N * 2 + 1)
     assert allclose(out, out_num)
     # Odd types
     out = np.fft.irfft(Z)
@@ -287,8 +293,8 @@ def test_1d_r2c(dtype=np.float64):
     assert allclose(Z, Z_num)
 
 
-def test_2d_r2c(dtype=np.float64):
-    Z = np.random.rand(128, 1024).astype(dtype)
+def test_2d_r2c(N, dtype=np.float64):
+    Z = np.random.rand(*N).astype(dtype)
     Z_num = num.array(Z)
 
     out = np.fft.rfft2(Z)
@@ -297,14 +303,14 @@ def test_2d_r2c(dtype=np.float64):
     out = np.fft.rfft2(Z, norm="forward")
     out_num = num.fft.rfft2(Z_num, norm="forward")
     assert allclose(out, out_num)
-    out = np.fft.rfft2(Z, s=(64, 512))
-    out_num = num.fft.rfft2(Z_num, s=(64, 512))
+    out = np.fft.rfft2(Z, s=(N[0] // 2, N[1] - 2))
+    out_num = num.fft.rfft2(Z_num, s=(N[0] // 2, N[1] - 2))
     assert allclose(out, out_num)
-    out = np.fft.rfft2(Z, s=(129, 1030))
-    out_num = num.fft.rfft2(Z_num, s=(129, 1030))
+    out = np.fft.rfft2(Z, s=(N[0] + 1, N[0] + 2))
+    out_num = num.fft.rfft2(Z_num, s=(N[0] + 1, N[0] + 2))
     assert allclose(out, out_num)
-    out = np.fft.rfft2(Z, s=(29, 1030))
-    out_num = num.fft.rfft2(Z_num, s=(29, 1030))
+    out = np.fft.rfft2(Z, s=(N[0] // 2 + 1, N[0] + 2))
+    out_num = num.fft.rfft2(Z_num, s=(N[0] // 2 + 1, N[0] + 2))
     assert allclose(out, out_num)
     out = np.fft.rfft2(Z, axes=[0])
     out_num = num.fft.rfft2(Z_num, axes=[0])
@@ -337,8 +343,8 @@ def test_2d_r2c(dtype=np.float64):
     assert allclose(Z, Z_num)
 
 
-def test_3d_r2c(dtype=np.float64):
-    Z = np.random.rand(64, 40, 100).astype(dtype)
+def test_3d_r2c(N, dtype=np.float64):
+    Z = np.random.rand(*N).astype(dtype)
     Z_num = num.array(Z)
 
     out = np.fft.rfftn(Z)
@@ -350,11 +356,11 @@ def test_3d_r2c(dtype=np.float64):
     out = np.fft.rfftn(Z, norm="ortho")
     out_num = num.fft.rfftn(Z_num, norm="ortho")
     assert allclose(out, out_num)
-    out = np.fft.rfftn(Z, s=(63, 20, 99))
-    out_num = num.fft.rfftn(Z_num, s=(63, 20, 99))
+    out = np.fft.rfftn(Z, s=(N[0] - 1, N[1] - 2, N[2] // 2))
+    out_num = num.fft.rfftn(Z_num, s=(N[0] - 1, N[1] - 2, N[2] // 2))
     assert allclose(out, out_num)
-    out = np.fft.rfftn(Z, s=(65, 43, 109))
-    out_num = num.fft.rfftn(Z_num, s=(65, 43, 109))
+    out = np.fft.rfftn(Z, s=(N[0] + 1, N[1] + 2, N[2] + 3))
+    out_num = num.fft.rfftn(Z_num, s=(N[0] + 1, N[1] + 2, N[2] + 3))
     assert allclose(out, out_num)
     out = np.fft.rfftn(Z, axes=[0])
     out_num = num.fft.rfftn(Z_num, axes=[0])
@@ -399,11 +405,8 @@ def test_3d_r2c(dtype=np.float64):
     assert allclose(Z, Z_num)
 
 
-def test_1d_c2r(dtype=np.float64):
-    Z = (
-        np.random.rand(1000001).astype(dtype)
-        + np.random.rand(1000001).astype(dtype) * 1j
-    )
+def test_1d_c2r(N, dtype=np.float64):
+    Z = np.random.rand(N).astype(dtype) + np.random.rand(N).astype(dtype) * 1j
     Z_num = num.array(Z)
 
     out = np.fft.irfft(Z)
@@ -412,17 +415,17 @@ def test_1d_c2r(dtype=np.float64):
     out = np.fft.irfft(Z, norm="forward")
     out_num = num.fft.irfft(Z_num, norm="forward")
     assert allclose(out, out_num)
-    out = np.fft.irfft(Z, n=51)
-    out_num = num.fft.irfft(Z_num, n=51)
+    out = np.fft.irfft(Z, n=N // 2)
+    out_num = num.fft.irfft(Z_num, n=N // 2)
     assert allclose(out, out_num)
-    out = np.fft.irfft(Z, n=500)
-    out_num = num.fft.irfft(Z_num, n=500)
+    out = np.fft.irfft(Z, n=N // 2 + 1)
+    out_num = num.fft.irfft(Z_num, n=N // 2 + 1)
     assert allclose(out, out_num)
-    out = np.fft.irfft(Z, n=1100)
-    out_num = num.fft.irfft(Z_num, n=1100)
+    out = np.fft.irfft(Z, n=N * 2)
+    out_num = num.fft.irfft(Z_num, n=N * 2)
     assert allclose(out, out_num)
-    out = np.fft.irfft(Z, n=1001001)
-    out_num = num.fft.irfft(Z_num, n=1001001)
+    out = np.fft.irfft(Z, n=N * 2 + 1)
+    out_num = num.fft.irfft(Z_num, n=N * 2 + 1)
     assert allclose(out, out_num)
     # Odd types
     out = np.fft.rfft(Z)
@@ -434,10 +437,10 @@ def test_1d_c2r(dtype=np.float64):
     assert allclose(Z, Z_num)
 
 
-def test_2d_c2r(dtype=np.float64):
+def test_2d_c2r(N, dtype=np.float64):
     Z = (
-        np.random.rand(128, 1024).astype(dtype)
-        + np.random.rand(128, 1024).astype(dtype) * 1j
+        np.random.rand(*N).astype(dtype)
+        + np.random.rand(*N).astype(dtype) * 1j
     )
     Z_num = num.array(Z)
 
@@ -447,14 +450,14 @@ def test_2d_c2r(dtype=np.float64):
     out = np.fft.irfft2(Z, norm="forward")
     out_num = num.fft.irfft2(Z_num, norm="forward")
     assert allclose(out, out_num)
-    out = np.fft.irfft2(Z, s=(64, 512))
-    out_num = num.fft.irfft2(Z_num, s=(64, 512))
+    out = np.fft.irfft2(Z, s=(N[0] // 2, N[1] - 2))
+    out_num = num.fft.irfft2(Z_num, s=(N[0] // 2, N[1] - 2))
     assert allclose(out, out_num)
-    out = np.fft.irfft2(Z, s=(129, 1030))
-    out_num = num.fft.irfft2(Z_num, s=(129, 1030))
+    out = np.fft.irfft2(Z, s=(N[0] + 1, N[0] + 2))
+    out_num = num.fft.irfft2(Z_num, s=(N[0] + 1, N[0] + 2))
     assert allclose(out, out_num)
-    out = np.fft.irfft2(Z, s=(29, 1030))
-    out_num = num.fft.irfft2(Z_num, s=(29, 1030))
+    out = np.fft.irfft2(Z, s=(N[0] // 2 + 1, N[0] + 2))
+    out_num = num.fft.irfft2(Z_num, s=(N[0] // 2 + 1, N[0] + 2))
     assert allclose(out, out_num)
     out = np.fft.irfft2(Z, axes=[0])
     out_num = num.fft.irfft2(Z_num, axes=[0])
@@ -487,10 +490,10 @@ def test_2d_c2r(dtype=np.float64):
     assert allclose(Z, Z_num)
 
 
-def test_3d_c2r(dtype=np.float64):
+def test_3d_c2r(N, dtype=np.float64):
     Z = (
-        np.random.rand(32, 40, 85).astype(dtype)
-        + np.random.rand(32, 40, 85).astype(dtype) * 1j
+        np.random.rand(*N).astype(dtype)
+        + np.random.rand(*N).astype(dtype) * 1j
     )
     Z_num = num.array(Z)
 
@@ -503,11 +506,11 @@ def test_3d_c2r(dtype=np.float64):
     out = np.fft.irfftn(Z, norm="ortho")
     out_num = num.fft.irfftn(Z_num, norm="ortho")
     assert allclose(out, out_num)
-    out = np.fft.irfftn(Z, s=(31, 20, 79))
-    out_num = num.fft.irfftn(Z_num, s=(31, 20, 79))
+    out = np.fft.irfftn(Z, s=(N[0] - 1, N[1] - 2, N[2] // 2))
+    out_num = num.fft.irfftn(Z_num, s=(N[0] - 1, N[1] - 2, N[2] // 2))
     assert allclose(out, out_num)
-    out = np.fft.irfftn(Z, s=(35, 43, 90))
-    out_num = num.fft.irfftn(Z_num, s=(35, 43, 90))
+    out = np.fft.irfftn(Z, s=(N[0] + 1, N[1] + 2, N[2] + 3))
+    out_num = num.fft.irfftn(Z_num, s=(N[0] + 1, N[1] + 2, N[2] + 3))
     assert allclose(out, out_num)
     out = np.fft.irfftn(Z, axes=[0])
     out_num = num.fft.irfftn(Z_num, axes=[0])
@@ -546,11 +549,8 @@ def test_3d_c2r(dtype=np.float64):
     assert allclose(Z, Z_num)
 
 
-def test_1d_hfft(dtype=np.float64):
-    Z = (
-        np.random.rand(1000).astype(dtype)
-        + np.random.rand(1000).astype(dtype) * 1j
-    )
+def test_1d_hfft(N, dtype=np.float64):
+    Z = np.random.rand(N).astype(dtype) + np.random.rand(N).astype(dtype) * 1j
     Z_num = num.array(Z)
 
     out = np.fft.hfft(Z)
@@ -559,8 +559,8 @@ def test_1d_hfft(dtype=np.float64):
     assert allclose(Z, Z_num)
 
 
-def test_1d_hfft_inverse(dtype=np.float64):
-    Z = np.random.rand(1000).astype(dtype)
+def test_1d_hfft_inverse(N, dtype=np.float64):
+    Z = np.random.rand(N).astype(dtype)
     Z_num = num.array(Z)
 
     out = np.fft.ihfft(Z)
@@ -572,47 +572,94 @@ def test_1d_hfft_inverse(dtype=np.float64):
 if __name__ == "__main__":
     # Keep errors reproducible
     np.random.seed(0)
+    print("DEFERRED")
     print("=== 1D double                   ===")
-    test_1d()
+    test_1d(N=1000001)
     print("=== 1D float                    ===")
-    test_1d(np.float32)
+    test_1d(N=1000001, dtype=np.float32)
     print("=== 2D double                   ===")
-    test_2d()
+    test_2d(N=(128, 512))
     print("=== 2D float                    ===")
-    test_2d(np.float32)
+    test_2d(N=(128, 512), dtype=np.float32)
     print("=== 3D double                   ===")
-    test_3d()
+    test_3d(N=(64, 40, 100))
     print("=== 3D float                    ===")
-    test_3d(np.float32)
+    test_3d(N=(64, 40, 100), dtype=np.float32)
     print("=== 1D R2C double               ===")
-    test_1d_r2c()
+    test_1d_r2c(N=1000001)
     print("=== 1D R2C float                ===")
-    test_1d_r2c(np.float32)
+    test_1d_r2c(N=1000001, dtype=np.float32)
     print("=== 2D R2C double               ===")
-    test_2d_r2c()
+    test_2d_r2c(N=(128, 512))
     print("=== 2D R2C float                ===")
-    test_2d_r2c(np.float32)
+    test_2d_r2c(N=(128, 512), dtype=np.float32)
     print("=== 3D R2C double               ===")
-    test_3d_r2c()
+    test_3d_r2c(N=(64, 40, 100))
     print("=== 3D R2C float                ===")
-    test_3d_r2c(np.float32)
+    test_3d_r2c(N=(64, 40, 100), dtype=np.float32)
     print("=== 1D C2R double               ===")
-    test_1d_c2r()
+    test_1d_c2r(N=1000001)
     print("=== 1D C2R float                ===")
-    test_1d_c2r(np.float32)
+    test_1d_c2r(N=1000001, dtype=np.float32)
     print("=== 2D C2R double               ===")
-    test_2d_c2r()
+    test_2d_c2r(N=(128, 512))
     print("=== 2D C2R float                ===")
-    test_2d_c2r(np.float32)
+    test_2d_c2r(N=(128, 512), dtype=np.float32)
     print("=== 3D C2R double               ===")
-    test_3d_c2r()
+    test_3d_c2r(N=(64, 40, 50))
     print("=== 3D C2R float                ===")
-    test_3d_c2r(np.float32)
+    test_3d_c2r(N=(64, 40, 50), dtype=np.float32)
     print("=== 1D Hermitian double         ===")
-    test_1d_hfft()
+    test_1d_hfft(N=1000)
     print("=== 1D Hermitian float          ===")
-    test_1d_hfft(np.float32)
+    test_1d_hfft(N=1000, dtype=np.float32)
     print("=== 1D Hermitian inverse double ===")
-    test_1d_hfft_inverse()
+    test_1d_hfft_inverse(N=1000)
     print("=== 1D Hermitian inverse float  ===")
-    test_1d_hfft_inverse(np.float32)
+    test_1d_hfft_inverse(N=1000, dtype=np.float32)
+
+    print("EAGER")
+    print("=== 1D double                   ===")
+    test_1d(N=153)
+    print("=== 1D float                    ===")
+    test_1d(N=153, dtype=np.float32)
+    print("=== 2D double                   ===")
+    test_2d(N=(9, 11))
+    print("=== 2D float                    ===")
+    test_2d(N=(9, 11), dtype=np.float32)
+    print("=== 3D double                   ===")
+    test_3d(N=(9, 10, 11))
+    print("=== 3D float                    ===")
+    test_3d(N=(9, 10, 11), dtype=np.float32)
+    print("=== 1D R2C double               ===")
+    test_1d_r2c(N=153)
+    print("=== 1D R2C float                ===")
+    test_1d_r2c(N=153, dtype=np.float32)
+    print("=== 2D R2C double               ===")
+    test_2d_r2c(N=(28, 10))
+    print("=== 2D R2C float                ===")
+    test_2d_r2c(N=(28, 10), dtype=np.float32)
+    print("=== 3D R2C double               ===")
+    test_3d_r2c(N=(6, 10, 12))
+    print("=== 3D R2C float                ===")
+    test_3d_r2c(N=(6, 10, 12), dtype=np.float32)
+    print("=== 1D C2R double               ===")
+    test_1d_c2r(N=78)
+    print("=== 1D C2R float                ===")
+    test_1d_c2r(N=78, dtype=np.float32)
+    print("=== 2D C2R double               ===")
+    test_2d_c2r(N=(28, 10))
+    print("=== 2D C2R float                ===")
+    test_2d_c2r(N=(28, 10), dtype=np.float32)
+    print("=== 3D C2R double               ===")
+    test_3d_c2r(N=(6, 12, 10))
+    print("=== 3D C2R float                ===")
+    test_3d_c2r(N=(6, 12, 10), dtype=np.float32)
+    print("=== 1D Hermitian double         ===")
+    test_1d_hfft(N=110)
+    print("=== 1D Hermitian float          ===")
+    test_1d_hfft(N=110, dtype=np.float32)
+    print("=== 1D Hermitian inverse double ===")
+    test_1d_hfft_inverse(N=110)
+    print("=== 1D Hermitian inverse float  ===")
+    test_1d_hfft_inverse(N=110, dtype=np.float32)
