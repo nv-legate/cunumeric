@@ -43,7 +43,13 @@ static void debug_trace_func(const char* filename, int line, const char* fmt, ar
 }
 
 #define DEBUG_TRACE_LINE(filename, line, ...) debug_trace_func(filename, line, __VA_ARGS__)
+#if 0  // 1 for ongoing developments with full debug tracing
 #define DEBUG_TRACE(...) DEBUG_TRACE_LINE(__FILE__, __LINE__, __VA_ARGS__)
+#else
+#define DEBUG_TRACE(...) \
+  {                      \
+  }
+#endif
 
 namespace cunumeric {
 
@@ -65,26 +71,90 @@ struct CURANDGenerator {
   CURANDGenerator() { DEBUG_TRACE("CURANDGenerator::create"); }
 
   ~CURANDGenerator() { DEBUG_TRACE("CURANDGenerator::destroy"); }
+
+  void skip_ahead(uint64_t count)
+  {
+    if (supports_skipahead) {
+      // skip ahead
+      DEBUG_TRACE("count = %lu - offset = %lu", count, offset);
+      offset += count;
+      CHECK_CURAND(::curandSetGeneratorOffset(gen, offset));
+    } else {
+      // actually generate numbers in the temporary buffer
+      DEBUG_TRACE("count = %lu - offset = %lu", count, offset);
+      uint64_t remain = count;
+      while (remain > 0) {
+        if (remain < dev_buffer_size) {
+          CHECK_CURAND(::curandGenerate(gen, dev_buffer, (size_t)remain));
+          offset += remain;
+          break;
+        } else {
+          CHECK_CURAND(::curandGenerate(gen, dev_buffer, (size_t)dev_buffer_size));
+          offset += dev_buffer_size;
+        }
+        remain -= dev_buffer_size;
+      }
+    }
+  }
+
+  void generate_raw(uint64_t count, uint32_t* out)
+  {
+    CHECK_CURAND(::curandGenerate(gen, out, count));
+    offset += count;
+  }
 };
 
 struct generate_fn {
   template <int32_t DIM>
-  size_t operator()(CURANDGenerator& gen, legate::Store& output, const DomainPoint& strides)
+  size_t operator()(CURANDGenerator& gen,
+                    legate::Store& output,
+                    const DomainPoint& strides,
+                    uint64_t totalcount)
   {
-    // TODO: for multi-gpu, need overall index / offset (within global)
+    auto rect       = output.shape<DIM>();
+    uint64_t volume = rect.volume();
+
+    uint64_t baseoffset = 0;
+    for (size_t k = 0; k < DIM; ++k) baseoffset += rect.lo[k] * strides[k];
+
+    assert(baseoffset + volume <= totalcount);
+
+    uint64_t initialoffset = gen.offset;
+
+    if (volume > 0) {
+      auto out = output.write_accessor<uint32_t, DIM>(rect);
+
+      if (!out.accessor.is_dense_row_major(rect))
+        ::fprintf(stderr, "[ERROR] : accessor is not dense row major\n");
+      assert(out.accessor.is_dense_row_major(rect));
+
+      uint32_t* p = out.ptr(rect);
+
+      if (baseoffset != 0) gen.skip_ahead(baseoffset);
+      gen.generate_raw(volume, p);
+    }
+
+    // TODO: check if this is needed as setoffset is to be called on next call
+    if (gen.offset != initialoffset + totalcount)
+      gen.skip_ahead(initialoffset + totalcount - gen.offset);
+
+    return totalcount;
+
+#if 0
+    ::fprintf(stdout, "[DEBUG] : total size = %llu\n", totalsize);
 
     auto domain = output.domain();
-    // ::fprintf(stdout, "[DEBUG] : domain = \n");
-    // for (int k = 0 ; k < DIM ; ++k)
-    //   ::fprintf(stdout, "[DEBUG] : \t[%d] - [%lld:%lld]\n", k, domain.lo()[k], domain.hi()[k]);
+    ::fprintf(stdout, "[DEBUG] : domain = \n");
+    for (int k = 0 ; k < DIM ; ++k)
+      ::fprintf(stdout, "[DEBUG] : \t[%d] - [%lld:%lld]\n", k, domain.lo()[k], domain.hi()[k]);
 
     auto rect = output.shape<DIM>();
-    // ::fprintf(stdout, "[DEBUG] : shape = \n");
-    // for (int k = 0 ; k < DIM ; ++k)
-    //   ::fprintf(stdout, "[DEBUG] : \t[%d] - [%lld:%lld]\n", k, rect.lo[k], rect.hi[k]);
+    ::fprintf(stdout, "[DEBUG] : shape = \n");
+    for (int k = 0 ; k < DIM ; ++k)
+      ::fprintf(stdout, "[DEBUG] : \t[%d] - [%lld:%lld]\n", k, rect.lo[k], rect.hi[k]);
 
-    // Pitches<DIM - 1> pitches;
-    // size_t volume = pitches.flatten(rect);
+    Pitches<DIM - 1> pitches;
+    pitches.flatten(rect);
 
     // if (volume == 0) return;
 
@@ -97,10 +167,10 @@ struct generate_fn {
       ::fprintf(stderr, "[ERROR] : accessor is not dense row major\n");
     assert(out.accessor.is_dense_row_major(rect));
 
-    // Point<DIM,size_t> strd (strides);
-    // ::fprintf(stdout, "[DEBUG] : strides = \n");
-    // for (int k = 0 ; k < DIM ; ++k)
-    //   ::fprintf(stdout, "[DEBUG] : \t[%d] = %zu\n", k, strd[k]);
+    Point<DIM,size_t> strd (strides);
+    ::fprintf(stdout, "[DEBUG] : strides = \n");
+    for (int k = 0 ; k < DIM ; ++k)
+      ::fprintf(stdout, "[DEBUG] : \t[%d] = %zu\n", k, strd[k]);
 
     uint32_t* p = out.ptr(rect);
     DEBUG_TRACE("p = %p", p);
@@ -108,6 +178,7 @@ struct generate_fn {
     CHECK_CURAND(::curandGenerate(gen.gen, p, volume));
 
     return volume;
+#endif
   }
 };
 
@@ -274,29 +345,11 @@ struct BitGeneratorImplBody<VariantKind::GPU> {
 
         if (output.size() == 0) {
           CURANDGenerator& cugen = *genptr;
-          if (cugen.supports_skipahead) {
-            // skip ahead
-            DEBUG_TRACE("parameter = %lu - offset = %lu", parameter, cugen.offset);
-            cugen.offset += parameter;
-            CHECK_CURAND(::curandSetGeneratorOffset(cugen.gen, cugen.offset));
-          } else {
-            // actually generate numbers in the temporary buffer
-            DEBUG_TRACE("parameter = %lu - offset = %lu", parameter, cugen.offset);
-            uint64_t remain = parameter;
-            while (remain > 0) {
-              if (remain < cugen.dev_buffer_size) {
-                CHECK_CURAND(::curandGenerate(cugen.gen, cugen.dev_buffer, (size_t)remain));
-                break;
-              } else
-                CHECK_CURAND(
-                  ::curandGenerate(cugen.gen, cugen.dev_buffer, (size_t)cugen.dev_buffer_size));
-              remain -= cugen.dev_buffer_size;
-            }
-          }
+          cugen.skip_ahead(parameter);
         } else {
           CURANDGenerator& cugen = *genptr;
           legate::Store& res     = output[0];
-          cugen.offset += dim_dispatch(res.dim(), generate_fn{}, cugen, res, strides);
+          dim_dispatch(res.dim(), generate_fn{}, cugen, res, strides, parameter);
         }
       } break;
       default: {

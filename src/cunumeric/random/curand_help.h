@@ -69,3 +69,20 @@ static inline bool supportsSkipAhead(curandRngType gentype)
     }
   }
 }
+
+// https://docs.nvidia.com/cuda/curand/host-api-overview.html#thread-safety
+static inline bool isCPUThreadSafe(curandRngType gentype)
+{
+  switch (gentype) {
+    case curandRngType::CURAND_RNG_PSEUDO_XORWOW: return true;
+    case curandRngType::CURAND_RNG_PSEUDO_MRG32K3A: return true;
+    case curandRngType::CURAND_RNG_PSEUDO_MTGP32: return true;
+    case curandRngType::CURAND_RNG_PSEUDO_MT19937: return false;
+    case curandRngType::CURAND_RNG_PSEUDO_PHILOX4_32_10: return true;
+    default: {
+      ::fprintf(stderr, "[ERROR] : unknown generator");
+      assert(false);
+      return false;
+    }
+  }
+}
