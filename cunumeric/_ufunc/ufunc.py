@@ -132,7 +132,7 @@ class ufunc:
         if arr.dtype == to_dtype:
             return arr
 
-        if not np_can_cast(arr.dtype, to_dtype):
+        if not np_can_cast(arr.dtype, to_dtype, casting=casting):
             raise TypeError(
                 f"Cannot cast ufunc '{self._name}' input from "
                 f"{arr.dtype} to {to_dtype} with casting rule '{casting}'"
@@ -244,7 +244,7 @@ class unary_ufunc(ufunc):
             out = result
         else:
             if out.dtype != res_dtype:
-                if not np_can_cast(res_dtype, out.dtype):
+                if not np_can_cast(res_dtype, out.dtype, casting=casting):
                     raise TypeError(
                         f"Cannot cast ufunc '{self._name}' output from "
                         f"{res_dtype} to {out.dtype} with casting rule "
@@ -393,7 +393,7 @@ class binary_ufunc(ufunc):
             out = result
         else:
             if out.dtype != res_dtype:
-                if not np_can_cast(res_dtype, out.dtype):
+                if not np_can_cast(res_dtype, out.dtype, casting=casting):
                     raise TypeError(
                         f"Cannot cast ufunc '{self._name}' output from "
                         f"{res_dtype} to {out.dtype} with casting rule "
