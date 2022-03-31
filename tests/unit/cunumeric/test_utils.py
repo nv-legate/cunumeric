@@ -228,6 +228,10 @@ class Test_tensordot_modes:
             # len(b_axes) > b_ndim
             m.tensordot_modes(3, 1, [(1, 2), (1, 2)])
 
+        with pytest.raises(ValueError):
+            # len(a_axes) != len(b_axes)
+            m.tensordot_modes(2, 3, ([0], [0, 1]))
+
     def test_bad_negative_axes(self) -> None:
 
         with pytest.raises(ValueError):
@@ -263,7 +267,8 @@ class Test_tensordot_modes:
         assert _tensordot_modes_oracle(a, b, axes)
 
     @pytest.mark.parametrize(
-        "a, b, axes", [(2, 2, (1, 0)), (2, 2, (0, 1)), (2, 2, (1, 1))]
+        "a, b, axes",
+        [(2, 2, (1, 0)), (2, 2, (0, 1)), (2, 2, (1, 1)), (2, 2, (-1, 0))],
     )
     def test_tuple_axis(self, a: int, b: int, axes: AxesType):
         assert _tensordot_modes_oracle(a, b, axes)
