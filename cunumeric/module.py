@@ -23,9 +23,9 @@ from typing import Optional, Set
 
 import numpy as np
 import opt_einsum as oe
-from cunumeric.ufunc.comparison import maximum, minimum
-from cunumeric.ufunc.floating import floor
-from cunumeric.ufunc.math import add, multiply
+from cunumeric._ufunc.comparison import maximum, minimum
+from cunumeric._ufunc.floating import floor
+from cunumeric._ufunc.math import add, multiply
 
 from .array import (
     convert_to_cunumeric_ndarray,
@@ -1918,7 +1918,7 @@ def repeat(a, repeats, axis=None):
     ----------
     a : array_like
         Input array.
-    repeats : int or array of ints
+    repeats : int or ndarray[int]
         The number of repetitions for each element. repeats is
         broadcasted to fit the shape of the given axis.
     axis : int, optional
@@ -3738,15 +3738,15 @@ def argsort(a, axis=-1, kind="quicksort", order=None):
     axis : int or None, optional
         Axis to sort. By default, the index -1 (the last axis) is used. If
         None, the flattened array is used.
-    kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, optional
+    kind : ``{'quicksort', 'mergesort', 'heapsort', 'stable'}``, optional
         Default is 'quicksort'. The underlying sort algorithm might vary.
         The code basically supports 'stable' or *not* 'stable'.
-    order : str or list of str, optional
+    order : str or list[str], optional
         Currently not supported
 
     Returns
     -------
-    index_array : ndarray of ints
+    index_array : ndarray[int]
         Array of indices that sort a along the specified axis. It has the
         same shape as `a.shape` or is flattened in case of `axis` is None.
 
@@ -3815,10 +3815,10 @@ def sort(a, axis=-1, kind="quicksort", order=None):
     axis : int or None, optional
         Axis to sort. By default, the index -1 (the last axis) is used. If
         None, the flattened array is used.
-    kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, optional
+    kind : ``{'quicksort', 'mergesort', 'heapsort', 'stable'}``, optional
         Default is 'quicksort'. The underlying sort algorithm might vary.
         The code basically supports 'stable' or *not* 'stable'.
-    order : str or list of str, optional
+    order : str or list[str], optional
         Currently not supported
 
     Returns
