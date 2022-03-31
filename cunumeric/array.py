@@ -23,12 +23,7 @@ import pyarrow
 
 from legate.core import Array
 
-from .config import (
-    FFTDirection,
-    FFTNormalization,
-    UnaryOpCode,
-    UnaryRedCode,
-)
+from .config import FFTDirection, FFTNormalization, UnaryOpCode, UnaryRedCode
 from .coverage import clone_class
 from .runtime import runtime
 from .utils import broadcast_shapes, dot_modes
