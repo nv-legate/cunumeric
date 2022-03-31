@@ -339,6 +339,14 @@ class FFTCode(IntEnum):
                 )
             )
 
+    @property
+    def is_single_precision(self):
+        return (
+            self == FFTCode.FFT_C2C
+            or self == FFTCode.FFT_R2C
+            or self == FFTCode.FFT_C2R
+        )
+
 
 @unique
 class FFTDirection(IntEnum):

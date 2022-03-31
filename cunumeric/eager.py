@@ -15,7 +15,13 @@
 
 import numpy as np
 
-from .config import BinaryOpCode, UnaryOpCode, UnaryRedCode
+from .config import (
+    BinaryOpCode,
+    FFTCode,
+    FFTDirection,
+    UnaryOpCode,
+    UnaryRedCode,
+)
 from .thunk import NumPyThunk
 from .utils import is_advanced_indexing
 
@@ -262,9 +268,27 @@ class EagerArray(NumPyThunk):
 
     def fft(self, out, axes, kind, direction):
         if self.deferred is not None:
-            self.deferred(out, kind, direction)
+            self.deferred.fft(out, axes, kind, direction)
         else:
-            print("NOT IMPLEMENTED")
+            if kind == FFTCode.FFT_D2Z:
+                res = np.fft.rfftn(self.array, axes=axes, norm="backward")
+            elif kind == FFTCode.FFT_Z2D:
+                s = [self.array.shape[i] for i in axes]
+                res = np.fft.irfftn(self.array, s=s, axes=axes, norm="forward")
+            else:
+                if direction == FFTDirection.FORWARD:
+                    res = np.fft.fftn(self.array, axes=axes, norm="backward")
+                else:
+                    res = np.fft.ifftn(self.array, axes=axes, norm="forward")
+            if kind.is_single_precision:
+                if res.dtype == np.complex128:
+                    out.array = res.astype(np.complex64)
+                elif res.dtype == np.float64:
+                    out.array = res.astype(np.float32)
+                else:
+                    raise RuntimeError("Unsupported data type in eager FFT")
+            else:
+                out.array = res
 
     def copy(self, rhs, deep=False):
         self.check_eager_args(rhs)
