@@ -14,8 +14,9 @@
 #
 
 import numpy as np
-from cunumeric.array import ndarray
-from cunumeric.module import sqrt as _sqrt
+from cunumeric._ufunc.math import sqrt as _sqrt
+from cunumeric.array import convert_to_cunumeric_ndarray
+from cunumeric.module import ndarray
 
 
 def cholesky(a):
@@ -52,10 +53,10 @@ def cholesky(a):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
 
-    lg_array = ndarray.convert_to_cunumeric_ndarray(a)
+    lg_array = convert_to_cunumeric_ndarray(a)
     shape = lg_array.shape
     if len(shape) < 2:
         raise ValueError(
@@ -69,11 +70,54 @@ def cholesky(a):
         raise NotImplementedError(
             "cuNumeric needs to support stacked 2d arrays"
         )
-    return lg_array.cholesky()
+    return _cholesky(lg_array)
 
 
 def norm(x, ord=None, axis=None, keepdims=False):
-    lg_array = ndarray.convert_to_cunumeric_ndarray(x)
+    """
+    Matrix or vector norm.
+
+    This function is able to return one of eight different matrix norms, or
+    one of an infinite number of vector norms (described below), depending
+    on the value of the ord parameter.
+
+    Parameters
+    ----------
+    x : array_like
+        Input array. If axis is None, x must be 1-D or 2-D, unless ord is None.
+        If both axis and ord are None, the 2-norm of x.ravel will be returned.
+    ord : ``{non-zero int, inf, -inf, ‘fro’, ‘nuc’}``, optional
+        Order of the norm (see table under Notes). inf means numpy’s inf
+        object. The default is None.
+    axis : None or int or tuple[int, int], optional
+        If axis is an integer, it specifies the axis of x along which to
+        compute the vector norms. If axis is a 2-tuple, it specifies the axes
+        that hold 2-D matrices, and the matrix norms of these matrices are
+        computed. If axis is None then either a vector norm (when x is 1-D) or
+        a matrix norm (when x is 2-D) is returned. The default is None.
+    keepdims : bool, optional
+        If this is set to True, the axes which are normed over are left in the
+        result as dimensions with size one. With this option the result will
+        broadcast correctly against the original x.
+
+    Returns
+    -------
+    n : float or ndarray
+        Norm of the matrix or vector(s).
+
+    Notes
+    -----
+
+    See Also
+    --------
+    numpy.linalg.norm
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+
+    lg_array = convert_to_cunumeric_ndarray(x)
     if (axis is None and lg_array.ndim == 1) or type(axis) == int:
         # Handle the weird norm cases
         if ord == np.inf:
@@ -104,3 +148,51 @@ def norm(x, ord=None, axis=None, keepdims=False):
         raise NotImplementedError(
             "cuNumeric needs support for other kinds of norms"
         )
+
+
+def _cholesky(a, no_tril=False):
+    """Cholesky decomposition.
+
+    Return the Cholesky decomposition, `L * L.H`, of the square matrix `a`,
+    where `L` is lower-triangular and .H is the conjugate transpose operator
+    (which is the ordinary transpose if `a` is real-valued).  `a` must be
+    Hermitian (symmetric if real-valued) and positive-definite. No
+    checking is performed to verify whether `a` is Hermitian or not.
+    In addition, only the lower-triangular and diagonal elements of `a`
+    are used. Only `L` is actually returned.
+
+    Parameters
+    ----------
+    a : (..., M, M) array_like
+        Hermitian (symmetric if all elements are real), positive-definite
+        input matrix.
+
+    Returns
+    -------
+    L : (..., M, M) array_like
+        Upper or lower-triangular Cholesky factor of `a`.  Returns a
+        matrix object if `a` is a matrix object.
+
+    Notes
+    -----
+    The current implementation kills the process when the decomposition fails.
+
+    See Also
+    --------
+    numpy.linalg.cholesky
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+
+    """
+    input = a
+    if input.dtype.kind not in ("f", "c"):
+        input = input.astype("float64")
+    output = ndarray(
+        shape=input.shape,
+        dtype=input.dtype,
+        inputs=(input,),
+    )
+    output._thunk.cholesky(input._thunk, no_tril=no_tril)
+    return output

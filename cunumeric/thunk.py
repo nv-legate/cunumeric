@@ -90,6 +90,10 @@ class NumPyThunk(ABC):
     def copy(self, rhs, deep):
         ...
 
+    @abstractmethod
+    def repeat(self, repeats, axis, scalar_repeats):
+        ...
+
     @property
     @abstractmethod
     def scalar(self):
@@ -128,10 +132,6 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def dot(self, rhs1, rhs2):
-        ...
-
-    @abstractmethod
     def transpose(self, rhs, axes):
         ...
 
@@ -156,7 +156,7 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def diag_helper(
+    def _diag_helper(
         self,
         rhs,
         offset,
@@ -202,7 +202,7 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def unary_op(self, op, op_type, rhs, where, args):
+    def unary_op(self, op, rhs, where, args):
         ...
 
     @abstractmethod
@@ -233,4 +233,8 @@ class NumPyThunk(ABC):
 
     @abstractmethod
     def cholesky(self, src, no_tril):
+        ...
+
+    @abstractmethod
+    def unique(self):
         ...

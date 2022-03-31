@@ -23,16 +23,25 @@ from typing import Optional, Set
 
 import numpy as np
 import opt_einsum as oe
+from cunumeric._ufunc.comparison import maximum, minimum
+from cunumeric._ufunc.floating import floor
+from cunumeric._ufunc.math import add, multiply
 
-from .array import ndarray
-from .config import BinaryOpCode, UnaryOpCode, UnaryRedCode
+from .array import (
+    convert_to_cunumeric_ndarray,
+    convert_to_predicate_ndarray,
+    ndarray,
+)
+from .config import BinaryOpCode, UnaryRedCode
 from .runtime import runtime
+from .utils import inner_modes, matmul_modes, tensordot_modes
 
 _builtin_abs = abs
 _builtin_all = all
 _builtin_any = any
 _builtin_max = max
 _builtin_min = min
+_builtin_sum = sum
 
 
 def add_boilerplate(*array_params: str):
@@ -80,7 +89,7 @@ def add_boilerplate(*array_params: str):
 
             # Convert relevant arguments to cuNumeric ndarrays
             args = tuple(
-                ndarray.convert_to_cunumeric_ndarray(arg)
+                convert_to_cunumeric_ndarray(arg)
                 if idx in indices and arg is not None
                 else arg
                 for (idx, arg) in enumerate(args)
@@ -89,13 +98,11 @@ def add_boilerplate(*array_params: str):
                 if v is None:
                     continue
                 elif k == "where":
-                    kwargs[k] = ndarray.convert_to_predicate_ndarray(v)
+                    kwargs[k] = convert_to_predicate_ndarray(v)
                 elif k == "out":
-                    kwargs[k] = ndarray.convert_to_cunumeric_ndarray(
-                        v, share=True
-                    )
+                    kwargs[k] = convert_to_cunumeric_ndarray(v, share=True)
                 elif k in keys:
-                    kwargs[k] = ndarray.convert_to_cunumeric_ndarray(v)
+                    kwargs[k] = convert_to_cunumeric_ndarray(v)
 
             # Handle the case where all array-like parameters are scalar, by
             # performing the operation on the equivalent scalar numpy arrays.
@@ -124,7 +131,7 @@ def add_boilerplate(*array_params: str):
                 for (k, v) in kwargs.items():
                     if (k in keys or k == "where") and isinstance(v, ndarray):
                         kwargs[k] = v._thunk.__numpy_array__()
-                result = ndarray.convert_to_cunumeric_ndarray(
+                result = convert_to_cunumeric_ndarray(
                     getattr(np, func.__name__)(*args, **kwargs)
                 )
                 if out is not None:
@@ -165,7 +172,7 @@ def empty(shape, dtype=np.float64):
 
     Parameters
     ----------
-    shape : int or tuple of int
+    shape : int or tuple[int]
         Shape of the empty array.
     dtype : data-type, optional
         Desired output data-type for the array. Default is `cunumeric.float64`.
@@ -181,7 +188,7 @@ def empty(shape, dtype=np.float64):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return ndarray(shape=shape, dtype=dtype)
 
@@ -214,7 +221,7 @@ def empty_like(a, dtype=None):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     shape = a.shape
     if dtype is not None:
@@ -244,9 +251,9 @@ def eye(N, M=None, k=0, dtype=np.float64):
 
     Returns
     -------
-    I : ndarray of shape (N,M)
-      An array where all elements are equal to zero, except for the `k`-th
-      diagonal, whose values are equal to one.
+    I : ndarray
+      An array  of shape (N, M) where all elements are equal to zero, except
+      for the `k`-th diagonal, whose values are equal to one.
 
     See Also
     --------
@@ -254,7 +261,7 @@ def eye(N, M=None, k=0, dtype=np.float64):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     if dtype is not None:
         dtype = np.dtype(dtype)
@@ -292,7 +299,7 @@ def identity(n, dtype=float):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return eye(N=n, M=n, dtype=dtype)
 
@@ -304,7 +311,7 @@ def ones(shape, dtype=np.float64):
 
     Parameters
     ----------
-    shape : int or sequence of ints
+    shape : int or Sequence[int]
         Shape of the new array.
     dtype : data-type, optional
         The desired data-type for the array. Default is `cunumeric.float64`.
@@ -320,7 +327,7 @@ def ones(shape, dtype=np.float64):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return full(shape, 1, dtype=dtype)
 
@@ -349,7 +356,7 @@ def ones_like(a, dtype=None):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     usedtype = a.dtype
     if dtype is not None:
@@ -365,7 +372,7 @@ def zeros(shape, dtype=np.float64):
 
     Parameters
     ----------
-    shape : int or tuple of ints
+    shape : int or tuple[int]
         Shape of the new array.
     dtype : data-type, optional
         The desired data-type for the array.  Default is `cunumeric.float64`.
@@ -381,7 +388,7 @@ def zeros(shape, dtype=np.float64):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     if dtype is not None:
         dtype = np.dtype(dtype)
@@ -412,7 +419,7 @@ def zeros_like(a, dtype=None):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     usedtype = a.dtype
     if dtype is not None:
@@ -427,7 +434,7 @@ def full(shape, value, dtype=None):
 
     Parameters
     ----------
-    shape : int or sequence of ints
+    shape : int or Sequence[int]
         Shape of the new array.
     fill_value : scalar
         Fill value.
@@ -446,7 +453,7 @@ def full(shape, value, dtype=None):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     if dtype is None:
         val = np.array(value)
@@ -484,7 +491,7 @@ def full_like(a, value, dtype=None):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     if dtype is not None:
         dtype = np.dtype(dtype)
@@ -519,7 +526,7 @@ def array(obj, dtype=None, copy=True, order="K", subok=False, ndmin=0):
         only be made if __array__ returns a copy, if obj is a nested sequence,
         or if a copy is needed to satisfy any of the other requirements
         (`dtype`, `order`, etc.).
-    order : {'K', 'A', 'C', 'F'}, optional
+    order : ``{'K', 'A', 'C', 'F'}``, optional
         Specify the memory layout of the array. If object is not an array, the
         newly created array will be in C order (row major) unless 'F' is
         specified, in which case it will be in Fortran order (column major).
@@ -556,7 +563,7 @@ def array(obj, dtype=None, copy=True, order="K", subok=False, ndmin=0):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
 
     if not isinstance(obj, ndarray):
@@ -600,7 +607,7 @@ def asarray(a, dtype=None):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     if not isinstance(a, ndarray):
         thunk = runtime.get_numpy_thunk(a, share=True, dtype=dtype)
@@ -634,7 +641,7 @@ def copy(a):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     result = empty_like(a, dtype=a.dtype)
     result._thunk.copy(a._thunk, deep=True)
@@ -660,19 +667,19 @@ def arange(start, stop=None, step=1, dtype=None):
 
     Parameters
     ----------
-    start : number, optional
+    start : int or float, optional
         Start of interval.  The interval includes this value.  The default
         start value is 0.
-    stop : number
+    stop : int or float
         End of interval.  The interval does not include this value, except
         in some cases where `step` is not an integer and floating point
         round-off affects the length of `out`.
-    step : number, optional
+    step : int or float, optional
         Spacing between values.  For any output `out`, this is the distance
         between two adjacent values, ``out[i+1] - out[i]``.  The default
         step size is 1.  If `step` is specified as a position argument,
         `start` must also be given.
-    dtype : dtype
+    dtype : data-type
         The type of the output array.  If `dtype` is not given, infer the data
         type from the other input arguments.
 
@@ -692,7 +699,7 @@ def arange(start, stop=None, step=1, dtype=None):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     if stop is None:
         stop = start
@@ -748,7 +755,7 @@ def linspace(
     retstep : bool, optional
         If True, return (`samples`, `step`), where `step` is the spacing
         between samples.
-    dtype : dtype, optional
+    dtype : data-type, optional
         The type of the output array.  If `dtype` is not given, infer the data
         type from the other input arguments.
     axis : int, optional
@@ -773,7 +780,7 @@ def linspace(
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     if num < 0:
         raise ValueError("Number of samples, %s, must be non-negative." % num)
@@ -896,7 +903,7 @@ def diag(v, k=0):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     if v.ndim == 0:
         raise ValueError("Input must be 1- or 2-d")
@@ -927,15 +934,15 @@ def tril(m, k=0):
 
     Parameters
     ----------
-    m : array_like, shape (M, N)
-        Input array.
+    m : array_like
+        Input array of shape (M, N).
     k : int, optional
         Diagonal above which to zero elements.  `k = 0` (the default) is the
         main diagonal, `k < 0` is below it and `k > 0` is above.
 
     Returns
     -------
-    tril : ndarray, shape (M, N)
+    tril : ndarray
         Lower triangle of `m`, of same shape and data-type as `m`.
 
     See Also
@@ -944,7 +951,7 @@ def tril(m, k=0):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return trilu(m, k, True)
 
@@ -965,7 +972,7 @@ def triu(m, k=0):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return trilu(m, k, False)
 
@@ -990,7 +997,7 @@ def shape(a):
 
     Returns
     -------
-    shape : tuple of ints
+    shape : tuple[int]
         The elements of the shape tuple give the lengths of the
         corresponding array dimensions.
 
@@ -1000,7 +1007,7 @@ def shape(a):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return a.shape
 
@@ -1021,7 +1028,7 @@ def ravel(a, order="C"):
     a : array_like
         Input array.  The elements in `a` are read in the order specified by
         `order`, and packed as a 1-D array.
-    order : {'C','F', 'A', 'K'}, optional
+    order : ``{'C','F', 'A', 'K'}``, optional
         The elements of `a` are read using this index order. 'C' means
         to index the elements in row-major, C-style order,
         with the last axis index changing fastest, back to the first
@@ -1050,7 +1057,7 @@ def ravel(a, order="C"):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return a.ravel(order=order)
 
@@ -1065,12 +1072,12 @@ def reshape(a, newshape, order="C"):
     ----------
     a : array_like
         Array to be reshaped.
-    newshape : int or tuple of ints
+    newshape : int or tuple[int]
         The new shape should be compatible with the original shape. If
         an integer, then the result will be a 1-D array of that length.
         One shape dimension can be -1. In this case, the value is
         inferred from the length of the array and remaining dimensions.
-    order : {'C', 'F', 'A'}, optional
+    order : ``{'C', 'F', 'A'}``, optional
         Read the elements of `a` using this index order, and place the
         elements into the reshaped array using this index order.  'C'
         means to read / write the elements using C-like index order,
@@ -1097,7 +1104,7 @@ def reshape(a, newshape, order="C"):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return a.reshape(newshape, order=order)
 
@@ -1132,7 +1139,7 @@ def swapaxes(a, axis1, axis2):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return a.swapaxes(axis1, axis2)
 
@@ -1147,7 +1154,7 @@ def transpose(a, axes=None):
     ----------
     a : array_like
         Input array.
-    axes : list of ints, optional
+    axes : list[int], optional
         By default, reverse the dimensions, otherwise permute the axes
         according to the values given.
 
@@ -1163,7 +1170,7 @@ def transpose(a, axes=None):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return a.transpose(axes=axes)
 
@@ -1181,7 +1188,7 @@ def squeeze(a, axis=None):
     ----------
     a : array_like
         Input data.
-    axis : None or int or tuple of ints, optional
+    axis : None or int or tuple[int], optional
         Selects a subset of the single-dimensional entries in the
         shape. If an axis is selected with shape entry greater than
         one, an error is raised.
@@ -1204,7 +1211,7 @@ def squeeze(a, axis=None):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return a.squeeze(a, axis=axis)
 
@@ -1219,11 +1226,13 @@ class ArrayInfo:
         self.dtype = dtype
 
 
-def check_shape_dtype(inputs, func_name, dtype=None, casting="same_kind"):
+def check_shape_dtype(
+    inputs, func_name, axis, dtype=None, casting="same_kind"
+):
     if len(inputs) == 0:
         raise ValueError("need at least one array to concatenate")
 
-    inputs = list(ndarray.convert_to_cunumeric_ndarray(inp) for inp in inputs)
+    inputs = list(convert_to_cunumeric_ndarray(inp) for inp in inputs)
     ndim = inputs[0].ndim
     shape = inputs[0].shape
 
@@ -1232,9 +1241,13 @@ def check_shape_dtype(inputs, func_name, dtype=None, casting="same_kind"):
             f"All arguments to {func_name} "
             "must have the same number of dimensions"
         )
-    if ndim > 1 and _builtin_any(shape[1:] != inp.shape[1:] for inp in inputs):
+    if ndim > 1 and _builtin_any(
+        shape[1:axis] != inp.shape[1:axis]
+        and shape[axis + 1 :] != inp.shape[axis + 1 :]
+        for inp in inputs
+    ):
         raise ValueError(
-            f"All arguments to {func_name}"
+            f"All arguments to {func_name} "
             "must have the same "
             "dimension size in all dimensions "
             "except the target axis"
@@ -1242,7 +1255,7 @@ def check_shape_dtype(inputs, func_name, dtype=None, casting="same_kind"):
 
     # Cast arrays with the passed arguments (dtype, casting)
     if dtype is None:
-        dtype = np.min_scalar_type(inputs)
+        dtype = np.find_common_type((inp.dtype for inp in inputs), [])
     else:
         dtype = np.dtype(dtype)
 
@@ -1258,17 +1271,12 @@ def _concatenate(
     casting="same_kind",
     common_info=None,
 ):
-    # Check to see if we can build a new tuple of cuNumeric arrays
-    leading_dim = 0
-    cunumeric_inputs = inputs
-
-    leading_dim = common_info.shape[axis] * len(cunumeric_inputs)
-
+    leading_dim = _builtin_sum(arr.shape[axis] for arr in inputs)
     out_shape = list(common_info.shape)
     out_shape[axis] = leading_dim
 
     out_array = ndarray(
-        shape=out_shape, dtype=common_info.dtype, inputs=cunumeric_inputs
+        shape=out_shape, dtype=common_info.dtype, inputs=inputs
     )
 
     # Copy the values over from the inputs
@@ -1282,11 +1290,48 @@ def _concatenate(
     for i in range(axis + 1, common_info.ndim):
         idx_arr.append(slice(out_shape[i]))
 
-    for inp in cunumeric_inputs:
-        idx_arr[axis] = slice(offset, offset + inp.shape[axis])
-        out_array[tuple(idx_arr)] = inp
-        offset += inp.shape[axis]
+    for inp in inputs:
+        if inp.size > 0:
+            idx_arr[axis] = slice(offset, offset + inp.shape[axis])
+            out_array[tuple(idx_arr)] = inp
+            offset += inp.shape[axis]
     return out_array
+
+
+def append(arr, values, axis=None):
+    """
+
+    Append values to the end of an array.
+
+    Parameters
+    ----------
+    arr :  array_like
+        Values are appended to a copy of this array.
+    values : array_like
+        These values are appended to a copy of arr. It must be of the correct
+        shape (the same shape as arr, excluding axis). If axis is not
+        specified, values can be any shape and will be flattened before use.
+    axis : int, optional
+        The axis along which values are appended. If axis is not given, both
+        `arr` and `values` are flattened before use.
+
+    Returns
+    -------
+    res : ndarray
+        A copy of arr with values appended to axis.
+
+    See Also
+    --------
+    numpy.append
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+
+    """
+    # Check to see if we can build a new tuple of cuNumeric arrays
+    inputs = list(convert_to_cunumeric_ndarray(inp) for inp in [arr, values])
+    return concatenate(inputs, axis)
 
 
 def concatenate(inputs, axis=0, out=None, dtype=None, casting="same_kind"):
@@ -1299,7 +1344,7 @@ def concatenate(inputs, axis=0, out=None, dtype=None, casting="same_kind"):
 
     Parameters
     ----------
-    a1, a2, ... : sequence of array_like
+    a1, a2, ... : Sequence[array_like]
         The arrays must have the same shape, except in the dimension
         corresponding to `axis` (the first, by default).
     axis : int, optional
@@ -1309,10 +1354,10 @@ def concatenate(inputs, axis=0, out=None, dtype=None, casting="same_kind"):
         If provided, the destination to place the result. The shape must be
         correct, matching that of what concatenate would have returned if no
         out argument were specified.
-    dtype : str or dtype
+    dtype : str or data-type
         If provided, the destination array will have this dtype. Cannot be
         provided together with `out`.
-    casting : {'no', 'equiv', 'safe', 'same_kind', 'unsafe'}, optional
+    casting : ``{'no', 'equiv', 'safe', 'same_kind', 'unsafe'}``, optional
         Controls what kind of data casting may occur. Defaults to 'same_kind'.
 
     Returns
@@ -1326,12 +1371,18 @@ def concatenate(inputs, axis=0, out=None, dtype=None, casting="same_kind"):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
+    # flatten arrays if axis == None and concatenate arrays on the first axis
+    if axis is None:
+        inputs = list(inp.ravel() for inp in inputs)
+        axis = 0
+
     # Check to see if we can build a new tuple of cuNumeric arrays
     cunumeric_inputs, common_info = check_shape_dtype(
-        inputs, concatenate.__name__, dtype, casting
+        inputs, concatenate.__name__, axis, dtype, casting
     )
+
     return _concatenate(
         cunumeric_inputs, axis, out, dtype, casting, common_info
     )
@@ -1348,7 +1399,7 @@ def stack(arrays, axis=0, out=None):
 
     Parameters
     ----------
-    arrays : sequence of array_like
+    arrays : Sequence[array_like]
         Each array must have the same shape.
 
     axis : int, optional
@@ -1370,22 +1421,24 @@ def stack(arrays, axis=0, out=None):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
-    fname = stack.__name__
-    arrays, common_info = check_shape_dtype(arrays, fname)
+    if type(axis) is not int:
+        raise ValueError("The target axis should be an integer")
+
+    arrays, common_info = check_shape_dtype(arrays, stack.__name__, axis)
+
     if axis > common_info.ndim:
         raise ValueError(
             "The target axis should be smaller or"
             " equal to the number of dimensions"
             " of input arrays"
         )
-    else:
-        shape = list(common_info.shape)
-        shape.insert(axis, 1)
-        for i, arr in enumerate(arrays):
-            arrays[i] = arr.reshape(shape)
-        common_info.shape = shape
+
+    shape = list(common_info.shape)
+    shape.insert(axis, 1)
+    arrays = [arr.reshape(shape) for arr in arrays]
+    common_info.shape = shape
     return _concatenate(arrays, axis, out=out, common_info=common_info)
 
 
@@ -1405,7 +1458,7 @@ def vstack(tup):
 
     Parameters
     ----------
-    tup : sequence of ndarrays
+    tup : Sequence[ndarray]
         The arrays must have the same shape along all but the first axis.
         1-D arrays must have the same length.
 
@@ -1420,15 +1473,17 @@ def vstack(tup):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
-    fname = vstack.__name__
-    # Reshape arrays in the `tup` if needed before concatenation
-    tup, common_info = check_shape_dtype(tup, fname)
-    if common_info.ndim == 1:
-        for i, arr in enumerate(tup):
-            tup[i] = arr.reshape([1, arr.shape[0]])
-        common_info.shape = tup[0].shape
+    # Reshape arrays in the `array_list` if needed before concatenation
+    inputs = list(convert_to_cunumeric_ndarray(inp) for inp in tup)
+    reshaped = list(
+        inp.reshape([1, inp.shape[0]]) if inp.ndim == 1 else inp
+        for inp in inputs
+    )
+    tup, common_info = check_shape_dtype(reshaped, vstack.__name__, 0)
+    common_info.shape = tup[0].shape
+
     return _concatenate(
         tup,
         axis=0,
@@ -1453,7 +1508,7 @@ def hstack(tup):
 
     Parameters
     ----------
-    tup : sequence of ndarrays
+    tup : Sequence[ndarray]
         The arrays must have the same shape along all but the second axis,
         except 1-D arrays which can be any length.
 
@@ -1468,26 +1523,16 @@ def hstack(tup):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
-    fname = hstack.__name__
-    tup, common_info = check_shape_dtype(tup, fname)
-    if (
-        common_info.ndim == 1
-    ):  # When ndim == 1, hstack concatenates arrays along the first axis
-        return _concatenate(
-            tup,
-            axis=0,
-            dtype=common_info.dtype,
-            common_info=common_info,
-        )
-    else:
-        return _concatenate(
-            tup,
-            axis=1,
-            dtype=common_info.dtype,
-            common_info=common_info,
-        )
+    tup, common_info = check_shape_dtype(tup, hstack.__name__, 1)
+    # When ndim == 1, hstack concatenates arrays along the first axis
+    return _concatenate(
+        tup,
+        axis=(0 if common_info.ndim == 1 else 1),
+        dtype=common_info.dtype,
+        common_info=common_info,
+    )
 
 
 def dstack(tup):
@@ -1507,7 +1552,7 @@ def dstack(tup):
 
     Parameters
     ----------
-    tup : sequence of arrays
+    tup : Sequence[ndarray]
         The arrays must have the same shape along all but the third axis.
         1-D or 2-D arrays must have the same shape.
 
@@ -1522,19 +1567,19 @@ def dstack(tup):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
-    fname = dstack.__name__
-    tup, common_info = check_shape_dtype(tup, fname)
     # Reshape arrays to (1,N,1) for ndim ==1 or (M,N,1) for ndim == 2:
-    if common_info.ndim <= 2:
-        shape = list(tup[0].shape)
-        if common_info.ndim == 1:
-            shape.insert(0, 1)
-        shape.append(1)
-        common_info.shape = shape
-        for i, arr in enumerate(tup):
-            tup[i] = arr.reshape(shape)
+    reshaped = []
+    inputs = list(convert_to_cunumeric_ndarray(inp) for inp in tup)
+    for arr in inputs:
+        if arr.ndim == 1:
+            arr = arr.reshape((1,) + arr.shape + (1,))
+        elif arr.ndim == 2:
+            arr = arr.reshape(arr.shape + (1,))
+        reshaped.append(arr)
+    tup, common_info = check_shape_dtype(reshaped, dstack.__name__, 2)
+
     return _concatenate(
         tup,
         axis=2,
@@ -1555,13 +1600,14 @@ def column_stack(tup):
 
     Parameters
     ----------
-    tup : sequence of 1-D or 2-D arrays.
-        Arrays to stack. All of them must have the same first dimension.
+    tup : Sequence[ndarray]
+        1-D or 2-D arrays to stack. All of them must have the same
+        first dimension.
 
     Returns
     -------
-    stacked : 2-D array
-        The array formed by stacking the given arrays.
+    stacked : ndarray
+        The 2-D array formed by stacking the given arrays.
 
     See Also
     --------
@@ -1569,9 +1615,19 @@ def column_stack(tup):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
-    return hstack(tup)
+    tup, common_info = check_shape_dtype(tup, column_stack.__name__, 1)
+    # When ndim == 1, hstack concatenates arrays along the first axis
+    if common_info.ndim == 1:
+        tup = list(inp.reshape([inp.shape[0], 1]) for inp in tup)
+        common_info.shape = tup[0].shape
+    return _concatenate(
+        tup,
+        axis=1,
+        dtype=common_info.dtype,
+        common_info=common_info,
+    )
 
 
 row_stack = vstack
@@ -1589,7 +1645,7 @@ def split(a, indices, axis=0):
     ----------
     ary : ndarray
         Array to be divided into sub-arrays.
-    indices_or_sections : int or 1-D array
+    indices_or_sections : int or ndarray
         If `indices_or_sections` is an integer, N, the array will be divided
         into N equal arrays along `axis`.  If such a split is not possible,
         an error is raised.
@@ -1609,7 +1665,7 @@ def split(a, indices, axis=0):
 
     Returns
     -------
-    sub-arrays : list of ndarrays
+    sub-arrays : list[ndarray]
         A list of sub-arrays as views into `ary`.
 
     Raises
@@ -1624,7 +1680,7 @@ def split(a, indices, axis=0):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return array_split(a, indices, axis, equal=True)
 
@@ -1647,9 +1703,9 @@ def array_split(a, indices, axis=0, equal=False):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
-    array = ndarray.convert_to_cunumeric_ndarray(a)
+    array = convert_to_cunumeric_ndarray(a)
     dtype = type(indices)
     split_pts = []
     if axis >= array.ndim:
@@ -1748,7 +1804,7 @@ def dsplit(a, indices):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return split(a, indices, axis=2)
 
@@ -1768,7 +1824,7 @@ def hsplit(a, indices):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return split(a, indices, axis=1)
 
@@ -1788,7 +1844,7 @@ def vsplit(a, indices):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return split(a, indices, axis=0)
 
@@ -1832,7 +1888,7 @@ def tile(A, reps):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     if not hasattr(reps, "__len__"):
         reps = (reps,)
@@ -1854,6 +1910,115 @@ def tile(A, reps):
     return result
 
 
+def repeat(a, repeats, axis=None):
+    """
+    Repeat elements of an array.
+
+    Parameters
+    ----------
+    a : array_like
+        Input array.
+    repeats : int or ndarray[int]
+        The number of repetitions for each element. repeats is
+        broadcasted to fit the shape of the given axis.
+    axis : int, optional
+        The axis along which to repeat values. By default, use the
+        flattened input array, and return a flat output array.
+
+    Returns
+    -------
+    repeated_array : ndarray
+        Output array which has the same shape as a, except along the
+        given axis.
+
+    Notes
+    -----
+    Currently, repeat operations supports only 1D arrays
+
+    See Also
+    --------
+    numpy.repeat
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+
+    # when array is a scalar
+    if np.ndim(a) == 0:
+        if np.ndim(repeats) == 0:
+            return full((repeats,), a)
+        else:
+            raise ValueError(
+                "`repeat` with a scalar parameter `a` is only "
+                "implemented for scalar values of the parameter `repeats`."
+            )
+    if np.ndim(repeats) > 1:
+        raise ValueError("`repeats` should be scalar or 1D array")
+
+    # array is an array
+    array = convert_to_cunumeric_ndarray(a)
+    if np.ndim(repeats) == 1:
+        repeats = convert_to_cunumeric_ndarray(repeats)
+
+    # if no axes specified, flatten array
+    if axis is None:
+        array = array.ravel()
+        axis = 0
+
+    # axes should be integer type
+    if not isinstance(axis, int):
+        raise TypeError("Axis should be integer type")
+    axis = np.int32(axis)
+
+    if axis >= array.ndim:
+        return ValueError("axis exceeds dimension of the input array")
+
+    # If repeats is on a zero sized axis, then return the array.
+    if array.shape[axis] == 0:
+        return array.copy()
+
+    if np.ndim(repeats) == 1:
+        if repeats.shape[0] == 1 and repeats.shape[0] != array.shape[axis]:
+            repeats = repeats[0]
+
+    # repeats is a scalar.
+    if np.ndim(repeats) == 0:
+        # repeats is 0
+        if repeats == 0:
+            empty_shape = list(array.shape)
+            empty_shape[axis] = 0
+            empty_shape = tuple(empty_shape)
+            return ndarray(shape=empty_shape, dtype=array.dtype)
+        # repeats should be integer type
+        if not isinstance(repeats, int):
+            runtime.warn(
+                "converting repeats to an integer type",
+                category=UserWarning,
+            )
+        repeats = np.int64(repeats)
+        result = array._thunk.repeat(
+            repeats=repeats,
+            axis=axis,
+            scalar_repeats=True,
+        )
+    # repeats is an array
+    else:
+        # repeats should be integer type
+        if repeats.dtype != np.int64:
+            runtime.warn(
+                "converting repeats to an integer type",
+                category=RuntimeWarning,
+            )
+        repeats = repeats.astype(np.int64)
+        if repeats.shape[0] != array.shape[axis]:
+            return ValueError("incorrect shape of repeats array")
+        result = array._thunk.repeat(
+            repeats=repeats._thunk, axis=axis, scalar_repeats=False
+        )
+    return ndarray(shape=result.shape, thunk=result)
+
+
 # Rearranging elements
 
 
@@ -1868,7 +2033,7 @@ def flip(m, axis=None):
     ----------
     m : array_like
         Input array.
-    axis : None or int or tuple of ints, optional
+    axis : None or int or tuple[int], optional
          Axis or axes along which to flip over. The default, axis=None, will
          flip over all of the axes of the input array.  If axis is negative it
          counts from the last to the first axis.
@@ -1888,7 +2053,7 @@ def flip(m, axis=None):
 
     Availability
     --------
-    Single GPU/CPU only
+    Single GPU, Single CPU
     """
     return m.flip(axis=axis)
 
@@ -1898,65 +2063,6 @@ def flip(m, axis=None):
 ###################
 
 # Elementwise bit operations
-
-
-@add_boilerplate("a")
-def invert(a, out=None, where=True, dtype=None):
-    """
-    Compute bit-wise inversion, or bit-wise NOT, element-wise.
-
-    Computes the bit-wise NOT of the underlying binary representation of
-    the integers in the input arrays. This ufunc implements the C/Python
-    operator ``~``.
-
-    Parameters
-    ----------
-    x : array_like
-        Only integer and boolean types are handled.
-    out : ndarray, None, or tuple of ndarray and None, optional
-        A location into which the result is stored. If provided, it must have
-        a shape that the inputs broadcast to. If not provided or None,
-        a freshly-allocated array is returned. A tuple (possible only as a
-        keyword argument) must have length equal to the number of outputs.
-    where : array_like, optional
-        This condition is broadcast over the input. At locations where the
-        condition is True, the `out` array will be set to the ufunc result.
-        Elsewhere, the `out` array will retain its original value.
-        Note that if an uninitialized `out` array is created via the default
-        ``out=None``, locations within it where the condition is False will
-        remain uninitialized.
-    **kwargs
-        For other keyword-only arguments, see the
-        :ref:`ufunc docs <ufuncs.kwargs>`.
-
-    Returns
-    -------
-    out : ndarray or scalar
-        Result.
-        This is a scalar if `x` is a scalar.
-
-    See Also
-    --------
-    numpy.invert
-
-    Availability
-    --------
-    GPU, CPU
-    """
-    if a.dtype.type == np.bool_:
-        # Boolean values are special, just do negatiion
-        return ndarray.perform_unary_op(
-            UnaryOpCode.LOGICAL_NOT,
-            a,
-            dst=out,
-            dtype=dtype,
-            out_dtype=np.dtype(np.bool_),
-            where=where,
-        )
-    else:
-        return ndarray.perform_unary_op(
-            UnaryOpCode.INVERT, a, dst=out, dtype=dtype, where=where
-        )
 
 
 ###################
@@ -1992,7 +2098,7 @@ def nonzero(a):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return a.nonzero()
 
@@ -2024,7 +2130,7 @@ def where(a, x=None, y=None):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     if x is None or y is None:
         if x is not None or y is not None:
@@ -2033,7 +2139,7 @@ def where(a, x=None, y=None):
                 " 'where'"
             )
         return nonzero(a)
-    return ndarray.perform_where(a, x, y)
+    return ndarray._perform_where(a, x, y)
 
 
 # Indexing-like operations
@@ -2068,29 +2174,29 @@ def choose(a, choices, out=None, mode="raise"):
 
     Parameters
     ----------
-    a : int array
+    a : ndarray[int]
         This array must contain integers in ``[0, n-1]``, where ``n`` is the
         number of choices, unless ``mode=wrap`` or ``mode=clip``, in which
         cases any integers are permissible.
-    choices : sequence of arrays
+    choices : Sequence[ndarray]
         Choice arrays. `a` and all of the choices must be broadcastable to the
         same shape.  If `choices` is itself an array (not recommended), then
         its outermost dimension (i.e., the one corresponding to
         ``choices.shape[0]``) is taken as defining the "sequence".
-    out : array, optional
+    out : ndarray, optional
         If provided, the result will be inserted into this array. It should
         be of the appropriate shape and dtype. Note that `out` is always
         buffered if ``mode='raise'``; use other modes for better performance.
-    mode : {'raise' (default), 'wrap', 'clip'}, optional
+    mode : ``{'raise', 'wrap', 'clip'}``, optional
         Specifies how indices outside ``[0, n-1]`` will be treated:
 
-          * 'raise' : an exception is raised
+          * 'raise' : an exception is raised (default)
           * 'wrap' : value becomes value mod ``n``
           * 'clip' : values < 0 are mapped to 0, values > n-1 are mapped to n-1
 
     Returns
     -------
-    merged_array : array
+    merged_array : ndarray
         The merged result.
 
     Raises
@@ -2105,7 +2211,7 @@ def choose(a, choices, out=None, mode="raise"):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return a.choose(choices=choices, out=out, mode=mode)
 
@@ -2166,7 +2272,7 @@ def diagonal(a, offset=0, axis1=None, axis2=None, extract=True, axes=None):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
 
     """
     return a.diagonal(
@@ -2182,16 +2288,59 @@ def diagonal(a, offset=0, axis1=None, axis2=None, extract=True, axes=None):
 
 
 @add_boilerplate("a", "b")
+def inner(a, b, out=None):
+    """
+    Inner product of two arrays.
+
+    Ordinary inner product of vectors for 1-D arrays (without complex
+    conjugation), in higher dimensions a sum product over the last axes.
+
+    Parameters
+    ----------
+    a, b : array_like
+    out : ndarray, optional
+        Output argument. This must have the exact shape that would be returned
+        if it was not present. If its dtype is not what would be expected from
+        this operation, then the result will be (unsafely) cast to `out`.
+
+    Returns
+    -------
+    output : ndarray
+        If `a` and `b` are both
+        scalars or both 1-D arrays then a scalar is returned; otherwise
+        an array is returned.
+        ``output.shape = (*a.shape[:-1], *b.shape[:-1])``
+        If `out` is given, then it is returned.
+
+    Notes
+    -----
+    The cuNumeric implementation is a little more liberal than NumPy in terms
+    of allowed broadcasting, e.g. ``inner(ones((1,)), ones((4,)))`` is allowed.
+
+    See Also
+    --------
+    numpy.inner
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    if a.ndim == 0 or b.ndim == 0:
+        return multiply(a, b, out=out)
+    (a_modes, b_modes, out_modes) = inner_modes(a.ndim, b.ndim)
+    return _contract(a_modes, b_modes, out_modes, a, b, out=out)
+
+
+@add_boilerplate("a", "b")
 def dot(a, b, out=None):
     """
-
     Dot product of two arrays. Specifically,
 
     - If both `a` and `b` are 1-D arrays, it is inner product of vectors
       (without complex conjugation).
 
     - If both `a` and `b` are 2-D arrays, it is matrix multiplication,
-      but using :func:`matmul` or ``a @ b`` is preferred.
+      but using ``a @ b`` is preferred.
 
     - If either `a` or `b` is 0-D (scalar), it is equivalent to
       :func:`multiply` and using ``cunumeric.multiply(a, b)`` or ``a * b`` is
@@ -2213,30 +2362,22 @@ def dot(a, b, out=None):
     b : array_like
         Second argument.
     out : ndarray, optional
-        Output argument. This must have the exact kind that would be returned
-        if it was not used. In particular, it must have the right type, must be
-        C-contiguous, and its dtype must be the dtype that would be returned
-        for `dot(a,b)`. This is a performance feature. Therefore, if these
-        conditions are not met, an exception is raised, instead of attempting
-        to be flexible.
+        Output argument. This must have the exact shape that would be returned
+        if it was not present. If its dtype is not what would be expected from
+        this operation, then the result will be (unsafely) cast to `out`.
 
     Returns
     -------
     output : ndarray
-        Returns the dot product of `a` and `b`.  If `a` and `b` are both
-        scalars or both 1-D arrays then a scalar is returned; otherwise
-        an array is returned.
-        If `out` is given, then it is returned.
-
-    Raises
-    ------
-    ValueError
-        If the last dimension of `a` is not the same size as
-        the second-to-last dimension of `b`.
+        Returns the dot product of `a` and `b`. If `out` is given, then it is
+        returned.
 
     Notes
     -----
-    The current implementation only supports 1-D or 2-D input arrays.
+    The cuNumeric implementation is a little more liberal than NumPy in terms
+    of allowed broadcasting, e.g. ``dot(ones((3,1)), ones((4,5)))`` is allowed.
+
+    Except for the inner-product case, only floating-point types are supported.
 
     See Also
     --------
@@ -2244,14 +2385,174 @@ def dot(a, b, out=None):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return a.dot(b, out=out)
 
 
-def tensordot(a, b, axes=2):
+@add_boilerplate("a", "b")
+def matmul(a, b, out=None):
     """
+    Matrix product of two arrays.
 
+    Parameters
+    ----------
+    x1, x2 : array_like
+        Input arrays, scalars not allowed.
+    out : ndarray, optional
+        A location into which the result is stored. If provided, it must have
+        a shape that matches the signature `(n,k),(k,m)->(n,m)`. If its dtype
+        is not what would be expected from this operation, then the result will
+        be (unsafely) cast to `out`.
+
+    Returns
+    -------
+    output : ndarray
+        The matrix product of the inputs.
+        This is a scalar only when both x1, x2 are 1-d vectors.
+        If `out` is given, then it is returned.
+
+    Notes
+    -----
+    The behavior depends on the arguments in the following way.
+
+    - If both arguments are 2-D they are multiplied like conventional
+      matrices.
+    - If either argument is N-D, N > 2, it is treated as a stack of
+      matrices residing in the last two indexes and broadcast accordingly.
+    - If the first argument is 1-D, it is promoted to a matrix by
+      prepending a 1 to its dimensions. After matrix multiplication
+      the prepended 1 is removed.
+    - If the second argument is 1-D, it is promoted to a matrix by
+      appending a 1 to its dimensions. After matrix multiplication
+      the appended 1 is removed.
+
+    ``matmul`` differs from ``dot`` in two important ways:
+
+    - Multiplication by scalars is not allowed, use ``*`` instead.
+    - Stacks of matrices are broadcast together as if the matrices
+      were elements, respecting the signature ``(n,k),(k,m)->(n,m)``:
+
+      >>> a = ones([9, 5, 7, 4])
+      >>> c = ones([9, 5, 4, 3])
+      >>> dot(a, c).shape
+      (9, 5, 7, 9, 5, 3)
+      >>> matmul(a, c).shape
+      (9, 5, 7, 3)
+      >>> # n is 7, k is 4, m is 3
+
+    The cuNumeric implementation is a little more liberal than NumPy in terms
+    of allowed broadcasting, e.g. ``matmul(ones((3,1)), ones((4,5)))`` is
+    allowed.
+
+    Only floating-point types are supported.
+
+    See Also
+    --------
+    numpy.matmul
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    if a.ndim == 0 or b.ndim == 0:
+        raise ValueError("Scalars not allowed in matmul")
+    (a_modes, b_modes, out_modes) = matmul_modes(a.ndim, b.ndim)
+    return _contract(a_modes, b_modes, out_modes, a, b, out=out)
+
+
+@add_boilerplate("a", "b")
+def vdot(a, b, out=None):
+    """
+    Return the dot product of two vectors.
+
+    The vdot(`a`, `b`) function handles complex numbers differently than
+    dot(`a`, `b`).  If the first argument is complex the complex conjugate
+    of the first argument is used for the calculation of the dot product.
+
+    Note that `vdot` handles multidimensional arrays differently than `dot`:
+    it does *not* perform a matrix product, but flattens input arguments
+    to 1-D vectors first. Consequently, it should only be used for vectors.
+
+    Parameters
+    ----------
+    a : array_like
+        If `a` is complex the complex conjugate is taken before calculation
+        of the dot product.
+    b : array_like
+        Second argument to the dot product.
+    out : ndarray, optional
+        Output argument. This must have the exact shape that would be returned
+        if it was not present. If its dtype is not what would be expected from
+        this operation, then the result will be (unsafely) cast to `out`.
+
+    Returns
+    -------
+    output : ndarray
+        Dot product of `a` and `b`. If `out` is given, then it is returned.
+
+    Notes
+    -----
+    The cuNumeric implementation is a little more liberal than NumPy in terms
+    of allowed broadcasting, e.g. ``vdot(ones((1,)), ones((4,)))`` is allowed.
+
+    See Also
+    --------
+    numpy.vdot
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    return inner(a.ravel().conj(), b.ravel(), out=out)
+
+
+@add_boilerplate("a", "b")
+def outer(a, b, out=None):
+    """
+    Compute the outer product of two vectors.
+
+    Given two vectors, ``a = [a0, a1, ..., aM]`` and ``b = [b0, b1, ..., bN]``,
+    the outer product is::
+
+      [[a0*b0  a0*b1 ... a0*bN ]
+       [a1*b0    .
+       [ ...          .
+       [aM*b0            aM*bN ]]
+
+    Parameters
+    ----------
+    a : (M,) array_like
+        First input vector. Input is flattened if not already 1-dimensional.
+    b : (N,) array_like
+        Second input vector. Input is flattened if not already 1-dimensional.
+    out : (M, N) ndarray, optional
+        A location where the result is stored. If its dtype is not what would
+        be expected from this operation, then the result will be (unsafely)
+        cast to `out`.
+
+    Returns
+    -------
+    output : (M, N) ndarray
+        ``output[i, j] = a[i] * b[j]``
+        If `out` is given, then it is returned.
+
+    See Also
+    --------
+    numpy.outer
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    return multiply(
+        a.ravel()[:, np.newaxis], b.ravel()[np.newaxis, :], out=out
+    )
+
+
+@add_boilerplate("a", "b")
+def tensordot(a, b, axes=2, out=None):
+    """
     Compute tensor dot product along specified axes.
 
     Given two tensors, `a` and `b`, and an array_like object containing
@@ -2266,23 +2567,31 @@ def tensordot(a, b, axes=2):
     a, b : array_like
         Tensors to "dot".
 
-    axes : int or (2,) array_like
+    axes : int or array_like
         * integer_like
           If an int N, sum over the last N axes of `a` and the first N axes
-          of `b` in order. The sizes of the corresponding axes must match.
+          of `b` in order.
         * (2,) array_like
           Or, a list of axes to be summed over, first sequence applying to `a`,
           second to `b`. Both elements array_like must be of the same length.
+    out : ndarray, optional
+        Output argument. This must have the exact shape that would be returned
+        if it was not present. If its dtype is not what would be expected from
+        this operation, then the result will be (unsafely) cast to `out`.
 
     Returns
     -------
     output : ndarray
-        The tensor dot product of the input.
+        The tensor dot product of the inputs. If `out` is given, then it is
+        returned.
 
     Notes
     -----
-    The current implementation inherits the limitation of `dot`; i.e., it only
-    supports 1-D or 2-D input arrays.
+    The cuNumeric implementation is a little more liberal than NumPy in terms
+    of allowed broadcasting, e.g. ``tensordot(ones((3,1)), ones((1,4)))`` is
+    allowed.
+
+    Except for the inner-product case, only floating-point types are supported.
 
     See Also
     --------
@@ -2290,71 +2599,10 @@ def tensordot(a, b, axes=2):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
-    # This is the exact same code as the canonical numpy.
-    # See https://github.com/numpy/numpy/blob/v1.21.0/numpy/core/numeric.py#L943-L1133. # noqa:  E501
-    try:
-        iter(axes)
-    except Exception:
-        axes_a = list(range(-axes, 0))
-        axes_b = list(range(0, axes))
-    else:
-        axes_a, axes_b = axes
-    try:
-        na = len(axes_a)
-        axes_a = list(axes_a)
-    except TypeError:
-        axes_a = [axes_a]
-        na = 1
-    try:
-        nb = len(axes_b)
-        axes_b = list(axes_b)
-    except TypeError:
-        axes_b = [axes_b]
-        nb = 1
-
-    as_ = a.shape
-    nda = a.ndim
-    bs = b.shape
-    ndb = b.ndim
-    equal = True
-    if na != nb:
-        equal = False
-    else:
-        for k in range(na):
-            if as_[axes_a[k]] != bs[axes_b[k]]:
-                equal = False
-                break
-            if axes_a[k] < 0:
-                axes_a[k] += nda
-            if axes_b[k] < 0:
-                axes_b[k] += ndb
-    if not equal:
-        raise ValueError("shape-mismatch for sum")
-
-    # Move the axes to sum over to the end of "a"
-    # and to the front of "b"
-    notin = [k for k in range(nda) if k not in axes_a]
-    newaxes_a = notin + axes_a
-    N2 = 1
-    for axis in axes_a:
-        N2 *= as_[axis]
-    newshape_a = (int(np.multiply.reduce([as_[ax] for ax in notin])), N2)
-    olda = [as_[axis] for axis in notin]
-
-    notin = [k for k in range(ndb) if k not in axes_b]
-    newaxes_b = axes_b + notin
-    N2 = 1
-    for axis in axes_b:
-        N2 *= bs[axis]
-    newshape_b = (N2, int(np.multiply.reduce([bs[ax] for ax in notin])))
-    oldb = [bs[axis] for axis in notin]
-
-    at = a.transpose(newaxes_a).reshape(newshape_a)
-    bt = b.transpose(newaxes_b).reshape(newshape_b)
-    res = dot(at, bt)
-    return res.reshape(olda + oldb)
+    (a_modes, b_modes, out_modes) = tensordot_modes(a.ndim, b.ndim, axes)
+    return _contract(a_modes, b_modes, out_modes, a, b, out=out)
 
 
 # Trivial multi-tensor contraction strategy: contract in input order
@@ -2365,45 +2613,51 @@ class NullOptimizer(oe.paths.PathOptimizer):
 
 # Generalized tensor contraction
 @add_boilerplate("a", "b")
-def _contract(expr, a, b=None, out=None):
-    # Parse modes out of contraction expression (assuming expression has been
-    # normalized already by contract_path)
-    if b is None:
-        m = re.match(r"([a-zA-Z]*)->([a-zA-Z]*)", expr)
-        assert m is not None
-        a_modes = list(m.group(1))
-        b_modes = []
-        out_modes = list(m.group(2))
-    else:
-        m = re.match(r"([a-zA-Z]*),([a-zA-Z]*)->([a-zA-Z]*)", expr)
-        assert m is not None
-        a_modes = list(m.group(1))
-        b_modes = list(m.group(2))
-        out_modes = list(m.group(3))
-
+def _contract(
+    a_modes,
+    b_modes,
+    out_modes,
+    a,
+    b=None,
+    out=None,
+):
     # Sanity checks
+    if len(a_modes) != a.ndim:
+        raise ValueError(
+            f"Expected {len(a_modes)}-d input array but got {a.ndim}-d"
+        )
+    if b is None:
+        if len(b_modes) != 0:
+            raise ValueError("Missing input array")
+    elif len(b_modes) != b.ndim:
+        raise ValueError(
+            f"Expected {len(b_modes)}-d input array but got {b.ndim}-d"
+        )
     if out is not None and len(out_modes) != out.ndim:
         raise ValueError(
             f"Expected {len(out_modes)}-d output array but got {out.ndim}-d"
         )
     if len(set(out_modes)) != len(out_modes):
-        raise ValueError("Duplicate mode labels on output tensor")
+        raise ValueError("Duplicate mode labels on output")
+    if len(set(out_modes) - set(a_modes) - set(b_modes)) > 0:
+        raise ValueError("Unknown mode labels on output")
 
     # Handle duplicate modes on inputs
     c_a_modes = Counter(a_modes)
     for (mode, count) in c_a_modes.items():
         if count > 1:
             axes = [i for (i, m) in enumerate(a_modes) if m == mode]
-            a = a.diag_helper(axes=axes)
+            a = a._diag_helper(axes=axes)
             # diagonal is stored on last axis
             a_modes = [m for m in a_modes if m != mode] + [mode]
     c_b_modes = Counter(b_modes)
     for (mode, count) in c_b_modes.items():
         if count > 1:
             axes = [i for (i, m) in enumerate(b_modes) if m == mode]
-            b = b.diag_helper(axes=axes)
+            b = b._diag_helper(axes=axes)
             # diagonal is stored on last axis
             b_modes = [m for m in b_modes if m != mode] + [mode]
+
     # Drop modes corresponding to singleton dimensions. This handles cases of
     # broadcasting.
     for dim in reversed(range(a.ndim)):
@@ -2435,8 +2689,11 @@ def _contract(expr, a, b=None, out=None):
         zip(a_modes, a.shape), zip(b_modes, b.shape) if b is not None else []
     ):
         prev_extent = mode2extent.get(mode)
-        # This should have already been checked by contract_path
-        assert prev_extent is None or extent == prev_extent
+        if prev_extent is not None and extent != prev_extent:
+            raise ValueError(
+                f"Incompatible sizes between matched dimensions: {extent} vs "
+                f"{prev_extent}"
+            )
         mode2extent[mode] = extent
 
     # Any modes appearing only on the result must have originally been present
@@ -2481,20 +2738,6 @@ def _contract(expr, a, b=None, out=None):
     # Handle types
     c_dtype = ndarray.find_common_type(a, b) if b is not None else a.dtype
     out_dtype = out.dtype if out is not None else c_dtype
-    if b is None or c_dtype in [
-        np.float32,
-        np.float64,
-        np.complex64,
-        np.complex128,
-    ]:
-        # Can support this type directly
-        pass
-    elif np.can_cast(c_dtype, np.float64):
-        # Will have to go through a supported type, and cast the result back to
-        # the input type (or the type of the provided output array)
-        c_dtype = np.float64
-    else:
-        raise TypeError(f"Unsupported type: {c_dtype}")
 
     if b is None:
         # Unary contraction case
@@ -2592,11 +2835,11 @@ def einsum(expr, *operands, out=None, optimize=False):
         subscript labels. An implicit (classical Einstein summation)
         calculation is performed unless the explicit indicator '->' is
         included as well as subscript labels of the precise output form.
-    operands : list of array_like
+    operands : list[array_like]
         These are the arrays for the operation.
     out : ndarray, optional
         If provided, the calculation is done into this array.
-    optimize : {False, True, 'greedy', 'optimal'}, optional
+    optimize : ``{False, True, 'greedy', 'optimal'}``, optional
         Controls if intermediate optimization should occur. No optimization
         will occur if False. Uses opt_einsum to find an optimized contraction
         plan if True.
@@ -2606,13 +2849,17 @@ def einsum(expr, *operands, out=None, optimize=False):
     output : ndarray
         The calculation based on the Einstein summation convention.
 
+    Notes
+    -----
+    For most expressions, only floating-point types are supported.
+
     See Also
     --------
     numpy.einsum
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     if not optimize:
         optimize = NullOptimizer()
@@ -2625,11 +2872,31 @@ def einsum(expr, *operands, out=None, optimize=False):
         expr, *operands, einsum_call=True, optimize=optimize
     )
     for (indices, _, sub_expr, _, _) in contractions:
-        sub_opers = [operands.pop(i) for i in indices]
-        if len(operands) == 0:  # last iteration
-            sub_result = _contract(sub_expr, *sub_opers, out=out)
+        assert len(indices) == 1 or len(indices) == 2
+        a = operands.pop(indices[0])
+        b = operands.pop(indices[1]) if len(indices) == 2 else None
+        if b is None:
+            m = re.match(r"([a-zA-Z]*)->([a-zA-Z]*)", sub_expr)
+            if m is None:
+                raise NotImplementedError("Non-alphabetic mode labels")
+            a_modes = list(m.group(1))
+            b_modes = []
+            out_modes = list(m.group(2))
         else:
-            sub_result = _contract(sub_expr, *sub_opers)
+            m = re.match(r"([a-zA-Z]*),([a-zA-Z]*)->([a-zA-Z]*)", sub_expr)
+            if m is None:
+                raise NotImplementedError("Non-alphabetic mode labels")
+            a_modes = list(m.group(1))
+            b_modes = list(m.group(2))
+            out_modes = list(m.group(3))
+        sub_result = _contract(
+            a_modes,
+            b_modes,
+            out_modes,
+            a,
+            b,
+            out=(out if len(operands) == 0 else None),
+        )
         operands.append(sub_result)
     assert len(operands) == 1
     return operands[0]
@@ -2651,7 +2918,7 @@ def all(a, axis=None, out=None, keepdims=False, where=True):
     ----------
     a : array_like
         Input array or object that can be converted to an array.
-    axis : None or int or tuple of ints, optional
+    axis : None or int or tuple[int], optional
         Axis or axes along which a logical AND reduction is performed.
         The default (``axis=None``) is to perform a logical AND over all
         the dimensions of the input array. `axis` may be negative, in
@@ -2689,7 +2956,7 @@ def all(a, axis=None, out=None, keepdims=False, where=True):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return a.all(axis=axis, out=out, keepdims=keepdims, where=where)
 
@@ -2705,7 +2972,7 @@ def any(a, axis=None, out=None, keepdims=False, where=True):
     ----------
     a : array_like
         Input array or object that can be converted to an array.
-    axis : None or int or tuple of ints, optional
+    axis : None or int or tuple[int], optional
         Axis or axes along which a logical OR reduction is performed.
         The default (``axis=None``) is to perform a logical OR over all
         the dimensions of the input array. `axis` may be negative, in
@@ -2743,7 +3010,7 @@ def any(a, axis=None, out=None, keepdims=False, where=True):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return a.any(axis=axis, out=out, keepdims=keepdims, where=where)
 
@@ -2751,316 +3018,7 @@ def any(a, axis=None, out=None, keepdims=False, where=True):
 # Array contents
 
 
-@add_boilerplate("a")
-def isinf(a, out=None, where=True, dtype=None, **kwargs):
-    """
-    Test element-wise for positive or negative infinity.
-
-    Returns a boolean array of the same shape as `x`, True where ``x ==
-    +/-inf``, otherwise False.
-
-    Parameters
-    ----------
-    x : array_like
-        Input values
-    out : ndarray, None, or tuple of ndarray and None, optional
-        A location into which the result is stored. If provided, it must have
-        a shape that the inputs broadcast to. If not provided or None,
-        a freshly-allocated array is returned. A tuple (possible only as a
-        keyword argument) must have length equal to the number of outputs.
-    where : array_like, optional
-        This condition is broadcast over the input. At locations where the
-        condition is True, the `out` array will be set to the ufunc result.
-        Elsewhere, the `out` array will retain its original value.
-        Note that if an uninitialized `out` array is created via the default
-        ``out=None``, locations within it where the condition is False will
-        remain uninitialized.
-    **kwargs
-        For other keyword-only arguments, see the
-        :ref:`ufunc docs <ufuncs.kwargs>`.
-
-    Returns
-    -------
-    y : bool (scalar) or boolean ndarray
-        True where ``x`` is positive or negative infinity, false otherwise.
-        This is a scalar if `x` is a scalar.
-
-    See Also
-    --------
-    numpy.isinf
-
-    Availability
-    --------
-    GPU, CPU
-    """
-    return ndarray.perform_unary_op(
-        UnaryOpCode.ISINF,
-        a,
-        dst=out,
-        dtype=dtype,
-        where=where,
-        out_dtype=np.dtype(np.bool_),
-    )
-
-
-@add_boilerplate("a")
-def isnan(a, out=None, where=True, dtype=None, **kwargs):
-    """
-    Test element-wise for NaN and return result as a boolean array.
-
-    Parameters
-    ----------
-    x : array_like
-        Input array.
-    out : ndarray, None, or tuple of ndarray and None, optional
-        A location into which the result is stored. If provided, it must have
-        a shape that the inputs broadcast to. If not provided or None,
-        a freshly-allocated array is returned. A tuple (possible only as a
-        keyword argument) must have length equal to the number of outputs.
-    where : array_like, optional
-        This condition is broadcast over the input. At locations where the
-        condition is True, the `out` array will be set to the ufunc result.
-        Elsewhere, the `out` array will retain its original value.
-        Note that if an uninitialized `out` array is created via the default
-        ``out=None``, locations within it where the condition is False will
-        remain uninitialized.
-    **kwargs
-        For other keyword-only arguments, see the
-        :ref:`ufunc docs <ufuncs.kwargs>`.
-
-    Returns
-    -------
-    y : ndarray or bool
-        True where ``x`` is NaN, false otherwise.
-        This is a scalar if `x` is a scalar.
-
-    See Also
-    --------
-    numpy.isnan
-
-    Availability
-    --------
-    GPU, CPU
-    """
-    return ndarray.perform_unary_op(
-        UnaryOpCode.ISNAN,
-        a,
-        dst=out,
-        dtype=dtype,
-        where=where,
-        out_dtype=np.dtype(np.bool_),
-    )
-
-
 # Logic operations
-
-
-@add_boilerplate("a", "b")
-def logical_and(a, b, out=None, where=True, dtype=np.dtype(np.bool), **kwargs):
-    """
-    Compute the truth value of x1 AND x2 element-wise.
-
-    Parameters
-    ----------
-    x1, x2 : array_like
-        Input arrays. If ``x1.shape != x2.shape``, they must be broadcastable
-        to a common shape (which becomes the shape of the output).
-    out : ndarray, None, or tuple of ndarray and None, optional
-        A location into which the result is stored. If provided, it must have
-        a shape that the inputs broadcast to. If not provided or None,
-        a freshly-allocated array is returned. A tuple (possible only as a
-        keyword argument) must have length equal to the number of outputs.
-    where : array_like, optional
-        This condition is broadcast over the input. At locations where the
-        condition is True, the `out` array will be set to the ufunc result.
-        Elsewhere, the `out` array will retain its original value.
-        Note that if an uninitialized `out` array is created via the default
-        ``out=None``, locations within it where the condition is False will
-        remain uninitialized.
-    **kwargs
-        For other keyword-only arguments, see the
-        :ref:`ufunc docs <ufuncs.kwargs>`.
-
-    Returns
-    -------
-    y : ndarray or bool
-        Boolean result of the logical AND operation applied to the elements
-        of `x1` and `x2`; the shape is determined by broadcasting.
-        This is a scalar if both `x1` and `x2` are scalars.
-
-    See Also
-    --------
-    numpy.logical_and
-
-    Availability
-    --------
-    GPU, CPU
-    """
-    return ndarray.perform_binary_op(
-        BinaryOpCode.LOGICAL_AND,
-        a,
-        b,
-        out=out,
-        dtype=dtype,
-        out_dtype=dtype,
-        where=where,
-    )
-
-
-@add_boilerplate("a", "b")
-def logical_or(a, b, out=None, where=True, dtype=np.dtype(np.bool), **kwargs):
-    """
-    Compute the truth value of x1 OR x2 element-wise.
-
-    Parameters
-    ----------
-    x1, x2 : array_like
-        Logical OR is applied to the elements of `x1` and `x2`.
-        If ``x1.shape != x2.shape``, they must be broadcastable to a common
-        shape (which becomes the shape of the output).
-    out : ndarray, None, or tuple of ndarray and None, optional
-        A location into which the result is stored. If provided, it must have
-        a shape that the inputs broadcast to. If not provided or None,
-        a freshly-allocated array is returned. A tuple (possible only as a
-        keyword argument) must have length equal to the number of outputs.
-    where : array_like, optional
-        This condition is broadcast over the input. At locations where the
-        condition is True, the `out` array will be set to the ufunc result.
-        Elsewhere, the `out` array will retain its original value.
-        Note that if an uninitialized `out` array is created via the default
-        ``out=None``, locations within it where the condition is False will
-        remain uninitialized.
-    **kwargs
-        For other keyword-only arguments, see the
-        :ref:`ufunc docs <ufuncs.kwargs>`.
-
-    Returns
-    -------
-    y : ndarray or bool
-        Boolean result of the logical OR operation applied to the elements
-        of `x1` and `x2`; the shape is determined by broadcasting.
-        This is a scalar if both `x1` and `x2` are scalars.
-
-    See Also
-    --------
-    numpy.logical_or
-
-    Availability
-    --------
-    GPU, CPU
-    """
-    return ndarray.perform_binary_op(
-        BinaryOpCode.LOGICAL_OR,
-        a,
-        b,
-        out=out,
-        dtype=dtype,
-        out_dtype=dtype,
-        where=where,
-    )
-
-
-@add_boilerplate("a")
-def logical_not(a, out=None, where=True, dtype=None, **kwargs):
-    """
-    Compute the truth value of NOT x element-wise.
-
-    Parameters
-    ----------
-    x : array_like
-        Logical NOT is applied to the elements of `x`.
-    out : ndarray, None, or tuple of ndarray and None, optional
-        A location into which the result is stored. If provided, it must have
-        a shape that the inputs broadcast to. If not provided or None,
-        a freshly-allocated array is returned. A tuple (possible only as a
-        keyword argument) must have length equal to the number of outputs.
-    where : array_like, optional
-        This condition is broadcast over the input. At locations where the
-        condition is True, the `out` array will be set to the ufunc result.
-        Elsewhere, the `out` array will retain its original value.
-        Note that if an uninitialized `out` array is created via the default
-        ``out=None``, locations within it where the condition is False will
-        remain uninitialized.
-    **kwargs
-        For other keyword-only arguments, see the
-        :ref:`ufunc docs <ufuncs.kwargs>`.
-
-    Returns
-    -------
-    y : bool or ndarray of bool
-        Boolean result with the same shape as `x` of the NOT operation
-        on elements of `x`.
-        This is a scalar if `x` is a scalar.
-
-    See Also
-    --------
-    numpy.logical_not
-
-    Availability
-    --------
-    GPU, CPU
-    """
-    return ndarray.perform_unary_op(
-        UnaryOpCode.LOGICAL_NOT,
-        a,
-        dtype=dtype,
-        dst=out,
-        where=where,
-        out_dtype=np.dtype(np.bool_),
-    )
-
-
-@add_boilerplate("a", "b")
-def logical_xor(a, b, out=None, where=True, dtype=np.dtype(np.bool), **kwargs):
-    """
-    Compute the truth value of x1 XOR x2, element-wise.
-
-    Parameters
-    ----------
-    x1, x2 : array_like
-        Logical XOR is applied to the elements of `x1` and `x2`. If ``x1.shape
-        != x2.shape``, they must be broadcastable to a common shape (which
-        becomes the shape of the output).
-    out : ndarray, None, or tuple of ndarray and None, optional
-        A location into which the result is stored. If provided, it must have
-        a shape that the inputs broadcast to. If not provided or None,
-        a freshly-allocated array is returned. A tuple (possible only as a
-        keyword argument) must have length equal to the number of outputs.
-    where : array_like, optional
-        This condition is broadcast over the input. At locations where the
-        condition is True, the `out` array will be set to the ufunc result.
-        Elsewhere, the `out` array will retain its original value.
-        Note that if an uninitialized `out` array is created via the default
-        ``out=None``, locations within it where the condition is False will
-        remain uninitialized.
-    **kwargs
-        For other keyword-only arguments, see the
-        :ref:`ufunc docs <ufuncs.kwargs>`.
-
-    Returns
-    -------
-    y : bool or ndarray of bool
-        Boolean result of the logical XOR operation applied to the elements
-        of `x1` and `x2`; the shape is determined by broadcasting.
-        This is a scalar if both `x1` and `x2` are scalars.
-
-    See Also
-    --------
-    numpy.logical_xor
-
-    Availability
-    --------
-    GPU, CPU
-    """
-    return ndarray.perform_binary_op(
-        BinaryOpCode.LOGICAL_XOR,
-        a,
-        b,
-        out=out,
-        dtype=dtype,
-        out_dtype=dtype,
-        where=where,
-    )
 
 
 # Comparison
@@ -3105,14 +3063,14 @@ def allclose(a, b, rtol=1e-5, atol=1e-8, equal_nan=False):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     if equal_nan:
         raise NotImplementedError(
             "cuNumeric does not support equal NaN yet for allclose"
         )
     args = (np.array(rtol, dtype=np.float64), np.array(atol, dtype=np.float64))
-    return ndarray.perform_binary_reduction(
+    return ndarray._perform_binary_reduction(
         BinaryOpCode.ALLCLOSE,
         a,
         b,
@@ -3143,326 +3101,12 @@ def array_equal(a, b):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     if a.shape != b.shape:
         return False
-    return ndarray.perform_binary_reduction(
+    return ndarray._perform_binary_reduction(
         BinaryOpCode.EQUAL, a, b, dtype=np.dtype(np.bool_)
-    )
-
-
-@add_boilerplate("a", "b")
-def greater(a, b, out=None, where=True, dtype=np.dtype(np.bool), **kwargs):
-    """
-    Return the truth value of (x1 > x2) element-wise.
-
-    Parameters
-    ----------
-    x1, x2 : array_like
-        Input arrays. If ``x1.shape != x2.shape``, they must be broadcastable
-        to a common shape (which becomes the shape of the output).
-    out : ndarray, None, or tuple of ndarray and None, optional
-        A location into which the result is stored. If provided, it must have
-        a shape that the inputs broadcast to. If not provided or None,
-        a freshly-allocated array is returned. A tuple (possible only as a
-        keyword argument) must have length equal to the number of outputs.
-    where : array_like, optional
-        This condition is broadcast over the input. At locations where the
-        condition is True, the `out` array will be set to the ufunc result.
-        Elsewhere, the `out` array will retain its original value.
-        Note that if an uninitialized `out` array is created via the default
-        ``out=None``, locations within it where the condition is False will
-        remain uninitialized.
-    **kwargs
-        For other keyword-only arguments, see the
-        :ref:`ufunc docs <ufuncs.kwargs>`.
-
-    Returns
-    -------
-    out : ndarray or scalar
-        Output array, element-wise comparison of `x1` and `x2`.
-        Typically of type bool, unless ``dtype=object`` is passed.
-        This is a scalar if both `x1` and `x2` are scalars.
-
-        See Also
-        --------
-        numpy.greater
-
-        Availability
-        --------
-        GPU, CPU
-    """
-    return ndarray.perform_binary_op(
-        BinaryOpCode.GREATER,
-        a,
-        b,
-        out=out,
-        dtype=dtype,
-        out_dtype=dtype,
-        where=where,
-    )
-
-
-@add_boilerplate("a", "b")
-def greater_equal(
-    a, b, out=None, where=True, dtype=np.dtype(np.bool), **kwargs
-):
-    """
-    Return the truth value of (x1 >= x2) element-wise.
-
-    Parameters
-    ----------
-    x1, x2 : array_like
-        Input arrays. If ``x1.shape != x2.shape``, they must be broadcastable
-        to a common shape (which becomes the shape of the output).
-    out : ndarray, None, or tuple of ndarray and None, optional
-        A location into which the result is stored. If provided, it must have
-        a shape that the inputs broadcast to. If not provided or None,
-        a freshly-allocated array is returned. A tuple (possible only as a
-        keyword argument) must have length equal to the number of outputs.
-    where : array_like, optional
-        This condition is broadcast over the input. At locations where the
-        condition is True, the `out` array will be set to the ufunc result.
-        Elsewhere, the `out` array will retain its original value.
-        Note that if an uninitialized `out` array is created via the default
-        ``out=None``, locations within it where the condition is False will
-        remain uninitialized.
-    **kwargs
-        For other keyword-only arguments, see the
-        :ref:`ufunc docs <ufuncs.kwargs>`.
-
-    Returns
-    -------
-    out : bool or ndarray of bool
-        Output array, element-wise comparison of `x1` and `x2`.
-        Typically of type bool, unless ``dtype=object`` is passed.
-        This is a scalar if both `x1` and `x2` are scalars.
-
-    See Also
-    --------
-    numpy.greater_equal
-
-    Availability
-    --------
-    GPU, CPU
-    """
-    return ndarray.perform_binary_op(
-        BinaryOpCode.GREATER_EQUAL,
-        a,
-        b,
-        out=out,
-        dtype=dtype,
-        out_dtype=dtype,
-        where=where,
-    )
-
-
-@add_boilerplate("a", "b")
-def less(a, b, out=None, where=True, dtype=np.dtype(np.bool), **kwargs):
-    """
-    Return the truth value of (x1 < x2) element-wise.
-
-    Parameters
-    ----------
-    x1, x2 : array_like
-        Input arrays. If ``x1.shape != x2.shape``, they must be broadcastable
-        to a common shape (which becomes the shape of the output).
-    out : ndarray, None, or tuple of ndarray and None, optional
-        A location into which the result is stored. If provided, it must have
-        a shape that the inputs broadcast to. If not provided or None,
-        a freshly-allocated array is returned. A tuple (possible only as a
-        keyword argument) must have length equal to the number of outputs.
-    where : array_like, optional
-        This condition is broadcast over the input. At locations where the
-        condition is True, the `out` array will be set to the ufunc result.
-        Elsewhere, the `out` array will retain its original value.
-        Note that if an uninitialized `out` array is created via the default
-        ``out=None``, locations within it where the condition is False will
-        remain uninitialized.
-    **kwargs
-        For other keyword-only arguments, see the
-        :ref:`ufunc docs <ufuncs.kwargs>`.
-
-    Returns
-    -------
-    out : ndarray or scalar
-        Output array, element-wise comparison of `x1` and `x2`.
-        Typically of type bool, unless ``dtype=object`` is passed.
-        This is a scalar if both `x1` and `x2` are scalars.
-
-    See Also
-    --------
-    numpy.less
-
-    Availability
-    --------
-    GPU, CPU
-    """
-    return ndarray.perform_binary_op(
-        BinaryOpCode.LESS,
-        a,
-        b,
-        out=out,
-        dtype=dtype,
-        out_dtype=dtype,
-        where=where,
-    )
-
-
-@add_boilerplate("a", "b")
-def less_equal(a, b, out=None, where=True, dtype=np.dtype(np.bool), **kwargs):
-    """
-    Return the truth value of (x1 =< x2) element-wise.
-
-    Parameters
-    ----------
-    x1, x2 : array_like
-        Input arrays. If ``x1.shape != x2.shape``, they must be broadcastable
-        to a common shape (which becomes the shape of the output).
-    out : ndarray, None, or tuple of ndarray and None, optional
-        A location into which the result is stored. If provided, it must have
-        a shape that the inputs broadcast to. If not provided or None,
-        a freshly-allocated array is returned. A tuple (possible only as a
-        keyword argument) must have length equal to the number of outputs.
-    where : array_like, optional
-        This condition is broadcast over the input. At locations where the
-        condition is True, the `out` array will be set to the ufunc result.
-        Elsewhere, the `out` array will retain its original value.
-        Note that if an uninitialized `out` array is created via the default
-        ``out=None``, locations within it where the condition is False will
-        remain uninitialized.
-    **kwargs
-        For other keyword-only arguments, see the
-        :ref:`ufunc docs <ufuncs.kwargs>`.
-
-    Returns
-    -------
-    out : ndarray or scalar
-        Output array, element-wise comparison of `x1` and `x2`.
-        Typically of type bool, unless ``dtype=object`` is passed.
-        This is a scalar if both `x1` and `x2` are scalars.
-
-    See Also
-    --------
-    numpy.less_equal
-
-    Availability
-    --------
-    GPU, CPU
-    """
-    return ndarray.perform_binary_op(
-        BinaryOpCode.LESS_EQUAL,
-        a,
-        b,
-        out=out,
-        dtype=dtype,
-        out_dtype=dtype,
-        where=where,
-    )
-
-
-@add_boilerplate("a", "b")
-def equal(a, b, out=None, where=True, dtype=np.dtype(np.bool), **kwargs):
-    """
-    Return (x1 == x2) element-wise.
-
-    Parameters
-    ----------
-    x1, x2 : array_like
-        Input arrays. If ``x1.shape != x2.shape``, they must be broadcastable
-        to a common shape (which becomes the shape of the output).
-    out : ndarray, None, or tuple of ndarray and None, optional
-        A location into which the result is stored. If provided, it must have
-        a shape that the inputs broadcast to. If not provided or None,
-        a freshly-allocated array is returned. A tuple (possible only as a
-        keyword argument) must have length equal to the number of outputs.
-    where : array_like, optional
-        This condition is broadcast over the input. At locations where the
-        condition is True, the `out` array will be set to the ufunc result.
-        Elsewhere, the `out` array will retain its original value.
-        Note that if an uninitialized `out` array is created via the default
-        ``out=None``, locations within it where the condition is False will
-        remain uninitialized.
-    **kwargs
-        For other keyword-only arguments, see the
-        :ref:`ufunc docs <ufuncs.kwargs>`.
-
-    Returns
-    -------
-    out : ndarray or scalar
-        Output array, element-wise comparison of `x1` and `x2`.
-        Typically of type bool, unless ``dtype=object`` is passed.
-        This is a scalar if both `x1` and `x2` are scalars.
-
-    See Also
-    --------
-    numpy.equal
-
-    Availability
-    --------
-    GPU, CPU
-    """
-    return ndarray.perform_binary_op(
-        BinaryOpCode.EQUAL,
-        a,
-        b,
-        out=out,
-        dtype=dtype,
-        out_dtype=dtype,
-        where=where,
-    )
-
-
-@add_boilerplate("a", "b")
-def not_equal(a, b, out=None, where=True, dtype=np.dtype(np.bool), **kwargs):
-    """
-    Return (x1 != x2) element-wise.
-
-    Parameters
-    ----------
-    x1, x2 : array_like
-        Input arrays.  If ``x1.shape != x2.shape``, they must be broadcastable
-        to a common shape (which becomes the shape of the output).
-    out : ndarray, None, or tuple of ndarray and None, optional
-        A location into which the result is stored. If provided, it must have
-        a shape that the inputs broadcast to. If not provided or None,
-        a freshly-allocated array is returned. A tuple (possible only as a
-        keyword argument) must have length equal to the number of outputs.
-    where : array_like, optional
-        This condition is broadcast over the input. At locations where the
-        condition is True, the `out` array will be set to the ufunc result.
-        Elsewhere, the `out` array will retain its original value.
-        Note that if an uninitialized `out` array is created via the default
-        ``out=None``, locations within it where the condition is False will
-        remain uninitialized.
-    **kwargs
-        For other keyword-only arguments, see the
-        :ref:`ufunc docs <ufuncs.kwargs>`.
-
-    Returns
-    -------
-    out : ndarray or scalar
-        Output array, element-wise comparison of `x1` and `x2`.
-        Typically of type bool, unless ``dtype=object`` is passed.
-        This is a scalar if both `x1` and `x2` are scalars.
-
-    See Also
-    --------
-    numpy.not_equal
-
-    Availability
-    --------
-    GPU, CPU
-    """
-    return ndarray.perform_binary_op(
-        BinaryOpCode.NOT_EQUAL,
-        a,
-        b,
-        out=out,
-        dtype=dtype,
-        out_dtype=dtype,
-        where=where,
     )
 
 
@@ -3473,524 +3117,10 @@ def not_equal(a, b, out=None, where=True, dtype=np.dtype(np.bool), **kwargs):
 # Trigonometric functions
 
 
-@add_boilerplate("a")
-def sin(a, out=None, where=True, dtype=None, **kwargs):
-    """
-    Trigonometric sine, element-wise.
-
-    Parameters
-    ----------
-    x : array_like
-        Angle, in radians (:math:`2 \\pi` rad equals 360 degrees).
-    out : ndarray, None, or tuple of ndarray and None, optional
-        A location into which the result is stored. If provided, it must have
-        a shape that the inputs broadcast to. If not provided or None,
-        a freshly-allocated array is returned. A tuple (possible only as a
-        keyword argument) must have length equal to the number of outputs.
-    where : array_like, optional
-        This condition is broadcast over the input. At locations where the
-        condition is True, the `out` array will be set to the ufunc result.
-        Elsewhere, the `out` array will retain its original value.
-        Note that if an uninitialized `out` array is created via the default
-        ``out=None``, locations within it where the condition is False will
-        remain uninitialized.
-    **kwargs
-        For other keyword-only arguments, see the
-        :ref:`ufunc docs <ufuncs.kwargs>`.
-
-    Returns
-    -------
-    y : array_like
-        The sine of each element of x.
-        This is a scalar if `x` is a scalar.
-
-    See Also
-    --------
-    numpy.sin
-
-    Availability
-    --------
-    GPU, CPU
-    """
-    return ndarray.perform_unary_op(
-        UnaryOpCode.SIN,
-        a,
-        dtype=dtype,
-        dst=out,
-        where=where,
-        out_dtype=_output_float_dtype(a),
-    )
-
-
-@add_boilerplate("a")
-def cos(a, out=None, where=True, dtype=None, **kwargs):
-    """
-    Cosine element-wise.
-
-    Parameters
-    ----------
-    x : array_like
-        Input array in radians.
-    out : ndarray, None, or tuple of ndarray and None, optional
-        A location into which the result is stored. If provided, it must have
-        a shape that the inputs broadcast to. If not provided or None,
-        a freshly-allocated array is returned. A tuple (possible only as a
-        keyword argument) must have length equal to the number of outputs.
-    where : array_like, optional
-        This condition is broadcast over the input. At locations where the
-        condition is True, the `out` array will be set to the ufunc result.
-        Elsewhere, the `out` array will retain its original value.
-        Note that if an uninitialized `out` array is created via the default
-        ``out=None``, locations within it where the condition is False will
-        remain uninitialized.
-    **kwargs
-        For other keyword-only arguments, see the
-        :ref:`ufunc docs <ufuncs.kwargs>`.
-
-    Returns
-    -------
-    y : ndarray
-        The corresponding cosine values.
-        This is a scalar if `x` is a scalar.
-
-    Notes
-    -----
-    If `out` is provided, the function writes the result into it,
-    and returns a reference to `out`.  (See
-
-    See Also
-    --------
-    numpy.cos
-
-    Availability
-    --------
-    GPU, CPU
-    """
-    return ndarray.perform_unary_op(
-        UnaryOpCode.COS,
-        a,
-        dtype=dtype,
-        dst=out,
-        where=where,
-        out_dtype=_output_float_dtype(a),
-    )
-
-
-@add_boilerplate("a")
-def tan(a, out=None, where=True, dtype=None, **kwargs):
-    """
-    Compute tangent element-wise.
-
-    Parameters
-    ----------
-    x : array_like
-        Input array.
-    out : ndarray, None, or tuple of ndarray and None, optional
-        A location into which the result is stored. If provided, it must have
-        a shape that the inputs broadcast to. If not provided or None,
-        a freshly-allocated array is returned. A tuple (possible only as a
-        keyword argument) must have length equal to the number of outputs.
-    where : array_like, optional
-        This condition is broadcast over the input. At locations where the
-        condition is True, the `out` array will be set to the ufunc result.
-        Elsewhere, the `out` array will retain its original value.
-        Note that if an uninitialized `out` array is created via the default
-        ``out=None``, locations within it where the condition is False will
-        remain uninitialized.
-    **kwargs
-        For other keyword-only arguments, see the
-        :ref:`ufunc docs <ufuncs.kwargs>`.
-
-    Returns
-    -------
-    y : ndarray
-        The corresponding tangent values.
-        This is a scalar if `x` is a scalar.
-
-    Notes
-    -----
-    If `out` is provided, the function writes the result into it,
-    and returns a reference to `out`.  (See
-
-    See Also
-    --------
-    numpy.tan
-
-    Availability
-    --------
-    GPU, CPU
-    """
-    return ndarray.perform_unary_op(
-        UnaryOpCode.TAN,
-        a,
-        dtype=dtype,
-        dst=out,
-        where=where,
-        out_dtype=_output_float_dtype(a),
-    )
-
-
-@add_boilerplate("a")
-def arcsin(a, out=None, where=True, dtype=None, **kwargs):
-    """
-    Inverse sine, element-wise.
-
-    Parameters
-    ----------
-    x : array_like
-        `y`-coordinate on the unit circle.
-    out : ndarray, None, or tuple of ndarray and None, optional
-        A location into which the result is stored. If provided, it must have
-        a shape that the inputs broadcast to. If not provided or None,
-        a freshly-allocated array is returned. A tuple (possible only as a
-        keyword argument) must have length equal to the number of outputs.
-    where : array_like, optional
-        This condition is broadcast over the input. At locations where the
-        condition is True, the `out` array will be set to the ufunc result.
-        Elsewhere, the `out` array will retain its original value.
-        Note that if an uninitialized `out` array is created via the default
-        ``out=None``, locations within it where the condition is False will
-        remain uninitialized.
-    **kwargs
-        For other keyword-only arguments, see the
-        :ref:`ufunc docs <ufuncs.kwargs>`.
-
-    Returns
-    -------
-    angle : ndarray
-        The inverse sine of each element in `x`, in radians and in the
-        closed interval ``[-pi/2, pi/2]``.
-        This is a scalar if `x` is a scalar.
-
-    See Also
-    --------
-    numpy.arcsin
-
-    Availability
-    --------
-    GPU, CPU
-    """
-    return ndarray.perform_unary_op(
-        UnaryOpCode.ARCSIN,
-        a,
-        dtype=dtype,
-        dst=out,
-        where=where,
-        out_dtype=_output_float_dtype(a),
-    )
-
-
-@add_boilerplate("a")
-def arccos(a, out=None, where=True, dtype=None, **kwargs):
-    """
-    Trigonometric inverse cosine, element-wise.
-
-    The inverse of `cos` so that, if ``y = cos(x)``, then ``x = arccos(y)``.
-
-    Parameters
-    ----------
-    x : array_like
-        `x`-coordinate on the unit circle.
-        For real arguments, the domain is [-1, 1].
-    out : ndarray, None, or tuple of ndarray and None, optional
-        A location into which the result is stored. If provided, it must have
-        a shape that the inputs broadcast to. If not provided or None,
-        a freshly-allocated array is returned. A tuple (possible only as a
-        keyword argument) must have length equal to the number of outputs.
-    where : array_like, optional
-        This condition is broadcast over the input. At locations where the
-        condition is True, the `out` array will be set to the ufunc result.
-        Elsewhere, the `out` array will retain its original value.
-        Note that if an uninitialized `out` array is created via the default
-        ``out=None``, locations within it where the condition is False will
-        remain uninitialized.
-    **kwargs
-        For other keyword-only arguments, see the
-        :ref:`ufunc docs <ufuncs.kwargs>`.
-
-    Returns
-    -------
-    angle : ndarray
-        The angle of the ray intersecting the unit circle at the given
-        `x`-coordinate in radians [0, pi].
-        This is a scalar if `x` is a scalar.
-
-    See Also
-    --------
-    numpy.arccos
-
-    Availability
-    --------
-    GPU, CPU
-    """
-    return ndarray.perform_unary_op(
-        UnaryOpCode.ARCCOS,
-        a,
-        dtype=dtype,
-        dst=out,
-        where=where,
-        out_dtype=_output_float_dtype(a),
-    )
-
-
-@add_boilerplate("a")
-def arctan(a, out=None, where=True, dtype=None, **kwargs):
-    """
-    Trigonometric inverse tangent, element-wise.
-
-    The inverse of tan, so that if ``y = tan(x)`` then ``x = arctan(y)``.
-
-    Parameters
-    ----------
-    x : array_like
-    out : ndarray, None, or tuple of ndarray and None, optional
-        A location into which the result is stored. If provided, it must have
-        a shape that the inputs broadcast to. If not provided or None,
-        a freshly-allocated array is returned. A tuple (possible only as a
-        keyword argument) must have length equal to the number of outputs.
-    where : array_like, optional
-        This condition is broadcast over the input. At locations where the
-        condition is True, the `out` array will be set to the ufunc result.
-        Elsewhere, the `out` array will retain its original value.
-        Note that if an uninitialized `out` array is created via the default
-        ``out=None``, locations within it where the condition is False will
-        remain uninitialized.
-    **kwargs
-        For other keyword-only arguments, see the
-        :ref:`ufunc docs <ufuncs.kwargs>`.
-
-    Returns
-    -------
-    out : ndarray or scalar
-        Out has the same shape as `x`.  Its real part is in
-        ``[-pi/2, pi/2]`` (``arctan(+/-inf)`` returns ``+/-pi/2``).
-        This is a scalar if `x` is a scalar.
-
-    See Also
-    --------
-    numpy.arctan
-
-    Availability
-    --------
-    GPU, CPU
-    """
-    return ndarray.perform_unary_op(
-        UnaryOpCode.ARCTAN,
-        a,
-        dtype=dtype,
-        dst=out,
-        where=where,
-        out_dtype=_output_float_dtype(a),
-    )
-
-
 # Hyperbolic functions
 
 
-@add_boilerplate("a")
-def tanh(a, out=None, where=True, dtype=None, **kwargs):
-    """
-    Compute hyperbolic tangent element-wise.
-
-    Parameters
-    ----------
-    x : array_like
-        Input array.
-    out : ndarray, None, or tuple of ndarray and None, optional
-        A location into which the result is stored. If provided, it must have
-        a shape that the inputs broadcast to. If not provided or None,
-        a freshly-allocated array is returned. A tuple (possible only as a
-        keyword argument) must have length equal to the number of outputs.
-    where : array_like, optional
-        This condition is broadcast over the input. At locations where the
-        condition is True, the `out` array will be set to the ufunc result.
-        Elsewhere, the `out` array will retain its original value.
-        Note that if an uninitialized `out` array is created via the default
-        ``out=None``, locations within it where the condition is False will
-        remain uninitialized.
-    **kwargs
-        For other keyword-only arguments, see the
-        :ref:`ufunc docs <ufuncs.kwargs>`.
-
-    Returns
-    -------
-    y : ndarray
-        The corresponding hyperbolic tangent values.
-        This is a scalar if `x` is a scalar.
-
-    Notes
-    -----
-    If `out` is provided, the function writes the result into it,
-    and returns a reference to `out`.  (See
-
-    See Also
-    --------
-    numpy.tanh
-
-    Availability
-    --------
-    GPU, CPU
-    """
-    return ndarray.perform_unary_op(
-        UnaryOpCode.TANH,
-        a,
-        dtype=dtype,
-        dst=out,
-        where=where,
-        out_dtype=_output_float_dtype(a),
-    )
-
-
 # Rounding
-
-
-@add_boilerplate("a")
-def rint(a, out=None, where=True, dtype=None, **kwargs):
-    """
-    Round elements of the array to the nearest integer.
-
-    Parameters
-    ----------
-    x : array_like
-        Input array.
-    out : ndarray, None, or tuple of ndarray and None, optional
-        A location into which the result is stored. If provided, it must have
-        a shape that the inputs broadcast to. If not provided or None,
-        a freshly-allocated array is returned. A tuple (possible only as a
-        keyword argument) must have length equal to the number of outputs.
-    where : array_like, optional
-        This condition is broadcast over the input. At locations where the
-        condition is True, the `out` array will be set to the ufunc result.
-        Elsewhere, the `out` array will retain its original value.
-        Note that if an uninitialized `out` array is created via the default
-        ``out=None``, locations within it where the condition is False will
-        remain uninitialized.
-    **kwargs
-        For other keyword-only arguments, see the
-        :ref:`ufunc docs <ufuncs.kwargs>`.
-
-    Returns
-    -------
-    out : ndarray or scalar
-        Output array is same shape and type as `x`.
-        This is a scalar if `x` is a scalar.
-
-    See Also
-    --------
-    numpy.rint
-
-    Availability
-    --------
-    GPU, CPU
-    """
-    return ndarray.perform_unary_op(
-        UnaryOpCode.RINT,
-        a,
-        dtype=dtype,
-        dst=out,
-        where=where,
-        out_dtype=_output_float_dtype(a),
-    )
-
-
-@add_boilerplate("a")
-def floor(a, out=None, where=True, dtype=None, **kwargs):
-    """
-    Return the floor of the input, element-wise.
-
-    The floor of the scalar `x` is the largest integer `i`, such that
-    `i <= x`.  It is often denoted as :math:`\\lfloor x \\rfloor`.
-
-    Parameters
-    ----------
-    x : array_like
-        Input data.
-    out : ndarray, None, or tuple of ndarray and None, optional
-        A location into which the result is stored. If provided, it must have
-        a shape that the inputs broadcast to. If not provided or None,
-        a freshly-allocated array is returned. A tuple (possible only as a
-        keyword argument) must have length equal to the number of outputs.
-    where : array_like, optional
-        This condition is broadcast over the input. At locations where the
-        condition is True, the `out` array will be set to the ufunc result.
-        Elsewhere, the `out` array will retain its original value.
-        Note that if an uninitialized `out` array is created via the default
-        ``out=None``, locations within it where the condition is False will
-        remain uninitialized.
-    **kwargs
-        For other keyword-only arguments, see the
-        :ref:`ufunc docs <ufuncs.kwargs>`.
-
-    Returns
-    -------
-    y : ndarray or scalar
-        The floor of each element in `x`.
-        This is a scalar if `x` is a scalar.
-
-    See Also
-    --------
-    numpy.floor
-
-    Availability
-    --------
-    GPU, CPU
-    """
-    # If this is an integer array then there is nothing to do for floor
-    if a.dtype.kind in ("i", "u", "b"):
-        return a
-    return ndarray.perform_unary_op(
-        UnaryOpCode.FLOOR, a, dst=out, dtype=dtype, where=where
-    )
-
-
-@add_boilerplate("a")
-def ceil(a, out=None, where=True, dtype=None, **kwargs):
-    """
-    Return the ceiling of the input, element-wise.
-
-    The ceil of the scalar `x` is the smallest integer `i`, such that
-    `i >= x`.  It is often denoted as :math:`\\lceil x \\rceil`.
-
-    Parameters
-    ----------
-    x : array_like
-        Input data.
-    out : ndarray, None, or tuple of ndarray and None, optional
-        A location into which the result is stored. If provided, it must have
-        a shape that the inputs broadcast to. If not provided or None,
-        a freshly-allocated array is returned. A tuple (possible only as a
-        keyword argument) must have length equal to the number of outputs.
-    where : array_like, optional
-        This condition is broadcast over the input. At locations where the
-        condition is True, the `out` array will be set to the ufunc result.
-        Elsewhere, the `out` array will retain its original value.
-        Note that if an uninitialized `out` array is created via the default
-        ``out=None``, locations within it where the condition is False will
-        remain uninitialized.
-    **kwargs
-        For other keyword-only arguments, see the
-        :ref:`ufunc docs <ufuncs.kwargs>`.
-
-    Returns
-    -------
-    y : ndarray or scalar
-        The ceiling of each element in `x`, with `float` dtype.
-        This is a scalar if `x` is a scalar.
-
-    See Also
-    --------
-    numpy.ceil
-
-    Availability
-    --------
-    GPU, CPU
-    """
-    # If this is an integer array then there is nothing to do for ceil
-    if a.dtype.kind in ("i", "u", "b"):
-        return a
-    return ndarray.perform_unary_op(
-        UnaryOpCode.CEIL, a, dst=out, dtype=dtype, where=where
-    )
 
 
 # Sums, products, differences
@@ -4014,7 +3144,7 @@ def prod(
     ----------
     a : array_like
         Input data.
-    axis : None or int or tuple of ints, optional
+    axis : None or int or tuple[int], optional
         Axis or axes along which a product is performed.  The default,
         axis=None, will calculate the product of all the elements in the
         input array. If axis is negative it counts from the last to the
@@ -4023,7 +3153,7 @@ def prod(
         If axis is a tuple of ints, a product is performed on all of the
         axes specified in the tuple instead of a single axis or all the
         axes as before.
-    dtype : dtype, optional
+    dtype : data-type, optional
         The type of the returned array, as well as of the accumulator in
         which the elements are multiplied.  The dtype of `a` is used by
         default unless `a` has an integer dtype of less precision than the
@@ -4048,7 +3178,7 @@ def prod(
         The starting value for this product. See `~cunumeric.ufunc.reduce` for
         details.
 
-    where : array_like of bool, optional
+    where : array_like[bool], optional
         Elements to include in the product. See `~cunumeric.ufunc.reduce` for
         details.
 
@@ -4064,9 +3194,10 @@ def prod(
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
-    return a.prod(
+    return multiply.reduce(
+        a,
         axis=axis,
         dtype=dtype,
         out=out,
@@ -4094,7 +3225,7 @@ def sum(
     ----------
     a : array_like
         Elements to sum.
-    axis : None or int or tuple of ints, optional
+    axis : None or int or tuple[int], optional
         Axis or axes along which a sum is performed.  The default,
         axis=None, will sum all of the elements of the input array.  If
         axis is negative it counts from the last to the first axis.
@@ -4102,7 +3233,7 @@ def sum(
         If axis is a tuple of ints, a sum is performed on all of the axes
         specified in the tuple instead of a single axis or all the axes as
         before.
-    dtype : dtype, optional
+    dtype : data-type, optional
         The type of the returned array and of the accumulator in which the
         elements are summed.  The dtype of `a` is used by default unless `a`
         has an integer dtype of less precision than the default platform
@@ -4126,7 +3257,7 @@ def sum(
     initial : scalar, optional
         Starting value for the sum. See `~cunumeric.ufunc.reduce` for details.
 
-    where : array_like of bool, optional
+    where : array_like[bool], optional
         Elements to include in the sum. See `~cunumeric.ufunc.reduce` for
         details.
 
@@ -4144,9 +3275,10 @@ def sum(
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
-    return a.sum(
+    return add.reduce(
+        a,
         axis=axis,
         dtype=dtype,
         out=out,
@@ -4159,716 +3291,8 @@ def sum(
 # Exponents and logarithms
 
 
-@add_boilerplate("a")
-def exp(a, out=None, where=True, dtype=None, **kwargs):
-    """
-    Calculate the exponential of all elements in the input array.
-
-    Parameters
-    ----------
-    x : array_like
-        Input values.
-    out : ndarray, None, or tuple of ndarray and None, optional
-        A location into which the result is stored. If provided, it must have
-        a shape that the inputs broadcast to. If not provided or None,
-        a freshly-allocated array is returned. A tuple (possible only as a
-        keyword argument) must have length equal to the number of outputs.
-    where : array_like, optional
-        This condition is broadcast over the input. At locations where the
-        condition is True, the `out` array will be set to the ufunc result.
-        Elsewhere, the `out` array will retain its original value.
-        Note that if an uninitialized `out` array is created via the default
-        ``out=None``, locations within it where the condition is False will
-        remain uninitialized.
-    **kwargs
-        For other keyword-only arguments, see the
-        :ref:`ufunc docs <ufuncs.kwargs>`.
-
-    Returns
-    -------
-    out : ndarray or scalar
-        Output array, element-wise exponential of `x`.
-        This is a scalar if `x` is a scalar.
-
-    See Also
-    --------
-    numpy.exp
-
-    Availability
-    --------
-    GPU, CPU
-    """
-    return ndarray.perform_unary_op(
-        UnaryOpCode.EXP,
-        a,
-        dtype=dtype,
-        dst=out,
-        where=where,
-        out_dtype=_output_float_dtype(a),
-    )
-
-
-@add_boilerplate("a")
-def exp2(a, out=None, where=True, dtype=None, **kwargs):
-    """
-    Calculate `2**p` for all `p` in the input array.
-
-    Parameters
-    ----------
-    x : array_like
-        Input values.
-    out : ndarray, None, or tuple of ndarray and None, optional
-        A location into which the result is stored. If provided, it must have
-        a shape that the inputs broadcast to. If not provided or None,
-        a freshly-allocated array is returned. A tuple (possible only as a
-        keyword argument) must have length equal to the number of outputs.
-    where : array_like, optional
-        This condition is broadcast over the input. At locations where the
-        condition is True, the `out` array will be set to the ufunc result.
-        Elsewhere, the `out` array will retain its original value.
-        Note that if an uninitialized `out` array is created via the default
-        ``out=None``, locations within it where the condition is False will
-        remain uninitialized.
-    **kwargs
-        For other keyword-only arguments, see the
-        :ref:`ufunc docs <ufuncs.kwargs>`.
-
-    Returns
-    -------
-    out : ndarray or scalar
-        Element-wise 2 to the power `x`.
-        This is a scalar if `x` is a scalar.
-
-    See Also
-    --------
-    numpy.exp2
-
-    Availability
-    --------
-    GPU, CPU
-    """
-    return ndarray.perform_unary_op(
-        UnaryOpCode.EXP2,
-        a,
-        dtype=dtype,
-        dst=out,
-        where=where,
-        out_dtype=_output_float_dtype(a),
-    )
-
-
-@add_boilerplate("a")
-def log(a, out=None, where=True, dtype=None, **kwargs):
-    """
-    Natural logarithm, element-wise.
-
-    The natural logarithm `log` is the inverse of the exponential function,
-    so that `log(exp(x)) = x`. The natural logarithm is logarithm in base
-    `e`.
-
-    Parameters
-    ----------
-    x : array_like
-        Input value.
-    out : ndarray, None, or tuple of ndarray and None, optional
-        A location into which the result is stored. If provided, it must have
-        a shape that the inputs broadcast to. If not provided or None,
-        a freshly-allocated array is returned. A tuple (possible only as a
-        keyword argument) must have length equal to the number of outputs.
-    where : array_like, optional
-        This condition is broadcast over the input. At locations where the
-        condition is True, the `out` array will be set to the ufunc result.
-        Elsewhere, the `out` array will retain its original value.
-        Note that if an uninitialized `out` array is created via the default
-        ``out=None``, locations within it where the condition is False will
-        remain uninitialized.
-    **kwargs
-        For other keyword-only arguments, see the
-        :ref:`ufunc docs <ufuncs.kwargs>`.
-
-    Returns
-    -------
-    y : ndarray
-        The natural logarithm of `x`, element-wise.
-        This is a scalar if `x` is a scalar.
-
-    See Also
-    --------
-    numpy.log
-
-    Availability
-    --------
-    GPU, CPU
-    """
-    return ndarray.perform_unary_op(
-        UnaryOpCode.LOG,
-        a,
-        dtype=dtype,
-        dst=out,
-        where=where,
-        out_dtype=_output_float_dtype(a),
-    )
-
-
-@add_boilerplate("a")
-def log10(a, out=None, where=True, dtype=None, **kwargs):
-    """
-    Return the base 10 logarithm of the input array, element-wise.
-
-    Parameters
-    ----------
-    x : array_like
-        Input values.
-    out : ndarray, None, or tuple of ndarray and None, optional
-        A location into which the result is stored. If provided, it must have
-        a shape that the inputs broadcast to. If not provided or None,
-        a freshly-allocated array is returned. A tuple (possible only as a
-        keyword argument) must have length equal to the number of outputs.
-    where : array_like, optional
-        This condition is broadcast over the input. At locations where the
-        condition is True, the `out` array will be set to the ufunc result.
-        Elsewhere, the `out` array will retain its original value.
-        Note that if an uninitialized `out` array is created via the default
-        ``out=None``, locations within it where the condition is False will
-        remain uninitialized.
-    **kwargs
-        For other keyword-only arguments, see the
-        :ref:`ufunc docs <ufuncs.kwargs>`.
-
-    Returns
-    -------
-    y : ndarray
-        The logarithm to the base 10 of `x`, element-wise. NaNs are
-        returned where x is negative.
-        This is a scalar if `x` is a scalar.
-
-    See Also
-    --------
-    numpy.log10
-
-    Availability
-    --------
-    GPU, CPU
-    """
-    return ndarray.perform_unary_op(
-        UnaryOpCode.LOG10,
-        a,
-        dtype=dtype,
-        dst=out,
-        where=where,
-        out_dtype=_output_float_dtype(a),
-    )
-
-
 # Arithmetic operations
 
-
-@add_boilerplate("a", "b")
-def add(a, b, out=None, where=True, dtype=None):
-    """
-    Add arguments element-wise.
-
-    Parameters
-    ----------
-    x1, x2 : array_like
-        The arrays to be added. If ``x1.shape != x2.shape``, they must be
-        broadcastable to a common shape (which becomes the shape of the
-        output).
-    out : ndarray, None, or tuple of ndarray and None, optional
-        A location into which the result is stored. If provided, it must have
-        a shape that the inputs broadcast to. If not provided or None,
-        a freshly-allocated array is returned. A tuple (possible only as a
-        keyword argument) must have length equal to the number of outputs.
-    where : array_like, optional
-        This condition is broadcast over the input. At locations where the
-        condition is True, the `out` array will be set to the ufunc result.
-        Elsewhere, the `out` array will retain its original value.
-        Note that if an uninitialized `out` array is created via the default
-        ``out=None``, locations within it where the condition is False will
-        remain uninitialized.
-    **kwargs
-        For other keyword-only arguments, see the
-        :ref:`ufunc docs <ufuncs.kwargs>`.
-
-    Returns
-    -------
-    add : ndarray or scalar
-        The sum of `x1` and `x2`, element-wise.
-        This is a scalar if both `x1` and `x2` are scalars.
-
-    Notes
-    -----
-    Equivalent to `x1` + `x2` in terms of array broadcasting.
-
-    See Also
-    --------
-    numpy.add
-
-    Availability
-    --------
-    GPU, CPU
-    """
-    return ndarray.perform_binary_op(
-        BinaryOpCode.ADD,
-        a,
-        b,
-        out=out,
-        dtype=dtype,
-        out_dtype=dtype,
-        where=where,
-    )
-
-
-@add_boilerplate("a")
-def negative(a, out=None, where=True, dtype=None, **kwargs):
-    """
-    Numerical negative, element-wise.
-
-    Parameters
-    ----------
-    x : array_like or scalar
-        Input array.
-    out : ndarray, None, or tuple of ndarray and None, optional
-        A location into which the result is stored. If provided, it must have
-        a shape that the inputs broadcast to. If not provided or None,
-        a freshly-allocated array is returned. A tuple (possible only as a
-        keyword argument) must have length equal to the number of outputs.
-    where : array_like, optional
-        This condition is broadcast over the input. At locations where the
-        condition is True, the `out` array will be set to the ufunc result.
-        Elsewhere, the `out` array will retain its original value.
-        Note that if an uninitialized `out` array is created via the default
-        ``out=None``, locations within it where the condition is False will
-        remain uninitialized.
-    **kwargs
-        For other keyword-only arguments, see the
-        :ref:`ufunc docs <ufuncs.kwargs>`.
-
-    Returns
-    -------
-    y : ndarray or scalar
-        Returned array or scalar: `y = -x`.
-        This is a scalar if `x` is a scalar.
-
-    See Also
-    --------
-    numpy.negative
-
-    Availability
-    --------
-    GPU, CPU
-    """
-    return ndarray.perform_unary_op(
-        UnaryOpCode.NEGATIVE, a, dtype=dtype, dst=out, where=where
-    )
-
-
-@add_boilerplate("a", "b")
-def multiply(a, b, out=None, where=True, dtype=None):
-    """
-    Multiply arguments element-wise.
-
-    Parameters
-    ----------
-    x1, x2 : array_like
-        Input arrays to be multiplied. If ``x1.shape != x2.shape``, they must
-        be broadcastable to a common shape (which becomes the shape of the
-        output).
-    out : ndarray, None, or tuple of ndarray and None, optional
-        A location into which the result is stored. If provided, it must have
-        a shape that the inputs broadcast to. If not provided or None,
-        a freshly-allocated array is returned. A tuple (possible only as a
-        keyword argument) must have length equal to the number of outputs.
-    where : array_like, optional
-        This condition is broadcast over the input. At locations where the
-        condition is True, the `out` array will be set to the ufunc result.
-        Elsewhere, the `out` array will retain its original value.
-        Note that if an uninitialized `out` array is created via the default
-        ``out=None``, locations within it where the condition is False will
-        remain uninitialized.
-    **kwargs
-        For other keyword-only arguments, see the
-        :ref:`ufunc docs <ufuncs.kwargs>`.
-
-    Returns
-    -------
-    y : ndarray
-        The product of `x1` and `x2`, element-wise.
-        This is a scalar if both `x1` and `x2` are scalars.
-
-    Notes
-    -----
-    Equivalent to `x1` * `x2` in terms of array broadcasting.
-
-    See Also
-    --------
-    numpy.multiply
-
-    Availability
-    --------
-    GPU, CPU
-    """
-    return ndarray.perform_binary_op(
-        BinaryOpCode.MULTIPLY,
-        a,
-        b,
-        out=out,
-        dtype=dtype,
-        out_dtype=dtype,
-        where=where,
-    )
-
-
-@add_boilerplate("x1", "x2")
-def power(x1, x2, out=None, where=True, dtype=None, **kwargs):
-    """
-    First array elements raised to powers from second array, element-wise.
-
-    Raise each base in `x1` to the positionally-corresponding power in
-    `x2`.  `x1` and `x2` must be broadcastable to the same shape. Note that an
-    integer type raised to a negative integer power will raise a ValueError.
-
-    Parameters
-    ----------
-    x1 : array_like
-        The bases.
-    x2 : array_like
-        The exponents. If ``x1.shape != x2.shape``, they must be broadcastable
-        to a common shape (which becomes the shape of the output).
-    out : ndarray, None, or tuple of ndarray and None, optional
-        A location into which the result is stored. If provided, it must have
-        a shape that the inputs broadcast to. If not provided or None,
-        a freshly-allocated array is returned. A tuple (possible only as a
-        keyword argument) must have length equal to the number of outputs.
-    where : array_like, optional
-        This condition is broadcast over the input. At locations where the
-        condition is True, the `out` array will be set to the ufunc result.
-        Elsewhere, the `out` array will retain its original value.
-        Note that if an uninitialized `out` array is created via the default
-        ``out=None``, locations within it where the condition is False will
-        remain uninitialized.
-    **kwargs
-        For other keyword-only arguments, see the
-        :ref:`ufunc docs <ufuncs.kwargs>`.
-
-    Returns
-    -------
-    y : ndarray
-        The bases in `x1` raised to the exponents in `x2`.
-        This is a scalar if both `x1` and `x2` are scalars.
-
-    See Also
-    --------
-    numpy.power
-
-    Availability
-    --------
-    GPU, CPU
-    """
-    if out is None and dtype is None:
-        if x1.dtype.kind == "f" or x2.dtype.kind == "f":
-            array_types = list()
-            scalar_types = list()
-            if x1.ndim > 0:
-                array_types.append(x1.dtype)
-            else:
-                scalar_types.append(x1.dtype)
-            if x2.ndim > 0:
-                array_types.append(x2.dtype)
-            else:
-                scalar_types.append(x2.dtype)
-            dtype = np.find_common_type(array_types, scalar_types)
-    return ndarray.perform_binary_op(
-        BinaryOpCode.POWER,
-        x1,
-        x2,
-        out=out,
-        dtype=dtype,
-        out_dtype=dtype,
-        where=where,
-    )
-
-
-@add_boilerplate("a", "b")
-def subtract(a, b, out=None, where=True, dtype=None, **kwargs):
-    """
-    Subtract arguments, element-wise.
-
-    Parameters
-    ----------
-    x1, x2 : array_like
-        The arrays to be subtracted from each other. If ``x1.shape !=
-        x2.shape``, they must be broadcastable to a common shape (which becomes
-        the shape of the output).
-    out : ndarray, None, or tuple of ndarray and None, optional
-        A location into which the result is stored. If provided, it must have
-        a shape that the inputs broadcast to. If not provided or None,
-        a freshly-allocated array is returned. A tuple (possible only as a
-        keyword argument) must have length equal to the number of outputs.
-    where : array_like, optional
-        This condition is broadcast over the input. At locations where the
-        condition is True, the `out` array will be set to the ufunc result.
-        Elsewhere, the `out` array will retain its original value.
-        Note that if an uninitialized `out` array is created via the default
-        ``out=None``, locations within it where the condition is False will
-        remain uninitialized.
-    **kwargs
-        For other keyword-only arguments, see the
-        :ref:`ufunc docs <ufuncs.kwargs>`.
-
-    Returns
-    -------
-    y : ndarray
-        The difference of `x1` and `x2`, element-wise.
-        This is a scalar if both `x1` and `x2` are scalars.
-
-    Notes
-    -----
-    Equivalent to ``x1 - x2`` in terms of array broadcasting.
-
-    See Also
-    --------
-    numpy.subtract
-
-    Availability
-    --------
-    GPU, CPU
-    """
-    return ndarray.perform_binary_op(
-        BinaryOpCode.SUBTRACT,
-        a,
-        b,
-        out=out,
-        dtype=dtype,
-        out_dtype=dtype,
-        where=where,
-    )
-
-
-@add_boilerplate("a", "b")
-def true_divide(a, b, out=None, where=True, dtype=None, **kwargs):
-    """
-    Returns a true division of the inputs, element-wise.
-
-    Instead of the Python traditional 'floor division', this returns a true
-    division.  True division adjusts the output type to present the best
-    answer, regardless of input types.
-
-    Parameters
-    ----------
-    x1 : array_like
-        Dividend array.
-    x2 : array_like
-        Divisor array. If ``x1.shape != x2.shape``, they must be broadcastable
-        to a common shape (which becomes the shape of the output).
-    out : ndarray, None, or tuple of ndarray and None, optional
-        A location into which the result is stored. If provided, it must have
-        a shape that the inputs broadcast to. If not provided or None,
-        a freshly-allocated array is returned. A tuple (possible only as a
-        keyword argument) must have length equal to the number of outputs.
-    where : array_like, optional
-        This condition is broadcast over the input. At locations where the
-        condition is True, the `out` array will be set to the ufunc result.
-        Elsewhere, the `out` array will retain its original value.
-        Note that if an uninitialized `out` array is created via the default
-        ``out=None``, locations within it where the condition is False will
-        remain uninitialized.
-    **kwargs
-        For other keyword-only arguments, see the
-        :ref:`ufunc docs <ufuncs.kwargs>`.
-
-    Returns
-    -------
-    out : ndarray or scalar
-        This is a scalar if both `x1` and `x2` are scalars.
-
-    Notes
-    -----
-    The floor division operator ``//`` was added in Python 2.2 making
-    ``//`` and ``/`` equivalent operators.  The default floor division
-    operation of ``/`` can be replaced by true division with ``from
-    __future__ import division``.
-
-    In Python 3.0, ``//`` is the floor division operator and ``/`` the
-    true division operator.  The ``true_divide(x1, x2)`` function is
-    equivalent to true division in Python.
-
-    See Also
-    --------
-    numpy.true_divide
-
-    Availability
-    --------
-    GPU, CPU
-    """
-    # Convert any non-floats to floating point arrays
-    if a.dtype.kind != "f":
-        a_type = np.dtype(np.float64)
-    else:
-        a_type = a.dtype
-    if b.dtype.kind != "f":
-        b_type = np.dtype(np.float64)
-    else:
-        b_type = b.dtype
-    # If the types don't match then align them
-    if a_type != b_type:
-        array_types = list()
-        scalar_types = list()
-        if a.ndim > 0:
-            array_types.append(a_type)
-        else:
-            scalar_types.append(a_type)
-        if b.ndim > 0:
-            array_types.append(b_type)
-        else:
-            scalar_types.append(b_type)
-        common_type = np.find_common_type(array_types, scalar_types)
-    else:
-        common_type = a_type
-    if a.dtype != common_type:
-        temp = ndarray(
-            a.shape,
-            dtype=common_type,
-            inputs=(a, b),
-        )
-        temp._thunk.convert(a._thunk, warn=False)
-        a = temp
-    if b.dtype != common_type:
-        temp = ndarray(
-            b.shape,
-            dtype=common_type,
-            inputs=(a, b),
-        )
-        temp._thunk.convert(b._thunk, warn=False)
-        b = temp
-    return ndarray.perform_binary_op(
-        BinaryOpCode.DIVIDE,
-        a,
-        b,
-        out=out,
-        dtype=dtype,
-        out_dtype=dtype,
-        where=where,
-    )
-
-
-divide = true_divide  # Had to be reordered to make the reference valid
-
-
-@add_boilerplate("a", "b")
-def floor_divide(a, b, out=None, where=True, dtype=None, **kwargs):
-    """
-    Return the largest integer smaller or equal to the division of the inputs.
-    It is equivalent to the Python ``//`` operator and pairs with the
-    Python ``%`` (`remainder`), function so that ``a = a % b + b * (a // b)``
-    up to roundoff.
-
-    Parameters
-    ----------
-    x1 : array_like
-        Numerator.
-    x2 : array_like
-        Denominator. If ``x1.shape != x2.shape``, they must be broadcastable to
-        a common shape (which becomes the shape of the output).
-    out : ndarray, None, or tuple of ndarray and None, optional
-        A location into which the result is stored. If provided, it must have
-        a shape that the inputs broadcast to. If not provided or None,
-        a freshly-allocated array is returned. A tuple (possible only as a
-        keyword argument) must have length equal to the number of outputs.
-    where : array_like, optional
-        This condition is broadcast over the input. At locations where the
-        condition is True, the `out` array will be set to the ufunc result.
-        Elsewhere, the `out` array will retain its original value.
-        Note that if an uninitialized `out` array is created via the default
-        ``out=None``, locations within it where the condition is False will
-        remain uninitialized.
-    **kwargs
-        For other keyword-only arguments, see the
-        :ref:`ufunc docs <ufuncs.kwargs>`.
-
-    Returns
-    -------
-    y : ndarray
-        y = floor(`x1`/`x2`)
-        This is a scalar if both `x1` and `x2` are scalars.
-
-    See Also
-    --------
-    numpy.floor_divide
-
-    Availability
-    --------
-    GPU, CPU
-    """
-    return ndarray.perform_binary_op(
-        BinaryOpCode.FLOOR_DIVIDE,
-        a,
-        b,
-        out=out,
-        dtype=dtype,
-        out_dtype=dtype,
-        where=where,
-    )
-
-
-@add_boilerplate("a", "b")
-def remainder(a, b, out=None, where=True, dtype=None):
-    """
-    Return element-wise remainder of division.
-
-    Computes the remainder complementary to the `floor_divide` function.  It is
-    equivalent to the Python modulus operator``x1 % x2`` and has the same sign
-    as the divisor `x2`.
-
-    Parameters
-    ----------
-    x1 : array_like
-        Dividend array.
-    x2 : array_like
-        Divisor array. If ``x1.shape != x2.shape``, they must be broadcastable
-        to a common shape (which becomes the shape of the output).
-    out : ndarray, None, or tuple of ndarray and None, optional
-        A location into which the result is stored. If provided, it must have
-        a shape that the inputs broadcast to. If not provided or None,
-        a freshly-allocated array is returned. A tuple (possible only as a
-        keyword argument) must have length equal to the number of outputs.
-    where : array_like, optional
-        This condition is broadcast over the input. At locations where the
-        condition is True, the `out` array will be set to the ufunc result.
-        Elsewhere, the `out` array will retain its original value.
-        Note that if an uninitialized `out` array is created via the default
-        ``out=None``, locations within it where the condition is False will
-        remain uninitialized.
-    **kwargs
-        For other keyword-only arguments, see the
-        :ref:`ufunc docs <ufuncs.kwargs>`.
-
-    Returns
-    -------
-    y : ndarray
-        The element-wise remainder of the quotient ``floor_divide(x1, x2)``.
-        This is a scalar if both `x1` and `x2` are scalars.
-
-    See Also
-    --------
-    numpy.remainder
-
-    Availability
-    --------
-    GPU, CPU
-    """
-    return ndarray.perform_binary_op(
-        BinaryOpCode.MOD,
-        a,
-        b,
-        out=out,
-        dtype=dtype,
-        out_dtype=dtype,
-        where=where,
-    )
-
-
-mod = remainder  # Had to be reordered to make the reference safe
 
 # Handling complex numbers
 
@@ -4896,7 +3320,7 @@ def real(val):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return val.real
 
@@ -4925,111 +3349,24 @@ def imag(val):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return val.imag
 
 
-@add_boilerplate("x")
-def conjugate(x):
-    """
-    Return the complex conjugate, element-wise.
-
-    The complex conjugate of a complex number is obtained by changing the
-    sign of its imaginary part.
-
-    Parameters
-    ----------
-    x : array_like
-        Input value.
-
-    Returns
-    -------
-    y : ndarray
-        The complex conjugate of `x`, with same dtype as `y`.
-        This is a scalar if `x` is a scalar.
-
-    Notes
-    -----
-    `conj` is an alias for `conjugate`:
-
-    See Also
-    --------
-    numpy.conjugate
-
-    Availability
-    --------
-    GPU, CPU
-    """
-    return x.conj()
-
-
-conj = conjugate
-
 # Extrema Finding
 
 
-@add_boilerplate("a", "b")
-def maximum(a, b, out=None, where=True, dtype=None, **kwargs):
-    """
-    Element-wise maximum of array elements.
-
-    Compare two arrays and returns a new array containing the element-wise
-    maxima. If one of the elements being compared is a NaN, then that
-    element is returned. If both elements are NaNs then the first is
-    returned. The latter distinction is important for complex NaNs, which
-    are defined as at least one of the real or imaginary parts being a NaN.
-    The net effect is that NaNs are propagated.
-
-    Parameters
-    ----------
-    x1, x2 : array_like
-        The arrays holding the elements to be compared. If ``x1.shape !=
-        x2.shape``, they must be broadcastable to a common shape (which becomes
-        the shape of the output).
-    out : ndarray, None, or tuple of ndarray and None, optional
-        A location into which the result is stored. If provided, it must have
-        a shape that the inputs broadcast to. If not provided or None,
-        a freshly-allocated array is returned. A tuple (possible only as a
-        keyword argument) must have length equal to the number of outputs.
-    where : array_like, optional
-        This condition is broadcast over the input. At locations where the
-        condition is True, the `out` array will be set to the ufunc result.
-        Elsewhere, the `out` array will retain its original value.
-        Note that if an uninitialized `out` array is created via the default
-        ``out=None``, locations within it where the condition is False will
-        remain uninitialized.
-    **kwargs
-        For other keyword-only arguments, see the
-        :ref:`ufunc docs <ufuncs.kwargs>`.
-
-    Returns
-    -------
-    y : ndarray or scalar
-        The maximum of `x1` and `x2`, element-wise.
-        This is a scalar if both `x1` and `x2` are scalars.
-
-        See Also
-        --------
-        numpy.maximum
-
-        Availability
-        --------
-        GPU, CPU
-    """
-    return ndarray.perform_binary_op(
-        BinaryOpCode.MAXIMUM,
-        a,
-        b,
-        out=out,
-        dtype=dtype,
-        out_dtype=dtype,
-        where=where,
-    )
-
-
 @add_boilerplate("a")
-def amax(a, axis=None, out=None, keepdims=False):
+def amax(
+    a,
+    axis=None,
+    dtype=None,
+    out=None,
+    keepdims=False,
+    initial=None,
+    where=True,
+):
     """
 
     Return the maximum of an array or maximum along an axis.
@@ -5038,7 +3375,7 @@ def amax(a, axis=None, out=None, keepdims=False):
     ----------
     a : array_like
         Input data.
-    axis : None or int or tuple of ints, optional
+    axis : None or int or tuple[int], optional
         Axis or axes along which to operate.  By default, flattened input is
         used.
 
@@ -5064,7 +3401,7 @@ def amax(a, axis=None, out=None, keepdims=False):
         The minimum value of an output element. Must be present to allow
         computation on empty slice. See `~cunumeric.ufunc.reduce` for details.
 
-    where : array_like of bool, optional
+    where : array_like[bool], optional
         Elements to compare for the maximum. See `~cunumeric.ufunc.reduce`
         for details.
 
@@ -5081,75 +3418,32 @@ def amax(a, axis=None, out=None, keepdims=False):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
-    return a.max(axis=axis, out=out, keepdims=keepdims)
+    return maximum.reduce(
+        a,
+        axis=axis,
+        dtype=dtype,
+        out=out,
+        keepdims=keepdims,
+        initial=initial,
+        where=where,
+    )
 
 
 max = amax
 
 
-@add_boilerplate("a", "b")
-def minimum(a, b, out=None, where=True, dtype=None, **kwargs):
-    """
-    Element-wise minimum of array elements.
-
-    Compare two arrays and returns a new array containing the element-wise
-    minima. If one of the elements being compared is a NaN, then that
-    element is returned. If both elements are NaNs then the first is
-    returned. The latter distinction is important for complex NaNs, which
-    are defined as at least one of the real or imaginary parts being a NaN.
-    The net effect is that NaNs are propagated.
-
-    Parameters
-    ----------
-    x1, x2 : array_like
-        The arrays holding the elements to be compared. If ``x1.shape !=
-        x2.shape``, they must be broadcastable to a common shape (which becomes
-        the shape of the output).
-    out : ndarray, None, or tuple of ndarray and None, optional
-        A location into which the result is stored. If provided, it must have
-        a shape that the inputs broadcast to. If not provided or None,
-        a freshly-allocated array is returned. A tuple (possible only as a
-        keyword argument) must have length equal to the number of outputs.
-    where : array_like, optional
-        This condition is broadcast over the input. At locations where the
-        condition is True, the `out` array will be set to the ufunc result.
-        Elsewhere, the `out` array will retain its original value.
-        Note that if an uninitialized `out` array is created via the default
-        ``out=None``, locations within it where the condition is False will
-        remain uninitialized.
-    **kwargs
-        For other keyword-only arguments, see the
-        :ref:`ufunc docs <ufuncs.kwargs>`.
-
-    Returns
-    -------
-    y : ndarray or scalar
-        The minimum of `x1` and `x2`, element-wise.
-        This is a scalar if both `x1` and `x2` are scalars.
-
-        See Also
-        --------
-        numpy.minimum
-
-        Availability
-        --------
-        GPU, CPU
-    """
-    return ndarray.perform_binary_op(
-        BinaryOpCode.MINIMUM,
-        a,
-        b,
-        out=out,
-        dtype=dtype,
-        out_dtype=dtype,
-        where=where,
-    )
-
-
 @add_boilerplate("a")
-def amin(a, axis=None, out=None, keepdims=False):
+def amin(
+    a,
+    axis=None,
+    dtype=None,
+    out=None,
+    keepdims=False,
+    initial=None,
+    where=True,
+):
     """
 
     Return the minimum of an array or minimum along an axis.
@@ -5158,7 +3452,7 @@ def amin(a, axis=None, out=None, keepdims=False):
     ----------
     a : array_like
         Input data.
-    axis : None or int or tuple of ints, optional
+    axis : None or int or tuple[int], optional
         Axis or axes along which to operate.  By default, flattened input is
         used.
 
@@ -5184,7 +3478,7 @@ def amin(a, axis=None, out=None, keepdims=False):
         The maximum value of an output element. Must be present to allow
         computation on empty slice. See `~cunumeric.ufunc.reduce` for details.
 
-    where : array_like of bool, optional
+    where : array_like[bool], optional
         Elements to compare for the minimum. See `~cunumeric.ufunc.reduce`
         for details.
 
@@ -5201,9 +3495,17 @@ def amin(a, axis=None, out=None, keepdims=False):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
-    return a.min(axis=axis, out=out, keepdims=keepdims)
+    return minimum.reduce(
+        a,
+        axis=axis,
+        dtype=dtype,
+        out=out,
+        keepdims=keepdims,
+        initial=initial,
+        where=where,
+    )
 
 
 min = amin
@@ -5215,32 +3517,29 @@ min = amin
 def convolve(a, v, mode="full"):
     """
 
-    Returns the discrete, linear convolution of two one-dimensional sequences.
+    Returns the discrete, linear convolution of two ndarrays.
 
-    If `v` is longer than `a`, the arrays are swapped before computation.
+    If `a` and `v` are both 1-D and `v` is longer than `a`, the two are
+    swapped before computation. For N-D cases, the arguments are never swapped.
 
     Parameters
     ----------
     a : (N,) array_like
-        First one-dimensional input array.
+        First input ndarray.
     v : (M,) array_like
-        Second one-dimensional input array.
-    mode : {'full', 'valid', 'same'}, optional
-        'full':
-          By default, mode is 'full'.  This returns the convolution
-          at each point of overlap, with an output shape of (N+M-1,). At
-          the end-points of the convolution, the signals do not overlap
-          completely, and boundary effects may be seen.
-
+        Second input ndarray.
+    mode : ``{'full', 'valid', 'same'}``, optional
         'same':
-          Mode 'same' returns output of length ``max(M, N)``.  Boundary
-          effects are still visible.
+          The output is the same size as `a`, centered with respect to
+          the 'full' output. (default)
+
+        'full':
+          The output is the full discrete linear convolution of the inputs.
 
         'valid':
-          Mode 'valid' returns output of length
-          ``max(M, N) - min(M, N) + 1``.  The convolution product is only given
-          for points where the signals overlap completely.  Values outside
-          the signal boundary have no effect.
+          The output consists only of those elements that do not
+          rely on the zero-padding. In 'valid' mode, either `a` or `v`
+          must be at least as large as the other in every dimension.
 
     Returns
     -------
@@ -5255,17 +3554,33 @@ def convolve(a, v, mode="full"):
     -----
     The current implementation only supports the 'same' mode.
 
+    Unlike `numpy.convolve`, `cunumeric.convolve` supports N-dimensional
+    inputs, but it follows NumPy's behavior for 1-D inputs.
+
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     if mode != "same":
         raise NotImplementedError("Need to implement other convolution modes")
 
-    if a.size < v.size:
+    if a.ndim != v.ndim:
+        raise RuntimeError("Arrays should have the same dimensions")
+    elif a.ndim > 3:
+        raise NotImplementedError(f"{a.ndim}-D arrays are not yet supported")
+
+    if a.ndim == 1 and a.size < v.size:
         v, a = a, v
 
-    return a.convolve(v, mode)
+    if a.dtype != v.dtype:
+        v = v.astype(a.dtype)
+    out = ndarray(
+        shape=a.shape,
+        dtype=a.dtype,
+        inputs=(a, v),
+    )
+    a._thunk.convolve(v._thunk, out._thunk, mode)
+    return out
 
 
 @add_boilerplate("a")
@@ -5313,263 +3628,261 @@ def clip(a, a_min, a_max, out=None):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return a.clip(a_min, a_max, out=out)
 
 
-@add_boilerplate("a")
-def sqrt(a, out=None, where=True, dtype=None, **kwargs):
+##################################
+# Set routines
+##################################
+
+
+@add_boilerplate("ar")
+def unique(
+    ar,
+    return_index=False,
+    return_inverse=False,
+    return_counts=False,
+    axis=None,
+):
     """
-    Return the non-negative square-root of an array, element-wise.
+
+    Find the unique elements of an array.
+    Returns the sorted unique elements of an array. There are three optional
+    outputs in addition to the unique elements:
+    * the indices of the input array that give the unique values
+    * the indices of the unique array that reconstruct the input array
+    * the number of times each unique value comes up in the input array
 
     Parameters
     ----------
-    x : array_like
-        The values whose square-roots are required.
-    out : ndarray, None, or tuple of ndarray and None, optional
-        A location into which the result is stored. If provided, it must have
-        a shape that the inputs broadcast to. If not provided or None,
-        a freshly-allocated array is returned. A tuple (possible only as a
-        keyword argument) must have length equal to the number of outputs.
-    where : array_like, optional
-        This condition is broadcast over the input. At locations where the
-        condition is True, the `out` array will be set to the ufunc result.
-        Elsewhere, the `out` array will retain its original value.
-        Note that if an uninitialized `out` array is created via the default
-        ``out=None``, locations within it where the condition is False will
-        remain uninitialized.
-    **kwargs
-        For other keyword-only arguments, see the
-        :ref:`ufunc docs <ufuncs.kwargs>`.
+    ar : array_like
+        Input array. Unless `axis` is specified, this will be flattened if it
+        is not already 1-D.
+    return_index : bool, optional
+        If True, also return the indices of `ar` (along the specified axis,
+        if provided, or in the flattened array) that result in the unique
+        array.
+        Currently not supported.
+    return_inverse : bool, optional
+        If True, also return the indices of the unique array (for the specified
+        axis, if provided) that can be used to reconstruct `ar`.
+        Currently not supported.
+    return_counts : bool, optional
+        If True, also return the number of times each unique item appears
+        in `ar`.
+        Currently not supported.
+    axis : int or None, optional
+        The axis to operate on. If None, `ar` will be flattened. If an integer,
+        the subarrays indexed by the given axis will be flattened and treated
+        as the elements of a 1-D array with the dimension of the given axis,
+        see the notes for more details.  Object arrays or structured arrays
+        that contain objects are not supported if the `axis` kwarg is used. The
+        default is None.
+        Currently not supported.
 
     Returns
     -------
-    y : ndarray
-        An array of the same shape as `x`, containing the positive
-        square-root of each element in `x`.  If any element in `x` is
-        complex, a complex array is returned (and the square-roots of
-        negative reals are calculated).  If all of the elements in `x`
-        are real, so is `y`, with negative elements returning ``nan``.
-        If `out` was provided, `y` is a reference to it.
-        This is a scalar if `x` is a scalar.
-
-        See Also
-        --------
-        numpy.sqrt
-
-        Availability
-        --------
-        GPU, CPU
-    """
-    return ndarray.perform_unary_op(
-        UnaryOpCode.SQRT,
-        a,
-        dtype=dtype,
-        dst=out,
-        where=where,
-        out_dtype=_output_float_dtype(a),
-    )
-
-
-def square(a, out=None, where=True, dtype=None, **kwargs):
-    """
-    Return the element-wise square of the input.
-
-    Parameters
-    ----------
-    x : array_like
-        Input data.
-    out : ndarray, None, or tuple of ndarray and None, optional
-        A location into which the result is stored. If provided, it must have
-        a shape that the inputs broadcast to. If not provided or None,
-        a freshly-allocated array is returned. A tuple (possible only as a
-        keyword argument) must have length equal to the number of outputs.
-    where : array_like, optional
-        This condition is broadcast over the input. At locations where the
-        condition is True, the `out` array will be set to the ufunc result.
-        Elsewhere, the `out` array will retain its original value.
-        Note that if an uninitialized `out` array is created via the default
-        ``out=None``, locations within it where the condition is False will
-        remain uninitialized.
-    **kwargs
-        For other keyword-only arguments, see the
-        :ref:`ufunc docs <ufuncs.kwargs>`.
-
-    Returns
-    -------
-    out : ndarray or scalar
-        Element-wise `x*x`, of the same shape and dtype as `x`.
-        This is a scalar if `x` is a scalar.
-
-        See Also
-        --------
-        numpy.square
-
-        Availability
-        --------
-        GPU, CPU
-    """
-    return multiply(a, a, out=out, where=where, dtype=dtype)
-
-
-@add_boilerplate("a")
-def absolute(a, out=None, where=True, **kwargs):
-    """
-    Calculate the absolute value element-wise.
-
-    Parameters
-    ----------
-    x : array_like
-        Input array.
-    out : ndarray, None, or tuple of ndarray and None, optional
-        A location into which the result is stored. If provided, it must have
-        a shape that the inputs broadcast to. If not provided or None,
-        a freshly-allocated array is returned. A tuple (possible only as a
-        keyword argument) must have length equal to the number of outputs.
-    where : array_like, optional
-        This condition is broadcast over the input. At locations where the
-        condition is True, the `out` array will be set to the ufunc result.
-        Elsewhere, the `out` array will retain its original value.
-        Note that if an uninitialized `out` array is created via the default
-        ``out=None``, locations within it where the condition is False will
-        remain uninitialized.
-    **kwargs
-        For other keyword-only arguments, see the
-        :ref:`ufunc docs <ufuncs.kwargs>`.
-
-    Returns
-    -------
-    absolute : ndarray
-        An ndarray containing the absolute value of each element in `x`.  For
-        complex input, ``a + ib``, the absolute value is :math:`\\sqrt{ a^2 +
-        b^2 }`.  This is a scalar if `x` is a scalar.
-
-        See Also
-        --------
-        numpy.absolute
-
-        Availability
-        --------
-        GPU, CPU
-    """
-    # Handle the nice case of it being unsigned
-    if a.dtype.type in (np.uint16, np.uint32, np.uint64, np.bool_):
-        return a
-    return ndarray.perform_unary_op(
-        UnaryOpCode.ABSOLUTE, a, dst=out, where=where
-    )
-
-
-abs = absolute  # alias
-
-
-def fabs(a, out=None, where=True, **kwargs):
-    """
-    Compute the absolute values element-wise.
-
-    This function returns the absolute values (positive magnitude) of the
-    data in `x`. Complex values are not handled, use `absolute` to find the
-    absolute values of complex data.
-
-    Parameters
-    ----------
-    x : array_like
-        The array of numbers for which the absolute values are required. If
-        `x` is a scalar, the result `y` will also be a scalar.
-    out : ndarray, None, or tuple of ndarray and None, optional
-        A location into which the result is stored. If provided, it must have
-        a shape that the inputs broadcast to. If not provided or None,
-        a freshly-allocated array is returned. A tuple (possible only as a
-        keyword argument) must have length equal to the number of outputs.
-    where : array_like, optional
-        This condition is broadcast over the input. At locations where the
-        condition is True, the `out` array will be set to the ufunc result.
-        Elsewhere, the `out` array will retain its original value.
-        Note that if an uninitialized `out` array is created via the default
-        ``out=None``, locations within it where the condition is False will
-        remain uninitialized.
-    **kwargs
-        For other keyword-only arguments, see the
-        :ref:`ufunc docs <ufuncs.kwargs>`.
-
-    Returns
-    -------
-    y : ndarray or scalar
-        The absolute values of `x`, the returned values are always floats.
-        This is a scalar if `x` is a scalar.
+    unique : ndarray
+        The sorted unique values.
+    unique_indices : ndarray, optional
+        The indices of the first occurrences of the unique values in the
+        original array. Only provided if `return_index` is True.
+    unique_inverse : ndarray, optional
+        The indices to reconstruct the original array from the
+        unique array. Only provided if `return_inverse` is True.
+    unique_counts : ndarray, optional
+        The number of times each of the unique values comes up in the
+        original array. Only provided if `return_counts` is True.
 
     See Also
     --------
-    numpy.fabs
+    numpy.unique
 
     Availability
     --------
-    GPU, CPU
-    """
-    return absolute(a, out=out, where=where, **kwargs)
+    Multiple GPUs, Multiple CPUs
 
-
-@add_boilerplate("a")
-def sign(a, out=None, where=True, dtype=None, **kwargs):
-    """
-    Returns an element-wise indication of the sign of a number.
-
-    The `sign` function returns ``-1 if x < 0, 0 if x==0, 1 if x > 0``.  nan
-    is returned for nan inputs.
-
-    For complex inputs, the `sign` function returns
-    ``sign(x.real) + 0j if x.real != 0 else sign(x.imag) + 0j``.
-
-    complex(nan, 0) is returned for complex nan inputs.
-
-    Parameters
-    ----------
-    x : array_like
-        Input values.
-    out : ndarray, None, or tuple of ndarray and None, optional
-        A location into which the result is stored. If provided, it must have
-        a shape that the inputs broadcast to. If not provided or None,
-        a freshly-allocated array is returned. A tuple (possible only as a
-        keyword argument) must have length equal to the number of outputs.
-    where : array_like, optional
-        This condition is broadcast over the input. At locations where the
-        condition is True, the `out` array will be set to the ufunc result.
-        Elsewhere, the `out` array will retain its original value.
-        Note that if an uninitialized `out` array is created via the default
-        ``out=None``, locations within it where the condition is False will
-        remain uninitialized.
-    **kwargs
-        For other keyword-only arguments, see the
-        :ref:`ufunc docs <ufuncs.kwargs>`.
-
-    Returns
-    -------
-    y : ndarray
-        The sign of `x`.
-        This is a scalar if `x` is a scalar.
-
-    See Also
+    Notes
     --------
-    numpy.sign
+    Keyword arguments for optional outputs are not yet supported.
+    `axis` is also not handled currently.
 
-    Availability
-    --------
-    GPU, CPU
     """
-    return ndarray.perform_unary_op(
-        UnaryOpCode.SIGN,
-        a,
-        dtype=dtype,
-        dst=out,
-        where=where,
-        out_dtype=_output_float_dtype(a),
-    )
+    if any((return_index, return_inverse, return_counts, axis)):
+        raise NotImplementedError(
+            "Keyword arguments for `unique` are not yet supported"
+        )
+
+    return ar.unique()
 
 
 ##################################
 # Sorting, searching, and counting
 ##################################
+
+# Sorting
+
+
+@add_boilerplate("a")
+def argsort(a, axis=-1, kind="quicksort", order=None):
+    """
+
+    Returns the indices that would sort an array.
+
+    Parameters
+    ----------
+    a : array_like
+        Input array.
+    axis : int or None, optional
+        Axis to sort. By default, the index -1 (the last axis) is used. If
+        None, the flattened array is used.
+    kind : ``{'quicksort', 'mergesort', 'heapsort', 'stable'}``, optional
+        Default is 'quicksort'. The underlying sort algorithm might vary.
+        The code basically supports 'stable' or *not* 'stable'.
+    order : str or list[str], optional
+        Currently not supported
+
+    Returns
+    -------
+    index_array : ndarray[int]
+        Array of indices that sort a along the specified axis. It has the
+        same shape as `a.shape` or is flattened in case of `axis` is None.
+
+    Notes
+    -----
+    The current implementation has only limited support for distributed data.
+    Distributed 1-D or flattened data will be broadcasted.
+
+    See Also
+    --------
+    numpy.argsort
+
+    Availability
+    --------
+    Multiple GPUs, Single CPU
+    """
+
+    result = ndarray(a.shape, np.int64)
+    result._thunk.sort(
+        rhs=a._thunk, argsort=True, axis=axis, kind=kind, order=order
+    )
+    return result
+
+
+def msort(a):
+    """
+
+    Returns a sorted copy of an array sorted along the first axis.
+
+    Parameters
+    ----------
+    a : array_like
+        Input array.
+
+    Returns
+    -------
+    out : ndarray
+        Sorted array with same dtype and shape as `a`.
+
+    Notes
+    -----
+    The current implementation has only limited support for distributed data.
+    Distributed 1-D  data will be broadcasted.
+
+    See Also
+    --------
+    numpy.msort
+
+    Availability
+    --------
+    Multiple GPUs, Single CPU
+    """
+    return sort(a, axis=0)
+
+
+@add_boilerplate("a")
+def sort(a, axis=-1, kind="quicksort", order=None):
+    """
+
+    Returns a sorted copy of an array.
+
+    Parameters
+    ----------
+    a : array_like
+        Input array.
+    axis : int or None, optional
+        Axis to sort. By default, the index -1 (the last axis) is used. If
+        None, the flattened array is used.
+    kind : ``{'quicksort', 'mergesort', 'heapsort', 'stable'}``, optional
+        Default is 'quicksort'. The underlying sort algorithm might vary.
+        The code basically supports 'stable' or *not* 'stable'.
+    order : str or list[str], optional
+        Currently not supported
+
+    Returns
+    -------
+    out : ndarray
+        Sorted array with same dtype and shape as `a`. In case `axis` is
+        None the result is flattened.
+
+    Notes
+    -----
+    The current implementation has only limited support for distributed data.
+    Distributed 1-D or flattened data will be broadcasted.
+
+    See Also
+    --------
+    numpy.sort
+
+    Availability
+    --------
+    Multiple GPUs, Single CPU
+    """
+    result = ndarray(a.shape, a.dtype)
+    result._thunk.sort(rhs=a._thunk, axis=axis, kind=kind, order=order)
+    return result
+
+
+@add_boilerplate("a")
+def sort_complex(a):
+    """
+
+    Returns a sorted copy of an array sorted along the last axis. Sorts the
+    real part first, the imaginary part second.
+
+    Parameters
+    ----------
+    a : array_like
+        Input array.
+
+    Returns
+    -------
+    out : ndarray, complex
+        Sorted array with same shape as `a`.
+
+    Notes
+    -----
+    The current implementation has only limited support for distributed data.
+    Distributed 1-D data will be broadcasted.
+
+    See Also
+    --------
+    numpy.sort_complex
+
+    Availability
+    --------
+    Multiple GPUs, Single CPU
+    """
+
+    result = sort(a)
+    # force complex result upon return
+    if np.issubdtype(result.dtype, np.complexfloating):
+        return result
+    else:
+        return result.astype(np.complex64, copy=True)
+
 
 # Searching
 
@@ -5587,13 +3900,13 @@ def argmax(a, axis=None, out=None):
     axis : int, optional
         By default, the index is into the flattened array, otherwise
         along the specified axis.
-    out : array, optional
+    out : ndarray, optional
         If provided, the result will be inserted into this array. It should
         be of the appropriate shape and dtype.
 
     Returns
     -------
-    index_array : ndarray of ints
+    index_array : ndarray[int]
         Array of indices into the array. It has the same shape as `a.shape`
         with the dimension along `axis` removed.
 
@@ -5603,7 +3916,7 @@ def argmax(a, axis=None, out=None):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     if out is not None:
         if out.dtype != np.int64:
@@ -5624,13 +3937,13 @@ def argmin(a, axis=None, out=None):
     axis : int, optional
         By default, the index is into the flattened array, otherwise
         along the specified axis.
-    out : array, optional
+    out : ndarray, optional
         If provided, the result will be inserted into this array. It should
         be of the appropriate shape and dtype.
 
     Returns
     -------
-    index_array : ndarray of ints
+    index_array : ndarray[int]
         Array of indices into the array. It has the same shape as `a.shape`
         with the dimension along `axis` removed.
 
@@ -5640,7 +3953,7 @@ def argmin(a, axis=None, out=None):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     if out is not None:
         if out is not None and out.dtype != np.int64:
@@ -5668,7 +3981,7 @@ def count_nonzero(a, axis=None):
 
     Returns
     -------
-    count : int or array of int
+    count : int or ndarray[int]
         Number of non-zero values in the array along a given axis.
         Otherwise, the total number of non-zero values in the array
         is returned.
@@ -5679,11 +3992,11 @@ def count_nonzero(a, axis=None):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     if a.size == 0:
         return 0
-    return ndarray.perform_unary_reduction(
+    return ndarray._perform_unary_reduction(
         UnaryRedCode.COUNT_NONZERO,
         a,
         axis=axis,
@@ -5714,7 +4027,7 @@ def mean(a, axis=None, dtype=None, out=None, keepdims=False):
     a : array_like
         Array containing numbers whose mean is desired. If `a` is not an
         array, a conversion is attempted.
-    axis : None or int or tuple of ints, optional
+    axis : None or int or tuple[int], optional
         Axis or axes along which the means are computed. The default is to
         compute the mean of the flattened array.
 
@@ -5743,9 +4056,10 @@ def mean(a, axis=None, dtype=None, out=None, keepdims=False):
 
     Returns
     -------
-    m : ndarray, see dtype parameter above
-        If `out=None`, returns a new array containing the mean values,
-        otherwise a reference to the output array is returned.
+    m : ndarray
+        If `out=None`, returns a new array of the same dtype a above
+        containing the mean values, otherwise a reference to the output
+        array is returned.
 
     See Also
     --------
@@ -5753,7 +4067,7 @@ def mean(a, axis=None, dtype=None, out=None, keepdims=False):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return a.mean(axis=axis, dtype=dtype, out=out, keepdims=keepdims)
 
@@ -5779,8 +4093,8 @@ def bincount(a, weights=None, minlength=0):
 
     Parameters
     ----------
-    x : array_like, 1 dimension, nonnegative ints
-        Input array.
+    x : array_like
+        1-D input array of non-negative ints.
     weights : array_like, optional
         Weights, array of the same shape as `x`.
     minlength : int, optional
@@ -5788,7 +4102,7 @@ def bincount(a, weights=None, minlength=0):
 
     Returns
     -------
-    out : ndarray of ints
+    out : ndarray[int]
         The result of binning the input array.
         The length of `out` is equal to ``cunumeric.amax(x)+1``.
 
@@ -5806,7 +4120,7 @@ def bincount(a, weights=None, minlength=0):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     if weights is not None:
         if weights.shape != a.shape:

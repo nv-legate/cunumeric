@@ -74,11 +74,12 @@ if args.recurse:
     sys.argv.remove("--recurse")
     setup(
         name="cunumeric",
-        version="22.01.00",
+        version="22.03.00",
         packages=[
             "cunumeric",
             "cunumeric.linalg",
             "cunumeric.random",
+            "cunumeric._ufunc",
         ],
         cmdclass={"build_py": my_build_py},
     )

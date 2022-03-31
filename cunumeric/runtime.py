@@ -58,6 +58,7 @@ _supported_dtypes = {
 
 class Runtime(object):
     __slots__ = [
+        "api_calls",
         "current_random_epoch",
         "destroyed",
         "legate_context",
@@ -66,6 +67,9 @@ class Runtime(object):
         "num_gpus",
         "num_procs",
         "preload_cudalibs",
+        "report_coverage",
+        "report_dump_callstack",
+        "report_dump_csv",
         "test_mode",
         "warning",
     ]
@@ -75,18 +79,25 @@ class Runtime(object):
         self.legate_runtime = get_legate_runtime()
         self.current_random_epoch = 0
         self.destroyed = False
+        self.api_calls = []
 
-        self.max_eager_volume = self.legate_context.get_tunable(
-            CuNumericTunable.MAX_EAGER_VOLUME,
-            ty.int32,
+        self.max_eager_volume = int(
+            self.legate_context.get_tunable(
+                CuNumericTunable.MAX_EAGER_VOLUME,
+                ty.int32,
+            )
         )
-        self.num_procs = self.legate_context.get_tunable(
-            CuNumericTunable.NUM_PROCS,
-            ty.int32,
+        self.num_procs = int(
+            self.legate_context.get_tunable(
+                CuNumericTunable.NUM_PROCS,
+                ty.int32,
+            )
         )
-        self.num_gpus = self.legate_context.get_tunable(
-            CuNumericTunable.NUM_GPUS,
-            ty.int32,
+        self.num_gpus = int(
+            self.legate_context.get_tunable(
+                CuNumericTunable.NUM_GPUS,
+                ty.int32,
+            )
         )
 
         # Make sure that our CuNumericLib object knows about us so it can
@@ -121,6 +132,33 @@ class Runtime(object):
             self.warning = True
         except ValueError:
             self.warning = self.test_mode
+        try:
+            # Prune it out so the application does not see it
+            sys.argv.remove("-cunumeric:report:coverage")
+            self.report_coverage = True
+        except ValueError:
+            self.report_coverage = False
+        try:
+            # Prune it out so the application does not see it
+            sys.argv.remove("-cunumeric:report:dump-callstack")
+            self.report_dump_callstack = True
+        except ValueError:
+            self.report_dump_callstack = False
+        try:
+            # Prune it out so the application does not see it
+            idx = sys.argv.index("-cunumeric:report:dump-csv")
+            if idx + 1 >= len(sys.argv):
+                raise RuntimeError(
+                    "Please provide a filename for the reporting"
+                )
+            self.report_dump_csv = sys.argv[idx + 1]
+            sys.argv = sys.argv[:idx] + sys.argv[idx + 2 :]
+        except ValueError:
+            self.report_dump_csv = None
+
+    def record_api_call(self, name, location, implemented):
+        assert self.report_coverage
+        self.api_calls.append((name, location, implemented))
 
     def _load_cudalibs(self):
         task = self.legate_context.create_task(
@@ -154,10 +192,29 @@ class Runtime(object):
                 dtype.register_reduction_op(redop, redop_id)
         return arg_dtype
 
+    def _report_coverage(self):
+        total = len(self.api_calls)
+        implemented = sum(int(impl) for (_, _, impl) in self.api_calls)
+
+        if total == 0:
+            print("cuNumeric API coverage: 0/0")
+        else:
+            print(
+                f"cuNumeric API coverage: {implemented}/{total} "
+                f"({implemented / total * 100}%)"
+            )
+        if self.report_dump_csv is not None:
+            with open(self.report_dump_csv, "w") as f:
+                print("function_name,location,implemented", file=f)
+                for (func_name, loc, impl) in self.api_calls:
+                    print(f"{func_name},{loc},{impl}", file=f)
+
     def destroy(self):
         assert not self.destroyed
         if self.num_gpus > 0:
             self._unload_cudalibs()
+        if self.report_coverage:
+            self._report_coverage()
         self.destroyed = True
 
     def create_scalar(self, array: memoryview, dtype, shape=None, wrap=False):

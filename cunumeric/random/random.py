@@ -51,7 +51,7 @@ def rand(*shapeargs):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
 
     if shapeargs is None:
@@ -67,25 +67,25 @@ def randint(low, high=None, size=None, dtype=None):
 
     Parameters
     ----------
-    low : int or array-like of ints
+    low : int or array_like[int]
         Lowest (signed) integers to be drawn from the distribution (unless
         ``high=None``, in which case this parameter is one above the
         *highest* such integer).
-    high : int or array-like of ints, optional
+    high : int or array_like[int], optional
         If provided, one above the largest (signed) integer to be drawn
         from the distribution (see above for behavior if ``high=None``).
         If array-like, must contain integer values
-    size : int or tuple of ints, optional
+    size : int or tuple[int], optional
         Output shape.  If the given shape is, e.g., ``(m, n, k)``, then
         ``m * n * k`` samples are drawn.  Default is None, in which case a
         single value is returned.
-    dtype : dtype, optional
+    dtype : data-type, optional
         Desired dtype of the result. Byteorder must be native.
         The default value is int.
 
     Returns
     -------
-    out : int or ndarray of ints
+    out : int or ndarray[int]
         `size`-shaped array of random integers from the appropriate
         distribution, or a single such random int if `size` not provided.
 
@@ -95,7 +95,7 @@ def randint(low, high=None, size=None, dtype=None):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
 
     if size is None:
@@ -153,7 +153,7 @@ def randn(*shapeargs):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
 
     if shapeargs is None:
@@ -175,7 +175,7 @@ def random(shape=None):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     if shape is None:
         return nprandom.random()

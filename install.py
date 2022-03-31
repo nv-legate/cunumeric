@@ -259,6 +259,7 @@ def build_cunumeric(
     openblas_dir,
     tblis_dir,
     cutensor_dir,
+    nccl_dir,
     thrust_dir,
     cmake,
     cmake_exe,
@@ -287,6 +288,7 @@ def build_cunumeric(
             "OPENBLAS_LIBNAME=%s" % libname,
             "TBLIS_PATH=%s" % tblis_dir,
             "CUTENSOR_PATH=%s" % cutensor_dir,
+            "NCCL_PATH=%s" % nccl_dir,
             "THRUST_PATH=%s" % thrust_dir,
             "DEBUG=%s" % (1 if debug else 0),
             "DEBUG_RELEASE=%s" % (1 if debug_release else 0),
@@ -417,6 +419,7 @@ def install_cunumeric(
 
     # Match the core's setting regarding CUDA support.
     makefile_path = os.path.join(legate_dir, "share", "legate", "config.mk")
+    nccl_dir = None
     cuda = find_compile_flag("USE_CUDA", makefile_path)
     if cuda:
         # Find cuTensor installation
@@ -429,6 +432,14 @@ def install_cunumeric(
             )
         cutensor_dir = os.path.realpath(cutensor_dir)
         libs_config["cutensor"] = cutensor_dir
+
+        if "nccl" not in libs_config:
+            raise Exception(
+                "Failed to find NCCL path in the Legate installation. "
+                "Make sure you installed Legate core correctly. "
+                "If the problem persists, please open a GitHub issue for it. "
+            )
+        nccl_dir = libs_config["nccl"]
 
     # Record all newly installed libraries in the global configuration
     with open(libs_path, "w") as f:
@@ -457,6 +468,7 @@ def install_cunumeric(
         openblas_dir,
         tblis_dir,
         cutensor_dir,
+        nccl_dir,
         thrust_dir,
         cmake,
         cmake_exe,

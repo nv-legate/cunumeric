@@ -16,7 +16,6 @@
 
 #include "cunumeric/matrix/matmul.h"
 #include "cunumeric/matrix/matmul_template.inl"
-#include "cunumeric/matrix/util.h"
 #include "cunumeric/matrix/util_omp.h"
 
 #include <cblas.h>
@@ -103,8 +102,8 @@ struct MatMulImplBody<VariantKind::OMP, LegateTypeCode::HALF_LT> {
                   bool rhs1_transposed,
                   bool rhs2_transposed)
   {
-    auto rhs1_copy = allocate_buffer(m * k);
-    auto rhs2_copy = allocate_buffer(k * n);
+    auto rhs1_copy = allocate_buffer_omp(m * k);
+    auto rhs2_copy = allocate_buffer_omp(k * n);
 
     if (rhs1_transposed)
       half_matrix_to_float_omp(rhs1_copy, rhs1, k, m, rhs1_stride);
@@ -128,6 +127,80 @@ struct MatMulImplBody<VariantKind::OMP, LegateTypeCode::HALF_LT> {
                 rhs2_copy,
                 rhs2_transposed ? k : n,
                 0,
+                lhs,
+                lhs_stride);
+  }
+};
+
+template <>
+struct MatMulImplBody<VariantKind::OMP, LegateTypeCode::COMPLEX64_LT> {
+  void operator()(size_t m,
+                  size_t n,
+                  size_t k,
+                  complex<float>* lhs_,
+                  const complex<float>* rhs1_,
+                  const complex<float>* rhs2_,
+                  size_t lhs_stride,
+                  size_t rhs1_stride,
+                  size_t rhs2_stride,
+                  bool rhs1_transposed,
+                  bool rhs2_transposed)
+  {
+    __complex__ float* lhs        = reinterpret_cast<__complex__ float*>(lhs_);
+    const __complex__ float* rhs1 = reinterpret_cast<const __complex__ float*>(rhs1_);
+    const __complex__ float* rhs2 = reinterpret_cast<const __complex__ float*>(rhs2_);
+    __complex__ float alpha       = 1.0;
+    __complex__ float beta        = 0.0;
+
+    cblas_cgemm(CblasRowMajor,
+                rhs1_transposed ? CblasTrans : CblasNoTrans,
+                rhs2_transposed ? CblasTrans : CblasNoTrans,
+                m,
+                n,
+                k,
+                &alpha,
+                rhs1,
+                rhs1_stride,
+                rhs2,
+                rhs2_stride,
+                &beta,
+                lhs,
+                lhs_stride);
+  }
+};
+
+template <>
+struct MatMulImplBody<VariantKind::OMP, LegateTypeCode::COMPLEX128_LT> {
+  void operator()(size_t m,
+                  size_t n,
+                  size_t k,
+                  complex<double>* lhs_,
+                  const complex<double>* rhs1_,
+                  const complex<double>* rhs2_,
+                  size_t lhs_stride,
+                  size_t rhs1_stride,
+                  size_t rhs2_stride,
+                  bool rhs1_transposed,
+                  bool rhs2_transposed)
+  {
+    __complex__ double* lhs        = reinterpret_cast<__complex__ double*>(lhs_);
+    const __complex__ double* rhs1 = reinterpret_cast<const __complex__ double*>(rhs1_);
+    const __complex__ double* rhs2 = reinterpret_cast<const __complex__ double*>(rhs2_);
+    __complex__ double alpha       = 1.0;
+    __complex__ double beta        = 0.0;
+
+    cblas_zgemm(CblasRowMajor,
+                rhs1_transposed ? CblasTrans : CblasNoTrans,
+                rhs2_transposed ? CblasTrans : CblasNoTrans,
+                m,
+                n,
+                k,
+                &alpha,
+                rhs1,
+                rhs1_stride,
+                rhs2,
+                rhs2_stride,
+                &beta,
                 lhs,
                 lhs_stride);
   }
