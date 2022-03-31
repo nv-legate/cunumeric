@@ -16,6 +16,7 @@
 
 #include "cunumeric/sort/sort.h"
 #include "cunumeric/sort/sort_template.inl"
+#include "cunumeric/utilities/thrust_allocator.h"
 
 #include <thrust/scan.h>
 #include <thrust/sort.h>
@@ -30,23 +31,14 @@
 
 #include "cunumeric/cuda_help.h"
 
+// above this threshold segment sort will be performed
+// by cub::DeviceSegmentedRadixSort instead of thrust::(stable_)sort
+// with tuple keys (not available for complex)
+#define SEGMENT_THRESHOLD_RADIX_SORT 400
+
 namespace cunumeric {
 
 using namespace Legion;
-
-class ThrustAllocator : public ScopedAllocator {
- public:
-  using value_type = char;
-
-  ThrustAllocator(Legion::Memory::Kind kind, bool scoped = true, size_t alignment = 16)
-    : ScopedAllocator(kind, scoped, alignment)
-  {
-  }
-
-  char* allocate(size_t num_bytes) { return (char*)ScopedAllocator::allocate(num_bytes); }
-
-  void deallocate(char* ptr, size_t n) { ScopedAllocator::deallocate(ptr); }
-};
 
 struct multiply : public thrust::unary_function<int, int> {
   const int constant;
@@ -320,7 +312,7 @@ void local_sort(const legate_type_of<CODE>* values_in,
 {
   using VAL = legate_type_of<CODE>;
   // fallback to thrust approach as segmented radix sort is not suited for small segments
-  if (volume == sort_dim_size || sort_dim_size > 400) {
+  if (volume == sort_dim_size || sort_dim_size > SEGMENT_THRESHOLD_RADIX_SORT) {
     cub_local_sort<VAL>(
       values_in, values_out, indices_in, indices_out, volume, sort_dim_size, stream);
   } else {

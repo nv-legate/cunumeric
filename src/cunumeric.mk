@@ -51,7 +51,7 @@ GEN_CPU_SRC += cunumeric/ternary/where.cc               \
 							 cunumeric/convolution/convolve.cc        \
 							 cunumeric/transform/flip.cc              \
 							 cunumeric/arg.cc                         \
-							 cunumeric/mapper.cc                      
+							 cunumeric/mapper.cc
 
 ifeq ($(strip $(USE_OPENMP)),1)
 GEN_CPU_SRC += cunumeric/ternary/where_omp.cc          \
