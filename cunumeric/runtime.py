@@ -40,7 +40,7 @@ _supported_dtypes = {
     np.int8: ty.int8,
     np.int16: ty.int16,
     np.int32: ty.int32,
-    np.int: ty.int64,
+    int: ty.int64,
     np.int64: ty.int64,
     np.uint8: ty.uint8,
     np.uint16: ty.uint16,
@@ -49,7 +49,7 @@ _supported_dtypes = {
     np.uint64: ty.uint64,
     np.float16: ty.float16,
     np.float32: ty.float32,
-    np.float: ty.float64,
+    float: ty.float64,
     np.float64: ty.float64,
     np.complex64: ty.complex64,
     np.complex128: ty.complex128,
@@ -57,23 +57,6 @@ _supported_dtypes = {
 
 
 class Runtime(object):
-    __slots__ = [
-        "api_calls",
-        "current_random_epoch",
-        "destroyed",
-        "legate_context",
-        "legate_runtime",
-        "max_eager_volume",
-        "num_gpus",
-        "num_procs",
-        "preload_cudalibs",
-        "report_coverage",
-        "report_dump_callstack",
-        "report_dump_csv",
-        "test_mode",
-        "warning",
-    ]
-
     def __init__(self, legate_context):
         self.legate_context = legate_context
         self.legate_runtime = get_legate_runtime()

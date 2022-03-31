@@ -7,12 +7,14 @@ dependencies:
   - clang>=8
   - clang-tools>=8
   - cutensor>=1.3.3
+  - mock
   - nccl
   - numpy
   - opt_einsum
   - pre-commit
   - pyarrow>=5
   - pydata-sphinx-theme
+  - pytest
   - python>=3.7
   - scipy
   - setuptools>=60
