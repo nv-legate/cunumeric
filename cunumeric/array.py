@@ -560,7 +560,7 @@ class ndarray:
         # Handle the nice case of it being unsigned
         from ._ufunc import absolute
 
-        return absolute
+        return absolute(self)
 
     def __add__(self, rhs):
         """a.__add__(value, /)
