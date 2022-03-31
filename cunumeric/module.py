@@ -3759,7 +3759,7 @@ def cumsum(a, axis=None, dtype=None, out=None):
 
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return a.cumsum(axis=axis, dtype=dtype, out=out)
 

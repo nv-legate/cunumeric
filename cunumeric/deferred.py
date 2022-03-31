@@ -1572,45 +1572,59 @@ class DeferredArray(NumPyThunk):
         # storage for local sums accessible
         temp = self.runtime.create_unbound_thunk(dtype=self.dtype)
 
+        if axis is not None and (axis > rhs.ndim or axis < 0):
+            raise ValueError("invalid axis")
         # when no axis specified, flatten the arrays here
         # if not flattened, multi-dim blocking can cause headaches and overhead at C++ layer
-        if axis is None:
+        if axis is None and rhs.ndim > 1:
             ax = -1
-            shape = self.shape
-            ravel(self, order="C")
-            ravel(rhs, order="C")
+            input = rhs.reshape((rhs.size,), order="C")
+            output = self.runtime.create_empty_thunk(
+                input.shape, dtype=dtype)
         else:
-            if self.ndim is 1:
+            if rhs.ndim is 1:
                 ax = -1
+                input = rhs
+                output = self
             else:
-                ax = axis
+                if axis is not rhs.ndim-1:
+                    # swap axes, always performing scan along last axis
+                    input = rhs.swapaxes(axis, rhs.ndim - 1)
+                    output = self.runtime.create_empty_thunk(
+                        input.shape, dtype=self.dtype)
+                    ax = rhs.ndim-1
         
-        task = self.context.create_task(CuNumericOpCode.CUMSUM_LOCAL)
-        task.add_output(self.base)
-        task.add_input(rhs.base)
+        task = output.context.create_task(CuNumericOpCode.CUMSUM_LOCAL)
+        task.add_output(output.base)
+        task.add_input(input.base)
         task.add_output(temp)
         task.add_scalar_arg(ax, ty.int32)
 
-        task.add_alignment(self.base, rhs.base)
+        task.add_alignment(input.base, output.base)
 
         task.execute()
         ## Global sum
         # RRRR NOTE: Assumes the partitioning stays the same from previous task.
         # RRRR NOTE: Each node will do a sum up to its index, alternatively could
         # RRRR do one centralized scan and broadcast (slightly less redundant work)
-        task = self.context.create_task(CuNumericOpCode.CUMSUM_GLOBAL)
-        task.add_input(self.base)
+        task = output.context.create_task(CuNumericOpCode.CUMSUM_GLOBAL)
+        task.add_input(input.base)
         task.add_scalar_arg(ax, ty.int32)
         task.add_output(temp)
-        task.add_output(self.base)
+        task.add_output(output.base)
 
         task.add_broadcast(temp)
 
         task.execute()
         # unflatten if necessary
-        if axis is None:
-            reshape(self, shape, order="C")
-            reshape(rhs, shape, order="C")
+        if axis is None and rhs.ndim > 1:
+            self.base = output.base
+            output.numpy_array = None # RRRR Not sure what this does?
+
+        # if axes were swapped, turn them back
+        if axis is not rhs.ndim-1:
+            self.base = output.swapaxes(rhs.ndim-1, axis).base
+            output.numpy_array = None # RRRR Not sure what this does?
         
     def unique(self):
         result = self.runtime.create_unbound_thunk(self.dtype)
