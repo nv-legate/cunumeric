@@ -538,6 +538,7 @@ struct BinaryOp<BinaryOpCode::LOGADDEXP, CODE> {
     using std::exp;
     using std::fabs;
     using std::fmax;
+    using std::log;
     using std::log1p;
     if (a == b)
       return a + log(T{2.0});
