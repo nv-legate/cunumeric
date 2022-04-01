@@ -14,6 +14,8 @@
  *
  */
 
+#pragma once
+
 #include "cunumeric/arg.h"
 #include "cunumeric/pitches.h"
 
