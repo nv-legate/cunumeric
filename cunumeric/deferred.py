@@ -1332,10 +1332,7 @@ class DeferredArray(NumPyThunk):
         return results
 
     def bitgenerator_random_raw(self, handle):
-        # if len(self.shape) != 1:
-        #     raise NotSupportedError("Cannot generate random on multi-dim")
         task = self.context.create_task(CuNumericOpCode.BITGENERATOR)
-        # TODO: here we want to partition on the first axis (highest stride)
         task.add_output(self.base)
         task.add_scalar_arg(3, ty.int32)  # OP_RAND_RAW
         task.add_scalar_arg(handle, ty.uint32)
@@ -1343,12 +1340,11 @@ class DeferredArray(NumPyThunk):
         totalsize = 1
         for sz in self.shape:
             totalsize = totalsize * sz
-        task.add_scalar_arg(totalsize, ty.uint64)  # parameter is total size
+        task.add_scalar_arg(totalsize, ty.uint64)
         # strides
         task.add_scalar_arg(self.compute_strides(self.shape), (ty.int64,))
 
-        # task.add_broadcast(self.base, axes=tuple(range(1, self.ndim)))
-
+        task.add_broadcast(self.base, axes=tuple(range(1, self.ndim)))
         task.execute()
 
     def random(self, gen_code, args=[]):

@@ -21,6 +21,12 @@
 #include <sys/types.h>
 #include <mutex>
 
+#if 0  // for debugging
+#define VERBOSE_DEBUGGING
+#endif
+
+#ifdef VERBOSE_DEBUGGING
+
 static void printtid(int op)
 {
   pid_t tid;
@@ -28,12 +34,19 @@ static void printtid(int op)
   ::fprintf(stderr, "[INFO-BITGENERATOR] : op = %d -- tid = %d -- pid = %d\n", op, tid, getpid());
 }
 
+#else
+
+static void printtid(int) {}
+
+#endif
+
 #include "cunumeric/random/bitgenerator.h"
 #include "cunumeric/random/bitgenerator_template.inl"
 #include "cunumeric/random/bitgenerator_util.h"
 
-// #include "cunumeric/cuda_help.h"
 #include "cunumeric/random/curand_help.h"
+
+#ifdef VERBOSE_DEBUGGING
 
 template <typename... args_t>
 static void debug_trace_func(const char* filename, int line, const char* fmt, args_t... args)
@@ -44,12 +57,14 @@ static void debug_trace_func(const char* filename, int line, const char* fmt, ar
 }
 
 #define DEBUG_TRACE_LINE(filename, line, ...) debug_trace_func(filename, line, __VA_ARGS__)
-#if 1  // 1 for ongoing developments with full debug tracing
 #define DEBUG_TRACE(...) DEBUG_TRACE_LINE(__FILE__, __LINE__, __VA_ARGS__)
+
 #else
+
 #define DEBUG_TRACE(...) \
   {                      \
   }
+
 #endif
 
 namespace cunumeric {
