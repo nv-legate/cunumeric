@@ -104,6 +104,49 @@ struct CURANDGenerator {
   }
 };
 
+template <VariantKind kind>
+struct CURANDGeneratorBuilder;
+
+template <>
+struct CURANDGeneratorBuilder<VariantKind::GPU> {
+  static CURANDGenerator* build(BitGeneratorType gentype)
+  {
+    auto stream = get_cached_stream();
+    curandGenerator_t gen;
+    CHECK_CURAND(::curandCreateGenerator(&gen, get_curandRngType(gentype)));
+    CHECK_CURAND(::curandSetStream(gen, stream));
+    CURANDGenerator* cugenptr = new CURANDGenerator();
+    CURANDGenerator& cugen    = *cugenptr;
+    cugen.gen                 = gen;
+    cugen.offset              = 0;
+    cugen.type                = get_curandRngType(gentype);
+    cugen.supports_skipahead  = supportsSkipAhead(cugen.type);
+    cugen.dev_buffer_size     = cugen.DEFAULT_DEV_BUFFER_SIZE;
+// TODO: use realm allocator
+#if (__CUDACC_VER_MAJOR__ > 11 || ((__CUDACC_VER_MAJOR__ >= 11) && (__CUDACC_VER_MINOR__ >= 2)))
+    CHECK_CUDA(
+      ::cudaMallocAsync(&(cugen.dev_buffer), cugen.dev_buffer_size * sizeof(uint32_t), stream));
+#else
+    CHECK_CUDA(::cudaMalloc(&(cugen.dev_buffer), cugen.dev_buffer_size * sizeof(uint32_t)));
+#endif
+    return cugenptr;
+  }
+
+  static void destroy(CURANDGenerator* cugenptr)
+  {
+    // wait for rand jobs and clean-up resources
+    std::lock_guard<std::mutex> guard(cugenptr->lock);
+    auto stream = get_cached_stream();
+// TODO: use realm allocator
+#if (__CUDACC_VER_MAJOR__ > 11 || ((__CUDACC_VER_MAJOR__ >= 11) && (__CUDACC_VER_MINOR__ >= 2)))
+    CHECK_CUDA(::cudaFreeAsync(cugenptr->dev_buffer, stream));
+#else
+    CHECK_CUDA(::cudaFree(cugenptr->dev_buffer));
+#endif
+    CHECK_CURAND(::curandDestroyGenerator(cugenptr->gen));
+  }
+};
+
 struct generate_fn {
   template <int32_t DIM>
   size_t operator()(CURANDGenerator& gen,
@@ -139,49 +182,10 @@ struct generate_fn {
       gen.skip_ahead(initialoffset + totalcount - gen.offset);
 
     return totalcount;
-
-#if 0
-    ::fprintf(stdout, "[DEBUG] : total size = %llu\n", totalsize);
-
-    auto domain = output.domain();
-    ::fprintf(stdout, "[DEBUG] : domain = \n");
-    for (int k = 0 ; k < DIM ; ++k)
-      ::fprintf(stdout, "[DEBUG] : \t[%d] - [%lld:%lld]\n", k, domain.lo()[k], domain.hi()[k]);
-
-    auto rect = output.shape<DIM>();
-    ::fprintf(stdout, "[DEBUG] : shape = \n");
-    for (int k = 0 ; k < DIM ; ++k)
-      ::fprintf(stdout, "[DEBUG] : \t[%d] - [%lld:%lld]\n", k, rect.lo[k], rect.hi[k]);
-
-    Pitches<DIM - 1> pitches;
-    pitches.flatten(rect);
-
-    // if (volume == 0) return;
-
-    size_t volume = domain.get_volume();
-    if (volume == 0) return 0;
-
-    auto out = output.write_accessor<uint32_t, DIM>(rect);
-
-    if (!out.accessor.is_dense_row_major(rect))
-      ::fprintf(stderr, "[ERROR] : accessor is not dense row major\n");
-    assert(out.accessor.is_dense_row_major(rect));
-
-    Point<DIM,size_t> strd (strides);
-    ::fprintf(stdout, "[DEBUG] : strides = \n");
-    for (int k = 0 ; k < DIM ; ++k)
-      ::fprintf(stdout, "[DEBUG] : \t[%d] = %zu\n", k, strd[k]);
-
-    uint32_t* p = out.ptr(rect);
-    DEBUG_TRACE("p = %p", p);
-
-    CHECK_CURAND(::curandGenerate(gen.gen, p, volume));
-
-    return volume;
-#endif
   }
 };
 
+template <VariantKind kind>
 struct generatormap {
   generatormap() {}
   ~generatormap()
@@ -216,6 +220,7 @@ struct generatormap {
 
   void create(int32_t generatorID, BitGeneratorType gentype)
   {
+    /*
     auto stream = get_cached_stream();
     curandGenerator_t gen;
     CHECK_CURAND(::curandCreateGenerator(&gen, get_curandRngType(gentype)));
@@ -234,6 +239,8 @@ struct generatormap {
 #else
     CHECK_CUDA(::cudaMalloc(&(cugen.dev_buffer), cugen.dev_buffer_size * sizeof(uint32_t)));
 #endif
+    */
+    CURANDGenerator* cugenptr = CURANDGeneratorBuilder<kind>::build(gentype);
 
     std::lock_guard<std::mutex> guard(lock);
     // safety check
@@ -260,6 +267,9 @@ struct generatormap {
       cugenptr = std::move(m_generators[generatorID]);
       m_generators.erase(generatorID);
     }
+
+    CURANDGeneratorBuilder<kind>::destroy(cugenptr.get());
+    /*
     // wait for rand jobs and clean-up resources
     std::lock_guard<std::mutex> guard(cugenptr->lock);
     auto stream = get_cached_stream();
@@ -270,6 +280,7 @@ struct generatormap {
     CHECK_CUDA(::cudaFree(cugenptr->dev_buffer));
 #endif
     CHECK_CURAND(::curandDestroyGenerator(cugenptr->gen));
+    */
   }
 
   void set_seed(int32_t generatorID, uint64_t seed)
@@ -282,18 +293,20 @@ struct generatormap {
 
 template <>
 struct BitGeneratorImplBody<VariantKind::GPU> {
+  using generatormap_t = generatormap<VariantKind::GPU>;
+
   static std::mutex lock_generators;
-  static std::map<Legion::Processor, std::unique_ptr<generatormap>> m_generators;
+  static std::map<Legion::Processor, std::unique_ptr<generatormap_t>> m_generators;
 
  private:
-  static generatormap& getgenmap()
+  static generatormap_t& getgenmap()
   {
     const auto proc = Legion::Processor::get_executing_processor();
     lock_generators.lock();
     if (m_generators.find(proc) == m_generators.end()) {
-      m_generators[proc] = std::move(std::unique_ptr<generatormap>(new generatormap()));
+      m_generators[proc] = std::move(std::unique_ptr<generatormap_t>(new generatormap_t()));
     }
-    generatormap* res = m_generators[proc].get();
+    generatormap_t* res = m_generators[proc].get();
     lock_generators.unlock();
     return *res;
   }
@@ -310,7 +323,7 @@ struct BitGeneratorImplBody<VariantKind::GPU> {
     printtid((int)op);
     switch (op) {
       case BitGeneratorOperation::CREATE: {
-        generatormap& genmap = getgenmap();
+        generatormap_t& genmap = getgenmap();
 
         if (genmap.has(generatorID)) {
           ::fprintf(
@@ -323,21 +336,21 @@ struct BitGeneratorImplBody<VariantKind::GPU> {
         DEBUG_TRACE("created generator %d", generatorID);
       } break;
       case BitGeneratorOperation::DESTROY: {
-        generatormap& genmap = getgenmap();
+        generatormap_t& genmap = getgenmap();
 
         genmap.destroy(generatorID);
 
         DEBUG_TRACE("destroyed generator %d", generatorID);
       } break;
       case BitGeneratorOperation::SET_SEED: {
-        generatormap& genmap = getgenmap();
+        generatormap_t& genmap = getgenmap();
 
         genmap.set_seed(generatorID, parameter);
 
         DEBUG_TRACE("set seed %llu for generator %d", parameter, generatorID);
       } break;
       case BitGeneratorOperation::RAND_RAW: {
-        generatormap& genmap = getgenmap();
+        generatormap_t& genmap = getgenmap();
 
         CURANDGenerator* genptr = genmap.get(generatorID);
 
@@ -360,7 +373,7 @@ struct BitGeneratorImplBody<VariantKind::GPU> {
   }
 };
 
-std::map<Legion::Processor, std::unique_ptr<generatormap>>
+std::map<Legion::Processor, std::unique_ptr<generatormap<VariantKind::GPU>>>
   BitGeneratorImplBody<VariantKind::GPU>::m_generators;
 std::mutex BitGeneratorImplBody<VariantKind::GPU>::lock_generators;
 
