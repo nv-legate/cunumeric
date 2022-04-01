@@ -3074,7 +3074,7 @@ def allclose(a, b, rtol=1e-5, atol=1e-8, equal_nan=False):
         BinaryOpCode.ALLCLOSE,
         a,
         b,
-        dtype=np.dtype(np.bool),
+        dtype=np.dtype(bool),
         extra_args=args,
     )
 

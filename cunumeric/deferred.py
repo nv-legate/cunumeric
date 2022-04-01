@@ -320,7 +320,7 @@ class DeferredArray(NumPyThunk):
         else:
             assert isinstance(key, NumPyThunk)
             # Handle the boolean array case
-            if key.dtype == np.bool:
+            if key.dtype == bool:
                 if key.ndim != self.ndim:
                     raise TypeError(
                         "Boolean advanced indexing dimension mismatch"

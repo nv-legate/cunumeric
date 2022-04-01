@@ -57,7 +57,8 @@ def find_last_user_frames(top_only=True):
 
 # These are the dtypes that we currently support for cuNumeric
 def is_supported_dtype(dtype):
-    assert isinstance(dtype, np.dtype)
+    if not isinstance(dtype, np.dtype):
+        raise TypeError("expected a NumPy dtype")
     base_type = dtype.type
     if (
         base_type == np.float16
@@ -77,7 +78,7 @@ def is_supported_dtype(dtype):
         base_type == np.uint16
         or base_type == np.uint32
         or base_type == np.uint64
-    ):  # noqa E501
+    ):
         return True
     if base_type == np.bool_ or base_type == bool:
         return True
@@ -127,7 +128,8 @@ def inner_modes(a_ndim, b_ndim):
 
 
 def matmul_modes(a_ndim, b_ndim):
-    assert a_ndim >= 1 and b_ndim >= 1
+    if a_ndim == 0 or b_ndim == 0:
+        raise ValueError("Scalars not allowed in matmul")
     a_modes = list(ascii_lowercase[-a_ndim:])
     b_modes = list(ascii_lowercase[-b_ndim:])
     if b_ndim >= 2:

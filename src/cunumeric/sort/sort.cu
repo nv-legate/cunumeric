@@ -16,6 +16,7 @@
 
 #include "cunumeric/sort/sort.h"
 #include "cunumeric/sort/sort_template.inl"
+#include "cunumeric/utilities/thrust_allocator.h"
 
 #include <thrust/scan.h>
 #include <thrust/sort.h>
@@ -29,6 +30,11 @@
 #include <cub/thread/thread_search.cuh>
 
 #include "cunumeric/cuda_help.h"
+
+// above this threshold segment sort will be performed
+// by cub::DeviceSegmentedRadixSort instead of thrust::(stable_)sort
+// with tuple keys (not available for complex)
+#define SEGMENT_THRESHOLD_RADIX_SORT 400
 
 namespace cunumeric {
 
@@ -202,9 +208,12 @@ void thrust_local_sort(const VAL* values_in,
                        int64_t* indices_out,
                        const size_t volume,
                        const size_t sort_dim_size,
-                       const bool stable_argsort,
+                       const bool stable,
                        cudaStream_t stream)
 {
+  auto alloc       = ThrustAllocator(Memory::GPU_FB_MEM);
+  auto exec_policy = thrust::cuda::par(alloc).on(stream);
+
   if (values_in != values_out) {
     // not in-place --> need a copy
     CHECK_CUDA(cudaMemcpyAsync(
@@ -218,11 +227,15 @@ void thrust_local_sort(const VAL* values_in,
 
   if (indices_out == nullptr) {
     if (volume == sort_dim_size) {
-      thrust::sort(thrust::cuda::par.on(stream), values_out, values_out + volume);
+      if (stable) {
+        thrust::stable_sort(exec_policy, values_out, values_out + volume);
+      } else {
+        thrust::sort(exec_policy, values_out, values_out + volume);
+      }
     } else {
       auto sort_id = create_buffer<uint64_t>(volume, Legion::Memory::Kind::GPU_FB_MEM);
       // init combined keys
-      thrust::transform(thrust::cuda::par.on(stream),
+      thrust::transform(exec_policy,
                         thrust::make_counting_iterator<uint64_t>(0),
                         thrust::make_counting_iterator<uint64_t>(volume),
                         thrust::make_constant_iterator<uint64_t>(sort_dim_size),
@@ -230,26 +243,27 @@ void thrust_local_sort(const VAL* values_in,
                         thrust::divides<uint64_t>());
       auto combined = thrust::make_zip_iterator(thrust::make_tuple(sort_id.ptr(0), values_out));
 
-      thrust::sort(thrust::cuda::par.on(stream),
-                   combined,
-                   combined + volume,
-                   thrust::less<thrust::tuple<size_t, VAL>>());
+      if (stable) {
+        thrust::stable_sort(
+          exec_policy, combined, combined + volume, thrust::less<thrust::tuple<size_t, VAL>>());
+      } else {
+        thrust::sort(
+          exec_policy, combined, combined + volume, thrust::less<thrust::tuple<size_t, VAL>>());
+      }
 
       sort_id.destroy();
     }
   } else {
     if (volume == sort_dim_size) {
-      if (stable_argsort) {
-        thrust::stable_sort_by_key(
-          thrust::cuda::par.on(stream), values_out, values_out + volume, indices_out);
+      if (stable) {
+        thrust::stable_sort_by_key(exec_policy, values_out, values_out + volume, indices_out);
       } else {
-        thrust::sort_by_key(
-          thrust::cuda::par.on(stream), values_out, values_out + volume, indices_out);
+        thrust::sort_by_key(exec_policy, values_out, values_out + volume, indices_out);
       }
     } else {
       auto sort_id = create_buffer<uint64_t>(volume, Legion::Memory::Kind::GPU_FB_MEM);
       // init combined keys
-      thrust::transform(thrust::cuda::par.on(stream),
+      thrust::transform(exec_policy,
                         thrust::make_counting_iterator<uint64_t>(0),
                         thrust::make_counting_iterator<uint64_t>(volume),
                         thrust::make_constant_iterator<uint64_t>(sort_dim_size),
@@ -257,14 +271,14 @@ void thrust_local_sort(const VAL* values_in,
                         thrust::divides<uint64_t>());
       auto combined = thrust::make_zip_iterator(thrust::make_tuple(sort_id.ptr(0), values_out));
 
-      if (stable_argsort) {
-        thrust::stable_sort_by_key(thrust::cuda::par.on(stream),
+      if (stable) {
+        thrust::stable_sort_by_key(exec_policy,
                                    combined,
                                    combined + volume,
                                    indices_out,
                                    thrust::less<thrust::tuple<size_t, VAL>>());
       } else {
-        thrust::sort_by_key(thrust::cuda::par.on(stream),
+        thrust::sort_by_key(exec_policy,
                             combined,
                             combined + volume,
                             indices_out,
@@ -293,23 +307,17 @@ void local_sort(const legate_type_of<CODE>* values_in,
                 int64_t* indices_out,
                 const size_t volume,
                 const size_t sort_dim_size,
-                const bool stable_argsort,  // cub sort is always stable
+                const bool stable,  // cub sort is always stable
                 cudaStream_t stream)
 {
   using VAL = legate_type_of<CODE>;
   // fallback to thrust approach as segmented radix sort is not suited for small segments
-  if (volume == sort_dim_size || sort_dim_size > 300) {
+  if (volume == sort_dim_size || sort_dim_size > SEGMENT_THRESHOLD_RADIX_SORT) {
     cub_local_sort<VAL>(
       values_in, values_out, indices_in, indices_out, volume, sort_dim_size, stream);
   } else {
-    thrust_local_sort<VAL>(values_in,
-                           values_out,
-                           indices_in,
-                           indices_out,
-                           volume,
-                           sort_dim_size,
-                           stable_argsort,
-                           stream);
+    thrust_local_sort<VAL>(
+      values_in, values_out, indices_in, indices_out, volume, sort_dim_size, stable, stream);
   }
 }
 
@@ -320,12 +328,12 @@ void local_sort(const legate_type_of<CODE>* values_in,
                 int64_t* indices_out,
                 const size_t volume,
                 const size_t sort_dim_size,
-                const bool stable_argsort,
+                const bool stable,
                 cudaStream_t stream)
 {
   using VAL = legate_type_of<CODE>;
   thrust_local_sort<VAL>(
-    values_in, values_out, indices_in, indices_out, volume, sort_dim_size, stable_argsort, stream);
+    values_in, values_out, indices_in, indices_out, volume, sort_dim_size, stable, stream);
 }
 
 // auto align to multiples of 16 bytes
@@ -464,12 +472,12 @@ static SortPiece<VAL> sample_sort_nccl(SortPiece<VAL> local_sorted,
                            stream));
 
   // sort samples on device
-  thrust::stable_sort(thrust::cuda::par.on(stream),
-                      samples.ptr(0),
-                      samples.ptr(0) + num_global_samples,
-                      SampleComparator<VAL>());
+  auto alloc       = ThrustAllocator(Memory::GPU_FB_MEM);
+  auto exec_policy = thrust::cuda::par(alloc).on(stream);
+  thrust::stable_sort(
+    exec_policy, samples.ptr(0), samples.ptr(0) + num_global_samples, SampleComparator<VAL>());
 
-  auto lower_bound          = thrust::lower_bound(thrust::cuda::par.on(stream),
+  auto lower_bound          = thrust::lower_bound(exec_policy,
                                          samples.ptr(0),
                                          samples.ptr(0) + num_global_samples,
                                          init_sample,
@@ -643,7 +651,7 @@ static SortPiece<VAL> sample_sort_nccl(SortPiece<VAL> local_sorted,
         auto p_indices1       = source1.indices.ptr(0);
         auto p_indices2       = source2.indices.ptr(0);
         auto p_merged_indices = merged_indices.ptr(0);
-        thrust::merge_by_key(thrust::cuda::par.on(stream),
+        thrust::merge_by_key(exec_policy,
                              p_values1,
                              p_values1 + source1.size,
                              p_values2,
@@ -654,7 +662,7 @@ static SortPiece<VAL> sample_sort_nccl(SortPiece<VAL> local_sorted,
                              p_merged_indices);
         source1.indices.destroy();
       } else {
-        thrust::merge(thrust::cuda::par.on(stream),
+        thrust::merge(exec_policy,
                       p_values1,
                       p_values1 + source1.size,
                       p_values2,
