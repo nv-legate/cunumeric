@@ -54,6 +54,14 @@ class BitGenerator:
             res = ndarray(shape, dtype=np.dtype(np.uint32))
             res._thunk.bitgenerator_random_raw(self.handle)
             return res
+
+            # totalsize = 1
+            # for sz in shape:
+            #     totalsize = totalsize * sz
+            # res = ndarray((totalsize,), dtype=np.dtype(np.uint32))
+            # res._thunk.bitgenerator_random_raw(self.handle)
+            # res.reshape(shape, order="C")
+            # return res
         else:
             runtime.bitgenerator_random_raw(self.handle, shape)
 
