@@ -29,7 +29,6 @@ def allclose(A, B):
         return np.allclose(A, B)
 
 
-# N = 1000001
 def test_1d(N, dtype=np.float64):
     Z = np.random.rand(N).astype(dtype) + np.random.rand(N).astype(dtype) * 1j
     Z_num = num.array(Z)
@@ -69,7 +68,6 @@ def test_1d(N, dtype=np.float64):
     assert allclose(Z, Z_num)
 
 
-# N = (128, 512)
 def test_2d(N, dtype=np.float64):
     Z = (
         np.random.rand(*N).astype(dtype)
@@ -159,7 +157,6 @@ def test_2d(N, dtype=np.float64):
     assert allclose(Z, Z_num)
 
 
-# N = (64, 40, 100)
 def test_3d(N, dtype=np.float64):
     Z = (
         np.random.rand(*N).astype(dtype)

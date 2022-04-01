@@ -160,7 +160,7 @@ class BlasOperation(IntEnum):
 class DeferredArray(NumPyThunk):
     """This is a deferred thunk for describing NumPy computations.
     It is backed by either a Legion logical region or a Legion future
-    for describing the result of a compuation.
+    for describing the result of a computation.
 
     :meta private:
     """
@@ -789,32 +789,40 @@ class DeferredArray(NumPyThunk):
 
     @auto_convert([1])
     def fft(self, lhs, axes, kind, direction):
-        input = self.base
-        output = lhs.base
-
-        task = self.context.create_task(CuNumericOpCode.FFT)
-        p_output = task.declare_partition(output)
-        p_input = task.declare_partition(input)
-
-        task.add_output(output, partition=p_output)
-        task.add_input(input, partition=p_input)
-        task.add_scalar_arg(kind.value, ty.int32)
-        task.add_scalar_arg(direction.value, ty.int32)
-        if axes is not None:
-            task.add_scalar_arg(
-                len(set(axes)) != len(axes)
-                or len(axes) != input.ndim
-                or tuple(axes) != tuple(sorted(axes)),
-                ty.int8,
+        # For now, deferred only supported with GPU, use eager / numpy for CPU
+        if self.runtime.num_gpus == 0:
+            lhs_eager = lhs.runtime.to_eager_array(lhs)
+            self.runtime.to_eager_array(self).fft(
+                lhs_eager, axes, kind, direction
             )
-            for ax in axes:
-                task.add_scalar_arg(ax, ty.int64)
+            lhs.base = lhs.runtime.to_deferred_array(lhs_eager).base
         else:
-            task.add_scalar_arg(False, ty.bool)
+            input = self.base
+            output = lhs.base
 
-        task.add_constraint(p_output == p_input)
+            task = self.context.create_task(CuNumericOpCode.FFT)
+            p_output = task.declare_partition(output)
+            p_input = task.declare_partition(input)
 
-        task.execute()
+            task.add_output(output, partition=p_output)
+            task.add_input(input, partition=p_input)
+            task.add_scalar_arg(kind.value, ty.int32)
+            task.add_scalar_arg(direction.value, ty.int32)
+            if axes is not None:
+                task.add_scalar_arg(
+                    len(set(axes)) != len(axes)
+                    or len(axes) != input.ndim
+                    or tuple(axes) != tuple(sorted(axes)),
+                    ty.int8,
+                )
+                for ax in axes:
+                    task.add_scalar_arg(ax, ty.int64)
+            else:
+                task.add_scalar_arg(False, ty.bool)
+
+            task.add_constraint(p_output == p_input)
+
+            task.execute()
 
     # Fill the cuNumeric array with the value in the numpy array
     def _fill(self, value):

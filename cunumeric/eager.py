@@ -270,9 +270,9 @@ class EagerArray(NumPyThunk):
         if self.deferred is not None:
             self.deferred.fft(out, axes, kind, direction)
         else:
-            if kind == FFTCode.FFT_D2Z:
+            if kind == FFTCode.FFT_D2Z or kind == FFTCode.FFT_R2C:
                 res = np.fft.rfftn(self.array, axes=axes, norm="backward")
-            elif kind == FFTCode.FFT_Z2D:
+            elif kind == FFTCode.FFT_Z2D or kind == FFTCode.FFT_C2R:
                 s = [self.array.shape[i] for i in axes]
                 res = np.fft.irfftn(self.array, s=s, axes=axes, norm="forward")
             else:
@@ -282,13 +282,13 @@ class EagerArray(NumPyThunk):
                     res = np.fft.ifftn(self.array, axes=axes, norm="forward")
             if kind.is_single_precision:
                 if res.dtype == np.complex128:
-                    out.array = res.astype(np.complex64)
+                    out.array[:] = res.astype(np.complex64)
                 elif res.dtype == np.float64:
-                    out.array = res.astype(np.float32)
+                    out.array[:] = res.astype(np.float32)
                 else:
                     raise RuntimeError("Unsupported data type in eager FFT")
             else:
-                out.array = res
+                out.array[:] = res
 
     def copy(self, rhs, deep=False):
         self.check_eager_args(rhs)
