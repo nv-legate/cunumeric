@@ -37,6 +37,10 @@ class BitGenerator:
     ]
 
     def __init__(self, seed=None, generatorType=DEFAULT):
+        if type(self) is BitGenerator:
+            raise NotImplementedError(
+                "BitGenerator is a base class and cannot be instantized"
+            )
         self.handle = runtime.bitgenerator_create(generatorType)
         if seed is not None:
             runtime.bitgenerator_set_seed(self.handle, seed)

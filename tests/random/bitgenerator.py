@@ -30,14 +30,6 @@ from cunumeric import runtime
 #         raise NotImplementedError('Not Implemented')
 
 
-def test_bitgenerator():
-    a = cunumeric.random.BitGenerator()
-    print(type(a))
-    a = None
-    print("DONE")
-    pass
-
-
 def test_bitgenerator_type(t):
     print("testing for type = " + str(t))
     bitgen = t(42)  # use 42 as seed
@@ -75,7 +67,6 @@ def test_bitgenerator_PHILOX4_32_10():
 
 
 if __name__ == "__main__":
-    test_bitgenerator()
     test_bitgenerator_XORWOW()
     test_bitgenerator_MRG32k3a()
     test_bitgenerator_MTGP32()
