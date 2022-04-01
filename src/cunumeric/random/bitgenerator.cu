@@ -14,9 +14,6 @@
  *
  */
 
-#include <map>
-#include <mutex>
-
 #include "cunumeric/random/bitgenerator.h"
 #include "cunumeric/random/bitgenerator_template.inl"
 #include "cunumeric/random/bitgenerator_util.h"
@@ -70,9 +67,6 @@ struct CURANDGeneratorBuilder<VariantKind::GPU> {
     CHECK_CURAND(::curandDestroyGenerator(cugenptr->gen));
   }
 };
-
-// explicit instantiation for GPU variant
-// template struct BitGeneratorImplBody<VariantKind::GPU> ;
 
 template <>
 std::map<Legion::Processor, std::unique_ptr<generatormap<VariantKind::GPU>>>

@@ -20,9 +20,7 @@
 
 #include "cunumeric/random/curand_help.h"
 
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/syscall.h>
+#include "cunumeric/random/bitgenerator_curand.inl"
 
 namespace cunumeric {
 
@@ -30,48 +28,37 @@ using namespace Legion;
 using namespace legate;
 
 template <>
-struct BitGeneratorImplBody<VariantKind::CPU> {
-  thread_local static std::map<int, curandGenerator_t> m_generators;
-
-  void operator()(BitGeneratorOperation op,
-                  int32_t generatorID,
-                  uint64_t parameter,
-                  const DomainPoint& strides,
-                  std::vector<legate::Store>& output,
-                  std::vector<legate::Store>& args)
+struct CURANDGeneratorBuilder<VariantKind::CPU> {
+  static CURANDGenerator* build(BitGeneratorType gentype)
   {
-    // ::fprintf(stderr, "[TRACE] : bitgenerator tid = %d\n", syscall(SYS_gettid));
-    switch (op) {
-      case BitGeneratorOperation::CREATE: {
-        if (m_generators.find(generatorID) != m_generators.end()) {
-          ::fprintf(
-            stderr, "[ERROR] : internal error : generator ID <%d> already in use !\n", generatorID);
-          assert(false);
-        }
-        curandGenerator_t gen;
-        CHECK_CURAND(
-          ::curandCreateGeneratorHost(&gen, get_curandRngType((BitGeneratorType)parameter)));
-        m_generators[generatorID] = gen;
-      } break;
-      case BitGeneratorOperation::DESTROY: {
-        if (m_generators.find(generatorID) == m_generators.end()) {
-          ::fprintf(
-            stderr, "[ERROR] : internal error : generator ID <%d> does not exist !\n", generatorID);
-          assert(false);
-        }
-        curandGenerator_t gen = m_generators[generatorID];
-        CHECK_CURAND(::curandDestroyGenerator(gen));
-        m_generators.erase(generatorID);
-      } break;
-      default: {
-        ::fprintf(stderr, "[ERROR] : unknown BitGenerator operation");
-        assert(false);
-      }
-    }
+    curandGenerator_t gen;
+    CHECK_CURAND(::curandCreateGeneratorHost(&gen, get_curandRngType(gentype)));
+    CURANDGenerator* cugenptr = new CURANDGenerator();
+    CURANDGenerator& cugen    = *cugenptr;
+    cugen.gen                 = gen;
+    cugen.offset              = 0;
+    cugen.type                = get_curandRngType(gentype);
+    cugen.supports_skipahead  = supportsSkipAhead(cugen.type);
+    cugen.dev_buffer_size     = cugen.DEFAULT_DEV_BUFFER_SIZE;
+    cugen.dev_buffer          = (uint32_t*)::malloc(cugen.dev_buffer_size * sizeof(uint32_t));
+    return cugenptr;
+  }
+
+  static void destroy(CURANDGenerator* cugenptr)
+  {
+    // wait for rand jobs and clean-up resources
+    std::lock_guard<std::mutex> guard(cugenptr->lock);
+    ::free(cugenptr->dev_buffer);
+    CHECK_CURAND(::curandDestroyGenerator(cugenptr->gen));
   }
 };
 
-thread_local std::map<int, curandGenerator_t> BitGeneratorImplBody<VariantKind::CPU>::m_generators;
+template <>
+std::map<Legion::Processor, std::unique_ptr<generatormap<VariantKind::CPU>>>
+  BitGeneratorImplBody<VariantKind::CPU>::m_generators = {};
+
+template <>
+std::mutex BitGeneratorImplBody<VariantKind::CPU>::lock_generators = {};
 
 /*static*/ void BitGeneratorTask::cpu_variant(TaskContext& context)
 {
