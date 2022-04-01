@@ -1,0 +1,6 @@
+﻿cunumeric.ndarray.argsort
+=========================
+
+.. currentmodule:: cunumeric
+
+.. automethod:: ndarray.argsort

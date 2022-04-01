@@ -1,0 +1,17 @@
+Binary operations
+=================
+
+.. currentmodule:: cunumeric
+
+Elementwise bit operations
+--------------------------
+
+.. autosummary::
+   :toctree: generated/
+
+   bitwise_and
+   bitwise_or
+   bitwise_xor
+   invert
+   left_shift
+   right_shift

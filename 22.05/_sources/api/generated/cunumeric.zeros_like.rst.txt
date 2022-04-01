@@ -1,0 +1,6 @@
+﻿cunumeric.zeros\_like
+=====================
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: zeros_like

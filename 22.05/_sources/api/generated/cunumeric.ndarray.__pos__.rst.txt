@@ -1,0 +1,6 @@
+﻿cunumeric.ndarray.\_\_pos\_\_
+=============================
+
+.. currentmodule:: cunumeric
+
+.. automethod:: ndarray.__pos__

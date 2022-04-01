@@ -1,0 +1,6 @@
+﻿cunumeric.ndarray.\_\_float\_\_
+===============================
+
+.. currentmodule:: cunumeric
+
+.. automethod:: ndarray.__float__
