@@ -41,28 +41,34 @@ struct MatVecMulImplBody<VariantKind::GPU, LegateTypeCode::FLOAT_LT> {
     const float beta  = 0.0;
 
     auto trans = transpose_mat ? CUBLAS_OP_N : CUBLAS_OP_T;
-#if CUDART_VERSION >= 11040
-    CHECK_CUBLAS(
-      cublasSgemv(cublas_handle, trans, n, m, &alpha, mat, mat_stride, vec, 1, &beta, lhs, 1));
-#else
-    CHECK_CUBLAS(cublasSgemmEx(cublas_handle,
-                               trans,
-                               CUBLAS_OP_N,
-                               transpose_mat ? n : m,
-                               1,
-                               transpose_mat ? m : n,
-                               &alpha,
-                               mat,
-                               CUDA_R_32F,
-                               mat_stride,
-                               vec,
-                               CUDA_R_32F,
-                               transpose_mat ? m : n,
-                               &beta,
-                               lhs,
-                               CUDA_R_32F,
-                               transpose_mat ? n : m));
-#endif
+
+    // XXX: There is a bug in older versions of cuBLAS that are triggered
+    //      by some degenerate matrix-vector multiplications. We simply use
+    //      matrix-matrix multiplication all the time unless we're on a recent
+    //      cuBLAS version
+    int32_t version;
+    CHECK_CUBLAS(cublasGetVersion(cublas_handle, &version));
+    if (version >= 11700)
+      CHECK_CUBLAS(
+        cublasSgemv(cublas_handle, trans, n, m, &alpha, mat, mat_stride, vec, 1, &beta, lhs, 1));
+    else
+      CHECK_CUBLAS(cublasSgemmEx(cublas_handle,
+                                 trans,
+                                 CUBLAS_OP_N,
+                                 transpose_mat ? n : m,
+                                 1,
+                                 transpose_mat ? m : n,
+                                 &alpha,
+                                 mat,
+                                 CUDA_R_32F,
+                                 mat_stride,
+                                 vec,
+                                 CUDA_R_32F,
+                                 transpose_mat ? m : n,
+                                 &beta,
+                                 lhs,
+                                 CUDA_R_32F,
+                                 transpose_mat ? n : m));
   }
 };
 
@@ -84,25 +90,29 @@ struct MatVecMulImplBody<VariantKind::GPU, LegateTypeCode::DOUBLE_LT> {
     const double beta  = 0.0;
 
     auto trans = transpose_mat ? CUBLAS_OP_N : CUBLAS_OP_T;
-#if CUDART_VERSION >= 11040
-    CHECK_CUBLAS(
-      cublasDgemv(cublas_handle, trans, n, m, &alpha, mat, mat_stride, vec, 1, &beta, lhs, 1));
-#else
-    CHECK_CUBLAS(cublasDgemm(cublas_handle,
-                             trans,
-                             CUBLAS_OP_N,
-                             transpose_mat ? n : m,
-                             1,
-                             transpose_mat ? m : n,
-                             &alpha,
-                             mat,
-                             mat_stride,
-                             vec,
-                             transpose_mat ? m : n,
-                             &beta,
-                             lhs,
-                             transpose_mat ? n : m));
-#endif
+
+    // FIXME: It's actually unknown that the cuBLAS bug for 32-bit floats reproduces for
+    //        64-bit flots as well. We're simply being conservative here.
+    int32_t version;
+    CHECK_CUBLAS(cublasGetVersion(cublas_handle, &version));
+    if (version >= 11700)
+      CHECK_CUBLAS(
+        cublasDgemv(cublas_handle, trans, n, m, &alpha, mat, mat_stride, vec, 1, &beta, lhs, 1));
+    else
+      CHECK_CUBLAS(cublasDgemm(cublas_handle,
+                               trans,
+                               CUBLAS_OP_N,
+                               transpose_mat ? n : m,
+                               1,
+                               transpose_mat ? m : n,
+                               &alpha,
+                               mat,
+                               mat_stride,
+                               vec,
+                               transpose_mat ? m : n,
+                               &beta,
+                               lhs,
+                               transpose_mat ? n : m));
   }
 };
 
@@ -167,28 +177,32 @@ struct MatVecMulImplBody<VariantKind::GPU, LegateTypeCode::COMPLEX64_LT> {
     const cuComplex beta  = make_float2(0.0, 0.0);
 
     auto trans = transpose_mat ? CUBLAS_OP_N : CUBLAS_OP_T;
-#if CUDART_VERSION >= 11040
-    CHECK_CUBLAS(
-      cublasCgemv(cublas_handle, trans, n, m, &alpha, mat, mat_stride, vec, 1, &beta, lhs, 1));
-#else
-    CHECK_CUBLAS(cublasCgemmEx(cublas_handle,
-                               trans,
-                               CUBLAS_OP_N,
-                               transpose_mat ? n : m,
-                               1,
-                               transpose_mat ? m : n,
-                               &alpha,
-                               mat,
-                               CUDA_C_32F,
-                               mat_stride,
-                               vec,
-                               CUDA_C_32F,
-                               transpose_mat ? m : n,
-                               &beta,
-                               lhs,
-                               CUDA_C_32F,
-                               transpose_mat ? n : m));
-#endif
+
+    // FIXME: It's actually unknown that the cuBLAS bug for 32-bit floats reproduces for
+    //        complex64 as well. We're simply being conservative here.
+    int32_t version;
+    CHECK_CUBLAS(cublasGetVersion(cublas_handle, &version));
+    if (version >= 11700)
+      CHECK_CUBLAS(
+        cublasCgemv(cublas_handle, trans, n, m, &alpha, mat, mat_stride, vec, 1, &beta, lhs, 1));
+    else
+      CHECK_CUBLAS(cublasCgemmEx(cublas_handle,
+                                 trans,
+                                 CUBLAS_OP_N,
+                                 transpose_mat ? n : m,
+                                 1,
+                                 transpose_mat ? m : n,
+                                 &alpha,
+                                 mat,
+                                 CUDA_C_32F,
+                                 mat_stride,
+                                 vec,
+                                 CUDA_C_32F,
+                                 transpose_mat ? m : n,
+                                 &beta,
+                                 lhs,
+                                 CUDA_C_32F,
+                                 transpose_mat ? n : m));
   }
 };
 
@@ -214,25 +228,29 @@ struct MatVecMulImplBody<VariantKind::GPU, LegateTypeCode::COMPLEX128_LT> {
     const cuDoubleComplex beta  = make_double2(0.0, 0.0);
 
     auto trans = transpose_mat ? CUBLAS_OP_N : CUBLAS_OP_T;
-#if CUDART_VERSION >= 11040
-    CHECK_CUBLAS(
-      cublasZgemv(cublas_handle, trans, n, m, &alpha, mat, mat_stride, vec, 1, &beta, lhs, 1));
-#else
-    CHECK_CUBLAS(cublasZgemm(cublas_handle,
-                             trans,
-                             CUBLAS_OP_N,
-                             transpose_mat ? n : m,
-                             1,
-                             transpose_mat ? m : n,
-                             &alpha,
-                             mat,
-                             mat_stride,
-                             vec,
-                             transpose_mat ? m : n,
-                             &beta,
-                             lhs,
-                             transpose_mat ? n : m));
-#endif
+
+    // FIXME: It's actually unknown that the cuBLAS bug for 32-bit floats reproduces for
+    //        complex128 as well. We're simply being conservative here.
+    int32_t version;
+    CHECK_CUBLAS(cublasGetVersion(cublas_handle, &version));
+    if (version >= 11700)
+      CHECK_CUBLAS(
+        cublasZgemv(cublas_handle, trans, n, m, &alpha, mat, mat_stride, vec, 1, &beta, lhs, 1));
+    else
+      CHECK_CUBLAS(cublasZgemm(cublas_handle,
+                               trans,
+                               CUBLAS_OP_N,
+                               transpose_mat ? n : m,
+                               1,
+                               transpose_mat ? m : n,
+                               &alpha,
+                               mat,
+                               mat_stride,
+                               vec,
+                               transpose_mat ? m : n,
+                               &beta,
+                               lhs,
+                               transpose_mat ? n : m));
   }
 };
 
