@@ -3,4 +3,4 @@
 
 .. currentmodule:: cunumeric
 
-.. autofunction:: arctan
+.. autodata:: arctan

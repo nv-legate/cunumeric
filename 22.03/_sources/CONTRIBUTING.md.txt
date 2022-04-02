@@ -1,6 +1,6 @@
 # Contributing to cuNumeric
 
-CuNumeric is an open-source project released under the [Apache license](LICENSE).  We welcome any and all contributions, and we hope that you can help us develop a strong community.
+CuNumeric is an open-source project released under the [Apache license, version 2.0](https://www.apache.org/licenses/LICENSE-2.0).  We welcome any and all contributions, and we hope that you can help us develop a strong community.
 
 ## How to begin
 
@@ -10,7 +10,7 @@ Once you are ready to start development, we ask you to work on a [fork](https://
 
 ## The Legalese: Developer Certificate of Origin
 
-CuNumeric is released under the open-source Apache license (see our [LICENSE](LICENSE) file) free to use, modify, and redistribute.  To ensure that the license can be exercised without encumbrance, we ask you that you only contribute your own work or work to which you have the intellectual rights.  To that end, we employ the Developer's Certificate of Origin (DCO), which is the lightweight mechanism for you to certify that you are legally able to make your contribution. Here is the full text of the certificate (also available at [DeveloperCertificate.org](DeveloperCertificate.org)):
+CuNumeric is released under the open-source [Apache license, version 2.0](https://www.apache.org/licenses/LICENSE-2.0), and is free to use, modify, and redistribute.  To ensure that the license can be exercised without encumbrance, we ask you that you only contribute your own work or work to which you have the intellectual rights.  To that end, we employ the Developer's Certificate of Origin (DCO), which is the lightweight mechanism for you to certify that you are legally able to make your contribution. Here is the full text of the certificate (also available at [DeveloperCertificate.org](https://DeveloperCertificate.org)):
 
 ````
 Developer Certificate of Origin
@@ -67,6 +67,6 @@ As we suggested at the beginning of this document, it will be really helpful to 
 
 ## Code Formatting Requirements
 
-CuNumeric has a set of coding standards that are expected from all the code merged into the project.  The coding standards are defined by the set of tools we use to format our code.  We use the [pre-commit](https://pre-commit.com/) framework to run our formatting tools.  Our specific setup of pre-commit is defined in [.pre-commit-config.yaml](.pre-commit-config.yaml).  The easiest way to meet the coding standards is to simply use the pre-commit framework to run all the checks for you.  Please visit the [pre-commit project page](https://pre-commit.com/) for pre-commit installation and usage instructions.  Once pre-commit is installed in the cuNumeric repo, all the checks and formatting will be run on every commit, but one can also run the checks explicitly as detailed in pre-commit documentation.
+CuNumeric has a set of coding standards that are expected from all the code merged into the project.  The coding standards are defined by the set of tools we use to format our code.  We use the [pre-commit](https://pre-commit.com/) framework to run our formatting tools.  The easiest way to meet the coding standards is to simply use the pre-commit framework to run all the checks for you.  Please visit the [pre-commit project page](https://pre-commit.com/) for pre-commit installation and usage instructions.  Once pre-commit is installed in the cuNumeric repo, all the checks and formatting will be run on every commit, but one can also run the checks explicitly as detailed in pre-commit documentation.
 
 We hope that the automation of our formatting checks will make it easy to comply with our coding standards.  If you encounter problems with code formatting, however, please let us know in a comment on your PR, and we will do our best to help.

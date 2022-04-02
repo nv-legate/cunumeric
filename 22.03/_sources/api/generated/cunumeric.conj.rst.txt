@@ -3,4 +3,4 @@
 
 .. currentmodule:: cunumeric
 
-.. autofunction:: conj
+.. autodata:: conj

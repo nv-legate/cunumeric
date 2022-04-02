@@ -3,4 +3,4 @@
 
 .. currentmodule:: cunumeric
 
-.. autofunction:: square
+.. autodata:: square

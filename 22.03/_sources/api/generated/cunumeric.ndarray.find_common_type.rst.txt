@@ -1,0 +1,6 @@
+﻿cunumeric.ndarray.find\_common\_type
+====================================
+
+.. currentmodule:: cunumeric
+
+.. automethod:: ndarray.find_common_type

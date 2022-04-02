@@ -3,4 +3,4 @@
 
 .. currentmodule:: cunumeric
 
-.. autofunction:: sqrt
+.. autodata:: sqrt

@@ -3,4 +3,4 @@
 
 .. currentmodule:: cunumeric
 
-.. autofunction:: logical_or
+.. autodata:: logical_or
