@@ -1,0 +1,6 @@
+﻿cunumeric.ndarray.clip
+======================
+
+.. currentmodule:: cunumeric
+
+.. automethod:: ndarray.clip
