@@ -1,0 +1,6 @@
+﻿cunumeric.arange
+================
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: arange

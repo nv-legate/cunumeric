@@ -1,0 +1,6 @@
+﻿cunumeric.ndarray.max
+=====================
+
+.. currentmodule:: cunumeric
+
+.. automethod:: ndarray.max

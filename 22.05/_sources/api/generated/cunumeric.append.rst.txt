@@ -1,0 +1,6 @@
+﻿cunumeric.append
+================
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: append

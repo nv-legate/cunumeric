@@ -1,0 +1,6 @@
+﻿cunumeric.shape
+===============
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: shape

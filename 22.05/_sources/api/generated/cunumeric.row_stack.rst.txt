@@ -1,0 +1,6 @@
+﻿cunumeric.row\_stack
+====================
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: row_stack

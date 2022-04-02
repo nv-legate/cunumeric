@@ -1,0 +1,6 @@
+﻿cunumeric.deg2rad
+=================
+
+.. currentmodule:: cunumeric
+
+.. autodata:: deg2rad
