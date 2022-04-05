@@ -13,8 +13,6 @@
 # limitations under the License.
 #
 
-import warnings
-
 import numpy as np
 
 import cunumeric as num
