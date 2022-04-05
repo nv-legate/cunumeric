@@ -240,6 +240,14 @@ def advanced_indexing():
     res_num = x_num[..., [0, 1], 2]
     assert np.array_equal(res, res_num)
 
+    res = x[:, [0, 1], :, -1]
+    res_num = x_num[:, [0, 1], :, -1]
+    assert np.array_equal(res, res_num)
+
+    res = x[:, [0, 1], :, 1:]
+    res_num = x_num[:, [0, 1], :, 1:]
+    assert np.array_equal(res, res_num)
+
     # In-Place & Augmented Assignments via Advanced Indexing
     # simple 1d case
     y = np.array([0, -1, -2, -3, -4, -5])

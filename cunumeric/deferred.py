@@ -449,15 +449,43 @@ class DeferredArray(NumPyThunk):
             # the transformation, we need to return a copy
             copy_needed = False
             tuple_of_arrays = ()
+            index_map = []
 
+            # First, we need to check if transpose is needed
             for dim, k in enumerate(key):
+                if np.isscalar(k) or isinstance(k, NumPyThunk):
+                    if start_index == -1:
+                        start_index = dim
+                    transpose_indices += (dim,)
+                    transpose_needed = transpose_needed or (
+                        (dim - last_index) > 1
+                    )
+                    last_index = dim
+
+            if transpose_needed:
+                copy_needed = True
+                start_index = 0
+                post_indices = tuple(
+                    i for i in range(store.ndim) if i not in transpose_indices
+                )
+                transpose_indices += post_indices
+                store = store.transpose(transpose_indices)
+                index_map = list(transpose_indices)
+                count = 0
+                for i in transpose_indices:
+                    index_map[i] = count
+                    count += 1
+            else:
+                index_map = tuple(range(len(key)))
+
+            for d, k in enumerate(key):
+                dim = index_map[d]
                 if np.isscalar(k):
                     if k < 0:
                         k += store.shape[dim + shift]
                     store = store.project(dim + shift, k)
                     shift -= 1
                     copy_needed = True
-                    last_index = dim + shift
                 elif k is np.newaxis:
                     store = store.promote(dim + shift, 1)
                     copy_needed = True
@@ -466,22 +494,8 @@ class DeferredArray(NumPyThunk):
                     if k != slice(None):
                         copy_needed = True
                 elif isinstance(k, NumPyThunk):
-                    # the very first time we get cunumeric array, record
-                    # start_index
-                    if start_index == -1:
-                        start_index = dim + shift
-                        if (start_index - last_index) > 1:
-                            transpose_needed = True
-                        last_index = dim + shift
-                        transpose_indices += (dim + shift,)
-                    else:
-                        transpose_needed = transpose_needed or (
-                            (dim + shift - last_index) > 1
-                        )
-                        transpose_indices += (dim + shift,)
-                        last_index = dim + shift
                     if k.dtype == np.bool:
-                        if k.shape[0] != self.shape[dim]:
+                        if k.shape[0] != store.shape[dim]:
                             raise ValueError(
                                 "boolean index did not match "
                                 "indexed array along dimension  "
@@ -497,14 +511,7 @@ class DeferredArray(NumPyThunk):
                         "Unsupported entry type passed to advanced",
                         "indexing operation",
                     )
-            if transpose_needed:
-                copy_needed = True
-                start_index = 0
-                post_indices = tuple(
-                    i for i in range(store.ndim) if i not in transpose_indices
-                )
-                transpose_indices += post_indices
-                store = store.transpose(transpose_indices)
+
             if copy_needed:
                 # after store is transformed we need to to return a copy of
                 # the store since Copy operation can't be done on
@@ -562,7 +569,7 @@ class DeferredArray(NumPyThunk):
                     # output regions when ND output regions are available
                     tuple_of_arrays = key.nonzero()
             elif key.ndim < store.ndim:
-                output_arr = self._zip_indices(start_index, (key,))
+                output_arr = rhs._zip_indices(start_index, (key,))
                 return True, store, output_arr
             else:
                 tuple_of_arrays = (self.runtime.to_deferred_array(key),)
