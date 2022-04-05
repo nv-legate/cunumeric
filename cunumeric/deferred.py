@@ -1095,6 +1095,7 @@ class DeferredArray(NumPyThunk):
         offset,
         naxes,
         extract,
+        trace,
     ):
         # fill output array with 0
         self.fill(np.array(0, dtype=self.dtype))
@@ -1108,10 +1109,18 @@ class DeferredArray(NumPyThunk):
                 # get slice of the original array by the offset
                 if offset > 0:
                     matrix = matrix.slice(start + 1, slice(offset, None))
-                if matrix.shape[n - 1] < matrix.shape[n]:
-                    diag = diag.promote(start + 1, matrix.shape[ndim - 1])
+                if trace:
+                    if matrix.ndim == 2:
+                        diag = diag.promote(0, matrix.shape[0])
+                        diag = diag.project(1, 0).promote(1, matrix.shape[1])
+                    else:
+                        for i in range(0, naxes):
+                            diag = diag.promote(start, matrix.shape[-i - 1])
                 else:
-                    diag = diag.promote(start, matrix.shape[ndim - 2])
+                    if matrix.shape[n - 1] < matrix.shape[n]:
+                        diag = diag.promote(start + 1, matrix.shape[ndim - 1])
+                    else:
+                        diag = diag.promote(start, matrix.shape[ndim - 2])
             else:
                 # promote output to the shape of the input  array
                 for i in range(1, naxes):
