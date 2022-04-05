@@ -297,49 +297,34 @@ class binary_ufunc(ufunc):
         return len(self._types)
 
     @staticmethod
-    def _find_common_type_ndarrays(arrs):
-        scalar_types = []
-        array_types = []
-        for arr in arrs:
-            if arr.ndim == 0:
-                scalar_types.append(arr.dtype)
-            else:
-                array_types.append(arr.dtype)
-        return np.find_common_type(array_types, scalar_types)
-
-    @classmethod
-    def _find_common_type(cls, arrs, orig_args):
-        all_scalars = all(arr.ndim == 0 for arr in arrs)
-        all_arrays = all(arr.ndim > 0 for arr in arrs)
-
-        # Rules are simple if operands are all arrays or all scalars
-        if all_scalars or all_arrays:
-            return cls._find_common_type_ndarrays(arrs)
-
+    def _find_common_type(arrs, orig_args):
         # FIXME: The following is a miserable attempt to implement type
         # coercion rules that try to match NumPy's rules for a subset of cases;
         # for the others, cuNumeric computes a type different from what
         # NumPy produces for the same operands. Type coercion rules shouldn't
         # be this difficult to imitate...
 
+        all_scalars = all(arr.ndim == 0 for arr in arrs)
+        all_arrays = all(arr.ndim > 0 for arr in arrs)
         kinds = set(arr.dtype.kind for arr in arrs)
-        no_min_scalar = ("i" in kinds or "u" in kinds) and (
+        lossy_conversion = ("i" in kinds or "u" in kinds) and (
             "f" in kinds or "c" in kinds
         )
+        use_min_scalar = not (all_scalars or all_arrays or lossy_conversion)
 
-        scalar_type = None
-        array_type = None
+        scalar_types = []
+        array_types = []
         for arr, orig_arg in zip(arrs, orig_args):
             if arr.ndim == 0:
-                scalar_type = (
-                    arr.dtype
-                    if no_min_scalar
-                    else np.dtype(np.min_scalar_type(orig_arg))
+                scalar_types.append(
+                    np.dtype(np.min_scalar_type(orig_arg))
+                    if use_min_scalar
+                    else arr.dtype
                 )
             else:
-                array_type = arr.dtype
+                array_types.append(arr.dtype)
 
-        return np.find_common_type([array_type], [scalar_type])
+        return np.find_common_type(array_types, scalar_types)
 
     def _resolve_dtype(self, arrs, orig_args, casting, precision_fixed):
         common_dtype = self._find_common_type(arrs, orig_args)
