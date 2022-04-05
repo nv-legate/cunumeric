@@ -152,6 +152,12 @@ def compute_thread_pool_size_for_gpu_tests(pynvml, gpus_per_test):
     )
 
 
+def filter_only_tests(only_pattern):
+    legate_tests.clear()
+    to_test = set(glob.glob("**/*" + only_pattern + "*.py", recursive=True))
+    legate_tests.extend(to_test)
+
+
 def run_test_legate(
     test_name,
     root_dir,
@@ -165,11 +171,7 @@ def run_test_legate(
     only_pattern,
 ):
     if only_pattern is not None:
-        legate_tests.clear()
-        to_test = set(
-            glob.glob("**/*" + only_pattern + "*.py", recursive=True)
-        )
-        legate_tests.extend(to_test)
+        filter_only_tests(only_pattern)
 
     if test_name == "GPU":
         try:
@@ -311,15 +313,10 @@ def run_tests(
     only_pattern=None,
 ):
     if interop_tests:
-        legate_tests.extend(glob.glob("tests/interop/*.py"))  # noqa: F823
+        legate_tests.extend(glob.glob("tests/interop/*.py"))
 
     if only_pattern is not None:
-        if only_pattern is not None:
-            legate_tests.clear()
-            to_test = set(
-                glob.glob("**/*" + only_pattern + "*.py", recursive=True)
-            )
-            legate_tests.extend(to_test)
+        filter_only_tests(only_pattern)
 
     if root_dir is None:
         root_dir = os.path.dirname(os.path.realpath(__file__))
