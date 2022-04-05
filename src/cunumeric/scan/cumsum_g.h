@@ -21,10 +21,10 @@
 namespace cunumeric {
 
 struct Cumsum_gArgs {
-  const Array& out;
   const Array& in;
-  const Array& sum_vals;
   int axis;
+  const Array& sum_vals;
+  const Array& out;
 };
 
 class Cumsum_gTask : public CuNumericTask<Cumsum_gTask> {

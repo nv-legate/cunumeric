@@ -29,20 +29,6 @@ struct Cumsum_gImpl {
   template <LegateTypeCode CODE, int DIM>
   void operator()(Cumsum_gArgs& args) const
   {
-    using VAL     = legate_type_of<CODE>;
-    
-    auto rect = args.out.shape<DIM>();
-
-    Pitches<DIM - 1> pitches;
-    size_t volume = pitches.flatten(rect);
-
-    if (volume == 0) return;
-
-    auto out = args.out.write_accessor<VAL, DIM>(rect);
-    auto in = args.in.read_accessor<VAL, DIM>(rect);
-    Buffer<VAL> sum_vals; // RRRR ???
-
-    Cumsum_gImplBody<KIND, CODE, DIM>()(out, in, sum_vals, pitches, rect, args.axis);
 
   }
 };
@@ -50,11 +36,7 @@ struct Cumsum_gImpl {
 template <VariantKind KIND>
 static void Cumsum_g_template(TaskContext& context)
 {
-  auto& inputs  = context.inputs();
-  auto& outputs = context.outputs();
-  auto& scalars = context.scalars();
-
-  double_dispatch(inputs.dim(), inputs.code(), Cumsum_gImpl<KIND>{}, args, context.get_task_index());
+  
 }
 
 }  // namespace cunumeric

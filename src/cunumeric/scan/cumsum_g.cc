@@ -17,6 +17,10 @@
 #include "cunumeric/scan/cumsum_g.h"
 #include "cunumeric/scan/cumsum_g_template.inl"
 
+#include <thrust/scan.h>
+#include <thrust/execution_policy.h>
+
+
 namespace cunumeric {
 
 using namespace Legion;
@@ -35,22 +39,7 @@ struct Cumsum_gImplBody<VariantKind::CPU, CODE, DIM> {
 		    const DomainPoint& partition_index)
 
   {
-    if(axis == -1){
-      // case where no axis is used, flattened scan (input is guaranteed to be flattened)
-      auto outptr = out.ptr(rect);
-      auto inptr = in.ptr(rect);
-      auto sum_valsptr = sum_vals.ptr(rect);
-      outptr[0] = inptr[0];
-      for(size_t idx = 1; idx < volume; idx++){
-	outptr[idx] = outptr[idx-1] + inptr[idx];
-      }
-      // RRRR how do I use partition_index?!
-      sum_valsptr[partition_index] = outptr[idx];
-    } else {
-      // RRRR should do prefix sum only over axis (how does this work?!)
-      
-
-    }
+    
   }
 };
 
