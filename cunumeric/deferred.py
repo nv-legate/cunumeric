@@ -398,7 +398,7 @@ class DeferredArray(NumPyThunk):
         # of that dtype, so long as we don't try to convert it to a
         # NumPy array.
         N = self.ndim
-        pointN_dtype = self.runtime.add_point_type(N)
+        pointN_dtype = self.runtime.get_point_type(N)
         store = self.context.create_store(
             pointN_dtype, shape=out_shape, optimize_scalar=True
         )
@@ -538,11 +538,11 @@ class DeferredArray(NumPyThunk):
                     out_dtype = self.dtype
                     if is_set:
                         N = self.ndim
-                        out_dtype = self.runtime.add_point_type(N)
+                        out_dtype = self.runtime.get_point_type(N)
 
                     out = self.runtime.create_unbound_thunk(out_dtype)
                     task = self.context.create_task(
-                        CuNumericOpCode.ADVANCED_INDX
+                        CuNumericOpCode.ADVANCED_INDEXING
                     )
                     task.add_output(out.base)
                     task.add_input(self.base)

@@ -27,6 +27,7 @@ from .config import (
     CuNumericOpCode,
     CuNumericRedopCode,
     CuNumericTunable,
+    CuNumericTypeCodes,
     cunumeric_context,
     cunumeric_lib,
 )
@@ -95,6 +96,24 @@ class Runtime(object):
         type_system = self.legate_context.type_system
         for numpy_type, core_type in _supported_dtypes.items():
             type_system.make_alias(np.dtype(numpy_type), core_type)
+
+        for n in range(1, LEGATE_MAX_DIM + 1):
+            self._register_point_type(n)
+
+    def _register_point_type(self, n):
+        type_system = self.legate_context.type_system
+        point_type = "" + str(n)
+        if point_type not in type_system:
+            code = CuNumericTypeCodes.CUNUMERIC_TYPE_POINT1 + n - 1
+            size_in_bytes = 8 * n
+            type_system.add_type(point_type, size_in_bytes, code)
+
+    def get_point_type(self, n):
+        type_system = self.legate_context.type_system
+        point_type = "" + str(n)
+        if point_type not in type_system:
+            raise ValueError(f"there is no point type registered fro {n}")
+        return point_type
 
     def _parse_command_args(self):
         try:
@@ -174,15 +193,6 @@ class Runtime(object):
                 )
                 dtype.register_reduction_op(redop, redop_id)
         return arg_dtype
-
-    def add_point_type(self, n):
-        type_system = self.legate_context.type_system
-        point_type = "point" + str(n)
-        if point_type not in type_system:
-            code = type_system[ty.int64].code
-            size_in_bytes = 8 * n
-            type_system.add_type(point_type, size_in_bytes, code)
-        return point_type
 
     def _report_coverage(self):
         total = len(self.api_calls)
