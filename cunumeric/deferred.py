@@ -820,6 +820,7 @@ class DeferredArray(NumPyThunk):
             else:
                 task.add_scalar_arg(False, ty.bool)
 
+            task.add_broadcast(input)
             task.add_constraint(p_output == p_input)
 
             task.execute()
