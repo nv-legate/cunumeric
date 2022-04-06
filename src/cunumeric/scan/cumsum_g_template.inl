@@ -30,13 +30,32 @@ struct Cumsum_gImpl {
   void operator()(Cumsum_gArgs& args) const
   {
 
+    using VAL = legate_type_of<CODE>;
+    
+    auto rect = args.out.shape<DIM>();
+
+    Pitches<DIM - 1> pitches;
+    size_t volume = pitches.flatten(rect);
+
+    if (volume == 0) return;
+
+    auto in = args.out.read_accessor<VAL, DIM>(rect); // RRRR is this needed?
+    auto out = args.out.write_accessor<VAL, DIM>(rect);
+    auto sum_vals = args.sum_vals.read_accessor<VAL, DIM>(???);// RRRR buffer, unknown size?
+
+    Cumsum_lImplBody<KIND, CODE, DIM>()(out, in, sum_vals, pitches, rect, args.axis);
+
   }
 };
 
 template <VariantKind KIND>
 static void Cumsum_g_template(TaskContext& context)
 {
-  
+  auto& inputs  = context.inputs();
+  auto& outputs = context.outputs();
+  auto& scalars = context.scalars();
+
+  double_dispatch(inputs.dim(), inputs.code(), Cumsum_gImpl<KIND>{}, args, context.get_task_index());  
 }
 
 }  // namespace cunumeric

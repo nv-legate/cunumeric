@@ -1608,9 +1608,10 @@ class DeferredArray(NumPyThunk):
         # RRRR NOTE: Each node will do a sum up to its index, alternatively could
         # RRRR do one centralized scan and broadcast (slightly less redundant work)
         task = output.context.create_task(CuNumericOpCode.CUMSUM_GLOBAL)
-        task.add_input(input.base)
+        # RRRR do I need to set as both output and input? or is only output enough?!
+        task.add_input(output.base)
         task.add_scalar_arg(ax, ty.int32)
-        task.add_output(temp)
+        task.add_input(temp)
         task.add_output(output.base)
 
         task.add_broadcast(temp)

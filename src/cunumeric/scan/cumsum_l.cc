@@ -37,7 +37,6 @@ struct Cumsum_lImplBody<VariantKind::CPU, CODE, DIM> {
                     const Rect<DIM>& rect,
 		    const int axis,
 		    const DomainPoint& partition_index)
-
   {
     auto outptr = out.ptr(rect.lo);
     auto inptr = in.ptr(rect.lo);

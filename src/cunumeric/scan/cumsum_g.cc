@@ -29,17 +29,58 @@ using namespace legate;
 template <LegateTypeCode CODE, int DIM>
 struct Cumsum_gImplBody<VariantKind::CPU, CODE, DIM> {
   using VAL = legate_type_of<CODE>;
-
+  
+  struct add_scalar_funct
+  {
+    VAL V;
+    add_scalar_funct(VAL a) : V(a);
+    
+    __host__ __device__
+    void operator()(VAL &x)
+    {
+      x += V;
+    }
+  };
+  
   size_t operator()(const AccessorWO<VAL, DIM>& out,
 		    const AccessorRO<VAL, DIM>& in,
-		    const AccessorWO<VAL, DIM>& sum_vals,
+		    const AccessorRO<VAL, DIM>& sum_vals,
                     const Pitches<DIM - 1>& pitches,
                     const Rect<DIM>& rect,
 		    const int axis,
 		    const DomainPoint& partition_index)
-
   {
-    
+    auto outptr = out.ptr(rect.lo);
+    auto inptr = in.ptr(rect.lo);
+    auto sum_valsptr = sum_vals.ptr(???); // RRRR it's a broadcast, how do access?
+    auto volume = rect.volume();
+    if(axis == -1){
+      // flattened scan (1D or no axis)
+      if (patrition_index == 0){ // RRRR in condition correct?
+	// first partition has nothing to do and can return;
+	return;
+      }
+      // calculate base (sum up to partition_index-1)
+      auto base = thrust::reduce(thrust::host, sum_valsptr, sum_valsptr + paratition_index - 1); // RRRR is the indexing format correct?
+
+      // add base to out
+      thrust::for_each(thrust::host, outptr, outptr + volume, add_scalar_funct(base));
+    } else {
+      // ND scan
+      if (patrition_index[DIM - 1] == 0){ // RRRR in condition correct?
+	// first patition has nothing to do and can return;
+	return;
+      }
+      auto stride = rect.hi[DIM - 1] - rect.lo[DIM - 1] + 1;
+      for(unit3264_t index = 0; index < volume; index += stride){
+	// calculate base (sum up to partition_index-1)
+
+	auto  base = thrust::reduce(thrust::host, sum_valsptr[???], sum_valsptr[???] + partition_index - 1); // RRRR is the indexing format correct?
+
+	// add base to out
+	thrust::for_each(thrust::host, outptr + index, outptr + index + stride, add_scalar_funct(base));
+      }
+    }
   }
 };
 
