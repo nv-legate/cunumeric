@@ -2250,6 +2250,50 @@ def where(a, x=None, y=None):
 
 
 # Indexing-like operations
+@add_boilerplate("a")
+def take(a, indices, axis=None, out=None, mode="raise"):
+    """
+    Take elements from an array along an axis.
+    When axis is not None, this function does the same thing as “fancy”
+    indexing (indexing arrays using arrays); however, it can be easier
+    to use if you need elements along a given axis. A call such as
+    `np.take(arr, indices, axis=3)` is equivalent to `arr[:,:,:,indices,...]`.
+    Parameters
+    ----------
+    a : array_like `(Ni…, M, Nk…)`
+        The source array.
+    indices : array_like `(Nj…)`
+        The indices of the values to extract.
+        Also allow scalars for indices.
+    axis : int, optional
+        The axis over which to select values. By default, the flattened input
+        array is used.
+    out : ndarray, optional `(Ni…, Nj…, Nk…)`
+        If provided, the result will be placed in this array. It should be of
+        the appropriate shape and dtype. Note that out is always buffered if
+        mode=’raise’; use other modes for better performance.
+    mode : {‘raise’, ‘wrap’, ‘clip’}, optional
+        Specifies how out-of-bounds indices will behave.
+        ‘raise’ – raise an error (default)
+        ‘wrap’ – wrap around
+        ‘clip’ – clip to the range
+        ‘clip’ mode means that all indices that are too large are replaced by
+        the index that addresses the last element along that axis.
+        Note that this disables indexing with negative numbers.
+    Returns
+    -------
+    out : ndarray `(Ni…, Nj…, Nk…)`
+        The returned array has the same type as a.
+    Raises
+    ------
+    See Also
+    --------
+    numpy.take
+    Availability
+    --------
+    GPU, CPU
+    """
+    return a.take(indices=indices, axis=axis, out=out, mode=mode)
 
 
 @add_boilerplate("a")
@@ -2321,6 +2365,60 @@ def choose(a, choices, out=None, mode="raise"):
     Multiple GPUs, Multiple CPUs
     """
     return a.choose(choices=choices, out=out, mode=mode)
+
+
+@add_boilerplate("c", "a")
+def compress(c, a, axis=None, out=None):
+    """
+    Return selected slices of an array along given axis.
+
+    When working along a given axis, a slice along that axis is returned
+    in output for each index where condition evaluates to True.
+    When working on a 1-D array, compress is equivalent to extract.
+
+    Parameters
+    ----------
+    c : condition, 1-D array of bools
+        Array that selects which entries to return. If `len(c)` is less than
+        the size of a along the given axis, then output is truncated to the
+        length of the condition array.
+
+    a : array_like
+        Array from which to extract a part.
+
+    axis: int, optional
+        Axis along which to take slices. If None (default),
+        work on the flattened array.
+
+    out : ndarray, optional
+        Output array. Its type is preserved and it must be of the right
+        shape to hold the output.
+
+    Returns
+    -------
+    compressed_array : ndarray
+        A copy of `a` without the slices along `axis` for which condition
+        is false.
+
+    Raises
+    ------
+    ValueError : dimension mismatch
+        If condition is is not 1D array
+    ValueError : shape mismatch
+        If condition contains entries that are out of bounds of array
+    ValueError : shape mismatch
+        If output array has a wrong shape
+
+    See Also
+    --------
+    numpy.compress
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+
+    """
+    return a.compress(c, axis=axis, out=out)
 
 
 @add_boilerplate("a")
