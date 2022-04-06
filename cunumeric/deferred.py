@@ -1243,7 +1243,7 @@ class DeferredArray(NumPyThunk):
             raise NotImplementedError(
                 "repeat operation is supported only for 1D"
             )
-        out = self.runtime.create_unbound_thunk(self.dtype)
+        out = self.runtime.create_unbound_thunk(self.dtype, ndim=self.ndim)
         task = self.context.create_task(CuNumericOpCode.REPEAT)
         task.add_input(self.base)
         task.add_output(out.base)
@@ -1253,7 +1253,6 @@ class DeferredArray(NumPyThunk):
         if scalar_repeats:
             task.add_scalar_arg(repeats, ty.int64)
         else:
-            repeats = self.runtime.to_deferred_array(repeats)
             task.add_input(repeats.base)
             task.add_alignment(self.base, repeats.base)
         task.execute()
