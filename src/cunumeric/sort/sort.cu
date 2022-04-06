@@ -775,10 +775,10 @@ struct SortImplBody<VariantKind::GPU, CODE, DIM> {
           : local_sorted;
       if (argsort) {
         output_array.return_data(local_sorted_repartitioned.indices,
-                                 local_sorted_repartitioned.size);
+                                 Point<1>(local_sorted_repartitioned.size));
       } else {
         output_array.return_data(local_sorted_repartitioned.values,
-                                 local_sorted_repartitioned.size);
+                                 Point<1>(local_sorted_repartitioned.size));
       }
     } else if (argsort) {
       // cleanup
