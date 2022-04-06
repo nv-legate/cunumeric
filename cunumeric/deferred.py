@@ -431,6 +431,20 @@ class DeferredArray(NumPyThunk):
 
         return output_arr
 
+    def copy_store(self, store):
+        store_to_copy = DeferredArray(
+            self.runtime,
+            base=store,
+            dtype=self.dtype,
+        )
+        store_copy = self.runtime.create_empty_thunk(
+            store_to_copy.shape,
+            self.dtype,
+            inputs=[store_to_copy],
+        )
+        store_copy.copy(store_to_copy, deep=True)
+        return store_copy, store_copy.base
+
     def _create_indexing_array(self, key, is_set=False):
         store = self.base
         rhs = self
@@ -511,26 +525,15 @@ class DeferredArray(NumPyThunk):
                         "Unsupported entry type passed to advanced",
                         "indexing operation",
                     )
-
-            if copy_needed:
+            if copy_needed or (not store._transform.bottom):
                 # after store is transformed we need to to return a copy of
                 # the store since Copy operation can't be done on
                 # the store with transformation
-                store_to_copy = DeferredArray(
-                    self.runtime,
-                    base=store,
-                    dtype=self.dtype,
-                )
-                store_copy = self.runtime.create_empty_thunk(
-                    store_to_copy.shape,
-                    self.dtype,
-                    inputs=[store_to_copy],
-                )
-                store_copy.copy(store_to_copy, deep=True)
-                rhs = store_copy
-                store = store_copy.base
+                rhs, store = self.copy_store(store)
         else:
             assert isinstance(key, NumPyThunk)
+            if not store._transform.bottom:
+                rhs, store = self.copy_store(store)
             # the use case when index array ndim >1 and input array ndim ==1
             if key.ndim > store.ndim:
                 if store.ndim != 1:
@@ -541,23 +544,23 @@ class DeferredArray(NumPyThunk):
 
             # Handle the boolean array case
             if key.dtype == np.bool:
-                if key.shape == self.shape:
-                    out_dtype = self.dtype
+                if key.shape == rhs.shape:
+                    out_dtype = rhs.dtype
                     if is_set:
-                        N = self.ndim
-                        out_dtype = self.runtime.get_point_type(N)
+                        N = rhs.ndim
+                        out_dtype = rhs.runtime.get_point_type(N)
 
-                    out = self.runtime.create_unbound_thunk(out_dtype)
-                    task = self.context.create_task(
+                    out = rhs.runtime.create_unbound_thunk(out_dtype)
+                    task = rhs.context.create_task(
                         CuNumericOpCode.ADVANCED_INDEXING
                     )
                     task.add_output(out.base)
-                    task.add_input(self.base)
+                    task.add_input(rhs.base)
                     task.add_input(key.base)
                     task.add_scalar_arg(is_set, bool)
-                    task.add_alignment(self.base, key.base)
+                    task.add_alignment(rhs.base, key.base)
                     task.add_broadcast(
-                        self.base, axes=tuple(range(1, len(self.shape)))
+                        rhs.base, axes=tuple(range(1, len(rhs.shape)))
                     )
                     task.add_broadcast(
                         key.base, axes=tuple(range(1, len(key.shape)))
@@ -572,7 +575,7 @@ class DeferredArray(NumPyThunk):
                 output_arr = rhs._zip_indices(start_index, (key,))
                 return True, store, output_arr
             else:
-                tuple_of_arrays = (self.runtime.to_deferred_array(key),)
+                tuple_of_arrays = (rhs.runtime.to_deferred_array(key),)
 
         if len(tuple_of_arrays) > rhs.ndim:
             raise TypeError("Advanced indexing dimension mismatch")

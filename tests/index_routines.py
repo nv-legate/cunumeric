@@ -283,6 +283,16 @@ def advanced_indexing():
     x_num[indx0_num, indx1_num] = 2.0
     assert np.array_equal(x, x_num)
 
+    # use case when advanced indexing is called on a transformed array:
+    print("advanced indexing test 11")
+    z = z[:, 1:]
+    z_num = z_num[:, 1:]
+    indx = np.array([1, 1])
+    indx_num = num.array(indx)
+    res = z[indx]
+    res_num = z_num[indx_num]
+    assert np.array_equal(res, res_num)
+
     # we do less than LEGATE_MAX_DIM becasue the dimension will be increased by
     # 1 when passig 2d index array
     for ndim in range(2, LEGATE_MAX_DIM):
