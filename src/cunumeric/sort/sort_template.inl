@@ -46,7 +46,8 @@ struct SortImpl {
     Pitches<DIM - 1> pitches;
     size_t volume = pitches.flatten(rect);
 
-    size_t sort_dim_size = std::min(args.sort_dim_size, volume);
+    int64_t segment_size  = rect.hi[DIM - 1] - rect.lo[DIM - 1] + 1;
+    size_t segment_size_l = segment_size > 0 ? segment_size : 0;
 
     /*
      * Assumptions:
@@ -54,28 +55,30 @@ struct SortImpl {
      * 2. We have product_of_all_other_dimensions independent sort ranges
      * 3. if we have more than one participants:
      *  a) 1D-case: we perform parallel sort (via sampling)
-     *  b) ND-case: rect needs to be the full domain in that last dimension
-     *
+     *  b) ND-case:
+     *     * sort dimension complete -> data parallel sort
+     *     * we perform parallel sort (via sampling per segment)
      */
 
-    assert((DIM == 1 || (rect.hi[DIM - 1] - rect.lo[DIM - 1] + 1 == args.sort_dim_size)) &&
-           "multi-dimensional array should not be distributed in (sort) dimension");
-
     // we shall not return on empty rectangle in case of distributed data
-    // as the process might still participate in the parallel sort
-    if ((DIM > 1 || !args.is_index_space) && rect.empty()) return;
+    // as the process might still participate in the parallel communication
+    if (((DIM > 1 && segment_size_l == args.segment_size_g) || !args.is_index_space) &&
+        rect.empty())
+      return;
 
     SortImplBody<KIND, CODE, DIM>()(args.input,
                                     args.output,
                                     pitches,
                                     rect,
                                     volume,
-                                    sort_dim_size,
+                                    segment_size_l,
+                                    args.segment_size_g,
                                     args.argsort,
                                     args.stable,
                                     args.is_index_space,
                                     args.local_rank,
                                     args.num_ranks,
+                                    args.num_sort_ranks,
                                     comms);
   }
 };
@@ -83,19 +86,22 @@ struct SortImpl {
 template <VariantKind KIND>
 static void sort_template(TaskContext& context)
 {
-  auto shape_span      = context.scalars()[1].values<int64_t>();
-  size_t sort_dim_size = shape_span[shape_span.size() - 1];
-  size_t local_rank    = get_rank(context.get_launch_domain(), context.get_task_index());
-  size_t num_ranks     = context.get_launch_domain().get_volume();
+  auto shape_span       = context.scalars()[1].values<int64_t>();
+  size_t segment_size_g = shape_span[shape_span.size() - 1];
+  auto domain           = context.get_launch_domain();
+  size_t local_rank     = get_rank(domain, context.get_task_index());
+  size_t num_ranks      = domain.get_volume();
+  size_t num_sort_ranks = domain.hi()[domain.get_dim() - 1] - domain.lo()[domain.get_dim() - 1] + 1;
 
   SortArgs args{context.inputs()[0],
                 context.outputs()[0],
                 context.scalars()[0].value<bool>(),  // argsort
                 context.scalars()[2].value<bool>(),  // stable
-                sort_dim_size,
+                segment_size_g,
                 !context.is_single_task(),
                 local_rank,
-                num_ranks};
+                num_ranks,
+                num_sort_ranks};
   double_dispatch(
     args.input.dim(), args.input.code(), SortImpl<KIND>{}, args, context.communicators());
 }

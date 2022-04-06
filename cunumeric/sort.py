@@ -70,13 +70,15 @@ def sort_task(output, input, argsort, stable):
 
     task.add_input(input.base)
 
-    if output.ndim > 1:
-        task.add_broadcast(input.base, input.ndim - 1)
-    elif output.runtime.num_gpus > 1:
+    if output.runtime.num_gpus > 1:
         task.add_nccl_communicator()
-    elif output.runtime.num_gpus == 0 and output.runtime.num_procs > 1:
-        # Distributed 1D sort on CPU not supported yet
-        task.add_broadcast(input.base)
+
+    # Distributed sort on CPU not supported yet
+    if output.runtime.num_gpus == 0 and output.runtime.num_procs > 1:
+        if output.ndim > 1:
+            task.add_broadcast(input.base, input.ndim - 1)
+        else:
+            task.add_broadcast(input.base)
 
     task.add_scalar_arg(argsort, bool)  # return indices flag
     task.add_scalar_arg(input.base.shape, (ty.int64,))
