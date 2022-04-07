@@ -185,7 +185,8 @@ def install_openblas(openblas_dir, thread_count, verbose):
     except subprocess.CalledProcessError:
         raise Exception(
             "\nOpenBLAS compilation failed.  Check the output for details.\n"
-            "Note that OpenBLAS compilation will fail if gfortran is not available in your environment."
+            "Note that OpenBLAS compilation will fail if gfortran is not "
+            "available in your environment."
         )
     # Then do the installation to our target directory
     execute_command(
