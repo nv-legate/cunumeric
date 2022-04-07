@@ -37,6 +37,33 @@ SUPPORTED_DTYPES = [
 ]
 
 
+class Test_is_advanced_indexing:
+    def test_Ellipsis(self):
+        assert not m.is_advanced_indexing(...)
+
+    def test_None(self):
+        assert not m.is_advanced_indexing(None)
+
+    @pytest.mark.parametrize("typ", SUPPORTED_DTYPES)
+    def test_np_scalar(self, typ):
+        assert not m.is_advanced_indexing(typ(10))
+
+    def test_slice(self):
+        assert not m.is_advanced_indexing(slice(None, 10))
+        assert not m.is_advanced_indexing(slice(1, 10))
+        assert not m.is_advanced_indexing(slice(None, 10, 2))
+
+    def test_tuple_False(self):
+        assert not m.is_advanced_indexing((..., None, np.int32()))
+
+    def test_tuple_True(self):
+        assert m.is_advanced_indexing(([1, 2, 3], np.array([1, 2])))
+
+    def test_advanced(self):
+        assert m.is_advanced_indexing([1, 2, 3])
+        assert m.is_advanced_indexing(np.array([1, 2, 3]))
+
+
 def test_find_last_user_stacklevel() -> None:
     n = m.find_last_user_stacklevel()
     assert isinstance(n, int)

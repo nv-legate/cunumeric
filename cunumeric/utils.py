@@ -20,6 +20,19 @@ from string import ascii_lowercase, ascii_uppercase
 import numpy as np
 
 
+def is_advanced_indexing(key):
+    if key is Ellipsis or key is None:  # np.newdim case
+        return False
+    if np.isscalar(key):
+        return False
+    if isinstance(key, slice):
+        return False
+    if isinstance(key, tuple):
+        return any(is_advanced_indexing(k) for k in key)
+    # Any other kind of thing leads to advanced indexing
+    return True
+
+
 def find_last_user_stacklevel():
     stacklevel = 1
     for (frame, _) in traceback.walk_stack(None):

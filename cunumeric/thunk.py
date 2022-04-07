@@ -15,8 +15,6 @@
 
 from abc import ABC, abstractmethod
 
-import numpy
-
 
 class NumPyThunk(ABC):
     """This is the base class for NumPy computations. It has methods
@@ -48,21 +46,6 @@ class NumPyThunk(ABC):
         for p in self.shape:
             s *= p
         return s
-
-    def _is_advanced_indexing(self, key, first=True):
-        if key is Ellipsis or key is None:  # np.newdim case
-            return False
-        if numpy.isscalar(key):
-            return False
-        if isinstance(key, slice):
-            return False
-        if isinstance(key, tuple):
-            for k in key:
-                if self._is_advanced_indexing(k, first=False):
-                    return True
-            return False
-        # Any other kind of thing leads to advanced indexing
-        return True
 
     # Abstract methods
 
