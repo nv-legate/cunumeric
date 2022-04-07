@@ -13,55 +13,31 @@
 # limitations under the License.
 #
 
-import numpy as np
+from cunumeric.utils import tensordot_modes
+from test_tools.contractions import test_default
 
-import cunumeric as num
+from legate.core import LEGATE_MAX_DIM
 
 
-def test(ty):
-    rtol = 2e-03 if ty == np.float16 else 1e-05
-    a = num.random.rand(3, 5, 4).astype(ty)
-    b = num.random.rand(4, 5, 3).astype(ty)
+def gen_axes(a_ndim, b_ndim):
+    yield from range(min(a_ndim, b_ndim, 2) + 1)
+    if a_ndim >= 2 and b_ndim >= 2:
+        yield ([0, 1], [0, 1])
+        yield ([0, 1], [1, 0])
 
-    cn = np.tensordot(a, b, axes=1)
-    c = num.tensordot(a, b, axes=1)
 
-    assert np.allclose(cn, c, rtol=rtol)
+def test():
+    for a_ndim in range(LEGATE_MAX_DIM + 1):
+        for b_ndim in range(LEGATE_MAX_DIM + 1):
+            for axes in gen_axes(a_ndim, b_ndim):
+                name = f"tensordot({a_ndim} x {b_ndim}, axes={axes})"
+                modes = tensordot_modes(a_ndim, b_ndim, axes)
 
-    a = num.random.rand(3, 5, 4).astype(ty)
-    b = num.random.rand(5, 4, 3).astype(ty)
+                def operation(lib, *args, **kwargs):
+                    return lib.tensordot(*args, **kwargs, axes=axes)
 
-    cn = np.tensordot(a, b)
-    c = num.tensordot(a, b)
-
-    assert np.allclose(cn, c, rtol=rtol)
-
-    a = num.arange(60.0).reshape((3, 4, 5)).astype(ty)
-    b = num.arange(24.0).reshape((4, 3, 2)).astype(ty)
-
-    cn = np.tensordot(a, b, axes=([1, 0], [0, 1]))
-    c = num.tensordot(a, b, axes=([1, 0], [0, 1]))
-
-    assert np.allclose(cn, c, rtol=rtol)
-
-    a = num.random.rand(5, 4).astype(ty)
-    b = num.random.rand(4, 5).astype(ty)
-
-    cn = np.tensordot(a, b, axes=1)
-    c = num.tensordot(a, b, axes=1)
-
-    assert np.allclose(cn, c, rtol=rtol)
-
-    a = num.random.rand(5, 4).astype(ty)
-    b = num.random.rand(5, 4).astype(ty)
-
-    cn = np.tensordot(a, b)
-    c = num.tensordot(a, b)
-
-    assert np.allclose(cn, c, rtol=rtol)
+                test_default(name, modes, operation)
 
 
 if __name__ == "__main__":
-    test(np.float16)
-    test(np.float32)
-    test(np.float64)
+    test()

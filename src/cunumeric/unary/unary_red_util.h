@@ -21,18 +21,17 @@
 
 namespace cunumeric {
 
-// Match these to UnaryRedCode in config.py
 enum class UnaryRedCode : int {
-  ALL           = 1,
-  ANY           = 2,
-  MAX           = 3,
-  MIN           = 4,
-  PROD          = 5,
-  SUM           = 6,
-  ARGMAX        = 7,
-  ARGMIN        = 8,
-  CONTAINS      = 9,
-  COUNT_NONZERO = 10,
+  ALL           = CUNUMERIC_RED_ALL,
+  ANY           = CUNUMERIC_RED_ANY,
+  ARGMAX        = CUNUMERIC_RED_ARGMAX,
+  ARGMIN        = CUNUMERIC_RED_ARGMIN,
+  CONTAINS      = CUNUMERIC_RED_CONTAINS,
+  COUNT_NONZERO = CUNUMERIC_RED_COUNT_NONZERO,
+  MAX           = CUNUMERIC_RED_MAX,
+  MIN           = CUNUMERIC_RED_MIN,
+  PROD          = CUNUMERIC_RED_PROD,
+  SUM           = CUNUMERIC_RED_SUM,
 };
 
 template <UnaryRedCode OP_CODE>
@@ -53,6 +52,12 @@ constexpr decltype(auto) op_dispatch(UnaryRedCode op_code, Functor f, Fnargs&&..
       return f.template operator()<UnaryRedCode::ALL>(std::forward<Fnargs>(args)...);
     case UnaryRedCode::ANY:
       return f.template operator()<UnaryRedCode::ANY>(std::forward<Fnargs>(args)...);
+    case UnaryRedCode::ARGMAX:
+      return f.template operator()<UnaryRedCode::ARGMAX>(std::forward<Fnargs>(args)...);
+    case UnaryRedCode::ARGMIN:
+      return f.template operator()<UnaryRedCode::ARGMIN>(std::forward<Fnargs>(args)...);
+    case UnaryRedCode::CONTAINS:
+      return f.template operator()<UnaryRedCode::CONTAINS>(std::forward<Fnargs>(args)...);
     case UnaryRedCode::MAX:
       return f.template operator()<UnaryRedCode::MAX>(std::forward<Fnargs>(args)...);
     case UnaryRedCode::MIN:
@@ -61,12 +66,6 @@ constexpr decltype(auto) op_dispatch(UnaryRedCode op_code, Functor f, Fnargs&&..
       return f.template operator()<UnaryRedCode::PROD>(std::forward<Fnargs>(args)...);
     case UnaryRedCode::SUM:
       return f.template operator()<UnaryRedCode::SUM>(std::forward<Fnargs>(args)...);
-    case UnaryRedCode::ARGMAX:
-      return f.template operator()<UnaryRedCode::ARGMAX>(std::forward<Fnargs>(args)...);
-    case UnaryRedCode::ARGMIN:
-      return f.template operator()<UnaryRedCode::ARGMIN>(std::forward<Fnargs>(args)...);
-    case UnaryRedCode::CONTAINS:
-      return f.template operator()<UnaryRedCode::CONTAINS>(std::forward<Fnargs>(args)...);
     default: break;
   }
   assert(false);

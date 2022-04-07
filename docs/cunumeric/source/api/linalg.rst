@@ -12,6 +12,10 @@ Matrix and vector products
    :toctree: generated/
 
    dot
+   vdot
+   inner
+   outer
+   matmul
    tensordot
    einsum
 

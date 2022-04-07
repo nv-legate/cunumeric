@@ -79,6 +79,7 @@ if args.recurse:
             "cunumeric",
             "cunumeric.linalg",
             "cunumeric.random",
+            "cunumeric._ufunc",
         ],
         cmdclass={"build_py": my_build_py},
     )

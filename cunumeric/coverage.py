@@ -12,91 +12,199 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from __future__ import annotations
 
-import inspect
 import warnings
+from functools import wraps
+from types import FunctionType, MethodDescriptorType, MethodType, ModuleType
+from typing import Any, Callable, Container, Optional
 
 from .runtime import runtime
 from .utils import find_last_user_frames, find_last_user_stacklevel
 
+__all__ = ("clone_module",)
 
-# Get the list of attributes defined in a namespace
-def getPredefinedAttributes(namespace):
-    preDefined = {}
-    for attr in dir(namespace):
-        preDefined[attr] = getattr(namespace, attr)
-    return preDefined
+FALLBACK_WARNING = (
+    "cuNumeric has not implemented {name} "
+    + "and is falling back to canonical numpy. "
+    + "You may notice significantly decreased performance "
+    + "for this function call."
+)
+
+MOD_INTERNAL = {"__dir__", "__getattr__"}
+
+NDARRAY_INTERNAL = {
+    "__array_finalize__",
+    "__array_function__",
+    "__array_interface__",
+    "__array_prepare__",
+    "__array_priority__",
+    "__array_struct__",
+    "__array_ufunc__",
+    "__array_wrap__",
+}
 
 
-def unimplemented(func):
-    def wrapper(*args, **kwargs):
-        """Unimplemented"""
-        stacklevel = find_last_user_stacklevel()
+def filter_namespace(
+    ns: dict[str, Any],
+    *,
+    omit_names: Optional[Container[str]] = None,
+    omit_types: tuple[type, ...] = (),
+) -> dict[str, Any]:
+    omit_names = omit_names or set()
+    return {
+        attr: value
+        for attr, value in ns.items()
+        if attr not in omit_names and not isinstance(value, omit_types)
+    }
 
-        warnings.warn(
-            "cuNumeric has not implemented "
-            + func.__name__
-            + " and is falling back to canonical numpy. "
-            + "You may notice significantly decreased performance "
-            + "for this function call.",
-            stacklevel=stacklevel,
-            category=RuntimeWarning,
-        )
+
+# todo: (bev) use callback protocol type starting with 3.8
+def implemented(func: Any, prefix: str, name: str) -> Any:
+    name = f"{prefix}.{name}"
+
+    @wraps(func)
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
+        location = find_last_user_frames(not runtime.report_dump_callstack)
+        runtime.record_api_call(name=name, location=location, implemented=True)
         return func(*args, **kwargs)
+
+    wrapper._cunumeric_implemented = True
 
     return wrapper
 
 
-def unimplemented_with_reporting(func_name, func):
-    def wrapper(*args, **kwargs):
-        loc = find_last_user_frames(not runtime.report_dump_callstack)
-        runtime.record_api_call(func_name, loc, False)
-        return func(*args, **kwargs)
+# todo: (bev) use callback protocol type starting with 3.8
+def unimplemented(
+    func: Any, prefix: str, name: str, *, reporting: bool = True
+) -> Any:
+    name = f"{prefix}.{name}"
+    if reporting:
+
+        @wraps(func)
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
+            location = find_last_user_frames(not runtime.report_dump_callstack)
+            runtime.record_api_call(
+                name=name, location=location, implemented=False
+            )
+            return func(*args, **kwargs)
+
+    else:
+
+        @wraps(func)
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
+            stacklevel = find_last_user_stacklevel()
+            warnings.warn(
+                FALLBACK_WARNING.format(name=name),
+                stacklevel=stacklevel,
+                category=RuntimeWarning,
+            )
+            return func(*args, **kwargs)
+
+    wrapper._cunumeric_implemented = False
 
     return wrapper
 
 
-def implemented(func_name, func):
-    def wrapper(*args, **kwargs):
-        loc = find_last_user_frames(not runtime.report_dump_callstack)
-        runtime.record_api_call(func_name, loc, True)
-        return func(*args, **kwargs)
+def clone_module(
+    origin_module: ModuleType, new_globals: dict[str, Any]
+) -> None:
+    """Copy attributes from one module to another, excluding submodules
 
-    return wrapper
+    Function types are wrapped with a decorator to report API calls. All
+    other values are copied as-is.
 
+    Parameters
+    ----------
+    origin_module : ModuleTpe
+        Existing module to clone attributes from
 
-# Copy attributes from one module to another.
-# Works only on modules and doesnt add submodules
-def add_missing_attributes(baseModule, definedModule):
-    module_name = baseModule.__name__
-    internal_attrs = set(["__dir__", "__getattr__"])
-    preDefined = getPredefinedAttributes(definedModule)
-    attrList = {}
-    for attr in dir(baseModule):
-        if attr in preDefined:
-            pass
-        elif not inspect.ismodule(getattr(baseModule, attr)):
-            attrList[attr] = getattr(baseModule, attr)
+    new_globals : dict
+        a globals() dict for the new module to clone into
 
-    if runtime.report_coverage:
-        for key, value in preDefined.items():
-            if callable(value):
-                wrapped = implemented(f"{module_name}.{key}", value)
-                setattr(definedModule, key, wrapped)
+    Returns
+    -------
+    None
 
-    # add the attributes
-    for key, value in attrList.items():
-        if (
-            callable(value)
-            and not isinstance(value, type)
-            and key not in internal_attrs
-        ):
+    """
+    module_name = origin_module.__name__
+
+    missing = filter_namespace(
+        origin_module.__dict__,
+        omit_names=set(new_globals).union(MOD_INTERNAL),
+        omit_types=(ModuleType,),
+    )
+
+    from numpy import ufunc as npufunc
+
+    from ._ufunc.ufunc import ufunc as lgufunc
+
+    for attr, value in new_globals.items():
+        if isinstance(value, (FunctionType, lgufunc)):
             if runtime.report_coverage:
-                wrapped = unimplemented_with_reporting(
-                    f"{module_name}.{key}", value
-                )
-                setattr(definedModule, key, wrapped)
+                new_globals[attr] = implemented(value, module_name, attr)
             else:
-                setattr(definedModule, key, unimplemented(value))
+                value._cunumeric_implemented = True
+
+    for attr, value in missing.items():
+        if isinstance(value, (FunctionType, npufunc)):
+            new_globals[attr] = unimplemented(
+                value, module_name, attr, reporting=runtime.report_coverage
+            )
         else:
-            setattr(definedModule, key, value)
+            new_globals[attr] = value
+
+
+def clone_class(origin_class: type) -> Callable[[type], type]:
+    """Copy attributes from one class to another
+
+    Method types are wrapped with a decorator to report API calls. All
+    other values are copied as-is.
+
+    Parameters
+    ----------
+    origin_class : type
+        Existing class type to clone attributes from
+
+    """
+
+    def decorator(cls: type) -> type:
+        class_name = f"{origin_class.__module__}.{origin_class.__name__}"
+
+        missing = filter_namespace(
+            origin_class.__dict__,
+            # this simply omits ndarray internal methods for any class. If
+            # we ever need to wrap more classes we may need to generalize to
+            # per-class specification of internal names to skip
+            omit_names=set(cls.__dict__).union(NDARRAY_INTERNAL),
+        )
+
+        for attr, value in cls.__dict__.items():
+            if isinstance(
+                value, (FunctionType, MethodType, MethodDescriptorType)
+            ):
+                if runtime.report_coverage:
+                    setattr(cls, attr, implemented(value, class_name, attr))
+                else:
+                    value._cunumeric_implemented = True
+
+        for attr, value in missing.items():
+            if isinstance(
+                value, (FunctionType, MethodType, MethodDescriptorType)
+            ):
+                setattr(
+                    cls,
+                    attr,
+                    unimplemented(
+                        value,
+                        class_name,
+                        attr,
+                        reporting=runtime.report_coverage,
+                    ),
+                )
+            else:
+                setattr(cls, attr, value)
+
+        return cls
+
+    return decorator

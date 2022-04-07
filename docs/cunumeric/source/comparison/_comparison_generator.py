@@ -1,47 +1,56 @@
 import importlib
 
+import numpy
 
-def _filter(obj, n):
+blocklist = [
+    "test",
+    "add_docstring",
+    "add_newdoc",
+    "add_newdoc_ufunc",
+    "alen",
+    "alltrue",
+    "compare_chararrays",
+    "fastCopyAndTranspose",
+    "get_array_wrap",
+    "iterable",
+    "recfromcsv",
+    "recfromtxt",
+    "safe_eval",
+    "set_numeric_ops",
+    "sometrue",
+    "loads",
+    "mafromtxt",
+    "ndfromtxt",
+]
+
+
+def check_ufunc(obj, n):
+    try:
+        return isinstance(getattr(obj, n), numpy.ufunc)
+    except:  # noqa E722
+        return False
+
+
+def _filter(obj, n, ufuncs=False):
+    is_ufunc = check_ufunc(obj, n)
+    if not ufuncs:
+        is_ufunc = not is_ufunc
+
     try:
         return (
-            n
-            not in [
-                "test",
-                "add_docstring",
-                "abs",
-                "add_newdoc",
-                "add_newdoc_ufunc",
-                "alen",
-                "alltrue",
-                "bitwise_not",
-                "compare_chararrays",
-                "cumproduct",
-                "fastCopyAndTranspose",
-                "get_array_wrap",
-                "iterable",
-                "max",
-                "min",
-                "ndim",
-                "product",
-                "recfromcsv",
-                "recfromtxt",
-                "round",
-                "safe_eval",
-                "set_numeric_ops",
-                "size",
-                "sometrue",
-            ]  # not in blacklist
+            n not in blocklist
             and callable(getattr(obj, n))  # callable
             and not isinstance(getattr(obj, n), type)  # not class
             and n[0].islower()  # starts with lower char
             and not n.startswith("__")  # not special methods
+            and is_ufunc
         )
     except:  # noqa: E722
         return False
 
 
-def _get_functions(obj):
-    return set([n for n in dir(obj) if (_filter(obj, n))])
+def _get_functions(obj, ufuncs=False):
+    return set([n for n in dir(obj) if (_filter(obj, n, ufuncs))])
 
 
 def _import(mod, klass):
@@ -58,18 +67,21 @@ def _import(mod, klass):
         return obj, ":obj:`{}.{{}}`".format(mod)
 
 
-def _section(header, mod_ext, other_lib, klass=None, exclude_mod=None):
+def _section(
+    header, mod_ext, other_lib, klass=None, exclude_mod=None, ufuncs=False
+):
     base_mod = "numpy" + mod_ext
     other_mod = other_lib + mod_ext
 
+    base_funcs = []
     base_obj, base_fmt = _import(base_mod, klass)
-    base_funcs = _get_functions(base_obj)
+    base_funcs = _get_functions(base_obj, ufuncs)
     lg_obj, lg_fmt = _import(other_mod, klass)
 
     lg_funcs = []
     for f in _get_functions(lg_obj):
         obj = getattr(lg_obj, f)
-        if obj.__doc__ is None or "Unimplemented" not in obj.__doc__:
+        if getattr(obj, "_cunumeric_implemented", False):
             lg_funcs.append(f)
     lg_funcs = set(lg_funcs)
 
@@ -127,9 +139,7 @@ def _section(header, mod_ext, other_lib, klass=None, exclude_mod=None):
         "   Number of NumPy functions: {}".format(len(base_funcs)),
         "   Number of functions covered by "
         f"{other_lib}: {len(lg_funcs & base_funcs)}",
-        "   {} specific functions:".format(other_lib),
     ]
-    buf += ["   - {}".format(f) for f in (lg_funcs - base_funcs)]
     buf += [
         "",
     ]
@@ -144,6 +154,7 @@ def generate(other_lib):
         "",
     ]
     buf += _section("Module-Level", "", other_lib)
+    buf += _section("Ufuncs", "", other_lib, ufuncs=True)
     buf += _section("Multi-Dimensional Array", "", other_lib, klass="ndarray")
     buf += _section("Linear Algebra", ".linalg", other_lib)
     buf += _section("Discrete Fourier Transform", ".fft", other_lib)

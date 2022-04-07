@@ -192,8 +192,6 @@ def test():
         fn = np.diag(en, k=k)
         assert np.array_equal(f, fn)
 
-    return
-
 
 if __name__ == "__main__":
     test()

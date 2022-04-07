@@ -31,6 +31,9 @@ template <LegateTypeCode CODE>
 struct support_contract : std::false_type {
 };
 template <>
+struct support_contract<LegateTypeCode::HALF_LT> : std::true_type {
+};
+template <>
 struct support_contract<LegateTypeCode::FLOAT_LT> : std::true_type {
 };
 template <>

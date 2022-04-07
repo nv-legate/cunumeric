@@ -21,47 +21,80 @@ from .thunk import NumPyThunk
 _UNARY_OPS = {
     UnaryOpCode.ABSOLUTE: np.absolute,
     UnaryOpCode.ARCCOS: np.arccos,
+    UnaryOpCode.ARCCOSH: np.arccosh,
     UnaryOpCode.ARCSIN: np.arcsin,
+    UnaryOpCode.ARCSINH: np.arcsinh,
     UnaryOpCode.ARCTAN: np.arctan,
+    UnaryOpCode.ARCTANH: np.arctanh,
+    UnaryOpCode.CBRT: np.cbrt,
     UnaryOpCode.CEIL: np.ceil,
+    UnaryOpCode.CONJ: np.conj,
     UnaryOpCode.COS: np.cos,
-    UnaryOpCode.EXP: np.exp,
+    UnaryOpCode.COSH: np.cosh,
+    UnaryOpCode.DEG2RAD: np.deg2rad,
     UnaryOpCode.EXP2: np.exp2,
+    UnaryOpCode.EXP: np.exp,
+    UnaryOpCode.EXPM1: np.expm1,
     UnaryOpCode.FLOOR: np.floor,
     UnaryOpCode.INVERT: np.invert,
+    UnaryOpCode.ISFINITE: np.isfinite,
     UnaryOpCode.ISINF: np.isinf,
     UnaryOpCode.ISNAN: np.isnan,
-    UnaryOpCode.LOG: np.log,
     UnaryOpCode.LOG10: np.log10,
+    UnaryOpCode.LOG1P: np.log1p,
+    UnaryOpCode.LOG2: np.log2,
+    UnaryOpCode.LOG: np.log,
     UnaryOpCode.LOGICAL_NOT: np.logical_not,
     UnaryOpCode.NEGATIVE: np.negative,
+    UnaryOpCode.POSITIVE: np.positive,
+    UnaryOpCode.RAD2DEG: np.rad2deg,
+    UnaryOpCode.RECIPROCAL: np.reciprocal,
     UnaryOpCode.RINT: np.rint,
     UnaryOpCode.SIGN: np.sign,
+    UnaryOpCode.SIGNBIT: np.signbit,
     UnaryOpCode.SIN: np.sin,
+    UnaryOpCode.SINH: np.sinh,
     UnaryOpCode.SQRT: np.sqrt,
+    UnaryOpCode.SQUARE: np.square,
     UnaryOpCode.TAN: np.tan,
     UnaryOpCode.TANH: np.tanh,
+    UnaryOpCode.TRUNC: np.trunc,
 }
 
 _BINARY_OPS = {
     BinaryOpCode.ADD: np.add,
-    BinaryOpCode.LOGICAL_AND: np.logical_and,
+    BinaryOpCode.ARCTAN2: np.arctan2,
+    BinaryOpCode.BITWISE_AND: np.bitwise_and,
+    BinaryOpCode.BITWISE_OR: np.bitwise_or,
+    BinaryOpCode.BITWISE_XOR: np.bitwise_xor,
+    BinaryOpCode.COPYSIGN: np.copysign,
     BinaryOpCode.DIVIDE: np.divide,
     BinaryOpCode.EQUAL: np.equal,
+    BinaryOpCode.FLOAT_POWER: np.float_power,
     BinaryOpCode.FLOOR_DIVIDE: np.floor_divide,
-    BinaryOpCode.GREATER_EQUAL: np.greater_equal,
+    BinaryOpCode.FMOD: np.fmod,
+    BinaryOpCode.GCD: np.gcd,
     BinaryOpCode.GREATER: np.greater,
-    BinaryOpCode.MOD: np.mod,
-    BinaryOpCode.MULTIPLY: np.multiply,
-    BinaryOpCode.LOGICAL_OR: np.logical_or,
-    BinaryOpCode.POWER: np.power,
-    BinaryOpCode.SUBTRACT: np.subtract,
-    BinaryOpCode.LOGICAL_XOR: np.logical_xor,
-    BinaryOpCode.LESS_EQUAL: np.less_equal,
+    BinaryOpCode.GREATER_EQUAL: np.greater_equal,
+    BinaryOpCode.HYPOT: np.hypot,
+    BinaryOpCode.LCM: np.lcm,
+    BinaryOpCode.LEFT_SHIFT: np.left_shift,
     BinaryOpCode.LESS: np.less,
+    BinaryOpCode.LESS_EQUAL: np.less_equal,
+    BinaryOpCode.LOGADDEXP2: np.logaddexp2,
+    BinaryOpCode.LOGADDEXP: np.logaddexp,
+    BinaryOpCode.LOGICAL_AND: np.logical_and,
+    BinaryOpCode.LOGICAL_OR: np.logical_or,
+    BinaryOpCode.LOGICAL_XOR: np.logical_xor,
     BinaryOpCode.MAXIMUM: np.maximum,
     BinaryOpCode.MINIMUM: np.minimum,
+    BinaryOpCode.MOD: np.mod,
+    BinaryOpCode.MULTIPLY: np.multiply,
+    BinaryOpCode.NEXTAFTER: np.nextafter,
     BinaryOpCode.NOT_EQUAL: np.not_equal,
+    BinaryOpCode.POWER: np.power,
+    BinaryOpCode.RIGHT_SHIFT: np.right_shift,
+    BinaryOpCode.SUBTRACT: np.subtract,
 }
 
 
@@ -355,7 +388,10 @@ class EagerArray(NumPyThunk):
             if self.array.size == 1:
                 self.array.fill(rhs.array.item())
             else:
-                if rhs.array.dtype.kind == "c" and self.array.dtype != "c":
+                if (
+                    rhs.array.dtype.kind == "c"
+                    and self.array.dtype.kind != "c"
+                ):
                     self.array[:] = rhs.array.real
                 else:
                     self.array[:] = rhs.array
@@ -382,6 +418,22 @@ class EagerArray(NumPyThunk):
                 self.array.fill(rhs.array.item())
             else:
                 self.array[:] = np.transpose(rhs.array, axes)
+
+    def repeat(self, repeats, axis, scalar_repeats):
+        if not scalar_repeats:
+            self.check_eager_args(repeats)
+        if self.deferred is not None:
+            return self.deferred.repeat(
+                repeats,
+                axis,
+                scalar_repeats,
+            )
+        else:
+            if not scalar_repeats:
+                array = np.repeat(self.array, repeats.array, axis)
+            else:
+                array = np.repeat(self.array, repeats, axis)
+            return EagerArray(self.runtime, array)
 
     def flip(self, rhs, axes):
         self.check_eager_args(rhs)
@@ -502,6 +554,16 @@ class EagerArray(NumPyThunk):
                 result += (EagerArray(self.runtime, array),)
             return result
 
+    def sort(self, rhs, argsort=False, axis=-1, kind="quicksort", order=None):
+        self.check_eager_args(rhs, axis, kind, order)
+        if self.deferred is not None:
+            self.deferred.sort(rhs, argsort, axis, kind, order)
+        else:
+            if argsort:
+                self.array = np.argsort(rhs.array, axis, kind, order)
+            else:
+                self.array = np.sort(rhs.array, axis, kind, order)
+
     def random_uniform(self):
         if self.deferred is not None:
             self.deferred.random_uniform()
@@ -531,10 +593,10 @@ class EagerArray(NumPyThunk):
                     low, high, size=self.array.shape, dtype=self.array.dtype
                 )
 
-    def unary_op(self, op, op_type, rhs, where, args):
+    def unary_op(self, op, rhs, where, args):
         self.check_eager_args(rhs, where)
         if self.deferred is not None:
-            self.deferred.unary_op(op, op_type, rhs, where, args)
+            self.deferred.unary_op(op, rhs, where, args)
             return
 
         if op in _UNARY_OPS:
@@ -554,8 +616,6 @@ class EagerArray(NumPyThunk):
             self.array = np.imag(rhs.array)
         elif op == UnaryOpCode.REAL:
             self.array = np.real(rhs.array)
-        elif op == UnaryOpCode.CONJ:
-            np.conj(rhs.array, out=self.array)
         else:
             raise RuntimeError("unsupported unary op " + str(op))
 

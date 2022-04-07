@@ -30,6 +30,7 @@ From existing data
    array
    asarray
    copy
+   repeat
 
 
 Numerical ranges

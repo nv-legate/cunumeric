@@ -40,7 +40,7 @@ _supported_dtypes = {
     np.int8: ty.int8,
     np.int16: ty.int16,
     np.int32: ty.int32,
-    np.int: ty.int64,
+    int: ty.int64,
     np.int64: ty.int64,
     np.uint8: ty.uint8,
     np.uint16: ty.uint16,
@@ -49,7 +49,7 @@ _supported_dtypes = {
     np.uint64: ty.uint64,
     np.float16: ty.float16,
     np.float32: ty.float32,
-    np.float: ty.float64,
+    float: ty.float64,
     np.float64: ty.float64,
     np.complex64: ty.complex64,
     np.complex128: ty.complex128,
@@ -57,23 +57,6 @@ _supported_dtypes = {
 
 
 class Runtime(object):
-    __slots__ = [
-        "api_calls",
-        "current_random_epoch",
-        "destroyed",
-        "legate_context",
-        "legate_runtime",
-        "max_eager_volume",
-        "num_gpus",
-        "num_procs",
-        "preload_cudalibs",
-        "report_coverage",
-        "report_dump_callstack",
-        "report_dump_csv",
-        "test_mode",
-        "warning",
-    ]
-
     def __init__(self, legate_context):
         self.legate_context = legate_context
         self.legate_runtime = get_legate_runtime()
@@ -156,9 +139,9 @@ class Runtime(object):
         except ValueError:
             self.report_dump_csv = None
 
-    def record_api_call(self, func_name, location, implemented):
+    def record_api_call(self, name, location, implemented):
         assert self.report_coverage
-        self.api_calls.append((func_name, location, implemented))
+        self.api_calls.append((name, location, implemented))
 
     def _load_cudalibs(self):
         task = self.legate_context.create_task(
@@ -196,10 +179,13 @@ class Runtime(object):
         total = len(self.api_calls)
         implemented = sum(int(impl) for (_, _, impl) in self.api_calls)
 
-        print(
-            f"cuNumeric API coverage: {implemented}/{total} "
-            f"({implemented / total * 100}%)"
-        )
+        if total == 0:
+            print("cuNumeric API coverage: 0/0")
+        else:
+            print(
+                f"cuNumeric API coverage: {implemented}/{total} "
+                f"({implemented / total * 100}%)"
+            )
         if self.report_dump_csv is not None:
             with open(self.report_dump_csv, "w") as f:
                 print("function_name,location,implemented", file=f)
@@ -441,8 +427,8 @@ class Runtime(object):
         else:
             return EagerArray(self, np.empty(shape, dtype=dtype))
 
-    def create_unbound_thunk(self, dtype):
-        store = self.legate_context.create_store(dtype)
+    def create_unbound_thunk(self, dtype, ndim=1):
+        store = self.legate_context.create_store(dtype, ndim=ndim)
         return DeferredArray(self, store, dtype=dtype)
 
     def is_eager_shape(self, shape):

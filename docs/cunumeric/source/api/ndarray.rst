@@ -9,11 +9,14 @@ Constructing arrays
 New arrays can be constructed using the routines detailed in Array creation
 routines, and also by using the low-level ndarray constructor:
 
-.. autosummary::
-   :toctree: generated/
+.. toctree::
+   :maxdepth: 2
+   :hidden:
 
-   ndarray
+   _ndarray
 
+
+:meth:`ndarray`
 
 Calculation
 -----------
@@ -114,8 +117,8 @@ Shape manipulation
    ndarray.ravel
    ndarray.squeeze
 
-Item selectiona and manipulation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Item selection and manipulation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autosummary::
    :toctree: generated/
@@ -124,8 +127,8 @@ Item selectiona and manipulation
    .. ndarray.put
    .. ndarray.repeat
    ndarray.choose
-   .. ndarray.sort
-   .. ndarray.argsort
+   ndarray.sort
+   ndarray.argsort
    .. ndarray.partition
    .. ndarray.argpartition
    .. ndarray.searchsorted
@@ -146,6 +149,9 @@ Calculation
    .. ndarray.ptp
    ndarray.clip
    ndarray.conj
+   ndarray.conjugate
+   ndarray.dot
+   ndarray.flip
    .. ndarray.round
    .. ndarray.trace
    ndarray.sum
@@ -157,21 +163,7 @@ Calculation
    .. ndarray.cumprod
    ndarray.all
    ndarray.any
-
-
-EXTRA
------
-
-Calculation
-~~~~~~~~~~~
-
-.. autosummary::
-   :toctree: generated/
-
-   ndarray.conjugate
-   ndarray.dot
-   ndarray.flip
-
+   ndarray.unique
 
 Arithmetic, matrix multiplication, and comparison operations
 ------------------------------------------------------------

@@ -38,7 +38,7 @@ struct ChooseImplBody<VariantKind::CPU, CODE, DIM> {
       auto outptr   = out.ptr(rect);
       auto indexptr = index_arr.ptr(rect);
       for (size_t idx = 0; idx < volume; ++idx) {
-#ifdef CUNUMERIC_DEBUG
+#ifdef DEBUG_CUNUMERIC
         assert(indexptr[idx] < choices.size());
 #endif
         auto chptr  = choices[indexptr[idx]].ptr(rect);
@@ -47,7 +47,7 @@ struct ChooseImplBody<VariantKind::CPU, CODE, DIM> {
     } else {
       for (size_t idx = 0; idx < volume; ++idx) {
         auto p = pitches.unflatten(idx, rect.lo);
-#ifdef CUNUMERIC_DEBUG
+#ifdef DEBUG_CUNUMERIC
         assert(index_arr[p] < choices.size());
 #endif
         out[p] = choices[index_arr[p]][p];

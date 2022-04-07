@@ -14,6 +14,8 @@
  *
  */
 
+#include "cunumeric/matrix/util.h"
+
 namespace cunumeric {
 
 using namespace Legion;
@@ -37,6 +39,14 @@ template <>
 struct support_matvecmul<LegateTypeCode::HALF_LT> : std::true_type {
   using ACC_TYPE = float;
 };
+template <>
+struct support_matvecmul<LegateTypeCode::COMPLEX64_LT> : std::true_type {
+  using ACC_TYPE = complex<float>;
+};
+template <>
+struct support_matvecmul<LegateTypeCode::COMPLEX128_LT> : std::true_type {
+  using ACC_TYPE = complex<double>;
+};
 
 template <VariantKind KIND>
 struct MatVecMulImpl {
@@ -53,36 +63,22 @@ struct MatVecMulImpl {
     auto m = static_cast<size_t>(shape.hi[0] - shape.lo[0] + 1);
     auto n = static_cast<size_t>(shape.hi[1] - shape.lo[1] + 1);
 
-    size_t mat_stride  = 0;
-    bool transpose_mat = false;
-    const VAL* mat     = nullptr;
-    const VAL* vec     = nullptr;
-
     size_t mat_strides[2];
     size_t vec_strides[2];
-    if (args.left_matrix) {
-      // M * v
-      mat        = args.rhs1.read_accessor<VAL, 2>(shape).ptr(shape, mat_strides);
-      vec        = args.rhs2.read_accessor<VAL, 2>(shape).ptr(shape, vec_strides);
-      mat_stride = std::max(mat_strides[0], mat_strides[1]);
-      if (mat_strides[0] != mat_strides[1])
-        transpose_mat = mat_strides[1] == mat_stride;
-      else {
-        transpose_mat = false;
-        if (m == 1) mat_stride = n;
-      }
-      if (transpose_mat) std::swap(m, n);
-    } else {
-      // (M^T * v)^T
-      vec           = args.rhs1.read_accessor<VAL, 2>(shape).ptr(shape, vec_strides);
-      mat           = args.rhs2.read_accessor<VAL, 2>(shape).ptr(shape, mat_strides);
-      mat_stride    = std::max(mat_strides[0], mat_strides[1]);
-      transpose_mat = (mat_strides[0] != mat_strides[1]) ? (mat_strides[0] == mat_stride) : true;
-      if (!transpose_mat) std::swap(m, n);
-    }
+    const VAL* mat = args.rhs1.read_accessor<VAL, 2>(shape).ptr(shape, mat_strides);
+    const VAL* vec = args.rhs2.read_accessor<VAL, 2>(shape).ptr(shape, vec_strides);
+
+    bool transpose_mat;
+    size_t mat_stride = stride_for_blas(m, n, mat_strides[0], mat_strides[1], transpose_mat);
+    if (transpose_mat) std::swap(m, n);
 
     size_t lhs_strides[2];
     auto lhs = args.lhs.reduce_accessor<SumReduction<ACC>, true, 2>().ptr(shape, lhs_strides);
+
+#ifdef DEBUG_CUNUMERIC
+    assert(vec_strides[0] == 0 && vec_strides[1] == 1);
+    assert(lhs_strides[0] == 1 && lhs_strides[1] == 0);
+#endif
 
     MatVecMulImplBody<KIND, CODE>()(m, n, lhs, mat, vec, mat_stride, transpose_mat);
   }
@@ -99,9 +95,8 @@ static void matvecmul_template(TaskContext& context)
 {
   auto& reductions = context.reductions();
   auto& inputs     = context.inputs();
-  auto& scalars    = context.scalars();
 
-  MatVecMulArgs args{scalars[0].value<bool>(), reductions[0], inputs[0], inputs[1]};
+  MatVecMulArgs args{reductions[0], inputs[0], inputs[1]};
   // Note that we can't dispatch on the lhs's type,
   // as the lhs can have a different type than the rhs'
   type_dispatch(args.rhs1.code(), MatVecMulImpl<KIND>{}, args);

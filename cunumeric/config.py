@@ -99,7 +99,9 @@ class CuNumericOpCode(IntEnum):
     POTRF = _cunumeric.CUNUMERIC_POTRF
     RAND = _cunumeric.CUNUMERIC_RAND
     READ = _cunumeric.CUNUMERIC_READ
+    REPEAT = _cunumeric.CUNUMERIC_REPEAT
     SCALAR_UNARY_RED = _cunumeric.CUNUMERIC_SCALAR_UNARY_RED
+    SORT = _cunumeric.CUNUMERIC_SORT
     SYRK = _cunumeric.CUNUMERIC_SYRK
     TILE = _cunumeric.CUNUMERIC_TILE
     TRANSPOSE_COPY_2D = _cunumeric.CUNUMERIC_TRANSPOSE_COPY_2D
@@ -114,76 +116,108 @@ class CuNumericOpCode(IntEnum):
     WRITE = _cunumeric.CUNUMERIC_WRITE
 
 
-# Match these to BinaryOpCode in binary_op_util.h
-@unique
-class BinaryOpCode(IntEnum):
-    ADD = 1
-    DIVIDE = 2
-    EQUAL = 3
-    FLOOR_DIVIDE = 4
-    GREATER = 5
-    GREATER_EQUAL = 6
-    LESS = 7
-    LESS_EQUAL = 8
-    LOGICAL_AND = 9
-    LOGICAL_OR = 10
-    LOGICAL_XOR = 11
-    MAXIMUM = 12
-    MINIMUM = 13
-    MOD = 14
-    MULTIPLY = 15
-    NOT_EQUAL = 16
-    POWER = 17
-    SUBTRACT = 18
-    ALLCLOSE = 19
-
-
-# Match these to UnaryOpCode in unary_op_util.h
+# Match these to CuNumericUnaryOpCode in cunumeric_c.h
 @unique
 class UnaryOpCode(IntEnum):
-    ABSOLUTE = 1
-    ARCCOS = 2
-    ARCSIN = 3
-    ARCTAN = 4
-    CEIL = 5
-    CLIP = 6
-    COPY = 7
-    COS = 8
-    EXP = 9
-    EXP2 = 10
-    FLOOR = 11
-    INVERT = 12
-    ISINF = 13
-    ISNAN = 14
-    LOG = 15
-    LOG10 = 16
-    LOGICAL_NOT = 17
-    NEGATIVE = 18
-    RINT = 19
-    SIGN = 20
-    SIN = 21
-    SQRT = 22
-    TAN = 23
-    TANH = 24
-    CONJ = 25
-    REAL = 26
-    IMAG = 27
-    GETARG = 28
+    ABSOLUTE = _cunumeric.CUNUMERIC_UOP_ABSOLUTE
+    ARCCOS = _cunumeric.CUNUMERIC_UOP_ARCCOS
+    ARCCOSH = _cunumeric.CUNUMERIC_UOP_ARCCOSH
+    ARCSIN = _cunumeric.CUNUMERIC_UOP_ARCSIN
+    ARCSINH = _cunumeric.CUNUMERIC_UOP_ARCSINH
+    ARCTAN = _cunumeric.CUNUMERIC_UOP_ARCTAN
+    ARCTANH = _cunumeric.CUNUMERIC_UOP_ARCTANH
+    CBRT = _cunumeric.CUNUMERIC_UOP_CBRT
+    CEIL = _cunumeric.CUNUMERIC_UOP_CEIL
+    CLIP = _cunumeric.CUNUMERIC_UOP_CLIP
+    CONJ = _cunumeric.CUNUMERIC_UOP_CONJ
+    COPY = _cunumeric.CUNUMERIC_UOP_COPY
+    COS = _cunumeric.CUNUMERIC_UOP_COS
+    COSH = _cunumeric.CUNUMERIC_UOP_COSH
+    DEG2RAD = _cunumeric.CUNUMERIC_UOP_DEG2RAD
+    EXP = _cunumeric.CUNUMERIC_UOP_EXP
+    EXP2 = _cunumeric.CUNUMERIC_UOP_EXP2
+    EXPM1 = _cunumeric.CUNUMERIC_UOP_EXPM1
+    FLOOR = _cunumeric.CUNUMERIC_UOP_FLOOR
+    GETARG = _cunumeric.CUNUMERIC_UOP_GETARG
+    IMAG = _cunumeric.CUNUMERIC_UOP_IMAG
+    INVERT = _cunumeric.CUNUMERIC_UOP_INVERT
+    ISFINITE = _cunumeric.CUNUMERIC_UOP_ISFINITE
+    ISINF = _cunumeric.CUNUMERIC_UOP_ISINF
+    ISNAN = _cunumeric.CUNUMERIC_UOP_ISNAN
+    LOG = _cunumeric.CUNUMERIC_UOP_LOG
+    LOG10 = _cunumeric.CUNUMERIC_UOP_LOG10
+    LOG1P = _cunumeric.CUNUMERIC_UOP_LOG1P
+    LOG2 = _cunumeric.CUNUMERIC_UOP_LOG2
+    LOGICAL_NOT = _cunumeric.CUNUMERIC_UOP_LOGICAL_NOT
+    NEGATIVE = _cunumeric.CUNUMERIC_UOP_NEGATIVE
+    POSITIVE = _cunumeric.CUNUMERIC_UOP_POSITIVE
+    RAD2DEG = _cunumeric.CUNUMERIC_UOP_RAD2DEG
+    REAL = _cunumeric.CUNUMERIC_UOP_REAL
+    RECIPROCAL = _cunumeric.CUNUMERIC_UOP_RECIPROCAL
+    RINT = _cunumeric.CUNUMERIC_UOP_RINT
+    SIGN = _cunumeric.CUNUMERIC_UOP_SIGN
+    SIGNBIT = _cunumeric.CUNUMERIC_UOP_SIGNBIT
+    SIN = _cunumeric.CUNUMERIC_UOP_SIN
+    SINH = _cunumeric.CUNUMERIC_UOP_SINH
+    SQUARE = _cunumeric.CUNUMERIC_UOP_SQUARE
+    SQRT = _cunumeric.CUNUMERIC_UOP_SQRT
+    TAN = _cunumeric.CUNUMERIC_UOP_TAN
+    TANH = _cunumeric.CUNUMERIC_UOP_TANH
+    TRUNC = _cunumeric.CUNUMERIC_UOP_TRUNC
 
 
-# Match these to UnaryRedCode in unary_red_util.h
+# Match these to CuNumericRedopCode in cunumeric_c.h
 @unique
 class UnaryRedCode(IntEnum):
-    ALL = 1
-    ANY = 2
-    MAX = 3
-    MIN = 4
-    PROD = 5
-    SUM = 6
-    ARGMAX = 7
-    ARGMIN = 8
-    CONTAINS = 9
-    COUNT_NONZERO = 10
+    ALL = _cunumeric.CUNUMERIC_RED_ALL
+    ANY = _cunumeric.CUNUMERIC_RED_ANY
+    ARGMAX = _cunumeric.CUNUMERIC_RED_ARGMAX
+    ARGMIN = _cunumeric.CUNUMERIC_RED_ARGMIN
+    CONTAINS = _cunumeric.CUNUMERIC_RED_CONTAINS
+    COUNT_NONZERO = _cunumeric.CUNUMERIC_RED_COUNT_NONZERO
+    MAX = _cunumeric.CUNUMERIC_RED_MAX
+    MIN = _cunumeric.CUNUMERIC_RED_MIN
+    PROD = _cunumeric.CUNUMERIC_RED_PROD
+    SUM = _cunumeric.CUNUMERIC_RED_SUM
+
+
+# Match these to CuNumericBinaryOpCode in cunumeric_c.h
+@unique
+class BinaryOpCode(IntEnum):
+    ADD = _cunumeric.CUNUMERIC_BINOP_ADD
+    ALLCLOSE = _cunumeric.CUNUMERIC_BINOP_ALLCLOSE
+    ARCTAN2 = _cunumeric.CUNUMERIC_BINOP_ARCTAN2
+    BITWISE_AND = _cunumeric.CUNUMERIC_BINOP_BITWISE_AND
+    BITWISE_OR = _cunumeric.CUNUMERIC_BINOP_BITWISE_OR
+    BITWISE_XOR = _cunumeric.CUNUMERIC_BINOP_BITWISE_XOR
+    COPYSIGN = _cunumeric.CUNUMERIC_BINOP_COPYSIGN
+    DIVIDE = _cunumeric.CUNUMERIC_BINOP_DIVIDE
+    EQUAL = _cunumeric.CUNUMERIC_BINOP_EQUAL
+    FLOAT_POWER = _cunumeric.CUNUMERIC_BINOP_FLOAT_POWER
+    FLOOR_DIVIDE = _cunumeric.CUNUMERIC_BINOP_FLOOR_DIVIDE
+    FMOD = _cunumeric.CUNUMERIC_BINOP_FMOD
+    GCD = _cunumeric.CUNUMERIC_BINOP_GCD
+    GREATER = _cunumeric.CUNUMERIC_BINOP_GREATER
+    GREATER_EQUAL = _cunumeric.CUNUMERIC_BINOP_GREATER_EQUAL
+    HYPOT = _cunumeric.CUNUMERIC_BINOP_HYPOT
+    LCM = _cunumeric.CUNUMERIC_BINOP_LCM
+    LEFT_SHIFT = _cunumeric.CUNUMERIC_BINOP_LEFT_SHIFT
+    LESS = _cunumeric.CUNUMERIC_BINOP_LESS
+    LESS_EQUAL = _cunumeric.CUNUMERIC_BINOP_LESS_EQUAL
+    LOGADDEXP = _cunumeric.CUNUMERIC_BINOP_LOGADDEXP
+    LOGADDEXP2 = _cunumeric.CUNUMERIC_BINOP_LOGADDEXP2
+    LOGICAL_AND = _cunumeric.CUNUMERIC_BINOP_LOGICAL_AND
+    LOGICAL_OR = _cunumeric.CUNUMERIC_BINOP_LOGICAL_OR
+    LOGICAL_XOR = _cunumeric.CUNUMERIC_BINOP_LOGICAL_XOR
+    MAXIMUM = _cunumeric.CUNUMERIC_BINOP_MAXIMUM
+    MINIMUM = _cunumeric.CUNUMERIC_BINOP_MINIMUM
+    MOD = _cunumeric.CUNUMERIC_BINOP_MOD
+    MULTIPLY = _cunumeric.CUNUMERIC_BINOP_MULTIPLY
+    NEXTAFTER = _cunumeric.CUNUMERIC_BINOP_NEXTAFTER
+    NOT_EQUAL = _cunumeric.CUNUMERIC_BINOP_NOT_EQUAL
+    POWER = _cunumeric.CUNUMERIC_BINOP_POWER
+    RIGHT_SHIFT = _cunumeric.CUNUMERIC_BINOP_RIGHT_SHIFT
+    SUBTRACT = _cunumeric.CUNUMERIC_BINOP_SUBTRACT
 
 
 # Match these to RandGenCode in rand_util.h
@@ -207,3 +241,4 @@ class CuNumericTunable(IntEnum):
     NUM_GPUS = _cunumeric.CUNUMERIC_TUNABLE_NUM_GPUS
     NUM_PROCS = _cunumeric.CUNUMERIC_TUNABLE_NUM_PROCS
     MAX_EAGER_VOLUME = _cunumeric.CUNUMERIC_TUNABLE_MAX_EAGER_VOLUME
+    HAS_NUMAMEM = _cunumeric.CUNUMERIC_TUNABLE_HAS_NUMAMEM

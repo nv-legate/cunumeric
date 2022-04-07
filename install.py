@@ -164,22 +164,30 @@ def install_openblas(openblas_dir, thread_count, verbose):
         verbose=verbose,
     )
     # We can just build this directly
-    execute_command(
-        [
-            "make",
-            "-j",
-            str(thread_count),
-            "CROSS=1",
-            "USE_THREAD=1",
-            "NO_STATIC=1",
-            "USE_CUDA=0",
-            "USE_OPENMP=%s" % (1 if has_openmp() else 0),
-            "NUM_PARALLEL=32",
-            "LIBNAMESUFFIX=legate",
-        ],
-        cwd=temp_dir,
-        verbose=verbose,
-    )
+    try:
+        execute_command(
+            [
+                "make",
+                "-j",
+                str(thread_count),
+                "CROSS=1",
+                "USE_THREAD=1",
+                "NO_STATIC=1",
+                "USE_CUDA=0",
+                "USE_OPENMP=%s" % (1 if has_openmp() else 0),
+                "NUM_PARALLEL=32",
+                "LIBNAMESUFFIX=legate",
+                "NO_LAPACK=0",
+            ],
+            cwd=temp_dir,
+            verbose=verbose,
+        )
+    except subprocess.CalledProcessError:
+        raise Exception(
+            "\nOpenBLAS compilation failed.  Check the output for details.\n"
+            "Note that OpenBLAS compilation will fail if gfortran is not "
+            "available in your environment."
+        )
     # Then do the installation to our target directory
     execute_command(
         [
@@ -419,6 +427,7 @@ def install_cunumeric(
 
     # Match the core's setting regarding CUDA support.
     makefile_path = os.path.join(legate_dir, "share", "legate", "config.mk")
+    nccl_dir = None
     cuda = find_compile_flag("USE_CUDA", makefile_path)
     if cuda:
         # Find cuTensor installation
