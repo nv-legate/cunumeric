@@ -44,7 +44,7 @@ struct AdvancedIndexingImpl {
 
     if (volume1 == 0 || volume2 == 0) {
       auto empty = create_buffer<VAL>(0);
-      args.output.return_data(empty, 0);
+      args.output.return_data(empty, Point<1>(0));
       return;
     }
 
@@ -67,9 +67,9 @@ struct AdvancedIndexingImpl {
       assert(false);
     }
     if (args.is_set) {
-      args.output.return_data(output_arr_set, size);
+      args.output.return_data(output_arr_set, Point<1>(size));
     } else {
-      args.output.return_data(output_arr, size);
+      args.output.return_data(output_arr, Point<1>(size));
     }
   }
 };
