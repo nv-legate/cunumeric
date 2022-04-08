@@ -13,7 +13,7 @@
 # limitations under the License.
 #
 
-from abc import ABC, abstractmethod
+from abc import ABC, abstractmethod, abstractproperty
 
 
 class NumPyThunk(ABC):
@@ -30,11 +30,6 @@ class NumPyThunk(ABC):
         self.dtype = dtype
 
     @property
-    def storage(self):
-        """Return the Legion storage primitive for this NumPy thunk"""
-        raise NotImplementedError("Implement in derived classes")
-
-    @property
     def ndim(self):
         return len(self.shape)
 
@@ -48,6 +43,11 @@ class NumPyThunk(ABC):
         return s
 
     # Abstract methods
+
+    @abstractproperty
+    def storage(self):
+        """Return the Legion storage primitive for this NumPy thunk"""
+        ...
 
     @abstractmethod
     def __numpy_array__(self):
