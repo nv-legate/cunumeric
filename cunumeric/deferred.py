@@ -1570,20 +1570,18 @@ class DeferredArray(NumPyThunk):
     def cumsum(self, rhs, axis, dtype):
         ## local sum
         # storage for local sums accessible
-        temp = self.runtime.create_unbound_thunk(dtype=self.dtype)
+        temp = self.runtime.create_unbound_thunk(dtype=self.dtype, ndim=self.ndim)
 
         if axis is not None and (axis > rhs.ndim or axis < 0):
             raise ValueError("invalid axis")
         # when no axis specified, flatten the arrays here
         # if not flattened, multi-dim blocking can cause headaches and overhead at C++ layer
         if axis is None and rhs.ndim > 1:
-            ax = -1
             input = rhs.reshape((rhs.size,), order="C")
             output = self.runtime.create_empty_thunk(
                 input.shape, dtype=dtype)
         else:
             if rhs.ndim is 1:
-                ax = -1
                 input = rhs
                 output = self
             else:
@@ -1592,13 +1590,11 @@ class DeferredArray(NumPyThunk):
                     input = rhs.swapaxes(axis, rhs.ndim - 1)
                     output = self.runtime.create_empty_thunk(
                         input.shape, dtype=self.dtype)
-                    ax = rhs.ndim-1
         
         task = output.context.create_task(CuNumericOpCode.CUMSUM_LOCAL)
         task.add_output(output.base)
         task.add_input(input.base)
         task.add_output(temp)
-        task.add_scalar_arg(ax, ty.int32)
 
         task.add_alignment(input.base, output.base)
 
@@ -1610,7 +1606,6 @@ class DeferredArray(NumPyThunk):
         task = output.context.create_task(CuNumericOpCode.CUMSUM_GLOBAL)
         # RRRR do I need to set as both output and input? or is only output enough?!
         task.add_input(output.base)
-        task.add_scalar_arg(ax, ty.int32)
         task.add_input(temp)
         task.add_output(output.base)
 

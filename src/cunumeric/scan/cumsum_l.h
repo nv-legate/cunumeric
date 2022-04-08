@@ -23,8 +23,7 @@ namespace cunumeric {
 struct Cumsum_lArgs {
   const Array& out;
   const Array& in;
-  const Array& sum_vals;
-  int axis;
+  Array& sum_vals;
 };
 
 class Cumsum_lTask : public CuNumericTask<Cumsum_lTask> {

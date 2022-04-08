@@ -40,9 +40,8 @@ struct Cumsum_lImpl {
 
     auto out = args.out.write_accessor<VAL, DIM>(rect);
     auto in = args.in.read_accessor<VAL, DIM>(rect);
-    Buffer<VAL> sum_vals; // RRRR needs to be unbounded and ND
 
-    Cumsum_lImplBody<KIND, CODE, DIM>()(out, in, sum_vals, pitches, rect, args.axis);
+    Cumsum_lImplBody<KIND, CODE, DIM>()(out, in, args.sum_vals, pitches, rect);
 
   }
 };
@@ -52,9 +51,8 @@ static void Cumsum_l_template(TaskContext& context)
 {
   auto& inputs  = context.inputs();
   auto& outputs = context.outputs();
-  auto& scalars = context.scalars();
 
-  double_dispatch(inputs.dim(), inputs.code(), Cumsum_lImpl<KIND>{}, args, context.get_task_index());
+  double_dispatch(inputs.dim(), inputs.code(), Cumsum_lImpl<KIND>{}, args);
 }
 
 }  // namespace cunumeric

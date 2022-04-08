@@ -32,33 +32,29 @@ struct Cumsum_lImplBody<VariantKind::GPU, CODE, DIM> {
 
   size_t operator()(const AccessorWO<VAL, DIM>& out,
 		    const AccessorRO<VAL, DIM>& in,
-		    const AccessorWO<VAL, DIM>& sum_vals,
+		    Array& sum_vals,
                     const Pitches<DIM - 1>& pitches,
-                    const Rect<DIM>& rect,
-		    const int axis,
-		    const DomainPoint& partition_index)
-
+                    const Rect<DIM>& rect)
   {
-    // RRRR for the GPU variant, are the arrays on host or device? Does this work?
     auto outptr = out.ptr(rect.lo);
     auto inptr = in.ptr(rect.lo);
     auto volume = rect.volume();
-    if(axis == -1){
-      // flattened scan (1D or no axis)
-      auto sum_valsptr = sum_vals.ptr(partition_index); // RRRR probably incorrect?
-      thrust::inclusive_scan(thrust::device, inptr, inptr + volume, outptr);
-      sum_valsptr[0] = outptr[volume - 1];
-    } else {
-      // ND scan
-      auto sum_valsptr = sum_vals.ptr(partition_index); // RRRR probably incorrect?
-      auto stride = rect.hi[DIM - 1] - rect.lo[DIM - 1] + 1;
-      // for performance this needs to be resolved to streams or a single kernel
-      for(unit3264_t index = 0; index < volume; index += stride){
-	// RRRR depending on stride and volume this should either call multiple streams
-	// RRRR or use a cub version (currently not implemented)
-	thrust::inclusive_scan(thrust::device, inptr + index, inptr + index + stride, outptr + index);
-	sum_valsptr[???] = outptr[index + stride - 1]; // RRRR ????
-      }
+    
+    auto stride = rect.hi[DIM - 1] - rect.lo[DIM - 1] + 1;
+    auto iters = volume / iters;
+
+    auto sum_valsptr = sum_vals.create_output_buffer<VAL, DIM>(iters, true);
+
+    for(unit3264_t index = 0; index < volume; index += stride){
+      // RRRR depending on stride and volume this should either call multiple streams
+      // RRRR or use a cub version (currently not implemented)
+      thrust::inclusive_scan(thrust::device, inptr + index, inptr + index + stride, outptr + index);
+      // get the corresponding ND index with base zero to use for sum_val
+      auto sum_valp = pitches.unflatten(index, rect.lo) - rect.lo;
+      // only one element on scan axis
+      sum_valp[DIM - 1] = 0;
+      // write out the partition sum
+      sum_valsptr[sum_valp] = outptr[index + stride - 1];
     }
   }
 };
