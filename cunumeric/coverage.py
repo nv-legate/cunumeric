@@ -17,7 +17,9 @@ from __future__ import annotations
 import warnings
 from functools import wraps
 from types import FunctionType, MethodDescriptorType, MethodType, ModuleType
-from typing import Any, Callable, Container, Optional
+from typing import Any, Callable, Container, Optional, cast
+
+from typing_extensions import Protocol
 
 from .runtime import runtime
 from .utils import find_last_user_frames, find_last_user_stacklevel
@@ -59,11 +61,25 @@ def filter_namespace(
     }
 
 
-# todo: (bev) use callback protocol type starting with 3.8
+class AnyCallable(Protocol):
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
+        ...
+
+
+class CuWrapped(Protocol):
+    _cunumeric_implemented: bool
+
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
+        ...
+
+
 def implemented(
-    func: Any, prefix: str, name: str, *, reporting: bool = True
-) -> Any:
+    func: AnyCallable, prefix: str, name: str, *, reporting: bool = True
+) -> CuWrapped:
     name = f"{prefix}.{name}"
+
+    wrapper: CuWrapped
+
     if reporting:
 
         @wraps(func)
@@ -76,18 +92,20 @@ def implemented(
 
     else:
 
-        wrapper = func
+        wrapper = cast(CuWrapped, func)
 
     wrapper._cunumeric_implemented = True
 
     return wrapper
 
 
-# todo: (bev) use callback protocol type starting with 3.8
 def unimplemented(
-    func: Any, prefix: str, name: str, *, reporting: bool = True
-) -> Any:
+    func: AnyCallable, prefix: str, name: str, *, reporting: bool = True
+) -> CuWrapped:
     name = f"{prefix}.{name}"
+
+    wrapper: CuWrapped
+
     if reporting:
 
         @wraps(func)
@@ -152,7 +170,9 @@ def clone_module(
 
     for attr, value in new_globals.items():
         if isinstance(value, (FunctionType, lgufunc)):
-            wrapped = implemented(value, mod_name, attr, reporting=reporting)
+            wrapped = implemented(
+                cast(AnyCallable, value), mod_name, attr, reporting=reporting
+            )
             new_globals[attr] = wrapped
 
     for attr, value in missing.items():
@@ -182,7 +202,7 @@ def clone_class(origin_class: type) -> Callable[[type], type]:
         )
 
     def decorator(cls: type) -> type:
-        cls_name = f"{origin_class.__module__}.{origin_class.__name__}"
+        class_name = f"{origin_class.__module__}.{origin_class.__name__}"
 
         missing = filter_namespace(
             origin_class.__dict__,
@@ -197,14 +217,14 @@ def clone_class(origin_class: type) -> Callable[[type], type]:
         for attr, value in cls.__dict__.items():
             if should_wrap(value):
                 wrapped = implemented(
-                    value, cls_name, attr, reporting=reporting
+                    value, class_name, attr, reporting=reporting
                 )
                 setattr(cls, attr, wrapped)
 
         for attr, value in missing.items():
             if should_wrap(value):
                 wrapped = unimplemented(
-                    value, cls_name, attr, reporting=reporting
+                    value, class_name, attr, reporting=reporting
                 )
                 setattr(cls, attr, wrapped)
             else:

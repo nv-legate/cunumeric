@@ -12,10 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from __future__ import annotations
 
 import traceback
 from functools import reduce
 from string import ascii_lowercase, ascii_uppercase
+from types import FrameType
+from typing import Any, List, Sequence, Tuple, Union
 
 import numpy as np
 
@@ -36,12 +39,12 @@ _SUPPORTED_DTYPES = [
 ]
 
 
-def broadcast_shapes(*args):
+def broadcast_shapes(*args: tuple[int, ...]) -> tuple[int, ...]:
     arrays = [np.empty(x, dtype=[]) for x in args]
     return np.broadcast(*arrays).shape
 
 
-def is_advanced_indexing(key):
+def is_advanced_indexing(key: Any) -> bool:
     if key is Ellipsis or key is None:  # np.newdim case
         return False
     if np.isscalar(key):
@@ -54,7 +57,7 @@ def is_advanced_indexing(key):
     return True
 
 
-def find_last_user_stacklevel():
+def find_last_user_stacklevel() -> int:
     stacklevel = 1
     for (frame, _) in traceback.walk_stack(None):
         if not frame.f_globals["__name__"].startswith("cunumeric"):
@@ -63,24 +66,22 @@ def find_last_user_stacklevel():
     return stacklevel
 
 
-def get_line_number_from_frame(frame):
+def get_line_number_from_frame(frame: FrameType) -> str:
     return f"{frame.f_code.co_filename}:{frame.f_lineno}"
 
 
-def find_last_user_frames(top_only=True):
-    last = None
-    for (frame, _) in traceback.walk_stack(None):
-        last = frame
-        if "__name__" not in frame.f_globals:
+def find_last_user_frames(top_only: bool = True) -> str:
+    for (last, _) in traceback.walk_stack(None):
+        if "__name__" not in last.f_globals:
             continue
-        if not frame.f_globals["__name__"].startswith("cunumeric"):
+        if not last.f_globals["__name__"].startswith("cunumeric"):
             break
 
     if top_only:
         return get_line_number_from_frame(last)
 
-    frames = []
-    curr = last
+    frames: list[FrameType] = []
+    curr: Union[FrameType, None] = last
     while curr is not None:
         if "legion_top.py" in curr.f_code.co_filename:
             break
@@ -89,30 +90,33 @@ def find_last_user_frames(top_only=True):
     return "|".join(get_line_number_from_frame(f) for f in frames)
 
 
-def is_supported_dtype(dtype):
+def is_supported_dtype(dtype: Any) -> bool:
     if not isinstance(dtype, np.dtype):
         raise TypeError("expected a NumPy dtype")
     return dtype.type in _SUPPORTED_DTYPES
 
 
-def calculate_volume(shape):
+def calculate_volume(shape: tuple[int, ...]) -> int:
     if shape == ():
         return 0
     return reduce(lambda x, y: x * y, shape)
 
 
-def get_arg_dtype(dtype):
+def get_arg_dtype(dtype: np.dtype[Any]) -> np.dtype[Any]:
     return np.dtype(
         [("arg", np.int64), ("arg_value", dtype)],
         align=True,
     )
 
 
-def get_arg_value_dtype(dtype):
-    return dtype.fields["arg_value"][0].type
+def get_arg_value_dtype(dtype: np.dtype[Any]) -> Any:
+    return dtype.fields["arg_value"][0].type  # type: ignore [index]
 
 
-def dot_modes(a_ndim, b_ndim):
+Modes = Tuple[List[str], List[str], List[str]]
+
+
+def dot_modes(a_ndim: int, b_ndim: int) -> Modes:
     a_modes = list(ascii_lowercase[:a_ndim])
     b_modes = list(ascii_uppercase[:b_ndim])
     if a_ndim == 0 or b_ndim == 0:
@@ -126,7 +130,7 @@ def dot_modes(a_ndim, b_ndim):
     return (a_modes, b_modes, out_modes)
 
 
-def inner_modes(a_ndim, b_ndim):
+def inner_modes(a_ndim: int, b_ndim: int) -> Modes:
     a_modes = list(ascii_lowercase[:a_ndim])
     b_modes = list(ascii_uppercase[:b_ndim])
     if a_ndim == 0 or b_ndim == 0:
@@ -137,7 +141,7 @@ def inner_modes(a_ndim, b_ndim):
     return (a_modes, b_modes, out_modes)
 
 
-def matmul_modes(a_ndim, b_ndim):
+def matmul_modes(a_ndim: int, b_ndim: int) -> Modes:
     if a_ndim == 0 or b_ndim == 0:
         raise ValueError("Scalars not allowed in matmul")
     a_modes = list(ascii_lowercase[-a_ndim:])
@@ -158,36 +162,61 @@ def matmul_modes(a_ndim, b_ndim):
     return (a_modes, b_modes, out_modes)
 
 
-def tensordot_modes(a_ndim, b_ndim, axes):
-    if isinstance(axes, int):
-        if axes > a_ndim or axes > b_ndim:
+Axis = Sequence[int]
+AxesLikeTuple = Union[
+    Tuple[int, int],
+    Tuple[int, Axis],
+    Tuple[Axis, int],
+    Tuple[Axis, Axis],
+]
+AxesLike = Union[int, AxesLikeTuple]
+
+
+def tensordot_modes(a_ndim: int, b_ndim: int, axes: AxesLike) -> Modes:
+    def convert_int_axes(axes: int) -> tuple[Axis, Axis]:
+        return list(range(a_ndim - axes, a_ndim)), list(range(axes))
+
+    def convert_seq_axes(axes: AxesLikeTuple) -> tuple[Axis, Axis]:
+        a_axis, b_axis = axes
+        return (
+            [a_axis] if isinstance(a_axis, int) else list(a_axis),
+            [b_axis] if isinstance(b_axis, int) else list(b_axis),
+        )
+
+    def convert_axes(axes: AxesLike) -> tuple[Axis, Axis]:
+        if isinstance(axes, int):
+            a_axis, b_axis = convert_int_axes(axes)
+        else:
+            a_axis, b_axis = convert_seq_axes(axes)
+
+        return (
+            [ax + a_ndim if ax < 0 else ax for ax in a_axis],
+            [ax + b_ndim if ax < 0 else ax for ax in b_axis],
+        )
+
+    def check_axes(a_axis: Axis, b_axis: Axis) -> None:
+        if (
+            len(a_axis) != len(b_axis)
+            or len(a_axis) > a_ndim
+            or len(b_axis) > b_ndim
+            or len(a_axis) != len(set(a_axis))
+            or len(b_axis) != len(set(b_axis))
+            or any(ax < 0 for ax in a_axis)
+            or any(ax < 0 for ax in b_axis)
+            or any(ax >= a_ndim for ax in a_axis)
+            or any(ax >= b_ndim for ax in b_axis)
+        ):
             raise ValueError("Invalid axes argument")
-        axes = (list(range(a_ndim - axes, a_ndim)), list(range(axes)))
-    a_axes, b_axes = axes
-    if isinstance(a_axes, int):
-        a_axes = [a_axes]
-    if isinstance(b_axes, int):
-        b_axes = [b_axes]
-    a_axes = [ax + a_ndim if ax < 0 else ax for ax in a_axes]
-    b_axes = [ax + b_ndim if ax < 0 else ax for ax in b_axes]
-    if (
-        len(a_axes) != len(b_axes)
-        or len(a_axes) > a_ndim
-        or len(b_axes) > b_ndim
-        or len(a_axes) != len(set(a_axes))
-        or len(b_axes) != len(set(b_axes))
-        or any(ax < 0 for ax in a_axes)
-        or any(ax < 0 for ax in b_axes)
-        or any(ax >= a_ndim for ax in a_axes)
-        or any(ax >= b_ndim for ax in b_axes)
-    ):
-        raise ValueError("Invalid axes argument")
+
+    a_axis, b_axis = convert_axes(axes)
+
+    check_axes(a_axis, b_axis)
 
     a_modes = list(ascii_lowercase[:a_ndim])
     b_modes = list(ascii_uppercase[:b_ndim])
-    for (a_i, b_i) in zip(a_axes, b_axes):
+    for (a_i, b_i) in zip(a_axis, b_axis):
         b_modes[b_i] = a_modes[a_i]
-    out_modes = [
-        a_modes[a_i] for a_i in sorted(set(range(a_ndim)) - set(a_axes))
-    ] + [b_modes[b_i] for b_i in sorted(set(range(b_ndim)) - set(b_axes))]
-    return (a_modes, b_modes, out_modes)
+    a_out = [a_modes[a_i] for a_i in sorted(set(range(a_ndim)) - set(a_axis))]
+    b_out = [b_modes[b_i] for b_i in sorted(set(range(b_ndim)) - set(b_axis))]
+
+    return (a_modes, b_modes, a_out + b_out)
