@@ -162,61 +162,62 @@ def matmul_modes(a_ndim: int, b_ndim: int) -> Modes:
     return (a_modes, b_modes, out_modes)
 
 
-Axis = Sequence[int]
-AxesLikeTuple = Union[
+Axes = Sequence[int]
+AxesPair = Tuple[Axes, Axes]
+AxesPairLikeTuple = Union[
     Tuple[int, int],
-    Tuple[int, Axis],
-    Tuple[Axis, int],
-    Tuple[Axis, Axis],
+    Tuple[int, Axes],
+    Tuple[Axes, int],
+    Tuple[Axes, Axes],
 ]
-AxesLike = Union[int, AxesLikeTuple]
+AxesPairLike = Union[int, AxesPairLikeTuple]
 
 
-def tensordot_modes(a_ndim: int, b_ndim: int, axes: AxesLike) -> Modes:
-    def convert_int_axes(axes: int) -> tuple[Axis, Axis]:
+def tensordot_modes(a_ndim: int, b_ndim: int, axes: AxesPairLike) -> Modes:
+    def convert_int_axes(axes: int) -> AxesPair:
         return list(range(a_ndim - axes, a_ndim)), list(range(axes))
 
-    def convert_seq_axes(axes: AxesLikeTuple) -> tuple[Axis, Axis]:
-        a_axis, b_axis = axes
+    def convert_seq_axes(axes: AxesPairLikeTuple) -> AxesPair:
+        a_axes, b_axes = axes
         return (
-            [a_axis] if isinstance(a_axis, int) else list(a_axis),
-            [b_axis] if isinstance(b_axis, int) else list(b_axis),
+            [a_axes] if isinstance(a_axes, int) else list(a_axes),
+            [b_axes] if isinstance(b_axes, int) else list(b_axes),
         )
 
-    def convert_axes(axes: AxesLike) -> tuple[Axis, Axis]:
+    def convert_axes(axes: AxesPairLike) -> AxesPair:
         if isinstance(axes, int):
-            a_axis, b_axis = convert_int_axes(axes)
+            a_axes, b_axes = convert_int_axes(axes)
         else:
-            a_axis, b_axis = convert_seq_axes(axes)
+            a_axes, b_axes = convert_seq_axes(axes)
 
         return (
-            [ax + a_ndim if ax < 0 else ax for ax in a_axis],
-            [ax + b_ndim if ax < 0 else ax for ax in b_axis],
+            [ax + a_ndim if ax < 0 else ax for ax in a_axes],
+            [ax + b_ndim if ax < 0 else ax for ax in b_axes],
         )
 
-    def check_axes(a_axis: Axis, b_axis: Axis) -> None:
+    def check_axes(a_axes: Axes, b_axes: Axes) -> None:
         if (
-            len(a_axis) != len(b_axis)
-            or len(a_axis) > a_ndim
-            or len(b_axis) > b_ndim
-            or len(a_axis) != len(set(a_axis))
-            or len(b_axis) != len(set(b_axis))
-            or any(ax < 0 for ax in a_axis)
-            or any(ax < 0 for ax in b_axis)
-            or any(ax >= a_ndim for ax in a_axis)
-            or any(ax >= b_ndim for ax in b_axis)
+            len(a_axes) != len(b_axes)
+            or len(a_axes) > a_ndim
+            or len(b_axes) > b_ndim
+            or len(a_axes) != len(set(a_axes))
+            or len(b_axes) != len(set(b_axes))
+            or any(ax < 0 for ax in a_axes)
+            or any(ax < 0 for ax in b_axes)
+            or any(ax >= a_ndim for ax in a_axes)
+            or any(ax >= b_ndim for ax in b_axes)
         ):
             raise ValueError("Invalid axes argument")
 
-    a_axis, b_axis = convert_axes(axes)
+    a_axes, b_axes = convert_axes(axes)
 
-    check_axes(a_axis, b_axis)
+    check_axes(a_axes, b_axes)
 
     a_modes = list(ascii_lowercase[:a_ndim])
     b_modes = list(ascii_uppercase[:b_ndim])
-    for (a_i, b_i) in zip(a_axis, b_axis):
+    for (a_i, b_i) in zip(a_axes, b_axes):
         b_modes[b_i] = a_modes[a_i]
-    a_out = [a_modes[a_i] for a_i in sorted(set(range(a_ndim)) - set(a_axis))]
-    b_out = [b_modes[b_i] for b_i in sorted(set(range(b_ndim)) - set(b_axis))]
+    a_out = [a_modes[a_i] for a_i in sorted(set(range(a_ndim)) - set(a_axes))]
+    b_out = [b_modes[b_i] for b_i in sorted(set(range(b_ndim)) - set(b_axes))]
 
     return (a_modes, b_modes, a_out + b_out)
