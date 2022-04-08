@@ -20,6 +20,11 @@ from string import ascii_lowercase, ascii_uppercase
 import numpy as np
 
 
+def broadcast_shapes(*args):
+    arrays = [np.empty(x, dtype=[]) for x in args]
+    return np.broadcast(*arrays).shape
+
+
 def is_advanced_indexing(key):
     if key is Ellipsis or key is None:  # np.newdim case
         return False

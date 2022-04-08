@@ -37,6 +37,20 @@ SUPPORTED_DTYPES = [
 ]
 
 
+@pytest.mark.parametrize(
+    "args, result",
+    [
+        ([(4,), (1,)], (4,)),
+        ([(2, 3), (2, 3)], (2, 3)),
+        ([(1, 2, 3), (2, 3)], (1, 2, 3)),
+        ([(2, 1, 3), (2, 3)], (2, 2, 3)),
+    ],
+)
+def test_broadcast_shapes(args, result):
+    assert m.broadcast_shapes(*args) == result
+    assert m.broadcast_shapes(*reversed(args)) == result
+
+
 class Test_is_advanced_indexing:
     def test_Ellipsis(self):
         assert not m.is_advanced_indexing(...)
