@@ -19,6 +19,22 @@ from string import ascii_lowercase, ascii_uppercase
 
 import numpy as np
 
+_SUPPORTED_DTYPES = [
+    np.float16,
+    np.float32,
+    np.float64,
+    float,
+    np.int16,
+    np.int32,
+    np.int64,
+    int,
+    np.uint16,
+    np.uint32,
+    np.uint64,
+    np.bool_,
+    bool,
+]
+
 
 def broadcast_shapes(*args):
     arrays = [np.empty(x, dtype=[]) for x in args]
@@ -73,34 +89,10 @@ def find_last_user_frames(top_only=True):
     return "|".join(get_line_number_from_frame(f) for f in frames)
 
 
-# These are the dtypes that we currently support for cuNumeric
 def is_supported_dtype(dtype):
     if not isinstance(dtype, np.dtype):
         raise TypeError("expected a NumPy dtype")
-    base_type = dtype.type
-    if (
-        base_type == np.float16
-        or base_type == np.float32
-        or base_type == np.float64
-        or base_type == float
-    ):
-        return True
-    if (
-        base_type == np.int16
-        or base_type == np.int32
-        or base_type == np.int64
-        or base_type == int
-    ):
-        return True
-    if (
-        base_type == np.uint16
-        or base_type == np.uint32
-        or base_type == np.uint64
-    ):
-        return True
-    if base_type == np.bool_ or base_type == bool:
-        return True
-    return False
+    return dtype.type in _SUPPORTED_DTYPES
 
 
 def calculate_volume(shape):
