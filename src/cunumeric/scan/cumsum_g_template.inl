@@ -32,18 +32,20 @@ struct Cumsum_gImpl {
 
     using VAL = legate_type_of<CODE>;
     
-    auto rect = args.out.shape<DIM>();
+    auto out_rect = args.out.shape<DIM>();
+    auto sum_vals_rect = args.sum_vals.shape<DIM>();
 
-    Pitches<DIM - 1> pitches;
-    size_t volume = pitches.flatten(rect);
+    Pitches<DIM - 1> out_pitches;
+    size_t volume = out_pitches.flatten(out_rect);
+    Pitches<DIM - 1> sum_vals_pitches;
+    size_t sum_vals_volume = sum_vals_pitches.flatten(sum_vals_rect);
 
     if (volume == 0) return;
 
-    auto in = args.out.read_accessor<VAL, DIM>(rect); // RRRR is this needed?
-    auto out = args.out.write_accessor<VAL, DIM>(rect);
-    auto sum_vals = args.sum_vals.read_accessor<VAL, DIM>(???);// RRRR buffer, unknown size?
+    auto out = args.out.read_write_accessor<VAL, DIM>(out_rect);
+    auto sum_vals = args.sum_vals.read_accessor<VAL, DIM>(sum_vals_rect);
 
-    Cumsum_lImplBody<KIND, CODE, DIM>()(out, in, sum_vals, pitches, rect, args.axis);
+    Cumsum_lImplBody<KIND, CODE, DIM>()(out, sum_vals, out_pitches, out_rect, sum_vals_pitches, sum_vals_rect);
 
   }
 };
@@ -53,7 +55,6 @@ static void Cumsum_g_template(TaskContext& context)
 {
   auto& inputs  = context.inputs();
   auto& outputs = context.outputs();
-  auto& scalars = context.scalars();
 
   double_dispatch(inputs.dim(), inputs.code(), Cumsum_gImpl<KIND>{}, args, context.get_task_index());  
 }

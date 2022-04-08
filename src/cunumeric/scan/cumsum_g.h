@@ -21,7 +21,6 @@
 namespace cunumeric {
 
 struct Cumsum_gArgs {
-  int axis;
   const Array& sum_vals;
   const Array& out;
 };

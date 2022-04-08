@@ -45,7 +45,7 @@ struct Cumsum_lImplBody<VariantKind::CPU, CODE, DIM> {
 
     auto sum_valsptr = sum_vals.create_output_buffer<VAL, DIM>(iters, true);
 
-    for(unit3264_t index = 0; index < volume; index += stride){
+    for(unit64_t index = 0; index < volume; index += stride){
       thrust::inclusive_scan(thrust::host, inptr + index, inptr + index + stride, outptr + index);
       // get the corresponding ND index with base zero to use for sum_val
       auto sum_valp = pitches.unflatten(index, rect.lo) - rect.lo;
