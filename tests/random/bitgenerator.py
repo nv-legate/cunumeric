@@ -1,49 +1,22 @@
+# import numpy as np
+# from cunumeric.array import ndarray
+
 import cunumeric
-from cunumeric import runtime
-
-# from cunumeric.config import CuNumericOpCode
-
-
-# class BitGenerator:
-#     DEFAULT = 0
-#     XORWOW = 1
-#     MRG32K3A = 2
-#     MTGP32 = 3
-#     MT19937 = 4
-#     PHILOX4_32_10 = 5
-#     __slots__ = [
-#         "handle", # handle to the runtime id
-#     ]
-#     def __init__(self, seed=None, generatorType=DEFAULT):
-#         task = runtime.legate_context.create_task(
-#             CuNumericOpCode.CUNUMERIC_BITGENERATOR,
-#             manual=True,
-#             launch_domain=Rect(lo=(0,), hi=(self.num_gpus,)),
-#         )
-#         self.handle = runtime.get_generator_id()
-#         task.add_input(self.handle)
-#         task.add_input(generatorID)
-#         task.execute()
-#         runtime.legate_runtime.issue_execution_fence(block=True)
-
-#     def random_raw(self, size=None, output=True):
-#         raise NotImplementedError('Not Implemented')
 
 
 def test_bitgenerator_type(t):
-    print("testing for type = " + str(t))
-    bitgen = t(42)  # use 42 as seed
+    print(f"testing for type = {t}")
+    bitgen = t(seed=42)
     bitgen.random_raw(256, False)
     bitgen.random_raw((512, 256), False)
     r = bitgen.random_raw(256)  # deferred is None
-    print("256 sum = " + str(r.sum()))
+    print(f"256 sum = {r.sum()}")
     r = bitgen.random_raw((1024, 1024))
-    print("1k² sum = " + str(r.sum()))
+    print(f"1k² sum = {r.sum()}")
     r = bitgen.random_raw(1024 * 1024)
-    print("1M sum = " + str(r.sum()))
-    runtime.legate_runtime.issue_execution_fence(block=True)
+    print(f"1M sum = {r.sum()}")
     bitgen = None
-    print("DONE for type = " + str(t))
+    print(f"DONE for type = {t}")
 
 
 def test_bitgenerator_XORWOW():
@@ -66,9 +39,29 @@ def test_bitgenerator_PHILOX4_32_10():
     test_bitgenerator_type(cunumeric.random.PHILOX4_32_10)
 
 
+def test_eager_size_None():
+    # https://github.com/nv-legate/cunumeric/pull/254#discussion_r846387540
+    # TODO: how to test this ?
+    # dar = ndarray((1), dtype=np.dtype(np.uint32))
+    # ar = runtime.to_eager_array(dar)
+    # ar.bitgenerator_random_raw(None)
+    # print(str(ar[0]))
+    pass
+
+
+def test_size_None():
+    # ERROR: Illegal request for pointer of non-dense rectangle
+    # [ERROR] : accessor is not dense row major - DIM = 1
+    #        -> out.accessor.is_dense_row_major returns false !
+    rng = cunumeric.random.XORWOW()
+    a = rng.random_raw()
+    print(a)
+
+
 if __name__ == "__main__":
     test_bitgenerator_XORWOW()
     test_bitgenerator_MRG32k3a()
     test_bitgenerator_MTGP32()
     test_bitgenerator_MT19937()
     test_bitgenerator_PHILOX4_32_10()
+    # test_size_None()

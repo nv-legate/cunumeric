@@ -38,8 +38,6 @@ from .sort import sort
 from .thunk import NumPyThunk
 from .utils import get_arg_value_dtype
 
-# from defusedxml import NotSupportedError
-
 
 def _complex_field_dtype(dtype):
     if dtype == np.complex64:

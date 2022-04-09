@@ -69,7 +69,7 @@ struct CURANDGeneratorBuilder<VariantKind::GPU> {
 };
 
 template <>
-std::map<Legion::Processor, std::unique_ptr<generatormap<VariantKind::GPU>>>
+std::map<Legion::Processor, std::unique_ptr<generator_map<VariantKind::GPU>>>
   BitGeneratorImplBody<VariantKind::GPU>::m_generators = {};
 
 template <>

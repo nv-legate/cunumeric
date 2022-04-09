@@ -566,12 +566,11 @@ class EagerArray(NumPyThunk):
 
     def bitgenerator_random_raw(self, handle):
         if self.deferred is not None:
-            print("eager.py - bitgenerator_random_raw - deferred is not None")
             self.deferred.bitgenerator_random_raw(handle)
         else:
-            print("eager.py - bitgenerator_random_raw - deferred is None")
             if self.array.size == 1:
-                self.array.fill(np.random.rand())
+                self.array.fill(np.random.randint(0, 2**32 - 1))
+                print("HERE")
             else:
                 a = np.random.randint(
                     0, 2**32 - 1, *(self.array.shape), dtype=self.array.dtype

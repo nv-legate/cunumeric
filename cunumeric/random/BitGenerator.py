@@ -32,10 +32,6 @@ class BitGenerator:
     MT19937 = 4
     PHILOX4_32_10 = 5
 
-    __slots__ = [
-        "handle",  # handle to the runtime id
-    ]
-
     def __init__(self, seed=None, generatorType=DEFAULT):
         if type(self) is BitGenerator:
             raise NotImplementedError(
@@ -51,7 +47,7 @@ class BitGenerator:
     # when output is false => skip ahead
     def random_raw(self, shape=None, output=True):
         if shape is None:
-            raise NotImplementedError("Empty shape not implemented")
+            shape = (1,)
         if not isinstance(shape, tuple):
             shape = (shape,)
         if output:

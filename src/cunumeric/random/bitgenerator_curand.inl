@@ -154,7 +154,7 @@ struct generate_fn {
       auto out = output.write_accessor<uint32_t, DIM>(rect);
 
       if (!out.accessor.is_dense_row_major(rect))
-        ::fprintf(stderr, "[ERROR] : accessor is not dense row major\n");
+        ::fprintf(stderr, "[ERROR] : accessor is not dense row major - DIM = %d\n", DIM);
       assert(out.accessor.is_dense_row_major(rect));
 
       uint32_t* p = out.ptr(rect);
@@ -172,9 +172,9 @@ struct generate_fn {
 };
 
 template <VariantKind kind>
-struct generatormap {
-  generatormap() {}
-  ~generatormap()
+struct generator_map {
+  generator_map() {}
+  ~generator_map()
   {
     std::lock_guard<std::mutex> guard(lock);
     if (m_generators.size() != 0) {
@@ -247,21 +247,20 @@ struct generatormap {
 
 template <VariantKind kind>
 struct BitGeneratorImplBody {
-  using generatormap_t = generatormap<kind>;
+  using generator_map_t = generator_map<kind>;
 
   static std::mutex lock_generators;
-  static std::map<Legion::Processor, std::unique_ptr<generatormap_t>> m_generators;
+  static std::map<Legion::Processor, std::unique_ptr<generator_map_t>> m_generators;
 
  private:
-  static generatormap_t& getgenmap()
+  static generator_map_t& get_generator_map()
   {
     const auto proc = Legion::Processor::get_executing_processor();
-    lock_generators.lock();
+    std::lock_guard<std::mutex> guard(lock_generators);
     if (m_generators.find(proc) == m_generators.end()) {
-      m_generators[proc] = std::move(std::unique_ptr<generatormap_t>(new generatormap_t()));
+      m_generators[proc] = std::make_unique<generator_map_t>();
     }
-    generatormap_t* res = m_generators[proc].get();
-    lock_generators.unlock();
+    generator_map_t* res = m_generators[proc].get();
     return *res;
   }
 
@@ -273,39 +272,34 @@ struct BitGeneratorImplBody {
                   std::vector<legate::Store>& output,
                   std::vector<legate::Store>& args)
   {
-    const auto proc = Legion::Processor::get_executing_processor();
     printtid((int)op);
+    generator_map_t& genmap = get_generator_map();
     switch (op) {
       case BitGeneratorOperation::CREATE: {
-        generatormap_t& genmap = getgenmap();
-
         if (genmap.has(generatorID)) {
           ::fprintf(
             stderr, "[ERROR] : internal error : generator ID <%d> already in use !\n", generatorID);
           assert(false);
         }
 
-        genmap.create(generatorID, (BitGeneratorType)parameter);
+        genmap.create(generatorID, static_cast<BitGeneratorType>(parameter));
 
         DEBUG_TRACE("created generator %d", generatorID);
-      } break;
+        break;
+      }
       case BitGeneratorOperation::DESTROY: {
-        generatormap_t& genmap = getgenmap();
-
         genmap.destroy(generatorID);
 
         DEBUG_TRACE("destroyed generator %d", generatorID);
-      } break;
+        break;
+      }
       case BitGeneratorOperation::SET_SEED: {
-        generatormap_t& genmap = getgenmap();
-
         genmap.set_seed(generatorID, parameter);
 
         DEBUG_TRACE("set seed %llu for generator %d", parameter, generatorID);
-      } break;
+        break;
+      }
       case BitGeneratorOperation::RAND_RAW: {
-        generatormap_t& genmap = getgenmap();
-
         CURANDGenerator* genptr = genmap.get(generatorID);
 
         if (isThreadSafe<kind == VariantKind::GPU>(genptr->type)) {
@@ -321,17 +315,16 @@ struct BitGeneratorImplBody {
           }
         } else {
           std::lock_guard<std::mutex> guard(genmap.lock);
-
+          CURANDGenerator& cugen = *genptr;
           if (output.size() == 0) {
-            CURANDGenerator& cugen = *genptr;
             cugen.skip_ahead(parameter);
           } else {
-            CURANDGenerator& cugen = *genptr;
-            legate::Store& res     = output[0];
+            legate::Store& res = output[0];
             dim_dispatch(res.dim(), generate_fn{}, cugen, res, strides, parameter);
           }
         }
-      } break;
+        break;
+      }
       default: {
         ::fprintf(stderr, "[ERROR] : unknown BitGenerator operation");
         assert(false);

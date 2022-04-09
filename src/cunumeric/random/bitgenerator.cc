@@ -54,7 +54,7 @@ struct CURANDGeneratorBuilder<VariantKind::CPU> {
 };
 
 template <>
-std::map<Legion::Processor, std::unique_ptr<generatormap<VariantKind::CPU>>>
+std::map<Legion::Processor, std::unique_ptr<generator_map<VariantKind::CPU>>>
   BitGeneratorImplBody<VariantKind::CPU>::m_generators = {};
 
 template <>
