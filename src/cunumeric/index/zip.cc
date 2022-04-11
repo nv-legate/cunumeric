@@ -39,9 +39,8 @@ struct ZipImplBody<VariantKind::CPU, DIM, N> {
     if (index_arrays.size() == N) {
       const size_t volume = rect.volume();
       if (dense) {
-        std::vector<const VAL*> indx_ptrs;
-        for (auto a : index_arrays) indx_ptrs.push_back(a.ptr(rect));
-        auto outptr = out.ptr(rect);
+        std::vector<const VAL*> indx_ptrs = {index_arrays[Is].ptr(rect)...};
+        auto outptr                       = out.ptr(rect);
         for (size_t idx = 0; idx < volume; ++idx) {
           outptr[idx] = Legion::Point<N>(indx_ptrs[Is][idx]...);
         }
@@ -51,7 +50,10 @@ struct ZipImplBody<VariantKind::CPU, DIM, N> {
           out[p] = Legion::Point<N>(index_arrays[Is][p]...);
         }
       }
-    } else if (index_arrays.size() < N) {
+    } else {
+#ifdef DEBUG_CUNUMERIC
+      assert(index_arrays.size() < N);
+#endif
       const size_t volume = rect.volume();
       for (size_t idx = 0; idx < volume; ++idx) {
         auto p = pitches.unflatten(idx, rect.lo);

@@ -102,7 +102,7 @@ class Runtime(object):
 
     def _register_point_type(self, n):
         type_system = self.legate_context.type_system
-        point_type = "" + str(n)
+        point_type = "Point" + str(n)
         if point_type not in type_system:
             code = CuNumericTypeCodes.CUNUMERIC_TYPE_POINT1 + n - 1
             size_in_bytes = 8 * n
@@ -110,9 +110,9 @@ class Runtime(object):
 
     def get_point_type(self, n):
         type_system = self.legate_context.type_system
-        point_type = "" + str(n)
+        point_type = "Point" + str(n)
         if point_type not in type_system:
-            raise ValueError(f"there is no point type registered fro {n}")
+            raise ValueError(f"there is no point type registered for {n}")
         return point_type
 
     def _parse_command_args(self):

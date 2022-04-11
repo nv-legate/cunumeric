@@ -106,7 +106,10 @@ struct ZipImplBody<VariantKind::GPU, DIM, N> {
         zip_kernel<DIM, N><<<blocks, THREADS_PER_BLOCK>>>(
           out, idx_arr, rect, pitches, volume, std::make_index_sequence<N>());
       }
-    } else if (index_arrays.size() < N) {
+    } else {
+#ifdef DEBUG_CUNUMERIC
+      assert(index_arrays.size() < N);
+#endif
       DeferredBuffer<AccessorRO<VAL, DIM>, 1> idx_arr(Memory::Kind::Z_COPY_MEM,
                                                       Rect<1>(0, index_arrays.size() - 1));
       for (uint32_t idx = 0; idx < index_arrays.size(); ++idx) idx_arr[idx] = index_arrays[idx];

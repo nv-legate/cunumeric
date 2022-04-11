@@ -246,7 +246,7 @@ class CuNumericTunable(IntEnum):
     HAS_NUMAMEM = _cunumeric.CUNUMERIC_TUNABLE_HAS_NUMAMEM
 
 
-# Match these to CuNumericTypeCOdes in cunumeric_c.h
+# Match these to CuNumericTypeCodes in cunumeric_c.h
 @unique
 class CuNumericTypeCodes(IntEnum):
     CUNUMERIC_TYPE_POINT1 = _cunumeric.CUNUMERIC_TYPE_POINT1

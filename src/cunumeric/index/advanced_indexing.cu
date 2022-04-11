@@ -136,7 +136,7 @@ struct AdvancedIndexingImplBody<VariantKind::GPU, CODE, DIM1, DIM2, IS_SET> {
                     const Pitches<DIM2 - 1>& pitches_index,
                     const Rect<DIM2>& rect_index) const
   {
-#ifdef CUNUMERIC_DEBUG
+#ifdef DEBUG_CUNUMERIC
     // in this case shapes for input and index arrays  should be the same
     assert(rect_input == rect_index);
 #endif

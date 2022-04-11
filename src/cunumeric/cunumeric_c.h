@@ -187,6 +187,7 @@ enum CuNumericBounds {
   CUNUMERIC_MAX_TASKS   = 1048576,
 };
 
+// Match these to CuNumericTypeCodes in config.py
 enum CuNumericTypeCodes {
   CUNUMERIC_TYPE_POINT1 = LEGION_TYPE_TOTAL + 1,
   CUNUMERIC_TYPE_POINT2,

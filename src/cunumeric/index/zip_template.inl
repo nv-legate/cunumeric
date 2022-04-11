@@ -37,18 +37,18 @@ struct ZipImpl {
     size_t volume = pitches.flatten(out_rect);
     if (volume == 0) return;
 
-#ifdef CUNUMERIC_DEBUG
-    assert(out_rect == index_rect)
+#ifdef DEBUG_CUNUMERIC
+    assert(out_rect == index_rect);
 #endif
 
 #ifndef LEGION_BOUNDS_CHECKS
-      bool dense = out.accessor.is_dense_row_major(out_rect);
+    bool dense = out.accessor.is_dense_row_major(out_rect);
 #else
     bool dense = false;
 #endif
     std::vector<AccessorRO<VAL, DIM>> index_arrays;
     for (int i = 0; i < args.inputs.size(); i++) {
-#ifdef CUNUMERIC_DEBUG
+#ifdef DEBUG_CUNUMERIC
       assert(index_rect == args.inputs[i].shape<DIM>());
 #endif
       index_arrays.push_back(args.inputs[i].read_accessor<VAL, DIM>(index_rect));
