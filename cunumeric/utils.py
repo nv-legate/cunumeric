@@ -18,7 +18,7 @@ import traceback
 from functools import reduce
 from string import ascii_lowercase, ascii_uppercase
 from types import FrameType
-from typing import Any, List, Sequence, Tuple, Union
+from typing import Any, List, Sequence, Tuple, Union, cast
 
 import numpy as np
 
@@ -109,8 +109,9 @@ def get_arg_dtype(dtype: np.dtype[Any]) -> np.dtype[Any]:
     )
 
 
-def get_arg_value_dtype(dtype: np.dtype[Any]) -> Any:
-    return dtype.fields["arg_value"][0].type  # type: ignore [index]
+def get_arg_value_dtype(dtype: np.dtype[Any]) -> np.dtype[Any]:
+    dt = dtype.fields["arg_value"][0].type  # type: ignore [index]
+    return cast(np.dtype[Any], dt)
 
 
 Modes = Tuple[List[str], List[str], List[str]]
