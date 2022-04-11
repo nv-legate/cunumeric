@@ -677,7 +677,7 @@ class DeferredArray(NumPyThunk):
                     src = src.promote(src_dim, 1)
                 elif len(tgt_g) == 0:
                     assert src_g == (1,)
-                    src = src.project(src_dim, 1)
+                    src = src.project(src_dim, 0)
                     diff = 0
                 else:
                     # unreachable
