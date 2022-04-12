@@ -43,9 +43,12 @@ struct Cumsum_lImplBody<VariantKind::GPU, CODE, DIM> {
     auto stride = rect.hi[DIM - 1] - rect.lo[DIM - 1] + 1;
     auto iters = volume / iters;
 
-    auto sum_valsptr = sum_vals.create_output_buffer<VAL, DIM>(iters, true);
+    Point<DIM> extents = rect.hi - rect.lo + Point<DIM>::ONES();
+    extents[DIM - 1] = 1; // one element along scan axis
 
-    for(unit3264_t index = 0; index < volume; index += stride){
+    auto sum_valsptr = sum_vals.create_output_buffer<VAL, DIM>(extents, true);
+
+    for(unit64_t index = 0; index < volume; index += stride){
       // RRRR depending on stride and volume this should either call multiple streams
       // RRRR or use a cub version (currently not implemented)
       thrust::inclusive_scan(thrust::device, inptr + index, inptr + index + stride, outptr + index);

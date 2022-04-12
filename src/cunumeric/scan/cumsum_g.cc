@@ -65,7 +65,7 @@ struct Cumsum_gImplBody<VariantKind::CPU, CODE, DIM> {
       // first element on scan axis
       sum_valsp[DIM - 1] = 0;
       // calculate sum up to partition_index-1
-auto  base = thrust::reduce(thrust::host, &sum_vals[sum_vals_index], &sum_vals[sum_vals_index] + partition_index[DIM - 1] - 1); // RRRR is the indexing format correct?
+      auto  base = thrust::reduce(thrust::host, &sum_vals[sum_valsp], &sum_vals[sum_valsp] + partition_index[DIM - 1] - 1); // RRRR is the indexing format correct?
 
       // add base to out
       thrust::for_each(thrust::host, outptr + index, outptr + index + stride, add_scalar_funct(base));
