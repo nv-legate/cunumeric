@@ -818,6 +818,157 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
 
 template <typename VAL>
 __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
+  copy_data_to_merge_buffers(const Buffer<size_t> segment_blocks_ptr,
+                             const Buffer<size_t*> size_send_ptr,
+                             const Buffer<VAL> source_values,
+                             Buffer<VAL*> target_values,
+                             const size_t num_segments_l,
+                             const size_t segment_size_l,
+                             const size_t my_rank,
+                             const size_t num_sort_ranks)
+{
+  // thread x dimension is responsible for 1 segment (all ranks)
+  const size_t thread_offset    = threadIdx.x;
+  const size_t threadgroup_size = blockDim.x;
+  const size_t segment_id       = blockIdx.y * blockDim.y + threadIdx.y;
+  if (segment_id >= num_segments_l) return;
+
+  size_t source_offset = segment_size_l * segment_id;
+  for (int r = 0; r < num_sort_ranks; ++r) {
+    size_t target_offset = segment_blocks_ptr[r * num_segments_l + segment_id];
+    size_t local_size    = size_send_ptr[r][segment_id];
+
+    for (size_t pos = thread_offset; pos < local_size; pos += threadgroup_size) {
+      target_values[r][target_offset + pos] = source_values[source_offset + pos];
+    }
+    source_offset += local_size;
+  }
+}
+
+template <typename VAL>
+__global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
+  copy_data_to_rebalance_buffers(const Buffer<int64_t> segment_diff_pos,
+                                 const Buffer<int64_t> send_left,
+                                 const Buffer<int64_t> send_right,
+                                 const Buffer<int64_t> send_left_pos,
+                                 const Buffer<int64_t> send_right_pos,
+                                 const Buffer<VAL> source_values,
+                                 const size_t source_size,
+                                 Buffer<VAL> target_left_values,
+                                 Buffer<VAL> target_right_values,
+                                 const size_t num_segments_l,
+                                 const size_t segment_size_l,
+                                 const size_t my_rank,
+                                 const size_t num_sort_ranks)
+{
+  // thread x dimension is responsible for 1 segment (all ranks)
+  const size_t thread_offset    = threadIdx.x;
+  const size_t threadgroup_size = blockDim.x;
+  const size_t segment_id       = blockIdx.y * blockDim.y + threadIdx.y;
+  if (segment_id >= num_segments_l) return;
+
+  // copy left
+  {
+    int64_t send_left_size = send_left[segment_id];
+    if (send_left_size > 0) {
+      size_t source_start = segment_size_l * segment_id + segment_diff_pos[segment_id];
+      size_t target_start = send_left_pos[segment_id];
+      for (size_t pos = thread_offset; pos < send_left_size; pos += threadgroup_size) {
+        target_left_values[target_start + pos] = source_values[source_start + pos];
+      }
+    }
+  }
+  // copy right
+  {
+    int64_t send_right_size = send_right[segment_id];
+    if (send_right_size > 0) {
+      size_t source_end   = (segment_id < num_segments_l - 1)
+                              ? (segment_size_l * (segment_id + 1) + segment_diff_pos[segment_id + 1])
+                              : source_size;
+      size_t source_start = source_end - send_right_size;
+      size_t target_start = send_right_pos[segment_id];
+      for (size_t pos = thread_offset; pos < send_right_size; pos += threadgroup_size) {
+        target_right_values[target_start + pos] = source_values[source_start + pos];
+      }
+    }
+  }
+}
+
+template <typename VAL>
+__global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
+  merge_rebalanced_buffers(const Buffer<int64_t> segment_diff_pos,
+                           const Buffer<int64_t> send_left,
+                           const Buffer<int64_t> send_right,
+                           const Buffer<int64_t> recv_left_pos,
+                           const Buffer<int64_t> recv_right_pos,
+                           const Buffer<VAL> source_values,
+                           const size_t source_size,
+                           const Buffer<VAL> recv_left_values,
+                           const Buffer<VAL> recv_right_values,
+                           Buffer<VAL> target_values,
+                           const size_t num_segments_l,
+                           const size_t segment_size_l,
+                           const size_t my_rank,
+                           const size_t num_sort_ranks)
+{
+  // thread x dimension is responsible for 1 segment (all ranks)
+  const size_t thread_offset    = threadIdx.x;
+  const size_t threadgroup_size = blockDim.x;
+  const size_t segment_id       = blockIdx.y * blockDim.y + threadIdx.y;
+  if (segment_id >= num_segments_l) return;
+
+  size_t target_offset = segment_id * segment_size_l;
+  size_t source_start  = segment_size_l * segment_id + segment_diff_pos[segment_id];
+  size_t source_end    = (segment_id < num_segments_l - 1)
+                           ? (segment_size_l * (segment_id + 1) + segment_diff_pos[segment_id + 1])
+                           : source_size;
+
+  int64_t recv_left_size  = send_left[segment_id] * -1;
+  int64_t recv_right_size = send_right[segment_id] * -1;
+
+  if (recv_left_size < 0) source_start -= recv_left_size;
+  if (recv_right_size < 0) source_end += recv_right_size;
+
+  // copy from left
+  {
+    if (recv_left_size > 0) {
+      size_t recv_left_start = (recv_left_pos[segment_id] * -1);
+      for (size_t pos = thread_offset; pos < recv_left_size; pos += threadgroup_size) {
+        target_values[target_offset + pos] = recv_left_values[recv_left_start + pos];
+      }
+      target_offset += recv_left_size;
+    }
+  }
+
+  // copy main part
+  {
+    int64_t size = source_end - source_start;
+    if (size > 0) {
+      for (size_t pos = thread_offset; pos < size; pos += threadgroup_size) {
+        target_values[target_offset + pos] = source_values[source_start + pos];
+      }
+      target_offset += size;
+    }
+  }
+
+  // copy from right
+  {
+    if (recv_right_size > 0) {
+      size_t recv_right_start = (recv_right_pos[segment_id] * -1);
+      for (size_t pos = thread_offset; pos < recv_right_size; pos += threadgroup_size) {
+        target_values[target_offset + pos] = recv_right_values[recv_right_start + pos];
+      }
+      target_offset += recv_right_size;
+    }
+  }
+
+#ifdef DEBUG_CUNUMERIC
+  assert(target_offset == (segment_id + 1) * segment_size_l);
+#endif
+}
+
+template <typename VAL>
+__global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   extract_samples_segment(const VAL* data,
                           const size_t volume,
                           SegmentSample<VAL>* samples,
@@ -874,6 +1025,20 @@ struct negative_value : public thrust::unary_function<int64_t, int64_t> {
   __host__ __device__ int64_t operator()(const int64_t& x) const { return x < 0 ? -x : 0; }
 };
 
+struct positive_plus : public thrust::binary_function<int64_t, int64_t, int64_t> {
+  __host__ __device__ int64_t operator()(const int64_t& lhs, const int64_t& rhs) const
+  {
+    return lhs > 0 ? (lhs + (rhs > 0 ? rhs : 0)) : (rhs > 0 ? rhs : 0);
+  }
+};
+
+struct negative_plus : public thrust::binary_function<int64_t, int64_t, int64_t> {
+  __host__ __device__ int64_t operator()(const int64_t& lhs, const int64_t& rhs) const
+  {
+    return (lhs < 0 ? (lhs + (rhs < 0 ? rhs : 0)) : (rhs < 0 ? rhs : 0));
+  }
+};
+
 template <typename VAL>
 SortPiece<VAL> sample_sort_nccl_nd(
   SortPiece<VAL> local_sorted,
@@ -903,8 +1068,8 @@ SortPiece<VAL> sample_sort_nccl_nd(
   // a full sort group being empty, this should not affect local sort rank size.
   {
     auto worker_count      = create_buffer<int32_t>(num_ranks, Memory::Z_COPY_MEM);
+    worker_count[0]        = segment_size_l > 0 ? 1 : 0;
     auto* worker_count_ptr = worker_count.ptr(0);
-    worker_count_ptr[0]    = segment_size_l > 0 ? 1 : 0;
     CHECK_NCCL(
       ncclAllReduce(worker_count_ptr, worker_count_ptr, 1, ncclInt32, ncclSum, *comm, stream));
     CHECK_CUDA(cudaStreamSynchronize(stream));
@@ -1040,24 +1205,32 @@ SortPiece<VAL> sample_sort_nccl_nd(
 
   // initialize sizes to send
   std::vector<Buffer<size_t>> size_send(num_sort_ranks);
+
+  Buffer<size_t> segment_blocks;
+  bool use_copy_kernels = num_segments_l >= 256;
+  if (use_copy_kernels) {
+    // segment_blocks[r][segment]->position of data in segment for process r
+    // perform blocksize wide scan on size_send[r][block*blocksize] within warp
+    segment_blocks = create_buffer<size_t>(num_segments_l * num_sort_ranks, Memory::Z_COPY_MEM);
+  }
+
   for (size_t r = 0; r < num_sort_ranks; r++) {
     size_send[r] =
       create_buffer<size_t>(num_segments_l + 1, Memory::Z_COPY_MEM);  // last element stores sum
     size_send[r][num_segments_l] = 0;
   }
   for (size_t segment = 0; segment < num_segments_l; ++segment) {
-    size_t last_position = segment_size_l * segment;  // positions global
-    for (size_t r = 0; r < num_sort_ranks - 1; r++) {
-      size_t cur_position   = split_positions[segment * (num_sort_ranks - 1) + r];
-      size_send[r][segment] = cur_position - last_position;
-      size_send[r][num_segments_l] += size_send[r][segment];
-      last_position = cur_position;
-    }
-    {
-      // last rank separately
-      const size_t size                      = (segment + 1) * segment_size_l - last_position;
-      size_send[num_sort_ranks - 1][segment] = size;
-      size_send[num_sort_ranks - 1][num_segments_l] += size;
+    size_t start_position = segment_size_l * segment;  // all positions global
+    for (size_t r = 0; r < num_sort_ranks; r++) {
+      size_t end_position   = (r < num_sort_ranks - 1)
+                                ? split_positions[segment * (num_sort_ranks - 1) + r]
+                                : ((segment + 1) * segment_size_l);
+      size_t size           = end_position - start_position;
+      size_send[r][segment] = size;
+      if (use_copy_kernels)
+        segment_blocks[r * num_segments_l + segment] = size_send[r][num_segments_l];
+      size_send[r][num_segments_l] += size;
+      start_position = end_position;
     }
   }
 
@@ -1089,40 +1262,91 @@ SortPiece<VAL> sample_sort_nccl_nd(
 
   // copy values into aligned send buffer
   std::vector<Buffer<VAL>> val_send_buffers(num_sort_ranks);
-  std::vector<Buffer<size_t>> idc_send_buffers(num_sort_ranks);
+  std::vector<Buffer<int64_t>> idc_send_buffers(num_sort_ranks);
   {
     std::vector<size_t> positions(num_sort_ranks);
     for (size_t r = 0; r < num_sort_ranks; r++) {
       val_send_buffers[r] = create_buffer<VAL>(size_send[r][num_segments_l], Memory::GPU_FB_MEM);
       if (argsort) {
         idc_send_buffers[r] =
-          create_buffer<size_t>(size_send[r][num_segments_l], Memory::GPU_FB_MEM);
+          create_buffer<int64_t>(size_send[r][num_segments_l], Memory::GPU_FB_MEM);
       }
       positions[r] = 0;
     }
-    for (size_t segment = 0; segment < num_segments_l; ++segment) {
-      size_t start_position = segment * segment_size_l;
+
+    if (use_copy_kernels) {
+      Buffer<size_t*> size_send_ptr = create_buffer<size_t*>(num_sort_ranks, Memory::Z_COPY_MEM);
+      Buffer<VAL*> val_send_buffers_ptr = create_buffer<VAL*>(num_sort_ranks, Memory::Z_COPY_MEM);
       for (size_t r = 0; r < num_sort_ranks; r++) {
-        size_t size = size_send[r][segment];
-        CHECK_CUDA(cudaMemcpyAsync(val_send_buffers[r].ptr(positions[r]),
-                                   local_sorted.values.ptr(start_position),
-                                   sizeof(VAL) * size,
-                                   cudaMemcpyDeviceToDevice,
-                                   stream));
-        if (argsort) {
-          CHECK_CUDA(cudaMemcpyAsync(idc_send_buffers[r].ptr(positions[r]),
-                                     local_sorted.indices.ptr(start_position),
-                                     sizeof(size_t) * size,
+        size_send_ptr[r]        = size_send[r].ptr(0);
+        val_send_buffers_ptr[r] = val_send_buffers[r].ptr(0);
+      }
+
+      // at least 1 warp per segment, at most THREADS_PER_BLOCK
+      int segments_per_threadblock =
+        std::min(std::max(1, (int)(THREADS_PER_BLOCK / segment_size_l)), THREADS_PER_BLOCK / 32);
+      dim3 block_shape          = dim3(THREADS_PER_BLOCK, segments_per_threadblock);
+      const size_t num_blocks_y = (num_segments_l + block_shape.y - 1) / block_shape.y;
+      dim3 grid_shape           = dim3(1, num_blocks_y);
+      copy_data_to_merge_buffers<<<grid_shape, block_shape, 0, stream>>>(segment_blocks,
+                                                                         size_send_ptr,
+                                                                         local_sorted.values,
+                                                                         val_send_buffers_ptr,
+                                                                         num_segments_l,
+                                                                         segment_size_l,
+                                                                         my_rank,
+                                                                         num_sort_ranks);
+
+      if (argsort) {
+        Buffer<int64_t*> idc_send_buffers_ptr =
+          create_buffer<int64_t*>(num_sort_ranks, Memory::Z_COPY_MEM);
+        for (size_t r = 0; r < num_sort_ranks; r++) {
+          idc_send_buffers_ptr[r] = idc_send_buffers[r].ptr(0);
+        }
+        // need to sync as we share values in between host/device
+        copy_data_to_merge_buffers<<<grid_shape, block_shape, 0, stream>>>(segment_blocks,
+                                                                           size_send_ptr,
+                                                                           local_sorted.indices,
+                                                                           idc_send_buffers_ptr,
+                                                                           num_segments_l,
+                                                                           segment_size_l,
+                                                                           my_rank,
+                                                                           num_sort_ranks);
+        CHECK_CUDA(cudaStreamSynchronize(stream));  // needed before Z-copy destroy()?
+        idc_send_buffers_ptr.destroy();
+      } else {
+        CHECK_CUDA(cudaStreamSynchronize(stream));  // needed before Z-copy destroy()?
+      }
+
+      size_send_ptr.destroy();
+      val_send_buffers_ptr.destroy();
+      segment_blocks.destroy();
+    } else {
+      for (size_t segment = 0; segment < num_segments_l; ++segment) {
+        size_t start_position = segment * segment_size_l;
+        for (size_t r = 0; r < num_sort_ranks; r++) {
+          size_t size = size_send[r][segment];
+          CHECK_CUDA(cudaMemcpyAsync(val_send_buffers[r].ptr(positions[r]),
+                                     local_sorted.values.ptr(start_position),
+                                     sizeof(VAL) * size,
                                      cudaMemcpyDeviceToDevice,
                                      stream));
-        }
-        start_position += size;
-        positions[r] += size;
+          if (argsort) {
+            CHECK_CUDA(cudaMemcpyAsync(idc_send_buffers[r].ptr(positions[r]),
+                                       local_sorted.indices.ptr(start_position),
+                                       sizeof(size_t) * size,
+                                       cudaMemcpyDeviceToDevice,
+                                       stream));
+          }
+          start_position += size;
+          positions[r] += size;
 
-        assert(segment < num_segments_l - 1 || positions[r] == size_send[r][num_segments_l]);
+          assert(segment < num_segments_l - 1 || positions[r] == size_send[r][num_segments_l]);
+        }
+        assert(start_position == (segment + 1) * segment_size_l);
       }
-      assert(start_position == (segment + 1) * segment_size_l);
     }
+
     local_sorted.values.destroy();
     if (argsort) local_sorted.indices.destroy();
   }
@@ -1137,7 +1361,6 @@ SortPiece<VAL> sample_sort_nccl_nd(
       merge_buffers[r].segments = create_buffer<size_t>(size, Memory::GPU_FB_MEM);
 
       // initialize segment information
-      // TODO: maybe there is a better way?
       {
         // 0  1  2  1  3      // counts per segment to receive
         // 0  1  3  4  7
@@ -1148,7 +1371,8 @@ SortPiece<VAL> sample_sort_nccl_nd(
                                size_recv[r].ptr(0),
                                size_recv[r].ptr(0) + num_segments_l + 1,
                                size_recv[r].ptr(0));
-        CHECK_CUDA(cudaMemsetAsync(merge_buffers[r].segments.ptr(0), 0, size * sizeof(size_t)));
+        CHECK_CUDA(
+          cudaMemsetAsync(merge_buffers[r].segments.ptr(0), 0, size * sizeof(size_t), stream));
         const size_t num_blocks = (num_segments_l + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
         assert(sizeof(unsigned long long int) ==
                sizeof(size_t));  // kernel needs to cast for atomicAdd...
@@ -1161,7 +1385,6 @@ SortPiece<VAL> sample_sort_nccl_nd(
                                merge_buffers[r].segments.ptr(0),
                                merge_buffers[r].segments.ptr(0) + size,
                                merge_buffers[r].segments.ptr(0));
-        size_recv[r].destroy();
       }
 
       merge_buffers[r].values = create_buffer<VAL>(size, Memory::GPU_FB_MEM);
@@ -1211,9 +1434,10 @@ SortPiece<VAL> sample_sort_nccl_nd(
   }
 
   // cleanup remaining buffers
+  CHECK_CUDA(cudaStreamSynchronize(stream));
   for (size_t r = 0; r < num_sort_ranks; r++) {
     size_send[r].destroy();
-    // size_recv[r].destroy(); has been released before
+    size_recv[r].destroy();
     val_send_buffers[r].destroy();
     if (argsort) idc_send_buffers[r].destroy();
   }
@@ -1292,7 +1516,8 @@ SortPiece<VAL> sample_sort_nccl_nd(
   SortPiece<VAL> result;
   {
     // compute diff for each segment
-    auto segment_diff = create_buffer<int64_t>(num_segments_l, Memory::Z_COPY_MEM);
+    auto segment_diff = create_buffer<int64_t>(
+      num_segments_l, use_copy_kernels ? Memory::GPU_FB_MEM : Memory::Z_COPY_MEM);
     {
       // start kernel to search from merge_buffers[0].segments
       const size_t num_blocks = (num_segments_l + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
@@ -1305,7 +1530,16 @@ SortPiece<VAL> sample_sort_nccl_nd(
     }
 
     // not needed anymore
+    CHECK_CUDA(cudaStreamSynchronize(stream));  // TODO need between async & destroy()?
     merge_buffers[0].segments.destroy();
+
+#ifdef DEBUG_CUNUMERIC
+    {
+      size_t reduce =
+        thrust::reduce(exec_policy, segment_diff.ptr(0), segment_diff.ptr(0) + num_segments_l, 0);
+      assert(merge_buffers[0].size - volume == reduce);
+    }
+#endif
 
     // allocate target
     std::vector<Buffer<int64_t>> segment_diff_buffers(num_sort_ranks);
@@ -1326,6 +1560,7 @@ SortPiece<VAL> sample_sort_nccl_nd(
     // copy to transpose structure [segments][ranks]
     auto segment_diff_2d =
       create_buffer<int64_t>(num_segments_l * num_sort_ranks, Memory::GPU_FB_MEM);
+
     for (size_t r = 0; r < num_sort_ranks; r++) {
       CHECK_CUDA(cudaMemcpy2DAsync(segment_diff_2d.ptr(r),
                                    num_sort_ranks * sizeof(int64_t),
@@ -1336,15 +1571,17 @@ SortPiece<VAL> sample_sort_nccl_nd(
                                    cudaMemcpyDeviceToDevice,
                                    stream));
     }
+
     for (size_t r = 0; r < num_sort_ranks; r++) { segment_diff_buffers[r].destroy(); }
 
 #ifdef DEBUG_CUNUMERIC
-    for (size_t segment = 0; segment < num_segments_l; ++segment) {
-      size_t start_position = segment * num_sort_ranks;
-      assert(0 == thrust::reduce(exec_policy,
-                                 segment_diff_2d.ptr(start_position),
-                                 segment_diff_2d.ptr(start_position) + num_sort_ranks,
-                                 0));
+    {
+      for (size_t segment = 0; segment < num_segments_l; ++segment) {
+        assert(0 == thrust::reduce(exec_policy,
+                                   segment_diff_2d.ptr(segment * num_sort_ranks),
+                                   segment_diff_2d.ptr(segment * num_sort_ranks) + num_sort_ranks,
+                                   0));
+      }
     }
 #endif
 
@@ -1396,6 +1633,7 @@ SortPiece<VAL> sample_sort_nccl_nd(
                                  num_segments_l,
                                  cudaMemcpyDeviceToDevice,
                                  stream));
+
     segment_diff_2d.destroy();
     segment_diff_2d_scan.destroy();
 
@@ -1429,25 +1667,95 @@ SortPiece<VAL> sample_sort_nccl_nd(
     recv_left_data.values  = create_buffer<VAL>(recv_left_size, Memory::GPU_FB_MEM);
     send_right_data.values = create_buffer<VAL>(send_right_size, Memory::GPU_FB_MEM);
     recv_right_data.values = create_buffer<VAL>(recv_right_size, Memory::GPU_FB_MEM);
-    send_left_data.size    = 0;  // will be incremented when data is inserted
-    recv_left_data.size    = recv_left_size;
-    send_right_data.size   = 0;  // will be incremented when data is inserted
-    recv_right_data.size   = recv_right_size;
+    send_left_data.size =
+      use_copy_kernels ? send_left_size : 0;  // will be incremented when data is inserted
+    recv_left_data.size = recv_left_size;
+    send_right_data.size =
+      use_copy_kernels ? send_right_size : 0;  // will be incremented when data is inserted
+    recv_right_data.size = recv_right_size;
     if (argsort) {
       send_left_data.indices  = create_buffer<int64_t>(send_left_size, Memory::GPU_FB_MEM);
       recv_left_data.indices  = create_buffer<int64_t>(recv_left_size, Memory::GPU_FB_MEM);
       send_right_data.indices = create_buffer<int64_t>(send_right_size, Memory::GPU_FB_MEM);
       recv_right_data.indices = create_buffer<int64_t>(recv_right_size, Memory::GPU_FB_MEM);
     }
-    auto segment_diff_ptr = segment_diff.ptr(0);
-    auto send_left_ptr    = send_left.ptr(0);
-    auto send_right_ptr   = send_right.ptr(0);
-    {
+
+    Buffer<int64_t> segment_diff_pos;
+    if (use_copy_kernels) {
+      // need scan of segment_diff
+      // need scan of (positive!) send_left, send_right
+      segment_diff_pos    = create_buffer<int64_t>(num_segments_l, Memory::GPU_FB_MEM);
+      auto send_left_pos  = create_buffer<int64_t>(num_segments_l, Memory::GPU_FB_MEM);
+      auto send_right_pos = create_buffer<int64_t>(num_segments_l, Memory::GPU_FB_MEM);
+      {
+        thrust::device_ptr<int64_t> segment_diff_ptr(segment_diff.ptr(0));
+        thrust::device_ptr<int64_t> segment_diff_pos_ptr(segment_diff_pos.ptr(0));
+        thrust::device_ptr<int64_t> send_left_ptr(send_left.ptr(0));
+        thrust::device_ptr<int64_t> send_left_pos_ptr(send_left_pos.ptr(0));
+        thrust::device_ptr<int64_t> send_right_ptr(send_right.ptr(0));
+        thrust::device_ptr<int64_t> send_right_pos_ptr(send_right_pos.ptr(0));
+        thrust::exclusive_scan(
+          exec_policy, segment_diff_ptr, segment_diff_ptr + num_segments_l, segment_diff_pos_ptr);
+        thrust::exclusive_scan(exec_policy,
+                               send_left_ptr,
+                               send_left_ptr + num_segments_l,
+                               send_left_pos_ptr,
+                               0,
+                               positive_plus());
+        thrust::exclusive_scan(exec_policy,
+                               send_right_ptr,
+                               send_right_ptr + num_segments_l,
+                               send_right_pos_ptr,
+                               0,
+                               positive_plus());
+      }
+
+      int segments_per_threadblock =
+        std::min(std::max(1, (int)(num_segments_l / THREADS_PER_BLOCK)), THREADS_PER_BLOCK / 32);
+      dim3 block_shape          = dim3(THREADS_PER_BLOCK, segments_per_threadblock);
+      const size_t num_blocks_y = (num_segments_l + block_shape.y - 1) / block_shape.y;
+      dim3 grid_shape           = dim3(1, num_blocks_y);
+      copy_data_to_rebalance_buffers<<<grid_shape, block_shape, 0, stream>>>(
+        segment_diff_pos,
+        send_left,
+        send_right,
+        send_left_pos,
+        send_right_pos,
+        merge_buffers[0].values,
+        merge_buffers[0].size,
+        send_left_data.values,
+        send_right_data.values,
+        num_segments_l,
+        segment_size_l,
+        my_rank,
+        num_sort_ranks);
+
+      if (argsort) {
+        copy_data_to_rebalance_buffers<<<grid_shape, block_shape, 0, stream>>>(
+          segment_diff_pos,
+          send_left,
+          send_right,
+          send_left_pos,
+          send_right_pos,
+          merge_buffers[0].indices,
+          merge_buffers[0].size,
+          send_left_data.indices,
+          send_right_data.indices,
+          num_segments_l,
+          segment_size_l,
+          my_rank,
+          num_sort_ranks);
+      }
+
+      CHECK_CUDA(cudaStreamSynchronize(stream));  // TODO need between async & destroy()?
+      send_left_pos.destroy();
+      send_right_pos.destroy();
+    } else {
       size_t start_pos = 0;
       for (size_t segment = 0; segment < num_segments_l; ++segment) {
-        size_t end_pos = start_pos + segment_size_l + segment_diff_ptr[segment];
-        if (send_left_ptr[segment] > 0) {
-          auto size = send_left_ptr[segment];
+        size_t end_pos = start_pos + segment_size_l + segment_diff[segment];
+        if (send_left[segment] > 0) {
+          auto size = send_left[segment];
           CHECK_CUDA(cudaMemcpyAsync(send_left_data.values.ptr(send_left_data.size),
                                      merge_buffers[0].values.ptr(start_pos),
                                      sizeof(VAL) * size,
@@ -1462,8 +1770,8 @@ SortPiece<VAL> sample_sort_nccl_nd(
           }
           send_left_data.size += size;
         }
-        if (send_right_ptr[segment] > 0) {
-          auto size = send_right_ptr[segment];
+        if (send_right[segment] > 0) {
+          auto size = send_right[segment];
           CHECK_CUDA(cudaMemcpyAsync(send_right_data.values.ptr(send_right_data.size),
                                      merge_buffers[0].values.ptr(end_pos - size),
                                      sizeof(VAL) * size,
@@ -1480,16 +1788,24 @@ SortPiece<VAL> sample_sort_nccl_nd(
         }
         start_pos = end_pos;
       }
-      assert(send_left_data.size == send_left_size);
-      assert(send_right_data.size == send_right_size);
     }
+    assert(send_left_data.size == send_left_size);
+    assert(send_right_data.size == send_right_size);
 
     // send/receive overlapping data
-    {
+    if (send_left_size + recv_left_size + send_right_size + recv_right_size > 0) {
       CHECK_NCCL(ncclGroupStart());
       if (send_left_size > 0) {
         CHECK_NCCL(ncclSend(send_left_data.values.ptr(0),
                             send_left_data.size * sizeof(VAL),
+                            ncclInt8,
+                            sort_ranks[my_sort_rank - 1],
+                            *comm,
+                            stream));
+      }
+      if (recv_left_size > 0) {
+        CHECK_NCCL(ncclRecv(recv_left_data.values.ptr(0),
+                            recv_left_data.size * sizeof(VAL),
                             ncclInt8,
                             sort_ranks[my_sort_rank - 1],
                             *comm,
@@ -1503,14 +1819,6 @@ SortPiece<VAL> sample_sort_nccl_nd(
                             *comm,
                             stream));
       }
-      if (recv_left_size > 0) {
-        CHECK_NCCL(ncclRecv(recv_left_data.values.ptr(0),
-                            recv_left_data.size * sizeof(VAL),
-                            ncclInt8,
-                            sort_ranks[my_sort_rank - 1],
-                            *comm,
-                            stream));
-      }
       if (recv_right_size > 0) {
         CHECK_NCCL(ncclRecv(recv_right_data.values.ptr(0),
                             recv_right_data.size * sizeof(VAL),
@@ -1519,11 +1827,21 @@ SortPiece<VAL> sample_sort_nccl_nd(
                             *comm,
                             stream));
       }
+      CHECK_NCCL(ncclGroupEnd());
 
       if (argsort) {
+        CHECK_NCCL(ncclGroupStart());
         if (send_left_size > 0) {
           CHECK_NCCL(ncclSend(send_left_data.indices.ptr(0),
                               send_left_data.size,
+                              ncclInt64,
+                              sort_ranks[my_sort_rank - 1],
+                              *comm,
+                              stream));
+        }
+        if (recv_left_size > 0) {
+          CHECK_NCCL(ncclRecv(recv_left_data.indices.ptr(0),
+                              recv_left_data.size,
                               ncclInt64,
                               sort_ranks[my_sort_rank - 1],
                               *comm,
@@ -1537,14 +1855,6 @@ SortPiece<VAL> sample_sort_nccl_nd(
                               *comm,
                               stream));
         }
-        if (recv_left_size > 0) {
-          CHECK_NCCL(ncclRecv(recv_left_data.indices.ptr(0),
-                              recv_left_data.size,
-                              ncclInt64,
-                              sort_ranks[my_sort_rank - 1],
-                              *comm,
-                              stream));
-        }
         if (recv_right_size > 0) {
           CHECK_NCCL(ncclRecv(recv_right_data.indices.ptr(0),
                               recv_right_data.size,
@@ -1553,15 +1863,15 @@ SortPiece<VAL> sample_sort_nccl_nd(
                               *comm,
                               stream));
         }
+        CHECK_NCCL(ncclGroupEnd());
       }
-      CHECK_NCCL(ncclGroupEnd());
+    }
 
-      send_left_data.values.destroy();
-      send_right_data.values.destroy();
-      if (argsort) {
-        send_left_data.indices.destroy();
-        send_right_data.indices.destroy();
-      }
+    send_left_data.values.destroy();
+    send_right_data.values.destroy();
+    if (argsort) {
+      send_left_data.indices.destroy();
+      send_right_data.indices.destroy();
     }
 
     // merge data into target
@@ -1569,20 +1879,85 @@ SortPiece<VAL> sample_sort_nccl_nd(
     result.values = create_buffer<VAL>(volume, Memory::GPU_FB_MEM);
     if (argsort) { result.indices = create_buffer<int64_t>(volume, Memory::GPU_FB_MEM); }
 
-    {
+    if (use_copy_kernels) {
+      // need scan of (negative!) send_left, send_right
+      auto recv_left_pos  = create_buffer<int64_t>(num_segments_l, Memory::GPU_FB_MEM);
+      auto recv_right_pos = create_buffer<int64_t>(num_segments_l, Memory::GPU_FB_MEM);
+      {
+        thrust::device_ptr<int64_t> recv_left_ptr(send_left.ptr(0));
+        thrust::device_ptr<int64_t> recv_left_pos_ptr(recv_left_pos.ptr(0));
+        thrust::device_ptr<int64_t> recv_right_ptr(send_right.ptr(0));
+        thrust::device_ptr<int64_t> recv_right_pos_ptr(recv_right_pos.ptr(0));
+        thrust::exclusive_scan(exec_policy,
+                               recv_left_ptr,
+                               recv_left_ptr + num_segments_l,
+                               recv_left_pos_ptr,
+                               0,
+                               negative_plus());
+        thrust::exclusive_scan(exec_policy,
+                               recv_right_ptr,
+                               recv_right_ptr + num_segments_l,
+                               recv_right_pos_ptr,
+                               0,
+                               negative_plus());
+      }
+
+      int segments_per_threadblock =
+        std::min(std::max(1, (int)(num_segments_l / THREADS_PER_BLOCK)), THREADS_PER_BLOCK / 32);
+      dim3 block_shape          = dim3(THREADS_PER_BLOCK, segments_per_threadblock);
+      const size_t num_blocks_y = (num_segments_l + block_shape.y - 1) / block_shape.y;
+      dim3 grid_shape           = dim3(1, num_blocks_y);
+      merge_rebalanced_buffers<<<grid_shape, block_shape, 0, stream>>>(segment_diff_pos,
+                                                                       send_left,
+                                                                       send_right,
+                                                                       recv_left_pos,
+                                                                       recv_right_pos,
+                                                                       merge_buffers[0].values,
+                                                                       merge_buffers[0].size,
+                                                                       recv_left_data.values,
+                                                                       recv_right_data.values,
+                                                                       result.values,
+                                                                       num_segments_l,
+                                                                       segment_size_l,
+                                                                       my_rank,
+                                                                       num_sort_ranks);
+
+      if (argsort) {
+        merge_rebalanced_buffers<<<grid_shape, block_shape, 0, stream>>>(segment_diff_pos,
+                                                                         send_left,
+                                                                         send_right,
+                                                                         recv_left_pos,
+                                                                         recv_right_pos,
+                                                                         merge_buffers[0].indices,
+                                                                         merge_buffers[0].size,
+                                                                         recv_left_data.indices,
+                                                                         recv_right_data.indices,
+                                                                         result.indices,
+                                                                         num_segments_l,
+                                                                         segment_size_l,
+                                                                         my_rank,
+                                                                         num_sort_ranks);
+      }
+
+      CHECK_CUDA(cudaStreamSynchronize(stream));  // TODO need between async & destroy()?
+      segment_diff_pos.destroy();
+      recv_left_pos.destroy();
+      recv_right_pos.destroy();
+
+    } else {
       size_t start_pos      = 0;
       size_t result_pos     = 0;
       size_t left_read_pos  = 0;
       size_t right_read_pos = 0;
       for (size_t segment = 0; segment < num_segments_l; ++segment) {
-        size_t end_pos = start_pos + segment_size_l + segment_diff_ptr[segment];
+        size_t end_pos = start_pos + segment_size_l + segment_diff[segment];
 
         size_t copy_start = start_pos;
         size_t copy_end   = end_pos;
 
-        if (send_left_ptr[segment] < 0) {
+        if (send_left[segment] < 0) {
           // we have data to merge
-          size_t received_size = -send_left_ptr[segment];
+          size_t received_size = -send_left[segment];
           CHECK_CUDA(cudaMemcpyAsync(result.values.ptr(result_pos),
                                      recv_left_data.values.ptr(left_read_pos),
                                      sizeof(VAL) * received_size,
@@ -1599,8 +1974,8 @@ SortPiece<VAL> sample_sort_nccl_nd(
         }
 
         // assemble line from old data and received data
-        if (send_left_ptr[segment] > 0) copy_start += send_left_ptr[segment];
-        if (send_right_ptr[segment] > 0) copy_end -= send_right_ptr[segment];
+        if (send_left[segment] > 0) copy_start += send_left[segment];
+        if (send_right[segment] > 0) copy_end -= send_right[segment];
         {
           CHECK_CUDA(cudaMemcpyAsync(result.values.ptr(result_pos),
                                      merge_buffers[0].values.ptr(copy_start),
@@ -1616,9 +1991,9 @@ SortPiece<VAL> sample_sort_nccl_nd(
           result_pos += (copy_end - copy_start);
         }
 
-        if (send_right_ptr[segment] < 0) {
+        if (send_right[segment] < 0) {
           // we have data to merge
-          size_t received_size = -send_right_ptr[segment];
+          size_t received_size = -send_right[segment];
           CHECK_CUDA(cudaMemcpyAsync(result.values.ptr(result_pos),
                                      recv_right_data.values.ptr(right_read_pos),
                                      sizeof(VAL) * received_size,
