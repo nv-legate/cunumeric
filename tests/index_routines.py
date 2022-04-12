@@ -35,6 +35,13 @@ def advanced_indexing():
     res_num = x_num[indx_num]
     assert np.array_equal(res, res_num)
 
+    # after transformation:
+    x = x[1:]
+    x_num = x_num[1:]
+    res = x[indx]
+    res_num = x_num[indx_num]
+    assert np.array_equal(res, res_num)
+
     # advanced indexing test when a.ndim ==1 , indx.ndim >1
     print("advanced indexing test 2")
     y = np.array([0, -1, -2, -3, -4, -5])
@@ -42,6 +49,12 @@ def advanced_indexing():
     index = np.array([[1, 0, 1, 3, 0, 0], [2, 4, 0, 4, 4, 4]])
     index_num = num.array(index)
     assert np.array_equal(y[index], y_num[index_num])
+
+    # simple 2D case
+    print("advanced indexing test 3")
+    index_2d = np.array([[1, 2, 0], [5, 5, 5], [2, 3, 4]])
+    index_2d_num = num.array(index_2d)
+    assert np.array_equal(y[index_2d], y_num[index_2d_num])
 
     z = np.array(
         [
@@ -51,11 +64,20 @@ def advanced_indexing():
     )
     z_num = num.array(z)
 
-    # simple 2D case
-    print("advanced indexing test 3")
-    index_2d = np.array([[1, 2, 0], [5, 5, 5], [2, 3, 4]])
-    index_2d_num = num.array(index_2d)
-    assert np.array_equal(y[index_2d], y_num[index_2d_num])
+    zt = z.transpose(
+        (
+            1,
+            0,
+            2,
+        )
+    )
+    zt_num = z_num.transpose(
+        (
+            1,
+            0,
+            2,
+        )
+    )
 
     # mismatch dimesion case:
     print("advanced indexing test 4")
@@ -65,12 +87,24 @@ def advanced_indexing():
     res_num = z_num[indx_num]
     assert np.array_equal(res, res_num)
 
+    res = zt[indx]
+    res_num = zt_num[indx_num]
+    assert np.array_equal(res, res_num)
+
     res = z[:, :, indx]
     res_num = z_num[:, :, indx_num]
     assert np.array_equal(res, res_num)
 
+    res = zt[:, :, indx]
+    res_num = zt_num[:, :, indx_num]
+    assert np.array_equal(res, res_num)
+
     res = z[:, indx, :]
     res_num = z_num[:, indx_num, :]
+    assert np.array_equal(res, res_num)
+
+    res = zt[:, indx, :]
+    res_num = zt_num[:, indx_num, :]
     assert np.array_equal(res, res_num)
 
     # 2d:
@@ -80,8 +114,16 @@ def advanced_indexing():
     res_num = z_num[indx_num]
     assert np.array_equal(res, res_num)
 
+    res = zt[indx]
+    res_num = zt_num[indx_num]
+    assert np.array_equal(res, res_num)
+
     res = z[:, indx]
     res_num = z_num[:, indx_num]
+    assert np.array_equal(res, res_num)
+
+    res = zt[:, indx]
+    res_num = zt_num[:, indx_num]
     assert np.array_equal(res, res_num)
 
     # 2 arrays passed to 3d array
@@ -93,8 +135,16 @@ def advanced_indexing():
     res_num = z_num[indx0_num, indx1_num]
     assert np.array_equal(res, res_num)
 
+    res = zt[indx0, indx1]
+    res_num = zt_num[indx0_num, indx1_num]
+    assert np.array_equal(res, res_num)
+
     res = z[:, indx0, indx1]
     res_num = z_num[:, indx0_num, indx1_num]
+    assert np.array_equal(res, res_num)
+
+    res = zt[:, indx0, indx1]
+    res_num = zt_num[:, indx0_num, indx1_num]
     assert np.array_equal(res, res_num)
 
     # 2 index arrays passed in a sparse way:
@@ -119,6 +169,10 @@ def advanced_indexing():
     indx1_num = num.array(indx1)
     res = z[indx0, indx1]
     res_num = z_num[indx0_num, indx1_num]
+    assert np.array_equal(res, res_num)
+
+    res = zt[indx0, indx1]
+    res_num = zt_num[indx0_num, indx1_num]
     assert np.array_equal(res, res_num)
 
     # mismatch dimesion case bool:
@@ -292,6 +346,11 @@ def advanced_indexing():
     res = z[indx]
     res_num = z_num[indx_num]
     assert np.array_equal(res, res_num)
+
+    # in-place assignment
+    z[indx] = 10
+    z_num[indx_num] = 10
+    assert np.array_equal(z, z_num)
 
     # we do less than LEGATE_MAX_DIM becasue the dimension will be increased by
     # 1 when passig 2d index array

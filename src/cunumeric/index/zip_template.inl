@@ -69,6 +69,29 @@ struct ZipImpl {
 template <VariantKind KIND>
 static void zip_template(TaskContext& context)
 {
+  // Here `N` is the number of dimenstions of the input array and the number
+  // of dimensions of the Point<N> field
+  // key_dim - is the number of dimensions of the index arrays before
+  // they were broadcasted to the shape of the input array (shape of
+  // all index arrays should be the same))
+  // start index - is the index from wich first index array was passed
+  // DIM - dimension of the output array
+  //
+  // for the example:
+  // x.shape = (2,3,4,5)
+  // ind1.shape = (6,7,8)
+  // ind2.shape = (6,7,8)
+  // y = x[:,ind1,ind2,:]
+  // y.shape == (2,6,7,8,5)
+  // out.shape == (2,6,7,8,5)
+  // index_arrays = [ind1', ind2']
+  // ind1' == ind1 promoted to (2,6,7,8,5)
+  // ind2' == ind2 promoted to (2,6,7,8,5)
+  // DIM = 5
+  // N = 4
+  // key_dim = 3
+  // start_index = 1
+
   int64_t N           = context.scalars()[0].value<int64_t>();
   int64_t key_dim     = context.scalars()[1].value<int64_t>();
   int64_t start_index = context.scalars()[2].value<int64_t>();

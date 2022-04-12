@@ -68,7 +68,7 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   for (size_t i = 0; i < start_index; i++) { new_point[i] = p[i]; }
   for (size_t i = 0; i < narrays; i++) { new_point[start_index + i] = index_arrays[i][p]; }
   for (size_t i = (start_index + narrays); i < N; i++) {
-    int64_t j    = key_dim + i - 1 - (narrays - 1);
+    int64_t j    = key_dim + i - narrays;
     new_point[i] = p[j];
   }
   out[p] = new_point;

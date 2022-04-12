@@ -743,9 +743,6 @@ class DeferredArray(NumPyThunk):
             copy.execute()
 
             if view_copy:
-                print("IRINA DEBUG", self.shape, lhs.shape)
-                print(self.base.transform.bottom)
-                print(self)
                 self.copy(lhs, deep=True)
 
         else:

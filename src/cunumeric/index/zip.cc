@@ -63,7 +63,7 @@ struct ZipImplBody<VariantKind::CPU, DIM, N> {
           new_point[start_index + i] = index_arrays[i][p];
         }
         for (size_t i = (start_index + index_arrays.size()); i < N; i++) {
-          int64_t j    = key_dim + i - 1 - (index_arrays.size() - 1);
+          int64_t j    = key_dim + i - index_arrays.size();
           new_point[i] = p[j];
         }
         out[p] = new_point;
