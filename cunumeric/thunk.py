@@ -13,9 +13,7 @@
 # limitations under the License.
 #
 
-from abc import ABC, abstractmethod
-
-import numpy
+from abc import ABC, abstractmethod, abstractproperty
 
 
 class NumPyThunk(ABC):
@@ -32,11 +30,6 @@ class NumPyThunk(ABC):
         self.dtype = dtype
 
     @property
-    def storage(self):
-        """Return the Legion storage primitive for this NumPy thunk"""
-        raise NotImplementedError("Implement in derived classes")
-
-    @property
     def ndim(self):
         return len(self.shape)
 
@@ -49,22 +42,12 @@ class NumPyThunk(ABC):
             s *= p
         return s
 
-    def _is_advanced_indexing(self, key, first=True):
-        if key is Ellipsis or key is None:  # np.newdim case
-            return False
-        if numpy.isscalar(key):
-            return False
-        if isinstance(key, slice):
-            return False
-        if isinstance(key, tuple):
-            for k in key:
-                if self._is_advanced_indexing(k, first=False):
-                    return True
-            return False
-        # Any other kind of thing leads to advanced indexing
-        return True
-
     # Abstract methods
+
+    @abstractproperty
+    def storage(self):
+        """Return the Legion storage primitive for this NumPy thunk"""
+        ...
 
     @abstractmethod
     def __numpy_array__(self):

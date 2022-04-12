@@ -36,7 +36,7 @@ from .config import (
 from .linalg.cholesky import cholesky
 from .sort import sort
 from .thunk import NumPyThunk
-from .utils import get_arg_value_dtype
+from .utils import get_arg_value_dtype, is_advanced_indexing
 
 
 def _complex_field_dtype(dtype):
@@ -318,7 +318,7 @@ class DeferredArray(NumPyThunk):
         else:
             assert isinstance(key, NumPyThunk)
             # Handle the boolean array case
-            if key.dtype == np.bool:
+            if key.dtype == bool:
                 if key.ndim != self.ndim:
                     raise TypeError(
                         "Boolean advanced indexing dimension mismatch"
@@ -395,7 +395,7 @@ class DeferredArray(NumPyThunk):
 
     def get_item(self, key):
         # Check to see if this is advanced indexing or not
-        if self._is_advanced_indexing(key):
+        if is_advanced_indexing(key):
             # Create the indexing array
             index_array = self._create_indexing_array(key)
             # Create a new array to be the result
@@ -440,7 +440,7 @@ class DeferredArray(NumPyThunk):
     def set_item(self, key, rhs):
         assert self.dtype == rhs.dtype
         # Check to see if this is advanced indexing or not
-        if self._is_advanced_indexing(key):
+        if is_advanced_indexing(key):
             # Create the indexing array
             index_array = self._create_indexing_array(key)
             if index_array.shape != rhs.shape:
@@ -677,7 +677,7 @@ class DeferredArray(NumPyThunk):
                     src = src.promote(src_dim, 1)
                 elif len(tgt_g) == 0:
                     assert src_g == (1,)
-                    src = src.project(src_dim, 1)
+                    src = src.project(src_dim, 0)
                     diff = 0
                 else:
                     # unreachable
@@ -1235,15 +1235,7 @@ class DeferredArray(NumPyThunk):
 
     # Repeat elements of an array.
     def repeat(self, repeats, axis, scalar_repeats):
-        # FIXME current implementation supports only 1D, waiting on
-        # issue 242 to be addressed to support ND arrays
-        # for ND I would need to promore `repeats` to allign with A
-        # and  constrain the tiling
-        if self.ndim > 1:
-            raise NotImplementedError(
-                "repeat operation is supported only for 1D"
-            )
-        out = self.runtime.create_unbound_thunk(self.dtype)
+        out = self.runtime.create_unbound_thunk(self.dtype, ndim=self.ndim)
         task = self.context.create_task(CuNumericOpCode.REPEAT)
         task.add_input(self.base)
         task.add_output(out.base)
@@ -1253,9 +1245,14 @@ class DeferredArray(NumPyThunk):
         if scalar_repeats:
             task.add_scalar_arg(repeats, ty.int64)
         else:
-            repeats = self.runtime.to_deferred_array(repeats)
-            task.add_input(repeats.base)
-            task.add_alignment(self.base, repeats.base)
+            shape = self.shape
+            repeats = self.runtime.to_deferred_array(repeats).base
+            for dim, extent in enumerate(shape):
+                if dim == axis:
+                    continue
+                repeats = repeats.promote(dim, extent)
+            task.add_input(repeats)
+            task.add_alignment(self.base, repeats)
         task.execute()
         return out
 
