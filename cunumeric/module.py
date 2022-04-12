@@ -149,14 +149,6 @@ def add_boilerplate(*array_params: str):
     return decorator
 
 
-def _output_float_dtype(input):
-    # Floats keep their floating point kind, otherwise switch to float64
-    if input.dtype.kind in ("f", "c"):
-        return input.dtype
-    else:
-        return np.dtype(np.float64)
-
-
 #########################
 # Array creation routines
 #########################

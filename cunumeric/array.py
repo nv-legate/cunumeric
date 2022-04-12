@@ -26,7 +26,7 @@ from legate.core import Array
 from .config import UnaryOpCode, UnaryRedCode
 from .coverage import clone_class
 from .runtime import runtime
-from .utils import dot_modes
+from .utils import broadcast_shapes, dot_modes
 
 
 def add_boilerplate(*array_params: str, mutates_self: bool = False):
@@ -141,11 +141,6 @@ def add_boilerplate(*array_params: str, mutates_self: bool = False):
         return wrapper
 
     return decorator
-
-
-def broadcast_shapes(*args):
-    arrays = [np.empty(x, dtype=[]) for x in args]
-    return np.broadcast(*arrays).shape
 
 
 def convert_to_cunumeric_ndarray(obj, share=False):
