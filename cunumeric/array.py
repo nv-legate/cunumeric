@@ -2117,14 +2117,14 @@ class ndarray:
         if user_axes and user_sizes and len(axes) != len(s):
             raise ValueError("Shape and axes have different lengths")
         if user_axes:
-            fft_axes = axes
+            fft_axes = [ax if ax >= 0 else ax + self.ndim for ax in axes]
+            if min(fft_axes) < 0 or max(fft_axes) >= self.ndim:
+                raise ValueError(
+                    "Axis is out of bounds for array of size {}".format(self.ndim)
+                )
         else:
             fft_axes = range(len(s)) if user_sizes else range(self.ndim)
-        if np.max(np.abs(list(fft_axes))) > self.ndim:
-            raise ValueError(
-                "Axis is out of bounds for array of size {}".format(self.ndim)
-            )
-        fft_axes = [x % self.ndim for x in fft_axes]
+
         fft_s = list(self.shape)
         if user_sizes:
             for idx, ax in enumerate(fft_axes):
@@ -2181,14 +2181,13 @@ class ndarray:
             fft_input_shape = list(fft_input.shape)
             for idx, ax in enumerate(fft_axes):
                 fft_input_shape[ax] = s[idx]
-            fft_input_shape = tuple(fft_input_shape)
             # TODO: always copying is not the best idea,
             # sometimes a view of the original input will do
             slices = tuple(slice(0, i) for i in fft_s)
             fft_input = ndarray(
                 shape=fft_input_shape,
                 thunk=zeropad_input._thunk.get_item(slices),
-            ).copy()
+            )
             fft_output_shape = fft_input_shape
 
         # R2C/C2R require different output shapes
@@ -2203,7 +2202,6 @@ class ndarray:
                     fft_output_shape[lax] = s[-1]
                 else:
                     fft_output_shape[lax] = 2 * (fft_input.shape[lax] - 1)
-            fft_output_shape = tuple(fft_output_shape)
 
         # Execute FFT backend
         out = ndarray(
@@ -2232,7 +2230,7 @@ class ndarray:
             factor = np.product(norm_shape_along_axes)
             if fft_norm == FFTNormalization.ORTHOGONAL:
                 factor = np.sqrt(factor)
-            return out * 1.0 / factor
+            return out / factor
 
         return out
 

@@ -1,4 +1,4 @@
-/* Copyright 2021 NVIDIA Corporation
+/* Copyright 2022 NVIDIA Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,10 +35,6 @@ class FFTTask : public CuNumericTask<FFTTask> {
   static const int TASK_ID = CUNUMERIC_FFT;
 
  public:
-  static void cpu_variant(legate::TaskContext& context);
-#ifdef LEGATE_USE_OPENMP
-  static void omp_variant(legate::TaskContext& context);
-#endif
 #ifdef LEGATE_USE_CUDA
   static void gpu_variant(legate::TaskContext& context);
 #endif

@@ -85,7 +85,7 @@ def fft(a, n=None, axis=-1, norm=None):
 
     Availability
     --------
-    GPU
+    Single GPU
     """
     s = (n,) if n is not None else None
     axes = (axis,) if axis is not None else None
@@ -139,7 +139,7 @@ def fft2(a, s=None, axes=(-2, -1), norm=None):
 
     Availability
     --------
-    GPU
+    Single GPU
     """
     return fftn(a=a, s=s, axes=axes, norm=norm)
 
@@ -191,7 +191,7 @@ def fftn(a, s=None, axes=None, norm=None):
 
     Availability
     --------
-    GPU
+    Single GPU
     """
     if a.dtype == np.float32:
         a = a.astype(np.complex64)
@@ -272,7 +272,7 @@ def ifft(a, n=None, axis=-1, norm=None):
 
     Availability
     --------
-    GPU
+    Single GPU
     """
     s = (n,) if n is not None else None
     axis = (axis,) if axis is not None else None
@@ -333,7 +333,7 @@ def ifft2(a, s=None, axes=(-2, -1), norm=None):
 
     Availability
     --------
-    GPU
+    Single GPU
     """
     return ifftn(a=a, s=s, axes=axes, norm=norm)
 
@@ -394,7 +394,7 @@ def ifftn(a, s=None, axes=None, norm=None):
 
     Availability
     --------
-    GPU
+    Single GPU
     """
     # Convert to complex if real
     if a.dtype == np.float32:
@@ -463,7 +463,7 @@ def rfft(a, n=None, axis=-1, norm=None):
 
     Availability
     --------
-    GPU
+    Single GPU
     """
     s = (n,) if n is not None else None
     axis = (axis,) if axis is not None else None
@@ -504,7 +504,7 @@ def rfft2(a, s=None, axes=(-2, -1), norm=None):
 
     Availability
     --------
-    GPU
+    Single GPU
     """
     return rfftn(a=a, s=s, axes=axes, norm=norm)
 
@@ -560,7 +560,7 @@ def rfftn(a, s=None, axes=None, norm=None):
 
     Availability
     --------
-    GPU
+    Single GPU
     """
     # Convert to real if complex
     if a.dtype != np.float32 and a.dtype != np.float64:
@@ -655,7 +655,7 @@ def irfft(a, n=None, axis=-1, norm=None):
 
     Availability
     --------
-    GPU
+    Single GPU
     """
     s = (n,) if n is not None else None
     axis = (axis,) if axis is not None else None
@@ -698,7 +698,7 @@ def irfft2(a, s=None, axes=(-2, -1), norm=None):
 
     Availability
     --------
-    GPU
+    Single GPU
     """
     return irfftn(a=a, s=s, axes=axes, norm=norm)
 
@@ -765,7 +765,7 @@ def irfftn(a, s=None, axes=None, norm=None):
 
     Availability
     --------
-    GPU
+    Single GPU
     """
     # Convert to complex if real
     if a.dtype == np.float32:
@@ -854,7 +854,7 @@ def hfft(a, n=None, axis=-1, norm=None):
 
     Availability
     --------
-    GPU
+    Single GPU
     """
     s = (n,) if n is not None else None
     axis = (axis,) if axis is not None else None
@@ -902,7 +902,7 @@ def ihfft(a, n=None, axis=-1, norm=None):
 
     Availability
     --------
-    GPU
+    Single GPU
     """
     s = (n,) if n is not None else None
     axis = (axis,) if axis is not None else None

@@ -1,4 +1,4 @@
-/* Copyright 2021 NVIDIA Corporation
+/* Copyright 2022 NVIDIA Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,21 +22,20 @@ namespace cunumeric {
 
 using namespace legate;
 
-// These fft types match cufftType
-enum class fftType {
-  FFT_R2C = 0x2a,  // Real to complex (interleaved)
-  FFT_C2R = 0x2c,  // Complex (interleaved) to real
-  FFT_C2C = 0x29,  // Complex to complex (interleaved)
-  FFT_D2Z = 0x6a,  // Double to double-complex (interleaved)
-  FFT_Z2D = 0x6c,  // Double-complex (interleaved) to double
-  FFT_Z2Z = 0x69   // Double-complex to double-complex (interleaved)
-};
+// // These fft types match cufftType
+// enum class fftType {
+//   FFT_R2C = 0x2a,  // Real to complex (interleaved)
+//   FFT_C2R = 0x2c,  // Complex (interleaved) to real
+//   FFT_C2C = 0x29,  // Complex to complex (interleaved)
+//   FFT_D2Z = 0x6a,  // Double to double-complex (interleaved)
+//   FFT_Z2D = 0x6c,  // Double-complex (interleaved) to double
+//   FFT_Z2Z = 0x69   // Double-complex to double-complex (interleaved)
+// };
 
-enum class fftDirection {
-  FFT_FORWARD = -1,
-  FFT_INVERSE = 1
-
-};
+// enum class fftDirection {
+//   FFT_FORWARD = -1,
+//   FFT_INVERSE = 1
+// };
 
 template <typename Functor, typename... Fnargs>
 constexpr decltype(auto) fft_dispatch(fftType type, Functor f, Fnargs&&... args)

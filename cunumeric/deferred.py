@@ -808,17 +808,14 @@ class DeferredArray(NumPyThunk):
             task.add_input(input, partition=p_input)
             task.add_scalar_arg(kind.value, ty.int32)
             task.add_scalar_arg(direction.value, ty.int32)
-            if axes is not None:
-                task.add_scalar_arg(
-                    len(set(axes)) != len(axes)
-                    or len(axes) != input.ndim
-                    or tuple(axes) != tuple(sorted(axes)),
-                    ty.int8,
-                )
-                for ax in axes:
-                    task.add_scalar_arg(ax, ty.int64)
-            else:
-                task.add_scalar_arg(False, ty.bool)
+            task.add_scalar_arg(
+                len(set(axes)) != len(axes)
+                or len(axes) != input.ndim
+                or tuple(axes) != tuple(sorted(axes)),
+                ty.int8,
+            )
+            for ax in axes:
+                task.add_scalar_arg(ax, ty.int64)
 
             task.add_broadcast(input)
             task.add_constraint(p_output == p_input)
