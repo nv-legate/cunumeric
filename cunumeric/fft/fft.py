@@ -13,7 +13,13 @@
 # limitations under the License.
 
 import numpy as np
-from cunumeric.config import FFTCode, FFTDirection, FFTNormalization
+from cunumeric.config import (
+    FFT_C2C,
+    FFT_Z2Z,
+    FFTCode,
+    FFTDirection,
+    FFTNormalization,
+)
 from cunumeric.module import add_boilerplate
 
 
@@ -200,9 +206,9 @@ def fftn(a, s=None, axes=None, norm=None):
 
     fft_type = None
     if a.dtype == np.complex128:
-        fft_type = FFTCode.FFT_Z2Z
+        fft_type = FFT_Z2Z()
     elif a.dtype == np.complex64:
-        fft_type = FFTCode.FFT_C2C
+        fft_type = FFT_C2C()
     else:
         raise TypeError(("FFT input not supported " "(missing a conversion?)"))
     return a.fft(
@@ -404,9 +410,9 @@ def ifftn(a, s=None, axes=None, norm=None):
     # Check for types
     fft_type = None
     if a.dtype == np.complex128:
-        fft_type = FFTCode.FFT_Z2Z
+        fft_type = FFT_Z2Z()
     elif a.dtype == np.complex64:
-        fft_type = FFTCode.FFT_C2C
+        fft_type = FFT_C2C()
     else:
         raise TypeError("FFT input not supported (missing a conversion?)")
     return a.fft(

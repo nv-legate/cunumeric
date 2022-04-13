@@ -806,7 +806,7 @@ class DeferredArray(NumPyThunk):
 
             task.add_output(output, partition=p_output)
             task.add_input(input, partition=p_input)
-            task.add_scalar_arg(kind.value, ty.int32)
+            task.add_scalar_arg(kind.type_id, ty.int32)
             task.add_scalar_arg(direction.value, ty.int32)
             task.add_scalar_arg(
                 len(set(axes)) != len(axes)

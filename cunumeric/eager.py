@@ -16,8 +16,11 @@
 import numpy as np
 
 from .config import (
+    FFT_C2R,
+    FFT_D2Z,
+    FFT_R2C,
+    FFT_Z2D,
     BinaryOpCode,
-    FFTCode,
     FFTDirection,
     UnaryOpCode,
     UnaryRedCode,
@@ -270,9 +273,9 @@ class EagerArray(NumPyThunk):
         if self.deferred is not None:
             self.deferred.fft(out, axes, kind, direction)
         else:
-            if kind == FFTCode.FFT_D2Z or kind == FFTCode.FFT_R2C:
+            if isinstance(kind, FFT_D2Z) or isinstance(kind, FFT_R2C):
                 res = np.fft.rfftn(self.array, axes=axes, norm="backward")
-            elif kind == FFTCode.FFT_Z2D or kind == FFTCode.FFT_C2R:
+            elif isinstance(kind, FFT_Z2D) or isinstance(kind, FFT_C2R):
                 s = [self.array.shape[i] for i in axes]
                 res = np.fft.irfftn(self.array, s=s, axes=axes, norm="forward")
             else:

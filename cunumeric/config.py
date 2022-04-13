@@ -248,21 +248,145 @@ class CuNumericTunable(IntEnum):
 
 
 # Match these to fftType in fft_util.h
-@unique
-class FFTCode(IntEnum):
-    FFT_R2C = _cunumeric.CUNUMERIC_FFT_R2C
-    FFT_C2R = _cunumeric.CUNUMERIC_FFT_C2R
-    FFT_C2C = _cunumeric.CUNUMERIC_FFT_C2C
-    FFT_D2Z = _cunumeric.CUNUMERIC_FFT_D2Z
-    FFT_Z2D = _cunumeric.CUNUMERIC_FFT_Z2D
-    FFT_Z2Z = _cunumeric.CUNUMERIC_FFT_Z2Z
+class FFT_R2C:
+    @property
+    def type_id(self):
+        return _cunumeric.CUNUMERIC_FFT_R2C
 
+    @property
+    def complex(self):
+        return FFT_C2C()
+
+    @property
+    def input_dtype(self):
+        return np.float32
+
+    @property
+    def output_dtype(self):
+        return np.complex64
+
+    @property
+    def is_single_precision(self):
+        return True
+
+
+class FFT_C2R:
+    @property
+    def type_id(self):
+        return _cunumeric.CUNUMERIC_FFT_C2R
+
+    @property
+    def complex(self):
+        return FFT_C2C()
+
+    @property
+    def input_dtype(self):
+        return np.complex64
+
+    @property
+    def output_dtype(self):
+        return np.float32
+
+    @property
+    def is_single_precision(self):
+        return True
+
+
+class FFT_C2C:
+    @property
+    def type_id(self):
+        return _cunumeric.CUNUMERIC_FFT_C2C
+
+    @property
+    def complex(self):
+        return self
+
+    @property
+    def input_dtype(self):
+        return np.complex64
+
+    @property
+    def output_dtype(self):
+        return np.complex64
+
+    @property
+    def is_single_precision(self):
+        return True
+
+
+class FFT_D2Z:
+    @property
+    def type_id(self):
+        return _cunumeric.CUNUMERIC_FFT_D2Z
+
+    @property
+    def complex(self):
+        return FFT_Z2Z()
+
+    @property
+    def input_dtype(self):
+        return np.float64
+
+    @property
+    def output_dtype(self):
+        return np.complex128
+
+    @property
+    def is_single_precision(self):
+        return False
+
+
+class FFT_Z2D:
+    @property
+    def type_id(self):
+        return _cunumeric.CUNUMERIC_FFT_Z2D
+
+    @property
+    def complex(self):
+        return FFT_Z2Z()
+
+    @property
+    def input_dtype(self):
+        return np.complex128
+
+    @property
+    def output_dtype(self):
+        return np.float64
+
+    @property
+    def is_single_precision(self):
+        return False
+
+
+class FFT_Z2Z:
+    @property
+    def type_id(self):
+        return _cunumeric.CUNUMERIC_FFT_Z2Z
+
+    @property
+    def complex(self):
+        return self
+
+    @property
+    def input_dtype(self):
+        return np.complex128
+
+    @property
+    def output_dtype(self):
+        return np.complex128
+
+    @property
+    def is_single_precision(self):
+        return False
+
+
+class FFTCode:
     @staticmethod
     def real_to_complex_code(dtype):
         if dtype == np.float64:
-            return FFTCode.FFT_D2Z
+            return FFT_D2Z()
         elif dtype == np.float32:
-            return FFTCode.FFT_R2C
+            return FFT_R2C()
         else:
             raise TypeError(
                 (
@@ -274,9 +398,9 @@ class FFTCode(IntEnum):
     @staticmethod
     def complex_to_real_code(dtype):
         if dtype == np.complex128:
-            return FFTCode.FFT_Z2D
+            return FFT_Z2D()
         elif dtype == np.complex64:
-            return FFTCode.FFT_C2R
+            return FFT_C2R()
         else:
             raise TypeError(
                 (
@@ -284,68 +408,6 @@ class FFTCode(IntEnum):
                     "(supported types are complex64 and complex128)"
                 )
             )
-
-    @property
-    def complex(self):
-        if self == FFTCode.FFT_D2Z or self == FFTCode.FFT_Z2D:
-            return FFTCode.FFT_Z2Z
-        elif self == FFTCode.FFT_R2C or self == FFTCode.FFT_C2R:
-            return FFTCode.FFT_C2C
-        return self
-
-    @property
-    def input_dtype(self):
-        if self == FFTCode.FFT_D2Z:
-            return np.float64
-        elif self == FFTCode.FFT_R2C:
-            return np.float32
-        elif self == FFTCode.FFT_Z2D:
-            return np.complex128
-        elif self == FFTCode.FFT_C2R:
-            return np.complex64
-        elif self == FFTCode.FFT_Z2Z:
-            return np.complex128
-        elif self == FFTCode.FFT_C2C:
-            return np.complex64
-        else:
-            raise TypeError(
-                (
-                    "Type of FFT not supported "
-                    "(supported types are C2C, "
-                    " R2C, C2R, Z2Z, D2Z, Z2D)"
-                )
-            )
-
-    @property
-    def output_dtype(self):
-        if self == FFTCode.FFT_D2Z:
-            return np.complex128
-        elif self == FFTCode.FFT_R2C:
-            return np.complex64
-        elif self == FFTCode.FFT_Z2D:
-            return np.float64
-        elif self == FFTCode.FFT_C2R:
-            return np.float32
-        elif self == FFTCode.FFT_Z2Z:
-            return np.complex128
-        elif self == FFTCode.FFT_C2C:
-            return np.complex64
-        else:
-            raise TypeError(
-                (
-                    "Type of FFT not supported "
-                    "(supported types are C2C, R2C, "
-                    " C2R, Z2Z, D2Z, Z2D)"
-                )
-            )
-
-    @property
-    def is_single_precision(self):
-        return (
-            self == FFTCode.FFT_C2C
-            or self == FFTCode.FFT_R2C
-            or self == FFTCode.FFT_C2R
-        )
 
 
 @unique
