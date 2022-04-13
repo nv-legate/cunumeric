@@ -45,7 +45,7 @@ struct Cumsum_gImpl {
     auto out = args.out.read_write_accessor<VAL, DIM>(out_rect);
     auto sum_vals = args.sum_vals.read_accessor<VAL, DIM>(sum_vals_rect);
 
-    Cumsum_lImplBody<KIND, CODE, DIM>()(out, sum_vals, out_pitches, out_rect, sum_vals_pitches, sum_vals_rect);
+    Cumsum_gImplBody<KIND, CODE, DIM>()(out, sum_vals, out_pitches, out_rect, sum_vals_pitches, sum_vals_rect);
 
   }
 };
@@ -53,10 +53,8 @@ struct Cumsum_gImpl {
 template <VariantKind KIND>
 static void Cumsum_g_template(TaskContext& context)
 {
-  auto& inputs  = context.inputs();
-  auto& outputs = context.outputs();
-
-  double_dispatch(inputs.dim(), inputs.code(), Cumsum_gImpl<KIND>{}, args, context.get_task_index());  
+  Cumsum_gArgs args{context.inputs()[1], context.outputs()[0]};
+  double_dispatch(args.out.dim(), args.out.code(), Cumsum_gImpl<KIND>{}, args, context.get_task_index());  
 }
 
 }  // namespace cunumeric

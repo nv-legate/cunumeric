@@ -28,7 +28,7 @@ struct Cumsum_lArgs {
 
 class Cumsum_lTask : public CuNumericTask<Cumsum_lTask> {
  public:
-  static const int TASK_ID = CUNUMERIC_CUMSUM_L;
+  static const int TASK_ID = CUNUMERIC_CUMSUM_LOCAL;
 
  public:
   static void cpu_variant(legate::TaskContext& context);

@@ -27,7 +27,7 @@ struct Cumsum_gArgs {
 
 class Cumsum_gTask : public CuNumericTask<Cumsum_gTask> {
  public:
-  static const int TASK_ID = CUNUMERIC_CUMSUM_G;
+  static const int TASK_ID = CUNUMERIC_CUMSUM_GLOBAL;
 
  public:
   static void cpu_variant(legate::TaskContext& context);

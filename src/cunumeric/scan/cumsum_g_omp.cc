@@ -35,7 +35,7 @@ struct Cumsum_gImplBody<VariantKind::OMP, CODE, DIM> {
   struct add_scalar_funct
   {
     VAL V;
-    add_scalar_funct(VAL a) : V(a);
+    add_scalar_funct(VAL a) : V(a) {}
     
     __host__ __device__
     void operator()(VAL &x)
@@ -44,7 +44,7 @@ struct Cumsum_gImplBody<VariantKind::OMP, CODE, DIM> {
     }
   };
   
-  size_t operator()(const AccessorRW<VAL, DIM>& out,
+  void operator()(const AccessorRW<VAL, DIM>& out,
 		    const AccessorRO<VAL, DIM>& sum_vals,
                     const Pitches<DIM - 1>& out_pitches,
                     const Rect<DIM>& out_rect,
@@ -55,13 +55,13 @@ struct Cumsum_gImplBody<VariantKind::OMP, CODE, DIM> {
     auto outptr = out.ptr(out_rect.lo);
     auto volume = out_rect.volume();
 
-    if (patrition_index[DIM - 1] == 0){
+    if (partition_index[DIM - 1] == 0){
       // first partition has nothing to do and can return;
       return;
     }
 
     auto stride = out_rect.hi[DIM - 1] - out_rect.lo[DIM - 1] + 1;
-    for(unit64_t index = 0; index < volume; index += stride){
+    for(uint64_t index = 0; index < volume; index += stride){
       // get the corresponding ND index with base zero to use for sum_val
       auto sum_valsp = out_pitches.unflatten(index, out_rect.lo) - out_rect.lo;
       // first element on scan axis
@@ -78,7 +78,7 @@ struct Cumsum_gImplBody<VariantKind::OMP, CODE, DIM> {
 
 /*static*/ void Cumsum_gTask::omp_variant(TaskContext& context)
 {
-  cumsum_g_template<VariantKind::OMP>(context);
+  Cumsum_g_template<VariantKind::OMP>(context);
 }
 
 }  // namespace cunumeric

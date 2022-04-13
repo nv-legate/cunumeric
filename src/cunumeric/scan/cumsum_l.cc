@@ -30,7 +30,7 @@ template <LegateTypeCode CODE, int DIM>
 struct Cumsum_lImplBody<VariantKind::CPU, CODE, DIM> {
   using VAL = legate_type_of<CODE>;
 
-  size_t operator()(const AccessorWO<VAL, DIM>& out,
+  void operator()(const AccessorWO<VAL, DIM>& out,
 		    const AccessorRO<VAL, DIM>& in,
 		    Array& sum_vals,
                     const Pitches<DIM - 1>& pitches,
@@ -41,14 +41,13 @@ struct Cumsum_lImplBody<VariantKind::CPU, CODE, DIM> {
     auto volume = rect.volume();
     
     auto stride = rect.hi[DIM - 1] - rect.lo[DIM - 1] + 1;
-    auto iters = volume / iters;
 
     Point<DIM> extents = rect.hi - rect.lo + Point<DIM>::ONES();
     extents[DIM - 1] = 1; // one element along scan axis
 
     auto sum_valsptr = sum_vals.create_output_buffer<VAL, DIM>(extents, true);
 
-    for(unit64_t index = 0; index < volume; index += stride){
+    for(uint64_t index = 0; index < volume; index += stride){
       thrust::inclusive_scan(thrust::host, inptr + index, inptr + index + stride, outptr + index);
       // get the corresponding ND index with base zero to use for sum_val
       auto sum_valp = pitches.unflatten(index, rect.lo) - rect.lo;
@@ -62,12 +61,12 @@ struct Cumsum_lImplBody<VariantKind::CPU, CODE, DIM> {
 
 /*static*/ void Cumsum_lTask::cpu_variant(TaskContext& context)
 {
-  cumsum_l_template<VariantKind::CPU>(context);
+  Cumsum_l_template<VariantKind::CPU>(context);
 }
 
 namespace  // unnamed
 {
-static void __attribute__((constructor)) register_tasks(void) { NonzeroTask::register_variants(); }
+static void __attribute__((constructor)) register_tasks(void) { Cumsum_lTask::register_variants(); }
 }  // namespace
 
 }  // namespace cunumeric

@@ -30,7 +30,7 @@ template <LegateTypeCode CODE, int DIM>
 struct Cumsum_lImplBody<VariantKind::GPU, CODE, DIM> {
   using VAL = legate_type_of<CODE>;
 
-  size_t operator()(const AccessorWO<VAL, DIM>& out,
+  void operator()(const AccessorWO<VAL, DIM>& out,
 		    const AccessorRO<VAL, DIM>& in,
 		    Array& sum_vals,
                     const Pitches<DIM - 1>& pitches,
@@ -41,14 +41,13 @@ struct Cumsum_lImplBody<VariantKind::GPU, CODE, DIM> {
     auto volume = rect.volume();
     
     auto stride = rect.hi[DIM - 1] - rect.lo[DIM - 1] + 1;
-    auto iters = volume / iters;
 
     Point<DIM> extents = rect.hi - rect.lo + Point<DIM>::ONES();
     extents[DIM - 1] = 1; // one element along scan axis
 
     auto sum_valsptr = sum_vals.create_output_buffer<VAL, DIM>(extents, true);
 
-    for(unit64_t index = 0; index < volume; index += stride){
+    for(uint64_t index = 0; index < volume; index += stride){
       // RRRR depending on stride and volume this should either call multiple streams
       // RRRR or use a cub version (currently not implemented)
       thrust::inclusive_scan(thrust::device, inptr + index, inptr + index + stride, outptr + index);
@@ -64,7 +63,7 @@ struct Cumsum_lImplBody<VariantKind::GPU, CODE, DIM> {
 
 /*static*/ void Cumsum_lTask::gpu_variant(TaskContext& context)
 {
-  cumsum_l_template<VariantKind::GPU>(context);
+  Cumsum_l_template<VariantKind::GPU>(context);
 }
 
 }  // namespace cunumeric

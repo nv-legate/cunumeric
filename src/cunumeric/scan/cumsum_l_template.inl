@@ -49,10 +49,8 @@ struct Cumsum_lImpl {
 template <VariantKind KIND>
 static void Cumsum_l_template(TaskContext& context)
 {
-  auto& inputs  = context.inputs();
-  auto& outputs = context.outputs();
-
-  double_dispatch(inputs.dim(), inputs.code(), Cumsum_lImpl<KIND>{}, args);
+  Cumsum_lArgs args{context.outputs()[0], context.inputs()[0], context.outputs()[1]};
+  double_dispatch(args.in.dim(), args.in.code(), Cumsum_lImpl<KIND>{}, args);
 }
 
 }  // namespace cunumeric
