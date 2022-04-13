@@ -197,10 +197,7 @@ enum CuNumericFFTType {
 };
 
 // These fft types match CuNumericFFTDirection in config.py and cufftDirection
-enum CuNumericFFTDirection {
-  CUNUMERIC_FFT_FORWARD = -1,
-  CUNUMERIC_FFT_INVERSE = 1
-};
+enum CuNumericFFTDirection { CUNUMERIC_FFT_FORWARD = -1, CUNUMERIC_FFT_INVERSE = 1 };
 
 #ifdef __cplusplus
 extern "C" {
