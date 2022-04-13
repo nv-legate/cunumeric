@@ -55,7 +55,7 @@ LD_FLAGS += -L$(CUTENSOR_PATH)/lib -lcutensor -Wl,-rpath,$(CUTENSOR_PATH)/lib
 LD_FLAGS += -L$(NCCL_PATH)/lib -lnccl -Wl,-rpath,$(NCCL_PATH)/lib
 endif
 NVCC_FLAGS ?=
-NVCC_FLAGS += -I. -I$(CUTENSOR_PATH)/include -I$(NCCL_PATH)/include -I$(THRUST_PATH) -Wno-deprecated-declarations
+NVCC_FLAGS += -I. -I$(THRUST_PATH) -I$(CUTENSOR_PATH)/include -I$(NCCL_PATH)/include -Wno-deprecated-declarations
 
 ifeq ($(strip $(DEBUG)),1)
 CC_FLAGS += -DDEBUG_CUNUMERIC
