@@ -798,10 +798,7 @@ def irfftn(a, s=None, axes=None, norm=None):
         )
     # Operate as a single FFT
     else:
-        # cuFFT out-of-place C2R always overwrites the input buffer,
-        # which is not what we want here, so copy
-        b = a.copy()
-        return b.fft(
+        return a.fft(
             s=s,
             axes=axes,
             kind=fft_type,

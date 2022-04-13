@@ -23,13 +23,13 @@ using namespace Legion;
 using namespace legate;
 
 template <VariantKind KIND,
-          fftType FFT_TYPE,
+          CuNumericFFTType FFT_TYPE,
           LegateTypeCode CODE_OUT,
           LegateTypeCode CODE_IN,
           int DIM>
 struct FFTImplBody;
 
-template <VariantKind KIND, fftType FFT_TYPE>
+template <VariantKind KIND, CuNumericFFTType FFT_TYPE>
 struct FFTImpl {
   template <LegateTypeCode CODE_IN,
             int DIM,
@@ -62,7 +62,7 @@ struct FFTImpl {
 
 template <VariantKind KIND>
 struct FFTDispatch {
-  template <fftType FFT_TYPE>
+  template <CuNumericFFTType FFT_TYPE>
   void operator()(FFTArgs& args) const
   {
     // Not expecting changing dimensions, at least for now
@@ -84,8 +84,8 @@ static void fft_template(TaskContext& context)
   args.output = std::move(outputs[0]);
   args.input  = std::move(inputs[0]);
   // Scalar arguments. Pay attention to indexes / ranges when adding or reordering arguments
-  args.type              = scalars[0].value<fftType>();
-  args.direction         = scalars[1].value<fftDirection>();
+  args.type              = scalars[0].value<CuNumericFFTType>();
+  args.direction         = scalars[1].value<CuNumericFFTDirection>();
   args.operate_over_axes = static_cast<bool>(scalars[2].value<uint8_t>());
 
   for (size_t i = 3; i < scalars.size(); ++i) args.axes.push_back(scalars[i].value<int64_t>());

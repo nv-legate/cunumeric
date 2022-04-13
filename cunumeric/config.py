@@ -250,12 +250,12 @@ class CuNumericTunable(IntEnum):
 # Match these to fftType in fft_util.h
 @unique
 class FFTCode(IntEnum):
-    FFT_R2C = 0x2A
-    FFT_C2R = 0x2C
-    FFT_C2C = 0x29
-    FFT_D2Z = 0x6A
-    FFT_Z2D = 0x6C
-    FFT_Z2Z = 0x69
+    FFT_R2C = _cunumeric.CUNUMERIC_FFT_R2C
+    FFT_C2R = _cunumeric.CUNUMERIC_FFT_C2R
+    FFT_C2C = _cunumeric.CUNUMERIC_FFT_C2C
+    FFT_D2Z = _cunumeric.CUNUMERIC_FFT_D2Z
+    FFT_Z2D = _cunumeric.CUNUMERIC_FFT_Z2D
+    FFT_Z2Z = _cunumeric.CUNUMERIC_FFT_Z2Z
 
     @staticmethod
     def real_to_complex_code(dtype):
@@ -350,8 +350,8 @@ class FFTCode(IntEnum):
 
 @unique
 class FFTDirection(IntEnum):
-    FORWARD = -1
-    INVERSE = 1
+    FORWARD = _cunumeric.CUNUMERIC_FFT_FORWARD
+    INVERSE = _cunumeric.CUNUMERIC_FFT_INVERSE
 
 
 @unique

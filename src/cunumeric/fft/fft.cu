@@ -27,14 +27,14 @@ using namespace legate;
 
 using dim_t = long long int;
 
-template <int DIM>
-__host__ static inline void cufft_operation(void* output,
-                                            void* input,
+template <int DIM, typename OUTPUT_TYPE, typename INPUT_TYPE>
+__host__ static inline void cufft_operation(AccessorWO<OUTPUT_TYPE, DIM> out,
+                                            AccessorRO<INPUT_TYPE, DIM> in,
                                             const Rect<DIM>& out_rect,
                                             const Rect<DIM>& in_rect,
                                             std::vector<int64_t>& axes,
-                                            fftType type,
-                                            fftDirection direction)
+                                            CuNumericFFTType type,
+                                            CuNumericFFTDirection direction)
 {
   auto stream = get_cached_stream();
 
@@ -51,7 +51,7 @@ __host__ static inline void cufft_operation(void* output,
   num_elements            = 1;
   for (int i = 0; i < DIM; ++i) {
     n[i] =
-      (type == fftType::FFT_R2C || type == fftType::FFT_D2Z) ? fft_size_in[i] : fft_size_out[i];
+      (type == CUNUMERIC_FFT_R2C || type == CUNUMERIC_FFT_D2Z) ? fft_size_in[i] : fft_size_out[i];
     inembed[i] = fft_size_in[i];
     onembed[i] = fft_size_out[i];
     num_elements *= n[i];
@@ -68,13 +68,13 @@ __host__ static inline void cufft_operation(void* output,
     plan, DIM, n, inembed, 1, 1, onembed, 1, 1, (cufftType)type, 1, &workarea_size));
 
   if (workarea_size > 0) {
-    auto workarea_buffer = 
-      create_buffer<uint8_t>(workarea_size, Legion::Memory::Kind::GPU_FB_MEM);
+    auto workarea_buffer = create_buffer<uint8_t>(workarea_size, Legion::Memory::Kind::GPU_FB_MEM);
     CHECK_CUFFT(cufftSetWorkArea(plan, workarea_buffer.ptr(0)));
   }
 
   // FFT the input data
-  CHECK_CUFFT(cufftXtExec(plan, input, output, (int)direction));
+  CHECK_CUFFT(
+    cufftXtExec(plan, (void*)in.ptr(zero), static_cast<void*>(out.ptr(zero)), (int)direction));
 
   // Clean up our resources, Buffers are cleaned up by Legion
   CHECK_CUFFT(cufftDestroy(plan));
@@ -88,13 +88,11 @@ struct cufft_axes_plan {
                                       const Rect<DIM>& out_rect,
                                       const Rect<DIM>& in_rect,
                                       int axis,
-                                      fftDirection direction)
+                                      CuNumericFFTDirection direction)
   {
     const Point<DIM> zero = Point<DIM>::ZEROES();
-    CHECK_CUFFT(cufftXtExec(plan,
-                            static_cast<void*>(in.ptr(zero)),
-                            static_cast<void*>(out.ptr(zero)),
-                            (int)direction));
+    CHECK_CUFFT(cufftXtExec(
+      plan, static_cast<void*>(in.ptr(zero)), static_cast<void*>(out.ptr(zero)), (int)direction));
   }
 };
 
@@ -108,7 +106,7 @@ struct cufft_axes_plan<3, OUTPUT_TYPE, INPUT_TYPE> {
                                       const Rect<3>& out_rect,
                                       const Rect<3>& in_rect,
                                       int axis,
-                                      fftDirection direction)
+                                      CuNumericFFTDirection direction)
   {
     bool is_inner_axis = (axis == 1);
     if (is_inner_axis) {
@@ -116,18 +114,15 @@ struct cufft_axes_plan<3, OUTPUT_TYPE, INPUT_TYPE> {
       auto num_slices = in_rect.hi[0] - in_rect.lo[0] + 1;
       for (unsigned n = 0; n < num_slices; ++n) {
         const Point<3> offset = Point<3>(n, 0, 0);
-        CHECK_CUFFT(
-          cufftXtExec(plan,
-                      static_cast<void*>(in.ptr(offset)),
-                      static_cast<void*>(out.ptr(offset)),
-                      (int)direction));
+        CHECK_CUFFT(cufftXtExec(plan,
+                                static_cast<void*>(in.ptr(offset)),
+                                static_cast<void*>(out.ptr(offset)),
+                                (int)direction));
       }
     } else {
       const Point<3> zero = Point<3>::ZEROES();
-      CHECK_CUFFT(cufftXtExec(plan,
-                              static_cast<void*>(in.ptr(zero)),
-                              static_cast<void*>(out.ptr(zero)),
-                              (int)direction));
+      CHECK_CUFFT(cufftXtExec(
+        plan, static_cast<void*>(in.ptr(zero)), static_cast<void*>(out.ptr(zero)), (int)direction));
     }
   }
 };
@@ -142,8 +137,8 @@ __host__ static inline void cufft_over_axes_c2c(AccessorWO<OUTPUT_TYPE, DIM> out
                                                 const Rect<DIM>& out_rect,
                                                 const Rect<DIM>& in_rect,
                                                 std::vector<int64_t>& axes,
-                                                fftType type,
-                                                fftDirection direction)
+                                                CuNumericFFTType type,
+                                                CuNumericFFTDirection direction)
 {
   auto stream = get_cached_stream();
 
@@ -168,11 +163,7 @@ __host__ static inline void cufft_over_axes_c2c(AccessorWO<OUTPUT_TYPE, DIM> out
   }
 
   // Copy input to temporary buffer to perform FFTs one by one
-  auto input_buffer =
-    create_buffer<INPUT_TYPE, DIM>(
-                                    fft_size_in,
-                                    Legion::Memory::Kind::GPU_FB_MEM
-                                  );
+  auto input_buffer = create_buffer<INPUT_TYPE, DIM>(fft_size_in, Legion::Memory::Kind::GPU_FB_MEM);
   CHECK_CUDA(cudaMemcpyAsync(input_buffer.ptr(zero),
                              in.ptr(zero),
                              num_elements_in * sizeof(INPUT_TYPE),
@@ -214,7 +205,7 @@ __host__ static inline void cufft_over_axes_c2c(AccessorWO<OUTPUT_TYPE, DIM> out
                                     &workarea_size));
 
     if (workarea_size > 0) {
-      auto workarea_buffer = 
+      auto workarea_buffer =
         create_buffer<uint8_t>(workarea_size, Legion::Memory::Kind::GPU_FB_MEM);
       CHECK_CUFFT(cufftSetWorkArea(plan, workarea_buffer.ptr(0)));
     }
@@ -231,7 +222,6 @@ __host__ static inline void cufft_over_axes_c2c(AccessorWO<OUTPUT_TYPE, DIM> out
                              num_elements_out * sizeof(OUTPUT_TYPE),
                              cudaMemcpyDefault,
                              stream));
-  CHECK_CUDA(cudaStreamSynchronize(stream));
 }
 
 // Perform the FFT operation as multiple 1D FFTs along the specified axes, single R2C/C2R operation.
@@ -241,8 +231,8 @@ __host__ static inline void cufft_over_axis_r2c_c2r(AccessorWO<OUTPUT_TYPE, DIM>
                                                     const Rect<DIM>& out_rect,
                                                     const Rect<DIM>& in_rect,
                                                     std::vector<int64_t>& axes,
-                                                    fftType type,
-                                                    fftDirection direction)
+                                                    CuNumericFFTType type,
+                                                    CuNumericFFTDirection direction)
 {
   auto stream = get_cached_stream();
 
@@ -259,19 +249,17 @@ __host__ static inline void cufft_over_axis_r2c_c2r(AccessorWO<OUTPUT_TYPE, DIM>
   size_t num_elements_in  = 1;
   size_t num_elements_out = 1;
   for (int i = 0; i < DIM; ++i) {
-    n[i]       = (direction == fftDirection::FFT_FORWARD) ? fft_size_in[i] : fft_size_out[i];
+    n[i]       = (direction == CUNUMERIC_FFT_FORWARD) ? fft_size_in[i] : fft_size_out[i];
     inembed[i] = fft_size_in[i];
     onembed[i] = fft_size_out[i];
     num_elements_in *= fft_size_in[i];
     num_elements_out *= fft_size_out[i];
   }
 
+  // cuFFT out-of-place C2R always overwrites the input buffer,
+  // which is not what we want here, so copy
   // Copy input to temporary buffer to perform FFTs one by one
-  auto input_buffer =
-    create_buffer<INPUT_TYPE, DIM>(
-                                   fft_size_in,
-                                   Legion::Memory::Kind::GPU_FB_MEM
-                                  );
+  auto input_buffer = create_buffer<INPUT_TYPE, DIM>(fft_size_in, Legion::Memory::Kind::GPU_FB_MEM);
   CHECK_CUDA(cudaMemcpyAsync(input_buffer.ptr(zero),
                              in.ptr(zero),
                              num_elements_in * sizeof(INPUT_TYPE),
@@ -279,10 +267,7 @@ __host__ static inline void cufft_over_axis_r2c_c2r(AccessorWO<OUTPUT_TYPE, DIM>
                              stream));
 
   auto output_buffer =
-    create_buffer<OUTPUT_TYPE, DIM>(
-                                    fft_size_out,
-                                    Legion::Memory::Kind::GPU_FB_MEM
-                                   );
+    create_buffer<OUTPUT_TYPE, DIM>(fft_size_out, Legion::Memory::Kind::GPU_FB_MEM);
 
   // Create the plan
   cufftHandle plan;
@@ -297,7 +282,7 @@ __host__ static inline void cufft_over_axis_r2c_c2r(AccessorWO<OUTPUT_TYPE, DIM>
   // Batched 1D dimension
   dim_t size_1d = n[axis];
   // TODO: batch only correct for DIM <= 3. Fix for N-DIM case
-  dim_t batches = (direction == fftDirection::FFT_FORWARD) ? num_elements_in : num_elements_out;
+  dim_t batches = (direction == CUNUMERIC_FFT_FORWARD) ? num_elements_in : num_elements_out;
   batches       = (DIM == 3 && axis == 1) ? n[2] : batches / n[axis];
   dim_t istride = 1;
   dim_t ostride = 1;
@@ -323,8 +308,7 @@ __host__ static inline void cufft_over_axis_r2c_c2r(AccessorWO<OUTPUT_TYPE, DIM>
                                   &workarea_size));
 
   if (workarea_size > 0) {
-    auto workarea_buffer = 
-      create_buffer<uint8_t>(workarea_size, Legion::Memory::Kind::GPU_FB_MEM);
+    auto workarea_buffer = create_buffer<uint8_t>(workarea_size, Legion::Memory::Kind::GPU_FB_MEM);
     CHECK_CUFFT(cufftSetWorkArea(plan, workarea_buffer.ptr(0)));
   }
 
@@ -342,7 +326,7 @@ __host__ static inline void cufft_over_axis_r2c_c2r(AccessorWO<OUTPUT_TYPE, DIM>
   CHECK_CUDA(cudaStreamSynchronize(stream));
 }
 
-template <fftType FFT_TYPE, LegateTypeCode CODE_OUT, LegateTypeCode CODE_IN, int DIM>
+template <CuNumericFFTType FFT_TYPE, LegateTypeCode CODE_OUT, LegateTypeCode CODE_IN, int DIM>
 struct FFTImplBody<VariantKind::GPU, FFT_TYPE, CODE_OUT, CODE_IN, DIM> {
   using INPUT_TYPE  = legate_type_of<CODE_IN>;
   using OUTPUT_TYPE = legate_type_of<CODE_OUT>;
@@ -352,18 +336,14 @@ struct FFTImplBody<VariantKind::GPU, FFT_TYPE, CODE_OUT, CODE_IN, DIM> {
                            const Rect<DIM>& out_rect,
                            const Rect<DIM>& in_rect,
                            std::vector<int64_t>& axes,
-                           fftDirection direction,
+                           CuNumericFFTDirection direction,
                            bool operate_over_axes) const
   {
-    const Point<DIM> zero = Point<DIM>::ZEROES();
-    void* out_ptr         = static_cast<void*>(out.ptr(zero));
-    void* in_ptr          = (void*) in.ptr(zero);
-
     // FFTs are computed as 1D over different axes. Slower than performing the full FFT in a single
     // step
     if (operate_over_axes) {
       // R2C / C2R always only 1D on a single axis (when performed over axes)
-      if (FFT_TYPE != fftType::FFT_Z2Z && FFT_TYPE != fftType::FFT_C2C) {
+      if (FFT_TYPE != CUNUMERIC_FFT_Z2Z && FFT_TYPE != CUNUMERIC_FFT_C2C) {
         cufft_over_axis_r2c_c2r<DIM, OUTPUT_TYPE, INPUT_TYPE>(
           out, in, out_rect, in_rect, axes, FFT_TYPE, direction);
       }
@@ -377,7 +357,8 @@ struct FFTImplBody<VariantKind::GPU, FFT_TYPE, CODE_OUT, CODE_IN, DIM> {
     // performant)
     else {
       // FFTs are computed as a single step of DIM
-      cufft_operation<DIM>(out_ptr, in_ptr, out_rect, in_rect, axes, FFT_TYPE, direction);
+      cufft_operation<DIM, OUTPUT_TYPE, INPUT_TYPE>(
+        out, in, out_rect, in_rect, axes, FFT_TYPE, direction);
     }
   }
 };
