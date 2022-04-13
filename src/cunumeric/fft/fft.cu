@@ -170,7 +170,7 @@ __host__ static inline void cufft_over_axes_c2c(AccessorWO<OUTPUT_TYPE, DIM> out
   // Copy input to temporary buffer to perform FFTs one by one
   auto input_buffer =
     create_buffer<INPUT_TYPE, DIM>(
-                                    Rect<DIM>(zero, fft_size_in - one),
+                                    fft_size_in,
                                     Legion::Memory::Kind::GPU_FB_MEM
                                   );
   CHECK_CUDA(cudaMemcpyAsync(input_buffer.ptr(zero),
