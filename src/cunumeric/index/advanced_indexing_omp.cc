@@ -18,14 +18,17 @@
 #include "cunumeric/index/advanced_indexing_template.inl"
 #include "cunumeric/omp_help.h"
 #include <omp.h>
+#include <thrust/fill.h>
+#include <thrust/execution_policy.h>
+#include <thrust/system/omp/execution_policy.h>
 
 namespace cunumeric {
 
 using namespace Legion;
 using namespace legate;
 
-template <LegateTypeCode CODE, int DIM1, int DIM2, bool IS_SET>
-struct AdvancedIndexingImplBody<VariantKind::OMP, CODE, DIM1, DIM2, IS_SET> {
+template <LegateTypeCode CODE, int DIM1, int DIM2>
+struct AdvancedIndexingImplBody<VariantKind::OMP, CODE, DIM1, DIM2> {
   using VAL = legate_type_of<CODE>;
 
   void compute_output(Buffer<VAL>& out,
@@ -35,14 +38,14 @@ struct AdvancedIndexingImplBody<VariantKind::OMP, CODE, DIM1, DIM2, IS_SET> {
                       const Rect<DIM1>& rect_input,
                       const Pitches<DIM2 - 1>& pitches_index,
                       const Rect<DIM2>& rect_index,
-                      int volume,
+                      const size_t volume,
                       int64_t out_idx) const
   {
 #pragma omp for schedule(static)
     for (size_t idx = 0; idx < volume; ++idx) {
-      auto p       = pitches_index.unflatten(idx, rect_index.lo);
-      auto p_input = pitches_input.unflatten(idx, rect_input.lo);
+      auto p = pitches_index.unflatten(idx, rect_index.lo);
       if (index[p] == true) {
+        auto p_input = pitches_input.unflatten(idx, rect_input.lo);
         out[out_idx] = input[p_input];
         out_idx++;
       }
@@ -56,14 +59,14 @@ struct AdvancedIndexingImplBody<VariantKind::OMP, CODE, DIM1, DIM2, IS_SET> {
                       const Rect<DIM1>& rect_input,
                       const Pitches<DIM2 - 1>& pitches_index,
                       const Rect<DIM2>& rect_index,
-                      int volume,
+                      const size_t volume,
                       int64_t out_idx) const
   {
 #pragma omp for schedule(static)
     for (size_t idx = 0; idx < volume; ++idx) {
-      auto p       = pitches_index.unflatten(idx, rect_index.lo);
-      auto p_input = pitches_input.unflatten(idx, rect_input.lo);
+      auto p = pitches_index.unflatten(idx, rect_index.lo);
       if (index[p] == true) {
+        auto p_input = pitches_input.unflatten(idx, rect_input.lo);
         out[out_idx] = p_input;
         out_idx++;
       }
@@ -85,12 +88,12 @@ struct AdvancedIndexingImplBody<VariantKind::OMP, CODE, DIM1, DIM2, IS_SET> {
 #endif
     const size_t volume    = rect_index.volume();
     const auto max_threads = omp_get_max_threads();
-    int64_t size           = 0;
+    size_t size            = 0;
     ThreadLocalStorage<int64_t> offsets(max_threads);
 
     {
-      ThreadLocalStorage<int64_t> sizes(max_threads);
-      for (auto idx = 0; idx < max_threads; ++idx) sizes[idx] = 0;
+      ThreadLocalStorage<size_t> sizes(max_threads);
+      thrust::fill(thrust::omp::par, sizes.begin(), sizes.end(), 0);
 #pragma omp parallel
       {
         const int tid = omp_get_thread_num();
@@ -101,10 +104,9 @@ struct AdvancedIndexingImplBody<VariantKind::OMP, CODE, DIM1, DIM2, IS_SET> {
         }
       }
 
-      for (auto idx = 0; idx < max_threads; ++idx) size += sizes[idx];
+      size = thrust::reduce(thrust::omp::par, sizes.begin(), sizes.end(), 0);
 
-      offsets[0] = 0;
-      for (auto idx = 1; idx < max_threads; ++idx) offsets[idx] = offsets[idx - 1] + sizes[idx - 1];
+      thrust::exclusive_scan(thrust::omp::par, sizes.begin(), sizes.end(), offsets.begin());
     }
 
     Memory::Kind kind =

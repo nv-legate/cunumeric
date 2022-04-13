@@ -21,7 +21,7 @@ namespace cunumeric {
 using namespace Legion;
 using namespace legate;
 
-template <VariantKind KIND, LegateTypeCode CODE, int DIM1, int DIM2, bool IS_SET>
+template <VariantKind KIND, LegateTypeCode CODE, int DIM1, int DIM2>
 struct AdvancedIndexingImplBody;
 
 template <VariantKind KIND, LegateTypeCode CODE, int DIM1>
@@ -43,23 +43,28 @@ struct AdvancedIndexingImpl {
     size_t volume2 = index_pitches.flatten(index_rect);
 
     if (volume1 == 0 || volume2 == 0) {
-      auto empty = create_buffer<VAL>(0);
-      args.output.return_data(empty, Point<1>(0));
+      if (args.is_set) {
+        auto empty = create_buffer<Point<DIM1>>(0);
+        args.output.return_data(empty, Point<1>(0));
+      } else {
+        auto empty = create_buffer<VAL>(0);
+        args.output.return_data(empty, Point<1>(0));
+      }
       return;
     }
 
-    int64_t size = 0;
+    size_t size = 0;
     if (DIM1 == DIM2) {
       if (args.is_set) {
-        size = AdvancedIndexingImplBody<KIND, CODE, DIM1, DIM2, true>{}(output_arr_set,
-                                                                        input_arr,
-                                                                        index_arr,
-                                                                        input_pitches,
-                                                                        input_rect,
-                                                                        index_pitches,
-                                                                        index_rect);
+        size = AdvancedIndexingImplBody<KIND, CODE, DIM1, DIM2>{}(output_arr_set,
+                                                                  input_arr,
+                                                                  index_arr,
+                                                                  input_pitches,
+                                                                  input_rect,
+                                                                  index_pitches,
+                                                                  index_rect);
       } else {
-        size = AdvancedIndexingImplBody<KIND, CODE, DIM1, DIM2, false>{}(
+        size = AdvancedIndexingImplBody<KIND, CODE, DIM1, DIM2>{}(
           output_arr, input_arr, index_arr, input_pitches, input_rect, index_pitches, index_rect);
       }
     } else {

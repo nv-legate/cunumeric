@@ -27,7 +27,10 @@ struct ThreadLocalStorage {
   static constexpr size_t CACHE_LINE_SIZE = 64;
 
  public:
-  ThreadLocalStorage(size_t num_threads) : storage_(CACHE_LINE_SIZE * num_threads) {}
+  ThreadLocalStorage(size_t num_threads)
+    : storage_(CACHE_LINE_SIZE * num_threads), num_threads_(num_threads)
+  {
+  }
   ~ThreadLocalStorage() {}
 
  public:
@@ -36,8 +39,12 @@ struct ThreadLocalStorage {
     return *reinterpret_cast<VAL*>(storage_.data() + CACHE_LINE_SIZE * idx);
   }
 
+  VAL* begin() { return reinterpret_cast<VAL*>(storage_.data()); }
+  VAL* end() { return reinterpret_cast<VAL*>(storage_.data() + CACHE_LINE_SIZE * num_threads_); }
+
  private:
   std::vector<int8_t> storage_;
+  size_t num_threads_;
 };
 
 }  // namespace cunumeric

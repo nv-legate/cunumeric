@@ -35,14 +35,14 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
                        size_t iters,
                        Buffer<int64_t> offsets)
 {
-  int64_t value = 0;
+  size_t value = 0;
   for (size_t idx = 0; idx < iters; idx++) {
     const size_t offset = (idx * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (offset < volume) {
       auto point      = pitches.unflatten(offset, origin);
-      auto val        = static_cast<int64_t>(index[point]);
+      auto val        = static_cast<size_t>(index[point]);
       offsets[offset] = val;
-      SumReduction<int64_t>::fold<true>(value, val);
+      SumReduction<size_t>::fold<true>(value, val);
     }
   }
   // Every thread in the thread block must participate in the exchange to get correct results
@@ -95,8 +95,8 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   }
 }
 
-template <LegateTypeCode CODE, int DIM1, int DIM2, bool IS_SET>
-struct AdvancedIndexingImplBody<VariantKind::GPU, CODE, DIM1, DIM2, IS_SET> {
+template <LegateTypeCode CODE, int DIM1, int DIM2>
+struct AdvancedIndexingImplBody<VariantKind::GPU, CODE, DIM1, DIM2> {
   using VAL = legate_type_of<CODE>;
 
   int64_t compute_size(const AccessorRO<bool, DIM2>& in,
@@ -106,10 +106,10 @@ struct AdvancedIndexingImplBody<VariantKind::GPU, CODE, DIM1, DIM2, IS_SET> {
                        cudaStream_t stream,
                        Buffer<int64_t>& offsets) const
   {
-    DeferredReduction<SumReduction<int64_t>> size;
+    DeferredReduction<SumReduction<size_t>> size;
 
     const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-    size_t shmem_size   = THREADS_PER_BLOCK / 32 * sizeof(int64_t);
+    size_t shmem_size   = THREADS_PER_BLOCK / 32 * sizeof(size_t);
 
     if (blocks >= MAX_REDUCTION_CTAS) {
       const size_t iters = (blocks + MAX_REDUCTION_CTAS - 1) / MAX_REDUCTION_CTAS;
@@ -140,7 +140,7 @@ struct AdvancedIndexingImplBody<VariantKind::GPU, CODE, DIM1, DIM2, IS_SET> {
     // in this case shapes for input and index arrays  should be the same
     assert(rect_input == rect_index);
 #endif
-    int64_t size          = 0;
+    size_t size           = 0;
     const bool* index_ptr = index.ptr(rect_index);
     const size_t volume   = rect_index.volume();
     cudaStream_t stream;
