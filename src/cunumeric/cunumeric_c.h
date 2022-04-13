@@ -196,10 +196,7 @@ enum fftType {
   FFT_Z2Z = 0x69   // Double-complex to double-complex (interleaved)
 };
 
-enum fftDirection {
-  FFT_FORWARD = -1,
-  FFT_INVERSE = 1
-};
+enum fftDirection { FFT_FORWARD = -1, FFT_INVERSE = 1 };
 
 #ifdef __cplusplus
 extern "C" {

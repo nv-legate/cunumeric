@@ -2120,7 +2120,9 @@ class ndarray:
             fft_axes = [ax if ax >= 0 else ax + self.ndim for ax in axes]
             if min(fft_axes) < 0 or max(fft_axes) >= self.ndim:
                 raise ValueError(
-                    "Axis is out of bounds for array of size {}".format(self.ndim)
+                    "Axis is out of bounds for array of size {}".format(
+                        self.ndim
+                    )
                 )
         else:
             fft_axes = range(len(s)) if user_sizes else range(self.ndim)
