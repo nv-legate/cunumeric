@@ -4,28 +4,32 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
     <title>Comparison Table &#8212; cunumeric  documentation</title>
     
-  <!-- Loaded before other Sphinx assets -->
-  <link href="../_static/styles/theme.css?digest=1999514e3f237ded88cf" rel="stylesheet">
+    <link href="../_static/styles/theme.css?digest=1999514e3f237ded88cf" rel="stylesheet">
 <link href="../_static/styles/pydata-sphinx-theme.css?digest=1999514e3f237ded88cf" rel="stylesheet">
-
+  
     
-  <link rel="stylesheet"
-    href="../_static/vendor/fontawesome/5.13.0/css/all.min.css">
-  <link rel="preload" as="font" type="font/woff2" crossorigin
-    href="../_static/vendor/fontawesome/5.13.0/webfonts/fa-solid-900.woff2">
-  <link rel="preload" as="font" type="font/woff2" crossorigin
-    href="../_static/vendor/fontawesome/5.13.0/webfonts/fa-brands-400.woff2">
-
+    <link rel="stylesheet"
+      href="../_static/vendor/fontawesome/5.13.0/css/all.min.css">
+    <link rel="preload" as="font" type="font/woff2" crossorigin
+      href="../_static/vendor/fontawesome/5.13.0/webfonts/fa-solid-900.woff2">
+    <link rel="preload" as="font" type="font/woff2" crossorigin
+      href="../_static/vendor/fontawesome/5.13.0/webfonts/fa-brands-400.woff2">
+  
+    
+      
+  
+    
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/pydata-sphinx-theme.css" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css" />
     <link rel="stylesheet" type="text/css" href="../_static/params.css" />
     
-  <!-- Pre-loaded scripts that we'll load fully later -->
-  <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=1999514e3f237ded88cf">
-
+    <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=1999514e3f237ded88cf">
+  
     <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
     <script src="../_static/jquery.js"></script>
     <script src="../_static/underscore.js"></script>
@@ -44,7 +48,7 @@
     <!-- Google Analytics -->
     
   </head>
-  <body data-spy="scroll" data-target="#bd-toc-nav" data-offset="60">
+  <body data-spy="scroll" data-target="#bd-toc-nav" data-offset="80">
     
     <div class="container-fluid" id="banner"></div>
 
@@ -147,7 +151,7 @@
               
               <div class="toc-item">
                 
-<div class="tocsection onthispage mt-5 pt-1 pb-3">
+<div class="tocsection onthispage pt-5 pb-3">
     <i class="fas fa-list"></i> On this page
 </div>
 
@@ -190,6 +194,28 @@
    </li>
   </ul>
  </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#measuring-api-coverage">
+   Measuring API coverage
+  </a>
+  <ul class="nav section-nav flex-column">
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#overall-coverage-report">
+     Overall coverage report
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#detailed-coverage-report">
+     Detailed coverage report
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#call-stack-reporting">
+     Call stack reporting
+    </a>
+   </li>
+  </ul>
+ </li>
 </ul>
 
 </nav>
@@ -211,16 +237,16 @@
               
               <div>
                 
-  <div class="section" id="comparison-table">
-<h1>Comparison Table<a class="headerlink" href="#comparison-table" title="Permalink to this headline">#</a></h1>
+  <section id="comparison-table">
+<h1>Comparison Table<a class="headerlink" href="#comparison-table" title="Permalink to this headline">¶</a></h1>
 <p>Here is a list of NumPy APIs and corresponding cuNumeric implementations.</p>
 <p><code class="docutils literal notranslate"><span class="pre">-</span></code> in cuNumeric column denotes that cuNumeric implementation is not provided yet.
 We welcome contributions for these functions.</p>
-<div class="section" id="numpy-vs-cunumeric-apis">
-<h2>NumPy vs cuNumeric APIs<a class="headerlink" href="#numpy-vs-cunumeric-apis" title="Permalink to this headline">#</a></h2>
-<div class="section" id="module-level">
-<h3>Module-Level<a class="headerlink" href="#module-level" title="Permalink to this headline">#</a></h3>
-<table class="autosummary longtable table autosummary">
+<section id="numpy-vs-cunumeric-apis">
+<h2>NumPy vs cuNumeric APIs<a class="headerlink" href="#numpy-vs-cunumeric-apis" title="Permalink to this headline">¶</a></h2>
+<section id="module-level">
+<h3>Module-Level<a class="headerlink" href="#module-level" title="Permalink to this headline">¶</a></h3>
+<table class="longtable table autosummary">
 <colgroup>
 <col style="width: 10%" />
 <col style="width: 90%" />
@@ -444,9 +470,9 @@ We welcome contributions for these functions.</p>
 <td></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.block.html#numpy.block" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.block</span></code></a></p></td>
-<td><p>-</p></td>
-<td></td>
-<td></td>
+<td><p><a class="reference internal" href="../api/generated/cunumeric.block.html#cunumeric.block" title="cunumeric.block"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cunumeric.block</span></code></a></p></td>
+<td><p>Yes</p></td>
+<td><p>Yes</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.bmat.html#numpy.bmat" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.bmat</span></code></a></p></td>
 <td><p>-</p></td>
@@ -1675,10 +1701,10 @@ We welcome contributions for these functions.</p>
 </tr>
 </tbody>
 </table>
-</div>
-<div class="section" id="ufuncs">
-<h3>Ufuncs<a class="headerlink" href="#ufuncs" title="Permalink to this headline">#</a></h3>
-<table class="autosummary longtable table autosummary">
+</section>
+<section id="ufuncs">
+<h3>Ufuncs<a class="headerlink" href="#ufuncs" title="Permalink to this headline">¶</a></h3>
+<table class="longtable table autosummary">
 <colgroup>
 <col style="width: 10%" />
 <col style="width: 90%" />
@@ -2001,152 +2027,157 @@ We welcome contributions for these functions.</p>
 <td><p>Yes</p></td>
 <td><p>Yes</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.maximum.html#numpy.maximum" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.maximum</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.matmul.html#numpy.matmul" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.matmul</span></code></a></p></td>
+<td><p><a class="reference internal" href="../api/generated/cunumeric.matmul.html#cunumeric.matmul" title="cunumeric.matmul"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cunumeric.matmul</span></code></a></p></td>
+<td><p>Yes</p></td>
+<td><p>Yes</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.maximum.html#numpy.maximum" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.maximum</span></code></a></p></td>
 <td><p><a class="reference internal" href="../api/generated/cunumeric.maximum.html#cunumeric.maximum" title="cunumeric.maximum"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cunumeric.maximum</span></code></a></p></td>
 <td><p>Yes</p></td>
 <td><p>Yes</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.minimum.html#numpy.minimum" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.minimum</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.minimum.html#numpy.minimum" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.minimum</span></code></a></p></td>
 <td><p><a class="reference internal" href="../api/generated/cunumeric.minimum.html#cunumeric.minimum" title="cunumeric.minimum"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cunumeric.minimum</span></code></a></p></td>
 <td><p>Yes</p></td>
 <td><p>Yes</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.mod.html#numpy.mod" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.mod</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.mod.html#numpy.mod" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.mod</span></code></a></p></td>
 <td><p><a class="reference internal" href="../api/generated/cunumeric.mod.html#cunumeric.mod" title="cunumeric.mod"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cunumeric.mod</span></code></a></p></td>
 <td><p>Yes</p></td>
 <td><p>Yes</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.modf.html#numpy.modf" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.modf</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.modf.html#numpy.modf" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.modf</span></code></a></p></td>
 <td><p>-</p></td>
 <td></td>
 <td></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.multiply.html#numpy.multiply" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.multiply</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.multiply.html#numpy.multiply" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.multiply</span></code></a></p></td>
 <td><p><a class="reference internal" href="../api/generated/cunumeric.multiply.html#cunumeric.multiply" title="cunumeric.multiply"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cunumeric.multiply</span></code></a></p></td>
 <td><p>Yes</p></td>
 <td><p>Yes</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.negative.html#numpy.negative" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.negative</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.negative.html#numpy.negative" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.negative</span></code></a></p></td>
 <td><p><a class="reference internal" href="../api/generated/cunumeric.negative.html#cunumeric.negative" title="cunumeric.negative"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cunumeric.negative</span></code></a></p></td>
 <td><p>Yes</p></td>
 <td><p>Yes</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.nextafter.html#numpy.nextafter" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.nextafter</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.nextafter.html#numpy.nextafter" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.nextafter</span></code></a></p></td>
 <td><p><a class="reference internal" href="../api/generated/cunumeric.nextafter.html#cunumeric.nextafter" title="cunumeric.nextafter"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cunumeric.nextafter</span></code></a></p></td>
 <td><p>Yes</p></td>
 <td><p>Yes</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.not_equal.html#numpy.not_equal" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.not_equal</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.not_equal.html#numpy.not_equal" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.not_equal</span></code></a></p></td>
 <td><p><a class="reference internal" href="../api/generated/cunumeric.not_equal.html#cunumeric.not_equal" title="cunumeric.not_equal"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cunumeric.not_equal</span></code></a></p></td>
 <td><p>Yes</p></td>
 <td><p>Yes</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.positive.html#numpy.positive" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.positive</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.positive.html#numpy.positive" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.positive</span></code></a></p></td>
 <td><p><a class="reference internal" href="../api/generated/cunumeric.positive.html#cunumeric.positive" title="cunumeric.positive"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cunumeric.positive</span></code></a></p></td>
 <td><p>Yes</p></td>
 <td><p>Yes</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.power.html#numpy.power" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.power</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.power.html#numpy.power" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.power</span></code></a></p></td>
 <td><p><a class="reference internal" href="../api/generated/cunumeric.power.html#cunumeric.power" title="cunumeric.power"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cunumeric.power</span></code></a></p></td>
 <td><p>Yes</p></td>
 <td><p>Yes</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.rad2deg.html#numpy.rad2deg" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.rad2deg</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.rad2deg.html#numpy.rad2deg" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.rad2deg</span></code></a></p></td>
 <td><p><a class="reference internal" href="../api/generated/cunumeric.rad2deg.html#cunumeric.rad2deg" title="cunumeric.rad2deg"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cunumeric.rad2deg</span></code></a></p></td>
 <td><p>Yes</p></td>
 <td><p>Yes</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.radians.html#numpy.radians" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.radians</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.radians.html#numpy.radians" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.radians</span></code></a></p></td>
 <td><p><a class="reference internal" href="../api/generated/cunumeric.radians.html#cunumeric.radians" title="cunumeric.radians"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cunumeric.radians</span></code></a></p></td>
 <td><p>Yes</p></td>
 <td><p>Yes</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.reciprocal.html#numpy.reciprocal" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.reciprocal</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.reciprocal.html#numpy.reciprocal" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.reciprocal</span></code></a></p></td>
 <td><p><a class="reference internal" href="../api/generated/cunumeric.reciprocal.html#cunumeric.reciprocal" title="cunumeric.reciprocal"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cunumeric.reciprocal</span></code></a></p></td>
 <td><p>Yes</p></td>
 <td><p>Yes</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.remainder.html#numpy.remainder" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.remainder</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.remainder.html#numpy.remainder" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.remainder</span></code></a></p></td>
 <td><p><a class="reference internal" href="../api/generated/cunumeric.remainder.html#cunumeric.remainder" title="cunumeric.remainder"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cunumeric.remainder</span></code></a></p></td>
 <td><p>Yes</p></td>
 <td><p>Yes</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.right_shift.html#numpy.right_shift" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.right_shift</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.right_shift.html#numpy.right_shift" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.right_shift</span></code></a></p></td>
 <td><p><a class="reference internal" href="../api/generated/cunumeric.right_shift.html#cunumeric.right_shift" title="cunumeric.right_shift"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cunumeric.right_shift</span></code></a></p></td>
 <td><p>Yes</p></td>
 <td><p>Yes</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.rint.html#numpy.rint" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.rint</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.rint.html#numpy.rint" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.rint</span></code></a></p></td>
 <td><p><a class="reference internal" href="../api/generated/cunumeric.rint.html#cunumeric.rint" title="cunumeric.rint"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cunumeric.rint</span></code></a></p></td>
 <td><p>Yes</p></td>
 <td><p>Yes</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.sign.html#numpy.sign" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.sign</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.sign.html#numpy.sign" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.sign</span></code></a></p></td>
 <td><p><a class="reference internal" href="../api/generated/cunumeric.sign.html#cunumeric.sign" title="cunumeric.sign"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cunumeric.sign</span></code></a></p></td>
 <td><p>Yes</p></td>
 <td><p>Yes</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.signbit.html#numpy.signbit" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.signbit</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.signbit.html#numpy.signbit" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.signbit</span></code></a></p></td>
 <td><p><a class="reference internal" href="../api/generated/cunumeric.signbit.html#cunumeric.signbit" title="cunumeric.signbit"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cunumeric.signbit</span></code></a></p></td>
 <td><p>Yes</p></td>
 <td><p>Yes</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.sin.html#numpy.sin" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.sin</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.sin.html#numpy.sin" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.sin</span></code></a></p></td>
 <td><p><a class="reference internal" href="../api/generated/cunumeric.sin.html#cunumeric.sin" title="cunumeric.sin"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cunumeric.sin</span></code></a></p></td>
 <td><p>Yes</p></td>
 <td><p>Yes</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.sinh.html#numpy.sinh" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.sinh</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.sinh.html#numpy.sinh" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.sinh</span></code></a></p></td>
 <td><p><a class="reference internal" href="../api/generated/cunumeric.sinh.html#cunumeric.sinh" title="cunumeric.sinh"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cunumeric.sinh</span></code></a></p></td>
 <td><p>Yes</p></td>
 <td><p>Yes</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.spacing.html#numpy.spacing" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.spacing</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.spacing.html#numpy.spacing" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.spacing</span></code></a></p></td>
 <td><p>-</p></td>
 <td></td>
 <td></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.sqrt.html#numpy.sqrt" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.sqrt</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.sqrt.html#numpy.sqrt" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.sqrt</span></code></a></p></td>
 <td><p><a class="reference internal" href="../api/generated/cunumeric.sqrt.html#cunumeric.sqrt" title="cunumeric.sqrt"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cunumeric.sqrt</span></code></a></p></td>
 <td><p>Yes</p></td>
 <td><p>Yes</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.square.html#numpy.square" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.square</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.square.html#numpy.square" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.square</span></code></a></p></td>
 <td><p><a class="reference internal" href="../api/generated/cunumeric.square.html#cunumeric.square" title="cunumeric.square"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cunumeric.square</span></code></a></p></td>
 <td><p>Yes</p></td>
 <td><p>Yes</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.subtract.html#numpy.subtract" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.subtract</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.subtract.html#numpy.subtract" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.subtract</span></code></a></p></td>
 <td><p><a class="reference internal" href="../api/generated/cunumeric.subtract.html#cunumeric.subtract" title="cunumeric.subtract"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cunumeric.subtract</span></code></a></p></td>
 <td><p>Yes</p></td>
 <td><p>Yes</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.tan.html#numpy.tan" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.tan</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.tan.html#numpy.tan" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.tan</span></code></a></p></td>
 <td><p><a class="reference internal" href="../api/generated/cunumeric.tan.html#cunumeric.tan" title="cunumeric.tan"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cunumeric.tan</span></code></a></p></td>
 <td><p>Yes</p></td>
 <td><p>Yes</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.tanh.html#numpy.tanh" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.tanh</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.tanh.html#numpy.tanh" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.tanh</span></code></a></p></td>
 <td><p><a class="reference internal" href="../api/generated/cunumeric.tanh.html#cunumeric.tanh" title="cunumeric.tanh"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cunumeric.tanh</span></code></a></p></td>
 <td><p>Yes</p></td>
 <td><p>Yes</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.true_divide.html#numpy.true_divide" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.true_divide</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.true_divide.html#numpy.true_divide" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.true_divide</span></code></a></p></td>
 <td><p><a class="reference internal" href="../api/generated/cunumeric.true_divide.html#cunumeric.true_divide" title="cunumeric.true_divide"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cunumeric.true_divide</span></code></a></p></td>
 <td><p>Yes</p></td>
 <td><p>Yes</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.trunc.html#numpy.trunc" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.trunc</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.trunc.html#numpy.trunc" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.trunc</span></code></a></p></td>
 <td><p><a class="reference internal" href="../api/generated/cunumeric.trunc.html#cunumeric.trunc" title="cunumeric.trunc"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cunumeric.trunc</span></code></a></p></td>
 <td><p>Yes</p></td>
 <td><p>Yes</p></td>
 </tr>
 </tbody>
 </table>
-</div>
-<div class="section" id="multi-dimensional-array">
-<h3>Multi-Dimensional Array<a class="headerlink" href="#multi-dimensional-array" title="Permalink to this headline">#</a></h3>
-<table class="autosummary longtable table autosummary">
+</section>
+<section id="multi-dimensional-array">
+<h3>Multi-Dimensional Array<a class="headerlink" href="#multi-dimensional-array" title="Permalink to this headline">¶</a></h3>
+<table class="longtable table autosummary">
 <colgroup>
 <col style="width: 10%" />
 <col style="width: 90%" />
@@ -2436,10 +2467,10 @@ We welcome contributions for these functions.</p>
 </tr>
 </tbody>
 </table>
-</div>
-<div class="section" id="linear-algebra">
-<h3>Linear Algebra<a class="headerlink" href="#linear-algebra" title="Permalink to this headline">#</a></h3>
-<table class="autosummary longtable table autosummary">
+</section>
+<section id="linear-algebra">
+<h3>Linear Algebra<a class="headerlink" href="#linear-algebra" title="Permalink to this headline">¶</a></h3>
+<table class="longtable table autosummary">
 <colgroup>
 <col style="width: 10%" />
 <col style="width: 90%" />
@@ -2564,10 +2595,10 @@ We welcome contributions for these functions.</p>
 </tr>
 </tbody>
 </table>
-</div>
-<div class="section" id="discrete-fourier-transform">
-<h3>Discrete Fourier Transform<a class="headerlink" href="#discrete-fourier-transform" title="Permalink to this headline">#</a></h3>
-<table class="autosummary longtable table autosummary">
+</section>
+<section id="discrete-fourier-transform">
+<h3>Discrete Fourier Transform<a class="headerlink" href="#discrete-fourier-transform" title="Permalink to this headline">¶</a></h3>
+<table class="longtable table autosummary">
 <colgroup>
 <col style="width: 10%" />
 <col style="width: 90%" />
@@ -2682,10 +2713,10 @@ We welcome contributions for these functions.</p>
 </tr>
 </tbody>
 </table>
-</div>
-<div class="section" id="random-sampling">
-<h3>Random Sampling<a class="headerlink" href="#random-sampling" title="Permalink to this headline">#</a></h3>
-<table class="autosummary longtable table autosummary">
+</section>
+<section id="random-sampling">
+<h3>Random Sampling<a class="headerlink" href="#random-sampling" title="Permalink to this headline">¶</a></h3>
+<table class="longtable table autosummary">
 <colgroup>
 <col style="width: 10%" />
 <col style="width: 90%" />
@@ -2965,9 +2996,61 @@ We welcome contributions for these functions.</p>
 </tr>
 </tbody>
 </table>
+</section>
+</section>
+<section id="measuring-api-coverage">
+<h2>Measuring API coverage<a class="headerlink" href="#measuring-api-coverage" title="Permalink to this headline">¶</a></h2>
+<p>When running applications that use cunumeric, various command line options may
+be used to generate coverage reports.</p>
+<section id="overall-coverage-report">
+<h3>Overall coverage report<a class="headerlink" href="#overall-coverage-report" title="Permalink to this headline">¶</a></h3>
+<p>The command line flag <code class="docutils literal notranslate"><span class="pre">-cunumeric:report:coverage</span></code> may be added to print an
+overall percentage of cunumeric coverage:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>legate test.py -cunumeric:report:coverage
+</pre></div>
 </div>
+<p>After execution completes, the percentage of NumPy API calls that were handled
+by cunumeric is printed:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cuNumeric</span> <span class="n">API</span> <span class="n">coverage</span><span class="p">:</span> <span class="mi">26</span><span class="o">/</span><span class="mi">26</span> <span class="p">(</span><span class="mf">100.0</span><span class="o">%</span><span class="p">)</span>
+</pre></div>
 </div>
+</section>
+<section id="detailed-coverage-report">
+<h3>Detailed coverage report<a class="headerlink" href="#detailed-coverage-report" title="Permalink to this headline">¶</a></h3>
+<p>The command line flag <code class="docutils literal notranslate"><span class="pre">-cunumeric:report:dump-csv</span></code> may be added to save a
+detailed coverage report:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>legate test.py -cunumeric:report:dump-csv out.csv
+</pre></div>
 </div>
+<p>After execution completes, a CSV file will be saved to the specified location
+(in this case <code class="docutils literal notranslate"><span class="pre">out.csv</span></code>). The file shows exactly what NumPy API functions
+were called, whether the are implemented by cunumeric, and the location of
+the call site:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">function_name</span><span class="p">,</span><span class="n">location</span><span class="p">,</span><span class="n">implemented</span>
+<span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">,</span><span class="n">tests</span><span class="o">/</span><span class="n">dot</span><span class="o">.</span><span class="n">py</span><span class="p">:</span><span class="mi">27</span><span class="p">,</span><span class="kc">True</span>
+<span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="o">.</span><span class="fm">__init__</span><span class="p">,</span><span class="n">tests</span><span class="o">/</span><span class="n">dot</span><span class="o">.</span><span class="n">py</span><span class="p">:</span><span class="mi">27</span><span class="p">,</span><span class="kc">True</span>
+<span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">,</span><span class="n">tests</span><span class="o">/</span><span class="n">dot</span><span class="o">.</span><span class="n">py</span><span class="p">:</span><span class="mi">28</span><span class="p">,</span><span class="kc">True</span>
+<span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="o">.</span><span class="fm">__init__</span><span class="p">,</span><span class="n">tests</span><span class="o">/</span><span class="n">dot</span><span class="o">.</span><span class="n">py</span><span class="p">:</span><span class="mi">28</span><span class="p">,</span><span class="kc">True</span>
+<span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="o">.</span><span class="n">dot</span><span class="p">,</span><span class="n">tests</span><span class="o">/</span><span class="n">dot</span><span class="o">.</span><span class="n">py</span><span class="p">:</span><span class="mi">31</span><span class="p">,</span><span class="kc">True</span>
+<span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="o">.</span><span class="fm">__init__</span><span class="p">,</span><span class="n">tests</span><span class="o">/</span><span class="n">dot</span><span class="o">.</span><span class="n">py</span><span class="p">:</span><span class="mi">31</span><span class="p">,</span><span class="kc">True</span>
+<span class="n">numpy</span><span class="o">.</span><span class="n">allclose</span><span class="p">,</span><span class="n">tests</span><span class="o">/</span><span class="n">dot</span><span class="o">.</span><span class="n">py</span><span class="p">:</span><span class="mi">33</span><span class="p">,</span><span class="kc">True</span>
+<span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="o">.</span><span class="fm">__init__</span><span class="p">,</span><span class="n">tests</span><span class="o">/</span><span class="n">dot</span><span class="o">.</span><span class="n">py</span><span class="p">:</span><span class="mi">33</span><span class="p">,</span><span class="kc">True</span>
+</pre></div>
+</div>
+</section>
+<section id="call-stack-reporting">
+<h3>Call stack reporting<a class="headerlink" href="#call-stack-reporting" title="Permalink to this headline">¶</a></h3>
+<p>The command line flag <code class="docutils literal notranslate"><span class="pre">-cunumeric:report:dump-callstack</span></code> may be added to
+include full call stack information in a CSV report:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>legate test.py -cunumeric:report:dump-callstack -cunumeric:report:dump-csv out.csv
+</pre></div>
+</div>
+<p>After execution completes, the CSV output file have full call stack
+information in the location column, with individual stack frames separated
+by pipe (<code class="docutils literal notranslate"><span class="pre">|</span></code>) characters:</p>
+</section>
+</section>
+</section>
 
 
               </div>
@@ -2997,9 +3080,8 @@ We welcome contributions for these functions.</p>
       </div>
     </div>
   
-  <!-- Scripts loaded after <body> so the DOM is not blocked -->
-  <script src="../_static/scripts/pydata-sphinx-theme.js?digest=1999514e3f237ded88cf"></script>
-<footer class="footer mt-5 mt-md-0">
+    <script src="../_static/scripts/pydata-sphinx-theme.js?digest=1999514e3f237ded88cf"></script>
+  <footer class="footer mt-5 mt-md-0">
   <div class="container">
     
     <div class="footer-item">
@@ -3010,7 +3092,7 @@ We welcome contributions for these functions.</p>
     
     <div class="footer-item">
       <p class="sphinx-version">
-Created using <a href="http://sphinx-doc.org/">Sphinx</a> 4.5.0.<br>
+Created using <a href="http://sphinx-doc.org/">Sphinx</a> 4.4.0.<br>
 </p>
     </div>
     

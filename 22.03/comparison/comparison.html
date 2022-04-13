@@ -4,28 +4,32 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
     <title>Comparison Table &#8212; cunumeric  documentation</title>
     
-  <!-- Loaded before other Sphinx assets -->
-  <link href="../_static/styles/theme.css?digest=1999514e3f237ded88cf" rel="stylesheet">
+    <link href="../_static/styles/theme.css?digest=1999514e3f237ded88cf" rel="stylesheet">
 <link href="../_static/styles/pydata-sphinx-theme.css?digest=1999514e3f237ded88cf" rel="stylesheet">
-
+  
     
-  <link rel="stylesheet"
-    href="../_static/vendor/fontawesome/5.13.0/css/all.min.css">
-  <link rel="preload" as="font" type="font/woff2" crossorigin
-    href="../_static/vendor/fontawesome/5.13.0/webfonts/fa-solid-900.woff2">
-  <link rel="preload" as="font" type="font/woff2" crossorigin
-    href="../_static/vendor/fontawesome/5.13.0/webfonts/fa-brands-400.woff2">
-
+    <link rel="stylesheet"
+      href="../_static/vendor/fontawesome/5.13.0/css/all.min.css">
+    <link rel="preload" as="font" type="font/woff2" crossorigin
+      href="../_static/vendor/fontawesome/5.13.0/webfonts/fa-solid-900.woff2">
+    <link rel="preload" as="font" type="font/woff2" crossorigin
+      href="../_static/vendor/fontawesome/5.13.0/webfonts/fa-brands-400.woff2">
+  
+    
+      
+  
+    
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/pydata-sphinx-theme.css" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css" />
     <link rel="stylesheet" type="text/css" href="../_static/params.css" />
     
-  <!-- Pre-loaded scripts that we'll load fully later -->
-  <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=1999514e3f237ded88cf">
-
+    <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=1999514e3f237ded88cf">
+  
     <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
     <script src="../_static/jquery.js"></script>
     <script src="../_static/underscore.js"></script>
@@ -44,7 +48,7 @@
     <!-- Google Analytics -->
     
   </head>
-  <body data-spy="scroll" data-target="#bd-toc-nav" data-offset="60">
+  <body data-spy="scroll" data-target="#bd-toc-nav" data-offset="80">
     
     <div class="container-fluid" id="banner"></div>
 
@@ -147,7 +151,7 @@
               
               <div class="toc-item">
                 
-<div class="tocsection onthispage mt-5 pt-1 pb-3">
+<div class="tocsection onthispage pt-5 pb-3">
     <i class="fas fa-list"></i> On this page
 </div>
 
@@ -185,6 +189,28 @@
    </li>
   </ul>
  </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#measuring-api-coverage">
+   Measuring API coverage
+  </a>
+  <ul class="nav section-nav flex-column">
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#overall-coverage-report">
+     Overall coverage report
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#detailed-coverage-report">
+     Detailed coverage report
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#call-stack-reporting">
+     Call stack reporting
+    </a>
+   </li>
+  </ul>
+ </li>
 </ul>
 
 </nav>
@@ -206,16 +232,16 @@
               
               <div>
                 
-  <div class="section" id="comparison-table">
-<h1>Comparison Table<a class="headerlink" href="#comparison-table" title="Permalink to this headline">#</a></h1>
+  <section id="comparison-table">
+<h1>Comparison Table<a class="headerlink" href="#comparison-table" title="Permalink to this headline">¶</a></h1>
 <p>Here is a list of NumPy APIs and corresponding cuNumeric implementations.</p>
 <p><code class="docutils literal notranslate"><span class="pre">-</span></code> in cuNumeric column denotes that cuNumeric implementation is not provided yet.
 We welcome contributions for these functions.</p>
-<div class="section" id="numpy-vs-cunumeric-apis">
-<h2>NumPy vs cuNumeric APIs<a class="headerlink" href="#numpy-vs-cunumeric-apis" title="Permalink to this headline">#</a></h2>
-<div class="section" id="module-level">
-<h3>Module-Level<a class="headerlink" href="#module-level" title="Permalink to this headline">#</a></h3>
-<table class="autosummary longtable table autosummary">
+<section id="numpy-vs-cunumeric-apis">
+<h2>NumPy vs cuNumeric APIs<a class="headerlink" href="#numpy-vs-cunumeric-apis" title="Permalink to this headline">¶</a></h2>
+<section id="module-level">
+<h3>Module-Level<a class="headerlink" href="#module-level" title="Permalink to this headline">¶</a></h3>
+<table class="longtable table autosummary">
 <colgroup>
 <col style="width: 10%" />
 <col style="width: 90%" />
@@ -2110,10 +2136,10 @@ We welcome contributions for these functions.</p>
 </tr>
 </tbody>
 </table>
-</div>
-<div class="section" id="multi-dimensional-array">
-<h3>Multi-Dimensional Array<a class="headerlink" href="#multi-dimensional-array" title="Permalink to this headline">#</a></h3>
-<table class="autosummary longtable table autosummary">
+</section>
+<section id="multi-dimensional-array">
+<h3>Multi-Dimensional Array<a class="headerlink" href="#multi-dimensional-array" title="Permalink to this headline">¶</a></h3>
+<table class="longtable table autosummary">
 <colgroup>
 <col style="width: 10%" />
 <col style="width: 90%" />
@@ -2403,10 +2429,10 @@ We welcome contributions for these functions.</p>
 </tr>
 </tbody>
 </table>
-</div>
-<div class="section" id="linear-algebra">
-<h3>Linear Algebra<a class="headerlink" href="#linear-algebra" title="Permalink to this headline">#</a></h3>
-<table class="autosummary longtable table autosummary">
+</section>
+<section id="linear-algebra">
+<h3>Linear Algebra<a class="headerlink" href="#linear-algebra" title="Permalink to this headline">¶</a></h3>
+<table class="longtable table autosummary">
 <colgroup>
 <col style="width: 10%" />
 <col style="width: 90%" />
@@ -2531,10 +2557,10 @@ We welcome contributions for these functions.</p>
 </tr>
 </tbody>
 </table>
-</div>
-<div class="section" id="discrete-fourier-transform">
-<h3>Discrete Fourier Transform<a class="headerlink" href="#discrete-fourier-transform" title="Permalink to this headline">#</a></h3>
-<table class="autosummary longtable table autosummary">
+</section>
+<section id="discrete-fourier-transform">
+<h3>Discrete Fourier Transform<a class="headerlink" href="#discrete-fourier-transform" title="Permalink to this headline">¶</a></h3>
+<table class="longtable table autosummary">
 <colgroup>
 <col style="width: 10%" />
 <col style="width: 90%" />
@@ -2649,10 +2675,10 @@ We welcome contributions for these functions.</p>
 </tr>
 </tbody>
 </table>
-</div>
-<div class="section" id="random-sampling">
-<h3>Random Sampling<a class="headerlink" href="#random-sampling" title="Permalink to this headline">#</a></h3>
-<table class="autosummary longtable table autosummary">
+</section>
+<section id="random-sampling">
+<h3>Random Sampling<a class="headerlink" href="#random-sampling" title="Permalink to this headline">¶</a></h3>
+<table class="longtable table autosummary">
 <colgroup>
 <col style="width: 10%" />
 <col style="width: 90%" />
@@ -2932,9 +2958,61 @@ We welcome contributions for these functions.</p>
 </tr>
 </tbody>
 </table>
+</section>
+</section>
+<section id="measuring-api-coverage">
+<h2>Measuring API coverage<a class="headerlink" href="#measuring-api-coverage" title="Permalink to this headline">¶</a></h2>
+<p>When running applications that use cunumeric, various command line options may
+be used to generate coverage reports.</p>
+<section id="overall-coverage-report">
+<h3>Overall coverage report<a class="headerlink" href="#overall-coverage-report" title="Permalink to this headline">¶</a></h3>
+<p>The command line flag <code class="docutils literal notranslate"><span class="pre">-cunumeric:report:coverage</span></code> may be added to print an
+overall percentage of cunumeric coverage:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>legate test.py -cunumeric:report:coverage
+</pre></div>
 </div>
+<p>After execution completes, the percentage of NumPy API calls that were handled
+by cunumeric is printed:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cuNumeric</span> <span class="n">API</span> <span class="n">coverage</span><span class="p">:</span> <span class="mi">26</span><span class="o">/</span><span class="mi">26</span> <span class="p">(</span><span class="mf">100.0</span><span class="o">%</span><span class="p">)</span>
+</pre></div>
 </div>
+</section>
+<section id="detailed-coverage-report">
+<h3>Detailed coverage report<a class="headerlink" href="#detailed-coverage-report" title="Permalink to this headline">¶</a></h3>
+<p>The command line flag <code class="docutils literal notranslate"><span class="pre">-cunumeric:report:dump-csv</span></code> may be added to save a
+detailed coverage report:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>legate test.py -cunumeric:report:dump-csv out.csv
+</pre></div>
 </div>
+<p>After execution completes, a CSV file will be saved to the specified location
+(in this case <code class="docutils literal notranslate"><span class="pre">out.csv</span></code>). The file shows exactly what NumPy API functions
+were called, whether the are implemented by cunumeric, and the location of
+the call site:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">function_name</span><span class="p">,</span><span class="n">location</span><span class="p">,</span><span class="n">implemented</span>
+<span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">,</span><span class="n">tests</span><span class="o">/</span><span class="n">dot</span><span class="o">.</span><span class="n">py</span><span class="p">:</span><span class="mi">27</span><span class="p">,</span><span class="kc">True</span>
+<span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="o">.</span><span class="fm">__init__</span><span class="p">,</span><span class="n">tests</span><span class="o">/</span><span class="n">dot</span><span class="o">.</span><span class="n">py</span><span class="p">:</span><span class="mi">27</span><span class="p">,</span><span class="kc">True</span>
+<span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">,</span><span class="n">tests</span><span class="o">/</span><span class="n">dot</span><span class="o">.</span><span class="n">py</span><span class="p">:</span><span class="mi">28</span><span class="p">,</span><span class="kc">True</span>
+<span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="o">.</span><span class="fm">__init__</span><span class="p">,</span><span class="n">tests</span><span class="o">/</span><span class="n">dot</span><span class="o">.</span><span class="n">py</span><span class="p">:</span><span class="mi">28</span><span class="p">,</span><span class="kc">True</span>
+<span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="o">.</span><span class="n">dot</span><span class="p">,</span><span class="n">tests</span><span class="o">/</span><span class="n">dot</span><span class="o">.</span><span class="n">py</span><span class="p">:</span><span class="mi">31</span><span class="p">,</span><span class="kc">True</span>
+<span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="o">.</span><span class="fm">__init__</span><span class="p">,</span><span class="n">tests</span><span class="o">/</span><span class="n">dot</span><span class="o">.</span><span class="n">py</span><span class="p">:</span><span class="mi">31</span><span class="p">,</span><span class="kc">True</span>
+<span class="n">numpy</span><span class="o">.</span><span class="n">allclose</span><span class="p">,</span><span class="n">tests</span><span class="o">/</span><span class="n">dot</span><span class="o">.</span><span class="n">py</span><span class="p">:</span><span class="mi">33</span><span class="p">,</span><span class="kc">True</span>
+<span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="o">.</span><span class="fm">__init__</span><span class="p">,</span><span class="n">tests</span><span class="o">/</span><span class="n">dot</span><span class="o">.</span><span class="n">py</span><span class="p">:</span><span class="mi">33</span><span class="p">,</span><span class="kc">True</span>
+</pre></div>
+</div>
+</section>
+<section id="call-stack-reporting">
+<h3>Call stack reporting<a class="headerlink" href="#call-stack-reporting" title="Permalink to this headline">¶</a></h3>
+<p>The command line flag <code class="docutils literal notranslate"><span class="pre">-cunumeric:report:dump-callstack</span></code> may be added to
+include full call stack information in a CSV report:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>legate test.py -cunumeric:report:dump-callstack -cunumeric:report:dump-csv out.csv
+</pre></div>
+</div>
+<p>After execution completes, the CSV output file have full call stack
+information in the location column, with individual stack frames separated
+by pipe (<code class="docutils literal notranslate"><span class="pre">|</span></code>) characters:</p>
+</section>
+</section>
+</section>
 
 
               </div>
@@ -2964,9 +3042,8 @@ We welcome contributions for these functions.</p>
       </div>
     </div>
   
-  <!-- Scripts loaded after <body> so the DOM is not blocked -->
-  <script src="../_static/scripts/pydata-sphinx-theme.js?digest=1999514e3f237ded88cf"></script>
-<footer class="footer mt-5 mt-md-0">
+    <script src="../_static/scripts/pydata-sphinx-theme.js?digest=1999514e3f237ded88cf"></script>
+  <footer class="footer mt-5 mt-md-0">
   <div class="container">
     
     <div class="footer-item">
@@ -2977,7 +3054,7 @@ We welcome contributions for these functions.</p>
     
     <div class="footer-item">
       <p class="sphinx-version">
-Created using <a href="http://sphinx-doc.org/">Sphinx</a> 4.5.0.<br>
+Created using <a href="http://sphinx-doc.org/">Sphinx</a> 4.4.0.<br>
 </p>
     </div>
     
