@@ -158,7 +158,9 @@ class Runtime(object):
         except ValueError:
             self.report_dump_csv = None
 
-    def record_api_call(self, name, location, implemented):
+    def record_api_call(
+        self, name: str, location: str, implemented: bool
+    ) -> None:
         assert self.report_coverage
         self.api_calls.append((name, location, implemented))
 

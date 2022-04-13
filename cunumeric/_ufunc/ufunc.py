@@ -14,11 +14,9 @@
 #
 
 import numpy as np
-from cunumeric.array import (
-    broadcast_shapes,
-    convert_to_cunumeric_ndarray,
-    ndarray,
-)
+
+from ..array import convert_to_cunumeric_ndarray, ndarray
+from ..utils import broadcast_shapes
 
 _UNARY_DOCSTRING_TEMPLATE = """{}
 
