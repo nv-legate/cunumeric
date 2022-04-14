@@ -27,7 +27,7 @@ struct Cumsum_gImplBody;
 template <VariantKind KIND>
 struct Cumsum_gImpl {
   template <LegateTypeCode CODE, int DIM>
-  void operator()(Cumsum_gArgs& args) const
+  void operator()(Cumsum_gArgs& args, const DomainPoint& partition_index) const
   {
 
     using VAL = legate_type_of<CODE>;
@@ -45,7 +45,7 @@ struct Cumsum_gImpl {
     auto out = args.out.read_write_accessor<VAL, DIM>(out_rect);
     auto sum_vals = args.sum_vals.read_accessor<VAL, DIM>(sum_vals_rect);
 
-    Cumsum_gImplBody<KIND, CODE, DIM>()(out, sum_vals, out_pitches, out_rect, sum_vals_pitches, sum_vals_rect);
+    Cumsum_gImplBody<KIND, CODE, DIM>()(out, sum_vals, out_pitches, out_rect, sum_vals_pitches, sum_vals_rect, partition_index);
 
   }
 };

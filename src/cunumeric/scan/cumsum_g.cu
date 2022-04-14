@@ -38,7 +38,7 @@ struct Cumsum_gImplBody<VariantKind::GPU, CODE, DIM> {
     __host__ __device__
     void operator()(VAL &x)
     {
-      x += V;
+      x = x + V;
     }
   };
   
@@ -48,7 +48,7 @@ struct Cumsum_gImplBody<VariantKind::GPU, CODE, DIM> {
                     const Rect<DIM>& out_rect,
                     const Pitches<DIM - 1>& sum_vals_pitches,
                     const Rect<DIM>& sum_vals_rect,
-		    const Point<DIM>& partition_index)
+		    const DomainPoint& partition_index)
   {
     auto outptr = out.ptr(out_rect.lo);
     auto volume = out_rect.volume();
