@@ -354,6 +354,13 @@ def advanced_indexing():
     x_num[indx0_num, indx1_num] = 2.0
     assert np.array_equal(x, x_num)
 
+    # shape mismatch:
+    indx = np.ones((2, 2, 2), dtype=int)
+    indx_num = num.array(indx)
+    res = x[indx]
+    res_num = x_num[indx_num]
+    assert np.array_equal(res, res_num)
+
     # use case when advanced indexing is called on a transformed array:
     print("advanced indexing test 11")
     z = z[:, 1:]

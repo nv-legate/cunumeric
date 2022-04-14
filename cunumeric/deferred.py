@@ -305,10 +305,6 @@ class DeferredArray(NumPyThunk):
         result = np.frombuffer(buf, dtype=self.dtype, count=1)
         return result.reshape(())
 
-    def broadcast_shapes(self, shapes):
-        arrays = [np.empty(x, dtype=[]) for x in shapes]
-        return np.broadcast(*arrays).shape
-
     def _zip_indices(self, start_index, arrays):
         if not isinstance(arrays, tuple):
             raise TypeError("zip_indices expects tuple of arrays")
@@ -326,7 +322,8 @@ class DeferredArray(NumPyThunk):
         # find a broadcasted shape for all arrays passed as indices
         shapes = tuple(a.shape for a in arrays)
         if len(arrays) > 1:
-            b_shape = self.broadcast_shapes(shapes)
+            # TODO: replace with cunumeric.broadcast_shapes, when available
+            b_shape = np.broadcast_shapes(*shapes)
         else:
             b_shape = arrays[0].shape
 
@@ -431,7 +428,7 @@ class DeferredArray(NumPyThunk):
 
         return output_arr
 
-    def copy_store(self, store):
+    def _copy_store(self, store):
         store_to_copy = DeferredArray(
             self.runtime,
             base=store,
@@ -461,7 +458,6 @@ class DeferredArray(NumPyThunk):
             transpose_indices = tuple()
             # since we can't call Copy operation on transformed Store, after
             # the transformation, we need to return a copy
-            copy_needed = False
             tuple_of_arrays = ()
             index_map = []
 
@@ -477,7 +473,6 @@ class DeferredArray(NumPyThunk):
                     last_index = dim
 
             if transpose_needed:
-                copy_needed = True
                 start_index = 0
                 post_indices = tuple(
                     i for i in range(store.ndim) if i not in transpose_indices
@@ -499,14 +494,10 @@ class DeferredArray(NumPyThunk):
                         k += store.shape[dim + shift]
                     store = store.project(dim + shift, k)
                     shift -= 1
-                    copy_needed = True
                 elif k is np.newaxis:
                     store = store.promote(dim + shift, 1)
-                    copy_needed = True
                 elif isinstance(k, slice):
                     store = store.slice(dim + shift, k)
-                    if k != slice(None):
-                        copy_needed = True
                 elif isinstance(k, NumPyThunk):
                     if k.dtype == np.bool:
                         if k.shape[0] != store.shape[dim]:
@@ -525,22 +516,21 @@ class DeferredArray(NumPyThunk):
                         "Unsupported entry type passed to advanced",
                         "indexing operation",
                     )
-            if copy_needed or (not store._transform.bottom):
+            if store.transformed:
                 # after store is transformed we need to to return a copy of
                 # the store since Copy operation can't be done on
                 # the store with transformation
-                rhs, store = self.copy_store(store)
+                rhs, store = self._copy_store(store)
         else:
             assert isinstance(key, DeferredArray)
-            if not store._transform.bottom:
-                rhs, store = self.copy_store(store)
-            # the use case when index array ndim >1 and input array ndim ==1
+            # the use case when index array ndim >input array ndim
             if key.ndim > store.ndim:
-                if store.ndim != 1:
-                    raise ValueError("Advance indexing dimention mismatch")
                 diff = store.ndim - key.ndim
                 for i in range(diff):
                     store = store.promote(i + 1, store.shape[0])
+
+            if store.transformed:
+                rhs, store = self._copy_store(store)
 
             # Handle the boolean array case
             if key.dtype == np.bool:
@@ -566,14 +556,14 @@ class DeferredArray(NumPyThunk):
                         key.base, axes=tuple(range(1, len(key.shape)))
                     )
                     task.execute()
-                    return False, store, out
+                    return False, rhs, out
                 else:
                     # FIXME: replace `nonzero` case with the task with
                     # output regions when ND output regions are available
                     tuple_of_arrays = key.nonzero()
             elif key.ndim < store.ndim:
                 output_arr = rhs._zip_indices(start_index, (key,))
-                return True, store, output_arr
+                return True, rhs, output_arr
             else:
                 tuple_of_arrays = (rhs.runtime.to_deferred_array(key),)
 
@@ -582,9 +572,9 @@ class DeferredArray(NumPyThunk):
 
         if len(tuple_of_arrays) <= rhs.ndim and rhs.ndim > 1:
             output_arr = rhs._zip_indices(start_index, tuple_of_arrays)
-            return True, store, output_arr
+            return True, rhs, output_arr
         elif len(tuple_of_arrays) == 1 and rhs.ndim == 1:
-            return True, store, tuple_of_arrays[0]
+            return True, rhs, tuple_of_arrays[0]
         else:
             raise ValueError("Advance indexing dimention mismatch")
 
@@ -648,7 +638,8 @@ class DeferredArray(NumPyThunk):
         # Check to see if this is advanced indexing or not
         if is_advanced_indexing(key):
             # Create the indexing array
-            copy_needed, store, index_array = self._create_indexing_array(key)
+            copy_needed, rhs, index_array = self._create_indexing_array(key)
+            store = rhs.base
             if copy_needed:
                 # Create a new array to be the result
                 result = self.runtime.create_empty_thunk(
@@ -689,28 +680,9 @@ class DeferredArray(NumPyThunk):
         # Check to see if this is advanced indexing or not
         if is_advanced_indexing(key):
             # Create the indexing array
-            copy_needed, store, index_array = self._create_indexing_array(
+            copy_needed, lhs, index_array = self._create_indexing_array(
                 key, True
             )
-            if self.base.transform.bottom:
-                lhs = self
-            else:
-                # if  store is transformed we need to to return a copy of
-                # the store since Copy operation can't be done on
-                # the store with transformation
-                store_to_copy = DeferredArray(
-                    self.runtime,
-                    base=store,
-                    dtype=self.dtype,
-                )
-                store_copy = self.runtime.create_empty_thunk(
-                    store_to_copy.shape,
-                    self.dtype,
-                    inputs=[store_to_copy],
-                )
-                store_copy.copy(store_to_copy, deep=True)
-                lhs = store_copy
-
             if rhs.ndim == 0:
                 rhs_tmp = self.runtime.create_empty_thunk(
                     index_array.base.shape,
@@ -726,7 +698,7 @@ class DeferredArray(NumPyThunk):
             else:
                 if rhs.shape != index_array.shape:
                     rhs_tmp = rhs._broadcast(index_array.base.shape)
-                    rhs_tmp, rhs = rhs.copy_store(rhs_tmp)
+                    rhs_tmp, rhs = rhs._copy_store(rhs_tmp)
                 else:
                     rhs = rhs.base
 
