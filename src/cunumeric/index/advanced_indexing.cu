@@ -138,7 +138,7 @@ struct AdvancedIndexingImplBody<VariantKind::GPU, CODE, DIM1, DIM2> {
   {
 #ifdef DEBUG_CUNUMERIC
     // in this case shapes for input and index arrays  should be the same
-    assert(rect_input == rect_index);
+    assert(Domain(rect_input) == Domain(rect_index));
 #endif
     size_t size           = 0;
     const bool* index_ptr = index.ptr(rect_index);

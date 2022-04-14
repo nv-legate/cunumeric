@@ -77,7 +77,7 @@ struct AdvancedIndexingImplBody<VariantKind::CPU, CODE, DIM1, DIM2> {
   {
 #ifdef DEBUG_CUNUMERIC
     // in this case shapes for input and index arrays  should be the same
-    assert(rect_input == rect_index);
+    assert(Domain(rect_input) == Domain(rect_index));
 #endif
     const size_t volume = rect_index.volume();
     size_t size         = 0;

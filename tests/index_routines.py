@@ -320,6 +320,23 @@ def advanced_indexing():
     # same daya in the original array is not guaranteed, so we can't call
     # assert np.array_equal(y, y_num) here
 
+    index = np.array([1, 4, 3, 2, 0, 5])
+    index_num = num.array(index)
+    y[index] = np.array([1, 2, 3, 4, 5, 6])
+    y_num[index_num] = num.array([1, 2, 3, 4, 5, 6])
+    print(y)
+    print(y_num)
+    assert np.array_equal(y, y_num)
+
+    # the case when broadcast is needed:
+    index = np.array([[1, 4, 3], [2, 0, 5]])
+    index_num = num.array(index)
+    y[index] = np.array([[1, 2, 3]])
+    y_num[index_num] = num.array([[1, 2, 3]])
+    print(y)
+    print(y_num)
+    assert np.array_equal(y, y_num)
+
     # 2D test
     x = np.array(
         [

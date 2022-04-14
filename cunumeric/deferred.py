@@ -531,7 +531,7 @@ class DeferredArray(NumPyThunk):
                 # the store with transformation
                 rhs, store = self.copy_store(store)
         else:
-            assert isinstance(key, NumPyThunk)
+            assert isinstance(key, DeferredArray)
             if not store._transform.bottom:
                 rhs, store = self.copy_store(store)
             # the use case when index array ndim >1 and input array ndim ==1
@@ -688,41 +688,34 @@ class DeferredArray(NumPyThunk):
         assert self.dtype == rhs.dtype
         # Check to see if this is advanced indexing or not
         if is_advanced_indexing(key):
-            view_copy = False
             # Create the indexing array
             copy_needed, store, index_array = self._create_indexing_array(
                 key, True
             )
-            if copy_needed:
-                if self.base.transform.bottom:
-                    lhs = self
-                else:
-                    # if  store is transformed we need to to return a copy of
-                    # the store since Copy operation can't be done on
-                    # the store with transformation
-                    store_to_copy = DeferredArray(
-                        self.runtime,
-                        base=store,
-                        dtype=self.dtype,
-                    )
-                    store_copy = self.runtime.create_empty_thunk(
-                        store_to_copy.shape,
-                        self.dtype,
-                        inputs=[store_to_copy],
-                    )
-                    store_copy.copy(store_to_copy, deep=True)
-
-                    lhs = store_copy
-                    view_copy = True
-            else:
+            if self.base.transform.bottom:
                 lhs = self
-                view_copy = False
+            else:
+                # if  store is transformed we need to to return a copy of
+                # the store since Copy operation can't be done on
+                # the store with transformation
+                store_to_copy = DeferredArray(
+                    self.runtime,
+                    base=store,
+                    dtype=self.dtype,
+                )
+                store_copy = self.runtime.create_empty_thunk(
+                    store_to_copy.shape,
+                    self.dtype,
+                    inputs=[store_to_copy],
+                )
+                store_copy.copy(store_to_copy, deep=True)
+                lhs = store_copy
 
             if rhs.ndim == 0:
                 rhs_tmp = self.runtime.create_empty_thunk(
                     index_array.base.shape,
                     self.dtype,
-                    inputs=[index_array],
+                    inputs=[],
                 )
                 task = self.context.create_task(CuNumericOpCode.FILL)
                 task.add_output(rhs_tmp.base)
@@ -732,7 +725,8 @@ class DeferredArray(NumPyThunk):
                 rhs = rhs_tmp.base
             else:
                 if rhs.shape != index_array.shape:
-                    rhs = rhs._broadcast(index_array.base.shape)
+                    rhs_tmp = rhs._broadcast(index_array.base.shape)
+                    rhs_tmp, rhs = rhs.copy_store(rhs_tmp)
                 else:
                     rhs = rhs.base
 
@@ -742,7 +736,7 @@ class DeferredArray(NumPyThunk):
             copy.add_output(lhs.base)
             copy.execute()
 
-            if view_copy:
+            if lhs is not self:
                 self.copy(lhs, deep=True)
 
         else:
