@@ -2131,7 +2131,7 @@ class ndarray:
         if user_sizes:
             for idx, ax in enumerate(fft_axes):
                 fft_s[ax] = s[idx]
-        return fft_axes, fft_s
+        return np.asarray(fft_axes), np.asarray(fft_s)
 
     def fft(self, s, axes, kind, direction, norm):
         """a.fft(s, axes, kind, direction, norm)
@@ -2166,21 +2166,21 @@ class ndarray:
 
         # Shape
         fft_input = self
-        fft_output_shape = self.shape
+        fft_input_shape = np.asarray(list(self.shape))
+        fft_output_shape = np.asarray(list(self.shape))
         if user_sizes:
             # Zero padding if any of the user sizes is larger than input
             zeropad_input = self
-            if np.any(np.greater(fft_s, fft_input.shape)):
+            if np.any(np.greater(fft_s, fft_input_shape)):
                 # Create array with superset shape, fill with zeros,
                 # and copy input in
-                max_size = tuple(np.maximum(fft_s, fft_input.shape))
+                max_size = tuple(np.maximum(fft_s, fft_input_shape))
                 zeropad_input = ndarray(shape=max_size, dtype=fft_input.dtype)
                 zeropad_input.fill(0)
                 slices = tuple(slice(0, i) for i in fft_input.shape)
                 zeropad_input._thunk.set_item(slices, fft_input._thunk)
 
             # Slicing according to final shape
-            fft_input_shape = list(fft_input.shape)
             for idx, ax in enumerate(fft_axes):
                 fft_input_shape[ax] = s[idx]
             # TODO: always copying is not the best idea,
@@ -2190,11 +2190,10 @@ class ndarray:
                 shape=fft_input_shape,
                 thunk=zeropad_input._thunk.get_item(slices),
             )
-            fft_output_shape = fft_input_shape
+            fft_output_shape = np.copy(fft_input_shape)
 
         # R2C/C2R require different output shapes
         if fft_output_type != self.dtype:
-            fft_output_shape = list(fft_output_shape)
             # R2C/C2R dimension is the last axis
             lax = fft_axes[-1]
             if direction == FFTDirection.FORWARD:
