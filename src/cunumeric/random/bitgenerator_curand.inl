@@ -46,31 +46,12 @@ static void printtid(int) {}
 
 #include "cunumeric/random/curand_help.h"
 
-#ifdef VERBOSE_DEBUGGING
-
-template <typename... args_t>
-static void debug_trace_func(const char* filename, int line, const char* fmt, args_t... args)
-{
-  char format[1024];
-  ::snprintf(format, 1024, "[DEBUG-TRACE] : @ %%s : %%d -- %s\n", fmt);
-  ::fprintf(stdout, format, filename, line, args...);
-}
-
-#define DEBUG_TRACE_LINE(filename, line, ...) debug_trace_func(filename, line, __VA_ARGS__)
-#define DEBUG_TRACE(...) DEBUG_TRACE_LINE(__FILE__, __LINE__, __VA_ARGS__)
-
-#else
-
-#define DEBUG_TRACE(...) \
-  {                      \
-  }
-
-#endif
-
 namespace cunumeric {
 
 using namespace Legion;
 using namespace legate;
+
+static Logger log_curand("cunumeric.random");
 
 template <VariantKind kind>
 struct CURANDGeneratorBuilder;
@@ -87,20 +68,20 @@ struct CURANDGenerator {
 
   std::mutex lock;  // in case several threads would want to use the same generator...
 
-  CURANDGenerator() { DEBUG_TRACE("CURANDGenerator::create"); }
+  CURANDGenerator() { log_curand.debug() << "CURANDGenerator::create"; }
 
-  ~CURANDGenerator() { DEBUG_TRACE("CURANDGenerator::destroy"); }
+  ~CURANDGenerator() { log_curand.debug() << "CURANDGenerator::destroy"; }
 
   void skip_ahead(uint64_t count)
   {
     if (supports_skipahead) {
       // skip ahead
-      DEBUG_TRACE("count = %lu - offset = %lu", count, offset);
+      log_curand.debug() << "[skip-ahead] : count = " << count << " - offset = " << offset;
       offset += count;
       CHECK_CURAND(::curandSetGeneratorOffset(gen, offset));
     } else {
       // actually generate numbers in the temporary buffer
-      DEBUG_TRACE("count = %lu - offset = %lu", count, offset);
+      log_curand.debug() << "[blank-generate] : count = " << count << " - offset = " << offset;
       uint64_t remain = count;
       while (remain > 0) {
         if (remain < dev_buffer_size) {
@@ -136,15 +117,17 @@ struct generate_fn {
     uint64_t volume = rect.volume();
 
     for (int k = 0; k < DIM; ++k)
-      DEBUG_TRACE("\t[proc=%llu] - shape[%d][%zu:%zu]", proc.id, k, rect.lo[k], rect.hi[k]);
+      log_curand.debug() << "\t[proc=" << proc.id << "] - shape[" << k << "][" << rect.lo[k] << ":"
+                         << rect.hi[k] << "]";
     for (int k = 0; k < DIM; ++k)
-      DEBUG_TRACE("\t[proc=%llu] - strides[%d][%zu]", proc.id, k, strides[k]);
+      log_curand.debug() << "\t[proc=" << proc.id << "] - strides[" << k << "][" << strides[k]
+                         << "]";
 
     uint64_t baseoffset = 0;
     for (size_t k = 0; k < DIM; ++k) baseoffset += rect.lo[k] * strides[k];
 
-    DEBUG_TRACE(
-      "[proc=%llu] - base offset = %llu - total count = %llu", proc.id, baseoffset, totalcount);
+    log_curand.debug() << "[proc=" << proc.id << "] - base offset = " << baseoffset
+                       << " - total count = " << totalcount;
 
     assert(baseoffset + volume <= totalcount);
 
@@ -154,7 +137,7 @@ struct generate_fn {
       auto out = output.write_accessor<uint32_t, DIM>(rect);
 
       if (!out.accessor.is_dense_row_major(rect))
-        ::fprintf(stderr, "[ERROR] : accessor is not dense row major - DIM = %d\n", DIM);
+        log_curand.fatal() << "accessor is not dense row major - DIM = " << DIM;
       assert(out.accessor.is_dense_row_major(rect));
 
       uint32_t* p = out.ptr(rect);
@@ -178,7 +161,7 @@ struct generator_map {
   {
     std::lock_guard<std::mutex> guard(lock);
     if (m_generators.size() != 0) {
-      ::fprintf(stderr, "[ERROR] : some generators have not been freed - LEAK !\n");
+      log_curand.error() << "some generators have not been freed - LEAK !";
       // TODO: assert ?
     }
   }
@@ -196,9 +179,8 @@ struct generator_map {
   {
     std::lock_guard<std::mutex> guard(lock);
     if (m_generators.find(generatorID) == m_generators.end()) {
-      ::fprintf(stderr,
-                "[ERROR] : internal error : generator ID <%d> does not exist (destroy) !\n",
-                generatorID);
+      log_curand.fatal() << "internal error : generator ID <" << generatorID
+                         << "> does not exist (get) !";
       assert(false);
     }
     return m_generators[generatorID].get();
@@ -211,8 +193,8 @@ struct generator_map {
     std::lock_guard<std::mutex> guard(lock);
     // safety check
     if (m_generators.find(generatorID) != m_generators.end()) {
-      ::fprintf(
-        stderr, "[ERROR] : internal error : generator ID <%d> already in use !\n", generatorID);
+      log_curand.fatal() << "internal error : generator ID <" << generatorID
+                         << "> already in use !";
       assert(false);
     }
     m_generators[generatorID] = std::move(std::unique_ptr<CURANDGenerator>(cugenptr));
@@ -225,9 +207,8 @@ struct generator_map {
     {
       std::lock_guard<std::mutex> guard(lock);
       if (m_generators.find(generatorID) == m_generators.end()) {
-        ::fprintf(stderr,
-                  "[ERROR] : internal error : generator ID <%d> does not exist (destroy) !\n",
-                  generatorID);
+        log_curand.fatal() << "internal error : generator ID <" << generatorID
+                           << "> does not exist (destroy) !";
         assert(false);
       }
       cugenptr = std::move(m_generators[generatorID]);
@@ -276,27 +257,21 @@ struct BitGeneratorImplBody {
     generator_map_t& genmap = get_generator_map();
     switch (op) {
       case BitGeneratorOperation::CREATE: {
-        if (genmap.has(generatorID)) {
-          ::fprintf(
-            stderr, "[ERROR] : internal error : generator ID <%d> already in use !\n", generatorID);
-          assert(false);
-        }
-
         genmap.create(generatorID, static_cast<BitGeneratorType>(parameter));
 
-        DEBUG_TRACE("created generator %d", generatorID);
+        log_curand.debug() << "created generator " << generatorID;
         break;
       }
       case BitGeneratorOperation::DESTROY: {
         genmap.destroy(generatorID);
 
-        DEBUG_TRACE("destroyed generator %d", generatorID);
+        log_curand.debug() << "destroyed generator " << generatorID;
         break;
       }
       case BitGeneratorOperation::SET_SEED: {
         genmap.set_seed(generatorID, parameter);
 
-        DEBUG_TRACE("set seed %llu for generator %d", parameter, generatorID);
+        log_curand.debug() << "set seed " << parameter << " for generator " << generatorID;
         break;
       }
       case BitGeneratorOperation::RAND_RAW: {
@@ -326,7 +301,7 @@ struct BitGeneratorImplBody {
         break;
       }
       default: {
-        ::fprintf(stderr, "[ERROR] : unknown BitGenerator operation");
+        log_curand.fatal() << "unknown BitGenerator operation";
         assert(false);
       }
     }

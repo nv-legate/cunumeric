@@ -24,14 +24,13 @@
     check_curand(__result__, __FILE__, __LINE__); \
   } while (false)
 
+static Legion::Logger log_curand("cunumeric.random");
+
 __host__ inline void check_curand(curandStatus_t error, const char* file, int line)
 {
   if (error != CURAND_STATUS_SUCCESS) {
-    fprintf(stderr,
-            "Internal CURAND failure with error %d in file %s at line %d\n",
-            (int)error,
-            file,
-            line);
+    log_curand.fatal() << "Internal CURAND failure with error" << (int)error << " in file " << file
+                       << " at line " << line;
     exit((int)error);
   }
 }
@@ -47,7 +46,7 @@ static inline curandRngType get_curandRngType(cunumeric::BitGeneratorType kind)
     case cunumeric::BitGeneratorType::PHILOX4_32_10:
       return curandRngType::CURAND_RNG_PSEUDO_PHILOX4_32_10;
     default: {
-      ::fprintf(stderr, "[ERROR] : unknown generator");
+      log_curand.fatal() << "unknown parameter";
       assert(false);
       return curandRngType::CURAND_RNG_TEST;
     }
@@ -63,7 +62,7 @@ static inline bool supportsSkipAhead(curandRngType gentype)
     case curandRngType::CURAND_RNG_PSEUDO_MT19937: return false;
     case curandRngType::CURAND_RNG_PSEUDO_PHILOX4_32_10: return true;
     default: {
-      ::fprintf(stderr, "[ERROR] : unknown generator");
+      log_curand.fatal() << "unknown parameter";
       assert(false);
       return false;
     }
