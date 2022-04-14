@@ -14,24 +14,21 @@
  *
  */
 
-#pragma once
-
-#include "legate.h"
+#include "cunumeric/sort/thrust_sort.cuh"
 
 namespace cunumeric {
 
-class ThrustAllocator : public legate::ScopedAllocator {
- public:
-  using value_type = char;
-
-  ThrustAllocator(Legion::Memory::Kind kind) : legate::ScopedAllocator(kind) {}
-
-  char* allocate(size_t num_bytes)
-  {
-    return static_cast<char*>(ScopedAllocator::allocate(num_bytes));
-  }
-
-  void deallocate(char* ptr, size_t n) { ScopedAllocator::deallocate(ptr); }
-};
+void thrust_local_sort(const uint16_t* values_in,
+                       uint16_t* values_out,
+                       const int64_t* indices_in,
+                       int64_t* indices_out,
+                       const size_t volume,
+                       const size_t sort_dim_size,
+                       const bool stable,
+                       cudaStream_t stream)
+{
+  detail::thrust_local_sort(
+    values_in, values_out, indices_in, indices_out, volume, sort_dim_size, stable, stream);
+}
 
 }  // namespace cunumeric
