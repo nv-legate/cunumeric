@@ -785,12 +785,21 @@ class EagerArray(NumPyThunk):
         else:
             self.array[:] = np.linalg.cholesky(src.array)
 
-    def scan(self, rhs, axis, dtype):
+    def scan(self, rhs, axis, dtype, prod, nan0):
         self.check_eager_args(rhs)
         if self.deferred is not None:
-            self.deferred.scan(rhs, axis, dtype)
+            self.deferred.scan(rhs, axis, dtype, prod, nan0)
         else:
-            np.cumsum(rhs.array, axis, dtype, self.array[:])
+            if prod is 0:
+                if nan0 is 0:
+                    np.cumsum(rhs.array, axis, dtype, self.array[:])
+                else:
+                    np.nancumsum(rhs.array, axis, dtype, self.array[:])
+            else:
+                if nan0 is 0:
+                    np.cumprod(rhs.array, axis, dtype, self.array[:])
+                else:
+                    np.nancumprod(rhs.array, axis, dtype, self.array[:])
 
     def unique(self):
         if self.deferred is not None:

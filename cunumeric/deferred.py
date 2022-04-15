@@ -1564,11 +1564,13 @@ class DeferredArray(NumPyThunk):
         cholesky(self, src, no_tril)
 
     @auto_convert([1])
-    def scan(self, rhs, axis, dtype):
+    def scan(self, rhs, axis, dtype, prod, nan0):
         ## local sum
         # storage for local sums accessible
         temp = self.runtime.create_unbound_thunk(dtype=self.dtype, ndim=self.ndim)
 
+        # RRRR handle nan0 in python layer if possible?
+        
         if axis is not None and (axis > rhs.ndim or axis < 0):
             raise ValueError("invalid axis")
         # when no axis specified, flatten the arrays here
@@ -1592,6 +1594,7 @@ class DeferredArray(NumPyThunk):
         task.add_output(output.base)
         task.add_input(input.base)
         task.add_output(temp)
+        task.add_scalar(prod)
 
         task.add_alignment(input.base, output.base)
 
@@ -1604,6 +1607,7 @@ class DeferredArray(NumPyThunk):
         task.add_input(output.base)
         task.add_input(temp)
         task.add_output(output.base)
+        task.add_scalar(prod)
 
         task.add_broadcast(temp)
 

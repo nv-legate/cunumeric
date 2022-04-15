@@ -3868,7 +3868,144 @@ def cumsum(a, axis=None, dtype=None, out=None):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return a.scan(axis=axis, dtype=dtype, out=out)
+    return a.scan(axis=axis, dtype=dtype, out=out, prod=0, nan0=0)
+
+
+@add_boilerplate("a")
+def cumprod(a, axis=None, dtype=None, out=None):
+    """
+    Return the cumulative product of the elements along a given axis.
+
+    Parameters
+    ----------
+    a : array_like
+        Input array.
+
+    axis : int, optional
+        Axis along which the cumulative sum is computed. The default (None) is
+        to compute the cumsum over the flattened array.
+
+    dtype : dtype, optional
+        Type of the returned array and of the accumulator in which the elements
+        are summed. If dtype is not specified, it defaults to the dtype of a,
+        unless a has an integer dtype with a precision less than that of the
+        default platform integer. In that case, the default platform integer is
+        used.
+    out : ndarray, optional
+        Alternative output array in which to place the result. It must have the
+        same shape and buffer length as the expected output but the type will
+        be cast if necessary. See Output type determination for more details.
+
+    Returns
+    -------
+    cumprod_along_axis : ndarray.
+        A new array holding the result is returned unless out is specified, in
+        which case a reference to out is returned. The result has the same size
+        as a, and the same shape as a if axis is not None or a is a 1-d array.
+
+    See Also
+    --------
+    numpy.cumprod
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    return a.scan(axis=axis, dtype=dtype, out=out, prod=1, nan0=0)
+
+
+@add_boilerplate("a")
+def nancumsum(a, axis=None, dtype=None, out=None):
+    """
+    Return the cumulative sum of the elements along a given axis treating Not a
+    Numbers (NaNs) as zero. The cumulative sum does not change when NaNs are
+    encountered and leading NaNs are replaced by zeros.
+
+    Zeros are returned for slices that are all-NaN or empty.
+
+    Parameters
+    ----------
+    a : array_like
+        Input array.
+
+    axis : int, optional
+        Axis along which the cumulative sum is computed. The default (None) is
+        to compute the cumsum over the flattened array.
+
+    dtype : dtype, optional
+        Type of the returned array and of the accumulator in which the elements
+        are summed. If dtype is not specified, it defaults to the dtype of a,
+        unless a has an integer dtype with a precision less than that of the
+        default platform integer. In that case, the default platform integer is
+        used.
+    out : ndarray, optional
+        Alternative output array in which to place the result. It must have the
+        same shape and buffer length as the expected output but the type will
+        be cast if necessary. See Output type determination for more details.
+
+    Returns
+    -------
+    cumsum_along_axis : ndarray.
+        A new array holding the result is returned unless out is specified, in
+        which case a reference to out is returned. The result has the same size
+        as a, and the same shape as a if axis is not None or a is a 1-d array.
+
+    See Also
+    --------
+    numpy.nancumsum
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    return a.scan(axis=axis, dtype=dtype, out=out, prod=0, nan0=1)
+
+
+@add_boilerplate("a")
+def nancumprod(a, axis=None, dtype=None, out=None):
+    """
+    Return the cumulative product of the elements along a given axis treating
+    Not a Numbers (NaNs) as one. The cumulative product does not change when
+    NaNs are encountered and leading NaNs are replaced by ones.
+
+    Ones are returned for slices that are all-NaN or empty.
+
+    Parameters
+    ----------
+    a : array_like
+        Input array.
+
+    axis : int, optional
+        Axis along which the cumulative sum is computed. The default (None) is
+        to compute the cumsum over the flattened array.
+
+    dtype : dtype, optional
+        Type of the returned array and of the accumulator in which the elements
+        are summed. If dtype is not specified, it defaults to the dtype of a,
+        unless a has an integer dtype with a precision less than that of the
+        default platform integer. In that case, the default platform integer is
+        used.
+    out : ndarray, optional
+        Alternative output array in which to place the result. It must have the
+        same shape and buffer length as the expected output but the type will
+        be cast if necessary. See Output type determination for more details.
+
+    Returns
+    -------
+    cumprod_along_axis : ndarray.
+        A new array holding the result is returned unless out is specified, in
+        which case a reference to out is returned. The result has the same size
+        as a, and the same shape as a if axis is not None or a is a 1-d array.
+
+    See Also
+    --------
+    numpy.nancumprod
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    return a.scan(axis=axis, dtype=dtype, out=out, prod=1, nan0=1)
 
 
 ##################################
