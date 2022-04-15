@@ -37,11 +37,13 @@ struct ZeroPadLoadData {
   size_t strides[3];
   size_t bounds[3];
   int32_t dim{0};
+  size_t misalignment{0};
 
   template <int32_t DIM>
   __host__ inline bool update(const Legion::Point<DIM>& fftsize,
                               const size_t* new_strides,
-                              const Legion::Point<DIM>& new_bounds)
+                              const Legion::Point<DIM>& new_bounds,
+                              size_t new_misalignment = 0)
   {
     auto changed = dim != DIM;
     changed      = true;
@@ -62,6 +64,8 @@ struct ZeroPadLoadData {
         changed   = true;
       }
     }
+    changed      = changed || misalignment != new_misalignment;
+    misalignment = new_misalignment;
     return changed;
   }
 };

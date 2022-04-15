@@ -35,7 +35,7 @@ static __device__ T cb_zero_pad(void* data, size_t offset, void* callerinfo, voi
     actual += coord * info->strides[d];
   }
   auto* ptr = static_cast<T*>(data);
-  return ptr[actual];
+  return ptr[actual - info->misalignment];
 }
 
 template <typename Complex, typename Field, Complex (*CTOR)(Field, Field)>

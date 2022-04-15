@@ -1354,8 +1354,10 @@ __host__ static inline void cufft_convolution(AccessorWO<VAL, DIM> out,
 
     // FFT the filter data
     size_t strides[DIM];
-    const auto* filter_ptr = filter.ptr(filter_rect, strides);
-    cache.filter_meta.update(fftsize, strides, filter_bounds);
+    const auto* filter_ptr     = filter.ptr(filter_rect, strides);
+    size_t filter_misalignment = ((int64_t)filter_ptr % (sizeof(VAL) * 2)) / sizeof(VAL);
+    cache.filter_meta.update(fftsize, strides, filter_bounds, filter_misalignment);
+    filter_ptr += filter_misalignment;
 
     auto* d_filter_meta = cache.filter_meta.device(stream);
     forward_plan.set_callback(
@@ -1363,8 +1365,10 @@ __host__ static inline void cufft_convolution(AccessorWO<VAL, DIM> out,
     ForwardPass<VAL>::execute(forward_plan.handle(), filter_ptr, buffer_ptr);
 
     // FFT the input data
-    const auto* signal_ptr = in.ptr(input_bounds, strides);
-    cache.signal_meta.update(fftsize, strides, signal_bounds);
+    const auto* signal_ptr     = in.ptr(input_bounds, strides);
+    size_t signal_misalignment = ((int64_t)signal_ptr % (sizeof(VAL) * 2)) / sizeof(VAL);
+    cache.signal_meta.update(fftsize, strides, signal_bounds, signal_misalignment);
+    signal_ptr += signal_misalignment;
 
     auto* d_signal_meta = cache.signal_meta.device(stream);
     forward_plan.set_callback(
