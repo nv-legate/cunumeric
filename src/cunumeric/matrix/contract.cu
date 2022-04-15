@@ -129,9 +129,8 @@ __host__ void contract(T* lhs_data,
   uint64_t work_size = 0;
   CHECK_CUTENSOR(cutensorContractionGetWorkspace(
     handle, &desc, &find, CUTENSOR_WORKSPACE_RECOMMENDED, &work_size));
-  DeferredBuffer<uint8_t, 1> work_buf(Rect<1>(Point<1>(0), Point<1>(work_size - 1)),
-                                      Memory::GPU_FB_MEM);
-  void* work = work_buf.ptr(Point<1>(0));
+  auto work_buf = create_buffer<int8_t>(work_size, Memory::GPU_FB_MEM);
+  void* work    = work_buf.ptr(Point<1>(0));
 
   // Execute contraction
   cutensorContractionPlan_t plan;

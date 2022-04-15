@@ -67,6 +67,20 @@
     check_nccl(result, __FILE__, __LINE__); \
   } while (false)
 
+#ifdef DEBUG_CUNUMERIC
+
+#define CHECK_CUDA_STREAM(stream)              \
+  do {                                         \
+    CHECK_CUDA(cudaStreamSynchronize(stream)); \
+    CHECK_CUDA(cudaPeekAtLastError());         \
+  } while (false)
+
+#else
+
+#define CHECK_CUDA_STREAM(stream)
+
+#endif
+
 #ifndef MAX
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
 #endif
