@@ -122,7 +122,11 @@ __host__ inline void check_cuda(cudaError_t error, const char* file, int line)
             cudaGetErrorName(error),
             file,
             line);
+#ifdef DEBUG_CUNUMERIC
+    assert(false);
+#else
     exit(error);
+#endif
   }
 }
 
@@ -134,7 +138,11 @@ __host__ inline void check_cublas(cublasStatus_t status, const char* file, int l
             status,
             file,
             line);
+#ifdef DEBUG_CUNUMERIC
+    assert(false);
+#else
     exit(status);
+#endif
   }
 }
 
@@ -146,7 +154,11 @@ __host__ inline void check_cufft(cufftResult result, const char* file, int line)
             result,
             file,
             line);
+#ifdef DEBUG_CUNUMERIC
+    assert(false);
+#else
     exit(result);
+#endif
   }
 }
 
@@ -158,7 +170,11 @@ __host__ inline void check_cusolver(cusolverStatus_t status, const char* file, i
             status,
             file,
             line);
+#ifdef DEBUG_CUNUMERIC
+    assert(false);
+#else
     exit(status);
+#endif
   }
 }
 
@@ -171,7 +187,11 @@ __host__ inline void check_cutensor(cutensorStatus_t result, const char* file, i
             result,
             file,
             line);
+#ifdef DEBUG_CUNUMERIC
+    assert(false);
+#else
     exit(result);
+#endif
   }
 }
 
@@ -183,7 +203,11 @@ __host__ inline void check_nccl(ncclResult_t error, const char* file, int line)
             ncclGetErrorString(error),
             file,
             line);
+#ifdef DEBUG_CUNUMERIC
+    assert(false);
+#else
     exit(error);
+#endif
   }
 }
 
