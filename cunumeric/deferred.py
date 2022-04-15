@@ -37,7 +37,7 @@ from .config import (
 from .linalg.cholesky import cholesky
 from .sort import sort
 from .thunk import NumPyThunk
-from .utils import get_arg_value_dtype
+from .utils import get_arg_value_dtype, is_advanced_indexing
 
 
 def _complex_field_dtype(dtype):
@@ -396,7 +396,7 @@ class DeferredArray(NumPyThunk):
 
     def get_item(self, key):
         # Check to see if this is advanced indexing or not
-        if self._is_advanced_indexing(key):
+        if is_advanced_indexing(key):
             # Create the indexing array
             index_array = self._create_indexing_array(key)
             # Create a new array to be the result
@@ -441,7 +441,7 @@ class DeferredArray(NumPyThunk):
     def set_item(self, key, rhs):
         assert self.dtype == rhs.dtype
         # Check to see if this is advanced indexing or not
-        if self._is_advanced_indexing(key):
+        if is_advanced_indexing(key):
             # Create the indexing array
             index_array = self._create_indexing_array(key)
             if index_array.shape != rhs.shape:
@@ -678,7 +678,7 @@ class DeferredArray(NumPyThunk):
                     src = src.promote(src_dim, 1)
                 elif len(tgt_g) == 0:
                     assert src_g == (1,)
-                    src = src.project(src_dim, 1)
+                    src = src.project(src_dim, 0)
                     diff = 0
                 else:
                     # unreachable
