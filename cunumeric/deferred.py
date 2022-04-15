@@ -313,11 +313,15 @@ class DeferredArray(NumPyThunk):
         if start_index == -1:
             start_index = 0
 
-        arrays = tuple(self.runtime.to_deferred_array(a) for a in arrays)
-        # all arrays should have the same shape and type
-        data_type = arrays[0].dtype
-        if not np.issubdtype(data_type, np.integer):
-            raise TypeError("a array should be integer type")
+        new_arrays = tuple()
+        # check array's type and converting them to deferred arrays
+        for a in arrays:
+            a = self.runtime.to_deferred_array(a)
+            data_type = a.dtype
+            if data_type != np.int64:
+                raise TypeError("index arrays should be int64 type")
+            new_arrays += (a,)
+        arrays = new_arrays
 
         # find a broadcasted shape for all arrays passed as indices
         shapes = tuple(a.shape for a in arrays)
@@ -331,22 +335,19 @@ class DeferredArray(NumPyThunk):
         key_dim = len(b_shape)
         out_shape = b_shape
 
+        # broadcast shapes
+        new_arrays = tuple()
+        for a in arrays:
+            if a.shape != b_shape:
+                new_arrays += (a._broadcast(b_shape),)
+            else:
+                new_arrays += (a.base,)
+        arrays = new_arrays
+
         if len(arrays) < self.ndim:
             # the case when # of arrays passed is smaller than dimension of
             # the input array
             N = len(arrays)
-            # broadcast shapes
-            new_arrays = tuple()
-            for a in arrays:
-                if data_type != a.dtype:
-                    raise TypeError(
-                        "type of all index arrrays should be the same"
-                    )
-                if a.shape != b_shape:
-                    new_arrays += (a._broadcast(b_shape),)
-                else:
-                    new_arrays += (a.base,)
-            arrays = new_arrays
             # output shape
             out_shape = (
                 tuple(self.shape[i] for i in range(0, start_index))
@@ -364,24 +365,8 @@ class DeferredArray(NumPyThunk):
                     a = a.promote(key_dim + i - N, self.shape[i])
                 new_arrays += (a,)
             arrays = new_arrays
-
-        else:
-            # the use case when # of arrays passed is equal to the dimension
-            # of the input array
-            if len(arrays) > self.ndim:
-                raise ValueError("wrong number of index arrays passed")
-            new_arrays = tuple()
-            for a in arrays:
-                if data_type != a.dtype:
-                    raise TypeError(
-                        "type of all index arrrays should be the same"
-                    )
-                if a.shape != b_shape:
-                    a = a._broadcast(b_shape)
-                else:
-                    a = a.base
-                new_arrays = new_arrays + (a,)
-        arrays = new_arrays
+        elif len(arrays) > self.ndim:
+            raise ValueError("wrong number of index arrays passed")
 
         # create output array which will store Point<N> field where
         # N is number of index arrays
@@ -406,24 +391,12 @@ class DeferredArray(NumPyThunk):
         # call ZIP function to combine index arrays into a singe array
         task = self.context.create_task(CuNumericOpCode.ZIP)
         task.add_output(output_arr.base)
-        if len(arrays) < self.ndim:
-            task.add_scalar_arg(self.ndim, ty.int64)  # N of points in Point<N>
-            task.add_scalar_arg(key_dim, ty.int64)  # key_dim
-            task.add_scalar_arg(start_index, ty.int64)  # start_index
-            for a in arrays:
-                task.add_input(a)
-                task.add_alignment(output_arr.base, a)
-                task.add_broadcast(a, axes=tuple(range(1, len(out_shape))))
-                task.add_broadcast(
-                    output_arr.base, axes=tuple(range(1, len(out_shape)))
-                )
-        else:
-            task.add_scalar_arg(self.ndim, ty.int64)
-            task.add_scalar_arg(self.ndim, ty.int64)
-            task.add_scalar_arg(start_index, ty.int64)
-            for index_arr in arrays:
-                task.add_input(index_arr)
-                task.add_alignment(output_arr.base, index_arr)
+        task.add_scalar_arg(self.ndim, ty.int64)  # N of points in Point<N>
+        task.add_scalar_arg(key_dim, ty.int64)  # key_dim
+        task.add_scalar_arg(start_index, ty.int64)  # start_index
+        for a in arrays:
+            task.add_input(a)
+            task.add_alignment(output_arr.base, a)
         task.execute()
 
         return output_arr
@@ -447,128 +420,112 @@ class DeferredArray(NumPyThunk):
         rhs = self
         # the index where the first index_array is passed to the [] operator
         start_index = -1
-        if isinstance(key, tuple):
-            key = self._unpack_ellipsis(key, self.ndim)
-            shift = 0
-            last_index = self.ndim
-            # in case when index arrays are passed in the scaterred way,
-            # we need to transpose original array so all index arrays
-            # are close to each other
-            transpose_needed = False
-            transpose_indices = tuple()
-            # since we can't call Copy operation on transformed Store, after
-            # the transformation, we need to return a copy
-            tuple_of_arrays = ()
-            index_map = []
+        if (
+            isinstance(key, NumPyThunk)
+            and key.dtype == np.bool
+            and key.shape == rhs.shape
+        ):
+            if not isinstance(key, DeferredArray):
+                key = self.runtime.to_deferred_array(key)
 
-            # First, we need to check if transpose is needed
-            for dim, k in enumerate(key):
-                if np.isscalar(k) or isinstance(k, NumPyThunk):
-                    if start_index == -1:
-                        start_index = dim
-                    transpose_indices += (dim,)
-                    transpose_needed = transpose_needed or (
-                        (dim - last_index) > 1
-                    )
-                    last_index = dim
+            out_dtype = rhs.dtype
+            if is_set:
+                N = rhs.ndim
+                out_dtype = rhs.runtime.get_point_type(N)
 
-            if transpose_needed:
-                start_index = 0
-                post_indices = tuple(
-                    i for i in range(store.ndim) if i not in transpose_indices
-                )
-                transpose_indices += post_indices
-                store = store.transpose(transpose_indices)
-                index_map = list(transpose_indices)
-                count = 0
-                for i in transpose_indices:
-                    index_map[i] = count
-                    count += 1
-            else:
-                index_map = tuple(range(len(key)))
+            out = rhs.runtime.create_unbound_thunk(out_dtype)
+            task = rhs.context.create_task(CuNumericOpCode.ADVANCED_INDEXING)
+            task.add_output(out.base)
+            task.add_input(rhs.base)
+            task.add_input(key.base)
+            task.add_scalar_arg(is_set, bool)
+            task.add_alignment(rhs.base, key.base)
+            task.execute()
+            return False, rhs, out
 
-            for d, k in enumerate(key):
-                dim = index_map[d]
-                if np.isscalar(k):
-                    if k < 0:
-                        k += store.shape[dim + shift]
-                    store = store.project(dim + shift, k)
-                    shift -= 1
-                elif k is np.newaxis:
-                    store = store.promote(dim + shift, 1)
-                elif isinstance(k, slice):
-                    store = store.slice(dim + shift, k)
-                elif isinstance(k, NumPyThunk):
-                    if k.dtype == np.bool:
-                        if k.shape[0] != store.shape[dim]:
-                            raise ValueError(
-                                "boolean index did not match "
-                                "indexed array along dimension  "
-                            )
-                        # in case of the mixed indises we all nonzero
-                        # for the bool array
-                        k = k.nonzero()
-                        tuple_of_arrays += k
-                    else:
-                        tuple_of_arrays += (self.runtime.to_deferred_array(k),)
-                else:
-                    raise TypeError(
-                        "Unsupported entry type passed to advanced",
-                        "indexing operation",
-                    )
-            if store.transformed:
-                # after store is transformed we need to to return a copy of
-                # the store since Copy operation can't be done on
-                # the store with transformation
-                rhs, store = self._copy_store(store)
-        else:
-            assert isinstance(key, DeferredArray)
+        if isinstance(key, NumPyThunk):
             # the use case when index array ndim >input array ndim
             if key.ndim > store.ndim:
                 diff = store.ndim - key.ndim
                 for i in range(diff):
                     store = store.promote(i + 1, store.shape[0])
 
-            if store.transformed:
-                rhs, store = self._copy_store(store)
+            key = (key,)
 
-            # Handle the boolean array case
-            if key.dtype == np.bool:
-                if key.shape == rhs.shape:
-                    out_dtype = rhs.dtype
-                    if is_set:
-                        N = rhs.ndim
-                        out_dtype = rhs.runtime.get_point_type(N)
+        assert isinstance(key, tuple)
+        key = self._unpack_ellipsis(key, self.ndim)
+        shift = 0
+        last_index = self.ndim
+        # in case when index arrays are passed in the scaterred way,
+        # we need to transpose original array so all index arrays
+        # are close to each other
+        transpose_needed = False
+        transpose_indices = tuple()
+        key_transpose_indices = tuple()
+        # since we can't call Copy operation on transformed Store, after
+        # the transformation, we need to return a copy
+        tuple_of_arrays = ()
 
-                    out = rhs.runtime.create_unbound_thunk(out_dtype)
-                    task = rhs.context.create_task(
-                        CuNumericOpCode.ADVANCED_INDEXING
-                    )
-                    task.add_output(out.base)
-                    task.add_input(rhs.base)
-                    task.add_input(key.base)
-                    task.add_scalar_arg(is_set, bool)
-                    task.add_alignment(rhs.base, key.base)
-                    task.add_broadcast(
-                        rhs.base, axes=tuple(range(1, len(rhs.shape)))
-                    )
-                    task.add_broadcast(
-                        key.base, axes=tuple(range(1, len(key.shape)))
-                    )
-                    task.execute()
-                    return False, rhs, out
+        # First, we need to check if transpose is needed
+        for dim, k in enumerate(key):
+            if np.isscalar(k) or isinstance(k, NumPyThunk):
+                if start_index == -1:
+                    start_index = dim
+                transpose_indices += (dim,)
+                transpose_needed = transpose_needed or ((dim - last_index) > 1)
+                last_index = dim
+
+        if transpose_needed:
+            start_index = 0
+            post_indices = tuple(
+                i for i in range(store.ndim) if i not in transpose_indices
+            )
+            key_transpose_indices = transpose_indices
+            transpose_indices += post_indices
+            post_indices = tuple(
+                i for i in range(len(key)) if i not in key_transpose_indices
+            )
+            key_transpose_indices += post_indices
+            store = store.transpose(transpose_indices)
+
+            key = tuple(key[i] for i in key_transpose_indices)
+
+        for d, k in enumerate(key):
+            dim = d
+            if np.isscalar(k):
+                if k < 0:
+                    k += store.shape[dim + shift]
+                store = store.project(dim + shift, k)
+                shift -= 1
+            elif k is np.newaxis:
+                store = store.promote(dim + shift, 1)
+            elif isinstance(k, slice):
+                store = store.slice(dim + shift, k)
+            elif isinstance(k, NumPyThunk):
+                if not isinstance(key, DeferredArray):
+                    k = self.runtime.to_deferred_array(k)
+                if k.dtype == np.bool:
+                    if k.shape[0] != store.shape[dim + shift]:
+                        raise ValueError(
+                            "shape of boolean index did not match "
+                            "indexed array "
+                        )
+                    # in case of the mixed indises we all nonzero
+                    # for the bool array
+                    k = k.nonzero()
+                    tuple_of_arrays += k
                 else:
-                    # FIXME: replace `nonzero` case with the task with
-                    # output regions when ND output regions are available
-                    tuple_of_arrays = key.nonzero()
-            elif key.ndim < store.ndim:
-                output_arr = rhs._zip_indices(start_index, (key,))
-                return True, rhs, output_arr
+                    tuple_of_arrays += (k,)
             else:
-                tuple_of_arrays = (rhs.runtime.to_deferred_array(key),)
-
-        if len(tuple_of_arrays) > rhs.ndim:
-            raise TypeError("Advanced indexing dimension mismatch")
+                raise TypeError(
+                    "Unsupported entry type passed to advanced ",
+                    "indexing operation",
+                )
+        if store.transformed:
+            # after store is transformed we need to to return a copy of
+            # the store since Copy operation can't be done on
+            # the store with transformation
+            rhs, store = self._copy_store(store)
 
         if len(tuple_of_arrays) <= rhs.ndim and rhs.ndim > 1:
             output_arr = rhs._zip_indices(start_index, tuple_of_arrays)
@@ -683,6 +640,8 @@ class DeferredArray(NumPyThunk):
             copy_needed, lhs, index_array = self._create_indexing_array(
                 key, True
             )
+            # TODO: remove rhs.ndim ==0 logic when issue with scalars not being
+            # type of Store is addressed
             if rhs.ndim == 0:
                 rhs_tmp = self.runtime.create_empty_thunk(
                     index_array.base.shape,

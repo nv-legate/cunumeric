@@ -376,6 +376,35 @@ def advanced_indexing():
     z_num[indx_num] = 10
     assert np.array_equal(z, z_num)
 
+    x = np.ones((3, 4))
+    x_num = num.array(x)
+    ind = np.full((4,), True)
+    ind_num = num.array(ind)
+    res = x[:, ind]
+    res_num = x_num[:, ind_num]
+    assert np.array_equal(res, res_num)
+
+    if LEGATE_MAX_DIM > 7:
+        x = np.ones((2, 3, 4, 5, 3, 4))
+        ind1 = np.full((3, 4), True)
+        ind2 = np.full((3, 4), True)
+        x_num = num.array(x)
+        ind1_num = num.array(ind1)
+        ind2_num = num.array(ind2)
+        res = x[:, ind1, :ind2]
+        res_num = x[:, ind1_num, :ind2_num]
+        res = x[ind1, :ind2]
+        res_num = x[ind1_num, :ind2_num]
+        assert np.array_equal(res, res_num)
+
+    x = np.ones((3, 4))
+    x_num = num.array(x)
+    ind = np.full((3,), 1, dtype=np.int32)
+    ind_num = num.array(ind)
+    res = x[ind, ind]
+    res_num = x_num[ind_num, ind_num]
+    assert np.array_equal(res, res_num)
+
     # we do less than LEGATE_MAX_DIM becasue the dimension will be increased by
     # 1 when passig 2d index array
     for ndim in range(2, LEGATE_MAX_DIM):
