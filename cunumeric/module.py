@@ -149,14 +149,6 @@ def add_boilerplate(*array_params: str):
     return decorator
 
 
-def _output_float_dtype(input):
-    # Floats keep their floating point kind, otherwise switch to float64
-    if input.dtype.kind in ("f", "c"):
-        return input.dtype
-    else:
-        return np.dtype(np.float64)
-
-
 #########################
 # Array creation routines
 #########################
@@ -1408,7 +1400,7 @@ def block(arrays):
 
     Parameters
     ----------
-    arrays : nested list of array_like or scalars (but not tuples)
+    arrays : nested list of array_like or scalars
         If passed a single ndarray or scalar (a nested list of depth 0),
         this is returned unmodified (and not copied).
 

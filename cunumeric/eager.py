@@ -17,6 +17,7 @@ import numpy as np
 
 from .config import BinaryOpCode, UnaryOpCode, UnaryRedCode
 from .thunk import NumPyThunk
+from .utils import is_advanced_indexing
 
 _UNARY_OPS = {
     UnaryOpCode.ABSOLUTE: np.absolute,
@@ -300,7 +301,7 @@ class EagerArray(NumPyThunk):
     def get_item(self, key):
         if self.deferred is not None:
             return self.deferred.get_item(key)
-        if self._is_advanced_indexing(key):
+        if is_advanced_indexing(key):
             index_key = self._create_indexing_key(key)
             out = self.array[index_key]
             result = EagerArray(self.runtime, out)
@@ -319,7 +320,7 @@ class EagerArray(NumPyThunk):
         if self.deferred is not None:
             self.deferred.set_item(key, value)
         else:
-            if self._is_advanced_indexing(key):
+            if is_advanced_indexing(key):
                 index_key = self._create_indexing_key(key)
                 if isinstance(value, EagerArray):
                     self.array[index_key] = value.array
