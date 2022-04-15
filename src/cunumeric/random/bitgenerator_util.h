@@ -20,6 +20,7 @@
 
 namespace cunumeric {
 
+// Match these to BitGeneratorOperation in config.py
 enum class BitGeneratorOperation : int32_t {
   CREATE   = 1,
   DESTROY  = 2,
@@ -27,6 +28,7 @@ enum class BitGeneratorOperation : int32_t {
   SET_SEED = 4,
 };
 
+// Match these to BitGeneratorType in config.py
 enum class BitGeneratorType : int32_t {
   DEFAULT       = 0,
   XORWOW        = 1,

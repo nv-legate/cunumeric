@@ -243,3 +243,23 @@ class CuNumericTunable(IntEnum):
     NUM_PROCS = _cunumeric.CUNUMERIC_TUNABLE_NUM_PROCS
     MAX_EAGER_VOLUME = _cunumeric.CUNUMERIC_TUNABLE_MAX_EAGER_VOLUME
     HAS_NUMAMEM = _cunumeric.CUNUMERIC_TUNABLE_HAS_NUMAMEM
+
+
+# Match these to BitGeneratorOperation in bitgenerator_util.h
+@unique
+class BitGeneratorOperation(IntEnum):
+    CREATE = 1
+    DESTROY = 2
+    RAND_RAW = 3
+    SET_SEED = 4
+
+
+# Match these to BitGeneratorType in bitgenerator_util.h
+@unique
+class BitGeneratorType(IntEnum):
+    DEFAULT = 0
+    XORWOW = 1
+    MRG32K3A = 2
+    MTGP32 = 3
+    MT19937 = 4
+    PHILOX4_32_10 = 5

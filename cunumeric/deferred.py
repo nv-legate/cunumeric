@@ -27,6 +27,7 @@ from legate.core import Future, ReductionOp, Store
 
 from .config import (
     BinaryOpCode,
+    BitGeneratorOperation,
     CuNumericOpCode,
     CuNumericRedopCode,
     RandGenCode,
@@ -1329,7 +1330,7 @@ class DeferredArray(NumPyThunk):
     def bitgenerator_random_raw(self, handle):
         task = self.context.create_task(CuNumericOpCode.BITGENERATOR)
         task.add_output(self.base)
-        task.add_scalar_arg(3, ty.int32)  # OP_RAND_RAW
+        task.add_scalar_arg(BitGeneratorOperation.RAND_RAW, ty.int32)
         task.add_scalar_arg(handle, ty.uint32)
         # TODO: check if no function does this
         totalsize = 1

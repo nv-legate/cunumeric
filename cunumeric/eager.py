@@ -570,7 +570,6 @@ class EagerArray(NumPyThunk):
         else:
             if self.array.size == 1:
                 self.array.fill(np.random.randint(0, 2**32 - 1))
-                print("HERE")
             else:
                 a = np.random.randint(
                     0, 2**32 - 1, *(self.array.shape), dtype=self.array.dtype

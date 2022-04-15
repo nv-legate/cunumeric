@@ -15,24 +15,12 @@
 
 import numpy as np
 from cunumeric.array import ndarray
+from cunumeric.config import BitGeneratorType
 from cunumeric.runtime import runtime
 
 
 class BitGenerator:
-    # see bitgenerator_util.h
-    OP_CREATE = 1
-    OP_DESTROY = 2
-    OP_RAND_RAW = 3
-
-    # see bitgenerator_util.h
-    DEFAULT = 0
-    XORWOW = 1
-    MRG32K3A = 2
-    MTGP32 = 3
-    MT19937 = 4
-    PHILOX4_32_10 = 5
-
-    def __init__(self, seed=None, generatorType=DEFAULT):
+    def __init__(self, seed=None, generatorType=BitGeneratorType.DEFAULT):
         if type(self) is BitGenerator:
             raise NotImplementedError(
                 "BitGenerator is a base class and cannot be instantized"
@@ -60,24 +48,24 @@ class BitGenerator:
 
 class XORWOW(BitGenerator):
     def __init__(self, seed=None):
-        super().__init__(seed, BitGenerator.XORWOW)
+        super().__init__(seed, BitGeneratorType.XORWOW)
 
 
 class MRG32k3a(BitGenerator):
     def __init__(self, seed=None):
-        super().__init__(seed, BitGenerator.MRG32K3A)
+        super().__init__(seed, BitGeneratorType.MRG32K3A)
 
 
 class MTGP32(BitGenerator):
     def __init__(self, seed=None):
-        super().__init__(seed, BitGenerator.MTGP32)
+        super().__init__(seed, BitGeneratorType.MTGP32)
 
 
 class MT19937(BitGenerator):
     def __init__(self, seed=None):
-        super().__init__(seed, BitGenerator.MT19937)
+        super().__init__(seed, BitGeneratorType.MT19937)
 
 
 class PHILOX4_32_10(BitGenerator):
     def __init__(self, seed=None):
-        super().__init__(seed, BitGenerator.PHILOX4_32_10)
+        super().__init__(seed, BitGeneratorType.PHILOX4_32_10)

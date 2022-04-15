@@ -24,6 +24,7 @@ import legate.core.types as ty
 from legate.core import LEGATE_MAX_DIM, Rect, get_legate_runtime, legion
 
 from .config import (
+    BitGeneratorOperation,
     CuNumericOpCode,
     CuNumericRedopCode,
     CuNumericTunable,
@@ -226,7 +227,7 @@ class Runtime(object):
             launch_domain=Rect(lo=(0,), hi=(self.num_procs,)),
         )
         self.current_random_bitgenid = self.current_random_bitgenid + 1
-        task.add_scalar_arg(1, ty.int32)  # OP_CREATE
+        task.add_scalar_arg(BitGeneratorOperation.CREATE, ty.int32)
         task.add_scalar_arg(self.current_random_bitgenid, ty.uint32)
         task.add_scalar_arg(generatorType, ty.uint64)
         task.execute()
@@ -240,7 +241,7 @@ class Runtime(object):
             manual=True,
             launch_domain=Rect(lo=(0,), hi=(self.num_procs,)),
         )
-        task.add_scalar_arg(2, ty.int32)  # OP_DESTROY
+        task.add_scalar_arg(BitGeneratorOperation.DESTROY, ty.int32)
         task.add_scalar_arg(handle, ty.uint32)
         task.add_scalar_arg(0, ty.uint64)
         task.execute()
@@ -265,7 +266,7 @@ class Runtime(object):
             manual=True,
             launch_domain=Rect(lo=(0,), hi=(self.num_procs,)),
         )
-        task.add_scalar_arg(3, ty.int32)  # OP_RAND_RAW
+        task.add_scalar_arg(BitGeneratorOperation.RAND_RAW, ty.int32)
         task.add_scalar_arg(handle, ty.uint32)
         gencount = 1
         for sz in size:
