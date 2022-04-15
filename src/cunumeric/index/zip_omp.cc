@@ -43,13 +43,17 @@ struct ZipImplBody<VariantKind::OMP, DIM, N> {
         auto outptr                       = out.ptr(rect);
 #pragma omp parallel for schedule(static)
         for (size_t idx = 0; idx < volume; ++idx) {
-          outptr[idx] = Legion::Point<N>(indx_ptrs[Is][idx]...);
+          Legion::Point<N> new_point;
+          for (size_t i = 0; i < N; i++) { new_point[i] = indx_ptrs[i][idx]; }
+          outptr[idx] = new_point;
         }
       } else {
 #pragma omp parallel for schedule(static)
         for (size_t idx = 0; idx < volume; ++idx) {
           auto p = pitches.unflatten(idx, rect.lo);
-          out[p] = Legion::Point<N>(index_arrays[Is][p]...);
+          Legion::Point<N> new_point;
+          for (size_t i = 0; i < N; i++) { new_point[i] = index_arrays[i][p]; }
+          out[p] = new_point;
         }
       }  // else
     } else {

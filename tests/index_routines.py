@@ -391,10 +391,8 @@ def advanced_indexing():
         x_num = num.array(x)
         ind1_num = num.array(ind1)
         ind2_num = num.array(ind2)
-        res = x[:, ind1, :ind2]
-        res_num = x[:, ind1_num, :ind2_num]
-        res = x[ind1, :ind2]
-        res_num = x[ind1_num, :ind2_num]
+        res = x[:, ind1, :, ind2]
+        res_num = x[:, ind1_num, :, ind2_num]
         assert np.array_equal(res, res_num)
 
     x = np.ones((3, 4))
@@ -408,7 +406,7 @@ def advanced_indexing():
     # we do less than LEGATE_MAX_DIM becasue the dimension will be increased by
     # 1 when passig 2d index array
     for ndim in range(2, LEGATE_MAX_DIM):
-        a_shape = tuple(random.randint(2, 9) for i in range(ndim))
+        a_shape = tuple(random.randint(2, 5) for i in range(ndim))
         np_array = mk_seq_array(np, a_shape)
         num_array = mk_seq_array(num, a_shape)
         # check when N of index arrays == N of dims

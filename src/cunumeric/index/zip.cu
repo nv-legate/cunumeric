@@ -34,7 +34,9 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (idx >= volume) return;
   auto p = pitches.unflatten(idx, rect.lo);
-  out[p] = Legion::Point<N>(index_arrays[Is][p]...);
+  Legion::Point<N> new_point;
+  for (size_t i = 0; i < N; i++) { new_point[i] = index_arrays[i][p]; }
+  out[p] = new_point;
 }
 
 template <int DIM, int N, size_t... Is>
@@ -47,7 +49,9 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
 {
   const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (idx >= volume) return;
-  out[idx] = Legion::Point<N>(index_arrays[Is][idx]...);
+  Legion::Point<N> new_point;
+  for (size_t i = 0; i < N; i++) { new_point[i] = index_arrays[i][idx]; }
+  out[idx] = new_point;
 }
 
 template <int DIM, int N>
