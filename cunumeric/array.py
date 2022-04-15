@@ -1917,22 +1917,22 @@ class ndarray:
         # We don't care about dimension order in cuNumeric
         return self.__copy__()
 
-    def cumsum(self, axis=None, dtype=None, out=None):
+    def scan(self, axis=None, dtype=None, out=None):
         if dtype is None:
             dtype = self.dtype
         if out is not None:
             assert out.shape == self.shape
             if out.dtype == dtype:
                 out = out.convert_to_cunumeric_ndarray(out)
-                out._thunk.cumsum(self._thunk, axis=self.axis, dtype=self.dtype)
+                out._thunk.scan(self._thunk, axis=self.axis, dtype=self.dtype)
             else :
-                # Perform cumsum into temporary out
+                # Perform scan into temporary out
                 temp = ndarray(shape=self.shape, dtype=dtype)
-                temp._thunk.cumsum(self._thunk, axis=self.axis, dtype=self.dtype)
+                temp._thunk.scan(self._thunk, axis=self.axis, dtype=self.dtype)
                 out._thunk.convert(temp._thunk)
         else :
             out = ndarray(shape=self.shape, dtype=dtype)
-            out._thunk.cumsum(self._thunk, axis=self.axis, dtype=self.dtype)
+            out._thunk.scan(self._thunk, axis=self.axis, dtype=self.dtype)
         return out
             
 

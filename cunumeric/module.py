@@ -3868,7 +3868,7 @@ def cumsum(a, axis=None, dtype=None, out=None):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return a.cumsum(axis=axis, dtype=dtype, out=out)
+    return a.scan(axis=axis, dtype=dtype, out=out)
 
 
 ##################################

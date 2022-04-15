@@ -219,7 +219,7 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def cumsum(self, rhs, axis, dtype):
+    def scan(self, rhs, axis, dtype):
         ...
         
     @abstractmethod

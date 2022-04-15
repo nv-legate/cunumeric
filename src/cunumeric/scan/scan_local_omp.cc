@@ -14,11 +14,13 @@
  *
  */
 
-#include "cunumeric/scan/cumsum_l.h"
-#include "cunumeric/scan/cumsum_l_template.inl"
+#include "cunumeric/scan/scan_local.h"
+#include "cunumeric/scan/scan_local_template.inl"
 
 #include <thrust/scan.h>
 #include <thrust/execution_policy.h>
+#include <thrust/system/omp/execution_policy.h>
+#include <omp.h>
 
 
 namespace cunumeric {
@@ -27,7 +29,7 @@ using namespace Legion;
 using namespace legate;
 
 template <LegateTypeCode CODE, int DIM>
-struct Cumsum_lImplBody<VariantKind::GPU, CODE, DIM> {
+struct ScanLocalImplBody<VariantKind::OMP, CODE, DIM> {
   using VAL = legate_type_of<CODE>;
 
   void operator()(const AccessorWO<VAL, DIM>& out,
@@ -48,9 +50,7 @@ struct Cumsum_lImplBody<VariantKind::GPU, CODE, DIM> {
     auto sum_valsptr = sum_vals.create_output_buffer<VAL, DIM>(extents, true);
 
     for(uint64_t index = 0; index < volume; index += stride){
-      // RRRR depending on stride and volume this should either call multiple streams
-      // RRRR or use a cub version (currently not implemented)
-      thrust::inclusive_scan(thrust::device, inptr + index, inptr + index + stride, outptr + index);
+      thrust::inclusive_scan(thrust::omp::par, inptr + index, inptr + index + stride, outptr + index);
       // get the corresponding ND index with base zero to use for sum_val
       auto sum_valp = pitches.unflatten(index, rect.lo) - rect.lo;
       // only one element on scan axis
@@ -61,9 +61,9 @@ struct Cumsum_lImplBody<VariantKind::GPU, CODE, DIM> {
   }
 };
 
-/*static*/ void Cumsum_lTask::gpu_variant(TaskContext& context)
+/*static*/ void ScanLocalTask::omp_variant(TaskContext& context)
 {
-  Cumsum_l_template<VariantKind::GPU>(context);
+  scan_local_template<VariantKind::OMP>(context);
 }
 
 }  // namespace cunumeric

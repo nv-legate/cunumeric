@@ -86,7 +86,6 @@ class CuNumericOpCode(IntEnum):
     CONTRACT = _cunumeric.CUNUMERIC_CONTRACT
     CONVERT = _cunumeric.CUNUMERIC_CONVERT
     CONVOLVE = _cunumeric.CUNUMERIC_CONVOLVE
-    CUMSUM = _cunumeric.CUNUMERIC_CUMSUM
     DIAG = _cunumeric.CUNUMERIC_DIAG
     DOT = _cunumeric.CUNUMERIC_DOT
     EYE = _cunumeric.CUNUMERIC_EYE
@@ -102,6 +101,7 @@ class CuNumericOpCode(IntEnum):
     READ = _cunumeric.CUNUMERIC_READ
     REPEAT = _cunumeric.CUNUMERIC_REPEAT
     SCALAR_UNARY_RED = _cunumeric.CUNUMERIC_SCALAR_UNARY_RED
+    SCAN = _cunumeric.CUNUMERIC_SCAN
     SORT = _cunumeric.CUNUMERIC_SORT
     SYRK = _cunumeric.CUNUMERIC_SYRK
     TILE = _cunumeric.CUNUMERIC_TILE

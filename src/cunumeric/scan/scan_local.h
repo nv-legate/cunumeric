@@ -20,14 +20,15 @@
 
 namespace cunumeric {
 
-struct Cumsum_gArgs {
-  const Array& sum_vals;
+struct ScanLocalArgs {
   const Array& out;
+  const Array& in;
+  Array& sum_vals;
 };
 
-class Cumsum_gTask : public CuNumericTask<Cumsum_gTask> {
+class ScanLocalTask : public CuNumericTask<ScanLocalTask> {
  public:
-  static const int TASK_ID = CUNUMERIC_CUMSUM_GLOBAL;
+  static const int TASK_ID = CUNUMERIC_SCAN_LOCAL;
 
  public:
   static void cpu_variant(legate::TaskContext& context);

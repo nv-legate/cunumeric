@@ -22,12 +22,12 @@ using namespace Legion;
 using namespace legate;
 
 template <VariantKind KIND, LegateTypeCode CODE, int DIM>
-struct Cumsum_lImplBody;
+struct ScanLocalImplBody;
 
 template <VariantKind KIND>
-struct Cumsum_lImpl {
+struct ScanLocalImpl {
   template <LegateTypeCode CODE, int DIM>
-  void operator()(Cumsum_lArgs& args) const
+  void operator()(ScanLocalArgs& args) const
   {
     using VAL = legate_type_of<CODE>;
     
@@ -41,16 +41,16 @@ struct Cumsum_lImpl {
     auto out = args.out.write_accessor<VAL, DIM>(rect);
     auto in = args.in.read_accessor<VAL, DIM>(rect);
 
-    Cumsum_lImplBody<KIND, CODE, DIM>()(out, in, args.sum_vals, pitches, rect);
+    ScanLocalImplBody<KIND, CODE, DIM>()(out, in, args.sum_vals, pitches, rect);
 
   }
 };
 
 template <VariantKind KIND>
-static void Cumsum_l_template(TaskContext& context)
+static void scan_local_template(TaskContext& context)
 {
-  Cumsum_lArgs args{context.outputs()[0], context.inputs()[0], context.outputs()[1]};
-  double_dispatch(args.in.dim(), args.in.code(), Cumsum_lImpl<KIND>{}, args);
+  ScanLocalArgs args{context.outputs()[0], context.inputs()[0], context.outputs()[1]};
+  double_dispatch(args.in.dim(), args.in.code(), ScanLocalImpl<KIND>{}, args);
 }
 
 }  // namespace cunumeric

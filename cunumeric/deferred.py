@@ -1564,7 +1564,7 @@ class DeferredArray(NumPyThunk):
         cholesky(self, src, no_tril)
 
     @auto_convert([1])
-    def cumsum(self, rhs, axis, dtype):
+    def scan(self, rhs, axis, dtype):
         ## local sum
         # storage for local sums accessible
         temp = self.runtime.create_unbound_thunk(dtype=self.dtype, ndim=self.ndim)
@@ -1588,7 +1588,7 @@ class DeferredArray(NumPyThunk):
                     output = self.runtime.create_empty_thunk(
                         input.shape, dtype=self.dtype)
         
-        task = output.context.create_task(CuNumericOpCode.CUMSUM_LOCAL)
+        task = output.context.create_task(CuNumericOpCode.SCAN_LOCAL)
         task.add_output(output.base)
         task.add_input(input.base)
         task.add_output(temp)
@@ -1600,7 +1600,7 @@ class DeferredArray(NumPyThunk):
         # RRRR NOTE: Assumes the partitioning stays the same from previous task.
         # RRRR NOTE: Each node will do a sum up to its index, alternatively could
         # RRRR do one centralized scan and broadcast (slightly less redundant work)
-        task = output.context.create_task(CuNumericOpCode.CUMSUM_GLOBAL)
+        task = output.context.create_task(CuNumericOpCode.SCAN_GLOBAL)
         task.add_input(output.base)
         task.add_input(temp)
         task.add_output(output.base)

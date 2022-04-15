@@ -22,12 +22,12 @@ using namespace Legion;
 using namespace legate;
 
 template <VariantKind KIND, LegateTypeCode CODE, int DIM>
-struct Cumsum_gImplBody;
+struct ScanGlobalImplBody;
 
 template <VariantKind KIND>
-struct Cumsum_gImpl {
+struct ScanGlobalImpl {
   template <LegateTypeCode CODE, int DIM>
-  void operator()(Cumsum_gArgs& args, const DomainPoint& partition_index) const
+  void operator()(ScanGlobalArgs& args, const DomainPoint& partition_index) const
   {
 
     using VAL = legate_type_of<CODE>;
@@ -45,16 +45,16 @@ struct Cumsum_gImpl {
     auto out = args.out.read_write_accessor<VAL, DIM>(out_rect);
     auto sum_vals = args.sum_vals.read_accessor<VAL, DIM>(sum_vals_rect);
 
-    Cumsum_gImplBody<KIND, CODE, DIM>()(out, sum_vals, out_pitches, out_rect, sum_vals_pitches, sum_vals_rect, partition_index);
+    ScanGlobalImplBody<KIND, CODE, DIM>()(out, sum_vals, out_pitches, out_rect, sum_vals_pitches, sum_vals_rect, partition_index);
 
   }
 };
 
 template <VariantKind KIND>
-static void Cumsum_g_template(TaskContext& context)
+static void scan_global_template(TaskContext& context)
 {
-  Cumsum_gArgs args{context.inputs()[1], context.outputs()[0]};
-  double_dispatch(args.out.dim(), args.out.code(), Cumsum_gImpl<KIND>{}, args, context.get_task_index());  
+  ScanGlobalArgs args{context.inputs()[1], context.outputs()[0]};
+  double_dispatch(args.out.dim(), args.out.code(), ScanGlobalImpl<KIND>{}, args, context.get_task_index());  
 }
 
 }  // namespace cunumeric

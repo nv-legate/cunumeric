@@ -14,13 +14,11 @@
  *
  */
 
-#include "cunumeric/scan/cumsum_g.h"
-#include "cunumeric/scan/cumsum_g_template.inl"
+#include "cunumeric/scan/scan_global.h"
+#include "cunumeric/scan/scan_global_template.inl"
 
 #include <thrust/scan.h>
 #include <thrust/execution_policy.h>
-#include <thrust/system/omp/execution_policy.h>
-#include <omp.h>
 
 
 namespace cunumeric {
@@ -29,7 +27,7 @@ using namespace Legion;
 using namespace legate;
 
 template <LegateTypeCode CODE, int DIM>
-struct Cumsum_gImplBody<VariantKind::OMP, CODE, DIM> {
+struct ScanGlobalImplBody<VariantKind::GPU, CODE, DIM> {
   using VAL = legate_type_of<CODE>;
   
   struct add_scalar_funct
@@ -62,23 +60,25 @@ struct Cumsum_gImplBody<VariantKind::OMP, CODE, DIM> {
 
     auto stride = out_rect.hi[DIM - 1] - out_rect.lo[DIM - 1] + 1;
     for(uint64_t index = 0; index < volume; index += stride){
+      // RRRR depending on stride and volume this should either call multiple streams
+      // RRRR or use a cub version (currently not implemented)
       // get the corresponding ND index with base zero to use for sum_val
       auto sum_valsp = out_pitches.unflatten(index, out_rect.lo) - out_rect.lo;
       // first element on scan axis
       sum_valsp[DIM - 1] = 0;
       // calculate sum up to partition_index-1
       // RRRR NOTE: host might be faster here cause short vectors.
-      auto  base = thrust::reduce(thrust::omp::par, &sum_vals[sum_valsp], &sum_vals[sum_valsp] + partition_index[DIM - 1] - 1); // RRRR is the indexing format correct?
+      auto  base = thrust::reduce(thrust::device, &sum_vals[sum_valsp], &sum_vals[sum_valsp] + partition_index[DIM - 1] - 1); // RRRR is the indexing format correct?
 
       // add base to out
-      thrust::for_each(thrust::omp::par, outptr + index, outptr + index + stride, add_scalar_funct(base));
+      thrust::for_each(thrust::device, outptr + index, outptr + index + stride, add_scalar_funct(base));
     }
   }
 };
 
-/*static*/ void Cumsum_gTask::omp_variant(TaskContext& context)
+/*static*/ void ScanGlobalTask::gpu_variant(TaskContext& context)
 {
-  Cumsum_g_template<VariantKind::OMP>(context);
+  scan_global_template<VariantKind::GPU>(context);
 }
 
 }  // namespace cunumeric
