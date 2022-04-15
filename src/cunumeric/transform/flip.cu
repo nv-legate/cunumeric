@@ -58,7 +58,9 @@ struct FlipImplBody<VariantKind::GPU, CODE, DIM> {
     auto num_axes       = axes.size();
     auto gpu_axes       = create_buffer<int32_t>(num_axes, Memory::Kind::Z_COPY_MEM);
     for (uint32_t idx = 0; idx < num_axes; ++idx) gpu_axes[idx] = axes[idx];
-    flip_kernel<<<blocks, THREADS_PER_BLOCK>>>(volume, out, in, pitches, rect, gpu_axes, num_axes);
+    auto stream = get_cached_stream();
+    flip_kernel<<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
+      volume, out, in, pitches, rect, gpu_axes, num_axes);
   }
 };
 

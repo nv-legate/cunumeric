@@ -64,8 +64,9 @@ struct TriluImplBody<VariantKind::GPU, CODE, DIM, LOWER> {
                   int32_t k) const
   {
     const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
+    auto stream         = get_cached_stream();
     trilu_kernel<VAL, DIM, LOWER, C_ORDER>
-      <<<blocks, THREADS_PER_BLOCK>>>(out, in, pitches, lo, volume, k);
+      <<<blocks, THREADS_PER_BLOCK, 0, stream>>>(out, in, pitches, lo, volume, k);
   }
 };
 

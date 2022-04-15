@@ -172,8 +172,9 @@ struct BincountImplBody<VariantKind::GPU, CODE> {
       &num_ctas, bincount_kernel_rd<VAL>, THREADS_PER_BLOCK, bin_size);
     assert(num_ctas > 0);
     // Launch a kernel with this number of CTAs
+    auto stream = get_cached_stream();
     bincount_kernel_rd<VAL>
-      <<<num_ctas, THREADS_PER_BLOCK, bin_size>>>(lhs, rhs, volume, num_bins, rect.lo);
+      <<<num_ctas, THREADS_PER_BLOCK, bin_size, stream>>>(lhs, rhs, volume, num_bins, rect.lo);
   }
 
   void operator()(const AccessorRW<int64_t, 1>& lhs,
@@ -190,8 +191,9 @@ struct BincountImplBody<VariantKind::GPU, CODE> {
       &num_ctas, bincount_kernel_rw<VAL>, THREADS_PER_BLOCK, bin_size);
     assert(num_ctas > 0);
     // Launch a kernel with this number of CTAs
+    auto stream = get_cached_stream();
     bincount_kernel_rw<VAL>
-      <<<num_ctas, THREADS_PER_BLOCK, bin_size>>>(lhs, rhs, volume, num_bins, rect.lo);
+      <<<num_ctas, THREADS_PER_BLOCK, bin_size, stream>>>(lhs, rhs, volume, num_bins, rect.lo);
   }
 
   void operator()(AccessorRD<SumReduction<double>, false, 1> lhs,
@@ -209,8 +211,9 @@ struct BincountImplBody<VariantKind::GPU, CODE> {
       &num_ctas, weighted_bincount_kernel_rd<VAL>, THREADS_PER_BLOCK, bin_size);
     assert(num_ctas > 0);
     // Launch a kernel with this number of CTAs
-    weighted_bincount_kernel_rd<VAL>
-      <<<num_ctas, THREADS_PER_BLOCK, bin_size>>>(lhs, rhs, weights, volume, num_bins, rect.lo);
+    auto stream = get_cached_stream();
+    weighted_bincount_kernel_rd<VAL><<<num_ctas, THREADS_PER_BLOCK, bin_size, stream>>>(
+      lhs, rhs, weights, volume, num_bins, rect.lo);
   }
 
   void operator()(const AccessorRW<double, 1>& lhs,
@@ -228,8 +231,9 @@ struct BincountImplBody<VariantKind::GPU, CODE> {
       &num_ctas, weighted_bincount_kernel_rw<VAL>, THREADS_PER_BLOCK, bin_size);
     assert(num_ctas > 0);
     // Launch a kernel with this number of CTAs
-    weighted_bincount_kernel_rw<VAL>
-      <<<num_ctas, THREADS_PER_BLOCK, bin_size>>>(lhs, rhs, weights, volume, num_bins, rect.lo);
+    auto stream = get_cached_stream();
+    weighted_bincount_kernel_rw<VAL><<<num_ctas, THREADS_PER_BLOCK, bin_size, stream>>>(
+      lhs, rhs, weights, volume, num_bins, rect.lo);
   }
 };
 

@@ -153,12 +153,13 @@ struct TransposeImplBody<VariantKind::GPU, CODE> {
     const dim3 blocks((n + TILE_DIM - 1) / TILE_DIM, (m + TILE_DIM - 1) / TILE_DIM, 1);
     const dim3 threads(TILE_DIM, BLOCK_ROWS, 1);
 
+    auto stream = get_cached_stream();
     if (logical)
       transpose_2d_logical<VAL>
-        <<<blocks, threads>>>(out, in, in_rect.lo, in_rect.hi, out_rect.lo, out_rect.hi);
+        <<<blocks, threads, 0, stream>>>(out, in, in_rect.lo, in_rect.hi, out_rect.lo, out_rect.hi);
     else
       transpose_2d_physical<VAL>
-        <<<blocks, threads>>>(out, in, in_rect.lo, in_rect.hi, out_rect.lo, out_rect.hi);
+        <<<blocks, threads, 0, stream>>>(out, in, in_rect.lo, in_rect.hi, out_rect.lo, out_rect.hi);
   }
 };
 

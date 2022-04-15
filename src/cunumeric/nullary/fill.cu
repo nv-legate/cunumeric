@@ -52,11 +52,12 @@ struct FillImplBody<VariantKind::GPU, VAL, DIM> {
   {
     size_t volume       = rect.volume();
     const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
+    auto stream         = get_cached_stream();
     if (dense) {
       auto outptr = out.ptr(rect);
-      dense_kernel<<<blocks, THREADS_PER_BLOCK>>>(volume, outptr, in);
+      dense_kernel<<<blocks, THREADS_PER_BLOCK, 0, stream>>>(volume, outptr, in);
     } else {
-      generic_kernel<<<blocks, THREADS_PER_BLOCK>>>(volume, out, in, pitches, rect);
+      generic_kernel<<<blocks, THREADS_PER_BLOCK, 0, stream>>>(volume, out, in, pitches, rect);
     }
   }
 };

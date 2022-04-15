@@ -61,17 +61,19 @@ struct ChooseImplBody<VariantKind::GPU, CODE, DIM> {
     const size_t volume = rect.volume();
     const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
 
+    auto stream = get_cached_stream();
     if (dense) {
       auto ch_arr = create_buffer<const VAL*>(choices.size(), Memory::Kind::Z_COPY_MEM);
       for (uint32_t idx = 0; idx < choices.size(); ++idx) ch_arr[idx] = choices[idx].ptr(rect);
       VAL* outptr             = out.ptr(rect);
       const int64_t* indexptr = index_arr.ptr(rect);
-      choose_kernel_dense<VAL><<<blocks, THREADS_PER_BLOCK>>>(outptr, indexptr, ch_arr, volume);
+      choose_kernel_dense<VAL>
+        <<<blocks, THREADS_PER_BLOCK, 0, stream>>>(outptr, indexptr, ch_arr, volume);
     } else {
       auto ch_arr = create_buffer<AccessorRO<VAL, DIM>>(choices.size(), Memory::Kind::Z_COPY_MEM);
       for (uint32_t idx = 0; idx < choices.size(); ++idx) ch_arr[idx] = choices[idx];
       choose_kernel<VAL, DIM>
-        <<<blocks, THREADS_PER_BLOCK>>>(out, index_arr, ch_arr, rect, pitches, volume);
+        <<<blocks, THREADS_PER_BLOCK, 0, stream>>>(out, index_arr, ch_arr, rect, pitches, volume);
     }
   }
 };

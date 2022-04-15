@@ -38,7 +38,8 @@ struct EyeImplBody<VariantKind::GPU, VAL> {
                   const coord_t distance) const
   {
     const size_t blocks = (distance + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-    eye_kernel<VAL><<<blocks, THREADS_PER_BLOCK>>>(out, start, distance);
+    auto stream         = get_cached_stream();
+    eye_kernel<VAL><<<blocks, THREADS_PER_BLOCK, 0, stream>>>(out, start, distance);
   }
 };
 

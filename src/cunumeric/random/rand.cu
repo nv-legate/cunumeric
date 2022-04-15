@@ -45,7 +45,9 @@ struct RandImplBody<VariantKind::GPU, RNG, VAL, DIM> {
   {
     size_t volume       = rect.volume();
     const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-    rand_kernel<<<blocks, THREADS_PER_BLOCK>>>(volume, out, rng, strides, pitches, rect.lo);
+    auto stream         = get_cached_stream();
+    rand_kernel<<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
+      volume, out, rng, strides, pitches, rect.lo);
   }
 };
 

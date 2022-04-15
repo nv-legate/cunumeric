@@ -50,8 +50,9 @@ struct TileImplBody<VariantKind::GPU, VAL, OUT_DIM, IN_DIM> {
                   const AccessorRO<VAL, IN_DIM>& in) const
   {
     const size_t blocks = (out_volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-    tile_kernel<VAL, OUT_DIM, IN_DIM>
-      <<<blocks, THREADS_PER_BLOCK>>>(out_rect, out_pitches, out_volume, in_strides, out, in);
+    auto stream         = get_cached_stream();
+    tile_kernel<VAL, OUT_DIM, IN_DIM><<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
+      out_rect, out_pitches, out_volume, in_strides, out, in);
   }
 };
 
