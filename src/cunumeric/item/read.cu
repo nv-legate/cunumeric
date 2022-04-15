@@ -16,6 +16,7 @@
 
 #include "cunumeric/item/read.h"
 #include "cunumeric/item/read_template.inl"
+#include "cunumeric/cuda_help.h"
 
 namespace cunumeric {
 
@@ -32,9 +33,7 @@ template <typename VAL>
 struct ReadImplBody<VariantKind::GPU, VAL> {
   void operator()(AccessorWO<VAL, 1> out, AccessorRO<VAL, 1> in) const
   {
-    cudaStream_t stream;
-    cudaStreamCreate(&stream);
-
+    auto stream = get_cached_stream();
     read_value<VAL><<<1, 1, 0, stream>>>(out, in);
   }
 };

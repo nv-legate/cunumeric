@@ -130,8 +130,7 @@ struct NonzeroImplBody<VariantKind::GPU, CODE, DIM> {
                     const size_t volume,
                     std::vector<Buffer<int64_t>>& results)
   {
-    cudaStream_t stream;
-    cudaStreamCreate(&stream);
+    auto stream = get_cached_stream();
 
     auto offsets = create_buffer<int64_t>(volume, Memory::Kind::GPU_FB_MEM);
     auto size    = compute_offsets(in, pitches, rect, volume, offsets, stream);

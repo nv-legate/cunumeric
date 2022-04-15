@@ -102,8 +102,7 @@ struct ScalarUnaryRedImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
                   const Pitches<DIM - 1>& pitches,
                   bool dense) const
   {
-    cudaStream_t stream;
-    cudaStreamCreate(&stream);
+    auto stream = get_cached_stream();
 
     const size_t volume = rect.volume();
     const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
@@ -119,7 +118,6 @@ struct ScalarUnaryRedImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
         volume, typename OP::OP{}, result, in, pitches, rect.lo, 1, LG_OP::identity);
 
     copy_kernel<<<1, 1, 0, stream>>>(result, out);
-    cudaStreamDestroy(stream);
   }
 };
 
@@ -136,8 +134,7 @@ struct ScalarUnaryRedImplBody<VariantKind::GPU, UnaryRedCode::CONTAINS, CODE, DI
                   const Pitches<DIM - 1>& pitches,
                   bool dense) const
   {
-    cudaStream_t stream;
-    cudaStreamCreate(&stream);
+    auto stream = get_cached_stream();
 
     const auto to_find  = to_find_scalar.scalar<VAL>();
     const size_t volume = rect.volume();
@@ -154,7 +151,6 @@ struct ScalarUnaryRedImplBody<VariantKind::GPU, UnaryRedCode::CONTAINS, CODE, DI
         volume, result, in, pitches, rect.lo, 1, to_find);
 
     copy_kernel<<<1, 1, 0, stream>>>(result, out);
-    cudaStreamDestroy(stream);
   }
 };
 
@@ -188,8 +184,7 @@ void logical_operator_gpu(AccessorRD<LG_OP, true, 1> out,
                           const Pitches<DIM - 1>& pitches,
                           bool dense)
 {
-  cudaStream_t stream;
-  cudaStreamCreate(&stream);
+  auto stream = get_cached_stream();
 
   const size_t volume = rect.volume();
   const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
@@ -205,7 +200,6 @@ void logical_operator_gpu(AccessorRD<LG_OP, true, 1> out,
       volume, result, in, pitches, rect.lo, 1, LG_OP::identity);
 
   copy_kernel<<<1, 1, 0, stream>>>(result, out);
-  cudaStreamDestroy(stream);
 }
 
 }  // namespace detail
@@ -256,8 +250,7 @@ struct ScalarUnaryRedImplBody<VariantKind::GPU, UnaryRedCode::COUNT_NONZERO, COD
                   const Pitches<DIM - 1>& pitches,
                   bool dense) const
   {
-    cudaStream_t stream;
-    cudaStreamCreate(&stream);
+    auto stream = get_cached_stream();
 
     const size_t volume = rect.volume();
     const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
@@ -273,7 +266,6 @@ struct ScalarUnaryRedImplBody<VariantKind::GPU, UnaryRedCode::COUNT_NONZERO, COD
         volume, result, in, pitches, rect.lo, 1);
 
     copy_kernel<<<1, 1, 0, stream>>>(result, out);
-    cudaStreamDestroy(stream);
   }
 };
 
