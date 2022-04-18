@@ -73,6 +73,7 @@ struct DotImplBody<VariantKind::GPU, CODE> {
         volume, result, rhs1, rhs2, rect.lo, 1, SumReduction<ACC>::identity);
 
     copy_kernel<<<1, 1, 0, stream>>>(result, out);
+    CHECK_CUDA_STREAM(stream);
   }
 };
 

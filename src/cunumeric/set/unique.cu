@@ -161,6 +161,7 @@ struct UniqueImplBody<VariantKind::GPU, CODE, DIM> {
       copy_into_buffer<<<num_blocks, THREADS_PER_BLOCK, 0, stream>>>(
         ptr, in, rect.lo, pitches, volume);
     }
+    CHECK_CUDA_STREAM(stream);
 
     // Find unique values
     thrust::sort(thrust::cuda::par.on(stream), ptr, ptr + volume);
@@ -180,6 +181,7 @@ struct UniqueImplBody<VariantKind::GPU, CODE, DIM> {
       auto comm = comms[0].get<ncclComm_t*>();
       result    = tree_reduce(result, point[0], launch_domain.get_volume(), stream, comm);
     }
+    CHECK_CUDA_STREAM(stream);
 
     // Finally we pack the result
     return result;

@@ -35,6 +35,7 @@ struct ReadImplBody<VariantKind::GPU, VAL> {
   {
     auto stream = get_cached_stream();
     read_value<VAL><<<1, 1, 0, stream>>>(out, in);
+    CHECK_CUDA_STREAM(stream);
   }
 };
 

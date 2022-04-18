@@ -45,6 +45,7 @@ struct ArangeImplBody<VariantKind::GPU, VAL> {
     auto stream         = get_cached_stream();
     arange_kernel<VAL>
       <<<blocks, THREADS_PER_BLOCK, 0, stream>>>(out, rect.lo[0], start, step, distance);
+    CHECK_CUDA_STREAM(stream);
   }
 };
 

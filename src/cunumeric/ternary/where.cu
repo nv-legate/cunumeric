@@ -69,6 +69,7 @@ struct WhereImplBody<VariantKind::GPU, CODE, DIM> {
       generic_kernel<<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
         volume, out, mask, in1, in2, pitches, rect);
     }
+    CHECK_CUDA_STREAM(stream);
   }
 };
 

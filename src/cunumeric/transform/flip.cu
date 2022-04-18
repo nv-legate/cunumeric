@@ -61,6 +61,7 @@ struct FlipImplBody<VariantKind::GPU, CODE, DIM> {
     auto stream = get_cached_stream();
     flip_kernel<<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
       volume, out, in, pitches, rect, gpu_axes, num_axes);
+    CHECK_CUDA_STREAM(stream);
   }
 };
 

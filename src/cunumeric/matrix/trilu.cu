@@ -67,6 +67,7 @@ struct TriluImplBody<VariantKind::GPU, CODE, DIM, LOWER> {
     auto stream         = get_cached_stream();
     trilu_kernel<VAL, DIM, LOWER, C_ORDER>
       <<<blocks, THREADS_PER_BLOCK, 0, stream>>>(out, in, pitches, lo, volume, k);
+    CHECK_CUDA_STREAM(stream);
   }
 };
 

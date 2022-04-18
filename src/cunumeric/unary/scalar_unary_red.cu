@@ -118,6 +118,7 @@ struct ScalarUnaryRedImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
         volume, typename OP::OP{}, result, in, pitches, rect.lo, 1, LG_OP::identity);
 
     copy_kernel<<<1, 1, 0, stream>>>(result, out);
+    CHECK_CUDA_STREAM(stream);
   }
 };
 
@@ -151,6 +152,7 @@ struct ScalarUnaryRedImplBody<VariantKind::GPU, UnaryRedCode::CONTAINS, CODE, DI
         volume, result, in, pitches, rect.lo, 1, to_find);
 
     copy_kernel<<<1, 1, 0, stream>>>(result, out);
+    CHECK_CUDA_STREAM(stream);
   }
 };
 
@@ -200,6 +202,7 @@ void logical_operator_gpu(AccessorRD<LG_OP, true, 1> out,
       volume, result, in, pitches, rect.lo, 1, LG_OP::identity);
 
   copy_kernel<<<1, 1, 0, stream>>>(result, out);
+  CHECK_CUDA_STREAM(stream);
 }
 
 }  // namespace detail
@@ -266,6 +269,7 @@ struct ScalarUnaryRedImplBody<VariantKind::GPU, UnaryRedCode::COUNT_NONZERO, COD
         volume, result, in, pitches, rect.lo, 1);
 
     copy_kernel<<<1, 1, 0, stream>>>(result, out);
+    CHECK_CUDA_STREAM(stream);
   }
 };
 

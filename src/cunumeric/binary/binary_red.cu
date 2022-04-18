@@ -76,6 +76,7 @@ struct BinaryRedImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
     }
 
     copy_kernel<<<1, 1, 0, stream>>>(result, out);
+    CHECK_CUDA_STREAM(stream);
   }
 };
 

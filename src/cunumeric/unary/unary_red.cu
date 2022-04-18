@@ -327,6 +327,7 @@ struct UnaryRedImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
     blocks.compute_maximum_concurrency(reinterpret_cast<const void*>(Kernel));
     Kernel<<<blocks.num_blocks(), blocks.num_threads(), 0, stream>>>(
       lhs, rhs, LG_OP::identity, blocks, rect, collapsed_dim);
+    CHECK_CUDA_STREAM(stream);
   }
 
   void operator()(AccessorRW<VAL, DIM> lhs,
@@ -345,6 +346,7 @@ struct UnaryRedImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
     blocks.compute_maximum_concurrency(reinterpret_cast<const void*>(Kernel));
     Kernel<<<blocks.num_blocks(), blocks.num_threads(), 0, stream>>>(
       lhs, rhs, LG_OP::identity, blocks, rect, collapsed_dim);
+    CHECK_CUDA_STREAM(stream);
   }
 };
 
@@ -372,6 +374,7 @@ struct ArgRedImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
     blocks.compute_maximum_concurrency(reinterpret_cast<const void*>(Kernel));
     Kernel<<<blocks.num_blocks(), blocks.num_threads(), 0, stream>>>(
       lhs, rhs, LG_OP::identity, blocks, rect, collapsed_dim);
+    CHECK_CUDA_STREAM(stream);
   }
 
   void operator()(AccessorRW<LHS, DIM> lhs,
@@ -390,6 +393,7 @@ struct ArgRedImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
     blocks.compute_maximum_concurrency(reinterpret_cast<const void*>(Kernel));
     Kernel<<<blocks.num_blocks(), blocks.num_threads(), 0, stream>>>(
       lhs, rhs, LG_OP::identity, blocks, rect, collapsed_dim);
+    CHECK_CUDA_STREAM(stream);
   }
 };
 

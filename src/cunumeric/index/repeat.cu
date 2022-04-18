@@ -119,6 +119,7 @@ struct RepeatImplBody<VariantKind::GPU, CODE, DIM> {
     auto stream = get_cached_stream();
     repeat_kernel<VAL, DIM><<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
       out, in, repeats, axis, in_rect.lo, pitches, out_volume);
+    CHECK_CUDA_STREAM(stream);
   }
 
   void operator()(Array& out_array,
@@ -148,6 +149,7 @@ struct RepeatImplBody<VariantKind::GPU, CODE, DIM> {
       count_repeat_kernel<<<blocks_count, THREADS_PER_BLOCK, shmem_size, stream>>>(
         extent, sum, repeats, in_rect.lo, axis, 1, offsets);
     }
+    CHECK_CUDA_STREAM(stream);
 
     cudaStreamSynchronize(stream);
 
@@ -162,6 +164,7 @@ struct RepeatImplBody<VariantKind::GPU, CODE, DIM> {
     const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
     repeat_kernel<VAL, DIM><<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
       out, in, repeats, offsets, axis, in_rect.lo, pitches, volume);
+    CHECK_CUDA_STREAM(stream);
   }
 };
 

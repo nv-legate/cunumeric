@@ -40,6 +40,8 @@ struct BinaryRedImpl {
     Pitches<DIM - 1> pitches;
     size_t volume = pitches.flatten(rect);
 
+    if (0 == volume) return;
+
     auto out = args.out.reduce_accessor<ProdReduction<bool>, true, 1>();
     auto in1 = args.in1.read_accessor<ARG, DIM>(rect);
     auto in2 = args.in2.read_accessor<ARG, DIM>(rect);

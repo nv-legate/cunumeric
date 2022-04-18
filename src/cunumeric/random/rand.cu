@@ -48,6 +48,7 @@ struct RandImplBody<VariantKind::GPU, RNG, VAL, DIM> {
     auto stream         = get_cached_stream();
     rand_kernel<<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
       volume, out, rng, strides, pitches, rect.lo);
+    CHECK_CUDA_STREAM(stream);
   }
 };
 

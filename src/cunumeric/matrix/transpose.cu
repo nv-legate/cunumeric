@@ -160,6 +160,7 @@ struct TransposeImplBody<VariantKind::GPU, CODE> {
     else
       transpose_2d_physical<VAL>
         <<<blocks, threads, 0, stream>>>(out, in, in_rect.lo, in_rect.hi, out_rect.lo, out_rect.hi);
+    CHECK_CUDA_STREAM(stream);
   }
 };
 

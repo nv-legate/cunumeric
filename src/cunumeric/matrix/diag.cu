@@ -89,6 +89,7 @@ struct DiagImplBody<VariantKind::GPU, CODE, DIM, true> {
     auto stream = get_cached_stream();
     diag_extract<VAL><<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
       out, in, distance, volume, skip_size, start, naxes, m_pitches, m_shape);
+    CHECK_CUDA_STREAM(stream);
   }
 };
 
@@ -105,6 +106,7 @@ struct DiagImplBody<VariantKind::GPU, CODE, 2, false> {
     const size_t blocks = (distance + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
     auto stream         = get_cached_stream();
     diag_populate<VAL><<<blocks, THREADS_PER_BLOCK, 0, stream>>>(out, in, distance, start);
+    CHECK_CUDA_STREAM(stream);
   }
 };
 
