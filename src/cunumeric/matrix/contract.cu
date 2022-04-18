@@ -148,6 +148,8 @@ __host__ void contract(T* lhs_data,
                                      work,
                                      work_size,
                                      task_stream));
+
+  CHECK_CUDA_STREAM(task_stream);
 }
 
 template <>

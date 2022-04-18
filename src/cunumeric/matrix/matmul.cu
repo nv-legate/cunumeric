@@ -67,6 +67,8 @@ struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::FLOAT_LT> {
                                lhs,
                                CUDA_R_32F,
                                lhs_stride));
+
+    CHECK_CUDA_STREAM(task_stream);
   }
 };
 
@@ -105,6 +107,8 @@ struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::DOUBLE_LT> {
                              &beta,
                              lhs,
                              lhs_stride));
+
+    CHECK_CUDA_STREAM(task_stream);
   }
 };
 
@@ -146,6 +150,8 @@ struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::HALF_LT> {
                                lhs,
                                CUDA_R_32F,
                                lhs_stride));
+
+    CHECK_CUDA_STREAM(task_stream);
   }
 };
 
@@ -191,6 +197,8 @@ struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::COMPLEX64_LT> {
                                lhs,
                                CUDA_C_32F,
                                lhs_stride));
+
+    CHECK_CUDA_STREAM(task_stream);
   }
 };
 
@@ -233,6 +241,8 @@ struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::COMPLEX128_LT> {
                              &beta,
                              lhs,
                              lhs_stride));
+
+    CHECK_CUDA_STREAM(task_stream);
   }
 };
 
