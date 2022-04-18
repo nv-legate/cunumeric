@@ -87,11 +87,11 @@ class cufftContext {
   ~cufftContext();
 
  public:
-  cufftContext(const cufftContext&) = delete;
+  cufftContext(const cufftContext&)            = delete;
   cufftContext& operator=(const cufftContext&) = delete;
 
  public:
-  cufftContext(cufftContext&&) = default;
+  cufftContext(cufftContext&&)            = default;
   cufftContext& operator=(cufftContext&&) = default;
 
  public:
