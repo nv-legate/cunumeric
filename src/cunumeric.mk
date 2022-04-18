@@ -121,8 +121,6 @@ GEN_GPU_SRC += cunumeric/ternary/where.cu               \
 							 cunumeric/cudalibs.cu                    \
 							 cunumeric/cunumeric.cu
 
-GEN_DEVICE_SRC += cunumeric/convolution/convolve_callbacks.cu
-
 include cunumeric/sort/sort.mk
 
 GEN_CPU_SRC += cunumeric/cunumeric.cc # This must always be the last file!
