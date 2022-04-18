@@ -220,6 +220,15 @@ class BinaryOpCode(IntEnum):
     SUBTRACT = _cunumeric.CUNUMERIC_BINOP_SUBTRACT
 
 
+@unique
+class WindowOpCode(IntEnum):
+    BARLETT = _cunumeric.CUNUMERIC_WINDOW_BARLETT
+    BLACKMAN = _cunumeric.CUNUMERIC_WINDOW_BLACKMAN
+    HAMMING = _cunumeric.CUNUMERIC_WINDOW_HAMMING
+    HANNING = _cunumeric.CUNUMERIC_WINDOW_HANNING
+    KAISER = _cunumeric.CUNUMERIC_WINDOW_KAISER
+
+
 # Match these to RandGenCode in rand_util.h
 @unique
 class RandGenCode(IntEnum):

@@ -1600,3 +1600,6 @@ class DeferredArray(NumPyThunk):
             raise ValueError("invalid axis")
 
         sort(self, rhs, argsort, axis, stable)
+
+    def create_window(self, op_code, *args):
+        return
