@@ -189,7 +189,7 @@ enum CuNumericBounds {
 
 // Match these to CuNumericTypeCodes in config.py
 enum CuNumericTypeCodes {
-  CUNUMERIC_TYPE_POINT1 = LEGION_TYPE_TOTAL + 1,
+  CUNUMERIC_TYPE_POINT1 = MAX_TYPE_NUMBER + 1,
   CUNUMERIC_TYPE_POINT2,
   CUNUMERIC_TYPE_POINT3,
   CUNUMERIC_TYPE_POINT4,

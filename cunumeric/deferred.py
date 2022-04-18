@@ -444,12 +444,6 @@ class DeferredArray(NumPyThunk):
             return False, rhs, out
 
         if isinstance(key, NumPyThunk):
-            # the use case when index array ndim >input array ndim
-            if key.ndim > store.ndim:
-                diff = store.ndim - key.ndim
-                for i in range(diff):
-                    store = store.promote(i + 1, store.shape[0])
-
             key = (key,)
 
         assert isinstance(key, tuple)
@@ -487,7 +481,6 @@ class DeferredArray(NumPyThunk):
             )
             key_transpose_indices += post_indices
             store = store.transpose(transpose_indices)
-
             key = tuple(key[i] for i in key_transpose_indices)
 
         for d, k in enumerate(key):
@@ -531,7 +524,10 @@ class DeferredArray(NumPyThunk):
             output_arr = rhs._zip_indices(start_index, tuple_of_arrays)
             return True, rhs, output_arr
         elif len(tuple_of_arrays) == 1 and rhs.ndim == 1:
-            return True, rhs, tuple_of_arrays[0]
+            key = tuple_of_arrays[0]
+            if key.base.transformed:
+                key, key_store = key._copy_store(key.base)
+            return True, rhs, key
         else:
             raise ValueError("Advance indexing dimention mismatch")
 
@@ -659,6 +655,8 @@ class DeferredArray(NumPyThunk):
                     rhs_tmp = rhs._broadcast(index_array.base.shape)
                     rhs_tmp, rhs = rhs._copy_store(rhs_tmp)
                 else:
+                    if rhs.base.transformed:
+                        rhs, rhs_base = rhs._copy_store(rhs.base)
                     rhs = rhs.base
 
             copy = self.context.create_copy()
