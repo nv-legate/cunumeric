@@ -15,6 +15,7 @@
  */
 
 #include "legion.h"
+#include "core/data/buffer.h"
 #include "cunumeric/cunumeric.h"
 #include "cunumeric/matrix/util.h"
 #include "cunumeric/matrix/util_omp.h"
@@ -25,10 +26,9 @@ using namespace Legion;
 
 float* allocate_buffer_omp(size_t size)
 {
-  Rect<1> bounds(0, size - 1);
   Memory::Kind kind = CuNumeric::has_numamem ? Memory::Kind::SOCKET_MEM : Memory::Kind::SYSTEM_MEM;
   // We will not call this function on GPUs
-  DeferredBuffer<float, 1> buffer(kind, bounds);
+  auto buffer = legate::create_buffer<float, 1>(size, kind);
   return buffer.ptr(0);
 }
 

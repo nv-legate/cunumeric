@@ -1011,6 +1011,7 @@ __host__ void direct_convolution(AccessorWO<VAL, DIM> out,
     }
     // Launch as many kernels as we need to walk over the entire filter
     // Given the L2 filter tile that we came up with
+    auto stream                     = get_cached_stream();
     const Point<DIM, unsigned> zero = Point<DIM, unsigned>::ZEROES();
     const Point<DIM, unsigned> one  = Point<DIM, unsigned>::ONES();
     if (total_l2_filters > 1) {
@@ -1025,18 +1026,19 @@ __host__ void direct_convolution(AccessorWO<VAL, DIM> out,
         const Point<DIM> l2_input_stop = subrect.lo + l2_output_tile - one + Point<DIM>(extents) -
                                          l2_filter_rect.lo - one - Point<DIM>(centers);
         convolution_large_tile<VAL, DIM, THREADVALS>
-          <<<properties.multiProcessorCount, CONVOLUTION_THREADS, dynamic_smem>>>(out,
-                                                                                  filter,
-                                                                                  in,
-                                                                                  root_rect,
-                                                                                  subrect,
-                                                                                  l2_filter_rect,
-                                                                                  l2_input_start,
-                                                                                  l2_input_stop,
-                                                                                  l1_input_start,
-                                                                                  zero,
-                                                                                  one,
-                                                                                  args);
+          <<<properties.multiProcessorCount, CONVOLUTION_THREADS, dynamic_smem, stream>>>(
+            out,
+            filter,
+            in,
+            root_rect,
+            subrect,
+            l2_filter_rect,
+            l2_input_start,
+            l2_input_stop,
+            l1_input_start,
+            zero,
+            one,
+            args);
         // Step to the next filter
         for (int d = DIM - 1; d >= 0; d--) {
           l2_filter_lo[d] += l2_filter_tile[d];
@@ -1054,19 +1056,21 @@ __host__ void direct_convolution(AccessorWO<VAL, DIM> out,
       const Point<DIM> l2_input_stop  = subrect.lo + l2_output_tile - one + Point<DIM>(extents) -
                                        filter_rect.lo - one - Point<DIM>(centers);
       convolution_large_tile<VAL, DIM, THREADVALS>
-        <<<properties.multiProcessorCount, CONVOLUTION_THREADS, dynamic_smem>>>(out,
-                                                                                filter,
-                                                                                in,
-                                                                                root_rect,
-                                                                                subrect,
-                                                                                filter_rect,
-                                                                                l2_input_start,
-                                                                                l2_input_stop,
-                                                                                l1_input_start,
-                                                                                zero,
-                                                                                one,
-                                                                                args);
+        <<<properties.multiProcessorCount, CONVOLUTION_THREADS, dynamic_smem, stream>>>(
+          out,
+          filter,
+          in,
+          root_rect,
+          subrect,
+          filter_rect,
+          l2_input_start,
+          l2_input_stop,
+          l1_input_start,
+          zero,
+          one,
+          args);
     }
+    CHECK_CUDA_STREAM(stream);
   }
 }
 
