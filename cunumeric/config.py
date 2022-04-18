@@ -113,6 +113,7 @@ class CuNumericOpCode(IntEnum):
     UNIQUE_REDUCE = _cunumeric.CUNUMERIC_UNIQUE_REDUCE
     UNLOAD_CUDALIBS = _cunumeric.CUNUMERIC_UNLOAD_CUDALIBS
     WHERE = _cunumeric.CUNUMERIC_WHERE
+    WINDOW = _cunumeric.CUNUMERIC_WINDOW
     WRITE = _cunumeric.CUNUMERIC_WRITE
 
 
