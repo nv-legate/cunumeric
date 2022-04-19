@@ -465,8 +465,18 @@ class DeferredArray(NumPyThunk):
             if np.isscalar(k) or isinstance(k, NumPyThunk):
                 if start_index == -1:
                     start_index = dim
-                transpose_indices += (dim,)
+                key_transpose_indices += (dim,)
                 transpose_needed = transpose_needed or ((dim - last_index) > 1)
+                if (
+                    isinstance(k, NumPyThunk)
+                    and k.dtype == np.bool
+                    and k.ndim >= 2
+                ):
+                    for i in range(dim, dim + k.ndim):
+                        transpose_indices += (shift + i,)
+                    shift += k.ndim - 1
+                else:
+                    transpose_indices += (dim,)
                 last_index = dim
 
         if transpose_needed:
@@ -474,7 +484,6 @@ class DeferredArray(NumPyThunk):
             post_indices = tuple(
                 i for i in range(store.ndim) if i not in transpose_indices
             )
-            key_transpose_indices = transpose_indices
             transpose_indices += post_indices
             post_indices = tuple(
                 i for i in range(len(key)) if i not in key_transpose_indices
@@ -483,8 +492,8 @@ class DeferredArray(NumPyThunk):
             store = store.transpose(transpose_indices)
             key = tuple(key[i] for i in key_transpose_indices)
 
-        for d, k in enumerate(key):
-            dim = d
+        shift = 0
+        for dim, k in enumerate(key):
             if np.isscalar(k):
                 if k < 0:
                     k += store.shape[dim + shift]
@@ -506,6 +515,7 @@ class DeferredArray(NumPyThunk):
                     # in case of the mixed indises we all nonzero
                     # for the bool array
                     k = k.nonzero()
+                    shift += len(k) - 1
                     tuple_of_arrays += k
                 else:
                     tuple_of_arrays += (k,)

@@ -246,11 +246,9 @@ def test():
     res_num = xt_num[:, [0, 1], :, 1:]
     assert np.array_equal(res, res_num)
 
-    z = x
-    z_num = x_num
-    z[[0, 1], [0, 1]] = 11
-    z_num[[0, 1], [0, 1]] = 11
-    assert np.array_equal(z, z_num)
+    x[[0, 1], [0, 1]] = 11
+    x_num[[0, 1], [0, 1]] = 11
+    assert np.array_equal(x, x_num)
 
     # d: newaxis is passed along with array:
 
@@ -258,6 +256,22 @@ def test():
     res_num = x_num[..., [1, 0]]
     assert np.array_equal(res, res_num)
 
+    xt = x.transpose(
+        (
+            1,
+            3,
+            0,
+            2,
+        )
+    )
+    xt_num = x_num.transpose(
+        (
+            1,
+            3,
+            0,
+            2,
+        )
+    )
     res = xt[..., [0, 1], 1:]
     res_num = xt_num[..., [0, 1], 1:]
     assert np.array_equal(res, res_num)
@@ -317,25 +331,17 @@ def test():
     res_num = x_num[..., indx_bool_num]
     assert np.array_equal(res, res_num)
 
-    print("IRINA DEBUG 1")
     indx1_bool = np.array([True, False])
     indx1_bool_num = num.array(indx1_bool)
     indx2_bool = np.array([True, False, True, True])
     indx2_bool_num = num.array(indx2_bool)
     res = x[indx1_bool, :, indx2_bool]
-    print(res.shape)
-    print(res)
     res_num = x_num[indx1_bool_num, :, indx2_bool_num]
-    print(res_num.shape)
-    print(res_num)
     assert np.array_equal(res, res_num)
 
-    print("IRINA DEBUG 2")
     res = x[indx1_bool, 1, indx2_bool]
-    # res_num = x_num[indx1_bool_num, 1, indx2_bool_num]
-    # print(res.shape)
-    # print(res_num.shape)
-    # assert np.array_equal(res, res_num)
+    res_num = x_num[indx1_bool_num, 1, indx2_bool_num]
+    assert np.array_equal(res, res_num)
 
     # g: boolean array with the same shape is passed to x:
     indx = x % 2
@@ -351,7 +357,6 @@ def test():
     z[indx] = 1
     z_num[indx_num] = 1
     assert np.array_equal(z, z_num)
-    print("IRINA DEBUG 3")
 
     indx_bool = np.array([True, False, True])
     indx_bool_num = num.array(indx_bool)
@@ -359,7 +364,6 @@ def test():
     z_num[:, indx_bool_num] = 5
     assert np.array_equal(z, z_num)
 
-    print("IRINA DEBUG 4")
     # i: two bool array of the same shape are passed:
     x = mk_seq_array(
         np,
@@ -388,20 +392,66 @@ def test():
     )
     indx_num = num.array(indx)
     res = x[indx, indx]
-    print("IRINA DEBUG res = ", res.shape)
-    # res_num = x_num[indx_num, indx_num]
-    # assert np.array_equal(res, res_num)
+    res_num = x_num[indx_num, indx_num]
+    assert np.array_equal(res, res_num)
+    if LEGATE_MAX_DIM > 4:
+        x = mk_seq_array(
+            np,
+            (
+                3,
+                4,
+                5,
+                3,
+                4,
+            ),
+        )
+        x_num = mk_seq_array(
+            num,
+            (
+                3,
+                4,
+                5,
+                3,
+                4,
+            ),
+        )
+        res = x[indx, 1, indx]
+        res_num = x_num[indx_num, 1, indx_num]
+        assert np.array_equal(res, res_num)
+
+        res = x[indx, :, indx]
+        res_num = x_num[indx_num, :, indx_num]
+        assert np.array_equal(res, res_num)
 
     # j: 2 bool arrays should be broadcasted:
-    # res = x[idx, [True,False,False]]
-    # res_num = x_num[idx_num, [True,False,False]]
+    x = mk_seq_array(
+        np,
+        (
+            3,
+            4,
+            3,
+            4,
+        ),
+    )
+    x_num = mk_seq_array(
+        num,
+        (
+            3,
+            4,
+            3,
+            4,
+        ),
+    )
+    res = x[indx, [True, False, False]]
+    res_num = x_num[indx_num, [True, False, False]]
+    assert np.array_equal(res, res_num)
 
     # 2d bool array not at the first index:
     indx = np.full((4, 3), True)
     indx_num = num.array(indx)
     res = x[:, indx]
-    # res_num = x_num[:, indx]
-    # assert np.array_equal(res, res_num)
+    res_num = x_num[:, indx]
+    assert np.array_equal(res, res_num)
 
     # 3: testing mixed type of the arguments passed:
 
@@ -425,8 +475,8 @@ def test():
         ),
     )
     res = x[[1, 1], [False, True, False]]
-    # res_num = x_num[[1,1], [False, True,False]]
-    # assert np.array_equal(res, res_num)
+    res_num = x_num[[1, 1], [False, True, False]]
+    assert np.array_equal(res, res_num)
 
     res = x[[1, 1], :, [False, True, False, True]]
     res_num = x_num[[1, 1], :, [False, True, False, True]]
@@ -465,7 +515,7 @@ def test():
     res_num = x_num[:, [0, 1], :, 1:]
     assert np.array_equal(res, res_num)
 
-    # c: transformed base:
+    # c: transformed base or index or rhs:
     z = x[:, 1:]
     z_num = x_num[:, 1:]
     indx = np.array([1, 1])
@@ -473,6 +523,22 @@ def test():
     res = z[indx]
     res_num = z_num[indx_num]
     assert np.array_equal(res, res_num)
+
+    indx = np.array([1, 1, 0])
+    indx_num = num.array(indx)
+    indx = indx[1:]
+    indx_num = indx_num[1:]
+    res = z[1, indx]
+    res_num = z_num[1, indx_num]
+    assert np.array_equal(res, res_num)
+
+    b = np.ones((2, 3, 6, 5))
+    b_num = num.array(b)
+    b = b.transpose((0, 1, 3, 2))
+    b_num = b_num.transpose((0, 1, 3, 2))
+    z[indx] = b
+    z_num[indx_num] = b_num
+    assert np.array_equal(z, z_num)
 
     # d: shape mismatch case:
     x = np.array(
@@ -534,6 +600,12 @@ def test():
 
     x[ind, ind] = 5
     x_num[ind_num, ind_num] = 5
+    assert np.array_equal(x, x_num)
+
+    b = np.array([1, 2, 3], dtype=np.int16)
+    b_num = num.array(b)
+    x[ind, ind] = b
+    x_num[ind_num, ind_num] = b_num
     assert np.array_equal(x, x_num)
 
     # we do less than LEGATE_MAX_DIM becasue the dimension will be increased by
