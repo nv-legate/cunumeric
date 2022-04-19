@@ -48,7 +48,6 @@ GEN_CPU_SRC += cunumeric/ternary/where.cc               \
 							 cunumeric/search/nonzero.cc              \
 							 cunumeric/set/unique.cc                  \
 							 cunumeric/set/unique_reduce.cc           \
-							 cunumeric/sort/sort.cc                   \
 							 cunumeric/stat/bincount.cc               \
 							 cunumeric/convolution/convolve.cc        \
 							 cunumeric/transform/flip.cc              \
@@ -86,15 +85,10 @@ GEN_CPU_SRC += cunumeric/ternary/where_omp.cc          \
 							 cunumeric/random/rand_omp.cc            \
 							 cunumeric/search/nonzero_omp.cc         \
 							 cunumeric/set/unique_omp.cc             \
-							 cunumeric/sort/sort_omp.cc              \
 							 cunumeric/stat/bincount_omp.cc          \
 							 cunumeric/convolution/convolve_omp.cc   \
 							 cunumeric/transform/flip_omp.cc
 endif
-
-GEN_CPU_SRC += cunumeric/cunumeric.cc # This must always be the last file!
-                                      # It guarantees we do our registration callback
-                                      # only after all task variants are recorded
 
 GEN_GPU_SRC += cunumeric/ternary/where.cu               \
 							 cunumeric/binary/binary_op.cu            \
@@ -127,11 +121,14 @@ GEN_GPU_SRC += cunumeric/ternary/where.cu               \
 							 cunumeric/random/rand.cu                 \
 							 cunumeric/search/nonzero.cu              \
 							 cunumeric/set/unique.cu                  \
-							 cunumeric/sort/sort.cu                   \
 							 cunumeric/stat/bincount.cu               \
 							 cunumeric/convolution/convolve.cu        \
 							 cunumeric/transform/flip.cu              \
 							 cunumeric/cudalibs.cu                    \
 							 cunumeric/cunumeric.cu
 
-GEN_DEVICE_SRC += cunumeric/convolution/convolve_callbacks.cu
+include cunumeric/sort/sort.mk
+
+GEN_CPU_SRC += cunumeric/cunumeric.cc # This must always be the last file!
+                                      # It guarantees we do our registration callback
+                                      # only after all task variants are recorded
