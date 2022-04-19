@@ -37,7 +37,7 @@ struct NonzeroImpl {
     size_t volume = pitches.flatten(rect);
 
     if (volume == 0) {
-      auto empty = create_buffer<VAL>(0);
+      auto empty = create_buffer<int64_t>(0);
       for (auto& store : args.results) store.return_data(empty, Point<1>(0));
       return;
     }
