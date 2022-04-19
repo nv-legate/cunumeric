@@ -1400,7 +1400,7 @@ def block(arrays):
 
     Parameters
     ----------
-    arrays : nested list of array_like or scalars (but not tuples)
+    arrays : nested list of array_like or scalars
         If passed a single ndarray or scalar (a nested list of depth 0),
         this is returned unmodified (and not copied).
 

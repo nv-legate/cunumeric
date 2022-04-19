@@ -37,17 +37,13 @@ cufftContext::~cufftContext()
 
 cufftHandle cufftContext::handle() { return plan_->handle; }
 
-size_t cufftContext::workarea_size() { return plan_->workarea; }
+size_t cufftContext::workareaSize() { return plan_->workarea_size; }
 
-void cufftContext::set_callback(cufftXtCallbackType type, void* callback, void* data)
+void cufftContext::setCallback(cufftXtCallbackType type, void* callback, void* data)
 {
-  auto hdl = handle();
-  if (callback_types_.find(type) != callback_types_.end())
-    CHECK_CUFFT(cufftXtClearCallback(hdl, type));
-  void* callbacks[1] = {callback};
-  void* datas[1]     = {data};
-  CHECK_CUFFT(cufftXtSetCallback(hdl, callbacks, type, datas));
-  callback_types_.insert(type);
+  void* callbacks[] = {callback};
+  void* datas[]     = {data};
+  CHECK_CUFFT(cufftXtSetCallback(handle(), callbacks, type, datas));
 }
 
 struct cufftPlanCache {
@@ -142,7 +138,7 @@ cufftPlan* cufftPlanCache::get_cufft_plan(const DomainPoint& size)
                                   1,
                                   type_,
                                   1 /*batch*/,
-                                  &result->workarea));
+                                  &result->workarea_size));
   }
   // Otherwise, we return the cached plan and adjust the LRU count
   else {

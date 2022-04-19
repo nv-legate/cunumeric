@@ -54,8 +54,8 @@ cuNumeric is available [on conda](https://anaconda.org/legate/cunumeric):
 conda install -c nvidia -c conda-forge -c legate cunumeric
 ```
 
-Pre-built docker images containing all Legate libraries, as well as specialized
-install scripts for supported clusters are available on the
+Docker image build scripts, as well as specialized install scripts for
+supported clusters are available on the
 [quickstart](https://github.com/nv-legate/quickstart) repo.
 
 Read on for general instructions on building cuNumeric from source.
