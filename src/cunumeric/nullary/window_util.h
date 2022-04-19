@@ -57,7 +57,7 @@ struct WindowOp;
 
 template <>
 struct WindowOp<WindowOpCode::BARLETT> {
-  WindowOp(int64_t M, double beta) : alpha_(static_cast<double>(M - 1) / 2.0) {}
+  WindowOp(int64_t M, double) : alpha_(static_cast<double>(M - 1) / 2.0) {}
   constexpr double operator()(int64_t idx) const
   {
     return idx < alpha_ ? idx / alpha_ : 2.0 - idx / alpha_;
@@ -68,7 +68,7 @@ struct WindowOp<WindowOpCode::BARLETT> {
 
 template <>
 struct WindowOp<WindowOpCode::BLACKMAN> {
-  WindowOp(int64_t M, double beta) : alpha_(M_PI * 2 / (M - 1)) {}
+  WindowOp(int64_t M, double) : alpha_(M_PI * 2 / (M - 1)) {}
   constexpr double operator()(int64_t idx) const
   {
     using std::cos;
@@ -81,7 +81,7 @@ struct WindowOp<WindowOpCode::BLACKMAN> {
 
 template <>
 struct WindowOp<WindowOpCode::HAMMING> {
-  WindowOp(int64_t M, double beta) : alpha_(M_PI * 2 / (M - 1)) {}
+  WindowOp(int64_t M, double) : alpha_(M_PI * 2 / (M - 1)) {}
   constexpr double operator()(int64_t idx) const { return 0.54 - 0.46 * std::cos(idx * alpha_); }
 
   double alpha_;
@@ -89,7 +89,7 @@ struct WindowOp<WindowOpCode::HAMMING> {
 
 template <>
 struct WindowOp<WindowOpCode::HANNING> {
-  WindowOp(int64_t M, double beta) : alpha_(M_PI * 2 / (M - 1)) {}
+  WindowOp(int64_t M, double) : alpha_(M_PI * 2 / (M - 1)) {}
   constexpr double operator()(int64_t idx) const { return 0.5 - 0.5 * std::cos(idx * alpha_); }
 
   double alpha_;
@@ -102,18 +102,16 @@ struct WindowOp<WindowOpCode::KAISER> {
 #if defined(__NVCC__) || defined(__CUDACC__)
   __device__ double operator()(int64_t idx) const
   {
-    using std::sqrt;
     auto val    = (idx - alpha_) / alpha_;
-    auto result = cyl_bessel_i0(beta_ * sqrt(1 - val * val));
+    auto result = cyl_bessel_i0(beta_ * std::sqrt(1 - val * val));
     result /= cyl_bessel_i0(beta_);
     return result;
   }
 #else
   double operator()(int64_t idx) const
   {
-    using std::sqrt;
     auto val    = (idx - alpha_) / alpha_;
-    auto result = i0(beta_ * sqrt(1 - val * val));
+    auto result = i0(beta_ * std::sqrt(1 - val * val));
     result /= i0(beta_);
     return result;
   }
