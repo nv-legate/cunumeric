@@ -1,0 +1,6 @@
+﻿cunumeric.block
+===============
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: block
