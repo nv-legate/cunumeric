@@ -1332,10 +1332,7 @@ class DeferredArray(NumPyThunk):
         task.add_output(self.base)
         task.add_scalar_arg(BitGeneratorOperation.RAND_RAW, ty.int32)
         task.add_scalar_arg(handle, ty.uint32)
-        # TODO: check if no function does this
-        totalsize = 1
-        for sz in self.shape:
-            totalsize = totalsize * sz
+        totalsize = self.base.shape.volume()
         task.add_scalar_arg(totalsize, ty.uint64)
         # strides
         task.add_scalar_arg(self.compute_strides(self.shape), (ty.int64,))

@@ -16,7 +16,7 @@
 import numpy.random as _nprandom
 from cunumeric.random.random import *
 from cunumeric.coverage import clone_module
-from cunumeric.random.BitGenerator import *
+from cunumeric.random.bitgenerator import *
 
 clone_module(_nprandom, globals())
 

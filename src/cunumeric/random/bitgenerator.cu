@@ -28,30 +28,29 @@ namespace cunumeric {
 using namespace Legion;
 using namespace legate;
 
-template <>
-struct CURANDGeneratorBuilder<VariantKind::GPU> {
-  static CURANDGenerator* build(BitGeneratorType gentype)
+struct GPUGenerator : public CURANDGenerator {
+  GPUGenerator(BitGeneratorType gentype)
   {
-    auto stream = get_cached_stream();
-    curandGenerator_t gen;
+    cudaStream_t stream;
+    CHECK_CUDA(::cudaStreamCreate(&stream));
     CHECK_CURAND(::curandCreateGenerator(&gen, get_curandRngType(gentype)));
     CHECK_CURAND(::curandSetStream(gen, stream));
-    CURANDGenerator* cugenptr = new CURANDGenerator();
-    CURANDGenerator& cugen    = *cugenptr;
-    cugen.gen                 = gen;
-    cugen.offset              = 0;
-    cugen.type                = get_curandRngType(gentype);
-    cugen.supports_skipahead  = supportsSkipAhead(cugen.type);
-    cugen.dev_buffer_size     = cugen.DEFAULT_DEV_BUFFER_SIZE;
+    offset             = 0;
+    type               = get_curandRngType(gentype);
+    supports_skipahead = supportsSkipAhead(type);
+    dev_buffer_size    = DEFAULT_DEV_BUFFER_SIZE;
 // TODO: use realm allocator
 #if (__CUDACC_VER_MAJOR__ > 11 || ((__CUDACC_VER_MAJOR__ >= 11) && (__CUDACC_VER_MINOR__ >= 2)))
-    CHECK_CUDA(
-      ::cudaMallocAsync(&(cugen.dev_buffer), cugen.dev_buffer_size * sizeof(uint32_t), stream));
+    CHECK_CUDA(::cudaMallocAsync(&(dev_buffer), dev_buffer_size * sizeof(uint32_t), stream));
 #else
-    CHECK_CUDA(::cudaMalloc(&(cugen.dev_buffer), cugen.dev_buffer_size * sizeof(uint32_t)));
+    CHECK_CUDA(::cudaMalloc(&(dev_buffer), dev_buffer_size * sizeof(uint32_t)));
 #endif
-    return cugenptr;
   }
+};
+
+template <>
+struct CURANDGeneratorBuilder<VariantKind::GPU> {
+  static CURANDGenerator* build(BitGeneratorType gentype) { return new GPUGenerator(gentype); }
 
   static void destroy(CURANDGenerator* cugenptr)
   {

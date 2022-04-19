@@ -68,9 +68,11 @@ struct CURANDGenerator {
 
   std::mutex lock;  // in case several threads would want to use the same generator...
 
+ protected:
   CURANDGenerator() { log_curand.debug() << "CURANDGenerator::create"; }
 
-  ~CURANDGenerator() { log_curand.debug() << "CURANDGenerator::destroy"; }
+ public:
+  virtual ~CURANDGenerator() { log_curand.debug() << "CURANDGenerator::destroy"; }
 
   void skip_ahead(uint64_t count)
   {

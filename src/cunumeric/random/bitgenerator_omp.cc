@@ -31,14 +31,17 @@ struct BitGeneratorImplBody<VariantKind::OMP> {
                   std::vector<legate::Store>& output,
                   std::vector<legate::Store>& args)
   {
+    // WORK IN PROGRESS
     printf("[INFO] : @ %s : %d\n", __FILE__, __LINE__);
     assert(false);
   }
 };
 
-/*static*/ void BitGeneratorTask::omp_variant(legate::TaskContext& context)
+/* WORK IN PROGRESS
+
+static void BitGeneratorTask::omp_variant(legate::TaskContext& context)
 {
   bitgenerator_template<VariantKind::OMP>(context);
 }
-
+*/
 }  // namespace cunumeric

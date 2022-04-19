@@ -27,28 +27,27 @@ namespace cunumeric {
 using namespace Legion;
 using namespace legate;
 
+struct CPUGenerator : public CURANDGenerator {
+  CPUGenerator(BitGeneratorType gentype)
+  {
+    CHECK_CURAND(::curandCreateGeneratorHost(&gen, get_curandRngType(gentype)));
+    offset             = 0;
+    type               = get_curandRngType(gentype);
+    supports_skipahead = supportsSkipAhead(type);
+    dev_buffer_size    = DEFAULT_DEV_BUFFER_SIZE;
+    dev_buffer         = (uint32_t*)::malloc(dev_buffer_size * sizeof(uint32_t));
+  }
+};
+
 template <>
 struct CURANDGeneratorBuilder<VariantKind::CPU> {
-  static CURANDGenerator* build(BitGeneratorType gentype)
-  {
-    curandGenerator_t gen;
-    CHECK_CURAND(::curandCreateGeneratorHost(&gen, get_curandRngType(gentype)));
-    CURANDGenerator* cugenptr = new CURANDGenerator();
-    CURANDGenerator& cugen    = *cugenptr;
-    cugen.gen                 = gen;
-    cugen.offset              = 0;
-    cugen.type                = get_curandRngType(gentype);
-    cugen.supports_skipahead  = supportsSkipAhead(cugen.type);
-    cugen.dev_buffer_size     = cugen.DEFAULT_DEV_BUFFER_SIZE;
-    cugen.dev_buffer          = (uint32_t*)::malloc(cugen.dev_buffer_size * sizeof(uint32_t));
-    return cugenptr;
-  }
+  static CURANDGenerator* build(BitGeneratorType gentype) { return new CPUGenerator(gentype); }
 
   static void destroy(CURANDGenerator* cugenptr)
   {
     // wait for rand jobs and clean-up resources
     std::lock_guard<std::mutex> guard(cugenptr->lock);
-    ::free(cugenptr->dev_buffer);
+    free(cugenptr->dev_buffer);
     CHECK_CURAND(::curandDestroyGenerator(cugenptr->gen));
   }
 };
