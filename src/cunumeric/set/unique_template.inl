@@ -45,7 +45,7 @@ struct UniqueImpl {
     std::tie(result, size) =
       UniqueImplBody<KIND, CODE, DIM>()(in, pitches, rect, volume, comms, point, launch_domain);
 
-    output.return_data(result, size);
+    output.return_data(result, Point<1>(size));
   }
 };
 

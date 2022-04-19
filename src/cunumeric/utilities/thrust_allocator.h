@@ -20,13 +20,16 @@
 
 namespace cunumeric {
 
-class ThrustAllocator : public ScopedAllocator {
+class ThrustAllocator : public legate::ScopedAllocator {
  public:
   using value_type = char;
 
-  ThrustAllocator(Legion::Memory::Kind kind) : ScopedAllocator(kind) {}
+  ThrustAllocator(Legion::Memory::Kind kind) : legate::ScopedAllocator(kind) {}
 
-  char* allocate(size_t num_bytes) { return (char*)ScopedAllocator::allocate(num_bytes); }
+  char* allocate(size_t num_bytes)
+  {
+    return static_cast<char*>(ScopedAllocator::allocate(num_bytes));
+  }
 
   void deallocate(char* ptr, size_t n) { ScopedAllocator::deallocate(ptr); }
 };

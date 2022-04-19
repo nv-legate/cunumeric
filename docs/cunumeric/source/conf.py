@@ -98,6 +98,8 @@ nitpick_ignore = [
     ("py:class", "data-type"),
     ("py:class", "M"),
     ("py:class", "N"),
+    ("py:class", "nested list of array_like"),
+    ("py:class", "scalars"),
 ]
 
 intersphinx_mapping = {

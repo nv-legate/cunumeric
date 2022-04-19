@@ -149,14 +149,6 @@ def add_boilerplate(*array_params: str):
     return decorator
 
 
-def _output_float_dtype(input):
-    # Floats keep their floating point kind, otherwise switch to float64
-    if input.dtype.kind in ("f", "c"):
-        return input.dtype
-    else:
-        return np.dtype(np.float64)
-
-
 #########################
 # Array creation routines
 #########################
@@ -1226,6 +1218,36 @@ class ArrayInfo:
         self.dtype = dtype
 
 
+def convert_to_array_form(indices):
+    return "".join(f"[{coord}]" for coord in indices)
+
+
+def check_list_depth(arr, prefix=(0,)):
+    if not isinstance(arr, list):
+        return 0
+    elif len(arr) == 0:
+        raise ValueError(
+            f"List at arrays{convert_to_array_form(prefix)} cannot be empty"
+        )
+
+    depths = [
+        check_list_depth(each, prefix + (idx,)) for idx, each in enumerate(arr)
+    ]
+    if len(set(depths)) != 1:  # this should be one
+        # If we're here elements don't have the same depth
+        first_depth = depths[0]
+        for idx, other_depth in enumerate(depths[1:]):
+            if other_depth != first_depth:
+                raise ValueError(
+                    "List depths are mismatched. First element was at depth "
+                    f"{first_depth}, but there is an element at"
+                    f" depth {other_depth}, "
+                    f"arrays{convert_to_array_form(prefix+(idx+1,))}"
+                )
+
+    return depths[0] + 1
+
+
 def check_shape_dtype(
     inputs, func_name, axis, dtype=None, casting="same_kind"
 ):
@@ -1263,6 +1285,28 @@ def check_shape_dtype(
     return converted, ArrayInfo(ndim, shape, dtype)
 
 
+def _block(arr, cur_depth, depth):
+    if cur_depth < depth:
+        inputs = list(_block(each, cur_depth + 1, depth) for each in arr)
+    else:
+        inputs = list(convert_to_cunumeric_ndarray(inp) for inp in arr)
+
+    # this reshape of elements could be replaced
+    # w/ np.atleast_*d when they're implemented
+    # Computes the maximum number of dimensions for the concatenation
+    max_ndim = _builtin_max(
+        1 + (depth - cur_depth), *(inp.ndim for inp in inputs)
+    )
+    # Append leading 1's to make elements to have the same 'ndim'
+    reshaped = list(
+        inp.reshape((1,) * (max_ndim - inp.ndim) + inp.shape)
+        if max_ndim > inp.ndim
+        else inp
+        for inp in inputs
+    )
+    return concatenate(reshaped, axis=-1 + (cur_depth - depth))
+
+
 def _concatenate(
     inputs,
     axis=0,
@@ -1271,6 +1315,8 @@ def _concatenate(
     casting="same_kind",
     common_info=None,
 ):
+    if axis < 0:
+        axis += len(common_info.shape)
     leading_dim = _builtin_sum(arr.shape[axis] for arr in inputs)
     out_shape = list(common_info.shape)
     out_shape[axis] = leading_dim
@@ -1332,6 +1378,67 @@ def append(arr, values, axis=None):
     # Check to see if we can build a new tuple of cuNumeric arrays
     inputs = list(convert_to_cunumeric_ndarray(inp) for inp in [arr, values])
     return concatenate(inputs, axis)
+
+
+def block(arrays):
+    """
+    Assemble an nd-array from nested lists of blocks.
+
+    Blocks in the innermost lists are concatenated (see concatenate)
+    along the last dimension (-1), then these are concatenated along
+    the second-last dimension (-2), and so on until the outermost
+    list is reached.
+
+    Blocks can be of any dimension, but will not be broadcasted using
+    the normal rules. Instead, leading axes of size 1 are inserted,
+    to make block.ndim the same for all blocks. This is primarily useful
+    for working with scalars, and means that code like np.block([v, 1])
+    is valid, where v.ndim == 1.
+
+    When the nested list is two levels deep, this allows block matrices
+    to be constructed from their components.
+
+    Parameters
+    ----------
+    arrays : nested list of array_like or scalars
+        If passed a single ndarray or scalar (a nested list of depth 0),
+        this is returned unmodified (and not copied).
+
+        Elements shapes must match along the appropriate axes (without
+        broadcasting), but leading 1s will be prepended to the shape as
+        necessary to make the dimensions match.
+
+    Returns
+    -------
+    block_array : ndarray
+        The array assembled from the given blocks.
+        The dimensionality of the output is equal to the greatest of: * the
+        dimensionality of all the inputs * the depth to which the input list
+        is nested
+
+    Raises
+    ------
+    ValueError
+        If list depths are mismatched - for instance, [[a, b], c] is
+        illegal, and should be spelt [[a, b], [c]]
+        If lists are empty - for instance, [[a, b], []]
+
+    See Also
+    --------
+    numpy.block
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+
+    """
+    # arrays should concatenate from innermost subarrays
+    # the 'arrays' should be balanced tree
+    # check if the 'arrays' is a balanced tree
+    depth = check_list_depth(arrays)
+
+    result = _block(arrays, 1, depth)
+    return result
 
 
 def concatenate(inputs, axis=0, out=None, dtype=None, casting="same_kind"):
