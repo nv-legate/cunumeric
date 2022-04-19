@@ -28,8 +28,14 @@ struct WindowImplBody<VariantKind::OMP, OP_CODE> {
     AccessorWO<double, 1> out, const Rect<1>& rect, bool dense, int64_t M, double beta) const
   {
     WindowOp<OP_CODE> gen(M, beta);
+    if (dense) {
+      auto* outptr = out.ptr(rect);
+      auto base    = rect.lo[0];
 #pragma omp parallel for schedule(static)
-    for (int64_t idx = rect.lo[0]; idx <= rect.hi[0]; ++idx) out[idx] = gen(idx);
+      for (int64_t idx = base; idx <= rect.hi[0]; ++idx) outptr[idx - base] = gen(idx);
+    } else
+#pragma omp parallel for schedule(static)
+      for (int64_t idx = rect.lo[0]; idx <= rect.hi[0]; ++idx) out[idx] = gen(idx);
   }
 };
 
