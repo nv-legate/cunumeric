@@ -18,6 +18,7 @@
 #include "cunumeric/scan/scan_global_template.inl"
 
 #include <thrust/scan.h>
+#include <thrust/functional.h>
 #include <thrust/execution_policy.h>
 
 
@@ -81,12 +82,12 @@ struct ScanGlobalImplBody<VariantKind::GPU, CODE, DIM> {
       sum_valsp[DIM - 1] = 0;
       if(prod == 0){
 	// calculate scan up to partition_index-1
-	auto  base = thrust::reduce(thrust::device, &sum_vals[sum_valsp], &sum_vals[sum_valsp] + partition_index[DIM - 1] - 1); // RRRR is the indexing format correct?
+	auto base = thrust::reduce(thrust::device, &sum_vals[sum_valsp], &sum_vals[sum_valsp] + partition_index[DIM - 1] - 1); // RRRR is the indexing format correct?
 
 	// apply base to out
 	thrust::for_each(thrust::device, outptr + index, outptr + index + stride, add_scalar_funct(base));
       } else {
-	auto  base = thrust::reduce(thrust::device, &sum_vals[sum_valsp], &sum_vals[sum_valsp] + partition_index[DIM - 1] - 1, thrust::multiplies<VAL>()); // RRRR is the indexing format correct?
+	auto base = thrust::reduce(thrust::device, &sum_vals[sum_valsp], &sum_vals[sum_valsp] + partition_index[DIM - 1] - 1, (VAL)1, thrust::multiplies<VAL>()); // RRRR is the indexing format correct?
 
 	// apply base to out
 	thrust::for_each(thrust::device, outptr + index, outptr + index + stride, prod_scalar_funct(base));

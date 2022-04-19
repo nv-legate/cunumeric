@@ -18,6 +18,7 @@
 #include "cunumeric/scan/scan_local_template.inl"
 
 #include <thrust/scan.h>
+#include <thrust/functional.h>
 #include <thrust/execution_policy.h>
 #include <thrust/system/omp/execution_policy.h>
 #include <omp.h>
