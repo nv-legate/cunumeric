@@ -799,9 +799,9 @@ class EagerArray(NumPyThunk):
         else:
             return EagerArray(self.runtime, np.unique(self.array))
 
-    def create_window(self, op_code, *args):
+    def create_window(self, op_code, M, *args):
         if self.deferred is not None:
             return self.deferred.create_window(op_code)
         else:
             fn = _WINDOW_OPS[op_code]
-            self.array[:] = fn(self.size, *args)
+            self.array[:] = fn(M, *args)

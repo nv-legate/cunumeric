@@ -16,7 +16,12 @@
 
 #pragma once
 
+#define _USE_MATH_DEFINES
+
 #include "cunumeric/cunumeric.h"
+#include <math.h>
+
+extern double i0(double);
 
 namespace cunumeric {
 
@@ -52,34 +57,69 @@ struct WindowOp;
 
 template <>
 struct WindowOp<WindowOpCode::BARLETT> {
-  WindowOp(const std::vector<legate::Scalar>& scalars) {}
-  constexpr double operator()(int64_t idx) { return 0.0; }
+  WindowOp(int64_t M, double beta) : alpha_(static_cast<double>(M - 1) / 2.0) {}
+  constexpr double operator()(int64_t idx) const
+  {
+    return idx < alpha_ ? idx / alpha_ : 2.0 - idx / alpha_;
+  }
+
+  double alpha_;
 };
 
 template <>
 struct WindowOp<WindowOpCode::BLACKMAN> {
-  WindowOp(const std::vector<legate::Scalar>& scalars) {}
-  constexpr double operator()(int64_t idx) { return 0.0; }
+  WindowOp(int64_t M, double beta) : alpha_(M_PI * 2 / (M - 1)) {}
+  constexpr double operator()(int64_t idx) const
+  {
+    using std::cos;
+    double val = idx * alpha_;
+    return 0.42 - 0.5 * cos(val) + 0.08 * cos(2 * val);
+  }
+
+  double alpha_;
 };
 
 template <>
 struct WindowOp<WindowOpCode::HAMMING> {
-  WindowOp(const std::vector<legate::Scalar>& scalars) {}
-  constexpr double operator()(int64_t idx) { return 0.0; }
+  WindowOp(int64_t M, double beta) : alpha_(M_PI * 2 / (M - 1)) {}
+  constexpr double operator()(int64_t idx) const { return 0.54 - 0.46 * std::cos(idx * alpha_); }
+
+  double alpha_;
 };
 
 template <>
 struct WindowOp<WindowOpCode::HANNING> {
-  WindowOp(const std::vector<legate::Scalar>& scalars) {}
-  constexpr double operator()(int64_t idx) { return 0.0; }
+  WindowOp(int64_t M, double beta) : alpha_(M_PI * 2 / (M - 1)) {}
+  constexpr double operator()(int64_t idx) const { return 0.5 - 0.5 * std::cos(idx * alpha_); }
+
+  double alpha_;
 };
 
 template <>
 struct WindowOp<WindowOpCode::KAISER> {
-  WindowOp(const std::vector<legate::Scalar>& scalars) : beta_(scalars.back().value<double>()) {}
+  WindowOp(int64_t M, double beta) : alpha_((M - 1) / 2.0), beta_(beta) {}
 
-  constexpr double operator()(int64_t idx) { return 0.0; }
+#if defined(__NVCC__) || defined(__CUDACC__)
+  __device__ double operator()(int64_t idx) const
+  {
+    using std::sqrt;
+    auto val    = (idx - alpha_) / alpha_;
+    auto result = cyl_bessel_i0(beta_ * sqrt(1 - val * val));
+    result /= cyl_bessel_i0(beta_);
+    return result;
+  }
+#else
+  double operator()(int64_t idx) const
+  {
+    using std::sqrt;
+    auto val    = (idx - alpha_) / alpha_;
+    auto result = i0(beta_ * sqrt(1 - val * val));
+    result /= i0(beta_);
+    return result;
+  }
+#endif
 
+  double alpha_;
   double beta_;
 };
 

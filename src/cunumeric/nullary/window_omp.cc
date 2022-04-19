@@ -24,12 +24,10 @@ using namespace legate;
 
 template <WindowOpCode OP_CODE>
 struct WindowImplBody<VariantKind::OMP, OP_CODE> {
-  void operator()(AccessorWO<double, 1> out,
-                  const std::vector<legate::Scalar>& scalars,
-                  const Rect<1>& rect,
-                  bool dense) const
+  void operator()(
+    AccessorWO<double, 1> out, const Rect<1>& rect, bool dense, int64_t M, double beta) const
   {
-    WindowOp<OP_CODE> gen(scalars);
+    WindowOp<OP_CODE> gen(M, beta);
 #pragma omp parallel for schedule(static)
     for (int64_t idx = rect.lo[0]; idx <= rect.hi[0]; ++idx) out[idx] = gen(idx);
   }

@@ -23,7 +23,7 @@ def _create_window(M: int, op_code: WindowOpCode, *args):
     # TODO: the eager implementation could avoid a copy if we didn't have to
     # create the output ndarray upfront.
     out = ndarray((M,), dtype=np.float64)
-    out._thunk.create_window(op_code, *args)
+    out._thunk.create_window(op_code, M, *args)
     return out
 
 

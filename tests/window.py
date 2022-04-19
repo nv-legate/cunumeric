@@ -23,6 +23,7 @@ fns = ["bartlett", "blackman", "hamming", "hanning"]
 
 def test():
     for fn in fns:
+        print(f"Testing cunumeric.{fn}")
         np_fn = getattr(np, fn)
         num_fn = getattr(num, fn)
 
@@ -36,6 +37,7 @@ def test():
 
         assert np.allclose(out_np, out_num)
 
+    print("Testing cunumeric.kaiser")
     out_np = np.kaiser(10, 0)
     out_num = num.kaiser(10, 0)
 

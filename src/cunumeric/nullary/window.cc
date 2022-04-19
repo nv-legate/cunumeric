@@ -24,12 +24,10 @@ using namespace legate;
 
 template <WindowOpCode OP_CODE>
 struct WindowImplBody<VariantKind::CPU, OP_CODE> {
-  void operator()(const AccessorWO<double, 1>& out,
-                  const std::vector<legate::Scalar>& scalars,
-                  const Rect<1>& rect,
-                  bool dense) const
+  void operator()(
+    const AccessorWO<double, 1>& out, const Rect<1>& rect, bool dense, int64_t M, double beta) const
   {
-    WindowOp<OP_CODE> gen(scalars);
+    WindowOp<OP_CODE> gen(M, beta);
     if (dense) {
       auto outptr = out.ptr(rect);
       size_t off  = 0;

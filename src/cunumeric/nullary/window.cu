@@ -45,12 +45,10 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
 
 template <WindowOpCode OP_CODE>
 struct WindowImplBody<VariantKind::GPU, OP_CODE> {
-  void operator()(const AccessorWO<double, 1>& out,
-                  const std::vector<legate::Scalar>& scalars,
-                  const Rect<1>& rect,
-                  bool dense) const
+  void operator()(
+    const AccessorWO<double, 1>& out, const Rect<1>& rect, bool dense, int64_t M, double beta) const
   {
-    WindowOp<OP_CODE> gen(scalars);
+    WindowOp<OP_CODE> gen(M, beta);
     auto stream = get_cached_stream();
 
     auto volume         = static_cast<int64_t>(rect.volume());
@@ -63,6 +61,8 @@ struct WindowImplBody<VariantKind::GPU, OP_CODE> {
       generic_kernel<OP_CODE>
         <<<blocks, THREADS_PER_BLOCK, 0, stream>>>(gen, volume, out, rect.lo[0]);
     }
+
+    CHECK_CUDA_STREAM(stream);
   }
 };
 

@@ -27,7 +27,7 @@ struct WindowImplBody;
 template <VariantKind KIND>
 struct WindowImpl {
   template <WindowOpCode OP_CODE>
-  void operator()(Array& output, const std::vector<legate::Scalar>& scalars) const
+  void operator()(Array& output, int64_t M, double beta) const
   {
     auto rect = output.shape<1>();
 
@@ -43,17 +43,20 @@ struct WindowImpl {
     bool dense = false;
 #endif
 
-    WindowImplBody<KIND, OP_CODE>{}(out, scalars, rect, dense);
+    WindowImplBody<KIND, OP_CODE>{}(out, rect, dense, M, beta);
   }
 };
 
 template <VariantKind KIND>
 static void window_template(TaskContext& context)
 {
-  auto& output = context.outputs().front();
-  auto op_code = context.scalars().front().value<WindowOpCode>();
+  auto& output  = context.outputs().front();
+  auto& scalars = context.scalars();
+  auto op_code  = scalars[0].value<WindowOpCode>();
+  auto M        = scalars[1].value<int64_t>();
+  auto beta     = scalars.size() > 2 ? scalars[2].value<double>() : 0.0;
 
-  op_dispatch(op_code, WindowImpl<KIND>{}, output, context.scalars());
+  op_dispatch(op_code, WindowImpl<KIND>{}, output, M, beta);
 }
 
 }  // namespace cunumeric
