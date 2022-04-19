@@ -31,10 +31,11 @@ struct ScanLocalImplBody<VariantKind::GPU, CODE, DIM> {
   using VAL = legate_type_of<CODE>;
 
   void operator()(const AccessorWO<VAL, DIM>& out,
-		    const AccessorRO<VAL, DIM>& in,
-		    Array& sum_vals,
-                    const Pitches<DIM - 1>& pitches,
-                    const Rect<DIM>& rect)
+		  const AccessorRO<VAL, DIM>& in,
+		  Array& sum_vals,
+		  const Pitches<DIM - 1>& pitches,
+		  const Rect<DIM>& rect,
+		  const int prod)
   {
     auto outptr = out.ptr(rect.lo);
     auto inptr = in.ptr(rect.lo);
@@ -50,7 +51,11 @@ struct ScanLocalImplBody<VariantKind::GPU, CODE, DIM> {
     for(uint64_t index = 0; index < volume; index += stride){
       // RRRR depending on stride and volume this should either call multiple streams
       // RRRR or use a cub version (currently not implemented)
-      thrust::inclusive_scan(thrust::device, inptr + index, inptr + index + stride, outptr + index);
+      if(prod == 0){
+	thrust::inclusive_scan(thrust::device, inptr + index, inptr + index + stride, outptr + index);
+      } else {
+	thrust::inclusive_scan(thrust::device, inptr + index, inptr + index + stride, outptr + index, thrust::multiplies<VAL>());
+      }
       // get the corresponding ND index with base zero to use for sum_val
       auto sum_valp = pitches.unflatten(index, rect.lo) - rect.lo;
       // only one element on scan axis

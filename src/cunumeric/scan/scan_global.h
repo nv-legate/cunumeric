@@ -23,6 +23,7 @@ namespace cunumeric {
 struct ScanGlobalArgs {
   const Array& sum_vals;
   const Array& out;
+  int prod;
 };
 
 class ScanGlobalTask : public CuNumericTask<ScanGlobalTask> {

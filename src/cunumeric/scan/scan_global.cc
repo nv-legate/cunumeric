@@ -42,13 +42,26 @@ struct ScanGlobalImplBody<VariantKind::CPU, CODE, DIM> {
     }
   };
   
+  struct prod_scalar_funct
+  {
+    VAL V;
+    prod_scalar_funct(VAL a) : V(a) {}
+    
+    __host__ __device__
+    void operator()(VAL &x)
+    {
+      x = x * V;
+    }
+  };
+  
   void operator()(const AccessorRW<VAL, DIM>& out,
-		    const AccessorRO<VAL, DIM>& sum_vals,
-                    const Pitches<DIM - 1>& out_pitches,
-                    const Rect<DIM>& out_rect,
-                    const Pitches<DIM - 1>& sum_vals_pitches,
-                    const Rect<DIM>& sum_vals_rect,
-		    const DomainPoint& partition_index)
+		  const AccessorRO<VAL, DIM>& sum_vals,
+		  const Pitches<DIM - 1>& out_pitches,
+		  const Rect<DIM>& out_rect,
+		  const Pitches<DIM - 1>& sum_vals_pitches,
+		  const Rect<DIM>& sum_vals_rect,
+		  const DomainPoint& partition_index,
+		  const int prod)
   {
     auto outptr = out.ptr(out_rect.lo);
     auto volume = out_rect.volume();
@@ -64,11 +77,18 @@ struct ScanGlobalImplBody<VariantKind::CPU, CODE, DIM> {
       auto sum_valsp = out_pitches.unflatten(index, out_rect.lo) - out_rect.lo;
       // first element on scan axis
       sum_valsp[DIM - 1] = 0;
-      // calculate sum up to partition_index-1
-      auto  base = thrust::reduce(thrust::host, &sum_vals[sum_valsp], &sum_vals[sum_valsp] + partition_index[DIM - 1] - 1); // RRRR is the indexing format correct?
+      if(prod == 0){
+	// calculate scan up to partition_index-1
+	auto  base = thrust::reduce(thrust::host, &sum_vals[sum_valsp], &sum_vals[sum_valsp] + partition_index[DIM - 1] - 1); // RRRR is the indexing format correct?
 
-      // add base to out
-      thrust::for_each(thrust::host, outptr + index, outptr + index + stride, add_scalar_funct(base));
+	// apply base to out
+	thrust::for_each(thrust::host, outptr + index, outptr + index + stride, add_scalar_funct(base));
+      } else {
+	auto  base = thrust::reduce(thrust::host, &sum_vals[sum_valsp], &sum_vals[sum_valsp] + partition_index[DIM - 1] - 1, thrust::multiplies<VAL>()); // RRRR is the indexing format correct?
+
+	// apply base to out
+	thrust::for_each(thrust::host, outptr + index, outptr + index + stride, prod_scalar_funct(base));
+      }
     }
   }
 };

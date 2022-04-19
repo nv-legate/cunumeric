@@ -41,7 +41,7 @@ struct ScanLocalImpl {
     auto out = args.out.write_accessor<VAL, DIM>(rect);
     auto in = args.in.read_accessor<VAL, DIM>(rect);
 
-    ScanLocalImplBody<KIND, CODE, DIM>()(out, in, args.sum_vals, pitches, rect);
+    ScanLocalImplBody<KIND, CODE, DIM>()(out, in, args.sum_vals, pitches, rect, args.prod);
 
   }
 };

@@ -24,6 +24,7 @@ struct ScanLocalArgs {
   const Array& out;
   const Array& in;
   Array& sum_vals;
+  int prod;
 };
 
 class ScanLocalTask : public CuNumericTask<ScanLocalTask> {
