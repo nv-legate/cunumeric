@@ -777,6 +777,17 @@ struct negative_plus : public thrust::binary_function<int64_t, int64_t, int64_t>
   }
 };
 
+struct modulusWithOffset : public thrust::binary_function<int64_t, int64_t, int64_t> {
+  const size_t constant;
+
+  modulusWithOffset(size_t _constant) : constant(_constant) {}
+
+  __host__ __device__ int64_t operator()(const int64_t& lhs, const int64_t& rhs) const
+  {
+    return lhs % rhs + constant;
+  }
+};
+
 template <typename VAL>
 SortPiece<VAL> sample_sort_nccl_nd(
   SortPiece<VAL> local_sorted,
