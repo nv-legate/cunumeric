@@ -17,9 +17,15 @@ import numpy as np
 
 from .array import ndarray
 from .config import WindowOpCode
+from .module import empty, ones
 
 
 def _create_window(M: int, op_code: WindowOpCode, *args):
+    if M <= 0:
+        return empty((0,))
+    elif M == 1:
+        return ones((1,))
+
     # TODO: the eager implementation could avoid a copy if we didn't have to
     # create the output ndarray upfront.
     out = ndarray((M,), dtype=np.float64)

@@ -27,6 +27,16 @@ def test():
         np_fn = getattr(np, fn)
         num_fn = getattr(num, fn)
 
+        out_np = np_fn(0)
+        out_num = num_fn(0)
+
+        assert np.allclose(out_np, out_num)
+
+        out_np = np_fn(1)
+        out_num = num_fn(1)
+
+        assert np.allclose(out_np, out_num)
+
         out_np = np_fn(10)
         out_num = num_fn(10)
 
@@ -38,6 +48,15 @@ def test():
         assert np.allclose(out_np, out_num)
 
     print("Testing cunumeric.kaiser")
+    out_np = np.kaiser(0, 0)
+    out_num = num.kaiser(0, 0)
+
+    assert np.allclose(out_np, out_num)
+
+    out_np = np.kaiser(1, 0)
+    out_num = num.kaiser(1, 0)
+
+    assert np.allclose(out_np, out_num)
     out_np = np.kaiser(10, 0)
     out_num = num.kaiser(10, 0)
 
