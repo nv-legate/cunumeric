@@ -2071,21 +2071,26 @@ class ndarray:
             )
 
         axes = []
-        if type(axis1) == int and type(axis2) == int:
-            axes = (axis1, axis2)
-        # default values for axes
-        elif (axis1 is None) and (axis2 is None):
+        if (axis1 is None) and (axis2 is None):
+            # default values for axis
             axes = (0, 1)
+        elif (axis1 is None) or (axis2 is None):
+            return ValueError("both axis should be passed")
+        else:
+            axes = (axis1, axis2)
 
         res = self._diag_helper(offset=offset, axes=axes, trace=True)
 
-        # for 2D arras return scalar
+        # for 2D arrays we must return scalar
         if self.ndim == 2:
             res = res[0]
 
         if out is not None:
+            out = convert_to_cunumeric_ndarray(out)
+            # out should be right shape
             if out.shape != res.shape:
                 return ValueError("out has a wrong shape")
+            # type of out should be preserved
             if out.dtype != res.dtype:
                 out._thunk.convert(res._thunk)
             else:

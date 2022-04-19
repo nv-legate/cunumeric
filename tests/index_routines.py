@@ -192,58 +192,6 @@ def test():
         fn = np.diag(en, k=k)
         assert np.array_equal(f, fn)
 
-    # --------------------------------------------------------------
-    # TRACE
-    # --------------------------------------------------------------
-    a = np.arange(8).reshape((2, 4))
-    a_num = num.array(a)
-    res = np.trace(a)
-    res_num = num.trace(a_num)
-    assert np.array_equal(res, res_num)
-
-    res = np.trace(a, dtype=float)
-    res_num = num.trace(a_num, dtype=float)
-    assert np.array_equal(res, res_num)
-
-    a = np.arange(8).reshape((2, 2, 2))
-    a_num = num.array(a)
-    res = np.trace(a)
-    res_num = num.trace(a_num)
-    print(res)
-    print(res_num)
-    assert np.array_equal(res, res_num)
-
-    out = np.array([1, 2], dtype=float)
-    out_num = num.array(out)
-    np.trace(a, out=out)
-    num.trace(a_num, out=out_num)
-    assert np.array_equal(out, out_num)
-
-    np.trace(a, dtype=int, out=out)
-    num.trace(a_num, dtype=int, out=out_num)
-    assert np.array_equal(out, out_num)
-
-    a = np.arange(24).reshape((2, 2, 2, 3))
-    a_num = num.array(a)
-    res = np.trace(a)
-    res_num = num.trace(a_num)
-    assert np.array_equal(res, res_num)
-
-    for ndim in range(2, LEGATE_MAX_DIM + 1):
-        a_shape = tuple(random.randint(1, 9) for i in range(ndim))
-        np_array = mk_seq_array(np, a_shape)
-        num_array = mk_seq_array(num, a_shape)
-
-              # test trace
-        for axes in permutations(range(ndim), 2):
-            diag_size = min(a_shape[axes[0]], a_shape[axes[1]]) - 1
-            for offset in range(-diag_size + 1, diag_size):
-                assert np.array_equal(
-                    np_array.trace(offset, axes[0], axes[1]),
-                    num_array.trace(offset, axes[0], axes[1]),
-                )
-
-
     return
 
 
