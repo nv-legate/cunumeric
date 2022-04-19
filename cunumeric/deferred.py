@@ -636,28 +636,14 @@ class DeferredArray(NumPyThunk):
             copy_needed, lhs, index_array = self._create_indexing_array(
                 key, True
             )
-            # TODO: remove rhs.ndim ==0 logic when issue with scalars not being
-            # type of Store is addressed
-            if rhs.ndim == 0:
-                rhs_tmp = self.runtime.create_empty_thunk(
-                    index_array.base.shape,
-                    self.dtype,
-                    inputs=[],
-                )
-                task = self.context.create_task(CuNumericOpCode.FILL)
-                task.add_output(rhs_tmp.base)
-                task.add_input(rhs.base)
-                task.add_scalar_arg(False, bool)
-                task.execute()
-                rhs = rhs_tmp.base
+            rhs = self.runtime.to_deferred_array(rhs)
+            if rhs.shape != index_array.shape:
+                rhs_tmp = rhs._broadcast(index_array.base.shape)
+                rhs_tmp, rhs = rhs._copy_store(rhs_tmp)
             else:
-                if rhs.shape != index_array.shape:
-                    rhs_tmp = rhs._broadcast(index_array.base.shape)
-                    rhs_tmp, rhs = rhs._copy_store(rhs_tmp)
-                else:
-                    if rhs.base.transformed:
-                        rhs, rhs_base = rhs._copy_store(rhs.base)
-                    rhs = rhs.base
+                if rhs.base.transformed:
+                    rhs, rhs_base = rhs._copy_store(rhs.base)
+                rhs = rhs.base
 
             copy = self.context.create_copy()
             copy.add_input(rhs)
