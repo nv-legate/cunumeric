@@ -5,7 +5,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>cunumeric.cos &#8212; cunumeric  documentation</title>
+    <title>cunumeric.block &#8212; cunumeric  documentation</title>
     
   <!-- Loaded before other Sphinx assets -->
   <link href="../../_static/styles/theme.css?digest=1999514e3f237ded88cf" rel="stylesheet">
@@ -35,8 +35,8 @@
     <script src="../../_static/copybutton_pydocs.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="cunumeric.tan" href="cunumeric.tan.html" />
-    <link rel="prev" title="cunumeric.sin" href="cunumeric.sin.html" />
+    <link rel="next" title="cunumeric.vstack" href="cunumeric.vstack.html" />
+    <link rel="prev" title="cunumeric.stack" href="cunumeric.stack.html" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="docsearch:language" content="None">
     
@@ -249,16 +249,16 @@
      </li>
     </ul>
    </li>
-   <li class="toctree-l2 has-children">
+   <li class="toctree-l2 current active has-children">
     <a class="reference internal" href="../manipulation.html">
      Array manipulation routines
     </a>
-    <input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" type="checkbox"/>
+    <input checked="" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" type="checkbox"/>
     <label for="toctree-checkbox-3">
      <i class="fas fa-chevron-down">
      </i>
     </label>
-    <ul>
+    <ul class="current">
      <li class="toctree-l3">
       <a class="reference internal" href="cunumeric.shape.html">
        cunumeric.shape
@@ -309,8 +309,8 @@
        cunumeric.stack
       </a>
      </li>
-     <li class="toctree-l3">
-      <a class="reference internal" href="cunumeric.block.html">
+     <li class="toctree-l3 current active">
+      <a class="current reference internal" href="#">
        cunumeric.block
       </a>
      </li>
@@ -615,23 +615,23 @@
      </li>
     </ul>
    </li>
-   <li class="toctree-l2 current active has-children">
+   <li class="toctree-l2 has-children">
     <a class="reference internal" href="../math.html">
      Mathematical functions
     </a>
-    <input checked="" class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" type="checkbox"/>
+    <input class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" type="checkbox"/>
     <label for="toctree-checkbox-8">
      <i class="fas fa-chevron-down">
      </i>
     </label>
-    <ul class="current">
+    <ul>
      <li class="toctree-l3">
       <a class="reference internal" href="cunumeric.sin.html">
        cunumeric.sin
       </a>
      </li>
-     <li class="toctree-l3 current active">
-      <a class="current reference internal" href="#">
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.cos.html">
        cunumeric.cos
       </a>
      </li>
@@ -1762,41 +1762,50 @@
               
               <div>
                 
-  <div class="section" id="cunumeric-cos">
-<h1>cunumeric.cos<a class="headerlink" href="#cunumeric-cos" title="Permalink to this headline">#</a></h1>
-<dl class="py data">
-<dt class="sig sig-object py" id="cunumeric.cos">
-<span class="sig-prename descclassname"><span class="pre">cunumeric.</span></span><span class="sig-name descname"><span class="pre">cos</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;ufunc</span> <span class="pre">cos&gt;</span></em><a class="headerlink" href="#cunumeric.cos" title="Permalink to this definition">#</a></dt>
-<dd><p>Cosine element-wise.</p>
+  <div class="section" id="cunumeric-block">
+<h1>cunumeric.block<a class="headerlink" href="#cunumeric-block" title="Permalink to this headline">#</a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="cunumeric.block">
+<span class="sig-prename descclassname"><span class="pre">cunumeric.</span></span><span class="sig-name descname"><span class="pre">block</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arrays</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cunumeric.block" title="Permalink to this definition">#</a></dt>
+<dd><p>Assemble an nd-array from nested lists of blocks.</p>
+<p>Blocks in the innermost lists are concatenated (see concatenate)
+along the last dimension (-1), then these are concatenated along
+the second-last dimension (-2), and so on until the outermost
+list is reached.</p>
+<p>Blocks can be of any dimension, but will not be broadcasted using
+the normal rules. Instead, leading axes of size 1 are inserted,
+to make block.ndim the same for all blocks. This is primarily useful
+for working with scalars, and means that code like np.block([v, 1])
+is valid, where v.ndim == 1.</p>
+<p>When the nested list is two levels deep, this allows block matrices
+to be constructed from their components.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> (<em>array_like</em>) – Only integer and boolean types are handled.</p></li>
-<li><p><strong>out</strong> (<a class="reference internal" href="../_ndarray.html#cunumeric.ndarray" title="cunumeric.ndarray"><em>ndarray</em></a><em>, </em><em>None</em><em>, or </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.10)"><em>tuple</em></a><em>[</em><a class="reference internal" href="../_ndarray.html#cunumeric.ndarray" title="cunumeric.ndarray"><em>ndarray</em></a><em> or </em><em>None</em><em>]</em><em>, </em><em>optional</em>) – A location into which the result is stored. If provided, it must have
-a shape that the inputs broadcast to. If not provided or None,
-a freshly-allocated array is returned. A tuple (possible only as a
-keyword argument) must have length equal to the number of outputs.</p></li>
-<li><p><strong>where</strong> (<em>array_like</em><em>, </em><em>optional</em>) – This condition is broadcast over the input. At locations where the
-condition is True, the <cite>out</cite> array will be set to the ufunc result.
-Elsewhere, the <cite>out</cite> array will retain its original value.
-Note that if an uninitialized <cite>out</cite> array is created via the default
-<code class="docutils literal notranslate"><span class="pre">out=None</span></code>, locations within it where the condition is False will
-remain uninitialized.</p></li>
-<li><p><strong>**kwargs</strong> – For other keyword-only arguments, see the
-<a class="reference external" href="https://numpy.org/doc/stable/reference/ufuncs.html#ufuncs-kwargs" title="(in NumPy v1.22)"><span class="xref std std-ref">ufunc docs</span></a>.</p></li>
-</ul>
+<dd class="field-odd"><p><strong>arrays</strong> (<em>nested list of array_like</em><em> or </em><em>scalars</em>) – <p>If passed a single ndarray or scalar (a nested list of depth 0),
+this is returned unmodified (and not copied).</p>
+<p>Elements shapes must match along the appropriate axes (without
+broadcasting), but leading 1s will be prepended to the shape as
+necessary to make the dimensions match.</p>
+</p>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p><strong>out</strong> – Result.
-This is a scalar if <cite>x</cite> is a scalar.</p>
+<dd class="field-even"><p><strong>block_array</strong> – The array assembled from the given blocks.
+The dimensionality of the output is equal to the greatest of: * the
+dimensionality of all the inputs * the depth to which the input list
+is nested</p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p><a class="reference internal" href="../_ndarray.html#cunumeric.ndarray" title="cunumeric.ndarray">ndarray</a> or scalar</p>
+<dd class="field-odd"><p><a class="reference internal" href="../_ndarray.html#cunumeric.ndarray" title="cunumeric.ndarray">ndarray</a></p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.10)"><strong>ValueError</strong></a> – If list depths are mismatched - for instance, [[a, b], c] is
+    illegal, and should be spelt [[a, b], [c]]
+    If lists are empty - for instance, [[a, b], []]</p>
 </dd>
 </dl>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
-<p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.cos.html#numpy.cos" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.cos</span></code></a></p>
+<p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.block.html#numpy.block" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.block</span></code></a></p>
 </div>
 <dl class="field-list simple">
 <dt class="field-odd">Availability</dt>
@@ -1813,17 +1822,17 @@ This is a scalar if <cite>x</cite> is a scalar.</p>
               
               <!-- Previous / next buttons -->
 <div class='prev-next-area'>
-    <a class='left-prev' id="prev-link" href="cunumeric.sin.html" title="previous page">
+    <a class='left-prev' id="prev-link" href="cunumeric.stack.html" title="previous page">
         <i class="fas fa-angle-left"></i>
         <div class="prev-next-info">
             <p class="prev-next-subtitle">previous</p>
-            <p class="prev-next-title">cunumeric.sin</p>
+            <p class="prev-next-title">cunumeric.stack</p>
         </div>
     </a>
-    <a class='right-next' id="next-link" href="cunumeric.tan.html" title="next page">
+    <a class='right-next' id="next-link" href="cunumeric.vstack.html" title="next page">
     <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">cunumeric.tan</p>
+        <p class="prev-next-title">cunumeric.vstack</p>
     </div>
     <i class="fas fa-angle-right"></i>
     </a>
