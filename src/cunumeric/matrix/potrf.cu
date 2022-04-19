@@ -41,6 +41,8 @@ static inline void potrf_template(
   auto info   = create_buffer<int32_t>(1, Memory::Kind::Z_COPY_MEM);
 
   CHECK_CUSOLVER(potrf(context, uplo, n, array, m, buffer.ptr(0), bufferSize, info.ptr(0)));
+
+  CHECK_CUDA_STREAM(stream);
 }
 
 template <>

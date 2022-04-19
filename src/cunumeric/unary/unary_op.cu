@@ -57,13 +57,16 @@ struct UnaryOpImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
   {
     const size_t volume = rect.volume();
     const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
+    auto stream         = get_cached_stream();
     if (dense) {
       auto outptr = out.ptr(rect);
       auto inptr  = in.ptr(rect);
-      dense_kernel<<<blocks, THREADS_PER_BLOCK>>>(volume, func, outptr, inptr);
+      dense_kernel<<<blocks, THREADS_PER_BLOCK, 0, stream>>>(volume, func, outptr, inptr);
     } else {
-      generic_kernel<<<blocks, THREADS_PER_BLOCK>>>(volume, func, out, in, pitches, rect);
+      generic_kernel<<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
+        volume, func, out, in, pitches, rect);
     }
+    CHECK_CUDA_STREAM(stream);
   }
 };
 
