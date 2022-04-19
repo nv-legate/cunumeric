@@ -660,21 +660,23 @@ __host__ static inline void launch_small_tile_kernel(AccessorWO<VAL, DIM> out,
   args.tile_volume  = tile_pitch;
   args.input_volume = input_pitch;
   assert((input_pitch * sizeof(VAL)) == smem_size);
+  auto stream = get_cached_stream();
   if (halved) {
     if (tile_pitch < 512)
-      convolution_small_tile1<VAL, DIM>
-        <<<blocks, tile_pitch, smem_size>>>(out, filter, in, root_rect, subrect, filter_rect, args);
+      convolution_small_tile1<VAL, DIM><<<blocks, tile_pitch, smem_size, stream>>>(
+        out, filter, in, root_rect, subrect, filter_rect, args);
     else
-      convolution_small_tile1<VAL, DIM>
-        <<<blocks, 512, smem_size>>>(out, filter, in, root_rect, subrect, filter_rect, args);
+      convolution_small_tile1<VAL, DIM><<<blocks, 512, smem_size, stream>>>(
+        out, filter, in, root_rect, subrect, filter_rect, args);
   } else {
     if (tile_pitch < 1024)
-      convolution_small_tile2<VAL, DIM>
-        <<<blocks, tile_pitch, smem_size>>>(out, filter, in, root_rect, subrect, filter_rect, args);
+      convolution_small_tile2<VAL, DIM><<<blocks, tile_pitch, smem_size, stream>>>(
+        out, filter, in, root_rect, subrect, filter_rect, args);
     else
-      convolution_small_tile2<VAL, DIM>
-        <<<blocks, 1024, smem_size>>>(out, filter, in, root_rect, subrect, filter_rect, args);
+      convolution_small_tile2<VAL, DIM><<<blocks, 1024, smem_size, stream>>>(
+        out, filter, in, root_rect, subrect, filter_rect, args);
   }
+  CHECK_CUDA_STREAM(stream);
 }
 
 template <typename VAL, int32_t DIM>
@@ -1009,6 +1011,7 @@ __host__ void direct_convolution(AccessorWO<VAL, DIM> out,
     }
     // Launch as many kernels as we need to walk over the entire filter
     // Given the L2 filter tile that we came up with
+    auto stream                     = get_cached_stream();
     const Point<DIM, unsigned> zero = Point<DIM, unsigned>::ZEROES();
     const Point<DIM, unsigned> one  = Point<DIM, unsigned>::ONES();
     if (total_l2_filters > 1) {
@@ -1023,18 +1026,19 @@ __host__ void direct_convolution(AccessorWO<VAL, DIM> out,
         const Point<DIM> l2_input_stop = subrect.lo + l2_output_tile - one + Point<DIM>(extents) -
                                          l2_filter_rect.lo - one - Point<DIM>(centers);
         convolution_large_tile<VAL, DIM, THREADVALS>
-          <<<properties.multiProcessorCount, CONVOLUTION_THREADS, dynamic_smem>>>(out,
-                                                                                  filter,
-                                                                                  in,
-                                                                                  root_rect,
-                                                                                  subrect,
-                                                                                  l2_filter_rect,
-                                                                                  l2_input_start,
-                                                                                  l2_input_stop,
-                                                                                  l1_input_start,
-                                                                                  zero,
-                                                                                  one,
-                                                                                  args);
+          <<<properties.multiProcessorCount, CONVOLUTION_THREADS, dynamic_smem, stream>>>(
+            out,
+            filter,
+            in,
+            root_rect,
+            subrect,
+            l2_filter_rect,
+            l2_input_start,
+            l2_input_stop,
+            l1_input_start,
+            zero,
+            one,
+            args);
         // Step to the next filter
         for (int d = DIM - 1; d >= 0; d--) {
           l2_filter_lo[d] += l2_filter_tile[d];
@@ -1052,19 +1056,21 @@ __host__ void direct_convolution(AccessorWO<VAL, DIM> out,
       const Point<DIM> l2_input_stop  = subrect.lo + l2_output_tile - one + Point<DIM>(extents) -
                                        filter_rect.lo - one - Point<DIM>(centers);
       convolution_large_tile<VAL, DIM, THREADVALS>
-        <<<properties.multiProcessorCount, CONVOLUTION_THREADS, dynamic_smem>>>(out,
-                                                                                filter,
-                                                                                in,
-                                                                                root_rect,
-                                                                                subrect,
-                                                                                filter_rect,
-                                                                                l2_input_start,
-                                                                                l2_input_stop,
-                                                                                l1_input_start,
-                                                                                zero,
-                                                                                one,
-                                                                                args);
+        <<<properties.multiProcessorCount, CONVOLUTION_THREADS, dynamic_smem, stream>>>(
+          out,
+          filter,
+          in,
+          root_rect,
+          subrect,
+          filter_rect,
+          l2_input_start,
+          l2_input_stop,
+          l1_input_start,
+          zero,
+          one,
+          args);
     }
+    CHECK_CUDA_STREAM(stream);
   }
 }
 
@@ -1092,7 +1098,7 @@ struct CopyPitches {
 template <typename VAL, int DIM>
 __global__ static void __launch_bounds__(THREADS_PER_BLOCK, 4)
   copy_into_buffer(const AccessorRO<VAL, DIM> accessor,
-                   const DeferredBuffer<VAL, DIM> buffer,
+                   const Buffer<VAL, DIM> buffer,
                    const Point<DIM> lo,
                    const CopyPitches<DIM> copy_pitches,
                    const size_t volume)
@@ -1286,11 +1292,8 @@ __host__ static inline void cufft_convolution(AccessorWO<VAL, DIM> out,
     size_t buffervolume = 1;
     for (int d = 0; d < DIM; d++) buffervolume *= buffersize[d];
     // Zero pad and copy in the input data
-    DeferredBuffer<VAL, DIM> signal_buffer(Rect<DIM>(zero, buffersize - one),
-                                           Memory::GPU_FB_MEM,
-                                           nullptr /*initial*/,
-                                           128 /*alignment*/);
-    VAL* signal_ptr = signal_buffer.ptr(zero);
+    auto signal_buffer = create_buffer<VAL, DIM>(buffersize, Memory::GPU_FB_MEM, 128 /*alignment*/);
+    VAL* signal_ptr    = signal_buffer.ptr(zero);
     CHECK_CUDA(cudaMemsetAsync(signal_ptr, 0, buffervolume * sizeof(VAL), stream));
     // Check to see if the input pointer is dense and we can do this with a CUDA memcpy
     size_t strides[DIM];
@@ -1305,11 +1308,8 @@ __host__ static inline void cufft_convolution(AccessorWO<VAL, DIM> out,
     copy_into_buffer<VAL, DIM><<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
       in, signal_buffer, input_bounds.lo, copy_pitches, pitch);
     // Zero pad and copy in the filter data
-    DeferredBuffer<VAL, DIM> filter_buffer(Rect<DIM>(zero, buffersize - one),
-                                           Memory::GPU_FB_MEM,
-                                           nullptr /*initial*/,
-                                           128 /*alignment*/);
-    VAL* filter_ptr = filter_buffer.ptr(zero);
+    auto filter_buffer = create_buffer<VAL, DIM>(buffersize, Memory::GPU_FB_MEM, 128 /*alignment*/);
+    VAL* filter_ptr    = filter_buffer.ptr(zero);
     CHECK_CUDA(cudaMemsetAsync(filter_ptr, 0, buffervolume * sizeof(VAL), stream));
     const VAL* filt_ptr = filter.ptr(filter_rect, strides);
     pitch               = 1;
@@ -1321,6 +1321,8 @@ __host__ static inline void cufft_convolution(AccessorWO<VAL, DIM> out,
     copy_into_buffer<VAL, DIM><<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
       filter, filter_buffer, filter_rect.lo, copy_pitches, pitch);
 
+    CHECK_CUDA_STREAM(stream);
+
     auto forward_plan  = get_cufft_plan(ForwardPlanType<VAL>::value, fftsize);
     auto backward_plan = get_cufft_plan(BackwardPlanType<VAL>::value, fftsize);
 
@@ -1331,14 +1333,12 @@ __host__ static inline void cufft_convolution(AccessorWO<VAL, DIM> out,
     auto workarea_size = std::max(forward_plan.workareaSize(), backward_plan.workareaSize());
 
     // Create the plan and allocate a temporary buffer for it if it needs one
-    DeferredBuffer<uint8_t, 1> workarea_buffer;
+    Buffer<uint8_t, 1> workarea_buffer;
     if (workarea_size > 0) {
       const Point<1> zero1d(0);
-      workarea_buffer = DeferredBuffer<uint8_t, 1>(Rect<1>(zero1d, Point<1>(workarea_size - 1)),
-                                                   Memory::GPU_FB_MEM,
-                                                   nullptr /*initial*/,
-                                                   128 /*alignment*/);
-      void* workarea  = workarea_buffer.ptr(zero1d);
+      workarea_buffer =
+        create_buffer<uint8_t, 1>(workarea_size, Memory::GPU_FB_MEM, 128 /*alignment*/);
+      void* workarea = workarea_buffer.ptr(zero1d);
       CHECK_CUFFT(cufftSetWorkArea(forward_plan.handle(), workarea));
       CHECK_CUFFT(cufftSetWorkArea(backward_plan.handle(), workarea));
     }
@@ -1346,6 +1346,9 @@ __host__ static inline void cufft_convolution(AccessorWO<VAL, DIM> out,
     cufft_execute_forward(forward_plan.handle(), signal_ptr, signal_ptr);
     // FFT the filter data
     cufft_execute_forward(forward_plan.handle(), filter_ptr, filter_ptr);
+
+    CHECK_CUDA_STREAM(stream);
+
     // Perform the pointwise multiplcation
     {
       size_t volume = (buffervolume / 2);
@@ -1379,6 +1382,8 @@ __host__ static inline void cufft_convolution(AccessorWO<VAL, DIM> out,
     blocks = (pitch + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
     copy_from_buffer<VAL, DIM><<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
       filter_ptr, out, buffer_offset, subrect.lo, copy_pitches, fft_pitches, pitch, scaling_factor);
+
+    CHECK_CUDA_STREAM(stream);
 
 #if 0
     // This is useful debugging code for finding the output

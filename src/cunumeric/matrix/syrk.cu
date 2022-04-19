@@ -37,7 +37,9 @@ static inline void syrk_template(
   CONS alpha = -1.0;
   CONS beta  = 1.0;
 
-  syrk(context, uplo, trans, m, n, &alpha, rhs, m, &beta, lhs, m);
+  CHECK_CUBLAS(syrk(context, uplo, trans, m, n, &alpha, rhs, m, &beta, lhs, m));
+
+  CHECK_CUDA_STREAM(stream);
 }
 
 template <>

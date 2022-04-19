@@ -56,16 +56,20 @@ struct WhereImplBody<VariantKind::GPU, CODE, DIM> {
   {
     const size_t volume = rect.volume();
     const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
+    auto stream         = get_cached_stream();
     if (dense) {
       size_t volume = rect.volume();
       auto outptr   = out.ptr(rect);
       auto maskptr  = mask.ptr(rect);
       auto in1ptr   = in1.ptr(rect);
       auto in2ptr   = in2.ptr(rect);
-      dense_kernel<<<blocks, THREADS_PER_BLOCK>>>(volume, outptr, maskptr, in1ptr, in2ptr);
+      dense_kernel<<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
+        volume, outptr, maskptr, in1ptr, in2ptr);
     } else {
-      generic_kernel<<<blocks, THREADS_PER_BLOCK>>>(volume, out, mask, in1, in2, pitches, rect);
+      generic_kernel<<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
+        volume, out, mask, in1, in2, pitches, rect);
     }
+    CHECK_CUDA_STREAM(stream);
   }
 };
 

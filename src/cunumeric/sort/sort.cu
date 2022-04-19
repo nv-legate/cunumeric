@@ -499,6 +499,8 @@ struct SortImplBody<VariantKind::GPU, CODE, DIM> {
         values_ptr = output.ptr(rect.lo);
       }
     }
+    CHECK_CUDA_STREAM(stream);
+
     if (volume > 0) {
       // sort data (locally)
       local_sort<CODE>(input.ptr(rect.lo),
@@ -510,6 +512,7 @@ struct SortImplBody<VariantKind::GPU, CODE, DIM> {
                        stable,
                        stream);
     }
+    CHECK_CUDA_STREAM(stream);
 
     // this is linked to the decision in sorting.py on when to use an 'unbounded' output array.
     if (output_array.dim() == -1) {
@@ -529,6 +532,7 @@ struct SortImplBody<VariantKind::GPU, CODE, DIM> {
       // cleanup
       local_sorted.values.destroy();
     }
+    CHECK_CUDA_STREAM(stream);
   }
 };
 

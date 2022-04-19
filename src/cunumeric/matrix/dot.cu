@@ -57,8 +57,7 @@ struct DotImplBody<VariantKind::GPU, CODE> {
                   const Rect<1>& rect,
                   bool dense)
   {
-    cudaStream_t stream;
-    cudaStreamCreate(&stream);
+    auto stream = get_cached_stream();
 
     const auto volume   = rect.volume();
     const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
@@ -74,7 +73,7 @@ struct DotImplBody<VariantKind::GPU, CODE> {
         volume, result, rhs1, rhs2, rect.lo, 1, SumReduction<ACC>::identity);
 
     copy_kernel<<<1, 1, 0, stream>>>(result, out);
-    cudaStreamDestroy(stream);
+    CHECK_CUDA_STREAM(stream);
   }
 };
 
