@@ -41,6 +41,8 @@ struct ScalarUnaryRedImpl {
     Pitches<DIM - 1> pitches;
     size_t volume = pitches.flatten(rect);
 
+    if (0 == volume) return;
+
     auto out = args.out.reduce_accessor<LG_OP, true, 1>();
     auto in  = args.in.read_accessor<VAL, DIM>(rect);
 
@@ -78,6 +80,8 @@ struct ScalarUnaryRedImpl<KIND, UnaryRedCode::ALL> {
     Pitches<DIM - 1> pitches;
     size_t volume = pitches.flatten(rect);
 
+    if (0 == volume) return;
+
     auto out = args.out.reduce_accessor<LG_OP, true, 1>();
     auto in  = args.in.read_accessor<VAL, DIM>(rect);
 
@@ -106,6 +110,8 @@ struct ScalarUnaryRedImpl<KIND, UnaryRedCode::ANY> {
 
     Pitches<DIM - 1> pitches;
     size_t volume = pitches.flatten(rect);
+
+    if (0 == volume) return;
 
     auto out = args.out.reduce_accessor<LG_OP, true, 1>();
     auto in  = args.in.read_accessor<VAL, DIM>(rect);
@@ -136,6 +142,8 @@ struct ScalarUnaryRedImpl<KIND, UnaryRedCode::CONTAINS> {
     Pitches<DIM - 1> pitches;
     size_t volume = pitches.flatten(rect);
 
+    if (0 == volume) return;
+
     auto out = args.out.reduce_accessor<LG_OP, true, 1>();
     auto in  = args.in.read_accessor<VAL, DIM>(rect);
 
@@ -165,6 +173,8 @@ struct ScalarUnaryRedImpl<KIND, UnaryRedCode::COUNT_NONZERO> {
 
     Pitches<DIM - 1> pitches;
     size_t volume = pitches.flatten(rect);
+
+    if (0 == volume) return;
 
     auto out = args.out.reduce_accessor<LG_OP, true, 1>();
     auto in  = args.in.read_accessor<VAL, DIM>(rect);

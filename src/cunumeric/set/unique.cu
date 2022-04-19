@@ -116,11 +116,11 @@ static Piece<VAL> tree_reduce(
       assert(my_piece.second <= buf_size);
       my_piece.first = create_buffer<VAL>(buf_size);
 
-      cudaMemcpyAsync(my_piece.first.ptr(0),
-                      p_merged,
-                      sizeof(VAL) * my_piece.second,
-                      cudaMemcpyDeviceToDevice,
-                      stream);
+      CHECK_CUDA(cudaMemcpyAsync(my_piece.first.ptr(0),
+                                 p_merged,
+                                 sizeof(VAL) * my_piece.second,
+                                 cudaMemcpyDeviceToDevice,
+                                 stream));
       merged.destroy();
     }
 
@@ -155,12 +155,13 @@ struct UniqueImplBody<VariantKind::GPU, CODE, DIM> {
     VAL* ptr  = temp.ptr(0);
     if (in.accessor.is_dense_arbitrary(rect)) {
       auto* src = in.ptr(rect.lo);
-      cudaMemcpyAsync(ptr, src, sizeof(VAL) * volume, cudaMemcpyDeviceToDevice, stream);
+      CHECK_CUDA(cudaMemcpyAsync(ptr, src, sizeof(VAL) * volume, cudaMemcpyDeviceToDevice, stream));
     } else {
       const size_t num_blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
       copy_into_buffer<<<num_blocks, THREADS_PER_BLOCK, 0, stream>>>(
         ptr, in, rect.lo, pitches, volume);
     }
+    CHECK_CUDA_STREAM(stream);
 
     // Find unique values
     thrust::sort(thrust::cuda::par.on(stream), ptr, ptr + volume);
@@ -171,8 +172,8 @@ struct UniqueImplBody<VariantKind::GPU, CODE, DIM> {
     auto buf_size = (get_aligned_size(result.second * sizeof(VAL)) + sizeof(VAL) - 1) / sizeof(VAL);
     assert(end - ptr <= buf_size);
     result.first = create_buffer<VAL>(buf_size);
-    cudaMemcpyAsync(
-      result.first.ptr(0), ptr, sizeof(VAL) * result.second, cudaMemcpyDeviceToDevice, stream);
+    CHECK_CUDA(cudaMemcpyAsync(
+      result.first.ptr(0), ptr, sizeof(VAL) * result.second, cudaMemcpyDeviceToDevice, stream));
 
     if (comms.size() > 0) {
       // The launch domain is 1D because of the output region
@@ -180,6 +181,7 @@ struct UniqueImplBody<VariantKind::GPU, CODE, DIM> {
       auto comm = comms[0].get<ncclComm_t*>();
       result    = tree_reduce(result, point[0], launch_domain.get_volume(), stream, comm);
     }
+    CHECK_CUDA_STREAM(stream);
 
     // Finally we pack the result
     return result;

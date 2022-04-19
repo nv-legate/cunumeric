@@ -59,6 +59,7 @@ Joining arrays
    append
    concatenate
    stack
+   block
    vstack
    hstack
    dstack

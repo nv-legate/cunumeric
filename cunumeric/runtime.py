@@ -139,7 +139,9 @@ class Runtime(object):
         except ValueError:
             self.report_dump_csv = None
 
-    def record_api_call(self, name, location, implemented):
+    def record_api_call(
+        self, name: str, location: str, implemented: bool
+    ) -> None:
         assert self.report_coverage
         self.api_calls.append((name, location, implemented))
 
@@ -427,8 +429,8 @@ class Runtime(object):
         else:
             return EagerArray(self, np.empty(shape, dtype=dtype))
 
-    def create_unbound_thunk(self, dtype):
-        store = self.legate_context.create_store(dtype)
+    def create_unbound_thunk(self, dtype, ndim=1):
+        store = self.legate_context.create_store(dtype, ndim=ndim)
         return DeferredArray(self, store, dtype=dtype)
 
     def is_eager_shape(self, shape):

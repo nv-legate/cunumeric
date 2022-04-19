@@ -65,8 +65,7 @@ struct BinaryRedImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
     size_t volume       = rect.volume();
     const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
     DeferredReduction<ProdReduction<bool>> result;
-    cudaStream_t stream;
-    cudaStreamCreate(&stream);
+    auto stream = get_cached_stream();
     if (dense) {
       auto in1ptr = in1.ptr(rect);
       auto in2ptr = in2.ptr(rect);
@@ -77,7 +76,7 @@ struct BinaryRedImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
     }
 
     copy_kernel<<<1, 1, 0, stream>>>(result, out);
-    cudaStreamDestroy(stream);
+    CHECK_CUDA_STREAM(stream);
   }
 };
 

@@ -13,12 +13,10 @@
 # limitations under the License.
 #
 
-from cunumeric.array import (
-    broadcast_shapes,
-    convert_to_cunumeric_ndarray,
-    ndarray,
-)
-from numpy import can_cast as np_can_cast, dtype as np_dtype
+import numpy as np
+
+from ..array import convert_to_cunumeric_ndarray, ndarray
+from ..utils import broadcast_shapes
 
 _UNARY_DOCSTRING_TEMPLATE = """{}
 
@@ -132,7 +130,7 @@ class ufunc:
         if arr.dtype == to_dtype:
             return arr
 
-        if not np_can_cast(arr.dtype, to_dtype, casting=casting):
+        if not np.can_cast(arr.dtype, to_dtype, casting=casting):
             raise TypeError(
                 f"Cannot cast ufunc '{self._name}' input from "
                 f"{arr.dtype} to {to_dtype} with casting rule '{casting}'"
@@ -168,17 +166,17 @@ class unary_ufunc(ufunc):
 
     def _resolve_dtype(self, arr, casting, precision_fixed):
         if arr.dtype.char in self._types:
-            return arr, np_dtype(self._types[arr.dtype.char])
+            return arr, np.dtype(self._types[arr.dtype.char])
 
         if arr.dtype in self._resolution_cache:
             to_dtype = self._resolution_cache[arr.dtype]
             arr = arr.astype(to_dtype)
-            return arr, np_dtype(self._types[to_dtype.char])
+            return arr, np.dtype(self._types[to_dtype.char])
 
         chosen = None
         if not precision_fixed:
             for in_ty in self._types.keys():
-                if np_can_cast(arr.dtype, in_ty):
+                if np.can_cast(arr.dtype, in_ty):
                     chosen = in_ty
                     break
 
@@ -188,10 +186,10 @@ class unary_ufunc(ufunc):
                 "for the given casting"
             )
 
-        to_dtype = np_dtype(chosen)
+        to_dtype = np.dtype(chosen)
         self._resolution_cache[arr.dtype] = to_dtype
 
-        return arr.astype(to_dtype), np_dtype(self._types[to_dtype.char])
+        return arr.astype(to_dtype), np.dtype(self._types[to_dtype.char])
 
     def __call__(
         self,
@@ -244,7 +242,7 @@ class unary_ufunc(ufunc):
             out = result
         else:
             if out.dtype != res_dtype:
-                if not np_can_cast(res_dtype, out.dtype, casting=casting):
+                if not np.can_cast(res_dtype, out.dtype, casting=casting):
                     raise TypeError(
                         f"Cannot cast ufunc '{self._name}' output from "
                         f"{res_dtype} to {out.dtype} with casting rule "
@@ -296,26 +294,56 @@ class binary_ufunc(ufunc):
     def ntypes(self):
         return len(self._types)
 
-    def _resolve_dtype(self, arrs, casting, precision_fixed):
-        common_dtype = ndarray.find_common_type(*arrs)
+    @staticmethod
+    def _find_common_type(arrs, orig_args):
+        # FIXME: The following is a miserable attempt to implement type
+        # coercion rules that try to match NumPy's rules for a subset of cases;
+        # for the others, cuNumeric computes a type different from what
+        # NumPy produces for the same operands. Type coercion rules shouldn't
+        # be this difficult to imitate...
+
+        all_scalars = all(arr.ndim == 0 for arr in arrs)
+        all_arrays = all(arr.ndim > 0 for arr in arrs)
+        kinds = set(arr.dtype.kind for arr in arrs)
+        lossy_conversion = ("i" in kinds or "u" in kinds) and (
+            "f" in kinds or "c" in kinds
+        )
+        use_min_scalar = not (all_scalars or all_arrays or lossy_conversion)
+
+        scalar_types = []
+        array_types = []
+        for arr, orig_arg in zip(arrs, orig_args):
+            if arr.ndim == 0:
+                scalar_types.append(
+                    np.dtype(np.min_scalar_type(orig_arg))
+                    if use_min_scalar
+                    else arr.dtype
+                )
+            else:
+                array_types.append(arr.dtype)
+
+        return np.find_common_type(array_types, scalar_types)
+
+    def _resolve_dtype(self, arrs, orig_args, casting, precision_fixed):
+        common_dtype = self._find_common_type(arrs, orig_args)
 
         key = (common_dtype.char, common_dtype.char)
         if key in self._types:
             arrs = [arr.astype(common_dtype) for arr in arrs]
-            return arrs, np_dtype(self._types[key])
+            return arrs, np.dtype(self._types[key])
 
         if key in self._resolution_cache:
             to_dtypes = self._resolution_cache[key]
             arrs = [
                 arr.astype(to_dtype) for arr, to_dtype in zip(arrs, to_dtypes)
             ]
-            return arrs, np_dtype(self._types[to_dtypes])
+            return arrs, np.dtype(self._types[to_dtypes])
 
         chosen = None
         if not precision_fixed:
             for in_dtypes in self._types.keys():
                 if all(
-                    np_can_cast(arr.dtype, to_dtype)
+                    np.can_cast(arr.dtype, to_dtype)
                     for arr, to_dtype in zip(arrs, in_dtypes)
                 ):
                     chosen = in_dtypes
@@ -330,7 +358,7 @@ class binary_ufunc(ufunc):
         self._resolution_cache[key] = chosen
         arrs = [arr.astype(to_dtype) for arr, to_dtype in zip(arrs, chosen)]
 
-        return arrs, np_dtype(self._types[chosen])
+        return arrs, np.dtype(self._types[chosen])
 
     def __call__(
         self,
@@ -343,7 +371,8 @@ class binary_ufunc(ufunc):
         dtype=None,
         **kwargs,
     ):
-        arrs = [convert_to_cunumeric_ndarray(arr) for arr in (x1, x2)]
+        orig_args = (x1, x2)
+        arrs = [convert_to_cunumeric_ndarray(arr) for arr in orig_args]
 
         if out is not None:
             if isinstance(out, tuple):
@@ -384,7 +413,9 @@ class binary_ufunc(ufunc):
         # Resolve the dtype to use for the computation and cast the input
         # if necessary. If the dtype is already fixed by the caller,
         # the dtype must be one of the dtypes supported by this operation.
-        arrs, res_dtype = self._resolve_dtype(arrs, casting, precision_fixed)
+        arrs, res_dtype = self._resolve_dtype(
+            arrs, orig_args, casting, precision_fixed
+        )
 
         if out is None:
             result = ndarray(
@@ -393,7 +424,7 @@ class binary_ufunc(ufunc):
             out = result
         else:
             if out.dtype != res_dtype:
-                if not np_can_cast(res_dtype, out.dtype, casting=casting):
+                if not np.can_cast(res_dtype, out.dtype, casting=casting):
                     raise TypeError(
                         f"Cannot cast ufunc '{self._name}' output from "
                         f"{res_dtype} to {out.dtype} with casting rule "

@@ -15,6 +15,7 @@
  */
 
 #include "legion.h"
+#include "core/data/buffer.h"
 #include "cunumeric/matrix/util.h"
 
 namespace cunumeric {
@@ -73,9 +74,8 @@ int64_t calculate_volume(size_t ndim, const int64_t* shape, int64_t* strides)
 
 float* allocate_buffer(size_t size)
 {
-  Rect<1> bounds(0, size - 1);
   // We will not call this function on GPUs
-  DeferredBuffer<float, 1> buffer(Memory::Kind::SYSTEM_MEM, bounds);
+  auto buffer = legate::create_buffer<float, 1>(size, Memory::Kind::SYSTEM_MEM);
   return buffer.ptr(0);
 }
 

@@ -49,13 +49,12 @@ LD_FLAGS ?=
 LD_FLAGS += -L$(OPENBLAS_PATH)/lib -l$(OPENBLAS_LIBNAME) -Wl,-rpath,$(OPENBLAS_PATH)/lib
 LD_FLAGS += -L$(TBLIS_PATH)/lib -ltblis -Wl,-rpath,$(TBLIS_PATH)/lib
 ifeq ($(strip $(USE_CUDA)),1)
-DEVICE_LD_FLAGS += -lcufft_static
-LD_FLAGS += -lcublas -lcusolver -lcufft_static -lculibos
+LD_FLAGS += -lcublas -lcusolver -lcufft
 LD_FLAGS += -L$(CUTENSOR_PATH)/lib -lcutensor -Wl,-rpath,$(CUTENSOR_PATH)/lib
 LD_FLAGS += -L$(NCCL_PATH)/lib -lnccl -Wl,-rpath,$(NCCL_PATH)/lib
 endif
 NVCC_FLAGS ?=
-NVCC_FLAGS += -I. -I$(CUTENSOR_PATH)/include -I$(NCCL_PATH)/include -I$(THRUST_PATH) -Wno-deprecated-declarations
+NVCC_FLAGS += -I. -I$(THRUST_PATH) -I$(CUTENSOR_PATH)/include -I$(NCCL_PATH)/include -Wno-deprecated-declarations
 
 ifeq ($(strip $(DEBUG)),1)
 CC_FLAGS += -DDEBUG_CUNUMERIC

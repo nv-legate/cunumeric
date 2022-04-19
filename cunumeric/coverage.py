@@ -17,7 +17,9 @@ from __future__ import annotations
 import warnings
 from functools import wraps
 from types import FunctionType, MethodDescriptorType, MethodType, ModuleType
-from typing import Any, Callable, Container, Optional
+from typing import Any, Callable, Container, Optional, cast
+
+from typing_extensions import Protocol
 
 from .runtime import runtime
 from .utils import find_last_user_frames, find_last_user_stacklevel
@@ -59,26 +61,51 @@ def filter_namespace(
     }
 
 
-# todo: (bev) use callback protocol type starting with 3.8
-def implemented(func: Any, prefix: str, name: str) -> Any:
+class AnyCallable(Protocol):
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
+        ...
+
+
+class CuWrapped(Protocol):
+    _cunumeric_implemented: bool
+
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
+        ...
+
+
+def implemented(
+    func: AnyCallable, prefix: str, name: str, *, reporting: bool = True
+) -> CuWrapped:
     name = f"{prefix}.{name}"
 
-    @wraps(func)
-    def wrapper(*args: Any, **kwargs: Any) -> Any:
-        location = find_last_user_frames(not runtime.report_dump_callstack)
-        runtime.record_api_call(name=name, location=location, implemented=True)
-        return func(*args, **kwargs)
+    wrapper: CuWrapped
+
+    if reporting:
+
+        @wraps(func)
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
+            location = find_last_user_frames(not runtime.report_dump_callstack)
+            runtime.record_api_call(
+                name=name, location=location, implemented=True
+            )
+            return func(*args, **kwargs)
+
+    else:
+
+        wrapper = cast(CuWrapped, func)
 
     wrapper._cunumeric_implemented = True
 
     return wrapper
 
 
-# todo: (bev) use callback protocol type starting with 3.8
 def unimplemented(
-    func: Any, prefix: str, name: str, *, reporting: bool = True
-) -> Any:
+    func: AnyCallable, prefix: str, name: str, *, reporting: bool = True
+) -> CuWrapped:
     name = f"{prefix}.{name}"
+
+    wrapper: CuWrapped
+
     if reporting:
 
         @wraps(func)
@@ -127,7 +154,7 @@ def clone_module(
     None
 
     """
-    module_name = origin_module.__name__
+    mod_name = origin_module.__name__
 
     missing = filter_namespace(
         origin_module.__dict__,
@@ -139,18 +166,19 @@ def clone_module(
 
     from ._ufunc.ufunc import ufunc as lgufunc
 
+    reporting = runtime.report_coverage
+
     for attr, value in new_globals.items():
         if isinstance(value, (FunctionType, lgufunc)):
-            if runtime.report_coverage:
-                new_globals[attr] = implemented(value, module_name, attr)
-            else:
-                value._cunumeric_implemented = True
+            wrapped = implemented(
+                cast(AnyCallable, value), mod_name, attr, reporting=reporting
+            )
+            new_globals[attr] = wrapped
 
     for attr, value in missing.items():
         if isinstance(value, (FunctionType, npufunc)):
-            new_globals[attr] = unimplemented(
-                value, module_name, attr, reporting=runtime.report_coverage
-            )
+            wrapped = unimplemented(value, mod_name, attr, reporting=reporting)
+            new_globals[attr] = wrapped
         else:
             new_globals[attr] = value
 
@@ -168,6 +196,11 @@ def clone_class(origin_class: type) -> Callable[[type], type]:
 
     """
 
+    def should_wrap(obj: object) -> bool:
+        return isinstance(
+            obj, (FunctionType, MethodType, MethodDescriptorType)
+        )
+
     def decorator(cls: type) -> type:
         class_name = f"{origin_class.__module__}.{origin_class.__name__}"
 
@@ -179,29 +212,21 @@ def clone_class(origin_class: type) -> Callable[[type], type]:
             omit_names=set(cls.__dict__).union(NDARRAY_INTERNAL),
         )
 
+        reporting = runtime.report_coverage
+
         for attr, value in cls.__dict__.items():
-            if isinstance(
-                value, (FunctionType, MethodType, MethodDescriptorType)
-            ):
-                if runtime.report_coverage:
-                    setattr(cls, attr, implemented(value, class_name, attr))
-                else:
-                    value._cunumeric_implemented = True
+            if should_wrap(value):
+                wrapped = implemented(
+                    value, class_name, attr, reporting=reporting
+                )
+                setattr(cls, attr, wrapped)
 
         for attr, value in missing.items():
-            if isinstance(
-                value, (FunctionType, MethodType, MethodDescriptorType)
-            ):
-                setattr(
-                    cls,
-                    attr,
-                    unimplemented(
-                        value,
-                        class_name,
-                        attr,
-                        reporting=runtime.report_coverage,
-                    ),
+            if should_wrap(value):
+                wrapped = unimplemented(
+                    value, class_name, attr, reporting=reporting
                 )
+                setattr(cls, attr, wrapped)
             else:
                 setattr(cls, attr, value)
 

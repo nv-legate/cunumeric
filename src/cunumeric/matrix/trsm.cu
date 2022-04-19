@@ -38,7 +38,9 @@ static inline void trsm_template(
   auto transa = CUBLAS_OP_C;
   auto diag   = CUBLAS_DIAG_NON_UNIT;
 
-  trsm(context, side, uplo, transa, diag, m, n, &alpha, rhs, n, lhs, m);
+  CHECK_CUBLAS(trsm(context, side, uplo, transa, diag, m, n, &alpha, rhs, n, lhs, m));
+
+  CHECK_CUDA_STREAM(stream);
 }
 
 template <>

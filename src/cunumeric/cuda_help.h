@@ -67,6 +67,20 @@
     check_nccl(result, __FILE__, __LINE__); \
   } while (false)
 
+#ifdef DEBUG_CUNUMERIC
+
+#define CHECK_CUDA_STREAM(stream)              \
+  do {                                         \
+    CHECK_CUDA(cudaStreamSynchronize(stream)); \
+    CHECK_CUDA(cudaPeekAtLastError());         \
+  } while (false)
+
+#else
+
+#define CHECK_CUDA_STREAM(stream)
+
+#endif
+
 #ifndef MAX
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
 #endif
@@ -78,7 +92,7 @@ namespace cunumeric {
 
 struct cufftPlan {
   cufftHandle handle;
-  size_t workarea;
+  size_t workarea_size;
 };
 
 class cufftContext {
@@ -96,12 +110,12 @@ class cufftContext {
 
  public:
   cufftHandle handle();
-  size_t workarea_size();
-  void set_callback(cufftXtCallbackType type, void* callback, void* data);
+  size_t workareaSize();
+  void setCallback(cufftXtCallbackType type, void* callback, void* data);
 
  private:
   cufftPlan* plan_{nullptr};
-  std::set<cufftXtCallbackType> callback_types_{};
+  std::vector<cufftXtCallbackType> callback_types_{};
 };
 
 // Defined in cudalibs.cu
@@ -122,7 +136,11 @@ __host__ inline void check_cuda(cudaError_t error, const char* file, int line)
             cudaGetErrorName(error),
             file,
             line);
+#ifdef DEBUG_CUNUMERIC
+    assert(false);
+#else
     exit(error);
+#endif
   }
 }
 
@@ -134,7 +152,11 @@ __host__ inline void check_cublas(cublasStatus_t status, const char* file, int l
             status,
             file,
             line);
+#ifdef DEBUG_CUNUMERIC
+    assert(false);
+#else
     exit(status);
+#endif
   }
 }
 
@@ -146,7 +168,11 @@ __host__ inline void check_cufft(cufftResult result, const char* file, int line)
             result,
             file,
             line);
+#ifdef DEBUG_CUNUMERIC
+    assert(false);
+#else
     exit(result);
+#endif
   }
 }
 
@@ -158,7 +184,11 @@ __host__ inline void check_cusolver(cusolverStatus_t status, const char* file, i
             status,
             file,
             line);
+#ifdef DEBUG_CUNUMERIC
+    assert(false);
+#else
     exit(status);
+#endif
   }
 }
 
@@ -171,7 +201,11 @@ __host__ inline void check_cutensor(cutensorStatus_t result, const char* file, i
             result,
             file,
             line);
+#ifdef DEBUG_CUNUMERIC
+    assert(false);
+#else
     exit(result);
+#endif
   }
 }
 
@@ -183,7 +217,11 @@ __host__ inline void check_nccl(ncclResult_t error, const char* file, int line)
             ncclGetErrorString(error),
             file,
             line);
+#ifdef DEBUG_CUNUMERIC
+    assert(false);
+#else
     exit(error);
+#endif
   }
 }
 
