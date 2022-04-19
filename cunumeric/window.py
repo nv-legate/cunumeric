@@ -45,14 +45,14 @@ def bartlett(M: int):
 
     Returns
     -------
-    out : array
+    out : ndarray
         The triangular window, with the maximum value normalized to one
         (the value one appears only if the number of samples is odd), with
         the first and last samples equal to zero.
 
     See Also
     --------
-    np.bartlett
+    numpy.bartlett
 
     Availability
     --------
@@ -86,7 +86,7 @@ def blackman(M: int):
 
     See Also
     --------
-    np.blackman
+    numpy.blackman
 
     Availability
     --------
@@ -176,7 +176,7 @@ def kaiser(M: int, beta: float):
 
     Returns
     -------
-    out : array
+    out : ndarray
         The window, with the maximum value normalized to one (the value
         one appears only if the number of samples is odd).
 

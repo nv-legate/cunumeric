@@ -16,3 +16,4 @@ Routines
    set
    sorting
    statistics
+   window
