@@ -2402,6 +2402,55 @@ class ndarray:
         )
 
     @add_boilerplate()
+    def partition(self, kth, axis=-1, kind="introselect", order=None):
+        """a.partition(kth, axis=-1, kind='introselect', order=None)
+
+        Partition of an array in-place.
+
+        Refer to :func:`cunumeric.partition` for full documentation.
+
+        See Also
+        --------
+        cunumeric.partition : equivalent function
+
+        Availability
+        --------
+        Multiple GPUs, Single CPU
+
+        """
+        self._thunk.partition(
+            rhs=self._thunk, kth=kth, axis=axis, kind=kind, order=order
+        )
+
+    @add_boilerplate()
+    def argpartition(self, kth, axis=-1, kind="introselect", order=None):
+        """a.argpartition(kth, axis=-1, kind='introselect', order=None)
+
+        Returns the indices that would partition this array.
+
+        Refer to :func:`cunumeric.argpartition` for full documentation.
+
+        See Also
+        --------
+        cunumeric.argpartition : equivalent function
+
+        Availability
+        --------
+        Multiple GPUs, Single CPU
+
+        """
+        result = ndarray(self.shape, np.int64)
+        result._thunk.partition(
+            rhs=self._thunk,
+            argpartition=True,
+            kth=kth,
+            axis=axis,
+            kind=kind,
+            order=order,
+        )
+        return result
+
+    @add_boilerplate()
     def prod(
         self,
         axis=None,

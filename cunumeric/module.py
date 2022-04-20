@@ -3991,6 +3991,103 @@ def sort_complex(a):
         return result.astype(np.complex64, copy=True)
 
 
+# partition
+
+
+@add_boilerplate("a")
+def argpartition(a, kth, axis=-1, kind="introselect", order=None):
+    """
+
+    Perform an indirect partition along the given axis.
+
+    Parameters
+    ----------
+    a : array_like
+        Input array.
+    kth : int or sequence of ints
+    axis : int or None, optional
+        Axis to partition. By default, the index -1 (the last axis) is used. If
+        None, the flattened array is used.
+    kind : ``{'introselect'}``, optional
+        Currently not supported.
+    order : str or list[str], optional
+        Currently not supported.
+
+    Returns
+    -------
+    out : ndarray[int]
+        Array of indices that partitions a along the specified axis. It has the
+        same shape as `a.shape` or is flattened in case of `axis` is None.
+
+
+    Notes
+    -----
+    The current implementation falls back to `cunumeric.argsort`.
+
+    See Also
+    --------
+    numpy.argpartition
+
+    Availability
+    --------
+    Multiple GPUs, Single CPU
+    """
+    result = ndarray(a.shape, np.int64)
+    result._thunk.partition(
+        rhs=a._thunk,
+        argpartition=True,
+        kth=kth,
+        axis=axis,
+        kind=kind,
+        order=order,
+    )
+    return result
+
+
+@add_boilerplate("a")
+def partition(a, kth, axis=-1, kind="introselect", order=None):
+    """
+
+    Returns a partitioned copy of an array.
+
+    Parameters
+    ----------
+    a : array_like
+        Input array.
+    kth : int or sequence of ints
+    axis : int or None, optional
+        Axis to partition. By default, the index -1 (the last axis) is used. If
+        None, the flattened array is used.
+    kind : ``{'introselect'}``, optional
+        Currently not supported.
+    order : str or list[str], optional
+        Currently not supported.
+
+    Returns
+    -------
+    out : ndarray
+        Partitioned array with same dtype and shape as `a`. In case `axis` is
+        None the result is flattened.
+
+    Notes
+    -----
+    The current implementation falls back to `cunumeric.sort`.
+
+    See Also
+    --------
+    numpy.partition
+
+    Availability
+    --------
+    Multiple GPUs, Single CPU
+    """
+    result = ndarray(a.shape, a.dtype)
+    result._thunk.partition(
+        rhs=a._thunk, kth=kth, axis=axis, kind=kind, order=order
+    )
+    return result
+
+
 # Searching
 
 

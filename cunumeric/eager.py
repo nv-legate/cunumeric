@@ -565,6 +565,24 @@ class EagerArray(NumPyThunk):
             else:
                 self.array = np.sort(rhs.array, axis, kind, order)
 
+    def partition(
+        self,
+        rhs,
+        kth,
+        argpartition=False,
+        axis=-1,
+        kind="introselect",
+        order=None,
+    ):
+        self.check_eager_args(rhs, kth, axis, kind, order)
+        if self.deferred is not None:
+            self.deferred.partition(rhs, kth, argpartition, axis, kind, order)
+        else:
+            if argpartition:
+                self.array = np.argpartition(rhs.array, kth, axis, kind, order)
+            else:
+                self.array = np.partition(rhs.array, kth, axis, kind, order)
+
     def random_uniform(self):
         if self.deferred is not None:
             self.deferred.random_uniform()

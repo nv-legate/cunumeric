@@ -1600,3 +1600,25 @@ class DeferredArray(NumPyThunk):
             raise ValueError("invalid axis")
 
         sort(self, rhs, argsort, axis, stable)
+
+    @auto_convert([1])
+    def partition(
+        self,
+        rhs,
+        kth,
+        argpartition=False,
+        axis=-1,
+        kind="introselect",
+        order=None,
+    ):
+
+        if order is not None:
+            raise NotImplementedError(
+                "cuNumeric does not support partitioning with 'order' as "
+                "ndarray only supports numeric values"
+            )
+        if axis is not None and (axis >= rhs.ndim or axis < -rhs.ndim):
+            raise ValueError("invalid axis")
+
+        # fallback to sort for now
+        sort(self, rhs, argpartition, axis, False)
