@@ -41,9 +41,21 @@ include $(LEGATE_DIR)/share/legate/config.mk
 
 LIBNAME = libcunumeric
 
+ARCH_NAME = $(shell uname -m)
+ifneq (,$(findstring ppc,$(ARCH_NAME)))
+    CPU_ARCH = ppc
+else ifneq (,$(findstring x86,$(ARCH_NAME))) 
+    CPU_ARCH = x86
+else
+    $(error Unsupported arch $(ARCH_NAME), aborting build)
+endif
+
 CC_FLAGS ?=
 CC_FLAGS += -I. -I$(OPENBLAS_PATH)/include -I$(TBLIS_PATH)/include -I$(THRUST_PATH)
 CC_FLAGS += -DTHRUST_HOST_SYSTEM=THRUST_HOST_SYSTEM_CPP -DTHRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_OMP
+ifeq ($(strip $(CPU_ARCH)),ppc)
+CC_FLAGS += -DNO_WARN_X86_INTRINSICS
+endif
 
 LD_FLAGS ?=
 LD_FLAGS += -L$(OPENBLAS_PATH)/lib -l$(OPENBLAS_LIBNAME) -Wl,-rpath,$(OPENBLAS_PATH)/lib
