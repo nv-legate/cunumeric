@@ -314,7 +314,7 @@ class DeferredArray(NumPyThunk):
             start_index = 0
 
         new_arrays = tuple()
-        # check array's type and converting them to deferred arrays
+        # check array's type and convert them to deferred arrays
         for a in arrays:
             a = self.runtime.to_deferred_array(a)
             data_type = a.dtype
@@ -429,6 +429,9 @@ class DeferredArray(NumPyThunk):
                 key = self.runtime.to_deferred_array(key)
 
             out_dtype = rhs.dtype
+            # in cease this operation is called for the set_item, we
+            # return Point<N> type field that is later used for
+            # indirect copy operation
             if is_set:
                 N = rhs.ndim
                 out_dtype = rhs.runtime.get_point_type(N)
@@ -456,8 +459,6 @@ class DeferredArray(NumPyThunk):
         transpose_needed = False
         transpose_indices = tuple()
         key_transpose_indices = tuple()
-        # since we can't call Copy operation on transformed Store, after
-        # the transformation, we need to return a copy
         tuple_of_arrays = ()
 
         # First, we need to check if transpose is needed
@@ -507,11 +508,12 @@ class DeferredArray(NumPyThunk):
                 if not isinstance(key, DeferredArray):
                     k = self.runtime.to_deferred_array(k)
                 if k.dtype == np.bool:
-                    if k.shape[0] != store.shape[dim + shift]:
-                        raise ValueError(
-                            "shape of boolean index did not match "
-                            "indexed array "
-                        )
+                    for i in range(k.ndim):
+                        if k.shape[i] != store.shape[dim + i + shift]:
+                            raise ValueError(
+                                "shape of boolean index did not match "
+                                "indexed array "
+                            )
                     # in case of the mixed indises we all nonzero
                     # for the bool array
                     k = k.nonzero()
@@ -525,9 +527,9 @@ class DeferredArray(NumPyThunk):
                     "indexing operation",
                 )
         if store.transformed:
-            # in case this operation is called for the set_item, we need
-            # to apply all the transformations to self as well before
-            # creating a copy
+            # in the case this operation is called for the set_item, we need
+            # to apply all the transformations done to `store` to `self`
+            # as well before creating a copy
             if is_set:
                 self = DeferredArray(self.runtime, store, self.dtype)
             # after store is transformed we need to to return a copy of
@@ -540,11 +542,13 @@ class DeferredArray(NumPyThunk):
             return True, rhs, output_arr, self
         elif len(tuple_of_arrays) == 1 and rhs.ndim == 1:
             key = tuple_of_arrays[0]
+            # when key is transformed, we need to return a copy in purpose
+            # to use it as an indirection in copy operation
             if key.base.transformed:
                 key, key_store = key._copy_store(key.base)
             return True, rhs, key, self
         else:
-            raise ValueError("Advance indexing dimention mismatch")
+            raise ValueError("Advanced indexing dimention mismatch")
 
     @staticmethod
     def _unpack_ellipsis(key, ndim):
@@ -674,7 +678,7 @@ class DeferredArray(NumPyThunk):
             copy.add_output(lhs.base)
             copy.execute()
 
-            # todo this copy will be removed when affine copies are
+            # TODO this copy will be removed when affine copies are
             # supported in Legion/Realm
             if lhs is not self or self.base.transformed:
                 self.copy(lhs, deep=True)

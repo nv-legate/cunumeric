@@ -431,10 +431,12 @@ def test():
                 4,
             ),
         )
+        # 2 bool arrays separated by scalar
         res = x[indx, 1, indx]
         res_num = x_num[indx_num, 1, indx_num]
         assert np.array_equal(res, res_num)
 
+        # 2 bool arrays separated by :
         res = x[indx, :, indx]
         res_num = x_num[indx_num, :, indx_num]
         assert np.array_equal(res, res_num)
