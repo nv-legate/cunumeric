@@ -25,6 +25,7 @@ GEN_CPU_SRC += cunumeric/ternary/where.cc               \
 							 cunumeric/nullary/arange.cc              \
 							 cunumeric/nullary/eye.cc                 \
 							 cunumeric/nullary/fill.cc                \
+							 cunumeric/nullary/window.cc              \
 							 cunumeric/index/choose.cc                \
 							 cunumeric/index/repeat.cc                \
 							 cunumeric/item/read.cc                   \
@@ -52,6 +53,9 @@ GEN_CPU_SRC += cunumeric/ternary/where.cc               \
 							 cunumeric/arg.cc                         \
 							 cunumeric/mapper.cc
 
+GEN_CPU_SRC += cunumeric/cephes/chbevl.cc \
+							 cunumeric/cephes/i0.cc
+
 ifeq ($(strip $(USE_OPENMP)),1)
 GEN_CPU_SRC += cunumeric/ternary/where_omp.cc          \
 							 cunumeric/binary/binary_op_omp.cc       \
@@ -63,6 +67,7 @@ GEN_CPU_SRC += cunumeric/ternary/where_omp.cc          \
 							 cunumeric/nullary/arange_omp.cc         \
 							 cunumeric/nullary/eye_omp.cc            \
 							 cunumeric/nullary/fill_omp.cc           \
+							 cunumeric/nullary/window_omp.cc         \
 							 cunumeric/index/choose_omp.cc           \
 							 cunumeric/index/repeat_omp.cc           \
 							 cunumeric/matrix/contract_omp.cc        \
@@ -96,6 +101,7 @@ GEN_GPU_SRC += cunumeric/ternary/where.cu               \
 							 cunumeric/nullary/arange.cu              \
 							 cunumeric/nullary/eye.cu                 \
 							 cunumeric/nullary/fill.cu                \
+							 cunumeric/nullary/window.cu              \
 							 cunumeric/item/read.cu                   \
 							 cunumeric/item/write.cu                  \
 							 cunumeric/index/choose.cu                \
