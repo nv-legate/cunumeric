@@ -1622,3 +1622,12 @@ class DeferredArray(NumPyThunk):
 
         # fallback to sort for now
         sort(self, rhs, argpartition, axis, False)
+
+    def create_window(self, op_code, M, *args):
+        task = self.context.create_task(CuNumericOpCode.WINDOW)
+        task.add_output(self.base)
+        task.add_scalar_arg(op_code, ty.int32)
+        task.add_scalar_arg(M, ty.int64)
+        for arg in args:
+            task.add_scalar_arg(arg, ty.float64)
+        task.execute()
