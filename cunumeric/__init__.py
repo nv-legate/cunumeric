@@ -29,6 +29,7 @@ from cunumeric import linalg, random
 from cunumeric.array import ndarray
 from cunumeric.module import *
 from cunumeric._ufunc import *
+from cunumeric.window import bartlett, blackman, hamming, hanning, kaiser
 from cunumeric.coverage import clone_module
 
 clone_module(_np, globals())
