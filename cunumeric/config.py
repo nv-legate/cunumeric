@@ -114,6 +114,7 @@ class CuNumericOpCode(IntEnum):
     UNIQUE_REDUCE = _cunumeric.CUNUMERIC_UNIQUE_REDUCE
     UNLOAD_CUDALIBS = _cunumeric.CUNUMERIC_UNLOAD_CUDALIBS
     WHERE = _cunumeric.CUNUMERIC_WHERE
+    WINDOW = _cunumeric.CUNUMERIC_WINDOW
     WRITE = _cunumeric.CUNUMERIC_WRITE
 
 
@@ -219,6 +220,15 @@ class BinaryOpCode(IntEnum):
     POWER = _cunumeric.CUNUMERIC_BINOP_POWER
     RIGHT_SHIFT = _cunumeric.CUNUMERIC_BINOP_RIGHT_SHIFT
     SUBTRACT = _cunumeric.CUNUMERIC_BINOP_SUBTRACT
+
+
+@unique
+class WindowOpCode(IntEnum):
+    BARLETT = _cunumeric.CUNUMERIC_WINDOW_BARLETT
+    BLACKMAN = _cunumeric.CUNUMERIC_WINDOW_BLACKMAN
+    HAMMING = _cunumeric.CUNUMERIC_WINDOW_HAMMING
+    HANNING = _cunumeric.CUNUMERIC_WINDOW_HANNING
+    KAISER = _cunumeric.CUNUMERIC_WINDOW_KAISER
 
 
 # Match these to RandGenCode in rand_util.h

@@ -59,6 +59,7 @@ enum CuNumericOpCode {
   CUNUMERIC_UNIQUE_REDUCE,
   CUNUMERIC_UNLOAD_CUDALIBS,
   CUNUMERIC_WHERE,
+  CUNUMERIC_WINDOW,
   CUNUMERIC_WRITE,
 };
 
@@ -164,6 +165,16 @@ enum CuNumericBinaryOpCode {
   CUNUMERIC_BINOP_POWER,
   CUNUMERIC_BINOP_RIGHT_SHIFT,
   CUNUMERIC_BINOP_SUBTRACT,
+};
+
+// Match these to WindowOpCode in config.py
+// Also, sort these alphabetically for easy lookup later
+enum CuNumericWindowOpCode {
+  CUNUMERIC_WINDOW_BARLETT = 1,
+  CUNUMERIC_WINDOW_BLACKMAN,
+  CUNUMERIC_WINDOW_HAMMING,
+  CUNUMERIC_WINDOW_HANNING,
+  CUNUMERIC_WINDOW_KAISER,
 };
 
 // Match these to CuNumericRedopCode in config.py
