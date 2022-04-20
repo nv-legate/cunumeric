@@ -2597,12 +2597,44 @@ class ndarray:
         self.__array__().setflags(write=write, align=align, uic=uic)
 
     def sort(self, axis=-1, kind="quicksort", order=None):
+        """a.sort(axis=-1, kind=None, order=None)
+
+        Sort an array in-place.
+
+        Refer to :func:`cunumeric.sort` for full documentation.
+
+        See Also
+        --------
+        cunumeric.sort : equivalent function
+
+        Availability
+        --------
+        Multiple GPUs, Single CPU
+
+        """
         self._thunk.sort(rhs=self._thunk, axis=axis, kind=kind, order=order)
 
-    def argsort(self, axis=-1, kind="quicksort", order=None):
-        self._thunk.sort(
+    def argsort(self, axis=-1, kind=None, order=None):
+        """a.argsort(axis=-1, kind=None, order=None)
+
+        Returns the indices that would sort this array.
+
+        Refer to :func:`cunumeric.argsort` for full documentation.
+
+        See Also
+        --------
+        cunumeric.argsort : equivalent function
+
+        Availability
+        --------
+        Multiple GPUs, Single CPU
+
+        """
+        result = ndarray(self.shape, np.int64)
+        result._thunk.sort(
             rhs=self._thunk, argsort=True, axis=axis, kind=kind, order=order
         )
+        return result
 
     def squeeze(self, axis=None):
         """a.squeeze(axis=None)
