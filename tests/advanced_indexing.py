@@ -250,6 +250,10 @@ def test():
     x_num[[0, 1], [0, 1]] = 11
     assert np.array_equal(x, x_num)
 
+    x[[0, 1], :, [0, 1]] = 11
+    x_num[[0, 1], :, [0, 1]] = 11
+    assert np.array_equal(x, x_num)
+
     # d: newaxis is passed along with array:
 
     res = x[..., [1, 0]]

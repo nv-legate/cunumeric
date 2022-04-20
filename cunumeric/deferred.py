@@ -441,7 +441,7 @@ class DeferredArray(NumPyThunk):
             task.add_scalar_arg(is_set, bool)
             task.add_alignment(rhs.base, key.base)
             task.execute()
-            return False, rhs, out
+            return False, rhs, out, None
 
         if isinstance(key, NumPyThunk):
             key = (key,)
@@ -491,6 +491,8 @@ class DeferredArray(NumPyThunk):
             key_transpose_indices += post_indices
             store = store.transpose(transpose_indices)
             key = tuple(key[i] for i in key_transpose_indices)
+        else:
+            transpose_indices = None
 
         shift = 0
         for dim, k in enumerate(key):
@@ -532,12 +534,12 @@ class DeferredArray(NumPyThunk):
 
         if len(tuple_of_arrays) <= rhs.ndim and rhs.ndim > 1:
             output_arr = rhs._zip_indices(start_index, tuple_of_arrays)
-            return True, rhs, output_arr
+            return True, rhs, output_arr, transpose_indices
         elif len(tuple_of_arrays) == 1 and rhs.ndim == 1:
             key = tuple_of_arrays[0]
             if key.base.transformed:
                 key, key_store = key._copy_store(key.base)
-            return True, rhs, key
+            return True, rhs, key, transpose_indices
         else:
             raise ValueError("Advance indexing dimention mismatch")
 
@@ -601,7 +603,12 @@ class DeferredArray(NumPyThunk):
         # Check to see if this is advanced indexing or not
         if is_advanced_indexing(key):
             # Create the indexing array
-            copy_needed, rhs, index_array = self._create_indexing_array(key)
+            (
+                copy_needed,
+                rhs,
+                index_array,
+                transpose_indices,
+            ) = self._create_indexing_array(key)
             store = rhs.base
             if copy_needed:
                 # Create a new array to be the result
@@ -643,9 +650,12 @@ class DeferredArray(NumPyThunk):
         # Check to see if this is advanced indexing or not
         if is_advanced_indexing(key):
             # Create the indexing array
-            copy_needed, lhs, index_array = self._create_indexing_array(
-                key, True
-            )
+            (
+                copy_needed,
+                lhs,
+                index_array,
+                transpose_indices,
+            ) = self._create_indexing_array(key, True)
             rhs = self.runtime.to_deferred_array(rhs)
             if rhs.shape != index_array.shape:
                 rhs_tmp = rhs._broadcast(index_array.base.shape)
@@ -661,7 +671,15 @@ class DeferredArray(NumPyThunk):
             copy.add_output(lhs.base)
             copy.execute()
 
+            # todo this copy will be removed when affine copies are
+            # supported in Legion/Realm
             if lhs is not self:
+                # if lhs was transposed in _create_indexing_array
+                # we need to transpose self as well
+                if transpose_indices is not None:
+                    store = self.base
+                    store = store.transpose(transpose_indices)
+                    self = DeferredArray(self.runtime, store, self.dtype)
                 self.copy(lhs, deep=True)
 
         else:
