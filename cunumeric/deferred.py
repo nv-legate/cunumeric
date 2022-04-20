@@ -441,7 +441,7 @@ class DeferredArray(NumPyThunk):
             task.add_scalar_arg(is_set, bool)
             task.add_alignment(rhs.base, key.base)
             task.execute()
-            return False, rhs, out, None
+            return False, rhs, out, self
 
         if isinstance(key, NumPyThunk):
             key = (key,)
@@ -491,8 +491,6 @@ class DeferredArray(NumPyThunk):
             key_transpose_indices += post_indices
             store = store.transpose(transpose_indices)
             key = tuple(key[i] for i in key_transpose_indices)
-        else:
-            transpose_indices = None
 
         shift = 0
         for dim, k in enumerate(key):
@@ -527,6 +525,11 @@ class DeferredArray(NumPyThunk):
                     "indexing operation",
                 )
         if store.transformed:
+            # in case this operation is called for the set_item, we need
+            # to apply all the transformations to self as well before
+            # creating a copy
+            if is_set:
+                self = DeferredArray(self.runtime, store, self.dtype)
             # after store is transformed we need to to return a copy of
             # the store since Copy operation can't be done on
             # the store with transformation
@@ -534,12 +537,12 @@ class DeferredArray(NumPyThunk):
 
         if len(tuple_of_arrays) <= rhs.ndim and rhs.ndim > 1:
             output_arr = rhs._zip_indices(start_index, tuple_of_arrays)
-            return True, rhs, output_arr, transpose_indices
+            return True, rhs, output_arr, self
         elif len(tuple_of_arrays) == 1 and rhs.ndim == 1:
             key = tuple_of_arrays[0]
             if key.base.transformed:
                 key, key_store = key._copy_store(key.base)
-            return True, rhs, key, transpose_indices
+            return True, rhs, key, self
         else:
             raise ValueError("Advance indexing dimention mismatch")
 
@@ -607,7 +610,7 @@ class DeferredArray(NumPyThunk):
                 copy_needed,
                 rhs,
                 index_array,
-                transpose_indices,
+                self,
             ) = self._create_indexing_array(key)
             store = rhs.base
             if copy_needed:
@@ -654,7 +657,7 @@ class DeferredArray(NumPyThunk):
                 copy_needed,
                 lhs,
                 index_array,
-                transpose_indices,
+                self,
             ) = self._create_indexing_array(key, True)
             rhs = self.runtime.to_deferred_array(rhs)
             if rhs.shape != index_array.shape:
@@ -673,13 +676,7 @@ class DeferredArray(NumPyThunk):
 
             # todo this copy will be removed when affine copies are
             # supported in Legion/Realm
-            if lhs is not self:
-                # if lhs was transposed in _create_indexing_array
-                # we need to transpose self as well
-                if transpose_indices is not None:
-                    store = self.base
-                    store = store.transpose(transpose_indices)
-                    self = DeferredArray(self.runtime, store, self.dtype)
+            if lhs is not self or self.base.transformed:
                 self.copy(lhs, deep=True)
 
         else:
