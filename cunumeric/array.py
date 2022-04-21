@@ -1936,6 +1936,8 @@ class ndarray:
         # out should be passed only for Trace
         if out is not None and not trace:
             raise ValueError("_diag_helper supports out only for trace=True")
+        if dtype is not None and not trace:
+            raise ValueError("_diag_helper supports dtype only for trace=True")
 
         elif self.ndim == 1:
             if axes is not None:
