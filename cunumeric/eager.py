@@ -15,7 +15,6 @@
 
 import numpy as np
 
-from .config import 
     BinaryOpCode,
     FFTDirection,
     FFT_C2R,
