@@ -29,13 +29,15 @@ using namespace Legion;
 using namespace legate;
 
 struct GPUGenerator : public CURANDGenerator {
+  cudaStream_t stream;
   GPUGenerator(BitGeneratorType gentype)
   {
-    cudaStream_t stream;
     CHECK_CUDA(::cudaStreamCreate(&stream));
     CHECK_CURAND(::curandCreateGenerator(&gen, get_curandRngType(gentype)));
+    // offset is initialized by base class
+    CHECK_CUDA(::cudaDeviceSynchronize());
+    CHECK_CURAND(::curandSetGeneratorOffset(gen, offset));
     CHECK_CURAND(::curandSetStream(gen, stream));
-    offset             = 0;
     type               = get_curandRngType(gentype);
     supports_skipahead = supportsSkipAhead(type);
     dev_buffer_size    = DEFAULT_DEV_BUFFER_SIZE;
@@ -46,25 +48,27 @@ struct GPUGenerator : public CURANDGenerator {
     CHECK_CUDA(::cudaMalloc(&(dev_buffer), dev_buffer_size * sizeof(uint32_t)));
 #endif
   }
+
+  virtual ~GPUGenerator()
+  {
+    CHECK_CUDA(::cudaStreamSynchronize(stream));
+    // wait for rand jobs and clean-up resources
+    std::lock_guard<std::mutex> guard(lock);
+// TODO: use realm allocator
+#if (__CUDACC_VER_MAJOR__ > 11 || ((__CUDACC_VER_MAJOR__ >= 11) && (__CUDACC_VER_MINOR__ >= 2)))
+    CHECK_CUDA(::cudaFreeAsync(dev_buffer, stream));
+#else
+    CHECK_CUDA(::cudaFree(dev_buffer));
+#endif
+    CHECK_CURAND(::curandDestroyGenerator(gen));
+  }
 };
 
 template <>
 struct CURANDGeneratorBuilder<VariantKind::GPU> {
   static CURANDGenerator* build(BitGeneratorType gentype) { return new GPUGenerator(gentype); }
 
-  static void destroy(CURANDGenerator* cugenptr)
-  {
-    // wait for rand jobs and clean-up resources
-    std::lock_guard<std::mutex> guard(cugenptr->lock);
-    auto stream = get_cached_stream();
-// TODO: use realm allocator
-#if (__CUDACC_VER_MAJOR__ > 11 || ((__CUDACC_VER_MAJOR__ >= 11) && (__CUDACC_VER_MINOR__ >= 2)))
-    CHECK_CUDA(::cudaFreeAsync(cugenptr->dev_buffer, stream));
-#else
-    CHECK_CUDA(::cudaFree(cugenptr->dev_buffer));
-#endif
-    CHECK_CURAND(::curandDestroyGenerator(cugenptr->gen));
-  }
+  static void destroy(CURANDGenerator* cugenptr) { delete cugenptr; }
 };
 
 template <>

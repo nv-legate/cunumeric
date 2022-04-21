@@ -31,11 +31,20 @@ struct CPUGenerator : public CURANDGenerator {
   CPUGenerator(BitGeneratorType gentype)
   {
     CHECK_CURAND(::curandCreateGeneratorHost(&gen, get_curandRngType(gentype)));
-    offset             = 0;
+    // offset is initialized by base class
+    CHECK_CURAND(::curandSetGeneratorOffset(gen, offset));
     type               = get_curandRngType(gentype);
     supports_skipahead = supportsSkipAhead(type);
     dev_buffer_size    = DEFAULT_DEV_BUFFER_SIZE;
     dev_buffer         = (uint32_t*)::malloc(dev_buffer_size * sizeof(uint32_t));
+  }
+
+  virtual ~CPUGenerator()
+  {
+    // wait for rand jobs and clean-up resources
+    std::lock_guard<std::mutex> guard(lock);
+    free(dev_buffer);
+    CHECK_CURAND(::curandDestroyGenerator(gen));
   }
 };
 
@@ -43,13 +52,7 @@ template <>
 struct CURANDGeneratorBuilder<VariantKind::CPU> {
   static CURANDGenerator* build(BitGeneratorType gentype) { return new CPUGenerator(gentype); }
 
-  static void destroy(CURANDGenerator* cugenptr)
-  {
-    // wait for rand jobs and clean-up resources
-    std::lock_guard<std::mutex> guard(cugenptr->lock);
-    free(cugenptr->dev_buffer);
-    CHECK_CURAND(::curandDestroyGenerator(cugenptr->gen));
-  }
+  static void destroy(CURANDGenerator* cugenptr) { delete cugenptr; }
 };
 
 template <>

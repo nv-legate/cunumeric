@@ -258,18 +258,18 @@ class CuNumericTunable(IntEnum):
 # Match these to BitGeneratorOperation in bitgenerator_util.h
 @unique
 class BitGeneratorOperation(IntEnum):
-    CREATE = 1
-    DESTROY = 2
-    RAND_RAW = 3
-    SET_SEED = 4
+    CREATE = _cunumeric.CUNUMERIC_BITGENOP_CREATE
+    DESTROY = _cunumeric.CUNUMERIC_BITGENOP_DESTROY
+    RAND_RAW = _cunumeric.CUNUMERIC_BITGENOP_RAND_RAW
+    SET_SEED = _cunumeric.CUNUMERIC_BITGENOP_SET_SEED
 
 
 # Match these to BitGeneratorType in bitgenerator_util.h
 @unique
 class BitGeneratorType(IntEnum):
-    DEFAULT = 0
-    XORWOW = 1
-    MRG32K3A = 2
-    MTGP32 = 3
-    MT19937 = 4
-    PHILOX4_32_10 = 5
+    DEFAULT = _cunumeric.CUNUMERIC_BITGENTYPE_DEFAULT
+    XORWOW = _cunumeric.CUNUMERIC_BITGENTYPE_XORWOW
+    MRG32K3A = _cunumeric.CUNUMERIC_BITGENTYPE_MRG32K3A
+    MTGP32 = _cunumeric.CUNUMERIC_BITGENTYPE_MTGP32
+    MT19937 = _cunumeric.CUNUMERIC_BITGENTYPE_MT19937
+    PHILOX4_32_10 = _cunumeric.CUNUMERIC_BITGENTYPE_PHILOX4_32_10

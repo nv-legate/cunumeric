@@ -59,9 +59,9 @@ def test_size_None():
 
 
 if __name__ == "__main__":
-    test_bitgenerator_XORWOW()
     test_bitgenerator_MRG32k3a()
-    test_bitgenerator_MTGP32()
-    test_bitgenerator_MT19937()
+    test_bitgenerator_XORWOW()
     test_bitgenerator_PHILOX4_32_10()
+    # test_bitgenerator_MTGP32()
+    # test_bitgenerator_MT19937()
     # test_size_None()

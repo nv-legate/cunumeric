@@ -22,20 +22,20 @@ namespace cunumeric {
 
 // Match these to BitGeneratorOperation in config.py
 enum class BitGeneratorOperation : int32_t {
-  CREATE   = 1,
-  DESTROY  = 2,
-  RAND_RAW = 3,
-  SET_SEED = 4,
+  CREATE   = CUNUMERIC_BITGENOP_CREATE,
+  DESTROY  = CUNUMERIC_BITGENOP_DESTROY,
+  RAND_RAW = CUNUMERIC_BITGENOP_RAND_RAW,
+  SET_SEED = CUNUMERIC_BITGENOP_SET_SEED,
 };
 
 // Match these to BitGeneratorType in config.py
 enum class BitGeneratorType : int32_t {
-  DEFAULT       = 0,
-  XORWOW        = 1,
-  MRG32K3A      = 2,
-  MTGP32        = 3,
-  MT19937       = 4,
-  PHILOX4_32_10 = 5,
+  DEFAULT       = CUNUMERIC_BITGENTYPE_DEFAULT,
+  XORWOW        = CUNUMERIC_BITGENTYPE_XORWOW,
+  MRG32K3A      = CUNUMERIC_BITGENTYPE_MRG32K3A,
+  MTGP32        = CUNUMERIC_BITGENTYPE_MTGP32,
+  MT19937       = CUNUMERIC_BITGENTYPE_MT19937,
+  PHILOX4_32_10 = CUNUMERIC_BITGENTYPE_PHILOX4_32_10,
 };
 
 }  // namespace cunumeric

@@ -29,7 +29,7 @@ static Legion::Logger log_curand("cunumeric.random");
 __host__ inline void check_curand(curandStatus_t error, const char* file, int line)
 {
   if (error != CURAND_STATUS_SUCCESS) {
-    log_curand.fatal() << "Internal CURAND failure with error" << (int)error << " in file " << file
+    log_curand.fatal() << "Internal CURAND failure with error " << (int)error << " in file " << file
                        << " at line " << line;
     exit((int)error);
   }

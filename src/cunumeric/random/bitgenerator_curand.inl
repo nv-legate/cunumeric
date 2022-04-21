@@ -21,25 +21,6 @@
 #include <sys/types.h>
 #include <mutex>
 
-#if 0  // for debugging
-#define VERBOSE_DEBUGGING
-#endif
-
-#ifdef VERBOSE_DEBUGGING
-
-static void printtid(int op)
-{
-  pid_t tid;
-  tid = syscall(SYS_gettid);
-  ::fprintf(stderr, "[INFO-BITGENERATOR] : op = %d -- tid = %d -- pid = %d\n", op, tid, getpid());
-}
-
-#else
-
-static void printtid(int) {}
-
-#endif
-
 #include "cunumeric/random/bitgenerator.h"
 #include "cunumeric/random/bitgenerator_template.inl"
 #include "cunumeric/random/bitgenerator_util.h"
@@ -69,7 +50,19 @@ struct CURANDGenerator {
   std::mutex lock;  // in case several threads would want to use the same generator...
 
  protected:
-  CURANDGenerator() { log_curand.debug() << "CURANDGenerator::create"; }
+  static unsigned short build_id(unsigned long long id)
+  {
+    return (id & 0xFFFF) ^ ((id >> 16) & 0xFFFF) ^ ((id >> 32) & 0xFFFF) ^ ((id >> 48) & 0xFFFF);
+  }
+
+  CURANDGenerator()
+  {
+    // TODO: find some better form of indexing for the processor - not just some constructed number
+    auto id                = Legion::Processor::get_executing_processor().id;
+    unsigned short highnum = build_id(id);
+    offset                 = (uint64_t)highnum << 48;
+    log_curand.debug() << "CURANDGenerator::create";
+  }
 
  public:
   virtual ~CURANDGenerator() { log_curand.debug() << "CURANDGenerator::destroy"; }
@@ -118,12 +111,8 @@ struct generate_fn {
     auto rect       = output.shape<DIM>();
     uint64_t volume = rect.volume();
 
-    for (int k = 0; k < DIM; ++k)
-      log_curand.debug() << "\t[proc=" << proc.id << "] - shape[" << k << "][" << rect.lo[k] << ":"
-                         << rect.hi[k] << "]";
-    for (int k = 0; k < DIM; ++k)
-      log_curand.debug() << "\t[proc=" << proc.id << "] - strides[" << k << "][" << strides[k]
-                         << "]";
+    log_curand.debug() << "proc=" << proc << " - shape = " << rect;
+    log_curand.debug() << "proc=" << proc << " - shape = " << strides;
 
     uint64_t baseoffset = 0;
     for (size_t k = 0; k < DIM; ++k) baseoffset += rect.lo[k] * strides[k];
@@ -169,7 +158,7 @@ struct generator_map {
   }
 
   std::mutex lock;
-  std::map<int, std::unique_ptr<CURANDGenerator>> m_generators;
+  std::map<int, CURANDGenerator*> m_generators;
 
   bool has(int32_t generatorID)
   {
@@ -185,7 +174,7 @@ struct generator_map {
                          << "> does not exist (get) !";
       assert(false);
     }
-    return m_generators[generatorID].get();
+    return m_generators[generatorID];
   }
 
   void create(int32_t generatorID, BitGeneratorType gentype)
@@ -199,12 +188,12 @@ struct generator_map {
                          << "> already in use !";
       assert(false);
     }
-    m_generators[generatorID] = std::move(std::unique_ptr<CURANDGenerator>(cugenptr));
+    m_generators[generatorID] = cugenptr;
   }
 
   void destroy(int32_t generatorID)
   {
-    std::unique_ptr<CURANDGenerator> cugenptr;
+    CURANDGenerator* cugenptr;
     // verify it existed, and otherwise remove it from list
     {
       std::lock_guard<std::mutex> guard(lock);
@@ -213,11 +202,11 @@ struct generator_map {
                            << "> does not exist (destroy) !";
         assert(false);
       }
-      cugenptr = std::move(m_generators[generatorID]);
+      cugenptr = m_generators[generatorID];
       m_generators.erase(generatorID);
     }
 
-    CURANDGeneratorBuilder<kind>::destroy(cugenptr.get());
+    CURANDGeneratorBuilder<kind>::destroy(cugenptr);
   }
 
   void set_seed(int32_t generatorID, uint64_t seed)
@@ -255,8 +244,8 @@ struct BitGeneratorImplBody {
                   std::vector<legate::Store>& output,
                   std::vector<legate::Store>& args)
   {
-    printtid((int)op);
     generator_map_t& genmap = get_generator_map();
+    // printtid((int)op);
     switch (op) {
       case BitGeneratorOperation::CREATE: {
         genmap.create(generatorID, static_cast<BitGeneratorType>(parameter));
@@ -292,6 +281,7 @@ struct BitGeneratorImplBody {
           }
         } else {
           std::lock_guard<std::mutex> guard(genmap.lock);
+
           CURANDGenerator& cugen = *genptr;
           if (output.size() == 0) {
             cugen.skip_ahead(parameter);
