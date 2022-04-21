@@ -94,7 +94,7 @@ struct DiagImpl {
 
       auto in  = args.diag.read_accessor<M_VAL, 2>(shape_in);
       auto out = args.matrix.read_write_accessor<M_VAL, 2>(shape_out);
-      DiagImplBody<KIND, M_CODE, D_CODE, 2, false>()(in, out, start, distance);
+      DiagImplBody<KIND, M_CODE, M_CODE, 2, false>()(in, out, start, distance);
     }
   }
 };

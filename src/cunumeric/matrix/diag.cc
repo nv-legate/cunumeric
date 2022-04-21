@@ -86,9 +86,9 @@ struct DiagImplBody<VariantKind::CPU, M_CODE, D_CODE, DIM, true> {
 };
 
 // not extract (create a new 2D matrix with diagonal from vector)
-template <LegateTypeCode M_CODE, LegateTypeCode D_CODE>
-struct DiagImplBody<VariantKind::CPU, M_CODE, D_CODE, 2, false> {
-  using VAL = legate_type_of<M_CODE>;
+template <LegateTypeCode CODE>
+struct DiagImplBody<VariantKind::CPU, CODE, CODE, 2, false> {
+  using VAL = legate_type_of<CODE>;
 
   void operator()(const AccessorRO<VAL, 2>& in,
                   const AccessorRW<VAL, 2>& out,

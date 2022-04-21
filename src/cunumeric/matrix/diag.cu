@@ -149,18 +149,18 @@ struct DiagImplBody<VariantKind::GPU, M_CODE, D_CODE, DIM, true> {
 };
 
 // not extract (create a new 2D matrix with diagonal from vector)
-template <LegateTypeCode M_CODE, LegateTypeCode D_CODE>
-struct DiagImplBody<VariantKind::GPU, M_CODE, D_CODE, 2, false> {
-  using M_VAL = legate_type_of<M_CODE>;
+template <LegateTypeCode CODE>
+struct DiagImplBody<VariantKind::GPU, CODE, CODE, 2, false> {
+  using VAL = legate_type_of<CODE>;
 
-  void operator()(const AccessorRO<M_VAL, 2>& in,
-                  const AccessorRW<M_VAL, 2>& out,
+  void operator()(const AccessorRO<VAL, 2>& in,
+                  const AccessorRW<VAL, 2>& out,
                   const Point<2>& start,
                   const size_t distance)
   {
     const size_t blocks = (distance + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
     auto stream         = get_cached_stream();
-    diag_populate<M_VAL><<<blocks, THREADS_PER_BLOCK, 0, stream>>>(out, in, distance, start);
+    diag_populate<VAL><<<blocks, THREADS_PER_BLOCK, 0, stream>>>(out, in, distance, start);
     CHECK_CUDA_STREAM(stream);
   }
 };
