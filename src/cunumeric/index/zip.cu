@@ -28,7 +28,7 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
              const DeferredBuffer<AccessorRO<int64_t, DIM>, 1> index_arrays,
              const Rect<DIM> rect,
              const Pitches<DIM - 1> pitches,
-             int volume,
+             size_t volume,
              std::index_sequence<Is...>)
 {
   const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -44,7 +44,7 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   zip_kernel_dense(Point<N>* out,
                    const DeferredBuffer<const int64_t*, 1> index_arrays,
                    const Rect<DIM> rect,
-                   int volume,
+                   size_t volume,
                    std::index_sequence<Is...>)
 {
   const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -61,9 +61,9 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
              const Rect<DIM> rect,
              const Pitches<DIM - 1> pitches,
              int narrays,
-             int volume,
-             int key_dim,
-             int start_index)
+             size_t volume,
+             int64_t key_dim,
+             int64_t start_index)
 {
   const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (idx >= volume) return;

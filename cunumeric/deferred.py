@@ -443,6 +443,12 @@ class DeferredArray(NumPyThunk):
             task.add_input(key.base)
             task.add_scalar_arg(is_set, bool)
             task.add_alignment(rhs.base, key.base)
+            task.add_broadcast(
+                key.base, axes=tuple(range(1, len(key.base.shape)))
+            )
+            task.add_broadcast(
+                rhs.base, axes=tuple(range(1, len(rhs.base.shape)))
+            )
             task.execute()
             return False, rhs, out, self
 
@@ -477,7 +483,7 @@ class DeferredArray(NumPyThunk):
                         transpose_indices += (shift + i,)
                     shift += k.ndim - 1
                 else:
-                    transpose_indices += (dim,)
+                    transpose_indices += ((dim + shift),)
                 last_index = dim
 
         if transpose_needed:
@@ -548,7 +554,7 @@ class DeferredArray(NumPyThunk):
                 key, key_store = key._copy_store(key.base)
             return True, rhs, key, self
         else:
-            raise ValueError("Advanced indexing dimention mismatch")
+            raise ValueError("Advanced indexing dimension mismatch")
 
     @staticmethod
     def _unpack_ellipsis(key, ndim):
@@ -663,7 +669,7 @@ class DeferredArray(NumPyThunk):
                 index_array,
                 self,
             ) = self._create_indexing_array(key, True)
-            rhs = self.runtime.to_deferred_array(rhs)
+
             if rhs.shape != index_array.shape:
                 rhs_tmp = rhs._broadcast(index_array.base.shape)
                 rhs_tmp, rhs = rhs._copy_store(rhs_tmp)
@@ -680,7 +686,7 @@ class DeferredArray(NumPyThunk):
 
             # TODO this copy will be removed when affine copies are
             # supported in Legion/Realm
-            if lhs is not self or self.base.transformed:
+            if lhs is not self:
                 self.copy(lhs, deep=True)
 
         else:
