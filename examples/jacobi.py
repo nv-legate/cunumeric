@@ -16,10 +16,10 @@
 #
 
 import argparse
-import datetime
 import math
 
 from benchmark import run_benchmark
+from legate.timing import time
 
 import cunumeric as np
 
@@ -54,19 +54,18 @@ def check(A, x, b):
 
 
 def run_jacobi(N, iters, perform_check, timing, verbose):
-    start = datetime.datetime.now()
     A, b = generate_random(N)
+    start = time()
     x = solve(A, b, iters, verbose)
     if perform_check:
         check(A, x, b)
     else:
         # Need a synchronization here for timing
         assert not math.isnan(np.sum(x))
-    stop = datetime.datetime.now()
-    delta = stop - start
-    total = delta.total_seconds() * 1000.0
+    stop = time()
+    total = (stop - start) / 1000.0
     if timing:
-        print("Elapsed Time: " + str(total) + " ms")
+        print(f"Elapsed Time: {total} ms")
     return total
 
 

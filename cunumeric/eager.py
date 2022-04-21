@@ -15,7 +15,7 @@
 
 import numpy as np
 
-from .config import BinaryOpCode, UnaryOpCode, UnaryRedCode
+from .config import BinaryOpCode, UnaryOpCode, UnaryRedCode, WindowOpCode
 from .thunk import NumPyThunk
 from .utils import is_advanced_indexing
 
@@ -96,6 +96,14 @@ _BINARY_OPS = {
     BinaryOpCode.POWER: np.power,
     BinaryOpCode.RIGHT_SHIFT: np.right_shift,
     BinaryOpCode.SUBTRACT: np.subtract,
+}
+
+_WINDOW_OPS = {
+    WindowOpCode.BARLETT: np.bartlett,
+    WindowOpCode.BLACKMAN: np.blackman,
+    WindowOpCode.HAMMING: np.hamming,
+    WindowOpCode.HANNING: np.hanning,
+    WindowOpCode.KAISER: np.kaiser,
 }
 
 
@@ -784,3 +792,10 @@ class EagerArray(NumPyThunk):
             return self.deferred.unique()
         else:
             return EagerArray(self.runtime, np.unique(self.array))
+
+    def create_window(self, op_code, M, *args):
+        if self.deferred is not None:
+            return self.deferred.create_window(op_code)
+        else:
+            fn = _WINDOW_OPS[op_code]
+            self.array[:] = fn(M, *args)
