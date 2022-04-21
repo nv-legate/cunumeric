@@ -13,8 +13,6 @@
 # limitations under the License.
 #
 
-import math
-
 import numpy as np
 
 import cunumeric as num
@@ -37,13 +35,15 @@ def assert_partition(a_num, kth, axis):
     for segment in range(flattened):
         if kth > 0:
             left_part = a_mod[segment, 0:kth]
-            max_left = left_part.max()
+            # numpy supports lexicografic complex comparrison
+            max_left = left_part.__array__().max()
             if max_left > a_mod[segment, kth]:
                 print(a_num)
                 assert False
         if kth < sort_dim:
             right_part = a_mod[segment, kth:sort_dim]
-            min_right = right_part.min()
+            # numpy supports lexicografic complex comparrison
+            min_right = right_part.__array__().min()
             if min_right < a_mod[segment, kth]:
                 print(a_num)
                 assert False
@@ -59,9 +59,13 @@ def assert_argpartition(a_num, a_org, kth, axis):
     for i in range(a_num.ndim):
         assert shape[i] == shape_org[i]
 
-    a_reindexed = np.take_along_axis(a_org, a_num, axis=axis)
+    # convert to numpy for 'take_along_axis'
+    indexes_np = a_num.__array__()
+    a_np = a_org.__array__()
+    a_reindexed = np.take_along_axis(a_np, indexes_np, axis=axis)
+    a_reindexed_num = num.array(a_reindexed)
 
-    assert_partition(a_reindexed, kth, axis)
+    assert_partition(a_reindexed_num, kth, axis)
 
 
 def test_api(a=None):
@@ -76,52 +80,48 @@ def test_api(a=None):
 
     # partition axes
     for i in range(a.ndim):
-        kth = math.floor(shape[i] / 2)
-        print("partition axis " + str(i))
-        assert_partition(
-            num.partition(a_num, kth=kth, axis=i).__array__(), kth, i
-        )
+        kth = shape[i] // 2
+        print(f"partition axis {i}")
+        assert_partition(num.partition(a_num, kth=kth, axis=i), kth, i)
 
     # flatten
     print("partition flattened")
-    kth = math.floor(volume / 2)
-    assert_partition(
-        num.partition(a_num, kth=kth, axis=None).__array__(), kth, 0
-    )
+    kth = kth = volume // 2
+    assert_partition(num.partition(a_num, kth=kth, axis=None), kth, 0)
 
     # in-place partition
-    kth = math.floor(shape[a.ndim - 1] / 2)
+    kth = shape[a.ndim - 1] // 2
     copy_a_num = a_num.copy()
     copy_a_num.partition(kth)
-    assert_partition(copy_a_num.__array__(), kth, a.ndim - 1)
+    assert_partition(copy_a_num, kth, a.ndim - 1)
 
     # argpartition
     for i in range(a.ndim):
-        kth = math.floor(shape[i] / 2)
-        print("argpartition axis " + str(i))
+        kth = shape[i] // 2
+        print(f"argpartition axis {i}")
         assert_argpartition(
-            num.argpartition(a_num, kth, axis=i).__array__(),
-            a_num.__array__(),
+            num.argpartition(a_num, kth, axis=i),
+            a_num,
             kth,
             i,
         )
 
     # flatten
     print("argpartition flattened")
-    kth = math.floor(volume / 2)
+    kth = volume // 2
     assert_argpartition(
-        num.argpartition(a_num, kth, axis=None).__array__(),
-        a_num.flatten().__array__(),
+        num.argpartition(a_num, kth, axis=None),
+        a_num.flatten(),
         kth,
         0,
     )
 
     # nd.argpartition -- no change to array
-    kth = math.floor(shape[a.ndim - 1] / 2)
+    kth = shape[a.ndim - 1] // 2
     copy_a_num = a_num.copy()
     assert_argpartition(
-        copy_a_num.argpartition(kth).__array__(),
-        a_num.__array__(),
+        copy_a_num.argpartition(kth),
+        a_num,
         kth,
         a.ndim - 1,
     )
@@ -129,7 +129,7 @@ def test_api(a=None):
 
 
 def generate_random(shape, datatype):
-    print("Generate random for " + str(datatype))
+    print(f"Generate random for {datatype}")
     a_np = None
     volume = 1
     for i in shape:
@@ -150,7 +150,7 @@ def generate_random(shape, datatype):
             dtype=datatype,
         )
     else:
-        print("UNKNOWN type " + str(datatype))
+        print(f"UNKNOWN type {datatype}")
         assert False
     return a_np.reshape(shape)
 
