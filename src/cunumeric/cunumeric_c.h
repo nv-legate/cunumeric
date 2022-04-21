@@ -23,6 +23,7 @@
 // Also, sort these alphabetically except the first one for easy lookup later
 enum CuNumericOpCode {
   _CUNUMERIC_OP_CODE_BASE = 0,
+  CUNUMERIC_ADVANCED_INDEXING,
   CUNUMERIC_ARANGE,
   CUNUMERIC_BINARY_OP,
   CUNUMERIC_BINARY_RED,
@@ -60,6 +61,7 @@ enum CuNumericOpCode {
   CUNUMERIC_WHERE,
   CUNUMERIC_WINDOW,
   CUNUMERIC_WRITE,
+  CUNUMERIC_ZIP,
 };
 
 // Match these to UnaryOpCode in config.py
@@ -194,6 +196,19 @@ enum CuNumericBounds {
   CUNUMERIC_MAX_MAPPERS = 1,
   CUNUMERIC_MAX_REDOPS  = 1024,
   CUNUMERIC_MAX_TASKS   = 1048576,
+};
+
+// Match these to CuNumericTypeCodes in config.py
+enum CuNumericTypeCodes {
+  CUNUMERIC_TYPE_POINT1 = MAX_TYPE_NUMBER + 1,
+  CUNUMERIC_TYPE_POINT2,
+  CUNUMERIC_TYPE_POINT3,
+  CUNUMERIC_TYPE_POINT4,
+  CUNUMERIC_TYPE_POINT5,
+  CUNUMERIC_TYPE_POINT6,
+  CUNUMERIC_TYPE_POINT7,
+  CUNUMERIC_TYPE_POINT8,
+  CUNUMERIC_TYPE_POINT9,
 };
 
 #ifdef __cplusplus

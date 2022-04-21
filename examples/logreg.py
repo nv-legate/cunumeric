@@ -16,10 +16,10 @@
 #
 
 import argparse
-import datetime
 import math
 
 from benchmark import run_benchmark
+from legate.timing import time
 
 import cunumeric as np
 
@@ -75,15 +75,14 @@ def run_logistic_regression(N, F, T, I, S, B):  # noqa: E741
     print("Number of data points: " + str(N) + "K")
     print("Number of features: " + str(F))
     print("Number of iterations: " + str(I))
-    start = datetime.datetime.now()
     features, target = initialize(N * 1000, F, T)
+    start = time()
     weights = logistic_regression(T, features, target, I, 1e-5, S, B)
-    # Check the weights for NaNs to synchronize before stopping timing
+    stop = time()
+    # Check the weights for NaNs
     assert not math.isnan(np.sum(weights))
-    stop = datetime.datetime.now()
-    delta = stop - start
-    total = delta.total_seconds() * 1000.0
-    print("Elapsed Time: " + str(total) + " ms")
+    total = (stop - start) / 1000.0
+    print(f"Elapsed Time: {total} ms")
     return total
 
 
