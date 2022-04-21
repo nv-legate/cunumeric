@@ -767,8 +767,21 @@ class ndarray:
         elif isinstance(key, tuple) and first:
             return tuple(self._convert_key(k, first=False) for k in key)
         else:
-            # Otherwise convert it to a cuNumeric array and get the thunk
-            return convert_to_cunumeric_ndarray(key)._thunk
+            # Otherwise convert it to a cuNumeric array, check types
+            # and get the thunk
+            key = convert_to_cunumeric_ndarray(key)
+            if key.dtype != np.bool and not np.issubdtype(
+                key.dtype, np.integer
+            ):
+                raise TypeError("index arrays should be int or bool type")
+            if key.dtype != np.bool and key.dtype != np.int64:
+                runtime.warn(
+                    "converting index array to int64 type",
+                    category=RuntimeWarning,
+                )
+                key = key.astype(np.int64)
+
+            return key._thunk
 
     @add_boilerplate()
     def __getitem__(self, key):
