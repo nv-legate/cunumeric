@@ -79,8 +79,6 @@ def test():
     # print(thirdslicegold)
     # assert(num.array_equal(thirdslice, thirdslicegold))
 
-    return
-
 
 if __name__ == "__main__":
     test()

@@ -50,8 +50,6 @@ def test():
     g = num.tile(e, (2, 1))
     assert num.array_equal(g, [[1, 2], [3, 4], [1, 2], [3, 4]])
 
-    return
-
 
 if __name__ == "__main__":
     test()

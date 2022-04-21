@@ -20,8 +20,6 @@ def test():
     num.random.randint(8000, size=8000)
     num.random.randint(8000, size=(8000, 2))
 
-    return
-
 
 if __name__ == "__main__":
     test()

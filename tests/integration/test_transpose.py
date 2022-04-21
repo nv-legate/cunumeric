@@ -28,7 +28,6 @@ def test():
     assert num.array_equal(y, [[1, 4, 7], [2, 5, 8], [3, 6, 9]])
     z = num.transpose(y)
     assert num.array_equal(x, z)
-    return
 
 
 if __name__ == "__main__":

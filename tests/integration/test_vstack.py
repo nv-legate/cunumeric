@@ -50,7 +50,6 @@ def test():
     znp = np.vstack((xnp, ynp))
 
     assert np.array_equal(z, znp)
-    return
 
 
 if __name__ == "__main__":

@@ -36,8 +36,6 @@ def test():
     assert np.allclose(af.mean(0), bf.mean(0))
     assert np.allclose(af.mean(), bf.mean())
 
-    return
-
 
 if __name__ == "__main__":
     test()

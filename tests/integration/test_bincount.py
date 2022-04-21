@@ -35,8 +35,6 @@ def test(n):
         out_num = num.bincount(v_num, weights=w_num)
         assert num.allclose(out_np, out_num)
 
-    return
-
 
 if __name__ == "__main__":
     test(8000)

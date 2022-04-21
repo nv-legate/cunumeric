@@ -22,8 +22,6 @@ def test():
     assert 4 in x
     assert 6 not in x
 
-    return
-
 
 if __name__ == "__main__":
     test()

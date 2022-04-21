@@ -77,8 +77,6 @@ def test():
     # print(z)
     assert np.array_equal(z, numpyX**5)
 
-    return
-
 
 if __name__ == "__main__":
     test()

@@ -32,8 +32,6 @@ def test():
     y = (x + 2) * [6, 7, 8]
     assert np.array_equal(y, [18, 28, 40])
 
-    return
-
 
 if __name__ == "__main__":
     test()

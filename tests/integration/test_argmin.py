@@ -28,8 +28,6 @@ def test():
     assert np.array_equal(num.argmax(a, axis=0), np.argmax(anp, axis=0))
     assert np.array_equal(num.argmax(a, axis=1), np.argmax(anp, axis=1))
 
-    return
-
 
 if __name__ == "__main__":
     test()

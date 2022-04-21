@@ -80,8 +80,6 @@ def test():
     b = 1.0 / (1.0 + num.exp(-a[0, :, :]))
     assert np.allclose(b, bn)
 
-    return
-
 
 if __name__ == "__main__":
     test()

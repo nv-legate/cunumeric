@@ -35,7 +35,6 @@ def test():
     w = mask * x
     # print(w)
     assert np.array_equal(w, [1, 2, 0])
-    return
 
 
 if __name__ == "__main__":

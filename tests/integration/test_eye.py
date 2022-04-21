@@ -35,8 +35,6 @@ def test():
         e_np = np.eye(5, 4, k=k)
         assert np.array_equal(e_lg, e_np)
 
-    return
-
 
 if __name__ == "__main__":
     test()

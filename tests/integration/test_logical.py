@@ -67,8 +67,6 @@ def test():
     assert num.equal(num.all(num.nan), np.all(np.nan))
     assert num.equal(num.any(num.nan), np.any(np.nan))
 
-    return
-
 
 if __name__ == "__main__":
     test()

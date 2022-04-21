@@ -29,7 +29,6 @@ def test():
     assert num.all(num.abs(num.exp(x) - np.exp(xn)) < 1e-5)
     assert num.all(num.abs(num.tanh(x) - np.tanh(xn)) < 1e-5)
     assert num.all(num.abs(num.sqrt(x) - np.sqrt(xn)) < 1e-5)
-    return
 
 
 if __name__ == "__main__":

@@ -49,8 +49,6 @@ def test():
     w = num.linspace(xp, yp, num=5, axis=2)
     assert np.array_equal(z, w)
 
-    return
-
 
 if __name__ == "__main__":
     test()

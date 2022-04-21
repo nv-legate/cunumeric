@@ -34,8 +34,6 @@ def test():
 
     assert np.array_equal(b, bnp)
 
-    return
-
 
 if __name__ == "__main__":
     test()

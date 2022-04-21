@@ -27,7 +27,6 @@ def test():
 
     z = num.prod(x)
     assert num.all(num.abs(z - np.prod(numpyX)) < 1e-5)
-    return
 
 
 if __name__ == "__main__":

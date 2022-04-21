@@ -44,8 +44,6 @@ def test():
     # assert(np.allclose(np.linalg.norm(bnp, 1), num.linalg.norm(b, 1)))
     # assert(np.allclose(np.linalg.norm(bnp, -1), num.linalg.norm(b, -1)))
 
-    return
-
 
 if __name__ == "__main__":
     test()

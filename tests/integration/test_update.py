@@ -26,7 +26,6 @@ def test():
 
     print(C[1])
     print(temp)
-    return
 
 
 if __name__ == "__main__":

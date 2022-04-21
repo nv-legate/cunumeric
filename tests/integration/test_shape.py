@@ -54,7 +54,6 @@ def test():
     #    print(pos, y.flat[pos], x.flat[pos])
     #    assert(y.flat[pos] == x.flat[pos])
     #    pos = pos+1
-    return
 
 
 if __name__ == "__main__":

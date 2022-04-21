@@ -39,8 +39,6 @@ def test():
 
     assert len(x) == len(pythonX)
 
-    return
-
 
 if __name__ == "__main__":
     test()

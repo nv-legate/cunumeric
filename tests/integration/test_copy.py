@@ -29,7 +29,6 @@ def test():
     wc = xc + yc
     assert np.array_equal(w, [[17, 20, 22], [29, 31, 33]])
     assert np.array_equal(wc, [[8, 10, 12], [14, 16, 18]])
-    return
 
 
 if __name__ == "__main__":

@@ -24,7 +24,6 @@ def test():
     # print(y)
     # print(np.exp([1, 2, 3, 4]))
     assert np.allclose(y, np.exp([1, 2, 3, 4]))
-    return
 
 
 if __name__ == "__main__":

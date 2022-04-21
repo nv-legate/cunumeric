@@ -28,8 +28,6 @@ def test():
     np_sum = np.sum(b)
     assert np.allclose(np_sum, lg_sum)
 
-    return
-
 
 if __name__ == "__main__":
     test()

@@ -100,8 +100,6 @@ def test():
     # assert(num.array_equal(xfls, yfls))
     # assert(xfls.dtype == yfls.dtype)
 
-    return
-
 
 if __name__ == "__main__":
     test()

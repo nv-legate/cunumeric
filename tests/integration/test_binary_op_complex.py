@@ -83,8 +83,6 @@ def test():
     z = x**y
     assert num.all(num.abs(z - numpyX**numpyY) < 1e-5)
 
-    return
-
 
 if __name__ == "__main__":
     test()

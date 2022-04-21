@@ -54,7 +54,6 @@ def test():
         npdelta = np.sum(nptemp)
         npcenter[:] = npwork
     assert np.allclose(delta, npdelta)
-    return
 
 
 if __name__ == "__main__":

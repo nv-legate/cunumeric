@@ -61,8 +61,6 @@ def test():
         Ct[t] = np.tanh(C[t])
         Hout[t] = IFOGf[t, :, 2 * d : 3 * d] * Ct[t]
 
-    return
-
 
 if __name__ == "__main__":
     test()

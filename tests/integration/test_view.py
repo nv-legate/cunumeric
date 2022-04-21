@@ -37,8 +37,6 @@ def test():
     y = x[2:, 2:]
     assert np.array_equal(ynp, y)
 
-    return
-
 
 if __name__ == "__main__":
     test()

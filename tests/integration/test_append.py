@@ -74,7 +74,6 @@ def test(dim):
             # 1D array
             b = np.random.randint(low=0, high=100, size=(dim,))
             run_test(a, b, [None])
-    return
 
 
 if __name__ == "__main__":

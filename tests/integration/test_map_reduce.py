@@ -32,7 +32,6 @@ def test():
     # print(legate_oldResult)
 
     assert legate_oldResult == numpyResult
-    return
 
 
 if __name__ == "__main__":

@@ -73,7 +73,6 @@ def test(dim):
                 a = [a]
                 b = [b]
             run_test([a, b], input_sizes, depth)
-    return
 
 
 if __name__ == "__main__":

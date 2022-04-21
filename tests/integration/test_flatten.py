@@ -67,7 +67,6 @@ def test(dim):
         a = np.random.randint(low=0, high=100, size=(input_size))
         b = convert_to_cunumeric_ndarray(a)
         run_test(a, b)
-    return
 
 
 if __name__ == "__main__":
