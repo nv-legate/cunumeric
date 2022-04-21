@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
 import numpy as np
 import pyarrow as pa
 import pytest
@@ -67,7 +66,7 @@ def get_local_colors():
     return res
 
 
-def check_ingest(custom_partitioning, custom_sharding):
+def _ingest(custom_partitioning, custom_sharding):
     data_split = (
         CustomSplit(get_subdomain)
         if custom_partitioning
@@ -84,19 +83,16 @@ def check_ingest(custom_partitioning, custom_sharding):
     return lg.array(tab)
 
 
-def test():
+@pytest.mark.parametrize("custom_sharding", [True, False])
+@pytest.mark.parametrize("custom_partitioning", [True, False])
+def test(custom_partitioning, custom_sharding):
     size = 1
     for d in shape:
         size *= d
     np_arr = np.arange(size).reshape(shape)
-    for lg_arr in [
-        check_ingest(False, False),
-        check_ingest(False, True),
-        check_ingest(True, False),
-        check_ingest(True, True),
-    ]:
-        assert np.array_equal(np_arr, lg_arr)
-        assert np.array_equal(np_arr, lg_arr * 1.0)  # force a copy
+    lg_arr = _ingest(custom_partitioning, custom_sharding)
+    assert np.array_equal(np_arr, lg_arr)
+    assert np.array_equal(np_arr, lg_arr * 1.0)  # force a copy
 
 
 if __name__ == "__main__":

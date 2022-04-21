@@ -50,25 +50,27 @@ def run_test(np_arr, num_arr):
         )
 
 
-def test():
-    dim = 10
-    print("test flatten")
-    # test ndarray.flatten w/ 1D, 2D and 3D arrays
-    input_arr = [
-        (0,),
-        (0, 10),
-        (1,),
-        (1, 1),
-        (1, 1, 1),
-        (1, dim),
-        (1, dim, 1),
-        (dim, dim),
-        (dim, dim, dim),
-    ]
-    for input_size in input_arr:
-        a = np.random.randint(low=0, high=100, size=(input_size))
-        b = convert_to_cunumeric_ndarray(a)
-        run_test(a, b)
+DIM = 10
+
+SIZES = [
+    (0,),
+    (0, 10),
+    (1,),
+    (1, 1),
+    (1, 1, 1),
+    (1, DIM),
+    (1, DIM, 1),
+    (DIM, DIM),
+    (DIM, DIM, DIM),
+]
+
+
+# test ndarray.flatten w/ 1D, 2D and 3D arrays
+@pytest.mark.parametrize("size", SIZES, ids=str)
+def test_basic(size):
+    a = np.random.randint(low=0, high=100, size=size)
+    b = convert_to_cunumeric_ndarray(a)
+    run_test(a, b)
 
 
 if __name__ == "__main__":

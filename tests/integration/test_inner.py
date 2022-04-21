@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
 import pytest
 from cunumeric.utils import inner_modes
 from test_tools.contractions import check_default
@@ -20,16 +19,16 @@ from test_tools.contractions import check_default
 from legate.core import LEGATE_MAX_DIM
 
 
-def test():
-    for a_ndim in range(LEGATE_MAX_DIM + 1):
-        for b_ndim in range(LEGATE_MAX_DIM + 1):
-            name = f"inner({a_ndim} x {b_ndim})"
-            modes = inner_modes(a_ndim, b_ndim)
+@pytest.mark.parametrize("b_ndim", range(LEGATE_MAX_DIM + 1))
+@pytest.mark.parametrize("a_ndim", range(LEGATE_MAX_DIM + 1))
+def test_inner(a_ndim, b_ndim):
+    name = f"inner({a_ndim} x {b_ndim})"
+    modes = inner_modes(a_ndim, b_ndim)
 
-            def operation(lib, *args, **kwargs):
-                return lib.inner(*args, **kwargs)
+    def operation(lib, *args, **kwargs):
+        return lib.inner(*args, **kwargs)
 
-            check_default(name, modes, operation)
+    check_default(name, modes, operation)
 
 
 if __name__ == "__main__":

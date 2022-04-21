@@ -19,11 +19,9 @@ import pytest
 import cunumeric as num
 
 
-def test():
+def test_basic():
     x = num.array([1.0, 2.0, 3.0, 4.0])
     y = num.exp(x)
-    # print(y)
-    # print(np.exp([1, 2, 3, 4]))
     assert np.allclose(y, np.exp([1, 2, 3, 4]))
 
 

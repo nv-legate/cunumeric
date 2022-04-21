@@ -12,25 +12,40 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
 import pytest
 
 import cunumeric as np
 
+x = pytest.fixture(lambda: np.array([1, 2, 3]))
 
-def test():
-    x = np.array([1, 2, 3])
+
+def test_lt(x):
     y = x < 2
-    assert np.array_equal(y, [1, 0, 0])
-    y = x <= 2
-    assert np.array_equal(y, [1, 1, 0])
-    y = x > 2
-    assert np.array_equal(y, [0, 0, 1])
-    y = x >= 2
-    assert np.array_equal(y, [0, 1, 1])
-    y = x == 2
-    assert np.array_equal(y, [0, 1, 0])
+    assert np.array_equal(y, [True, False, False])
 
+
+def test_le(x):
+    y = x <= 2
+    assert np.array_equal(y, [True, True, False])
+
+
+def test_gt(x):
+    y = x > 2
+    assert np.array_equal(y, [False, False, True])
+
+
+def test_ge(x):
+    y = x >= 2
+    assert np.array_equal(y, [False, True, True])
+
+
+def test_eq(x):
+    y = x == 2
+    assert np.array_equal(y, [False, True, False])
+
+
+# TODO (bev) why is this test in compare
+def test_elementwise(x):
     y = (x + 2) * [6, 7, 8]
     assert np.array_equal(y, [18, 28, 40])
 

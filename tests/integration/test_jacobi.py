@@ -19,7 +19,7 @@ import pytest
 import cunumeric as num
 
 
-def test():
+def test_basic():
 
     height = 10
     width = 10

@@ -18,24 +18,27 @@ import pytest
 
 import cunumeric as num
 
-types = [np.complex64, np.complex128]
+DTYPES = [np.complex64, np.complex128]
 
 
-def test():
-    for ty in types:
-        x_np = np.array([1 + 4j, 2 + 5j, 3 + 6j], ty)
-        x_num = num.array(x_np)
+@pytest.mark.parametrize("dtype", DTYPES)
+def test_array(dtype):
+    x_np = np.array([1 + 4j, 2 + 5j, 3 + 6j], dtype)
+    x_num = num.array(x_np)
 
-        assert num.array_equal(x_np.conj(), x_num.conj())
-        assert num.array_equal(x_np.real, x_num.real)
-        assert num.array_equal(x_np.imag, x_num.imag)
+    assert num.array_equal(x_np.conj(), x_num.conj())
+    assert num.array_equal(x_np.real, x_num.real)
+    assert num.array_equal(x_np.imag, x_num.imag)
 
-        x_np = np.array([3 + 6j], ty)
-        x_num = num.array(x_np)
 
-        assert num.array_equal(x_np.conj(), x_num.conj())
-        assert num.array_equal(x_np.real, x_num.real)
-        assert num.array_equal(x_np.imag, x_num.imag)
+@pytest.mark.parametrize("dtype", DTYPES)
+def test_single(dtype):
+    x_np = np.array([3 + 6j], dtype)
+    x_num = num.array(x_np)
+
+    assert num.array_equal(x_np.conj(), x_num.conj())
+    assert num.array_equal(x_np.real, x_num.real)
+    assert num.array_equal(x_np.imag, x_num.imag)
 
 
 if __name__ == "__main__":

@@ -19,7 +19,7 @@ import pytest
 import cunumeric as num
 
 
-def test():
+def test_basic():
     anp = np.random.randn(4, 5)
     bnp = np.full((4, 5), 13)
     a = num.array(anp)

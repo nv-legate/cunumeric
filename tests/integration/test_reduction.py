@@ -20,7 +20,7 @@ from test_tools import asserts
 import cunumeric as num
 
 
-def test():
+def test_basic():
     x = num.array([])
     r = num.sum(x)
     assert r == 0
@@ -44,22 +44,26 @@ def test():
     r = num.prod(x)
     assert r == 120
 
-    asserts.assert_equal(num.sum([]), np.sum([]))
 
+def test_empty():
+    asserts.assert_equal(num.sum([]), np.sum([]))
     asserts.assert_equal(num.sum([[], []]), np.sum([[], []]))
 
-    asserts.assert_equal(num.sum(num.array([0])), np.sum(np.array([0])))
-
-    asserts.assert_equal(num.sum([1]), np.sum([1]))
-
+def test_scalar():
     asserts.assert_equal(num.sum(0), np.sum(0))
-
     asserts.assert_equal(num.sum(1), np.sum(1))
+
+
+def test_1d():
+    asserts.assert_equal(num.sum(num.array([0])), np.sum(np.array([0])))
+    asserts.assert_equal(num.sum([1]), np.sum([1]))
 
     x = num.array([1, 0, 2, -1, 0, 0, 8])
     x_np = np.array([1, 0, 2, -1, 0, 0, 8])
     asserts.assert_equal(num.sum(x), np.sum(x_np))
 
+
+def test_2d():
     x = num.array([[0, 1, 0], [2, 0, 3]])
     x_np = np.array([[0, 1, 0], [2, 0, 3]])
     asserts.assert_equal(num.sum(x), np.sum(x_np))
@@ -68,6 +72,8 @@ def test():
     x_np = np.eye(3)
     asserts.assert_equal(num.sum(x), np.sum(x_np))
 
+
+def test_3d():
     x = num.array(
         [
             [[0, 1], [1, 1], [7, 0], [1, 0], [0, 1]],
@@ -92,6 +98,8 @@ def test():
     asserts.assert_equal(num.sum(x, axis=2), np.sum(x_np, axis=2))
     asserts.assert_equal(num.sum(x), np.sum(x_np))
 
+
+def test_indexed():
     x_np = np.random.randn(100)
     indices = np.random.choice(
         np.arange(x_np.size), replace=False, size=int(x_np.size * 0.2)

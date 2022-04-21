@@ -12,34 +12,49 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from itertools import product
 
 import numpy as np
 import pytest
 
 import cunumeric as num
 
+a = num.random.random((10, 10, 10))
 
-def test():
-    a = num.random.random((10, 10, 10))
+
+# product minus the "diagonal"
+def ul_prod(iterable):
+    for a, b in product(iterable, repeat=2):
+        if a == b:
+            continue
+        yield (a, b)
+
+
+def test_basic():
     anp = a.__array__()
-
     b = num.flip(a)
     bnp = np.flip(anp)
 
     assert num.array_equal(b, bnp)
 
-    b = num.flip(a, axis=0)
-    bnp = np.flip(anp, axis=0)
+
+AXES = [0, 1, 2]
+
+
+@pytest.mark.parametrize("axis", AXES)
+def test_axis_1d(axis):
+    anp = a.__array__()
+    b = num.flip(a, axis=axis)
+    bnp = np.flip(anp, axis=axis)
 
     assert num.array_equal(b, bnp)
 
-    b = num.flip(a, axis=1)
-    bnp = np.flip(anp, axis=1)
 
-    assert num.array_equal(b, bnp)
-
-    b = num.flip(a, axis=(0, 2))
-    bnp = np.flip(anp, axis=(0, 2))
+@pytest.mark.parametrize("axis", ul_prod(AXES), ids=str)
+def test_axis_2d(axis):
+    anp = a.__array__()
+    b = num.flip(a, axis=axis)
+    bnp = np.flip(anp, axis=axis)
 
     assert num.array_equal(b, bnp)
 

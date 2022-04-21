@@ -20,16 +20,16 @@ import cunumeric as num
 from legate.core import LEGATE_MAX_DIM
 
 
-def test():
-    for ndim in range(LEGATE_MAX_DIM + 1):
-        shape = (4,) * ndim
-        a = num.random.randint(0, 3, size=shape)
-        a_np = np.array(a)
+@pytest.mark.parametrize("ndim", range(LEGATE_MAX_DIM + 1))
+def test_ndim(ndim):
+    shape = (4,) * ndim
+    a = num.random.randint(0, 3, size=shape)
+    a_np = np.array(a)
 
-        b = np.unique(a)
-        b_np = num.unique(a_np)
+    b = np.unique(a)
+    b_np = num.unique(a_np)
 
-        assert np.array_equal(b, b_np)
+    assert np.array_equal(b, b_np)
 
 
 if __name__ == "__main__":

@@ -18,7 +18,7 @@ import pytest
 import cunumeric as np
 
 
-def test():
+def test_basic():
     x = np.array([[[1, 2, 3]]])
     y = x.squeeze()
     assert y.ndim == 1

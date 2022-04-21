@@ -20,16 +20,16 @@ from test_tools.contractions import check_default
 from legate.core import LEGATE_MAX_DIM
 
 
-def test():
-    for a_ndim in range(1, LEGATE_MAX_DIM + 1):
-        for b_ndim in range(1, LEGATE_MAX_DIM + 1):
-            name = f"matmul({a_ndim} x {b_ndim})"
-            modes = matmul_modes(a_ndim, b_ndim)
+@pytest.mark.parametrize("a_ndim", range(1, LEGATE_MAX_DIM + 1))
+@pytest.mark.parametrize("b_ndim", range(1, LEGATE_MAX_DIM + 1))
+def test(a_ndim, b_ndim):
+    name = f"matmul({a_ndim} x {b_ndim})"
+    modes = matmul_modes(a_ndim, b_ndim)
 
-            def operation(lib, *args, **kwargs):
-                return lib.matmul(*args, **kwargs)
+    def operation(lib, *args, **kwargs):
+        return lib.matmul(*args, **kwargs)
 
-            check_default(name, modes, operation)
+    check_default(name, modes, operation)
 
 
 if __name__ == "__main__":

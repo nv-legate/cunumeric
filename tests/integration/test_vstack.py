@@ -19,7 +19,7 @@ import pytest
 import cunumeric as num
 
 
-def test():
+def test_1d():
     x = num.array([1, 2, 3])
     y = num.array([4, 5, 6])
     z = num.vstack((x, y))
@@ -30,6 +30,8 @@ def test():
 
     assert np.array_equal(z, znp)
 
+
+def test_2d():
     x = num.array([[1, 2, 3], [4, 5, 6]])
     y = num.array([[7, 8, 9], [10, 11, 12]])
     z = num.vstack((x, y))
@@ -40,6 +42,8 @@ def test():
 
     assert np.array_equal(z, znp)
 
+
+def test_3d():
     x = num.array([[[1, 2, 3], [4, 5, 6]], [[7, 8, 9], [10, 11, 12]]])
     y = num.array([[[13, 14, 15], [16, 17, 18]], [[19, 20, 21], [22, 23, 24]]])
     z = num.vstack((x, y))

@@ -18,13 +18,18 @@ import pytest
 
 import cunumeric as num
 
+anp = np.random.randn(4, 5)
 
-def test():
-    anp = np.random.randn(4, 5)
+
+def test_argmin():
     a = num.array(anp)
 
     assert np.array_equal(num.argmin(a, axis=0), np.argmin(anp, axis=0))
     assert np.array_equal(num.argmin(a, axis=1), np.argmin(anp, axis=1))
+
+
+def test_argmax():
+    a = num.array(anp)
 
     assert np.array_equal(num.argmax(a, axis=0), np.argmax(anp, axis=0))
     assert np.array_equal(num.argmax(a, axis=1), np.argmax(anp, axis=1))

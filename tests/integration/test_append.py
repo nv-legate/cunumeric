@@ -19,7 +19,7 @@ import pytest
 import cunumeric as num
 
 
-def run_test(arr, values, test_args):
+def _run_test(arr, values, test_args):
     for axis in test_args:
         b = np.append(arr, values, axis)
         c = num.append(arr, values, axis)
@@ -51,31 +51,34 @@ def run_test(arr, values, test_args):
         )
 
 
-def test():
-    dim = 10
-    print("test append")
-    # test append w/ 1D, 2D and 3D arrays
-    input_arr = [
-        (0,),
-        (0, 10),
-        (1,),
-        (1, 1),
-        (1, 1, 1),
-        (1, dim),
-        (dim, dim),
-        (dim, dim, dim),
-    ]
-    for input_size in input_arr:
-        a = np.random.randint(low=0, high=100, size=(input_size))
+DIM = 10
 
-        test_args = list(range(a.ndim))
-        test_args.append(None)
-        # test the exception for 1D array on append
-        run_test(a, a, test_args)
-        if a.ndim > 1:
-            # 1D array
-            b = np.random.randint(low=0, high=100, size=(dim,))
-            run_test(a, b, [None])
+# test append w/ 1D, 2D and 3D arrays
+SIZES = [
+    (0,),
+    (0, 10),
+    (1,),
+    (1, 1),
+    (1, 1, 1),
+    (1, DIM),
+    (DIM, DIM),
+    (DIM, DIM, DIM),
+]
+
+
+@pytest.mark.parametrize("size", SIZES, ids=str)
+def test_append(size):
+    a = np.random.randint(low=0, high=100, size=size)
+
+    test_args = list(range(a.ndim)) + [None]
+
+    # test the exception for 1D array on append
+    _run_test(a, a, test_args)
+
+    if a.ndim > 1:
+        # 1D array
+        b = np.random.randint(low=0, high=100, size=(DIM,))
+        _run_test(a, b, [None])
 
 
 if __name__ == "__main__":

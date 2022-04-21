@@ -12,13 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
 import pytest
 
 import cunumeric as num
 
 
-def test():
+def test_1d():
     a = num.array([0, 1, 2])
 
     b = num.tile(a, 4)
@@ -44,6 +43,8 @@ def test():
         ],
     )
 
+
+def test_2d():
     e = num.array([[1, 2], [3, 4]])
 
     f = num.tile(e, 2)

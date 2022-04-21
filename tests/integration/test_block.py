@@ -19,8 +19,14 @@ import pytest
 import cunumeric as num
 
 
-def run_test(arr, input_sizes, depth):
-    #    print (arr)
+def _deepen(depth, x):
+    for _ in range(depth):
+        x = [x]
+    return x
+
+
+def _check(a, b, depth, sizes):
+    arr = [_deepen(depth, a), _deepen(depth, b)]
     b = np.block(arr)
     c = num.block(arr)
     is_equal = True
@@ -35,9 +41,7 @@ def run_test(arr, input_sizes, depth):
                 err_arr = each
                 is_equal = False
                 break
-    for i in range(depth):
-        input_sizes = [input_sizes]
-    print_msg = f"np.block([{input_sizes}, {input_sizes}])"
+    print_msg = f"np.block([{_deepen(depth, sizes)}, {_deepen(depth, sizes)}])"
     assert is_equal, (
         f"Failed, {print_msg}\n"
         f"numpy result: {err_arr[0]}\n"
@@ -51,30 +55,22 @@ def run_test(arr, input_sizes, depth):
     )
 
 
-def test():
-    dim = 10
-    print("test np.block")
-    # test append w/ 1D, 2D and 3D arrays
-    input_options = [
-        ((0,), (0,)),  # empty arrays
-        ((1,), (1,)),  # singlton arrays
-        ((dim, 1), (dim, dim)),  # 1D and 2D arrays
-        ((dim, 1), (dim, 1), (dim, dim)),  # 3 arrays in the inner-most list
-    ]
-    for input_sizes in input_options:
-        for depth in range(2):  # test depth from 1 to 3
-            a = list(
-                np.arange(np.prod(input_size)).reshape(input_size)
-                for input_size in input_sizes
-            )
-            b = list(
-                np.arange(np.prod(input_size)).reshape(input_size)
-                for input_size in input_sizes
-            )
-            for nlist in range(depth):
-                a = [a]
-                b = [b]
-            run_test([a, b], input_sizes, depth)
+DIM = 10
+
+SIZE_CASES = [
+    [(0,), (0,)],  # empty arrays
+    [(1,), (1,)],  # singlton arrays
+    [(DIM, 1), (DIM, DIM)],  # 1D and 2D arrays
+    [(DIM, 1), (DIM, 1), (DIM, DIM)],  # 3 arrays in the inner-most list
+]
+
+
+@pytest.mark.parametrize("sizes", SIZE_CASES, ids=str)
+@pytest.mark.parametrize("depth", range(3))
+def test(depth, sizes):
+    a = [np.arange(np.prod(size)).reshape(size) for size in sizes]
+    b = [np.arange(np.prod(size)).reshape(size) for size in sizes]
+    _check(a, b, depth, sizes)
 
 
 if __name__ == "__main__":

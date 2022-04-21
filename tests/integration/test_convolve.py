@@ -19,8 +19,9 @@ import scipy.signal as sig
 
 import cunumeric as num
 
-shapes = ((100,), (10, 10), (10, 10, 10))
-filter_shapes = ((5,), (3, 5), (3, 5, 3))
+SHAPES = [(100,), (10, 10), (10, 10, 10)]
+
+FILTER_SHAPES = [(5,), (3, 5), (3, 5, 3)]
 
 
 def check_convolve(a, v):
@@ -36,21 +37,25 @@ def check_convolve(a, v):
     assert num.allclose(out, out_np)
 
 
-def test_double():
-    for shape, filter_shape in zip(shapes, filter_shapes):
-        a = num.random.rand(*shape)
-        v = num.random.rand(*filter_shape)
+@pytest.mark.parametrize(
+    "shape, filter_shape", zip(SHAPES, FILTER_SHAPES), ids=str
+)
+def test_double(shape, filter_shape):
+    a = num.random.rand(*shape)
+    v = num.random.rand(*filter_shape)
 
-        check_convolve(a, v)
-        check_convolve(v, a)
+    check_convolve(a, v)
+    check_convolve(v, a)
 
 
-def test_int():
-    for shape, filter_shape in zip(shapes, filter_shapes):
-        a = num.random.randint(0, 5, shape)
-        v = num.random.randint(0, 5, filter_shape)
+@pytest.mark.parametrize(
+    "shape, filter_shape", zip(SHAPES, FILTER_SHAPES), ids=str
+)
+def test_int(shape, filter_shape):
+    a = num.random.randint(0, 5, shape)
+    v = num.random.randint(0, 5, filter_shape)
 
-        check_convolve(a, v)
+    check_convolve(a, v)
 
 
 if __name__ == "__main__":

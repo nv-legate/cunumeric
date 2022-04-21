@@ -18,9 +18,10 @@ import pytest
 
 import cunumeric as num
 
+np.random.seed(42)
 
-def test():
-    np.random.seed(42)
+
+def test_sum():
     b = np.random.random((10, 12, 13))
     a = num.array(b)
     assert np.allclose(a, b)

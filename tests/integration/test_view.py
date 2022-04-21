@@ -19,7 +19,7 @@ import pytest
 import cunumeric as num
 
 
-def test():
+def test_basic():
     num.random.seed(10)
     origVals = num.random.randn(2, 3, 4)
     sliceUpdate = num.random.randn(3, 15)

@@ -107,7 +107,7 @@ def array_gen(lib):
     #     yield arr
 
 
-def test():
+def test_all():
     for (la, na) in zip(array_gen(num), array_gen(np)):
         assert np.array_equal(la, na)
 

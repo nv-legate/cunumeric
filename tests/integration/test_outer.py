@@ -18,15 +18,25 @@ import pytest
 from test_tools.generators import mk_0to1_array
 
 import cunumeric as cn
+from legate.core import LEGATE_MAX_DIM
 
 
-def gen_result(lib):
-    yield lib.outer(mk_0to1_array(lib, (5,)), mk_0to1_array(lib, (5,)))
+def _outer(a_ndim, b_ndim, lib):
+    return lib.outer(
+        mk_0to1_array(lib, (a_ndim,)), mk_0to1_array(lib, (b_ndim,))
+    )
 
 
-def test():
-    for (np_res, cn_res) in zip(gen_result(np), gen_result(cn)):
-        assert np.array_equal(np_res, cn_res)
+@pytest.mark.parametrize("a_ndim", range(1, LEGATE_MAX_DIM + 1))
+@pytest.mark.parametrize("b_ndim", range(1, LEGATE_MAX_DIM + 1))
+def test_basic(a_ndim, b_ndim):
+    assert np.array_equal(
+        _outer(a_ndim, b_ndim, np), _outer(a_ndim, b_ndim, cn)
+    )
+
+
+def test_empty():
+    assert np.array_equal(_outer(0, 0, np), _outer(0, 0, cn))
 
 
 if __name__ == "__main__":

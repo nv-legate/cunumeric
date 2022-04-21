@@ -18,17 +18,33 @@ import pytest
 
 import cunumeric as num
 
+xn = np.array(
+    [[1 + 2j, 3 - 4j, 5 + 6j], [7 - 8j, -9 + 10j, -11 - 12j]], complex
+)
 
-def test():
-    xn = np.array(
-        [[1 + 2j, 3 - 4j, 5 + 6j], [7 - 8j, -9 + 10j, -11 - 12j]], np.complex
-    )
+
+def test_sin():
     x = num.array(xn)
-
     assert num.all(num.abs(num.sin(x) - np.sin(xn)) < 1e-5)
+
+
+def test_cos():
+    x = num.array(xn)
     assert num.all(num.abs(num.cos(x) - np.cos(xn)) < 1e-5)
+
+
+def test_exp():
+    x = num.array(xn)
     assert num.all(num.abs(num.exp(x) - np.exp(xn)) < 1e-5)
+
+
+def test_tanh():
+    x = num.array(xn)
     assert num.all(num.abs(num.tanh(x) - np.tanh(xn)) < 1e-5)
+
+
+def test_sqrt():
+    x = num.array(xn)
     assert num.all(num.abs(num.sqrt(x) - np.sqrt(xn)) < 1e-5)
 
 

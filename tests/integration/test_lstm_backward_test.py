@@ -19,7 +19,7 @@ import pytest
 import cunumeric as num
 
 
-def test():
+def test_basic():
 
     word_size = 10
     hidden_size = 10

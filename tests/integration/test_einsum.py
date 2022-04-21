@@ -242,20 +242,23 @@ def check_np_vs_cn(expr, mk_input, mk_output=None):
                 assert np.allclose(cn_out, cn_res, rtol=rtol)
 
 
-def test():
-    print("Test small expressions (permutations and broadcasting):")
-    for expr in gen_expr():
-        print(expr)
-        check_np_vs_cn(expr, mk_input_that_permutes_to)
-        check_np_vs_cn(expr, mk_input_that_broadcasts_to)
-    print("Test large expressions (default execution only):")
-    for expr in LARGE_EXPRS:
-        print(expr)
-        check_np_vs_cn(expr, mk_input_default)
-    print("Test casting:")
-    for expr in SMALL_EXPRS:
-        print(expr)
-        check_np_vs_cn(expr, mk_typed_input, mk_typed_output)
+@pytest.mark.parametrize("expr", gen_expr())
+def test_small(expr):
+    print(f"Test small expressions (permutations and broadcasting): {expr}")
+    check_np_vs_cn(expr, mk_input_that_permutes_to)
+    check_np_vs_cn(expr, mk_input_that_broadcasts_to)
+
+
+@pytest.mark.parametrize("expr", SMALL_EXPRS)
+def test_large(expr):
+    print(f"Test large expressions (default execution only): {expr}")
+    check_np_vs_cn(expr, mk_input_default)
+
+
+@pytest.mark.parametrize("expr", SMALL_EXPRS)
+def test_cast(expr):
+    print(f"Test casting: {expr}")
+    check_np_vs_cn(expr, mk_typed_input, mk_typed_output)
 
 
 if __name__ == "__main__":

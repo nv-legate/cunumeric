@@ -20,7 +20,7 @@ import pytest
 import cunumeric as num
 
 
-def test():
+def test_all():
     for i in range(200):
         for arr in num.ones((2,)):
             gc.collect()

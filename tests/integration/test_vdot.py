@@ -19,19 +19,22 @@ from test_tools.generators import mk_0to1_array
 
 import cunumeric as cn
 
-
-def gen_result(lib):
-    for a_dtype in [np.float32, np.complex64]:
-        for b_dtype in [np.float32, np.complex64]:
-            yield lib.vdot(
-                mk_0to1_array(lib, (5,), dtype=a_dtype),
-                mk_0to1_array(lib, (5,), dtype=b_dtype),
-            )
+DTYPES = [np.complex64, np.complex128]
 
 
-def test():
-    for (np_res, cn_res) in zip(gen_result(np), gen_result(cn)):
-        assert np.allclose(np_res, cn_res)
+def _vdot(a_dtype, b_dtype, lib):
+    return lib.vdot(
+        mk_0to1_array(lib, (5,), dtype=a_dtype),
+        mk_0to1_array(lib, (5,), dtype=b_dtype),
+    )
+
+
+@pytest.mark.parametrize("a_dtype", DTYPES)
+@pytest.mark.parametrize("b_dtype", DTYPES)
+def test(a_dtype, b_dtype):
+    assert np.allclose(
+        _vdot(a_dtype, b_dtype, np), _vdot(a_dtype, b_dtype, cn)
+    )
 
 
 if __name__ == "__main__":

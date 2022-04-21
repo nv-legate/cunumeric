@@ -12,14 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
 import pytest
 
 import cunumeric as num
 
 
-def test():
+def test_1d():
     num.random.randint(8000, size=8000)
+
+
+def test_2d():
     num.random.randint(8000, size=(8000, 2))
 
 

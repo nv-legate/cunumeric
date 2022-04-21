@@ -19,23 +19,32 @@ import pytest
 import cunumeric as num
 
 
-def test():
+def test_lhs():
+    x = num.array([1, 2, -3])
+    mask = x > 0
+    w = mask * x
+    assert np.array_equal(w, [1, 2, 0])
+
+
+def test_rhs():
+    x = num.array([1, 2, -3])
+    mask = x > 0
+    w = x * mask
+    assert np.array_equal(w, [1, 2, 0])
+
+
+def test_inverted_rhs():
     x = num.array([1, 2, -3])
     mask = x > 0
     w = x * ~mask
-    # print(w)
     assert np.array_equal(w, np.array([0, 0, -3]))
 
+
+def test_inverted_lhs():
     x = num.array([1, 2, -3])
     mask = x > 0
     w = ~mask * x
     assert np.array_equal(w, [0, 0, -3])
-
-    x = num.array([1, 2, -3])
-    mask = x > 0
-    w = mask * x
-    # print(w)
-    assert np.array_equal(w, [1, 2, 0])
 
 
 if __name__ == "__main__":

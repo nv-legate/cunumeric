@@ -62,7 +62,7 @@ def check_ops(ops, in_np, out_dtype="D"):
         check_result(op, in_np, out_np, out_num)
 
 
-def test_all_binary_ops():
+def test_all():
     # TODO: right now we will simply check if the operations work
     # for some boring inputs. For some of these, we will want to
     # test corner cases in the future.

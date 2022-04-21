@@ -19,7 +19,7 @@ import pytest
 import cunumeric as num
 
 
-def test():
+def test_sum():
     anp = np.array([[1, 2, 3], [4, 5, 6]])
     a = num.array(anp)
     r = a.sum(0)
@@ -28,10 +28,14 @@ def test():
     r = a.sum(1)
     assert np.array_equal(r, [6, 15])
 
+
+def test_random():
     bnp = np.random.random((2, 3))
     b = num.array(bnp)
     assert np.allclose(num.sum(b), np.sum(bnp))
 
+
+def test_randn():
     af = np.random.randn(4, 5)
     bf = num.array(af)
     assert np.allclose(af.mean(0), bf.mean(0))

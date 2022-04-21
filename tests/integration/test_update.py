@@ -12,13 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
 import pytest
 
 import cunumeric as num
 
 
-def test():
+def test_basic():
     C = num.random.randn(2, 3, 5)
     IFOGf = num.random.randn(2, 3, 20)
     C[1] = 1.0

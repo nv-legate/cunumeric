@@ -18,34 +18,38 @@ import pytest
 
 import cunumeric as num
 
+a = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
 
-def test():
-    a = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+
+def test_small():
     a_num = num.array(a)
     b_num = a_num.swapaxes(0, 1)
 
-    print("small")
     assert num.array_equal(a_num.sum(axis=0), b_num.sum(axis=1))
 
+
+def test_tall():
     a_tall = np.concatenate((a,) * 100)
     a_tall_num = num.array(a_tall)
     b_tall_num = a_tall_num.swapaxes(0, 1)
 
-    print("tall")
     assert num.array_equal(a_tall_num.sum(axis=0), b_tall_num.sum(axis=1))
 
+
+def test_wide():
     a_wide = np.concatenate((a,) * 100, axis=1)
     a_wide_num = num.array(a_wide)
     b_wide_num = a_wide_num.swapaxes(0, 1)
 
-    print("wide")
     assert num.array_equal(a_wide_num.sum(axis=0), b_wide_num.sum(axis=1))
 
+
+def test_big():
+    a_tall = np.concatenate((a,) * 100)
     a_big = np.concatenate((a_tall,) * 100, axis=1)
     a_big_num = num.array(a_big)
     b_big_num = a_big_num.swapaxes(0, 1)
 
-    print("big")
     assert num.array_equal(a_big_num.sum(axis=0), b_big_num.sum(axis=1))
 
 

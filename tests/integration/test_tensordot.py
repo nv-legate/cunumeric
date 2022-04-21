@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
 import pytest
 from cunumeric.utils import tensordot_modes
 from test_tools.contractions import check_default
@@ -27,17 +26,17 @@ def gen_axes(a_ndim, b_ndim):
         yield ([0, 1], [1, 0])
 
 
-def test():
-    for a_ndim in range(LEGATE_MAX_DIM + 1):
-        for b_ndim in range(LEGATE_MAX_DIM + 1):
-            for axes in gen_axes(a_ndim, b_ndim):
-                name = f"tensordot({a_ndim} x {b_ndim}, axes={axes})"
-                modes = tensordot_modes(a_ndim, b_ndim, axes)
+@pytest.mark.parametrize("b_ndim", range(LEGATE_MAX_DIM + 1))
+@pytest.mark.parametrize("a_ndim", range(LEGATE_MAX_DIM + 1))
+def test_tensordot(a_ndim, b_ndim):
+    for axes in gen_axes(a_ndim, b_ndim):
+        name = f"tensordot({a_ndim} x {b_ndim}, axes={axes})"
+        modes = tensordot_modes(a_ndim, b_ndim, axes)
 
-                def operation(lib, *args, **kwargs):
-                    return lib.tensordot(*args, **kwargs, axes=axes)
+    def operation(lib, *args, **kwargs):
+        return lib.tensordot(*args, **kwargs, axes=axes)
 
-                check_default(name, modes, operation)
+    check_default(name, modes, operation)
 
 
 if __name__ == "__main__":

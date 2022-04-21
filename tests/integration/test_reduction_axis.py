@@ -21,18 +21,16 @@ import pytest
 import cunumeric as cn
 
 
-def gen_result(lib):
-    # Try various non-square shapes, to nudge the core towards trying many
-    # different partitionings.
-    for shape in permutations((3, 4, 5)):
-        x = lib.ones(shape)
-        for axis in range(len(shape)):
-            yield x.sum(axis=axis)
+def _sum(shape, axis, lib):
+    return lib.ones(shape).sum(axis=axis)
 
 
-def test():
-    for (np_res, cn_res) in zip(gen_result(np), gen_result(cn)):
-        assert np.array_equal(np_res, cn_res)
+# Try various non-square shapes, to nudge the core towards trying many
+# different partitionings.
+@pytest.mark.parametrize("axis", range(3), ids=str)
+@pytest.mark.parametrize("shape", permutations((3, 4, 5)), ids=str)
+def test_3d(shape, axis):
+    assert np.array_equal(_sum(shape, axis, np), _sum(shape, axis, cn))
 
 
 if __name__ == "__main__":

@@ -19,20 +19,16 @@ import pytest
 import cunumeric as num
 
 
-def test():
+def test_basic():
     x = [1.0, 2, 3]
     y = [4, 5, 6]
     z = x + y
-    numpyResult = np.sum(z)
-    # print(numpyResult)
 
-    gx = num.array(x)
-    gy = num.array(y)
-    z = gx + gy
-    legate_oldResult = num.sum(z)
-    # print(legate_oldResult)
+    cx = num.array(x)
+    cy = num.array(y)
+    cz = cx + cy
 
-    assert legate_oldResult == numpyResult
+    assert num.sum(cz) == np.sum(z)
 
 
 if __name__ == "__main__":

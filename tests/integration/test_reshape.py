@@ -18,48 +18,82 @@ import pytest
 
 import cunumeric as num
 
+SQUARE_CASES = [
+    (10, 5, 2),
+    (5, 2, 10),
+    (5, 2, 5, 2),
+    (10, 10, 1),
+    (10, 1, 10),
+    (1, 10, 10),
+]
 
-def test1():
+
+class TestSquare:
+
     anp = np.arange(100).reshape(10, 10)
-    a = num.arange(100).reshape((10, 10))
-    assert np.array_equal(anp, a)
 
-    for shape in [
-        (10, 5, 2),
-        (5, 2, 10),
-        (5, 2, 5, 2),
-        (10, 10, 1),
-        (10, 1, 10),
-        (1, 10, 10),
-    ]:
-        bnp = np.reshape(anp, shape)
-        b = num.reshape(a, shape)
-        assert np.array_equal(bnp, b)
+    def test_basic(self):
+        a = num.arange(100).reshape((10, 10))
+        assert np.array_equal(self.anp, a)
 
-    cnp = np.reshape(anp, (100,))
-    c = num.reshape(a, (100,))
-    assert np.array_equal(cnp, c)
+    @pytest.mark.parametrize("shape", SQUARE_CASES, ids=str)
+    def test_shape(self, shape):
+        a = num.arange(100).reshape((10, 10))
+        assert np.array_equal(
+            num.reshape(a, shape),
+            np.reshape(self.anp, shape),
+        )
 
-    dnp = np.ravel(anp)
-    d = num.ravel(a)
-    assert np.array_equal(dnp, d)
+    def test_1d(self):
+        a = num.arange(100).reshape((10, 10))
+        assert np.array_equal(
+            num.reshape(a, (100,)),
+            np.reshape(self.anp, (100,)),
+        )
+
+    def test_ravel(self):
+        a = num.arange(100).reshape((10, 10))
+        assert np.array_equal(
+            num.ravel(a),
+            np.ravel(self.anp),
+        )
 
 
-def test2():
+RECT_CASES = [
+    (10, 2, 10),
+    (20, 10),
+    (5, 40),
+    (200, 1),
+    (1, 200),
+    (10, 20),
+]
+
+
+class TestRect:
+
     anp = np.random.rand(5, 4, 10)
-    a = num.array(anp)
 
-    for shape in [
-        (10, 2, 10),
-        (20, 10),
-        (5, 40),
-        (200, 1),
-        (1, 200),
-        (10, 20),
-    ]:
-        bnp = np.reshape(anp, shape)
-        b = num.reshape(a, shape)
-        assert np.array_equal(bnp, b)
+    @pytest.mark.parametrize("shape", RECT_CASES, ids=str)
+    def test_shape(self, shape):
+        a = num.array(self.anp)
+        assert np.array_equal(
+            num.reshape(a, shape),
+            np.reshape(self.anp, shape),
+        )
+
+    def test_1d(self):
+        a = num.array(self.anp)
+        assert np.array_equal(
+            num.reshape(a, (200,)),
+            np.reshape(self.anp, (200,)),
+        )
+
+    def test_ravel(self):
+        a = num.array(self.anp)
+        assert np.array_equal(
+            num.ravel(a),
+            np.ravel(self.anp),
+        )
 
 
 if __name__ == "__main__":

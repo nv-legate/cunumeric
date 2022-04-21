@@ -137,10 +137,10 @@ def array_gen(lib, ndim):
     yield from full_overlap(lib, ndim)
 
 
-def test():
-    for ndim in range(1, LEGATE_MAX_DIM + 1):
-        for np_arr, num_arr in zip(array_gen(np, ndim), array_gen(num, ndim)):
-            assert np.array_equal(np_arr, num_arr)
+@pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
+def test_overlap(ndim):
+    for np_arr, num_arr in zip(array_gen(np, ndim), array_gen(num, ndim)):
+        assert np.array_equal(np_arr, num_arr)
 
 
 if __name__ == "__main__":

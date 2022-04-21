@@ -18,63 +18,57 @@ import pytest
 
 import cunumeric as num
 
+numpyX = np.array([[1, 2, 3], [4, 5, 6]])
+numpyY = np.array([[7, 8, 9], [10, 11, 12]])
 
-def test():
-    numpyX = np.array([[1, 2, 3], [4, 5, 6]])
-    numpyY = np.array([[7, 8, 9], [10, 11, 12]])
+x = pytest.fixture(lambda: num.array(numpyX))
+y = pytest.fixture(lambda: num.array(numpyY))
 
-    x = num.array(numpyX)
-    y = num.array(numpyY)
 
+def test_add(x, y):
     z = x + y
     assert np.array_equal(z, numpyX + numpyY)
 
     z = x + 2
-    # print(z)
     assert np.array_equal(z, numpyX + 2)
 
     z = 2 + x
-    # print(z)
     assert np.array_equal(z, 2 + numpyX)
 
+
+def test_sub(x, y):
     z = x - y
-    # print(z)
     assert np.array_equal(z, numpyX - numpyY)
 
     z = x - 2
-    # print(z)
     assert np.array_equal(z, numpyX - 2)
 
     z = 2 - x
-    # print(z)
     assert np.array_equal(z, 2 - numpyX)
 
+
+def test_div(x, y):
     z = x / y
-    # print(z)
     assert np.array_equal(z, numpyX / numpyY)
 
     z = x / 2
-    # print(z)
     assert np.array_equal(z, numpyX / 2)
 
     z = 2 / x
-    # print(z)
     assert np.array_equal(z, 2 / numpyX)
 
+
+def test_mul(x, y):
     z = x * y
-    # print(z)
     assert np.array_equal(z, numpyX * numpyY)
 
     z = x * 2
-    # print(z)
     assert np.array_equal(z, numpyX * 2)
 
     z = 2 * x
-    # print(z)
     assert np.array_equal(z, 2 * numpyX)
 
     z = x**5
-    # print(z)
     assert np.array_equal(z, numpyX**5)
 
 

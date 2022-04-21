@@ -12,16 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
 import pytest
 
 import cunumeric as num
 
 
-def test():
+def test_True():
     x = num.array([1, 2, 3, 4, 5])
-
     assert 4 in x
+
+
+def test_False():
+    x = num.array([1, 2, 3, 4, 5])
     assert 6 not in x
 
 

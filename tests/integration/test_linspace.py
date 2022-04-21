@@ -19,20 +19,26 @@ import pytest
 import cunumeric as num
 
 
-def test():
+def test_basic():
     x = np.linspace(2.0, 3.0, num=5)
     y = num.linspace(2.0, 3.0, num=5)
     assert np.array_equal(x, y)
 
+
+def test_endpoint():
     x = np.linspace(2.0, 3.0, num=5, endpoint=False)
     y = num.linspace(2.0, 3.0, num=5, endpoint=False)
     assert np.array_equal(x, y)
 
+
+def test_retstep():
     x = np.linspace(2.0, 3.0, num=5, retstep=True)
     y = np.linspace(2.0, 3.0, num=5, retstep=True)
     assert np.array_equal(x[0], y[0])
     assert x[1] == y[1]
 
+
+def test_axis():
     x = np.array([[0, 1], [2, 3]])
     y = np.array([[4, 5], [6, 7]])
     xp = num.array(x)

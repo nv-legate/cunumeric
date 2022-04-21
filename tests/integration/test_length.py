@@ -12,34 +12,35 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
 import pytest
 
 import cunumeric as num
 
+LIST_X = [1, 2, 3]
 
-def test():
-    pythonX = [1, 2, 3]
-    legate_oldX = num.array(pythonX)
 
-    assert len(legate_oldX) == len(pythonX)
+def test_from_list():
+    x = num.array(LIST_X)
+    assert len(x) == len(LIST_X)
 
-    SIZE = 100
-    legate_oldX = num.random.random(SIZE)
-    assert SIZE == len(legate_oldX)
 
+def test_random():
+    N = 100
+    x = num.random.random(N)
+    assert N == len(x)
+
+
+def test_binop():
     x = num.array([1, 2, 3, 4])
     y = num.array([1, 2, 3, 4])
-
     z = x + y
-
-    print(len(z))
     assert len(x) == len(y) == len(z)
 
-    x = num.array(pythonX)
-    x = num.sqrt(x)
 
-    assert len(x) == len(pythonX)
+def test_method():
+    x = num.array(LIST_X)
+    x = num.sqrt(x)
+    assert len(x) == len(LIST_X)
 
 
 if __name__ == "__main__":

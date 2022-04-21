@@ -12,13 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
 import pytest
 
 import cunumeric as num
 
 
-def test():
+def test_basic():
     x = num.array([1, 2, 3])
     assert x[0] == 1
     assert x[1] == 2

@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
 import pytest
 from cunumeric.utils import dot_modes
 from test_tools.contractions import (
@@ -25,20 +24,20 @@ from test_tools.contractions import (
 from legate.core import LEGATE_MAX_DIM
 
 
-def test():
-    for a_ndim in range(LEGATE_MAX_DIM + 1):
-        for b_ndim in range(LEGATE_MAX_DIM + 1):
-            name = f"dot({a_ndim} x {b_ndim})"
-            modes = dot_modes(a_ndim, b_ndim)
+@pytest.mark.parametrize("b_ndim", range(LEGATE_MAX_DIM + 1))
+@pytest.mark.parametrize("a_ndim", range(LEGATE_MAX_DIM + 1))
+def test_dot(a_ndim, b_ndim):
+    name = f"dot({a_ndim} x {b_ndim})"
+    modes = dot_modes(a_ndim, b_ndim)
 
-            def operation(lib, *args, **kwargs):
-                return lib.dot(*args, **kwargs)
+    def operation(lib, *args, **kwargs):
+        return lib.dot(*args, **kwargs)
 
-            check_default(name, modes, operation)
-            check_permutations(name, modes, operation)
-            check_shapes(name, modes, operation)
-            if a_ndim <= 2 and b_ndim <= 2:
-                check_types(name, modes, operation)
+    check_default(name, modes, operation)
+    check_permutations(name, modes, operation)
+    check_shapes(name, modes, operation)
+    if a_ndim <= 2 and b_ndim <= 2:
+        check_types(name, modes, operation)
 
 
 if __name__ == "__main__":

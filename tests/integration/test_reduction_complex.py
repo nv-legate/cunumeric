@@ -18,16 +18,17 @@ import pytest
 
 import cunumeric as num
 
+x = np.array([1 + 4j, 2 + 5j, 3 + 6j], np.complex64)
 
-def test():
-    numpyX = np.array([1 + 4j, 2 + 5j, 3 + 6j], np.complex64)
-    x = num.array(numpyX)
 
-    z = num.sum(x)
-    assert num.all(num.abs(z - np.sum(numpyX)) < 1e-5)
+def test_sum():
+    cx = num.array(x)
+    assert num.all(num.abs(num.sum(cx) - np.sum(x)) < 1e-5)
 
-    z = num.prod(x)
-    assert num.all(num.abs(z - np.prod(numpyX)) < 1e-5)
+
+def test_prod():
+    cx = num.array(x)
+    assert num.all(num.abs(num.prod(cx) - np.prod(x)) < 1e-5)
 
 
 if __name__ == "__main__":

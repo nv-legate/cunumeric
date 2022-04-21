@@ -19,7 +19,7 @@ import pytest
 import cunumeric as num
 
 
-def test():
+def test_basic():
     x = num.array(
         [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12], [13, 14, 15, 16]]
     )
@@ -43,11 +43,6 @@ def test():
     assert np.array_equal(y[1, :], ynp[1, :])
     assert np.array_equal(y[2, :], ynp[2, :])
 
-    # TODO: Legate needs partition by phase for this to work efficiently
-    # z = x[1:4:2, 1:4:2]
-    # assert(num.array_equal(z[0, :], [6, 8]))
-    # assert(num.array_equal(z[1, :], [14, 16]))
-
     dnp = np.random.random((2, 3, 4))
     fnp = np.random.random((3, 2))
     d = num.array(dnp)
@@ -61,24 +56,41 @@ def test():
     print(dnp)
     print(d)
 
-    natest = np.random.random((2, 3, 4))
-    natestg = num.array(natest)
+
+NATEST = np.random.random((2, 3, 4))
+
+
+def test_3d():
+    natestg = num.array(NATEST)
 
     firstslice = natestg[0]
-    firstslicegold = natest[0]
+    firstslicegold = NATEST[0]
     assert np.array_equal(firstslice, firstslicegold)
 
-    # TODO: Legate needs 4-D arrays for this to work correctly
-    # secondslice = natestg[:,np.newaxis,:,:]
-    # secondslicegold = natest[:,np.newaxis,:,:]
-    # assert(num.array_equal(secondslice, secondslicegold))
 
-    # TODO: Legate needs 4-D arrays for this to work correctly
-    # thirdslice = natestg[np.newaxis]
-    # thirdslicegold = natest[np.newaxis]
-    # print(thirdslice)
-    # print(thirdslicegold)
-    # assert(num.array_equal(thirdslice, thirdslicegold))
+# TODO: Legate needs 4-D arrays for this to work correctly
+@pytest.mark.skip
+def test_4d():
+    natestg = num.array(NATEST)
+
+    secondslice = natestg[:, np.newaxis, :, :]
+    secondslicegold = NATEST[:, np.newaxis, :, :]
+    assert num.array_equal(secondslice, secondslicegold)
+
+    thirdslice = natestg[np.newaxis]
+    thirdslicegold = NATEST[np.newaxis]
+    assert num.array_equal(thirdslice, thirdslicegold)
+
+
+# TODO: Legate needs partition by phase for this to work efficiently
+@pytest.mark.skip
+def test_slice_step():
+    x = num.array(
+        [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12], [13, 14, 15, 16]]
+    )
+    z = x[1:4:2, 1:4:2]
+    assert num.array_equal(z[0, :], [6, 8])
+    assert num.array_equal(z[1, :], [14, 16])
 
 
 if __name__ == "__main__":

@@ -19,7 +19,7 @@ import pytest
 import cunumeric as num
 
 
-def test():
+def test_basic():
     x = num.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
     x[0:5] = num.array([11, 12, 13, 14, 15])
     x[5:10] = num.array([16, 17, 18, 19, 20])
