@@ -381,12 +381,21 @@ class FFT_Z2Z:
 
 
 class FFTCode:
+    codes = {
+        FFT_C2C: FFT_C2C(),
+        FFT_R2C: FFT_R2C(),
+        FFT_C2R: FFT_C2R(),
+        FFT_Z2Z: FFT_Z2Z(),
+        FFT_D2Z: FFT_D2Z(),
+        FFT_Z2D: FFT_Z2D(),
+    }
+
     @staticmethod
     def real_to_complex_code(dtype):
         if dtype == np.float64:
-            return FFT_D2Z()
+            return FFTCode.codes[FFT_D2Z]
         elif dtype == np.float32:
-            return FFT_R2C()
+            return FFTCode.codes[FFT_R2C]
         else:
             raise TypeError(
                 (
@@ -398,9 +407,9 @@ class FFTCode:
     @staticmethod
     def complex_to_real_code(dtype):
         if dtype == np.complex128:
-            return FFT_Z2D()
+            return FFTCode.codes[FFT_Z2D]
         elif dtype == np.complex64:
-            return FFT_C2R()
+            return FFTCode.codes[FFT_C2R]
         else:
             raise TypeError(
                 (

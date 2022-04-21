@@ -2166,8 +2166,8 @@ class ndarray:
 
         # Shape
         fft_input = self
-        fft_input_shape = np.asarray(list(self.shape))
-        fft_output_shape = np.asarray(list(self.shape))
+        fft_input_shape = np.asarray(self.shape)
+        fft_output_shape = np.asarray(self.shape)
         if user_sizes:
             # Zero padding if any of the user sizes is larger than input
             zeropad_input = self
@@ -2214,13 +2214,13 @@ class ndarray:
         # Normalization
         fft_norm = FFTNormalization.from_string(norm)
         do_normalization = any(
-            [
+            (
                 fft_norm == FFTNormalization.ORTHOGONAL,
                 fft_norm == FFTNormalization.FORWARD
                 and direction == FFTDirection.FORWARD,
                 fft_norm == FFTNormalization.INVERSE
                 and direction == FFTDirection.INVERSE,
-            ]
+            )
         )
         if do_normalization:
             if direction == FFTDirection.FORWARD:
