@@ -63,6 +63,7 @@ class Runtime(object):
         self.legate_runtime = get_legate_runtime()
         self.current_random_epoch = 0
         self.current_random_bitgenid = 0
+        self.current_random_bitgen_zombies = ()
         self.destroyed = False
         self.api_calls = []
 
@@ -232,21 +233,28 @@ class Runtime(object):
         task.add_scalar_arg(BitGeneratorOperation.CREATE, ty.int32)
         task.add_scalar_arg(self.current_random_bitgenid, ty.uint32)
         task.add_scalar_arg(generatorType, ty.uint64)
+        task.add_scalar_arg(self.current_random_bitgen_zombies, (ty.uint32,))
+        self.current_random_bitgen_zombies = ()
         task.execute()
         self.legate_runtime.issue_execution_fence()
         return self.current_random_bitgenid
 
-    def bitgenerator_destroy(self, handle):
-        self.legate_runtime.issue_execution_fence()
-        task = self.legate_context.create_task(
-            CuNumericOpCode.BITGENERATOR,
-            manual=True,
-            launch_domain=Rect(lo=(0,), hi=(self.num_procs,)),
-        )
-        task.add_scalar_arg(BitGeneratorOperation.DESTROY, ty.int32)
-        task.add_scalar_arg(handle, ty.uint32)
-        task.add_scalar_arg(0, ty.uint64)
-        task.execute()
+    def bitgenerator_destroy(self, handle, disposing=True):
+        if disposing:
+            # when called from within destructor, do not schedule a task
+            self.current_random_bitgen_zombies += (handle,)
+        else:
+            # with explicit destruction, do schedule a task
+            self.legate_runtime.issue_execution_fence()
+            task = self.legate_context.create_task(
+                CuNumericOpCode.BITGENERATOR,
+                manual=True,
+                launch_domain=Rect(lo=(0,), hi=(self.num_procs,)),
+            )
+            task.add_scalar_arg(BitGeneratorOperation.DESTROY, ty.int32)
+            task.add_scalar_arg(handle, ty.uint32)
+            task.add_scalar_arg(0, ty.uint64)
+            task.execute()
 
     def bitgenerator_set_seed(self, handle, seed):
         if not isinstance(seed, int):

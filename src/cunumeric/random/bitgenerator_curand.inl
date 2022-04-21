@@ -152,21 +152,26 @@ struct generator_map {
   {
     std::lock_guard<std::mutex> guard(lock);
     if (m_generators.size() != 0) {
-      log_curand.error() << "some generators have not been freed - LEAK !";
-      // TODO: assert ?
+      log_curand.debug() << "some generators have not been freed - cleaning-up !";
+      // actually destroy
+      for (auto kv = m_generators.begin(); kv != m_generators.end(); ++kv) {
+        auto cugenptr = kv->second;
+        CURANDGeneratorBuilder<kind>::destroy(cugenptr);
+      }
+      m_generators.clear();
     }
   }
 
   std::mutex lock;
-  std::map<int, CURANDGenerator*> m_generators;
+  std::map<uint32_t, CURANDGenerator*> m_generators;
 
-  bool has(int32_t generatorID)
+  bool has(uint32_t generatorID)
   {
     std::lock_guard<std::mutex> guard(lock);
     return m_generators.find(generatorID) != m_generators.end();
   }
 
-  CURANDGenerator* get(int32_t generatorID)
+  CURANDGenerator* get(uint32_t generatorID)
   {
     std::lock_guard<std::mutex> guard(lock);
     if (m_generators.find(generatorID) == m_generators.end()) {
@@ -177,7 +182,7 @@ struct generator_map {
     return m_generators[generatorID];
   }
 
-  void create(int32_t generatorID, BitGeneratorType gentype)
+  void create(uint32_t generatorID, BitGeneratorType gentype)
   {
     CURANDGenerator* cugenptr = CURANDGeneratorBuilder<kind>::build(gentype);
 
@@ -191,7 +196,7 @@ struct generator_map {
     m_generators[generatorID] = cugenptr;
   }
 
-  void destroy(int32_t generatorID)
+  void destroy(uint32_t generatorID)
   {
     CURANDGenerator* cugenptr;
     // verify it existed, and otherwise remove it from list
@@ -209,7 +214,7 @@ struct generator_map {
     CURANDGeneratorBuilder<kind>::destroy(cugenptr);
   }
 
-  void set_seed(int32_t generatorID, uint64_t seed)
+  void set_seed(uint32_t generatorID, uint64_t seed)
   {
     CURANDGenerator* genptr = get(generatorID);
     std::lock_guard<std::mutex> guard(genptr->lock);

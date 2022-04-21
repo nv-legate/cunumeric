@@ -45,16 +45,33 @@ static void bitgenerator_template(TaskContext& context)
   auto& outputs    = context.outputs();
   auto& scalars    = context.scalars();
   auto bitgen_op   = scalars[0].value<BitGeneratorOperation>();
-  auto generatorID = scalars[1].value<int32_t>();
+  auto generatorID = scalars[1].value<uint32_t>();
   auto parameter   = scalars[2].value<uint64_t>();
+
   DomainPoint strides;  // optional parameter
-  if (scalars.size() > 3) strides = scalars[3].value<DomainPoint>();
+  legate::Span<const uint32_t> todestroy;
+  switch (bitgen_op) {
+    case BitGeneratorOperation::CREATE: {
+      if (scalars.size() > 3) todestroy = scalars[3].values<uint32_t>();
+      break;
+    }
+    case BitGeneratorOperation::RAND_RAW: {
+      if (scalars.size() > 3) strides = scalars[3].value<DomainPoint>();
+      break;
+    }
+  }
 
   std::vector<Store> extra_args;
   for (auto& input : inputs) extra_args.push_back(std::move(input));
 
   std::vector<Store> optional_output;
   for (auto& output : outputs) optional_output.push_back(std::move(output));
+
+  // destroy ?
+  for (int k = 0; k < todestroy.size(); ++k) {
+    BitGeneratorArgs dargs{BitGeneratorOperation::DESTROY, todestroy[k], 0, strides};
+    BitGeneratorImpl<KIND>{}(dargs);
+  }
 
   BitGeneratorArgs args{
     bitgen_op, generatorID, parameter, strides, std::move(optional_output), std::move(extra_args)};

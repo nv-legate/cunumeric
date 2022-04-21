@@ -77,7 +77,7 @@ static inline bool isThreadSafe(curandRngType gentype)
     case curandRngType::CURAND_RNG_PSEUDO_XORWOW: return true;
     case curandRngType::CURAND_RNG_PSEUDO_MRG32K3A: return true;
     case curandRngType::CURAND_RNG_PSEUDO_MTGP32: return true;
-    case curandRngType::CURAND_RNG_PSEUDO_MT19937: return GPUflavor;
+    case curandRngType::CURAND_RNG_PSEUDO_MT19937: return false;
     case curandRngType::CURAND_RNG_PSEUDO_PHILOX4_32_10: return true;
     default: {
       ::fprintf(stderr, "[ERROR] : unknown generator");

@@ -30,7 +30,13 @@ class BitGenerator:
             runtime.bitgenerator_set_seed(self.handle, seed)
 
     def __del__(self):
-        runtime.bitgenerator_destroy(self.handle)
+        if self.handle != 0:
+            runtime.bitgenerator_destroy(self.handle, disposing=True)
+
+    # explicit destruction
+    def destroy(self):
+        runtime.bitgenerator_destroy(self.handle, disposing=False)
+        self.handle = 0
 
     # when output is false => skip ahead
     def random_raw(self, shape=None, output=True):

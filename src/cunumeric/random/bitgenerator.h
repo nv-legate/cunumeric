@@ -23,7 +23,7 @@ namespace cunumeric {
 
 struct BitGeneratorArgs {
   BitGeneratorOperation bitgen_op;
-  int32_t generatorID;
+  uint32_t generatorID;
   uint64_t parameter;
   Legion::DomainPoint strides;
   std::vector<legate::Store> output;  // size 0 or 1
