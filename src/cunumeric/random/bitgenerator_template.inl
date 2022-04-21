@@ -51,6 +51,7 @@ static void bitgenerator_template(TaskContext& context)
   DomainPoint strides;  // optional parameter
   legate::Span<const uint32_t> todestroy;
   switch (bitgen_op) {
+    case BitGeneratorOperation::DESTROY:  // gather same parameters as CREATE
     case BitGeneratorOperation::CREATE: {
       if (scalars.size() > 3) todestroy = scalars[3].values<uint32_t>();
       break;
