@@ -15,6 +15,7 @@
 
 import numpy as np
 import pyarrow as pa
+import pytest
 
 import cunumeric as lg
 from legate.core import (
@@ -99,4 +100,6 @@ def test():
 
 
 if __name__ == "__main__":
-    test()
+    import sys
+
+    pytest.main(sys.argv)

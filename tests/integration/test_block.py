@@ -14,6 +14,7 @@
 #
 
 import numpy as np
+import pytest
 
 import cunumeric as num
 
@@ -50,7 +51,8 @@ def run_test(arr, input_sizes, depth):
     )
 
 
-def test(dim):
+def test():
+    dim = 10
     print("test np.block")
     # test append w/ 1D, 2D and 3D arrays
     input_options = [
@@ -76,4 +78,6 @@ def test(dim):
 
 
 if __name__ == "__main__":
-    test(10)
+    import sys
+
+    pytest.main(sys.argv)

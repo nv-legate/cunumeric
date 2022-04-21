@@ -14,6 +14,7 @@
 #
 
 import numpy as np
+import pytest
 from test_tools.generators import mk_0to1_array
 
 import cunumeric as num
@@ -143,4 +144,6 @@ def test():
 
 
 if __name__ == "__main__":
-    test()
+    import sys
+
+    pytest.main(sys.argv)

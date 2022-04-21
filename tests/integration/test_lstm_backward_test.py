@@ -14,11 +14,12 @@
 #
 
 import numpy as np
+import pytest
 
 import cunumeric as num
 
 
-def testtion():
+def test():
 
     word_size = 10
     hidden_size = 10
@@ -138,4 +139,6 @@ def testtion():
 
 
 if __name__ == "__main__":
-    testtion()
+    import sys
+
+    pytest.main(sys.argv)

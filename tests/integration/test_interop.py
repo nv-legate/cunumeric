@@ -16,6 +16,7 @@
 import random
 
 import numpy
+import pytest
 
 import cunumeric
 
@@ -29,9 +30,16 @@ def step2(np, x, y):
     return np.dot(x, y)
 
 
-# Malicious adoption strategy
-numpy_likes = [numpy, cunumeric]
+def test_interop():
+    # Malicious adoption strategy
+    numpy_likes = [numpy, cunumeric]
 
-for x in range(10):
-    x, y = step1(random.choice(numpy_likes), 1000000)
-    step2(random.choice(numpy_likes), x, y)
+    for x in range(10):
+        x, y = step1(random.choice(numpy_likes), 1000000)
+        step2(random.choice(numpy_likes), x, y)
+
+
+if __name__ == "__main__":
+    import sys
+
+    pytest.main(sys.argv)

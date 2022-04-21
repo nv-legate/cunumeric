@@ -16,6 +16,7 @@
 import argparse
 
 import numpy as np
+import pytest
 
 import cunumeric as num
 
@@ -37,7 +38,7 @@ def check_result(op, in_np, out_np, out_num):
         assert False
 
 
-def test(ops, in_np, out_dtype="d"):
+def check_ops(ops, in_np, out_dtype="d"):
     for op in ops:
         op_np = getattr(np, op)
         op_num = getattr(num, op)
@@ -83,11 +84,11 @@ def test_all_unary_ops():
         "sign",
         "square",
     ]
-    test(ops, (np.random.randn(4, 5),))
-    test(ops, (np.random.randn(4, 5).astype("e"),))
-    test(ops, (np.random.randn(4, 5).astype("f"),))
-    test(ops, (np.random.randint(1, 10, size=(4, 5)),))
-    test(ops, (np.random.randn(1)[0],))
+    check_ops(ops, (np.random.randn(4, 5),))
+    check_ops(ops, (np.random.randn(4, 5).astype("e"),))
+    check_ops(ops, (np.random.randn(4, 5).astype("f"),))
+    check_ops(ops, (np.random.randint(1, 10, size=(4, 5)),))
+    check_ops(ops, (np.random.randn(1)[0],))
 
     ops = [
         "log",
@@ -96,21 +97,21 @@ def test_all_unary_ops():
         "log2",
         "sqrt",
     ]
-    test(ops, (np.random.randn(4, 5) + 3,))
-    test(ops, (np.random.randn(4, 5).astype("e") + 3,))
-    test(ops, (np.random.randn(4, 5).astype("f") + 3,))
-    test(ops, (np.random.randn(4, 5).astype("F") + 3,), out_dtype="D")
-    test(ops, (np.random.randint(3, 10, size=(4, 5)),))
-    test(ops, (np.random.randn(1)[0] + 3,))
+    check_ops(ops, (np.random.randn(4, 5) + 3,))
+    check_ops(ops, (np.random.randn(4, 5).astype("e") + 3,))
+    check_ops(ops, (np.random.randn(4, 5).astype("f") + 3,))
+    check_ops(ops, (np.random.randn(4, 5).astype("F") + 3,), out_dtype="D")
+    check_ops(ops, (np.random.randint(3, 10, size=(4, 5)),))
+    check_ops(ops, (np.random.randn(1)[0] + 3,))
 
     ops = [
         "cbrt",
     ]
-    test(ops, (np.random.randn(4, 5),))
-    test(ops, (np.random.randn(4, 5).astype("e"),))
-    test(ops, (np.random.randn(4, 5).astype("f"),))
-    test(ops, (np.random.randint(0, 10, size=(4, 5)),))
-    test(ops, (np.random.randn(1)[0] + 3,))
+    check_ops(ops, (np.random.randn(4, 5),))
+    check_ops(ops, (np.random.randn(4, 5).astype("e"),))
+    check_ops(ops, (np.random.randn(4, 5).astype("f"),))
+    check_ops(ops, (np.random.randint(0, 10, size=(4, 5)),))
+    check_ops(ops, (np.random.randn(1)[0] + 3,))
 
     # Trigonometric functions
     ops = [
@@ -127,30 +128,34 @@ def test_all_unary_ops():
         "tan",
         "tanh",
     ]
-    test(ops, (np.random.uniform(low=-1, high=1, size=(4, 5)),))
-    test(ops, (np.random.uniform(low=-1, high=1, size=(4, 5)).astype("e"),))
-    test(ops, (np.array(np.random.uniform(low=-1, high=1)),))
+    check_ops(ops, (np.random.uniform(low=-1, high=1, size=(4, 5)),))
+    check_ops(
+        ops, (np.random.uniform(low=-1, high=1, size=(4, 5)).astype("e"),)
+    )
+    check_ops(ops, (np.array(np.random.uniform(low=-1, high=1)),))
 
     ops = [
         "arccosh",
         "arcsinh",
     ]
-    test(ops, (np.random.uniform(low=1, high=5, size=(4, 5)),))
-    test(ops, (np.random.uniform(low=1, high=5, size=(4, 5)).astype("e"),))
-    test(ops, (np.array(np.random.uniform(low=1, high=5)),))
+    check_ops(ops, (np.random.uniform(low=1, high=5, size=(4, 5)),))
+    check_ops(
+        ops, (np.random.uniform(low=1, high=5, size=(4, 5)).astype("e"),)
+    )
+    check_ops(ops, (np.array(np.random.uniform(low=1, high=5)),))
 
     # Bit-twiddling functions
     ops = [
         "invert",
     ]
-    test(ops, (np.random.randint(0, 2, size=(4, 5)),))
-    test(ops, (np.random.randint(0, 1, size=(4, 5), dtype="?"),))
+    check_ops(ops, (np.random.randint(0, 2, size=(4, 5)),))
+    check_ops(ops, (np.random.randint(0, 1, size=(4, 5), dtype="?"),))
 
     # Comparison functions
     ops = [
         "logical_not",
     ]
-    test(ops, (np.random.randint(0, 2, size=(4, 5)),))
+    check_ops(ops, (np.random.randint(0, 2, size=(4, 5)),))
 
     # Floating functions
 
@@ -164,12 +169,12 @@ def test_all_unary_ops():
         # "spacing",
         "trunc",
     ]
-    test(ops, (np.random.randn(4, 5),))
-    test(ops, (np.random.randn(4, 5).astype("f"),))
-    test(ops, (np.random.randn(4, 5).astype("e"),))
-    test(ops, (np.random.randint(0, 10, size=(4, 5)),))
-    test(ops, (np.random.randint(0, 10, size=(4, 5), dtype="I"),))
-    test(ops, (np.random.randn(1)[0] + 3,))
+    check_ops(ops, (np.random.randn(4, 5),))
+    check_ops(ops, (np.random.randn(4, 5).astype("f"),))
+    check_ops(ops, (np.random.randn(4, 5).astype("e"),))
+    check_ops(ops, (np.random.randint(0, 10, size=(4, 5)),))
+    check_ops(ops, (np.random.randint(0, 10, size=(4, 5), dtype="I"),))
+    check_ops(ops, (np.random.randn(1)[0] + 3,))
 
     ops = [
         "isfinite",
@@ -177,8 +182,8 @@ def test_all_unary_ops():
         "isnan",
         # "isnat",
     ]
-    test(ops, (np.array([-np.inf, 0.0, 1.0, np.inf, np.nan]),))
-    test(ops, (np.array(np.inf),))
+    check_ops(ops, (np.array([-np.inf, 0.0, 1.0, np.inf, np.nan]),))
+    check_ops(ops, (np.array(np.inf),))
 
 
 def parse_inputs(in_str, dtype_str):
@@ -195,6 +200,8 @@ def parse_inputs(in_str, dtype_str):
 
 
 if __name__ == "__main__":
+    import sys
+
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--opname",
@@ -214,10 +221,12 @@ if __name__ == "__main__":
         default="l",
         help="input data",
     )
-    args, unknown = parser.parse_known_args()
+    args, extra = parser.parse_known_args()
+
+    sys.argv = sys.argv[:1] + extra
 
     if args.op is not None:
         in_np = parse_inputs(args.inputs, args.dtypes)
-        test([args.op], in_np)
+        check_ops([args.op], in_np)
     else:
-        test_all_unary_ops()
+        pytest.main(sys.argv)

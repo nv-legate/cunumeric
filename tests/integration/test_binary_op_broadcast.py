@@ -14,26 +14,49 @@
 #
 
 import numpy as np
+import pytest
 
 import cunumeric as num
 
+N = 20
 
-def test(shape):
-    for ndim in range(2, 4):
-        print(f"Testing {ndim}D")
-        local_shape = shape[:ndim]
-        x = num.random.random(local_shape)
-        a = x.__array__()
+SHAPES = [
+    (N, N + 1, N + 2),
+    (1, N + 1, N + 2),
+]
 
-        for dim in range(1, ndim):
-            y = num.random.random(local_shape[-dim:])
+DIMS = list(range(2, 4))
+
+
+@pytest.mark.parametrize("shape", SHAPES, ids=str)
+@pytest.mark.parametrize("ndim", DIMS)
+def test_random(shape, ndim):
+    local_shape = shape[:ndim]
+    x = num.random.random(local_shape)
+    a = x.__array__()
+
+    for dim in range(1, ndim):
+        y = num.random.random(local_shape[-dim:])
+        b = y.__array__()
+        print(f"  {a.shape} x {b.shape}")
+        assert num.array_equal(x + y, a + b)
+
+    for dim in range(ndim):
+        rhs_shape = list(local_shape)
+        rhs_shape[dim] = 1
+        if (np.array(rhs_shape) == 1).all():
+            y = np.random.random(tuple(rhs_shape))
+            b = num.array(y)
+        else:
+            y = num.random.random(tuple(rhs_shape))
             b = y.__array__()
-            print(f"  {a.shape} x {b.shape}")
-            assert num.array_equal(x + y, a + b)
+        print(f"  {a.shape} x {b.shape}")
+        assert num.array_equal(x + y, a + b)
 
+    if ndim > 2:
         for dim in range(ndim):
-            rhs_shape = list(local_shape)
-            rhs_shape[dim] = 1
+            rhs_shape = [1] * ndim
+            rhs_shape[dim] = local_shape[dim]
             if (np.array(rhs_shape) == 1).all():
                 y = np.random.random(tuple(rhs_shape))
                 b = num.array(y)
@@ -43,21 +66,8 @@ def test(shape):
             print(f"  {a.shape} x {b.shape}")
             assert num.array_equal(x + y, a + b)
 
-        if ndim > 2:
-            for dim in range(ndim):
-                rhs_shape = [1] * ndim
-                rhs_shape[dim] = local_shape[dim]
-                if (np.array(rhs_shape) == 1).all():
-                    y = np.random.random(tuple(rhs_shape))
-                    b = num.array(y)
-                else:
-                    y = num.random.random(tuple(rhs_shape))
-                    b = y.__array__()
-                print(f"  {a.shape} x {b.shape}")
-                assert num.array_equal(x + y, a + b)
-
 
 if __name__ == "__main__":
-    n = 20
-    test((n, n + 1, n + 2))
-    test((1, n + 1, n + 2))
+    import sys
+
+    pytest.main(sys.argv)

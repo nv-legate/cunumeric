@@ -16,11 +16,13 @@
 import math
 
 import numpy as np
+import pytest
 
 import cunumeric as num
 
 
-def test(dim):
+def test():
+    dim = 20
     # Seed the random generator with a random number
     np.random.seed(416)
     print("test array_split")
@@ -124,4 +126,6 @@ def test(dim):
 
 
 if __name__ == "__main__":
-    test(20)
+    import sys
+
+    pytest.main(sys.argv)

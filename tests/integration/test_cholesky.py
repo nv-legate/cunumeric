@@ -14,8 +14,11 @@
 #
 
 import numpy as np
+import pytest
 
 import cunumeric as num
+
+SIZES = [8, 9, 255, 512]
 
 
 def test_diagonal():
@@ -24,6 +27,7 @@ def test_diagonal():
     assert num.allclose(b**2.0, a)
 
 
+@pytest.mark.parametrize("n", SIZES)
 def test_real(n):
     a = num.random.rand(n, n)
     b = a + a.T + num.eye(n) * n
@@ -32,6 +36,7 @@ def test_real(n):
     assert num.allclose(c, c_np)
 
 
+@pytest.mark.parametrize("n", SIZES)
 def test_complex(n):
     a = num.random.rand(n, n) + num.random.rand(n, n) * 1.0j
     b = a + a.T.conj() + num.eye(n) * n
@@ -47,7 +52,6 @@ def test_complex(n):
 
 
 if __name__ == "__main__":
-    test_diagonal()
-    for size in [8, 9, 255, 512]:
-        test_real(size)
-        test_complex(size)
+    import sys
+
+    pytest.main(sys.argv)

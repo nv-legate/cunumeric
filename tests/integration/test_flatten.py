@@ -14,6 +14,7 @@
 #
 
 import numpy as np
+import pytest
 from cunumeric.array import convert_to_cunumeric_ndarray
 
 
@@ -49,7 +50,8 @@ def run_test(np_arr, num_arr):
         )
 
 
-def test(dim):
+def test():
+    dim = 10
     print("test flatten")
     # test ndarray.flatten w/ 1D, 2D and 3D arrays
     input_arr = [
@@ -70,4 +72,6 @@ def test(dim):
 
 
 if __name__ == "__main__":
-    test(10)
+    import sys
+
+    pytest.main(sys.argv)

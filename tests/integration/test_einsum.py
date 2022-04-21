@@ -18,6 +18,7 @@ from itertools import permutations, product
 from typing import List, Optional, Set, Tuple
 
 import numpy as np
+import pytest
 from test_tools.generators import mk_0to1_array, permutes_to
 
 import cunumeric as cn
@@ -258,4 +259,6 @@ def test():
 
 
 if __name__ == "__main__":
-    test()
+    import sys
+
+    pytest.main(sys.argv)

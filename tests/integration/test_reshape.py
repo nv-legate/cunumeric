@@ -14,6 +14,7 @@
 #
 
 import numpy as np
+import pytest
 
 import cunumeric as num
 
@@ -62,5 +63,6 @@ def test2():
 
 
 if __name__ == "__main__":
-    test1()
-    test2()
+    import sys
+
+    pytest.main(sys.argv)

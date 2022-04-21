@@ -14,6 +14,7 @@
 #
 
 import numpy as np
+import pytest
 import scipy.signal as sig
 
 import cunumeric as num
@@ -53,5 +54,6 @@ def test_int():
 
 
 if __name__ == "__main__":
-    test_double()
-    test_int()
+    import sys
+
+    pytest.main(sys.argv)

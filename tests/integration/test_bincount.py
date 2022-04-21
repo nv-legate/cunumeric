@@ -14,11 +14,13 @@
 #
 
 import numpy as np
+import pytest
 
 import cunumeric as num
 
 
-def test(n):
+def test():
+    n = 8000
     for dtype in [np.int64, np.int32, np.int16]:
         print(dtype)
         v_num = num.random.randint(0, 9, size=n, dtype=dtype)
@@ -37,4 +39,6 @@ def test(n):
 
 
 if __name__ == "__main__":
-    test(8000)
+    import sys
+
+    pytest.main(sys.argv)

@@ -17,6 +17,7 @@ import argparse
 from itertools import product
 
 import numpy as np
+import pytest
 
 import cunumeric as num
 
@@ -38,7 +39,7 @@ def check_result(op, in_np, out_np, out_num):
         assert False
 
 
-def test(ops, in_np, out_dtype="D"):
+def check_ops(ops, in_np, out_dtype="D"):
     for op in ops:
         op_np = getattr(np, op)
         op_num = getattr(num, op)
@@ -105,14 +106,14 @@ def test_all_binary_ops():
     )
 
     for arr1, arr2 in product(arrs, arrs):
-        test(ops, (arr1, arr2))
+        check_ops(ops, (arr1, arr2))
 
     for arr, scalar in product(arrs, scalars):
-        test(ops, (arr, scalar))
-        test(ops, (scalar, arr))
+        check_ops(ops, (arr, scalar))
+        check_ops(ops, (scalar, arr))
 
     for scalar1, scalar2 in product(scalars, scalars):
-        test(ops, (scalar1, scalar2))
+        check_ops(ops, (scalar1, scalar2))
 
     ops = [
         "arctan2",
@@ -126,14 +127,14 @@ def test_all_binary_ops():
     ]
 
     for arr1, arr2 in product(arrs[:-1], arrs[:-1]):
-        test(ops, (arr1, arr2))
+        check_ops(ops, (arr1, arr2))
 
     for arr, scalar in product(arrs[:-1], scalars[:-1]):
-        test(ops, (arr, scalar))
-        test(ops, (scalar, arr))
+        check_ops(ops, (arr, scalar))
+        check_ops(ops, (scalar, arr))
 
     for scalar1, scalar2 in product(scalars[:-1], scalars[:-1]):
-        test(ops, (scalar1, scalar2))
+        check_ops(ops, (scalar1, scalar2))
 
     ops = [
         "power",
@@ -141,30 +142,30 @@ def test_all_binary_ops():
     ]
 
     for arr1, arr2 in product(arrs, arrs):
-        test(ops, (arr1, arr2))
+        check_ops(ops, (arr1, arr2))
 
     for arr in arrs:
-        test(ops, (arr, scalars[0]))
-        test(ops, (scalars[0], arr))
-        test(ops, (arr, scalars[3]))
-        test(ops, (scalars[3], scalars[3]))
+        check_ops(ops, (arr, scalars[0]))
+        check_ops(ops, (scalars[0], arr))
+        check_ops(ops, (arr, scalars[3]))
+        check_ops(ops, (scalars[3], scalars[3]))
 
-    test(ops, (scalars[0], scalars[3]))
-    test(ops, (scalars[3], scalars[0]))
+    check_ops(ops, (scalars[0], scalars[3]))
+    check_ops(ops, (scalars[3], scalars[0]))
 
     ops = [
         "remainder",
     ]
 
     for arr1, arr2 in product(arrs[:1], arrs[:1]):
-        test(ops, (arr1, arr2))
+        check_ops(ops, (arr1, arr2))
 
     for arr, scalar in product(arrs[:1], scalars[:-2]):
-        test(ops, (arr, scalar))
-        test(ops, (scalar, arr))
+        check_ops(ops, (arr, scalar))
+        check_ops(ops, (scalar, arr))
 
     for scalar1, scalar2 in product(scalars[:-2], scalars[:-2]):
-        test(ops, (scalar1, scalar2))
+        check_ops(ops, (scalar1, scalar2))
 
     ops = [
         "bitwise_and",
@@ -176,14 +177,14 @@ def test_all_binary_ops():
         "right_shift",
     ]
 
-    test(ops, (arr1[0], arr2[0]))
+    check_ops(ops, (arr1[0], arr2[0]))
 
-    test(ops, (arrs[0], scalars[0]))
-    test(ops, (arrs[0], scalars[1]))
-    test(ops, (scalars[0], arrs[0]))
-    test(ops, (scalars[1], arrs[0]))
+    check_ops(ops, (arrs[0], scalars[0]))
+    check_ops(ops, (arrs[0], scalars[1]))
+    check_ops(ops, (scalars[0], arrs[0]))
+    check_ops(ops, (scalars[1], arrs[0]))
 
-    test(ops, (scalars[0], scalars[0]))
+    check_ops(ops, (scalars[0], scalars[0]))
 
 
 def parse_inputs(in_str, dtype_str):
@@ -200,6 +201,8 @@ def parse_inputs(in_str, dtype_str):
 
 
 if __name__ == "__main__":
+    import sys
+
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--opname",
@@ -219,10 +222,12 @@ if __name__ == "__main__":
         default="l:l",
         help="input data",
     )
-    args, unknown = parser.parse_known_args()
+    args, extra = parser.parse_known_args()
+
+    sys.argv = sys.argv[:1] + extra
 
     if args.op is not None:
         in_np = parse_inputs(args.inputs, args.dtypes)
-        test([args.op], in_np)
+        check_ops([args.op], in_np)
     else:
-        test_all_binary_ops()
+        pytest.main(sys.argv)

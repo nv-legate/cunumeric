@@ -16,6 +16,7 @@
 import itertools
 
 import numpy as np
+import pytest
 
 import cunumeric as num
 
@@ -65,7 +66,8 @@ def run_test(arr, routine, input_size):
         )
 
 
-def test(dim):
+def test():
+    dim = 10
     print("test np.concatenate / *stack")
     test_routine = [
         "concatenate",
@@ -99,4 +101,6 @@ def test(dim):
 
 
 if __name__ == "__main__":
-    test(10)
+    import sys
+
+    pytest.main(sys.argv)

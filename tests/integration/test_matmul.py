@@ -13,6 +13,7 @@
 # limitations under the License.
 #
 
+import pytest
 from cunumeric.utils import matmul_modes
 from test_tools.contractions import check_default
 
@@ -32,4 +33,6 @@ def test():
 
 
 if __name__ == "__main__":
-    test()
+    import sys
+
+    pytest.main(sys.argv)

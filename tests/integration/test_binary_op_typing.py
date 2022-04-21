@@ -16,6 +16,7 @@
 from itertools import product
 
 import numpy as np
+import pytest
 
 import cunumeric as num
 
@@ -29,71 +30,55 @@ def value_type(obj):
         return f"{obj.dtype} array"
 
 
-def test(lhs_np, rhs_np, lhs_num, rhs_num):
-    print(f"{value_type(lhs_np)} x {value_type(rhs_np)}")
+TYPES = [
+    "b",
+    "B",
+    "h",
+    "H",
+    "i",
+    "I",
+    "l",
+    "L",
+    "q",
+    "Q",
+    "e",
+    "f",
+    "d",
+    "F",
+    "D",
+]
 
-    out_np = np.add(lhs_np, rhs_np)
-    out_num = num.add(lhs_num, rhs_num)
+ARRAY_VALUES = [[1]]
 
-    if out_np.dtype != out_num.dtype:
-        print("LHS")
-        print(lhs_np)
-        print("RHS")
-        print(rhs_np)
-        print(f"NumPy type: {out_np.dtype}, cuNumeric type: {out_num.dtype}")
-        assert False
+SCALAR_VALUES = [1, -1, 1.0, 1e-50, 1j]
 
 
-def run_all_tests():
-    types = [
-        "b",
-        "B",
-        "h",
-        "H",
-        "i",
-        "I",
-        "l",
-        "L",
-        "q",
-        "Q",
-        "e",
-        "f",
-        "d",
-        "F",
-        "D",
-    ]
-    array_values = [[1]]
-    scalar_values = [1, -1, 1.0, 1e-50, 1j]
-
-    for idx, lhs_type in enumerate(types):
-        for rhs_type in types[idx:]:
-            for lhs_value, rhs_value in product(array_values, array_values):
+def generate_all_cases():
+    for idx, lhs_type in enumerate(TYPES):
+        for rhs_type in TYPES[idx:]:
+            for lhs_value, rhs_value in product(ARRAY_VALUES, ARRAY_VALUES):
                 lhs_np = np.array(lhs_value, dtype=lhs_type)
                 rhs_np = np.array(rhs_value, dtype=rhs_type)
-
                 lhs_num = num.array(lhs_np)
                 rhs_num = num.array(rhs_np)
+                yield (lhs_np, rhs_np, lhs_num, rhs_num)
 
-                test(lhs_np, rhs_np, lhs_num, rhs_num)
-
-            for lhs_value, rhs_value in product(scalar_values, scalar_values):
+            for lhs_value, rhs_value in product(SCALAR_VALUES, SCALAR_VALUES):
                 try:
                     lhs_np = np.array(lhs_value, dtype=lhs_type)
                     rhs_np = np.array(rhs_value, dtype=rhs_type)
-
                     lhs_num = num.array(lhs_np)
                     rhs_num = num.array(rhs_np)
-
-                    test(lhs_np, rhs_np, lhs_num, rhs_num)
+                    yield (lhs_np, rhs_np, lhs_num, rhs_num)
                 except TypeError:
                     pass
 
-    for ty in types:
-        for array, scalar in product(array_values, scalar_values):
+    for ty in TYPES:
+        for array, scalar in product(ARRAY_VALUES, SCALAR_VALUES):
             array_np = np.array(array, dtype=ty)
             array_num = num.array(array_np)
 
-            test(array_np, scalar, array_num, scalar)
+            yield (array_np, scalar, array_num, scalar)
 
     # TODO: NumPy's type coercion rules are confusing at best and impossible
     # for any human being to understand in my opinion. My attempt to make
@@ -104,31 +89,45 @@ def run_all_tests():
     # If anyone can do a better job than me and finally make cuNumeric
     # implement the same typing rules, please put these tests back.
     #
-    # for idx, lhs_type in enumerate(types):
-    #    for rhs_type in types[idx:]:
-    #        for array, scalar in product(array_values, scalar_values):
+    # for idx, lhs_type in enumerate(TYPES):
+    #    for rhs_type in TYPES[idx:]:
+    #        for array, scalar in product(ARRAY_VALUES, SCALAR_VALUES):
     #            try:
     #                lhs_np = np.array(array, dtype=lhs_type)
     #                rhs_np = np.array(scalar, dtype=rhs_type)
-
     #                lhs_num = num.array(lhs_np)
     #                rhs_num = num.array(rhs_np)
-
-    #                test(lhs_np, rhs_np, lhs_num, rhs_num)
+    #                yield (lhs_np, rhs_np, lhs_num, rhs_num)
     #            except TypeError:
     #                pass
 
     #            try:
     #                lhs_np = np.array(scalar, dtype=lhs_type)
     #                rhs_np = np.array(array, dtype=rhs_type)
-
     #                lhs_num = num.array(lhs_np)
     #                rhs_num = num.array(rhs_np)
-
-    #                test(lhs_np, rhs_np, lhs_num, rhs_num)
+    #                yield (lhs_np, rhs_np, lhs_num, rhs_num)
     #            except TypeError:
     #                pass
 
 
+@pytest.mark.parametrize(
+    "lhs_np, rhs_np, lhs_num, rhs_num", generate_all_cases(), ids=str
+)
+def test_add(lhs_np, rhs_np, lhs_num, rhs_num):
+    print(f"{value_type(lhs_np)} x {value_type(rhs_np)}")
+
+    out_np = np.add(lhs_np, rhs_np)
+    out_num = num.add(lhs_num, rhs_num)
+
+    assert out_np.dtype == out_num.dtype
+
+    print(f"LHS {lhs_np}")
+    print(f"RHS {rhs_np}")
+    print(f"NumPy type: {out_np.dtype}, cuNumeric type: {out_num.dtype}")
+
+
 if __name__ == "__main__":
-    run_all_tests()
+    import sys
+
+    pytest.main(sys.argv)
