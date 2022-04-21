@@ -97,16 +97,16 @@ struct ZipImplBody<VariantKind::GPU, DIM, N> {
     const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
     if (index_arrays.size() == N) {
       if (dense) {
-        auto index_buf = create_buffer<const int64_t*, 1>(
-          index_arrays.size(), Memory::Kind::Z_COPY_MEM, 128 /*alignment*/);
+        auto index_buf =
+          create_buffer<const int64_t*, 1>(index_arrays.size(), Memory::Kind::Z_COPY_MEM);
         for (uint32_t idx = 0; idx < index_arrays.size(); ++idx) {
           index_buf[idx] = index_arrays[idx].ptr(rect);
         }
         zip_kernel_dense<DIM, N><<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
           out.ptr(rect), index_buf, rect, volume, std::make_index_sequence<N>());
       } else {
-        auto index_buf = create_buffer<AccessorRO<VAL, DIM>, 1>(
-          index_arrays.size(), Memory::Kind::Z_COPY_MEM, 128 /*alignment*/);
+        auto index_buf =
+          create_buffer<AccessorRO<VAL, DIM>, 1>(index_arrays.size(), Memory::Kind::Z_COPY_MEM);
         for (uint32_t idx = 0; idx < index_arrays.size(); ++idx) index_buf[idx] = index_arrays[idx];
         zip_kernel<DIM, N><<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
           out, index_buf, rect, pitches, volume, std::make_index_sequence<N>());
@@ -115,8 +115,8 @@ struct ZipImplBody<VariantKind::GPU, DIM, N> {
 #ifdef DEBUG_CUNUMERIC
       assert(index_arrays.size() < N);
 #endif
-      auto index_buf = create_buffer<AccessorRO<VAL, DIM>, 1>(
-        index_arrays.size(), Memory::Kind::Z_COPY_MEM, 128 /*alignment*/);
+      auto index_buf =
+        create_buffer<AccessorRO<VAL, DIM>, 1>(index_arrays.size(), Memory::Kind::Z_COPY_MEM);
       for (uint32_t idx = 0; idx < index_arrays.size(); ++idx) index_buf[idx] = index_arrays[idx];
       int num_arrays = index_arrays.size();
       zip_kernel<DIM, N><<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
