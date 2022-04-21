@@ -25,7 +25,7 @@ using namespace Legion;
 template <int DIM, int N, size_t... Is>
 __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   zip_kernel(const AccessorWO<Point<N>, DIM> out,
-             const DeferredBuffer<AccessorRO<int64_t, DIM>, 1> index_arrays,
+             const Buffer<AccessorRO<int64_t, DIM>, 1> index_arrays,
              const Rect<DIM> rect,
              const Pitches<DIM - 1> pitches,
              size_t volume,
@@ -42,7 +42,7 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
 template <int DIM, int N, size_t... Is>
 __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   zip_kernel_dense(Point<N>* out,
-                   const DeferredBuffer<const int64_t*, 1> index_arrays,
+                   const Buffer<const int64_t*, 1> index_arrays,
                    const Rect<DIM> rect,
                    size_t volume,
                    std::index_sequence<Is...>)
@@ -57,7 +57,7 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
 template <int DIM, int N>
 __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   zip_kernel(const AccessorWO<Point<N>, DIM> out,
-             const DeferredBuffer<AccessorRO<int64_t, DIM>, 1> index_arrays,
+             const Buffer<AccessorRO<int64_t, DIM>, 1> index_arrays,
              const Rect<DIM> rect,
              const Pitches<DIM - 1> pitches,
              int narrays,
@@ -92,35 +92,37 @@ struct ZipImplBody<VariantKind::GPU, DIM, N> {
                   const int64_t start_index,
                   std::index_sequence<Is...>) const
   {
+    auto stream         = get_cached_stream();
     const size_t volume = rect.volume();
     const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
     if (index_arrays.size() == N) {
       if (dense) {
-        DeferredBuffer<const int64_t*, 1> idx_arr(Memory::Kind::Z_COPY_MEM,
-                                                  Rect<1>(0, index_arrays.size() - 1));
+        auto index_buf = create_buffer<const int64_t*, 1>(
+          index_arrays.size(), Memory::Kind::Z_COPY_MEM, 128 /*alignment*/);
         for (uint32_t idx = 0; idx < index_arrays.size(); ++idx) {
-          idx_arr[idx] = index_arrays[idx].ptr(rect);
+          index_buf[idx] = index_arrays[idx].ptr(rect);
         }
-        zip_kernel_dense<DIM, N><<<blocks, THREADS_PER_BLOCK>>>(
-          out.ptr(rect), idx_arr, rect, volume, std::make_index_sequence<N>());
+        zip_kernel_dense<DIM, N><<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
+          out.ptr(rect), index_buf, rect, volume, std::make_index_sequence<N>());
       } else {
-        DeferredBuffer<AccessorRO<VAL, DIM>, 1> idx_arr(Memory::Kind::Z_COPY_MEM,
-                                                        Rect<1>(0, index_arrays.size() - 1));
-        for (uint32_t idx = 0; idx < index_arrays.size(); ++idx) idx_arr[idx] = index_arrays[idx];
-        zip_kernel<DIM, N><<<blocks, THREADS_PER_BLOCK>>>(
-          out, idx_arr, rect, pitches, volume, std::make_index_sequence<N>());
+        auto index_buf = create_buffer<AccessorRO<VAL, DIM>, 1>(
+          index_arrays.size(), Memory::Kind::Z_COPY_MEM, 128 /*alignment*/);
+        for (uint32_t idx = 0; idx < index_arrays.size(); ++idx) index_buf[idx] = index_arrays[idx];
+        zip_kernel<DIM, N><<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
+          out, index_buf, rect, pitches, volume, std::make_index_sequence<N>());
       }
     } else {
 #ifdef DEBUG_CUNUMERIC
       assert(index_arrays.size() < N);
 #endif
-      DeferredBuffer<AccessorRO<VAL, DIM>, 1> idx_arr(Memory::Kind::Z_COPY_MEM,
-                                                      Rect<1>(0, index_arrays.size() - 1));
-      for (uint32_t idx = 0; idx < index_arrays.size(); ++idx) idx_arr[idx] = index_arrays[idx];
+      auto index_buf = create_buffer<AccessorRO<VAL, DIM>, 1>(
+        index_arrays.size(), Memory::Kind::Z_COPY_MEM, 128 /*alignment*/);
+      for (uint32_t idx = 0; idx < index_arrays.size(); ++idx) index_buf[idx] = index_arrays[idx];
       int num_arrays = index_arrays.size();
-      zip_kernel<DIM, N><<<blocks, THREADS_PER_BLOCK>>>(
-        out, idx_arr, rect, pitches, num_arrays, volume, key_dim, start_index);
+      zip_kernel<DIM, N><<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
+        out, index_buf, rect, pitches, num_arrays, volume, key_dim, start_index);
     }
+    CHECK_CUDA_STREAM(stream);
   }
 };
 

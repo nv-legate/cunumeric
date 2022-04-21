@@ -143,10 +143,9 @@ struct AdvancedIndexingImplBody<VariantKind::GPU, CODE, DIM1, DIM2> {
     size_t size           = 0;
     const bool* index_ptr = index.ptr(rect_index);
     const size_t volume   = rect_index.volume();
-    cudaStream_t stream;
-    cudaStreamCreate(&stream);
-    auto offsets = create_buffer<int64_t>(volume, Memory::Kind::GPU_FB_MEM);
-    size         = compute_size(index, pitches_index, rect_index, volume, stream, offsets);
+    auto stream           = get_cached_stream();
+    auto offsets          = create_buffer<int64_t>(volume, Memory::Kind::GPU_FB_MEM);
+    size                  = compute_size(index, pitches_index, rect_index, volume, stream, offsets);
 
     out = create_buffer<OUT_TYPE>(size, Memory::Kind::GPU_FB_MEM);
     // populate output
@@ -162,6 +161,7 @@ struct AdvancedIndexingImplBody<VariantKind::GPU, CODE, DIM1, DIM2> {
                                                                          rect_index.lo,
                                                                          offsets);
     }
+    CHECK_CUDA_STREAM(stream);
     return size;
   }
 };
