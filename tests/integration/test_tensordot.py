@@ -14,7 +14,7 @@
 #
 
 from cunumeric.utils import tensordot_modes
-from test_tools.contractions import test_default
+from test_tools.contractions import check_default
 
 from legate.core import LEGATE_MAX_DIM
 
@@ -36,7 +36,7 @@ def test():
                 def operation(lib, *args, **kwargs):
                     return lib.tensordot(*args, **kwargs, axes=axes)
 
-                test_default(name, modes, operation)
+                check_default(name, modes, operation)
 
 
 if __name__ == "__main__":

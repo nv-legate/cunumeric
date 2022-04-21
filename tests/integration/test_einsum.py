@@ -212,7 +212,7 @@ def mk_typed_output(lib, shape):
     ]
 
 
-def test_np_vs_cn(expr, mk_input, mk_output=None):
+def check_np_vs_cn(expr, mk_input, mk_output=None):
     lhs, rhs = expr.split("->")
     opers = lhs.split(",")
     in_shapes = [
@@ -245,16 +245,16 @@ def test():
     print("Test small expressions (permutations and broadcasting):")
     for expr in gen_expr():
         print(expr)
-        test_np_vs_cn(expr, mk_input_that_permutes_to)
-        test_np_vs_cn(expr, mk_input_that_broadcasts_to)
+        check_np_vs_cn(expr, mk_input_that_permutes_to)
+        check_np_vs_cn(expr, mk_input_that_broadcasts_to)
     print("Test large expressions (default execution only):")
     for expr in LARGE_EXPRS:
         print(expr)
-        test_np_vs_cn(expr, mk_input_default)
+        check_np_vs_cn(expr, mk_input_default)
     print("Test casting:")
     for expr in SMALL_EXPRS:
         print(expr)
-        test_np_vs_cn(expr, mk_typed_input, mk_typed_output)
+        check_np_vs_cn(expr, mk_typed_input, mk_typed_output)
 
 
 if __name__ == "__main__":

@@ -120,21 +120,21 @@ def _test(name, modes, operation, gen_inputs, gen_output=None):
                 assert np.allclose(cn_out, cn_res, rtol=rtol)
 
 
-def test_default(name, modes, operation):
+def check_default(name, modes, operation):
     name = f"{name}"
     _test(name, modes, operation, gen_inputs_default, gen_output_default)
 
 
-def test_shapes(name, modes, operation):
+def check_shapes(name, modes, operation):
     name = f"{name} -- various shapes"
     _test(name, modes, operation, gen_inputs_of_various_shapes)
 
 
-def test_permutations(name, modes, operation):
+def check_permutations(name, modes, operation):
     name = f"{name} -- permutations"
     _test(name, modes, operation, gen_permuted_inputs)
 
 
-def test_types(name, modes, operation):
+def check_types(name, modes, operation):
     name = f"{name} -- various types"
     _test(name, modes, operation, gen_inputs_of_various_types)

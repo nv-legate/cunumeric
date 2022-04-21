@@ -66,7 +66,7 @@ def get_local_colors():
     return res
 
 
-def test_ingest(custom_partitioning, custom_sharding):
+def check_ingest(custom_partitioning, custom_sharding):
     data_split = (
         CustomSplit(get_subdomain)
         if custom_partitioning
@@ -89,10 +89,10 @@ def test():
         size *= d
     np_arr = np.arange(size).reshape(shape)
     for lg_arr in [
-        test_ingest(False, False),
-        test_ingest(False, True),
-        test_ingest(True, False),
-        test_ingest(True, True),
+        check_ingest(False, False),
+        check_ingest(False, True),
+        check_ingest(True, False),
+        check_ingest(True, True),
     ]:
         assert np.array_equal(np_arr, lg_arr)
         assert np.array_equal(np_arr, lg_arr * 1.0)  # force a copy

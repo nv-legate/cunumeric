@@ -27,7 +27,7 @@ def compare_assert(a_np, a_num):
         assert False
 
 
-def test_sort_axis(a_np, a_num, axis):
+def check_sort_axis(a_np, a_num, axis):
     compare_assert(a_np, a_num)
     print("Sorting axis " + str(axis) + ":")
     sort_np = np.sort(a_np, axis, kind="stable")
@@ -41,7 +41,7 @@ def test_sort_axis(a_np, a_num, axis):
     compare_assert(argsort_np, argsort_num)
 
 
-def test_1D():
+def check_1D():
     np.random.seed(42)
     A_np = np.array(np.random.randint(10, size=30), dtype=np.int32)
 
@@ -60,7 +60,7 @@ def test_1D():
     compare_assert(sortA_np, A_num)
 
 
-def test_2D():
+def check_2D():
     np.random.seed(42)
     x_dim = 5
     y_dim = 3
@@ -72,12 +72,12 @@ def test_2D():
     print("Sorting matrix:\n")
     print(A_num)
 
-    test_sort_axis(A_np, A_num, 1)
-    test_sort_axis(A_np, A_num, 0)
-    test_sort_axis(A_np, A_num, axis=None)
+    check_sort_axis(A_np, A_num, 1)
+    check_sort_axis(A_np, A_num, 0)
+    check_sort_axis(A_np, A_num, axis=None)
 
 
-def test_3D(x_dim, y_dim, z_dim):
+def check_3D(x_dim, y_dim, z_dim):
     np.random.seed(42)
     A_np = np.array(
         np.random.randint(10, size=x_dim * y_dim * z_dim), dtype=np.int32
@@ -87,13 +87,13 @@ def test_3D(x_dim, y_dim, z_dim):
     print("Sorting 3d tensor:\n")
     print(A_np)
 
-    test_sort_axis(A_np, A_num, 2)
-    test_sort_axis(A_np, A_num, 1)
-    test_sort_axis(A_np, A_num, 0)
-    test_sort_axis(A_np, A_num, axis=None)
+    check_sort_axis(A_np, A_num, 2)
+    check_sort_axis(A_np, A_num, 1)
+    check_sort_axis(A_np, A_num, 0)
+    check_sort_axis(A_np, A_num, axis=None)
 
 
-def test_3D_complex(x_dim, y_dim, z_dim):
+def check_3D_complex(x_dim, y_dim, z_dim):
     np.random.seed(42)
     A_np = np.array(
         np.random.random(size=x_dim * y_dim * z_dim), dtype=np.complex64
@@ -103,13 +103,13 @@ def test_3D_complex(x_dim, y_dim, z_dim):
     print("Sorting 3d tensor:\n")
     print(A_np)
 
-    test_sort_axis(A_np, A_num, 2)
-    test_sort_axis(A_np, A_num, 1)
-    test_sort_axis(A_np, A_num, 0)
-    test_sort_axis(A_np, A_num, axis=None)
+    check_sort_axis(A_np, A_num, 2)
+    check_sort_axis(A_np, A_num, 1)
+    check_sort_axis(A_np, A_num, 0)
+    check_sort_axis(A_np, A_num, axis=None)
 
 
-def test_api(a=None):
+def check_api(a=None):
     if a is None:
         a = np.arange(4 * 2 * 3).reshape(4, 2, 3)
     a_num = num.array(a)
@@ -207,41 +207,41 @@ def generate_random(shape, datatype):
     return a_np.reshape(shape)
 
 
-def test_dtypes():
+def check_dtypes():
     np.random.seed(42)
-    test_api(generate_random((2, 5, 7), np.uint8))
-    test_api(generate_random((8, 5), np.uint16))
-    test_api(generate_random((22, 5, 7), np.uint32))
-    test_api(generate_random((220,), np.uint32))
+    check_api(generate_random((2, 5, 7), np.uint8))
+    check_api(generate_random((8, 5), np.uint16))
+    check_api(generate_random((22, 5, 7), np.uint32))
+    check_api(generate_random((220,), np.uint32))
 
-    test_api(generate_random((2, 5, 7), np.int8))
-    test_api(generate_random((8, 5), np.int16))
-    test_api(generate_random((22, 5, 7), np.int32))
-    test_api(generate_random((2, 5, 7), np.int64))
+    check_api(generate_random((2, 5, 7), np.int8))
+    check_api(generate_random((8, 5), np.int16))
+    check_api(generate_random((22, 5, 7), np.int32))
+    check_api(generate_random((2, 5, 7), np.int64))
 
-    test_api(generate_random((8, 5), np.float32))
-    test_api(generate_random((8, 5), np.float64))
-    test_api(generate_random((22, 5, 7), np.double))
-    test_api(generate_random((220,), np.double))
+    check_api(generate_random((8, 5), np.float32))
+    check_api(generate_random((8, 5), np.float64))
+    check_api(generate_random((22, 5, 7), np.double))
+    check_api(generate_random((220,), np.double))
 
-    test_api(generate_random((2, 5, 7), np.complex64))
-    test_api(generate_random((2, 5, 7), np.complex128))
-    test_api(generate_random((220,), np.complex128))
+    check_api(generate_random((2, 5, 7), np.complex64))
+    check_api(generate_random((2, 5, 7), np.complex128))
+    check_api(generate_random((220,), np.complex128))
 
 
 def test():
     print("\n\n -----------  1D test ---------------\n")
-    test_1D()
+    check_1D()
     print("\n\n -----------  2D test ---------------\n")
-    test_2D()
+    check_2D()
     print("\n\n -----------  3D test (int32) -------\n")
-    test_3D(51, 23, 17)
+    check_3D(51, 23, 17)
     print("\n\n -----------  3D test (complex) -----\n")
-    test_3D_complex(27, 30, 45)
+    check_3D_complex(27, 30, 45)
     print("\n\n -----------  API test --------------\n")
-    test_api()
+    check_api()
     print("\n\n -----------  dtype test ------------\n")
-    test_dtypes()
+    check_dtypes()
 
 
 if __name__ == "__main__":
