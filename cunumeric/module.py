@@ -4004,7 +4004,7 @@ def argpartition(a, kth, axis=-1, kind="introselect", order=None):
     ----------
     a : array_like
         Input array.
-    kth : int or sequence of ints
+    kth : int or Sequence[int]
     axis : int or None, optional
         Axis to partition. By default, the index -1 (the last axis) is used. If
         None, the flattened array is used.
@@ -4054,7 +4054,7 @@ def partition(a, kth, axis=-1, kind="introselect", order=None):
     ----------
     a : array_like
         Input array.
-    kth : int or sequence of ints
+    kth : int or Sequence[int]
     axis : int or None, optional
         Axis to partition. By default, the index -1 (the last axis) is used. If
         None, the flattened array is used.
