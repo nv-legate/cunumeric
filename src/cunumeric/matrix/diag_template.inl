@@ -21,15 +21,16 @@ namespace cunumeric {
 using namespace Legion;
 using namespace legate;
 
-template <VariantKind KIND, LegateTypeCode CODE, int DIM, bool extract>
+template <VariantKind KIND, LegateTypeCode M_CODE, LegateTypeCode D_CODE, int DIM, bool extract>
 struct DiagImplBody;
 
-template <VariantKind KIND>
+template <VariantKind KIND, LegateTypeCode M_CODE, int DIM>
 struct DiagImpl {
-  template <LegateTypeCode CODE, int DIM>
+  template <LegateTypeCode D_CODE>
   void operator()(DiagArgs& args) const
   {
-    using VAL = legate_type_of<CODE>;
+    using M_VAL = legate_type_of<M_CODE>;
+    using D_VAL = legate_type_of<D_CODE>;
 
     if (args.extract) {
       auto shape_in = args.matrix.shape<DIM>();
@@ -48,14 +49,17 @@ struct DiagImpl {
       coord_t distance = end - start + 1;
       if (distance < 0) return;
 
-      auto in  = args.matrix.read_accessor<VAL, DIM>(shape_in);
-      auto out = args.diag.reduce_accessor<SumReduction<VAL>, true, DIM>(shape_out);
+      auto in  = args.matrix.read_accessor<M_VAL, DIM>(shape_in);
+      auto out = args.diag.reduce_accessor<SumReduction<D_VAL>, true, DIM>(shape_out);
 
-      DiagImplBody<KIND, CODE, DIM, true>()(
+      DiagImplBody<KIND, M_CODE, D_CODE, DIM, true>()(
         out, in, start, pitches_in, shape_in, args.naxes, distance);
 
     } else {  // extract=False version: returning diagonal matrix from 1d array
       auto shape = args.matrix.shape<2>();
+#ifdef DEBUG_CUNUMERIC
+      assert(M_CODE == D_CODE);
+#endif
 
       // Solve for the start
       // y = x
@@ -88,10 +92,19 @@ struct DiagImpl {
       auto shape_out = args.matrix.shape<2>();
       auto shape_in  = args.diag.shape<2>();
 
-      auto in  = args.diag.read_accessor<VAL, 2>(shape_in);
-      auto out = args.matrix.read_write_accessor<VAL, 2>(shape_out);
-      DiagImplBody<KIND, CODE, 2, false>()(in, out, start, distance);
+      auto in  = args.diag.read_accessor<M_VAL, 2>(shape_in);
+      auto out = args.matrix.read_write_accessor<M_VAL, 2>(shape_out);
+      DiagImplBody<KIND, M_CODE, D_CODE, 2, false>()(in, out, start, distance);
     }
+  }
+};
+
+template <VariantKind KIND>
+struct DiagImplHelper {
+  template <LegateTypeCode M_CODE, int DIM>
+  void operator()(DiagArgs& args) const
+  {
+    type_dispatch(args.diag.code(), DiagImpl<KIND, M_CODE, DIM>{}, args);
   }
 };
 
@@ -103,7 +116,7 @@ static void diag_template(TaskContext& context)
   Array& matrix = extract ? context.inputs()[0] : context.outputs()[0];
   Array& diag   = extract ? context.reductions()[0] : context.inputs()[0];
   DiagArgs args{naxes, extract, matrix, diag};
-  double_dispatch(matrix.dim(), matrix.code(), DiagImpl<KIND>{}, args);
+  double_dispatch(matrix.dim(), matrix.code(), DiagImplHelper<KIND>{}, args);
 }
 
 }  // namespace cunumeric

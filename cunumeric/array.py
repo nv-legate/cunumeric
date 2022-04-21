@@ -1921,10 +1921,16 @@ class ndarray:
     # currently offset option is implemented only for the case of number of
     # axes=2. This restriction can be lifted in the future if there is a
     # use case of having arbitrary number of offsets
-    def _diag_helper(self, offset=0, axes=None, extract=True, trace=False):
+    def _diag_helper(
+        self, offset=0, axes=None, extract=True, trace=False, out=None
+    ):
         # _diag_helper can be used only for arrays with dim>=1
         if self.ndim < 1:
             raise ValueError("_diag_helper is implemented for dim>=1")
+        # out should be passed only for Trace
+        if out is not None and not trace:
+            raise ValueError("_diag_helper supports out only for trace=True")
+
         elif self.ndim == 1:
             if axes is not None:
                 raise ValueError(
@@ -1932,9 +1938,9 @@ class ndarray:
                     "diagonal for 1D array"
                 )
             m = self.shape[0] + np.abs(offset)
-            out = ndarray((m, m), dtype=self.dtype, inputs=(self,))
+            out_arr = ndarray((m, m), dtype=self.dtype, inputs=(self,))
             diag_size = self.shape[0]
-            out._thunk._diag_helper(
+            out_arr._thunk._diag_helper(
                 self._thunk, offset=offset, naxes=0, extract=False, trace=False
             )
         else:
@@ -2004,12 +2010,20 @@ class ndarray:
                     )
             else:
                 out_shape = tr_shape + (diag_size,)
-            out = ndarray(shape=out_shape, dtype=self.dtype, inputs=(self,))
 
-            out._thunk._diag_helper(
+            if out is not None:
+                out_arr = convert_to_cunumeric_ndarray(out)
+                if out.shape != out_shape:
+                    raise ValueError("output array has wrong shape")
+            else:
+                out_arr = ndarray(
+                    shape=out_shape, dtype=self.dtype, inputs=(self,)
+                )
+
+            out_arr._thunk._diag_helper(
                 a._thunk, offset=offset, naxes=N, extract=extract, trace=trace
             )
-        return out
+        return out_arr
 
     def diagonal(
         self, offset=0, axis1=None, axis2=None, extract=True, axes=None
@@ -2075,31 +2089,18 @@ class ndarray:
             # default values for axis
             axes = (0, 1)
         elif (axis1 is None) or (axis2 is None):
-            return ValueError("both axis should be passed")
+            raise ValueError("both axes should be passed")
         else:
             axes = (axis1, axis2)
 
-        res = self._diag_helper(offset=offset, axes=axes, trace=True)
+        res = self._diag_helper(offset=offset, axes=axes, trace=True, out=out)
 
         # for 2D arrays we must return scalar
         if self.ndim == 2:
             res = res[0]
-
-        if out is not None:
-            out = convert_to_cunumeric_ndarray(out)
-            # out should be right shape
-            if out.shape != res.shape:
-                return ValueError("out has a wrong shape")
-            # type of out should be preserved
-            if out.dtype != res.dtype:
-                out._thunk.convert(res._thunk)
-            else:
-                out._thunk.copy(res._thunk)
-            return out
-        else:
-            if dtype is not None:
-                res = res.astype(dtype)
-            return res
+        if out is None and dtype is not None:
+            res = res.astype(dtype)
+        return res
 
     @add_boilerplate("rhs")
     def dot(self, rhs, out=None):
