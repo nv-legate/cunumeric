@@ -22,6 +22,7 @@ import numpy as np
 
 import legate.core.types as ty
 from legate.core import LEGATE_MAX_DIM, Rect, get_legate_runtime, legion
+from legate.core.shape import Shape
 
 from .config import (
     BitGeneratorOperation,
@@ -264,7 +265,7 @@ class Runtime(object):
             manual=True,
             launch_domain=Rect(lo=(0,), hi=(self.num_procs,)),
         )
-        task.add_scalar_arg(4, ty.int32)  # OP_SET_SEED
+        task.add_scalar_arg(BitGeneratorOperation.SET_SEED, ty.int32)
         task.add_scalar_arg(handle, ty.uint32)
         task.add_scalar_arg(seed, ty.uint64)
         task.execute()
@@ -278,9 +279,8 @@ class Runtime(object):
         )
         task.add_scalar_arg(BitGeneratorOperation.RAND_RAW, ty.int32)
         task.add_scalar_arg(handle, ty.uint32)
-        gencount = 1
-        for sz in size:
-            gencount = gencount * sz
+        a = Shape(size)
+        gencount = a.volume()
         task.add_scalar_arg(gencount, ty.uint64)  # size of the output
         task.execute()
         # for consistent random ordering
