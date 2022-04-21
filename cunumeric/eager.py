@@ -16,12 +16,12 @@
 import numpy as np
 
 from .config import (
+    BinaryOpCode,
+    FFTDirection,
     FFT_C2R,
     FFT_D2Z,
     FFT_R2C,
     FFT_Z2D,
-    BinaryOpCode,
-    FFTDirection,
     UnaryOpCode,
     UnaryRedCode,
     WindowOpCode,
