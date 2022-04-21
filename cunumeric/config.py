@@ -80,6 +80,7 @@ _cunumeric = cunumeric_lib.shared_object
 # Match these to CuNumericOpCode in cunumeric_c.h
 @unique
 class CuNumericOpCode(IntEnum):
+    ADVANCED_INDEXING = _cunumeric.CUNUMERIC_ADVANCED_INDEXING
     ARANGE = _cunumeric.CUNUMERIC_ARANGE
     BINARY_OP = _cunumeric.CUNUMERIC_BINARY_OP
     BINARY_RED = _cunumeric.CUNUMERIC_BINARY_RED
@@ -116,7 +117,9 @@ class CuNumericOpCode(IntEnum):
     UNIQUE_REDUCE = _cunumeric.CUNUMERIC_UNIQUE_REDUCE
     UNLOAD_CUDALIBS = _cunumeric.CUNUMERIC_UNLOAD_CUDALIBS
     WHERE = _cunumeric.CUNUMERIC_WHERE
+    WINDOW = _cunumeric.CUNUMERIC_WINDOW
     WRITE = _cunumeric.CUNUMERIC_WRITE
+    ZIP = _cunumeric.CUNUMERIC_ZIP
 
 
 # Match these to CuNumericUnaryOpCode in cunumeric_c.h
@@ -221,6 +224,15 @@ class BinaryOpCode(IntEnum):
     POWER = _cunumeric.CUNUMERIC_BINOP_POWER
     RIGHT_SHIFT = _cunumeric.CUNUMERIC_BINOP_RIGHT_SHIFT
     SUBTRACT = _cunumeric.CUNUMERIC_BINOP_SUBTRACT
+
+
+@unique
+class WindowOpCode(IntEnum):
+    BARLETT = _cunumeric.CUNUMERIC_WINDOW_BARLETT
+    BLACKMAN = _cunumeric.CUNUMERIC_WINDOW_BLACKMAN
+    HAMMING = _cunumeric.CUNUMERIC_WINDOW_HAMMING
+    HANNING = _cunumeric.CUNUMERIC_WINDOW_HANNING
+    KAISER = _cunumeric.CUNUMERIC_WINDOW_KAISER
 
 
 # Match these to RandGenCode in rand_util.h
@@ -450,3 +462,17 @@ class FFTNormalization(IntEnum):
             return "forward"
         else:
             return in_string
+
+
+# Match these to CuNumericTypeCodes in cunumeric_c.h
+@unique
+class CuNumericTypeCodes(IntEnum):
+    CUNUMERIC_TYPE_POINT1 = _cunumeric.CUNUMERIC_TYPE_POINT1
+    CUNUMERIC_TYPE_POINT2 = _cunumeric.CUNUMERIC_TYPE_POINT2
+    CUNUMERIC_TYPE_POINT3 = _cunumeric.CUNUMERIC_TYPE_POINT3
+    CUNUMERIC_TYPE_POINT4 = _cunumeric.CUNUMERIC_TYPE_POINT4
+    CUNUMERIC_TYPE_POINT5 = _cunumeric.CUNUMERIC_TYPE_POINT5
+    CUNUMERIC_TYPE_POINT6 = _cunumeric.CUNUMERIC_TYPE_POINT6
+    CUNUMERIC_TYPE_POINT7 = _cunumeric.CUNUMERIC_TYPE_POINT7
+    CUNUMERIC_TYPE_POINT8 = _cunumeric.CUNUMERIC_TYPE_POINT8
+    CUNUMERIC_TYPE_POINT9 = _cunumeric.CUNUMERIC_TYPE_POINT9

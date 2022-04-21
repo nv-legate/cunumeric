@@ -15,15 +15,16 @@
 
 import numpy as np
 
-from .config import (
+from .config import 
+    BinaryOpCode,
+    FFTDirection,
     FFT_C2R,
     FFT_D2Z,
     FFT_R2C,
     FFT_Z2D,
-    BinaryOpCode,
-    FFTDirection,
     UnaryOpCode,
     UnaryRedCode,
+    WindowOpCode,
 )
 from .thunk import NumPyThunk
 from .utils import is_advanced_indexing
@@ -71,6 +72,15 @@ _UNARY_OPS = {
     UnaryOpCode.TRUNC: np.trunc,
 }
 
+_UNARY_RED_OPS = {
+    UnaryRedCode.ALL: np.all,
+    UnaryRedCode.ANY: np.any,
+    UnaryRedCode.MAX: np.max,
+    UnaryRedCode.MIN: np.min,
+    UnaryRedCode.PROD: np.prod,
+    UnaryRedCode.SUM: np.sum,
+}
+
 _BINARY_OPS = {
     BinaryOpCode.ADD: np.add,
     BinaryOpCode.ARCTAN2: np.arctan2,
@@ -105,6 +115,14 @@ _BINARY_OPS = {
     BinaryOpCode.POWER: np.power,
     BinaryOpCode.RIGHT_SHIFT: np.right_shift,
     BinaryOpCode.SUBTRACT: np.subtract,
+}
+
+_WINDOW_OPS = {
+    WindowOpCode.BARLETT: np.bartlett,
+    WindowOpCode.BLACKMAN: np.blackman,
+    WindowOpCode.HAMMING: np.hamming,
+    WindowOpCode.HANNING: np.hanning,
+    WindowOpCode.KAISER: np.kaiser,
 }
 
 
@@ -666,18 +684,13 @@ class EagerArray(NumPyThunk):
                 initial,
             )
             return
-        if op == UnaryRedCode.ALL:
-            np.all(
-                rhs.array,
-                out=self.array,
-                axis=axes,
-                keepdims=keepdims,
-                where=where
-                if not isinstance(where, EagerArray)
-                else where.array,
-            )
-        elif op == UnaryRedCode.ANY:
-            np.any(
+        if op in _UNARY_RED_OPS:
+            fn = _UNARY_RED_OPS[op]
+            if initial is None:
+                # NumPy starts using this predefined constant, instead of None,
+                # to mean no value was given by the caller
+                initial = np._NoValue
+            fn(
                 rhs.array,
                 out=self.array,
                 axis=axes,
@@ -694,66 +707,6 @@ class EagerArray(NumPyThunk):
             np.argmin(rhs.array, out=self.array, axis=axes[0])
         elif op == UnaryRedCode.CONTAINS:
             self.array.fill(args[0] in rhs.array)
-        elif op == UnaryRedCode.MAX:
-            try:
-                # Try the new version of this interface for NumPy
-                rhs.array.max(
-                    axis=axes,
-                    out=self.array,
-                    keepdims=keepdims,
-                    initial=initial,
-                    where=where
-                    if not isinstance(where, EagerArray)
-                    else where.array,
-                )
-            except Exception:  # TDB: refine exception
-                rhs.array.max(axis=axes, out=self.array, keepdims=keepdims)
-        elif op == UnaryRedCode.MIN:
-            try:
-                # Try the new version of this interface for NumPy
-                rhs.array.min(
-                    axis=axes,
-                    out=self.array,
-                    keepdims=keepdims,
-                    initial=initial,
-                    where=where
-                    if not isinstance(where, EagerArray)
-                    else where.array,
-                )
-            except Exception:  # TDB: refine exception
-                rhs.array.min(axis=axes, out=self.array, keepdims=keepdims)
-        elif op == UnaryRedCode.PROD:
-            try:
-                # Try the new version of this interface for NumPy
-                np.prod(
-                    rhs.array,
-                    out=self.array,
-                    axis=axes,
-                    keepdims=keepdims,
-                    initial=initial,
-                    where=where
-                    if not isinstance(where, EagerArray)
-                    else where.array,
-                )
-            except Exception:
-                np.prod(
-                    rhs.array, out=self.array, axis=axes, keepdims=keepdims
-                )
-        elif op == UnaryRedCode.SUM:
-            try:
-                # Try the new version of this interface for NumPy
-                np.sum(
-                    rhs.array,
-                    out=self.array,
-                    axis=axes,
-                    keepdims=keepdims,
-                    initial=initial,
-                    where=where
-                    if not isinstance(where, EagerArray)
-                    else where.array,
-                )
-            except Exception:
-                np.sum(rhs.array, out=self.array, axis=axes, keepdims=keepdims)
         elif op == UnaryRedCode.COUNT_NONZERO:
             self.array[()] = np.count_nonzero(rhs.array, axis=axes)
         else:
@@ -823,3 +776,10 @@ class EagerArray(NumPyThunk):
             return self.deferred.unique()
         else:
             return EagerArray(self.runtime, np.unique(self.array))
+
+    def create_window(self, op_code, M, *args):
+        if self.deferred is not None:
+            return self.deferred.create_window(op_code)
+        else:
+            fn = _WINDOW_OPS[op_code]
+            self.array[:] = fn(M, *args)

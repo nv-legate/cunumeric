@@ -23,6 +23,7 @@
 // Also, sort these alphabetically except the first one for easy lookup later
 enum CuNumericOpCode {
   _CUNUMERIC_OP_CODE_BASE = 0,
+  CUNUMERIC_ADVANCED_INDEXING,
   CUNUMERIC_ARANGE,
   CUNUMERIC_BINARY_OP,
   CUNUMERIC_BINARY_RED,
@@ -59,7 +60,9 @@ enum CuNumericOpCode {
   CUNUMERIC_UNIQUE_REDUCE,
   CUNUMERIC_UNLOAD_CUDALIBS,
   CUNUMERIC_WHERE,
+  CUNUMERIC_WINDOW,
   CUNUMERIC_WRITE,
+  CUNUMERIC_ZIP,
 };
 
 // Match these to UnaryOpCode in config.py
@@ -166,6 +169,16 @@ enum CuNumericBinaryOpCode {
   CUNUMERIC_BINOP_SUBTRACT,
 };
 
+// Match these to WindowOpCode in config.py
+// Also, sort these alphabetically for easy lookup later
+enum CuNumericWindowOpCode {
+  CUNUMERIC_WINDOW_BARLETT = 1,
+  CUNUMERIC_WINDOW_BLACKMAN,
+  CUNUMERIC_WINDOW_HAMMING,
+  CUNUMERIC_WINDOW_HANNING,
+  CUNUMERIC_WINDOW_KAISER,
+};
+
 // Match these to CuNumericRedopCode in config.py
 enum CuNumericRedopID {
   CUNUMERIC_ARGMAX_REDOP = 1,
@@ -198,6 +211,19 @@ enum CuNumericFFTType {
 
 // These fft types match CuNumericFFTDirection in config.py and cufftDirection
 enum CuNumericFFTDirection { CUNUMERIC_FFT_FORWARD = -1, CUNUMERIC_FFT_INVERSE = 1 };
+
+// Match these to CuNumericTypeCodes in config.py
+enum CuNumericTypeCodes {
+  CUNUMERIC_TYPE_POINT1 = MAX_TYPE_NUMBER + 1,
+  CUNUMERIC_TYPE_POINT2,
+  CUNUMERIC_TYPE_POINT3,
+  CUNUMERIC_TYPE_POINT4,
+  CUNUMERIC_TYPE_POINT5,
+  CUNUMERIC_TYPE_POINT6,
+  CUNUMERIC_TYPE_POINT7,
+  CUNUMERIC_TYPE_POINT8,
+  CUNUMERIC_TYPE_POINT9,
+};
 
 #ifdef __cplusplus
 extern "C" {

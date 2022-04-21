@@ -3,25 +3,38 @@ import importlib
 import numpy
 
 blocklist = [
-    "test",
+    "abs",
     "add_docstring",
     "add_newdoc",
     "add_newdoc_ufunc",
     "alen",
     "alltrue",
+    "bitwise_not",
     "compare_chararrays",
+    "cumproduct",
     "fastCopyAndTranspose",
     "get_array_wrap",
     "iterable",
+    "max",
+    "min",
+    "ndim",
+    "product",
     "recfromcsv",
     "recfromtxt",
+    "round",
     "safe_eval",
     "set_numeric_ops",
+    "size",
     "sometrue",
+    "test",
+]
+
+# these do not have valid intersphinx references
+missing_numpy_refs = {
     "loads",
     "mafromtxt",
     "ndfromtxt",
-]
+}
 
 
 def check_ufunc(obj, n):
@@ -113,7 +126,10 @@ def _section(
         "",
     ]
     for f in sorted(base_funcs):
-        base_cell = base_fmt.format(f)
+        if f not in missing_numpy_refs:
+            base_cell = base_fmt.format(f)
+        else:
+            base_cell = f"``numpy.{f}``"
         lg_cell = r"\-"
         single_gpu_cell = ""
         multi_gpu_cell = ""

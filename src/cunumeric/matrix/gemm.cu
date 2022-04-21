@@ -38,7 +38,9 @@ static inline void gemm_template(
   VAL alpha = -1.0;
   VAL beta  = 1.0;
 
-  gemm(context, transa, transb, m, n, k, &alpha, rhs1, m, rhs2, n, &beta, lhs, m);
+  CHECK_CUBLAS(gemm(context, transa, transb, m, n, k, &alpha, rhs1, m, rhs2, n, &beta, lhs, m));
+
+  CHECK_CUDA_STREAM(stream);
 }
 
 template <typename Gemm, typename VAL, typename CTOR>
@@ -55,7 +57,9 @@ static inline void complex_gemm_template(
   auto alpha = ctor(-1.0, 0.0);
   auto beta  = ctor(1.0, 0.0);
 
-  gemm(context, transa, transb, m, n, k, &alpha, rhs1, m, rhs2, n, &beta, lhs, m);
+  CHECK_CUBLAS(gemm(context, transa, transb, m, n, k, &alpha, rhs1, m, rhs2, n, &beta, lhs, m));
+
+  CHECK_CUDA_STREAM(stream);
 }
 
 template <>
