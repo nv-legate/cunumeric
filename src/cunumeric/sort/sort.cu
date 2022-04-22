@@ -1265,6 +1265,9 @@ void sample_sort_nccl_nd(SortPiece<VAL> local_sorted,
     }
   }
 
+  // we can remove sort data now
+  if (argsort) { merge_buffers[0].values.destroy(); }
+
   /////////////////////////////////////////////////////////////////////////////////////////////////
   /////////////// Part 5: re-balance data to match input/output dimensions
   /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1419,10 +1422,6 @@ void sample_sort_nccl_nd(SortPiece<VAL> local_sorted,
                                                       0,
                                                       thrust::plus<int64_t>());
     SortPiece<VAL> send_left_data, recv_left_data, send_right_data, recv_right_data;
-    send_left_data.values  = create_buffer<VAL>(send_left_size, Memory::GPU_FB_MEM);
-    recv_left_data.values  = create_buffer<VAL>(recv_left_size, Memory::GPU_FB_MEM);
-    send_right_data.values = create_buffer<VAL>(send_right_size, Memory::GPU_FB_MEM);
-    recv_right_data.values = create_buffer<VAL>(recv_right_size, Memory::GPU_FB_MEM);
     send_left_data.size =
       use_copy_kernels ? send_left_size : 0;  // will be incremented when data is inserted
     recv_left_data.size = recv_left_size;
@@ -1434,6 +1433,11 @@ void sample_sort_nccl_nd(SortPiece<VAL> local_sorted,
       recv_left_data.indices  = create_buffer<int64_t>(recv_left_size, Memory::GPU_FB_MEM);
       send_right_data.indices = create_buffer<int64_t>(send_right_size, Memory::GPU_FB_MEM);
       recv_right_data.indices = create_buffer<int64_t>(recv_right_size, Memory::GPU_FB_MEM);
+    } else {
+      send_left_data.values  = create_buffer<VAL>(send_left_size, Memory::GPU_FB_MEM);
+      recv_left_data.values  = create_buffer<VAL>(recv_left_size, Memory::GPU_FB_MEM);
+      send_right_data.values = create_buffer<VAL>(send_right_size, Memory::GPU_FB_MEM);
+      recv_right_data.values = create_buffer<VAL>(recv_right_size, Memory::GPU_FB_MEM);
     }
 
     Buffer<int64_t> segment_diff_pos;
@@ -1471,21 +1475,6 @@ void sample_sort_nccl_nd(SortPiece<VAL> local_sorted,
       dim3 block_shape          = dim3(THREADS_PER_BLOCK, segments_per_threadblock);
       const size_t num_blocks_y = (num_segments_l + block_shape.y - 1) / block_shape.y;
       dim3 grid_shape           = dim3(1, num_blocks_y);
-      copy_data_to_rebalance_buffers<<<grid_shape, block_shape, 0, stream>>>(
-        segment_diff_pos,
-        send_left,
-        send_right,
-        send_left_pos,
-        send_right_pos,
-        merge_buffers[0].values,
-        merge_buffers[0].size,
-        send_left_data.values,
-        send_right_data.values,
-        num_segments_l,
-        segment_size_l,
-        my_rank,
-        num_sort_ranks);
-
       if (argsort) {
         copy_data_to_rebalance_buffers<<<grid_shape, block_shape, 0, stream>>>(
           segment_diff_pos,
@@ -1501,6 +1490,21 @@ void sample_sort_nccl_nd(SortPiece<VAL> local_sorted,
           segment_size_l,
           my_rank,
           num_sort_ranks);
+      } else {
+        copy_data_to_rebalance_buffers<<<grid_shape, block_shape, 0, stream>>>(
+          segment_diff_pos,
+          send_left,
+          send_right,
+          send_left_pos,
+          send_right_pos,
+          merge_buffers[0].values,
+          merge_buffers[0].size,
+          send_left_data.values,
+          send_right_data.values,
+          num_segments_l,
+          segment_size_l,
+          my_rank,
+          num_sort_ranks);
       }
 
       CHECK_CUDA(cudaStreamSynchronize(stream));  // TODO need between async & destroy()?
@@ -1512,15 +1516,16 @@ void sample_sort_nccl_nd(SortPiece<VAL> local_sorted,
         size_t end_pos = start_pos + segment_size_l + segment_diff[segment];
         if (send_left[segment] > 0) {
           auto size = send_left[segment];
-          CHECK_CUDA(cudaMemcpyAsync(send_left_data.values.ptr(send_left_data.size),
-                                     merge_buffers[0].values.ptr(start_pos),
-                                     sizeof(VAL) * size,
-                                     cudaMemcpyDeviceToDevice,
-                                     stream));
           if (argsort) {
             CHECK_CUDA(cudaMemcpyAsync(send_left_data.indices.ptr(send_left_data.size),
                                        merge_buffers[0].indices.ptr(start_pos),
                                        sizeof(int64_t) * size,
+                                       cudaMemcpyDeviceToDevice,
+                                       stream));
+          } else {
+            CHECK_CUDA(cudaMemcpyAsync(send_left_data.values.ptr(send_left_data.size),
+                                       merge_buffers[0].values.ptr(start_pos),
+                                       sizeof(VAL) * size,
                                        cudaMemcpyDeviceToDevice,
                                        stream));
           }
@@ -1528,15 +1533,16 @@ void sample_sort_nccl_nd(SortPiece<VAL> local_sorted,
         }
         if (send_right[segment] > 0) {
           auto size = send_right[segment];
-          CHECK_CUDA(cudaMemcpyAsync(send_right_data.values.ptr(send_right_data.size),
-                                     merge_buffers[0].values.ptr(end_pos - size),
-                                     sizeof(VAL) * size,
-                                     cudaMemcpyDeviceToDevice,
-                                     stream));
           if (argsort) {
             CHECK_CUDA(cudaMemcpyAsync(send_right_data.indices.ptr(send_right_data.size),
                                        merge_buffers[0].indices.ptr(end_pos - size),
                                        sizeof(int64_t) * size,
+                                       cudaMemcpyDeviceToDevice,
+                                       stream));
+          } else {
+            CHECK_CUDA(cudaMemcpyAsync(send_right_data.values.ptr(send_right_data.size),
+                                       merge_buffers[0].values.ptr(end_pos - size),
+                                       sizeof(VAL) * size,
                                        cudaMemcpyDeviceToDevice,
                                        stream));
           }
@@ -1550,41 +1556,6 @@ void sample_sort_nccl_nd(SortPiece<VAL> local_sorted,
 
     // send/receive overlapping data
     if (send_left_size + recv_left_size + send_right_size + recv_right_size > 0) {
-      CHECK_NCCL(ncclGroupStart());
-      if (send_left_size > 0) {
-        CHECK_NCCL(ncclSend(send_left_data.values.ptr(0),
-                            send_left_data.size * sizeof(VAL),
-                            ncclInt8,
-                            sort_ranks[my_sort_rank - 1],
-                            *comm,
-                            stream));
-      }
-      if (recv_left_size > 0) {
-        CHECK_NCCL(ncclRecv(recv_left_data.values.ptr(0),
-                            recv_left_data.size * sizeof(VAL),
-                            ncclInt8,
-                            sort_ranks[my_sort_rank - 1],
-                            *comm,
-                            stream));
-      }
-      if (send_right_size > 0) {
-        CHECK_NCCL(ncclSend(send_right_data.values.ptr(0),
-                            send_right_data.size * sizeof(VAL),
-                            ncclInt8,
-                            sort_ranks[my_sort_rank + 1],
-                            *comm,
-                            stream));
-      }
-      if (recv_right_size > 0) {
-        CHECK_NCCL(ncclRecv(recv_right_data.values.ptr(0),
-                            recv_right_data.size * sizeof(VAL),
-                            ncclInt8,
-                            sort_ranks[my_sort_rank + 1],
-                            *comm,
-                            stream));
-      }
-      CHECK_NCCL(ncclGroupEnd());
-
       if (argsort) {
         CHECK_NCCL(ncclGroupStart());
         if (send_left_size > 0) {
@@ -1620,14 +1591,50 @@ void sample_sort_nccl_nd(SortPiece<VAL> local_sorted,
                               stream));
         }
         CHECK_NCCL(ncclGroupEnd());
+      } else {
+        CHECK_NCCL(ncclGroupStart());
+        if (send_left_size > 0) {
+          CHECK_NCCL(ncclSend(send_left_data.values.ptr(0),
+                              send_left_data.size * sizeof(VAL),
+                              ncclInt8,
+                              sort_ranks[my_sort_rank - 1],
+                              *comm,
+                              stream));
+        }
+        if (recv_left_size > 0) {
+          CHECK_NCCL(ncclRecv(recv_left_data.values.ptr(0),
+                              recv_left_data.size * sizeof(VAL),
+                              ncclInt8,
+                              sort_ranks[my_sort_rank - 1],
+                              *comm,
+                              stream));
+        }
+        if (send_right_size > 0) {
+          CHECK_NCCL(ncclSend(send_right_data.values.ptr(0),
+                              send_right_data.size * sizeof(VAL),
+                              ncclInt8,
+                              sort_ranks[my_sort_rank + 1],
+                              *comm,
+                              stream));
+        }
+        if (recv_right_size > 0) {
+          CHECK_NCCL(ncclRecv(recv_right_data.values.ptr(0),
+                              recv_right_data.size * sizeof(VAL),
+                              ncclInt8,
+                              sort_ranks[my_sort_rank + 1],
+                              *comm,
+                              stream));
+        }
+        CHECK_NCCL(ncclGroupEnd());
       }
     }
 
-    send_left_data.values.destroy();
-    send_right_data.values.destroy();
     if (argsort) {
       send_left_data.indices.destroy();
       send_right_data.indices.destroy();
+    } else {
+      send_left_data.values.destroy();
+      send_right_data.values.destroy();
     }
 
     // merge data into target
@@ -1780,13 +1787,14 @@ void sample_sort_nccl_nd(SortPiece<VAL> local_sorted,
     segment_diff.destroy();
     send_left.destroy();
     send_right.destroy();
-    merge_buffers[0].values.destroy();
-    recv_left_data.values.destroy();
-    recv_right_data.values.destroy();
     if (argsort) {
       merge_buffers[0].indices.destroy();
       recv_left_data.indices.destroy();
       recv_right_data.indices.destroy();
+    } else {
+      merge_buffers[0].values.destroy();
+      recv_left_data.values.destroy();
+      recv_right_data.values.destroy();
     }
   }
 }
