@@ -24,7 +24,7 @@ from typing_extensions import Protocol
 from .runtime import runtime
 from .utils import find_last_user_frames, find_last_user_stacklevel
 
-__all__ = ("clone_module",)
+__all__ = ("clone_class", "clone_module")
 
 FALLBACK_WARNING = (
     "cuNumeric has not implemented {name} "
@@ -66,11 +66,8 @@ class AnyCallable(Protocol):
         ...
 
 
-class CuWrapped(Protocol):
+class CuWrapped(AnyCallable, Protocol):
     _cunumeric_implemented: bool
-
-    def __call__(self, *args: Any, **kwargs: Any) -> Any:
-        ...
 
 
 def implemented(
@@ -92,7 +89,9 @@ def implemented(
 
     else:
 
-        wrapper = cast(CuWrapped, func)
+        @wraps(func)
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
+            return func(*args, **kwargs)
 
     wrapper._cunumeric_implemented = True
 
@@ -162,11 +161,9 @@ def clone_module(
         omit_types=(ModuleType,),
     )
 
-    from numpy import ufunc as npufunc
+    reporting = runtime.report_coverage
 
     from ._ufunc.ufunc import ufunc as lgufunc
-
-    reporting = runtime.report_coverage
 
     for attr, value in new_globals.items():
         if isinstance(value, (FunctionType, lgufunc)):
@@ -174,6 +171,8 @@ def clone_module(
                 cast(AnyCallable, value), mod_name, attr, reporting=reporting
             )
             new_globals[attr] = wrapped
+
+    from numpy import ufunc as npufunc
 
     for attr, value in missing.items():
         if isinstance(value, (FunctionType, npufunc)):
