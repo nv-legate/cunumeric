@@ -16,7 +16,6 @@
 
 #include "cunumeric/matrix/diag.h"
 #include "cunumeric/matrix/diag_template.inl"
-#include "cunumeric/unary/convert_util.h"
 
 namespace cunumeric {
 
@@ -24,7 +23,7 @@ using namespace Legion;
 using namespace legate;
 
 template <LegateTypeCode CODE, int DIM>
-struct DiagImplBody<VariantKind::CPU, CODE, CODE, DIM, true> {
+struct DiagImplBody<VariantKind::CPU, CODE, DIM, true> {
   using VAL = legate_type_of<CODE>;
 
   void operator()(const AccessorRD<SumReduction<VAL>, true, DIM>& out,
@@ -53,41 +52,9 @@ struct DiagImplBody<VariantKind::CPU, CODE, CODE, DIM, true> {
   }
 };
 
-template <LegateTypeCode M_CODE, LegateTypeCode D_CODE, int DIM>
-struct DiagImplBody<VariantKind::CPU, M_CODE, D_CODE, DIM, true> {
-  using OP    = ConvertOp<D_CODE, M_CODE>;
-  using M_VAL = legate_type_of<M_CODE>;
-  using D_VAL = legate_type_of<D_CODE>;
-
-  void operator()(const AccessorRD<SumReduction<D_VAL>, true, DIM>& out,
-                  const AccessorRO<M_VAL, DIM>& in,
-                  const coord_t& start,
-                  const Pitches<DIM - 1>& m_pitches,
-                  const Rect<DIM>& m_shape,
-                  const size_t naxes,
-                  const coord_t distance) const
-  {
-    size_t skip_size = 1;
-    OP func{};
-    for (int i = 0; i < naxes; i++) {
-      auto diff = 1 + m_shape.hi[DIM - i - 1] - m_shape.lo[DIM - i - 1];
-      if (diff != 0) skip_size *= diff;
-    }
-    const size_t volume = m_shape.volume();
-    for (size_t idx = 0; idx < volume; idx += skip_size) {
-      Point<DIM> p = m_pitches.unflatten(idx, m_shape.lo);
-      for (coord_t d = 0; d < distance; ++d) {
-        for (size_t i = DIM - naxes; i < DIM; i++) { p[i] = start + d; }
-        auto v = func(in[p]);
-        out.reduce(p, v);
-      }
-    }
-  }
-};
-
 // not extract (create a new 2D matrix with diagonal from vector)
 template <LegateTypeCode CODE>
-struct DiagImplBody<VariantKind::CPU, CODE, CODE, 2, false> {
+struct DiagImplBody<VariantKind::CPU, CODE, 2, false> {
   using VAL = legate_type_of<CODE>;
 
   void operator()(const AccessorRO<VAL, 2>& in,

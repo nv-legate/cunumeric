@@ -1922,13 +1922,7 @@ class ndarray:
     # axes=2. This restriction can be lifted in the future if there is a
     # use case of having arbitrary number of offsets
     def _diag_helper(
-        self,
-        offset=0,
-        axes=None,
-        extract=True,
-        trace=False,
-        out=None,
-        dtype=None,
+        self, offset=0, axes=None, extract=True, trace=False, out=None
     ):
         # _diag_helper can be used only for arrays with dim>=1
         if self.ndim < 1:
@@ -1936,8 +1930,6 @@ class ndarray:
         # out should be passed only for Trace
         if out is not None and not trace:
             raise ValueError("_diag_helper supports out only for trace=True")
-        if dtype is not None and not trace:
-            raise ValueError("_diag_helper supports dtype only for trace=True")
 
         elif self.ndim == 1:
             if axes is not None:
@@ -2029,21 +2021,11 @@ class ndarray:
                 out_arr = convert_to_cunumeric_ndarray(out)
                 if out.shape != out_shape:
                     raise ValueError("output array has wrong shape")
+                a = a.astype(out.dtype)
             else:
-                if dtype is None:
-                    out_arr = ndarray(
-                        shape=out_shape, dtype=self.dtype, inputs=(self,)
-                    )
-                else:
-                    casting_allowed = np.can_cast(self.dtype, dtype, "safe")
-                    if not casting_allowed:
-                        raise TypeError(
-                            f"Cannot cast array data"
-                            f"from '{self.dtype}' to '{dtype}' "
-                        )
-                    out_arr = ndarray(
-                        shape=out_shape, dtype=dtype, inputs=(self,)
-                    )
+                out_arr = ndarray(
+                    shape=out_shape, dtype=self.dtype, inputs=(self,)
+                )
 
             out_arr._thunk._diag_helper(
                 a._thunk, offset=offset, naxes=N, extract=extract, trace=trace
@@ -2118,13 +2100,15 @@ class ndarray:
         else:
             axes = (axis1, axis2)
 
-        res = self._diag_helper(
-            offset=offset, axes=axes, trace=True, out=out, dtype=dtype
-        )
+        res = self._diag_helper(offset=offset, axes=axes, trace=True, out=out)
 
         # for 2D arrays we must return scalar
         if self.ndim == 2:
             res = res[0]
+
+        if out is None and dtype is not None:
+            res = res.astype(dtype)
+
         return res
 
     @add_boilerplate("rhs")

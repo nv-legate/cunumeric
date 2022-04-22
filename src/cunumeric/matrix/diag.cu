@@ -17,7 +17,6 @@
 #include "cunumeric/matrix/diag.h"
 #include "cunumeric/matrix/diag_template.inl"
 #include "cunumeric/cuda_help.h"
-#include "cunumeric/unary/convert_util.h"
 
 namespace cunumeric {
 
@@ -51,40 +50,20 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   const int idx = skip_size * (blockIdx.x * blockDim.x + threadIdx.x);
   if (idx >= volume) return;
 
-  auto p = m_pitches.unflatten(idx, m_shape.lo);
+  auto in_p  = m_pitches.unflatten(idx, m_shape.lo);
+  auto out_p = in_p;
   for (coord_t d = 0; d < distance; ++d) {
-    for (int i = DIM - naxes; i < DIM; i++) { p[i] = start + d; }
-    auto v = in[p];
-    out.reduce(p, v);
-  }
-}
-
-template <typename M_VAL, typename D_VAL, int DIM, typename Func>
-__global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-  diag_extract(const AccessorRD<SumReduction<D_VAL>, true, DIM> out,
-               const AccessorRO<M_VAL, DIM> in,
-               const coord_t distance,
-               const size_t volume,
-               const size_t skip_size,
-               const coord_t start,
-               const size_t naxes,
-               const Pitches<DIM - 1> m_pitches,
-               const Rect<DIM> m_shape,
-               Func func)
-{
-  const int idx = skip_size * (blockIdx.x * blockDim.x + threadIdx.x);
-  if (idx >= volume) return;
-
-  auto p = m_pitches.unflatten(idx, m_shape.lo);
-  for (coord_t d = 0; d < distance; ++d) {
-    for (int i = DIM - naxes; i < DIM; i++) { p[i] = start + d; }
-    auto v = func(in[p]);
-    out.reduce(p, v);
+    for (int i = DIM - naxes; i < DIM; i++) {
+      in_p[i]  = start + d;
+      out_p[i] = start + d;
+    }
+    auto v = in[in_p];
+    out.reduce(out_p, v);
   }
 }
 
 template <LegateTypeCode CODE, int DIM>
-struct DiagImplBody<VariantKind::GPU, CODE, CODE, DIM, true> {
+struct DiagImplBody<VariantKind::GPU, CODE, DIM, true> {
   using VAL = legate_type_of<CODE>;
 
   void operator()(const AccessorRD<SumReduction<VAL>, true, DIM>& out,
@@ -114,43 +93,9 @@ struct DiagImplBody<VariantKind::GPU, CODE, CODE, DIM, true> {
   }
 };
 
-template <LegateTypeCode M_CODE, LegateTypeCode D_CODE, int DIM>
-struct DiagImplBody<VariantKind::GPU, M_CODE, D_CODE, DIM, true> {
-  using M_VAL = legate_type_of<M_CODE>;
-  using D_VAL = legate_type_of<D_CODE>;
-  using OP    = ConvertOp<D_CODE, M_CODE>;
-
-  void operator()(const AccessorRD<SumReduction<D_VAL>, true, DIM>& out,
-                  const AccessorRO<M_VAL, DIM>& in,
-                  const coord_t start,
-                  const Pitches<DIM - 1>& m_pitches,
-                  const Rect<DIM>& m_shape,
-                  const int naxes,
-                  const coord_t distance) const
-  {
-    size_t skip_size = 1;
-
-    for (int i = 0; i < naxes; i++) {
-      auto diff = 1 + m_shape.hi[DIM - i - 1] - m_shape.lo[DIM - i - 1];
-      if (diff != 0) skip_size *= diff;
-    }
-
-    const size_t volume    = m_shape.volume();
-    const size_t loop_size = volume / skip_size + 1;
-
-    const size_t blocks = (loop_size + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-
-    auto stream = get_cached_stream();
-    OP func{};
-    diag_extract<M_VAL, D_VAL><<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
-      out, in, distance, volume, skip_size, start, naxes, m_pitches, m_shape, func);
-    CHECK_CUDA_STREAM(stream);
-  }
-};
-
 // not extract (create a new 2D matrix with diagonal from vector)
 template <LegateTypeCode CODE>
-struct DiagImplBody<VariantKind::GPU, CODE, CODE, 2, false> {
+struct DiagImplBody<VariantKind::GPU, CODE, 2, false> {
   using VAL = legate_type_of<CODE>;
 
   void operator()(const AccessorRO<VAL, 2>& in,
