@@ -116,7 +116,7 @@ def max_identity(ty):
     elif ty.kind == "f":
         return np.finfo(ty).min
     elif ty.kind == "c":
-        return max_identity(np.float64) + max_identity(np.float64) * 1j
+        return np.finfo(np.float64).min + np.finfo(np.float64).min * 1j
     elif ty.kind == "b":
         return False
     else:
@@ -129,7 +129,7 @@ def min_identity(ty):
     elif ty.kind == "f":
         return np.finfo(ty).max
     elif ty.kind == "c":
-        return min_identity(np.float64) + min_identity(np.float64) * 1j
+        return np.finfo(np.float64).max + np.finfo(np.float64).max * 1j
     elif ty.kind == "b":
         return True
     else:
