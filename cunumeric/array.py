@@ -3143,6 +3143,19 @@ class ndarray:
                     '"where" array must broadcast against source array '
                     "for reduction"
                 )
+        if (
+            op
+            in (
+                UnaryRedCode.ARGMAX,
+                UnaryRedCode.ARGMIN,
+                UnaryRedCode.MAX,
+                UnaryRedCode.MIN,
+            )
+            and src.dtype.kind == "c"
+        ):
+            raise NotImplementedError(
+                "(arg)max/min not supported for complex-type arrays"
+            )
         # Compute the output shape
         if axis is not None:
             to_reduce = set()
