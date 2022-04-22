@@ -116,7 +116,7 @@ def max_identity(ty):
     elif ty.kind == "f":
         return np.finfo(ty).min
     elif ty.kind == "c":
-        return max_identity(np.float64) + max_identity(np.float64) * 1j
+        return np.finfo(np.float64).min + np.finfo(np.float64).min * 1j
     elif ty.kind == "b":
         return False
     else:
@@ -129,7 +129,7 @@ def min_identity(ty):
     elif ty.kind == "f":
         return np.finfo(ty).max
     elif ty.kind == "c":
-        return min_identity(np.float64) + min_identity(np.float64) * 1j
+        return np.finfo(np.float64).max + np.finfo(np.float64).max * 1j
     elif ty.kind == "b":
         return True
     else:
@@ -160,7 +160,7 @@ class BlasOperation(IntEnum):
 class DeferredArray(NumPyThunk):
     """This is a deferred thunk for describing NumPy computations.
     It is backed by either a Legion logical region or a Legion future
-    for describing the result of a compuation.
+    for describing the result of a computation.
 
     :meta private:
     """
@@ -305,37 +305,256 @@ class DeferredArray(NumPyThunk):
         result = np.frombuffer(buf, dtype=self.dtype, count=1)
         return result.reshape(())
 
-    def _create_indexing_array(self, key):
-        # Convert everything into deferred arrays of int64
-        if isinstance(key, tuple):
-            tuple_of_arrays = ()
-            for k in key:
-                if not isinstance(k, NumPyThunk):
-                    raise NotImplementedError(
-                        "need support for mixed advanced indexing"
-                    )
-                tuple_of_arrays += (k,)
+    def _zip_indices(self, start_index, arrays):
+        if not isinstance(arrays, tuple):
+            raise TypeError("zip_indices expects tuple of arrays")
+        # start_index is the index from witch indices arrays are passed
+        # for example of arr[:, indx, :], start_index =1
+        if start_index == -1:
+            start_index = 0
+
+        new_arrays = tuple()
+        # check array's type and convert them to deferred arrays
+        for a in arrays:
+            a = self.runtime.to_deferred_array(a)
+            data_type = a.dtype
+            if data_type != np.int64:
+                raise TypeError("index arrays should be int64 type")
+            new_arrays += (a,)
+        arrays = new_arrays
+
+        # find a broadcasted shape for all arrays passed as indices
+        shapes = tuple(a.shape for a in arrays)
+        if len(arrays) > 1:
+            # TODO: replace with cunumeric.broadcast_shapes, when available
+            b_shape = np.broadcast_shapes(*shapes)
         else:
-            assert isinstance(key, NumPyThunk)
-            # Handle the boolean array case
-            if key.dtype == bool:
-                if key.ndim != self.ndim:
-                    raise TypeError(
-                        "Boolean advanced indexing dimension mismatch"
-                    )
-                # For boolean arrays do the non-zero operation to make
-                # them into a normal indexing array
-                tuple_of_arrays = key.nonzero()
+            b_shape = arrays[0].shape
+
+        # key dim - dimension of indices arrays
+        key_dim = len(b_shape)
+        out_shape = b_shape
+
+        # broadcast shapes
+        new_arrays = tuple()
+        for a in arrays:
+            if a.shape != b_shape:
+                new_arrays += (a._broadcast(b_shape),)
             else:
-                tuple_of_arrays = (key,)
-        if len(tuple_of_arrays) != self.ndim:
-            raise TypeError("Advanced indexing dimension mismatch")
-        if self.ndim > 1:
-            # Check that all the arrays can be broadcast together
-            # Concatenate all the arrays into a single array
-            raise NotImplementedError("need support for concatenating arrays")
+                new_arrays += (a.base,)
+        arrays = new_arrays
+
+        if len(arrays) < self.ndim:
+            # the case when # of arrays passed is smaller than dimension of
+            # the input array
+            N = len(arrays)
+            # output shape
+            out_shape = (
+                tuple(self.shape[i] for i in range(0, start_index))
+                + b_shape
+                + tuple(
+                    self.shape[i] for i in range(start_index + N, self.ndim)
+                )
+            )
+            new_arrays = tuple()
+            # promote all index arrays to have the same shape as output
+            for a in arrays:
+                for i in range(0, start_index):
+                    a = a.promote(i, self.shape[i])
+                for i in range(start_index + N, self.ndim):
+                    a = a.promote(key_dim + i - N, self.shape[i])
+                new_arrays += (a,)
+            arrays = new_arrays
+        elif len(arrays) > self.ndim:
+            raise ValueError("wrong number of index arrays passed")
+
+        # create output array which will store Point<N> field where
+        # N is number of index arrays
+        # shape of the output array should be the same as the shape of each
+        # index array
+        # NOTE: We need to instantiate a RegionField of non-primitive
+        # dtype, to store N-dimensional index points, to be used as the
+        # indirection field in a copy.
+        # Such dtypes are technically not supported,
+        # but it should be safe to directly create a DeferredArray
+        # of that dtype, so long as we don't try to convert it to a
+        # NumPy array.
+        N = self.ndim
+        pointN_dtype = self.runtime.get_point_type(N)
+        store = self.context.create_store(
+            pointN_dtype, shape=out_shape, optimize_scalar=True
+        )
+        output_arr = DeferredArray(
+            self.runtime, base=store, dtype=pointN_dtype
+        )
+
+        # call ZIP function to combine index arrays into a singe array
+        task = self.context.create_task(CuNumericOpCode.ZIP)
+        task.add_output(output_arr.base)
+        task.add_scalar_arg(self.ndim, ty.int64)  # N of points in Point<N>
+        task.add_scalar_arg(key_dim, ty.int64)  # key_dim
+        task.add_scalar_arg(start_index, ty.int64)  # start_index
+        for a in arrays:
+            task.add_input(a)
+            task.add_alignment(output_arr.base, a)
+        task.execute()
+
+        return output_arr
+
+    def _copy_store(self, store):
+        store_to_copy = DeferredArray(
+            self.runtime,
+            base=store,
+            dtype=self.dtype,
+        )
+        store_copy = self.runtime.create_empty_thunk(
+            store_to_copy.shape,
+            self.dtype,
+            inputs=[store_to_copy],
+        )
+        store_copy.copy(store_to_copy, deep=True)
+        return store_copy, store_copy.base
+
+    def _create_indexing_array(self, key, is_set=False):
+        store = self.base
+        rhs = self
+        # the index where the first index_array is passed to the [] operator
+        start_index = -1
+        if (
+            isinstance(key, NumPyThunk)
+            and key.dtype == np.bool
+            and key.shape == rhs.shape
+        ):
+            if not isinstance(key, DeferredArray):
+                key = self.runtime.to_deferred_array(key)
+
+            out_dtype = rhs.dtype
+            # in cease this operation is called for the set_item, we
+            # return Point<N> type field that is later used for
+            # indirect copy operation
+            if is_set:
+                N = rhs.ndim
+                out_dtype = rhs.runtime.get_point_type(N)
+
+            out = rhs.runtime.create_unbound_thunk(out_dtype)
+            task = rhs.context.create_task(CuNumericOpCode.ADVANCED_INDEXING)
+            task.add_output(out.base)
+            task.add_input(rhs.base)
+            task.add_input(key.base)
+            task.add_scalar_arg(is_set, bool)
+            task.add_alignment(rhs.base, key.base)
+            task.add_broadcast(
+                key.base, axes=tuple(range(1, len(key.base.shape)))
+            )
+            task.add_broadcast(
+                rhs.base, axes=tuple(range(1, len(rhs.base.shape)))
+            )
+            task.execute()
+            return False, rhs, out, self
+
+        if isinstance(key, NumPyThunk):
+            key = (key,)
+
+        assert isinstance(key, tuple)
+        key = self._unpack_ellipsis(key, self.ndim)
+        shift = 0
+        last_index = self.ndim
+        # in case when index arrays are passed in the scaterred way,
+        # we need to transpose original array so all index arrays
+        # are close to each other
+        transpose_needed = False
+        transpose_indices = tuple()
+        key_transpose_indices = tuple()
+        tuple_of_arrays = ()
+
+        # First, we need to check if transpose is needed
+        for dim, k in enumerate(key):
+            if np.isscalar(k) or isinstance(k, NumPyThunk):
+                if start_index == -1:
+                    start_index = dim
+                key_transpose_indices += (dim,)
+                transpose_needed = transpose_needed or ((dim - last_index) > 1)
+                if (
+                    isinstance(k, NumPyThunk)
+                    and k.dtype == np.bool
+                    and k.ndim >= 2
+                ):
+                    for i in range(dim, dim + k.ndim):
+                        transpose_indices += (shift + i,)
+                    shift += k.ndim - 1
+                else:
+                    transpose_indices += ((dim + shift),)
+                last_index = dim
+
+        if transpose_needed:
+            start_index = 0
+            post_indices = tuple(
+                i for i in range(store.ndim) if i not in transpose_indices
+            )
+            transpose_indices += post_indices
+            post_indices = tuple(
+                i for i in range(len(key)) if i not in key_transpose_indices
+            )
+            key_transpose_indices += post_indices
+            store = store.transpose(transpose_indices)
+            key = tuple(key[i] for i in key_transpose_indices)
+
+        shift = 0
+        for dim, k in enumerate(key):
+            if np.isscalar(k):
+                if k < 0:
+                    k += store.shape[dim + shift]
+                store = store.project(dim + shift, k)
+                shift -= 1
+            elif k is np.newaxis:
+                store = store.promote(dim + shift, 1)
+            elif isinstance(k, slice):
+                store = store.slice(dim + shift, k)
+            elif isinstance(k, NumPyThunk):
+                if not isinstance(key, DeferredArray):
+                    k = self.runtime.to_deferred_array(k)
+                if k.dtype == np.bool:
+                    for i in range(k.ndim):
+                        if k.shape[i] != store.shape[dim + i + shift]:
+                            raise ValueError(
+                                "shape of boolean index did not match "
+                                "indexed array "
+                            )
+                    # in case of the mixed indises we all nonzero
+                    # for the bool array
+                    k = k.nonzero()
+                    shift += len(k) - 1
+                    tuple_of_arrays += k
+                else:
+                    tuple_of_arrays += (k,)
+            else:
+                raise TypeError(
+                    "Unsupported entry type passed to advanced ",
+                    "indexing operation",
+                )
+        if store.transformed:
+            # in the case this operation is called for the set_item, we need
+            # to apply all the transformations done to `store` to `self`
+            # as well before creating a copy
+            if is_set:
+                self = DeferredArray(self.runtime, store, self.dtype)
+            # after store is transformed we need to to return a copy of
+            # the store since Copy operation can't be done on
+            # the store with transformation
+            rhs, store = self._copy_store(store)
+
+        if len(tuple_of_arrays) <= rhs.ndim and rhs.ndim > 1:
+            output_arr = rhs._zip_indices(start_index, tuple_of_arrays)
+            return True, rhs, output_arr, self
+        elif len(tuple_of_arrays) == 1 and rhs.ndim == 1:
+            key = tuple_of_arrays[0]
+            # when key is transformed, we need to return a copy in purpose
+            # to use it as an indirection in copy operation
+            if key.base.transformed:
+                key, key_store = key._copy_store(key.base)
+            return True, rhs, key, self
         else:
-            return self.runtime.to_deferred_array(tuple_of_arrays[0])
+            raise ValueError("Advanced indexing dimension mismatch")
 
     @staticmethod
     def _unpack_ellipsis(key, ndim):
@@ -397,28 +616,30 @@ class DeferredArray(NumPyThunk):
         # Check to see if this is advanced indexing or not
         if is_advanced_indexing(key):
             # Create the indexing array
-            index_array = self._create_indexing_array(key)
-            # Create a new array to be the result
-            result = self.runtime.create_empty_thunk(
-                index_array.base.shape,
-                self.dtype,
-                inputs=[self],
-            )
-
-            if self.ndim != index_array.ndim:
-                raise NotImplementedError(
-                    "need support for indirect partitioning"
+            (
+                copy_needed,
+                rhs,
+                index_array,
+                self,
+            ) = self._create_indexing_array(key)
+            store = rhs.base
+            if copy_needed:
+                # Create a new array to be the result
+                result = self.runtime.create_empty_thunk(
+                    index_array.base.shape,
+                    self.dtype,
+                    inputs=[self],
                 )
+                copy = self.context.create_copy()
 
-            copy = self.context.create_copy()
+                copy.add_input(store)
+                copy.add_source_indirect(index_array.base)
+                copy.add_output(result.base)
 
-            copy.add_input(self.base)
-            copy.add_source_indirect(index_array.base)
-            copy.add_output(result.base)
+                copy.execute()
+            else:
+                return index_array
 
-            copy.add_alignment(index_array.base, result.base)
-
-            copy.execute()
         else:
             result = self._get_view(key)
 
@@ -442,25 +663,31 @@ class DeferredArray(NumPyThunk):
         # Check to see if this is advanced indexing or not
         if is_advanced_indexing(key):
             # Create the indexing array
-            index_array = self._create_indexing_array(key)
-            if index_array.shape != rhs.shape:
-                raise ValueError(
-                    "Advanced indexing array does not match source shape"
-                )
-            if self.ndim != index_array.ndim:
-                raise NotImplementedError(
-                    "need support for indirect partitioning"
-                )
+            (
+                copy_needed,
+                lhs,
+                index_array,
+                self,
+            ) = self._create_indexing_array(key, True)
+
+            if rhs.shape != index_array.shape:
+                rhs_tmp = rhs._broadcast(index_array.base.shape)
+                rhs_tmp, rhs = rhs._copy_store(rhs_tmp)
+            else:
+                if rhs.base.transformed:
+                    rhs, rhs_base = rhs._copy_store(rhs.base)
+                rhs = rhs.base
 
             copy = self.context.create_copy()
-
-            copy.add_input(rhs.base)
+            copy.add_input(rhs)
             copy.add_target_indirect(index_array.base)
-            copy.add_output(self.base)
-
-            copy.add_alignment(index_array.base, rhs.base)
-
+            copy.add_output(lhs.base)
             copy.execute()
+
+            # TODO this copy will be removed when affine copies are
+            # supported in Legion/Realm
+            if lhs is not self:
+                self.copy(lhs, deep=True)
 
         else:
             view = self._get_view(key)
@@ -786,6 +1013,41 @@ class DeferredArray(NumPyThunk):
         task.add_broadcast(filter)
 
         task.execute()
+
+    @auto_convert([1])
+    def fft(self, lhs, axes, kind, direction):
+        # For now, deferred only supported with GPU, use eager / numpy for CPU
+        if self.runtime.num_gpus == 0:
+            lhs_eager = lhs.runtime.to_eager_array(lhs)
+            self.runtime.to_eager_array(self).fft(
+                lhs_eager, axes, kind, direction
+            )
+            lhs.base = lhs.runtime.to_deferred_array(lhs_eager).base
+        else:
+            input = self.base
+            output = lhs.base
+
+            task = self.context.create_task(CuNumericOpCode.FFT)
+            p_output = task.declare_partition(output)
+            p_input = task.declare_partition(input)
+
+            task.add_output(output, partition=p_output)
+            task.add_input(input, partition=p_input)
+            task.add_scalar_arg(kind.type_id, ty.int32)
+            task.add_scalar_arg(direction.value, ty.int32)
+            task.add_scalar_arg(
+                len(set(axes)) != len(axes)
+                or len(axes) != input.ndim
+                or tuple(axes) != tuple(sorted(axes)),
+                ty.int8,
+            )
+            for ax in axes:
+                task.add_scalar_arg(ax, ty.int64)
+
+            task.add_broadcast(input)
+            task.add_constraint(p_output == p_input)
+
+            task.execute()
 
     # Fill the cuNumeric array with the value in the numpy array
     def _fill(self, value):
@@ -1600,3 +1862,34 @@ class DeferredArray(NumPyThunk):
             raise ValueError("invalid axis")
 
         sort(self, rhs, argsort, axis, stable)
+
+    @auto_convert([1])
+    def partition(
+        self,
+        rhs,
+        kth,
+        argpartition=False,
+        axis=-1,
+        kind="introselect",
+        order=None,
+    ):
+
+        if order is not None:
+            raise NotImplementedError(
+                "cuNumeric does not support partitioning with 'order' as "
+                "ndarray only supports numeric values"
+            )
+        if axis is not None and (axis >= rhs.ndim or axis < -rhs.ndim):
+            raise ValueError("invalid axis")
+
+        # fallback to sort for now
+        sort(self, rhs, argpartition, axis, False)
+
+    def create_window(self, op_code, M, *args):
+        task = self.context.create_task(CuNumericOpCode.WINDOW)
+        task.add_output(self.base)
+        task.add_scalar_arg(op_code, ty.int32)
+        task.add_scalar_arg(M, ty.int64)
+        for arg in args:
+            task.add_scalar_arg(arg, ty.float64)
+        task.execute()

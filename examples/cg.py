@@ -16,9 +16,9 @@
 #
 
 import argparse
-import datetime
 
 from benchmark import run_benchmark
+from legate.timing import time
 
 import cunumeric as np
 
@@ -175,9 +175,9 @@ def run_cg(
     timing,
     verbose,
 ):
-    start = datetime.datetime.now()
     # A, b = generate_random(N)
     A, b = generate_2D(N, corners)
+    start = time()
     if preconditioner:
         M = precondition(A, N, corners)
         x = preconditioned_solve(
@@ -187,11 +187,10 @@ def run_cg(
         x = solve(A, b, conv_iters, max_iters, conv_threshold, verbose)
     if perform_check:
         check(A, x, b)
-    stop = datetime.datetime.now()
-    delta = stop - start
-    total = delta.total_seconds() * 1000.0
+    stop = time()
+    total = (stop - start) / 1000.0
     if timing:
-        print("Elapsed Time: " + str(total) + " ms")
+        print(f"Elapsed Time: {total} ms")
     return total
 
 

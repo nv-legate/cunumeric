@@ -90,6 +90,7 @@ struct SortImplBody<VariantKind::OMP, CODE, DIM> {
       }
 
       AccessorWO<int64_t, DIM> output = output_array.write_accessor<int64_t, DIM>(rect);
+      assert(output.accessor.is_dense_row_major(rect));
 
       // sort data in place
       thrust_local_sort_inplace(
@@ -97,6 +98,7 @@ struct SortImplBody<VariantKind::OMP, CODE, DIM> {
 
     } else {
       AccessorWO<VAL, DIM> output = output_array.write_accessor<VAL, DIM>(rect);
+      assert(output.accessor.is_dense_row_major(rect));
 
       // init output values
       auto* src    = input.ptr(rect.lo);

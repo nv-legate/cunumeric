@@ -15,7 +15,17 @@
 
 import numpy as np
 
-from .config import BinaryOpCode, UnaryOpCode, UnaryRedCode
+from .config import (
+    FFT_C2R,
+    FFT_D2Z,
+    FFT_R2C,
+    FFT_Z2D,
+    BinaryOpCode,
+    FFTDirection,
+    UnaryOpCode,
+    UnaryRedCode,
+    WindowOpCode,
+)
 from .thunk import NumPyThunk
 from .utils import is_advanced_indexing
 
@@ -62,6 +72,15 @@ _UNARY_OPS = {
     UnaryOpCode.TRUNC: np.trunc,
 }
 
+_UNARY_RED_OPS = {
+    UnaryRedCode.ALL: np.all,
+    UnaryRedCode.ANY: np.any,
+    UnaryRedCode.MAX: np.max,
+    UnaryRedCode.MIN: np.min,
+    UnaryRedCode.PROD: np.prod,
+    UnaryRedCode.SUM: np.sum,
+}
+
 _BINARY_OPS = {
     BinaryOpCode.ADD: np.add,
     BinaryOpCode.ARCTAN2: np.arctan2,
@@ -96,6 +115,14 @@ _BINARY_OPS = {
     BinaryOpCode.POWER: np.power,
     BinaryOpCode.RIGHT_SHIFT: np.right_shift,
     BinaryOpCode.SUBTRACT: np.subtract,
+}
+
+_WINDOW_OPS = {
+    WindowOpCode.BARLETT: np.bartlett,
+    WindowOpCode.BLACKMAN: np.blackman,
+    WindowOpCode.HAMMING: np.hamming,
+    WindowOpCode.HANNING: np.hanning,
+    WindowOpCode.KAISER: np.kaiser,
 }
 
 
@@ -259,6 +286,30 @@ class EagerArray(NumPyThunk):
                 from scipy.signal import convolve
 
                 out.array = convolve(self.array, v.array, mode)
+
+    def fft(self, out, axes, kind, direction):
+        if self.deferred is not None:
+            self.deferred.fft(out, axes, kind, direction)
+        else:
+            if isinstance(kind, FFT_D2Z) or isinstance(kind, FFT_R2C):
+                res = np.fft.rfftn(self.array, axes=axes, norm="backward")
+            elif isinstance(kind, FFT_Z2D) or isinstance(kind, FFT_C2R):
+                s = [self.array.shape[i] for i in axes]
+                res = np.fft.irfftn(self.array, s=s, axes=axes, norm="forward")
+            else:
+                if direction == FFTDirection.FORWARD:
+                    res = np.fft.fftn(self.array, axes=axes, norm="backward")
+                else:
+                    res = np.fft.ifftn(self.array, axes=axes, norm="forward")
+            if kind.is_single_precision:
+                if res.dtype == np.complex128:
+                    out.array[:] = res.astype(np.complex64)
+                elif res.dtype == np.float64:
+                    out.array[:] = res.astype(np.float32)
+                else:
+                    raise RuntimeError("Unsupported data type in eager FFT")
+            else:
+                out.array[:] = res
 
     def copy(self, rhs, deep=False):
         self.check_eager_args(rhs)
@@ -565,6 +616,24 @@ class EagerArray(NumPyThunk):
             else:
                 self.array = np.sort(rhs.array, axis, kind, order)
 
+    def partition(
+        self,
+        rhs,
+        kth,
+        argpartition=False,
+        axis=-1,
+        kind="introselect",
+        order=None,
+    ):
+        self.check_eager_args(rhs, kth, axis, kind, order)
+        if self.deferred is not None:
+            self.deferred.partition(rhs, kth, argpartition, axis, kind, order)
+        else:
+            if argpartition:
+                self.array = np.argpartition(rhs.array, kth, axis, kind, order)
+            else:
+                self.array = np.partition(rhs.array, kth, axis, kind, order)
+
     def random_uniform(self):
         if self.deferred is not None:
             self.deferred.random_uniform()
@@ -633,18 +702,13 @@ class EagerArray(NumPyThunk):
                 initial,
             )
             return
-        if op == UnaryRedCode.ALL:
-            np.all(
-                rhs.array,
-                out=self.array,
-                axis=axes,
-                keepdims=keepdims,
-                where=where
-                if not isinstance(where, EagerArray)
-                else where.array,
-            )
-        elif op == UnaryRedCode.ANY:
-            np.any(
+        if op in _UNARY_RED_OPS:
+            fn = _UNARY_RED_OPS[op]
+            if initial is None:
+                # NumPy starts using this predefined constant, instead of None,
+                # to mean no value was given by the caller
+                initial = np._NoValue
+            fn(
                 rhs.array,
                 out=self.array,
                 axis=axes,
@@ -661,66 +725,6 @@ class EagerArray(NumPyThunk):
             np.argmin(rhs.array, out=self.array, axis=axes[0])
         elif op == UnaryRedCode.CONTAINS:
             self.array.fill(args[0] in rhs.array)
-        elif op == UnaryRedCode.MAX:
-            try:
-                # Try the new version of this interface for NumPy
-                rhs.array.max(
-                    axis=axes,
-                    out=self.array,
-                    keepdims=keepdims,
-                    initial=initial,
-                    where=where
-                    if not isinstance(where, EagerArray)
-                    else where.array,
-                )
-            except Exception:  # TDB: refine exception
-                rhs.array.max(axis=axes, out=self.array, keepdims=keepdims)
-        elif op == UnaryRedCode.MIN:
-            try:
-                # Try the new version of this interface for NumPy
-                rhs.array.min(
-                    axis=axes,
-                    out=self.array,
-                    keepdims=keepdims,
-                    initial=initial,
-                    where=where
-                    if not isinstance(where, EagerArray)
-                    else where.array,
-                )
-            except Exception:  # TDB: refine exception
-                rhs.array.min(axis=axes, out=self.array, keepdims=keepdims)
-        elif op == UnaryRedCode.PROD:
-            try:
-                # Try the new version of this interface for NumPy
-                np.prod(
-                    rhs.array,
-                    out=self.array,
-                    axis=axes,
-                    keepdims=keepdims,
-                    initial=initial,
-                    where=where
-                    if not isinstance(where, EagerArray)
-                    else where.array,
-                )
-            except Exception:
-                np.prod(
-                    rhs.array, out=self.array, axis=axes, keepdims=keepdims
-                )
-        elif op == UnaryRedCode.SUM:
-            try:
-                # Try the new version of this interface for NumPy
-                np.sum(
-                    rhs.array,
-                    out=self.array,
-                    axis=axes,
-                    keepdims=keepdims,
-                    initial=initial,
-                    where=where
-                    if not isinstance(where, EagerArray)
-                    else where.array,
-                )
-            except Exception:
-                np.sum(rhs.array, out=self.array, axis=axes, keepdims=keepdims)
         elif op == UnaryRedCode.COUNT_NONZERO:
             self.array[()] = np.count_nonzero(rhs.array, axis=axes)
         else:
@@ -790,3 +794,10 @@ class EagerArray(NumPyThunk):
             return self.deferred.unique()
         else:
             return EagerArray(self.runtime, np.unique(self.array))
+
+    def create_window(self, op_code, M, *args):
+        if self.deferred is not None:
+            return self.deferred.create_window(op_code)
+        else:
+            fn = _WINDOW_OPS[op_code]
+            self.array[:] = fn(M, *args)

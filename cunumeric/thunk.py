@@ -70,6 +70,10 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
+    def fft(self, out, axes, kind, direction):
+        ...
+
+    @abstractmethod
     def copy(self, rhs, deep):
         ...
 
@@ -220,4 +224,8 @@ class NumPyThunk(ABC):
 
     @abstractmethod
     def unique(self):
+        ...
+
+    @abstractmethod
+    def create_window(self, op_code, *args):
         ...

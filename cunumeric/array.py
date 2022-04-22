@@ -23,7 +23,7 @@ import pyarrow
 
 from legate.core import Array
 
-from .config import UnaryOpCode, UnaryRedCode
+from .config import FFTDirection, FFTNormalization, UnaryOpCode, UnaryRedCode
 from .coverage import clone_class
 from .runtime import runtime
 from .utils import broadcast_shapes, dot_modes
@@ -767,8 +767,21 @@ class ndarray:
         elif isinstance(key, tuple) and first:
             return tuple(self._convert_key(k, first=False) for k in key)
         else:
-            # Otherwise convert it to a cuNumeric array and get the thunk
-            return convert_to_cunumeric_ndarray(key)._thunk
+            # Otherwise convert it to a cuNumeric array, check types
+            # and get the thunk
+            key = convert_to_cunumeric_ndarray(key)
+            if key.dtype != np.bool and not np.issubdtype(
+                key.dtype, np.integer
+            ):
+                raise TypeError("index arrays should be int or bool type")
+            if key.dtype != np.bool and key.dtype != np.int64:
+                runtime.warn(
+                    "converting index array to int64 type",
+                    category=RuntimeWarning,
+                )
+                key = key.astype(np.int64)
+
+            return key._thunk
 
     @add_boilerplate()
     def __getitem__(self, key):
@@ -2111,6 +2124,130 @@ class ndarray:
         """
         return self.__array__().dumps()
 
+    def _normalize_axes_shape(self, axes, s):
+        user_axes = axes is not None
+        user_sizes = s is not None
+        if user_axes and user_sizes and len(axes) != len(s):
+            raise ValueError("Shape and axes have different lengths")
+        if user_axes:
+            fft_axes = [ax if ax >= 0 else ax + self.ndim for ax in axes]
+            if min(fft_axes) < 0 or max(fft_axes) >= self.ndim:
+                raise ValueError(
+                    "Axis is out of bounds for array of size {}".format(
+                        self.ndim
+                    )
+                )
+        else:
+            fft_axes = range(len(s)) if user_sizes else range(self.ndim)
+
+        fft_s = list(self.shape)
+        if user_sizes:
+            for idx, ax in enumerate(fft_axes):
+                fft_s[ax] = s[idx]
+        return np.asarray(fft_axes), np.asarray(fft_s)
+
+    def fft(self, s, axes, kind, direction, norm):
+        """a.fft(s, axes, kind, direction, norm)
+
+        Return the ``kind`` ``direction`` FFT of this array
+        with normalization ``norm``.
+
+        Common entrypoint for FFT functionality in cunumeric.fft module.
+
+        See Also
+        --------
+        cunumeric.fft : FFT functions for different ``kind`` and
+        ``direction`` arguments
+
+        Availability
+        --------
+        Single GPU
+
+        """
+        # Dimensions check
+        if self.ndim > 3:
+            raise NotImplementedError(
+                f"{self.ndim}-D arrays are not supported yet"
+            )
+
+        # Type
+        fft_output_type = kind.output_dtype
+
+        # Axes and sizes
+        user_sizes = s is not None
+        fft_axes, fft_s = self._normalize_axes_shape(axes, s)
+
+        # Shape
+        fft_input = self
+        fft_input_shape = np.asarray(self.shape)
+        fft_output_shape = np.asarray(self.shape)
+        if user_sizes:
+            # Zero padding if any of the user sizes is larger than input
+            zeropad_input = self
+            if np.any(np.greater(fft_s, fft_input_shape)):
+                # Create array with superset shape, fill with zeros,
+                # and copy input in
+                max_size = tuple(np.maximum(fft_s, fft_input_shape))
+                zeropad_input = ndarray(shape=max_size, dtype=fft_input.dtype)
+                zeropad_input.fill(0)
+                slices = tuple(slice(0, i) for i in fft_input.shape)
+                zeropad_input._thunk.set_item(slices, fft_input._thunk)
+
+            # Slicing according to final shape
+            for idx, ax in enumerate(fft_axes):
+                fft_input_shape[ax] = s[idx]
+            # TODO: always copying is not the best idea,
+            # sometimes a view of the original input will do
+            slices = tuple(slice(0, i) for i in fft_s)
+            fft_input = ndarray(
+                shape=fft_input_shape,
+                thunk=zeropad_input._thunk.get_item(slices),
+            )
+            fft_output_shape = np.copy(fft_input_shape)
+
+        # R2C/C2R require different output shapes
+        if fft_output_type != self.dtype:
+            # R2C/C2R dimension is the last axis
+            lax = fft_axes[-1]
+            if direction == FFTDirection.FORWARD:
+                fft_output_shape[lax] = fft_output_shape[lax] // 2 + 1
+            else:
+                if user_sizes:
+                    fft_output_shape[lax] = s[-1]
+                else:
+                    fft_output_shape[lax] = 2 * (fft_input.shape[lax] - 1)
+
+        # Execute FFT backend
+        out = ndarray(
+            shape=fft_output_shape,
+            dtype=fft_output_type,
+        )
+        fft_input._thunk.fft(out._thunk, fft_axes, kind, direction)
+
+        # Normalization
+        fft_norm = FFTNormalization.from_string(norm)
+        do_normalization = any(
+            (
+                fft_norm == FFTNormalization.ORTHOGONAL,
+                fft_norm == FFTNormalization.FORWARD
+                and direction == FFTDirection.FORWARD,
+                fft_norm == FFTNormalization.INVERSE
+                and direction == FFTDirection.INVERSE,
+            )
+        )
+        if do_normalization:
+            if direction == FFTDirection.FORWARD:
+                norm_shape = fft_input.shape
+            else:
+                norm_shape = out.shape
+            norm_shape_along_axes = [norm_shape[ax] for ax in fft_axes]
+            factor = np.product(norm_shape_along_axes)
+            if fft_norm == FFTNormalization.ORTHOGONAL:
+                factor = np.sqrt(factor)
+            return out / factor
+
+        return out
+
     def fill(self, value):
         """a.fill(value)
 
@@ -2402,6 +2539,55 @@ class ndarray:
         )
 
     @add_boilerplate()
+    def partition(self, kth, axis=-1, kind="introselect", order=None):
+        """a.partition(kth, axis=-1, kind='introselect', order=None)
+
+        Partition of an array in-place.
+
+        Refer to :func:`cunumeric.partition` for full documentation.
+
+        See Also
+        --------
+        cunumeric.partition : equivalent function
+
+        Availability
+        --------
+        Multiple GPUs, Single CPU
+
+        """
+        self._thunk.partition(
+            rhs=self._thunk, kth=kth, axis=axis, kind=kind, order=order
+        )
+
+    @add_boilerplate()
+    def argpartition(self, kth, axis=-1, kind="introselect", order=None):
+        """a.argpartition(kth, axis=-1, kind='introselect', order=None)
+
+        Returns the indices that would partition this array.
+
+        Refer to :func:`cunumeric.argpartition` for full documentation.
+
+        See Also
+        --------
+        cunumeric.argpartition : equivalent function
+
+        Availability
+        --------
+        Multiple GPUs, Single CPU
+
+        """
+        result = ndarray(self.shape, np.int64)
+        result._thunk.partition(
+            rhs=self._thunk,
+            argpartition=True,
+            kth=kth,
+            axis=axis,
+            kind=kind,
+            order=order,
+        )
+        return result
+
+    @add_boilerplate()
     def prod(
         self,
         axis=None,
@@ -2597,12 +2783,44 @@ class ndarray:
         self.__array__().setflags(write=write, align=align, uic=uic)
 
     def sort(self, axis=-1, kind="quicksort", order=None):
+        """a.sort(axis=-1, kind=None, order=None)
+
+        Sort an array in-place.
+
+        Refer to :func:`cunumeric.sort` for full documentation.
+
+        See Also
+        --------
+        cunumeric.sort : equivalent function
+
+        Availability
+        --------
+        Multiple GPUs, Single CPU
+
+        """
         self._thunk.sort(rhs=self._thunk, axis=axis, kind=kind, order=order)
 
-    def argsort(self, axis=-1, kind="quicksort", order=None):
-        self._thunk.sort(
+    def argsort(self, axis=-1, kind=None, order=None):
+        """a.argsort(axis=-1, kind=None, order=None)
+
+        Returns the indices that would sort this array.
+
+        Refer to :func:`cunumeric.argsort` for full documentation.
+
+        See Also
+        --------
+        cunumeric.argsort : equivalent function
+
+        Availability
+        --------
+        Multiple GPUs, Single CPU
+
+        """
+        result = ndarray(self.shape, np.int64)
+        result._thunk.sort(
             rhs=self._thunk, argsort=True, axis=axis, kind=kind, order=order
         )
+        return result
 
     def squeeze(self, axis=None):
         """a.squeeze(axis=None)
@@ -3130,6 +3348,19 @@ class ndarray:
                     '"where" array must broadcast against source array '
                     "for reduction"
                 )
+        if (
+            op
+            in (
+                UnaryRedCode.ARGMAX,
+                UnaryRedCode.ARGMIN,
+                UnaryRedCode.MAX,
+                UnaryRedCode.MIN,
+            )
+            and src.dtype.kind == "c"
+        ):
+            raise NotImplementedError(
+                "(arg)max/min not supported for complex-type arrays"
+            )
         # Compute the output shape
         if axis is not None:
             to_reduce = set()
