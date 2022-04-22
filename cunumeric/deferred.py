@@ -1863,6 +1863,28 @@ class DeferredArray(NumPyThunk):
 
         sort(self, rhs, argsort, axis, stable)
 
+    @auto_convert([1])
+    def partition(
+        self,
+        rhs,
+        kth,
+        argpartition=False,
+        axis=-1,
+        kind="introselect",
+        order=None,
+    ):
+
+        if order is not None:
+            raise NotImplementedError(
+                "cuNumeric does not support partitioning with 'order' as "
+                "ndarray only supports numeric values"
+            )
+        if axis is not None and (axis >= rhs.ndim or axis < -rhs.ndim):
+            raise ValueError("invalid axis")
+
+        # fallback to sort for now
+        sort(self, rhs, argpartition, axis, False)
+
     def create_window(self, op_code, M, *args):
         task = self.context.create_task(CuNumericOpCode.WINDOW)
         task.add_output(self.base)
