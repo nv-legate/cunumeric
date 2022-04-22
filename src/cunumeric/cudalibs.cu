@@ -18,7 +18,6 @@
 
 #include "cudalibs.h"
 
-#include <mutex>
 #include <stdio.h>
 
 namespace cunumeric {
