@@ -13,26 +13,11 @@
 # limitations under the License.
 #
 
-"""
-cuNumeric
-=====
-
-Provides a distributed task-parallel implementation of the Numpy interface
-with GPU acceleration.
-
-:meta private:
-"""
-
-import numpy as _np
-
-from cunumeric import linalg, random, fft
-from cunumeric.array import ndarray
-from cunumeric.module import *
-from cunumeric._ufunc import *
-from cunumeric.window import bartlett, blackman, hamming, hanning, kaiser
+import numpy.fft as _npfft
+from cunumeric.fft.fft import *
 from cunumeric.coverage import clone_module
 
-clone_module(_np, globals())
+clone_module(_npfft, globals())
 
 del clone_module
-del _np
+del _npfft

@@ -129,6 +129,7 @@ GEN_GPU_SRC += cunumeric/ternary/where.cu               \
 							 cunumeric/set/unique.cu                  \
 							 cunumeric/stat/bincount.cu               \
 							 cunumeric/convolution/convolve.cu        \
+							 cunumeric/fft/fft.cu                     \
 							 cunumeric/transform/flip.cu              \
 							 cunumeric/cudalibs.cu                    \
 							 cunumeric/cunumeric.cu

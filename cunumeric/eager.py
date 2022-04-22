@@ -15,7 +15,17 @@
 
 import numpy as np
 
-from .config import BinaryOpCode, UnaryOpCode, UnaryRedCode, WindowOpCode
+from .config import (
+    FFT_C2R,
+    FFT_D2Z,
+    FFT_R2C,
+    FFT_Z2D,
+    BinaryOpCode,
+    FFTDirection,
+    UnaryOpCode,
+    UnaryRedCode,
+    WindowOpCode,
+)
 from .thunk import NumPyThunk
 from .utils import is_advanced_indexing
 
@@ -276,6 +286,30 @@ class EagerArray(NumPyThunk):
                 from scipy.signal import convolve
 
                 out.array = convolve(self.array, v.array, mode)
+
+    def fft(self, out, axes, kind, direction):
+        if self.deferred is not None:
+            self.deferred.fft(out, axes, kind, direction)
+        else:
+            if isinstance(kind, FFT_D2Z) or isinstance(kind, FFT_R2C):
+                res = np.fft.rfftn(self.array, axes=axes, norm="backward")
+            elif isinstance(kind, FFT_Z2D) or isinstance(kind, FFT_C2R):
+                s = [self.array.shape[i] for i in axes]
+                res = np.fft.irfftn(self.array, s=s, axes=axes, norm="forward")
+            else:
+                if direction == FFTDirection.FORWARD:
+                    res = np.fft.fftn(self.array, axes=axes, norm="backward")
+                else:
+                    res = np.fft.ifftn(self.array, axes=axes, norm="forward")
+            if kind.is_single_precision:
+                if res.dtype == np.complex128:
+                    out.array[:] = res.astype(np.complex64)
+                elif res.dtype == np.float64:
+                    out.array[:] = res.astype(np.float32)
+                else:
+                    raise RuntimeError("Unsupported data type in eager FFT")
+            else:
+                out.array[:] = res
 
     def copy(self, rhs, deep=False):
         self.check_eager_args(rhs)

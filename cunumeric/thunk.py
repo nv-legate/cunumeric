@@ -70,6 +70,10 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
+    def fft(self, out, axes, kind, direction):
+        ...
+
+    @abstractmethod
     def copy(self, rhs, deep):
         ...
 

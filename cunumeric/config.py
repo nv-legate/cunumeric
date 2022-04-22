@@ -16,6 +16,8 @@
 import os
 from enum import IntEnum, unique
 
+import numpy as np
+
 from legate.core import Library, ResourceConfig, get_legate_runtime
 
 
@@ -90,6 +92,7 @@ class CuNumericOpCode(IntEnum):
     DIAG = _cunumeric.CUNUMERIC_DIAG
     DOT = _cunumeric.CUNUMERIC_DOT
     EYE = _cunumeric.CUNUMERIC_EYE
+    FFT = _cunumeric.CUNUMERIC_FFT
     FILL = _cunumeric.CUNUMERIC_FILL
     FLIP = _cunumeric.CUNUMERIC_FLIP
     GEMM = _cunumeric.CUNUMERIC_GEMM
@@ -254,6 +257,211 @@ class CuNumericTunable(IntEnum):
     NUM_PROCS = _cunumeric.CUNUMERIC_TUNABLE_NUM_PROCS
     MAX_EAGER_VOLUME = _cunumeric.CUNUMERIC_TUNABLE_MAX_EAGER_VOLUME
     HAS_NUMAMEM = _cunumeric.CUNUMERIC_TUNABLE_HAS_NUMAMEM
+
+
+# Match these to fftType in fft_util.h
+class FFT_R2C:
+    @property
+    def type_id(self):
+        return _cunumeric.CUNUMERIC_FFT_R2C
+
+    @property
+    def complex(self):
+        return FFT_C2C()
+
+    @property
+    def input_dtype(self):
+        return np.float32
+
+    @property
+    def output_dtype(self):
+        return np.complex64
+
+    @property
+    def is_single_precision(self):
+        return True
+
+
+class FFT_C2R:
+    @property
+    def type_id(self):
+        return _cunumeric.CUNUMERIC_FFT_C2R
+
+    @property
+    def complex(self):
+        return FFT_C2C()
+
+    @property
+    def input_dtype(self):
+        return np.complex64
+
+    @property
+    def output_dtype(self):
+        return np.float32
+
+    @property
+    def is_single_precision(self):
+        return True
+
+
+class FFT_C2C:
+    @property
+    def type_id(self):
+        return _cunumeric.CUNUMERIC_FFT_C2C
+
+    @property
+    def complex(self):
+        return self
+
+    @property
+    def input_dtype(self):
+        return np.complex64
+
+    @property
+    def output_dtype(self):
+        return np.complex64
+
+    @property
+    def is_single_precision(self):
+        return True
+
+
+class FFT_D2Z:
+    @property
+    def type_id(self):
+        return _cunumeric.CUNUMERIC_FFT_D2Z
+
+    @property
+    def complex(self):
+        return FFT_Z2Z()
+
+    @property
+    def input_dtype(self):
+        return np.float64
+
+    @property
+    def output_dtype(self):
+        return np.complex128
+
+    @property
+    def is_single_precision(self):
+        return False
+
+
+class FFT_Z2D:
+    @property
+    def type_id(self):
+        return _cunumeric.CUNUMERIC_FFT_Z2D
+
+    @property
+    def complex(self):
+        return FFT_Z2Z()
+
+    @property
+    def input_dtype(self):
+        return np.complex128
+
+    @property
+    def output_dtype(self):
+        return np.float64
+
+    @property
+    def is_single_precision(self):
+        return False
+
+
+class FFT_Z2Z:
+    @property
+    def type_id(self):
+        return _cunumeric.CUNUMERIC_FFT_Z2Z
+
+    @property
+    def complex(self):
+        return self
+
+    @property
+    def input_dtype(self):
+        return np.complex128
+
+    @property
+    def output_dtype(self):
+        return np.complex128
+
+    @property
+    def is_single_precision(self):
+        return False
+
+
+class FFTCode:
+    codes = {
+        FFT_C2C: FFT_C2C(),
+        FFT_R2C: FFT_R2C(),
+        FFT_C2R: FFT_C2R(),
+        FFT_Z2Z: FFT_Z2Z(),
+        FFT_D2Z: FFT_D2Z(),
+        FFT_Z2D: FFT_Z2D(),
+    }
+
+    @staticmethod
+    def real_to_complex_code(dtype):
+        if dtype == np.float64:
+            return FFTCode.codes[FFT_D2Z]
+        elif dtype == np.float32:
+            return FFTCode.codes[FFT_R2C]
+        else:
+            raise TypeError(
+                (
+                    "Data type for FFT not supported "
+                    "(supported types are float32 and float64)"
+                )
+            )
+
+    @staticmethod
+    def complex_to_real_code(dtype):
+        if dtype == np.complex128:
+            return FFTCode.codes[FFT_Z2D]
+        elif dtype == np.complex64:
+            return FFTCode.codes[FFT_C2R]
+        else:
+            raise TypeError(
+                (
+                    "Data type for FFT not supported "
+                    "(supported types are complex64 and complex128)"
+                )
+            )
+
+
+@unique
+class FFTDirection(IntEnum):
+    FORWARD = _cunumeric.CUNUMERIC_FFT_FORWARD
+    INVERSE = _cunumeric.CUNUMERIC_FFT_INVERSE
+
+
+@unique
+class FFTNormalization(IntEnum):
+    FORWARD = 1
+    INVERSE = 2
+    ORTHOGONAL = 3
+
+    @staticmethod
+    def from_string(in_string):
+        if in_string == "forward":
+            return FFTNormalization.FORWARD
+        elif in_string == "ortho":
+            return FFTNormalization.ORTHOGONAL
+        elif in_string == "backward" or in_string is None:
+            return FFTNormalization.INVERSE
+        else:
+            return None
+
+    @staticmethod
+    def reverse(in_string):
+        if in_string == "forward":
+            return "backward"
+        elif in_string == "backward" or in_string is None:
+            return "forward"
+        else:
+            return in_string
 
 
 # Match these to CuNumericTypeCodes in cunumeric_c.h
