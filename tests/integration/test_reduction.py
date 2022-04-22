@@ -49,6 +49,7 @@ def test_empty():
     asserts.assert_equal(num.sum([]), np.sum([]))
     asserts.assert_equal(num.sum([[], []]), np.sum([[], []]))
 
+
 def test_scalar():
     asserts.assert_equal(num.sum(0), np.sum(0))
     asserts.assert_equal(num.sum(1), np.sum(1))
