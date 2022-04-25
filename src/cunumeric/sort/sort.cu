@@ -92,346 +92,6 @@ auto get_16b_aligned_count = [](auto count, auto element_bytes) {
   return (get_16b_aligned(count * element_bytes) + element_bytes - 1) / element_bytes;
 };
 
-template <typename VAL>
-struct SortPiece {
-  Buffer<VAL> values;
-  Buffer<int64_t> indices;
-  size_t size;
-};
-
-template <typename VAL>
-struct Sample {
-  VAL value;
-  int32_t rank;
-  size_t position;
-};
-
-template <typename VAL>
-struct SampleComparator : public thrust::binary_function<Sample<VAL>, Sample<VAL>, bool> {
-  __host__ __device__ bool operator()(const Sample<VAL>& lhs, const Sample<VAL>& rhs) const
-  {
-    // special case for unused samples
-    if (lhs.rank < 0 || rhs.rank < 0) { return rhs.rank < 0 && lhs.rank >= 0; }
-
-    if (lhs.value != rhs.value) {
-      return lhs.value < rhs.value;
-    } else if (lhs.rank != rhs.rank) {
-      return lhs.rank < rhs.rank;
-    } else {
-      return lhs.position < rhs.position;
-    }
-  }
-};
-
-template <typename VAL>
-__global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-  extract_samples(const VAL* data,
-                  const size_t volume,
-                  Sample<VAL>* samples,
-                  const size_t num_local_samples,
-                  const Sample<VAL> init_sample,
-                  const size_t offset,
-                  const size_t rank)
-{
-  const size_t sample_idx = blockIdx.x * blockDim.x + threadIdx.x;
-  if (sample_idx >= num_local_samples) return;
-
-  if (num_local_samples < volume) {
-    const size_t index                    = (sample_idx + 1) * volume / num_local_samples - 1;
-    samples[offset + sample_idx].value    = data[index];
-    samples[offset + sample_idx].rank     = rank;
-    samples[offset + sample_idx].position = index;
-  } else {
-    // edge case where num_local_samples > volume
-    if (sample_idx < volume) {
-      samples[offset + sample_idx].value    = data[sample_idx];
-      samples[offset + sample_idx].rank     = rank;
-      samples[offset + sample_idx].position = sample_idx;
-    } else {
-      samples[offset + sample_idx] = init_sample;
-    }
-  }
-}
-
-template <typename VAL>
-__global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-  extract_split_positions(const VAL* data,
-                          const size_t volume,
-                          const Sample<VAL>* samples,
-                          const size_t num_samples,
-                          size_t* split_positions,
-                          const size_t num_splitters,
-                          const size_t rank)
-{
-  const size_t splitter_idx = blockIdx.x * blockDim.x + threadIdx.x;
-  if (splitter_idx >= num_splitters) return;
-
-  const size_t index         = (splitter_idx + 1) * num_samples / (num_splitters + 1) - 1;
-  const Sample<VAL> splitter = samples[index];
-
-  // now perform search on data to receive position *after* last element to be
-  // part of the package for rank splitter_idx
-  if (rank > splitter.rank) {
-    // position of the last position with smaller value than splitter.value + 1
-    split_positions[splitter_idx] = cub::LowerBound(data, volume, splitter.value);
-  } else if (rank < splitter.rank) {
-    // position of the first position with value larger than splitter.value
-    split_positions[splitter_idx] = cub::UpperBound(data, volume, splitter.value);
-  } else {
-    split_positions[splitter_idx] = splitter.position + 1;
-  }
-}
-
-template <typename VAL>
-static SortPiece<VAL> sample_sort_nccl(SortPiece<VAL> local_sorted,
-                                       size_t my_rank,
-                                       size_t num_ranks,
-                                       bool argsort,
-                                       cudaStream_t stream,
-                                       ncclComm_t* comm)
-{
-  size_t volume = local_sorted.size;
-
-  // collect local samples - for now we take num_ranks samples for every node
-  // worst case this leads to 2*N/ranks elements on a single node
-  size_t num_local_samples = num_ranks;
-
-  size_t num_global_samples = num_local_samples * num_ranks;
-  auto samples              = create_buffer<Sample<VAL>>(num_global_samples, Memory::GPU_FB_MEM);
-
-  Sample<VAL> init_sample;
-  {
-    const size_t num_blocks = (num_local_samples + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-    init_sample.rank        = -1;  // init samples that are not populated
-    size_t offset           = num_local_samples * my_rank;
-    extract_samples<<<num_blocks, THREADS_PER_BLOCK, 0, stream>>>(local_sorted.values.ptr(0),
-                                                                  volume,
-                                                                  samples.ptr(0),
-                                                                  num_local_samples,
-                                                                  init_sample,
-                                                                  offset,
-                                                                  my_rank);
-  }
-
-  // AllGather: check alignment? as we want to receive data in-place we take exact size for now
-  CHECK_NCCL(ncclAllGather(samples.ptr(my_rank * num_ranks),
-                           samples.ptr(0),
-                           num_ranks * sizeof(Sample<VAL>),
-                           ncclInt8,
-                           *comm,
-                           stream));
-
-  // sort samples on device
-  auto alloc       = ThrustAllocator(Memory::GPU_FB_MEM);
-  auto exec_policy = thrust::cuda::par(alloc).on(stream);
-  thrust::stable_sort(
-    exec_policy, samples.ptr(0), samples.ptr(0) + num_global_samples, SampleComparator<VAL>());
-
-  auto lower_bound          = thrust::lower_bound(exec_policy,
-                                         samples.ptr(0),
-                                         samples.ptr(0) + num_global_samples,
-                                         init_sample,
-                                         SampleComparator<VAL>());
-  size_t num_usable_samples = lower_bound - samples.ptr(0);
-
-  // select splitters / positions based on samples (on device)
-  const size_t num_splitters = num_ranks - 1;
-  auto split_positions       = create_buffer<size_t>(num_splitters, Memory::Z_COPY_MEM);
-  {
-    const size_t num_blocks = (num_splitters + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-    extract_split_positions<<<num_blocks, THREADS_PER_BLOCK, 0, stream>>>(
-      local_sorted.values.ptr(0),
-      volume,
-      samples.ptr(0),
-      num_usable_samples,
-      split_positions.ptr(0),
-      num_splitters,
-      my_rank);
-  }
-
-  // need to sync as we share values in between host/device
-  CHECK_CUDA(cudaStreamSynchronize(stream));
-
-  // collect sizes2send, send to rank i: local_sort_data from positions  split_positions[i-1],
-  // split_positions[i] - 1
-  auto size_send = create_buffer<size_t>(num_ranks, Memory::Z_COPY_MEM);
-  {
-    size_t last_position = 0;
-    for (size_t rank = 0; rank < num_ranks - 1; ++rank) {
-      size_t cur_position = split_positions[rank];
-      size_send[rank]     = cur_position - last_position;
-      last_position       = cur_position;
-    }
-    size_send[num_ranks - 1] = volume - last_position;
-  }
-
-  // cleanup intermediate data structures
-  samples.destroy();
-  split_positions.destroy();
-
-  // all2all exchange send/receive sizes
-  auto size_recv = create_buffer<size_t>(num_ranks, Memory::Z_COPY_MEM);
-  CHECK_NCCL(ncclGroupStart());
-  for (size_t r = 0; r < num_ranks; r++) {
-    CHECK_NCCL(ncclSend(size_send.ptr(r), 1, ncclUint64, r, *comm, stream));
-    CHECK_NCCL(ncclRecv(size_recv.ptr(r), 1, ncclUint64, r, *comm, stream));
-  }
-  CHECK_NCCL(ncclGroupEnd());
-
-  // need to sync as we share values in between host/device
-  CHECK_CUDA(cudaStreamSynchronize(stream));
-
-  // handle alignment
-  std::vector<size_t> aligned_pos_vals_send(num_ranks);
-  std::vector<size_t> aligned_pos_idcs_send(num_ranks);
-  size_t buf_size_send_vals_total = 0;
-  size_t buf_size_send_idcs_total = 0;
-  for (size_t i = 0; i < num_ranks; ++i) {
-    // align buffer to allow data transfer of 16byte blocks
-    aligned_pos_vals_send[i] = buf_size_send_vals_total;
-    buf_size_send_vals_total += get_16b_aligned_count(size_send[i], sizeof(VAL));
-    if (argsort) {
-      aligned_pos_idcs_send[i] = buf_size_send_idcs_total;
-      buf_size_send_idcs_total += get_16b_aligned_count(size_send[i], sizeof(int64_t));
-    }
-  }
-
-  // copy values into aligned send buffer
-  auto val_send_buf = local_sorted.values;
-  if (buf_size_send_vals_total > volume) {
-    val_send_buf = create_buffer<VAL>(buf_size_send_vals_total, Memory::GPU_FB_MEM);
-    size_t pos   = 0;
-    for (size_t r = 0; r < num_ranks; ++r) {
-      CHECK_CUDA(cudaMemcpyAsync(val_send_buf.ptr(aligned_pos_vals_send[r]),
-                                 local_sorted.values.ptr(pos),
-                                 sizeof(VAL) * size_send[r],
-                                 cudaMemcpyDeviceToDevice,
-                                 stream));
-      pos += size_send[r];
-    }
-    local_sorted.values.destroy();
-  }
-
-  // copy indices into aligned send buffer
-  auto idc_send_buf = local_sorted.indices;
-  if (argsort && buf_size_send_idcs_total > volume) {
-    idc_send_buf = create_buffer<int64_t>(buf_size_send_idcs_total, Memory::GPU_FB_MEM);
-    size_t pos   = 0;
-    for (size_t r = 0; r < num_ranks; ++r) {
-      CHECK_CUDA(cudaMemcpyAsync(idc_send_buf.ptr(aligned_pos_idcs_send[r]),
-                                 local_sorted.indices.ptr(pos),
-                                 sizeof(int64_t) * size_send[r],
-                                 cudaMemcpyDeviceToDevice,
-                                 stream));
-      pos += size_send[r];
-    }
-    local_sorted.indices.destroy();
-  }
-
-  // allocate target buffers
-  std::vector<SortPiece<VAL>> merge_buffers(num_ranks);
-  for (size_t i = 0; i < num_ranks; ++i) {
-    auto buf_size_vals_recv = get_16b_aligned_count(size_recv[i], sizeof(VAL));
-    merge_buffers[i].values = create_buffer<VAL>(buf_size_vals_recv, Memory::GPU_FB_MEM);
-    merge_buffers[i].size   = size_recv[i];
-    if (argsort) {
-      auto buf_size_idcs_recv  = get_16b_aligned_count(size_recv[i], sizeof(int64_t));
-      merge_buffers[i].indices = create_buffer<int64_t>(buf_size_idcs_recv, Memory::GPU_FB_MEM);
-    } else {
-      merge_buffers[i].indices = create_buffer<int64_t>(0, Memory::GPU_FB_MEM);
-    }
-  }
-  CHECK_NCCL(ncclGroupStart());
-  for (size_t r = 0; r < num_ranks; r++) {
-    CHECK_NCCL(ncclSend(val_send_buf.ptr(aligned_pos_vals_send[r]),
-                        get_16b_aligned(size_send[r] * sizeof(VAL)),
-                        ncclInt8,
-                        r,
-                        *comm,
-                        stream));
-    CHECK_NCCL(ncclRecv(merge_buffers[r].values.ptr(0),
-                        get_16b_aligned(size_recv[r] * sizeof(VAL)),
-                        ncclInt8,
-                        r,
-                        *comm,
-                        stream));
-  }
-  CHECK_NCCL(ncclGroupEnd());
-
-  if (argsort) {
-    CHECK_NCCL(ncclGroupStart());
-    for (size_t r = 0; r < num_ranks; r++) {
-      CHECK_NCCL(ncclSend(idc_send_buf.ptr(aligned_pos_idcs_send[r]),
-                          get_16b_aligned_count(size_send[r], sizeof(int64_t)),
-                          ncclInt64,
-                          r,
-                          *comm,
-                          stream));
-      CHECK_NCCL(ncclRecv(merge_buffers[r].indices.ptr(0),
-                          get_16b_aligned_count(size_recv[r], sizeof(int64_t)),
-                          ncclInt64,
-                          r,
-                          *comm,
-                          stream));
-    }
-    CHECK_NCCL(ncclGroupEnd());
-  }
-
-  // cleanup remaining buffers
-  size_send.destroy();
-  size_recv.destroy();
-  val_send_buf.destroy();
-  idc_send_buf.destroy();
-
-  // now merge sort all into the result buffer
-  // maybe k-way merge is more efficient here...
-  for (size_t stride = 1; stride < num_ranks; stride *= 2) {
-    for (size_t pos = 0; pos + stride < num_ranks; pos += 2 * stride) {
-      SortPiece<VAL> source1 = merge_buffers[pos];
-      SortPiece<VAL> source2 = merge_buffers[pos + stride];
-      auto merged_size       = source1.size + source2.size;
-      auto merged_values     = create_buffer<VAL>(merged_size);
-      auto merged_indices    = source1.indices;  // will be overriden for argsort
-      auto p_merged_values   = merged_values.ptr(0);
-      auto p_values1         = source1.values.ptr(0);
-      auto p_values2         = source2.values.ptr(0);
-      if (argsort) {
-        merged_indices = create_buffer<int64_t>(merged_size);
-        // merge with key/value
-        auto p_indices1       = source1.indices.ptr(0);
-        auto p_indices2       = source2.indices.ptr(0);
-        auto p_merged_indices = merged_indices.ptr(0);
-        thrust::merge_by_key(exec_policy,
-                             p_values1,
-                             p_values1 + source1.size,
-                             p_values2,
-                             p_values2 + source2.size,
-                             p_indices1,
-                             p_indices2,
-                             p_merged_values,
-                             p_merged_indices);
-        source1.indices.destroy();
-      } else {
-        thrust::merge(exec_policy,
-                      p_values1,
-                      p_values1 + source1.size,
-                      p_values2,
-                      p_values2 + source2.size,
-                      p_merged_values);
-      }
-
-      source1.values.destroy();
-      source2.values.destroy();
-      source2.indices.destroy();
-
-      merge_buffers[pos].values  = merged_values;
-      merge_buffers[pos].indices = merged_indices;
-      merge_buffers[pos].size    = merged_size;
-    }
-  }
-  return merge_buffers[0];
-}
-
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -449,6 +109,13 @@ struct SegmentSample {
   size_t segment;
   int32_t rank;
   size_t position;
+};
+
+template <typename VAL>
+struct SortPiece {
+  Buffer<VAL> values;
+  Buffer<int64_t> indices;
+  size_t size;
 };
 
 template <typename VAL>
@@ -546,12 +213,16 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   const size_t segment_idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (segment_idx >= num_segments_l) return;
 
-  const size_t position = cub::LowerBound(segments, size, segment_idx);
-  const size_t next_position =
-    cub::LowerBound(segments + position, size - position, segment_idx + 1) + position;
+  if (num_segments_l == 1) {
+    segments_diff[segment_idx] = size - segments_size_l;
+  } else {
+    const size_t position = cub::LowerBound(segments, size, segment_idx);
+    const size_t next_position =
+      cub::LowerBound(segments + position, size - position, segment_idx + 1) + position;
 
-  const size_t segment_size  = next_position - position;
-  segments_diff[segment_idx] = segment_size - segments_size_l;
+    const size_t segment_size  = next_position - position;
+    segments_diff[segment_idx] = segment_size - segments_size_l;
+  }
 }
 
 template <typename VAL>
@@ -1362,7 +1033,6 @@ void rebalance_data(SegmentMergePiece<VAL>& merge_buffer,
 
 template <typename VAL>
 void sample_sort_nccl_nd(SortPiece<VAL> local_sorted,
-                         Array& output_array,
                          void* output_ptr,
                          /* global domain information */
                          size_t my_rank,  // global NCCL rank
@@ -1843,10 +1513,14 @@ void sample_sort_nccl_nd(SortPiece<VAL> local_sorted,
 
         source1.values.destroy();
         source2.values.destroy();
-        source1.segments.destroy();
-        source2.segments.destroy();
-        source1.indices.destroy();
-        source2.indices.destroy();
+        if (num_segments_l > 1) {
+          source1.segments.destroy();
+          source2.segments.destroy();
+        }
+        if (argsort) {
+          source1.indices.destroy();
+          source2.indices.destroy();
+        }
 
         merge_buffers[pos].values   = merged_values;
         merge_buffers[pos].indices  = merged_indices;
@@ -1860,29 +1534,18 @@ void sample_sort_nccl_nd(SortPiece<VAL> local_sorted,
   /////////////// Part 5: re-balance data to match input/output dimensions
   /////////////////////////////////////////////////////////////////////////////////////////////////
 
-  // unbound (1d) store -- just return data
-  if (output_array.dim() == -1) {
-    merge_buffers[0].segments.destroy();
-    if (argsort) {
-      merge_buffers[0].values.destroy();
-      output_array.return_data(merge_buffers[0].indices, Point<1>(merge_buffers[0].size));
-    } else {
-      output_array.return_data(merge_buffers[0].values, Point<1>(merge_buffers[0].size));
-    }
-  } else {
-    rebalance_data(merge_buffers[0],
-                   output_ptr,
-                   my_rank,
-                   my_sort_rank,
-                   num_sort_ranks,
-                   sort_ranks,
-                   segment_size_l,
-                   num_segments_l,
-                   use_copy_kernels,
-                   argsort,
-                   stream,
-                   comm);
-  }
+  rebalance_data(merge_buffers[0],
+                 output_ptr,
+                 my_rank,
+                 my_sort_rank,
+                 num_sort_ranks,
+                 sort_ranks,
+                 segment_size_l,
+                 num_segments_l,
+                 use_copy_kernels,
+                 argsort,
+                 stream,
+                 comm);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1934,7 +1597,7 @@ struct SortImplBody<VariantKind::GPU, CODE, DIM> {
       values_ptr          = input_copy.ptr(0);
 
       // initialize indices
-      if (need_distributed_sort || output_array.dim() == -1) {
+      if (need_distributed_sort) {
         auto indices_buffer  = create_buffer<int64_t>(volume, Legion::Memory::Kind::GPU_FB_MEM);
         indices_ptr          = indices_buffer.ptr(0);
         local_sorted.indices = indices_buffer;
@@ -1959,7 +1622,7 @@ struct SortImplBody<VariantKind::GPU, CODE, DIM> {
       }
     } else {
       // initialize output
-      if (need_distributed_sort || output_array.dim() == -1) {
+      if (need_distributed_sort) {
         auto input_copy      = create_buffer<VAL>(volume, Legion::Memory::Kind::GPU_FB_MEM);
         values_ptr           = input_copy.ptr(0);
         local_sorted.values  = input_copy;
@@ -1986,30 +1649,14 @@ struct SortImplBody<VariantKind::GPU, CODE, DIM> {
     }
     CHECK_CUDA_STREAM(stream);
 
-    // this is linked to the decision in sorting.py on when to use an 'unbounded' output array.
-    if (output_array.dim() == -1) {
-      assert(DIM == 1);
-      SortPiece<VAL> local_sorted_repartitioned =
-        is_index_space
-          ? sample_sort_nccl(
-              local_sorted, local_rank, num_ranks, argsort, stream, comms[0].get<ncclComm_t*>())
-          : local_sorted;
-      if (argsort) {
-        output_array.return_data(local_sorted_repartitioned.indices,
-                                 Point<1>(local_sorted_repartitioned.size));
-      } else {
-        output_array.return_data(local_sorted_repartitioned.values,
-                                 Point<1>(local_sorted_repartitioned.size));
-      }
-    } else {
-      if (need_distributed_sort) {
-        assert(DIM > 1);
-        assert(is_index_space);
-        std::vector<size_t> sort_ranks(num_sort_ranks);
-        size_t rank_group = local_rank / num_sort_ranks;
-        for (int r = 0; r < num_sort_ranks; ++r) sort_ranks[r] = rank_group * num_sort_ranks + r;
+    if (need_distributed_sort) {
+      assert(is_index_space);
+      std::vector<size_t> sort_ranks(num_sort_ranks);
+      size_t rank_group = local_rank / num_sort_ranks;
+      for (int r = 0; r < num_sort_ranks; ++r) sort_ranks[r] = rank_group * num_sort_ranks + r;
 
-        void* output_ptr = nullptr;
+      void* output_ptr = nullptr;
+      if (volume > 0) {
         if (argsort) {
           auto output = output_array.write_accessor<int64_t, DIM>(rect);
           assert(output.accessor.is_dense_row_major(rect));
@@ -2019,25 +1666,25 @@ struct SortImplBody<VariantKind::GPU, CODE, DIM> {
           assert(output.accessor.is_dense_row_major(rect));
           output_ptr = (void*)output.ptr(rect.lo);
         }
-
-        sample_sort_nccl_nd(local_sorted,
-                            output_array,
-                            output_ptr,
-                            local_rank,
-                            num_ranks,
-                            segment_size_g,
-                            local_rank % num_sort_ranks,
-                            num_sort_ranks,
-                            &sort_ranks[0],
-                            segment_size_l,
-                            argsort,
-                            stream,
-                            comms[0].get<ncclComm_t*>());
-      } else if (argsort) {
-        // cleanup
-        local_sorted.values.destroy();
       }
+
+      sample_sort_nccl_nd(local_sorted,
+                          output_ptr,
+                          local_rank,
+                          num_ranks,
+                          segment_size_g,
+                          local_rank % num_sort_ranks,
+                          num_sort_ranks,
+                          &sort_ranks[0],
+                          segment_size_l,
+                          argsort,
+                          stream,
+                          comms[0].get<ncclComm_t*>());
+    } else if (argsort) {
+      // cleanup for non distributed argsort
+      local_sorted.values.destroy();
     }
+
     CHECK_CUDA_STREAM(stream);
   }
 };

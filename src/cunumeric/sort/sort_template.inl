@@ -53,18 +53,13 @@ struct SortImpl {
      * Assumptions:
      * 1. Sort is always requested for the 'last' dimension within rect
      * 2. We have product_of_all_other_dimensions independent sort ranges
-     * 3. if we have more than one participants:
-     *  a) 1D-case: we perform parallel sort (via sampling)
-     *  b) ND-case:
-     *     * sort dimension complete -> data parallel sort
-     *     * we perform parallel sort (via sampling per segment)
+     * 3. if data distributed accross sort dimension we perform sample sort
      */
 
-    // we shall not return on empty rectangle in case of distributed data
-    // as the process might still participate in the parallel communication
-    if (((DIM > 1 && segment_size_l == args.segment_size_g) || !args.is_index_space) &&
-        rect.empty())
-      return;
+    // we shall not return on empty rectangle in case of distributed sort data
+    // as the process needs to participate in collective communication
+    // to identify rank-index to sort participant mapping
+    if ((segment_size_l == args.segment_size_g || !args.is_index_space) && rect.empty()) return;
 
     SortImplBody<KIND, CODE, DIM>()(args.input,
                                     args.output,

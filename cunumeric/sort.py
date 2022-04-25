@@ -59,16 +59,9 @@ def sort_swapped(output, input, argsort, sort_axis, stable):
 def sort_task(output, input, argsort, stable):
     task = output.context.create_task(CuNumericOpCode.SORT)
 
-    needs_unbound_output = output.runtime.num_gpus > 1 and input.ndim == 1
-
-    if needs_unbound_output:
-        unbound = output.runtime.create_unbound_thunk(dtype=output.dtype)
-        task.add_output(unbound.base)
-    else:
-        task.add_output(output.base)
-        task.add_alignment(output.base, input.base)
-
+    task.add_output(output.base)
     task.add_input(input.base)
+    task.add_alignment(output.base, input.base)
 
     if output.runtime.num_gpus > 1:
         task.add_nccl_communicator()
@@ -84,10 +77,6 @@ def sort_task(output, input, argsort, stable):
     task.add_scalar_arg(input.base.shape, (ty.int64,))
     task.add_scalar_arg(stable, bool)
     task.execute()
-
-    if needs_unbound_output:
-        output.base = unbound.base
-        output.numpy_array = None
 
 
 def sort(output, input, argsort, axis=-1, stable=False):
