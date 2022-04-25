@@ -2012,16 +2012,13 @@ class ndarray:
                 out_shape = tr_shape + (diag_size,)
 
             if out is not None:
-                casting_allowed = np.can_cast(self.dtype, out.dtype, "safe")
-                if not casting_allowed:
-                    raise TypeError(
-                        f"Cannot cast array data"
-                        f"from '{self.dtype}' to '{out.dtype}' "
-                    )
                 out_arr = convert_to_cunumeric_ndarray(out)
                 if out.shape != out_shape:
                     raise ValueError("output array has wrong shape")
-                a = a.astype(out.dtype)
+                common_type = self.find_common_type(out, a)
+                args = (out, a)
+                a = a._maybe_convert(common_type, args)
+                out = out._maybe_convert(common_type, args)
             else:
                 out_arr = ndarray(
                     shape=out_shape, dtype=self.dtype, inputs=(self,)
