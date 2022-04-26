@@ -115,27 +115,95 @@ def _test_func(a: int, b: int) -> int:
     return a + b
 
 
-@patch("cunumeric.runtime.record_api_call")
-def test_implemented(mock_record_api_call: MagicMock) -> None:
-    wrapped = m.implemented(_test_func, "foo", "_test_func")
+class _Test_ufunc(cunumeric._ufunc.ufunc):
+    """docstring"""
 
-    assert wrapped.__doc__ == _test_func.__doc__
-    assert wrapped.__wrapped__ is _test_func
+    def __call__(self, a: int, b: int) -> int:
+        return a + b
 
-    assert wrapped(10, 20) == 30
 
-    mock_record_api_call.assert_called_once()
-    assert mock_record_api_call.call_args[0] == ()
-    assert mock_record_api_call.call_args[1]["name"] == "foo._test_func"
-    assert mock_record_api_call.call_args[1]["implemented"]
-    filename, lineno = mock_record_api_call.call_args[1]["location"].split(":")
-    assert filename == __file__
-    assert int(lineno)
+_test_ufunc = _Test_ufunc()
+
+
+class Test_implemented:
+    @patch("cunumeric.runtime.record_api_call")
+    def test_reporting_True_func(
+        self, mock_record_api_call: MagicMock
+    ) -> None:
+        wrapped = m.implemented(_test_func, "foo", "_test_func")
+
+        assert wrapped.__doc__ == _test_func.__doc__
+        assert wrapped.__wrapped__ is _test_func
+
+        assert wrapped(10, 20) == 30
+
+        mock_record_api_call.assert_called_once()
+        assert mock_record_api_call.call_args[0] == ()
+        assert mock_record_api_call.call_args[1]["name"] == "foo._test_func"
+        assert mock_record_api_call.call_args[1]["implemented"]
+        filename, lineno = mock_record_api_call.call_args[1]["location"].split(
+            ":"
+        )
+        assert filename == __file__
+        assert int(lineno)
+
+    @patch("cunumeric.runtime.record_api_call")
+    def test_reporting_False_func(
+        self, mock_record_api_call: MagicMock
+    ) -> None:
+        wrapped = m.implemented(
+            _test_func, "foo", "_test_func", reporting=False
+        )
+
+        assert wrapped.__doc__ == _test_func.__doc__
+        assert wrapped.__wrapped__ is _test_func
+
+        assert wrapped(10, 20) == 30
+
+        mock_record_api_call.assert_not_called()
+
+    @patch("cunumeric.runtime.record_api_call")
+    def test_reporting_True_ufunc(
+        self, mock_record_api_call: MagicMock
+    ) -> None:
+        wrapped = m.implemented(_test_ufunc, "foo", "_test_ufunc")
+
+        assert wrapped.__doc__ == _test_ufunc.__doc__
+        assert wrapped.__wrapped__ is _test_ufunc
+
+        assert wrapped(10, 20) == 30
+
+        mock_record_api_call.assert_called_once()
+        assert mock_record_api_call.call_args[0] == ()
+        assert mock_record_api_call.call_args[1]["name"] == "foo._test_ufunc"
+        assert mock_record_api_call.call_args[1]["implemented"]
+        filename, lineno = mock_record_api_call.call_args[1]["location"].split(
+            ":"
+        )
+        assert filename == __file__
+        assert int(lineno)
+
+    @patch("cunumeric.runtime.record_api_call")
+    def test_reporting_False_ufunc(
+        self, mock_record_api_call: MagicMock
+    ) -> None:
+        wrapped = m.implemented(
+            _test_ufunc, "foo", "_test_func", reporting=False
+        )
+
+        assert wrapped.__doc__ == _test_ufunc.__doc__
+        assert wrapped.__wrapped__ is _test_ufunc
+
+        assert wrapped(10, 20) == 30
+
+        mock_record_api_call.assert_not_called()
 
 
 class Test_unimplemented:
     @patch("cunumeric.runtime.record_api_call")
-    def test_reporting_True(self, mock_record_api_call: MagicMock) -> None:
+    def test_reporting_True_func(
+        self, mock_record_api_call: MagicMock
+    ) -> None:
         wrapped = m.unimplemented(_test_func, "foo", "_test_func")
 
         assert wrapped.__doc__ == _test_func.__doc__
@@ -154,7 +222,9 @@ class Test_unimplemented:
         assert int(lineno)
 
     @patch("cunumeric.runtime.record_api_call")
-    def test_reporting_False(self, mock_record_api_call: MagicMock) -> None:
+    def test_reporting_False_func(
+        self, mock_record_api_call: MagicMock
+    ) -> None:
         wrapped = m.unimplemented(
             _test_func, "foo", "_test_func", reporting=False
         )
@@ -168,6 +238,48 @@ class Test_unimplemented:
         assert len(record) == 1
         assert record[0].message.args[0] == m.FALLBACK_WARNING.format(
             name="foo._test_func"
+        )
+
+        mock_record_api_call.assert_not_called()
+
+    @patch("cunumeric.runtime.record_api_call")
+    def test_reporting_True_ufunc(
+        self, mock_record_api_call: MagicMock
+    ) -> None:
+        wrapped = m.unimplemented(_test_ufunc, "foo", "_test_ufunc")
+
+        assert wrapped.__doc__ == _test_ufunc.__doc__
+        assert wrapped.__wrapped__ is _test_ufunc
+
+        assert wrapped(10, 20) == 30
+
+        mock_record_api_call.assert_called_once()
+        assert mock_record_api_call.call_args[0] == ()
+        assert mock_record_api_call.call_args[1]["name"] == "foo._test_ufunc"
+        assert not mock_record_api_call.call_args[1]["implemented"]
+        filename, lineno = mock_record_api_call.call_args[1]["location"].split(
+            ":"
+        )
+        assert filename == __file__
+        assert int(lineno)
+
+    @patch("cunumeric.runtime.record_api_call")
+    def test_reporting_False_ufunc(
+        self, mock_record_api_call: MagicMock
+    ) -> None:
+        wrapped = m.unimplemented(
+            _test_ufunc, "foo", "_test_ufunc", reporting=False
+        )
+
+        assert wrapped.__doc__ == _test_ufunc.__doc__
+        assert wrapped.__wrapped__ is _test_ufunc
+
+        with pytest.warns(RuntimeWarning) as record:
+            assert wrapped(10, 20) == 30
+
+        assert len(record) == 1
+        assert record[0].message.args[0] == m.FALLBACK_WARNING.format(
+            name="foo._test_ufunc"
         )
 
         mock_record_api_call.assert_not_called()

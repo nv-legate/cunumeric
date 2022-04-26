@@ -152,6 +152,15 @@ def test_api(a=None):
     copy_a_num.sort()
     compare_assert(copy_a, copy_a_num)
 
+    # ndarray.argsort -- no change to array
+    copy_a = a.copy()
+    copy_a_num = a_num.copy()
+    compare_assert(
+        copy_a.argsort(kind="stable"), copy_a_num.argsort(kind="stable")
+    )
+    compare_assert(copy_a, a_num)
+    compare_assert(a, copy_a_num)
+
     # argsort
     for i in range(a.ndim):
         compare_assert(a, a_num)

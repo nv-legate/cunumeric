@@ -129,8 +129,8 @@ Item selection and manipulation
    ndarray.choose
    ndarray.sort
    ndarray.argsort
-   .. ndarray.partition
-   .. ndarray.argpartition
+   ndarray.partition
+   ndarray.argpartition
    .. ndarray.searchsorted
    ndarray.nonzero
    .. ndarray.compress

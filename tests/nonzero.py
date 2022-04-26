@@ -101,6 +101,10 @@ def test():
     np_nonzero = np.nonzero(x_np)
     assert_equal(lg_nonzero, np_nonzero)
 
+    x_np = np.array([True, True])
+    x = num.array(x_np)
+    assert np.array_equal(x_np.nonzero(), x.nonzero())
+
 
 if __name__ == "__main__":
     test()
