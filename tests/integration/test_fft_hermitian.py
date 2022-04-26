@@ -14,8 +14,11 @@
 #
 
 import numpy as np
+import pytest
 
 import cunumeric as num
+
+np.random.seed(0)
 
 
 def allclose(A, B):
@@ -27,7 +30,8 @@ def allclose(A, B):
         return np.allclose(A, B)
 
 
-def test_1d_hfft(N, dtype=np.float64):
+def check_1d_hfft(N, dtype=np.float64):
+    print(f"\n=== 1D Hermitian {dtype}         ===")
     Z = np.random.rand(N).astype(dtype) + np.random.rand(N).astype(dtype) * 1j
     Z_num = num.array(Z)
 
@@ -37,7 +41,8 @@ def test_1d_hfft(N, dtype=np.float64):
     assert allclose(Z, Z_num)
 
 
-def test_1d_hfft_inverse(N, dtype=np.float64):
+def check_1d_hfft_inverse(N, dtype=np.float64):
+    print(f"\n=== 1D Hermitian inverse {dtype} ===")
     Z = np.random.rand(N).astype(dtype)
     Z_num = num.array(Z)
 
@@ -47,25 +52,27 @@ def test_1d_hfft_inverse(N, dtype=np.float64):
     assert allclose(Z, Z_num)
 
 
-if __name__ == "__main__":
-    # Keep errors reproducible
-    np.random.seed(0)
-    print("DEFERRED")
-    print("=== 1D Hermitian double         ===")
-    test_1d_hfft(N=10000)
-    print("=== 1D Hermitian float          ===")
-    test_1d_hfft(N=10000, dtype=np.float32)
-    print("=== 1D Hermitian inverse double ===")
-    test_1d_hfft_inverse(N=10000)
-    print("=== 1D Hermitian inverse float  ===")
-    test_1d_hfft_inverse(N=10000, dtype=np.float32)
+def test_deferred_1d():
+    check_1d_hfft(N=10000)
+    check_1d_hfft(N=10000, dtype=np.float32)
 
-    print("EAGER")
-    print("=== 1D Hermitian double         ===")
-    test_1d_hfft(N=110)
-    print("=== 1D Hermitian float          ===")
-    test_1d_hfft(N=110, dtype=np.float32)
-    print("=== 1D Hermitian inverse double ===")
-    test_1d_hfft_inverse(N=110)
-    print("=== 1D Hermitian inverse float  ===")
-    test_1d_hfft_inverse(N=110, dtype=np.float32)
+
+def test_deferred_1d_inverse():
+    check_1d_hfft_inverse(N=10000)
+    check_1d_hfft_inverse(N=10000, dtype=np.float32)
+
+
+def test_eager_1d():
+    check_1d_hfft(N=110)
+    check_1d_hfft(N=110, dtype=np.float32)
+
+
+def test_eager_1d_inverse():
+    check_1d_hfft_inverse(N=110)
+    check_1d_hfft_inverse(N=110, dtype=np.float32)
+
+
+if __name__ == "__main__":
+    import sys
+
+    pytest.main(sys.argv)

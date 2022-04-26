@@ -16,8 +16,11 @@
 import warnings
 
 import numpy as np
+import pytest
 
 import cunumeric as num
+
+np.random.seed(0)
 
 
 def allclose(A, B):
@@ -29,7 +32,8 @@ def allclose(A, B):
         return np.allclose(A, B)
 
 
-def test_1d(N, dtype=np.float64):
+def check_1d_c2c(N, dtype=np.float64):
+    print(f"\n=== 1D C2C {dtype}               ===")
     Z = np.random.rand(N).astype(dtype) + np.random.rand(N).astype(dtype) * 1j
     Z_num = num.array(Z)
 
@@ -68,7 +72,8 @@ def test_1d(N, dtype=np.float64):
     assert allclose(Z, Z_num)
 
 
-def test_2d(N, dtype=np.float64):
+def check_2d_c2c(N, dtype=np.float64):
+    print(f"\n=== 2D C2C {dtype}               ===")
     Z = (
         np.random.rand(*N).astype(dtype)
         + np.random.rand(*N).astype(dtype) * 1j
@@ -157,7 +162,8 @@ def test_2d(N, dtype=np.float64):
     assert allclose(Z, Z_num)
 
 
-def test_3d(N, dtype=np.float64):
+def check_3d_c2c(N, dtype=np.float64):
+    print(f"\n=== 3D C2C {dtype}               ===")
     Z = (
         np.random.rand(*N).astype(dtype)
         + np.random.rand(*N).astype(dtype) * 1j
@@ -258,33 +264,37 @@ def test_3d(N, dtype=np.float64):
     assert allclose(Z, Z_num)
 
 
-if __name__ == "__main__":
-    # Keep errors reproducible
-    np.random.seed(0)
-    print("DEFERRED")
-    print("=== C2C 1D double                   ===")
-    test_1d(N=10001)
-    print("=== C2C 1D float                    ===")
-    test_1d(N=10001, dtype=np.float32)
-    print("=== C2C 2D double                   ===")
-    test_2d(N=(128, 512))
-    print("=== C2C 2D float                    ===")
-    test_2d(N=(128, 512), dtype=np.float32)
-    print("=== C2C 3D double                   ===")
-    test_3d(N=(64, 40, 100))
-    print("=== C2C 3D float                    ===")
-    test_3d(N=(64, 40, 100), dtype=np.float32)
+def test_deferred_1d():
+    check_1d_c2c(N=10001)
+    check_1d_c2c(N=10001, dtype=np.float32)
 
-    print("EAGER")
-    print("=== C2C 1D double                   ===")
-    test_1d(N=153)
-    print("=== C2C 1D float                    ===")
-    test_1d(N=153, dtype=np.float32)
-    print("=== C2C 2D double                   ===")
-    test_2d(N=(9, 11))
-    print("=== C2C 2D float                    ===")
-    test_2d(N=(9, 11), dtype=np.float32)
-    print("=== C2C 3D double                   ===")
-    test_3d(N=(9, 10, 11))
-    print("=== C2C 3D float                    ===")
-    test_3d(N=(9, 10, 11), dtype=np.float32)
+
+def test_deferred_2d():
+    check_2d_c2c(N=(128, 512))
+    check_2d_c2c(N=(128, 512), dtype=np.float32)
+
+
+def test_deferred_3d():
+    check_3d_c2c(N=(64, 40, 100))
+    check_3d_c2c(N=(64, 40, 100), dtype=np.float32)
+
+
+def test_eager_1d():
+    check_1d_c2c(N=153)
+    check_1d_c2c(N=153, dtype=np.float32)
+
+
+def test_eager_2d():
+    check_2d_c2c(N=(9, 100))
+    check_2d_c2c(N=(9, 100), dtype=np.float32)
+
+
+def test_eager_3d():
+    check_3d_c2c(N=(9, 10, 11))
+    check_3d_c2c(N=(9, 10, 11), dtype=np.float32)
+
+
+if __name__ == "__main__":
+    import sys
+
+    pytest.main(sys.argv)

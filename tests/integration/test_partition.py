@@ -14,8 +14,11 @@
 #
 
 import numpy as np
+import pytest
 
 import cunumeric as num
+
+np.random.seed(42)
 
 
 def assert_partition(a_num, kth, axis):
@@ -68,7 +71,7 @@ def assert_argpartition(a_num, a_org, kth, axis):
     assert_partition(a_reindexed_num, kth, axis)
 
 
-def test_api(a=None):
+def check_api(a=None):
     if a is None:
         a = np.arange(4 * 2 * 3).reshape(4, 2, 3)
     a_num = num.array(a)
@@ -155,32 +158,32 @@ def generate_random(shape, datatype):
     return a_np.reshape(shape)
 
 
-def test_dtypes():
-    np.random.seed(42)
-    test_api(generate_random((2, 5, 7), np.uint8))
-    test_api(generate_random((8, 5), np.uint16))
-    test_api(generate_random((22, 5, 7), np.uint32))
-    test_api(generate_random((220,), np.uint32))
-
-    test_api(generate_random((2, 5, 7), np.int8))
-    test_api(generate_random((8, 5), np.int16))
-    test_api(generate_random((22, 5, 7), np.int32))
-    test_api(generate_random((2, 5, 7), np.int64))
-
-    test_api(generate_random((8, 5), np.float32))
-    test_api(generate_random((8, 5), np.float64))
-    test_api(generate_random((22, 5, 7), np.double))
-    test_api(generate_random((220,), np.double))
-
-    test_api(generate_random((2, 5, 7), np.complex64))
-    test_api(generate_random((2, 5, 7), np.complex128))
-    test_api(generate_random((220,), np.complex128))
+CASES = [
+    ((2, 5, 7), np.uint8),
+    ((8, 5), np.uint16),
+    ((22, 5, 7), np.uint32),
+    ((220,), np.uint32),
+    ((2, 5, 7), np.int8),
+    ((8, 5), np.int16),
+    ((22, 5, 7), np.int32),
+    ((2, 5, 7), np.int64),
+    ((8, 5), np.float32),
+    ((8, 5), np.float64),
+    ((22, 5, 7), np.double),
+    ((220,), np.double),
+    ((2, 5, 7), np.complex64),
+    ((2, 5, 7), np.complex128),
+    ((220,), np.complex128),
+]
 
 
-def test():
+@pytest.mark.parametrize("shape, dtype", CASES, ids=str)
+def test_dtypes(shape, dtype):
     print("\n\n -----------  dtype test ------------\n")
-    test_dtypes()
+    check_api(generate_random(shape, dtype))
 
 
 if __name__ == "__main__":
-    test()
+    import sys
+
+    pytest.main(sys.argv)
