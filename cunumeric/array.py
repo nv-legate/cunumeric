@@ -1806,18 +1806,15 @@ class ndarray:
 
         point_indices = tuple(slice(None) for i in range(0, axis))
         point_indices += (indices,)
-        res = self[point_indices]
-        if np.isscalar(indices):
-            res = res.copy()
         if out is not None:
-            if out.shape != res.shape:
-                raise ValueError("Shape mismatch: out array has wrong shape")
-            if out.dtype != res.dtype:
+            if out.dtype != self.dtype:
                 raise ValueError("Type mismatch: out array has wrong type")
-
-            out._thunk.copy(res._thunk)
+            out[:] = self[point_indices]
             return out
         else:
+            res = self[point_indices]
+            if np.isscalar(indices):
+                res = res.copy()
             return res
 
     def choose(self, choices, out=None, mode="raise"):
@@ -1959,17 +1956,15 @@ class ndarray:
 
         index_tuple = tuple(slice(None) for ax in range(axis))
         index_tuple += (condition,)
-        res = a[index_tuple]
 
         if out is not None:
-            if out.shape != res.shape:
-                raise ValueError("Shape mismatch: out array has wrong shape")
-            if out.dtype != res.dtype:
-                out._thunk.convert(res._thunk)
-            else:
-                out._thunk.copy(res._thunk)
+            if out.dtype != self.dtype:
+                a = a._maybe_convert(out.dtype, (a, out))
+
+            out[:] = a[index_tuple]
             return out
         else:
+            res = a[index_tuple]
             return res
 
     def clip(self, min=None, max=None, out=None):

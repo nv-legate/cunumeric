@@ -2378,7 +2378,7 @@ def compress(c, a, axis=None, out=None):
 
     When working along a given axis, a slice along that axis is returned
     in output for each index where condition evaluates to True.
-    When working on a 1-D array, compress is equivalent to extract.
+    When working on a 1-D array, compress is equivalent to numpy.extract.
 
     Parameters
     ----------
@@ -2415,7 +2415,7 @@ def compress(c, a, axis=None, out=None):
 
     See Also
     --------
-    numpy.compress
+    numpy.compress, numpy.extract
 
     Availability
     --------
