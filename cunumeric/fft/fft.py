@@ -51,8 +51,6 @@ def _operate_by_axes(a, axes):
 @add_boilerplate("a")
 def fft(a, n=None, axis=-1, norm=None):
     """
-    fft(a, n=None, axis=1, norm=None)
-
     Compute the one-dimensional discrete Fourier Transform.
 
     This function computes the one-dimensional *n*-point discrete Fourier
