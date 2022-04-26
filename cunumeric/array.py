@@ -1960,9 +1960,9 @@ class ndarray:
                     "diagonal for 1D array"
                 )
             m = self.shape[0] + np.abs(offset)
-            out_arr = ndarray((m, m), dtype=self.dtype, inputs=(self,))
+            out = ndarray((m, m), dtype=self.dtype, inputs=(self,))
             diag_size = self.shape[0]
-            out_arr._thunk._diag_helper(
+            out._thunk._diag_helper(
                 self._thunk, offset=offset, naxes=0, extract=False, trace=False
             )
         else:
