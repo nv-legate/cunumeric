@@ -1742,6 +1742,21 @@ class ndarray:
         return result
 
     def take(self, indices, axis=None, out=None, mode="raise"):
+        """a.take(indices, axis=None, out=None, mode="raise")
+
+        Take elements from an array along an axis.
+
+        Refer to :func:`cunumeric.take` for full documentation.
+
+        See Also
+        --------
+        cunumeric.take : equivalent function
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         if not np.isscalar(indices):
             # if indices is a tuple or list, bring sub-tuples to the same shape
             # and concatenate them
@@ -1752,15 +1767,21 @@ class ndarray:
             axis = 0
         elif axis < 0:
             axis = self.ndim + axis
-        elif axis >= self.ndim:
-            raise ValueError("axis is out of bounds for array of dimension")
+        if axis is not None and axis >= self.ndim:
+            raise ValueError("axis argument is out of bounds")
 
+        # TODO remove "raise" logic when bounds check for advanced
+        # indexing is implementd
         if mode == "raise":
             if np.isscalar(indices):
-                if (indices < 0) or (indices >= self.shape[axis]):
+                if (indices < -self.shape[axis]) or (
+                    indices >= self.shape[axis]
+                ):
                     raise ValueError("invalid entry in indices array")
             else:
-                if (indices < 0).any() or (indices >= self.shape[axis]).any():
+                if (indices < -self.shape[axis]).any() or (
+                    indices >= self.shape[axis]
+                ).any():
                     raise ValueError("invalid entry in indices array")
         elif mode == "wrap":
             indices = indices % self.shape[axis]
@@ -1781,19 +1802,20 @@ class ndarray:
                 raise IndexError(
                     "Cannot do a non-empty take() from an empty axis."
                 )
-            return self
+            return self.copy()
 
         point_indices = tuple(slice(None) for i in range(0, axis))
         point_indices += (indices,)
         res = self[point_indices]
+        if np.isscalar(indices):
+            res = res.copy()
         if out is not None:
-            out = convert_to_cunumeric_ndarray(out)
             if out.shape != res.shape:
                 raise ValueError("Shape mismatch: out array has wrong shape")
             if out.dtype != res.dtype:
                 raise ValueError("Type mismatch: out array has wrong type")
 
-            out._thunk = res._thunk
+            out._thunk.copy(res._thunk)
             return out
         else:
             return res
@@ -1940,13 +1962,12 @@ class ndarray:
         res = a[index_tuple]
 
         if out is not None:
-            out = convert_to_cunumeric_ndarray(out)
             if out.shape != res.shape:
                 raise ValueError("Shape mismatch: out array has wrong shape")
             if out.dtype != res.dtype:
                 out._thunk.convert(res._thunk)
             else:
-                out._thunk = res._thunk
+                out._thunk.copy(res._thunk)
             return out
         else:
             return res

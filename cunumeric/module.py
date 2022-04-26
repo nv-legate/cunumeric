@@ -2250,7 +2250,7 @@ def where(a, x=None, y=None):
 
 
 # Indexing-like operations
-@add_boilerplate("a")
+@add_boilerplate("a", "out")
 def take(a, indices, axis=None, out=None, mode="raise"):
     """
     Take elements from an array along an axis.
@@ -2258,6 +2258,7 @@ def take(a, indices, axis=None, out=None, mode="raise"):
     indexing (indexing arrays using arrays); however, it can be easier
     to use if you need elements along a given axis. A call such as
     `np.take(arr, indices, axis=3)` is equivalent to `arr[:,:,:,indices,...]`.
+
     Parameters
     ----------
     a : array_like `(Ni…, M, Nk…)`
@@ -2270,8 +2271,7 @@ def take(a, indices, axis=None, out=None, mode="raise"):
         array is used.
     out : ndarray, optional `(Ni…, Nj…, Nk…)`
         If provided, the result will be placed in this array. It should be of
-        the appropriate shape and dtype. Note that out is always buffered if
-        mode=’raise’; use other modes for better performance.
+        the appropriate shape and dtype.
     mode : {‘raise’, ‘wrap’, ‘clip’}, optional
         Specifies how out-of-bounds indices will behave.
         ‘raise’ – raise an error (default)
@@ -2280,18 +2280,22 @@ def take(a, indices, axis=None, out=None, mode="raise"):
         ‘clip’ mode means that all indices that are too large are replaced by
         the index that addresses the last element along that axis.
         Note that this disables indexing with negative numbers.
+
     Returns
     -------
     out : ndarray `(Ni…, Nj…, Nk…)`
         The returned array has the same type as a.
+
     Raises
     ------
+
     See Also
     --------
     numpy.take
+
     Availability
     --------
-    GPU, CPU
+    Multiple GPUs, Multiple CPUs
     """
     return a.take(indices=indices, axis=axis, out=out, mode=mode)
 
@@ -2367,7 +2371,7 @@ def choose(a, choices, out=None, mode="raise"):
     return a.choose(choices=choices, out=out, mode=mode)
 
 
-@add_boilerplate("c", "a")
+@add_boilerplate("c", "a", "out")
 def compress(c, a, axis=None, out=None):
     """
     Return selected slices of an array along given axis.
@@ -2403,7 +2407,7 @@ def compress(c, a, axis=None, out=None):
     Raises
     ------
     ValueError : dimension mismatch
-        If condition is is not 1D array
+        If condition is not 1D array
     ValueError : shape mismatch
         If condition contains entries that are out of bounds of array
     ValueError : shape mismatch
