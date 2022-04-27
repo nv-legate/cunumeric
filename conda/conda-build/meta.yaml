@@ -2,8 +2,8 @@
 ## The placeholder version is strictly for making two-pass conda build process.
 ## It should not be used for any other purpose, and this is not a default version.
 {% set placeholder_version = '0.0.0.dev' %}
-{% set version = (environ.get('GIT_DESCRIBE_TAG', '') ~ environ.get('GIT_DESCRIBE_NUMBER', '')) %}
-{% set cuda_version='.'.join(environ.get('CUDA', '11.5').split('.')[:2]) %}
+{% set default_cuda_version = '11.5' %}
+{% set cuda_version='.'.join(environ.get('CUDA', default_cuda_version).split('.')[:2]) %}
 {% set cuda_major=cuda_version.split('.')[0] %}
 {% set py_version=environ.get('CONDA_PY', '') %}
 {% if package_version is defined %}
