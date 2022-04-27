@@ -108,6 +108,8 @@ def run_test(
     only_pattern,
 ):
     test_path = os.path.join(root_dir, test_file)
+    if "integration" in test_path and verbose:
+        opts = opts + ["-v", "-s"]
     try:
         cmd(
             [driver, test_path] + flags + test_flags + opts,
