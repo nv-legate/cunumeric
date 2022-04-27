@@ -46,8 +46,6 @@ def test_basic():
     assert d == 2.0
 
 
-# TODO: Reshape is not yet supported in Legate
-@pytest.mark.skip
 def test_reshape():
     x = num.random.random((2, 3, 4))
     y = x.reshape((4, 3, 2))
