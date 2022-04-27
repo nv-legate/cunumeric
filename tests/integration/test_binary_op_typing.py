@@ -53,7 +53,7 @@ ARRAY_VALUES = [[1]]
 SCALAR_VALUES = [1, -1, 1.0, 1e-50, 1j]
 
 
-def generate_all_cases():
+def generate_array_array_cases():
     for idx, lhs_type in enumerate(TYPES):
         for rhs_type in TYPES[idx:]:
             for lhs_value, rhs_value in product(ARRAY_VALUES, ARRAY_VALUES):
@@ -80,41 +80,60 @@ def generate_all_cases():
 
             yield (array_np, scalar, array_num, scalar)
 
-    # TODO: NumPy's type coercion rules are confusing at best and impossible
-    # for any human being to understand in my opinion. My attempt to make
-    # sense of it for the past two days failed miserably. I managed to make
-    # the code somewhat compatible with NumPy for cases where Python scalars
-    # are passed.
-    #
-    # If anyone can do a better job than me and finally make cuNumeric
-    # implement the same typing rules, please put these tests back.
-    #
-    # for idx, lhs_type in enumerate(TYPES):
-    #    for rhs_type in TYPES[idx:]:
-    #        for array, scalar in product(ARRAY_VALUES, SCALAR_VALUES):
-    #            try:
-    #                lhs_np = np.array(array, dtype=lhs_type)
-    #                rhs_np = np.array(scalar, dtype=rhs_type)
-    #                lhs_num = num.array(lhs_np)
-    #                rhs_num = num.array(rhs_np)
-    #                yield (lhs_np, rhs_np, lhs_num, rhs_num)
-    #            except TypeError:
-    #                pass
 
-    #            try:
-    #                lhs_np = np.array(scalar, dtype=lhs_type)
-    #                rhs_np = np.array(array, dtype=rhs_type)
-    #                lhs_num = num.array(lhs_np)
-    #                rhs_num = num.array(rhs_np)
-    #                yield (lhs_np, rhs_np, lhs_num, rhs_num)
-    #            except TypeError:
-    #                pass
+# TODO: NumPy's type coercion rules are confusing at best and impossible
+# for any human being to understand in my opinion. My attempt to make
+# sense of it for the past two days failed miserably. I managed to make
+# the code somewhat compatible with NumPy for cases where Python scalars
+# are passed.
+#
+# If anyone can do a better job than me and finally make cuNumeric
+# implement the same typing rules, please put these tests back.
+def generate_array_scalar_cases():
+    for idx, lhs_type in enumerate(TYPES):
+        for rhs_type in TYPES[idx:]:
+            for array, scalar in product(ARRAY_VALUES, SCALAR_VALUES):
+                try:
+                    lhs_np = np.array(array, dtype=lhs_type)
+                    rhs_np = np.array(scalar, dtype=rhs_type)
+                    lhs_num = num.array(lhs_np)
+                    rhs_num = num.array(rhs_np)
+                    yield (lhs_np, rhs_np, lhs_num, rhs_num)
+                except TypeError:
+                    pass
+
+                try:
+                    lhs_np = np.array(scalar, dtype=lhs_type)
+                    rhs_np = np.array(array, dtype=rhs_type)
+                    lhs_num = num.array(lhs_np)
+                    rhs_num = num.array(rhs_np)
+                    yield (lhs_np, rhs_np, lhs_num, rhs_num)
+                except TypeError:
+                    pass
 
 
 @pytest.mark.parametrize(
-    "lhs_np, rhs_np, lhs_num, rhs_num", generate_all_cases(), ids=str
+    "lhs_np, rhs_np, lhs_num, rhs_num", generate_array_array_cases(), ids=str
 )
-def test_add(lhs_np, rhs_np, lhs_num, rhs_num):
+def test_array_array(lhs_np, rhs_np, lhs_num, rhs_num):
+    print(f"{value_type(lhs_np)} x {value_type(rhs_np)}")
+
+    out_np = np.add(lhs_np, rhs_np)
+    out_num = num.add(lhs_num, rhs_num)
+
+    assert out_np.dtype == out_num.dtype
+
+    print(f"LHS {lhs_np}")
+    print(f"RHS {rhs_np}")
+    print(f"NumPy type: {out_np.dtype}, cuNumeric type: {out_num.dtype}")
+
+
+# not all of these currently pass (see not above)
+@pytest.mark.xfail
+@pytest.mark.parametrize(
+    "lhs_np, rhs_np, lhs_num, rhs_num", generate_array_scalar_cases(), ids=str
+)
+def test_array_scalar(lhs_np, rhs_np, lhs_num, rhs_num):
     print(f"{value_type(lhs_np)} x {value_type(rhs_np)}")
 
     out_np = np.add(lhs_np, rhs_np)
