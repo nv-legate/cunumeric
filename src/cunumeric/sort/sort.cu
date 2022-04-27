@@ -468,6 +468,117 @@ struct modulusWithOffset : public thrust::binary_function<int64_t, int64_t, int6
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
 template <typename VAL>
+SegmentMergePiece<VAL> merge_all_buffers(std::vector<SegmentMergePiece<VAL>>& merge_buffers,
+                                         bool segmented,
+                                         bool argsort,
+                                         ThrustAllocator& alloc,
+                                         cudaStream_t stream)
+{
+  {
+    // maybe k-way merge is more efficient here...
+    auto exec_policy      = thrust::cuda::par(alloc).on(stream);
+    size_t num_sort_ranks = merge_buffers.size();
+    for (size_t stride = 1; stride < num_sort_ranks; stride *= 2) {
+      for (size_t pos = 0; pos + stride < num_sort_ranks; pos += 2 * stride) {
+        SegmentMergePiece<VAL> source1 = merge_buffers[pos];
+        SegmentMergePiece<VAL> source2 = merge_buffers[pos + stride];
+        auto merged_size               = source1.size + source2.size;
+        auto merged_values             = create_buffer<VAL>(merged_size);
+        auto merged_indices            = create_buffer<int64_t>(argsort ? merged_size : 0);
+        auto merged_segments           = create_buffer<size_t>(segmented ? merged_size : 0);
+        auto p_merged_values           = merged_values.ptr(0);
+        auto p_values1                 = source1.values.ptr(0);
+        auto p_values2                 = source2.values.ptr(0);
+
+        if (segmented) {
+          auto p_merged_segments = merged_segments.ptr(0);
+          auto p_segments1       = source1.segments.ptr(0);
+          auto p_segments2       = source2.segments.ptr(0);
+          auto comb_keys_1 = thrust::make_zip_iterator(thrust::make_tuple(p_segments1, p_values1));
+          auto comb_keys_2 = thrust::make_zip_iterator(thrust::make_tuple(p_segments2, p_values2));
+          auto comb_keys_merged =
+            thrust::make_zip_iterator(thrust::make_tuple(p_merged_segments, p_merged_values));
+
+          if (argsort) {
+            // merge with key/value
+            auto p_indices1       = source1.indices.ptr(0);
+            auto p_indices2       = source2.indices.ptr(0);
+            auto p_merged_indices = merged_indices.ptr(0);
+            thrust::merge_by_key(exec_policy,
+                                 comb_keys_1,
+                                 comb_keys_1 + source1.size,
+                                 comb_keys_2,
+                                 comb_keys_2 + source2.size,
+                                 p_indices1,
+                                 p_indices2,
+                                 comb_keys_merged,
+                                 p_merged_indices,
+                                 thrust::less<thrust::tuple<size_t, VAL>>());
+          } else {
+            thrust::merge(exec_policy,
+                          comb_keys_1,
+                          comb_keys_1 + source1.size,
+                          comb_keys_2,
+                          comb_keys_2 + source2.size,
+                          comb_keys_merged,
+                          thrust::less<thrust::tuple<size_t, VAL>>());
+          }
+        } else {
+          if (argsort) {
+            // merge with key/value
+            auto p_indices1       = source1.indices.ptr(0);
+            auto p_indices2       = source2.indices.ptr(0);
+            auto p_merged_indices = merged_indices.ptr(0);
+            thrust::merge_by_key(exec_policy,
+                                 p_values1,
+                                 p_values1 + source1.size,
+                                 p_values2,
+                                 p_values2 + source2.size,
+                                 p_indices1,
+                                 p_indices2,
+                                 p_merged_values,
+                                 p_merged_indices);
+          } else {
+            thrust::merge(exec_policy,
+                          p_values1,
+                          p_values1 + source1.size,
+                          p_values2,
+                          p_values2 + source2.size,
+                          p_merged_values);
+          }
+        }
+
+        source1.values.destroy();
+        source2.values.destroy();
+        if (segmented) {
+          source1.segments.destroy();
+          source2.segments.destroy();
+        }
+        if (argsort) {
+          source1.indices.destroy();
+          source2.indices.destroy();
+        }
+
+        merge_buffers[pos].values   = merged_values;
+        merge_buffers[pos].indices  = merged_indices;
+        merge_buffers[pos].segments = merged_segments;
+        merge_buffers[pos].size     = merged_size;
+      }
+    }
+  }
+  SegmentMergePiece<VAL> result = merge_buffers[0];
+  merge_buffers.clear();
+  return result;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+template <typename VAL>
 void rebalance_data(SegmentMergePiece<VAL>& merge_buffer,
                     void* output_ptr,
                     /* global domain information */
@@ -481,6 +592,7 @@ void rebalance_data(SegmentMergePiece<VAL>& merge_buffer,
                     /* other */
                     bool use_copy_kernels,
                     bool argsort,
+                    ThrustAllocator& alloc,
                     cudaStream_t stream,
                     ncclComm_t* comm)
 {
@@ -495,7 +607,6 @@ void rebalance_data(SegmentMergePiece<VAL>& merge_buffer,
 
   size_t volume = segment_size_l * num_segments_l;
 
-  auto alloc       = ThrustAllocator(Memory::GPU_FB_MEM);
   auto exec_policy = thrust::cuda::par(alloc).on(stream);
 
   {
@@ -1448,102 +1559,14 @@ void sample_sort_nccl_nd(SortPiece<VAL> local_sorted,
   /////////////////////////////////////////////////////////////////////////////////////////////////
 
   // now merge sort all into the result buffer
-  // maybe k-way merge is more efficient here...
-  {
-    for (size_t stride = 1; stride < num_sort_ranks; stride *= 2) {
-      for (size_t pos = 0; pos + stride < num_sort_ranks; pos += 2 * stride) {
-        SegmentMergePiece<VAL> source1 = merge_buffers[pos];
-        SegmentMergePiece<VAL> source2 = merge_buffers[pos + stride];
-        auto merged_size               = source1.size + source2.size;
-        auto merged_values             = create_buffer<VAL>(merged_size);
-        auto merged_indices            = create_buffer<int64_t>(argsort ? merged_size : 0);
-        auto merged_segments = create_buffer<size_t>(num_segments_l > 1 ? merged_size : 0);
-        auto p_merged_values = merged_values.ptr(0);
-        auto p_values1       = source1.values.ptr(0);
-        auto p_values2       = source2.values.ptr(0);
-
-        if (num_segments_l > 1) {
-          auto p_merged_segments = merged_segments.ptr(0);
-          auto p_segments1       = source1.segments.ptr(0);
-          auto p_segments2       = source2.segments.ptr(0);
-          auto comb_keys_1 = thrust::make_zip_iterator(thrust::make_tuple(p_segments1, p_values1));
-          auto comb_keys_2 = thrust::make_zip_iterator(thrust::make_tuple(p_segments2, p_values2));
-          auto comb_keys_merged =
-            thrust::make_zip_iterator(thrust::make_tuple(p_merged_segments, p_merged_values));
-
-          if (argsort) {
-            // merge with key/value
-            auto p_indices1       = source1.indices.ptr(0);
-            auto p_indices2       = source2.indices.ptr(0);
-            auto p_merged_indices = merged_indices.ptr(0);
-            thrust::merge_by_key(exec_policy,
-                                 comb_keys_1,
-                                 comb_keys_1 + source1.size,
-                                 comb_keys_2,
-                                 comb_keys_2 + source2.size,
-                                 p_indices1,
-                                 p_indices2,
-                                 comb_keys_merged,
-                                 p_merged_indices,
-                                 thrust::less<thrust::tuple<size_t, VAL>>());
-          } else {
-            thrust::merge(exec_policy,
-                          comb_keys_1,
-                          comb_keys_1 + source1.size,
-                          comb_keys_2,
-                          comb_keys_2 + source2.size,
-                          comb_keys_merged,
-                          thrust::less<thrust::tuple<size_t, VAL>>());
-          }
-        } else {
-          if (argsort) {
-            // merge with key/value
-            auto p_indices1       = source1.indices.ptr(0);
-            auto p_indices2       = source2.indices.ptr(0);
-            auto p_merged_indices = merged_indices.ptr(0);
-            thrust::merge_by_key(exec_policy,
-                                 p_values1,
-                                 p_values1 + source1.size,
-                                 p_values2,
-                                 p_values2 + source2.size,
-                                 p_indices1,
-                                 p_indices2,
-                                 p_merged_values,
-                                 p_merged_indices);
-          } else {
-            thrust::merge(exec_policy,
-                          p_values1,
-                          p_values1 + source1.size,
-                          p_values2,
-                          p_values2 + source2.size,
-                          p_merged_values);
-          }
-        }
-
-        source1.values.destroy();
-        source2.values.destroy();
-        if (num_segments_l > 1) {
-          source1.segments.destroy();
-          source2.segments.destroy();
-        }
-        if (argsort) {
-          source1.indices.destroy();
-          source2.indices.destroy();
-        }
-
-        merge_buffers[pos].values   = merged_values;
-        merge_buffers[pos].indices  = merged_indices;
-        merge_buffers[pos].segments = merged_segments;
-        merge_buffers[pos].size     = merged_size;
-      }
-    }
-  }
+  SegmentMergePiece<VAL> merged_result =
+    merge_all_buffers(merge_buffers, num_segments_l > 1, argsort, alloc, stream);
 
   /////////////////////////////////////////////////////////////////////////////////////////////////
   /////////////// Part 5: re-balance data to match input/output dimensions
   /////////////////////////////////////////////////////////////////////////////////////////////////
 
-  rebalance_data(merge_buffers[0],
+  rebalance_data(merged_result,
                  output_ptr,
                  my_rank,
                  my_sort_rank,
@@ -1553,6 +1576,7 @@ void sample_sort_nccl_nd(SortPiece<VAL> local_sorted,
                  num_segments_l,
                  use_copy_kernels,
                  argsort,
+                 alloc,
                  stream,
                  comm);
 }
