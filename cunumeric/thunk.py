@@ -143,13 +143,7 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def _diag_helper(
-        self,
-        rhs,
-        offset,
-        naxes,
-        extract,
-    ):
+    def _diag_helper(self, rhs, offset, naxes, extract, trace):
         ...
 
     @abstractmethod
