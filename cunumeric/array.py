@@ -2087,6 +2087,7 @@ class ndarray:
                 raise ValueError("Either axis1/axis2 or axes must be supplied")
         return self._diag_helper(offset=offset, axes=axes, extract=extract)
 
+    @add_boilerplate()
     def trace(self, offset=0, axis1=None, axis2=None, dtype=None, out=None):
         """a.trace(offset=0, axis1=None, axis2=None, dtype = None, out = None)
 

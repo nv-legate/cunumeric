@@ -3009,7 +3009,7 @@ def einsum(expr, *operands, out=None, optimize=False):
     return operands[0]
 
 
-@add_boilerplate("a", "out")
+@add_boilerplate("a")
 def trace(a, offset=0, axis1=None, axis2=None, dtype=None, out=None):
     """
     Return the sum along diagonals of the array.
