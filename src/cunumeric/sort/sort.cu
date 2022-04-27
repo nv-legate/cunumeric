@@ -228,10 +228,11 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
 template <typename VAL>
 __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   copy_data_to_merge_buffers(const Buffer<size_t> segment_blocks_ptr,
-                             const Buffer<size_t*> size_send_ptr,
+                             const Buffer<size_t> size_send,
                              const Buffer<VAL> source_values,
                              Buffer<VAL*> target_values,
                              const size_t num_segments_l,
+                             const size_t num_segments_l_aligned,
                              const size_t segment_size_l,
                              const size_t my_rank,
                              const size_t num_sort_ranks)
@@ -245,7 +246,7 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   size_t source_offset = segment_size_l * segment_id;
   for (int r = 0; r < num_sort_ranks; ++r) {
     size_t target_offset = segment_blocks_ptr[r * num_segments_l + segment_id];
-    size_t local_size    = size_send_ptr[r][segment_id];
+    size_t local_size    = size_send[r * num_segments_l_aligned + segment_id];
 
     for (size_t pos = thread_offset; pos < local_size; pos += threadgroup_size) {
       target_values[r][target_offset + pos] = source_values[source_offset + pos];
@@ -1059,18 +1060,20 @@ void sample_sort_nccl_nd(SortPiece<VAL> local_sorted,
   // sort ranks. Note that if segment_size_l>0 && volume==0 means that we have
   // a full sort group being empty, this should not affect local sort rank size.
   {
-    auto worker_count      = create_buffer<int32_t>(num_ranks, Memory::Z_COPY_MEM);
-    worker_count[0]        = segment_size_l > 0 ? 1 : 0;
-    auto* worker_count_ptr = worker_count.ptr(0);
-    CHECK_NCCL(
-      ncclAllReduce(worker_count_ptr, worker_count_ptr, 1, ncclInt32, ncclSum, *comm, stream));
+    auto worker_count_d = create_buffer<int32_t>(1, Memory::GPU_FB_MEM);
+    int worker_count[1] = {(segment_size_l > 0 ? 1 : 0)};
+    CHECK_CUDA(cudaMemcpyAsync(
+      worker_count_d.ptr(0), &worker_count[0], sizeof(int32_t), cudaMemcpyHostToDevice, stream));
+    CHECK_NCCL(ncclAllReduce(
+      worker_count_d.ptr(0), worker_count_d.ptr(0), 1, ncclInt32, ncclSum, *comm, stream));
+    CHECK_CUDA(cudaMemcpyAsync(
+      &worker_count[0], worker_count_d.ptr(0), sizeof(int32_t), cudaMemcpyDeviceToHost, stream));
     CHECK_CUDA(cudaStreamSynchronize(stream));
-
-    if (worker_count_ptr[0] < num_ranks) {
+    if (worker_count[0] < num_ranks) {
       const size_t number_sort_groups = num_ranks / num_sort_ranks;
-      num_sort_ranks                  = worker_count_ptr[0] / number_sort_groups;
+      num_sort_ranks                  = worker_count[0] / number_sort_groups;
     }
-    worker_count.destroy();
+    worker_count_d.destroy();
 
     // early out
     if (volume == 0) return;
@@ -1195,9 +1198,6 @@ void sample_sort_nccl_nd(SortPiece<VAL> local_sorted,
   // need to sync as we share values in between host/device
   CHECK_CUDA(cudaStreamSynchronize(stream));
 
-  // initialize sizes to send
-  std::vector<Buffer<size_t>> size_send(num_sort_ranks);
-
   Buffer<size_t> segment_blocks;
   bool use_copy_kernels = num_segments_l >= 256;
   if (use_copy_kernels) {
@@ -1206,22 +1206,25 @@ void sample_sort_nccl_nd(SortPiece<VAL> local_sorted,
     segment_blocks = create_buffer<size_t>(num_segments_l * num_sort_ranks, Memory::Z_COPY_MEM);
   }
 
+  // initialize sizes to send
+  const size_t num_segments_l_aligned = get_16b_aligned_count(num_segments_l + 1, sizeof(size_t));
+  Buffer<size_t> size_send =
+    create_buffer<size_t>(num_segments_l_aligned * num_sort_ranks, Memory::Z_COPY_MEM);
   for (size_t r = 0; r < num_sort_ranks; r++) {
-    size_send[r] =
-      create_buffer<size_t>(num_segments_l + 1, Memory::Z_COPY_MEM);  // last element stores sum
-    size_send[r][num_segments_l] = 0;
+    size_send[r * num_segments_l_aligned + num_segments_l] = 0;
   }
   for (size_t segment = 0; segment < num_segments_l; ++segment) {
     size_t start_position = segment_size_l * segment;  // all positions global
     for (size_t r = 0; r < num_sort_ranks; r++) {
-      size_t end_position   = (r < num_sort_ranks - 1)
-                                ? split_positions[segment * (num_sort_ranks - 1) + r]
-                                : ((segment + 1) * segment_size_l);
-      size_t size           = end_position - start_position;
-      size_send[r][segment] = size;
+      size_t end_position                             = (r < num_sort_ranks - 1)
+                                                          ? split_positions[segment * (num_sort_ranks - 1) + r]
+                                                          : ((segment + 1) * segment_size_l);
+      size_t size                                     = end_position - start_position;
+      size_send[r * num_segments_l_aligned + segment] = size;
       if (use_copy_kernels)
-        segment_blocks[r * num_segments_l + segment] = size_send[r][num_segments_l];
-      size_send[r][num_segments_l] += size;
+        segment_blocks[r * num_segments_l + segment] =
+          size_send[r * num_segments_l_aligned + num_segments_l];
+      size_send[r * num_segments_l_aligned + num_segments_l] += size;
       start_position = end_position;
     }
   }
@@ -1235,17 +1238,22 @@ void sample_sort_nccl_nd(SortPiece<VAL> local_sorted,
   /////////////////////////////////////////////////////////////////////////////////////////////////
 
   // all2all exchange send/receive sizes
-  std::vector<Buffer<size_t>> size_recv(num_sort_ranks);
-  for (size_t r = 0; r < num_sort_ranks; r++) {
-    size_recv[r] =
-      create_buffer<size_t>(num_segments_l + 1, Memory::Z_COPY_MEM);  // last element stores sum
-  }
+  Buffer<size_t> size_recv =
+    create_buffer<size_t>(num_segments_l_aligned * num_sort_ranks, Memory::Z_COPY_MEM);
   CHECK_NCCL(ncclGroupStart());
   for (size_t r = 0; r < num_sort_ranks; r++) {
-    CHECK_NCCL(
-      ncclSend(size_send[r].ptr(0), num_segments_l + 1, ncclUint64, sort_ranks[r], *comm, stream));
-    CHECK_NCCL(
-      ncclRecv(size_recv[r].ptr(0), num_segments_l + 1, ncclUint64, sort_ranks[r], *comm, stream));
+    CHECK_NCCL(ncclSend(size_send.ptr(r * num_segments_l_aligned),
+                        num_segments_l + 1,
+                        ncclUint64,
+                        sort_ranks[r],
+                        *comm,
+                        stream));
+    CHECK_NCCL(ncclRecv(size_recv.ptr(r * num_segments_l_aligned),
+                        num_segments_l + 1,
+                        ncclUint64,
+                        sort_ranks[r],
+                        *comm,
+                        stream));
   }
   CHECK_NCCL(ncclGroupEnd());
 
@@ -1258,19 +1266,18 @@ void sample_sort_nccl_nd(SortPiece<VAL> local_sorted,
   {
     std::vector<size_t> positions(num_sort_ranks);
     for (size_t r = 0; r < num_sort_ranks; r++) {
-      val_send_buffers[r] = create_buffer<VAL>(size_send[r][num_segments_l], Memory::GPU_FB_MEM);
+      val_send_buffers[r] = create_buffer<VAL>(
+        size_send[r * num_segments_l_aligned + num_segments_l], Memory::GPU_FB_MEM);
       if (argsort) {
-        idc_send_buffers[r] =
-          create_buffer<int64_t>(size_send[r][num_segments_l], Memory::GPU_FB_MEM);
+        idc_send_buffers[r] = create_buffer<int64_t>(
+          size_send[r * num_segments_l_aligned + num_segments_l], Memory::GPU_FB_MEM);
       }
       positions[r] = 0;
     }
 
     if (use_copy_kernels) {
-      Buffer<size_t*> size_send_ptr = create_buffer<size_t*>(num_sort_ranks, Memory::Z_COPY_MEM);
       Buffer<VAL*> val_send_buffers_ptr = create_buffer<VAL*>(num_sort_ranks, Memory::Z_COPY_MEM);
       for (size_t r = 0; r < num_sort_ranks; r++) {
-        size_send_ptr[r]        = size_send[r].ptr(0);
         val_send_buffers_ptr[r] = val_send_buffers[r].ptr(0);
       }
 
@@ -1281,10 +1288,11 @@ void sample_sort_nccl_nd(SortPiece<VAL> local_sorted,
       const size_t num_blocks_y = (num_segments_l + block_shape.y - 1) / block_shape.y;
       dim3 grid_shape           = dim3(1, num_blocks_y);
       copy_data_to_merge_buffers<<<grid_shape, block_shape, 0, stream>>>(segment_blocks,
-                                                                         size_send_ptr,
+                                                                         size_send,
                                                                          local_sorted.values,
                                                                          val_send_buffers_ptr,
                                                                          num_segments_l,
+                                                                         num_segments_l_aligned,
                                                                          segment_size_l,
                                                                          my_rank,
                                                                          num_sort_ranks);
@@ -1297,10 +1305,11 @@ void sample_sort_nccl_nd(SortPiece<VAL> local_sorted,
         }
         // need to sync as we share values in between host/device
         copy_data_to_merge_buffers<<<grid_shape, block_shape, 0, stream>>>(segment_blocks,
-                                                                           size_send_ptr,
+                                                                           size_send,
                                                                            local_sorted.indices,
                                                                            idc_send_buffers_ptr,
                                                                            num_segments_l,
+                                                                           num_segments_l_aligned,
                                                                            segment_size_l,
                                                                            my_rank,
                                                                            num_sort_ranks);
@@ -1310,14 +1319,13 @@ void sample_sort_nccl_nd(SortPiece<VAL> local_sorted,
         CHECK_CUDA(cudaStreamSynchronize(stream));  // needed before Z-copy destroy()?
       }
 
-      size_send_ptr.destroy();
       val_send_buffers_ptr.destroy();
       segment_blocks.destroy();
     } else {
       for (size_t segment = 0; segment < num_segments_l; ++segment) {
         size_t start_position = segment * segment_size_l;
         for (size_t r = 0; r < num_sort_ranks; r++) {
-          size_t size = size_send[r][segment];
+          size_t size = size_send[r * num_segments_l_aligned + segment];
           CHECK_CUDA(cudaMemcpyAsync(val_send_buffers[r].ptr(positions[r]),
                                      local_sorted.values.ptr(start_position),
                                      sizeof(VAL) * size,
@@ -1333,7 +1341,8 @@ void sample_sort_nccl_nd(SortPiece<VAL> local_sorted,
           start_position += size;
           positions[r] += size;
 
-          assert(segment < num_segments_l - 1 || positions[r] == size_send[r][num_segments_l]);
+          assert(segment < num_segments_l - 1 ||
+                 positions[r] == size_send[r * num_segments_l_aligned + num_segments_l]);
         }
         assert(start_position == (segment + 1) * segment_size_l);
       }
@@ -1347,7 +1356,7 @@ void sample_sort_nccl_nd(SortPiece<VAL> local_sorted,
   std::vector<SegmentMergePiece<VAL>> merge_buffers(num_sort_ranks);
   {
     for (size_t r = 0; r < num_sort_ranks; ++r) {
-      auto size = size_recv[r][num_segments_l];
+      auto size = size_recv[r * num_segments_l_aligned + num_segments_l];
 
       merge_buffers[r].size = size;
 
@@ -1360,16 +1369,16 @@ void sample_sort_nccl_nd(SortPiece<VAL> local_sorted,
         // 1 1 0 1 1 0 0
         // 1 2 2 3 4 4 4      // segment id for all received elements
         thrust::inclusive_scan(exec_policy,
-                               size_recv[r].ptr(0),
-                               size_recv[r].ptr(0) + num_segments_l + 1,
-                               size_recv[r].ptr(0));
+                               size_recv.ptr(r * num_segments_l_aligned),
+                               size_recv.ptr(r * num_segments_l_aligned) + num_segments_l + 1,
+                               size_recv.ptr(r * num_segments_l_aligned));
         CHECK_CUDA(
           cudaMemsetAsync(merge_buffers[r].segments.ptr(0), 0, size * sizeof(size_t), stream));
         const size_t num_blocks = (num_segments_l + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
         assert(sizeof(unsigned long long int) ==
                sizeof(size_t));  // kernel needs to cast for atomicAdd...
         initialize_segment_start_positions<<<num_blocks, THREADS_PER_BLOCK, 0, stream>>>(
-          size_recv[r].ptr(0),
+          size_recv.ptr(r * num_segments_l_aligned),
           num_segments_l - 1,
           merge_buffers[r].segments.ptr(0),
           merge_buffers[r].size);
@@ -1392,7 +1401,7 @@ void sample_sort_nccl_nd(SortPiece<VAL> local_sorted,
   CHECK_NCCL(ncclGroupStart());
   for (size_t r = 0; r < num_sort_ranks; r++) {
     CHECK_NCCL(ncclSend(val_send_buffers[r].ptr(0),
-                        size_send[r][num_segments_l] * sizeof(VAL),
+                        size_send[r * num_segments_l_aligned + num_segments_l] * sizeof(VAL),
                         ncclInt8,
                         sort_ranks[r],
                         *comm,
@@ -1410,7 +1419,7 @@ void sample_sort_nccl_nd(SortPiece<VAL> local_sorted,
     CHECK_NCCL(ncclGroupStart());
     for (size_t r = 0; r < num_sort_ranks; r++) {
       CHECK_NCCL(ncclSend(idc_send_buffers[r].ptr(0),
-                          size_send[r][num_segments_l],
+                          size_send[r * num_segments_l_aligned + num_segments_l],
                           ncclInt64,
                           sort_ranks[r],
                           *comm,
@@ -1427,9 +1436,9 @@ void sample_sort_nccl_nd(SortPiece<VAL> local_sorted,
 
   // cleanup remaining buffers
   CHECK_CUDA(cudaStreamSynchronize(stream));
+  size_send.destroy();
+  size_recv.destroy();
   for (size_t r = 0; r < num_sort_ranks; r++) {
-    size_send[r].destroy();
-    size_recv[r].destroy();
     val_send_buffers[r].destroy();
     if (argsort) idc_send_buffers[r].destroy();
   }
