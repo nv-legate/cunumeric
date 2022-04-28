@@ -317,7 +317,7 @@ def run_tests(
         legate_tests.extend(glob.glob("tests/interop/*.py"))
 
     if unit_tests:
-        legate_tests.extend(glob.glob("tests/unit/*.py"))
+        legate_tests.extend(glob.glob("tests/unit/cunumeric/*.py"))
 
     if only_pattern is not None:
         filter_only_tests(only_pattern)
