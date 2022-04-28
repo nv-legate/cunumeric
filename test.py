@@ -50,7 +50,7 @@ app_cores = max(physical_cores - 2, 1)
 
 # draw tests from these directories
 legate_tests = []
-legate_tests.extend(glob.glob("tests/*.py"))
+legate_tests.extend(glob.glob("tests/integration/*.py"))
 legate_tests.extend(glob.glob("examples/*.py"))
 
 # some test programs have additional command line arguments
@@ -108,6 +108,8 @@ def run_test(
     only_pattern,
 ):
     test_path = os.path.join(root_dir, test_file)
+    if "integration" in test_path and verbose:
+        opts = opts + ["-v", "-s"]
     try:
         cmd(
             [driver, test_path] + flags + test_flags + opts,
