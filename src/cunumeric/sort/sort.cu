@@ -512,6 +512,36 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   }
 }
 
+#define TILE_DIM 32
+template <typename VAL>
+__global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
+  transpose_matrix(VAL* matrix_out, VAL* matrix_in, int dim_x, int dim_y)
+{
+  __shared__ VAL tile[TILE_DIM][TILE_DIM];
+
+  // every thread works on column of data into column of tile
+  int x_idx  = blockIdx.x * TILE_DIM + threadIdx.x;
+  int y_idx  = blockIdx.y * TILE_DIM + threadIdx.y;
+  int offset = x_idx + y_idx * dim_y;
+  if (x_idx < dim_y) {
+    for (int i = 0; i < TILE_DIM - threadIdx.y; i += blockDim.y) {
+      if (y_idx + i < dim_x) { tile[threadIdx.y + i][threadIdx.x] = matrix_in[offset + i * dim_y]; }
+    }
+  }
+
+  __syncthreads();
+
+  // write row of tile into column of data
+  x_idx  = blockIdx.y * TILE_DIM + threadIdx.x;
+  y_idx  = blockIdx.x * TILE_DIM + threadIdx.y;
+  offset = x_idx + y_idx * dim_x;
+  if (x_idx < dim_x) {
+    for (int i = 0; i < TILE_DIM - threadIdx.y; i += blockDim.y) {
+      if (y_idx + i < dim_y) matrix_out[offset + i * dim_x] = tile[threadIdx.x][threadIdx.y + i];
+    }
+  }
+}
+
 struct subtract : public thrust::unary_function<int64_t, int64_t> {
   const int64_t constant_;
 
@@ -703,7 +733,10 @@ void rebalance_data(SegmentMergePiece<VAL>& merge_buffer,
 
   auto exec_policy = thrust::cuda::par(alloc).on(stream);
 
-  bool use_copy_kernels = num_segments_l >= 256;
+  // bool use_copy_kernels = num_segments_l >= 256;
+  //  FIXME! just for performance benchmarks
+  bool use_copy_kernels = false;
+  if (const char* env_p = std::getenv("USE_COPY_KERNELS")) { use_copy_kernels = true; }
 
   {
     // compute diff for each segment
@@ -734,37 +767,37 @@ void rebalance_data(SegmentMergePiece<VAL>& merge_buffer,
 #endif
 
     // allocate target
-    std::vector<Buffer<int64_t>> segment_diff_buffers(num_sort_ranks);
-    for (size_t r = 0; r < num_sort_ranks; r++) {
-      segment_diff_buffers[r] = create_buffer<int64_t>(num_segments_l, Memory::GPU_FB_MEM);
-    }
+    // allocate target
+    const size_t num_segments_l_aligned = get_16b_aligned_count(num_segments_l + 1, sizeof(size_t));
+    Buffer<int64_t> segment_diff_buffers =
+      create_buffer<int64_t>(num_segments_l_aligned * num_sort_ranks, Memory::GPU_FB_MEM);
 
     // communicate segment diffs
     CHECK_NCCL(ncclGroupStart());
     for (size_t r = 0; r < num_sort_ranks; r++) {
       CHECK_NCCL(
         ncclSend(segment_diff.ptr(0), num_segments_l, ncclInt64, sort_ranks[r], *comm, stream));
-      CHECK_NCCL(ncclRecv(
-        segment_diff_buffers[r].ptr(0), num_segments_l, ncclInt64, sort_ranks[r], *comm, stream));
+      CHECK_NCCL(ncclRecv(segment_diff_buffers.ptr(r * num_segments_l_aligned),
+                          num_segments_l,
+                          ncclInt64,
+                          sort_ranks[r],
+                          *comm,
+                          stream));
     }
     CHECK_NCCL(ncclGroupEnd());
 
     // copy to transpose structure [segments][ranks]
     auto segment_diff_2d =
-      create_buffer<int64_t>(num_segments_l * num_sort_ranks, Memory::GPU_FB_MEM);
+      create_buffer<int64_t>(num_segments_l_aligned * num_sort_ranks, Memory::GPU_FB_MEM);
 
-    for (size_t r = 0; r < num_sort_ranks; r++) {
-      CHECK_CUDA(cudaMemcpy2DAsync(segment_diff_2d.ptr(r),
-                                   num_sort_ranks * sizeof(int64_t),
-                                   segment_diff_buffers[r].ptr(0),
-                                   1 * sizeof(int64_t),
-                                   sizeof(int64_t),
-                                   num_segments_l,
-                                   cudaMemcpyDeviceToDevice,
-                                   stream));
-    }
+    // Transpose
+    dim3 grid((num_sort_ranks + TILE_DIM - 1) / TILE_DIM,
+              (num_segments_l_aligned + TILE_DIM - 1) / TILE_DIM);
+    dim3 block(TILE_DIM, THREADS_PER_BLOCK / TILE_DIM);
+    transpose_matrix<<<grid, block, 0, stream>>>(
+      segment_diff_2d.ptr(0), segment_diff_buffers.ptr(0), num_sort_ranks, num_segments_l_aligned);
 
-    for (size_t r = 0; r < num_sort_ranks; r++) { segment_diff_buffers[r].destroy(); }
+    segment_diff_buffers.destroy();
 
 #ifdef DEBUG_CUNUMERIC
     {
@@ -791,8 +824,10 @@ void rebalance_data(SegmentMergePiece<VAL>& merge_buffer,
           edge case --> send more than whole line should not happen due to sample choice!
     */
     // 2 (signed) arrays - left/right for every segment
-    auto send_left  = create_buffer<int64_t>(num_segments_l, Memory::Z_COPY_MEM);
-    auto send_right = create_buffer<int64_t>(num_segments_l, Memory::Z_COPY_MEM);
+    auto send_left = create_buffer<int64_t>(
+      num_segments_l, use_copy_kernels ? Memory::GPU_FB_MEM : Memory::Z_COPY_MEM);
+    auto send_right = create_buffer<int64_t>(
+      num_segments_l, use_copy_kernels ? Memory::GPU_FB_MEM : Memory::Z_COPY_MEM);
 
     // compute data to send....
     auto segment_diff_2d_scan =
