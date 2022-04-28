@@ -13,9 +13,7 @@
 # limitations under the License.
 #
 
-import gc
 import math
-import os
 import re
 from collections import Counter
 from functools import reduce as functools_reduce, wraps
@@ -1227,17 +1225,15 @@ def convert_to_array_form(indices):
 
 def check_list_depth(arr, prefix=(0,)):
     if not isinstance(arr, list):
-        return 0, arr.size if isinstance(arr, ndarray) else 1
+        return 0
     elif len(arr) == 0:
         raise ValueError(
             f"List at arrays{convert_to_array_form(prefix)} cannot be empty"
         )
 
-    sublist_results = list(
+    depths = list(
         check_list_depth(each, prefix + (idx,)) for idx, each in enumerate(arr)
     )
-    depths = list(each[0] for each in sublist_results)
-    size = sum(list(each[1] for each in sublist_results))
 
     if len(set(depths)) != 1:  # this should be one
         # If we're here elements don't have the same depth
@@ -1251,7 +1247,7 @@ def check_list_depth(arr, prefix=(0,)):
                     f"arrays{convert_to_array_form(prefix+(idx+1,))}"
                 )
 
-    return depths[0] + 1, size
+    return depths[0] + 1
 
 
 def check_shape_dtype(
@@ -1291,35 +1287,6 @@ def check_shape_dtype(
     return converted, ArrayInfo(ndim, shape, dtype)
 
 
-def _block_concatenate(arr, cur_depth, depth):
-    if cur_depth < depth:
-        inputs = list(
-            _block_concatenate(each, cur_depth + 1, depth) for each in arr
-        )
-    else:
-        inputs = list(convert_to_cunumeric_ndarray(inp) for inp in arr)
-
-    # this reshape of elements could be replaced
-    # w/ np.atleast_*d when they're implemented
-    # Computes the maximum number of dimensions for the concatenation
-    max_ndim = _builtin_max(
-        1 + (depth - cur_depth), *(inp.ndim for inp in inputs)
-    )
-    # Append leading 1's to make elements to have the same 'ndim'
-    inputs = list(
-        inp.reshape((1,) * (max_ndim - inp.ndim) + inp.shape)
-        if max_ndim > inp.ndim
-        else inp
-        for inp in inputs
-    )
-    out_array = concatenate(inputs, axis=-1 + (cur_depth - depth))
-    if cur_depth < depth:
-        # return intermediate arrays
-        del inputs
-        gc.collect()
-    return out_array
-
-
 def _block_collect_slices(arr, cur_depth, depth):
     # collects slices for each array in `arr`
     # the last outcome will be slices on every dimension of the output array
@@ -1346,35 +1313,33 @@ def _block_collect_slices(arr, cur_depth, depth):
         out_shape = list(outshape_list[0])
         out_shape[-1 + cur_depth - depth] = leading_dim
         offset = 0
+        updated_slices = []
         # update the dimension in each slice for the current axis
-        for idx in range(len(slices)):
-            cur_dim = outshape_list[idx][-1 + cur_depth - depth]
-            # update slices for arrays from each sublist
-            for each in slices[idx]:
-                if len(each) < max_ndim:
-                    each.insert(0, slice(offset, offset + cur_dim))
-                else:
-                    each[-1 + cur_depth - depth] = slice(
-                        offset, offset + cur_dim
-                    )
+        for shape, slice_list in zip(outshape_list, slices):
+            cur_dim = shape[-1 + cur_depth - depth]
+            updated_slices.append(
+                list(
+                    (slice(offset, offset + cur_dim),) + each
+                    for each in slice_list
+                )
+            )
             offset += cur_dim
         # flatten the slices
-        slices = functools_reduce(iconcat, slices)
+        slices = functools_reduce(iconcat, updated_slices)
     else:
         arrays = list(convert_to_cunumeric_ndarray(inp) for inp in arr)
         if len(arr) > 1:
             arrays, common_info = check_shape_dtype(
                 arrays, block.__name__, axis=-1
             )
-            # the initial slices for each arr from axis = 0 to axis =-1)
-            out_shape, slices = _concatenate(
-                arrays, axis=-1, common_info=common_info, slicing_only=True
-            )
         else:
-            # Single element in the leaf list
-            out_shape = arrays[0].shape
-            idx_arr = list(slice(each) for each in out_shape)
-            slices = [idx_arr]
+            common_info = ArrayInfo(
+                arrays[0].ndim, arrays[0].shape, arrays[0].dtype
+            )
+        # the initial slices for each arr on arr.shape[-1]
+        out_shape, slices = _concatenate(
+            arrays, axis=-1, common_info=common_info, slicing_only=True
+        )
     return arrays, out_shape, slices
 
 
@@ -1384,7 +1349,7 @@ def _block_slicing(arr, depth):
     out_array = ndarray(shape=out_shape, inputs=arrays)
 
     for dest, inp in zip(slices, arrays):
-        out_array[tuple(dest)] = inp
+        out_array[(Ellipsis,) + tuple(dest)] = inp
 
     return out_array
 
@@ -1424,17 +1389,15 @@ def _concatenate(
             out_array = out
 
     offset = 0
-    idx_arr = list(slice(out_shape[i]) for i in range(0, axis))
-    idx_arr.append(0)
-
+    post_idx = (slice(None, None, None),) * len(out_shape[axis + 1 :])
     # Copy the values over from the inputs
     for inp in inputs:
         if inp.size > 0:
-            idx_arr[axis] = slice(offset, offset + inp.shape[axis])
+            idx_arr = (slice(offset, offset + inp.shape[axis]),) + post_idx
             if slicing_only:
-                slices.append(idx_arr.copy())
+                slices.append(idx_arr)
             else:
-                out_array[tuple(idx_arr)] = inp
+                out_array[(Ellipsis,) + idx_arr] = inp
             offset += inp.shape[axis]
 
     return out_array
@@ -1531,12 +1494,9 @@ def block(arrays):
     # arrays should concatenate from innermost subarrays
     # the 'arrays' should be balanced tree
     # check if the 'arrays' is a balanced tree
-    depth, size = check_list_depth(arrays)
+    depth = check_list_depth(arrays)
 
-    if os.environ.get("CUNUMERIC_BLOCK_SLICE") == "1":
-        result = _block_slicing(arrays, depth)
-    else:
-        result = _block_concatenate(arrays, 1, depth)
+    result = _block_slicing(arrays, depth)
     return result
 
 
