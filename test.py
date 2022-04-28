@@ -309,11 +309,15 @@ def run_tests(
     verbose=False,
     options=[],
     interop_tests=False,
+    unit_tests=False,
     workers=None,
     only_pattern=None,
 ):
     if interop_tests:
         legate_tests.extend(glob.glob("tests/interop/*.py"))
+
+    if unit_tests:
+        legate_tests.extend(glob.glob("tests/unit/*.py"))
 
     if only_pattern is not None:
         filter_only_tests(only_pattern)
@@ -357,6 +361,7 @@ def run_tests(
     print("### CUDA:                 %s" % use_cuda)
     print("### OpenMP:               %s" % use_openmp)
     print("### Integration tests:    %s" % interop_tests)
+    print("### Unit tests:           %s" % unit_tests)
     print("###")
     print("#" * 60)
     print()
@@ -569,6 +574,12 @@ def driver():
         dest="interop_tests",
         action="store_true",
         help="Include integration tests with other Legate libraries.",
+    )
+    parser.add_argument(
+        "--unit",
+        dest="unit_tests",
+        action="store_true",
+        help="Include unit tests.",
     )
     parser.add_argument(
         "-j",
