@@ -29,7 +29,7 @@ struct CUDALibraries {
 
  private:
   // Prevent copying and overwriting
-  CUDALibraries(const CUDALibraries& rhs) = delete;
+  CUDALibraries(const CUDALibraries& rhs)            = delete;
   CUDALibraries& operator=(const CUDALibraries& rhs) = delete;
 
  public:
