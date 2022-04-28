@@ -533,29 +533,23 @@ class EagerArray(NumPyThunk):
             choices = tuple(c.array for c in args)
             self.array[:] = np.choose(rhs.array, choices, mode="raise")
 
-    def _diag_helper(
-        self,
-        rhs,
-        offset,
-        naxes,
-        extract,
-    ):
+    def _diag_helper(self, rhs, offset, naxes, extract, trace):
         self.check_eager_args(rhs)
         if self.deferred is not None:
-            self.deferred._diag_helper(
-                rhs,
-                offset,
-                naxes,
-                extract,
-            )
+            self.deferred._diag_helper(rhs, offset, naxes, extract, trace)
         else:
-            if (naxes == 2) and extract:
+            if (naxes == 2) and extract and not trace:
                 ndims = rhs.array.ndim
                 self.array[:] = np.diagonal(
                     rhs.array, offset=offset, axis1=ndims - 2, axis2=ndims - 1
                 )
             elif (naxes < 2) and not extract:
                 self.array[:] = np.diag(rhs.array, offset)
+            elif (naxes >= 2) and trace:
+                ndim = rhs.array.ndim
+                self.array[:] = np.trace(
+                    rhs.array, offset=offset, axis1=ndim - 2, axis2=ndim - 1
+                )
             else:  # naxes>2
                 ndims = rhs.array.ndim
                 axes = tuple(range(ndims - naxes, ndims))

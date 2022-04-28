@@ -159,21 +159,10 @@ def generate_random(shape, datatype):
 
 
 CASES = [
-    ((2, 5, 7), np.uint8),
-    ((8, 5), np.uint16),
-    ((22, 5, 7), np.uint32),
     ((220,), np.uint32),
     ((2, 5, 7), np.int8),
-    ((8, 5), np.int16),
-    ((22, 5, 7), np.int32),
-    ((2, 5, 7), np.int64),
     ((8, 5), np.float32),
-    ((8, 5), np.float64),
-    ((22, 5, 7), np.double),
-    ((220,), np.double),
-    ((2, 5, 7), np.complex64),
     ((2, 5, 7), np.complex128),
-    ((220,), np.complex128),
 ]
 
 
