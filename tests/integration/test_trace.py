@@ -17,17 +17,14 @@ import random
 from itertools import permutations
 
 import numpy as np
+import pytest
 from test_tools.generators import mk_seq_array
 
 import cunumeric as num
 from legate.core import LEGATE_MAX_DIM
 
 
-def test():
-    # --------------------------------------------------------------
-    # TRACE
-    # --------------------------------------------------------------
-
+def test_2d():
     a = np.arange(8).reshape((2, 4))
     a_num = num.array(a)
     res = np.trace(a)
@@ -38,6 +35,8 @@ def test():
     res_num = num.trace(a_num, dtype=float)
     assert np.array_equal(res, res_num)
 
+
+def test_3d():
     a = np.arange(8).reshape((2, 2, 2))
     a_num = num.array(a)
     res = np.trace(a)
@@ -62,26 +61,32 @@ def test():
     num.trace(a_num, dtype=int, out=out_num)
     assert np.array_equal(out, out_num)
 
+
+def test_4d():
     a = np.arange(24).reshape((2, 2, 2, 3))
     a_num = num.array(a)
     res = np.trace(a)
     res_num = num.trace(a_num)
     assert np.array_equal(res, res_num)
 
-    for ndim in range(2, LEGATE_MAX_DIM + 1):
-        a_shape = tuple(random.randint(1, 9) for i in range(ndim))
-        np_array = mk_seq_array(np, a_shape)
-        num_array = mk_seq_array(num, a_shape)
 
-        # test trace
-        for axes in permutations(range(ndim), 2):
-            diag_size = min(a_shape[axes[0]], a_shape[axes[1]]) - 1
-            for offset in range(-diag_size + 1, diag_size):
-                assert np.array_equal(
-                    np_array.trace(offset, axes[0], axes[1]),
-                    num_array.trace(offset, axes[0], axes[1]),
-                )
+@pytest.mark.parametrize("ndim", range(2, LEGATE_MAX_DIM + 1))
+def test_ndim(ndim):
+    a_shape = tuple(random.randint(1, 9) for i in range(ndim))
+    np_array = mk_seq_array(np, a_shape)
+    num_array = mk_seq_array(num, a_shape)
+
+    # test trace
+    for axes in permutations(range(ndim), 2):
+        diag_size = min(a_shape[axes[0]], a_shape[axes[1]]) - 1
+        for offset in range(-diag_size + 1, diag_size):
+            assert np.array_equal(
+                np_array.trace(offset, axes[0], axes[1]),
+                num_array.trace(offset, axes[0], axes[1]),
+            )
 
 
 if __name__ == "__main__":
-    test()
+    import sys
+
+    pytest.main(sys.argv)
