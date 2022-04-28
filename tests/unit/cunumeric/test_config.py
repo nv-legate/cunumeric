@@ -235,6 +235,8 @@ def test_CuNumericTunable() -> None:
         "HAS_NUMAMEM",
     }
 
+
 if __name__ == "__main__":
     import sys
+
     pytest.main(sys.argv)

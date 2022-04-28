@@ -36,6 +36,8 @@ def test_patch() -> None:
     proc = run([legate, "-c", cmd])
     assert proc.returncode == 1, "numpy failed to patch"
 
+
 if __name__ == "__main__":
     import sys
+
     pytest.main(sys.argv)
