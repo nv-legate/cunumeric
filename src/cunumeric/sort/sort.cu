@@ -571,6 +571,7 @@ SegmentMergePiece<VAL> merge_all_buffers(std::vector<SegmentMergePiece<VAL>>& me
     // maybe k-way merge is more efficient here...
     auto exec_policy      = thrust::cuda::par(alloc).on(stream);
     size_t num_sort_ranks = merge_buffers.size();
+    std::vector<SegmentMergePiece<VAL>> destroy_queue;
     for (size_t stride = 1; stride < num_sort_ranks; stride *= 2) {
       for (size_t pos = 0; pos + stride < num_sort_ranks; pos += 2 * stride) {
         SegmentMergePiece<VAL> source1 = merge_buffers[pos];
@@ -641,22 +642,23 @@ SegmentMergePiece<VAL> merge_all_buffers(std::vector<SegmentMergePiece<VAL>>& me
           }
         }
 
-        source1.values.destroy();
-        source2.values.destroy();
-        if (segmented) {
-          source1.segments.destroy();
-          source2.segments.destroy();
-        }
-        if (argsort) {
-          source1.indices.destroy();
-          source2.indices.destroy();
-        }
+        destroy_queue.push_back(source1);
+        destroy_queue.push_back(source2);
 
         merge_buffers[pos].values   = merged_values;
         merge_buffers[pos].indices  = merged_indices;
         merge_buffers[pos].segments = merged_segments;
         merge_buffers[pos].size     = merged_size;
       }
+
+      // destroy buffers only after each sweep
+      for (int i = 0; i < destroy_queue.size(); ++i) {
+        SegmentMergePiece<VAL> piece = destroy_queue[i];
+        piece.values.destroy();
+        if (segmented) { piece.segments.destroy(); }
+        if (argsort) { piece.indices.destroy(); }
+      }
+      destroy_queue.clear();
     }
   }
   SegmentMergePiece<VAL> result = merge_buffers[0];
