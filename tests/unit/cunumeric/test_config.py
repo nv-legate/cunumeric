@@ -238,3 +238,9 @@ def test_CuNumericTunable() -> None:
         "MAX_EAGER_VOLUME",
         "HAS_NUMAMEM",
     }
+
+
+if __name__ == "__main__":
+    import sys
+
+    pytest.main(sys.argv)
