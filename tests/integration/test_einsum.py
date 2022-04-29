@@ -249,7 +249,7 @@ def test_small(expr):
     check_np_vs_cn(expr, mk_input_that_broadcasts_to)
 
 
-@pytest.mark.parametrize("expr", SMALL_EXPRS)
+@pytest.mark.parametrize("expr", LARGE_EXPRS)
 def test_large(expr):
     print(f"Test large expressions (default execution only): {expr}")
     check_np_vs_cn(expr, mk_input_default)
