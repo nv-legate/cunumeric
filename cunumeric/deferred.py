@@ -422,7 +422,7 @@ class DeferredArray(NumPyThunk):
         start_index = -1
         if (
             isinstance(key, NumPyThunk)
-            and key.dtype == np.bool
+            and key.dtype == bool
             and key.shape == rhs.shape
         ):
             if not isinstance(key, DeferredArray):
@@ -476,7 +476,7 @@ class DeferredArray(NumPyThunk):
                 transpose_needed = transpose_needed or ((dim - last_index) > 1)
                 if (
                     isinstance(k, NumPyThunk)
-                    and k.dtype == np.bool
+                    and k.dtype == bool
                     and k.ndim >= 2
                 ):
                     for i in range(dim, dim + k.ndim):
@@ -513,7 +513,7 @@ class DeferredArray(NumPyThunk):
             elif isinstance(k, NumPyThunk):
                 if not isinstance(key, DeferredArray):
                     k = self.runtime.to_deferred_array(k)
-                if k.dtype == np.bool:
+                if k.dtype == bool:
                     for i in range(k.ndim):
                         if k.shape[i] != store.shape[dim + i + shift]:
                             raise ValueError(

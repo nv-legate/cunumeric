@@ -770,11 +770,9 @@ class ndarray:
             # Otherwise convert it to a cuNumeric array, check types
             # and get the thunk
             key = convert_to_cunumeric_ndarray(key)
-            if key.dtype != np.bool and not np.issubdtype(
-                key.dtype, np.integer
-            ):
+            if key.dtype != bool and not np.issubdtype(key.dtype, np.integer):
                 raise TypeError("index arrays should be int or bool type")
-            if key.dtype != np.bool and key.dtype != np.int64:
+            if key.dtype != bool and key.dtype != np.int64:
                 runtime.warn(
                     "converting index array to int64 type",
                     category=RuntimeWarning,
