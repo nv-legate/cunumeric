@@ -126,6 +126,38 @@ def relation_types_of(dtypes):
 
 
 class ufunc:
+    def __init__(self, name, doc, types):
+        self._name = name
+        self._types = types
+        self.__doc__ = doc
+        self._nin = None
+        self._nout = None
+        for in_ty, out_ty in self._types.items():
+            self._nin = len(in_ty)
+            self._nout = len(out_ty)
+            break
+        assert self._nin is not None
+        assert self._nout is not None
+
+    @property
+    def nin(self):
+        return self._nin
+
+    @property
+    def nout(self):
+        return self._nout
+
+    @property
+    def types(self):
+        return [
+            f"{''.join(in_tys)}->{''.join(out_tys)}"
+            for in_tys, out_tys in self._types.items()
+        ]
+
+    @property
+    def ntypes(self):
+        return len(self._types)
+
     def _maybe_cast_input(self, arr, to_dtype, casting):
         if arr.dtype == to_dtype:
             return arr
@@ -138,31 +170,16 @@ class ufunc:
 
         return arr.astype(to_dtype)
 
+    def __repr__(self):
+        return f"<ufunc {self._name}>"
+
 
 class unary_ufunc(ufunc):
     def __init__(self, name, doc, op_code, types, overrides):
-        self._name = name
+        super().__init__(name, doc, types)
         self._op_code = op_code
-        self._types = types
         self._resolution_cache = {}
-        self.__doc__ = doc
         self._overrides = overrides
-
-    @property
-    def nin(self):
-        return 1
-
-    @property
-    def nout(self):
-        return 1
-
-    @property
-    def types(self):
-        return [f"{in_ty}->{out_ty}" for in_ty, out_ty in self._types.items()]
-
-    @property
-    def ntypes(self):
-        return len(self._types)
 
     def _resolve_dtype(self, arr, casting, precision_fixed):
         if arr.dtype.char in self._types:
@@ -262,37 +279,13 @@ class unary_ufunc(ufunc):
 
         return out
 
-    def __repr__(self):
-        return f"<ufunc {self._name}>"
-
 
 class binary_ufunc(ufunc):
     def __init__(self, name, doc, op_code, types, red_code=None):
-        self._name = name
+        super().__init__(name, doc, types)
         self._op_code = op_code
-        self._types = types
         self._resolution_cache = {}
         self._red_code = red_code
-        self.__doc__ = doc
-
-    @property
-    def nin(self):
-        return 2
-
-    @property
-    def nout(self):
-        return 1
-
-    @property
-    def types(self):
-        return [
-            f"{''.join(in_tys)}->{out_ty}"
-            for in_tys, out_ty in self._types.items()
-        ]
-
-    @property
-    def ntypes(self):
-        return len(self._types)
 
     @staticmethod
     def _find_common_type(arrs, orig_args):
@@ -537,17 +530,12 @@ class binary_ufunc(ufunc):
             where=where,
         )
 
-    def __repr__(self):
-        return f"<ufunc {self._name}>"
-
 
 def _parse_unary_ufunc_type(ty):
     if len(ty) == 1:
         return (ty, ty)
     else:
-        if len(ty) > 2:
-            raise NotImplementedError("Unary ufunc must have only one output")
-        return (ty[0], ty[1])
+        return (ty[0], ty[1:])
 
 
 def create_unary_ufunc(summary, name, op_code, types, overrides={}):
