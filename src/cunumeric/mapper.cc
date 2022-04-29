@@ -98,8 +98,8 @@ std::vector<StoreMapping> CuNumericMapper::store_mappings(
       auto& inputs  = task.inputs();
       auto& outputs = task.outputs();
       mappings.push_back(StoreMapping::default_mapping(inputs[0], options.front()));
-      mappings.back().policy.exact = true;
       mappings.push_back(StoreMapping::default_mapping(outputs[0], options.front()));
+      mappings.back().policy.exact = true;
       return std::move(mappings);
     }
     case CUNUMERIC_TRANSPOSE_COPY_2D: {

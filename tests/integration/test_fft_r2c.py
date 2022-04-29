@@ -31,28 +31,24 @@ def allclose(A, B):
 
 
 def check_1d_r2c(N, dtype=np.float64):
-    print(f"\n=== 1D R2C {dtype}               ===")
     Z = np.random.rand(N).astype(dtype)
     Z_num = num.array(Z)
 
-    out = np.fft.rfft(Z)
-    out_num = num.fft.rfft(Z_num)
-    assert allclose(out, out_num)
-    out = np.fft.rfft(Z, norm="forward")
-    out_num = num.fft.rfft(Z_num, norm="forward")
-    assert allclose(out, out_num)
-    out = np.fft.rfft(Z, n=N // 2)
-    out_num = num.fft.rfft(Z_num, n=N // 2)
-    assert allclose(out, out_num)
-    out = np.fft.rfft(Z, n=N // 2 + 1)
-    out_num = num.fft.rfft(Z_num, n=N // 2 + 1)
-    assert allclose(out, out_num)
-    out = np.fft.rfft(Z, n=N * 2)
-    out_num = num.fft.rfft(Z_num, n=N * 2)
-    assert allclose(out, out_num)
-    out = np.fft.rfft(Z, n=N * 2 + 1)
-    out_num = num.fft.rfft(Z_num, n=N * 2 + 1)
-    assert allclose(out, out_num)
+    all_kwargs = (
+        {},
+        {"norm": "forward"},
+        {"n": N // 2},
+        {"n": N // 2 + 1},
+        {"n": N * 2},
+        {"n": N * 2 + 1},
+    )
+
+    for kwargs in all_kwargs:
+        print(f"=== 1D R2C {dtype}, args: {kwargs} ===")
+        out = np.fft.rfft(Z, **kwargs)
+        out_num = num.fft.rfft(Z_num, **kwargs)
+        assert allclose(out, out_num)
+
     # Odd types
     out = np.fft.irfft(Z)
     out_num = num.fft.irfft(Z_num)
@@ -60,50 +56,38 @@ def check_1d_r2c(N, dtype=np.float64):
     out = np.fft.hfft(Z)
     out_num = num.fft.hfft(Z_num)
     assert allclose(out, out_num)
+
     assert allclose(Z, Z_num)
 
 
 def check_2d_r2c(N, dtype=np.float64):
-    print(f"\n=== 2D R2C {dtype}               ===")
     Z = np.random.rand(*N).astype(dtype)
     Z_num = num.array(Z)
 
-    out = np.fft.rfft2(Z)
-    out_num = num.fft.rfft2(Z_num)
-    assert allclose(out, out_num)
-    out = np.fft.rfft2(Z, norm="forward")
-    out_num = num.fft.rfft2(Z_num, norm="forward")
-    assert allclose(out, out_num)
-    out = np.fft.rfft2(Z, s=(N[0] // 2, N[1] - 2))
-    out_num = num.fft.rfft2(Z_num, s=(N[0] // 2, N[1] - 2))
-    assert allclose(out, out_num)
-    out = np.fft.rfft2(Z, s=(N[0] + 1, N[0] + 2))
-    out_num = num.fft.rfft2(Z_num, s=(N[0] + 1, N[0] + 2))
-    assert allclose(out, out_num)
-    out = np.fft.rfft2(Z, s=(N[0] // 2 + 1, N[0] + 2))
-    out_num = num.fft.rfft2(Z_num, s=(N[0] // 2 + 1, N[0] + 2))
-    assert allclose(out, out_num)
-    out = np.fft.rfft2(Z, axes=[0])
-    out_num = num.fft.rfft2(Z_num, axes=[0])
-    assert allclose(out, out_num)
-    out = np.fft.rfft2(Z, axes=[1])
-    out_num = num.fft.rfft2(Z_num, axes=[1])
-    assert allclose(out, out_num)
-    out = np.fft.rfft2(Z, axes=[-1])
-    out_num = num.fft.rfft2(Z_num, axes=[-1])
-    assert allclose(out, out_num)
-    out = np.fft.rfft2(Z, axes=[-2])
-    out_num = num.fft.rfft2(Z_num, axes=[-2])
-    assert allclose(out, out_num)
-    out = np.fft.rfft2(Z, axes=[0, 1])
-    out_num = num.fft.rfft2(Z_num, axes=[0, 1])
-    assert allclose(out, out_num)
-    out = np.fft.rfft2(Z, axes=[1, 0])
-    out_num = num.fft.rfft2(Z_num, axes=[1, 0])
-    assert allclose(out, out_num)
-    out = np.fft.rfft2(Z, axes=[1, 0, 1])
-    out_num = num.fft.rfft2(Z_num, axes=[1, 0, 1])
-    assert allclose(out, out_num)
+    all_kwargs = (
+        {},
+        {"norm": "forward"},
+        {"s": (N[0] // 2, N[1] - 2)},
+        {"s": (N[0] + 1, N[0] + 2)},
+        {"s": (N[0] // 2 + 1, N[0] + 2)},
+        {"axes": (0,)},
+        {"axes": (1,)},
+        {"axes": (-1,)},
+        {"axes": (-2,)},
+        {"axes": (0, 1)},
+        {"axes": (1, 0)},
+        {"axes": (1, 0, 1)},
+    )
+
+    for kwargs in all_kwargs:
+        print(f"=== 2D R2C {dtype}, args: {kwargs} ===")
+        out = np.fft.rfft2(Z, **kwargs)
+        out_num = num.fft.rfft2(Z_num, **kwargs)
+        assert allclose(out, out_num)
+        out = np.fft.rfft2(np.swapaxes(Z, 0, 1), **kwargs)
+        out_num = num.fft.rfft2(np.swapaxes(Z_num, 0, 1), **kwargs)
+        assert allclose(out, out_num)
+
     # Odd types
     out = np.fft.irfft2(Z)
     out_num = num.fft.irfft2(Z_num)
@@ -115,52 +99,35 @@ def check_2d_r2c(N, dtype=np.float64):
 
 
 def check_3d_r2c(N, dtype=np.float64):
-    print(f"\n=== 3D R2C {dtype}               ===")
     Z = np.random.rand(*N).astype(dtype)
     Z_num = num.array(Z)
 
-    out = np.fft.rfftn(Z)
-    out_num = num.fft.rfftn(Z_num)
-    assert allclose(out, out_num)
-    out = np.fft.rfftn(Z, norm="forward")
-    out_num = num.fft.rfftn(Z_num, norm="forward")
-    assert allclose(out, out_num)
-    out = np.fft.rfftn(Z, norm="ortho")
-    out_num = num.fft.rfftn(Z_num, norm="ortho")
-    assert allclose(out, out_num)
-    out = np.fft.rfftn(Z, s=(N[0] - 1, N[1] - 2, N[2] // 2))
-    out_num = num.fft.rfftn(Z_num, s=(N[0] - 1, N[1] - 2, N[2] // 2))
-    assert allclose(out, out_num)
-    out = np.fft.rfftn(Z, s=(N[0] + 1, N[1] + 2, N[2] + 3))
-    out_num = num.fft.rfftn(Z_num, s=(N[0] + 1, N[1] + 2, N[2] + 3))
-    assert allclose(out, out_num)
-    out = np.fft.rfftn(Z, axes=[0])
-    out_num = num.fft.rfftn(Z_num, axes=[0])
-    assert allclose(out, out_num)
-    out = np.fft.rfftn(Z, axes=[1])
-    out_num = num.fft.rfftn(Z_num, axes=[1])
-    assert allclose(out, out_num)
-    out = np.fft.rfftn(Z, axes=[2])
-    out_num = num.fft.rfftn(Z_num, axes=[2])
-    assert allclose(out, out_num)
-    out = np.fft.rfftn(Z, axes=[-1])
-    out_num = num.fft.rfftn(Z_num, axes=[-1])
-    assert allclose(out, out_num)
-    out = np.fft.rfftn(Z, axes=[-2])
-    out_num = num.fft.rfftn(Z_num, axes=[-2])
-    assert allclose(out, out_num)
-    out = np.fft.rfftn(Z, axes=[-3])
-    out_num = num.fft.rfftn(Z_num, axes=[-3])
-    assert allclose(out, out_num)
-    out = np.fft.rfftn(Z, axes=[2, 1])
-    out_num = num.fft.rfftn(Z_num, axes=[2, 1])
-    assert allclose(out, out_num)
-    out = np.fft.rfftn(Z, axes=[0, 2])
-    out_num = num.fft.rfftn(Z_num, axes=[0, 2])
-    assert allclose(out, out_num)
-    out = np.fft.rfftn(Z, axes=[0, 2, 1, 1, -1])
-    out_num = num.fft.rfftn(Z_num, axes=[0, 2, 1, 1, -1])
-    assert allclose(out, out_num)
+    all_kwargs = (
+        (
+            {},
+            {"norm": "forward"},
+            {"norm": "ortho"},
+            {"s": (N[0] - 1, N[1] - 2, N[2] // 2)},
+            {"s": (N[0] + 1, N[1] + 2, N[2] + 3)},
+        )
+        + tuple({"axes": (i,)} for i in range(3))
+        + tuple({"axes": (-i,)} for i in range(1, 4))
+        + tuple({"axes": (i + 1, i)} for i in range(2))
+        + ({"axes": (0, 2, 1, 1, -1)},)
+    )
+
+    for kwargs in all_kwargs:
+        print(f"=== 3D R2C {dtype}, args: {kwargs} ===")
+        out = np.fft.rfftn(Z, **kwargs)
+        out_num = num.fft.rfftn(Z_num, **kwargs)
+        assert allclose(out, out_num)
+        out = np.fft.rfftn(np.swapaxes(Z, 0, 1), **kwargs)
+        out_num = num.fft.rfftn(np.swapaxes(Z_num, 0, 1), **kwargs)
+        assert allclose(out, out_num)
+        out = np.fft.rfftn(np.swapaxes(Z, 2, 1), **kwargs)
+        out_num = num.fft.rfftn(np.swapaxes(Z_num, 2, 1), **kwargs)
+        assert allclose(out, out_num)
+
     # Odd types
     out = np.fft.fftn(Z)
     out_num = num.fft.fftn(Z_num)

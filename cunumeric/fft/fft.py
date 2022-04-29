@@ -206,9 +206,9 @@ def fftn(a, s=None, axes=None, norm=None):
 
     fft_type = None
     if a.dtype == np.complex128:
-        fft_type = FFT_Z2Z()
+        fft_type = FFT_Z2Z
     elif a.dtype == np.complex64:
-        fft_type = FFT_C2C()
+        fft_type = FFT_C2C
     else:
         raise TypeError(("FFT input not supported " "(missing a conversion?)"))
     return a.fft(
@@ -410,9 +410,9 @@ def ifftn(a, s=None, axes=None, norm=None):
     # Check for types
     fft_type = None
     if a.dtype == np.complex128:
-        fft_type = FFT_Z2Z()
+        fft_type = FFT_Z2Z
     elif a.dtype == np.complex64:
-        fft_type = FFT_C2C()
+        fft_type = FFT_C2C
     else:
         raise TypeError("FFT input not supported (missing a conversion?)")
     return a.fft(
@@ -579,8 +579,8 @@ def rfftn(a, s=None, axes=None, norm=None):
     # Operate by axes
     if _operate_by_axes(a, axes):
         r2c = a.fft(
-            s=[s[-1]],
-            axes=[axes[-1]],
+            s=(s[-1],),
+            axes=(axes[-1],),
             kind=fft_type,
             direction=FFTDirection.FORWARD,
             norm=norm,
@@ -796,8 +796,8 @@ def irfftn(a, s=None, axes=None, norm=None):
         else:
             c2r = a
         return c2r.fft(
-            s=[s[-1]],
-            axes=[axes[-1]],
+            s=(s[-1],),
+            axes=(axes[-1],),
             kind=fft_type,
             direction=FFTDirection.INVERSE,
             norm=norm,
