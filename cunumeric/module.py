@@ -3032,7 +3032,7 @@ def trace(a, offset=0, axis1=None, axis2=None, dtype=None, out=None):
         Axes to be used as the first and second axis of the 2-D sub-arrays
         from which the diagonals should be taken. Defaults are the
         first two axes of a.
-    dtype : dtype, optional
+    dtype : data-type, optional
         Determines the data-type of the returned array and of the
         accumulator where the elements are summed. If dtype has the value
         None and a is of integer type of precision less than the default
