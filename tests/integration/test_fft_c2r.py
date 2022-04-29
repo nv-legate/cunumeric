@@ -144,32 +144,17 @@ def check_3d_c2r(N, dtype=np.float64):
     assert allclose(Z, Z_num)
 
 
-def test_deferred_1d():
-    check_1d_c2r(N=5001)
-    check_1d_c2r(N=5001, dtype=np.float32)
-
-
-def test_deferred_2d():
-    check_2d_c2r(N=(128, 256))
-    check_2d_c2r(N=(128, 256), dtype=np.float32)
-
-
-def test_deferred_3d():
-    check_3d_c2r(N=(64, 20, 50))
-    check_3d_c2r(N=(64, 20, 50), dtype=np.float32)
-
-
-def test_eager_1d():
+def test_1d():
     check_1d_c2r(N=78)
     check_1d_c2r(N=78, dtype=np.float32)
 
 
-def test_eager_2d():
+def test_2d():
     check_2d_c2r(N=(28, 10))
     check_2d_c2r(N=(28, 10), dtype=np.float32)
 
 
-def test_eager_3d():
+def test_3d():
     check_3d_c2r(N=(6, 12, 10))
     check_3d_c2r(N=(6, 12, 10), dtype=np.float32)
 

@@ -66,7 +66,6 @@ def check_1d_c2c(N, dtype=np.float64):
 
 
 def check_2d_c2c(N, dtype=np.float64):
-    print(f"\n=== 2D C2C {dtype}               ===")
     Z = (
         np.random.rand(*N).astype(dtype)
         + np.random.rand(*N).astype(dtype) * 1j
@@ -117,7 +116,6 @@ def check_2d_c2c(N, dtype=np.float64):
 
 
 def check_3d_c2c(N, dtype=np.float64):
-    print(f"\n=== 3D C2C {dtype}               ===")
     Z = (
         np.random.rand(*N).astype(dtype)
         + np.random.rand(*N).astype(dtype) * 1j
@@ -144,24 +142,16 @@ def check_3d_c2c(N, dtype=np.float64):
         out_num = num.fft.fftn(Z_num, **kwargs)
         assert allclose(out, out_num)
 
-        out = np.fft.fftn(np.swapaxes(Z, 0, 1), **kwargs)
-        out_num = num.fft.fftn(np.swapaxes(Z_num, 0, 1), **kwargs)
-        assert allclose(out, out_num)
-
-        out = np.fft.fftn(np.swapaxes(Z, 2, 1), **kwargs)
-        out_num = num.fft.fftn(np.swapaxes(Z_num, 2, 1), **kwargs)
+        out = np.fft.fftn(np.swapaxes(Z, 2, 0), **kwargs)
+        out_num = num.fft.fftn(np.swapaxes(Z_num, 2, 0), **kwargs)
         assert allclose(out, out_num)
 
         out = np.fft.ifftn(Z, **kwargs)
         out_num = num.fft.ifftn(Z_num, **kwargs)
         assert allclose(out, out_num)
 
-        out = np.fft.ifftn(np.swapaxes(Z, 0, 1), **kwargs)
-        out_num = num.fft.ifftn(np.swapaxes(Z_num, 0, 1), **kwargs)
-        assert allclose(out, out_num)
-
-        out = np.fft.ifftn(np.swapaxes(Z, 2, 1), **kwargs)
-        out_num = num.fft.ifftn(np.swapaxes(Z_num, 2, 1), **kwargs)
+        out = np.fft.ifftn(np.swapaxes(Z, 2, 0), **kwargs)
+        out_num = num.fft.ifftn(np.swapaxes(Z_num, 2, 0), **kwargs)
         assert allclose(out, out_num)
 
     # Odd types
@@ -174,32 +164,17 @@ def check_3d_c2c(N, dtype=np.float64):
     assert allclose(Z, Z_num)
 
 
-def test_deferred_1d():
-    check_1d_c2c(N=10001)
-    check_1d_c2c(N=10001, dtype=np.float32)
-
-
-def test_deferred_2d():
-    check_2d_c2c(N=(128, 512))
-    check_2d_c2c(N=(128, 512), dtype=np.float32)
-
-
-def test_deferred_3d():
-    check_3d_c2c(N=(64, 40, 100))
-    check_3d_c2c(N=(64, 40, 100), dtype=np.float32)
-
-
-def test_eager_1d():
+def test_1d():
     check_1d_c2c(N=153)
     check_1d_c2c(N=153, dtype=np.float32)
 
 
-def test_eager_2d():
+def test_2d():
     check_2d_c2c(N=(9, 100))
     check_2d_c2c(N=(9, 100), dtype=np.float32)
 
 
-def test_eager_3d():
+def test_3d():
     check_3d_c2c(N=(9, 10, 11))
     check_3d_c2c(N=(9, 10, 11), dtype=np.float32)
 
