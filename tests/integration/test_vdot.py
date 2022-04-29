@@ -19,7 +19,7 @@ from test_tools.generators import mk_0to1_array
 
 import cunumeric as cn
 
-DTYPES = [np.complex64, np.complex128]
+DTYPES = [np.float32, np.complex64]
 
 
 def _vdot(a_dtype, b_dtype, lib):
