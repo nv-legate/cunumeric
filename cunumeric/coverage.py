@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import warnings
+from dataclasses import dataclass
 from functools import wraps
 from types import FunctionType, MethodDescriptorType, MethodType, ModuleType
 from typing import Any, Callable, Container, Optional, cast
@@ -66,8 +67,13 @@ class AnyCallable(Protocol):
         ...
 
 
+@dataclass(frozen=True)
+class CuWrapperMetadata:
+    implemented: bool
+
+
 class CuWrapped(AnyCallable, Protocol):
-    _cunumeric_implemented: bool
+    _cunumeric: CuWrapperMetadata
 
 
 def implemented(func: AnyCallable, prefix: str, name: str) -> CuWrapped:
@@ -91,7 +97,7 @@ def implemented(func: AnyCallable, prefix: str, name: str) -> CuWrapped:
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             return func(*args, **kwargs)
 
-    wrapper._cunumeric_implemented = True
+    wrapper._cunumeric = CuWrapperMetadata(implemented=True)
 
     return wrapper
 
@@ -123,7 +129,7 @@ def unimplemented(func: AnyCallable, prefix: str, name: str) -> CuWrapped:
             )
             return func(*args, **kwargs)
 
-    wrapper._cunumeric_implemented = False
+    wrapper._cunumeric = CuWrapperMetadata(implemented=False)
 
     return wrapper
 
