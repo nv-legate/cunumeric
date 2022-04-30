@@ -100,6 +100,7 @@ _BINARY_OPS = {
     BinaryOpCode.GREATER_EQUAL: np.greater_equal,
     BinaryOpCode.HYPOT: np.hypot,
     BinaryOpCode.LCM: np.lcm,
+    BinaryOpCode.LDEXP: np.ldexp,
     BinaryOpCode.LEFT_SHIFT: np.left_shift,
     BinaryOpCode.LESS: np.less,
     BinaryOpCode.LESS_EQUAL: np.less_equal,

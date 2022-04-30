@@ -85,6 +85,13 @@ modf = create_multiout_unary_ufunc(
     ("eee", "fff", "ddd"),
 )
 
+ldexp = create_binary_ufunc(
+    "Returns x1 * 2**x2, element-wise.",
+    "ldexp",
+    BinaryOpCode.LDEXP,
+    ("eie", "fif", "did"),
+)
+
 frexp = create_multiout_unary_ufunc(
     "Decompose the elements of x into mantissa and twos exponent.",
     "frexp",

@@ -722,10 +722,6 @@ def _parse_binary_ufunc_type(ty):
             raise NotImplementedError(
                 "Binary ufunc must have two inputs and one output"
             )
-        elif ty[0] != ty[1]:
-            raise NotImplementedError(
-                "Operands of binary ufunc must have the same dtype"
-            )
         return ((ty[0], ty[1]), ty[2])
 
 
