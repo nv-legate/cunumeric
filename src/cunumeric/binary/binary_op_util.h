@@ -795,4 +795,12 @@ struct BinaryOp<BinaryOpCode::SUBTRACT, CODE> : std::minus<legate::legate_type_o
   BinaryOp(const std::vector<legate::Store>& args) {}
 };
 
+template <BinaryOpCode OP_CODE, legate::LegateTypeCode CODE>
+struct RHS2OfBinaryOp {
+  using type = legate::legate_type_of<CODE>;
+};
+
+template <BinaryOpCode OP_CODE, legate::LegateTypeCode CODE>
+using rhs2_of_binary_op = typename RHS2OfBinaryOp<OP_CODE, CODE>::type;
+
 }  // namespace cunumeric
