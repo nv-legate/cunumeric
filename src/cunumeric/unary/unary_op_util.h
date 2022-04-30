@@ -46,6 +46,7 @@ enum class UnaryOpCode : int {
   EXP2        = CUNUMERIC_UOP_EXP2,
   EXPM1       = CUNUMERIC_UOP_EXPM1,
   FLOOR       = CUNUMERIC_UOP_FLOOR,
+  FREXP       = CUNUMERIC_UOP_FREXP,
   GETARG      = CUNUMERIC_UOP_GETARG,
   IMAG        = CUNUMERIC_UOP_IMAG,
   INVERT      = CUNUMERIC_UOP_INVERT,
@@ -57,6 +58,7 @@ enum class UnaryOpCode : int {
   LOG1P       = CUNUMERIC_UOP_LOG1P,
   LOG2        = CUNUMERIC_UOP_LOG2,
   LOGICAL_NOT = CUNUMERIC_UOP_LOGICAL_NOT,
+  MODF        = CUNUMERIC_UOP_MODF,
   NEGATIVE    = CUNUMERIC_UOP_NEGATIVE,
   POSITIVE    = CUNUMERIC_UOP_POSITIVE,
   RAD2DEG     = CUNUMERIC_UOP_RAD2DEG,
@@ -1178,6 +1180,39 @@ struct UnaryOp<UnaryOpCode::TRUNC, legate::LegateTypeCode::HALF_LT> {
   {
     using std::trunc;
     return __half{trunc(static_cast<float>(x))};
+  }
+};
+
+template <UnaryOpCode OP_CODE, legate::LegateTypeCode CODE>
+struct MultiOutUnaryOp {
+  static constexpr bool valid = false;
+};
+
+template <legate::LegateTypeCode CODE>
+struct MultiOutUnaryOp<UnaryOpCode::FREXP, CODE> {
+  static constexpr bool valid = legate::is_floating_point<CODE>::value;
+  using RHS1                  = legate::legate_type_of<CODE>;
+  using RHS2                  = int32_t;
+  using LHS                   = RHS1;
+
+  __CUDA_HD__ LHS operator()(const RHS1& rhs1, RHS2* rhs2) const
+  {
+    using std::frexp;
+    return frexp(rhs1, rhs2);
+  }
+};
+
+template <legate::LegateTypeCode CODE>
+struct MultiOutUnaryOp<UnaryOpCode::MODF, CODE> {
+  static constexpr bool valid = legate::is_floating_point<CODE>::value;
+  using RHS1                  = legate::legate_type_of<CODE>;
+  using RHS2                  = RHS1;
+  using LHS                   = RHS1;
+
+  __CUDA_HD__ LHS operator()(const RHS1& rhs1, RHS2* rhs2) const
+  {
+    using std::modf;
+    return modf(rhs1, rhs2);
   }
 };
 
