@@ -36,6 +36,24 @@ def test_modf(shape):
     for out_np, out_num in zip(outs_np, outs_num):
         assert np.allclose(out_np, out_num)
 
+    out1_np = np.empty(shape, dtype="f")
+    out2_np = np.empty(shape, dtype="e")
+
+    out1_num = num.empty(shape, dtype="f")
+    out2_num = num.empty(shape, dtype="e")
+
+    np.modf(x_np, out=(out1_np, out2_np))
+    num.modf(x_num, out=(out1_num, out2_num))
+
+    assert np.allclose(out1_np, out1_num)
+    assert np.allclose(out2_np, out2_num)
+
+    outs_np = np.modf(x_np.astype("i"))
+    outs_num = num.modf(x_num.astype("i"))
+
+    for out_np, out_num in zip(outs_np, outs_num):
+        assert np.allclose(out_np, out_num)
+
 
 @pytest.mark.parametrize("shape", SHAPES, ids=str)
 def test_floating(shape):
@@ -48,8 +66,25 @@ def test_floating(shape):
     for out_np, out_num in zip(frexp_np, frexp_num):
         assert np.allclose(out_np, out_num)
 
+    out1_np = np.empty(shape, dtype="f")
+    out2_np = np.empty(shape, dtype="q")
+
+    out1_num = num.empty(shape, dtype="f")
+    out2_num = num.empty(shape, dtype="q")
+
+    np.frexp(x_np, out=(out1_np, out2_np))
+    num.frexp(x_num, out=(out1_num, out2_num))
+
+    assert np.allclose(out1_np, out1_num)
+    assert np.allclose(out2_np, out2_num)
+
     ldexp_np = np.ldexp(*frexp_np)
-    ldexp_num = np.ldexp(*frexp_num)
+    ldexp_num = num.ldexp(*frexp_num)
+
+    assert np.allclose(ldexp_np, ldexp_num)
+
+    ldexp_np = np.ldexp(out1_np, out2_np)
+    ldexp_num = num.ldexp(out1_num, out2_num)
 
     assert np.allclose(ldexp_np, ldexp_num)
 
