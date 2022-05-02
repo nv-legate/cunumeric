@@ -20,7 +20,7 @@
 # from the environment for the first two.
 SPHINXOPTS     ?= -n -v -W
 PARALLEL_BUILD ?= 1
-SPHINXBUILD    ?= $(LEGATE_DIR)/bin/legate $(shell which sphinx-build)
+SPHINXBUILD    ?= legate $(shell which sphinx-build)
 SOURCEDIR      = source
 BUILDDIR       = build
 
