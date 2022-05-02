@@ -508,33 +508,28 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   }
 }
 
-#define TILE_DIM 32
-template <typename VAL>
-__global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-  transpose_matrix(VAL* matrix_out, VAL* matrix_in, int dim_x, int dim_y)
+// transpose from CUDA SDK
+#define BLOCK_DIM 16
+__global__ void transpose(int64_t* odata, int64_t* idata, int width, int height)
 {
-  __shared__ VAL tile[TILE_DIM][TILE_DIM];
+  __shared__ int64_t block[BLOCK_DIM][BLOCK_DIM + 1];
 
-  // every thread works on column of data into column of tile
-  int x_idx  = blockIdx.x * TILE_DIM + threadIdx.x;
-  int y_idx  = blockIdx.y * TILE_DIM + threadIdx.y;
-  int offset = x_idx + y_idx * dim_y;
-  if (x_idx < dim_y) {
-    for (int i = 0; i < TILE_DIM - threadIdx.y; i += blockDim.y) {
-      if (y_idx + i < dim_x) { tile[threadIdx.y + i][threadIdx.x] = matrix_in[offset + i * dim_y]; }
-    }
+  // read the matrix tile into shared memory
+  unsigned int xIndex = blockIdx.x * BLOCK_DIM + threadIdx.x;
+  unsigned int yIndex = blockIdx.y * BLOCK_DIM + threadIdx.y;
+  if ((xIndex < width) && (yIndex < height)) {
+    unsigned int index_in           = yIndex * width + xIndex;
+    block[threadIdx.y][threadIdx.x] = idata[index_in];
   }
 
   __syncthreads();
 
-  // write row of tile into column of data
-  x_idx  = blockIdx.y * TILE_DIM + threadIdx.x;
-  y_idx  = blockIdx.x * TILE_DIM + threadIdx.y;
-  offset = x_idx + y_idx * dim_x;
-  if (x_idx < dim_x) {
-    for (int i = 0; i < TILE_DIM - threadIdx.y; i += blockDim.y) {
-      if (y_idx + i < dim_y) matrix_out[offset + i * dim_x] = tile[threadIdx.x][threadIdx.y + i];
-    }
+  // write the transposed matrix tile to global memory
+  xIndex = blockIdx.y * BLOCK_DIM + threadIdx.x;
+  yIndex = blockIdx.x * BLOCK_DIM + threadIdx.y;
+  if ((xIndex < height) && (yIndex < width)) {
+    unsigned int index_out = yIndex * height + xIndex;
+    odata[index_out]       = block[threadIdx.x][threadIdx.y];
   }
 }
 
@@ -689,6 +684,7 @@ SegmentMergePiece<VAL> merge_all_buffers(std::vector<SegmentMergePiece<VAL>>& me
   }
   SegmentMergePiece<VAL> result = merge_buffers[0];
   merge_buffers.clear();
+  CHECK_CUDA_STREAM(stream);
   return result;
 }
 
@@ -750,6 +746,7 @@ void rebalance_data(SegmentMergePiece<VAL>& merge_buffer,
     {
       size_t reduce =
         thrust::reduce(exec_policy, segment_diff.ptr(0), segment_diff.ptr(0) + num_segments_l, 0);
+      size_t volume = segment_size_l * num_segments_l;
       assert(merge_buffer.size - volume == reduce);
     }
 #endif
@@ -779,13 +776,15 @@ void rebalance_data(SegmentMergePiece<VAL>& merge_buffer,
       create_buffer<int64_t>(num_segments_l_aligned * num_sort_ranks, Memory::GPU_FB_MEM);
 
     // Transpose
-    dim3 grid((num_sort_ranks + TILE_DIM - 1) / TILE_DIM,
-              (num_segments_l_aligned + TILE_DIM - 1) / TILE_DIM);
-    dim3 block(TILE_DIM, THREADS_PER_BLOCK / TILE_DIM);
-    transpose_matrix<<<grid, block, 0, stream>>>(
-      segment_diff_2d.ptr(0), segment_diff_buffers.ptr(0), num_sort_ranks, num_segments_l_aligned);
-
-    segment_diff_buffers.destroy();
+    {
+      dim3 grid((num_segments_l_aligned + BLOCK_DIM - 1) / BLOCK_DIM,
+                (num_sort_ranks + BLOCK_DIM - 1) / BLOCK_DIM);
+      dim3 block(BLOCK_DIM, BLOCK_DIM);
+      transpose<<<grid, block, 0, stream>>>(segment_diff_2d.ptr(0),
+                                            segment_diff_buffers.ptr(0),
+                                            num_segments_l_aligned,
+                                            num_sort_ranks);
+    }
 
 #ifdef DEBUG_CUNUMERIC
     {
@@ -797,6 +796,7 @@ void rebalance_data(SegmentMergePiece<VAL>& merge_buffer,
       }
     }
 #endif
+    segment_diff_buffers.destroy();
 
     // 2d data [segments][ranks]
     /*
@@ -928,8 +928,9 @@ void rebalance_data(SegmentMergePiece<VAL>& merge_buffer,
       dim3 block_shape =
         dim3(THREADS_PER_BLOCK / segments_per_threadblock, segments_per_threadblock);
       const size_t num_blocks_y = (num_segments_l + block_shape.y - 1) / block_shape.y;
-      const size_t num_blocks_x = (segment_size_l + block_shape.x - 1) / block_shape.x / 32;
+      const size_t num_blocks_x = ((segment_size_l + 31) / 32 + block_shape.x - 1) / block_shape.x;
       dim3 grid_shape           = dim3(num_blocks_x, num_blocks_y);
+
       if (argsort) {
         copy_data_to_rebalance_buffers<<<grid_shape, block_shape, 0, stream>>>(
           segment_diff_pos,
@@ -1082,7 +1083,7 @@ void rebalance_data(SegmentMergePiece<VAL>& merge_buffer,
       dim3 block_shape =
         dim3(THREADS_PER_BLOCK / segments_per_threadblock, segments_per_threadblock);
       const size_t num_blocks_y = (num_segments_l + block_shape.y - 1) / block_shape.y;
-      const size_t num_blocks_x = (segment_size_l + block_shape.x - 1) / block_shape.x / 32;
+      const size_t num_blocks_x = ((segment_size_l + 31) / 32 + block_shape.x - 1) / block_shape.x;
       dim3 grid_shape           = dim3(num_blocks_x, num_blocks_y);
       if (argsort) {
         merge_rebalanced_buffers<<<grid_shape, block_shape, 0, stream>>>(segment_diff_pos,
@@ -1121,6 +1122,8 @@ void rebalance_data(SegmentMergePiece<VAL>& merge_buffer,
       recv_left_pos.destroy();
       recv_right_pos.destroy();
     }
+
+    CHECK_CUDA_STREAM(stream);
 
     // remove segment_sizes, all buffers should be destroyed...
     segment_diff.destroy();
@@ -1413,7 +1416,7 @@ void sample_sort_nccl_nd(SortPiece<VAL> local_sorted,
       dim3 block_shape =
         dim3(THREADS_PER_BLOCK / segments_per_threadblock, segments_per_threadblock);
       const size_t num_blocks_y = (num_segments_l + block_shape.y - 1) / block_shape.y;
-      const size_t num_blocks_x = (segment_size_l + block_shape.x - 1) / block_shape.x / 32;
+      const size_t num_blocks_x = ((segment_size_l + 31) / 32 + block_shape.x - 1) / block_shape.x;
       dim3 grid_shape           = dim3(num_blocks_x, num_blocks_y);
       copy_data_to_merge_buffers<<<grid_shape, block_shape, 0, stream>>>(segment_blocks,
                                                                          size_send,
