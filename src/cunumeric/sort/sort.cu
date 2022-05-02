@@ -92,11 +92,19 @@ auto get_16b_aligned_count = [](auto count, auto element_bytes) {
   return (get_16b_aligned(count * element_bytes) + element_bytes - 1) / element_bytes;
 };
 
+// increase number ob segments computed per block as long as either
+// 1. we have more threads in block than elements in segment
+// OR
+// 2. a) block still large enough to handle full segment
+//    AND
+//    b)  We end up with too many blocks in y-direction otherwise
+
 size_t compute_segments_per_threadblock(size_t segment_size_l, size_t num_segments_l)
 {
   size_t result = 1;
   while (result < THREADS_PER_BLOCK &&
-         (segment_size_l * result < THREADS_PER_BLOCK || num_segments_l / result > 256)) {
+         (segment_size_l * result < THREADS_PER_BLOCK ||
+          (segment_size_l * result <= THREADS_PER_BLOCK * 16 && num_segments_l / result > 256))) {
     result *= 2;
   }
   return result;
