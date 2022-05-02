@@ -109,7 +109,7 @@ def run_test(
 ):
     test_path = os.path.join(root_dir, test_file)
     if "integration" in test_path and verbose:
-        opts = opts + ["-v", "-s"]
+        opts = opts + ["-v"]
     try:
         cmd(
             [driver, test_path] + flags + test_flags + opts,
