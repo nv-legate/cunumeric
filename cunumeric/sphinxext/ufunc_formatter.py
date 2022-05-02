@@ -19,6 +19,8 @@ from cunumeric import ufunc
 
 
 class UfuncDocumenter(FunctionDocumenter):
+    directivetype = "function"
+    objtype = "ufunc"
     priority = 20
 
     @classmethod
