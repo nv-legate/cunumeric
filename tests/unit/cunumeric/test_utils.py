@@ -98,7 +98,7 @@ def test_get_line_number_from_frame() -> None:
 
 
 class Test_find_last_user_frames:
-    def test_default_top_only(self) -> None:
+    def check_default_top_only(self) -> None:
         result = m.find_last_user_frames(top_only=True)
         assert isinstance(result, str)
         assert "|" not in result
@@ -329,3 +329,9 @@ class Test_tensordot_modes:
     )
     def test_explicit_axis(self, a: int, b: int, axes: AxesType):
         assert _tensordot_modes_oracle(a, b, axes)
+
+
+if __name__ == "__main__":
+    import sys
+
+    pytest.main(sys.argv)

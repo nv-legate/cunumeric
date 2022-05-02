@@ -135,6 +135,7 @@ Item selection and manipulation
    ndarray.nonzero
    .. ndarray.compress
    ndarray.diagonal
+   ndarray.trace
 
 Calculation
 ~~~~~~~~~~~

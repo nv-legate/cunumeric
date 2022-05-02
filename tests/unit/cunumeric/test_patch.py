@@ -35,3 +35,9 @@ def test_patch() -> None:
     cmd = "import sys; import cunumeric.patch; import numpy; sys.exit(numpy is cunumeric)"  # noqa E501
     proc = run([legate, "-c", cmd])
     assert proc.returncode == 1, "numpy failed to patch"
+
+
+if __name__ == "__main__":
+    import sys
+
+    pytest.main(sys.argv)

@@ -446,3 +446,9 @@ class Test_clone_class:
         assert not _Dest.method1._cunumeric_implemented
 
         assert _Dest.method2 is _Dest.method2
+
+
+if __name__ == "__main__":
+    import sys
+
+    pytest.main(sys.argv)
