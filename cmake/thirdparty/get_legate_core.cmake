@@ -33,11 +33,11 @@ function(find_or_configure_legate_core)
 endfunction()
 
 if(NOT DEFINED CUNUMERIC_LEGATE_CORE_BRANCH)
-  set(CUNUMERIC_LEGATE_CORE_BRANCH fea/add-cmake)
+  set(CUNUMERIC_LEGATE_CORE_BRANCH branch-22.06)
 endif()
 
 if(NOT DEFINED CUNUMERIC_LEGATE_CORE_REPOSITORY)
-  set(CUNUMERIC_LEGATE_CORE_REPOSITORY https://github.com/trxcllnt/legate.core.git)
+  set(CUNUMERIC_LEGATE_CORE_REPOSITORY https://github.com/nv-legate/legate.core)
 endif()
 
 find_or_configure_legate_core(VERSION          ${CUNUMERIC_VERSION}
