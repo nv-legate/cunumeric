@@ -3,4 +3,4 @@
 
 .. currentmodule:: cunumeric
 
-.. autodata:: logaddexp2
+.. autoufunc:: logaddexp2

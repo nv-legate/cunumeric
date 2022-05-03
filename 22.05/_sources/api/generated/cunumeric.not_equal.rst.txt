@@ -3,4 +3,4 @@
 
 .. currentmodule:: cunumeric
 
-.. autodata:: not_equal
+.. autoufunc:: not_equal

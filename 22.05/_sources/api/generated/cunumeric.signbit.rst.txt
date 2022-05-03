@@ -3,4 +3,4 @@
 
 .. currentmodule:: cunumeric
 
-.. autodata:: signbit
+.. autoufunc:: signbit

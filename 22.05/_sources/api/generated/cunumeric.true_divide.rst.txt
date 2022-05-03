@@ -3,4 +3,4 @@
 
 .. currentmodule:: cunumeric
 
-.. autodata:: true_divide
+.. autoufunc:: true_divide

@@ -3,4 +3,4 @@
 
 .. currentmodule:: cunumeric
 
-.. autodata:: floor_divide
+.. autoufunc:: floor_divide

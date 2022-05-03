@@ -3,4 +3,4 @@
 
 .. currentmodule:: cunumeric
 
-.. autodata:: left_shift
+.. autoufunc:: left_shift

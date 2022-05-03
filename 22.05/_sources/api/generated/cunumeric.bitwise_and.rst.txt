@@ -3,4 +3,4 @@
 
 .. currentmodule:: cunumeric
 
-.. autodata:: bitwise_and
+.. autoufunc:: bitwise_and

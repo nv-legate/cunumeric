@@ -3,4 +3,4 @@
 
 .. currentmodule:: cunumeric
 
-.. autodata:: deg2rad
+.. autoufunc:: deg2rad

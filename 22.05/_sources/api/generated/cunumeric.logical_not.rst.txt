@@ -3,4 +3,4 @@
 
 .. currentmodule:: cunumeric
 
-.. autodata:: logical_not
+.. autoufunc:: logical_not
