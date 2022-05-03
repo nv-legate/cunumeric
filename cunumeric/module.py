@@ -2250,7 +2250,7 @@ def where(a, x=None, y=None):
 
 
 # Indexing-like operations
-@add_boilerplate("a", "out")
+@add_boilerplate("a")
 def take(a, indices, axis=None, out=None, mode="raise"):
     """
     Take elements from an array along an axis.
@@ -2371,7 +2371,7 @@ def choose(a, choices, out=None, mode="raise"):
     return a.choose(choices=choices, out=out, mode=mode)
 
 
-@add_boilerplate("c", "a", "out")
+@add_boilerplate("c", "a")
 def compress(c, a, axis=None, out=None):
     """
     Return selected slices of an array along given axis.

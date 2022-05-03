@@ -1767,7 +1767,7 @@ class ndarray:
             axis = 0
         elif axis < 0:
             axis = self.ndim + axis
-        if axis is not None and axis >= self.ndim:
+        if axis < 0 or axis >= self.ndim:
             raise ValueError("axis argument is out of bounds")
 
         # TODO remove "raise" logic when bounds check for advanced
@@ -1945,7 +1945,7 @@ class ndarray:
 
         if a.shape[axis] < condition.shape[0]:
             raise ValueError(
-                "Shape mismatch"
+                "Shape mismatch: "
                 "condition contains entries that are out of bounds"
             )
         elif a.shape[axis] > condition.shape[0]:
