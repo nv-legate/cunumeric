@@ -81,6 +81,8 @@ if args.recurse:
             where=".",
             include=["cunumeric*"],
         ),
+        package_data={"cunumeric": ["sphinxext/_templates/*.rst"]},
+        include_package_data=True,
         cmdclass={"build_py": my_build_py},
     )
 else:

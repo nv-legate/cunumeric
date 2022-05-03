@@ -8,6 +8,7 @@ dependencies:
   - clang-tools>=8
   - cutensor>=1.3.3
   - mock
+  - jinja2
   - nccl
   - numpy>=1.22
   - opt_einsum

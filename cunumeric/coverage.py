@@ -1,4 +1,4 @@
-# Copyright 2021-2022 NVIDIA Corporation
+# Copyright 2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -70,6 +70,8 @@ class AnyCallable(Protocol):
 @dataclass(frozen=True)
 class CuWrapperMetadata:
     implemented: bool
+    single: bool = False
+    multi: bool = False
 
 
 class CuWrapped(AnyCallable, Protocol):
@@ -97,7 +99,14 @@ def implemented(func: AnyCallable, prefix: str, name: str) -> CuWrapped:
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             return func(*args, **kwargs)
 
-    wrapper._cunumeric = CuWrapperMetadata(implemented=True)
+    # TODO (bev) Scraping text to set flags seems a bit fragile. It would be
+    # preferable to start with flags, and use those to update docstrings.
+    multi = "Multiple GPUs" in (getattr(func, "__doc__", None) or "")
+    single = "Single GPU" in (getattr(func, "__doc__", None) or "") or multi
+
+    wrapper._cunumeric = CuWrapperMetadata(
+        implemented=True, single=single, multi=multi
+    )
 
     return wrapper
 
@@ -224,3 +233,15 @@ def clone_class(origin_class: type) -> Callable[[type], type]:
         return cls
 
     return decorator
+
+
+def is_implemented(obj):
+    return hasattr(obj, "_cunumeric") and obj._cunumeric.implemented
+
+
+def is_single(obj):
+    return hasattr(obj, "_cunumeric") and obj._cunumeric.single
+
+
+def is_multi(obj):
+    return hasattr(obj, "_cunumeric") and obj._cunumeric.multi
