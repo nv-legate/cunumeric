@@ -34,6 +34,7 @@ struct ZipImplBody<VariantKind::OMP, DIM, N> {
                   bool dense,
                   const int64_t key_dim,
                   const int64_t start_index,
+                  const DomainPoint shape,
                   std::index_sequence<Is...>) const
   {
     const size_t volume = rect.volume();
@@ -44,7 +45,13 @@ struct ZipImplBody<VariantKind::OMP, DIM, N> {
 #pragma omp parallel for schedule(static)
         for (size_t idx = 0; idx < volume; ++idx) {
           Legion::Point<N> new_point;
-          for (size_t i = 0; i < N; i++) { new_point[i] = indx_ptrs[i][idx]; }
+          for (size_t i = 0; i < N; i++) {
+            if (indx_ptrs[i][idx] < 0) {
+              new_point[i] = shape[i] + indx_ptrs[i][idx];
+            } else {
+              new_point[i] = indx_ptrs[i][idx];
+            }
+          }
           outptr[idx] = new_point;
         }
       } else {
@@ -52,7 +59,14 @@ struct ZipImplBody<VariantKind::OMP, DIM, N> {
         for (size_t idx = 0; idx < volume; ++idx) {
           auto p = pitches.unflatten(idx, rect.lo);
           Legion::Point<N> new_point;
-          for (size_t i = 0; i < N; i++) { new_point[i] = index_arrays[i][p]; }
+          for (size_t i = 0; i < N; i++) {
+            if (index_arrays[i][p] < 0) {
+              new_point[i] = shape[i] + index_arrays[i][p];
+
+            } else {
+              new_point[i] = index_arrays[i][p];
+            }
+          }
           out[p] = new_point;
         }
       }  // else
@@ -66,7 +80,11 @@ struct ZipImplBody<VariantKind::OMP, DIM, N> {
         Legion::Point<N> new_point;
         for (size_t i = 0; i < start_index; i++) { new_point[i] = p[i]; }
         for (size_t i = 0; i < index_arrays.size(); i++) {
-          new_point[start_index + i] = index_arrays[i][p];
+          if (index_arrays[i][p] < 0) {
+            new_point[start_index + i] = shape[start_index + i] + index_arrays[i][p];
+          } else {
+            new_point[start_index + i] = index_arrays[i][p];
+          }
         }
         for (size_t i = (start_index + index_arrays.size()); i < N; i++) {
           int64_t j    = key_dim + i - index_arrays.size();
