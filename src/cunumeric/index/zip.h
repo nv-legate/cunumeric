@@ -43,4 +43,9 @@ class ZipTask : public CuNumericTask<ZipTask> {
 #endif
 };
 
+constexpr coord_t compute_idx(coord_t index, coord_t dim)
+{
+  return index < 0 ? index + dim : index;
+}
+
 }  // namespace cunumeric

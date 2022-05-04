@@ -36,13 +36,7 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   if (idx >= volume) return;
   auto p = pitches.unflatten(idx, rect.lo);
   Legion::Point<N> new_point;
-  for (size_t i = 0; i < N; i++) {
-    if (index_arrays[i][p] < 0) {
-      new_point[i] = shape[i] + index_arrays[i][p];
-    } else {
-      new_point[i] = index_arrays[i][p];
-    }
-  }
+  for (size_t i = 0; i < N; i++) { new_point[i] = compute_idx(index_arrays[i][p], shape[i]); }
   out[p] = new_point;
 }
 
@@ -58,13 +52,7 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (idx >= volume) return;
   Legion::Point<N> new_point;
-  for (size_t i = 0; i < N; i++) {
-    if (index_arrays[i][idx] < 0) {
-      new_point[i] = shape[i] + index_arrays[i][idx];
-    } else {
-      new_point[i] = index_arrays[i][idx];
-    }
-  }
+  for (size_t i = 0; i < N; i++) { new_point[i] = compute_idx(index_arrays[i][idx], shape[i]); }
   out[idx] = new_point;
 }
 
@@ -86,11 +74,7 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   Legion::Point<N> new_point;
   for (size_t i = 0; i < start_index; i++) { new_point[i] = p[i]; }
   for (size_t i = 0; i < narrays; i++) {
-    if (index_arrays[i][p] < 0) {
-      new_point[start_index + i] = shape[start_index + i] + index_arrays[i][p];
-    } else {
-      new_point[start_index + i] = index_arrays[i][p];
-    }
+    new_point[start_index + i] = compute_idx(index_arrays[i][p], shape[start_index + i]);
   }
   for (size_t i = (start_index + narrays); i < N; i++) {
     int64_t j    = key_dim + i - narrays;
@@ -111,7 +95,7 @@ struct ZipImplBody<VariantKind::GPU, DIM, N> {
                   bool dense,
                   const int64_t key_dim,
                   const int64_t start_index,
-                  const DomainPoint shape,
+                  const DomainPoint& shape,
                   std::index_sequence<Is...>) const
   {
     auto stream         = get_cached_stream();
