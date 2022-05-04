@@ -624,13 +624,25 @@ class DeferredArray(NumPyThunk):
                     self.dtype,
                     inputs=[self],
                 )
-                copy = self.context.create_copy()
+                if index_array.base.kind == Future:
+                    # TODO replace with .copy() call when copy() uses COPY task
+                    # instead of the UNARY_OP.COPY
+                    task = self.context.create_task(CuNumericOpCode.COPY)
+                    task.add_output(result.base)
+                    task.add_input(store)
+                    task.add_input(index_array.base)
+                    task.add_scalar_arg(True, bool)  # source indirect
+                    task.add_alignment(result.base, index_array.base)
+                    task.add_broadcast(store)
+                    task.execute()
+                else:
+                    copy = self.context.create_copy()
 
-                copy.add_input(store)
-                copy.add_source_indirect(index_array.base)
-                copy.add_output(result.base)
+                    copy.add_input(store)
+                    copy.add_source_indirect(index_array.base)
+                    copy.add_output(result.base)
 
-                copy.execute()
+                    copy.execute()
             else:
                 return index_array
 

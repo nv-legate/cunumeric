@@ -18,6 +18,7 @@
 GEN_CPU_SRC += cunumeric/ternary/where.cc               \
 							 cunumeric/binary/binary_op.cc            \
 							 cunumeric/binary/binary_red.cc           \
+                                                         cunumeric/unary/copy.cc                  \
 							 cunumeric/unary/scalar_unary_red.cc      \
 							 cunumeric/unary/unary_op.cc              \
 							 cunumeric/unary/unary_red.cc             \
@@ -62,6 +63,7 @@ ifeq ($(strip $(USE_OPENMP)),1)
 GEN_CPU_SRC += cunumeric/ternary/where_omp.cc          \
 							 cunumeric/binary/binary_op_omp.cc       \
 							 cunumeric/binary/binary_red_omp.cc      \
+                                                         cunumeric/unary/copy_omp.cc             \
 							 cunumeric/unary/unary_op_omp.cc         \
 							 cunumeric/unary/scalar_unary_red_omp.cc \
 							 cunumeric/unary/unary_red_omp.cc        \
@@ -98,6 +100,7 @@ endif
 GEN_GPU_SRC += cunumeric/ternary/where.cu               \
 							 cunumeric/binary/binary_op.cu            \
 							 cunumeric/binary/binary_red.cu           \
+                                                         cunumeric/unary/copy.cu                  \
 							 cunumeric/unary/scalar_unary_red.cu      \
 							 cunumeric/unary/unary_red.cu             \
 							 cunumeric/unary/unary_op.cu              \
