@@ -26,6 +26,7 @@ struct ZipArgs {
   const int64_t N;
   const int64_t key_dim;
   const int64_t start_index;
+  const Legion::DomainPoint shape;
 };
 
 class ZipTask : public CuNumericTask<ZipTask> {
@@ -41,5 +42,10 @@ class ZipTask : public CuNumericTask<ZipTask> {
   static void gpu_variant(legate::TaskContext& context);
 #endif
 };
+
+constexpr coord_t compute_idx(coord_t index, coord_t dim)
+{
+  return index < 0 ? index + dim : index;
+}
 
 }  // namespace cunumeric

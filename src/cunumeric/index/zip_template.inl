@@ -55,6 +55,7 @@ struct ZipImpl {
                                 dense,
                                 args.key_dim,
                                 args.start_index,
+                                args.shape,
                                 std::make_index_sequence<N>());
   }
 };
@@ -88,7 +89,8 @@ static void zip_template(TaskContext& context)
   int64_t N           = context.scalars()[0].value<int64_t>();
   int64_t key_dim     = context.scalars()[1].value<int64_t>();
   int64_t start_index = context.scalars()[2].value<int64_t>();
-  ZipArgs args{context.outputs()[0], context.inputs(), N, key_dim, start_index};
+  auto shape          = context.scalars()[3].value<DomainPoint>();
+  ZipArgs args{context.outputs()[0], context.inputs(), N, key_dim, start_index, shape};
   double_dispatch(args.inputs[0].dim(), N, ZipImpl<KIND>{}, args);
 }
 
