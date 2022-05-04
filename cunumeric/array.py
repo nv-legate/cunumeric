@@ -23,7 +23,7 @@ import pyarrow
 
 from legate.core import Array
 
-from .config import UnaryOpCode, UnaryRedCode
+from .config import UnaryOpCode, UnaryRedCode, ScanCode
 from .coverage import clone_class
 from .runtime import runtime
 from .utils import broadcast_shapes, dot_modes
@@ -1917,25 +1917,18 @@ class ndarray:
         # We don't care about dimension order in cuNumeric
         return self.__copy__()
 
-    def scan(self, axis=None, dtype=None, out=None, prod=0, nan0=0):
-        if dtype is None:
-            dtype = self.dtype
-        if out is not None:
-            assert out.shape == self.shape
-            if out.dtype == dtype:
-                out = out.convert_to_cunumeric_ndarray(out)
-                out._thunk.scan(self._thunk, axis=self.axis, dtype=self.dtype, prod=prod, nan0=nan0)
-            else :
-                # Perform scan into temporary out
-                temp = ndarray(shape=self.shape, dtype=dtype)
-                temp._thunk.scan(self._thunk, axis=self.axis, dtype=self.dtype, prod=prod, nan0=nan0)
-                out._thunk.convert(temp._thunk)
-        else :
-            out = ndarray(shape=self.shape, dtype=dtype)
-            out._thunk.scan(self._thunk, axis=self.axis, dtype=self.dtype, prod=prod, nan0=nan0)
-        return out
-            
+    def cumsum(self, axis=None, dtype=None, out=None):
+        return self._perform_scan(ScanCode.SUM, axis=axis, dtype=dtype, out=out, nan0=False)
 
+    def cumprod(self, axis=None, dtype=None, out=None):
+        return self._perform_scan(ScanCode.PROD, axis=axis, dtype=dtype, out=out, nan0=False)
+        
+    def nancumsum(self, axis=None, dtype=None, out=None):
+        return self._perform_scan(ScanCode.SUM, axis=axis, dtype=dtype, out=out, nan0=True)
+        
+    def nancumprod(self, axis=None, dtype=None, out=None):
+        return self._perform_scan(ScanCode.PROD, axis=axis, dtype=dtype, out=out, nan0=True)
+        
 
     # diagonal helper. Will return diagonal for arbitrary number of axes;
     # currently offset option is implemented only for the case of number of
@@ -3315,4 +3308,23 @@ class ndarray:
         out_shape = broadcast_shapes(mask.shape, one.shape, two.shape)
         out = ndarray(shape=out_shape, dtype=common_type, inputs=args)
         out._thunk.where(mask, one, two)
+        return out
+
+    @classmethod
+    def _perform_scan(op, axis=None, dtype=None, out=None, nan0=False):
+        if dtype is None:
+            dtype = self.dtype
+        if out is not None:
+            assert out.shape == self.shape
+            if out.dtype == dtype:
+                out = out.convert_to_cunumeric_ndarray(out)
+                out._thunk.scan(op, self._thunk, axis=self.axis, dtype=self.dtype, nan0=nan0)
+            else :
+                # Perform scan into temporary out
+                temp = ndarray(shape=self.shape, dtype=dtype)
+                temp._thunk.scan(op, self._thunk, axis=self.axis, dtype=self.dtype, nan0=nan0)
+                out._thunk.convert(temp._thunk)
+        else :
+            out = ndarray(shape=self.shape, dtype=dtype)
+            out._thunk.scan(op, self._thunk, axis=self.axis, dtype=self.dtype, nan0=nan0)
         return out

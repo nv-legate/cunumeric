@@ -15,7 +15,7 @@
 
 import numpy as np
 
-from .config import BinaryOpCode, UnaryOpCode, UnaryRedCode
+from .config import BinaryOpCode, UnaryOpCode, UnaryRedCode, ScanCode
 from .thunk import NumPyThunk
 from .utils import is_advanced_indexing
 
@@ -785,21 +785,23 @@ class EagerArray(NumPyThunk):
         else:
             self.array[:] = np.linalg.cholesky(src.array)
 
-    def scan(self, rhs, axis, dtype, prod, nan0):
+    def scan(self, op, rhs, axis, dtype, nan0):
         self.check_eager_args(rhs)
         if self.deferred is not None:
-            self.deferred.scan(rhs, axis, dtype, prod, nan0)
+            self.deferred.scan(op, rhs, axis, dtype, nan0)
         else:
-            if prod is 0:
-                if nan0 is 0:
+            if op is ScanCode.SUM:
+                if nan0 is False:
                     np.cumsum(rhs.array, axis, dtype, self.array[:])
                 else:
                     np.nancumsum(rhs.array, axis, dtype, self.array[:])
-            else:
-                if nan0 is 0:
+            elif op is ScanCode.PROD:
+                if nan0 is False:
                     np.cumprod(rhs.array, axis, dtype, self.array[:])
                 else:
                     np.nancumprod(rhs.array, axis, dtype, self.array[:])
+            else:
+                raise RuntimeError("unsupported scan op " + str(op))
 
     def unique(self):
         if self.deferred is not None:

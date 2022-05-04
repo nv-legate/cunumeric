@@ -219,7 +219,7 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def scan(self, rhs, axis, dtype, prod, nan0):
+    def scan(self, op, rhs, axis, dtype, nan0):
         ...
         
     @abstractmethod

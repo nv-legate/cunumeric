@@ -101,7 +101,8 @@ class CuNumericOpCode(IntEnum):
     READ = _cunumeric.CUNUMERIC_READ
     REPEAT = _cunumeric.CUNUMERIC_REPEAT
     SCALAR_UNARY_RED = _cunumeric.CUNUMERIC_SCALAR_UNARY_RED
-    SCAN = _cunumeric.CUNUMERIC_SCAN
+    SCAN_LOCAL = _cunumeric.CUNUMERIC_SCAN_LOCAL
+    SCAN_GLOBAL = _cunumeric.CUNUMERIC_SCAN_GLOBAL
     SORT = _cunumeric.CUNUMERIC_SORT
     SYRK = _cunumeric.CUNUMERIC_SYRK
     TILE = _cunumeric.CUNUMERIC_TILE
@@ -243,3 +244,11 @@ class CuNumericTunable(IntEnum):
     NUM_PROCS = _cunumeric.CUNUMERIC_TUNABLE_NUM_PROCS
     MAX_EAGER_VOLUME = _cunumeric.CUNUMERIC_TUNABLE_MAX_EAGER_VOLUME
     HAS_NUMAMEM = _cunumeric.CUNUMERIC_TUNABLE_HAS_NUMAMEM
+
+
+# Match these to CuNumericScanCode in cunumeric_c.h
+@unique
+class ScanCode(IntEnum):
+    PROD = _cunumeric.CUNUMERIC_SCAN_PROD
+    SUM = _cunumeric.CUNUMERIC_SCAN_SUM
+    

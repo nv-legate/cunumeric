@@ -3868,7 +3868,7 @@ def cumsum(a, axis=None, dtype=None, out=None):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return a.scan(axis=axis, dtype=dtype, out=out, prod=0, nan0=0)
+    a.cumsum(axis=axis, dtype=dtype, out=out)
 
 
 @add_boilerplate("a")
@@ -3911,7 +3911,7 @@ def cumprod(a, axis=None, dtype=None, out=None):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return a.scan(axis=axis, dtype=dtype, out=out, prod=1, nan0=0)
+    return ndarray._perform_scan(ScanCode.PROD, a, axis=axis, dtype=dtype, out=out, nan0=0)
 
 
 @add_boilerplate("a")
@@ -3958,7 +3958,7 @@ def nancumsum(a, axis=None, dtype=None, out=None):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return a.scan(axis=axis, dtype=dtype, out=out, prod=0, nan0=1)
+    return ndarray._perform_scan(ScanCode.SUM, a, axis=axis, dtype=dtype, out=out, nan0=1)
 
 
 @add_boilerplate("a")
@@ -4005,7 +4005,7 @@ def nancumprod(a, axis=None, dtype=None, out=None):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return a.scan(axis=axis, dtype=dtype, out=out, prod=1, nan0=1)
+    return ndarray._perform_scan(ScanCode.PROD, a, axis=axis, dtype=dtype, out=out, nan0=1)
 
 
 ##################################
