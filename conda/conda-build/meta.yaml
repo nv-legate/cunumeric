@@ -69,6 +69,7 @@ requirements:
     - opt_einsum >=3.3
     - scipy
     - legate-core >={{ core_version }}
+    - typing_extensions
     
   run_constrained:
     - __cuda >=8.0
