@@ -394,6 +394,7 @@ class DeferredArray(NumPyThunk):
         task.add_scalar_arg(self.ndim, ty.int64)  # N of points in Point<N>
         task.add_scalar_arg(key_dim, ty.int64)  # key_dim
         task.add_scalar_arg(start_index, ty.int64)  # start_index
+        task.add_scalar_arg(self.shape, (ty.int64,))
         for a in arrays:
             task.add_input(a)
             task.add_alignment(output_arr.base, a)
@@ -543,16 +544,9 @@ class DeferredArray(NumPyThunk):
             # the store with transformation
             rhs, store = self._copy_store(store)
 
-        if len(tuple_of_arrays) <= rhs.ndim and rhs.ndim > 1:
+        if len(tuple_of_arrays) <= rhs.ndim:
             output_arr = rhs._zip_indices(start_index, tuple_of_arrays)
             return True, rhs, output_arr, self
-        elif len(tuple_of_arrays) == 1 and rhs.ndim == 1:
-            key = tuple_of_arrays[0]
-            # when key is transformed, we need to return a copy in purpose
-            # to use it as an indirection in copy operation
-            if key.base.transformed:
-                key, key_store = key._copy_store(key.base)
-            return True, rhs, key, self
         else:
             raise ValueError("Advanced indexing dimension mismatch")
 
