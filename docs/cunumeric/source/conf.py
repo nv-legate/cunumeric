@@ -58,6 +58,7 @@ extensions = [
     "sphinx_copybutton",
     "sphinx_markdown_tables",
     "recommonmark",
+    "cunumeric.sphinxext.ufunc_formatter",
 ]
 
 copybutton_prompt_text = ">>> "
@@ -100,6 +101,9 @@ nitpick_ignore = [
     ("py:class", "N"),
     ("py:class", "nested list of array_like"),
     ("py:class", "scalars"),
+    ("py:class", "complex ndarray"),
+    ("py:class", "sequence of ints"),
+    ("py:class", "array"),
 ]
 
 intersphinx_mapping = {

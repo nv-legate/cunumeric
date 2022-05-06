@@ -337,10 +337,10 @@ class Test_clone_module:
         assert _Dest.attr2 == 30
 
         assert _Dest.function1.__wrapped__ is _OriginMod.function1
-        assert not _Dest.function1._cunumeric_implemented
+        assert not _Dest.function1._cunumeric.implemented
 
         assert _Dest.function2.__wrapped__
-        assert _Dest.function2._cunumeric_implemented
+        assert _Dest.function2._cunumeric.implemented
 
     @patch.object(cunumeric.runtime, "report_coverage", False)
     def test_report_coverage_False(self) -> None:
@@ -360,7 +360,7 @@ class Test_clone_module:
         assert _Dest.attr2 == 30
 
         assert _Dest.function1.__wrapped__ is _OriginMod.function1
-        assert not _Dest.function1._cunumeric_implemented
+        assert not _Dest.function1._cunumeric.implemented
 
         assert _Dest.function2 is _Dest.function2
 
@@ -420,10 +420,10 @@ class Test_clone_class:
         assert _Dest.attr2 == 30
 
         assert _Dest.method1.__wrapped__ is _OriginClass.method1
-        assert not _Dest.method1._cunumeric_implemented
+        assert not _Dest.method1._cunumeric.implemented
 
         assert _Dest.method2.__wrapped__
-        assert _Dest.method2._cunumeric_implemented
+        assert _Dest.method2._cunumeric.implemented
 
     @patch.object(cunumeric.runtime, "report_coverage", False)
     def test_report_coverage_False(self) -> None:
@@ -443,7 +443,7 @@ class Test_clone_class:
         assert _Dest.attr2 == 30
 
         assert _Dest.method1.__wrapped__ is _OriginClass.method1
-        assert not _Dest.method1._cunumeric_implemented
+        assert not _Dest.method1._cunumeric.implemented
 
         assert _Dest.method2 is _Dest.method2
 

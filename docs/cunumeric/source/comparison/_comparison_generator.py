@@ -94,7 +94,7 @@ def _section(
     lg_funcs = []
     for f in _get_functions(lg_obj):
         obj = getattr(lg_obj, f)
-        if getattr(obj, "_cunumeric_implemented", False):
+        if hasattr(obj, "_cunumeric") and obj._cunumeric.implemented:
             lg_funcs.append(f)
     lg_funcs = set(lg_funcs)
 
