@@ -43,7 +43,17 @@ build:
   number: {{ build_number }}
   missing_dso_whitelist:
     -  '*libcuda.so*'
+{% if not gpu_enabled %}
+  string: "cuda{{ cuda_major }}_py{{ py_version }}_{{ GIT_DESCRIBE_HASH }}_{{ PKG_BUILDNUM }}_cpu"
+{% else %}
   string: "cuda{{ cuda_major }}_py{{ py_version }}_{{ GIT_DESCRIBE_HASH }}_{{ PKG_BUILDNUM }}"
+{% endif %}
+{% if not gpu_enabled %}
+  track_features:
+    - cpu_only
+  script_env:
+    - CPU_ONLY=1
+{% endif %}
 
 requirements:
   build:
@@ -54,25 +64,40 @@ requirements:
     - sysroot_linux-64 2.17  # [linux64]
   host:
     - python
+{% if gpu_enabled %}
     - cuda-compiler >={{ cuda_version }}
     - cuda-libraries-dev >={{ cuda_version }}
     - cudatoolkit >={{ cuda_version }}
+    - cuda-nvtx >={{ cuda_version }}
+{% endif %}
     - cutensor >=1.3
     - opt_einsum >=3.3
+{% if not gpu_enabled %}
+    - legate-core >={{ core_version }}=*_cpu
+{% else %}
     - legate-core >={{ core_version }}
-    - cuda-nvtx >={{ cuda_version }}
+{% endif %}
+
   run:
     - python
+{% if not gpu_enabled %}
     - cudatoolkit >={{ cuda_version }}
+{% endif %}
     - numpy
     - cutensor >=1.3
     - opt_einsum >=3.3
     - scipy
-    - legate-core >={{ core_version }}
     - typing_extensions
+{% if not gpu_enabled %}
+    - legate-core >={{ core_version }}=*_cpu
+{% else %}
+    - legate-core >={{ core_version }}
+{% endif %}
     
   run_constrained:
+{% if gpu_enabled %}
     - __cuda >=8.0
+{% endif %}
     - __glibc >=2.17  # [linux]
 
 test:

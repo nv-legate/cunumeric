@@ -270,7 +270,7 @@ class EagerArray(NumPyThunk):
 
     def real(self):
         if self.deferred is not None:
-            return self.deferred.imag()
+            return self.deferred.real()
         return EagerArray(self.runtime, self.array.real)
 
     def conj(self):
