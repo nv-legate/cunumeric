@@ -75,4 +75,4 @@ def test_eager_1d_inverse():
 if __name__ == "__main__":
     import sys
 
-    pytest.main(sys.argv)
+    sys.exit(pytest.main(sys.argv))

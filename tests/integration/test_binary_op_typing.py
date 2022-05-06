@@ -149,4 +149,4 @@ def test_array_scalar(lhs_np, rhs_np, lhs_num, rhs_num):
 if __name__ == "__main__":
     import sys
 
-    pytest.main(sys.argv)
+    sys.exit(pytest.main(sys.argv))
