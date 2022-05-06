@@ -90,6 +90,7 @@ ldexp = create_binary_ufunc(
     "ldexp",
     BinaryOpCode.LDEXP,
     ("eie", "fif", "did"),
+    use_common_type=False,
 )
 
 frexp = create_multiout_unary_ufunc(

@@ -725,7 +725,16 @@ def _parse_binary_ufunc_type(ty):
         return ((ty[0], ty[1]), ty[2])
 
 
-def create_binary_ufunc(summary, name, op_code, types, red_code=None):
+def create_binary_ufunc(
+    summary, name, op_code, types, red_code=None, use_common_type=True
+):
     doc = _BINARY_DOCSTRING_TEMPLATE.format(summary, name)
     types = dict(_parse_binary_ufunc_type(ty) for ty in types)
-    return binary_ufunc(name, doc, op_code, types, red_code)
+    return binary_ufunc(
+        name,
+        doc,
+        op_code,
+        types,
+        red_code=red_code,
+        use_common_type=use_common_type,
+    )
