@@ -223,14 +223,15 @@ class unary_ufunc(ufunc):
         self._resolution_cache = {}
         self._overrides = overrides
 
-    def _resolve_dtype(self, arr, casting, precision_fixed):
+    def _resolve_dtype(self, arr, precision_fixed):
         if arr.dtype.char in self._types:
             return arr, np.dtype(self._types[arr.dtype.char])
 
-        if arr.dtype in self._resolution_cache:
-            to_dtype = self._resolution_cache[arr.dtype]
-            arr = arr.astype(to_dtype)
-            return arr, np.dtype(self._types[to_dtype.char])
+        if not precision_fixed:
+            if arr.dtype in self._resolution_cache:
+                to_dtype = self._resolution_cache[arr.dtype]
+                arr = arr.astype(to_dtype)
+                return arr, np.dtype(self._types[to_dtype.char])
 
         chosen = None
         if not precision_fixed:
@@ -294,7 +295,7 @@ class unary_ufunc(ufunc):
         # Resolve the dtype to use for the computation and cast the input
         # if necessary. If the dtype is already fixed by the caller,
         # the dtype must be one of the dtypes supported by this operation.
-        x, res_dtype = self._resolve_dtype(x, casting, precision_fixed)
+        x, res_dtype = self._resolve_dtype(x, precision_fixed)
 
         if out is None:
             result = ndarray(shape=x.shape, dtype=res_dtype, inputs=(x, where))
@@ -328,14 +329,15 @@ class multiout_unary_ufunc(ufunc):
         self._op_code = op_code
         self._resolution_cache = {}
 
-    def _resolve_dtype(self, arr, casting, precision_fixed):
+    def _resolve_dtype(self, arr, precision_fixed):
         if arr.dtype.char in self._types:
             return arr, to_dtypes(self._types[arr.dtype.char])
 
-        if arr.dtype in self._resolution_cache:
-            to_dtype = self._resolution_cache[arr.dtype]
-            arr = arr.astype(to_dtype)
-            return arr, to_dtypes(self._types[to_dtype.char])
+        if not precision_fixed:
+            if arr.dtype in self._resolution_cache:
+                to_dtype = self._resolution_cache[arr.dtype]
+                arr = arr.astype(to_dtype)
+                return arr, to_dtypes(self._types[to_dtype.char])
 
         chosen = None
         if not precision_fixed:
@@ -371,8 +373,7 @@ class multiout_unary_ufunc(ufunc):
             if not isinstance(out, tuple):
                 raise ValueError("'out' must be a tuple")
             elif len(out) != self.nout:
-                if len(out) != self.nout:
-                    raise ValueError(f"'out' must be a {self.nout}-tuple")
+                raise ValueError(f"'out' must be a {self.nout}-tuple")
 
             # Check if the broadcasting is possible
             broadcast_shapes(x.shape, *(o.shape for o in out))
@@ -394,7 +395,7 @@ class multiout_unary_ufunc(ufunc):
         # Resolve the dtype to use for the computation and cast the input
         # if necessary. If the dtype is already fixed by the caller,
         # the dtype must be one of the dtypes supported by this operation.
-        x, res_dtypes = self._resolve_dtype(x, casting, precision_fixed)
+        x, res_dtypes = self._resolve_dtype(x, precision_fixed)
 
         if out is None:
             results = tuple(
