@@ -513,6 +513,19 @@ struct BinaryOp<BinaryOpCode::LDEXP, CODE> {
   }
 };
 
+template <>
+struct BinaryOp<BinaryOpCode::LDEXP, legate::LegateTypeCode::HALF_LT> {
+  using T                     = __half;
+  static constexpr bool valid = true;
+  BinaryOp(const std::vector<legate::Store>& args) {}
+
+  __CUDA_HD__ T operator()(const T& a, const int32_t& b) const
+  {
+    using std::ldexp;
+    return static_cast<__half>(ldexp(static_cast<float>(a), b));
+  }
+};
+
 template <legate::LegateTypeCode CODE>
 struct BinaryOp<BinaryOpCode::LEFT_SHIFT, CODE> {
   using T                     = legate::legate_type_of<CODE>;

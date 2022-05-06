@@ -171,6 +171,12 @@ constexpr decltype(auto) op_dispatch(UnaryOpCode op_code, Functor f, Fnargs&&...
       return f.template operator()<UnaryOpCode::TANH>(std::forward<Fnargs>(args)...);
     case UnaryOpCode::TRUNC:
       return f.template operator()<UnaryOpCode::TRUNC>(std::forward<Fnargs>(args)...);
+    case UnaryOpCode::FREXP:
+    case UnaryOpCode::MODF: {
+      // These operations should be handled somewhere else
+      assert(false);
+      return f.template operator()<UnaryOpCode::ABSOLUTE>(std::forward<Fnargs>(args)...);
+    }
   }
   assert(false);
   return f.template operator()<UnaryOpCode::ABSOLUTE>(std::forward<Fnargs>(args)...);
@@ -1202,6 +1208,20 @@ struct MultiOutUnaryOp<UnaryOpCode::FREXP, CODE> {
   }
 };
 
+template <>
+struct MultiOutUnaryOp<UnaryOpCode::FREXP, legate::LegateTypeCode::HALF_LT> {
+  static constexpr bool valid = true;
+  using RHS1                  = __half;
+  using RHS2                  = int32_t;
+  using LHS                   = __half;
+
+  __CUDA_HD__ LHS operator()(const RHS1& rhs1, RHS2* rhs2) const
+  {
+    using std::frexp;
+    return static_cast<__half>(frexp(static_cast<float>(rhs1), rhs2));
+  }
+};
+
 template <legate::LegateTypeCode CODE>
 struct MultiOutUnaryOp<UnaryOpCode::MODF, CODE> {
   static constexpr bool valid = legate::is_floating_point<CODE>::value;
@@ -1213,6 +1233,23 @@ struct MultiOutUnaryOp<UnaryOpCode::MODF, CODE> {
   {
     using std::modf;
     return modf(rhs1, rhs2);
+  }
+};
+
+template <>
+struct MultiOutUnaryOp<UnaryOpCode::MODF, legate::LegateTypeCode::HALF_LT> {
+  static constexpr bool valid = true;
+  using RHS1                  = __half;
+  using RHS2                  = __half;
+  using LHS                   = __half;
+
+  __CUDA_HD__ LHS operator()(const RHS1& rhs1, RHS2* rhs2) const
+  {
+    using std::modf;
+    float tmp;
+    float result = modf(static_cast<float>(rhs1), &tmp);
+    *rhs2        = static_cast<__half>(tmp);
+    return static_cast<__half>(result);
   }
 };
 
