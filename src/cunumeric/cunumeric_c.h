@@ -187,6 +187,13 @@ enum CuNumericBounds {
   CUNUMERIC_MAX_TASKS   = 1048576,
 };
 
+// Match these to ScanCode in config.py
+// Also, sort these alphabetically for easy lookup later
+enum CuNumericScanCode {
+  CUNUMERIC_SCAN_PROD = 1,
+  CUNUMERIC_SCAN_SUM,
+};
+
 #ifdef __cplusplus
 extern "C" {
 #endif

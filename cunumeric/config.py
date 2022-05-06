@@ -101,8 +101,8 @@ class CuNumericOpCode(IntEnum):
     READ = _cunumeric.CUNUMERIC_READ
     REPEAT = _cunumeric.CUNUMERIC_REPEAT
     SCALAR_UNARY_RED = _cunumeric.CUNUMERIC_SCALAR_UNARY_RED
-    SCAN_LOCAL = _cunumeric.CUNUMERIC_SCAN_LOCAL
     SCAN_GLOBAL = _cunumeric.CUNUMERIC_SCAN_GLOBAL
+    SCAN_LOCAL = _cunumeric.CUNUMERIC_SCAN_LOCAL
     SORT = _cunumeric.CUNUMERIC_SORT
     SYRK = _cunumeric.CUNUMERIC_SYRK
     TILE = _cunumeric.CUNUMERIC_TILE

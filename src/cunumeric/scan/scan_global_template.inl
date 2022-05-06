@@ -14,6 +14,7 @@
  *
  */
 
+#include "cunumeric/unary/scan_global_util.h"
 #include "cunumeric/pitches.h"
 
 namespace cunumeric {
@@ -21,15 +22,14 @@ namespace cunumeric {
 using namespace Legion;
 using namespace legate;
 
-template <VariantKind KIND, LegateTypeCode CODE, int DIM>
+template <VariantKind KIND, ScanCode OP_CODE, LegateTypeCode CODE, int DIM>
 struct ScanGlobalImplBody;
 
-template <VariantKind KIND>
+template <VariantKind KIND, ScanCode OP_CODE>
 struct ScanGlobalImpl {
   template <LegateTypeCode CODE, int DIM>
-  void operator()(ScanGlobalArgs& args, const DomainPoint& partition_index) const
+  void operator()(ScanGlobalArgs& args) const
   {
-
     using VAL = legate_type_of<CODE>;
     
     auto out_rect = args.out.shape<DIM>();
@@ -45,16 +45,25 @@ struct ScanGlobalImpl {
     auto out = args.out.read_write_accessor<VAL, DIM>(out_rect);
     auto sum_vals = args.sum_vals.read_accessor<VAL, DIM>(sum_vals_rect);
 
-    ScanGlobalImplBody<KIND, CODE, DIM>()(out, sum_vals, out_pitches, out_rect, sum_vals_pitches, sum_vals_rect, partition_index, args.prod);
+    ScanGlobalImplBody<KIND, OP_CODE, CODE, DIM>()(out, sum_vals, out_pitches, out_rect, sum_vals_pitches, sum_vals_rect, args.partition_index);
+  }
+};
 
+template <VariantKind KIND>
+struct ScanGlobalDispatch {
+  template <ScanCode OP_CODE>
+  void operator()(ScanGlobalArgs& args) const
+  {
+    return double_dispatch(args.out.dim(), args.out.code(), ScanGlobalImpl<KIND, OP_CODE>{}, args);
   }
 };
 
 template <VariantKind KIND>
 static void scan_global_template(TaskContext& context)
 {
-  ScanGlobalArgs args{context.inputs()[1], context.outputs()[0]};
-  double_dispatch(args.out.dim(), args.out.code(), ScanGlobalImpl<KIND>{}, args, context.get_task_index());  
+  ScanGlobalArgs args{context.inputs()[1], context.outputs()[0], scalars[0].value<ScanCode>(),
+    context.get_task_index()};
+  op_dispatch(args.op_code, ScanGlobalDispatch<KIND>{}, args);
 }
 
 }  // namespace cunumeric

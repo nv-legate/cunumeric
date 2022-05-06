@@ -14,6 +14,7 @@
  *
  */
 
+#include "cunumeric/unary/scan_local_util.h"
 #include "cunumeric/pitches.h"
 
 namespace cunumeric {
@@ -21,12 +22,17 @@ namespace cunumeric {
 using namespace Legion;
 using namespace legate;
 
-template <VariantKind KIND, LegateTypeCode CODE, int DIM>
+template <VariantKind KIND, ScanCode OP_CODE, LegateTypeCode CODE, int DIM>
 struct ScanLocalImplBody;
 
-template <VariantKind KIND>
+template <VariantKind KIND, ScanCode OP_CODE, LegateTypeCode CODE, int DIM>
+struct ScanLocalNanImplBody;
+
+template <VariantKind KIND, ScanCode OP_CODE, bool NAN0>
 struct ScanLocalImpl {
-  template <LegateTypeCode CODE, int DIM>
+  // Case where NANs are transformed
+  template <LegateTypeCode CODE, int DIM,
+	    std::enable_if_t<NAN0 && legate::is_floating_point<CODE>::value>* = nullptr>
   void operator()(ScanLocalArgs& args) const
   {
     using VAL = legate_type_of<CODE>;
@@ -41,16 +47,45 @@ struct ScanLocalImpl {
     auto out = args.out.write_accessor<VAL, DIM>(rect);
     auto in = args.in.read_accessor<VAL, DIM>(rect);
 
-    ScanLocalImplBody<KIND, CODE, DIM>()(out, in, args.sum_vals, pitches, rect, args.prod);
+    ScanLocalNanImplBody<KIND, OP_CODE, NAN0, CODE, DIM>()(out, in, args.sum_vals, pitches, rect);
+  }
+  // Case where NANs are as is
+  template <LegateTypeCode CODE, int DIM,
+	    std::enable_if_t<!(NAN0 && legate::is_floating_point<CODE>::value)>* = nullptr>
+  void operator()(ScanLocalArgs& args) const
+  {
+    using VAL = legate_type_of<CODE>;
+    
+    auto rect = args.out.shape<DIM>();
 
+    Pitches<DIM - 1> pitches;
+    size_t volume = pitches.flatten(rect);
+
+    if (volume == 0) return;
+
+    auto out = args.out.write_accessor<VAL, DIM>(rect);
+    auto in = args.in.read_accessor<VAL, DIM>(rect);
+
+    ScanLocalImplBody<KIND, OP_CODE, NAN0, CODE, DIM>()(out, in, args.sum_vals, pitches, rect);
+  }
+
+};
+
+template <VariantKind KIND>
+struct ScanLocalDispatch {
+  template <ScanCode OP_CODE, bool NAN0>
+  void operator()(ScanLocalArgs& args) const
+  {
+    return double_dispatch(args.in.dim(), args.in.code(), ScanLocalImpl<KIND, OP_CODE, NAN0>{}, args);
   }
 };
 
 template <VariantKind KIND>
 static void scan_local_template(TaskContext& context)
 {
-  ScanLocalArgs args{context.outputs()[0], context.inputs()[0], context.outputs()[1]};
-  double_dispatch(args.in.dim(), args.in.code(), ScanLocalImpl<KIND>{}, args);
+  ScanLocalArgs args{context.outputs()[0], context.inputs()[0], context.outputs()[1],
+    scalars[0].value<ScanCode>(), scalars[1].value<bool>()};
+  op_dispatch(args.op_code, args.nan0, ScanLocalDispatch<KIND>{}, args);
 }
 
 }  // namespace cunumeric
