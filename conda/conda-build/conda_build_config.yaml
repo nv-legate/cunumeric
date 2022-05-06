@@ -1,3 +1,8 @@
+# Conda only accepts strings as variant configs
+# so use an empty string "" to denote a falsey value
+gpu_enabled:
+  - true
+  - 
 python:
   - 3.7
   - 3.8
