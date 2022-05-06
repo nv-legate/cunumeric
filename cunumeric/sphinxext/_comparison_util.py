@@ -66,10 +66,9 @@ def _lgref(name, obj, implemented):
     return f":{role}:`{full_name}`"
 
 
-def filter_names(obj, types=None, use_skip=True):
+def filter_names(obj, types=None, skip=()):
     names = (n for n in dir(obj))  # every name in the module or class
-    if use_skip:
-        names = (n for n in names if n not in SKIP)  # except the ones we skip
+    names = (n for n in names if n not in skip)  # except the ones we skip
     names = (n for n in names if not n.startswith("_"))  # or any private names
     if types:
         # optionally filtered by type
@@ -115,7 +114,7 @@ def generate_section(config):
     if config.names:
         names = config.names
     else:
-        names = filter_names(np_obj, config.types)
+        names = filter_names(np_obj, config.types, skip=SKIP)
 
     items = [get_item(name, np_obj, lg_obj) for name in names]
 

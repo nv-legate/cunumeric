@@ -57,7 +57,7 @@ def generate_row(config):
     if config.names:
         names = config.names
     else:
-        names = filter_names(np_obj, config.types, use_skip=False)
+        names = filter_names(np_obj, config.types)
 
     row = Row(group=config.title)
 
