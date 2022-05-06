@@ -23,7 +23,7 @@ _UNARY_DOCSTRING_TEMPLATE = """{}
 Parameters
 ----------
 x : array_like
-    Only integer and boolean types are handled.
+    Input array.
 out : ndarray, or None, optional
     A location into which the result is stored. If provided, it must have
     a shape that the inputs broadcast to. If not provided or None,
@@ -60,7 +60,7 @@ _MULTIOUT_UNARY_DOCSTRING_TEMPLATE = """{}
 Parameters
 ----------
 x : array_like
-    Only integer and boolean types are handled.
+    Input array.
 out : tuple[ndarray or None], or None, optional
     A location into which the result is stored. If provided, it must have
     a shape that the inputs broadcast to. If not provided or None,
