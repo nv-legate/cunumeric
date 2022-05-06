@@ -2,7 +2,7 @@
 # so use an empty string "" to denote a falsey value
 gpu_enabled:
   - true
-  -
+  - 
 python:
   - 3.8
   - 3.9
