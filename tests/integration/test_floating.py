@@ -19,8 +19,11 @@ import pytest
 import cunumeric as num
 
 SHAPES = [
-    (10, 20, 30),
+    (10, 20),
 ]
+
+
+DTYPES = ["h", "i", "l", "H", "I", "L", "e", "f", "d"]
 
 
 @pytest.mark.parametrize("shape", SHAPES, ids=str)
@@ -97,6 +100,18 @@ def test_floating(shape):
     ldexp_num = num.ldexp(out1_num, out2_num)
 
     assert np.allclose(ldexp_np, ldexp_num)
+
+
+@pytest.mark.parametrize("fun", ("modf", "frexp"))
+@pytest.mark.parametrize("dtype", DTYPES)
+@pytest.mark.parametrize("shape", SHAPES, ids=str)
+def test_typing_unary(fun, dtype, shape):
+    fn_np = getattr(np, fun)
+    fn_num = getattr(num, fun)
+    assert np.array_equal(
+        fn_np(np.ones(shape, dtype=dtype)),
+        fn_num(np.ones(shape, dtype=dtype)),
+    )
 
 
 if __name__ == "__main__":
