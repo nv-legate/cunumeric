@@ -52,22 +52,12 @@ def check_1d_hfft_inverse(N, dtype=np.float64):
     assert allclose(Z, Z_num)
 
 
-def test_deferred_1d():
-    check_1d_hfft(N=10000)
-    check_1d_hfft(N=10000, dtype=np.float32)
-
-
-def test_deferred_1d_inverse():
-    check_1d_hfft_inverse(N=10000)
-    check_1d_hfft_inverse(N=10000, dtype=np.float32)
-
-
-def test_eager_1d():
+def test_1d():
     check_1d_hfft(N=110)
     check_1d_hfft(N=110, dtype=np.float32)
 
 
-def test_eager_1d_inverse():
+def test_1d_inverse():
     check_1d_hfft_inverse(N=110)
     check_1d_hfft_inverse(N=110, dtype=np.float32)
 
