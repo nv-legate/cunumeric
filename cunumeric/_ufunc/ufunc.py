@@ -508,12 +508,14 @@ class binary_ufunc(ufunc):
             arrs = [arr.astype(common_dtype) for arr in arrs]
             return arrs, np.dtype(self._types[key])
 
-        if key in self._resolution_cache:
-            to_dtypes = self._resolution_cache[key]
-            arrs = [
-                arr.astype(to_dtype) for arr, to_dtype in zip(arrs, to_dtypes)
-            ]
-            return arrs, np.dtype(self._types[to_dtypes])
+        if not precision_fixed:
+            if key in self._resolution_cache:
+                to_dtypes = self._resolution_cache[key]
+                arrs = [
+                    arr.astype(to_dtype)
+                    for arr, to_dtype in zip(arrs, to_dtypes)
+                ]
+                return arrs, np.dtype(self._types[to_dtypes])
 
         chosen = None
         if not precision_fixed:
@@ -524,6 +526,17 @@ class binary_ufunc(ufunc):
                 ):
                     chosen = in_dtypes
                     break
+
+            # If there's no safe match and the operands have different types,
+            # try to find a match based on the leading operand
+            if chosen is None and not self._use_common_type:
+                for in_dtypes in self._types.keys():
+                    if np.can_cast(arrs[0].dtype, in_dtypes[0]) and all(
+                        np.can_cast(arr, to_dtype, casting=casting)
+                        for arr, to_dtype in zip(arrs[1:], in_dtypes[1:])
+                    ):
+                        chosen = in_dtypes
+                        break
 
         if chosen is None:
             raise TypeError(
