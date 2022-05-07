@@ -30,3 +30,4 @@ class UfuncDocumenter(FunctionDocumenter):
 
 def setup(app):
     app.add_autodocumenter(UfuncDocumenter)
+    return {"parallel_read_safe": True}
