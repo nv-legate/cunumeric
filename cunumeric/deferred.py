@@ -1009,16 +1009,16 @@ class DeferredArray(NumPyThunk):
         task.execute()
 
     @auto_convert([1])
-    def fft(self, lhs, axes, kind, direction):
+    def fft(self, rhs, axes, kind, direction):
+        lhs = self
         # For now, deferred only supported with GPU, use eager / numpy for CPU
         if self.runtime.num_gpus == 0:
             lhs_eager = lhs.runtime.to_eager_array(lhs)
-            self.runtime.to_eager_array(self).fft(
-                lhs_eager, axes, kind, direction
-            )
+            rhs_eager = rhs.runtime.to_eager_array(rhs)
+            lhs_eager.fft(rhs_eager, axes, kind, direction)
             lhs.base = lhs.runtime.to_deferred_array(lhs_eager).base
         else:
-            input = self.base
+            input = rhs.base
             output = lhs.base
 
             task = self.context.create_task(CuNumericOpCode.FFT)
@@ -1033,7 +1033,7 @@ class DeferredArray(NumPyThunk):
                 len(set(axes)) != len(axes)
                 or len(axes) != input.ndim
                 or tuple(axes) != tuple(sorted(axes)),
-                ty.int8,
+                bool,
             )
             for ax in axes:
                 task.add_scalar_arg(ax, ty.int64)
