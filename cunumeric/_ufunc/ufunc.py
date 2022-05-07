@@ -254,6 +254,7 @@ class unary_ufunc(ufunc):
     def __call__(
         self,
         x,
+        *args,
         out=None,
         where=True,
         casting="same_kind",
@@ -262,6 +263,14 @@ class unary_ufunc(ufunc):
         **kwargs,
     ):
         x = convert_to_cunumeric_ndarray(x)
+
+        if len(args) > 0:
+            if out is not None:
+                raise TypeError(
+                    "cannot specify 'out' as both a positional and keyword "
+                    "argument"
+                )
+            out = args
 
         if out is not None:
             if isinstance(out, tuple):
@@ -360,6 +369,7 @@ class multiout_unary_ufunc(ufunc):
     def __call__(
         self,
         x,
+        *args,
         out=None,
         where=True,
         casting="same_kind",
@@ -368,6 +378,14 @@ class multiout_unary_ufunc(ufunc):
         **kwargs,
     ):
         x = convert_to_cunumeric_ndarray(x)
+
+        if len(args) > 0:
+            if out is not None:
+                raise TypeError(
+                    "cannot specify 'out' as both a positional and keyword "
+                    "argument"
+                )
+            out = args
 
         if out is not None:
             if not isinstance(out, tuple):
@@ -522,6 +540,7 @@ class binary_ufunc(ufunc):
         self,
         x1,
         x2,
+        *args,
         out=None,
         where=True,
         casting="same_kind",
@@ -531,6 +550,14 @@ class binary_ufunc(ufunc):
     ):
         orig_args = (x1, x2)
         arrs = [convert_to_cunumeric_ndarray(arr) for arr in orig_args]
+
+        if len(args) > 0:
+            if out is not None:
+                raise TypeError(
+                    "cannot specify 'out' as both a positional and keyword "
+                    "argument"
+                )
+            out = args
 
         if out is not None:
             if isinstance(out, tuple):
