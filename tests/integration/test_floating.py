@@ -19,8 +19,6 @@ import pytest
 import cunumeric as num
 
 SHAPES = [
-    (10,),
-    (10, 20),
     (10, 20, 30),
 ]
 
@@ -35,6 +33,18 @@ def test_modf(shape):
 
     for out_np, out_num in zip(outs_np, outs_num):
         assert np.allclose(out_np, out_num)
+
+    out1_np = np.empty(shape, dtype="f")
+    out2_np = np.empty(shape, dtype="e")
+
+    out1_num = num.empty(shape, dtype="f")
+    out2_num = num.empty(shape, dtype="e")
+
+    np.modf(x_np, out1_np, out2_np)
+    num.modf(x_num, out1_num, out2_num)
+
+    assert np.allclose(out1_np, out1_num)
+    assert np.allclose(out2_np, out2_num)
 
     out1_np = np.empty(shape, dtype="f")
     out2_np = np.empty(shape, dtype="e")
@@ -67,10 +77,10 @@ def test_floating(shape):
         assert np.allclose(out_np, out_num)
 
     out1_np = np.empty(shape, dtype="f")
-    out2_np = np.empty(shape, dtype="q")
+    out2_np = np.empty(shape, dtype="i")
 
     out1_num = num.empty(shape, dtype="f")
-    out2_num = num.empty(shape, dtype="q")
+    out2_num = num.empty(shape, dtype="i")
 
     np.frexp(x_np, out=(out1_np, out2_np))
     num.frexp(x_num, out=(out1_num, out2_num))
