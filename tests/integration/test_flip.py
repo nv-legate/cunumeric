@@ -62,4 +62,4 @@ def test_axis_2d(axis):
 if __name__ == "__main__":
     import sys
 
-    pytest.main(sys.argv)
+    sys.exit(pytest.main(sys.argv))
