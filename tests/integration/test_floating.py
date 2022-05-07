@@ -80,10 +80,10 @@ def test_floating(shape):
         assert np.allclose(out_np, out_num)
 
     out1_np = np.empty(shape, dtype="f")
-    out2_np = np.empty(shape, dtype="i")
+    out2_np = np.empty(shape, dtype="l")
 
     out1_num = num.empty(shape, dtype="f")
-    out2_num = num.empty(shape, dtype="i")
+    out2_num = num.empty(shape, dtype="l")
 
     np.frexp(x_np, out=(out1_np, out2_np))
     num.frexp(x_num, out=(out1_num, out2_num))
