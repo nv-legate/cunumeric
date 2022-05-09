@@ -17,8 +17,7 @@
 #include "cunumeric/scan/scan_global.h"
 #include "cunumeric/scan/scan_global_template.inl"
 
-#include <thrust/scan.h>
-#include <thrust/functional.h>
+#include <thrust/reduce.h>
 #include <thrust/execution_policy.h>
 
 
@@ -55,10 +54,8 @@ struct ScanGlobalImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
       auto sum_valsp = out_pitches.unflatten(index, out_rect.lo) - out_rect.lo;
       // first element on scan axis
       sum_valsp[DIM - 1] = 0;
-      auto base = sum_vals[sum_valsp];
-      for(uint32_t i = 1; i < partition_index[DIM - 1] - 1; i++){
-	base = func(base, sum_vals[sum_valsp + i])
-      }
+      auto base = thrust::reduce(thrust::host, &sum_vals[sum_valsp], &sum_vals[sum_valsp] + partition_index[DIM - 1] - 1, ScanOp<OP_CODE, CODE>::nan_null, func());
+      // apply base to out
       for(uint64_t i = index; i < stride; i++){
 	outptr[i] = func(outptr[i], base);
       }

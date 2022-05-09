@@ -19,6 +19,7 @@
 
 #include <thrust/scan.h>
 #include <thrust/execution_policy.h>
+#include <thrust/iterator/transform_iterator.h>
 
 
 namespace cunumeric {
@@ -27,7 +28,7 @@ using namespace Legion;
 using namespace legate;
 
 template <ScanCode OP_CODE, LegateTypeCode CODE, int DIM>
-struct ScanLocalImplBody<VariantKind::CPU, OP_CODE, NAN0, CODE, DIM> {
+struct ScanLocalImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
   using OP  = ScanOp<OP_CODE, CODE>;
   using VAL = legate_type_of<CODE>;
 
@@ -50,7 +51,11 @@ struct ScanLocalImplBody<VariantKind::CPU, OP_CODE, NAN0, CODE, DIM> {
     auto sum_valsptr = sum_vals.create_output_buffer<VAL, DIM>(extents, true);
 
     for(uint64_t index = 0; index < volume; index += stride){
-      thrust::inclusive_scan(thrust::host, inptr + index, inptr + index + stride, outptr + index, func);
+      thrust::inclusive_scan(thrust::host,
+			     inptr + index,
+			     inptr + index + stride,
+			     outptr + index,
+			     func());
       // get the corresponding ND index with base zero to use for sum_val
       auto sum_valp = pitches.unflatten(index, rect.lo) - rect.lo;
       // only one element on scan axis
@@ -62,10 +67,19 @@ struct ScanLocalImplBody<VariantKind::CPU, OP_CODE, NAN0, CODE, DIM> {
 };
 
 template <ScanCode OP_CODE, LegateTypeCode CODE, int DIM>
-struct ScanLocalNanImplBody<VariantKind::CPU, OP_CODE, NAN0, CODE, DIM> {
+struct ScanLocalNanImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
   using OP  = ScanOp<OP_CODE, CODE>;
   using VAL = legate_type_of<CODE>;
 
+  struct convert_nan_func
+  {
+    __host__ __device__
+    VAL operator()(VAL &x)
+    {
+      return std::isnan(x) ? ScanOp<OP_CODE, CODE>::nan_null : x;
+    }
+  };
+  
   void operator()(OP func,
                   const AccessorWO<VAL, DIM>& out,
 		  const AccessorRO<VAL, DIM>& in,
@@ -85,8 +99,11 @@ struct ScanLocalNanImplBody<VariantKind::CPU, OP_CODE, NAN0, CODE, DIM> {
     auto sum_valsptr = sum_vals.create_output_buffer<VAL, DIM>(extents, true);
 
     for(uint64_t index = 0; index < volume; index += stride){
-      // RRRR handle NANs here using std::isnan
-      thrust::inclusive_scan(thrust::host, inptr + index, inptr + index + stride, outptr + index, func);
+      thrust::inclusive_scan(thrust::host,
+			     thrust::make_transform_iterator(inptr + index, convert_nan_func()),
+			     thrust::make_transform_iterator(inptr + index + stride, convert_nan_func()),
+			     outptr + index,
+			     func());
       // get the corresponding ND index with base zero to use for sum_val
       auto sum_valp = pitches.unflatten(index, rect.lo) - rect.lo;
       // only one element on scan axis

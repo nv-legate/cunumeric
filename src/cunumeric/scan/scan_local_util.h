@@ -44,11 +44,13 @@ constexpr decltype(auto) op_dispatch(ScanCode op_code, bool nan0, Functor f, Fna
 // RRRR not sure I fully understand these?
 template <legate::LegateTypeCode CODE>
 struct ScanOp<ScanCode::SUM, CODE> : thrust::plus<legate::legate_type_of<CODE>> {
+  static constexpr legate::legate_type_of<CODE> nan_null = legate::legate_type_of<CODE>(0);
   ScanOp(const std::vector<legate::Store>& args) {}
 };
 
 template <legate::LegateTypeCode CODE>
 struct ScanOp<ScanCode::PROD, CODE> : thrust::multiplies<legate::legate_type_of<CODE>> {
+  static constexpr legate::legate_type_of<CODE> nan_null = legate::legate_type_of<CODE>(1);
   ScanOp(const std::vector<legate::Store>& args) {}
 };
 

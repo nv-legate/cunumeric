@@ -47,7 +47,7 @@ struct ScanLocalImpl {
     auto out = args.out.write_accessor<VAL, DIM>(rect);
     auto in = args.in.read_accessor<VAL, DIM>(rect);
 
-    ScanLocalNanImplBody<KIND, OP_CODE, NAN0, CODE, DIM>()(out, in, args.sum_vals, pitches, rect);
+    ScanLocalNanImplBody<KIND, OP_CODE, CODE, DIM>()(out, in, args.sum_vals, pitches, rect);
   }
   // Case where NANs are as is
   template <LegateTypeCode CODE, int DIM,
@@ -66,7 +66,7 @@ struct ScanLocalImpl {
     auto out = args.out.write_accessor<VAL, DIM>(rect);
     auto in = args.in.read_accessor<VAL, DIM>(rect);
 
-    ScanLocalImplBody<KIND, OP_CODE, NAN0, CODE, DIM>()(out, in, args.sum_vals, pitches, rect);
+    ScanLocalImplBody<KIND, OP_CODE, CODE, DIM>()(out, in, args.sum_vals, pitches, rect);
   }
 
 };

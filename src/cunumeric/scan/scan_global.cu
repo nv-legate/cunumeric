@@ -17,8 +17,7 @@
 #include "cunumeric/scan/scan_global.h"
 #include "cunumeric/scan/scan_global_template.inl"
 
-#include <thrust/scan.h>
-#include <thrust/functional.h>
+#include <thrust/reduce.h>
 #include <thrust/execution_policy.h>
 
 
@@ -27,42 +26,28 @@ namespace cunumeric {
 using namespace Legion;
 using namespace legate;
 
-template <LegateTypeCode CODE, int DIM>
-struct ScanGlobalImplBody<VariantKind::GPU, CODE, DIM> {
+template <typename Function, typename RES>
+static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
+  scalar_kernel(uint64_t volume, Function func, RES* out, RES scalar)
+{
+  const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+  if (idx >= volume) return;
+  out[idx] = func(out[idx], scalar);
+}
+  
+template <ScanCode OP_CODE, LegateTypeCode CODE, int DIM>
+struct ScanGlobalImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
+  using OP  = ScanOp<OP_CODE, CODE>;
   using VAL = legate_type_of<CODE>;
   
-  struct add_scalar_funct
-  {
-    VAL V;
-    add_scalar_funct(VAL a) : V(a) {}
-    
-    __host__ __device__
-    void operator()(VAL &x)
-    {
-      x = x + V;
-    }
-  };
-  
-  struct prod_scalar_funct
-  {
-    VAL V;
-    prod_scalar_funct(VAL a) : V(a) {}
-    
-    __host__ __device__
-    void operator()(VAL &x)
-    {
-      x = x * V;
-    }
-  };
-  
-  void operator()(const AccessorRW<VAL, DIM>& out,
+  void operator()(OP func,
+		  const AccessorRW<VAL, DIM>& out,
 		  const AccessorRO<VAL, DIM>& sum_vals,
 		  const Pitches<DIM - 1>& out_pitches,
 		  const Rect<DIM>& out_rect,
 		  const Pitches<DIM - 1>& sum_vals_pitches,
 		  const Rect<DIM>& sum_vals_rect,
-		  const DomainPoint& partition_index,
-		  const int prod)
+		  const DomainPoint& partition_index) const
   {
     auto outptr = out.ptr(out_rect.lo);
     auto volume = out_rect.volume();
@@ -73,6 +58,7 @@ struct ScanGlobalImplBody<VariantKind::GPU, CODE, DIM> {
     }
 
     auto stride = out_rect.hi[DIM - 1] - out_rect.lo[DIM - 1] + 1;
+    const size_t blocks = (stride + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
     for(uint64_t index = 0; index < volume; index += stride){
       // RRRR depending on stride and volume this should either call multiple streams
       // RRRR or use a cub version (currently not implemented)
@@ -80,18 +66,9 @@ struct ScanGlobalImplBody<VariantKind::GPU, CODE, DIM> {
       auto sum_valsp = out_pitches.unflatten(index, out_rect.lo) - out_rect.lo;
       // first element on scan axis
       sum_valsp[DIM - 1] = 0;
-      if(prod == 0){
-	// calculate scan up to partition_index-1
-	auto base = thrust::reduce(thrust::device, &sum_vals[sum_valsp], &sum_vals[sum_valsp] + partition_index[DIM - 1] - 1); // RRRR is the indexing format correct?
-
-	// apply base to out
-	thrust::for_each(thrust::device, outptr + index, outptr + index + stride, add_scalar_funct(base));
-      } else {
-	auto base = thrust::reduce(thrust::device, &sum_vals[sum_valsp], &sum_vals[sum_valsp] + partition_index[DIM - 1] - 1, (VAL)1, thrust::multiplies<VAL>()); // RRRR is the indexing format correct?
-
-	// apply base to out
-	thrust::for_each(thrust::device, outptr + index, outptr + index + stride, prod_scalar_funct(base));
-      }
+      auto base = thrust::reduce(thrust::device, &sum_vals[sum_valsp], &sum_vals[sum_valsp] + partition_index[DIM - 1] - 1, ScanOp<OP_CODE, CODE>::nan_null, func());
+      // apply base to out
+      scalar_kernel<<<blocks, THREADS_PER_BLOCK>>>(stride, func, &outptr[index], base);
     }
   }
 };

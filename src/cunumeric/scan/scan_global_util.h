@@ -18,6 +18,8 @@
 
 #include "cunumeric/cunumeric.h"
 
+#include <thrust/functional.h>
+
 namespace cunumeric {
 
 enum class ScanCode : int {
@@ -41,12 +43,14 @@ constexpr decltype(auto) op_dispatch(ScanCode op_code, Functor f, Fnargs&&... ar
 
 // RRRR not sure I fully understand these?
 template <legate::LegateTypeCode CODE>
-struct ScanOp<ScanCode::SUM, CODE> : std::plus<legate::legate_type_of<CODE>> {
+struct ScanOp<ScanCode::SUM, CODE> : thrust::plus<legate::legate_type_of<CODE>> {
+  static constexpr legate::legate_type_of<CODE> nan_null = legate::legate_type_of<CODE>(0);
   ScanOp(const std::vector<legate::Store>& args) {}
 };
 
 template <legate::LegateTypeCode CODE>
-struct ScanOp<ScanCode::PROD, CODE> : std::multiplies<legate::legate_type_of<CODE>> {
+struct ScanOp<ScanCode::PROD, CODE> : thrust::multiplies<legate::legate_type_of<CODE>> {
+  static constexpr legate::legate_type_of<CODE> nan_null = legate::legate_type_of<CODE>(1);
   ScanOp(const std::vector<legate::Store>& args) {}
 };
 
