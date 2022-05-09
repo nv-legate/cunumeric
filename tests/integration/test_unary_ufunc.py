@@ -229,4 +229,4 @@ if __name__ == "__main__":
         in_np = parse_inputs(args.inputs, args.dtypes)
         check_ops([args.op], in_np)
     else:
-        pytest.main(sys.argv)
+        sys.exit(pytest.main(sys.argv))

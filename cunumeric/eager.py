@@ -267,7 +267,7 @@ class EagerArray(NumPyThunk):
 
     def real(self):
         if self.deferred is not None:
-            return self.deferred.imag()
+            return self.deferred.real()
         return EagerArray(self.runtime, self.array.real)
 
     def conj(self):
@@ -287,29 +287,30 @@ class EagerArray(NumPyThunk):
 
                 out.array = convolve(self.array, v.array, mode)
 
-    def fft(self, out, axes, kind, direction):
+    def fft(self, rhs, axes, kind, direction):
+        self.check_eager_args(rhs)
         if self.deferred is not None:
-            self.deferred.fft(out, axes, kind, direction)
+            self.deferred.fft(rhs, axes, kind, direction)
         else:
-            if isinstance(kind, FFT_D2Z) or isinstance(kind, FFT_R2C):
-                res = np.fft.rfftn(self.array, axes=axes, norm="backward")
-            elif isinstance(kind, FFT_Z2D) or isinstance(kind, FFT_C2R):
-                s = [self.array.shape[i] for i in axes]
-                res = np.fft.irfftn(self.array, s=s, axes=axes, norm="forward")
+            if kind in (FFT_D2Z, FFT_R2C):
+                res = np.fft.rfftn(rhs.array, axes=axes, norm="backward")
+            elif kind in (FFT_Z2D, FFT_C2R):
+                s = tuple(rhs.array.shape[i] for i in axes)
+                res = np.fft.irfftn(rhs.array, s=s, axes=axes, norm="forward")
             else:
                 if direction == FFTDirection.FORWARD:
-                    res = np.fft.fftn(self.array, axes=axes, norm="backward")
+                    res = np.fft.fftn(rhs.array, axes=axes, norm="backward")
                 else:
-                    res = np.fft.ifftn(self.array, axes=axes, norm="forward")
+                    res = np.fft.ifftn(rhs.array, axes=axes, norm="forward")
             if kind.is_single_precision:
                 if res.dtype == np.complex128:
-                    out.array[:] = res.astype(np.complex64)
+                    self.array[:] = res.astype(np.complex64)
                 elif res.dtype == np.float64:
-                    out.array[:] = res.astype(np.float32)
+                    self.array[:] = res.astype(np.float32)
                 else:
                     raise RuntimeError("Unsupported data type in eager FFT")
             else:
-                out.array[:] = res
+                self.array[:] = res
 
     def copy(self, rhs, deep=False):
         self.check_eager_args(rhs)

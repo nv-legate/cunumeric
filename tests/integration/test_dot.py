@@ -43,4 +43,4 @@ def test_dot(a_ndim, b_ndim):
 if __name__ == "__main__":
     import sys
 
-    pytest.main(sys.argv)
+    sys.exit(pytest.main(sys.argv))

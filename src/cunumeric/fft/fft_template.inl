@@ -26,13 +26,13 @@ template <VariantKind KIND,
           CuNumericFFTType FFT_TYPE,
           LegateTypeCode CODE_OUT,
           LegateTypeCode CODE_IN,
-          int DIM>
+          int32_t DIM>
 struct FFTImplBody;
 
 template <VariantKind KIND, CuNumericFFTType FFT_TYPE>
 struct FFTImpl {
   template <LegateTypeCode CODE_IN,
-            int DIM,
+            int32_t DIM,
             std::enable_if_t<((DIM <= 3) && FFT<FFT_TYPE, CODE_IN>::valid)>* = nullptr>
   void operator()(FFTArgs& args) const
   {
@@ -52,7 +52,7 @@ struct FFTImpl {
 
   // We only support up to 3D FFTs for now
   template <LegateTypeCode CODE_IN,
-            int DIM,
+            int32_t DIM,
             std::enable_if_t<((DIM > 3) || !FFT<FFT_TYPE, CODE_IN>::valid)>* = nullptr>
   void operator()(FFTArgs& args) const
   {
@@ -86,7 +86,7 @@ static void fft_template(TaskContext& context)
   // Scalar arguments. Pay attention to indexes / ranges when adding or reordering arguments
   args.type              = scalars[0].value<CuNumericFFTType>();
   args.direction         = scalars[1].value<CuNumericFFTDirection>();
-  args.operate_over_axes = static_cast<bool>(scalars[2].value<uint8_t>());
+  args.operate_over_axes = scalars[2].value<bool>();
 
   for (size_t i = 3; i < scalars.size(); ++i) args.axes.push_back(scalars[i].value<int64_t>());
 

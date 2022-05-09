@@ -78,18 +78,22 @@ class CuWrapped(AnyCallable, Protocol):
     _cunumeric: CuWrapperMetadata
 
 
-def implemented(func: AnyCallable, prefix: str, name: str) -> CuWrapped:
+def implemented(
+    func: AnyCallable, prefix: str, name: str, reporting: bool = True
+) -> CuWrapped:
     name = f"{prefix}.{name}"
 
     wrapper: CuWrapped
 
-    if runtime.report_coverage:
+    if reporting:
 
         @wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             location = find_last_user_frames(not runtime.report_dump_callstack)
             runtime.record_api_call(
-                name=name, location=location, implemented=True
+                name=name,
+                location=location,
+                implemented=True,
             )
             return func(*args, **kwargs)
 
@@ -111,18 +115,22 @@ def implemented(func: AnyCallable, prefix: str, name: str) -> CuWrapped:
     return wrapper
 
 
-def unimplemented(func: AnyCallable, prefix: str, name: str) -> CuWrapped:
+def unimplemented(
+    func: AnyCallable, prefix: str, name: str, reporting: bool = True
+) -> CuWrapped:
     name = f"{prefix}.{name}"
 
     wrapper: CuWrapped
 
-    if runtime.report_coverage:
+    if reporting:
 
         @wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             location = find_last_user_frames(not runtime.report_dump_callstack)
             runtime.record_api_call(
-                name=name, location=location, implemented=False
+                name=name,
+                location=location,
+                implemented=False,
             )
             return func(*args, **kwargs)
 
@@ -172,18 +180,22 @@ def clone_module(
         omit_types=(ModuleType,),
     )
 
+    reporting = runtime.report_coverage
+
     from ._ufunc.ufunc import ufunc as lgufunc
 
     for attr, value in new_globals.items():
         if isinstance(value, (FunctionType, lgufunc)):
-            wrapped = implemented(cast(AnyCallable, value), mod_name, attr)
+            wrapped = implemented(
+                cast(AnyCallable, value), mod_name, attr, reporting=reporting
+            )
             new_globals[attr] = wrapped
 
     from numpy import ufunc as npufunc
 
     for attr, value in missing.items():
         if isinstance(value, (FunctionType, npufunc)):
-            wrapped = unimplemented(value, mod_name, attr)
+            wrapped = unimplemented(value, mod_name, attr, reporting=reporting)
             new_globals[attr] = wrapped
         else:
             new_globals[attr] = value
@@ -218,14 +230,20 @@ def clone_class(origin_class: type) -> Callable[[type], type]:
             omit_names=set(cls.__dict__).union(NDARRAY_INTERNAL),
         )
 
+        reporting = runtime.report_coverage
+
         for attr, value in cls.__dict__.items():
             if should_wrap(value):
-                wrapped = implemented(value, class_name, attr)
+                wrapped = implemented(
+                    value, class_name, attr, reporting=reporting
+                )
                 setattr(cls, attr, wrapped)
 
         for attr, value in missing.items():
             if should_wrap(value):
-                wrapped = unimplemented(value, class_name, attr)
+                wrapped = unimplemented(
+                    value, class_name, attr, reporting=reporting
+                )
                 setattr(cls, attr, wrapped)
             else:
                 setattr(cls, attr, value)

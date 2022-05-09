@@ -2260,7 +2260,7 @@ class ndarray:
             if np.any(np.greater(fft_s, fft_input_shape)):
                 # Create array with superset shape, fill with zeros,
                 # and copy input in
-                max_size = tuple(np.maximum(fft_s, fft_input_shape))
+                max_size = np.maximum(fft_s, fft_input_shape)
                 zeropad_input = ndarray(shape=max_size, dtype=fft_input.dtype)
                 zeropad_input.fill(0)
                 slices = tuple(slice(0, i) for i in fft_input.shape)
@@ -2295,7 +2295,7 @@ class ndarray:
             shape=fft_output_shape,
             dtype=fft_output_type,
         )
-        fft_input._thunk.fft(out._thunk, fft_axes, kind, direction)
+        out._thunk.fft(fft_input._thunk, fft_axes, kind, direction)
 
         # Normalization
         fft_norm = FFTNormalization.from_string(norm)
