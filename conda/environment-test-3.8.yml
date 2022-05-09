@@ -33,6 +33,7 @@ dependencies:
     # docs
     - jinja2
     - pydata-sphinx-theme
+    - recommonmark
     - sphinx>=4.4.0
     - sphinx-copybutton
     - sphinx-markdown-tables
