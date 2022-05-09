@@ -20,6 +20,9 @@ from types import ModuleType
 from ..coverage import is_implemented, is_multi, is_single
 from ._comparison_config import MISSING_NP_REFS, SKIP
 
+YES = "\u2713"
+NO = "\u274C"
+
 
 @dataclass(frozen=True)
 class ItemDetail:
@@ -82,8 +85,8 @@ def get_item(name, np_obj, lg_obj):
     implemented = is_implemented(lg_attr)
 
     if implemented:
-        single = "YES" if is_single(lg_attr) else "NO"
-        multi = "YES" if is_multi(lg_attr) else "NO"
+        single = YES if is_single(lg_attr) else NO
+        multi = YES if is_multi(lg_attr) else NO
     else:
         single = multi = ""
 
