@@ -22,6 +22,7 @@ dependencies:
   - clang>=8
   - clang-tools>=8
   - mock
+  - mypy
   - pre-commit
   - pynvml
   - pytest
