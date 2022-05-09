@@ -48,8 +48,8 @@ extensions = [
     "sphinx_copybutton",
     "sphinx_markdown_tables",
     "recommonmark",
-    "cunumeric.sphinxext.comparison_table",
-    "cunumeric.sphinxext.ufunc_formatter",
+    "cunumeric._sphinxext.comparison_table",
+    "cunumeric._sphinxext.ufunc_formatter",
 ]
 
 copybutton_prompt_text = ">>> "

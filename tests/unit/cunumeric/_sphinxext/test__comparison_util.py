@@ -13,7 +13,7 @@
 # limitations under the License.
 #
 
-import cunumeric.sphinxext._comparison_util as m  # module under test
+import cunumeric._sphinxext._comparison_util as m  # module under test
 import numpy
 import pytest
 
