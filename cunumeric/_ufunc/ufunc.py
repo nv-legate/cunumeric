@@ -212,6 +212,88 @@ class ufunc:
 
         return arr.astype(to_dtype)
 
+    def _maybe_create_result(self, out, out_shape, res_dtype, casting, inputs):
+        if out is None:
+            return ndarray(shape=out_shape, dtype=res_dtype, inputs=inputs)
+        elif out.dtype != res_dtype:
+            if not np.can_cast(res_dtype, out.dtype, casting=casting):
+                raise TypeError(
+                    f"Cannot cast ufunc '{self._name}' output from "
+                    f"{res_dtype} to {out.dtype} with casting rule "
+                    f"'{casting}'"
+                )
+            return ndarray(shape=out.shape, dtype=res_dtype, inputs=inputs)
+        else:
+            return out
+
+    @staticmethod
+    def _maybe_cast_output(out, result):
+        if out is None or out is result:
+            return result
+        else:
+            out._thunk.convert(result._thunk, warn=False)
+            return out
+
+    @staticmethod
+    def _maybe_convert_to_cunumeric_ndarray(out):
+        if out is None:
+            return None
+        elif isinstance(out, ndarray):
+            return out
+        elif isinstance(out, np.ndarray):
+            return convert_to_cunumeric_ndarray(out)
+        else:
+            raise TypeError("return arrays must be of ArrayType")
+
+    def _prepare_operands(self, *args, out=None, where=True):
+        max_nargs = self.nin + self.nout
+        if len(args) < self.nin or len(args) > max_nargs:
+            raise TypeError(
+                f"{self._name}() takes from {self.nin} to {max_nargs} "
+                f"positional arguments but {len(args)} were given"
+            )
+
+        inputs = tuple(
+            convert_to_cunumeric_ndarray(arr) for arr in args[: self.nin]
+        )
+
+        if len(args) > self.nin:
+            if out is not None:
+                raise TypeError(
+                    "cannot specify 'out' as both a positional and keyword "
+                    "argument"
+                )
+            out = args[self.nin :]
+            # Missing outputs are treated as Nones
+            out = out + (None,) * (self.nout - len(out))
+        elif out is None:
+            out = (None,) * self.nout
+        elif not isinstance(out, tuple):
+            out = (out,)
+
+        outputs = tuple(
+            self._maybe_convert_to_cunumeric_ndarray(arr) for arr in out
+        )
+
+        if self.nout != len(outputs):
+            raise ValueError(
+                "The 'out' tuple must have exactly one entry "
+                "per ufunc output"
+            )
+
+        shapes = [arr.shape for arr in inputs]
+        shapes.extend(arr.shape for arr in outputs if arr is not None)
+
+        # Check if the broadcasting is possible
+        out_shape = broadcast_shapes(*shapes)
+
+        if not isinstance(where, bool) or not where:
+            raise NotImplementedError(
+                "the 'where' keyword is not yet supported"
+            )
+
+        return inputs, outputs, out_shape, where
+
     def __repr__(self):
         return f"<ufunc {self._name}>"
 
@@ -253,7 +335,6 @@ class unary_ufunc(ufunc):
 
     def __call__(
         self,
-        x,
         *args,
         out=None,
         where=True,
@@ -262,35 +343,9 @@ class unary_ufunc(ufunc):
         dtype=None,
         **kwargs,
     ):
-        x = convert_to_cunumeric_ndarray(x)
-
-        if len(args) > 0:
-            if out is not None:
-                raise TypeError(
-                    "cannot specify 'out' as both a positional and keyword "
-                    "argument"
-                )
-            out = args
-
-        if out is not None:
-            if isinstance(out, tuple):
-                if len(out) != 1:
-                    raise ValueError(
-                        "The 'out' tuple must have exactly one entry "
-                        "per ufunc output"
-                    )
-                out = out[0]
-
-            if not isinstance(out, ndarray):
-                raise TypeError("return arrays must be of ArrayType")
-
-            # Check if the broadcasting is possible
-            broadcast_shapes(x.shape, out.shape)
-
-        if not isinstance(where, bool) or not where:
-            raise NotImplementedError(
-                "the 'where' keyword is not yet supported"
-            )
+        (x,), (out,), out_shape, where = self._prepare_operands(
+            *args, out=out, where=where
+        )
 
         # If no dtype is given to prescribe the accuracy, we use the dtype
         # of the input
@@ -306,30 +361,14 @@ class unary_ufunc(ufunc):
         # the dtype must be one of the dtypes supported by this operation.
         x, res_dtype = self._resolve_dtype(x, precision_fixed)
 
-        if out is None:
-            result = ndarray(shape=x.shape, dtype=res_dtype, inputs=(x, where))
-            out = result
-        else:
-            if out.dtype != res_dtype:
-                if not np.can_cast(res_dtype, out.dtype, casting=casting):
-                    raise TypeError(
-                        f"Cannot cast ufunc '{self._name}' output from "
-                        f"{res_dtype} to {out.dtype} with casting rule "
-                        f"'{casting}'"
-                    )
-                result = ndarray(
-                    shape=out.shape, dtype=res_dtype, inputs=(x, where)
-                )
-            else:
-                result = out
+        result = self._maybe_create_result(
+            out, out_shape, res_dtype, casting, (x, where)
+        )
 
         op_code = self._overrides.get(x.dtype.char, self._op_code)
         result._thunk.unary_op(op_code, x._thunk, where, ())
 
-        if out is not result:
-            out._thunk.convert(result._thunk, warn=False)
-
-        return out
+        return self._maybe_cast_output(out, result)
 
 
 class multiout_unary_ufunc(ufunc):
@@ -368,7 +407,6 @@ class multiout_unary_ufunc(ufunc):
 
     def __call__(
         self,
-        x,
         *args,
         out=None,
         where=True,
@@ -377,29 +415,9 @@ class multiout_unary_ufunc(ufunc):
         dtype=None,
         **kwargs,
     ):
-        x = convert_to_cunumeric_ndarray(x)
-
-        if len(args) > 0:
-            if out is not None:
-                raise TypeError(
-                    "cannot specify 'out' as both a positional and keyword "
-                    "argument"
-                )
-            out = args
-
-        if out is not None:
-            if not isinstance(out, tuple):
-                raise ValueError("'out' must be a tuple")
-            elif len(out) != self.nout:
-                raise ValueError(f"'out' must be a {self.nout}-tuple")
-
-            # Check if the broadcasting is possible
-            broadcast_shapes(x.shape, *(o.shape for o in out))
-
-        if not isinstance(where, bool) or not where:
-            raise NotImplementedError(
-                "the 'where' keyword is not yet supported"
-            )
+        (x,), outs, out_shape, where = self._prepare_operands(
+            *args, out=out, where=where
+        )
 
         # If no dtype is given to prescribe the accuracy, we use the dtype
         # of the input
@@ -415,46 +433,40 @@ class multiout_unary_ufunc(ufunc):
         # the dtype must be one of the dtypes supported by this operation.
         x, res_dtypes = self._resolve_dtype(x, precision_fixed)
 
-        if out is None:
-            results = tuple(
-                ndarray(shape=x.shape, dtype=res_dtype, inputs=(x, where))
-                for res_dtype in res_dtypes
-            )
-            out = results
-        else:
-
-            def maybe_create_output(out, res_dtype):
-                if out.dtype != res_dtype:
-                    if not np.can_cast(res_dtype, out.dtype, casting=casting):
-                        raise TypeError(
-                            f"Cannot cast ufunc '{self._name}' output from "
-                            f"{res_dtype} to {out.dtype} with casting rule "
-                            f"'{casting}'"
-                        )
-                    return ndarray(
-                        shape=out.shape, dtype=res_dtype, inputs=(x, where)
+        def maybe_create_output(out, res_dtype):
+            if out is None:
+                return ndarray(
+                    shape=x.shape, dtype=res_dtype, inputs=(x, where)
+                )
+            elif out.dtype != res_dtype:
+                if not np.can_cast(res_dtype, out.dtype, casting=casting):
+                    raise TypeError(
+                        f"Cannot cast ufunc '{self._name}' output from "
+                        f"{res_dtype} to {out.dtype} with casting rule "
+                        f"'{casting}'"
                     )
-                else:
-                    return out
+                return ndarray(
+                    shape=out.shape, dtype=res_dtype, inputs=(x, where)
+                )
+            else:
+                return out
 
-            results = tuple(
-                maybe_create_output(o, res_dtype)
-                for o, res_dtype in zip(out, res_dtypes)
+        results = tuple(
+            self._maybe_create_result(
+                out, out_shape, res_dtype, casting, (x, where)
             )
+            for out, res_dtype in zip(outs, res_dtypes)
+        )
 
         result_thunks = tuple(result._thunk for result in results)
         result_thunks[0].unary_op(
             self._op_code, x._thunk, where, (), multiout=result_thunks[1:]
         )
 
-        out = tuple(
-            out
-            if out is result
-            else out._thunk.convert(result._thunk, warn=False)
-            for out, result in zip(out, results)
+        return tuple(
+            self._maybe_cast_output(out, result)
+            for out, result in zip(outs, results)
         )
-
-        return out
 
 
 class binary_ufunc(ufunc):
@@ -555,8 +567,6 @@ class binary_ufunc(ufunc):
 
     def __call__(
         self,
-        x1,
-        x2,
         *args,
         out=None,
         where=True,
@@ -565,41 +575,10 @@ class binary_ufunc(ufunc):
         dtype=None,
         **kwargs,
     ):
-        orig_args = (x1, x2)
-        arrs = [convert_to_cunumeric_ndarray(arr) for arr in orig_args]
-
-        if len(args) > 0:
-            if out is not None:
-                raise TypeError(
-                    "cannot specify 'out' as both a positional and keyword "
-                    "argument"
-                )
-            out = args
-
-        if out is not None:
-            if isinstance(out, tuple):
-                if len(out) != 1:
-                    raise ValueError(
-                        "The 'out' tuple must have exactly one entry "
-                        "per ufunc output"
-                    )
-                out = out[0]
-
-            if not isinstance(out, ndarray):
-                raise TypeError("return arrays must be of ArrayType")
-
-            # Check if the broadcasting is possible
-            out_shape = broadcast_shapes(
-                arrs[0].shape, arrs[1].shape, out.shape
-            )
-        else:
-            # Check if the broadcasting is possible
-            out_shape = broadcast_shapes(arrs[0].shape, arrs[1].shape)
-
-        if not isinstance(where, bool) or not where:
-            raise NotImplementedError(
-                "the 'where' keyword is not yet supported"
-            )
+        arrs, (out,), out_shape, where = self._prepare_operands(
+            *args, out=out, where=where
+        )
+        orig_args = args[: self.nin]
 
         # If no dtype is given to prescribe the accuracy, we use the dtype
         # of the input
@@ -619,32 +598,13 @@ class binary_ufunc(ufunc):
             arrs, orig_args, casting, precision_fixed
         )
 
-        if out is None:
-            result = ndarray(
-                shape=out_shape, dtype=res_dtype, inputs=(*arrs, where)
-            )
-            out = result
-        else:
-            if out.dtype != res_dtype:
-                if not np.can_cast(res_dtype, out.dtype, casting=casting):
-                    raise TypeError(
-                        f"Cannot cast ufunc '{self._name}' output from "
-                        f"{res_dtype} to {out.dtype} with casting rule "
-                        f"'{casting}'"
-                    )
-                result = ndarray(
-                    shape=out.shape, dtype=res_dtype, inputs=(*arrs, where)
-                )
-            else:
-                result = out
-
         x1, x2 = arrs
+        result = self._maybe_create_result(
+            out, out_shape, res_dtype, casting, (x1, x2, where)
+        )
         result._thunk.binary_op(self._op_code, x1._thunk, x2._thunk, where, ())
 
-        if out is not result:
-            out._thunk.convert(result._thunk, warn=False)
-
-        return out
+        return self._maybe_cast_output(out, result)
 
     def reduce(
         self,
