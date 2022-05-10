@@ -500,12 +500,16 @@ class binary_ufunc(ufunc):
     def _resolve_dtype(self, arrs, orig_args, casting, precision_fixed):
         if self._use_common_type:
             common_dtype = self._find_common_type(arrs, orig_args)
+            to_dtypes = (common_dtype, common_dtype)
             key = (common_dtype.char, common_dtype.char)
         else:
-            key = tuple(arr.dtype for arr in arrs)
+            to_dtypes = tuple(arr.dtype for arr in arrs)
+            key = tuple(arr.dtype.char for arr in arrs)
 
         if key in self._types:
-            arrs = [arr.astype(common_dtype) for arr in arrs]
+            arrs = [
+                arr.astype(to_dtype) for arr, to_dtype in zip(arrs, to_dtypes)
+            ]
             return arrs, np.dtype(self._types[key])
 
         if not precision_fixed:
