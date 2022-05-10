@@ -235,13 +235,13 @@ class ufunc:
             return out
 
     @staticmethod
-    def _maybe_convert_to_cunumeric_ndarray(out):
+    def _maybe_convert_output_to_cunumeric_ndarray(out):
         if out is None:
             return None
         elif isinstance(out, ndarray):
             return out
         elif isinstance(out, np.ndarray):
-            return convert_to_cunumeric_ndarray(out)
+            return convert_to_cunumeric_ndarray(out, share=True)
         else:
             raise TypeError("return arrays must be of ArrayType")
 
@@ -272,7 +272,7 @@ class ufunc:
             out = (out,)
 
         outputs = tuple(
-            self._maybe_convert_to_cunumeric_ndarray(arr) for arr in out
+            self._maybe_convert_output_to_cunumeric_ndarray(arr) for arr in out
         )
 
         if self.nout != len(outputs):
