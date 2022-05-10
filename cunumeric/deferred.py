@@ -606,6 +606,20 @@ class DeferredArray(NumPyThunk):
 
         return result
 
+    def _convert_future_to_store(self, a):
+        store = self.context.create_store(
+            a.dtype,
+            shape=(1,),
+            optimize_scalar=False,
+        )
+        store_copy = DeferredArray(
+            self.runtime,
+            base=store,
+            dtype=a.dtype,
+        )
+        store_copy.copy(a, deep=True)
+        return store_copy
+
     def get_item(self, key):
         # Check to see if this is advanced indexing or not
         if is_advanced_indexing(key):
@@ -624,13 +638,32 @@ class DeferredArray(NumPyThunk):
                     self.dtype,
                     inputs=[self],
                 )
-                copy = self.context.create_copy()
+                if index_array.base.kind == Future:
+                    index_array = self._convert_future_to_store(index_array)
+                    result_store = self.context.create_store(
+                        self.dtype,
+                        shape=(1,),
+                        optimize_scalar=False,
+                    )
+                    result = DeferredArray(
+                        self.runtime,
+                        base=result_store,
+                        dtype=self.dtype,
+                    )
 
+                else:
+                    result = self.runtime.create_empty_thunk(
+                        index_array.base.shape,
+                        self.dtype,
+                        inputs=[self],
+                    )
+
+                copy = self.context.create_copy()
                 copy.add_input(store)
                 copy.add_source_indirect(index_array.base)
                 copy.add_output(result.base)
-
                 copy.execute()
+
             else:
                 return index_array
 

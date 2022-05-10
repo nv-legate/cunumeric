@@ -151,6 +151,13 @@ def test():
     res_num = x_num[indx_num]
     assert np.array_equal(res, res_num)
 
+    # s index array as a future
+    index = np.array([3])
+    index_num = num.array(index)
+    res = x[index]
+    res_num = x_num[index]
+    assert np.array_equal(res, res_num)
+
     # Nd cases
     print("advanced indexing test 2")
 

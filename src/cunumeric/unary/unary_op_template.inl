@@ -15,6 +15,8 @@
  */
 
 #include "cunumeric/pitches.h"
+#include "cunumeric/utilities/dispatch.h"
+#include "cunumeric/utilities/type_traits.h"
 
 namespace cunumeric {
 
@@ -23,6 +25,9 @@ using namespace legate;
 
 template <VariantKind KIND, UnaryOpCode OP_CODE, LegateTypeCode CODE, int DIM>
 struct UnaryOpImplBody;
+
+template <VariantKind KIND, CuNumericTypeCodes CODE, int DIM>
+struct PointCopyImplBody;
 
 template <VariantKind KIND, UnaryOpCode OP_CODE>
 struct UnaryOpImpl {
@@ -64,6 +69,32 @@ struct UnaryOpImpl {
   {
     assert(false);
   }
+
+  template <CuNumericTypeCodes CODE, int DIM>
+  void operator()(UnaryOpArgs& args) const
+  {
+    assert(OP_CODE == UnaryOpCode::COPY);
+    using VAL = cunumeric_type_of<CODE>;
+    auto rect = args.out.shape<DIM>().intersection(args.in.shape<DIM>());
+
+    Pitches<DIM - 1> pitches;
+    size_t volume = pitches.flatten(rect);
+
+    if (volume == 0) return;
+
+    auto out = args.out.write_accessor<VAL, DIM>(rect);
+    auto in  = args.in.read_accessor<VAL, DIM>(rect);
+
+#ifndef LEGION_BOUNDS_CHECKS
+    // Check to see if this is dense or not
+    bool dense = out.accessor.is_dense_row_major(rect) && in.accessor.is_dense_row_major(rect);
+#else
+    // No dense execution if we're doing bounds checks
+    bool dense = false;
+#endif
+
+    PointCopyImplBody<KIND, CODE, DIM>()(out, in, pitches, rect, dense);
+  }
 };
 
 template <VariantKind KIND>
@@ -72,7 +103,7 @@ struct UnaryOpDispatch {
   void operator()(UnaryOpArgs& args) const
   {
     auto dim = std::max(args.in.dim(), 1);
-    double_dispatch(dim, args.in.code(), UnaryOpImpl<KIND, OP_CODE>{}, args);
+    cunumeric::double_dispatch(dim, args.in.code(), UnaryOpImpl<KIND, OP_CODE>{}, args);
   }
 };
 

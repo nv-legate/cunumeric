@@ -51,6 +51,32 @@ struct UnaryOpImplBody<VariantKind::OMP, OP_CODE, CODE, DIM> {
   }
 };
 
+template <CuNumericTypeCodes CODE, int DIM>
+struct PointCopyImplBody<VariantKind::OMP, CODE, DIM> {
+  using VAL = cunumeric_type_of<CODE>;
+
+  void operator()(AccessorWO<VAL, DIM> out,
+                  AccessorRO<VAL, DIM> in,
+                  const Pitches<DIM - 1>& pitches,
+                  const Rect<DIM>& rect,
+                  bool dense) const
+  {
+    const size_t volume = rect.volume();
+    if (dense) {
+      auto outptr = out.ptr(rect);
+      auto inptr  = in.ptr(rect);
+#pragma omp parallel for schedule(static)
+      for (size_t idx = 0; idx < volume; ++idx) outptr[idx] = inptr[idx];
+    } else {
+#pragma omp parallel for schedule(static)
+      for (size_t idx = 0; idx < volume; ++idx) {
+        auto p = pitches.unflatten(idx, rect.lo);
+        out[p] = in[p];
+      }
+    }
+  }
+};
+
 /*static*/ void UnaryOpTask::omp_variant(TaskContext& context)
 {
   unary_op_template<VariantKind::OMP>(context);
