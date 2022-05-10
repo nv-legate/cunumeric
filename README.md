@@ -53,8 +53,8 @@ cuNumeric is available [on conda](https://anaconda.org/legate/cunumeric):
 ```
 conda install -c nvidia -c conda-forge -c legate cunumeric
 ```
-The conda package is compatible with CUDA >= 11.0 (CUDA driver version
-450.51.05), and Volta or later GPU architectures.
+The conda package is compatible with CUDA >= 11.4 (CUDA driver version >= r470),
+and Volta or later GPU architectures.
 
 Docker image build scripts, as well as specialized install scripts for
 supported clusters are available on the
