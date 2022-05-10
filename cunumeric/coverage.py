@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import warnings
+from dataclasses import dataclass
 from functools import wraps
 from types import FunctionType, MethodDescriptorType, MethodType, ModuleType
 from typing import Any, Callable, Container, Optional, cast
@@ -24,7 +25,7 @@ from typing_extensions import Protocol
 from .runtime import runtime
 from .utils import find_last_user_frames, find_last_user_stacklevel
 
-__all__ = ("clone_module",)
+__all__ = ("clone_class", "clone_module")
 
 FALLBACK_WARNING = (
     "cuNumeric has not implemented {name} "
@@ -66,15 +67,17 @@ class AnyCallable(Protocol):
         ...
 
 
-class CuWrapped(Protocol):
-    _cunumeric_implemented: bool
+@dataclass(frozen=True)
+class CuWrapperMetadata:
+    implemented: bool
 
-    def __call__(self, *args: Any, **kwargs: Any) -> Any:
-        ...
+
+class CuWrapped(AnyCallable, Protocol):
+    _cunumeric: CuWrapperMetadata
 
 
 def implemented(
-    func: AnyCallable, prefix: str, name: str, *, reporting: bool = True
+    func: AnyCallable, prefix: str, name: str, reporting: bool = True
 ) -> CuWrapped:
     name = f"{prefix}.{name}"
 
@@ -86,21 +89,25 @@ def implemented(
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             location = find_last_user_frames(not runtime.report_dump_callstack)
             runtime.record_api_call(
-                name=name, location=location, implemented=True
+                name=name,
+                location=location,
+                implemented=True,
             )
             return func(*args, **kwargs)
 
     else:
 
-        wrapper = cast(CuWrapped, func)
+        @wraps(func)
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
+            return func(*args, **kwargs)
 
-    wrapper._cunumeric_implemented = True
+    wrapper._cunumeric = CuWrapperMetadata(implemented=True)
 
     return wrapper
 
 
 def unimplemented(
-    func: AnyCallable, prefix: str, name: str, *, reporting: bool = True
+    func: AnyCallable, prefix: str, name: str, reporting: bool = True
 ) -> CuWrapped:
     name = f"{prefix}.{name}"
 
@@ -112,7 +119,9 @@ def unimplemented(
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             location = find_last_user_frames(not runtime.report_dump_callstack)
             runtime.record_api_call(
-                name=name, location=location, implemented=False
+                name=name,
+                location=location,
+                implemented=False,
             )
             return func(*args, **kwargs)
 
@@ -128,7 +137,7 @@ def unimplemented(
             )
             return func(*args, **kwargs)
 
-    wrapper._cunumeric_implemented = False
+    wrapper._cunumeric = CuWrapperMetadata(implemented=False)
 
     return wrapper
 
@@ -162,11 +171,9 @@ def clone_module(
         omit_types=(ModuleType,),
     )
 
-    from numpy import ufunc as npufunc
+    reporting = runtime.report_coverage
 
     from ._ufunc.ufunc import ufunc as lgufunc
-
-    reporting = runtime.report_coverage
 
     for attr, value in new_globals.items():
         if isinstance(value, (FunctionType, lgufunc)):
@@ -174,6 +181,8 @@ def clone_module(
                 cast(AnyCallable, value), mod_name, attr, reporting=reporting
             )
             new_globals[attr] = wrapped
+
+    from numpy import ufunc as npufunc
 
     for attr, value in missing.items():
         if isinstance(value, (FunctionType, npufunc)):

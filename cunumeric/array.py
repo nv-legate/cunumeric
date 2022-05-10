@@ -770,11 +770,9 @@ class ndarray:
             # Otherwise convert it to a cuNumeric array, check types
             # and get the thunk
             key = convert_to_cunumeric_ndarray(key)
-            if key.dtype != np.bool and not np.issubdtype(
-                key.dtype, np.integer
-            ):
+            if key.dtype != bool and not np.issubdtype(key.dtype, np.integer):
                 raise TypeError("index arrays should be int or bool type")
-            if key.dtype != np.bool and key.dtype != np.int64:
+            if key.dtype != bool and key.dtype != np.int64:
                 runtime.warn(
                     "converting index array to int64 type",
                     category=RuntimeWarning,
@@ -1934,10 +1932,25 @@ class ndarray:
     # currently offset option is implemented only for the case of number of
     # axes=2. This restriction can be lifted in the future if there is a
     # use case of having arbitrary number of offsets
-    def _diag_helper(self, offset=0, axes=None, extract=True):
+    def _diag_helper(
+        self,
+        offset=0,
+        axes=None,
+        extract=True,
+        trace=False,
+        out=None,
+        dtype=None,
+    ):
         # _diag_helper can be used only for arrays with dim>=1
         if self.ndim < 1:
             raise ValueError("_diag_helper is implemented for dim>=1")
+        # out should be passed only for Trace
+        if out is not None and not trace:
+            raise ValueError("_diag_helper supports out only for trace=True")
+        # dtype should be passed only for Trace
+        if dtype is not None and not trace:
+            raise ValueError("_diag_helper supports dtype only for trace=True")
+
         elif self.ndim == 1:
             if axes is not None:
                 raise ValueError(
@@ -1948,10 +1961,7 @@ class ndarray:
             out = ndarray((m, m), dtype=self.dtype, inputs=(self,))
             diag_size = self.shape[0]
             out._thunk._diag_helper(
-                self._thunk,
-                offset=offset,
-                naxes=0,
-                extract=False,
+                self._thunk, offset=offset, naxes=0, extract=False, trace=False
             )
         else:
             N = len(axes)
@@ -2004,14 +2014,36 @@ class ndarray:
 
             tr_shape = tuple(a.shape[i] for i in range(a.ndim - N))
             # calculate shape of the output array
-            out_shape = tr_shape + (diag_size,)
-            out = ndarray(shape=out_shape, dtype=self.dtype, inputs=(self,))
+            if trace:
+                if N != 2:
+                    raise ValueError(
+                        " exactly 2 axes should be passed to trace"
+                    )
+                if self.ndim == 2:
+                    out_shape = (1,)
+                elif self.ndim > 2:
+                    out_shape = tr_shape
+                else:
+                    raise ValueError(
+                        "dimension of the array for trace operation:"
+                        " should be >=2"
+                    )
+            else:
+                out_shape = tr_shape + (diag_size,)
+
+            if out is not None:
+                if out.shape != out_shape:
+                    raise ValueError("output array has wrong shape")
+                a = a._maybe_convert(out.dtype, (a, out))
+            else:
+                out = ndarray(
+                    shape=out_shape, dtype=self.dtype, inputs=(self,)
+                )
+            if out is None and dtype is not None:
+                a = a._maybe_convert(dtype, (a,))
 
             out._thunk._diag_helper(
-                a._thunk,
-                offset=offset,
-                naxes=N,
-                extract=extract,
+                a._thunk, offset=offset, naxes=N, extract=extract, trace=trace
             )
         return out
 
@@ -2052,6 +2084,47 @@ class ndarray:
             ):
                 raise ValueError("Either axis1/axis2 or axes must be supplied")
         return self._diag_helper(offset=offset, axes=axes, extract=extract)
+
+    @add_boilerplate()
+    def trace(self, offset=0, axis1=None, axis2=None, dtype=None, out=None):
+        """a.trace(offset=0, axis1=None, axis2=None, dtype = None, out = None)
+
+        Return the sum along diagonals of the array.
+
+        Refer to :func:`cunumeric.trace` for full documentation.
+
+        See Also
+        --------
+        cunumeric.trace : equivalent function
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        if self.ndim < 2:
+            raise ValueError(
+                "trace operation can't be called on a array with DIM<2"
+            )
+
+        axes = []
+        if (axis1 is None) and (axis2 is None):
+            # default values for axis
+            axes = (0, 1)
+        elif (axis1 is None) or (axis2 is None):
+            raise ValueError("both axes should be passed")
+        else:
+            axes = (axis1, axis2)
+
+        res = self._diag_helper(
+            offset=offset, axes=axes, trace=True, out=out, dtype=dtype
+        )
+
+        # for 2D arrays we must return scalar
+        if self.ndim == 2:
+            res = res[0]
+
+        return res
 
     @add_boilerplate("rhs")
     def dot(self, rhs, out=None):
@@ -2187,7 +2260,7 @@ class ndarray:
             if np.any(np.greater(fft_s, fft_input_shape)):
                 # Create array with superset shape, fill with zeros,
                 # and copy input in
-                max_size = tuple(np.maximum(fft_s, fft_input_shape))
+                max_size = np.maximum(fft_s, fft_input_shape)
                 zeropad_input = ndarray(shape=max_size, dtype=fft_input.dtype)
                 zeropad_input.fill(0)
                 slices = tuple(slice(0, i) for i in fft_input.shape)
@@ -2222,7 +2295,7 @@ class ndarray:
             shape=fft_output_shape,
             dtype=fft_output_type,
         )
-        fft_input._thunk.fft(out._thunk, fft_axes, kind, direction)
+        out._thunk.fft(fft_input._thunk, fft_axes, kind, direction)
 
         # Normalization
         fft_norm = FFTNormalization.from_string(norm)
