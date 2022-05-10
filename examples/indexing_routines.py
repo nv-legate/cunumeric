@@ -146,15 +146,15 @@ def compute_advanced_indexing_1d(steps, N, timing):
     indx_bool = (B % 2).astype(bool)
     start = datetime.datetime.now()
     for step in range(steps):
-        A1[indx] = 10
-        A1[indx_bool] = 12
+        A1[indx] = 10  # 1 copy
+        A1[indx_bool] = 12  # 1 AI and 1 copy
     stop = datetime.datetime.now()
     delta = stop - start
     total = delta.total_seconds() * 1000.0
     if timing:
         flops = 0
         print("Total Flops:      " + str(flops / 1e9) + " GFLOPS/iter")
-        space = (2 * N) * np.dtype(int).itemsize / 1073741824
+        space = (3 * N) * np.dtype(int).itemsize / 1073741824
         print("Total Size:       " + str(space) + " GB")
         print("Elapsed Time for advanced_indexing: " + str(total) + " ms")
         average = total / steps
@@ -181,16 +181,16 @@ def compute_advanced_indexing_2d(steps, N, timing):
     indx2d_bool = (A2 % 2).astype(bool)
     start = datetime.datetime.now()
     for step in range(steps):
-        A2[indx_bool, indx_bool] = 11
-        A2[:, indx] = 12
-        A2[indx2d_bool] = 13
+        A2[indx_bool, indx_bool] = 11  # one ZIP and 1 copy = N+N*N
+        A2[:, indx] = 12  # one ZIP and 3 copies = N+3*N*N
+        A2[indx2d_bool] = 13  # 1 copy and one AI task = 2* N*N
     stop = datetime.datetime.now()
     delta = stop - start
     total = delta.total_seconds() * 1000.0
     if timing:
         flops = 0
         print("Total Flops:      " + str(flops / 1e9) + " GFLOPS/iter")
-        space = (3 * N * N + 2 * N) * np.dtype(int).itemsize / 1073741824
+        space = (6 * N * N + 2 * N) * np.dtype(int).itemsize / 1073741824
         print("Total Size:       " + str(space) + " GB")
         print("Elapsed Time for advanced_indexing: " + str(total) + " ms")
         average = total / steps
@@ -223,15 +223,15 @@ def compute_advanced_indexing_3d(steps, N, timing):
     indx3d_bool = (A3 % 2).astype(bool)
     start = datetime.datetime.now()
     for step in range(steps):
-        A3[indx, :, indx] = 15
-        A3[indx3d_bool] = 16
+        A3[indx, :, indx] = 15  # 1 ZIP and 3 copy = N+3N*N
+        A3[indx3d_bool] = 16  # 1 copy and 1 AI task = 2*N*N
     stop = datetime.datetime.now()
     delta = stop - start
     total = delta.total_seconds() * 1000.0
     if timing:
         flops = 0
         print("Total Flops:      " + str(flops / 1e9) + " GFLOPS/iter")
-        space = (2 * N * N + N) * np.dtype(int).itemsize / 1073741824
+        space = (5 * N * N + N) * np.dtype(int).itemsize / 1073741824
         print("Total Size:       " + str(space) + " GB")
         print("Elapsed Time for advanced_indexing: " + str(total) + " ms")
         average = total / steps
