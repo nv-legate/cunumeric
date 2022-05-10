@@ -287,6 +287,14 @@ class ufunc:
         # Check if the broadcasting is possible
         out_shape = broadcast_shapes(*shapes)
 
+        for out in outputs:
+            if out is not None and out.shape != out_shape:
+                raise ValueError(
+                    f"non-broadcastable output operand with shape "
+                    f"{out.shape} doesn't match the broadcast shape "
+                    f"{out_shape}"
+                )
+
         if not isinstance(where, bool) or not where:
             raise NotImplementedError(
                 "the 'where' keyword is not yet supported"
@@ -432,24 +440,6 @@ class multiout_unary_ufunc(ufunc):
         # if necessary. If the dtype is already fixed by the caller,
         # the dtype must be one of the dtypes supported by this operation.
         x, res_dtypes = self._resolve_dtype(x, precision_fixed)
-
-        def maybe_create_output(out, res_dtype):
-            if out is None:
-                return ndarray(
-                    shape=x.shape, dtype=res_dtype, inputs=(x, where)
-                )
-            elif out.dtype != res_dtype:
-                if not np.can_cast(res_dtype, out.dtype, casting=casting):
-                    raise TypeError(
-                        f"Cannot cast ufunc '{self._name}' output from "
-                        f"{res_dtype} to {out.dtype} with casting rule "
-                        f"'{casting}'"
-                    )
-                return ndarray(
-                    shape=out.shape, dtype=res_dtype, inputs=(x, where)
-                )
-            else:
-                return out
 
         results = tuple(
             self._maybe_create_result(
