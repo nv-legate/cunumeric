@@ -733,7 +733,8 @@ void rebalance_data(SegmentMergePiece<VAL>& merge_buffer,
 
   {
     // compute diff for each segment
-    auto segment_diff = create_buffer<int64_t>(num_segments_l, Memory::GPU_FB_MEM);
+    const size_t num_segments_l_aligned = get_16b_aligned_count(num_segments_l, sizeof(size_t));
+    auto segment_diff = create_buffer<int64_t>(num_segments_l_aligned, Memory::GPU_FB_MEM);
     {
       // start kernel to search from merge_buffer.segments
       const size_t num_blocks = (num_segments_l + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
@@ -760,8 +761,6 @@ void rebalance_data(SegmentMergePiece<VAL>& merge_buffer,
 #endif
 
     // allocate target
-    // allocate target
-    const size_t num_segments_l_aligned = get_16b_aligned_count(num_segments_l + 1, sizeof(size_t));
     Buffer<int64_t> segment_diff_buffers =
       create_buffer<int64_t>(num_segments_l_aligned * num_sort_ranks, Memory::GPU_FB_MEM);
 
