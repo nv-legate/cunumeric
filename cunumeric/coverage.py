@@ -87,7 +87,9 @@ def implemented(
 
         @wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
-            location = find_last_user_frames(not runtime.report_dump_callstack)
+            location = find_last_user_frames(
+                not runtime.args.report_dump_callstack
+            )
             runtime.record_api_call(
                 name=name,
                 location=location,
@@ -117,7 +119,9 @@ def unimplemented(
 
         @wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
-            location = find_last_user_frames(not runtime.report_dump_callstack)
+            location = find_last_user_frames(
+                not runtime.args.report_dump_callstack
+            )
             runtime.record_api_call(
                 name=name,
                 location=location,
@@ -171,7 +175,7 @@ def clone_module(
         omit_types=(ModuleType,),
     )
 
-    reporting = runtime.report_coverage
+    reporting = runtime.args.report_coverage
 
     from ._ufunc.ufunc import ufunc as lgufunc
 
@@ -221,7 +225,7 @@ def clone_class(origin_class: type) -> Callable[[type], type]:
             omit_names=set(cls.__dict__).union(NDARRAY_INTERNAL),
         )
 
-        reporting = runtime.report_coverage
+        reporting = runtime.args.report_coverage
 
         for attr, value in cls.__dict__.items():
             if should_wrap(value):
