@@ -58,23 +58,48 @@ _supported_dtypes = {
 
 ARGS = [
     Argument(
-        "test", ArgSpec(action="store_true", default=False, dest="test_mode")
+        "test",
+        ArgSpec(
+            action="store_true",
+            default=False,
+            dest="test_mode",
+            help="Enable test mode. In test mode, all cuNumeric ndarrays are managed by the distributed runtime and the NumPy fallback for small arrays is turned off.",  # noqa E501
+        ),
     ),
     Argument(
         "preload-cudalibs",
-        ArgSpec(action="store_true", default=False, dest="preload_cudalibs"),
+        ArgSpec(
+            action="store_true",
+            default=False,
+            dest="preload_cudalibs",
+            help="Preload and initialize handles of all CUDA libraries (cuBLAS, cuSOLVER, etc.) used in cuNumericLoad CUDA libs early",  # noqa E501
+        ),
     ),
     Argument(
-        "warn", ArgSpec(action="store_true", default=False, dest="warning")
+        "warn",
+        ArgSpec(
+            action="store_true",
+            default=False,
+            dest="warning",
+            help="Turn on warnings",
+        ),
     ),
     Argument(
         "report:coverage",
-        ArgSpec(action="store_true", default=False, dest="report_coverage"),
+        ArgSpec(
+            action="store_true",
+            default=False,
+            dest="report_coverage",
+            help="Print an overall percentage of cunumeric coverage",
+        ),
     ),
     Argument(
         "report:dump-callstack",
         ArgSpec(
-            action="store_true", default=False, dest="report_dump_callstack"
+            action="store_true",
+            default=False,
+            dest="report_dump_callstack",
+            help="Print an overall percentage of cunumeric coverage with call stack details",  # noqa E501
         ),
     ),
     Argument(
@@ -85,6 +110,7 @@ ARGS = [
             nargs=1,
             default=None,
             dest="report_dump_csv",
+            help="Save a coverage report to a specified CSV file",
         ),
     ),
 ]
@@ -210,7 +236,7 @@ class Runtime(object):
         assert not self.destroyed
         if self.num_gpus > 0:
             self._unload_cudalibs()
-        if self.args.report_coverage:
+        if hasattr(self, "args") and self.args.report_coverage:
             self._report_coverage()
         self.destroyed = True
 
