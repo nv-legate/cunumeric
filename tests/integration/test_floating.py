@@ -37,6 +37,14 @@ def test_modf(shape):
     for out_np, out_num in zip(outs_np, outs_num):
         assert np.allclose(out_np, out_num)
 
+    # Test integer input
+    outs_np = np.modf(x_np.astype("i"))
+    outs_num = num.modf(x_num.astype("i"))
+
+    for out_np, out_num in zip(outs_np, outs_num):
+        assert np.allclose(out_np, out_num)
+
+    # Test positional outputs
     out1_np = np.empty(shape, dtype="f")
     out2_np = np.empty(shape, dtype="e")
 
@@ -49,6 +57,14 @@ def test_modf(shape):
     assert np.allclose(out1_np, out1_num)
     assert np.allclose(out2_np, out2_num)
 
+    (tmp1_np, out2_np) = np.modf(x_np, out1_np)
+    (tmp1_num, out2_num) = num.modf(x_num, out1_num)
+
+    assert np.allclose(out1_np, out1_num)
+    assert np.allclose(out2_np, out2_num)
+    assert tmp1_num is out1_num
+
+    # Test keyword outputs
     out1_np = np.empty(shape, dtype="f")
     out2_np = np.empty(shape, dtype="e")
 
@@ -61,11 +77,19 @@ def test_modf(shape):
     assert np.allclose(out1_np, out1_num)
     assert np.allclose(out2_np, out2_num)
 
-    outs_np = np.modf(x_np.astype("i"))
-    outs_num = num.modf(x_num.astype("i"))
+    (tmp2_np, out2_np) = np.modf(x_np, out=(out1_np, None))
+    (tmp2_num, out2_num) = num.modf(x_num, out=(out1_num, None))
 
-    for out_np, out_num in zip(outs_np, outs_num):
-        assert np.allclose(out_np, out_num)
+    assert np.allclose(out1_np, out1_num)
+    assert np.allclose(out2_np, out2_num)
+    assert out1_num is tmp2_num
+
+    (out1_np, tmp2_np) = np.modf(x_np, out=(None, out2_np))
+    (out1_num, tmp2_num) = num.modf(x_num, out=(None, out2_num))
+
+    assert np.allclose(out1_np, out1_num)
+    assert np.allclose(out2_np, out2_num)
+    assert out2_num is tmp2_num
 
 
 @pytest.mark.parametrize("shape", SHAPES, ids=str)

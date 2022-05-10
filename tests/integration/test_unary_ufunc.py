@@ -60,6 +60,23 @@ def check_ops(ops, in_np, out_dtype="d"):
 
         check_result(op, in_np, out_np, out_num)
 
+        out_np = np.empty(out_np.shape, dtype=out_dtype)
+        out_num = num.empty(out_num.shape, dtype=out_dtype)
+
+        op_np(*in_np, out_np)
+        op_num(*in_num, out_num)
+
+        check_result(op, in_np, out_np, out_num)
+
+        out_np = np.empty(out_np.shape, dtype=out_dtype)
+        # Ask cuNumeric to produce outputs to NumPy ndarrays
+        out_num = np.empty(out_num.shape, dtype=out_dtype)
+
+        op_np(*in_np, out_np)
+        op_num(*in_num, out_num)
+
+        check_result(op, in_np, out_np, out_num)
+
 
 def test_all():
     # TODO: right now we will simply check if the operations work
