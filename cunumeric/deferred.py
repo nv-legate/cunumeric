@@ -609,7 +609,7 @@ class DeferredArray(NumPyThunk):
     def _convert_future_to_store(self, a):
         store = self.context.create_store(
             a.dtype,
-            shape=(1,),
+            shape=a.shape,
             optimize_scalar=False,
         )
         store_copy = DeferredArray(
@@ -642,7 +642,7 @@ class DeferredArray(NumPyThunk):
                     index_array = self._convert_future_to_store(index_array)
                     result_store = self.context.create_store(
                         self.dtype,
-                        shape=(1,),
+                        shape=index_array.shape,
                         optimize_scalar=False,
                     )
                     result = DeferredArray(

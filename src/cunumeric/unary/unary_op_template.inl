@@ -15,8 +15,6 @@
  */
 
 #include "cunumeric/pitches.h"
-#include "cunumeric/utilities/dispatch.h"
-#include "cunumeric/utilities/type_traits.h"
 
 namespace cunumeric {
 
@@ -26,7 +24,7 @@ using namespace legate;
 template <VariantKind KIND, UnaryOpCode OP_CODE, LegateTypeCode CODE, int DIM>
 struct UnaryOpImplBody;
 
-template <VariantKind KIND, CuNumericTypeCodes CODE, int DIM>
+template <VariantKind KIND, typename VAL, int DIM>
 struct PointCopyImplBody;
 
 template <VariantKind KIND, UnaryOpCode OP_CODE>
@@ -69,12 +67,27 @@ struct UnaryOpImpl {
   {
     assert(false);
   }
+};
+
+template <VariantKind KIND>
+struct UnaryCopyImpl {
+  template <LegateTypeCode CODE, int DIM>
+  void operator()(UnaryOpArgs& args) const
+  {
+    using VAL = legate_type_of<CODE>;
+    execute_copy<VAL, DIM>(args);
+  }
 
   template <CuNumericTypeCodes CODE, int DIM>
   void operator()(UnaryOpArgs& args) const
   {
-    assert(OP_CODE == UnaryOpCode::COPY);
     using VAL = cunumeric_type_of<CODE>;
+    execute_copy<VAL, DIM>(args);
+  }
+
+  template <typename VAL, int DIM>
+  void execute_copy(UnaryOpArgs& args) const
+  {
     auto rect = args.out.shape<DIM>().intersection(args.in.shape<DIM>());
 
     Pitches<DIM - 1> pitches;
@@ -93,7 +106,7 @@ struct UnaryOpImpl {
     bool dense = false;
 #endif
 
-    PointCopyImplBody<KIND, CODE, DIM>()(out, in, pitches, rect, dense);
+    PointCopyImplBody<KIND, VAL, DIM>()(out, in, pitches, rect, dense);
   }
 };
 
@@ -103,7 +116,10 @@ struct UnaryOpDispatch {
   void operator()(UnaryOpArgs& args) const
   {
     auto dim = std::max(args.in.dim(), 1);
-    cunumeric::double_dispatch(dim, args.in.code(), UnaryOpImpl<KIND, OP_CODE>{}, args);
+    if (OP_CODE == UnaryOpCode::COPY)
+      cunumeric::double_dispatch(dim, args.in.code(), UnaryCopyImpl<KIND>{}, args);
+    else
+      legate::double_dispatch(dim, args.in.code(), UnaryOpImpl<KIND, OP_CODE>{}, args);
   }
 };
 

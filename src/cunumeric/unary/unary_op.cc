@@ -49,10 +49,8 @@ struct UnaryOpImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
   }
 };
 
-template <CuNumericTypeCodes CODE, int DIM>
-struct PointCopyImplBody<VariantKind::CPU, CODE, DIM> {
-  using VAL = cunumeric_type_of<CODE>;
-
+template <typename VAL, int DIM>
+struct PointCopyImplBody<VariantKind::CPU, VAL, DIM> {
   void operator()(AccessorWO<VAL, DIM> out,
                   AccessorRO<VAL, DIM> in,
                   const Pitches<DIM - 1>& pitches,

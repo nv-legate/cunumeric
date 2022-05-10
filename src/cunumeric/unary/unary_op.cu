@@ -93,10 +93,8 @@ struct UnaryOpImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
   }
 };
 
-template <CuNumericTypeCodes CODE, int DIM>
-struct PointCopyImplBody<VariantKind::GPU, CODE, DIM> {
-  using VAL = cunumeric_type_of<CODE>;
-
+template <typename VAL, int DIM>
+struct PointCopyImplBody<VariantKind::GPU, VAL, DIM> {
   void operator()(AccessorWO<VAL, DIM> out,
                   AccessorRO<VAL, DIM> in,
                   const Pitches<DIM - 1>& pitches,
