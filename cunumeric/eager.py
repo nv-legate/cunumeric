@@ -714,10 +714,14 @@ class EagerArray(NumPyThunk):
             )
         elif op == UnaryRedCode.ARGMAX:
             assert len(axes) == 1
-            np.argmax(rhs.array, out=self.array, axis=axes[0])
+            np.argmax(
+                rhs.array, out=self.array, axis=axes[0], keepdims=keepdims
+            )
         elif op == UnaryRedCode.ARGMIN:
             assert len(axes) == 1
-            np.argmin(rhs.array, out=self.array, axis=axes[0])
+            np.argmin(
+                rhs.array, out=self.array, axis=axes[0], keepdims=keepdims
+            )
         elif op == UnaryRedCode.CONTAINS:
             self.array.fill(args[0] in rhs.array)
         elif op == UnaryRedCode.COUNT_NONZERO:
