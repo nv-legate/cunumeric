@@ -287,7 +287,7 @@ def build_cunumeric(
 
     if not python_only:
         if install_dir == os.path.commonprefix([openblas_dir, install_dir]):
-            libname = "openblas_legate"
+            libname = "openblas"
         else:
             libname = "openblas"
         make_flags = [
