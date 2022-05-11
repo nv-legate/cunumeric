@@ -183,7 +183,7 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def unary_op(self, op, rhs, where, args):
+    def unary_op(self, op, rhs, where, args, multiout=None):
         ...
 
     @abstractmethod

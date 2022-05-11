@@ -38,6 +38,7 @@ enum class BinaryOpCode : int {
   GREATER_EQUAL = CUNUMERIC_BINOP_GREATER_EQUAL,
   HYPOT         = CUNUMERIC_BINOP_HYPOT,
   LCM           = CUNUMERIC_BINOP_LCM,
+  LDEXP         = CUNUMERIC_BINOP_LDEXP,
   LEFT_SHIFT    = CUNUMERIC_BINOP_LEFT_SHIFT,
   LESS          = CUNUMERIC_BINOP_LESS,
   LESS_EQUAL    = CUNUMERIC_BINOP_LESS_EQUAL,
@@ -93,6 +94,8 @@ constexpr decltype(auto) op_dispatch(BinaryOpCode op_code, Functor f, Fnargs&&..
       return f.template operator()<BinaryOpCode::HYPOT>(std::forward<Fnargs>(args)...);
     case BinaryOpCode::LCM:
       return f.template operator()<BinaryOpCode::LCM>(std::forward<Fnargs>(args)...);
+    case BinaryOpCode::LDEXP:
+      return f.template operator()<BinaryOpCode::LDEXP>(std::forward<Fnargs>(args)...);
     case BinaryOpCode::LEFT_SHIFT:
       return f.template operator()<BinaryOpCode::LEFT_SHIFT>(std::forward<Fnargs>(args)...);
     case BinaryOpCode::LESS:
@@ -498,6 +501,32 @@ struct BinaryOp<BinaryOpCode::LCM, CODE> {
 };
 
 template <legate::LegateTypeCode CODE>
+struct BinaryOp<BinaryOpCode::LDEXP, CODE> {
+  using T                     = legate::legate_type_of<CODE>;
+  static constexpr bool valid = legate::is_floating_point<CODE>::value;
+  BinaryOp(const std::vector<legate::Store>& args) {}
+
+  __CUDA_HD__ T operator()(const T& a, const int32_t& b) const
+  {
+    using std::ldexp;
+    return ldexp(a, b);
+  }
+};
+
+template <>
+struct BinaryOp<BinaryOpCode::LDEXP, legate::LegateTypeCode::HALF_LT> {
+  using T                     = __half;
+  static constexpr bool valid = true;
+  BinaryOp(const std::vector<legate::Store>& args) {}
+
+  __CUDA_HD__ T operator()(const T& a, const int32_t& b) const
+  {
+    using std::ldexp;
+    return static_cast<__half>(ldexp(static_cast<float>(a), b));
+  }
+};
+
+template <legate::LegateTypeCode CODE>
 struct BinaryOp<BinaryOpCode::LEFT_SHIFT, CODE> {
   using T                     = legate::legate_type_of<CODE>;
   static constexpr bool valid = CODE != BOOL_LT && std::is_integral<T>::value;
@@ -794,5 +823,18 @@ struct BinaryOp<BinaryOpCode::SUBTRACT, CODE> : std::minus<legate::legate_type_o
   static constexpr bool valid = true;
   BinaryOp(const std::vector<legate::Store>& args) {}
 };
+
+template <BinaryOpCode OP_CODE, legate::LegateTypeCode CODE>
+struct RHS2OfBinaryOp {
+  using type = legate::legate_type_of<CODE>;
+};
+
+template <legate::LegateTypeCode CODE>
+struct RHS2OfBinaryOp<BinaryOpCode::LDEXP, CODE> {
+  using type = int32_t;
+};
+
+template <BinaryOpCode OP_CODE, legate::LegateTypeCode CODE>
+using rhs2_of_binary_op = typename RHS2OfBinaryOp<OP_CODE, CODE>::type;
 
 }  // namespace cunumeric

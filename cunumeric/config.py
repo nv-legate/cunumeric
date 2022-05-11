@@ -144,6 +144,7 @@ class UnaryOpCode(IntEnum):
     EXP2 = _cunumeric.CUNUMERIC_UOP_EXP2
     EXPM1 = _cunumeric.CUNUMERIC_UOP_EXPM1
     FLOOR = _cunumeric.CUNUMERIC_UOP_FLOOR
+    FREXP = _cunumeric.CUNUMERIC_UOP_FREXP
     GETARG = _cunumeric.CUNUMERIC_UOP_GETARG
     IMAG = _cunumeric.CUNUMERIC_UOP_IMAG
     INVERT = _cunumeric.CUNUMERIC_UOP_INVERT
@@ -155,6 +156,7 @@ class UnaryOpCode(IntEnum):
     LOG1P = _cunumeric.CUNUMERIC_UOP_LOG1P
     LOG2 = _cunumeric.CUNUMERIC_UOP_LOG2
     LOGICAL_NOT = _cunumeric.CUNUMERIC_UOP_LOGICAL_NOT
+    MODF = _cunumeric.CUNUMERIC_UOP_MODF
     NEGATIVE = _cunumeric.CUNUMERIC_UOP_NEGATIVE
     POSITIVE = _cunumeric.CUNUMERIC_UOP_POSITIVE
     RAD2DEG = _cunumeric.CUNUMERIC_UOP_RAD2DEG
@@ -165,8 +167,8 @@ class UnaryOpCode(IntEnum):
     SIGNBIT = _cunumeric.CUNUMERIC_UOP_SIGNBIT
     SIN = _cunumeric.CUNUMERIC_UOP_SIN
     SINH = _cunumeric.CUNUMERIC_UOP_SINH
-    SQUARE = _cunumeric.CUNUMERIC_UOP_SQUARE
     SQRT = _cunumeric.CUNUMERIC_UOP_SQRT
+    SQUARE = _cunumeric.CUNUMERIC_UOP_SQUARE
     TAN = _cunumeric.CUNUMERIC_UOP_TAN
     TANH = _cunumeric.CUNUMERIC_UOP_TANH
     TRUNC = _cunumeric.CUNUMERIC_UOP_TRUNC
@@ -207,6 +209,7 @@ class BinaryOpCode(IntEnum):
     GREATER_EQUAL = _cunumeric.CUNUMERIC_BINOP_GREATER_EQUAL
     HYPOT = _cunumeric.CUNUMERIC_BINOP_HYPOT
     LCM = _cunumeric.CUNUMERIC_BINOP_LCM
+    LDEXP = _cunumeric.CUNUMERIC_BINOP_LDEXP
     LEFT_SHIFT = _cunumeric.CUNUMERIC_BINOP_LEFT_SHIFT
     LESS = _cunumeric.CUNUMERIC_BINOP_LESS
     LESS_EQUAL = _cunumeric.CUNUMERIC_BINOP_LESS_EQUAL

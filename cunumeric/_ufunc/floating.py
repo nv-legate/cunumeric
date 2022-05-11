@@ -17,6 +17,7 @@ from cunumeric.config import BinaryOpCode, UnaryOpCode
 
 from .ufunc import (
     create_binary_ufunc,
+    create_multiout_unary_ufunc,
     create_unary_ufunc,
     float_and_complex,
     float_dtypes,
@@ -75,6 +76,28 @@ nextafter = create_binary_ufunc(
     "nextafter",
     BinaryOpCode.NEXTAFTER,
     float_dtypes,
+)
+
+modf = create_multiout_unary_ufunc(
+    "Return the fractional and integral parts of an array, element-wise.",
+    "modf",
+    UnaryOpCode.MODF,
+    ("eee", "fff", "ddd"),
+)
+
+ldexp = create_binary_ufunc(
+    "Returns x1 * 2**x2, element-wise.",
+    "ldexp",
+    BinaryOpCode.LDEXP,
+    ("eie", "fif", "did"),
+    use_common_type=False,
+)
+
+frexp = create_multiout_unary_ufunc(
+    "Decompose the elements of x into mantissa and twos exponent.",
+    "frexp",
+    UnaryOpCode.FREXP,
+    ("eei", "ffi", "ddi"),
 )
 
 fmod = create_binary_ufunc(
