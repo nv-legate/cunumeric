@@ -34,7 +34,7 @@ from .array import (
 )
 from .config import BinaryOpCode, UnaryRedCode
 from .runtime import runtime
-from .utils import broadcast_shapes, inner_modes, matmul_modes, tensordot_modes
+from .utils import inner_modes, matmul_modes, tensordot_modes
 
 _builtin_abs = abs
 _builtin_all = all
@@ -3283,7 +3283,7 @@ def isclose(a, b, rtol=1e-5, atol=1e-8, equal_nan=False):
             "cuNumeric does not support `equal_nan` yet for isclose"
         )
 
-    out_shape = broadcast_shapes(a.shape, b.shape)
+    out_shape = np.broadcast_shapes(a.shape, b.shape)
     out = empty(out_shape, dtype=bool)
 
     common_type = ndarray.find_common_type(a, b)
