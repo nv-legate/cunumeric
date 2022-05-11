@@ -1,4 +1,12 @@
 {% set name = "cunumeric" %}
+{% if gpu_enabled == "true" %}
+  {% set gpu_enabled_bool = true %}
+{% elif gpu_enabled == "false" %}
+  {% set gpu_enabled_bool = false %}
+{% else %}
+  {# We need to have a default value for the initial pass over the recipe #}
+  {% set gpu_enabled_bool = false %}
+{% endif %}
 ## The placeholder version is strictly for making two-pass conda build process.
 ## It should not be used for any other purpose, and this is not a default version.
 {% set placeholder_version = '0.0.0.dev' %}
@@ -43,12 +51,12 @@ build:
   number: {{ build_number }}
   missing_dso_whitelist:
     -  '*libcuda.so*'
-{% if gpu_enabled == 'false' %}
+{% if not gpu_enabled_bool %}
   string: "cuda{{ cuda_major }}_py{{ py_version }}_{{ GIT_DESCRIBE_HASH }}_{{ PKG_BUILDNUM }}_cpu"
 {% else %}
   string: "cuda{{ cuda_major }}_py{{ py_version }}_{{ GIT_DESCRIBE_HASH }}_{{ PKG_BUILDNUM }}"
 {% endif %}
-{% if gpu_enabled == 'false' %}
+{% if not gpu_enabled_bool %}
   track_features:
     - cpu_only
   script_env:
@@ -61,13 +69,13 @@ requirements:
     - {{ compiler('cxx') }}
     - {{ compiler('fortran') }}
     - make
-{% if gpu_enabled == 'true' %}
+{% if gpu_enabled_bool %}
     - cuda-nvcc ={{ cuda_version }}
 {% endif %}
   host:
     - python
     - openblas =* =*openmp*
-{% if gpu_enabled == 'false' %}
+{% if not gpu_enabled %}
     - legate-core >={{ core_version }} =*_cpu
 {% else %}
     - legate-core >={{ core_version }}
@@ -85,7 +93,7 @@ requirements:
   run:
     - numpy
     - libopenblas =* =*openmp*
-{% if gpu_enabled == 'true' %}
+{% if gpu_enabled_bool %}
     # - libcutensor >=1.3
     - cutensor >=1.3
     - libcublas
@@ -97,8 +105,8 @@ requirements:
     - typing_extensions
     
   run_constrained:
-{% if gpu_enabled == 'true' %}
-    - __cuda >=8.0
+{% if gpu_enabled_bool %}
+    - __cuda >=11.4
 {% endif %}
     - __glibc >=2.17  # [linux]
 
