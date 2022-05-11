@@ -58,6 +58,7 @@ Comparison
    :toctree: generated/
 
    allclose
+   isclose
    array_equal
    greater
    greater_equal
