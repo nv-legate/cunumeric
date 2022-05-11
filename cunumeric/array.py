@@ -1739,6 +1739,7 @@ class ndarray:
         result._thunk.convert(self._thunk, warn=False)
         return result
 
+    @add_boilerplate()
     def take(self, indices, axis=None, out=None, mode="raise"):
         """a.take(indices, axis=None, out=None, mode="raise")
 
@@ -1910,6 +1911,7 @@ class ndarray:
         else:
             return out_arr
 
+    @add_boilerplate()
     def compress(self, condition, axis=None, out=None):
         """a.compress(self, condition, axis=None, out=None)
 
@@ -1956,9 +1958,6 @@ class ndarray:
         index_tuple += (condition,)
 
         if out is not None:
-            if out.dtype != self.dtype:
-                a = a._maybe_convert(out.dtype, (a, out))
-
             out[:] = a[index_tuple]
             return out
         else:
