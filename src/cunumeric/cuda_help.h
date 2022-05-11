@@ -17,6 +17,8 @@
 #pragma once
 
 #include "legate.h"
+#include "core/cuda/cuda_help.h"
+#include "core/cuda/stream_pool.h"
 #include <cublas_v2.h>
 #include <cusolverDn.h>
 #include <cuda_runtime.h>
@@ -30,12 +32,6 @@
 #define MAX_REDUCTION_CTAS 1024
 #define COOPERATIVE_THREADS 256
 #define COOPERATIVE_CTAS_PER_SM 4
-
-#define CHECK_CUDA(expr)                        \
-  do {                                          \
-    cudaError_t __result__ = (expr);            \
-    check_cuda(__result__, __FILE__, __LINE__); \
-  } while (false)
 
 #define CHECK_CUBLAS(expr)                        \
   do {                                            \
@@ -67,20 +63,6 @@
     check_nccl(result, __FILE__, __LINE__); \
   } while (false)
 
-#ifdef DEBUG_CUNUMERIC
-
-#define CHECK_CUDA_STREAM(stream)              \
-  do {                                         \
-    CHECK_CUDA(cudaStreamSynchronize(stream)); \
-    CHECK_CUDA(cudaPeekAtLastError());         \
-  } while (false)
-
-#else
-
-#define CHECK_CUDA_STREAM(stream)
-
-#endif
-
 #ifndef MAX
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
 #endif
@@ -101,11 +83,11 @@ class cufftContext {
   ~cufftContext();
 
  public:
-  cufftContext(const cufftContext&) = delete;
+  cufftContext(const cufftContext&)            = delete;
   cufftContext& operator=(const cufftContext&) = delete;
 
  public:
-  cufftContext(cufftContext&&) = default;
+  cufftContext(cufftContext&&)            = default;
   cufftContext& operator=(cufftContext&&) = default;
 
  public:
@@ -121,28 +103,11 @@ class cufftContext {
 // Defined in cudalibs.cu
 
 // Return a cached stream for the current GPU
-cudaStream_t get_cached_stream();
+legate::cuda::StreamView get_cached_stream();
 cublasHandle_t get_cublas();
 cusolverDnHandle_t get_cusolver();
 cutensorHandle_t* get_cutensor();
 cufftContext get_cufft_plan(cufftType type, const Legion::DomainPoint& size);
-
-__host__ inline void check_cuda(cudaError_t error, const char* file, int line)
-{
-  if (error != cudaSuccess) {
-    fprintf(stderr,
-            "Internal CUDA failure with error %s (%s) in file %s at line %d\n",
-            cudaGetErrorString(error),
-            cudaGetErrorName(error),
-            file,
-            line);
-#ifdef DEBUG_CUNUMERIC
-    assert(false);
-#else
-    exit(error);
-#endif
-  }
-}
 
 __host__ inline void check_cublas(cublasStatus_t status, const char* file, int line)
 {

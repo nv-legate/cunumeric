@@ -3111,6 +3111,64 @@ def einsum(expr, *operands, out=None, optimize=False):
     return operands[0]
 
 
+@add_boilerplate("a")
+def trace(a, offset=0, axis1=None, axis2=None, dtype=None, out=None):
+    """
+    Return the sum along diagonals of the array.
+
+    If a is 2-D, the sum along its diagonal with the given offset is
+    returned, i.e., the sum of elements a[i,i+offset] for all i.
+    If a has more than two dimensions, then the axes specified by axis1
+    and axis2 are used to determine the 2-D sub-arrays whose traces
+    are returned. The shape of the resulting array is the same as that
+    of a with axis1 and axis2 removed.
+
+    Parameters
+    ----------
+    a : array_like
+        Input array, from which the diagonals are taken.
+    offset : int, optional
+        Offset of the diagonal from the main diagonal. Can be both
+        positive and negative. Defaults to 0.
+    axis1, axis2 : int, optional
+        Axes to be used as the first and second axis of the 2-D sub-arrays
+        from which the diagonals should be taken. Defaults are the
+        first two axes of a.
+    dtype : data-type, optional
+        Determines the data-type of the returned array and of the
+        accumulator where the elements are summed. If dtype has the value
+        None and a is of integer type of precision less than the default
+        integer precision, then the default integer precision is used.
+        Otherwise, the precision is the same as that of a.
+
+    out : ndarray, optional
+        Array into which the output is placed. Its type is preserved and
+        it must be of the right shape to hold the output.
+
+    Returns
+    -------
+    sum_along_diagonals : ndarray
+        If a is 2-D, the sum along the diagonal is returned. If a has
+        larger dimensions, then an array of sums along diagonals is returned.
+
+    Raises
+    ------
+    ValueError
+        If the dimension of `a` is less than 2.
+
+    See Also
+    --------
+    numpy.diagonal
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    return a.trace(
+        offset=offset, axis1=axis1, axis2=axis2, dtype=dtype, out=out
+    )
+
+
 #################
 # Logic functions
 #################
@@ -4091,6 +4149,103 @@ def sort_complex(a):
         return result
     else:
         return result.astype(np.complex64, copy=True)
+
+
+# partition
+
+
+@add_boilerplate("a")
+def argpartition(a, kth, axis=-1, kind="introselect", order=None):
+    """
+
+    Perform an indirect partition along the given axis.
+
+    Parameters
+    ----------
+    a : array_like
+        Input array.
+    kth : int or Sequence[int]
+    axis : int or None, optional
+        Axis to partition. By default, the index -1 (the last axis) is used. If
+        None, the flattened array is used.
+    kind : ``{'introselect'}``, optional
+        Currently not supported.
+    order : str or list[str], optional
+        Currently not supported.
+
+    Returns
+    -------
+    out : ndarray[int]
+        Array of indices that partitions a along the specified axis. It has the
+        same shape as `a.shape` or is flattened in case of `axis` is None.
+
+
+    Notes
+    -----
+    The current implementation falls back to `cunumeric.argsort`.
+
+    See Also
+    --------
+    numpy.argpartition
+
+    Availability
+    --------
+    Multiple GPUs, Single CPU
+    """
+    result = ndarray(a.shape, np.int64)
+    result._thunk.partition(
+        rhs=a._thunk,
+        argpartition=True,
+        kth=kth,
+        axis=axis,
+        kind=kind,
+        order=order,
+    )
+    return result
+
+
+@add_boilerplate("a")
+def partition(a, kth, axis=-1, kind="introselect", order=None):
+    """
+
+    Returns a partitioned copy of an array.
+
+    Parameters
+    ----------
+    a : array_like
+        Input array.
+    kth : int or Sequence[int]
+    axis : int or None, optional
+        Axis to partition. By default, the index -1 (the last axis) is used. If
+        None, the flattened array is used.
+    kind : ``{'introselect'}``, optional
+        Currently not supported.
+    order : str or list[str], optional
+        Currently not supported.
+
+    Returns
+    -------
+    out : ndarray
+        Partitioned array with same dtype and shape as `a`. In case `axis` is
+        None the result is flattened.
+
+    Notes
+    -----
+    The current implementation falls back to `cunumeric.sort`.
+
+    See Also
+    --------
+    numpy.partition
+
+    Availability
+    --------
+    Multiple GPUs, Single CPU
+    """
+    result = ndarray(a.shape, a.dtype)
+    result._thunk.partition(
+        rhs=a._thunk, kth=kth, axis=axis, kind=kind, order=order
+    )
+    return result
 
 
 # Searching

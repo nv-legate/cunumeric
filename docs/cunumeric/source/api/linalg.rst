@@ -34,3 +34,4 @@ Norms and other numbers
    :toctree: generated/
 
    linalg.norm
+   trace

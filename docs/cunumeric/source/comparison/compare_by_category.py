@@ -108,7 +108,10 @@ def _section(
         obj = getattr(lg_obj, f)
         if (
             other_lib == "cunumeric"
-            and getattr(obj, "_cunumeric_implemented", False)
+            and (
+                not hasattr(obj, "_cunumeric")
+                or not obj._cunumeric.implemented
+            )
         ) or (
             other_lib != "cunumeric"
             and (obj.__doc__ is None or "Unimplemented" not in obj.__doc__)

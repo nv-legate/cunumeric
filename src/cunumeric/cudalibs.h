@@ -29,12 +29,11 @@ struct CUDALibraries {
 
  private:
   // Prevent copying and overwriting
-  CUDALibraries(const CUDALibraries& rhs) = delete;
+  CUDALibraries(const CUDALibraries& rhs)            = delete;
   CUDALibraries& operator=(const CUDALibraries& rhs) = delete;
 
  public:
   void finalize();
-  cudaStream_t get_cached_stream();
   cublasHandle_t get_cublas();
   cusolverDnHandle_t get_cusolver();
   cutensorHandle_t* get_cutensor();
@@ -47,7 +46,6 @@ struct CUDALibraries {
 
  private:
   bool finalized_;
-  cudaStream_t stream_;
   cublasContext* cublas_;
   cusolverDnContext* cusolver_;
   cutensorHandle_t* cutensor_;

@@ -35,6 +35,7 @@ enum CuNumericOpCode {
   CUNUMERIC_DIAG,
   CUNUMERIC_DOT,
   CUNUMERIC_EYE,
+  CUNUMERIC_FFT,
   CUNUMERIC_FILL,
   CUNUMERIC_FLIP,
   CUNUMERIC_GEMM,
@@ -86,6 +87,7 @@ enum CuNumericUnaryOpCode {
   CUNUMERIC_UOP_EXP2,
   CUNUMERIC_UOP_EXPM1,
   CUNUMERIC_UOP_FLOOR,
+  CUNUMERIC_UOP_FREXP,
   CUNUMERIC_UOP_GETARG,
   CUNUMERIC_UOP_IMAG,
   CUNUMERIC_UOP_INVERT,
@@ -97,6 +99,7 @@ enum CuNumericUnaryOpCode {
   CUNUMERIC_UOP_LOG1P,
   CUNUMERIC_UOP_LOG2,
   CUNUMERIC_UOP_LOGICAL_NOT,
+  CUNUMERIC_UOP_MODF,
   CUNUMERIC_UOP_NEGATIVE,
   CUNUMERIC_UOP_POSITIVE,
   CUNUMERIC_UOP_RAD2DEG,
@@ -149,6 +152,7 @@ enum CuNumericBinaryOpCode {
   CUNUMERIC_BINOP_GREATER_EQUAL,
   CUNUMERIC_BINOP_HYPOT,
   CUNUMERIC_BINOP_LCM,
+  CUNUMERIC_BINOP_LDEXP,
   CUNUMERIC_BINOP_LEFT_SHIFT,
   CUNUMERIC_BINOP_LESS,
   CUNUMERIC_BINOP_LESS_EQUAL,
@@ -197,6 +201,19 @@ enum CuNumericBounds {
   CUNUMERIC_MAX_REDOPS  = 1024,
   CUNUMERIC_MAX_TASKS   = 1048576,
 };
+
+// These fft types match CuNumericFFTType in config.py and cufftType
+enum CuNumericFFTType {
+  CUNUMERIC_FFT_R2C = 0x2a,  // Real to complex (interleaved)
+  CUNUMERIC_FFT_C2R = 0x2c,  // Complex (interleaved) to real
+  CUNUMERIC_FFT_C2C = 0x29,  // Complex to complex (interleaved)
+  CUNUMERIC_FFT_D2Z = 0x6a,  // Double to double-complex (interleaved)
+  CUNUMERIC_FFT_Z2D = 0x6c,  // Double-complex (interleaved) to double
+  CUNUMERIC_FFT_Z2Z = 0x69   // Double-complex to double-complex (interleaved)
+};
+
+// These fft types match CuNumericFFTDirection in config.py and cufftDirection
+enum CuNumericFFTDirection { CUNUMERIC_FFT_FORWARD = -1, CUNUMERIC_FFT_INVERSE = 1 };
 
 // Match these to CuNumericTypeCodes in config.py
 enum CuNumericTypeCodes {

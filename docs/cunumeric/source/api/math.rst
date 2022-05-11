@@ -76,7 +76,7 @@ Exponents and logarithms
    logaddexp2
 
 
-Exponents and logarithms
+Floating point routines
 ------------------------
 
 .. autosummary::
@@ -84,6 +84,8 @@ Exponents and logarithms
 
    signbit
    copysign
+   frexp
+   ldexp
    nextafter
 
 
@@ -116,6 +118,7 @@ Arithmetic operations
    float_power
    fmod
    mod
+   modf
    remainder
 
 

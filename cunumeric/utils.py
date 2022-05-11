@@ -97,7 +97,7 @@ def is_supported_dtype(dtype: Any) -> bool:
 
 
 def calculate_volume(shape: tuple[int, ...]) -> int:
-    if shape == ():
+    if len(shape) == 0:
         return 0
     return reduce(lambda x, y: x * y, shape)
 

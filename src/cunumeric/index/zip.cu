@@ -29,13 +29,14 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
              const Rect<DIM> rect,
              const Pitches<DIM - 1> pitches,
              size_t volume,
+             DomainPoint shape,
              std::index_sequence<Is...>)
 {
   const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (idx >= volume) return;
   auto p = pitches.unflatten(idx, rect.lo);
   Legion::Point<N> new_point;
-  for (size_t i = 0; i < N; i++) { new_point[i] = index_arrays[i][p]; }
+  for (size_t i = 0; i < N; i++) { new_point[i] = compute_idx(index_arrays[i][p], shape[i]); }
   out[p] = new_point;
 }
 
@@ -45,12 +46,13 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
                    const Buffer<const int64_t*, 1> index_arrays,
                    const Rect<DIM> rect,
                    size_t volume,
+                   DomainPoint shape,
                    std::index_sequence<Is...>)
 {
   const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (idx >= volume) return;
   Legion::Point<N> new_point;
-  for (size_t i = 0; i < N; i++) { new_point[i] = index_arrays[i][idx]; }
+  for (size_t i = 0; i < N; i++) { new_point[i] = compute_idx(index_arrays[i][idx], shape[i]); }
   out[idx] = new_point;
 }
 
@@ -63,14 +65,17 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
              int narrays,
              size_t volume,
              int64_t key_dim,
-             int64_t start_index)
+             int64_t start_index,
+             DomainPoint shape)
 {
   const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (idx >= volume) return;
   auto p = pitches.unflatten(idx, rect.lo);
   Legion::Point<N> new_point;
   for (size_t i = 0; i < start_index; i++) { new_point[i] = p[i]; }
-  for (size_t i = 0; i < narrays; i++) { new_point[start_index + i] = index_arrays[i][p]; }
+  for (size_t i = 0; i < narrays; i++) {
+    new_point[start_index + i] = compute_idx(index_arrays[i][p], shape[start_index + i]);
+  }
   for (size_t i = (start_index + narrays); i < N; i++) {
     int64_t j    = key_dim + i - narrays;
     new_point[i] = p[j];
@@ -90,6 +95,7 @@ struct ZipImplBody<VariantKind::GPU, DIM, N> {
                   bool dense,
                   const int64_t key_dim,
                   const int64_t start_index,
+                  const DomainPoint& shape,
                   std::index_sequence<Is...>) const
   {
     auto stream         = get_cached_stream();
@@ -103,13 +109,13 @@ struct ZipImplBody<VariantKind::GPU, DIM, N> {
           index_buf[idx] = index_arrays[idx].ptr(rect);
         }
         zip_kernel_dense<DIM, N><<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
-          out.ptr(rect), index_buf, rect, volume, std::make_index_sequence<N>());
+          out.ptr(rect), index_buf, rect, volume, shape, std::make_index_sequence<N>());
       } else {
         auto index_buf =
           create_buffer<AccessorRO<VAL, DIM>, 1>(index_arrays.size(), Memory::Kind::Z_COPY_MEM);
         for (uint32_t idx = 0; idx < index_arrays.size(); ++idx) index_buf[idx] = index_arrays[idx];
         zip_kernel<DIM, N><<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
-          out, index_buf, rect, pitches, volume, std::make_index_sequence<N>());
+          out, index_buf, rect, pitches, volume, shape, std::make_index_sequence<N>());
       }
     } else {
 #ifdef DEBUG_CUNUMERIC
@@ -120,7 +126,7 @@ struct ZipImplBody<VariantKind::GPU, DIM, N> {
       for (uint32_t idx = 0; idx < index_arrays.size(); ++idx) index_buf[idx] = index_arrays[idx];
       int num_arrays = index_arrays.size();
       zip_kernel<DIM, N><<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
-        out, index_buf, rect, pitches, num_arrays, volume, key_dim, start_index);
+        out, index_buf, rect, pitches, num_arrays, volume, key_dim, start_index, shape);
     }
     CHECK_CUDA_STREAM(stream);
   }

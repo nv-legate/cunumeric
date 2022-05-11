@@ -25,7 +25,7 @@ with GPU acceleration.
 
 import numpy as _np
 
-from cunumeric import linalg, random
+from cunumeric import linalg, random, fft
 from cunumeric.array import ndarray
 from cunumeric.module import *
 from cunumeric._ufunc import *
