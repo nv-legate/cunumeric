@@ -1596,8 +1596,8 @@ class ndarray:
             where=where,
         )
 
-    def argmax(self, axis=None, out=None):
-        """a.argmax(axis=None, out=None)
+    def argmax(self, axis=None, out=None, keepdims=False):
+        """a.argmax(axis=None, out=None, keepdims=False)
 
         Return indices of the maximum values along the given axis.
 
@@ -1615,7 +1615,15 @@ class ndarray:
         if self.size == 1:
             return 0
         if axis is None:
-            axis = self.ndim - 1
+            if out is not None:
+                raise ValueError("output array does not match result of np.argmax.")
+            ary = self.flatten()
+            # broadcast to 2-dimensions to compensate for missing C++ scalar argmax reduction
+            ary = ary.reshape((ary.size, 1)) * (1, 0)
+            ary = ary.argmax(axis=0)[0]
+            if keepdims is True:
+                return ary.reshape((1 for _ in self.shape))
+            return ary
         elif type(axis) != int:
             raise TypeError("'axis' argument for argmax must be an 'int'")
         elif axis < 0 or axis >= self.ndim:
@@ -1626,11 +1634,12 @@ class ndarray:
             axis=axis,
             dtype=np.dtype(np.int64),
             dst=out,
+            keepdims=keepdims,
             check_types=False,
         )
 
-    def argmin(self, axis=None, out=None):
-        """a.argmin(axis=None, out=None)
+    def argmin(self, axis=None, out=None, keepdims=False):
+        """a.argmin(axis=None, out=None, keepdims=False)
 
         Return indices of the minimum values along the given axis.
 
@@ -1648,7 +1657,15 @@ class ndarray:
         if self.size == 1:
             return 0
         if axis is None:
-            axis = self.ndim - 1
+            if out is not None:
+                raise ValueError("output array does not match result of np.argmin.")
+            ary = self.flatten()
+            # broadcast to 2-dimensions to compensate for missing C++ scalar argmin reduction
+            ary = ary.reshape((ary.size, 1)) * (1, 0)
+            ary = ary.argmin(axis=0)[0]
+            if keepdims is True:
+                return ary.reshape((1 for _ in self.shape))
+            return ary
         elif type(axis) != int:
             raise TypeError("'axis' argument for argmin must be an 'int'")
         elif axis < 0 or axis >= self.ndim:
@@ -1659,6 +1676,7 @@ class ndarray:
             axis=axis,
             dtype=np.dtype(np.int64),
             dst=out,
+            keepdims=keepdims,
             check_types=False,
         )
 

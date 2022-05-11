@@ -20,19 +20,26 @@ import cunumeric as num
 
 anp = np.random.randn(4, 5)
 
-
-def test_argmin():
+@pytest.mark.parametrize("axis", [None, 0, 1])
+@pytest.mark.parametrize("keepdims", [True, False])
+def test_argmin(axis, keepdims):
     a = num.array(anp)
 
-    assert np.array_equal(num.argmin(a, axis=0), np.argmin(anp, axis=0))
-    assert np.array_equal(num.argmin(a, axis=1), np.argmin(anp, axis=1))
+    assert np.array_equal(
+        num.argmin(a, axis=axis, keepdims=keepdims),
+        np.argmin(anp, axis=axis, keepdims=keepdims)
+    )
 
 
-def test_argmax():
+@pytest.mark.parametrize("axis", [None, 0, 1])
+@pytest.mark.parametrize("keepdims", [True, False])
+def test_argmax(axis, keepdims):
     a = num.array(anp)
 
-    assert np.array_equal(num.argmax(a, axis=0), np.argmax(anp, axis=0))
-    assert np.array_equal(num.argmax(a, axis=1), np.argmax(anp, axis=1))
+    assert np.array_equal(
+        num.argmax(a, axis=axis, keepdims=keepdims),
+        np.argmax(anp, axis=axis, keepdims=keepdims)
+    )
 
 
 if __name__ == "__main__":
