@@ -72,6 +72,17 @@ def test():
     res_num = num.take(x_num, 7, axis=0, mode="wrap")
     assert np.array_equal(res_num, res)
 
+    x = np.arange(6)
+    x_num = num.array(x)
+
+    res = x.take([3], axis=0)
+    res_num = x_num.take([3], axis=0)
+    assert np.array_equal(res_num, res)
+
+    res = x.take([-6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5], axis=0)
+    res_num = x_num.take([-6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5], axis=0)
+    assert np.array_equal(res_num, res)
+
     for ndim in range(1, LEGATE_MAX_DIM + 1):
         shape = (5,) * ndim
         np_arr = mk_seq_array(np, shape)
