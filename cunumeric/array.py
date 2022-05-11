@@ -1616,9 +1616,12 @@ class ndarray:
             return 0
         if axis is None:
             if out is not None:
-                raise ValueError("output array does not match result of np.argmax.")
+                raise ValueError(
+                    "output array does not match result of np.argmax."
+                )
             ary = self.flatten()
-            # broadcast to 2-dimensions to compensate for missing C++ scalar argmax reduction
+            # broadcast to 2-dimensions to compensate
+            # for missing C++ scalar argmax reduction
             ary = ary.reshape((ary.size, 1)) * (1, 0)
             ary = ary.argmax(axis=0)[0]
             if keepdims is True:
@@ -1658,9 +1661,12 @@ class ndarray:
             return 0
         if axis is None:
             if out is not None:
-                raise ValueError("output array does not match result of np.argmin.")
+                raise ValueError(
+                    "output array does not match result of np.argmin."
+                )
             ary = self.flatten()
-            # broadcast to 2-dimensions to compensate for missing C++ scalar argmin reduction
+            # broadcast to 2-dimensions to compensate
+            # for missing C++ scalar argmin reduction
             ary = ary.reshape((ary.size, 1)) * (1, 0)
             ary = ary.argmin(axis=0)[0]
             if keepdims is True:

@@ -20,6 +20,7 @@ import cunumeric as num
 
 anp = np.random.randn(4, 5)
 
+
 @pytest.mark.parametrize("axis", [None, 0, 1])
 @pytest.mark.parametrize("keepdims", [True, False])
 def test_argmin(axis, keepdims):
@@ -27,7 +28,7 @@ def test_argmin(axis, keepdims):
 
     assert np.array_equal(
         num.argmin(a, axis=axis, keepdims=keepdims),
-        np.argmin(anp, axis=axis, keepdims=keepdims)
+        np.argmin(anp, axis=axis, keepdims=keepdims),
     )
 
 
@@ -38,7 +39,7 @@ def test_argmax(axis, keepdims):
 
     assert np.array_equal(
         num.argmax(a, axis=axis, keepdims=keepdims),
-        np.argmax(anp, axis=axis, keepdims=keepdims)
+        np.argmax(anp, axis=axis, keepdims=keepdims),
     )
 
 
