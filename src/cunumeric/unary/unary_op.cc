@@ -49,6 +49,28 @@ struct UnaryOpImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
   }
 };
 
+template <typename VAL, int DIM>
+struct PointCopyImplBody<VariantKind::CPU, VAL, DIM> {
+  void operator()(AccessorWO<VAL, DIM> out,
+                  AccessorRO<VAL, DIM> in,
+                  const Pitches<DIM - 1>& pitches,
+                  const Rect<DIM>& rect,
+                  bool dense) const
+  {
+    const size_t volume = rect.volume();
+    if (dense) {
+      auto outptr = out.ptr(rect);
+      auto inptr  = in.ptr(rect);
+      for (size_t idx = 0; idx < volume; ++idx) outptr[idx] = inptr[idx];
+    } else {
+      for (size_t idx = 0; idx < volume; ++idx) {
+        auto p = pitches.unflatten(idx, rect.lo);
+        out[p] = in[p];
+      }
+    }
+  }
+};
+
 template <UnaryOpCode OP_CODE, LegateTypeCode CODE, int DIM>
 struct MultiOutUnaryOpImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
   using OP   = MultiOutUnaryOp<OP_CODE, CODE>;

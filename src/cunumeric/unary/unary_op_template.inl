@@ -24,6 +24,9 @@ using namespace legate;
 template <VariantKind KIND, UnaryOpCode OP_CODE, LegateTypeCode CODE, int DIM>
 struct UnaryOpImplBody;
 
+template <VariantKind KIND, typename VAL, int DIM>
+struct PointCopyImplBody;
+
 template <VariantKind KIND, UnaryOpCode OP_CODE, LegateTypeCode CODE, int DIM>
 struct MultiOutUnaryOpImplBody;
 
@@ -116,12 +119,56 @@ struct MultiOutUnaryOpImpl {
 };
 
 template <VariantKind KIND>
+struct UnaryCopyImpl {
+  template <LegateTypeCode CODE, int DIM>
+  void operator()(UnaryOpArgs& args) const
+  {
+    using VAL = legate_type_of<CODE>;
+    execute_copy<VAL, DIM>(args);
+  }
+
+  template <CuNumericTypeCodes CODE, int DIM>
+  void operator()(UnaryOpArgs& args) const
+  {
+    using VAL = cunumeric_type_of<CODE>;
+    execute_copy<VAL, DIM>(args);
+  }
+
+  template <typename VAL, int DIM>
+  void execute_copy(UnaryOpArgs& args) const
+  {
+    auto rect = args.out.shape<DIM>().intersection(args.in.shape<DIM>());
+
+    Pitches<DIM - 1> pitches;
+    size_t volume = pitches.flatten(rect);
+
+    if (volume == 0) return;
+
+    auto out = args.out.write_accessor<VAL, DIM>(rect);
+    auto in  = args.in.read_accessor<VAL, DIM>(rect);
+
+#ifndef LEGION_BOUNDS_CHECKS
+    // Check to see if this is dense or not
+    bool dense = out.accessor.is_dense_row_major(rect) && in.accessor.is_dense_row_major(rect);
+#else
+    // No dense execution if we're doing bounds checks
+    bool dense = false;
+#endif
+
+    PointCopyImplBody<KIND, VAL, DIM>()(out, in, pitches, rect, dense);
+  }
+};
+
+template <VariantKind KIND>
 struct UnaryOpDispatch {
   template <UnaryOpCode OP_CODE>
   void operator()(UnaryOpArgs& args) const
   {
     auto dim = std::max(args.in.dim(), 1);
-    double_dispatch(dim, args.in.code(), UnaryOpImpl<KIND, OP_CODE>{}, args);
+    if (OP_CODE == UnaryOpCode::COPY)
+      cunumeric::double_dispatch(dim, args.in.code(), UnaryCopyImpl<KIND>{}, args);
+    else
+      legate::double_dispatch(dim, args.in.code(), UnaryOpImpl<KIND, OP_CODE>{}, args);
   }
 };
 
@@ -137,13 +184,15 @@ static void unary_op_template(TaskContext& context)
     case UnaryOpCode::FREXP: {
       MultiOutUnaryOpArgs args{inputs[0], outputs[0], outputs[1], op_code};
       auto dim = std::max(args.in.dim(), 1);
-      double_dispatch(dim, args.in.code(), MultiOutUnaryOpImpl<KIND, UnaryOpCode::FREXP>{}, args);
+      legate::double_dispatch(
+        dim, args.in.code(), MultiOutUnaryOpImpl<KIND, UnaryOpCode::FREXP>{}, args);
       break;
     }
     case UnaryOpCode::MODF: {
       MultiOutUnaryOpArgs args{inputs[0], outputs[0], outputs[1], op_code};
       auto dim = std::max(args.in.dim(), 1);
-      double_dispatch(dim, args.in.code(), MultiOutUnaryOpImpl<KIND, UnaryOpCode::MODF>{}, args);
+      legate::double_dispatch(
+        dim, args.in.code(), MultiOutUnaryOpImpl<KIND, UnaryOpCode::MODF>{}, args);
       break;
     }
     default: {

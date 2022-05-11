@@ -42,6 +42,29 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   out[point] = func(in[point]);
 }
 
+template <typename VAL>
+static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
+  dense_copy_kernel(size_t volume, VAL* out, const VAL* in)
+{
+  const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+  if (idx >= volume) return;
+  out[idx] = in[idx];
+}
+
+template <typename VAL, int DIM>
+static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
+  generic_copy_kernel(size_t volume,
+                      AccessorWO<VAL, DIM> out,
+                      AccessorRO<VAL, DIM> in,
+                      Pitches<DIM - 1> pitches,
+                      Rect<DIM> rect)
+{
+  const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+  if (idx >= volume) return;
+  auto point = pitches.unflatten(idx, rect.lo);
+  out[point] = in[point];
+}
+
 template <UnaryOpCode OP_CODE, LegateTypeCode CODE, int DIM>
 struct UnaryOpImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
   using OP  = UnaryOp<OP_CODE, CODE>;
@@ -65,6 +88,28 @@ struct UnaryOpImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
     } else {
       generic_kernel<<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
         volume, func, out, in, pitches, rect);
+    }
+    CHECK_CUDA_STREAM(stream);
+  }
+};
+
+template <typename VAL, int DIM>
+struct PointCopyImplBody<VariantKind::GPU, VAL, DIM> {
+  void operator()(AccessorWO<VAL, DIM> out,
+                  AccessorRO<VAL, DIM> in,
+                  const Pitches<DIM - 1>& pitches,
+                  const Rect<DIM>& rect,
+                  bool dense) const
+  {
+    const size_t volume = rect.volume();
+    const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
+    auto stream         = get_cached_stream();
+    if (dense) {
+      auto outptr = out.ptr(rect);
+      auto inptr  = in.ptr(rect);
+      dense_copy_kernel<<<blocks, THREADS_PER_BLOCK, 0, stream>>>(volume, outptr, inptr);
+    } else {
+      generic_copy_kernel<<<blocks, THREADS_PER_BLOCK, 0, stream>>>(volume, out, in, pitches, rect);
     }
     CHECK_CUDA_STREAM(stream);
   }
