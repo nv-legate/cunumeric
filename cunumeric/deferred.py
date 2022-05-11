@@ -1652,7 +1652,7 @@ class DeferredArray(NumPyThunk):
 
     # Perform the unary operation and put the result in the array
     @auto_convert([2])
-    def unary_op(self, op, src, where, args):
+    def unary_op(self, op, src, where, args, multiout=None):
         lhs = self.base
         rhs = src._broadcast(lhs.shape)
 
@@ -1663,6 +1663,11 @@ class DeferredArray(NumPyThunk):
         self.add_arguments(task, args)
 
         task.add_alignment(lhs, rhs)
+
+        if multiout is not None:
+            for out in multiout:
+                task.add_output(out.base)
+                task.add_alignment(out.base, rhs)
 
         task.execute()
 

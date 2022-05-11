@@ -71,6 +71,36 @@ struct PointCopyImplBody<VariantKind::CPU, VAL, DIM> {
   }
 };
 
+template <UnaryOpCode OP_CODE, LegateTypeCode CODE, int DIM>
+struct MultiOutUnaryOpImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
+  using OP   = MultiOutUnaryOp<OP_CODE, CODE>;
+  using RHS1 = typename OP::RHS1;
+  using RHS2 = typename OP::RHS2;
+  using LHS  = std::result_of_t<OP(RHS1, RHS2*)>;
+
+  void operator()(OP func,
+                  AccessorWO<LHS, DIM> lhs,
+                  AccessorRO<RHS1, DIM> rhs1,
+                  AccessorWO<RHS2, DIM> rhs2,
+                  const Pitches<DIM - 1>& pitches,
+                  const Rect<DIM>& rect,
+                  bool dense) const
+  {
+    const size_t volume = rect.volume();
+    if (dense) {
+      auto lhsptr  = lhs.ptr(rect);
+      auto rhs1ptr = rhs1.ptr(rect);
+      auto rhs2ptr = rhs2.ptr(rect);
+      for (size_t idx = 0; idx < volume; ++idx) lhsptr[idx] = func(rhs1ptr[idx], &rhs2ptr[idx]);
+    } else {
+      for (size_t idx = 0; idx < volume; ++idx) {
+        auto p = pitches.unflatten(idx, rect.lo);
+        lhs[p] = func(rhs1[p], rhs2.ptr(p));
+      }
+    }
+  }
+};
+
 /*static*/ void UnaryOpTask::cpu_variant(TaskContext& context)
 {
   unary_op_template<VariantKind::CPU>(context);

@@ -28,6 +28,13 @@ struct UnaryOpArgs {
   std::vector<legate::Store> args;
 };
 
+struct MultiOutUnaryOpArgs {
+  const Array& in;
+  const Array& out1;
+  const Array& out2;
+  UnaryOpCode op_code;
+};
+
 class UnaryOpTask : public CuNumericTask<UnaryOpTask> {
  public:
   static const int TASK_ID = CUNUMERIC_UNARY_OP;
