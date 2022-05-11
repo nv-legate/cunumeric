@@ -625,6 +625,7 @@ class DeferredArray(NumPyThunk):
                     inputs=[self],
                 )
                 copy = self.context.create_copy()
+                copy.set_source_indirect_out_of_range(False)
 
                 copy.add_input(store)
                 copy.add_source_indirect(index_array.base)
@@ -673,6 +674,8 @@ class DeferredArray(NumPyThunk):
                 rhs = rhs.base
 
             copy = self.context.create_copy()
+            copy.set_target_indirect_out_of_range(False)
+
             copy.add_input(rhs)
             copy.add_target_indirect(index_array.base)
             copy.add_output(lhs.base)
