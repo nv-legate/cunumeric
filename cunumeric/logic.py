@@ -126,7 +126,7 @@ def iscomplex(x):
 
     Returns
     -------
-    out : ndarray of bools
+    out : ndarray[bool]
         Output array.
 
     See Also
