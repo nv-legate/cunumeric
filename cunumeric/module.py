@@ -3222,6 +3222,13 @@ def allclose(a, b, rtol=1e-5, atol=1e-8, equal_nan=False):
         Returns True if the two arrays are equal within the given
         tolerance; False otherwise.
 
+    Notes
+    -----
+    If the following equation is element-wise True, then allclose returns
+    True.
+
+     absolute(`a` - `b`) <= (`atol` + `rtol` * absolute(`b`))
+
     See Also
     --------
     numpy.allclose
@@ -3269,6 +3276,13 @@ def isclose(a, b, rtol=1e-5, atol=1e-8, equal_nan=False):
         Returns a boolean array of where `a` and `b` are equal within the
         given tolerance. If both `a` and `b` are scalars, returns a single
         boolean value.
+
+    Notes
+    -----
+    For finite values, isclose uses the following equation to test whether
+    two floating point values are equivalent.
+
+     absolute(`a` - `b`) <= (`atol` + `rtol` * absolute(`b`))
 
     See Also
     --------
