@@ -24,8 +24,8 @@ def test():
     # test on the 1D array:
     a = mk_seq_array(np, (10,))
     a_num = num.array(a)
-    res = np.compress([2, 3, 6], a, axis=0)
-    res_num = num.compress([2, 3, 6], a_num, axis=0)
+    res = np.compress([True, False, True], a, axis=0)
+    res_num = num.compress([True, False, True], a_num, axis=0)
     assert np.array_equal(res_num, res)
 
     # testing compress on 2D array with different axis
