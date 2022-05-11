@@ -742,9 +742,17 @@ class EagerArray(NumPyThunk):
             raise RuntimeError("unsupported unary reduction op " + str(op))
 
     def isclose(self, rhs1, rhs2, rtol, atol, equal_nan):
-        self.array[:] = np.isclose(
-            rhs1.array, rhs2.array, rtol=rtol, atol=atol, equal_nan=equal_nan
-        )
+        self.check_eager_args(rhs1, rhs2)
+        if self.deferred is not None:
+            self.deferred.isclose(rhs1, rhs2, rtol, atol, equal_nan)
+        else:
+            self.array[:] = np.isclose(
+                rhs1.array,
+                rhs2.array,
+                rtol=rtol,
+                atol=atol,
+                equal_nan=equal_nan,
+            )
 
     def binary_op(self, op, rhs1, rhs2, where, args):
         self.check_eager_args(rhs1, rhs2, where)
