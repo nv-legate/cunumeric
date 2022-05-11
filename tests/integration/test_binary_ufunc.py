@@ -61,6 +61,12 @@ def check_ops(ops, in_np, out_dtype="D"):
 
         check_result(op, in_np, out_np, out_num)
 
+        # Ask cuNumeric to produce outputs to NumPy ndarrays
+        out_num = np.ones(out_np.shape, dtype=out_dtype)
+        op_num(*in_num, out_num)
+
+        check_result(op, in_np, out_np, out_num)
+
 
 def test_all():
     # TODO: right now we will simply check if the operations work
