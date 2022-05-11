@@ -82,9 +82,7 @@ def filter_names(obj, types=None, skip=()):
 def get_item(name, np_obj, lg_obj):
     lg_attr = getattr(lg_obj, name)
 
-    implemented = is_implemented(lg_attr)
-
-    if implemented:
+    if implemented := is_implemented(lg_attr):
         single = YES if is_single(lg_attr) else NO
         multi = YES if is_multi(lg_attr) else NO
     else:
