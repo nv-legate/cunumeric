@@ -6,5 +6,5 @@ if [ -z "$CPU_ONLY" ]; then
   rm $PREFIX/lib/libcuda.so
   rm $PREFIX/lib64
 else
-  $PYTHON install.py --with-core $PREFIX --with-cutensor $PREFIX -v
+  $PYTHON install.py --with-core $PREFIX -v
 fi
