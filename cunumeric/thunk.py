@@ -201,6 +201,10 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
+    def isclose(self, rhs1, rhs2, rtol, atol, equal_nan):
+        ...
+
+    @abstractmethod
     def binary_op(self, op, rhs1, rhs2, where, args):
         ...
 

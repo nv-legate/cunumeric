@@ -193,7 +193,6 @@ class UnaryRedCode(IntEnum):
 @unique
 class BinaryOpCode(IntEnum):
     ADD = _cunumeric.CUNUMERIC_BINOP_ADD
-    ALLCLOSE = _cunumeric.CUNUMERIC_BINOP_ALLCLOSE
     ARCTAN2 = _cunumeric.CUNUMERIC_BINOP_ARCTAN2
     BITWISE_AND = _cunumeric.CUNUMERIC_BINOP_BITWISE_AND
     BITWISE_OR = _cunumeric.CUNUMERIC_BINOP_BITWISE_OR
@@ -208,6 +207,7 @@ class BinaryOpCode(IntEnum):
     GREATER = _cunumeric.CUNUMERIC_BINOP_GREATER
     GREATER_EQUAL = _cunumeric.CUNUMERIC_BINOP_GREATER_EQUAL
     HYPOT = _cunumeric.CUNUMERIC_BINOP_HYPOT
+    ISCLOSE = _cunumeric.CUNUMERIC_BINOP_ISCLOSE
     LCM = _cunumeric.CUNUMERIC_BINOP_LCM
     LDEXP = _cunumeric.CUNUMERIC_BINOP_LDEXP
     LEFT_SHIFT = _cunumeric.CUNUMERIC_BINOP_LEFT_SHIFT
