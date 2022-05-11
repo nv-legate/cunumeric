@@ -23,26 +23,22 @@ import gc
 import math
 
 from benchmark import run_benchmark
+from legate.timing import time
 
-try:
-    import cunumeric as np
-except ImportError:
-    import legate.numpy as np
+import cunumeric as np
 
 
-def compute_diagonal(steps, N, timing):
+def compute_diagonal(steps, N, timing, warmup):
     A1 = np.ones((N,), dtype=int)
     print("measuring diagonal")
-    start = datetime.datetime.now()
-    for step in range(steps):
+    for step in range(steps + warmup):
+        if step == warmup:
+            start = time()
         A2 = np.diag(A1)
         A1 = np.diag(A2)
-    stop = datetime.datetime.now()
-    delta = stop - start
-    total = delta.total_seconds() * 1000.0
+    stop = time()
+    total = (stop - start) / 1000.0
     if timing:
-        flops = 0
-        print("Total Flops:      " + str(flops / 1e9) + " GFLOPS/iter")
         space = (N * N + N) * np.dtype(int).itemsize / 1073741824
         print("Total Size:       " + str(space) + " GB")
         print("Elapsed Time for diagonal: " + str(total) + " ms")
@@ -56,43 +52,31 @@ def compute_diagonal(steps, N, timing):
     return total
 
 
-def compute_choose(steps, N, timing):
+def compute_choose(steps, N, timing, warmup):
     print("measuring choose")
-    A1 = np.ones((N,), dtype=int)
-    B = np.arange(N, dtype=int)
-    C1 = B % N
-    C2 = C1.reshape(
-        (
-            int(N / 100),
-            int(100),
-        )
-    )
-    start = datetime.datetime.now()
-    for step in range(steps):
-        C1 = np.choose(C1, A1, mode="clip")
-        C2 = C1.reshape(
+    A = tuple(
+        np.full(
             (
-                int(N / 100),
-                int(100),
-            )
+                10,
+                N,
+            ),
+            k,
         )
-        np.choose(C2, A1, mode="wrap")
-    stop = datetime.datetime.now()
-    delta = stop - start
-    total = delta.total_seconds() * 1000.0
+        for k in range(10)
+    )
+    C1 = np.arange(N, dtype=int) % 10
+    for step in range(steps + warmup):
+        if step == warmup:
+            start = time()
+        C1 = np.choose(C1, A, mode="wrap")
+    stop = time()
+    total = (stop - start) / 1000.0
     if timing:
-        flops = 0
-        print("Total Flops:      " + str(flops / 1e9) + " GFLOPS/iter")
-        space = 3 * N * np.dtype(int).itemsize / 1073741824
+        space = N * np.dtype(int).itemsize / 1073741824
         print("Total Size:       " + str(space) + " GB")
         print("Elapsed Time for choose: " + str(total) + " ms")
         average = total / steps
         print("Average            :     " + str(average) + " ms")
-        print(
-            "FLOPS/s:                 "
-            + str(flops / (average * 1e6))
-            + " GFLOPS/s"
-        )
         print(
             "bandwidth:               "
             + str(space * 1000 / (average))
@@ -101,7 +85,7 @@ def compute_choose(steps, N, timing):
     return total
 
 
-def compute_repeat(steps, N, timing):
+def compute_repeat(steps, N, timing, warmup):
     A2 = np.ones(
         (
             N,
@@ -109,27 +93,20 @@ def compute_repeat(steps, N, timing):
         ),
         dtype=int,
     )
+    R = np.repeat(int(1), N)
     print("measuring repeat")
-    start = datetime.datetime.now()
-    for step in range(steps):
-        R = np.repeat(int(1), N)
-        A2[:] = np.repeat(A2, R, axis=1)
-    stop = datetime.datetime.now()
-    delta = stop - start
-    total = delta.total_seconds() * 1000.0
+    for step in range(steps + warmup):
+        if step == warmup:
+            start = time()
+        A2 = np.repeat(A2, R, axis=1)
+    stop = time()
+    total = (stop - start) / 1000.0
     if timing:
-        flops = 0
-        print("Total Flops:      " + str(flops / 1e9) + " GFLOPS/iter")
-        space = (N * N + N) * np.dtype(int).itemsize / 1073741824
+        space = (N * N) * np.dtype(int).itemsize / 1073741824
         print("Total Size:       " + str(space) + " GB")
         print("Elapsed Time for repeat: " + str(total) + " ms")
         average = total / steps
         print("Average            :     " + str(average) + " ms")
-        print(
-            "FLOPS/s:                 "
-            + str(flops / (average * 1e6))
-            + " GFLOPS/s"
-        )
         print(
             "bandwidth:               "
             + str(space * 1000 / (average))
@@ -138,33 +115,26 @@ def compute_repeat(steps, N, timing):
     return total
 
 
-def compute_advanced_indexing_1d(steps, N, timing):
+def compute_advanced_indexing_1d(steps, N, timing, warmup):
     A1 = np.ones((N,), dtype=int)
     B = np.arange(N, dtype=int)
     print("measuring advanced_indexing 1D")
     indx = B % 10
     indx_bool = (B % 2).astype(bool)
-    start = datetime.datetime.now()
-    for step in range(steps):
+    for step in range(steps + warmup):
+        if step == warmup:
+            start = time()
         A1[indx] = 10  # 1 copy
         A1[indx_bool] = 12  # 1 AI and 1 copy
-    stop = datetime.datetime.now()
-    delta = stop - start
-    total = delta.total_seconds() * 1000.0
+    stop = time()
+    total = (stop - start) / 1000.0
     if timing:
-        flops = 0
-        print("Total Flops:      " + str(flops / 1e9) + " GFLOPS/iter")
         space = (3 * N) * np.dtype(int).itemsize / 1073741824
         print("Total Size:       " + str(space) + " GB")
         print("Elapsed Time for advanced_indexing: " + str(total) + " ms")
         average = total / steps
         print("Average            :     " + str(average) + " ms")
         print(
-            "FLOPS/s:                 "
-            + str(flops / (average * 1e6))
-            + " GFLOPS/s"
-        )
-        print(
             "bandwidth:               "
             + str(space * 1000 / (average))
             + " GB/s"
@@ -172,34 +142,27 @@ def compute_advanced_indexing_1d(steps, N, timing):
     return total
 
 
-def compute_advanced_indexing_2d(steps, N, timing):
+def compute_advanced_indexing_2d(steps, N, timing, warmup):
     A2 = np.ones((N, N), dtype=int)
     B = np.arange(N, dtype=int)
     print("measuring advanced_indexing 2D")
     indx = B % 10
     indx_bool = (B % 2).astype(bool)
     indx2d_bool = (A2 % 2).astype(bool)
-    start = datetime.datetime.now()
-    for step in range(steps):
+    for step in range(steps + warmup):
+        if step == warmup:
+            start = time()
         A2[indx_bool, indx_bool] = 11  # one ZIP and 1 copy = N+N*N
         A2[:, indx] = 12  # one ZIP and 3 copies = N+3*N*N
         A2[indx2d_bool] = 13  # 1 copy and one AI task = 2* N*N
-    stop = datetime.datetime.now()
-    delta = stop - start
-    total = delta.total_seconds() * 1000.0
+    stop = time()
+    total = (stop - start) / 1000.0
     if timing:
-        flops = 0
-        print("Total Flops:      " + str(flops / 1e9) + " GFLOPS/iter")
         space = (6 * N * N + 2 * N) * np.dtype(int).itemsize / 1073741824
         print("Total Size:       " + str(space) + " GB")
         print("Elapsed Time for advanced_indexing: " + str(total) + " ms")
         average = total / steps
         print("Average            :     " + str(average) + " ms")
-        print(
-            "FLOPS/s:                 "
-            + str(flops / (average * 1e6))
-            + " GFLOPS/s"
-        )
         print(
             "bandwidth:               "
             + str(space * 1000 / (average))
@@ -208,7 +171,7 @@ def compute_advanced_indexing_2d(steps, N, timing):
     return total
 
 
-def compute_advanced_indexing_3d(steps, N, timing):
+def compute_advanced_indexing_3d(steps, N, timing, warmup):
     A3 = np.ones(
         (
             N,
@@ -222,25 +185,19 @@ def compute_advanced_indexing_3d(steps, N, timing):
     indx = B % 10
     indx3d_bool = (A3 % 2).astype(bool)
     start = datetime.datetime.now()
-    for step in range(steps):
+    for step in range(steps + warmup):
+        if step == warmup:
+            start = time()
         A3[indx, :, indx] = 15  # 1 ZIP and 3 copy = N+3N*N
         A3[indx3d_bool] = 16  # 1 copy and 1 AI task = 2*N*N
-    stop = datetime.datetime.now()
-    delta = stop - start
-    total = delta.total_seconds() * 1000.0
+    stop = time()
+    total = (stop - start) / 1000.0
     if timing:
-        flops = 0
-        print("Total Flops:      " + str(flops / 1e9) + " GFLOPS/iter")
         space = (5 * N * N + N) * np.dtype(int).itemsize / 1073741824
         print("Total Size:       " + str(space) + " GB")
         print("Elapsed Time for advanced_indexing: " + str(total) + " ms")
         average = total / steps
         print("Average            :     " + str(average) + " ms")
-        print(
-            "FLOPS/s:                 "
-            + str(flops / (average * 1e6))
-            + " GFLOPS/s"
-        )
         print(
             "bandwidth:               "
             + str(space * 1000 / (average))
@@ -252,6 +209,7 @@ def compute_advanced_indexing_3d(steps, N, timing):
 def run_indexing_routines(
     N,
     steps,
+    warmup,
     timing,
     verbose,
     routine,
@@ -261,17 +219,17 @@ def run_indexing_routines(
     gc.collect()
     time = 0
     if routine == "diagonal" or routine == "all":
-        time += compute_diagonal(steps, N, timing)
+        time += compute_diagonal(steps, N, timing, warmup)
     if routine == "choose" or routine == "all":
-        time += compute_choose(steps, N, timing)
+        time += compute_choose(steps, N, timing, warmup)
     if routine == "repeat" or routine == "all":
-        time += compute_repeat(steps, N, timing)
+        time += compute_repeat(steps, N, timing, warmup)
     if routine == "ai1" or routine == "all":
-        time += compute_advanced_indexing_1d(steps, N, timing)
+        time += compute_advanced_indexing_1d(steps, N, timing, warmup)
     if routine == "ai2" or routine == "all":
-        time += compute_advanced_indexing_2d(steps, N, timing)
+        time += compute_advanced_indexing_2d(steps, N, timing, warmup)
     if routine == "ai3" or routine == "all":
-        time += compute_advanced_indexing_3d(steps, N, timing)
+        time += compute_advanced_indexing_3d(steps, N, timing, warmup)
     if timing:
         print("Total Elapsed Time: " + str(time) + " ms")
     return time
@@ -294,6 +252,14 @@ if __name__ == "__main__":
         default=100,
         dest="I",
         help="number of iterations to run the algorithm for",
+    )
+    parser.add_argument(
+        "-w",
+        "--warmup",
+        type=int,
+        default=10,
+        dest="warmup",
+        help="warm-up iterations",
     )
     parser.add_argument(
         "-t",
@@ -323,6 +289,7 @@ if __name__ == "__main__":
         "--routine",
         default="all",
         dest="routine",
+        choices=["diagonal", "choose", "repeat", "ai1", "ai2", "ai3", "all"],
         help="name of the index routine to test",
     )
     args, unknown = parser.parse_known_args()
@@ -330,6 +297,6 @@ if __name__ == "__main__":
     run_benchmark(
         run_indexing_routines,
         args.benchmark,
-        "Core",
-        (args.N, args.I, args.timing, args.verbose, args.routine),
+        "Indexing Routines",
+        (args.N, args.I, args.warmup, args.timing, args.verbose, args.routine),
     )
