@@ -118,6 +118,9 @@ def _test_func(a: int, b: int) -> int:
 class _Test_ufunc(cunumeric._ufunc.ufunc):
     """docstring"""
 
+    def __init__(self):
+        super().__init__("_test_ufunc", "docstring", {"i": "i"})
+
     def __call__(self, a: int, b: int) -> int:
         return a + b
 
