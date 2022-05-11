@@ -68,7 +68,7 @@ requirements:
     - python
     - openblas =* =*openmp*
 {% if gpu_enabled == 'false' %}
-    - legate-core >={{ core_version }}=*_cpu
+    - legate-core >={{ core_version }} =*_cpu
 {% else %}
     - legate-core >={{ core_version }}
     - cuda-driver-dev ={{ cuda_version }}
