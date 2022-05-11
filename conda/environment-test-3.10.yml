@@ -21,11 +21,13 @@ dependencies:
   # tests
   - clang>=8
   - clang-tools>=8
+  - coverage
   - mock
   - mypy
   - pre-commit
   - pynvml
   - pytest
+  - pytest-cov
 
   # pip dependencies
   - pip
