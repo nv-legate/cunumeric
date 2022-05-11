@@ -66,10 +66,9 @@ requirements:
 {% endif %}
   host:
     - python
-{% if gpu_enabled == 'false' %}
-
-    - legate-core >={{ core_version }}=*_cpu
     - openblas =* =*openmp*
+{% if gpu_enabled == 'false' %}
+    - legate-core >={{ core_version }}=*_cpu
 {% else %}
     - legate-core >={{ core_version }}
     - cuda-driver-dev ={{ cuda_version }}
@@ -101,14 +100,6 @@ requirements:
     - __cuda >=8.0
 {% endif %}
     - __glibc >=2.17  # [linux]
-
-test:
-  source_files:
-    - test.py
-    - tests
-    - examples
-  commands:
-    - legate -c "import cunumeric"
 
 about:
   home: https://github.com/nv-legate/cunumeric
