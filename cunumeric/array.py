@@ -1757,7 +1757,7 @@ class ndarray:
         """
         a = self
         if out is not None:
-            out = convert_to_cunumeric_ndarray(out)
+            out = convert_to_cunumeric_ndarray(out, share=True)
 
         if isinstance(choices, list):
             choices = tuple(choices)
