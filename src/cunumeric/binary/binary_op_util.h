@@ -22,7 +22,6 @@ namespace cunumeric {
 
 enum class BinaryOpCode : int {
   ADD           = CUNUMERIC_BINOP_ADD,
-  ALLCLOSE      = CUNUMERIC_BINOP_ALLCLOSE,
   ARCTAN2       = CUNUMERIC_BINOP_ARCTAN2,
   BITWISE_AND   = CUNUMERIC_BINOP_BITWISE_AND,
   BITWISE_OR    = CUNUMERIC_BINOP_BITWISE_OR,
@@ -37,6 +36,7 @@ enum class BinaryOpCode : int {
   GREATER       = CUNUMERIC_BINOP_GREATER,
   GREATER_EQUAL = CUNUMERIC_BINOP_GREATER_EQUAL,
   HYPOT         = CUNUMERIC_BINOP_HYPOT,
+  ISCLOSE       = CUNUMERIC_BINOP_ISCLOSE,
   LCM           = CUNUMERIC_BINOP_LCM,
   LDEXP         = CUNUMERIC_BINOP_LDEXP,
   LEFT_SHIFT    = CUNUMERIC_BINOP_LEFT_SHIFT,
@@ -92,6 +92,8 @@ constexpr decltype(auto) op_dispatch(BinaryOpCode op_code, Functor f, Fnargs&&..
       return f.template operator()<BinaryOpCode::GREATER_EQUAL>(std::forward<Fnargs>(args)...);
     case BinaryOpCode::HYPOT:
       return f.template operator()<BinaryOpCode::HYPOT>(std::forward<Fnargs>(args)...);
+    case BinaryOpCode::ISCLOSE:
+      return f.template operator()<BinaryOpCode::ISCLOSE>(std::forward<Fnargs>(args)...);
     case BinaryOpCode::LCM:
       return f.template operator()<BinaryOpCode::LCM>(std::forward<Fnargs>(args)...);
     case BinaryOpCode::LDEXP:
@@ -142,8 +144,8 @@ constexpr decltype(auto) reduce_op_dispatch(BinaryOpCode op_code, Functor f, Fna
   switch (op_code) {
     case BinaryOpCode::EQUAL:
       return f.template operator()<BinaryOpCode::EQUAL>(std::forward<Fnargs>(args)...);
-    case BinaryOpCode::ALLCLOSE:
-      return f.template operator()<BinaryOpCode::ALLCLOSE>(std::forward<Fnargs>(args)...);
+    case BinaryOpCode::ISCLOSE:
+      return f.template operator()<BinaryOpCode::ISCLOSE>(std::forward<Fnargs>(args)...);
     default: break;
   }
   assert(false);
@@ -159,36 +161,6 @@ template <legate::LegateTypeCode CODE>
 struct BinaryOp<BinaryOpCode::ADD, CODE> : std::plus<legate::legate_type_of<CODE>> {
   static constexpr bool valid = true;
   BinaryOp(const std::vector<legate::Store>& args) {}
-};
-
-template <legate::LegateTypeCode CODE>
-struct BinaryOp<BinaryOpCode::ALLCLOSE, CODE> {
-  using VAL                   = legate::legate_type_of<CODE>;
-  static constexpr bool valid = true;
-
-  BinaryOp(const std::vector<legate::Store>& args)
-  {
-    assert(args.size() == 2);
-    rtol_ = args[0].scalar<double>();
-    atol_ = args[1].scalar<double>();
-  }
-
-  template <typename T = VAL, std::enable_if_t<!legate::is_complex<T>::value>* = nullptr>
-  constexpr bool operator()(const T& a, const T& b) const
-  {
-    using std::fabs;
-    return fabs(static_cast<double>(a) - static_cast<double>(b)) <=
-           atol_ + rtol_ * static_cast<double>(fabs(b));
-  }
-
-  template <typename T = VAL, std::enable_if_t<legate::is_complex<T>::value>* = nullptr>
-  constexpr bool operator()(const T& a, const T& b) const
-  {
-    return static_cast<double>(abs(a - b)) <= atol_ + rtol_ * static_cast<double>(abs(b));
-  }
-
-  double rtol_{0};
-  double atol_{0};
 };
 
 template <legate::LegateTypeCode CODE>
@@ -473,6 +445,36 @@ struct BinaryOp<BinaryOpCode::HYPOT, CODE> {
     using std::hypot;
     return hypot(a, b);
   }
+};
+
+template <legate::LegateTypeCode CODE>
+struct BinaryOp<BinaryOpCode::ISCLOSE, CODE> {
+  using VAL                   = legate::legate_type_of<CODE>;
+  static constexpr bool valid = true;
+
+  BinaryOp(const std::vector<legate::Store>& args)
+  {
+    assert(args.size() == 2);
+    rtol_ = args[0].scalar<double>();
+    atol_ = args[1].scalar<double>();
+  }
+
+  template <typename T = VAL, std::enable_if_t<!legate::is_complex<T>::value>* = nullptr>
+  constexpr bool operator()(const T& a, const T& b) const
+  {
+    using std::fabs;
+    return fabs(static_cast<double>(a) - static_cast<double>(b)) <=
+           atol_ + rtol_ * static_cast<double>(fabs(b));
+  }
+
+  template <typename T = VAL, std::enable_if_t<legate::is_complex<T>::value>* = nullptr>
+  constexpr bool operator()(const T& a, const T& b) const
+  {
+    return static_cast<double>(abs(a - b)) <= atol_ + rtol_ * static_cast<double>(abs(b));
+  }
+
+  double rtol_{0};
+  double atol_{0};
 };
 
 template <legate::LegateTypeCode CODE>

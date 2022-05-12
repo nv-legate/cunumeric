@@ -104,6 +104,7 @@ nitpick_ignore = [
     ("py:class", "complex ndarray"),
     ("py:class", "sequence of ints"),
     ("py:class", "array"),
+    ("py:class", "any"),
 ]
 
 intersphinx_mapping = {

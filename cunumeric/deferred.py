@@ -1772,6 +1772,14 @@ class DeferredArray(NumPyThunk):
                     [],
                 )
 
+    def isclose(self, rhs1, rhs2, rtol, atol, equal_nan):
+        assert not equal_nan
+        args = (
+            np.array(rtol, dtype=np.float64),
+            np.array(atol, dtype=np.float64),
+        )
+        self.binary_op(BinaryOpCode.ISCLOSE, rhs1, rhs2, True, args)
+
     # Perform the binary operation and put the result in the lhs array
     @auto_convert([2, 3])
     def binary_op(self, op_code, src1, src2, where, args):

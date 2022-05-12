@@ -22,6 +22,21 @@ Array contents
    isfinite
    isinf
    isnan
+   isneginf
+   isposinf
+
+
+Array type testing
+------------------
+
+.. autosummary::
+   :toctree: generated/
+
+   iscomplex
+   iscomplexobj
+   isreal
+   isrealobj
+   isscalar
 
 
 Logic operations
@@ -43,6 +58,7 @@ Comparison
    :toctree: generated/
 
    allclose
+   isclose
    array_equal
    greater
    greater_equal

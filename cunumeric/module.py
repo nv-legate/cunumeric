@@ -3324,6 +3324,13 @@ def allclose(a, b, rtol=1e-5, atol=1e-8, equal_nan=False):
         Returns True if the two arrays are equal within the given
         tolerance; False otherwise.
 
+    Notes
+    -----
+    If the following equation is element-wise True, then allclose returns
+    True.
+
+     absolute(`a` - `b`) <= (`atol` + `rtol` * absolute(`b`))
+
     See Also
     --------
     numpy.allclose
@@ -3334,16 +3341,73 @@ def allclose(a, b, rtol=1e-5, atol=1e-8, equal_nan=False):
     """
     if equal_nan:
         raise NotImplementedError(
-            "cuNumeric does not support equal NaN yet for allclose"
+            "cuNumeric does not support `equal_nan` yet for allclose"
         )
     args = (np.array(rtol, dtype=np.float64), np.array(atol, dtype=np.float64))
     return ndarray._perform_binary_reduction(
-        BinaryOpCode.ALLCLOSE,
+        BinaryOpCode.ISCLOSE,
         a,
         b,
         dtype=np.dtype(bool),
         extra_args=args,
     )
+
+
+@add_boilerplate("a", "b")
+def isclose(a, b, rtol=1e-5, atol=1e-8, equal_nan=False):
+    """
+
+    Returns a boolean array where two arrays are element-wise equal within a
+    tolerance.
+
+    Parameters
+    ----------
+    a, b : array_like
+        Input arrays to compare.
+    rtol : float
+        The relative tolerance parameter (see Notes).
+    atol : float
+        The absolute tolerance parameter (see Notes).
+    equal_nan : bool
+        Whether to compare NaN's as equal.  If True, NaN's in `a` will be
+        considered equal to NaN's in `b` in the output array.
+
+    Returns
+    -------
+    y : array_like
+        Returns a boolean array of where `a` and `b` are equal within the
+        given tolerance. If both `a` and `b` are scalars, returns a single
+        boolean value.
+
+    Notes
+    -----
+    For finite values, isclose uses the following equation to test whether
+    two floating point values are equivalent.
+
+     absolute(`a` - `b`) <= (`atol` + `rtol` * absolute(`b`))
+
+    See Also
+    --------
+    numpy.isclose
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    if equal_nan:
+        raise NotImplementedError(
+            "cuNumeric does not support `equal_nan` yet for isclose"
+        )
+
+    out_shape = np.broadcast_shapes(a.shape, b.shape)
+    out = empty(out_shape, dtype=bool)
+
+    common_type = ndarray.find_common_type(a, b)
+    a = a.astype(common_type)
+    b = b.astype(common_type)
+
+    out._thunk.isclose(a._thunk, b._thunk, rtol, atol, equal_nan)
+    return out
 
 
 @add_boilerplate("a", "b")
