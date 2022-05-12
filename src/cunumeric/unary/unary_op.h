@@ -49,14 +49,23 @@ class UnaryOpTask : public CuNumericTask<UnaryOpTask> {
 #endif
 };
 
+template <int DIM, typename TypeCode>
+struct inner_type_dispatch_fn;
+
 template <int DIM>
-struct inner_type_dispatch_fn {
-  template <typename TypeCode, typename Functor, typename... Fnargs>
-  constexpr decltype(auto) operator()(TypeCode code, Functor f, Fnargs&&... args)
+struct inner_type_dispatch_fn<DIM, legate_core_type_code_t> {
+  template <typename Functor, typename... Fnargs>
+  constexpr decltype(auto) operator()(legate_core_type_code_t code, Functor f, Fnargs&&... args)
   {
-    if (code <= MAX_TYPE_NUMBER) {
-      return legate::inner_type_dispatch_fn<DIM>{}(code, f, std::forward<Fnargs>(args)...);
-    }
+    return legate::inner_type_dispatch_fn<DIM>{}(code, f, std::forward<Fnargs>(args)...);
+  }
+};
+
+template <int DIM>
+struct inner_type_dispatch_fn<DIM, CuNumericTypeCodes> {
+  template <typename Functor, typename... Fnargs>
+  constexpr decltype(auto) operator()(CuNumericTypeCodes code, Functor f, Fnargs&&... args)
+  {
     switch (code) {
 #if LEGION_MAX_DIM >= 1
       case CuNumericTypeCodes::CUNUMERIC_TYPE_POINT1: {
@@ -113,7 +122,9 @@ struct inner_type_dispatch_fn {
       }
 #endif
       default: {
-        return legate::inner_type_dispatch_fn<DIM>{}(code, f, std::forward<Fnargs>(args)...);
+        assert(false);
+        return f.template operator()<CuNumericTypeCodes::CUNUMERIC_TYPE_POINT1, DIM>(
+          std::forward<Fnargs>(args)...);
       }
     }
     assert(false);
@@ -128,52 +139,61 @@ constexpr decltype(auto) double_dispatch(int dim, TypeCode code, Functor f, Fnar
   switch (dim) {
 #if LEGION_MAX_DIM >= 1
     case 1: {
-      return cunumeric::inner_type_dispatch_fn<1>{}(code, f, std::forward<Fnargs>(args)...);
+      return cunumeric::inner_type_dispatch_fn<1, TypeCode>{}(
+        code, f, std::forward<Fnargs>(args)...);
     }
 #endif
 #if LEGION_MAX_DIM >= 2
     case 2: {
-      return cunumeric::inner_type_dispatch_fn<2>{}(code, f, std::forward<Fnargs>(args)...);
+      return cunumeric::inner_type_dispatch_fn<2, TypeCode>{}(
+        code, f, std::forward<Fnargs>(args)...);
     }
 #endif
 #if LEGION_MAX_DIM >= 3
     case 3: {
-      return cunumeric::inner_type_dispatch_fn<3>{}(code, f, std::forward<Fnargs>(args)...);
+      return cunumeric::inner_type_dispatch_fn<3, TypeCode>{}(
+        code, f, std::forward<Fnargs>(args)...);
     }
 #endif
 #if LEGION_MAX_DIM >= 4
     case 4: {
-      return cunumeric::inner_type_dispatch_fn<4>{}(code, f, std::forward<Fnargs>(args)...);
+      return cunumeric::inner_type_dispatch_fn<4, TypeCode>{}(
+        code, f, std::forward<Fnargs>(args)...);
     }
 #endif
 #if LEGION_MAX_DIM >= 5
     case 5: {
-      return cunumeric::inner_type_dispatch_fn<5>{}(code, f, std::forward<Fnargs>(args)...);
+      return cunumeric::inner_type_dispatch_fn<5, TypeCode>{}(
+        code, f, std::forward<Fnargs>(args)...);
     }
 #endif
 #if LEGION_MAX_DIM >= 6
     case 6: {
-      return cunumeric::inner_type_dispatch_fn<6>{}(code, f, std::forward<Fnargs>(args)...);
+      return cunumeric::inner_type_dispatch_fn<6, TypeCode>{}(
+        code, f, std::forward<Fnargs>(args)...);
     }
 #endif
 #if LEGION_MAX_DIM >= 7
     case 7: {
-      return cunumeric::inner_type_dispatch_fn<7>{}(code, f, std::forward<Fnargs>(args)...);
+      return cunumeric::inner_type_dispatch_fn<7, TypeCode>{}(
+        code, f, std::forward<Fnargs>(args)...);
     }
 #endif
 #if LEGION_MAX_DIM >= 8
     case 8: {
-      return cunumeric::inner_type_dispatch_fn<8>{}(code, f, std::forward<Fnargs>(args)...);
+      return cunumeric::inner_type_dispatch_fn<8, TypeCode>{}(
+        code, f, std::forward<Fnargs>(args)...);
     }
 #endif
 #if LEGION_MAX_DIM >= 9
     case 9: {
-      return cunumeric::inner_type_dispatch_fn<9>{}(code, f, std::forward<Fnargs>(args)...);
+      return cunumeric::inner_type_dispatch_fn<9, TypeCode>{}(
+        code, f, std::forward<Fnargs>(args)...);
     }
 #endif
   }
   assert(false);
-  return cunumeric::inner_type_dispatch_fn<1>{}(code, f, std::forward<Fnargs>(args)...);
+  return cunumeric::inner_type_dispatch_fn<1, TypeCode>{}(code, f, std::forward<Fnargs>(args)...);
 }
 
 template <CuNumericTypeCodes CODE>
