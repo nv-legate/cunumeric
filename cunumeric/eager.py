@@ -798,8 +798,10 @@ class EagerArray(NumPyThunk):
         if self.deferred is not None:
             self.deferred.cholesky(src, no_tril)
         else:
-            # XXX: Something needs to happen here if no_tril is True
-            self.array[:] = np.linalg.cholesky(src.array)
+            result = np.linalg.cholesky(src.array)
+            if no_tril:
+                result = np.triu(result.T.conj(), k=1) + result
+            self.array[:] = result
 
     def unique(self):
         if self.deferred is not None:
