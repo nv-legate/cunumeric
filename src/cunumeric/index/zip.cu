@@ -32,7 +32,7 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
              DomainPoint shape,
              std::index_sequence<Is...>)
 {
-  const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+  const size_t idx = global_tid_1d();
   if (idx >= volume) return;
   auto p = pitches.unflatten(idx, rect.lo);
   Legion::Point<N> new_point;
@@ -49,7 +49,7 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
                    DomainPoint shape,
                    std::index_sequence<Is...>)
 {
-  const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+  const size_t idx = global_tid_1d();
   if (idx >= volume) return;
   Legion::Point<N> new_point;
   for (size_t i = 0; i < N; i++) { new_point[i] = compute_idx(index_arrays[i][idx], shape[i]); }
@@ -68,7 +68,7 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
              int64_t start_index,
              DomainPoint shape)
 {
-  const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+  const size_t idx = global_tid_1d();
   if (idx >= volume) return;
   auto p = pitches.unflatten(idx, rect.lo);
   Legion::Point<N> new_point;

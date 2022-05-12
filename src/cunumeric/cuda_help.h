@@ -72,6 +72,11 @@
 
 namespace cunumeric {
 
+__device__ inline size_t global_tid_1d()
+{
+  return static_cast<size_t>(blockIdx.x) * blockDim.x + threadIdx.x;
+}
+
 struct cufftPlan {
   cufftHandle handle;
   size_t workarea_size;
