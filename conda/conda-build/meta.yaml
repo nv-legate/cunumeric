@@ -67,7 +67,6 @@ requirements:
   build:
     - {{ compiler('c') }}
     - {{ compiler('cxx') }}
-    - {{ compiler('fortran') }}
     - make
 {% if gpu_enabled_bool %}
     - cuda-nvcc ={{ cuda_version }}
@@ -75,7 +74,7 @@ requirements:
   host:
     - python
     - openblas =* =*openmp*
-{% if not gpu_enabled %}
+{% if not gpu_enabled_bool %}
     - legate-core >={{ core_version }} =*_cpu
 {% else %}
     - legate-core >={{ core_version }}
