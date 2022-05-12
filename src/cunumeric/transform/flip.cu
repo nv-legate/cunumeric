@@ -34,7 +34,7 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
               Buffer<int32_t, 1> axes,
               const uint32_t num_axes)
 {
-  const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+  const size_t idx = global_tid_1d();
   if (idx >= volume) return;
   auto p = pitches.unflatten(idx, rect.lo);
   auto q = p;
