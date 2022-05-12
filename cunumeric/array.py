@@ -1739,6 +1739,83 @@ class ndarray:
         result._thunk.convert(self._thunk, warn=False)
         return result
 
+    @add_boilerplate()
+    def take(self, indices, axis=None, out=None, mode="raise"):
+        """a.take(indices, axis=None, out=None, mode="raise")
+
+        Take elements from an array along an axis.
+
+        Refer to :func:`cunumeric.take` for full documentation.
+
+        See Also
+        --------
+        cunumeric.take : equivalent function
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        if not np.isscalar(indices):
+            # if indices is a tuple or list, bring sub-tuples to the same shape
+            # and concatenate them
+            indices = convert_to_cunumeric_ndarray(indices)
+
+        if axis is None:
+            self = self.ravel()
+            axis = 0
+        elif axis < 0:
+            axis = self.ndim + axis
+        if axis < 0 or axis >= self.ndim:
+            raise ValueError("axis argument is out of bounds")
+
+        # TODO remove "raise" logic when bounds check for advanced
+        # indexing is implementd
+        if mode == "raise":
+            if np.isscalar(indices):
+                if (indices < -self.shape[axis]) or (
+                    indices >= self.shape[axis]
+                ):
+                    raise ValueError("invalid entry in indices array")
+            else:
+                if (indices < -self.shape[axis]).any() or (
+                    indices >= self.shape[axis]
+                ).any():
+                    raise ValueError("invalid entry in indices array")
+        elif mode == "wrap":
+            indices = indices % self.shape[axis]
+        elif mode == "clip":
+            if np.isscalar(indices):
+                if indices >= self.shape[axis]:
+                    indices = self.shape[axis] - 1
+                if indices < 0:
+                    indices = 0
+            else:
+                indices = indices.clip(0, self.shape[axis] - 1)
+        else:
+            raise ValueError(
+                "Invalid mode '{}' for take operation".format(mode)
+            )
+        if self.shape[axis] == 0:
+            if indices.size != 0:
+                raise IndexError(
+                    "Cannot do a non-empty take() from an empty axis."
+                )
+            return self.copy()
+
+        point_indices = tuple(slice(None) for i in range(0, axis))
+        point_indices += (indices,)
+        if out is not None:
+            if out.dtype != self.dtype:
+                raise ValueError("Type mismatch: out array has wrong type")
+            out[:] = self[point_indices]
+            return out
+        else:
+            res = self[point_indices]
+            if np.isscalar(indices):
+                res = res.copy()
+            return res
+
     def choose(self, choices, out=None, mode="raise"):
         """a.choose(choices, out=None, mode='raise')
 
@@ -1833,6 +1910,59 @@ class ndarray:
             return out
         else:
             return out_arr
+
+    @add_boilerplate()
+    def compress(self, condition, axis=None, out=None):
+        """a.compress(self, condition, axis=None, out=None)
+
+        Return selected slices of an array along given axis..
+
+        Refer to :func:`cunumeric.compress` for full documentation.
+
+        See Also
+        --------
+        cunumeric.compress : equivalent function
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        a = self
+        if condition.ndim != 1:
+            raise ValueError(
+                "Dimension mismatch: condition must be a 1D array"
+            )
+        if condition.dtype != bool:
+            runtime.warn(
+                "converting condition to bool type",
+                category=RuntimeWarning,
+            )
+            condition = condition.astype(bool)
+        if axis is None:
+            axis = 0
+            a = self.ravel()
+
+        if a.shape[axis] < condition.shape[0]:
+            raise ValueError(
+                "Shape mismatch: "
+                "condition contains entries that are out of bounds"
+            )
+        elif a.shape[axis] > condition.shape[0]:
+            slice_tuple = tuple(slice(None) for ax in range(axis)) + (
+                slice(0, condition.shape[0]),
+            )
+            a = a[slice_tuple]
+
+        index_tuple = tuple(slice(None) for ax in range(axis))
+        index_tuple += (condition,)
+
+        if out is not None:
+            out[:] = a[index_tuple]
+            return out
+        else:
+            res = a[index_tuple]
+            return res
 
     def clip(self, min=None, max=None, out=None):
         """a.clip(min=None, max=None, out=None)
