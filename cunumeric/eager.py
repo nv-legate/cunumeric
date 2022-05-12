@@ -652,7 +652,7 @@ class EagerArray(NumPyThunk):
 
     def random_integer(self, low, high):
         if self.deferred is not None:
-            self.deferred.random_integer()
+            self.deferred.random_integer(low, high)
         else:
             if self.array.size == 1:
                 self.array.fill(np.random.randint(low, high))
@@ -796,9 +796,12 @@ class EagerArray(NumPyThunk):
     def cholesky(self, src, no_tril):
         self.check_eager_args(src)
         if self.deferred is not None:
-            self.deferred.cholesky(src)
+            self.deferred.cholesky(src, no_tril)
         else:
-            self.array[:] = np.linalg.cholesky(src.array)
+            result = np.linalg.cholesky(src.array)
+            if no_tril:
+                result = np.triu(result.T.conj(), k=1) + result
+            self.array[:] = result
 
     def unique(self):
         if self.deferred is not None:
@@ -808,7 +811,7 @@ class EagerArray(NumPyThunk):
 
     def create_window(self, op_code, M, *args):
         if self.deferred is not None:
-            return self.deferred.create_window(op_code)
+            return self.deferred.create_window(op_code, M, *args)
         else:
             fn = _WINDOW_OPS[op_code]
             self.array[:] = fn(M, *args)
