@@ -61,6 +61,12 @@ def test_isscalar():
     assert not num.isscalar(in_np)
     assert not num.isscalar(in_num)
 
+    # NumPy's scalar reduction returns a Python scalar
+    assert num.isscalar(np.sum(in_np))
+    # but cuNumeric's scalar reduction returns a 0-D array that behaves like
+    # a deferred scalar
+    assert not num.isscalar(num.sum(in_np))
+
 
 def test_isclose():
     in1_np = np.random.rand(10)
