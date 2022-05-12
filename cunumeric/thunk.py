@@ -70,6 +70,10 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
+    def fft(self, out, axes, kind, direction):
+        ...
+
+    @abstractmethod
     def copy(self, rhs, deep):
         ...
 
@@ -139,13 +143,7 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def _diag_helper(
-        self,
-        rhs,
-        offset,
-        naxes,
-        extract,
-    ):
+    def _diag_helper(self, rhs, offset, naxes, extract, trace):
         ...
 
     @abstractmethod
@@ -185,7 +183,7 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def unary_op(self, op, rhs, where, args):
+    def unary_op(self, op, rhs, where, args, multiout=None):
         ...
 
     @abstractmethod
@@ -200,6 +198,10 @@ class NumPyThunk(ABC):
         args,
         initial,
     ):
+        ...
+
+    @abstractmethod
+    def isclose(self, rhs1, rhs2, rtol, atol, equal_nan):
         ...
 
     @abstractmethod
@@ -224,4 +226,8 @@ class NumPyThunk(ABC):
         
     @abstractmethod
     def unique(self):
+        ...
+
+    @abstractmethod
+    def create_window(self, op_code, *args):
         ...

@@ -27,8 +27,11 @@ GEN_CPU_SRC += cunumeric/ternary/where.cc               \
 							 cunumeric/nullary/arange.cc              \
 							 cunumeric/nullary/eye.cc                 \
 							 cunumeric/nullary/fill.cc                \
+                                                         cunumeric/nullary/window.cc              \
+                                                         cunumeric/index/advanced_indexing.cc     \
 							 cunumeric/index/choose.cc                \
 							 cunumeric/index/repeat.cc                \
+							 cunumeric/index/zip.cc                   \
 							 cunumeric/item/read.cc                   \
 							 cunumeric/item/write.cc                  \
 							 cunumeric/matrix/contract.cc             \
@@ -48,12 +51,14 @@ GEN_CPU_SRC += cunumeric/ternary/where.cc               \
 							 cunumeric/search/nonzero.cc              \
 							 cunumeric/set/unique.cc                  \
 							 cunumeric/set/unique_reduce.cc           \
-							 cunumeric/sort/sort.cc                   \
 							 cunumeric/stat/bincount.cc               \
 							 cunumeric/convolution/convolve.cc        \
 							 cunumeric/transform/flip.cc              \
 							 cunumeric/arg.cc                         \
 							 cunumeric/mapper.cc
+
+GEN_CPU_SRC += cunumeric/cephes/chbevl.cc \
+							 cunumeric/cephes/i0.cc
 
 ifeq ($(strip $(USE_OPENMP)),1)
 GEN_CPU_SRC += cunumeric/ternary/where_omp.cc          \
@@ -68,8 +73,11 @@ GEN_CPU_SRC += cunumeric/ternary/where_omp.cc          \
 							 cunumeric/nullary/arange_omp.cc         \
 							 cunumeric/nullary/eye_omp.cc            \
 							 cunumeric/nullary/fill_omp.cc           \
+                                                         cunumeric/nullary/window_omp.cc         \
+                                                         cunumeric/index/advanced_indexing_omp.cc\
 							 cunumeric/index/choose_omp.cc           \
 							 cunumeric/index/repeat_omp.cc           \
+							 cunumeric/index/zip_omp.cc              \
 							 cunumeric/matrix/contract_omp.cc        \
 							 cunumeric/matrix/diag_omp.cc            \
 							 cunumeric/matrix/gemm_omp.cc            \
@@ -86,15 +94,10 @@ GEN_CPU_SRC += cunumeric/ternary/where_omp.cc          \
 							 cunumeric/random/rand_omp.cc            \
 							 cunumeric/search/nonzero_omp.cc         \
 							 cunumeric/set/unique_omp.cc             \
-							 cunumeric/sort/sort_omp.cc              \
 							 cunumeric/stat/bincount_omp.cc          \
 							 cunumeric/convolution/convolve_omp.cc   \
 							 cunumeric/transform/flip_omp.cc
 endif
-
-GEN_CPU_SRC += cunumeric/cunumeric.cc # This must always be the last file!
-                                      # It guarantees we do our registration callback
-                                      # only after all task variants are recorded
 
 GEN_GPU_SRC += cunumeric/ternary/where.cu               \
 							 cunumeric/scan/scan_global.cu            \
@@ -108,10 +111,13 @@ GEN_GPU_SRC += cunumeric/ternary/where.cu               \
 							 cunumeric/nullary/arange.cu              \
 							 cunumeric/nullary/eye.cu                 \
 							 cunumeric/nullary/fill.cu                \
+                                                         cunumeric/nullary/window.cu              \
+                                                         cunumeric/index/advanced_indexing.cu     \
+							 cunumeric/index/choose.cu                \
+                                                         cunumeric/index/repeat.cu                \
+							 cunumeric/index/zip.cu                   \
 							 cunumeric/item/read.cu                   \
 							 cunumeric/item/write.cu                  \
-							 cunumeric/index/choose.cu                \
-							 cunumeric/index/repeat.cu                \
 							 cunumeric/matrix/contract.cu             \
 							 cunumeric/matrix/diag.cu                 \
 							 cunumeric/matrix/gemm.cu                 \
@@ -127,11 +133,15 @@ GEN_GPU_SRC += cunumeric/ternary/where.cu               \
 							 cunumeric/random/rand.cu                 \
 							 cunumeric/search/nonzero.cu              \
 							 cunumeric/set/unique.cu                  \
-							 cunumeric/sort/sort.cu                   \
 							 cunumeric/stat/bincount.cu               \
 							 cunumeric/convolution/convolve.cu        \
+							 cunumeric/fft/fft.cu                     \
 							 cunumeric/transform/flip.cu              \
 							 cunumeric/cudalibs.cu                    \
 							 cunumeric/cunumeric.cu
 
-GEN_DEVICE_SRC += cunumeric/convolution/convolve_callbacks.cu
+include cunumeric/sort/sort.mk
+
+GEN_CPU_SRC += cunumeric/cunumeric.cc # This must always be the last file!
+                                      # It guarantees we do our registration callback
+                                      # only after all task variants are recorded

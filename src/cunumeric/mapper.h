@@ -30,7 +30,7 @@ class CuNumericMapper : public legate::mapping::BaseMapper {
   virtual ~CuNumericMapper(void) {}
 
  private:
-  CuNumericMapper(const CuNumericMapper& rhs) = delete;
+  CuNumericMapper(const CuNumericMapper& rhs)            = delete;
   CuNumericMapper& operator=(const CuNumericMapper& rhs) = delete;
 
   // Legate mapping functions

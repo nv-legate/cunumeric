@@ -16,10 +16,10 @@
 #
 
 import argparse
-import datetime
 import math
 
 from benchmark import run_benchmark
+from legate.timing import time
 
 import cunumeric as np
 
@@ -51,17 +51,15 @@ def run(grid, I, N):  # noqa: E741
 
 
 def run_stencil(N, I, timing):  # noqa: E741
-    start = datetime.datetime.now()
     grid = initialize(N)
+    start = time()
     average = run(grid, I, N)
-    # This will sync the timing because we will need to wait for the result
-    assert not math.isnan(average)
-    stop = datetime.datetime.now()
+    stop = time()
     print("Average energy is %.8g" % average)
-    delta = stop - start
-    total = delta.total_seconds() * 1000.0
+    total = (stop - start) / 1000.0
+    assert not math.isnan(average)
     if timing:
-        print("Elapsed Time: " + str(total) + " ms")
+        print(f"Elapsed Time: {total} ms")
     return total
 
 

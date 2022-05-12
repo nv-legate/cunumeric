@@ -69,7 +69,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {name: 1 CPU test, options: --cpus 1, log: cpu}
+          - {name: 1 CPU test, options: --cpus 1 --unit, log: cpu}
           - {name: 2 CPUs test, options: --cpus 2, log: cpus}
           - {name: GPU test, options: --use cuda --gpus 1, log: gpu}
           - {name: 2 GPUs test, options: --use cuda --gpus 2, log: gpus}

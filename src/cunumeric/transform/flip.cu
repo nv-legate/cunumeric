@@ -31,10 +31,10 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
               ReadAcc in,
               Pitches pitches,
               Rect rect,
-              DeferredBuffer<int32_t, 1> axes,
+              Buffer<int32_t, 1> axes,
               const uint32_t num_axes)
 {
-  const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+  const size_t idx = global_tid_1d();
   if (idx >= volume) return;
   auto p = pitches.unflatten(idx, rect.lo);
   auto q = p;
@@ -56,9 +56,12 @@ struct FlipImplBody<VariantKind::GPU, CODE, DIM> {
     const size_t volume = rect.volume();
     const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
     auto num_axes       = axes.size();
-    DeferredBuffer<int32_t, 1> gpu_axes(Memory::Kind::Z_COPY_MEM, Rect<1>(0, num_axes - 1));
+    auto gpu_axes       = create_buffer<int32_t>(num_axes, Memory::Kind::Z_COPY_MEM);
     for (uint32_t idx = 0; idx < num_axes; ++idx) gpu_axes[idx] = axes[idx];
-    flip_kernel<<<blocks, THREADS_PER_BLOCK>>>(volume, out, in, pitches, rect, gpu_axes, num_axes);
+    auto stream = get_cached_stream();
+    flip_kernel<<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
+      volume, out, in, pitches, rect, gpu_axes, num_axes);
+    CHECK_CUDA_STREAM(stream);
   }
 };
 

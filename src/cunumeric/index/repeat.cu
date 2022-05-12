@@ -60,7 +60,7 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
                 const Pitches<DIM - 1> pitches,
                 const size_t volume)
 {
-  const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+  const size_t idx = global_tid_1d();
   if (idx >= volume) return;
   auto out_p = pitches.unflatten(idx, Point<DIM>::ZEROES());
   auto in_p  = out_p;
@@ -80,7 +80,7 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
                 const Pitches<DIM - 1> pitches,
                 const int volume)
 {
-  const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+  const size_t idx = global_tid_1d();
   if (idx >= volume) return;
   auto in_p  = pitches.unflatten(idx, in_lo);
   auto out_p = in_p - in_lo;
@@ -116,8 +116,10 @@ struct RepeatImplBody<VariantKind::GPU, CODE, DIM> {
     auto out_volume   = pitches.flatten(out_rect);
     const auto blocks = (out_volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
 
-    repeat_kernel<VAL, DIM>
-      <<<blocks, THREADS_PER_BLOCK>>>(out, in, repeats, axis, in_rect.lo, pitches, out_volume);
+    auto stream = get_cached_stream();
+    repeat_kernel<VAL, DIM><<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
+      out, in, repeats, axis, in_rect.lo, pitches, out_volume);
+    CHECK_CUDA_STREAM(stream);
   }
 
   void operator()(Array& out_array,
@@ -147,6 +149,7 @@ struct RepeatImplBody<VariantKind::GPU, CODE, DIM> {
       count_repeat_kernel<<<blocks_count, THREADS_PER_BLOCK, shmem_size, stream>>>(
         extent, sum, repeats, in_rect.lo, axis, 1, offsets);
     }
+    CHECK_CUDA_STREAM(stream);
 
     cudaStreamSynchronize(stream);
 
@@ -161,6 +164,7 @@ struct RepeatImplBody<VariantKind::GPU, CODE, DIM> {
     const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
     repeat_kernel<VAL, DIM><<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
       out, in, repeats, offsets, axis, in_rect.lo, pitches, volume);
+    CHECK_CUDA_STREAM(stream);
   }
 };
 

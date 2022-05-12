@@ -26,16 +26,6 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
 
-import os
-import sys
-
-sys.path.insert(0, os.path.abspath("comparison"))
-sys.path.insert(0, os.path.abspath("../../../"))
-import _comparison_generator  # noqa: E402
-
-# Generate comparison table.
-with open("comparison/comparison_table.rst.inc", "w") as f:
-    f.write(_comparison_generator.generate("cunumeric"))
 
 # -- Project information -----------------------------------------------------
 
@@ -58,6 +48,8 @@ extensions = [
     "sphinx_copybutton",
     "sphinx_markdown_tables",
     "recommonmark",
+    "cunumeric._sphinxext.comparison_table",
+    "cunumeric._sphinxext.ufunc_formatter",
 ]
 
 copybutton_prompt_text = ">>> "
@@ -98,6 +90,12 @@ nitpick_ignore = [
     ("py:class", "data-type"),
     ("py:class", "M"),
     ("py:class", "N"),
+    ("py:class", "nested list of array_like"),
+    ("py:class", "scalars"),
+    ("py:class", "complex ndarray"),
+    ("py:class", "sequence of ints"),
+    ("py:class", "array"),
+    ("py:class", "any"),
 ]
 
 intersphinx_mapping = {
