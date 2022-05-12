@@ -21,6 +21,7 @@
 #include <thrust/execution_policy.h>
 #include <thrust/iterator/transform_iterator.h>
 
+#include "cunumeric/cuda_help.h"
 
 namespace cunumeric {
 
@@ -54,10 +55,10 @@ struct ScanLocalImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
       // RRRR depending on stride and volume this should either call multiple streams
       // RRRR or use a cub version (currently not implemented)
       thrust::inclusive_scan(thrust::device,
-			     inptr + index,
-			     inptr + index + stride,
-			     outptr + index,
-			     func());
+      			     inptr + index,
+      			     inptr + index + stride,
+      			     outptr + index,
+      			     func);
       // get the corresponding ND index with base zero to use for sum_val
       auto sum_valp = pitches.unflatten(index, rect.lo) - rect.lo;
       // only one element on scan axis
@@ -76,9 +77,9 @@ struct ScanLocalNanImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
   struct convert_nan_func
   {
     __host__ __device__
-    VAL operator()(VAL &x)
+    VAL operator()(VAL x)
     {
-      return std::isnan(x) ? ScanOp<OP_CODE, CODE>::nan_null : x;
+      return std::isnan(x) ? (VAL) ScanOp<OP_CODE, CODE>::nan_null : x;
     }
   };
   
@@ -104,10 +105,10 @@ struct ScanLocalNanImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
       // RRRR depending on stride and volume this should either call multiple streams
       // RRRR or use a cub version (currently not implemented)
       thrust::inclusive_scan(thrust::device,
-			     thrust::make_transform_iterator(inptr + index, convert_nan_func()),
-			     thrust::make_transform_iterator(inptr + index + stride, convert_nan_func()),
-			     outptr + index,
-			     func());
+      			     thrust::make_transform_iterator(inptr + index, convert_nan_func()),
+      			     thrust::make_transform_iterator(inptr + index + stride, convert_nan_func()),
+      			     outptr + index,
+      			     func);
       // get the corresponding ND index with base zero to use for sum_val
       auto sum_valp = pitches.unflatten(index, rect.lo) - rect.lo;
       // only one element on scan axis

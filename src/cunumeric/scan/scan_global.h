@@ -16,6 +16,7 @@
 
 #pragma once
 
+#include "cunumeric/scan/scan_global_util.h"
 #include "cunumeric/cunumeric.h"
 
 namespace cunumeric {
@@ -24,7 +25,7 @@ struct ScanGlobalArgs {
   const Array& sum_vals;
   const Array& out;
   ScanCode op_code;
-  const DomainPoint& partition_index;
+  const Legion::DomainPoint& partition_index;
 };
 
 class ScanGlobalTask : public CuNumericTask<ScanGlobalTask> {

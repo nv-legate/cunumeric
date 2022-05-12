@@ -20,6 +20,7 @@
 #include <thrust/reduce.h>
 #include <thrust/execution_policy.h>
 
+#include "cunumeric/cuda_help.h"
 
 namespace cunumeric {
 
@@ -36,7 +37,7 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
 }
   
 template <ScanCode OP_CODE, LegateTypeCode CODE, int DIM>
-struct ScanGlobalImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
+struct ScanGlobalImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
   using OP  = ScanOp<OP_CODE, CODE>;
   using VAL = legate_type_of<CODE>;
   
@@ -66,7 +67,7 @@ struct ScanGlobalImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
       auto sum_valsp = out_pitches.unflatten(index, out_rect.lo) - out_rect.lo;
       // first element on scan axis
       sum_valsp[DIM - 1] = 0;
-      auto base = thrust::reduce(thrust::device, &sum_vals[sum_valsp], &sum_vals[sum_valsp] + partition_index[DIM - 1] - 1, ScanOp<OP_CODE, CODE>::nan_null, func());
+      auto base = thrust::reduce(thrust::device, &sum_vals[sum_valsp], &sum_vals[sum_valsp] + partition_index[DIM - 1] - 1, (VAL) ScanOp<OP_CODE, CODE>::nan_null, func);
       // apply base to out
       scalar_kernel<<<blocks, THREADS_PER_BLOCK>>>(stride, func, &outptr[index], base);
     }

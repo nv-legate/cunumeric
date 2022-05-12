@@ -14,7 +14,7 @@
  *
  */
 
-#include "cunumeric/unary/scan_global_util.h"
+#include "cunumeric/scan/scan_global_util.h"
 #include "cunumeric/pitches.h"
 
 namespace cunumeric {
@@ -30,6 +30,7 @@ struct ScanGlobalImpl {
   template <LegateTypeCode CODE, int DIM>
   void operator()(ScanGlobalArgs& args) const
   {
+    using OP  = ScanOp<OP_CODE, CODE>;
     using VAL = legate_type_of<CODE>;
     
     auto out_rect = args.out.shape<DIM>();
@@ -45,7 +46,8 @@ struct ScanGlobalImpl {
     auto out = args.out.read_write_accessor<VAL, DIM>(out_rect);
     auto sum_vals = args.sum_vals.read_accessor<VAL, DIM>(sum_vals_rect);
 
-    ScanGlobalImplBody<KIND, OP_CODE, CODE, DIM>()(out, sum_vals, out_pitches, out_rect, sum_vals_pitches, sum_vals_rect, args.partition_index);
+    OP func;
+    ScanGlobalImplBody<KIND, OP_CODE, CODE, DIM>()(func, out, sum_vals, out_pitches, out_rect, sum_vals_pitches, sum_vals_rect, args.partition_index);
   }
 };
 
@@ -61,7 +63,7 @@ struct ScanGlobalDispatch {
 template <VariantKind KIND>
 static void scan_global_template(TaskContext& context)
 {
-  ScanGlobalArgs args{context.inputs()[1], context.outputs()[0], scalars[0].value<ScanCode>(),
+  ScanGlobalArgs args{context.inputs()[1], context.outputs()[0], context.scalars()[0].value<ScanCode>(),
     context.get_task_index()};
   op_dispatch(args.op_code, ScanGlobalDispatch<KIND>{}, args);
 }

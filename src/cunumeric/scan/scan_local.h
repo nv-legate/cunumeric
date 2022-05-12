@@ -16,6 +16,7 @@
 
 #pragma once
 
+#include "cunumeric/scan/scan_local_util.h"
 #include "cunumeric/cunumeric.h"
 
 namespace cunumeric {

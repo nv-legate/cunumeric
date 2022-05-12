@@ -54,7 +54,7 @@ struct ScanGlobalImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
       auto sum_valsp = out_pitches.unflatten(index, out_rect.lo) - out_rect.lo;
       // first element on scan axis
       sum_valsp[DIM - 1] = 0;
-      auto base = thrust::reduce(thrust::host, &sum_vals[sum_valsp], &sum_vals[sum_valsp] + partition_index[DIM - 1] - 1, ScanOp<OP_CODE, CODE>::nan_null, func());
+      auto base = thrust::reduce(thrust::host, &sum_vals[sum_valsp], &sum_vals[sum_valsp] + partition_index[DIM - 1] - 1, (VAL) ScanOp<OP_CODE, CODE>::nan_null, func);
       // apply base to out
       for(uint64_t i = index; i < stride; i++){
 	outptr[i] = func(outptr[i], base);

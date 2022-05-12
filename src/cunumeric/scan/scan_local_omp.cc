@@ -54,10 +54,10 @@ struct ScanLocalImplBody<VariantKind::OMP, OP_CODE, CODE, DIM> {
 
     for(uint64_t index = 0; index < volume; index += stride){
       thrust::inclusive_scan(thrust::omp::par,
-			     inptr + index,
-			     inptr + index + stride,
-			     outptr + index,
-			     func());
+      			     inptr + index,
+      			     inptr + index + stride,
+      			     outptr + index,
+      			     func);
       // get the corresponding ND index with base zero to use for sum_val
       auto sum_valp = pitches.unflatten(index, rect.lo) - rect.lo;
       // only one element on scan axis
@@ -76,9 +76,9 @@ struct ScanLocalNanImplBody<VariantKind::OMP, OP_CODE, CODE, DIM> {
   struct convert_nan_func
   {
     __host__ __device__
-    VAL operator()(VAL &x)
+    VAL operator()(VAL x)
     {
-      return std::isnan(x) ? ScanOp<OP_CODE, CODE>::nan_null : x;
+      return std::isnan(x) ? (VAL) ScanOp<OP_CODE, CODE>::nan_null : x;
     }
   };
   
@@ -102,10 +102,10 @@ struct ScanLocalNanImplBody<VariantKind::OMP, OP_CODE, CODE, DIM> {
 
     for(uint64_t index = 0; index < volume; index += stride){
       thrust::inclusive_scan(thrust::omp::par,
-			     thrust::make_transform_iterator(inptr + index, convert_nan_func()),
-			     thrust::make_transform_iterator(inptr + index + stride, convert_nan_func()),
-			     outptr + index,
-			     func());
+      			     thrust::make_transform_iterator(inptr + index, convert_nan_func()),
+      			     thrust::make_transform_iterator(inptr + index + stride, convert_nan_func()),
+      			     outptr + index,
+      			     func);
       // get the corresponding ND index with base zero to use for sum_val
       auto sum_valp = pitches.unflatten(index, rect.lo) - rect.lo;
       // only one element on scan axis

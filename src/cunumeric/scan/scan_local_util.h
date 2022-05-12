@@ -32,26 +32,42 @@ constexpr decltype(auto) op_dispatch(ScanCode op_code, bool nan0, Functor f, Fna
 {
   switch (op_code) {
     case ScanCode::PROD:
-      return f.template operator()<ScanCode::PROD, nan0>(std::forward<Fnargs>(args)...);
+      switch(nan0) {
+        case true:
+	  return f.template operator()<ScanCode::PROD, true>(std::forward<Fnargs>(args)...);
+        case false:
+	  return f.template operator()<ScanCode::PROD, false>(std::forward<Fnargs>(args)...);
+      }
     case ScanCode::SUM:
-      return f.template operator()<ScanCode::SUM, nan0>(std::forward<Fnargs>(args)...);
+      switch(nan0) {
+        case true:
+	  return f.template operator()<ScanCode::SUM, true>(std::forward<Fnargs>(args)...);
+        case false:
+	  return f.template operator()<ScanCode::SUM, false>(std::forward<Fnargs>(args)...);
+      }
     default: break;
   }
   assert(false);
-  return f.template operator()<ScanCode::SUM, nan0>(std::forward<Fnargs>(args)...);
+  return f.template operator()<ScanCode::SUM, false>(std::forward<Fnargs>(args)...);
 }
 
 // RRRR not sure I fully understand these?
+
+template <ScanCode OP_CODE, legate::LegateTypeCode CODE>
+struct ScanOp {
+  static constexpr int nan_null = 0;
+};
+  
 template <legate::LegateTypeCode CODE>
 struct ScanOp<ScanCode::SUM, CODE> : thrust::plus<legate::legate_type_of<CODE>> {
-  static constexpr legate::legate_type_of<CODE> nan_null = legate::legate_type_of<CODE>(0);
-  ScanOp(const std::vector<legate::Store>& args) {}
+  static constexpr int nan_null = 0;
+  ScanOp() {}
 };
 
 template <legate::LegateTypeCode CODE>
 struct ScanOp<ScanCode::PROD, CODE> : thrust::multiplies<legate::legate_type_of<CODE>> {
-  static constexpr legate::legate_type_of<CODE> nan_null = legate::legate_type_of<CODE>(1);
-  ScanOp(const std::vector<legate::Store>& args) {}
+  static constexpr int nan_null = 1;
+  ScanOp() {}
 };
 
 }  // namespace cunumeric

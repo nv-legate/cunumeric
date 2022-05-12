@@ -14,7 +14,7 @@
  *
  */
 
-#include "cunumeric/unary/scan_local_util.h"
+#include "cunumeric/scan/scan_local_util.h"
 #include "cunumeric/pitches.h"
 
 namespace cunumeric {
@@ -35,6 +35,7 @@ struct ScanLocalImpl {
 	    std::enable_if_t<NAN0 && legate::is_floating_point<CODE>::value>* = nullptr>
   void operator()(ScanLocalArgs& args) const
   {
+    using OP  = ScanOp<OP_CODE, CODE>;
     using VAL = legate_type_of<CODE>;
     
     auto rect = args.out.shape<DIM>();
@@ -47,13 +48,15 @@ struct ScanLocalImpl {
     auto out = args.out.write_accessor<VAL, DIM>(rect);
     auto in = args.in.read_accessor<VAL, DIM>(rect);
 
-    ScanLocalNanImplBody<KIND, OP_CODE, CODE, DIM>()(out, in, args.sum_vals, pitches, rect);
+    OP func;
+    ScanLocalNanImplBody<KIND, OP_CODE, CODE, DIM>()(func, out, in, args.sum_vals, pitches, rect);
   }
   // Case where NANs are as is
   template <LegateTypeCode CODE, int DIM,
 	    std::enable_if_t<!(NAN0 && legate::is_floating_point<CODE>::value)>* = nullptr>
   void operator()(ScanLocalArgs& args) const
   {
+    using OP  = ScanOp<OP_CODE, CODE>;
     using VAL = legate_type_of<CODE>;
     
     auto rect = args.out.shape<DIM>();
@@ -66,7 +69,8 @@ struct ScanLocalImpl {
     auto out = args.out.write_accessor<VAL, DIM>(rect);
     auto in = args.in.read_accessor<VAL, DIM>(rect);
 
-    ScanLocalImplBody<KIND, OP_CODE, CODE, DIM>()(out, in, args.sum_vals, pitches, rect);
+    OP func;
+    ScanLocalImplBody<KIND, OP_CODE, CODE, DIM>()(func, out, in, args.sum_vals, pitches, rect);
   }
 
 };
@@ -84,7 +88,7 @@ template <VariantKind KIND>
 static void scan_local_template(TaskContext& context)
 {
   ScanLocalArgs args{context.outputs()[0], context.inputs()[0], context.outputs()[1],
-    scalars[0].value<ScanCode>(), scalars[1].value<bool>()};
+    context.scalars()[0].value<ScanCode>(), context.scalars()[1].value<bool>()};
   op_dispatch(args.op_code, args.nan0, ScanLocalDispatch<KIND>{}, args);
 }
 
