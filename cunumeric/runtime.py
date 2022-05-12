@@ -14,11 +14,11 @@
 #
 
 import struct
-import sys
 import warnings
 from functools import reduce
 
 import numpy as np
+from legate.rc import ArgSpec, Argument, parse_command_args
 
 import legate.core.types as ty
 from legate.core import LEGATE_MAX_DIM, Rect, get_legate_runtime, legion
@@ -56,6 +56,65 @@ _supported_dtypes = {
     np.complex128: ty.complex128,
 }
 
+ARGS = [
+    Argument(
+        "test",
+        ArgSpec(
+            action="store_true",
+            default=False,
+            dest="test_mode",
+            help="Enable test mode. In test mode, all cuNumeric ndarrays are managed by the distributed runtime and the NumPy fallback for small arrays is turned off.",  # noqa E501
+        ),
+    ),
+    Argument(
+        "preload-cudalibs",
+        ArgSpec(
+            action="store_true",
+            default=False,
+            dest="preload_cudalibs",
+            help="Preload and initialize handles of all CUDA libraries (cuBLAS, cuSOLVER, etc.) used in cuNumericLoad CUDA libs early",  # noqa E501
+        ),
+    ),
+    Argument(
+        "warn",
+        ArgSpec(
+            action="store_true",
+            default=False,
+            dest="warning",
+            help="Turn on warnings",
+        ),
+    ),
+    Argument(
+        "report:coverage",
+        ArgSpec(
+            action="store_true",
+            default=False,
+            dest="report_coverage",
+            help="Print an overall percentage of cunumeric coverage",
+        ),
+    ),
+    Argument(
+        "report:dump-callstack",
+        ArgSpec(
+            action="store_true",
+            default=False,
+            dest="report_dump_callstack",
+            help="Print an overall percentage of cunumeric coverage with call stack details",  # noqa E501
+        ),
+    ),
+    Argument(
+        "report:dump-csv",
+        ArgSpec(
+            action="store",
+            type=str,
+            nargs=1,
+            default=None,
+            dest="report_dump_csv",
+            help="Save a coverage report to a specified CSV file",
+        ),
+    ),
+]
+
 
 class Runtime(object):
     def __init__(self, legate_context):
@@ -88,8 +147,11 @@ class Runtime(object):
         # destroy us
         cunumeric_lib.set_runtime(self)
         self._register_dtypes()
-        self._parse_command_args()
-        if self.num_gpus > 0 and self.preload_cudalibs:
+
+        self.args = parse_command_args("cunumeric", ARGS)
+        self.args.warning = self.args.warning or self.args.test_mode
+
+        if self.num_gpus > 0 and self.args.preload_cudalibs:
             self._load_cudalibs()
 
     def _register_dtypes(self):
@@ -115,53 +177,10 @@ class Runtime(object):
             raise ValueError(f"there is no point type registered for {n}")
         return point_type
 
-    def _parse_command_args(self):
-        try:
-            # Prune it out so the application does not see it
-            sys.argv.remove("-cunumeric:test")
-            self.test_mode = True
-        except ValueError:
-            self.test_mode = False
-        try:
-            # Prune it out so the application does not see it
-            sys.argv.remove("-cunumeric:preload-cudalibs")
-            self.preload_cudalibs = True
-        except ValueError:
-            self.preload_cudalibs = False
-        try:
-            # Prune it out so the application does not see it
-            sys.argv.remove("-cunumeric:warn")
-            self.warning = True
-        except ValueError:
-            self.warning = self.test_mode
-        try:
-            # Prune it out so the application does not see it
-            sys.argv.remove("-cunumeric:report:coverage")
-            self.report_coverage = True
-        except ValueError:
-            self.report_coverage = False
-        try:
-            # Prune it out so the application does not see it
-            sys.argv.remove("-cunumeric:report:dump-callstack")
-            self.report_dump_callstack = True
-        except ValueError:
-            self.report_dump_callstack = False
-        try:
-            # Prune it out so the application does not see it
-            idx = sys.argv.index("-cunumeric:report:dump-csv")
-            if idx + 1 >= len(sys.argv):
-                raise RuntimeError(
-                    "Please provide a filename for the reporting"
-                )
-            self.report_dump_csv = sys.argv[idx + 1]
-            sys.argv = sys.argv[:idx] + sys.argv[idx + 2 :]
-        except ValueError:
-            self.report_dump_csv = None
-
     def record_api_call(
         self, name: str, location: str, implemented: bool
     ) -> None:
-        assert self.report_coverage
+        assert self.args.report_coverage
         self.api_calls.append((name, location, implemented))
 
     def _load_cudalibs(self):
@@ -207,8 +226,8 @@ class Runtime(object):
                 f"cuNumeric API coverage: {implemented}/{total} "
                 f"({implemented / total * 100}%)"
             )
-        if self.report_dump_csv is not None:
-            with open(self.report_dump_csv, "w") as f:
+        if self.args.report_dump_csv is not None:
+            with open(self.args.report_dump_csv, "w") as f:
                 print("function_name,location,implemented", file=f)
                 for (func_name, loc, impl) in self.api_calls:
                     print(f"{func_name},{loc},{impl}", file=f)
@@ -217,7 +236,7 @@ class Runtime(object):
         assert not self.destroyed
         if self.num_gpus > 0:
             self._unload_cudalibs()
-        if self.report_coverage:
+        if hasattr(self, "args") and self.args.report_coverage:
             self._report_coverage()
         self.destroyed = True
 
@@ -458,7 +477,7 @@ class Runtime(object):
         if volume == 0:
             return True
         # If we're testing then the answer is always no
-        if self.test_mode:
+        if self.args.test_mode:
             return False
         if len(shape) > LEGATE_MAX_DIM:
             return True
@@ -502,7 +521,7 @@ class Runtime(object):
             raise RuntimeError("invalid array type")
 
     def warn(self, msg, category=UserWarning):
-        if not self.warning:
+        if not self.args.warning:
             return
         stacklevel = find_last_user_stacklevel()
         warnings.warn(msg, stacklevel=stacklevel, category=category)
