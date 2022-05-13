@@ -23,7 +23,7 @@ dependencies:
   - clang-tools>=8
   - coverage
   - mock
-  - mypy
+  - mypy>=0.942
   - pre-commit
   - pynvml
   - pytest
