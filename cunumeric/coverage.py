@@ -122,6 +122,15 @@ def unimplemented(
 ) -> CuWrapped:
     name = f"{prefix}.{name}"
 
+    # Skip over NumPy's __array_function__ dispatch wrapper, if present.
+    # Say we're dealing with a call to `cunumeric.foo`, and are trying to fall
+    # back to `numpy.foo`. If we didn't skip the __array_function__ wrapper of
+    # `numpy.foo`, then NumPy would ask `cunumeric.ndarray.__array_function__`
+    # to handle the call to `numpy.foo`, then
+    # `cunumeric.ndarray.__array_function__` would call `cunumeric.foo`, and we
+    # would end up here again, thus creating infinite recursion.
+    func = getattr(func, "_implementation", func)
+
     wrapper: CuWrapped
 
     if reporting:

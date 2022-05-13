@@ -162,6 +162,26 @@ def convert_to_predicate_ndarray(obj):
     )
 
 
+def _convert_all_to_numpy(obj):
+    """
+    Converts all cuNumeric arrays within a data structure into NumPy arrays.
+
+    The recursion logic is rather limited, but this function is meant to be
+    used for arguments of NumPy API calls, which shouldn't nest their arrays
+    very deep.
+    """
+    if type(obj) == list:
+        return [_convert_all_to_numpy(x) for x in obj]
+    elif type(obj) == tuple:
+        return tuple(_convert_all_to_numpy(x) for x in obj)
+    elif type(obj) == dict:
+        return {k: _convert_all_to_numpy(v) for k, v in obj.items()}
+    elif isinstance(obj, ndarray):
+        return obj.__array__()
+    else:
+        return obj
+
+
 @clone_class(np.ndarray)
 class ndarray:
     def __init__(
@@ -244,6 +264,52 @@ class ndarray:
     # @property
     # def __array_struct__(self):
     #    return self.__array__().__array_struct__
+
+    def __array_function__(self, func, types, args, kwargs):
+        import cunumeric as cn
+
+        # We are wrapping all NumPy modules, so we can expect to find every
+        # NumPy API call in cuNumeric, even if just an "unimplemented" stub.
+        module = reduce(getattr, func.__module__.split(".")[1:], cn)
+        cn_func = getattr(module, func.__name__)
+        # TODO: We should technically check at this point that all array-like
+        # arguments are convertible to `cunumeric.ndarray`, and if not then
+        # return `NotImplemented`, to give a chance to those other types to
+        # handle this call (assuming they also implement `__array_function__`).
+        # For now we will just assume that at the very least we can convert
+        # any such object to a baseline NumPy array using `np.array`, and
+        # consume that.
+        return cn_func(*args, **kwargs)
+
+    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+        from . import _ufunc
+
+        # TODO: Similar to __array_function__, we should technically confirm
+        # that all array-like arguments are convertible to `cunumeric.ndarray`.
+        # TODO: The logic below should be moved to a "clone_ufunc" wrapper,
+        # that emits a proper warning to the user in case of fallback.
+
+        if hasattr(_ufunc, ufunc.__name__):
+            cn_ufunc = getattr(_ufunc, ufunc.__name__)
+            if hasattr(cn_ufunc, method):
+                cn_method = getattr(cn_ufunc, method)
+                # TODO: We could check at this point that our implementation
+                # supports all the provided arguments, and fall back to
+                # NumPy if not.
+                return cn_method(*inputs, **kwargs)
+
+        # We cannot handle this ufunc call, so we will fall back to NumPy.
+        # Ideally we would be able to skip the __array_ufunc__ dispatch, and
+        # let NumPy convert our arrays automatically by calling our __array__
+        # method. Unfortunately there is no easy way to skip the dispatch
+        # mechnanism, therefore the best we can do is manually convert all
+        # cuNumeric arrays into NumPy arrays and try the call again.
+        # One would expect NumPy to do exactly this if all __array_ufunc__
+        # implementations return `NotImplemented` for a particular call, but
+        # alas NumPy will simply fail in that case.
+        inputs = _convert_all_to_numpy(inputs)
+        kwargs = _convert_all_to_numpy(kwargs)
+        return getattr(ufunc, method)(*inputs, **kwargs)
 
     @property
     def T(self):
