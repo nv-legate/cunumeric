@@ -1378,7 +1378,6 @@ def _concatenate(
     out=None,
     dtype=None,
     casting="same_kind",
-    slicing_only=False,
 ):
     if axis < 0:
         axis += len(common_info.shape)
