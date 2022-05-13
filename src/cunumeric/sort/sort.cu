@@ -1151,6 +1151,7 @@ void rebalance_data(SegmentMergePiece<VAL>& merge_buffer,
 
 template <typename VAL>
 void sample_sort_nccl_nd(SortPiece<VAL> local_sorted,
+                         Array& output_array_unbound,  // only for unbound usage when !rebalance
                          void* output_ptr,
                          /* global domain information */
                          size_t my_rank,  // global NCCL rank
@@ -1162,11 +1163,13 @@ void sample_sort_nccl_nd(SortPiece<VAL> local_sorted,
                          size_t* sort_ranks,     // rank ids that share a sort dimension with us
                          size_t segment_size_l,  // (local) segment size
                          /* other */
+                         bool rebalance,
                          bool argsort,
                          cudaStream_t stream,
                          ncclComm_t* comm)
 {
-  size_t volume = local_sorted.size;
+  size_t volume              = local_sorted.size;
+  bool is_unbound_1d_storage = output_array_unbound.dim() == -1;
 
   /////////////////////////////////////////////////////////////////////////////////////////////////
   /////////////// Part 0: detection of empty nodes
@@ -1193,7 +1196,19 @@ void sample_sort_nccl_nd(SortPiece<VAL> local_sorted,
     worker_count_d.destroy();
 
     // early out
-    if (volume == 0) return;
+    if (volume == 0) {
+      if (is_unbound_1d_storage) {
+        // we need to return an empty buffer here
+        if (argsort) {
+          auto buffer = create_buffer<int64_t>(0, Memory::GPU_FB_MEM);
+          output_array_unbound.return_data(buffer, Point<1>(0));
+        } else {
+          auto buffer = create_buffer<VAL>(0, Memory::GPU_FB_MEM);
+          output_array_unbound.return_data(buffer, Point<1>(0));
+        }
+      }
+      return;
+    }
   }
 
   /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1564,18 +1579,30 @@ void sample_sort_nccl_nd(SortPiece<VAL> local_sorted,
   /////////////// Part 5: re-balance data to match input/output dimensions
   /////////////////////////////////////////////////////////////////////////////////////////////////
 
-  rebalance_data(merged_result,
-                 output_ptr,
-                 my_rank,
-                 my_sort_rank,
-                 num_sort_ranks,
-                 sort_ranks,
-                 segment_size_l,
-                 num_segments_l,
-                 argsort,
-                 alloc,
-                 stream,
-                 comm);
+  if (rebalance) {
+    assert(!is_unbound_1d_storage);
+    rebalance_data(merged_result,
+                   output_ptr,
+                   my_rank,
+                   my_sort_rank,
+                   num_sort_ranks,
+                   sort_ranks,
+                   segment_size_l,
+                   num_segments_l,
+                   argsort,
+                   alloc,
+                   stream,
+                   comm);
+  } else {
+    assert(is_unbound_1d_storage);
+    merged_result.segments.destroy();
+    if (argsort) {
+      merged_result.values.destroy();
+      output_array_unbound.return_data(merged_result.indices, Point<1>(merged_result.size));
+    } else {
+      output_array_unbound.return_data(merged_result.values, Point<1>(merged_result.size));
+    }
+  }
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1613,8 +1640,12 @@ struct SortImplBody<VariantKind::GPU, CODE, DIM> {
     // we allow empty domains for distributed sorting
     assert(rect.empty() || input.accessor.is_dense_row_major(rect));
 
-    auto stream                = get_cached_stream();
-    bool need_distributed_sort = segment_size_l != segment_size_g;
+    auto stream = get_cached_stream();
+
+    bool is_unbound_1d_storage = output_array.dim() == -1;
+    bool need_distributed_sort = segment_size_l != segment_size_g || is_unbound_1d_storage;
+    bool rebalance             = !is_unbound_1d_storage;
+    assert(DIM == 1 || !is_unbound_1d_storage);
 
     // initialize sort pointers
     SortPiece<VAL> local_sorted;
@@ -1634,7 +1665,7 @@ struct SortImplBody<VariantKind::GPU, CODE, DIM> {
         local_sorted.size    = volume;
       } else {
         AccessorWO<int64_t, DIM> output = output_array.write_accessor<int64_t, DIM>(rect);
-        assert(output.accessor.is_dense_row_major(rect));
+        assert(rect.empty() || output.accessor.is_dense_row_major(rect));
         indices_ptr = output.ptr(rect.lo);
       }
       size_t offset = rect.lo[DIM - 1];
@@ -1660,7 +1691,7 @@ struct SortImplBody<VariantKind::GPU, CODE, DIM> {
         local_sorted.size    = volume;
       } else {
         AccessorWO<VAL, DIM> output = output_array.write_accessor<VAL, DIM>(rect);
-        assert(output.accessor.is_dense_row_major(rect));
+        assert(rect.empty() || output.accessor.is_dense_row_major(rect));
         values_ptr = output.ptr(rect.lo);
       }
     }
@@ -1680,36 +1711,50 @@ struct SortImplBody<VariantKind::GPU, CODE, DIM> {
     CHECK_CUDA_STREAM(stream);
 
     if (need_distributed_sort) {
-      assert(is_index_space);
-      std::vector<size_t> sort_ranks(num_sort_ranks);
-      size_t rank_group = local_rank / num_sort_ranks;
-      for (int r = 0; r < num_sort_ranks; ++r) sort_ranks[r] = rank_group * num_sort_ranks + r;
+      if (is_index_space) {
+        assert(is_index_space || is_unbound_1d_storage);
+        std::vector<size_t> sort_ranks(num_sort_ranks);
+        size_t rank_group = local_rank / num_sort_ranks;
+        for (int r = 0; r < num_sort_ranks; ++r) sort_ranks[r] = rank_group * num_sort_ranks + r;
 
-      void* output_ptr = nullptr;
-      if (volume > 0) {
+        void* output_ptr = nullptr;
+        // in case the storage *is NOT* unbound -- we provide a target pointer
+        // in case the storage *is* unbound -- the result will be appended to output_array
+        if (volume > 0 && !is_unbound_1d_storage) {
+          if (argsort) {
+            auto output = output_array.write_accessor<int64_t, DIM>(rect);
+            assert(output.accessor.is_dense_row_major(rect));
+            output_ptr = static_cast<void*>(output.ptr(rect.lo));
+          } else {
+            auto output = output_array.write_accessor<VAL, DIM>(rect);
+            assert(output.accessor.is_dense_row_major(rect));
+            output_ptr = static_cast<void*>(output.ptr(rect.lo));
+          }
+        }
+
+        sample_sort_nccl_nd(local_sorted,
+                            output_array,
+                            output_ptr,
+                            local_rank,
+                            num_ranks,
+                            segment_size_g,
+                            local_rank % num_sort_ranks,
+                            num_sort_ranks,
+                            &sort_ranks[0],
+                            segment_size_l,
+                            rebalance,
+                            argsort,
+                            stream,
+                            comms[0].get<ncclComm_t*>());
+      } else {
+        // edge case where we have an unbound store but only 1 GPU was assigned with the task
         if (argsort) {
-          auto output = output_array.write_accessor<int64_t, DIM>(rect);
-          assert(output.accessor.is_dense_row_major(rect));
-          output_ptr = static_cast<void*>(output.ptr(rect.lo));
+          local_sorted.values.destroy();
+          output_array.return_data(local_sorted.indices, Point<1>(local_sorted.size));
         } else {
-          auto output = output_array.write_accessor<VAL, DIM>(rect);
-          assert(output.accessor.is_dense_row_major(rect));
-          output_ptr = static_cast<void*>(output.ptr(rect.lo));
+          output_array.return_data(local_sorted.values, Point<1>(local_sorted.size));
         }
       }
-
-      sample_sort_nccl_nd(local_sorted,
-                          output_ptr,
-                          local_rank,
-                          num_ranks,
-                          segment_size_g,
-                          local_rank % num_sort_ranks,
-                          num_sort_ranks,
-                          &sort_ranks[0],
-                          segment_size_l,
-                          argsort,
-                          stream,
-                          comms[0].get<ncclComm_t*>());
     } else if (argsort) {
       // cleanup for non distributed argsort
       local_sorted.values.destroy();
