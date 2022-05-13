@@ -18,7 +18,6 @@
 from __future__ import print_function
 
 import argparse
-import datetime
 import gc
 import math
 
@@ -54,16 +53,7 @@ def compute_diagonal(steps, N, timing, warmup):
 
 def compute_choose(steps, N, timing, warmup):
     print("measuring choose")
-    A = tuple(
-        np.full(
-            (
-                10,
-                N,
-            ),
-            k,
-        )
-        for k in range(10)
-    )
+    A = tuple(np.full((N,), k) for k in range(10))
     C1 = np.arange(N, dtype=int) % 10
     for step in range(steps + warmup):
         if step == warmup:
@@ -184,7 +174,6 @@ def compute_advanced_indexing_3d(steps, N, timing, warmup):
     print("measuring advanced_indexing_3d")
     indx = B % 10
     indx3d_bool = (A3 % 2).astype(bool)
-    start = datetime.datetime.now()
     for step in range(steps + warmup):
         if step == warmup:
             start = time()
