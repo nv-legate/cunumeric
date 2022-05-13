@@ -12,3 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
+from typing import TypedDict
+
+
+class SphinxParallelSpec(TypedDict):
+    parallel_read_safe: bool
+    parallel_write_safe: bool
+
+
+PARALLEL_SAFE = SphinxParallelSpec(
+    parallel_read_safe=True, parallel_write_safe=True
+)
