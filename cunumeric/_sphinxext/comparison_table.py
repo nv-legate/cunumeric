@@ -17,6 +17,7 @@ from __future__ import annotations
 from docutils.parsers.rst.directives import choice
 from sphinx.util.logging import getLogger
 
+from . import PARALLEL_SAFE
 from ._comparison_config import GROUPED_CONFIGS, NUMPY_CONFIGS
 from ._comparison_util import generate_section
 from ._cunumeric_directive import CunumericDirective
@@ -51,3 +52,4 @@ class ComparisonTable(CunumericDirective):
 
 def setup(app):
     app.add_directive_to_domain("py", "comparison-table", ComparisonTable)
+    return PARALLEL_SAFE
