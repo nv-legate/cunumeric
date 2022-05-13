@@ -257,13 +257,13 @@ def clone_class(origin_class: type) -> Callable[[type], type]:
     return decorator
 
 
-def is_implemented(obj):
+def is_implemented(obj: Any) -> bool:
     return hasattr(obj, "_cunumeric") and obj._cunumeric.implemented
 
 
-def is_single(obj):
+def is_single(obj: Any) -> bool:
     return hasattr(obj, "_cunumeric") and obj._cunumeric.single
 
 
-def is_multi(obj):
+def is_multi(obj: Any) -> bool:
     return hasattr(obj, "_cunumeric") and obj._cunumeric.multi
