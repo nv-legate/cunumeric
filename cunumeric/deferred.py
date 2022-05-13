@@ -421,13 +421,27 @@ class DeferredArray(NumPyThunk):
         rhs = self
         # the index where the first index_array is passed to the [] operator
         start_index = -1
-        if (
-            isinstance(key, NumPyThunk)
-            and key.dtype == bool
-            and key.shape == rhs.shape
-        ):
+        if isinstance(key, NumPyThunk) and key.dtype == bool:
             if not isinstance(key, DeferredArray):
                 key = self.runtime.to_deferred_array(key)
+
+            # in case when boolean array is passed as an index, shape for all
+            # its dimensions should be the same as the shape of
+            # corresponding dimensions of the input array
+            for i in range(key.ndim):
+                if key.shape[i] != rhs.shape[i]:
+                    raise ValueError(
+                        "shape of the index array for "
+                        f"dimension {i} doesn't match to the shape of the"
+                        f"index array which is {rhs.shape[i]}"
+                    )
+            key_dims = key.ndim
+            out_dim = rhs.ndim - key_dims + 1
+            key = key.base
+            # bring key to the same shape as rhs
+            if key.shape != rhs.shape:
+                for i in range(key.ndim, rhs.ndim):
+                    key = key.promote(i, rhs.shape[i])
 
             out_dtype = rhs.dtype
             # in cease this operation is called for the set_item, we
@@ -437,20 +451,40 @@ class DeferredArray(NumPyThunk):
                 N = rhs.ndim
                 out_dtype = rhs.runtime.get_point_type(N)
 
-            out = rhs.runtime.create_unbound_thunk(out_dtype)
+            # TODO : current implementation of the ND output regions
+            # requires out.ndim == rhs.ndim. This will be fixed in the
+            # future
+            out = rhs.runtime.create_unbound_thunk(out_dtype, ndim=rhs.ndim)
+
             task = rhs.context.create_task(CuNumericOpCode.ADVANCED_INDEXING)
             task.add_output(out.base)
             task.add_input(rhs.base)
-            task.add_input(key.base)
+            task.add_input(key)
             task.add_scalar_arg(is_set, bool)
-            task.add_alignment(rhs.base, key.base)
-            task.add_broadcast(
-                key.base, axes=tuple(range(1, len(key.base.shape)))
-            )
+            task.add_scalar_arg(key_dims, ty.int64)
+            task.add_alignment(rhs.base, key)
+            task.add_broadcast(key, axes=tuple(range(1, len(key.shape))))
             task.add_broadcast(
                 rhs.base, axes=tuple(range(1, len(rhs.base.shape)))
             )
             task.execute()
+
+            # TODO : current implementation of the ND output regions
+            # requires out.ndim == rhs.ndim.
+            # The logic below will be removed in the future
+            if out_dim != rhs.ndim:
+                out_tmp = out.base
+                for dim in range(rhs.ndim - out_dim):
+                    out_tmp = out_tmp.project(0, 0)
+
+                out = self.runtime.create_empty_thunk(
+                    out_tmp.shape,
+                    out_dtype,
+                    inputs=[],
+                )
+
+                out, rhs = out.copy_store(out_tmp)
+
             return False, rhs, out, self
 
         if isinstance(key, NumPyThunk):

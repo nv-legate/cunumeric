@@ -22,73 +22,84 @@ namespace cunumeric {
 using namespace Legion;
 using namespace legate;
 
-template <LegateTypeCode CODE, int DIM1, int DIM2>
-struct AdvancedIndexingImplBody<VariantKind::CPU, CODE, DIM1, DIM2> {
+template <LegateTypeCode CODE, int DIM, typename OUT_TYPE>
+struct AdvancedIndexingImplBody<VariantKind::CPU, CODE, DIM, OUT_TYPE> {
   using VAL = legate_type_of<CODE>;
 
-  void compute_output(Buffer<VAL>& out,
-                      const AccessorRO<VAL, DIM1>& input,
-                      const AccessorRO<bool, DIM2>& index,
-                      const Pitches<DIM1 - 1>& pitches_input,
-                      const Rect<DIM1>& rect_input,
-                      const Pitches<DIM2 - 1>& pitches_index,
-                      const Rect<DIM2>& rect_index,
-                      const size_t volume) const
+  void compute_output(Buffer<VAL, DIM>& out,
+                      const AccessorRO<VAL, DIM>& input,
+                      const AccessorRO<bool, DIM>& index,
+                      const Pitches<DIM - 1>& pitches,
+                      const Rect<DIM>& rect,
+                      const int volume,
+                      const int key_dim,
+                      const int skip_size) const
   {
-    int64_t out_idx = 0;
+    size_t out_idx = 0;
     for (size_t idx = 0; idx < volume; ++idx) {
-      auto p = pitches_index.unflatten(idx, rect_index.lo);
+      auto p = pitches.unflatten(idx, rect.lo);
+      Point<DIM> out_p;
+      for (size_t i = 0; i < key_dim - 1; i++) { out_p[i] = 0; }
+      out_p[key_dim - 1] = out_idx;
+      for (size_t i = key_dim; i < DIM; i++) { out_p[i] = p[i]; }
       if (index[p] == true) {
-        auto p_input = pitches_input.unflatten(idx, rect_input.lo);
-        out[out_idx] = input[p_input];
-        out_idx++;
+        out[out_p] = input[p];
+        if ((idx != 0 and idx % skip_size == 0) or (skip_size == 1)) out_idx++;
       }
     }
   }
 
-  void compute_output(Buffer<Point<DIM1>>& out,
-                      const AccessorRO<VAL, DIM1>&,
-                      const AccessorRO<bool, DIM2>& index,
-                      const Pitches<DIM1 - 1>& pitches_input,
-                      const Rect<DIM1>& rect_input,
-                      const Pitches<DIM2 - 1>& pitches_index,
-                      const Rect<DIM2>& rect_index,
-                      const size_t volume) const
+  void compute_output(Buffer<Point<DIM>, DIM>& out,
+                      const AccessorRO<VAL, DIM>&,
+                      const AccessorRO<bool, DIM>& index,
+                      const Pitches<DIM - 1>& pitches,
+                      const Rect<DIM>& rect,
+                      const int volume,
+                      const int key_dim,
+                      const int skip_size) const
   {
-    int64_t out_idx = 0;
+    size_t out_idx = 0;
     for (size_t idx = 0; idx < volume; ++idx) {
-      auto p = pitches_index.unflatten(idx, rect_index.lo);
+      auto p = pitches.unflatten(idx, rect.lo);
+      Point<DIM> out_p;
+      for (size_t i = 0; i < key_dim - 1; i++) { out_p[i] = 0; }
+      out_p[key_dim - 1] = out_idx;
+      for (size_t i = key_dim; i < DIM; i++) { out_p[i] = p[i]; }
       if (index[p] == true) {
-        auto p_input = pitches_input.unflatten(idx, rect_input.lo);
-        out[out_idx] = p_input;
-        out_idx++;
+        out[out_p] = p;
+        if ((idx != 0 and idx % skip_size == 0) or (skip_size == 1)) out_idx++;
       }
     }
   }
 
-  template <typename OUT_TYPE>
-  size_t operator()(Buffer<OUT_TYPE>& out,
-                    const AccessorRO<VAL, DIM1>& input,
-                    const AccessorRO<bool, DIM2>& index,
-                    const Pitches<DIM1 - 1>& pitches_input,
-                    const Rect<DIM1>& rect_input,
-                    const Pitches<DIM2 - 1>& pitches_index,
-                    const Rect<DIM2>& rect_index) const
+  size_t operator()(Array& out_arr,
+                    const AccessorRO<VAL, DIM>& input,
+                    const AccessorRO<bool, DIM>& index,
+                    const Pitches<DIM - 1>& pitches,
+                    const Rect<DIM>& rect,
+                    const size_t key_dim) const
   {
-#ifdef DEBUG_CUNUMERIC
-    // in this case shapes for input and index arrays  should be the same
-    assert(Domain(rect_input) == Domain(rect_index));
-#endif
-    const size_t volume = rect_index.volume();
+    Point<DIM> extends;
+    size_t skip_size = 1;
+    for (int i = key_dim; i < DIM; i++) {
+      auto diff  = 1 + rect.hi[i] - rect.lo[i];
+      extends[i] = diff;
+      if (diff != 0) skip_size *= diff;
+    }
+    for (int i = 0; i < key_dim - 1; i++) extends[i] = 1;
+
+    const size_t volume = rect.volume();
     size_t size         = 0;
-    for (size_t idx = 0; idx < volume; ++idx) {
-      auto p = pitches_index.unflatten(idx, rect_index.lo);
+    for (size_t idx = 0; idx < volume; idx += skip_size) {
+      auto p = pitches.unflatten(idx, rect.lo);
       if (index[p] == true) { size++; }
     }
 
-    out = create_buffer<OUT_TYPE>(size, Memory::Kind::SYSTEM_MEM);
+    extends[key_dim - 1] = size;
 
-    compute_output(out, input, index, pitches_input, rect_input, pitches_index, rect_index, volume);
+    auto out = out_arr.create_output_buffer<OUT_TYPE, DIM>(extends, true);
+
+    compute_output(out, input, index, pitches, rect, volume, key_dim, skip_size);
     return size;
   }
 };

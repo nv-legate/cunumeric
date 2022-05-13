@@ -33,15 +33,15 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
                        Pitches pitches,
                        Point origin,
                        size_t iters,
-                       Buffer<int64_t> offsets)
+                       const size_t skip_size)
 {
   size_t value = 0;
   for (size_t idx = 0; idx < iters; idx++) {
-    const size_t offset = (idx * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
+    size_t offset = (idx * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
+    offset        = offset * skip_size;
     if (offset < volume) {
-      auto point      = pitches.unflatten(offset, origin);
-      auto val        = static_cast<size_t>(index[point]);
-      offsets[offset] = val;
+      auto point = pitches.unflatten(offset, origin);
+      auto val   = static_cast<size_t>(index[point]);
       SumReduction<size_t>::fold<true>(value, val);
     }
   }
@@ -49,75 +49,105 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   reduce_output(out, value);
 }
 
-template <typename VAL, int DIM1, int DIM2>
+template <typename Pitches, typename Point, int DIM>
 static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-  advanced_indexing_kernel(size_t volume,
-                           AccessorRO<VAL, DIM1> in,
-                           AccessorRO<bool, DIM2> index,
-                           Buffer<VAL> out,
-                           Pitches<DIM1 - 1> pitches_input,
-                           Point<DIM1> origin_input,
-                           Pitches<DIM2 - 1> pitches_index,
-                           Point<DIM2> origin_index,
-                           Buffer<int64_t> offsets)
+  compute_offsets_kernel(size_t volume,
+                         AccessorRO<bool, DIM> index,
+                         Pitches pitches,
+                         Point origin,
+                         size_t iters,
+                         Buffer<int64_t> offsets,
+                         const size_t skip_size)
 {
-  // FIXME works only when DIM1==DIM2
-  const size_t tid = blockIdx.x * blockDim.x + threadIdx.x;
-  if (tid >= volume) return;
-  auto point       = pitches_index.unflatten(tid, origin_index);
-  auto point_input = pitches_input.unflatten(tid, origin_input);
-  if (index[point] == true) {
-    int64_t offset = offsets[tid];
-    out[offset]    = in[point_input];
+  for (size_t idx = 0; idx < iters; idx++) {
+    const size_t offset = (idx * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
+    if (offset < volume) {
+      auto point = pitches.unflatten(offset, origin);
+      if (index[point] and ((idx != 0 and idx % skip_size == 0) or (skip_size == 1))) {
+        offsets[offset] = 1;
+
+      } else {
+        offsets[offset] = 0;
+      }
+    }
   }
 }
 
-template <typename VAL, int DIM1, int DIM2>
+template <typename VAL, int DIM>
 static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   advanced_indexing_kernel(size_t volume,
-                           AccessorRO<VAL, DIM1> in,
-                           AccessorRO<bool, DIM2> index,
-                           Buffer<Point<DIM1>> out,
-                           Pitches<DIM1 - 1> pitches_input,
-                           Point<DIM1> origin_input,
-                           Pitches<DIM2 - 1> pitches_index,
-                           Point<DIM2> origin_index,
-                           Buffer<int64_t> offsets)
+                           AccessorRO<VAL, DIM> in,
+                           AccessorRO<bool, DIM> index,
+                           Buffer<VAL, DIM> out,
+                           Pitches<DIM - 1> pitches,
+                           Point<DIM> origin,
+                           Buffer<int64_t> offsets,
+                           const size_t skip_size,
+                           const size_t key_dim)
 {
-  // FIXME works only when DIM1==DIM2
   const size_t tid = blockIdx.x * blockDim.x + threadIdx.x;
   if (tid >= volume) return;
-  auto point       = pitches_index.unflatten(tid, origin_index);
-  auto point_input = pitches_input.unflatten(tid, origin_input);
+  auto point = pitches.unflatten(tid, origin);
   if (index[point] == true) {
-    int64_t offset = offsets[tid];
-    out[offset]    = point_input;
+    Point<DIM> out_p;
+    out_p[0] = offsets[tid];
+    for (int i = key_dim; i < DIM; i++) { out_p[i - key_dim + 1] = point[i]; }
+    out[out_p] = in[point];
   }
 }
 
-template <LegateTypeCode CODE, int DIM1, int DIM2>
-struct AdvancedIndexingImplBody<VariantKind::GPU, CODE, DIM1, DIM2> {
+template <typename VAL, int DIM>
+static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
+  advanced_indexing_kernel(size_t volume,
+                           AccessorRO<VAL, DIM> in,
+                           AccessorRO<bool, DIM> index,
+                           Buffer<Point<DIM>, DIM> out,
+                           Pitches<DIM - 1> pitches,
+                           Point<DIM> origin,
+                           Buffer<int64_t> offsets,
+                           const size_t skip_size,
+                           const size_t key_dim)
+{
+  const size_t tid = blockIdx.x * blockDim.x + threadIdx.x;
+  if (tid >= volume) return;
+  auto point = pitches.unflatten(tid, origin);
+  if (index[point] == true) {
+    Point<DIM> out_p;
+    out_p[0] = offsets[tid];
+    for (int i = key_dim; i < DIM; i++) { out_p[i - key_dim + 1] = point[i]; }
+    out[out_p] = point;
+  }
+}
+
+template <LegateTypeCode CODE, int DIM, typename OUT_TYPE>
+struct AdvancedIndexingImplBody<VariantKind::GPU, CODE, DIM, OUT_TYPE> {
   using VAL = legate_type_of<CODE>;
 
-  int64_t compute_size(const AccessorRO<bool, DIM2>& in,
-                       const Pitches<DIM2 - 1>& pitches,
-                       const Rect<DIM2>& rect,
+  int64_t compute_size(const AccessorRO<bool, DIM>& in,
+                       const Pitches<DIM - 1>& pitches,
+                       const Rect<DIM>& rect,
                        const size_t volume,
                        cudaStream_t stream,
-                       Buffer<int64_t>& offsets) const
+                       Buffer<int64_t>& offsets,
+                       const size_t skip_size) const
   {
     DeferredReduction<SumReduction<size_t>> size;
 
-    const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-    size_t shmem_size   = THREADS_PER_BLOCK / 32 * sizeof(size_t);
+    const size_t blocks1 = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
+    const size_t volume2 = (volume + skip_size) / skip_size;
+    const size_t blocks2 = (volume2 + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
+    size_t shmem_size    = THREADS_PER_BLOCK / 32 * sizeof(int64_t);
 
-    if (blocks >= MAX_REDUCTION_CTAS) {
-      const size_t iters = (blocks + MAX_REDUCTION_CTAS - 1) / MAX_REDUCTION_CTAS;
+    if (blocks2 >= MAX_REDUCTION_CTAS) {
+      const size_t iters = (blocks2 + MAX_REDUCTION_CTAS - 1) / MAX_REDUCTION_CTAS;
       count_nonzero_kernel<<<MAX_REDUCTION_CTAS, THREADS_PER_BLOCK, shmem_size, stream>>>(
-        volume, size, in, pitches, rect.lo, iters, offsets);
+        volume, size, in, pitches, rect.lo, iters, skip_size);
     } else
-      count_nonzero_kernel<<<blocks, THREADS_PER_BLOCK, shmem_size, stream>>>(
-        volume, size, in, pitches, rect.lo, 1, offsets);
+      count_nonzero_kernel<<<blocks2, THREADS_PER_BLOCK, shmem_size, stream>>>(
+        volume, size, in, pitches, rect.lo, 1, skip_size);
+
+    compute_offsets_kernel<<<blocks1, THREADS_PER_BLOCK, shmem_size, stream>>>(
+      volume, in, pitches, rect.lo, 1, offsets, skip_size);
 
     cudaStreamSynchronize(stream);
 
@@ -127,39 +157,36 @@ struct AdvancedIndexingImplBody<VariantKind::GPU, CODE, DIM1, DIM2> {
     return size.read();
   }
 
-  template <typename OUT_TYPE>
-  size_t operator()(Buffer<OUT_TYPE>& out,
-                    const AccessorRO<VAL, DIM1>& input,
-                    const AccessorRO<bool, DIM2>& index,
-                    const Pitches<DIM1 - 1>& pitches_input,
-                    const Rect<DIM1>& rect_input,
-                    const Pitches<DIM2 - 1>& pitches_index,
-                    const Rect<DIM2>& rect_index) const
+  size_t operator()(Array& out_arr,
+                    const AccessorRO<VAL, DIM>& input,
+                    const AccessorRO<bool, DIM>& index,
+                    const Pitches<DIM - 1>& pitches,
+                    const Rect<DIM>& rect,
+                    const size_t key_dim) const
   {
-#ifdef DEBUG_CUNUMERIC
-    // in this case shapes for input and index arrays  should be the same
-    assert(Domain(rect_input) == Domain(rect_index));
-#endif
-    size_t size           = 0;
-    const bool* index_ptr = index.ptr(rect_index);
-    const size_t volume   = rect_index.volume();
-    auto stream           = get_cached_stream();
-    auto offsets          = create_buffer<int64_t>(volume, Memory::Kind::GPU_FB_MEM);
-    size                  = compute_size(index, pitches_index, rect_index, volume, stream, offsets);
+    size_t size         = 0;
+    const size_t volume = rect.volume();
+    auto stream         = get_cached_stream();
+    auto offsets        = create_buffer<int64_t, 1>(volume, Memory::Kind::GPU_FB_MEM);
+    Point<DIM> extends;
 
-    out = create_buffer<OUT_TYPE>(size, Memory::Kind::GPU_FB_MEM);
+    size_t skip_size = 1;
+    for (int i = key_dim; i < DIM; i++) {
+      auto diff                = 1 + rect.hi[i] - rect.lo[i];
+      extends[i - key_dim + 1] = diff;
+      if (diff != 0) skip_size *= diff;
+    }
+
+    size       = compute_size(index, pitches, rect, volume, stream, offsets, skip_size);
+    extends[0] = size;
+
+    auto out = out_arr.create_output_buffer<OUT_TYPE, DIM>(extends, Memory::Kind::GPU_FB_MEM);
+
     // populate output
     if (size > 0) {
       const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-      advanced_indexing_kernel<<<blocks, THREADS_PER_BLOCK, 0, stream>>>(volume,
-                                                                         input,
-                                                                         index,
-                                                                         out,
-                                                                         pitches_input,
-                                                                         rect_input.lo,
-                                                                         pitches_index,
-                                                                         rect_index.lo,
-                                                                         offsets);
+      advanced_indexing_kernel<<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
+        volume, input, index, out, pitches, rect.lo, offsets, skip_size, key_dim);
     }
     CHECK_CUDA_STREAM(stream);
     return size;

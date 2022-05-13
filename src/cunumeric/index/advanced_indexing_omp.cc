@@ -27,101 +27,116 @@ namespace cunumeric {
 using namespace Legion;
 using namespace legate;
 
-template <LegateTypeCode CODE, int DIM1, int DIM2>
-struct AdvancedIndexingImplBody<VariantKind::OMP, CODE, DIM1, DIM2> {
+template <LegateTypeCode CODE, int DIM, typename OUT_TYPE>
+struct AdvancedIndexingImplBody<VariantKind::OMP, CODE, DIM, OUT_TYPE> {
   using VAL = legate_type_of<CODE>;
 
-  void compute_output(Buffer<VAL>& out,
-                      const AccessorRO<VAL, DIM1>& input,
-                      const AccessorRO<bool, DIM2>& index,
-                      const Pitches<DIM1 - 1>& pitches_input,
-                      const Rect<DIM1>& rect_input,
-                      const Pitches<DIM2 - 1>& pitches_index,
-                      const Rect<DIM2>& rect_index,
-                      const size_t volume,
-                      int64_t out_idx) const
+  void compute_output(Buffer<VAL, DIM>& out,
+                      const AccessorRO<VAL, DIM>& input,
+                      const AccessorRO<bool, DIM>& index,
+                      const Pitches<DIM - 1>& pitches,
+                      const Rect<DIM>& rect,
+                      const int volume,
+                      int64_t out_idx,
+                      const int key_dim,
+                      const int skip_size) const
   {
 #pragma omp for schedule(static)
     for (size_t idx = 0; idx < volume; ++idx) {
-      auto p = pitches_index.unflatten(idx, rect_index.lo);
+      auto p = pitches.unflatten(idx, rect.lo);
+      Point<DIM> out_p;
+      out_p[0] = out_idx;
+      for (int i = key_dim; i < DIM; i++) { out_p[i - key_dim + 1] = p[i]; }
       if (index[p] == true) {
-        auto p_input = pitches_input.unflatten(idx, rect_input.lo);
-        out[out_idx] = input[p_input];
-        out_idx++;
+        out[out_p] = input[p];
+        if ((idx != 0 and idx % skip_size == 0) or (skip_size == 1)) out_idx++;
       }
     }
   }
 
-  void compute_output(Buffer<Point<DIM1>>& out,
-                      const AccessorRO<VAL, DIM1>&,
-                      const AccessorRO<bool, DIM2>& index,
-                      const Pitches<DIM1 - 1>& pitches_input,
-                      const Rect<DIM1>& rect_input,
-                      const Pitches<DIM2 - 1>& pitches_index,
-                      const Rect<DIM2>& rect_index,
-                      const size_t volume,
-                      int64_t out_idx) const
+  void compute_output(Buffer<Point<DIM>, DIM>& out,
+                      const AccessorRO<VAL, DIM>&,
+                      const AccessorRO<bool, DIM>& index,
+                      const Pitches<DIM - 1>& pitches,
+                      const Rect<DIM>& rect,
+                      const int volume,
+                      int64_t out_idx,
+                      const int key_dim,
+                      const int skip_size) const
   {
 #pragma omp for schedule(static)
     for (size_t idx = 0; idx < volume; ++idx) {
-      auto p = pitches_index.unflatten(idx, rect_index.lo);
+      auto p = pitches.unflatten(idx, rect.lo);
+      Point<DIM> out_p;
+      out_p[0] = out_idx;
+      for (int i = key_dim; i < DIM; i++) { out_p[i - key_dim + 1] = p[i]; }
       if (index[p] == true) {
-        auto p_input = pitches_input.unflatten(idx, rect_input.lo);
-        out[out_idx] = p_input;
-        out_idx++;
+        out[out_p] = p;
+        if ((idx != 0 and idx % skip_size == 0) or (skip_size == 1)) out_idx++;
       }
     }
   }
 
-  template <typename OUT_TYPE>
-  size_t operator()(Buffer<OUT_TYPE>& out,
-                    const AccessorRO<VAL, DIM1>& input,
-                    const AccessorRO<bool, DIM2>& index,
-                    const Pitches<DIM1 - 1>& pitches_input,
-                    const Rect<DIM1>& rect_input,
-                    const Pitches<DIM2 - 1>& pitches_index,
-                    const Rect<DIM2>& rect_index) const
+  void operator()(Array& out_arr,
+                  const AccessorRO<VAL, DIM>& input,
+                  const AccessorRO<bool, DIM>& index,
+                  const Pitches<DIM - 1>& pitches,
+                  const Rect<DIM>& rect,
+                  const int key_dim) const
   {
-#ifdef DEBUG_CUNUMERIC
-    // in this case shapes for input and index arrays  should be the same
-    assert(Domain(rect_input) == Domain(rect_index));
-#endif
-    const size_t volume    = rect_index.volume();
+    Point<DIM> extends;
+    size_t skip_size = 1;
+    for (int i = key_dim; i < DIM; i++) {
+      auto diff                = 1 + rect.hi[i] - rect.lo[i];
+      extends[i - key_dim + 1] = diff;
+      if (diff != 0) skip_size *= diff;
+    }
+
     const auto max_threads = omp_get_max_threads();
+    const size_t volume    = rect.volume();
     size_t size            = 0;
     ThreadLocalStorage<int64_t> offsets(max_threads);
-
     {
-      ThreadLocalStorage<size_t> sizes(max_threads);
+      ThreadLocalStorage<int64_t> sizes(max_threads);
+      thrust::fill(thrust::omp::par, sizes.begin(), sizes.end(), 0);
+#pragma omp parallel
+      {
+        const int tid = omp_get_thread_num();
+#pragma omp for schedule(static)
+        for (size_t idx = 0; idx < volume; idx += skip_size) {
+          auto p = pitches.unflatten(idx, rect.lo);
+          if (index[p] == true) { sizes[tid] += 1; }
+        }
+      }  // end parallel region
+
+      size = thrust::reduce(thrust::omp::par, sizes.begin(), sizes.end(), 0);
       thrust::fill(thrust::omp::par, sizes.begin(), sizes.end(), 0);
 #pragma omp parallel
       {
         const int tid = omp_get_thread_num();
 #pragma omp for schedule(static)
         for (size_t idx = 0; idx < volume; ++idx) {
-          auto point = pitches_index.unflatten(idx, rect_index.lo);
-          if (index[point] == true) sizes[tid] += 1;
+          auto p = pitches.unflatten(idx, rect.lo);
+          if (index[p] == true) {
+            if ((idx != 0 and idx % skip_size == 0) or (skip_size == 1)) sizes[tid] += 1;
+          }
         }
-      }
-
-      size = thrust::reduce(thrust::omp::par, sizes.begin(), sizes.end(), 0);
-
+      }  // end of parallel
       thrust::exclusive_scan(thrust::omp::par, sizes.begin(), sizes.end(), offsets.begin());
-    }
+    }  // end scope
+
+    extends[0] = size;
 
     Memory::Kind kind =
       CuNumeric::has_numamem ? Memory::Kind::SOCKET_MEM : Memory::Kind::SYSTEM_MEM;
-    out = create_buffer<OUT_TYPE>(size, kind);
+    auto out = out_arr.create_output_buffer<OUT_TYPE, DIM>(extends, kind);
 
 #pragma omp parallel
     {
       const int tid   = omp_get_thread_num();
       int64_t out_idx = offsets[tid];
-      compute_output(
-        out, input, index, pitches_input, rect_input, pitches_index, rect_index, volume, out_idx);
-    }
-
-    return size;
+      compute_output(out, input, index, pitches, rect, volume, out_idx, key_dim, skip_size);
+    }  // end parallel region
   }
 };
 
