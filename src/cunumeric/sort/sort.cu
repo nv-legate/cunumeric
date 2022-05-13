@@ -92,7 +92,7 @@ auto get_16b_aligned_count = [](auto count, auto element_bytes) {
   return (get_16b_aligned(count * element_bytes) + element_bytes - 1) / element_bytes;
 };
 
-// increase number ob segments computed per block as long as either
+// increase number of segments computed per block as long as either
 // 1. we have more threads in block than elements in segment
 // OR
 // 2. a) block still large enough to handle full segment
@@ -477,7 +477,7 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
 template <typename VAL>
 __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   extract_samples_segment(const VAL* data,
-                          const size_t volume,
+                          const size_t num_segments_l,
                           SegmentSample<VAL>* samples,
                           const size_t num_samples_per_segment_l,
                           const size_t segment_size_l,
@@ -485,9 +485,8 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
                           const size_t num_sort_ranks,
                           const size_t sort_rank)
 {
-  const size_t sample_idx     = blockIdx.x * blockDim.x + threadIdx.x;
-  const size_t num_segments_l = volume / segment_size_l;
-  const size_t num_samples_l  = num_samples_per_segment_l * num_segments_l;
+  const size_t sample_idx    = blockIdx.x * blockDim.x + threadIdx.x;
+  const size_t num_samples_l = num_samples_per_segment_l * num_segments_l;
   if (sample_idx >= num_samples_l) return;
 
   const size_t segment_id_l       = sample_idx / num_samples_per_segment_l;
@@ -724,9 +723,9 @@ void rebalance_data(SegmentMergePiece<VAL>& merge_buffer,
   VAL* output_values      = nullptr;
   int64_t* output_indices = nullptr;
   if (argsort) {
-    output_indices = (int64_t*)output_ptr;
+    output_indices = static_cast<int64_t*>(output_ptr);
   } else {
-    output_values = (VAL*)output_ptr;
+    output_values = static_cast<VAL*>(output_ptr);
   }
 
   auto exec_policy = thrust::cuda::par(alloc).on(stream);
@@ -1130,8 +1129,6 @@ void rebalance_data(SegmentMergePiece<VAL>& merge_buffer,
       recv_right_pos.destroy();
     }
 
-    CHECK_CUDA_STREAM(stream);
-
     // remove segment_sizes, all buffers should be destroyed...
     segment_diff.destroy();
     send_left.destroy();
@@ -1145,6 +1142,7 @@ void rebalance_data(SegmentMergePiece<VAL>& merge_buffer,
       recv_left_data.values.destroy();
       recv_right_data.values.destroy();
     }
+    CHECK_CUDA_STREAM(stream);
   }
 }
 
@@ -1184,17 +1182,17 @@ void sample_sort_nccl_nd(SortPiece<VAL> local_sorted,
   // a full sort group being empty, this should not affect local sort rank size.
   {
     auto worker_count_d = create_buffer<int32_t>(1, Memory::GPU_FB_MEM);
-    int worker_count[1] = {(segment_size_l > 0 ? 1 : 0)};
+    int worker_count    = (segment_size_l > 0 ? 1 : 0);
     CHECK_CUDA(cudaMemcpyAsync(
-      worker_count_d.ptr(0), &worker_count[0], sizeof(int32_t), cudaMemcpyHostToDevice, stream));
+      worker_count_d.ptr(0), &worker_count, sizeof(int32_t), cudaMemcpyHostToDevice, stream));
     CHECK_NCCL(ncclAllReduce(
       worker_count_d.ptr(0), worker_count_d.ptr(0), 1, ncclInt32, ncclSum, *comm, stream));
     CHECK_CUDA(cudaMemcpyAsync(
-      &worker_count[0], worker_count_d.ptr(0), sizeof(int32_t), cudaMemcpyDeviceToHost, stream));
+      &worker_count, worker_count_d.ptr(0), sizeof(int32_t), cudaMemcpyDeviceToHost, stream));
     CHECK_CUDA(cudaStreamSynchronize(stream));
-    if (worker_count[0] < num_ranks) {
+    if (worker_count < num_ranks) {
       const size_t number_sort_groups = num_ranks / num_sort_ranks;
-      num_sort_ranks                  = worker_count[0] / number_sort_groups;
+      num_sort_ranks                  = worker_count / number_sort_groups;
     }
     worker_count_d.destroy();
 
@@ -1220,13 +1218,14 @@ void sample_sort_nccl_nd(SortPiece<VAL> local_sorted,
     const size_t num_blocks = (num_samples_l + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
     extract_samples_segment<<<num_blocks, THREADS_PER_BLOCK, 0, stream>>>(
       local_sorted.values.ptr(0),
-      volume,
+      num_segments_l,
       samples.ptr(0),
       num_samples_per_segment_l,
       segment_size_l,
       offset,
       num_sort_ranks,
       my_sort_rank);
+    CHECK_CUDA_STREAM(stream);
   }
 
   // AllGather does not work here as not all have the same amount!
@@ -1277,6 +1276,8 @@ void sample_sort_nccl_nd(SortPiece<VAL> local_sorted,
     // destroy
     send_buffer.destroy();
     recv_buffer.destroy();
+
+    CHECK_CUDA_STREAM(stream);
   }
 
   /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1344,6 +1345,8 @@ void sample_sort_nccl_nd(SortPiece<VAL> local_sorted,
 
     compute_scan_per_rank<<<num_sort_ranks, THREADS_PER_BLOCK, 0, stream>>>(
       segment_blocks.ptr(0), size_send.ptr(0), num_segments_l, num_segments_l_aligned);
+
+    CHECK_CUDA_STREAM(stream);
   }
 
   // cleanup intermediate data structures
@@ -1456,8 +1459,8 @@ void sample_sort_nccl_nd(SortPiece<VAL> local_sorted,
       } else {
         CHECK_CUDA(cudaStreamSynchronize(stream));  // needed before Z-copy destroy()?
       }
-
       val_send_buffers_ptr.destroy();
+      CHECK_CUDA_STREAM(stream);
     }
 
     local_sorted.values.destroy();
@@ -1508,6 +1511,8 @@ void sample_sort_nccl_nd(SortPiece<VAL> local_sorted,
         merge_buffers[r].indices = create_buffer<int64_t>(0, Memory::GPU_FB_MEM);
       }
     }
+
+    CHECK_CUDA_STREAM(stream);
   }
 
   // communicate all2all (in sort dimension)
@@ -1553,6 +1558,7 @@ void sample_sort_nccl_nd(SortPiece<VAL> local_sorted,
     val_send_buffers[r].destroy();
     if (argsort) idc_send_buffers[r].destroy();
   }
+  CHECK_CUDA_STREAM(stream);
 
   /////////////////////////////////////////////////////////////////////////////////////////////////
   /////////////// Part 4: merge data
@@ -1692,11 +1698,11 @@ struct SortImplBody<VariantKind::GPU, CODE, DIM> {
         if (argsort) {
           auto output = output_array.write_accessor<int64_t, DIM>(rect);
           assert(output.accessor.is_dense_row_major(rect));
-          output_ptr = (void*)output.ptr(rect.lo);
+          output_ptr = static_cast<void*>(output.ptr(rect.lo));
         } else {
           auto output = output_array.write_accessor<VAL, DIM>(rect);
           assert(output.accessor.is_dense_row_major(rect));
-          output_ptr = (void*)output.ptr(rect.lo);
+          output_ptr = static_cast<void*>(output.ptr(rect.lo));
         }
       }
 

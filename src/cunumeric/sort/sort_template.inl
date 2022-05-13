@@ -27,8 +27,10 @@ struct SortImplBody;
 static int get_rank(Domain domain, DomainPoint index_point)
 {
   int domain_index = 0;
+  auto hi          = domain.hi();
+  auto lo          = domain.lo();
   for (int i = 0; i < domain.get_dim(); ++i) {
-    if (i > 0) domain_index *= domain.hi()[i] - domain.lo()[i] + 1;
+    if (i > 0) domain_index *= hi[i] - lo[i] + 1;
     domain_index += index_point[i];
   }
   return domain_index;
