@@ -279,6 +279,9 @@ class ndarray:
         # For now we will just assume that at the very least we can convert
         # any such object to a baseline NumPy array using `np.array`, and
         # consume that.
+
+        # TODO: We could check at this point that our implementation supports
+        # all the provided arguments, and fall back to NumPy if not.
         return cn_func(*args, **kwargs)
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
