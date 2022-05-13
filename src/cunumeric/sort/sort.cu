@@ -766,10 +766,10 @@ void rebalance_data(SegmentMergePiece<VAL>& merge_buffer,
     // communicate segment diffs
     CHECK_NCCL(ncclGroupStart());
     for (size_t r = 0; r < num_sort_ranks; r++) {
-      CHECK_NCCL(
-        ncclSend(segment_diff.ptr(0), num_segments_l, ncclInt64, sort_ranks[r], *comm, stream));
+      CHECK_NCCL(ncclSend(
+        segment_diff.ptr(0), num_segments_l_aligned, ncclInt64, sort_ranks[r], *comm, stream));
       CHECK_NCCL(ncclRecv(segment_diff_buffers.ptr(r * num_segments_l_aligned),
-                          num_segments_l,
+                          num_segments_l_aligned,
                           ncclInt64,
                           sort_ranks[r],
                           *comm,
@@ -1247,13 +1247,13 @@ void sample_sort_nccl_nd(SortPiece<VAL> local_sorted,
     for (size_t r = 0; r < num_sort_ranks; r++) {
       if (r != my_sort_rank) {
         CHECK_NCCL(ncclSend(send_buffer.ptr(0),
-                            num_samples_l * sizeof(SegmentSample<VAL>),
+                            aligned_count * sizeof(SegmentSample<VAL>),
                             ncclInt8,
                             sort_ranks[r],
                             *comm,
                             stream));
         CHECK_NCCL(ncclRecv(recv_buffer.ptr(aligned_count * r),
-                            num_samples_l * sizeof(SegmentSample<VAL>),
+                            aligned_count * sizeof(SegmentSample<VAL>),
                             ncclInt8,
                             sort_ranks[r],
                             *comm,
@@ -1363,13 +1363,13 @@ void sample_sort_nccl_nd(SortPiece<VAL> local_sorted,
   CHECK_NCCL(ncclGroupStart());
   for (size_t r = 0; r < num_sort_ranks; r++) {
     CHECK_NCCL(ncclSend(size_send.ptr(r * num_segments_l_aligned),
-                        num_segments_l + 1,
+                        num_segments_l_aligned,
                         ncclUint64,
                         sort_ranks[r],
                         *comm,
                         stream));
     CHECK_NCCL(ncclRecv(size_recv.ptr(r * num_segments_l_aligned),
-                        num_segments_l + 1,
+                        num_segments_l_aligned,
                         ncclUint64,
                         sort_ranks[r],
                         *comm,
