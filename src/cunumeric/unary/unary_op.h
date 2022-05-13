@@ -51,68 +51,63 @@ class UnaryOpTask : public CuNumericTask<UnaryOpTask> {
 
 template <int DIM>
 struct inner_type_dispatch_fn {
-  template <typename TypeCode, typename Functor, typename... Fnargs>
-  constexpr decltype(auto) operator()(TypeCode c, Functor f, Fnargs&&... args)
+  template <typename Functor, typename... Fnargs>
+  constexpr decltype(auto) operator()(CuNumericTypeCodes code, Functor f, Fnargs&&... args)
   {
-    if (c <= MAX_TYPE_NUMBER) {
-      return legate::inner_type_dispatch_fn<DIM>{}(c, f, std::forward<Fnargs>(args)...);
-    }
-    size_t code = static_cast<size_t>(c);
     switch (code) {
 #if LEGION_MAX_DIM >= 1
-      case MAX_TYPE_NUMBER + 1: {  // CuNumericTypeCodes::CUNUMERIC_TYPE_POINT1:
+      case CuNumericTypeCodes::CUNUMERIC_TYPE_POINT1: {
         return f.template operator()<CuNumericTypeCodes::CUNUMERIC_TYPE_POINT1, DIM>(
           std::forward<Fnargs>(args)...);
       }
 #endif
 #if LEGION_MAX_DIM >= 2
-      case MAX_TYPE_NUMBER + 2: {  // CuNumericTypeCodes::CUNUMERIC_TYPE_POINT2
+      case CuNumericTypeCodes::CUNUMERIC_TYPE_POINT2: {
         return f.template operator()<CuNumericTypeCodes::CUNUMERIC_TYPE_POINT2, DIM>(
           std::forward<Fnargs>(args)...);
       }
 #endif
 #if LEGION_MAX_DIM >= 3
-      case MAX_TYPE_NUMBER + 3: {  // CuNumericTypeCodes::CUNUMERIC_TYPE_POINT3
+      case CuNumericTypeCodes::CUNUMERIC_TYPE_POINT3: {
         return f.template operator()<CuNumericTypeCodes::CUNUMERIC_TYPE_POINT3, DIM>(
           std::forward<Fnargs>(args)...);
       }
 #endif
 #if LEGION_MAX_DIM >= 4
-      case MAX_TYPE_NUMBER + 4: {  // CuNumericTypeCodes::CUNUMERIC_TYPE_POINT4
+      case CuNumericTypeCodes::CUNUMERIC_TYPE_POINT4: {
         return f.template operator()<CuNumericTypeCodes::CUNUMERIC_TYPE_POINT4, DIM>(
           std::forward<Fnargs>(args)...);
       }
 #endif
 #if LEGION_MAX_DIM >= 5
-      case MAX_TYPE_NUMBER + 5: {  // CuNumericTypeCodes::CUNUMERIC_TYPE_POINT5
+      case CuNumericTypeCodes::CUNUMERIC_TYPE_POINT5: {
         return f.template operator()<CuNumericTypeCodes::CUNUMERIC_TYPE_POINT5, DIM>(
           std::forward<Fnargs>(args)...);
       }
 #endif
 #if LEGION_MAX_DIM >= 6
-      case MAX_TYPE_NUMBER + 6: {  // CuNumericTypeCodes::CUNUMERIC_TYPE_POINT6
+      case CuNumericTypeCodes::CUNUMERIC_TYPE_POINT6: {
         return f.template operator()<CuNumericTypeCodes::CUNUMERIC_TYPE_POINT6, DIM>(
           std::forward<Fnargs>(args)...);
       }
 #endif
 #if LEGION_MAX_DIM >= 7
-      case MAX_TYPE_NUMBER + 7: {  // CuNumericTypeCodes::CUNUMERIC_TYPE_POINT7
+      case CuNumericTypeCodes::CUNUMERIC_TYPE_POINT7: {
         return f.template operator()<CuNumericTypeCodes::CUNUMERIC_TYPE_POINT7, DIM>(
           std::forward<Fnargs>(args)...);
       }
 #endif
 #if LEGION_MAX_DIM >= 8
-      case MAX_TYPE_NUMBER + 8: {  // CuNumericTypeCodes::CUNUMERIC_TYPE_POINT8
+      case CuNumericTypeCodes::CUNUMERIC_TYPE_POINT8: {
         return f.template operator()<CuNumericTypeCodes::CUNUMERIC_TYPE_POINT8, DIM>(
           std::forward<Fnargs>(args)...);
       }
 #endif
 #if LEGION_MAX_DIM >= 9
-      case MAX_TYPE_NUMBER + 9: {  // CuNumericTypeCodes::CUNUMERIC_TYPE_POINT9
+      case CuNumericTypeCodes::CUNUMERIC_TYPE_POINT9: {
         return f.template operator()<CuNumericTypeCodes::CUNUMERIC_TYPE_POINT9, DIM>(
           std::forward<Fnargs>(args)...);
       }
-      default: break;
 #endif
     }
     assert(false);
@@ -121,8 +116,11 @@ struct inner_type_dispatch_fn {
   }
 };
 
-template <typename TypeCode, typename Functor, typename... Fnargs>
-constexpr decltype(auto) double_dispatch(int dim, TypeCode code, Functor f, Fnargs&&... args)
+template <typename Functor, typename... Fnargs>
+constexpr decltype(auto) double_dispatch(int dim,
+                                         CuNumericTypeCodes code,
+                                         Functor f,
+                                         Fnargs&&... args)
 {
   switch (dim) {
 #if LEGION_MAX_DIM >= 1
