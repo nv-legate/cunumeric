@@ -745,8 +745,6 @@ void rebalance_data(SegmentMergePiece<VAL>& merge_buffer,
         segment_size_l);
     }
 
-    // not needed anymore
-    CHECK_CUDA(cudaStreamSynchronize(stream));  // TODO need between async & destroy()?
     merge_buffer.segments.destroy();
     if (argsort) { merge_buffer.values.destroy(); }
 
@@ -969,7 +967,6 @@ void rebalance_data(SegmentMergePiece<VAL>& merge_buffer,
           num_sort_ranks);
       }
 
-      CHECK_CUDA(cudaStreamSynchronize(stream));  // TODO need between async & destroy()?
       send_left_pos.destroy();
       send_right_pos.destroy();
     }
@@ -1123,7 +1120,6 @@ void rebalance_data(SegmentMergePiece<VAL>& merge_buffer,
                                                                          num_sort_ranks);
       }
 
-      CHECK_CUDA(cudaStreamSynchronize(stream));  // TODO need between async & destroy()?
       segment_diff_pos.destroy();
       recv_left_pos.destroy();
       recv_right_pos.destroy();
@@ -1319,9 +1315,6 @@ void sample_sort_nccl_nd(SortPiece<VAL> local_sorted,
       my_sort_rank);
   }
 
-  // need to sync as we share values in between host/device
-  CHECK_CUDA(cudaStreamSynchronize(stream));
-
   // segment_blocks[r][segment]->position of data in segment for process r
   // perform blocksize wide scan on size_send[r][block*blocksize] within warp
   Buffer<size_t> segment_blocks =
@@ -1454,10 +1447,10 @@ void sample_sort_nccl_nd(SortPiece<VAL> local_sorted,
                                                                            segment_size_l,
                                                                            my_rank,
                                                                            num_sort_ranks);
-        CHECK_CUDA(cudaStreamSynchronize(stream));  // needed before Z-copy destroy()?
+        CHECK_CUDA(cudaStreamSynchronize(stream));  // needed before Z-copy destroy()
         idc_send_buffers_ptr.destroy();
       } else {
-        CHECK_CUDA(cudaStreamSynchronize(stream));  // needed before Z-copy destroy()?
+        CHECK_CUDA(cudaStreamSynchronize(stream));  // needed before Z-copy destroy()
       }
       val_send_buffers_ptr.destroy();
       CHECK_CUDA_STREAM(stream);
@@ -1549,7 +1542,6 @@ void sample_sort_nccl_nd(SortPiece<VAL> local_sorted,
   }
 
   // cleanup remaining buffers
-  CHECK_CUDA(cudaStreamSynchronize(stream));
   size_send.destroy();
   size_recv.destroy();
   size_send_total.destroy();
