@@ -2272,7 +2272,7 @@ def take(a, indices, axis=None, out=None, mode="raise"):
     out : ndarray, optional `(Ni…, Nj…, Nk…)`
         If provided, the result will be placed in this array. It should be of
         the appropriate shape and dtype.
-    mode : {‘raise’, ‘wrap’, ‘clip’}, optional
+    mode : {`raise`, `wrap`, `clip`}, optional
         Specifies how out-of-bounds indices will behave.
         ‘raise’ – raise an error (default)
         ‘wrap’ – wrap around
@@ -2382,7 +2382,7 @@ def compress(c, a, axis=None, out=None):
 
     Parameters
     ----------
-    c : condition, 1-D array of bools
+    c : ndarray[bool]
         Array that selects which entries to return. If `len(c)` is less than
         the size of a along the given axis, then output is truncated to the
         length of the condition array.
