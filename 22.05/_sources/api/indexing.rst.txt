@@ -19,6 +19,8 @@ Indexing-like operations
 .. autosummary::
    :toctree: generated/
 
+   take
    choose
+   compress
    diag
    diagonal

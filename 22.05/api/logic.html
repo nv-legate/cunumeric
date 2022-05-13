@@ -4,7 +4,8 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
     <title>Logic functions &#8212; cunumeric  documentation</title>
     
   <!-- Loaded before other Sphinx assets -->
@@ -439,8 +440,18 @@
       </a>
      </li>
      <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.take.html">
+       cunumeric.take
+      </a>
+     </li>
+     <li class="toctree-l3">
       <a class="reference internal" href="generated/cunumeric.choose.html">
        cunumeric.choose
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.compress.html">
+       cunumeric.compress
       </a>
      </li>
      <li class="toctree-l3">
@@ -559,6 +570,41 @@
       </a>
      </li>
      <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.isneginf.html">
+       cunumeric.isneginf
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.isposinf.html">
+       cunumeric.isposinf
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.iscomplex.html">
+       cunumeric.iscomplex
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.iscomplexobj.html">
+       cunumeric.iscomplexobj
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.isreal.html">
+       cunumeric.isreal
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.isrealobj.html">
+       cunumeric.isrealobj
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.isscalar.html">
+       cunumeric.isscalar
+      </a>
+     </li>
+     <li class="toctree-l3">
       <a class="reference internal" href="generated/cunumeric.logical_and.html">
        cunumeric.logical_and
       </a>
@@ -581,6 +627,11 @@
      <li class="toctree-l3">
       <a class="reference internal" href="generated/cunumeric.allclose.html">
        cunumeric.allclose
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.isclose.html">
+       cunumeric.isclose
       </a>
      </li>
      <li class="toctree-l3">
@@ -806,6 +857,16 @@
       </a>
      </li>
      <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.frexp.html">
+       cunumeric.frexp
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.ldexp.html">
+       cunumeric.ldexp
+      </a>
+     </li>
+     <li class="toctree-l3">
       <a class="reference internal" href="generated/cunumeric.nextafter.html">
        cunumeric.nextafter
       </a>
@@ -883,6 +944,11 @@
      <li class="toctree-l3">
       <a class="reference internal" href="generated/cunumeric.mod.html">
        cunumeric.mod
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.modf.html">
+       cunumeric.modf
       </a>
      </li>
      <li class="toctree-l3">
@@ -1912,6 +1978,11 @@
   </a>
  </li>
  <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#array-type-testing">
+   Array type testing
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
   <a class="reference internal nav-link" href="#logic-operations">
    Logic operations
   </a>
@@ -1942,9 +2013,9 @@
               
               <div>
                 
-  <div class="section" id="logic-functions">
+  <section id="logic-functions">
 <h1>Logic functions<a class="headerlink" href="#logic-functions" title="Permalink to this headline">#</a></h1>
-<div class="section" id="truth-value-testing">
+<section id="truth-value-testing">
 <h2>Truth value testing<a class="headerlink" href="#truth-value-testing" title="Permalink to this headline">#</a></h2>
 <table class="autosummary longtable table autosummary">
 <colgroup>
@@ -1960,8 +2031,8 @@
 </tr>
 </tbody>
 </table>
-</div>
-<div class="section" id="array-contents">
+</section>
+<section id="array-contents">
 <h2>Array contents<a class="headerlink" href="#array-contents" title="Permalink to this headline">#</a></h2>
 <table class="autosummary longtable table autosummary">
 <colgroup>
@@ -1969,19 +2040,51 @@
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.isfinite.html#cunumeric.isfinite" title="cunumeric.isfinite"><code class="xref py py-obj docutils literal notranslate"><span class="pre">isfinite</span></code></a>(x[, out, where, casting, order, dtype])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.isfinite.html#cunumeric.isfinite" title="cunumeric.isfinite"><code class="xref py py-obj docutils literal notranslate"><span class="pre">isfinite</span></code></a>(*args[, out, where, casting, ...])</p></td>
 <td><p>Test element-wise for finiteness (not infinity and not Not a Number).</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.isinf.html#cunumeric.isinf" title="cunumeric.isinf"><code class="xref py py-obj docutils literal notranslate"><span class="pre">isinf</span></code></a>(x[, out, where, casting, order, dtype])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.isinf.html#cunumeric.isinf" title="cunumeric.isinf"><code class="xref py py-obj docutils literal notranslate"><span class="pre">isinf</span></code></a>(*args[, out, where, casting, order, dtype])</p></td>
 <td><p>Test element-wise for positive or negative infinity.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.isnan.html#cunumeric.isnan" title="cunumeric.isnan"><code class="xref py py-obj docutils literal notranslate"><span class="pre">isnan</span></code></a>(x[, out, where, casting, order, dtype])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.isnan.html#cunumeric.isnan" title="cunumeric.isnan"><code class="xref py py-obj docutils literal notranslate"><span class="pre">isnan</span></code></a>(*args[, out, where, casting, order, dtype])</p></td>
 <td><p>Test element-wise for NaN and return result as a boolean array.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.isneginf.html#cunumeric.isneginf" title="cunumeric.isneginf"><code class="xref py py-obj docutils literal notranslate"><span class="pre">isneginf</span></code></a>(x[, out])</p></td>
+<td><p>Test element-wise for negative infinity, return result as bool array.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.isposinf.html#cunumeric.isposinf" title="cunumeric.isposinf"><code class="xref py py-obj docutils literal notranslate"><span class="pre">isposinf</span></code></a>(x[, out])</p></td>
+<td><p>Test element-wise for positive infinity, return result as bool array.</p></td>
 </tr>
 </tbody>
 </table>
-</div>
-<div class="section" id="logic-operations">
+</section>
+<section id="array-type-testing">
+<h2>Array type testing<a class="headerlink" href="#array-type-testing" title="Permalink to this headline">#</a></h2>
+<table class="autosummary longtable table autosummary">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.iscomplex.html#cunumeric.iscomplex" title="cunumeric.iscomplex"><code class="xref py py-obj docutils literal notranslate"><span class="pre">iscomplex</span></code></a>(x)</p></td>
+<td><p>Returns a bool array, where True if input element is complex.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.iscomplexobj.html#cunumeric.iscomplexobj" title="cunumeric.iscomplexobj"><code class="xref py py-obj docutils literal notranslate"><span class="pre">iscomplexobj</span></code></a>(x)</p></td>
+<td><p>Check for a complex type or an array of complex numbers.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.isreal.html#cunumeric.isreal" title="cunumeric.isreal"><code class="xref py py-obj docutils literal notranslate"><span class="pre">isreal</span></code></a>(x)</p></td>
+<td><p>Returns a bool array, where True if input element is real.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.isrealobj.html#cunumeric.isrealobj" title="cunumeric.isrealobj"><code class="xref py py-obj docutils literal notranslate"><span class="pre">isrealobj</span></code></a>(x)</p></td>
+<td><p>Return True if x is a not complex type or an array of complex numbers.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.isscalar.html#cunumeric.isscalar" title="cunumeric.isscalar"><code class="xref py py-obj docutils literal notranslate"><span class="pre">isscalar</span></code></a>(x)</p></td>
+<td><p>Returns True if the type of <cite>element</cite> is a scalar type.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="logic-operations">
 <h2>Logic operations<a class="headerlink" href="#logic-operations" title="Permalink to this headline">#</a></h2>
 <table class="autosummary longtable table autosummary">
 <colgroup>
@@ -1989,22 +2092,22 @@
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.logical_and.html#cunumeric.logical_and" title="cunumeric.logical_and"><code class="xref py py-obj docutils literal notranslate"><span class="pre">logical_and</span></code></a>(x1, x2[, out, where, casting, ...])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.logical_and.html#cunumeric.logical_and" title="cunumeric.logical_and"><code class="xref py py-obj docutils literal notranslate"><span class="pre">logical_and</span></code></a>(*args[, out, where, casting, ...])</p></td>
 <td><p>Compute the truth value of x1 AND x2 element-wise.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.logical_or.html#cunumeric.logical_or" title="cunumeric.logical_or"><code class="xref py py-obj docutils literal notranslate"><span class="pre">logical_or</span></code></a>(x1, x2[, out, where, casting, ...])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.logical_or.html#cunumeric.logical_or" title="cunumeric.logical_or"><code class="xref py py-obj docutils literal notranslate"><span class="pre">logical_or</span></code></a>(*args[, out, where, casting, ...])</p></td>
 <td><p>Compute the truth value of x1 OR x2 element-wise.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.logical_not.html#cunumeric.logical_not" title="cunumeric.logical_not"><code class="xref py py-obj docutils literal notranslate"><span class="pre">logical_not</span></code></a>(x[, out, where, casting, order, ...])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.logical_not.html#cunumeric.logical_not" title="cunumeric.logical_not"><code class="xref py py-obj docutils literal notranslate"><span class="pre">logical_not</span></code></a>(*args[, out, where, casting, ...])</p></td>
 <td><p>Compute bit-wise inversion, or bit-wise NOT, element-wise.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.logical_xor.html#cunumeric.logical_xor" title="cunumeric.logical_xor"><code class="xref py py-obj docutils literal notranslate"><span class="pre">logical_xor</span></code></a>(x1, x2[, out, where, casting, ...])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.logical_xor.html#cunumeric.logical_xor" title="cunumeric.logical_xor"><code class="xref py py-obj docutils literal notranslate"><span class="pre">logical_xor</span></code></a>(*args[, out, where, casting, ...])</p></td>
 <td><p>Compute the truth value of x1 XOR x2, element-wise.</p></td>
 </tr>
 </tbody>
 </table>
-</div>
-<div class="section" id="comparison">
+</section>
+<section id="comparison">
 <h2>Comparison<a class="headerlink" href="#comparison" title="Permalink to this headline">#</a></h2>
 <table class="autosummary longtable table autosummary">
 <colgroup>
@@ -2015,31 +2118,34 @@
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.allclose.html#cunumeric.allclose" title="cunumeric.allclose"><code class="xref py py-obj docutils literal notranslate"><span class="pre">allclose</span></code></a>(a, b[, rtol, atol, equal_nan])</p></td>
 <td><p>Returns True if two arrays are element-wise equal within a tolerance.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.array_equal.html#cunumeric.array_equal" title="cunumeric.array_equal"><code class="xref py py-obj docutils literal notranslate"><span class="pre">array_equal</span></code></a>(a, b)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.isclose.html#cunumeric.isclose" title="cunumeric.isclose"><code class="xref py py-obj docutils literal notranslate"><span class="pre">isclose</span></code></a>(a, b[, rtol, atol, equal_nan])</p></td>
+<td><p>Returns a boolean array where two arrays are element-wise equal within a tolerance.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.array_equal.html#cunumeric.array_equal" title="cunumeric.array_equal"><code class="xref py py-obj docutils literal notranslate"><span class="pre">array_equal</span></code></a>(a, b)</p></td>
 <td><p>True if two arrays have the same shape and elements, False otherwise.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.greater.html#cunumeric.greater" title="cunumeric.greater"><code class="xref py py-obj docutils literal notranslate"><span class="pre">greater</span></code></a>(x1, x2[, out, where, casting, ...])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.greater.html#cunumeric.greater" title="cunumeric.greater"><code class="xref py py-obj docutils literal notranslate"><span class="pre">greater</span></code></a>(*args[, out, where, casting, order, ...])</p></td>
 <td><p>Return the truth value of (x1 &gt; x2) element-wise.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.greater_equal.html#cunumeric.greater_equal" title="cunumeric.greater_equal"><code class="xref py py-obj docutils literal notranslate"><span class="pre">greater_equal</span></code></a>(x1, x2[, out, where, casting, ...])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.greater_equal.html#cunumeric.greater_equal" title="cunumeric.greater_equal"><code class="xref py py-obj docutils literal notranslate"><span class="pre">greater_equal</span></code></a>(*args[, out, where, casting, ...])</p></td>
 <td><p>Return the truth value of (x1 &gt;= x2) element-wise.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.less.html#cunumeric.less" title="cunumeric.less"><code class="xref py py-obj docutils literal notranslate"><span class="pre">less</span></code></a>(x1, x2[, out, where, casting, order, dtype])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.less.html#cunumeric.less" title="cunumeric.less"><code class="xref py py-obj docutils literal notranslate"><span class="pre">less</span></code></a>(*args[, out, where, casting, order, dtype])</p></td>
 <td><p>Return the truth value of (x1 &lt; x2) element-wise.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.less_equal.html#cunumeric.less_equal" title="cunumeric.less_equal"><code class="xref py py-obj docutils literal notranslate"><span class="pre">less_equal</span></code></a>(x1, x2[, out, where, casting, ...])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.less_equal.html#cunumeric.less_equal" title="cunumeric.less_equal"><code class="xref py py-obj docutils literal notranslate"><span class="pre">less_equal</span></code></a>(*args[, out, where, casting, ...])</p></td>
 <td><p>Return the truth value of (x1 =&lt; x2) element-wise.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.equal.html#cunumeric.equal" title="cunumeric.equal"><code class="xref py py-obj docutils literal notranslate"><span class="pre">equal</span></code></a>(x1, x2[, out, where, casting, order, ...])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.equal.html#cunumeric.equal" title="cunumeric.equal"><code class="xref py py-obj docutils literal notranslate"><span class="pre">equal</span></code></a>(*args[, out, where, casting, order, dtype])</p></td>
 <td><p>Return (x1 == x2) element-wise.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.not_equal.html#cunumeric.not_equal" title="cunumeric.not_equal"><code class="xref py py-obj docutils literal notranslate"><span class="pre">not_equal</span></code></a>(x1, x2[, out, where, casting, ...])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.not_equal.html#cunumeric.not_equal" title="cunumeric.not_equal"><code class="xref py py-obj docutils literal notranslate"><span class="pre">not_equal</span></code></a>(*args[, out, where, casting, ...])</p></td>
 <td><p>Return (x1 != x2) element-wise.</p></td>
 </tr>
 </tbody>
 </table>
-</div>
-</div>
+</section>
+</section>
 
 
               </div>

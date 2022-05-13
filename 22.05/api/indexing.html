@@ -4,7 +4,8 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
     <title>Indexing routines &#8212; cunumeric  documentation</title>
     
   <!-- Loaded before other Sphinx assets -->
@@ -439,8 +440,18 @@
       </a>
      </li>
      <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.take.html">
+       cunumeric.take
+      </a>
+     </li>
+     <li class="toctree-l3">
       <a class="reference internal" href="generated/cunumeric.choose.html">
        cunumeric.choose
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.compress.html">
+       cunumeric.compress
       </a>
      </li>
      <li class="toctree-l3">
@@ -559,6 +570,41 @@
       </a>
      </li>
      <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.isneginf.html">
+       cunumeric.isneginf
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.isposinf.html">
+       cunumeric.isposinf
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.iscomplex.html">
+       cunumeric.iscomplex
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.iscomplexobj.html">
+       cunumeric.iscomplexobj
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.isreal.html">
+       cunumeric.isreal
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.isrealobj.html">
+       cunumeric.isrealobj
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.isscalar.html">
+       cunumeric.isscalar
+      </a>
+     </li>
+     <li class="toctree-l3">
       <a class="reference internal" href="generated/cunumeric.logical_and.html">
        cunumeric.logical_and
       </a>
@@ -581,6 +627,11 @@
      <li class="toctree-l3">
       <a class="reference internal" href="generated/cunumeric.allclose.html">
        cunumeric.allclose
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.isclose.html">
+       cunumeric.isclose
       </a>
      </li>
      <li class="toctree-l3">
@@ -806,6 +857,16 @@
       </a>
      </li>
      <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.frexp.html">
+       cunumeric.frexp
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.ldexp.html">
+       cunumeric.ldexp
+      </a>
+     </li>
+     <li class="toctree-l3">
       <a class="reference internal" href="generated/cunumeric.nextafter.html">
        cunumeric.nextafter
       </a>
@@ -883,6 +944,11 @@
      <li class="toctree-l3">
       <a class="reference internal" href="generated/cunumeric.mod.html">
        cunumeric.mod
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.modf.html">
+       cunumeric.modf
       </a>
      </li>
      <li class="toctree-l3">
@@ -1932,9 +1998,9 @@
               
               <div>
                 
-  <div class="section" id="indexing-routines">
+  <section id="indexing-routines">
 <h1>Indexing routines<a class="headerlink" href="#indexing-routines" title="Permalink to this headline">#</a></h1>
-<div class="section" id="generating-index-arrays">
+<section id="generating-index-arrays">
 <h2>Generating index arrays<a class="headerlink" href="#generating-index-arrays" title="Permalink to this headline">#</a></h2>
 <table class="autosummary longtable table autosummary">
 <colgroup>
@@ -1950,8 +2016,8 @@
 </tr>
 </tbody>
 </table>
-</div>
-<div class="section" id="indexing-like-operations">
+</section>
+<section id="indexing-like-operations">
 <h2>Indexing-like operations<a class="headerlink" href="#indexing-like-operations" title="Permalink to this headline">#</a></h2>
 <table class="autosummary longtable table autosummary">
 <colgroup>
@@ -1959,8 +2025,14 @@
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.choose.html#cunumeric.choose" title="cunumeric.choose"><code class="xref py py-obj docutils literal notranslate"><span class="pre">choose</span></code></a>(a, choices[, out, mode])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.take.html#cunumeric.take" title="cunumeric.take"><code class="xref py py-obj docutils literal notranslate"><span class="pre">take</span></code></a>(a, indices[, axis, out, mode])</p></td>
+<td><p>Take elements from an array along an axis.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.choose.html#cunumeric.choose" title="cunumeric.choose"><code class="xref py py-obj docutils literal notranslate"><span class="pre">choose</span></code></a>(a, choices[, out, mode])</p></td>
 <td><p>Construct an array from an index array and a list of arrays to choose from.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.compress.html#cunumeric.compress" title="cunumeric.compress"><code class="xref py py-obj docutils literal notranslate"><span class="pre">compress</span></code></a>(c, a[, axis, out])</p></td>
+<td><p>Return selected slices of an array along given axis.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.diag.html#cunumeric.diag" title="cunumeric.diag"><code class="xref py py-obj docutils literal notranslate"><span class="pre">diag</span></code></a>(v[, k])</p></td>
 <td><p>Extract a diagonal or construct a diagonal array.</p></td>
@@ -1970,8 +2042,8 @@
 </tr>
 </tbody>
 </table>
-</div>
-</div>
+</section>
+</section>
 
 
               </div>

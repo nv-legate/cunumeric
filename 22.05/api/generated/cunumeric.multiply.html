@@ -4,7 +4,8 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
     <title>cunumeric.multiply &#8212; cunumeric  documentation</title>
     
   <!-- Loaded before other Sphinx assets -->
@@ -439,8 +440,18 @@
       </a>
      </li>
      <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.take.html">
+       cunumeric.take
+      </a>
+     </li>
+     <li class="toctree-l3">
       <a class="reference internal" href="cunumeric.choose.html">
        cunumeric.choose
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.compress.html">
+       cunumeric.compress
       </a>
      </li>
      <li class="toctree-l3">
@@ -559,6 +570,41 @@
       </a>
      </li>
      <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.isneginf.html">
+       cunumeric.isneginf
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.isposinf.html">
+       cunumeric.isposinf
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.iscomplex.html">
+       cunumeric.iscomplex
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.iscomplexobj.html">
+       cunumeric.iscomplexobj
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.isreal.html">
+       cunumeric.isreal
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.isrealobj.html">
+       cunumeric.isrealobj
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.isscalar.html">
+       cunumeric.isscalar
+      </a>
+     </li>
+     <li class="toctree-l3">
       <a class="reference internal" href="cunumeric.logical_and.html">
        cunumeric.logical_and
       </a>
@@ -581,6 +627,11 @@
      <li class="toctree-l3">
       <a class="reference internal" href="cunumeric.allclose.html">
        cunumeric.allclose
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.isclose.html">
+       cunumeric.isclose
       </a>
      </li>
      <li class="toctree-l3">
@@ -806,6 +857,16 @@
       </a>
      </li>
      <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.frexp.html">
+       cunumeric.frexp
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.ldexp.html">
+       cunumeric.ldexp
+      </a>
+     </li>
+     <li class="toctree-l3">
       <a class="reference internal" href="cunumeric.nextafter.html">
        cunumeric.nextafter
       </a>
@@ -883,6 +944,11 @@
      <li class="toctree-l3">
       <a class="reference internal" href="cunumeric.mod.html">
        cunumeric.mod
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.modf.html">
+       cunumeric.modf
       </a>
      </li>
      <li class="toctree-l3">
@@ -1917,11 +1983,11 @@
               
               <div>
                 
-  <div class="section" id="cunumeric-multiply">
+  <section id="cunumeric-multiply">
 <h1>cunumeric.multiply<a class="headerlink" href="#cunumeric-multiply" title="Permalink to this headline">#</a></h1>
 <dl class="py function">
 <dt class="sig sig-object py" id="cunumeric.multiply">
-<span class="sig-prename descclassname"><span class="pre">cunumeric.</span></span><span class="sig-name descname"><span class="pre">multiply</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">where</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">casting</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'same_kind'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">order</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'K'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cunumeric.multiply" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">cunumeric.</span></span><span class="sig-name descname"><span class="pre">multiply</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">where</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">casting</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'same_kind'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">order</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'K'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cunumeric.multiply" title="Permalink to this definition">#</a></dt>
 <dd><p>Multiply arguments element-wise.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1963,7 +2029,7 @@ This is a scalar if both <cite>x1</cite> and <cite>x2</cite> are scalars.</p>
 </dl>
 </dd></dl>
 
-</div>
+</section>
 
 
               </div>

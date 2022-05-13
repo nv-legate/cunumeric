@@ -4,7 +4,8 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
     <title>cunumeric.allclose &#8212; cunumeric  documentation</title>
     
   <!-- Loaded before other Sphinx assets -->
@@ -35,7 +36,7 @@
     <script src="../../_static/copybutton_pydocs.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="cunumeric.array_equal" href="cunumeric.array_equal.html" />
+    <link rel="next" title="cunumeric.isclose" href="cunumeric.isclose.html" />
     <link rel="prev" title="cunumeric.logical_xor" href="cunumeric.logical_xor.html" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="docsearch:language" content="None">
@@ -439,8 +440,18 @@
       </a>
      </li>
      <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.take.html">
+       cunumeric.take
+      </a>
+     </li>
+     <li class="toctree-l3">
       <a class="reference internal" href="cunumeric.choose.html">
        cunumeric.choose
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.compress.html">
+       cunumeric.compress
       </a>
      </li>
      <li class="toctree-l3">
@@ -559,6 +570,41 @@
       </a>
      </li>
      <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.isneginf.html">
+       cunumeric.isneginf
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.isposinf.html">
+       cunumeric.isposinf
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.iscomplex.html">
+       cunumeric.iscomplex
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.iscomplexobj.html">
+       cunumeric.iscomplexobj
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.isreal.html">
+       cunumeric.isreal
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.isrealobj.html">
+       cunumeric.isrealobj
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.isscalar.html">
+       cunumeric.isscalar
+      </a>
+     </li>
+     <li class="toctree-l3">
       <a class="reference internal" href="cunumeric.logical_and.html">
        cunumeric.logical_and
       </a>
@@ -581,6 +627,11 @@
      <li class="toctree-l3 current active">
       <a class="current reference internal" href="#">
        cunumeric.allclose
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.isclose.html">
+       cunumeric.isclose
       </a>
      </li>
      <li class="toctree-l3">
@@ -806,6 +857,16 @@
       </a>
      </li>
      <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.frexp.html">
+       cunumeric.frexp
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.ldexp.html">
+       cunumeric.ldexp
+      </a>
+     </li>
+     <li class="toctree-l3">
       <a class="reference internal" href="cunumeric.nextafter.html">
        cunumeric.nextafter
       </a>
@@ -883,6 +944,11 @@
      <li class="toctree-l3">
       <a class="reference internal" href="cunumeric.mod.html">
        cunumeric.mod
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.modf.html">
+       cunumeric.modf
       </a>
      </li>
      <li class="toctree-l3">
@@ -1917,7 +1983,7 @@
               
               <div>
                 
-  <div class="section" id="cunumeric-allclose">
+  <section id="cunumeric-allclose">
 <h1>cunumeric.allclose<a class="headerlink" href="#cunumeric-allclose" title="Permalink to this headline">#</a></h1>
 <dl class="py function">
 <dt class="sig sig-object py" id="cunumeric.allclose">
@@ -1949,6 +2015,12 @@ tolerance; False otherwise.</p>
 <dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)">bool</a></p>
 </dd>
 </dl>
+<p class="rubric">Notes</p>
+<p>If the following equation is element-wise True, then allclose returns
+True.</p>
+<blockquote>
+<div><p>absolute(<cite>a</cite> - <cite>b</cite>) &lt;= (<cite>atol</cite> + <cite>rtol</cite> * absolute(<cite>b</cite>))</p>
+</div></blockquote>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
 <p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.allclose.html#numpy.allclose" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.allclose</span></code></a></p>
@@ -1960,7 +2032,7 @@ tolerance; False otherwise.</p>
 </dl>
 </dd></dl>
 
-</div>
+</section>
 
 
               </div>
@@ -1975,10 +2047,10 @@ tolerance; False otherwise.</p>
             <p class="prev-next-title">cunumeric.logical_xor</p>
         </div>
     </a>
-    <a class='right-next' id="next-link" href="cunumeric.array_equal.html" title="next page">
+    <a class='right-next' id="next-link" href="cunumeric.isclose.html" title="next page">
     <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">cunumeric.array_equal</p>
+        <p class="prev-next-title">cunumeric.isclose</p>
     </div>
     <i class="fas fa-angle-right"></i>
     </a>
