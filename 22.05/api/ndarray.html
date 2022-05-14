@@ -33,7 +33,6 @@
     <script src="../_static/doctools.js"></script>
     <script src="../_static/clipboard.min.js"></script>
     <script src="../_static/copybutton.js"></script>
-    <script src="../_static/copybutton_pydocs.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="cunumeric.ndarray" href="_ndarray.html" />
@@ -440,11 +439,6 @@
       </a>
      </li>
      <li class="toctree-l3">
-      <a class="reference internal" href="generated/cunumeric.take.html">
-       cunumeric.take
-      </a>
-     </li>
-     <li class="toctree-l3">
       <a class="reference internal" href="generated/cunumeric.choose.html">
        cunumeric.choose
       </a>
@@ -462,6 +456,11 @@
      <li class="toctree-l3">
       <a class="reference internal" href="generated/cunumeric.diagonal.html">
        cunumeric.diagonal
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.take.html">
+       cunumeric.take
       </a>
      </li>
     </ul>
@@ -1566,6 +1565,11 @@
       </a>
      </li>
      <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.ndarray.take.html">
+       cunumeric.ndarray.take
+      </a>
+     </li>
+     <li class="toctree-l3">
       <a class="reference internal" href="generated/cunumeric.ndarray.choose.html">
        cunumeric.ndarray.choose
       </a>
@@ -1593,6 +1597,11 @@
      <li class="toctree-l3">
       <a class="reference internal" href="generated/cunumeric.ndarray.nonzero.html">
        cunumeric.ndarray.nonzero
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.ndarray.compress.html">
+       cunumeric.ndarray.compress
       </a>
      </li>
      <li class="toctree-l3">
@@ -2267,23 +2276,29 @@ routines, and also by using the low-level ndarray constructor:</p>
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.choose.html#cunumeric.ndarray.choose" title="cunumeric.ndarray.choose"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ndarray.choose</span></code></a>(choices[, out, mode])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.take.html#cunumeric.ndarray.take" title="cunumeric.ndarray.take"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ndarray.take</span></code></a>(indices[, axis, out, mode])</p></td>
+<td><p>Take elements from an array along an axis.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.choose.html#cunumeric.ndarray.choose" title="cunumeric.ndarray.choose"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ndarray.choose</span></code></a>(choices[, out, mode])</p></td>
 <td><p>Use an index array to construct a new array from a set of choices.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.sort.html#cunumeric.ndarray.sort" title="cunumeric.ndarray.sort"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ndarray.sort</span></code></a>([axis, kind, order])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.sort.html#cunumeric.ndarray.sort" title="cunumeric.ndarray.sort"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ndarray.sort</span></code></a>([axis, kind, order])</p></td>
 <td><p>Sort an array in-place.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.argsort.html#cunumeric.ndarray.argsort" title="cunumeric.ndarray.argsort"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ndarray.argsort</span></code></a>([axis, kind, order])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.argsort.html#cunumeric.ndarray.argsort" title="cunumeric.ndarray.argsort"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ndarray.argsort</span></code></a>([axis, kind, order])</p></td>
 <td><p>Returns the indices that would sort this array.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.partition.html#cunumeric.ndarray.partition" title="cunumeric.ndarray.partition"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ndarray.partition</span></code></a>(kth[, axis, kind, order])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.partition.html#cunumeric.ndarray.partition" title="cunumeric.ndarray.partition"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ndarray.partition</span></code></a>(kth[, axis, kind, order])</p></td>
 <td><p>Partition of an array in-place.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.argpartition.html#cunumeric.ndarray.argpartition" title="cunumeric.ndarray.argpartition"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ndarray.argpartition</span></code></a>(kth[, axis, kind, order])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.argpartition.html#cunumeric.ndarray.argpartition" title="cunumeric.ndarray.argpartition"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ndarray.argpartition</span></code></a>(kth[, axis, kind, order])</p></td>
 <td><p>Returns the indices that would partition this array.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.nonzero.html#cunumeric.ndarray.nonzero" title="cunumeric.ndarray.nonzero"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ndarray.nonzero</span></code></a>()</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.nonzero.html#cunumeric.ndarray.nonzero" title="cunumeric.ndarray.nonzero"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ndarray.nonzero</span></code></a>()</p></td>
 <td><p>Return the indices of the elements that are non-zero.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.compress.html#cunumeric.ndarray.compress" title="cunumeric.ndarray.compress"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ndarray.compress</span></code></a>(self, condition[, axis, out])</p></td>
+<td><p>Return selected slices of an array along given axis..</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.diagonal.html#cunumeric.ndarray.diagonal" title="cunumeric.ndarray.diagonal"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ndarray.diagonal</span></code></a>([offset, axis1, axis2])</p></td>
 <td><p>Return specified diagonals.</p></td>

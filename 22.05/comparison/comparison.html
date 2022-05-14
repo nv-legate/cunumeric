@@ -33,7 +33,6 @@
     <script src="../_static/doctools.js"></script>
     <script src="../_static/clipboard.min.js"></script>
     <script src="../_static/copybutton.js"></script>
-    <script src="../_static/copybutton_pydocs.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Contributing to cuNumeric" href="../CONTRIBUTING.html" />
@@ -212,6 +211,11 @@
     </a>
    </li>
   </ul>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#zero-code-change-patching">
+   Zero code-change patching
+  </a>
  </li>
 </ul>
 
@@ -2854,7 +2858,7 @@ is not provided yet. We welcome contributions for these functions.</p>
 <td><p>✓</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.compress.html#numpy.ndarray.compress" title="(in NumPy v1.22)"><code class="xref py py-meth docutils literal notranslate"><span class="pre">numpy.ndarray.compress()</span></code></a></p></td>
-<td><p><code class="xref py py-meth docutils literal notranslate"><span class="pre">cunumeric.ndarray.compress()</span></code></p></td>
+<td><p><a class="reference internal" href="../api/generated/cunumeric.ndarray.compress.html#cunumeric.ndarray.compress" title="cunumeric.ndarray.compress"><code class="xref py py-meth docutils literal notranslate"><span class="pre">cunumeric.ndarray.compress()</span></code></a></p></td>
 <td><p>✓</p></td>
 <td><p>✓</p></td>
 </tr>
@@ -3051,7 +3055,7 @@ is not provided yet. We welcome contributions for these functions.</p>
 <td><p>✓</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.take.html#numpy.ndarray.take" title="(in NumPy v1.22)"><code class="xref py py-meth docutils literal notranslate"><span class="pre">numpy.ndarray.take()</span></code></a></p></td>
-<td><p><code class="xref py py-meth docutils literal notranslate"><span class="pre">cunumeric.ndarray.take()</span></code></p></td>
+<td><p><a class="reference internal" href="../api/generated/cunumeric.ndarray.take.html#cunumeric.ndarray.take" title="cunumeric.ndarray.take"><code class="xref py py-meth docutils literal notranslate"><span class="pre">cunumeric.ndarray.take()</span></code></a></p></td>
 <td><p>✓</p></td>
 <td><p>✓</p></td>
 </tr>
@@ -3898,6 +3902,33 @@ include full call stack information in a CSV report:</p>
 information in the location column, with individual stack frames separated
 by pipe (<code class="docutils literal notranslate"><span class="pre">|</span></code>) characters:</p>
 </section>
+</section>
+<section id="zero-code-change-patching">
+<h2>Zero code-change patching<a class="headerlink" href="#zero-code-change-patching" title="Permalink to this headline">#</a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">lgpatch</span></code> script in the same location as the <code class="docutils literal notranslate"><span class="pre">legate</span></code> executable) can
+help facilitate quick demonstrations of <code class="docutils literal notranslate"><span class="pre">cunumeric</span></code> on existing codebases
+that make use of <code class="docutils literal notranslate"><span class="pre">numpy</span></code>.</p>
+<p>To use this tool, invoke it as shown below, with the name of the program to
+patch:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>lgpatch &lt;program&gt; -patch numpy
+</pre></div>
+</div>
+<p>For example, here is a small <code class="docutils literal notranslate"><span class="pre">test.py</span></code> program that imports and uses various
+<code class="docutils literal notranslate"><span class="pre">numpy</span></code> funtions:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># test.py</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="nb">input</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+<span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">cholesky</span><span class="p">(</span><span class="nb">input</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>You can invoke <code class="docutils literal notranslate"><span class="pre">lgpatch</span></code> to run <code class="docutils literal notranslate"><span class="pre">test.py</span></code> using <code class="docutils literal notranslate"><span class="pre">cunumeric</span></code> functions
+instead, without any changes to the original source code. Any standard
+<code class="docutils literal notranslate"><span class="pre">cunumeric</span></code> runtime options (e.g. for coverage reporting) may also be added:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$ lgpatch test.py -patch numpy -cunumeric:report:coverage
+cuNumeric API coverage: <span class="m">4</span>/4 <span class="o">(</span><span class="m">100</span>.0%<span class="o">)</span>
+</pre></div>
+</div>
 </section>
 </section>
 
