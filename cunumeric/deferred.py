@@ -632,12 +632,6 @@ class DeferredArray(NumPyThunk):
             ) = self._create_indexing_array(key)
             store = rhs.base
             if copy_needed:
-                # Create a new array to be the result
-                result = self.runtime.create_empty_thunk(
-                    index_array.base.shape,
-                    self.dtype,
-                    inputs=[self],
-                )
                 if index_array.base.kind == Future:
                     index_array = self._convert_future_to_store(index_array)
                     result_store = self.context.create_store(
@@ -650,13 +644,13 @@ class DeferredArray(NumPyThunk):
                         base=result_store,
                         dtype=self.dtype,
                     )
-
                 else:
                     result = self.runtime.create_empty_thunk(
                         index_array.base.shape,
                         self.dtype,
                         inputs=[self],
                     )
+
                 copy = self.context.create_copy()
                 copy.set_source_indirect_out_of_range(False)
                 copy.add_input(store)

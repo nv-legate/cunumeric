@@ -51,12 +51,9 @@ class UnaryOpTask : public CuNumericTask<UnaryOpTask> {
 
 template <int DIM>
 struct inner_type_dispatch_fn {
-  template <typename TypeCode, typename Functor, typename... Fnargs>
-  constexpr decltype(auto) operator()(TypeCode code, Functor f, Fnargs&&... args)
+  template <typename Functor, typename... Fnargs>
+  constexpr decltype(auto) operator()(CuNumericTypeCodes code, Functor f, Fnargs&&... args)
   {
-    if (code <= MAX_TYPE_NUMBER) {
-      return legate::inner_type_dispatch_fn<DIM>{}(code, f, std::forward<Fnargs>(args)...);
-    }
     switch (code) {
 #if LEGION_MAX_DIM >= 1
       case CuNumericTypeCodes::CUNUMERIC_TYPE_POINT1: {
@@ -112,9 +109,6 @@ struct inner_type_dispatch_fn {
           std::forward<Fnargs>(args)...);
       }
 #endif
-      default: {
-        return legate::inner_type_dispatch_fn<DIM>{}(code, f, std::forward<Fnargs>(args)...);
-      }
     }
     assert(false);
     return f.template operator()<CuNumericTypeCodes::CUNUMERIC_TYPE_POINT1, DIM>(
@@ -122,8 +116,11 @@ struct inner_type_dispatch_fn {
   }
 };
 
-template <typename TypeCode, typename Functor, typename... Fnargs>
-constexpr decltype(auto) double_dispatch(int dim, TypeCode code, Functor f, Fnargs&&... args)
+template <typename Functor, typename... Fnargs>
+constexpr decltype(auto) double_dispatch(int dim,
+                                         CuNumericTypeCodes code,
+                                         Functor f,
+                                         Fnargs&&... args)
 {
   switch (dim) {
 #if LEGION_MAX_DIM >= 1
@@ -206,31 +203,31 @@ struct CuNumericTypeOf<CuNumericTypeCodes::CUNUMERIC_TYPE_POINT4> {
 #endif
 #if LEGION_MAX_DIM >= 5
 template <>
-struct CuNumericTypeOf<CuNumericTypeCodes::CUNUMERIC_TYPE_POINT4> {
+struct CuNumericTypeOf<CuNumericTypeCodes::CUNUMERIC_TYPE_POINT5> {
   using type = Legion::Point<5>;
 };
 #endif
 #if LEGION_MAX_DIM >= 6
 template <>
-struct CuNumericTypeOf<CuNumericTypeCodes::CUNUMERIC_TYPE_POINT4> {
+struct CuNumericTypeOf<CuNumericTypeCodes::CUNUMERIC_TYPE_POINT6> {
   using type = Legion::Point<6>;
 };
 #endif
 #if LEGION_MAX_DIM >= 7
 template <>
-struct CuNumericTypeOf<CuNumericTypeCodes::CUNUMERIC_TYPE_POINT4> {
+struct CuNumericTypeOf<CuNumericTypeCodes::CUNUMERIC_TYPE_POINT7> {
   using type = Legion::Point<7>;
 };
 #endif
 #if LEGION_MAX_DIM >= 8
 template <>
-struct CuNumericTypeOf<CuNumericTypeCodes::CUNUMERIC_TYPE_POINT4> {
+struct CuNumericTypeOf<CuNumericTypeCodes::CUNUMERIC_TYPE_POINT8> {
   using type = Legion::Point<8>;
 };
 #endif
 #if LEGION_MAX_DIM >= 9
 template <>
-struct CuNumericTypeOf<CuNumericTypeCodes::CUNUMERIC_TYPE_POINT4> {
+struct CuNumericTypeOf<CuNumericTypeCodes::CUNUMERIC_TYPE_POINT9> {
   using type = Legion::Point<9>;
 };
 #endif
