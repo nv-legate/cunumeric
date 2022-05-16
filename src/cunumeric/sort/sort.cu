@@ -356,6 +356,29 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
 
 template <typename VAL>
 __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
+  combine_buffers_no_sort(const Buffer<VAL*> source_values,
+                          const Buffer<size_t> target_offsets,
+                          Buffer<VAL> target_values,
+                          const size_t merged_size,
+                          const size_t num_sort_ranks)
+{
+  const size_t thread_offset    = blockIdx.x * blockDim.x + threadIdx.x;
+  const size_t threadgroup_size = blockDim.x * gridDim.x;
+  const size_t rank_id          = blockIdx.y * blockDim.y + threadIdx.y;
+  if (rank_id >= num_sort_ranks) return;
+
+  size_t target_offset = target_offsets[rank_id];
+  size_t local_size    = (rank_id == num_sort_ranks - 1)
+                           ? (merged_size - target_offset)
+                           : (target_offsets[rank_id + 1] - target_offset);
+
+  for (size_t pos = thread_offset; pos < local_size; pos += threadgroup_size) {
+    target_values[target_offset + pos] = source_values[rank_id][pos];
+  }
+}
+
+template <typename VAL>
+__global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   copy_data_to_rebalance_buffers(const Buffer<int64_t> segment_diff_pos,
                                  const Buffer<int64_t> send_left,
                                  const Buffer<int64_t> send_right,
@@ -588,14 +611,84 @@ struct modulusWithOffset : public thrust::binary_function<int64_t, int64_t, int6
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-template <typename VAL>
-SegmentMergePiece<VAL> merge_all_buffers(std::vector<SegmentMergePiece<VAL>>& merge_buffers,
-                                         bool segmented,
-                                         bool argsort,
-                                         ThrustAllocator& alloc,
-                                         cudaStream_t stream)
+template <LegateTypeCode CODE>
+SegmentMergePiece<legate_type_of<CODE>> merge_all_buffers(
+  std::vector<SegmentMergePiece<legate_type_of<CODE>>>& merge_buffers,
+  bool segmented,
+  bool argsort,
+  ThrustAllocator& alloc,
+  cudaStream_t stream)
 {
-  {
+  using VAL = legate_type_of<CODE>;
+
+  // fallback to full sort for 1D and > 64 parts
+  if (!segmented && merge_buffers.size() > 64) {
+    SegmentMergePiece<VAL> result;
+
+    // initialize target
+    size_t merged_size            = 0;
+    size_t num_sort_ranks         = merge_buffers.size();
+    Buffer<size_t> target_offsets = create_buffer<size_t>(num_sort_ranks, Memory::Z_COPY_MEM);
+
+    // loop comparably small -> no init kernel
+    for (int i = 0; i < num_sort_ranks; ++i) {
+      target_offsets[i] = merged_size;
+      merged_size += merge_buffers[i].size;
+    }
+    result.values   = create_buffer<VAL>(merged_size);
+    result.indices  = create_buffer<int64_t>(argsort ? merged_size : 0);
+    result.segments = create_buffer<size_t>(segmented ? merged_size : 0);
+    result.size     = merged_size;
+
+    // copy data into result
+    {
+      Buffer<VAL*> val_buffers_ptr = create_buffer<VAL*>(num_sort_ranks, Memory::Z_COPY_MEM);
+      for (size_t r = 0; r < num_sort_ranks; r++) {
+        val_buffers_ptr[r] = merge_buffers[r].values.ptr(0);
+      }
+
+      dim3 block_shape       = dim3(THREADS_PER_BLOCK, 1);
+      auto elements_per_rank = std::max<size_t>(merged_size / num_sort_ranks, 1);
+      const size_t num_blocks_x =
+        ((elements_per_rank + 31) / 32 + block_shape.x - 1) / block_shape.x;
+      dim3 grid_shape = dim3(num_blocks_x, num_sort_ranks);
+      combine_buffers_no_sort<<<grid_shape, THREADS_PER_BLOCK, 0, stream>>>(
+        val_buffers_ptr, target_offsets, result.values, merged_size, num_sort_ranks);
+      if (argsort) {
+        Buffer<int64_t*> idc_buffers_ptr =
+          create_buffer<int64_t*>(num_sort_ranks, Memory::Z_COPY_MEM);
+        for (size_t r = 0; r < num_sort_ranks; r++) {
+          idc_buffers_ptr[r] = merge_buffers[r].indices.ptr(0);
+        }
+        combine_buffers_no_sort<<<grid_shape, THREADS_PER_BLOCK, 0, stream>>>(
+          idc_buffers_ptr, target_offsets, result.indices, merged_size, num_sort_ranks);
+
+        CHECK_CUDA(cudaStreamSynchronize(stream));  // needed before Z-copy destroy()
+        idc_buffers_ptr.destroy();
+      } else {
+        CHECK_CUDA(cudaStreamSynchronize(stream));  // needed before Z-copy destroy()
+      }
+      val_buffers_ptr.destroy();
+      target_offsets.destroy();
+
+      // destroy buffers
+      for (int i = 0; i < num_sort_ranks; ++i) {
+        SegmentMergePiece<VAL> piece = merge_buffers[i];
+        piece.values.destroy();
+        if (argsort) { piece.indices.destroy(); }
+      }
+      merge_buffers.clear();
+    }
+
+    // sort data (locally)
+    auto p_values  = result.values.ptr(0);
+    auto p_indices = argsort ? result.indices.ptr(0) : nullptr;
+    local_sort<CODE>(
+      p_values, p_values, p_indices, p_indices, merged_size, merged_size, true, stream);
+
+    CHECK_CUDA_STREAM(stream);
+    return result;
+  } else {
     // maybe k-way merge is more efficient here...
     auto exec_policy      = thrust::cuda::par(alloc).on(stream);
     size_t num_sort_ranks = merge_buffers.size();
@@ -688,11 +781,11 @@ SegmentMergePiece<VAL> merge_all_buffers(std::vector<SegmentMergePiece<VAL>>& me
       }
       destroy_queue.clear();
     }
+    SegmentMergePiece<VAL> result = merge_buffers[0];
+    merge_buffers.clear();
+    CHECK_CUDA_STREAM(stream);
+    return result;
   }
-  SegmentMergePiece<VAL> result = merge_buffers[0];
-  merge_buffers.clear();
-  CHECK_CUDA_STREAM(stream);
-  return result;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1149,8 +1242,8 @@ void rebalance_data(SegmentMergePiece<VAL>& merge_buffer,
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-template <typename VAL>
-void sample_sort_nccl_nd(SortPiece<VAL> local_sorted,
+template <LegateTypeCode CODE>
+void sample_sort_nccl_nd(SortPiece<legate_type_of<CODE>> local_sorted,
                          Array& output_array_unbound,  // only for unbound usage when !rebalance
                          void* output_ptr,
                          /* global domain information */
@@ -1168,6 +1261,8 @@ void sample_sort_nccl_nd(SortPiece<VAL> local_sorted,
                          cudaStream_t stream,
                          ncclComm_t* comm)
 {
+  using VAL = legate_type_of<CODE>;
+
   size_t volume              = local_sorted.size;
   bool is_unbound_1d_storage = output_array_unbound.dim() == -1;
 
@@ -1573,7 +1668,7 @@ void sample_sort_nccl_nd(SortPiece<VAL> local_sorted,
 
   // now merge sort all into the result buffer
   SegmentMergePiece<VAL> merged_result =
-    merge_all_buffers(merge_buffers, num_segments_l > 1, argsort, alloc, stream);
+    merge_all_buffers<CODE>(merge_buffers, num_segments_l > 1, argsort, alloc, stream);
 
   /////////////////////////////////////////////////////////////////////////////////////////////////
   /////////////// Part 5: re-balance data to match input/output dimensions
@@ -1732,20 +1827,20 @@ struct SortImplBody<VariantKind::GPU, CODE, DIM> {
           }
         }
 
-        sample_sort_nccl_nd(local_sorted,
-                            output_array,
-                            output_ptr,
-                            local_rank,
-                            num_ranks,
-                            segment_size_g,
-                            local_rank % num_sort_ranks,
-                            num_sort_ranks,
-                            &sort_ranks[0],
-                            segment_size_l,
-                            rebalance,
-                            argsort,
-                            stream,
-                            comms[0].get<ncclComm_t*>());
+        sample_sort_nccl_nd<CODE>(local_sorted,
+                                  output_array,
+                                  output_ptr,
+                                  local_rank,
+                                  num_ranks,
+                                  segment_size_g,
+                                  local_rank % num_sort_ranks,
+                                  num_sort_ranks,
+                                  &sort_ranks[0],
+                                  segment_size_l,
+                                  rebalance,
+                                  argsort,
+                                  stream,
+                                  comms[0].get<ncclComm_t*>());
       } else {
         // edge case where we have an unbound store but only 1 GPU was assigned with the task
         if (argsort) {
