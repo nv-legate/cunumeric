@@ -213,6 +213,23 @@ class EagerArray(NumPyThunk):
             else:
                 raise RuntimeError("bad argument type")
 
+    def _convert_children(self):
+        """
+        Traverse down our children and convert them to deferred arrays.
+        """
+        assert self.runtime.is_deferred_array(self.deferred)
+        if self.children is not None:
+            for child in self.children:
+                if child.deferred is None:
+                    func = getattr(self.deferred, child.key[0])
+                    args = child.key[1:]
+                    child.deferred = func(*args)
+            # After we've made all the deferred views for each child then
+            # we can traverse down. Do it this way so we can get partition
+            # coalescing where possible
+            for child in self.children:
+                child._convert_children()
+
     def to_deferred_array(self):
         """This is a really important method. It will convert a tree of
         eager NumPy arrays into an equivalent tree of deferred arrays that
@@ -241,26 +258,11 @@ class EagerArray(NumPyThunk):
                         share=self.escaped,
                         defer=True,
                     )
+                self._convert_children()
             else:
                 # Traverse up the tree to make the deferred array
                 self.parent.to_deferred_array()
                 assert self.deferred is not None
-                # No need to traverse down the parent did it for us
-                return self.deferred
-        else:  # Quick out
-            return self.deferred
-        # Traverse down for any children that we have
-        if self.children is not None:
-            assert self.runtime.is_deferred_array(self.deferred)
-            for child in self.children:
-                func = getattr(self.deferred, child.key[0])
-                args = child.key[1:]
-                child.deferred = func(*args)
-            # After we've made all the deferred views for each child then
-            # we can traverse down. Do it this way so we can get partition
-            # coalescing where possible
-            for child in self.children:
-                child.to_deferred_array()
         return self.deferred
 
     def imag(self):
