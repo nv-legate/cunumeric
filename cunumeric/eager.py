@@ -394,11 +394,11 @@ class EagerArray(NumPyThunk):
             return self.deferred.reshape(newshape, order)
         child = self.array.reshape(newshape, order=order)
         # See if we are aliased or not
-        if child.base is not self.array:
-            result = EagerArray(
-                self.runtime, child if child.base is None else child.copy()
-            )
+        if child.base is None:
+            result = EagerArray(self.runtime, child)
         else:
+            root = self.array if self.array.base is None else self.array.base
+            assert child.base is root
             result = EagerArray(
                 self.runtime,
                 child,
