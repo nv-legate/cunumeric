@@ -92,22 +92,36 @@ auto get_16b_aligned_count = [](auto count, auto element_bytes) {
   return (get_16b_aligned(count * element_bytes) + element_bytes - 1) / element_bytes;
 };
 
-// increase number of segments computed per block as long as either
-// 1. we have more threads in block than elements in segment
+// increase number of columns computed per block as long as either
+// 1. we have more threads in block than elements in row
 // OR
-// 2. a) block still large enough to handle full segment
+// 2. a) block still large enough to handle full row
 //    AND
 //    b)  We end up with too many blocks in y-direction otherwise
-
-size_t compute_segments_per_threadblock(size_t segment_size_l, size_t num_segments_l)
+size_t compute_cols_per_block(size_t row_size, size_t col_size)
 {
   size_t result = 1;
   while (result < THREADS_PER_BLOCK &&
-         (segment_size_l * result < THREADS_PER_BLOCK ||
-          (segment_size_l * result <= THREADS_PER_BLOCK * 16 && num_segments_l / result > 256))) {
+         (row_size * result < THREADS_PER_BLOCK ||
+          (row_size * result <= THREADS_PER_BLOCK * 16 && col_size / result > 256))) {
     result *= 2;
   }
   return result;
+}
+
+// create a launchconfig for 2d data copy kernels with coalesced rows
+// the y direction identifies the row to compute
+// in x-direction all threads are responsible for all columns of a single row
+// the heuristic ensures that
+// * every thread is assigned at leat 1 (except y-grid edge) and at most 32 elements
+std::tuple<dim3, dim3> generate_launchconfig_for_2d_copy(size_t row_size, size_t col_size)
+{
+  int cols_per_block        = compute_cols_per_block(row_size, col_size);
+  dim3 block_shape          = dim3(THREADS_PER_BLOCK / cols_per_block, cols_per_block);
+  const size_t num_blocks_y = (col_size + block_shape.y - 1) / block_shape.y;
+  const size_t num_blocks_x = ((row_size + 31) / 32 + block_shape.x - 1) / block_shape.x;
+  dim3 grid_shape           = dim3(num_blocks_x, num_blocks_y);
+  return std::make_tuple(grid_shape, block_shape);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -647,12 +661,11 @@ SegmentMergePiece<legate_type_of<CODE>> merge_all_buffers(
         val_buffers_ptr[r] = merge_buffers[r].values.ptr(0);
       }
 
-      dim3 block_shape       = dim3(THREADS_PER_BLOCK, 1);
       auto elements_per_rank = std::max<size_t>(merged_size / num_sort_ranks, 1);
-      const size_t num_blocks_x =
-        ((elements_per_rank + 31) / 32 + block_shape.x - 1) / block_shape.x;
-      dim3 grid_shape = dim3(num_blocks_x, num_sort_ranks);
-      combine_buffers_no_sort<<<grid_shape, THREADS_PER_BLOCK, 0, stream>>>(
+      auto [grid_shape, block_shape] =
+        generate_launchconfig_for_2d_copy(elements_per_rank, num_sort_ranks);
+
+      combine_buffers_no_sort<<<grid_shape, block_shape, 0, stream>>>(
         val_buffers_ptr, target_offsets, result.values, merged_size, num_sort_ranks);
       if (argsort) {
         Buffer<int64_t*> idc_buffers_ptr =
@@ -660,7 +673,7 @@ SegmentMergePiece<legate_type_of<CODE>> merge_all_buffers(
         for (size_t r = 0; r < num_sort_ranks; r++) {
           idc_buffers_ptr[r] = merge_buffers[r].indices.ptr(0);
         }
-        combine_buffers_no_sort<<<grid_shape, THREADS_PER_BLOCK, 0, stream>>>(
+        combine_buffers_no_sort<<<grid_shape, block_shape, 0, stream>>>(
           idc_buffers_ptr, target_offsets, result.indices, merged_size, num_sort_ranks);
 
         CHECK_CUDA(cudaStreamSynchronize(stream));  // needed before Z-copy destroy()
@@ -1019,14 +1032,8 @@ void rebalance_data(SegmentMergePiece<VAL>& merge_buffer,
                                positive_plus());
       }
 
-      // is either 1, 2, 4, ... , THREADS_PER_BLOCK/2
-      int segments_per_threadblock =
-        compute_segments_per_threadblock(segment_size_l, num_segments_l);
-      dim3 block_shape =
-        dim3(THREADS_PER_BLOCK / segments_per_threadblock, segments_per_threadblock);
-      const size_t num_blocks_y = (num_segments_l + block_shape.y - 1) / block_shape.y;
-      const size_t num_blocks_x = ((segment_size_l + 31) / 32 + block_shape.x - 1) / block_shape.x;
-      dim3 grid_shape           = dim3(num_blocks_x, num_blocks_y);
+      auto [grid_shape, block_shape] =
+        generate_launchconfig_for_2d_copy(segment_size_l, num_segments_l);
 
       if (argsort) {
         copy_data_to_rebalance_buffers<<<grid_shape, block_shape, 0, stream>>>(
@@ -1173,14 +1180,9 @@ void rebalance_data(SegmentMergePiece<VAL>& merge_buffer,
                                negative_plus());
       }
 
-      // is either 1, 2, 4, ... , THREADS_PER_BLOCK/2
-      int segments_per_threadblock =
-        compute_segments_per_threadblock(segment_size_l, num_segments_l);
-      dim3 block_shape =
-        dim3(THREADS_PER_BLOCK / segments_per_threadblock, segments_per_threadblock);
-      const size_t num_blocks_y = (num_segments_l + block_shape.y - 1) / block_shape.y;
-      const size_t num_blocks_x = ((segment_size_l + 31) / 32 + block_shape.x - 1) / block_shape.x;
-      dim3 grid_shape           = dim3(num_blocks_x, num_blocks_y);
+      auto [grid_shape, block_shape] =
+        generate_launchconfig_for_2d_copy(segment_size_l, num_segments_l);
+
       if (argsort) {
         merge_rebalanced_buffers<<<grid_shape, block_shape, 0, stream>>>(segment_diff_pos,
                                                                          send_left,
@@ -1523,14 +1525,9 @@ void sample_sort_nccl_nd(SortPiece<legate_type_of<CODE>> local_sorted,
         val_send_buffers_ptr[r] = val_send_buffers[r].ptr(0);
       }
 
-      // is either 1, 2, 4, ... , THREADS_PER_BLOCK/2
-      int segments_per_threadblock =
-        compute_segments_per_threadblock(segment_size_l, num_segments_l);
-      dim3 block_shape =
-        dim3(THREADS_PER_BLOCK / segments_per_threadblock, segments_per_threadblock);
-      const size_t num_blocks_y = (num_segments_l + block_shape.y - 1) / block_shape.y;
-      const size_t num_blocks_x = ((segment_size_l + 31) / 32 + block_shape.x - 1) / block_shape.x;
-      dim3 grid_shape           = dim3(num_blocks_x, num_blocks_y);
+      auto [grid_shape, block_shape] =
+        generate_launchconfig_for_2d_copy(segment_size_l, num_segments_l);
+
       copy_data_to_merge_buffers<<<grid_shape, block_shape, 0, stream>>>(segment_blocks,
                                                                          size_send,
                                                                          local_sorted.values,
@@ -1835,7 +1832,7 @@ struct SortImplBody<VariantKind::GPU, CODE, DIM> {
                                   segment_size_g,
                                   local_rank % num_sort_ranks,
                                   num_sort_ranks,
-                                  &sort_ranks[0],
+                                  sort_ranks.data(),
                                   segment_size_l,
                                   rebalance,
                                   argsort,
