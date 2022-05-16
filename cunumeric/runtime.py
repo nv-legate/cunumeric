@@ -267,7 +267,7 @@ class Runtime(object):
         return result
 
     def is_supported_type(self, dtype):
-        return np.dtype(dtype) in self.legate_context.type_system
+        return dtype in self.legate_context.type_system
 
     def get_numpy_thunk(self, obj, share=False, dtype=None):
         # Check to see if this object implements the Legate data interface

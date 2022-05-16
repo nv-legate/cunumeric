@@ -44,12 +44,13 @@ struct AdvancedIndexingImplBody<VariantKind::OMP, CODE, DIM, OUT_TYPE> {
 #pragma omp for schedule(static)
     for (size_t idx = 0; idx < volume; ++idx) {
       auto p = pitches.unflatten(idx, rect.lo);
-      Point<DIM> out_p;
-      out_p[0] = out_idx;
-      for (int i = key_dim; i < DIM; i++) { out_p[i - key_dim + 1] = p[i]; }
       if (index[p] == true) {
+        Point<DIM> out_p;
+        for (size_t i = 0; i < key_dim - 1; i++) { out_p[i] = 0; }
+        out_p[key_dim - 1] = out_idx;
+        for (int i = key_dim; i < DIM; i++) { out_p[i] = p[i]; }
         out[out_p] = input[p];
-        if ((idx != 0 and idx % skip_size == 0) or (skip_size == 1)) out_idx++;
+        if ((idx + 1) % skip_size == 0) out_idx++;
       }
     }
   }
@@ -67,12 +68,13 @@ struct AdvancedIndexingImplBody<VariantKind::OMP, CODE, DIM, OUT_TYPE> {
 #pragma omp for schedule(static)
     for (size_t idx = 0; idx < volume; ++idx) {
       auto p = pitches.unflatten(idx, rect.lo);
-      Point<DIM> out_p;
-      out_p[0] = out_idx;
-      for (int i = key_dim; i < DIM; i++) { out_p[i - key_dim + 1] = p[i]; }
       if (index[p] == true) {
+        Point<DIM> out_p;
+        for (size_t i = 0; i < key_dim - 1; i++) { out_p[i] = 0; }
+        out_p[key_dim - 1] = out_idx;
+        for (int i = key_dim; i < DIM; i++) { out_p[i] = p[i]; }
         out[out_p] = p;
-        if ((idx != 0 and idx % skip_size == 0) or (skip_size == 1)) out_idx++;
+        if ((idx + 1) % skip_size == 0) out_idx++;
       }
     }
   }
@@ -87,10 +89,11 @@ struct AdvancedIndexingImplBody<VariantKind::OMP, CODE, DIM, OUT_TYPE> {
     Point<DIM> extends;
     size_t skip_size = 1;
     for (int i = key_dim; i < DIM; i++) {
-      auto diff                = 1 + rect.hi[i] - rect.lo[i];
-      extends[i - key_dim + 1] = diff;
+      auto diff  = 1 + rect.hi[i] - rect.lo[i];
+      extends[i] = diff;
       if (diff != 0) skip_size *= diff;
     }
+    for (int i = 0; i < key_dim - 1; i++) extends[i] = 1;
 
     const auto max_threads = omp_get_max_threads();
     const size_t volume    = rect.volume();
@@ -103,33 +106,21 @@ struct AdvancedIndexingImplBody<VariantKind::OMP, CODE, DIM, OUT_TYPE> {
       {
         const int tid = omp_get_thread_num();
 #pragma omp for schedule(static)
-        for (size_t idx = 0; idx < volume; idx += skip_size) {
-          auto p = pitches.unflatten(idx, rect.lo);
-          if (index[p] == true) { sizes[tid] += 1; }
-        }
-      }  // end parallel region
-
-      size = thrust::reduce(thrust::omp::par, sizes.begin(), sizes.end(), 0);
-      thrust::fill(thrust::omp::par, sizes.begin(), sizes.end(), 0);
-#pragma omp parallel
-      {
-        const int tid = omp_get_thread_num();
-#pragma omp for schedule(static)
         for (size_t idx = 0; idx < volume; ++idx) {
           auto p = pitches.unflatten(idx, rect.lo);
           if (index[p] == true) {
-            if ((idx != 0 and idx % skip_size == 0) or (skip_size == 1)) sizes[tid] += 1;
+            if ((idx + 1) % skip_size == 0) sizes[tid] += 1;
           }
         }
       }  // end of parallel
+      size = thrust::reduce(thrust::omp::par, sizes.begin(), sizes.end(), 0);
       thrust::exclusive_scan(thrust::omp::par, sizes.begin(), sizes.end(), offsets.begin());
     }  // end scope
 
-    extends[0] = size;
+    std::cout << "IRINA DEBUG size = " << size << std::endl;
+    extends[key_dim - 1] = size;
 
-    Memory::Kind kind =
-      CuNumeric::has_numamem ? Memory::Kind::SOCKET_MEM : Memory::Kind::SYSTEM_MEM;
-    auto out = out_arr.create_output_buffer<OUT_TYPE, DIM>(extends, kind);
+    auto out = out_arr.create_output_buffer<OUT_TYPE, DIM>(extends, true);
 
 #pragma omp parallel
     {

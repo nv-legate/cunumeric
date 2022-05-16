@@ -26,6 +26,8 @@ struct AdvancedIndexingImplBody;
 
 template <VariantKind KIND>
 struct AdvancedIndexingImpl {
+  // current implementaion of the ND-output regions requires all regions
+  // to have the same DIM.
   template <LegateTypeCode CODE, int DIM>
   void operator()(AdvancedIndexingArgs& args) const
   {
@@ -36,8 +38,11 @@ struct AdvancedIndexingImpl {
     size_t volume = input_pitches.flatten(input_rect);
 
     auto index_rect = args.indexing_array.shape<DIM>();
-    auto index_arr  = args.indexing_array.read_accessor<bool, DIM>(index_rect);
+    // this task is executed only for the case when index array is a bool type
+    auto index_arr = args.indexing_array.read_accessor<bool, DIM>(index_rect);
 #ifdef DEBUG_CUNUMERIC
+    // we make sure that index and input shapes are the same on the python side.
+    // checking this one more time here
     assert(index_rect == input_rect);
 #endif
 

@@ -38,13 +38,13 @@ struct AdvancedIndexingImplBody<VariantKind::CPU, CODE, DIM, OUT_TYPE> {
     size_t out_idx = 0;
     for (size_t idx = 0; idx < volume; ++idx) {
       auto p = pitches.unflatten(idx, rect.lo);
-      Point<DIM> out_p;
-      for (size_t i = 0; i < key_dim - 1; i++) { out_p[i] = 0; }
-      out_p[key_dim - 1] = out_idx;
-      for (size_t i = key_dim; i < DIM; i++) { out_p[i] = p[i]; }
       if (index[p] == true) {
+        Point<DIM> out_p;
+        for (size_t i = 0; i < key_dim - 1; i++) { out_p[i] = 0; }
+        out_p[key_dim - 1] = out_idx;
+        for (size_t i = key_dim; i < DIM; i++) { out_p[i] = p[i]; }
         out[out_p] = input[p];
-        if ((idx != 0 and idx % skip_size == 0) or (skip_size == 1)) out_idx++;
+        if ((idx + 1) % skip_size == 0) out_idx++;
       }
     }
   }
@@ -61,25 +61,26 @@ struct AdvancedIndexingImplBody<VariantKind::CPU, CODE, DIM, OUT_TYPE> {
     size_t out_idx = 0;
     for (size_t idx = 0; idx < volume; ++idx) {
       auto p = pitches.unflatten(idx, rect.lo);
-      Point<DIM> out_p;
-      for (size_t i = 0; i < key_dim - 1; i++) { out_p[i] = 0; }
-      out_p[key_dim - 1] = out_idx;
-      for (size_t i = key_dim; i < DIM; i++) { out_p[i] = p[i]; }
       if (index[p] == true) {
+        Point<DIM> out_p;
+        for (size_t i = 0; i < key_dim - 1; i++) { out_p[i] = 0; }
+        out_p[key_dim - 1] = out_idx;
+        for (size_t i = key_dim; i < DIM; i++) { out_p[i] = p[i]; }
         out[out_p] = p;
-        if ((idx != 0 and idx % skip_size == 0) or (skip_size == 1)) out_idx++;
+        if ((idx + 1) % skip_size == 0) out_idx++;
       }
     }
   }
 
-  size_t operator()(Array& out_arr,
-                    const AccessorRO<VAL, DIM>& input,
-                    const AccessorRO<bool, DIM>& index,
-                    const Pitches<DIM - 1>& pitches,
-                    const Rect<DIM>& rect,
-                    const size_t key_dim) const
+  void operator()(Array& out_arr,
+                  const AccessorRO<VAL, DIM>& input,
+                  const AccessorRO<bool, DIM>& index,
+                  const Pitches<DIM - 1>& pitches,
+                  const Rect<DIM>& rect,
+                  const size_t key_dim) const
   {
     Point<DIM> extends;
+    // skip_size is number of elements per each out[key_dim-1] sub-array
     size_t skip_size = 1;
     for (int i = key_dim; i < DIM; i++) {
       auto diff  = 1 + rect.hi[i] - rect.lo[i];
@@ -88,6 +89,7 @@ struct AdvancedIndexingImplBody<VariantKind::CPU, CODE, DIM, OUT_TYPE> {
     }
     for (int i = 0; i < key_dim - 1; i++) extends[i] = 1;
 
+    // calculate size of the key_dim-1 extend in output region
     const size_t volume = rect.volume();
     size_t size         = 0;
     for (size_t idx = 0; idx < volume; idx += skip_size) {
@@ -100,7 +102,6 @@ struct AdvancedIndexingImplBody<VariantKind::CPU, CODE, DIM, OUT_TYPE> {
     auto out = out_arr.create_output_buffer<OUT_TYPE, DIM>(extends, true);
 
     compute_output(out, input, index, pitches, rect, volume, key_dim, skip_size);
-    return size;
   }
 };
 

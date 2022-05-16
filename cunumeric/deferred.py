@@ -483,7 +483,7 @@ class DeferredArray(NumPyThunk):
                     inputs=[],
                 )
 
-                out, rhs = out.copy_store(out_tmp)
+                out, storet = out._copy_store(out_tmp)
 
             return False, rhs, out, self
 
