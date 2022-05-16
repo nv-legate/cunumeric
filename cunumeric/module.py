@@ -3070,6 +3070,7 @@ def einsum(expr, *operands, out=None, optimize=False):
     --------
     Multiple GPUs, Multiple CPUs
     """
+    operands = [convert_to_cunumeric_ndarray(op) for op in operands]
     if not optimize:
         optimize = NullOptimizer()
     # This call normalizes the expression (adds the output part if it's
