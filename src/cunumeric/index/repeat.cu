@@ -60,7 +60,7 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
                 const Pitches<DIM - 1> pitches,
                 const size_t volume)
 {
-  const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+  const size_t idx = global_tid_1d();
   if (idx >= volume) return;
   auto out_p = pitches.unflatten(idx, Point<DIM>::ZEROES());
   auto in_p  = out_p;
@@ -80,7 +80,7 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
                 const Pitches<DIM - 1> pitches,
                 const int volume)
 {
-  const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+  const size_t idx = global_tid_1d();
   if (idx >= volume) return;
   auto in_p  = pitches.unflatten(idx, in_lo);
   auto out_p = in_p - in_lo;

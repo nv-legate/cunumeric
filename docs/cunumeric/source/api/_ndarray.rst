@@ -21,6 +21,7 @@ cunumeric.ndarray
       ~ndarray.astype
       ~ndarray.choose
       ~ndarray.clip
+      ~ndarray.compress
       ~ndarray.conj
       ~ndarray.conjugate
       ~ndarray.copy
@@ -49,6 +50,7 @@ cunumeric.ndarray
       ~ndarray.squeeze
       ~ndarray.sum
       ~ndarray.swapaxes
+      ~ndarray.take
       ~ndarray.tobytes
       ~ndarray.tofile
       ~ndarray.tolist
