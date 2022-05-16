@@ -16,7 +16,7 @@
 import numpy as np
 from cunumeric._ufunc.math import sqrt as _sqrt
 from cunumeric.array import convert_to_cunumeric_ndarray
-from cunumeric.module import ndarray
+from cunumeric.module import empty_like, eye, matmul, ndarray
 
 
 def cholesky(a):
@@ -71,6 +71,82 @@ def cholesky(a):
             "cuNumeric needs to support stacked 2d arrays"
         )
     return _cholesky(lg_array)
+
+
+def matrix_power(a, n):
+    """
+    Raise a square matrix to the (integer) power `n`.
+    For positive integers `n`, the power is computed by repeated matrix
+    squarings and matrix multiplications. If ``n == 0``, the identity matrix
+    of the same shape as M is returned. If ``n < 0``, the inverse
+    is computed and then raised to the ``abs(n)``.
+
+    Parameters
+    ----------
+    a : (..., M, M) array_like
+        Matrix to be "powered".
+    n : int
+        The exponent can be any integer, positive, negative, or zero.
+
+    Returns
+    -------
+    a**n : (..., M, M) ndarray
+        The return value is the same shape and type as `M`;
+        if the exponent is positive or zero then the type of the
+        elements is the same as those of `M`. If the exponent is
+        negative the elements are floating-point.
+
+    See Also
+    --------
+    numpy.linalg.matrix_power
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    # Process inputs
+    a = convert_to_cunumeric_ndarray(a)
+    if a.ndim < 2:
+        raise ValueError(f"Expected at least 2d array, but got {a.ndim}d")
+    if a.shape[-2] != a.shape[-1]:
+        raise ValueError("Last 2 dimensions of the array must be square")
+    if not isinstance(n, int):
+        raise TypeError("exponent must be an integer")
+
+    # Special cases
+    if n == 0:
+        a = empty_like(a)
+        a[...] = eye(a.shape[-2], dtype=a.dtype)
+        return a
+    elif n == 1:
+        return a.copy()
+
+    # Invert if necessary
+    if n < 0:
+        # TODO: Add this once cunumeric.inv is implemented
+        # a = inv(a)
+        # n = abs(n)
+        raise NotImplementedError("Negative exponent in matrix_power")
+
+    # Fast paths
+    if n == 1:
+        return a
+    elif n == 2:
+        return matmul(a, a)
+    elif n == 3:
+        return matmul(matmul(a, a), a)
+
+    # Use binary decomposition to reduce the number of matrix multiplications.
+    # Here, we iterate over the bits of n, from LSB to MSB, raise `a` to
+    # increasing powers of 2, and multiply into the result as needed.
+    z = result = None
+    while n > 0:
+        z = a if z is None else matmul(z, z)
+        n, bit = divmod(n, 2)
+        if bit:
+            result = z if result is None else matmul(result, z)
+
+    return result
 
 
 def norm(x, ord=None, axis=None, keepdims=False):
