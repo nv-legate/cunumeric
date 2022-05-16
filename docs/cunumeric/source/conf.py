@@ -83,19 +83,20 @@ html_static_path = ["_static"]
 pygments_style = "sphinx"
 
 nitpick_ignore = [
-    ("py:class", "type"),
-    ("py:class", "scalar"),
+    ("py:class", "1-D array of"),
+    ("py:class", "any"),
     ("py:class", "array_like"),
-    ("py:class", "optional"),
+    ("py:class", "array"),
+    ("py:class", "complex ndarray"),
     ("py:class", "data-type"),
     ("py:class", "M"),
     ("py:class", "N"),
     ("py:class", "nested list of array_like"),
+    ("py:class", "optional"),
+    ("py:class", "scalar"),
     ("py:class", "scalars"),
-    ("py:class", "complex ndarray"),
     ("py:class", "sequence of ints"),
-    ("py:class", "array"),
-    ("py:class", "any"),
+    ("py:class", "type"),
 ]
 
 intersphinx_mapping = {
@@ -112,5 +113,4 @@ mathjax_path = "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
 
 
 def setup(app):
-    app.add_js_file("copybutton_pydocs.js")
     app.add_css_file("params.css")

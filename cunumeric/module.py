@@ -2272,12 +2272,12 @@ def take(a, indices, axis=None, out=None, mode="raise"):
     out : ndarray, optional `(Ni…, Nj…, Nk…)`
         If provided, the result will be placed in this array. It should be of
         the appropriate shape and dtype.
-    mode : {‘raise’, ‘wrap’, ‘clip’}, optional
+    mode : ``{'raise', 'wrap', 'clip'}``, optional
         Specifies how out-of-bounds indices will behave.
-        ‘raise’ – raise an error (default)
-        ‘wrap’ – wrap around
-        ‘clip’ – clip to the range
-        ‘clip’ mode means that all indices that are too large are replaced by
+        'raise' - raise an error (default)
+        'wrap' - wrap around
+        'clip' - clip to the range
+        'clip' mode means that all indices that are too large are replaced by
         the index that addresses the last element along that axis.
         Note that this disables indexing with negative numbers.
 
@@ -2371,8 +2371,8 @@ def choose(a, choices, out=None, mode="raise"):
     return a.choose(choices=choices, out=out, mode=mode)
 
 
-@add_boilerplate("c", "a")
-def compress(c, a, axis=None, out=None):
+@add_boilerplate("condition", "a")
+def compress(condition, a, axis=None, out=None):
     """
     Return selected slices of an array along given axis.
 
@@ -2382,7 +2382,7 @@ def compress(c, a, axis=None, out=None):
 
     Parameters
     ----------
-    c : condition, 1-D array of bools
+    condition, 1-D array of bools
         Array that selects which entries to return. If `len(c)` is less than
         the size of a along the given axis, then output is truncated to the
         length of the condition array.
@@ -2422,7 +2422,7 @@ def compress(c, a, axis=None, out=None):
     Multiple GPUs, Multiple CPUs
 
     """
-    return a.compress(c, axis=axis, out=out)
+    return a.compress(condition, axis=axis, out=out)
 
 
 @add_boilerplate("a")
