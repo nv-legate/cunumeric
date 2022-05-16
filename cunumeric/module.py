@@ -3112,6 +3112,89 @@ def einsum(expr, *operands, out=None, optimize=False):
     return operands[0]
 
 
+def einsum_path(expr, *operands, optimize="greedy"):
+    """
+    Evaluates the lowest cost contraction order for an einsum expression by
+    considering the creation of intermediate arrays.
+
+    Parameters
+    ----------
+    expr : str
+        Specifies the subscripts for summation.
+    *operands : list of array_like
+        These are the arrays for the operation.
+    optimize : {bool, list, tuple, 'greedy', 'optimal'}
+        Choose the type of path. If a tuple is provided, the second argument is
+        assumed to be the maximum intermediate size created. If only a single
+        argument is provided the largest input or output array size is used
+        as a maximum intermediate size.
+        * if a list is given that starts with ``einsum_path``, uses this as the
+          contraction path
+        * if False no optimization is taken
+        * if True defaults to the 'greedy' algorithm
+        * 'optimal' An algorithm that combinatorially explores all possible
+          ways of contracting the listed tensors and chooses the least costly
+          path. Scales exponentially with the number of terms in the
+          contraction.
+        * 'greedy' An algorithm that chooses the best pair contraction
+          at each step. Effectively, this algorithm searches the largest inner,
+          Hadamard, and then outer products at each step. Scales cubically with
+          the number of terms in the contraction. Equivalent to the 'optimal'
+          path for most contractions.
+        Default is 'greedy'.
+
+    Returns
+    -------
+    path : list of tuples
+        A list representation of the einsum path.
+    string_repr : str
+        A printable representation of the einsum path.
+
+    Notes
+    -----
+    The resulting path indicates which terms of the input contraction should be
+    contracted first, the result of this contraction is then appended to the
+    end of the contraction list. This list can then be iterated over until all
+    intermediate contractions are complete.
+
+    See Also
+    --------
+    numpy.einsum_path
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    operands = [convert_to_cunumeric_ndarray(op) for op in operands]
+    memory_limit = _builtin_max(op.size for op in operands)
+    if type(optimize) == tuple:
+        if len(optimize) != 2:
+            raise ValueError("einsum_path expects optimize tuples of size 2")
+        memory_limit = optimize[1]
+        optimize = optimize[0]
+    if optimize is True:
+        optimize = "greedy"
+    elif optimize is False:
+        optimize = [tuple(range(len(operands)))]
+    elif optimize in ["greedy", "optimal"]:
+        pass
+    elif (
+        type(optimize) == list
+        and len(optimize) > 1
+        and optimize[0] == "einsum_path"
+    ):
+        optimize = optimize[1:]
+    else:
+        raise ValueError(
+            f"einsum_path: unexpected value for optimize: {optimize}"
+        )
+    path, info = oe.contract_path(
+        expr, *operands, optimize=optimize, memory_limit=memory_limit
+    )
+    path = ["einsum_path"] + path
+    return path, info
+
+
 @add_boilerplate("a")
 def trace(a, offset=0, axis1=None, axis2=None, dtype=None, out=None):
     """
