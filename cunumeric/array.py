@@ -304,8 +304,10 @@ class ndarray:
         # We cannot handle this ufunc call, so we will fall back to NumPy.
         # Ideally we would be able to skip the __array_ufunc__ dispatch, and
         # let NumPy convert our arrays automatically by calling our __array__
-        # method. Unfortunately there is no easy way to skip the dispatch
-        # mechnanism, therefore the best we can do is manually convert all
+        # method, similar to what we are doing for __array_function__ in
+        # coverage.py, by going through the _implementation field.
+        # Unfortunately, there is no easy way to skip the dispatch mechnanism
+        # for ufuncs, therefore the best we can do is manually convert all
         # cuNumeric arrays into NumPy arrays and try the call again.
         # One would expect NumPy to do exactly this if all __array_ufunc__
         # implementations return `NotImplemented` for a particular call, but
