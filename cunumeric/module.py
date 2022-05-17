@@ -1362,11 +1362,8 @@ def _collect_outshape_slices(inputs, common_shape, axis):
     offset = 0
     # collect slices for arrays in `inputs`
     for inp in inputs:
-        if inp.size > 0:
-            slices.append(
-                (slice(offset, offset + inp.shape[axis]),) + post_idx
-            )
-            offset += inp.shape[axis]
+        slices.append((slice(offset, offset + inp.shape[axis]),) + post_idx)
+        offset += inp.shape[axis]
 
     return out_shape, slices
 
