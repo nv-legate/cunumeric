@@ -15,10 +15,11 @@
 
 import numpy as np
 from cunumeric._ufunc.math import sqrt as _sqrt
-from cunumeric.array import convert_to_cunumeric_ndarray
+from cunumeric.array import add_boilerplate
 from cunumeric.module import empty_like, eye, matmul, ndarray
 
 
+@add_boilerplate("a")
 def cholesky(a):
     """
     Cholesky decomposition.
@@ -55,9 +56,7 @@ def cholesky(a):
     --------
     Multiple GPUs, Multiple CPUs
     """
-
-    lg_array = convert_to_cunumeric_ndarray(a)
-    shape = lg_array.shape
+    shape = a.shape
     if len(shape) < 2:
         raise ValueError(
             f"{len(shape)}-dimensional array given. "
@@ -70,9 +69,10 @@ def cholesky(a):
         raise NotImplementedError(
             "cuNumeric needs to support stacked 2d arrays"
         )
-    return _cholesky(lg_array)
+    return _cholesky(a)
 
 
+@add_boilerplate("a")
 def matrix_power(a, n):
     """
     Raise a square matrix to the (integer) power `n`.
@@ -105,7 +105,6 @@ def matrix_power(a, n):
     Multiple GPUs, Multiple CPUs
     """
     # Process inputs
-    a = convert_to_cunumeric_ndarray(a)
     if a.ndim < 2:
         raise ValueError(f"Expected at least 2d array, but got {a.ndim}d")
     if a.shape[-2] != a.shape[-1]:
@@ -149,6 +148,7 @@ def matrix_power(a, n):
     return result
 
 
+@add_boilerplate("x")
 def norm(x, ord=None, axis=None, keepdims=False):
     """
     Matrix or vector norm.
@@ -192,28 +192,26 @@ def norm(x, ord=None, axis=None, keepdims=False):
     --------
     Multiple GPUs, Multiple CPUs
     """
-
-    lg_array = convert_to_cunumeric_ndarray(x)
-    if (axis is None and lg_array.ndim == 1) or type(axis) == int:
+    if (axis is None and x.ndim == 1) or type(axis) == int:
         # Handle the weird norm cases
         if ord == np.inf:
-            return abs(lg_array).max(axis=axis, keepdims=keepdims)
+            return abs(x).max(axis=axis, keepdims=keepdims)
         elif ord == -np.inf:
-            return abs(lg_array).min(axis=axis, keepdims=keepdims)
+            return abs(x).min(axis=axis, keepdims=keepdims)
         elif ord == 0:
             # Check for where things are not zero and convert to integer
             # for sum
-            temp = (lg_array != 0).astype(np.int64)
+            temp = (x != 0).astype(np.int64)
             return temp.sum(axis=axis, keepdims=keepdims)
         elif ord == 1:
-            return abs(lg_array).sum(axis=axis, keepdims=keepdims)
+            return abs(x).sum(axis=axis, keepdims=keepdims)
         elif ord is None or ord == 2:
-            s = (lg_array.conj() * lg_array).real
+            s = (x.conj() * x).real
             return _sqrt(s.sum(axis=axis, keepdims=keepdims))
         elif isinstance(ord, str):
             raise ValueError(f"Invalid norm order '{ord}' for vectors")
         elif type(ord) == int:
-            absx = abs(lg_array)
+            absx = abs(x)
             absx **= ord
             ret = absx.sum(axis=axis, keepdims=keepdims)
             ret **= 1 / ord
