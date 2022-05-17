@@ -2061,16 +2061,16 @@ class ndarray:
         return self.__copy__()
 
     def cumsum(self, axis=None, dtype=None, out=None):
-        return self._perform_scan(ScanCode.SUM, axis=axis, dtype=dtype, out=out, nan0=False)
+        return self._perform_scan(ScanCode.SUM, self, axis=axis, dtype=dtype, out=out, nan0=False)
 
     def cumprod(self, axis=None, dtype=None, out=None):
-        return self._perform_scan(ScanCode.PROD, axis=axis, dtype=dtype, out=out, nan0=False)
+        return self._perform_scan(ScanCode.PROD, self, axis=axis, dtype=dtype, out=out, nan0=False)
         
     def nancumsum(self, axis=None, dtype=None, out=None):
-        return self._perform_scan(ScanCode.SUM, axis=axis, dtype=dtype, out=out, nan0=True)
+        return self._perform_scan(ScanCode.SUM, self, axis=axis, dtype=dtype, out=out, nan0=True)
         
     def nancumprod(self, axis=None, dtype=None, out=None):
-        return self._perform_scan(ScanCode.PROD, axis=axis, dtype=dtype, out=out, nan0=True)
+        return self._perform_scan(ScanCode.PROD, self, axis=axis, dtype=dtype, out=out, nan0=True)
         
 
     # diagonal helper. Will return diagonal for arbitrary number of axes;
@@ -3747,20 +3747,28 @@ class ndarray:
         return out
 
     @classmethod
-    def _perform_scan(op, axis=None, dtype=None, out=None, nan0=False):
+    def _perform_scan(cls, op, src, axis=None, dtype=None, out=None, nan0=False):
         if dtype is None:
-            dtype = self.dtype
+            dtype = src.dtype
         if out is not None:
-            assert out.shape == self.shape
+            if axis is not  None:
+                assert out.shape == src.shape
+            else:
+                assert out.ndim == 1
+                assert out.size == src.size
             if out.dtype == dtype:
-                out = out.convert_to_cunumeric_ndarray(out)
-                out._thunk.scan(op, self._thunk, axis=self.axis, dtype=self.dtype, nan0=nan0)
+                out = convert_to_cunumeric_ndarray(out)
+                out._thunk.scan(op, src._thunk, axis=axis, dtype=src.dtype, nan0=nan0)
             else :
                 # Perform scan into temporary out
-                temp = ndarray(shape=self.shape, dtype=dtype)
-                temp._thunk.scan(op, self._thunk, axis=self.axis, dtype=self.dtype, nan0=nan0)
+                temp = ndarray(shape=out.shape, dtype=dtype)
+                temp._thunk.scan(op, src._thunk, axis=axis, dtype=src.dtype, nan0=nan0)
                 out._thunk.convert(temp._thunk)
         else :
-            out = ndarray(shape=self.shape, dtype=dtype)
-            out._thunk.scan(op, self._thunk, axis=self.axis, dtype=self.dtype, nan0=nan0)
+            if axis is not  None:
+                out = ndarray(shape=src.shape, dtype=src.dtype)
+                out._thunk.scan(op, src._thunk, axis=axis, dtype=src.dtype, nan0=nan0)
+            else:
+                out = ndarray(shape=src.size, dtype=src.dtype)
+                out._thunk.scan(op, src._thunk, axis=axis, dtype=src.dtype, nan0=nan0)
         return out

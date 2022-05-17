@@ -824,14 +824,14 @@ class EagerArray(NumPyThunk):
         else:
             if op is ScanCode.SUM:
                 if nan0 is False:
-                    np.cumsum(rhs.array, axis, dtype, self.array[:])
+                    np.cumsum(rhs.array, axis, dtype, self.array)
                 else:
-                    np.nancumsum(rhs.array, axis, dtype, self.array[:])
+                    np.nancumsum(rhs.array, axis, dtype, self.array)
             elif op is ScanCode.PROD:
                 if nan0 is False:
-                    np.cumprod(rhs.array, axis, dtype, self.array[:])
+                    np.cumprod(rhs.array, axis, dtype, self.array)
                 else:
-                    np.nancumprod(rhs.array, axis, dtype, self.array[:])
+                    np.nancumprod(rhs.array, axis, dtype, self.array)
             else:
                 raise RuntimeError("unsupported scan op " + str(op))
 

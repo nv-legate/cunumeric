@@ -1892,7 +1892,7 @@ class DeferredArray(NumPyThunk):
             output = self.runtime.create_empty_thunk(
                 input.shape, dtype=dtype)
         else:
-            if rhs.ndim is 1:
+            if rhs.ndim == 1:
                 input = rhs
                 output = self
             else:

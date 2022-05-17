@@ -32,7 +32,7 @@ from .array import (
     convert_to_predicate_ndarray,
     ndarray,
 )
-from .config import BinaryOpCode, UnaryRedCode
+from .config import BinaryOpCode, UnaryRedCode, ScanCode
 from .runtime import runtime
 from .utils import inner_modes, matmul_modes, tensordot_modes
 
@@ -4092,7 +4092,7 @@ def cumsum(a, axis=None, dtype=None, out=None):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    a.cumsum(axis=axis, dtype=dtype, out=out)
+    return ndarray._perform_scan(ScanCode.SUM, a, axis=axis, dtype=dtype, out=out, nan0=0)
 
 
 @add_boilerplate("a")
