@@ -31,7 +31,8 @@ from .utils import dot_modes
 
 def add_boilerplate(*array_params: str):
     """
-    Adds required boilerplate to the wrapped cuNumeric ndarray member function.
+    Adds required boilerplate to the wrapped cunumeric.ndarray or module-level
+    function.
 
     Every time the wrapped function is called, this wrapper will:
     * Convert all specified array-like parameters, plus the special "out"
