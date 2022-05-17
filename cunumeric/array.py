@@ -29,19 +29,15 @@ from .runtime import runtime
 from .utils import dot_modes
 
 
-def add_boilerplate(*array_params: str, mutates_self: bool = False):
+def add_boilerplate(*array_params: str):
     """
-    Adds required boilerplate to the wrapped cuNumeric ndarray member function.
+    Adds required boilerplate to the wrapped cunumeric.ndarray or module-level
+    function.
 
     Every time the wrapped function is called, this wrapper will:
     * Convert all specified array-like parameters, plus the special "out"
       parameter (if present), to cuNumeric ndarrays.
     * Convert the special "where" parameter (if present) to a valid predicate.
-    * Handle the case of scalar cuNumeric ndarrays, by forwarding the operation
-      to the equivalent `()`-shape numpy array.
-
-    NOTE: Assumes that no parameters are mutated besides `out`, and `self` if
-    `mutates_self` is True.
     """
     keys: Set[str] = set(array_params)
 
@@ -61,7 +57,6 @@ def add_boilerplate(*array_params: str, mutates_self: bool = False):
             if param == "where":
                 where_idx = idx
             elif param == "out":
-                assert not mutates_self
                 out_idx = idx
             elif param in keys:
                 indices.add(idx)
@@ -69,7 +64,6 @@ def add_boilerplate(*array_params: str, mutates_self: bool = False):
 
         @wraps(func)
         def wrapper(*args, **kwargs):
-            self = args[0]
             assert (where_idx is None or len(args) <= where_idx) and (
                 out_idx is None or len(args) <= out_idx
             ), "'where' and 'out' should be passed as keyword arguments"
@@ -90,51 +84,6 @@ def add_boilerplate(*array_params: str, mutates_self: bool = False):
                     kwargs[k] = convert_to_cunumeric_ndarray(v, share=True)
                 elif k in keys:
                     kwargs[k] = convert_to_cunumeric_ndarray(v)
-
-            # Handle the case where all array-like parameters are scalar, by
-            # performing the operation on the equivalent scalar numpy arrays.
-            # NOTE: This implicitly blocks on the contents of these arrays.
-            if all(
-                arg._thunk.scalar
-                for (idx, arg) in enumerate(args)
-                if (idx in indices or idx == 0) and isinstance(arg, ndarray)
-            ) and all(
-                v._thunk.scalar
-                for (k, v) in kwargs.items()
-                if (k in keys or k == "where") and isinstance(v, ndarray)
-            ):
-                out = None
-                if "out" in kwargs:
-                    out = kwargs["out"]
-                    del kwargs["out"]
-                args = tuple(
-                    arg._thunk.__numpy_array__()
-                    if (idx in indices or idx == 0)
-                    and isinstance(arg, ndarray)
-                    else arg
-                    for (idx, arg) in enumerate(args)
-                )
-                for (k, v) in kwargs.items():
-                    if (k in keys or k == "where") and isinstance(v, ndarray):
-                        kwargs[k] = v._thunk.__numpy_array__()
-                self_scalar = args[0]
-                args = args[1:]
-                res_scalar = getattr(self_scalar, func.__name__)(
-                    *args, **kwargs
-                )
-                if mutates_self:
-                    self._thunk = runtime.create_scalar(
-                        self_scalar.data,
-                        self_scalar.dtype,
-                        shape=self_scalar.shape,
-                        wrap=True,
-                    )
-                    return
-                result = convert_to_cunumeric_ndarray(res_scalar)
-                if out is not None:
-                    out._thunk.copy(result._thunk)
-                    result = out
-                return result
 
             return func(*args, **kwargs)
 
@@ -1430,7 +1379,7 @@ class ndarray:
 
     # __setattr__
 
-    @add_boilerplate("value", mutates_self=True)
+    @add_boilerplate("value")
     def __setitem__(self, key, value):
         """__setitem__(key, value, /)
 

@@ -16,10 +16,7 @@
 import math
 import re
 from collections import Counter
-from functools import wraps
-from inspect import signature
 from itertools import chain
-from typing import Optional, Set
 
 import numpy as np
 import opt_einsum as oe
@@ -27,11 +24,7 @@ from cunumeric._ufunc.comparison import maximum, minimum
 from cunumeric._ufunc.floating import floor
 from cunumeric._ufunc.math import add, multiply
 
-from .array import (
-    convert_to_cunumeric_ndarray,
-    convert_to_predicate_ndarray,
-    ndarray,
-)
+from .array import add_boilerplate, convert_to_cunumeric_ndarray, ndarray
 from .config import BinaryOpCode, UnaryRedCode
 from .runtime import runtime
 from .utils import inner_modes, matmul_modes, tensordot_modes
@@ -42,111 +35,6 @@ _builtin_any = any
 _builtin_max = max
 _builtin_min = min
 _builtin_sum = sum
-
-
-def add_boilerplate(*array_params: str):
-    """
-    Adds required boilerplate to the wrapped module-level ndarray function.
-
-    Every time the wrapped function is called, this wrapper will:
-    * Convert all specified array-like parameters, plus the special "out"
-      parameter (if present), to cuNumeric ndarrays.
-    * Convert the special "where" parameter (if present) to a valid predicate.
-    * Handle the case of scalar cuNumeric ndarrays, by forwarding the operation
-      to the equivalent `()`-shape numpy array (if the operation exists on base
-      numpy).
-
-    NOTE: Assumes that no parameters are mutated besides `out`.
-    """
-    keys: Set[str] = set(array_params)
-
-    def decorator(func):
-        assert not hasattr(
-            func, "__wrapped__"
-        ), "this decorator must be the innermost"
-
-        # For each parameter specified by name, also consider the case where
-        # it's passed as a positional parameter.
-        indices: Set[int] = set()
-        all_formals: Set[str] = set()
-        where_idx: Optional[int] = None
-        out_idx: Optional[int] = None
-        for (idx, param) in enumerate(signature(func).parameters):
-            all_formals.add(param)
-            if param == "where":
-                where_idx = idx
-            elif param == "out":
-                out_idx = idx
-            elif param in keys:
-                indices.add(idx)
-        assert len(keys - all_formals) == 0, "unkonwn parameter(s)"
-
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            assert (where_idx is None or len(args) <= where_idx) and (
-                out_idx is None or len(args) <= out_idx
-            ), "'where' and 'out' should be passed as keyword arguments"
-
-            # Convert relevant arguments to cuNumeric ndarrays
-            args = tuple(
-                convert_to_cunumeric_ndarray(arg)
-                if idx in indices and arg is not None
-                else arg
-                for (idx, arg) in enumerate(args)
-            )
-            for (k, v) in kwargs.items():
-                if v is None:
-                    continue
-                elif k == "where":
-                    kwargs[k] = convert_to_predicate_ndarray(v)
-                elif k == "out":
-                    kwargs[k] = convert_to_cunumeric_ndarray(v, share=True)
-                elif k in keys:
-                    kwargs[k] = convert_to_cunumeric_ndarray(v)
-
-            # Handle the case where all array-like parameters are scalar, by
-            # performing the operation on the equivalent scalar numpy arrays.
-            # NOTE: This implicitly blocks on the contents of these arrays.
-            if (
-                hasattr(np, func.__name__)
-                and _builtin_all(
-                    isinstance(args[idx], ndarray) and args[idx]._thunk.scalar
-                    for idx in indices
-                )
-                and _builtin_all(
-                    isinstance(v, ndarray) and v._thunk.scalar
-                    for v in (kwargs.get("where", None),)
-                )
-            ):
-                out = None
-                if "out" in kwargs:
-                    out = kwargs["out"]
-                    del kwargs["out"]
-                args = tuple(
-                    arg._thunk.__numpy_array__()
-                    if (idx in indices) and isinstance(arg, ndarray)
-                    else arg
-                    for (idx, arg) in enumerate(args)
-                )
-                for (k, v) in kwargs.items():
-                    if (k in keys or k == "where") and isinstance(v, ndarray):
-                        kwargs[k] = v._thunk.__numpy_array__()
-                result = convert_to_cunumeric_ndarray(
-                    getattr(np, func.__name__)(*args, **kwargs)
-                )
-                if out is not None:
-                    if out._thunk.dtype != result._thunk.dtype:
-                        out._thunk.convert(result._thunk, warn=False)
-                    else:
-                        out._thunk.copy(result._thunk)
-                    result = out
-                return result
-
-            return func(*args, **kwargs)
-
-        return wrapper
-
-    return decorator
 
 
 #########################

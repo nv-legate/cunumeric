@@ -197,7 +197,8 @@ struct ScalarUnaryRedDispatch {
   template <UnaryRedCode OP_CODE, std::enable_if_t<!is_arg_reduce<OP_CODE>::value>* = nullptr>
   void operator()(ScalarUnaryRedArgs& args) const
   {
-    double_dispatch(args.in.dim(), args.in.code(), ScalarUnaryRedImpl<KIND, OP_CODE>{}, args);
+    auto dim = std::max(1, args.in.dim());
+    double_dispatch(dim, args.in.code(), ScalarUnaryRedImpl<KIND, OP_CODE>{}, args);
   }
   template <UnaryRedCode OP_CODE, std::enable_if_t<is_arg_reduce<OP_CODE>::value>* = nullptr>
   void operator()(ScalarUnaryRedArgs& args) const
@@ -217,10 +218,11 @@ static void scalar_unary_red_template(TaskContext& context)
 
   ScalarUnaryRedArgs args{
     context.reductions()[0], inputs[0], scalars[0].value<UnaryRedCode>(), std::move(extra_args)};
-  if (args.op_code == UnaryRedCode::COUNT_NONZERO)
+  if (args.op_code == UnaryRedCode::COUNT_NONZERO) {
+    auto dim = std::max(1, args.in.dim());
     double_dispatch(
-      args.in.dim(), args.in.code(), ScalarUnaryRedImpl<KIND, UnaryRedCode::COUNT_NONZERO>{}, args);
-  else
+      dim, args.in.code(), ScalarUnaryRedImpl<KIND, UnaryRedCode::COUNT_NONZERO>{}, args);
+  } else
     op_dispatch(args.op_code, ScalarUnaryRedDispatch<KIND>{}, args);
 }
 
