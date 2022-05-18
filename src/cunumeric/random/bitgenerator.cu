@@ -40,26 +40,11 @@ struct GPUGenerator : public CURANDGenerator {
     CHECK_CURAND(::curandSetStream(gen, stream));
     type               = get_curandRngType(gentype);
     supports_skipahead = supportsSkipAhead(type);
-    dev_buffer_size    = DEFAULT_DEV_BUFFER_SIZE;
-// TODO: use realm allocator
-#if (__CUDACC_VER_MAJOR__ > 11 || ((__CUDACC_VER_MAJOR__ >= 11) && (__CUDACC_VER_MINOR__ >= 2)))
-    CHECK_CUDA(::cudaMallocAsync(&(dev_buffer), dev_buffer_size * sizeof(uint32_t), stream));
-#else
-    CHECK_CUDA(::cudaMalloc(&(dev_buffer), dev_buffer_size * sizeof(uint32_t)));
-#endif
   }
 
   virtual ~GPUGenerator()
   {
     CHECK_CUDA(::cudaStreamSynchronize(stream));
-    // wait for rand jobs and clean-up resources
-    std::lock_guard<std::mutex> guard(lock);
-// TODO: use realm allocator
-#if (__CUDACC_VER_MAJOR__ > 11 || ((__CUDACC_VER_MAJOR__ >= 11) && (__CUDACC_VER_MINOR__ >= 2)))
-    CHECK_CUDA(::cudaFreeAsync(dev_buffer, stream));
-#else
-    CHECK_CUDA(::cudaFree(dev_buffer));
-#endif
     CHECK_CURAND(::curandDestroyGenerator(gen));
   }
 };

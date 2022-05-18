@@ -234,6 +234,7 @@ class Runtime(object):
         task.add_scalar_arg(BitGeneratorOperation.CREATE, ty.int32)
         task.add_scalar_arg(self.current_random_bitgenid, ty.uint32)
         task.add_scalar_arg(generatorType, ty.uint64)
+        # purge pending bitgenerators to delete
         task.add_scalar_arg(self.current_random_bitgen_zombies, (ty.uint32,))
         self.current_random_bitgen_zombies = ()
         task.execute()

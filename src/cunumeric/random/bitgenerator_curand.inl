@@ -38,16 +38,11 @@ template <VariantKind kind>
 struct CURANDGeneratorBuilder;
 
 struct CURANDGenerator {
-  static constexpr size_t DEFAULT_DEV_BUFFER_SIZE = 64 * 1024;  // TODO: optimize this
   curandGenerator_t gen;
   uint64_t seed;
   uint64_t offset;
   curandRngType type;
   bool supports_skipahead;
-  size_t dev_buffer_size;  // in number of entries
-  uint32_t* dev_buffer;    // buffer for intermediate results
-
-  std::mutex lock;  // in case several threads would want to use the same generator...
 
  protected:
   static unsigned short build_id(unsigned long long id)
@@ -75,20 +70,28 @@ struct CURANDGenerator {
       offset += count;
       CHECK_CURAND(::curandSetGeneratorOffset(gen, offset));
     } else {
+      const Realm::Point<1> zero1d(0);
+      constexpr size_t SKIP_AHEAD_BUFFER_SIZE = 64 * 512 * 16 * sizeof(uint32_t);
+      // TODO: verify if size is in bytes or in entries -> could not find documentation
+      // https://nv-legate.github.io/legate.core/search.html?q=create_buffer&check_keywords=yes&area=default
+      auto temp_buffer =
+        legate::create_buffer<uint32_t, 1>(SKIP_AHEAD_BUFFER_SIZE, Memory::GPU_FB_MEM, 256);
+      void* dev_buffer = temp_buffer.ptr(zero1d);
       // actually generate numbers in the temporary buffer
       log_curand.debug() << "[blank-generate] : count = " << count << " - offset = " << offset;
       uint64_t remain = count;
       while (remain > 0) {
-        if (remain < dev_buffer_size) {
+        if (remain < (uint64_t)SKIP_AHEAD_BUFFER_SIZE) {
           CHECK_CURAND(::curandGenerate(gen, dev_buffer, (size_t)remain));
           offset += remain;
           break;
         } else {
           CHECK_CURAND(::curandGenerate(gen, dev_buffer, (size_t)dev_buffer_size));
-          offset += dev_buffer_size;
+          offset += SKIP_AHEAD_BUFFER_SIZE;
         }
-        remain -= dev_buffer_size;
+        remain -= SKIP_AHEAD_BUFFER_SIZE;
       }
+      // TODO: verify if buffer needs deallocation
     }
   }
 

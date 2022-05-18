@@ -35,17 +35,9 @@ struct CPUGenerator : public CURANDGenerator {
     CHECK_CURAND(::curandSetGeneratorOffset(gen, offset));
     type               = get_curandRngType(gentype);
     supports_skipahead = supportsSkipAhead(type);
-    dev_buffer_size    = DEFAULT_DEV_BUFFER_SIZE;
-    dev_buffer         = (uint32_t*)::malloc(dev_buffer_size * sizeof(uint32_t));
   }
 
-  virtual ~CPUGenerator()
-  {
-    // wait for rand jobs and clean-up resources
-    std::lock_guard<std::mutex> guard(lock);
-    free(dev_buffer);
-    CHECK_CURAND(::curandDestroyGenerator(gen));
-  }
+  virtual ~CPUGenerator() { CHECK_CURAND(::curandDestroyGenerator(gen)); }
 };
 
 template <>

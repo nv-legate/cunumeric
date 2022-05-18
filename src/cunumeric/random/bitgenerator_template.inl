@@ -62,6 +62,8 @@ static void bitgenerator_template(TaskContext& context)
     }
   }
 
+  // HERE : use task index shape to get "processor ID"
+
   std::vector<Store> extra_args;
   for (auto& input : inputs) extra_args.push_back(std::move(input));
 
