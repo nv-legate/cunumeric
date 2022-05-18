@@ -109,8 +109,8 @@ struct inner_type_dispatch_fn {
           std::forward<Fnargs>(args)...);
       }
 #endif
+      default: assert(false);
     }
-    assert(false);
     return f.template operator()<CuNumericTypeCodes::CUNUMERIC_TYPE_POINT1, DIM>(
       std::forward<Fnargs>(args)...);
   }
