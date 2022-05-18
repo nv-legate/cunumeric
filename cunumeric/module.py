@@ -1335,7 +1335,7 @@ def _block_collect_slices(arr, cur_depth, depth):
             )
             common_shape = common_info.shape
         # the initial slices for each arr on arr.shape[-1]
-        out_shape, slices = _collect_outshape_slices(
+        out_shape, slices, arrays = _collect_outshape_slices(
             arrays, common_shape, axis=-1 + len(common_shape)
         )
 
@@ -1361,11 +1361,12 @@ def _collect_outshape_slices(inputs, common_shape, axis):
     slices = []
     offset = 0
     # collect slices for arrays in `inputs`
+    inputs = list(inp for inp in inputs if inp.size > 0)
     for inp in inputs:
         slices.append((slice(offset, offset + inp.shape[axis]),) + post_idx)
         offset += inp.shape[axis]
 
-    return out_shape, slices
+    return out_shape, slices, inputs
 
 
 def _concatenate(
@@ -1378,7 +1379,7 @@ def _concatenate(
 ):
     if axis < 0:
         axis += len(common_info.shape)
-    out_shape, slices = _collect_outshape_slices(
+    out_shape, slices, inputs = _collect_outshape_slices(
         inputs, common_info.shape, axis
     )
 
@@ -1398,8 +1399,7 @@ def _concatenate(
         out_array = out
 
     for dest, src in zip(slices, inputs):
-        if src.size > 0:
-            out_array[(Ellipsis,) + dest] = src
+        out_array[(Ellipsis,) + dest] = src
 
     return out_array
 
