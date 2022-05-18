@@ -3190,8 +3190,7 @@ def einsum_path(expr, *operands, optimize="greedy"):
     path, info = oe.contract_path(
         expr, *operands, optimize=optimize, memory_limit=memory_limit
     )
-    path = ["einsum_path"] + path
-    return path, info
+    return ["einsum_path"] + path, info
 
 
 @add_boilerplate("a")
