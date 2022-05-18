@@ -98,12 +98,14 @@ struct UnaryRedDispatch {
   template <UnaryRedCode OP_CODE, std::enable_if_t<!is_arg_reduce<OP_CODE>::value>* = nullptr>
   void operator()(UnaryRedArgs& args) const
   {
-    return double_dispatch(args.rhs.dim(), args.rhs.code(), UnaryRedImpl<KIND, OP_CODE>{}, args);
+    auto dim = std::max(1, args.rhs.dim());
+    return double_dispatch(dim, args.rhs.code(), UnaryRedImpl<KIND, OP_CODE>{}, args);
   }
   template <UnaryRedCode OP_CODE, std::enable_if_t<is_arg_reduce<OP_CODE>::value>* = nullptr>
   void operator()(UnaryRedArgs& args) const
   {
-    return double_dispatch(args.rhs.dim(), args.rhs.code(), ArgRedImpl<KIND, OP_CODE>{}, args);
+    auto dim = std::max(1, args.rhs.dim());
+    return double_dispatch(dim, args.rhs.code(), ArgRedImpl<KIND, OP_CODE>{}, args);
   }
 };
 

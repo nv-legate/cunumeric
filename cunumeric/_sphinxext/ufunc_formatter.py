@@ -17,6 +17,8 @@ from sphinx.ext.autodoc import FunctionDocumenter
 
 from cunumeric import ufunc
 
+from . import PARALLEL_SAFE
+
 
 class UfuncDocumenter(FunctionDocumenter):
     directivetype = "function"
@@ -30,4 +32,4 @@ class UfuncDocumenter(FunctionDocumenter):
 
 def setup(app):
     app.add_autodocumenter(UfuncDocumenter)
-    return {"parallel_read_safe": True}
+    return PARALLEL_SAFE

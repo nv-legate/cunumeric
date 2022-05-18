@@ -37,7 +37,9 @@ def check_sorted(a, a_sorted, axis=-1):
         assert False
 
 
-def run_sort(shape, axis, datatype, lower, upper, perform_check, timing):
+def run_sort(
+    shape, axis, argsort, datatype, lower, upper, perform_check, timing
+):
 
     num.random.seed(42)
     newtype = np.dtype(datatype).type
@@ -65,10 +67,13 @@ def run_sort(shape, axis, datatype, lower, upper, perform_check, timing):
         assert False
 
     start = time()
-    a_sorted = num.sort(a, axis)
+    if argsort:
+        a_sorted = num.argsort(a, axis)
+    else:
+        a_sorted = num.sort(a, axis)
     stop = time()
 
-    if perform_check:
+    if perform_check and not argsort:
         check_sorted(a, a_sorted, axis)
     else:
         # do we need to synchronize?
@@ -110,7 +115,7 @@ if __name__ == "__main__":
         type=str,
         default="uint32",
         dest="datatype",
-        help="data type (default np.int32)",
+        help="data type (default np.uint32)",
     )
     parser.add_argument(
         "-l",
@@ -137,6 +142,13 @@ if __name__ == "__main__":
         help="sort axis (default -1)",
     )
     parser.add_argument(
+        "-g",
+        "--arg",
+        dest="argsort",
+        action="store_true",
+        help="use argsort",
+    )
+    parser.add_argument(
         "-b",
         "--benchmark",
         type=int,
@@ -154,6 +166,7 @@ if __name__ == "__main__":
         (
             args.shape,
             args.axis,
+            args.argsort,
             args.datatype,
             args.lower,
             args.upper,

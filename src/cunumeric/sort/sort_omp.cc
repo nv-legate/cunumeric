@@ -66,16 +66,19 @@ struct SortImplBody<VariantKind::OMP, CODE, DIM> {
                   const Pitches<DIM - 1>& pitches,
                   const Rect<DIM>& rect,
                   const size_t volume,
-                  const size_t sort_dim_size,
+                  const size_t segment_size_l,
+                  const size_t segment_size_g,
                   const bool argsort,
                   const bool stable,
                   const bool is_index_space,
                   const size_t local_rank,
                   const size_t num_ranks,
+                  const size_t num_sort_ranks,
                   const std::vector<comm::Communicator>& comms)
   {
     auto input = input_array.read_accessor<VAL, DIM>(rect);
     assert(input.accessor.is_dense_row_major(rect));
+    assert(segment_size_l == segment_size_g);
     assert(!is_index_space || DIM > 1);
 
     if (argsort) {
@@ -91,7 +94,7 @@ struct SortImplBody<VariantKind::OMP, CODE, DIM> {
 
       // sort data in place
       thrust_local_sort_inplace(
-        dense_input_copy.ptr(0), output.ptr(rect.lo), volume, sort_dim_size, stable);
+        dense_input_copy.ptr(0), output.ptr(rect.lo), volume, segment_size_l, stable);
 
     } else {
       AccessorWO<VAL, DIM> output = output_array.write_accessor<VAL, DIM>(rect);
@@ -103,7 +106,7 @@ struct SortImplBody<VariantKind::OMP, CODE, DIM> {
       if (src != target) std::copy(src, src + volume, target);
 
       // sort data in place
-      thrust_local_sort_inplace(target, nullptr, volume, sort_dim_size, stable);
+      thrust_local_sort_inplace(target, nullptr, volume, segment_size_l, stable);
     }
   }
 };
