@@ -130,6 +130,7 @@ def test_cunumeric_context() -> None:
 
 def test_CuNumericOpCode() -> None:
     assert set(m.CuNumericOpCode.__members__) == {
+        "ADVANCED_INDEXING",
         "ARANGE",
         "BINARY_OP",
         "BINARY_RED",
@@ -143,6 +144,7 @@ def test_CuNumericOpCode() -> None:
         "EYE",
         "FILL",
         "FLIP",
+        "FFT",
         "GEMM",
         "LOAD_CUDALIBS",
         "MATMUL",
@@ -165,7 +167,9 @@ def test_CuNumericOpCode() -> None:
         "UNIQUE_REDUCE",
         "UNLOAD_CUDALIBS",
         "WHERE",
+        "WINDOW",
         "WRITE",
+        "ZIP",
     }
 
 
@@ -190,6 +194,7 @@ def test_UnaryOpCode() -> None:
         "EXP2",
         "EXPM1",
         "FLOOR",
+        "FREXP",
         "GETARG",
         "IMAG",
         "INVERT",
@@ -201,6 +206,7 @@ def test_UnaryOpCode() -> None:
         "LOG1P",
         "LOG2",
         "LOGICAL_NOT",
+        "MODF",
         "NEGATIVE",
         "POSITIVE",
         "RAD2DEG",
@@ -234,3 +240,9 @@ def test_CuNumericTunable() -> None:
         "MAX_EAGER_VOLUME",
         "HAS_NUMAMEM",
     }
+
+
+if __name__ == "__main__":
+    import sys
+
+    sys.exit(pytest.main(sys.argv))

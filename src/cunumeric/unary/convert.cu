@@ -27,7 +27,7 @@ template <typename Function, typename ARG, typename RES>
 static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   dense_kernel(size_t volume, Function func, RES* out, const ARG* in)
 {
-  const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+  const size_t idx = global_tid_1d();
   if (idx >= volume) return;
   out[idx] = func(in[idx]);
 }
@@ -36,7 +36,7 @@ template <typename Function, typename ReadAcc, typename WriteAcc, typename Pitch
 static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   generic_kernel(size_t volume, Function func, WriteAcc out, ReadAcc in, Pitches pitches, Rect rect)
 {
-  const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+  const size_t idx = global_tid_1d();
   if (idx >= volume) return;
   auto point = pitches.unflatten(idx, rect.lo);
   out[point] = func(in[point]);

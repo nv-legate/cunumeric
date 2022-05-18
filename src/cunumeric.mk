@@ -25,9 +25,11 @@ GEN_CPU_SRC += cunumeric/ternary/where.cc               \
 							 cunumeric/nullary/arange.cc              \
 							 cunumeric/nullary/eye.cc                 \
 							 cunumeric/nullary/fill.cc                \
-							 cunumeric/nullary/window.cc              \
+                                                         cunumeric/nullary/window.cc              \
+                                                         cunumeric/index/advanced_indexing.cc     \
 							 cunumeric/index/choose.cc                \
 							 cunumeric/index/repeat.cc                \
+							 cunumeric/index/zip.cc                   \
 							 cunumeric/item/read.cc                   \
 							 cunumeric/item/write.cc                  \
 							 cunumeric/matrix/contract.cc             \
@@ -68,9 +70,11 @@ GEN_CPU_SRC += cunumeric/ternary/where_omp.cc          \
 							 cunumeric/nullary/arange_omp.cc         \
 							 cunumeric/nullary/eye_omp.cc            \
 							 cunumeric/nullary/fill_omp.cc           \
-							 cunumeric/nullary/window_omp.cc         \
+                                                         cunumeric/nullary/window_omp.cc         \
+                                                         cunumeric/index/advanced_indexing_omp.cc\
 							 cunumeric/index/choose_omp.cc           \
 							 cunumeric/index/repeat_omp.cc           \
+							 cunumeric/index/zip_omp.cc              \
 							 cunumeric/matrix/contract_omp.cc        \
 							 cunumeric/matrix/diag_omp.cc            \
 							 cunumeric/matrix/gemm_omp.cc            \
@@ -103,11 +107,13 @@ GEN_GPU_SRC += cunumeric/ternary/where.cu               \
 							 cunumeric/nullary/arange.cu              \
 							 cunumeric/nullary/eye.cu                 \
 							 cunumeric/nullary/fill.cu                \
-							 cunumeric/nullary/window.cu              \
+                                                         cunumeric/nullary/window.cu              \
+                                                         cunumeric/index/advanced_indexing.cu     \
+							 cunumeric/index/choose.cu                \
+                                                         cunumeric/index/repeat.cu                \
+							 cunumeric/index/zip.cu                   \
 							 cunumeric/item/read.cu                   \
 							 cunumeric/item/write.cu                  \
-							 cunumeric/index/choose.cu                \
-							 cunumeric/index/repeat.cu                \
 							 cunumeric/matrix/contract.cu             \
 							 cunumeric/matrix/diag.cu                 \
 							 cunumeric/matrix/gemm.cu                 \
@@ -126,6 +132,7 @@ GEN_GPU_SRC += cunumeric/ternary/where.cu               \
 							 cunumeric/set/unique.cu                  \
 							 cunumeric/stat/bincount.cu               \
 							 cunumeric/convolution/convolve.cu        \
+							 cunumeric/fft/fft.cu                     \
 							 cunumeric/transform/flip.cu              \
 							 cunumeric/cudalibs.cu                    \
 							 cunumeric/cunumeric.cu

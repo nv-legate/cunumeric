@@ -9,8 +9,10 @@ Sorting
 .. autosummary::
    :toctree: generated/
 
+   argpartition
    argsort
    msort
+   partition
    sort
    sort_complex
 

@@ -23,20 +23,31 @@ namespace cunumeric {
 
 using namespace Legion;
 
-template <typename Function, typename RES, typename ARG>
+template <typename Function, typename LHS, typename RHS1, typename RHS2>
 static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-  dense_kernel(size_t volume, Function func, RES* out, const ARG* in1, const ARG* in2)
+  dense_kernel(size_t volume, Function func, LHS* out, const RHS1* in1, const RHS2* in2)
 {
-  const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+  const size_t idx = global_tid_1d();
   if (idx >= volume) return;
   out[idx] = func(in1[idx], in2[idx]);
 }
 
-template <typename Function, typename WriteAcc, typename ReadAcc, typename Pitches, typename Rect>
-static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM) generic_kernel(
-  size_t volume, Function func, WriteAcc out, ReadAcc in1, ReadAcc in2, Pitches pitches, Rect rect)
+template <typename Function,
+          typename WriteAcc,
+          typename ReadAcc1,
+          typename ReadAcc2,
+          typename Pitches,
+          typename Rect>
+static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
+  generic_kernel(size_t volume,
+                 Function func,
+                 WriteAcc out,
+                 ReadAcc1 in1,
+                 ReadAcc2 in2,
+                 Pitches pitches,
+                 Rect rect)
 {
-  const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+  const size_t idx = global_tid_1d();
   if (idx >= volume) return;
   auto point = pitches.unflatten(idx, rect.lo);
   out[point] = func(in1[point], in2[point]);
@@ -44,14 +55,15 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM) gen
 
 template <BinaryOpCode OP_CODE, LegateTypeCode CODE, int DIM>
 struct BinaryOpImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
-  using OP  = BinaryOp<OP_CODE, CODE>;
-  using ARG = legate_type_of<CODE>;
-  using RES = std::result_of_t<OP(ARG, ARG)>;
+  using OP   = BinaryOp<OP_CODE, CODE>;
+  using RHS1 = legate_type_of<CODE>;
+  using RHS2 = rhs2_of_binary_op<OP_CODE, CODE>;
+  using LHS  = std::result_of_t<OP(RHS1, RHS2)>;
 
   void operator()(OP func,
-                  AccessorWO<RES, DIM> out,
-                  AccessorRO<ARG, DIM> in1,
-                  AccessorRO<ARG, DIM> in2,
+                  AccessorWO<LHS, DIM> out,
+                  AccessorRO<RHS1, DIM> in1,
+                  AccessorRO<RHS2, DIM> in2,
                   const Pitches<DIM - 1>& pitches,
                   const Rect<DIM>& rect,
                   bool dense) const

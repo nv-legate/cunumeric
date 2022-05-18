@@ -17,10 +17,8 @@
 #pragma once
 
 /// Optionally enable GCC's built-in type
-#if defined(__x86_64) && !defined(__CUDA_ARCH__)
-#if defined(__GNUC__)
+#if !defined(__CUDA_ARCH__) && defined(__GNUC__) && defined(__SIZEOF_INT128__)
 #define UINT128_NATIVE
-#endif
 #endif
 
 #ifndef __CUDA_HD__

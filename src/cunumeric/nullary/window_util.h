@@ -69,7 +69,7 @@ struct WindowOp<WindowOpCode::BARLETT> {
 template <>
 struct WindowOp<WindowOpCode::BLACKMAN> {
   WindowOp(int64_t M, double) : alpha_(M_PI * 2 / (M - 1)) {}
-  constexpr double operator()(int64_t idx) const
+  __CUDA_HD__ double operator()(int64_t idx) const
   {
     using std::cos;
     double val = idx * alpha_;
@@ -82,7 +82,7 @@ struct WindowOp<WindowOpCode::BLACKMAN> {
 template <>
 struct WindowOp<WindowOpCode::HAMMING> {
   WindowOp(int64_t M, double) : alpha_(M_PI * 2 / (M - 1)) {}
-  constexpr double operator()(int64_t idx) const { return 0.54 - 0.46 * std::cos(idx * alpha_); }
+  __CUDA_HD__ double operator()(int64_t idx) const { return 0.54 - 0.46 * std::cos(idx * alpha_); }
 
   double alpha_;
 };
@@ -90,7 +90,7 @@ struct WindowOp<WindowOpCode::HAMMING> {
 template <>
 struct WindowOp<WindowOpCode::HANNING> {
   WindowOp(int64_t M, double) : alpha_(M_PI * 2 / (M - 1)) {}
-  constexpr double operator()(int64_t idx) const { return 0.5 - 0.5 * std::cos(idx * alpha_); }
+  __CUDA_HD__ double operator()(int64_t idx) const { return 0.5 - 0.5 * std::cos(idx * alpha_); }
 
   double alpha_;
 };

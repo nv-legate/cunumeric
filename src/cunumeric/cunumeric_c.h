@@ -23,6 +23,7 @@
 // Also, sort these alphabetically except the first one for easy lookup later
 enum CuNumericOpCode {
   _CUNUMERIC_OP_CODE_BASE = 0,
+  CUNUMERIC_ADVANCED_INDEXING,
   CUNUMERIC_ARANGE,
   CUNUMERIC_BINARY_OP,
   CUNUMERIC_BINARY_RED,
@@ -35,6 +36,7 @@ enum CuNumericOpCode {
   CUNUMERIC_DIAG,
   CUNUMERIC_DOT,
   CUNUMERIC_EYE,
+  CUNUMERIC_FFT,
   CUNUMERIC_FILL,
   CUNUMERIC_FLIP,
   CUNUMERIC_GEMM,
@@ -61,6 +63,7 @@ enum CuNumericOpCode {
   CUNUMERIC_WHERE,
   CUNUMERIC_WINDOW,
   CUNUMERIC_WRITE,
+  CUNUMERIC_ZIP,
 };
 
 // Match these to UnaryOpCode in config.py
@@ -85,6 +88,7 @@ enum CuNumericUnaryOpCode {
   CUNUMERIC_UOP_EXP2,
   CUNUMERIC_UOP_EXPM1,
   CUNUMERIC_UOP_FLOOR,
+  CUNUMERIC_UOP_FREXP,
   CUNUMERIC_UOP_GETARG,
   CUNUMERIC_UOP_IMAG,
   CUNUMERIC_UOP_INVERT,
@@ -96,6 +100,7 @@ enum CuNumericUnaryOpCode {
   CUNUMERIC_UOP_LOG1P,
   CUNUMERIC_UOP_LOG2,
   CUNUMERIC_UOP_LOGICAL_NOT,
+  CUNUMERIC_UOP_MODF,
   CUNUMERIC_UOP_NEGATIVE,
   CUNUMERIC_UOP_POSITIVE,
   CUNUMERIC_UOP_RAD2DEG,
@@ -132,7 +137,6 @@ enum CuNumericUnaryRedCode {
 // Also, sort these alphabetically for easy lookup later
 enum CuNumericBinaryOpCode {
   CUNUMERIC_BINOP_ADD = 1,
-  CUNUMERIC_BINOP_ALLCLOSE,
   CUNUMERIC_BINOP_ARCTAN2,
   CUNUMERIC_BINOP_BITWISE_AND,
   CUNUMERIC_BINOP_BITWISE_OR,
@@ -147,7 +151,9 @@ enum CuNumericBinaryOpCode {
   CUNUMERIC_BINOP_GREATER,
   CUNUMERIC_BINOP_GREATER_EQUAL,
   CUNUMERIC_BINOP_HYPOT,
+  CUNUMERIC_BINOP_ISCLOSE,
   CUNUMERIC_BINOP_LCM,
+  CUNUMERIC_BINOP_LDEXP,
   CUNUMERIC_BINOP_LEFT_SHIFT,
   CUNUMERIC_BINOP_LESS,
   CUNUMERIC_BINOP_LESS_EQUAL,
@@ -213,16 +219,40 @@ enum CuNumericBitGeneratorType {
   CUNUMERIC_BITGENTYPE_MTGP32        = 3,
   CUNUMERIC_BITGENTYPE_MT19937       = 4,
   CUNUMERIC_BITGENTYPE_PHILOX4_32_10 = 5,
-};
+  // These fft types match CuNumericFFTType in config.py and cufftType
+  enum CuNumericFFTType{
+    CUNUMERIC_FFT_R2C = 0x2a,  // Real to complex (interleaved)
+    CUNUMERIC_FFT_C2R = 0x2c,  // Complex (interleaved) to real
+    CUNUMERIC_FFT_C2C = 0x29,  // Complex to complex (interleaved)
+    CUNUMERIC_FFT_D2Z = 0x6a,  // Double to double-complex (interleaved)
+    CUNUMERIC_FFT_Z2D = 0x6c,  // Double-complex (interleaved) to double
+    CUNUMERIC_FFT_Z2Z = 0x69   // Double-complex to double-complex (interleaved)
+  };
+
+  // These fft types match CuNumericFFTDirection in config.py and cufftDirection
+  enum CuNumericFFTDirection{CUNUMERIC_FFT_FORWARD = -1, CUNUMERIC_FFT_INVERSE = 1};
+
+  // Match these to CuNumericTypeCodes in config.py
+  enum CuNumericTypeCodes{
+    CUNUMERIC_TYPE_POINT1 = MAX_TYPE_NUMBER + 1,
+    CUNUMERIC_TYPE_POINT2,
+    CUNUMERIC_TYPE_POINT3,
+    CUNUMERIC_TYPE_POINT4,
+    CUNUMERIC_TYPE_POINT5,
+    CUNUMERIC_TYPE_POINT6,
+    CUNUMERIC_TYPE_POINT7,
+    CUNUMERIC_TYPE_POINT8,
+    CUNUMERIC_TYPE_POINT9,
+  };
 
 #ifdef __cplusplus
-extern "C" {
+  extern "C" {
 #endif
 
-void cunumeric_perform_registration();
+    void cunumeric_perform_registration();
 
 #ifdef __cplusplus
-}
+  }
 #endif
 
 #endif  // __CUNUMERIC_C_H__

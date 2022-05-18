@@ -1230,9 +1230,10 @@ def check_list_depth(arr, prefix=(0,)):
             f"List at arrays{convert_to_array_form(prefix)} cannot be empty"
         )
 
-    depths = [
+    depths = list(
         check_list_depth(each, prefix + (idx,)) for idx, each in enumerate(arr)
-    ]
+    )
+
     if len(set(depths)) != 1:  # this should be one
         # If we're here elements don't have the same depth
         first_depth = depths[0]
@@ -1285,62 +1286,124 @@ def check_shape_dtype(
     return converted, ArrayInfo(ndim, shape, dtype)
 
 
-def _block(arr, cur_depth, depth):
+def _block_collect_slices(arr, cur_depth, depth):
+    # collects slices for each array in `arr`
+    # the outcome will be slices on every dimension of the output array
+    # for each array in `arr`
     if cur_depth < depth:
-        inputs = list(_block(each, cur_depth + 1, depth) for each in arr)
+        sublist_results = list(
+            _block_collect_slices(each, cur_depth + 1, depth) for each in arr
+        )
+        # 'sublist_results' contains a list of 3-way tuples,
+        # for arrays, out_shape of the sublist, and slices
+        arrays, outshape_list, slices = zip(*sublist_results)
+        max_ndim = _builtin_max(
+            1 + (depth - cur_depth), *(len(each) for each in outshape_list)
+        )
+        outshape_list = list(
+            ((1,) * (max_ndim - len(each)) + tuple(each))
+            for each in outshape_list
+        )
+        leading_dim = _builtin_sum(
+            each[-1 + (cur_depth - depth)] for each in outshape_list
+        )
+        # flatten array lists from sublists into a single list
+        arrays = list(chain(*arrays))
+        # prepares the out_shape of the current list
+        out_shape = list(outshape_list[0])
+        out_shape[-1 + cur_depth - depth] = leading_dim
+        offset = 0
+        updated_slices = []
+        # update the dimension in each slice for the current axis
+        for shape, slice_list in zip(outshape_list, slices):
+            cur_dim = shape[-1 + cur_depth - depth]
+            updated_slices.append(
+                list(
+                    (slice(offset, offset + cur_dim),) + each
+                    for each in slice_list
+                )
+            )
+            offset += cur_dim
+        # flatten lists of slices into a single list
+        slices = list(chain(*updated_slices))
     else:
-        inputs = list(convert_to_cunumeric_ndarray(inp) for inp in arr)
+        arrays = list(convert_to_cunumeric_ndarray(inp) for inp in arr)
+        common_shape = arrays[0].shape
+        if len(arr) > 1:
+            arrays, common_info = check_shape_dtype(
+                arrays, block.__name__, axis=-1
+            )
+            common_shape = common_info.shape
+        # the initial slices for each arr on arr.shape[-1]
+        out_shape, slices = _collect_outshape_slices(
+            arrays, common_shape, axis=-1 + len(common_shape)
+        )
 
-    # this reshape of elements could be replaced
-    # w/ np.atleast_*d when they're implemented
-    # Computes the maximum number of dimensions for the concatenation
-    max_ndim = _builtin_max(
-        1 + (depth - cur_depth), *(inp.ndim for inp in inputs)
-    )
-    # Append leading 1's to make elements to have the same 'ndim'
-    reshaped = list(
-        inp.reshape((1,) * (max_ndim - inp.ndim) + inp.shape)
-        if max_ndim > inp.ndim
-        else inp
-        for inp in inputs
-    )
-    return concatenate(reshaped, axis=-1 + (cur_depth - depth))
+    return arrays, out_shape, slices
+
+
+def _block_slicing(arrays, depth):
+    # collects the final slices of input arrays and assign them at once
+    arrays, out_shape, slices = _block_collect_slices(arrays, 1, depth)
+    out_array = ndarray(shape=out_shape, inputs=arrays)
+
+    for dest, inp in zip(slices, arrays):
+        out_array[(Ellipsis,) + tuple(dest)] = inp
+
+    return out_array
+
+
+def _collect_outshape_slices(inputs, common_shape, axis):
+    leading_dim = _builtin_sum(arr.shape[axis] for arr in inputs)
+    out_shape = list(common_shape)
+    out_shape[axis] = leading_dim
+    post_idx = (slice(None),) * len(out_shape[axis + 1 :])
+    slices = []
+    offset = 0
+    # collect slices for arrays in `inputs`
+    for inp in inputs:
+        if inp.size > 0:
+            slices.append(
+                (slice(offset, offset + inp.shape[axis]),) + post_idx
+            )
+            offset += inp.shape[axis]
+
+    return out_shape, slices
 
 
 def _concatenate(
     inputs,
+    common_info,
     axis=0,
     out=None,
     dtype=None,
     casting="same_kind",
-    common_info=None,
 ):
     if axis < 0:
         axis += len(common_info.shape)
-    leading_dim = _builtin_sum(arr.shape[axis] for arr in inputs)
-    out_shape = list(common_info.shape)
-    out_shape[axis] = leading_dim
-
-    out_array = ndarray(
-        shape=out_shape, dtype=common_info.dtype, inputs=inputs
+    out_shape, slices = _collect_outshape_slices(
+        inputs, common_info.shape, axis
     )
 
-    # Copy the values over from the inputs
-    offset = 0
-    idx_arr = []
-    for i in range(0, axis):
-        idx_arr.append(slice(out_shape[i]))
+    if out is None:
+        out_array = ndarray(
+            shape=out_shape, dtype=common_info.dtype, inputs=inputs
+        )
+    else:
+        out = convert_to_cunumeric_ndarray(out)
+        if not isinstance(out, ndarray):
+            raise TypeError("out should be ndarray")
+        elif list(out.shape) != out_shape:
+            raise ValueError(
+                f"out.shape({out.shape}) is not matched "
+                f"to the result shape of concatenation ({out_shape})"
+            )
+        out_array = out
 
-    idx_arr.append(0)
+    for dest, src in zip(slices, inputs):
+        if src.size > 0:
+            out_array[(Ellipsis,) + dest] = src
 
-    for i in range(axis + 1, common_info.ndim):
-        idx_arr.append(slice(out_shape[i]))
-
-    for inp in inputs:
-        if inp.size > 0:
-            idx_arr[axis] = slice(offset, offset + inp.shape[axis])
-            out_array[tuple(idx_arr)] = inp
-            offset += inp.shape[axis]
     return out_array
 
 
@@ -1437,7 +1500,7 @@ def block(arrays):
     # check if the 'arrays' is a balanced tree
     depth = check_list_depth(arrays)
 
-    result = _block(arrays, 1, depth)
+    result = _block_slicing(arrays, depth)
     return result
 
 
@@ -1491,7 +1554,12 @@ def concatenate(inputs, axis=0, out=None, dtype=None, casting="same_kind"):
     )
 
     return _concatenate(
-        cunumeric_inputs, axis, out, dtype, casting, common_info
+        cunumeric_inputs,
+        common_info,
+        axis,
+        out,
+        dtype,
+        casting,
     )
 
 
@@ -1546,7 +1614,7 @@ def stack(arrays, axis=0, out=None):
     shape.insert(axis, 1)
     arrays = [arr.reshape(shape) for arr in arrays]
     common_info.shape = shape
-    return _concatenate(arrays, axis, out=out, common_info=common_info)
+    return _concatenate(arrays, common_info, axis, out=out)
 
 
 def vstack(tup):
@@ -1593,9 +1661,9 @@ def vstack(tup):
 
     return _concatenate(
         tup,
+        common_info,
         axis=0,
         dtype=common_info.dtype,
-        common_info=common_info,
     )
 
 
@@ -1636,9 +1704,9 @@ def hstack(tup):
     # When ndim == 1, hstack concatenates arrays along the first axis
     return _concatenate(
         tup,
+        common_info,
         axis=(0 if common_info.ndim == 1 else 1),
         dtype=common_info.dtype,
-        common_info=common_info,
     )
 
 
@@ -1689,9 +1757,9 @@ def dstack(tup):
 
     return _concatenate(
         tup,
+        common_info,
         axis=2,
         dtype=common_info.dtype,
-        common_info=common_info,
     )
 
 
@@ -1731,9 +1799,9 @@ def column_stack(tup):
         common_info.shape = tup[0].shape
     return _concatenate(
         tup,
+        common_info,
         axis=1,
         dtype=common_info.dtype,
-        common_info=common_info,
     )
 
 
@@ -2250,6 +2318,54 @@ def where(a, x=None, y=None):
 
 
 # Indexing-like operations
+@add_boilerplate("a")
+def take(a, indices, axis=None, out=None, mode="raise"):
+    """
+    Take elements from an array along an axis.
+    When axis is not None, this function does the same thing as “fancy”
+    indexing (indexing arrays using arrays); however, it can be easier
+    to use if you need elements along a given axis. A call such as
+    `np.take(arr, indices, axis=3)` is equivalent to `arr[:,:,:,indices,...]`.
+
+    Parameters
+    ----------
+    a : array_like `(Ni…, M, Nk…)`
+        The source array.
+    indices : array_like `(Nj…)`
+        The indices of the values to extract.
+        Also allow scalars for indices.
+    axis : int, optional
+        The axis over which to select values. By default, the flattened input
+        array is used.
+    out : ndarray, optional `(Ni…, Nj…, Nk…)`
+        If provided, the result will be placed in this array. It should be of
+        the appropriate shape and dtype.
+    mode : ``{'raise', 'wrap', 'clip'}``, optional
+        Specifies how out-of-bounds indices will behave.
+        'raise' - raise an error (default)
+        'wrap' - wrap around
+        'clip' - clip to the range
+        'clip' mode means that all indices that are too large are replaced by
+        the index that addresses the last element along that axis.
+        Note that this disables indexing with negative numbers.
+
+    Returns
+    -------
+    out : ndarray `(Ni…, Nj…, Nk…)`
+        The returned array has the same type as a.
+
+    Raises
+    ------
+
+    See Also
+    --------
+    numpy.take
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    return a.take(indices=indices, axis=axis, out=out, mode=mode)
 
 
 @add_boilerplate("a")
@@ -2321,6 +2437,60 @@ def choose(a, choices, out=None, mode="raise"):
     Multiple GPUs, Multiple CPUs
     """
     return a.choose(choices=choices, out=out, mode=mode)
+
+
+@add_boilerplate("condition", "a")
+def compress(condition, a, axis=None, out=None):
+    """
+    Return selected slices of an array along given axis.
+
+    When working along a given axis, a slice along that axis is returned
+    in output for each index where condition evaluates to True.
+    When working on a 1-D array, compress is equivalent to numpy.extract.
+
+    Parameters
+    ----------
+    condition, 1-D array of bools
+        Array that selects which entries to return. If `len(c)` is less than
+        the size of a along the given axis, then output is truncated to the
+        length of the condition array.
+
+    a : array_like
+        Array from which to extract a part.
+
+    axis: int, optional
+        Axis along which to take slices. If None (default),
+        work on the flattened array.
+
+    out : ndarray, optional
+        Output array. Its type is preserved and it must be of the right
+        shape to hold the output.
+
+    Returns
+    -------
+    compressed_array : ndarray
+        A copy of `a` without the slices along `axis` for which condition
+        is false.
+
+    Raises
+    ------
+    ValueError : dimension mismatch
+        If condition is not 1D array
+    ValueError : shape mismatch
+        If condition contains entries that are out of bounds of array
+    ValueError : shape mismatch
+        If output array has a wrong shape
+
+    See Also
+    --------
+    numpy.compress, numpy.extract
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+
+    """
+    return a.compress(condition, axis=axis, out=out)
 
 
 @add_boilerplate("a")
@@ -3009,6 +3179,64 @@ def einsum(expr, *operands, out=None, optimize=False):
     return operands[0]
 
 
+@add_boilerplate("a")
+def trace(a, offset=0, axis1=None, axis2=None, dtype=None, out=None):
+    """
+    Return the sum along diagonals of the array.
+
+    If a is 2-D, the sum along its diagonal with the given offset is
+    returned, i.e., the sum of elements a[i,i+offset] for all i.
+    If a has more than two dimensions, then the axes specified by axis1
+    and axis2 are used to determine the 2-D sub-arrays whose traces
+    are returned. The shape of the resulting array is the same as that
+    of a with axis1 and axis2 removed.
+
+    Parameters
+    ----------
+    a : array_like
+        Input array, from which the diagonals are taken.
+    offset : int, optional
+        Offset of the diagonal from the main diagonal. Can be both
+        positive and negative. Defaults to 0.
+    axis1, axis2 : int, optional
+        Axes to be used as the first and second axis of the 2-D sub-arrays
+        from which the diagonals should be taken. Defaults are the
+        first two axes of a.
+    dtype : data-type, optional
+        Determines the data-type of the returned array and of the
+        accumulator where the elements are summed. If dtype has the value
+        None and a is of integer type of precision less than the default
+        integer precision, then the default integer precision is used.
+        Otherwise, the precision is the same as that of a.
+
+    out : ndarray, optional
+        Array into which the output is placed. Its type is preserved and
+        it must be of the right shape to hold the output.
+
+    Returns
+    -------
+    sum_along_diagonals : ndarray
+        If a is 2-D, the sum along the diagonal is returned. If a has
+        larger dimensions, then an array of sums along diagonals is returned.
+
+    Raises
+    ------
+    ValueError
+        If the dimension of `a` is less than 2.
+
+    See Also
+    --------
+    numpy.diagonal
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    return a.trace(
+        offset=offset, axis1=axis1, axis2=axis2, dtype=dtype, out=out
+    )
+
+
 #################
 # Logic functions
 #################
@@ -3164,6 +3392,13 @@ def allclose(a, b, rtol=1e-5, atol=1e-8, equal_nan=False):
         Returns True if the two arrays are equal within the given
         tolerance; False otherwise.
 
+    Notes
+    -----
+    If the following equation is element-wise True, then allclose returns
+    True.
+
+     absolute(`a` - `b`) <= (`atol` + `rtol` * absolute(`b`))
+
     See Also
     --------
     numpy.allclose
@@ -3174,16 +3409,73 @@ def allclose(a, b, rtol=1e-5, atol=1e-8, equal_nan=False):
     """
     if equal_nan:
         raise NotImplementedError(
-            "cuNumeric does not support equal NaN yet for allclose"
+            "cuNumeric does not support `equal_nan` yet for allclose"
         )
     args = (np.array(rtol, dtype=np.float64), np.array(atol, dtype=np.float64))
     return ndarray._perform_binary_reduction(
-        BinaryOpCode.ALLCLOSE,
+        BinaryOpCode.ISCLOSE,
         a,
         b,
         dtype=np.dtype(bool),
         extra_args=args,
     )
+
+
+@add_boilerplate("a", "b")
+def isclose(a, b, rtol=1e-5, atol=1e-8, equal_nan=False):
+    """
+
+    Returns a boolean array where two arrays are element-wise equal within a
+    tolerance.
+
+    Parameters
+    ----------
+    a, b : array_like
+        Input arrays to compare.
+    rtol : float
+        The relative tolerance parameter (see Notes).
+    atol : float
+        The absolute tolerance parameter (see Notes).
+    equal_nan : bool
+        Whether to compare NaN's as equal.  If True, NaN's in `a` will be
+        considered equal to NaN's in `b` in the output array.
+
+    Returns
+    -------
+    y : array_like
+        Returns a boolean array of where `a` and `b` are equal within the
+        given tolerance. If both `a` and `b` are scalars, returns a single
+        boolean value.
+
+    Notes
+    -----
+    For finite values, isclose uses the following equation to test whether
+    two floating point values are equivalent.
+
+     absolute(`a` - `b`) <= (`atol` + `rtol` * absolute(`b`))
+
+    See Also
+    --------
+    numpy.isclose
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    if equal_nan:
+        raise NotImplementedError(
+            "cuNumeric does not support `equal_nan` yet for isclose"
+        )
+
+    out_shape = np.broadcast_shapes(a.shape, b.shape)
+    out = empty(out_shape, dtype=bool)
+
+    common_type = ndarray.find_common_type(a, b)
+    a = a.astype(common_type)
+    b = b.astype(common_type)
+
+    out._thunk.isclose(a._thunk, b._thunk, rtol, atol, equal_nan)
+    return out
 
 
 @add_boilerplate("a", "b")
@@ -3989,6 +4281,103 @@ def sort_complex(a):
         return result
     else:
         return result.astype(np.complex64, copy=True)
+
+
+# partition
+
+
+@add_boilerplate("a")
+def argpartition(a, kth, axis=-1, kind="introselect", order=None):
+    """
+
+    Perform an indirect partition along the given axis.
+
+    Parameters
+    ----------
+    a : array_like
+        Input array.
+    kth : int or Sequence[int]
+    axis : int or None, optional
+        Axis to partition. By default, the index -1 (the last axis) is used. If
+        None, the flattened array is used.
+    kind : ``{'introselect'}``, optional
+        Currently not supported.
+    order : str or list[str], optional
+        Currently not supported.
+
+    Returns
+    -------
+    out : ndarray[int]
+        Array of indices that partitions a along the specified axis. It has the
+        same shape as `a.shape` or is flattened in case of `axis` is None.
+
+
+    Notes
+    -----
+    The current implementation falls back to `cunumeric.argsort`.
+
+    See Also
+    --------
+    numpy.argpartition
+
+    Availability
+    --------
+    Multiple GPUs, Single CPU
+    """
+    result = ndarray(a.shape, np.int64)
+    result._thunk.partition(
+        rhs=a._thunk,
+        argpartition=True,
+        kth=kth,
+        axis=axis,
+        kind=kind,
+        order=order,
+    )
+    return result
+
+
+@add_boilerplate("a")
+def partition(a, kth, axis=-1, kind="introselect", order=None):
+    """
+
+    Returns a partitioned copy of an array.
+
+    Parameters
+    ----------
+    a : array_like
+        Input array.
+    kth : int or Sequence[int]
+    axis : int or None, optional
+        Axis to partition. By default, the index -1 (the last axis) is used. If
+        None, the flattened array is used.
+    kind : ``{'introselect'}``, optional
+        Currently not supported.
+    order : str or list[str], optional
+        Currently not supported.
+
+    Returns
+    -------
+    out : ndarray
+        Partitioned array with same dtype and shape as `a`. In case `axis` is
+        None the result is flattened.
+
+    Notes
+    -----
+    The current implementation falls back to `cunumeric.sort`.
+
+    See Also
+    --------
+    numpy.partition
+
+    Availability
+    --------
+    Multiple GPUs, Single CPU
+    """
+    result = ndarray(a.shape, a.dtype)
+    result._thunk.partition(
+        rhs=a._thunk, kth=kth, axis=axis, kind=kind, order=order
+    )
+    return result
 
 
 # Searching
