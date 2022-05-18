@@ -3170,8 +3170,7 @@ def einsum_path(expr, *operands, optimize="greedy"):
     if type(optimize) == tuple:
         if len(optimize) != 2:
             raise ValueError("einsum_path expects optimize tuples of size 2")
-        memory_limit = optimize[1]
-        optimize = optimize[0]
+        optimize, memory_limit = optimize
     if optimize is True:
         optimize = "greedy"
     elif optimize is False:
