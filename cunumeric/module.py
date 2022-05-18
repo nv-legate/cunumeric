@@ -2203,6 +2203,68 @@ def where(a, x=None, y=None):
 
 
 # Indexing-like operations
+def diag_indices(n, ndim=2):
+    """
+    Return the indices to access the main diagonal of an array.
+
+    This returns a tuple of indices that can be used to access the main
+    diagonal of an array a with a.ndim >= 2 dimensions and
+    shape (n, n, …, n). For a.ndim = 2 this is the usual diagonal,
+    for a.ndim > 2 this is the set of indices to
+    access a[i, i, ..., i] for i = [0..n-1].
+
+    Parameters
+    ----------
+    n : int
+        The size, along each dimension, of the arrays for which the
+        returned indices can be used.
+    ndim : int, optional
+        The number of dimensions.
+
+    See Also
+    --------
+    numpy.diag_indices
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    idx = arange(n, dtype=int)
+    return (idx,) * ndim
+
+
+@add_boilerplate("arr")
+def diag_indices_from(arr):
+    """
+    Return the indices to access the main diagonal of an n-dimensional array.
+
+    See diag_indices for full details.
+
+    Parameters
+    ----------
+    arr : array, at least 2-D
+
+    See Also
+    --------
+    numpy.diag_indices_from, numpy.diag_indices
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    if not isinstance(arr, ndarray):
+        raise TypeError("Argument must be ndarray")
+    if not arr.ndim >= 2:
+        raise ValueError("input array must be at least 2-d")
+    # For more than d=2, the strided formula is only valid for arrays with
+    # all dimensions equal, so we check first.
+    for i in range(1, arr.ndim):
+        if arr.shape[i] != arr.shape[0]:
+            raise ValueError("All dimensions of input must be of equal length")
+
+    return diag_indices(arr.shape[0], arr.ndim)
+
+
 @add_boilerplate("a")
 def take(a, indices, axis=None, out=None, mode="raise"):
     """
