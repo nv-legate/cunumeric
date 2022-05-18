@@ -81,15 +81,16 @@ struct CURANDGenerator {
       log_curand.debug() << "[blank-generate] : count = " << count << " - offset = " << offset;
       uint64_t remain = count;
       while (remain > 0) {
-        if (remain < (uint64_t)SKIP_AHEAD_BUFFER_SIZE) {
-          CHECK_CURAND(::curandGenerate(gen, dev_buffer, (size_t)remain));
+        if (remain < (uint64_t)(SKIP_AHEAD_BUFFER_SIZE / sizeof(uint32_t))) {
+          CHECK_CURAND(::curandGenerate(gen, (uint32_t*)dev_buffer, (size_t)remain));
           offset += remain;
           break;
         } else {
-          CHECK_CURAND(::curandGenerate(gen, dev_buffer, (size_t)dev_buffer_size));
-          offset += SKIP_AHEAD_BUFFER_SIZE;
+          CHECK_CURAND(::curandGenerate(
+            gen, (uint32_t*)dev_buffer, SKIP_AHEAD_BUFFER_SIZE / sizeof(uint32_t)));
+          offset += SKIP_AHEAD_BUFFER_SIZE / sizeof(uint32_t);
         }
-        remain -= SKIP_AHEAD_BUFFER_SIZE;
+        remain -= SKIP_AHEAD_BUFFER_SIZE / sizeof(uint32_t);
       }
       // TODO: verify if buffer needs deallocation
     }
@@ -130,8 +131,6 @@ struct generate_fn {
     if (volume > 0) {
       auto out = output.write_accessor<uint32_t, DIM>(rect);
 
-      if (!out.accessor.is_dense_row_major(rect))
-        log_curand.fatal() << "accessor is not dense row major - DIM = " << DIM;
       assert(out.accessor.is_dense_row_major(rect));
 
       uint32_t* p = out.ptr(rect);
@@ -220,7 +219,6 @@ struct generator_map {
   void set_seed(uint32_t generatorID, uint64_t seed)
   {
     CURANDGenerator* genptr = get(generatorID);
-    std::lock_guard<std::mutex> guard(genptr->lock);
     CHECK_CURAND(::curandSetPseudoRandomGeneratorSeed(genptr->gen, seed));
   }
 };
@@ -277,8 +275,6 @@ struct BitGeneratorImplBody {
         CURANDGenerator* genptr = genmap.get(generatorID);
 
         if (isThreadSafe<kind == VariantKind::GPU>(genptr->type)) {
-          std::lock_guard<std::mutex> guard(genptr->lock);
-
           if (output.size() == 0) {
             CURANDGenerator& cugen = *genptr;
             cugen.skip_ahead(parameter);
@@ -288,8 +284,6 @@ struct BitGeneratorImplBody {
             dim_dispatch(res.dim(), generate_fn{}, cugen, res, strides, parameter);
           }
         } else {
-          std::lock_guard<std::mutex> guard(genmap.lock);
-
           CURANDGenerator& cugen = *genptr;
           if (output.size() == 0) {
             cugen.skip_ahead(parameter);

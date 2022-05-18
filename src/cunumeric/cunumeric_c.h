@@ -219,40 +219,43 @@ enum CuNumericBitGeneratorType {
   CUNUMERIC_BITGENTYPE_MTGP32        = 3,
   CUNUMERIC_BITGENTYPE_MT19937       = 4,
   CUNUMERIC_BITGENTYPE_PHILOX4_32_10 = 5,
-  // These fft types match CuNumericFFTType in config.py and cufftType
-  enum CuNumericFFTType{
-    CUNUMERIC_FFT_R2C = 0x2a,  // Real to complex (interleaved)
-    CUNUMERIC_FFT_C2R = 0x2c,  // Complex (interleaved) to real
-    CUNUMERIC_FFT_C2C = 0x29,  // Complex to complex (interleaved)
-    CUNUMERIC_FFT_D2Z = 0x6a,  // Double to double-complex (interleaved)
-    CUNUMERIC_FFT_Z2D = 0x6c,  // Double-complex (interleaved) to double
-    CUNUMERIC_FFT_Z2Z = 0x69   // Double-complex to double-complex (interleaved)
-  };
 
-  // These fft types match CuNumericFFTDirection in config.py and cufftDirection
-  enum CuNumericFFTDirection{CUNUMERIC_FFT_FORWARD = -1, CUNUMERIC_FFT_INVERSE = 1};
+};
 
-  // Match these to CuNumericTypeCodes in config.py
-  enum CuNumericTypeCodes{
-    CUNUMERIC_TYPE_POINT1 = MAX_TYPE_NUMBER + 1,
-    CUNUMERIC_TYPE_POINT2,
-    CUNUMERIC_TYPE_POINT3,
-    CUNUMERIC_TYPE_POINT4,
-    CUNUMERIC_TYPE_POINT5,
-    CUNUMERIC_TYPE_POINT6,
-    CUNUMERIC_TYPE_POINT7,
-    CUNUMERIC_TYPE_POINT8,
-    CUNUMERIC_TYPE_POINT9,
-  };
+// These fft types match CuNumericFFTType in config.py and cufftType
+enum CuNumericFFTType {
+  CUNUMERIC_FFT_R2C = 0x2a,  // Real to complex (interleaved)
+  CUNUMERIC_FFT_C2R = 0x2c,  // Complex (interleaved) to real
+  CUNUMERIC_FFT_C2C = 0x29,  // Complex to complex (interleaved)
+  CUNUMERIC_FFT_D2Z = 0x6a,  // Double to double-complex (interleaved)
+  CUNUMERIC_FFT_Z2D = 0x6c,  // Double-complex (interleaved) to double
+  CUNUMERIC_FFT_Z2Z = 0x69   // Double-complex to double-complex (interleaved)
+};
+
+// These fft types match CuNumericFFTDirection in config.py and cufftDirection
+enum CuNumericFFTDirection { CUNUMERIC_FFT_FORWARD = -1, CUNUMERIC_FFT_INVERSE = 1 };
+
+// Match these to CuNumericTypeCodes in config.py
+enum CuNumericTypeCodes {
+  CUNUMERIC_TYPE_POINT1 = MAX_TYPE_NUMBER + 1,
+  CUNUMERIC_TYPE_POINT2,
+  CUNUMERIC_TYPE_POINT3,
+  CUNUMERIC_TYPE_POINT4,
+  CUNUMERIC_TYPE_POINT5,
+  CUNUMERIC_TYPE_POINT6,
+  CUNUMERIC_TYPE_POINT7,
+  CUNUMERIC_TYPE_POINT8,
+  CUNUMERIC_TYPE_POINT9,
+};
 
 #ifdef __cplusplus
-  extern "C" {
+extern "C" {
 #endif
 
-    void cunumeric_perform_registration();
+void cunumeric_perform_registration();
 
 #ifdef __cplusplus
-  }
+}
 #endif
 
 #endif  // __CUNUMERIC_C_H__
