@@ -123,7 +123,7 @@ Item selection and manipulation
 .. autosummary::
    :toctree: generated/
 
-   .. ndarray.take
+   ndarray.take
    .. ndarray.put
    .. ndarray.repeat
    ndarray.choose
@@ -133,7 +133,7 @@ Item selection and manipulation
    ndarray.argpartition
    .. ndarray.searchsorted
    ndarray.nonzero
-   .. ndarray.compress
+   ndarray.compress
    ndarray.diagonal
    ndarray.trace
 

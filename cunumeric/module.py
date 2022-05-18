@@ -16,10 +16,7 @@
 import math
 import re
 from collections import Counter
-from functools import wraps
-from inspect import signature
 from itertools import chain
-from typing import Optional, Set
 
 import numpy as np
 import opt_einsum as oe
@@ -27,11 +24,7 @@ from cunumeric._ufunc.comparison import maximum, minimum
 from cunumeric._ufunc.floating import floor
 from cunumeric._ufunc.math import add, multiply
 
-from .array import (
-    convert_to_cunumeric_ndarray,
-    convert_to_predicate_ndarray,
-    ndarray,
-)
+from .array import add_boilerplate, convert_to_cunumeric_ndarray, ndarray
 from .config import BinaryOpCode, UnaryRedCode
 from .runtime import runtime
 from .utils import inner_modes, matmul_modes, tensordot_modes
@@ -42,111 +35,6 @@ _builtin_any = any
 _builtin_max = max
 _builtin_min = min
 _builtin_sum = sum
-
-
-def add_boilerplate(*array_params: str):
-    """
-    Adds required boilerplate to the wrapped module-level ndarray function.
-
-    Every time the wrapped function is called, this wrapper will:
-    * Convert all specified array-like parameters, plus the special "out"
-      parameter (if present), to cuNumeric ndarrays.
-    * Convert the special "where" parameter (if present) to a valid predicate.
-    * Handle the case of scalar cuNumeric ndarrays, by forwarding the operation
-      to the equivalent `()`-shape numpy array (if the operation exists on base
-      numpy).
-
-    NOTE: Assumes that no parameters are mutated besides `out`.
-    """
-    keys: Set[str] = set(array_params)
-
-    def decorator(func):
-        assert not hasattr(
-            func, "__wrapped__"
-        ), "this decorator must be the innermost"
-
-        # For each parameter specified by name, also consider the case where
-        # it's passed as a positional parameter.
-        indices: Set[int] = set()
-        all_formals: Set[str] = set()
-        where_idx: Optional[int] = None
-        out_idx: Optional[int] = None
-        for (idx, param) in enumerate(signature(func).parameters):
-            all_formals.add(param)
-            if param == "where":
-                where_idx = idx
-            elif param == "out":
-                out_idx = idx
-            elif param in keys:
-                indices.add(idx)
-        assert len(keys - all_formals) == 0, "unkonwn parameter(s)"
-
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            assert (where_idx is None or len(args) <= where_idx) and (
-                out_idx is None or len(args) <= out_idx
-            ), "'where' and 'out' should be passed as keyword arguments"
-
-            # Convert relevant arguments to cuNumeric ndarrays
-            args = tuple(
-                convert_to_cunumeric_ndarray(arg)
-                if idx in indices and arg is not None
-                else arg
-                for (idx, arg) in enumerate(args)
-            )
-            for (k, v) in kwargs.items():
-                if v is None:
-                    continue
-                elif k == "where":
-                    kwargs[k] = convert_to_predicate_ndarray(v)
-                elif k == "out":
-                    kwargs[k] = convert_to_cunumeric_ndarray(v, share=True)
-                elif k in keys:
-                    kwargs[k] = convert_to_cunumeric_ndarray(v)
-
-            # Handle the case where all array-like parameters are scalar, by
-            # performing the operation on the equivalent scalar numpy arrays.
-            # NOTE: This implicitly blocks on the contents of these arrays.
-            if (
-                hasattr(np, func.__name__)
-                and _builtin_all(
-                    isinstance(args[idx], ndarray) and args[idx]._thunk.scalar
-                    for idx in indices
-                )
-                and _builtin_all(
-                    isinstance(v, ndarray) and v._thunk.scalar
-                    for v in (kwargs.get("where", None),)
-                )
-            ):
-                out = None
-                if "out" in kwargs:
-                    out = kwargs["out"]
-                    del kwargs["out"]
-                args = tuple(
-                    arg._thunk.__numpy_array__()
-                    if (idx in indices) and isinstance(arg, ndarray)
-                    else arg
-                    for (idx, arg) in enumerate(args)
-                )
-                for (k, v) in kwargs.items():
-                    if (k in keys or k == "where") and isinstance(v, ndarray):
-                        kwargs[k] = v._thunk.__numpy_array__()
-                result = convert_to_cunumeric_ndarray(
-                    getattr(np, func.__name__)(*args, **kwargs)
-                )
-                if out is not None:
-                    if out._thunk.dtype != result._thunk.dtype:
-                        out._thunk.convert(result._thunk, warn=False)
-                    else:
-                        out._thunk.copy(result._thunk)
-                    result = out
-                return result
-
-            return func(*args, **kwargs)
-
-        return wrapper
-
-    return decorator
 
 
 #########################
@@ -1230,9 +1118,10 @@ def check_list_depth(arr, prefix=(0,)):
             f"List at arrays{convert_to_array_form(prefix)} cannot be empty"
         )
 
-    depths = [
+    depths = list(
         check_list_depth(each, prefix + (idx,)) for idx, each in enumerate(arr)
-    ]
+    )
+
     if len(set(depths)) != 1:  # this should be one
         # If we're here elements don't have the same depth
         first_depth = depths[0]
@@ -1285,62 +1174,121 @@ def check_shape_dtype(
     return converted, ArrayInfo(ndim, shape, dtype)
 
 
-def _block(arr, cur_depth, depth):
+def _block_collect_slices(arr, cur_depth, depth):
+    # collects slices for each array in `arr`
+    # the outcome will be slices on every dimension of the output array
+    # for each array in `arr`
     if cur_depth < depth:
-        inputs = list(_block(each, cur_depth + 1, depth) for each in arr)
+        sublist_results = list(
+            _block_collect_slices(each, cur_depth + 1, depth) for each in arr
+        )
+        # 'sublist_results' contains a list of 3-way tuples,
+        # for arrays, out_shape of the sublist, and slices
+        arrays, outshape_list, slices = zip(*sublist_results)
+        max_ndim = _builtin_max(
+            1 + (depth - cur_depth), *(len(each) for each in outshape_list)
+        )
+        outshape_list = list(
+            ((1,) * (max_ndim - len(each)) + tuple(each))
+            for each in outshape_list
+        )
+        leading_dim = _builtin_sum(
+            each[-1 + (cur_depth - depth)] for each in outshape_list
+        )
+        # flatten array lists from sublists into a single list
+        arrays = list(chain(*arrays))
+        # prepares the out_shape of the current list
+        out_shape = list(outshape_list[0])
+        out_shape[-1 + cur_depth - depth] = leading_dim
+        offset = 0
+        updated_slices = []
+        # update the dimension in each slice for the current axis
+        for shape, slice_list in zip(outshape_list, slices):
+            cur_dim = shape[-1 + cur_depth - depth]
+            updated_slices.append(
+                list(
+                    (slice(offset, offset + cur_dim),) + each
+                    for each in slice_list
+                )
+            )
+            offset += cur_dim
+        # flatten lists of slices into a single list
+        slices = list(chain(*updated_slices))
     else:
-        inputs = list(convert_to_cunumeric_ndarray(inp) for inp in arr)
+        arrays = list(convert_to_cunumeric_ndarray(inp) for inp in arr)
+        common_shape = arrays[0].shape
+        if len(arr) > 1:
+            arrays, common_info = check_shape_dtype(
+                arrays, block.__name__, axis=-1
+            )
+            common_shape = common_info.shape
+        # the initial slices for each arr on arr.shape[-1]
+        out_shape, slices, arrays = _collect_outshape_slices(
+            arrays, common_shape, axis=-1 + len(common_shape)
+        )
 
-    # this reshape of elements could be replaced
-    # w/ np.atleast_*d when they're implemented
-    # Computes the maximum number of dimensions for the concatenation
-    max_ndim = _builtin_max(
-        1 + (depth - cur_depth), *(inp.ndim for inp in inputs)
-    )
-    # Append leading 1's to make elements to have the same 'ndim'
-    reshaped = list(
-        inp.reshape((1,) * (max_ndim - inp.ndim) + inp.shape)
-        if max_ndim > inp.ndim
-        else inp
-        for inp in inputs
-    )
-    return concatenate(reshaped, axis=-1 + (cur_depth - depth))
+    return arrays, out_shape, slices
+
+
+def _block_slicing(arrays, depth):
+    # collects the final slices of input arrays and assign them at once
+    arrays, out_shape, slices = _block_collect_slices(arrays, 1, depth)
+    out_array = ndarray(shape=out_shape, inputs=arrays)
+
+    for dest, inp in zip(slices, arrays):
+        out_array[(Ellipsis,) + tuple(dest)] = inp
+
+    return out_array
+
+
+def _collect_outshape_slices(inputs, common_shape, axis):
+    leading_dim = _builtin_sum(arr.shape[axis] for arr in inputs)
+    out_shape = list(common_shape)
+    out_shape[axis] = leading_dim
+    post_idx = (slice(None),) * len(out_shape[axis + 1 :])
+    slices = []
+    offset = 0
+    # collect slices for arrays in `inputs`
+    inputs = list(inp for inp in inputs if inp.size > 0)
+    for inp in inputs:
+        slices.append((slice(offset, offset + inp.shape[axis]),) + post_idx)
+        offset += inp.shape[axis]
+
+    return out_shape, slices, inputs
 
 
 def _concatenate(
     inputs,
+    common_info,
     axis=0,
     out=None,
     dtype=None,
     casting="same_kind",
-    common_info=None,
 ):
     if axis < 0:
         axis += len(common_info.shape)
-    leading_dim = _builtin_sum(arr.shape[axis] for arr in inputs)
-    out_shape = list(common_info.shape)
-    out_shape[axis] = leading_dim
-
-    out_array = ndarray(
-        shape=out_shape, dtype=common_info.dtype, inputs=inputs
+    out_shape, slices, inputs = _collect_outshape_slices(
+        inputs, common_info.shape, axis
     )
 
-    # Copy the values over from the inputs
-    offset = 0
-    idx_arr = []
-    for i in range(0, axis):
-        idx_arr.append(slice(out_shape[i]))
+    if out is None:
+        out_array = ndarray(
+            shape=out_shape, dtype=common_info.dtype, inputs=inputs
+        )
+    else:
+        out = convert_to_cunumeric_ndarray(out)
+        if not isinstance(out, ndarray):
+            raise TypeError("out should be ndarray")
+        elif list(out.shape) != out_shape:
+            raise ValueError(
+                f"out.shape({out.shape}) is not matched "
+                f"to the result shape of concatenation ({out_shape})"
+            )
+        out_array = out
 
-    idx_arr.append(0)
+    for dest, src in zip(slices, inputs):
+        out_array[(Ellipsis,) + dest] = src
 
-    for i in range(axis + 1, common_info.ndim):
-        idx_arr.append(slice(out_shape[i]))
-
-    for inp in inputs:
-        if inp.size > 0:
-            idx_arr[axis] = slice(offset, offset + inp.shape[axis])
-            out_array[tuple(idx_arr)] = inp
-            offset += inp.shape[axis]
     return out_array
 
 
@@ -1437,7 +1385,7 @@ def block(arrays):
     # check if the 'arrays' is a balanced tree
     depth = check_list_depth(arrays)
 
-    result = _block(arrays, 1, depth)
+    result = _block_slicing(arrays, depth)
     return result
 
 
@@ -1491,7 +1439,12 @@ def concatenate(inputs, axis=0, out=None, dtype=None, casting="same_kind"):
     )
 
     return _concatenate(
-        cunumeric_inputs, axis, out, dtype, casting, common_info
+        cunumeric_inputs,
+        common_info,
+        axis,
+        out,
+        dtype,
+        casting,
     )
 
 
@@ -1546,7 +1499,7 @@ def stack(arrays, axis=0, out=None):
     shape.insert(axis, 1)
     arrays = [arr.reshape(shape) for arr in arrays]
     common_info.shape = shape
-    return _concatenate(arrays, axis, out=out, common_info=common_info)
+    return _concatenate(arrays, common_info, axis, out=out)
 
 
 def vstack(tup):
@@ -1593,9 +1546,9 @@ def vstack(tup):
 
     return _concatenate(
         tup,
+        common_info,
         axis=0,
         dtype=common_info.dtype,
-        common_info=common_info,
     )
 
 
@@ -1636,9 +1589,9 @@ def hstack(tup):
     # When ndim == 1, hstack concatenates arrays along the first axis
     return _concatenate(
         tup,
+        common_info,
         axis=(0 if common_info.ndim == 1 else 1),
         dtype=common_info.dtype,
-        common_info=common_info,
     )
 
 
@@ -1689,9 +1642,9 @@ def dstack(tup):
 
     return _concatenate(
         tup,
+        common_info,
         axis=2,
         dtype=common_info.dtype,
-        common_info=common_info,
     )
 
 
@@ -1731,9 +1684,9 @@ def column_stack(tup):
         common_info.shape = tup[0].shape
     return _concatenate(
         tup,
+        common_info,
         axis=1,
         dtype=common_info.dtype,
-        common_info=common_info,
     )
 
 
@@ -2272,12 +2225,12 @@ def take(a, indices, axis=None, out=None, mode="raise"):
     out : ndarray, optional `(Ni…, Nj…, Nk…)`
         If provided, the result will be placed in this array. It should be of
         the appropriate shape and dtype.
-    mode : {‘raise’, ‘wrap’, ‘clip’}, optional
+    mode : ``{'raise', 'wrap', 'clip'}``, optional
         Specifies how out-of-bounds indices will behave.
-        ‘raise’ – raise an error (default)
-        ‘wrap’ – wrap around
-        ‘clip’ – clip to the range
-        ‘clip’ mode means that all indices that are too large are replaced by
+        'raise' - raise an error (default)
+        'wrap' - wrap around
+        'clip' - clip to the range
+        'clip' mode means that all indices that are too large are replaced by
         the index that addresses the last element along that axis.
         Note that this disables indexing with negative numbers.
 
@@ -2371,8 +2324,8 @@ def choose(a, choices, out=None, mode="raise"):
     return a.choose(choices=choices, out=out, mode=mode)
 
 
-@add_boilerplate("c", "a")
-def compress(c, a, axis=None, out=None):
+@add_boilerplate("condition", "a")
+def compress(condition, a, axis=None, out=None):
     """
     Return selected slices of an array along given axis.
 
@@ -2382,7 +2335,7 @@ def compress(c, a, axis=None, out=None):
 
     Parameters
     ----------
-    c : condition, 1-D array of bools
+    condition, 1-D array of bools
         Array that selects which entries to return. If `len(c)` is less than
         the size of a along the given axis, then output is truncated to the
         length of the condition array.
@@ -2422,7 +2375,7 @@ def compress(c, a, axis=None, out=None):
     Multiple GPUs, Multiple CPUs
 
     """
-    return a.compress(c, axis=axis, out=out)
+    return a.compress(condition, axis=axis, out=out)
 
 
 @add_boilerplate("a")

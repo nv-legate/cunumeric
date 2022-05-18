@@ -165,8 +165,10 @@ struct UnaryOpDispatch {
   void operator()(UnaryOpArgs& args) const
   {
     auto dim = std::max(args.in.dim(), 1);
-    if (OP_CODE == UnaryOpCode::COPY)
-      cunumeric::double_dispatch(dim, args.in.code(), UnaryCopyImpl<KIND>{}, args);
+    if ((OP_CODE == UnaryOpCode::COPY) &&
+        (args.in.code<int32_t>() > LegateTypeCode::MAX_TYPE_NUMBER))
+      cunumeric::double_dispatch(
+        dim, args.in.code<CuNumericTypeCodes>(), UnaryCopyImpl<KIND>{}, args);
     else
       legate::double_dispatch(dim, args.in.code(), UnaryOpImpl<KIND, OP_CODE>{}, args);
   }
