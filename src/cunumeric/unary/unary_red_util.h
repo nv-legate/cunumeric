@@ -79,7 +79,7 @@ struct UnaryRedOp {
 
 template <legate::LegateTypeCode TYPE_CODE>
 struct UnaryRedOp<UnaryRedCode::ALL, TYPE_CODE> {
-  static constexpr bool valid = true;
+  static constexpr bool valid = TYPE_CODE != legate::LegateTypeCode::COMPLEX128_LT;
 
   using RHS = legate::legate_type_of<TYPE_CODE>;
   using VAL = bool;
@@ -100,14 +100,9 @@ struct UnaryRedOp<UnaryRedCode::ALL, TYPE_CODE> {
   __CUDA_HD__ static VAL convert(const RHS& rhs) { return rhs != RHS(0); }
 };
 
-template <>
-struct UnaryRedOp<UnaryRedCode::ALL, legate::LegateTypeCode::COMPLEX128_LT> {
-  static constexpr bool valid = false;
-};
-
 template <legate::LegateTypeCode TYPE_CODE>
 struct UnaryRedOp<UnaryRedCode::ANY, TYPE_CODE> {
-  static constexpr bool valid = true;
+  static constexpr bool valid = TYPE_CODE != legate::LegateTypeCode::COMPLEX128_LT;
 
   using RHS = legate::legate_type_of<TYPE_CODE>;
   using VAL = bool;
@@ -130,7 +125,7 @@ struct UnaryRedOp<UnaryRedCode::ANY, TYPE_CODE> {
 
 template <legate::LegateTypeCode TYPE_CODE>
 struct UnaryRedOp<UnaryRedCode::MAX, TYPE_CODE> {
-  static constexpr bool valid = true;
+  static constexpr bool valid = TYPE_CODE != legate::LegateTypeCode::COMPLEX128_LT;
 
   using RHS = legate::legate_type_of<TYPE_CODE>;
   using VAL = RHS;
@@ -151,14 +146,9 @@ struct UnaryRedOp<UnaryRedCode::MAX, TYPE_CODE> {
   __CUDA_HD__ static VAL convert(const RHS& rhs) { return rhs; }
 };
 
-template <>
-struct UnaryRedOp<UnaryRedCode::MAX, legate::LegateTypeCode::COMPLEX128_LT> {
-  static constexpr bool valid = false;
-};
-
 template <legate::LegateTypeCode TYPE_CODE>
 struct UnaryRedOp<UnaryRedCode::MIN, TYPE_CODE> {
-  static constexpr bool valid = true;
+  static constexpr bool valid = TYPE_CODE != legate::LegateTypeCode::COMPLEX128_LT;
 
   using RHS = legate::legate_type_of<TYPE_CODE>;
   using VAL = RHS;
@@ -179,14 +169,9 @@ struct UnaryRedOp<UnaryRedCode::MIN, TYPE_CODE> {
   __CUDA_HD__ static VAL convert(const RHS& rhs) { return rhs; }
 };
 
-template <>
-struct UnaryRedOp<UnaryRedCode::MIN, legate::LegateTypeCode::COMPLEX128_LT> {
-  static constexpr bool valid = false;
-};
-
 template <legate::LegateTypeCode TYPE_CODE>
 struct UnaryRedOp<UnaryRedCode::PROD, TYPE_CODE> {
-  static constexpr bool valid = true;
+  static constexpr bool valid = TYPE_CODE != legate::LegateTypeCode::COMPLEX128_LT;
 
   using RHS = legate::legate_type_of<TYPE_CODE>;
   using VAL = RHS;
@@ -205,11 +190,6 @@ struct UnaryRedOp<UnaryRedCode::PROD, TYPE_CODE> {
   }
 
   __CUDA_HD__ static VAL convert(const RHS& rhs) { return rhs; }
-};
-
-template <>
-struct UnaryRedOp<UnaryRedCode::PROD, legate::LegateTypeCode::COMPLEX128_LT> {
-  static constexpr bool valid = false;
 };
 
 template <legate::LegateTypeCode TYPE_CODE>
