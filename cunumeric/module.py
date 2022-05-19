@@ -4524,7 +4524,6 @@ def count_nonzero(a, axis=None):
         a,
         axis=axis,
         dtype=np.dtype(np.uint64),
-        check_types=False,
     )
 
 

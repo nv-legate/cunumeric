@@ -585,9 +585,8 @@ class ndarray:
             UnaryRedCode.CONTAINS,
             self,
             axis=None,
-            dtype=np.dtype(np.bool_),
+            dtype=bool,
             args=args,
-            check_types=False,
         )
 
     def __copy__(self):
@@ -1501,10 +1500,9 @@ class ndarray:
             UnaryRedCode.ALL,
             self,
             axis=axis,
-            dst=out,
+            out=out,
             keepdims=keepdims,
-            dtype=np.dtype(np.bool_),
-            check_types=False,
+            dtype=bool,
             initial=initial,
             where=where,
         )
@@ -1537,10 +1535,9 @@ class ndarray:
             UnaryRedCode.ANY,
             self,
             axis=axis,
-            dst=out,
+            out=out,
             keepdims=keepdims,
-            dtype=np.dtype(np.bool_),
-            check_types=False,
+            dtype=bool,
             initial=initial,
             where=where,
         )
@@ -1574,8 +1571,7 @@ class ndarray:
             self,
             axis=axis,
             dtype=np.dtype(np.int64),
-            dst=out,
-            check_types=False,
+            out=out,
         )
 
     def argmin(self, axis=None, out=None):
@@ -1607,8 +1603,7 @@ class ndarray:
             self,
             axis=axis,
             dtype=np.dtype(np.int64),
-            dst=out,
-            check_types=False,
+            out=out,
         )
 
     def astype(
@@ -2590,7 +2585,7 @@ class ndarray:
             UnaryRedCode.MAX,
             self,
             axis=axis,
-            dst=out,
+            out=out,
             keepdims=keepdims,
             initial=initial,
             where=where,
@@ -2686,7 +2681,7 @@ class ndarray:
             UnaryRedCode.MIN,
             self,
             axis=axis,
-            dst=out,
+            out=out,
             keepdims=keepdims,
             initial=initial,
             where=where,
@@ -2781,7 +2776,7 @@ class ndarray:
             UnaryRedCode.PROD,
             self_array,
             axis=axis,
-            dst=out,
+            out=out,
             keepdims=keepdims,
             initial=initial,
             where=where,
@@ -3054,7 +3049,7 @@ class ndarray:
             UnaryRedCode.SUM,
             self_array,
             axis=axis,
-            dst=out,
+            out=out,
             keepdims=keepdims,
             initial=initial,
             where=where,
@@ -3486,13 +3481,14 @@ class ndarray:
         src,
         axis=None,
         dtype=None,
-        dst=None,
+        out=None,
         keepdims=False,
         args=None,
-        check_types=True,
         initial=None,
         where=True,
     ):
+        where = convert_to_predicate_ndarray(where)
+
         # TODO: Need to require initial to be given when the array is empty
         #       or a where mask is given.
         if isinstance(where, ndarray):
@@ -3516,121 +3512,63 @@ class ndarray:
                 "(arg)max/min not supported for complex-type arrays"
             )
         # Compute the output shape
-        if axis is not None:
-            to_reduce = set()
-            if type(axis) == int:
-                if axis < 0:
-                    axis = len(src.shape) + axis
-                    if axis < 0:
-                        raise ValueError("Illegal 'axis' value")
-                elif axis >= src.ndim:
-                    raise ValueError("Illegal 'axis' value")
-                to_reduce.add(axis)
-                axes = (axis,)
-            elif type(axis) == tuple:
-                for ax in axis:
-                    if ax < 0:
-                        ax = len(src.shape) + ax
-                        if ax < 0:
-                            raise ValueError("Illegal 'axis' value")
-                    elif ax >= src.ndim:
-                        raise ValueError("Illegal 'axis' value")
-                    to_reduce.add(ax)
-                axes = axis
-            else:
-                raise TypeError(
-                    "Illegal type passed for 'axis' argument "
-                    + str(type(axis))
-                )
-            out_shape = ()
-            for dim in range(len(src.shape)):
-                if dim in to_reduce:
-                    if keepdims:
-                        out_shape += (1,)
-                else:
-                    out_shape += (src.shape[dim],)
-        else:
-            # Collapsing down to a single value in this case
-            out_shape = ()
-            axes = None
-        # if src.size == 0:
-        # return nd
-        if dst is None:
-            if dtype is not None:
-                dst = ndarray(
-                    shape=out_shape,
-                    dtype=dtype,
-                    inputs=(src, where),
-                )
-            else:
-                dst = ndarray(
-                    shape=out_shape,
-                    dtype=src.dtype,
-                    inputs=(src, where),
-                )
-        else:
-            if dtype is not None and dtype != dst.dtype:
-                raise TypeError(
-                    "Output array type does not match requested dtype"
-                )
-            if dst.shape != out_shape:
-                raise TypeError(
-                    "Output array shape "
-                    + str(dst.shape)
-                    + " does not match expected shape "
-                    + str(out_shape)
-                )
-        # Quick exit
-        if where is False:
-            return dst
-        if check_types and src.dtype != dst.dtype:
-            out_dtype = cls.find_common_type(src, dst)
-            if src.dtype != out_dtype:
-                temp = ndarray(
-                    src.shape,
-                    dtype=out_dtype,
-                    inputs=(src, where),
-                )
-                temp._thunk.convert(src._thunk)
-                src = temp
-            if dst.dtype != out_dtype:
-                temp = ndarray(
-                    dst.shape,
-                    dtype=out_dtype,
-                    inputs=(src, where),
-                )
+        axes = axis
+        if axes is None:
+            axes = tuple(range(src.ndim))
+        elif not isinstance(axes, tuple):
+            axes = (axes,)
 
-                temp._thunk.unary_reduction(
-                    op,
-                    src._thunk,
-                    cls._get_where_thunk(where, dst.shape),
-                    axes,
-                    keepdims,
-                    args,
-                    initial,
-                )
-                dst._thunk.convert(temp._thunk)
-            else:
-                dst._thunk.unary_reduction(
-                    op,
-                    src._thunk,
-                    cls._get_where_thunk(where, dst.shape),
-                    axes,
-                    keepdims,
-                    args,
-                    initial,
-                )
+        if any(type(ax) != int for ax in axes):
+            raise TypeError(
+                "'axis' must be an integer or a tuple of integers, "
+                f"but got {axis}"
+            )
+
+        axes = tuple(ax + src.ndim if ax < 0 else ax for ax in axes)
+
+        if any(ax < 0 for ax in axes):
+            raise ValueError(f"Invalid 'axis' value {axis}")
+
+        out_shape = ()
+        for axis in range(src.ndim):
+            if axis not in axes:
+                out_shape += (src.shape[axis],)
+            elif keepdims:
+                out_shape += (1,)
+
+        # If no output dtype is given, the output has the same dtype as the
+        # input
+        if dtype is None:
+            dtype = src.dtype
+
+        if out is None:
+            out = ndarray(shape=out_shape, dtype=dtype, inputs=(src, where))
+        elif out.shape != out_shape:
+            raise ValueError(
+                f"the output shape mismatch: expected {out_shape} but got "
+                f"{out.shape}"
+            )
+
+        if out.dtype == dtype:
+            result = out
         else:
-            dst._thunk.unary_reduction(
+            result = ndarray(shape=out_shape, dtype=dtype, inputs=(src, where))
+
+        if where:
+            result._thunk.unary_reduction(
                 op,
                 src._thunk,
-                cls._get_where_thunk(where, dst.shape),
+                cls._get_where_thunk(where, result.shape),
                 axes,
                 keepdims,
                 args,
                 initial,
             )
-        return dst
+
+        if result is not out:
+            out._thunk.convert(result._thunk)
+
+        return out
 
     @classmethod
     def _perform_binary_reduction(
