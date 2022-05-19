@@ -96,6 +96,8 @@ struct UnaryRedOp<UnaryRedCode::ALL, TYPE_CODE> {
   {
     return rhs != RHS(0);
   }
+
+  __CUDA_HD__ static VAL convert(const RHS& rhs) { return rhs != RHS(0); }
 };
 
 template <>
@@ -122,6 +124,8 @@ struct UnaryRedOp<UnaryRedCode::ANY, TYPE_CODE> {
   {
     return rhs != RHS(0);
   }
+
+  __CUDA_HD__ static VAL convert(const RHS& rhs) { return rhs != RHS(0); }
 };
 
 template <legate::LegateTypeCode TYPE_CODE>
@@ -143,6 +147,8 @@ struct UnaryRedOp<UnaryRedCode::MAX, TYPE_CODE> {
   {
     return rhs;
   }
+
+  __CUDA_HD__ static VAL convert(const RHS& rhs) { return rhs; }
 };
 
 template <>
@@ -169,6 +175,8 @@ struct UnaryRedOp<UnaryRedCode::MIN, TYPE_CODE> {
   {
     return rhs;
   }
+
+  __CUDA_HD__ static VAL convert(const RHS& rhs) { return rhs; }
 };
 
 template <>
@@ -195,6 +203,8 @@ struct UnaryRedOp<UnaryRedCode::PROD, TYPE_CODE> {
   {
     return rhs;
   }
+
+  __CUDA_HD__ static VAL convert(const RHS& rhs) { return rhs; }
 };
 
 template <>
@@ -221,6 +231,8 @@ struct UnaryRedOp<UnaryRedCode::SUM, TYPE_CODE> {
   {
     return rhs;
   }
+
+  __CUDA_HD__ static VAL convert(const RHS& rhs) { return rhs; }
 };
 
 template <legate::LegateTypeCode TYPE_CODE>

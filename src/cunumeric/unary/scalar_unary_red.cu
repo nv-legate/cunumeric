@@ -23,7 +23,8 @@ namespace cunumeric {
 
 using namespace Legion;
 
-template <typename Op,
+template <typename OP,
+          typename LG_OP,
           typename Output,
           typename ReadAcc,
           typename Pitches,
@@ -31,7 +32,8 @@ template <typename Op,
           typename VAL>
 static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   reduction_kernel(size_t volume,
-                   Op op,
+                   OP,
+                   LG_OP,
                    Output out,
                    ReadAcc in,
                    Pitches pitches,
@@ -44,7 +46,7 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
     const size_t offset = (idx * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (offset < volume) {
       auto point = pitches.unflatten(offset, origin);
-      Op::template fold<true>(value, in[point]);
+      LG_OP::template fold<true>(value, OP::convert(in[point]));
     }
   }
   // Every thread in the thread block must participate in the exchange to get correct results
@@ -93,11 +95,12 @@ template <UnaryRedCode OP_CODE, LegateTypeCode CODE, int DIM>
 struct ScalarUnaryRedImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
   using OP    = UnaryRedOp<OP_CODE, CODE>;
   using LG_OP = typename OP::OP;
-  using VAL   = legate_type_of<CODE>;
+  using RHS   = legate_type_of<CODE>;
+  using LHS   = typename OP::VAL;
 
   void operator()(OP func,
                   AccessorRD<LG_OP, true, 1> out,
-                  AccessorRO<VAL, DIM> in,
+                  AccessorRO<RHS, DIM> in,
                   const Rect<DIM>& rect,
                   const Pitches<DIM - 1>& pitches,
                   bool dense) const
@@ -107,15 +110,15 @@ struct ScalarUnaryRedImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
     const size_t volume = rect.volume();
     const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
     DeferredReduction<typename OP::OP> result;
-    size_t shmem_size = THREADS_PER_BLOCK / 32 * sizeof(VAL);
+    size_t shmem_size = THREADS_PER_BLOCK / 32 * sizeof(LHS);
 
     if (blocks >= MAX_REDUCTION_CTAS) {
       const size_t iters = (blocks + MAX_REDUCTION_CTAS - 1) / MAX_REDUCTION_CTAS;
       reduction_kernel<<<MAX_REDUCTION_CTAS, THREADS_PER_BLOCK, shmem_size, stream>>>(
-        volume, typename OP::OP{}, result, in, pitches, rect.lo, iters, LG_OP::identity);
+        volume, OP{}, LG_OP{}, result, in, pitches, rect.lo, iters, LG_OP::identity);
     } else
       reduction_kernel<<<blocks, THREADS_PER_BLOCK, shmem_size, stream>>>(
-        volume, typename OP::OP{}, result, in, pitches, rect.lo, 1, LG_OP::identity);
+        volume, OP{}, LG_OP{}, result, in, pitches, rect.lo, 1, LG_OP::identity);
 
     copy_kernel<<<1, 1, 0, stream>>>(result, out);
     CHECK_CUDA_STREAM(stream);
@@ -153,91 +156,6 @@ struct ScalarUnaryRedImplBody<VariantKind::GPU, UnaryRedCode::CONTAINS, CODE, DI
 
     copy_kernel<<<1, 1, 0, stream>>>(result, out);
     CHECK_CUDA_STREAM(stream);
-  }
-};
-
-namespace detail {
-
-template <typename Op,
-          typename Output,
-          typename ReadAcc,
-          typename Pitches,
-          typename Point,
-          typename VAL>
-static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM) logical_kernel(
-  size_t volume, Output out, ReadAcc in, Pitches pitches, Point origin, size_t iters, VAL identity)
-{
-  auto value = identity;
-  for (size_t idx = 0; idx < iters; idx++) {
-    const size_t offset = (idx * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
-    if (offset < volume) {
-      auto point = pitches.unflatten(offset, origin);
-      Op::template fold<true>(value, convert_to_bool(in[point]));
-    }
-  }
-  // Every thread in the thread block must participate in the exchange to get correct results
-  reduce_output(out, value);
-}
-
-template <typename OP, typename LG_OP, typename VAL, int DIM>
-void logical_operator_gpu(AccessorRD<LG_OP, true, 1> out,
-                          AccessorRO<VAL, DIM> in,
-                          const Rect<DIM>& rect,
-                          const Pitches<DIM - 1>& pitches,
-                          bool dense)
-{
-  auto stream = get_cached_stream();
-
-  const size_t volume = rect.volume();
-  const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-  DeferredReduction<OP> result;
-  size_t shmem_size = THREADS_PER_BLOCK / 32 * sizeof(bool);
-
-  if (blocks >= MAX_REDUCTION_CTAS) {
-    const size_t iters = (blocks + MAX_REDUCTION_CTAS - 1) / MAX_REDUCTION_CTAS;
-    logical_kernel<OP><<<MAX_REDUCTION_CTAS, THREADS_PER_BLOCK, shmem_size, stream>>>(
-      volume, result, in, pitches, rect.lo, iters, LG_OP::identity);
-  } else
-    logical_kernel<OP><<<blocks, THREADS_PER_BLOCK, shmem_size, stream>>>(
-      volume, result, in, pitches, rect.lo, 1, LG_OP::identity);
-
-  copy_kernel<<<1, 1, 0, stream>>>(result, out);
-  CHECK_CUDA_STREAM(stream);
-}
-
-}  // namespace detail
-
-template <LegateTypeCode CODE, int DIM>
-struct ScalarUnaryRedImplBody<VariantKind::GPU, UnaryRedCode::ALL, CODE, DIM> {
-  using OP    = UnaryRedOp<UnaryRedCode::PROD, LegateTypeCode::BOOL_LT>;
-  using LG_OP = typename OP::OP;
-  using VAL   = legate_type_of<CODE>;
-
-  void operator()(AccessorRD<LG_OP, true, 1> out,
-                  AccessorRO<VAL, DIM> in,
-                  const Rect<DIM>& rect,
-                  const Pitches<DIM - 1>& pitches,
-                  bool dense) const
-
-  {
-    detail::logical_operator_gpu<ProdReduction<bool>>(out, in, rect, pitches, dense);
-  }
-};
-
-template <LegateTypeCode CODE, int DIM>
-struct ScalarUnaryRedImplBody<VariantKind::GPU, UnaryRedCode::ANY, CODE, DIM> {
-  using OP    = UnaryRedOp<UnaryRedCode::SUM, LegateTypeCode::BOOL_LT>;
-  using LG_OP = typename OP::OP;
-  using VAL   = legate_type_of<CODE>;
-
-  void operator()(AccessorRD<LG_OP, true, 1> out,
-                  AccessorRO<VAL, DIM> in,
-                  const Rect<DIM>& rect,
-                  const Pitches<DIM - 1>& pitches,
-                  bool dense) const
-
-  {
-    detail::logical_operator_gpu<SumReduction<bool>>(out, in, rect, pitches, dense);
   }
 };
 
