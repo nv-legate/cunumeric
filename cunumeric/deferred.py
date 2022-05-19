@@ -1890,7 +1890,7 @@ class DeferredArray(NumPyThunk):
             input = rhs.reshape((rhs.size,), order="C")
             output = self
         else:
-            if axis == rhs.ndim-1:
+            if rhs.ndim == 1 or axis == rhs.ndim-1:
                 input = rhs
                 output = self
             else:
