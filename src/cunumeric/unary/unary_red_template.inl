@@ -26,9 +26,6 @@ using namespace legate;
 template <VariantKind KIND, UnaryRedCode OP_CODE, LegateTypeCode CODE, int DIM>
 struct UnaryRedImplBody;
 
-template <VariantKind KIND, UnaryRedCode OP_CODE, LegateTypeCode CODE, int DIM>
-struct ArgRedImplBody;
-
 template <VariantKind KIND, UnaryRedCode OP_CODE>
 struct UnaryRedImpl {
   template <LegateTypeCode CODE,
