@@ -1885,12 +1885,10 @@ class DeferredArray(NumPyThunk):
 
         if axis is not None and (axis > rhs.ndim or axis < 0):
             raise ValueError("invalid axis")
-        # when no axis specified, flatten the arrays here
-        # if not flattened, multi-dim blocking can cause headaches and overhead at C++ layer
+        # when no axis specified, flatten the arrays
         if axis is None and rhs.ndim > 1:
             input = rhs.reshape((rhs.size,), order="C")
-            output = self.runtime.create_empty_thunk(
-                input.shape, dtype=dtype)
+            output = self
         else:
             if rhs.ndim == 1:
                 input = rhs
@@ -1905,7 +1903,7 @@ class DeferredArray(NumPyThunk):
         task = output.context.create_task(CuNumericOpCode.SCAN_LOCAL)
         task.add_output(output.base)
         task.add_input(input.base)
-        task.add_output(temp)
+        task.add_output(temp.base)
         task.add_scalar_arg(op, ty.int32)
         task.add_scalar_arg(nan0, bool)
 
@@ -1918,22 +1916,18 @@ class DeferredArray(NumPyThunk):
         # RRRR do one centralized scan and broadcast (slightly less redundant work)
         task = output.context.create_task(CuNumericOpCode.SCAN_GLOBAL)
         task.add_input(output.base)
-        task.add_input(temp)
+        task.add_input(temp.base)
         task.add_output(output.base)
         task.add_scalar_arg(op, ty.int32)
 
-        task.add_broadcast(temp)
+        task.add_broadcast(temp.base)
 
         task.execute()
-        # unflatten if necessary
-        if axis is None and rhs.ndim > 1:
-            self.base = output.base
-            output.numpy_array = None # RRRR Not sure what this does?
 
         # if axes were swapped, turn them back
-        if axis is not rhs.ndim-1:
+        if axis is not rhs.ndim-1 and axis is not None:
             self.base = output.swapaxes(rhs.ndim-1, axis).base
-            output.numpy_array = None # RRRR Not sure what this does?
+            output.numpy_array = None
         
     def unique(self):
         result = self.runtime.create_unbound_thunk(self.dtype)
