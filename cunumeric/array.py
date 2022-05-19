@@ -3252,24 +3252,12 @@ class ndarray:
         if self.ndim == 1:
             return self
         if axes is None:
-            result = ndarray(
-                self.shape[::-1],
-                dtype=self.dtype,
-                inputs=(self,),
-            )
             axes = tuple(range(self.ndim - 1, -1, -1))
-        elif len(axes) == self.ndim:
-            result = ndarray(
-                shape=tuple(self.shape[idx] for idx in axes),
-                dtype=self.dtype,
-                inputs=(self,),
-            )
-        else:
+        elif len(axes) != self.ndim:
             raise ValueError(
                 "axes must be the same size as ndim for transpose"
             )
-        result._thunk.transpose(self._thunk, axes)
-        return result
+        return ndarray(shape=None, thunk=self._thunk.transpose(axes))
 
     def flip(self, axis=None):
         """

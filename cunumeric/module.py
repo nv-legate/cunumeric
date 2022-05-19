@@ -23,6 +23,7 @@ import opt_einsum as oe
 from cunumeric._ufunc.comparison import maximum, minimum
 from cunumeric._ufunc.floating import floor
 from cunumeric._ufunc.math import add, multiply
+from numpy.core.numeric import normalize_axis_tuple
 
 from .array import add_boilerplate, convert_to_cunumeric_ndarray, ndarray
 from .config import BinaryOpCode, UnaryRedCode
@@ -1053,6 +1054,48 @@ def transpose(a, axes=None):
     Multiple GPUs, Multiple CPUs
     """
     return a.transpose(axes=axes)
+
+
+@add_boilerplate("a")
+def moveaxis(a, source, destination):
+    """
+    Move axes of an array to new positions.
+    Other axes remain in their original order.
+
+    Parameters
+    ----------
+    a : ndarray
+        The array whose axes should be reordered.
+    source : int or sequence of int
+        Original positions of the axes to move. These must be unique.
+    destination : int or sequence of int
+        Destination positions for each of the original axes. These must also be
+        unique.
+
+    Returns
+    -------
+    result : ndarray
+        Array with moved axes. This array is a view of the input array.
+
+    See Also
+    --------
+    numpy.moveaxis
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    source = normalize_axis_tuple(source, a.ndim, "source")
+    destination = normalize_axis_tuple(destination, a.ndim, "destination")
+    if len(source) != len(destination):
+        raise ValueError(
+            "`source` and `destination` arguments must have the same number "
+            "of elements"
+        )
+    order = [n for n in range(a.ndim) if n not in source]
+    for dest, src in sorted(zip(destination, source)):
+        order.insert(dest, src)
+    return a.transpose(order)
 
 
 # Changing number of dimensions
