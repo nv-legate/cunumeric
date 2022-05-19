@@ -73,7 +73,7 @@ struct ScalarUnaryRedImpl<KIND, UnaryRedCode::CONTAINS> {
   {
     using OP    = UnaryRedOp<UnaryRedCode::SUM, LegateTypeCode::BOOL_LT>;
     using LG_OP = typename OP::OP;
-    using VAL   = legate_type_of<CODE>;
+    using RHS   = legate_type_of<CODE>;
 
     auto rect = args.in.shape<DIM>();
 
@@ -83,7 +83,7 @@ struct ScalarUnaryRedImpl<KIND, UnaryRedCode::CONTAINS> {
     if (0 == volume) return;
 
     auto out = args.out.reduce_accessor<LG_OP, true, 1>();
-    auto in  = args.in.read_accessor<VAL, DIM>(rect);
+    auto in  = args.in.read_accessor<RHS, DIM>(rect);
 
 #ifndef LEGION_BOUNDS_CHECKS
     // Check to see if this is dense or not

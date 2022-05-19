@@ -29,7 +29,7 @@ template <typename OP,
           typename ReadAcc,
           typename Pitches,
           typename Point,
-          typename VAL>
+          typename LHS>
 static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   reduction_kernel(size_t volume,
                    OP,
@@ -39,7 +39,7 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
                    Pitches pitches,
                    Point origin,
                    size_t iters,
-                   VAL identity)
+                   LHS identity)
 {
   auto value = identity;
   for (size_t idx = 0; idx < iters; idx++) {
@@ -53,9 +53,9 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   reduce_output(out, value);
 }
 
-template <typename Output, typename ReadAcc, typename Pitches, typename Point, typename VAL>
+template <typename Output, typename ReadAcc, typename Pitches, typename Point, typename RHS>
 static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM) contains_kernel(
-  size_t volume, Output out, ReadAcc in, Pitches pitches, Point origin, size_t iters, VAL to_find)
+  size_t volume, Output out, ReadAcc in, Pitches pitches, Point origin, size_t iters, RHS to_find)
 {
   bool value = false;
   for (size_t idx = 0; idx < iters; idx++) {
@@ -113,10 +113,10 @@ template <LegateTypeCode CODE, int DIM>
 struct ScalarUnaryRedImplBody<VariantKind::GPU, UnaryRedCode::CONTAINS, CODE, DIM> {
   using OP    = UnaryRedOp<UnaryRedCode::SUM, LegateTypeCode::BOOL_LT>;
   using LG_OP = typename OP::OP;
-  using VAL   = legate_type_of<CODE>;
+  using RHS   = legate_type_of<CODE>;
 
   void operator()(AccessorRD<LG_OP, true, 1> out,
-                  AccessorRO<VAL, DIM> in,
+                  AccessorRO<RHS, DIM> in,
                   const Store& to_find_scalar,
                   const Rect<DIM>& rect,
                   const Pitches<DIM - 1>& pitches,
@@ -124,7 +124,7 @@ struct ScalarUnaryRedImplBody<VariantKind::GPU, UnaryRedCode::CONTAINS, CODE, DI
   {
     auto stream = get_cached_stream();
 
-    const auto to_find  = to_find_scalar.scalar<VAL>();
+    const auto to_find  = to_find_scalar.scalar<RHS>();
     const size_t volume = rect.volume();
     const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
     DeferredReduction<SumReduction<bool>> result;
