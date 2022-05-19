@@ -2252,8 +2252,6 @@ def diag_indices_from(arr):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    if not isinstance(arr, ndarray):
-        raise TypeError("Argument must be ndarray")
     if not arr.ndim >= 2:
         raise ValueError("input array must be at least 2-d")
     # For more than d=2, the strided formula is only valid for arrays with
