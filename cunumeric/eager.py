@@ -397,8 +397,6 @@ class EagerArray(NumPyThunk):
         if child.base is None:
             result = EagerArray(self.runtime, child)
         else:
-            root = self.array if self.array.base is None else self.array.base
-            assert child.base is root
             result = EagerArray(
                 self.runtime,
                 child,
