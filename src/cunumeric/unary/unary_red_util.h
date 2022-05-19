@@ -242,7 +242,7 @@ struct UnaryRedOp<UnaryRedCode::SUM, TYPE_CODE> {
 
 template <legate::LegateTypeCode TYPE_CODE>
 struct UnaryRedOp<UnaryRedCode::ARGMAX, TYPE_CODE> {
-  static constexpr bool valid = true;
+  static constexpr bool valid = TYPE_CODE != legate::LegateTypeCode::COMPLEX128_LT;
 
   using RHS = legate::legate_type_of<TYPE_CODE>;
   using VAL = Argval<RHS>;
@@ -263,14 +263,9 @@ struct UnaryRedOp<UnaryRedCode::ARGMAX, TYPE_CODE> {
   }
 };
 
-template <>
-struct UnaryRedOp<UnaryRedCode::ARGMAX, legate::LegateTypeCode::COMPLEX128_LT> {
-  static constexpr bool valid = false;
-};
-
 template <legate::LegateTypeCode TYPE_CODE>
 struct UnaryRedOp<UnaryRedCode::ARGMIN, TYPE_CODE> {
-  static constexpr bool valid = true;
+  static constexpr bool valid = TYPE_CODE != legate::LegateTypeCode::COMPLEX128_LT;
 
   using RHS = legate::legate_type_of<TYPE_CODE>;
   using VAL = Argval<RHS>;
@@ -289,11 +284,6 @@ struct UnaryRedOp<UnaryRedCode::ARGMIN, TYPE_CODE> {
   {
     return VAL(point[collapsed_dim], rhs);
   }
-};
-
-template <>
-struct UnaryRedOp<UnaryRedCode::ARGMIN, legate::LegateTypeCode::COMPLEX128_LT> {
-  static constexpr bool valid = false;
 };
 
 }  // namespace cunumeric
