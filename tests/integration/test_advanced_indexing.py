@@ -370,8 +370,6 @@ def test():
     indx_bool_num = num.array(indx_bool)
     res = xt[indx_bool]
     res_num = xt_num[indx_bool_num]
-    print(res)
-    print(res_num)
     assert np.array_equal(res, res_num)
 
     indx_bool = np.array([True, False, True, False, False])

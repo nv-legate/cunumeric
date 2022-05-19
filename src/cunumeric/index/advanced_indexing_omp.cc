@@ -117,7 +117,6 @@ struct AdvancedIndexingImplBody<VariantKind::OMP, CODE, DIM, OUT_TYPE> {
       thrust::exclusive_scan(thrust::omp::par, sizes.begin(), sizes.end(), offsets.begin());
     }  // end scope
 
-    std::cout << "IRINA DEBUG size = " << size << std::endl;
     extends[key_dim - 1] = size;
 
     auto out = out_arr.create_output_buffer<OUT_TYPE, DIM>(extends, true);

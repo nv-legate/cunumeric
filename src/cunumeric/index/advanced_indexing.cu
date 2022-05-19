@@ -40,7 +40,7 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   size_t value = 0;
   for (size_t i = 0; i < iters; i++) {
     size_t idx = (i * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
-    if (idx > volume) return;
+    if (idx > volume) break;
     auto point = pitches.unflatten(idx, origin);
     size_t val;
     if (index[point] and ((idx + 1) % skip_size == 0)) {
@@ -52,7 +52,6 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
     }
     SumReduction<size_t>::fold<true>(value, val);
   }
-  printf("IRINA DEBUG before reduction val = %d\n", value);
   // Every thread in the thread block must participate in the exchange to get correct results
   reduce_output(out, value);
 }
@@ -137,7 +136,6 @@ struct AdvancedIndexingImplBody<VariantKind::GPU, CODE, DIM, OUT_TYPE> {
     auto off_ptr = offsets.ptr(0);
     thrust::exclusive_scan(thrust::cuda::par.on(stream), off_ptr, off_ptr + volume, off_ptr);
 
-    std::cout << "Irina debug size  = " << size.read() << std::endl;
     return size.read();
   }
 
