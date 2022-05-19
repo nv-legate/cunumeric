@@ -1542,6 +1542,7 @@ class ndarray:
             where=where,
         )
 
+    @add_boilerplate()
     def argmax(self, axis=None, out=None):
         """a.argmax(axis=None, out=None)
 
@@ -1574,6 +1575,7 @@ class ndarray:
             out=out,
         )
 
+    @add_boilerplate()
     def argmin(self, axis=None, out=None):
         """a.argmin(axis=None, out=None)
 
@@ -3487,8 +3489,6 @@ class ndarray:
         initial=None,
         where=True,
     ):
-        where = convert_to_predicate_ndarray(where)
-
         # TODO: Need to require initial to be given when the array is empty
         #       or a where mask is given.
         if isinstance(where, ndarray):
