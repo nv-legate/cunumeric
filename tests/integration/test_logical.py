@@ -17,6 +17,7 @@ import numpy as np
 import pytest
 
 import cunumeric as num
+from legate.core import LEGATE_MAX_DIM
 
 INPUTS = (
     [-1, 4, 5],
@@ -46,6 +47,31 @@ def test_any_and_all(input):
         for axis in range(in_num.ndim):
             out_np = fn_np(in_np, axis=axis)
             out_num = fn_num(in_num, axis=axis)
+            assert np.array_equal(out_np, out_num)
+
+
+@pytest.mark.parametrize("ndim", range(LEGATE_MAX_DIM + 1))
+def test_nd_inputs(ndim):
+    shape = (3,) * ndim
+    in_np = np.random.random(shape)
+    in_num = num.array(in_np)
+
+    for fn in ("any", "all"):
+        fn_np = getattr(np, fn)
+        fn_num = getattr(num, fn)
+        for axis in range(in_num.ndim):
+            out_np = fn_np(in_np, axis=axis)
+            out_num = fn_num(in_num, axis=axis)
+            assert np.array_equal(out_np, out_num)
+
+            out_np = np.empty(out_np.shape, dtype="D")
+            out_num = num.empty(out_num.shape, dtype="D")
+            fn_np(in_np, axis=axis, out=out_np)
+            fn_num(in_num, axis=axis, out=out_num)
+            assert np.array_equal(out_np, out_num)
+
+            out_np = fn_np(in_np[1:], axis=axis)
+            out_num = fn_num(in_num[1:], axis=axis)
             assert np.array_equal(out_np, out_num)
 
 
