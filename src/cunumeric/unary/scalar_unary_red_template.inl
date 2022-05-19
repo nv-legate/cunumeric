@@ -99,38 +99,6 @@ struct ScalarUnaryRedImpl<KIND, UnaryRedCode::CONTAINS> {
 };
 
 template <VariantKind KIND>
-struct ScalarUnaryRedImpl<KIND, UnaryRedCode::COUNT_NONZERO> {
-  template <LegateTypeCode CODE, int DIM>
-  void operator()(ScalarUnaryRedArgs& args) const
-  {
-    using OP    = UnaryRedOp<UnaryRedCode::SUM, LegateTypeCode::UINT64_LT>;
-    using LG_OP = typename OP::OP;
-    using VAL   = legate_type_of<CODE>;
-
-    auto rect = args.in.shape<DIM>();
-
-    Pitches<DIM - 1> pitches;
-    size_t volume = pitches.flatten(rect);
-
-    if (0 == volume) return;
-
-    auto out = args.out.reduce_accessor<LG_OP, true, 1>();
-    auto in  = args.in.read_accessor<VAL, DIM>(rect);
-
-#ifndef LEGION_BOUNDS_CHECKS
-    // Check to see if this is dense or not
-    bool dense = in.accessor.is_dense_row_major(rect);
-#else
-    // No dense execution if we're doing bounds checks
-    bool dense = false;
-#endif
-
-    ScalarUnaryRedImplBody<KIND, UnaryRedCode::COUNT_NONZERO, CODE, DIM>()(
-      out, in, rect, pitches, dense);
-  }
-};
-
-template <VariantKind KIND>
 struct ScalarUnaryRedDispatch {
   template <UnaryRedCode OP_CODE, std::enable_if_t<!is_arg_reduce<OP_CODE>::value>* = nullptr>
   void operator()(ScalarUnaryRedArgs& args) const
@@ -156,12 +124,7 @@ static void scalar_unary_red_template(TaskContext& context)
 
   ScalarUnaryRedArgs args{
     context.reductions()[0], inputs[0], scalars[0].value<UnaryRedCode>(), std::move(extra_args)};
-  if (args.op_code == UnaryRedCode::COUNT_NONZERO) {
-    auto dim = std::max(1, args.in.dim());
-    double_dispatch(
-      dim, args.in.code(), ScalarUnaryRedImpl<KIND, UnaryRedCode::COUNT_NONZERO>{}, args);
-  } else
-    op_dispatch(args.op_code, ScalarUnaryRedDispatch<KIND>{}, args);
+  op_dispatch(args.op_code, ScalarUnaryRedDispatch<KIND>{}, args);
 }
 
 }  // namespace cunumeric

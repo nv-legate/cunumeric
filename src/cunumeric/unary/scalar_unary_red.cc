@@ -87,33 +87,6 @@ struct ScalarUnaryRedImplBody<VariantKind::CPU, UnaryRedCode::CONTAINS, CODE, DI
   }
 };
 
-template <LegateTypeCode CODE, int DIM>
-struct ScalarUnaryRedImplBody<VariantKind::CPU, UnaryRedCode::COUNT_NONZERO, CODE, DIM> {
-  using OP    = UnaryRedOp<UnaryRedCode::SUM, LegateTypeCode::UINT64_LT>;
-  using LG_OP = typename OP::OP;
-  using VAL   = legate_type_of<CODE>;
-
-  void operator()(AccessorRD<LG_OP, true, 1> out,
-                  AccessorRO<VAL, DIM> in,
-                  const Rect<DIM>& rect,
-                  const Pitches<DIM - 1>& pitches,
-                  bool dense) const
-  {
-    auto result         = LG_OP::identity;
-    const size_t volume = rect.volume();
-    if (dense) {
-      auto inptr = in.ptr(rect);
-      for (size_t idx = 0; idx < volume; ++idx) result += inptr[idx] != VAL(0);
-    } else {
-      for (size_t idx = 0; idx < volume; ++idx) {
-        auto point = pitches.unflatten(idx, rect.lo);
-        result += in[point] != VAL(0);
-      }
-    }
-    out.reduce(0, result);
-  }
-};
-
 /*static*/ void ScalarUnaryRedTask::cpu_variant(TaskContext& context)
 {
   scalar_unary_red_template<VariantKind::CPU>(context);

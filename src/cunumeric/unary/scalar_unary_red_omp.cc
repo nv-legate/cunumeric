@@ -113,47 +113,6 @@ struct ScalarUnaryRedImplBody<VariantKind::OMP, UnaryRedCode::CONTAINS, CODE, DI
   }
 };
 
-template <LegateTypeCode CODE, int DIM>
-struct ScalarUnaryRedImplBody<VariantKind::OMP, UnaryRedCode::COUNT_NONZERO, CODE, DIM> {
-  using OP    = UnaryRedOp<UnaryRedCode::SUM, LegateTypeCode::UINT64_LT>;
-  using LG_OP = typename OP::OP;
-  using VAL   = legate_type_of<CODE>;
-
-  void operator()(AccessorRD<LG_OP, true, 1> out,
-                  AccessorRO<VAL, DIM> in,
-                  const Rect<DIM>& rect,
-                  const Pitches<DIM - 1>& pitches,
-                  bool dense) const
-  {
-    auto result            = LG_OP::identity;
-    const size_t volume    = rect.volume();
-    const auto max_threads = omp_get_max_threads();
-    ThreadLocalStorage<uint64_t> locals(max_threads);
-    for (auto idx = 0; idx < max_threads; ++idx) locals[idx] = 0;
-    if (dense) {
-      auto inptr = in.ptr(rect);
-#pragma omp parallel
-      {
-        const int tid = omp_get_thread_num();
-#pragma omp for schedule(static)
-        for (size_t idx = 0; idx < volume; ++idx) locals[tid] += inptr[idx] != VAL(0);
-      }
-    } else {
-#pragma omp parallel
-      {
-        const int tid = omp_get_thread_num();
-#pragma omp for schedule(static)
-        for (size_t idx = 0; idx < volume; ++idx) {
-          auto point = pitches.unflatten(idx, rect.lo);
-          locals[tid] += in[point] != VAL(0);
-        }
-      }
-    }
-
-    for (auto idx = 0; idx < max_threads; ++idx) out.reduce(0, locals[idx]);
-  }
-};
-
 /*static*/ void ScalarUnaryRedTask::omp_variant(TaskContext& context)
 {
   scalar_unary_red_template<VariantKind::OMP>(context);
