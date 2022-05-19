@@ -26,10 +26,10 @@ template <UnaryRedCode OP_CODE, LegateTypeCode CODE, int DIM>
 struct UnaryRedImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
   using OP    = UnaryRedOp<OP_CODE, CODE>;
   using LG_OP = typename OP::OP;
-  using VAL   = legate_type_of<CODE>;
+  using RHS   = legate_type_of<CODE>;
 
   void operator()(AccessorRD<LG_OP, true, DIM> lhs,
-                  AccessorRO<VAL, DIM> rhs,
+                  AccessorRO<RHS, DIM> rhs,
                   const Rect<DIM>& rect,
                   const Pitches<DIM - 1>& pitches,
                   int collapsed_dim,
@@ -37,20 +37,7 @@ struct UnaryRedImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
   {
     for (size_t idx = 0; idx < volume; ++idx) {
       auto point = pitches.unflatten(idx, rect.lo);
-      lhs.reduce(point, rhs[point]);
-    }
-  }
-
-  void operator()(AccessorRW<VAL, DIM> lhs,
-                  AccessorRO<VAL, DIM> rhs,
-                  const Rect<DIM>& rect,
-                  const Pitches<DIM - 1>& pitches,
-                  int collapsed_dim,
-                  size_t volume) const
-  {
-    for (size_t idx = 0; idx < volume; ++idx) {
-      auto point = pitches.unflatten(idx, rect.lo);
-      OP::template fold<true>(lhs[point], rhs[point]);
+      lhs.reduce(point, OP::convert(point, collapsed_dim, rhs[point]));
     }
   }
 };
@@ -72,19 +59,6 @@ struct ArgRedImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
     for (size_t idx = 0; idx < volume; ++idx) {
       auto point = pitches.unflatten(idx, rect.lo);
       lhs.reduce(point, LHS(point[collapsed_dim], rhs[point]));
-    }
-  }
-
-  void operator()(AccessorRW<LHS, DIM> lhs,
-                  AccessorRO<RHS, DIM> rhs,
-                  const Rect<DIM>& rect,
-                  const Pitches<DIM - 1>& pitches,
-                  int collapsed_dim,
-                  size_t volume) const
-  {
-    for (size_t idx = 0; idx < volume; ++idx) {
-      auto point = pitches.unflatten(idx, rect.lo);
-      OP::template fold<true>(lhs[point], LHS(point[collapsed_dim], rhs[point]));
     }
   }
 };

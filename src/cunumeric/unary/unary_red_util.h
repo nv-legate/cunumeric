@@ -72,26 +72,6 @@ constexpr decltype(auto) op_dispatch(UnaryRedCode op_code, Functor f, Fnargs&&..
   return f.template operator()<UnaryRedCode::MAX>(std::forward<Fnargs>(args)...);
 }
 
-template <typename T, int32_t DIM>
-struct ValueConstructor {
-  __CUDA_HD__ inline constexpr T operator()(const Legion::Point<DIM>&,
-                                            const T& value,
-                                            int32_t) const
-  {
-    return value;
-  }
-};
-
-template <typename T, int32_t DIM>
-struct ArgvalConstructor {
-  __CUDA_HD__ inline constexpr Argval<T> operator()(const Legion::Point<DIM>& point,
-                                                    const T& value,
-                                                    int32_t collapsed_dim) const
-  {
-    return Argval<T>(point[collapsed_dim], value);
-  }
-};
-
 template <UnaryRedCode OP_CODE, legate::LegateTypeCode TYPE_CODE>
 struct UnaryRedOp {
   static constexpr bool valid = false;
@@ -101,13 +81,20 @@ template <legate::LegateTypeCode TYPE_CODE>
 struct UnaryRedOp<UnaryRedCode::ALL, TYPE_CODE> {
   static constexpr bool valid = true;
 
-  using VAL = legate::legate_type_of<TYPE_CODE>;
+  using RHS = legate::legate_type_of<TYPE_CODE>;
+  using VAL = bool;
   using OP  = Legion::ProdReduction<VAL>;
 
   template <bool EXCLUSIVE>
-  __CUDA_HD__ static void fold(VAL& rhs1, VAL rhs2)
+  __CUDA_HD__ static void fold(VAL& a, VAL b)
   {
-    OP::template fold<EXCLUSIVE>(rhs1, rhs2);
+    OP::template fold<EXCLUSIVE>(a, b);
+  }
+
+  template <int32_t DIM>
+  __CUDA_HD__ static VAL convert(const Legion::Point<DIM>&, int32_t, const RHS& rhs)
+  {
+    return rhs != RHS(0);
   }
 };
 
@@ -120,13 +107,20 @@ template <legate::LegateTypeCode TYPE_CODE>
 struct UnaryRedOp<UnaryRedCode::ANY, TYPE_CODE> {
   static constexpr bool valid = true;
 
-  using VAL = legate::legate_type_of<TYPE_CODE>;
+  using RHS = legate::legate_type_of<TYPE_CODE>;
+  using VAL = bool;
   using OP  = Legion::SumReduction<VAL>;
 
   template <bool EXCLUSIVE>
-  __CUDA_HD__ static void fold(VAL& rhs1, VAL rhs2)
+  __CUDA_HD__ static void fold(VAL& a, VAL b)
   {
-    OP::template fold<EXCLUSIVE>(rhs1, rhs2);
+    OP::template fold<EXCLUSIVE>(a, b);
+  }
+
+  template <int32_t DIM>
+  __CUDA_HD__ static VAL convert(const Legion::Point<DIM>&, int32_t, const RHS& rhs)
+  {
+    return rhs != RHS(0);
   }
 };
 
@@ -134,13 +128,20 @@ template <legate::LegateTypeCode TYPE_CODE>
 struct UnaryRedOp<UnaryRedCode::MAX, TYPE_CODE> {
   static constexpr bool valid = true;
 
-  using VAL = legate::legate_type_of<TYPE_CODE>;
+  using RHS = legate::legate_type_of<TYPE_CODE>;
+  using VAL = RHS;
   using OP  = Legion::MaxReduction<VAL>;
 
   template <bool EXCLUSIVE>
-  __CUDA_HD__ static void fold(VAL& rhs1, VAL rhs2)
+  __CUDA_HD__ static void fold(VAL& a, VAL b)
   {
-    OP::template fold<EXCLUSIVE>(rhs1, rhs2);
+    OP::template fold<EXCLUSIVE>(a, b);
+  }
+
+  template <int32_t DIM>
+  __CUDA_HD__ static VAL convert(const Legion::Point<DIM>&, int32_t, const RHS& rhs)
+  {
+    return rhs;
   }
 };
 
@@ -153,13 +154,20 @@ template <legate::LegateTypeCode TYPE_CODE>
 struct UnaryRedOp<UnaryRedCode::MIN, TYPE_CODE> {
   static constexpr bool valid = true;
 
-  using VAL = legate::legate_type_of<TYPE_CODE>;
+  using RHS = legate::legate_type_of<TYPE_CODE>;
+  using VAL = RHS;
   using OP  = Legion::MinReduction<VAL>;
 
   template <bool EXCLUSIVE>
-  __CUDA_HD__ static void fold(VAL& rhs1, VAL rhs2)
+  __CUDA_HD__ static void fold(VAL& a, VAL b)
   {
-    OP::template fold<EXCLUSIVE>(rhs1, rhs2);
+    OP::template fold<EXCLUSIVE>(a, b);
+  }
+
+  template <int32_t DIM>
+  __CUDA_HD__ static VAL convert(const Legion::Point<DIM>&, int32_t, const RHS& rhs)
+  {
+    return rhs;
   }
 };
 
@@ -172,13 +180,20 @@ template <legate::LegateTypeCode TYPE_CODE>
 struct UnaryRedOp<UnaryRedCode::PROD, TYPE_CODE> {
   static constexpr bool valid = true;
 
-  using VAL = legate::legate_type_of<TYPE_CODE>;
+  using RHS = legate::legate_type_of<TYPE_CODE>;
+  using VAL = RHS;
   using OP  = Legion::ProdReduction<VAL>;
 
   template <bool EXCLUSIVE>
-  __CUDA_HD__ static void fold(VAL& rhs1, VAL rhs2)
+  __CUDA_HD__ static void fold(VAL& a, VAL b)
   {
-    OP::template fold<EXCLUSIVE>(rhs1, rhs2);
+    OP::template fold<EXCLUSIVE>(a, b);
+  }
+
+  template <int32_t DIM>
+  __CUDA_HD__ static VAL convert(const Legion::Point<DIM>&, int32_t, const RHS& rhs)
+  {
+    return rhs;
   }
 };
 
@@ -191,13 +206,20 @@ template <legate::LegateTypeCode TYPE_CODE>
 struct UnaryRedOp<UnaryRedCode::SUM, TYPE_CODE> {
   static constexpr bool valid = true;
 
-  using VAL = legate::legate_type_of<TYPE_CODE>;
+  using RHS = legate::legate_type_of<TYPE_CODE>;
+  using VAL = RHS;
   using OP  = Legion::SumReduction<VAL>;
 
   template <bool EXCLUSIVE>
-  __CUDA_HD__ static void fold(VAL& rhs1, VAL rhs2)
+  __CUDA_HD__ static void fold(VAL& a, VAL b)
   {
-    OP::template fold<EXCLUSIVE>(rhs1, rhs2);
+    OP::template fold<EXCLUSIVE>(a, b);
+  }
+
+  template <int32_t DIM>
+  __CUDA_HD__ static VAL convert(const Legion::Point<DIM>&, int32_t, const RHS& rhs)
+  {
+    return rhs;
   }
 };
 
@@ -205,13 +227,22 @@ template <legate::LegateTypeCode TYPE_CODE>
 struct UnaryRedOp<UnaryRedCode::ARGMAX, TYPE_CODE> {
   static constexpr bool valid = true;
 
-  using VAL = Argval<legate::legate_type_of<TYPE_CODE>>;
-  using OP  = ArgmaxReduction<legate::legate_type_of<TYPE_CODE>>;
+  using RHS = legate::legate_type_of<TYPE_CODE>;
+  using VAL = Argval<RHS>;
+  using OP  = ArgmaxReduction<RHS>;
 
   template <bool EXCLUSIVE>
-  __CUDA_HD__ static void fold(VAL& rhs1, VAL rhs2)
+  __CUDA_HD__ static void fold(VAL& a, VAL b)
   {
-    OP::template fold<EXCLUSIVE>(rhs1, rhs2);
+    OP::template fold<EXCLUSIVE>(a, b);
+  }
+
+  template <int32_t DIM>
+  __CUDA_HD__ static VAL convert(const Legion::Point<DIM>& point,
+                                 int32_t collapsed_dim,
+                                 const RHS& rhs)
+  {
+    return VAL(point[collapsed_dim], rhs);
   }
 };
 
@@ -224,13 +255,22 @@ template <legate::LegateTypeCode TYPE_CODE>
 struct UnaryRedOp<UnaryRedCode::ARGMIN, TYPE_CODE> {
   static constexpr bool valid = true;
 
-  using VAL = Argval<legate::legate_type_of<TYPE_CODE>>;
-  using OP  = ArgminReduction<legate::legate_type_of<TYPE_CODE>>;
+  using RHS = legate::legate_type_of<TYPE_CODE>;
+  using VAL = Argval<RHS>;
+  using OP  = ArgminReduction<RHS>;
 
   template <bool EXCLUSIVE>
-  __CUDA_HD__ static void fold(VAL& rhs1, VAL rhs2)
+  __CUDA_HD__ static void fold(VAL& a, VAL b)
   {
-    OP::template fold<EXCLUSIVE>(rhs1, rhs2);
+    OP::template fold<EXCLUSIVE>(a, b);
+  }
+
+  template <int32_t DIM>
+  __CUDA_HD__ static VAL convert(const Legion::Point<DIM>& point,
+                                 int32_t collapsed_dim,
+                                 const RHS& rhs)
+  {
+    return VAL(point[collapsed_dim], rhs);
   }
 };
 
