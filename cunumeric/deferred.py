@@ -1890,15 +1890,18 @@ class DeferredArray(NumPyThunk):
             input = rhs.reshape((rhs.size,), order="C")
             output = self
         else:
-            if rhs.ndim == 1:
+            if axis == rhs.ndim-1:
                 input = rhs
                 output = self
             else:
-                if axis is not rhs.ndim-1:
-                    # swap axes, always performing scan along last axis
-                    input = rhs.swapaxes(axis, rhs.ndim - 1)
-                    output = self.runtime.create_empty_thunk(
-                        input.shape, dtype=self.dtype)
+                # swap axes, always performing scan along last axis
+                swapped = rhs.swapaxes(axis, rhs.ndim - 1)
+                input = self.runtime.create_empty_thunk(
+                    swapped.shape, dtype=rhs.dtype, inputs=(rhs, swapped))
+                input.copy(swapped, deep=True)
+                output = self.runtime.create_empty_thunk(
+                    input.shape, dtype=self.dtype)
+                    
         
         task = output.context.create_task(CuNumericOpCode.SCAN_LOCAL)
         task.add_output(output.base)
@@ -1926,8 +1929,10 @@ class DeferredArray(NumPyThunk):
 
         # if axes were swapped, turn them back
         if axis is not rhs.ndim-1 and axis is not None:
-            self.base = output.swapaxes(rhs.ndim-1, axis).base
-            output.numpy_array = None
+            swapped = output.swapaxes(rhs.ndim-1, axis)
+            assert self.shape == swapped.shape
+            self.copy(swapped, deep=True)
+
         
     def unique(self):
         result = self.runtime.create_unbound_thunk(self.dtype)
