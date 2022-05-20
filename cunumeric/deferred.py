@@ -1686,6 +1686,14 @@ class DeferredArray(NumPyThunk):
 
         argred = op in (UnaryRedCode.ARGMAX, UnaryRedCode.ARGMIN)
 
+        if argred:
+            argred_dtype = self.runtime.get_arg_dtype(rhs_array.dtype)
+            lhs_array = self.runtime.create_empty_thunk(
+                lhs_array.shape,
+                dtype=argred_dtype,
+                inputs=[self],
+            )
+
         # See if we are doing reduction to a point or another region
         if lhs_array.size == 1:
             assert axes is None or len(axes) == (
@@ -1711,14 +1719,6 @@ class DeferredArray(NumPyThunk):
             task.execute()
 
         else:
-            if argred:
-                argred_dtype = self.runtime.get_arg_dtype(rhs_array.dtype)
-                lhs_array = self.runtime.create_empty_thunk(
-                    lhs_array.shape,
-                    dtype=argred_dtype,
-                    inputs=[self],
-                )
-
             # Before we perform region reduction, make sure to have the lhs
             # initialized. If an initial value is given, we use it, otherwise
             # we use the identity of the reduction operator
@@ -1758,13 +1758,13 @@ class DeferredArray(NumPyThunk):
 
             task.execute()
 
-            if argred:
-                self.unary_op(
-                    UnaryOpCode.GETARG,
-                    lhs_array,
-                    True,
-                    [],
-                )
+        if argred:
+            self.unary_op(
+                UnaryOpCode.GETARG,
+                lhs_array,
+                True,
+                [],
+            )
 
     def isclose(self, rhs1, rhs2, rtol, atol, equal_nan):
         assert not equal_nan

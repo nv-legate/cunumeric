@@ -4411,7 +4411,7 @@ def partition(a, kth, axis=-1, kind="introselect", order=None):
 
 
 @add_boilerplate("a")
-def argmax(a, axis=None, out=None):
+def argmax(a, axis=None, out=None, *, keepdims=False):
     """
 
     Returns the indices of the maximum values along an axis.
@@ -4426,6 +4426,10 @@ def argmax(a, axis=None, out=None):
     out : ndarray, optional
         If provided, the result will be inserted into this array. It should
         be of the appropriate shape and dtype.
+    keepdims : bool, optional
+        If this is set to True, the axes which are reduced are left
+        in the result as dimensions with size one. With this option,
+        the result will broadcast correctly against the array.
 
     Returns
     -------
@@ -4441,14 +4445,11 @@ def argmax(a, axis=None, out=None):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    if out is not None:
-        if out.dtype != np.int64:
-            raise ValueError("output array must have int64 dtype")
-    return a.argmax(axis=axis, out=out)
+    return a.argmax(axis=axis, out=out, keepdims=keepdims)
 
 
 @add_boilerplate("a")
-def argmin(a, axis=None, out=None):
+def argmin(a, axis=None, out=None, *, keepdims=False):
     """
 
     Returns the indices of the minimum values along an axis.
@@ -4463,6 +4464,10 @@ def argmin(a, axis=None, out=None):
     out : ndarray, optional
         If provided, the result will be inserted into this array. It should
         be of the appropriate shape and dtype.
+    keepdims : bool, optional
+        If this is set to True, the axes which are reduced are left
+        in the result as dimensions with size one. With this option,
+        the result will broadcast correctly against the array.
 
     Returns
     -------
@@ -4478,10 +4483,7 @@ def argmin(a, axis=None, out=None):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    if out is not None:
-        if out is not None and out.dtype != np.int64:
-            raise ValueError("output array must have int64 dtype")
-    return a.argmin(axis=axis, out=out)
+    return a.argmin(axis=axis, out=out, keepdims=keepdims)
 
 
 # Counting

@@ -1543,7 +1543,7 @@ class ndarray:
         )
 
     @add_boilerplate()
-    def argmax(self, axis=None, out=None):
+    def argmax(self, axis=None, out=None, keepdims=False):
         """a.argmax(axis=None, out=None)
 
         Return indices of the maximum values along the given axis.
@@ -1559,24 +1559,21 @@ class ndarray:
         Multiple GPUs, Multiple CPUs
 
         """
-        if self.size == 1:
-            return 0
-        if axis is None:
-            axis = self.ndim - 1
-        elif type(axis) != int:
-            raise TypeError("'axis' argument for argmax must be an 'int'")
-        elif axis < 0 or axis >= self.ndim:
-            raise TypeError("invalid 'axis' argument for argmax " + str(axis))
+        if out is not None and out.dtype != np.int64:
+            raise ValueError("output array must have int64 dtype")
+        if axis is not None and not isinstance(axis, int):
+            raise ValueError("axis must be an integer")
         return self._perform_unary_reduction(
             UnaryRedCode.ARGMAX,
             self,
             axis=axis,
             res_dtype=np.dtype(np.int64),
             out=out,
+            keepdims=keepdims,
         )
 
     @add_boilerplate()
-    def argmin(self, axis=None, out=None):
+    def argmin(self, axis=None, out=None, keepdims=False):
         """a.argmin(axis=None, out=None)
 
         Return indices of the minimum values along the given axis.
@@ -1592,20 +1589,17 @@ class ndarray:
         Multiple GPUs, Multiple CPUs
 
         """
-        if self.size == 1:
-            return 0
-        if axis is None:
-            axis = self.ndim - 1
-        elif type(axis) != int:
-            raise TypeError("'axis' argument for argmin must be an 'int'")
-        elif axis < 0 or axis >= self.ndim:
-            raise TypeError("invalid 'axis' argument for argmin " + str(axis))
+        if out is not None and out.dtype != np.int64:
+            raise ValueError("output array must have int64 dtype")
+        if axis is not None and not isinstance(axis, int):
+            raise ValueError("axis must be an integer")
         return self._perform_unary_reduction(
             UnaryRedCode.ARGMIN,
             self,
             axis=axis,
             res_dtype=np.dtype(np.int64),
             out=out,
+            keepdims=keepdims,
         )
 
     def astype(
