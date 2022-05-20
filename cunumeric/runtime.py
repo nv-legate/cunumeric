@@ -407,10 +407,6 @@ class Runtime(object):
             # Don't store this one in the ptr_to_thunk as we only want to
             # store the root ones
             return parent_thunk.get_item(key)
-        elif array.size == 0:
-            # We always store completely empty arrays with eager thunks
-            assert not defer
-            return EagerArray(self, array)
         # Once it's a normal numpy array we can make it into one of our arrays
         # Check to see if it is a type that we support for doing deferred
         # execution and big enough to be worth off-loading onto Legion
@@ -473,7 +469,7 @@ class Runtime(object):
 
     def is_eager_shape(self, shape):
         volume = calculate_volume(shape)
-        # Empty arrays are ALWAYS eager
+        # Newly created empty arrays are ALWAYS eager
         if volume == 0:
             return True
         # If we're testing then the answer is always no
