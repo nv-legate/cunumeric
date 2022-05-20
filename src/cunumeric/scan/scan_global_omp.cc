@@ -56,7 +56,15 @@ struct ScanGlobalImplBody<VariantKind::OMP, OP_CODE, CODE, DIM> {
       auto sum_valsp = out_pitches.unflatten(index, out_rect.lo) - out_rect.lo;
       // first element on scan axis
       sum_valsp[DIM - 1] = 0;
-      auto base = thrust::reduce(thrust::omp::par, &sum_vals[sum_valsp], &sum_vals[sum_valsp] + partition_index[DIM - 1] - 1, (VAL) ScanOp<OP_CODE, CODE>::nan_null, func);
+      auto sum_valsp_end = sum_valsp;
+      sum_valsp_end[DIM - 1] = partition_index[DIM-1];
+      // RRRR simple version, faster at small sizes
+      // auto base = sum_vals[sum_valsp];
+      // for(int i=1; i<partition_index[DIM - 1]; i++){
+      // 	sum_valsp[DIM - 1] = i;
+      // 	base = base + sum_vals[sum_valsp];
+      // }
+      auto base = thrust::reduce(thrust::omp::par, &sum_vals[sum_valsp], &sum_vals[sum_valsp_end], (VAL) ScanOp<OP_CODE, CODE>::nan_null, func);
       // apply base to out
 #pragma omp parallel for schedule(static)
       for(uint64_t i = index; i < stride; i++){
