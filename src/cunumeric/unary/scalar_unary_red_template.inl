@@ -120,6 +120,11 @@ static void scalar_unary_red_template(TaskContext& context)
 
   auto op_code = scalars[0].value<UnaryRedCode>();
   auto shape   = scalars[1].value<DomainPoint>();
+  // If the RHS was a scalar, use (1,) as the shape
+  if (shape.dim == 0) {
+    shape.dim = 1;
+    shape[0]  = 1;
+  }
   ScalarUnaryRedArgs args{
     context.reductions()[0], inputs[0], op_code, shape, std::move(extra_args)};
   op_dispatch(args.op_code, ScalarUnaryRedDispatch<KIND>{}, args);
