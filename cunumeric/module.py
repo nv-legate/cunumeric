@@ -2208,6 +2208,7 @@ def indices(dimensions, dtype=int, sparse=False):
     Return an array representing the indices of a grid.
     Compute an array where the subarrays contain index values 0, 1, ...
     varying only along the corresponding axis.
+
     Parameters
     ----------
     dimensions : sequence of ints
@@ -2217,7 +2218,7 @@ def indices(dimensions, dtype=int, sparse=False):
     sparse : boolean, optional
         Return a sparse representation of the grid instead of a dense
         representation. Default is False.
-        .. versionadded:: 1.17
+
     Returns
     -------
     grid : one ndarray or tuple of ndarrays
@@ -2246,6 +2247,7 @@ def indices(dimensions, dtype=int, sparse=False):
     --------
     Multiple GPUs, Multiple CPUs
     """
+    # implementation of indices routine is adapted from NumPy
     dimensions = tuple(dimensions)
     N = len(dimensions)
     shape = (1,) * N

@@ -36,8 +36,6 @@ def test_indices(ndim):
 
     np_res = np.indices(dimensions, sparse=True)
     cn_res = cn.indices(dimensions, sparse=True)
-    print(np_res)
-    print(cn_res)
     for i in range(len(np_res)):
         assert np.array_equal(np_res[i], cn_res[i])
 
