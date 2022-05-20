@@ -3064,14 +3064,18 @@ def _contract(
         # We need to broadcast the result of the contraction or switch types
         # before returning
         if out is None:
-            out = zeros(out_shape, out_dtype)
+            out = empty(out_shape, out_dtype)
         out[...] = c.reshape(c_bloated_shape)
         return out
-    if out is None and out_shape != c_shape:
+    if out_shape != c_shape:
         # We need to add missing dimensions, but they are all of size 1, so
         # we don't need to broadcast
         assert c_bloated_shape == out_shape
-        return c.reshape(out_shape)
+        if out is None:
+            return c.reshape(out_shape)
+        else:
+            out[...] = c.reshape(out_shape)
+            return out
     if out is not None:
         # The output and result arrays are fully compatible, but we still
         # need to copy
