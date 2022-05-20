@@ -3497,6 +3497,9 @@ class ndarray:
             # and the output dtype
             if dtype is not None:
                 res_dtype = dtype
+            elif out is not None:
+                dtype = out.dtype
+                res_dtype = out.dtype
             else:
                 dtype = src.dtype
                 res_dtype = src.dtype
