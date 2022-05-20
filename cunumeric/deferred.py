@@ -1718,9 +1718,7 @@ class DeferredArray(NumPyThunk):
 
         # See if we are doing reduction to a point or another region
         if lhs_array.size == 1:
-            assert axes is None or len(axes) == (
-                rhs_array.ndim - lhs_array.ndim
-            )
+            assert axes is None or len(axes) == rhs_array.ndim
 
             task = self.context.create_task(CuNumericOpCode.SCALAR_UNARY_RED)
 

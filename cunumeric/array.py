@@ -3432,7 +3432,7 @@ class ndarray:
                 array_types.append(array.dtype)
         return np.find_common_type(array_types, scalar_types)
 
-    def _maybe_convert(self, dtype, *hints):
+    def _maybe_convert(self, dtype, hints):
         if self.dtype == dtype:
             return self
         copy = ndarray(shape=self.shape, dtype=dtype, inputs=hints)
