@@ -297,9 +297,9 @@ def norm(x, ord=None, axis=None, keepdims=False):
         if row_axis == col_axis:
             raise ValueError("Duplicate axes given")
         if ord == 2:
-            raise NotImplementedError("2-norm")
+            raise NotImplementedError("2-norm requires SVD decomposition")
         elif ord == -2:
-            raise NotImplementedError("-2-norm")
+            raise NotImplementedError("-2-norm requires SVD decomposition")
         elif ord == 1:
             if col_axis > row_axis:
                 col_axis -= 1
@@ -320,7 +320,9 @@ def norm(x, ord=None, axis=None, keepdims=False):
             squares = (x.conj() * x).real
             ret = _sqrt(squares.sum(axis=col_axis).sum(axis=row_axis))
         elif ord == "nuc":
-            raise NotImplementedError("nuclear norm")
+            raise NotImplementedError(
+                "nuclear norm requires SVD decomposition"
+            )
         else:
             raise ValueError("Invalid norm order for matrices")
         if keepdims:
