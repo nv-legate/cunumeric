@@ -261,6 +261,16 @@ struct UnaryRedOp<UnaryRedCode::ARGMAX, TYPE_CODE> {
   {
     return VAL(point[collapsed_dim], rhs);
   }
+
+  template <int32_t DIM>
+  __CUDA_HD__ static VAL convert(const Legion::Point<DIM>& point,
+                                 const Legion::Point<DIM>& shape,
+                                 const RHS& rhs)
+  {
+    int64_t idx = 0;
+    for (int32_t dim = 0; dim < DIM; ++dim) idx = idx * shape[dim] + point[dim];
+    return VAL(idx, rhs);
+  }
 };
 
 template <legate::LegateTypeCode TYPE_CODE>
@@ -283,6 +293,16 @@ struct UnaryRedOp<UnaryRedCode::ARGMIN, TYPE_CODE> {
                                  const RHS& rhs)
   {
     return VAL(point[collapsed_dim], rhs);
+  }
+
+  template <int32_t DIM>
+  __CUDA_HD__ static VAL convert(const Legion::Point<DIM>& point,
+                                 const Legion::Point<DIM>& shape,
+                                 const RHS& rhs)
+  {
+    int64_t idx = 0;
+    for (int32_t dim = 0; dim < DIM; ++dim) idx = idx * shape[dim] + point[dim];
+    return VAL(idx, rhs);
   }
 };
 

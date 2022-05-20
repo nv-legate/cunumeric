@@ -32,12 +32,15 @@ struct ScalarUnaryRedImplBody<VariantKind::OMP, OP_CODE, CODE, DIM> {
   using RHS   = legate_type_of<CODE>;
   using LHS   = typename OP::VAL;
 
+  template <UnaryRedCode _OP_CODE                              = OP_CODE,
+            std::enable_if_t<!is_arg_reduce<_OP_CODE>::value>* = nullptr>
   void operator()(OP func,
                   AccessorRD<LG_OP, true, 1> out,
                   AccessorRO<RHS, DIM> in,
                   const Rect<DIM>& rect,
                   const Pitches<DIM - 1>& pitches,
-                  bool dense) const
+                  bool dense,
+                  const Point<DIM>& shape) const
   {
     auto result            = LG_OP::identity;
     const size_t volume    = rect.volume();
@@ -61,6 +64,47 @@ struct ScalarUnaryRedImplBody<VariantKind::OMP, OP_CODE, CODE, DIM> {
         for (size_t idx = 0; idx < volume; ++idx) {
           auto p = pitches.unflatten(idx, rect.lo);
           OP::template fold<true>(locals[tid], OP::convert(in[p]));
+        }
+      }
+    }
+
+    for (auto idx = 0; idx < max_threads; ++idx) out.reduce(0, locals[idx]);
+  }
+
+  template <UnaryRedCode _OP_CODE                             = OP_CODE,
+            std::enable_if_t<is_arg_reduce<_OP_CODE>::value>* = nullptr>
+  void operator()(OP func,
+                  AccessorRD<LG_OP, true, 1> out,
+                  AccessorRO<RHS, DIM> in,
+                  const Rect<DIM>& rect,
+                  const Pitches<DIM - 1>& pitches,
+                  bool dense,
+                  const Point<DIM>& shape) const
+  {
+    auto result            = LG_OP::identity;
+    const size_t volume    = rect.volume();
+    const auto max_threads = omp_get_max_threads();
+    ThreadLocalStorage<LHS> locals(max_threads);
+    for (auto idx = 0; idx < max_threads; ++idx) locals[idx] = LG_OP::identity;
+    if (dense) {
+      auto inptr = in.ptr(rect);
+#pragma omp parallel
+      {
+        const int tid = omp_get_thread_num();
+#pragma omp for schedule(static)
+        for (size_t idx = 0; idx < volume; ++idx) {
+          auto p = pitches.unflatten(idx, rect.lo);
+          OP::template fold<true>(locals[tid], OP::convert(p, shape, inptr[idx]));
+        }
+      }
+    } else {
+#pragma omp parallel
+      {
+        const int tid = omp_get_thread_num();
+#pragma omp for schedule(static)
+        for (size_t idx = 0; idx < volume; ++idx) {
+          auto p = pitches.unflatten(idx, rect.lo);
+          OP::template fold<true>(locals[tid], OP::convert(p, shape, in[p]));
         }
       }
     }

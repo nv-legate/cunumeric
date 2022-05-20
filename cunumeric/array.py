@@ -3542,9 +3542,9 @@ class ndarray:
             raise ValueError(f"Invalid 'axis' value {axis}")
 
         out_shape = ()
-        for axis in range(src.ndim):
-            if axis not in axes:
-                out_shape += (src.shape[axis],)
+        for dim in range(src.ndim):
+            if dim not in axes:
+                out_shape += (src.shape[dim],)
             elif keepdims:
                 out_shape += (1,)
 
@@ -3573,6 +3573,7 @@ class ndarray:
                 op,
                 src._thunk,
                 cls._get_where_thunk(where, result.shape),
+                axis,
                 axes,
                 keepdims,
                 args,

@@ -53,6 +53,37 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   reduce_output(out, value);
 }
 
+template <typename OP,
+          typename LG_OP,
+          typename Output,
+          typename ReadAcc,
+          typename Pitches,
+          typename Point,
+          typename LHS>
+static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
+  arg_reduction_kernel(size_t volume,
+                       OP,
+                       LG_OP,
+                       Output out,
+                       ReadAcc in,
+                       Pitches pitches,
+                       Point origin,
+                       size_t iters,
+                       LHS identity,
+                       Point shape)
+{
+  auto value = identity;
+  for (size_t idx = 0; idx < iters; idx++) {
+    const size_t offset = (idx * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
+    if (offset < volume) {
+      auto point = pitches.unflatten(offset, origin);
+      LG_OP::template fold<true>(value, OP::convert(point, shape, in[point]));
+    }
+  }
+  // Every thread in the thread block must participate in the exchange to get correct results
+  reduce_output(out, value);
+}
+
 template <typename Output, typename ReadAcc, typename Pitches, typename Point, typename RHS>
 static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM) contains_kernel(
   size_t volume, Output out, ReadAcc in, Pitches pitches, Point origin, size_t iters, RHS to_find)
@@ -82,12 +113,15 @@ struct ScalarUnaryRedImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
   using RHS   = legate_type_of<CODE>;
   using LHS   = typename OP::VAL;
 
+  template <UnaryRedCode _OP_CODE                              = OP_CODE,
+            std::enable_if_t<!is_arg_reduce<_OP_CODE>::value>* = nullptr>
   void operator()(OP func,
                   AccessorRD<LG_OP, true, 1> out,
                   AccessorRO<RHS, DIM> in,
                   const Rect<DIM>& rect,
                   const Pitches<DIM - 1>& pitches,
-                  bool dense) const
+                  bool dense,
+                  const Point<DIM>& shape) const
   {
     auto stream = get_cached_stream();
 
@@ -103,6 +137,35 @@ struct ScalarUnaryRedImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
     } else
       reduction_kernel<<<blocks, THREADS_PER_BLOCK, shmem_size, stream>>>(
         volume, OP{}, LG_OP{}, result, in, pitches, rect.lo, 1, LG_OP::identity);
+
+    copy_kernel<<<1, 1, 0, stream>>>(result, out);
+    CHECK_CUDA_STREAM(stream);
+  }
+
+  template <UnaryRedCode _OP_CODE                             = OP_CODE,
+            std::enable_if_t<is_arg_reduce<_OP_CODE>::value>* = nullptr>
+  void operator()(OP func,
+                  AccessorRD<LG_OP, true, 1> out,
+                  AccessorRO<RHS, DIM> in,
+                  const Rect<DIM>& rect,
+                  const Pitches<DIM - 1>& pitches,
+                  bool dense,
+                  const Point<DIM>& shape) const
+  {
+    auto stream = get_cached_stream();
+
+    const size_t volume = rect.volume();
+    const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
+    DeferredReduction<typename OP::OP> result;
+    size_t shmem_size = THREADS_PER_BLOCK / 32 * sizeof(LHS);
+
+    if (blocks >= MAX_REDUCTION_CTAS) {
+      const size_t iters = (blocks + MAX_REDUCTION_CTAS - 1) / MAX_REDUCTION_CTAS;
+      arg_reduction_kernel<<<MAX_REDUCTION_CTAS, THREADS_PER_BLOCK, shmem_size, stream>>>(
+        volume, OP{}, LG_OP{}, result, in, pitches, rect.lo, iters, LG_OP::identity, shape);
+    } else
+      arg_reduction_kernel<<<blocks, THREADS_PER_BLOCK, shmem_size, stream>>>(
+        volume, OP{}, LG_OP{}, result, in, pitches, rect.lo, 1, LG_OP::identity, shape);
 
     copy_kernel<<<1, 1, 0, stream>>>(result, out);
     CHECK_CUDA_STREAM(stream);

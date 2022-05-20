@@ -1675,6 +1675,7 @@ class DeferredArray(NumPyThunk):
         op,
         src,
         where,
+        orig_axis,
         axes,
         keepdims,
         args,
@@ -1713,6 +1714,7 @@ class DeferredArray(NumPyThunk):
             task.add_reduction(lhs_array.base, _UNARY_RED_TO_REDUCTION_OPS[op])
             task.add_input(rhs_array.base)
             task.add_scalar_arg(op, ty.int32)
+            task.add_scalar_arg(rhs_array.shape, (ty.int64,))
 
             self.add_arguments(task, args)
 

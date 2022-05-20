@@ -28,12 +28,15 @@ struct ScalarUnaryRedImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
   using LG_OP = typename OP::OP;
   using RHS   = legate_type_of<CODE>;
 
+  template <UnaryRedCode _OP_CODE                              = OP_CODE,
+            std::enable_if_t<!is_arg_reduce<_OP_CODE>::value>* = nullptr>
   void operator()(OP func,
                   AccessorRD<LG_OP, true, 1> out,
                   AccessorRO<RHS, DIM> in,
                   const Rect<DIM>& rect,
                   const Pitches<DIM - 1>& pitches,
-                  bool dense) const
+                  bool dense,
+                  const Point<DIM>& shape) const
   {
     auto result         = LG_OP::identity;
     const size_t volume = rect.volume();
@@ -45,6 +48,33 @@ struct ScalarUnaryRedImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
       for (size_t idx = 0; idx < volume; ++idx) {
         auto p = pitches.unflatten(idx, rect.lo);
         OP::template fold<true>(result, OP::convert(in[p]));
+      }
+    }
+    out.reduce(0, result);
+  }
+
+  template <UnaryRedCode _OP_CODE                             = OP_CODE,
+            std::enable_if_t<is_arg_reduce<_OP_CODE>::value>* = nullptr>
+  void operator()(OP func,
+                  AccessorRD<LG_OP, true, 1> out,
+                  AccessorRO<RHS, DIM> in,
+                  const Rect<DIM>& rect,
+                  const Pitches<DIM - 1>& pitches,
+                  bool dense,
+                  const Point<DIM>& shape) const
+  {
+    auto result         = LG_OP::identity;
+    const size_t volume = rect.volume();
+    if (dense) {
+      auto inptr = in.ptr(rect);
+      for (size_t idx = 0; idx < volume; ++idx) {
+        auto p = pitches.unflatten(idx, rect.lo);
+        OP::template fold<true>(result, OP::convert(p, shape, inptr[idx]));
+      }
+    } else {
+      for (size_t idx = 0; idx < volume; ++idx) {
+        auto p = pitches.unflatten(idx, rect.lo);
+        OP::template fold<true>(result, OP::convert(p, shape, in[p]));
       }
     }
     out.reduce(0, result);

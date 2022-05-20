@@ -54,7 +54,8 @@ struct ScalarUnaryRedImpl {
     bool dense = false;
 #endif
 
-    ScalarUnaryRedImplBody<KIND, OP_CODE, CODE, DIM>()(OP{}, out, in, rect, pitches, dense);
+    ScalarUnaryRedImplBody<KIND, OP_CODE, CODE, DIM>()(
+      OP{}, out, in, rect, pitches, dense, args.shape);
   }
 
   template <LegateTypeCode CODE,
@@ -100,16 +101,11 @@ struct ScalarUnaryRedImpl<KIND, UnaryRedCode::CONTAINS> {
 
 template <VariantKind KIND>
 struct ScalarUnaryRedDispatch {
-  template <UnaryRedCode OP_CODE, std::enable_if_t<!is_arg_reduce<OP_CODE>::value>* = nullptr>
+  template <UnaryRedCode OP_CODE>
   void operator()(ScalarUnaryRedArgs& args) const
   {
     auto dim = std::max(1, args.in.dim());
     double_dispatch(dim, args.in.code(), ScalarUnaryRedImpl<KIND, OP_CODE>{}, args);
-  }
-  template <UnaryRedCode OP_CODE, std::enable_if_t<is_arg_reduce<OP_CODE>::value>* = nullptr>
-  void operator()(ScalarUnaryRedArgs& args) const
-  {
-    assert(false);
   }
 };
 
@@ -122,8 +118,10 @@ static void scalar_unary_red_template(TaskContext& context)
   std::vector<Store> extra_args;
   for (size_t idx = 1; idx < inputs.size(); ++idx) extra_args.push_back(std::move(inputs[idx]));
 
+  auto op_code = scalars[0].value<UnaryRedCode>();
+  auto shape   = scalars[1].value<DomainPoint>();
   ScalarUnaryRedArgs args{
-    context.reductions()[0], inputs[0], scalars[0].value<UnaryRedCode>(), std::move(extra_args)};
+    context.reductions()[0], inputs[0], op_code, shape, std::move(extra_args)};
   op_dispatch(args.op_code, ScalarUnaryRedDispatch<KIND>{}, args);
 }
 
