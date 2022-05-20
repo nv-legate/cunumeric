@@ -75,7 +75,10 @@ cuNumeric requires the following:
   - GNU Make
   - C++17 compatible compiler (g++, clang, or nvc++)
   - Fortran compiler (for building OpenBLAS; not necessary if you provide a pre-built version of OpenBLAS)
-  - the Python packages listed in `conda/cunumeric_dev.yml`
+  - the Python packages listed in any one of the conda environment files:
+    - `conda/environment-test-3.8.yml`
+    - `conda/environment-test-3.9.yml`
+    - `conda/environment-test-3.10.yml`
 
 See the [corresponding section](https://github.com/nv-legate/legate.core#dependencies)
 on the Legate Core instructions for help on installing the required Python packages

@@ -122,6 +122,20 @@ def unimplemented(
 ) -> CuWrapped:
     name = f"{prefix}.{name}"
 
+    # Skip over NumPy's `__array_function__` dispatch wrapper, if present.
+    # NumPy adds `__array_function__` dispatch logic through decorators, but
+    # still makes the underlying code (which converts all array-like arguments
+    # to `numpy.ndarray` through `__array__`) available in the
+    # `_implementation` field.
+    # We have to skip the dispatch wrapper, otherwise we will trigger an
+    # infinite loop. Say we're dealing with a call to `cunumeric.foo`, and are
+    # trying to fall back to `numpy.foo`. If we didn't skip the dispatch
+    # wrapper of `numpy.foo`, then NumPy would ask
+    # `cunumeric.ndarray.__array_function__` to handle the call to `numpy.foo`,
+    # then `cunumeric.ndarray.__array_function__` would call `cunumeric.foo`,
+    # and we would end up here again.
+    func = getattr(func, "_implementation", func)
+
     wrapper: CuWrapped
 
     if reporting:
@@ -257,13 +271,13 @@ def clone_class(origin_class: type) -> Callable[[type], type]:
     return decorator
 
 
-def is_implemented(obj):
+def is_implemented(obj: Any) -> bool:
     return hasattr(obj, "_cunumeric") and obj._cunumeric.implemented
 
 
-def is_single(obj):
+def is_single(obj: Any) -> bool:
     return hasattr(obj, "_cunumeric") and obj._cunumeric.single
 
 
-def is_multi(obj):
+def is_multi(obj: Any) -> bool:
     return hasattr(obj, "_cunumeric") and obj._cunumeric.multi

@@ -666,12 +666,6 @@ class DeferredArray(NumPyThunk):
             ) = self._create_indexing_array(key)
             store = rhs.base
             if copy_needed:
-                # Create a new array to be the result
-                result = self.runtime.create_empty_thunk(
-                    index_array.base.shape,
-                    self.dtype,
-                    inputs=[self],
-                )
                 if index_array.base.kind == Future:
                     index_array = self._convert_future_to_store(index_array)
                     result_store = self.context.create_store(
@@ -684,13 +678,13 @@ class DeferredArray(NumPyThunk):
                         base=result_store,
                         dtype=self.dtype,
                     )
-
                 else:
                     result = self.runtime.create_empty_thunk(
                         index_array.base.shape,
                         self.dtype,
                         inputs=[self],
                     )
+
                 copy = self.context.create_copy()
                 copy.set_source_indirect_out_of_range(False)
                 copy.add_input(store)
@@ -1542,14 +1536,10 @@ class DeferredArray(NumPyThunk):
         task.execute()
 
     # Transpose the matrix dimensions
-    @auto_convert([1])
-    def transpose(self, rhs, axes):
-        rhs_array = rhs
-        lhs_array = self
-        assert lhs_array.dtype == rhs_array.dtype
-        assert lhs_array.ndim == rhs_array.ndim
-        assert lhs_array.ndim == len(axes)
-        lhs_array.base = rhs_array.base.transpose(axes)
+    def transpose(self, axes):
+        result = self.base.transpose(axes)
+        result = DeferredArray(self.runtime, result, self.dtype)
+        return result
 
     @auto_convert([1])
     def trilu(self, rhs, k, lower):

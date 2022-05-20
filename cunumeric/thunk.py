@@ -119,7 +119,7 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def transpose(self, rhs, axes):
+    def transpose(self, axes):
         ...
 
     @abstractmethod

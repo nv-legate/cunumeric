@@ -38,6 +38,16 @@ def test_basic():
     y = x[2:, 2:]
     assert np.array_equal(ynp, y)
 
+    # views over scalar values are writable
+    x = num.ones((1,))
+    y = x.reshape((1, 1))
+    y[:] = 2
+    assert np.array_equal(x, [2])
+    assert np.array_equal(y, [[2]])
+    y[:] = 3
+    assert np.array_equal(x, [3])
+    assert np.array_equal(y, [[3]])
+
 
 if __name__ == "__main__":
     import sys

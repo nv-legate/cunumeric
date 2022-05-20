@@ -29,19 +29,15 @@ from .runtime import runtime
 from .utils import dot_modes
 
 
-def add_boilerplate(*array_params: str, mutates_self: bool = False):
+def add_boilerplate(*array_params: str):
     """
-    Adds required boilerplate to the wrapped cuNumeric ndarray member function.
+    Adds required boilerplate to the wrapped cunumeric.ndarray or module-level
+    function.
 
     Every time the wrapped function is called, this wrapper will:
     * Convert all specified array-like parameters, plus the special "out"
       parameter (if present), to cuNumeric ndarrays.
     * Convert the special "where" parameter (if present) to a valid predicate.
-    * Handle the case of scalar cuNumeric ndarrays, by forwarding the operation
-      to the equivalent `()`-shape numpy array.
-
-    NOTE: Assumes that no parameters are mutated besides `out`, and `self` if
-    `mutates_self` is True.
     """
     keys: Set[str] = set(array_params)
 
@@ -61,7 +57,6 @@ def add_boilerplate(*array_params: str, mutates_self: bool = False):
             if param == "where":
                 where_idx = idx
             elif param == "out":
-                assert not mutates_self
                 out_idx = idx
             elif param in keys:
                 indices.add(idx)
@@ -69,7 +64,6 @@ def add_boilerplate(*array_params: str, mutates_self: bool = False):
 
         @wraps(func)
         def wrapper(*args, **kwargs):
-            self = args[0]
             assert (where_idx is None or len(args) <= where_idx) and (
                 out_idx is None or len(args) <= out_idx
             ), "'where' and 'out' should be passed as keyword arguments"
@@ -90,51 +84,6 @@ def add_boilerplate(*array_params: str, mutates_self: bool = False):
                     kwargs[k] = convert_to_cunumeric_ndarray(v, share=True)
                 elif k in keys:
                     kwargs[k] = convert_to_cunumeric_ndarray(v)
-
-            # Handle the case where all array-like parameters are scalar, by
-            # performing the operation on the equivalent scalar numpy arrays.
-            # NOTE: This implicitly blocks on the contents of these arrays.
-            if all(
-                arg._thunk.scalar
-                for (idx, arg) in enumerate(args)
-                if (idx in indices or idx == 0) and isinstance(arg, ndarray)
-            ) and all(
-                v._thunk.scalar
-                for (k, v) in kwargs.items()
-                if (k in keys or k == "where") and isinstance(v, ndarray)
-            ):
-                out = None
-                if "out" in kwargs:
-                    out = kwargs["out"]
-                    del kwargs["out"]
-                args = tuple(
-                    arg._thunk.__numpy_array__()
-                    if (idx in indices or idx == 0)
-                    and isinstance(arg, ndarray)
-                    else arg
-                    for (idx, arg) in enumerate(args)
-                )
-                for (k, v) in kwargs.items():
-                    if (k in keys or k == "where") and isinstance(v, ndarray):
-                        kwargs[k] = v._thunk.__numpy_array__()
-                self_scalar = args[0]
-                args = args[1:]
-                res_scalar = getattr(self_scalar, func.__name__)(
-                    *args, **kwargs
-                )
-                if mutates_self:
-                    self._thunk = runtime.create_scalar(
-                        self_scalar.data,
-                        self_scalar.dtype,
-                        shape=self_scalar.shape,
-                        wrap=True,
-                    )
-                    return
-                result = convert_to_cunumeric_ndarray(res_scalar)
-                if out is not None:
-                    out._thunk.copy(result._thunk)
-                    result = out
-                return result
 
             return func(*args, **kwargs)
 
@@ -160,6 +109,26 @@ def convert_to_predicate_ndarray(obj):
     raise NotImplementedError(
         "the `where` parameter is currently not supported"
     )
+
+
+def _convert_all_to_numpy(obj):
+    """
+    Converts all cuNumeric arrays within a data structure into NumPy arrays.
+
+    The recursion logic is rather limited, but this function is meant to be
+    used for arguments of NumPy API calls, which shouldn't nest their arrays
+    very deep.
+    """
+    if type(obj) == list:
+        return [_convert_all_to_numpy(x) for x in obj]
+    elif type(obj) == tuple:
+        return tuple(_convert_all_to_numpy(x) for x in obj)
+    elif type(obj) == dict:
+        return {k: _convert_all_to_numpy(v) for k, v in obj.items()}
+    elif isinstance(obj, ndarray):
+        return obj.__array__()
+    else:
+        return obj
 
 
 @clone_class(np.ndarray)
@@ -244,6 +213,57 @@ class ndarray:
     # @property
     # def __array_struct__(self):
     #    return self.__array__().__array_struct__
+
+    def __array_function__(self, func, types, args, kwargs):
+        import cunumeric as cn
+
+        # We are wrapping all NumPy modules, so we can expect to find every
+        # NumPy API call in cuNumeric, even if just an "unimplemented" stub.
+        module = reduce(getattr, func.__module__.split(".")[1:], cn)
+        cn_func = getattr(module, func.__name__)
+        # TODO: We should technically check at this point that all array-like
+        # arguments are convertible to `cunumeric.ndarray`, and if not then
+        # return `NotImplemented`, to give a chance to those other types to
+        # handle this call (assuming they also implement `__array_function__`).
+        # For now we will just assume that at the very least we can convert
+        # any such object to a baseline NumPy array using `np.array`, and
+        # consume that.
+
+        # TODO: We could check at this point that our implementation supports
+        # all the provided arguments, and fall back to NumPy if not.
+        return cn_func(*args, **kwargs)
+
+    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+        from . import _ufunc
+
+        # TODO: Similar to __array_function__, we should technically confirm
+        # that all array-like arguments are convertible to `cunumeric.ndarray`.
+        # TODO: The logic below should be moved to a "clone_ufunc" wrapper,
+        # that emits a proper warning to the user in case of fallback.
+
+        if hasattr(_ufunc, ufunc.__name__):
+            cn_ufunc = getattr(_ufunc, ufunc.__name__)
+            if hasattr(cn_ufunc, method):
+                cn_method = getattr(cn_ufunc, method)
+                # TODO: We could check at this point that our implementation
+                # supports all the provided arguments, and fall back to
+                # NumPy if not.
+                return cn_method(*inputs, **kwargs)
+
+        # We cannot handle this ufunc call, so we will fall back to NumPy.
+        # Ideally we would be able to skip the __array_ufunc__ dispatch, and
+        # let NumPy convert our arrays automatically by calling our __array__
+        # method, similar to what we are doing for __array_function__ in
+        # coverage.py, by going through the _implementation field.
+        # Unfortunately, there is no easy way to skip the dispatch mechnanism
+        # for ufuncs, therefore the best we can do is manually convert all
+        # cuNumeric arrays into NumPy arrays and try the call again.
+        # One would expect NumPy to do exactly this if all __array_ufunc__
+        # implementations return `NotImplemented` for a particular call, but
+        # alas NumPy will simply fail in that case.
+        inputs = _convert_all_to_numpy(inputs)
+        kwargs = _convert_all_to_numpy(kwargs)
+        return getattr(ufunc, method)(*inputs, **kwargs)
 
     @property
     def T(self):
@@ -1430,7 +1450,7 @@ class ndarray:
 
     # __setattr__
 
-    @add_boilerplate("value", mutates_self=True)
+    @add_boilerplate("value")
     def __setitem__(self, key, value):
         """__setitem__(key, value, /)
 
@@ -3303,24 +3323,12 @@ class ndarray:
         if self.ndim == 1:
             return self
         if axes is None:
-            result = ndarray(
-                self.shape[::-1],
-                dtype=self.dtype,
-                inputs=(self,),
-            )
             axes = tuple(range(self.ndim - 1, -1, -1))
-        elif len(axes) == self.ndim:
-            result = ndarray(
-                shape=tuple(self.shape[idx] for idx in axes),
-                dtype=self.dtype,
-                inputs=(self,),
-            )
-        else:
+        elif len(axes) != self.ndim:
             raise ValueError(
                 "axes must be the same size as ndim for transpose"
             )
-        result._thunk.transpose(self._thunk, axes)
-        return result
+        return ndarray(shape=None, thunk=self._thunk.transpose(axes))
 
     def flip(self, axis=None):
         """
