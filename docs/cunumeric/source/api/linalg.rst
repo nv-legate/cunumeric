@@ -18,6 +18,7 @@ Matrix and vector products
    matmul
    tensordot
    einsum
+   linalg.matrix_power
 
 Decompositions
 --------------

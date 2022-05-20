@@ -465,15 +465,19 @@ class EagerArray(NumPyThunk):
         else:
             np.dot(rhs1.array, rhs2.array, out=self.array)
 
-    def transpose(self, rhs, axes):
-        self.check_eager_args(rhs)
+    def transpose(self, axes):
         if self.deferred is not None:
-            self.deferred.transpose(rhs, axes)
-        else:
-            if self.array.size == 1:
-                self.array.fill(rhs.array.item())
-            else:
-                self.array[:] = np.transpose(rhs.array, axes)
+            return self.deferred.transpose(axes)
+        child = self.array.transpose(axes)
+        # Should be aliased with parent region
+        assert child.base is not None
+        result = EagerArray(
+            self.runtime, child, parent=self, key=("transpose", axes)
+        )
+        if self.children is None:
+            self.children = list()
+        self.children.append(result)
+        return result
 
     def repeat(self, repeats, axis, scalar_repeats):
         if not scalar_repeats:

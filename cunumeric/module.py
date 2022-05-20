@@ -23,6 +23,7 @@ import opt_einsum as oe
 from cunumeric._ufunc.comparison import maximum, minimum
 from cunumeric._ufunc.floating import floor
 from cunumeric._ufunc.math import add, multiply
+from numpy.core.numeric import normalize_axis_tuple
 
 from .array import add_boilerplate, convert_to_cunumeric_ndarray, ndarray
 from .config import BinaryOpCode, UnaryRedCode
@@ -1053,6 +1054,48 @@ def transpose(a, axes=None):
     Multiple GPUs, Multiple CPUs
     """
     return a.transpose(axes=axes)
+
+
+@add_boilerplate("a")
+def moveaxis(a, source, destination):
+    """
+    Move axes of an array to new positions.
+    Other axes remain in their original order.
+
+    Parameters
+    ----------
+    a : ndarray
+        The array whose axes should be reordered.
+    source : int or sequence of int
+        Original positions of the axes to move. These must be unique.
+    destination : int or sequence of int
+        Destination positions for each of the original axes. These must also be
+        unique.
+
+    Returns
+    -------
+    result : ndarray
+        Array with moved axes. This array is a view of the input array.
+
+    See Also
+    --------
+    numpy.moveaxis
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    source = normalize_axis_tuple(source, a.ndim, "source")
+    destination = normalize_axis_tuple(destination, a.ndim, "destination")
+    if len(source) != len(destination):
+        raise ValueError(
+            "`source` and `destination` arguments must have the same number "
+            "of elements"
+        )
+    order = [n for n in range(a.ndim) if n not in source]
+    for dest, src in sorted(zip(destination, source)):
+        order.insert(dest, src)
+    return a.transpose(order)
 
 
 # Changing number of dimensions
@@ -2203,6 +2246,66 @@ def where(a, x=None, y=None):
 
 
 # Indexing-like operations
+def diag_indices(n, ndim=2):
+    """
+    Return the indices to access the main diagonal of an array.
+
+    This returns a tuple of indices that can be used to access the main
+    diagonal of an array a with a.ndim >= 2 dimensions and
+    shape (n, n, …, n). For a.ndim = 2 this is the usual diagonal,
+    for a.ndim > 2 this is the set of indices to
+    access a[i, i, ..., i] for i = [0..n-1].
+
+    Parameters
+    ----------
+    n : int
+        The size, along each dimension, of the arrays for which the
+        returned indices can be used.
+    ndim : int, optional
+        The number of dimensions.
+
+    See Also
+    --------
+    numpy.diag_indices
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    idx = arange(n, dtype=int)
+    return (idx,) * ndim
+
+
+@add_boilerplate("arr")
+def diag_indices_from(arr):
+    """
+    Return the indices to access the main diagonal of an n-dimensional array.
+
+    See diag_indices for full details.
+
+    Parameters
+    ----------
+    arr : array, at least 2-D
+
+    See Also
+    --------
+    numpy.diag_indices_from, numpy.diag_indices
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    if not arr.ndim >= 2:
+        raise ValueError("input array must be at least 2-d")
+    # For more than d=2, the strided formula is only valid for arrays with
+    # all dimensions equal, so we check first.
+    for i in range(1, arr.ndim):
+        if arr.shape[i] != arr.shape[0]:
+            raise ValueError("All dimensions of input must be of equal length")
+
+    return diag_indices(arr.shape[0], arr.ndim)
+
+
 @add_boilerplate("a")
 def take(a, indices, axis=None, out=None, mode="raise"):
     """
@@ -3027,6 +3130,7 @@ def einsum(expr, *operands, out=None, optimize=False):
     --------
     Multiple GPUs, Multiple CPUs
     """
+    operands = [convert_to_cunumeric_ndarray(op) for op in operands]
     if not optimize:
         optimize = NullOptimizer()
     # This call normalizes the expression (adds the output part if it's
@@ -3066,6 +3170,87 @@ def einsum(expr, *operands, out=None, optimize=False):
         operands.append(sub_result)
     assert len(operands) == 1
     return operands[0]
+
+
+def einsum_path(expr, *operands, optimize="greedy"):
+    """
+    Evaluates the lowest cost contraction order for an einsum expression by
+    considering the creation of intermediate arrays.
+
+    Parameters
+    ----------
+    expr : str
+        Specifies the subscripts for summation.
+    *operands : list of array_like
+        These are the arrays for the operation.
+    optimize : {bool, list, tuple, 'greedy', 'optimal'}
+        Choose the type of path. If a tuple is provided, the second argument is
+        assumed to be the maximum intermediate size created. If only a single
+        argument is provided the largest input or output array size is used
+        as a maximum intermediate size.
+        * if a list is given that starts with ``einsum_path``, uses this as the
+          contraction path
+        * if False no optimization is taken
+        * if True defaults to the 'greedy' algorithm
+        * 'optimal' An algorithm that combinatorially explores all possible
+          ways of contracting the listed tensors and chooses the least costly
+          path. Scales exponentially with the number of terms in the
+          contraction.
+        * 'greedy' An algorithm that chooses the best pair contraction
+          at each step. Effectively, this algorithm searches the largest inner,
+          Hadamard, and then outer products at each step. Scales cubically with
+          the number of terms in the contraction. Equivalent to the 'optimal'
+          path for most contractions.
+        Default is 'greedy'.
+
+    Returns
+    -------
+    path : list of tuples
+        A list representation of the einsum path.
+    string_repr : str
+        A printable representation of the einsum path.
+
+    Notes
+    -----
+    The resulting path indicates which terms of the input contraction should be
+    contracted first, the result of this contraction is then appended to the
+    end of the contraction list. This list can then be iterated over until all
+    intermediate contractions are complete.
+
+    See Also
+    --------
+    numpy.einsum_path
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    operands = [convert_to_cunumeric_ndarray(op) for op in operands]
+    memory_limit = _builtin_max(op.size for op in operands)
+    if type(optimize) == tuple:
+        if len(optimize) != 2:
+            raise ValueError("einsum_path expects optimize tuples of size 2")
+        optimize, memory_limit = optimize
+    if optimize is True:
+        optimize = "greedy"
+    elif optimize is False:
+        optimize = [tuple(range(len(operands)))]
+    elif optimize in ["greedy", "optimal"]:
+        pass
+    elif (
+        type(optimize) == list
+        and len(optimize) > 1
+        and optimize[0] == "einsum_path"
+    ):
+        optimize = optimize[1:]
+    else:
+        raise ValueError(
+            f"einsum_path: unexpected value for optimize: {optimize}"
+        )
+    path, info = oe.contract_path(
+        expr, *operands, optimize=optimize, memory_limit=memory_limit
+    )
+    return ["einsum_path"] + path, info
 
 
 @add_boilerplate("a")
