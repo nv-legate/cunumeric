@@ -4522,8 +4522,8 @@ def count_nonzero(a, axis=None):
     return ndarray._perform_unary_reduction(
         UnaryRedCode.COUNT_NONZERO,
         a,
+        res_dtype=np.dtype(np.uint64),
         axis=axis,
-        dtype=np.dtype(np.uint64),
     )
 
 

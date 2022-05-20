@@ -585,7 +585,7 @@ class ndarray:
             UnaryRedCode.CONTAINS,
             self,
             axis=None,
-            dtype=bool,
+            res_dtype=bool,
             args=args,
         )
 
@@ -1500,9 +1500,9 @@ class ndarray:
             UnaryRedCode.ALL,
             self,
             axis=axis,
+            res_dtype=bool,
             out=out,
             keepdims=keepdims,
-            dtype=bool,
             initial=initial,
             where=where,
         )
@@ -1535,9 +1535,9 @@ class ndarray:
             UnaryRedCode.ANY,
             self,
             axis=axis,
+            res_dtype=bool,
             out=out,
             keepdims=keepdims,
-            dtype=bool,
             initial=initial,
             where=where,
         )
@@ -1571,7 +1571,7 @@ class ndarray:
             UnaryRedCode.ARGMAX,
             self,
             axis=axis,
-            dtype=np.dtype(np.int64),
+            res_dtype=np.dtype(np.int64),
             out=out,
         )
 
@@ -1604,7 +1604,7 @@ class ndarray:
             UnaryRedCode.ARGMIN,
             self,
             axis=axis,
-            dtype=np.dtype(np.int64),
+            res_dtype=np.dtype(np.int64),
             out=out,
         )
 
@@ -2778,6 +2778,7 @@ class ndarray:
             UnaryRedCode.PROD,
             self_array,
             axis=axis,
+            dtype=dtype,
             out=out,
             keepdims=keepdims,
             initial=initial,
@@ -3051,6 +3052,7 @@ class ndarray:
             UnaryRedCode.SUM,
             self_array,
             axis=axis,
+            dtype=dtype,
             out=out,
             keepdims=keepdims,
             initial=initial,
@@ -3483,12 +3485,28 @@ class ndarray:
         src,
         axis=None,
         dtype=None,
+        res_dtype=None,
         out=None,
         keepdims=False,
         args=None,
         initial=None,
         where=True,
     ):
+        # When 'res_dtype' is not None, the input and output of the reduction
+        # have different types. Such reduction operators don't take a dtype of
+        # the accumulator
+        if res_dtype is not None:
+            assert dtype is None
+            dtype = src.dtype
+        else:
+            # If 'dtype' exists, that determines both the accumulation dtype
+            # and the output dtype
+            if dtype is not None:
+                res_dtype = dtype
+            else:
+                dtype = src.dtype
+                res_dtype = src.dtype
+
         # TODO: Need to require initial to be given when the array is empty
         #       or a where mask is given.
         if isinstance(where, ndarray):
@@ -3536,23 +3554,25 @@ class ndarray:
             elif keepdims:
                 out_shape += (1,)
 
-        # If no output dtype is given, the output has the same dtype as the
-        # input
-        if dtype is None:
-            dtype = src.dtype
-
         if out is None:
-            out = ndarray(shape=out_shape, dtype=dtype, inputs=(src, where))
+            out = ndarray(
+                shape=out_shape, dtype=res_dtype, inputs=(src, where)
+            )
         elif out.shape != out_shape:
             raise ValueError(
                 f"the output shape mismatch: expected {out_shape} but got "
                 f"{out.shape}"
             )
 
-        if out.dtype == dtype:
+        if dtype != src.dtype:
+            src = src.astype(dtype)
+
+        if out.dtype == res_dtype:
             result = out
         else:
-            result = ndarray(shape=out_shape, dtype=dtype, inputs=(src, where))
+            result = ndarray(
+                shape=out_shape, dtype=res_dtype, inputs=(src, where)
+            )
 
         if where:
             result._thunk.unary_reduction(
