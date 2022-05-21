@@ -193,6 +193,7 @@ class NumPyThunk(ABC):
         redop,
         rhs,
         where,
+        orig_axis,
         axes,
         keepdims,
         args,
