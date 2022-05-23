@@ -704,13 +704,16 @@ class EagerArray(NumPyThunk):
         else:
             raise RuntimeError("unsupported unary op " + str(op))
 
-    def unary_reduction(self, op, rhs, where, axes, keepdims, args, initial):
+    def unary_reduction(
+        self, op, rhs, where, orig_axis, axes, keepdims, args, initial
+    ):
         self.check_eager_args(rhs)
         if self.deferred is not None:
             self.deferred.unary_reduction(
                 op,
                 rhs,
                 where,
+                orig_axis,
                 axes,
                 keepdims,
                 args,
@@ -726,22 +729,24 @@ class EagerArray(NumPyThunk):
             fn(
                 rhs.array,
                 out=self.array,
-                axis=axes,
+                axis=orig_axis,
                 keepdims=keepdims,
                 where=where
                 if not isinstance(where, EagerArray)
                 else where.array,
             )
         elif op == UnaryRedCode.ARGMAX:
-            assert len(axes) == 1
-            np.argmax(rhs.array, out=self.array, axis=axes[0])
+            np.argmax(
+                rhs.array,
+                out=self.array,
+                axis=orig_axis,
+            )
         elif op == UnaryRedCode.ARGMIN:
-            assert len(axes) == 1
-            np.argmin(rhs.array, out=self.array, axis=axes[0])
+            np.argmin(rhs.array, out=self.array, axis=orig_axis)
         elif op == UnaryRedCode.CONTAINS:
             self.array.fill(args[0] in rhs.array)
         elif op == UnaryRedCode.COUNT_NONZERO:
-            self.array[()] = np.count_nonzero(rhs.array, axis=axes)
+            self.array[()] = np.count_nonzero(rhs.array, axis=orig_axis)
         else:
             raise RuntimeError("unsupported unary reduction op " + str(op))
 

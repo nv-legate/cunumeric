@@ -2246,6 +2246,70 @@ def where(a, x=None, y=None):
 
 
 # Indexing-like operations
+def indices(dimensions, dtype=int, sparse=False):
+    """
+    Return an array representing the indices of a grid.
+    Compute an array where the subarrays contain index values 0, 1, ...
+    varying only along the corresponding axis.
+
+    Parameters
+    ----------
+    dimensions : sequence of ints
+        The shape of the grid.
+    dtype : dtype, optional
+        Data type of the result.
+    sparse : boolean, optional
+        Return a sparse representation of the grid instead of a dense
+        representation. Default is False.
+
+    Returns
+    -------
+    grid : one ndarray or tuple of ndarrays
+        If sparse is False:
+            Returns one array of grid indices,
+            ``grid.shape = (len(dimensions),) + tuple(dimensions)``.
+        If sparse is True:
+            Returns a tuple of arrays, with
+            ``grid[i].shape = (1, ..., 1, dimensions[i], 1, ..., 1)`` with
+            dimensions[i] in the ith place
+    See Also
+    --------
+    numpy.grid, numpy.mgrid, numpy.ogrid, numpy.meshgrid
+
+    Notes
+    -----
+    The output shape in the dense case is obtained by prepending the number
+    of dimensions in front of the tuple of dimensions, i.e. if `dimensions`
+    is a tuple ``(r0, ..., rN-1)`` of length ``N``, the output shape is
+    ``(N, r0, ..., rN-1)``.
+    The subarrays ``grid[k]`` contains the N-D array of indices along the
+    ``k-th`` axis. Explicitly::
+        grid[k, i0, i1, ..., iN-1] = ik
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    # implementation of indices routine is adapted from NumPy
+    dimensions = tuple(dimensions)
+    N = len(dimensions)
+    shape = (1,) * N
+    if sparse:
+        res = tuple()
+    else:
+        out_shape = (N,) + dimensions
+        res = empty(out_shape, dtype=dtype)
+    for i, dim in enumerate(dimensions):
+        idx = arange(dim, dtype=dtype).reshape(
+            shape[:i] + (dim,) + shape[i + 1 :]
+        )
+        if sparse:
+            res = res + (idx,)
+        else:
+            res[i] = idx
+    return res
+
+
 def diag_indices(n, ndim=2):
     """
     Return the indices to access the main diagonal of an array.
@@ -4458,7 +4522,7 @@ def partition(a, kth, axis=-1, kind="introselect", order=None):
 
 
 @add_boilerplate("a")
-def argmax(a, axis=None, out=None):
+def argmax(a, axis=None, out=None, *, keepdims=False):
     """
 
     Returns the indices of the maximum values along an axis.
@@ -4473,6 +4537,10 @@ def argmax(a, axis=None, out=None):
     out : ndarray, optional
         If provided, the result will be inserted into this array. It should
         be of the appropriate shape and dtype.
+    keepdims : bool, optional
+        If this is set to True, the axes which are reduced are left
+        in the result as dimensions with size one. With this option,
+        the result will broadcast correctly against the array.
 
     Returns
     -------
@@ -4488,14 +4556,11 @@ def argmax(a, axis=None, out=None):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    if out is not None:
-        if out.dtype != np.int64:
-            raise ValueError("output array must have int64 dtype")
-    return a.argmax(axis=axis, out=out)
+    return a.argmax(axis=axis, out=out, keepdims=keepdims)
 
 
 @add_boilerplate("a")
-def argmin(a, axis=None, out=None):
+def argmin(a, axis=None, out=None, *, keepdims=False):
     """
 
     Returns the indices of the minimum values along an axis.
@@ -4510,6 +4575,10 @@ def argmin(a, axis=None, out=None):
     out : ndarray, optional
         If provided, the result will be inserted into this array. It should
         be of the appropriate shape and dtype.
+    keepdims : bool, optional
+        If this is set to True, the axes which are reduced are left
+        in the result as dimensions with size one. With this option,
+        the result will broadcast correctly against the array.
 
     Returns
     -------
@@ -4525,10 +4594,7 @@ def argmin(a, axis=None, out=None):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    if out is not None:
-        if out is not None and out.dtype != np.int64:
-            raise ValueError("output array must have int64 dtype")
-    return a.argmin(axis=axis, out=out)
+    return a.argmin(axis=axis, out=out, keepdims=keepdims)
 
 
 # Counting
@@ -4569,9 +4635,8 @@ def count_nonzero(a, axis=None):
     return ndarray._perform_unary_reduction(
         UnaryRedCode.COUNT_NONZERO,
         a,
+        res_dtype=np.dtype(np.uint64),
         axis=axis,
-        dtype=np.dtype(np.uint64),
-        check_types=False,
     )
 
 

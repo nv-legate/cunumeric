@@ -1705,6 +1705,7 @@ class DeferredArray(NumPyThunk):
         op,
         src,
         where,
+        orig_axis,
         axes,
         keepdims,
         args,
@@ -1716,9 +1717,19 @@ class DeferredArray(NumPyThunk):
 
         argred = op in (UnaryRedCode.ARGMAX, UnaryRedCode.ARGMIN)
 
+        if argred:
+            argred_dtype = self.runtime.get_arg_dtype(rhs_array.dtype)
+            lhs_array = self.runtime.create_empty_thunk(
+                lhs_array.shape,
+                dtype=argred_dtype,
+                inputs=[self],
+            )
+
         # See if we are doing reduction to a point or another region
         if lhs_array.size == 1:
-            assert axes is None or len(axes) == rhs_array.ndim
+            assert axes is None or len(axes) == rhs_array.ndim - (
+                0 if keepdims else lhs_array.ndim
+            )
 
             task = self.context.create_task(CuNumericOpCode.SCALAR_UNARY_RED)
 
@@ -1733,20 +1744,13 @@ class DeferredArray(NumPyThunk):
             task.add_reduction(lhs_array.base, _UNARY_RED_TO_REDUCTION_OPS[op])
             task.add_input(rhs_array.base)
             task.add_scalar_arg(op, ty.int32)
+            task.add_scalar_arg(rhs_array.shape, (ty.int64,))
 
             self.add_arguments(task, args)
 
             task.execute()
 
         else:
-            if argred:
-                argred_dtype = self.runtime.get_arg_dtype(rhs_array.dtype)
-                lhs_array = self.runtime.create_empty_thunk(
-                    lhs_array.shape,
-                    dtype=argred_dtype,
-                    inputs=[self],
-                )
-
             # Before we perform region reduction, make sure to have the lhs
             # initialized. If an initial value is given, we use it, otherwise
             # we use the identity of the reduction operator
@@ -1786,13 +1790,13 @@ class DeferredArray(NumPyThunk):
 
             task.execute()
 
-            if argred:
-                self.unary_op(
-                    UnaryOpCode.GETARG,
-                    lhs_array,
-                    True,
-                    [],
-                )
+        if argred:
+            self.unary_op(
+                UnaryOpCode.GETARG,
+                lhs_array,
+                True,
+                [],
+            )
 
     def isclose(self, rhs1, rhs2, rtol, atol, equal_nan):
         assert not equal_nan
