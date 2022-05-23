@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-
-# Copyright 2021-2022 NVIDIA Corporation
+# Copyright 2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,16 +14,20 @@
 #
 from __future__ import annotations
 
-import sys
+FEATURES = (
+    "eager",
+    "cuda",
+    "openmp",
+    "cpus",
+)
 
-from tests._utils.config import Config
-from tests._utils.system import System
-from tests._utils.test_plan import TestPlan
+SKIPPED_EXAMPLES = {
+    "examples/ingest.py",
+    "examples/kmeans_sort.py",
+    "examples/lstm_full.py",
+    "examples/wgrad.py",
+}
 
-if __name__ == "__main__":
-    config = Config(sys.argv)
-    system = System(dry_run=config.dry_run, debug=config.debug)
-
-    plan = TestPlan(config, system)
-
-    sys.exit(plan.execute())
+PER_FILE_ARGS = {
+    "examples/lstm_full.py": ["--file", "resources/lstm_input.txt"],
+}
