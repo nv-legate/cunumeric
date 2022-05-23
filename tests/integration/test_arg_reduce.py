@@ -31,7 +31,9 @@ def test_argmax_and_argmin(ndim, keepdims):
     for fn in ("argmax", "argmin"):
         fn_np = getattr(np, fn)
         fn_num = getattr(num, fn)
-        assert np.array_equal(fn_np(in_np, keepdims=keepdims), fn_num(in_num, keepdims=keepdims))
+        assert np.array_equal(
+            fn_np(in_np, keepdims=keepdims), fn_num(in_num, keepdims=keepdims)
+        )
         if in_num.ndim == 1:
             continue
         for axis in range(in_num.ndim):
