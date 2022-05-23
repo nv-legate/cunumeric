@@ -158,7 +158,7 @@ def multi_dot(arrays, *, out=None):
 
     Parameters
     ----------
-    arrays : sequence of array_like
+    arrays : Sequence[array_like]
         If the first argument is 1-D it is treated as a row vector.
         If the last argument is 1-D it is treated as a column vector.
         The other arguments must be 2-D.
