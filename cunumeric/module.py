@@ -1066,9 +1066,9 @@ def moveaxis(a, source, destination):
     ----------
     a : ndarray
         The array whose axes should be reordered.
-    source : int or sequence of int
+    source : int or Sequence[int]
         Original positions of the axes to move. These must be unique.
-    destination : int or sequence of int
+    destination : int or Sequence[int]
         Destination positions for each of the original axes. These must also be
         unique.
 
@@ -2254,27 +2254,26 @@ def indices(dimensions, dtype=int, sparse=False):
 
     Parameters
     ----------
-    dimensions : sequence of ints
+    dimensions : Sequence[int]
         The shape of the grid.
-    dtype : dtype, optional
+    dtype : data-type, optional
         Data type of the result.
-    sparse : boolean, optional
+    sparse : bool, optional
         Return a sparse representation of the grid instead of a dense
         representation. Default is False.
 
     Returns
     -------
-    grid : one ndarray or tuple of ndarrays
-        If sparse is False:
-            Returns one array of grid indices,
-            ``grid.shape = (len(dimensions),) + tuple(dimensions)``.
-        If sparse is True:
-            Returns a tuple of arrays, with
-            ``grid[i].shape = (1, ..., 1, dimensions[i], 1, ..., 1)`` with
-            dimensions[i] in the ith place
+    grid : ndarray or Tuple[ndarray, ...]
+        If sparse is False returns one array of grid indices,
+        ``grid.shape = (len(dimensions),) + tuple(dimensions)``.
+        If sparse is True returns a tuple of arrays, with
+        ``grid[i].shape = (1, ..., 1, dimensions[i], 1, ..., 1)`` with
+        dimensions[i] in the ith place
+
     See Also
     --------
-    numpy.grid, numpy.mgrid, numpy.ogrid, numpy.meshgrid
+    numpy.indices
 
     Notes
     -----
@@ -2283,7 +2282,8 @@ def indices(dimensions, dtype=int, sparse=False):
     is a tuple ``(r0, ..., rN-1)`` of length ``N``, the output shape is
     ``(N, r0, ..., rN-1)``.
     The subarrays ``grid[k]`` contains the N-D array of indices along the
-    ``k-th`` axis. Explicitly::
+    ``k-th`` axis. Explicitly:
+
         grid[k, i0, i1, ..., iN-1] = ik
 
     Availability
@@ -2349,7 +2349,8 @@ def diag_indices_from(arr):
 
     Parameters
     ----------
-    arr : array, at least 2-D
+    arr : array_like
+        at least 2-D
 
     See Also
     --------
@@ -3245,13 +3246,14 @@ def einsum_path(expr, *operands, optimize="greedy"):
     ----------
     expr : str
         Specifies the subscripts for summation.
-    *operands : list of array_like
+    *operands : Sequence[array_like]
         These are the arrays for the operation.
-    optimize : {bool, list, tuple, 'greedy', 'optimal'}
+    optimize : ``{bool, list, tuple, 'greedy', 'optimal'}``
         Choose the type of path. If a tuple is provided, the second argument is
         assumed to be the maximum intermediate size created. If only a single
         argument is provided the largest input or output array size is used
         as a maximum intermediate size.
+
         * if a list is given that starts with ``einsum_path``, uses this as the
           contraction path
         * if False no optimization is taken
@@ -3265,11 +3267,12 @@ def einsum_path(expr, *operands, optimize="greedy"):
           Hadamard, and then outer products at each step. Scales cubically with
           the number of terms in the contraction. Equivalent to the 'optimal'
           path for most contractions.
+
         Default is 'greedy'.
 
     Returns
     -------
-    path : list of tuples
+    path : list[Tuple[int,...]]
         A list representation of the einsum path.
     string_repr : str
         A printable representation of the einsum path.
