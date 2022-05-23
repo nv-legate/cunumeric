@@ -25,8 +25,10 @@ namespace cunumeric {
 template <typename T>
 class Argval {
  public:
+  // Calling this constructor manually is unsafe, as the members are left uninitialized.
+  // This constructor exists only to make nvcc happy when we use a shared memory of Argval<T>.
   __CUDA_HD__
-  Argval();
+  Argval() {}
   __CUDA_HD__
   Argval(T value);
   __CUDA_HD__

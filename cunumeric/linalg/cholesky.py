@@ -100,7 +100,7 @@ MIN_CHOLESKY_MATRIX_SIZE = 8192
 
 # TODO: We need a better cost model
 def choose_color_shape(runtime, shape):
-    if runtime.test_mode:
+    if runtime.args.test_mode:
         num_tiles = runtime.num_procs * 2
         return (num_tiles, num_tiles)
     else:

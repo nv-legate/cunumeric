@@ -31,7 +31,7 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
                 const Pitches<DIM - 1> pitches,
                 int volume)
 {
-  const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+  const size_t idx = global_tid_1d();
   if (idx >= volume) return;
   auto p = pitches.unflatten(idx, rect.lo);
   out[p] = choices[index_arr[p]][p];
@@ -42,7 +42,7 @@ template <typename VAL>
 __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM) choose_kernel_dense(
   VAL* outptr, const int64_t* indexptr, Buffer<const VAL*, 1> choices, int volume)
 {
-  const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+  const size_t idx = global_tid_1d();
   if (idx >= volume) return;
   outptr[idx] = choices[indexptr[idx]][idx];
 }

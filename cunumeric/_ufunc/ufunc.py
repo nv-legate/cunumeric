@@ -16,7 +16,6 @@
 import numpy as np
 
 from ..array import convert_to_cunumeric_ndarray, ndarray
-from ..utils import broadcast_shapes
 
 _UNARY_DOCSTRING_TEMPLATE = """{}
 
@@ -285,7 +284,7 @@ class ufunc:
         shapes.extend(arr.shape for arr in outputs if arr is not None)
 
         # Check if the broadcasting is possible
-        out_shape = broadcast_shapes(*shapes)
+        out_shape = np.broadcast_shapes(*shapes)
 
         for out in outputs:
             if out is not None and out.shape != out_shape:
@@ -664,10 +663,6 @@ class binary_ufunc(ufunc):
             raise NotImplementedError(
                 f"reduction for {self} is not yet implemented"
             )
-        if out is not None:
-            raise NotImplementedError(
-                "reduction for {self} does not take an `out` argument"
-            )
         if not isinstance(where, bool) or not where:
             raise NotImplementedError(
                 "the 'where' keyword is not yet supported"
@@ -683,7 +678,7 @@ class binary_ufunc(ufunc):
             array,
             axis=axis,
             dtype=dtype,
-            # out=out,
+            out=out,
             keepdims=keepdims,
             initial=initial,
             where=where,

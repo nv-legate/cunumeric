@@ -39,11 +39,6 @@ _SUPPORTED_DTYPES = [
 ]
 
 
-def broadcast_shapes(*args: tuple[int, ...]) -> tuple[int, ...]:
-    arrays = [np.empty(x, dtype=[]) for x in args]
-    return np.broadcast(*arrays).shape
-
-
 def is_advanced_indexing(key: Any) -> bool:
     if key is Ellipsis or key is None:  # np.newdim case
         return False

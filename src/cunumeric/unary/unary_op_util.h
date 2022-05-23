@@ -202,13 +202,18 @@ struct UnaryOp<UnaryOpCode::ABSOLUTE, CODE> {
 
   UnaryOp(const std::vector<legate::Store>& args) {}
 
-  template <
-    typename _T                                                                    = T,
-    std::enable_if_t<legate::is_complex<_T>::value or
-                     (std::is_integral<_T>::value and std::is_signed<_T>::value)>* = nullptr>
+  template <typename _T = T, std::enable_if_t<legate::is_complex<_T>::value>* = nullptr>
   constexpr decltype(auto) operator()(const _T& x) const
   {
     return abs(x);
+  }
+
+  template <
+    typename _T                                                                    = T,
+    std::enable_if_t<(std::is_integral<_T>::value and std::is_signed<_T>::value)>* = nullptr>
+  constexpr _T operator()(const _T& x) const
+  {
+    return x >= 0 ? x : -x;
   }
 
   template <
@@ -222,10 +227,10 @@ struct UnaryOp<UnaryOpCode::ABSOLUTE, CODE> {
   template <
     typename _T                                                                        = T,
     std::enable_if_t<!legate::is_complex<_T>::value and !std::is_integral<_T>::value>* = nullptr>
-  constexpr decltype(auto) operator()(const _T& x) const
+  constexpr _T operator()(const _T& x) const
   {
     using std::fabs;
-    return fabs(x);
+    return static_cast<_T>(fabs(x));
   }
 };
 
@@ -889,7 +894,7 @@ struct UnaryOp<UnaryOpCode::NEGATIVE, CODE> {
 
   UnaryOp(const std::vector<legate::Store>& args) {}
 
-  constexpr decltype(auto) operator()(const T& x) const { return -x; }
+  constexpr T operator()(const T& x) const { return -x; }
 };
 
 template <legate::LegateTypeCode CODE>
@@ -1116,7 +1121,7 @@ struct UnaryOp<UnaryOpCode::SQUARE, CODE> {
 
   UnaryOp(const std::vector<legate::Store>& args) {}
 
-  constexpr decltype(auto) operator()(const T& x) const { return x * x; }
+  constexpr T operator()(const T& x) const { return x * x; }
 };
 
 template <legate::LegateTypeCode CODE>

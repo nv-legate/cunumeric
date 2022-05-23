@@ -20,5 +20,7 @@ Indexing-like operations
    :toctree: generated/
 
    choose
+   compress
    diag
    diagonal
+   take
