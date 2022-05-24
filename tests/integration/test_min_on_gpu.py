@@ -13,15 +13,17 @@
 # limitations under the License.
 #
 
-import cunumeric as num
+import pytest
+
+import cunumeric as cn
 
 
-def test():
-    x = num.array([1, 2, 3])
-    assert num.min(x) == 1
-
-    return
+def test_min():
+    x = cn.array([1, 2, 3])
+    assert cn.min(x) == 1
 
 
 if __name__ == "__main__":
-    test()
+    import sys
+
+    sys.exit(pytest.main(sys.argv))
