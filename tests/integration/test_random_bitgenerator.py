@@ -44,6 +44,15 @@ def test_bitgenerator_PHILOX4_32_10():
     inner_test_bitgenerator_type(num.random.PHILOX4_32_10)
 
 
+def test_force_build():
+    bitgen = num.random.XORWOW(42, True)
+    bitgen.destroy()
+    bitgen = num.random.MRG32k3a(42, True)
+    bitgen.destroy()
+    bitgen = num.random.PHILOX4_32_10(42, True)
+    bitgen.destroy()
+
+
 if __name__ == "__main__":
     import sys
 

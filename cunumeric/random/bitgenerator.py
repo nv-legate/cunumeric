@@ -20,7 +20,12 @@ from cunumeric.runtime import runtime
 
 
 class BitGenerator:
-    def __init__(self, seed=None, generatorType=BitGeneratorType.DEFAULT):
+    def __init__(
+        self,
+        seed=None,
+        generatorType=BitGeneratorType.DEFAULT,
+        forceBuild=False,
+    ):
         if type(self) is BitGenerator:
             raise NotImplementedError(
                 "BitGenerator is a base class and cannot be instantized"
@@ -29,7 +34,7 @@ class BitGenerator:
         self.seed = seed
         self.flags = 0
         self.handle = runtime.bitgenerator_create(
-            generatorType, seed, self.flags
+            generatorType, seed, self.flags, forceBuild
         )
 
     def __del__(self):
@@ -55,25 +60,15 @@ class BitGenerator:
 
 
 class XORWOW(BitGenerator):
-    def __init__(self, seed=None):
-        super().__init__(seed, BitGeneratorType.XORWOW)
+    def __init__(self, seed=None, forceBuild=False):
+        super().__init__(seed, BitGeneratorType.XORWOW, forceBuild)
 
 
 class MRG32k3a(BitGenerator):
-    def __init__(self, seed=None):
-        super().__init__(seed, BitGeneratorType.MRG32K3A)
-
-
-class MTGP32(BitGenerator):
-    def __init__(self, seed=None):
-        super().__init__(seed, BitGeneratorType.MTGP32)
-
-
-class MT19937(BitGenerator):
-    def __init__(self, seed=None):
-        super().__init__(seed, BitGeneratorType.MT19937)
+    def __init__(self, seed=None, forceBuild=False):
+        super().__init__(seed, BitGeneratorType.MRG32K3A, forceBuild)
 
 
 class PHILOX4_32_10(BitGenerator):
-    def __init__(self, seed=None):
-        super().__init__(seed, BitGeneratorType.PHILOX4_32_10)
+    def __init__(self, seed=None, forceBuild=False):
+        super().__init__(seed, BitGeneratorType.PHILOX4_32_10, forceBuild)
