@@ -63,8 +63,8 @@ struct ScanGlobalImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
     for(uint64_t index = 0; index < volume; index += stride){
       // RRRR depending on stride and volume this should either call multiple streams
       // RRRR or use a cub version (currently not implemented)
-      // get the corresponding ND index with base zero to use for sum_val
-      auto sum_valsp = out_pitches.unflatten(index, out_rect.lo) - out_rect.lo;
+      // get the corresponding ND index to use for sum_val
+      auto sum_valsp = out_pitches.unflatten(index, out_rect.lo);
       // first element on scan axis
       sum_valsp[DIM - 1] = 0;
       auto sum_valsp_end = sum_valsp;

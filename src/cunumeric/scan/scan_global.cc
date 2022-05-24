@@ -50,8 +50,8 @@ struct ScanGlobalImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
 
     auto stride = out_rect.hi[DIM - 1] - out_rect.lo[DIM - 1] + 1;
     for(uint64_t index = 0; index < volume; index += stride){
-      // get the corresponding ND index with base zero to use for sum_val
-      auto sum_valsp = out_pitches.unflatten(index, out_rect.lo) - out_rect.lo;
+      // get the corresponding ND index to use for sum_val
+      auto sum_valsp = out_pitches.unflatten(index, out_rect.lo);
       // first element on scan axis
       sum_valsp[DIM - 1] = 0;
       auto sum_valsp_end = sum_valsp;
