@@ -26,6 +26,7 @@
 #include "cunumeric/random/bitgenerator_util.h"
 
 #include "cunumeric/random/curand_help.h"
+#include "cunumeric/random/curandex/curand_ex.h"
 
 namespace cunumeric {
 
@@ -38,112 +39,48 @@ template <VariantKind kind>
 struct CURANDGeneratorBuilder;
 
 struct CURANDGenerator {
-  curandGenerator_t gen;
+  curandGeneratorEx_t gen;
   uint64_t seed;
-  uint64_t offset;
+  uint64_t generatorId;
   curandRngType type;
-  bool supports_skipahead;
 
  protected:
-  static unsigned short build_id(unsigned long long id)
+  CURANDGenerator(BitGeneratorType gentype, uint64_t seed, uint64_t generatorId)
+    : type(get_curandRngType(gentype)), seed(seed), generatorId(generatorId)
   {
-    return (id & 0xFFFF) ^ ((id >> 16) & 0xFFFF) ^ ((id >> 32) & 0xFFFF) ^ ((id >> 48) & 0xFFFF);
-  }
-
-  CURANDGenerator()
-  {
-    // TODO: find some better form of indexing for the processor - not just some constructed number
-    auto id                = Legion::Processor::get_executing_processor().id;
-    unsigned short highnum = build_id(id);
-    offset                 = (uint64_t)highnum << 48;
     log_curand.debug() << "CURANDGenerator::create";
   }
+
+  CURANDGenerator(const CURANDGenerator&) = delete;
 
  public:
   virtual ~CURANDGenerator() { log_curand.debug() << "CURANDGenerator::destroy"; }
 
-  void skip_ahead(uint64_t count)
-  {
-    if (supports_skipahead) {
-      // skip ahead
-      log_curand.debug() << "[skip-ahead] : count = " << count << " - offset = " << offset;
-      offset += count;
-      CHECK_CURAND(::curandSetGeneratorOffset(gen, offset));
-    } else {
-      const Realm::Point<1> zero1d(0);
-      constexpr size_t SKIP_AHEAD_BUFFER_SIZE = 64 * 512 * 16 * sizeof(uint32_t);
-      // TODO: verify if size is in bytes or in entries -> could not find documentation
-      // https://nv-legate.github.io/legate.core/search.html?q=create_buffer&check_keywords=yes&area=default
-      auto temp_buffer =
-        legate::create_buffer<uint32_t, 1>(SKIP_AHEAD_BUFFER_SIZE, Memory::GPU_FB_MEM, 256);
-      void* dev_buffer = temp_buffer.ptr(zero1d);
-      // actually generate numbers in the temporary buffer
-      log_curand.debug() << "[blank-generate] : count = " << count << " - offset = " << offset;
-      uint64_t remain = count;
-      while (remain > 0) {
-        if (remain < (uint64_t)(SKIP_AHEAD_BUFFER_SIZE / sizeof(uint32_t))) {
-          CHECK_CURAND(::curandGenerate(gen, (uint32_t*)dev_buffer, (size_t)remain));
-          offset += remain;
-          break;
-        } else {
-          CHECK_CURAND(::curandGenerate(
-            gen, (uint32_t*)dev_buffer, SKIP_AHEAD_BUFFER_SIZE / sizeof(uint32_t)));
-          offset += SKIP_AHEAD_BUFFER_SIZE / sizeof(uint32_t);
-        }
-        remain -= SKIP_AHEAD_BUFFER_SIZE / sizeof(uint32_t);
-      }
-      // TODO: verify if buffer needs deallocation
-    }
-  }
-
   void generate_raw(uint64_t count, uint32_t* out)
   {
-    CHECK_CURAND(::curandGenerate(gen, out, count));
-    offset += count;
+    CHECK_CURAND(::curandGenerateRawUInt32Ex(gen, out, count));
   }
 };
 
 struct generate_fn {
   template <int32_t DIM>
-  size_t operator()(CURANDGenerator& gen,
-                    legate::Store& output,
-                    const DomainPoint& strides,
-                    uint64_t totalcount)
+  size_t operator()(CURANDGenerator& gen, legate::Store& output)
   {
-    const auto proc = Legion::Processor::get_executing_processor();
-
     auto rect       = output.shape<DIM>();
     uint64_t volume = rect.volume();
 
+    const auto proc = Legion::Processor::get_executing_processor();
     log_curand.debug() << "proc=" << proc << " - shape = " << rect;
-    log_curand.debug() << "proc=" << proc << " - shape = " << strides;
-
-    uint64_t baseoffset = 0;
-    for (size_t k = 0; k < DIM; ++k) baseoffset += rect.lo[k] * strides[k];
-
-    log_curand.debug() << "[proc=" << proc.id << "] - base offset = " << baseoffset
-                       << " - total count = " << totalcount;
-
-    assert(baseoffset + volume <= totalcount);
-
-    uint64_t initialoffset = gen.offset;
 
     if (volume > 0) {
       auto out = output.write_accessor<uint32_t, DIM>(rect);
 
-      assert(out.accessor.is_dense_row_major(rect));
-
       uint32_t* p = out.ptr(rect);
 
-      if (baseoffset != 0) gen.skip_ahead(baseoffset);
       gen.generate_raw(volume, p);
     }
 
-    // TODO: check if this is needed as setoffset is to be called on next call
-    if (gen.offset != initialoffset + totalcount)
-      gen.skip_ahead(initialoffset + totalcount - gen.offset);
-
-    return totalcount;
+    return volume;
   }
 };
 
@@ -184,9 +121,12 @@ struct generator_map {
     return m_generators[generatorID];
   }
 
-  void create(uint32_t generatorID, BitGeneratorType gentype)
+  // called by the processor later using the generator
+  void create(uint32_t generatorID, BitGeneratorType gentype, uint64_t seed, uint32_t flags)
   {
-    CURANDGenerator* cugenptr = CURANDGeneratorBuilder<kind>::build(gentype);
+    const auto proc = Legion::Processor::get_executing_processor();
+    CURANDGenerator* cugenptr =
+      CURANDGeneratorBuilder<kind>::build(gentype, seed, (uint64_t)proc.id, flags);
 
     std::lock_guard<std::mutex> guard(lock);
     // safety check
@@ -215,12 +155,6 @@ struct generator_map {
 
     CURANDGeneratorBuilder<kind>::destroy(cugenptr);
   }
-
-  void set_seed(uint32_t generatorID, uint64_t seed)
-  {
-    CURANDGenerator* genptr = get(generatorID);
-    CHECK_CURAND(::curandSetPseudoRandomGeneratorSeed(genptr->gen, seed));
-  }
 };
 
 template <VariantKind kind>
@@ -243,18 +177,21 @@ struct BitGeneratorImplBody {
   }
 
  public:
-  void operator()(BitGeneratorOperation op,
-                  int32_t generatorID,
-                  uint64_t parameter,
-                  const DomainPoint& strides,
-                  std::vector<legate::Store>& output,
-                  std::vector<legate::Store>& args)
+  void operator()(
+    BitGeneratorOperation op,
+    int32_t generatorID,
+    uint32_t generatorType,  // to allow for lazy initialization, generatorType is always passed
+    uint64_t seed,           // to allow for lazy initialization, seed is always passed
+    uint32_t flags,          // for future use - ordering, etc.
+    const DomainPoint& strides,
+    std::vector<legate::Store>& output,
+    std::vector<legate::Store>& args)
   {
     generator_map_t& genmap = get_generator_map();
     // printtid((int)op);
     switch (op) {
       case BitGeneratorOperation::CREATE: {
-        genmap.create(generatorID, static_cast<BitGeneratorType>(parameter));
+        genmap.create(generatorID, static_cast<BitGeneratorType>(generatorType), seed, flags);
 
         log_curand.debug() << "created generator " << generatorID;
         break;
@@ -265,32 +202,18 @@ struct BitGeneratorImplBody {
         log_curand.debug() << "destroyed generator " << generatorID;
         break;
       }
-      case BitGeneratorOperation::SET_SEED: {
-        genmap.set_seed(generatorID, parameter);
-
-        log_curand.debug() << "set seed " << parameter << " for generator " << generatorID;
-        break;
-      }
       case BitGeneratorOperation::RAND_RAW: {
+        // allow for lazy initialization
+        if (!genmap.has(generatorID))
+          genmap.create(generatorID, static_cast<BitGeneratorType>(generatorType), seed, flags);
+        // get the generator
         CURANDGenerator* genptr = genmap.get(generatorID);
-
-        if (isThreadSafe<kind == VariantKind::GPU>(genptr->type)) {
-          if (output.size() == 0) {
-            CURANDGenerator& cugen = *genptr;
-            cugen.skip_ahead(parameter);
-          } else {
-            CURANDGenerator& cugen = *genptr;
-            legate::Store& res     = output[0];
-            dim_dispatch(res.dim(), generate_fn{}, cugen, res, strides, parameter);
-          }
+        if (output.size() == 0) {
+          assert(false);  // TODO for skip ahead ?
         } else {
+          legate::Store& res     = output[0];
           CURANDGenerator& cugen = *genptr;
-          if (output.size() == 0) {
-            cugen.skip_ahead(parameter);
-          } else {
-            legate::Store& res = output[0];
-            dim_dispatch(res.dim(), generate_fn{}, cugen, res, strides, parameter);
-          }
+          dim_dispatch(res.dim(), generate_fn{}, cugen, res);
         }
         break;
       }

@@ -19,6 +19,7 @@
 #include "cunumeric/random/bitgenerator_util.h"
 
 #include "cunumeric/random/curand_help.h"
+#include "cunumeric/random/curandex/curand_ex.h"
 
 #include "cunumeric/random/bitgenerator_curand.inl"
 
@@ -28,21 +29,24 @@ using namespace Legion;
 using namespace legate;
 
 struct CPUGenerator : public CURANDGenerator {
-  CPUGenerator(BitGeneratorType gentype)
+  CPUGenerator(BitGeneratorType gentype, uint64_t seed, uint64_t generatorId, uint32_t flags)
+    : CURANDGenerator(gentype, seed, generatorId)
   {
-    CHECK_CURAND(::curandCreateGeneratorHost(&gen, get_curandRngType(gentype)));
-    // offset is initialized by base class
-    CHECK_CURAND(::curandSetGeneratorOffset(gen, offset));
-    type               = get_curandRngType(gentype);
-    supports_skipahead = supportsSkipAhead(type);
+    CHECK_CURAND(::curandCreateGeneratorHostEx(&gen, type, seed, generatorId, flags));
   }
 
-  virtual ~CPUGenerator() { CHECK_CURAND(::curandDestroyGenerator(gen)); }
+  virtual ~CPUGenerator() { CHECK_CURAND(::curandDestroyGeneratorEx(gen)); }
 };
 
 template <>
 struct CURANDGeneratorBuilder<VariantKind::CPU> {
-  static CURANDGenerator* build(BitGeneratorType gentype) { return new CPUGenerator(gentype); }
+  static CURANDGenerator* build(BitGeneratorType gentype,
+                                uint64_t seed,
+                                uint64_t generatorId,
+                                uint32_t flags)
+  {
+    return new CPUGenerator(gentype, seed, generatorId, flags);
+  }
 
   static void destroy(CURANDGenerator* cugenptr) { delete cugenptr; }
 };

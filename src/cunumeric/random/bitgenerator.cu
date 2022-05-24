@@ -30,28 +30,29 @@ using namespace legate;
 
 struct GPUGenerator : public CURANDGenerator {
   cudaStream_t stream;
-  GPUGenerator(BitGeneratorType gentype)
+  GPUGenerator(BitGeneratorType gentype, uint64_t seed, uint64_t generatorId, uint32_t flags)
+    : CURANDGenerator(gentype, seed, generatorId)
   {
     CHECK_CUDA(::cudaStreamCreate(&stream));
-    CHECK_CURAND(::curandCreateGenerator(&gen, get_curandRngType(gentype)));
-    // offset is initialized by base class
-    CHECK_CUDA(::cudaDeviceSynchronize());
-    CHECK_CURAND(::curandSetGeneratorOffset(gen, offset));
-    CHECK_CURAND(::curandSetStream(gen, stream));
-    type               = get_curandRngType(gentype);
-    supports_skipahead = supportsSkipAhead(type);
+    CHECK_CURAND(::curandCreateGeneratorEx(&gen, type, seed, generatorId, flags, stream));
   }
 
   virtual ~GPUGenerator()
   {
     CHECK_CUDA(::cudaStreamSynchronize(stream));
-    CHECK_CURAND(::curandDestroyGenerator(gen));
+    CHECK_CURAND(::curandDestroyGeneratorEx(gen));
   }
 };
 
 template <>
 struct CURANDGeneratorBuilder<VariantKind::GPU> {
-  static CURANDGenerator* build(BitGeneratorType gentype) { return new GPUGenerator(gentype); }
+  static CURANDGenerator* build(BitGeneratorType gentype,
+                                uint64_t seed,
+                                uint64_t generatorId,
+                                uint32_t flags)
+  {
+    return new GPUGenerator(gentype, seed, generatorId, flags);
+  }
 
   static void destroy(CURANDGenerator* cugenptr) { delete cugenptr; }
 };

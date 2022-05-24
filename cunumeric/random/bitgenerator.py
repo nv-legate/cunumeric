@@ -25,9 +25,12 @@ class BitGenerator:
             raise NotImplementedError(
                 "BitGenerator is a base class and cannot be instantized"
             )
-        self.handle = runtime.bitgenerator_create(generatorType)
-        if seed is not None:
-            runtime.bitgenerator_set_seed(self.handle, seed)
+        self.generatorType = generatorType
+        self.seed = seed
+        self.flags = 0
+        self.handle = runtime.bitgenerator_create(
+            generatorType, seed, self.flags
+        )
 
     def __del__(self):
         if self.handle != 0:
@@ -39,17 +42,16 @@ class BitGenerator:
         self.handle = 0
 
     # when output is false => skip ahead
-    def random_raw(self, shape=None, output=True):
+    def random_raw(self, shape=None):
         if shape is None:
             shape = (1,)
         if not isinstance(shape, tuple):
             shape = (shape,)
-        if output:
-            res = ndarray(shape, dtype=np.dtype(np.uint32))
-            res._thunk.bitgenerator_random_raw(self.handle)
-            return res
-        else:
-            runtime.bitgenerator_random_raw(self.handle, shape)
+        res = ndarray(shape, dtype=np.dtype(np.uint32))
+        res._thunk.bitgenerator_random_raw(
+            self.handle, self.generatorType, self.seed, self.flags
+        )
+        return res
 
 
 class XORWOW(BitGenerator):

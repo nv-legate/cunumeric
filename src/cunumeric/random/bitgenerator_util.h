@@ -25,7 +25,6 @@ enum class BitGeneratorOperation : int32_t {
   CREATE   = CUNUMERIC_BITGENOP_CREATE,
   DESTROY  = CUNUMERIC_BITGENOP_DESTROY,
   RAND_RAW = CUNUMERIC_BITGENOP_RAND_RAW,
-  SET_SEED = CUNUMERIC_BITGENOP_SET_SEED,
 };
 
 // Match these to BitGeneratorType in config.py

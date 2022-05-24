@@ -22,7 +22,6 @@ from legate.rc import ArgSpec, Argument, parse_command_args
 
 import legate.core.types as ty
 from legate.core import LEGATE_MAX_DIM, Rect, get_legate_runtime, legion
-from legate.core.shape import Shape
 
 from .config import (
     BitGeneratorOperation,
@@ -262,7 +261,19 @@ class Runtime(object):
             result = future
         return result
 
-    def bitgenerator_create(self, generatorType):
+    def bitgenerator_populate_task(
+        self, task, taskop, generatorID, generatorType=0, seed=0, flags=0
+    ):
+        task.add_scalar_arg(taskop, ty.int32)
+        task.add_scalar_arg(generatorID, ty.int32)
+        task.add_scalar_arg(generatorType, ty.uint32)
+        task.add_scalar_arg(seed, ty.uint64)
+        task.add_scalar_arg(flags, ty.uint32)
+
+    def bitgenerator_create(self, generatorType, seed, flags):
+        self.current_random_bitgenid = self.current_random_bitgenid + 1
+        return self.current_random_bitgenid
+
         task = self.legate_context.create_task(
             CuNumericOpCode.BITGENERATOR,
             manual=True,
@@ -291,43 +302,14 @@ class Runtime(object):
                 manual=True,
                 launch_domain=Rect(lo=(0,), hi=(self.num_procs,)),
             )
-            task.add_scalar_arg(BitGeneratorOperation.DESTROY, ty.int32)
-            task.add_scalar_arg(handle, ty.uint32)
-            task.add_scalar_arg(0, ty.uint64)  # generatorType - unused
+            self.bitgenerator_populate_task(
+                task, BitGeneratorOperation.DESTROY, handle
+            )
             task.add_scalar_arg(
                 self.current_random_bitgen_zombies, (ty.uint32,)
             )
             self.current_random_bitgen_zombies = ()
             task.execute()
-
-    def bitgenerator_set_seed(self, handle, seed):
-        if not isinstance(seed, int):
-            raise NotImplementedError("Non integer seed is not implemented")
-        task = self.legate_context.create_task(
-            CuNumericOpCode.BITGENERATOR,
-            manual=True,
-            launch_domain=Rect(lo=(0,), hi=(self.num_procs,)),
-        )
-        task.add_scalar_arg(BitGeneratorOperation.SET_SEED, ty.int32)
-        task.add_scalar_arg(handle, ty.uint32)
-        task.add_scalar_arg(seed, ty.uint64)
-        task.execute()
-
-    def bitgenerator_random_raw(self, handle, size):
-        # here, no output: we discard generated numbers... - just a skipahead
-        task = self.legate_context.create_task(
-            CuNumericOpCode.BITGENERATOR,
-            manual=True,
-            launch_domain=Rect(lo=(0,), hi=(self.num_procs,)),
-        )
-        task.add_scalar_arg(BitGeneratorOperation.RAND_RAW, ty.int32)
-        task.add_scalar_arg(handle, ty.uint32)
-        a = Shape(size)
-        gencount = a.volume()
-        task.add_scalar_arg(gencount, ty.uint64)  # size of the output
-        task.execute()
-        # for consistent random ordering
-        self.legate_runtime.issue_execution_fence()
 
     def set_next_random_epoch(self, epoch):
         self.current_random_epoch = epoch

@@ -1617,17 +1617,20 @@ class DeferredArray(NumPyThunk):
         task.execute()
         return results
 
-    def bitgenerator_random_raw(self, handle):
+    def bitgenerator_random_raw(self, handle, generatorType, seed, flags):
         task = self.context.create_task(CuNumericOpCode.BITGENERATOR)
+
         task.add_output(self.base)
+
         task.add_scalar_arg(BitGeneratorOperation.RAND_RAW, ty.int32)
-        task.add_scalar_arg(handle, ty.uint32)
-        totalsize = self.base.shape.volume()
-        task.add_scalar_arg(totalsize, ty.uint64)
+        task.add_scalar_arg(handle, ty.int32)
+        task.add_scalar_arg(generatorType, ty.uint32)
+        task.add_scalar_arg(seed, ty.uint64)
+        task.add_scalar_arg(flags, ty.uint32)
+
         # strides
         task.add_scalar_arg(self.compute_strides(self.shape), (ty.int64,))
 
-        task.add_broadcast(self.base, axes=tuple(range(1, self.ndim)))
         task.execute()
 
     def random(self, gen_code, args=[]):

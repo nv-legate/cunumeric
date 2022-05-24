@@ -33,36 +33,42 @@ template <VariantKind KIND>
 struct BitGeneratorImpl {
   void operator()(BitGeneratorArgs& args) const
   {
-    BitGeneratorImplBody<KIND>{}(
-      args.bitgen_op, args.generatorID, args.parameter, args.strides, args.output, args.args);
+    BitGeneratorImplBody<KIND>{}(args.bitgen_op,
+                                 args.generatorID,
+                                 args.generatorType,
+                                 args.seed,
+                                 args.flags,
+                                 args.strides,
+                                 args.output,
+                                 args.args);
   }
 };
 
 template <VariantKind KIND>
 static void bitgenerator_template(TaskContext& context)
 {
-  auto& inputs     = context.inputs();
-  auto& outputs    = context.outputs();
-  auto& scalars    = context.scalars();
-  auto bitgen_op   = scalars[0].value<BitGeneratorOperation>();
-  auto generatorID = scalars[1].value<uint32_t>();
-  auto parameter   = scalars[2].value<uint64_t>();
+  auto& inputs       = context.inputs();
+  auto& outputs      = context.outputs();
+  auto& scalars      = context.scalars();
+  auto bitgen_op     = scalars[0].value<BitGeneratorOperation>();
+  auto generatorID   = scalars[1].value<int32_t>();
+  auto generatorType = scalars[2].value<uint32_t>();
+  auto seed          = scalars[3].value<uint64_t>();
+  auto flags         = scalars[4].value<uint32_t>();
 
   DomainPoint strides;  // optional parameter
-  legate::Span<const uint32_t> todestroy;
+  legate::Span<const int32_t> todestroy;
   switch (bitgen_op) {
     case BitGeneratorOperation::DESTROY:  // gather same parameters as CREATE
     case BitGeneratorOperation::CREATE: {
-      if (scalars.size() > 3) todestroy = scalars[3].values<uint32_t>();
+      if (scalars.size() > 5) todestroy = scalars[5].values<int32_t>();
       break;
     }
     case BitGeneratorOperation::RAND_RAW: {
-      if (scalars.size() > 3) strides = scalars[3].value<DomainPoint>();
+      if (scalars.size() > 5) strides = scalars[5].value<DomainPoint>();
       break;
     }
   }
-
-  // HERE : use task index shape to get "processor ID"
 
   std::vector<Store> extra_args;
   for (auto& input : inputs) extra_args.push_back(std::move(input));
@@ -72,12 +78,18 @@ static void bitgenerator_template(TaskContext& context)
 
   // destroy ?
   for (int k = 0; k < todestroy.size(); ++k) {
-    BitGeneratorArgs dargs{BitGeneratorOperation::DESTROY, todestroy[k], 0, strides};
+    BitGeneratorArgs dargs{BitGeneratorOperation::DESTROY, todestroy[k], 0, 0, 0, strides};
     BitGeneratorImpl<KIND>{}(dargs);
   }
 
-  BitGeneratorArgs args{
-    bitgen_op, generatorID, parameter, strides, std::move(optional_output), std::move(extra_args)};
+  BitGeneratorArgs args{bitgen_op,
+                        generatorID,
+                        generatorType,
+                        seed,
+                        flags,
+                        strides,
+                        std::move(optional_output),
+                        std::move(extra_args)};
   BitGeneratorImpl<KIND>{}(args);
 }
 
