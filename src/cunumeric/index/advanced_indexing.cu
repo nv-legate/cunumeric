@@ -73,9 +73,12 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   auto point = pitches.unflatten(tid, origin);
   if (index[point] == true) {
     Point<DIM> out_p;
-    for (int i = 0; i < key_dim - 1; i++) { out_p[i] = 0; }
-    out_p[key_dim - 1] = offsets[tid];
-    for (int i = key_dim; i < DIM; i++) { out_p[i] = point[i]; }
+    out_p[0] = offsets[tid];
+    for (size_t i = 0; i < DIM - key_dim; i++) {
+      size_t j     = key_dim + i;
+      out_p[i + 1] = point[j];
+    }
+    for (size_t i = DIM - key_dim + 1; i < DIM; i++) out_p[i] = 0;
     out[out_p] = in[point];
   }
 }
@@ -97,9 +100,12 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   auto point = pitches.unflatten(tid, origin);
   if (index[point] == true) {
     Point<DIM> out_p;
-    for (int i = 0; i < key_dim - 1; i++) { out_p[i] = 0; }
-    out_p[key_dim - 1] = offsets[tid];
-    for (int i = key_dim; i < DIM; i++) { out_p[i] = point[i]; }
+    out_p[0] = offsets[tid];
+    for (size_t i = 0; i < DIM - key_dim; i++) {
+      size_t j     = key_dim + i;
+      out_p[i + 1] = point[j];
+    }
+    for (size_t i = DIM - key_dim + 1; i < DIM; i++) out_p[i] = 0;
     out[out_p] = point;
   }
 }
@@ -150,18 +156,23 @@ struct AdvancedIndexingImplBody<VariantKind::GPU, CODE, DIM, OUT_TYPE> {
     const size_t volume = rect.volume();
     auto stream         = get_cached_stream();
     auto offsets        = create_buffer<int64_t, 1>(volume, Memory::Kind::GPU_FB_MEM);
-    Point<DIM> extends;
 
     size_t skip_size = 1;
     for (int i = key_dim; i < DIM; i++) {
-      auto diff  = 1 + rect.hi[i] - rect.lo[i];
-      extends[i] = diff;
+      auto diff = 1 + rect.hi[i] - rect.lo[i];
       if (diff != 0) skip_size *= diff;
     }
-    for (int i = 0; i < key_dim - 1; i++) extends[i] = 1;
 
     size = compute_size(index, pitches, rect, volume, stream, offsets, skip_size, key_dim);
-    extends[key_dim - 1] = size;
+
+    // calculating the shape of the output region for this sub-task
+    Point<DIM> extends;
+    extends[0] = size;
+    for (size_t i = 0; i < DIM - key_dim; i++) {
+      size_t j       = key_dim + i;
+      extends[i + 1] = 1 + rect.hi[j] - rect.lo[j];
+    }
+    for (size_t i = DIM - key_dim + 1; i < DIM; i++) extends[i] = 1;
 
     auto out = out_arr.create_output_buffer<OUT_TYPE, DIM>(extends, true);
 

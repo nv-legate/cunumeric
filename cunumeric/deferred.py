@@ -475,7 +475,7 @@ class DeferredArray(NumPyThunk):
             if out_dim != rhs.ndim:
                 out_tmp = out.base
                 for dim in range(rhs.ndim - out_dim):
-                    out_tmp = out_tmp.project(0, 0)
+                    out_tmp = out_tmp.project(rhs.ndim - dim - 1, 0)
 
                 out = self.runtime.create_empty_thunk(
                     out_tmp.shape,

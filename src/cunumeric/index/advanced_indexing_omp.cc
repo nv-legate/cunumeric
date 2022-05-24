@@ -46,9 +46,12 @@ struct AdvancedIndexingImplBody<VariantKind::OMP, CODE, DIM, OUT_TYPE> {
       auto p = pitches.unflatten(idx, rect.lo);
       if (index[p] == true) {
         Point<DIM> out_p;
-        for (size_t i = 0; i < key_dim - 1; i++) { out_p[i] = 0; }
-        out_p[key_dim - 1] = out_idx;
-        for (int i = key_dim; i < DIM; i++) { out_p[i] = p[i]; }
+        out_p[0] = out_idx;
+        for (size_t i = 0; i < DIM - key_dim; i++) {
+          size_t j     = key_dim + i;
+          out_p[i + 1] = p[j];
+        }
+        for (size_t i = DIM - key_dim + 1; i < DIM; i++) out_p[i] = 0;
         out[out_p] = input[p];
         if ((idx + 1) % skip_size == 0) out_idx++;
       }
@@ -70,9 +73,12 @@ struct AdvancedIndexingImplBody<VariantKind::OMP, CODE, DIM, OUT_TYPE> {
       auto p = pitches.unflatten(idx, rect.lo);
       if (index[p] == true) {
         Point<DIM> out_p;
-        for (size_t i = 0; i < key_dim - 1; i++) { out_p[i] = 0; }
-        out_p[key_dim - 1] = out_idx;
-        for (int i = key_dim; i < DIM; i++) { out_p[i] = p[i]; }
+        out_p[0] = out_idx;
+        for (size_t i = 0; i < DIM - key_dim; i++) {
+          size_t j     = key_dim + i;
+          out_p[i + 1] = p[j];
+        }
+        for (size_t i = DIM - key_dim + 1; i < DIM; i++) out_p[i] = 0;
         out[out_p] = p;
         if ((idx + 1) % skip_size == 0) out_idx++;
       }
@@ -86,14 +92,11 @@ struct AdvancedIndexingImplBody<VariantKind::OMP, CODE, DIM, OUT_TYPE> {
                   const Rect<DIM>& rect,
                   const int key_dim) const
   {
-    Point<DIM> extends;
     size_t skip_size = 1;
     for (int i = key_dim; i < DIM; i++) {
-      auto diff  = 1 + rect.hi[i] - rect.lo[i];
-      extends[i] = diff;
+      auto diff = 1 + rect.hi[i] - rect.lo[i];
       if (diff != 0) skip_size *= diff;
     }
-    for (int i = 0; i < key_dim - 1; i++) extends[i] = 1;
 
     const auto max_threads = omp_get_max_threads();
     const size_t volume    = rect.volume();
@@ -117,7 +120,14 @@ struct AdvancedIndexingImplBody<VariantKind::OMP, CODE, DIM, OUT_TYPE> {
       thrust::exclusive_scan(thrust::omp::par, sizes.begin(), sizes.end(), offsets.begin());
     }  // end scope
 
-    extends[key_dim - 1] = size;
+    // calculating the shape of the output region for this sub-task
+    Point<DIM> extends;
+    extends[0] = size;
+    for (size_t i = 0; i < DIM - key_dim; i++) {
+      size_t j       = key_dim + i;
+      extends[i + 1] = 1 + rect.hi[j] - rect.lo[j];
+    }
+    for (size_t i = DIM - key_dim + 1; i < DIM; i++) extends[i] = 1;
 
     auto out = out_arr.create_output_buffer<OUT_TYPE, DIM>(extends, true);
 
