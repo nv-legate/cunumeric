@@ -24,8 +24,10 @@ try:
     from legate.timing import time
 except ImportError:
     from time import perf_counter_ns
+
     def time():
         return perf_counter_ns() / 1000.0
+
 
 def run_einsum(expr, N, iters, dtype, cupy_compatibility):
     # Parse contraction expression
@@ -183,7 +185,6 @@ if __name__ == "__main__":
              else, use einsum(expr, A, B, out=C)""",
     )
 
-
     args = parser.parse_args()
 
     cupy_compatibility = args.cupy_compatibility
@@ -191,11 +192,14 @@ if __name__ == "__main__":
         import cunumeric as np
     elif args.package == "cupy":
         import cupy as np
+
         if args.cupy_allocator == "off":
             np.cuda.set_allocator(None)
             print("Turning off memory pool")
         elif args.cupy_allocator == "managed":
-            np.cuda.set_allocator(np.cuda.MemoryPool(np.cuda.malloc_managed).malloc)
+            np.cuda.set_allocator(
+                np.cuda.MemoryPool(np.cuda.malloc_managed).malloc
+            )
             print("Using managed memory pool")
         cupy_compatibility = True
     elif args.package == "numpy":
@@ -214,5 +218,11 @@ if __name__ == "__main__":
         run_einsum,
         args.benchmark,
         "Einsum",
-        (args.expr, args.N, args.iters, dtypes[args.dtype], cupy_compatibility),
+        (
+            args.expr,
+            args.N,
+            args.iters,
+            dtypes[args.dtype],
+            cupy_compatibility,
+        ),
     )

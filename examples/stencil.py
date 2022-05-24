@@ -24,8 +24,10 @@ try:
     from legate.timing import time
 except ImportError:
     from time import perf_counter_ns
+
     def time():
         return perf_counter_ns() / 1000.0
+
 
 def initialize(N):
     print("Initializing stencil grid...")
@@ -117,22 +119,23 @@ if __name__ == "__main__":
         help="cupy allocator to use (default, off, or managed)",
     )
 
-
     args = parser.parse_args()
 
     if args.package == "legate":
         import cunumeric as np
     elif args.package == "cupy":
         import cupy as np
+
         if args.cupy_allocator == "off":
             np.cuda.set_allocator(None)
             print("Turning off memory pool")
         elif args.cupy_allocator == "managed":
-            np.cuda.set_allocator(np.cuda.MemoryPool(np.cuda.malloc_managed).malloc)
+            np.cuda.set_allocator(
+                np.cuda.MemoryPool(np.cuda.malloc_managed).malloc
+            )
             print("Using managed memory pool")
     elif args.package == "numpy":
         import numpy as np
-
 
     run_benchmark(
         run_stencil, args.benchmark, "Stencil", (args.N, args.I, args.timing)
