@@ -9,6 +9,9 @@ Generating index arrays
 .. autosummary::
    :toctree: generated/
 
+   diag_indices
+   diag_indices_from
+   indices
    nonzero
    where
 

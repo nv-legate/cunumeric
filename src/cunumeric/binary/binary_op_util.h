@@ -463,6 +463,8 @@ struct BinaryOp<BinaryOpCode::ISCLOSE, CODE> {
   constexpr bool operator()(const T& a, const T& b) const
   {
     using std::fabs;
+    using std::isinf;
+    if (isinf(a) || isinf(b)) return a == b;
     return fabs(static_cast<double>(a) - static_cast<double>(b)) <=
            atol_ + rtol_ * static_cast<double>(fabs(b));
   }

@@ -60,6 +60,7 @@ DIM = 10
 SIZE_CASES = [
     [(0,), (0,)],  # empty arrays
     [(1,), (1,)],  # singlton arrays
+    [(0,), (10,)],  # empty and scalars
     [(DIM, 1), (DIM, DIM)],  # 1D and 2D arrays
     [(DIM, 1), (DIM, 1), (DIM, DIM)],  # 3 arrays in the inner-most list
 ]

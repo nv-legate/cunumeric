@@ -1,4 +1,4 @@
-# Copyright 2021-2022 NVIDIA Corporation
+# Copyright 2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,27 +13,31 @@
 # limitations under the License.
 #
 
-from itertools import permutations
+import random
 
 import numpy as np
 import pytest
 
 import cunumeric as cn
+from legate.core import LEGATE_MAX_DIM
 
 
-def _sum(shape, axis, lib, dtype=None):
-    return lib.ones(shape).sum(axis=axis, dtype=dtype)
+@pytest.mark.parametrize("ndim", range(0, LEGATE_MAX_DIM))
+def test_indices(ndim):
+    dimensions = tuple(random.randint(2, 5) for i in range(ndim))
 
+    np_res = np.indices(dimensions)
+    cn_res = cn.indices(dimensions)
+    assert np.array_equal(np_res, cn_res)
 
-# Try various non-square shapes, to nudge the core towards trying many
-# different partitionings.
-@pytest.mark.parametrize("axis", range(3), ids=str)
-@pytest.mark.parametrize("shape", permutations((3, 4, 5)), ids=str)
-def test_3d(shape, axis):
-    assert np.array_equal(_sum(shape, axis, np), _sum(shape, axis, cn))
-    assert np.array_equal(
-        _sum(shape, axis, np, dtype="D"), _sum(shape, axis, cn, dtype="D")
-    )
+    np_res = np.indices(dimensions, dtype=float)
+    cn_res = cn.indices(dimensions, dtype=float)
+    assert np.array_equal(np_res, cn_res)
+
+    np_res = np.indices(dimensions, sparse=True)
+    cn_res = cn.indices(dimensions, sparse=True)
+    for i in range(len(np_res)):
+        assert np.array_equal(np_res[i], cn_res[i])
 
 
 if __name__ == "__main__":

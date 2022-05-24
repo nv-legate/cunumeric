@@ -663,10 +663,6 @@ class binary_ufunc(ufunc):
             raise NotImplementedError(
                 f"reduction for {self} is not yet implemented"
             )
-        if out is not None:
-            raise NotImplementedError(
-                "reduction for {self} does not take an `out` argument"
-            )
         if not isinstance(where, bool) or not where:
             raise NotImplementedError(
                 "the 'where' keyword is not yet supported"
@@ -682,7 +678,7 @@ class binary_ufunc(ufunc):
             array,
             axis=axis,
             dtype=dtype,
-            # out=out,
+            out=out,
             keepdims=keepdims,
             initial=initial,
             where=where,

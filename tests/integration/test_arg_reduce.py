@@ -17,22 +17,26 @@ import numpy as np
 import pytest
 
 import cunumeric as num
-
-anp = np.random.randn(4, 5)
-
-
-def test_argmin():
-    a = num.array(anp)
-
-    assert np.array_equal(num.argmin(a, axis=0), np.argmin(anp, axis=0))
-    assert np.array_equal(num.argmin(a, axis=1), np.argmin(anp, axis=1))
+from legate.core import LEGATE_MAX_DIM
 
 
-def test_argmax():
-    a = num.array(anp)
+@pytest.mark.parametrize("ndim", range(LEGATE_MAX_DIM + 1))
+def test_argmax_and_argmin(ndim):
+    shape = (5,) * ndim
 
-    assert np.array_equal(num.argmax(a, axis=0), np.argmax(anp, axis=0))
-    assert np.array_equal(num.argmax(a, axis=1), np.argmax(anp, axis=1))
+    in_np = np.random.random(shape)
+    in_num = num.array(in_np)
+
+    for fn in ("argmax", "argmin"):
+        fn_np = getattr(np, fn)
+        fn_num = getattr(num, fn)
+        assert np.array_equal(fn_np(in_np), fn_num(in_num))
+        if in_num.ndim == 1:
+            continue
+        for axis in range(in_num.ndim):
+            out_np = fn_np(in_np, axis=axis)
+            out_num = fn_num(in_num, axis=axis)
+            assert np.array_equal(out_np, out_num)
 
 
 if __name__ == "__main__":

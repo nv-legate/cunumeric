@@ -213,6 +213,23 @@ class EagerArray(NumPyThunk):
             else:
                 raise RuntimeError("bad argument type")
 
+    def _convert_children(self):
+        """
+        Traverse down our children and convert them to deferred arrays.
+        """
+        assert self.runtime.is_deferred_array(self.deferred)
+        if self.children is not None:
+            for child in self.children:
+                if child.deferred is None:
+                    func = getattr(self.deferred, child.key[0])
+                    args = child.key[1:]
+                    child.deferred = func(*args)
+            # After we've made all the deferred views for each child then
+            # we can traverse down. Do it this way so we can get partition
+            # coalescing where possible
+            for child in self.children:
+                child._convert_children()
+
     def to_deferred_array(self):
         """This is a really important method. It will convert a tree of
         eager NumPy arrays into an equivalent tree of deferred arrays that
@@ -241,26 +258,11 @@ class EagerArray(NumPyThunk):
                         share=self.escaped,
                         defer=True,
                     )
+                self._convert_children()
             else:
                 # Traverse up the tree to make the deferred array
                 self.parent.to_deferred_array()
                 assert self.deferred is not None
-                # No need to traverse down the parent did it for us
-                return self.deferred
-        else:  # Quick out
-            return self.deferred
-        # Traverse down for any children that we have
-        if self.children is not None:
-            assert self.runtime.is_deferred_array(self.deferred)
-            for child in self.children:
-                func = getattr(self.deferred, child.key[0])
-                args = child.key[1:]
-                child.deferred = func(*args)
-            # After we've made all the deferred views for each child then
-            # we can traverse down. Do it this way so we can get partition
-            # coalescing where possible
-            for child in self.children:
-                child.to_deferred_array()
         return self.deferred
 
     def imag(self):
@@ -392,10 +394,8 @@ class EagerArray(NumPyThunk):
             return self.deferred.reshape(newshape, order)
         child = self.array.reshape(newshape, order=order)
         # See if we are aliased or not
-        if child.base is not self.array:
-            result = EagerArray(
-                self.runtime, child if child.base is None else child.copy()
-            )
+        if child.base is None:
+            result = EagerArray(self.runtime, child)
         else:
             result = EagerArray(
                 self.runtime,
@@ -465,15 +465,19 @@ class EagerArray(NumPyThunk):
         else:
             np.dot(rhs1.array, rhs2.array, out=self.array)
 
-    def transpose(self, rhs, axes):
-        self.check_eager_args(rhs)
+    def transpose(self, axes):
         if self.deferred is not None:
-            self.deferred.transpose(rhs, axes)
-        else:
-            if self.array.size == 1:
-                self.array.fill(rhs.array.item())
-            else:
-                self.array[:] = np.transpose(rhs.array, axes)
+            return self.deferred.transpose(axes)
+        child = self.array.transpose(axes)
+        # Should be aliased with parent region
+        assert child.base is not None
+        result = EagerArray(
+            self.runtime, child, parent=self, key=("transpose", axes)
+        )
+        if self.children is None:
+            self.children = list()
+        self.children.append(result)
+        return result
 
     def repeat(self, repeats, axis, scalar_repeats):
         if not scalar_repeats:
@@ -712,13 +716,16 @@ class EagerArray(NumPyThunk):
         else:
             raise RuntimeError("unsupported unary op " + str(op))
 
-    def unary_reduction(self, op, rhs, where, axes, keepdims, args, initial):
+    def unary_reduction(
+        self, op, rhs, where, orig_axis, axes, keepdims, args, initial
+    ):
         self.check_eager_args(rhs)
         if self.deferred is not None:
             self.deferred.unary_reduction(
                 op,
                 rhs,
                 where,
+                orig_axis,
                 axes,
                 keepdims,
                 args,
@@ -734,22 +741,24 @@ class EagerArray(NumPyThunk):
             fn(
                 rhs.array,
                 out=self.array,
-                axis=axes,
+                axis=orig_axis,
                 keepdims=keepdims,
                 where=where
                 if not isinstance(where, EagerArray)
                 else where.array,
             )
         elif op == UnaryRedCode.ARGMAX:
-            assert len(axes) == 1
-            np.argmax(rhs.array, out=self.array, axis=axes[0])
+            np.argmax(
+                rhs.array,
+                out=self.array,
+                axis=orig_axis,
+            )
         elif op == UnaryRedCode.ARGMIN:
-            assert len(axes) == 1
-            np.argmin(rhs.array, out=self.array, axis=axes[0])
+            np.argmin(rhs.array, out=self.array, axis=orig_axis)
         elif op == UnaryRedCode.CONTAINS:
             self.array.fill(args[0] in rhs.array)
         elif op == UnaryRedCode.COUNT_NONZERO:
-            self.array[()] = np.count_nonzero(rhs.array, axis=axes)
+            self.array[()] = np.count_nonzero(rhs.array, axis=orig_axis)
         else:
             raise RuntimeError("unsupported unary reduction op " + str(op))
 

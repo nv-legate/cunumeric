@@ -1,4 +1,4 @@
-# Copyright 2021-2022 NVIDIA Corporation
+# Copyright 2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,27 +13,28 @@
 # limitations under the License.
 #
 
-from itertools import permutations
-
 import numpy as np
 import pytest
 
 import cunumeric as cn
+from legate.core import LEGATE_MAX_DIM
 
 
-def _sum(shape, axis, lib, dtype=None):
-    return lib.ones(shape).sum(axis=axis, dtype=dtype)
+@pytest.mark.parametrize("ndim", range(0, LEGATE_MAX_DIM + 1))
+def test_diag_indices(ndim):
+    np_res = np.diag_indices(10, ndim)
+    cn_res = cn.diag_indices(10, ndim)
+    assert np.array_equal(np_res, cn_res)
 
 
-# Try various non-square shapes, to nudge the core towards trying many
-# different partitionings.
-@pytest.mark.parametrize("axis", range(3), ids=str)
-@pytest.mark.parametrize("shape", permutations((3, 4, 5)), ids=str)
-def test_3d(shape, axis):
-    assert np.array_equal(_sum(shape, axis, np), _sum(shape, axis, cn))
-    assert np.array_equal(
-        _sum(shape, axis, np, dtype="D"), _sum(shape, axis, cn, dtype="D")
-    )
+@pytest.mark.parametrize("ndim", range(2, LEGATE_MAX_DIM + 1))
+def test_diag_indices_from(ndim):
+    shape = (5,) * ndim
+    a = np.ones(shape, dtype=int)
+    a_cn = cn.array(a)
+    np_res = np.diag_indices_from(a)
+    cn_res = cn.diag_indices_from(a_cn)
+    assert np.array_equal(np_res, cn_res)
 
 
 if __name__ == "__main__":

@@ -27,6 +27,7 @@ Transpose-like operations
 .. autosummary::
    :toctree: generated/
 
+   moveaxis
    swapaxes
    transpose
 

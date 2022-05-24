@@ -25,10 +25,11 @@ struct SortArgs {
   Array& output;
   bool argsort;
   bool stable;
-  size_t sort_dim_size;
+  size_t segment_size_g;
   bool is_index_space;
   size_t local_rank;
   size_t num_ranks;
+  size_t num_sort_ranks;
 };
 
 template <typename VAL>

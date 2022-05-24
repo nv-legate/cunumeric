@@ -1,4 +1,4 @@
-# Copyright 2021-2022 NVIDIA Corporation
+# Copyright 2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,27 +13,34 @@
 # limitations under the License.
 #
 
-from itertools import permutations
-
 import numpy as np
 import pytest
 
 import cunumeric as cn
 
+expr = "ij,jk,kl->il"
+np_a = np.empty((2, 2))
+np_b = np.empty((2, 5))
+np_c = np.empty((5, 2))
+cn_a = cn.empty((2, 2))
+cn_b = cn.empty((2, 5))
+cn_c = cn.empty((5, 2))
 
-def _sum(shape, axis, lib, dtype=None):
-    return lib.ones(shape).sum(axis=axis, dtype=dtype)
+OPTIMIZE = [
+    True,
+    False,
+    "optimal",
+    "greedy",
+    ("optimal", 4),
+    ["einsum_path", (0, 1), (0, 1)],
+]
 
 
-# Try various non-square shapes, to nudge the core towards trying many
-# different partitionings.
-@pytest.mark.parametrize("axis", range(3), ids=str)
-@pytest.mark.parametrize("shape", permutations((3, 4, 5)), ids=str)
-def test_3d(shape, axis):
-    assert np.array_equal(_sum(shape, axis, np), _sum(shape, axis, cn))
-    assert np.array_equal(
-        _sum(shape, axis, np, dtype="D"), _sum(shape, axis, cn, dtype="D")
-    )
+@pytest.mark.parametrize("optimize", OPTIMIZE)
+def test_einsum_path(optimize):
+    np_path, _ = np.einsum_path(expr, np_a, np_b, np_c, optimize=optimize)
+    cn_path, _ = cn.einsum_path(expr, cn_a, cn_b, cn_c, optimize=optimize)
+    assert np_path == cn_path
 
 
 if __name__ == "__main__":
