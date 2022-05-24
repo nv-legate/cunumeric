@@ -182,8 +182,6 @@ std::vector<StoreMapping> CuNumericMapper::store_mappings(
       auto& outputs = task.outputs();
       for (auto& output : outputs) {
         mappings.push_back(StoreMapping::default_mapping(output, options.front()));
-        mappings.back().policy.ordering.c_order();
-        mappings.back().policy.exact = true;
       }
       return std::move(mappings);
     }
