@@ -58,6 +58,24 @@ class BitGenerator:
         )
         return res
 
+    def integers(
+        self, low, high=None, shape=None, type=np.int64, endpoint=False
+    ):
+        if shape is None:
+            shape = (1,)
+        if not isinstance(shape, tuple):
+            shape = (shape,)
+        res = ndarray(shape, dtype=np.dtype(type))
+        if high is None:
+            high = low
+            low = 0
+        if endpoint:
+            high = high + 1
+        res._thunk.bitgenerator_integers(
+            self.handle, self.generatorType, self.seed, self.flags, low, high
+        )
+        return res
+
 
 class XORWOW(BitGenerator):
     def __init__(self, seed=None, forceBuild=False):

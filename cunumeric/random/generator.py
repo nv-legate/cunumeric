@@ -13,13 +13,24 @@
 # limitations under the License.
 #
 
-import numpy.random as _nprandom
-from cunumeric.random.random import *
-from cunumeric.coverage import clone_module
-from cunumeric.random.bitgenerator import *
-from cunumeric.random.generator import *
+import numpy as np
+from cunumeric.random.bitgenerator import XORWOW, BitGenerator
 
-clone_module(_nprandom, globals())
 
-del clone_module
-del _nprandom
+class Generator:
+    def __init__(self, bit_generator):
+        self.bit_generator = bit_generator
+
+    def integers(
+        self, low, high=None, size=None, dtype=np.int64, endpoint=False
+    ):
+        return self.bit_generator.integers(low, high, size, dtype, endpoint)
+
+
+def default_rng(seed):
+    if seed is None:
+        return Generator(XORWOW())
+    elif seed is BitGenerator:
+        return Generator(seed)
+    else:
+        return Generator(XORWOW(seed))

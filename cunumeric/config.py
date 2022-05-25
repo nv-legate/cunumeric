@@ -263,16 +263,16 @@ class CuNumericTunable(IntEnum):
     HAS_NUMAMEM = _cunumeric.CUNUMERIC_TUNABLE_HAS_NUMAMEM
 
 
-# Match these to BitGeneratorOperation in bitgenerator_util.h
+# Match these to BitGeneratorOperation in cunumeric_c.h
 @unique
 class BitGeneratorOperation(IntEnum):
     CREATE = _cunumeric.CUNUMERIC_BITGENOP_CREATE
     DESTROY = _cunumeric.CUNUMERIC_BITGENOP_DESTROY
     RAND_RAW = _cunumeric.CUNUMERIC_BITGENOP_RAND_RAW
-    SET_SEED = _cunumeric.CUNUMERIC_BITGENOP_SET_SEED
+    DISTRIBUTION = _cunumeric.CUNUMERIC_BITGENOP_DISTRIBUTION
 
 
-# Match these to BitGeneratorType in bitgenerator_util.h
+# Match these to BitGeneratorType in cunumeric_c.h
 @unique
 class BitGeneratorType(IntEnum):
     DEFAULT = _cunumeric.CUNUMERIC_BITGENTYPE_DEFAULT
@@ -281,6 +281,13 @@ class BitGeneratorType(IntEnum):
     MTGP32 = _cunumeric.CUNUMERIC_BITGENTYPE_MTGP32
     MT19937 = _cunumeric.CUNUMERIC_BITGENTYPE_MT19937
     PHILOX4_32_10 = _cunumeric.CUNUMERIC_BITGENTYPE_PHILOX4_32_10
+
+
+# Match these to BitGeneratorDistribution in cunumeric_c.h
+@unique
+class BitGeneratorDistribution(IntEnum):
+    INTEGERS_32 = _cunumeric.CUNUMERIC_BITGENDIST_INTEGERS_32
+    INTEGERS_64 = _cunumeric.CUNUMERIC_BITGENDIST_INTEGERS_64
 
 
 # Match these to fftType in fft_util.h

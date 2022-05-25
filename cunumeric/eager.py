@@ -635,6 +635,20 @@ class EagerArray(NumPyThunk):
                 )
                 self.array[:] = a[:]
 
+    def bitgenerator_integers(
+        self, handle, generatorType, seed, flags, low, high
+    ):
+        if self.deferred is not None:
+            self.deferred.bitgenerator_integers(
+                handle, generatorType, seed, flags, low, high
+            )
+        else:
+            if self.array.size == 1:
+                self.array.fill(np.random.random_integers(low, high))
+            else:
+                a = np.random.random_integers(low, high, size=self.array.shape)
+                self.array[:] = a[:]
+
     def partition(
         self,
         rhs,

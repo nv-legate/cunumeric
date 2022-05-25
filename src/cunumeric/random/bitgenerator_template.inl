@@ -38,7 +38,11 @@ struct BitGeneratorImpl {
                                  args.generatorType,
                                  args.seed,
                                  args.flags,
+                                 args.distribution,
                                  args.strides,
+                                 args.intparams,
+                                 args.floatparams,
+                                 args.doubleparams,
                                  args.output,
                                  args.args);
   }
@@ -56,6 +60,11 @@ static void bitgenerator_template(TaskContext& context)
   auto seed          = scalars[3].value<uint64_t>();
   auto flags         = scalars[4].value<uint32_t>();
 
+  BitGeneratorDistribution distribution;
+  std::vector<int64_t> intparams;
+  std::vector<float> floatparams;
+  std::vector<double> doubleparams;
+
   DomainPoint strides;  // optional parameter
   legate::Span<const int32_t> todestroy;
   switch (bitgen_op) {
@@ -68,6 +77,20 @@ static void bitgenerator_template(TaskContext& context)
       if (scalars.size() > 5) strides = scalars[5].value<DomainPoint>();
       break;
     }
+    case BitGeneratorOperation::DISTRIBUTION: {
+      if (scalars.size() < 9) {
+        ::fprintf(stderr, "FATAL: not enough parameters\n");
+        ::exit(1);
+      }
+      distribution    = scalars[5].value<BitGeneratorDistribution>();
+      auto _intparams = scalars[6].values<int64_t>();
+      for (int k = 0; k < _intparams.size(); ++k) intparams.push_back(_intparams[k]);
+      auto _floatparams = scalars[7].values<float>();
+      for (int k = 0; k < _floatparams.size(); ++k) floatparams.push_back(_floatparams[k]);
+      auto _doubleparams = scalars[8].values<double>();
+      for (int k = 0; k < _doubleparams.size(); ++k) doubleparams.push_back(_doubleparams[k]);
+      break;
+    }
   }
 
   std::vector<Store> extra_args;
@@ -78,18 +101,22 @@ static void bitgenerator_template(TaskContext& context)
 
   // destroy ?
   for (int k = 0; k < todestroy.size(); ++k) {
-    BitGeneratorArgs dargs{BitGeneratorOperation::DESTROY, todestroy[k], 0, 0, 0, strides};
+    BitGeneratorArgs dargs = BitGeneratorArgs::destroy(todestroy[k]);
     BitGeneratorImpl<KIND>{}(dargs);
   }
 
-  BitGeneratorArgs args{bitgen_op,
+  BitGeneratorArgs args(bitgen_op,
                         generatorID,
                         generatorType,
                         seed,
                         flags,
+                        distribution,
                         strides,
+                        std::move(intparams),
+                        std::move(floatparams),
+                        std::move(doubleparams),
                         std::move(optional_output),
-                        std::move(extra_args)};
+                        std::move(extra_args));
   BitGeneratorImpl<KIND>{}(args);
 }
 

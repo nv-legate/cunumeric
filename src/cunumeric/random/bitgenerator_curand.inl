@@ -60,6 +60,14 @@ struct CURANDGenerator {
   {
     CHECK_CURAND(::curandGenerateRawUInt32Ex(gen, out, count));
   }
+  void generate_integer_64(uint64_t count, int64_t* out, int64_t low, int64_t high)
+  {
+    CHECK_CURAND(::curandGenerateIntegers64Ex(gen, out, count, low, high));
+  }
+  void generate_integer_32(uint64_t count, int32_t* out, int32_t low, int32_t high)
+  {
+    CHECK_CURAND(::curandGenerateIntegers32Ex(gen, out, count, low, high));
+  }
 };
 
 struct generate_fn {
@@ -81,6 +89,79 @@ struct generate_fn {
     }
 
     return volume;
+  }
+};
+
+template <typename output_t>
+struct integer_generator;
+template <>
+struct integer_generator<int64_t> {
+  int64_t low, high;
+
+  integer_generator(const std::vector<int64_t>& intparams,
+                    const std::vector<float>& floatparams,
+                    const std::vector<double>& doubleparams)
+    : low(intparams[0]), high(intparams[1])
+  {
+  }
+
+  void generate(CURANDGenerator& gen, uint64_t count, int64_t* p) const
+  {
+    gen.generate_integer_64(count, p, low, high);
+  }
+};
+template <>
+struct integer_generator<int32_t> {
+  int32_t low, high;
+
+  integer_generator(const std::vector<int64_t>& intparams,
+                    const std::vector<float>& floatparams,
+                    const std::vector<double>& doubleparams)
+    : low((int32_t)intparams[0]), high((int32_t)intparams[1])
+  {
+  }
+
+  void generate(CURANDGenerator& gen, uint64_t count, int32_t* p) const
+  {
+    gen.generate_integer_32(count, p, low, high);
+  }
+};
+
+template <typename output_t, typename generator_t>
+struct generate_distribution {
+  const generator_t& generator;
+
+  generate_distribution(const generator_t& generator) : generator(generator) {}
+
+  template <int32_t DIM>
+  size_t operator()(CURANDGenerator& gen, legate::Store& output)
+  {
+    auto rect       = output.shape<DIM>();
+    uint64_t volume = rect.volume();
+
+    const auto proc = Legion::Processor::get_executing_processor();
+    log_curand.debug() << "proc=" << proc << " - shape = " << rect;
+
+    if (volume > 0) {
+      auto out = output.write_accessor<output_t, DIM>(rect);
+
+      output_t* p = out.ptr(rect);
+
+      generator.generate(gen, volume, p);
+    }
+
+    return volume;
+  }
+
+  static void generate(legate::Store& res,
+                       CURANDGenerator& cugen,
+                       const std::vector<int64_t>& intparams,
+                       const std::vector<float>& floatparams,
+                       const std::vector<double>& doubleparams)
+  {
+    generator_t dist_gen(intparams, floatparams, doubleparams);
+    generate_distribution<output_t, generator_t> generate_func(dist_gen);
+    dim_dispatch(res.dim(), generate_func, cugen, res);
   }
 };
 
@@ -182,7 +263,11 @@ struct BitGeneratorImplBody {
     uint32_t generatorType,  // to allow for lazy initialization, generatorType is always passed
     uint64_t seed,           // to allow for lazy initialization, seed is always passed
     uint32_t flags,          // for future use - ordering, etc.
+    BitGeneratorDistribution distribution,
     const DomainPoint& strides,
+    std::vector<int64_t> intparams,
+    std::vector<float> floatparams,
+    std::vector<double> doubleparams,
     std::vector<legate::Store>& output,
     std::vector<legate::Store>& args)
   {
@@ -213,6 +298,34 @@ struct BitGeneratorImplBody {
           legate::Store& res     = output[0];
           CURANDGenerator& cugen = *genptr;
           dim_dispatch(res.dim(), generate_fn{}, cugen, res);
+        }
+        break;
+      }
+      case BitGeneratorOperation::DISTRIBUTION: {
+        // allow for lazy initialization
+        if (!genmap.has(generatorID))
+          genmap.create(generatorID, static_cast<BitGeneratorType>(generatorType), seed, flags);
+        // get the generator
+        CURANDGenerator* genptr = genmap.get(generatorID);
+        if (output.size() == 0) {
+          assert(false);  // TODO for skip ahead ?
+        } else {
+          legate::Store& res     = output[0];
+          CURANDGenerator& cugen = *genptr;
+          switch (distribution) {
+            case BitGeneratorDistribution::INTEGERS_32:
+              generate_distribution<int32_t, integer_generator<int32_t>>::generate(
+                res, cugen, intparams, floatparams, doubleparams);
+              break;
+            case BitGeneratorDistribution::INTEGERS_64:
+              generate_distribution<int64_t, integer_generator<int64_t>>::generate(
+                res, cugen, intparams, floatparams, doubleparams);
+              break;
+            default: {
+              log_curand.fatal() << "unknown Distribution";
+              assert(false);
+            }
+          }
         }
         break;
       }

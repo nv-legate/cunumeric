@@ -205,10 +205,10 @@ enum CuNumericBounds {
 
 // Match these to BitGeneratorOperation in config.py
 enum CuNumericBitGeneratorOperation {
-  CUNUMERIC_BITGENOP_CREATE   = 1,
-  CUNUMERIC_BITGENOP_DESTROY  = 2,
-  CUNUMERIC_BITGENOP_RAND_RAW = 3,
-  CUNUMERIC_BITGENOP_SET_SEED = 4,
+  CUNUMERIC_BITGENOP_CREATE       = 1,
+  CUNUMERIC_BITGENOP_DESTROY      = 2,
+  CUNUMERIC_BITGENOP_RAND_RAW     = 3,
+  CUNUMERIC_BITGENOP_DISTRIBUTION = 4,
 };
 
 // Match these to BitGeneratorType in config.py
@@ -219,7 +219,12 @@ enum CuNumericBitGeneratorType {
   CUNUMERIC_BITGENTYPE_MTGP32        = 3,
   CUNUMERIC_BITGENTYPE_MT19937       = 4,
   CUNUMERIC_BITGENTYPE_PHILOX4_32_10 = 5,
+};
 
+// Match these to BitGeneratorDistribution in config.py
+enum CuNumericBitGeneratorDistribution {
+  CUNUMERIC_BITGENDIST_INTEGERS_32 = 1,
+  CUNUMERIC_BITGENDIST_INTEGERS_64 = 2,
 };
 
 // These fft types match CuNumericFFTType in config.py and cufftType

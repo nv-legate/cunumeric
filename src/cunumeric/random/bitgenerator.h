@@ -27,9 +27,55 @@ struct BitGeneratorArgs {
   uint32_t generatorType;
   uint64_t seed;
   uint32_t flags;
+
+  BitGeneratorDistribution distribution;
+
   Legion::DomainPoint strides;
+  std::vector<int64_t> intparams;
+  std::vector<float> floatparams;
+  std::vector<double> doubleparams;
+
   std::vector<legate::Store> output;  // size 0 or 1
   std::vector<legate::Store> args;
+
+  BitGeneratorArgs() {}
+  static BitGeneratorArgs destroy(int32_t id)
+  {
+    BitGeneratorArgs res;
+    res.bitgen_op   = BitGeneratorOperation::DESTROY;
+    res.generatorID = id;
+    return res;
+  }
+
+  BitGeneratorArgs(BitGeneratorOperation bitgen_op,
+                   int32_t generatorID,
+                   uint32_t generatorType,
+                   uint64_t seed,
+                   uint32_t flags,
+
+                   BitGeneratorDistribution distribution,
+
+                   Legion::DomainPoint strides,
+                   std::vector<int64_t>&& intparams,
+                   std::vector<float>&& floatparams,
+                   std::vector<double>&& doubleparams,
+
+                   std::vector<legate::Store>&& output,  // size 0 or 1
+                   std::vector<legate::Store>&& args)
+    : bitgen_op(bitgen_op),
+      generatorID(generatorID),
+      generatorType(generatorType),
+      seed(seed),
+      flags(flags),
+      distribution(distribution),
+      strides(strides),
+      intparams(std::move(intparams)),
+      floatparams(std::move(floatparams)),
+      doubleparams(std::move(doubleparams)),
+      output(std::move(output)),
+      args(std::move(args))
+  {
+  }
 };
 
 class BitGeneratorTask : public CuNumericTask<BitGeneratorTask> {

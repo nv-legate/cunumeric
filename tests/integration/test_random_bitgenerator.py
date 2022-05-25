@@ -53,6 +53,21 @@ def test_force_build():
     bitgen.destroy()
 
 
+def inner_test_integers(t):
+    bitgen = t(seed=42)
+    gen = num.random.Generator(bitgen)
+    a = gen.integers(512, 653548, size=(1024,))
+    print(f"1024 sum = {a.sum()}")
+    a = gen.integers(512, 653548, size=(1024 * 1024,))
+    print(f"1024*1024 sum = {a.sum()}")
+
+
+def test_integers():
+    inner_test_integers(num.random.XORWOW)
+    inner_test_integers(num.random.MRG32k3a)
+    inner_test_integers(num.random.PHILOX4_32_10)
+
+
 if __name__ == "__main__":
     import sys
 

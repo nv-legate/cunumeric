@@ -27,6 +27,7 @@ from legate.core import Future, ReductionOp, Store
 
 from .config import (
     BinaryOpCode,
+    BitGeneratorDistribution,
     BitGeneratorOperation,
     CuNumericOpCode,
     CuNumericRedopCode,
@@ -1632,6 +1633,52 @@ class DeferredArray(NumPyThunk):
         task.add_scalar_arg(self.compute_strides(self.shape), (ty.int64,))
 
         task.execute()
+
+    def bitgenerator_distribution(
+        self,
+        handle,
+        generatorType,
+        seed,
+        flags,
+        distribution,
+        intparams,
+        floatparams,
+        doubleparams,
+    ):
+        task = self.context.create_task(CuNumericOpCode.BITGENERATOR)
+
+        task.add_output(self.base)
+
+        task.add_scalar_arg(BitGeneratorOperation.DISTRIBUTION, ty.int32)
+        task.add_scalar_arg(handle, ty.int32)
+        task.add_scalar_arg(generatorType, ty.uint32)
+        task.add_scalar_arg(seed, ty.uint64)
+        task.add_scalar_arg(flags, ty.uint32)
+        task.add_scalar_arg(distribution, ty.uint32)
+
+        # strides
+        task.add_scalar_arg(self.compute_strides(self.shape), (ty.int64,))
+        task.add_scalar_arg(intparams, (ty.int64,))
+        task.add_scalar_arg(floatparams, (ty.float32,))
+        task.add_scalar_arg(doubleparams, (ty.float64,))
+
+        task.execute()
+
+    def bitgenerator_integers(
+        self, handle, generatorType, seed, flags, low, high
+    ):
+        intparams = (low, high)
+        if self.dtype == np.int32:
+            distribution = BitGeneratorDistribution.INTEGERS_32
+        elif self.dtype == np.int64:
+            distribution = BitGeneratorDistribution.INTEGERS_64
+        else:
+            raise NotImplementedError(
+                "type for random.integers has to be int64 or int32"
+            )
+        self.bitgenerator_distribution(
+            handle, generatorType, seed, flags, distribution, intparams, (), ()
+        )
 
     def random(self, gen_code, args=[]):
         task = self.context.create_task(CuNumericOpCode.RAND)
