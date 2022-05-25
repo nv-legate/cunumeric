@@ -185,7 +185,7 @@ if __name__ == "__main__":
              else, use einsum(expr, A, B, out=C)""",
     )
 
-    args = parser.parse_args()
+    args, _ = parser.parse_known_args()
 
     cupy_compatibility = args.cupy_compatibility
     if args.package == "legate":
