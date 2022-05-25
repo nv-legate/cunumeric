@@ -21,8 +21,8 @@ import pytest
 import cunumeric as cn
 
 
-def _sum(shape, axis, lib):
-    return lib.ones(shape).sum(axis=axis)
+def _sum(shape, axis, lib, dtype=None):
+    return lib.ones(shape).sum(axis=axis, dtype=dtype)
 
 
 # Try various non-square shapes, to nudge the core towards trying many
@@ -31,9 +31,12 @@ def _sum(shape, axis, lib):
 @pytest.mark.parametrize("shape", permutations((3, 4, 5)), ids=str)
 def test_3d(shape, axis):
     assert np.array_equal(_sum(shape, axis, np), _sum(shape, axis, cn))
+    assert np.array_equal(
+        _sum(shape, axis, np, dtype="D"), _sum(shape, axis, cn, dtype="D")
+    )
 
 
 if __name__ == "__main__":
     import sys
 
-    pytest.main(sys.argv)
+    sys.exit(pytest.main(sys.argv))

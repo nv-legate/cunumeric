@@ -194,6 +194,7 @@ def test_UnaryOpCode() -> None:
         "EXP2",
         "EXPM1",
         "FLOOR",
+        "FREXP",
         "GETARG",
         "IMAG",
         "INVERT",
@@ -205,6 +206,7 @@ def test_UnaryOpCode() -> None:
         "LOG1P",
         "LOG2",
         "LOGICAL_NOT",
+        "MODF",
         "NEGATIVE",
         "POSITIVE",
         "RAD2DEG",
@@ -243,4 +245,4 @@ def test_CuNumericTunable() -> None:
 if __name__ == "__main__":
     import sys
 
-    pytest.main(sys.argv)
+    sys.exit(pytest.main(sys.argv))

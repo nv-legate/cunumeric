@@ -118,6 +118,9 @@ def _test_func(a: int, b: int) -> int:
 class _Test_ufunc(cunumeric._ufunc.ufunc):
     """docstring"""
 
+    def __init__(self):
+        super().__init__("_test_ufunc", "docstring", {"i": "i"})
+
     def __call__(self, a: int, b: int) -> int:
         return a + b
 
@@ -319,9 +322,9 @@ attr2 = 30
 
 
 class Test_clone_module:
-    @patch.object(cunumeric.runtime, "report_coverage", True)
+    @patch.object(cunumeric.runtime.args, "report_coverage", True)
     def test_report_coverage_True(self) -> None:
-        assert cunumeric.runtime.report_coverage
+        assert cunumeric.runtime.args.report_coverage
 
         _Dest = ModuleType("dest")
         exec(_DestCode, _Dest.__dict__)
@@ -337,14 +340,14 @@ class Test_clone_module:
         assert _Dest.attr2 == 30
 
         assert _Dest.function1.__wrapped__ is _OriginMod.function1
-        assert not _Dest.function1._cunumeric_implemented
+        assert not _Dest.function1._cunumeric.implemented
 
         assert _Dest.function2.__wrapped__
-        assert _Dest.function2._cunumeric_implemented
+        assert _Dest.function2._cunumeric.implemented
 
-    @patch.object(cunumeric.runtime, "report_coverage", False)
+    @patch.object(cunumeric.runtime.args, "report_coverage", False)
     def test_report_coverage_False(self) -> None:
-        assert not cunumeric.runtime.report_coverage
+        assert not cunumeric.runtime.args.report_coverage
 
         _Dest = ModuleType("dest")
         exec(_DestCode, _Dest.__dict__)
@@ -360,7 +363,7 @@ class Test_clone_module:
         assert _Dest.attr2 == 30
 
         assert _Dest.function1.__wrapped__ is _OriginMod.function1
-        assert not _Dest.function1._cunumeric_implemented
+        assert not _Dest.function1._cunumeric.implemented
 
         assert _Dest.function2 is _Dest.function2
 
@@ -402,9 +405,9 @@ class _OriginClass:
 
 
 class Test_clone_class:
-    @patch.object(cunumeric.runtime, "report_coverage", True)
+    @patch.object(cunumeric.runtime.args, "report_coverage", True)
     def test_report_coverage_True(self) -> None:
-        assert cunumeric.runtime.report_coverage
+        assert cunumeric.runtime.args.report_coverage
 
         @m.clone_class(_OriginClass)
         class _Dest:
@@ -420,14 +423,14 @@ class Test_clone_class:
         assert _Dest.attr2 == 30
 
         assert _Dest.method1.__wrapped__ is _OriginClass.method1
-        assert not _Dest.method1._cunumeric_implemented
+        assert not _Dest.method1._cunumeric.implemented
 
         assert _Dest.method2.__wrapped__
-        assert _Dest.method2._cunumeric_implemented
+        assert _Dest.method2._cunumeric.implemented
 
-    @patch.object(cunumeric.runtime, "report_coverage", False)
+    @patch.object(cunumeric.runtime.args, "report_coverage", False)
     def test_report_coverage_False(self) -> None:
-        assert not cunumeric.runtime.report_coverage
+        assert not cunumeric.runtime.args.report_coverage
 
         @m.clone_class(_OriginClass)
         class _Dest:
@@ -443,7 +446,7 @@ class Test_clone_class:
         assert _Dest.attr2 == 30
 
         assert _Dest.method1.__wrapped__ is _OriginClass.method1
-        assert not _Dest.method1._cunumeric_implemented
+        assert not _Dest.method1._cunumeric.implemented
 
         assert _Dest.method2 is _Dest.method2
 
@@ -451,4 +454,4 @@ class Test_clone_class:
 if __name__ == "__main__":
     import sys
 
-    pytest.main(sys.argv)
+    sys.exit(pytest.main(sys.argv))

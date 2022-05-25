@@ -119,7 +119,7 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def transpose(self, rhs, axes):
+    def transpose(self, axes):
         ...
 
     @abstractmethod
@@ -183,7 +183,7 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def unary_op(self, op, rhs, where, args):
+    def unary_op(self, op, rhs, where, args, multiout=None):
         ...
 
     @abstractmethod
@@ -193,11 +193,16 @@ class NumPyThunk(ABC):
         redop,
         rhs,
         where,
+        orig_axis,
         axes,
         keepdims,
         args,
         initial,
     ):
+        ...
+
+    @abstractmethod
+    def isclose(self, rhs1, rhs2, rtol, atol, equal_nan):
         ...
 
     @abstractmethod

@@ -17,54 +17,62 @@ import numpy as np
 import pytest
 
 import cunumeric as num
+from legate.core import LEGATE_MAX_DIM
+
+INPUTS = (
+    [-1, 4, 5],
+    [5, 10, 0, 100],
+    [[0, 0], [0, 0]],
+    [[True, True, False], [True, True, True]],
+    [[False, True, False]],
+    [[0.0, 1.0, 0.0]],
+    [[1, 0 + 1j, 1 + 1j]],
+    [[1, 0 + 1j, 0 + 0j]],
+    [np.nan],
+)
 
 
-def test_any_basic():
-    assert num.array_equal(num.any([-1, 4, 5]), np.any([-1, 4, 5]))
+@pytest.mark.parametrize("input", INPUTS)
+def test_any_and_all(input):
+    in_np = np.array(input)
+    # cuNumeric doesn't support reductions for complex128
+    if in_np.dtype.kind == "c":
+        in_np = in_np.astype("F")
+    in_num = num.array(in_np)
 
-    x = [5, 10, 0, 100]
-    cx = num.array(x)
-    assert num.array_equal(num.any(cx), np.any(x))
-
-    y = [[0, 0], [0, 0]]
-    cy = num.array(y)
-    assert num.array_equal(num.any(cy), np.any(y))
-
-
-def test_any_axis():
-    x = np.array([[True, True, False], [True, True, True]])
-    cx = num.array(x)
-
-    assert num.array_equal(num.any(cx), np.any(x))
-    assert num.array_equal(num.any(cx, axis=0), np.any(x, axis=0))
+    for fn in ("any", "all"):
+        fn_np = getattr(np, fn)
+        fn_num = getattr(num, fn)
+        assert np.array_equal(fn_np(in_np), fn_num(in_num))
+        for axis in range(in_num.ndim):
+            out_np = fn_np(in_np, axis=axis)
+            out_num = fn_num(in_num, axis=axis)
+            assert np.array_equal(out_np, out_num)
 
 
-def test_all_basic():
-    assert num.array_equal(num.all([-1, 4, 5]), np.all([-1, 4, 5]))
+@pytest.mark.parametrize("ndim", range(LEGATE_MAX_DIM + 1))
+def test_nd_inputs(ndim):
+    shape = (3,) * ndim
+    in_np = np.random.random(shape)
+    in_num = num.array(in_np)
 
-    x = [5, 10, 0, 100]
-    cx = num.array(x)
-    assert num.array_equal(num.all(cx), np.all(x))
+    for fn in ("any", "all"):
+        fn_np = getattr(np, fn)
+        fn_num = getattr(num, fn)
+        for axis in range(in_num.ndim):
+            out_np = fn_np(in_np, axis=axis)
+            out_num = fn_num(in_num, axis=axis)
+            assert np.array_equal(out_np, out_num)
 
-    y = [[0, 0], [0, 0]]
-    cy = num.array(y)
-    assert num.array_equal(num.all(cy), np.all(y))
+            out_np = np.empty(out_np.shape, dtype="D")
+            out_num = num.empty(out_num.shape, dtype="D")
+            fn_np(in_np, axis=axis, out=out_np)
+            fn_num(in_num, axis=axis, out=out_num)
+            assert np.array_equal(out_np, out_num)
 
-
-def test_all_axis():
-    x = np.array([[True, True, False], [True, True, True]])
-    cx = num.array(x)
-
-    assert num.array_equal(num.all(cx), np.all(x))
-    assert num.array_equal(num.all(cx, axis=0), np.all(x, axis=0))
-
-
-def test_nan():
-    assert num.equal(num.all(num.nan), np.all(np.nan))
-    assert num.equal(num.any(num.nan), np.any(np.nan))
-
-    assert num.array_equal(num.all(num.nan), np.all(np.nan))
-    assert num.array_equal(num.any(num.nan), np.any(np.nan))
+            out_np = fn_np(in_np[1:], axis=axis)
+            out_num = fn_num(in_num[1:], axis=axis)
+            assert np.array_equal(out_np, out_num)
 
 
 @pytest.mark.skip
@@ -85,4 +93,4 @@ def test_where():
 if __name__ == "__main__":
     import sys
 
-    pytest.main(sys.argv)
+    sys.exit(pytest.main(sys.argv))

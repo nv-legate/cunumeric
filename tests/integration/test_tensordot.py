@@ -33,13 +33,13 @@ def test_tensordot(a_ndim, b_ndim):
         name = f"tensordot({a_ndim} x {b_ndim}, axes={axes})"
         modes = tensordot_modes(a_ndim, b_ndim, axes)
 
-    def operation(lib, *args, **kwargs):
-        return lib.tensordot(*args, **kwargs, axes=axes)
+        def operation(lib, *args, **kwargs):
+            return lib.tensordot(*args, **kwargs, axes=axes)
 
-    check_default(name, modes, operation)
+        check_default(name, modes, operation)
 
 
 if __name__ == "__main__":
     import sys
 
-    pytest.main(sys.argv)
+    sys.exit(pytest.main(sys.argv))

@@ -98,12 +98,11 @@ def test_axis():
         x_np, axis=(0, 1, 2)
     )
 
-    # TODO: Put this back once we have per-axis count_nonzero
-    # for axis in range(3):
-    #    assert_equal(
-    #        num.count_nonzero(x, axis=axis),
-    #        np.count_nonzero(x_np, axis=axis),
-    #    )
+    for axis in range(3):
+        assert_equal(
+            num.count_nonzero(x, axis=axis),
+            np.count_nonzero(x_np, axis=axis),
+        )
 
 
 def test_deprecated_0d():
@@ -131,4 +130,4 @@ def test_deprecated_0d():
 if __name__ == "__main__":
     import sys
 
-    pytest.main(sys.argv)
+    sys.exit(pytest.main(sys.argv))

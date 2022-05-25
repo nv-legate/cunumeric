@@ -19,12 +19,17 @@ import argparse
 import re
 
 from benchmark import run_benchmark
-from legate.timing import time
 
-import cunumeric as np
+try:
+    from legate.timing import time
+except ImportError:
+    from time import perf_counter_ns
+
+    def time():
+        return perf_counter_ns() / 1000.0
 
 
-def run_einsum(expr, N, iters, dtype):
+def run_einsum(expr, N, iters, dtype, cupy_compatibility):
     # Parse contraction expression
     m = re.match(r"([a-zA-Z]*),([a-zA-Z]*)->([a-zA-Z]*)", expr)
     assert m is not None
@@ -87,14 +92,18 @@ def run_einsum(expr, N, iters, dtype):
     # Run contraction
     start = time()
     for _ in range(iters):
-        # We use out= to avoid the use of intermediates, thus reducing memory
-        # pressure and allowing us to use larger arrays.
-        np.einsum(expr, A, B, out=C)
-        # We make the output tensor an input to the next iteration, to create a
-        # true data dependence between successive iterations. This means that
-        # at least one of the input tensors needs to have the same shape as the
-        # output tensor. Therefore, we can only use expressions where the
-        # result has the same number of modes as one of the arguments.
+        if cupy_compatibility:
+            C = np.einsum(expr, A, B)
+        else:
+            # We use out= to avoid the use of intermediates, thus reducing
+            # memory pressure and allowing us to use larger arrays.
+            np.einsum(expr, A, B, out=C)
+        # We make the output tensor an input to the next iteration, to
+        # create a true data dependence between successive iterations.
+        # This means that at least one of the input tensors needs to
+        # have the same shape as the output tensor. Therefore, we can
+        # only use expressions where the result has the same number of
+        # modes as one of the arguments.
         if swap_a_c:
             A, C = C, A
         else:
@@ -152,7 +161,52 @@ if __name__ == "__main__":
         help="number of times to benchmark this application (default 1 - "
         "normal execution)",
     )
+    parser.add_argument(
+        "--package",
+        dest="package",
+        choices=["legate", "numpy", "cupy"],
+        type=str,
+        default="legate",
+        help="NumPy package to use (legate, numpy, or cupy)",
+    )
+    parser.add_argument(
+        "--cupy-allocator",
+        dest="cupy_allocator",
+        choices=["default", "off", "managed"],
+        type=str,
+        default="default",
+        help="cupy allocator to use (default, off, or managed)",
+    )
+    parser.add_argument(
+        "--cupy-compatibility",
+        action="store_true",
+        dest="cupy_compatibility",
+        help="""einsum to call (if true, C = np.einsum(expr, A, B);
+             else, use einsum(expr, A, B, out=C)""",
+    )
+
     args = parser.parse_args()
+
+    cupy_compatibility = args.cupy_compatibility
+    if args.package == "legate":
+        import cunumeric as np
+    elif args.package == "cupy":
+        import cupy as np
+
+        if args.cupy_allocator == "off":
+            np.cuda.set_allocator(None)
+            print("Turning off memory pool")
+        elif args.cupy_allocator == "managed":
+            np.cuda.set_allocator(
+                np.cuda.MemoryPool(np.cuda.malloc_managed).malloc
+            )
+            print("Using managed memory pool")
+        cupy_compatibility = True
+    elif args.package == "numpy":
+        import numpy as np
+    if cupy_compatibility:
+        print("Use C = np.einsum(expr, A, B) for cupy compatibility")
+
     dtypes = {
         "f16": np.float16,
         "f32": np.float32,
@@ -164,5 +218,11 @@ if __name__ == "__main__":
         run_einsum,
         args.benchmark,
         "Einsum",
-        (args.expr, args.N, args.iters, dtypes[args.dtype]),
+        (
+            args.expr,
+            args.N,
+            args.iters,
+            dtypes[args.dtype],
+            cupy_compatibility,
+        ),
     )

@@ -144,6 +144,20 @@ def test():
     x_num[index_num] = num.array([[1, 2, 3]])
     assert np.array_equal(x, x_num)
 
+    # r negative indices
+    indx = np.array([-7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6])
+    indx_num = num.array(indx)
+    res = x[indx]
+    res_num = x_num[indx_num]
+    assert np.array_equal(res, res_num)
+
+    # s index array as a future
+    index = np.array([3])
+    index_num = num.array(index)
+    res = x[index]
+    res_num = x_num[index]
+    assert np.array_equal(res, res_num)
+
     # Nd cases
     print("advanced indexing test 2")
 
@@ -201,6 +215,13 @@ def test():
     res_num = xt_num[:, indx_num, :]
     assert np.array_equal(res, res_num)
 
+    # test with negative indices:
+    indx = np.array([-1, 1])
+    indx_num = num.array(indx)
+    res = x[indx]
+    res_num = x_num[indx_num]
+    assert np.array_equal(res, res_num)
+
     # b : 2 1d index arrays passed
     indx0 = np.array([1, 1])
     indx1 = np.array([1, 0])
@@ -220,6 +241,15 @@ def test():
 
     res = xt[:, indx0, indx1]
     res_num = xt_num[:, indx0_num, indx1_num]
+    assert np.array_equal(res, res_num)
+
+    # test with negative indices:
+    indx0 = np.array([1, -1])
+    indx1 = np.array([-1, 0])
+    indx0_num = num.array(indx0)
+    indx1_num = num.array(indx1)
+    res = x[indx0, indx1]
+    res_num = x_num[indx0_num, indx1_num]
     assert np.array_equal(res, res_num)
 
     # c:  2 index arrays passed in a sparse way:
@@ -681,4 +711,4 @@ def test():
 if __name__ == "__main__":
     import sys
 
-    pytest.main(sys.argv)
+    sys.exit(pytest.main(sys.argv))

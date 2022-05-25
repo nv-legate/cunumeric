@@ -60,6 +60,20 @@ def check_ops(ops, in_np, out_dtype="d"):
 
         check_result(op, in_np, out_np, out_num)
 
+        out_np = np.empty(out_np.shape, dtype=out_dtype)
+        out_num = num.empty(out_num.shape, dtype=out_dtype)
+
+        op_np(*in_np, out_np)
+        op_num(*in_num, out_num)
+
+        check_result(op, in_np, out_np, out_num)
+
+        # Ask cuNumeric to produce outputs to NumPy ndarrays
+        out_num = np.ones(out_np.shape, dtype=out_dtype)
+        op_num(*in_num, out_num)
+
+        check_result(op, in_np, out_np, out_num)
+
 
 def test_all():
     # TODO: right now we will simply check if the operations work
@@ -87,6 +101,8 @@ def test_all():
     check_ops(ops, (np.random.randn(4, 5),))
     check_ops(ops, (np.random.randn(4, 5).astype("e"),))
     check_ops(ops, (np.random.randn(4, 5).astype("f"),))
+    check_ops(ops, (np.random.randn(4, 5).astype("b"),))
+    check_ops(ops, (np.random.randn(4, 5).astype("B"),))
     check_ops(ops, (np.random.randint(1, 10, size=(4, 5)),))
     check_ops(ops, (np.random.randn(1)[0],))
 
@@ -162,9 +178,6 @@ def test_all():
     ops = [
         "ceil",
         "floor",
-        # "fmod",
-        # "frexp",
-        # "modf",
         "signbit",
         # "spacing",
         "trunc",
@@ -229,4 +242,4 @@ if __name__ == "__main__":
         in_np = parse_inputs(args.inputs, args.dtypes)
         check_ops([args.op], in_np)
     else:
-        pytest.main(sys.argv)
+        sys.exit(pytest.main(sys.argv))

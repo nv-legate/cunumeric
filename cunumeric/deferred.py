@@ -394,6 +394,7 @@ class DeferredArray(NumPyThunk):
         task.add_scalar_arg(self.ndim, ty.int64)  # N of points in Point<N>
         task.add_scalar_arg(key_dim, ty.int64)  # key_dim
         task.add_scalar_arg(start_index, ty.int64)  # start_index
+        task.add_scalar_arg(self.shape, (ty.int64,))
         for a in arrays:
             task.add_input(a)
             task.add_alignment(output_arr.base, a)
@@ -422,7 +423,7 @@ class DeferredArray(NumPyThunk):
         start_index = -1
         if (
             isinstance(key, NumPyThunk)
-            and key.dtype == np.bool
+            and key.dtype == bool
             and key.shape == rhs.shape
         ):
             if not isinstance(key, DeferredArray):
@@ -476,7 +477,7 @@ class DeferredArray(NumPyThunk):
                 transpose_needed = transpose_needed or ((dim - last_index) > 1)
                 if (
                     isinstance(k, NumPyThunk)
-                    and k.dtype == np.bool
+                    and k.dtype == bool
                     and k.ndim >= 2
                 ):
                     for i in range(dim, dim + k.ndim):
@@ -513,7 +514,7 @@ class DeferredArray(NumPyThunk):
             elif isinstance(k, NumPyThunk):
                 if not isinstance(key, DeferredArray):
                     k = self.runtime.to_deferred_array(k)
-                if k.dtype == np.bool:
+                if k.dtype == bool:
                     for i in range(k.ndim):
                         if k.shape[i] != store.shape[dim + i + shift]:
                             raise ValueError(
@@ -543,16 +544,9 @@ class DeferredArray(NumPyThunk):
             # the store with transformation
             rhs, store = self._copy_store(store)
 
-        if len(tuple_of_arrays) <= rhs.ndim and rhs.ndim > 1:
+        if len(tuple_of_arrays) <= rhs.ndim:
             output_arr = rhs._zip_indices(start_index, tuple_of_arrays)
             return True, rhs, output_arr, self
-        elif len(tuple_of_arrays) == 1 and rhs.ndim == 1:
-            key = tuple_of_arrays[0]
-            # when key is transformed, we need to return a copy in purpose
-            # to use it as an indirection in copy operation
-            if key.base.transformed:
-                key, key_store = key._copy_store(key.base)
-            return True, rhs, key, self
         else:
             raise ValueError("Advanced indexing dimension mismatch")
 
@@ -612,6 +606,20 @@ class DeferredArray(NumPyThunk):
 
         return result
 
+    def _convert_future_to_store(self, a):
+        store = self.context.create_store(
+            a.dtype,
+            shape=a.shape,
+            optimize_scalar=False,
+        )
+        store_copy = DeferredArray(
+            self.runtime,
+            base=store,
+            dtype=a.dtype,
+        )
+        store_copy.copy(a, deep=True)
+        return store_copy
+
     def get_item(self, key):
         # Check to see if this is advanced indexing or not
         if is_advanced_indexing(key):
@@ -624,19 +632,32 @@ class DeferredArray(NumPyThunk):
             ) = self._create_indexing_array(key)
             store = rhs.base
             if copy_needed:
-                # Create a new array to be the result
-                result = self.runtime.create_empty_thunk(
-                    index_array.base.shape,
-                    self.dtype,
-                    inputs=[self],
-                )
-                copy = self.context.create_copy()
+                if index_array.base.kind == Future:
+                    index_array = self._convert_future_to_store(index_array)
+                    result_store = self.context.create_store(
+                        self.dtype,
+                        shape=index_array.shape,
+                        optimize_scalar=False,
+                    )
+                    result = DeferredArray(
+                        self.runtime,
+                        base=result_store,
+                        dtype=self.dtype,
+                    )
+                else:
+                    result = self.runtime.create_empty_thunk(
+                        index_array.base.shape,
+                        self.dtype,
+                        inputs=[self],
+                    )
 
+                copy = self.context.create_copy()
+                copy.set_source_indirect_out_of_range(False)
                 copy.add_input(store)
                 copy.add_source_indirect(index_array.base)
                 copy.add_output(result.base)
-
                 copy.execute()
+
             else:
                 return index_array
 
@@ -679,6 +700,8 @@ class DeferredArray(NumPyThunk):
                 rhs = rhs.base
 
             copy = self.context.create_copy()
+            copy.set_target_indirect_out_of_range(False)
+
             copy.add_input(rhs)
             copy.add_target_indirect(index_array.base)
             copy.add_output(lhs.base)
@@ -1015,16 +1038,16 @@ class DeferredArray(NumPyThunk):
         task.execute()
 
     @auto_convert([1])
-    def fft(self, lhs, axes, kind, direction):
+    def fft(self, rhs, axes, kind, direction):
+        lhs = self
         # For now, deferred only supported with GPU, use eager / numpy for CPU
         if self.runtime.num_gpus == 0:
             lhs_eager = lhs.runtime.to_eager_array(lhs)
-            self.runtime.to_eager_array(self).fft(
-                lhs_eager, axes, kind, direction
-            )
+            rhs_eager = rhs.runtime.to_eager_array(rhs)
+            lhs_eager.fft(rhs_eager, axes, kind, direction)
             lhs.base = lhs.runtime.to_deferred_array(lhs_eager).base
         else:
-            input = self.base
+            input = rhs.base
             output = lhs.base
 
             task = self.context.create_task(CuNumericOpCode.FFT)
@@ -1039,7 +1062,7 @@ class DeferredArray(NumPyThunk):
                 len(set(axes)) != len(axes)
                 or len(axes) != input.ndim
                 or tuple(axes) != tuple(sorted(axes)),
-                ty.int8,
+                bool,
             )
             for ax in axes:
                 task.add_scalar_arg(ax, ty.int64)
@@ -1479,14 +1502,10 @@ class DeferredArray(NumPyThunk):
         task.execute()
 
     # Transpose the matrix dimensions
-    @auto_convert([1])
-    def transpose(self, rhs, axes):
-        rhs_array = rhs
-        lhs_array = self
-        assert lhs_array.dtype == rhs_array.dtype
-        assert lhs_array.ndim == rhs_array.ndim
-        assert lhs_array.ndim == len(axes)
-        lhs_array.base = rhs_array.base.transpose(axes)
+    def transpose(self, axes):
+        result = self.base.transpose(axes)
+        result = DeferredArray(self.runtime, result, self.dtype)
+        return result
 
     @auto_convert([1])
     def trilu(self, rhs, k, lower):
@@ -1625,7 +1644,7 @@ class DeferredArray(NumPyThunk):
 
     # Perform the unary operation and put the result in the array
     @auto_convert([2])
-    def unary_op(self, op, src, where, args):
+    def unary_op(self, op, src, where, args, multiout=None):
         lhs = self.base
         rhs = src._broadcast(lhs.shape)
 
@@ -1637,6 +1656,11 @@ class DeferredArray(NumPyThunk):
 
         task.add_alignment(lhs, rhs)
 
+        if multiout is not None:
+            for out in multiout:
+                task.add_output(out.base)
+                task.add_alignment(out.base, rhs)
+
         task.execute()
 
     # Perform a unary reduction operation from one set of dimensions down to
@@ -1647,6 +1671,7 @@ class DeferredArray(NumPyThunk):
         op,
         src,
         where,
+        orig_axis,
         axes,
         keepdims,
         args,
@@ -1658,10 +1683,18 @@ class DeferredArray(NumPyThunk):
 
         argred = op in (UnaryRedCode.ARGMAX, UnaryRedCode.ARGMIN)
 
+        if argred:
+            argred_dtype = self.runtime.get_arg_dtype(rhs_array.dtype)
+            lhs_array = self.runtime.create_empty_thunk(
+                lhs_array.shape,
+                dtype=argred_dtype,
+                inputs=[self],
+            )
+
         # See if we are doing reduction to a point or another region
         if lhs_array.size == 1:
-            assert axes is None or len(axes) == (
-                rhs_array.ndim - lhs_array.ndim
+            assert axes is None or len(axes) == rhs_array.ndim - (
+                0 if keepdims else lhs_array.ndim
             )
 
             task = self.context.create_task(CuNumericOpCode.SCALAR_UNARY_RED)
@@ -1677,20 +1710,13 @@ class DeferredArray(NumPyThunk):
             task.add_reduction(lhs_array.base, _UNARY_RED_TO_REDUCTION_OPS[op])
             task.add_input(rhs_array.base)
             task.add_scalar_arg(op, ty.int32)
+            task.add_scalar_arg(rhs_array.shape, (ty.int64,))
 
             self.add_arguments(task, args)
 
             task.execute()
 
         else:
-            if argred:
-                argred_dtype = self.runtime.get_arg_dtype(rhs_array.dtype)
-                lhs_array = self.runtime.create_empty_thunk(
-                    lhs_array.shape,
-                    dtype=argred_dtype,
-                    inputs=[self],
-                )
-
             # Before we perform region reduction, make sure to have the lhs
             # initialized. If an initial value is given, we use it, otherwise
             # we use the identity of the reduction operator
@@ -1730,13 +1756,21 @@ class DeferredArray(NumPyThunk):
 
             task.execute()
 
-            if argred:
-                self.unary_op(
-                    UnaryOpCode.GETARG,
-                    lhs_array,
-                    True,
-                    [],
-                )
+        if argred:
+            self.unary_op(
+                UnaryOpCode.GETARG,
+                lhs_array,
+                True,
+                [],
+            )
+
+    def isclose(self, rhs1, rhs2, rtol, atol, equal_nan):
+        assert not equal_nan
+        args = (
+            np.array(rtol, dtype=np.float64),
+            np.array(atol, dtype=np.float64),
+        )
+        self.binary_op(BinaryOpCode.ISCLOSE, rhs1, rhs2, True, args)
 
     # Perform the binary operation and put the result in the lhs array
     @auto_convert([2, 3])

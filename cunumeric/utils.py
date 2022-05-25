@@ -39,11 +39,6 @@ _SUPPORTED_DTYPES = [
 ]
 
 
-def broadcast_shapes(*args: tuple[int, ...]) -> tuple[int, ...]:
-    arrays = [np.empty(x, dtype=[]) for x in args]
-    return np.broadcast(*arrays).shape
-
-
 def is_advanced_indexing(key: Any) -> bool:
     if key is Ellipsis or key is None:  # np.newdim case
         return False
@@ -97,7 +92,7 @@ def is_supported_dtype(dtype: Any) -> bool:
 
 
 def calculate_volume(shape: tuple[int, ...]) -> int:
-    if shape == ():
+    if len(shape) == 0:
         return 0
     return reduce(lambda x, y: x * y, shape)
 
