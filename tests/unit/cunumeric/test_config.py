@@ -135,6 +135,7 @@ def test_CuNumericOpCode() -> None:
         "BINARY_OP",
         "BINARY_RED",
         "BINCOUNT",
+        "BITGENERATOR",
         "CHOOSE",
         "CONTRACT",
         "CONVERT",
