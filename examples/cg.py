@@ -202,7 +202,6 @@ def run_cg(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "-c",
         "--check",
         dest="check",
         action="store_true",
@@ -293,7 +292,7 @@ if __name__ == "__main__":
         help="cupy allocator to use (default, off, or managed)",
     )
 
-    args = parser.parse_args()
+    args, _ = parser.parse_known_args()
 
     if args.package == "legate":
         import cunumeric as np
