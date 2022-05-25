@@ -56,12 +56,12 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   reduce_output(out, value);
 }
 
-template <typename VAL, int DIM>
+template <typename VAL, int DIM, typename OUT_T>
 static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   advanced_indexing_kernel(size_t volume,
                            AccessorRO<VAL, DIM> in,
                            AccessorRO<bool, DIM> index,
-                           Buffer<VAL, DIM> out,
+                           Buffer<OUT_T, DIM> out,
                            Pitches<DIM - 1> pitches,
                            Point<DIM> origin,
                            Buffer<int64_t> offsets,
@@ -79,34 +79,7 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
       out_p[i + 1] = point[j];
     }
     for (size_t i = DIM - key_dim + 1; i < DIM; i++) out_p[i] = 0;
-    out[out_p] = in[point];
-  }
-}
-
-template <typename VAL, int DIM>
-static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-  advanced_indexing_kernel(size_t volume,
-                           AccessorRO<VAL, DIM> in,
-                           AccessorRO<bool, DIM> index,
-                           Buffer<Point<DIM>, DIM> out,
-                           Pitches<DIM - 1> pitches,
-                           Point<DIM> origin,
-                           Buffer<int64_t> offsets,
-                           const size_t skip_size,
-                           const size_t key_dim)
-{
-  const size_t tid = blockIdx.x * blockDim.x + threadIdx.x;
-  if (tid >= volume) return;
-  auto point = pitches.unflatten(tid, origin);
-  if (index[point] == true) {
-    Point<DIM> out_p;
-    out_p[0] = offsets[tid];
-    for (size_t i = 0; i < DIM - key_dim; i++) {
-      size_t j     = key_dim + i;
-      out_p[i + 1] = point[j];
-    }
-    for (size_t i = DIM - key_dim + 1; i < DIM; i++) out_p[i] = 0;
-    out[out_p] = point;
+    fill_out(out[out_p], point, in[point]);
   }
 }
 
@@ -166,15 +139,15 @@ struct AdvancedIndexingImplBody<VariantKind::GPU, CODE, DIM, OUT_TYPE> {
     size = compute_size(index, pitches, rect, volume, stream, offsets, skip_size, key_dim);
 
     // calculating the shape of the output region for this sub-task
-    Point<DIM> extends;
-    extends[0] = size;
+    Point<DIM> extents;
+    extents[0] = size;
     for (size_t i = 0; i < DIM - key_dim; i++) {
       size_t j       = key_dim + i;
-      extends[i + 1] = 1 + rect.hi[j] - rect.lo[j];
+      extents[i + 1] = 1 + rect.hi[j] - rect.lo[j];
     }
-    for (size_t i = DIM - key_dim + 1; i < DIM; i++) extends[i] = 1;
+    for (size_t i = DIM - key_dim + 1; i < DIM; i++) extents[i] = 1;
 
-    auto out = out_arr.create_output_buffer<OUT_TYPE, DIM>(extends, true);
+    auto out = out_arr.create_output_buffer<OUT_TYPE, DIM>(extents, true);
 
     // populate output
     if (size > 0) {

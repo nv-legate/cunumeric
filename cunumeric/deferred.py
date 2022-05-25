@@ -414,7 +414,7 @@ class DeferredArray(NumPyThunk):
             inputs=[store_to_copy],
         )
         store_copy.copy(store_to_copy, deep=True)
-        return store_copy, store_copy.base
+        return store_copy
 
     def _create_indexing_array(self, key, is_set=False):
         store = self.base
@@ -435,16 +435,13 @@ class DeferredArray(NumPyThunk):
                         f"dimension {i} doesn't match to the shape of the"
                         f"index array which is {rhs.shape[i]}"
                     )
-            key_dims = key.ndim
-            out_dim = rhs.ndim - key_dims + 1
-            key = key.base
+            key_store = key.base
             # bring key to the same shape as rhs
-            if key.shape != rhs.shape:
-                for i in range(key.ndim, rhs.ndim):
-                    key = key.promote(i, rhs.shape[i])
+            for i in range(key_store.ndim, rhs.ndim):
+                key_store = key_store.promote(i, rhs.shape[i])
 
             out_dtype = rhs.dtype
-            # in cease this operation is called for the set_item, we
+            # in the case this operation is called for the set_item, we
             # return Point<N> type field that is later used for
             # indirect copy operation
             if is_set:
@@ -455,15 +452,15 @@ class DeferredArray(NumPyThunk):
             # requires out.ndim == rhs.ndim. This will be fixed in the
             # future
             out = rhs.runtime.create_unbound_thunk(out_dtype, ndim=rhs.ndim)
+            key_dims = key.ndim  # dimension of the original key
 
             task = rhs.context.create_task(CuNumericOpCode.ADVANCED_INDEXING)
             task.add_output(out.base)
             task.add_input(rhs.base)
-            task.add_input(key)
+            task.add_input(key_store)
             task.add_scalar_arg(is_set, bool)
             task.add_scalar_arg(key_dims, ty.int64)
-            task.add_alignment(rhs.base, key)
-            task.add_broadcast(key, axes=tuple(range(1, len(key.shape))))
+            task.add_alignment(rhs.base, key_store)
             task.add_broadcast(
                 rhs.base, axes=tuple(range(1, len(rhs.base.shape)))
             )
@@ -472,6 +469,7 @@ class DeferredArray(NumPyThunk):
             # TODO : current implementation of the ND output regions
             # requires out.ndim == rhs.ndim.
             # The logic below will be removed in the future
+            out_dim = rhs.ndim - key_dims + 1
             if out_dim != rhs.ndim:
                 out_tmp = out.base
                 for dim in range(rhs.ndim - out_dim):
@@ -483,7 +481,7 @@ class DeferredArray(NumPyThunk):
                     inputs=[],
                 )
 
-                out, storet = out._copy_store(out_tmp)
+                out = out._copy_store(out_tmp)
 
             return False, rhs, out, self
 
@@ -576,7 +574,7 @@ class DeferredArray(NumPyThunk):
             # after store is transformed we need to to return a copy of
             # the store since Copy operation can't be done on
             # the store with transformation
-            rhs, store = self._copy_store(store)
+            rhs = self._copy_store(store)
 
         if len(tuple_of_arrays) <= rhs.ndim:
             output_arr = rhs._zip_indices(start_index, tuple_of_arrays)
@@ -727,16 +725,17 @@ class DeferredArray(NumPyThunk):
 
             if rhs.shape != index_array.shape:
                 rhs_tmp = rhs._broadcast(index_array.base.shape)
-                rhs_tmp, rhs = rhs._copy_store(rhs_tmp)
+                rhs_tmp = rhs._copy_store(rhs_tmp)
+                rhs_store = rhs_tmp.base
             else:
                 if rhs.base.transformed:
-                    rhs, rhs_base = rhs._copy_store(rhs.base)
-                rhs = rhs.base
+                    rhs = rhs._copy_store(rhs.base)
+                rhs_store = rhs.base
 
             copy = self.context.create_copy()
             copy.set_target_indirect_out_of_range(False)
 
-            copy.add_input(rhs)
+            copy.add_input(rhs_store)
             copy.add_target_indirect(index_array.base)
             copy.add_output(lhs.base)
             copy.execute()

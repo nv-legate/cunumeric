@@ -31,8 +31,9 @@ template <LegateTypeCode CODE, int DIM, typename OUT_TYPE>
 struct AdvancedIndexingImplBody<VariantKind::OMP, CODE, DIM, OUT_TYPE> {
   using VAL = legate_type_of<CODE>;
 
-  void compute_output(Buffer<VAL, DIM>& out,
-                      const AccessorRO<VAL, DIM>& input,
+  template <typename OUT_T>
+  void compute_output(Buffer<OUT_T, DIM>& out,
+                      const AccessorRO<VAL, DIM>& in,
                       const AccessorRO<bool, DIM>& index,
                       const Pitches<DIM - 1>& pitches,
                       const Rect<DIM>& rect,
@@ -52,34 +53,7 @@ struct AdvancedIndexingImplBody<VariantKind::OMP, CODE, DIM, OUT_TYPE> {
           out_p[i + 1] = p[j];
         }
         for (size_t i = DIM - key_dim + 1; i < DIM; i++) out_p[i] = 0;
-        out[out_p] = input[p];
-        if ((idx + 1) % skip_size == 0) out_idx++;
-      }
-    }
-  }
-
-  void compute_output(Buffer<Point<DIM>, DIM>& out,
-                      const AccessorRO<VAL, DIM>&,
-                      const AccessorRO<bool, DIM>& index,
-                      const Pitches<DIM - 1>& pitches,
-                      const Rect<DIM>& rect,
-                      const int volume,
-                      int64_t out_idx,
-                      const int key_dim,
-                      const int skip_size) const
-  {
-#pragma omp for schedule(static)
-    for (size_t idx = 0; idx < volume; ++idx) {
-      auto p = pitches.unflatten(idx, rect.lo);
-      if (index[p] == true) {
-        Point<DIM> out_p;
-        out_p[0] = out_idx;
-        for (size_t i = 0; i < DIM - key_dim; i++) {
-          size_t j     = key_dim + i;
-          out_p[i + 1] = p[j];
-        }
-        for (size_t i = DIM - key_dim + 1; i < DIM; i++) out_p[i] = 0;
-        out[out_p] = p;
+        fill_out(out[out_p], p, in[p]);
         if ((idx + 1) % skip_size == 0) out_idx++;
       }
     }
@@ -121,15 +95,15 @@ struct AdvancedIndexingImplBody<VariantKind::OMP, CODE, DIM, OUT_TYPE> {
     }  // end scope
 
     // calculating the shape of the output region for this sub-task
-    Point<DIM> extends;
-    extends[0] = size;
+    Point<DIM> extents;
+    extents[0] = size;
     for (size_t i = 0; i < DIM - key_dim; i++) {
       size_t j       = key_dim + i;
-      extends[i + 1] = 1 + rect.hi[j] - rect.lo[j];
+      extents[i + 1] = 1 + rect.hi[j] - rect.lo[j];
     }
-    for (size_t i = DIM - key_dim + 1; i < DIM; i++) extends[i] = 1;
+    for (size_t i = DIM - key_dim + 1; i < DIM; i++) extents[i] = 1;
 
-    auto out = out_arr.create_output_buffer<OUT_TYPE, DIM>(extends, true);
+    auto out = out_arr.create_output_buffer<OUT_TYPE, DIM>(extents, true);
 
 #pragma omp parallel
     {
