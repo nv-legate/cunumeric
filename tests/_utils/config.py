@@ -46,6 +46,7 @@ class Config:
         self.debug = args.debug
         self.dry_run = args.dry_run
         self.verbose = args.verbose
+        self.test_root = args.test_root
         self.requested_workers = args.workers
         self.legate_dir = self._compute_legate_dir(args)
 
@@ -55,6 +56,8 @@ class Config:
 
     @property
     def root_dir(self) -> PurePath:
+        if self.test_root:
+            return PurePath(self.test_root)
         return PurePath(__file__).parents[2]
 
     @property
@@ -117,7 +120,8 @@ class Config:
 
         if not legate_dir.exists():
             raise RuntimeError(
-                f"The specified legate dir {legate_dir} does not exist"
+                f"The specified Legate installation directory {legate_dir} "
+                "does not exist"
             )
 
         return legate_dir

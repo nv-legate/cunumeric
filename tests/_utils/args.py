@@ -158,6 +158,17 @@ test_opts.add_argument(
     help="Number of parallel workers for testing",
 )
 
+test_opts.add_argument(
+    "-C",
+    "--directory",
+    dest="test_root",
+    metavar="DIR",
+    action="store",
+    default=None,
+    required=False,
+    help="Root directory containing the tests subdirectory",
+)
+
 
 test_opts.add_argument(
     "--dry-run",
