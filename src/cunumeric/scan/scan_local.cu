@@ -28,6 +28,15 @@ namespace cunumeric {
 using namespace Legion;
 using namespace legate;
 
+template <typename RES>
+static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
+  lazy_kernel(RES* out, RES* sum_val)
+{
+  const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+  if (idx >= 1) return;
+  sum_val[0] = out[0];
+}
+
 template <ScanCode OP_CODE, LegateTypeCode CODE, int DIM>
 struct ScanLocalImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
   using OP  = ScanOp<OP_CODE, CODE>;
@@ -64,7 +73,7 @@ struct ScanLocalImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
       // only one element on scan axis
       sum_valp[DIM - 1] = 0;
       // write out the partition sum
-      sum_valsptr[sum_valp] = outptr[index + stride - 1];
+      lazy_kernel<<<1, THREADS_PER_BLOCK>>>(&outptr[index + stride - 1], &sum_valsptr[sum_valp]);
     }
   }
 };
@@ -114,7 +123,7 @@ struct ScanLocalNanImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
       // only one element on scan axis
       sum_valp[DIM - 1] = 0;
       // write out the partition sum
-      sum_valsptr[sum_valp] = outptr[index + stride - 1];
+      lazy_kernel<<<1, THREADS_PER_BLOCK>>>(&outptr[index + stride - 1], &sum_valsptr[sum_valp]);
     }
   }
 };
