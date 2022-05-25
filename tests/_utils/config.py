@@ -24,10 +24,6 @@ from .args import parser
 
 
 class Config:
-
-    DEFAULT_CPUS = 4
-    DEFAULT_GPUS = 1
-
     def __init__(self, argv: list[str]) -> None:
         args, self._extra_args = parser.parse_known_args(argv[1:])
 
@@ -50,7 +46,7 @@ class Config:
         self.debug = args.debug
         self.dry_run = args.dry_run
         self.verbose = args.verbose
-        self.workers = 1 if args.verbose else args.workers
+        self.requested_workers = args.workers
         self.legate_dir = self._compute_legate_dir(args)
 
     @property

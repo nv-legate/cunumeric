@@ -84,6 +84,7 @@ class System:
                     pynvml.nvmlDeviceGetHandleByIndex(i)
                 )
                 results.append(GPUInfo(i, info.free))
+
             return tuple(results)
 
         except ImportError:

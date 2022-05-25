@@ -96,7 +96,7 @@ feature_opts = parser.add_argument_group("Feature stage configuration options")
 feature_opts.add_argument(
     "--cpus",
     type=int,
-    default=None,
+    default=4,
     dest="cpus",
     help="Number of CPUs per node to use.",
 )
@@ -105,7 +105,7 @@ feature_opts.add_argument(
 feature_opts.add_argument(
     "--gpus",
     type=int,
-    default=None,
+    default=1,
     dest="gpus",
     help="Number of GPUs per node to use.",
 )

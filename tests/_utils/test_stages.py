@@ -40,7 +40,12 @@ class TestStage(Protocol):
 
     kind: str
 
+    workers: int
+
     result: StageResult
+
+    def __init__(self, config: Config, system: System) -> None:
+        ...
 
     def __call__(self, config: Config, system: System) -> None:
 
@@ -56,7 +61,8 @@ class TestStage(Protocol):
 
     @property
     def intro(self) -> str:
-        return banner(f"Entering stage: {self.name} tests") + "\n"
+        workers = f"{self.workers} worker{'s' if self.workers > 1 else ''}"
+        return banner(f"Entering stage: {self.name} (with {workers})") + "\n"
 
     @property
     def outro(self) -> str:
@@ -83,6 +89,9 @@ class TestStage(Protocol):
     ) -> CompletedProcess[str]:
         ...
 
+    def _compute_workers(self, config: Config, system: System) -> int:
+        ...
+
     def file_args(self, test_file: Path, config: Config) -> list[str]:
         test_file_string = str(test_file)
         args = PER_FILE_ARGS.get(test_file_string, [])
@@ -98,7 +107,7 @@ class TestStage(Protocol):
         self, config: Config, system: System
     ) -> list[CompletedProcess[str]]:
 
-        pool = multiprocessing.Pool(config.workers or 1)
+        pool = multiprocessing.Pool(self.workers)
 
         jobs = [
             pool.apply_async(self.run, (path, config, system))
@@ -125,6 +134,9 @@ class CPU(TestStage):
 
     kind = "cpus"
 
+    def __init__(self, config: Config, system: System) -> None:
+        self.workers = self._compute_workers(config, system)
+
     def run(
         self, test_file: Path, config: Config, system: System
     ) -> CompletedProcess[str]:
@@ -140,13 +152,21 @@ class CPU(TestStage):
         return result
 
     def cpu_args(self, config: Config) -> Iterator[list[str]]:
-        cpus = config.cpus or config.DEFAULT_CPUS
-        yield ["--cpus", str(cpus)]
+        yield ["--cpus", str(config.cpus)]
+
+    def _compute_workers(self, config: Config, system: System) -> int:
+        if config.requested_workers is not None:
+            return config.requested_workers
+
+        return 1 if config.verbose else len(system.cpus) // config.cpus
 
 
 class GPU(TestStage):
 
     kind = "cuda"
+
+    def __init__(self, config: Config, system: System) -> None:
+        self.workers = self._compute_workers(config, system)
 
     def run(
         self, test_file: Path, config: Config, system: System
@@ -163,13 +183,37 @@ class GPU(TestStage):
         return result
 
     def gpu_args(self, config: Config) -> Iterator[list[str]]:
-        gpus = config.gpus or config.DEFAULT_GPUS
-        yield ["--gpus", str(gpus)]
+        yield ["--gpus", str(config.gpus)]
+
+    def _compute_workers(self, config: Config, system: System) -> int:
+
+        gpus = system.gpus
+        assert len(gpus)
+
+        # TODO: (bev) configurable
+        MEMORY_BUDGET = 6 << 30
+        DEFAULT_PARALLELISM = 16
+
+        min_free = min(info.free for info in gpus)
+
+        parallelism_per_gpu = min(
+            DEFAULT_PARALLELISM, min_free // MEMORY_BUDGET
+        )
+
+        return (
+            parallelism_per_gpu
+            * (len(gpus) // config.gpus)
+            * config.gpus
+            // len(gpus)
+        )
 
 
 class OMP(TestStage):
 
     kind = "openmp"
+
+    def __init__(self, config: Config, system: System) -> None:
+        self.workers = self._compute_workers(config, system)
 
     def run(
         self, test_file: Path, config: Config, system: System
@@ -193,10 +237,20 @@ class OMP(TestStage):
             str(config.ompthreads),
         ]
 
+    def _compute_workers(self, config: Config, system: System) -> int:
+        if config.requested_workers is not None:
+            return config.requested_workers
+
+        requested_procs = config.omps * config.ompthreads
+        return 1 if config.verbose else len(system.cpus) // requested_procs
+
 
 class Eager(TestStage):
 
     kind = "eager"
+
+    def __init__(self, config: Config, system: System) -> None:
+        self.workers = self._compute_workers(config, system)
 
     def run(
         self, test_file: Path, config: Config, system: System
@@ -218,6 +272,12 @@ class Eager(TestStage):
         result = system.run(cmd, env=env)
         self._log_proc(result, test_file, config.verbose)
         return result
+
+    def _compute_workers(self, config: Config, system: System) -> int:
+        if config.requested_workers is not None:
+            return config.requested_workers
+
+        return 1 if config.verbose else len(system.cpus)
 
 
 STAGES: tuple[Type[TestStage], ...] = (CPU, GPU, OMP, Eager)

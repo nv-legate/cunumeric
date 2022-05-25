@@ -28,7 +28,9 @@ class TestPlan:
         self._config = config
         self._system = system
         self._stages = [
-            stage() for stage in STAGES if stage.kind in config.features
+            stage(config, system)
+            for stage in STAGES
+            if stage.kind in config.features
         ]
 
     def execute(self) -> int:
