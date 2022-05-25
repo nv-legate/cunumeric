@@ -618,15 +618,20 @@ class EagerArray(NumPyThunk):
             else:
                 self.array = np.sort(rhs.array, axis, kind, order)
 
-    def bitgenerator_random_raw(self, handle):
+    def bitgenerator_random_raw(self, handle, generatorType, seed, flags):
         if self.deferred is not None:
-            self.deferred.bitgenerator_random_raw(handle)
+            self.deferred.bitgenerator_random_raw(
+                handle, generatorType, seed, flags
+            )
         else:
             if self.array.size == 1:
                 self.array.fill(np.random.randint(0, 2**32 - 1))
             else:
                 a = np.random.randint(
-                    0, 2**32 - 1, *(self.array.shape), dtype=self.array.dtype
+                    low=0,
+                    high=2**32 - 1,
+                    size=self.array.shape,
+                    dtype=self.array.dtype,
                 )
                 self.array[:] = a[:]
 

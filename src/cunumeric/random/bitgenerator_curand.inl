@@ -144,13 +144,12 @@ struct generator_map {
     // verify it existed, and otherwise remove it from list
     {
       std::lock_guard<std::mutex> guard(lock);
-      if (m_generators.find(generatorID) == m_generators.end()) {
-        log_curand.fatal() << "internal error : generator ID <" << generatorID
-                           << "> does not exist (destroy) !";
-        assert(false);
-      }
-      cugenptr = m_generators[generatorID];
-      m_generators.erase(generatorID);
+      if (m_generators.find(generatorID) != m_generators.end()) {
+        cugenptr = m_generators[generatorID];
+        m_generators.erase(generatorID);
+      } else
+        // in some cases, destroy is forced, but processor never created the instance
+        return;
     }
 
     CURANDGeneratorBuilder<kind>::destroy(cugenptr);
