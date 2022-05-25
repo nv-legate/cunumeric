@@ -24,6 +24,12 @@ from tests._utils.test_plan import TestPlan
 
 if __name__ == "__main__":
     config = Config(sys.argv)
+
+    if not config.features:
+        raise RuntimeError(
+            "At least one feature must be specified with --use or USE_"
+        )
+
     system = System(dry_run=config.dry_run, debug=config.debug)
 
     plan = TestPlan(config, system)

@@ -65,7 +65,6 @@ stages.add_argument(
     choices=MultipleChoices(FEATURES),
     type=lambda s: s.split(","),  # type: ignore[return-value, arg-type]
     help="Test Legate with features (also via USE_*).",
-    required=True,
 )
 
 
@@ -136,7 +135,6 @@ test_opts.add_argument(
     dest="legate_dir",
     metavar="LEGATE_DIR",
     action="store",
-    required=False,
     help="Path to Legate installation directory.",
 )
 
