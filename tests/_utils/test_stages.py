@@ -17,7 +17,7 @@ from __future__ import annotations
 import multiprocessing
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from os.path import join
+from pathlib import Path
 from subprocess import CompletedProcess
 from typing import Iterator, Type
 
@@ -79,16 +79,17 @@ class TestStage(Protocol):
         return f"{summary}\n{footer}"
 
     def run(
-        self, test_file: str, config: Config, system: System
+        self, test_file: Path, config: Config, system: System
     ) -> CompletedProcess[str]:
         ...
 
-    def file_args(self, test_file: str, config: Config) -> list[str]:
-        args = PER_FILE_ARGS.get(test_file, [])
+    def file_args(self, test_file: Path, config: Config) -> list[str]:
+        test_file_string = str(test_file)
+        args = PER_FILE_ARGS.get(test_file_string, [])
 
         # This is somewhat ugly but necessary in order to make pytest generate
         # more verbose output for integration tests when --verbose is specified
-        if "integration" in test_file and config.verbose:
+        if "integration" in test_file_string and config.verbose:
             args += ["-v"]
 
         return args
@@ -108,7 +109,7 @@ class TestStage(Protocol):
         return [job.get() for job in jobs]
 
     def _log_proc(
-        self, proc: CompletedProcess[str], test_file: str, verbose: bool
+        self, proc: CompletedProcess[str], test_file: Path, verbose: bool
     ) -> None:
         msg = f"({self.name}) {test_file}"
         details = proc.stdout.split("\n") if verbose else None
@@ -125,13 +126,13 @@ class CPU(TestStage):
     kind = "cpus"
 
     def run(
-        self, test_file: str, config: Config, system: System
+        self, test_file: Path, config: Config, system: System
     ) -> CompletedProcess[str]:
-        test_path = join(config.root_dir, test_file)
+        test_path = config.root_dir / test_file
         stage_args = ["-cunumeric:test"] + next(self.cpu_args(config))
         file_args = self.file_args(test_file, config)
 
-        cmd = [config.legate_path, test_path]
+        cmd = [str(config.legate_path), str(test_path)]
         cmd += stage_args + file_args + config.extra_args
 
         result = system.run(cmd, env=system.env)
@@ -148,13 +149,13 @@ class GPU(TestStage):
     kind = "cuda"
 
     def run(
-        self, test_file: str, config: Config, system: System
+        self, test_file: Path, config: Config, system: System
     ) -> CompletedProcess[str]:
-        test_path = join(config.root_dir, test_file)
+        test_path = config.root_dir / test_file
         stage_args = ["-cunumeric:test"] + next(self.gpu_args(config))
         file_args = self.file_args(test_file, config)
 
-        cmd = [config.legate_path, test_path]
+        cmd = [str(config.legate_path), str(test_path)]
         cmd += stage_args + file_args + config.extra_args
 
         result = system.run(cmd, env=system.env)
@@ -171,13 +172,13 @@ class OMP(TestStage):
     kind = "openmp"
 
     def run(
-        self, test_file: str, config: Config, system: System
+        self, test_file: Path, config: Config, system: System
     ) -> CompletedProcess[str]:
-        test_path = join(config.root_dir, test_file)
+        test_path = config.root_dir / test_file
         stage_args = ["-cunumeric:test"] + self.omp_args(config)
         file_args = self.file_args(test_file, config)
 
-        cmd = [config.legate_path, test_path]
+        cmd = [str(config.legate_path), str(test_path)]
         cmd += stage_args + file_args + config.extra_args
 
         result = system.run(cmd, env=system.env)
@@ -198,13 +199,13 @@ class Eager(TestStage):
     kind = "eager"
 
     def run(
-        self, test_file: str, config: Config, system: System
+        self, test_file: Path, config: Config, system: System
     ) -> CompletedProcess[str]:
-        test_path = join(config.root_dir, test_file)
+        test_path = config.root_dir / test_file
         stage_args = ["--cpus", "1"]
         file_args = self.file_args(test_file, config)
 
-        cmd = [config.legate_path, test_path]
+        cmd = [str(config.legate_path), str(test_path)]
         cmd += stage_args + file_args + config.extra_args
 
         env = system.env
@@ -213,8 +214,6 @@ class Eager(TestStage):
             CUNUMERIC_MIN_OMP_CHUNK="2000000000",
             CUNUMERIC_MIN_GPU_CHUNK="2000000000",
         )
-
-        cmd = [config.legate_path, test_path] + stage_args + config.extra_args
 
         result = system.run(cmd, env=env)
         self._log_proc(result, test_file, config.verbose)

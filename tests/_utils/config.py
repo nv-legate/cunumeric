@@ -17,9 +17,7 @@ from __future__ import annotations
 import json
 import os
 from argparse import Namespace
-from glob import glob
-from os.path import exists, join
-from pathlib import PurePath
+from pathlib import Path, PurePath
 
 from . import FEATURES, SKIPPED_EXAMPLES, FeatureType
 from .args import parser
@@ -64,7 +62,7 @@ class Config:
         return PurePath(__file__).parents[2]
 
     @property
-    def test_files(self) -> tuple[str, ...]:
+    def test_files(self) -> tuple[Path, ...]:
         if self.files:
             return self.files
 
@@ -73,22 +71,22 @@ class Config:
         if self.examples:
             examples = (
                 path
-                for path in glob("examples/*.py")
-                if path not in SKIPPED_EXAMPLES
+                for path in Path("examples").glob("*.py")
+                if str(path) not in SKIPPED_EXAMPLES
             )
             files.extend(sorted(examples))
 
         if self.integration:
-            files.extend(sorted(glob("tests/integration/*.py")))
+            files.extend(sorted(Path("tests/integration").glob("*.py")))
 
         if self.unit:
-            files.extend(sorted(glob("tests/unit/**/*.py", recursive=True)))
+            files.extend(sorted(Path("tests/unit/").glob("**/*.py")))
 
         return tuple(files)
 
     @property
-    def legate_path(self) -> str:
-        return join(self.legate_dir, "bin", "legate")
+    def legate_path(self) -> Path:
+        return self.legate_dir / "bin" / "legate"
 
     def _compute_features(self, args: Namespace) -> tuple[FeatureType, ...]:
         features = set(args.features or [])
@@ -97,25 +95,33 @@ class Config:
                 features.add(feature)
         return tuple(features)
 
-    def _compute_legate_dir(self, args: Namespace) -> str:
+    def _compute_legate_dir(self, args: Namespace) -> Path:
+        legate_dir: Path | None
+
         if args.legate_dir:
-            legate_dir = args.legate_dir
+            legate_dir = Path(args.legate_dir)
 
         elif "LEGATE_DIR" in os.environ:
-            legate_dir = os.environ["LEGATE_DIR"]
+            legate_dir = Path(os.environ["LEGATE_DIR"])
 
         # TODO: This will need to change when cmake work is merged
-        try:
-            config_path = join(self.root_dir, ".legate.core.json")
-            with open(config_path, "r") as f:
-                legate_dir = json.load(f)
-        except IOError:
-            legate_dir = None
+        else:
+            try:
+                config_path = self.root_dir / ".legate.core.json"
+                with open(config_path, "r") as f:
+                    legate_dir = Path(json.load(f))
+            except IOError:
+                legate_dir = None
 
-        if legate_dir is None or not exists(legate_dir):
+        if legate_dir is None:
             raise RuntimeError(
                 "You need to provide a Legate installation directory "
                 "using --legate, LEGATE_DIR or config file"
+            )
+
+        if not legate_dir.exists():
+            raise RuntimeError(
+                f"The specified legate dir {legate_dir} does not exist"
             )
 
         return legate_dir
