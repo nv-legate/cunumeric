@@ -14,12 +14,19 @@
 #
 from __future__ import annotations
 
-FEATURES = (
-    "eager",
-    "cuda",
-    "openmp",
+from typing import Union
+from typing_extensions import Literal, TypeAlias
+
+FeatureType: TypeAlias = Union[
+    Literal["cpus"], Literal["cuda"], Literal["eager"], Literal["openmp"]
+]
+
+FEATURES: set[FeatureType] = {
     "cpus",
-)
+    "cuda",
+    "eager",
+    "openmp",
+}
 
 SKIPPED_EXAMPLES = {
     "examples/ingest.py",

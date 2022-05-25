@@ -21,7 +21,7 @@ from glob import glob
 from os.path import exists, join
 from pathlib import PurePath
 
-from . import FEATURES, SKIPPED_EXAMPLES
+from . import FEATURES, SKIPPED_EXAMPLES, FeatureType
 from .args import parser
 
 
@@ -90,7 +90,7 @@ class Config:
     def legate_path(self) -> str:
         return join(self.legate_dir, "bin", "legate")
 
-    def _compute_features(self, args: Namespace) -> tuple[str, ...]:
+    def _compute_features(self, args: Namespace) -> tuple[FeatureType, ...]:
         features = set(args.features or [])
         for feature in FEATURES:
             if os.environ.get(f"USE_{feature.upper()}", None) == "1":

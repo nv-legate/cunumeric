@@ -16,13 +16,30 @@ from __future__ import annotations
 
 import multiprocessing
 import os
+from dataclasses import dataclass
 from subprocess import PIPE, STDOUT, CompletedProcess, run as stdlib_run
-from typing import Any, Sequence
+from typing import Any, Dict, Sequence
+
+from typing_extensions import TypeAlias
 
 from .logger import LOG
 from .ui import shell
 
 SKIPPED_RETURNCODE = -99999
+
+
+@dataclass(frozen=True)
+class CPUInfo:
+    id: int
+
+
+@dataclass(frozen=True)
+class GPUInfo:
+    id: int
+    free: int
+
+
+EnvDict: TypeAlias = Dict[str, str]
 
 
 class System:
@@ -49,11 +66,11 @@ class System:
         )
 
     @property
-    def cpus(self) -> tuple[int, ...]:
-        return tuple(range(multiprocessing.cpu_count()))
+    def cpus(self) -> tuple[CPUInfo, ...]:
+        return tuple(CPUInfo(i) for i in range(multiprocessing.cpu_count()))
 
     @property
-    def gpus(self) -> tuple[tuple[int, int], ...]:
+    def gpus(self) -> tuple[GPUInfo, ...]:
         try:
             import pynvml  # type: ignore[import]
 
@@ -66,14 +83,14 @@ class System:
                 info = pynvml.nvmlDeviceGetMemoryInfo(
                     pynvml.nvmlDeviceGetHandleByIndex(i)
                 )
-                results.append((i, info.free))
+                results.append(GPUInfo(i, info.free))
             return tuple(results)
 
         except ImportError:
             return ()
 
     @property
-    def env(self) -> dict[str, str]:
+    def env(self) -> EnvDict:
         env = dict(os.environ)
         env["LEGATE_TEST"] = "1"
         env["REALM_SYNTHETIC_CORE_MAP"] = ""

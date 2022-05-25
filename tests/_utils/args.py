@@ -15,21 +15,23 @@
 from __future__ import annotations
 
 from argparse import Action, ArgumentParser, Namespace
-from typing import Any, Iterator, Sequence, Union
+from typing import Any, Generic, Iterable, Iterator, Sequence, TypeVar, Union
 
 from . import FEATURES
 
+T = TypeVar("T")
 
-class MultipleChoices(object):
-    def __init__(self, choices: Sequence[str]) -> None:
+
+class MultipleChoices(Generic[T]):
+    def __init__(self, choices: Iterable[T]) -> None:
         self.choices = set(choices)
 
-    def __contains__(self, x: Union[str, Sequence[str]]) -> bool:
+    def __contains__(self, x: Union[T, Iterable[T]]) -> bool:
         if isinstance(x, list):
             return set(x).issubset(self.choices)
         return x in self.choices
 
-    def __iter__(self) -> Iterator[str]:
+    def __iter__(self) -> Iterator[T]:
         return self.choices.__iter__()
 
 
@@ -62,7 +64,7 @@ stages.add_argument(
     "--use",
     dest="features",
     action=ExtendAction,
-    choices=MultipleChoices(FEATURES),
+    choices=MultipleChoices(sorted(FEATURES)),
     type=lambda s: s.split(","),  # type: ignore[return-value, arg-type]
     help="Test Legate with features (also via USE_*).",
 )
