@@ -14,6 +14,10 @@
  *
  */
 
+#pragma once
+
+// Useful for IDEs
+#include "cunumeric/nullary/eye.h"
 #include "cunumeric/arg.h"
 #include "cunumeric/pitches.h"
 

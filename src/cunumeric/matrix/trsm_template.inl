@@ -14,6 +14,11 @@
  *
  */
 
+#pragma once
+
+// Useful for IDEs
+#include "cunumeric/matrix/trsm.h"
+
 namespace cunumeric {
 
 using namespace Legion;
@@ -23,20 +28,15 @@ template <VariantKind KIND, LegateTypeCode CODE>
 struct TrsmImplBody;
 
 template <LegateTypeCode CODE>
-struct support_trsm : std::false_type {
-};
+struct support_trsm : std::false_type {};
 template <>
-struct support_trsm<LegateTypeCode::DOUBLE_LT> : std::true_type {
-};
+struct support_trsm<LegateTypeCode::DOUBLE_LT> : std::true_type {};
 template <>
-struct support_trsm<LegateTypeCode::FLOAT_LT> : std::true_type {
-};
+struct support_trsm<LegateTypeCode::FLOAT_LT> : std::true_type {};
 template <>
-struct support_trsm<LegateTypeCode::COMPLEX64_LT> : std::true_type {
-};
+struct support_trsm<LegateTypeCode::COMPLEX64_LT> : std::true_type {};
 template <>
-struct support_trsm<LegateTypeCode::COMPLEX128_LT> : std::true_type {
-};
+struct support_trsm<LegateTypeCode::COMPLEX128_LT> : std::true_type {};
 
 template <VariantKind KIND>
 struct TrsmImpl {

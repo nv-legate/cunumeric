@@ -14,6 +14,10 @@
  *
  */
 
+#pragma once
+
+// Useful for IDEs
+#include "cunumeric/index/advanced_indexing.h"
 #include "cunumeric/pitches.h"
 
 namespace cunumeric {

@@ -14,6 +14,10 @@
  *
  */
 
+#pragma once
+
+// Useful for IDEs
+#include "cunumeric/matrix/matvecmul.h"
 #include "cunumeric/matrix/util.h"
 
 namespace cunumeric {
@@ -25,8 +29,7 @@ template <VariantKind KIND, LegateTypeCode CODE>
 struct MatVecMulImplBody;
 
 template <LegateTypeCode CODE>
-struct support_matvecmul : std::false_type {
-};
+struct support_matvecmul : std::false_type {};
 template <>
 struct support_matvecmul<LegateTypeCode::DOUBLE_LT> : std::true_type {
   using ACC_TYPE = double;
