@@ -17,7 +17,13 @@ from __future__ import annotations
 from argparse import Action, ArgumentParser, Namespace
 from typing import Any, Generic, Iterable, Iterator, Sequence, TypeVar, Union
 
-from . import FEATURES
+from . import (
+    DEFAULT_CPUS_PER_NODE,
+    DEFAULT_GPUS_PER_NODE,
+    DEFAULT_OMPS_PER_NODE,
+    DEFAULT_OMPTHREADS,
+    FEATURES,
+)
 
 T = TypeVar("T")
 
@@ -66,7 +72,7 @@ stages.add_argument(
     action=ExtendAction,
     choices=MultipleChoices(sorted(FEATURES)),
     type=lambda s: s.split(","),  # type: ignore[return-value, arg-type]
-    help="Test Legate with features (also via USE_*).",
+    help="Test Legate with features (also via USE_*)",
 )
 
 
@@ -77,7 +83,7 @@ selection.add_argument(
     "files",
     nargs="*",
     default=None,
-    help="Explicit list of test files to run.",
+    help="Explicit list of test files to run",
 )
 
 
@@ -86,7 +92,7 @@ selection.add_argument(
     dest="unit",
     action="store_true",
     default=False,
-    help="Include unit tests.",
+    help="Include unit tests",
 )
 
 
@@ -96,36 +102,37 @@ feature_opts = parser.add_argument_group("Feature stage configuration options")
 feature_opts.add_argument(
     "--cpus",
     type=int,
-    default=4,
+    default=DEFAULT_CPUS_PER_NODE,
     dest="cpus",
-    help="Number of CPUs per node to use.",
+    help="Number of CPUs per node to use",
 )
 
 
 feature_opts.add_argument(
     "--gpus",
     type=int,
-    default=1,
+    default=DEFAULT_GPUS_PER_NODE,
     dest="gpus",
-    help="Number of GPUs per node to use.",
+    help="Number of GPUs per node to use",
 )
 
 
 feature_opts.add_argument(
     "--omps",
     type=int,
-    default=1,
+    default=DEFAULT_OMPS_PER_NODE,
     dest="omps",
-    help="Number OpenMP processors per node to use.",
+    help="Number OpenMP processors per node to use",
 )
 
 
 feature_opts.add_argument(
     "--ompthreads",
     type=int,
-    default=4,
+    default=DEFAULT_OMPTHREADS,
+    metavar="THREADS",
     dest="ompthreads",
-    help="Number of threads per OpenMP processor.",
+    help="Number of threads per OpenMP processor",
 )
 
 
@@ -137,26 +144,9 @@ test_opts.add_argument(
     dest="legate_dir",
     metavar="LEGATE_DIR",
     action="store",
-    help="Path to Legate installation directory.",
+    help="Path to Legate installation directory",
 )
 
-
-test_opts.add_argument(
-    "-v",
-    "--verbose",
-    dest="verbose",
-    action="store_true",
-    help="Print more debugging information.",
-)
-
-
-test_opts.add_argument(
-    "-j",
-    type=int,
-    default=None,
-    dest="workers",
-    help="Number of parallel workers for testing",
-)
 
 test_opts.add_argument(
     "-C",
@@ -171,10 +161,28 @@ test_opts.add_argument(
 
 
 test_opts.add_argument(
+    "-j",
+    type=int,
+    default=None,
+    dest="workers",
+    help="Number of parallel workers for testing",
+)
+
+
+test_opts.add_argument(
+    "-v",
+    "--verbose",
+    dest="verbose",
+    action="store_true",
+    help="Print more debugging information",
+)
+
+
+test_opts.add_argument(
     "--dry-run",
     dest="dry_run",
     action="store_true",
-    help="Print the test plan but don't run anything.",
+    help="Print the test plan but don't run anything",
 )
 
 
@@ -182,5 +190,5 @@ test_opts.add_argument(
     "--debug",
     dest="debug",
     action="store_true",
-    help="Print out the commands that are to be executed.",
+    help="Print out the commands that are to be executed",
 )

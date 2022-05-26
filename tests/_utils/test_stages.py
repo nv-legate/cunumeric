@@ -23,7 +23,7 @@ from typing import Iterator, Type
 
 from typing_extensions import Protocol
 
-from . import PER_FILE_ARGS
+from . import DEFAULT_GPU_MEMORY_BUDGET, DEFAULT_GPU_PARALLELISM, PER_FILE_ARGS
 from .config import Config
 from .logger import LOG
 from .system import SKIPPED_RETURNCODE, System
@@ -190,14 +190,10 @@ class GPU(TestStage):
         gpus = system.gpus
         assert len(gpus)
 
-        # TODO: (bev) configurable
-        MEMORY_BUDGET = 6 << 30
-        DEFAULT_PARALLELISM = 16
-
         min_free = min(info.free for info in gpus)
 
         parallelism_per_gpu = min(
-            DEFAULT_PARALLELISM, min_free // MEMORY_BUDGET
+            DEFAULT_GPU_PARALLELISM, min_free // DEFAULT_GPU_MEMORY_BUDGET
         )
 
         return (
