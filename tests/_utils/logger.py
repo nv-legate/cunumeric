@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+"""Provide a basic logger that can scrub ANSI color codes.
+
+"""
 from __future__ import annotations
 
 import re

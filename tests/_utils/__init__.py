@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+"""Utilities and helpers for implementing the Cunumeric custom test runner.
+
+"""
 from __future__ import annotations
 
 from typing import Union
@@ -21,20 +24,34 @@ FeatureType: TypeAlias = Union[
     Literal["cpus"], Literal["cuda"], Literal["eager"], Literal["openmp"]
 ]
 
+#: Value to use if --cpus is not specified.
 DEFAULT_CPUS_PER_NODE = 4
 
+#: Value to use if --gpus is not specified.
 DEFAULT_GPUS_PER_NODE = 1
 
+#: TODO: (bev) configurable?
 DEFAULT_GPU_MEMORY_BUDGET = 6 << 30
 
+# TODO: (bev) configurable?
 DEFAULT_GPU_PARALLELISM = 16
 
+#: Value to use if --omps is not specified.
 DEFAULT_OMPS_PER_NODE = 1
 
+#: Value to use if --ompthreads is not specified.
 DEFAULT_OMPTHREADS = 1
 
+#: Default values to apply to normalize the testing environment.
+DEFAULT_PROCESS_ENV = {
+    "LEGATE_TEST": "1",
+    "REALM_SYNTHETIC_CORE_MAP": "",
+}
+
+#: Width for terminal ouput headers and footers.
 UI_WIDTH = 60
 
+#: Feature values that are accepted for --use
 FEATURES: set[FeatureType] = {
     "cpus",
     "cuda",
@@ -42,6 +59,7 @@ FEATURES: set[FeatureType] = {
     "openmp",
 }
 
+#: Paths to example files that should be skipped.
 SKIPPED_EXAMPLES = {
     "examples/ingest.py",
     "examples/kmeans_sort.py",
@@ -49,6 +67,7 @@ SKIPPED_EXAMPLES = {
     "examples/wgrad.py",
 }
 
+#: Extra arguments to supply when specific examples are executed.
 PER_FILE_ARGS = {
     "examples/lstm_full.py": ["--file", "resources/lstm_input.txt"],
 }

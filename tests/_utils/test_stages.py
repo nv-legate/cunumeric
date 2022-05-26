@@ -26,29 +26,97 @@ from typing_extensions import Protocol
 from . import DEFAULT_GPU_MEMORY_BUDGET, DEFAULT_GPU_PARALLELISM, PER_FILE_ARGS
 from .config import Config
 from .logger import LOG
-from .system import SKIPPED_RETURNCODE, System
+from .system import SKIPPED_RETURNCODE, ArgList, System
 from .ui import banner, failed, passed, skipped, summary, yellow
 
 
 @dataclass(frozen=True)
 class StageResult:
+    """Collect results from all tests in a TestStage."""
+
+    #: Individual test process results including return code and stdout.
     procs: list[CompletedProcess[str]]
+
+    #: Cumulative execution time for all tests in a stage.
     time: timedelta
 
 
 class TestStage(Protocol):
+    """Encapsulate running configured test files using specific features.
+
+    Parameters
+    ----------
+    config: Config
+        Test runner configuration
+
+    system: System
+        Process execution wrapper
+
+    """
 
     kind: str
 
+    #: The computed number of worker processes to launch to run the
+    #: configured test files.
     workers: int
 
+    #: After the stage completes, results will be stored here
     result: StageResult
+
+    # --- Protocol methods
 
     def __init__(self, config: Config, system: System) -> None:
         ...
 
-    def __call__(self, config: Config, system: System) -> None:
+    def run(
+        self, test_file: Path, config: Config, system: System
+    ) -> CompletedProcess[str]:
+        """Execute a single test files with appropriate environment and
+        command-line options for a feature test stage.
 
+        Parameters
+        ----------
+        test_file : Path
+            Test file to execute
+
+        config: Config
+            Test runner configuration
+
+        system: System
+            Process execution wrapper
+
+        """
+        ...
+
+    def compute_workers(self, config: Config, system: System) -> int:
+        """Compute the number of worker processes to launch for running
+        the configured test files.
+
+        Parameters
+        ----------
+        config: Config
+            Test runner configuration
+
+        system: System
+            Process execution wrapper
+
+        """
+        ...
+
+    # --- Shared implementation methods
+
+    def __call__(self, config: Config, system: System) -> None:
+        """Execute this test stage.
+
+        Parameters
+        ----------
+        config: Config
+            Test runner configuration
+
+        system: System
+            Process execution wrapper
+
+        """
         t0 = datetime.now()
         procs = self._launch(config, system)
         t1 = datetime.now()
@@ -57,15 +125,18 @@ class TestStage(Protocol):
 
     @property
     def name(self) -> str:
+        """A stage name to display for tests in this stage."""
         return self.__class__.__name__
 
     @property
     def intro(self) -> str:
+        """An informative banner to display at stage end."""
         workers = f"{self.workers} worker{'s' if self.workers > 1 else ''}"
         return banner(f"Entering stage: {self.name} (with {workers})") + "\n"
 
     @property
     def outro(self) -> str:
+        """An informative banner to display at stage end."""
         total = len(self.result.procs)
         passed = len([p for p in self.result.procs if p.returncode == 0])
 
@@ -84,15 +155,18 @@ class TestStage(Protocol):
 
         return f"{result}\n{footer}"
 
-    def run(
-        self, test_file: Path, config: Config, system: System
-    ) -> CompletedProcess[str]:
-        ...
+    def file_args(self, test_file: Path, config: Config) -> ArgList:
+        """Extra command line arguments based on the test file.
 
-    def _compute_workers(self, config: Config, system: System) -> int:
-        ...
+        Parameters
+        ----------
+        test_file : Path
+            Path to a test file
 
-    def file_args(self, test_file: Path, config: Config) -> list[str]:
+        config: Config
+            Test runner configuration
+
+        """
         test_file_string = str(test_file)
         args = PER_FILE_ARGS.get(test_file_string, [])
 
@@ -131,11 +205,22 @@ class TestStage(Protocol):
 
 
 class CPU(TestStage):
+    """A test stage for exercising CPU features.
+
+    Parameters
+    ----------
+    config: Config
+        Test runner configuration
+
+    system: System
+        Process execution wrapper
+
+    """
 
     kind = "cpus"
 
     def __init__(self, config: Config, system: System) -> None:
-        self.workers = self._compute_workers(config, system)
+        self.workers = self.compute_workers(config, system)
 
     def run(
         self, test_file: Path, config: Config, system: System
@@ -151,10 +236,10 @@ class CPU(TestStage):
         self._log_proc(result, test_file, config.verbose)
         return result
 
-    def cpu_args(self, config: Config) -> Iterator[list[str]]:
+    def cpu_args(self, config: Config) -> Iterator[ArgList]:
         yield ["--cpus", str(config.cpus)]
 
-    def _compute_workers(self, config: Config, system: System) -> int:
+    def compute_workers(self, config: Config, system: System) -> int:
         if config.requested_workers is not None:
             return config.requested_workers
 
@@ -162,11 +247,22 @@ class CPU(TestStage):
 
 
 class GPU(TestStage):
+    """A test stage for exercising GPU features.
+
+    Parameters
+    ----------
+    config: Config
+        Test runner configuration
+
+    system: System
+        Process execution wrapper
+
+    """
 
     kind = "cuda"
 
     def __init__(self, config: Config, system: System) -> None:
-        self.workers = self._compute_workers(config, system)
+        self.workers = self.compute_workers(config, system)
 
     def run(
         self, test_file: Path, config: Config, system: System
@@ -182,10 +278,10 @@ class GPU(TestStage):
         self._log_proc(result, test_file, config.verbose)
         return result
 
-    def gpu_args(self, config: Config) -> Iterator[list[str]]:
+    def gpu_args(self, config: Config) -> Iterator[ArgList]:
         yield ["--gpus", str(config.gpus)]
 
-    def _compute_workers(self, config: Config, system: System) -> int:
+    def compute_workers(self, config: Config, system: System) -> int:
 
         gpus = system.gpus
         assert len(gpus)
@@ -205,11 +301,22 @@ class GPU(TestStage):
 
 
 class OMP(TestStage):
+    """A test stage for exercising OpenMP features.
+
+    Parameters
+    ----------
+    config: Config
+        Test runner configuration
+
+    system: System
+        Process execution wrapper
+
+    """
 
     kind = "openmp"
 
     def __init__(self, config: Config, system: System) -> None:
-        self.workers = self._compute_workers(config, system)
+        self.workers = self.compute_workers(config, system)
 
     def run(
         self, test_file: Path, config: Config, system: System
@@ -225,7 +332,7 @@ class OMP(TestStage):
         self._log_proc(result, test_file, config.verbose)
         return result
 
-    def omp_args(self, config: Config) -> list[str]:
+    def omp_args(self, config: Config) -> ArgList:
         return [
             "--omps",
             str(config.omps),
@@ -233,7 +340,7 @@ class OMP(TestStage):
             str(config.ompthreads),
         ]
 
-    def _compute_workers(self, config: Config, system: System) -> int:
+    def compute_workers(self, config: Config, system: System) -> int:
         if config.requested_workers is not None:
             return config.requested_workers
 
@@ -242,11 +349,22 @@ class OMP(TestStage):
 
 
 class Eager(TestStage):
+    """A test stage for exercising Eager Numpy execution features.
+
+    Parameters
+    ----------
+    config: Config
+        Test runner configuration
+
+    system: System
+        Process execution wrapper
+
+    """
 
     kind = "eager"
 
     def __init__(self, config: Config, system: System) -> None:
-        self.workers = self._compute_workers(config, system)
+        self.workers = self.compute_workers(config, system)
 
     def run(
         self, test_file: Path, config: Config, system: System
@@ -269,11 +387,12 @@ class Eager(TestStage):
         self._log_proc(result, test_file, config.verbose)
         return result
 
-    def _compute_workers(self, config: Config, system: System) -> int:
+    def compute_workers(self, config: Config, system: System) -> int:
         if config.requested_workers is not None:
             return config.requested_workers
 
         return 1 if config.verbose else len(system.cpus)
 
 
+#: All the available test stages that can be selected
 STAGES: tuple[Type[TestStage], ...] = (CPU, GPU, OMP, Eager)

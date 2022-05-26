@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+"""Provide a TestPlan class to coordinate multiple feature test stages.
+
+"""
 from __future__ import annotations
 
 from itertools import chain
@@ -24,6 +27,18 @@ from .ui import banner, rule, summary, yellow
 
 
 class TestPlan:
+    """Encapsulate an entire test run with multiple feature test stages.
+
+    Parameters
+    ----------
+    config: Config
+        Test runner configuration
+
+    system: System
+        Process execution wrapper
+
+    """
+
     def __init__(self, config: Config, system: System) -> None:
         self._config = config
         self._system = system
@@ -34,6 +49,7 @@ class TestPlan:
         ]
 
     def execute(self) -> int:
+        """Execute the entire test run with all configured feature stages."""
         LOG.clear()
 
         LOG(self.intro)
@@ -55,6 +71,7 @@ class TestPlan:
 
     @property
     def intro(self) -> str:
+        """An informative banner to display at test run start."""
         details = (
             f"* Feature stages       : {', '.join(yellow(x) for x in self._config.features)}",  # noqa E501
             f"* Test files per stage : {yellow(str(len(self._config.test_files)))}",  # noqa E501
@@ -62,5 +79,6 @@ class TestPlan:
         return banner("Test Suite Configuration", details=details)
 
     def outro(self, total: int, passed: int) -> str:
+        """An informative banner to display at test run end."""
         result = summary("All tests", total, passed)
         return f"\n{rule()}\n{result}\n"

@@ -12,6 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+"""Helpler functions for simple text UI output.
+
+The color functions in this module require ``colorama`` to be installed in
+order to generate color output. If ``colorama`` is not available, plain
+text output (i.e. without ANSI color codes) will generated.
+
+"""
 from __future__ import annotations
 
 import sys
@@ -69,11 +76,30 @@ def _format_details(
 def banner(
     heading: str,
     *,
+    char: str = "#",
     width: int = UI_WIDTH,
     details: Iterable[str] | None = None,
 ) -> str:
-    pre = "### "
-    divider = "#" * width
+    """Print a title banner, with optional details included.
+
+    Parameters
+    ----------
+    heading : str
+        Text to use for the title
+
+    char : str, optional
+        A character to use to frame the banner. (default: "#")
+
+    width : int, optional
+        How wide to draw the banner. (Note: user-supplied heading or
+        details willnot be truncated if they exceed this width)
+
+    details : Iterable[str], optional
+        A list of lines to diplay inside the banner area below the heading
+
+    """
+    pre = f"{char*3} "
+    divider = char * width
     if not details:
         return f"\n{divider}\n{pre}{heading}\n{divider}"
     return f"""
@@ -87,34 +113,101 @@ def banner(
 
 
 def failed(msg: str, *, details: Details | None = None) -> str:
+    """Report a failed test result with a bright red [FAIL].
+
+    Parameters
+    ----------
+    msg : str
+        Text to display after [FAIL]
+
+    details : Iterable[str], optional
+        A sequenece of text lines to diplay below the ``msg`` line
+
+    """
     if details:
         return f"{bright(red('[FAIL]'))} {msg}\n{_format_details(details)}"
     return f"{bright(red('[FAIL]'))} {msg}"
 
 
 def passed(msg: str, *, details: Details | None = None) -> str:
+    """Report a passed test result with a bright green [PASS].
+
+    Parameters
+    ----------
+    msg : str
+        Text to display after [PASS]
+
+    details : Iterable[str], optional
+        A sequenece of text lines to diplay below the ``msg`` line
+
+    """
     if details:
         return f"{bright(green('[PASS]'))} {msg}\n{_format_details(details)}"
     return f"{bright(green('[PASS]'))} {msg}"
 
 
 def rule(pad: int = 4, char: str = "~") -> str:
+    """Output a horizontal rule.
+
+    Parameters
+    ----------
+    pad : int, optional
+        How much whitespace to precede the rule. (default: 4)
+
+    char : str, optional
+        A character to use to "draw" the rule. (default: "~")
+
+    """
     w = UI_WIDTH - pad
-    return f"{w*char: >{UI_WIDTH}}"
+    return f"{char*w: >{UI_WIDTH}}"
 
 
-def shell(cmd: str, prefix: str = "+") -> str:
-    return dim(white(f"{prefix}{cmd}"))
+def shell(cmd: str, char: str = "+") -> str:
+    """Report a shell command in a dim white color.
+
+    Parameters
+    ----------
+    cmd : str
+        The shell command string to display
+
+    char : str, optional
+        A character to prefix the ``cmd`` with. (default: "+")
+
+    """
+    return dim(white(f"{char}{cmd}"))
 
 
 def skipped(msg: str) -> str:
+    """Report a skipped test with a cyan [SKIP]
+
+    Parameters
+    ----------
+    msg : str
+        Text to display after [SKIP]
+
+    """
     return f"{cyan('[SKIP]')} {msg}"
 
 
 def summary(name: str, total: int, passed: int) -> str:
+    """Output a test result summary line.
+
+    The output is bright green if all tests passed, otherwise bright red.
+
+    Parameters
+    ----------
+    name : str
+        A name to display in this summary line.
+
+    total : int
+        The total number of tests to report.
+
+    passed : int
+        The number of passed tests to report.
+
+    """
     summary = (
         f"{name}: Passed {passed} of {total} tests ({passed/total*100:0.1f}%)"
     )
-    if passed == total:
-        return bright(green(f"{summary: >{UI_WIDTH}}"))
-    return bright(red(f"{summary: >{UI_WIDTH}}"))
+    color = green if passed == total else red
+    return bright(color(f"{summary: >{UI_WIDTH}}"))

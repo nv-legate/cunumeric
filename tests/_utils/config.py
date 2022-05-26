@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+"""Consolidate test configuration from command-line and environment.
+
+"""
 from __future__ import annotations
 
 import json
@@ -21,10 +24,21 @@ from pathlib import Path, PurePath
 
 from . import FEATURES, SKIPPED_EXAMPLES, FeatureType
 from .args import parser
+from .system import ArgList
 
 
 class Config:
-    def __init__(self, argv: list[str]) -> None:
+    """A centralized configuration object that provides the information
+    needed by test stages in order to run.
+
+    Parameters
+    ----------
+    argv : ArgList
+        command-line arguments to use when building the configuration
+
+    """
+
+    def __init__(self, argv: ArgList) -> None:
         args, self._extra_args = parser.parse_known_args(argv[1:])
 
         # which tests to run
@@ -51,17 +65,26 @@ class Config:
         self.legate_dir = self._compute_legate_dir(args)
 
     @property
-    def extra_args(self) -> list[str]:
+    def extra_args(self) -> ArgList:
+        """Extra command-line arguments to pass on to individual test files."""
         return self._extra_args
 
     @property
     def root_dir(self) -> PurePath:
+        """Path to the directory containinf the tests."""
         if self.test_root:
             return PurePath(self.test_root)
         return PurePath(__file__).parents[2]
 
     @property
     def test_files(self) -> tuple[Path, ...]:
+        """List of all test files to use for each stage.
+
+        An explicit list of files from the command line will take precedence.
+
+        Otherwise, the files are computed based on command-line options, etc.
+
+        """
         if self.files:
             return self.files
 
@@ -85,6 +108,7 @@ class Config:
 
     @property
     def legate_path(self) -> Path:
+        """Computed path to the legate driver script"""
         return self.legate_dir / "bin" / "legate"
 
     def _compute_features(self, args: Namespace) -> tuple[FeatureType, ...]:

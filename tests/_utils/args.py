@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+"""Provide an argparse ArgumentParser for the test runner.
+
+"""
 from __future__ import annotations
 
 from argparse import Action, ArgumentParser, Namespace
@@ -29,11 +32,31 @@ T = TypeVar("T")
 
 
 class MultipleChoices(Generic[T]):
+    """A container that reports True for any item or subset inclusion.
+
+    Parameters
+    ----------
+    choices: Iterable[T]
+        The values to populate the containter.
+
+    Examples
+    --------
+
+    >>> choices = MultipleChoices(["a", "b", "c"])
+
+    >>> "a" in choices
+    True
+
+    >>> ("b", "c") in choices
+    True
+
+    """
+
     def __init__(self, choices: Iterable[T]) -> None:
         self.choices = set(choices)
 
     def __contains__(self, x: Union[T, Iterable[T]]) -> bool:
-        if isinstance(x, list):
+        if isinstance(x, (list, tuple)):
             return set(x).issubset(self.choices)
         return x in self.choices
 
@@ -42,6 +65,8 @@ class MultipleChoices(Generic[T]):
 
 
 class ExtendAction(Action):
+    """A custom argparse action to collect multiple values into a list."""
+
     def __call__(
         self,
         parser: ArgumentParser,
@@ -57,6 +82,7 @@ class ExtendAction(Action):
         setattr(namespace, self.dest, items)
 
 
+#: The argument parser for test.py
 parser = ArgumentParser(
     description="Run the Cunumeric test suite",
     epilog="Any extra arguments will be forwarded to the Legate script",
@@ -71,6 +97,8 @@ stages.add_argument(
     dest="features",
     action=ExtendAction,
     choices=MultipleChoices(sorted(FEATURES)),
+    # argpase evidently only expects string returns from the type converter
+    # here, but returning a list of strings seems to work in practice
     type=lambda s: s.split(","),  # type: ignore[return-value, arg-type]
     help="Test Legate with features (also via USE_*)",
 )
@@ -101,37 +129,37 @@ feature_opts = parser.add_argument_group("Feature stage configuration options")
 
 feature_opts.add_argument(
     "--cpus",
+    dest="cpus",
     type=int,
     default=DEFAULT_CPUS_PER_NODE,
-    dest="cpus",
     help="Number of CPUs per node to use",
 )
 
 
 feature_opts.add_argument(
     "--gpus",
+    dest="gpus",
     type=int,
     default=DEFAULT_GPUS_PER_NODE,
-    dest="gpus",
     help="Number of GPUs per node to use",
 )
 
 
 feature_opts.add_argument(
     "--omps",
+    dest="omps",
     type=int,
     default=DEFAULT_OMPS_PER_NODE,
-    dest="omps",
     help="Number OpenMP processors per node to use",
 )
 
 
 feature_opts.add_argument(
     "--ompthreads",
+    dest="ompthreads",
+    metavar="THREADS",
     type=int,
     default=DEFAULT_OMPTHREADS,
-    metavar="THREADS",
-    dest="ompthreads",
     help="Number of threads per OpenMP processor",
 )
 
@@ -162,9 +190,9 @@ test_opts.add_argument(
 
 test_opts.add_argument(
     "-j",
+    dest="workers",
     type=int,
     default=None,
-    dest="workers",
     help="Number of parallel workers for testing",
 )
 
