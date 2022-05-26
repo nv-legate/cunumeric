@@ -33,6 +33,8 @@ DEFAULT_OMPS_PER_NODE = 1
 
 DEFAULT_OMPTHREADS = 1
 
+UI_WIDTH = 60
+
 FEATURES: set[FeatureType] = {
     "cpus",
     "cuda",

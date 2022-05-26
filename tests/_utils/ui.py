@@ -19,9 +19,9 @@ from typing import Iterable
 
 from typing_extensions import TypeAlias
 
-Details: TypeAlias = Iterable[str]
+from . import UI_WIDTH
 
-DEFAULT_WIDTH = 60
+Details: TypeAlias = Iterable[str]
 
 try:
     import colorama  # type: ignore[import]
@@ -69,7 +69,7 @@ def _format_details(
 def banner(
     heading: str,
     *,
-    width: int = DEFAULT_WIDTH,
+    width: int = UI_WIDTH,
     details: Iterable[str] | None = None,
 ) -> str:
     pre = "### "
@@ -98,18 +98,23 @@ def passed(msg: str, *, details: Details | None = None) -> str:
     return f"{bright(green('[PASS]'))} {msg}"
 
 
-def shell(cmd: str) -> str:
-    return dim(white(f"+{cmd}"))
+def rule(pad: int = 4, char: str = "~") -> str:
+    w = UI_WIDTH - pad
+    return f"{w*char: >{UI_WIDTH}}"
+
+
+def shell(cmd: str, prefix: str = "+") -> str:
+    return dim(white(f"{prefix}{cmd}"))
 
 
 def skipped(msg: str) -> str:
     return f"{cyan('[SKIP]')} {msg}"
 
 
-def bottom_line(name: str, total: int, passed: int) -> str:
+def summary(name: str, total: int, passed: int) -> str:
     summary = (
         f"{name}: Passed {passed} of {total} tests ({passed/total*100:0.1f}%)"
     )
     if passed == total:
-        return bright(green(f"{summary: >{DEFAULT_WIDTH}}"))
-    return bright(red(f"{summary: >{DEFAULT_WIDTH}}"))
+        return bright(green(f"{summary: >{UI_WIDTH}}"))
+    return bright(red(f"{summary: >{UI_WIDTH}}"))

@@ -27,7 +27,7 @@ from . import DEFAULT_GPU_MEMORY_BUDGET, DEFAULT_GPU_PARALLELISM, PER_FILE_ARGS
 from .config import Config
 from .logger import LOG
 from .system import SKIPPED_RETURNCODE, System
-from .ui import banner, bottom_line, failed, passed, skipped, yellow
+from .ui import banner, failed, passed, skipped, summary, yellow
 
 
 @dataclass(frozen=True)
@@ -69,7 +69,7 @@ class TestStage(Protocol):
         total = len(self.result.procs)
         passed = len([p for p in self.result.procs if p.returncode == 0])
 
-        summary = bottom_line(self.name, total, passed)
+        result = summary(self.name, total, passed)
 
         footer = banner(
             f"Exiting state: {self.name}",
@@ -82,7 +82,7 @@ class TestStage(Protocol):
             ),
         )
 
-        return f"{summary}\n{footer}"
+        return f"{result}\n{footer}"
 
     def run(
         self, test_file: Path, config: Config, system: System

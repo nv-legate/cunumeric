@@ -20,7 +20,7 @@ from .config import Config
 from .logger import LOG
 from .system import System
 from .test_stages import STAGES
-from .ui import DEFAULT_WIDTH, banner, bottom_line, yellow
+from .ui import banner, rule, summary, yellow
 
 
 class TestPlan:
@@ -62,5 +62,5 @@ class TestPlan:
         return banner("Test Suite Configuration", details=details)
 
     def outro(self, total: int, passed: int) -> str:
-        summary = bottom_line("All tests", total, passed)
-        return f"\n{56*'~': >{DEFAULT_WIDTH}}\n{summary}\n"
+        result = summary("All tests", total, passed)
+        return f"\n{rule()}\n{result}\n"
