@@ -112,10 +112,13 @@ class Config:
         return self.legate_dir / "bin" / "legate"
 
     def _compute_features(self, args: Namespace) -> tuple[FeatureType, ...]:
-        features = set(args.features or [])
+        features = []
         for feature in FEATURES:
-            if os.environ.get(f"USE_{feature.upper()}", None) == "1":
-                features.add(feature)
+            if feature in args.features:
+                features.append(feature)
+            elif os.environ.get(f"USE_{feature.upper()}", None) == "1":
+                features.append(feature)
+        print("SLKJDKJLGLDJKG", FEATURES, features)
         return tuple(features)
 
     def _compute_legate_dir(self, args: Namespace) -> Path:
@@ -127,7 +130,7 @@ class Config:
         elif "LEGATE_DIR" in os.environ:
             legate_dir = Path(os.environ["LEGATE_DIR"])
 
-        # TODO: This will need to change when cmake work is merged
+        # TODO: (bryevdv) This will need to change when cmake work is merged
         else:
             try:
                 config_path = self.root_dir / ".legate.core.json"

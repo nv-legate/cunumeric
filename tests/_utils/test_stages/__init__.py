@@ -18,8 +18,9 @@ specific features.
 """
 from __future__ import annotations
 
-from typing import Type
+from typing import Dict, Type
 
+from .. import FeatureType
 from .cpu import CPU
 from .gpu import GPU
 from .eager import Eager
@@ -27,4 +28,9 @@ from .omp import OMP
 from .test_stage import TestStage
 
 #: All the available test stages that can be selected
-STAGES: tuple[Type[TestStage], ...] = (CPU, GPU, OMP, Eager)
+STAGES: Dict[FeatureType, Type[TestStage]] = {
+    "cpus": CPU,
+    "cuda": GPU,
+    "openmp": OMP,
+    "eager": Eager,
+}

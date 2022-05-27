@@ -43,9 +43,7 @@ class TestPlan:
         self._config = config
         self._system = system
         self._stages = [
-            stage(config, system)
-            for stage in STAGES
-            if stage.kind in config.features
+            STAGES[feature](config, system) for feature in config.features
         ]
 
     def execute(self) -> int:

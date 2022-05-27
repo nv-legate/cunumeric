@@ -30,10 +30,10 @@ DEFAULT_CPUS_PER_NODE = 4
 #: Value to use if --gpus is not specified.
 DEFAULT_GPUS_PER_NODE = 1
 
-#: TODO: (bev) configurable?
+# TODO: (bryevdv) configurable?
 DEFAULT_GPU_MEMORY_BUDGET = 6 << 30
 
-# TODO: (bev) configurable?
+# TODO: (bryevdv) configurable?
 DEFAULT_GPU_PARALLELISM = 16
 
 #: Value to use if --omps is not specified.
@@ -51,13 +51,14 @@ DEFAULT_PROCESS_ENV = {
 #: Width for terminal ouput headers and footers.
 UI_WIDTH = 60
 
-#: Feature values that are accepted for --use
-FEATURES: set[FeatureType] = {
+#: Feature values that are accepted for --use, in the relative order
+#: that the corresponding test stages should always execute in
+FEATURES: tuple[FeatureType, ...] = (
     "cpus",
     "cuda",
     "eager",
     "openmp",
-}
+)
 
 #: Paths to example files that should be skipped.
 SKIPPED_EXAMPLES = {
