@@ -35,11 +35,14 @@ enum class UnaryRedCode : int {
 };
 
 template <UnaryRedCode OP_CODE>
-struct is_arg_reduce : std::false_type {};
+struct is_arg_reduce : std::false_type {
+};
 template <>
-struct is_arg_reduce<UnaryRedCode::ARGMAX> : std::true_type {};
+struct is_arg_reduce<UnaryRedCode::ARGMAX> : std::true_type {
+};
 template <>
-struct is_arg_reduce<UnaryRedCode::ARGMIN> : std::true_type {};
+struct is_arg_reduce<UnaryRedCode::ARGMIN> : std::true_type {
+};
 
 template <typename Functor, typename... Fnargs>
 constexpr decltype(auto) op_dispatch(UnaryRedCode op_code, Functor f, Fnargs&&... args)
