@@ -112,14 +112,14 @@ class Config:
         return self.legate_dir / "bin" / "legate"
 
     def _compute_features(self, args: Namespace) -> tuple[FeatureType, ...]:
-        features = []
+        features = args.features or []
+        computed = []
         for feature in FEATURES:
-            if feature in args.features:
-                features.append(feature)
+            if feature in features:
+                computed.append(feature)
             elif os.environ.get(f"USE_{feature.upper()}", None) == "1":
-                features.append(feature)
-        print("SLKJDKJLGLDJKG", FEATURES, features)
-        return tuple(features)
+                computed.append(feature)
+        return tuple(computed)
 
     def _compute_legate_dir(self, args: Namespace) -> Path:
         legate_dir: Path | None
