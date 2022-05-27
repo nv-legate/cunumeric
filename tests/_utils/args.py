@@ -108,8 +108,8 @@ selection = parser.add_argument_group("Test file selection")
 
 
 selection.add_argument(
-    "files",
-    nargs="*",
+    "--files",
+    nargs="+",
     default=None,
     help="Explicit list of test files to run",
 )

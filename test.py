@@ -25,9 +25,6 @@ from tests._utils.test_plan import TestPlan
 if __name__ == "__main__":
     config = Config(sys.argv)
 
-    if not config.features:
-        config.features = {"cpus"}
-
     system = System(dry_run=config.dry_run, debug=config.debug)
 
     plan = TestPlan(config, system)

@@ -71,7 +71,7 @@ class Config:
 
     @property
     def root_dir(self) -> PurePath:
-        """Path to the directory containinf the tests."""
+        """Path to the directory containing the tests."""
         if self.test_root:
             return PurePath(self.test_root)
         return PurePath(__file__).parents[2]
@@ -112,30 +112,42 @@ class Config:
         return self.legate_dir / "bin" / "legate"
 
     def _compute_features(self, args: Namespace) -> tuple[FeatureType, ...]:
-        features = args.features or []
+        args_features = args.features or []
         computed = []
         for feature in FEATURES:
-            if feature in features:
+            if feature in args_features:
                 computed.append(feature)
             elif os.environ.get(f"USE_{feature.upper()}", None) == "1":
                 computed.append(feature)
+
+        # if nothing is specified any other way, at least run CPU stage
+        if len(computed) == 0:
+            computed.append("cpus")
+
         return tuple(computed)
 
     def _compute_legate_dir(self, args: Namespace) -> Path:
         legate_dir: Path | None
 
+        # self._legate_source below is purely for testing
+
         if args.legate_dir:
             legate_dir = Path(args.legate_dir)
+            self._legate_source = "cmd"
 
         elif "LEGATE_DIR" in os.environ:
             legate_dir = Path(os.environ["LEGATE_DIR"])
+            self._legate_source = "env"
 
         # TODO: (bryevdv) This will need to change when cmake work is merged
         else:
             try:
-                config_path = self.root_dir / ".legate.core.json"
+                config_path = (
+                    PurePath(__file__).parents[2] / ".legate.core.json"
+                )
                 with open(config_path, "r") as f:
                     legate_dir = Path(json.load(f))
+                    self._legate_source = "build"
             except IOError:
                 legate_dir = None
 
