@@ -40,7 +40,7 @@ DEFAULT_GPU_PARALLELISM = 16
 DEFAULT_OMPS_PER_NODE = 1
 
 #: Value to use if --ompthreads is not specified.
-DEFAULT_OMPTHREADS = 1
+DEFAULT_OMPTHREADS = 4
 
 #: Default values to apply to normalize the testing environment.
 DEFAULT_PROCESS_ENV = {
