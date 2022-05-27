@@ -41,7 +41,7 @@ option(CUNUMERIC_EXCLUDE_LEGATE_CORE_FROM_ALL "Exclude legate.core targets from 
 # Needs to run before `project` call
 rapids_cuda_init_architectures(CUNUMERIC)
 
-project(CUNUMERIC VERSION 22.05.00 LANGUAGES C CXX CUDA)
+project(CUNUMERIC VERSION 22.07.00 LANGUAGES C CXX CUDA)
 
 # Write the version header
 rapids_cmake_write_version_file(include/cunumeric/version_config.hpp)
