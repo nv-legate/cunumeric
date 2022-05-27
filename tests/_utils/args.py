@@ -172,6 +172,7 @@ test_opts.add_argument(
     dest="legate_dir",
     metavar="LEGATE_DIR",
     action="store",
+    default=None,
     help="Path to Legate installation directory",
 )
 

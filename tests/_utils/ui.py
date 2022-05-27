@@ -30,6 +30,11 @@ from . import UI_WIDTH
 
 Details: TypeAlias = Iterable[str]
 
+
+def _text(text: str) -> str:
+    return text
+
+
 try:
     import colorama  # type: ignore[import]
 
@@ -58,9 +63,6 @@ try:
         colorama.init()
 
 except ImportError:
-
-    def _text(text: str) -> str:
-        return text
 
     bright = dim = white = cyan = red = green = yellow = _text
 
@@ -162,7 +164,7 @@ def rule(pad: int = 4, char: str = "~") -> str:
     return f"{char*w: >{UI_WIDTH}}"
 
 
-def shell(cmd: str, char: str = "+") -> str:
+def shell(cmd: str, *, char: str = "+") -> str:
     """Report a shell command in a dim white color.
 
     Parameters

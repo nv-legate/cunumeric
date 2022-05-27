@@ -24,7 +24,7 @@ _ANSI_ESCAPE = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
 
 
 class Log:
-    def __init__(self, verbosity: int = 2) -> None:
+    def __init__(self) -> None:
         self._record: list[str] = []
 
     def __call__(self, *lines: str) -> tuple[int, int]:
@@ -54,8 +54,14 @@ class Log:
 
         if filter_ansi:
             full_text = _ANSI_ESCAPE.sub("", "\n".join(lines))
+        else:
+            full_text = "\n".join(lines)
 
         return full_text
+
+    @property
+    def lines(self) -> tuple[str, ...]:
+        return tuple(self._record)
 
 
 LOG = Log()
