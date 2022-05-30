@@ -768,12 +768,12 @@ class EagerArray(NumPyThunk):
             )
         elif op == UnaryRedCode.ARGMAX:
             np.argmax(
-                rhs.array,
-                out=self.array,
-                axis=orig_axis,
+                rhs.array, out=self.array, axis=orig_axis, keepdims=keepdims
             )
         elif op == UnaryRedCode.ARGMIN:
-            np.argmin(rhs.array, out=self.array, axis=orig_axis)
+            np.argmin(
+                rhs.array, out=self.array, axis=orig_axis, keepdims=keepdims
+            )
         elif op == UnaryRedCode.CONTAINS:
             self.array.fill(args[0] in rhs.array)
         elif op == UnaryRedCode.COUNT_NONZERO:

@@ -33,14 +33,6 @@ namespace detail {
 using namespace legate;
 using namespace Legion;
 
-struct multiply : public thrust::unary_function<int, int> {
-  const int constant;
-
-  multiply(int _constant) : constant(_constant) {}
-
-  __host__ __device__ int operator()(int& input) const { return input * constant; }
-};
-
 template <class VAL>
 void cub_local_sort(const VAL* values_in,
                     VAL* values_out,
@@ -58,6 +50,8 @@ void cub_local_sort(const VAL* values_in,
     CHECK_CUDA(cudaMemcpyAsync(
       keys_in.ptr(0), values_out, sizeof(VAL) * volume, cudaMemcpyDeviceToDevice, stream));
   }
+
+  auto multiply = [=] __device__(auto const& input) { return input * sort_dim_size; };
 
   size_t temp_storage_bytes = 0;
   if (indices_out == nullptr) {
@@ -80,9 +74,9 @@ void cub_local_sort(const VAL* values_in,
       // segmented sort (initial call to compute buffer size)
       // generate start/end positions for all segments via iterators to avoid allocating buffers
       auto off_start_pos_it =
-        thrust::make_transform_iterator(thrust::make_counting_iterator(0), multiply(sort_dim_size));
+        thrust::make_transform_iterator(thrust::make_counting_iterator(0), multiply);
       auto off_end_pos_it =
-        thrust::make_transform_iterator(thrust::make_counting_iterator(1), multiply(sort_dim_size));
+        thrust::make_transform_iterator(thrust::make_counting_iterator(1), multiply);
 
       cub::DeviceSegmentedRadixSort::SortKeys(nullptr,
                                               temp_storage_bytes,
@@ -152,9 +146,9 @@ void cub_local_sort(const VAL* values_in,
       // segmented argsort (initial call to compute buffer size)
       // generate start/end positions for all segments via iterators to avoid allocating buffers
       auto off_start_pos_it =
-        thrust::make_transform_iterator(thrust::make_counting_iterator(0), multiply(sort_dim_size));
+        thrust::make_transform_iterator(thrust::make_counting_iterator(0), multiply);
       auto off_end_pos_it =
-        thrust::make_transform_iterator(thrust::make_counting_iterator(1), multiply(sort_dim_size));
+        thrust::make_transform_iterator(thrust::make_counting_iterator(1), multiply);
 
       cub::DeviceSegmentedRadixSort::SortPairs(nullptr,
                                                temp_storage_bytes,

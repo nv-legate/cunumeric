@@ -21,7 +21,8 @@ from legate.core import LEGATE_MAX_DIM
 
 
 @pytest.mark.parametrize("ndim", range(LEGATE_MAX_DIM + 1))
-def test_argmax_and_argmin(ndim):
+@pytest.mark.parametrize("keepdims", [True, False])
+def test_argmax_and_argmin(ndim, keepdims):
     shape = (5,) * ndim
 
     in_np = np.random.random(shape)
@@ -30,12 +31,14 @@ def test_argmax_and_argmin(ndim):
     for fn in ("argmax", "argmin"):
         fn_np = getattr(np, fn)
         fn_num = getattr(num, fn)
-        assert np.array_equal(fn_np(in_np), fn_num(in_num))
+        assert np.array_equal(
+            fn_np(in_np, keepdims=keepdims), fn_num(in_num, keepdims=keepdims)
+        )
         if in_num.ndim == 1:
             continue
         for axis in range(in_num.ndim):
-            out_np = fn_np(in_np, axis=axis)
-            out_num = fn_num(in_num, axis=axis)
+            out_np = fn_np(in_np, axis=axis, keepdims=keepdims)
+            out_num = fn_num(in_num, axis=axis, keepdims=keepdims)
             assert np.array_equal(out_np, out_num)
 
 
