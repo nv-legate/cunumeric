@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from __future__ import annotations
 
 import math
 import re
@@ -45,7 +46,7 @@ _builtin_sum = sum
 # From shape or value
 
 
-def empty(shape, dtype=np.float64):
+def empty(shape, dtype=np.float64) -> ndarray:
     """
     empty(shape, dtype=float)
 
@@ -185,7 +186,7 @@ def identity(n, dtype=float):
     return eye(N=n, M=n, dtype=dtype)
 
 
-def ones(shape, dtype=np.float64):
+def ones(shape, dtype=np.float64) -> ndarray:
     """
 
     Return a new array of given shape and type, filled with ones.

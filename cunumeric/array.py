@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from __future__ import annotations
 
 from collections.abc import Iterable
 from functools import reduce, wraps
@@ -143,7 +144,7 @@ class ndarray:
         order=None,
         thunk=None,
         inputs=None,
-    ):
+    ) -> None:
         # `inputs` being a cuNumeric ndarray is definitely a bug
         assert not isinstance(inputs, ndarray)
         if thunk is None:
