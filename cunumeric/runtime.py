@@ -266,8 +266,17 @@ class Runtime(object):
         # self.current_random_epoch += 1
         return result
 
+    def is_point_type(self, dtype):
+        if len(dtype) == 6 and dtype[0:5] == "Point":
+            return True
+        else:
+            return False
+
     def is_supported_type(self, dtype):
-        return dtype in self.legate_context.type_system
+        if self.is_point_type(dtype):
+            return dtype in self.legate_context.type_system
+        else:
+            return np.dtype(dtype) in self.legate_context.type_system
 
     def get_numpy_thunk(self, obj, share=False, dtype=None):
         # Check to see if this object implements the Legate data interface
