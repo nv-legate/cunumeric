@@ -48,6 +48,10 @@ struct AdvancedIndexingImplBody<VariantKind::CPU, CODE, DIM, OUT_TYPE> {
         }
         for (size_t i = DIM - key_dim + 1; i < DIM; i++) out_p[i] = 0;
         fill_out(out[out_p], p, input[p]);
+        // The logic below is based on the assumtion that
+        // pitches enumerate points in C-order, but this might
+        // change in the future
+        // TODO: replace with the order-aware interator when available
         if ((idx + 1) % skip_size == 0) out_idx++;
       }
     }

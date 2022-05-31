@@ -37,10 +37,10 @@ struct AdvancedIndexingImplBody<VariantKind::OMP, CODE, DIM, OUT_TYPE> {
                       const AccessorRO<bool, DIM>& index,
                       const Pitches<DIM - 1>& pitches,
                       const Rect<DIM>& rect,
-                      const int volume,
+                      const size_t volume,
                       int64_t out_idx,
                       const int key_dim,
-                      const int skip_size) const
+                      const size_t skip_size) const
   {
 #pragma omp for schedule(static)
     for (size_t idx = 0; idx < volume; ++idx) {
@@ -59,6 +59,30 @@ struct AdvancedIndexingImplBody<VariantKind::OMP, CODE, DIM, OUT_TYPE> {
     }
   }
 
+  size_t compute_output_offsets(ThreadLocalStorage<int64_t>& offsets,
+                                const AccessorRO<bool, DIM>& index,
+                                const Pitches<DIM - 1>& pitches,
+                                const Rect<DIM>& rect,
+                                const size_t volume,
+                                const size_t skip_size,
+                                const size_t max_threads) const
+  {
+    ThreadLocalStorage<int64_t> sizes(max_threads);
+    thrust::fill(thrust::omp::par, sizes.begin(), sizes.end(), 0);
+#pragma omp parallel
+    {
+      const int tid = omp_get_thread_num();
+#pragma omp for schedule(static)
+      for (size_t idx = 0; idx < volume; ++idx) {
+        auto p = pitches.unflatten(idx, rect.lo);
+        sizes[tid] += static_cast<int64_t>(index[p] && ((idx + 1) % skip_size == 0));
+      }
+    }  // end of parallel
+    size_t size = thrust::reduce(thrust::omp::par, sizes.begin(), sizes.end(), 0);
+    thrust::exclusive_scan(thrust::omp::par, sizes.begin(), sizes.end(), offsets.begin());
+    return size;
+  }
+
   void operator()(Array& out_arr,
                   const AccessorRO<VAL, DIM>& input,
                   const AccessorRO<bool, DIM>& index,
@@ -74,25 +98,9 @@ struct AdvancedIndexingImplBody<VariantKind::OMP, CODE, DIM, OUT_TYPE> {
 
     const auto max_threads = omp_get_max_threads();
     const size_t volume    = rect.volume();
-    size_t size            = 0;
     ThreadLocalStorage<int64_t> offsets(max_threads);
-    {
-      ThreadLocalStorage<int64_t> sizes(max_threads);
-      thrust::fill(thrust::omp::par, sizes.begin(), sizes.end(), 0);
-#pragma omp parallel
-      {
-        const int tid = omp_get_thread_num();
-#pragma omp for schedule(static)
-        for (size_t idx = 0; idx < volume; ++idx) {
-          auto p = pitches.unflatten(idx, rect.lo);
-          if (index[p] == true) {
-            if ((idx + 1) % skip_size == 0) sizes[tid] += 1;
-          }
-        }
-      }  // end of parallel
-      size = thrust::reduce(thrust::omp::par, sizes.begin(), sizes.end(), 0);
-      thrust::exclusive_scan(thrust::omp::par, sizes.begin(), sizes.end(), offsets.begin());
-    }  // end scope
+    size_t size =
+      compute_output_offsets(offsets, index, pitches, rect, volume, skip_size, max_threads);
 
     // calculating the shape of the output region for this sub-task
     Point<DIM> extents;

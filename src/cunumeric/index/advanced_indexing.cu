@@ -41,15 +41,9 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   for (size_t i = 0; i < iters; i++) {
     size_t idx = (i * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (idx > volume) break;
-    auto point = pitches.unflatten(idx, origin);
-    size_t val;
-    if (index[point] and ((idx + 1) % skip_size == 0)) {
-      offsets[idx] = 1;
-      val          = 1;
-    } else {
-      offsets[idx] = 0;
-      val          = 0;
-    }
+    auto point   = pitches.unflatten(idx, origin);
+    bool val     = (index[point] && ((idx + 1) % skip_size == 0));
+    offsets[idx] = static_cast<int64_t>(val);
     SumReduction<size_t>::fold<true>(value, val);
   }
   // Every thread in the thread block must participate in the exchange to get correct results
