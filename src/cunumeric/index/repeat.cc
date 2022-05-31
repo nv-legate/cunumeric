@@ -69,6 +69,8 @@ struct RepeatImplBody<VariantKind::CPU, CODE, DIM> {
     int64_t out_idx = 0;
     for (size_t in_idx = 0; in_idx < volume; ++in_idx) {
       auto p = in_pitches.unflatten(in_idx, in_rect.lo);
+      // TODO replace assert with Legate exception handeling interface when available
+      assert(repeats[p] >= 0);
       for (size_t r = 0; r < repeats[p]; r++) out[out_idx++] = in[p];
     }
   }
@@ -88,6 +90,8 @@ struct RepeatImplBody<VariantKind::CPU, CODE, DIM> {
     for (int64_t idx = in_rect.lo[axis]; idx <= in_rect.hi[axis]; ++idx) {
       p[axis]            = idx;
       offsets[off_idx++] = sum;
+      // TODO replace assert with Legate exception handeling interface when available
+      assert(repeats[p] >= 0);
       sum += repeats[p];
     }
 

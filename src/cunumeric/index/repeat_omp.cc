@@ -77,7 +77,9 @@ struct RepeatImplBody<VariantKind::OMP, CODE, DIM> {
       int64_t axis_lo = p[axis];
 #pragma omp for schedule(static) private(p)
       for (int64_t idx = 0; idx < axis_extent; ++idx) {
-        p[axis]      = axis_lo + idx;
+        p[axis] = axis_lo + idx;
+        // TODO replace assert with Legate exception handeling interface when available
+        assert(repeats[p] >= 0);
         auto val     = repeats[p];
         offsets[idx] = val;
         local_sums[tid] += val;

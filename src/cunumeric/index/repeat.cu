@@ -41,6 +41,8 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
     if (offset < extent) {
       auto p = origin;
       p[axis] += offset;
+      // TODO replace assert with Legate exception handeling interface when available
+      assert(repeats[p] >= 0);
       auto val        = repeats[p];
       offsets[offset] = val;
       SumReduction<int64_t>::fold<true>(value, val);
