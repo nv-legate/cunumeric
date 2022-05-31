@@ -231,10 +231,9 @@ struct ContractImplBody<VariantKind::OMP, LegateTypeCode::COMPLEX128_LT> {
 
 /*static*/ void ContractTask::omp_variant(legate::TaskContext& context)
 {
-  std::stringstream ss;
-  ss << omp_get_max_threads();
-  std::string str = ss.str();
-  setenv("TBLIS_NUM_THREADS", str.data(), false /*overwrite*/);
+  // We need to tell TBLIS how many threads to use, otherwise it will try to use all available
+  // cores, even if the Realm OpenMP group doesn't provide that many worker threads.
+  tblis_set_num_threads(omp_get_max_threads());
   contract_template<VariantKind::OMP>(context);
 }
 
