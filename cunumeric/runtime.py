@@ -259,7 +259,7 @@ class Runtime(object):
             result = future
         return result
 
-    def set_next_random_epoch(self, epoch):
+    def set_next_random_epoch(self, epoch: int) -> None:
         self.current_random_epoch = epoch
 
     def get_next_random_epoch(self):
