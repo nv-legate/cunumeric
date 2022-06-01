@@ -305,14 +305,25 @@ endif()
 # Preinclude `realm_defines.h` and `legion_defines.h` in all compilations.
 # TODO: It isn't possible to expose this as part of the public legate_core
 # target's interface in a portable way, so this code needs to be duplicated
-# in cuNumeric.
+# in both legate.core and cuNumeric.
 #
 # A better solution would be to add #include directives to the requisite
 # legate.core and cuNumeric headers.
 ###
 
-get_target_property(realm_includes Legion::RealmRuntime INTERFACE_INCLUDE_DIRECTORIES)
-get_target_property(legion_includes Legion::LegionRuntime INTERFACE_INCLUDE_DIRECTORIES)
+set(realm_includes "")
+if(TARGET Legion::RealmRuntime)
+  get_target_property(realm_includes Legion::RealmRuntime INTERFACE_INCLUDE_DIRECTORIES)
+elseif(TARGET Legion::Realm)
+  get_target_property(realm_includes Legion::Realm INTERFACE_INCLUDE_DIRECTORIES)
+endif()
+
+set(legion_includes "")
+if(TARGET Legion::LegionRuntime)
+  get_target_property(legion_includes Legion::LegionRuntime INTERFACE_INCLUDE_DIRECTORIES)
+elseif(TARGET Legion::Legion)
+  get_target_property(legion_includes Legion::Legion INTERFACE_INCLUDE_DIRECTORIES)
+endif()
 
 set(extra_includes "")
 foreach(_dir IN LISTS realm_includes legion_includes)
