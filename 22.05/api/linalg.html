@@ -275,6 +275,11 @@
       </a>
      </li>
      <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.moveaxis.html">
+       cunumeric.moveaxis
+      </a>
+     </li>
+     <li class="toctree-l3">
       <a class="reference internal" href="generated/cunumeric.swapaxes.html">
        cunumeric.swapaxes
       </a>
@@ -429,6 +434,21 @@
     </label>
     <ul>
      <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.diag_indices.html">
+       cunumeric.diag_indices
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.diag_indices_from.html">
+       cunumeric.diag_indices_from
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.indices.html">
+       cunumeric.indices
+      </a>
+     </li>
+     <li class="toctree-l3">
       <a class="reference internal" href="generated/cunumeric.nonzero.html">
        cunumeric.nonzero
       </a>
@@ -514,6 +534,21 @@
      <li class="toctree-l3">
       <a class="reference internal" href="generated/cunumeric.einsum.html">
        cunumeric.einsum
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.einsum_path.html">
+       cunumeric.einsum_path
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.linalg.matrix_power.html">
+       cunumeric.linalg.matrix_power
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.linalg.multi_dot.html">
+       cunumeric.linalg.multi_dot
       </a>
      </li>
      <li class="toctree-l3">
@@ -2016,7 +2051,7 @@
 <h1>Linear algebra (<a class="reference internal" href="#module-cunumeric.linalg" title="cunumeric.linalg"><code class="xref py py-mod docutils literal notranslate"><span class="pre">cunumeric.linalg</span></code></a>)<a class="headerlink" href="#linear-algebra-cunumeric-linalg" title="Permalink to this headline">#</a></h1>
 <section id="matrix-and-vector-products">
 <h2>Matrix and vector products<a class="headerlink" href="#matrix-and-vector-products" title="Permalink to this headline">#</a></h2>
-<table class="autosummary longtable table autosummary">
+<table class="longtable table autosummary">
 <colgroup>
 <col style="width: 10%" />
 <col style="width: 90%" />
@@ -2043,12 +2078,21 @@
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.einsum.html#cunumeric.einsum" title="cunumeric.einsum"><code class="xref py py-obj docutils literal notranslate"><span class="pre">einsum</span></code></a>(expr, *operands[, out, optimize])</p></td>
 <td><p>Evaluates the Einstein summation convention on the operands.</p></td>
 </tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.einsum_path.html#cunumeric.einsum_path" title="cunumeric.einsum_path"><code class="xref py py-obj docutils literal notranslate"><span class="pre">einsum_path</span></code></a>(expr, *operands[, optimize])</p></td>
+<td><p>Evaluates the lowest cost contraction order for an einsum expression by considering the creation of intermediate arrays.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.linalg.matrix_power.html#cunumeric.linalg.matrix_power" title="cunumeric.linalg.matrix_power"><code class="xref py py-obj docutils literal notranslate"><span class="pre">linalg.matrix_power</span></code></a>(a, n)</p></td>
+<td><p>Raise a square matrix to the (integer) power <cite>n</cite>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.linalg.multi_dot.html#cunumeric.linalg.multi_dot" title="cunumeric.linalg.multi_dot"><code class="xref py py-obj docutils literal notranslate"><span class="pre">linalg.multi_dot</span></code></a>(arrays, *[, out])</p></td>
+<td><p>Compute the dot product of two or more arrays in a single function call, while automatically selecting the fastest evaluation order.</p></td>
+</tr>
 </tbody>
 </table>
 </section>
 <section id="decompositions">
 <h2>Decompositions<a class="headerlink" href="#decompositions" title="Permalink to this headline">#</a></h2>
-<table class="autosummary longtable table autosummary">
+<table class="longtable table autosummary">
 <colgroup>
 <col style="width: 10%" />
 <col style="width: 90%" />
@@ -2062,7 +2106,7 @@
 </section>
 <section id="norms-and-other-numbers">
 <h2>Norms and other numbers<a class="headerlink" href="#norms-and-other-numbers" title="Permalink to this headline">#</a></h2>
-<table class="autosummary longtable table autosummary">
+<table class="longtable table autosummary">
 <colgroup>
 <col style="width: 10%" />
 <col style="width: 90%" />
@@ -2120,7 +2164,7 @@
     
     <div class="footer-item">
       <p class="sphinx-version">
-Created using <a href="http://sphinx-doc.org/">Sphinx</a> 4.5.0.<br>
+Created using <a href="http://sphinx-doc.org/">Sphinx</a> 4.4.0.<br>
 </p>
     </div>
     

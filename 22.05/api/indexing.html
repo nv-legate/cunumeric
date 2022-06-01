@@ -35,7 +35,7 @@
     <script src="../_static/copybutton.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="cunumeric.nonzero" href="generated/cunumeric.nonzero.html" />
+    <link rel="next" title="cunumeric.diag_indices" href="generated/cunumeric.diag_indices.html" />
     <link rel="prev" title="cunumeric.right_shift" href="generated/cunumeric.right_shift.html" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="docsearch:language" content="None">
@@ -275,6 +275,11 @@
       </a>
      </li>
      <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.moveaxis.html">
+       cunumeric.moveaxis
+      </a>
+     </li>
+     <li class="toctree-l3">
       <a class="reference internal" href="generated/cunumeric.swapaxes.html">
        cunumeric.swapaxes
       </a>
@@ -429,6 +434,21 @@
     </label>
     <ul>
      <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.diag_indices.html">
+       cunumeric.diag_indices
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.diag_indices_from.html">
+       cunumeric.diag_indices_from
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.indices.html">
+       cunumeric.indices
+      </a>
+     </li>
+     <li class="toctree-l3">
       <a class="reference internal" href="generated/cunumeric.nonzero.html">
        cunumeric.nonzero
       </a>
@@ -514,6 +534,21 @@
      <li class="toctree-l3">
       <a class="reference internal" href="generated/cunumeric.einsum.html">
        cunumeric.einsum
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.einsum_path.html">
+       cunumeric.einsum_path
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.linalg.matrix_power.html">
+       cunumeric.linalg.matrix_power
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.linalg.multi_dot.html">
+       cunumeric.linalg.multi_dot
       </a>
      </li>
      <li class="toctree-l3">
@@ -2011,16 +2046,25 @@
 <h1>Indexing routines<a class="headerlink" href="#indexing-routines" title="Permalink to this headline">#</a></h1>
 <section id="generating-index-arrays">
 <h2>Generating index arrays<a class="headerlink" href="#generating-index-arrays" title="Permalink to this headline">#</a></h2>
-<table class="autosummary longtable table autosummary">
+<table class="longtable table autosummary">
 <colgroup>
 <col style="width: 10%" />
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.nonzero.html#cunumeric.nonzero" title="cunumeric.nonzero"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nonzero</span></code></a>(a)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.diag_indices.html#cunumeric.diag_indices" title="cunumeric.diag_indices"><code class="xref py py-obj docutils literal notranslate"><span class="pre">diag_indices</span></code></a>(n[, ndim])</p></td>
+<td><p>Return the indices to access the main diagonal of an array.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.diag_indices_from.html#cunumeric.diag_indices_from" title="cunumeric.diag_indices_from"><code class="xref py py-obj docutils literal notranslate"><span class="pre">diag_indices_from</span></code></a>(arr)</p></td>
+<td><p>Return the indices to access the main diagonal of an n-dimensional array.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.indices.html#cunumeric.indices" title="cunumeric.indices"><code class="xref py py-obj docutils literal notranslate"><span class="pre">indices</span></code></a>(dimensions[, dtype, sparse])</p></td>
+<td><p>Return an array representing the indices of a grid.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.nonzero.html#cunumeric.nonzero" title="cunumeric.nonzero"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nonzero</span></code></a>(a)</p></td>
 <td><p>Return the indices of the elements that are non-zero.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.where.html#cunumeric.where" title="cunumeric.where"><code class="xref py py-obj docutils literal notranslate"><span class="pre">where</span></code></a>(condition, [x, y])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.where.html#cunumeric.where" title="cunumeric.where"><code class="xref py py-obj docutils literal notranslate"><span class="pre">where</span></code></a>(condition, [x, y])</p></td>
 <td><p>Return elements chosen from <cite>x</cite> or <cite>y</cite> depending on <cite>condition</cite>.</p></td>
 </tr>
 </tbody>
@@ -2028,7 +2072,7 @@
 </section>
 <section id="indexing-like-operations">
 <h2>Indexing-like operations<a class="headerlink" href="#indexing-like-operations" title="Permalink to this headline">#</a></h2>
-<table class="autosummary longtable table autosummary">
+<table class="longtable table autosummary">
 <colgroup>
 <col style="width: 10%" />
 <col style="width: 90%" />
@@ -2067,10 +2111,10 @@
             <p class="prev-next-title">cunumeric.right_shift</p>
         </div>
     </a>
-    <a class='right-next' id="next-link" href="generated/cunumeric.nonzero.html" title="next page">
+    <a class='right-next' id="next-link" href="generated/cunumeric.diag_indices.html" title="next page">
     <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">cunumeric.nonzero</p>
+        <p class="prev-next-title">cunumeric.diag_indices</p>
     </div>
     <i class="fas fa-angle-right"></i>
     </a>
@@ -2095,7 +2139,7 @@
     
     <div class="footer-item">
       <p class="sphinx-version">
-Created using <a href="http://sphinx-doc.org/">Sphinx</a> 4.5.0.<br>
+Created using <a href="http://sphinx-doc.org/">Sphinx</a> 4.4.0.<br>
 </p>
     </div>
     

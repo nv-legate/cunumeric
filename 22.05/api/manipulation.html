@@ -275,6 +275,11 @@
       </a>
      </li>
      <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.moveaxis.html">
+       cunumeric.moveaxis
+      </a>
+     </li>
+     <li class="toctree-l3">
       <a class="reference internal" href="generated/cunumeric.swapaxes.html">
        cunumeric.swapaxes
       </a>
@@ -429,6 +434,21 @@
     </label>
     <ul>
      <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.diag_indices.html">
+       cunumeric.diag_indices
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.diag_indices_from.html">
+       cunumeric.diag_indices_from
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.indices.html">
+       cunumeric.indices
+      </a>
+     </li>
+     <li class="toctree-l3">
       <a class="reference internal" href="generated/cunumeric.nonzero.html">
        cunumeric.nonzero
       </a>
@@ -514,6 +534,21 @@
      <li class="toctree-l3">
       <a class="reference internal" href="generated/cunumeric.einsum.html">
        cunumeric.einsum
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.einsum_path.html">
+       cunumeric.einsum_path
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.linalg.matrix_power.html">
+       cunumeric.linalg.matrix_power
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.linalg.multi_dot.html">
+       cunumeric.linalg.multi_dot
       </a>
      </li>
      <li class="toctree-l3">
@@ -2046,7 +2081,7 @@
 <h1>Array manipulation routines<a class="headerlink" href="#array-manipulation-routines" title="Permalink to this headline">#</a></h1>
 <section id="basic-operations">
 <h2>Basic operations<a class="headerlink" href="#basic-operations" title="Permalink to this headline">#</a></h2>
-<table class="autosummary longtable table autosummary">
+<table class="longtable table autosummary">
 <colgroup>
 <col style="width: 10%" />
 <col style="width: 90%" />
@@ -2060,7 +2095,7 @@
 </section>
 <section id="changing-array-shape">
 <h2>Changing array shape<a class="headerlink" href="#changing-array-shape" title="Permalink to this headline">#</a></h2>
-<table class="autosummary longtable table autosummary">
+<table class="longtable table autosummary">
 <colgroup>
 <col style="width: 10%" />
 <col style="width: 90%" />
@@ -2077,16 +2112,19 @@
 </section>
 <section id="transpose-like-operations">
 <h2>Transpose-like operations<a class="headerlink" href="#transpose-like-operations" title="Permalink to this headline">#</a></h2>
-<table class="autosummary longtable table autosummary">
+<table class="longtable table autosummary">
 <colgroup>
 <col style="width: 10%" />
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.swapaxes.html#cunumeric.swapaxes" title="cunumeric.swapaxes"><code class="xref py py-obj docutils literal notranslate"><span class="pre">swapaxes</span></code></a>(a, axis1, axis2)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.moveaxis.html#cunumeric.moveaxis" title="cunumeric.moveaxis"><code class="xref py py-obj docutils literal notranslate"><span class="pre">moveaxis</span></code></a>(a, source, destination)</p></td>
+<td><p>Move axes of an array to new positions.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.swapaxes.html#cunumeric.swapaxes" title="cunumeric.swapaxes"><code class="xref py py-obj docutils literal notranslate"><span class="pre">swapaxes</span></code></a>(a, axis1, axis2)</p></td>
 <td><p>Interchange two axes of an array.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.transpose.html#cunumeric.transpose" title="cunumeric.transpose"><code class="xref py py-obj docutils literal notranslate"><span class="pre">transpose</span></code></a>(a[, axes])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.transpose.html#cunumeric.transpose" title="cunumeric.transpose"><code class="xref py py-obj docutils literal notranslate"><span class="pre">transpose</span></code></a>(a[, axes])</p></td>
 <td><p>Permute the dimensions of an array.</p></td>
 </tr>
 </tbody>
@@ -2095,7 +2133,7 @@
 </section>
 <section id="changing-number-of-dimensions">
 <h2>Changing number of dimensions<a class="headerlink" href="#changing-number-of-dimensions" title="Permalink to this headline">#</a></h2>
-<table class="autosummary longtable table autosummary">
+<table class="longtable table autosummary">
 <colgroup>
 <col style="width: 10%" />
 <col style="width: 90%" />
@@ -2109,7 +2147,7 @@
 </section>
 <section id="changing-kind-of-array">
 <h2>Changing kind of array<a class="headerlink" href="#changing-kind-of-array" title="Permalink to this headline">#</a></h2>
-<table class="autosummary longtable table autosummary">
+<table class="longtable table autosummary">
 <colgroup>
 <col style="width: 10%" />
 <col style="width: 90%" />
@@ -2123,7 +2161,7 @@
 </section>
 <section id="joining-arrays">
 <h2>Joining arrays<a class="headerlink" href="#joining-arrays" title="Permalink to this headline">#</a></h2>
-<table class="autosummary longtable table autosummary">
+<table class="longtable table autosummary">
 <colgroup>
 <col style="width: 10%" />
 <col style="width: 90%" />
@@ -2161,7 +2199,7 @@
 </section>
 <section id="splitting-arrays">
 <h2>Splitting arrays<a class="headerlink" href="#splitting-arrays" title="Permalink to this headline">#</a></h2>
-<table class="autosummary longtable table autosummary">
+<table class="longtable table autosummary">
 <colgroup>
 <col style="width: 10%" />
 <col style="width: 90%" />
@@ -2187,7 +2225,7 @@
 </section>
 <section id="tiling-arrays">
 <h2>Tiling arrays<a class="headerlink" href="#tiling-arrays" title="Permalink to this headline">#</a></h2>
-<table class="autosummary longtable table autosummary">
+<table class="longtable table autosummary">
 <colgroup>
 <col style="width: 10%" />
 <col style="width: 90%" />
@@ -2201,7 +2239,7 @@
 </section>
 <section id="rearranging-elements">
 <h2>Rearranging elements<a class="headerlink" href="#rearranging-elements" title="Permalink to this headline">#</a></h2>
-<table class="autosummary longtable table autosummary">
+<table class="longtable table autosummary">
 <colgroup>
 <col style="width: 10%" />
 <col style="width: 90%" />
@@ -2256,7 +2294,7 @@
     
     <div class="footer-item">
       <p class="sphinx-version">
-Created using <a href="http://sphinx-doc.org/">Sphinx</a> 4.5.0.<br>
+Created using <a href="http://sphinx-doc.org/">Sphinx</a> 4.4.0.<br>
 </p>
     </div>
     
