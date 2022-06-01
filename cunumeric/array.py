@@ -93,7 +93,7 @@ def add_boilerplate(*array_params: str):
     return decorator
 
 
-def convert_to_cunumeric_ndarray(obj, share=False):
+def convert_to_cunumeric_ndarray(obj, share: bool = False) -> ndarray:
     # If this is an instance of one of our ndarrays then we're done
     if isinstance(obj, ndarray):
         return obj
@@ -1676,7 +1676,7 @@ class ndarray:
 
     def astype(
         self, dtype, order="C", casting="unsafe", subok=True, copy=True
-    ):
+    ) -> ndarray:
         """a.astype(dtype, order='C', casting='unsafe', subok=True, copy=True)
 
         Copy of the array, cast to a specified type.
@@ -3545,7 +3545,7 @@ class ndarray:
         args=None,
         initial=None,
         where=True,
-    ):
+    ) -> ndarray:
         # When 'res_dtype' is not None, the input and output of the reduction
         # have different types. Such reduction operators don't take a dtype of
         # the accumulator

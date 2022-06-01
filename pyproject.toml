@@ -74,6 +74,8 @@ ignore_errors = true
 module = [
     "cunumeric._sphinxext",
     "cunumeric._sphinxext.*",
+    "cunumeric._ufunc",
+    "cunumeric._ufunc.*",
     "cunumeric.coverage",
     "cunumeric.install_info",
     "cunumeric.patch",
