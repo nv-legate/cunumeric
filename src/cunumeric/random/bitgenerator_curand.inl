@@ -39,14 +39,14 @@ template <VariantKind kind>
 struct CURANDGeneratorBuilder;
 
 struct CURANDGenerator {
-  curandGeneratorEx_t gen;
-  uint64_t seed;
-  uint64_t generatorId;
-  curandRngType type;
+  curandGeneratorEx_t gen_;
+  uint64_t seed_;
+  uint64_t generatorId_;
+  curandRngType type_;
 
  protected:
   CURANDGenerator(BitGeneratorType gentype, uint64_t seed, uint64_t generatorId)
-    : type(get_curandRngType(gentype)), seed(seed), generatorId(generatorId)
+    : type_(get_curandRngType(gentype)), seed_(seed), generatorId_(generatorId)
   {
     log_curand.debug() << "CURANDGenerator::create";
   }
@@ -58,15 +58,15 @@ struct CURANDGenerator {
 
   void generate_raw(uint64_t count, uint32_t* out)
   {
-    CHECK_CURAND(::curandGenerateRawUInt32Ex(gen, out, count));
+    CHECK_CURAND(::curandGenerateRawUInt32Ex(gen_, out, count));
   }
   void generate_integer_64(uint64_t count, int64_t* out, int64_t low, int64_t high)
   {
-    CHECK_CURAND(::curandGenerateIntegers64Ex(gen, out, count, low, high));
+    CHECK_CURAND(::curandGenerateIntegers64Ex(gen_, out, count, low, high));
   }
   void generate_integer_32(uint64_t count, int32_t* out, int32_t low, int32_t high)
   {
-    CHECK_CURAND(::curandGenerateIntegers32Ex(gen, out, count, low, high));
+    CHECK_CURAND(::curandGenerateIntegers32Ex(gen_, out, count, low, high));
   }
 };
 
@@ -96,42 +96,42 @@ template <typename output_t>
 struct integer_generator;
 template <>
 struct integer_generator<int64_t> {
-  int64_t low, high;
+  int64_t low_, high_;
 
   integer_generator(const std::vector<int64_t>& intparams,
                     const std::vector<float>& floatparams,
                     const std::vector<double>& doubleparams)
-    : low(intparams[0]), high(intparams[1])
+    : low_(intparams[0]), high_(intparams[1])
   {
   }
 
   void generate(CURANDGenerator& gen, uint64_t count, int64_t* p) const
   {
-    gen.generate_integer_64(count, p, low, high);
+    gen.generate_integer_64(count, p, low_, high_);
   }
 };
 template <>
 struct integer_generator<int32_t> {
-  int32_t low, high;
+  int32_t low_, high_;
 
   integer_generator(const std::vector<int64_t>& intparams,
                     const std::vector<float>& floatparams,
                     const std::vector<double>& doubleparams)
-    : low((int32_t)intparams[0]), high((int32_t)intparams[1])
+    : low_((int32_t)intparams[0]), high_((int32_t)intparams[1])
   {
   }
 
   void generate(CURANDGenerator& gen, uint64_t count, int32_t* p) const
   {
-    gen.generate_integer_32(count, p, low, high);
+    gen.generate_integer_32(count, p, low_, high_);
   }
 };
 
 template <typename output_t, typename generator_t>
 struct generate_distribution {
-  const generator_t& generator;
+  const generator_t& generator_;
 
-  generate_distribution(const generator_t& generator) : generator(generator) {}
+  generate_distribution(const generator_t& generator) : generator_(generator) {}
 
   template <int32_t DIM>
   size_t operator()(CURANDGenerator& gen, legate::Store& output)
@@ -147,7 +147,7 @@ struct generate_distribution {
 
       output_t* p = out.ptr(rect);
 
-      generator.generate(gen, volume, p);
+      generator_.generate(gen, volume, p);
     }
 
     return volume;
@@ -170,7 +170,6 @@ struct generator_map {
   generator_map() {}
   ~generator_map()
   {
-    std::lock_guard<std::mutex> guard(lock);
     if (m_generators.size() != 0) {
       log_curand.debug() << "some generators have not been freed - cleaning-up !";
       // actually destroy
@@ -182,18 +181,12 @@ struct generator_map {
     }
   }
 
-  std::mutex lock;
   std::map<uint32_t, CURANDGenerator*> m_generators;
 
-  bool has(uint32_t generatorID)
-  {
-    std::lock_guard<std::mutex> guard(lock);
-    return m_generators.find(generatorID) != m_generators.end();
-  }
+  bool has(uint32_t generatorID) { return m_generators.find(generatorID) != m_generators.end(); }
 
   CURANDGenerator* get(uint32_t generatorID)
   {
-    std::lock_guard<std::mutex> guard(lock);
     if (m_generators.find(generatorID) == m_generators.end()) {
       log_curand.fatal() << "internal error : generator ID <" << generatorID
                          << "> does not exist (get) !";
@@ -209,7 +202,6 @@ struct generator_map {
     CURANDGenerator* cugenptr =
       CURANDGeneratorBuilder<kind>::build(gentype, seed, (uint64_t)proc.id, flags);
 
-    std::lock_guard<std::mutex> guard(lock);
     // safety check
     if (m_generators.find(generatorID) != m_generators.end()) {
       log_curand.fatal() << "internal error : generator ID <" << generatorID
@@ -224,7 +216,6 @@ struct generator_map {
     CURANDGenerator* cugenptr;
     // verify it existed, and otherwise remove it from list
     {
-      std::lock_guard<std::mutex> guard(lock);
       if (m_generators.find(generatorID) != m_generators.end()) {
         cugenptr = m_generators[generatorID];
         m_generators.erase(generatorID);
@@ -257,25 +248,25 @@ struct BitGeneratorImplBody {
   }
 
  public:
-  void operator()(
-    BitGeneratorOperation op,
-    int32_t generatorID,
-    uint32_t generatorType,  // to allow for lazy initialization, generatorType is always passed
-    uint64_t seed,           // to allow for lazy initialization, seed is always passed
-    uint32_t flags,          // for future use - ordering, etc.
-    BitGeneratorDistribution distribution,
-    const DomainPoint& strides,
-    std::vector<int64_t> intparams,
-    std::vector<float> floatparams,
-    std::vector<double> doubleparams,
-    std::vector<legate::Store>& output,
-    std::vector<legate::Store>& args)
+  void operator()(BitGeneratorOperation op,
+                  int32_t generatorID,
+                  BitGeneratorType generatorType,  // to allow for lazy initialization,
+                                                   // generatorType is always passed
+                  uint64_t seed,   // to allow for lazy initialization, seed is always passed
+                  uint32_t flags,  // for future use - ordering, etc.
+                  BitGeneratorDistribution distribution,
+                  const DomainPoint& strides,
+                  std::vector<int64_t> intparams,
+                  std::vector<float> floatparams,
+                  std::vector<double> doubleparams,
+                  std::vector<legate::Store>& output,
+                  std::vector<legate::Store>& args)
   {
     generator_map_t& genmap = get_generator_map();
     // printtid((int)op);
     switch (op) {
       case BitGeneratorOperation::CREATE: {
-        genmap.create(generatorID, static_cast<BitGeneratorType>(generatorType), seed, flags);
+        genmap.create(generatorID, generatorType, seed, flags);
 
         log_curand.debug() << "created generator " << generatorID;
         break;
@@ -288,13 +279,10 @@ struct BitGeneratorImplBody {
       }
       case BitGeneratorOperation::RAND_RAW: {
         // allow for lazy initialization
-        if (!genmap.has(generatorID))
-          genmap.create(generatorID, static_cast<BitGeneratorType>(generatorType), seed, flags);
+        if (!genmap.has(generatorID)) genmap.create(generatorID, generatorType, seed, flags);
         // get the generator
         CURANDGenerator* genptr = genmap.get(generatorID);
-        if (output.size() == 0) {
-          assert(false);  // TODO for skip ahead ?
-        } else {
+        if (output.size() != 0) {
           legate::Store& res     = output[0];
           CURANDGenerator& cugen = *genptr;
           dim_dispatch(res.dim(), generate_fn{}, cugen, res);
@@ -303,13 +291,10 @@ struct BitGeneratorImplBody {
       }
       case BitGeneratorOperation::DISTRIBUTION: {
         // allow for lazy initialization
-        if (!genmap.has(generatorID))
-          genmap.create(generatorID, static_cast<BitGeneratorType>(generatorType), seed, flags);
+        if (!genmap.has(generatorID)) genmap.create(generatorID, generatorType, seed, flags);
         // get the generator
         CURANDGenerator* genptr = genmap.get(generatorID);
-        if (output.size() == 0) {
-          assert(false);  // TODO for skip ahead ?
-        } else {
+        if (output.size() != 0) {
           legate::Store& res     = output[0];
           CURANDGenerator& cugen = *genptr;
           switch (distribution) {

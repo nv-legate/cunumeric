@@ -171,7 +171,13 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def bitgenerator_random_raw(self, bitgen):
+    def bitgenerator_random_raw(self, bitgen, generatorType, seed, flags):
+        ...
+
+    @abstractmethod
+    def bitgenerator_integers(
+        self, bitgen, generatorType, seed, flags, low, high
+    ):
         ...
 
     @abstractmethod

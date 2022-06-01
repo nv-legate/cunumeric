@@ -647,7 +647,7 @@ class EagerArray(NumPyThunk):
                 self.array.fill(np.random.random_integers(low, high))
             else:
                 a = np.random.random_integers(low, high, size=self.array.shape)
-                self.array[:] = a[:]
+                self.array[:] = a
 
     def partition(
         self,

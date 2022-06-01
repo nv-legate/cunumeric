@@ -56,7 +56,7 @@ static void bitgenerator_template(TaskContext& context)
   auto& scalars      = context.scalars();
   auto bitgen_op     = scalars[0].value<BitGeneratorOperation>();
   auto generatorID   = scalars[1].value<int32_t>();
-  auto generatorType = scalars[2].value<uint32_t>();
+  auto generatorType = scalars[2].value<BitGeneratorType>();
   auto seed          = scalars[3].value<uint64_t>();
   auto flags         = scalars[4].value<uint32_t>();
 
@@ -84,11 +84,11 @@ static void bitgenerator_template(TaskContext& context)
       }
       distribution    = scalars[5].value<BitGeneratorDistribution>();
       auto _intparams = scalars[6].values<int64_t>();
-      for (int k = 0; k < _intparams.size(); ++k) intparams.push_back(_intparams[k]);
+      intparams.insert(intparams.end(), _intparams.begin(), _intparams.end());
       auto _floatparams = scalars[7].values<float>();
-      for (int k = 0; k < _floatparams.size(); ++k) floatparams.push_back(_floatparams[k]);
+      floatparams.insert(floatparams.end(), _floatparams.begin(), _floatparams.end());
       auto _doubleparams = scalars[8].values<double>();
-      for (int k = 0; k < _doubleparams.size(); ++k) doubleparams.push_back(_doubleparams[k]);
+      doubleparams.insert(doubleparams.end(), _doubleparams.begin(), _doubleparams.end());
       break;
     }
   }
@@ -100,8 +100,8 @@ static void bitgenerator_template(TaskContext& context)
   for (auto& output : outputs) optional_output.push_back(std::move(output));
 
   // destroy ?
-  for (int k = 0; k < todestroy.size(); ++k) {
-    BitGeneratorArgs dargs = BitGeneratorArgs::destroy(todestroy[k]);
+  for (auto& idx : todestroy) {
+    auto dargs = BitGeneratorArgs::destroy(idx);
     BitGeneratorImpl<KIND>{}(dargs);
   }
 

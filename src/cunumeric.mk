@@ -15,7 +15,7 @@
 
 # List all the application source files that need OpenMP separately
 # since we have to add the -fopenmp flag to  CC_FLAGS for them
-GEN_CPU_SRC += cunumeric/ternary/where.cc               \
+GEN_CPU_SRC += cunumeric/ternary/where.cc                             \
 							 cunumeric/binary/binary_op.cc            \
 							 cunumeric/binary/binary_red.cc           \
 							 cunumeric/unary/scalar_unary_red.cc      \
@@ -56,11 +56,11 @@ GEN_CPU_SRC += cunumeric/ternary/where.cc               \
 							 cunumeric/arg.cc                         \
 							 cunumeric/mapper.cc
 
-GEN_CPU_SRC += cunumeric/cephes/chbevl.cc \
+GEN_CPU_SRC += cunumeric/cephes/chbevl.cc                             \
 							 cunumeric/cephes/i0.cc
 
 ifeq ($(strip $(USE_OPENMP)),1)
-GEN_CPU_SRC += cunumeric/ternary/where_omp.cc          \
+GEN_CPU_SRC += cunumeric/ternary/where_omp.cc                        \
 							 cunumeric/binary/binary_op_omp.cc       \
 							 cunumeric/binary/binary_red_omp.cc      \
 							 cunumeric/unary/unary_op_omp.cc         \
@@ -97,37 +97,37 @@ GEN_CPU_SRC += cunumeric/ternary/where_omp.cc          \
 							 cunumeric/transform/flip_omp.cc
 endif
 
-GEN_GPU_SRC += cunumeric/ternary/where.cu               \
-							 cunumeric/binary/binary_op.cu            \
-							 cunumeric/binary/binary_red.cu           \
-							 cunumeric/unary/scalar_unary_red.cu      \
-							 cunumeric/unary/unary_red.cu             \
-							 cunumeric/unary/unary_op.cu              \
-							 cunumeric/unary/convert.cu               \
-							 cunumeric/nullary/arange.cu              \
-							 cunumeric/nullary/eye.cu                 \
-							 cunumeric/nullary/fill.cu                \
-							 cunumeric/nullary/window.cu              \
-							 cunumeric/index/advanced_indexing.cu     \
-							 cunumeric/index/choose.cu                \
-							 cunumeric/index/repeat.cu                \
-							 cunumeric/index/zip.cu                   \
-							 cunumeric/item/read.cu                   \
-							 cunumeric/item/write.cu                  \
-							 cunumeric/matrix/contract.cu             \
-							 cunumeric/matrix/diag.cu                 \
-							 cunumeric/matrix/gemm.cu                 \
-							 cunumeric/matrix/matmul.cu               \
-							 cunumeric/matrix/matvecmul.cu            \
-							 cunumeric/matrix/dot.cu                  \
-							 cunumeric/matrix/potrf.cu                \
-							 cunumeric/matrix/syrk.cu                 \
-							 cunumeric/matrix/tile.cu                 \
-							 cunumeric/matrix/transpose.cu            \
-							 cunumeric/matrix/trilu.cu                \
-							 cunumeric/matrix/trsm.cu                 \
-							 cunumeric/random/rand.cu                 \
-							 cunumeric/random/bitgenerator.cu         \
+GEN_GPU_SRC += cunumeric/ternary/where.cu                                        \
+							 cunumeric/binary/binary_op.cu                       \
+							 cunumeric/binary/binary_red.cu                      \
+							 cunumeric/unary/scalar_unary_red.cu                 \
+							 cunumeric/unary/unary_red.cu                        \
+							 cunumeric/unary/unary_op.cu                         \
+							 cunumeric/unary/convert.cu                          \
+							 cunumeric/nullary/arange.cu                         \
+							 cunumeric/nullary/eye.cu                            \
+							 cunumeric/nullary/fill.cu                           \
+							 cunumeric/nullary/window.cu                         \
+							 cunumeric/index/advanced_indexing.cu                \
+							 cunumeric/index/choose.cu                           \
+							 cunumeric/index/repeat.cu                           \
+							 cunumeric/index/zip.cu                              \
+							 cunumeric/item/read.cu                              \
+							 cunumeric/item/write.cu                             \
+							 cunumeric/matrix/contract.cu                        \
+							 cunumeric/matrix/diag.cu                            \
+							 cunumeric/matrix/gemm.cu                            \
+							 cunumeric/matrix/matmul.cu                          \
+							 cunumeric/matrix/matvecmul.cu                       \
+							 cunumeric/matrix/dot.cu                             \
+							 cunumeric/matrix/potrf.cu                           \
+							 cunumeric/matrix/syrk.cu                            \
+							 cunumeric/matrix/tile.cu                            \
+							 cunumeric/matrix/transpose.cu                       \
+							 cunumeric/matrix/trilu.cu                           \
+							 cunumeric/matrix/trsm.cu                            \
+							 cunumeric/random/rand.cu                            \
+							 cunumeric/random/bitgenerator.cu                    \
 							 cunumeric/random/curandex/generator_cauchy.cu       \
 							 cunumeric/random/curandex/generator_normals.cu      \
 							 cunumeric/random/curandex/generator_create.cu       \
@@ -144,15 +144,15 @@ GEN_GPU_SRC += cunumeric/ternary/where.cu               \
 							 cunumeric/random/curandex/generator_uniform.cu      \
 							 cunumeric/random/curandex/generator_lognormal.cu    \
 							 cunumeric/random/curandex/generator_weibull.cu      \
-							 cunumeric/random/curandex/generator_longlong.cu	 \
-							 cunumeric/random/curandex/generator_raw.cu      \
-							 cunumeric/search/nonzero.cu              \
-							 cunumeric/set/unique.cu                  \
-							 cunumeric/stat/bincount.cu               \
-							 cunumeric/convolution/convolve.cu        \
-							 cunumeric/fft/fft.cu                     \
-							 cunumeric/transform/flip.cu              \
-							 cunumeric/cudalibs.cu                    \
+							 cunumeric/random/curandex/generator_longlong.cu     \
+							 cunumeric/random/curandex/generator_raw.cu          \
+							 cunumeric/search/nonzero.cu                         \
+							 cunumeric/set/unique.cu                             \
+							 cunumeric/stat/bincount.cu                          \
+							 cunumeric/convolution/convolve.cu                   \
+							 cunumeric/fft/fft.cu                                \
+							 cunumeric/transform/flip.cu                         \
+							 cunumeric/cudalibs.cu                               \
 							 cunumeric/cunumeric.cu
 
 include cunumeric/sort/sort.mk

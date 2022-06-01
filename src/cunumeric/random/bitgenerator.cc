@@ -32,10 +32,10 @@ struct CPUGenerator : public CURANDGenerator {
   CPUGenerator(BitGeneratorType gentype, uint64_t seed, uint64_t generatorId, uint32_t flags)
     : CURANDGenerator(gentype, seed, generatorId)
   {
-    CHECK_CURAND(::curandCreateGeneratorHostEx(&gen, type, seed, generatorId, flags));
+    CHECK_CURAND(::curandCreateGeneratorHostEx(&gen_, type_, seed, generatorId, flags));
   }
 
-  virtual ~CPUGenerator() { CHECK_CURAND(::curandDestroyGeneratorEx(gen)); }
+  virtual ~CPUGenerator() { CHECK_CURAND(::curandDestroyGeneratorEx(gen_)); }
 };
 
 template <>

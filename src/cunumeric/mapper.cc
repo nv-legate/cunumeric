@@ -177,14 +177,6 @@ std::vector<StoreMapping> CuNumericMapper::store_mappings(
       }
       return std::move(mappings);
     }
-    case CUNUMERIC_BITGENERATOR: {
-      std::vector<StoreMapping> mappings;
-      auto& outputs = task.outputs();
-      for (auto& output : outputs) {
-        mappings.push_back(StoreMapping::default_mapping(output, options.front()));
-      }
-      return std::move(mappings);
-    }
     default: {
       return {};
     }

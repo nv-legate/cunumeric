@@ -12,12 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import numpy as np
 import pytest
 
 import cunumeric as num
 
+BITGENERATOR_ARGS = [
+    num.random.XORWOW,
+    num.random.MRG32k3a,
+    num.random.PHILOX4_32_10,
+]
 
-def inner_test_bitgenerator_type(t):
+
+@pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
+def test_bitgenerator_type(t):
     print(f"testing for type = {t}")
     bitgen = t(seed=42)
     bitgen.random_raw(256)
@@ -32,28 +40,14 @@ def inner_test_bitgenerator_type(t):
     print(f"DONE for type = {t}")
 
 
-def test_bitgenerator_XORWOW():
-    inner_test_bitgenerator_type(num.random.XORWOW)
-
-
-def test_bitgenerator_MRG32k3a():
-    inner_test_bitgenerator_type(num.random.MRG32k3a)
-
-
-def test_bitgenerator_PHILOX4_32_10():
-    inner_test_bitgenerator_type(num.random.PHILOX4_32_10)
-
-
-def test_force_build():
-    bitgen = num.random.XORWOW(42, True)
-    bitgen.destroy()
-    bitgen = num.random.MRG32k3a(42, True)
-    bitgen.destroy()
-    bitgen = num.random.PHILOX4_32_10(42, True)
+@pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
+def test_force_build(t):
+    bitgen = t(42, True)
     bitgen.destroy()
 
 
-def inner_test_integers(t):
+@pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
+def test_integers_int64(t):
     bitgen = t(seed=42)
     gen = num.random.Generator(bitgen)
     a = gen.integers(512, 653548, size=(1024,))
@@ -62,10 +56,14 @@ def inner_test_integers(t):
     print(f"1024*1024 sum = {a.sum()}")
 
 
-def test_integers():
-    inner_test_integers(num.random.XORWOW)
-    inner_test_integers(num.random.MRG32k3a)
-    inner_test_integers(num.random.PHILOX4_32_10)
+@pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
+def test_integers_int32(t):
+    bitgen = t(seed=42)
+    gen = num.random.Generator(bitgen)
+    a = gen.integers(512, 653548, size=(1024,), dtype=np.int32)
+    print(f"1024 sum = {a.sum()}")
+    a = gen.integers(512, 653548, size=(1024 * 1024,), dtype=np.int32)
+    print(f"1024*1024 sum = {a.sum()}")
 
 
 if __name__ == "__main__":

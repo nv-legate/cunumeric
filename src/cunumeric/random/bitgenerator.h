@@ -24,7 +24,7 @@ namespace cunumeric {
 struct BitGeneratorArgs {
   BitGeneratorOperation bitgen_op;
   int32_t generatorID;
-  uint32_t generatorType;
+  BitGeneratorType generatorType;
   uint64_t seed;
   uint32_t flags;
 
@@ -49,7 +49,7 @@ struct BitGeneratorArgs {
 
   BitGeneratorArgs(BitGeneratorOperation bitgen_op,
                    int32_t generatorID,
-                   uint32_t generatorType,
+                   BitGeneratorType generatorType,
                    uint64_t seed,
                    uint32_t flags,
 
@@ -84,9 +84,6 @@ class BitGeneratorTask : public CuNumericTask<BitGeneratorTask> {
 
  public:
   static void cpu_variant(legate::TaskContext& context);
-#ifdef LEGATE_USE_OPENMP
-  // WORK IN PROGRESS static void omp_variant(legate::TaskContext& context);
-#endif
 #ifdef LEGATE_USE_CUDA
   static void gpu_variant(legate::TaskContext& context);
 #endif

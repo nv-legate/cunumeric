@@ -27,10 +27,12 @@ class Generator:
         return self.bit_generator.integers(low, high, size, dtype, endpoint)
 
 
-def default_rng(seed):
+def default_rng(seed=None):
     if seed is None:
         return Generator(XORWOW())
-    elif seed is BitGenerator:
+    elif isinstance(seed, BitGenerator):
         return Generator(seed)
+    elif isinstance(seed, Generator):
+        return seed
     else:
         return Generator(XORWOW(seed))

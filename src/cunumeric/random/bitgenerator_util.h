@@ -29,7 +29,7 @@ enum class BitGeneratorOperation : int32_t {
 };
 
 // Match these to BitGeneratorType in config.py
-enum class BitGeneratorType : int32_t {
+enum class BitGeneratorType : uint32_t {
   DEFAULT       = CUNUMERIC_BITGENTYPE_DEFAULT,
   XORWOW        = CUNUMERIC_BITGENTYPE_XORWOW,
   MRG32K3A      = CUNUMERIC_BITGENTYPE_MRG32K3A,
@@ -38,7 +38,7 @@ enum class BitGeneratorType : int32_t {
   PHILOX4_32_10 = CUNUMERIC_BITGENTYPE_PHILOX4_32_10,
 };
 
-// Match these to BitGeneratorType in config.py
+// Match these to BitGeneratorDistribution in config.py
 enum class BitGeneratorDistribution : int32_t {
   INTEGERS_32 = CUNUMERIC_BITGENDIST_INTEGERS_32,
   INTEGERS_64 = CUNUMERIC_BITGENDIST_INTEGERS_64,

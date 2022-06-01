@@ -29,18 +29,18 @@ using namespace Legion;
 using namespace legate;
 
 struct GPUGenerator : public CURANDGenerator {
-  cudaStream_t stream;
+  cudaStream_t stream_;
   GPUGenerator(BitGeneratorType gentype, uint64_t seed, uint64_t generatorId, uint32_t flags)
     : CURANDGenerator(gentype, seed, generatorId)
   {
-    CHECK_CUDA(::cudaStreamCreate(&stream));
-    CHECK_CURAND(::curandCreateGeneratorEx(&gen, type, seed, generatorId, flags, stream));
+    CHECK_CUDA(::cudaStreamCreate(&stream_));
+    CHECK_CURAND(::curandCreateGeneratorEx(&gen_, type_, seed, generatorId, flags, stream_));
   }
 
   virtual ~GPUGenerator()
   {
-    CHECK_CUDA(::cudaStreamSynchronize(stream));
-    CHECK_CURAND(::curandDestroyGeneratorEx(gen));
+    CHECK_CUDA(::cudaStreamSynchronize(stream_));
+    CHECK_CURAND(::curandDestroyGeneratorEx(gen_));
   }
 };
 
