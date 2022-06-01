@@ -81,6 +81,8 @@ module = [
     "cunumeric.fft.*",
     "cunumeric.install_info",
     "cunumeric.patch",
+    "cunumeric.random",
+    "cunumeric.random.*",
     "cunumeric.utils",
     "cunumeric.window",
 ]
