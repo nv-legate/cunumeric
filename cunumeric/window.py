@@ -120,7 +120,7 @@ def hamming(M: int) -> ndarray:
 
     Returns
     -------
-    out :
+    out : ndarry
         The window, with the maximum value normalized to one (the value
         one appears only if the number of samples is odd).
 
