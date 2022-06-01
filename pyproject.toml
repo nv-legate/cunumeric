@@ -77,6 +77,8 @@ module = [
     "cunumeric._ufunc",
     "cunumeric._ufunc.*",
     "cunumeric.coverage",
+    "cunumeric.fft",
+    "cunumeric.fft.*",
     "cunumeric.install_info",
     "cunumeric.patch",
     "cunumeric.utils",

@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import os
 from enum import IntEnum, unique
+from typing import Any, Union
 
 import numpy as np
 
@@ -363,7 +364,7 @@ FFT_Z2D = _FFTType(
 
 class FFTCode:
     @staticmethod
-    def real_to_complex_code(dtype):
+    def real_to_complex_code(dtype: np.dtype[Any]) -> _FFTType:
         if dtype == np.float64:
             return FFT_D2Z
         elif dtype == np.float32:
@@ -377,7 +378,7 @@ class FFTCode:
             )
 
     @staticmethod
-    def complex_to_real_code(dtype):
+    def complex_to_real_code(dtype: np.dtype[Any]) -> _FFTType:
         if dtype == np.complex128:
             return FFT_Z2D
         elif dtype == np.complex64:
@@ -404,7 +405,7 @@ class FFTNormalization(IntEnum):
     ORTHOGONAL = 3
 
     @staticmethod
-    def from_string(in_string):
+    def from_string(in_string: str) -> Union[FFTNormalization, None]:
         if in_string == "forward":
             return FFTNormalization.FORWARD
         elif in_string == "ortho":
@@ -415,7 +416,7 @@ class FFTNormalization(IntEnum):
             return None
 
     @staticmethod
-    def reverse(in_string):
+    def reverse(in_string: Union[str, None]) -> str:
         if in_string == "forward":
             return "backward"
         elif in_string == "backward" or in_string is None:
