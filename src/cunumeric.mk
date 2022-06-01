@@ -89,7 +89,6 @@ GEN_CPU_SRC += cunumeric/ternary/where_omp.cc                        \
 							 cunumeric/matrix/trsm_omp.cc            \
 							 cunumeric/matrix/util_omp.cc            \
 							 cunumeric/random/rand_omp.cc            \
-							 cunumeric/random/bitgenerator_omp.cc    \
 							 cunumeric/search/nonzero_omp.cc         \
 							 cunumeric/set/unique_omp.cc             \
 							 cunumeric/stat/bincount_omp.cc          \
