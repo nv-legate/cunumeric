@@ -430,14 +430,15 @@ def norm(
     nd = x.ndim
     if axis is None:
         computed_axis = tuple(range(nd))
+    elif not isinstance(axis, tuple):
+        computed_axis = (axis,)
     else:
-        if not isinstance(axis, tuple):
-            computed_axis = (axis,)
-        for ax in computed_axis:
-            if not isinstance(ax, int):
-                raise TypeError(
-                    "`axis` must be None, an integer or a tuple of integers"
-                )
+        computed_axis = axis
+    for ax in computed_axis:
+        if not isinstance(ax, int):
+            raise TypeError(
+                "`axis` must be None, an integer or a tuple of integers"
+            )
 
     if len(computed_axis) == 1:
         if ord == np.inf:
