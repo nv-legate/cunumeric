@@ -62,29 +62,15 @@ strict_equality = true
 
 warn_unused_configs = true
 
-# For now enable each typed module individually.
 [[tool.mypy.overrides]]
 module = [
-    "cunumeric.*",
+    "cunumeric.array",
+    "cunumeric.config",
+    "cunumeric.deferred",
+    "cunumeric.eager",
+    "cunumeric.module",
+    "cunumeric.runtime",
+    "cunumeric.sort",
+    "cunumeric.thunk",
 ]
 ignore_errors = true
-
-[[tool.mypy.overrides]]
-module = [
-    "cunumeric._sphinxext",
-    "cunumeric._sphinxext.*",
-    "cunumeric._ufunc",
-    "cunumeric._ufunc.*",
-    "cunumeric.coverage",
-    "cunumeric.fft",
-    "cunumeric.fft.*",
-    "cunumeric.install_info",
-    "cunumeric.linalg",
-    "cunumeric.linalg.*",
-    "cunumeric.patch",
-    "cunumeric.random",
-    "cunumeric.random.*",
-    "cunumeric.utils",
-    "cunumeric.window",
-]
-ignore_errors = false

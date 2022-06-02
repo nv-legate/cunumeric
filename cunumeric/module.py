@@ -309,7 +309,7 @@ def zeros_like(a, dtype=None):
     return full_like(a, 0, dtype=usedtype)
 
 
-def full(shape, value, dtype=None):
+def full(shape, value, dtype=None) -> ndarray:
     """
 
     Return a new array of given shape and type, filled with `fill_value`.

@@ -14,6 +14,8 @@
 #
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Any, Union
+
 import numpy as np
 
 from ._ufunc.comparison import logical_and
@@ -21,8 +23,11 @@ from ._ufunc.floating import isinf, signbit
 from .array import convert_to_cunumeric_ndarray, ndarray
 from .module import full
 
+if TYPE_CHECKING:
+    import numpy.typing as npt
 
-def isneginf(x, out=None):
+
+def isneginf(x: ndarray, out: Union[ndarray, None] = None) -> ndarray:
     """
 
     Test element-wise for negative infinity, return result as bool array.
@@ -67,7 +72,7 @@ def isneginf(x, out=None):
     return logical_and(rhs1, rhs2, out=out)
 
 
-def isposinf(x, out=None):
+def isposinf(x: ndarray, out: Union[ndarray, None] = None) -> ndarray:
     """
 
     Test element-wise for positive infinity, return result as bool array.
@@ -112,7 +117,7 @@ def isposinf(x, out=None):
     return logical_and(rhs1, rhs2, out=out)
 
 
-def iscomplex(x):
+def iscomplex(x: Union[ndarray, npt.NDArray[Any]]) -> ndarray:
     """
 
     Returns a bool array, where True if input element is complex.
@@ -146,7 +151,7 @@ def iscomplex(x):
         return x.imag != 0
 
 
-def iscomplexobj(x):
+def iscomplexobj(x: Union[ndarray, npt.NDArray[Any]]) -> bool:
     """
 
     Check for a complex type or an array of complex numbers.
@@ -179,7 +184,7 @@ def iscomplexobj(x):
         return np.iscomplexobj(x)
 
 
-def isreal(x):
+def isreal(x: Union[ndarray, npt.NDArray[Any]]) -> ndarray:
     """
 
     Returns a bool array, where True if input element is real.
@@ -214,7 +219,7 @@ def isreal(x):
         return x.imag == 0
 
 
-def isrealobj(x):
+def isrealobj(x: ndarray) -> bool:
     """
 
     Return True if x is a not complex type or an array of complex numbers.
@@ -244,7 +249,7 @@ def isrealobj(x):
     return not iscomplexobj(x)
 
 
-def isscalar(x):
+def isscalar(x: Union[ndarray, npt.NDArray[Any]]) -> bool:
     """
 
     Returns True if the type of `element` is a scalar type.
