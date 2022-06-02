@@ -14,16 +14,35 @@
 #
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, cast
+
 from cunumeric.config import CuNumericOpCode
 
 from legate.core import Rect, types as ty
 
+if TYPE_CHECKING:
+    from legate.core.context import Context
+    from legate.core.operation import ManualTask
+    from legate.core.shape import Shape
+    from legate.core.store import StorePartition
 
-def transpose_copy(context, launch_domain, p_input, p_output):
-    task = context.create_task(
-        CuNumericOpCode.TRANSPOSE_COPY_2D,
-        manual=True,
-        launch_domain=launch_domain,
+    from ..deferred import DeferredArray
+    from ..runtime import Runtime
+
+
+def transpose_copy(
+    context: Context,
+    launch_domain: Rect,
+    p_input: StorePartition,
+    p_output: StorePartition,
+) -> None:
+    task = cast(
+        ManualTask,
+        context.create_task(
+            CuNumericOpCode.TRANSPOSE_COPY_2D,
+            manual=True,
+            launch_domain=launch_domain,
+        ),
     )
     task.add_output(p_output)
     task.add_input(p_input)
@@ -34,17 +53,22 @@ def transpose_copy(context, launch_domain, p_input, p_output):
     task.execute()
 
 
-def potrf(context, p_output, i):
+def potrf(context: Context, p_output: StorePartition, i: int) -> None:
     launch_domain = Rect(lo=(i, i), hi=(i + 1, i + 1))
-    task = context.create_task(
-        CuNumericOpCode.POTRF, manual=True, launch_domain=launch_domain
+    task = cast(
+        ManualTask,
+        context.create_task(
+            CuNumericOpCode.POTRF, manual=True, launch_domain=launch_domain
+        ),
     )
     task.add_output(p_output)
     task.add_input(p_output)
     task.execute()
 
 
-def trsm(context, p_output, i, lo, hi):
+def trsm(
+    context: Context, p_output: StorePartition, i: int, lo: int, hi: int
+) -> None:
     if lo >= hi:
         return
 
@@ -52,8 +76,11 @@ def trsm(context, p_output, i, lo, hi):
     lhs = p_output
 
     launch_domain = Rect(lo=(lo, i), hi=(hi, i + 1))
-    task = context.create_task(
-        CuNumericOpCode.TRSM, manual=True, launch_domain=launch_domain
+    task = cast(
+        ManualTask,
+        context.create_task(
+            CuNumericOpCode.TRSM, manual=True, launch_domain=launch_domain
+        ),
     )
     task.add_output(lhs)
     task.add_input(rhs)
@@ -61,13 +88,16 @@ def trsm(context, p_output, i, lo, hi):
     task.execute()
 
 
-def syrk(context, p_output, k, i):
+def syrk(context: Context, p_output: StorePartition, k: int, i: int) -> None:
     rhs = p_output.get_child_store(k, i)
     lhs = p_output
 
     launch_domain = Rect(lo=(k, k), hi=(k + 1, k + 1))
-    task = context.create_task(
-        CuNumericOpCode.SYRK, manual=True, launch_domain=launch_domain
+    task = cast(
+        ManualTask,
+        context.create_task(
+            CuNumericOpCode.SYRK, manual=True, launch_domain=launch_domain
+        ),
     )
     task.add_output(lhs)
     task.add_input(rhs)
@@ -75,7 +105,14 @@ def syrk(context, p_output, k, i):
     task.execute()
 
 
-def gemm(context, p_output, k, i, lo, hi):
+def gemm(
+    context: Context,
+    p_output: StorePartition,
+    k: int,
+    i: int,
+    lo: int,
+    hi: int,
+) -> None:
     if lo >= hi:
         return
 
@@ -84,8 +121,11 @@ def gemm(context, p_output, k, i, lo, hi):
     rhs1 = p_output
 
     launch_domain = Rect(lo=(lo, k), hi=(hi, k + 1))
-    task = context.create_task(
-        CuNumericOpCode.GEMM, manual=True, launch_domain=launch_domain
+    task = cast(
+        ManualTask,
+        context.create_task(
+            CuNumericOpCode.GEMM, manual=True, launch_domain=launch_domain
+        ),
     )
     task.add_output(lhs)
     task.add_input(rhs1, proj=lambda p: (p[0], i))
@@ -99,7 +139,7 @@ MIN_CHOLESKY_MATRIX_SIZE = 8192
 
 
 # TODO: We need a better cost model
-def choose_color_shape(runtime, shape):
+def choose_color_shape(runtime: Runtime, shape: Shape) -> tuple[int, int]:
     if runtime.args.test_mode:
         num_tiles = runtime.num_procs * 2
         return (num_tiles, num_tiles)
@@ -123,10 +163,13 @@ def choose_color_shape(runtime, shape):
         return (num_tiles, num_tiles)
 
 
-def tril(context, p_output, n):
+def tril(context: Context, p_output: StorePartition, n: int) -> None:
     launch_domain = Rect((n, n))
-    task = context.create_task(
-        CuNumericOpCode.TRILU, manual=True, launch_domain=launch_domain
+    task = cast(
+        ManualTask,
+        context.create_task(
+            CuNumericOpCode.TRILU, manual=True, launch_domain=launch_domain
+        ),
     )
 
     task.add_output(p_output)
@@ -139,10 +182,12 @@ def tril(context, p_output, n):
     task.execute()
 
 
-def cholesky(output, input, no_tril):
+def cholesky(
+    output: DeferredArray, input: DeferredArray, no_tril: bool
+) -> None:
     shape = output.base.shape
-    color_shape = choose_color_shape(output.runtime, shape)
-    tile_shape = (shape + color_shape - 1) // color_shape
+    initial_color_shape = choose_color_shape(output.runtime, shape)
+    tile_shape = (shape + initial_color_shape - 1) // initial_color_shape
     color_shape = (shape + tile_shape - 1) // tile_shape
     n = color_shape[0]
 

@@ -22,7 +22,6 @@ exclude = '''
 
 [tool.mypy]
 python_version = "3.10"
-mypy_path = "typings/:../legate.core/typings/:..legate.core/install38/lib/python3.8/site-packages/"
 
 pretty = true
 show_error_codes = true
@@ -80,6 +79,8 @@ module = [
     "cunumeric.fft",
     "cunumeric.fft.*",
     "cunumeric.install_info",
+    "cunumeric.linalg",
+    "cunumeric.linalg.*",
     "cunumeric.patch",
     "cunumeric.random",
     "cunumeric.random.*",

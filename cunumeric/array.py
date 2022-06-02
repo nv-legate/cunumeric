@@ -2065,7 +2065,7 @@ class ndarray:
         """
         return self.conj()
 
-    def copy(self, order="C"):
+    def copy(self, order="C") -> ndarray:
         """copy()
 
         Get a copy of the iterator as a 1-D array.
@@ -2277,7 +2277,7 @@ class ndarray:
         return res
 
     @add_boilerplate("rhs")
-    def dot(self, rhs, out=None):
+    def dot(self, rhs, out=None) -> ndarray:
         """a.dot(rhs, out=None)
 
         Return the dot product of this array with ``rhs``.
@@ -2857,7 +2857,7 @@ class ndarray:
             where=where,
         )
 
-    def ravel(self, order="C"):
+    def ravel(self, order="C") -> ndarray:
         """a.ravel(order="C")
 
         Return a flattened array.
@@ -2876,7 +2876,7 @@ class ndarray:
         """
         return self.reshape(-1, order=order)
 
-    def reshape(self, shape, order="C"):
+    def reshape(self, shape, order="C") -> ndarray:
         """a.reshape(shape, order='C')
 
         Returns an array containing the same data with a new shape.

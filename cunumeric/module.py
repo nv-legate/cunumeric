@@ -113,7 +113,7 @@ def empty_like(a, dtype=None):
     return ndarray(shape, dtype=dtype, inputs=(a,))
 
 
-def eye(N, M=None, k=0, dtype=np.float64):
+def eye(N, M=None, k=0, dtype=np.float64) -> ndarray:
     """
 
     Return a 2-D array with ones on the diagonal and zeros elsewhere.
@@ -502,7 +502,7 @@ def asarray(a, dtype=None):
 
 
 @add_boilerplate("a")
-def copy(a):
+def copy(a) -> ndarray:
     """
 
     Return an array copy of the given object.
@@ -2663,7 +2663,7 @@ def inner(a, b, out=None):
 
 
 @add_boilerplate("a", "b")
-def dot(a, b, out=None):
+def dot(a, b, out=None) -> ndarray:
     """
     Dot product of two arrays. Specifically,
 
