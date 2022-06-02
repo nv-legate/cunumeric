@@ -19,10 +19,10 @@ from typing import TYPE_CHECKING, cast
 from cunumeric.config import CuNumericOpCode
 
 from legate.core import Rect, types as ty
+from legate.core.operation import ManualTask
 
 if TYPE_CHECKING:
     from legate.core.context import Context
-    from legate.core.operation import ManualTask
     from legate.core.shape import Shape
     from legate.core.store import StorePartition
 
