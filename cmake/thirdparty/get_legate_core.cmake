@@ -33,7 +33,7 @@ function(find_or_configure_legate_core)
 endfunction()
 
 if(NOT DEFINED CUNUMERIC_LEGATE_CORE_BRANCH)
-  set(CUNUMERIC_LEGATE_CORE_BRANCH branch-22.06)
+  set(CUNUMERIC_LEGATE_CORE_BRANCH branch-22.07)
 endif()
 
 if(NOT DEFINED CUNUMERIC_LEGATE_CORE_REPOSITORY)
