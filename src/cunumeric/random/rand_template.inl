@@ -19,6 +19,7 @@
 // Useful for IDEs
 #include "cunumeric/random/rand.h"
 #include "cunumeric/arg.h"
+#include "cunumeric/arg.inl"
 #include "cunumeric/pitches.h"
 
 namespace cunumeric {

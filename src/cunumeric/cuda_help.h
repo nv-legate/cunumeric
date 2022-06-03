@@ -20,6 +20,7 @@
 #include "core/cuda/cuda_help.h"
 #include "core/cuda/stream_pool.h"
 #include "cunumeric/arg.h"
+#include "cunumeric/arg.inl"
 #include <cublas_v2.h>
 #include <cusolverDn.h>
 #include <cuda_runtime.h>
