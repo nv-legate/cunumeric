@@ -470,6 +470,13 @@ class binary_ufunc(ufunc):
 
     @staticmethod
     def _find_common_type(arrs, orig_args):
+        all_ndarray = all(isinstance(arg, ndarray) for arg in orig_args)
+        unique_dtypes = set(arr.dtype for arr in arrs)
+        # If all operands are ndarrays and they all have the same dtype,
+        # we already know the common dtype
+        if len(unique_dtypes) == 1 and all_ndarray:
+            return arrs[0].dtype
+
         # FIXME: The following is a miserable attempt to implement type
         # coercion rules that try to match NumPy's rules for a subset of cases;
         # for the others, cuNumeric computes a type different from what
