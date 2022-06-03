@@ -17,6 +17,7 @@
 import numpy.linalg as _nplinalg
 
 from cunumeric.linalg.linalg import *
+from cunumeric.linalg.exception import *
 from cunumeric.coverage import clone_module
 
 clone_module(_nplinalg, globals())

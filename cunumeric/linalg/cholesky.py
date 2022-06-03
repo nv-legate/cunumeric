@@ -18,6 +18,19 @@ from cunumeric.config import CuNumericOpCode
 
 from legate.core import Rect, types as ty
 
+from .exception import LinAlgError
+
+
+def transpose_copy_single(context, input, output):
+    task = context.create_task(CuNumericOpCode.TRANSPOSE_COPY_2D)
+    task.add_output(output)
+    task.add_input(input)
+    # Output has the same shape as input, but is mapped
+    # to a column major instance
+    task.add_scalar_arg(False, ty.int32)
+
+    task.execute()
+
 
 def transpose_copy(context, launch_domain, p_input, p_output):
     task = context.create_task(
@@ -34,11 +47,20 @@ def transpose_copy(context, launch_domain, p_input, p_output):
     task.execute()
 
 
+def potrf_single(context, output):
+    task = context.create_task(CuNumericOpCode.POTRF)
+    task.throws_exception(LinAlgError)
+    task.add_output(output)
+    task.add_input(output)
+    task.execute()
+
+
 def potrf(context, p_output, i):
     launch_domain = Rect(lo=(i, i), hi=(i + 1, i + 1))
     task = context.create_task(
         CuNumericOpCode.POTRF, manual=True, launch_domain=launch_domain
     )
+    task.throws_exception(LinAlgError)
     task.add_output(p_output)
     task.add_input(p_output)
     task.execute()
@@ -123,6 +145,19 @@ def choose_color_shape(runtime, shape):
         return (num_tiles, num_tiles)
 
 
+def tril_single(context, output):
+    task = context.create_task(CuNumericOpCode.TRILU)
+
+    task.add_output(output)
+    task.add_input(output)
+    task.add_scalar_arg(True, bool)
+    task.add_scalar_arg(0, ty.int32)
+    # Add a fake task argument to indicate that this is for Cholesky
+    task.add_scalar_arg(True, bool)
+
+    task.execute()
+
+
 def tril(context, p_output, n):
     launch_domain = Rect((n, n))
     task = context.create_task(
@@ -140,13 +175,22 @@ def tril(context, p_output, n):
 
 
 def cholesky(output, input, no_tril):
+    runtime = output.runtime
+    context = output.context
+
+    if runtime.num_procs == 1:
+        transpose_copy_single(context, input.base, output.base)
+        potrf_single(context, output.base)
+        if not no_tril:
+            tril_single(context, output.base)
+        return
+
     shape = output.base.shape
-    color_shape = choose_color_shape(output.runtime, shape)
+    color_shape = choose_color_shape(runtime, shape)
     tile_shape = (shape + color_shape - 1) // color_shape
     color_shape = (shape + tile_shape - 1) // tile_shape
     n = color_shape[0]
 
-    context = output.context
     p_input = input.base.partition_by_tiling(tile_shape)
     p_output = output.base.partition_by_tiling(tile_shape)
     transpose_copy(context, Rect(hi=color_shape), p_input, p_output)
