@@ -15,17 +15,5 @@ install_args+=("--with-openblas" "$PREFIX")
 # Verbose mode
 install_args+=("-v")
 
-# Move the stub library into the lib package to make the install think it's pointing at a live installation
-if [ -z "$CPU_ONLY" ]; then
-  cp $PREFIX/lib/stubs/libcuda.so $PREFIX/lib/libcuda.so
-  ln -s $PREFIX/lib $PREFIX/lib64
-fi
-
 echo "Install command: $PYTHON install.py ${install_args[@]}"
 $PYTHON install.py "${install_args[@]}"
-
-# Remove the stub library and linking
-if [ -z "$CPU_ONLY" ]; then
-  rm $PREFIX/lib/libcuda.so
-  rm $PREFIX/lib64
-fi
