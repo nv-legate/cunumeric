@@ -77,6 +77,10 @@ if(CUNUMERIC_USE_CUDA)
   # Needs to run before `enable_language(CUDA)`
   rapids_cuda_init_architectures(CUNUMERIC)
   enable_language(CUDA)
+  # Must come after enable_language(CUDA)
+  # Use `-isystem <path>` instead of `-isystem=<path>`
+  # because the former works with clangd intellisense
+  set(CMAKE_INCLUDE_SYSTEM_FLAG_CUDA "-isystem ")
 
   rapids_find_package(
     CUDAToolkit REQUIRED
