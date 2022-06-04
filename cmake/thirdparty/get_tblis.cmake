@@ -37,20 +37,32 @@ function(find_or_configure_tblis)
     endif()
 
     # CMake sets `ENV{CC}` to /usr/bin/cc if it's not set. This causes tblis'
-    # `./configure` to fail. For now, detect this case and unset ENV{CC/CXX}.
+    # `./configure` to fail. For now, detect this case and reset ENV{CC/CXX}.
     # Remove this workaround when we can use `cmake_policy(SET CMP0132 NEW)`:
     # https://gitlab.kitware.com/cmake/cmake/-/merge_requests/7108
 
-    set(CC_ORIG $ENV{CC})
-    set(CXX_ORIG $ENV{CXX})
+    set(CC_ORIG "$ENV{CC}")
+    set(CXX_ORIG "$ENV{CXX}")
+    set(_CC "${CMAKE_C_COMPILER}")
+    set(_CXX "${CMAKE_CXX_COMPILER}")
 
     if(CC_ORIG MATCHES "^.*\/cc$")
-      unset(ENV{CC})
-      unset(ENV{CXX})
+      file(REAL_PATH "${_CC}" _CC EXPAND_TILDE)
+      file(REAL_PATH "${_CXX}" _CXX EXPAND_TILDE)
+      set(ENV{CC} "${_CC}")
+      set(ENV{CXX} "${_CXX}")
     endif()
 
-    message(VERBOSE "cunumeric: ENV{CC}=$ENV{CC}")
-    message(VERBOSE "cunumeric: ENV{CXX}=$ENV{CXX}")
+    # Use the caching compiler (if provided) to speed up tblis builds
+    if(CMAKE_C_COMPILER_LAUNCHER)
+      set(ENV{CC} "${CMAKE_C_COMPILER_LAUNCHER} ${_CC}")
+    endif()
+    if(CMAKE_CXX_COMPILER_LAUNCHER)
+      set(ENV{CXX} "${CMAKE_CXX_COMPILER_LAUNCHER} ${_CXX}")
+    endif()
+
+    message(VERBOSE "cunumeric: ENV{CC}=\"$ENV{CC}\"")
+    message(VERBOSE "cunumeric: ENV{CXX}=\"$ENV{CXX}\"")
 
     execute_process(
       COMMAND ./configure
@@ -68,6 +80,10 @@ function(find_or_configure_tblis)
       ECHO_ERROR_VARIABLE
       ECHO_OUTPUT_VARIABLE)
 
+    # Reset ENV{CC/CXX}
+    set(ENV{CC} "${CC_ORIG}")
+    set(ENV{CXX} "${CXX_ORIG}")
+
     # Build and install tblis to ${tblis_BINARY_DIR}
     execute_process(
       COMMAND make -j${CMAKE_BUILD_PARALLEL_LEVEL} install
@@ -76,14 +92,6 @@ function(find_or_configure_tblis)
       COMMAND_ERROR_IS_FATAL ANY
       ECHO_ERROR_VARIABLE
       ECHO_OUTPUT_VARIABLE)
-
-    # Reset ENV{CC/CXX}
-    if(CC_ORIG)
-      set(ENV{CC} ${CC_ORIG})
-    endif()
-    if(CXX_ORIG)
-      set(ENV{CXX} ${CXX_ORIG})
-    endif()
   endif()
 
   add_library(tblis INTERFACE IMPORTED)
