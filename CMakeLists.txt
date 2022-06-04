@@ -38,10 +38,10 @@ option(CUNUMERIC_CHECK_BOUNDS "Build cuNumeric with bounds checks (expensive)" O
 option(CUNUMERIC_EXCLUDE_TBLIS_FROM_ALL "Exclude tblis targets from legate.core's 'all' target" OFF)
 option(CUNUMERIC_EXCLUDE_LEGATE_CORE_FROM_ALL "Exclude legate.core targets from legate.core's 'all' target" OFF)
 
-# Needs to run before `project` call
-rapids_cuda_init_architectures(CUNUMERIC)
+##############################################################################
+# - Project definition -------------------------------------------------------
 
-project(CUNUMERIC VERSION 22.07.00 LANGUAGES C CXX CUDA)
+project(CUNUMERIC VERSION 22.07.00 LANGUAGES C CXX)
 
 # Write the version header
 rapids_cmake_write_version_file(include/cunumeric/version_config.hpp)
@@ -52,16 +52,17 @@ rapids_cmake_write_version_file(include/cunumeric/version_config.hpp)
 # Set a default build type if none was specified
 rapids_cmake_build_type(Release)
 
+set(CUNUMERIC_USE_CUDA OFF)
+set(CUNUMERIC_USE_OPENMP OFF)
 # Needed to integrate with LLVM/clang tooling
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# ##################################################################################################
+# * conda environment -----------------------------------------------------------------------------
+rapids_cmake_support_conda_env(conda_env MODIFY_PREFIX_PATH)
+
 ##############################################################################
 # - Dependencies -------------------------------------------------------------
-rapids_find_package(
-  CUDAToolkit REQUIRED
-  BUILD_EXPORT_SET cunumeric-exports
-  INSTALL_EXPORT_SET cunumeric-exports
-)
 
 # add third party dependencies using CPM
 rapids_cpm_init()
@@ -70,10 +71,24 @@ find_package(OpenMP)
 find_package(BLAS REQUIRED)
 find_package(LAPACK REQUIRED)
 
-include(cmake/thirdparty/get_nccl.cmake)
-include(cmake/thirdparty/get_tblis.cmake)
-include(cmake/thirdparty/get_cutensor.cmake)
 include(cmake/thirdparty/get_legate_core.cmake)
+
+if(CUNUMERIC_USE_CUDA)
+  # Needs to run before `enable_language(CUDA)`
+  rapids_cuda_init_architectures(CUNUMERIC)
+  enable_language(CUDA)
+
+  rapids_find_package(
+    CUDAToolkit REQUIRED
+    BUILD_EXPORT_SET cunumeric-exports
+    INSTALL_EXPORT_SET cunumeric-exports
+  )
+
+  include(cmake/thirdparty/get_nccl.cmake)
+  include(cmake/thirdparty/get_cutensor.cmake)
+endif()
+
+include(cmake/thirdparty/get_tblis.cmake)
 
 ##############################################################################
 # - cuNumeric ----------------------------------------------------------------
@@ -129,7 +144,7 @@ list(APPEND CUNUMERIC_SOURCES
   src/cunumeric/cephes/i0.cc
 )
 
-if(OpenMP_FOUND)
+if(CUNUMERIC_USE_OPENMP)
   list(APPEND CUNUMERIC_SOURCES
     src/cunumeric/ternary/where_omp.cc
     src/cunumeric/binary/binary_op_omp.cc
@@ -168,87 +183,91 @@ if(OpenMP_FOUND)
   )
 endif()
 
-list(APPEND CUNUMERIC_SOURCES
-  src/cunumeric/ternary/where.cu
-  src/cunumeric/binary/binary_op.cu
-  src/cunumeric/binary/binary_red.cu
-  src/cunumeric/unary/scalar_unary_red.cu
-  src/cunumeric/unary/unary_red.cu
-  src/cunumeric/unary/unary_op.cu
-  src/cunumeric/unary/convert.cu
-  src/cunumeric/nullary/arange.cu
-  src/cunumeric/nullary/eye.cu
-  src/cunumeric/nullary/fill.cu
-  src/cunumeric/nullary/window.cu
-  src/cunumeric/index/advanced_indexing.cu
-  src/cunumeric/index/choose.cu
-  src/cunumeric/index/repeat.cu
-  src/cunumeric/index/zip.cu
-  src/cunumeric/item/read.cu
-  src/cunumeric/item/write.cu
-  src/cunumeric/matrix/contract.cu
-  src/cunumeric/matrix/diag.cu
-  src/cunumeric/matrix/gemm.cu
-  src/cunumeric/matrix/matmul.cu
-  src/cunumeric/matrix/matvecmul.cu
-  src/cunumeric/matrix/dot.cu
-  src/cunumeric/matrix/potrf.cu
-  src/cunumeric/matrix/syrk.cu
-  src/cunumeric/matrix/tile.cu
-  src/cunumeric/matrix/transpose.cu
-  src/cunumeric/matrix/trilu.cu
-  src/cunumeric/matrix/trsm.cu
-  src/cunumeric/random/rand.cu
-  src/cunumeric/search/nonzero.cu
-  src/cunumeric/set/unique.cu
-  src/cunumeric/stat/bincount.cu
-  src/cunumeric/convolution/convolve.cu
-  src/cunumeric/fft/fft.cu
-  src/cunumeric/transform/flip.cu
-  src/cunumeric/cudalibs.cu
-  src/cunumeric/cunumeric.cu
-)
+if(CUNUMERIC_USE_CUDA)
+  list(APPEND CUNUMERIC_SOURCES
+    src/cunumeric/ternary/where.cu
+    src/cunumeric/binary/binary_op.cu
+    src/cunumeric/binary/binary_red.cu
+    src/cunumeric/unary/scalar_unary_red.cu
+    src/cunumeric/unary/unary_red.cu
+    src/cunumeric/unary/unary_op.cu
+    src/cunumeric/unary/convert.cu
+    src/cunumeric/nullary/arange.cu
+    src/cunumeric/nullary/eye.cu
+    src/cunumeric/nullary/fill.cu
+    src/cunumeric/nullary/window.cu
+    src/cunumeric/index/advanced_indexing.cu
+    src/cunumeric/index/choose.cu
+    src/cunumeric/index/repeat.cu
+    src/cunumeric/index/zip.cu
+    src/cunumeric/item/read.cu
+    src/cunumeric/item/write.cu
+    src/cunumeric/matrix/contract.cu
+    src/cunumeric/matrix/diag.cu
+    src/cunumeric/matrix/gemm.cu
+    src/cunumeric/matrix/matmul.cu
+    src/cunumeric/matrix/matvecmul.cu
+    src/cunumeric/matrix/dot.cu
+    src/cunumeric/matrix/potrf.cu
+    src/cunumeric/matrix/syrk.cu
+    src/cunumeric/matrix/tile.cu
+    src/cunumeric/matrix/transpose.cu
+    src/cunumeric/matrix/trilu.cu
+    src/cunumeric/matrix/trsm.cu
+    src/cunumeric/random/rand.cu
+    src/cunumeric/search/nonzero.cu
+    src/cunumeric/set/unique.cu
+    src/cunumeric/stat/bincount.cu
+    src/cunumeric/convolution/convolve.cu
+    src/cunumeric/fft/fft.cu
+    src/cunumeric/transform/flip.cu
+    src/cunumeric/cudalibs.cu
+    src/cunumeric/cunumeric.cu
+  )
+endif()
 
 # Add `src/cunumeric/sort/sort.mk` sources
 list(APPEND CUNUMERIC_SOURCES
   src/cunumeric/sort/sort.cc
 )
 
-if(OpenMP_FOUND)
+if(CUNUMERIC_USE_OPENMP)
   list(APPEND CUNUMERIC_SOURCES
     src/cunumeric/sort/sort_omp.cc
   )
 endif()
 
-list(APPEND CUNUMERIC_SOURCES
-  src/cunumeric/sort/sort.cu
-  src/cunumeric/sort/cub_sort_bool.cu
-  src/cunumeric/sort/cub_sort_int8.cu
-  src/cunumeric/sort/cub_sort_int16.cu
-  src/cunumeric/sort/cub_sort_int32.cu
-  src/cunumeric/sort/cub_sort_int64.cu
-  src/cunumeric/sort/cub_sort_uint8.cu
-  src/cunumeric/sort/cub_sort_uint16.cu
-  src/cunumeric/sort/cub_sort_uint32.cu
-  src/cunumeric/sort/cub_sort_uint64.cu
-  src/cunumeric/sort/cub_sort_half.cu
-  src/cunumeric/sort/cub_sort_float.cu
-  src/cunumeric/sort/cub_sort_double.cu
-  src/cunumeric/sort/thrust_sort_bool.cu
-  src/cunumeric/sort/thrust_sort_int8.cu
-  src/cunumeric/sort/thrust_sort_int16.cu
-  src/cunumeric/sort/thrust_sort_int32.cu
-  src/cunumeric/sort/thrust_sort_int64.cu
-  src/cunumeric/sort/thrust_sort_uint8.cu
-  src/cunumeric/sort/thrust_sort_uint16.cu
-  src/cunumeric/sort/thrust_sort_uint32.cu
-  src/cunumeric/sort/thrust_sort_uint64.cu
-  src/cunumeric/sort/thrust_sort_half.cu
-  src/cunumeric/sort/thrust_sort_float.cu
-  src/cunumeric/sort/thrust_sort_double.cu
-  src/cunumeric/sort/thrust_sort_complex64.cu
-  src/cunumeric/sort/thrust_sort_complex128.cu
-)
+if(CUNUMERIC_USE_CUDA)
+  list(APPEND CUNUMERIC_SOURCES
+    src/cunumeric/sort/sort.cu
+    src/cunumeric/sort/cub_sort_bool.cu
+    src/cunumeric/sort/cub_sort_int8.cu
+    src/cunumeric/sort/cub_sort_int16.cu
+    src/cunumeric/sort/cub_sort_int32.cu
+    src/cunumeric/sort/cub_sort_int64.cu
+    src/cunumeric/sort/cub_sort_uint8.cu
+    src/cunumeric/sort/cub_sort_uint16.cu
+    src/cunumeric/sort/cub_sort_uint32.cu
+    src/cunumeric/sort/cub_sort_uint64.cu
+    src/cunumeric/sort/cub_sort_half.cu
+    src/cunumeric/sort/cub_sort_float.cu
+    src/cunumeric/sort/cub_sort_double.cu
+    src/cunumeric/sort/thrust_sort_bool.cu
+    src/cunumeric/sort/thrust_sort_int8.cu
+    src/cunumeric/sort/thrust_sort_int16.cu
+    src/cunumeric/sort/thrust_sort_int32.cu
+    src/cunumeric/sort/thrust_sort_int64.cu
+    src/cunumeric/sort/thrust_sort_uint8.cu
+    src/cunumeric/sort/thrust_sort_uint16.cu
+    src/cunumeric/sort/thrust_sort_uint32.cu
+    src/cunumeric/sort/thrust_sort_uint64.cu
+    src/cunumeric/sort/thrust_sort_half.cu
+    src/cunumeric/sort/thrust_sort_float.cu
+    src/cunumeric/sort/thrust_sort_double.cu
+    src/cunumeric/sort/thrust_sort_complex64.cu
+    src/cunumeric/sort/thrust_sort_complex128.cu
+  )
+endif()
 
 list(APPEND CUNUMERIC_SOURCES
   # This must always be the last file!
@@ -264,6 +283,7 @@ endif()
 
 if(CUNUMERIC_CHECK_BOUNDS)
   list(APPEND CUNUMERIC_CXX_DEFS BOUNDS_CHECKS)
+  list(APPEND CUNUMERIC_CUDA_DEFS BOUNDS_CHECKS)
 endif()
 
 list(APPEND CUNUMERIC_CUDA_OPTIONS -Xfatbin=-compress-all)
@@ -286,19 +306,23 @@ set_target_properties(cunumeric
                       CUDA_STANDARD_REQUIRED              ON)
 
 target_link_libraries(cunumeric
-  PRIVATE NCCL::NCCL
-          BLAS::BLAS
-          LAPACK::LAPACK
-          $<$<BOOL:${OpenMP_FOUND}>:OpenMP::OpenMP_CXX>
+   PUBLIC legate::core
+          $<TARGET_NAME_IF_EXISTS:NCCL::NCCL>
+  PRIVATE BLAS::BLAS
           tblis::tblis
-          cutensor::cutensor
-          CUDA::nvToolsExt
-          legate::core)
+          LAPACK::LAPACK
+          # Add Conda library and include paths
+          $<TARGET_NAME_IF_EXISTS:conda_env>
+          $<TARGET_NAME_IF_EXISTS:OpenMP::OpenMP_CXX>
+          $<TARGET_NAME_IF_EXISTS:cutensor::cutensor>)
 
 # Change THRUST_DEVICE_SYSTEM for `.cpp` files
-if(OpenMP_FOUND)
+if(CUNUMERIC_USE_OPENMP)
   list(APPEND CUNUMERIC_CXX_OPTIONS -UTHRUST_DEVICE_SYSTEM)
   list(APPEND CUNUMERIC_CXX_OPTIONS -DTHRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_OMP)
+elseif(NOT CUNUMERIC_USE_CUDA)
+  list(APPEND CUNUMERIC_CXX_OPTIONS -UTHRUST_DEVICE_SYSTEM)
+  list(APPEND CUNUMERIC_CXX_OPTIONS -DTHRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CPP)
 endif()
 
 ###
@@ -310,41 +334,11 @@ endif()
 # A better solution would be to add #include directives to the requisite
 # legate.core and cuNumeric headers.
 ###
-
-set(realm_includes "")
-if(TARGET Legion::RealmRuntime)
-  get_target_property(realm_includes Legion::RealmRuntime INTERFACE_INCLUDE_DIRECTORIES)
-elseif(TARGET Legion::Realm)
-  get_target_property(realm_includes Legion::Realm INTERFACE_INCLUDE_DIRECTORIES)
-endif()
-
-set(legion_includes "")
-if(TARGET Legion::LegionRuntime)
-  get_target_property(legion_includes Legion::LegionRuntime INTERFACE_INCLUDE_DIRECTORIES)
-elseif(TARGET Legion::Legion)
-  get_target_property(legion_includes Legion::Legion INTERFACE_INCLUDE_DIRECTORIES)
-endif()
-
-set(extra_includes "")
-foreach(_dir IN LISTS realm_includes legion_includes)
-  if(EXISTS "${_dir}/realm_defines.h")
-    list(APPEND extra_includes "${_dir}/realm_defines.h")
-  endif()
-  if(EXISTS "${_dir}/legion_defines.h")
-    list(APPEND extra_includes "${_dir}/legion_defines.h")
-  endif()
-endforeach()
-
-list(REMOVE_DUPLICATES extra_includes)
-list(LENGTH extra_includes num_extra_includes)
-if(num_extra_includes GREATER 2)
-  list(SORT extra_includes)
-  list(SUBLIST extra_includes 0 2 extra_includes)
-endif()
-list(TRANSFORM extra_includes PREPEND "SHELL:-include ")
+include(cmake/Modules/legion_helpers.cmake)
+get_legion_and_realm_includes(extra_include_options)
 
 target_compile_options(cunumeric
-  PRIVATE ${extra_includes}
+  PRIVATE ${extra_include_options}
           "$<$<COMPILE_LANGUAGE:CXX>:${CUNUMERIC_CXX_OPTIONS}>"
           "$<$<COMPILE_LANGUAGE:CUDA>:${CUNUMERIC_CUDA_OPTIONS}>")
 
@@ -359,7 +353,8 @@ target_include_directories(cunumeric
     $<INSTALL_INTERFACE:include>
 )
 
-file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/fatbin.ld"
+if(CUNUMERIC_USE_CUDA)
+  file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/fatbin.ld"
 [=[
 SECTIONS
 {
@@ -368,8 +363,9 @@ SECTIONS
 }
 ]=])
 
-# ensure CUDA symbols aren't relocated to the middle of the debug build binaries
-target_link_options(cunumeric PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/fatbin.ld")
+  # ensure CUDA symbols aren't relocated to the middle of the debug build binaries
+  target_link_options(cunumeric PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/fatbin.ld")
+endif()
 
 ##############################################################################
 # - install targets-----------------------------------------------------------
@@ -387,7 +383,7 @@ install(TARGETS cunumeric
 
 set(doc_string
         [=[
-Provide targets for cuNumeric, an Aspiring Drop-In Replacement for NumPy at Scale.
+Provide targets for cuNumeric, an aspiring drop-in replacement for NumPy at scale.
 
 Imported Targets:
   - cunumeric::cunumeric

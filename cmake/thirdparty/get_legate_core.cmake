@@ -26,10 +26,26 @@ function(find_or_configure_legate_core)
         GIT_REPOSITORY        ${PKG_REPOSITORY}
         GIT_TAG               ${PKG_PINNED_TAG}
         EXCLUDE_FROM_ALL      ${PKG_EXCLUDE_FROM_ALL}
-        OPTIONS               "Legion_USE_CUDA ON"
-                              "Legion_USE_OpenMP ${OpenMP_FOUND}"
+        OPTIONS               "Legion_USE_OpenMP ${OpenMP_FOUND}"
                               "Legion_BOUNDS_CHECKS ${CUNUMERIC_CHECK_BOUNDS}"
   )
+
+  get_target_property(legate_core_compile_defs legate::core COMPILE_DEFINITIONS)
+  get_target_property(legate_core_interface_compile_defs legate::core INTERFACE_COMPILE_DEFINITIONS)
+  set(legate_core_defs "${legate_core_compile_defs};${legate_core_interface_compile_defs}")
+
+  if(legate_core_defs MATCHES "LEGATE_USE_CUDA")
+    set(CUNUMERIC_USE_CUDA ON)
+    set(CUNUMERIC_USE_CUDA ON PARENT_SCOPE)
+  endif()
+
+  if(legate_core_defs MATCHES "LEGATE_USE_OPENMP")
+    set(CUNUMERIC_USE_OPENMP ON)
+    set(CUNUMERIC_USE_OPENMP ON PARENT_SCOPE)
+  endif()
+
+  message(VERBOSE "CUNUMERIC_USE_CUDA: ${CUNUMERIC_USE_CUDA}")
+  message(VERBOSE "CUNUMERIC_USE_OPENMP: ${CUNUMERIC_USE_OPENMP}")
 endfunction()
 
 if(NOT DEFINED CUNUMERIC_LEGATE_CORE_BRANCH)
