@@ -15,7 +15,7 @@
 #=============================================================================
 
 function(find_or_configure_tblis)
-  set(oneValueArgs VERSION REPOSITORY PINNED_TAG EXCLUDE_FROM_ALL)
+  set(oneValueArgs VERSION REPOSITORY PINNED_TAG EXCLUDE_FROM_ALL USE_OPENMP)
   cmake_parse_arguments(PKG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
   rapids_cpm_find(tblis ${PKG_VERSION}
@@ -32,7 +32,7 @@ function(find_or_configure_tblis)
 
     # Configure tblis
     set(tblis_thread_model "--disable-thread-model")
-    if(OpenMP_FOUND)
+    if(PKG_USE_OPENMP)
       set(tblis_thread_model "--enable-thread-model=openmp")
     endif()
 
@@ -112,4 +112,5 @@ find_or_configure_tblis(VERSION          1.2.0
                         REPOSITORY       ${CUNUMERIC_TBLIS_REPOSITORY}
                         PINNED_TAG       ${CUNUMERIC_TBLIS_BRANCH}
                         EXCLUDE_FROM_ALL ${CUNUMERIC_EXCLUDE_TBLIS_FROM_ALL}
+                        USE_OPENMP       ${CUNUMERIC_USE_OPENMP}
 )
