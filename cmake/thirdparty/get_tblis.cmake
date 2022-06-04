@@ -61,8 +61,8 @@ function(find_or_configure_tblis)
       set(ENV{CXX} "${CMAKE_CXX_COMPILER_LAUNCHER} ${_CXX}")
     endif()
 
-    message(VERBOSE "cunumeric: ENV{CC}=\"$ENV{CC}\"")
-    message(VERBOSE "cunumeric: ENV{CXX}=\"$ENV{CXX}\"")
+    message(STATUS "cunumeric: ENV{CC}=\"$ENV{CC}\"")
+    message(STATUS "cunumeric: ENV{CXX}=\"$ENV{CXX}\"")
 
     execute_process(
       COMMAND ./configure
