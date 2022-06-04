@@ -1,4 +1,4 @@
-# Copyright 2021-2022 NVIDIA Corporation
+# Copyright 2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,14 +15,17 @@
 from __future__ import annotations
 
 import warnings
+from dataclasses import dataclass
 from functools import wraps
 from types import FunctionType, MethodDescriptorType, MethodType, ModuleType
-from typing import Any, Callable, Container, Optional
+from typing import Any, Callable, Container, Optional, cast
+
+from typing_extensions import Protocol
 
 from .runtime import runtime
 from .utils import find_last_user_frames, find_last_user_stacklevel
 
-__all__ = ("clone_module",)
+__all__ = ("clone_class", "clone_module")
 
 FALLBACK_WARNING = (
     "cuNumeric has not implemented {name} "
@@ -59,33 +62,93 @@ def filter_namespace(
     }
 
 
-# todo: (bev) use callback protocol type starting with 3.8
-def implemented(func: Any, prefix: str, name: str) -> Any:
+class AnyCallable(Protocol):
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
+        ...
+
+
+@dataclass(frozen=True)
+class CuWrapperMetadata:
+    implemented: bool
+    single: bool = False
+    multi: bool = False
+
+
+class CuWrapped(AnyCallable, Protocol):
+    _cunumeric: CuWrapperMetadata
+
+
+def implemented(
+    func: AnyCallable, prefix: str, name: str, reporting: bool = True
+) -> CuWrapped:
     name = f"{prefix}.{name}"
 
-    @wraps(func)
-    def wrapper(*args: Any, **kwargs: Any) -> Any:
-        location = find_last_user_frames(not runtime.report_dump_callstack)
-        runtime.record_api_call(name=name, location=location, implemented=True)
-        return func(*args, **kwargs)
+    wrapper: CuWrapped
 
-    wrapper._cunumeric_implemented = True
-
-    return wrapper
-
-
-# todo: (bev) use callback protocol type starting with 3.8
-def unimplemented(
-    func: Any, prefix: str, name: str, *, reporting: bool = True
-) -> Any:
-    name = f"{prefix}.{name}"
     if reporting:
 
         @wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
-            location = find_last_user_frames(not runtime.report_dump_callstack)
+            location = find_last_user_frames(
+                not runtime.args.report_dump_callstack
+            )
             runtime.record_api_call(
-                name=name, location=location, implemented=False
+                name=name,
+                location=location,
+                implemented=True,
+            )
+            return func(*args, **kwargs)
+
+    else:
+
+        @wraps(func)
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
+            return func(*args, **kwargs)
+
+    # TODO (bev) Scraping text to set flags seems a bit fragile. It would be
+    # preferable to start with flags, and use those to update docstrings.
+    multi = "Multiple GPUs" in (getattr(func, "__doc__", None) or "")
+    single = "Single GPU" in (getattr(func, "__doc__", None) or "") or multi
+
+    wrapper._cunumeric = CuWrapperMetadata(
+        implemented=True, single=single, multi=multi
+    )
+
+    return wrapper
+
+
+def unimplemented(
+    func: AnyCallable, prefix: str, name: str, reporting: bool = True
+) -> CuWrapped:
+    name = f"{prefix}.{name}"
+
+    # Skip over NumPy's `__array_function__` dispatch wrapper, if present.
+    # NumPy adds `__array_function__` dispatch logic through decorators, but
+    # still makes the underlying code (which converts all array-like arguments
+    # to `numpy.ndarray` through `__array__`) available in the
+    # `_implementation` field.
+    # We have to skip the dispatch wrapper, otherwise we will trigger an
+    # infinite loop. Say we're dealing with a call to `cunumeric.foo`, and are
+    # trying to fall back to `numpy.foo`. If we didn't skip the dispatch
+    # wrapper of `numpy.foo`, then NumPy would ask
+    # `cunumeric.ndarray.__array_function__` to handle the call to `numpy.foo`,
+    # then `cunumeric.ndarray.__array_function__` would call `cunumeric.foo`,
+    # and we would end up here again.
+    func = getattr(func, "_implementation", func)
+
+    wrapper: CuWrapped
+
+    if reporting:
+
+        @wraps(func)
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
+            location = find_last_user_frames(
+                not runtime.args.report_dump_callstack
+            )
+            runtime.record_api_call(
+                name=name,
+                location=location,
+                implemented=False,
             )
             return func(*args, **kwargs)
 
@@ -101,7 +164,7 @@ def unimplemented(
             )
             return func(*args, **kwargs)
 
-    wrapper._cunumeric_implemented = False
+    wrapper._cunumeric = CuWrapperMetadata(implemented=False)
 
     return wrapper
 
@@ -127,7 +190,7 @@ def clone_module(
     None
 
     """
-    module_name = origin_module.__name__
+    mod_name = origin_module.__name__
 
     missing = filter_namespace(
         origin_module.__dict__,
@@ -135,22 +198,23 @@ def clone_module(
         omit_types=(ModuleType,),
     )
 
-    from numpy import ufunc as npufunc
+    reporting = runtime.args.report_coverage
 
     from ._ufunc.ufunc import ufunc as lgufunc
 
     for attr, value in new_globals.items():
         if isinstance(value, (FunctionType, lgufunc)):
-            if runtime.report_coverage:
-                new_globals[attr] = implemented(value, module_name, attr)
-            else:
-                value._cunumeric_implemented = True
+            wrapped = implemented(
+                cast(AnyCallable, value), mod_name, attr, reporting=reporting
+            )
+            new_globals[attr] = wrapped
+
+    from numpy import ufunc as npufunc
 
     for attr, value in missing.items():
         if isinstance(value, (FunctionType, npufunc)):
-            new_globals[attr] = unimplemented(
-                value, module_name, attr, reporting=runtime.report_coverage
-            )
+            wrapped = unimplemented(value, mod_name, attr, reporting=reporting)
+            new_globals[attr] = wrapped
         else:
             new_globals[attr] = value
 
@@ -168,6 +232,11 @@ def clone_class(origin_class: type) -> Callable[[type], type]:
 
     """
 
+    def should_wrap(obj: object) -> bool:
+        return isinstance(
+            obj, (FunctionType, MethodType, MethodDescriptorType)
+        )
+
     def decorator(cls: type) -> type:
         class_name = f"{origin_class.__module__}.{origin_class.__name__}"
 
@@ -179,32 +248,36 @@ def clone_class(origin_class: type) -> Callable[[type], type]:
             omit_names=set(cls.__dict__).union(NDARRAY_INTERNAL),
         )
 
+        reporting = runtime.args.report_coverage
+
         for attr, value in cls.__dict__.items():
-            if isinstance(
-                value, (FunctionType, MethodType, MethodDescriptorType)
-            ):
-                if runtime.report_coverage:
-                    setattr(cls, attr, implemented(value, class_name, attr))
-                else:
-                    value._cunumeric_implemented = True
+            if should_wrap(value):
+                wrapped = implemented(
+                    value, class_name, attr, reporting=reporting
+                )
+                setattr(cls, attr, wrapped)
 
         for attr, value in missing.items():
-            if isinstance(
-                value, (FunctionType, MethodType, MethodDescriptorType)
-            ):
-                setattr(
-                    cls,
-                    attr,
-                    unimplemented(
-                        value,
-                        class_name,
-                        attr,
-                        reporting=runtime.report_coverage,
-                    ),
+            if should_wrap(value):
+                wrapped = unimplemented(
+                    value, class_name, attr, reporting=reporting
                 )
+                setattr(cls, attr, wrapped)
             else:
                 setattr(cls, attr, value)
 
         return cls
 
     return decorator
+
+
+def is_implemented(obj: Any) -> bool:
+    return hasattr(obj, "_cunumeric") and obj._cunumeric.implemented
+
+
+def is_single(obj: Any) -> bool:
+    return hasattr(obj, "_cunumeric") and obj._cunumeric.single
+
+
+def is_multi(obj: Any) -> bool:
+    return hasattr(obj, "_cunumeric") and obj._cunumeric.multi

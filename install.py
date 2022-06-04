@@ -164,22 +164,30 @@ def install_openblas(openblas_dir, thread_count, verbose):
         verbose=verbose,
     )
     # We can just build this directly
-    execute_command(
-        [
-            "make",
-            "-j",
-            str(thread_count),
-            "CROSS=1",
-            "USE_THREAD=1",
-            "NO_STATIC=1",
-            "USE_CUDA=0",
-            "USE_OPENMP=%s" % (1 if has_openmp() else 0),
-            "NUM_PARALLEL=32",
-            "LIBNAMESUFFIX=legate",
-        ],
-        cwd=temp_dir,
-        verbose=verbose,
-    )
+    try:
+        execute_command(
+            [
+                "make",
+                "-j",
+                str(thread_count),
+                "CROSS=1",
+                "USE_THREAD=1",
+                "NO_STATIC=1",
+                "USE_CUDA=0",
+                "USE_OPENMP=%s" % (1 if has_openmp() else 0),
+                "NUM_PARALLEL=32",
+                "LIBNAMESUFFIX=legate",
+                "NO_LAPACK=0",
+            ],
+            cwd=temp_dir,
+            verbose=verbose,
+        )
+    except subprocess.CalledProcessError:
+        raise Exception(
+            "\nOpenBLAS compilation failed.  Check the output for details.\n"
+            "Note that OpenBLAS compilation will fail if gfortran is not "
+            "available in your environment."
+        )
     # Then do the installation to our target directory
     execute_command(
         [
@@ -278,7 +286,7 @@ def build_cunumeric(
         print("Using GNU Make for now.")
 
     if not python_only:
-        if install_dir == os.path.commonprefix([openblas_dir, install_dir]):
+        if os.path.basename(openblas_dir) == "OpenBLAS_legate":
             libname = "openblas_legate"
         else:
             libname = "openblas"
@@ -401,7 +409,7 @@ def install_cunumeric(
     if openblas_dir is None:
         openblas_dir = libs_config.get("openblas")
     if openblas_dir is None:
-        openblas_dir = os.path.join(legate_dir, "OpenBLAS")
+        openblas_dir = os.path.join(legate_dir, "OpenBLAS_legate")
     openblas_dir = os.path.realpath(openblas_dir)
     if not os.path.exists(openblas_dir):
         install_openblas(openblas_dir, thread_count, verbose)

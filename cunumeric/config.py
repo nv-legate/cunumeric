@@ -16,6 +16,8 @@
 import os
 from enum import IntEnum, unique
 
+import numpy as np
+
 from legate.core import Library, ResourceConfig, get_legate_runtime
 
 
@@ -78,6 +80,7 @@ _cunumeric = cunumeric_lib.shared_object
 # Match these to CuNumericOpCode in cunumeric_c.h
 @unique
 class CuNumericOpCode(IntEnum):
+    ADVANCED_INDEXING = _cunumeric.CUNUMERIC_ADVANCED_INDEXING
     ARANGE = _cunumeric.CUNUMERIC_ARANGE
     BINARY_OP = _cunumeric.CUNUMERIC_BINARY_OP
     BINARY_RED = _cunumeric.CUNUMERIC_BINARY_RED
@@ -89,6 +92,7 @@ class CuNumericOpCode(IntEnum):
     DIAG = _cunumeric.CUNUMERIC_DIAG
     DOT = _cunumeric.CUNUMERIC_DOT
     EYE = _cunumeric.CUNUMERIC_EYE
+    FFT = _cunumeric.CUNUMERIC_FFT
     FILL = _cunumeric.CUNUMERIC_FILL
     FLIP = _cunumeric.CUNUMERIC_FLIP
     GEMM = _cunumeric.CUNUMERIC_GEMM
@@ -113,7 +117,9 @@ class CuNumericOpCode(IntEnum):
     UNIQUE_REDUCE = _cunumeric.CUNUMERIC_UNIQUE_REDUCE
     UNLOAD_CUDALIBS = _cunumeric.CUNUMERIC_UNLOAD_CUDALIBS
     WHERE = _cunumeric.CUNUMERIC_WHERE
+    WINDOW = _cunumeric.CUNUMERIC_WINDOW
     WRITE = _cunumeric.CUNUMERIC_WRITE
+    ZIP = _cunumeric.CUNUMERIC_ZIP
 
 
 # Match these to CuNumericUnaryOpCode in cunumeric_c.h
@@ -138,6 +144,7 @@ class UnaryOpCode(IntEnum):
     EXP2 = _cunumeric.CUNUMERIC_UOP_EXP2
     EXPM1 = _cunumeric.CUNUMERIC_UOP_EXPM1
     FLOOR = _cunumeric.CUNUMERIC_UOP_FLOOR
+    FREXP = _cunumeric.CUNUMERIC_UOP_FREXP
     GETARG = _cunumeric.CUNUMERIC_UOP_GETARG
     IMAG = _cunumeric.CUNUMERIC_UOP_IMAG
     INVERT = _cunumeric.CUNUMERIC_UOP_INVERT
@@ -149,6 +156,7 @@ class UnaryOpCode(IntEnum):
     LOG1P = _cunumeric.CUNUMERIC_UOP_LOG1P
     LOG2 = _cunumeric.CUNUMERIC_UOP_LOG2
     LOGICAL_NOT = _cunumeric.CUNUMERIC_UOP_LOGICAL_NOT
+    MODF = _cunumeric.CUNUMERIC_UOP_MODF
     NEGATIVE = _cunumeric.CUNUMERIC_UOP_NEGATIVE
     POSITIVE = _cunumeric.CUNUMERIC_UOP_POSITIVE
     RAD2DEG = _cunumeric.CUNUMERIC_UOP_RAD2DEG
@@ -159,8 +167,8 @@ class UnaryOpCode(IntEnum):
     SIGNBIT = _cunumeric.CUNUMERIC_UOP_SIGNBIT
     SIN = _cunumeric.CUNUMERIC_UOP_SIN
     SINH = _cunumeric.CUNUMERIC_UOP_SINH
-    SQUARE = _cunumeric.CUNUMERIC_UOP_SQUARE
     SQRT = _cunumeric.CUNUMERIC_UOP_SQRT
+    SQUARE = _cunumeric.CUNUMERIC_UOP_SQUARE
     TAN = _cunumeric.CUNUMERIC_UOP_TAN
     TANH = _cunumeric.CUNUMERIC_UOP_TANH
     TRUNC = _cunumeric.CUNUMERIC_UOP_TRUNC
@@ -185,7 +193,6 @@ class UnaryRedCode(IntEnum):
 @unique
 class BinaryOpCode(IntEnum):
     ADD = _cunumeric.CUNUMERIC_BINOP_ADD
-    ALLCLOSE = _cunumeric.CUNUMERIC_BINOP_ALLCLOSE
     ARCTAN2 = _cunumeric.CUNUMERIC_BINOP_ARCTAN2
     BITWISE_AND = _cunumeric.CUNUMERIC_BINOP_BITWISE_AND
     BITWISE_OR = _cunumeric.CUNUMERIC_BINOP_BITWISE_OR
@@ -200,7 +207,9 @@ class BinaryOpCode(IntEnum):
     GREATER = _cunumeric.CUNUMERIC_BINOP_GREATER
     GREATER_EQUAL = _cunumeric.CUNUMERIC_BINOP_GREATER_EQUAL
     HYPOT = _cunumeric.CUNUMERIC_BINOP_HYPOT
+    ISCLOSE = _cunumeric.CUNUMERIC_BINOP_ISCLOSE
     LCM = _cunumeric.CUNUMERIC_BINOP_LCM
+    LDEXP = _cunumeric.CUNUMERIC_BINOP_LDEXP
     LEFT_SHIFT = _cunumeric.CUNUMERIC_BINOP_LEFT_SHIFT
     LESS = _cunumeric.CUNUMERIC_BINOP_LESS
     LESS_EQUAL = _cunumeric.CUNUMERIC_BINOP_LESS_EQUAL
@@ -218,6 +227,15 @@ class BinaryOpCode(IntEnum):
     POWER = _cunumeric.CUNUMERIC_BINOP_POWER
     RIGHT_SHIFT = _cunumeric.CUNUMERIC_BINOP_RIGHT_SHIFT
     SUBTRACT = _cunumeric.CUNUMERIC_BINOP_SUBTRACT
+
+
+@unique
+class WindowOpCode(IntEnum):
+    BARLETT = _cunumeric.CUNUMERIC_WINDOW_BARLETT
+    BLACKMAN = _cunumeric.CUNUMERIC_WINDOW_BLACKMAN
+    HAMMING = _cunumeric.CUNUMERIC_WINDOW_HAMMING
+    HANNING = _cunumeric.CUNUMERIC_WINDOW_HANNING
+    KAISER = _cunumeric.CUNUMERIC_WINDOW_KAISER
 
 
 # Match these to RandGenCode in rand_util.h
@@ -242,3 +260,178 @@ class CuNumericTunable(IntEnum):
     NUM_PROCS = _cunumeric.CUNUMERIC_TUNABLE_NUM_PROCS
     MAX_EAGER_VOLUME = _cunumeric.CUNUMERIC_TUNABLE_MAX_EAGER_VOLUME
     HAS_NUMAMEM = _cunumeric.CUNUMERIC_TUNABLE_HAS_NUMAMEM
+
+
+# Match these to fftType in fft_util.h
+class _FFTType:
+    def __init__(
+        self,
+        name,
+        type_id,
+        input_dtype,
+        output_dtype,
+        single_precision,
+        complex_type=None,
+    ):
+        self._name = name
+        self._type_id = type_id
+        self._complex_type = self if complex_type is None else complex_type
+        self._input_dtype = input_dtype
+        self._output_dtype = output_dtype
+        self._single_precision = single_precision
+
+    def __str__(self):
+        return self._name
+
+    def __repr__(self):
+        return str(self)
+
+    @property
+    def type_id(self):
+        return self._type_id
+
+    @property
+    def complex(self):
+        return self._complex_type
+
+    @property
+    def input_dtype(self):
+        return self._input_dtype
+
+    @property
+    def output_dtype(self):
+        return self._output_dtype
+
+    @property
+    def is_single_precision(self):
+        return self._single_precision
+
+
+FFT_C2C = _FFTType(
+    "C2C",
+    _cunumeric.CUNUMERIC_FFT_C2C,
+    np.complex64,
+    np.complex64,
+    True,
+)
+
+FFT_Z2Z = _FFTType(
+    "Z2Z",
+    _cunumeric.CUNUMERIC_FFT_Z2Z,
+    np.complex128,
+    np.complex128,
+    False,
+)
+
+FFT_R2C = _FFTType(
+    "R2C",
+    _cunumeric.CUNUMERIC_FFT_R2C,
+    np.float32,
+    np.complex64,
+    True,
+    FFT_C2C,
+)
+
+FFT_C2R = _FFTType(
+    "C2R",
+    _cunumeric.CUNUMERIC_FFT_C2R,
+    np.complex64,
+    np.float32,
+    True,
+    FFT_C2C,
+)
+
+FFT_D2Z = _FFTType(
+    "D2Z",
+    _cunumeric.CUNUMERIC_FFT_D2Z,
+    np.float64,
+    np.complex128,
+    False,
+    FFT_Z2Z,
+)
+
+FFT_Z2D = _FFTType(
+    "Z2D",
+    _cunumeric.CUNUMERIC_FFT_Z2D,
+    np.complex128,
+    np.float64,
+    False,
+    FFT_Z2Z,
+)
+
+
+class FFTCode:
+    @staticmethod
+    def real_to_complex_code(dtype):
+        if dtype == np.float64:
+            return FFT_D2Z
+        elif dtype == np.float32:
+            return FFT_R2C
+        else:
+            raise TypeError(
+                (
+                    "Data type for FFT not supported "
+                    "(supported types are float32 and float64)"
+                )
+            )
+
+    @staticmethod
+    def complex_to_real_code(dtype):
+        if dtype == np.complex128:
+            return FFT_Z2D
+        elif dtype == np.complex64:
+            return FFT_C2R
+        else:
+            raise TypeError(
+                (
+                    "Data type for FFT not supported "
+                    "(supported types are complex64 and complex128)"
+                )
+            )
+
+
+@unique
+class FFTDirection(IntEnum):
+    FORWARD = _cunumeric.CUNUMERIC_FFT_FORWARD
+    INVERSE = _cunumeric.CUNUMERIC_FFT_INVERSE
+
+
+@unique
+class FFTNormalization(IntEnum):
+    FORWARD = 1
+    INVERSE = 2
+    ORTHOGONAL = 3
+
+    @staticmethod
+    def from_string(in_string):
+        if in_string == "forward":
+            return FFTNormalization.FORWARD
+        elif in_string == "ortho":
+            return FFTNormalization.ORTHOGONAL
+        elif in_string == "backward" or in_string is None:
+            return FFTNormalization.INVERSE
+        else:
+            return None
+
+    @staticmethod
+    def reverse(in_string):
+        if in_string == "forward":
+            return "backward"
+        elif in_string == "backward" or in_string is None:
+            return "forward"
+        else:
+            return in_string
+
+
+# Match these to CuNumericTypeCodes in cunumeric_c.h
+@unique
+class CuNumericTypeCodes(IntEnum):
+    CUNUMERIC_TYPE_POINT1 = _cunumeric.CUNUMERIC_TYPE_POINT1
+    CUNUMERIC_TYPE_POINT2 = _cunumeric.CUNUMERIC_TYPE_POINT2
+    CUNUMERIC_TYPE_POINT3 = _cunumeric.CUNUMERIC_TYPE_POINT3
+    CUNUMERIC_TYPE_POINT4 = _cunumeric.CUNUMERIC_TYPE_POINT4
+    CUNUMERIC_TYPE_POINT5 = _cunumeric.CUNUMERIC_TYPE_POINT5
+    CUNUMERIC_TYPE_POINT6 = _cunumeric.CUNUMERIC_TYPE_POINT6
+    CUNUMERIC_TYPE_POINT7 = _cunumeric.CUNUMERIC_TYPE_POINT7
+    CUNUMERIC_TYPE_POINT8 = _cunumeric.CUNUMERIC_TYPE_POINT8
+    CUNUMERIC_TYPE_POINT9 = _cunumeric.CUNUMERIC_TYPE_POINT9

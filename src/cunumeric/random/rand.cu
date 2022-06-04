@@ -27,7 +27,7 @@ template <typename WriteAcc, typename Rng, int32_t DIM>
 static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM) rand_kernel(
   size_t volume, WriteAcc out, Rng rng, Point<DIM> strides, Pitches<DIM - 1> pitches, Point<DIM> lo)
 {
-  const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+  const size_t idx = global_tid_1d();
   if (idx >= volume) return;
   auto point    = pitches.unflatten(idx, lo);
   size_t offset = 0;
@@ -45,7 +45,10 @@ struct RandImplBody<VariantKind::GPU, RNG, VAL, DIM> {
   {
     size_t volume       = rect.volume();
     const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-    rand_kernel<<<blocks, THREADS_PER_BLOCK>>>(volume, out, rng, strides, pitches, rect.lo);
+    auto stream         = get_cached_stream();
+    rand_kernel<<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
+      volume, out, rng, strides, pitches, rect.lo);
+    CHECK_CUDA_STREAM(stream);
   }
 };
 

@@ -24,6 +24,8 @@ import sys
 from distutils.command.build_py import build_py
 from distutils.core import setup
 
+from setuptools import find_packages
+
 # We need to know the prefix for the installation
 # so we can know where to get the library
 parser = argparse.ArgumentParser()
@@ -74,13 +76,13 @@ if args.recurse:
     sys.argv.remove("--recurse")
     setup(
         name="cunumeric",
-        version="22.03.00",
-        packages=[
-            "cunumeric",
-            "cunumeric.linalg",
-            "cunumeric.random",
-            "cunumeric._ufunc",
-        ],
+        version="22.05.00",
+        packages=find_packages(
+            where=".",
+            include=["cunumeric*"],
+        ),
+        package_data={"cunumeric": ["_sphinxext/_templates/*.rst"]},
+        include_package_data=True,
         cmdclass={"build_py": my_build_py},
     )
 else:

@@ -27,6 +27,7 @@ Transpose-like operations
 .. autosummary::
    :toctree: generated/
 
+   moveaxis
    swapaxes
    transpose
 
@@ -59,6 +60,7 @@ Joining arrays
    append
    concatenate
    stack
+   block
    vstack
    hstack
    dstack

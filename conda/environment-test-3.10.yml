@@ -1,0 +1,44 @@
+name: cunumeric-test
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+
+  # build
+  - cutensor>=1.3.3
+  - nccl
+  - setuptools>=60
+
+  # runtime
+  - cffi
+  - numpy>=1.22
+  - opt_einsum
+  - pyarrow>=5
+  - scipy
+  - typing_extensions
+
+  # tests
+  - clang>=8
+  - clang-tools>=8
+  - coverage
+  - mock
+  - mypy>=0.942
+  - pre-commit
+  - pynvml
+  - pytest
+  - pytest-cov
+
+  # pip dependencies
+  - pip
+  - pip:
+    # docs
+    - jinja2
+    - pydata-sphinx-theme
+    - recommonmark
+    - sphinx>=4.4.0
+    - sphinx-copybutton
+    - sphinx-markdown-tables
+
+    # examples
+    - tifffile

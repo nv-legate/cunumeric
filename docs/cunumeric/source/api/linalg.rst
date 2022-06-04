@@ -18,6 +18,9 @@ Matrix and vector products
    matmul
    tensordot
    einsum
+   einsum_path
+   linalg.matrix_power
+   linalg.multi_dot
 
 Decompositions
 --------------
@@ -34,3 +37,4 @@ Norms and other numbers
    :toctree: generated/
 
    linalg.norm
+   trace

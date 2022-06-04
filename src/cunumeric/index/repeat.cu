@@ -27,63 +27,71 @@ using namespace Legion;
 
 template <typename Output, int DIM>
 static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-  count_repeat_kernel(const size_t volume,
-                      Output out,
+  count_repeat_kernel(const int64_t extent,
+                      Output sum,
                       const AccessorRO<int64_t, DIM> repeats,
-                      const Pitches<DIM - 1> pitches,
                       const Point<DIM> origin,
+                      const int32_t axis,
                       const size_t iters,
                       Buffer<int64_t> offsets)
 {
   int64_t value = 0;
   for (size_t idx = 0; idx < iters; idx++) {
-    const size_t offset = (idx * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
-    if (offset < volume) {
-      auto point      = pitches.unflatten(offset, origin);
-      auto val        = repeats[point];
+    const int64_t offset = (idx * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
+    if (offset < extent) {
+      auto p = origin;
+      p[axis] += offset;
+      auto val        = repeats[p];
       offsets[offset] = val;
       SumReduction<int64_t>::fold<true>(value, val);
     }
   }
   // Every thread in the thread block must participate in the exchange to get correct results
-  reduce_output(out, value);
+  reduce_output(sum, value);
 }
 
 template <typename VAL, int DIM>
 __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-  repeat_kernel(Buffer<VAL> out,
+  repeat_kernel(Buffer<VAL, DIM> out,
                 const AccessorRO<VAL, DIM> in,
                 int64_t repeats,
                 const int32_t axis,
-                const Rect<DIM> rect,
+                const Point<DIM> in_lo,
                 const Pitches<DIM - 1> pitches,
-                const int volume)
+                const size_t volume)
 {
-  const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+  const size_t idx = global_tid_1d();
   if (idx >= volume) return;
-  int64_t i = idx / repeats;
-  auto p    = pitches.unflatten(i, rect.lo);
-  out[idx]  = in[p];
+  auto out_p = pitches.unflatten(idx, Point<DIM>::ZEROES());
+  auto in_p  = out_p;
+  in_p[axis] /= repeats;
+  in_p += in_lo;
+  out[out_p] = in[in_p];
 }
 
 template <typename VAL, int DIM>
 __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-  repeat_kernel(Buffer<VAL> out,
+  repeat_kernel(Buffer<VAL, DIM> out,
                 const AccessorRO<VAL, DIM> in,
                 const AccessorRO<int64_t, DIM> repeats,
                 Buffer<int64_t> offsets,
                 const int32_t axis,
-                const Rect<DIM> rect,
+                const Point<DIM> in_lo,
                 const Pitches<DIM - 1> pitches,
                 const int volume)
 {
-  const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+  const size_t idx = global_tid_1d();
   if (idx >= volume) return;
-  auto p         = pitches.unflatten(idx, rect.lo);
-  size_t out_idx = offsets[idx];
-  for (size_t r = 0; r < repeats[p]; r++) {
-    out[out_idx] = in[p];
-    ++out_idx;
+  auto in_p  = pitches.unflatten(idx, in_lo);
+  auto out_p = in_p - in_lo;
+
+  int64_t off_start = offsets[in_p[axis] - in_lo[axis]];
+  int64_t off_end   = off_start + repeats[in_p];
+
+  auto in_v = in[in_p];
+  for (int64_t out_idx = off_start; out_idx < off_end; ++out_idx) {
+    out_p[axis] = out_idx;
+    out[out_p]  = in_v;
   }
 }
 
@@ -91,68 +99,72 @@ template <LegateTypeCode CODE, int DIM>
 struct RepeatImplBody<VariantKind::GPU, CODE, DIM> {
   using VAL = legate_type_of<CODE>;
 
-  size_t operator()(Buffer<VAL>& out,
-                    const AccessorRO<VAL, DIM>& in,
-                    const int64_t repeats,
-                    const int32_t axis,
-                    const Pitches<DIM - 1>& pitches,
-                    const Rect<DIM>& rect) const
+  void operator()(Array& out_array,
+                  const AccessorRO<VAL, DIM>& in,
+                  const int64_t repeats,
+                  const int32_t axis,
+                  const Rect<DIM>& in_rect) const
   {
-    const size_t volume = rect.volume();
-    size_t size         = volume * repeats;
-    const size_t blocks = (size + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
+    Point<DIM> extents = in_rect.hi - in_rect.lo + Point<DIM>::ONES();
+    extents[axis] *= repeats;
 
-    out = create_buffer<VAL>(size, Memory::Kind::GPU_FB_MEM);
+    auto out = out_array.create_output_buffer<VAL, DIM>(extents, true);
 
-    repeat_kernel<VAL, DIM>
-      <<<blocks, THREADS_PER_BLOCK>>>(out, in, repeats, axis, rect, pitches, size);
-    return size;
-  }
+    Rect<DIM> out_rect(Point<DIM>::ZEROES(), extents - Point<DIM>::ONES());
+    Pitches<DIM - 1> pitches;
 
-  size_t operator()(Buffer<VAL>& out,
-                    const AccessorRO<VAL, DIM>& in,
-                    const AccessorRO<int64_t, DIM>& repeats,
-                    const int32_t axis,
-                    const Pitches<DIM - 1>& pitches,
-                    const Rect<DIM>& rect) const
-  {
-    const size_t volume = rect.volume();
+    auto out_volume   = pitches.flatten(out_rect);
+    const auto blocks = (out_volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
 
     auto stream = get_cached_stream();
+    repeat_kernel<VAL, DIM><<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
+      out, in, repeats, axis, in_rect.lo, pitches, out_volume);
+    CHECK_CUDA_STREAM(stream);
+  }
 
-    // compute offsets
-    Buffer<int64_t> offsets = create_buffer<int64_t>(volume, Memory::Kind::GPU_FB_MEM);
-    DeferredReduction<SumReduction<int64_t>> size;
-    const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-    size_t shmem_size   = THREADS_PER_BLOCK / 32 * sizeof(int64_t);
+  void operator()(Array& out_array,
+                  const AccessorRO<VAL, DIM>& in,
+                  const AccessorRO<int64_t, DIM>& repeats,
+                  const int32_t axis,
+                  const Rect<DIM>& in_rect) const
+  {
+    auto stream = get_cached_stream();
 
-    if (blocks > MAX_REDUCTION_CTAS) {
-      const size_t iters = (blocks + MAX_REDUCTION_CTAS - 1) / MAX_REDUCTION_CTAS;
+    Pitches<DIM - 1> pitches;
+    const auto volume = pitches.flatten(in_rect);
+
+    // Compute offsets
+    int64_t extent = in_rect.hi[axis] - in_rect.lo[axis] + 1;
+    auto offsets   = create_buffer<int64_t>(Point<1>(extent), Memory::Kind::Z_COPY_MEM);
+
+    DeferredReduction<SumReduction<int64_t>> sum;
+    const size_t blocks_count = (extent + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
+    const size_t shmem_size   = THREADS_PER_BLOCK / 32 * sizeof(int64_t);
+
+    if (blocks_count > MAX_REDUCTION_CTAS) {
+      const size_t iters = (blocks_count + MAX_REDUCTION_CTAS - 1) / MAX_REDUCTION_CTAS;
       count_repeat_kernel<<<MAX_REDUCTION_CTAS, THREADS_PER_BLOCK, shmem_size, stream>>>(
-        volume, size, repeats, pitches, rect.lo, iters, offsets);
+        extent, sum, repeats, in_rect.lo, axis, iters, offsets);
     } else {
-      count_repeat_kernel<<<blocks, THREADS_PER_BLOCK, shmem_size, stream>>>(
-        volume, size, repeats, pitches, rect.lo, 1, offsets);
+      count_repeat_kernel<<<blocks_count, THREADS_PER_BLOCK, shmem_size, stream>>>(
+        extent, sum, repeats, in_rect.lo, axis, 1, offsets);
     }
+    CHECK_CUDA_STREAM(stream);
 
     cudaStreamSynchronize(stream);
 
+    Point<DIM> out_extents = in_rect.hi - in_rect.lo + Point<DIM>::ONES();
+    out_extents[axis]      = sum.read();
+
+    auto out = out_array.create_output_buffer<VAL, DIM>(out_extents, true);
+
     auto p_offsets = offsets.ptr(0);
+    thrust::exclusive_scan(thrust::cuda::par.on(stream), p_offsets, p_offsets + extent, p_offsets);
 
-    exclusive_sum(p_offsets, volume, stream);
-
-    auto out_size = size.read();
-
-    out = create_buffer<VAL>(out_size, Memory::Kind::GPU_FB_MEM);
-
+    const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
     repeat_kernel<VAL, DIM><<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
-      out, in, repeats, offsets, axis, rect, pitches, volume);
-    return out_size;
-  }
-
-  static void exclusive_sum(int64_t* offsets, size_t volume, cudaStream_t stream)
-  {
-    thrust::exclusive_scan(thrust::cuda::par.on(stream), offsets, offsets + volume, offsets);
+      out, in, repeats, offsets, axis, in_rect.lo, pitches, volume);
+    CHECK_CUDA_STREAM(stream);
   }
 };
 

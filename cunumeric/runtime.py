@@ -14,11 +14,11 @@
 #
 
 import struct
-import sys
 import warnings
 from functools import reduce
 
 import numpy as np
+from legate.rc import ArgSpec, Argument, parse_command_args
 
 import legate.core.types as ty
 from legate.core import LEGATE_MAX_DIM, Rect, get_legate_runtime, legion
@@ -27,6 +27,7 @@ from .config import (
     CuNumericOpCode,
     CuNumericRedopCode,
     CuNumericTunable,
+    CuNumericTypeCodes,
     cunumeric_context,
     cunumeric_lib,
 )
@@ -40,7 +41,7 @@ _supported_dtypes = {
     np.int8: ty.int8,
     np.int16: ty.int16,
     np.int32: ty.int32,
-    np.int: ty.int64,
+    int: ty.int64,
     np.int64: ty.int64,
     np.uint8: ty.uint8,
     np.uint16: ty.uint16,
@@ -49,31 +50,73 @@ _supported_dtypes = {
     np.uint64: ty.uint64,
     np.float16: ty.float16,
     np.float32: ty.float32,
-    np.float: ty.float64,
+    float: ty.float64,
     np.float64: ty.float64,
     np.complex64: ty.complex64,
     np.complex128: ty.complex128,
 }
 
+ARGS = [
+    Argument(
+        "test",
+        ArgSpec(
+            action="store_true",
+            default=False,
+            dest="test_mode",
+            help="Enable test mode. In test mode, all cuNumeric ndarrays are managed by the distributed runtime and the NumPy fallback for small arrays is turned off.",  # noqa E501
+        ),
+    ),
+    Argument(
+        "preload-cudalibs",
+        ArgSpec(
+            action="store_true",
+            default=False,
+            dest="preload_cudalibs",
+            help="Preload and initialize handles of all CUDA libraries (cuBLAS, cuSOLVER, etc.) used in cuNumericLoad CUDA libs early",  # noqa E501
+        ),
+    ),
+    Argument(
+        "warn",
+        ArgSpec(
+            action="store_true",
+            default=False,
+            dest="warning",
+            help="Turn on warnings",
+        ),
+    ),
+    Argument(
+        "report:coverage",
+        ArgSpec(
+            action="store_true",
+            default=False,
+            dest="report_coverage",
+            help="Print an overall percentage of cunumeric coverage",
+        ),
+    ),
+    Argument(
+        "report:dump-callstack",
+        ArgSpec(
+            action="store_true",
+            default=False,
+            dest="report_dump_callstack",
+            help="Print an overall percentage of cunumeric coverage with call stack details",  # noqa E501
+        ),
+    ),
+    Argument(
+        "report:dump-csv",
+        ArgSpec(
+            action="store",
+            type=str,
+            nargs=1,
+            default=None,
+            dest="report_dump_csv",
+            help="Save a coverage report to a specified CSV file",
+        ),
+    ),
+]
+
 
 class Runtime(object):
-    __slots__ = [
-        "api_calls",
-        "current_random_epoch",
-        "destroyed",
-        "legate_context",
-        "legate_runtime",
-        "max_eager_volume",
-        "num_gpus",
-        "num_procs",
-        "preload_cudalibs",
-        "report_coverage",
-        "report_dump_callstack",
-        "report_dump_csv",
-        "test_mode",
-        "warning",
-    ]
-
     def __init__(self, legate_context):
         self.legate_context = legate_context
         self.legate_runtime = get_legate_runtime()
@@ -104,8 +147,11 @@ class Runtime(object):
         # destroy us
         cunumeric_lib.set_runtime(self)
         self._register_dtypes()
-        self._parse_command_args()
-        if self.num_gpus > 0 and self.preload_cudalibs:
+
+        self.args = parse_command_args("cunumeric", ARGS)
+        self.args.warning = self.args.warning or self.args.test_mode
+
+        if self.num_gpus > 0 and self.args.preload_cudalibs:
             self._load_cudalibs()
 
     def _register_dtypes(self):
@@ -113,51 +159,28 @@ class Runtime(object):
         for numpy_type, core_type in _supported_dtypes.items():
             type_system.make_alias(np.dtype(numpy_type), core_type)
 
-    def _parse_command_args(self):
-        try:
-            # Prune it out so the application does not see it
-            sys.argv.remove("-cunumeric:test")
-            self.test_mode = True
-        except ValueError:
-            self.test_mode = False
-        try:
-            # Prune it out so the application does not see it
-            sys.argv.remove("-cunumeric:preload-cudalibs")
-            self.preload_cudalibs = True
-        except ValueError:
-            self.preload_cudalibs = False
-        try:
-            # Prune it out so the application does not see it
-            sys.argv.remove("-cunumeric:warn")
-            self.warning = True
-        except ValueError:
-            self.warning = self.test_mode
-        try:
-            # Prune it out so the application does not see it
-            sys.argv.remove("-cunumeric:report:coverage")
-            self.report_coverage = True
-        except ValueError:
-            self.report_coverage = False
-        try:
-            # Prune it out so the application does not see it
-            sys.argv.remove("-cunumeric:report:dump-callstack")
-            self.report_dump_callstack = True
-        except ValueError:
-            self.report_dump_callstack = False
-        try:
-            # Prune it out so the application does not see it
-            idx = sys.argv.index("-cunumeric:report:dump-csv")
-            if idx + 1 >= len(sys.argv):
-                raise RuntimeError(
-                    "Please provide a filename for the reporting"
-                )
-            self.report_dump_csv = sys.argv[idx + 1]
-            sys.argv = sys.argv[:idx] + sys.argv[idx + 2 :]
-        except ValueError:
-            self.report_dump_csv = None
+        for n in range(1, LEGATE_MAX_DIM + 1):
+            self._register_point_type(n)
 
-    def record_api_call(self, name, location, implemented):
-        assert self.report_coverage
+    def _register_point_type(self, n):
+        type_system = self.legate_context.type_system
+        point_type = "Point" + str(n)
+        if point_type not in type_system:
+            code = CuNumericTypeCodes.CUNUMERIC_TYPE_POINT1 + n - 1
+            size_in_bytes = 8 * n
+            type_system.add_type(point_type, size_in_bytes, code)
+
+    def get_point_type(self, n):
+        type_system = self.legate_context.type_system
+        point_type = "Point" + str(n)
+        if point_type not in type_system:
+            raise ValueError(f"there is no point type registered for {n}")
+        return point_type
+
+    def record_api_call(
+        self, name: str, location: str, implemented: bool
+    ) -> None:
+        assert self.args.report_coverage
         self.api_calls.append((name, location, implemented))
 
     def _load_cudalibs(self):
@@ -203,8 +226,8 @@ class Runtime(object):
                 f"cuNumeric API coverage: {implemented}/{total} "
                 f"({implemented / total * 100}%)"
             )
-        if self.report_dump_csv is not None:
-            with open(self.report_dump_csv, "w") as f:
+        if self.args.report_dump_csv is not None:
+            with open(self.args.report_dump_csv, "w") as f:
                 print("function_name,location,implemented", file=f)
                 for (func_name, loc, impl) in self.api_calls:
                     print(f"{func_name},{loc},{impl}", file=f)
@@ -213,7 +236,7 @@ class Runtime(object):
         assert not self.destroyed
         if self.num_gpus > 0:
             self._unload_cudalibs()
-        if self.report_coverage:
+        if hasattr(self, "args") and self.args.report_coverage:
             self._report_coverage()
         self.destroyed = True
 
@@ -384,10 +407,6 @@ class Runtime(object):
             # Don't store this one in the ptr_to_thunk as we only want to
             # store the root ones
             return parent_thunk.get_item(key)
-        elif array.size == 0:
-            # We always store completely empty arrays with eager thunks
-            assert not defer
-            return EagerArray(self, array)
         # Once it's a normal numpy array we can make it into one of our arrays
         # Check to see if it is a type that we support for doing deferred
         # execution and big enough to be worth off-loading onto Legion
@@ -444,17 +463,17 @@ class Runtime(object):
         else:
             return EagerArray(self, np.empty(shape, dtype=dtype))
 
-    def create_unbound_thunk(self, dtype):
-        store = self.legate_context.create_store(dtype)
+    def create_unbound_thunk(self, dtype, ndim=1):
+        store = self.legate_context.create_store(dtype, ndim=ndim)
         return DeferredArray(self, store, dtype=dtype)
 
     def is_eager_shape(self, shape):
         volume = calculate_volume(shape)
-        # Empty arrays are ALWAYS eager
+        # Newly created empty arrays are ALWAYS eager
         if volume == 0:
             return True
         # If we're testing then the answer is always no
-        if self.test_mode:
+        if self.args.test_mode:
             return False
         if len(shape) > LEGATE_MAX_DIM:
             return True
@@ -498,7 +517,7 @@ class Runtime(object):
             raise RuntimeError("invalid array type")
 
     def warn(self, msg, category=UserWarning):
-        if not self.warning:
+        if not self.args.warning:
             return
         stacklevel = find_last_user_stacklevel()
         warnings.warn(msg, stacklevel=stacklevel, category=category)

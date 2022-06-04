@@ -59,31 +59,34 @@ def sort_swapped(output, input, argsort, sort_axis, stable):
 def sort_task(output, input, argsort, stable):
     task = output.context.create_task(CuNumericOpCode.SORT)
 
-    needs_unbound_output = output.runtime.num_gpus > 1 and input.ndim == 1
+    uses_unbound_output = output.runtime.num_gpus > 1 and input.ndim == 1
 
-    if needs_unbound_output:
-        unbound = output.runtime.create_unbound_thunk(dtype=output.dtype)
+    task.add_input(input.base)
+    if uses_unbound_output:
+        unbound = output.runtime.create_unbound_thunk(
+            dtype=output.dtype, ndim=1
+        )
         task.add_output(unbound.base)
     else:
         task.add_output(output.base)
         task.add_alignment(output.base, input.base)
 
-    task.add_input(input.base)
-
-    if output.ndim > 1:
-        task.add_broadcast(input.base, input.ndim - 1)
-    elif output.runtime.num_gpus > 1:
+    if output.runtime.num_gpus > 1:
         task.add_nccl_communicator()
-    elif output.runtime.num_gpus == 0 and output.runtime.num_procs > 1:
-        # Distributed 1D sort on CPU not supported yet
-        task.add_broadcast(input.base)
+
+    # Distributed sort on CPU not supported yet
+    if output.runtime.num_gpus == 0 and output.runtime.num_procs > 1:
+        if output.ndim > 1:
+            task.add_broadcast(input.base, input.ndim - 1)
+        else:
+            task.add_broadcast(input.base)
 
     task.add_scalar_arg(argsort, bool)  # return indices flag
-    task.add_scalar_arg(input.base.shape, (ty.int32,))
+    task.add_scalar_arg(input.base.shape, (ty.int64,))
     task.add_scalar_arg(stable, bool)
     task.execute()
 
-    if needs_unbound_output:
+    if uses_unbound_output:
         output.base = unbound.base
         output.numpy_array = None
 

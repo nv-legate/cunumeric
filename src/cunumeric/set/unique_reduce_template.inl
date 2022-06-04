@@ -43,7 +43,7 @@ struct UniqueReduceImpl {
     Buffer<VAL> result;
     std::tie(result, size) = UniqueReduceImplBody<KIND, CODE>()(inputs);
 
-    output.return_data(result, size);
+    output.return_data(result, Point<1>(size));
   }
 };
 

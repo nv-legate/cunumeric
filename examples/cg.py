@@ -16,11 +16,16 @@
 #
 
 import argparse
-import datetime
 
 from benchmark import run_benchmark
 
-import cunumeric as np
+try:
+    from legate.timing import time
+except ImportError:
+    from time import perf_counter_ns
+
+    def time():
+        return perf_counter_ns() / 1000.0
 
 
 # This is technically dead code right now, but we'll keep it around in
@@ -175,9 +180,9 @@ def run_cg(
     timing,
     verbose,
 ):
-    start = datetime.datetime.now()
     # A, b = generate_random(N)
     A, b = generate_2D(N, corners)
+    start = time()
     if preconditioner:
         M = precondition(A, N, corners)
         x = preconditioned_solve(
@@ -187,18 +192,16 @@ def run_cg(
         x = solve(A, b, conv_iters, max_iters, conv_threshold, verbose)
     if perform_check:
         check(A, x, b)
-    stop = datetime.datetime.now()
-    delta = stop - start
-    total = delta.total_seconds() * 1000.0
+    stop = time()
+    total = (stop - start) / 1000.0
     if timing:
-        print("Elapsed Time: " + str(total) + " ms")
+        print(f"Elapsed Time: {total} ms")
     return total
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "-c",
         "--check",
         dest="check",
         action="store_true",
@@ -272,8 +275,41 @@ if __name__ == "__main__":
         dest="conv_threshold",
         help="convergence check threshold",
     )
+    parser.add_argument(
+        "--package",
+        dest="package",
+        choices=["legate", "numpy", "cupy"],
+        type=str,
+        default="legate",
+        help="NumPy package to use (legate, numpy, or cupy)",
+    )
+    parser.add_argument(
+        "--cupy-allocator",
+        dest="cupy_allocator",
+        choices=["default", "off", "managed"],
+        type=str,
+        default="default",
+        help="cupy allocator to use (default, off, or managed)",
+    )
 
-    args = parser.parse_args()
+    args, _ = parser.parse_known_args()
+
+    if args.package == "legate":
+        import cunumeric as np
+    elif args.package == "cupy":
+        import cupy as np
+
+        if args.cupy_allocator == "off":
+            np.cuda.set_allocator(None)
+            print("Turning off memory pool")
+        elif args.cupy_allocator == "managed":
+            np.cuda.set_allocator(
+                np.cuda.MemoryPool(np.cuda.malloc_managed).malloc
+            )
+            print("Using managed memory pool")
+    elif args.package == "numpy":
+        import numpy as np
+
     run_benchmark(
         run_cg,
         args.benchmark,

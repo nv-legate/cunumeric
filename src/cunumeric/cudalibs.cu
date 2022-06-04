@@ -18,7 +18,6 @@
 
 #include "cudalibs.h"
 
-#include <mutex>
 #include <stdio.h>
 
 namespace cunumeric {
@@ -37,17 +36,13 @@ cufftContext::~cufftContext()
 
 cufftHandle cufftContext::handle() { return plan_->handle; }
 
-size_t cufftContext::workarea_size() { return plan_->workarea; }
+size_t cufftContext::workareaSize() { return plan_->workarea_size; }
 
-void cufftContext::set_callback(cufftXtCallbackType type, void* callback, void* data)
+void cufftContext::setCallback(cufftXtCallbackType type, void* callback, void* data)
 {
-  auto hdl = handle();
-  if (callback_types_.find(type) != callback_types_.end())
-    CHECK_CUFFT(cufftXtClearCallback(hdl, type));
-  void* callbacks[1] = {callback};
-  void* datas[1]     = {data};
-  CHECK_CUFFT(cufftXtSetCallback(hdl, callbacks, type, datas));
-  callback_types_.insert(type);
+  void* callbacks[] = {callback};
+  void* datas[]     = {data};
+  CHECK_CUFFT(cufftXtSetCallback(handle(), callbacks, type, datas));
 }
 
 struct cufftPlanCache {
@@ -142,7 +137,7 @@ cufftPlan* cufftPlanCache::get_cufft_plan(const DomainPoint& size)
                                   1,
                                   type_,
                                   1 /*batch*/,
-                                  &result->workarea));
+                                  &result->workarea_size));
   }
   // Otherwise, we return the cached plan and adjust the LRU count
   else {
@@ -163,7 +158,6 @@ cufftPlan* cufftPlanCache::get_cufft_plan(const DomainPoint& size)
 CUDALibraries::CUDALibraries()
   : finalized_(false), cublas_(nullptr), cusolver_(nullptr), cutensor_(nullptr), plan_caches_()
 {
-  CHECK_CUDA(cudaStreamCreateWithFlags(&stream_, cudaStreamNonBlocking));
 }
 
 CUDALibraries::~CUDALibraries() { finalize(); }
@@ -175,7 +169,6 @@ void CUDALibraries::finalize()
   if (cusolver_ != nullptr) finalize_cusolver();
   if (cutensor_ != nullptr) finalize_cutensor();
   for (auto& pair : plan_caches_) delete pair.second;
-  cudaStreamDestroy(stream_);
   finalized_ = true;
 }
 
@@ -196,8 +189,6 @@ void CUDALibraries::finalize_cutensor()
   delete cutensor_;
   cutensor_ = nullptr;
 }
-
-cudaStream_t CUDALibraries::get_cached_stream() { return stream_; }
 
 cublasHandle_t CUDALibraries::get_cublas()
 {
@@ -248,23 +239,15 @@ static CUDALibraries& get_cuda_libraries(Processor proc)
     fprintf(stderr, "Illegal request for CUDA libraries for non-GPU processor");
     LEGATE_ABORT;
   }
-  static std::mutex mut_cuda_libraries;
-  static std::map<Processor, CUDALibraries> cuda_libraries;
 
-  std::lock_guard<std::mutex> guard(mut_cuda_libraries);
-
-  auto finder = cuda_libraries.find(proc);
-  if (finder != cuda_libraries.end())
-    return finder->second;
-  else
-    return cuda_libraries[proc];
+  static CUDALibraries cuda_libraries[LEGION_MAX_NUM_PROCS];
+  const auto proc_id = proc.id & (LEGION_MAX_NUM_PROCS - 1);
+  return cuda_libraries[proc_id];
 }
 
-cudaStream_t get_cached_stream()
+legate::cuda::StreamView get_cached_stream()
 {
-  const auto proc = Processor::get_executing_processor();
-  auto& lib       = get_cuda_libraries(proc);
-  return lib.get_cached_stream();
+  return legate::cuda::StreamPool::get_stream_pool().get_stream();
 }
 
 cublasContext* get_cublas()

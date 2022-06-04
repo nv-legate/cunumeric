@@ -38,7 +38,7 @@ static constexpr coord_t WARP_SIZE = 32;
 // have enough elements to be assigned to the threads, we also parallelize on
 // the collapsing domain. One exceptional case to this strategy is where the collapsing
 // dimension is the innermost one, in which case we prefer that dimension to the others
-// in order to enjoy wrap coalescing. The maximum degree of such parallelism woudl be 32,
+// in order to enjoy wrap coalescing. The maximum degree of such parallelism would be 32,
 // which is the size of a wrap.
 template <int32_t DIM>
 struct ThreadBlock {
@@ -203,9 +203,8 @@ std::ostream& operator<<(std::ostream& os, const ThreadBlocks<DIM>& blocks)
   return os;
 }
 
-template <typename REDOP, typename CTOR, typename LHS, typename RHS, int32_t DIM>
-static __device__ __forceinline__ Point<DIM> local_reduce(CTOR ctor,
-                                                          LHS& result,
+template <typename OP, typename REDOP, typename LHS, typename RHS, int32_t DIM>
+static __device__ __forceinline__ Point<DIM> local_reduce(LHS& result,
                                                           AccessorRO<RHS, DIM> in,
                                                           LHS identity,
                                                           const ThreadBlocks<DIM>& blocks,
@@ -218,7 +217,7 @@ static __device__ __forceinline__ Point<DIM> local_reduce(CTOR ctor,
   if (!domain.contains(point)) return point;
 
   while (point[collapsed_dim] <= domain.hi[collapsed_dim]) {
-    LHS value = ctor(point, in[point], collapsed_dim);
+    LHS value = OP::convert(point, collapsed_dim, in[point]);
     REDOP::template fold<true>(result, value);
     blocks.next_point(point);
   }
@@ -274,22 +273,7 @@ static __device__ __forceinline__ Point<DIM> local_reduce(CTOR ctor,
   return point;
 }
 
-template <typename REDOP, typename CTOR, typename LHS, typename RHS, int32_t DIM>
-static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-  reduce_with_rw_acc(AccessorRW<LHS, DIM> out,
-                     AccessorRO<RHS, DIM> in,
-                     LHS identity,
-                     ThreadBlocks<DIM> blocks,
-                     Rect<DIM> domain,
-                     int32_t collapsed_dim)
-{
-  auto result = identity;
-  auto point  = local_reduce<REDOP, CTOR, LHS, RHS, DIM>(
-    CTOR{}, result, in, identity, blocks, domain, collapsed_dim);
-  if (result != identity) REDOP::template fold<false>(out[point], result);
-}
-
-template <typename REDOP, typename CTOR, typename LHS, typename RHS, int32_t DIM>
+template <typename OP, typename REDOP, typename LHS, typename RHS, int32_t DIM>
 static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   reduce_with_rd_acc(AccessorRD<REDOP, false, DIM> out,
                      AccessorRO<RHS, DIM> in,
@@ -299,8 +283,8 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
                      int32_t collapsed_dim)
 {
   auto result = identity;
-  auto point  = local_reduce<REDOP, CTOR, LHS, RHS, DIM>(
-    CTOR{}, result, in, identity, blocks, domain, collapsed_dim);
+  auto point =
+    local_reduce<OP, REDOP, LHS, RHS, DIM>(result, in, identity, blocks, domain, collapsed_dim);
   if (result != identity) out.reduce(point, result);
 }
 
@@ -308,51 +292,8 @@ template <UnaryRedCode OP_CODE, LegateTypeCode CODE, int DIM>
 struct UnaryRedImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
   using OP    = UnaryRedOp<OP_CODE, CODE>;
   using LG_OP = typename OP::OP;
-  using VAL   = legate_type_of<CODE>;
-  using CTOR  = ValueConstructor<VAL, DIM>;
-
-  void operator()(AccessorRD<LG_OP, false, DIM> lhs,
-                  AccessorRO<VAL, DIM> rhs,
-                  const Rect<DIM>& rect,
-                  const Pitches<DIM - 1>& pitches,
-                  int collapsed_dim,
-                  size_t volume) const
-  {
-    auto Kernel = reduce_with_rd_acc<LG_OP, CTOR, VAL, VAL, DIM>;
-
-    ThreadBlocks<DIM> blocks;
-    blocks.initialize(rect, collapsed_dim);
-
-    blocks.compute_maximum_concurrency(reinterpret_cast<const void*>(Kernel));
-    Kernel<<<blocks.num_blocks(), blocks.num_threads()>>>(
-      lhs, rhs, LG_OP::identity, blocks, rect, collapsed_dim);
-  }
-
-  void operator()(AccessorRW<VAL, DIM> lhs,
-                  AccessorRO<VAL, DIM> rhs,
-                  const Rect<DIM>& rect,
-                  const Pitches<DIM - 1>& pitches,
-                  int collapsed_dim,
-                  size_t volume) const
-  {
-    auto Kernel = reduce_with_rw_acc<LG_OP, CTOR, VAL, VAL, DIM>;
-
-    ThreadBlocks<DIM> blocks;
-    blocks.initialize(rect, collapsed_dim);
-
-    blocks.compute_maximum_concurrency(reinterpret_cast<const void*>(Kernel));
-    Kernel<<<blocks.num_blocks(), blocks.num_threads()>>>(
-      lhs, rhs, LG_OP::identity, blocks, rect, collapsed_dim);
-  }
-};
-
-template <UnaryRedCode OP_CODE, LegateTypeCode CODE, int DIM>
-struct ArgRedImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
-  using OP    = UnaryRedOp<OP_CODE, CODE>;
-  using LG_OP = typename OP::OP;
   using RHS   = legate_type_of<CODE>;
-  using LHS   = Argval<RHS>;
-  using CTOR  = ArgvalConstructor<RHS, DIM>;
+  using LHS   = typename OP::VAL;
 
   void operator()(AccessorRD<LG_OP, false, DIM> lhs,
                   AccessorRO<RHS, DIM> rhs,
@@ -361,31 +302,16 @@ struct ArgRedImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
                   int collapsed_dim,
                   size_t volume) const
   {
-    auto Kernel = reduce_with_rd_acc<LG_OP, CTOR, LHS, RHS, DIM>;
+    auto Kernel = reduce_with_rd_acc<OP, LG_OP, LHS, RHS, DIM>;
+    auto stream = get_cached_stream();
 
     ThreadBlocks<DIM> blocks;
     blocks.initialize(rect, collapsed_dim);
 
     blocks.compute_maximum_concurrency(reinterpret_cast<const void*>(Kernel));
-    Kernel<<<blocks.num_blocks(), blocks.num_threads()>>>(
+    Kernel<<<blocks.num_blocks(), blocks.num_threads(), 0, stream>>>(
       lhs, rhs, LG_OP::identity, blocks, rect, collapsed_dim);
-  }
-
-  void operator()(AccessorRW<LHS, DIM> lhs,
-                  AccessorRO<RHS, DIM> rhs,
-                  const Rect<DIM>& rect,
-                  const Pitches<DIM - 1>& pitches,
-                  int collapsed_dim,
-                  size_t volume) const
-  {
-    auto Kernel = reduce_with_rw_acc<LG_OP, CTOR, LHS, RHS, DIM>;
-
-    ThreadBlocks<DIM> blocks;
-    blocks.initialize(rect, collapsed_dim);
-
-    blocks.compute_maximum_concurrency(reinterpret_cast<const void*>(Kernel));
-    Kernel<<<blocks.num_blocks(), blocks.num_threads()>>>(
-      lhs, rhs, LG_OP::identity, blocks, rect, collapsed_dim);
+    CHECK_CUDA_STREAM(stream);
   }
 };
 

@@ -16,9 +16,12 @@ cunumeric.ndarray
       ~ndarray.any
       ~ndarray.argmax
       ~ndarray.argmin
+      ~ndarray.argpartition
+      ~ndarray.argsort
       ~ndarray.astype
       ~ndarray.choose
       ~ndarray.clip
+      ~ndarray.compress
       ~ndarray.conj
       ~ndarray.conjugate
       ~ndarray.copy
@@ -37,14 +40,17 @@ cunumeric.ndarray
       ~ndarray.mean
       ~ndarray.min
       ~ndarray.nonzero
+      ~ndarray.partition
       ~ndarray.prod
       ~ndarray.ravel
       ~ndarray.reshape
       ~ndarray.setfield
       ~ndarray.setflags
+      ~ndarray.sort
       ~ndarray.squeeze
       ~ndarray.sum
       ~ndarray.swapaxes
+      ~ndarray.take
       ~ndarray.tobytes
       ~ndarray.tofile
       ~ndarray.tolist

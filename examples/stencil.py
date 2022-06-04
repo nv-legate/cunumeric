@@ -16,12 +16,17 @@
 #
 
 import argparse
-import datetime
 import math
 
 from benchmark import run_benchmark
 
-import cunumeric as np
+try:
+    from legate.timing import time
+except ImportError:
+    from time import perf_counter_ns
+
+    def time():
+        return perf_counter_ns() / 1000.0
 
 
 def initialize(N):
@@ -51,17 +56,15 @@ def run(grid, I, N):  # noqa: E741
 
 
 def run_stencil(N, I, timing):  # noqa: E741
-    start = datetime.datetime.now()
     grid = initialize(N)
+    start = time()
     average = run(grid, I, N)
-    # This will sync the timing because we will need to wait for the result
-    assert not math.isnan(average)
-    stop = datetime.datetime.now()
+    stop = time()
     print("Average energy is %.8g" % average)
-    delta = stop - start
-    total = delta.total_seconds() * 1000.0
+    total = (stop - start) / 1000.0
+    assert not math.isnan(average)
     if timing:
-        print("Elapsed Time: " + str(total) + " ms")
+        print(f"Elapsed Time: {total} ms")
     return total
 
 
@@ -99,7 +102,41 @@ if __name__ == "__main__":
         help="number of times to benchmark this application (default 1 "
         "- normal execution)",
     )
-    args = parser.parse_args()
+    parser.add_argument(
+        "--package",
+        dest="package",
+        choices=["legate", "numpy", "cupy"],
+        type=str,
+        default="legate",
+        help="NumPy package to use (legate, numpy, or cupy)",
+    )
+    parser.add_argument(
+        "--cupy-allocator",
+        dest="cupy_allocator",
+        choices=["default", "off", "managed"],
+        type=str,
+        default="default",
+        help="cupy allocator to use (default, off, or managed)",
+    )
+
+    args, _ = parser.parse_known_args()
+
+    if args.package == "legate":
+        import cunumeric as np
+    elif args.package == "cupy":
+        import cupy as np
+
+        if args.cupy_allocator == "off":
+            np.cuda.set_allocator(None)
+            print("Turning off memory pool")
+        elif args.cupy_allocator == "managed":
+            np.cuda.set_allocator(
+                np.cuda.MemoryPool(np.cuda.malloc_managed).malloc
+            )
+            print("Using managed memory pool")
+    elif args.package == "numpy":
+        import numpy as np
+
     run_benchmark(
         run_stencil, args.benchmark, "Stencil", (args.N, args.I, args.timing)
     )

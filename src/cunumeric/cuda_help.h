@@ -17,6 +17,9 @@
 #pragma once
 
 #include "legate.h"
+#include "core/cuda/cuda_help.h"
+#include "core/cuda/stream_pool.h"
+#include "cunumeric/arg.h"
 #include <cublas_v2.h>
 #include <cusolverDn.h>
 #include <cuda_runtime.h>
@@ -30,12 +33,6 @@
 #define MAX_REDUCTION_CTAS 1024
 #define COOPERATIVE_THREADS 256
 #define COOPERATIVE_CTAS_PER_SM 4
-
-#define CHECK_CUDA(expr)                        \
-  do {                                          \
-    cudaError_t __result__ = (expr);            \
-    check_cuda(__result__, __FILE__, __LINE__); \
-  } while (false)
 
 #define CHECK_CUBLAS(expr)                        \
   do {                                            \
@@ -76,9 +73,14 @@
 
 namespace cunumeric {
 
+__device__ inline size_t global_tid_1d()
+{
+  return static_cast<size_t>(blockIdx.x) * blockDim.x + threadIdx.x;
+}
+
 struct cufftPlan {
   cufftHandle handle;
-  size_t workarea;
+  size_t workarea_size;
 };
 
 class cufftContext {
@@ -87,44 +89,31 @@ class cufftContext {
   ~cufftContext();
 
  public:
-  cufftContext(const cufftContext&) = delete;
+  cufftContext(const cufftContext&)            = delete;
   cufftContext& operator=(const cufftContext&) = delete;
 
  public:
-  cufftContext(cufftContext&&) = default;
+  cufftContext(cufftContext&&)            = default;
   cufftContext& operator=(cufftContext&&) = default;
 
  public:
   cufftHandle handle();
-  size_t workarea_size();
-  void set_callback(cufftXtCallbackType type, void* callback, void* data);
+  size_t workareaSize();
+  void setCallback(cufftXtCallbackType type, void* callback, void* data);
 
  private:
   cufftPlan* plan_{nullptr};
-  std::set<cufftXtCallbackType> callback_types_{};
+  std::vector<cufftXtCallbackType> callback_types_{};
 };
 
 // Defined in cudalibs.cu
 
 // Return a cached stream for the current GPU
-cudaStream_t get_cached_stream();
+legate::cuda::StreamView get_cached_stream();
 cublasHandle_t get_cublas();
 cusolverDnHandle_t get_cusolver();
 cutensorHandle_t* get_cutensor();
 cufftContext get_cufft_plan(cufftType type, const Legion::DomainPoint& size);
-
-__host__ inline void check_cuda(cudaError_t error, const char* file, int line)
-{
-  if (error != cudaSuccess) {
-    fprintf(stderr,
-            "Internal CUDA failure with error %s (%s) in file %s at line %d\n",
-            cudaGetErrorString(error),
-            cudaGetErrorName(error),
-            file,
-            line);
-    exit(error);
-  }
-}
 
 __host__ inline void check_cublas(cublasStatus_t status, const char* file, int line)
 {
@@ -134,7 +123,11 @@ __host__ inline void check_cublas(cublasStatus_t status, const char* file, int l
             status,
             file,
             line);
+#ifdef DEBUG_CUNUMERIC
+    assert(false);
+#else
     exit(status);
+#endif
   }
 }
 
@@ -146,7 +139,11 @@ __host__ inline void check_cufft(cufftResult result, const char* file, int line)
             result,
             file,
             line);
+#ifdef DEBUG_CUNUMERIC
+    assert(false);
+#else
     exit(result);
+#endif
   }
 }
 
@@ -158,7 +155,11 @@ __host__ inline void check_cusolver(cusolverStatus_t status, const char* file, i
             status,
             file,
             line);
+#ifdef DEBUG_CUNUMERIC
+    assert(false);
+#else
     exit(status);
+#endif
   }
 }
 
@@ -171,7 +172,11 @@ __host__ inline void check_cutensor(cutensorStatus_t result, const char* file, i
             result,
             file,
             line);
+#ifdef DEBUG_CUNUMERIC
+    assert(false);
+#else
     exit(result);
+#endif
   }
 }
 
@@ -183,7 +188,11 @@ __host__ inline void check_nccl(ncclResult_t error, const char* file, int line)
             ncclGetErrorString(error),
             file,
             line);
+#ifdef DEBUG_CUNUMERIC
+    assert(false);
+#else
     exit(error);
+#endif
   }
 }
 
@@ -214,6 +223,34 @@ __device__ __forceinline__ void reduce_output(Legion::DeferredReduction<REDUCTIO
   const int warpid = threadIdx.x >> 5;
   for (int i = 16; i >= 1; i /= 2) {
     const complex<T> shuffle_value = shuffle(0xffffffff, value, i, 32);
+    REDUCTION::template fold<true /*exclusive*/>(value, shuffle_value);
+  }
+  // Write warp values into shared memory
+  if ((laneid == 0) && (warpid > 0)) trampoline[warpid] = value;
+  __syncthreads();
+  // Output reduction
+  if (threadIdx.x == 0) {
+    for (int i = 1; i < (THREADS_PER_BLOCK / 32); i++)
+      REDUCTION::template fold<true /*exclusive*/>(value, trampoline[i]);
+    result <<= value;
+    // Make sure the result is visible externally
+    __threadfence_system();
+  }
+}
+
+// Overload for argval
+// TBD: if compiler optimizes out the shuffle function we defined, we could make it the default
+// version
+template <typename T, typename REDUCTION>
+__device__ __forceinline__ void reduce_output(Legion::DeferredReduction<REDUCTION> result,
+                                              Argval<T> value)
+{
+  __shared__ Argval<T> trampoline[THREADS_PER_BLOCK / 32];
+  // Reduce across the warp
+  const int laneid = threadIdx.x & 0x1f;
+  const int warpid = threadIdx.x >> 5;
+  for (int i = 16; i >= 1; i /= 2) {
+    const Argval<T> shuffle_value = shuffle(0xffffffff, value, i, 32);
     REDUCTION::template fold<true /*exclusive*/>(value, shuffle_value);
   }
   // Write warp values into shared memory
