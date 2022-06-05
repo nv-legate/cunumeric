@@ -14,6 +14,11 @@
  *
  */
 
+#pragma once
+
+// Useful for IDEs
+#include "arg.h"
+
 namespace cunumeric {
 
 template <typename T>

@@ -14,6 +14,10 @@
  *
  */
 
+#pragma once
+
+// Useful for IDEs
+#include "cunumeric/fft/fft.h"
 #include "cunumeric/pitches.h"
 #include "cunumeric/fft/fft_util.h"
 

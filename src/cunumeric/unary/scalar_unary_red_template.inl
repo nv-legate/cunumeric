@@ -14,6 +14,10 @@
  *
  */
 
+#pragma once
+
+// Useful for IDEs
+#include "cunumeric/unary/scalar_unary_red.h"
 #include "cunumeric/unary/unary_red_util.h"
 #include "cunumeric/pitches.h"
 

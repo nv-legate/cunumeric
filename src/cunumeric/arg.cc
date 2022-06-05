@@ -15,6 +15,7 @@
  */
 
 #include "cunumeric/arg.h"
+#include "cunumeric/arg.inl"
 
 using namespace Legion;
 
