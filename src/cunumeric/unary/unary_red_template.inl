@@ -14,8 +14,13 @@
  *
  */
 
+#pragma once
+
+// Useful for IDEs
+#include "cunumeric/unary/unary_red.h"
 #include "cunumeric/unary/unary_red_util.h"
 #include "cunumeric/arg.h"
+#include "cunumeric/arg.inl"
 #include "cunumeric/pitches.h"
 
 namespace cunumeric {

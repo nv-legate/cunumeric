@@ -14,6 +14,11 @@
  *
  */
 
+#pragma once
+
+// Useful for IDEs
+#include "cunumeric/matrix/contract.h"
+
 #if 0  // debugging output
 #include "core/utilities/debug.h"
 #include <unistd.h>
