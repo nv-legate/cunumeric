@@ -23,7 +23,7 @@ function(find_or_configure_legate_core)
       BUILD_EXPORT_SET   cunumeric-exports
       INSTALL_EXPORT_SET cunumeric-exports)
 
-  # First try to find Legion via find_package()
+  # First try to find legate_core via find_package()
   # so the `Legion_USE_*` variables are visible
   rapids_find_package(legate_core ${FIND_PKG_ARGS} QUIET)
 
