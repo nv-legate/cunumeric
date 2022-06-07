@@ -18,34 +18,31 @@ function(find_or_configure_legate_core)
   set(oneValueArgs VERSION REPOSITORY PINNED_TAG EXCLUDE_FROM_ALL)
   cmake_parse_arguments(PKG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
-  rapids_cpm_find(legate_core ${PKG_VERSION}
-      GLOBAL_TARGETS          legate::core
-      BUILD_EXPORT_SET        cunumeric-exports
-      INSTALL_EXPORT_SET      cunumeric-exports
-      CPM_ARGS
-        GIT_REPOSITORY        ${PKG_REPOSITORY}
-        GIT_TAG               ${PKG_PINNED_TAG}
-        EXCLUDE_FROM_ALL      ${PKG_EXCLUDE_FROM_ALL}
-        OPTIONS               "Legion_USE_OpenMP ${OpenMP_FOUND}"
-                              "Legion_BOUNDS_CHECKS ${CUNUMERIC_CHECK_BOUNDS}"
-  )
+  set(FIND_PKG_ARGS      ${PKG_VERSION}
+      GLOBAL_TARGETS     legate::core
+      BUILD_EXPORT_SET   cunumeric-exports
+      INSTALL_EXPORT_SET cunumeric-exports)
 
-  get_target_property(legate_core_compile_defs legate::core COMPILE_DEFINITIONS)
-  get_target_property(legate_core_interface_compile_defs legate::core INTERFACE_COMPILE_DEFINITIONS)
-  set(legate_core_defs "${legate_core_compile_defs};${legate_core_interface_compile_defs}")
+  # First try to find Legion via find_package()
+  # so the `Legion_USE_*` variables are visible
+  rapids_find_package(legate_core ${FIND_PKG_ARGS} QUIET)
 
-  if(legate_core_defs MATCHES "LEGATE_USE_CUDA")
-    set(CUNUMERIC_USE_CUDA ON)
-    set(CUNUMERIC_USE_CUDA ON PARENT_SCOPE)
+  if(NOT legate_core_FOUND)
+    rapids_cpm_find(legate_core ${FIND_PKG_ARGS}
+        CPM_ARGS
+          GIT_REPOSITORY        ${PKG_REPOSITORY}
+          GIT_TAG               ${PKG_PINNED_TAG}
+          EXCLUDE_FROM_ALL      ${PKG_EXCLUDE_FROM_ALL}
+    )
   endif()
 
-  if(legate_core_defs MATCHES "LEGATE_USE_OPENMP")
-    set(CUNUMERIC_USE_OPENMP ON)
-    set(CUNUMERIC_USE_OPENMP ON PARENT_SCOPE)
-  endif()
+  set(Legion_USE_CUDA ${Legion_USE_CUDA} PARENT_SCOPE)
+  set(Legion_USE_OpenMP ${Legion_USE_OpenMP} PARENT_SCOPE)
+  set(Legion_BOUNDS_CHECKS ${Legion_BOUNDS_CHECKS} PARENT_SCOPE)
 
-  message(STATUS "CUNUMERIC_USE_CUDA: ${CUNUMERIC_USE_CUDA}")
-  message(STATUS "CUNUMERIC_USE_OPENMP: ${CUNUMERIC_USE_OPENMP}")
+  message(VERBOSE "Legion_USE_CUDA=${Legion_USE_CUDA}")
+  message(VERBOSE "Legion_USE_OpenMP=${Legion_USE_OpenMP}")
+  message(VERBOSE "Legion_BOUNDS_CHECKS=${Legion_BOUNDS_CHECKS}")
 endfunction()
 
 if(NOT DEFINED CUNUMERIC_LEGATE_CORE_BRANCH)

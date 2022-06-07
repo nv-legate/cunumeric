@@ -34,9 +34,9 @@ include(rapids-find)
 # - User Options  ------------------------------------------------------------
 
 option(BUILD_SHARED_LIBS "Build cuNumeric shared libraries" ON)
-option(CUNUMERIC_CHECK_BOUNDS "Build cuNumeric with bounds checks (expensive)" OFF)
 option(CUNUMERIC_EXCLUDE_TBLIS_FROM_ALL "Exclude tblis targets from legate.core's 'all' target" OFF)
 option(CUNUMERIC_EXCLUDE_LEGATE_CORE_FROM_ALL "Exclude legate.core targets from legate.core's 'all' target" OFF)
+
 
 ##############################################################################
 # - Project definition -------------------------------------------------------
@@ -52,8 +52,6 @@ rapids_cmake_write_version_file(include/cunumeric/version_config.hpp)
 # Set a default build type if none was specified
 rapids_cmake_build_type(Release)
 
-set(CUNUMERIC_USE_CUDA OFF)
-set(CUNUMERIC_USE_OPENMP OFF)
 # Needed to integrate with LLVM/clang tooling
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -71,9 +69,23 @@ find_package(OpenMP)
 find_package(BLAS REQUIRED)
 find_package(LAPACK REQUIRED)
 
+option(Legion_USE_CUDA "Use CUDA" ON)
+option(Legion_USE_OpenMP "Use OpenMP" ${OpenMP_FOUND})
+option(Legion_BOUNDS_CHECKS "Build cuNumeric with bounds checks (expensive)" OFF)
+
+###
+# If we find legate.core already configured on the system, it will report
+# whether it was compiled with bounds checking (Legion_BOUNDS_CHECKS),
+# CUDA (Legion_USE_CUDA), and OpenMP (Legion_USE_OpenMP).
+#
+# We use the same variables as legate.core because we want to enable/disable
+# each of these features based on how legate.core was configured (it doesn't
+# make sense to build cuNumeric's CUDA bindings if legate.core wasn't built
+# with CUDA support).
+###
 include(cmake/thirdparty/get_legate_core.cmake)
 
-if(CUNUMERIC_USE_CUDA)
+if(Legion_USE_CUDA)
   # Needs to run before `enable_language(CUDA)`
   rapids_cuda_init_architectures(CUNUMERIC)
   enable_language(CUDA)
@@ -148,7 +160,7 @@ list(APPEND CUNUMERIC_SOURCES
   src/cunumeric/cephes/i0.cc
 )
 
-if(CUNUMERIC_USE_OPENMP)
+if(Legion_USE_OpenMP)
   list(APPEND CUNUMERIC_SOURCES
     src/cunumeric/ternary/where_omp.cc
     src/cunumeric/binary/binary_op_omp.cc
@@ -187,7 +199,7 @@ if(CUNUMERIC_USE_OPENMP)
   )
 endif()
 
-if(CUNUMERIC_USE_CUDA)
+if(Legion_USE_CUDA)
   list(APPEND CUNUMERIC_SOURCES
     src/cunumeric/ternary/where.cu
     src/cunumeric/binary/binary_op.cu
@@ -235,13 +247,13 @@ list(APPEND CUNUMERIC_SOURCES
   src/cunumeric/sort/sort.cc
 )
 
-if(CUNUMERIC_USE_OPENMP)
+if(Legion_USE_OpenMP)
   list(APPEND CUNUMERIC_SOURCES
     src/cunumeric/sort/sort_omp.cc
   )
 endif()
 
-if(CUNUMERIC_USE_CUDA)
+if(Legion_USE_CUDA)
   list(APPEND CUNUMERIC_SOURCES
     src/cunumeric/sort/sort.cu
     src/cunumeric/sort/cub_sort_bool.cu
@@ -285,7 +297,7 @@ if(NOT CMAKE_BUILD_TYPE STREQUAL "Release")
   list(APPEND CUNUMERIC_CUDA_DEFS DEBUG_CUNUMERIC)
 endif()
 
-if(CUNUMERIC_CHECK_BOUNDS)
+if(Legion_BOUNDS_CHECKS)
   list(APPEND CUNUMERIC_CXX_DEFS BOUNDS_CHECKS)
   list(APPEND CUNUMERIC_CUDA_DEFS BOUNDS_CHECKS)
 endif()
@@ -321,10 +333,10 @@ target_link_libraries(cunumeric
           $<TARGET_NAME_IF_EXISTS:cutensor::cutensor>)
 
 # Change THRUST_DEVICE_SYSTEM for `.cpp` files
-if(CUNUMERIC_USE_OPENMP)
+if(Legion_USE_OpenMP)
   list(APPEND CUNUMERIC_CXX_OPTIONS -UTHRUST_DEVICE_SYSTEM)
   list(APPEND CUNUMERIC_CXX_OPTIONS -DTHRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_OMP)
-elseif(NOT CUNUMERIC_USE_CUDA)
+elseif(NOT Legion_USE_CUDA)
   list(APPEND CUNUMERIC_CXX_OPTIONS -UTHRUST_DEVICE_SYSTEM)
   list(APPEND CUNUMERIC_CXX_OPTIONS -DTHRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CPP)
 endif()
@@ -357,7 +369,7 @@ target_include_directories(cunumeric
     $<INSTALL_INTERFACE:include>
 )
 
-if(CUNUMERIC_USE_CUDA)
+if(Legion_USE_CUDA)
   file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/fatbin.ld"
 [=[
 SECTIONS
@@ -394,7 +406,19 @@ Imported Targets:
 
 ]=])
 
-set(code_string "")
+string(JOIN "\n" code_string
+  "set(Legion_USE_CUDA ${Legion_USE_CUDA})"
+  "set(Legion_USE_OpenMP ${Legion_USE_OpenMP})"
+  "set(Legion_BOUNDS_CHECKS ${Legion_BOUNDS_CHECKS})"
+)
+
+if(DEFINED Legion_USE_Python)
+  string(APPEND code_string "\nset(Legion_USE_Python ${Legion_USE_Python})")
+endif()
+
+if(DEFINED Legion_USE_GASNet)
+  string(APPEND code_string "\nset(Legion_USE_GASNet ${Legion_USE_GASNet})")
+endif()
 
 rapids_export(
   INSTALL cunumeric

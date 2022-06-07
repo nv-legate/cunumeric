@@ -112,5 +112,5 @@ find_or_configure_tblis(VERSION          1.2.0
                         REPOSITORY       ${CUNUMERIC_TBLIS_REPOSITORY}
                         PINNED_TAG       ${CUNUMERIC_TBLIS_BRANCH}
                         EXCLUDE_FROM_ALL ${CUNUMERIC_EXCLUDE_TBLIS_FROM_ALL}
-                        USE_OPENMP       ${CUNUMERIC_USE_OPENMP}
+                        USE_OPENMP       ${Legion_USE_OpenMP}
 )
