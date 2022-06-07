@@ -991,6 +991,53 @@ def reshape(a, newshape, order="C"):
     return a.reshape(newshape, order=order)
 
 
+def _reshape_recur(ndim, arr):
+    if arr.ndim < ndim:
+        arr = _reshape_recur(ndim - 1, arr)
+        if ndim == 2:
+            arr = arr.reshape((1,) + arr.shape)
+        else:
+            arr = arr.reshape(arr.shape + (1,))
+
+    return arr
+
+
+def _atleast_nd(ndim, arys):
+    arys = list(convert_to_cunumeric_ndarray(arr) for arr in arys)
+    inputs = list(arr.view() for arr in arys)
+    result = list(_reshape_recur(ndim, arr) for arr in inputs)
+    # if the number of arrys in `arys` is 1, the return value is a single array
+    if len(result) == 1:
+        result = result[0]
+    """
+    if ndim > 1:
+        arys = atleast_nd(ndim - 1, arys)
+    if ndim == 2:
+        arys = list(
+            arr.reshape((1,) + arr.shape) if arr.ndim < ndim else arr
+            for arr in arys
+        )
+    else:
+        arys = list(
+            arr.reshape(arr.shape + (1,)) if arr.ndim < ndim else arr
+            for arr in arys
+        )
+    """
+    return result
+
+
+def atleast_1d(*arys):
+    return _atleast_nd(1, arys)
+
+
+def atleast_2d(*arys):
+    return _atleast_nd(2, arys)
+
+
+def atleast_3d(*arys):
+    return _atleast_nd(3, arys)
+
+
 # Transpose-like operations
 
 
