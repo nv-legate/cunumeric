@@ -27,7 +27,9 @@ function(find_or_configure_legate_core)
   # so the `Legion_USE_*` variables are visible
   rapids_find_package(legate_core ${FIND_PKG_ARGS} QUIET)
 
-  if(NOT legate_core_FOUND)
+  if(legate_core_FOUND)
+    message(STATUS "CPM: using local package legate_core@${PKG_VERSION}")
+  else()
     rapids_cpm_find(legate_core ${FIND_PKG_ARGS}
         CPM_ARGS
           GIT_REPOSITORY        ${PKG_REPOSITORY}
