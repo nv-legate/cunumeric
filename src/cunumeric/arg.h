@@ -17,7 +17,6 @@
 #pragma once
 
 #include "legate.h"
-
 #include "cunumeric/cunumeric_c.h"
 
 namespace cunumeric {
@@ -102,5 +101,3 @@ class ArgminReduction {
 };
 
 }  // namespace cunumeric
-
-#include "arg.inl"
