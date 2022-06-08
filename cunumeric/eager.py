@@ -825,7 +825,7 @@ class EagerArray(NumPyThunk):
             except np.linalg.LinAlgError as e:
                 from .linalg import LinAlgError
 
-                raise LinAlgError(e)
+                raise LinAlgError(e) from e
             if no_tril:
                 result = np.triu(result.T.conj(), k=1) + result
             self.array[:] = result
