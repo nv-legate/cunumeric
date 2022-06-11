@@ -42,7 +42,11 @@ static inline void potrf_template(
 
   CHECK_CUSOLVER(potrf(context, uplo, n, array, m, buffer.ptr(0), bufferSize, info.ptr(0)));
 
+  // TODO: We need a deferred exception to avoid this synchronization
+  CHECK_CUDA(cudaStreamSynchronize(stream));
   CHECK_CUDA_STREAM(stream);
+
+  if (info[0] != 0) throw legate::TaskException("Matrix is not positive definite");
 }
 
 template <>
