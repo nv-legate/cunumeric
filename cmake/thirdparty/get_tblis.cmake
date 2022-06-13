@@ -61,8 +61,8 @@ function(find_or_configure_tblis)
       set(ENV{CXX} "${CMAKE_CXX_COMPILER_LAUNCHER} ${_CXX}")
     endif()
 
-    message(STATUS "cunumeric: ENV{CC}=\"$ENV{CC}\"")
-    message(STATUS "cunumeric: ENV{CXX}=\"$ENV{CXX}\"")
+    message(VERBOSE "cunumeric: ENV{CC}=\"$ENV{CC}\"")
+    message(VERBOSE "cunumeric: ENV{CXX}=\"$ENV{CXX}\"")
 
     execute_process(
       COMMAND ./configure
@@ -94,10 +94,16 @@ function(find_or_configure_tblis)
       ECHO_OUTPUT_VARIABLE)
   endif()
 
-  add_library(tblis INTERFACE IMPORTED)
+  add_library(tblis SHARED IMPORTED GLOBAL)
   add_library(tblis::tblis ALIAS tblis)
   target_include_directories(tblis INTERFACE ${tblis_BINARY_DIR}/include)
-  set_target_properties(tblis PROPERTIES IMPORTED_LOCATION ${tblis_BINARY_DIR}/lib/libtblis.so)
+  set_target_properties(tblis
+    PROPERTIES BUILD_RPATH                         "\$ORIGIN"
+               INSTALL_RPATH                       "\$ORIGIN"
+               IMPORTED_SONAME                     tblis
+               IMPORTED_LOCATION                   "${tblis_BINARY_DIR}/lib/libtblis.${CMAKE_SHARED_LIBRARY_SUFFIX}"
+               INSTALL_REMOVE_ENVIRONMENT_RPATH    ON
+               INTERFACE_POSITION_INDEPENDENT_CODE ON)
 endfunction()
 
 if(NOT DEFINED CUNUMERIC_TBLIS_BRANCH)
