@@ -1266,7 +1266,7 @@ void sample_sort_nccl_nd(SortPiece<legate_type_of<CODE>> local_sorted,
   using VAL = legate_type_of<CODE>;
 
   size_t volume              = local_sorted.size;
-  bool is_unbound_1d_storage = output_array_unbound.dim() == -1;
+  bool is_unbound_1d_storage = output_array_unbound.is_output_store();
 
   /////////////////////////////////////////////////////////////////////////////////////////////////
   /////////////// Part 0: detection of empty nodes
@@ -1734,7 +1734,7 @@ struct SortImplBody<VariantKind::GPU, CODE, DIM> {
 
     auto stream = get_cached_stream();
 
-    bool is_unbound_1d_storage = output_array.dim() == -1;
+    bool is_unbound_1d_storage = output_array.is_output_store();
     bool need_distributed_sort = segment_size_l != segment_size_g || is_unbound_1d_storage;
     bool rebalance             = !is_unbound_1d_storage;
     assert(DIM == 1 || !is_unbound_1d_storage);
