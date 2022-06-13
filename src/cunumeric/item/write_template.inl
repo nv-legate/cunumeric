@@ -14,6 +14,11 @@
  *
  */
 
+#pragma once
+
+// Useful for IDEs
+#include "cunumeric/item/write.h"
+
 namespace cunumeric {
 
 using namespace Legion;

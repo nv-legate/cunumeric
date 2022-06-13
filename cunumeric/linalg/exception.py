@@ -1,4 +1,4 @@
-# Copyright 2021-2022 NVIDIA Corporation
+# Copyright 2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,15 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from __future__ import annotations
 
-import numpy.linalg as _nplinalg
 
-from cunumeric.linalg.linalg import *
-from cunumeric.linalg.exception import *
-from cunumeric.coverage import clone_module
-
-clone_module(_nplinalg, globals())
-
-del clone_module
-del _nplinalg
+class LinAlgError(Exception):
+    pass

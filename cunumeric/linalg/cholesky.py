@@ -21,13 +21,30 @@ from cunumeric.config import CuNumericOpCode
 from legate.core import Rect, types as ty
 from legate.core.operation import ManualTask
 
+from .exception import LinAlgError
+
 if TYPE_CHECKING:
     from legate.core.context import Context
     from legate.core.shape import Shape
-    from legate.core.store import StorePartition
+    from legate.core.store import Store, StorePartition
 
     from ..deferred import DeferredArray
     from ..runtime import Runtime
+
+
+def transpose_copy_single(
+    context: Context, input: Store, output: Store
+) -> None:
+    task = cast(
+        ManualTask, context.create_task(CuNumericOpCode.TRANSPOSE_COPY_2D)
+    )
+    task.add_output(output)
+    task.add_input(input)
+    # Output has the same shape as input, but is mapped
+    # to a column major instance
+    task.add_scalar_arg(False, ty.int32)
+
+    task.execute()
 
 
 def transpose_copy(
@@ -53,6 +70,14 @@ def transpose_copy(
     task.execute()
 
 
+def potrf_single(context: Context, output: Store) -> None:
+    task = context.create_task(CuNumericOpCode.POTRF)
+    task.throws_exception(LinAlgError)
+    task.add_output(output)
+    task.add_input(output)
+    task.execute()
+
+
 def potrf(context: Context, p_output: StorePartition, i: int) -> None:
     launch_domain = Rect(lo=(i, i), hi=(i + 1, i + 1))
     task = cast(
@@ -61,6 +86,7 @@ def potrf(context: Context, p_output: StorePartition, i: int) -> None:
             CuNumericOpCode.POTRF, manual=True, launch_domain=launch_domain
         ),
     )
+    task.throws_exception(LinAlgError)
     task.add_output(p_output)
     task.add_input(p_output)
     task.execute()
@@ -143,24 +169,36 @@ def choose_color_shape(runtime: Runtime, shape: Shape) -> tuple[int, int]:
     if runtime.args.test_mode:
         num_tiles = runtime.num_procs * 2
         return (num_tiles, num_tiles)
-    else:
-        extent = shape[0]
-        # If there's only one processor or the matrix is too small,
-        # don't even bother to partition it at all
-        if runtime.num_procs == 1 or extent <= MIN_CHOLESKY_MATRIX_SIZE:
-            return (1, 1)
 
-        # If the matrix is big enough to warrant partitioning,
-        # pick the granularity that the tile size is greater than a threshold
-        num_tiles = runtime.num_procs
-        max_num_tiles = runtime.num_procs * 4
-        while (
-            (extent + num_tiles - 1) // num_tiles > MIN_CHOLESKY_TILE_SIZE
-            and num_tiles * 2 <= max_num_tiles
-        ):
-            num_tiles *= 2
+    extent = shape[0]
+    # If there's only one processor or the matrix is too small,
+    # don't even bother to partition it at all
+    if runtime.num_procs == 1 or extent <= MIN_CHOLESKY_MATRIX_SIZE:
+        return (1, 1)
 
-        return (num_tiles, num_tiles)
+    # If the matrix is big enough to warrant partitioning,
+    # pick the granularity that the tile size is greater than a threshold
+    num_tiles = runtime.num_procs
+    max_num_tiles = runtime.num_procs * 4
+    while (
+        (extent + num_tiles - 1) // num_tiles > MIN_CHOLESKY_TILE_SIZE
+        and num_tiles * 2 <= max_num_tiles
+    ):
+        num_tiles *= 2
+
+    return (num_tiles, num_tiles)
+
+
+def tril_single(context: Context, output: Store) -> None:
+    task = cast(ManualTask, context.create_task(CuNumericOpCode.TRILU))
+    task.add_output(output)
+    task.add_input(output)
+    task.add_scalar_arg(True, bool)
+    task.add_scalar_arg(0, ty.int32)
+    # Add a fake task argument to indicate that this is for Cholesky
+    task.add_scalar_arg(True, bool)
+
+    task.execute()
 
 
 def tril(context: Context, p_output: StorePartition, n: int) -> None:
@@ -185,13 +223,23 @@ def tril(context: Context, p_output: StorePartition, n: int) -> None:
 def cholesky(
     output: DeferredArray, input: DeferredArray, no_tril: bool
 ) -> None:
+
+    runtime = output.runtime
+    context = output.context
+
+    if runtime.num_procs == 1:
+        transpose_copy_single(context, input.base, output.base)
+        potrf_single(context, output.base)
+        if not no_tril:
+            tril_single(context, output.base)
+        return
+
     shape = output.base.shape
-    initial_color_shape = choose_color_shape(output.runtime, shape)
+    initial_color_shape = choose_color_shape(runtime, shape)
     tile_shape = (shape + initial_color_shape - 1) // initial_color_shape
     color_shape = (shape + tile_shape - 1) // tile_shape
     n = color_shape[0]
 
-    context = output.context
     p_input = input.base.partition_by_tiling(tile_shape)
     p_output = output.base.partition_by_tiling(tile_shape)
     transpose_copy(context, Rect(hi=color_shape), p_input, p_output)

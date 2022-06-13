@@ -14,6 +14,10 @@
  *
  */
 
+#pragma once
+
+// Useful for IDEs
+#include "cunumeric/binary/binary_red.h"
 #include "cunumeric/binary/binary_op_util.h"
 #include "cunumeric/pitches.h"
 

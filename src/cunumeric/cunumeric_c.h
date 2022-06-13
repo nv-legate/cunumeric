@@ -19,6 +19,10 @@
 
 #include "legate_preamble.h"
 
+#ifndef LEGATE_USE_PYTHON_CFFI
+#include "core/legate_c.h"
+#endif
+
 // Match these to CuNumericOpCode in config.py
 // Also, sort these alphabetically except the first one for easy lookup later
 enum CuNumericOpCode {
