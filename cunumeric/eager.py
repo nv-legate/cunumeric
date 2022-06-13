@@ -837,3 +837,12 @@ class EagerArray(NumPyThunk):
         else:
             fn = _WINDOW_OPS[op_code]
             self.array[:] = fn(M, *args)
+
+    def packbits(self, src, axis, bitorder):
+        self.check_eager_args(src)
+        if self.deferred is not None:
+            self.deferred.packbits(src, axis, bitorder)
+        else:
+            self.array[:] = np.packbits(
+                src.array, axis=axis, bitorder=bitorder
+            )

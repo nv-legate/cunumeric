@@ -100,6 +100,7 @@ class CuNumericOpCode(IntEnum):
     MATMUL = _cunumeric.CUNUMERIC_MATMUL
     MATVECMUL = _cunumeric.CUNUMERIC_MATVECMUL
     NONZERO = _cunumeric.CUNUMERIC_NONZERO
+    PACKBITS = _cunumeric.CUNUMERIC_PACKBITS
     POTRF = _cunumeric.CUNUMERIC_POTRF
     RAND = _cunumeric.CUNUMERIC_RAND
     READ = _cunumeric.CUNUMERIC_READ
@@ -394,6 +395,13 @@ class FFTCode:
 class FFTDirection(IntEnum):
     FORWARD = _cunumeric.CUNUMERIC_FFT_FORWARD
     INVERSE = _cunumeric.CUNUMERIC_FFT_INVERSE
+
+
+# Match these to CuNumericBitorder in cunumeric_c.h
+@unique
+class Bitorder(IntEnum):
+    BIG = _cunumeric.CUNUMERIC_BITORDER_BIG
+    LITTLE = _cunumeric.CUNUMERIC_BITORDER_LITTLE
 
 
 @unique

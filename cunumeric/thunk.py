@@ -228,3 +228,7 @@ class NumPyThunk(ABC):
     @abstractmethod
     def create_window(self, op_code, *args):
         ...
+
+    @abstractmethod
+    def packbits(self, src, axis, bitorder):
+        ...
