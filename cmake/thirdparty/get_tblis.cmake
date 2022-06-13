@@ -94,14 +94,22 @@ function(find_or_configure_tblis)
       ECHO_OUTPUT_VARIABLE)
   endif()
 
-  add_library(tblis SHARED IMPORTED GLOBAL)
+  set(lib_suffix "")
+  if(BUILD_SHARED_LIBS)
+    add_library(tblis SHARED IMPORTED GLOBAL)
+    set(lib_suffix "${CMAKE_SHARED_LIBRARY_SUFFIX}")
+  else()
+    add_library(tblis STATIC IMPORTED GLOBAL)
+    set(lib_suffix "${CMAKE_STATIC_LIBRARY_SUFFIX}")
+  endif()
+
   add_library(tblis::tblis ALIAS tblis)
   target_include_directories(tblis INTERFACE ${tblis_BINARY_DIR}/include)
   set_target_properties(tblis
     PROPERTIES BUILD_RPATH                         "\$ORIGIN"
                INSTALL_RPATH                       "\$ORIGIN"
                IMPORTED_SONAME                     tblis
-               IMPORTED_LOCATION                   "${tblis_BINARY_DIR}/lib/libtblis${CMAKE_SHARED_LIBRARY_SUFFIX}"
+               IMPORTED_LOCATION                   "${tblis_BINARY_DIR}/lib/libtblis${lib_suffix}"
                INSTALL_REMOVE_ENVIRONMENT_RPATH    ON
                INTERFACE_POSITION_INDEPENDENT_CODE ON)
 endfunction()
