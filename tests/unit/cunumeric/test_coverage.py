@@ -119,7 +119,7 @@ class _Test_ufunc(cunumeric._ufunc.ufunc):
     """docstring"""
 
     def __init__(self):
-        super().__init__("_test_ufunc", "docstring", {"i": "i"})
+        super().__init__("_test_ufunc", "docstring")
 
     def __call__(self, a: int, b: int) -> int:
         return a + b

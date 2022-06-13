@@ -14,7 +14,7 @@
 #
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Literal, Sequence, Union
+from typing import TYPE_CHECKING, Any, Dict, Literal, Sequence, Union
 
 import numpy as np
 
@@ -178,15 +178,14 @@ def to_dtypes(chars: str) -> tuple[np.dtype[Any], ...]:
 
 
 class ufunc:
-    def __init__(self, name: str, doc: str, types: dict[Any, str]) -> None:
-        self._name = name
-        self._types = types
-        self.__doc__ = doc
 
-        assert len(self._types)
-        in_ty, out_ty = next(iter(self._types.items()))
-        self._nin = len(in_ty)
-        self._nout = len(out_ty)
+    _types: Dict[Any, str]
+    _nin: int
+    _nout: int
+
+    def __init__(self, name: str, doc: str) -> None:
+        self._name = name
+        self.__doc__ = doc
 
     @property
     def nin(self) -> int:
@@ -341,7 +340,14 @@ class unary_ufunc(ufunc):
         types: dict[str, str],
         overrides: dict[str, UnaryOpCode],
     ) -> None:
-        super().__init__(name, doc, types)
+        super().__init__(name, doc)
+
+        self._types = types
+        assert len(self._types)
+        in_ty, out_ty = next(iter(self._types.items()))
+        self._nin = len(in_ty)
+        self._nout = len(out_ty)
+
         self._op_code = op_code
         self._resolution_cache: dict[np.dtype[Any], np.dtype[Any]] = {}
         self._overrides = overrides
@@ -418,7 +424,14 @@ class multiout_unary_ufunc(ufunc):
     def __init__(
         self, name: str, doc: str, op_code: UnaryOpCode, types: dict[Any, Any]
     ) -> None:
-        super().__init__(name, doc, types)
+        super().__init__(name, doc)
+
+        self._types = types
+        assert len(self._types)
+        in_ty, out_ty = next(iter(self._types.items()))
+        self._nin = len(in_ty)
+        self._nout = len(out_ty)
+
         self._op_code = op_code
         self._resolution_cache: dict[np.dtype[Any], np.dtype[Any]] = {}
 
@@ -508,7 +521,14 @@ class binary_ufunc(ufunc):
         red_code: Union[UnaryRedCode, None] = None,
         use_common_type: bool = True,
     ) -> None:
-        super().__init__(name, doc, types)
+        super().__init__(name, doc)
+
+        self._types = types
+        assert len(self._types)
+        in_ty, out_ty = next(iter(self._types.items()))
+        self._nin = len(in_ty)
+        self._nout = len(out_ty)
+
         self._op_code = op_code
         self._resolution_cache: dict[
             tuple[str, ...], tuple[np.dtype[Any], ...]
