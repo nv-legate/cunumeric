@@ -92,7 +92,7 @@ def gen_inputs_of_various_types(lib, modes):
         )
 
 
-def _test(name, modes, operation, gen_inputs, gen_output=None):
+def _test(name, modes, operation, gen_inputs, gen_output=None, **kwargs):
     (a_modes, b_modes, out_modes) = modes
     if len(set(a_modes) | set(b_modes) | set(out_modes)) > LEGATE_MAX_DIM:
         # Total number of distinct modes can't exceed maximum Legion dimension,
@@ -102,22 +102,20 @@ def _test(name, modes, operation, gen_inputs, gen_output=None):
     for (np_inputs, cn_inputs) in zip(
         gen_inputs(np, modes), gen_inputs(cn, modes)
     ):
-        np_res = operation(np, *np_inputs)
-        cn_res = operation(cn, *cn_inputs)
+        np_res = operation(np, *np_inputs, **kwargs)
+        cn_res = operation(cn, *cn_inputs, **kwargs)
         rtol = (
-            2e-03 if any(x.dtype == np.float16 for x in np_inputs) else 1e-05
+            1e-02
+            if any(x.dtype == np.float16 for x in np_inputs)
+            or kwargs.get("dtype") == np.float16
+            else 1e-05
         )
         assert np.allclose(np_res, cn_res, rtol=rtol)
         if gen_output is not None:
             for cn_out in gen_output(cn, modes, *cn_inputs):
-                operation(cn, *cn_inputs, out=cn_out)
-                rtol = (
-                    2e-03
-                    if any(x.dtype == np.float16 for x in np_inputs)
-                    or cn_out.dtype == np.float16
-                    else 1e-05
-                )
-                assert np.allclose(cn_out, cn_res, rtol=rtol)
+                operation(cn, *cn_inputs, out=cn_out, **kwargs)
+                rtol_out = 1e-02 if cn_out.dtype == np.float16 else rtol
+                assert np.allclose(cn_out, cn_res, rtol=rtol_out)
 
 
 def check_default(name, modes, operation):

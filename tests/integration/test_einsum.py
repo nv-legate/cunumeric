@@ -213,7 +213,7 @@ def mk_typed_output(lib, shape):
     ]
 
 
-def check_np_vs_cn(expr, mk_input, mk_output=None):
+def check_np_vs_cn(expr, mk_input, mk_output=None, **kwargs):
     lhs, rhs = expr.split("->")
     opers = lhs.split(",")
     in_shapes = [
@@ -224,22 +224,20 @@ def check_np_vs_cn(expr, mk_input, mk_output=None):
         product(*(mk_input(np, sh) for sh in in_shapes)),
         product(*(mk_input(cn, sh) for sh in in_shapes)),
     ):
-        np_res = np.einsum(expr, *np_inputs)
-        cn_res = cn.einsum(expr, *cn_inputs)
+        np_res = np.einsum(expr, *np_inputs, **kwargs)
+        cn_res = cn.einsum(expr, *cn_inputs, **kwargs)
         rtol = (
-            1e-02 if any(x.dtype == np.float16 for x in np_inputs) else 1e-05
+            1e-02
+            if any(x.dtype == np.float16 for x in np_inputs)
+            or kwargs.get("dtype") == np.float16
+            else 1e-05
         )
         assert np.allclose(np_res, cn_res, rtol=rtol)
         if mk_output is not None:
             for cn_out in mk_output(cn, out_shape):
-                cn.einsum(expr, *cn_inputs, out=cn_out)
-                rtol = (
-                    1e-02
-                    if any(x.dtype == np.float16 for x in np_inputs)
-                    or cn_out.dtype == np.float16
-                    else 1e-05
-                )
-                assert np.allclose(cn_out, cn_res, rtol=rtol)
+                cn.einsum(expr, *cn_inputs, out=cn_out, **kwargs)
+                rtol_out = 1e-02 if cn_out.dtype == np.float16 else rtol
+                assert np.allclose(cn_out, cn_res, rtol=rtol_out)
 
 
 @pytest.mark.parametrize("expr", gen_expr())
