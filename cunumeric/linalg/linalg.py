@@ -83,7 +83,7 @@ def cholesky(a: ndarray) -> ndarray:
 
 # This implementation is adapted closely from NumPy
 @add_boilerplate("a")
-def matrix_power(a: ndarray, n: int) -> Union[ndarray, None]:
+def matrix_power(a: ndarray, n: int) -> ndarray:
     """
     Raise a square matrix to the (integer) power `n`.
     For positive integers `n`, the power is computed by repeated matrix
@@ -154,6 +154,8 @@ def matrix_power(a: ndarray, n: int) -> Union[ndarray, None]:
         n, bit = divmod(n, 2)
         if bit:
             result = z if result is None else matmul(result, z)
+
+    assert result is not None
 
     return result
 
