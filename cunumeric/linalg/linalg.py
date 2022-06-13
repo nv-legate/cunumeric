@@ -14,7 +14,7 @@
 #
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Sequence, Union
+from typing import TYPE_CHECKING, Sequence, Union
 
 import numpy as np
 from cunumeric._ufunc.math import add, sqrt as _sqrt
@@ -258,16 +258,12 @@ def _multi_dot_three(
 
 
 def _multi_dot_matrix_chain_order(
-    arrays: Sequence[ndarray], return_costs: bool = False
-) -> Union[
-    npt.NDArray[np.int64],
-    tuple[npt.NDArray[np.int64], npt.NDArray[np.float64]],
-]:
+    arrays: Sequence[ndarray],
+) -> npt.NDArray[np.int64]:
     """
     Return a `np.array` that encodes the optimal order of mutiplications.
     The optimal order array is then used by `_multi_dot()` to do the
     multiplication.
-    Also return the cost matrix if `return_costs` is `True`
     The implementation CLOSELY follows Cormen, "Introduction to Algorithms",
     Chapter 15.2, p. 370-378.  Note that Cormen uses 1-based indices.
         cost[i, j] = min([
@@ -295,12 +291,12 @@ def _multi_dot_matrix_chain_order(
                     m[i, j] = q
                     s[i, j] = k  # Note that Cormen uses 1-based index
 
-    return (s, m) if return_costs else s
+    return s
 
 
 def _multi_dot(
     arrays: Sequence[ndarray],
-    order: Any,
+    order: npt.NDArray[np.int64],
     i: int,
     j: int,
     out: Union[ndarray, None] = None,
