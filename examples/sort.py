@@ -19,6 +19,7 @@ import argparse
 
 import numpy as np
 from benchmark import run_benchmark
+
 try:
     from legate.timing import time
 except ImportError:
@@ -27,8 +28,9 @@ except ImportError:
     def time():
         return perf_counter_ns() / 1000.0
 
+
 def check_sorted(a, a_sorted, package, axis=-1):
-    if package == 'cupy':
+    if package == "cupy":
         a_np = a.get()
     else:
         a_np = a.__array__()
@@ -44,7 +46,15 @@ def check_sorted(a, a_sorted, package, axis=-1):
 
 
 def run_sort(
-    shape, axis, argsort, datatype, lower, upper, perform_check, timing, package
+    shape,
+    axis,
+    argsort,
+    datatype,
+    lower,
+    upper,
+    perform_check,
+    timing,
+    package,
 ):
 
     num.random.seed(42)
