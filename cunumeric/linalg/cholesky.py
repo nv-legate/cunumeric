@@ -20,12 +20,12 @@ from cunumeric.config import CuNumericOpCode
 
 from legate.core import Rect, types as ty
 from legate.core.operation import ManualTask
+from legate.core.shape import Shape
 
 from .exception import LinAlgError
 
 if TYPE_CHECKING:
     from legate.core.context import Context
-    from legate.core.shape import Shape
     from legate.core.store import Store, StorePartition
 
     from ..deferred import DeferredArray
@@ -165,16 +165,16 @@ MIN_CHOLESKY_MATRIX_SIZE = 8192
 
 
 # TODO: We need a better cost model
-def choose_color_shape(runtime: Runtime, shape: Shape) -> tuple[int, int]:
+def choose_color_shape(runtime: Runtime, shape: Shape) -> Shape:
     if runtime.args.test_mode:
         num_tiles = runtime.num_procs * 2
-        return (num_tiles, num_tiles)
+        return Shape((num_tiles, num_tiles))
 
     extent = shape[0]
     # If there's only one processor or the matrix is too small,
     # don't even bother to partition it at all
     if runtime.num_procs == 1 or extent <= MIN_CHOLESKY_MATRIX_SIZE:
-        return (1, 1)
+        return Shape((1, 1))
 
     # If the matrix is big enough to warrant partitioning,
     # pick the granularity that the tile size is greater than a threshold
@@ -186,7 +186,7 @@ def choose_color_shape(runtime: Runtime, shape: Shape) -> tuple[int, int]:
     ):
         num_tiles *= 2
 
-    return (num_tiles, num_tiles)
+    return Shape((num_tiles, num_tiles))
 
 
 def tril_single(context: Context, output: Store) -> None:
