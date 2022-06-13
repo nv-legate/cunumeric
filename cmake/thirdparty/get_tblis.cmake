@@ -101,7 +101,7 @@ function(find_or_configure_tblis)
     PROPERTIES BUILD_RPATH                         "\$ORIGIN"
                INSTALL_RPATH                       "\$ORIGIN"
                IMPORTED_SONAME                     tblis
-               IMPORTED_LOCATION                   "${tblis_BINARY_DIR}/lib/libtblis.${CMAKE_SHARED_LIBRARY_SUFFIX}"
+               IMPORTED_LOCATION                   "${tblis_BINARY_DIR}/lib/libtblis${CMAKE_SHARED_LIBRARY_SUFFIX}"
                INSTALL_REMOVE_ENVIRONMENT_RPATH    ON
                INTERFACE_POSITION_INDEPENDENT_CODE ON)
 endfunction()
