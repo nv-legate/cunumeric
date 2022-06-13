@@ -132,6 +132,11 @@ struct AdvancedIndexingImplBody<VariantKind::GPU, CODE, DIM, OUT_TYPE> {
 
     size = compute_size(index, pitches, rect, volume, stream, offsets, skip_size, key_dim);
 
+    if (0 == size) {
+      out_arr.make_empty();
+      return;
+    }
+
     // calculating the shape of the output region for this sub-task
     Point<DIM> extents;
     extents[0] = size;

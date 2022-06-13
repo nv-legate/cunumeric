@@ -79,6 +79,11 @@ struct AdvancedIndexingImplBody<VariantKind::CPU, CODE, DIM, OUT_TYPE> {
       if (index[p] == true) { size++; }
     }
 
+    if (0 == size) {
+      out_arr.make_empty();
+      return;
+    }
+
     // calculating the shape of the output region for this sub-task
     Point<DIM> extents;
     extents[0] = size;
