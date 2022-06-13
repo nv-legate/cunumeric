@@ -99,6 +99,10 @@ def test():
     index_num = num.array(index)
     assert np.array_equal(x[index], x_num[index_num])
 
+    index = np.array([False] * 7)
+    index_num = num.array(index)
+    assert np.array_equal(x[index], x_num[index_num])
+
     # k: test in-place assignment fir the case when idx arr
     #    is 1d bool array:
     x[index] = 3
