@@ -226,7 +226,7 @@ class ufunc:
         out_shape: tuple[int, ...],
         res_dtype: np.dtype[Any],
         casting: CastingKind,
-        inputs: Union[tuple[ndarray, bool], tuple[ndarray, ndarray, bool]],
+        inputs: tuple[ndarray, ...],
     ) -> ndarray:
         if out is None:
             return ndarray(shape=out_shape, dtype=res_dtype, inputs=inputs)
@@ -411,7 +411,7 @@ class unary_ufunc(ufunc):
         x, res_dtype = self._resolve_dtype(x, precision_fixed)
 
         result = self._maybe_create_result(
-            out, out_shape, res_dtype, casting, (x, where)
+            out, out_shape, res_dtype, casting, (x,)
         )
 
         op_code = self._overrides.get(x.dtype.char, self._op_code)
@@ -494,9 +494,7 @@ class multiout_unary_ufunc(ufunc):
         x, res_dtypes = self._resolve_dtype(x, precision_fixed)
 
         results = tuple(
-            self._maybe_create_result(
-                out, out_shape, res_dtype, casting, (x, where)
-            )
+            self._maybe_create_result(out, out_shape, res_dtype, casting, (x,))
             for out, res_dtype in zip(outs, res_dtypes)
         )
 
@@ -674,7 +672,7 @@ class binary_ufunc(ufunc):
 
         x1, x2 = arrs
         result = self._maybe_create_result(
-            out, out_shape, res_dtype, casting, (x1, x2, where)
+            out, out_shape, res_dtype, casting, (x1, x2)
         )
         result._thunk.binary_op(self._op_code, x1._thunk, x2._thunk, where, ())
 
