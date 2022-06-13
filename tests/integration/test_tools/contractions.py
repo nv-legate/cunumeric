@@ -82,7 +82,6 @@ def gen_inputs_of_various_types(lib, modes):
         (np.float16, np.float32),
         (np.float32, np.float32),
         (np.complex64, np.complex64),
-        (np.complex128, np.complex128),
     ]:
         if lib == cn:
             print(f"  {a_dtype} x {b_dtype}")
@@ -90,6 +89,15 @@ def gen_inputs_of_various_types(lib, modes):
             mk_0to1_array(lib, a_shape, a_dtype),
             mk_0to1_array(lib, b_shape, b_dtype),
         )
+
+
+def gen_output_of_various_types(lib, modes, a, b):
+    (a_modes, b_modes, out_modes) = modes
+    out_shape = (5,) * len(out_modes)
+    for out_dtype in [np.float16, np.complex64]:
+        if lib == cn:
+            print(f"  -> {out_dtype}")
+        yield lib.zeros(out_shape, out_dtype)
 
 
 def _test(name, modes, operation, gen_inputs, gen_output=None, **kwargs):
@@ -135,4 +143,21 @@ def check_permutations(name, modes, operation):
 
 def check_types(name, modes, operation):
     name = f"{name} -- various types"
-    _test(name, modes, operation, gen_inputs_of_various_types)
+    _test(
+        name,
+        modes,
+        operation,
+        gen_inputs_of_various_types,
+        gen_output_of_various_types,
+        casting="unsafe",
+    )
+    name = f"{name} -- various types, dtype=np.float32"
+    _test(
+        name,
+        modes,
+        operation,
+        gen_inputs_of_various_types,
+        gen_output_of_various_types,
+        dtype=np.float32,
+        casting="unsafe",
+    )
