@@ -1982,3 +1982,15 @@ class DeferredArray(NumPyThunk):
         task.add_broadcast(self.base)
         task.add_broadcast(src.base)
         task.execute()
+
+    @auto_convert([1])
+    def unpackbits(self, src, axis, count, bitorder):
+        bitorder_code = getattr(Bitorder, bitorder.upper())
+        task = self.context.create_task(CuNumericOpCode.UNPACKBITS)
+        task.add_output(self.base)
+        task.add_input(src.base)
+        task.add_scalar_arg(axis, ty.uint32)
+        task.add_scalar_arg(bitorder_code, ty.uint32)
+        task.add_broadcast(self.base)
+        task.add_broadcast(src.base)
+        task.execute()

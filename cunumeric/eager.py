@@ -851,3 +851,12 @@ class EagerArray(NumPyThunk):
             self.array[:] = np.packbits(
                 src.array, axis=axis, bitorder=bitorder
             )
+
+    def unpackbits(self, src, axis, count, bitorder):
+        self.check_eager_args(src)
+        if self.deferred is not None:
+            self.deferred.unpackbits(src, axis, bitorder)
+        else:
+            self.array[:] = np.unpackbits(
+                src.array, axis=axis, count=count, bitorder=bitorder
+            )

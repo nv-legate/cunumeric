@@ -232,3 +232,7 @@ class NumPyThunk(ABC):
     @abstractmethod
     def packbits(self, src, axis, bitorder):
         ...
+
+    @abstractmethod
+    def unpackbits(self, src, axis, count, bitorder):
+        ...

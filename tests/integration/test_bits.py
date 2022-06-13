@@ -40,6 +40,24 @@ def test_packbits(ndim, dtype, bitorder):
             assert np.array_equal(out_np, out_num)
 
 
+@pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
+@pytest.mark.parametrize("bitorder", ("little", "big"))
+def test_unpackbits(ndim, bitorder):
+    for extent in (3, 5, 8, 16):
+        shape = (extent,) * ndim
+        in_np = np.random.randint(low=0, high=255, size=shape, dtype="B")
+        in_num = num.array(in_np)
+
+        out_np = np.unpackbits(in_np, bitorder=bitorder)
+        out_num = num.unpackbits(in_num, bitorder=bitorder)
+        assert np.array_equal(out_np, out_num)
+
+        for axis in range(ndim):
+            out_np = np.unpackbits(in_np, axis=axis, bitorder=bitorder)
+            out_num = num.unpackbits(in_num, axis=axis, bitorder=bitorder)
+            assert np.array_equal(out_np, out_num)
+
+
 if __name__ == "__main__":
     import sys
 

@@ -17,13 +17,9 @@
 #pragma once
 
 #include "cunumeric/cunumeric.h"
+#include "cunumeric/bits/bits_util.h"
 
 namespace cunumeric {
-
-enum class Bitorder {
-  BIG    = CUNUMERIC_BITORDER_BIG,
-  LITTLE = CUNUMERIC_BITORDER_LITTLE,
-};
 
 template <Bitorder BITORDER, bool ALIGNED>
 struct Pack;
