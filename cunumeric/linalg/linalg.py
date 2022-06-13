@@ -73,6 +73,7 @@ def cholesky(a):
     return _cholesky(a)
 
 
+# This implementation is adapted closely from NumPy
 @add_boilerplate("a")
 def matrix_power(a, n):
     """
@@ -149,6 +150,7 @@ def matrix_power(a, n):
     return result
 
 
+# This implementation is adapted closely from NumPy
 def multi_dot(arrays, *, out=None):
     """
     Compute the dot product of two or more arrays in a single function call,
@@ -158,7 +160,7 @@ def multi_dot(arrays, *, out=None):
 
     Parameters
     ----------
-    arrays : sequence of array_like
+    arrays : Sequence[array_like]
         If the first argument is 1-D it is treated as a row vector.
         If the last argument is 1-D it is treated as a column vector.
         The other arguments must be 2-D.
@@ -292,6 +294,7 @@ def _multi_dot(arrays, order, i, j, out=None):
         )
 
 
+# This implementation is adapted closely from NumPy
 @add_boilerplate("x")
 def norm(x, ord=None, axis=None, keepdims=False):
     """

@@ -18,6 +18,7 @@
 
 #include "cunumeric/cunumeric.h"
 #include "cunumeric/arg.h"
+#include "cunumeric/arg.inl"
 
 #define _USE_MATH_DEFINES
 

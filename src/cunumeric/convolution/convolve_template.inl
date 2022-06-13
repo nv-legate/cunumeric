@@ -14,8 +14,13 @@
  *
  */
 
-#include <map>
+#pragma once
+
+// Useful for IDEs
+#include "cunumeric/convolution/convolve.h"
 #include "cunumeric/pitches.h"
+
+#include <map>
 
 namespace cunumeric {
 
