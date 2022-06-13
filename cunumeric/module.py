@@ -2941,8 +2941,18 @@ class NullOptimizer(oe.paths.PathOptimizer):
         return [(0, 1)] + [(0, -1)] * (len(inputs) - 2)
 
 
+def _maybe_cast_input(arr, to_dtype, casting):
+    if arr is None or arr.dtype == to_dtype:
+        return arr
+    if not np.can_cast(arr.dtype, to_dtype, casting=casting):
+        raise TypeError(
+            f"Cannot cast input array of type {arr.dtype} to {to_dtype} with "
+            f"casting rule '{casting}'"
+        )
+    return arr.astype(to_dtype)
+
+
 # Generalized tensor contraction
-@add_boilerplate("a", "b")
 def _contract(
     a_modes,
     b_modes,
@@ -2950,6 +2960,8 @@ def _contract(
     a,
     b=None,
     out=None,
+    casting="same_kind",
+    dtype=None,
 ):
     # Sanity checks
     if len(a_modes) != a.ndim:
@@ -2971,6 +2983,19 @@ def _contract(
         raise ValueError("Duplicate mode labels on output")
     if len(set(out_modes) - set(a_modes) - set(b_modes)) > 0:
         raise ValueError("Unknown mode labels on output")
+
+    # Handle types
+    if dtype is not None:
+        c_dtype = dtype
+    elif out is not None:
+        c_dtype = out.dtype
+    elif b is None:
+        c_dtype = a.dtype
+    else:
+        c_dtype = ndarray.find_common_type(a, b)
+    a = _maybe_cast_input(a, c_dtype, casting)
+    b = _maybe_cast_input(b, c_dtype, casting)
+    out_dtype = out.dtype if out is not None else c_dtype
 
     # Handle duplicate modes on inputs
     c_a_modes = Counter(a_modes)
@@ -3065,10 +3090,6 @@ def _contract(
             a = a * b
             b = None
 
-    # Handle types
-    c_dtype = ndarray.find_common_type(a, b) if b is not None else a.dtype
-    out_dtype = out.dtype if out is not None else c_dtype
-
     if b is None:
         # Unary contraction case
         assert len(a_modes) == len(c_modes) and set(a_modes) == set(c_modes)
@@ -3094,23 +3115,6 @@ def _contract(
                 dtype=c_dtype,
                 inputs=(a, b),
             )
-        # Check for type conversion on the way in
-        if a.dtype != c.dtype:
-            temp = ndarray(
-                shape=a.shape,
-                dtype=c.dtype,
-                inputs=(a,),
-            )
-            temp._thunk.convert(a._thunk)
-            a = temp
-        if b.dtype != c.dtype:
-            temp = ndarray(
-                shape=b.shape,
-                dtype=c.dtype,
-                inputs=(b,),
-            )
-            temp._thunk.convert(b._thunk)
-            b = temp
         # Perform operation
         c._thunk.contract(
             c_modes,
@@ -3128,8 +3132,18 @@ def _contract(
     if out_dtype != c_dtype or out_shape != c_bloated_shape:
         # We need to broadcast the result of the contraction or switch types
         # before returning
+        if not np.can_cast(c_dtype, out_dtype, casting=casting):
+            raise TypeError(
+                f"Cannot cast intermediate result array of type {c_dtype} "
+                f"into output array of type {out_dtype} with casting rule "
+                f"'{casting}'"
+            )
         if out is None:
-            out = empty(out_shape, out_dtype)
+            out = ndarray(
+                shape=out_shape,
+                dtype=out_dtype,
+                inputs=(c,),
+            )
         out[...] = c.reshape(c_bloated_shape)
         return out
     if out_shape != c_shape:
