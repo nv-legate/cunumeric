@@ -2658,7 +2658,15 @@ def inner(a, b, out=None):
     if a.ndim == 0 or b.ndim == 0:
         return multiply(a, b, out=out)
     (a_modes, b_modes, out_modes) = inner_modes(a.ndim, b.ndim)
-    return _contract(a_modes, b_modes, out_modes, a, b, out=out)
+    return _contract(
+        a_modes,
+        b_modes,
+        out_modes,
+        a,
+        b,
+        out=out,
+        casting="unsafe",
+    )
 
 
 @add_boilerplate("a", "b")
@@ -2692,9 +2700,8 @@ def dot(a, b, out=None):
     b : array_like
         Second argument.
     out : ndarray, optional
-        Output argument. This must have the exact shape that would be returned
-        if it was not present. If its dtype is not what would be expected from
-        this operation, then the result will be (unsafely) cast to `out`.
+        Output argument. This must have the exact shape and dtype that would be
+        returned if it was not present.
 
     Returns
     -------
@@ -2721,25 +2728,38 @@ def dot(a, b, out=None):
 
 
 @add_boilerplate("a", "b")
-def matmul(a, b, out=None):
+def matmul(a, b, /, out=None, *, casting="same_kind", dtype=None):
     """
     Matrix product of two arrays.
 
     Parameters
     ----------
-    x1, x2 : array_like
+    a, b : array_like
         Input arrays, scalars not allowed.
     out : ndarray, optional
         A location into which the result is stored. If provided, it must have
-        a shape that matches the signature `(n,k),(k,m)->(n,m)`. If its dtype
-        is not what would be expected from this operation, then the result will
-        be (unsafely) cast to `out`.
+        a shape that matches the signature `(n,k),(k,m)->(n,m)`.
+    casting : ``{'no', 'equiv', 'safe', 'same_kind', 'unsafe'}``, optional
+        Controls what kind of data casting may occur.
+
+          * 'no' means the data types should not be cast at all.
+          * 'equiv' means only byte-order changes are allowed.
+          * 'safe' means only casts which can preserve values are allowed.
+          * 'same_kind' means only safe casts or casts within a kind,
+            like float64 to float32, are allowed.
+          * 'unsafe' means any data conversions may be done.
+
+        Default is 'same_kind'.
+    dtype : data-type, optional
+        If provided, forces the calculation to use the data type specified.
+        Note that you may have to also give a more liberal `casting`
+        parameter to allow the conversions. Default is None.
 
     Returns
     -------
     output : ndarray
         The matrix product of the inputs.
-        This is a scalar only when both x1, x2 are 1-d vectors.
+        This is a scalar only when both a, b are 1-d vectors.
         If `out` is given, then it is returned.
 
     Notes
@@ -2788,7 +2808,16 @@ def matmul(a, b, out=None):
     if a.ndim == 0 or b.ndim == 0:
         raise ValueError("Scalars not allowed in matmul")
     (a_modes, b_modes, out_modes) = matmul_modes(a.ndim, b.ndim)
-    return _contract(a_modes, b_modes, out_modes, a, b, out=out)
+    return _contract(
+        a_modes,
+        b_modes,
+        out_modes,
+        a,
+        b,
+        out=out,
+        casting=casting,
+        dtype=dtype,
+    )
 
 
 @add_boilerplate("a", "b")
@@ -2932,7 +2961,15 @@ def tensordot(a, b, axes=2, out=None):
     Multiple GPUs, Multiple CPUs
     """
     (a_modes, b_modes, out_modes) = tensordot_modes(a.ndim, b.ndim, axes)
-    return _contract(a_modes, b_modes, out_modes, a, b, out=out)
+    return _contract(
+        a_modes,
+        b_modes,
+        out_modes,
+        a,
+        b,
+        out=out,
+        casting="unsafe",
+    )
 
 
 # Trivial multi-tensor contraction strategy: contract in input order
@@ -3163,7 +3200,9 @@ def _contract(
     return c
 
 
-def einsum(expr, *operands, out=None, optimize=False):
+def einsum(
+    expr, *operands, out=None, dtype=None, casting="safe", optimize=False
+):
     """
     Evaluates the Einstein summation convention on the operands.
 
@@ -3187,6 +3226,21 @@ def einsum(expr, *operands, out=None, optimize=False):
         These are the arrays for the operation.
     out : ndarray, optional
         If provided, the calculation is done into this array.
+    dtype : data-type, optional
+        If provided, forces the calculation to use the data type specified.
+        Note that you may have to also give a more liberal `casting`
+        parameter to allow the conversions. Default is None.
+    casting : ``{'no', 'equiv', 'safe', 'same_kind', 'unsafe'}``, optional
+        Controls what kind of data casting may occur.
+
+          * 'no' means the data types should not be cast at all.
+          * 'equiv' means only byte-order changes are allowed.
+          * 'safe' means only casts which can preserve values are allowed.
+          * 'same_kind' means only safe casts or casts within a kind,
+            like float64 to float32, are allowed.
+          * 'unsafe' means any data conversions may be done.
+
+        Default is 'safe'.
     optimize : ``{False, True, 'greedy', 'optimal'}``, optional
         Controls if intermediate optimization should occur. No optimization
         will occur if False. Uses opt_einsum to find an optimized contraction
@@ -3245,6 +3299,8 @@ def einsum(expr, *operands, out=None, optimize=False):
             a,
             b,
             out=(out if len(operands) == 0 else None),
+            casting=casting,
+            dtype=dtype,
         )
         operands.append(sub_result)
     assert len(operands) == 1
