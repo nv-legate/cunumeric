@@ -12,14 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from __future__ import annotations
 
 from collections.abc import Iterable
 from functools import reduce, wraps
 from inspect import signature
-from typing import Optional, Set, Tuple
+from typing import Callable, Optional, Set, Tuple, TypeVar
 
 import numpy as np
 import pyarrow
+from typing_extensions import ParamSpec
 
 from legate.core import Array
 
@@ -28,8 +30,13 @@ from .coverage import clone_class
 from .runtime import runtime
 from .utils import dot_modes
 
+R = TypeVar("R")
+P = ParamSpec("P")
 
-def add_boilerplate(*array_params: str):
+
+def add_boilerplate(
+    *array_params: str,
+) -> Callable[[Callable[P, R]], Callable[P, R]]:
     """
     Adds required boilerplate to the wrapped cunumeric.ndarray or module-level
     function.
@@ -92,7 +99,7 @@ def add_boilerplate(*array_params: str):
     return decorator
 
 
-def convert_to_cunumeric_ndarray(obj, share=False):
+def convert_to_cunumeric_ndarray(obj, share: bool = False) -> ndarray:
     # If this is an instance of one of our ndarrays then we're done
     if isinstance(obj, ndarray):
         return obj
@@ -143,7 +150,7 @@ class ndarray:
         order=None,
         thunk=None,
         inputs=None,
-    ):
+    ) -> None:
         # `inputs` being a cuNumeric ndarray is definitely a bug
         assert not isinstance(inputs, ndarray)
         if thunk is None:
@@ -1675,7 +1682,7 @@ class ndarray:
 
     def astype(
         self, dtype, order="C", casting="unsafe", subok=True, copy=True
-    ):
+    ) -> ndarray:
         """a.astype(dtype, order='C', casting='unsafe', subok=True, copy=True)
 
         Copy of the array, cast to a specified type.
@@ -2018,7 +2025,7 @@ class ndarray:
             UnaryOpCode.CLIP, self, dst=out, extra_args=args
         )
 
-    def conj(self):
+    def conj(self) -> ndarray:
         """a.conj()
 
         Complex-conjugate all elements.
@@ -2040,7 +2047,7 @@ class ndarray:
         else:
             return self
 
-    def conjugate(self):
+    def conjugate(self) -> ndarray:
         """a.conjugate()
 
         Return the complex conjugate, element-wise.
@@ -2058,7 +2065,7 @@ class ndarray:
         """
         return self.conj()
 
-    def copy(self, order="C"):
+    def copy(self, order="C") -> ndarray:
         """copy()
 
         Get a copy of the iterator as a 1-D array.
@@ -2270,7 +2277,7 @@ class ndarray:
         return res
 
     @add_boilerplate("rhs")
-    def dot(self, rhs, out=None):
+    def dot(self, rhs, out=None) -> ndarray:
         """a.dot(rhs, out=None)
 
         Return the dot product of this array with ``rhs``.
@@ -2362,7 +2369,7 @@ class ndarray:
                 fft_s[ax] = s[idx]
         return np.asarray(fft_axes), np.asarray(fft_s)
 
-    def fft(self, s, axes, kind, direction, norm):
+    def fft(self, s, axes, kind, direction, norm) -> ndarray:
         """a.fft(s, axes, kind, direction, norm)
 
         Return the ``kind`` ``direction`` FFT of this array
@@ -2850,7 +2857,7 @@ class ndarray:
             where=where,
         )
 
-    def ravel(self, order="C"):
+    def ravel(self, order="C") -> ndarray:
         """a.ravel(order="C")
 
         Return a flattened array.
@@ -2869,7 +2876,7 @@ class ndarray:
         """
         return self.reshape(-1, order=order)
 
-    def reshape(self, shape, order="C"):
+    def reshape(self, shape, order="C") -> ndarray:
         """a.reshape(shape, order='C')
 
         Returns an array containing the same data with a new shape.
@@ -3544,7 +3551,7 @@ class ndarray:
         args=None,
         initial=None,
         where=True,
-    ):
+    ) -> ndarray:
         # When 'res_dtype' is not None, the input and output of the reduction
         # have different types. Such reduction operators don't take a dtype of
         # the accumulator
