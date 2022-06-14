@@ -15,16 +15,16 @@
 #=============================================================================
 
 function(find_or_configure_tblis)
-  set(oneValueArgs VERSION REPOSITORY PINNED_TAG EXCLUDE_FROM_ALL USE_OPENMP)
+  set(oneValueArgs VERSION REPOSITORY BRANCH EXCLUDE_FROM_ALL USE_OPENMP)
   cmake_parse_arguments(PKG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
+  include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/cpm_helpers.cmake)
+  get_cpm_git_args(tblis_cpm_git_args REPOSITORY ${PKG_REPOSITORY} BRANCH ${PKG_BRANCH})
+
   rapids_cpm_find(tblis ${PKG_VERSION}
-      GLOBAL_TARGETS      tblis::tblis
-      BUILD_EXPORT_SET    cunumeric-exports
-      INSTALL_EXPORT_SET  cunumeric-exports
+      GLOBAL_TARGETS    tblis::tblis
       CPM_ARGS
-        GIT_REPOSITORY    ${PKG_REPOSITORY}
-        GIT_TAG           ${PKG_PINNED_TAG}
+        ${tblis_cpm_git_args}
         EXCLUDE_FROM_ALL  ${PKG_EXCLUDE_FROM_ALL}
   )
 
@@ -124,7 +124,7 @@ endif()
 
 find_or_configure_tblis(VERSION          1.2.0
                         REPOSITORY       ${CUNUMERIC_TBLIS_REPOSITORY}
-                        PINNED_TAG       ${CUNUMERIC_TBLIS_BRANCH}
+                        BRANCH           ${CUNUMERIC_TBLIS_BRANCH}
                         EXCLUDE_FROM_ALL ${CUNUMERIC_EXCLUDE_TBLIS_FROM_ALL}
                         USE_OPENMP       ${Legion_USE_OpenMP}
 )
