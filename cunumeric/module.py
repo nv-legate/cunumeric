@@ -1002,27 +1002,14 @@ def _reshape_recur(ndim, arr):
     return arr
 
 
-def _atleast_nd(ndim, arys):
-    arys = list(convert_to_cunumeric_ndarray(arr) for arr in arys)
-    inputs = list(arr.view() for arr in arys)
+def _atleast_nd(ndim, arys, view=True):
+    inputs = arys = list(convert_to_cunumeric_ndarray(arr) for arr in arys)
+    if view:
+        inputs = list(arr.view() for arr in arys)
     result = list(_reshape_recur(ndim, arr) for arr in inputs)
     # if the number of arrys in `arys` is 1, the return value is a single array
     if len(result) == 1:
         result = result[0]
-    """
-    if ndim > 1:
-        arys = atleast_nd(ndim - 1, arys)
-    if ndim == 2:
-        arys = list(
-            arr.reshape((1,) + arr.shape) if arr.ndim < ndim else arr
-            for arr in arys
-        )
-    else:
-        arys = list(
-            arr.reshape(arr.shape + (1,)) if arr.ndim < ndim else arr
-            for arr in arys
-        )
-    """
     return result
 
 
@@ -1628,10 +1615,7 @@ def vstack(tup):
     """
     # Reshape arrays in the `array_list` if needed before concatenation
     inputs = list(convert_to_cunumeric_ndarray(inp) for inp in tup)
-    reshaped = list(
-        inp.reshape([1, inp.shape[0]]) if inp.ndim == 1 else inp
-        for inp in inputs
-    )
+    reshaped = _atleast_nd(2, inputs, False)
     tup, common_info = check_shape_dtype(reshaped, vstack.__name__, 0)
     common_info.shape = tup[0].shape
 
@@ -1721,14 +1705,9 @@ def dstack(tup):
     Multiple GPUs, Multiple CPUs
     """
     # Reshape arrays to (1,N,1) for ndim ==1 or (M,N,1) for ndim == 2:
-    reshaped = []
+    # reshaped = []
     inputs = list(convert_to_cunumeric_ndarray(inp) for inp in tup)
-    for arr in inputs:
-        if arr.ndim == 1:
-            arr = arr.reshape((1,) + arr.shape + (1,))
-        elif arr.ndim == 2:
-            arr = arr.reshape(arr.shape + (1,))
-        reshaped.append(arr)
+    reshaped = _atleast_nd(3, inputs, False)
     tup, common_info = check_shape_dtype(reshaped, dstack.__name__, 2)
 
     return _concatenate(
