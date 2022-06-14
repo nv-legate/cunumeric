@@ -97,6 +97,7 @@ nitpick_ignore = [
     ("py:class", "scalars"),
     ("py:class", "sequence of ints"),
     ("py:class", "type"),
+    ("py:class", "uint8"),
 ]
 
 intersphinx_mapping = {

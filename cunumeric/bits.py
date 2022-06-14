@@ -106,7 +106,7 @@ def unpackbits(a, axis=None, count=None, bitorder="big"):
 
     Parameters
     ----------
-    a : ndarray, uint8 type
+    a : ndarray[uint8]
        Input array.
     axis : int, optional
         The dimension over which bit-unpacking is done.
@@ -129,7 +129,7 @@ def unpackbits(a, axis=None, count=None, bitorder="big"):
 
     Returns
     -------
-    unpacked : ndarray, uint8 type
+    unpacked : ndarray[uint8]
        The elements are binary-valued (0 or 1).
 
     See Also
