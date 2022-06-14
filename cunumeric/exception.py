@@ -14,5 +14,5 @@
 #
 
 
-class CuNumericError(Exception):
+class IndexError(Exception):
     pass
