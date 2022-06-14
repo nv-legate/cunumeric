@@ -16,7 +16,10 @@
 
 cmake_minimum_required(VERSION 3.20.1 FATAL_ERROR)
 
-cmake_policy(SET CMP0077 NEW)
+if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.13)
+  cmake_policy(SET CMP0077 NEW)
+  set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
+endif()
 
 ##############################################################################
 # - Download and initialize RAPIDS CMake helpers -----------------------------
@@ -34,9 +37,8 @@ include(rapids-find)
 # - User Options  ------------------------------------------------------------
 
 option(BUILD_SHARED_LIBS "Build cuNumeric shared libraries" ON)
-option(CUNUMERIC_EXCLUDE_TBLIS_FROM_ALL "Exclude tblis targets from legate.core's 'all' target" OFF)
-option(CUNUMERIC_EXCLUDE_LEGATE_CORE_FROM_ALL "Exclude legate.core targets from legate.core's 'all' target" OFF)
-
+option(CUNUMERIC_EXCLUDE_TBLIS_FROM_ALL "Exclude tblis targets from cuNumeric's 'all' target" OFF)
+option(CUNUMERIC_EXCLUDE_LEGATE_CORE_FROM_ALL "Exclude legate.core targets from cuNumeric's 'all' target" OFF)
 
 ##############################################################################
 # - Project definition -------------------------------------------------------
@@ -55,8 +57,8 @@ rapids_cmake_build_type(Release)
 # Needed to integrate with LLVM/clang tooling
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# ##################################################################################################
-# * conda environment -----------------------------------------------------------------------------
+# ############################################################################
+# * conda environment --------------------------------------------------------
 rapids_cmake_support_conda_env(conda_env MODIFY_PREFIX_PATH)
 
 ##############################################################################
