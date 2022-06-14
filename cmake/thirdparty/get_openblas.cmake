@@ -67,18 +67,18 @@ function(find_or_configure_OpenBLAS)
   set(CMAKE_POLICY_DEFAULT_CMP0048 ${CMP0048_orig})
   set(CMAKE_POLICY_DEFAULT_CMP0054 ${CMP0054_orig})
 
-  # Ensure we export the name of the actual target, not an alias target
-  get_target_property(BLAS_aliased_target ${BLAS_target} ALIASED_TARGET)
-  if(TARGET ${BLAS_aliased_target})
-    set(BLAS_target ${BLAS_aliased_target})
-  endif()
+  if(BLAS_ADDED AND (TARGET ${BLAS_target}))
 
-  # Make an BLAS::BLAS alias target
-  if(NOT TARGET BLAS::BLAS)
-    add_library(BLAS::BLAS ALIAS ${BLAS_target})
-  endif()
+    # Ensure we export the name of the actual target, not an alias target
+    get_target_property(BLAS_aliased_target ${BLAS_target} ALIASED_TARGET)
+    if(TARGET ${BLAS_aliased_target})
+      set(BLAS_target ${BLAS_aliased_target})
+    endif()
+    # Make an BLAS::BLAS alias target
+    if(NOT TARGET BLAS::BLAS)
+      add_library(BLAS::BLAS ALIAS ${BLAS_target})
+    endif()
 
-  if(BLAS_ADDED)
     # Set build INTERFACE_INCLUDE_DIRECTORIES appropriately
     get_target_property(BLAS_include_dirs ${BLAS_target} INCLUDE_DIRECTORIES)
     target_include_directories(${BLAS_target}
