@@ -45,9 +45,9 @@ class ZipTask : public CuNumericTask<ZipTask> {
 
 constexpr coord_t compute_idx(coord_t index, coord_t dim)
 {
-  //bounds checking
-  if( (index<0 && index+dim<0) || (index>=0 && index>=dim))
-     throw legate::TaskException("index is out ouf bounds in index array");
+  // bounds checking
+  if ((index < 0 && index + dim < 0) || (index >= 0 && index >= dim))
+    throw legate::TaskException("index is out of bounds in index array");
   return index < 0 ? index + dim : index;
 }
 
