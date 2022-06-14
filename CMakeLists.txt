@@ -38,6 +38,7 @@ include(rapids-find)
 
 option(BUILD_SHARED_LIBS "Build cuNumeric shared libraries" ON)
 option(CUNUMERIC_EXCLUDE_TBLIS_FROM_ALL "Exclude tblis targets from cuNumeric's 'all' target" OFF)
+option(CUNUMERIC_EXCLUDE_OPENBLAS_FROM_ALL "Exclude OpenBLAS targets from cuNumeric's 'all' target" OFF)
 option(CUNUMERIC_EXCLUDE_LEGATE_CORE_FROM_ALL "Exclude legate.core targets from cuNumeric's 'all' target" OFF)
 
 ##############################################################################
@@ -68,8 +69,6 @@ rapids_cmake_support_conda_env(conda_env MODIFY_PREFIX_PATH)
 rapids_cpm_init()
 
 find_package(OpenMP)
-find_package(BLAS REQUIRED)
-find_package(LAPACK REQUIRED)
 
 option(Legion_USE_CUDA "Use CUDA" ON)
 option(Legion_USE_OpenMP "Use OpenMP" ${OpenMP_FOUND})
@@ -105,6 +104,8 @@ if(Legion_USE_CUDA)
   include(cmake/thirdparty/get_nccl.cmake)
   include(cmake/thirdparty/get_cutensor.cmake)
 endif()
+
+include(cmake/thirdparty/get_openblas.cmake)
 
 include(cmake/thirdparty/get_tblis.cmake)
 
@@ -328,7 +329,6 @@ target_link_libraries(cunumeric
           $<TARGET_NAME_IF_EXISTS:NCCL::NCCL>
   PRIVATE BLAS::BLAS
           tblis::tblis
-          LAPACK::LAPACK
           # Add Conda library and include paths
           $<TARGET_NAME_IF_EXISTS:conda_env>
           $<TARGET_NAME_IF_EXISTS:OpenMP::OpenMP_CXX>
