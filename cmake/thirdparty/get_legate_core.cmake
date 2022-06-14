@@ -15,7 +15,7 @@
 #=============================================================================
 
 function(find_or_configure_legate_core)
-  set(oneValueArgs VERSION REPOSITORY PINNED_TAG EXCLUDE_FROM_ALL)
+  set(oneValueArgs VERSION REPOSITORY BRANCH EXCLUDE_FROM_ALL)
   cmake_parse_arguments(PKG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
   set(FIND_PKG_ARGS      ${PKG_VERSION}
@@ -30,11 +30,12 @@ function(find_or_configure_legate_core)
   if(legate_core_FOUND)
     message(STATUS "CPM: using local package legate_core@${PKG_VERSION}")
   else()
+    include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/cpm_helpers.cmake)
+    get_cpm_git_args(legate_core_cpm_git_args REPOSITORY ${PKG_REPOSITORY} BRANCH ${PKG_BRANCH})
     rapids_cpm_find(legate_core ${FIND_PKG_ARGS}
         CPM_ARGS
-          GIT_REPOSITORY        ${PKG_REPOSITORY}
-          GIT_TAG               ${PKG_PINNED_TAG}
-          EXCLUDE_FROM_ALL      ${PKG_EXCLUDE_FROM_ALL}
+          ${legate_core_cpm_git_args}
+          EXCLUDE_FROM_ALL ${PKG_EXCLUDE_FROM_ALL}
     )
   endif()
 
@@ -52,11 +53,11 @@ if(NOT DEFINED CUNUMERIC_LEGATE_CORE_BRANCH)
 endif()
 
 if(NOT DEFINED CUNUMERIC_LEGATE_CORE_REPOSITORY)
-  set(CUNUMERIC_LEGATE_CORE_REPOSITORY https://github.com/nv-legate/legate.core)
+  set(CUNUMERIC_LEGATE_CORE_REPOSITORY https://github.com/nv-legate/legate.core.git)
 endif()
 
 find_or_configure_legate_core(VERSION          ${CUNUMERIC_VERSION}
                               REPOSITORY       ${CUNUMERIC_LEGATE_CORE_REPOSITORY}
-                              PINNED_TAG       ${CUNUMERIC_LEGATE_CORE_BRANCH}
+                              BRANCH           ${CUNUMERIC_LEGATE_CORE_BRANCH}
                               EXCLUDE_FROM_ALL ${CUNUMERIC_EXCLUDE_LEGATE_CORE_FROM_ALL}
 )
