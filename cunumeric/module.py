@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from __future__ import annotations
 
 import math
 import re
@@ -45,7 +46,7 @@ _builtin_sum = sum
 # From shape or value
 
 
-def empty(shape, dtype=np.float64):
+def empty(shape, dtype=np.float64) -> ndarray:
     """
     empty(shape, dtype=float)
 
@@ -112,7 +113,7 @@ def empty_like(a, dtype=None):
     return ndarray(shape, dtype=dtype, inputs=(a,))
 
 
-def eye(N, M=None, k=0, dtype=np.float64):
+def eye(N, M=None, k=0, dtype=np.float64) -> ndarray:
     """
 
     Return a 2-D array with ones on the diagonal and zeros elsewhere.
@@ -185,7 +186,7 @@ def identity(n, dtype=float):
     return eye(N=n, M=n, dtype=dtype)
 
 
-def ones(shape, dtype=np.float64):
+def ones(shape, dtype=np.float64) -> ndarray:
     """
 
     Return a new array of given shape and type, filled with ones.
@@ -308,7 +309,7 @@ def zeros_like(a, dtype=None):
     return full_like(a, 0, dtype=usedtype)
 
 
-def full(shape, value, dtype=None):
+def full(shape, value, dtype=None) -> ndarray:
     """
 
     Return a new array of given shape and type, filled with `fill_value`.
@@ -501,7 +502,7 @@ def asarray(a, dtype=None):
 
 
 @add_boilerplate("a")
-def copy(a):
+def copy(a) -> ndarray:
     """
 
     Return an array copy of the given object.
@@ -2662,7 +2663,7 @@ def inner(a, b, out=None):
 
 
 @add_boilerplate("a", "b")
-def dot(a, b, out=None):
+def dot(a, b, out=None) -> ndarray:
     """
     Dot product of two arrays. Specifically,
 
