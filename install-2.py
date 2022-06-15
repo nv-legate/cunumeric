@@ -16,14 +16,12 @@
 #
 
 import argparse
-import json
 import multiprocessing
 import os
 import platform
 import shutil
 import subprocess
 import sys
-import tempfile
 
 import setuptools
 
@@ -33,9 +31,9 @@ sys.stdout.reconfigure(line_buffering=True)
 os_name = platform.system()
 
 if os_name == "Linux":
-    dylib_ext = ".so"
+    pass
 elif os_name == "Darwin":
-    dylib_ext = ".dylib"
+    pass
 else:
     raise Exception("install.py script does not work on %s" % os_name)
 
@@ -80,10 +78,10 @@ class BooleanFlag(argparse.Action):
         setattr(namespace, self.dest, not option_string.startswith("--no"))
 
 
-def execute_command(args, verbose, cwd=None, shell=False):
+def execute_command(args, verbose, **kwargs):
     if verbose:
-        print("EXECUTING: ", args)
-    subprocess.check_call(args, cwd=cwd, shell=shell)
+        print('Executing: "', " ".join(args), '" with ', kwargs)
+    subprocess.check_call(args, **kwargs)
 
 
 def cmake_build(
@@ -98,116 +96,26 @@ def cmake_build(
     if thread_count is not None:
         cmake_flags += ["-j", str(thread_count)]
 
-    execute_command([cmake_exe] + cmake_flags)
+    execute_command([cmake_exe] + cmake_flags, verbose)
 
 
 def cmake_install(
     cmake_exe,
     build_dir,
+    verbose,
+    install_dir=None,
 ):
     cmake_flags = ["--install", build_dir]
 
-    execute_command([cmake_exe] + cmake_flags)
+    if install_dir is not None:
+        cmake_flags += ["--prefix", install_dir]
 
-
-def git_clone(repo_dir, url, verbose, branch=None, tag=None):
-    assert branch is not None or tag is not None
-    if branch is not None:
-        execute_command(
-            ["git", "clone", "-b", branch, url, repo_dir], verbose=verbose
-        )
-    else:
-        execute_command(
-            ["git", "clone", "--single-branch", "-b", tag, url, repo_dir],
-            verbose=verbose,
-        )
-        execute_command(
-            ["git", "checkout", "-b", "master"], cwd=repo_dir, verbose=verbose
-        )
-
-
-def git_reset(repo_dir, refspec, verbose):
-    execute_command(
-        ["git", "reset", "--hard", refspec], cwd=repo_dir, verbose=verbose
-    )
-
-
-def git_update(repo_dir, verbose, branch=None):
-    execute_command(
-        ["git", "pull", "--ff-only"], cwd=repo_dir, verbose=verbose
-    )
-    if branch is not None:
-        execute_command(
-            ["git", "checkout", branch], cwd=repo_dir, verbose=verbose
-        )
-
-
-def load_json_config(filename):
-    try:
-        with open(filename, "r") as f:
-            return json.load(f)
-    except IOError:
-        return None
-
-
-def dump_json_config(filename, value):
-    with open(filename, "w") as f:
-        return json.dump(value, f)
-
-
-def symlink(from_path, to_path):
-    if not os.path.lexists(to_path):
-        os.symlink(from_path, to_path)
-
-
-def has_openmp():
-    cxx = os.getenv("CXX", "g++")
-    temp_dir = tempfile.mkdtemp()
-    try:
-        execute_command(
-            'echo "int main(void) { return 0; }" | '
-            f"{cxx} -o test.omp -x c++ -fopenmp -",
-            shell=True,
-            cwd=temp_dir,
-            verbose=False,
-        )
-    except subprocess.CalledProcessError:
-        return False
-    else:
-        return True
-
-
-def install_openblas(openblas_dir, thread_count, verbose):
-    pass
-
-def install_tblis(tblis_dir, thread_count, verbose):
-    pass
-
-
-def find_c_define(define, header):
-    with open(header, "r") as f:
-        line = f.readline()
-        while line:
-            line = line.rstrip()
-            if line.startswith("#define") and define in line.split(" "):
-                return True
-            line = f.readline()
-    return False
-
-
-def find_compile_flag(flag, makefile):
-    with open(makefile, "r") as f:
-        for line in f:
-            toks = line.split()
-            if len(toks) == 3 and toks[0] == flag:
-                return toks[2] == "1"
-    assert False, f"Compile flag '{flag}' not found"
+    execute_command([cmake_exe] + cmake_flags, verbose)
 
 
 def configure_cunumeric_cpp(
     cunumeric_dir,
     build_dir,
-    install_dir,
     legate_dir,
     legate_url,
     legate_branch,
@@ -225,12 +133,9 @@ def configure_cunumeric_cpp(
     debug,
     debug_release,
     check_bounds,
-    thread_count,
     verbose,
     extra_flags,
 ):
-    src_dir = os.path.join(cunumeric_dir, "src")
-
     cmake_flags = [
         "-G",
         cmake_generator,
@@ -255,7 +160,6 @@ def configure_cunumeric_cpp(
         "-DBUILD_SHARED_LIBS=ON",
         "-DBUILD_MARCH=%s" % march,
         "-DCMAKE_CUDA_ARCHITECTURES=%s" % arch,
-        "-DCMAKE_INSTALL_PREFIX=%s" % install_dir,
         "-DLegion_USE_CUDA=%s" % ("ON" if cuda else "OFF"),
         "-DLegion_BOUNDS_CHECKS=%s" % ("ON" if check_bounds else "OFF"),
     ]
@@ -280,13 +184,13 @@ def configure_cunumeric_cpp(
         cmake_flags += ["-DCUNUMERIC_LEGATE_CORE_BRANCH=%s" % legate_branch]
 
     execute_command(
-        [cmake_exe] + cmake_flags + extra_flags, cwd=cunumeric_dir
+        [cmake_exe] + cmake_flags + extra_flags, verbose, cwd=cunumeric_dir
     )
 
 
 def build_cunumeric_python(
     cunumeric_dir,
-    install_dir,
+    build_dir,
     verbose,
     unknown,
 ):
@@ -296,11 +200,13 @@ def build_cunumeric_python(
         "install",
         "--recurse",
         "--prefix",
-        install_dir,
+        build_dir,
     ]
+
     # Work around breaking change in setuptools 60
     if int(setuptools.__version__.split(".")[0]) >= 60:
         cmd += ["--single-version-externally-managed", "--root=/"]
+
     if unknown is not None:
         if "--prefix" in unknown:
             raise Exception(
@@ -308,7 +214,8 @@ def build_cunumeric_python(
                 "Legate Core, please remove the --prefix argument"
             )
         cmd += unknown
-    execute_command(cmd, cwd=cunumeric_dir, verbose=verbose)
+
+    execute_command(cmd, verbose, cwd=cunumeric_dir)
 
 
 def install_cunumeric(
@@ -339,54 +246,56 @@ def install_cunumeric(
 ):
     print("Verbose build is ", "on" if verbose else "off")
     if verbose:
-        print("Options are:\n")
-        print("arch: ", arch, "\n")
-        print("march: ", march, "\n")
-        print("cuda: ", cuda, "\n")
-        print("cuda_dir: ", cuda_dir, "\n")
-        print("cmake_exe: ", cmake_exe, "\n")
-        print("cmake_generator: ", cmake_generator, "\n")
-        print("legate_dir: ", legate_dir, "\n")
-        print("legate_url: ", legate_url, "\n")
-        print("legate_branch: ", legate_branch, "\n")
-        print("openblas_dir: ", openblas_dir, "\n")
-        print("tblis_dir: ", tblis_dir, "\n")
-        print("cutensor_dir: ", cutensor_dir, "\n")
-        print("thrust_dir: ", thrust_dir, "\n")
-        print("nccl_dir: ", nccl_dir, "\n")
-        print("debug: ", debug, "\n")
-        print("debug_release: ", debug_release, "\n")
-        print("check_bounds: ", check_bounds, "\n")
-        print("clean_first: ", clean_first, "\n")
-        print("python_only: ", python_only, "\n")
-        print("thread_count: ", thread_count, "\n")
-        print("verbose: ", verbose, "\n")
-        print("unknown: ", unknown, "\n")
+        print("Options are:")
+        print("arch: ", arch)
+        print("march: ", march)
+        print("cuda: ", cuda)
+        print("cuda_dir: ", cuda_dir)
+        print("cmake_exe: ", cmake_exe)
+        print("cmake_generator: ", cmake_generator)
+        print("legate_dir: ", legate_dir)
+        print("legate_url: ", legate_url)
+        print("legate_branch: ", legate_branch)
+        print("openblas_dir: ", openblas_dir)
+        print("tblis_dir: ", tblis_dir)
+        print("cutensor_dir: ", cutensor_dir)
+        print("thrust_dir: ", thrust_dir)
+        print("nccl_dir: ", nccl_dir)
+        print("debug: ", debug)
+        print("debug_release: ", debug_release)
+        print("check_bounds: ", check_bounds)
+        print("clean_first: ", clean_first)
+        print("python_only: ", python_only)
+        print("thread_count: ", thread_count)
+        print("verbose: ", verbose)
+        print("unknown: ", unknown)
 
     cunumeric_dir = os.path.dirname(os.path.realpath(__file__))
 
     if thread_count is None:
         thread_count = multiprocessing.cpu_count()
 
-    def validate_lib_dir(lib_dir):
-        if lib_dir is not None:
-            lib_dir = os.path.realpath(lib_dir)
-            if not os.path.exists(lib_dir):
-                lib_dir = None
-        return lib_dir
+    def validate_path(path):
+        if path is not None:
+            path = os.path.realpath(path)
+            if not os.path.exists(path):
+                path = None
+        return path
 
-    cuda_dir = validate_lib_dir(cuda_dir)
-    tblis_dir = validate_lib_dir(tblis_dir)
-    legate_dir = validate_lib_dir(legate_dir)
-    thrust_dir = validate_lib_dir(thrust_dir)
-    cutensor_dir = validate_lib_dir(cutensor_dir)
-    openblas_dir = validate_lib_dir(openblas_dir)
+    cuda_dir = validate_path(cuda_dir)
+    tblis_dir = validate_path(tblis_dir)
+    legate_dir = validate_path(legate_dir)
+    thrust_dir = validate_path(thrust_dir)
+    cutensor_dir = validate_path(cutensor_dir)
+    openblas_dir = validate_path(openblas_dir)
 
     if install_dir is None:
         if legate_dir is not None:
             install_dir = os.path.join(legate_dir, "install")
         else:
             install_dir = os.path.join(cunumeric_dir, "install")
+    else:
+        install_dir = os.path.realpath(install_dir)
 
     if not python_only:
         build_dir = os.path.join(cunumeric_dir, "build")
@@ -398,7 +307,6 @@ def install_cunumeric(
         configure_cunumeric_cpp(
             cunumeric_dir,
             build_dir,
-            install_dir,
             legate_dir,
             legate_url,
             legate_branch,
@@ -416,7 +324,6 @@ def install_cunumeric(
             debug,
             debug_release,
             check_bounds,
-            thread_count,
             verbose,
             extra_flags,
         )
@@ -433,11 +340,13 @@ def install_cunumeric(
         cmake_install(
             cmake_exe,
             build_dir,
+            verbose,
+            install_dir
         )
 
     build_cunumeric_python(
         cunumeric_dir,
-        install_dir,
+        build_dir,
         verbose,
         unknown
     )
@@ -485,6 +394,20 @@ def driver():
         required=False,
         default=os.environ.get("LEGATE_DIR"),
         help="Path to Legate Core installation directory.",
+    )
+    parser.add_argument(
+        "--legate-url",
+        dest="legate_url",
+        required=False,
+        default="https://github.com/nv-legate/legate.core.git",
+        help="Legate git URL to build cuNumeric with.",
+    )
+    parser.add_argument(
+        "--legate-branch",
+        dest="legate_branch",
+        required=False,
+        default="control_replication",
+        help="Legate branch to build cuNumeric with.",
     )
     parser.add_argument(
         "--with-openblas",
@@ -613,27 +536,6 @@ def driver():
         required=False,
         default=False,
         help="Enable verbose build output.",
-    )
-    parser.add_argument(
-        "--legate-dir",
-        dest="legate_dir",
-        required=False,
-        default=None,
-        help="Path to an existing legate.core build directory.",
-    )
-    parser.add_argument(
-        "--legate-url",
-        dest="legate_url",
-        required=False,
-        default="https://github.com/nv-legate/legate.core.git",
-        help="Legate git URL to build cuNumeric with.",
-    )
-    parser.add_argument(
-        "--legate-branch",
-        dest="legate_branch",
-        required=False,
-        default="control_replication",
-        help="Legate branch to build cuNumeric with.",
     )
     args, unknown = parser.parse_known_args()
 
