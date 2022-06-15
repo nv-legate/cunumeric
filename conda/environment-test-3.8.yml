@@ -21,9 +21,10 @@ dependencies:
   # tests
   - clang>=8
   - clang-tools>=8
+  - colorama
   - coverage
   - mock
-  - mypy>=0.942
+  - mypy>=0.961
   - pre-commit
   - pynvml
   - pytest
