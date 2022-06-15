@@ -322,7 +322,8 @@ set_target_properties(cunumeric
                       POSITION_INDEPENDENT_CODE           ON
                       INTERFACE_POSITION_INDEPENDENT_CODE ON
                       CUDA_STANDARD                       17
-                      CUDA_STANDARD_REQUIRED              ON)
+                      CUDA_STANDARD_REQUIRED              ON
+                      LIBRARY_OUTPUT_DIRECTORY            lib)
 
 target_link_libraries(cunumeric
    PUBLIC legate::core
