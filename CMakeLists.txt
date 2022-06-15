@@ -386,8 +386,6 @@ SECTIONS
   target_link_options(cunumeric PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/fatbin.ld")
 endif()
 
-set(cunumeric_c_h "${CMAKE_CURRENT_SOURCE_DIR}/src/cunumeric/cunumeric_c.h")
-set(cunumeric_c_i "${CMAKE_CURRENT_BINARY_DIR}/include/cunumeric/cunumeric_c.h.i")
 add_custom_target(cunumeric_c_h_c ALL
   COMMENT "Preprocess src/cunumeric/cunumeric_c.h for Python CFFI bindings"
   COMMAND ${CMAKE_C_COMPILER} -E -DLEGATE_USE_PYTHON_CFFI
