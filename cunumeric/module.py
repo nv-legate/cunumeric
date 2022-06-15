@@ -991,40 +991,6 @@ def reshape(a, newshape, order="C"):
     return a.reshape(newshape, order=order)
 
 
-def _reshape_recur(ndim, arr):
-    if arr.ndim < ndim:
-        arr = _reshape_recur(ndim - 1, arr)
-        if ndim == 2:
-            arr = arr.reshape((1,) + arr.shape)
-        else:
-            arr = arr.reshape(arr.shape + (1,))
-
-    return arr
-
-
-def _atleast_nd(ndim, arys, view=True):
-    inputs = arys = list(convert_to_cunumeric_ndarray(arr) for arr in arys)
-    if view:
-        inputs = list(arr.view() for arr in arys)
-    result = list(_reshape_recur(ndim, arr) for arr in inputs)
-    # if the number of arrys in `arys` is 1, the return value is a single array
-    if len(result) == 1:
-        result = result[0]
-    return result
-
-
-def atleast_1d(*arys):
-    return _atleast_nd(1, arys)
-
-
-def atleast_2d(*arys):
-    return _atleast_nd(2, arys)
-
-
-def atleast_3d(*arys):
-    return _atleast_nd(3, arys)
-
-
 # Transpose-like operations
 
 
@@ -1134,6 +1100,120 @@ def moveaxis(a, source, destination):
 
 
 # Changing number of dimensions
+
+
+def _reshape_recur(ndim, arr):
+    if arr.ndim < ndim:
+        arr = _reshape_recur(ndim - 1, arr)
+        if ndim == 2:
+            arr = arr.reshape((1,) + arr.shape)
+        else:
+            arr = arr.reshape(arr.shape + (1,))
+
+    return arr
+
+
+def _atleast_nd(ndim, arys, view=True):
+    inputs = arys = list(convert_to_cunumeric_ndarray(arr) for arr in arys)
+    if view:
+        inputs = list(arr.view() for arr in arys)
+    result = list(_reshape_recur(ndim, arr) for arr in inputs)
+    # if the number of arrys in `arys` is 1, the return value is a single array
+    if len(result) == 1:
+        result = result[0]
+    return result
+
+
+def atleast_1d(*arys):
+    """
+
+    Convert inputs to arrays with at least one dimension.
+    Scalar inputs are converted to 1-dimensional arrays,
+    whilst higher-dimensional inputs are preserved.
+
+    Parameters
+    ----------
+    arys1, arys2, … : array_like
+        One or more input arrays.
+
+    Returns
+    -------
+    ret : ndarray
+        An array, or list of arrays, each with a.ndim >= 1.
+        Copies are made only if necessary.
+
+    See Also
+    --------
+    numpy.atleast_1d
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    return _atleast_nd(1, arys)
+
+
+def atleast_2d(*arys):
+    """
+
+    View inputs as arrays with at least two dimensions.
+
+    Parameters
+    ----------
+    arys1, arys2, … : array_like
+        One or more array-like sequences.
+        Non-array inputs are converted to arrays.
+        Arrays that already have two or more dimensions are preserved.
+
+    Returns
+    -------
+    res, res2, … : ndarray
+        An array, or list of arrays, each with a.ndim >= 2.
+        Copies are avoided where possible, and
+        views with two or more dimensions are returned.
+
+    See Also
+    --------
+    numpy.atleast_2d
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    return _atleast_nd(2, arys)
+
+
+def atleast_3d(*arys):
+    """
+
+    View inputs as arrays with at least three dimensions.
+
+    Parameters
+    ----------
+    arys1, arys2, … : array_like
+        One or more array-like sequences.
+        Non-array inputs are converted to arrays.
+        Arrays that already have two or more dimensions are preserved.
+
+    Returns
+    -------
+    res, res2, … : ndarray
+        An array, or list of arrays, each with a.ndim >= 3.
+        Copies are avoided where possible, and
+        views with three or more dimensions are returned.
+        For example, a 1-D array of shape (N,) becomes
+        a view of shape (1, N, 1),  and a 2-D array of shape (M, N)
+        becomes a view of shape (M, N, 1).
+
+    See Also
+    --------
+    numpy.atleast_3d
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    return _atleast_nd(3, arys)
 
 
 @add_boilerplate("a")
@@ -1704,9 +1784,8 @@ def dstack(tup):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    # Reshape arrays to (1,N,1) for ndim ==1 or (M,N,1) for ndim == 2:
-    # reshaped = []
     inputs = list(convert_to_cunumeric_ndarray(inp) for inp in tup)
+    # Reshape arrays to (1,N,1) for ndim ==1 or (M,N,1) for ndim == 2:
     reshaped = _atleast_nd(3, inputs, False)
     tup, common_info = check_shape_dtype(reshaped, dstack.__name__, 2)
 
