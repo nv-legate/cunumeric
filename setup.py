@@ -40,33 +40,26 @@ class my_build_py(build_py):
     def run(self):
         if not self.dry_run:
             self.mkpath(self.build_lib)
-            # Compile up our C header here and insert it as a string
-            # into legate_core_cffi.py so that it is installed with
-            # the python library directly
+
+            # Read our preprocessed C header and insert it as a string into
+            # install_info.py so it's installed as part of the python library
+
             root_dir = os.path.dirname(os.path.realpath(__file__))
-            header_src = os.path.join(
-                root_dir, "src", "cunumeric", "cunumeric_c.h"
-            )
             output_dir = os.path.join(root_dir, "cunumeric")
-            include_dir = os.path.join(args.prefix, "include")
-            header = subprocess.check_output(
-                [
-                    os.getenv("CC", "gcc"),
-                    "-E",
-                    "-DLEGATE_USE_PYTHON_CFFI",
-                    "-I" + str(include_dir),
-                    "-P",
-                    header_src,
-                ]
-            ).decode("utf-8")
-            libpath = os.path.join(args.prefix, "lib")
+            libpath = repr(os.path.join(args.prefix, "lib"))
+            include_dir = os.path.join(args.prefix, "include", "cunumeric")
+
+            with open(os.path.join(include_dir, "cunumeric_c.h.i")) as f:
+                header = f.read()
+
             with open(os.path.join(output_dir, "install_info.py.in")) as f:
                 content = f.read()
-            content = content.format(
-                header=repr(header), libpath=repr(libpath)
-            )
+
+            content = content.format(header=repr(header), libpath=libpath)
+
             with open(os.path.join(output_dir, "install_info.py"), "wb") as f:
                 f.write(content.encode("utf-8"))
+
         build_py.run(self)
 
 
