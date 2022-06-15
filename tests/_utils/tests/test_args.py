@@ -24,6 +24,7 @@ import pytest
 
 from .. import (
     DEFAULT_CPUS_PER_NODE,
+    DEFAULT_GPU_MEMORY_BUDGET,
     DEFAULT_GPUS_PER_NODE,
     DEFAULT_OMPS_PER_NODE,
     DEFAULT_OMPTHREADS,
@@ -54,6 +55,9 @@ class TestParserDefaults:
 
     def test_gpus(self) -> None:
         assert m.parser.get_default("gpus") == DEFAULT_GPUS_PER_NODE
+
+    def test_fbmem(self) -> None:
+        assert m.parser.get_default("fbmem") == DEFAULT_GPU_MEMORY_BUDGET
 
     def test_omps(self) -> None:
         assert m.parser.get_default("omps") == DEFAULT_OMPS_PER_NODE

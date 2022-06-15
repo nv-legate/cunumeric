@@ -22,6 +22,7 @@ from typing import Any, Generic, Iterable, Iterator, Sequence, TypeVar, Union
 
 from . import (
     DEFAULT_CPUS_PER_NODE,
+    DEFAULT_GPU_MEMORY_BUDGET,
     DEFAULT_GPUS_PER_NODE,
     DEFAULT_OMPS_PER_NODE,
     DEFAULT_OMPTHREADS,
@@ -142,6 +143,15 @@ feature_opts.add_argument(
     type=int,
     default=DEFAULT_GPUS_PER_NODE,
     help="Number of GPUs per node to use",
+)
+
+
+feature_opts.add_argument(
+    "--fbmem",
+    dest="fbmem",
+    type=int,
+    default=DEFAULT_GPU_MEMORY_BUDGET,
+    help="GPU framebuffer memory",
 )
 
 

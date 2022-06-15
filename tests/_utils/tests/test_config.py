@@ -23,6 +23,7 @@ import pytest
 
 from .. import (
     DEFAULT_CPUS_PER_NODE,
+    DEFAULT_GPU_MEMORY_BUDGET,
     DEFAULT_GPUS_PER_NODE,
     DEFAULT_OMPS_PER_NODE,
     DEFAULT_OMPTHREADS,
@@ -44,6 +45,7 @@ class TestConfig:
 
         assert c.cpus == DEFAULT_CPUS_PER_NODE
         assert c.gpus == DEFAULT_GPUS_PER_NODE
+        assert c.fbmem == DEFAULT_GPU_MEMORY_BUDGET
         assert c.omps == DEFAULT_OMPS_PER_NODE
         assert c.ompthreads == DEFAULT_OMPTHREADS
 
@@ -99,7 +101,9 @@ class TestConfig:
         c = m.Config(["test.py", "--files", "a", "b", "c"])
         assert c.files == ["a", "b", "c"]
 
-    @pytest.mark.parametrize("opt", ("cpus", "gpus", "omps", "ompthreads"))
+    @pytest.mark.parametrize(
+        "opt", ("cpus", "gpus", "fbmem", "omps", "ompthreads")
+    )
     def test_feature_options(self, opt: str) -> None:
         c = m.Config(["test.py", f"--{opt}", "1000"])
         assert getattr(c, opt) == 1000

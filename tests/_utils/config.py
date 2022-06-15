@@ -53,6 +53,7 @@ class Config:
         # feature options for integration tests
         self.cpus = args.cpus
         self.gpus = args.gpus
+        self.fbmem = args.fbmem
         self.omps = args.omps
         self.ompthreads = args.ompthreads
 

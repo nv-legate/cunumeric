@@ -30,7 +30,7 @@ DEFAULT_CPUS_PER_NODE = 4
 #: Value to use if --gpus is not specified.
 DEFAULT_GPUS_PER_NODE = 1
 
-# TODO: (bryevdv) configurable?
+# Value to use if --fbmem is not specified
 DEFAULT_GPU_MEMORY_BUDGET = 6 << 30
 
 # TODO: (bryevdv) configurable?
