@@ -2308,6 +2308,7 @@ class ndarray:
             self,
             rhs,
             out=out,
+            casting="no",
         )
 
     def dump(self, file):
