@@ -24,6 +24,7 @@ This module is primarily intended for quick demonstrations or proofs of
 concept.
 
 """
+from __future__ import annotations
 
 import sys
 

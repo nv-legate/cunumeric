@@ -73,8 +73,8 @@ MISSING_NP_REFS = {
 class SectionConfig:
     title: str
     attr: str | None
-    types: tuple(type) | None = None
-    names: tuple(str) | None = None
+    types: tuple[type, ...] | None = None
+    names: tuple[str, ...] | None = None
 
 
 FUNCTIONS = (FunctionType, BuiltinFunctionType)

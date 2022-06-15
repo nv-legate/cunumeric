@@ -12,16 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Sequence, Union
 
 import numpy as np
 from cunumeric._ufunc.math import add, sqrt as _sqrt
 from cunumeric.array import add_boilerplate, convert_to_cunumeric_ndarray
 from cunumeric.module import dot, empty_like, eye, matmul, ndarray
-from numpy.core.multiarray import normalize_axis_index
+from numpy.core.multiarray import (  # type: ignore [attr-defined]
+    normalize_axis_index,
+)
+
+if TYPE_CHECKING:
+    import numpy.typing as npt
 
 
 @add_boilerplate("a")
-def cholesky(a):
+def cholesky(a: ndarray) -> ndarray:
     """
     Cholesky decomposition.
 
@@ -75,7 +83,7 @@ def cholesky(a):
 
 # This implementation is adapted closely from NumPy
 @add_boilerplate("a")
-def matrix_power(a, n):
+def matrix_power(a: ndarray, n: int) -> ndarray:
     """
     Raise a square matrix to the (integer) power `n`.
     For positive integers `n`, the power is computed by repeated matrix
@@ -147,11 +155,15 @@ def matrix_power(a, n):
         if bit:
             result = z if result is None else matmul(result, z)
 
+    assert result is not None
+
     return result
 
 
 # This implementation is adapted closely from NumPy
-def multi_dot(arrays, *, out=None):
+def multi_dot(
+    arrays: Sequence[ndarray], *, out: Union[ndarray, None] = None
+) -> ndarray:
     """
     Compute the dot product of two or more arrays in a single function call,
     while automatically selecting the fastest evaluation order.
@@ -226,7 +238,9 @@ def multi_dot(arrays, *, out=None):
         return result
 
 
-def _multi_dot_three(A, B, C, out=None):
+def _multi_dot_three(
+    A: ndarray, B: ndarray, C: ndarray, out: Union[ndarray, None] = None
+) -> ndarray:
     """
     Find the best order for three arrays and do the multiplication.
     """
@@ -243,12 +257,13 @@ def _multi_dot_three(A, B, C, out=None):
         return dot(A, dot(B, C), out=out)
 
 
-def _multi_dot_matrix_chain_order(arrays, return_costs=False):
+def _multi_dot_matrix_chain_order(
+    arrays: Sequence[ndarray],
+) -> npt.NDArray[np.int64]:
     """
     Return a `np.array` that encodes the optimal order of mutiplications.
     The optimal order array is then used by `_multi_dot()` to do the
     multiplication.
-    Also return the cost matrix if `return_costs` is `True`
     The implementation CLOSELY follows Cormen, "Introduction to Algorithms",
     Chapter 15.2, p. 370-378.  Note that Cormen uses 1-based indices.
         cost[i, j] = min([
@@ -276,10 +291,16 @@ def _multi_dot_matrix_chain_order(arrays, return_costs=False):
                     m[i, j] = q
                     s[i, j] = k  # Note that Cormen uses 1-based index
 
-    return (s, m) if return_costs else s
+    return s
 
 
-def _multi_dot(arrays, order, i, j, out=None):
+def _multi_dot(
+    arrays: Sequence[ndarray],
+    order: npt.NDArray[np.int64],
+    i: int,
+    j: int,
+    out: Union[ndarray, None] = None,
+) -> ndarray:
     """Actually do the multiplication with the given order."""
     if i == j:
         # the initial call with non-None out should never get here
@@ -296,7 +317,12 @@ def _multi_dot(arrays, order, i, j, out=None):
 
 # This implementation is adapted closely from NumPy
 @add_boilerplate("x")
-def norm(x, ord=None, axis=None, keepdims=False):
+def norm(
+    x: ndarray,
+    ord: Union[str, int, float, None] = None,
+    axis: Union[int, tuple[int, int], None] = None,
+    keepdims: bool = False,
+) -> Union[float, ndarray]:
     """
     Matrix or vector norm.
 
@@ -401,31 +427,36 @@ def norm(x, ord=None, axis=None, keepdims=False):
     # Normalize the `axis` argument to a tuple.
     nd = x.ndim
     if axis is None:
-        axis = tuple(range(nd))
+        computed_axis = tuple(range(nd))
+    elif not isinstance(axis, tuple):
+        computed_axis = (axis,)
     else:
-        if not isinstance(axis, tuple):
-            axis = (axis,)
-        for ax in axis:
-            if not isinstance(ax, int):
-                raise TypeError(
-                    "`axis` must be None, an integer or a tuple of integers"
-                )
+        computed_axis = axis
+    for ax in computed_axis:
+        if not isinstance(ax, int):
+            raise TypeError(
+                "`axis` must be None, an integer or a tuple of integers"
+            )
 
-    if len(axis) == 1:
+    if len(computed_axis) == 1:
         if ord == np.inf:
-            return abs(x).max(axis=axis, keepdims=keepdims)
+            return abs(x).max(axis=computed_axis, keepdims=keepdims)
         elif ord == -np.inf:
-            return abs(x).min(axis=axis, keepdims=keepdims)
+            return abs(x).min(axis=computed_axis, keepdims=keepdims)
         elif ord == 0:
             # Zero norm
-            return (x != 0).astype(np.int64).sum(axis=axis, keepdims=keepdims)
+            return (
+                (x != 0)
+                .astype(np.int64)
+                .sum(axis=computed_axis, keepdims=keepdims)
+            )
         elif ord == 1:
             # special case for speedup
-            return add.reduce(abs(x), axis=axis, keepdims=keepdims)
+            return add.reduce(abs(x), axis=computed_axis, keepdims=keepdims)
         elif ord is None or ord == 2:
             # special case for speedup
             s = (x.conj() * x).real
-            return _sqrt(add.reduce(s, axis=axis, keepdims=keepdims))
+            return _sqrt(add.reduce(s, axis=computed_axis, keepdims=keepdims))
         # None of the str-type keywords for ord ("fro", "nuc")
         # are valid for vectors
         elif isinstance(ord, str):
@@ -433,11 +464,11 @@ def norm(x, ord=None, axis=None, keepdims=False):
         else:
             absx = abs(x)
             absx **= ord
-            ret = add.reduce(absx, axis=axis, keepdims=keepdims)
+            ret = add.reduce(absx, axis=computed_axis, keepdims=keepdims)
             ret **= 1 / ord
             return ret
-    elif len(axis) == 2:
-        row_axis, col_axis = axis
+    elif len(computed_axis) == 2:
+        row_axis, col_axis = computed_axis
         row_axis = normalize_axis_index(row_axis, nd)
         col_axis = normalize_axis_index(col_axis, nd)
         if row_axis == col_axis:
@@ -473,15 +504,15 @@ def norm(x, ord=None, axis=None, keepdims=False):
             raise ValueError("Invalid norm order for matrices")
         if keepdims:
             ret_shape = list(x.shape)
-            ret_shape[axis[0]] = 1
-            ret_shape[axis[1]] = 1
+            ret_shape[computed_axis[0]] = 1
+            ret_shape[computed_axis[1]] = 1
             ret = ret.reshape(ret_shape)
         return ret
     else:
         raise ValueError("Improper number of dimensions to norm")
 
 
-def _cholesky(a, no_tril=False):
+def _cholesky(a: ndarray, no_tril: bool = False) -> ndarray:
     """Cholesky decomposition.
 
     Return the Cholesky decomposition, `L * L.H`, of the square matrix `a`,

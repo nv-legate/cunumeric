@@ -16,9 +16,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from types import ModuleType
+from typing import TYPE_CHECKING, Any, Iterable, Iterator, Type, Union
 
 from ..coverage import is_implemented, is_multi, is_single
 from ._comparison_config import MISSING_NP_REFS, SKIP
+
+if TYPE_CHECKING:
+    from ._comparison_config import SectionConfig
 
 YES = "\u2713"
 NO = "\u274C"
@@ -42,7 +46,7 @@ class SectionDetail:
     items: list[ItemDetail]
 
 
-def _npref(name, obj):
+def _npref(name: str, obj: Any) -> str:
     if isinstance(obj, ModuleType):
         full_name = f"{obj.__name__}.{name}"
     else:
@@ -55,7 +59,7 @@ def _npref(name, obj):
     return f":{role}:`{full_name}`"
 
 
-def _lgref(name, obj, implemented):
+def _lgref(name: str, obj: Any, implemented: bool) -> str:
     if not implemented:
         return "-"
 
@@ -69,7 +73,11 @@ def _lgref(name, obj, implemented):
     return f":{role}:`{full_name}`"
 
 
-def filter_names(obj, types=None, skip=()):
+def filter_names(
+    obj: Any,
+    types: Union[tuple[Type[Any], ...], None] = None,
+    skip: Iterable[str] = (),
+) -> Iterator[str]:
     names = (n for n in dir(obj))  # every name in the module or class
     names = (n for n in names if n not in skip)  # except the ones we skip
     names = (n for n in names if not n.startswith("_"))  # or any private names
@@ -79,7 +87,7 @@ def filter_names(obj, types=None, skip=()):
     return names
 
 
-def get_item(name, np_obj, lg_obj):
+def get_item(name: str, np_obj: Any, lg_obj: Any) -> ItemDetail:
     lg_attr = getattr(lg_obj, name)
 
     if implemented := is_implemented(lg_attr):
@@ -98,7 +106,7 @@ def get_item(name, np_obj, lg_obj):
     )
 
 
-def get_namespaces(attr):
+def get_namespaces(attr: Union[str, None]) -> tuple[Any, Any]:
     import numpy
 
     import cunumeric
@@ -109,8 +117,10 @@ def get_namespaces(attr):
     return getattr(numpy, attr), getattr(cunumeric, attr)
 
 
-def generate_section(config):
+def generate_section(config: SectionConfig) -> SectionDetail:
     np_obj, lg_obj = get_namespaces(config.attr)
+
+    names: Iterable[str]
 
     if config.names:
         names = config.names
