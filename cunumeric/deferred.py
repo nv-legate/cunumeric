@@ -33,7 +33,6 @@ from .config import (
     UnaryOpCode,
     UnaryRedCode,
 )
-from .exception import IndexError
 from .linalg.cholesky import cholesky
 from .sort import sort
 from .thunk import NumPyThunk
