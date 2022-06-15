@@ -36,3 +36,4 @@ cunumeric/install_info.py
 *.egg-info
 .cache
 .vscode
+/install*
