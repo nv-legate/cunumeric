@@ -110,7 +110,7 @@ def test_scan():
            "nancumprod",]
     n0s = ["first_half",
           "second_half",]
-    shapes = [[1000000],
+    shapes = [[10000],
               [1000,1000],
               [100,100,100],]
     int_types = [np.int32,

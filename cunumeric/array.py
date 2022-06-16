@@ -3758,23 +3758,23 @@ class ndarray:
                 assert out.size == src.size
             if dtype == src.dtype:
                 out = convert_to_cunumeric_ndarray(out)
-                out._thunk.scan(op, src._thunk, axis=axis, dtype=src.dtype, nan0=nan0)
+                out._thunk.scan(op, src._thunk, axis=axis, dtype=dtype, nan0=nan0)
             else :
-                # Perform scan into temporary out
-                temp = ndarray(shape=out.shape, dtype=src.dtype)
-                temp._thunk.scan(op, src._thunk, axis=axis, dtype=src.dtype, nan0=nan0)
-                out._thunk.convert(temp._thunk)
+                # convert input to temporary for type conversion
+                temp = ndarray(shape=out.shape, dtype=dtype)
+                temp._thunk.convert(src._thunk)
+                out._thunk.scan(op, temp._thunk, axis=axis, dtype=dtype, nan0=nan0)
         else:
             if axis is not  None:
                 out = ndarray(shape=src.shape, dtype=dtype)
             else:
                 out = ndarray(shape=src.size, dtype=dtype)
             if dtype == src.dtype:
-                out._thunk.scan(op, src._thunk, axis=axis, dtype=src.dtype, nan0=nan0)
+                out._thunk.scan(op, src._thunk, axis=axis, dtype=dtype, nan0=nan0)
             else:
-                # Perform scan into temporary out
-                temp = ndarray(shape=out.shape, dtype=src.dtype)
-                temp._thunk.scan(op, src._thunk, axis=axis, dtype=src.dtype, nan0=nan0)
-                out._thunk.convert(temp._thunk)
+                # convert input to temporary for type conversion
+                temp = ndarray(shape=out.shape, dtype=dtype)
+                temp._thunk.convert(src._thunk)
+                out._thunk.scan(op, temp._thunk, axis=axis, dtype=dtype, nan0=nan0)
             
         return out
