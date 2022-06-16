@@ -107,7 +107,7 @@ ARGS = [
         ArgSpec(
             action="store",
             type=str,
-            nargs=1,
+            nargs="?",
             default=None,
             dest="report_dump_csv",
             help="Save a coverage report to a specified CSV file",
