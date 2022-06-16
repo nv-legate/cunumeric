@@ -786,7 +786,7 @@ class DeferredArray(NumPyThunk):
 
                 view.copy(rhs, deep=False)
 
-    def reshape(self, newshape, order):
+    def reshape(self, newshape, order) -> DeferredArray:
         assert isinstance(newshape, Iterable)
         if order == "A":
             order = "C"
@@ -994,7 +994,7 @@ class DeferredArray(NumPyThunk):
             )
         return DeferredArray(self.runtime, result, self.dtype)
 
-    def swapaxes(self, axis1, axis2):
+    def swapaxes(self, axis1, axis2) -> DeferredArray:
         if self.size == 1 or axis1 == axis2:
             return self
         # Make a new deferred array object and swap the results

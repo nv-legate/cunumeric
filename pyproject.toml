@@ -70,7 +70,6 @@ module = [
     "cunumeric.eager",
     "cunumeric.module",
     "cunumeric.runtime",
-    "cunumeric.sort",
     "cunumeric.thunk",
 ]
 ignore_errors = true
