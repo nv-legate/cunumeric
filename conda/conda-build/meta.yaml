@@ -104,10 +104,11 @@ requirements:
     - scipy
     - typing_extensions
 
-  run_constrained:
 {% if gpu_enabled_bool %}
     - __cuda >=11.4
 {% endif %}
+
+  run_constrained:
     - __glibc >=2.17  # [linux]
 
 about:
