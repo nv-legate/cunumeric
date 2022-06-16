@@ -102,6 +102,11 @@ struct AdvancedIndexingImplBody<VariantKind::OMP, CODE, DIM, OUT_TYPE> {
     size_t size =
       compute_output_offsets(offsets, index, pitches, rect, volume, skip_size, max_threads);
 
+    if (0 == size) {
+      out_arr.make_empty();
+      return;
+    }
+
     // calculating the shape of the output region for this sub-task
     Point<DIM> extents;
     extents[0] = size;

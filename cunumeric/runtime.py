@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from __future__ import annotations
 
 import struct
 import warnings
@@ -107,7 +108,7 @@ ARGS = [
         ArgSpec(
             action="store",
             type=str,
-            nargs=1,
+            nargs="?",
             default=None,
             dest="report_dump_csv",
             help="Save a coverage report to a specified CSV file",
@@ -258,7 +259,7 @@ class Runtime(object):
             result = future
         return result
 
-    def set_next_random_epoch(self, epoch):
+    def set_next_random_epoch(self, epoch: int) -> None:
         self.current_random_epoch = epoch
 
     def get_next_random_epoch(self):

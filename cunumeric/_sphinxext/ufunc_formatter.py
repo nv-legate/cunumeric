@@ -12,12 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from __future__ import annotations
 
+from typing import Any
+
+from sphinx.application import Sphinx
 from sphinx.ext.autodoc import FunctionDocumenter
 
 from cunumeric import ufunc
 
-from . import PARALLEL_SAFE
+from . import PARALLEL_SAFE, SphinxParallelSpec
 
 
 class UfuncDocumenter(FunctionDocumenter):
@@ -26,10 +30,12 @@ class UfuncDocumenter(FunctionDocumenter):
     priority = 20
 
     @classmethod
-    def can_document_member(cls, member, membername, isattr, parent):
+    def can_document_member(
+        cls, member: Any, membername: str, isattr: bool, parent: Any
+    ) -> bool:
         return isinstance(getattr(member, "__wrapped__", None), ufunc)
 
 
-def setup(app):
+def setup(app: Sphinx) -> SphinxParallelSpec:
     app.add_autodocumenter(UfuncDocumenter)
     return PARALLEL_SAFE
