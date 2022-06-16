@@ -90,9 +90,10 @@ requirements:
 {% endif %}
 
   run:
-    - numpy
+    - numpy >=1.22
     - libopenblas =* =*openmp*
 {% if gpu_enabled_bool %}
+    - cuda-cudart >={{ cuda_version }}
     # - libcutensor >=1.3
     - cutensor >=1.3
     - libcublas
