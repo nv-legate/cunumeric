@@ -3756,19 +3756,25 @@ class ndarray:
             else:
                 assert out.ndim == 1
                 assert out.size == src.size
-            if out.dtype == dtype:
+            if dtype == src.dtype:
                 out = convert_to_cunumeric_ndarray(out)
                 out._thunk.scan(op, src._thunk, axis=axis, dtype=src.dtype, nan0=nan0)
             else :
                 # Perform scan into temporary out
-                temp = ndarray(shape=out.shape, dtype=dtype)
+                temp = ndarray(shape=out.shape, dtype=src.dtype)
                 temp._thunk.scan(op, src._thunk, axis=axis, dtype=src.dtype, nan0=nan0)
                 out._thunk.convert(temp._thunk)
-        else :
+        else:
             if axis is not  None:
-                out = ndarray(shape=src.shape, dtype=src.dtype)
+                out = ndarray(shape=src.shape, dtype=dtype)
+            else:
+                out = ndarray(shape=src.size, dtype=dtype)
+            if dtype == src.dtype:
                 out._thunk.scan(op, src._thunk, axis=axis, dtype=src.dtype, nan0=nan0)
             else:
-                out = ndarray(shape=src.size, dtype=src.dtype)
-                out._thunk.scan(op, src._thunk, axis=axis, dtype=src.dtype, nan0=nan0)
+                # Perform scan into temporary out
+                temp = ndarray(shape=out.shape, dtype=src.dtype)
+                temp._thunk.scan(op, src._thunk, axis=axis, dtype=src.dtype, nan0=nan0)
+                out._thunk.convert(temp._thunk)
+            
         return out
