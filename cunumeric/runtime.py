@@ -233,7 +233,7 @@ class Runtime(object):
                 for (func_name, loc, impl) in self.api_calls:
                     print(f"{func_name},{loc},{impl}", file=f)
 
-    def destroy(self):
+    def destroy(self) -> None:
         assert not self.destroyed
         if self.num_gpus > 0:
             self._unload_cudalibs()

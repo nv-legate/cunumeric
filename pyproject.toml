@@ -65,7 +65,6 @@ warn_unused_configs = true
 [[tool.mypy.overrides]]
 module = [
     "cunumeric.array",
-    "cunumeric.config",
     "cunumeric.deferred",
     "cunumeric.eager",
     "cunumeric.module",
