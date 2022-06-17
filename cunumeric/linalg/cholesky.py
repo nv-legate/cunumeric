@@ -64,7 +64,7 @@ def transpose_copy(
 
 
 def potrf_single(context: Context, output: Store) -> None:
-    task = context.create_manual_task(CuNumericOpCode.POTRF)
+    task = context.create_task(CuNumericOpCode.POTRF)
     task.throws_exception(LinAlgError)
     task.add_output(output)
     task.add_input(output)
@@ -171,7 +171,7 @@ def choose_color_shape(runtime: Runtime, shape: Shape) -> Shape:
 
 
 def tril_single(context: Context, output: Store) -> None:
-    task = context.create_manual_task(CuNumericOpCode.TRILU)
+    task = context.create_task(CuNumericOpCode.TRILU)
     task.add_output(output)
     task.add_input(output)
     task.add_scalar_arg(True, bool)
