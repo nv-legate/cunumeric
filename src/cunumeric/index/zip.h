@@ -43,12 +43,12 @@ class ZipTask : public CuNumericTask<ZipTask> {
 #endif
 };
 
-constexpr coord_t compute_idx(coord_t index, coord_t dim)
+constexpr coord_t compute_idx(coord_t index, coord_t extent)
 {
-  // bounds checking
-  if ((index < 0 && index + dim < 0) || (index >= 0 && index >= dim))
+  coord_t new_index = index < 0 ? index + extent : index;
+  if (new_index < 0 || new_index >= extent)
     throw legate::TaskException("index is out of bounds in index array");
-  return index < 0 ? index + dim : index;
+  return new_index;
 }
 
 }  // namespace cunumeric
