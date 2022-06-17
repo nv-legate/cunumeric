@@ -34,7 +34,7 @@ if TYPE_CHECKING:
 def transpose_copy_single(
     context: Context, input: Store, output: Store
 ) -> None:
-    task = context.create_manual_task(CuNumericOpCode.TRANSPOSE_COPY_2D)
+    task = context.create_auto_task(CuNumericOpCode.TRANSPOSE_COPY_2D)
     task.add_output(output)
     task.add_input(input)
     # Output has the same shape as input, but is mapped
@@ -64,7 +64,7 @@ def transpose_copy(
 
 
 def potrf_single(context: Context, output: Store) -> None:
-    task = context.create_task(CuNumericOpCode.POTRF)
+    task = context.create_auto_task(CuNumericOpCode.POTRF)
     task.throws_exception(LinAlgError)
     task.add_output(output)
     task.add_input(output)
