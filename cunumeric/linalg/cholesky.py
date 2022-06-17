@@ -14,12 +14,11 @@
 #
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 from cunumeric.config import CuNumericOpCode
 
 from legate.core import Rect, types as ty
-from legate.core.operation import ManualTask
 from legate.core.shape import Shape
 
 from .exception import LinAlgError
@@ -35,9 +34,7 @@ if TYPE_CHECKING:
 def transpose_copy_single(
     context: Context, input: Store, output: Store
 ) -> None:
-    task = cast(
-        ManualTask, context.create_task(CuNumericOpCode.TRANSPOSE_COPY_2D)
-    )
+    task = context.create_manual_task(CuNumericOpCode.TRANSPOSE_COPY_2D)
     task.add_output(output)
     task.add_input(input)
     # Output has the same shape as input, but is mapped
@@ -53,13 +50,9 @@ def transpose_copy(
     p_input: StorePartition,
     p_output: StorePartition,
 ) -> None:
-    task = cast(
-        ManualTask,
-        context.create_task(
-            CuNumericOpCode.TRANSPOSE_COPY_2D,
-            manual=True,
-            launch_domain=launch_domain,
-        ),
+    task = context.create_manual_task(
+        CuNumericOpCode.TRANSPOSE_COPY_2D,
+        launch_domain=launch_domain,
     )
     task.add_output(p_output)
     task.add_input(p_input)
@@ -71,7 +64,7 @@ def transpose_copy(
 
 
 def potrf_single(context: Context, output: Store) -> None:
-    task = context.create_task(CuNumericOpCode.POTRF)
+    task = context.create_manual_task(CuNumericOpCode.POTRF)
     task.throws_exception(LinAlgError)
     task.add_output(output)
     task.add_input(output)
@@ -80,11 +73,8 @@ def potrf_single(context: Context, output: Store) -> None:
 
 def potrf(context: Context, p_output: StorePartition, i: int) -> None:
     launch_domain = Rect(lo=(i, i), hi=(i + 1, i + 1))
-    task = cast(
-        ManualTask,
-        context.create_task(
-            CuNumericOpCode.POTRF, manual=True, launch_domain=launch_domain
-        ),
+    task = context.create_manual_task(
+        CuNumericOpCode.POTRF, launch_domain=launch_domain
     )
     task.throws_exception(LinAlgError)
     task.add_output(p_output)
@@ -102,11 +92,8 @@ def trsm(
     lhs = p_output
 
     launch_domain = Rect(lo=(lo, i), hi=(hi, i + 1))
-    task = cast(
-        ManualTask,
-        context.create_task(
-            CuNumericOpCode.TRSM, manual=True, launch_domain=launch_domain
-        ),
+    task = context.create_manual_task(
+        CuNumericOpCode.TRSM, launch_domain=launch_domain
     )
     task.add_output(lhs)
     task.add_input(rhs)
@@ -119,11 +106,8 @@ def syrk(context: Context, p_output: StorePartition, k: int, i: int) -> None:
     lhs = p_output
 
     launch_domain = Rect(lo=(k, k), hi=(k + 1, k + 1))
-    task = cast(
-        ManualTask,
-        context.create_task(
-            CuNumericOpCode.SYRK, manual=True, launch_domain=launch_domain
-        ),
+    task = context.create_manual_task(
+        CuNumericOpCode.SYRK, launch_domain=launch_domain
     )
     task.add_output(lhs)
     task.add_input(rhs)
@@ -147,11 +131,8 @@ def gemm(
     rhs1 = p_output
 
     launch_domain = Rect(lo=(lo, k), hi=(hi, k + 1))
-    task = cast(
-        ManualTask,
-        context.create_task(
-            CuNumericOpCode.GEMM, manual=True, launch_domain=launch_domain
-        ),
+    task = context.create_manual_task(
+        CuNumericOpCode.GEMM, launch_domain=launch_domain
     )
     task.add_output(lhs)
     task.add_input(rhs1, proj=lambda p: (p[0], i))
@@ -190,7 +171,7 @@ def choose_color_shape(runtime: Runtime, shape: Shape) -> Shape:
 
 
 def tril_single(context: Context, output: Store) -> None:
-    task = cast(ManualTask, context.create_task(CuNumericOpCode.TRILU))
+    task = context.create_manual_task(CuNumericOpCode.TRILU)
     task.add_output(output)
     task.add_input(output)
     task.add_scalar_arg(True, bool)
@@ -203,11 +184,8 @@ def tril_single(context: Context, output: Store) -> None:
 
 def tril(context: Context, p_output: StorePartition, n: int) -> None:
     launch_domain = Rect((n, n))
-    task = cast(
-        ManualTask,
-        context.create_task(
-            CuNumericOpCode.TRILU, manual=True, launch_domain=launch_domain
-        ),
+    task = context.create_manual_task(
+        CuNumericOpCode.TRILU, launch_domain=launch_domain
     )
 
     task.add_output(p_output)
