@@ -32,7 +32,7 @@ def initialize(shape, dt, axis):
             B = np.zeros(shape=A.size, dtype=np.int32)
         else:
             B = np.zeros(shape=shape, dtype=np.int32)
-    else:
+    elif dt=="float":
         A = np.random.random(shape).astype(np.float32)
         # insert NAN at second element
         if len(shape) == 1:
@@ -48,6 +48,22 @@ def initialize(shape, dt, axis):
             B = np.zeros(shape=A.size, dtype=np.float32)
         else:
             B = np.zeros(shape=shape, dtype=np.float32)
+    else:
+        A = np.random.random(shape).astype(np.float32) + np.random.random(shape).astype(np.float32) * 1j
+        if len(shape) == 1:
+            A[1] = np.nan
+        elif len(shape) == 2:
+            A[1,1] = np.nan
+        elif len(shape) == 3:
+            A[1,1,1] = np.nan
+        elif len(shape) == 4:
+            A[1,1,1,1] = np.nan
+
+        if axis is None:
+            B = np.zeros(shape=A.size, dtype=np.complex64)
+        else:
+            B = np.zeros(shape=shape, dtype=np.complex64)
+
     return A, B
         
 
@@ -123,7 +139,7 @@ if __name__ == "__main__":
         "-t",
         "--datatype",
         default="int",
-        choices=["int", "float"],
+        choices=["int", "float", "complex"],
         dest="dt",
         help="data type (default int)",
     )
