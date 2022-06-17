@@ -67,7 +67,6 @@ module = [
     "cunumeric.array",
     "cunumeric.deferred",
     "cunumeric.eager",
-    "cunumeric.module",
     "cunumeric.runtime",
     "cunumeric.thunk",
 ]

@@ -148,7 +148,8 @@ def matrix_power(a: ndarray, n: int) -> ndarray:
     # Use binary decomposition to reduce the number of matrix multiplications.
     # Here, we iterate over the bits of n, from LSB to MSB, raise `a` to
     # increasing powers of 2, and multiply into the result as needed.
-    z = result = None
+    z: Union[ndarray, None] = None
+    result: Union[ndarray, None] = None
     while n > 0:
         z = a if z is None else matmul(z, z)
         n, bit = divmod(n, 2)
