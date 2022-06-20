@@ -32,14 +32,14 @@ struct integers<int32_t> {
   }
 };
 
-extern "C" curandStatus_t CURANDAPI curandGenerateIntegers32Ex(
-  curandGeneratorEx_t generator, int32_t* outputPtr, size_t n, int32_t low, int32_t high)
+extern "C" curandStatus_t CURANDAPI randutilGenerateIntegers32(
+  randutilGenerator_t generator, int32_t* outputPtr, size_t n, int32_t low, int32_t high)
 {
-  curandimpl::basegenerator* gen = (curandimpl::basegenerator*)generator;
+  randutilimpl::basegenerator* gen = (randutilimpl::basegenerator*)generator;
   integers<int32_t> func;
   func.from = low;
   func.to   = high;
-  return curandimpl::dispatch_sample<integers<int32_t>, int32_t>(gen, func, n, outputPtr);
+  return randutilimpl::dispatch_sample<integers<int32_t>, int32_t>(gen, func, n, outputPtr);
 }
 
 template <>
@@ -57,12 +57,12 @@ struct integers<int64_t> {
   }
 };
 
-extern "C" curandStatus_t CURANDAPI curandGenerateIntegers64Ex(
-  curandGeneratorEx_t generator, int64_t* outputPtr, size_t n, int64_t low, int64_t high)
+extern "C" curandStatus_t CURANDAPI randutilGenerateIntegers64(
+  randutilGenerator_t generator, int64_t* outputPtr, size_t n, int64_t low, int64_t high)
 {
-  curandimpl::basegenerator* gen = (curandimpl::basegenerator*)generator;
+  randutilimpl::basegenerator* gen = (randutilimpl::basegenerator*)generator;
   integers<int64_t> func;
   func.from = low;
   func.to   = high;
-  return curandimpl::dispatch_sample<integers<int64_t>, int64_t>(gen, func, n, outputPtr);
+  return randutilimpl::dispatch_sample<integers<int64_t>, int64_t>(gen, func, n, outputPtr);
 }

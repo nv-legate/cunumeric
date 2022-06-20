@@ -28,19 +28,32 @@ namespace cunumeric {
 using namespace Legion;
 using namespace legate;
 
+static Legion::Logger log_curand("cunumeric.random");
+
+Legion::Logger& randutil_log() { return log_curand; }
+
+void randutil_check_curand(curandStatus_t error, const char* file, int line)
+{
+  if (error != CURAND_STATUS_SUCCESS) {
+    log_curand.fatal() << "Internal CURAND failure with error " << (int)error << " in file " << file
+                       << " at line " << line;
+    assert(false);
+  }
+}
+
 struct GPUGenerator : public CURANDGenerator {
   cudaStream_t stream_;
   GPUGenerator(BitGeneratorType gentype, uint64_t seed, uint64_t generatorId, uint32_t flags)
     : CURANDGenerator(gentype, seed, generatorId)
   {
     CHECK_CUDA(::cudaStreamCreate(&stream_));
-    CHECK_CURAND(::curandCreateGeneratorEx(&gen_, type_, seed, generatorId, flags, stream_));
+    CHECK_CURAND(::randutilCreateGenerator(&gen_, type_, seed, generatorId, flags, stream_));
   }
 
   virtual ~GPUGenerator()
   {
     CHECK_CUDA(::cudaStreamSynchronize(stream_));
-    CHECK_CURAND(::curandDestroyGeneratorEx(gen_));
+    CHECK_CURAND(::randutilDestroyGenerator(gen_));
   }
 };
 

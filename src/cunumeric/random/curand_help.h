@@ -18,22 +18,15 @@
 
 #include <curand.h>
 
-#define CHECK_CURAND(expr)                        \
-  do {                                            \
-    curandStatus_t __result__ = (expr);           \
-    check_curand(__result__, __FILE__, __LINE__); \
+#define CHECK_CURAND(expr)                                 \
+  do {                                                     \
+    curandStatus_t __result__ = (expr);                    \
+    randutil_check_curand(__result__, __FILE__, __LINE__); \
   } while (false)
 
-static Legion::Logger log_curand("cunumeric.random");
-
-__host__ inline void check_curand(curandStatus_t error, const char* file, int line)
-{
-  if (error != CURAND_STATUS_SUCCESS) {
-    log_curand.fatal() << "Internal CURAND failure with error " << (int)error << " in file " << file
-                       << " at line " << line;
-    exit((int)error);
-  }
-}
+namespace cunumeric {
+Legion::Logger& randutil_log();
+void randutil_check_curand(curandStatus_t error, const char* file, int line);
 
 static inline curandRngType get_curandRngType(cunumeric::BitGeneratorType kind)
 {
@@ -46,9 +39,10 @@ static inline curandRngType get_curandRngType(cunumeric::BitGeneratorType kind)
     case cunumeric::BitGeneratorType::PHILOX4_32_10:
       return curandRngType::CURAND_RNG_PSEUDO_PHILOX4_32_10;
     default: {
-      log_curand.fatal() << "unknown parameter";
-      assert(false);
+      randutil_log().fatal() << "unknown parameter";
       return curandRngType::CURAND_RNG_TEST;
     }
   }
 }
+
+}  // namespace cunumeric

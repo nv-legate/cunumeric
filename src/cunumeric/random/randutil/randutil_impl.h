@@ -15,7 +15,7 @@
  */
 
 #pragma once
-#include "curand_ex.h"
+#include "randutil.h"
 
 #define CURAND_CHECK_LINE(a, file, line)                          \
   {                                                               \
@@ -48,11 +48,11 @@
   }
 #define CUDA_CHECK(a) CUDA_CHECK_LINE(a, __FILE__, __LINE__)
 
-namespace curandimpl {
+namespace randutilimpl {
 
 enum class execlocation : int { DEVICE = 0, HOST = 1 };
 
 template <typename gen_t, execlocation loc>
 struct inner_generator;
 
-}  // namespace curandimpl
+}  // namespace randutilimpl

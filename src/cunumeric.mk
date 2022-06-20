@@ -15,45 +15,46 @@
 
 # List all the application source files that need OpenMP separately
 # since we have to add the -fopenmp flag to  CC_FLAGS for them
-GEN_CPU_SRC += cunumeric/ternary/where.cc                             \
-							 cunumeric/binary/binary_op.cc            \
-							 cunumeric/binary/binary_red.cc           \
-							 cunumeric/unary/scalar_unary_red.cc      \
-							 cunumeric/unary/unary_op.cc              \
-							 cunumeric/unary/unary_red.cc             \
-							 cunumeric/unary/convert.cc               \
-							 cunumeric/nullary/arange.cc              \
-							 cunumeric/nullary/eye.cc                 \
-							 cunumeric/nullary/fill.cc                \
-							 cunumeric/nullary/window.cc              \
-							 cunumeric/index/advanced_indexing.cc     \
-							 cunumeric/index/choose.cc                \
-							 cunumeric/index/repeat.cc                \
-							 cunumeric/index/zip.cc                   \
-							 cunumeric/item/read.cc                   \
-							 cunumeric/item/write.cc                  \
-							 cunumeric/matrix/contract.cc             \
-							 cunumeric/matrix/diag.cc                 \
-							 cunumeric/matrix/gemm.cc                 \
-							 cunumeric/matrix/matmul.cc               \
-							 cunumeric/matrix/matvecmul.cc            \
-							 cunumeric/matrix/dot.cc                  \
-							 cunumeric/matrix/potrf.cc                \
-							 cunumeric/matrix/syrk.cc                 \
-							 cunumeric/matrix/tile.cc                 \
-							 cunumeric/matrix/transpose.cc            \
-							 cunumeric/matrix/trilu.cc                \
-							 cunumeric/matrix/trsm.cc                 \
-							 cunumeric/matrix/util.cc                 \
-							 cunumeric/random/rand.cc                 \
-							 cunumeric/random/bitgenerator.cc         \
-							 cunumeric/search/nonzero.cc              \
-							 cunumeric/set/unique.cc                  \
-							 cunumeric/set/unique_reduce.cc           \
-							 cunumeric/stat/bincount.cc               \
-							 cunumeric/convolution/convolve.cc        \
-							 cunumeric/transform/flip.cc              \
-							 cunumeric/arg.cc                         \
+GEN_CPU_SRC += cunumeric/ternary/where.cc                                \
+							 cunumeric/binary/binary_op.cc               \
+							 cunumeric/binary/binary_red.cc              \
+							 cunumeric/unary/scalar_unary_red.cc         \
+							 cunumeric/unary/unary_op.cc                 \
+							 cunumeric/unary/unary_red.cc                \
+							 cunumeric/unary/convert.cc                  \
+							 cunumeric/nullary/arange.cc                 \
+							 cunumeric/nullary/eye.cc                    \
+							 cunumeric/nullary/fill.cc                   \
+							 cunumeric/nullary/window.cc                 \
+							 cunumeric/index/advanced_indexing.cc        \
+							 cunumeric/index/choose.cc                   \
+							 cunumeric/index/repeat.cc                   \
+							 cunumeric/index/zip.cc                      \
+							 cunumeric/item/read.cc                      \
+							 cunumeric/item/write.cc                     \
+							 cunumeric/matrix/contract.cc                \
+							 cunumeric/matrix/diag.cc                    \
+							 cunumeric/matrix/gemm.cc                    \
+							 cunumeric/matrix/matmul.cc                  \
+							 cunumeric/matrix/matvecmul.cc               \
+							 cunumeric/matrix/dot.cc                     \
+							 cunumeric/matrix/potrf.cc                   \
+							 cunumeric/matrix/syrk.cc                    \
+							 cunumeric/matrix/tile.cc                    \
+							 cunumeric/matrix/transpose.cc               \
+							 cunumeric/matrix/trilu.cc                   \
+							 cunumeric/matrix/trsm.cc                    \
+							 cunumeric/matrix/util.cc                    \
+							 cunumeric/random/rand.cc                    \
+							 cunumeric/random/bitgenerator.cc            \
+							 cunumeric/random/randutil/generator_host.cc \
+							 cunumeric/search/nonzero.cc                 \
+							 cunumeric/set/unique.cc                     \
+							 cunumeric/set/unique_reduce.cc              \
+							 cunumeric/stat/bincount.cc                  \
+							 cunumeric/convolution/convolve.cc           \
+							 cunumeric/transform/flip.cc                 \
+							 cunumeric/arg.cc                            \
 							 cunumeric/mapper.cc
 
 GEN_CPU_SRC += cunumeric/cephes/chbevl.cc                             \
@@ -127,24 +128,9 @@ GEN_GPU_SRC += cunumeric/ternary/where.cu                                       
 							 cunumeric/matrix/trsm.cu                            \
 							 cunumeric/random/rand.cu                            \
 							 cunumeric/random/bitgenerator.cu                    \
-							 cunumeric/random/curandex/generator_cauchy.cu       \
-							 cunumeric/random/curandex/generator_normals.cu      \
-							 cunumeric/random/curandex/generator_create.cu       \
-							 cunumeric/random/curandex/generator_pareto.cu       \
-							 cunumeric/random/curandex/generator_exponential.cu  \
-							 cunumeric/random/curandex/generator_poisson.cu      \
-							 cunumeric/random/curandex/generator_gumbel.cu       \
-							 cunumeric/random/curandex/generator_power.cu        \
-							 cunumeric/random/curandex/generator_integers.cu     \
-							 cunumeric/random/curandex/generator_rayleigh.cu     \
-							 cunumeric/random/curandex/generator_laplace.cu      \
-							 cunumeric/random/curandex/generator_triangular.cu   \
-							 cunumeric/random/curandex/generator_logistic.cu     \
-							 cunumeric/random/curandex/generator_uniform.cu      \
-							 cunumeric/random/curandex/generator_lognormal.cu    \
-							 cunumeric/random/curandex/generator_weibull.cu      \
-							 cunumeric/random/curandex/generator_longlong.cu     \
-							 cunumeric/random/curandex/generator_raw.cu          \
+							 cunumeric/random/randutil/generator_create.cu       \
+							 cunumeric/random/randutil/generator_integers.cu     \
+							 cunumeric/random/randutil/generator_raw.cu          \
 							 cunumeric/search/nonzero.cu                         \
 							 cunumeric/set/unique.cu                             \
 							 cunumeric/stat/bincount.cu                          \

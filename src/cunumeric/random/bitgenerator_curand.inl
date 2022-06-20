@@ -26,20 +26,18 @@
 #include "cunumeric/random/bitgenerator_util.h"
 
 #include "cunumeric/random/curand_help.h"
-#include "cunumeric/random/curandex/curand_ex.h"
+#include "cunumeric/random/randutil/randutil.h"
 
 namespace cunumeric {
 
 using namespace Legion;
 using namespace legate;
 
-static Logger log_curand("cunumeric.random");
-
 template <VariantKind kind>
 struct CURANDGeneratorBuilder;
 
 struct CURANDGenerator {
-  curandGeneratorEx_t gen_;
+  randutilGenerator_t gen_;
   uint64_t seed_;
   uint64_t generatorId_;
   curandRngType type_;
@@ -48,25 +46,25 @@ struct CURANDGenerator {
   CURANDGenerator(BitGeneratorType gentype, uint64_t seed, uint64_t generatorId)
     : type_(get_curandRngType(gentype)), seed_(seed), generatorId_(generatorId)
   {
-    log_curand.debug() << "CURANDGenerator::create";
+    randutil_log().debug() << "CURANDGenerator::create";
   }
 
   CURANDGenerator(const CURANDGenerator&) = delete;
 
  public:
-  virtual ~CURANDGenerator() { log_curand.debug() << "CURANDGenerator::destroy"; }
+  virtual ~CURANDGenerator() { randutil_log().debug() << "CURANDGenerator::destroy"; }
 
   void generate_raw(uint64_t count, uint32_t* out)
   {
-    CHECK_CURAND(::curandGenerateRawUInt32Ex(gen_, out, count));
+    CHECK_CURAND(::randutilGenerateRawUInt32(gen_, out, count));
   }
   void generate_integer_64(uint64_t count, int64_t* out, int64_t low, int64_t high)
   {
-    CHECK_CURAND(::curandGenerateIntegers64Ex(gen_, out, count, low, high));
+    CHECK_CURAND(::randutilGenerateIntegers64(gen_, out, count, low, high));
   }
   void generate_integer_32(uint64_t count, int32_t* out, int32_t low, int32_t high)
   {
-    CHECK_CURAND(::curandGenerateIntegers32Ex(gen_, out, count, low, high));
+    CHECK_CURAND(::randutilGenerateIntegers32(gen_, out, count, low, high));
   }
 };
 
@@ -78,7 +76,7 @@ struct generate_fn {
     uint64_t volume = rect.volume();
 
     const auto proc = Legion::Processor::get_executing_processor();
-    log_curand.debug() << "proc=" << proc << " - shape = " << rect;
+    randutil_log().debug() << "proc=" << proc << " - shape = " << rect;
 
     if (volume > 0) {
       auto out = output.write_accessor<uint32_t, DIM>(rect);
@@ -140,7 +138,7 @@ struct generate_distribution {
     uint64_t volume = rect.volume();
 
     const auto proc = Legion::Processor::get_executing_processor();
-    log_curand.debug() << "proc=" << proc << " - shape = " << rect;
+    randutil_log().debug() << "proc=" << proc << " - shape = " << rect;
 
     if (volume > 0) {
       auto out = output.write_accessor<output_t, DIM>(rect);
@@ -171,7 +169,7 @@ struct generator_map {
   ~generator_map()
   {
     if (m_generators.size() != 0) {
-      log_curand.debug() << "some generators have not been freed - cleaning-up !";
+      randutil_log().debug() << "some generators have not been freed - cleaning-up !";
       // actually destroy
       for (auto kv = m_generators.begin(); kv != m_generators.end(); ++kv) {
         auto cugenptr = kv->second;
@@ -188,8 +186,8 @@ struct generator_map {
   CURANDGenerator* get(uint32_t generatorID)
   {
     if (m_generators.find(generatorID) == m_generators.end()) {
-      log_curand.fatal() << "internal error : generator ID <" << generatorID
-                         << "> does not exist (get) !";
+      randutil_log().fatal() << "internal error : generator ID <" << generatorID
+                             << "> does not exist (get) !";
       assert(false);
     }
     return m_generators[generatorID];
@@ -204,8 +202,8 @@ struct generator_map {
 
     // safety check
     if (m_generators.find(generatorID) != m_generators.end()) {
-      log_curand.fatal() << "internal error : generator ID <" << generatorID
-                         << "> already in use !";
+      randutil_log().fatal() << "internal error : generator ID <" << generatorID
+                             << "> already in use !";
       assert(false);
     }
     m_generators[generatorID] = cugenptr;
@@ -268,13 +266,13 @@ struct BitGeneratorImplBody {
       case BitGeneratorOperation::CREATE: {
         genmap.create(generatorID, generatorType, seed, flags);
 
-        log_curand.debug() << "created generator " << generatorID;
+        randutil_log().debug() << "created generator " << generatorID;
         break;
       }
       case BitGeneratorOperation::DESTROY: {
         genmap.destroy(generatorID);
 
-        log_curand.debug() << "destroyed generator " << generatorID;
+        randutil_log().debug() << "destroyed generator " << generatorID;
         break;
       }
       case BitGeneratorOperation::RAND_RAW: {
@@ -307,7 +305,7 @@ struct BitGeneratorImplBody {
                 res, cugen, intparams, floatparams, doubleparams);
               break;
             default: {
-              log_curand.fatal() << "unknown Distribution";
+              randutil_log().fatal() << "unknown Distribution";
               assert(false);
             }
           }
@@ -315,7 +313,7 @@ struct BitGeneratorImplBody {
         break;
       }
       default: {
-        log_curand.fatal() << "unknown BitGenerator operation";
+        randutil_log().fatal() << "unknown BitGenerator operation";
         assert(false);
       }
     }
