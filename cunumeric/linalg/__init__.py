@@ -12,11 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
+from __future__ import annotations
 
 import numpy.linalg as _nplinalg
 
 from cunumeric.linalg.linalg import *
+from cunumeric.linalg.exception import *
 from cunumeric.coverage import clone_module
 
 clone_module(_nplinalg, globals())

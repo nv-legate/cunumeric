@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from __future__ import annotations
 
 import math
 import re
@@ -45,7 +46,7 @@ _builtin_sum = sum
 # From shape or value
 
 
-def empty(shape, dtype=np.float64):
+def empty(shape, dtype=np.float64) -> ndarray:
     """
     empty(shape, dtype=float)
 
@@ -112,7 +113,7 @@ def empty_like(a, dtype=None):
     return ndarray(shape, dtype=dtype, inputs=(a,))
 
 
-def eye(N, M=None, k=0, dtype=np.float64):
+def eye(N, M=None, k=0, dtype=np.float64) -> ndarray:
     """
 
     Return a 2-D array with ones on the diagonal and zeros elsewhere.
@@ -185,7 +186,7 @@ def identity(n, dtype=float):
     return eye(N=n, M=n, dtype=dtype)
 
 
-def ones(shape, dtype=np.float64):
+def ones(shape, dtype=np.float64) -> ndarray:
     """
 
     Return a new array of given shape and type, filled with ones.
@@ -308,7 +309,7 @@ def zeros_like(a, dtype=None):
     return full_like(a, 0, dtype=usedtype)
 
 
-def full(shape, value, dtype=None):
+def full(shape, value, dtype=None) -> ndarray:
     """
 
     Return a new array of given shape and type, filled with `fill_value`.
@@ -501,7 +502,7 @@ def asarray(a, dtype=None):
 
 
 @add_boilerplate("a")
-def copy(a):
+def copy(a) -> ndarray:
     """
 
     Return an array copy of the given object.
@@ -2658,11 +2659,19 @@ def inner(a, b, out=None):
     if a.ndim == 0 or b.ndim == 0:
         return multiply(a, b, out=out)
     (a_modes, b_modes, out_modes) = inner_modes(a.ndim, b.ndim)
-    return _contract(a_modes, b_modes, out_modes, a, b, out=out)
+    return _contract(
+        a_modes,
+        b_modes,
+        out_modes,
+        a,
+        b,
+        out=out,
+        casting="unsafe",
+    )
 
 
 @add_boilerplate("a", "b")
-def dot(a, b, out=None):
+def dot(a, b, out=None) -> ndarray:
     """
     Dot product of two arrays. Specifically,
 
@@ -2692,9 +2701,8 @@ def dot(a, b, out=None):
     b : array_like
         Second argument.
     out : ndarray, optional
-        Output argument. This must have the exact shape that would be returned
-        if it was not present. If its dtype is not what would be expected from
-        this operation, then the result will be (unsafely) cast to `out`.
+        Output argument. This must have the exact shape and dtype that would be
+        returned if it was not present.
 
     Returns
     -------
@@ -2721,25 +2729,38 @@ def dot(a, b, out=None):
 
 
 @add_boilerplate("a", "b")
-def matmul(a, b, out=None):
+def matmul(a, b, /, out=None, *, casting="same_kind", dtype=None):
     """
     Matrix product of two arrays.
 
     Parameters
     ----------
-    x1, x2 : array_like
+    a, b : array_like
         Input arrays, scalars not allowed.
     out : ndarray, optional
         A location into which the result is stored. If provided, it must have
-        a shape that matches the signature `(n,k),(k,m)->(n,m)`. If its dtype
-        is not what would be expected from this operation, then the result will
-        be (unsafely) cast to `out`.
+        a shape that matches the signature `(n,k),(k,m)->(n,m)`.
+    casting : ``{'no', 'equiv', 'safe', 'same_kind', 'unsafe'}``, optional
+        Controls what kind of data casting may occur.
+
+          * 'no' means the data types should not be cast at all.
+          * 'equiv' means only byte-order changes are allowed.
+          * 'safe' means only casts which can preserve values are allowed.
+          * 'same_kind' means only safe casts or casts within a kind,
+            like float64 to float32, are allowed.
+          * 'unsafe' means any data conversions may be done.
+
+        Default is 'same_kind'.
+    dtype : data-type, optional
+        If provided, forces the calculation to use the data type specified.
+        Note that you may have to also give a more liberal `casting`
+        parameter to allow the conversions. Default is None.
 
     Returns
     -------
     output : ndarray
         The matrix product of the inputs.
-        This is a scalar only when both x1, x2 are 1-d vectors.
+        This is a scalar only when both a, b are 1-d vectors.
         If `out` is given, then it is returned.
 
     Notes
@@ -2788,7 +2809,16 @@ def matmul(a, b, out=None):
     if a.ndim == 0 or b.ndim == 0:
         raise ValueError("Scalars not allowed in matmul")
     (a_modes, b_modes, out_modes) = matmul_modes(a.ndim, b.ndim)
-    return _contract(a_modes, b_modes, out_modes, a, b, out=out)
+    return _contract(
+        a_modes,
+        b_modes,
+        out_modes,
+        a,
+        b,
+        out=out,
+        casting=casting,
+        dtype=dtype,
+    )
 
 
 @add_boilerplate("a", "b")
@@ -2932,7 +2962,15 @@ def tensordot(a, b, axes=2, out=None):
     Multiple GPUs, Multiple CPUs
     """
     (a_modes, b_modes, out_modes) = tensordot_modes(a.ndim, b.ndim, axes)
-    return _contract(a_modes, b_modes, out_modes, a, b, out=out)
+    return _contract(
+        a_modes,
+        b_modes,
+        out_modes,
+        a,
+        b,
+        out=out,
+        casting="unsafe",
+    )
 
 
 # Trivial multi-tensor contraction strategy: contract in input order
@@ -2941,8 +2979,18 @@ class NullOptimizer(oe.paths.PathOptimizer):
         return [(0, 1)] + [(0, -1)] * (len(inputs) - 2)
 
 
+def _maybe_cast_input(arr, to_dtype, casting):
+    if arr is None or arr.dtype == to_dtype:
+        return arr
+    if not np.can_cast(arr.dtype, to_dtype, casting=casting):
+        raise TypeError(
+            f"Cannot cast input array of type {arr.dtype} to {to_dtype} with "
+            f"casting rule '{casting}'"
+        )
+    return arr.astype(to_dtype)
+
+
 # Generalized tensor contraction
-@add_boilerplate("a", "b")
 def _contract(
     a_modes,
     b_modes,
@@ -2950,6 +2998,8 @@ def _contract(
     a,
     b=None,
     out=None,
+    casting="same_kind",
+    dtype=None,
 ):
     # Sanity checks
     if len(a_modes) != a.ndim:
@@ -2971,6 +3021,19 @@ def _contract(
         raise ValueError("Duplicate mode labels on output")
     if len(set(out_modes) - set(a_modes) - set(b_modes)) > 0:
         raise ValueError("Unknown mode labels on output")
+
+    # Handle types
+    if dtype is not None:
+        c_dtype = dtype
+    elif out is not None:
+        c_dtype = out.dtype
+    elif b is None:
+        c_dtype = a.dtype
+    else:
+        c_dtype = ndarray.find_common_type(a, b)
+    a = _maybe_cast_input(a, c_dtype, casting)
+    b = _maybe_cast_input(b, c_dtype, casting)
+    out_dtype = out.dtype if out is not None else c_dtype
 
     # Handle duplicate modes on inputs
     c_a_modes = Counter(a_modes)
@@ -3065,10 +3128,6 @@ def _contract(
             a = a * b
             b = None
 
-    # Handle types
-    c_dtype = ndarray.find_common_type(a, b) if b is not None else a.dtype
-    out_dtype = out.dtype if out is not None else c_dtype
-
     if b is None:
         # Unary contraction case
         assert len(a_modes) == len(c_modes) and set(a_modes) == set(c_modes)
@@ -3094,23 +3153,6 @@ def _contract(
                 dtype=c_dtype,
                 inputs=(a, b),
             )
-        # Check for type conversion on the way in
-        if a.dtype != c.dtype:
-            temp = ndarray(
-                shape=a.shape,
-                dtype=c.dtype,
-                inputs=(a,),
-            )
-            temp._thunk.convert(a._thunk)
-            a = temp
-        if b.dtype != c.dtype:
-            temp = ndarray(
-                shape=b.shape,
-                dtype=c.dtype,
-                inputs=(b,),
-            )
-            temp._thunk.convert(b._thunk)
-            b = temp
         # Perform operation
         c._thunk.contract(
             c_modes,
@@ -3128,8 +3170,18 @@ def _contract(
     if out_dtype != c_dtype or out_shape != c_bloated_shape:
         # We need to broadcast the result of the contraction or switch types
         # before returning
+        if not np.can_cast(c_dtype, out_dtype, casting=casting):
+            raise TypeError(
+                f"Cannot cast intermediate result array of type {c_dtype} "
+                f"into output array of type {out_dtype} with casting rule "
+                f"'{casting}'"
+            )
         if out is None:
-            out = empty(out_shape, out_dtype)
+            out = ndarray(
+                shape=out_shape,
+                dtype=out_dtype,
+                inputs=(c,),
+            )
         out[...] = c.reshape(c_bloated_shape)
         return out
     if out_shape != c_shape:
@@ -3149,7 +3201,9 @@ def _contract(
     return c
 
 
-def einsum(expr, *operands, out=None, optimize=False):
+def einsum(
+    expr, *operands, out=None, dtype=None, casting="safe", optimize=False
+):
     """
     Evaluates the Einstein summation convention on the operands.
 
@@ -3173,6 +3227,21 @@ def einsum(expr, *operands, out=None, optimize=False):
         These are the arrays for the operation.
     out : ndarray, optional
         If provided, the calculation is done into this array.
+    dtype : data-type, optional
+        If provided, forces the calculation to use the data type specified.
+        Note that you may have to also give a more liberal `casting`
+        parameter to allow the conversions. Default is None.
+    casting : ``{'no', 'equiv', 'safe', 'same_kind', 'unsafe'}``, optional
+        Controls what kind of data casting may occur.
+
+          * 'no' means the data types should not be cast at all.
+          * 'equiv' means only byte-order changes are allowed.
+          * 'safe' means only casts which can preserve values are allowed.
+          * 'same_kind' means only safe casts or casts within a kind,
+            like float64 to float32, are allowed.
+          * 'unsafe' means any data conversions may be done.
+
+        Default is 'safe'.
     optimize : ``{False, True, 'greedy', 'optimal'}``, optional
         Controls if intermediate optimization should occur. No optimization
         will occur if False. Uses opt_einsum to find an optimized contraction
@@ -3231,6 +3300,8 @@ def einsum(expr, *operands, out=None, optimize=False):
             a,
             b,
             out=(out if len(operands) == 0 else None),
+            casting=casting,
+            dtype=dtype,
         )
         operands.append(sub_result)
     assert len(operands) == 1

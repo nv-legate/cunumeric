@@ -31,7 +31,7 @@ static inline void potrf_template(Potrf potrf, VAL* array, int32_t m, int32_t n)
   char uplo    = 'L';
   int32_t info = 0;
   potrf(&uplo, &n, array, &m, &info);
-  assert(info == 0);
+  if (info != 0) throw legate::TaskException("Matrix is not positive definite");
 }
 
 template <>

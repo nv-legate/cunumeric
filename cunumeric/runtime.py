@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from __future__ import annotations
 
 import struct
 import warnings
@@ -108,7 +109,7 @@ ARGS = [
         ArgSpec(
             action="store",
             type=str,
-            nargs=1,
+            nargs="?",
             default=None,
             dest="report_dump_csv",
             help="Save a coverage report to a specified CSV file",
@@ -317,7 +318,7 @@ class Runtime(object):
             self.current_random_bitgen_zombies = ()
             task.execute()
 
-    def set_next_random_epoch(self, epoch):
+    def set_next_random_epoch(self, epoch: int) -> None:
         self.current_random_epoch = epoch
 
     def get_next_random_epoch(self):
@@ -325,8 +326,17 @@ class Runtime(object):
         # self.current_random_epoch += 1
         return result
 
+    def is_point_type(self, dtype):
+        if len(dtype) == 6 and dtype[0:5] == "Point":
+            return True
+        else:
+            return False
+
     def is_supported_type(self, dtype):
-        return np.dtype(dtype) in self.legate_context.type_system
+        if self.is_point_type(dtype):
+            return dtype in self.legate_context.type_system
+        else:
+            return np.dtype(dtype) in self.legate_context.type_system
 
     def get_numpy_thunk(self, obj, share=False, dtype=None):
         # Check to see if this object implements the Legate data interface

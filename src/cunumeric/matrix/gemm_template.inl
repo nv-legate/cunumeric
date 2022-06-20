@@ -14,6 +14,11 @@
  *
  */
 
+#pragma once
+
+// Useful for IDEs
+#include "cunumeric/matrix/gemm.h"
+
 namespace cunumeric {
 
 using namespace Legion;

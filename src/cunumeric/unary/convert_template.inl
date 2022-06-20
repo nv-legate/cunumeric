@@ -14,6 +14,10 @@
  *
  */
 
+#pragma once
+
+// Useful for IDEs
+#include "cunumeric/unary/convert.h"
 #include "cunumeric/pitches.h"
 #include "cunumeric/unary/convert_util.h"
 

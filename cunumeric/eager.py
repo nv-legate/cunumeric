@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from __future__ import annotations
 
 import numpy as np
 
@@ -851,7 +852,12 @@ class EagerArray(NumPyThunk):
         if self.deferred is not None:
             self.deferred.cholesky(src, no_tril)
         else:
-            result = np.linalg.cholesky(src.array)
+            try:
+                result = np.linalg.cholesky(src.array)
+            except np.linalg.LinAlgError as e:
+                from .linalg import LinAlgError
+
+                raise LinAlgError(e) from e
             if no_tril:
                 result = np.triu(result.T.conj(), k=1) + result
             self.array[:] = result

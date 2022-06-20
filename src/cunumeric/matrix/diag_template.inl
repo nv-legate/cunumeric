@@ -14,6 +14,10 @@
  *
  */
 
+#pragma once
+
+// Useful for IDEs
+#include "cunumeric/matrix/diag.h"
 #include "cunumeric/pitches.h"
 
 namespace cunumeric {

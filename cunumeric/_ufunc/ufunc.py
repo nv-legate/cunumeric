@@ -12,10 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any, Dict, Literal, Sequence, Union
 
 import numpy as np
 
 from ..array import convert_to_cunumeric_ndarray, ndarray
+from ..config import BinaryOpCode, UnaryOpCode, UnaryRedCode
+
+if TYPE_CHECKING:
+    import numpy.typing as npt
+
+CastingKind = Union[
+    Literal["no", "equiv", "safe", "same_kind", "unsafe"], None
+]
 
 _UNARY_DOCSTRING_TEMPLATE = """{}
 
@@ -154,52 +165,50 @@ all_but_boolean = integer_dtypes + float_and_complex
 all_dtypes = ["?"] + all_but_boolean
 
 
-def predicate_types_of(dtypes):
+def predicate_types_of(dtypes: Sequence[str]) -> list[str]:
     return [ty + "?" for ty in dtypes]
 
 
-def relation_types_of(dtypes):
+def relation_types_of(dtypes: Sequence[str]) -> list[str]:
     return [ty * 2 + "?" for ty in dtypes]
 
 
-def to_dtypes(chars):
+def to_dtypes(chars: str) -> tuple[np.dtype[Any], ...]:
     return tuple(np.dtype(char) for char in chars)
 
 
 class ufunc:
-    def __init__(self, name, doc, types):
+
+    _types: Dict[Any, str]
+    _nin: int
+    _nout: int
+
+    def __init__(self, name: str, doc: str) -> None:
         self._name = name
-        self._types = types
         self.__doc__ = doc
-        self._nin = None
-        self._nout = None
-        for in_ty, out_ty in self._types.items():
-            self._nin = len(in_ty)
-            self._nout = len(out_ty)
-            break
-        assert self._nin is not None
-        assert self._nout is not None
 
     @property
-    def nin(self):
+    def nin(self) -> int:
         return self._nin
 
     @property
-    def nout(self):
+    def nout(self) -> int:
         return self._nout
 
     @property
-    def types(self):
+    def types(self) -> list[str]:
         return [
             f"{''.join(in_tys)}->{''.join(out_tys)}"
             for in_tys, out_tys in self._types.items()
         ]
 
     @property
-    def ntypes(self):
+    def ntypes(self) -> int:
         return len(self._types)
 
-    def _maybe_cast_input(self, arr, to_dtype, casting):
+    def _maybe_cast_input(
+        self, arr: ndarray, to_dtype: np.dtype[Any], casting: CastingKind
+    ) -> ndarray:
         if arr.dtype == to_dtype:
             return arr
 
@@ -211,7 +220,14 @@ class ufunc:
 
         return arr.astype(to_dtype)
 
-    def _maybe_create_result(self, out, out_shape, res_dtype, casting, inputs):
+    def _maybe_create_result(
+        self,
+        out: Union[ndarray, None],
+        out_shape: tuple[int, ...],
+        res_dtype: np.dtype[Any],
+        casting: CastingKind,
+        inputs: tuple[ndarray, ...],
+    ) -> ndarray:
         if out is None:
             return ndarray(shape=out_shape, dtype=res_dtype, inputs=inputs)
         elif out.dtype != res_dtype:
@@ -226,25 +242,34 @@ class ufunc:
             return out
 
     @staticmethod
-    def _maybe_cast_output(out, result):
+    def _maybe_cast_output(
+        out: Union[ndarray, None], result: ndarray
+    ) -> ndarray:
         if out is None or out is result:
             return result
-        else:
-            out._thunk.convert(result._thunk, warn=False)
-            return out
+        out._thunk.convert(result._thunk, warn=False)
+        return out
 
     @staticmethod
-    def _maybe_convert_output_to_cunumeric_ndarray(out):
+    def _maybe_convert_output_to_cunumeric_ndarray(
+        out: Union[ndarray, npt.NDArray[Any], None]
+    ) -> Union[ndarray, None]:
         if out is None:
             return None
-        elif isinstance(out, ndarray):
+        if isinstance(out, ndarray):
             return out
-        elif isinstance(out, np.ndarray):
+        if isinstance(out, np.ndarray):
             return convert_to_cunumeric_ndarray(out, share=True)
-        else:
-            raise TypeError("return arrays must be of ArrayType")
+        raise TypeError("return arrays must be of ArrayType")
 
-    def _prepare_operands(self, *args, out=None, where=True):
+    def _prepare_operands(
+        self, *args: Any, out: Union[ndarray, None], where: bool = True
+    ) -> tuple[
+        Sequence[ndarray],
+        Sequence[Union[ndarray, None]],
+        tuple[int, ...],
+        bool,
+    ]:
         max_nargs = self.nin + self.nout
         if len(args) < self.nin or len(args) > max_nargs:
             raise TypeError(
@@ -262,16 +287,17 @@ class ufunc:
                     "cannot specify 'out' as both a positional and keyword "
                     "argument"
                 )
-            out = args[self.nin :]
+            computed_out = args[self.nin :]
             # Missing outputs are treated as Nones
-            out = out + (None,) * (self.nout - len(out))
+            computed_out += (None,) * (self.nout - len(computed_out))
         elif out is None:
-            out = (None,) * self.nout
+            computed_out = (None,) * self.nout
         elif not isinstance(out, tuple):
-            out = (out,)
+            computed_out = (out,)
 
         outputs = tuple(
-            self._maybe_convert_output_to_cunumeric_ndarray(arr) for arr in out
+            self._maybe_convert_output_to_cunumeric_ndarray(arr)
+            for arr in computed_out
         )
 
         if self.nout != len(outputs):
@@ -301,18 +327,34 @@ class ufunc:
 
         return inputs, outputs, out_shape, where
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<ufunc {self._name}>"
 
 
 class unary_ufunc(ufunc):
-    def __init__(self, name, doc, op_code, types, overrides):
-        super().__init__(name, doc, types)
+    def __init__(
+        self,
+        name: str,
+        doc: str,
+        op_code: UnaryOpCode,
+        types: dict[str, str],
+        overrides: dict[str, UnaryOpCode],
+    ) -> None:
+        super().__init__(name, doc)
+
+        self._types = types
+        assert len(self._types)
+        in_ty, out_ty = next(iter(self._types.items()))
+        self._nin = len(in_ty)
+        self._nout = len(out_ty)
+
         self._op_code = op_code
-        self._resolution_cache = {}
+        self._resolution_cache: dict[np.dtype[Any], np.dtype[Any]] = {}
         self._overrides = overrides
 
-    def _resolve_dtype(self, arr, precision_fixed):
+    def _resolve_dtype(
+        self, arr: ndarray, precision_fixed: bool
+    ) -> tuple[ndarray, np.dtype[Any]]:
         if arr.dtype.char in self._types:
             return arr, np.dtype(self._types[arr.dtype.char])
 
@@ -342,14 +384,14 @@ class unary_ufunc(ufunc):
 
     def __call__(
         self,
-        *args,
-        out=None,
-        where=True,
-        casting="same_kind",
-        order="K",
-        dtype=None,
-        **kwargs,
-    ):
+        *args: Any,
+        out: Union[ndarray, None] = None,
+        where: bool = True,
+        casting: CastingKind = "same_kind",
+        order: str = "K",
+        dtype: Union[np.dtype[Any], None] = None,
+        **kwargs: Any,
+    ) -> ndarray:
         (x,), (out,), out_shape, where = self._prepare_operands(
             *args, out=out, where=where
         )
@@ -369,7 +411,7 @@ class unary_ufunc(ufunc):
         x, res_dtype = self._resolve_dtype(x, precision_fixed)
 
         result = self._maybe_create_result(
-            out, out_shape, res_dtype, casting, (x, where)
+            out, out_shape, res_dtype, casting, (x,)
         )
 
         op_code = self._overrides.get(x.dtype.char, self._op_code)
@@ -379,12 +421,23 @@ class unary_ufunc(ufunc):
 
 
 class multiout_unary_ufunc(ufunc):
-    def __init__(self, name, doc, op_code, types):
-        super().__init__(name, doc, types)
-        self._op_code = op_code
-        self._resolution_cache = {}
+    def __init__(
+        self, name: str, doc: str, op_code: UnaryOpCode, types: dict[Any, Any]
+    ) -> None:
+        super().__init__(name, doc)
 
-    def _resolve_dtype(self, arr, precision_fixed):
+        self._types = types
+        assert len(self._types)
+        in_ty, out_ty = next(iter(self._types.items()))
+        self._nin = len(in_ty)
+        self._nout = len(out_ty)
+
+        self._op_code = op_code
+        self._resolution_cache: dict[np.dtype[Any], np.dtype[Any]] = {}
+
+    def _resolve_dtype(
+        self, arr: ndarray, precision_fixed: bool
+    ) -> tuple[ndarray, tuple[np.dtype[Any], ...]]:
         if arr.dtype.char in self._types:
             return arr, to_dtypes(self._types[arr.dtype.char])
 
@@ -414,14 +467,14 @@ class multiout_unary_ufunc(ufunc):
 
     def __call__(
         self,
-        *args,
-        out=None,
-        where=True,
-        casting="same_kind",
-        order="K",
-        dtype=None,
-        **kwargs,
-    ):
+        *args: Any,
+        out: Union[ndarray, None] = None,
+        where: bool = True,
+        casting: CastingKind = "same_kind",
+        order: str = "K",
+        dtype: Union[np.dtype[Any], None] = None,
+        **kwargs: Any,
+    ) -> tuple[ndarray, ...]:
         (x,), outs, out_shape, where = self._prepare_operands(
             *args, out=out, where=where
         )
@@ -441,9 +494,7 @@ class multiout_unary_ufunc(ufunc):
         x, res_dtypes = self._resolve_dtype(x, precision_fixed)
 
         results = tuple(
-            self._maybe_create_result(
-                out, out_shape, res_dtype, casting, (x, where)
-            )
+            self._maybe_create_result(out, out_shape, res_dtype, casting, (x,))
             for out, res_dtype in zip(outs, res_dtypes)
         )
 
@@ -460,16 +511,40 @@ class multiout_unary_ufunc(ufunc):
 
 class binary_ufunc(ufunc):
     def __init__(
-        self, name, doc, op_code, types, red_code=None, use_common_type=True
-    ):
-        super().__init__(name, doc, types)
+        self,
+        name: str,
+        doc: str,
+        op_code: BinaryOpCode,
+        types: dict[tuple[str, str], str],
+        red_code: Union[UnaryRedCode, None] = None,
+        use_common_type: bool = True,
+    ) -> None:
+        super().__init__(name, doc)
+
+        self._types = types
+        assert len(self._types)
+        in_ty, out_ty = next(iter(self._types.items()))
+        self._nin = len(in_ty)
+        self._nout = len(out_ty)
+
         self._op_code = op_code
-        self._resolution_cache = {}
+        self._resolution_cache: dict[
+            tuple[str, ...], tuple[np.dtype[Any], ...]
+        ] = {}
         self._red_code = red_code
         self._use_common_type = use_common_type
 
     @staticmethod
-    def _find_common_type(arrs, orig_args):
+    def _find_common_type(
+        arrs: Sequence[ndarray], orig_args: Sequence[Any]
+    ) -> np.dtype[Any]:
+        all_ndarray = all(isinstance(arg, ndarray) for arg in orig_args)
+        unique_dtypes = set(arr.dtype for arr in arrs)
+        # If all operands are ndarrays and they all have the same dtype,
+        # we already know the common dtype
+        if len(unique_dtypes) == 1 and all_ndarray:
+            return arrs[0].dtype
+
         # FIXME: The following is a miserable attempt to implement type
         # coercion rules that try to match NumPy's rules for a subset of cases;
         # for the others, cuNumeric computes a type different from what
@@ -498,7 +573,15 @@ class binary_ufunc(ufunc):
 
         return np.find_common_type(array_types, scalar_types)
 
-    def _resolve_dtype(self, arrs, orig_args, casting, precision_fixed):
+    def _resolve_dtype(
+        self,
+        arrs: Sequence[ndarray],
+        orig_args: Sequence[np.dtype[Any]],
+        casting: CastingKind,
+        precision_fixed: bool,
+    ) -> tuple[Sequence[ndarray], np.dtype[Any]]:
+        to_dtypes: tuple[np.dtype[Any], ...]
+        key: tuple[str, ...]
         if self._use_common_type:
             common_dtype = self._find_common_type(arrs, orig_args)
             to_dtypes = (common_dtype, common_dtype)
@@ -556,14 +639,14 @@ class binary_ufunc(ufunc):
 
     def __call__(
         self,
-        *args,
-        out=None,
-        where=True,
-        casting="same_kind",
-        order="K",
-        dtype=None,
-        **kwargs,
-    ):
+        *args: Any,
+        out: Union[ndarray, None] = None,
+        where: bool = True,
+        casting: CastingKind = "same_kind",
+        order: str = "K",
+        dtype: Union[np.dtype[Any], None] = None,
+        **kwargs: Any,
+    ) -> ndarray:
         arrs, (out,), out_shape, where = self._prepare_operands(
             *args, out=out, where=where
         )
@@ -589,7 +672,7 @@ class binary_ufunc(ufunc):
 
         x1, x2 = arrs
         result = self._maybe_create_result(
-            out, out_shape, res_dtype, casting, (x1, x2, where)
+            out, out_shape, res_dtype, casting, (x1, x2)
         )
         result._thunk.binary_op(self._op_code, x1._thunk, x2._thunk, where, ())
 
@@ -597,14 +680,14 @@ class binary_ufunc(ufunc):
 
     def reduce(
         self,
-        array,
-        axis=0,
-        dtype=None,
-        out=None,
-        keepdims=False,
-        initial=None,
-        where=True,
-    ):
+        array: ndarray,
+        axis: Union[int, tuple[int, ...], None] = 0,
+        dtype: Union[np.dtype[Any], None] = None,
+        out: Union[ndarray, None] = None,
+        keepdims: bool = False,
+        initial: Union[Any, None] = None,
+        where: bool = True,
+    ) -> ndarray:
         """
         reduce(array, axis=0, dtype=None, out=None, keepdims=False, initial=<no
         value>, where=True)
@@ -685,46 +768,57 @@ class binary_ufunc(ufunc):
         )
 
 
-def _parse_unary_ufunc_type(ty):
+def _parse_unary_ufunc_type(ty: str) -> tuple[str, str]:
     if len(ty) == 1:
         return (ty, ty)
-    else:
-        return (ty[0], ty[1:])
+    return (ty[0], ty[1:])
 
 
-def create_unary_ufunc(summary, name, op_code, types, overrides={}):
+def create_unary_ufunc(
+    summary: str,
+    name: str,
+    op_code: UnaryOpCode,
+    types: Sequence[str],
+    overrides: dict[str, UnaryOpCode] = {},
+) -> unary_ufunc:
     doc = _UNARY_DOCSTRING_TEMPLATE.format(summary, name)
-    types = dict(_parse_unary_ufunc_type(ty) for ty in types)
-    return unary_ufunc(name, doc, op_code, types, overrides)
+    types_dict = dict(_parse_unary_ufunc_type(ty) for ty in types)
+    return unary_ufunc(name, doc, op_code, types_dict, overrides)
 
 
-def create_multiout_unary_ufunc(summary, name, op_code, types):
+def create_multiout_unary_ufunc(
+    summary: str, name: str, op_code: UnaryOpCode, types: Sequence[str]
+) -> multiout_unary_ufunc:
     doc = _MULTIOUT_UNARY_DOCSTRING_TEMPLATE.format(summary, name)
-    types = dict(_parse_unary_ufunc_type(ty) for ty in types)
-    return multiout_unary_ufunc(name, doc, op_code, types)
+    types_dict = dict(_parse_unary_ufunc_type(ty) for ty in types)
+    return multiout_unary_ufunc(name, doc, op_code, types_dict)
 
 
-def _parse_binary_ufunc_type(ty):
+def _parse_binary_ufunc_type(ty: str) -> tuple[tuple[str, str], str]:
     if len(ty) == 1:
         return ((ty, ty), ty)
-    else:
-        if len(ty) != 3:
-            raise NotImplementedError(
-                "Binary ufunc must have two inputs and one output"
-            )
+    if len(ty) == 3:
         return ((ty[0], ty[1]), ty[2])
+    raise NotImplementedError(
+        "Binary ufunc must have two inputs and one output"
+    )
 
 
 def create_binary_ufunc(
-    summary, name, op_code, types, red_code=None, use_common_type=True
-):
+    summary: str,
+    name: str,
+    op_code: BinaryOpCode,
+    types: Sequence[str],
+    red_code: Union[UnaryRedCode, None] = None,
+    use_common_type: bool = True,
+) -> binary_ufunc:
     doc = _BINARY_DOCSTRING_TEMPLATE.format(summary, name)
-    types = dict(_parse_binary_ufunc_type(ty) for ty in types)
+    types_dict = dict(_parse_binary_ufunc_type(ty) for ty in types)
     return binary_ufunc(
         name,
         doc,
         op_code,
-        types,
+        types_dict,
         red_code=red_code,
         use_common_type=use_common_type,
     )
