@@ -2999,6 +2999,50 @@ class ndarray:
         """
         self.__array__().setflags(write=write, align=align, uic=uic)
 
+    def searchsorted(self, v, side="left", sorter=None):
+        """a.searchsorted(v, side='left', sorter=None)
+
+        Find the indices into a sorted array a such that, if the corresponding
+        elements in v were inserted before the indices, the order of a would be
+        preserved.
+
+        Parameters
+        ----------
+        a : 1-D array_like
+            Input array. If sorter is None, then it must be sorted in ascending
+            order, otherwise sorter must be an array of indices that sort it.
+        v : array_like
+            Values to insert into a.
+        side : ``{'left', 'right'}``, optional
+            If 'left', the index of the first suitable location found is given.
+            If 'right', return the last such index. If there is no suitable
+            index, return either 0 or N (where N is the length of a).
+        sorter : 1-D array_like, optional
+            Optional array of integer indices that sort array a into ascending
+            order. They are typically the result of argsort.
+
+        Returns
+        -------
+        indices : int or array of ints
+            Array of insertion points with the same shape as v, or an integer
+            if v is a scalar.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+        """
+
+        v = convert_to_cunumeric_ndarray(v)
+
+        result = ndarray(v.shape, np.int64, inputs=(self, v, sorter))
+
+        if sorter is not None and self.shape[0] > 1:
+            resorted = self.take(sorter).copy()
+            result._thunk.searchsorted(resorted._thunk, v._thunk, side)
+        else:
+            result._thunk.searchsorted(self._thunk, v._thunk, side)
+        return result
+
     def sort(self, axis=-1, kind="quicksort", order=None):
         """a.sort(axis=-1, kind=None, order=None)
 
