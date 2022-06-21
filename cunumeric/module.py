@@ -2426,6 +2426,52 @@ def diag_indices_from(arr):
     return diag_indices(arr.shape[0], arr.ndim)
 
 
+def mask_indices(n, mask_func, k=0):
+    """
+    Return the indices to access (n, n) arrays, given a masking function.
+
+    Assume `mask_func` is a function that, for a square array a of size
+    ``(n, n)`` with a possible offset argument `k`, when called as
+    ``mask_func(a, k)`` returns a new array with zeros in certain locations
+    (functions like `triu` or `tril` do precisely this). Then this function
+    returns the indices where the non-zero values would be located.
+
+    Parameters
+    ----------
+    n : int
+        The returned indices will be valid to access arrays of shape (n, n).
+    mask_func : callable
+        A function whose call signature is similar to that of `triu`, `tril`.
+        That is, ``mask_func(x, k)`` returns a boolean array, shaped like `x`.
+        `k` is an optional argument to the function.
+    k : scalar
+        An optional argument which is passed through to `mask_func`. Functions
+        like `triu`, `tril` take a second argument that is interpreted as an
+        offset.
+
+    Returns
+    -------
+    indices : tuple of arrays.
+        The `n` arrays of indices corresponding to the locations where
+        ``mask_func(np.ones((n, n)), k)`` is True.
+
+    See Also
+    --------
+    numpy.mask_indices
+
+    Notes
+    -----
+
+    Availability
+    ------------
+    Multiple GPUs, Multiple CPUs
+    """
+    # this implementation is based on numpy
+    a_tmp = ones((n, n), int)
+    a = mask_func(a_tmp, k)
+    return nonzero(a != 0)
+
+
 def tril_indices(n, k=0, m=None):
     """
     Return the indices for the lower-triangle of an (n, m) array.
