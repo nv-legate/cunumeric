@@ -3761,7 +3761,7 @@ class ndarray:
                 out._thunk.scan(op, src._thunk, axis=axis, dtype=dtype, nan0=nan0)
             else :
                 # convert input to temporary for type conversion
-                temp = ndarray(shape=out.shape, dtype=dtype)
+                temp = ndarray(shape=src.shape, dtype=dtype)
                 temp._thunk.convert(src._thunk)
                 out._thunk.scan(op, temp._thunk, axis=axis, dtype=dtype, nan0=nan0)
         else:
@@ -3773,7 +3773,7 @@ class ndarray:
                 out._thunk.scan(op, src._thunk, axis=axis, dtype=dtype, nan0=nan0)
             else:
                 # convert input to temporary for type conversion
-                temp = ndarray(shape=out.shape, dtype=dtype)
+                temp = ndarray(shape=src.shape, dtype=dtype)
                 temp._thunk.convert(src._thunk)
                 out._thunk.scan(op, temp._thunk, axis=axis, dtype=dtype, nan0=nan0)
             
