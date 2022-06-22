@@ -442,7 +442,7 @@ class _FFTType:
         input_dtype: npt.DTypeLike,
         output_dtype: npt.DTypeLike,
         single_precision: bool,
-        complex_type: Union[bool, _FFTType, None] = None,
+        complex_type: Union[_FFTType, None] = None,
     ) -> None:
         self._name = name
         self._type_id = type_id
@@ -462,7 +462,7 @@ class _FFTType:
         return self._type_id
 
     @property
-    def complex(self) -> Union[bool, _FFTType, None]:
+    def complex(self) -> Union[_FFTType, None]:
         return self._complex_type
 
     @property
