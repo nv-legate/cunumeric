@@ -817,9 +817,9 @@ def tri(N, M=None, k=0, dtype=float, *, like=None):
     like : array_like
         Reference object to allow the creation of arrays which are not NumPy
         arrays. If an array-like passed in as `like` supports the
-        `__array_function__ protocol, the result will be defined by it. In this
-        case it ensures the creation of an array object compatible with that
-        passed in via this argument.
+        `__array_function__` protocol, the result will be defined by it. In
+        this case it ensures the creation of an array object compatible with
+        that passed in via this argument.
 
     Returns
     -------
@@ -840,7 +840,7 @@ def tri(N, M=None, k=0, dtype=float, *, like=None):
     Multiple GPUs, Multiple CPUs
 
     """
-    # TODO: add support for `like`
+    # TODO: add support for `like` (see issue #418)
     if like is not None:
         raise ValueError("like parameter is currently not supported")
 
