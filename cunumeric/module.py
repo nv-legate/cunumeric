@@ -1104,20 +1104,25 @@ def moveaxis(a, source, destination):
 
 def _reshape_recur(ndim, arr):
     if arr.ndim < ndim:
-        arr = _reshape_recur(ndim - 1, arr)
+        cur_shape = _reshape_recur(ndim - 1, arr)
         if ndim == 2:
-            arr = arr.reshape((1,) + arr.shape)
+            cur_shape = (1,) + cur_shape
         else:
-            arr = arr.reshape(arr.shape + (1,))
-
-    return arr
+            cur_shape = cur_shape + (1,)
+    else:
+        cur_shape = arr.shape
+    return cur_shape
 
 
 def _atleast_nd(ndim, arys, view=True):
     inputs = arys = list(convert_to_cunumeric_ndarray(arr) for arr in arys)
     if view:
         inputs = list(arr.view() for arr in arys)
-    result = list(_reshape_recur(ndim, arr) for arr in inputs)
+    result_shapes = list(_reshape_recur(ndim, arr) for arr in inputs)
+    # 'reshape' change the shape of arrays only when arr.shape != shape
+    result = list(
+        arr.reshape(shape) for arr, shape in zip(inputs, result_shapes)
+    )
     # if the number of arrys in `arys` is 1, the return value is a single array
     if len(result) == 1:
         result = result[0]
