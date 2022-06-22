@@ -3552,7 +3552,7 @@ class ndarray:
         args=None,
         initial=None,
         where=True,
-    ) -> Any:
+    ) -> ndarray:
         # When 'res_dtype' is not None, the input and output of the reduction
         # have different types. Such reduction operators don't take a dtype of
         # the accumulator
