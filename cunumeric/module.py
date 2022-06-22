@@ -1858,7 +1858,7 @@ def split(
 
 def array_split(
     a: ndarray,
-    indices: Union[int, list[int], tuple[int], ndarray, npt.NDArray[Any]],
+    indices: Union[int, Sequence[int], ndarray, npt.NDArray[Any]],
     axis: int = 0,
     equal: bool = False,
 ) -> list[ndarray]:
@@ -1882,14 +1882,13 @@ def array_split(
     Multiple GPUs, Multiple CPUs
     """
     array = convert_to_cunumeric_ndarray(a)
-    dtype = type(indices)
     split_pts = []
     if axis >= array.ndim:
         raise ValueError(
             f"array({array.shape}) has less dimensions than axis({axis})"
         )
 
-    if dtype == int:
+    if isinstance(indices, int):
         res = array.shape[axis] % indices
         if equal and res != 0:
             raise ValueError("array split does not result in an equal divison")
@@ -1914,15 +1913,15 @@ def array_split(
                 )
                 first_idx = (len_subarr + 1) * res
         split_pts.extend(range(first_idx, end_idx + 1, len_subarr))
-    elif (
-        (dtype == np.ndarray and cast(ndarray, indices).dtype == int)
-        or dtype == list
-        or dtype == tuple
+
+    elif isinstance(indices, (list, tuple)) or (
+        isinstance(indices, (ndarray, np.ndarray)) and indices.dtype == int
     ):
-        split_pts = list(cast(ndarray, indices))
+        split_pts = list(indices)
         # adding the size of the target dimension.
         # This helps create dummy or last subarray correctly
         split_pts.append(array.shape[axis])
+
     else:
         raise ValueError("Integer or array for split should be provided")
 
