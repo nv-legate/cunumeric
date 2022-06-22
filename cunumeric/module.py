@@ -2074,7 +2074,7 @@ def repeat(a, repeats, axis=None):
     axis = np.int32(axis)
 
     if axis >= array.ndim:
-        return ValueError("axis exceeds dimension of the input array")
+        raise ValueError("axis exceeds dimension of the input array")
 
     # If repeats is on a zero sized axis, then return the array.
     if array.shape[axis] == 0:
@@ -2100,7 +2100,7 @@ def repeat(a, repeats, axis=None):
             )
         repeats = np.int64(repeats)
         if repeats < 0:
-            return ValueError(
+            raise ValueError(
                 "'repeats' should not be negative: {}".format(repeats)
             )
 
@@ -2139,7 +2139,7 @@ def repeat(a, repeats, axis=None):
             )
         repeats = repeats.astype(np.int64)
         if repeats.shape[0] != array.shape[axis]:
-            return ValueError("incorrect shape of repeats array")
+            raise ValueError("incorrect shape of repeats array")
 
         # check output shape (if it will fit to GPU or not)
         out_shape = list(array.shape)
