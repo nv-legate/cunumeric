@@ -3663,7 +3663,7 @@ class ndarray:
         two,
         dtype,
         extra_args=None,
-    ) -> Any:
+    ) -> ndarray:
         args = (one, two)
 
         # We only handle bool types here for now

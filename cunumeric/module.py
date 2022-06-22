@@ -3770,12 +3770,14 @@ def allclose(
             "cuNumeric does not support `equal_nan` yet for allclose"
         )
     args = (np.array(rtol, dtype=np.float64), np.array(atol, dtype=np.float64))
-    return ndarray._perform_binary_reduction(
-        BinaryOpCode.ISCLOSE,
-        a,
-        b,
-        dtype=np.dtype(bool),
-        extra_args=args,
+    return bool(
+        ndarray._perform_binary_reduction(
+            BinaryOpCode.ISCLOSE,
+            a,
+            b,
+            dtype=np.dtype(bool),
+            extra_args=args,
+        )
     )
 
 
@@ -3868,8 +3870,10 @@ def array_equal(a: ndarray, b: ndarray) -> bool:
     """
     if a.shape != b.shape:
         return False
-    return ndarray._perform_binary_reduction(
-        BinaryOpCode.EQUAL, a, b, dtype=np.dtype(np.bool_)
+    return bool(
+        ndarray._perform_binary_reduction(
+            BinaryOpCode.EQUAL, a, b, dtype=np.dtype(np.bool_)
+        )
     )
 
 
