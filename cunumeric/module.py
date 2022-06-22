@@ -712,7 +712,7 @@ def linspace(
     delta = stop - start
     y = arange(0, num, dtype=dt)
 
-    out: Union[int, tuple[Any, ...]]
+    out: tuple[Any, ...]  # EllipsisType not even in typing_extensions yet
 
     # Reshape these arrays into dimensions that allow them to broadcast
     if delta.ndim > 0:
@@ -722,7 +722,7 @@ def linspace(
             # Nothing else needs to be reshaped here because
             # they should all broadcast correctly with y
             if endpoint and num > 1:
-                out = -1
+                out = (-1,)
         elif axis == -1 or axis == delta.ndim:
             # Last dimension
             y = y.reshape((1,) * delta.ndim + (-1,))
@@ -755,7 +755,7 @@ def linspace(
                 + str(delta.ndim + 1)
             )
     else:
-        out = -1
+        out = (-1,)
     # else delta is a scalar so start must be also
     # therefore it will trivially broadcast correctly
 
