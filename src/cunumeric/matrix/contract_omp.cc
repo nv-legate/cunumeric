@@ -27,23 +27,34 @@ namespace cunumeric {
 using namespace Legion;
 using namespace tblis;
 
+namespace { // anonymous
+
+// See comment in contract.cc about why this is needed.
+struct ContractTypeHelper {
+  typedef tblis::len_type len_type;
+  typedef tblis::stride_type stride_type;
+  typedef tblis::label_type label_type;
+};
+
+} // anonymous
+
 template <>
-struct ContractImplBody<VariantKind::OMP, LegateTypeCode::FLOAT_LT> {
+struct ContractImplBody<VariantKind::OMP, LegateTypeCode::FLOAT_LT> : public ContractTypeHelper {
   void operator()(float* lhs_data,
                   size_t lhs_ndim,
-                  int64_t* lhs_shape,
-                  int64_t* lhs_strides,
-                  int32_t* lhs_modes,
+                  len_type* lhs_shape,
+                  stride_type* lhs_strides,
+                  label_type* lhs_modes,
                   const float* rhs1_data,
                   size_t rhs1_ndim,
-                  int64_t* rhs1_shape,
-                  int64_t* rhs1_strides,
-                  int32_t* rhs1_modes,
+                  len_type* rhs1_shape,
+                  stride_type* rhs1_strides,
+                  label_type* rhs1_modes,
                   const float* rhs2_data,
                   size_t rhs2_ndim,
-                  int64_t* rhs2_shape,
-                  int64_t* rhs2_strides,
-                  int32_t* rhs2_modes)
+                  len_type* rhs2_shape,
+                  stride_type* rhs2_strides,
+                  label_type* rhs2_modes)
   {
     tblis_tensor lhs;
     tblis_init_tensor_s(&lhs, lhs_ndim, lhs_shape, lhs_data, lhs_strides);
@@ -59,22 +70,22 @@ struct ContractImplBody<VariantKind::OMP, LegateTypeCode::FLOAT_LT> {
 };
 
 template <>
-struct ContractImplBody<VariantKind::OMP, LegateTypeCode::DOUBLE_LT> {
+struct ContractImplBody<VariantKind::OMP, LegateTypeCode::DOUBLE_LT> : public ContractTypeHelper {
   void operator()(double* lhs_data,
                   size_t lhs_ndim,
-                  int64_t* lhs_shape,
-                  int64_t* lhs_strides,
-                  int32_t* lhs_modes,
+                  len_type* lhs_shape,
+                  stride_type* lhs_strides,
+                  label_type* lhs_modes,
                   const double* rhs1_data,
                   size_t rhs1_ndim,
-                  int64_t* rhs1_shape,
-                  int64_t* rhs1_strides,
-                  int32_t* rhs1_modes,
+                  len_type* rhs1_shape,
+                  stride_type* rhs1_strides,
+                  label_type* rhs1_modes,
                   const double* rhs2_data,
                   size_t rhs2_ndim,
-                  int64_t* rhs2_shape,
-                  int64_t* rhs2_strides,
-                  int32_t* rhs2_modes)
+                  len_type* rhs2_shape,
+                  stride_type* rhs2_strides,
+                  label_type* rhs2_modes)
   {
     tblis_tensor lhs;
     tblis_init_tensor_d(&lhs, lhs_ndim, lhs_shape, lhs_data, lhs_strides);
@@ -90,40 +101,45 @@ struct ContractImplBody<VariantKind::OMP, LegateTypeCode::DOUBLE_LT> {
 };
 
 template <>
-struct ContractImplBody<VariantKind::OMP, LegateTypeCode::HALF_LT> {
+struct ContractImplBody<VariantKind::OMP, LegateTypeCode::HALF_LT> : public ContractTypeHelper {
   void operator()(__half* lhs_data,
                   size_t lhs_ndim,
-                  int64_t* lhs_shape,
-                  int64_t* lhs_strides,
-                  int32_t* lhs_modes,
+                  len_type* lhs_shape,
+                  stride_type* lhs_strides,
+                  label_type* lhs_modes,
                   const __half* rhs1_data,
                   size_t rhs1_ndim,
-                  int64_t* rhs1_shape,
-                  int64_t* rhs1_strides,
-                  int32_t* rhs1_modes,
+                  len_type* rhs1_shape,
+                  stride_type* rhs1_strides,
+                  label_type* rhs1_modes,
                   const __half* rhs2_data,
                   size_t rhs2_ndim,
-                  int64_t* rhs2_shape,
-                  int64_t* rhs2_strides,
-                  int32_t* rhs2_modes)
+                  len_type* rhs2_shape,
+                  stride_type* rhs2_strides,
+                  label_type* rhs2_modes)
   {
     // TBLIS doesn't handle half-precision floating point directly, so we have to go through a
     // conversion to single-precision.
 
-    std::vector<int64_t> lhs_copy_strides(lhs_ndim);
-    int64_t lhs_size     = calculate_volume(lhs_ndim, lhs_shape, lhs_copy_strides.data());
-    float* lhs_copy_data = allocate_buffer_omp(lhs_size);
-    half_tensor_to_float_omp(lhs_copy_data, lhs_data, lhs_ndim, lhs_shape, lhs_strides);
+    // We're going to do some direct casts between TBLIS types and standard types. To be sure that
+    // these are safe, assert that the sizes are the same.
+    static_assert(sizeof(int64_t) == sizeof(len_type));
+    static_assert(sizeof(int64_t) == sizeof(stride_type));
 
-    std::vector<int64_t> rhs1_copy_strides(rhs1_ndim);
-    int64_t rhs1_size     = calculate_volume(rhs1_ndim, rhs1_shape, rhs1_copy_strides.data());
-    float* rhs1_copy_data = allocate_buffer_omp(rhs1_size);
-    half_tensor_to_float_omp(rhs1_copy_data, rhs1_data, rhs1_ndim, rhs1_shape, rhs1_strides);
+    std::vector<stride_type> lhs_copy_strides(lhs_ndim);
+    int64_t lhs_size     = calculate_volume(lhs_ndim, (int64_t*)lhs_shape, (int64_t*)lhs_copy_strides.data());
+    float* lhs_copy_data = allocate_buffer(lhs_size);
+    half_tensor_to_float(lhs_copy_data, lhs_data, lhs_ndim, (int64_t*)lhs_shape, (int64_t*)lhs_strides);
 
-    std::vector<int64_t> rhs2_copy_strides(rhs2_ndim);
-    int64_t rhs2_size     = calculate_volume(rhs2_ndim, rhs2_shape, rhs2_copy_strides.data());
-    float* rhs2_copy_data = allocate_buffer_omp(rhs2_size);
-    half_tensor_to_float_omp(rhs2_copy_data, rhs2_data, rhs2_ndim, rhs2_shape, rhs2_strides);
+    std::vector<stride_type> rhs1_copy_strides(rhs1_ndim);
+    int64_t rhs1_size     = calculate_volume(rhs1_ndim, (int64_t*)rhs1_shape, (int64_t*)rhs1_copy_strides.data());
+    float* rhs1_copy_data = allocate_buffer(rhs1_size);
+    half_tensor_to_float(rhs1_copy_data, rhs1_data, rhs1_ndim, (int64_t*)rhs1_shape, (int64_t*)rhs1_strides);
+
+    std::vector<stride_type> rhs2_copy_strides(rhs2_ndim);
+    int64_t rhs2_size     = calculate_volume(rhs2_ndim, (int64_t*)rhs2_shape, (int64_t*)rhs2_copy_strides.data());
+    float* rhs2_copy_data = allocate_buffer(rhs2_size);
+    half_tensor_to_float(rhs2_copy_data, rhs2_data, rhs2_ndim, (int64_t*)rhs2_shape, (int64_t*)rhs2_strides);
 
     ContractImplBody<VariantKind::OMP, LegateTypeCode::FLOAT_LT>{}(lhs_copy_data,
                                                                    lhs_ndim,
@@ -141,27 +157,27 @@ struct ContractImplBody<VariantKind::OMP, LegateTypeCode::HALF_LT> {
                                                                    rhs2_copy_strides.data(),
                                                                    rhs2_modes);
 
-    float_tensor_to_half_omp(lhs_data, lhs_copy_data, lhs_ndim, lhs_shape, lhs_strides);
+    float_tensor_to_half(lhs_data, lhs_copy_data, lhs_ndim, (int64_t*)lhs_shape, (int64_t*)lhs_strides);
   }
 };
 
 template <>
-struct ContractImplBody<VariantKind::OMP, LegateTypeCode::COMPLEX64_LT> {
+struct ContractImplBody<VariantKind::OMP, LegateTypeCode::COMPLEX64_LT> : public ContractTypeHelper {
   void operator()(complex<float>* lhs_data,
                   size_t lhs_ndim,
-                  int64_t* lhs_shape,
-                  int64_t* lhs_strides,
-                  int32_t* lhs_modes,
+                  len_type* lhs_shape,
+                  stride_type* lhs_strides,
+                  label_type* lhs_modes,
                   const complex<float>* rhs1_data,
                   size_t rhs1_ndim,
-                  int64_t* rhs1_shape,
-                  int64_t* rhs1_strides,
-                  int32_t* rhs1_modes,
+                  len_type* rhs1_shape,
+                  stride_type* rhs1_strides,
+                  label_type* rhs1_modes,
                   const complex<float>* rhs2_data,
                   size_t rhs2_ndim,
-                  int64_t* rhs2_shape,
-                  int64_t* rhs2_strides,
-                  int32_t* rhs2_modes)
+                  len_type* rhs2_shape,
+                  stride_type* rhs2_strides,
+                  label_type* rhs2_modes)
   {
     tblis_tensor lhs;
     tblis_init_tensor_c(
@@ -188,22 +204,22 @@ struct ContractImplBody<VariantKind::OMP, LegateTypeCode::COMPLEX64_LT> {
 };
 
 template <>
-struct ContractImplBody<VariantKind::OMP, LegateTypeCode::COMPLEX128_LT> {
+struct ContractImplBody<VariantKind::OMP, LegateTypeCode::COMPLEX128_LT> : public ContractTypeHelper {
   void operator()(complex<double>* lhs_data,
                   size_t lhs_ndim,
-                  int64_t* lhs_shape,
-                  int64_t* lhs_strides,
-                  int32_t* lhs_modes,
+                  len_type* lhs_shape,
+                  stride_type* lhs_strides,
+                  label_type* lhs_modes,
                   const complex<double>* rhs1_data,
                   size_t rhs1_ndim,
-                  int64_t* rhs1_shape,
-                  int64_t* rhs1_strides,
-                  int32_t* rhs1_modes,
+                  len_type* rhs1_shape,
+                  stride_type* rhs1_strides,
+                  label_type* rhs1_modes,
                   const complex<double>* rhs2_data,
                   size_t rhs2_ndim,
-                  int64_t* rhs2_shape,
-                  int64_t* rhs2_strides,
-                  int32_t* rhs2_modes)
+                  len_type* rhs2_shape,
+                  stride_type* rhs2_strides,
+                  label_type* rhs2_modes)
   {
     tblis_tensor lhs;
     tblis_init_tensor_z(

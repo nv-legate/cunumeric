@@ -90,10 +90,11 @@ struct ContractImpl {
   void operator()(ContractArgs& args) const
   {
     using T = legate_type_of<CODE>;
+    using C = ContractImplBody<KIND, CODE>;
 
-    std::vector<int64_t> lhs_shape;
-    std::vector<int64_t> lhs_strides;
-    std::vector<int32_t> lhs_modes;
+    std::vector<typename C::len_type> lhs_shape;
+    std::vector<typename C::stride_type> lhs_strides;
+    std::vector<typename C::label_type> lhs_modes;
     Rect<DIM> lhs_bloated_shape = args.lhs.shape<DIM>();
     size_t lhs_bloated_strides[DIM];
     AccessorRD<SumReduction<T>, true, DIM> lhs_acc =
@@ -106,9 +107,9 @@ struct ContractImpl {
       lhs_modes.push_back(i + 'a');
     }
 
-    std::vector<int64_t> rhs1_shape;
-    std::vector<int64_t> rhs1_strides;
-    std::vector<int32_t> rhs1_modes;
+    std::vector<typename C::len_type> rhs1_shape;
+    std::vector<typename C::stride_type> rhs1_strides;
+    std::vector<typename C::label_type> rhs1_modes;
     Rect<DIM> rhs1_bloated_shape = args.rhs1.shape<DIM>();
     size_t rhs1_bloated_strides[DIM];
     AccessorRO<T, DIM> rhs1_acc = args.rhs1.read_accessor<T, DIM>(rhs1_bloated_shape);
@@ -120,9 +121,9 @@ struct ContractImpl {
       rhs1_modes.push_back(i + 'a');
     }
 
-    std::vector<int64_t> rhs2_shape;
-    std::vector<int64_t> rhs2_strides;
-    std::vector<int32_t> rhs2_modes;
+    std::vector<typename C::len_type> rhs2_shape;
+    std::vector<typename C::stride_type> rhs2_strides;
+    std::vector<typename C::label_type> rhs2_modes;
     Rect<DIM> rhs2_bloated_shape = args.rhs2.shape<DIM>();
     size_t rhs2_bloated_strides[DIM];
     AccessorRO<T, DIM> rhs2_acc = args.rhs2.read_accessor<T, DIM>(rhs2_bloated_shape);
@@ -175,21 +176,21 @@ struct ContractImpl {
     std::cout.flush();
 #endif
 
-    ContractImplBody<KIND, CODE>()(lhs_data,
-                                   lhs_shape.size(),
-                                   lhs_shape.data(),
-                                   lhs_strides.data(),
-                                   lhs_modes.data(),
-                                   rhs1_data,
-                                   rhs1_shape.size(),
-                                   rhs1_shape.data(),
-                                   rhs1_strides.data(),
-                                   rhs1_modes.data(),
-                                   rhs2_data,
-                                   rhs2_shape.size(),
-                                   rhs2_shape.data(),
-                                   rhs2_strides.data(),
-                                   rhs2_modes.data());
+    C()(lhs_data,
+        lhs_shape.size(),
+        lhs_shape.data(),
+        lhs_strides.data(),
+        lhs_modes.data(),
+        rhs1_data,
+        rhs1_shape.size(),
+        rhs1_shape.data(),
+        rhs1_strides.data(),
+        rhs1_modes.data(),
+        rhs2_data,
+        rhs2_shape.size(),
+        rhs2_shape.data(),
+        rhs2_strides.data(),
+        rhs2_modes.data());
 
 #if 0  // debugging output
     std::cout << "end contract kernel:" << std::endl;

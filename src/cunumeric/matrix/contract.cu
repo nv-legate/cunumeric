@@ -64,6 +64,15 @@ struct contract_helper<complex<double>> {
   using scalar_t                                       = complex<double>;
 };
 
+// The ContractTypeHelper is not actually needed for CuTensor, but we need this
+// to stay in line with the CPU implementations that use TBLIS. See the comment
+// in contract.cc for more details.
+struct ContractTypeHelper {
+  typedef int64_t len_type;
+  typedef int64_t stride_type;
+  typedef int32_t label_type;
+};
+
 }  // anonymous namespace
 
 template <typename T>
@@ -153,7 +162,7 @@ __host__ void contract(T* lhs_data,
 }
 
 template <>
-struct ContractImplBody<VariantKind::GPU, LegateTypeCode::HALF_LT> {
+struct ContractImplBody<VariantKind::GPU, LegateTypeCode::HALF_LT> : public ContractTypeHelper {
   void operator()(__half* lhs_data,
                   size_t lhs_ndim,
                   int64_t* lhs_shape,
@@ -189,7 +198,7 @@ struct ContractImplBody<VariantKind::GPU, LegateTypeCode::HALF_LT> {
 };
 
 template <>
-struct ContractImplBody<VariantKind::GPU, LegateTypeCode::FLOAT_LT> {
+struct ContractImplBody<VariantKind::GPU, LegateTypeCode::FLOAT_LT> : public ContractTypeHelper {
   void operator()(float* lhs_data,
                   size_t lhs_ndim,
                   int64_t* lhs_shape,
@@ -225,7 +234,7 @@ struct ContractImplBody<VariantKind::GPU, LegateTypeCode::FLOAT_LT> {
 };
 
 template <>
-struct ContractImplBody<VariantKind::GPU, LegateTypeCode::DOUBLE_LT> {
+struct ContractImplBody<VariantKind::GPU, LegateTypeCode::DOUBLE_LT> : public ContractTypeHelper {
   void operator()(double* lhs_data,
                   size_t lhs_ndim,
                   int64_t* lhs_shape,
@@ -261,7 +270,7 @@ struct ContractImplBody<VariantKind::GPU, LegateTypeCode::DOUBLE_LT> {
 };
 
 template <>
-struct ContractImplBody<VariantKind::GPU, LegateTypeCode::COMPLEX64_LT> {
+struct ContractImplBody<VariantKind::GPU, LegateTypeCode::COMPLEX64_LT> : public ContractTypeHelper {
   void operator()(complex<float>* lhs_data,
                   size_t lhs_ndim,
                   int64_t* lhs_shape,
@@ -297,7 +306,7 @@ struct ContractImplBody<VariantKind::GPU, LegateTypeCode::COMPLEX64_LT> {
 };
 
 template <>
-struct ContractImplBody<VariantKind::GPU, LegateTypeCode::COMPLEX128_LT> {
+struct ContractImplBody<VariantKind::GPU, LegateTypeCode::COMPLEX128_LT> : public ContractTypeHelper {
   void operator()(complex<double>* lhs_data,
                   size_t lhs_ndim,
                   int64_t* lhs_shape,
