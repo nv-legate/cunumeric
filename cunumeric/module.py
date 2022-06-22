@@ -32,6 +32,7 @@ from ._ufunc.math import add, multiply
 from .array import add_boilerplate, convert_to_cunumeric_ndarray, ndarray
 from .config import BinaryOpCode, UnaryRedCode
 from .runtime import runtime
+from .types import NdShape, NdShapeLike
 from .utils import AxesPairLike, inner_modes, matmul_modes, tensordot_modes
 
 if TYPE_CHECKING:
@@ -54,9 +55,7 @@ _builtin_sum = sum
 # From shape or value
 
 
-def empty(
-    shape: Union[int, Sequence[int]], dtype: npt.DTypeLike = np.float64
-) -> ndarray:
+def empty(shape: NdShapeLike, dtype: npt.DTypeLike = np.float64) -> ndarray:
     """
     empty(shape, dtype=float)
 
@@ -201,16 +200,14 @@ def identity(n: int, dtype: npt.DTypeLike = float) -> ndarray:
     return eye(N=n, M=n, dtype=dtype)
 
 
-def ones(
-    shape: Union[int, tuple[int, ...]], dtype: npt.DTypeLike = np.float64
-) -> ndarray:
+def ones(shape: NdShapeLike, dtype: npt.DTypeLike = np.float64) -> ndarray:
     """
 
     Return a new array of given shape and type, filled with ones.
 
     Parameters
     ----------
-    shape : int or Sequence[int]
+    shape : int or tuple[int]
         Shape of the new array.
     dtype : data-type, optional
         The desired data-type for the array. Default is `cunumeric.float64`.
@@ -263,9 +260,7 @@ def ones_like(a: ndarray, dtype: Optional[npt.DTypeLike] = None) -> ndarray:
     return full_like(a, 1, dtype=usedtype)
 
 
-def zeros(
-    shape: Union[int, tuple[int, ...]], dtype: npt.DTypeLike = np.float64
-) -> ndarray:
+def zeros(shape: NdShapeLike, dtype: npt.DTypeLike = np.float64) -> ndarray:
     """
     zeros(shape, dtype=float)
 
@@ -329,7 +324,7 @@ def zeros_like(a: ndarray, dtype: Optional[npt.DTypeLike] = None) -> ndarray:
 
 
 def full(
-    shape: Union[int, Sequence[int]],
+    shape: NdShapeLike,
     value: Union[int, float],
     dtype: Optional[npt.DTypeLike] = None,
 ) -> ndarray:
@@ -339,7 +334,7 @@ def full(
 
     Parameters
     ----------
-    shape : int or Sequence[int]
+    shape : int or tuple[int]
         Shape of the new array.
     fill_value : scalar
         Fill value.
@@ -906,7 +901,7 @@ def triu(m: ndarray, k: int = 0) -> ndarray:
 
 
 @add_boilerplate("a")
-def shape(a: ndarray) -> tuple[int, ...]:
+def shape(a: ndarray) -> NdShape:
     """
 
     Return the shape of an array.
@@ -984,9 +979,7 @@ def ravel(a: ndarray, order: str = "C") -> ndarray:
 
 
 @add_boilerplate("a")
-def reshape(
-    a: ndarray, newshape: Union[int, tuple[int, ...]], order: str = "C"
-) -> ndarray:
+def reshape(a: ndarray, newshape: NdShapeLike, order: str = "C") -> ndarray:
     """
 
     Gives a new shape to an array without changing its data.
@@ -1146,9 +1139,7 @@ def moveaxis(
 
 
 @add_boilerplate("a")
-def squeeze(
-    a: ndarray, axis: Optional[Union[int, tuple[int, ...]]] = None
-) -> ndarray:
+def squeeze(a: ndarray, axis: Optional[NdShapeLike] = None) -> ndarray:
     """
 
     Remove single-dimensional entries from the shape of an array.
@@ -1190,7 +1181,7 @@ def squeeze(
 
 class ArrayInfo:
     def __init__(
-        self, ndim: int, shape: tuple[int, ...], dtype: np.dtype[Any]
+        self, ndim: int, shape: NdShape, dtype: np.dtype[Any]
     ) -> None:
         self.ndim = ndim
         self.shape = shape
@@ -1201,7 +1192,7 @@ def convert_to_array_form(indices: Sequence[int]) -> str:
     return "".join(f"[{coord}]" for coord in indices)
 
 
-def check_list_depth(arr: Any, prefix: tuple[int, ...] = (0,)) -> int:
+def check_list_depth(arr: Any, prefix: NdShape = (0,)) -> int:
     if not isinstance(arr, list):
         return 0
     elif len(arr) == 0:
@@ -1339,7 +1330,7 @@ def _block_slicing(arrays: Sequence[ndarray], depth: int) -> ndarray:
 
 
 def _collect_outshape_slices(
-    inputs: Sequence[ndarray], common_shape: tuple[int, ...], axis: int
+    inputs: Sequence[ndarray], common_shape: NdShape, axis: int
 ) -> tuple[list[Any], list[tuple[slice, ...]], Sequence[ndarray]]:
     leading_dim = _builtin_sum(arr.shape[axis] for arr in inputs)
     out_shape = list(common_shape)
@@ -1858,7 +1849,7 @@ def split(
 
 def array_split(
     a: ndarray,
-    indices: Union[int, Sequence[int], ndarray, npt.NDArray[Any]],
+    indices: Union[int, tuple[int], ndarray, npt.NDArray[Any]],
     axis: int = 0,
     equal: bool = False,
 ) -> list[ndarray]:
@@ -2075,7 +2066,7 @@ def tile(A: ndarray, reps: Union[int, ndarray]) -> ndarray:
     # Prepend ones until the dimensions match
     while len(computed_reps) < out_dims:
         computed_reps = (1,) + computed_reps
-    out_shape: tuple[int, ...] = ()
+    out_shape: NdShape = ()
     # Prepend dimensions if necessary
     for dim in range(out_dims - A.ndim):
         out_shape += (computed_reps[dim],)
@@ -2199,9 +2190,7 @@ def repeat(a: ndarray, repeats: Any, axis: Optional[int] = None) -> ndarray:
 
 
 @add_boilerplate("m")
-def flip(
-    m: ndarray, axis: Optional[Union[int, tuple[int, ...]]] = None
-) -> ndarray:
+def flip(m: ndarray, axis: Optional[NdShapeLike] = None) -> ndarray:
     """
     Reverse the order of elements in an array along the given axis.
 
@@ -3220,8 +3209,8 @@ def _contract(
         else tuple(mode2extent.get(mode, 1) for mode in out_modes)
     )
     c_modes = []
-    c_shape: tuple[int, ...] = ()
-    c_bloated_shape: tuple[int, ...] = ()
+    c_shape: NdShape = ()
+    c_bloated_shape: NdShape = ()
     for (mode, extent) in zip(out_modes, out_shape):
         if mode not in a_modes and mode not in b_modes:
             c_bloated_shape += (1,)
