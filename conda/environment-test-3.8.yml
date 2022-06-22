@@ -29,6 +29,7 @@ dependencies:
   - pynvml
   - pytest
   - pytest-cov
+  - types-docutils
 
   # pip dependencies
   - pip
