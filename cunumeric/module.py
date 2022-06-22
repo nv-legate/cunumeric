@@ -2047,7 +2047,6 @@ def repeat(a, repeats, axis=None):
     --------
     Multiple GPUs, Multiple CPUs
     """
-
     # when array is a scalar
     if np.ndim(a) == 0:
         if np.ndim(repeats) == 0:
@@ -2076,7 +2075,7 @@ def repeat(a, repeats, axis=None):
     axis = np.int32(axis)
 
     if axis >= array.ndim:
-        return ValueError("axis exceeds dimension of the input array")
+        raise ValueError("axis exceeds dimension of the input array")
 
     # If repeats is on a zero sized axis, then return the array.
     if array.shape[axis] == 0:
@@ -2101,11 +2100,36 @@ def repeat(a, repeats, axis=None):
                 category=UserWarning,
             )
         repeats = np.int64(repeats)
-        result = array._thunk.repeat(
-            repeats=repeats,
-            axis=axis,
-            scalar_repeats=True,
-        )
+        if repeats < 0:
+            raise ValueError(
+                "'repeats' should not be negative: {}".format(repeats)
+            )
+
+        # check output shape (if it will fit to GPU or not)
+        out_shape = list(array.shape)
+        out_shape[axis] *= repeats
+        out_shape = tuple(out_shape)
+        size = sum(out_shape) * array.itemsize
+        # check if size of the output array is less 8GB. In this case we can
+        # use output regions, otherwise we will use statcally allocated
+        # array
+        if size < 8589934592 / 2:
+
+            result = array._thunk.repeat(
+                repeats=repeats, axis=axis, scalar_repeats=True
+            )
+        else:
+            # this implementation is taken from CuPy
+            result = ndarray(shape=out_shape, dtype=array.dtype)
+            a_index = [slice(None)] * len(out_shape)
+            res_index = list(a_index)
+            offset = 0
+            for i in range(a._shape[axis]):
+                a_index[axis] = slice(i, i + 1)
+                res_index[axis] = slice(offset, offset + repeats)
+                result[res_index] = array[a_index]
+                offset += repeats
+            return result
     # repeats is an array
     else:
         # repeats should be integer type
@@ -2116,10 +2140,32 @@ def repeat(a, repeats, axis=None):
             )
         repeats = repeats.astype(np.int64)
         if repeats.shape[0] != array.shape[axis]:
-            return ValueError("incorrect shape of repeats array")
-        result = array._thunk.repeat(
-            repeats=repeats._thunk, axis=axis, scalar_repeats=False
-        )
+            raise ValueError("incorrect shape of repeats array")
+
+        # check output shape (if it will fit to GPU or not)
+        out_shape = list(array.shape)
+        n_repeats = sum(repeats)
+        out_shape[axis] = n_repeats
+        out_shape = tuple(out_shape)
+        size = sum(out_shape) * array.itemsize
+        # check if size of the output array is less 8GB. In this case we can
+        # use output regions, otherwise we will use statcally allocated
+        # array
+        if size < 8589934592 / 2:
+            result = array._thunk.repeat(
+                repeats=repeats._thunk, axis=axis, scalar_repeats=False
+            )
+        else:  # this implementation is taken from CuPy
+            result = ndarray(shape=out_shape, dtype=array.dtype)
+            a_index = [slice(None)] * len(out_shape)
+            res_index = list(a_index)
+            offset = 0
+            for i in range(a._shape[axis]):
+                a_index[axis] = slice(i, i + 1)
+                res_index[axis] = slice(offset, offset + repeats[i])
+                result[res_index] = array[a_index]
+                offset += repeats[i]
+            return result
     return ndarray(shape=result.shape, thunk=result)
 
 
