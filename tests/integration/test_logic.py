@@ -13,6 +13,8 @@
 # limitations under the License.
 #
 
+from itertools import combinations_with_replacement
+
 import numpy as np
 import pytest
 
@@ -71,6 +73,17 @@ def test_isscalar():
 def test_isclose():
     in1_np = np.random.rand(10)
     in2_np = in1_np + np.random.uniform(low=5e-09, high=2e-08, size=10)
+    in1_num = num.array(in1_np)
+    in2_num = num.array(in2_np)
+
+    out_np = np.isclose(in1_np, in2_np)
+    out_num = num.isclose(in1_num, in2_num)
+    assert np.array_equal(out_np, out_num)
+
+    weird_values = [np.inf, -np.inf, np.nan, 0.0, -0.0]
+    weird_pairs = tuple(combinations_with_replacement(weird_values, 2))
+    in1_np = np.array([x for x, _ in weird_pairs])
+    in2_np = np.array([y for _, y in weird_pairs])
     in1_num = num.array(in1_np)
     in2_num = num.array(in2_np)
 

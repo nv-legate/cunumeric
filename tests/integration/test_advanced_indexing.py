@@ -99,6 +99,10 @@ def test():
     index_num = num.array(index)
     assert np.array_equal(x[index], x_num[index_num])
 
+    index = np.array([False] * 7)
+    index_num = num.array(index)
+    assert np.array_equal(x[index], x_num[index_num])
+
     # k: test in-place assignment fir the case when idx arr
     #    is 1d bool array:
     x[index] = 3
@@ -441,6 +445,21 @@ def test():
     res = x[indx, indx]
     res_num = x_num[indx_num, indx_num]
     assert np.array_equal(res, res_num)
+
+    # call to advanced indexing task:
+    # indx.ndim< arrya.ndim
+    indx_num = num.array(indx)
+    res = x[indx]
+    res_num = x_num[indx_num]
+    assert np.array_equal(res, res_num)
+
+    # call to advanced indexing task:
+    # indx.ndim< arrya.ndim
+    indx_num = num.array(indx)
+    res = x[:, :, indx]
+    res_num = x_num[:, :, indx_num]
+    assert np.array_equal(res, res_num)
+
     if LEGATE_MAX_DIM > 4:
         x = mk_seq_array(
             np,
@@ -656,6 +675,34 @@ def test():
     x[ind, ind] = b
     x_num[ind_num, ind_num] = b_num
     assert np.array_equal(x, x_num)
+
+    # some additional tests for bool index arrays:
+    # 2d:
+    x = mk_seq_array(
+        np,
+        (
+            3,
+            4,
+        ),
+    )
+    x_num = mk_seq_array(
+        num,
+        (
+            3,
+            4,
+        ),
+    )
+    indx = np.array(
+        [
+            [True, False, False, False],
+            [False, False, False, False],
+            [False, False, False, True],
+        ]
+    )
+    indx_num = num.array(indx)
+    res = x[indx]
+    res_num = x_num[indx_num]
+    assert np.array_equal(res, res_num)
 
     # we do less than LEGATE_MAX_DIM becasue the dimension will be increased by
     # 1 when passig 2d index array

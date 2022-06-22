@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Copyright 2021-2022 NVIDIA Corporation
 #
@@ -76,7 +76,7 @@ if args.recurse:
     sys.argv.remove("--recurse")
     setup(
         name="cunumeric",
-        version="22.03",
+        version="22.07.00",
         packages=find_packages(
             where=".",
             include=["cunumeric*"],

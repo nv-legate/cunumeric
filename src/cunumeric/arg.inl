@@ -14,12 +14,12 @@
  *
  */
 
-namespace cunumeric {
+#pragma once
 
-template <typename T>
-__CUDA_HD__ Argval<T>::Argval() : arg(LLONG_MAX), arg_value(0)
-{
-}
+// Useful for IDEs
+#include "arg.h"
+
+namespace cunumeric {
 
 template <typename T>
 __CUDA_HD__ Argval<T>::Argval(T v) : arg(LLONG_MAX), arg_value(v)

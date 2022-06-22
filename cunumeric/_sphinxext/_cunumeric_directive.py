@@ -21,7 +21,7 @@ from sphinx.util.nodes import nested_parse_with_titles
 
 
 class CunumericDirective(SphinxDirective):
-    def parse(self, rst_text, annotation):
+    def parse(self, rst_text: str, annotation: str) -> nodes.Node:
         result = ViewList()
         for line in rst_text.split("\n"):
             result.append(line, annotation)

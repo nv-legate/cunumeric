@@ -25,6 +25,7 @@ struct AdvancedIndexingArgs {
   const Array& input_array;
   const Array& indexing_array;
   const bool is_set;
+  const int64_t key_dim;
 };
 
 class AdvancedIndexingTask : public CuNumericTask<AdvancedIndexingTask> {
@@ -40,5 +41,17 @@ class AdvancedIndexingTask : public CuNumericTask<AdvancedIndexingTask> {
   static void gpu_variant(legate::TaskContext& context);
 #endif
 };
+
+template <typename T, int DIM>
+constexpr void fill_out(Legion::Point<DIM>& out, Legion::Point<DIM>& p, T&)
+{
+  out = p;
+}
+
+template <typename T, int DIM>
+constexpr void fill_out(T& out, Legion::Point<DIM>& p, const T& in)
+{
+  out = in;
+}
 
 }  // namespace cunumeric

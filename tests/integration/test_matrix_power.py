@@ -1,4 +1,4 @@
-# Copyright 2021-2022 NVIDIA Corporation
+# Copyright 2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,24 +15,24 @@
 
 import numpy as np
 import pytest
+from test_tools.generators import mk_0to1_array
 
-import cunumeric as num
+import cunumeric as cn
+from legate.core import LEGATE_MAX_DIM
 
-anp = np.random.randn(4, 5)
-
-
-def test_argmin():
-    a = num.array(anp)
-
-    assert np.array_equal(num.argmin(a, axis=0), np.argmin(anp, axis=0))
-    assert np.array_equal(num.argmin(a, axis=1), np.argmin(anp, axis=1))
+# TODO: add negative exponents here, once they become supported
+EXPONENTS = [0, 1, 3, 5]
 
 
-def test_argmax():
-    a = num.array(anp)
-
-    assert np.array_equal(num.argmax(a, axis=0), np.argmax(anp, axis=0))
-    assert np.array_equal(num.argmax(a, axis=1), np.argmax(anp, axis=1))
+@pytest.mark.parametrize("ndim", range(0, LEGATE_MAX_DIM - 2))
+@pytest.mark.parametrize("exp", EXPONENTS)
+def test_matrix_power(ndim, exp):
+    shape = (3,) * ndim + (2, 2)
+    np_a = mk_0to1_array(np, shape)
+    cn_a = mk_0to1_array(cn, shape)
+    np_res = np.linalg.matrix_power(np_a, exp)
+    cn_res = cn.linalg.matrix_power(cn_a, exp)
+    assert np.allclose(np_res, cn_res)
 
 
 if __name__ == "__main__":

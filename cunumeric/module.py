@@ -12,26 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from __future__ import annotations
 
 import math
 import re
 from collections import Counter
-from functools import wraps
-from inspect import signature
 from itertools import chain
-from typing import Optional, Set
 
 import numpy as np
 import opt_einsum as oe
 from cunumeric._ufunc.comparison import maximum, minimum
 from cunumeric._ufunc.floating import floor
 from cunumeric._ufunc.math import add, multiply
+from numpy.core.numeric import normalize_axis_tuple
 
-from .array import (
-    convert_to_cunumeric_ndarray,
-    convert_to_predicate_ndarray,
-    ndarray,
-)
+from .array import add_boilerplate, convert_to_cunumeric_ndarray, ndarray
 from .config import BinaryOpCode, UnaryRedCode, ScanCode
 from .runtime import runtime
 from .utils import inner_modes, matmul_modes, tensordot_modes
@@ -44,111 +39,6 @@ _builtin_min = min
 _builtin_sum = sum
 
 
-def add_boilerplate(*array_params: str):
-    """
-    Adds required boilerplate to the wrapped module-level ndarray function.
-
-    Every time the wrapped function is called, this wrapper will:
-    * Convert all specified array-like parameters, plus the special "out"
-      parameter (if present), to cuNumeric ndarrays.
-    * Convert the special "where" parameter (if present) to a valid predicate.
-    * Handle the case of scalar cuNumeric ndarrays, by forwarding the operation
-      to the equivalent `()`-shape numpy array (if the operation exists on base
-      numpy).
-
-    NOTE: Assumes that no parameters are mutated besides `out`.
-    """
-    keys: Set[str] = set(array_params)
-
-    def decorator(func):
-        assert not hasattr(
-            func, "__wrapped__"
-        ), "this decorator must be the innermost"
-
-        # For each parameter specified by name, also consider the case where
-        # it's passed as a positional parameter.
-        indices: Set[int] = set()
-        all_formals: Set[str] = set()
-        where_idx: Optional[int] = None
-        out_idx: Optional[int] = None
-        for (idx, param) in enumerate(signature(func).parameters):
-            all_formals.add(param)
-            if param == "where":
-                where_idx = idx
-            elif param == "out":
-                out_idx = idx
-            elif param in keys:
-                indices.add(idx)
-        assert len(keys - all_formals) == 0, "unkonwn parameter(s)"
-
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            assert (where_idx is None or len(args) <= where_idx) and (
-                out_idx is None or len(args) <= out_idx
-            ), "'where' and 'out' should be passed as keyword arguments"
-
-            # Convert relevant arguments to cuNumeric ndarrays
-            args = tuple(
-                convert_to_cunumeric_ndarray(arg)
-                if idx in indices and arg is not None
-                else arg
-                for (idx, arg) in enumerate(args)
-            )
-            for (k, v) in kwargs.items():
-                if v is None:
-                    continue
-                elif k == "where":
-                    kwargs[k] = convert_to_predicate_ndarray(v)
-                elif k == "out":
-                    kwargs[k] = convert_to_cunumeric_ndarray(v, share=True)
-                elif k in keys:
-                    kwargs[k] = convert_to_cunumeric_ndarray(v)
-
-            # Handle the case where all array-like parameters are scalar, by
-            # performing the operation on the equivalent scalar numpy arrays.
-            # NOTE: This implicitly blocks on the contents of these arrays.
-            if (
-                hasattr(np, func.__name__)
-                and _builtin_all(
-                    isinstance(args[idx], ndarray) and args[idx]._thunk.scalar
-                    for idx in indices
-                )
-                and _builtin_all(
-                    isinstance(v, ndarray) and v._thunk.scalar
-                    for v in (kwargs.get("where", None),)
-                )
-            ):
-                out = None
-                if "out" in kwargs:
-                    out = kwargs["out"]
-                    del kwargs["out"]
-                args = tuple(
-                    arg._thunk.__numpy_array__()
-                    if (idx in indices) and isinstance(arg, ndarray)
-                    else arg
-                    for (idx, arg) in enumerate(args)
-                )
-                for (k, v) in kwargs.items():
-                    if (k in keys or k == "where") and isinstance(v, ndarray):
-                        kwargs[k] = v._thunk.__numpy_array__()
-                result = convert_to_cunumeric_ndarray(
-                    getattr(np, func.__name__)(*args, **kwargs)
-                )
-                if out is not None:
-                    if out._thunk.dtype != result._thunk.dtype:
-                        out._thunk.convert(result._thunk, warn=False)
-                    else:
-                        out._thunk.copy(result._thunk)
-                    result = out
-                return result
-
-            return func(*args, **kwargs)
-
-        return wrapper
-
-    return decorator
-
-
 #########################
 # Array creation routines
 #########################
@@ -156,7 +46,7 @@ def add_boilerplate(*array_params: str):
 # From shape or value
 
 
-def empty(shape, dtype=np.float64):
+def empty(shape, dtype=np.float64) -> ndarray:
     """
     empty(shape, dtype=float)
 
@@ -223,7 +113,7 @@ def empty_like(a, dtype=None):
     return ndarray(shape, dtype=dtype, inputs=(a,))
 
 
-def eye(N, M=None, k=0, dtype=np.float64):
+def eye(N, M=None, k=0, dtype=np.float64) -> ndarray:
     """
 
     Return a 2-D array with ones on the diagonal and zeros elsewhere.
@@ -296,7 +186,7 @@ def identity(n, dtype=float):
     return eye(N=n, M=n, dtype=dtype)
 
 
-def ones(shape, dtype=np.float64):
+def ones(shape, dtype=np.float64) -> ndarray:
     """
 
     Return a new array of given shape and type, filled with ones.
@@ -419,7 +309,7 @@ def zeros_like(a, dtype=None):
     return full_like(a, 0, dtype=usedtype)
 
 
-def full(shape, value, dtype=None):
+def full(shape, value, dtype=None) -> ndarray:
     """
 
     Return a new array of given shape and type, filled with `fill_value`.
@@ -612,7 +502,7 @@ def asarray(a, dtype=None):
 
 
 @add_boilerplate("a")
-def copy(a):
+def copy(a) -> ndarray:
     """
 
     Return an array copy of the given object.
@@ -1167,6 +1057,48 @@ def transpose(a, axes=None):
     return a.transpose(axes=axes)
 
 
+@add_boilerplate("a")
+def moveaxis(a, source, destination):
+    """
+    Move axes of an array to new positions.
+    Other axes remain in their original order.
+
+    Parameters
+    ----------
+    a : ndarray
+        The array whose axes should be reordered.
+    source : int or Sequence[int]
+        Original positions of the axes to move. These must be unique.
+    destination : int or Sequence[int]
+        Destination positions for each of the original axes. These must also be
+        unique.
+
+    Returns
+    -------
+    result : ndarray
+        Array with moved axes. This array is a view of the input array.
+
+    See Also
+    --------
+    numpy.moveaxis
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    source = normalize_axis_tuple(source, a.ndim, "source")
+    destination = normalize_axis_tuple(destination, a.ndim, "destination")
+    if len(source) != len(destination):
+        raise ValueError(
+            "`source` and `destination` arguments must have the same number "
+            "of elements"
+        )
+    order = [n for n in range(a.ndim) if n not in source]
+    for dest, src in sorted(zip(destination, source)):
+        order.insert(dest, src)
+    return a.transpose(order)
+
+
 # Changing number of dimensions
 
 
@@ -1230,9 +1162,10 @@ def check_list_depth(arr, prefix=(0,)):
             f"List at arrays{convert_to_array_form(prefix)} cannot be empty"
         )
 
-    depths = [
+    depths = list(
         check_list_depth(each, prefix + (idx,)) for idx, each in enumerate(arr)
-    ]
+    )
+
     if len(set(depths)) != 1:  # this should be one
         # If we're here elements don't have the same depth
         first_depth = depths[0]
@@ -1285,62 +1218,121 @@ def check_shape_dtype(
     return converted, ArrayInfo(ndim, shape, dtype)
 
 
-def _block(arr, cur_depth, depth):
+def _block_collect_slices(arr, cur_depth, depth):
+    # collects slices for each array in `arr`
+    # the outcome will be slices on every dimension of the output array
+    # for each array in `arr`
     if cur_depth < depth:
-        inputs = list(_block(each, cur_depth + 1, depth) for each in arr)
+        sublist_results = list(
+            _block_collect_slices(each, cur_depth + 1, depth) for each in arr
+        )
+        # 'sublist_results' contains a list of 3-way tuples,
+        # for arrays, out_shape of the sublist, and slices
+        arrays, outshape_list, slices = zip(*sublist_results)
+        max_ndim = _builtin_max(
+            1 + (depth - cur_depth), *(len(each) for each in outshape_list)
+        )
+        outshape_list = list(
+            ((1,) * (max_ndim - len(each)) + tuple(each))
+            for each in outshape_list
+        )
+        leading_dim = _builtin_sum(
+            each[-1 + (cur_depth - depth)] for each in outshape_list
+        )
+        # flatten array lists from sublists into a single list
+        arrays = list(chain(*arrays))
+        # prepares the out_shape of the current list
+        out_shape = list(outshape_list[0])
+        out_shape[-1 + cur_depth - depth] = leading_dim
+        offset = 0
+        updated_slices = []
+        # update the dimension in each slice for the current axis
+        for shape, slice_list in zip(outshape_list, slices):
+            cur_dim = shape[-1 + cur_depth - depth]
+            updated_slices.append(
+                list(
+                    (slice(offset, offset + cur_dim),) + each
+                    for each in slice_list
+                )
+            )
+            offset += cur_dim
+        # flatten lists of slices into a single list
+        slices = list(chain(*updated_slices))
     else:
-        inputs = list(convert_to_cunumeric_ndarray(inp) for inp in arr)
+        arrays = list(convert_to_cunumeric_ndarray(inp) for inp in arr)
+        common_shape = arrays[0].shape
+        if len(arr) > 1:
+            arrays, common_info = check_shape_dtype(
+                arrays, block.__name__, axis=-1
+            )
+            common_shape = common_info.shape
+        # the initial slices for each arr on arr.shape[-1]
+        out_shape, slices, arrays = _collect_outshape_slices(
+            arrays, common_shape, axis=-1 + len(common_shape)
+        )
 
-    # this reshape of elements could be replaced
-    # w/ np.atleast_*d when they're implemented
-    # Computes the maximum number of dimensions for the concatenation
-    max_ndim = _builtin_max(
-        1 + (depth - cur_depth), *(inp.ndim for inp in inputs)
-    )
-    # Append leading 1's to make elements to have the same 'ndim'
-    reshaped = list(
-        inp.reshape((1,) * (max_ndim - inp.ndim) + inp.shape)
-        if max_ndim > inp.ndim
-        else inp
-        for inp in inputs
-    )
-    return concatenate(reshaped, axis=-1 + (cur_depth - depth))
+    return arrays, out_shape, slices
+
+
+def _block_slicing(arrays, depth):
+    # collects the final slices of input arrays and assign them at once
+    arrays, out_shape, slices = _block_collect_slices(arrays, 1, depth)
+    out_array = ndarray(shape=out_shape, inputs=arrays)
+
+    for dest, inp in zip(slices, arrays):
+        out_array[(Ellipsis,) + tuple(dest)] = inp
+
+    return out_array
+
+
+def _collect_outshape_slices(inputs, common_shape, axis):
+    leading_dim = _builtin_sum(arr.shape[axis] for arr in inputs)
+    out_shape = list(common_shape)
+    out_shape[axis] = leading_dim
+    post_idx = (slice(None),) * len(out_shape[axis + 1 :])
+    slices = []
+    offset = 0
+    # collect slices for arrays in `inputs`
+    inputs = list(inp for inp in inputs if inp.size > 0)
+    for inp in inputs:
+        slices.append((slice(offset, offset + inp.shape[axis]),) + post_idx)
+        offset += inp.shape[axis]
+
+    return out_shape, slices, inputs
 
 
 def _concatenate(
     inputs,
+    common_info,
     axis=0,
     out=None,
     dtype=None,
     casting="same_kind",
-    common_info=None,
 ):
     if axis < 0:
         axis += len(common_info.shape)
-    leading_dim = _builtin_sum(arr.shape[axis] for arr in inputs)
-    out_shape = list(common_info.shape)
-    out_shape[axis] = leading_dim
-
-    out_array = ndarray(
-        shape=out_shape, dtype=common_info.dtype, inputs=inputs
+    out_shape, slices, inputs = _collect_outshape_slices(
+        inputs, common_info.shape, axis
     )
 
-    # Copy the values over from the inputs
-    offset = 0
-    idx_arr = []
-    for i in range(0, axis):
-        idx_arr.append(slice(out_shape[i]))
+    if out is None:
+        out_array = ndarray(
+            shape=out_shape, dtype=common_info.dtype, inputs=inputs
+        )
+    else:
+        out = convert_to_cunumeric_ndarray(out)
+        if not isinstance(out, ndarray):
+            raise TypeError("out should be ndarray")
+        elif list(out.shape) != out_shape:
+            raise ValueError(
+                f"out.shape({out.shape}) is not matched "
+                f"to the result shape of concatenation ({out_shape})"
+            )
+        out_array = out
 
-    idx_arr.append(0)
+    for dest, src in zip(slices, inputs):
+        out_array[(Ellipsis,) + dest] = src
 
-    for i in range(axis + 1, common_info.ndim):
-        idx_arr.append(slice(out_shape[i]))
-
-    for inp in inputs:
-        if inp.size > 0:
-            idx_arr[axis] = slice(offset, offset + inp.shape[axis])
-            out_array[tuple(idx_arr)] = inp
-            offset += inp.shape[axis]
     return out_array
 
 
@@ -1437,7 +1429,7 @@ def block(arrays):
     # check if the 'arrays' is a balanced tree
     depth = check_list_depth(arrays)
 
-    result = _block(arrays, 1, depth)
+    result = _block_slicing(arrays, depth)
     return result
 
 
@@ -1491,7 +1483,12 @@ def concatenate(inputs, axis=0, out=None, dtype=None, casting="same_kind"):
     )
 
     return _concatenate(
-        cunumeric_inputs, axis, out, dtype, casting, common_info
+        cunumeric_inputs,
+        common_info,
+        axis,
+        out,
+        dtype,
+        casting,
     )
 
 
@@ -1546,7 +1543,7 @@ def stack(arrays, axis=0, out=None):
     shape.insert(axis, 1)
     arrays = [arr.reshape(shape) for arr in arrays]
     common_info.shape = shape
-    return _concatenate(arrays, axis, out=out, common_info=common_info)
+    return _concatenate(arrays, common_info, axis, out=out)
 
 
 def vstack(tup):
@@ -1593,9 +1590,9 @@ def vstack(tup):
 
     return _concatenate(
         tup,
+        common_info,
         axis=0,
         dtype=common_info.dtype,
-        common_info=common_info,
     )
 
 
@@ -1636,9 +1633,9 @@ def hstack(tup):
     # When ndim == 1, hstack concatenates arrays along the first axis
     return _concatenate(
         tup,
+        common_info,
         axis=(0 if common_info.ndim == 1 else 1),
         dtype=common_info.dtype,
-        common_info=common_info,
     )
 
 
@@ -1689,9 +1686,9 @@ def dstack(tup):
 
     return _concatenate(
         tup,
+        common_info,
         axis=2,
         dtype=common_info.dtype,
-        common_info=common_info,
     )
 
 
@@ -1731,9 +1728,9 @@ def column_stack(tup):
         common_info.shape = tup[0].shape
     return _concatenate(
         tup,
+        common_info,
         axis=1,
         dtype=common_info.dtype,
-        common_info=common_info,
     )
 
 
@@ -2250,6 +2247,131 @@ def where(a, x=None, y=None):
 
 
 # Indexing-like operations
+def indices(dimensions, dtype=int, sparse=False):
+    """
+    Return an array representing the indices of a grid.
+    Compute an array where the subarrays contain index values 0, 1, ...
+    varying only along the corresponding axis.
+
+    Parameters
+    ----------
+    dimensions : Sequence[int]
+        The shape of the grid.
+    dtype : data-type, optional
+        Data type of the result.
+    sparse : bool, optional
+        Return a sparse representation of the grid instead of a dense
+        representation. Default is False.
+
+    Returns
+    -------
+    grid : ndarray or Tuple[ndarray, ...]
+        If sparse is False returns one array of grid indices,
+        ``grid.shape = (len(dimensions),) + tuple(dimensions)``.
+        If sparse is True returns a tuple of arrays, with
+        ``grid[i].shape = (1, ..., 1, dimensions[i], 1, ..., 1)`` with
+        dimensions[i] in the ith place
+
+    See Also
+    --------
+    numpy.indices
+
+    Notes
+    -----
+    The output shape in the dense case is obtained by prepending the number
+    of dimensions in front of the tuple of dimensions, i.e. if `dimensions`
+    is a tuple ``(r0, ..., rN-1)`` of length ``N``, the output shape is
+    ``(N, r0, ..., rN-1)``.
+    The subarrays ``grid[k]`` contains the N-D array of indices along the
+    ``k-th`` axis. Explicitly:
+
+        grid[k, i0, i1, ..., iN-1] = ik
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    # implementation of indices routine is adapted from NumPy
+    dimensions = tuple(dimensions)
+    N = len(dimensions)
+    shape = (1,) * N
+    if sparse:
+        res = tuple()
+    else:
+        out_shape = (N,) + dimensions
+        res = empty(out_shape, dtype=dtype)
+    for i, dim in enumerate(dimensions):
+        idx = arange(dim, dtype=dtype).reshape(
+            shape[:i] + (dim,) + shape[i + 1 :]
+        )
+        if sparse:
+            res = res + (idx,)
+        else:
+            res[i] = idx
+    return res
+
+
+def diag_indices(n, ndim=2):
+    """
+    Return the indices to access the main diagonal of an array.
+
+    This returns a tuple of indices that can be used to access the main
+    diagonal of an array a with a.ndim >= 2 dimensions and
+    shape (n, n, …, n). For a.ndim = 2 this is the usual diagonal,
+    for a.ndim > 2 this is the set of indices to
+    access a[i, i, ..., i] for i = [0..n-1].
+
+    Parameters
+    ----------
+    n : int
+        The size, along each dimension, of the arrays for which the
+        returned indices can be used.
+    ndim : int, optional
+        The number of dimensions.
+
+    See Also
+    --------
+    numpy.diag_indices
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    idx = arange(n, dtype=int)
+    return (idx,) * ndim
+
+
+@add_boilerplate("arr")
+def diag_indices_from(arr):
+    """
+    Return the indices to access the main diagonal of an n-dimensional array.
+
+    See diag_indices for full details.
+
+    Parameters
+    ----------
+    arr : array_like
+        at least 2-D
+
+    See Also
+    --------
+    numpy.diag_indices_from, numpy.diag_indices
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    if not arr.ndim >= 2:
+        raise ValueError("input array must be at least 2-d")
+    # For more than d=2, the strided formula is only valid for arrays with
+    # all dimensions equal, so we check first.
+    for i in range(1, arr.ndim):
+        if arr.shape[i] != arr.shape[0]:
+            raise ValueError("All dimensions of input must be of equal length")
+
+    return diag_indices(arr.shape[0], arr.ndim)
+
+
 @add_boilerplate("a")
 def take(a, indices, axis=None, out=None, mode="raise"):
     """
@@ -2272,12 +2394,12 @@ def take(a, indices, axis=None, out=None, mode="raise"):
     out : ndarray, optional `(Ni…, Nj…, Nk…)`
         If provided, the result will be placed in this array. It should be of
         the appropriate shape and dtype.
-    mode : {‘raise’, ‘wrap’, ‘clip’}, optional
+    mode : ``{'raise', 'wrap', 'clip'}``, optional
         Specifies how out-of-bounds indices will behave.
-        ‘raise’ – raise an error (default)
-        ‘wrap’ – wrap around
-        ‘clip’ – clip to the range
-        ‘clip’ mode means that all indices that are too large are replaced by
+        'raise' - raise an error (default)
+        'wrap' - wrap around
+        'clip' - clip to the range
+        'clip' mode means that all indices that are too large are replaced by
         the index that addresses the last element along that axis.
         Note that this disables indexing with negative numbers.
 
@@ -2371,8 +2493,8 @@ def choose(a, choices, out=None, mode="raise"):
     return a.choose(choices=choices, out=out, mode=mode)
 
 
-@add_boilerplate("c", "a")
-def compress(c, a, axis=None, out=None):
+@add_boilerplate("condition", "a")
+def compress(condition, a, axis=None, out=None):
     """
     Return selected slices of an array along given axis.
 
@@ -2382,7 +2504,7 @@ def compress(c, a, axis=None, out=None):
 
     Parameters
     ----------
-    c : condition, 1-D array of bools
+    condition, 1-D array of bools
         Array that selects which entries to return. If `len(c)` is less than
         the size of a along the given axis, then output is truncated to the
         length of the condition array.
@@ -2422,7 +2544,7 @@ def compress(c, a, axis=None, out=None):
     Multiple GPUs, Multiple CPUs
 
     """
-    return a.compress(c, axis=axis, out=out)
+    return a.compress(condition, axis=axis, out=out)
 
 
 @add_boilerplate("a")
@@ -2537,11 +2659,19 @@ def inner(a, b, out=None):
     if a.ndim == 0 or b.ndim == 0:
         return multiply(a, b, out=out)
     (a_modes, b_modes, out_modes) = inner_modes(a.ndim, b.ndim)
-    return _contract(a_modes, b_modes, out_modes, a, b, out=out)
+    return _contract(
+        a_modes,
+        b_modes,
+        out_modes,
+        a,
+        b,
+        out=out,
+        casting="unsafe",
+    )
 
 
 @add_boilerplate("a", "b")
-def dot(a, b, out=None):
+def dot(a, b, out=None) -> ndarray:
     """
     Dot product of two arrays. Specifically,
 
@@ -2571,9 +2701,8 @@ def dot(a, b, out=None):
     b : array_like
         Second argument.
     out : ndarray, optional
-        Output argument. This must have the exact shape that would be returned
-        if it was not present. If its dtype is not what would be expected from
-        this operation, then the result will be (unsafely) cast to `out`.
+        Output argument. This must have the exact shape and dtype that would be
+        returned if it was not present.
 
     Returns
     -------
@@ -2600,25 +2729,38 @@ def dot(a, b, out=None):
 
 
 @add_boilerplate("a", "b")
-def matmul(a, b, out=None):
+def matmul(a, b, /, out=None, *, casting="same_kind", dtype=None):
     """
     Matrix product of two arrays.
 
     Parameters
     ----------
-    x1, x2 : array_like
+    a, b : array_like
         Input arrays, scalars not allowed.
     out : ndarray, optional
         A location into which the result is stored. If provided, it must have
-        a shape that matches the signature `(n,k),(k,m)->(n,m)`. If its dtype
-        is not what would be expected from this operation, then the result will
-        be (unsafely) cast to `out`.
+        a shape that matches the signature `(n,k),(k,m)->(n,m)`.
+    casting : ``{'no', 'equiv', 'safe', 'same_kind', 'unsafe'}``, optional
+        Controls what kind of data casting may occur.
+
+          * 'no' means the data types should not be cast at all.
+          * 'equiv' means only byte-order changes are allowed.
+          * 'safe' means only casts which can preserve values are allowed.
+          * 'same_kind' means only safe casts or casts within a kind,
+            like float64 to float32, are allowed.
+          * 'unsafe' means any data conversions may be done.
+
+        Default is 'same_kind'.
+    dtype : data-type, optional
+        If provided, forces the calculation to use the data type specified.
+        Note that you may have to also give a more liberal `casting`
+        parameter to allow the conversions. Default is None.
 
     Returns
     -------
     output : ndarray
         The matrix product of the inputs.
-        This is a scalar only when both x1, x2 are 1-d vectors.
+        This is a scalar only when both a, b are 1-d vectors.
         If `out` is given, then it is returned.
 
     Notes
@@ -2667,7 +2809,16 @@ def matmul(a, b, out=None):
     if a.ndim == 0 or b.ndim == 0:
         raise ValueError("Scalars not allowed in matmul")
     (a_modes, b_modes, out_modes) = matmul_modes(a.ndim, b.ndim)
-    return _contract(a_modes, b_modes, out_modes, a, b, out=out)
+    return _contract(
+        a_modes,
+        b_modes,
+        out_modes,
+        a,
+        b,
+        out=out,
+        casting=casting,
+        dtype=dtype,
+    )
 
 
 @add_boilerplate("a", "b")
@@ -2811,7 +2962,15 @@ def tensordot(a, b, axes=2, out=None):
     Multiple GPUs, Multiple CPUs
     """
     (a_modes, b_modes, out_modes) = tensordot_modes(a.ndim, b.ndim, axes)
-    return _contract(a_modes, b_modes, out_modes, a, b, out=out)
+    return _contract(
+        a_modes,
+        b_modes,
+        out_modes,
+        a,
+        b,
+        out=out,
+        casting="unsafe",
+    )
 
 
 # Trivial multi-tensor contraction strategy: contract in input order
@@ -2820,8 +2979,18 @@ class NullOptimizer(oe.paths.PathOptimizer):
         return [(0, 1)] + [(0, -1)] * (len(inputs) - 2)
 
 
+def _maybe_cast_input(arr, to_dtype, casting):
+    if arr is None or arr.dtype == to_dtype:
+        return arr
+    if not np.can_cast(arr.dtype, to_dtype, casting=casting):
+        raise TypeError(
+            f"Cannot cast input array of type {arr.dtype} to {to_dtype} with "
+            f"casting rule '{casting}'"
+        )
+    return arr.astype(to_dtype)
+
+
 # Generalized tensor contraction
-@add_boilerplate("a", "b")
 def _contract(
     a_modes,
     b_modes,
@@ -2829,6 +2998,8 @@ def _contract(
     a,
     b=None,
     out=None,
+    casting="same_kind",
+    dtype=None,
 ):
     # Sanity checks
     if len(a_modes) != a.ndim:
@@ -2850,6 +3021,19 @@ def _contract(
         raise ValueError("Duplicate mode labels on output")
     if len(set(out_modes) - set(a_modes) - set(b_modes)) > 0:
         raise ValueError("Unknown mode labels on output")
+
+    # Handle types
+    if dtype is not None:
+        c_dtype = dtype
+    elif out is not None:
+        c_dtype = out.dtype
+    elif b is None:
+        c_dtype = a.dtype
+    else:
+        c_dtype = ndarray.find_common_type(a, b)
+    a = _maybe_cast_input(a, c_dtype, casting)
+    b = _maybe_cast_input(b, c_dtype, casting)
+    out_dtype = out.dtype if out is not None else c_dtype
 
     # Handle duplicate modes on inputs
     c_a_modes = Counter(a_modes)
@@ -2944,10 +3128,6 @@ def _contract(
             a = a * b
             b = None
 
-    # Handle types
-    c_dtype = ndarray.find_common_type(a, b) if b is not None else a.dtype
-    out_dtype = out.dtype if out is not None else c_dtype
-
     if b is None:
         # Unary contraction case
         assert len(a_modes) == len(c_modes) and set(a_modes) == set(c_modes)
@@ -2973,23 +3153,6 @@ def _contract(
                 dtype=c_dtype,
                 inputs=(a, b),
             )
-        # Check for type conversion on the way in
-        if a.dtype != c.dtype:
-            temp = ndarray(
-                shape=a.shape,
-                dtype=c.dtype,
-                inputs=(a,),
-            )
-            temp._thunk.convert(a._thunk)
-            a = temp
-        if b.dtype != c.dtype:
-            temp = ndarray(
-                shape=b.shape,
-                dtype=c.dtype,
-                inputs=(b,),
-            )
-            temp._thunk.convert(b._thunk)
-            b = temp
         # Perform operation
         c._thunk.contract(
             c_modes,
@@ -3007,15 +3170,29 @@ def _contract(
     if out_dtype != c_dtype or out_shape != c_bloated_shape:
         # We need to broadcast the result of the contraction or switch types
         # before returning
+        if not np.can_cast(c_dtype, out_dtype, casting=casting):
+            raise TypeError(
+                f"Cannot cast intermediate result array of type {c_dtype} "
+                f"into output array of type {out_dtype} with casting rule "
+                f"'{casting}'"
+            )
         if out is None:
-            out = zeros(out_shape, out_dtype)
+            out = ndarray(
+                shape=out_shape,
+                dtype=out_dtype,
+                inputs=(c,),
+            )
         out[...] = c.reshape(c_bloated_shape)
         return out
-    if out is None and out_shape != c_shape:
+    if out_shape != c_shape:
         # We need to add missing dimensions, but they are all of size 1, so
         # we don't need to broadcast
         assert c_bloated_shape == out_shape
-        return c.reshape(out_shape)
+        if out is None:
+            return c.reshape(out_shape)
+        else:
+            out[...] = c.reshape(out_shape)
+            return out
     if out is not None:
         # The output and result arrays are fully compatible, but we still
         # need to copy
@@ -3024,7 +3201,9 @@ def _contract(
     return c
 
 
-def einsum(expr, *operands, out=None, optimize=False):
+def einsum(
+    expr, *operands, out=None, dtype=None, casting="safe", optimize=False
+):
     """
     Evaluates the Einstein summation convention on the operands.
 
@@ -3048,6 +3227,21 @@ def einsum(expr, *operands, out=None, optimize=False):
         These are the arrays for the operation.
     out : ndarray, optional
         If provided, the calculation is done into this array.
+    dtype : data-type, optional
+        If provided, forces the calculation to use the data type specified.
+        Note that you may have to also give a more liberal `casting`
+        parameter to allow the conversions. Default is None.
+    casting : ``{'no', 'equiv', 'safe', 'same_kind', 'unsafe'}``, optional
+        Controls what kind of data casting may occur.
+
+          * 'no' means the data types should not be cast at all.
+          * 'equiv' means only byte-order changes are allowed.
+          * 'safe' means only casts which can preserve values are allowed.
+          * 'same_kind' means only safe casts or casts within a kind,
+            like float64 to float32, are allowed.
+          * 'unsafe' means any data conversions may be done.
+
+        Default is 'safe'.
     optimize : ``{False, True, 'greedy', 'optimal'}``, optional
         Controls if intermediate optimization should occur. No optimization
         will occur if False. Uses opt_einsum to find an optimized contraction
@@ -3070,6 +3264,7 @@ def einsum(expr, *operands, out=None, optimize=False):
     --------
     Multiple GPUs, Multiple CPUs
     """
+    operands = [convert_to_cunumeric_ndarray(op) for op in operands]
     if not optimize:
         optimize = NullOptimizer()
     # This call normalizes the expression (adds the output part if it's
@@ -3105,10 +3300,95 @@ def einsum(expr, *operands, out=None, optimize=False):
             a,
             b,
             out=(out if len(operands) == 0 else None),
+            casting=casting,
+            dtype=dtype,
         )
         operands.append(sub_result)
     assert len(operands) == 1
     return operands[0]
+
+
+def einsum_path(expr, *operands, optimize="greedy"):
+    """
+    Evaluates the lowest cost contraction order for an einsum expression by
+    considering the creation of intermediate arrays.
+
+    Parameters
+    ----------
+    expr : str
+        Specifies the subscripts for summation.
+    *operands : Sequence[array_like]
+        These are the arrays for the operation.
+    optimize : ``{bool, list, tuple, 'greedy', 'optimal'}``
+        Choose the type of path. If a tuple is provided, the second argument is
+        assumed to be the maximum intermediate size created. If only a single
+        argument is provided the largest input or output array size is used
+        as a maximum intermediate size.
+
+        * if a list is given that starts with ``einsum_path``, uses this as the
+          contraction path
+        * if False no optimization is taken
+        * if True defaults to the 'greedy' algorithm
+        * 'optimal' An algorithm that combinatorially explores all possible
+          ways of contracting the listed tensors and chooses the least costly
+          path. Scales exponentially with the number of terms in the
+          contraction.
+        * 'greedy' An algorithm that chooses the best pair contraction
+          at each step. Effectively, this algorithm searches the largest inner,
+          Hadamard, and then outer products at each step. Scales cubically with
+          the number of terms in the contraction. Equivalent to the 'optimal'
+          path for most contractions.
+
+        Default is 'greedy'.
+
+    Returns
+    -------
+    path : list[Tuple[int,...]]
+        A list representation of the einsum path.
+    string_repr : str
+        A printable representation of the einsum path.
+
+    Notes
+    -----
+    The resulting path indicates which terms of the input contraction should be
+    contracted first, the result of this contraction is then appended to the
+    end of the contraction list. This list can then be iterated over until all
+    intermediate contractions are complete.
+
+    See Also
+    --------
+    numpy.einsum_path
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    operands = [convert_to_cunumeric_ndarray(op) for op in operands]
+    memory_limit = _builtin_max(op.size for op in operands)
+    if type(optimize) == tuple:
+        if len(optimize) != 2:
+            raise ValueError("einsum_path expects optimize tuples of size 2")
+        optimize, memory_limit = optimize
+    if optimize is True:
+        optimize = "greedy"
+    elif optimize is False:
+        optimize = [tuple(range(len(operands)))]
+    elif optimize in ["greedy", "optimal"]:
+        pass
+    elif (
+        type(optimize) == list
+        and len(optimize) > 1
+        and optimize[0] == "einsum_path"
+    ):
+        optimize = optimize[1:]
+    else:
+        raise ValueError(
+            f"einsum_path: unexpected value for optimize: {optimize}"
+        )
+    path, info = oe.contract_path(
+        expr, *operands, optimize=optimize, memory_limit=memory_limit
+    )
+    return ["einsum_path"] + path, info
 
 
 @add_boilerplate("a")
@@ -4499,7 +4779,7 @@ def partition(a, kth, axis=-1, kind="introselect", order=None):
 
 
 @add_boilerplate("a")
-def argmax(a, axis=None, out=None):
+def argmax(a, axis=None, out=None, *, keepdims=False):
     """
 
     Returns the indices of the maximum values along an axis.
@@ -4514,6 +4794,10 @@ def argmax(a, axis=None, out=None):
     out : ndarray, optional
         If provided, the result will be inserted into this array. It should
         be of the appropriate shape and dtype.
+    keepdims : bool, optional
+        If this is set to True, the axes which are reduced are left
+        in the result as dimensions with size one. With this option,
+        the result will broadcast correctly against the array.
 
     Returns
     -------
@@ -4529,14 +4813,11 @@ def argmax(a, axis=None, out=None):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    if out is not None:
-        if out.dtype != np.int64:
-            raise ValueError("output array must have int64 dtype")
-    return a.argmax(axis=axis, out=out)
+    return a.argmax(axis=axis, out=out, keepdims=keepdims)
 
 
 @add_boilerplate("a")
-def argmin(a, axis=None, out=None):
+def argmin(a, axis=None, out=None, *, keepdims=False):
     """
 
     Returns the indices of the minimum values along an axis.
@@ -4551,6 +4832,10 @@ def argmin(a, axis=None, out=None):
     out : ndarray, optional
         If provided, the result will be inserted into this array. It should
         be of the appropriate shape and dtype.
+    keepdims : bool, optional
+        If this is set to True, the axes which are reduced are left
+        in the result as dimensions with size one. With this option,
+        the result will broadcast correctly against the array.
 
     Returns
     -------
@@ -4566,10 +4851,7 @@ def argmin(a, axis=None, out=None):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    if out is not None:
-        if out is not None and out.dtype != np.int64:
-            raise ValueError("output array must have int64 dtype")
-    return a.argmin(axis=axis, out=out)
+    return a.argmin(axis=axis, out=out, keepdims=keepdims)
 
 
 # Counting
@@ -4610,9 +4892,8 @@ def count_nonzero(a, axis=None):
     return ndarray._perform_unary_reduction(
         UnaryRedCode.COUNT_NONZERO,
         a,
+        res_dtype=np.dtype(np.uint64),
         axis=axis,
-        dtype=np.dtype(np.uint64),
-        check_types=False,
     )
 
 

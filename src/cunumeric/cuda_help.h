@@ -19,6 +19,8 @@
 #include "legate.h"
 #include "core/cuda/cuda_help.h"
 #include "core/cuda/stream_pool.h"
+#include "cunumeric/arg.h"
+#include "cunumeric/arg.inl"
 #include <cublas_v2.h>
 #include <cusolverDn.h>
 #include <cuda_runtime.h>
@@ -222,6 +224,34 @@ __device__ __forceinline__ void reduce_output(Legion::DeferredReduction<REDUCTIO
   const int warpid = threadIdx.x >> 5;
   for (int i = 16; i >= 1; i /= 2) {
     const complex<T> shuffle_value = shuffle(0xffffffff, value, i, 32);
+    REDUCTION::template fold<true /*exclusive*/>(value, shuffle_value);
+  }
+  // Write warp values into shared memory
+  if ((laneid == 0) && (warpid > 0)) trampoline[warpid] = value;
+  __syncthreads();
+  // Output reduction
+  if (threadIdx.x == 0) {
+    for (int i = 1; i < (THREADS_PER_BLOCK / 32); i++)
+      REDUCTION::template fold<true /*exclusive*/>(value, trampoline[i]);
+    result <<= value;
+    // Make sure the result is visible externally
+    __threadfence_system();
+  }
+}
+
+// Overload for argval
+// TBD: if compiler optimizes out the shuffle function we defined, we could make it the default
+// version
+template <typename T, typename REDUCTION>
+__device__ __forceinline__ void reduce_output(Legion::DeferredReduction<REDUCTION> result,
+                                              Argval<T> value)
+{
+  __shared__ Argval<T> trampoline[THREADS_PER_BLOCK / 32];
+  // Reduce across the warp
+  const int laneid = threadIdx.x & 0x1f;
+  const int warpid = threadIdx.x >> 5;
+  for (int i = 16; i >= 1; i /= 2) {
+    const Argval<T> shuffle_value = shuffle(0xffffffff, value, i, 32);
     REDUCTION::template fold<true /*exclusive*/>(value, shuffle_value);
   }
   // Write warp values into shared memory

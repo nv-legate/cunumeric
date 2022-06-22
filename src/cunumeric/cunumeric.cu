@@ -16,6 +16,7 @@
 
 #include "cunumeric.h"
 #include "arg.h"
+#include "arg.inl"
 
 namespace cunumeric {
 

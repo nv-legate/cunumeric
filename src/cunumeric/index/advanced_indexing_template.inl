@@ -14,6 +14,10 @@
  *
  */
 
+#pragma once
+
+// Useful for IDEs
+#include "cunumeric/index/advanced_indexing.h"
 #include "cunumeric/pitches.h"
 
 namespace cunumeric {
@@ -21,30 +25,34 @@ namespace cunumeric {
 using namespace Legion;
 using namespace legate;
 
-template <VariantKind KIND, LegateTypeCode CODE, int DIM1, int DIM2>
+template <VariantKind KIND, LegateTypeCode CODE, int DIM, typename OUT_TYPE>
 struct AdvancedIndexingImplBody;
 
-template <VariantKind KIND, LegateTypeCode CODE, int DIM1>
+template <VariantKind KIND>
 struct AdvancedIndexingImpl {
-  template <int DIM2>
+  // current implementaion of the ND-output regions requires all regions
+  // to have the same DIM.
+  template <LegateTypeCode CODE, int DIM>
   void operator()(AdvancedIndexingArgs& args) const
   {
     using VAL       = legate_type_of<CODE>;
-    auto input_rect = args.input_array.shape<DIM1>();
-    auto input_arr  = args.input_array.read_accessor<VAL, DIM1>(input_rect);
-    Pitches<DIM1 - 1> input_pitches;
-    Buffer<VAL> output_arr;
-    Buffer<Point<DIM1>> output_arr_set;
-    size_t volume1 = input_pitches.flatten(input_rect);
+    auto input_rect = args.input_array.shape<DIM>();
+    auto input_arr  = args.input_array.read_accessor<VAL, DIM>(input_rect);
+    Pitches<DIM - 1> input_pitches;
+    size_t volume = input_pitches.flatten(input_rect);
 
-    auto index_rect = args.indexing_array.shape<DIM2>();
-    auto index_arr  = args.indexing_array.read_accessor<bool, DIM2>(index_rect);
-    Pitches<DIM2 - 1> index_pitches;
-    size_t volume2 = index_pitches.flatten(index_rect);
+    auto index_rect = args.indexing_array.shape<DIM>();
+    // this task is executed only for the case when index array is a bool type
+    auto index_arr = args.indexing_array.read_accessor<bool, DIM>(index_rect);
+#ifdef DEBUG_CUNUMERIC
+    // we make sure that index and input shapes are the same on the python side.
+    // checking this one more time here
+    assert(index_rect == input_rect);
+#endif
 
-    if (volume1 == 0 || volume2 == 0) {
+    if (volume == 0) {
       if (args.is_set) {
-        auto empty = create_buffer<Point<DIM1>>(0);
+        auto empty = create_buffer<Point<DIM>>(0);
         args.output.return_data(empty, Point<1>(0));
       } else {
         auto empty = create_buffer<VAL>(0);
@@ -53,38 +61,13 @@ struct AdvancedIndexingImpl {
       return;
     }
 
-    size_t size = 0;
-    if (DIM1 == DIM2) {
-      if (args.is_set) {
-        size = AdvancedIndexingImplBody<KIND, CODE, DIM1, DIM2>{}(output_arr_set,
-                                                                  input_arr,
-                                                                  index_arr,
-                                                                  input_pitches,
-                                                                  input_rect,
-                                                                  index_pitches,
-                                                                  index_rect);
-      } else {
-        size = AdvancedIndexingImplBody<KIND, CODE, DIM1, DIM2>{}(
-          output_arr, input_arr, index_arr, input_pitches, input_rect, index_pitches, index_rect);
-      }
-    } else {
-      // should never go here, not implemented
-      assert(false);
-    }
     if (args.is_set) {
-      args.output.return_data(output_arr_set, Point<1>(size));
+      AdvancedIndexingImplBody<KIND, CODE, DIM, Point<DIM>>{}(
+        args.output, input_arr, index_arr, input_pitches, input_rect, args.key_dim);
     } else {
-      args.output.return_data(output_arr, Point<1>(size));
+      AdvancedIndexingImplBody<KIND, CODE, DIM, VAL>{}(
+        args.output, input_arr, index_arr, input_pitches, input_rect, args.key_dim);
     }
-  }
-};
-
-template <VariantKind KIND>
-struct AdvancedIndexingHelper {
-  template <LegateTypeCode CODE, int DIM1>
-  void operator()(AdvancedIndexingArgs& args) const
-  {
-    dim_dispatch(args.indexing_array.dim(), AdvancedIndexingImpl<KIND, CODE, DIM1>{}, args);
   }
 };
 
@@ -92,10 +75,12 @@ template <VariantKind KIND>
 static void advanced_indexing_template(TaskContext& context)
 {
   // is_set flag is used to fill Point<N> field for in-place assignment operation
-  bool is_set = context.scalars()[0].value<bool>();
-  AdvancedIndexingArgs args{context.outputs()[0], context.inputs()[0], context.inputs()[1], is_set};
+  bool is_set     = context.scalars()[0].value<bool>();
+  int64_t key_dim = context.scalars()[1].value<int64_t>();
+  AdvancedIndexingArgs args{
+    context.outputs()[0], context.inputs()[0], context.inputs()[1], is_set, key_dim};
   double_dispatch(
-    args.input_array.dim(), args.input_array.code(), AdvancedIndexingHelper<KIND>{}, args);
+    args.input_array.dim(), args.input_array.code(), AdvancedIndexingImpl<KIND>{}, args);
 }
 
 }  // namespace cunumeric

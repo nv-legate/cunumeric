@@ -14,9 +14,12 @@
 #
 from __future__ import annotations
 
+from docutils import nodes
 from docutils.parsers.rst.directives import choice
+from sphinx.application import Sphinx
 from sphinx.util.logging import getLogger
 
+from . import PARALLEL_SAFE, SphinxParallelSpec
 from ._comparison_config import GROUPED_CONFIGS, NUMPY_CONFIGS
 from ._comparison_util import generate_section
 from ._cunumeric_directive import CunumericDirective
@@ -35,7 +38,7 @@ class ComparisonTable(CunumericDirective):
         "sections": lambda x: choice(x, ("numpy", "grouped")),
     }
 
-    def run(self):
+    def run(self) -> nodes.Node:
         if self.options.get("sections", "numpy") == "numpy":
             section_configs = NUMPY_CONFIGS
         else:
@@ -49,5 +52,6 @@ class ComparisonTable(CunumericDirective):
         return self.parse(rst_text, "<comparison-table>")
 
 
-def setup(app):
+def setup(app: Sphinx) -> SphinxParallelSpec:
     app.add_directive_to_domain("py", "comparison-table", ComparisonTable)
+    return PARALLEL_SAFE

@@ -75,7 +75,10 @@ cuNumeric requires the following:
   - GNU Make
   - C++17 compatible compiler (g++, clang, or nvc++)
   - Fortran compiler (for building OpenBLAS; not necessary if you provide a pre-built version of OpenBLAS)
-  - the Python packages listed in `conda/cunumeric_dev.yml`
+  - the Python packages listed in any one of the conda environment files:
+    - `conda/environment-test-3.8.yml`
+    - `conda/environment-test-3.9.yml`
+    - `conda/environment-test-3.10.yml`
 
 See the [corresponding section](https://github.com/nv-legate/legate.core#dependencies)
 on the Legate Core instructions for help on installing the required Python packages
@@ -150,6 +153,9 @@ users can supply the `--nodes` option. For execution with GPUs, users can use th
 `--gpus` flags to specify the number of GPUs to use per node. We encourage all users
 to familiarize themselves with these resource flags as described in the Legate Core
 documentation or simply by passing `--help` to the `legate` driver script.
+
+You can use `test.py` to run the test suite. This script will invoke the `legate`
+driver script automatically. Check out `test.py --help` for further options.
 
 ## Supported and Planned Features
 

@@ -26,91 +26,57 @@ template <UnaryRedCode OP_CODE, LegateTypeCode CODE, int DIM>
 struct ScalarUnaryRedImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
   using OP    = UnaryRedOp<OP_CODE, CODE>;
   using LG_OP = typename OP::OP;
-  using VAL   = legate_type_of<CODE>;
+  using RHS   = legate_type_of<CODE>;
 
+  template <UnaryRedCode _OP_CODE                              = OP_CODE,
+            std::enable_if_t<!is_arg_reduce<_OP_CODE>::value>* = nullptr>
   void operator()(OP func,
                   AccessorRD<LG_OP, true, 1> out,
-                  AccessorRO<VAL, DIM> in,
+                  AccessorRO<RHS, DIM> in,
                   const Rect<DIM>& rect,
                   const Pitches<DIM - 1>& pitches,
-                  bool dense) const
+                  bool dense,
+                  const Point<DIM>& shape) const
   {
     auto result         = LG_OP::identity;
     const size_t volume = rect.volume();
     if (dense) {
       auto inptr = in.ptr(rect);
-      for (size_t idx = 0; idx < volume; ++idx) OP::template fold<true>(result, inptr[idx]);
+      for (size_t idx = 0; idx < volume; ++idx)
+        OP::template fold<true>(result, OP::convert(inptr[idx]));
     } else {
       for (size_t idx = 0; idx < volume; ++idx) {
         auto p = pitches.unflatten(idx, rect.lo);
-        OP::template fold<true>(result, in[p]);
+        OP::template fold<true>(result, OP::convert(in[p]));
       }
     }
     out.reduce(0, result);
   }
-};
 
-namespace detail {
-
-template <typename OP, typename VAL, int DIM>
-void logical_operator(bool& result,
-                      AccessorRO<VAL, DIM> in,
-                      const Rect<DIM>& rect,
-                      const Pitches<DIM - 1>& pitches,
-                      bool dense)
-{
-  const size_t volume = rect.volume();
-  if (dense) {
-    auto inptr = in.ptr(rect);
-    for (size_t idx = 0; idx < volume; ++idx) {
-      bool tmp1 = detail::convert_to_bool(inptr[idx]);
-      OP::template fold<true>(result, tmp1);
-    }
-  } else {
-    for (size_t idx = 0; idx < volume; ++idx) {
-      auto p    = pitches.unflatten(idx, rect.lo);
-      bool tmp1 = detail::convert_to_bool(in[p]);
-      OP::template fold<true>(result, tmp1);
-    }
-  }
-}
-
-}  // namespace detail
-
-template <LegateTypeCode CODE, int DIM>
-struct ScalarUnaryRedImplBody<VariantKind::CPU, UnaryRedCode::ALL, CODE, DIM> {
-  using OP    = UnaryRedOp<UnaryRedCode::PROD, LegateTypeCode::BOOL_LT>;
-  using LG_OP = typename OP::OP;
-  using VAL   = legate_type_of<CODE>;
-
-  void operator()(AccessorRD<LG_OP, true, 1> out,
-                  AccessorRO<VAL, DIM> in,
+  template <UnaryRedCode _OP_CODE                             = OP_CODE,
+            std::enable_if_t<is_arg_reduce<_OP_CODE>::value>* = nullptr>
+  void operator()(OP func,
+                  AccessorRD<LG_OP, true, 1> out,
+                  AccessorRO<RHS, DIM> in,
                   const Rect<DIM>& rect,
                   const Pitches<DIM - 1>& pitches,
-                  bool dense) const
-
+                  bool dense,
+                  const Point<DIM>& shape) const
   {
-    auto result = LG_OP::identity;
-    detail::logical_operator<OP>(result, in, rect, pitches, dense);
-    out.reduce(0, result);
-  }
-};
-
-template <LegateTypeCode CODE, int DIM>
-struct ScalarUnaryRedImplBody<VariantKind::CPU, UnaryRedCode::ANY, CODE, DIM> {
-  using OP    = UnaryRedOp<UnaryRedCode::SUM, LegateTypeCode::BOOL_LT>;
-  using LG_OP = typename OP::OP;
-  using VAL   = legate_type_of<CODE>;
-
-  void operator()(AccessorRD<LG_OP, true, 1> out,
-                  AccessorRO<VAL, DIM> in,
-                  const Rect<DIM>& rect,
-                  const Pitches<DIM - 1>& pitches,
-                  bool dense) const
-
-  {
-    auto result = LG_OP::identity;
-    detail::logical_operator<OP>(result, in, rect, pitches, dense);
+    auto result         = LG_OP::identity;
+    const size_t volume = rect.volume();
+    if (dense) {
+      auto inptr = in.ptr(rect);
+      for (size_t idx = 0; idx < volume; ++idx) {
+        auto p = pitches.unflatten(idx, rect.lo);
+        OP::template fold<true>(result, OP::convert(p, shape, inptr[idx]));
+      }
+    } else {
+      for (size_t idx = 0; idx < volume; ++idx) {
+        auto p = pitches.unflatten(idx, rect.lo);
+        OP::template fold<true>(result, OP::convert(p, shape, in[p]));
+      }
+    }
     out.reduce(0, result);
   }
 };
@@ -119,17 +85,17 @@ template <LegateTypeCode CODE, int DIM>
 struct ScalarUnaryRedImplBody<VariantKind::CPU, UnaryRedCode::CONTAINS, CODE, DIM> {
   using OP    = UnaryRedOp<UnaryRedCode::SUM, LegateTypeCode::BOOL_LT>;
   using LG_OP = typename OP::OP;
-  using VAL   = legate_type_of<CODE>;
+  using RHS   = legate_type_of<CODE>;
 
   void operator()(AccessorRD<LG_OP, true, 1> out,
-                  AccessorRO<VAL, DIM> in,
+                  AccessorRO<RHS, DIM> in,
                   const Store& to_find_scalar,
                   const Rect<DIM>& rect,
                   const Pitches<DIM - 1>& pitches,
                   bool dense) const
   {
     auto result         = LG_OP::identity;
-    const auto to_find  = to_find_scalar.scalar<VAL>();
+    const auto to_find  = to_find_scalar.scalar<RHS>();
     const size_t volume = rect.volume();
     if (dense) {
       auto inptr = in.ptr(rect);
@@ -145,33 +111,6 @@ struct ScalarUnaryRedImplBody<VariantKind::CPU, UnaryRedCode::CONTAINS, CODE, DI
           result = true;
           break;
         }
-      }
-    }
-    out.reduce(0, result);
-  }
-};
-
-template <LegateTypeCode CODE, int DIM>
-struct ScalarUnaryRedImplBody<VariantKind::CPU, UnaryRedCode::COUNT_NONZERO, CODE, DIM> {
-  using OP    = UnaryRedOp<UnaryRedCode::SUM, LegateTypeCode::UINT64_LT>;
-  using LG_OP = typename OP::OP;
-  using VAL   = legate_type_of<CODE>;
-
-  void operator()(AccessorRD<LG_OP, true, 1> out,
-                  AccessorRO<VAL, DIM> in,
-                  const Rect<DIM>& rect,
-                  const Pitches<DIM - 1>& pitches,
-                  bool dense) const
-  {
-    auto result         = LG_OP::identity;
-    const size_t volume = rect.volume();
-    if (dense) {
-      auto inptr = in.ptr(rect);
-      for (size_t idx = 0; idx < volume; ++idx) result += inptr[idx] != VAL(0);
-    } else {
-      for (size_t idx = 0; idx < volume; ++idx) {
-        auto point = pitches.unflatten(idx, rect.lo);
-        result += in[point] != VAL(0);
       }
     }
     out.reduce(0, result);

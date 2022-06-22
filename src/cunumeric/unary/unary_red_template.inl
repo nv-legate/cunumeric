@@ -14,8 +14,13 @@
  *
  */
 
+#pragma once
+
+// Useful for IDEs
+#include "cunumeric/unary/unary_red.h"
 #include "cunumeric/unary/unary_red_util.h"
 #include "cunumeric/arg.h"
+#include "cunumeric/arg.inl"
 #include "cunumeric/pitches.h"
 
 namespace cunumeric {
@@ -26,9 +31,6 @@ using namespace legate;
 template <VariantKind KIND, UnaryRedCode OP_CODE, LegateTypeCode CODE, int DIM>
 struct UnaryRedImplBody;
 
-template <VariantKind KIND, UnaryRedCode OP_CODE, LegateTypeCode CODE, int DIM>
-struct ArgRedImplBody;
-
 template <VariantKind KIND, UnaryRedCode OP_CODE>
 struct UnaryRedImpl {
   template <LegateTypeCode CODE,
@@ -37,7 +39,7 @@ struct UnaryRedImpl {
   void operator()(UnaryRedArgs& args) const
   {
     using OP  = UnaryRedOp<OP_CODE, CODE>;
-    using VAL = legate_type_of<CODE>;
+    using RHS = legate_type_of<CODE>;
 
     Pitches<DIM - 1> pitches;
     auto rect   = args.rhs.shape<DIM>();
@@ -45,7 +47,7 @@ struct UnaryRedImpl {
 
     if (volume == 0) return;
 
-    auto rhs = args.rhs.read_accessor<VAL, DIM>(rect);
+    auto rhs = args.rhs.read_accessor<RHS, DIM>(rect);
 
     auto lhs = args.lhs.reduce_accessor<typename OP::OP, KIND != VariantKind::GPU, DIM>(rect);
     UnaryRedImplBody<KIND, OP_CODE, CODE, DIM>()(
@@ -61,49 +63,13 @@ struct UnaryRedImpl {
   }
 };
 
-template <VariantKind KIND, UnaryRedCode OP_CODE>
-struct ArgRedImpl {
-  template <LegateTypeCode CODE,
-            int DIM,
-            std::enable_if_t<(DIM > 1) && UnaryRedOp<OP_CODE, CODE>::valid>* = nullptr>
-  void operator()(UnaryRedArgs& args) const
-  {
-    using OP     = UnaryRedOp<OP_CODE, CODE>;
-    using VAL    = legate_type_of<CODE>;
-    using ARGVAL = Argval<VAL>;
-
-    Pitches<DIM - 1> pitches;
-    auto rect   = args.rhs.shape<DIM>();
-    auto volume = pitches.flatten(rect);
-
-    if (volume == 0) return;
-
-    auto rhs = args.rhs.read_accessor<VAL, DIM>(rect);
-
-    auto lhs = args.lhs.reduce_accessor<typename OP::OP, KIND != VariantKind::GPU, DIM>(rect);
-    ArgRedImplBody<KIND, OP_CODE, CODE, DIM>()(lhs, rhs, rect, pitches, args.collapsed_dim, volume);
-  }
-
-  template <LegateTypeCode CODE,
-            int DIM,
-            std::enable_if_t<DIM <= 1 || !UnaryRedOp<OP_CODE, CODE>::valid>* = nullptr>
-  void operator()(UnaryRedArgs& args) const
-  {
-    assert(false);
-  }
-};
-
 template <VariantKind KIND>
 struct UnaryRedDispatch {
-  template <UnaryRedCode OP_CODE, std::enable_if_t<!is_arg_reduce<OP_CODE>::value>* = nullptr>
+  template <UnaryRedCode OP_CODE>
   void operator()(UnaryRedArgs& args) const
   {
-    return double_dispatch(args.rhs.dim(), args.rhs.code(), UnaryRedImpl<KIND, OP_CODE>{}, args);
-  }
-  template <UnaryRedCode OP_CODE, std::enable_if_t<is_arg_reduce<OP_CODE>::value>* = nullptr>
-  void operator()(UnaryRedArgs& args) const
-  {
-    return double_dispatch(args.rhs.dim(), args.rhs.code(), ArgRedImpl<KIND, OP_CODE>{}, args);
+    auto dim = std::max(1, args.rhs.dim());
+    return double_dispatch(dim, args.rhs.code(), UnaryRedImpl<KIND, OP_CODE>{}, args);
   }
 };
 

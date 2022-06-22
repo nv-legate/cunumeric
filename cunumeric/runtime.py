@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from __future__ import annotations
 
 import struct
 import warnings
@@ -107,7 +108,7 @@ ARGS = [
         ArgSpec(
             action="store",
             type=str,
-            nargs=1,
+            nargs="?",
             default=None,
             dest="report_dump_csv",
             help="Save a coverage report to a specified CSV file",
@@ -258,7 +259,7 @@ class Runtime(object):
             result = future
         return result
 
-    def set_next_random_epoch(self, epoch):
+    def set_next_random_epoch(self, epoch: int) -> None:
         self.current_random_epoch = epoch
 
     def get_next_random_epoch(self):
@@ -266,8 +267,17 @@ class Runtime(object):
         # self.current_random_epoch += 1
         return result
 
+    def is_point_type(self, dtype):
+        if len(dtype) == 6 and dtype[0:5] == "Point":
+            return True
+        else:
+            return False
+
     def is_supported_type(self, dtype):
-        return np.dtype(dtype) in self.legate_context.type_system
+        if self.is_point_type(dtype):
+            return dtype in self.legate_context.type_system
+        else:
+            return np.dtype(dtype) in self.legate_context.type_system
 
     def get_numpy_thunk(self, obj, share=False, dtype=None):
         # Check to see if this object implements the Legate data interface
@@ -407,10 +417,6 @@ class Runtime(object):
             # Don't store this one in the ptr_to_thunk as we only want to
             # store the root ones
             return parent_thunk.get_item(key)
-        elif array.size == 0:
-            # We always store completely empty arrays with eager thunks
-            assert not defer
-            return EagerArray(self, array)
         # Once it's a normal numpy array we can make it into one of our arrays
         # Check to see if it is a type that we support for doing deferred
         # execution and big enough to be worth off-loading onto Legion
@@ -473,7 +479,7 @@ class Runtime(object):
 
     def is_eager_shape(self, shape):
         volume = calculate_volume(shape)
-        # Empty arrays are ALWAYS eager
+        # Newly created empty arrays are ALWAYS eager
         if volume == 0:
             return True
         # If we're testing then the answer is always no

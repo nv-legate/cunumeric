@@ -101,6 +101,8 @@ def test_all():
     check_ops(ops, (np.random.randn(4, 5),))
     check_ops(ops, (np.random.randn(4, 5).astype("e"),))
     check_ops(ops, (np.random.randn(4, 5).astype("f"),))
+    check_ops(ops, (np.random.randn(4, 5).astype("b"),))
+    check_ops(ops, (np.random.randn(4, 5).astype("B"),))
     check_ops(ops, (np.random.randint(1, 10, size=(4, 5)),))
     check_ops(ops, (np.random.randn(1)[0],))
 
@@ -176,9 +178,6 @@ def test_all():
     ops = [
         "ceil",
         "floor",
-        # "fmod",
-        # "frexp",
-        # "modf",
         "signbit",
         # "spacing",
         "trunc",

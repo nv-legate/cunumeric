@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from __future__ import annotations
 
 from abc import ABC, abstractmethod, abstractproperty
 
@@ -119,7 +120,7 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def transpose(self, rhs, axes):
+    def transpose(self, axes):
         ...
 
     @abstractmethod
@@ -193,6 +194,7 @@ class NumPyThunk(ABC):
         redop,
         rhs,
         where,
+        orig_axis,
         axes,
         keepdims,
         args,

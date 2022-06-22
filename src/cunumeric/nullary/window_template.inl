@@ -14,6 +14,10 @@
  *
  */
 
+#pragma once
+
+// Useful for IDEs
+#include "cunumeric/nullary/window.h"
 #include "cunumeric/nullary/window_util.h"
 
 namespace cunumeric {
