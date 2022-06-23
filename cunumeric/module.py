@@ -764,7 +764,7 @@ def linspace(
         # sequences with 0 items or 1 item with endpoint=True (i.e. div <= 0)
         # have an undefined step
         step = np.NaN
-        if delta.nim == 0:
+        if delta.ndim == 0:
             y *= delta
         else:
             y = y * delta
