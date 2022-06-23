@@ -2056,7 +2056,7 @@ def tile(A: ndarray, reps: Union[int, ndarray]) -> ndarray:
     --------
     Multiple GPUs, Multiple CPUs
     """
-    computed_reps: Union[ndarray, tuple[int, ...]]
+    computed_reps: Union[ndarray, Sequence[int]]
     if isinstance(reps, int):
         computed_reps = (reps,)
     else:
@@ -3718,7 +3718,7 @@ def allclose(
     rtol: float = 1e-5,
     atol: float = 1e-8,
     equal_nan: bool = False,
-) -> bool:
+) -> ndarray:
     """
 
     Returns True if two arrays are element-wise equal within a tolerance.
@@ -3746,7 +3746,7 @@ def allclose(
 
     Returns
     -------
-    allclose : bool
+    allclose : ndarray scalar
         Returns True if the two arrays are equal within the given
         tolerance; False otherwise.
 
@@ -3770,14 +3770,12 @@ def allclose(
             "cuNumeric does not support `equal_nan` yet for allclose"
         )
     args = (np.array(rtol, dtype=np.float64), np.array(atol, dtype=np.float64))
-    return bool(
-        ndarray._perform_binary_reduction(
-            BinaryOpCode.ISCLOSE,
-            a,
-            b,
-            dtype=np.dtype(bool),
-            extra_args=args,
-        )
+    return ndarray._perform_binary_reduction(
+        BinaryOpCode.ISCLOSE,
+        a,
+        b,
+        dtype=np.dtype(bool),
+        extra_args=args,
     )
 
 
@@ -3845,7 +3843,7 @@ def isclose(
 
 
 @add_boilerplate("a", "b")
-def array_equal(a: ndarray, b: ndarray) -> bool:
+def array_equal(a: ndarray, b: ndarray) -> Union[bool, ndarray]:
     """
 
     True if two arrays have the same shape and elements, False otherwise.
@@ -3857,7 +3855,7 @@ def array_equal(a: ndarray, b: ndarray) -> bool:
 
     Returns
     -------
-    b : bool
+    b : ndarray scalar
         Returns True if the arrays are equal.
 
     See Also
@@ -3870,10 +3868,8 @@ def array_equal(a: ndarray, b: ndarray) -> bool:
     """
     if a.shape != b.shape:
         return False
-    return bool(
-        ndarray._perform_binary_reduction(
-            BinaryOpCode.EQUAL, a, b, dtype=np.dtype(np.bool_)
-        )
+    return ndarray._perform_binary_reduction(
+        BinaryOpCode.EQUAL, a, b, dtype=np.dtype(np.bool_)
     )
 
 
