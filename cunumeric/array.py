@@ -17,10 +17,12 @@ from __future__ import annotations
 from collections.abc import Iterable
 from functools import reduce, wraps
 from inspect import signature
-from typing import Any, Callable, Optional, Set, Tuple, TypeVar
+from typing import Any, Callable, Optional, Set, TypeVar
 
 import numpy as np
 import pyarrow
+from numpy.core.multiarray import normalize_axis_index
+from numpy.core.numeric import normalize_axis_tuple
 from typing_extensions import ParamSpec
 
 from legate.core import Array
@@ -1782,10 +1784,8 @@ class ndarray:
         if axis is None:
             self = self.ravel()
             axis = 0
-        elif axis < 0:
-            axis = self.ndim + axis
-        if axis < 0 or axis >= self.ndim:
-            raise ValueError("axis argument is out of bounds")
+        else:
+            axis = normalize_axis_index(axis, self.ndim)
 
         # TODO remove "raise" logic when bounds check for advanced
         # indexing is implementd
@@ -1935,7 +1935,7 @@ class ndarray:
     def compress(self, condition, axis=None, out=None):
         """a.compress(self, condition, axis=None, out=None)
 
-        Return selected slices of an array along given axis..
+        Return selected slices of an array along given axis.
 
         Refer to :func:`cunumeric.compress` for full documentation.
 
@@ -1959,9 +1959,12 @@ class ndarray:
                 category=RuntimeWarning,
             )
             condition = condition.astype(bool)
+
         if axis is None:
             axis = 0
             a = self.ravel()
+        else:
+            axis = normalize_axis_index(axis, self.ndim)
 
         if a.shape[axis] < condition.shape[0]:
             raise ValueError(
@@ -2530,7 +2533,7 @@ class ndarray:
             "for ndarray.getfield"
         )
 
-    def _convert_singleton_key(self, args: Tuple):
+    def _convert_singleton_key(self, args: tuple):
         if len(args) == 0 and self.size == 1:
             return (0,) * self.ndim
         if len(args) == 1 and isinstance(args[0], int):
@@ -3070,9 +3073,7 @@ class ndarray:
                         "all axis to squeeze must be less than ndim"
                     )
                 if self.shape[axis] != 1:
-                    raise ValueError(
-                        "axis to squeeze must have extent " "of one"
-                    )
+                    raise ValueError("axis to squeeze must have extent of one")
             elif isinstance(axis, tuple):
                 for ax in axis:
                     if ax >= self.ndim:
@@ -3593,23 +3594,11 @@ class ndarray:
             raise NotImplementedError(
                 "(arg)max/min not supported for complex-type arrays"
             )
-        # Compute the output shape
-        axes = axis
-        if axes is None:
+
+        if axis is None:
             axes = tuple(range(src.ndim))
-        elif not isinstance(axes, tuple):
-            axes = (axes,)
-
-        if any(type(ax) != int for ax in axes):
-            raise TypeError(
-                "'axis' must be an integer or a tuple of integers, "
-                f"but got {axis}"
-            )
-
-        axes = tuple(ax + src.ndim if ax < 0 else ax for ax in axes)
-
-        if any(ax < 0 for ax in axes):
-            raise ValueError(f"Invalid 'axis' value {axis}")
+        else:
+            axes = normalize_axis_tuple(axis, src.ndim)
 
         out_shape = ()
         for dim in range(src.ndim):

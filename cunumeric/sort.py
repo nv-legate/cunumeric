@@ -16,6 +16,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Union
 
+from numpy.core.multiarray import normalize_axis_index  # type: ignore
+
 from legate.core import types as ty
 
 from .config import CuNumericOpCode
@@ -45,7 +47,7 @@ def sort_swapped(
     sort_axis: int,
     stable: bool,
 ) -> None:
-    assert sort_axis < input.ndim - 1 and sort_axis >= 0
+    sort_axis = normalize_axis_index(sort_axis, input.ndim)
 
     # swap axes
     swapped = input.swapaxes(sort_axis, input.ndim - 1)
@@ -118,14 +120,10 @@ def sort(
     else:
         if axis is None:
             computed_axis = 0
-        elif axis < 0:
-            computed_axis = input.ndim + axis
         else:
-            computed_axis = axis
+            computed_axis = normalize_axis_index(axis, input.ndim)
 
-        if computed_axis is not input.ndim - 1:
-            sort_swapped(output, input, argsort, computed_axis, stable)
-
-        else:
-            # run actual sort task
+        if computed_axis == input.ndim - 1:
             sort_task(output, input, argsort, stable)
+        else:
+            sort_swapped(output, input, argsort, computed_axis, stable)

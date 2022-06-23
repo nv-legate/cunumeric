@@ -20,9 +20,8 @@ import numpy as np
 from cunumeric._ufunc.math import add, sqrt as _sqrt
 from cunumeric.array import add_boilerplate, convert_to_cunumeric_ndarray
 from cunumeric.module import dot, empty_like, eye, matmul, ndarray
-from numpy.core.multiarray import (  # type: ignore [attr-defined]
-    normalize_axis_index,
-)
+from numpy.core.multiarray import normalize_axis_index  # type: ignore
+from numpy.core.numeric import normalize_axis_tuple  # type: ignore
 
 if TYPE_CHECKING:
     import numpy.typing as npt
@@ -425,14 +424,11 @@ def norm(
                 ret = ret.reshape(ndim * [1])
             return ret
 
-    # Normalize the `axis` argument to a tuple.
-    nd = x.ndim
     if axis is None:
-        computed_axis = tuple(range(nd))
-    elif not isinstance(axis, tuple):
-        computed_axis = (axis,)
+        computed_axis = tuple(range(x.ndim))
     else:
-        computed_axis = axis
+        computed_axis = normalize_axis_tuple(axis, x.ndim)
+
     for ax in computed_axis:
         if not isinstance(ax, int):
             raise TypeError(
@@ -470,8 +466,8 @@ def norm(
             return ret
     elif len(computed_axis) == 2:
         row_axis, col_axis = computed_axis
-        row_axis = normalize_axis_index(row_axis, nd)
-        col_axis = normalize_axis_index(col_axis, nd)
+        row_axis = normalize_axis_index(row_axis, x.ndim)
+        col_axis = normalize_axis_index(col_axis, x.ndim)
         if row_axis == col_axis:
             raise ValueError("Duplicate axes given")
         if ord == 2:
