@@ -3740,6 +3740,9 @@ class ndarray:
                 "nancumsum and nancumprod currently do not supported complex types"
             )
         if out is not None:
+            if dtype != out.dtype:
+                # if out array is specified, its type overrules dtype
+                dtype = out.dtype
             if axis is not  None:
                 assert out.shape == src.shape
             else:
