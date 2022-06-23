@@ -3721,7 +3721,19 @@ class ndarray:
     @classmethod
     def _perform_scan(cls, op, src, axis=None, dtype=None, out=None, nan0=False):
         if dtype is None:
-            dtype = src.dtype
+            if out is None:
+                if np.issubdtype(src.dtype, np.integer):
+                    # Set dtype to default platform integer
+                    dtype = np.int_
+                else:
+                    dtype = src.dtype
+            else:
+                dtype = out.dtype
+        if (np.issubdtype(src.dtype, np.floating) or np.iscomplexobj(src)) and dtype != src.dtype:
+            # Needs changes to convert()
+            raise NotImplementedError(
+                "Integer output types currently not supported for floating/complex inputs"
+            )
         if out is not None:
             if axis is not  None:
                 assert out.shape == src.shape
