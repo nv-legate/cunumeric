@@ -161,7 +161,7 @@ def test_scan():
                                 _run_tests(op, n0, shape, dt, axis, out0, outtype)
                     for outtype in complex_types:
                         if op == "nancumsum" or op == "nancumprod":
-                            print("Complex to int NAN conversion currently not supported!")
+                            print("Complex NAN conversion currently not supported!")
                         else:
                             for dt in int_types:
                                 _run_tests(op, None, shape, dt, axis, out0, outtype)

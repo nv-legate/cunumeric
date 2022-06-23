@@ -3734,6 +3734,11 @@ class ndarray:
             raise NotImplementedError(
                 "Integer output types currently not supported for floating/complex inputs"
             )
+        if np.issubdtype(dtype, np.complexfloating) and nan0 is True:
+            # Currently not behaving correctly
+            raise NotImplementedError(
+                "nancumsum and nancumprod currently do not supported complex types"
+            )
         if out is not None:
             if axis is not  None:
                 assert out.shape == src.shape
