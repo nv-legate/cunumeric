@@ -18,7 +18,7 @@ import warnings
 from dataclasses import dataclass
 from functools import wraps
 from types import FunctionType, MethodDescriptorType, MethodType, ModuleType
-from typing import Any, Callable, Container, Optional, cast
+from typing import Any, Callable, Container, Mapping, Optional, cast
 
 from typing_extensions import Protocol
 
@@ -49,7 +49,7 @@ NDARRAY_INTERNAL = {
 
 
 def filter_namespace(
-    ns: dict[str, Any],
+    ns: Mapping[str, Any],
     *,
     omit_names: Optional[Container[str]] = None,
     omit_types: tuple[type, ...] = (),

@@ -12,14 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from __future__ import annotations
 
 from collections.abc import Iterable
 from functools import reduce, wraps
 from inspect import signature
-from typing import Optional, Set, Tuple
+from typing import Any, Callable, Optional, Set, TypeVar
 
 import numpy as np
 import pyarrow
+from numpy.core.multiarray import normalize_axis_index
+from numpy.core.numeric import normalize_axis_tuple
+from typing_extensions import ParamSpec
 
 from legate.core import Array
 
@@ -28,8 +32,13 @@ from .coverage import clone_class
 from .runtime import runtime
 from .utils import dot_modes
 
+R = TypeVar("R")
+P = ParamSpec("P")
 
-def add_boilerplate(*array_params: str):
+
+def add_boilerplate(
+    *array_params: str,
+) -> Callable[[Callable[P, R]], Callable[P, R]]:
     """
     Adds required boilerplate to the wrapped cunumeric.ndarray or module-level
     function.
@@ -92,7 +101,7 @@ def add_boilerplate(*array_params: str):
     return decorator
 
 
-def convert_to_cunumeric_ndarray(obj, share=False):
+def convert_to_cunumeric_ndarray(obj, share: bool = False) -> ndarray:
     # If this is an instance of one of our ndarrays then we're done
     if isinstance(obj, ndarray):
         return obj
@@ -143,7 +152,7 @@ class ndarray:
         order=None,
         thunk=None,
         inputs=None,
-    ):
+    ) -> None:
         # `inputs` being a cuNumeric ndarray is definitely a bug
         assert not isinstance(inputs, ndarray)
         if thunk is None:
@@ -1160,7 +1169,7 @@ class ndarray:
     # __new__
 
     @add_boilerplate()
-    def nonzero(self):
+    def nonzero(self) -> tuple[ndarray, ...]:
         """a.nonzero()
 
         Return the indices of the elements that are non-zero.
@@ -1675,7 +1684,7 @@ class ndarray:
 
     def astype(
         self, dtype, order="C", casting="unsafe", subok=True, copy=True
-    ):
+    ) -> ndarray:
         """a.astype(dtype, order='C', casting='unsafe', subok=True, copy=True)
 
         Copy of the array, cast to a specified type.
@@ -1775,10 +1784,8 @@ class ndarray:
         if axis is None:
             self = self.ravel()
             axis = 0
-        elif axis < 0:
-            axis = self.ndim + axis
-        if axis < 0 or axis >= self.ndim:
-            raise ValueError("axis argument is out of bounds")
+        else:
+            axis = normalize_axis_index(axis, self.ndim)
 
         # TODO remove "raise" logic when bounds check for advanced
         # indexing is implementd
@@ -1827,7 +1834,7 @@ class ndarray:
                 res = res.copy()
             return res
 
-    def choose(self, choices, out=None, mode="raise"):
+    def choose(self, choices, out=None, mode="raise") -> ndarray:
         """a.choose(choices, out=None, mode='raise')
 
         Use an index array to construct a new array from a set of choices.
@@ -1928,7 +1935,7 @@ class ndarray:
     def compress(self, condition, axis=None, out=None):
         """a.compress(self, condition, axis=None, out=None)
 
-        Return selected slices of an array along given axis..
+        Return selected slices of an array along given axis.
 
         Refer to :func:`cunumeric.compress` for full documentation.
 
@@ -1952,9 +1959,12 @@ class ndarray:
                 category=RuntimeWarning,
             )
             condition = condition.astype(bool)
+
         if axis is None:
             axis = 0
             a = self.ravel()
+        else:
+            axis = normalize_axis_index(axis, self.ndim)
 
         if a.shape[axis] < condition.shape[0]:
             raise ValueError(
@@ -1977,7 +1987,7 @@ class ndarray:
             res = a[index_tuple]
             return res
 
-    def clip(self, min=None, max=None, out=None):
+    def clip(self, min=None, max=None, out=None) -> ndarray:
         """a.clip(min=None, max=None, out=None)
 
         Return an array whose values are limited to ``[min, max]``.
@@ -2018,7 +2028,7 @@ class ndarray:
             UnaryOpCode.CLIP, self, dst=out, extra_args=args
         )
 
-    def conj(self):
+    def conj(self) -> ndarray:
         """a.conj()
 
         Complex-conjugate all elements.
@@ -2040,7 +2050,7 @@ class ndarray:
         else:
             return self
 
-    def conjugate(self):
+    def conjugate(self) -> ndarray:
         """a.conjugate()
 
         Return the complex conjugate, element-wise.
@@ -2058,7 +2068,7 @@ class ndarray:
         """
         return self.conj()
 
-    def copy(self, order="C"):
+    def copy(self, order="C") -> ndarray:
         """copy()
 
         Get a copy of the iterator as a 1-D array.
@@ -2083,7 +2093,7 @@ class ndarray:
         trace=False,
         out=None,
         dtype=None,
-    ):
+    ) -> ndarray:
         # _diag_helper can be used only for arrays with dim>=1
         if self.ndim < 1:
             raise ValueError("_diag_helper is implemented for dim>=1")
@@ -2192,7 +2202,7 @@ class ndarray:
 
     def diagonal(
         self, offset=0, axis1=None, axis2=None, extract=True, axes=None
-    ):
+    ) -> ndarray:
         """a.diagonal(offset=0, axis1=None, axis2=None)
 
         Return specified diagonals.
@@ -2270,7 +2280,7 @@ class ndarray:
         return res
 
     @add_boilerplate("rhs")
-    def dot(self, rhs, out=None):
+    def dot(self, rhs, out=None) -> ndarray:
         """a.dot(rhs, out=None)
 
         Return the dot product of this array with ``rhs``.
@@ -2301,6 +2311,7 @@ class ndarray:
             self,
             rhs,
             out=out,
+            casting="no",
         )
 
     def dump(self, file):
@@ -2362,7 +2373,7 @@ class ndarray:
                 fft_s[ax] = s[idx]
         return np.asarray(fft_axes), np.asarray(fft_s)
 
-    def fft(self, s, axes, kind, direction, norm):
+    def fft(self, s, axes, kind, direction, norm) -> ndarray:
         """a.fft(s, axes, kind, direction, norm)
 
         Return the ``kind`` ``direction`` FFT of this array
@@ -2522,7 +2533,7 @@ class ndarray:
             "for ndarray.getfield"
         )
 
-    def _convert_singleton_key(self, args: Tuple):
+    def _convert_singleton_key(self, args: tuple):
         if len(args) == 0 and self.size == 1:
             return (0,) * self.ndim
         if len(args) == 1 and isinstance(args[0], int):
@@ -2850,7 +2861,7 @@ class ndarray:
             where=where,
         )
 
-    def ravel(self, order="C"):
+    def ravel(self, order="C") -> ndarray:
         """a.ravel(order="C")
 
         Return a flattened array.
@@ -2869,7 +2880,7 @@ class ndarray:
         """
         return self.reshape(-1, order=order)
 
-    def reshape(self, shape, order="C"):
+    def reshape(self, shape, order="C") -> ndarray:
         """a.reshape(shape, order='C')
 
         Returns an array containing the same data with a new shape.
@@ -3039,7 +3050,7 @@ class ndarray:
         )
         return result
 
-    def squeeze(self, axis=None):
+    def squeeze(self, axis=None) -> ndarray:
         """a.squeeze(axis=None)
 
         Remove axes of length one from `a`.
@@ -3062,9 +3073,7 @@ class ndarray:
                         "all axis to squeeze must be less than ndim"
                     )
                 if self.shape[axis] != 1:
-                    raise ValueError(
-                        "axis to squeeze must have extent " "of one"
-                    )
+                    raise ValueError("axis to squeeze must have extent of one")
             elif isinstance(axis, tuple):
                 for ax in axis:
                     if ax >= self.ndim:
@@ -3124,7 +3133,7 @@ class ndarray:
             where=where,
         )
 
-    def swapaxes(self, axis1, axis2):
+    def swapaxes(self, axis1, axis2) -> ndarray:
         """a.swapaxes(axis1, axis2)
 
         Return a view of the array with `axis1` and `axis2` interchanged.
@@ -3271,7 +3280,7 @@ class ndarray:
         """
         return self.__array__().tostring(order=order)
 
-    def transpose(self, axes=None):
+    def transpose(self, axes=None) -> ndarray:
         """a.transpose(axes=None)
 
         Returns a view of the array with axes transposed.
@@ -3323,7 +3332,7 @@ class ndarray:
             )
         return ndarray(shape=None, thunk=self._thunk.transpose(axes))
 
-    def flip(self, axis=None):
+    def flip(self, axis=None) -> ndarray:
         """
         Reverse the order of elements in an array along the given axis.
 
@@ -3365,7 +3374,7 @@ class ndarray:
             )
         return ndarray(shape=self.shape, dtype=self.dtype, thunk=self._thunk)
 
-    def unique(self):
+    def unique(self) -> ndarray:
         """a.unique()
 
         Find the unique elements of an array.
@@ -3397,7 +3406,7 @@ class ndarray:
         return where._thunk
 
     @staticmethod
-    def find_common_type(*args):
+    def find_common_type(*args) -> np.dtype[Any]:
         """Determine common type following standard coercion rules.
 
         Parameters
@@ -3443,7 +3452,7 @@ class ndarray:
         dtype=None,
         where=True,
         out_dtype=None,
-    ):
+    ) -> ndarray:
         if dst is not None:
             # If the shapes don't match see if we can broadcast
             # This will raise an exception if they can't be broadcast together
@@ -3544,7 +3553,7 @@ class ndarray:
         args=None,
         initial=None,
         where=True,
-    ):
+    ) -> ndarray:
         # When 'res_dtype' is not None, the input and output of the reduction
         # have different types. Such reduction operators don't take a dtype of
         # the accumulator
@@ -3585,23 +3594,11 @@ class ndarray:
             raise NotImplementedError(
                 "(arg)max/min not supported for complex-type arrays"
             )
-        # Compute the output shape
-        axes = axis
-        if axes is None:
+
+        if axis is None:
             axes = tuple(range(src.ndim))
-        elif not isinstance(axes, tuple):
-            axes = (axes,)
-
-        if any(type(ax) != int for ax in axes):
-            raise TypeError(
-                "'axis' must be an integer or a tuple of integers, "
-                f"but got {axis}"
-            )
-
-        axes = tuple(ax + src.ndim if ax < 0 else ax for ax in axes)
-
-        if any(ax < 0 for ax in axes):
-            raise ValueError(f"Invalid 'axis' value {axis}")
+        else:
+            axes = normalize_axis_tuple(axis, src.ndim)
 
         out_shape = ()
         for dim in range(src.ndim):
@@ -3655,7 +3652,7 @@ class ndarray:
         two,
         dtype,
         extra_args=None,
-    ):
+    ) -> ndarray:
         args = (one, two)
 
         # We only handle bool types here for now
@@ -3682,7 +3679,7 @@ class ndarray:
         return dst
 
     @classmethod
-    def _perform_where(cls, mask, one, two):
+    def _perform_where(cls, mask, one, two) -> ndarray:
         args = (mask, one, two)
 
         mask = mask._maybe_convert(np.dtype(np.bool_), args)._thunk

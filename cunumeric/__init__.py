@@ -22,6 +22,7 @@ with GPU acceleration.
 
 :meta private:
 """
+from __future__ import annotations
 
 import numpy as _np
 

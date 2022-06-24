@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from __future__ import annotations
 
 import struct
 import warnings
@@ -232,7 +233,7 @@ class Runtime(object):
                 for (func_name, loc, impl) in self.api_calls:
                     print(f"{func_name},{loc},{impl}", file=f)
 
-    def destroy(self):
+    def destroy(self) -> None:
         assert not self.destroyed
         if self.num_gpus > 0:
             self._unload_cudalibs()
@@ -258,7 +259,7 @@ class Runtime(object):
             result = future
         return result
 
-    def set_next_random_epoch(self, epoch):
+    def set_next_random_epoch(self, epoch: int) -> None:
         self.current_random_epoch = epoch
 
     def get_next_random_epoch(self):
@@ -278,7 +279,7 @@ class Runtime(object):
         else:
             return np.dtype(dtype) in self.legate_context.type_system
 
-    def get_numpy_thunk(self, obj, share=False, dtype=None):
+    def get_numpy_thunk(self, obj, share=False, dtype=None) -> DeferredArray:
         # Check to see if this object implements the Legate data interface
         if hasattr(obj, "__legate_data_interface__"):
             legate_data = obj.__legate_data_interface__
@@ -525,7 +526,7 @@ class Runtime(object):
         else:
             raise RuntimeError("invalid array type")
 
-    def warn(self, msg, category=UserWarning):
+    def warn(self, msg, category=UserWarning) -> None:
         if not self.args.warning:
             return
         stacklevel = find_last_user_stacklevel()
