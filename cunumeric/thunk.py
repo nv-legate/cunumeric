@@ -15,6 +15,10 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod, abstractproperty
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    import numpy.typing as npt
 
 
 class NumPyThunk(ABC):
@@ -25,7 +29,7 @@ class NumPyThunk(ABC):
     :meta private:
     """
 
-    def __init__(self, runtime, dtype):
+    def __init__(self, runtime, dtype) -> None:
         self.runtime = runtime
         self.context = runtime.legate_context
         self.dtype = dtype
@@ -51,7 +55,7 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def __numpy_array__(self):
+    def __numpy_array__(self) -> npt.NDArray[Any]:
         ...
 
     @abstractmethod
@@ -79,7 +83,7 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def repeat(self, repeats, axis, scalar_repeats):
+    def repeat(self, repeats, axis, scalar_repeats) -> NumPyThunk:
         ...
 
     @property
@@ -92,7 +96,7 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def get_item(self, key, view=None, dim_map=None):
+    def get_item(self, key, view=None, dim_map=None) -> NumPyThunk:
         ...
 
     @abstractmethod
@@ -116,7 +120,7 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def fill(self, value):
+    def fill(self, value) -> None:
         ...
 
     @abstractmethod
@@ -148,11 +152,11 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def eye(self, k):
+    def eye(self, k) -> None:
         ...
 
     @abstractmethod
-    def arange(self, start, stop, step):
+    def arange(self, start, stop, step) -> None:
         ...
 
     @abstractmethod
@@ -172,15 +176,15 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def random_uniform(self):
+    def random_uniform(self) -> None:
         ...
 
     @abstractmethod
-    def random_normal(self):
+    def random_normal(self) -> None:
         ...
 
     @abstractmethod
-    def random_integer(self, low, high):
+    def random_integer(self, low, high) -> None:
         ...
 
     @abstractmethod
@@ -203,7 +207,7 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def isclose(self, rhs1, rhs2, rtol, atol, equal_nan):
+    def isclose(self, rhs1, rhs2, rtol, atol, equal_nan) -> None:
         ...
 
     @abstractmethod
@@ -227,5 +231,5 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def create_window(self, op_code, *args):
+    def create_window(self, op_code, *args) -> None:
         ...
