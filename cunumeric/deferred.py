@@ -391,6 +391,7 @@ class DeferredArray(NumPyThunk):
 
         # call ZIP function to combine index arrays into a singe array
         task = self.context.create_task(CuNumericOpCode.ZIP)
+        task.throws_exception(IndexError)
         task.add_output(output_arr.base)
         task.add_scalar_arg(self.ndim, ty.int64)  # N of points in Point<N>
         task.add_scalar_arg(key_dim, ty.int64)  # key_dim
@@ -786,7 +787,7 @@ class DeferredArray(NumPyThunk):
 
                 view.copy(rhs, deep=False)
 
-    def reshape(self, newshape, order):
+    def reshape(self, newshape, order) -> DeferredArray:
         assert isinstance(newshape, Iterable)
         if order == "A":
             order = "C"
@@ -994,7 +995,7 @@ class DeferredArray(NumPyThunk):
             )
         return DeferredArray(self.runtime, result, self.dtype)
 
-    def swapaxes(self, axis1, axis2):
+    def swapaxes(self, axis1, axis2) -> DeferredArray:
         if self.size == 1 or axis1 == axis2:
             return self
         # Make a new deferred array object and swap the results

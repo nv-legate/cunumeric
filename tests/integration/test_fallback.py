@@ -1,4 +1,4 @@
-# Copyright 2017-2022 NVIDIA Corporation
+# Copyright 2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,26 +13,27 @@
 # limitations under the License.
 #
 
-import legate.pandas as pd
+import numpy as np
+import pytest
 
-import cunumeric as np
+import cunumeric as num
 
 
-def test():
-    sr = pd.Series([1, 2, 3])
-    array = np.asarray(sr)
-    x = np.array([1, 2, 3])
-    assert np.array_equal(array, x)
+def test_array_equal():
+    a = num.array([1, 2, 3])
+    assert np.array_equal(a, a, equal_nan=True)
 
-    y = np.array([4, 5, 6])
-    z = np.add(sr, y)
-    assert np.array_equal(z, x + y)
 
-    df = pd.DataFrame({"x": x, "y": y})
-    z = np.add(df["x"], df["y"])
-    assert np.array_equal(z, x + y)
-    return
+def test_ufunc():
+    in_num = num.array([0, 1, 2, 3])
+    in_np = in_num.__array__()
+
+    out_num = np.logical_and.reduce(in_num)
+    out_np = np.logical_and.reduce(in_np)
+    assert np.array_equal(out_num, out_np)
 
 
 if __name__ == "__main__":
-    test()
+    import sys
+
+    sys.exit(pytest.main(sys.argv))

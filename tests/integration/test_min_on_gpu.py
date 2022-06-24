@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 # Copyright 2021-2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,19 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from __future__ import annotations
 
-import sys
+import pytest
 
-from tests._utils.config import Config
-from tests._utils.system import System
-from tests._utils.test_plan import TestPlan
+import cunumeric as cn
+
+
+def test_min():
+    x = cn.array([1, 2, 3])
+    assert cn.min(x) == 1
+
 
 if __name__ == "__main__":
-    config = Config(sys.argv)
+    import sys
 
-    system = System(dry_run=config.dry_run, debug=config.debug)
-
-    plan = TestPlan(config, system)
-
-    sys.exit(plan.execute())
+    sys.exit(pytest.main(sys.argv))

@@ -22,6 +22,8 @@ from typing import Any, List, Sequence, Tuple, Union, cast
 
 import numpy as np
 
+from .types import NdShape
+
 _SUPPORTED_DTYPES = [
     np.float16,
     np.float32,
@@ -91,7 +93,7 @@ def is_supported_dtype(dtype: Any) -> bool:
     return dtype.type in _SUPPORTED_DTYPES
 
 
-def calculate_volume(shape: tuple[int, ...]) -> int:
+def calculate_volume(shape: NdShape) -> int:
     if len(shape) == 0:
         return 0
     return reduce(lambda x, y: x * y, shape)
