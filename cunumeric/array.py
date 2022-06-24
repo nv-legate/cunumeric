@@ -17,7 +17,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from functools import reduce, wraps
 from inspect import signature
-from typing import Callable, Optional, Set, TypeVar
+from typing import Any, Callable, Optional, Set, TypeVar
 
 import numpy as np
 import pyarrow
@@ -1169,7 +1169,7 @@ class ndarray:
     # __new__
 
     @add_boilerplate()
-    def nonzero(self):
+    def nonzero(self) -> tuple[ndarray, ...]:
         """a.nonzero()
 
         Return the indices of the elements that are non-zero.
@@ -1834,7 +1834,7 @@ class ndarray:
                 res = res.copy()
             return res
 
-    def choose(self, choices, out=None, mode="raise"):
+    def choose(self, choices, out=None, mode="raise") -> ndarray:
         """a.choose(choices, out=None, mode='raise')
 
         Use an index array to construct a new array from a set of choices.
@@ -1987,7 +1987,7 @@ class ndarray:
             res = a[index_tuple]
             return res
 
-    def clip(self, min=None, max=None, out=None):
+    def clip(self, min=None, max=None, out=None) -> ndarray:
         """a.clip(min=None, max=None, out=None)
 
         Return an array whose values are limited to ``[min, max]``.
@@ -2093,7 +2093,7 @@ class ndarray:
         trace=False,
         out=None,
         dtype=None,
-    ):
+    ) -> ndarray:
         # _diag_helper can be used only for arrays with dim>=1
         if self.ndim < 1:
             raise ValueError("_diag_helper is implemented for dim>=1")
@@ -2202,7 +2202,7 @@ class ndarray:
 
     def diagonal(
         self, offset=0, axis1=None, axis2=None, extract=True, axes=None
-    ):
+    ) -> ndarray:
         """a.diagonal(offset=0, axis1=None, axis2=None)
 
         Return specified diagonals.
@@ -3050,7 +3050,7 @@ class ndarray:
         )
         return result
 
-    def squeeze(self, axis=None):
+    def squeeze(self, axis=None) -> ndarray:
         """a.squeeze(axis=None)
 
         Remove axes of length one from `a`.
@@ -3133,7 +3133,7 @@ class ndarray:
             where=where,
         )
 
-    def swapaxes(self, axis1, axis2):
+    def swapaxes(self, axis1, axis2) -> ndarray:
         """a.swapaxes(axis1, axis2)
 
         Return a view of the array with `axis1` and `axis2` interchanged.
@@ -3280,7 +3280,7 @@ class ndarray:
         """
         return self.__array__().tostring(order=order)
 
-    def transpose(self, axes=None):
+    def transpose(self, axes=None) -> ndarray:
         """a.transpose(axes=None)
 
         Returns a view of the array with axes transposed.
@@ -3332,7 +3332,7 @@ class ndarray:
             )
         return ndarray(shape=None, thunk=self._thunk.transpose(axes))
 
-    def flip(self, axis=None):
+    def flip(self, axis=None) -> ndarray:
         """
         Reverse the order of elements in an array along the given axis.
 
@@ -3374,7 +3374,7 @@ class ndarray:
             )
         return ndarray(shape=self.shape, dtype=self.dtype, thunk=self._thunk)
 
-    def unique(self):
+    def unique(self) -> ndarray:
         """a.unique()
 
         Find the unique elements of an array.
@@ -3406,7 +3406,7 @@ class ndarray:
         return where._thunk
 
     @staticmethod
-    def find_common_type(*args):
+    def find_common_type(*args) -> np.dtype[Any]:
         """Determine common type following standard coercion rules.
 
         Parameters
@@ -3452,7 +3452,7 @@ class ndarray:
         dtype=None,
         where=True,
         out_dtype=None,
-    ):
+    ) -> ndarray:
         if dst is not None:
             # If the shapes don't match see if we can broadcast
             # This will raise an exception if they can't be broadcast together
@@ -3652,7 +3652,7 @@ class ndarray:
         two,
         dtype,
         extra_args=None,
-    ):
+    ) -> ndarray:
         args = (one, two)
 
         # We only handle bool types here for now
@@ -3679,7 +3679,7 @@ class ndarray:
         return dst
 
     @classmethod
-    def _perform_where(cls, mask, one, two):
+    def _perform_where(cls, mask, one, two) -> ndarray:
         args = (mask, one, two)
 
         mask = mask._maybe_convert(np.dtype(np.bool_), args)._thunk
