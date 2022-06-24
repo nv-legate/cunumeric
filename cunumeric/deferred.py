@@ -33,7 +33,6 @@ from .config import (
     RandGenCode,
     UnaryOpCode,
     UnaryRedCode,
-    ScanCode,
 )
 from .linalg.cholesky import cholesky
 from .sort import sort
@@ -1905,9 +1904,11 @@ class DeferredArray(NumPyThunk):
 
     @auto_convert([2])
     def scan(self, op, rhs, axis, dtype, nan0):
-        ## local sum
+        # local sum
         # storage for local sums accessible
-        temp = self.runtime.create_unbound_thunk(dtype=self.dtype, ndim=self.ndim)
+        temp = self.runtime.create_unbound_thunk(
+            dtype=self.dtype, ndim=self.ndim
+        )
 
         if axis is not None and (axis > rhs.ndim or axis < 0):
             raise ValueError("invalid axis")
@@ -1916,19 +1917,20 @@ class DeferredArray(NumPyThunk):
             input = rhs.reshape((rhs.size,), order="C")
             output = self
         else:
-            if rhs.ndim == 1 or axis == rhs.ndim-1:
+            if rhs.ndim == 1 or axis == rhs.ndim - 1:
                 input = rhs
                 output = self
             else:
                 # swap axes, always performing scan along last axis
                 swapped = rhs.swapaxes(axis, rhs.ndim - 1)
                 input = self.runtime.create_empty_thunk(
-                    swapped.shape, dtype=rhs.dtype, inputs=(rhs, swapped))
+                    swapped.shape, dtype=rhs.dtype, inputs=(rhs, swapped)
+                )
                 input.copy(swapped, deep=True)
                 output = self.runtime.create_empty_thunk(
-                    input.shape, dtype=self.dtype)
-                    
-        
+                    input.shape, dtype=self.dtype
+                )
+
         task = output.context.create_task(CuNumericOpCode.SCAN_LOCAL)
         task.add_output(output.base)
         task.add_input(input.base)
@@ -1939,10 +1941,10 @@ class DeferredArray(NumPyThunk):
         task.add_alignment(input.base, output.base)
 
         task.execute()
-        ## Global sum
-        # RRRR NOTE: Assumes the partitioning stays the same from previous task.
-        # RRRR NOTE: Each node will do a sum up to its index, alternatively could
-        # RRRR do one centralized scan and broadcast (slightly less redundant work)
+        # Global sum
+        # NOTE: Assumes the partitioning stays the same from previous task.
+        # NOTE: Each node will do a sum up to its index, alternatively could
+        # do one centralized scan and broadcast (slightly less redundant work)
         task = output.context.create_task(CuNumericOpCode.SCAN_GLOBAL)
         task.add_input(output.base)
         task.add_input(temp.base)
@@ -1954,12 +1956,11 @@ class DeferredArray(NumPyThunk):
         task.execute()
 
         # if axes were swapped, turn them back
-        if axis is not rhs.ndim-1 and axis is not None:
-            swapped = output.swapaxes(rhs.ndim-1, axis)
+        if axis is not rhs.ndim - 1 and axis is not None:
+            swapped = output.swapaxes(rhs.ndim - 1, axis)
             assert self.shape == swapped.shape
             self.copy(swapped, deep=True)
 
-        
     def unique(self):
         result = self.runtime.create_unbound_thunk(self.dtype)
 

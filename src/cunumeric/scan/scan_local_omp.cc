@@ -23,7 +23,6 @@
 #include <thrust/system/omp/execution_policy.h>
 #include <omp.h>
 
-
 namespace cunumeric {
 
 using namespace Legion;
@@ -36,28 +35,25 @@ struct ScanLocalImplBody<VariantKind::OMP, OP_CODE, CODE, DIM> {
 
   void operator()(OP func,
                   const AccessorWO<VAL, DIM>& out,
-		  const AccessorRO<VAL, DIM>& in,
-		  Array& sum_vals,
-		  const Pitches<DIM - 1>& pitches,
-		  const Rect<DIM>& rect) const
+                  const AccessorRO<VAL, DIM>& in,
+                  Array& sum_vals,
+                  const Pitches<DIM - 1>& pitches,
+                  const Rect<DIM>& rect) const
   {
     auto outptr = out.ptr(rect.lo);
-    auto inptr = in.ptr(rect.lo);
+    auto inptr  = in.ptr(rect.lo);
     auto volume = rect.volume();
-    
+
     auto stride = rect.hi[DIM - 1] - rect.lo[DIM - 1] + 1;
 
     Point<DIM> extents = rect.hi - rect.lo + Point<DIM>::ONES();
-    extents[DIM - 1] = 1; // one element along scan axis
+    extents[DIM - 1]   = 1;  // one element along scan axis
 
     auto sum_valsptr = sum_vals.create_output_buffer<VAL, DIM>(extents, true);
 
-    for(uint64_t index = 0; index < volume; index += stride){
-      thrust::inclusive_scan(thrust::omp::par,
-      			     inptr + index,
-      			     inptr + index + stride,
-      			     outptr + index,
-      			     func);
+    for (uint64_t index = 0; index < volume; index += stride) {
+      thrust::inclusive_scan(
+        thrust::omp::par, inptr + index, inptr + index + stride, outptr + index, func);
       // get the corresponding ND index with base zero to use for sum_val
       auto sum_valp = pitches.unflatten(index, rect.lo) - rect.lo;
       // only one element on scan axis
@@ -73,39 +69,38 @@ struct ScanLocalNanImplBody<VariantKind::OMP, OP_CODE, CODE, DIM> {
   using OP  = ScanOp<OP_CODE, CODE>;
   using VAL = legate_type_of<CODE>;
 
-  struct convert_nan_func
-  {
-    __host__ __device__
-    VAL operator()(VAL x)
+  struct convert_nan_func {
+    __host__ __device__ VAL operator()(VAL x)
     {
-      return std::isnan(x) ? (VAL) ScanOp<OP_CODE, CODE>::nan_null : x;
+      return std::isnan(x) ? (VAL)ScanOp<OP_CODE, CODE>::nan_null : x;
     }
   };
-  
+
   void operator()(OP func,
                   const AccessorWO<VAL, DIM>& out,
-		  const AccessorRO<VAL, DIM>& in,
-		  Array& sum_vals,
-		  const Pitches<DIM - 1>& pitches,
-		  const Rect<DIM>& rect) const
+                  const AccessorRO<VAL, DIM>& in,
+                  Array& sum_vals,
+                  const Pitches<DIM - 1>& pitches,
+                  const Rect<DIM>& rect) const
   {
     auto outptr = out.ptr(rect.lo);
-    auto inptr = in.ptr(rect.lo);
+    auto inptr  = in.ptr(rect.lo);
     auto volume = rect.volume();
-    
+
     auto stride = rect.hi[DIM - 1] - rect.lo[DIM - 1] + 1;
 
     Point<DIM> extents = rect.hi - rect.lo + Point<DIM>::ONES();
-    extents[DIM - 1] = 1; // one element along scan axis
+    extents[DIM - 1]   = 1;  // one element along scan axis
 
     auto sum_valsptr = sum_vals.create_output_buffer<VAL, DIM>(extents, true);
 
-    for(uint64_t index = 0; index < volume; index += stride){
-      thrust::inclusive_scan(thrust::omp::par,
-      			     thrust::make_transform_iterator(inptr + index, convert_nan_func()),
-      			     thrust::make_transform_iterator(inptr + index + stride, convert_nan_func()),
-      			     outptr + index,
-      			     func);
+    for (uint64_t index = 0; index < volume; index += stride) {
+      thrust::inclusive_scan(
+        thrust::omp::par,
+        thrust::make_transform_iterator(inptr + index, convert_nan_func()),
+        thrust::make_transform_iterator(inptr + index + stride, convert_nan_func()),
+        outptr + index,
+        func);
       // get the corresponding ND index with base zero to use for sum_val
       auto sum_valp = pitches.unflatten(index, rect.lo) - rect.lo;
       // only one element on scan axis
@@ -122,4 +117,3 @@ struct ScanLocalNanImplBody<VariantKind::OMP, OP_CODE, CODE, DIM> {
 }
 
 }  // namespace cunumeric
-  

@@ -22,7 +22,6 @@
 #include <thrust/system/omp/execution_policy.h>
 #include <omp.h>
 
-
 namespace cunumeric {
 
 using namespace Legion;
@@ -32,44 +31,46 @@ template <ScanCode OP_CODE, LegateTypeCode CODE, int DIM>
 struct ScanGlobalImplBody<VariantKind::OMP, OP_CODE, CODE, DIM> {
   using OP  = ScanOp<OP_CODE, CODE>;
   using VAL = legate_type_of<CODE>;
-  
+
   void operator()(OP func,
-		  const AccessorRW<VAL, DIM>& out,
-		  const AccessorRO<VAL, DIM>& sum_vals,
-		  const Pitches<DIM - 1>& out_pitches,
-		  const Rect<DIM>& out_rect,
-		  const Pitches<DIM - 1>& sum_vals_pitches,
-		  const Rect<DIM>& sum_vals_rect,
-		  const DomainPoint& partition_index) const
+                  const AccessorRW<VAL, DIM>& out,
+                  const AccessorRO<VAL, DIM>& sum_vals,
+                  const Pitches<DIM - 1>& out_pitches,
+                  const Rect<DIM>& out_rect,
+                  const Pitches<DIM - 1>& sum_vals_pitches,
+                  const Rect<DIM>& sum_vals_rect,
+                  const DomainPoint& partition_index) const
   {
     auto outptr = out.ptr(out_rect.lo);
     auto volume = out_rect.volume();
 
-    if (partition_index[DIM - 1] == 0){
+    if (partition_index[DIM - 1] == 0) {
       // first partition has nothing to do and can return;
       return;
     }
 
     auto stride = out_rect.hi[DIM - 1] - out_rect.lo[DIM - 1] + 1;
-    for(uint64_t index = 0; index < volume; index += stride){
+    for (uint64_t index = 0; index < volume; index += stride) {
       // get the corresponding ND index to use for sum_val
       auto sum_valsp = out_pitches.unflatten(index, out_rect.lo);
       // first element on scan axis
-      sum_valsp[DIM - 1] = 0;
-      auto sum_valsp_end = sum_valsp;
-      sum_valsp_end[DIM - 1] = partition_index[DIM-1];
+      sum_valsp[DIM - 1]     = 0;
+      auto sum_valsp_end     = sum_valsp;
+      sum_valsp_end[DIM - 1] = partition_index[DIM - 1];
       // RRRR simple version, faster at small sizes
       // auto base = sum_vals[sum_valsp];
       // for(int i=1; i<partition_index[DIM - 1]; i++){
       // 	sum_valsp[DIM - 1] = i;
       // 	base = base + sum_vals[sum_valsp];
       // }
-      auto base = thrust::reduce(thrust::omp::par, &sum_vals[sum_valsp], &sum_vals[sum_valsp_end], (VAL) ScanOp<OP_CODE, CODE>::nan_null, func);
+      auto base = thrust::reduce(thrust::omp::par,
+                                 &sum_vals[sum_valsp],
+                                 &sum_vals[sum_valsp_end],
+                                 (VAL)ScanOp<OP_CODE, CODE>::nan_null,
+                                 func);
       // apply base to out
 #pragma omp parallel for schedule(static)
-      for(uint64_t i = index; i < index + stride; i++){
-	outptr[i] = func(outptr[i], base);
-      }
+      for (uint64_t i = index; i < index + stride; i++) { outptr[i] = func(outptr[i], base); }
     }
   }
 };
@@ -80,4 +81,3 @@ struct ScanGlobalImplBody<VariantKind::OMP, OP_CODE, CODE, DIM> {
 }
 
 }  // namespace cunumeric
-  

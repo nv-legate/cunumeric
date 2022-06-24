@@ -271,7 +271,7 @@ class CuNumericTunable(IntEnum):
 class ScanCode(IntEnum):
     PROD = _cunumeric.CUNUMERIC_SCAN_PROD
     SUM = _cunumeric.CUNUMERIC_SCAN_SUM
-    
+
 
 # Match these to fftType in fft_util.h
 class _FFTType:

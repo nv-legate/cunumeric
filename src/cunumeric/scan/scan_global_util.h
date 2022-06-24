@@ -23,8 +23,8 @@
 namespace cunumeric {
 
 enum class ScanCode : int {
-  PROD          = CUNUMERIC_SCAN_PROD,
-  SUM           = CUNUMERIC_SCAN_SUM,
+  PROD = CUNUMERIC_SCAN_PROD,
+  SUM  = CUNUMERIC_SCAN_SUM,
 };
 
 template <typename Functor, typename... Fnargs>
@@ -33,8 +33,7 @@ constexpr decltype(auto) op_dispatch(ScanCode op_code, Functor f, Fnargs&&... ar
   switch (op_code) {
     case ScanCode::PROD:
       return f.template operator()<ScanCode::PROD>(std::forward<Fnargs>(args)...);
-    case ScanCode::SUM:
-      return f.template operator()<ScanCode::SUM>(std::forward<Fnargs>(args)...);
+    case ScanCode::SUM: return f.template operator()<ScanCode::SUM>(std::forward<Fnargs>(args)...);
     default: break;
   }
   assert(false);
@@ -47,7 +46,7 @@ template <ScanCode OP_CODE, legate::LegateTypeCode CODE>
 struct ScanOp {
   static constexpr int nan_null = 0;
 };
-  
+
 template <legate::LegateTypeCode CODE>
 struct ScanOp<ScanCode::SUM, CODE> : thrust::plus<legate::legate_type_of<CODE>> {
   static constexpr int nan_null = 0;

@@ -35,47 +35,51 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   if (idx >= volume) return;
   out[idx] = func(out[idx], scalar);
 }
-  
+
 template <ScanCode OP_CODE, LegateTypeCode CODE, int DIM>
 struct ScanGlobalImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
   using OP  = ScanOp<OP_CODE, CODE>;
   using VAL = legate_type_of<CODE>;
-  
+
   void operator()(OP func,
-		  const AccessorRW<VAL, DIM>& out,
-		  const AccessorRO<VAL, DIM>& sum_vals,
-		  const Pitches<DIM - 1>& out_pitches,
-		  const Rect<DIM>& out_rect,
-		  const Pitches<DIM - 1>& sum_vals_pitches,
-		  const Rect<DIM>& sum_vals_rect,
-		  const DomainPoint& partition_index) const
+                  const AccessorRW<VAL, DIM>& out,
+                  const AccessorRO<VAL, DIM>& sum_vals,
+                  const Pitches<DIM - 1>& out_pitches,
+                  const Rect<DIM>& out_rect,
+                  const Pitches<DIM - 1>& sum_vals_pitches,
+                  const Rect<DIM>& sum_vals_rect,
+                  const DomainPoint& partition_index) const
   {
     auto outptr = out.ptr(out_rect.lo);
     auto volume = out_rect.volume();
 
-    if (partition_index[DIM - 1] == 0){
+    if (partition_index[DIM - 1] == 0) {
       // first partition has nothing to do and can return;
       return;
     }
 
-    auto stride = out_rect.hi[DIM - 1] - out_rect.lo[DIM - 1] + 1;
+    auto stride         = out_rect.hi[DIM - 1] - out_rect.lo[DIM - 1] + 1;
     const size_t blocks = (stride + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-    for(uint64_t index = 0; index < volume; index += stride){
+    for (uint64_t index = 0; index < volume; index += stride) {
       // RRRR depending on stride and volume this should either call multiple streams
       // RRRR or use a cub version (currently not implemented)
       // get the corresponding ND index to use for sum_val
       auto sum_valsp = out_pitches.unflatten(index, out_rect.lo);
       // first element on scan axis
-      sum_valsp[DIM - 1] = 0;
-      auto sum_valsp_end = sum_valsp;
-      sum_valsp_end[DIM - 1] = partition_index[DIM-1];
+      sum_valsp[DIM - 1]     = 0;
+      auto sum_valsp_end     = sum_valsp;
+      sum_valsp_end[DIM - 1] = partition_index[DIM - 1];
       // RRRR simple version, faster at small sizes
       // auto base = sum_vals[sum_valsp];
       // for(int i=1; i<partition_index[DIM - 1]; i++){
       // 	sum_valsp[DIM - 1] = i;
       // 	base = base + sum_vals[sum_valsp];
       // }
-      auto base = thrust::reduce(thrust::device, &sum_vals[sum_valsp], &sum_vals[sum_valsp_end], (VAL) ScanOp<OP_CODE, CODE>::nan_null, func);
+      auto base = thrust::reduce(thrust::device,
+                                 &sum_vals[sum_valsp],
+                                 &sum_vals[sum_valsp_end],
+                                 (VAL)ScanOp<OP_CODE, CODE>::nan_null,
+                                 func);
       // apply base to out
       scalar_kernel<<<blocks, THREADS_PER_BLOCK>>>(stride, func, &outptr[index], base);
     }
@@ -88,4 +92,3 @@ struct ScanGlobalImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
 }
 
 }  // namespace cunumeric
-  

@@ -23,10 +23,10 @@ from .config import (
     FFT_Z2D,
     BinaryOpCode,
     FFTDirection,
+    ScanCode,
     UnaryOpCode,
     UnaryRedCode,
     WindowOpCode,
-    ScanCode,
 )
 from .thunk import NumPyThunk
 from .utils import is_advanced_indexing

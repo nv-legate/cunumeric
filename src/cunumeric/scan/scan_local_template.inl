@@ -31,13 +31,14 @@ struct ScanLocalNanImplBody;
 template <VariantKind KIND, ScanCode OP_CODE, bool NAN0>
 struct ScanLocalImpl {
   // Case where NANs are transformed
-  template <LegateTypeCode CODE, int DIM,
-	    std::enable_if_t<NAN0 && legate::is_floating_point<CODE>::value>* = nullptr>
+  template <LegateTypeCode CODE,
+            int DIM,
+            std::enable_if_t<NAN0 && legate::is_floating_point<CODE>::value>* = nullptr>
   void operator()(ScanLocalArgs& args) const
   {
     using OP  = ScanOp<OP_CODE, CODE>;
     using VAL = legate_type_of<CODE>;
-    
+
     auto rect = args.out.shape<DIM>();
 
     Pitches<DIM - 1> pitches;
@@ -46,19 +47,20 @@ struct ScanLocalImpl {
     if (volume == 0) return;
 
     auto out = args.out.write_accessor<VAL, DIM>(rect);
-    auto in = args.in.read_accessor<VAL, DIM>(rect);
+    auto in  = args.in.read_accessor<VAL, DIM>(rect);
 
     OP func;
     ScanLocalNanImplBody<KIND, OP_CODE, CODE, DIM>()(func, out, in, args.sum_vals, pitches, rect);
   }
   // Case where NANs are as is
-  template <LegateTypeCode CODE, int DIM,
-	    std::enable_if_t<!(NAN0 && legate::is_floating_point<CODE>::value)>* = nullptr>
+  template <LegateTypeCode CODE,
+            int DIM,
+            std::enable_if_t<!(NAN0 && legate::is_floating_point<CODE>::value)>* = nullptr>
   void operator()(ScanLocalArgs& args) const
   {
     using OP  = ScanOp<OP_CODE, CODE>;
     using VAL = legate_type_of<CODE>;
-    
+
     auto rect = args.out.shape<DIM>();
 
     Pitches<DIM - 1> pitches;
@@ -67,12 +69,11 @@ struct ScanLocalImpl {
     if (volume == 0) return;
 
     auto out = args.out.write_accessor<VAL, DIM>(rect);
-    auto in = args.in.read_accessor<VAL, DIM>(rect);
+    auto in  = args.in.read_accessor<VAL, DIM>(rect);
 
     OP func;
     ScanLocalImplBody<KIND, OP_CODE, CODE, DIM>()(func, out, in, args.sum_vals, pitches, rect);
   }
-
 };
 
 template <VariantKind KIND>
@@ -80,15 +81,19 @@ struct ScanLocalDispatch {
   template <ScanCode OP_CODE, bool NAN0>
   void operator()(ScanLocalArgs& args) const
   {
-    return double_dispatch(args.in.dim(), args.in.code(), ScanLocalImpl<KIND, OP_CODE, NAN0>{}, args);
+    return double_dispatch(
+      args.in.dim(), args.in.code(), ScanLocalImpl<KIND, OP_CODE, NAN0>{}, args);
   }
 };
 
 template <VariantKind KIND>
 static void scan_local_template(TaskContext& context)
 {
-  ScanLocalArgs args{context.outputs()[0], context.inputs()[0], context.outputs()[1],
-    context.scalars()[0].value<ScanCode>(), context.scalars()[1].value<bool>()};
+  ScanLocalArgs args{context.outputs()[0],
+                     context.inputs()[0],
+                     context.outputs()[1],
+                     context.scalars()[0].value<ScanCode>(),
+                     context.scalars()[1].value<bool>()};
   op_dispatch(args.op_code, args.nan0, ScanLocalDispatch<KIND>{}, args);
 }
 

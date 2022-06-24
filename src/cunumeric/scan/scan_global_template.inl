@@ -32,8 +32,8 @@ struct ScanGlobalImpl {
   {
     using OP  = ScanOp<OP_CODE, CODE>;
     using VAL = legate_type_of<CODE>;
-    
-    auto out_rect = args.out.shape<DIM>();
+
+    auto out_rect      = args.out.shape<DIM>();
     auto sum_vals_rect = args.sum_vals.shape<DIM>();
 
     Pitches<DIM - 1> out_pitches;
@@ -43,11 +43,18 @@ struct ScanGlobalImpl {
 
     if (volume == 0) return;
 
-    auto out = args.out.read_write_accessor<VAL, DIM>(out_rect);
+    auto out      = args.out.read_write_accessor<VAL, DIM>(out_rect);
     auto sum_vals = args.sum_vals.read_accessor<VAL, DIM>(sum_vals_rect);
 
     OP func;
-    ScanGlobalImplBody<KIND, OP_CODE, CODE, DIM>()(func, out, sum_vals, out_pitches, out_rect, sum_vals_pitches, sum_vals_rect, args.partition_index);
+    ScanGlobalImplBody<KIND, OP_CODE, CODE, DIM>()(func,
+                                                   out,
+                                                   sum_vals,
+                                                   out_pitches,
+                                                   out_rect,
+                                                   sum_vals_pitches,
+                                                   sum_vals_rect,
+                                                   args.partition_index);
   }
 };
 
@@ -63,8 +70,10 @@ struct ScanGlobalDispatch {
 template <VariantKind KIND>
 static void scan_global_template(TaskContext& context)
 {
-  ScanGlobalArgs args{context.inputs()[1], context.outputs()[0], context.scalars()[0].value<ScanCode>(),
-    context.get_task_index()};
+  ScanGlobalArgs args{context.inputs()[1],
+                      context.outputs()[0],
+                      context.scalars()[0].value<ScanCode>(),
+                      context.get_task_index()};
   op_dispatch(args.op_code, ScanGlobalDispatch<KIND>{}, args);
 }
 

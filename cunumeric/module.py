@@ -27,7 +27,7 @@ from cunumeric._ufunc.math import add, multiply
 from numpy.core.numeric import normalize_axis_tuple
 
 from .array import add_boilerplate, convert_to_cunumeric_ndarray, ndarray
-from .config import BinaryOpCode, UnaryRedCode, ScanCode
+from .config import BinaryOpCode, ScanCode, UnaryRedCode
 from .runtime import runtime
 from .utils import inner_modes, matmul_modes, tensordot_modes
 
@@ -4372,7 +4372,9 @@ def cumsum(a, axis=None, dtype=None, out=None):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray._perform_scan(ScanCode.SUM, a, axis=axis, dtype=dtype, out=out, nan0=False)
+    return ndarray._perform_scan(
+        ScanCode.SUM, a, axis=axis, dtype=dtype, out=out, nan0=False
+    )
 
 
 @add_boilerplate("a")
@@ -4415,7 +4417,9 @@ def cumprod(a, axis=None, dtype=None, out=None):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray._perform_scan(ScanCode.PROD, a, axis=axis, dtype=dtype, out=out, nan0=False)
+    return ndarray._perform_scan(
+        ScanCode.PROD, a, axis=axis, dtype=dtype, out=out, nan0=False
+    )
 
 
 @add_boilerplate("a")
@@ -4462,7 +4466,9 @@ def nancumsum(a, axis=None, dtype=None, out=None):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray._perform_scan(ScanCode.SUM, a, axis=axis, dtype=dtype, out=out, nan0=True)
+    return ndarray._perform_scan(
+        ScanCode.SUM, a, axis=axis, dtype=dtype, out=out, nan0=True
+    )
 
 
 @add_boilerplate("a")
@@ -4509,7 +4515,9 @@ def nancumprod(a, axis=None, dtype=None, out=None):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return ndarray._perform_scan(ScanCode.PROD, a, axis=axis, dtype=dtype, out=out, nan0=True)
+    return ndarray._perform_scan(
+        ScanCode.PROD, a, axis=axis, dtype=dtype, out=out, nan0=True
+    )
 
 
 ##################################

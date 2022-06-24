@@ -225,7 +225,7 @@ class NumPyThunk(ABC):
     @abstractmethod
     def scan(self, op, rhs, axis, dtype, nan0):
         ...
-        
+
     @abstractmethod
     def unique(self):
         ...

@@ -25,7 +25,13 @@ from typing_extensions import ParamSpec
 
 from legate.core import Array
 
-from .config import FFTDirection, FFTNormalization, UnaryOpCode, UnaryRedCode, ScanCode
+from .config import (
+    FFTDirection,
+    FFTNormalization,
+    ScanCode,
+    UnaryOpCode,
+    UnaryRedCode,
+)
 from .coverage import clone_class
 from .runtime import runtime
 from .utils import dot_modes
@@ -2079,17 +2085,24 @@ class ndarray:
         return self.__copy__()
 
     def cumsum(self, axis=None, dtype=None, out=None):
-        return self._perform_scan(ScanCode.SUM, self, axis=axis, dtype=dtype, out=out, nan0=False)
+        return self._perform_scan(
+            ScanCode.SUM, self, axis=axis, dtype=dtype, out=out, nan0=False
+        )
 
     def cumprod(self, axis=None, dtype=None, out=None):
-        return self._perform_scan(ScanCode.PROD, self, axis=axis, dtype=dtype, out=out, nan0=False)
-        
+        return self._perform_scan(
+            ScanCode.PROD, self, axis=axis, dtype=dtype, out=out, nan0=False
+        )
+
     def nancumsum(self, axis=None, dtype=None, out=None):
-        return self._perform_scan(ScanCode.SUM, self, axis=axis, dtype=dtype, out=out, nan0=True)
-        
+        return self._perform_scan(
+            ScanCode.SUM, self, axis=axis, dtype=dtype, out=out, nan0=True
+        )
+
     def nancumprod(self, axis=None, dtype=None, out=None):
-        return self._perform_scan(ScanCode.PROD, self, axis=axis, dtype=dtype, out=out, nan0=True)
-        
+        return self._perform_scan(
+            ScanCode.PROD, self, axis=axis, dtype=dtype, out=out, nan0=True
+        )
 
     # diagonal helper. Will return diagonal for arbitrary number of axes;
     # currently offset option is implemented only for the case of number of
@@ -3719,7 +3732,9 @@ class ndarray:
         return out
 
     @classmethod
-    def _perform_scan(cls, op, src, axis=None, dtype=None, out=None, nan0=False):
+    def _perform_scan(
+        cls, op, src, axis=None, dtype=None, out=None, nan0=False
+    ):
         if dtype is None:
             if out is None:
                 if np.issubdtype(src.dtype, np.integer):
@@ -3729,44 +3744,56 @@ class ndarray:
                     dtype = src.dtype
             else:
                 dtype = out.dtype
-        if (np.issubdtype(src.dtype, np.floating) or np.iscomplexobj(src)) and dtype != src.dtype:
+        if (
+            np.issubdtype(src.dtype, np.floating) or np.iscomplexobj(src)
+        ) and dtype != src.dtype:
             # Needs changes to convert()
             raise NotImplementedError(
-                "Integer output types currently not supported for floating/complex inputs"
+                "Integer output types currently not supported for "
+                "floating/complex inputs"
             )
         if np.issubdtype(dtype, np.complexfloating) and nan0 is True:
             # Currently not behaving correctly
             raise NotImplementedError(
-                "nancumsum and nancumprod currently do not supported complex types"
+                "nancumsum and nancumprod currently do not "
+                "supported complex types"
             )
         if out is not None:
             if dtype != out.dtype:
                 # if out array is specified, its type overrules dtype
                 dtype = out.dtype
-            if axis is not  None:
+            if axis is not None:
                 assert out.shape == src.shape
             else:
                 assert out.ndim == 1
                 assert out.size == src.size
             if dtype == src.dtype:
                 out = convert_to_cunumeric_ndarray(out)
-                out._thunk.scan(op, src._thunk, axis=axis, dtype=dtype, nan0=nan0)
-            else :
+                out._thunk.scan(
+                    op, src._thunk, axis=axis, dtype=dtype, nan0=nan0
+                )
+            else:
                 # convert input to temporary for type conversion
                 temp = ndarray(shape=src.shape, dtype=dtype)
                 temp._thunk.convert(src._thunk)
-                out._thunk.scan(op, temp._thunk, axis=axis, dtype=dtype, nan0=nan0)
+                out._thunk.scan(
+                    op, temp._thunk, axis=axis, dtype=dtype, nan0=nan0
+                )
         else:
-            if axis is not  None:
+            if axis is not None:
                 out = ndarray(shape=src.shape, dtype=dtype)
             else:
                 out = ndarray(shape=src.size, dtype=dtype)
             if dtype == src.dtype:
-                out._thunk.scan(op, src._thunk, axis=axis, dtype=dtype, nan0=nan0)
+                out._thunk.scan(
+                    op, src._thunk, axis=axis, dtype=dtype, nan0=nan0
+                )
             else:
                 # convert input to temporary for type conversion
                 temp = ndarray(shape=src.shape, dtype=dtype)
                 temp._thunk.convert(src._thunk)
-                out._thunk.scan(op, temp._thunk, axis=axis, dtype=dtype, nan0=nan0)
-            
+                out._thunk.scan(
+                    op, temp._thunk, axis=axis, dtype=dtype, nan0=nan0
+                )
+
         return out
