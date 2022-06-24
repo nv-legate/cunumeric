@@ -3770,7 +3770,7 @@ class ndarray:
                 dtype = out.dtype
         if (
             np.issubdtype(src.dtype, np.floating) or np.iscomplexobj(src)
-        ) and dtype != src.dtype:
+        ) and np.issubdtype(dtype, np.integer):
             # Needs changes to convert()
             raise NotImplementedError(
                 "Integer output types currently not supported for "

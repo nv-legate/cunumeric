@@ -178,29 +178,16 @@ def test_scan():
                             )
                         for dt in float_types:
                             for n0 in n0s:
-                                if n0 is not None:
-                                    print(
-                                        "Float to int NAN conversion "
-                                        "currently not supported!"
-                                    )
-                                else:
-                                    _run_tests(
-                                        op, n0, shape, dt, axis, out0, outtype
-                                    )
+                                print(
+                                    "Float to int NAN conversion "
+                                    "currently not supported!"
+                                )
                         for dt in complex_types:
                             for n0 in n0s:
-                                if n0 is not None:
-                                    print(
-                                        "Complex to int NAN conversion "
-                                        "currently not supported!"
-                                    )
-                                else:
-                                    _run_tests(
-                                        op, n0, shape, dt, axis, out0, outtype
-                                    )
-                            _run_tests(
-                                op, None, shape, dt, axis, out0, outtype
-                            )
+                                print(
+                                    "Complex to int NAN conversion "
+                                    "currently not supported!"
+                                )
                     for outtype in float_types:
                         for dt in int_types:
                             _run_tests(
