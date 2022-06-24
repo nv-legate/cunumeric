@@ -2381,6 +2381,55 @@ def indices(
         return res_array
 
 
+def mask_indices(n: int, mask_func, k: int = 0) -> tuple[ndarray, ...]:
+    """
+    Return the indices to access (n, n) arrays, given a masking function.
+
+    Assume `mask_func` is a function that, for a square array a of size
+    ``(n, n)`` with a possible offset argument `k`, when called as
+    ``mask_func(a, k)`` returns a new array with zeros in certain locations
+    (functions like `triu` or `tril` do precisely this). Then this function
+    returns the indices where the non-zero values would be located.
+
+    Parameters
+    ----------
+    n : int
+        The returned indices will be valid to access arrays of shape (n, n).
+    mask_func : callable
+        A function whose call signature is similar to that of `triu`, `tril`.
+        That is, ``mask_func(x, k)`` returns a boolean array, shaped like `x`.
+        `k` is an optional argument to the function.
+    k : scalar
+        An optional argument which is passed through to `mask_func`. Functions
+        like `triu`, `tril` take a second argument that is interpreted as an
+        offset.
+
+    Returns
+    -------
+    indices : tuple of arrays.
+        The `n` arrays of indices corresponding to the locations where
+        ``mask_func(np.ones((n, n)), k)`` is True.
+
+    See Also
+    --------
+    numpy.mask_indices
+
+    Notes
+    -----
+    WARNING: `mask_indices` expects `mask_function` to call cuNumeric functions
+    for good performance on CPUs and for correctness on GPUs. In case
+    non-cuNumeric fucntion is called by `mask_function`, cuNumeric will have
+    to materialize data on the host.
+
+    Availability
+    --------
+    Multiple GPUs (when `mask_func` is a cunumeric function) , Multiple CPUs
+    """
+    # this implementation is based on the Cupy
+    a = ones((n, n), dtype=bool)
+    return mask_func(a, k).nonzero()
+
+
 def diag_indices(n: int, ndim: int = 2) -> tuple[ndarray, ...]:
     """
     Return the indices to access the main diagonal of an array.
