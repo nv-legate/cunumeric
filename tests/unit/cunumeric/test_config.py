@@ -246,7 +246,7 @@ def test_CuNumericTunable() -> None:
 
 def test_ScanCode() -> None:
     assert (set(m.ScanCode.__members__)) == {"PROD", "SUM"}
-    
+
 
 if __name__ == "__main__":
     import sys
