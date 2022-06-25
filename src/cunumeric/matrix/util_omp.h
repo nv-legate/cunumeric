@@ -17,6 +17,7 @@
 #pragma once
 
 #include "mathtypes/half.h"
+#include <tblis/tblis.h>
 
 namespace cunumeric {
 
@@ -33,5 +34,11 @@ void half_tensor_to_float_omp(
 
 void float_tensor_to_half_omp(
   __half* out, const float* in, size_t ndim, const int64_t* shape, const int64_t* out_strides);
+
+void half_tensor_to_float_omp(
+  float* out, const __half* in, size_t ndim, const tblis::len_type* shape, const tblis::stride_type* in_strides);
+
+void float_tensor_to_half_omp(
+  __half* out, const float* in, size_t ndim, const tblis::len_type* shape, const tblis::stride_type* out_strides);
 
 }  // namespace cunumeric

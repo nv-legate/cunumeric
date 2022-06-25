@@ -17,6 +17,7 @@
 #pragma once
 
 #include "mathtypes/half.h"
+#include <tblis/tblis.h>
 
 namespace cunumeric {
 
@@ -56,5 +57,15 @@ void half_tensor_to_float(
 
 void float_tensor_to_half(
   __half* out, const float* in, size_t ndim, const int64_t* shape, const int64_t* out_strides);
+
+// We include overloads of these functions for TBLIS types to avoid unnecessary
+// casts in code that utilizes TBLIS.
+int64_t calculate_volume(size_t ndim, const tblis::len_type* shape, tblis::stride_type* strides = nullptr);
+
+void half_tensor_to_float(
+  float* out, const __half* in, size_t ndim, const tblis::len_type* shape, const tblis::stride_type* in_strides);
+
+void float_tensor_to_half(
+  __half* out, const float* in, size_t ndim, const tblis::len_type* shape, const tblis::stride_type* out_strides);
 
 }  // namespace cunumeric

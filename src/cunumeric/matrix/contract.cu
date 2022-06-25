@@ -68,9 +68,9 @@ struct contract_helper<complex<double>> {
 // to stay in line with the CPU implementations that use TBLIS. See the comment
 // in contract.cc for more details.
 struct ContractTypeHelper {
-  typedef int64_t len_type;
-  typedef int64_t stride_type;
-  typedef int32_t label_type;
+  using len_type = int64_t;
+  using stride_type = int64_t;
+  using label_type = int32_t;
 };
 
 }  // anonymous namespace

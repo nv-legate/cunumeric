@@ -31,9 +31,9 @@ namespace { // anonymous
 
 // See comment in contract.cc about why this is needed.
 struct ContractTypeHelper {
-  typedef tblis::len_type len_type;
-  typedef tblis::stride_type stride_type;
-  typedef tblis::label_type label_type;
+  using len_type = tblis::len_type;
+  using stride_type = tblis::stride_type;
+  using label_type = tblis::label_type;
 };
 
 } // anonymous
@@ -121,25 +121,20 @@ struct ContractImplBody<VariantKind::OMP, LegateTypeCode::HALF_LT> : public Cont
     // TBLIS doesn't handle half-precision floating point directly, so we have to go through a
     // conversion to single-precision.
 
-    // We're going to do some direct casts between TBLIS types and standard types. To be sure that
-    // these are safe, assert that the sizes are the same.
-    static_assert(sizeof(int64_t) == sizeof(len_type));
-    static_assert(sizeof(int64_t) == sizeof(stride_type));
-
     std::vector<stride_type> lhs_copy_strides(lhs_ndim);
-    int64_t lhs_size     = calculate_volume(lhs_ndim, (int64_t*)lhs_shape, (int64_t*)lhs_copy_strides.data());
-    float* lhs_copy_data = allocate_buffer(lhs_size);
-    half_tensor_to_float(lhs_copy_data, lhs_data, lhs_ndim, (int64_t*)lhs_shape, (int64_t*)lhs_strides);
+    int64_t lhs_size     = calculate_volume(lhs_ndim, lhs_shape, lhs_copy_strides.data());
+    float* lhs_copy_data = allocate_buffer_omp(lhs_size);
+    half_tensor_to_float_omp(lhs_copy_data, lhs_data, lhs_ndim, lhs_shape, lhs_strides);
 
     std::vector<stride_type> rhs1_copy_strides(rhs1_ndim);
-    int64_t rhs1_size     = calculate_volume(rhs1_ndim, (int64_t*)rhs1_shape, (int64_t*)rhs1_copy_strides.data());
-    float* rhs1_copy_data = allocate_buffer(rhs1_size);
-    half_tensor_to_float(rhs1_copy_data, rhs1_data, rhs1_ndim, (int64_t*)rhs1_shape, (int64_t*)rhs1_strides);
+    int64_t rhs1_size     = calculate_volume(rhs1_ndim, rhs1_shape, rhs1_copy_strides.data());
+    float* rhs1_copy_data = allocate_buffer_omp(rhs1_size);
+    half_tensor_to_float_omp(rhs1_copy_data, rhs1_data, rhs1_ndim, rhs1_shape, rhs1_strides);
 
     std::vector<stride_type> rhs2_copy_strides(rhs2_ndim);
-    int64_t rhs2_size     = calculate_volume(rhs2_ndim, (int64_t*)rhs2_shape, (int64_t*)rhs2_copy_strides.data());
-    float* rhs2_copy_data = allocate_buffer(rhs2_size);
-    half_tensor_to_float(rhs2_copy_data, rhs2_data, rhs2_ndim, (int64_t*)rhs2_shape, (int64_t*)rhs2_strides);
+    int64_t rhs2_size     = calculate_volume(rhs2_ndim, rhs2_shape, rhs2_copy_strides.data());
+    float* rhs2_copy_data = allocate_buffer_omp(rhs2_size);
+    half_tensor_to_float_omp(rhs2_copy_data, rhs2_data, rhs2_ndim, rhs2_shape, rhs2_strides);
 
     ContractImplBody<VariantKind::OMP, LegateTypeCode::FLOAT_LT>{}(lhs_copy_data,
                                                                    lhs_ndim,
@@ -157,7 +152,7 @@ struct ContractImplBody<VariantKind::OMP, LegateTypeCode::HALF_LT> : public Cont
                                                                    rhs2_copy_strides.data(),
                                                                    rhs2_modes);
 
-    float_tensor_to_half(lhs_data, lhs_copy_data, lhs_ndim, (int64_t*)lhs_shape, (int64_t*)lhs_strides);
+    float_tensor_to_half_omp(lhs_data, lhs_copy_data, lhs_ndim, lhs_shape, lhs_strides);
   }
 };
 

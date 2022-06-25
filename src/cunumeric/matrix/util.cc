@@ -72,6 +72,15 @@ int64_t calculate_volume(size_t ndim, const int64_t* shape, int64_t* strides)
   return volume;
 }
 
+int64_t calculate_volume(size_t ndim, const tblis::len_type* shape, tblis::stride_type* strides)
+{
+  // We're going to do some direct casts between TBLIS types and standard types.
+  // To be sure that these are safe, assert that the sizes are the same.
+  static_assert(sizeof(int64_t) == sizeof(tblis::len_type));
+  static_assert(sizeof(int64_t) == sizeof(tblis::stride_type));
+  return calculate_volume(ndim, reinterpret_cast<const int64_t*>(shape), reinterpret_cast<int64_t*>(strides));
+}
+
 float* allocate_buffer(size_t size)
 {
   // We will not call this function on GPUs
@@ -111,6 +120,16 @@ void half_tensor_to_float(
   }
 }
 
+void half_tensor_to_float(
+  float* out, const __half* in, size_t ndim, const tblis::len_type* shape, const tblis::stride_type* in_strides)
+{
+  // We're going to do some direct casts between TBLIS types and standard types.
+  // To be sure that these are safe, assert that the sizes are the same.
+  static_assert(sizeof(int64_t) == sizeof(tblis::len_type));
+  static_assert(sizeof(int64_t) == sizeof(tblis::stride_type));
+  return half_tensor_to_float(out, in, ndim, reinterpret_cast<const int64_t*>(shape), reinterpret_cast<const int64_t*>(in_strides));
+}
+
 void float_tensor_to_half(
   __half* out, const float* in, size_t ndim, const int64_t* shape, const int64_t* out_strides)
 {
@@ -119,6 +138,16 @@ void float_tensor_to_half(
     int64_t out_idx = unflatten_with_strides(in_idx, ndim, shape, out_strides);
     out[out_idx]    = in[in_idx];
   }
+}
+
+void float_tensor_to_half(
+  __half* out, const float* in, size_t ndim, const tblis::len_type* shape, const tblis::stride_type* out_strides)
+{
+  // We're going to do some direct casts between TBLIS types and standard types.
+  // To be sure that these are safe, assert that the sizes are the same.
+  static_assert(sizeof(int64_t) == sizeof(tblis::len_type));
+  static_assert(sizeof(int64_t) == sizeof(tblis::stride_type));
+  return float_tensor_to_half(out, in, ndim, reinterpret_cast<const int64_t*>(shape), reinterpret_cast<const int64_t*>(out_strides));
 }
 
 }  // namespace cunumeric
