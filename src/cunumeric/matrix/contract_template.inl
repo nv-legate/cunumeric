@@ -176,21 +176,22 @@ struct ContractImpl {
     std::cout.flush();
 #endif
 
-    C()(lhs_data,
-        lhs_shape.size(),
-        lhs_shape.data(),
-        lhs_strides.data(),
-        lhs_modes.data(),
-        rhs1_data,
-        rhs1_shape.size(),
-        rhs1_shape.data(),
-        rhs1_strides.data(),
-        rhs1_modes.data(),
-        rhs2_data,
-        rhs2_shape.size(),
-        rhs2_shape.data(),
-        rhs2_strides.data(),
-        rhs2_modes.data());
+    C()
+    (lhs_data,
+     lhs_shape.size(),
+     lhs_shape.data(),
+     lhs_strides.data(),
+     lhs_modes.data(),
+     rhs1_data,
+     rhs1_shape.size(),
+     rhs1_shape.data(),
+     rhs1_strides.data(),
+     rhs1_modes.data(),
+     rhs2_data,
+     rhs2_shape.size(),
+     rhs2_shape.data(),
+     rhs2_strides.data(),
+     rhs2_modes.data());
 
 #if 0  // debugging output
     std::cout << "end contract kernel:" << std::endl;

@@ -68,9 +68,9 @@ struct contract_helper<complex<double>> {
 // to stay in line with the CPU implementations that use TBLIS. See the comment
 // in contract.cc for more details.
 struct ContractTypeHelper {
-  using len_type = int64_t;
+  using len_type    = int64_t;
   using stride_type = int64_t;
-  using label_type = int32_t;
+  using label_type  = int32_t;
 };
 
 }  // anonymous namespace
@@ -270,7 +270,8 @@ struct ContractImplBody<VariantKind::GPU, LegateTypeCode::DOUBLE_LT> : public Co
 };
 
 template <>
-struct ContractImplBody<VariantKind::GPU, LegateTypeCode::COMPLEX64_LT> : public ContractTypeHelper {
+struct ContractImplBody<VariantKind::GPU, LegateTypeCode::COMPLEX64_LT>
+  : public ContractTypeHelper {
   void operator()(complex<float>* lhs_data,
                   size_t lhs_ndim,
                   int64_t* lhs_shape,
@@ -306,7 +307,8 @@ struct ContractImplBody<VariantKind::GPU, LegateTypeCode::COMPLEX64_LT> : public
 };
 
 template <>
-struct ContractImplBody<VariantKind::GPU, LegateTypeCode::COMPLEX128_LT> : public ContractTypeHelper {
+struct ContractImplBody<VariantKind::GPU, LegateTypeCode::COMPLEX128_LT>
+  : public ContractTypeHelper {
   void operator()(complex<double>* lhs_data,
                   size_t lhs_ndim,
                   int64_t* lhs_shape,

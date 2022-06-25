@@ -33,19 +33,19 @@ using namespace tblis;
 // code. These types are bit-identical, so we can safely cast from one to the other in host code,
 // to appease the type checker.
 
-namespace { // anonymous
+namespace {  // anonymous
 
 // Contract type helper ensures that the types of shapes, strides and modes we pass through
 // to TBLIS calls match up with the types that TBLIS expects. Some (strict) compilers will
 // throw an error trying to implicitly cast between tblis::len_type and int64_t even though
 // they are the same size.
 struct ContractTypeHelper {
-  using len_type = tblis::len_type;
+  using len_type    = tblis::len_type;
   using stride_type = tblis::stride_type;
-  using label_type = tblis::label_type;
+  using label_type  = tblis::label_type;
 };
 
-} // anonymous
+}  // namespace
 
 template <>
 struct ContractImplBody<VariantKind::CPU, LegateTypeCode::FLOAT_LT> : public ContractTypeHelper {
@@ -166,7 +166,8 @@ struct ContractImplBody<VariantKind::CPU, LegateTypeCode::HALF_LT> : public Cont
 };
 
 template <>
-struct ContractImplBody<VariantKind::CPU, LegateTypeCode::COMPLEX64_LT> : public ContractTypeHelper {
+struct ContractImplBody<VariantKind::CPU, LegateTypeCode::COMPLEX64_LT>
+  : public ContractTypeHelper {
   void operator()(complex<float>* lhs_data,
                   size_t lhs_ndim,
                   len_type* lhs_shape,
@@ -208,7 +209,8 @@ struct ContractImplBody<VariantKind::CPU, LegateTypeCode::COMPLEX64_LT> : public
 };
 
 template <>
-struct ContractImplBody<VariantKind::CPU, LegateTypeCode::COMPLEX128_LT> : public ContractTypeHelper {
+struct ContractImplBody<VariantKind::CPU, LegateTypeCode::COMPLEX128_LT>
+  : public ContractTypeHelper {
   void operator()(complex<double>* lhs_data,
                   size_t lhs_ndim,
                   len_type* lhs_shape,
