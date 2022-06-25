@@ -12,12 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Optional, Tuple
 
 from .array import add_boilerplate
 from .module import empty
 
+if TYPE_CHECKING:
+    from .array import ndarray
 
-def _sanitize_arguments(a, axis, bitorder):
+
+def _sanitize_arguments(
+    a: ndarray, axis: Optional[int], bitorder: str
+) -> Tuple[ndarray, int]:
     if axis is None:
         if a.ndim > 1:
             a = a.ravel()
@@ -39,7 +47,9 @@ def _sanitize_arguments(a, axis, bitorder):
 
 
 @add_boilerplate("a")
-def packbits(a, axis=None, bitorder="big"):
+def packbits(
+    a: ndarray, axis: Optional[int] = None, bitorder: str = "big"
+) -> ndarray:
     """
 
     Packs the elements of a binary-valued array into bits in a uint8 array.
@@ -95,7 +105,12 @@ def packbits(a, axis=None, bitorder="big"):
 
 
 @add_boilerplate("a")
-def unpackbits(a, axis=None, count=None, bitorder="big"):
+def unpackbits(
+    a: ndarray,
+    axis: Optional[int] = None,
+    count: Optional[int] = None,
+    bitorder: str = "big",
+) -> ndarray:
     """
     Unpacks elements of a uint8 array into a binary-valued output array.
 
