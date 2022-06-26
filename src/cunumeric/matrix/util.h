@@ -62,7 +62,7 @@ void float_tensor_to_half(
 // casts in code that utilizes TBLIS.
 int64_t calculate_volume(size_t ndim,
                          const tblis::len_type* shape,
-                         tblis::stride_type* strides = nullptr);
+                         tblis::stride_type* strides);
 
 void half_tensor_to_float(float* out,
                           const __half* in,
