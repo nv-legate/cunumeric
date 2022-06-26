@@ -60,9 +60,7 @@ void float_tensor_to_half(
 
 // We include overloads of these functions for TBLIS types to avoid unnecessary
 // casts in code that utilizes TBLIS.
-int64_t calculate_volume(size_t ndim,
-                         const tblis::len_type* shape,
-                         tblis::stride_type* strides);
+int64_t calculate_volume(size_t ndim, const tblis::len_type* shape, tblis::stride_type* strides);
 
 void half_tensor_to_float(float* out,
                           const __half* in,
