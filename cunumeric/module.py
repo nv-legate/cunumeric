@@ -22,6 +22,7 @@ from typing import TYPE_CHECKING, Any, Optional, Sequence, Union, cast
 
 import numpy as np
 import opt_einsum as oe  # type: ignore [import]
+from numpy.core.multiarray import normalize_axis_index
 from numpy.core.numeric import (  # type: ignore [attr-defined]
     normalize_axis_tuple,
 )
@@ -2496,6 +2497,77 @@ def take(
     Multiple GPUs, Multiple CPUs
     """
     return a.take(indices=indices, axis=axis, out=out, mode=mode)
+
+
+def _fill_fancy_index_for_along_axis_routines(
+    a_shape: tuple, axis: int, indices: ndarray
+) -> tuple:
+    ndim = len(a_shape)
+    fancy_index = []
+    for i, n in enumerate(a_shape):
+        if i == axis:
+            fancy_index.append(indices)
+        else:
+            ind_shape = (1,) * i + (-1,) + (1,) * (ndim - i - 1)
+            fancy_index.append(arange(n).reshape(ind_shape))
+    return tuple(fancy_index)
+
+
+@add_boilerplate("a", "indices")
+def take_along_axis(a: ndarray, indices: ndarray, axis: int) -> ndarray:
+    """
+    Take values from the input array by matching 1d index and data slices.
+
+    This iterates over matching 1d slices oriented along the specified axis in
+    the index and data arrays, and uses the former to look up values in the
+    latter. These slices can be different lengths.
+
+    Functions returning an index along an axis, like `argsort` and
+    `argpartition`, produce suitable indices for this function.
+
+    Parameters
+    ----------
+    arr : ndarray (Ni..., M, Nk...)
+        Source array
+    indices : ndarray (Ni..., J, Nk...)
+        Indices to take along each 1d slice of `arr`. This must match the
+        dimension of arr, but dimensions Ni and Nj only need to broadcast
+        against `arr`.
+    axis : int
+        The axis to take 1d slices along. If axis is None, the input array is
+        treated as if it had first been flattened to 1d, for consistency with
+        `sort` and `argsort`.
+
+    Returns
+    -------
+    out: ndarray (Ni..., J, Nk...)
+        The indexed result.
+
+    See Also
+    --------
+    numpy.take_along_axis
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    if not np.issubdtype(indices.dtype, np.integer):
+        raise IndexError("`indices` must be an integer array")
+
+    if axis is None:
+        a = a.ravel()
+        axis = 0
+        if indices.ndim != 1:
+            raise ValueError("indices must be 1D if axis=None")
+    else:
+        axis = normalize_axis_index(axis, a.ndim)
+
+    ndim = a.ndim
+    if ndim != indices.ndim:
+        raise ValueError(
+            "`indices` and `a` must have the same number of dimensions"
+        )
+    return a[_fill_fancy_index_for_along_axis_routines(a.shape, axis, indices)]
 
 
 @add_boilerplate("a")
