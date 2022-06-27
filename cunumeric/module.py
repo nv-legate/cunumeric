@@ -2570,6 +2570,67 @@ def take_along_axis(a: ndarray, indices: ndarray, axis: int) -> ndarray:
     return a[_fill_fancy_index_for_along_axis_routines(a.shape, axis, indices)]
 
 
+add_boilerplate("a", "indices", "values")
+
+
+def put_along_axis(
+    a: ndarray, indices: ndarray, values: ndarray, axis: int
+) -> ndarray:
+    """
+    Put values into the destination array by matching 1d index and data slices.
+
+    This iterates over matching 1d slices oriented along the specified axis in
+    the index and data arrays, and uses the former to place values into the
+    latter. These slices can be different lengths.
+
+    Functions returning an index along an axis, like `argsort` and
+    `argpartition`, produce suitable indices for this function.
+
+    Parameters
+    ----------
+    arr : ndarray (Ni..., M, Nk...)
+        Destination array.
+    indices : ndarray (Ni..., J, Nk...)
+        Indices to change along each 1d slice of `arr`. This must match the
+        dimension of arr, but dimensions in Ni and Nj may be 1 to broadcast
+        against `arr`.
+    values : array_like (Ni..., J, Nk...)
+        values to insert at those indices. Its shape and dimension are
+        broadcast to match that of `indices`.
+    axis : int
+        The axis to take 1d slices along. If axis is None, the destination
+        array is treated as if a flattened 1d view had been created of it.
+
+    See Also
+    --------
+    numpy.put_along_axis
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+
+    """
+    if not np.issubdtype(indices.dtype, np.integer):
+        raise IndexError("`indices` must be an integer array")
+
+    if axis is None:
+        a = a.ravel()
+        axis = 0
+        if indices.ndim != 1:
+            raise ValueError("indices must be 1D if axis=None")
+    else:
+        axis = normalize_axis_index(axis, a.ndim)
+
+    ndim = a.ndim
+    if ndim != indices.ndim:
+        raise ValueError(
+            "`indices` and `a` must have the same number of dimensions"
+        )
+    a[
+        _fill_fancy_index_for_along_axis_routines(a.shape, axis, indices)
+    ] = values
+
+
 @add_boilerplate("a")
 def choose(
     a: ndarray,

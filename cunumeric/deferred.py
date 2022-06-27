@@ -734,6 +734,12 @@ class DeferredArray(NumPyThunk):
                     rhs = rhs._copy_store(rhs.base)
                 rhs_store = rhs.base
 
+            # the case when rhs is a scalar and indices array contains
+            # a single value
+            if rhs.base.kind == Future:
+                lhs.copy(rhs, deep=True)
+                return
+
             copy = self.context.create_copy()
             copy.set_target_indirect_out_of_range(False)
 
