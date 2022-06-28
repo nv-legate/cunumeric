@@ -70,8 +70,12 @@ def assert_distribution(a, theo_mean, theo_stdev, tolerance=1e-2):
     average = num.mean(a)
     # stdev = num.std(a) -> does not work
     stdev = num.sqrt(num.mean((a - average) ** 2))
-    assert num.abs(theo_mean - average) < tolerance
-    assert num.abs(theo_stdev - stdev) < tolerance
+    assert num.abs(theo_mean - average) < tolerance * num.max(
+        (1.0, num.abs(theo_mean))
+    )
+    assert num.abs(theo_stdev - stdev) < tolerance * num.max(
+        (1.0, num.abs(theo_stdev))
+    )
 
 
 @pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
@@ -88,6 +92,34 @@ def test_random_float64(t):
     gen = num.random.Generator(bitgen)
     a = gen.random(size=(1024 * 1024,), dtype=np.float64)
     assert_distribution(a, 0.5, num.sqrt(1.0 / 12.0))
+
+
+@pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
+def test_lognormal_float32(t):
+    bitgen = t(seed=42)
+    gen = num.random.Generator(bitgen)
+    mu = 1.414
+    sigma = 0.7
+    a = gen.lognormal(mu, sigma, size=(1024 * 1024,), dtype=np.float32)
+    theo_mean = num.exp(mu + sigma * sigma / 2.0)
+    theo_std = num.sqrt(
+        (num.exp(sigma * sigma) - 1) * num.exp(2 * mu + sigma * sigma)
+    )
+    assert_distribution(a, theo_mean, theo_std)
+
+
+@pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
+def test_lognormal_float64(t):
+    bitgen = t(seed=42)
+    gen = num.random.Generator(bitgen)
+    mu = 1.414
+    sigma = 0.7
+    a = gen.lognormal(mu, sigma, size=(1024 * 1024,), dtype=np.float64)
+    theo_mean = num.exp(mu + sigma * sigma / 2.0)
+    theo_std = num.sqrt(
+        (num.exp(sigma * sigma) - 1) * num.exp(2 * mu + sigma * sigma)
+    )
+    assert_distribution(a, theo_mean, theo_std)
 
 
 if __name__ == "__main__":

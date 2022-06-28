@@ -33,6 +33,9 @@ class Generator:
             assert out.dtype == dtype
         return self.bit_generator.random(size, dtype, out)
 
+    def lognormal(self, mean=0.0, sigma=1.0, size=None, dtype=np.float64):
+        return self.bit_generator.lognormal(mean, sigma, size, dtype)
+
 
 def default_rng(seed=None):
     if seed is None:

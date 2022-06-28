@@ -63,3 +63,8 @@ randutilGenerateUniformDoubleEx(randutilGenerator_t generator,
                                 size_t num,
                                 double low  = 0.0, /* inclusive */
                                 double high = 1.0 /* exclusive */);
+
+extern "C" curandStatus_t CURANDAPI randutilGenerateLogNormalEx(
+  randutilGenerator_t generator, float* outputPtr, size_t n, float mean, float stddev);
+extern "C" curandStatus_t CURANDAPI randutilGenerateLogNormalDoubleEx(
+  randutilGenerator_t generator, double* outputPtr, size_t n, double mean, double stddev);

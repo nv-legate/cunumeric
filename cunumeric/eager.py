@@ -664,6 +664,20 @@ class EagerArray(NumPyThunk):
                 a = np.random.uniform(low, high, size=self.array.shape)
                 self.array[:] = a
 
+    def bitgenerator_lognormal(
+        self, handle, generatorType, seed, flags, mean, sigma
+    ):
+        if self.deferred is not None:
+            self.deferred.bitgenerator_lognormal(
+                handle, generatorType, seed, flags, mean, sigma
+            )
+        else:
+            if self.array.size == 1:
+                self.array.fill(np.random.lognormal(mean, sigma))
+            else:
+                a = np.random.lognormal(mean, sigma, size=self.array.shape)
+                self.array[:] = a
+
     def partition(
         self,
         rhs,

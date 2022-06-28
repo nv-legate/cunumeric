@@ -76,6 +76,14 @@ struct CURANDGenerator {
   {
     CHECK_CURAND(::randutilGenerateUniformEx(gen_, out, count, low, high));
   }
+  void generate_lognormal_64(uint64_t count, double* out, double mean, double stdev)
+  {
+    CHECK_CURAND(::randutilGenerateLogNormalDoubleEx(gen_, out, count, mean, stdev));
+  }
+  void generate_lognormal_32(uint64_t count, float* out, float mean, float stdev)
+  {
+    CHECK_CURAND(::randutilGenerateLogNormalEx(gen_, out, count, mean, stdev));
+  }
 };
 
 #pragma endregion
@@ -177,6 +185,45 @@ struct uniform_generator<float> {
   void generate(CURANDGenerator& gen, uint64_t count, float* p) const
   {
     gen.generate_uniform_32(count, p, low_, high_);
+  }
+};
+
+#pragma endregion
+
+#pragma region lognormal
+
+template <typename output_t>
+struct lognormal_generator;
+template <>
+struct lognormal_generator<double> {
+  double mean_, stdev_;
+
+  lognormal_generator(const std::vector<int64_t>& intparams,
+                      const std::vector<float>& floatparams,
+                      const std::vector<double>& doubleparams)
+    : mean_(doubleparams[0]), stdev_(doubleparams[1])
+  {
+  }
+
+  void generate(CURANDGenerator& gen, uint64_t count, double* p) const
+  {
+    gen.generate_lognormal_64(count, p, mean_, stdev_);
+  }
+};
+template <>
+struct lognormal_generator<float> {
+  float mean_, stdev_;
+
+  lognormal_generator(const std::vector<int64_t>& intparams,
+                      const std::vector<float>& floatparams,
+                      const std::vector<double>& doubleparams)
+    : mean_(floatparams[0]), stdev_(floatparams[1])
+  {
+  }
+
+  void generate(CURANDGenerator& gen, uint64_t count, float* p) const
+  {
+    gen.generate_lognormal_32(count, p, mean_, stdev_);
   }
 };
 
@@ -369,6 +416,14 @@ struct BitGeneratorImplBody {
               break;
             case BitGeneratorDistribution::UNIFORM_64:
               generate_distribution<double, uniform_generator<double>>::generate(
+                res, cugen, intparams, floatparams, doubleparams);
+              break;
+            case BitGeneratorDistribution::LOGNORMAL_32:
+              generate_distribution<float, lognormal_generator<float>>::generate(
+                res, cugen, intparams, floatparams, doubleparams);
+              break;
+            case BitGeneratorDistribution::LOGNORMAL_64:
+              generate_distribution<double, lognormal_generator<double>>::generate(
                 res, cugen, intparams, floatparams, doubleparams);
               break;
             default: {
