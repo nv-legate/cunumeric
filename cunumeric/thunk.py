@@ -200,6 +200,10 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
+    def bitgenerator_poisson(self, bitgen, generatorType, seed, flags, lam):
+        ...
+
+    @abstractmethod
     def random_uniform(self):
         ...
 

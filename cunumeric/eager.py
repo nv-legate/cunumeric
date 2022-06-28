@@ -692,6 +692,18 @@ class EagerArray(NumPyThunk):
                 a = np.random.normal(mean, sigma, size=self.array.shape)
                 self.array[:] = a
 
+    def bitgenerator_poisson(self, handle, generatorType, seed, flags, lam):
+        if self.deferred is not None:
+            self.deferred.bitgenerator_poisson(
+                handle, generatorType, seed, flags, lam
+            )
+        else:
+            if self.array.size == 1:
+                self.array.fill(np.random.poisson(lam))
+            else:
+                a = np.random.poisson(lam, size=self.array.shape)
+                self.array[:] = a
+
     def partition(
         self,
         rhs,

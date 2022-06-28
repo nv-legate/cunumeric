@@ -92,6 +92,10 @@ struct CURANDGenerator {
   {
     CHECK_CURAND(::randutilGenerateNormalEx(gen_, out, count, mean, stdev));
   }
+  void generate_poisson(uint64_t count, uint32_t* out, double lam)
+  {
+    CHECK_CURAND(::randutilGeneratePoissonEx(gen_, out, count, lam));
+  }
 };
 
 #pragma endregion
@@ -271,6 +275,29 @@ struct normal_generator<float> {
   void generate(CURANDGenerator& gen, uint64_t count, float* p) const
   {
     gen.generate_normal_32(count, p, mean_, stdev_);
+  }
+};
+
+#pragma endregion
+
+#pragma region poisson
+
+template <typename output_t>
+struct poisson_generator;
+template <>
+struct poisson_generator<uint32_t> {
+  double lam_;
+
+  poisson_generator(const std::vector<int64_t>& intparams,
+                    const std::vector<float>& floatparams,
+                    const std::vector<double>& doubleparams)
+    : lam_(doubleparams[0])
+  {
+  }
+
+  void generate(CURANDGenerator& gen, uint64_t count, uint32_t* p) const
+  {
+    gen.generate_poisson(count, p, lam_);
   }
 };
 
@@ -479,6 +506,10 @@ struct BitGeneratorImplBody {
               break;
             case BitGeneratorDistribution::NORMAL_64:
               generate_distribution<double, normal_generator<double>>::generate(
+                res, cugen, intparams, floatparams, doubleparams);
+              break;
+            case BitGeneratorDistribution::POISSON:
+              generate_distribution<uint32_t, poisson_generator<uint32_t>>::generate(
                 res, cugen, intparams, floatparams, doubleparams);
               break;
             default: {

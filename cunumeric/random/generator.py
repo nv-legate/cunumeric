@@ -41,6 +41,9 @@ class Generator:
             mean=loc, sigma=scale, shape=size, dtype=dtype
         )
 
+    def poisson(self, lam=1.0, size=None):
+        return self.bit_generator.poisson(lam, size)
+
 
 def default_rng(seed=None):
     if seed is None:

@@ -146,6 +146,17 @@ def test_normal_float64(t):
     assert_distribution(a, theo_mean, theo_std)
 
 
+@pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
+def test_poisson(t):
+    bitgen = t(seed=42)
+    gen = num.random.Generator(bitgen)
+    lam = 42
+    a = gen.poisson(lam, size=(1024 * 1024,))
+    theo_mean = lam
+    theo_std = num.sqrt(lam)
+    assert_distribution(a, theo_mean, theo_std)
+
+
 if __name__ == "__main__":
     import sys
 

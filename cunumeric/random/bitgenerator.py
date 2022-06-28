@@ -110,6 +110,17 @@ class BitGenerator:
         )
         return res
 
+    def poisson(self, lam, shape=None):
+        if shape is None:
+            shape = (1,)
+        if not isinstance(shape, tuple):
+            shape = (shape,)
+        res = ndarray(shape, dtype=np.dtype(np.uint32))
+        res._thunk.bitgenerator_poisson(
+            self.handle, self.generatorType, self.seed, self.flags, lam
+        )
+        return res
+
 
 class XORWOW(BitGenerator):
     def __init__(self, seed=None, forceBuild=False):

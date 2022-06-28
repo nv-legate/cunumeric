@@ -1728,7 +1728,7 @@ class DeferredArray(NumPyThunk):
             doubleparams = (float(low), float(high))
         else:
             raise NotImplementedError(
-                "type for random.random has to be float64 or float32"
+                "type for random.uniform has to be float64 or float32"
             )
         self.bitgenerator_distribution(
             handle,
@@ -1754,7 +1754,7 @@ class DeferredArray(NumPyThunk):
             doubleparams = (float(mean), float(sigma))
         else:
             raise NotImplementedError(
-                "type for random.random has to be float64 or float32"
+                "type for random.lognormal has to be float64 or float32"
             )
         self.bitgenerator_distribution(
             handle,
@@ -1780,7 +1780,7 @@ class DeferredArray(NumPyThunk):
             doubleparams = (float(mean), float(sigma))
         else:
             raise NotImplementedError(
-                "type for random.random has to be float64 or float32"
+                "type for random.normal has to be float64 or float32"
             )
         self.bitgenerator_distribution(
             handle,
@@ -1790,6 +1790,25 @@ class DeferredArray(NumPyThunk):
             distribution,
             (),
             floatparams,
+            doubleparams,
+        )
+
+    def bitgenerator_poisson(self, handle, generatorType, seed, flags, lam):
+        if self.dtype == np.uint32:
+            distribution = BitGeneratorDistribution.POISSON
+            doubleparams = (float(lam),)
+        else:
+            raise NotImplementedError(
+                "type for random.random has to be float64 or float32"
+            )
+        self.bitgenerator_distribution(
+            handle,
+            generatorType,
+            seed,
+            flags,
+            distribution,
+            (),
+            (),
             doubleparams,
         )
 
