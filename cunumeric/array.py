@@ -200,9 +200,12 @@ class ndarray:
             # so we just need to convert our type and stick it in
             # a Legate Array
             arrow_type = pyarrow.from_numpy_dtype(self.dtype)
+            # If the thunk is an eager array, we need to convert it to a
+            # deferred array so we can extract a legate store
+            deferred_thunk = runtime.to_deferred_array(self._thunk)
             # We don't have nullable data for the moment
             # until we support masked arrays
-            array = Array(arrow_type, [None, self._thunk])
+            array = Array(arrow_type, [None, deferred_thunk.base])
             self._legate_data = dict()
             self._legate_data["version"] = 1
             data = dict()
