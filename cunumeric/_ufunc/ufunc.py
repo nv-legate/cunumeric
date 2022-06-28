@@ -20,6 +20,7 @@ import numpy as np
 
 from ..array import convert_to_cunumeric_ndarray, ndarray
 from ..config import BinaryOpCode, UnaryOpCode, UnaryRedCode
+from ..types import NdShape
 
 if TYPE_CHECKING:
     import numpy.typing as npt
@@ -223,7 +224,7 @@ class ufunc:
     def _maybe_create_result(
         self,
         out: Union[ndarray, None],
-        out_shape: tuple[int, ...],
+        out_shape: NdShape,
         res_dtype: np.dtype[Any],
         casting: CastingKind,
         inputs: tuple[ndarray, ...],

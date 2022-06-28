@@ -14,18 +14,21 @@
 #
 
 import numpy as np
+import pytest
 
-import cunumeric as num
+import cunumeric as cn
 
 
-def test():
-    num.random.seed(42)
-    x = num.random.randn(10)
+@pytest.mark.xfail
+def test_randn():
+    cn.random.seed(42)
+    x = cn.random.randn(10)
     np.random.seed(42)
     xn = np.random.randn(10)
     assert np.allclose(x, xn)
-    return
 
 
 if __name__ == "__main__":
-    test()
+    import sys
+
+    sys.exit(pytest.main(sys.argv))

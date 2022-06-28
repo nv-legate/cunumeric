@@ -1,4 +1,4 @@
-# Copyright 2017-2022 NVIDIA Corporation
+# Copyright 2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,27 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+"""Provide TestStage subclasses for running configured test files using
+specific features.
 
-import legate.pandas as pd
+"""
+from __future__ import annotations
 
-import cunumeric as np
+from typing import Dict, Type
 
+from .. import FeatureType
+from .cpu import CPU
+from .gpu import GPU
+from .eager import Eager
+from .omp import OMP
+from .test_stage import TestStage
 
-def test():
-    sr = pd.Series([1, 2, 3])
-    array = np.asarray(sr)
-    x = np.array([1, 2, 3])
-    assert np.array_equal(array, x)
-
-    y = np.array([4, 5, 6])
-    z = np.add(sr, y)
-    assert np.array_equal(z, x + y)
-
-    df = pd.DataFrame({"x": x, "y": y})
-    z = np.add(df["x"], df["y"])
-    assert np.array_equal(z, x + y)
-    return
-
-
-if __name__ == "__main__":
-    test()
+#: All the available test stages that can be selected
+STAGES: Dict[FeatureType, Type[TestStage]] = {
+    "cpus": CPU,
+    "cuda": GPU,
+    "openmp": OMP,
+    "eager": Eager,
+}

@@ -14,12 +14,21 @@
 #
 from __future__ import annotations
 
-from cunumeric.config import CuNumericOpCode
+from typing import TYPE_CHECKING, Union
+
+from numpy.core.multiarray import normalize_axis_index  # type: ignore
 
 from legate.core import types as ty
 
+from .config import CuNumericOpCode
 
-def sort_flattened(output, input, argsort, stable):
+if TYPE_CHECKING:
+    from .deferred import DeferredArray
+
+
+def sort_flattened(
+    output: DeferredArray, input: DeferredArray, argsort: bool, stable: bool
+) -> None:
     flattened = input.reshape((input.size,), order="C")
 
     # run sort flattened -- return 1D solution
@@ -31,8 +40,14 @@ def sort_flattened(output, input, argsort, stable):
     output.numpy_array = None
 
 
-def sort_swapped(output, input, argsort, sort_axis, stable):
-    assert sort_axis < input.ndim - 1 and sort_axis >= 0
+def sort_swapped(
+    output: DeferredArray,
+    input: DeferredArray,
+    argsort: bool,
+    sort_axis: int,
+    stable: bool,
+) -> None:
+    sort_axis = normalize_axis_index(sort_axis, input.ndim)
 
     # swap axes
     swapped = input.swapaxes(sort_axis, input.ndim - 1)
@@ -56,7 +71,9 @@ def sort_swapped(output, input, argsort, sort_axis, stable):
         output.numpy_array = None
 
 
-def sort_task(output, input, argsort, stable):
+def sort_task(
+    output: DeferredArray, input: DeferredArray, argsort: bool, stable: bool
+) -> None:
     task = output.context.create_task(CuNumericOpCode.SORT)
 
     uses_unbound_output = output.runtime.num_gpus > 1 and input.ndim == 1
@@ -91,18 +108,22 @@ def sort_task(output, input, argsort, stable):
         output.numpy_array = None
 
 
-def sort(output, input, argsort, axis=-1, stable=False):
+def sort(
+    output: DeferredArray,
+    input: DeferredArray,
+    argsort: bool,
+    axis: Union[int, None] = -1,
+    stable: bool = False,
+) -> None:
     if axis is None and input.ndim > 1:
         sort_flattened(output, input, argsort, stable)
     else:
         if axis is None:
-            axis = 0
-        elif axis < 0:
-            axis = input.ndim + axis
-
-        if axis is not input.ndim - 1:
-            sort_swapped(output, input, argsort, axis, stable)
-
+            computed_axis = 0
         else:
-            # run actual sort task
+            computed_axis = normalize_axis_index(axis, input.ndim)
+
+        if computed_axis == input.ndim - 1:
             sort_task(output, input, argsort, stable)
+        else:
+            sort_swapped(output, input, argsort, computed_axis, stable)
