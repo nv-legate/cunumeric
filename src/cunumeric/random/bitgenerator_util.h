@@ -42,6 +42,8 @@ enum class BitGeneratorType : uint32_t {
 enum class BitGeneratorDistribution : int32_t {
   INTEGERS_32 = CUNUMERIC_BITGENDIST_INTEGERS_32,
   INTEGERS_64 = CUNUMERIC_BITGENDIST_INTEGERS_64,
+  UNIFORM_32  = CUNUMERIC_BITGENDIST_UNIFORM_32,
+  UNIFORM_64  = CUNUMERIC_BITGENDIST_UNIFORM_64,
 };
 
 }  // namespace cunumeric

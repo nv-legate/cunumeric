@@ -78,16 +78,16 @@ static void bitgenerator_template(TaskContext& context)
       break;
     }
     case BitGeneratorOperation::DISTRIBUTION: {
-      if (scalars.size() < 9) {
+      if (scalars.size() < 10) {
         ::fprintf(stderr, "FATAL: not enough parameters\n");
         ::exit(1);
       }
       distribution    = scalars[5].value<BitGeneratorDistribution>();
-      auto _intparams = scalars[6].values<int64_t>();
+      auto _intparams = scalars[7].values<int64_t>();
       intparams.insert(intparams.end(), _intparams.begin(), _intparams.end());
-      auto _floatparams = scalars[7].values<float>();
+      auto _floatparams = scalars[8].values<float>();
       floatparams.insert(floatparams.end(), _floatparams.begin(), _floatparams.end());
-      auto _doubleparams = scalars[8].values<double>();
+      auto _doubleparams = scalars[9].values<double>();
       doubleparams.insert(doubleparams.end(), _doubleparams.begin(), _doubleparams.end());
       break;
     }

@@ -459,6 +459,8 @@ class BitGeneratorType(IntEnum):
 class BitGeneratorDistribution(IntEnum):
     INTEGERS_32 = _cunumeric.CUNUMERIC_BITGENDIST_INTEGERS_32
     INTEGERS_64 = _cunumeric.CUNUMERIC_BITGENDIST_INTEGERS_64
+    UNIFORM_32 = _cunumeric.CUNUMERIC_BITGENDIST_UNIFORM_32
+    UNIFORM_64 = _cunumeric.CUNUMERIC_BITGENDIST_UNIFORM_64
 
 
 # Match these to fftType in fft_util.h

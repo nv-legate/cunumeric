@@ -131,6 +131,7 @@ GEN_GPU_SRC += cunumeric/ternary/where.cu                                       
 							 cunumeric/random/randutil/generator_create.cu       \
 							 cunumeric/random/randutil/generator_integers.cu     \
 							 cunumeric/random/randutil/generator_raw.cu          \
+							 cunumeric/random/randutil/generator_uniform.cu      \
 							 cunumeric/search/nonzero.cu                         \
 							 cunumeric/set/unique.cu                             \
 							 cunumeric/stat/bincount.cu                          \

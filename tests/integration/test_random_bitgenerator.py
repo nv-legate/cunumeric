@@ -66,6 +66,30 @@ def test_integers_int32(t):
     print(f"1024*1024 sum = {a.sum()}")
 
 
+def assert_distribution(a, theo_mean, theo_stdev, tolerance=1e-2):
+    average = num.mean(a)
+    # stdev = num.std(a) -> does not work
+    stdev = num.sqrt(num.mean((a - average) ** 2))
+    assert num.abs(theo_mean - average) < tolerance
+    assert num.abs(theo_stdev - stdev) < tolerance
+
+
+@pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
+def test_random_float32(t):
+    bitgen = t(seed=42)
+    gen = num.random.Generator(bitgen)
+    a = gen.random(size=(1024 * 1024,), dtype=np.float32)
+    assert_distribution(a, 0.5, num.sqrt(1.0 / 12.0))
+
+
+@pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
+def test_random_float64(t):
+    bitgen = t(seed=42)
+    gen = num.random.Generator(bitgen)
+    a = gen.random(size=(1024 * 1024,), dtype=np.float64)
+    assert_distribution(a, 0.5, num.sqrt(1.0 / 12.0))
+
+
 if __name__ == "__main__":
     import sys
 

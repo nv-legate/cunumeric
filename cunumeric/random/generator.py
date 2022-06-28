@@ -26,6 +26,13 @@ class Generator:
     ):
         return self.bit_generator.integers(low, high, size, dtype, endpoint)
 
+    def random(self, size=None, dtype=np.float64, out=None):
+        if out is not None:
+            if size is not None:
+                assert out.shape == size
+            assert out.dtype == dtype
+        return self.bit_generator.random(size, dtype, out)
+
 
 def default_rng(seed=None):
     if seed is None:

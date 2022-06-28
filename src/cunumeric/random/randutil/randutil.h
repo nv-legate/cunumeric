@@ -50,3 +50,16 @@ extern "C" curandStatus_t CURANDAPI randutilGenerateIntegers64(randutilGenerator
 extern "C" curandStatus_t CURANDAPI randutilGenerateRawUInt32(randutilGenerator_t generator,
                                                               uint32_t* outputPtr,
                                                               size_t num);
+
+extern "C" curandStatus_t CURANDAPI randutilGenerateUniformEx(randutilGenerator_t generator,
+                                                              float* outputPtr,
+                                                              size_t num,
+                                                              float low  = 0.0f, /* inclusive */
+                                                              float high = 1.0f /* exclusive */);
+
+extern "C" curandStatus_t CURANDAPI
+randutilGenerateUniformDoubleEx(randutilGenerator_t generator,
+                                double* outputPtr,
+                                size_t num,
+                                double low  = 0.0, /* inclusive */
+                                double high = 1.0 /* exclusive */);

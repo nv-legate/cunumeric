@@ -36,6 +36,8 @@ using namespace legate;
 template <VariantKind kind>
 struct CURANDGeneratorBuilder;
 
+#pragma region wrapper to randutil
+
 struct CURANDGenerator {
   randutilGenerator_t gen_;
   uint64_t seed_;
@@ -66,7 +68,17 @@ struct CURANDGenerator {
   {
     CHECK_CURAND(::randutilGenerateIntegers32(gen_, out, count, low, high));
   }
+  void generate_uniform_64(uint64_t count, double* out, double low, double high)
+  {
+    CHECK_CURAND(::randutilGenerateUniformDoubleEx(gen_, out, count, low, high));
+  }
+  void generate_uniform_32(uint64_t count, float* out, float low, float high)
+  {
+    CHECK_CURAND(::randutilGenerateUniformEx(gen_, out, count, low, high));
+  }
 };
+
+#pragma endregion
 
 struct generate_fn {
   template <int32_t DIM>
@@ -89,6 +101,10 @@ struct generate_fn {
     return volume;
   }
 };
+
+#pragma region generators
+
+#pragma region integer
 
 template <typename output_t>
 struct integer_generator;
@@ -124,6 +140,49 @@ struct integer_generator<int32_t> {
     gen.generate_integer_32(count, p, low_, high_);
   }
 };
+
+#pragma endregion
+
+#pragma region uniform
+
+template <typename output_t>
+struct uniform_generator;
+template <>
+struct uniform_generator<double> {
+  double low_, high_;  // high exclusive
+
+  uniform_generator(const std::vector<int64_t>& intparams,
+                    const std::vector<float>& floatparams,
+                    const std::vector<double>& doubleparams)
+    : low_(doubleparams[0]), high_(doubleparams[1])
+  {
+  }
+
+  void generate(CURANDGenerator& gen, uint64_t count, double* p) const
+  {
+    gen.generate_uniform_64(count, p, low_, high_);
+  }
+};
+template <>
+struct uniform_generator<float> {
+  float low_, high_;
+
+  uniform_generator(const std::vector<int64_t>& intparams,
+                    const std::vector<float>& floatparams,
+                    const std::vector<double>& doubleparams)
+    : low_(floatparams[0]), high_(floatparams[1])
+  {
+  }
+
+  void generate(CURANDGenerator& gen, uint64_t count, float* p) const
+  {
+    gen.generate_uniform_32(count, p, low_, high_);
+  }
+};
+
+#pragma endregion
+
+#pragma endregion
 
 template <typename output_t, typename generator_t>
 struct generate_distribution {
@@ -302,6 +361,14 @@ struct BitGeneratorImplBody {
               break;
             case BitGeneratorDistribution::INTEGERS_64:
               generate_distribution<int64_t, integer_generator<int64_t>>::generate(
+                res, cugen, intparams, floatparams, doubleparams);
+              break;
+            case BitGeneratorDistribution::UNIFORM_32:
+              generate_distribution<float, uniform_generator<float>>::generate(
+                res, cugen, intparams, floatparams, doubleparams);
+              break;
+            case BitGeneratorDistribution::UNIFORM_64:
+              generate_distribution<double, uniform_generator<double>>::generate(
                 res, cugen, intparams, floatparams, doubleparams);
               break;
             default: {

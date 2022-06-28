@@ -76,6 +76,18 @@ class BitGenerator:
         )
         return res
 
+    def random(self, shape=None, dtype=np.float64, res=None):
+        if shape is None:
+            shape = (1,)
+        if not isinstance(shape, tuple):
+            shape = (shape,)
+        if res is None:
+            res = ndarray(shape, dtype=np.dtype(dtype))
+        res._thunk.bitgenerator_uniform(
+            self.handle, self.generatorType, self.seed, self.flags, 0, 1
+        )
+        return res
+
 
 class XORWOW(BitGenerator):
     def __init__(self, seed=None, forceBuild=False):
