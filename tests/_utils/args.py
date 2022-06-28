@@ -212,8 +212,9 @@ test_opts.add_argument(
     "-v",
     "--verbose",
     dest="verbose",
-    action="store_true",
-    help="Print more debugging information",
+    action="count",
+    default=0,
+    help="Display verbose output. Use -vv for even more output (test stdout)",
 )
 
 
