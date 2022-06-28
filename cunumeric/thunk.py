@@ -20,6 +20,8 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     import numpy.typing as npt
 
+    from .types import NdShape
+
 
 class NumPyThunk(ABC):
     """This is the base class for NumPy computations. It has methods
@@ -54,6 +56,10 @@ class NumPyThunk(ABC):
         """Return the Legion storage primitive for this NumPy thunk"""
         ...
 
+    @abstractproperty
+    def shape(self) -> NdShape:
+        ...
+
     @abstractmethod
     def __numpy_array__(self) -> npt.NDArray[Any]:
         ...
@@ -71,7 +77,7 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def convolve(self, v, out, mode):
+    def convolve(self, v, out, mode) -> None:
         ...
 
     @abstractmethod
@@ -79,7 +85,7 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def copy(self, rhs, deep):
+    def copy(self, rhs, deep) -> None:
         ...
 
     @abstractmethod
@@ -116,7 +122,7 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def convert(self, rhs, warn=True):
+    def convert(self, rhs, warn=True) -> None:
         ...
 
     @abstractmethod
@@ -140,7 +146,7 @@ class NumPyThunk(ABC):
         rhs2_thunk,
         rhs2_modes,
         mode2extent,
-    ):
+    ) -> None:
         ...
 
     @abstractmethod
@@ -160,15 +166,15 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def tile(self, rhs, reps):
+    def tile(self, rhs, reps) -> None:
         ...
 
     @abstractmethod
-    def trilu(self, start, stop, step):
+    def trilu(self, rhs, k, lower) -> None:
         ...
 
     @abstractmethod
-    def bincount(self, rhs, weights=None):
+    def bincount(self, rhs, weights=None) -> None:
         ...
 
     @abstractmethod
@@ -180,6 +186,18 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
+    def partition(
+        self,
+        rhs,
+        kth,
+        argpartition=False,
+        axis=-1,
+        kind="introselect",
+        order=None,
+    ) -> None:
+        ...
+
+    @abstractmethod
     def random_normal(self) -> None:
         ...
 
@@ -188,7 +206,13 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def unary_op(self, op, rhs, where, args, multiout=None):
+    def sort(
+        self, rhs, argsort=False, axis=-1, kind="quicksort", order=None
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def unary_op(self, op, rhs, where, args, multiout=None) -> None:
         ...
 
     @abstractmethod
@@ -211,7 +235,7 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def binary_op(self, op, rhs1, rhs2, where, args):
+    def binary_op(self, op, rhs1, rhs2, where, args) -> None:
         ...
 
     @abstractmethod
@@ -223,7 +247,7 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def cholesky(self, src, no_tril):
+    def cholesky(self, src, no_tril) -> None:
         ...
 
     @abstractmethod

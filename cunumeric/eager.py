@@ -36,7 +36,6 @@ if TYPE_CHECKING:
     import numpy.typing as npt
 
     from .deferred import DeferredArray
-    from .runtime import ThunkArray
 
 
 _UNARY_OPS = {
@@ -364,7 +363,7 @@ class EagerArray(NumPyThunk):
         assert isinstance(key, NumPyThunk)
         return self.runtime.to_eager_array(key).array
 
-    def get_item(self, key) -> ThunkArray:
+    def get_item(self, key) -> NumPyThunk:
         if self.deferred is not None:
             return self.deferred.get_item(key)
         if is_advanced_indexing(key):
@@ -488,7 +487,7 @@ class EagerArray(NumPyThunk):
         self.children.append(result)
         return result
 
-    def repeat(self, repeats, axis, scalar_repeats) -> ThunkArray:
+    def repeat(self, repeats, axis, scalar_repeats) -> NumPyThunk:
         if not scalar_repeats:
             self.check_eager_args(repeats)
         if self.deferred is not None:

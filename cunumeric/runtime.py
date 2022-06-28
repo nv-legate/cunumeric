@@ -68,8 +68,6 @@ _supported_dtypes = {
     np.complex128: ty.complex128,
 }
 
-ThunkArray = Union[DeferredArray, EagerArray]
-
 ARGS = [
     Argument(
         "test",
@@ -308,7 +306,7 @@ class Runtime(object):
         obj: Any,
         share: bool = False,
         dtype: Optional[npt.DTypeLike] = None,
-    ) -> ThunkArray:
+    ) -> NumPyThunk:
         # Check to see if this object implements the Legate data interface
         if hasattr(obj, "__legate_data_interface__"):
             legate_data = obj.__legate_data_interface__
@@ -419,7 +417,7 @@ class Runtime(object):
 
     def find_or_create_array_thunk(
         self, array: npt.NDArray[Any], share: bool = False, defer: bool = False
-    ) -> ThunkArray:
+    ) -> NumPyThunk:
         assert isinstance(array, np.ndarray)
         # We have to be really careful here to handle the case of
         # aliased numpy arrays that are passed in from the application
@@ -494,8 +492,8 @@ class Runtime(object):
         self,
         shape: NdShapeLike,
         dtype: np.dtype[Any],
-        inputs: Optional[Sequence[ThunkArray]] = None,
-    ) -> ThunkArray:
+        inputs: Optional[Sequence[NumPyThunk]] = None,
+    ) -> NumPyThunk:
         computed_shape = (shape,) if isinstance(shape, int) else shape
         if self.is_supported_type(dtype) and not (
             self.is_eager_shape(computed_shape)
@@ -530,7 +528,7 @@ class Runtime(object):
         return volume <= self.max_eager_volume
 
     @staticmethod
-    def are_all_eager_inputs(inputs: Optional[Sequence[ThunkArray]]) -> bool:
+    def are_all_eager_inputs(inputs: Optional[Sequence[NumPyThunk]]) -> bool:
         if inputs is None:
             return True
         for inp in inputs:
@@ -540,14 +538,14 @@ class Runtime(object):
         return True
 
     @staticmethod
-    def is_eager_array(array: ThunkArray) -> TypeGuard[EagerArray]:
+    def is_eager_array(array: NumPyThunk) -> TypeGuard[EagerArray]:
         return isinstance(array, EagerArray)
 
     @staticmethod
-    def is_deferred_array(array: ThunkArray) -> TypeGuard[DeferredArray]:
+    def is_deferred_array(array: NumPyThunk) -> TypeGuard[DeferredArray]:
         return isinstance(array, DeferredArray)
 
-    def to_eager_array(self, array: ThunkArray) -> EagerArray:
+    def to_eager_array(self, array: NumPyThunk) -> EagerArray:
         if self.is_eager_array(array):
             return array
         elif self.is_deferred_array(array):
@@ -555,7 +553,7 @@ class Runtime(object):
         else:
             raise RuntimeError("invalid array type")
 
-    def to_deferred_array(self, array: ThunkArray) -> DeferredArray:
+    def to_deferred_array(self, array: NumPyThunk) -> DeferredArray:
         if self.is_deferred_array(array):
             return array
         elif self.is_eager_array(array):
