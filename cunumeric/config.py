@@ -463,6 +463,8 @@ class BitGeneratorDistribution(IntEnum):
     UNIFORM_64 = _cunumeric.CUNUMERIC_BITGENDIST_UNIFORM_64
     LOGNORMAL_32 = _cunumeric.CUNUMERIC_BITGENDIST_LOGNORMAL_32
     LOGNORMAL_64 = _cunumeric.CUNUMERIC_BITGENDIST_LOGNORMAL_64
+    NORMAL_32 = _cunumeric.CUNUMERIC_BITGENDIST_NORMAL_32
+    NORMAL_64 = _cunumeric.CUNUMERIC_BITGENDIST_NORMAL_64
 
 
 # Match these to fftType in fft_util.h

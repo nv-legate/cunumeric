@@ -194,6 +194,12 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
+    def bitgenerator_normal(
+        self, bitgen, generatorType, seed, flags, mean, sigma
+    ):
+        ...
+
+    @abstractmethod
     def random_uniform(self):
         ...
 

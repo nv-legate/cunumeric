@@ -122,6 +122,30 @@ def test_lognormal_float64(t):
     assert_distribution(a, theo_mean, theo_std)
 
 
+@pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
+def test_normal_float32(t):
+    bitgen = t(seed=42)
+    gen = num.random.Generator(bitgen)
+    mu = 1.414
+    sigma = 0.7
+    a = gen.normal(mu, sigma, size=(1024 * 1024,), dtype=np.float32)
+    theo_mean = mu
+    theo_std = sigma
+    assert_distribution(a, theo_mean, theo_std)
+
+
+@pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
+def test_normal_float64(t):
+    bitgen = t(seed=42)
+    gen = num.random.Generator(bitgen)
+    mu = 1.414
+    sigma = 0.7
+    a = gen.normal(mu, sigma, size=(1024 * 1024,), dtype=np.float64)
+    theo_mean = mu
+    theo_std = sigma
+    assert_distribution(a, theo_mean, theo_std)
+
+
 if __name__ == "__main__":
     import sys
 

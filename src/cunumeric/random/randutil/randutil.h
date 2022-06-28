@@ -68,3 +68,8 @@ extern "C" curandStatus_t CURANDAPI randutilGenerateLogNormalEx(
   randutilGenerator_t generator, float* outputPtr, size_t n, float mean, float stddev);
 extern "C" curandStatus_t CURANDAPI randutilGenerateLogNormalDoubleEx(
   randutilGenerator_t generator, double* outputPtr, size_t n, double mean, double stddev);
+
+extern "C" curandStatus_t CURANDAPI randutilGenerateNormalEx(
+  randutilGenerator_t generator, float* outputPtr, size_t n, float mean, float stddev);
+extern "C" curandStatus_t CURANDAPI randutilGenerateNormalDoubleEx(
+  randutilGenerator_t generator, double* outputPtr, size_t n, double mean, double stddev);
