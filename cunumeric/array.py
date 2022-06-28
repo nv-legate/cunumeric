@@ -2122,22 +2122,22 @@ class ndarray:
         # We don't care about dimension order in cuNumeric
         return self.__copy__()
 
-    def cumsum(self, axis=None, dtype=None, out=None):
+    def cumsum(self, axis=None, dtype=None, out=None) -> ndarray:
         return self._perform_scan(
             ScanCode.SUM, self, axis=axis, dtype=dtype, out=out, nan0=False
         )
 
-    def cumprod(self, axis=None, dtype=None, out=None):
+    def cumprod(self, axis=None, dtype=None, out=None) -> ndarray:
         return self._perform_scan(
             ScanCode.PROD, self, axis=axis, dtype=dtype, out=out, nan0=False
         )
 
-    def nancumsum(self, axis=None, dtype=None, out=None):
+    def nancumsum(self, axis=None, dtype=None, out=None) -> ndarray:
         return self._perform_scan(
             ScanCode.SUM, self, axis=axis, dtype=dtype, out=out, nan0=True
         )
 
-    def nancumprod(self, axis=None, dtype=None, out=None):
+    def nancumprod(self, axis=None, dtype=None, out=None) -> ndarray:
         return self._perform_scan(
             ScanCode.PROD, self, axis=axis, dtype=dtype, out=out, nan0=True
         )
@@ -3758,7 +3758,7 @@ class ndarray:
     @classmethod
     def _perform_scan(
         cls, op, src, axis=None, dtype=None, out=None, nan0=False
-    ):
+    ) -> ndarray:
         if dtype is None:
             if out is None:
                 if np.issubdtype(src.dtype, np.integer):

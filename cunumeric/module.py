@@ -4501,7 +4501,12 @@ def unique(
 
 
 @add_boilerplate("a")
-def cumsum(a, axis=None, dtype=None, out=None):
+def cumsum(
+        a: ndarray,
+        axis: Optional[int] = None,
+        dtype: Optional[np.dtype[Any]] = None,
+        out: Optional[ndarray] = None
+) -> ndarray:
     """
     Return the cumulative sum of the elements along a given axis.
 
@@ -4546,7 +4551,12 @@ def cumsum(a, axis=None, dtype=None, out=None):
 
 
 @add_boilerplate("a")
-def cumprod(a, axis=None, dtype=None, out=None):
+def cumprod(
+        a: ndarray,
+        axis: Optional[int] = None,
+        dtype: Optional[np.dtype[Any]] = None,
+        out: Optional[ndarray] = None
+) -> ndarray:
     """
     Return the cumulative product of the elements along a given axis.
 
@@ -4591,7 +4601,12 @@ def cumprod(a, axis=None, dtype=None, out=None):
 
 
 @add_boilerplate("a")
-def nancumsum(a, axis=None, dtype=None, out=None):
+def nancumsum(
+        a: ndarray,
+        axis: Optional[int] = None,
+        dtype: Optional[np.dtype[Any]] = None,
+        out: Optional[ndarray] = None
+) -> ndarray:
     """
     Return the cumulative sum of the elements along a given axis treating Not a
     Numbers (NaNs) as zero. The cumulative sum does not change when NaNs are
@@ -4640,7 +4655,12 @@ def nancumsum(a, axis=None, dtype=None, out=None):
 
 
 @add_boilerplate("a")
-def nancumprod(a, axis=None, dtype=None, out=None):
+def nancumprod(
+        a: ndarray,
+        axis: Optional[int] = None,
+        dtype: Optional[np.dtype[Any]] = None,
+        out: Optional[ndarray] = None
+) -> ndarray:
     """
     Return the cumulative product of the elements along a given axis treating
     Not a Numbers (NaNs) as one. The cumulative product does not change when
