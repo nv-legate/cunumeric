@@ -1,4 +1,4 @@
-# Copyright 2021-2022 NVIDIA Corporation
+# Copyright 2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,15 +13,29 @@
 # limitations under the License.
 #
 
+import pytest
+
 import cunumeric as num
 
 
-def test():
-    x = num.array([1, 2, 3])
-    assert num.min(x) == 1
+# A simple wrapper with a legate data interface implementation for testing
+class Wrapper:
+    def __init__(self, wrapped):
+        self.wrapped = wrapped
 
-    return
+    @property
+    def __legate_data_interface__(self):
+        return self.wrapped
+
+
+def test_roundtrip():
+    arr1 = num.array([1, 2, 3, 4], dtype=num.float64)
+    data = Wrapper(arr1.__legate_data_interface__)
+    arr2 = num.asarray(data)
+    assert num.array_equal(arr1, arr2)
 
 
 if __name__ == "__main__":
-    test()
+    import sys
+
+    sys.exit(pytest.main(sys.argv))

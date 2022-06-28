@@ -19,13 +19,21 @@ import argparse
 
 import numpy as np
 from benchmark import run_benchmark
-from legate.timing import time
 
-import cunumeric as num
+try:
+    from legate.timing import time
+except ImportError:
+    from time import perf_counter_ns
+
+    def time():
+        return perf_counter_ns() / 1000.0
 
 
-def check_sorted(a, a_sorted, axis=-1):
-    a_np = a.__array__()
+def check_sorted(a, a_sorted, package, axis=-1):
+    if package == "cupy":
+        a_np = a.get()
+    else:
+        a_np = a.__array__()
     a_np_sorted = np.sort(a_np, axis)
     print("Checking result...")
     if num.allclose(a_np_sorted, a_sorted):
@@ -33,12 +41,20 @@ def check_sorted(a, a_sorted, axis=-1):
     else:
         print("FAIL!")
         print("NUMPY    : " + str(a_np_sorted))
-        print("CUNUMERIC: " + str(a_sorted))
+        print(package + ": " + str(a_sorted))
         assert False
 
 
 def run_sort(
-    shape, axis, argsort, datatype, lower, upper, perform_check, timing
+    shape,
+    axis,
+    argsort,
+    datatype,
+    lower,
+    upper,
+    perform_check,
+    timing,
+    package,
 ):
 
     num.random.seed(42)
@@ -48,7 +64,6 @@ def run_sort(
     for e in shape:
         N *= e
     shape = tuple(shape)
-
     if np.issubdtype(newtype, np.integer):
         if lower is None:
             lower = np.iinfo(newtype).min
@@ -74,7 +89,7 @@ def run_sort(
     stop = time()
 
     if perform_check and not argsort:
-        check_sorted(a, a_sorted, axis)
+        check_sorted(a, a_sorted, package, axis)
     else:
         # do we need to synchronize?
         assert True
@@ -87,7 +102,6 @@ def run_sort(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "-c",
         "--check",
         dest="check",
         action="store_true",
@@ -157,8 +171,41 @@ if __name__ == "__main__":
         help="number of times to benchmark this application (default 1 - "
         "normal execution)",
     )
+    parser.add_argument(
+        "--package",
+        dest="package",
+        choices=["legate", "numpy", "cupy"],
+        type=str,
+        default="legate",
+        help="NumPy package to use (legate, numpy, or cupy)",
+    )
+    parser.add_argument(
+        "--cupy-allocator",
+        dest="cupy_allocator",
+        choices=["default", "off", "managed"],
+        type=str,
+        default="default",
+        help="cupy allocator to use (default, off, or managed)",
+    )
 
-    args = parser.parse_args()
+    args, _ = parser.parse_known_args()
+
+    if args.package == "legate":
+        import cunumeric as num
+    elif args.package == "cupy":
+        import cupy as num
+
+        if args.cupy_allocator == "off":
+            num.cuda.set_allocator(None)
+            print("Turning off memory pool")
+        elif args.cupy_allocator == "managed":
+            num.cuda.set_allocator(
+                num.cuda.MemoryPool(num.cuda.malloc_managed).malloc
+            )
+            print("Using managed memory pool")
+    elif args.package == "numpy":
+        import numpy as num
+
     run_benchmark(
         run_sort,
         args.benchmark,
@@ -172,5 +219,6 @@ if __name__ == "__main__":
             args.upper,
             args.check,
             args.timing,
+            args.package,
         ),
     )
