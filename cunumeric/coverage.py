@@ -118,7 +118,11 @@ def implemented(
 
 
 def unimplemented(
-    func: AnyCallable, prefix: str, name: str, reporting: bool = True
+    func: AnyCallable,
+    prefix: str,
+    name: str,
+    is_method: bool,
+    reporting: bool = True,
 ) -> CuWrapped:
     name = f"{prefix}.{name}"
 
@@ -150,18 +154,23 @@ def unimplemented(
                 location=location,
                 implemented=False,
             )
+            if is_method:
+                args = (args[0].__array__(),) + args[1:]
             return func(*args, **kwargs)
 
     else:
 
         @wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
+
             stacklevel = find_last_user_stacklevel()
             warnings.warn(
                 FALLBACK_WARNING.format(name=name),
                 stacklevel=stacklevel,
                 category=RuntimeWarning,
             )
+            if is_method:
+                args = (args[0].__array__(),) + args[1:]
             return func(*args, **kwargs)
 
     wrapper._cunumeric = CuWrapperMetadata(implemented=False)
@@ -213,7 +222,9 @@ def clone_module(
 
     for attr, value in missing.items():
         if isinstance(value, (FunctionType, npufunc)):
-            wrapped = unimplemented(value, mod_name, attr, reporting=reporting)
+            wrapped = unimplemented(
+                value, mod_name, attr, is_method=False, reporting=reporting
+            )
             new_globals[attr] = wrapped
         else:
             new_globals[attr] = value
@@ -260,7 +271,11 @@ def clone_class(origin_class: type) -> Callable[[type], type]:
         for attr, value in missing.items():
             if should_wrap(value):
                 wrapped = unimplemented(
-                    value, class_name, attr, reporting=reporting
+                    value,
+                    class_name,
+                    attr,
+                    is_method=True,
+                    reporting=reporting,
                 )
                 setattr(cls, attr, wrapped)
             else:
