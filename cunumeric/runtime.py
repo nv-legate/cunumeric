@@ -131,7 +131,7 @@ ARGS = [
 
 
 class Runtime(object):
-    def __init__(self, legate_context: LegateContext):
+    def __init__(self, legate_context: LegateContext) -> None:
         self.legate_context = legate_context
         self.legate_runtime = get_legate_runtime()
         self.current_random_epoch = 0

@@ -1801,7 +1801,7 @@ class DeferredArray(NumPyThunk):
                 [],
             )
 
-    def isclose(self, rhs1, rhs2, rtol, atol, equal_nan) -> isclose:
+    def isclose(self, rhs1, rhs2, rtol, atol, equal_nan) -> None:
         assert not equal_nan
         args = (
             np.array(rtol, dtype=np.float64),
