@@ -17,6 +17,7 @@ import numpy as np
 import pytest
 
 import cunumeric as num
+from legate.core import LEGATE_MAX_DIM
 
 
 def _check(a, routine, sizes):
@@ -47,14 +48,11 @@ def _check(a, routine, sizes):
 
 DIM = 10
 
-SIZE_CASES = [
+SIZE_CASES = list((DIM,) * ndim for ndim in range(LEGATE_MAX_DIM + 1))
+
+SIZE_CASES += [
     (0,),  # empty array
     (1,),  # singlton array
-    (10,),  # scalar
-    (DIM, 1),  # 1D array
-    (DIM, DIM),  # 2D array
-    (DIM, DIM, DIM),  # 3D array
-    (DIM, DIM, DIM, DIM),  # 4D array
 ]
 
 

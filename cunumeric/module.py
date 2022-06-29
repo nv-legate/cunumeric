@@ -1138,7 +1138,7 @@ def moveaxis(
 # Changing number of dimensions
 
 
-def _reshape_recur(ndim, arr):
+def _reshape_recur(ndim: int, arr: ndarray) -> tuple[int]:
     if arr.ndim < ndim:
         cur_shape = _reshape_recur(ndim - 1, arr)
         if ndim == 2:
@@ -1150,22 +1150,22 @@ def _reshape_recur(ndim, arr):
     return cur_shape
 
 
-def _atleast_nd(ndim, arys, view=True):
+def _atleast_nd(
+    ndim: int, arys: Sequence[ndarray], view: Optional[bool] = True
+) -> Union(list[ndarray], ndarray):
     inputs = arys = list(convert_to_cunumeric_ndarray(arr) for arr in arys)
     if view:
         inputs = list(arr.view() for arr in arys)
-    result_shapes = list(_reshape_recur(ndim, arr) for arr in inputs)
-    # 'reshape' change the shape of arrays only when arr.shape != shape
-    result = list(
-        arr.reshape(shape) for arr, shape in zip(inputs, result_shapes)
-    )
+    # 'reshape' change the shape of arrays
+    # only when arr.shape != _reshape_recur(ndim,arr)
+    result = list(arr.reshape(_reshape_recur(ndim, arr)) for arr in inputs)
     # if the number of arrys in `arys` is 1, the return value is a single array
     if len(result) == 1:
         result = result[0]
     return result
 
 
-def atleast_1d(*arys):
+def atleast_1d(*arys: Sequence[ndarray]) -> Union(list[ndarray], ndarray):
     """
 
     Convert inputs to arrays with at least one dimension.
@@ -1194,7 +1194,7 @@ def atleast_1d(*arys):
     return _atleast_nd(1, arys)
 
 
-def atleast_2d(*arys):
+def atleast_2d(*arys: Sequence[ndarray]) -> Union(list[ndarray], ndarray):
     """
 
     View inputs as arrays with at least two dimensions.
@@ -1224,7 +1224,7 @@ def atleast_2d(*arys):
     return _atleast_nd(2, arys)
 
 
-def atleast_3d(*arys):
+def atleast_3d(*arys: Sequence[ndarray]) -> Union(list[ndarray], ndarray):
     """
 
     View inputs as arrays with at least three dimensions.
