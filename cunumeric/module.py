@@ -2502,6 +2502,9 @@ def take(
 def _fill_fancy_index_for_along_axis_routines(
     a_shape: tuple, axis: int, indices: ndarray
 ) -> tuple:
+
+    # the logic below is base on the cupy implementation of
+    # the *_along_axis routines
     ndim = len(a_shape)
     fancy_index = []
     for i, n in enumerate(a_shape):
