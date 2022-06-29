@@ -67,7 +67,6 @@ module = [
     "cunumeric.array",
     "cunumeric.deferred",
     "cunumeric.eager",
-    "cunumeric.runtime",
     "cunumeric.thunk",
 ]
 ignore_errors = true
