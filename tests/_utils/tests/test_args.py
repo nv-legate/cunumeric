@@ -75,7 +75,7 @@ class TestParserDefaults:
         assert m.parser.get_default("workers") is None
 
     def test_verbose(self) -> None:
-        assert m.parser.get_default("verbose") is False
+        assert m.parser.get_default("verbose") == 0
 
     def test_dry_run(self) -> None:
         assert m.parser.get_default("dry_run") is False
