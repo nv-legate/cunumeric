@@ -28,20 +28,6 @@ extern "C" curandStatus_t CURANDAPI randutilCreateGenerator(randutilGenerator_t*
     generator, rng_type, seed, generatorID, stream);
 }
 
-namespace randutilimpl {
-
-// partially specialize dispatcher to enable DEVICE implementation generation
-template <typename func_t, typename out_t>
-struct dispatcher<randutilimpl::execlocation::DEVICE, func_t, out_t> {
-  static curandStatus_t run(randutilimpl::basegenerator* gen, func_t func, size_t N, out_t* out)
-  {
-    return inner_dispatch_sample<randutilimpl::execlocation::DEVICE, func_t, out_t>(
-      gen, func, N, out);
-  }
-};
-
-}  // namespace randutilimpl
-
 // explicit instantiations of distributions
 #include "generator_integers.inl"
 template struct randutilimpl::

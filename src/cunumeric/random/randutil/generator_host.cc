@@ -41,34 +41,6 @@ extern "C" curandStatus_t CURANDAPI randutilDestroyGenerator(randutilGenerator_t
   }
 }
 
-namespace randutilimpl {
-
-// HOST-side template instantiation of generator
-template <typename func_t, typename out_t>
-struct dispatcher<randutilimpl::execlocation::HOST, func_t, out_t> {
-  static curandStatus_t run(randutilimpl::basegenerator* gen, func_t func, size_t N, out_t* out)
-  {
-    return inner_dispatch_sample<randutilimpl::execlocation::HOST, func_t, out_t>(
-      gen, func, N, out);
-  }
-};
-
-template <typename func_t, typename out_t>
-curandStatus_t dispatch(randutilimpl::basegenerator* gen, func_t func, size_t N, out_t* out)
-{
-  switch (gen->location()) {
-    case randutilimpl::execlocation::HOST:
-      return dispatcher<randutilimpl::execlocation::HOST, func_t, out_t>::run(gen, func, N, out);
-#ifdef LEGATE_USE_CUDA
-    case randutilimpl::execlocation::DEVICE:
-      return dispatcher<randutilimpl::execlocation::DEVICE, func_t, out_t>::run(gen, func, N, out);
-#endif
-    default: return CURAND_STATUS_INTERNAL_ERROR;
-  }
-}
-
-}  // namespace randutilimpl
-
 #pragma region integers
 
 #include "generator_integers.inl"
