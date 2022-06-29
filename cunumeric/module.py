@@ -4523,18 +4523,13 @@ def argsort(
         Array of indices that sort a along the specified axis. It has the
         same shape as `a.shape` or is flattened in case of `axis` is None.
 
-    Notes
-    -----
-    The current implementation has only limited support for distributed data.
-    Distributed 1-D or flattened data will be broadcasted.
-
     See Also
     --------
     numpy.argsort
 
     Availability
     --------
-    Multiple GPUs, Single CPU
+    Multiple GPUs, Multiple CPUs
     """
 
     result = ndarray(a.shape, np.int64)
@@ -4559,18 +4554,13 @@ def msort(a: ndarray) -> ndarray:
     out : ndarray
         Sorted array with same dtype and shape as `a`.
 
-    Notes
-    -----
-    The current implementation has only limited support for distributed data.
-    Distributed 1-D  data will be broadcasted.
-
     See Also
     --------
     numpy.msort
 
     Availability
     --------
-    Multiple GPUs, Single CPU
+    Multiple GPUs, Multiple CPUs
     """
     return sort(a, axis=0)
 
@@ -4605,10 +4595,6 @@ def sort(
         Sorted array with same dtype and shape as `a`. In case `axis` is
         None the result is flattened.
 
-    Notes
-    -----
-    The current implementation has only limited support for distributed data.
-    Distributed 1-D or flattened data will be broadcasted.
 
     See Also
     --------
@@ -4616,7 +4602,7 @@ def sort(
 
     Availability
     --------
-    Multiple GPUs, Single CPU
+    Multiple GPUs, Multiple CPUs
     """
     result = ndarray(a.shape, a.dtype)
     result._thunk.sort(rhs=a._thunk, axis=axis, kind=kind, order=order)
@@ -4640,18 +4626,13 @@ def sort_complex(a: ndarray) -> ndarray:
     out : ndarray, complex
         Sorted array with same shape as `a`.
 
-    Notes
-    -----
-    The current implementation has only limited support for distributed data.
-    Distributed 1-D data will be broadcasted.
-
     See Also
     --------
     numpy.sort_complex
 
     Availability
     --------
-    Multiple GPUs, Single CPU
+    Multiple GPUs, Multiple CPUs
     """
 
     result = sort(a)
@@ -4707,7 +4688,7 @@ def argpartition(
 
     Availability
     --------
-    Multiple GPUs, Single CPU
+    Multiple GPUs, Multiple CPUs
     """
     result = ndarray(a.shape, np.int64)
     result._thunk.partition(
@@ -4762,7 +4743,7 @@ def partition(
 
     Availability
     --------
-    Multiple GPUs, Single CPU
+    Multiple GPUs, Multiple CPUs
     """
     result = ndarray(a.shape, a.dtype)
     result._thunk.partition(
