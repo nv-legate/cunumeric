@@ -14,7 +14,7 @@
  *
  */
 
-#include "generator.cuh"
+#include "generator.h"
 
 template <typename field_t>
 struct integers;
@@ -25,22 +25,12 @@ struct integers<int32_t> {
   int32_t to;
 
   template <typename gen_t>
-  __forceinline__ __host__ __device__ int32_t operator()(gen_t& gen)
+  RANDUTIL_QUALIFIERS int32_t operator()(gen_t& gen)
   {
     // take two draws to get a 64 bits value
     return (int32_t)(curand(&gen) % (uint32_t)(to - from)) + from;
   }
 };
-
-extern "C" curandStatus_t CURANDAPI randutilGenerateIntegers32(
-  randutilGenerator_t generator, int32_t* outputPtr, size_t n, int32_t low, int32_t high)
-{
-  randutilimpl::basegenerator* gen = (randutilimpl::basegenerator*)generator;
-  integers<int32_t> func;
-  func.from = low;
-  func.to   = high;
-  return randutilimpl::dispatch_sample<integers<int32_t>, int32_t>(gen, func, n, outputPtr);
-}
 
 template <>
 struct integers<int64_t> {
@@ -48,7 +38,7 @@ struct integers<int64_t> {
   int64_t to;
 
   template <typename gen_t>
-  __forceinline__ __host__ __device__ int64_t operator()(gen_t& gen)
+  RANDUTIL_QUALIFIERS int64_t operator()(gen_t& gen)
   {
     // take two draws to get a 64 bits value
     unsigned low  = curand(&gen);
@@ -56,13 +46,3 @@ struct integers<int64_t> {
     return (int64_t)((((uint64_t)high << 32) | (uint64_t)low) % (to - from)) + from;
   }
 };
-
-extern "C" curandStatus_t CURANDAPI randutilGenerateIntegers64(
-  randutilGenerator_t generator, int64_t* outputPtr, size_t n, int64_t low, int64_t high)
-{
-  randutilimpl::basegenerator* gen = (randutilimpl::basegenerator*)generator;
-  integers<int64_t> func;
-  func.from = low;
-  func.to   = high;
-  return randutilimpl::dispatch_sample<integers<int64_t>, int64_t>(gen, func, n, outputPtr);
-}

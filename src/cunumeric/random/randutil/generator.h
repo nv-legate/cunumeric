@@ -19,12 +19,8 @@
 #include <cstdint>
 #include <cassert>
 
+#include "randutil_curand.h"
 #include "randutil_impl.h"
-
-// also allow usage of generators on host
-#define QUALIFIERS static __forceinline__ __device__ __host__
-
-#include <curand_kernel.h>
 
 namespace randutilimpl {
 
@@ -125,5 +121,14 @@ curandStatus_t dispatch_sample(basegenerator* gen, func_t func, size_t N, out_t*
     default: return CURAND_STATUS_INTERNAL_ERROR;
   }
 }
+
+// template funtion with HOST and DEVICE implementations
+template <randutilimpl::execlocation location, typename func_t, typename out_t>
+struct dispatcher {
+  static curandStatus_t run(randutilimpl::basegenerator* generator,
+                            func_t func,
+                            size_t N,
+                            out_t* out);
+};
 
 }  // namespace randutilimpl

@@ -22,12 +22,16 @@ typedef void* randutilGenerator_t;
 
 /* generator */
 
+// CUDA-ONLY API
+#ifdef LEGATE_USE_CUDA
 extern "C" curandStatus_t CURANDAPI randutilCreateGenerator(randutilGenerator_t* generator,
                                                             curandRngType_t rng_type,
                                                             uint64_t seed,
                                                             uint64_t generatorID,
                                                             uint32_t flags,
                                                             cudaStream_t stream);
+#endif
+
 extern "C" curandStatus_t CURANDAPI randutilCreateGeneratorHost(randutilGenerator_t* generator,
                                                                 curandRngType_t rng_type,
                                                                 uint64_t seed,
