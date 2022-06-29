@@ -14,7 +14,7 @@
  *
  */
 
-#include "generator.cuh"
+#include "generator.h"
 
 template <typename field_t>
 struct uniform_t;
@@ -30,17 +30,6 @@ struct uniform_t<float> {
   }
 };
 
-extern "C" curandStatus_t CURANDAPI randutilGenerateUniformEx(
-  randutilGenerator_t generator, float* outputPtr, size_t n, float low, float high)
-{
-  randutilimpl::basegenerator* gen = (randutilimpl::basegenerator*)generator;
-  uniform_t<float> func;
-  func.offset = high;
-  func.mult = low - high;  // randutil_uniform is 0 exclusive and 1 inclusive. We want low inclusive
-                           // and high exclusive
-  return randutilimpl::dispatch_sample<uniform_t<float>, float>(gen, func, n, outputPtr);
-}
-
 template <>
 struct uniform_t<double> {
   double offset, mult;
@@ -51,13 +40,3 @@ struct uniform_t<double> {
     return offset + mult * curand_uniform_double(&gen);
   }
 };
-
-extern "C" curandStatus_t CURANDAPI randutilGenerateUniformDoubleEx(
-  randutilGenerator_t generator, double* outputPtr, size_t n, double low, double high)
-{
-  randutilimpl::basegenerator* gen = (randutilimpl::basegenerator*)generator;
-  uniform_t<double> func;
-  func.offset = high;
-  func.mult   = low - high;
-  return randutilimpl::dispatch_sample<uniform_t<double>, double>(gen, func, n, outputPtr);
-}

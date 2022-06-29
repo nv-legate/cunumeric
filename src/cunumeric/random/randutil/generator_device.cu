@@ -48,3 +48,28 @@ template struct randutilimpl::
   dispatcher<randutilimpl::execlocation::DEVICE, integers<int32_t>, int32_t>;
 template struct randutilimpl::
   dispatcher<randutilimpl::execlocation::DEVICE, integers<int64_t>, int64_t>;
+
+#include "generator_lognormal.inl"
+template struct randutilimpl::
+  dispatcher<randutilimpl::execlocation::DEVICE, lognormal_t<float>, float>;
+template struct randutilimpl::
+  dispatcher<randutilimpl::execlocation::DEVICE, lognormal_t<double>, double>;
+
+#include "generator_normal.inl"
+template struct randutilimpl::
+  dispatcher<randutilimpl::execlocation::DEVICE, normal_t<float>, float>;
+template struct randutilimpl::
+  dispatcher<randutilimpl::execlocation::DEVICE, normal_t<double>, double>;
+
+#include "generator_poisson.inl"
+template struct randutilimpl::dispatcher<randutilimpl::execlocation::DEVICE, poisson, uint32_t>;
+
+#include "generator_raw.inl"
+template struct randutilimpl::
+  dispatcher<randutilimpl::execlocation::DEVICE, raw<uint32_t>, uint32_t>;
+
+#include "generator_uniform.inl"
+template struct randutilimpl::
+  dispatcher<randutilimpl::execlocation::DEVICE, uniform_t<float>, float>;
+template struct randutilimpl::
+  dispatcher<randutilimpl::execlocation::DEVICE, uniform_t<double>, double>;

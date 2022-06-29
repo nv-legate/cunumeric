@@ -59,8 +59,10 @@ curandStatus_t dispatch(randutilimpl::basegenerator* gen, func_t func, size_t N,
   switch (gen->location()) {
     case randutilimpl::execlocation::HOST:
       return dispatcher<randutilimpl::execlocation::HOST, func_t, out_t>::run(gen, func, N, out);
+#ifdef LEGATE_USE_CUDA
     case randutilimpl::execlocation::DEVICE:
       return dispatcher<randutilimpl::execlocation::DEVICE, func_t, out_t>::run(gen, func, N, out);
+#endif
     default: return CURAND_STATUS_INTERNAL_ERROR;
   }
 }
@@ -89,6 +91,117 @@ extern "C" curandStatus_t CURANDAPI randutilGenerateIntegers64(
   func.from = low;
   func.to   = high;
   return randutilimpl::dispatch<decltype(func), int64_t>(gen, func, n, outputPtr);
+}
+
+#pragma endregion
+
+#pragma region lognormal
+
+#include "generator_lognormal.inl"
+
+extern "C" curandStatus_t CURANDAPI randutilGenerateLogNormalEx(
+  randutilGenerator_t generator, float* outputPtr, size_t n, float mean, float stddev)
+{
+  randutilimpl::basegenerator* gen = (randutilimpl::basegenerator*)generator;
+  lognormal_t<float> func;
+  func.mean   = mean;
+  func.stddev = stddev;
+  return randutilimpl::dispatch<decltype(func), float>(gen, func, n, outputPtr);
+}
+
+extern "C" curandStatus_t CURANDAPI randutilGenerateLogNormalDoubleEx(
+  randutilGenerator_t generator, double* outputPtr, size_t n, double mean, double stddev)
+{
+  randutilimpl::basegenerator* gen = (randutilimpl::basegenerator*)generator;
+  lognormal_t<double> func;
+  func.mean   = mean;
+  func.stddev = stddev;
+  return randutilimpl::dispatch<decltype(func), double>(gen, func, n, outputPtr);
+}
+
+#pragma endregion
+
+#pragma region normal
+
+#include "generator_normal.inl"
+
+extern "C" curandStatus_t CURANDAPI randutilGenerateNormalEx(
+  randutilGenerator_t generator, float* outputPtr, size_t n, float mean, float stddev)
+{
+  randutilimpl::basegenerator* gen = (randutilimpl::basegenerator*)generator;
+  normal_t<float> func;
+  func.mean   = mean;
+  func.stddev = stddev;
+  return randutilimpl::dispatch<decltype(func), float>(gen, func, n, outputPtr);
+}
+
+extern "C" curandStatus_t CURANDAPI randutilGenerateNormalDoubleEx(
+  randutilGenerator_t generator, double* outputPtr, size_t n, double mean, double stddev)
+{
+  randutilimpl::basegenerator* gen = (randutilimpl::basegenerator*)generator;
+  normal_t<double> func;
+  func.mean   = mean;
+  func.stddev = stddev;
+  return randutilimpl::dispatch<decltype(func), double>(gen, func, n, outputPtr);
+}
+
+#pragma endregion
+
+#pragma region poisson
+
+#include "generator_poisson.inl"
+
+extern "C" curandStatus_t CURANDAPI randutilGeneratePoissonEx(randutilGenerator_t generator,
+                                                              uint32_t* outputPtr,
+                                                              size_t n,
+                                                              double lambda)
+{
+  randutilimpl::basegenerator* gen = (randutilimpl::basegenerator*)generator;
+  poisson func;
+  func.lambda = lambda;
+  return randutilimpl::dispatch<decltype(func), uint32_t>(gen, func, n, outputPtr);
+}
+
+#pragma endregion
+
+#pragma region raw
+
+#include "generator_raw.inl"
+
+extern "C" curandStatus_t CURANDAPI randutilGenerateRawUInt32(randutilGenerator_t generator,
+                                                              uint32_t* outputPtr,
+                                                              size_t n)
+{
+  randutilimpl::basegenerator* gen = (randutilimpl::basegenerator*)generator;
+  raw<uint32_t> func;
+  return randutilimpl::dispatch<decltype(func), uint32_t>(gen, func, n, outputPtr);
+}
+
+#pragma endregion
+
+#pragma region uniform
+
+#include "generator_uniform.inl"
+
+extern "C" curandStatus_t CURANDAPI randutilGenerateUniformEx(
+  randutilGenerator_t generator, float* outputPtr, size_t n, float low, float high)
+{
+  randutilimpl::basegenerator* gen = (randutilimpl::basegenerator*)generator;
+  uniform_t<float> func;
+  func.offset = high;
+  func.mult = low - high;  // randutil_uniform is 0 exclusive and 1 inclusive. We want low inclusive
+                           // and high exclusive
+  return randutilimpl::dispatch<decltype(func), float>(gen, func, n, outputPtr);
+}
+
+extern "C" curandStatus_t CURANDAPI randutilGenerateUniformDoubleEx(
+  randutilGenerator_t generator, double* outputPtr, size_t n, double low, double high)
+{
+  randutilimpl::basegenerator* gen = (randutilimpl::basegenerator*)generator;
+  uniform_t<double> func;
+  func.offset = high;
+  func.mult   = low - high;
+  return randutilimpl::dispatch<decltype(func), double>(gen, func, n, outputPtr);
 }
 
 #pragma endregion

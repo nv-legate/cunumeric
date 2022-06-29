@@ -14,7 +14,7 @@
  *
  */
 
-#include "generator.cuh"
+#include "generator.h"
 
 struct poisson {
   double lambda = 1.0;
@@ -25,14 +25,3 @@ struct poisson {
     return curand_poisson(&gen, lambda);
   }
 };
-
-extern "C" curandStatus_t CURANDAPI randutilGeneratePoissonEx(randutilGenerator_t generator,
-                                                              uint32_t* outputPtr,
-                                                              size_t n,
-                                                              double lambda)
-{
-  randutilimpl::basegenerator* gen = (randutilimpl::basegenerator*)generator;
-  poisson func;
-  func.lambda = lambda;
-  return randutilimpl::dispatch_sample<poisson, uint32_t>(gen, func, n, outputPtr);
-}

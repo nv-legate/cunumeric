@@ -14,7 +14,7 @@
  *
  */
 
-#include "generator.cuh"
+#include "generator.h"
 
 template <typename field_t>
 struct raw;
@@ -27,12 +27,3 @@ struct raw<uint32_t> {
     return (uint32_t)curand(&gen);
   }
 };
-
-extern "C" curandStatus_t CURANDAPI randutilGenerateRawUInt32(randutilGenerator_t generator,
-                                                              uint32_t* outputPtr,
-                                                              size_t n)
-{
-  randutilimpl::basegenerator* gen = (randutilimpl::basegenerator*)generator;
-  raw<uint32_t> func;
-  return randutilimpl::dispatch_sample<raw<uint32_t>, uint32_t>(gen, func, n, outputPtr);
-}

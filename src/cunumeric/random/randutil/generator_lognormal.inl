@@ -14,7 +14,7 @@
  *
  */
 
-#include "generator.cuh"
+#include "generator.h"
 
 template <typename field_t>
 struct lognormal_t;
@@ -31,16 +31,6 @@ struct lognormal_t<float> {
   }
 };
 
-extern "C" curandStatus_t CURANDAPI randutilGenerateLogNormalEx(
-  randutilGenerator_t generator, float* outputPtr, size_t n, float mean, float stddev)
-{
-  randutilimpl::basegenerator* gen = (randutilimpl::basegenerator*)generator;
-  lognormal_t<float> func;
-  func.mean   = mean;
-  func.stddev = stddev;
-  return randutilimpl::dispatch_sample<lognormal_t<float>, float>(gen, func, n, outputPtr);
-}
-
 template <>
 struct lognormal_t<double> {
   double mean   = 0.0;
@@ -52,13 +42,3 @@ struct lognormal_t<double> {
     return curand_log_normal_double(&gen, mean, stddev);
   }
 };
-
-extern "C" curandStatus_t CURANDAPI randutilGenerateLogNormalDoubleEx(
-  randutilGenerator_t generator, double* outputPtr, size_t n, double mean, double stddev)
-{
-  randutilimpl::basegenerator* gen = (randutilimpl::basegenerator*)generator;
-  lognormal_t<double> func;
-  func.mean   = mean;
-  func.stddev = stddev;
-  return randutilimpl::dispatch_sample<lognormal_t<double>, double>(gen, func, n, outputPtr);
-}
