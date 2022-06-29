@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 # Copyright 2021-2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,17 +14,8 @@
 #
 from __future__ import annotations
 
-import sys
+from typing import Tuple, Union
 
-from tests._utils.config import Config
-from tests._utils.system import System
-from tests._utils.test_plan import TestPlan
+NdShape = Tuple[int, ...]
 
-if __name__ == "__main__":
-    config = Config(sys.argv)
-
-    system = System(dry_run=config.dry_run, debug=config.debug)
-
-    plan = TestPlan(config, system)
-
-    sys.exit(plan.execute())
+NdShapeLike = Union[int, NdShape]
