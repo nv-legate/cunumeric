@@ -264,7 +264,10 @@ class ufunc:
         raise TypeError("return arrays must be of ArrayType")
 
     def _prepare_operands(
-        self, *args: Any, out: Union[ndarray, tuple[ndarray, ...], None], where: bool = True
+        self,
+        *args: Any,
+        out: Union[ndarray, tuple[ndarray, ...], None],
+        where: bool = True,
     ) -> tuple[
         Sequence[ndarray],
         Sequence[Union[ndarray, None]],
