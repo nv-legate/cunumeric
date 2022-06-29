@@ -15,6 +15,12 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod, abstractproperty
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    import numpy.typing as npt
+
+    from .types import NdShape
 
 
 class NumPyThunk(ABC):
@@ -25,7 +31,7 @@ class NumPyThunk(ABC):
     :meta private:
     """
 
-    def __init__(self, runtime, dtype):
+    def __init__(self, runtime, dtype) -> None:
         self.runtime = runtime
         self.context = runtime.legate_context
         self.dtype = dtype
@@ -50,8 +56,12 @@ class NumPyThunk(ABC):
         """Return the Legion storage primitive for this NumPy thunk"""
         ...
 
+    @abstractproperty
+    def shape(self) -> NdShape:
+        ...
+
     @abstractmethod
-    def __numpy_array__(self):
+    def __numpy_array__(self) -> npt.NDArray[Any]:
         ...
 
     @abstractmethod
@@ -67,7 +77,7 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def convolve(self, v, out, mode):
+    def convolve(self, v, out, mode) -> None:
         ...
 
     @abstractmethod
@@ -75,11 +85,11 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def copy(self, rhs, deep):
+    def copy(self, rhs, deep) -> None:
         ...
 
     @abstractmethod
-    def repeat(self, repeats, axis, scalar_repeats):
+    def repeat(self, repeats, axis, scalar_repeats) -> NumPyThunk:
         ...
 
     @property
@@ -92,7 +102,7 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def get_item(self, key, view=None, dim_map=None):
+    def get_item(self, key, view=None, dim_map=None) -> NumPyThunk:
         ...
 
     @abstractmethod
@@ -112,11 +122,11 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def convert(self, rhs, warn=True):
+    def convert(self, rhs, warn=True) -> None:
         ...
 
     @abstractmethod
-    def fill(self, value):
+    def fill(self, value) -> None:
         ...
 
     @abstractmethod
@@ -136,7 +146,7 @@ class NumPyThunk(ABC):
         rhs2_thunk,
         rhs2_modes,
         mode2extent,
-    ):
+    ) -> None:
         ...
 
     @abstractmethod
@@ -148,23 +158,23 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def eye(self, k):
+    def eye(self, k) -> None:
         ...
 
     @abstractmethod
-    def arange(self, start, stop, step):
+    def arange(self, start, stop, step) -> None:
         ...
 
     @abstractmethod
-    def tile(self, rhs, reps):
+    def tile(self, rhs, reps) -> None:
         ...
 
     @abstractmethod
-    def trilu(self, start, stop, step):
+    def trilu(self, rhs, k, lower) -> None:
         ...
 
     @abstractmethod
-    def bincount(self, rhs, weights=None):
+    def bincount(self, rhs, weights=None) -> None:
         ...
 
     @abstractmethod
@@ -172,19 +182,37 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def random_uniform(self):
+    def random_uniform(self) -> None:
         ...
 
     @abstractmethod
-    def random_normal(self):
+    def partition(
+        self,
+        rhs,
+        kth,
+        argpartition=False,
+        axis=-1,
+        kind="introselect",
+        order=None,
+    ) -> None:
         ...
 
     @abstractmethod
-    def random_integer(self, low, high):
+    def random_normal(self) -> None:
         ...
 
     @abstractmethod
-    def unary_op(self, op, rhs, where, args, multiout=None):
+    def random_integer(self, low, high) -> None:
+        ...
+
+    @abstractmethod
+    def sort(
+        self, rhs, argsort=False, axis=-1, kind="quicksort", order=None
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def unary_op(self, op, rhs, where, args, multiout=None) -> None:
         ...
 
     @abstractmethod
@@ -203,11 +231,11 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def isclose(self, rhs1, rhs2, rtol, atol, equal_nan):
+    def isclose(self, rhs1, rhs2, rtol, atol, equal_nan) -> None:
         ...
 
     @abstractmethod
-    def binary_op(self, op, rhs1, rhs2, where, args):
+    def binary_op(self, op, rhs1, rhs2, where, args) -> None:
         ...
 
     @abstractmethod
@@ -219,7 +247,7 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def cholesky(self, src, no_tril):
+    def cholesky(self, src, no_tril) -> None:
         ...
 
     @abstractmethod
@@ -227,5 +255,5 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def create_window(self, op_code, *args):
+    def create_window(self, op_code, *args) -> None:
         ...
