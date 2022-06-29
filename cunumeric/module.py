@@ -831,7 +831,14 @@ def diag(v: ndarray, k: int = 0) -> ndarray:
         raise ValueError("diag requires 1- or 2-D array, use diagonal instead")
 
 
-def tri(N, M=None, k=0, dtype=float, *, like=None):
+def tri(
+    N: int,
+    M: Optional[int] = None,
+    k: int = 0,
+    dtype: npt.DTypeLike = float,
+    *,
+    like: Optional[ndarray] = None,
+) -> ndarray:
     """
     An array with ones at and below the given diagonal and zeros elsewhere.
 
@@ -2496,7 +2503,9 @@ def diag_indices_from(arr: ndarray) -> tuple[ndarray, ...]:
     return diag_indices(arr.shape[0], arr.ndim)
 
 
-def tril_indices(n, k=0, m=None):
+def tril_indices(
+    n: int, k: int = 0, m: Optional[int] = None
+) -> tuple[ndarray, ...]:
     """
     Return the indices for the lower-triangle of an (n, m) array.
 
@@ -2535,7 +2544,7 @@ def tril_indices(n, k=0, m=None):
 
 
 @add_boilerplate("arr")
-def tril_indices_from(arr, k=0):
+def tril_indices_from(arr: ndarray, k: int = 0) -> tuple[ndarray, ...]:
     """
     Return the indices for the lower-triangle of arr.
 
@@ -2567,7 +2576,9 @@ def tril_indices_from(arr, k=0):
     return tril_indices(arr.shape[-2], k=k, m=arr.shape[-1])
 
 
-def triu_indices(n, k=0, m=None):
+def triu_indices(
+    n: int, k: int = 0, m: Optional[int] = None
+) -> tuple[ndarray, ...]:
     """
     Return the indices for the upper-triangle of an (n, m) array.
 
@@ -2607,7 +2618,7 @@ def triu_indices(n, k=0, m=None):
 
 
 @add_boilerplate("arr")
-def triu_indices_from(arr, k=0):
+def triu_indices_from(arr: ndarray, k: int = 0) -> tuple[ndarray, ...]:
     """
     Return the indices for the upper-triangle of arr.
 
