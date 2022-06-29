@@ -68,8 +68,8 @@ def rand(*shapeargs: int) -> Union[float, ndarray]:
 
 
 def randint(
-    low: Union[int, ndarray],
-    high: Union[int, ndarray, None] = None,
+    low: Union[int, npt.NDArray[Any]],
+    high: Union[int, npt.NDArray[Any], None] = None,
     size: Union[int, tuple[int], None] = None,
     dtype: Union[np.dtype[Any], None] = None,
 ) -> Union[int, ndarray, npt.NDArray[Any]]:

@@ -256,7 +256,7 @@ class Runtime(object):
 
     def create_scalar(
         self,
-        array: memoryview,
+        array: Union[memoryview, npt.NDArray[Any]],
         dtype: np.dtype[Any],
         shape: Optional[NdShape] = None,
     ) -> Future:
@@ -265,7 +265,10 @@ class Runtime(object):
         return self.legate_runtime.create_future(buf, len(buf))
 
     def create_wrapped_scalar(
-        self, array: memoryview, dtype: np.dtype[Any], shape: NdShape
+        self,
+        array: Union[memoryview, npt.NDArray[Any]],
+        dtype: np.dtype[Any],
+        shape: NdShape,
     ) -> DeferredArray:
         future = self.create_scalar(array, dtype, shape)
         assert all(extent == 1 for extent in shape)
@@ -305,7 +308,7 @@ class Runtime(object):
         self,
         obj: Any,
         share: bool = False,
-        dtype: Optional[npt.DTypeLike] = None,
+        dtype: Optional[np.dtype[Any]] = None,
     ) -> NumPyThunk:
         # Check to see if this object implements the Legate data interface
         if hasattr(obj, "__legate_data_interface__"):
@@ -542,7 +545,9 @@ class Runtime(object):
         return isinstance(array, EagerArray)
 
     @staticmethod
-    def is_deferred_array(array: NumPyThunk) -> TypeGuard[DeferredArray]:
+    def is_deferred_array(
+        array: Optional[NumPyThunk],
+    ) -> TypeGuard[DeferredArray]:
         return isinstance(array, DeferredArray)
 
     def to_eager_array(self, array: NumPyThunk) -> EagerArray:

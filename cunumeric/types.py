@@ -14,8 +14,12 @@
 #
 from __future__ import annotations
 
-from typing import Tuple, Union
+from typing import Literal, Tuple, Union
 
 NdShape = Tuple[int, ...]
 
 NdShapeLike = Union[int, NdShape]
+
+SortType = Literal["quicksort", "mergesort", "heapsort", "stable"]
+
+OrderType = Literal["A", "C", "F"]
