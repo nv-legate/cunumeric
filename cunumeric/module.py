@@ -22,6 +22,7 @@ from typing import TYPE_CHECKING, Any, Optional, Sequence, Union, cast
 
 import numpy as np
 import opt_einsum as oe  # type: ignore [import]
+from cunumeric.coverage import is_implemented
 from numpy.core.numeric import (  # type: ignore [attr-defined]
     normalize_axis_tuple,
 )
@@ -2417,16 +2418,22 @@ def mask_indices(n: int, mask_func, k: int = 0) -> tuple[ndarray, ...]:
     Notes
     -----
     WARNING: `mask_indices` expects `mask_function` to call cuNumeric functions
-    for good performance on CPUs and for correctness on GPUs. In case
-    non-cuNumeric fucntion is called by `mask_function`, cuNumeric will have
-    to materialize data on the host.
+    for good performance. In case non-cuNumeric fucntion is called by
+    `mask_function`, cuNumeric will have to materialize all data on the host
+    which might result in allocating to much of a system memory.
 
     Availability
     --------
-    Multiple GPUs (when `mask_func` is a cunumeric function) , Multiple CPUs
+    Multiple GPUs, Multiple CPUs
     """
     # this implementation is based on the Cupy
     a = ones((n, n), dtype=bool)
+    if not is_implemented(mask_func):
+        runtime.warn(
+            "mask_func is not a cuNumeric function which can result in "
+            "bad performance",
+            category=UserWarning,
+        )
     return mask_func(a, k).nonzero()
 
 
