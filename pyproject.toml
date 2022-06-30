@@ -22,7 +22,6 @@ exclude = '''
 
 [tool.mypy]
 python_version = "3.10"
-mypy_path = "typings/"
 
 pretty = true
 show_error_codes = true
@@ -63,16 +62,11 @@ strict_equality = true
 
 warn_unused_configs = true
 
-# For now enable each typed module individually.
 [[tool.mypy.overrides]]
 module = [
-    "cunumeric.*",
+    "cunumeric.array",
+    "cunumeric.deferred",
+    "cunumeric.eager",
+    "cunumeric.thunk",
 ]
 ignore_errors = true
-
-[[tool.mypy.overrides]]
-module = [
-    "cunumeric.coverage",
-    "cunumeric.utils",
-]
-ignore_errors = false

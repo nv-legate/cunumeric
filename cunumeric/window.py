@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from __future__ import annotations
+
+from typing import Any
 
 import numpy as np
 
@@ -20,7 +23,7 @@ from .config import WindowOpCode
 from .module import empty, ones
 
 
-def _create_window(M: int, op_code: WindowOpCode, *args):
+def _create_window(M: int, op_code: WindowOpCode, *args: Any) -> ndarray:
     if M <= 0:
         return empty((0,))
     elif M == 1:
@@ -33,7 +36,7 @@ def _create_window(M: int, op_code: WindowOpCode, *args):
     return out
 
 
-def bartlett(M: int):
+def bartlett(M: int) -> ndarray:
     """
 
     Return the Bartlett window.
@@ -68,7 +71,7 @@ def bartlett(M: int):
     return _create_window(M, WindowOpCode.BARLETT)
 
 
-def blackman(M: int):
+def blackman(M: int) -> ndarray:
     """
 
     Return the Blackman window.
@@ -102,7 +105,7 @@ def blackman(M: int):
     return _create_window(M, WindowOpCode.BLACKMAN)
 
 
-def hamming(M: int):
+def hamming(M: int) -> ndarray:
     """
 
     Return the Hamming window.
@@ -134,7 +137,7 @@ def hamming(M: int):
     return _create_window(M, WindowOpCode.HAMMING)
 
 
-def hanning(M: int):
+def hanning(M: int) -> ndarray:
     """
 
     Return the Hanning window.
@@ -165,7 +168,7 @@ def hanning(M: int):
     return _create_window(M, WindowOpCode.HANNING)
 
 
-def kaiser(M: int, beta: float):
+def kaiser(M: int, beta: float) -> ndarray:
     """
 
     Return the Kaiser window.
