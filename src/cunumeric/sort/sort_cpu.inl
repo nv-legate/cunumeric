@@ -22,7 +22,9 @@
 #include "core/comm/coll.h"
 
 #include <thrust/sort.h>
+#include <thrust/detail/config.h>
 #include <thrust/execution_policy.h>
+#include <thrust/system/omp/execution_policy.h>
 #include <thrust/sequence.h>
 #include <thrust/iterator/constant_iterator.h>
 
@@ -34,14 +36,39 @@ namespace cunumeric {
 using namespace Legion;
 using namespace legate;
 
-template <typename VAL>
+// sorts inptr in-place, if argptr not nullptr it returns sort indices
+template <typename VAL, typename DerivedPolicy>
 void thrust_local_sort_inplace(VAL* inptr,
                                int64_t* argptr,
                                const size_t volume,
                                const size_t sort_dim_size,
-                               const bool stable_argsort);
+                               const bool stable_argsort,
+                               const thrust::detail::execution_policy_base<DerivedPolicy>& exec)
+{
+  if (argptr == nullptr) {
+    // sort (in place)
+    for (size_t start_idx = 0; start_idx < volume; start_idx += sort_dim_size) {
+      if (stable_argsort) {
+        thrust::stable_sort(exec, inptr + start_idx, inptr + start_idx + sort_dim_size);
+      } else {
+        thrust::sort(exec, inptr + start_idx, inptr + start_idx + sort_dim_size);
+      }
+    }
+  } else {
+    // argsort
+    for (uint64_t start_idx = 0; start_idx < volume; start_idx += sort_dim_size) {
+      int64_t* segmentValues = argptr + start_idx;
+      VAL* segmentKeys       = inptr + start_idx;
+      if (stable_argsort) {
+        thrust::stable_sort_by_key(exec, segmentKeys, segmentKeys + sort_dim_size, segmentValues);
+      } else {
+        thrust::sort_by_key(exec, segmentKeys, segmentKeys + sort_dim_size, segmentValues);
+      }
+    }
+  }
+}
 
-template <typename VAL>
+template <typename VAL, typename DerivedPolicy>
 void rebalance_data(SegmentMergePiece<VAL>& merge_buffer,
                     void* output_ptr,
                     /* global domain information */
@@ -55,6 +82,7 @@ void rebalance_data(SegmentMergePiece<VAL>& merge_buffer,
                     size_t num_segments_l,
                     /* other */
                     bool argsort,
+                    const thrust::detail::execution_policy_base<DerivedPolicy>& exec,
                     comm::coll::CollComm comm)
 {
   // output is either values or indices
@@ -93,7 +121,7 @@ void rebalance_data(SegmentMergePiece<VAL>& merge_buffer,
 #ifdef DEBUG_CUNUMERIC
     {
       size_t reduce =
-        thrust::reduce(thrust::host, segment_diff.ptr(0), segment_diff.ptr(0) + num_segments_l, 0);
+        thrust::reduce(exec, segment_diff.ptr(0), segment_diff.ptr(0) + num_segments_l, 0);
       size_t volume = segment_size_l * num_segments_l;
       assert(merge_buffer.size - volume == reduce);
     }
@@ -146,7 +174,7 @@ void rebalance_data(SegmentMergePiece<VAL>& merge_buffer,
 #ifdef DEBUG_CUNUMERIC
     {
       for (size_t segment = 0; segment < num_segments_l; ++segment) {
-        assert(0 == thrust::reduce(thrust::host,
+        assert(0 == thrust::reduce(exec,
                                    segment_diff_2d.ptr(segment * num_sort_ranks),
                                    segment_diff_2d.ptr(segment * num_sort_ranks) + num_sort_ranks,
                                    0));
@@ -412,7 +440,7 @@ void rebalance_data(SegmentMergePiece<VAL>& merge_buffer,
   }
 }
 
-template <LegateTypeCode CODE>
+template <LegateTypeCode CODE, typename DerivedPolicy>
 void sample_sort_nd(SortPiece<legate_type_of<CODE>> local_sorted,
                     Array& output_array_unbound,  // only for unbound usage when !rebalance
                     void* output_ptr,
@@ -428,6 +456,7 @@ void sample_sort_nd(SortPiece<legate_type_of<CODE>> local_sorted,
                     /* other */
                     bool rebalance,
                     bool argsort,
+                    const thrust::detail::execution_policy_base<DerivedPolicy>& exec,
                     comm::coll::CollComm comm)
 {
   using VAL = legate_type_of<CODE>;
@@ -558,8 +587,7 @@ void sample_sort_nd(SortPiece<legate_type_of<CODE>> local_sorted,
 
   // sort samples on device
   if (num_samples_g > 0) {
-    thrust::stable_sort(
-      thrust::host, p_samples, p_samples + num_samples_g, SegmentSampleComparator<VAL>());
+    thrust::stable_sort(exec, p_samples, p_samples + num_samples_g, SegmentSampleComparator<VAL>());
   }
 
   // check whether we have invalid samples (in case one participant did not have enough)
@@ -807,23 +835,22 @@ void sample_sort_nd(SortPiece<legate_type_of<CODE>> local_sorted,
     if (num_segments_l == 1) {
       auto* p_values  = merge_buffer.values.ptr(0);
       auto* p_indices = argsort ? merge_buffer.indices.ptr(0) : nullptr;
-      thrust_local_sort_inplace(p_values, p_indices, merge_buffer.size, merge_buffer.size, true);
+      thrust_local_sort_inplace(
+        p_values, p_indices, merge_buffer.size, merge_buffer.size, true, exec);
     } else {
       // we need to consider segments as well
       auto combined = thrust::make_zip_iterator(
         thrust::make_tuple(merge_buffer.segments.ptr(0), merge_buffer.values.ptr(0)));
       if (argsort) {
         auto* p_indices = merge_buffer.indices.ptr(0);
-        thrust::stable_sort_by_key(thrust::host,
+        thrust::stable_sort_by_key(exec,
                                    combined,
                                    combined + merge_buffer.size,
                                    p_indices,
                                    thrust::less<thrust::tuple<size_t, VAL>>());
       } else {
-        thrust::stable_sort(thrust::host,
-                            combined,
-                            combined + merge_buffer.size,
-                            thrust::less<thrust::tuple<size_t, VAL>>());
+        thrust::stable_sort(
+          exec, combined, combined + merge_buffer.size, thrust::less<thrust::tuple<size_t, VAL>>());
       }
     }
   }
@@ -844,6 +871,7 @@ void sample_sort_nd(SortPiece<legate_type_of<CODE>> local_sorted,
                    segment_size_l,
                    num_segments_l,
                    argsort,
+                   exec,
                    comm);
   } else {
     assert(is_unbound_1d_storage);
@@ -856,5 +884,144 @@ void sample_sort_nd(SortPiece<legate_type_of<CODE>> local_sorted,
     }
   }
 }
+
+template <LegateTypeCode CODE, int32_t DIM>
+struct SortImplBodyCpu {
+  using VAL = legate_type_of<CODE>;
+
+  template <typename DerivedPolicy>
+  void operator()(const Array& input_array,
+                  Array& output_array,
+                  const Pitches<DIM - 1>& pitches,
+                  const Rect<DIM>& rect,
+                  const size_t volume,
+                  const size_t segment_size_l,
+                  const size_t segment_size_g,
+                  const bool argsort,
+                  const bool stable,
+                  const bool is_index_space,
+                  const size_t local_rank,
+                  const size_t num_ranks,
+                  const size_t num_sort_ranks,
+                  const thrust::detail::execution_policy_base<DerivedPolicy>& exec,
+                  const std::vector<comm::Communicator>& comms)
+  {
+    auto input = input_array.read_accessor<VAL, DIM>(rect);
+
+    // we allow empty domains for distributed sorting
+    assert(rect.empty() || input.accessor.is_dense_row_major(rect));
+
+    bool is_unbound_1d_storage = output_array.is_output_store();
+    bool need_distributed_sort = segment_size_l != segment_size_g || is_unbound_1d_storage;
+    bool rebalance             = !is_unbound_1d_storage;
+    assert(DIM == 1 || !is_unbound_1d_storage);
+
+    // initialize sort pointers
+    SortPiece<VAL> local_sorted;
+    int64_t* indices_ptr = nullptr;
+    VAL* values_ptr      = nullptr;
+    if (argsort) {
+      // make a buffer for input
+      auto input_copy     = create_buffer<VAL>(volume);
+      local_sorted.values = input_copy;
+      values_ptr          = input_copy.ptr(0);
+
+      // initialize indices
+      if (need_distributed_sort) {
+        auto indices_buffer  = create_buffer<int64_t>(volume);
+        indices_ptr          = indices_buffer.ptr(0);
+        local_sorted.indices = indices_buffer;
+        local_sorted.size    = volume;
+      } else {
+        AccessorWO<int64_t, DIM> output = output_array.write_accessor<int64_t, DIM>(rect);
+        assert(rect.empty() || output.accessor.is_dense_row_major(rect));
+        indices_ptr = output.ptr(rect.lo);
+      }
+      size_t offset = rect.lo[DIM - 1];
+      if (volume > 0) {
+        if (DIM == 1) {
+          thrust::sequence(exec, indices_ptr, indices_ptr + volume, offset);
+        } else {
+          thrust::transform(exec,
+                            thrust::make_counting_iterator<int64_t>(0),
+                            thrust::make_counting_iterator<int64_t>(volume),
+                            thrust::make_constant_iterator<int64_t>(segment_size_l),
+                            indices_ptr,
+                            modulusWithOffset(offset));
+        }
+      }
+    } else {
+      // initialize output
+      if (need_distributed_sort) {
+        auto input_copy      = create_buffer<VAL>(volume);
+        values_ptr           = input_copy.ptr(0);
+        local_sorted.values  = input_copy;
+        local_sorted.indices = create_buffer<int64_t>(0);
+        local_sorted.size    = volume;
+      } else {
+        AccessorWO<VAL, DIM> output = output_array.write_accessor<VAL, DIM>(rect);
+        assert(rect.empty() || output.accessor.is_dense_row_major(rect));
+        values_ptr = output.ptr(rect.lo);
+      }
+    }
+
+    if (volume > 0) {
+      // sort data (locally)
+      auto* src = input.ptr(rect.lo);
+      if (src != values_ptr) std::copy(src, src + volume, values_ptr);
+      thrust_local_sort_inplace(values_ptr, indices_ptr, volume, segment_size_l, stable, exec);
+    }
+
+    if (need_distributed_sort) {
+      if (is_index_space) {
+        assert(is_index_space || is_unbound_1d_storage);
+        std::vector<size_t> sort_ranks(num_sort_ranks);
+        size_t rank_group = local_rank / num_sort_ranks;
+        for (int r = 0; r < num_sort_ranks; ++r) sort_ranks[r] = rank_group * num_sort_ranks + r;
+
+        void* output_ptr = nullptr;
+        // in case the storage *is NOT* unbound -- we provide a target pointer
+        // in case the storage *is* unbound -- the result will be appended to output_array
+        if (volume > 0 && !is_unbound_1d_storage) {
+          if (argsort) {
+            auto output = output_array.write_accessor<int64_t, DIM>(rect);
+            assert(output.accessor.is_dense_row_major(rect));
+            output_ptr = static_cast<void*>(output.ptr(rect.lo));
+          } else {
+            auto output = output_array.write_accessor<VAL, DIM>(rect);
+            assert(output.accessor.is_dense_row_major(rect));
+            output_ptr = static_cast<void*>(output.ptr(rect.lo));
+          }
+        }
+
+        sample_sort_nd<CODE>(local_sorted,
+                             output_array,
+                             output_ptr,
+                             local_rank,
+                             num_ranks,
+                             segment_size_g,
+                             local_rank % num_sort_ranks,
+                             num_sort_ranks,
+                             sort_ranks.data(),
+                             segment_size_l,
+                             rebalance,
+                             argsort,
+                             exec,
+                             comms[0].get<comm::coll::CollComm>());
+      } else {
+        // edge case where we have an unbound store but only 1 CPU was assigned with the task
+        if (argsort) {
+          local_sorted.values.destroy();
+          output_array.return_data(local_sorted.indices, Point<1>(local_sorted.size));
+        } else {
+          output_array.return_data(local_sorted.values, Point<1>(local_sorted.size));
+        }
+      }
+    } else if (argsort) {
+      // cleanup for non distributed argsort
+      local_sorted.values.destroy();
+    }
+  }
+};
 
 }  // namespace cunumeric
