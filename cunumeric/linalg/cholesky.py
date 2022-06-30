@@ -12,17 +12,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from __future__ import annotations
 
+from typing import TYPE_CHECKING
 
 from cunumeric.config import CuNumericOpCode
 
 from legate.core import Rect, types as ty
+from legate.core.shape import Shape
 
 from .exception import LinAlgError
 
+if TYPE_CHECKING:
+    from legate.core.context import Context
+    from legate.core.store import Store, StorePartition
 
-def transpose_copy_single(context, input, output):
-    task = context.create_task(CuNumericOpCode.TRANSPOSE_COPY_2D)
+    from ..deferred import DeferredArray
+    from ..runtime import Runtime
+
+
+def transpose_copy_single(
+    context: Context, input: Store, output: Store
+) -> None:
+    task = context.create_auto_task(CuNumericOpCode.TRANSPOSE_COPY_2D)
     task.add_output(output)
     task.add_input(input)
     # Output has the same shape as input, but is mapped
@@ -32,10 +44,14 @@ def transpose_copy_single(context, input, output):
     task.execute()
 
 
-def transpose_copy(context, launch_domain, p_input, p_output):
-    task = context.create_task(
+def transpose_copy(
+    context: Context,
+    launch_domain: Rect,
+    p_input: StorePartition,
+    p_output: StorePartition,
+) -> None:
+    task = context.create_manual_task(
         CuNumericOpCode.TRANSPOSE_COPY_2D,
-        manual=True,
         launch_domain=launch_domain,
     )
     task.add_output(p_output)
@@ -47,18 +63,18 @@ def transpose_copy(context, launch_domain, p_input, p_output):
     task.execute()
 
 
-def potrf_single(context, output):
-    task = context.create_task(CuNumericOpCode.POTRF)
+def potrf_single(context: Context, output: Store) -> None:
+    task = context.create_auto_task(CuNumericOpCode.POTRF)
     task.throws_exception(LinAlgError)
     task.add_output(output)
     task.add_input(output)
     task.execute()
 
 
-def potrf(context, p_output, i):
+def potrf(context: Context, p_output: StorePartition, i: int) -> None:
     launch_domain = Rect(lo=(i, i), hi=(i + 1, i + 1))
-    task = context.create_task(
-        CuNumericOpCode.POTRF, manual=True, launch_domain=launch_domain
+    task = context.create_manual_task(
+        CuNumericOpCode.POTRF, launch_domain=launch_domain
     )
     task.throws_exception(LinAlgError)
     task.add_output(p_output)
@@ -66,7 +82,9 @@ def potrf(context, p_output, i):
     task.execute()
 
 
-def trsm(context, p_output, i, lo, hi):
+def trsm(
+    context: Context, p_output: StorePartition, i: int, lo: int, hi: int
+) -> None:
     if lo >= hi:
         return
 
@@ -74,8 +92,8 @@ def trsm(context, p_output, i, lo, hi):
     lhs = p_output
 
     launch_domain = Rect(lo=(lo, i), hi=(hi, i + 1))
-    task = context.create_task(
-        CuNumericOpCode.TRSM, manual=True, launch_domain=launch_domain
+    task = context.create_manual_task(
+        CuNumericOpCode.TRSM, launch_domain=launch_domain
     )
     task.add_output(lhs)
     task.add_input(rhs)
@@ -83,13 +101,13 @@ def trsm(context, p_output, i, lo, hi):
     task.execute()
 
 
-def syrk(context, p_output, k, i):
+def syrk(context: Context, p_output: StorePartition, k: int, i: int) -> None:
     rhs = p_output.get_child_store(k, i)
     lhs = p_output
 
     launch_domain = Rect(lo=(k, k), hi=(k + 1, k + 1))
-    task = context.create_task(
-        CuNumericOpCode.SYRK, manual=True, launch_domain=launch_domain
+    task = context.create_manual_task(
+        CuNumericOpCode.SYRK, launch_domain=launch_domain
     )
     task.add_output(lhs)
     task.add_input(rhs)
@@ -97,7 +115,14 @@ def syrk(context, p_output, k, i):
     task.execute()
 
 
-def gemm(context, p_output, k, i, lo, hi):
+def gemm(
+    context: Context,
+    p_output: StorePartition,
+    k: int,
+    i: int,
+    lo: int,
+    hi: int,
+) -> None:
     if lo >= hi:
         return
 
@@ -106,8 +131,8 @@ def gemm(context, p_output, k, i, lo, hi):
     rhs1 = p_output
 
     launch_domain = Rect(lo=(lo, k), hi=(hi, k + 1))
-    task = context.create_task(
-        CuNumericOpCode.GEMM, manual=True, launch_domain=launch_domain
+    task = context.create_manual_task(
+        CuNumericOpCode.GEMM, launch_domain=launch_domain
     )
     task.add_output(lhs)
     task.add_input(rhs1, proj=lambda p: (p[0], i))
@@ -121,33 +146,32 @@ MIN_CHOLESKY_MATRIX_SIZE = 8192
 
 
 # TODO: We need a better cost model
-def choose_color_shape(runtime, shape):
+def choose_color_shape(runtime: Runtime, shape: Shape) -> Shape:
     if runtime.args.test_mode:
         num_tiles = runtime.num_procs * 2
-        return (num_tiles, num_tiles)
-    else:
-        extent = shape[0]
-        # If there's only one processor or the matrix is too small,
-        # don't even bother to partition it at all
-        if runtime.num_procs == 1 or extent <= MIN_CHOLESKY_MATRIX_SIZE:
-            return (1, 1)
+        return Shape((num_tiles, num_tiles))
 
-        # If the matrix is big enough to warrant partitioning,
-        # pick the granularity that the tile size is greater than a threshold
-        num_tiles = runtime.num_procs
-        max_num_tiles = runtime.num_procs * 4
-        while (
-            (extent + num_tiles - 1) // num_tiles > MIN_CHOLESKY_TILE_SIZE
-            and num_tiles * 2 <= max_num_tiles
-        ):
-            num_tiles *= 2
+    extent = shape[0]
+    # If there's only one processor or the matrix is too small,
+    # don't even bother to partition it at all
+    if runtime.num_procs == 1 or extent <= MIN_CHOLESKY_MATRIX_SIZE:
+        return Shape((1, 1))
 
-        return (num_tiles, num_tiles)
+    # If the matrix is big enough to warrant partitioning,
+    # pick the granularity that the tile size is greater than a threshold
+    num_tiles = runtime.num_procs
+    max_num_tiles = runtime.num_procs * 4
+    while (
+        (extent + num_tiles - 1) // num_tiles > MIN_CHOLESKY_TILE_SIZE
+        and num_tiles * 2 <= max_num_tiles
+    ):
+        num_tiles *= 2
+
+    return Shape((num_tiles, num_tiles))
 
 
-def tril_single(context, output):
+def tril_single(context: Context, output: Store) -> None:
     task = context.create_task(CuNumericOpCode.TRILU)
-
     task.add_output(output)
     task.add_input(output)
     task.add_scalar_arg(True, bool)
@@ -158,10 +182,10 @@ def tril_single(context, output):
     task.execute()
 
 
-def tril(context, p_output, n):
+def tril(context: Context, p_output: StorePartition, n: int) -> None:
     launch_domain = Rect((n, n))
-    task = context.create_task(
-        CuNumericOpCode.TRILU, manual=True, launch_domain=launch_domain
+    task = context.create_manual_task(
+        CuNumericOpCode.TRILU, launch_domain=launch_domain
     )
 
     task.add_output(p_output)
@@ -174,7 +198,10 @@ def tril(context, p_output, n):
     task.execute()
 
 
-def cholesky(output, input, no_tril):
+def cholesky(
+    output: DeferredArray, input: DeferredArray, no_tril: bool
+) -> None:
+
     runtime = output.runtime
     context = output.context
 
@@ -186,8 +213,8 @@ def cholesky(output, input, no_tril):
         return
 
     shape = output.base.shape
-    color_shape = choose_color_shape(runtime, shape)
-    tile_shape = (shape + color_shape - 1) // color_shape
+    initial_color_shape = choose_color_shape(runtime, shape)
+    tile_shape = (shape + initial_color_shape - 1) // initial_color_shape
     color_shape = (shape + tile_shape - 1) // tile_shape
     n = color_shape[0]
 

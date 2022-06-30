@@ -82,7 +82,6 @@ def gen_inputs_of_various_types(lib, modes):
         (np.float16, np.float32),
         (np.float32, np.float32),
         (np.complex64, np.complex64),
-        (np.complex128, np.complex128),
     ]:
         if lib == cn:
             print(f"  {a_dtype} x {b_dtype}")
@@ -92,7 +91,16 @@ def gen_inputs_of_various_types(lib, modes):
         )
 
 
-def _test(name, modes, operation, gen_inputs, gen_output=None):
+def gen_output_of_various_types(lib, modes, a, b):
+    (a_modes, b_modes, out_modes) = modes
+    out_shape = (5,) * len(out_modes)
+    for out_dtype in [np.float16, np.complex64]:
+        if lib == cn:
+            print(f"  -> {out_dtype}")
+        yield lib.zeros(out_shape, out_dtype)
+
+
+def _test(name, modes, operation, gen_inputs, gen_output=None, **kwargs):
     (a_modes, b_modes, out_modes) = modes
     if len(set(a_modes) | set(b_modes) | set(out_modes)) > LEGATE_MAX_DIM:
         # Total number of distinct modes can't exceed maximum Legion dimension,
@@ -102,22 +110,20 @@ def _test(name, modes, operation, gen_inputs, gen_output=None):
     for (np_inputs, cn_inputs) in zip(
         gen_inputs(np, modes), gen_inputs(cn, modes)
     ):
-        np_res = operation(np, *np_inputs)
-        cn_res = operation(cn, *cn_inputs)
+        np_res = operation(np, *np_inputs, **kwargs)
+        cn_res = operation(cn, *cn_inputs, **kwargs)
         rtol = (
-            2e-03 if any(x.dtype == np.float16 for x in np_inputs) else 1e-05
+            1e-02
+            if any(x.dtype == np.float16 for x in np_inputs)
+            or kwargs.get("dtype") == np.float16
+            else 1e-05
         )
         assert np.allclose(np_res, cn_res, rtol=rtol)
         if gen_output is not None:
             for cn_out in gen_output(cn, modes, *cn_inputs):
-                operation(cn, *cn_inputs, out=cn_out)
-                rtol = (
-                    2e-03
-                    if any(x.dtype == np.float16 for x in np_inputs)
-                    or cn_out.dtype == np.float16
-                    else 1e-05
-                )
-                assert np.allclose(cn_out, cn_res, rtol=rtol)
+                operation(cn, *cn_inputs, out=cn_out, **kwargs)
+                rtol_out = 1e-02 if cn_out.dtype == np.float16 else rtol
+                assert np.allclose(cn_out, cn_res, rtol=rtol_out)
 
 
 def check_default(name, modes, operation):
@@ -137,4 +143,21 @@ def check_permutations(name, modes, operation):
 
 def check_types(name, modes, operation):
     name = f"{name} -- various types"
-    _test(name, modes, operation, gen_inputs_of_various_types)
+    _test(
+        name,
+        modes,
+        operation,
+        gen_inputs_of_various_types,
+        gen_output_of_various_types,
+        casting="unsafe",
+    )
+    name = f"{name} -- various types, dtype=np.float32"
+    _test(
+        name,
+        modes,
+        operation,
+        gen_inputs_of_various_types,
+        gen_output_of_various_types,
+        dtype=np.float32,
+        casting="unsafe",
+    )

@@ -12,20 +12,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any, Union
 
 import numpy as np
 import numpy.random as nprandom
 from cunumeric.array import ndarray
 from cunumeric.runtime import runtime
 
+if TYPE_CHECKING:
+    import numpy.typing as npt
 
-def seed(init=None):
+
+def seed(init: Union[int, None] = None) -> None:
     if init is None:
         init = 0
     runtime.set_next_random_epoch(int(init))
 
 
-def rand(*shapeargs):
+def rand(*shapeargs: int) -> Union[float, ndarray]:
     """
     rand(d0, d1, ..., dn)
 
@@ -54,14 +60,19 @@ def rand(*shapeargs):
     Multiple GPUs, Multiple CPUs
     """
 
-    if shapeargs is None:
+    if shapeargs == ():
         return nprandom.rand()
     result = ndarray(shapeargs, dtype=np.dtype(np.float64))
     result._thunk.random_uniform()
     return result
 
 
-def randint(low, high=None, size=None, dtype=None):
+def randint(
+    low: Union[int, ndarray],
+    high: Union[int, ndarray, None] = None,
+    size: Union[int, tuple[int], None] = None,
+    dtype: Union[np.dtype[Any], None] = None,
+) -> Union[int, ndarray, npt.NDArray[Any]]:
     """
     Return random integers from `low` (inclusive) to `high` (exclusive).
 
@@ -128,7 +139,7 @@ def randint(low, high=None, size=None, dtype=None):
     return result
 
 
-def randn(*shapeargs):
+def randn(*shapeargs: int) -> Union[float, ndarray]:
     """
     randn(d0, d1, ..., dn)
 
@@ -156,14 +167,14 @@ def randn(*shapeargs):
     Multiple GPUs, Multiple CPUs
     """
 
-    if shapeargs is None:
+    if shapeargs == ():
         return nprandom.randn()
     result = ndarray(shapeargs, dtype=np.dtype(np.float64))
     result._thunk.random_normal()
     return result
 
 
-def random(shape=None):
+def random(shape: Union[tuple[int], None] = None) -> Union[float, ndarray]:
     """
     random(size=None)
 
