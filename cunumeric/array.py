@@ -3787,37 +3787,39 @@ class ndarray:
                 # if out array is specified, its type overrules dtype
                 dtype = out.dtype
             if axis is not None:
-                assert out.shape == src.shape
+                if out.shape != src.shape:
+                    raise RuntimeError(
+                        "Non-matching shapes on input and output"
+                        "not supported when axis provided."
+                    )
             else:
-                assert out.ndim == 1
-                assert out.size == src.size
+                if out.ndim is not 1 or out.size != src.size:
+                    raise RuntimeError(
+                        "Output must be 1D and of similar size to"
+                        "input when axis not provided"
+                    )
             if dtype == src.dtype:
                 out = convert_to_cunumeric_ndarray(out)
-                out._thunk.scan(
-                    op, src._thunk, axis=axis, dtype=dtype, nan0=nan0
-                )
+                src_arr = src
             else:
                 # convert input to temporary for type conversion
                 temp = ndarray(shape=src.shape, dtype=dtype)
                 temp._thunk.convert(src._thunk)
-                out._thunk.scan(
-                    op, temp._thunk, axis=axis, dtype=dtype, nan0=nan0
-                )
+                src_arr = temp
         else:
             if axis is not None:
                 out = ndarray(shape=src.shape, dtype=dtype)
             else:
                 out = ndarray(shape=src.size, dtype=dtype)
             if dtype == src.dtype:
-                out._thunk.scan(
-                    op, src._thunk, axis=axis, dtype=dtype, nan0=nan0
-                )
+                src_arr = src
             else:
                 # convert input to temporary for type conversion
                 temp = ndarray(shape=src.shape, dtype=dtype)
                 temp._thunk.convert(src._thunk)
-                out._thunk.scan(
-                    op, temp._thunk, axis=axis, dtype=dtype, nan0=nan0
-                )
-
+                src_arr = temp
+                
+        out._thunk.scan(
+            op, src_arr._thunk, axis=axis, dtype=dtype, nan0=nan0
+        )
         return out

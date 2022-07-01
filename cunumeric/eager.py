@@ -848,7 +848,7 @@ class EagerArray(NumPyThunk):
                 else:
                     np.nancumprod(rhs.array, axis, dtype, self.array)
             else:
-                raise RuntimeError("unsupported scan op " + str(op))
+                raise RuntimeError(f"unsupported scan op {op}")
 
     def unique(self):
         if self.deferred is not None:
