@@ -3818,8 +3818,6 @@ class ndarray:
                 temp = ndarray(shape=src.shape, dtype=dtype)
                 temp._thunk.convert(src._thunk)
                 src_arr = temp
-                
-        out._thunk.scan(
-            op, src_arr._thunk, axis=axis, dtype=dtype, nan0=nan0
-        )
+
+        out._thunk.scan(op, src_arr._thunk, axis=axis, dtype=dtype, nan0=nan0)
         return out
