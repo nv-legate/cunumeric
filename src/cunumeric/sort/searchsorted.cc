@@ -51,7 +51,7 @@ struct SearchSortedImplBody<VariantKind::CPU, CODE> {
         output_positions.reduce_accessor<MinReduction<int64_t>, true, 1>(rect_values);
       for (size_t idx = 0; idx < num_values; ++idx) {
         VAL key             = input_v_ptr[idx];
-        int64_t lower_bound = LowerBoundCpu(input_ptr, volume, key);
+        int64_t lower_bound = std::lower_bound(input_ptr, input_ptr + volume, key) - input_ptr;
         if (lower_bound < volume) { output_reduction.reduce(idx, lower_bound + offset); }
       }
     } else {
@@ -59,7 +59,7 @@ struct SearchSortedImplBody<VariantKind::CPU, CODE> {
         output_positions.reduce_accessor<MaxReduction<int64_t>, true, 1>(rect_values);
       for (size_t idx = 0; idx < num_values; ++idx) {
         VAL key             = input_v_ptr[idx];
-        int64_t upper_bound = UpperBoundCpu(input_ptr, volume, key);
+        int64_t upper_bound = std::upper_bound(input_ptr, input_ptr + volume, key) - input_ptr;
         if (upper_bound > 0) { output_reduction.reduce(idx, upper_bound + offset); }
       }
     }

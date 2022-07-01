@@ -28,38 +28,6 @@ using namespace legate;
 template <VariantKind KIND, LegateTypeCode CODE>
 struct SearchSortedImplBody;
 
-template <typename VAL>
-int64_t LowerBoundCpu(const VAL* input, size_t size, VAL key)
-{
-  int64_t retval = 0;
-  while (size > 0) {
-    size_t half = size >> 1;
-    if (input[retval + half] < key) {
-      retval = retval + (half + 1);
-      size   = size - (half + 1);
-    } else {
-      size = half;
-    }
-  }
-  return retval;
-}
-
-template <typename VAL>
-int64_t UpperBoundCpu(const VAL* input, size_t size, VAL key)
-{
-  int64_t retval = 0;
-  while (size > 0) {
-    size_t half = size >> 1;
-    if (key < input[retval + half]) {
-      size = half;
-    } else {
-      retval = retval + (half + 1);
-      size   = size - (half + 1);
-    }
-  }
-  return retval;
-}
-
 template <VariantKind KIND>
 struct SearchSortedImpl {
   template <LegateTypeCode CODE>
