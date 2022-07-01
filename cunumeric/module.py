@@ -4587,7 +4587,12 @@ def msort(a: ndarray) -> ndarray:
 
 
 @add_boilerplate("a")
-def searchsorted(a, v, side="left", sorter=None):
+def searchsorted(
+    a: ndarray,
+    v: Union[int, float, ndarray],
+    side: str = "left",
+    sorter: Optional[ndarray] = None,
+) -> Union[int, ndarray]:
     """
 
     Find the indices into a sorted array a such that, if the corresponding
@@ -4599,7 +4604,7 @@ def searchsorted(a, v, side="left", sorter=None):
     a : 1-D array_like
         Input array. If sorter is None, then it must be sorted in ascending
         order, otherwise sorter must be an array of indices that sort it.
-    v : array_like
+    v : scalar or array_like
         Values to insert into a.
     side : ``{'left', 'right'}``, optional
         If 'left', the index of the first suitable location found is given.
@@ -4611,7 +4616,7 @@ def searchsorted(a, v, side="left", sorter=None):
 
     Returns
     -------
-    indices : int or array of ints
+    indices : int or array_like[int]
         Array of insertion points with the same shape as v, or an integer
         if v is a scalar.
 
@@ -4619,7 +4624,7 @@ def searchsorted(a, v, side="left", sorter=None):
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return a.searchsorted(a, v, side, sorter)
+    return a.searchsorted(v, side, sorter)
 
 
 @add_boilerplate("a")

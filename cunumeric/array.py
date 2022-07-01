@@ -18,7 +18,7 @@ import warnings
 from collections.abc import Iterable
 from functools import reduce, wraps
 from inspect import signature
-from typing import Any, Callable, Optional, Set, TypeVar
+from typing import Any, Callable, Optional, Set, TypeVar, Union
 
 import numpy as np
 import pyarrow
@@ -3048,7 +3048,13 @@ class ndarray:
         """
         self.__array__().setflags(write=write, align=align, uic=uic)
 
-    def searchsorted(self, v, side="left", sorter=None):
+    @add_boilerplate()
+    def searchsorted(
+        self: ndarray,
+        v: Union[int, float, ndarray],
+        side: str = "left",
+        sorter: Optional[ndarray] = None,
+    ) -> Union[int, ndarray]:
         """a.searchsorted(v, side='left', sorter=None)
 
         Find the indices into a sorted array a such that, if the corresponding
@@ -3057,10 +3063,7 @@ class ndarray:
 
         Parameters
         ----------
-        a : 1-D array_like
-            Input array. If sorter is None, then it must be sorted in ascending
-            order, otherwise sorter must be an array of indices that sort it.
-        v : array_like
+        v : scalar or array_like
             Values to insert into a.
         side : ``{'left', 'right'}``, optional
             If 'left', the index of the first suitable location found is given.
@@ -3072,7 +3075,7 @@ class ndarray:
 
         Returns
         -------
-        indices : int or array of ints
+        indices : int or array_like[int]
             Array of insertion points with the same shape as v, or an integer
             if v is a scalar.
 
@@ -3081,15 +3084,16 @@ class ndarray:
         Multiple GPUs, Multiple CPUs
         """
 
-        v = convert_to_cunumeric_ndarray(v)
+        # this is needed in case v is a scalar
+        v_ndarray = convert_to_cunumeric_ndarray(v)
 
-        result = ndarray(v.shape, np.int64, inputs=(self, v, sorter))
+        result = ndarray(v.shape, np.int64, inputs=(self, v_ndarray, sorter))
 
         if sorter is not None and self.shape[0] > 1:
             resorted = self.take(sorter).copy()
-            result._thunk.searchsorted(resorted._thunk, v._thunk, side)
+            result._thunk.searchsorted(resorted._thunk, v_ndarray._thunk, side)
         else:
-            result._thunk.searchsorted(self._thunk, v._thunk, side)
+            result._thunk.searchsorted(self._thunk, v_ndarray._thunk, side)
         return result
 
     def sort(self, axis=-1, kind="quicksort", order=None):
