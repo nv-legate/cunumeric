@@ -2624,8 +2624,7 @@ def put_along_axis(
     else:
         axis = normalize_axis_index(axis, a.ndim)
 
-    ndim = a.ndim
-    if ndim != indices.ndim:
+    if a.ndim != indices.ndim:
         raise ValueError(
             "`indices` and `a` must have the same number of dimensions"
         )

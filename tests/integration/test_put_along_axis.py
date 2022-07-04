@@ -47,22 +47,26 @@ def test_None_axis():
     assert np.array_equal(res_num, res)
 
 
+N = 50
+
+
 @pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
 def test_ndim(ndim):
-    shape = (5,) * ndim
+    shape = (N,) * ndim
     np_arr = mk_seq_array(np, shape)
     num_arr = mk_seq_array(num, shape)
     shape_idx = (1,) * ndim
-    np_indices = mk_seq_array(np, shape_idx) % 5
-    num_indices = mk_seq_array(num, shape_idx) % 5
+    np_indices = mk_seq_array(np, shape_idx) % N
+    num_indices = mk_seq_array(num, shape_idx) % N
     for axis in range(ndim):
         res_np = np.put_along_axis(np_arr, np_indices, 8, axis=axis)
         res_num = num.put_along_axis(num_arr, num_indices, 8, axis=axis)
         assert np.array_equal(res_num, res_np)
-    np_indices = mk_seq_array(np, (3,))
-    num_indices = mk_seq_array(num, (3,))
+    np_indices = mk_seq_array(np, (30,))
+    num_indices = mk_seq_array(num, (30,))
     res_np = np.put_along_axis(np_arr, np_indices, 11, None)
     res_num = num.put_along_axis(num_arr, num_indices, 11, None)
+    assert np.array_equal(res_num, res_np)
 
 
 if __name__ == "__main__":
