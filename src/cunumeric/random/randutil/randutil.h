@@ -82,3 +82,12 @@ extern "C" curandStatus_t CURANDAPI randutilGeneratePoissonEx(randutilGenerator_
                                                               uint32_t* outputPtr,
                                                               size_t n,
                                                               double lambda);
+
+/* Straightforward Distributions */
+
+extern "C" curandStatus_t CURANDAPI randutilGenerateExponentialEx(randutilGenerator_t generator,
+                                                                  float* outputPtr,
+                                                                  size_t n,
+                                                                  float scale);
+extern "C" curandStatus_t CURANDAPI randutilGenerateExponentialDoubleEx(
+  randutilGenerator_t generator, double* outputPtr, size_t n, double scale);

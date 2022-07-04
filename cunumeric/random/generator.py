@@ -44,6 +44,11 @@ class Generator:
     def poisson(self, lam=1.0, size=None):
         return self.bit_generator.poisson(lam, size)
 
+    def exponential(self, scale=1.0, size=None, dtype=np.float64):
+        return self.bit_generator.exponential(
+            scale=scale, shape=size, dtype=dtype
+        )
+
 
 def default_rng(seed=None):
     if seed is None:

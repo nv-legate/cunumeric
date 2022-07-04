@@ -1818,6 +1818,32 @@ class DeferredArray(NumPyThunk):
             doubleparams,
         )
 
+    def bitgenerator_exponential(
+        self, handle, generatorType, seed, flags, scale
+    ) -> None:
+        if self.dtype == np.float32:
+            distribution = BitGeneratorDistribution.EXPONENTIAL_32
+            floatparams = (float(scale),)
+            doubleparams = ()
+        elif self.dtype == np.float64:
+            distribution = BitGeneratorDistribution.EXPONENTIAL_64
+            floatparams = ()
+            doubleparams = (float(scale),)
+        else:
+            raise NotImplementedError(
+                "type for random.exponential has to be float64 or float32"
+            )
+        self.bitgenerator_distribution(
+            handle,
+            generatorType,
+            seed,
+            flags,
+            distribution,
+            (),
+            floatparams,
+            doubleparams,
+        )
+
     def random(self, gen_code, args=[]) -> None:
         task = self.context.create_task(CuNumericOpCode.RAND)
 

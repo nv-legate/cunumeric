@@ -96,6 +96,14 @@ struct CURANDGenerator {
   {
     CHECK_CURAND(::randutilGeneratePoissonEx(gen_, out, count, lam));
   }
+  void generate_exponential_64(uint64_t count, double* out, double scale)
+  {
+    CHECK_CURAND(::randutilGenerateExponentialDoubleEx(gen_, out, count, scale));
+  }
+  void generate_exponential_32(uint64_t count, float* out, float scale)
+  {
+    CHECK_CURAND(::randutilGenerateExponentialEx(gen_, out, count, scale));
+  }
 };
 
 #pragma endregion
@@ -298,6 +306,45 @@ struct poisson_generator<uint32_t> {
   void generate(CURANDGenerator& gen, uint64_t count, uint32_t* p) const
   {
     gen.generate_poisson(count, p, lam_);
+  }
+};
+
+#pragma endregion
+
+#pragma region exponential
+
+template <typename output_t>
+struct exponential_generator;
+template <>
+struct exponential_generator<double> {
+  double scale_;
+
+  exponential_generator(const std::vector<int64_t>& intparams,
+                        const std::vector<float>& floatparams,
+                        const std::vector<double>& doubleparams)
+    : scale_(doubleparams[0])
+  {
+  }
+
+  void generate(CURANDGenerator& gen, uint64_t count, double* p) const
+  {
+    gen.generate_exponential_64(count, p, scale_);
+  }
+};
+template <>
+struct exponential_generator<float> {
+  float scale_;
+
+  exponential_generator(const std::vector<int64_t>& intparams,
+                        const std::vector<float>& floatparams,
+                        const std::vector<double>& doubleparams)
+    : scale_(floatparams[0])
+  {
+  }
+
+  void generate(CURANDGenerator& gen, uint64_t count, float* p) const
+  {
+    gen.generate_exponential_32(count, p, scale_);
   }
 };
 
@@ -510,6 +557,14 @@ struct BitGeneratorImplBody {
               break;
             case BitGeneratorDistribution::POISSON:
               generate_distribution<uint32_t, poisson_generator<uint32_t>>::generate(
+                res, cugen, intparams, floatparams, doubleparams);
+              break;
+            case BitGeneratorDistribution::EXPONENTIAL_32:
+              generate_distribution<float, exponential_generator<float>>::generate(
+                res, cugen, intparams, floatparams, doubleparams);
+              break;
+            case BitGeneratorDistribution::EXPONENTIAL_64:
+              generate_distribution<double, exponential_generator<double>>::generate(
                 res, cugen, intparams, floatparams, doubleparams);
               break;
             default: {

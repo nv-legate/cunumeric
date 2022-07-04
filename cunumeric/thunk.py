@@ -218,6 +218,12 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
+    def bitgenerator_exponential(
+        self, bitgen, generatorType, seed, flags, scale
+    ) -> None:
+        ...
+
+    @abstractmethod
     def random_uniform(self) -> None:
         ...
 

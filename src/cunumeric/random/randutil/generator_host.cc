@@ -177,3 +177,29 @@ extern "C" curandStatus_t CURANDAPI randutilGenerateUniformDoubleEx(
 }
 
 #pragma endregion
+
+#pragma region exponential
+
+#include "generator_exponential.inl"
+
+extern "C" curandStatus_t CURANDAPI randutilGenerateExponentialEx(randutilGenerator_t generator,
+                                                                  float* outputPtr,
+                                                                  size_t n,
+                                                                  float scale)
+{
+  randutilimpl::basegenerator* gen = (randutilimpl::basegenerator*)generator;
+  exponential_t<float> func;
+  func.scale = scale;
+  return randutilimpl::dispatch<decltype(func), float>(gen, func, n, outputPtr);
+}
+
+extern "C" curandStatus_t CURANDAPI randutilGenerateExponentialDoubleEx(
+  randutilGenerator_t generator, double* outputPtr, size_t n, double scale)
+{
+  randutilimpl::basegenerator* gen = (randutilimpl::basegenerator*)generator;
+  exponential_t<double> func;
+  func.scale = scale;
+  return randutilimpl::dispatch<decltype(func), double>(gen, func, n, outputPtr);
+}
+
+#pragma endregion

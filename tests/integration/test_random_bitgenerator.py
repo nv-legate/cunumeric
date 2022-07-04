@@ -67,7 +67,7 @@ def test_integers_int32(t):
 
 
 def assert_distribution(a, theo_mean, theo_stdev, tolerance=1e-2):
-    if True:
+    if False:
         aa = np.array(a)
         average = np.mean(aa)
         stdev = np.std(aa)  # -> does not work
@@ -160,6 +160,28 @@ def test_poisson(t):
     a = gen.poisson(lam, size=(1024 * 1024,))
     theo_mean = lam
     theo_std = num.sqrt(lam)
+    assert_distribution(a, theo_mean, theo_std)
+
+
+@pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
+def test_exponential_float32(t):
+    bitgen = t(seed=42)
+    gen = num.random.Generator(bitgen)
+    scale = 1.414
+    a = gen.exponential(scale, size=(1024 * 1024,), dtype=np.float32)
+    theo_mean = scale
+    theo_std = scale
+    assert_distribution(a, theo_mean, theo_std)
+
+
+@pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
+def test_exponential_float64(t):
+    bitgen = t(seed=42)
+    gen = num.random.Generator(bitgen)
+    scale = 1.414
+    a = gen.exponential(scale, size=(1024 * 1024,), dtype=np.float64)
+    theo_mean = scale
+    theo_std = scale
     assert_distribution(a, theo_mean, theo_std)
 
 

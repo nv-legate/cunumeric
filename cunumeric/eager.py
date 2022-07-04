@@ -626,7 +626,9 @@ class EagerArray(NumPyThunk):
             else:
                 self.array = np.sort(rhs.array, axis, kind, order)
 
-    def bitgenerator_random_raw(self, handle, generatorType, seed, flags):
+    def bitgenerator_random_raw(
+        self, handle, generatorType, seed, flags
+    ) -> None:
         if self.deferred is not None:
             self.deferred.bitgenerator_random_raw(
                 handle, generatorType, seed, flags
@@ -645,7 +647,7 @@ class EagerArray(NumPyThunk):
 
     def bitgenerator_integers(
         self, handle, generatorType, seed, flags, low, high
-    ):
+    ) -> None:
         if self.deferred is not None:
             self.deferred.bitgenerator_integers(
                 handle, generatorType, seed, flags, low, high
@@ -659,7 +661,7 @@ class EagerArray(NumPyThunk):
 
     def bitgenerator_uniform(
         self, handle, generatorType, seed, flags, low, high
-    ):
+    ) -> None:
         if self.deferred is not None:
             self.deferred.bitgenerator_uniform(
                 handle, generatorType, seed, flags, low, high
@@ -673,7 +675,7 @@ class EagerArray(NumPyThunk):
 
     def bitgenerator_lognormal(
         self, handle, generatorType, seed, flags, mean, sigma
-    ):
+    ) -> None:
         if self.deferred is not None:
             self.deferred.bitgenerator_lognormal(
                 handle, generatorType, seed, flags, mean, sigma
@@ -687,7 +689,7 @@ class EagerArray(NumPyThunk):
 
     def bitgenerator_normal(
         self, handle, generatorType, seed, flags, mean, sigma
-    ):
+    ) -> None:
         if self.deferred is not None:
             self.deferred.bitgenerator_normal(
                 handle, generatorType, seed, flags, mean, sigma
@@ -699,7 +701,9 @@ class EagerArray(NumPyThunk):
                 a = np.random.normal(mean, sigma, size=self.array.shape)
                 self.array[:] = a
 
-    def bitgenerator_poisson(self, handle, generatorType, seed, flags, lam):
+    def bitgenerator_poisson(
+        self, handle, generatorType, seed, flags, lam
+    ) -> None:
         if self.deferred is not None:
             self.deferred.bitgenerator_poisson(
                 handle, generatorType, seed, flags, lam
@@ -709,6 +713,20 @@ class EagerArray(NumPyThunk):
                 self.array.fill(np.random.poisson(lam))
             else:
                 a = np.random.poisson(lam, size=self.array.shape)
+                self.array[:] = a
+
+    def bitgenerator_exponential(
+        self, handle, generatorType, seed, flags, scale
+    ) -> None:
+        if self.deferred is not None:
+            self.deferred.bitgenerator_exponential(
+                handle, generatorType, seed, flags, scale
+            )
+        else:
+            if self.array.size == 1:
+                self.array.fill(np.random.exponential(scale))
+            else:
+                a = np.random.exponential(scale, size=self.array.shape)
                 self.array[:] = a
 
     def partition(
