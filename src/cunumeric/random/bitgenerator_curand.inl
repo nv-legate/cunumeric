@@ -104,6 +104,14 @@ struct CURANDGenerator {
   {
     CHECK_CURAND(::randutilGenerateExponentialEx(gen_, out, count, scale));
   }
+  void generate_gumbel_64(uint64_t count, double* out, double mu, double beta)
+  {
+    CHECK_CURAND(::randutilGenerateGumbelDoubleEx(gen_, out, count, mu, beta));
+  }
+  void generate_gumbel_32(uint64_t count, float* out, double mu, double beta)
+  {
+    CHECK_CURAND(::randutilGenerateGumbelEx(gen_, out, count, mu, beta));
+  }
 };
 
 #pragma endregion
@@ -350,6 +358,45 @@ struct exponential_generator<float> {
 
 #pragma endregion
 
+#pragma region exponential
+
+template <typename output_t>
+struct gumbel_generator;
+template <>
+struct gumbel_generator<double> {
+  double mu_, beta_;
+
+  gumbel_generator(const std::vector<int64_t>& intparams,
+                   const std::vector<float>& floatparams,
+                   const std::vector<double>& doubleparams)
+    : mu_(doubleparams[0]), beta_(doubleparams[1])
+  {
+  }
+
+  void generate(CURANDGenerator& gen, uint64_t count, double* p) const
+  {
+    gen.generate_gumbel_64(count, p, mu_, beta_);
+  }
+};
+template <>
+struct gumbel_generator<float> {
+  float mu_, beta_;
+
+  gumbel_generator(const std::vector<int64_t>& intparams,
+                   const std::vector<float>& floatparams,
+                   const std::vector<double>& doubleparams)
+    : mu_(floatparams[0]), beta_(floatparams[1])
+  {
+  }
+
+  void generate(CURANDGenerator& gen, uint64_t count, float* p) const
+  {
+    gen.generate_gumbel_32(count, p, mu_, beta_);
+  }
+};
+
+#pragma endregion
+
 #pragma endregion
 
 template <typename output_t, typename generator_t>
@@ -565,6 +612,14 @@ struct BitGeneratorImplBody {
               break;
             case BitGeneratorDistribution::EXPONENTIAL_64:
               generate_distribution<double, exponential_generator<double>>::generate(
+                res, cugen, intparams, floatparams, doubleparams);
+              break;
+            case BitGeneratorDistribution::GUMBEL_32:
+              generate_distribution<float, gumbel_generator<float>>::generate(
+                res, cugen, intparams, floatparams, doubleparams);
+              break;
+            case BitGeneratorDistribution::GUMBEL_64:
+              generate_distribution<double, gumbel_generator<double>>::generate(
                 res, cugen, intparams, floatparams, doubleparams);
               break;
             default: {

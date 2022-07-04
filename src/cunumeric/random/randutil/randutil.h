@@ -91,3 +91,8 @@ extern "C" curandStatus_t CURANDAPI randutilGenerateExponentialEx(randutilGenera
                                                                   float scale);
 extern "C" curandStatus_t CURANDAPI randutilGenerateExponentialDoubleEx(
   randutilGenerator_t generator, double* outputPtr, size_t n, double scale);
+
+extern "C" curandStatus_t CURANDAPI randutilGenerateGumbelEx(
+  randutilGenerator_t generator, float* outputPtr, size_t n, float mu, float beta);
+extern "C" curandStatus_t CURANDAPI randutilGenerateGumbelDoubleEx(
+  randutilGenerator_t generator, double* outputPtr, size_t n, double mu, double beta);

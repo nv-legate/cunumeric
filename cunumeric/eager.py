@@ -729,6 +729,20 @@ class EagerArray(NumPyThunk):
                 a = np.random.exponential(scale, size=self.array.shape)
                 self.array[:] = a
 
+    def bitgenerator_gumbel(
+        self, handle, generatorType, seed, flags, mu, beta
+    ) -> None:
+        if self.deferred is not None:
+            self.deferred.bitgenerator_gumbel(
+                handle, generatorType, seed, flags, mu, beta
+            )
+        else:
+            if self.array.size == 1:
+                self.array.fill(np.random.gumbel(mu, beta))
+            else:
+                a = np.random.gumbel(mu, beta, size=self.array.shape)
+                self.array[:] = a
+
     def partition(
         self,
         rhs,

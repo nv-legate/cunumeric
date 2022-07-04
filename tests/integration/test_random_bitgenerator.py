@@ -185,6 +185,32 @@ def test_exponential_float64(t):
     assert_distribution(a, theo_mean, theo_std)
 
 
+@pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
+def test_gumbel_float32(t):
+    bitgen = t(seed=42)
+    gen = num.random.Generator(bitgen)
+    scale = 1.414
+    loc = 0.7
+    a = gen.gumbel(loc, scale, size=(1024 * 1024,), dtype=np.float32)
+    euler_mascheroni = 0.5772156649015328606065120900824024310421
+    theo_mean = loc + euler_mascheroni * scale
+    theo_std = np.pi * scale / np.sqrt(6.0)
+    assert_distribution(a, theo_mean, theo_std)
+
+
+@pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
+def test_gumbel_float64(t):
+    bitgen = t(seed=42)
+    gen = num.random.Generator(bitgen)
+    scale = 1.414
+    loc = 0.7
+    a = gen.gumbel(loc, scale, size=(1024 * 1024,), dtype=np.float64)
+    euler_mascheroni = 0.5772156649015328606065120900824024310421
+    theo_mean = loc + euler_mascheroni * scale
+    theo_std = np.pi * scale / np.sqrt(6.0)
+    assert_distribution(a, theo_mean, theo_std)
+
+
 if __name__ == "__main__":
     import sys
 

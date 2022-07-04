@@ -65,3 +65,9 @@ template struct randutilimpl::
   dispatcher<randutilimpl::execlocation::DEVICE, exponential_t<float>, float>;
 template struct randutilimpl::
   dispatcher<randutilimpl::execlocation::DEVICE, exponential_t<double>, double>;
+
+#include "generator_gumbel.inl"
+template struct randutilimpl::
+  dispatcher<randutilimpl::execlocation::DEVICE, gumbel_t<float>, float>;
+template struct randutilimpl::
+  dispatcher<randutilimpl::execlocation::DEVICE, gumbel_t<double>, double>;

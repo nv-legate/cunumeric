@@ -203,3 +203,29 @@ extern "C" curandStatus_t CURANDAPI randutilGenerateExponentialDoubleEx(
 }
 
 #pragma endregion
+
+#pragma region gumbel
+
+#include "generator_gumbel.inl"
+
+extern "C" curandStatus_t CURANDAPI randutilGenerateGumbelEx(
+  randutilGenerator_t generator, float* outputPtr, size_t n, float mu, float beta)
+{
+  randutilimpl::basegenerator* gen = (randutilimpl::basegenerator*)generator;
+  gumbel_t<float> func;
+  func.mu   = mu;
+  func.beta = beta;
+  return randutilimpl::dispatch<decltype(func), float>(gen, func, n, outputPtr);
+}
+
+extern "C" curandStatus_t CURANDAPI randutilGenerateGumbelDoubleEx(
+  randutilGenerator_t generator, double* outputPtr, size_t n, double mu, double beta)
+{
+  randutilimpl::basegenerator* gen = (randutilimpl::basegenerator*)generator;
+  gumbel_t<double> func;
+  func.mu   = mu;
+  func.beta = beta;
+  return randutilimpl::dispatch<decltype(func), double>(gen, func, n, outputPtr);
+}
+
+#pragma endregion

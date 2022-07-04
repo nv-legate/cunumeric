@@ -49,6 +49,11 @@ class Generator:
             scale=scale, shape=size, dtype=dtype
         )
 
+    def gumbel(self, loc=0.0, scale=1.0, size=None, dtype=np.float64):
+        return self.bit_generator.gumbel(
+            mu=loc, beta=scale, shape=size, dtype=dtype
+        )
+
 
 def default_rng(seed=None):
     if seed is None:
