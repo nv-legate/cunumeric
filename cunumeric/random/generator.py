@@ -54,6 +54,11 @@ class Generator:
             mu=loc, beta=scale, shape=size, dtype=dtype
         )
 
+    def laplace(self, loc=0.0, scale=1.0, size=None, dtype=np.float64):
+        return self.bit_generator.laplace(
+            mu=loc, beta=scale, shape=size, dtype=dtype
+        )
+
 
 def default_rng(seed=None):
     if seed is None:

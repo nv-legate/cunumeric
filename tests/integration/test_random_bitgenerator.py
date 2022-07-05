@@ -76,6 +76,7 @@ def assert_distribution(a, theo_mean, theo_stdev, tolerance=1e-2):
         stdev = num.sqrt(
             num.mean((a - average) ** 2)
         )  # num.std(a) -> does not work
+    print(f"average = {average}, stdev = {stdev}\n")
     assert np.abs(theo_mean - average) < tolerance * np.max(
         (1.0, np.abs(theo_mean))
     )
@@ -208,6 +209,30 @@ def test_gumbel_float64(t):
     euler_mascheroni = 0.5772156649015328606065120900824024310421
     theo_mean = loc + euler_mascheroni * scale
     theo_std = np.pi * scale / np.sqrt(6.0)
+    assert_distribution(a, theo_mean, theo_std)
+
+
+@pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
+def test_laplace_float32(t):
+    bitgen = t(seed=42)
+    gen = num.random.Generator(bitgen)
+    scale = 1.414
+    loc = 0.7
+    a = gen.laplace(loc, scale, size=(1024 * 1024,), dtype=np.float32)
+    theo_mean = loc
+    theo_std = np.sqrt(2.0) * scale
+    assert_distribution(a, theo_mean, theo_std)
+
+
+@pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
+def test_laplace_float64(t):
+    bitgen = t(seed=42)
+    gen = num.random.Generator(bitgen)
+    scale = 1.414
+    loc = 0.7
+    a = gen.laplace(loc, scale, size=(1024 * 1024,), dtype=np.float64)
+    theo_mean = loc
+    theo_std = np.sqrt(2.0) * scale
     assert_distribution(a, theo_mean, theo_std)
 
 

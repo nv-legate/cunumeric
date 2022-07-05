@@ -470,6 +470,8 @@ class BitGeneratorDistribution(IntEnum):
     EXPONENTIAL_64 = _cunumeric.CUNUMERIC_BITGENDIST_EXPONENTIAL_64
     GUMBEL_32 = _cunumeric.CUNUMERIC_BITGENDIST_GUMBEL_32
     GUMBEL_64 = _cunumeric.CUNUMERIC_BITGENDIST_GUMBEL_64
+    LAPLACE_32 = _cunumeric.CUNUMERIC_BITGENDIST_LAPLACE_32
+    LAPLACE_64 = _cunumeric.CUNUMERIC_BITGENDIST_LAPLACE_64
 
 
 # Match these to fftType in fft_util.h

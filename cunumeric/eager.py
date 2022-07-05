@@ -743,6 +743,20 @@ class EagerArray(NumPyThunk):
                 a = np.random.gumbel(mu, beta, size=self.array.shape)
                 self.array[:] = a
 
+    def bitgenerator_laplace(
+        self, handle, generatorType, seed, flags, mu, beta
+    ) -> None:
+        if self.deferred is not None:
+            self.deferred.bitgenerator_laplace(
+                handle, generatorType, seed, flags, mu, beta
+            )
+        else:
+            if self.array.size == 1:
+                self.array.fill(np.random.laplace(mu, beta))
+            else:
+                a = np.random.laplace(mu, beta, size=self.array.shape)
+                self.array[:] = a
+
     def partition(
         self,
         rhs,

@@ -27,3 +27,9 @@ template struct randutilimpl::
   dispatcher<randutilimpl::execlocation::DEVICE, gumbel_t<float>, float>;
 template struct randutilimpl::
   dispatcher<randutilimpl::execlocation::DEVICE, gumbel_t<double>, double>;
+
+#include "generator_laplace.inl"
+template struct randutilimpl::
+  dispatcher<randutilimpl::execlocation::DEVICE, laplace_t<float>, float>;
+template struct randutilimpl::
+  dispatcher<randutilimpl::execlocation::DEVICE, laplace_t<double>, double>;

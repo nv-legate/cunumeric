@@ -112,6 +112,14 @@ struct CURANDGenerator {
   {
     CHECK_CURAND(::randutilGenerateGumbelEx(gen_, out, count, mu, beta));
   }
+  void generate_laplace_64(uint64_t count, double* out, double mu, double beta)
+  {
+    CHECK_CURAND(::randutilGenerateLaplaceDoubleEx(gen_, out, count, mu, beta));
+  }
+  void generate_laplace_32(uint64_t count, float* out, double mu, double beta)
+  {
+    CHECK_CURAND(::randutilGenerateLaplaceEx(gen_, out, count, mu, beta));
+  }
 };
 
 #pragma endregion
@@ -358,7 +366,7 @@ struct exponential_generator<float> {
 
 #pragma endregion
 
-#pragma region exponential
+#pragma region gumbel
 
 template <typename output_t>
 struct gumbel_generator;
@@ -392,6 +400,45 @@ struct gumbel_generator<float> {
   void generate(CURANDGenerator& gen, uint64_t count, float* p) const
   {
     gen.generate_gumbel_32(count, p, mu_, beta_);
+  }
+};
+
+#pragma endregion
+
+#pragma region laplace
+
+template <typename output_t>
+struct laplace_generator;
+template <>
+struct laplace_generator<double> {
+  double mu_, beta_;
+
+  laplace_generator(const std::vector<int64_t>& intparams,
+                    const std::vector<float>& floatparams,
+                    const std::vector<double>& doubleparams)
+    : mu_(doubleparams[0]), beta_(doubleparams[1])
+  {
+  }
+
+  void generate(CURANDGenerator& gen, uint64_t count, double* p) const
+  {
+    gen.generate_laplace_64(count, p, mu_, beta_);
+  }
+};
+template <>
+struct laplace_generator<float> {
+  float mu_, beta_;
+
+  laplace_generator(const std::vector<int64_t>& intparams,
+                    const std::vector<float>& floatparams,
+                    const std::vector<double>& doubleparams)
+    : mu_(floatparams[0]), beta_(floatparams[1])
+  {
+  }
+
+  void generate(CURANDGenerator& gen, uint64_t count, float* p) const
+  {
+    gen.generate_laplace_32(count, p, mu_, beta_);
   }
 };
 
@@ -620,6 +667,14 @@ struct BitGeneratorImplBody {
               break;
             case BitGeneratorDistribution::GUMBEL_64:
               generate_distribution<double, gumbel_generator<double>>::generate(
+                res, cugen, intparams, floatparams, doubleparams);
+              break;
+            case BitGeneratorDistribution::LAPLACE_32:
+              generate_distribution<float, laplace_generator<float>>::generate(
+                res, cugen, intparams, floatparams, doubleparams);
+              break;
+            case BitGeneratorDistribution::LAPLACE_64:
+              generate_distribution<double, laplace_generator<double>>::generate(
                 res, cugen, intparams, floatparams, doubleparams);
               break;
             default: {

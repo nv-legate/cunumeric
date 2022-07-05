@@ -1870,6 +1870,32 @@ class DeferredArray(NumPyThunk):
             doubleparams,
         )
 
+    def bitgenerator_laplace(
+        self, handle, generatorType, seed, flags, mu, beta
+    ) -> None:
+        if self.dtype == np.float32:
+            distribution = BitGeneratorDistribution.LAPLACE_32
+            floatparams = (float(mu), float(beta))
+            doubleparams = ()
+        elif self.dtype == np.float64:
+            distribution = BitGeneratorDistribution.LAPLACE_64
+            floatparams = ()
+            doubleparams = (float(mu), float(beta))
+        else:
+            raise NotImplementedError(
+                "type for random.exponential has to be float64 or float32"
+            )
+        self.bitgenerator_distribution(
+            handle,
+            generatorType,
+            seed,
+            flags,
+            distribution,
+            (),
+            floatparams,
+            doubleparams,
+        )
+
     def random(self, gen_code, args=[]) -> None:
         task = self.context.create_task(CuNumericOpCode.RAND)
 

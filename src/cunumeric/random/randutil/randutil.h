@@ -96,3 +96,8 @@ extern "C" curandStatus_t CURANDAPI randutilGenerateGumbelEx(
   randutilGenerator_t generator, float* outputPtr, size_t n, float mu, float beta);
 extern "C" curandStatus_t CURANDAPI randutilGenerateGumbelDoubleEx(
   randutilGenerator_t generator, double* outputPtr, size_t n, double mu, double beta);
+
+extern "C" curandStatus_t CURANDAPI randutilGenerateLaplaceEx(
+  randutilGenerator_t generator, float* outputPtr, size_t n, float mu, float beta);
+extern "C" curandStatus_t CURANDAPI randutilGenerateLaplaceDoubleEx(
+  randutilGenerator_t generator, double* outputPtr, size_t n, double mu, double beta);

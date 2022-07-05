@@ -230,6 +230,12 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
+    def bitgenerator_laplace(
+        self, bitgen, generatorType, seed, flags, mu, beta
+    ) -> None:
+        ...
+
+    @abstractmethod
     def random_uniform(self) -> None:
         ...
 
