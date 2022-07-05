@@ -94,7 +94,7 @@ extern "C" curandStatus_t CURANDAPI randutilGenerateLaplaceDoubleEx(
 
 #pragma endregion
 
-#pragma region laplace
+#pragma region logistic
 
 #include "generator_logistic.inl"
 
@@ -115,6 +115,32 @@ extern "C" curandStatus_t CURANDAPI randutilGenerateLogisticDoubleEx(
   logistic_t<double> func;
   func.mu   = mu;
   func.beta = beta;
+  return randutilimpl::dispatch<decltype(func), double>(gen, func, n, outputPtr);
+}
+
+#pragma endregion
+
+#pragma region pareto
+
+#include "generator_pareto.inl"
+
+extern "C" curandStatus_t CURANDAPI randutilGenerateParetoEx(
+  randutilGenerator_t generator, float* outputPtr, size_t n, float xm, float alpha)
+{
+  randutilimpl::basegenerator* gen = (randutilimpl::basegenerator*)generator;
+  pareto_t<float> func;
+  func.xm       = xm;
+  func.invalpha = 1.0f / alpha;
+  return randutilimpl::dispatch<decltype(func), float>(gen, func, n, outputPtr);
+}
+
+extern "C" curandStatus_t CURANDAPI randutilGenerateParetoDoubleEx(
+  randutilGenerator_t generator, double* outputPtr, size_t n, double xm, double alpha)
+{
+  randutilimpl::basegenerator* gen = (randutilimpl::basegenerator*)generator;
+  pareto_t<double> func;
+  func.xm       = xm;
+  func.invalpha = 1.0 / alpha;
   return randutilimpl::dispatch<decltype(func), double>(gen, func, n, outputPtr);
 }
 

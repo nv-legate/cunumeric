@@ -64,6 +64,9 @@ class Generator:
             mu=loc, beta=scale, shape=size, dtype=dtype
         )
 
+    def pareto(self, a, size=None, dtype=np.float64):
+        return self.bit_generator.pareto(alpha=a, shape=size, dtype=dtype)
+
 
 def default_rng(seed=None):
     if seed is None:

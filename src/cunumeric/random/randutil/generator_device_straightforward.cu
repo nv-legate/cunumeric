@@ -39,3 +39,9 @@ template struct randutilimpl::
   dispatcher<randutilimpl::execlocation::DEVICE, logistic_t<float>, float>;
 template struct randutilimpl::
   dispatcher<randutilimpl::execlocation::DEVICE, logistic_t<double>, double>;
+
+#include "generator_pareto.inl"
+template struct randutilimpl::
+  dispatcher<randutilimpl::execlocation::DEVICE, pareto_t<float>, float>;
+template struct randutilimpl::
+  dispatcher<randutilimpl::execlocation::DEVICE, pareto_t<double>, double>;

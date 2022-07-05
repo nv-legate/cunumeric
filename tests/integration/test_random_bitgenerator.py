@@ -260,6 +260,30 @@ def test_logistic_float64(t):
     assert_distribution(a, theo_mean, theo_std)
 
 
+@pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
+def test_pareto_float32(t):
+    bitgen = t(seed=42)
+    gen = num.random.Generator(bitgen)
+    alpha = 30.0
+    a = gen.pareto(alpha, size=(1024 * 1024,), dtype=np.float32)
+    xm = 1.0
+    theo_mean = alpha * xm / (alpha - 1.0) - 1.0
+    theo_std = np.sqrt(xm * xm * alpha / (alpha - 2)) / (alpha - 1)
+    assert_distribution(a, theo_mean, theo_std)
+
+
+@pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
+def test_pareto_float64(t):
+    bitgen = t(seed=42)
+    gen = num.random.Generator(bitgen)
+    alpha = 30.0
+    a = gen.pareto(alpha, size=(1024 * 1024,), dtype=np.float64)
+    xm = 1.0
+    theo_mean = alpha * xm / (alpha - 1.0) - 1.0
+    theo_std = np.sqrt(xm * xm * alpha / (alpha - 2)) / (alpha - 1)
+    assert_distribution(a, theo_mean, theo_std)
+
+
 if __name__ == "__main__":
     import sys
 

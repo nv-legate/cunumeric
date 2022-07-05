@@ -128,6 +128,14 @@ struct CURANDGenerator {
   {
     CHECK_CURAND(::randutilGenerateLogisticEx(gen_, out, count, mu, beta));
   }
+  void generate_pareto_64(uint64_t count, double* out, double alpha)
+  {
+    CHECK_CURAND(::randutilGenerateParetoDoubleEx(gen_, out, count, 1.0, alpha));
+  }
+  void generate_pareto_32(uint64_t count, float* out, double alpha)
+  {
+    CHECK_CURAND(::randutilGenerateParetoEx(gen_, out, count, 1.0f, alpha));
+  }
 };
 
 #pragma endregion
@@ -452,7 +460,7 @@ struct laplace_generator<float> {
 
 #pragma endregion
 
-#pragma region laplace
+#pragma region logistic
 
 template <typename output_t>
 struct logistic_generator;
@@ -486,6 +494,45 @@ struct logistic_generator<float> {
   void generate(CURANDGenerator& gen, uint64_t count, float* p) const
   {
     gen.generate_logistic_32(count, p, mu_, beta_);
+  }
+};
+
+#pragma endregion
+
+#pragma region pareto
+
+template <typename output_t>
+struct pareto_generator;
+template <>
+struct pareto_generator<double> {
+  double alpha_;
+
+  pareto_generator(const std::vector<int64_t>& intparams,
+                   const std::vector<float>& floatparams,
+                   const std::vector<double>& doubleparams)
+    : alpha_(doubleparams[0])
+  {
+  }
+
+  void generate(CURANDGenerator& gen, uint64_t count, double* p) const
+  {
+    gen.generate_pareto_64(count, p, alpha_);
+  }
+};
+template <>
+struct pareto_generator<float> {
+  float alpha_;
+
+  pareto_generator(const std::vector<int64_t>& intparams,
+                   const std::vector<float>& floatparams,
+                   const std::vector<double>& doubleparams)
+    : alpha_(floatparams[0])
+  {
+  }
+
+  void generate(CURANDGenerator& gen, uint64_t count, float* p) const
+  {
+    gen.generate_pareto_32(count, p, alpha_);
   }
 };
 
@@ -730,6 +777,14 @@ struct BitGeneratorImplBody {
               break;
             case BitGeneratorDistribution::LOGISTIC_64:
               generate_distribution<double, logistic_generator<double>>::generate(
+                res, cugen, intparams, floatparams, doubleparams);
+              break;
+            case BitGeneratorDistribution::PARETO_32:
+              generate_distribution<float, pareto_generator<float>>::generate(
+                res, cugen, intparams, floatparams, doubleparams);
+              break;
+            case BitGeneratorDistribution::PARETO_64:
+              generate_distribution<double, pareto_generator<double>>::generate(
                 res, cugen, intparams, floatparams, doubleparams);
               break;
             default: {
