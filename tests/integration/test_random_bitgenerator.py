@@ -312,6 +312,28 @@ def test_power_float64(t):
     assert_distribution(a, theo_mean, theo_std)
 
 
+@pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
+def test_rayleigh_float32(t):
+    bitgen = t(seed=42)
+    gen = num.random.Generator(bitgen)
+    sigma = np.pi
+    a = gen.rayleigh(sigma, size=(1024 * 1024,), dtype=np.float32)
+    theo_mean = sigma * np.sqrt(np.pi / 2.0)
+    theo_std = sigma * np.sqrt((4.0 - np.pi) / 2.0)
+    assert_distribution(a, theo_mean, theo_std)
+
+
+@pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
+def test_rayleigh_float64(t):
+    bitgen = t(seed=42)
+    gen = num.random.Generator(bitgen)
+    sigma = np.pi
+    a = gen.rayleigh(sigma, size=(1024 * 1024,), dtype=np.float64)
+    theo_mean = sigma * np.sqrt(np.pi / 2.0)
+    theo_std = sigma * np.sqrt((4.0 - np.pi) / 2.0)
+    assert_distribution(a, theo_mean, theo_std)
+
+
 if __name__ == "__main__":
     import sys
 

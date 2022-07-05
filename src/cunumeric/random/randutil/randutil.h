@@ -120,3 +120,12 @@ extern "C" curandStatus_t CURANDAPI randutilGeneratePowerDoubleEx(randutilGenera
                                                                   double* outputPtr,
                                                                   size_t n,
                                                                   double alpha);
+
+extern "C" curandStatus_t CURANDAPI randutilGenerateRayleighEx(randutilGenerator_t generator,
+                                                               float* outputPtr,
+                                                               size_t n,
+                                                               float sigma);
+extern "C" curandStatus_t CURANDAPI randutilGenerateRayleighDoubleEx(randutilGenerator_t generator,
+                                                                     double* outputPtr,
+                                                                     size_t n,
+                                                                     double sigma);

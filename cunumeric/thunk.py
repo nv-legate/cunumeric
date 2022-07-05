@@ -254,6 +254,12 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
+    def bitgenerator_rayleigh(
+        self, bitgen, generatorType, seed, flags, sigma
+    ) -> None:
+        ...
+
+    @abstractmethod
     def random_uniform(self) -> None:
         ...
 

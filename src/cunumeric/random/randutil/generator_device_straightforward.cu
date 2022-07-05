@@ -50,3 +50,9 @@ template struct randutilimpl::
 template struct randutilimpl::dispatcher<randutilimpl::execlocation::DEVICE, power_t<float>, float>;
 template struct randutilimpl::
   dispatcher<randutilimpl::execlocation::DEVICE, power_t<double>, double>;
+
+#include "generator_rayleigh.inl"
+template struct randutilimpl::
+  dispatcher<randutilimpl::execlocation::DEVICE, rayleigh_t<float>, float>;
+template struct randutilimpl::
+  dispatcher<randutilimpl::execlocation::DEVICE, rayleigh_t<double>, double>;

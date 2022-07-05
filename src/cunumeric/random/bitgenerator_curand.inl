@@ -108,7 +108,7 @@ struct CURANDGenerator {
   {
     CHECK_CURAND(::randutilGenerateGumbelDoubleEx(gen_, out, count, mu, beta));
   }
-  void generate_gumbel_32(uint64_t count, float* out, double mu, double beta)
+  void generate_gumbel_32(uint64_t count, float* out, float mu, float beta)
   {
     CHECK_CURAND(::randutilGenerateGumbelEx(gen_, out, count, mu, beta));
   }
@@ -116,7 +116,7 @@ struct CURANDGenerator {
   {
     CHECK_CURAND(::randutilGenerateLaplaceDoubleEx(gen_, out, count, mu, beta));
   }
-  void generate_laplace_32(uint64_t count, float* out, double mu, double beta)
+  void generate_laplace_32(uint64_t count, float* out, float mu, float beta)
   {
     CHECK_CURAND(::randutilGenerateLaplaceEx(gen_, out, count, mu, beta));
   }
@@ -124,7 +124,7 @@ struct CURANDGenerator {
   {
     CHECK_CURAND(::randutilGenerateLogisticDoubleEx(gen_, out, count, mu, beta));
   }
-  void generate_logistic_32(uint64_t count, float* out, double mu, double beta)
+  void generate_logistic_32(uint64_t count, float* out, float mu, float beta)
   {
     CHECK_CURAND(::randutilGenerateLogisticEx(gen_, out, count, mu, beta));
   }
@@ -132,7 +132,7 @@ struct CURANDGenerator {
   {
     CHECK_CURAND(::randutilGenerateParetoDoubleEx(gen_, out, count, 1.0, alpha));
   }
-  void generate_pareto_32(uint64_t count, float* out, double alpha)
+  void generate_pareto_32(uint64_t count, float* out, float alpha)
   {
     CHECK_CURAND(::randutilGenerateParetoEx(gen_, out, count, 1.0f, alpha));
   }
@@ -140,9 +140,17 @@ struct CURANDGenerator {
   {
     CHECK_CURAND(::randutilGeneratePowerDoubleEx(gen_, out, count, alpha));
   }
-  void generate_power_32(uint64_t count, float* out, double alpha)
+  void generate_power_32(uint64_t count, float* out, float alpha)
   {
     CHECK_CURAND(::randutilGeneratePowerEx(gen_, out, count, alpha));
+  }
+  void generate_rayleigh_64(uint64_t count, double* out, double sigma)
+  {
+    CHECK_CURAND(::randutilGenerateRayleighDoubleEx(gen_, out, count, sigma));
+  }
+  void generate_rayleigh_32(uint64_t count, float* out, float sigma)
+  {
+    CHECK_CURAND(::randutilGenerateRayleighEx(gen_, out, count, sigma));
   }
 };
 
@@ -585,6 +593,45 @@ struct power_generator<float> {
 
 #pragma endregion
 
+#pragma region rayleigh
+
+template <typename output_t>
+struct rayleigh_generator;
+template <>
+struct rayleigh_generator<double> {
+  double sigma_;
+
+  rayleigh_generator(const std::vector<int64_t>& intparams,
+                     const std::vector<float>& floatparams,
+                     const std::vector<double>& doubleparams)
+    : sigma_(doubleparams[0])
+  {
+  }
+
+  void generate(CURANDGenerator& gen, uint64_t count, double* p) const
+  {
+    gen.generate_rayleigh_64(count, p, sigma_);
+  }
+};
+template <>
+struct rayleigh_generator<float> {
+  float sigma_;
+
+  rayleigh_generator(const std::vector<int64_t>& intparams,
+                     const std::vector<float>& floatparams,
+                     const std::vector<double>& doubleparams)
+    : sigma_(floatparams[0])
+  {
+  }
+
+  void generate(CURANDGenerator& gen, uint64_t count, float* p) const
+  {
+    gen.generate_rayleigh_32(count, p, sigma_);
+  }
+};
+
+#pragma endregion
+
 #pragma endregion
 
 template <typename output_t, typename generator_t>
@@ -840,6 +887,14 @@ struct BitGeneratorImplBody {
               break;
             case BitGeneratorDistribution::POWER_64:
               generate_distribution<double, power_generator<double>>::generate(
+                res, cugen, intparams, floatparams, doubleparams);
+              break;
+            case BitGeneratorDistribution::RAYLEIGH_32:
+              generate_distribution<float, rayleigh_generator<float>>::generate(
+                res, cugen, intparams, floatparams, doubleparams);
+              break;
+            case BitGeneratorDistribution::RAYLEIGH_64:
+              generate_distribution<double, rayleigh_generator<double>>::generate(
                 res, cugen, intparams, floatparams, doubleparams);
               break;
             default: {

@@ -799,6 +799,20 @@ class EagerArray(NumPyThunk):
                 a = np.random.power(alpha, size=self.array.shape)
                 self.array[:] = a
 
+    def bitgenerator_rayleigh(
+        self, handle, generatorType, seed, flags, sigma
+    ) -> None:
+        if self.deferred is not None:
+            self.deferred.bitgenerator_rayleigh(
+                handle, generatorType, seed, flags, sigma
+            )
+        else:
+            if self.array.size == 1:
+                self.array.fill(np.random.rayleigh(sigma))
+            else:
+                a = np.random.rayleigh(sigma, size=self.array.shape)
+                self.array[:] = a
+
     def partition(
         self,
         rhs,

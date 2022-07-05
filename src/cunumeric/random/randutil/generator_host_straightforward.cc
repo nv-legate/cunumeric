@@ -173,3 +173,31 @@ extern "C" curandStatus_t CURANDAPI randutilGeneratePowerDoubleEx(randutilGenera
 }
 
 #pragma endregion
+
+#pragma region rayleigh
+
+#include "generator_rayleigh.inl"
+
+extern "C" curandStatus_t CURANDAPI randutilGenerateRayleighEx(randutilGenerator_t generator,
+                                                               float* outputPtr,
+                                                               size_t n,
+                                                               float sigma)
+{
+  randutilimpl::basegenerator* gen = (randutilimpl::basegenerator*)generator;
+  rayleigh_t<float> func;
+  func.sigma = sigma;
+  return randutilimpl::dispatch<decltype(func), float>(gen, func, n, outputPtr);
+}
+
+extern "C" curandStatus_t CURANDAPI randutilGenerateRayleighDoubleEx(randutilGenerator_t generator,
+                                                                     double* outputPtr,
+                                                                     size_t n,
+                                                                     double sigma)
+{
+  randutilimpl::basegenerator* gen = (randutilimpl::basegenerator*)generator;
+  rayleigh_t<double> func;
+  func.sigma = sigma;
+  return randutilimpl::dispatch<decltype(func), double>(gen, func, n, outputPtr);
+}
+
+#pragma endregion

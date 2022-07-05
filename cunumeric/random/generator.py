@@ -70,6 +70,11 @@ class Generator:
     def power(self, a, size=None, dtype=np.float64):
         return self.bit_generator.power(alpha=a, shape=size, dtype=dtype)
 
+    def rayleigh(self, scale, size=None, dtype=np.float64):
+        return self.bit_generator.rayleigh(
+            sigma=scale, shape=size, dtype=dtype
+        )
+
 
 def default_rng(seed=None):
     if seed is None:

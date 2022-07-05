@@ -478,6 +478,8 @@ class BitGeneratorDistribution(IntEnum):
     PARETO_64 = _cunumeric.CUNUMERIC_BITGENDIST_PARETO_64
     POWER_32 = _cunumeric.CUNUMERIC_BITGENDIST_POWER_32
     POWER_64 = _cunumeric.CUNUMERIC_BITGENDIST_POWER_64
+    RAYLEIGH_32 = _cunumeric.CUNUMERIC_BITGENDIST_RAYLEIGH_32
+    RAYLEIGH_64 = _cunumeric.CUNUMERIC_BITGENDIST_RAYLEIGH_64
 
 
 # Match these to fftType in fft_util.h
