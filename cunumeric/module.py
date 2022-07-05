@@ -2500,8 +2500,8 @@ def take(
 
 
 def _fill_fancy_index_for_along_axis_routines(
-    a_shape: tuple, axis: int, indices: ndarray
-) -> tuple:
+    a_shape: NdShape, axis: int, indices: ndarray
+) -> tuple[ndarray, ...]:
 
     # the logic below is base on the cupy implementation of
     # the *_along_axis routines
@@ -2558,10 +2558,10 @@ def take_along_axis(a: ndarray, indices: ndarray, axis: int) -> ndarray:
         raise IndexError("`indices` must be an integer array")
 
     if axis is None:
-        a = a.ravel()
-        axis = 0
         if indices.ndim != 1:
             raise ValueError("indices must be 1D if axis=None")
+        a = a.ravel()
+        axis = 0
     else:
         axis = normalize_axis_index(axis, a.ndim)
 
@@ -2617,10 +2617,10 @@ def put_along_axis(
         raise IndexError("`indices` must be an integer array")
 
     if axis is None:
-        a = a.ravel()
-        axis = 0
         if indices.ndim != 1:
             raise ValueError("indices must be 1D if axis=None")
+        a = a.ravel()
+        axis = 0
     else:
         axis = normalize_axis_index(axis, a.ndim)
 
@@ -2628,9 +2628,8 @@ def put_along_axis(
         raise ValueError(
             "`indices` and `a` must have the same number of dimensions"
         )
-    a[
-        _fill_fancy_index_for_along_axis_routines(a.shape, axis, indices)
-    ] = values
+    ind = _fill_fancy_index_for_along_axis_routines(a.shape, axis, indices)
+    a[ind] = values
 
 
 @add_boilerplate("a")
