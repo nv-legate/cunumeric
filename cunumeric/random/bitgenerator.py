@@ -176,6 +176,17 @@ class BitGenerator:
         )
         return res
 
+    def power(self, alpha, shape=None, dtype=np.float64):
+        if shape is None:
+            shape = (1,)
+        if not isinstance(shape, tuple):
+            shape = (shape,)
+        res = ndarray(shape, dtype=np.dtype(dtype))
+        res._thunk.bitgenerator_power(
+            self.handle, self.generatorType, self.seed, self.flags, alpha
+        )
+        return res
+
 
 class XORWOW(BitGenerator):
     def __init__(self, seed=None, forceBuild=False):

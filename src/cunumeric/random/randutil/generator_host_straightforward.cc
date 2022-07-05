@@ -145,3 +145,31 @@ extern "C" curandStatus_t CURANDAPI randutilGenerateParetoDoubleEx(
 }
 
 #pragma endregion
+
+#pragma region power
+
+#include "generator_power.inl"
+
+extern "C" curandStatus_t CURANDAPI randutilGeneratePowerEx(randutilGenerator_t generator,
+                                                            float* outputPtr,
+                                                            size_t n,
+                                                            float alpha)
+{
+  randutilimpl::basegenerator* gen = (randutilimpl::basegenerator*)generator;
+  power_t<float> func;
+  func.invalpha = 1.0f / alpha;
+  return randutilimpl::dispatch<decltype(func), float>(gen, func, n, outputPtr);
+}
+
+extern "C" curandStatus_t CURANDAPI randutilGeneratePowerDoubleEx(randutilGenerator_t generator,
+                                                                  double* outputPtr,
+                                                                  size_t n,
+                                                                  double alpha)
+{
+  randutilimpl::basegenerator* gen = (randutilimpl::basegenerator*)generator;
+  power_t<double> func;
+  func.invalpha = 1.0 / alpha;
+  return randutilimpl::dispatch<decltype(func), double>(gen, func, n, outputPtr);
+}
+
+#pragma endregion

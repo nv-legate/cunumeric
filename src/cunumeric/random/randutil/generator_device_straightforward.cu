@@ -45,3 +45,8 @@ template struct randutilimpl::
   dispatcher<randutilimpl::execlocation::DEVICE, pareto_t<float>, float>;
 template struct randutilimpl::
   dispatcher<randutilimpl::execlocation::DEVICE, pareto_t<double>, double>;
+
+#include "generator_power.inl"
+template struct randutilimpl::dispatcher<randutilimpl::execlocation::DEVICE, power_t<float>, float>;
+template struct randutilimpl::
+  dispatcher<randutilimpl::execlocation::DEVICE, power_t<double>, double>;

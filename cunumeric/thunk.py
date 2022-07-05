@@ -248,6 +248,12 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
+    def bitgenerator_power(
+        self, bitgen, generatorType, seed, flags, alpha
+    ) -> None:
+        ...
+
+    @abstractmethod
     def random_uniform(self) -> None:
         ...
 

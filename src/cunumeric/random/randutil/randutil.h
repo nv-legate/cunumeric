@@ -111,3 +111,12 @@ extern "C" curandStatus_t CURANDAPI randutilGenerateParetoEx(
   randutilGenerator_t generator, float* outputPtr, size_t n, float xm, float alpha);
 extern "C" curandStatus_t CURANDAPI randutilGenerateParetoDoubleEx(
   randutilGenerator_t generator, double* outputPtr, size_t n, double xm, double alpha);
+
+extern "C" curandStatus_t CURANDAPI randutilGeneratePowerEx(randutilGenerator_t generator,
+                                                            float* outputPtr,
+                                                            size_t n,
+                                                            float alpha);
+extern "C" curandStatus_t CURANDAPI randutilGeneratePowerDoubleEx(randutilGenerator_t generator,
+                                                                  double* outputPtr,
+                                                                  size_t n,
+                                                                  double alpha);

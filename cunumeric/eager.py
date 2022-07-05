@@ -785,6 +785,20 @@ class EagerArray(NumPyThunk):
                 a = np.random.pareto(alpha, size=self.array.shape)
                 self.array[:] = a
 
+    def bitgenerator_power(
+        self, handle, generatorType, seed, flags, alpha
+    ) -> None:
+        if self.deferred is not None:
+            self.deferred.bitgenerator_power(
+                handle, generatorType, seed, flags, alpha
+            )
+        else:
+            if self.array.size == 1:
+                self.array.fill(np.random.power(alpha))
+            else:
+                a = np.random.power(alpha, size=self.array.shape)
+                self.array[:] = a
+
     def partition(
         self,
         rhs,

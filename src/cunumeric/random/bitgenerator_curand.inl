@@ -136,6 +136,14 @@ struct CURANDGenerator {
   {
     CHECK_CURAND(::randutilGenerateParetoEx(gen_, out, count, 1.0f, alpha));
   }
+  void generate_power_64(uint64_t count, double* out, double alpha)
+  {
+    CHECK_CURAND(::randutilGeneratePowerDoubleEx(gen_, out, count, alpha));
+  }
+  void generate_power_32(uint64_t count, float* out, double alpha)
+  {
+    CHECK_CURAND(::randutilGeneratePowerEx(gen_, out, count, alpha));
+  }
 };
 
 #pragma endregion
@@ -538,6 +546,45 @@ struct pareto_generator<float> {
 
 #pragma endregion
 
+#pragma region power
+
+template <typename output_t>
+struct power_generator;
+template <>
+struct power_generator<double> {
+  double alpha_;
+
+  power_generator(const std::vector<int64_t>& intparams,
+                  const std::vector<float>& floatparams,
+                  const std::vector<double>& doubleparams)
+    : alpha_(doubleparams[0])
+  {
+  }
+
+  void generate(CURANDGenerator& gen, uint64_t count, double* p) const
+  {
+    gen.generate_power_64(count, p, alpha_);
+  }
+};
+template <>
+struct power_generator<float> {
+  float alpha_;
+
+  power_generator(const std::vector<int64_t>& intparams,
+                  const std::vector<float>& floatparams,
+                  const std::vector<double>& doubleparams)
+    : alpha_(floatparams[0])
+  {
+  }
+
+  void generate(CURANDGenerator& gen, uint64_t count, float* p) const
+  {
+    gen.generate_power_32(count, p, alpha_);
+  }
+};
+
+#pragma endregion
+
 #pragma endregion
 
 template <typename output_t, typename generator_t>
@@ -785,6 +832,14 @@ struct BitGeneratorImplBody {
               break;
             case BitGeneratorDistribution::PARETO_64:
               generate_distribution<double, pareto_generator<double>>::generate(
+                res, cugen, intparams, floatparams, doubleparams);
+              break;
+            case BitGeneratorDistribution::POWER_32:
+              generate_distribution<float, power_generator<float>>::generate(
+                res, cugen, intparams, floatparams, doubleparams);
+              break;
+            case BitGeneratorDistribution::POWER_64:
+              generate_distribution<double, power_generator<double>>::generate(
                 res, cugen, intparams, floatparams, doubleparams);
               break;
             default: {

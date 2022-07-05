@@ -284,6 +284,34 @@ def test_pareto_float64(t):
     assert_distribution(a, theo_mean, theo_std)
 
 
+@pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
+def test_power_float32(t):
+    bitgen = t(seed=42)
+    gen = num.random.Generator(bitgen)
+    alpha = 3.0
+    a = gen.power(alpha, size=(1024 * 1024,), dtype=np.float32)
+    # power function distribution is Beta distribution with
+    # alpha > 0 and beta = 1
+    beta = 1.0
+    theo_mean = alpha / (alpha + beta)
+    theo_std = np.sqrt((alpha * beta) / (alpha + beta + 1.0)) / (alpha + beta)
+    assert_distribution(a, theo_mean, theo_std)
+
+
+@pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
+def test_power_float64(t):
+    bitgen = t(seed=42)
+    gen = num.random.Generator(bitgen)
+    alpha = 3.0
+    a = gen.power(alpha, size=(1024 * 1024,), dtype=np.float64)
+    # power function distribution is Beta distribution with
+    # alpha > 0 and beta = 1
+    beta = 1.0
+    theo_mean = alpha / (alpha + beta)
+    theo_std = np.sqrt((alpha * beta) / (alpha + beta + 1.0)) / (alpha + beta)
+    assert_distribution(a, theo_mean, theo_std)
+
+
 if __name__ == "__main__":
     import sys
 
