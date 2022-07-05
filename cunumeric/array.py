@@ -2122,21 +2122,25 @@ class ndarray:
         # We don't care about dimension order in cuNumeric
         return self.__copy__()
 
+    @add_boilerplate()
     def cumsum(self, axis=None, dtype=None, out=None) -> ndarray:
         return self._perform_scan(
             ScanCode.SUM, self, axis=axis, dtype=dtype, out=out, nan0=False
         )
 
+    @add_boilerplate()
     def cumprod(self, axis=None, dtype=None, out=None) -> ndarray:
         return self._perform_scan(
             ScanCode.PROD, self, axis=axis, dtype=dtype, out=out, nan0=False
         )
 
+    @add_boilerplate()
     def nancumsum(self, axis=None, dtype=None, out=None) -> ndarray:
         return self._perform_scan(
             ScanCode.SUM, self, axis=axis, dtype=dtype, out=out, nan0=True
         )
 
+    @add_boilerplate()
     def nancumprod(self, axis=None, dtype=None, out=None) -> ndarray:
         return self._perform_scan(
             ScanCode.PROD, self, axis=axis, dtype=dtype, out=out, nan0=True
@@ -3793,13 +3797,12 @@ class ndarray:
                         "not supported when axis provided."
                     )
             else:
-                if out.ndim is not 1 or out.size != src.size:
+                if out.ndim != 1 or out.size != src.size:
                     raise RuntimeError(
                         "Output must be 1D and of similar size to"
                         "input when axis not provided"
                     )
             if dtype == src.dtype:
-                out = convert_to_cunumeric_ndarray(out)
                 src_arr = src
             else:
                 # convert input to temporary for type conversion

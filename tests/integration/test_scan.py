@@ -36,20 +36,12 @@ def _gen_array(n0, shape, dt, axis, outtype):
         A = (99 * np.random.random(shape) + 1).astype(dt)
     if n0 == "first_half":
         # second element along all axes is a NAN
-        if len(shape) == 1:
-            A[1] = np.nan
-        elif len(shape) == 2:
-            A[1, 1] = np.nan
-        elif len(shape) == 3:
-            A[1, 1, 1] = np.nan
+        A[(1,) * len(shape)] = np.nan
     elif n0 == "second_half":
         # second from last element along all axes is a NAN
-        if len(shape) == 1:
-            A[shape[0] - 2] = np.nan
-        elif len(shape) == 2:
-            A[shape[0] - 2, shape[1] - 2] = np.nan
-        elif len(shape) == 3:
-            A[shape[0] - 2, shape[1] - 2, shape[2] - 2] = np.nan
+        A[
+            tuple(map(lambda i, j: i - j, A.shape, (2,) * len(A.shape)))
+        ] = np.nan
     if outtype is None:
         B = None
         C = None
@@ -73,20 +65,9 @@ def _run_tests(op, n0, shape, dt, axis, out0, outtype):
     else:
         str_axis = str(axis)
     print(
-        "Running test: "
-        + op
-        + ", shape: "
-        + str(shape)
-        + ", nan location: "
-        + str_n0
-        + ", axis: "
-        + str_axis
-        + ", in type: "
-        + str(dt)
-        + ", out type: "
-        + str(outtype)
-        + ", output array not provided: "
-        + str(out0)
+        f"Running test: {op}, shape: {shape}, nan location: {str_n0}"
+        f", axis: {str_axis}, in type: {dt}, out type: {outtype}"
+        f", output array not provided: {out0}"
     )
     if out0 is True:
         A, B, C = _gen_array(n0, shape, dt, axis, None)
@@ -122,9 +103,9 @@ def _run_tests(op, n0, shape, dt, axis, out0, outtype):
         print("PASS!")
     else:
         print("FAIL!")
-        print("INPUT    : " + str(A))
-        print("CUNUMERIC: " + str(B))
-        print("NUMPY    : " + str(C))
+        print(f"INPUT    : {A}")
+        print(f"CUNUMERIC: {B}")
+        print(f"NUMPY    : {C}")
         assert False
 
 

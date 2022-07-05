@@ -16,110 +16,76 @@
 #
 
 import argparse
-import datetime
 
 import numpy as np
 from benchmark import run_benchmark
+from legate.timing import time
 
 import cunumeric as num
 
 
 def initialize(shape, dt, axis):
     if dt == "int":
-        A = np.random.randint(1000, size=shape).astype(np.int32)
+        A = num.random.randint(1000, size=shape, dtype=np.int32)
         if axis is None:
-            B = np.zeros(shape=A.size, dtype=np.int32)
+            B = num.zeros(shape=A.size, dtype=np.int32)
         else:
-            B = np.zeros(shape=shape, dtype=np.int32)
+            B = num.zeros(shape=shape, dtype=np.int32)
     elif dt == "float":
-        A = np.random.random(shape).astype(np.float32)
+        A = num.random.random(shape).astype(np.float32)
         # insert NAN at second element
-        if len(shape) == 1:
-            A[1] = np.nan
-        elif len(shape) == 2:
-            A[1, 1] = np.nan
-        elif len(shape) == 3:
-            A[1, 1, 1] = np.nan
-        elif len(shape) == 4:
-            A[1, 1, 1, 1] = np.nan
+        A[(1,) * len(shape)] = np.nan
 
         if axis is None:
-            B = np.zeros(shape=A.size, dtype=np.float32)
+            B = num.zeros(shape=A.size, dtype=np.float32)
         else:
-            B = np.zeros(shape=shape, dtype=np.float32)
+            B = num.zeros(shape=shape, dtype=np.float32)
     else:
         A = (
-            np.random.random(shape).astype(np.float32)
-            + np.random.random(shape).astype(np.float32) * 1j
+            num.random.random(shape).astype(np.float32)
+            + num.random.random(shape).astype(np.float32) * 1j
         )
-        if len(shape) == 1:
-            A[1] = np.nan
-        elif len(shape) == 2:
-            A[1, 1] = np.nan
-        elif len(shape) == 3:
-            A[1, 1, 1] = np.nan
-        elif len(shape) == 4:
-            A[1, 1, 1, 1] = np.nan
+        A[(1,) * len(shape)] = np.nan
 
         if axis is None:
-            B = np.zeros(shape=A.size, dtype=np.complex64)
+            B = num.zeros(shape=A.size, dtype=np.complex64)
         else:
-            B = np.zeros(shape=shape, dtype=np.complex64)
+            B = num.zeros(shape=shape, dtype=np.complex64)
 
     return A, B
 
 
 def check_scan(OP, A, B, ax):
     C = np.zeros(shape=B.shape, dtype=B.dtype)
-    if OP == "cumsum":
-        np.cumsum(A, out=C, axis=ax)
-    elif OP == "cumprod":
-        np.cumprod(A, out=C, axis=ax)
-    elif OP == "nancumsum":
-        np.nancumsum(A, out=C, axis=ax)
-    elif OP == "nancumprod":
-        np.nancumprod(A, out=C, axis=ax)
+    getattr(np, OP)(A, out=C, axis=ax)
 
     print("Checking result...")
     if np.allclose(B, C, equal_nan=True):
         print("PASS!")
     else:
         print("FAIL!")
-        print("INPUT    : " + str(A))
-        print("CUNUMERIC: " + str(B))
-        print("NUMPY    : " + str(C))
+        print(f"INPUT    : {A}")
+        print(f"CUNUMERIC: {B}")
+        print(f"NUMPY    : {C}")
         assert False
 
 
 def run_scan(OP, shape, dt, ax, check):
-    print("Problem Size:    shape=" + str(shape))
+    print(f"Problem Size:    shape={shape}")
 
-    # axis handling
-    if ax is not None:
-        assert ax < len(shape) and ax >= 0
-
-    print("Problem Type:    OP=" + OP)
-    print("Axis:            axis=" + str(ax))
-    print("Data type:       dtype=" + dt + "32")
+    print(f"Problem Type:    OP={OP}")
+    print(f"Axis:            axis={ax}")
+    print(f"Data type:       dtype={dt}32")
     A, B = initialize(shape=shape, dt=dt, axis=ax)
-    start = datetime.datetime.now()
+    start = time()
 
     # op handling
-    if OP == "cumsum":
-        num.cumsum(A, out=B, axis=ax)
-    elif OP == "cumprod":
-        num.cumprod(A, out=B, axis=ax)
-    elif OP == "nancumsum":
-        num.nancumsum(A, out=B, axis=ax)
-    elif OP == "nancumprod":
-        num.nancumprod(A, out=B, axis=ax)
-    else:
-        assert False
+    getattr(num, OP)(A, out=B, axis=ax)
 
-    stop = datetime.datetime.now()
+    stop = time()
     delta = stop - start
-    total = delta.total_seconds() * 1000.0
-    print("Elapsed Time:   " + str(total) + "ms")
+    total = delta / 1000.0
+    print(f"Elapsed Time:  {total}ms")
     # error checking
     if check:
         check_scan(OP, A, B, ax)

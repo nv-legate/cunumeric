@@ -836,19 +836,19 @@ class EagerArray(NumPyThunk):
         self.check_eager_args(rhs)
         if self.deferred is not None:
             self.deferred.scan(op, rhs, axis, dtype, nan0)
-        else:
-            if op is ScanCode.SUM:
-                if nan0 is False:
-                    np.cumsum(rhs.array, axis, dtype, self.array)
-                else:
-                    np.nancumsum(rhs.array, axis, dtype, self.array)
-            elif op is ScanCode.PROD:
-                if nan0 is False:
-                    np.cumprod(rhs.array, axis, dtype, self.array)
-                else:
-                    np.nancumprod(rhs.array, axis, dtype, self.array)
+            return
+        if op is ScanCode.SUM:
+            if nan0 is False:
+                np.cumsum(rhs.array, axis, dtype, self.array)
             else:
-                raise RuntimeError(f"unsupported scan op {op}")
+                np.nancumsum(rhs.array, axis, dtype, self.array)
+        elif op is ScanCode.PROD:
+            if nan0 is False:
+                np.cumprod(rhs.array, axis, dtype, self.array)
+            else:
+                np.nancumprod(rhs.array, axis, dtype, self.array)
+        else:
+            raise RuntimeError(f"unsupported scan op {op}")
 
     def unique(self):
         if self.deferred is not None:
