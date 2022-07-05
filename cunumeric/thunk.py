@@ -236,6 +236,12 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
+    def bitgenerator_logistic(
+        self, bitgen, generatorType, seed, flags, mu, beta
+    ) -> None:
+        ...
+
+    @abstractmethod
     def random_uniform(self) -> None:
         ...
 

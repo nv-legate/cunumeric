@@ -33,3 +33,9 @@ template struct randutilimpl::
   dispatcher<randutilimpl::execlocation::DEVICE, laplace_t<float>, float>;
 template struct randutilimpl::
   dispatcher<randutilimpl::execlocation::DEVICE, laplace_t<double>, double>;
+
+#include "generator_logistic.inl"
+template struct randutilimpl::
+  dispatcher<randutilimpl::execlocation::DEVICE, logistic_t<float>, float>;
+template struct randutilimpl::
+  dispatcher<randutilimpl::execlocation::DEVICE, logistic_t<double>, double>;

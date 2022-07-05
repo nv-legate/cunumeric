@@ -242,6 +242,8 @@ enum CuNumericBitGeneratorDistribution {
   CUNUMERIC_BITGENDIST_GUMBEL_64      = 13,
   CUNUMERIC_BITGENDIST_LAPLACE_32     = 14,
   CUNUMERIC_BITGENDIST_LAPLACE_64     = 15,
+  CUNUMERIC_BITGENDIST_LOGISTIC_32    = 16,
+  CUNUMERIC_BITGENDIST_LOGISTIC_64    = 17,
 };
 
 // These fft types match CuNumericFFTType in config.py and cufftType

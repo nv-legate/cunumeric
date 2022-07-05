@@ -93,3 +93,29 @@ extern "C" curandStatus_t CURANDAPI randutilGenerateLaplaceDoubleEx(
 }
 
 #pragma endregion
+
+#pragma region laplace
+
+#include "generator_logistic.inl"
+
+extern "C" curandStatus_t CURANDAPI randutilGenerateLogisticEx(
+  randutilGenerator_t generator, float* outputPtr, size_t n, float mu, float beta)
+{
+  randutilimpl::basegenerator* gen = (randutilimpl::basegenerator*)generator;
+  logistic_t<float> func;
+  func.mu   = mu;
+  func.beta = beta;
+  return randutilimpl::dispatch<decltype(func), float>(gen, func, n, outputPtr);
+}
+
+extern "C" curandStatus_t CURANDAPI randutilGenerateLogisticDoubleEx(
+  randutilGenerator_t generator, double* outputPtr, size_t n, double mu, double beta)
+{
+  randutilimpl::basegenerator* gen = (randutilimpl::basegenerator*)generator;
+  logistic_t<double> func;
+  func.mu   = mu;
+  func.beta = beta;
+  return randutilimpl::dispatch<decltype(func), double>(gen, func, n, outputPtr);
+}
+
+#pragma endregion

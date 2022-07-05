@@ -757,6 +757,20 @@ class EagerArray(NumPyThunk):
                 a = np.random.laplace(mu, beta, size=self.array.shape)
                 self.array[:] = a
 
+    def bitgenerator_logistic(
+        self, handle, generatorType, seed, flags, mu, beta
+    ) -> None:
+        if self.deferred is not None:
+            self.deferred.bitgenerator_logistic(
+                handle, generatorType, seed, flags, mu, beta
+            )
+        else:
+            if self.array.size == 1:
+                self.array.fill(np.random.logistic(mu, beta))
+            else:
+                a = np.random.logistic(mu, beta, size=self.array.shape)
+                self.array[:] = a
+
     def partition(
         self,
         rhs,

@@ -154,6 +154,17 @@ class BitGenerator:
         )
         return res
 
+    def logistic(self, mu=0.0, beta=1.0, shape=None, dtype=np.float64):
+        if shape is None:
+            shape = (1,)
+        if not isinstance(shape, tuple):
+            shape = (shape,)
+        res = ndarray(shape, dtype=np.dtype(dtype))
+        res._thunk.bitgenerator_logistic(
+            self.handle, self.generatorType, self.seed, self.flags, mu, beta
+        )
+        return res
+
 
 class XORWOW(BitGenerator):
     def __init__(self, seed=None, forceBuild=False):
