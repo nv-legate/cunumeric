@@ -67,10 +67,10 @@ def test_integers_int32(t):
 
 
 def assert_distribution(a, theo_mean, theo_stdev, tolerance=1e-2):
-    if False:
+    if True:
         aa = np.array(a)
         average = np.mean(aa)
-        stdev = np.std(aa)  # -> does not work
+        stdev = np.std(aa)
     else:  # keeping this path for further investigation
         average = num.mean(a)
         stdev = num.sqrt(
