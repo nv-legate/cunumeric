@@ -152,6 +152,14 @@ struct CURANDGenerator {
   {
     CHECK_CURAND(::randutilGenerateRayleighEx(gen_, out, count, sigma));
   }
+  void generate_cauchy_64(uint64_t count, double* out, double x0, double gamma)
+  {
+    CHECK_CURAND(::randutilGenerateCauchyDoubleEx(gen_, out, count, x0, gamma));
+  }
+  void generate_cauchy_32(uint64_t count, float* out, float x0, float gamma)
+  {
+    CHECK_CURAND(::randutilGenerateCauchyEx(gen_, out, count, x0, gamma));
+  }
 };
 
 #pragma endregion
@@ -632,6 +640,45 @@ struct rayleigh_generator<float> {
 
 #pragma endregion
 
+#pragma region cauchy
+
+template <typename output_t>
+struct cauchy_generator;
+template <>
+struct cauchy_generator<double> {
+  double x0_, gamma_;
+
+  cauchy_generator(const std::vector<int64_t>& intparams,
+                   const std::vector<float>& floatparams,
+                   const std::vector<double>& doubleparams)
+    : x0_(doubleparams[0]), gamma_(doubleparams[1])
+  {
+  }
+
+  void generate(CURANDGenerator& gen, uint64_t count, double* p) const
+  {
+    gen.generate_cauchy_64(count, p, x0_, gamma_);
+  }
+};
+template <>
+struct cauchy_generator<float> {
+  float x0_, gamma_;
+
+  cauchy_generator(const std::vector<int64_t>& intparams,
+                   const std::vector<float>& floatparams,
+                   const std::vector<double>& doubleparams)
+    : x0_(floatparams[0]), gamma_(floatparams[1])
+  {
+  }
+
+  void generate(CURANDGenerator& gen, uint64_t count, float* p) const
+  {
+    gen.generate_cauchy_32(count, p, x0_, gamma_);
+  }
+};
+
+#pragma endregion
+
 #pragma endregion
 
 template <typename output_t, typename generator_t>
@@ -895,6 +942,14 @@ struct BitGeneratorImplBody {
               break;
             case BitGeneratorDistribution::RAYLEIGH_64:
               generate_distribution<double, rayleigh_generator<double>>::generate(
+                res, cugen, intparams, floatparams, doubleparams);
+              break;
+            case BitGeneratorDistribution::CAUCHY_32:
+              generate_distribution<float, cauchy_generator<float>>::generate(
+                res, cugen, intparams, floatparams, doubleparams);
+              break;
+            case BitGeneratorDistribution::CAUCHY_64:
+              generate_distribution<double, cauchy_generator<double>>::generate(
                 res, cugen, intparams, floatparams, doubleparams);
               break;
             default: {

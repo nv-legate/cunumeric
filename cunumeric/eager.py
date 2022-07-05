@@ -813,6 +813,20 @@ class EagerArray(NumPyThunk):
                 a = np.random.rayleigh(sigma, size=self.array.shape)
                 self.array[:] = a
 
+    def bitgenerator_cauchy(
+        self, handle, generatorType, seed, flags, x0, gamma
+    ) -> None:
+        if self.deferred is not None:
+            self.deferred.bitgenerator_cauchy(
+                handle, generatorType, seed, flags, x0, gamma
+            )
+        else:
+            if self.array.size == 1:
+                self.array.fill(x0 + gamma * np.random.standard_cauchy())
+            else:
+                a = np.random.standard_cauchy(size=self.array.shape)
+                self.array[:] = x0 + gamma * a
+
     def partition(
         self,
         rhs,

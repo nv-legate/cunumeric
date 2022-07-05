@@ -56,3 +56,9 @@ template struct randutilimpl::
   dispatcher<randutilimpl::execlocation::DEVICE, rayleigh_t<float>, float>;
 template struct randutilimpl::
   dispatcher<randutilimpl::execlocation::DEVICE, rayleigh_t<double>, double>;
+
+#include "generator_cauchy.inl"
+template struct randutilimpl::
+  dispatcher<randutilimpl::execlocation::DEVICE, cauchy_t<float>, float>;
+template struct randutilimpl::
+  dispatcher<randutilimpl::execlocation::DEVICE, cauchy_t<double>, double>;

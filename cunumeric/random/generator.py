@@ -75,6 +75,14 @@ class Generator:
             sigma=scale, shape=size, dtype=dtype
         )
 
+    def cauchy(self, x0, gamma, size=None, dtype=np.float64):
+        return self.bit_generator.cauchy(
+            x0=x0, gamma=gamma, shape=size, dtype=dtype
+        )
+
+    def standard_cauchy(self, scale, size=None, dtype=np.float64):
+        return self.cauchy(0.0, 1.0, size, dtype)
+
 
 def default_rng(seed=None):
     if seed is None:

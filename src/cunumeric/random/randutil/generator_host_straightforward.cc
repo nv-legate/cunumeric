@@ -201,3 +201,29 @@ extern "C" curandStatus_t CURANDAPI randutilGenerateRayleighDoubleEx(randutilGen
 }
 
 #pragma endregion
+
+#pragma region cauchy
+
+#include "generator_cauchy.inl"
+
+extern "C" curandStatus_t CURANDAPI randutilGenerateCauchyEx(
+  randutilGenerator_t generator, float* outputPtr, size_t n, float x0, float gamma)
+{
+  randutilimpl::basegenerator* gen = (randutilimpl::basegenerator*)generator;
+  cauchy_t<float> func;
+  func.x0    = x0;
+  func.gamma = gamma;
+  return randutilimpl::dispatch<decltype(func), float>(gen, func, n, outputPtr);
+}
+
+extern "C" curandStatus_t CURANDAPI randutilGenerateCauchyDoubleEx(
+  randutilGenerator_t generator, double* outputPtr, size_t n, double x0, double gamma)
+{
+  randutilimpl::basegenerator* gen = (randutilimpl::basegenerator*)generator;
+  cauchy_t<double> func;
+  func.x0    = x0;
+  func.gamma = gamma;
+  return randutilimpl::dispatch<decltype(func), double>(gen, func, n, outputPtr);
+}
+
+#pragma endregion

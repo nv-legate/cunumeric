@@ -260,6 +260,12 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
+    def bitgenerator_cauchy(
+        self, bitgen, generatorType, seed, flags, x0, gamma
+    ) -> None:
+        ...
+
+    @abstractmethod
     def random_uniform(self) -> None:
         ...
 

@@ -2000,6 +2000,32 @@ class DeferredArray(NumPyThunk):
             doubleparams,
         )
 
+    def bitgenerator_cauchy(
+        self, handle, generatorType, seed, flags, x0, gamma
+    ) -> None:
+        if self.dtype == np.float32:
+            distribution = BitGeneratorDistribution.CAUCHY_32
+            floatparams = (float(x0), float(gamma))
+            doubleparams = ()
+        elif self.dtype == np.float64:
+            distribution = BitGeneratorDistribution.CAUCHY_64
+            floatparams = ()
+            doubleparams = (float(x0), float(gamma))
+        else:
+            raise NotImplementedError(
+                "type for random.exponential has to be float64 or float32"
+            )
+        self.bitgenerator_distribution(
+            handle,
+            generatorType,
+            seed,
+            flags,
+            distribution,
+            (),
+            floatparams,
+            doubleparams,
+        )
+
     def random(self, gen_code, args=[]) -> None:
         task = self.context.create_task(CuNumericOpCode.RAND)
 
