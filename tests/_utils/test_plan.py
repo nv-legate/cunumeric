@@ -77,6 +77,16 @@ class TestPlan:
         return banner("Test Suite Configuration", details=details)
 
     def outro(self, total: int, passed: int) -> str:
-        """An informative banner to display at test run end."""
+        """An informative banner to display at test run end.
+
+        Parameters
+        ----------
+        total: int
+            Number of total tests that ran in all stages
+
+        passed: int
+            Number of tests that passed in all stages
+
+        """
         result = summary("All tests", total, passed)
         return f"\n{rule()}\n{result}\n"

@@ -20,6 +20,7 @@ from __future__ import annotations
 from typing import Union
 from typing_extensions import Literal, TypeAlias
 
+#: Define the available feature types for tests
 FeatureType: TypeAlias = Union[
     Literal["cpus"], Literal["cuda"], Literal["eager"], Literal["openmp"]
 ]
@@ -33,9 +34,6 @@ DEFAULT_GPUS_PER_NODE = 1
 # Value to use if --fbmem is not specified
 DEFAULT_GPU_MEMORY_BUDGET = 6 << 30
 
-# TODO: (bryevdv) configurable?
-DEFAULT_GPU_PARALLELISM = 16
-
 #: Value to use if --omps is not specified.
 DEFAULT_OMPS_PER_NODE = 1
 
@@ -45,7 +43,6 @@ DEFAULT_OMPTHREADS = 4
 #: Default values to apply to normalize the testing environment.
 DEFAULT_PROCESS_ENV = {
     "LEGATE_TEST": "1",
-    "REALM_SYNTHETIC_CORE_MAP": "",
 }
 
 #: Width for terminal ouput headers and footers.
