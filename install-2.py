@@ -337,19 +337,9 @@ def install_cunumeric(
         )
 
         # Install cuNumeric C++
-        cmake_install(
-            cmake_exe,
-            build_dir,
-            verbose,
-            install_dir
-        )
+        cmake_install(cmake_exe, build_dir, verbose, install_dir)
 
-    build_cunumeric_python(
-        cunumeric_dir,
-        build_dir,
-        verbose,
-        unknown
-    )
+    build_cunumeric_python(cunumeric_dir, build_dir, verbose, unknown)
 
 
 def driver():
