@@ -740,9 +740,18 @@ class DeferredArray(NumPyThunk):
 
             # the case when rhs is a scalar and indices array contains
             # a single value
-            if rhs.base.kind == Future:
-                lhs.copy(rhs, deep=True)
-                return
+            # TODO this logic should be removed when copy accepts Futures
+            if rhs_store.kind == Future:
+                rhs_tmp = DeferredArray(
+                    self.runtime,
+                    base=rhs_store,
+                    dtype=rhs.dtype,
+                )
+                rhs_tmp2 = self._convert_future_to_store(rhs_tmp)
+                rhs_store = rhs_tmp2.base
+
+            if index_array.base.kind == Future:
+                index_array = self._convert_future_to_store(index_array)
 
             copy = self.context.create_copy()
             copy.set_target_indirect_out_of_range(False)
