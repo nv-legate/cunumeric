@@ -14,6 +14,7 @@
 #
 from __future__ import annotations
 
+import warnings
 from collections.abc import Iterable
 from functools import reduce, wraps
 from inspect import signature
@@ -31,6 +32,13 @@ from .config import FFTDirection, FFTNormalization, UnaryOpCode, UnaryRedCode
 from .coverage import clone_class
 from .runtime import runtime
 from .utils import dot_modes
+
+FALLBACK_WARNING = (
+    "cuNumeric has not fully implemented {name} "
+    + "and is falling back to canonical numpy. "
+    + "You may notice significantly decreased performance "
+    + "for this function call."
+)
 
 R = TypeVar("R")
 P = ParamSpec("P")
@@ -192,9 +200,12 @@ class ndarray:
             # so we just need to convert our type and stick it in
             # a Legate Array
             arrow_type = pyarrow.from_numpy_dtype(self.dtype)
+            # If the thunk is an eager array, we need to convert it to a
+            # deferred array so we can extract a legate store
+            deferred_thunk = runtime.to_deferred_array(self._thunk)
             # We don't have nullable data for the moment
             # until we support masked arrays
-            array = Array(arrow_type, [None, self._thunk])
+            array = Array(arrow_type, [None, deferred_thunk.base])
             self._legate_data = dict()
             self._legate_data["version"] = 1
             data = dict()
@@ -240,7 +251,20 @@ class ndarray:
 
         # TODO: We could check at this point that our implementation supports
         # all the provided arguments, and fall back to NumPy if not.
-        return cn_func(*args, **kwargs)
+        #
+        # For now we simply try to call the cuNumeric version and fall back
+        # to NumPy once we hit a NotImplementedError
+        try:
+            return cn_func(*args, **kwargs)
+        except NotImplementedError:
+            warnings.warn(
+                FALLBACK_WARNING.format(name=func.__name__),
+                category=RuntimeWarning,
+                stacklevel=4,
+            )
+            args = _convert_all_to_numpy(args)
+            kwargs = _convert_all_to_numpy(kwargs)
+            return func(*args, **kwargs)
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
         from . import _ufunc
@@ -257,7 +281,21 @@ class ndarray:
                 # TODO: We could check at this point that our implementation
                 # supports all the provided arguments, and fall back to
                 # NumPy if not.
-                return cn_method(*inputs, **kwargs)
+                #
+                # For now we simply try to call the cuNumeric version and
+                # fall back # to NumPy once we hit a NotImplementedError
+                try:
+                    return cn_method(*inputs, **kwargs)
+                except NotImplementedError:
+                    name = f"{ufunc.__name__}.{method}"
+                    warnings.warn(
+                        FALLBACK_WARNING.format(name=name),
+                        category=RuntimeWarning,
+                        stacklevel=3,
+                    )
+                    inputs = _convert_all_to_numpy(inputs)
+                    kwargs = _convert_all_to_numpy(kwargs)
+                    return getattr(ufunc, method)(*inputs, **kwargs)
 
         # We cannot handle this ufunc call, so we will fall back to NumPy.
         # Ideally we would be able to skip the __array_ufunc__ dispatch, and
