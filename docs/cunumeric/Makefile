@@ -18,7 +18,7 @@
 
 # You can set these variables from the command line, and also
 # from the environment for the first two.
-SPHINXOPTS     ?= -n -v -W
+SPHINXOPTS     ?= -v -W
 PARALLEL_BUILD ?= 1
 SPHINXBUILD    ?= legate $(shell which sphinx-build)
 SOURCEDIR      = source

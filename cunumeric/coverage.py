@@ -18,7 +18,7 @@ import warnings
 from dataclasses import dataclass
 from functools import wraps
 from types import FunctionType, MethodDescriptorType, MethodType, ModuleType
-from typing import Any, Callable, Container, Optional, cast
+from typing import Any, Callable, Container, Mapping, Optional, TypeVar, cast
 
 from typing_extensions import Protocol
 
@@ -49,7 +49,7 @@ NDARRAY_INTERNAL = {
 
 
 def filter_namespace(
-    ns: dict[str, Any],
+    ns: Mapping[str, Any],
     *,
     omit_names: Optional[Container[str]] = None,
     omit_types: tuple[type, ...] = (),
@@ -219,7 +219,10 @@ def clone_module(
             new_globals[attr] = value
 
 
-def clone_class(origin_class: type) -> Callable[[type], type]:
+C = TypeVar("C", bound=type)
+
+
+def clone_class(origin_class: type) -> Callable[[C], C]:
     """Copy attributes from one class to another
 
     Method types are wrapped with a decorator to report API calls. All
@@ -237,7 +240,7 @@ def clone_class(origin_class: type) -> Callable[[type], type]:
             obj, (FunctionType, MethodType, MethodDescriptorType)
         )
 
-    def decorator(cls: type) -> type:
+    def decorator(cls: C) -> C:
         class_name = f"{origin_class.__module__}.{origin_class.__name__}"
 
         missing = filter_namespace(

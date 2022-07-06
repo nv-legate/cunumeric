@@ -208,12 +208,11 @@ def mk_typed_input(lib, shape):
 def mk_typed_output(lib, shape):
     return [
         lib.zeros(shape, np.float16),
-        lib.zeros(shape, np.float32),
         lib.zeros(shape, np.complex64),
     ]
 
 
-def check_np_vs_cn(expr, mk_input, mk_output=None):
+def check_np_vs_cn(expr, mk_input, mk_output=None, **kwargs):
     lhs, rhs = expr.split("->")
     opers = lhs.split(",")
     in_shapes = [
@@ -224,41 +223,39 @@ def check_np_vs_cn(expr, mk_input, mk_output=None):
         product(*(mk_input(np, sh) for sh in in_shapes)),
         product(*(mk_input(cn, sh) for sh in in_shapes)),
     ):
-        np_res = np.einsum(expr, *np_inputs)
-        cn_res = cn.einsum(expr, *cn_inputs)
+        np_res = np.einsum(expr, *np_inputs, **kwargs)
+        cn_res = cn.einsum(expr, *cn_inputs, **kwargs)
         rtol = (
-            1e-02 if any(x.dtype == np.float16 for x in np_inputs) else 1e-05
+            1e-02
+            if any(x.dtype == np.float16 for x in np_inputs)
+            or kwargs.get("dtype") == np.float16
+            else 1e-05
         )
         assert np.allclose(np_res, cn_res, rtol=rtol)
         if mk_output is not None:
             for cn_out in mk_output(cn, out_shape):
-                cn.einsum(expr, *cn_inputs, out=cn_out)
-                rtol = (
-                    1e-02
-                    if any(x.dtype == np.float16 for x in np_inputs)
-                    or cn_out.dtype == np.float16
-                    else 1e-05
-                )
-                assert np.allclose(cn_out, cn_res, rtol=rtol)
+                cn.einsum(expr, *cn_inputs, out=cn_out, **kwargs)
+                rtol_out = 1e-02 if cn_out.dtype == np.float16 else rtol
+                assert np.allclose(cn_out, cn_res, rtol=rtol_out)
 
 
 @pytest.mark.parametrize("expr", gen_expr())
 def test_small(expr):
-    print(f"Test small expressions (permutations and broadcasting): {expr}")
     check_np_vs_cn(expr, mk_input_that_permutes_to)
     check_np_vs_cn(expr, mk_input_that_broadcasts_to)
 
 
 @pytest.mark.parametrize("expr", LARGE_EXPRS)
 def test_large(expr):
-    print(f"Test large expressions (default execution only): {expr}")
     check_np_vs_cn(expr, mk_input_default)
 
 
 @pytest.mark.parametrize("expr", SMALL_EXPRS)
-def test_cast(expr):
-    print(f"Test casting: {expr}")
-    check_np_vs_cn(expr, mk_typed_input, mk_typed_output)
+@pytest.mark.parametrize("dtype", [None, np.float32])
+def test_cast(expr, dtype):
+    check_np_vs_cn(
+        expr, mk_typed_input, mk_typed_output, dtype=dtype, casting="unsafe"
+    )
 
 
 if __name__ == "__main__":
