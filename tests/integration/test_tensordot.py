@@ -16,7 +16,7 @@ import pytest
 from cunumeric.utils import tensordot_modes
 from utils.contractions import check_default
 
-from legate.core import LEGATE_MAX_DIM
+from cunumeric.utils import tensordot_modes
 
 
 def gen_axes(a_ndim, b_ndim):

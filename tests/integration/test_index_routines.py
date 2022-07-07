@@ -22,7 +22,7 @@ from cunumeric.eager import diagonal_reference
 from utils.generators import mk_seq_array
 
 import cunumeric as num
-from legate.core import LEGATE_MAX_DIM
+from cunumeric.eager import diagonal_reference
 
 
 def test_choose_1d():

@@ -16,7 +16,7 @@ import pytest
 from cunumeric.utils import dot_modes
 from utils.contractions import check_default
 
-from legate.core import LEGATE_MAX_DIM
+from cunumeric.utils import dot_modes
 
 
 @pytest.mark.parametrize("b_ndim", range(LEGATE_MAX_DIM + 1))

@@ -19,7 +19,6 @@ from enum import IntEnum, unique
 from typing import TYPE_CHECKING, Union, cast
 
 import numpy as np
-
 from legate.core import Library, ResourceConfig, get_legate_runtime
 
 if TYPE_CHECKING:

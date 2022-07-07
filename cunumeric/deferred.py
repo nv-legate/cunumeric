@@ -37,6 +37,7 @@ import numpy as np
 from typing_extensions import ParamSpec
 
 import legate.core.types as ty
+import numpy as np
 from legate.core import Future, ReductionOp, Store
 
 from .config import (

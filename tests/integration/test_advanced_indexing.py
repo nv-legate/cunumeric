@@ -20,7 +20,6 @@ import pytest
 from utils.generators import mk_seq_array
 
 import cunumeric as num
-from legate.core import LEGATE_MAX_DIM
 
 
 def test():

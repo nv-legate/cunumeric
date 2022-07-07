@@ -23,6 +23,7 @@ from typing import Any, Callable, Optional, Set, TypeVar, Union
 
 import numpy as np
 import pyarrow
+from legate.core import Array
 from numpy.core.multiarray import normalize_axis_index
 from numpy.core.numeric import normalize_axis_tuple
 from typing_extensions import ParamSpec
