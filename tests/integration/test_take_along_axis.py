@@ -47,7 +47,7 @@ def test_None_axis():
     assert np.array_equal(res_num, res)
 
 
-N = 50
+N = 10
 
 
 @pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
@@ -62,8 +62,8 @@ def test_ndim(ndim):
         res_np = np.take_along_axis(np_arr, np_indices, axis=axis)
         res_num = num.take_along_axis(num_arr, num_indices, axis=axis)
         assert np.array_equal(res_num, res_np)
-    np_indices = mk_seq_array(np, (30,))
-    num_indices = mk_seq_array(num, (30,))
+    np_indices = mk_seq_array(np, (3,))
+    num_indices = mk_seq_array(num, (3,))
     res_np = np.take_along_axis(np_arr, np_indices, None)
     res_num = num.take_along_axis(num_arr, num_indices, None)
     assert np.array_equal(res_num, res_np)
