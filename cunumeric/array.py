@@ -22,11 +22,10 @@ from typing import Any, Callable, Optional, Set, TypeVar
 
 import numpy as np
 import pyarrow
+from legate.core import Array
 from numpy.core.multiarray import normalize_axis_index
 from numpy.core.numeric import normalize_axis_tuple
 from typing_extensions import ParamSpec
-
-from legate.core import Array
 
 from .config import FFTDirection, FFTNormalization, UnaryOpCode, UnaryRedCode
 from .coverage import clone_class

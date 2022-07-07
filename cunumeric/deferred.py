@@ -22,9 +22,8 @@ from functools import reduce
 from itertools import product
 from typing import TYPE_CHECKING, Any
 
-import numpy as np
-
 import legate.core.types as ty
+import numpy as np
 from legate.core import Future, ReductionOp, Store
 
 from .config import (

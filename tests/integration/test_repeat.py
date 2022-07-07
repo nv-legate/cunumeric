@@ -15,10 +15,10 @@
 
 import numpy as np
 import pytest
+from legate.core import LEGATE_MAX_DIM
 from test_tools.generators import mk_seq_array
 
 import cunumeric as num
-from legate.core import LEGATE_MAX_DIM
 
 np.random.seed(12345)
 

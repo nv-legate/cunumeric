@@ -14,10 +14,10 @@
 #
 
 import numpy as np
+from legate.core import LEGATE_MAX_DIM
 from test_tools.generators import mk_0to1_array
 
 import cunumeric as cn
-from legate.core import LEGATE_MAX_DIM
 
 
 def gen_inputs_default(lib, modes):

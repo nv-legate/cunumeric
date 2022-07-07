@@ -15,10 +15,10 @@
 
 import numpy as np
 import pytest
+from legate.core import LEGATE_MAX_DIM
 from test_tools.generators import mk_0to1_array
 
 import cunumeric as cn
-from legate.core import LEGATE_MAX_DIM
 
 VECTOR_ORDS = [None, np.inf, -np.inf, 0, 1, -1, 2, -2]
 

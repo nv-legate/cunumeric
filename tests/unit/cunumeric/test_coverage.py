@@ -15,11 +15,11 @@
 
 from types import ModuleType
 
-import cunumeric.coverage as m  # module under test
 import pytest
 from mock import MagicMock, patch
 
 import cunumeric
+import cunumeric.coverage as m  # module under test
 
 
 def test_FALLBACK_WARNING() -> None:
