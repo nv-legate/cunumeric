@@ -14,10 +14,15 @@
 
 def get_libpath():
     import os, sys
-    cn_path = os.path.dirname(os.path.dirname(__file__))
-    if os.path.exists(libdir := os.path.join(cn_path, "build", "lib")):
+    join = os.path.join
+    exists = os.path.exists
+    dirname = os.path.dirname
+    cn_path = dirname(dirname(__file__))
+    if exists(libdir := join(cn_path, "build", "lib")):
         return libdir
-    return os.path.join(os.path.dirname(sys.argv[0]), "lib")
+    if exists(libdir := join(dirname(dirname(sys.executable)), "lib")):
+        return libdir
+    return ""
 
 
 libpath: str = get_libpath()
