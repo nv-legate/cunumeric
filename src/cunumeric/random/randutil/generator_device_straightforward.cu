@@ -62,3 +62,9 @@ template struct randutilimpl::
   dispatcher<randutilimpl::execlocation::DEVICE, cauchy_t<float>, float>;
 template struct randutilimpl::
   dispatcher<randutilimpl::execlocation::DEVICE, cauchy_t<double>, double>;
+
+#include "generator_triangular.inl"
+template struct randutilimpl::
+  dispatcher<randutilimpl::execlocation::DEVICE, triangular_t<float>, float>;
+template struct randutilimpl::
+  dispatcher<randutilimpl::execlocation::DEVICE, triangular_t<double>, double>;

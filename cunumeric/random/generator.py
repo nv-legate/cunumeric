@@ -80,8 +80,16 @@ class Generator:
             x0=x0, gamma=gamma, shape=size, dtype=dtype
         )
 
-    def standard_cauchy(self, scale, size=None, dtype=np.float64):
+    def standard_cauchy(self, size=None, dtype=np.float64):
         return self.cauchy(0.0, 1.0, size, dtype)
+
+    def standard_exponential(self, size=None, dtype=np.float64):
+        return self.exponential(1.0, size, dtype)
+
+    def triangular(self, left, mode, right, size=None, dtype=np.float64):
+        return self.bit_generator.triangular(
+            a=left, b=right, c=mode, shape=size, dtype=dtype
+        )
 
 
 def default_rng(seed=None):

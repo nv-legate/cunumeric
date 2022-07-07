@@ -827,6 +827,20 @@ class EagerArray(NumPyThunk):
                 a = np.random.standard_cauchy(size=self.array.shape)
                 self.array[:] = x0 + gamma * a
 
+    def bitgenerator_triangular(
+        self, handle, generatorType, seed, flags, a, b, c
+    ) -> None:
+        if self.deferred is not None:
+            self.deferred.bitgenerator_triangular(
+                handle, generatorType, seed, flags, a, b, c
+            )
+        else:
+            if self.array.size == 1:
+                self.array.fill(np.random.triangular(a, c, b))
+            else:
+                aa = np.random.triangular(a, c, b, size=self.array.shape)
+                self.array[:] = aa
+
     def partition(
         self,
         rhs,

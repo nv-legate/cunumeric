@@ -266,6 +266,12 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
+    def bitgenerator_triangular(
+        self, bitgen, generatorType, seed, flags, a, b, c
+    ) -> None:
+        ...
+
+    @abstractmethod
     def random_uniform(self) -> None:
         ...
 

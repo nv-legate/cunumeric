@@ -227,3 +227,31 @@ extern "C" curandStatus_t CURANDAPI randutilGenerateCauchyDoubleEx(
 }
 
 #pragma endregion
+
+#pragma region triangular
+
+#include "generator_triangular.inl"
+
+extern "C" curandStatus_t CURANDAPI randutilGenerateTriangularEx(
+  randutilGenerator_t generator, float* outputPtr, size_t n, float a, float b, float c)
+{
+  randutilimpl::basegenerator* gen = (randutilimpl::basegenerator*)generator;
+  triangular_t<float> func;
+  func.a = a;
+  func.b = b;
+  func.c = c;
+  return randutilimpl::dispatch<decltype(func), float>(gen, func, n, outputPtr);
+}
+
+extern "C" curandStatus_t CURANDAPI randutilGenerateTriangularDoubleEx(
+  randutilGenerator_t generator, double* outputPtr, size_t n, double a, double b, double c)
+{
+  randutilimpl::basegenerator* gen = (randutilimpl::basegenerator*)generator;
+  triangular_t<double> func;
+  func.a = a;
+  func.b = b;
+  func.c = c;
+  return randutilimpl::dispatch<decltype(func), double>(gen, func, n, outputPtr);
+}
+
+#pragma endregion

@@ -160,6 +160,14 @@ struct CURANDGenerator {
   {
     CHECK_CURAND(::randutilGenerateCauchyEx(gen_, out, count, x0, gamma));
   }
+  void generate_triangular_64(uint64_t count, double* out, double a, double b, double c)
+  {
+    CHECK_CURAND(::randutilGenerateTriangularDoubleEx(gen_, out, count, a, b, c));
+  }
+  void generate_triangular_32(uint64_t count, float* out, float a, float b, float c)
+  {
+    CHECK_CURAND(::randutilGenerateTriangularEx(gen_, out, count, a, b, c));
+  }
 };
 
 #pragma endregion
@@ -679,6 +687,45 @@ struct cauchy_generator<float> {
 
 #pragma endregion
 
+#pragma region triangular
+
+template <typename output_t>
+struct triangular_generator;
+template <>
+struct triangular_generator<double> {
+  double a_, b_, c_;
+
+  triangular_generator(const std::vector<int64_t>& intparams,
+                       const std::vector<float>& floatparams,
+                       const std::vector<double>& doubleparams)
+    : a_(doubleparams[0]), b_(doubleparams[1]), c_(doubleparams[2])
+  {
+  }
+
+  void generate(CURANDGenerator& gen, uint64_t count, double* p) const
+  {
+    gen.generate_triangular_64(count, p, a_, b_, c_);
+  }
+};
+template <>
+struct triangular_generator<float> {
+  float a_, b_, c_;
+
+  triangular_generator(const std::vector<int64_t>& intparams,
+                       const std::vector<float>& floatparams,
+                       const std::vector<double>& doubleparams)
+    : a_(floatparams[0]), b_(floatparams[1]), c_(floatparams[2])
+  {
+  }
+
+  void generate(CURANDGenerator& gen, uint64_t count, float* p) const
+  {
+    gen.generate_triangular_32(count, p, a_, b_, c_);
+  }
+};
+
+#pragma endregion
+
 #pragma endregion
 
 template <typename output_t, typename generator_t>
@@ -950,6 +997,14 @@ struct BitGeneratorImplBody {
               break;
             case BitGeneratorDistribution::CAUCHY_64:
               generate_distribution<double, cauchy_generator<double>>::generate(
+                res, cugen, intparams, floatparams, doubleparams);
+              break;
+            case BitGeneratorDistribution::TRIANGULAR_32:
+              generate_distribution<float, triangular_generator<float>>::generate(
+                res, cugen, intparams, floatparams, doubleparams);
+              break;
+            case BitGeneratorDistribution::TRIANGULAR_64:
+              generate_distribution<double, triangular_generator<double>>::generate(
                 res, cugen, intparams, floatparams, doubleparams);
               break;
             default: {

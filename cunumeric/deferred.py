@@ -1857,7 +1857,7 @@ class DeferredArray(NumPyThunk):
             doubleparams = (float(mu), float(beta))
         else:
             raise NotImplementedError(
-                "type for random.exponential has to be float64 or float32"
+                "type for random.gumbel has to be float64 or float32"
             )
         self.bitgenerator_distribution(
             handle,
@@ -1883,7 +1883,7 @@ class DeferredArray(NumPyThunk):
             doubleparams = (float(mu), float(beta))
         else:
             raise NotImplementedError(
-                "type for random.exponential has to be float64 or float32"
+                "type for random.laplace has to be float64 or float32"
             )
         self.bitgenerator_distribution(
             handle,
@@ -1909,7 +1909,7 @@ class DeferredArray(NumPyThunk):
             doubleparams = (float(mu), float(beta))
         else:
             raise NotImplementedError(
-                "type for random.exponential has to be float64 or float32"
+                "type for random.logistic has to be float64 or float32"
             )
         self.bitgenerator_distribution(
             handle,
@@ -1935,7 +1935,7 @@ class DeferredArray(NumPyThunk):
             doubleparams = (float(alpha),)
         else:
             raise NotImplementedError(
-                "type for random.exponential has to be float64 or float32"
+                "type for random.pareto has to be float64 or float32"
             )
         self.bitgenerator_distribution(
             handle,
@@ -1961,7 +1961,7 @@ class DeferredArray(NumPyThunk):
             doubleparams = (float(alpha),)
         else:
             raise NotImplementedError(
-                "type for random.exponential has to be float64 or float32"
+                "type for random.power has to be float64 or float32"
             )
         self.bitgenerator_distribution(
             handle,
@@ -1987,7 +1987,7 @@ class DeferredArray(NumPyThunk):
             doubleparams = (float(sigma),)
         else:
             raise NotImplementedError(
-                "type for random.exponential has to be float64 or float32"
+                "type for random.rayleigh has to be float64 or float32"
             )
         self.bitgenerator_distribution(
             handle,
@@ -2013,7 +2013,33 @@ class DeferredArray(NumPyThunk):
             doubleparams = (float(x0), float(gamma))
         else:
             raise NotImplementedError(
-                "type for random.exponential has to be float64 or float32"
+                "type for random.cauchy has to be float64 or float32"
+            )
+        self.bitgenerator_distribution(
+            handle,
+            generatorType,
+            seed,
+            flags,
+            distribution,
+            (),
+            floatparams,
+            doubleparams,
+        )
+
+    def bitgenerator_triangular(
+        self, handle, generatorType, seed, flags, a, b, c
+    ) -> None:
+        if self.dtype == np.float32:
+            distribution = BitGeneratorDistribution.TRIANGULAR_32
+            floatparams = (float(a), float(b), float(c))
+            doubleparams = ()
+        elif self.dtype == np.float64:
+            distribution = BitGeneratorDistribution.TRIANGULAR_64
+            floatparams = ()
+            doubleparams = (float(a), float(b), float(c))
+        else:
+            raise NotImplementedError(
+                "type for random.triangular has to be float64 or float32"
             )
         self.bitgenerator_distribution(
             handle,

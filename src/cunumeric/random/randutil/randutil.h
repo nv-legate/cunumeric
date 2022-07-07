@@ -134,3 +134,8 @@ extern "C" curandStatus_t CURANDAPI randutilGenerateCauchyEx(
   randutilGenerator_t generator, float* outputPtr, size_t n, float x0, float gamma);
 extern "C" curandStatus_t CURANDAPI randutilGenerateCauchyDoubleEx(
   randutilGenerator_t generator, double* outputPtr, size_t n, double x0, double gamma);
+
+extern "C" curandStatus_t CURANDAPI randutilGenerateTriangularEx(
+  randutilGenerator_t generator, float* outputPtr, size_t n, float a, float b, float c);
+extern "C" curandStatus_t CURANDAPI randutilGenerateTriangularDoubleEx(
+  randutilGenerator_t generator, double* outputPtr, size_t n, double a, double b, double c);

@@ -237,6 +237,82 @@ def test_cauchy_float64(t):
     assert np.abs(median - x0) < 0.01
 
 
+@pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
+def test_stdcauchy_float32(t):
+    bitgen = t(seed=42)
+    gen = num.random.Generator(bitgen)
+    x0 = 0.0
+    a = gen.standard_cauchy(size=(1024 * 1024,), dtype=np.float32)
+    # cauchy's distribution mean and stdev are not defined...
+    aa = np.array(a)
+    median = np.median(aa)
+    assert np.abs(median - x0) < 0.01
+
+
+@pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
+def test_stdcauchy_float64(t):
+    bitgen = t(seed=42)
+    gen = num.random.Generator(bitgen)
+    x0 = 0.0
+    a = gen.standard_cauchy(size=(1024 * 1024,), dtype=np.float64)
+    # cauchy's distribution mean and stdev are not defined...
+    aa = np.array(a)
+    median = np.median(aa)
+    assert np.abs(median - x0) < 0.01
+
+
+@pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
+def test_stdexponential_float32(t):
+    bitgen = t(seed=42)
+    gen = num.random.Generator(bitgen)
+    scale = 1.0
+    a = gen.standard_exponential(size=(1024 * 1024,), dtype=np.float32)
+    theo_mean = scale
+    theo_std = scale
+    assert_distribution(a, theo_mean, theo_std)
+
+
+@pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
+def test_stdexponential_float64(t):
+    bitgen = t(seed=42)
+    gen = num.random.Generator(bitgen)
+    scale = 1.0
+    a = gen.standard_exponential(size=(1024 * 1024,), dtype=np.float64)
+    theo_mean = scale
+    theo_std = scale
+    assert_distribution(a, theo_mean, theo_std)
+
+
+@pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
+def test_triangular_float32(t):
+    bitgen = t(seed=42)
+    gen = num.random.Generator(bitgen)
+    lo = 1.414
+    mi = 2.7
+    hi = 3.1415
+    a = gen.triangular(lo, mi, hi, size=(1024 * 1024,), dtype=np.float32)
+    theo_mean = (lo + mi + hi) / 3.0
+    theo_std = np.sqrt(
+        (lo**2 + mi**2 + hi**2 - lo * mi - mi * hi - hi * lo) / 18.0
+    )
+    assert_distribution(a, theo_mean, theo_std)
+
+
+@pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
+def test_triangular_float64(t):
+    bitgen = t(seed=42)
+    gen = num.random.Generator(bitgen)
+    lo = 1.414
+    mi = 2.7
+    hi = 3.1415
+    a = gen.triangular(lo, mi, hi, size=(1024 * 1024,), dtype=np.float64)
+    theo_mean = (lo + mi + hi) / 3.0
+    theo_std = np.sqrt(
+        (lo**2 + mi**2 + hi**2 - lo * mi - mi * hi - hi * lo) / 18.0
+    )
+    assert_distribution(a, theo_mean, theo_std)
+
+
 if __name__ == "__main__":
     import sys
 
