@@ -22,15 +22,16 @@ namespace cunumeric {
 using namespace Legion;
 using namespace legate;
 
-template <LegateTypeCode CODE>
-struct SearchSortedImplBody<VariantKind::CPU, CODE> {
+template <LegateTypeCode CODE, int32_t DIM>
+struct SearchSortedImplBody<VariantKind::CPU, CODE, DIM> {
   using VAL = legate_type_of<CODE>;
 
   void operator()(const Array& input_array,
                   const Array& input_values,
                   const Array& output_positions,
                   const Rect<1>& rect_base,
-                  const Rect<1>& rect_values,
+                  const Rect<DIM>& rect_values,
+                  const Pitches<DIM - 1> pitches,
                   const bool left,
                   const bool is_index_space,
                   const size_t volume,
@@ -38,7 +39,7 @@ struct SearchSortedImplBody<VariantKind::CPU, CODE> {
                   const size_t num_values)
   {
     auto input   = input_array.read_accessor<VAL, 1>(rect_base);
-    auto input_v = input_values.read_accessor<VAL, 1>(rect_values);
+    auto input_v = input_values.read_accessor<VAL, DIM>(rect_values);
     assert(input.accessor.is_dense_arbitrary(rect_base));
 
     auto* input_ptr   = input.ptr(rect_base.lo);
@@ -48,19 +49,21 @@ struct SearchSortedImplBody<VariantKind::CPU, CODE> {
 
     if (left) {
       auto output_reduction =
-        output_positions.reduce_accessor<MinReduction<int64_t>, true, 1>(rect_values);
+        output_positions.reduce_accessor<MinReduction<int64_t>, true, DIM>(rect_values);
       for (size_t idx = 0; idx < num_values; ++idx) {
         VAL key             = input_v_ptr[idx];
+        auto v_point        = pitches.unflatten(idx, rect_values.lo);
         int64_t lower_bound = std::lower_bound(input_ptr, input_ptr + volume, key) - input_ptr;
-        if (lower_bound < volume) { output_reduction.reduce(idx, lower_bound + offset); }
+        if (lower_bound < volume) { output_reduction.reduce(v_point, lower_bound + offset); }
       }
     } else {
       auto output_reduction =
-        output_positions.reduce_accessor<MaxReduction<int64_t>, true, 1>(rect_values);
+        output_positions.reduce_accessor<MaxReduction<int64_t>, true, DIM>(rect_values);
       for (size_t idx = 0; idx < num_values; ++idx) {
         VAL key             = input_v_ptr[idx];
+        auto v_point        = pitches.unflatten(idx, rect_values.lo);
         int64_t upper_bound = std::upper_bound(input_ptr, input_ptr + volume, key) - input_ptr;
-        if (upper_bound > 0) { output_reduction.reduce(idx, upper_bound + offset); }
+        if (upper_bound > 0) { output_reduction.reduce(v_point, upper_bound + offset); }
       }
     }
   }

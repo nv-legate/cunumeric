@@ -17,6 +17,7 @@ import numpy as np
 import pytest
 
 import cunumeric as num
+from legate.core import LEGATE_MAX_DIM
 
 np.random.seed(42)
 
@@ -65,7 +66,7 @@ def check_api(a, dtype2=None, v=None):
             v = generate_random(10, dtype2)
         else:
             v = generate_random(10, a.dtype)
-    if v.size > 0:
+    if v.size > 0 and v.ndim > 0:
         v_scalar = v[0]
     else:
         v_scalar = 0
@@ -207,6 +208,15 @@ def test_dtype_conversions(volume, dtype1, dtype2):
 def test_standard_cases(volume, dtype):
     print(f"---- check for dtype {dtype}")
     check_api(generate_random(volume, dtype))
+
+
+@pytest.mark.parametrize("ndim", range(0, LEGATE_MAX_DIM + 1))
+def test_ndim(ndim):
+    a = np.random.randint(-100, 100, size=100)
+    v = np.random.randint(-100, 100, size=2**ndim).reshape(
+        tuple(2 for i in range(ndim))
+    )
+    check_api(a, None, v)
 
 
 if __name__ == "__main__":

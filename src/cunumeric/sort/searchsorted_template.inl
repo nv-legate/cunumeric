@@ -25,37 +25,41 @@ namespace cunumeric {
 using namespace Legion;
 using namespace legate;
 
-template <VariantKind KIND, LegateTypeCode CODE>
+template <VariantKind KIND, LegateTypeCode CODE, int32_t DIM>
 struct SearchSortedImplBody;
 
 template <VariantKind KIND>
 struct SearchSortedImpl {
-  template <LegateTypeCode CODE>
+  template <LegateTypeCode CODE, int32_t DIM>
   void operator()(SearchSortedArgs& args) const
   {
     using VAL = legate_type_of<CODE>;
 
     auto rect_base       = args.input_base.shape<1>();
-    auto rect_values_in  = args.input_values.shape<1>();
-    auto rect_values_out = args.output_reduction.shape<1>();
+    auto rect_values_in  = args.input_values.shape<DIM>();
+    auto rect_values_out = args.output_reduction.shape<DIM>();
 
     if (rect_base.empty()) return;
+    if (rect_values_in.empty()) return;
 
-    Pitches<0> pitches;
-    size_t volume     = pitches.flatten(rect_base);
-    size_t num_values = pitches.flatten(rect_values_in);
-    assert(num_values == pitches.flatten(rect_values_out));
+    Pitches<0> pitches_base;
+    Pitches<DIM - 1> pitches_values;
+    size_t volume     = pitches_base.flatten(rect_base);
+    size_t num_values = pitches_values.flatten(rect_values_in);
+    assert(rect_values_in == rect_values_out);
+    assert(num_values == pitches_values.flatten(rect_values_out));
 
-    SearchSortedImplBody<KIND, CODE>()(args.input_base,
-                                       args.input_values,
-                                       args.output_reduction,
-                                       rect_base,
-                                       rect_values_in,
-                                       args.left,
-                                       args.is_index_space,
-                                       volume,
-                                       args.global_volume,
-                                       num_values);
+    SearchSortedImplBody<KIND, CODE, DIM>()(args.input_base,
+                                            args.input_values,
+                                            args.output_reduction,
+                                            rect_base,
+                                            rect_values_in,
+                                            pitches_values,
+                                            args.left,
+                                            args.is_index_space,
+                                            volume,
+                                            args.global_volume,
+                                            num_values);
   }
 };
 
@@ -73,7 +77,8 @@ static void searchsorted_template(TaskContext& context)
   assert(args.input_base.code() == args.input_values.code());
   assert(args.input_values.dim() == args.output_reduction.dim());
 
-  type_dispatch(args.input_base.code(), SearchSortedImpl<KIND>{}, args);
+  double_dispatch(
+    std::max(1, args.input_values.dim()), args.input_base.code(), SearchSortedImpl<KIND>{}, args);
 }
 
 }  // namespace cunumeric

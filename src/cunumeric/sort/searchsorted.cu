@@ -22,11 +22,13 @@
 
 namespace cunumeric {
 
-template <typename VAL>
+template <typename VAL, int32_t DIM>
 static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-  searchsorted_kernel_min(AccessorRD<MinReduction<int64_t>, false, 1> output_reduction,
+  searchsorted_kernel_min(AccessorRD<MinReduction<int64_t>, false, DIM> output_reduction,
                           AccessorRO<VAL, 1> sorted_array,
-                          AccessorRO<VAL, 1> values,
+                          AccessorRO<VAL, DIM> values,
+                          const Point<DIM> lo,
+                          const Pitches<DIM - 1> pitches,
                           const size_t volume,
                           const size_t num_values,
                           const size_t global_offset)
@@ -35,16 +37,19 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
 
   if (v_idx >= num_values) return;
 
-  int64_t lower_bound = cub::LowerBound(sorted_array.ptr(global_offset), volume, values[v_idx]);
+  auto v_point        = pitches.unflatten(v_idx, lo);
+  int64_t lower_bound = cub::LowerBound(sorted_array.ptr(global_offset), volume, values[v_point]);
 
-  if (lower_bound < volume) { output_reduction.reduce(v_idx, lower_bound + global_offset); }
+  if (lower_bound < volume) { output_reduction.reduce(v_point, lower_bound + global_offset); }
 }
 
-template <typename VAL>
+template <typename VAL, int32_t DIM>
 static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-  searchsorted_kernel_max(AccessorRD<MaxReduction<int64_t>, false, 1> output_reduction,
+  searchsorted_kernel_max(AccessorRD<MaxReduction<int64_t>, false, DIM> output_reduction,
                           AccessorRO<VAL, 1> sorted_array,
-                          AccessorRO<VAL, 1> values,
+                          AccessorRO<VAL, DIM> values,
+                          const Point<DIM> lo,
+                          const Pitches<DIM - 1> pitches,
                           const size_t volume,
                           const size_t num_values,
                           const size_t global_offset)
@@ -53,20 +58,22 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
 
   if (v_idx >= num_values) return;
 
-  int64_t upper_bound = cub::UpperBound(sorted_array.ptr(global_offset), volume, values[v_idx]);
+  auto v_point        = pitches.unflatten(v_idx, lo);
+  int64_t upper_bound = cub::UpperBound(sorted_array.ptr(global_offset), volume, values[v_point]);
 
-  if (upper_bound > 0) { output_reduction.reduce(v_idx, upper_bound + global_offset); }
+  if (upper_bound > 0) { output_reduction.reduce(v_point, upper_bound + global_offset); }
 }
 
-template <LegateTypeCode CODE>
-struct SearchSortedImplBody<VariantKind::GPU, CODE> {
+template <LegateTypeCode CODE, int32_t DIM>
+struct SearchSortedImplBody<VariantKind::GPU, CODE, DIM> {
   using VAL = legate_type_of<CODE>;
 
   void operator()(const Array& input_array,
                   const Array& input_values,
                   const Array& output_positions,
                   const Rect<1>& rect_base,
-                  const Rect<1>& rect_values,
+                  const Rect<DIM>& rect_values,
+                  const Pitches<DIM - 1> pitches,
                   const bool left,
                   const bool is_index_space,
                   const size_t volume,
@@ -74,7 +81,7 @@ struct SearchSortedImplBody<VariantKind::GPU, CODE> {
                   const size_t num_values)
   {
     auto input   = input_array.read_accessor<VAL, 1>(rect_base);
-    auto input_v = input_values.read_accessor<VAL, 1>(rect_values);
+    auto input_v = input_values.read_accessor<VAL, DIM>(rect_values);
     assert(input.accessor.is_dense_arbitrary(rect_base));
     size_t offset = rect_base.lo[0];
 
@@ -82,14 +89,14 @@ struct SearchSortedImplBody<VariantKind::GPU, CODE> {
     auto stream                     = get_cached_stream();
     if (left) {
       auto output_reduction =
-        output_positions.reduce_accessor<MinReduction<int64_t>, false, 1>(rect_values);
+        output_positions.reduce_accessor<MinReduction<int64_t>, false, DIM>(rect_values);
       searchsorted_kernel_min<VAL><<<num_blocks_desired, THREADS_PER_BLOCK, 0, stream>>>(
-        output_reduction, input, input_v, volume, num_values, offset);
+        output_reduction, input, input_v, rect_values.lo, pitches, volume, num_values, offset);
     } else {
       auto output_reduction =
-        output_positions.reduce_accessor<MaxReduction<int64_t>, false, 1>(rect_values);
+        output_positions.reduce_accessor<MaxReduction<int64_t>, false, DIM>(rect_values);
       searchsorted_kernel_max<VAL><<<num_blocks_desired, THREADS_PER_BLOCK, 0, stream>>>(
-        output_reduction, input, input_v, volume, num_values, offset);
+        output_reduction, input, input_v, rect_values.lo, pitches, volume, num_values, offset);
     }
     CHECK_CUDA_STREAM(stream);
   }
