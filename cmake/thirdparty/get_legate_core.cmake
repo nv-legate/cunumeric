@@ -48,16 +48,16 @@ function(find_or_configure_legate_core)
   message(VERBOSE "Legion_BOUNDS_CHECKS=${Legion_BOUNDS_CHECKS}")
 endfunction()
 
-if(NOT DEFINED CUNUMERIC_LEGATE_CORE_BRANCH)
-  set(CUNUMERIC_LEGATE_CORE_BRANCH branch-22.07)
+if(NOT DEFINED cunumeric_LEGATE_CORE_BRANCH)
+  set(cunumeric_LEGATE_CORE_BRANCH branch-22.07)
 endif()
 
-if(NOT DEFINED CUNUMERIC_LEGATE_CORE_REPOSITORY)
-  set(CUNUMERIC_LEGATE_CORE_REPOSITORY https://github.com/nv-legate/legate.core.git)
+if(NOT DEFINED cunumeric_LEGATE_CORE_REPOSITORY)
+  set(cunumeric_LEGATE_CORE_REPOSITORY https://github.com/nv-legate/legate.core.git)
 endif()
 
-find_or_configure_legate_core(VERSION          ${CUNUMERIC_VERSION}
-                              REPOSITORY       ${CUNUMERIC_LEGATE_CORE_REPOSITORY}
-                              BRANCH           ${CUNUMERIC_LEGATE_CORE_BRANCH}
-                              EXCLUDE_FROM_ALL ${CUNUMERIC_EXCLUDE_LEGATE_CORE_FROM_ALL}
+find_or_configure_legate_core(VERSION          ${cunumeric_VERSION}
+                              REPOSITORY       ${cunumeric_LEGATE_CORE_REPOSITORY}
+                              BRANCH           ${cunumeric_LEGATE_CORE_BRANCH}
+                              EXCLUDE_FROM_ALL ${cunumeric_EXCLUDE_LEGATE_CORE_FROM_ALL}
 )

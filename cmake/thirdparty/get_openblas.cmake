@@ -114,26 +114,26 @@ function(find_or_configure_OpenBLAS)
   endif()
 endfunction()
 
-if(NOT DEFINED CUNUMERIC_OPENBLAS_VERSION)
+if(NOT DEFINED cunumeric_OPENBLAS_VERSION)
   # Before v0.3.18, OpenBLAS's throws CMake errors when configuring
-  set(CUNUMERIC_OPENBLAS_VERSION "0.3.20")
+  set(cunumeric_OPENBLAS_VERSION "0.3.20")
 endif()
 
-if(NOT DEFINED CUNUMERIC_OPENBLAS_BRANCH)
-  set(CUNUMERIC_OPENBLAS_BRANCH "")
+if(NOT DEFINED cunumeric_OPENBLAS_BRANCH)
+  set(cunumeric_OPENBLAS_BRANCH "")
 endif()
 
-if(NOT DEFINED CUNUMERIC_OPENBLAS_TAG)
-  set(CUNUMERIC_OPENBLAS_TAG v${CUNUMERIC_OPENBLAS_VERSION})
+if(NOT DEFINED cunumeric_OPENBLAS_TAG)
+  set(cunumeric_OPENBLAS_TAG v${cunumeric_OPENBLAS_VERSION})
 endif()
 
-if(NOT DEFINED CUNUMERIC_OPENBLAS_REPOSITORY)
-  set(CUNUMERIC_OPENBLAS_REPOSITORY https://github.com/xianyi/OpenBLAS.git)
+if(NOT DEFINED cunumeric_OPENBLAS_REPOSITORY)
+  set(cunumeric_OPENBLAS_REPOSITORY https://github.com/xianyi/OpenBLAS.git)
 endif()
 
-find_or_configure_OpenBLAS(VERSION          ${CUNUMERIC_OPENBLAS_VERSION}
-                           REPOSITORY       ${CUNUMERIC_OPENBLAS_REPOSITORY}
-                           BRANCH           ${CUNUMERIC_OPENBLAS_BRANCH}
-                           PINNED_TAG       ${CUNUMERIC_OPENBLAS_TAG}
-                           EXCLUDE_FROM_ALL ${CUNUMERIC_EXCLUDE_OPENBLAS_FROM_ALL}
+find_or_configure_OpenBLAS(VERSION          ${cunumeric_OPENBLAS_VERSION}
+                           REPOSITORY       ${cunumeric_OPENBLAS_REPOSITORY}
+                           BRANCH           ${cunumeric_OPENBLAS_BRANCH}
+                           PINNED_TAG       ${cunumeric_OPENBLAS_TAG}
+                           EXCLUDE_FROM_ALL ${cunumeric_EXCLUDE_OPENBLAS_FROM_ALL}
 )

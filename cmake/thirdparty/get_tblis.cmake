@@ -114,17 +114,17 @@ function(find_or_configure_tblis)
                INTERFACE_POSITION_INDEPENDENT_CODE ON)
 endfunction()
 
-if(NOT DEFINED CUNUMERIC_TBLIS_BRANCH)
-  set(CUNUMERIC_TBLIS_BRANCH master)
+if(NOT DEFINED cunumeric_TBLIS_BRANCH)
+  set(cunumeric_TBLIS_BRANCH master)
 endif()
 
-if(NOT DEFINED CUNUMERIC_TBLIS_REPOSITORY)
-  set(CUNUMERIC_TBLIS_REPOSITORY https://github.com/devinamatthews/tblis.git)
+if(NOT DEFINED cunumeric_TBLIS_REPOSITORY)
+  set(cunumeric_TBLIS_REPOSITORY https://github.com/devinamatthews/tblis.git)
 endif()
 
 find_or_configure_tblis(VERSION          1.2.0
-                        REPOSITORY       ${CUNUMERIC_TBLIS_REPOSITORY}
-                        BRANCH           ${CUNUMERIC_TBLIS_BRANCH}
-                        EXCLUDE_FROM_ALL ${CUNUMERIC_EXCLUDE_TBLIS_FROM_ALL}
+                        REPOSITORY       ${cunumeric_TBLIS_REPOSITORY}
+                        BRANCH           ${cunumeric_TBLIS_BRANCH}
+                        EXCLUDE_FROM_ALL ${cunumeric_EXCLUDE_TBLIS_FROM_ALL}
                         USE_OPENMP       ${Legion_USE_OpenMP}
 )

@@ -36,4 +36,8 @@ cunumeric/install_info.py
 *.egg-info
 .cache
 .vscode
+.pytest_cache
 /install*
+/dist
+/_skbuild
+/_cmake_test_compile

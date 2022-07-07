@@ -38,3 +38,6 @@ clone_module(_np, globals())
 
 del clone_module
 del _np
+
+from . import _version
+__version__ = _version.get_versions()['version']
