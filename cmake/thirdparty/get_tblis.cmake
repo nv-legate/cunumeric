@@ -116,17 +116,21 @@ function(find_or_configure_tblis)
     endif()
 
     # Build tblis into ${tblis_BINARY_DIR}
-    add_custom_target(tblis_build ALL
+    add_custom_command(
+      OUTPUT
+        "${tblis_BINARY_DIR}/lib/libtci${lib_suffix}"
+        "${tblis_BINARY_DIR}/lib/libtblis${lib_suffix}"
       COMMENT           "Building tblis"
       COMMAND           make -j${CMAKE_BUILD_PARALLEL_LEVEL} install
       DEPENDS           "${tblis_SOURCE_DIR}/Makefile"
       WORKING_DIRECTORY "${tblis_SOURCE_DIR}"
-      BYPRODUCTS
-        "${tblis_BINARY_DIR}/lib/libtci${lib_suffix}"
-        "${tblis_BINARY_DIR}/lib/libtblis${lib_suffix}"
       USES_TERMINAL
       VERBATIM
     )
+
+    add_custom_target(tblis_build ALL
+      DEPENDS "${tblis_BINARY_DIR}/lib/libtci${lib_suffix}"
+              "${tblis_BINARY_DIR}/lib/libtblis${lib_suffix}")
 
     add_dependencies(tblis tblis_build)
 
