@@ -36,7 +36,10 @@ def generate_random(volume, datatype):
     if np.issubdtype(datatype, np.integer):
         a_np = np.array(
             np.random.randint(
-                np.iinfo(datatype).min, np.iinfo(datatype).max, size=volume
+                np.iinfo(datatype).min,
+                np.iinfo(datatype).max,
+                size=volume,
+                dtype=datatype,
             ),
             dtype=datatype,
         )
@@ -53,12 +56,20 @@ def generate_random(volume, datatype):
     return a_np
 
 
-def check_api(a):
+def check_api(a, dtype2=None, v=None):
 
     a_sorted = np.sort(a)
     a_argsorted = np.argsort(a)
-    v = generate_random(10, a.dtype)
-    v_scalar = v[0]
+    if v is None:
+        if dtype2 is not None:
+            v = generate_random(10, dtype2)
+        else:
+            v = generate_random(10, a.dtype)
+    if v.size > 0:
+        v_scalar = v[0]
+    else:
+        v_scalar = 0
+
     print("A=")
     print(a)
     print("A_sorted=")
@@ -148,11 +159,11 @@ def check_api(a):
     )
 
 
-CASES = [
+STANDARD_CASES = [
     (156, np.uint8),
     (123, np.uint16),
     (241, np.uint32),
-    (1, np.uint32),
+    (1, np.uint64),
     (21, np.int8),
     (5, np.int16),
     (34, np.int32),
@@ -164,6 +175,16 @@ CASES = [
     (244, np.complex64),
     (24, np.complex128),
     (220, np.complex128),
+    (0, np.uint32),
+]
+
+DTYPE_CASES = [
+    (3, np.uint64, np.float32),
+    (51, np.uint32, np.complex64),
+    (23, np.uint32, np.float64),
+    (51, np.complex64, np.float64),
+    (21, np.complex64, np.int32),
+    (22, np.complex128, np.float32),
 ]
 
 
@@ -171,8 +192,19 @@ def test_simple():
     check_api(np.arange(25))
 
 
-@pytest.mark.parametrize("volume, dtype", CASES, ids=str)
-def test_dtypes(volume, dtype):
+def test_empty_v():
+    check_api(np.arange(25), None, np.arange(0))
+    check_api(np.arange(0), None, np.arange(0))
+
+
+@pytest.mark.parametrize("volume, dtype1, dtype2", DTYPE_CASES, ids=str)
+def test_dtype_conversions(volume, dtype1, dtype2):
+    print(f"---- check for dtype {dtype1} (a) and {dtype2} (v)")
+    check_api(generate_random(volume, dtype1), dtype2)
+
+
+@pytest.mark.parametrize("volume, dtype", STANDARD_CASES, ids=str)
+def test_standard_cases(volume, dtype):
     print(f"---- check for dtype {dtype}")
     check_api(generate_random(volume, dtype))
 
