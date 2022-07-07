@@ -17,7 +17,7 @@
 """
 from __future__ import annotations
 
-from pathlib import Path, PurePath
+from pathlib import PurePath
 
 import pytest
 
