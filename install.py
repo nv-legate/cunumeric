@@ -23,8 +23,6 @@ import shutil
 import subprocess
 import sys
 
-import setuptools
-
 # Flush output on newlines
 sys.stdout.reconfigure(line_buffering=True)
 
@@ -84,140 +82,6 @@ def execute_command(args, verbose, **kwargs):
     subprocess.check_call(args, **kwargs)
 
 
-def cmake_build(
-    cmake_exe,
-    build_dir,
-    thread_count,
-    verbose,
-):
-    cmake_flags = ["--build", build_dir]
-    if verbose:
-        cmake_flags += ["-v"]
-    if thread_count is not None:
-        cmake_flags += ["-j", str(thread_count)]
-
-    execute_command([cmake_exe] + cmake_flags, verbose)
-
-
-def cmake_install(
-    cmake_exe,
-    build_dir,
-    verbose,
-    install_dir=None,
-):
-    cmake_flags = ["--install", build_dir]
-
-    if install_dir is not None:
-        cmake_flags += ["--prefix", install_dir]
-
-    execute_command([cmake_exe] + cmake_flags, verbose)
-
-
-def configure_cunumeric_cpp(
-    cunumeric_dir,
-    build_dir,
-    legate_dir,
-    legate_url,
-    legate_branch,
-    openblas_dir,
-    tblis_dir,
-    cutensor_dir,
-    nccl_dir,
-    thrust_dir,
-    arch,
-    march,
-    cuda,
-    cuda_dir,
-    cmake_exe,
-    cmake_generator,
-    debug,
-    debug_release,
-    check_bounds,
-    verbose,
-    extra_flags,
-):
-    cmake_flags = [
-        "-G",
-        cmake_generator,
-        "-S",
-        cunumeric_dir,
-        "-B",
-        build_dir,
-    ]
-
-    if debug or verbose:
-        cmake_flags += ["--log-level=%s" % ("DEBUG" if debug else "VERBOSE")]
-
-    cmake_flags += [
-        "-DCMAKE_BUILD_TYPE=%s"
-        % (
-            "Debug"
-            if debug
-            else "RelWithDebInfo"
-            if debug_release
-            else "Release"
-        ),
-        "-DBUILD_SHARED_LIBS=ON",
-        "-DBUILD_MARCH=%s" % march,
-        "-DCMAKE_CUDA_ARCHITECTURES=%s" % arch,
-        "-DLegion_USE_CUDA=%s" % ("ON" if cuda else "OFF"),
-        "-DLegion_BOUNDS_CHECKS=%s" % ("ON" if check_bounds else "OFF"),
-    ]
-
-    if cuda_dir:
-        cmake_flags += ["-DCUDAToolkit_ROOT=%s" % cuda_dir]
-    if nccl_dir:
-        cmake_flags += ["-DNCCL_DIR=%s" % nccl_dir]
-    if tblis_dir:
-        cmake_flags += ["-DTBLIS_DIR=%s" % tblis_dir]
-    if thrust_dir:
-        cmake_flags += ["-DThrust_ROOT=%s" % thrust_dir]
-    if openblas_dir:
-        cmake_flags += ["-DBLAS_DIR=%s" % openblas_dir]
-    if cutensor_dir:
-        cmake_flags += ["-Dcutensor_DIR=%s" % cutensor_dir]
-    if legate_dir:
-        cmake_flags += ["-Dlegate_core_ROOT=%s" % legate_dir]
-    if legate_url:
-        cmake_flags += ["-DCUNUMERIC_LEGATE_CORE_REPOSITORY=%s" % legate_url]
-    if legate_branch:
-        cmake_flags += ["-DCUNUMERIC_LEGATE_CORE_BRANCH=%s" % legate_branch]
-
-    execute_command(
-        [cmake_exe] + cmake_flags + extra_flags, verbose, cwd=cunumeric_dir
-    )
-
-
-def build_cunumeric_python(
-    cunumeric_dir,
-    build_dir,
-    verbose,
-    unknown,
-):
-    cmd = [
-        sys.executable,
-        "setup.py",
-        "install",
-        "--recurse",
-        "--prefix",
-        build_dir,
-    ]
-
-    # Work around breaking change in setuptools 60
-    if int(setuptools.__version__.split(".")[0]) >= 60:
-        cmd += ["--single-version-externally-managed", "--root=/"]
-
-    if unknown is not None:
-        if "--prefix" in unknown:
-            raise Exception(
-                "cuNumeric cannot be installed in a different location than "
-                "Legate Core, please remove the --prefix argument"
-            )
-        cmd += unknown
-
-    execute_command(cmd, verbose, cwd=cunumeric_dir)
-
-
 def install_cunumeric(
     arch,
     march,
@@ -240,6 +104,8 @@ def install_cunumeric(
     clean_first,
     python_only,
     thread_count,
+    editable,
+    build_isolation,
     verbose,
     extra_flags,
     unknown,
@@ -270,14 +136,18 @@ def install_cunumeric(
         print("verbose: ", verbose)
         print("unknown: ", unknown)
 
-    cunumeric_dir = os.path.dirname(os.path.realpath(__file__))
+    join = os.path.join
+    dirname = os.path.dirname
+    realpath = os.path.realpath
+
+    cunumeric_dir = dirname(realpath(__file__))
 
     if thread_count is None:
         thread_count = multiprocessing.cpu_count()
 
     def validate_path(path):
         if path is not None:
-            path = os.path.realpath(path)
+            path = realpath(path)
             if not os.path.exists(path):
                 path = None
         return path
@@ -289,57 +159,91 @@ def install_cunumeric(
     cutensor_dir = validate_path(cutensor_dir)
     openblas_dir = validate_path(openblas_dir)
 
-    if install_dir is None:
-        if legate_dir is not None:
-            install_dir = os.path.join(legate_dir, "install")
-        else:
-            install_dir = os.path.join(cunumeric_dir, "install")
+    build_dir = join(cunumeric_dir, "_skbuild")
+
+    if clean_first:
+        shutil.rmtree(build_dir, ignore_errors=True)
+        shutil.rmtree(join(cunumeric_dir, "dist"), ignore_errors=True)
+        shutil.rmtree(join(cunumeric_dir, "build"), ignore_errors=True)
+        shutil.rmtree(
+            join(cunumeric_dir, "cunumeric.egg-info"),
+            ignore_errors=True,
+        )
+
+    # Configure and build legate.core via setup.py
+    pip_install_cmd = [
+        sys.executable,
+        "-m",
+        "pip",
+        "install",
+        "--root",
+        "/",
+    ]
+
+    if unknown is not None:
+        pip_install_cmd += unknown
+    elif install_dir is not None:
+        pip_install_cmd += ["--prefix", str(realpath(install_dir))]
+
+    if editable:
+        pip_install_cmd += ["--no-deps", "--no-build-isolation", "--editable"]
     else:
-        install_dir = os.path.realpath(install_dir)
+        pip_install_cmd += ["--upgrade"]
+        if not build_isolation:
+            pip_install_cmd += ["--no-build-isolation"]
 
-    if not python_only:
-        build_dir = os.path.join(cunumeric_dir, "build")
+    pip_install_cmd += ["."]
+    if verbose:
+        pip_install_cmd += ["-vv"]
 
-        if clean_first:
-            shutil.rmtree(build_dir, ignore_errors=True)
+    cmake_flags = []
 
-        # Configure cuNumeric C++
-        configure_cunumeric_cpp(
-            cunumeric_dir,
-            build_dir,
-            legate_dir,
-            legate_url,
-            legate_branch,
-            openblas_dir,
-            tblis_dir,
-            cutensor_dir,
-            nccl_dir,
-            thrust_dir,
-            arch,
-            march,
-            cuda,
-            cuda_dir,
-            cmake_exe,
-            cmake_generator,
-            debug,
-            debug_release,
-            check_bounds,
-            verbose,
-            extra_flags,
-        )
+    if cmake_generator:
+        cmake_flags += [f"-G{cmake_generator}"]
 
-        # Build cuNumeric C++
-        cmake_build(
-            cmake_exe,
-            build_dir,
-            thread_count,
-            verbose,
-        )
+    if debug or verbose:
+        cmake_flags += ["--log-level=%s" % ("DEBUG" if debug else "VERBOSE")]
 
-        # Install cuNumeric C++
-        cmake_install(cmake_exe, build_dir, verbose, install_dir)
+    cmake_flags += f"""\
+-DCMAKE_BUILD_TYPE={(
+    "Debug" if debug else "RelWithDebInfo" if debug_release else "Release"
+)}
+-DBUILD_SHARED_LIBS=ON
+-DBUILD_MARCH={str(march)}
+-DCMAKE_CUDA_ARCHITECTURES={str(arch)}
+-DLegion_USE_CUDA={("ON" if cuda else "OFF")}
+-DLegion_BOUNDS_CHECKS={("ON" if check_bounds else "OFF")}
+""".splitlines()
 
-    build_cunumeric_python(cunumeric_dir, build_dir, verbose, unknown)
+    if cuda_dir:
+        cmake_flags += ["-DCUDAToolkit_ROOT=%s" % cuda_dir]
+    if nccl_dir:
+        cmake_flags += ["-DNCCL_DIR=%s" % nccl_dir]
+    if tblis_dir:
+        cmake_flags += ["-DTBLIS_DIR=%s" % tblis_dir]
+    if thrust_dir:
+        cmake_flags += ["-DThrust_ROOT=%s" % thrust_dir]
+    if openblas_dir:
+        cmake_flags += ["-DBLAS_DIR=%s" % openblas_dir]
+    if cutensor_dir:
+        cmake_flags += ["-Dcutensor_DIR=%s" % cutensor_dir]
+    if legate_dir:
+        cmake_flags += ["-Dlegate_core_ROOT=%s" % legate_dir]
+    if legate_url:
+        cmake_flags += ["-Dcunumeric_LEGATE_CORE_REPOSITORY=%s" % legate_url]
+    if legate_branch:
+        cmake_flags += ["-Dcunumeric_LEGATE_CORE_BRANCH=%s" % legate_branch]
+
+    cmake_flags += extra_flags
+    cmd_env = dict(os.environ.items())
+    cmd_env.update(
+        {
+            "SKBUILD_BUILD_OPTIONS": f"-j{str(thread_count)}",
+            "SKBUILD_CONFIGURE_OPTIONS": "\n".join(cmake_flags),
+        }
+    )
+
+    execute_command(pip_install_cmd, verbose, cwd=cunumeric_dir, env=cmd_env)
 
 
 def driver():
@@ -454,8 +358,8 @@ def driver():
         "--cmake-generator",
         dest="cmake_generator",
         required=False,
-        default="Unix Makefiles",
-        choices=["Unix Makefiles", "Ninja"],
+        default="Ninja",
+        choices=["Ninja", "Unix Makefiles"],
         help="The CMake makefiles generator",
     )
     parser.add_argument(
@@ -517,6 +421,25 @@ def driver():
         type=int,
         required=False,
         help="Number of threads used to compile.",
+    )
+    parser.add_argument(
+        "--editable",
+        dest="editable",
+        action="store_true",
+        required=False,
+        default=False,
+        help="Perform an editable install. Disables --build-isolation if set "
+        "(passing --no-deps --no-build-isolation to pip).",
+    )
+    parser.add_argument(
+        "--build-isolation",
+        dest="build_isolation",
+        action=BooleanFlag,
+        required=False,
+        default=True,
+        help="Enable isolation when building a modern source distribution. "
+        "Build dependencies specified by PEP 518 must be already "
+        "installed if this option is used.",
     )
     parser.add_argument(
         "-v",
