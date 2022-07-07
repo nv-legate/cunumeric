@@ -28,83 +28,110 @@ function(find_or_configure_tblis)
         EXCLUDE_FROM_ALL  ${PKG_EXCLUDE_FROM_ALL}
   )
 
-  if(tblis_ADDED AND (NOT EXISTS "${tblis_BINARY_DIR}/include"))
-
-    # Configure tblis
-    set(tblis_thread_model "--disable-thread-model")
-    if(PKG_USE_OPENMP)
-      set(tblis_thread_model "--enable-thread-model=openmp")
-    endif()
-
-    # CMake sets `ENV{CC}` to /usr/bin/cc if it's not set. This causes tblis'
-    # `./configure` to fail. For now, detect this case and reset ENV{CC/CXX}.
-    # Remove this workaround when we can use `cmake_policy(SET CMP0132 NEW)`:
-    # https://gitlab.kitware.com/cmake/cmake/-/merge_requests/7108
-
-    set(CC_ORIG "$ENV{CC}")
-    set(CXX_ORIG "$ENV{CXX}")
-    set(_CC "${CMAKE_C_COMPILER}")
-    set(_CXX "${CMAKE_CXX_COMPILER}")
-
-    if(CC_ORIG MATCHES "^.*\/cc$")
-      file(REAL_PATH "${_CC}" _CC EXPAND_TILDE)
-      file(REAL_PATH "${_CXX}" _CXX EXPAND_TILDE)
-      set(ENV{CC} "${_CC}")
-      set(ENV{CXX} "${_CXX}")
-    endif()
-
-    # Use the caching compiler (if provided) to speed up tblis builds
-    if(CMAKE_C_COMPILER_LAUNCHER)
-      set(ENV{CC} "${CMAKE_C_COMPILER_LAUNCHER} ${_CC}")
-    endif()
-    if(CMAKE_CXX_COMPILER_LAUNCHER)
-      set(ENV{CXX} "${CMAKE_CXX_COMPILER_LAUNCHER} ${_CXX}")
-    endif()
-
-    message(VERBOSE "cunumeric: ENV{CC}=\"$ENV{CC}\"")
-    message(VERBOSE "cunumeric: ENV{CXX}=\"$ENV{CXX}\"")
-
-    execute_process(
-      COMMAND ./configure
-        ${tblis_thread_model}
-        --enable-silent-rules
-        --disable-option-checking
-        --with-label-type=int32_t
-        --with-length-type=int64_t
-        --with-stride-type=int64_t
-        --prefix=${tblis_BINARY_DIR}
-        --disable-dependency-tracking
-      WORKING_DIRECTORY      "${tblis_SOURCE_DIR}"
-      COMMAND_ECHO           STDOUT
-      COMMAND_ERROR_IS_FATAL ANY
-      ECHO_ERROR_VARIABLE
-      ECHO_OUTPUT_VARIABLE)
-
-    # Reset ENV{CC/CXX}
-    set(ENV{CC} "${CC_ORIG}")
-    set(ENV{CXX} "${CXX_ORIG}")
-
-    # Build and install tblis to ${tblis_BINARY_DIR}
-    execute_process(
-      COMMAND make -j${CMAKE_BUILD_PARALLEL_LEVEL} install
-      WORKING_DIRECTORY      "${tblis_SOURCE_DIR}"
-      COMMAND_ECHO           STDOUT
-      COMMAND_ERROR_IS_FATAL ANY
-      ECHO_ERROR_VARIABLE
-      ECHO_OUTPUT_VARIABLE)
-  endif()
-
   set(lib_suffix "")
   if(BUILD_SHARED_LIBS)
-    add_library(tblis SHARED IMPORTED GLOBAL)
+    add_library(tblis INTERFACE)
     set(lib_suffix "${CMAKE_SHARED_LIBRARY_SUFFIX}")
   else()
-    add_library(tblis STATIC IMPORTED GLOBAL)
+    add_library(tblis INTERFACE)
     set(lib_suffix "${CMAKE_STATIC_LIBRARY_SUFFIX}")
   endif()
 
+  set(should_build_tblis OFF)
+  if(tblis_ADDED AND
+    (NOT EXISTS "${tblis_BINARY_DIR}/include") OR
+    (NOT EXISTS "${tblis_BINARY_DIR}/lib/libtci${lib_suffix}") OR
+    (NOT EXISTS "${tblis_BINARY_DIR}/lib/libtblis${lib_suffix}"))
+    set(should_build_tblis ${tblis_ADDED})
+  endif()
+
+  message(VERBOSE "tblis_ADDED: ${tblis_ADDED}")
+  message(VERBOSE "tblis_SOURCE_DIR: ${tblis_SOURCE_DIR}")
+  message(VERBOSE "tblis_BINARY_DIR: ${tblis_BINARY_DIR}")
+  message(VERBOSE "should_build_tblis: ${should_build_tblis}")
+
+  if(should_build_tblis)
+
+    set(should_configure_tblis ON)
+    if (EXISTS "${tblis_SOURCE_DIR}/Makefile")
+      set(should_configure_tblis OFF)
+    endif()
+
+    message(VERBOSE "should_configure_tblis: ${should_configure_tblis}")
+
+    # Configure tblis
+    if (should_configure_tblis)
+      set(tblis_thread_model "--disable-thread-model")
+      if(PKG_USE_OPENMP)
+        set(tblis_thread_model "--enable-thread-model=openmp")
+      endif()
+
+      # CMake sets `ENV{CC}` to /usr/bin/cc if it's not set. This causes tblis'
+      # `./configure` to fail. For now, detect this case and reset ENV{CC/CXX}.
+      # Remove this workaround when we can use `cmake_policy(SET CMP0132 NEW)`:
+      # https://gitlab.kitware.com/cmake/cmake/-/merge_requests/7108
+
+      set(CC_ORIG "$ENV{CC}")
+      set(CXX_ORIG "$ENV{CXX}")
+      set(_CC "${CMAKE_C_COMPILER}")
+      set(_CXX "${CMAKE_CXX_COMPILER}")
+
+      if(CC_ORIG MATCHES "^.*\/cc$")
+        file(REAL_PATH "${_CC}" _CC EXPAND_TILDE)
+        file(REAL_PATH "${_CXX}" _CXX EXPAND_TILDE)
+        set(ENV{CC} "${_CC}")
+        set(ENV{CXX} "${_CXX}")
+      endif()
+
+      # Use the caching compiler (if provided) to speed up tblis builds
+      if(CMAKE_C_COMPILER_LAUNCHER)
+        set(ENV{CC} "${CMAKE_C_COMPILER_LAUNCHER} ${_CC}")
+      endif()
+      if(CMAKE_CXX_COMPILER_LAUNCHER)
+        set(ENV{CXX} "${CMAKE_CXX_COMPILER_LAUNCHER} ${_CXX}")
+      endif()
+
+      message(VERBOSE "cunumeric: ENV{CC}=\"$ENV{CC}\"")
+      message(VERBOSE "cunumeric: ENV{CXX}=\"$ENV{CXX}\"")
+
+      execute_process(
+        COMMAND ./configure
+          ${tblis_thread_model}
+          --enable-silent-rules
+          --disable-option-checking
+          --with-label-type=int32_t
+          --with-length-type=int64_t
+          --with-stride-type=int64_t
+          --prefix=${tblis_BINARY_DIR}
+          --disable-dependency-tracking
+        WORKING_DIRECTORY      "${tblis_SOURCE_DIR}"
+        COMMAND_ECHO           STDOUT
+        COMMAND_ERROR_IS_FATAL ANY
+        ECHO_ERROR_VARIABLE
+        ECHO_OUTPUT_VARIABLE)
+
+      # Reset ENV{CC/CXX}
+      set(ENV{CC} "${CC_ORIG}")
+      set(ENV{CXX} "${CXX_ORIG}")
+    endif()
+
+    # Build tblis into ${tblis_BINARY_DIR}
+    add_custom_target(tblis_build ALL
+      COMMENT           "Building tblis"
+      COMMAND           make -j${CMAKE_BUILD_PARALLEL_LEVEL} install
+      DEPENDS           "${tblis_SOURCE_DIR}/Makefile"
+      WORKING_DIRECTORY "${tblis_SOURCE_DIR}"
+      BYPRODUCTS
+        "${tblis_BINARY_DIR}/lib/libtci${lib_suffix}"
+        "${tblis_BINARY_DIR}/lib/libtblis${lib_suffix}"
+      USES_TERMINAL
+      VERBATIM
+    )
+    add_dependencies(tblis tblis_build)
+  endif()
+
   add_library(tblis::tblis ALIAS tblis)
-  target_include_directories(tblis INTERFACE ${tblis_BINARY_DIR}/include)
+  target_include_directories(tblis INTERFACE "${tblis_BINARY_DIR}/include")
   set_target_properties(tblis
     PROPERTIES BUILD_RPATH                         "\$ORIGIN"
                INSTALL_RPATH                       "\$ORIGIN"
