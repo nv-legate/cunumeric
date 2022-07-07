@@ -1,4 +1,4 @@
-# Copyright (c) 2020, NVIDIA CORPORATION. All rights reserved.
+# Copyright (c) 2020-2022, NVIDIA CORPORATION. All rights reserved.
 #
 # NVIDIA CORPORATION and its licensors retain all intellectual property
 # and proprietary rights in and to this software, related documentation
@@ -10,8 +10,15 @@
 #
 
 # IMPORTANT:
-#   * header.py.in is used as an input to string.format()
-#   * header.py is a generated file and should not be modified by hand
+#   * install_info.py.in is used as an input to string.format()
+#   * install_info.py is a generated file and should not be modified by hand
 
-header = {header}
-libpath = {libpath}
+def get_libpath():
+    import os, sys
+    cn_path = os.path.dirname(os.path.dirname(__file__))
+    if os.path.exists(libdir := os.path.join(cn_path, "build", "lib")):
+        return libdir
+    return os.path.join(os.path.dirname(sys.argv[0]), "lib")
+
+libpath: str = get_libpath()
+header: str = """@header@"""
