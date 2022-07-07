@@ -3,7 +3,7 @@
 # Read legate_core_ROOT from the environment or prompt the user to enter it
 if [[ -z "$legate_core_ROOT" ]]; then
     while [[ -z "$legate_core_ROOT" || ! -d "$legate_core_ROOT" ]]; do
-        read -p "\`\$legate_core_ROOT\` not found.
+        read -ep "\`\$legate_core_ROOT\` not found.
 Please enter the path to a legate.core build (or install) directory:
 " legate_core_ROOT </dev/tty
     done
