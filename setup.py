@@ -15,14 +15,10 @@
 # limitations under the License.
 #
 
-import sys
-
 from setuptools import find_packages
 from skbuild import setup
 
 import versioneer
-
-print("sys.argv:\n", sys.argv)
 
 setup(
     name="cunumeric",
