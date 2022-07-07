@@ -10,7 +10,6 @@
 #
 
 # IMPORTANT:
-#   * install_info.py.in is used as an input to string.format()
 #   * install_info.py is a generated file and should not be modified by hand
 
 def get_libpath():
@@ -19,6 +18,7 @@ def get_libpath():
     if os.path.exists(libdir := os.path.join(cn_path, "build", "lib")):
         return libdir
     return os.path.join(os.path.dirname(sys.argv[0]), "lib")
+
 
 libpath: str = get_libpath()
 header: str = """@header@"""
