@@ -50,8 +50,6 @@ constexpr decltype(auto) op_dispatch(ScanCode op_code, bool nan0, Functor f, Fna
   return f.template operator()<ScanCode::SUM, false>(std::forward<Fnargs>(args)...);
 }
 
-// RRRR not sure I fully understand these?
-
 template <ScanCode OP_CODE, legate::LegateTypeCode CODE>
 struct ScanOp {
   static constexpr int nan_null = 0;
