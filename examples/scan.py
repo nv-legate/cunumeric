@@ -21,8 +21,6 @@ import numpy as np
 from benchmark import run_benchmark
 from legate.timing import time
 
-import cunumeric as num
-
 
 def initialize(shape, dt, axis):
     if dt == "int":
@@ -128,7 +126,6 @@ if __name__ == "__main__":
         "nancumsum, nancumprod",
     )
     parser.add_argument(
-        "-c",
         "--check",
         dest="check",
         action="store_true",
@@ -143,8 +140,41 @@ if __name__ == "__main__":
         help="number of times to benchmark this application (default 1 - "
         "normal execution)",
     )
+    parser.add_argument(
+        "--package",
+        dest="package",
+        choices=["legate", "numpy", "cupy"],
+        type=str,
+        default="legate",
+        help="NumPy package to use (legate, numpy, or cupy)",
+    )
+    parser.add_argument(
+        "--cupy-allocator",
+        dest="cupy_allocator",
+        choices=["default", "off", "managed"],
+        type=str,
+        default="default",
+        help="cupy allocator to use (default, off, or managed)",
+    )
 
-    args = parser.parse_args()
+    args, _ = parser.parse_known_args()
+
+    if args.package == "legate":
+        import cunumeric as num
+    elif args.package == "cupy":
+        import cupy as num
+
+        if args.cupy_allocator == "off":
+            num.cuda.set_allocator(None)
+            print("Turning off memory pool")
+        elif args.cupy_allocator == "managed":
+            num.cuda.set_allocator(
+                num.cuda.MemoryPool(num.cuda.malloc_managed).malloc
+            )
+            print("Using managed memory pool")
+    elif args.package == "numpy":
+        import numpy as num
+
     run_benchmark(
         run_scan,
         args.benchmark,
