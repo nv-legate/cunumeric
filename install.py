@@ -300,7 +300,7 @@ def driver():
         "--legate-branch",
         dest="legate_branch",
         required=False,
-        default="control_replication",
+        default="branch-22.07",
         help="Legate branch to build cuNumeric with.",
     )
     parser.add_argument(
