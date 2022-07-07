@@ -3084,16 +3084,34 @@ class ndarray:
         Multiple GPUs, Multiple CPUs
         """
 
+        if self.ndim != 1:
+            raise ValueError("Dimension mismatch: self must be a 1D array")
+
         # this is needed in case v is a scalar
         v_ndarray = convert_to_cunumeric_ndarray(v)
 
-        result = ndarray(v.shape, np.int64, inputs=(self, v_ndarray, sorter))
+        a = self
+        # in case we have different dtypes we ned to find a common type
+        if a.dtype is not v_ndarray.dtype:
+            ch_dtype = np.find_common_type([a.dtype, v_ndarray.dtype], [])
 
-        if sorter is not None and self.shape[0] > 1:
-            resorted = self.take(sorter).copy()
-            result._thunk.searchsorted(resorted._thunk, v_ndarray._thunk, side)
-        else:
-            result._thunk.searchsorted(self._thunk, v_ndarray._thunk, side)
+            if v_ndarray.dtype is not ch_dtype:
+                v_ndarray = v_ndarray.astype(ch_dtype)
+            if a.dtype is not ch_dtype:
+                a = a.astype(ch_dtype)
+
+        if sorter is not None and a.shape[0] > 1:
+            if sorter.ndim != 1:
+                raise ValueError(
+                    "Dimension mismatch: sorter must be a 1D array"
+                )
+            a = a.take(sorter).copy()
+
+        result = ndarray(
+            v_ndarray.shape, np.int64, inputs=(a, v_ndarray, sorter)
+        )
+
+        result._thunk.searchsorted(a._thunk, v_ndarray._thunk, side)
         return result
 
     def sort(self, axis=-1, kind="quicksort", order=None):
