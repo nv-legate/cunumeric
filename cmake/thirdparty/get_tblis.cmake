@@ -30,10 +30,10 @@ function(find_or_configure_tblis)
 
   set(lib_suffix "")
   if(BUILD_SHARED_LIBS)
-    add_library(tblis INTERFACE)
+    add_library(tblis SHARED IMPORTED GLOBAL)
     set(lib_suffix "${CMAKE_SHARED_LIBRARY_SUFFIX}")
   else()
-    add_library(tblis INTERFACE)
+    add_library(tblis STATIC IMPORTED GLOBAL)
     set(lib_suffix "${CMAKE_STATIC_LIBRARY_SUFFIX}")
   endif()
 
@@ -127,7 +127,11 @@ function(find_or_configure_tblis)
       USES_TERMINAL
       VERBATIM
     )
+
     add_dependencies(tblis tblis_build)
+
+    # Makes `target_include_directories()` below work
+    file(MAKE_DIRECTORY "${tblis_BINARY_DIR}/include")
   endif()
 
   add_library(tblis::tblis ALIAS tblis)
