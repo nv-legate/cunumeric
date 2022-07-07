@@ -6,8 +6,6 @@ cd $(dirname "$(realpath "$0")")/..
 source ./scripts/util/build-caching.sh
 # Use consistent C[XX]FLAGS
 source ./scripts/util/compiler-flags.sh
-# Read legate_core_ROOT from the environment or prompt the user to enter it
-source ./scripts/util/read-legate-core-root.sh "$0"
 # Uninstall existing globally-installed Legion and legate_core (if installed)
 source ./scripts/util/uninstall-global-legion-legate-core-and-cunumeric.sh
 
@@ -22,8 +20,7 @@ if [[ -n "$(which ninja)" ]]; then cmake_args+="-GNinja"; fi
 
 # Add other build options here as desired
 cmake_args+="
--D CMAKE_CUDA_ARCHITECTURES=NATIVE
--D legate_core_ROOT:STRING=\"$legate_core_ROOT\"";
+-D CMAKE_CUDA_ARCHITECTURES=NATIVE";
 
 # Use all but 2 threads to compile
 ninja_args="-j$(nproc --ignore=2)"
