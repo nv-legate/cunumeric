@@ -54,7 +54,6 @@ class TestConfig:
         assert c.verbose == 0
         assert c.test_root is None
         assert c.requested_workers is None
-        assert isinstance(c.legate_dir, Path)
 
         assert c.extra_args == []
         assert c.root_dir == PurePath(m.__file__).parents[2]
@@ -62,8 +61,6 @@ class TestConfig:
         assert any("examples" in str(x) for x in c.test_files)
         assert any("integration" in str(x) for x in c.test_files)
         assert all("unit" not in str(x) for x in c.test_files)
-        assert isinstance(c.legate_path, Path)
-        assert str(c.legate_path).endswith("bin/legate")
 
     @pytest.mark.parametrize("feature", FEATURES)
     def test_env_features(
@@ -133,38 +130,6 @@ class TestConfig:
     def test_test_root(self, arg: str) -> None:
         c = m.Config(["test.py", arg, "some/path"])
         assert c.test_root == "some/path"
-
-    def test_legate_dir(self) -> None:
-        c = m.Config([])
-        assert c._legate_source == "build"
-
-    def test_cmd_legate_dir_good(self) -> None:
-        # this will be good, assuming legate is built
-        good_legate_dir = m.Config([]).legate_dir
-        c = m.Config(["test.py", "--legate", str(good_legate_dir)])
-        assert c.legate_dir == good_legate_dir
-        assert c._legate_source == "cmd"
-
-    def test_cmd_legate_dir_bad(self) -> None:
-        with pytest.raises(RuntimeError) as e:
-            m.Config(["test.py", "--legate", "some/path"])
-            assert str(e).endswith("does not exist")
-
-    def test_env_legate_dir_good(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        # this will be good, assuming legate is built
-        good_legate_dir = m.Config([]).legate_dir
-        monkeypatch.setenv("LEGATE_DIR", f"{good_legate_dir}")
-        c = m.Config([])
-        assert c.legate_dir == good_legate_dir
-        assert c._legate_source == "env"
-
-    def test_env_legate_dir_bad(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setenv("LEGATE_DIR", "some/path")
-        with pytest.raises(RuntimeError) as e:
-            m.Config(["test.py", "--legate", "some/path"])
-            assert str(e).endswith("does not exist")
 
     def test_extra_args(self) -> None:
         extra = ["-foo", "--bar", "--baz", "10"]

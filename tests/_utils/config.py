@@ -63,7 +63,6 @@ class Config:
         self.verbose = args.verbose
         self.test_root = args.test_root
         self.requested_workers = args.workers
-        self.legate_dir = self._compute_legate_dir(args)
 
     @property
     def extra_args(self) -> ArgList:
@@ -107,11 +106,6 @@ class Config:
 
         return tuple(files)
 
-    @property
-    def legate_path(self) -> Path:
-        """Computed path to the legate driver script"""
-        return self.legate_dir / "bin" / "legate"
-
     def _compute_features(self, args: Namespace) -> tuple[FeatureType, ...]:
         args_features = args.features or []
         computed = []
@@ -126,42 +120,3 @@ class Config:
             computed.append("cpus")
 
         return tuple(computed)
-
-    def _compute_legate_dir(self, args: Namespace) -> Path:
-        legate_dir: Path | None
-
-        # self._legate_source below is purely for testing
-
-        if args.legate_dir:
-            legate_dir = Path(args.legate_dir)
-            self._legate_source = "cmd"
-
-        elif "LEGATE_DIR" in os.environ:
-            legate_dir = Path(os.environ["LEGATE_DIR"])
-            self._legate_source = "env"
-
-        # TODO: (bryevdv) This will need to change when cmake work is merged
-        else:
-            try:
-                config_path = (
-                    PurePath(__file__).parents[2] / ".legate.core.json"
-                )
-                with open(config_path, "r") as f:
-                    legate_dir = Path(json.load(f))
-                    self._legate_source = "build"
-            except IOError:
-                legate_dir = None
-
-        if legate_dir is None:
-            raise RuntimeError(
-                "You need to provide a Legate installation directory "
-                "using --legate, LEGATE_DIR or config file"
-            )
-
-        if not legate_dir.exists():
-            raise RuntimeError(
-                f"The specified Legate installation directory {legate_dir} "
-                "does not exist"
-            )
-
-        return legate_dir
