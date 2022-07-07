@@ -98,9 +98,9 @@ if __name__ == "__main__":
         "--shape",
         type=int,
         nargs="+",
-        default=[10],
+        default=(10),
         dest="shape",
-        help="array reshape (default '[10]')",
+        help="array shape (default '(10)')",
     )
     parser.add_argument(
         "-t",
