@@ -170,7 +170,7 @@ def install_cunumeric(
             ignore_errors=True,
         )
 
-    # Configure and build legate.core via setup.py
+    # Configure and build cuNumeric via setup.py
     pip_install_cmd = [
         sys.executable,
         "-m",
