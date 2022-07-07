@@ -13,4 +13,4 @@ else
     echo "Using legate.core at: \`$legate_core_ROOT\`"
 fi
 
-export legate_core_ROOT="$legate_core_ROOT"
+export legate_core_ROOT="$(realpath -m "$legate_core_ROOT")"
