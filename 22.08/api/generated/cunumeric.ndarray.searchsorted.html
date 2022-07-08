@@ -2042,15 +2042,31 @@
 <dl class="py method">
 <dt class="sig sig-object py" id="cunumeric.ndarray.searchsorted">
 <span class="sig-prename descclassname"><span class="pre">ndarray.</span></span><span class="sig-name descname"><span class="pre">searchsorted</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">v</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">side</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'left'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sorter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cunumeric.ndarray.searchsorted" title="Permalink to this definition">#</a></dt>
-<dd><p>Find indices where elements of v should be inserted in a to maintain order.</p>
-<p>For full documentation, see <cite>numpy.searchsorted</cite></p>
-<div class="admonition seealso">
-<p class="admonition-title">See also</p>
-<dl class="simple">
-<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.searchsorted.html#numpy.searchsorted" title="(in NumPy v1.23)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.searchsorted</span></code></a></dt><dd><p>equivalent function</p>
+<dd><p>Find the indices into a sorted array a such that, if the corresponding
+elements in v were inserted before the indices, the order of a would be
+preserved.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>v</strong> (<em>scalar</em><em> or </em><em>array_like</em>) – Values to insert into a.</p></li>
+<li><p><strong>side</strong> (<code class="docutils literal notranslate"><span class="pre">{'left',</span> <span class="pre">'right'}</span></code>, optional) – If ‘left’, the index of the first suitable location found is given.
+If ‘right’, return the last such index. If there is no suitable
+index, return either 0 or N (where N is the length of a).</p></li>
+<li><p><strong>sorter</strong> (<em>1-D array_like</em><em>, </em><em>optional</em>) – Optional array of integer indices that sort array a into ascending
+order. They are typically the result of argsort.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>indices</strong> – Array of insertion points with the same shape as v, or an integer
+if v is a scalar.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)">int</a> or array_like[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)">int</a>]</p>
+</dd>
+<dt class="field-even">Availability</dt>
+<dd class="field-even"><p><em>Multiple GPUs, Multiple CPUs</em></p>
 </dd>
 </dl>
-</div>
 </dd></dl>
 
 </section>
