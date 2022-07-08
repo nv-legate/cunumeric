@@ -61,12 +61,10 @@ struct ScanLocalImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
     auto sum_valsptr = sum_vals.create_output_buffer<VAL, DIM>(extents, true);
 
     for (uint64_t index = 0; index < volume; index += stride) {
-      // RRRR depending on stride and volume this should either call multiple streams
-      // RRRR or use a cub version (currently not implemented)
       thrust::inclusive_scan(
         thrust::device, inptr + index, inptr + index + stride, outptr + index, func);
       // get the corresponding ND index with base zero to use for sum_val
-      auto sum_valp = pitches.unflatten(index, rect.lo) - rect.lo;
+      auto sum_valp = pitches.unflatten(index, Point<DIM>::ZEROES());
       // only one element on scan axis
       sum_valp[DIM - 1] = 0;
       // write out the partition sum
@@ -81,7 +79,7 @@ struct ScanLocalNanImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
   using VAL = legate_type_of<CODE>;
 
   struct convert_nan_func {
-    __host__ __device__ VAL operator()(VAL x)
+    __device__ VAL operator()(VAL x)
     {
       return std::isnan(x) ? (VAL)ScanOp<OP_CODE, CODE>::nan_null : x;
     }
@@ -106,8 +104,6 @@ struct ScanLocalNanImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
     auto sum_valsptr = sum_vals.create_output_buffer<VAL, DIM>(extents, true);
 
     for (uint64_t index = 0; index < volume; index += stride) {
-      // RRRR depending on stride and volume this should either call multiple streams
-      // RRRR or use a cub version (currently not implemented)
       thrust::inclusive_scan(
         thrust::device,
         thrust::make_transform_iterator(inptr + index, convert_nan_func()),
@@ -115,7 +111,7 @@ struct ScanLocalNanImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
         outptr + index,
         func);
       // get the corresponding ND index with base zero to use for sum_val
-      auto sum_valp = pitches.unflatten(index, rect.lo) - rect.lo;
+      auto sum_valp = pitches.unflatten(index, Point<DIM>::ZEROES());
       // only one element on scan axis
       sum_valp[DIM - 1] = 0;
       // write out the partition sum

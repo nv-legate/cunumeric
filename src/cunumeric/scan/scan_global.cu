@@ -61,21 +61,13 @@ struct ScanGlobalImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
     auto stride         = out_rect.hi[DIM - 1] - out_rect.lo[DIM - 1] + 1;
     const size_t blocks = (stride + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
     for (uint64_t index = 0; index < volume; index += stride) {
-      // RRRR depending on stride and volume this should either call multiple streams
-      // RRRR or use a cub version (currently not implemented)
       // get the corresponding ND index to use for sum_val
       auto sum_valsp = out_pitches.unflatten(index, out_rect.lo);
       // first element on scan axis
       sum_valsp[DIM - 1]     = 0;
       auto sum_valsp_end     = sum_valsp;
       sum_valsp_end[DIM - 1] = partition_index[DIM - 1];
-      // RRRR simple version, faster at small sizes
-      // auto base = sum_vals[sum_valsp];
-      // for(int i=1; i<partition_index[DIM - 1]; i++){
-      // 	sum_valsp[DIM - 1] = i;
-      // 	base = base + sum_vals[sum_valsp];
-      // }
-      auto base = thrust::reduce(thrust::device,
+      auto base              = thrust::reduce(thrust::device,
                                  &sum_vals[sum_valsp],
                                  &sum_vals[sum_valsp_end],
                                  (VAL)ScanOp<OP_CODE, CODE>::nan_null,
