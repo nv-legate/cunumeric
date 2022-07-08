@@ -49,11 +49,15 @@ function(find_or_configure_legate_core)
 endfunction()
 
 if(NOT DEFINED cunumeric_LEGATE_CORE_BRANCH)
-  set(cunumeric_LEGATE_CORE_BRANCH branch-22.07)
+  # TODO: Undo this! Only setting temporarily so CI passes
+  set(cunumeric_LEGATE_CORE_BRANCH fea/add-cmake)
+  # set(cunumeric_LEGATE_CORE_BRANCH branch-22.07)
 endif()
 
 if(NOT DEFINED cunumeric_LEGATE_CORE_REPOSITORY)
-  set(cunumeric_LEGATE_CORE_REPOSITORY https://github.com/nv-legate/legate.core.git)
+  # TODO: Undo this! Only setting temporarily so CI passes
+  set(cunumeric_LEGATE_CORE_REPOSITORY https://github.com/trxcllnt/legate.core.git)
+  # set(cunumeric_LEGATE_CORE_REPOSITORY https://github.com/nv-legate/legate.core.git)
 endif()
 
 find_or_configure_legate_core(VERSION          ${cunumeric_VERSION}
