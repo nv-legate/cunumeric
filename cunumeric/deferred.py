@@ -1923,6 +1923,32 @@ class DeferredArray(NumPyThunk):
 
         return result
 
+    @auto_convert([1, 2])
+    def searchsorted(self, rhs, v, side="left"):
+
+        task = self.context.create_task(CuNumericOpCode.SEARCHSORTED)
+
+        is_left = side == "left"
+
+        if is_left:
+            self.fill(np.array(rhs.size, self.dtype))
+            task.add_reduction(self.base, ReductionOp.MIN)
+        else:
+            self.fill(np.array(0, self.dtype))
+            task.add_reduction(self.base, ReductionOp.MAX)
+
+        task.add_input(rhs.base)
+        task.add_input(v.base)
+
+        # every partition needs the value information
+        task.add_broadcast(v.base)
+        task.add_broadcast(self.base)
+        task.add_alignment(self.base, v.base)
+
+        task.add_scalar_arg(is_left, bool)
+        task.add_scalar_arg(rhs.size, ty.int64)
+        task.execute()
+
     @auto_convert([1])
     def sort(self, rhs, argsort=False, axis=-1, kind="quicksort", order=None):
 

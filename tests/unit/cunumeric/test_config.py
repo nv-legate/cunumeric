@@ -156,6 +156,7 @@ def test_CuNumericOpCode() -> None:
         "REPEAT",
         "SCALAR_UNARY_RED",
         "SORT",
+        "SEARCHSORTED",
         "SYRK",
         "TILE",
         "TRANSPOSE_COPY_2D",
