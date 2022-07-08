@@ -168,6 +168,14 @@ struct CURANDGenerator {
   {
     CHECK_CURAND(::randutilGenerateTriangularEx(gen_, out, count, a, b, c));
   }
+  void generate_weibull_64(uint64_t count, double* out, double lam, double k)
+  {
+    CHECK_CURAND(::randutilGenerateWeibullDoubleEx(gen_, out, count, lam, k));
+  }
+  void generate_weibull_32(uint64_t count, float* out, float lam, float k)
+  {
+    CHECK_CURAND(::randutilGenerateWeibullEx(gen_, out, count, lam, k));
+  }
 };
 
 #pragma endregion
@@ -726,6 +734,45 @@ struct triangular_generator<float> {
 
 #pragma endregion
 
+#pragma region weibull
+
+template <typename output_t>
+struct weibull_generator;
+template <>
+struct weibull_generator<double> {
+  double lam_, k_;
+
+  weibull_generator(const std::vector<int64_t>& intparams,
+                    const std::vector<float>& floatparams,
+                    const std::vector<double>& doubleparams)
+    : lam_(doubleparams[0]), k_(doubleparams[1])
+  {
+  }
+
+  void generate(CURANDGenerator& gen, uint64_t count, double* p) const
+  {
+    gen.generate_weibull_64(count, p, lam_, k_);
+  }
+};
+template <>
+struct weibull_generator<float> {
+  float lam_, k_;
+
+  weibull_generator(const std::vector<int64_t>& intparams,
+                    const std::vector<float>& floatparams,
+                    const std::vector<double>& doubleparams)
+    : lam_(floatparams[0]), k_(floatparams[1])
+  {
+  }
+
+  void generate(CURANDGenerator& gen, uint64_t count, float* p) const
+  {
+    gen.generate_weibull_32(count, p, lam_, k_);
+  }
+};
+
+#pragma endregion
+
 #pragma endregion
 
 template <typename output_t, typename generator_t>
@@ -1005,6 +1052,14 @@ struct BitGeneratorImplBody {
               break;
             case BitGeneratorDistribution::TRIANGULAR_64:
               generate_distribution<double, triangular_generator<double>>::generate(
+                res, cugen, intparams, floatparams, doubleparams);
+              break;
+            case BitGeneratorDistribution::WEIBULL_32:
+              generate_distribution<float, weibull_generator<float>>::generate(
+                res, cugen, intparams, floatparams, doubleparams);
+              break;
+            case BitGeneratorDistribution::WEIBULL_64:
+              generate_distribution<double, weibull_generator<double>>::generate(
                 res, cugen, intparams, floatparams, doubleparams);
               break;
             default: {

@@ -841,6 +841,26 @@ class EagerArray(NumPyThunk):
                 aa = np.random.triangular(a, c, b, size=self.array.shape)
                 self.array[:] = aa
 
+    def bitgenerator_weibull(
+        self,
+        handle,
+        generatorType,
+        seed,
+        flags,
+        lam,
+        k,
+    ) -> None:
+        if self.deferred is not None:
+            self.deferred.bitgenerator_weibull(
+                handle, generatorType, seed, flags, lam, k
+            )
+        else:
+            if self.array.size == 1:
+                self.array.fill(lam * np.random.weibull(k))
+            else:
+                aa = np.random.weibull(k, size=self.array.shape)
+                self.array[:] = lam * aa
+
     def partition(
         self,
         rhs,

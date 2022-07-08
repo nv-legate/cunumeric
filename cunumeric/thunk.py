@@ -272,6 +272,18 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
+    def bitgenerator_weibull(
+        self,
+        bitgen,
+        generatorType,
+        seed,
+        flags,
+        lam,
+        k,
+    ) -> None:
+        ...
+
+    @abstractmethod
     def random_uniform(self) -> None:
         ...
 

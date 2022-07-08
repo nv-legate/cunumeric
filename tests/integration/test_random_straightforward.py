@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import math
+
 import numpy as np
 import pytest
 
@@ -309,6 +311,32 @@ def test_triangular_float64(t):
     theo_mean = (lo + mi + hi) / 3.0
     theo_std = np.sqrt(
         (lo**2 + mi**2 + hi**2 - lo * mi - mi * hi - hi * lo) / 18.0
+    )
+    assert_distribution(a, theo_mean, theo_std)
+
+
+@pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
+def test_weibull_float32(t):
+    bitgen = t(seed=42)
+    gen = num.random.Generator(bitgen)
+    k = 3.1415
+    a = gen.weibull(k, size=(1024 * 1024,), dtype=np.float32)
+    theo_mean = math.gamma(1.0 + 1.0 / k)
+    theo_std = np.sqrt(
+        math.gamma(1.0 + 2.0 / k) - math.gamma(1.0 + 1.0 / k) ** 2
+    )
+    assert_distribution(a, theo_mean, theo_std)
+
+
+@pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
+def test_weibull_float64(t):
+    bitgen = t(seed=42)
+    gen = num.random.Generator(bitgen)
+    k = 3.1415
+    a = gen.weibull(k, size=(1024 * 1024,), dtype=np.float64)
+    theo_mean = math.gamma(1.0 + 1.0 / k)
+    theo_std = np.sqrt(
+        math.gamma(1.0 + 2.0 / k) - math.gamma(1.0 + 1.0 / k) ** 2
     )
     assert_distribution(a, theo_mean, theo_std)
 

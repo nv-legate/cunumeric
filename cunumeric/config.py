@@ -484,6 +484,8 @@ class BitGeneratorDistribution(IntEnum):
     CAUCHY_64 = _cunumeric.CUNUMERIC_BITGENDIST_CAUCHY_64
     TRIANGULAR_32 = _cunumeric.CUNUMERIC_BITGENDIST_TRIANGULAR_32
     TRIANGULAR_64 = _cunumeric.CUNUMERIC_BITGENDIST_TRIANGULAR_64
+    WEIBULL_32 = _cunumeric.CUNUMERIC_BITGENDIST_WEIBULL_32
+    WEIBULL_64 = _cunumeric.CUNUMERIC_BITGENDIST_WEIBULL_64
 
 
 # Match these to fftType in fft_util.h

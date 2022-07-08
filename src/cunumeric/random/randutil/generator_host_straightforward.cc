@@ -255,3 +255,29 @@ extern "C" curandStatus_t CURANDAPI randutilGenerateTriangularDoubleEx(
 }
 
 #pragma endregion
+
+#pragma region weibull
+
+#include "generator_weibull.inl"
+
+extern "C" curandStatus_t CURANDAPI randutilGenerateWeibullEx(
+  randutilGenerator_t generator, float* outputPtr, size_t n, float lam, float k)
+{
+  randutilimpl::basegenerator* gen = (randutilimpl::basegenerator*)generator;
+  weibull_t<float> func;
+  func.lambda = lam;
+  func.invk   = 1.0f / k;
+  return randutilimpl::dispatch<decltype(func), float>(gen, func, n, outputPtr);
+}
+
+extern "C" curandStatus_t CURANDAPI randutilGenerateWeibullDoubleEx(
+  randutilGenerator_t generator, double* outputPtr, size_t n, double lam, double k)
+{
+  randutilimpl::basegenerator* gen = (randutilimpl::basegenerator*)generator;
+  weibull_t<double> func;
+  func.lambda = lam;
+  func.invk   = 1.0 / k;
+  return randutilimpl::dispatch<decltype(func), double>(gen, func, n, outputPtr);
+}
+
+#pragma endregion

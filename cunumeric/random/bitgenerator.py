@@ -220,6 +220,17 @@ class BitGenerator:
         )
         return res
 
+    def weibull(self, lam, k, shape=None, dtype=np.float64):
+        if shape is None:
+            shape = (1,)
+        if not isinstance(shape, tuple):
+            shape = (shape,)
+        res = ndarray(shape, dtype=np.dtype(dtype))
+        res._thunk.bitgenerator_weibull(
+            self.handle, self.generatorType, self.seed, self.flags, lam, k
+        )
+        return res
+
 
 class XORWOW(BitGenerator):
     def __init__(self, seed=None, forceBuild=False):
