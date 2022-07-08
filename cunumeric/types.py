@@ -20,6 +20,8 @@ NdShape = Tuple[int, ...]
 
 NdShapeLike = Union[int, NdShape]
 
+SortSide = Literal["left", "right"]
+
 SortType = Literal["quicksort", "mergesort", "heapsort", "stable"]
 
 OrderType = Literal["A", "C", "F"]

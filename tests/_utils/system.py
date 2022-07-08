@@ -94,24 +94,25 @@ class System:
     @property
     def gpus(self) -> tuple[GPUInfo, ...]:
         """A list of GPUs on the system, including free memory information."""
-        try:
-            import pynvml  # type: ignore[import]
 
-            pynvml.nvmlInit()
+        # This pynvml import is protected inside this method so that in case
+        # pynvml is not installed, tests stages that don't need gpu info (e.g.
+        # cpus, eager) will proceed unaffected. Test stages that do require
+        # gpu info will fail here with an ImportError.
+        import pynvml  # type: ignore[import]
 
-            num_gpus = pynvml.nvmlDeviceGetCount()
+        pynvml.nvmlInit()
 
-            results = []
-            for i in range(num_gpus):
-                info = pynvml.nvmlDeviceGetMemoryInfo(
-                    pynvml.nvmlDeviceGetHandleByIndex(i)
-                )
-                results.append(GPUInfo(i, info.free))
+        num_gpus = pynvml.nvmlDeviceGetCount()
 
-            return tuple(results)
+        results = []
+        for i in range(num_gpus):
+            info = pynvml.nvmlDeviceGetMemoryInfo(
+                pynvml.nvmlDeviceGetHandleByIndex(i)
+            )
+            results.append(GPUInfo(i, info.free))
 
-        except ImportError:
-            return ()
+        return tuple(results)
 
     @property
     def env(self) -> EnvDict:

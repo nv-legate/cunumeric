@@ -110,6 +110,7 @@ class _CunumericSharedLib:
     CUNUMERIC_RED_SUM: int
     CUNUMERIC_REPEAT: int
     CUNUMERIC_SCALAR_UNARY_RED: int
+    CUNUMERIC_SEARCHSORTED: int
     CUNUMERIC_SORT: int
     CUNUMERIC_SYRK: int
     CUNUMERIC_TILE: int
@@ -276,6 +277,7 @@ class CuNumericOpCode(IntEnum):
     READ = _cunumeric.CUNUMERIC_READ
     REPEAT = _cunumeric.CUNUMERIC_REPEAT
     SCALAR_UNARY_RED = _cunumeric.CUNUMERIC_SCALAR_UNARY_RED
+    SEARCHSORTED = _cunumeric.CUNUMERIC_SEARCHSORTED
     SORT = _cunumeric.CUNUMERIC_SORT
     SYRK = _cunumeric.CUNUMERIC_SYRK
     TILE = _cunumeric.CUNUMERIC_TILE

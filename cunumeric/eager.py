@@ -46,7 +46,7 @@ if TYPE_CHECKING:
     import numpy.typing as npt
 
     from .runtime import Runtime
-    from .types import NdShape, OrderType, SortType
+    from .types import NdShape, OrderType, SortSide, SortType
 
 
 _UNARY_OPS: Dict[int, Any] = {
@@ -634,6 +634,13 @@ class EagerArray(NumPyThunk):
             for array in arrays:
                 result += (EagerArray(self.runtime, array),)
             return result
+
+    def searchsorted(self, rhs: Any, v: Any, side: SortSide = "left") -> None:
+        self.check_eager_args(rhs, v)
+        if self.deferred is not None:
+            self.deferred.searchsorted(rhs, v, side)
+        else:
+            self.array = np.searchsorted(rhs.array, v.array, side=side)
 
     def sort(
         self,
