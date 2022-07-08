@@ -94,6 +94,9 @@ class Generator:
     def weibull(self, a, size=None, dtype=np.float64):
         return self.bit_generator.weibull(lam=1, k=a, shape=size, dtype=dtype)
 
+    def bytes(self, length):
+        return self.bit_generator.bytes(length=length)
+
 
 def default_rng(seed=None):
     if seed is None:

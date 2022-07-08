@@ -272,15 +272,11 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def bitgenerator_weibull(
-        self,
-        bitgen,
-        generatorType,
-        seed,
-        flags,
-        lam,
-        k,
-    ) -> None:
+    def bitgenerator_weibull(self, bitgen, generatorType, seed, flags) -> None:
+        ...
+
+    @abstractmethod
+    def bitgenerator_bytes(self, bitgen, generatorType, seed, flags) -> None:
         ...
 
     @abstractmethod

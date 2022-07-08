@@ -773,6 +773,27 @@ struct weibull_generator<float> {
 
 #pragma endregion
 
+#pragma region bytes
+
+template <typename output_t>
+struct bytes_generator;
+template <>
+struct bytes_generator<unsigned char> {
+  bytes_generator(const std::vector<int64_t>& intparams,
+                  const std::vector<float>& floatparams,
+                  const std::vector<double>& doubleparams)
+  {
+  }
+
+  void generate(CURANDGenerator& gen, uint64_t count, unsigned char* p) const
+  {
+    // TODO/ verify assumption that allocation is rounded up...
+    gen.generate_integer_32((count + 3) / 4, (int32_t*)p, -2147483648, 2147483647);
+  }
+};
+
+#pragma endregion
+
 #pragma endregion
 
 template <typename output_t, typename generator_t>
@@ -1060,6 +1081,10 @@ struct BitGeneratorImplBody {
               break;
             case BitGeneratorDistribution::WEIBULL_64:
               generate_distribution<double, weibull_generator<double>>::generate(
+                res, cugen, intparams, floatparams, doubleparams);
+              break;
+            case BitGeneratorDistribution::BYTES:
+              generate_distribution<unsigned char, bytes_generator<unsigned char>>::generate(
                 res, cugen, intparams, floatparams, doubleparams);
               break;
             default: {

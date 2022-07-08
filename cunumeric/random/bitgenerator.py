@@ -231,6 +231,18 @@ class BitGenerator:
         )
         return res
 
+    def bytes(self, length):
+        if not isinstance(length, tuple):
+            length = (length,)
+        res = ndarray(length, dtype=np.dtype(np.uint8))
+        res._thunk.bitgenerator_bytes(
+            self.handle,
+            self.generatorType,
+            self.seed,
+            self.flags,
+        )
+        return res
+
 
 class XORWOW(BitGenerator):
     def __init__(self, seed=None, forceBuild=False):

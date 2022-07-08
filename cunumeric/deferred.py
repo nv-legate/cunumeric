@@ -2078,6 +2078,22 @@ class DeferredArray(NumPyThunk):
             doubleparams,
         )
 
+    def bitgenerator_bytes(self, handle, generatorType, seed, flags) -> None:
+        if self.dtype == np.uint8:
+            distribution = BitGeneratorDistribution.BYTES
+        else:
+            raise NotImplementedError("type for random.bytes has to be uint8")
+        self.bitgenerator_distribution(
+            handle,
+            generatorType,
+            seed,
+            flags,
+            distribution,
+            (),
+            (),
+            (),
+        )
+
     def random(self, gen_code, args=[]) -> None:
         task = self.context.create_task(CuNumericOpCode.RAND)
 
