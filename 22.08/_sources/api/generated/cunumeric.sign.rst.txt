@@ -1,0 +1,6 @@
+﻿cunumeric.sign
+==============
+
+.. currentmodule:: cunumeric
+
+.. autoufunc:: sign

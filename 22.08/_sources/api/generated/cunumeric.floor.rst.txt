@@ -1,0 +1,6 @@
+﻿cunumeric.floor
+===============
+
+.. currentmodule:: cunumeric
+
+.. autoufunc:: floor

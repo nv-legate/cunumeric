@@ -1,0 +1,6 @@
+﻿cunumeric.ndarray.dumps
+=======================
+
+.. currentmodule:: cunumeric
+
+.. automethod:: ndarray.dumps

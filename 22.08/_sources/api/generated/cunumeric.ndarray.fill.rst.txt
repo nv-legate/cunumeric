@@ -1,0 +1,6 @@
+﻿cunumeric.ndarray.fill
+======================
+
+.. currentmodule:: cunumeric
+
+.. automethod:: ndarray.fill

@@ -1,0 +1,6 @@
+﻿cunumeric.amin
+==============
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: amin
