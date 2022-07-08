@@ -298,14 +298,18 @@ def driver():
         "--legate-url",
         dest="legate_url",
         required=False,
-        default="https://github.com/nv-legate/legate.core.git",
+        # TODO: Undo this! Only setting temporarily so CI passes
+        # default="https://github.com/nv-legate/legate.core.git",
+        default="https://github.com/trxcllnt/legate.core.git",
         help="Legate git URL to build cuNumeric with.",
     )
     parser.add_argument(
         "--legate-branch",
         dest="legate_branch",
         required=False,
-        default="branch-22.07",
+        # TODO: Undo this! Only setting temporarily so CI passes
+        # default="branch-22.07",
+        default="fea/add-cmake",
         help="Legate branch to build cuNumeric with.",
     )
     parser.add_argument(
