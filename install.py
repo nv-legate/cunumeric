@@ -230,8 +230,8 @@ def install_cunumeric(
         cmake_flags += ["-Dcutensor_DIR=%s" % cutensor_dir]
     if legate_dir and (
         # TODO: Undo this! Only setting temporarily so CI passes
-        exists(join(legate_dir, "lib", "cmake", "legate_core")) or
-        exists(join(legate_dir, "build", "legate_core-config.cmake"))
+        exists(join(legate_dir, "lib", "cmake", "legate_core"))
+        or exists(join(legate_dir, "build", "legate_core-config.cmake"))
     ):
         cmake_flags += ["-Dlegate_core_ROOT=%s" % legate_dir]
     if legate_url:
