@@ -195,6 +195,7 @@ def test_simple():
 
 def test_empty_v():
     check_api(np.arange(25), None, np.arange(0))
+    check_api(np.array([]))
     check_api(np.arange(0), None, np.arange(0))
 
 

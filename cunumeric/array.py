@@ -3105,6 +3105,14 @@ class ndarray:
                 raise ValueError(
                     "Dimension mismatch: sorter must be a 1D array"
                 )
+            if sorter.shape != a.shape:
+                raise ValueError(
+                    "Shape mismatch: sorter must have the same shape as self"
+                )
+            if not np.issubdtype(sorter.dtype, np.integer):
+                raise ValueError(
+                    "Dtype mismatch: sorter must be of integer type"
+                )
             a = a.take(sorter).copy()
 
         result = ndarray(
