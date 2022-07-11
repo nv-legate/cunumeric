@@ -420,6 +420,9 @@ class EagerArray(NumPyThunk):
         if self.deferred is not None:
             return self.deferred.squeeze(axis)
         child = self.array.squeeze(axis)
+        # Early exit if there's no dimension to squeeze
+        if child is self.array:
+            return self
         # Should be aliased with parent region
         assert child.base is not None
         result = EagerArray(

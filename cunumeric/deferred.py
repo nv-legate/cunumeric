@@ -997,6 +997,8 @@ class DeferredArray(NumPyThunk):
             raise TypeError(
                 '"axis" argument for squeeze must be int-like or tuple-like'
             )
+        if result is self.base:
+            return self
         return DeferredArray(self.runtime, result, self.dtype)
 
     def swapaxes(self, axis1, axis2) -> DeferredArray:

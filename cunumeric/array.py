@@ -3179,24 +3179,19 @@ class ndarray:
 
         """
         if axis is not None:
-            if isinstance(axis, int):
-                if axis >= self.ndim:
-                    raise ValueError(
-                        "all axis to squeeze must be less than ndim"
-                    )
-                if self.shape[axis] != 1:
-                    raise ValueError("axis to squeeze must have extent of one")
-            elif isinstance(axis, tuple):
-                for ax in axis:
-                    if ax >= self.ndim:
-                        raise ValueError(
-                            "all axes to squeeze must be less than ndim"
-                        )
-                    if self.shape[ax] != 1:
-                        raise ValueError(
-                            "all axes to squeeze must have extent of one"
-                        )
-        return ndarray(shape=None, thunk=self._thunk.squeeze(axis))
+            computed_axis = normalize_axis_tuple(axis, self.ndim)
+            if any(self.shape[ax] != 1 for ax in computed_axis):
+                raise ValueError(
+                    "ValueError: cannot select an axis to squeeze out "
+                    "which has size not equal to one"
+                )
+        else:
+            computed_axis = None
+
+        thunk = self._thunk.squeeze(computed_axis)
+        if self._thunk is thunk:
+            return self
+        return ndarray(shape=None, thunk=thunk)
 
     @add_boilerplate()
     def sum(

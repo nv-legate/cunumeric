@@ -40,6 +40,12 @@ def test_basic():
     assert y[2] == 3
 
 
+def test_idempotent():
+    x = np.array([1, 2, 3])
+    y = x.squeeze()
+    assert x is y
+
+
 if __name__ == "__main__":
     import sys
 
