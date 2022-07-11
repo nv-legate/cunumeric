@@ -25,13 +25,15 @@ np.random.seed(12345)
 def _gen_array(n0, shape, dt, axis, outtype):
     # range 1-10, avoiding zeros to ensure correct testing for int prod case
     if dt == np.complex64:
-        A = (99 * np.random.random(shape) + 1).astype(np.float32) + (
-            99 * np.random.random(shape) + 1
-        ).astype(np.float32) * 1j
+        A = (
+            (99 * np.random.random(shape) + 1)
+            + (99 * np.random.random(shape) + 1) * 1j
+        ).astype(np.complex64)
     elif dt == np.complex128:
-        A = (99 * np.random.random(shape) + 1).astype(np.float64) + (
-            99 * np.random.random(shape) + 1
-        ).astype(np.float64) * 1j
+        A = (
+            (99 * np.random.random(shape) + 1)
+            + (99 * np.random.random(shape) + 1) * 1j
+        ).astype(np.complex128)
     else:
         A = (99 * np.random.random(shape) + 1).astype(dt)
     if n0 == "first_half":
