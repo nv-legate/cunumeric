@@ -44,6 +44,7 @@ cunumeric.ndarray
       ~ndarray.prod
       ~ndarray.ravel
       ~ndarray.reshape
+      ~ndarray.searchsorted
       ~ndarray.setfield
       ~ndarray.setflags
       ~ndarray.sort

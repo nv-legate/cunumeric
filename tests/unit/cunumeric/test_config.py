@@ -158,6 +158,7 @@ def test_CuNumericOpCode() -> None:
         "SCAN_GLOBAL",
         "SCAN_LOCAL",
         "SORT",
+        "SEARCHSORTED",
         "SYRK",
         "TILE",
         "TRANSPOSE_COPY_2D",
