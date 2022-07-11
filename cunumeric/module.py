@@ -2573,9 +2573,7 @@ def take_along_axis(a: ndarray, indices: ndarray, axis: int) -> ndarray:
     return a[_fill_fancy_index_for_along_axis_routines(a.shape, axis, indices)]
 
 
-add_boilerplate("a", "indices", "values")
-
-
+@add_boilerplate("a", "indices", "values")
 def put_along_axis(
     a: ndarray, indices: ndarray, values: ndarray, axis: int
 ) -> ndarray:
