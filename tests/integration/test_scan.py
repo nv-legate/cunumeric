@@ -1,4 +1,4 @@
-# Copyright 2021-2022 NVIDIA Corporation
+# Copyright 2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -56,47 +56,19 @@ def _gen_array(n0, shape, dt, axis, outtype):
 
 
 def _run_tests(op, n0, shape, dt, axis, out0, outtype):
-    if n0 is None:
-        str_n0 = "None"
-    else:
-        str_n0 = n0
-    if axis is None:
-        str_axis = "None"
-    else:
-        str_axis = str(axis)
     print(
-        f"Running test: {op}, shape: {shape}, nan location: {str_n0}"
-        f", axis: {str_axis}, in type: {dt}, out type: {outtype}"
+        f"Running test: {op}, shape: {shape}, nan location: {n0}"
+        f", axis: {axis}, in type: {dt}, out type: {outtype}"
         f", output array not provided: {out0}"
     )
     if out0 is True:
         A, B, C = _gen_array(n0, shape, dt, axis, None)
-        if op == "cumsum":
-            B = num.cumsum(A, out=None, axis=axis, dtype=outtype)
-            C = np.cumsum(A, out=None, axis=axis, dtype=outtype)
-        elif op == "cumprod":
-            B = num.cumprod(A, out=None, axis=axis, dtype=outtype)
-            C = np.cumprod(A, out=None, axis=axis, dtype=outtype)
-        elif op == "nancumsum":
-            B = num.nancumsum(A, out=None, axis=axis, dtype=outtype)
-            C = np.nancumsum(A, out=None, axis=axis, dtype=outtype)
-        elif op == "nancumprod":
-            B = num.nancumprod(A, out=None, axis=axis, dtype=outtype)
-            C = np.nancumprod(A, out=None, axis=axis, dtype=outtype)
+        B = getattr(num, op)(A, out=None, axis=axis, dtype=outtype)
+        C = getattr(np, op)(A, out=None, axis=axis, dtype=outtype)
     else:
         A, B, C = _gen_array(n0, shape, dt, axis, outtype)
-        if op == "cumsum":
-            num.cumsum(A, out=B, axis=axis, dtype=outtype)
-            np.cumsum(A, out=C, axis=axis, dtype=outtype)
-        elif op == "cumprod":
-            num.cumprod(A, out=B, axis=axis, dtype=outtype)
-            np.cumprod(A, out=C, axis=axis, dtype=outtype)
-        elif op == "nancumsum":
-            num.nancumsum(A, out=B, axis=axis, dtype=outtype)
-            np.nancumsum(A, out=C, axis=axis, dtype=outtype)
-        elif op == "nancumprod":
-            num.nancumprod(A, out=B, axis=axis, dtype=outtype)
-            np.nancumprod(A, out=C, axis=axis, dtype=outtype)
+        B = getattr(num, op)(A, out=B, axis=axis, dtype=outtype)
+        C = getattr(np, op)(A, out=C, axis=axis, dtype=outtype)
 
     print("Checking result...")
     if np.allclose(B, C, equal_nan=True):
@@ -109,24 +81,38 @@ def _run_tests(op, n0, shape, dt, axis, out0, outtype):
         assert False
 
 
-def test_scan():
-    ops = [
-        "cumsum",
-        "cumprod",
-        "nancumsum",
-        "nancumprod",
-    ]
+ops = [
+    "cumsum",
+    "cumprod",
+    "nancumsum",
+    "nancumprod",
+]
+# keeping array sizes small to avoid accumulation variance
+# between cunumeric and numpy
+shapes = [
+    [10000],
+    [10, 1000],
+    [10, 10, 100],
+]
+axes = [
+    None,
+    0,
+]
+out0s = [
+    True,
+    False,
+]
+
+
+@pytest.mark.parametrize("op", ops)
+@pytest.mark.parametrize("shape", shapes)
+@pytest.mark.parametrize("axis", axes)
+@pytest.mark.parametrize("out0", out0s)
+def test_scan(op, shape, axis, out0):
     n0s = [
         None,
         "first_half",
         "second_half",
-    ]
-    # keeping array sizes small to avoid accumulation variance
-    # between cunumeric and numpy
-    shapes = [
-        [10000],
-        [10, 1000],
-        [10, 10, 100],
     ]
     int_types = [
         np.int32,
@@ -140,71 +126,38 @@ def test_scan():
         np.complex64,
         np.complex128,
     ]
-    axes = [
-        None,
-        0,
-    ]
-    out0s = [
-        True,
-        False,
-    ]
-    for op in ops:
-        for shape in shapes:
-            for axis in axes:
-                for out0 in out0s:
-                    for outtype in int_types:
-                        for dt in int_types:
-                            _run_tests(
-                                op, None, shape, dt, axis, out0, outtype
-                            )
-                        for dt in float_types:
-                            for n0 in n0s:
-                                print(
-                                    "Float to int NAN conversion "
-                                    "currently not supported!"
-                                )
-                        for dt in complex_types:
-                            for n0 in n0s:
-                                print(
-                                    "Complex to int NAN conversion "
-                                    "currently not supported!"
-                                )
-                    for outtype in float_types:
-                        for dt in int_types:
-                            _run_tests(
-                                op, None, shape, dt, axis, out0, outtype
-                            )
-                        for dt in float_types:
-                            for n0 in n0s:
-                                _run_tests(
-                                    op, n0, shape, dt, axis, out0, outtype
-                                )
-                        for dt in complex_types:
-                            for n0 in n0s:
-                                _run_tests(
-                                    op, n0, shape, dt, axis, out0, outtype
-                                )
-                    for outtype in complex_types:
-                        if op == "nancumsum" or op == "nancumprod":
-                            print(
-                                "Complex NAN conversion "
-                                "currently not supported!"
-                            )
-                        else:
-                            for dt in int_types:
-                                _run_tests(
-                                    op, None, shape, dt, axis, out0, outtype
-                                )
-                            for dt in float_types:
-                                for n0 in n0s:
-                                    _run_tests(
-                                        op, n0, shape, dt, axis, out0, outtype
-                                    )
-                            for dt in complex_types:
-                                for n0 in n0s:
-                                    _run_tests(
-                                        op, n0, shape, dt, axis, out0, outtype
-                                    )
+    for outtype in int_types:
+        for dt in int_types:
+            _run_tests(op, None, shape, dt, axis, out0, outtype)
+        for dt in float_types:
+            for n0 in n0s:
+                print("Float to int NAN conversion currently not supported!")
+        for dt in complex_types:
+            for n0 in n0s:
+                print("Complex to int NAN conversion currently not supported!")
+
+    for outtype in float_types:
+        for dt in int_types:
+            _run_tests(op, None, shape, dt, axis, out0, outtype)
+        for dt in float_types:
+            for n0 in n0s:
+                _run_tests(op, n0, shape, dt, axis, out0, outtype)
+        for dt in complex_types:
+            for n0 in n0s:
+                _run_tests(op, n0, shape, dt, axis, out0, outtype)
+
+    for outtype in complex_types:
+        if op == "nancumsum" or op == "nancumprod":
+            print("Complex NAN conversion currently not supported!")
+        else:
+            for dt in int_types:
+                _run_tests(op, None, shape, dt, axis, out0, outtype)
+            for dt in float_types:
+                for n0 in n0s:
+                    _run_tests(op, n0, shape, dt, axis, out0, outtype)
+            for dt in complex_types:
+                for n0 in n0s:
+                    _run_tests(op, n0, shape, dt, axis, out0, outtype)
 
 
 if __name__ == "__main__":

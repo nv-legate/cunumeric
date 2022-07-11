@@ -1,4 +1,4 @@
-/* Copyright 2021-2022 NVIDIA Corporation
+/* Copyright 2022 NVIDIA Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -67,13 +67,13 @@ struct ScanGlobalImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
       sum_valsp[DIM - 1]     = 0;
       auto sum_valsp_end     = sum_valsp;
       sum_valsp_end[DIM - 1] = partition_index[DIM - 1];
-      auto base              = thrust::reduce(thrust::device,
-                                 &sum_vals[sum_valsp],
-                                 &sum_vals[sum_valsp_end],
-                                 (VAL)ScanOp<OP_CODE, CODE>::nan_null,
-                                 func);
-      // apply base to out
-      scalar_kernel<<<blocks, THREADS_PER_BLOCK>>>(stride, func, &outptr[index], base);
+      auto global_prefix     = thrust::reduce(thrust::device,
+                                          &sum_vals[sum_valsp],
+                                          &sum_vals[sum_valsp_end],
+                                          (VAL)ScanOp<OP_CODE, CODE>::nan_null,
+                                          func);
+      // apply global_prefix to out
+      scalar_kernel<<<blocks, THREADS_PER_BLOCK>>>(stride, func, &outptr[index], global_prefix);
     }
   }
 };

@@ -1,4 +1,4 @@
-/* Copyright 2021-2022 NVIDIA Corporation
+/* Copyright 2022 NVIDIA Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -70,10 +70,9 @@ struct ScanGlobalDispatch {
 template <VariantKind KIND>
 static void scan_global_template(TaskContext& context)
 {
-  ScanGlobalArgs args{context.inputs()[1],
-                      context.outputs()[0],
-                      context.scalars()[0].value<ScanCode>(),
-                      context.get_task_index()};
+  auto task_index = context.get_task_index();
+  ScanGlobalArgs args{
+    context.inputs()[1], context.outputs()[0], context.scalars()[0].value<ScanCode>(), task_index};
   op_dispatch(args.op_code, ScanGlobalDispatch<KIND>{}, args);
 }
 
