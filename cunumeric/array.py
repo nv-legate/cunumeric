@@ -3182,8 +3182,8 @@ class ndarray:
             computed_axis = normalize_axis_tuple(axis, self.ndim)
             if any(self.shape[ax] != 1 for ax in computed_axis):
                 raise ValueError(
-                    "ValueError: cannot select an axis to squeeze out "
-                    "which has size not equal to one"
+                    "can only select axes to squeeze out with size "
+                    "equal to one"
                 )
         else:
             computed_axis = None
