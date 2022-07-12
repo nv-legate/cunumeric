@@ -71,19 +71,22 @@ option(Legion_BOUNDS_CHECKS "Build cuNumeric with bounds checks (expensive)" OFF
 include(cmake/thirdparty/get_legate_core.cmake)
 
 if(Legion_USE_CUDA)
-  # Needs to run before `enable_language(CUDA)`
-  rapids_cuda_init_architectures(cunumeric)
-  enable_language(CUDA)
-  # Must come after enable_language(CUDA)
-  # Use `-isystem <path>` instead of `-isystem=<path>`
-  # because the former works with clangd intellisense
-  set(CMAKE_INCLUDE_SYSTEM_FLAG_CUDA "-isystem ")
-
   rapids_find_package(
     CUDAToolkit REQUIRED
     BUILD_EXPORT_SET cunumeric-exports
     INSTALL_EXPORT_SET cunumeric-exports
   )
+  # Needs to run before `enable_language(CUDA)`
+  rapids_cuda_init_architectures(cunumeric)
+  enable_language(CUDA)
+  # Since legate_core only enables CUDA optionally we need to manually include
+  # the file that rapids_cuda_init_architectures relies on `project` calling
+  include("${CMAKE_PROJECT_cunumeric_INCLUDE}")
+
+  # Must come after enable_language(CUDA)
+  # Use `-isystem <path>` instead of `-isystem=<path>`
+  # because the former works with clangd intellisense
+  set(CMAKE_INCLUDE_SYSTEM_FLAG_CUDA "-isystem ")
 
   include(cmake/thirdparty/get_nccl.cmake)
   include(cmake/thirdparty/get_cutensor.cmake)
