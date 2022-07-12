@@ -112,7 +112,7 @@ def randint(
     if not isinstance(low, int):
         raise NotImplementedError("'low' must be an integer")
     if high is not None and not isinstance(high, int):
-        raise NotImplementedError("'high' must be an integer")
+        raise NotImplementedError("'high' must be an integer or None")
 
     if size is None:
         return nprandom.randint(low=low, high=high, size=size, dtype=dtype)
