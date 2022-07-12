@@ -109,8 +109,10 @@ def randint(
     Multiple GPUs, Multiple CPUs
     """
 
-    if not isinstance(low, int) or not (high is None or isinstance(high, int)):
-        raise NotImplementedError("'low' and 'high' must be integers")
+    if not isinstance(low, int):
+        raise NotImplementedError("'low' must be an integer")
+    if high is not None and not isinstance(high, int):
+        raise NotImplementedError("'high' must be an integer")
 
     if size is None:
         return nprandom.randint(low=low, high=high, size=size, dtype=dtype)
