@@ -394,6 +394,11 @@ install(
   FILES ${CMAKE_CURRENT_BINARY_DIR}/include/cunumeric/version_config.hpp
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/cunumeric)
 
+if(cunumeric_INSTALL_TBLIS)
+  install(DIRECTORY ${tblis_BINARY_DIR}/lib/ DESTINATION ${lib_dir})
+  install(DIRECTORY ${tblis_BINARY_DIR}/include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+endif()
+
 ##############################################################################
 # - install export -----------------------------------------------------------
 

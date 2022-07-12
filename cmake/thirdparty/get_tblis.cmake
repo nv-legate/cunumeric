@@ -147,6 +147,10 @@ function(find_or_configure_tblis)
                IMPORTED_LOCATION                   "${tblis_BINARY_DIR}/lib/libtblis${lib_suffix}"
                INSTALL_REMOVE_ENVIRONMENT_RPATH    ON
                INTERFACE_POSITION_INDEPENDENT_CODE ON)
+
+  set(tblis_BINARY_DIR ${tblis_BINARY_DIR} PARENT_SCOPE)
+  set(tblis_SOURCE_DIR ${tblis_SOURCE_DIR} PARENT_SCOPE)
+  set(cunumeric_INSTALL_TBLIS ${should_build_tblis} PARENT_SCOPE)
 endfunction()
 
 if(NOT DEFINED cunumeric_TBLIS_BRANCH)
