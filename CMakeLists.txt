@@ -32,6 +32,14 @@ include(rapids-find)
 
 set(cunumeric_version 22.07.00)
 
+# For now we want the optimization flags to match on both normal make and cmake
+# builds so we override the cmake defaults here for release, this changes
+# -O3 to -O2 and removes -DNDEBUG
+set(CMAKE_CXX_FLAGS_RELEASE "-O2")
+set(CMAKE_CUDA_FLAGS_RELEASE "-O2")
+set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g")
+set(CMAKE_CUDA_FLAGS_RELWITHDEBINFO "-O2 -g")
+
 if(NOT SKBUILD)
   project(cunumeric VERSION ${cunumeric_version} LANGUAGES C CXX)
   include(cunumeric_cpp.cmake)
