@@ -25,7 +25,7 @@ cmake_args+="
 # Use all but 2 threads to compile
 ninja_args="-j$(nproc --ignore=2)"
 
-# Build legion_core + legion_core_python and install into the current Python environment
+# Build cunumeric + cunumeric_python and install into the current Python environment
 SKBUILD_BUILD_OPTIONS="$ninja_args"       \
 SKBUILD_CONFIGURE_OPTIONS="$cmake_args"   \
     python -m pip install                 \

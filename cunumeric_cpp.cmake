@@ -79,7 +79,7 @@ if(Legion_USE_CUDA)
   # Needs to run before `enable_language(CUDA)`
   rapids_cuda_init_architectures(cunumeric)
   enable_language(CUDA)
-  # Since legate_core only enables CUDA optionally we need to manually include
+  # Since cunumeric only enables CUDA optionally we need to manually include
   # the file that rapids_cuda_init_architectures relies on `project` calling
   include("${CMAKE_PROJECT_cunumeric_INCLUDE}")
 
