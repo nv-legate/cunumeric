@@ -235,17 +235,20 @@ endif()
 # Add `src/cunumeric/sort/sort.mk` sources
 list(APPEND cunumeric_SOURCES
   src/cunumeric/sort/sort.cc
+  src/cunumeric/sort/searchsorted.cc
 )
 
 if(Legion_USE_OpenMP)
   list(APPEND cunumeric_SOURCES
     src/cunumeric/sort/sort_omp.cc
+    src/cunumeric/sort/searchsorted_omp.cc
   )
 endif()
 
 if(Legion_USE_CUDA)
   list(APPEND cunumeric_SOURCES
     src/cunumeric/sort/sort.cu
+    src/cunumeric/sort/searchsorted.cu
     src/cunumeric/sort/cub_sort_bool.cu
     src/cunumeric/sort/cub_sort_int8.cu
     src/cunumeric/sort/cub_sort_int16.cu
