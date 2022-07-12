@@ -792,6 +792,10 @@ class DeferredArray(NumPyThunk):
 
                 view.copy(rhs, deep=False)
 
+    def broadcast_to(self, shape):
+        self._broadcast(shape)
+        return self
+
     def reshape(self, newshape, order) -> DeferredArray:
         assert isinstance(newshape, Iterable)
         if order == "A":

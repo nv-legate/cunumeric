@@ -1797,6 +1797,11 @@ class ndarray:
         result._thunk.convert(self._thunk, warn=False)
         return result
 
+    def _broadcast_to(self, shape):
+        out_shape = np.broadcast_shapes(self.shape, shape)
+        self._thunk.broadcast_to(out_shape)
+        return self
+
     @add_boilerplate()
     def take(self, indices, axis=None, out=None, mode="raise"):
         """a.take(indices, axis=None, out=None, mode="raise")

@@ -1176,6 +1176,82 @@ def squeeze(a: ndarray, axis: Optional[NdShapeLike] = None) -> ndarray:
     return a.squeeze(axis=axis)
 
 
+def broadcast_shapes(*shapes: Sequence(tuple)) -> tuple(int):
+    return np.broadcast_shapes(*shapes)
+
+
+def broadcast_to(
+    arr: ndarray, shape: tuple(int), subok: bool = False
+) -> ndarray:
+    return arr.view()._broadcast_to(shape)
+
+
+def broadcast_arrays(
+    *arrays: Sequence(ndarray), subok: bool = False
+) -> list(ndarray):
+    # check if the broadcast can happen in the input list of arrays
+    out_shape = broadcast_shapes(arr.shape for arr in arrays)
+    # broadcast to the final shape
+    result = list(broadcast_to(arr, out_shape) for arr in arrays)
+    return result
+
+
+class broadcast:
+    def __init__(self, *arrays: Sequence(ndarray)) -> None:
+        # we simply create a broadcast object with the input arrays
+        # Any operation through this object should be much slower
+        # compared to builtin operations through
+        # implicit broadcasting because the opration is element-wise
+        arrays = broadcast_arrays(*arrays)
+        self._iters = tuple(arr.flat for arr in arrays)
+        self._index = 0
+        self._shape = arrays[0].shape
+        self._size = np.prod(self.shape)
+
+    def __iter__(self):
+        self._index = 0
+        return self
+
+    def __next__(self):
+        if self._index < self.size:
+            result = (each[self._index] for each in self._iters)
+            self._index += 1
+        else:
+            return StopIteration
+        return result
+
+    def reset(self):
+        self._index = 0
+
+    @property
+    def index(self):
+        return self._index
+
+    @property
+    def iters(self):
+        return self._iters
+
+    @property
+    def numiter(self):
+        return len(self._iters)
+
+    @property
+    def nd(self):
+        return self.ndim
+
+    @property
+    def ndim(self):
+        return len(self.shape)
+
+    @property
+    def shape(self):
+        return self._shape
+
+    @property
+    def size(self):
+        return self._size
+
+
 # Joining arrays
 
 
