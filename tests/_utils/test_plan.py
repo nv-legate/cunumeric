@@ -70,9 +70,17 @@ class TestPlan:
     @property
     def intro(self) -> str:
         """An informative banner to display at test run start."""
+
+        cpus = len(self._system.cpus)
+        try:
+            gpus = len(self._system.gpus)
+        except ImportError:
+            gpus = 0
+
         details = (
             f"* Feature stages       : {', '.join(yellow(x) for x in self._config.features)}",  # noqa E501
             f"* Test files per stage : {yellow(str(len(self._config.test_files)))}",  # noqa E501
+            f"* System description   : {yellow(str(cpus) + ' cpus')} / {yellow(str(gpus) + ' gpus')}",  # noqa E501
         )
         return banner("Test Suite Configuration", details=details)
 
