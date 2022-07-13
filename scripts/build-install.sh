@@ -31,5 +31,5 @@ SKBUILD_CONFIGURE_OPTIONS="$cmake_args"   \
     python -m pip install                 \
         --root / --prefix "$CONDA_PREFIX" \
         --no-deps --no-build-isolation    \
-        --force-reinstall                 \
+        --upgrade                         \
         . -vv
