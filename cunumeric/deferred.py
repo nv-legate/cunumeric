@@ -1392,7 +1392,7 @@ class DeferredArray(NumPyThunk):
         task.execute()
 
     # Create array from input array and indices
-    def choose(self, *args, rhs):
+    def choose(self, rhs, *args):
         # convert all arrays to deferred
         index_arr = self.runtime.to_deferred_array(rhs)
         ch_def = tuple(self.runtime.to_deferred_array(c) for c in args)

@@ -1960,8 +1960,8 @@ class ndarray:
 
         ch = tuple(c._thunk for c in choices)  #
         out_arr._thunk.choose(
+            a._thunk,
             *ch,
-            rhs=a._thunk,
         )
         if out is not None and out.dtype != ch_dtype:
             out._thunk.convert(out_arr._thunk)
