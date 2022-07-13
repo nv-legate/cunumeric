@@ -87,12 +87,12 @@ def packbits(
     Multiple GPUs, Multiple CPUs
     """
 
-    a, sanitized_axis = _sanitize_arguments(a, axis, bitorder)
-
     if a.dtype.kind not in ("u", "i", "b"):
         raise TypeError(
             "Expected an input array of integer or boolean data type"
         )
+
+    a, sanitized_axis = _sanitize_arguments(a, axis, bitorder)
 
     out_shape = tuple(
         (extent + 7) // 8 if dim == sanitized_axis else extent
