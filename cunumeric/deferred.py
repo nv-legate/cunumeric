@@ -484,7 +484,7 @@ class DeferredArray(NumPyThunk):
                 out = self.runtime.create_empty_thunk(
                     out_tmp.shape,
                     out_dtype,
-                    inputs=[],
+                    inputs=[out],
                 )
 
                 out = out._copy_store(out_tmp)
