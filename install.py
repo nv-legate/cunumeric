@@ -189,9 +189,9 @@ def install_cunumeric(
     if editable:
         pip_install_cmd += ["--no-deps", "--no-build-isolation", "--editable"]
     else:
-        pip_install_cmd += ["--upgrade"]
         if not build_isolation:
-            pip_install_cmd += ["--no-build-isolation"]
+            pip_install_cmd += ["--no-deps", "--no-build-isolation"]
+        pip_install_cmd += ["--upgrade"]
 
     pip_install_cmd += ["."]
     if verbose:
