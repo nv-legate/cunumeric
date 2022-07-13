@@ -25,7 +25,12 @@ option(FIND_CUNUMERIC_CPP "Search for existing cuNumeric C++ installations befor
 
 # If the user requested it we attempt to find cunumeric.
 if(FIND_CUNUMERIC_CPP)
-  find_package(cunumeric ${cunumeric_version})
+  include("${rapids-cmake-dir}/export/detail/parse_version.cmake")
+  rapids_export_parse_version(${cunumeric_version} cunumeric parsed_ver)
+  rapids_find_package(cunumeric ${parsed_ver} EXACT CONFIG
+                      GLOBAL_TARGETS     cunumeric::cunumeric
+                      BUILD_EXPORT_SET   cunumeric-python-exports
+                      INSTALL_EXPORT_SET cunumeric-python-exports)
 else()
   set(cunumeric_FOUND OFF)
 endif()

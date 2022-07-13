@@ -18,24 +18,28 @@ function(find_or_configure_legate_core)
   set(oneValueArgs VERSION REPOSITORY BRANCH EXCLUDE_FROM_ALL)
   cmake_parse_arguments(PKG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
-  set(FIND_PKG_ARGS      ${PKG_VERSION}
+  include("${rapids-cmake-dir}/export/detail/parse_version.cmake")
+  rapids_export_parse_version(${PKG_VERSION} legate_core PKG_VERSION)
+
+  set(FIND_PKG_ARGS
       GLOBAL_TARGETS     legate::core
       BUILD_EXPORT_SET   cunumeric-exports
       INSTALL_EXPORT_SET cunumeric-exports)
 
   # First try to find legate_core via find_package()
   # so the `Legion_USE_*` variables are visible
-  rapids_find_package(legate_core ${FIND_PKG_ARGS} QUIET)
+  rapids_find_package(legate_core ${PKG_VERSION} EXACT CONFIG QUIET ${FIND_PKG_ARGS})
 
   if(legate_core_FOUND)
     message(STATUS "CPM: using local package legate_core@${PKG_VERSION}")
   else()
     include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/cpm_helpers.cmake)
     get_cpm_git_args(legate_core_cpm_git_args REPOSITORY ${PKG_REPOSITORY} BRANCH ${PKG_BRANCH})
-    rapids_cpm_find(legate_core ${FIND_PKG_ARGS}
+    rapids_cpm_find(legate_core ${PKG_VERSION} ${FIND_PKG_ARGS}
         CPM_ARGS
           ${legate_core_cpm_git_args}
-          EXCLUDE_FROM_ALL ${PKG_EXCLUDE_FROM_ALL}
+          FIND_PACKAGE_ARGUMENTS EXACT
+          EXCLUDE_FROM_ALL      ${PKG_EXCLUDE_FROM_ALL}
     )
   endif()
 
