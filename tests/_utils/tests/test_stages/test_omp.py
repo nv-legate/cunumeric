@@ -36,7 +36,7 @@ def test_default() -> None:
     s = FakeSystem()
     stage = m.OMP(c, s)
     assert stage.kind == "openmp"
-    assert stage.args == []
+    assert stage.args == ["-cunumeric:test"]
     assert stage.env == {}
     assert stage.spec.workers > 0
 

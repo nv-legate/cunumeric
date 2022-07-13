@@ -17,7 +17,7 @@ from __future__ import annotations
 from .. import FeatureType
 from ..config import Config
 from ..system import System
-from ..types import ArgList
+from ..types import ArgList, EnvDict
 from .test_stage import Shard, StageSpec, TestStage
 
 
@@ -36,7 +36,9 @@ class OMP(TestStage):
 
     kind: FeatureType = "openmp"
 
-    stage_args = ["-cunumeric:test"]
+    args = ["-cunumeric:test"]
+
+    env: EnvDict = {}
 
     def __init__(self, config: Config, system: System) -> None:
         self._init(config, system)

@@ -17,7 +17,7 @@ from __future__ import annotations
 from .. import FeatureType
 from ..config import Config
 from ..system import System
-from ..types import ArgList
+from ..types import ArgList, EnvDict
 from .test_stage import Shard, StageSpec, TestStage
 
 BLOAT_FACTOR = 1.5  # hard coded for now
@@ -38,7 +38,9 @@ class GPU(TestStage):
 
     kind: FeatureType = "cuda"
 
-    stage_args = ["-cunumeric:test"]
+    args = ["-cunumeric:test"]
+
+    env: EnvDict = {}
 
     def __init__(self, config: Config, system: System) -> None:
         self._init(config, system)

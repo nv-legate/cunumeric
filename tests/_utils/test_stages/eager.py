@@ -36,6 +36,8 @@ class Eager(TestStage):
 
     kind: FeatureType = "eager"
 
+    args: ArgList = []
+
     # Raise min chunk sizes for deferred codepaths to force eager execution
     env = {
         "CUNUMERIC_MIN_CPU_CHUNK": "2000000000",

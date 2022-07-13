@@ -36,7 +36,7 @@ def test_default() -> None:
     s = FakeSystem()
     stage = m.CPU(c, s)
     assert stage.kind == "cpus"
-    assert stage.args == []
+    assert stage.args == ["-cunumeric:test"]
     assert stage.env == {}
     assert stage.spec.workers > 0
 

@@ -81,10 +81,10 @@ class TestStage(Protocol):
     result: StageResult
 
     #: Any fixed stage-specific command-line args to pass
-    args: ArgList = []
+    args: ArgList
 
     #: Any stage-specific customizations to the process env
-    env: EnvDict = {}
+    env: EnvDict
 
     _manager: multiprocessing.managers.SyncManager = multiprocessing.Manager()
 
