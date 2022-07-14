@@ -332,7 +332,9 @@ class Runtime(object):
                 dtype = np.dtype(array.type.to_pandas_dtype())
             return DeferredArray(self, store, dtype=dtype)
         # See if this is a normal numpy array
-        if not isinstance(obj, np.ndarray):
+        # Make sure to convert numpy matrices to numpy arrays here
+        # as the former doesn't behave quite like the latter
+        if type(obj) is not np.ndarray:
             # If it's not, make it into a numpy array
             if share:
                 obj = np.asarray(obj, dtype=dtype)

@@ -14,7 +14,7 @@
 #
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Union
+from typing import TYPE_CHECKING, Any, Sequence, Union
 
 import numpy as np
 import numpy.random as nprandom
@@ -68,10 +68,10 @@ def rand(*shapeargs: int) -> Union[float, ndarray]:
 
 
 def randint(
-    low: Union[int, npt.NDArray[Any]],
-    high: Union[int, npt.NDArray[Any], None] = None,
-    size: Union[int, tuple[int], None] = None,
-    dtype: Union[np.dtype[Any], None] = None,
+    low: Union[int, Sequence[int]],
+    high: Union[int, Sequence[int], None] = None,
+    size: Union[int, Sequence[int], None] = None,
+    dtype: Union[np.dtype[Any], type, None] = int,
 ) -> Union[int, ndarray, npt.NDArray[Any]]:
     """
     Return random integers from `low` (inclusive) to `high` (exclusive).
@@ -109,8 +109,14 @@ def randint(
     Multiple GPUs, Multiple CPUs
     """
 
+    if not isinstance(low, int):
+        raise NotImplementedError("'low' must be an integer")
+    if high is not None and not isinstance(high, int):
+        raise NotImplementedError("'high' must be an integer or None")
+
     if size is None:
         return nprandom.randint(low=low, high=high, size=size, dtype=dtype)
+
     if dtype is not None:
         dtype = np.dtype(dtype)
     else:
@@ -120,7 +126,7 @@ def randint(
         raise TypeError(
             "cunumeric.random.randint must be given an integer dtype"
         )
-    if not isinstance(size, tuple):
+    if isinstance(size, int):
         size = (size,)
     result = ndarray(size, dtype=dtype)
     if high is None:
