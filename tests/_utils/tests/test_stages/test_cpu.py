@@ -103,4 +103,4 @@ def test_spec_with_verbose() -> None:
     s = FakeSystem()
     stage = m.CPU(c, s)
     assert stage.spec.workers == 1
-    assert stage.spec.shards == [(0, 1, 2, 3, 4, 5)]
+    assert stage.spec.shards == [(0, 1)]

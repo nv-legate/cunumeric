@@ -128,4 +128,4 @@ def test_spec_with_verbose() -> None:
     s = FakeSystem()
     stage = m.OMP(c, s)
     assert stage.spec.workers == 1
-    assert stage.spec.shards == [(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)]
+    assert stage.spec.shards == [(0, 1, 2, 3)]

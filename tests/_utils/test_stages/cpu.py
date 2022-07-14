@@ -52,14 +52,13 @@ class CPU(TestStage):
         ]
 
     def compute_spec(self, config: Config, system: System) -> StageSpec:
-        if config.verbose:
-            # use all available CPUs for a single worker
-            return StageSpec(1, [tuple(range(len(system.cpus)))])
-
         N = len(system.cpus)
-
         degree = N // (config.cpus + config.utility)
-        workers = adjust_workers(degree, config.requested_workers)
+
+        if config.verbose:
+            workers = 1
+        else:
+            workers = adjust_workers(degree, config.requested_workers)
 
         # https://docs.python.org/3/library/itertools.html#itertools-recipes
         # grouper('ABCDEF', 3) --> ABC DEF

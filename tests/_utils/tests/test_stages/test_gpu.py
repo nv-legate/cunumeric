@@ -67,7 +67,7 @@ def test_spec_with_gpus_2() -> None:
 
 
 def test_spec_with_requested_workers() -> None:
-    c = Config(["test.py", "--cpus", "1", "-j", "2"])
+    c = Config(["test.py", "--gpus", "1", "-j", "2"])
     s = FakeSystem()
     stage = m.GPU(c, s)
     assert stage.spec.workers == 2
@@ -84,15 +84,15 @@ def test_spec_with_requested_workers_zero() -> None:
 
 def test_spec_with_requested_workers_bad() -> None:
     s = FakeSystem()
-    c = Config(["test.py", "-j", f"{len(s.cpus)+1}"])
-    assert c.requested_workers > len(s.cpus)
+    c = Config(["test.py", "-j", f"{len(s.gpus)+10}"])
+    assert c.requested_workers > len(s.gpus)
     with pytest.raises(RuntimeError):
         m.GPU(c, s)
 
 
 def test_spec_with_verbose() -> None:
-    c = Config(["test.py", "--verbose", "--cpus", "2"])
+    c = Config(["test.py", "--verbose", "--gpus", "2"])
     s = FakeSystem()
     stage = m.GPU(c, s)
     assert stage.spec.workers == 1
-    assert stage.spec.shards == [(0, 1, 2, 3, 4, 5)]
+    assert stage.spec.shards == [(0, 1), (2, 3), (4, 5)]

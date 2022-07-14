@@ -57,8 +57,13 @@ class Eager(TestStage):
         ]
 
     def compute_spec(self, config: Config, system: System) -> StageSpec:
-        degree = 1 if config.verbose else len(system.cpus)
-        workers = adjust_workers(degree, config.requested_workers)
+        N = len(system.cpus)
+
+        if config.verbose:
+            workers = 1
+        else:
+            degree = min(N, 60)  # ~LEGION_MAX_NUM_PROCS just in case
+            workers = adjust_workers(degree, config.requested_workers)
 
         # Just put each worker on its own CPU for eager tests
         shards = [tuple([i]) for i in range(workers)]

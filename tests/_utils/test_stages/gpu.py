@@ -54,19 +54,17 @@ class GPU(TestStage):
         ]
 
     def compute_spec(self, config: Config, system: System) -> StageSpec:
-        if config.verbose:
-            # use all available GPUs for a single worker
-            return StageSpec(1, [tuple(range(len(system.gpus)))])
-
         N = len(system.gpus)
-
-        fbsize = min(gpu.total for gpu in system.gpus)
-        oversub_factor = int(fbsize // (config.fbmem * BLOAT_FACTOR))
-
         degree = N // config.gpus
-        workers = adjust_workers(
-            degree * oversub_factor, config.requested_workers
-        )
+
+        if config.verbose:
+            workers = 1
+        else:
+            fbsize = min(gpu.total for gpu in system.gpus)
+            oversub_factor = int(fbsize // (config.fbmem * BLOAT_FACTOR))
+            workers = adjust_workers(
+                degree * oversub_factor, config.requested_workers
+            )
 
         # https://docs.python.org/3/library/itertools.html#itertools-recipes
         # grouper('ABCDEF', 3) --> ABC DEF
