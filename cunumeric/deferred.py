@@ -20,6 +20,7 @@ from collections.abc import Iterable
 from enum import IntEnum, unique
 from functools import reduce
 from itertools import product
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
@@ -39,6 +40,9 @@ from .linalg.cholesky import cholesky
 from .sort import sort
 from .thunk import NumPyThunk
 from .utils import get_arg_value_dtype, is_advanced_indexing
+
+if TYPE_CHECKING:
+    import numpy.typing as npt
 
 
 def _complex_field_dtype(dtype):
@@ -167,8 +171,8 @@ class DeferredArray(NumPyThunk):
     :meta private:
     """
 
-    def __init__(self, runtime, base, dtype, numpy_array=None):
-        NumPyThunk.__init__(self, runtime, dtype)
+    def __init__(self, runtime, base, dtype, numpy_array=None) -> None:
+        super().__init__(runtime, dtype)
         assert base is not None
         assert isinstance(base, Store)
         self.base = base  # a Legate Store
@@ -204,7 +208,7 @@ class DeferredArray(NumPyThunk):
         copy.copy(self, deep=True)
         return copy
 
-    def __numpy_array__(self):
+    def __numpy_array__(self) -> npt.NDArray[Any]:
         if self.numpy_array is not None:
             result = self.numpy_array()
             if result is not None:
@@ -655,7 +659,7 @@ class DeferredArray(NumPyThunk):
         store_copy.copy(a, deep=True)
         return store_copy
 
-    def get_item(self, key):
+    def get_item(self, key) -> DeferredArray:
         # Check to see if this is advanced indexing or not
         if is_advanced_indexing(key):
             # Create the indexing array
@@ -994,6 +998,8 @@ class DeferredArray(NumPyThunk):
             raise TypeError(
                 '"axis" argument for squeeze must be int-like or tuple-like'
             )
+        if result is self.base:
+            return self
         return DeferredArray(self.runtime, result, self.dtype)
 
     def swapaxes(self, axis1, axis2) -> DeferredArray:
@@ -1134,7 +1140,7 @@ class DeferredArray(NumPyThunk):
 
             task.execute()
 
-    def fill(self, numpy_array):
+    def fill(self, numpy_array) -> None:
         assert isinstance(numpy_array, np.ndarray)
         assert numpy_array.size == 1
         assert self.dtype == numpy_array.dtype
@@ -1479,7 +1485,7 @@ class DeferredArray(NumPyThunk):
         task.execute()
 
     # Create an identity array with the ones offset from the diagonal by k
-    def eye(self, k):
+    def eye(self, k) -> None:
         assert self.ndim == 2  # Only 2-D arrays should be here
         # First issue a fill to zero everything out
         self.fill(np.array(0, dtype=self.dtype))
@@ -1490,7 +1496,7 @@ class DeferredArray(NumPyThunk):
 
         task.execute()
 
-    def arange(self, start, stop, step):
+    def arange(self, start, stop, step) -> None:
         assert self.ndim == 1  # Only 1-D arrays should be here
         if self.scalar:
             # Handle the special case of a single value here
@@ -1502,11 +1508,10 @@ class DeferredArray(NumPyThunk):
 
         def create_scalar(value, dtype):
             array = np.array(value, dtype)
-            return self.runtime.create_scalar(
+            return self.runtime.create_wrapped_scalar(
                 array.data,
                 array.dtype,
                 shape=(1,),
-                wrap=True,
             ).base
 
         task = self.context.create_task(CuNumericOpCode.ARANGE)
@@ -1560,7 +1565,7 @@ class DeferredArray(NumPyThunk):
         task.execute()
 
     # Repeat elements of an array.
-    def repeat(self, repeats, axis, scalar_repeats):
+    def repeat(self, repeats, axis, scalar_repeats) -> DeferredArray:
         out = self.runtime.create_unbound_thunk(self.dtype, ndim=self.ndim)
         task = self.context.create_task(CuNumericOpCode.REPEAT)
         task.add_input(self.base)
@@ -1615,11 +1620,10 @@ class DeferredArray(NumPyThunk):
                 src_array.size == 1 and weight_array.size == 1
             )
         else:
-            weight_array = self.runtime.create_scalar(
+            weight_array = self.runtime.create_wrapped_scalar(
                 np.array(1, dtype=np.int64),
                 np.dtype(np.int64),
                 shape=(),
-                wrap=True,
             )
 
         dst_array.fill(np.array(0, dst_array.dtype))
@@ -1652,7 +1656,7 @@ class DeferredArray(NumPyThunk):
         task.execute()
         return results
 
-    def random(self, gen_code, args=[]):
+    def random(self, gen_code, args=[]) -> None:
         task = self.context.create_task(CuNumericOpCode.RAND)
 
         task.add_output(self.base)
@@ -1664,15 +1668,15 @@ class DeferredArray(NumPyThunk):
 
         task.execute()
 
-    def random_uniform(self):
+    def random_uniform(self) -> None:
         assert self.dtype == np.float64
         self.random(RandGenCode.UNIFORM)
 
-    def random_normal(self):
+    def random_normal(self) -> None:
         assert self.dtype == np.float64
         self.random(RandGenCode.NORMAL)
 
-    def random_integer(self, low, high):
+    def random_integer(self, low, high) -> None:
         assert self.dtype.kind == "i"
         low = np.array(low, self.dtype)
         high = np.array(high, self.dtype)
@@ -1800,7 +1804,7 @@ class DeferredArray(NumPyThunk):
                 [],
             )
 
-    def isclose(self, rhs1, rhs2, rtol, atol, equal_nan):
+    def isclose(self, rhs1, rhs2, rtol, atol, equal_nan) -> None:
         assert not equal_nan
         args = (
             np.array(rtol, dtype=np.float64),
@@ -1883,11 +1887,10 @@ class DeferredArray(NumPyThunk):
             return
         for numpy_array in args:
             assert numpy_array.size == 1
-            scalar = self.runtime.create_scalar(
+            scalar = self.runtime.create_wrapped_scalar(
                 numpy_array.data,
                 numpy_array.dtype,
                 shape=(1,),
-                wrap=True,
             )
             task.add_input(scalar.base)
 
@@ -1923,6 +1926,32 @@ class DeferredArray(NumPyThunk):
             )
 
         return result
+
+    @auto_convert([1, 2])
+    def searchsorted(self, rhs, v, side="left"):
+
+        task = self.context.create_task(CuNumericOpCode.SEARCHSORTED)
+
+        is_left = side == "left"
+
+        if is_left:
+            self.fill(np.array(rhs.size, self.dtype))
+            task.add_reduction(self.base, ReductionOp.MIN)
+        else:
+            self.fill(np.array(0, self.dtype))
+            task.add_reduction(self.base, ReductionOp.MAX)
+
+        task.add_input(rhs.base)
+        task.add_input(v.base)
+
+        # every partition needs the value information
+        task.add_broadcast(v.base)
+        task.add_broadcast(self.base)
+        task.add_alignment(self.base, v.base)
+
+        task.add_scalar_arg(is_left, bool)
+        task.add_scalar_arg(rhs.size, ty.int64)
+        task.execute()
 
     @auto_convert([1])
     def sort(self, rhs, argsort=False, axis=-1, kind="quicksort", order=None):
@@ -1964,7 +1993,7 @@ class DeferredArray(NumPyThunk):
         # fallback to sort for now
         sort(self, rhs, argpartition, axis, False)
 
-    def create_window(self, op_code, M, *args):
+    def create_window(self, op_code, M, *args) -> None:
         task = self.context.create_task(CuNumericOpCode.WINDOW)
         task.add_output(self.base)
         task.add_scalar_arg(op_code, ty.int32)
