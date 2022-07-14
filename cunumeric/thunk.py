@@ -263,5 +263,5 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def unpackbits(self, src, axis, count, bitorder):
+    def unpackbits(self, src, axis, bitorder):
         ...

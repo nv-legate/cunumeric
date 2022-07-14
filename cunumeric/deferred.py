@@ -2017,7 +2017,7 @@ class DeferredArray(NumPyThunk):
         task.execute()
 
     @auto_convert([1])
-    def unpackbits(self, src, axis, count, bitorder):
+    def unpackbits(self, src, axis, bitorder):
         bitorder_code = getattr(Bitorder, bitorder.upper())
         task = self.context.create_task(CuNumericOpCode.UNPACKBITS)
         p_out = task.declare_partition(self.base)

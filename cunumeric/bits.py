@@ -161,21 +161,24 @@ def unpackbits(
     if a.dtype != "B":
         raise TypeError("Expected an input array of unsigned byte data type")
 
-    if count is None:
-        sanitized_count = a.shape[sanitized_axis] * 8
-    else:
-        if not isinstance(count, int):
-            raise TypeError("count must be an integer")
-        sanitized_count = count
+    if count is not None and not isinstance(count, int):
+        raise TypeError("count must be an integer or None")
 
-    if count is not None:
-        raise NotImplementedError("'count' is not supported yet")
-
+    axis_extent = a.shape[sanitized_axis] * 8
     out_shape = tuple(
-        sanitized_count if dim == sanitized_axis else extent
+        axis_extent if dim == sanitized_axis else extent
         for dim, extent in enumerate(a.shape)
     )
     out = empty(out_shape, dtype="B")
-    out._thunk.unpackbits(a._thunk, sanitized_axis, sanitized_count, bitorder)
+    out._thunk.unpackbits(a._thunk, sanitized_axis, bitorder)
 
+    if count is not None and count != axis_extent:
+        # TODO: We could handle `count` directly in the unpack task to avoid
+        # generating the full unpack result. For now we simply slice out the
+        # output for the count.
+        slices = tuple(
+            slice(None, count if dim == sanitized_axis else None)
+            for dim in range(a.ndim)
+        )
+        out = out[slices]
     return out
