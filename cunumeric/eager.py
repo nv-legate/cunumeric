@@ -541,12 +541,12 @@ class EagerArray(NumPyThunk):
                 out=self.array,
             )
 
-    def choose(self, *args, rhs):
+    def choose(self, rhs, *args):
         self.check_eager_args(*args, rhs)
         if self.deferred is not None:
             self.deferred.choose(
-                *args,
                 rhs,
+                *args,
             )
         else:
             choices = tuple(c.array for c in args)

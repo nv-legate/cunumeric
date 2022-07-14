@@ -150,7 +150,7 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def choose(self, *args, rhs):
+    def choose(self, rhs, *args):
         ...
 
     @abstractmethod
