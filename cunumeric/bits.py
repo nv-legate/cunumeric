@@ -156,13 +156,13 @@ def unpackbits(
     Multiple GPUs, Multiple CPUs
     """
 
-    a, sanitized_axis = _sanitize_arguments(a, axis, bitorder)
-
     if a.dtype != "B":
         raise TypeError("Expected an input array of unsigned byte data type")
 
     if count is not None and not isinstance(count, int):
         raise TypeError("count must be an integer or None")
+
+    a, sanitized_axis = _sanitize_arguments(a, axis, bitorder)
 
     axis_extent = a.shape[sanitized_axis] * 8
     out_shape = tuple(
