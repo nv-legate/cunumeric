@@ -29,6 +29,7 @@ from legate.core import Future, ReductionOp, Store
 
 from .config import (
     BinaryOpCode,
+    Bitorder,
     CuNumericOpCode,
     CuNumericRedopCode,
     RandGenCode,
@@ -484,7 +485,7 @@ class DeferredArray(NumPyThunk):
                 out = self.runtime.create_empty_thunk(
                     out_tmp.shape,
                     out_dtype,
-                    inputs=[],
+                    inputs=[out],
                 )
 
                 out = out._copy_store(out_tmp)
@@ -1392,7 +1393,7 @@ class DeferredArray(NumPyThunk):
         task.execute()
 
     # Create array from input array and indices
-    def choose(self, *args, rhs):
+    def choose(self, rhs, *args):
         # convert all arrays to deferred
         index_arr = self.runtime.to_deferred_array(rhs)
         ch_def = tuple(self.runtime.to_deferred_array(c) for c in args)
@@ -1999,4 +2000,32 @@ class DeferredArray(NumPyThunk):
         task.add_scalar_arg(M, ty.int64)
         for arg in args:
             task.add_scalar_arg(arg, ty.float64)
+        task.execute()
+
+    @auto_convert([1])
+    def packbits(self, src, axis, bitorder):
+        bitorder_code = getattr(Bitorder, bitorder.upper())
+        task = self.context.create_task(CuNumericOpCode.PACKBITS)
+        p_out = task.declare_partition(self.base)
+        p_in = task.declare_partition(src.base)
+        task.add_output(self.base, partition=p_out)
+        task.add_input(src.base, partition=p_in)
+        task.add_scalar_arg(axis, ty.uint32)
+        task.add_scalar_arg(bitorder_code, ty.uint32)
+        scale = tuple(8 if dim == axis else 1 for dim in range(src.ndim))
+        task.add_constraint(p_in <= p_out * scale)
+        task.execute()
+
+    @auto_convert([1])
+    def unpackbits(self, src, axis, bitorder):
+        bitorder_code = getattr(Bitorder, bitorder.upper())
+        task = self.context.create_task(CuNumericOpCode.UNPACKBITS)
+        p_out = task.declare_partition(self.base)
+        p_in = task.declare_partition(src.base)
+        task.add_output(self.base, partition=p_out)
+        task.add_input(src.base, partition=p_in)
+        task.add_scalar_arg(axis, ty.uint32)
+        task.add_scalar_arg(bitorder_code, ty.uint32)
+        scale = tuple(8 if dim == axis else 1 for dim in range(src.ndim))
+        task.add_constraint(p_out <= p_in * scale)
         task.execute()

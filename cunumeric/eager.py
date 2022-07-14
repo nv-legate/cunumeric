@@ -541,12 +541,12 @@ class EagerArray(NumPyThunk):
                 out=self.array,
             )
 
-    def choose(self, *args, rhs):
+    def choose(self, rhs, *args):
         self.check_eager_args(*args, rhs)
         if self.deferred is not None:
             self.deferred.choose(
-                *args,
                 rhs,
+                *args,
             )
         else:
             choices = tuple(c.array for c in args)
@@ -860,3 +860,21 @@ class EagerArray(NumPyThunk):
         else:
             fn = _WINDOW_OPS[op_code]
             self.array[:] = fn(M, *args)
+
+    def packbits(self, src, axis, bitorder):
+        self.check_eager_args(src)
+        if self.deferred is not None:
+            self.deferred.packbits(src, axis, bitorder)
+        else:
+            self.array[:] = np.packbits(
+                src.array, axis=axis, bitorder=bitorder
+            )
+
+    def unpackbits(self, src, axis, bitorder):
+        self.check_eager_args(src)
+        if self.deferred is not None:
+            self.deferred.unpackbits(src, axis, bitorder)
+        else:
+            self.array[:] = np.unpackbits(
+                src.array, axis=axis, bitorder=bitorder
+            )
