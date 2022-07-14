@@ -18,7 +18,7 @@ from .. import FeatureType
 from ..config import Config
 from ..system import System
 from ..types import ArgList
-from .test_stage import Shard, StageSpec, TestStage
+from .test_stage import Shard, StageSpec, TestStage, adjust_workers
 
 
 class Eager(TestStage):
@@ -58,7 +58,7 @@ class Eager(TestStage):
 
     def compute_spec(self, config: Config, system: System) -> StageSpec:
         degree = 1 if config.verbose else len(system.cpus)
-        workers = self._adjust_workers(degree, config)
+        workers = adjust_workers(degree, config.requested_workers)
 
         # Just put each worker on its own CPU for eager tests
         shards = [tuple([i]) for i in range(workers)]

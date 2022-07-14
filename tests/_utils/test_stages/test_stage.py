@@ -19,7 +19,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
 from subprocess import CompletedProcess
-from typing import Tuple
+from typing import Tuple, Union
 
 from typing_extensions import Protocol, TypeAlias
 
@@ -223,24 +223,11 @@ class TestStage(Protocol):
         cmd += stage_args + file_args + config.extra_args
 
         result = system.run(cmd, env=self._env(config))
-        self._log_proc(result, test_file, config.verbose)
+        log_proc(self.name, result, test_file, config.verbose)
 
         self.shards.put(shard)
 
         return result
-
-    def _adjust_workers(self, workers: int, config: Config) -> int:
-        if config.requested_workers is not None:
-            if config.requested_workers > workers:
-                raise RuntimeError(
-                    "Requested workers greater than assignable workers"
-                )
-            workers = config.requested_workers
-
-        if workers == 0:
-            raise RuntimeError("Current configuration results in zero workers")
-
-        return workers
 
     def _env(self, config: Config) -> EnvDict:
         env = config.env
@@ -267,14 +254,32 @@ class TestStage(Protocol):
 
         return [job.get() for job in jobs]
 
-    def _log_proc(
-        self, proc: CompletedProcess[str], test_file: Path, verbose: bool
-    ) -> None:
-        msg = f"({self.name}) {test_file}"
-        details = proc.stdout.split("\n") if verbose else None
-        if proc.returncode == 0:
-            LOG(passed(msg, details=details))
-        elif proc.returncode == SKIPPED_RETURNCODE:
-            LOG(skipped(msg))
-        else:
-            LOG(failed(msg, details=details))
+
+def adjust_workers(workers: int, requested_workers: Union[int, None]) -> int:
+    if requested_workers is not None and requested_workers < 0:
+        raise ValueError("requested workers must be non-negative")
+
+    if requested_workers is not None:
+        if requested_workers > workers:
+            raise RuntimeError(
+                "Requested workers greater than assignable workers"
+            )
+        workers = requested_workers
+
+    if workers == 0:
+        raise RuntimeError("Current configuration results in zero workers")
+
+    return workers
+
+
+def log_proc(
+    name: str, proc: CompletedProcess[str], test_file: Path, verbose: bool
+) -> None:
+    msg = f"({name}) {test_file}"
+    details = proc.stdout.split("\n") if verbose else None
+    if proc.returncode == 0:
+        LOG(passed(msg, details=details))
+    elif proc.returncode == SKIPPED_RETURNCODE:
+        LOG(skipped(msg))
+    else:
+        LOG(failed(msg, details=details))

@@ -18,7 +18,7 @@ from .. import FeatureType
 from ..config import Config
 from ..system import System
 from ..types import ArgList, EnvDict
-from .test_stage import Shard, StageSpec, TestStage
+from .test_stage import Shard, StageSpec, TestStage, adjust_workers
 
 BLOAT_FACTOR = 1.5  # hard coded for now
 
@@ -64,7 +64,9 @@ class GPU(TestStage):
         oversub_factor = int(fbsize // (config.fbmem * BLOAT_FACTOR))
 
         degree = N // config.gpus
-        workers = self._adjust_workers(degree * oversub_factor, config)
+        workers = adjust_workers(
+            degree * oversub_factor, config.requested_workers
+        )
 
         # https://docs.python.org/3/library/itertools.html#itertools-recipes
         # grouper('ABCDEF', 3) --> ABC DEF

@@ -18,7 +18,7 @@ from .. import FeatureType
 from ..config import Config
 from ..system import System
 from ..types import ArgList, EnvDict
-from .test_stage import Shard, StageSpec, TestStage
+from .test_stage import Shard, StageSpec, TestStage, adjust_workers
 
 
 class OMP(TestStage):
@@ -63,7 +63,7 @@ class OMP(TestStage):
         omps, threads = config.omps, config.ompthreads
 
         degree = N // (omps * threads + config.utility)
-        workers = self._adjust_workers(degree, config)
+        workers = adjust_workers(degree, config.requested_workers)
 
         # https://docs.python.org/3/library/itertools.html#itertools-recipes
         # grouper('ABCDEF', 3) --> ABC DEF
