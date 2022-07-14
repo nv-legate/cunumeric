@@ -28,7 +28,11 @@ function(find_or_configure_legate_core)
 
   # First try to find legate_core via find_package()
   # so the `Legion_USE_*` variables are visible
-  rapids_find_package(legate_core ${PKG_VERSION} EXACT CONFIG QUIET ${FIND_PKG_ARGS})
+  if(NOT ((DEFINED legate_core_DIR) OR (DEFINED legate_core_ROOT)))
+    rapids_find_package(legate_core ${PKG_VERSION} EXACT CONFIG QUIET ${FIND_PKG_ARGS})
+  else()
+    rapids_find_package(legate_core ${PKG_VERSION} EXACT CONFIG REQUIRED ${FIND_PKG_ARGS})
+  endif()
 
   if(legate_core_FOUND)
     message(STATUS "CPM: using local package legate_core@${PKG_VERSION}")
