@@ -25,6 +25,12 @@ from legate.core import LEGATE_MAX_DIM
 @pytest.mark.parametrize("dtype", ("B", "i", "?"))
 @pytest.mark.parametrize("bitorder", ("little", "big"))
 def test_packbits(ndim, dtype, bitorder):
+    in_np = np.array([], dtype=dtype)
+    in_num = num.array([], dtype=dtype)
+    out_np = np.packbits(in_np, bitorder=bitorder)
+    out_num = num.packbits(in_num, bitorder=bitorder)
+    assert np.array_equal(out_np, out_num)
+
     for extent in (3, 5, 8, 16):
         shape = (extent,) * ndim
         in_np = np.random.randint(low=0, high=2, size=shape, dtype=dtype)
@@ -43,6 +49,12 @@ def test_packbits(ndim, dtype, bitorder):
 @pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
 @pytest.mark.parametrize("bitorder", ("little", "big"))
 def test_unpackbits(ndim, bitorder):
+    in_np = np.array([], dtype="B")
+    in_num = num.array([], dtype="B")
+    out_np = np.unpackbits(in_np, bitorder=bitorder)
+    out_num = num.unpackbits(in_num, bitorder=bitorder)
+    assert np.array_equal(out_np, out_num)
+
     for extent in (3, 5, 8, 16):
         shape = (extent,) * ndim
         in_np = np.random.randint(low=0, high=255, size=shape, dtype="B")
@@ -52,9 +64,21 @@ def test_unpackbits(ndim, bitorder):
         out_num = num.unpackbits(in_num, bitorder=bitorder)
         assert np.array_equal(out_np, out_num)
 
+        out_np = np.unpackbits(in_np, count=extent // 2, bitorder=bitorder)
+        out_num = num.unpackbits(in_num, count=extent // 2, bitorder=bitorder)
+        assert np.array_equal(out_np, out_num)
+
         for axis in range(ndim):
             out_np = np.unpackbits(in_np, axis=axis, bitorder=bitorder)
             out_num = num.unpackbits(in_num, axis=axis, bitorder=bitorder)
+            assert np.array_equal(out_np, out_num)
+
+            out_np = np.unpackbits(
+                in_np, count=extent // 2, axis=axis, bitorder=bitorder
+            )
+            out_num = num.unpackbits(
+                in_num, count=extent // 2, axis=axis, bitorder=bitorder
+            )
             assert np.array_equal(out_np, out_num)
 
 
