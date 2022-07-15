@@ -1747,7 +1747,11 @@ class DeferredArray(NumPyThunk):
 
             lhs_array.fill(np.array(fill_value, dtype=lhs_array.dtype))
 
-            task.add_reduction(lhs_array.base, _UNARY_RED_TO_REDUCTION_OPS[op])
+            lhs = lhs_array.base
+            while lhs.ndim > 1:
+                lhs = lhs.project(0, 0)
+
+            task.add_reduction(lhs, _UNARY_RED_TO_REDUCTION_OPS[op])
             task.add_input(rhs_array.base)
             task.add_scalar_arg(op, ty.int32)
             task.add_scalar_arg(rhs_array.shape, (ty.int64,))
