@@ -811,7 +811,7 @@ class DeferredArray(NumPyThunk):
             result_array = numpy_array.reshape(newshape, order=order).copy()
             result = self.runtime.get_numpy_thunk(result_array)
 
-            return result
+            return self.runtime.to_deferred_array(result)
 
         if self.shape == newshape:
             return self
