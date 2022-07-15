@@ -154,6 +154,30 @@ def test_normal_float64(t):
 
 
 @pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
+def test_uniform_float32(t):
+    bitgen = t(seed=42)
+    gen = num.random.Generator(bitgen)
+    low = 1.414
+    high = 3.14
+    a = gen.uniform(low, high, size=(1024 * 1024,), dtype=np.float32)
+    theo_mean = (low + high) / 2.0
+    theo_std = (high - low) / np.sqrt(12.0)
+    assert_distribution(a, theo_mean, theo_std)
+
+
+@pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
+def test_uniform_float64(t):
+    bitgen = t(seed=42)
+    gen = num.random.Generator(bitgen)
+    low = 1.414
+    high = 3.14
+    a = gen.uniform(low, high, size=(1024 * 1024,), dtype=np.float64)
+    theo_mean = (low + high) / 2.0
+    theo_std = (high - low) / np.sqrt(12.0)
+    assert_distribution(a, theo_mean, theo_std)
+
+
+@pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
 def test_poisson(t):
     bitgen = t(seed=42)
     gen = num.random.Generator(bitgen)

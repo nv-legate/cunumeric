@@ -932,7 +932,6 @@ struct BitGeneratorImplBody {
                   std::vector<legate::Store>& args)
   {
     generator_map_t& genmap = get_generator_map();
-    // printtid((int)op);
     switch (op) {
       case BitGeneratorOperation::CREATE: {
         genmap.create(generatorID, generatorType, seed, flags);

@@ -110,6 +110,17 @@ class BitGenerator:
         )
         return res
 
+    def uniform(self, low=0.0, high=1.0, shape=None, dtype=np.float64):
+        if shape is None:
+            shape = (1,)
+        if not isinstance(shape, tuple):
+            shape = (shape,)
+        res = ndarray(shape, dtype=np.dtype(dtype))
+        res._thunk.bitgenerator_uniform(
+            self.handle, self.generatorType, self.seed, self.flags, low, high
+        )
+        return res
+
     def poisson(self, lam, shape=None):
         if shape is None:
             shape = (1,)

@@ -41,6 +41,9 @@ class Generator:
             mean=loc, sigma=scale, shape=size, dtype=dtype
         )
 
+    def uniform(self, low=0.0, high=1.0, size=None, dtype=np.float64):
+        return self.bit_generator.uniform(low, high, size, dtype)
+
     def poisson(self, lam=1.0, size=None):
         return self.bit_generator.poisson(lam, size)
 
