@@ -58,7 +58,7 @@ GEN_CPU_SRC += cunumeric/ternary/where.cc                                       
 							 cunumeric/arg.cc                                            \
 							 cunumeric/mapper.cc
 
-GEN_CPU_SRC += cunumeric/cephes/chbevl.cc                             \
+GEN_CPU_SRC += cunumeric/cephes/chbevl.cc \
 							 cunumeric/cephes/i0.cc
 
 ifeq ($(strip $(USE_OPENMP)),1)
