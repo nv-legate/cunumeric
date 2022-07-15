@@ -55,6 +55,8 @@ struct ScanLocalImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
 
     auto stride = rect.hi[DIM - 1] - rect.lo[DIM - 1] + 1;
 
+    auto stream = get_cached_stream();
+
     Point<DIM> extents = rect.hi - rect.lo + Point<DIM>::ONES();
     extents[DIM - 1]   = 1;  // one element along scan axis
 
@@ -62,14 +64,16 @@ struct ScanLocalImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
 
     for (uint64_t index = 0; index < volume; index += stride) {
       thrust::inclusive_scan(
-        thrust::device, inptr + index, inptr + index + stride, outptr + index, func);
+        thrust::cuda::par.on(stream), inptr + index, inptr + index + stride, outptr + index, func);
       // get the corresponding ND index with base zero to use for sum_val
       auto sum_valp = pitches.unflatten(index, Point<DIM>::ZEROES());
       // only one element on scan axis
       sum_valp[DIM - 1] = 0;
       // write out the partition sum
-      lazy_kernel<<<1, THREADS_PER_BLOCK>>>(&outptr[index + stride - 1], &sum_valsptr[sum_valp]);
+      lazy_kernel<<<1, THREADS_PER_BLOCK, 0, stream>>>(&outptr[index + stride - 1],
+                                                       &sum_valsptr[sum_valp]);
     }
+    CHECK_CUDA_STREAM(stream);
   }
 };
 
@@ -98,6 +102,8 @@ struct ScanLocalNanImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
 
     auto stride = rect.hi[DIM - 1] - rect.lo[DIM - 1] + 1;
 
+    auto stream = get_cached_stream();
+
     Point<DIM> extents = rect.hi - rect.lo + Point<DIM>::ONES();
     extents[DIM - 1]   = 1;  // one element along scan axis
 
@@ -105,7 +111,7 @@ struct ScanLocalNanImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
 
     for (uint64_t index = 0; index < volume; index += stride) {
       thrust::inclusive_scan(
-        thrust::device,
+        thrust::cuda::par.on(stream),
         thrust::make_transform_iterator(inptr + index, convert_nan_func()),
         thrust::make_transform_iterator(inptr + index + stride, convert_nan_func()),
         outptr + index,
@@ -115,8 +121,10 @@ struct ScanLocalNanImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
       // only one element on scan axis
       sum_valp[DIM - 1] = 0;
       // write out the partition sum
-      lazy_kernel<<<1, THREADS_PER_BLOCK>>>(&outptr[index + stride - 1], &sum_valsptr[sum_valp]);
+      lazy_kernel<<<1, THREADS_PER_BLOCK, 0, stream>>>(&outptr[index + stride - 1],
+                                                       &sum_valsptr[sum_valp]);
     }
+    CHECK_CUDA_STREAM(stream);
   }
 };
 

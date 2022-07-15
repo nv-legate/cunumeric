@@ -58,6 +58,8 @@ struct ScanGlobalImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
       return;
     }
 
+    auto stream = get_cached_stream();
+
     auto stride         = out_rect.hi[DIM - 1] - out_rect.lo[DIM - 1] + 1;
     const size_t blocks = (stride + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
     for (uint64_t index = 0; index < volume; index += stride) {
@@ -67,14 +69,16 @@ struct ScanGlobalImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
       sum_valsp[DIM - 1]     = 0;
       auto sum_valsp_end     = sum_valsp;
       sum_valsp_end[DIM - 1] = partition_index[DIM - 1];
-      auto global_prefix     = thrust::reduce(thrust::device,
+      auto global_prefix     = thrust::reduce(thrust::cuda::par.on(stream),
                                           &sum_vals[sum_valsp],
                                           &sum_vals[sum_valsp_end],
                                           (VAL)ScanOp<OP_CODE, CODE>::nan_null,
                                           func);
       // apply global_prefix to out
-      scalar_kernel<<<blocks, THREADS_PER_BLOCK>>>(stride, func, &outptr[index], global_prefix);
+      scalar_kernel<<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
+        stride, func, &outptr[index], global_prefix);
     }
+    CHECK_CUDA_STREAM(stream);
   }
 };
 
