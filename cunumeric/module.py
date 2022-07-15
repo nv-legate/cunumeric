@@ -2704,6 +2704,68 @@ def diagonal(
     )
 
 
+@add_boilerplate("a", "val")
+def fill_diagonal(a, val, wrap=False):
+    """
+    Fill the main diagonal of the given array of any dimensionality.
+
+    For an array a with a.ndim >= 2, the diagonal is the list of locations with
+    indices a[i, ..., i] all identical. This function modifies the input
+    array in-place, it does not return a value.
+
+    Parameters
+    ----------
+
+    a : array, at least 2-D.
+        Array whose diagonal is to be filled, it gets modified in-place.
+    val : scalar or array_like
+        Value(s) to write on the diagonal. If val is scalar, the value is
+        written along the diagonal.
+        If array-like, the flattened val is written along
+        the diagonal, repeating if necessary to fill all diagonal entries.
+    wrap : bool
+        For tall matrices (2d) the diagonal “wrapped” after N columns.
+        You can have this behavior with this option. This affects
+        only tall matrices.
+
+    Raises
+    ------
+    ValueError
+        If the dimension of `a` is less than 2.
+
+    Notes
+    -----
+
+    See Also
+    --------
+    numpy.fill_diagonal
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+
+    """
+    if a.ndim < 2:
+        raise ValueError("array must be at least 2-d")
+    n = min(a.shape)
+    idx = arange(n, dtype=int)
+    indices = (idx,) * a.ndim
+    if a.ndim == 2:
+        if not wrap or a.shape[0] >= a.shape[1]:
+            a[indices] = val
+        else:
+            idx2 = arange(a.shape[1], dtype=int)
+            idx1 = idx2 % a.shape[0]
+            a[idx1, idx2] = val
+    else:
+        for s in a.shape:
+            if s != n:
+                raise ValueError(
+                    "All dimensions of input must be of equal length"
+                )
+        a[indices] = val
+
+
 ################
 # Linear algebra
 ################
