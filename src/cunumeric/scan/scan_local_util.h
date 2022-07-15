@@ -28,18 +28,21 @@ enum class ScanCode : int {
 };
 
 template <typename Functor, typename... Fnargs>
-constexpr decltype(auto) op_dispatch(ScanCode op_code, bool nan0, Functor f, Fnargs&&... args)
+constexpr decltype(auto) op_dispatch(ScanCode op_code,
+                                     bool nan_to_identity,
+                                     Functor f,
+                                     Fnargs&&... args)
 {
   switch (op_code) {
     case ScanCode::PROD:
-      switch (nan0) {
+      switch (nan_to_identity) {
         case true:
           return f.template operator()<ScanCode::PROD, true>(std::forward<Fnargs>(args)...);
         case false:
           return f.template operator()<ScanCode::PROD, false>(std::forward<Fnargs>(args)...);
       }
     case ScanCode::SUM:
-      switch (nan0) {
+      switch (nan_to_identity) {
         case true: return f.template operator()<ScanCode::SUM, true>(std::forward<Fnargs>(args)...);
         case false:
           return f.template operator()<ScanCode::SUM, false>(std::forward<Fnargs>(args)...);

@@ -1905,7 +1905,7 @@ class DeferredArray(NumPyThunk):
         cholesky(self, src, no_tril)
 
     @auto_convert([2])
-    def scan(self, op, rhs, axis, dtype, nan0):
+    def scan(self, op, rhs, axis, dtype, nan_to_identity):
         # local sum
         # storage for local sums accessible
         temp = self.runtime.create_unbound_thunk(
@@ -1931,7 +1931,7 @@ class DeferredArray(NumPyThunk):
         task.add_input(input.base)
         task.add_output(temp.base)
         task.add_scalar_arg(op, ty.int32)
-        task.add_scalar_arg(nan0, bool)
+        task.add_scalar_arg(nan_to_identity, bool)
 
         task.add_alignment(input.base, output.base)
 

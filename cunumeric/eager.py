@@ -846,18 +846,18 @@ class EagerArray(NumPyThunk):
                 result = np.triu(result.T.conj(), k=1) + result
             self.array[:] = result
 
-    def scan(self, op, rhs, axis, dtype, nan0):
+    def scan(self, op, rhs, axis, dtype, nan_to_identity):
         self.check_eager_args(rhs)
         if self.deferred is not None:
-            self.deferred.scan(op, rhs, axis, dtype, nan0)
+            self.deferred.scan(op, rhs, axis, dtype, nan_to_identity)
             return
         if op is ScanCode.SUM:
-            if nan0 is False:
+            if nan_to_identity is False:
                 np.cumsum(rhs.array, axis, dtype, self.array)
             else:
                 np.nancumsum(rhs.array, axis, dtype, self.array)
         elif op is ScanCode.PROD:
-            if nan0 is False:
+            if nan_to_identity is False:
                 np.cumprod(rhs.array, axis, dtype, self.array)
             else:
                 np.nancumprod(rhs.array, axis, dtype, self.array)

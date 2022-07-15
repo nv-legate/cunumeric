@@ -28,12 +28,12 @@ struct ScanLocalImplBody;
 template <VariantKind KIND, ScanCode OP_CODE, LegateTypeCode CODE, int DIM>
 struct ScanLocalNanImplBody;
 
-template <VariantKind KIND, ScanCode OP_CODE, bool NAN0>
+template <VariantKind KIND, ScanCode OP_CODE, bool NAN_TO_IDENTITY>
 struct ScanLocalImpl {
   // Case where NANs are transformed
   template <LegateTypeCode CODE,
             int DIM,
-            std::enable_if_t<NAN0 && legate::is_floating_point<CODE>::value>* = nullptr>
+            std::enable_if_t<NAN_TO_IDENTITY && legate::is_floating_point<CODE>::value>* = nullptr>
   void operator()(ScanLocalArgs& args) const
   {
     using OP  = ScanOp<OP_CODE, CODE>;
@@ -53,9 +53,10 @@ struct ScanLocalImpl {
     ScanLocalNanImplBody<KIND, OP_CODE, CODE, DIM>()(func, out, in, args.sum_vals, pitches, rect);
   }
   // Case where NANs are as is
-  template <LegateTypeCode CODE,
-            int DIM,
-            std::enable_if_t<!(NAN0 && legate::is_floating_point<CODE>::value)>* = nullptr>
+  template <
+    LegateTypeCode CODE,
+    int DIM,
+    std::enable_if_t<!(NAN_TO_IDENTITY && legate::is_floating_point<CODE>::value)>* = nullptr>
   void operator()(ScanLocalArgs& args) const
   {
     using OP  = ScanOp<OP_CODE, CODE>;
@@ -78,11 +79,11 @@ struct ScanLocalImpl {
 
 template <VariantKind KIND>
 struct ScanLocalDispatch {
-  template <ScanCode OP_CODE, bool NAN0>
+  template <ScanCode OP_CODE, bool NAN_TO_IDENTITY>
   void operator()(ScanLocalArgs& args) const
   {
     return double_dispatch(
-      args.in.dim(), args.in.code(), ScanLocalImpl<KIND, OP_CODE, NAN0>{}, args);
+      args.in.dim(), args.in.code(), ScanLocalImpl<KIND, OP_CODE, NAN_TO_IDENTITY>{}, args);
   }
 };
 
@@ -94,7 +95,7 @@ static void scan_local_template(TaskContext& context)
                      context.outputs()[1],
                      context.scalars()[0].value<ScanCode>(),
                      context.scalars()[1].value<bool>()};
-  op_dispatch(args.op_code, args.nan0, ScanLocalDispatch<KIND>{}, args);
+  op_dispatch(args.op_code, args.nan_to_identity, ScanLocalDispatch<KIND>{}, args);
 }
 
 }  // namespace cunumeric

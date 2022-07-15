@@ -2128,25 +2128,45 @@ class ndarray:
     @add_boilerplate()
     def cumsum(self, axis=None, dtype=None, out=None) -> ndarray:
         return self._perform_scan(
-            ScanCode.SUM, self, axis=axis, dtype=dtype, out=out, nan0=False
+            ScanCode.SUM,
+            self,
+            axis=axis,
+            dtype=dtype,
+            out=out,
+            nan_to_identity=False,
         )
 
     @add_boilerplate()
     def cumprod(self, axis=None, dtype=None, out=None) -> ndarray:
         return self._perform_scan(
-            ScanCode.PROD, self, axis=axis, dtype=dtype, out=out, nan0=False
+            ScanCode.PROD,
+            self,
+            axis=axis,
+            dtype=dtype,
+            out=out,
+            nan_to_identity=False,
         )
 
     @add_boilerplate()
     def nancumsum(self, axis=None, dtype=None, out=None) -> ndarray:
         return self._perform_scan(
-            ScanCode.SUM, self, axis=axis, dtype=dtype, out=out, nan0=True
+            ScanCode.SUM,
+            self,
+            axis=axis,
+            dtype=dtype,
+            out=out,
+            nan_to_identity=True,
         )
 
     @add_boilerplate()
     def nancumprod(self, axis=None, dtype=None, out=None) -> ndarray:
         return self._perform_scan(
-            ScanCode.PROD, self, axis=axis, dtype=dtype, out=out, nan0=True
+            ScanCode.PROD,
+            self,
+            axis=axis,
+            dtype=dtype,
+            out=out,
+            nan_to_identity=True,
         )
 
     # diagonal helper. Will return diagonal for arbitrary number of axes;
@@ -3838,26 +3858,24 @@ class ndarray:
 
     @classmethod
     def _perform_scan(
-        cls, op, src, axis=None, dtype=None, out=None, nan0=False
+        cls, op, src, axis=None, dtype=None, out=None, nan_to_identity=False
     ) -> ndarray:
         if dtype is None:
             if out is None:
-                if np.issubdtype(src.dtype, np.integer):
+                if src.dtype.kind=="i":
                     # Set dtype to default platform integer
                     dtype = np.int_
                 else:
                     dtype = src.dtype
             else:
                 dtype = out.dtype
-        if (
-            np.issubdtype(src.dtype, np.floating) or np.iscomplexobj(src)
-        ) and np.issubdtype(dtype, np.integer):
+        if (src.dtype.kind in ("f", "c")) and np.issubdtype(dtype, np.integer):
             # Needs changes to convert()
             raise NotImplementedError(
                 "Integer output types currently not supported for "
                 "floating/complex inputs"
             )
-        if np.issubdtype(dtype, np.complexfloating) and nan0 is True:
+        if np.issubdtype(dtype, np.complexfloating) and nan_to_identity:
             # Currently not behaving correctly
             raise NotImplementedError(
                 "nancumsum and nancumprod currently do not "
@@ -3896,5 +3914,11 @@ class ndarray:
                 temp._thunk.convert(src_arr._thunk)
                 src_arr = temp
 
-        out._thunk.scan(op, src_arr._thunk, axis=axis, dtype=dtype, nan0=nan0)
+        out._thunk.scan(
+            op,
+            src_arr._thunk,
+            axis=axis,
+            dtype=dtype,
+            nan_to_identity=nan_to_identity,
+        )
         return out

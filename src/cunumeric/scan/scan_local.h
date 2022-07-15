@@ -26,7 +26,7 @@ struct ScanLocalArgs {
   const Array& in;
   Array& sum_vals;
   ScanCode op_code;
-  bool nan0;
+  bool nan_to_identity;
 };
 
 class ScanLocalTask : public CuNumericTask<ScanLocalTask> {
