@@ -3862,7 +3862,7 @@ class ndarray:
     ) -> ndarray:
         if dtype is None:
             if out is None:
-                if src.dtype.kind=="i":
+                if src.dtype.kind == "i":
                     # Set dtype to default platform integer
                     dtype = np.int_
                 else:
