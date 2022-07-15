@@ -117,6 +117,7 @@ def test_scan(op, shape, axis, out0):
         "second_half",
     ]
     int_types = [
+        np.int16,
         np.int32,
         np.int64,
     ]
