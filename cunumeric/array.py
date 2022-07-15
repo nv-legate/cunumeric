@@ -3863,40 +3863,32 @@ class ndarray:
                 "nancumsum and nancumprod currently do not "
                 "supported complex types"
             )
+        # flatten input when axis is None
+        if axis is None:
+            axis = 0
+            src_arr = src.ravel()
+        else:
+            axis = normalize_axis_index(axis, src.ndim)
+            src_arr = src
         if out is not None:
             if dtype != out.dtype:
                 # if out array is specified, its type overrules dtype
                 dtype = out.dtype
-            if axis is not None:
-                if out.shape != src.shape:
-                    raise RuntimeError(
-                        "Non-matching shapes on input and output"
-                        "not supported when axis provided."
-                    )
-            else:
-                if out.ndim != 1 or out.size != src.size:
-                    raise RuntimeError(
-                        "Output must be 1D and of similar size to"
-                        "input when axis not provided"
-                    )
-            if dtype == src.dtype:
-                src_arr = src
-            else:
+            if out.shape != src_arr.shape:
+                raise RuntimeError(
+                    "Invalid shape/size on provided output array"
+                )
+            if dtype != src_arr.dtype:
                 # convert input to temporary for type conversion
-                temp = ndarray(shape=src.shape, dtype=dtype)
-                temp._thunk.convert(src._thunk)
+                temp = ndarray(shape=src_arr.shape, dtype=dtype)
+                temp._thunk.convert(src_arr._thunk)
                 src_arr = temp
         else:
-            if axis is not None:
-                out = ndarray(shape=src.shape, dtype=dtype)
-            else:
-                out = ndarray(shape=src.size, dtype=dtype)
-            if dtype == src.dtype:
-                src_arr = src
-            else:
+            out = ndarray(shape=src_arr.shape, dtype=dtype)
+            if dtype != src.dtype:
                 # convert input to temporary for type conversion
-                temp = ndarray(shape=src.shape, dtype=dtype)
-                temp._thunk.convert(src._thunk)
+                temp = ndarray(shape=src_arr.shape, dtype=dtype)
+                temp._thunk.convert(src_arr._thunk)
                 src_arr = temp
 
         out._thunk.scan(op, src_arr._thunk, axis=axis, dtype=dtype, nan0=nan0)

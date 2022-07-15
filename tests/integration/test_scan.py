@@ -69,8 +69,8 @@ def _run_tests(op, n0, shape, dt, axis, out0, outtype):
         C = getattr(np, op)(A, out=None, axis=axis, dtype=outtype)
     else:
         A, B, C = _gen_array(n0, shape, dt, axis, outtype)
-        B = getattr(num, op)(A, out=B, axis=axis, dtype=outtype)
-        C = getattr(np, op)(A, out=C, axis=axis, dtype=outtype)
+        getattr(num, op)(A, out=B, axis=axis, dtype=outtype)
+        getattr(np, op)(A, out=C, axis=axis, dtype=outtype)
 
     print("Checking result...")
     if np.allclose(B, C, equal_nan=True):

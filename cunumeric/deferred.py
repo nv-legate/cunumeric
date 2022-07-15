@@ -1912,26 +1912,19 @@ class DeferredArray(NumPyThunk):
             dtype=self.dtype, ndim=self.ndim
         )
 
-        if axis is not None and (axis > rhs.ndim or axis < 0):
-            raise ValueError("invalid axis")
-        # when no axis specified, flatten the arrays
-        if axis is None and rhs.ndim > 1:
-            input = rhs.reshape((rhs.size,), order="C")
+        if axis == rhs.ndim - 1:
+            input = rhs
             output = self
         else:
-            if rhs.ndim == 1 or axis == rhs.ndim - 1:
-                input = rhs
-                output = self
-            else:
-                # swap axes, always performing scan along last axis
-                swapped = rhs.swapaxes(axis, rhs.ndim - 1)
-                input = self.runtime.create_empty_thunk(
-                    swapped.shape, dtype=rhs.dtype, inputs=(rhs, swapped)
-                )
-                input.copy(swapped, deep=True)
-                output = self.runtime.create_empty_thunk(
-                    input.shape, dtype=self.dtype
-                )
+            # swap axes, always performing scan along last axis
+            swapped = rhs.swapaxes(axis, rhs.ndim - 1)
+            input = self.runtime.create_empty_thunk(
+                swapped.shape, dtype=rhs.dtype, inputs=(rhs, swapped)
+            )
+            input.copy(swapped, deep=True)
+            output = self.runtime.create_empty_thunk(
+                input.shape, dtype=self.dtype
+            )
 
         task = output.context.create_task(CuNumericOpCode.SCAN_LOCAL)
         task.add_output(output.base)
@@ -1958,7 +1951,7 @@ class DeferredArray(NumPyThunk):
         task.execute()
 
         # if axes were swapped, turn them back
-        if axis is not rhs.ndim - 1 and axis is not None:
+        if output is not self:
             swapped = output.swapaxes(rhs.ndim - 1, axis)
             assert self.shape == swapped.shape
             self.copy(swapped, deep=True)
