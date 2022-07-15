@@ -19,4 +19,4 @@ GEN_CPU_SRC += cunumeric/random/bitgenerator.cc                            \
 
 GEN_GPU_SRC += cunumeric/random/bitgenerator.cu                              \
 							 cunumeric/random/randutil/generator_device.cu                 \
-							 cunumeric/random/randutil/generator_device_straightforward.cu \
+							 cunumeric/random/randutil/generator_device_straightforward.cu
