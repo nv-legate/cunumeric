@@ -192,6 +192,7 @@ class _CunumericSharedLib:
     CUNUMERIC_WINDOW_HAMMING: int
     CUNUMERIC_WINDOW_HANNING: int
     CUNUMERIC_WINDOW_KAISER: int
+    CUNUMERIC_WRAP: int
     CUNUMERIC_WRITE: int
     CUNUMERIC_ZIP: int
 
@@ -296,6 +297,7 @@ class CuNumericOpCode(IntEnum):
     UNPACKBITS = _cunumeric.CUNUMERIC_UNPACKBITS
     WHERE = _cunumeric.CUNUMERIC_WHERE
     WINDOW = _cunumeric.CUNUMERIC_WINDOW
+    WRAP = _cunumeric.CUNUMERIC_WRAP
     WRITE = _cunumeric.CUNUMERIC_WRITE
     ZIP = _cunumeric.CUNUMERIC_ZIP
 

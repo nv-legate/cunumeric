@@ -2704,8 +2704,28 @@ def diagonal(
     )
 
 
+# @add_boilerplate("a")
+# def _wrap_1d_array( a : ndarray, new_len:int):
+#    result = empty((new_len,), dtype=a.dtype)
+#    filled_size = 0
+#    indices = arange(new_len)
+#    while filled_size<new_len:
+#        diff = new_len-filled_size
+#
+#        if (diff <a.size):
+#            result[indices[filled_size:new_len]] = a[0:diff]
+#        else:
+#            result[indices[filled_size:(filled_size+a.size)]]=a
+#
+#        #    a_tmp = new_a[0:diff].copy()
+#        #    new_a = concatenate((new_a, a_tmp), axis = 0).copy()
+#        #else:
+#        #new_a = concatenate((new_a, new_a), axis =0).copy()
+#    return result
+
+
 @add_boilerplate("a", "val")
-def fill_diagonal(a, val, wrap=False):
+def fill_diagonal(a: ndarray, val: ndarray, wrap: Optional[bool] = False):
     """
     Fill the main diagonal of the given array of any dimensionality.
 
@@ -2747,22 +2767,41 @@ def fill_diagonal(a, val, wrap=False):
     """
     if a.ndim < 2:
         raise ValueError("array must be at least 2-d")
+
     n = min(a.shape)
+
+    if a.ndim > 2:
+        for s in a.shape:
+            if s != n:
+                raise ValueError(
+                    "All dimensions of input must be of equal length"
+                )
+
+        if wrap:
+            raise ValueError("wrap can be set to True only for tall matrices")
+
     idx = arange(n, dtype=int)
     indices = (idx,) * a.ndim
+
+    if val.ndim > 1:
+        val = val.ravel()
+
+    len_val = n
+    if wrap:
+        len_val = a.shape[1]
+
+    if val.size < len_val and val.ndim > 0:
+        val._wrap(len_val)
+
     if a.ndim == 2:
-        if not wrap or a.shape[0] >= a.shape[1]:
+        # if not wrap or a.shape[0] >= a.shape[1]:
+        if not wrap:
             a[indices] = val
         else:
             idx2 = arange(a.shape[1], dtype=int)
             idx1 = idx2 % a.shape[0]
             a[idx1, idx2] = val
     else:
-        for s in a.shape:
-            if s != n:
-                raise ValueError(
-                    "All dimensions of input must be of equal length"
-                )
         a[indices] = val
 
 

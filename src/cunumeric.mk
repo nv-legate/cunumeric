@@ -31,6 +31,7 @@ GEN_CPU_SRC += cunumeric/ternary/where.cc               \
 							 cunumeric/index/advanced_indexing.cc     \
 							 cunumeric/index/choose.cc                \
 							 cunumeric/index/repeat.cc                \
+                                                         cunumeric/index/wrap.cc                  \
 							 cunumeric/index/zip.cc                   \
 							 cunumeric/item/read.cc                   \
 							 cunumeric/item/write.cc                  \
@@ -77,6 +78,7 @@ GEN_CPU_SRC += cunumeric/ternary/where_omp.cc          \
 							 cunumeric/index/advanced_indexing_omp.cc\
 							 cunumeric/index/choose_omp.cc           \
 							 cunumeric/index/repeat_omp.cc           \
+                                                         cunumeric/index/wrap_omp.cc             \
 							 cunumeric/index/zip_omp.cc              \
 							 cunumeric/matrix/contract_omp.cc        \
 							 cunumeric/matrix/diag_omp.cc            \
@@ -115,6 +117,7 @@ GEN_GPU_SRC += cunumeric/ternary/where.cu               \
 							 cunumeric/index/advanced_indexing.cu     \
 							 cunumeric/index/choose.cu                \
 							 cunumeric/index/repeat.cu                \
+                                                         cunumeric/index/wrap.cu                  \
 							 cunumeric/index/zip.cu                   \
 							 cunumeric/item/read.cu                   \
 							 cunumeric/item/write.cu                  \

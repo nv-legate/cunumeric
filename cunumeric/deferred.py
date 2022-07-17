@@ -730,6 +730,8 @@ class DeferredArray(NumPyThunk):
                 self,
             ) = self._create_indexing_array(key, True)
 
+            print("IRINA DEBUG ndim = ", rhs.ndim, rhs.shape, rhs.base.kind)
+
             if rhs.shape != index_array.shape:
                 rhs_tmp = rhs._broadcast(index_array.base.shape)
                 rhs_tmp = rhs._copy_store(rhs_tmp)
@@ -2029,3 +2031,29 @@ class DeferredArray(NumPyThunk):
         scale = tuple(8 if dim == axis else 1 for dim in range(src.ndim))
         task.add_constraint(p_out <= p_in * scale)
         task.execute()
+
+    @auto_convert([1])
+    def _wrap(self, src, new_len):
+        # first, we create indirect array with PointN type that
+        # (len,) shape and is used to copy data from original array
+        # to the target 1D wrapped array
+        N = src.ndim
+        pointN_dtype = self.runtime.get_point_type(N)
+        indirect_store = self.context.create_store(
+            pointN_dtype, shape=self.shape, optimize_scalar=True
+        )
+        indirect = DeferredArray(
+            self.runtime, base=indirect_store, dtype=pointN_dtype
+        )
+
+        task = self.context.create_task(CuNumericOpCode.WRAP)
+        task.add_output(indirect.base)
+        task.add_scalar_arg(src.shape, (ty.int64,))
+        task.execute()
+
+        copy = self.context.create_copy()
+        copy.set_target_indirect_out_of_range(False)
+        copy.add_input(src.base)
+        copy.add_source_indirect(indirect.base)
+        copy.add_output(self.base)
+        copy.execute()

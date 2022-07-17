@@ -9,6 +9,7 @@ Generating index arrays
 .. autosummary::
    :toctree: generated/
 
+   fill_diagonal
    diag_indices
    diag_indices_from
    indices

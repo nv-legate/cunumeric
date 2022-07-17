@@ -265,3 +265,7 @@ class NumPyThunk(ABC):
     @abstractmethod
     def unpackbits(self, src, axis, bitorder):
         ...
+
+    @abstractmethod
+    def _wrap(self, src, new_len):
+        ...

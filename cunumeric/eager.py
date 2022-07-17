@@ -878,3 +878,10 @@ class EagerArray(NumPyThunk):
             self.array[:] = np.unpackbits(
                 src.array, axis=axis, bitorder=bitorder
             )
+
+    def _wrap(self, src, new_len):
+        self.check_eager_args(src)
+        if self.deferred is not None:
+            self.deferred._wrap(src, new_len)
+        else:
+            raise RuntimeError("not implemented Yet")
