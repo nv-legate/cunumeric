@@ -20,6 +20,8 @@ GEN_CPU_SRC += cunumeric/ternary/where.cc               \
 							 cunumeric/scan/scan_local.cc             \
 							 cunumeric/binary/binary_op.cc            \
 							 cunumeric/binary/binary_red.cc           \
+							 cunumeric/bits/packbits.cc               \
+							 cunumeric/bits/unpackbits.cc             \
 							 cunumeric/unary/scalar_unary_red.cc      \
 							 cunumeric/unary/unary_op.cc              \
 							 cunumeric/unary/unary_red.cc             \
@@ -66,6 +68,8 @@ GEN_CPU_SRC += cunumeric/ternary/where_omp.cc          \
 							 cunumeric/scan/scan_local_omp.cc        \
 							 cunumeric/binary/binary_op_omp.cc       \
 							 cunumeric/binary/binary_red_omp.cc      \
+							 cunumeric/bits/packbits_omp.cc          \
+							 cunumeric/bits/unpackbits_omp.cc        \
 							 cunumeric/unary/unary_op_omp.cc         \
 							 cunumeric/unary/scalar_unary_red_omp.cc \
 							 cunumeric/unary/unary_red_omp.cc        \
@@ -104,6 +108,8 @@ GEN_GPU_SRC += cunumeric/ternary/where.cu               \
 							 cunumeric/scan/scan_local.cu             \
 							 cunumeric/binary/binary_op.cu            \
 							 cunumeric/binary/binary_red.cu           \
+							 cunumeric/bits/packbits.cu               \
+							 cunumeric/bits/unpackbits.cu             \
 							 cunumeric/unary/scalar_unary_red.cu      \
 							 cunumeric/unary/unary_red.cu             \
 							 cunumeric/unary/unary_op.cu              \
