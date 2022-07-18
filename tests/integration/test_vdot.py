@@ -15,6 +15,7 @@
 
 import numpy as np
 import pytest
+from utils.comparisons import allclose
 from utils.generators import mk_0to1_array
 
 import cunumeric as cn
@@ -32,9 +33,7 @@ def _vdot(a_dtype, b_dtype, lib):
 @pytest.mark.parametrize("a_dtype", DTYPES)
 @pytest.mark.parametrize("b_dtype", DTYPES)
 def test(a_dtype, b_dtype):
-    assert np.allclose(
-        _vdot(a_dtype, b_dtype, np), _vdot(a_dtype, b_dtype, cn)
-    )
+    assert allclose(_vdot(a_dtype, b_dtype, np), _vdot(a_dtype, b_dtype, cn))
 
 
 if __name__ == "__main__":

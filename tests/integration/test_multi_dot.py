@@ -15,6 +15,7 @@
 
 import numpy as np
 import pytest
+from utils.comparisons import allclose
 from utils.generators import mk_0to1_array
 
 import cunumeric as cn
@@ -44,7 +45,7 @@ def test_multi_dot(shapes):
     cn_arrays = [mk_0to1_array(cn, shape) for shape in shapes]
     np_res = np.linalg.multi_dot(np_arrays)
     cn_res = cn.linalg.multi_dot(cn_arrays)
-    assert np.allclose(np_res, cn_res)
+    assert allclose(np_res, cn_res)
 
     if len(shapes[0]) == 1:
         if len(shapes[-1]) == 1:
@@ -62,7 +63,7 @@ def test_multi_dot(shapes):
                 )
             )
     cn_res = cn.linalg.multi_dot(cn_arrays, out=out)
-    assert np.allclose(np_res, out)
+    assert allclose(np_res, out)
 
 
 if __name__ == "__main__":

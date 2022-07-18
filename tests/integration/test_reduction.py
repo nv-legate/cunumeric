@@ -15,6 +15,7 @@
 
 import numpy as np
 import pytest
+from utils.comparisons import allclose
 
 import cunumeric as num
 
@@ -106,11 +107,11 @@ def test_indexed():
     )
     x_np[indices] = 0
     x = num.array(x_np)
-    assert np.allclose(num.sum(x), np.sum(x_np))
+    assert allclose(num.sum(x), np.sum(x_np))
 
     x_np = x_np.reshape(10, 10)
     x = num.array(x_np)
-    assert np.allclose(num.sum(x), np.sum(x_np))
+    assert allclose(num.sum(x), np.sum(x_np))
 
 
 if __name__ == "__main__":

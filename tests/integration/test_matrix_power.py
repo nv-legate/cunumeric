@@ -15,6 +15,7 @@
 
 import numpy as np
 import pytest
+from utils.comparisons import allclose
 from utils.generators import mk_0to1_array
 
 import cunumeric as cn
@@ -32,7 +33,7 @@ def test_matrix_power(ndim, exp):
     cn_a = mk_0to1_array(cn, shape)
     np_res = np.linalg.matrix_power(np_a, exp)
     cn_res = cn.linalg.matrix_power(cn_a, exp)
-    assert np.allclose(np_res, cn_res)
+    assert allclose(np_res, cn_res)
 
 
 if __name__ == "__main__":

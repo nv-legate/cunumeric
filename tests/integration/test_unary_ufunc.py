@@ -17,12 +17,13 @@ import argparse
 
 import numpy as np
 import pytest
+from utils.comparisons import allclose
 
 import cunumeric as num
 
 
 def check_result(op, in_np, out_np, out_num):
-    result = np.allclose(out_np, out_num) and out_np.dtype == out_num.dtype
+    result = allclose(out_np, out_num) and out_np.dtype == out_num.dtype
     if not result:
         print(f"cunumeric.{op} failed the test")
         print("Inputs:")

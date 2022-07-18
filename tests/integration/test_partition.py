@@ -15,6 +15,7 @@
 
 import numpy as np
 import pytest
+from utils.comparisons import allclose
 
 import cunumeric as num
 
@@ -128,7 +129,7 @@ def check_api(a=None):
         kth,
         a.ndim - 1,
     )
-    assert num.allclose(copy_a_num, copy_a_num)
+    assert allclose(copy_a_num, copy_a_num)
 
 
 def generate_random(shape, datatype):

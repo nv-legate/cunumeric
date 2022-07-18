@@ -15,6 +15,7 @@
 
 import numpy as np
 import pytest
+from utils.comparisons import allclose
 
 import cunumeric as num
 
@@ -54,7 +55,7 @@ def test_basic():
         nptemp = np.absolute(npwork - npcenter)
         npdelta = np.sum(nptemp)
         npcenter[:] = npwork
-    assert np.allclose(delta, npdelta)
+    assert allclose(delta, npdelta)
 
 
 if __name__ == "__main__":
