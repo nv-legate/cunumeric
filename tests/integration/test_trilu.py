@@ -20,46 +20,49 @@ import cunumeric as num
 
 KS = [0, -1, 1, -2, 2]
 
+a = num.array(
+    [
+        [1, 2, 3, 4],
+        [5, 6, 7, 8],
+        [9, 10, 11, 12],
+        [13, 14, 15, 16],
+        [17, 18, 19, 20],
+    ]
+)
 
-def _test(func, k):
+anp = np.array(
+    [
+        [1, 2, 3, 4],
+        [5, 6, 7, 8],
+        [9, 10, 11, 12],
+        [13, 14, 15, 16],
+        [17, 18, 19, 20],
+    ]
+)
+
+
+@pytest.mark.parametrize("k", KS, ids=lambda k: f"(k={k})")
+@pytest.mark.parametrize("func", ("tril", "triu"))
+def test_full(func, k):
     num_f = getattr(num, func)
     np_f = getattr(np, func)
-    a = num.array(
-        [
-            [1, 2, 3, 4],
-            [5, 6, 7, 8],
-            [9, 10, 11, 12],
-            [13, 14, 15, 16],
-            [17, 18, 19, 20],
-        ]
-    )
-    an = np.array(
-        [
-            [1, 2, 3, 4],
-            [5, 6, 7, 8],
-            [9, 10, 11, 12],
-            [13, 14, 15, 16],
-            [17, 18, 19, 20],
-        ]
-    )
 
     b = num_f(a, k=k)
-    bn = np_f(an, k=k)
+    bn = np_f(anp, k=k)
+
     assert num.array_equal(b, bn)
+
+
+@pytest.mark.parametrize("k", KS, ids=lambda k: f"(k={k})")
+@pytest.mark.parametrize("func", ("tril", "triu"))
+def test_slice(func, k):
+    num_f = getattr(num, func)
+    np_f = getattr(np, func)
 
     b = num_f(a[0, :], k=k)
-    bn = np_f(an[0, :], k=k)
+    bn = np_f(anp[0, :], k=k)
+
     assert num.array_equal(b, bn)
-
-
-@pytest.mark.parametrize("k", KS, ids=lambda k: f"(k={k})")
-def test_tril(k):
-    _test("tril", k)
-
-
-@pytest.mark.parametrize("k", KS, ids=lambda k: f"(k={k})")
-def test_triu(k):
-    _test("triu", k)
 
 
 if __name__ == "__main__":
