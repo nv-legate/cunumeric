@@ -19,7 +19,7 @@ from typing import List, Optional, Set, Tuple
 
 import numpy as np
 import pytest
-from test_tools.generators import mk_0to1_array, permutes_to
+from utils.generators import mk_0to1_array, permutes_to
 
 import cunumeric as cn
 

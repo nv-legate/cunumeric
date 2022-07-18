@@ -15,7 +15,7 @@
 
 import numpy as np
 import pytest
-from test_tools import asserts
+from utils import asserts
 
 import cunumeric as num
 

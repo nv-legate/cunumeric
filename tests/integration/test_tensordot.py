@@ -14,7 +14,7 @@
 #
 import pytest
 from cunumeric.utils import tensordot_modes
-from test_tools.contractions import check_default
+from utils.contractions import check_default
 
 from legate.core import LEGATE_MAX_DIM
 

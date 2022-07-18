@@ -14,7 +14,7 @@
 #
 
 import numpy as np
-from test_tools.generators import mk_0to1_array
+from utils.generators import mk_0to1_array
 
 import cunumeric as cn
 from legate.core import LEGATE_MAX_DIM
