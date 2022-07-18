@@ -160,6 +160,7 @@ class ndarray:
         order=None,
         thunk=None,
         inputs=None,
+        broadcasted=False,
     ) -> None:
         # `inputs` being a cuNumeric ndarray is definitely a bug
         assert not isinstance(inputs, ndarray)
@@ -191,6 +192,7 @@ class ndarray:
         else:
             self._thunk = thunk
         self._legate_data = None
+        self._broadcasted = broadcasted
 
     # Support for the Legate data interface
     @property
@@ -1503,6 +1505,16 @@ class ndarray:
         Set ``self[key]=value``.
 
         """
+        if self._broadcasted is True:
+            warnings.warn(
+                "This array is a broadcasted array from "
+                "cunumeric.broadcast_arrays. "
+                "Writing to this array will be prohibited "
+                "in the future release "
+                "If this write is intetional, make a copy before writing ",
+                category=DeprecationWarning,
+            )
+
         if key is None:
             raise KeyError("invalid key passed to cunumeric.ndarray")
         if value.dtype != self.dtype:
@@ -1796,11 +1808,6 @@ class ndarray:
         result = ndarray(self.shape, dtype=dtype, inputs=(self,))
         result._thunk.convert(self._thunk, warn=False)
         return result
-
-    def _broadcast_to(self, shape):
-        out_shape = np.broadcast_shapes(self.shape, shape)
-        self._thunk.broadcast_to(out_shape)
-        return self
 
     @add_boilerplate()
     def take(self, indices, axis=None, out=None, mode="raise"):

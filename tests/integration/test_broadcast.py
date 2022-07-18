@@ -24,11 +24,7 @@ def _broadcast_check(a, sizes):
     b = np.broadcast(*a)
     c = num.broadcast(*a)
 
-    attrs = [
-        attr
-        for attr in dir(b)
-        if not attr.startswith("___") and attr != "iters"
-    ]
+    attrs = ["index", "nd", "ndim", "numiter", "shape", "size"]
 
     is_equal = True
 
@@ -38,13 +34,19 @@ def _broadcast_check(a, sizes):
         if getattr(b, attr) != getattr(c, attr):
             is_equal = False
             err_arr = [attr, getattr(b, attr), getattr(c, attr)]
+    if is_equal:
+        # test elements in broadcasted array
+        for each in zip(b, c):
+            if each[0] != each[1]:
+                is_equal = False
+                err_arr = [("iters", b.index), each[0], each[1]]
+                break
 
-    # test elements in broadcasted array
-    for each in zip(b, c):
-        if each[0] != each[1]:
+        b.reset()
+        c.reset()
+        if b.index != c.index:
             is_equal = False
-            err_arr = [("iters", b.index), each[0], each[1]]
-            break
+            err_arr = [("reset", b.index), each[0], each[1]]
 
     print_msg = f"np.broadcast({sizes})"
     assert is_equal, (
@@ -59,13 +61,13 @@ def _broadcast_check(a, sizes):
     print(f"Passed, {print_msg}")
 
 
-DIM = 10
-
-SIZE_CASES = list((DIM,) * ndim for ndim in range(LEGATE_MAX_DIM + 1))
+DIM_CASES = [5, 40]
 
 
-# test to run atleast_nd w/ list of arrays
-def test_broadcast():
+# test to run broadcast  w/ different size of arryas
+@pytest.mark.parametrize("dim", DIM_CASES, ids=str)
+def test_broadcast(dim):
+    SIZE_CASES = list((dim,) * ndim for ndim in range(1, LEGATE_MAX_DIM + 1))
     a = list(np.arange(np.prod(size)).reshape(size) for size in SIZE_CASES)
     _broadcast_check(a, SIZE_CASES)
 

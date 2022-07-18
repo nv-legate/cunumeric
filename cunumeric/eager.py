@@ -513,12 +513,11 @@ class EagerArray(NumPyThunk):
         else:
             self.array = np.flip(rhs.array, axes)
 
-    def broadcast_to(self, rhs, shape):
-        self.check_eager_args(rhs)
+    def broadcast_to(self, shape):
         if self.deferred is not None:
-            self.deferred.broadcast_to(rhs, shape)
+            return self.deferred.broadcast_to(shape)
         else:
-            self.array[:] = np.broadcast_to(rhs.array, shape)
+            return EagerArray(self.runtime, np.broadcast_to(self.array, shape))
 
     def contract(
         self,

@@ -1176,33 +1176,184 @@ def squeeze(a: ndarray, axis: Optional[NdShapeLike] = None) -> ndarray:
     return a.squeeze(axis=axis)
 
 
-def broadcast_shapes(*shapes: Sequence(tuple)) -> tuple(int):
-    return np.broadcast_shapes(*shapes)
+def broadcast_shapes(*args: Sequence(Union[tuple(int), int])) -> tuple(int):
+    """
+
+    Broadcast the input shapes into a single shape.
+
+    Parameters
+    ----------
+    `*args` : tuples of ints, or ints
+        The shapes to be broadcast against each other.
+
+    Returns
+    -------
+    tuple : Broadcasted shape.
+
+    See Also
+    --------
+    numpy.broadcast_shapes
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+
+    """
+    return np.broadcast_shapes(*args)
+
+
+def _broadcast_to(
+    arr: Any,
+    shape: Union[tuple(int), int],
+    subok: bool = False,
+    writeable: bool = False,
+    broadcasted: bool = False,
+) -> ndarray:
+    # create an arry object w/ options passed from 'broadcast' routines
+    arr = array(convert_to_cunumeric_ndarray(arr), copy=False, subok=subok)
+    # 'broadcast_to' returns a read-only view of the original array
+    result = arr._thunk.broadcast_to(broadcast_shapes(arr.shape, shape))
+    arr = ndarray(shape=arr.shape, thunk=result, broadcasted=broadcasted)
+    if arr.flags["WRITEABLE"] != writeable:
+        arr.setflags(write=writeable)
+    return arr
 
 
 def broadcast_to(
-    arr: ndarray, shape: tuple(int), subok: bool = False
+    arr: Any, shape: Union[tuple(int), int], subok: bool = False
 ) -> ndarray:
-    return arr.view()._broadcast_to(shape)
+
+    """
+
+    Broadcast an array to a new shape.
+
+    Parameters
+    ----------
+    arr : array_like
+        The array to broadcast.
+    shape : tuple or int
+        The shape of the desired array.
+        A single integer i is interpreted as (i,).
+    subok : bool, optional
+        If True, then sub-classes will be passed-through,
+        otherwise the returned array will be forced to
+        be a base-class array (default).
+
+    values : array_like
+        These values are appended to a copy of arr.
+        It must be of the correct
+        shape (the same shape as arr, excluding axis).
+        If axis is not specified, values can be any shape
+        and will be flattened before use.
+    axis : int, optional
+        The axis along which values are appended.
+        If axis is not given, both `arr` and `values`
+        are flattened before use.
+
+    Returns
+    -------
+    broadcast : array
+        A readonly view on the original array with the given shape.
+        It is typically not contiguous.
+        Furthermore, more than one element of a broadcasted array
+        may refer to a single memory location.
+
+    See Also
+    --------
+    numpy.broadcast_to
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+
+    """
+    return _broadcast_to(arr, shape, subok)
+
+
+def _broadcast_arrays(
+    *arrays: Sequence(Any),
+    subok: bool = False,
+    writeable: bool = True,
+    broadcasted: bool = False,
+) -> list(ndarray):
+    # create an arry object w/ options passed from 'broadcast' routines
+    arrays = list(
+        array(convert_to_cunumeric_ndarray(arr), copy=False, subok=subok)
+        for arr in arrays
+    )
+    # check if the broadcast can happen in the input list of arrays
+    shapes = list(arr.shape for arr in arrays)
+    out_shape = broadcast_shapes(*shapes)
+    # broadcast to the final shape
+    arrays = list(
+        _broadcast_to(arr, out_shape, subok, writeable, broadcasted)
+        for arr in arrays
+    )
+    return arrays
 
 
 def broadcast_arrays(
-    *arrays: Sequence(ndarray), subok: bool = False
+    *args: Sequence(Any), subok: bool = False
 ) -> list(ndarray):
-    # check if the broadcast can happen in the input list of arrays
-    out_shape = broadcast_shapes(arr.shape for arr in arrays)
-    # broadcast to the final shape
-    result = list(broadcast_to(arr, out_shape) for arr in arrays)
-    return result
+    """
+
+    Broadcast any number of arrays against each other.
+
+    Parameters
+    ----------
+    `*args` : array_likes
+        The arrays to broadcast.
+
+    subok : bool, optional
+        If True, then sub-classes will be passed-through,
+        otherwise the returned arrays will be forced to
+        be a base-class array (default).
+
+    Returns
+    -------
+    broadcasted : list of arrays
+        These arrays are views on the original arrays.
+        They are typically not contiguous.
+        Furthermore, more than one element of a broadcasted array
+        may refer to a single memory location.
+        If you need to write to the arrays, make copies first.
+        While you can set the writable flag True,
+        writing to a single output value may end up changing
+        more than one location in the output array.
+
+    """
+    # writeable will be set to 'False'
+    # when 'numpy' changes the output of this routine
+    # as read-only views of the original arrays in the future release
+    return _broadcast_arrays(*args, subok, writeable=True, broadcasted=True)
 
 
 class broadcast:
-    def __init__(self, *arrays: Sequence(ndarray)) -> None:
-        # we simply create a broadcast object with the input arrays
-        # Any operation through this object should be much slower
-        # compared to builtin operations through
-        # implicit broadcasting because the opration is element-wise
-        arrays = broadcast_arrays(*arrays)
+    def __init__(self, *arrays: Sequence(Any)) -> None:
+        """
+
+        Produce an object that mimics broadcasting.
+
+        Parameters
+        ----------
+        `*arrays` : array_likes
+            The arrays to broadcast.
+
+        subok : bool, optional
+            If True, then sub-classes will be passed-through,
+            otherwise the returned arrays will be forced to
+            be a base-class array (default).
+
+        Returns
+        -------
+        b : broadcast object
+            Broadcast the input parameters against one another,
+            and return an object that encapsulates the result.
+            Amongst others, it has shape and nd properties,
+            and may be used as an iterator.
+
+        """
+        arrays = _broadcast_arrays(*arrays)
         self._iters = tuple(arr.flat for arr in arrays)
         self._index = 0
         self._shape = arrays[0].shape
@@ -1214,11 +1365,11 @@ class broadcast:
 
     def __next__(self):
         if self._index < self.size:
-            result = (each[self._index] for each in self._iters)
+            result = tuple(each[self._index] for each in self._iters)
             self._index += 1
+            return result
         else:
-            return StopIteration
-        return result
+            raise StopIteration
 
     def reset(self):
         self._index = 0
