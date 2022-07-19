@@ -1325,7 +1325,9 @@ def broadcast_arrays(
     # writeable will be set to 'False'
     # when 'numpy' changes the output of this routine
     # as read-only views of the original arrays in the future release
-    return _broadcast_arrays(*args, subok, writeable=True, broadcasted=True)
+    return _broadcast_arrays(
+        *args, subok=subok, writeable=True, broadcasted=True
+    )
 
 
 class broadcast:
