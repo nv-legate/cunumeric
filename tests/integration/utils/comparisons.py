@@ -43,6 +43,6 @@ def allclose(
         N = len(diffs)
         print(f"First {N} difference{'s' if N>1 else ''} for allclose:\n")
         print("\n".join(diffs))
-        print(f"With diff_limit={diff_limit}):\n")
+        print(f"With diff_limit={diff_limit}\n")
 
     return all_close
