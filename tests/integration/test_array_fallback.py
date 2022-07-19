@@ -1,4 +1,4 @@
-# Copyright 2021-2022 NVIDIA Corporation
+# Copyright 2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,35 +15,22 @@
 
 import pytest
 
-import cunumeric as np
+import cunumeric as num
 
 
-def test_basic():
-    x = np.array([[[1, 2, 3]]])
-    y = x.squeeze()
-    assert y.ndim == 1
-    assert y[0] == 1
-    assert y[1] == 2
-    assert y[2] == 3
+# ref: https://github.com/nv-legate/cunumeric/pull/430
+def test_unimplemented_method_self_fallback():
 
-    y = x.squeeze(axis=1)
-    assert y.ndim == 2
-    assert y[0, 0] == 1
-    assert y[0, 1] == 2
-    assert y[0, 2] == 3
+    ones = num.ones((10,))
+    ones.mean()
 
-    x = np.array([[[1], [2], [3]]])
-    y = x.squeeze(axis=(0, 2))
-    assert y.ndim == 1
-    assert y[0] == 1
-    assert y[1] == 2
-    assert y[2] == 3
+    # This test uses std because it is currently unimplemented, and we want
+    # to verify a behaviour of unimplemented ndarray method wrappers. If std
+    # becomes implemeneted in the future, this assertion will start to fail,
+    # and a new (unimplemented) ndarray method should be found to replace it
+    assert not ones.std._cunumeric.implemented
 
-
-def test_idempotent():
-    x = np.array([1, 2, 3])
-    y = x.squeeze()
-    assert x is y
+    ones.std()
 
 
 if __name__ == "__main__":

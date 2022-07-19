@@ -15,3 +15,13 @@ Elementwise bit operations
    invert
    left_shift
    right_shift
+
+
+Bit packing
+-----------
+
+.. autosummary::
+   :toctree: generated/
+
+   packbits
+   unpackbits

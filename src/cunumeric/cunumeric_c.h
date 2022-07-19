@@ -46,6 +46,7 @@ enum CuNumericOpCode {
   CUNUMERIC_MATMUL,
   CUNUMERIC_MATVECMUL,
   CUNUMERIC_NONZERO,
+  CUNUMERIC_PACKBITS,
   CUNUMERIC_POTRF,
   CUNUMERIC_RAND,
   CUNUMERIC_READ,
@@ -63,6 +64,7 @@ enum CuNumericOpCode {
   CUNUMERIC_UNIQUE,
   CUNUMERIC_UNIQUE_REDUCE,
   CUNUMERIC_UNLOAD_CUDALIBS,
+  CUNUMERIC_UNPACKBITS,
   CUNUMERIC_WHERE,
   CUNUMERIC_WINDOW,
   CUNUMERIC_WRITE,
@@ -218,6 +220,9 @@ enum CuNumericFFTType {
 
 // These fft types match CuNumericFFTDirection in config.py and cufftDirection
 enum CuNumericFFTDirection { CUNUMERIC_FFT_FORWARD = -1, CUNUMERIC_FFT_INVERSE = 1 };
+
+// Match these to Bitorder in config.py
+enum CuNumericBitorder { CUNUMERIC_BITORDER_BIG = 0, CUNUMERIC_BITORDER_LITTLE = 1 };
 
 // Match these to CuNumericTypeCodes in config.py
 enum CuNumericTypeCodes {

@@ -28,6 +28,7 @@ import numpy as _np
 
 from cunumeric import linalg, random, fft
 from cunumeric.array import ndarray
+from cunumeric.bits import packbits, unpackbits
 from cunumeric.module import *
 from cunumeric._ufunc import *
 from cunumeric.logic import *

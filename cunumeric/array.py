@@ -28,7 +28,7 @@ from numpy.core.numeric import normalize_axis_tuple
 from typing_extensions import ParamSpec
 
 from .config import FFTDirection, FFTNormalization, UnaryOpCode, UnaryRedCode
-from .coverage import clone_class
+from .coverage import clone_np_ndarray
 from .runtime import runtime
 from .utils import dot_modes
 
@@ -147,7 +147,7 @@ def _convert_all_to_numpy(obj):
         return obj
 
 
-@clone_class(np.ndarray)
+@clone_np_ndarray
 class ndarray:
     def __init__(
         self,
@@ -1959,8 +1959,8 @@ class ndarray:
 
         ch = tuple(c._thunk for c in choices)  #
         out_arr._thunk.choose(
+            a._thunk,
             *ch,
-            rhs=a._thunk,
         )
         if out is not None and out.dtype != ch_dtype:
             out._thunk.convert(out_arr._thunk)
@@ -3178,24 +3178,19 @@ class ndarray:
 
         """
         if axis is not None:
-            if isinstance(axis, int):
-                if axis >= self.ndim:
-                    raise ValueError(
-                        "all axis to squeeze must be less than ndim"
-                    )
-                if self.shape[axis] != 1:
-                    raise ValueError("axis to squeeze must have extent of one")
-            elif isinstance(axis, tuple):
-                for ax in axis:
-                    if ax >= self.ndim:
-                        raise ValueError(
-                            "all axes to squeeze must be less than ndim"
-                        )
-                    if self.shape[ax] != 1:
-                        raise ValueError(
-                            "all axes to squeeze must have extent of one"
-                        )
-        return ndarray(shape=None, thunk=self._thunk.squeeze(axis))
+            computed_axis = normalize_axis_tuple(axis, self.ndim)
+            if any(self.shape[ax] != 1 for ax in computed_axis):
+                raise ValueError(
+                    "can only select axes to squeeze out with size "
+                    "equal to one"
+                )
+        else:
+            computed_axis = None
+
+        thunk = self._thunk.squeeze(computed_axis)
+        if self._thunk is thunk:
+            return self
+        return ndarray(shape=None, thunk=thunk)
 
     @add_boilerplate()
     def sum(
