@@ -16,9 +16,6 @@
 from types import ModuleType
 
 import numpy as np
-
-import cunumeric.coverage as m  # module under test
-
 import pytest
 from mock import MagicMock, patch
 
