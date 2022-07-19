@@ -19,10 +19,14 @@ import pytest
 import cunumeric as num
 from legate.core import LEGATE_MAX_DIM
 
+DIM_CASES = [5, 40]
 
-def _broadcast_check(a, sizes):
-    b = np.broadcast(*a)
-    c = num.broadcast(*a)
+
+def _broadcast_check(sizes):
+    arr_np = list(np.arange(np.prod(size)).reshape(size) for size in sizes)
+    arr_num = list(num.arange(np.prod(size)).reshape(size) for size in sizes)
+    b = np.broadcast(*arr_np)
+    c = num.broadcast(*arr_num)
 
     attrs = ["index", "nd", "ndim", "numiter", "shape", "size"]
 
@@ -41,12 +45,22 @@ def _broadcast_check(a, sizes):
                 is_equal = False
                 err_arr = [("iters", b.index), each[0], each[1]]
                 break
-
+        # test reset method
         b.reset()
         c.reset()
         if b.index != c.index:
             is_equal = False
             err_arr = [("reset", b.index), each[0], each[1]]
+        # test whether the broadcast provide views of the original array
+        for i in range(len(arr_num)):
+            c.iters[i][0] = 1
+            if c.iters[i][0] != arr_num[i][(0,) * arr_num[i].ndim]:
+                is_equal = False
+                err_arr = [
+                    ("view", i),
+                    c.iters[i][0],
+                    arr_num[i][(0,) * arr_num[i].ndim],
+                ]
 
     print_msg = f"np.broadcast({sizes})"
     assert is_equal, (
@@ -61,15 +75,11 @@ def _broadcast_check(a, sizes):
     print(f"Passed, {print_msg}")
 
 
-DIM_CASES = [5, 40]
-
-
 # test to run broadcast  w/ different size of arryas
 @pytest.mark.parametrize("dim", DIM_CASES, ids=str)
 def test_broadcast(dim):
     SIZE_CASES = list((dim,) * ndim for ndim in range(1, LEGATE_MAX_DIM + 1))
-    a = list(np.arange(np.prod(size)).reshape(size) for size in SIZE_CASES)
-    _broadcast_check(a, SIZE_CASES)
+    _broadcast_check(SIZE_CASES)
 
 
 if __name__ == "__main__":

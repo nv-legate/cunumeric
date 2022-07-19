@@ -1213,11 +1213,14 @@ def _broadcast_to(
     arr = array(convert_to_cunumeric_ndarray(arr), copy=False, subok=subok)
     # 'broadcast_to' returns a read-only view of the original array
     out_shape = broadcast_shapes(arr.shape, shape)
-    result = arr._thunk.broadcast_to(out_shape)
-    arr = ndarray(shape=out_shape, thunk=result, broadcasted=broadcasted)
-    if arr.flags["WRITEABLE"] != writeable:
-        arr.setflags(write=writeable)
-    return arr
+    result = ndarray(
+        shape=out_shape,
+        thunk=arr._thunk.broadcast_to(out_shape),
+        broadcasted=broadcasted,
+    )
+    if result.flags["WRITEABLE"] != writeable:
+        result.setflags(write=writeable)
+    return result
 
 
 def broadcast_to(
