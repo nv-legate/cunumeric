@@ -17,8 +17,10 @@ from types import ModuleType
 
 <<<<<<< HEAD
 =======
-import cunumeric.coverage as m  # module under test
 import numpy as np
+
+import cunumeric.coverage as m  # module under test
+
 >>>>>>> 5ac164640779ed8ccc1a338589c6a96f00a57d9e
 import pytest
 from mock import MagicMock, patch
