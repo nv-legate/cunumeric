@@ -16,12 +16,16 @@ from __future__ import annotations
 
 from typing import Literal, Tuple, Union
 
-NdShape = Tuple[int, ...]
+from typing_extensions import TypeAlias
 
-NdShapeLike = Union[int, NdShape]
+NdShape: TypeAlias = Tuple[int, ...]
 
-SortSide = Literal["left", "right"]
+NdShapeLike: TypeAlias = Union[int, NdShape]
 
-SortType = Literal["quicksort", "mergesort", "heapsort", "stable"]
+SortSide: TypeAlias = Literal["left", "right"]
 
-OrderType = Literal["A", "C", "F"]
+SortType: TypeAlias = Literal["quicksort", "mergesort", "heapsort", "stable"]
+
+OrderType: TypeAlias = Literal["A", "C", "F"]
+
+BitOrder: TypeAlias = Literal["big", "little"]

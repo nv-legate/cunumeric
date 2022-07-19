@@ -46,7 +46,7 @@ if TYPE_CHECKING:
     import numpy.typing as npt
 
     from .runtime import Runtime
-    from .types import NdShape, OrderType, SortSide, SortType
+    from .types import BitOrder, NdShape, OrderType, SortSide, SortType
 
 
 _UNARY_OPS: Dict[int, Any] = {
@@ -558,7 +558,7 @@ class EagerArray(NumPyThunk):
                 out=self.array,
             )
 
-    def choose(self, rhs: Any, *args: Any):
+    def choose(self, rhs: Any, *args: Any) -> None:
         self.check_eager_args(*args, rhs)
         if self.deferred is not None:
             self.deferred.choose(
@@ -916,7 +916,9 @@ class EagerArray(NumPyThunk):
             fn = _WINDOW_OPS[op_code]
             self.array[:] = fn(M, *args)
 
-    def packbits(self, src, axis, bitorder):
+    def packbits(
+        self, src: Any, axis: Union[int, None], bitorder: BitOrder
+    ) -> None:
         self.check_eager_args(src)
         if self.deferred is not None:
             self.deferred.packbits(src, axis, bitorder)
@@ -925,7 +927,9 @@ class EagerArray(NumPyThunk):
                 src.array, axis=axis, bitorder=bitorder
             )
 
-    def unpackbits(self, src, axis, bitorder):
+    def unpackbits(
+        self, src: Any, axis: Union[int, None], bitorder: BitOrder
+    ) -> None:
         self.check_eager_args(src)
         if self.deferred is not None:
             self.deferred.unpackbits(src, axis, bitorder)

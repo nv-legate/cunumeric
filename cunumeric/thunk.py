@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 
     from .config import UnaryRedCode
     from .runtime import Runtime
-    from .types import NdShape, OrderType, SortType
+    from .types import BitOrder, NdShape, OrderType, SortType
 
 
 class NumPyThunk(ABC):
@@ -157,7 +157,7 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def choose(self, rhs: Any, *args: Any):
+    def choose(self, rhs: Any, *args: Any) -> None:
         ...
 
     @abstractmethod
@@ -289,9 +289,13 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def packbits(self, src, axis, bitorder):
+    def packbits(
+        self, src: Any, axis: Union[int, None], bitorder: BitOrder
+    ) -> None:
         ...
 
     @abstractmethod
-    def unpackbits(self, src, axis, bitorder):
+    def unpackbits(
+        self, src: Any, axis: Union[int, None], bitorder: BitOrder
+    ) -> None:
         ...

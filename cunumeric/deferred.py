@@ -58,7 +58,7 @@ if TYPE_CHECKING:
     import numpy.typing as npt
 
     from .runtime import Runtime
-    from .types import NdShape, OrderType, SortSide, SortType
+    from .types import BitOrder, NdShape, OrderType, SortSide, SortType
 
 
 def _complex_field_dtype(dtype: np.dtype[Any]) -> np.dtype[Any]:
@@ -1444,7 +1444,7 @@ class DeferredArray(NumPyThunk):
         task.execute()
 
     # Create array from input array and indices
-    def choose(self, rhs: Any, *args: Any):
+    def choose(self, rhs: Any, *args: Any) -> None:
         # convert all arrays to deferred
         index_arr = self.runtime.to_deferred_array(rhs)
         ch_def = tuple(self.runtime.to_deferred_array(c) for c in args)
@@ -2097,9 +2097,11 @@ class DeferredArray(NumPyThunk):
         task.execute()
 
     @auto_convert([1])
-    def packbits(self, src, axis, bitorder):
+    def packbits(
+        self, src: Any, axis: Union[int, None], bitorder: BitOrder
+    ) -> None:
         bitorder_code = getattr(Bitorder, bitorder.upper())
-        task = self.context.create_task(CuNumericOpCode.PACKBITS)
+        task = self.context.create_auto_task(CuNumericOpCode.PACKBITS)
         p_out = task.declare_partition(self.base)
         p_in = task.declare_partition(src.base)
         task.add_output(self.base, partition=p_out)
@@ -2107,13 +2109,15 @@ class DeferredArray(NumPyThunk):
         task.add_scalar_arg(axis, ty.uint32)
         task.add_scalar_arg(bitorder_code, ty.uint32)
         scale = tuple(8 if dim == axis else 1 for dim in range(src.ndim))
-        task.add_constraint(p_in <= p_out * scale)
+        task.add_constraint(p_in <= p_out * scale)  # type: ignore
         task.execute()
 
     @auto_convert([1])
-    def unpackbits(self, src, axis, bitorder):
+    def unpackbits(
+        self, src: Any, axis: Union[int, None], bitorder: BitOrder
+    ) -> None:
         bitorder_code = getattr(Bitorder, bitorder.upper())
-        task = self.context.create_task(CuNumericOpCode.UNPACKBITS)
+        task = self.context.create_auto_task(CuNumericOpCode.UNPACKBITS)
         p_out = task.declare_partition(self.base)
         p_in = task.declare_partition(src.base)
         task.add_output(self.base, partition=p_out)
@@ -2121,5 +2125,5 @@ class DeferredArray(NumPyThunk):
         task.add_scalar_arg(axis, ty.uint32)
         task.add_scalar_arg(bitorder_code, ty.uint32)
         scale = tuple(8 if dim == axis else 1 for dim in range(src.ndim))
-        task.add_constraint(p_out <= p_in * scale)
+        task.add_constraint(p_out <= p_in * scale)  # type: ignore
         task.execute()
