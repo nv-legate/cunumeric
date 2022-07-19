@@ -80,10 +80,6 @@ def _run_tests(op, n0, shape, dt, axis, out0, outtype):
         print(f"INPUT    : {A}")
         print(f"CUNUMERIC: {B}")
         print(f"NUMPY    : {C}")
-        D = np.nonzero(np.isclose(B, C))
-        print(f"indices  : {D}")
-        print(f"cunumeric: {B[D]}")
-        print(f"numpy    : {C[D]}")
         assert False
 
 
@@ -121,6 +117,7 @@ def test_scan(op, shape, axis, out0):
         "second_half",
     ]
     int_types = [
+        np.int16,
         np.int32,
         np.int64,
     ]
