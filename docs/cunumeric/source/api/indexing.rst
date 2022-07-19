@@ -11,6 +11,7 @@ Generating index arrays
 
    diag_indices
    diag_indices_from
+   mask_indices
    indices
    nonzero
    where
