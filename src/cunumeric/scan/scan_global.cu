@@ -72,7 +72,7 @@ struct ScanGlobalImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
       auto global_prefix     = thrust::reduce(thrust::cuda::par.on(stream),
                                           &sum_vals[sum_valsp],
                                           &sum_vals[sum_valsp_end],
-                                          (VAL)ScanOp<OP_CODE, CODE>::nan_null,
+                                          (VAL)ScanOp<OP_CODE, CODE>::nan_identity,
                                           func);
       // apply global_prefix to out
       scalar_kernel<<<blocks, THREADS_PER_BLOCK, 0, stream>>>(

@@ -58,7 +58,7 @@ struct ScanGlobalImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
       auto global_prefix     = thrust::reduce(thrust::host,
                                           &sum_vals[sum_valsp],
                                           &sum_vals[sum_valsp_end],
-                                          (VAL)ScanOp<OP_CODE, CODE>::nan_null,
+                                          (VAL)ScanOp<OP_CODE, CODE>::nan_identity,
                                           func);
       // apply global_prefix to out
       for (uint64_t i = index; i < index + stride; i++) {

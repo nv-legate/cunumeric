@@ -60,7 +60,7 @@ struct ScanGlobalImplBody<VariantKind::OMP, OP_CODE, CODE, DIM> {
       auto global_prefix     = thrust::reduce(thrust::omp::par,
                                           &sum_vals[sum_valsp],
                                           &sum_vals[sum_valsp_end],
-                                          (VAL)ScanOp<OP_CODE, CODE>::nan_null,
+                                          (VAL)ScanOp<OP_CODE, CODE>::nan_identity,
                                           func);
       // apply global_prefix to out
 #pragma omp parallel for schedule(static)
