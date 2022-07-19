@@ -35,10 +35,10 @@ def allclose(
 
     all_close = np.all(close)
 
-    if (diff_limit > 0 or diff_limit is None) and not all_close:
+    if (diff_limit is None or diff_limit > 0) and not all_close:
         a += np.zeros(b.shape, dtype=a.dtype)
         b += np.zeros(a.shape, dtype=b.dtype)
-        inds = islice(zip(*np.where(close == False)), diff_limit)  # noqa E712
+        inds = islice(zip(*np.where(not close)), diff_limit)
         diffs = [f"  index {i}: {a[i]} {b[i]}" for i in inds]
         N = len(diffs)
         print(
