@@ -157,7 +157,7 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def choose(self, *args: Any, rhs: Any) -> None:
+    def choose(self, rhs: Any, *args: Any):
         ...
 
     @abstractmethod
@@ -286,4 +286,12 @@ class NumPyThunk(ABC):
 
     @abstractmethod
     def create_window(self, op_code: int, M: Any, *args: Any) -> None:
+        ...
+
+    @abstractmethod
+    def packbits(self, src, axis, bitorder):
+        ...
+
+    @abstractmethod
+    def unpackbits(self, src, axis, bitorder):
         ...
