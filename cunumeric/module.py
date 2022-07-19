@@ -1151,7 +1151,7 @@ def _reshape_recur(ndim: int, arr: ndarray) -> tuple[int]:
 
 
 def _atleast_nd(
-    ndim: int, arys: Sequence[ndarray], view: Optional[bool] = True
+    ndim: int, arys: Sequence[ndarray], view: bool = True
 ) -> Union(list[ndarray], ndarray):
     inputs = arys = list(convert_to_cunumeric_ndarray(arr) for arr in arys)
     if view:
