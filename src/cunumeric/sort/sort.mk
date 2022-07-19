@@ -13,13 +13,15 @@
 # limitations under the License.
 #
 
-GEN_CPU_SRC += cunumeric/sort/sort.cc
-
+GEN_CPU_SRC += cunumeric/sort/sort.cc   \
+							 cunumeric/sort/searchsorted.cc 
 ifeq ($(strip $(USE_OPENMP)),1)
-GEN_CPU_SRC += cunumeric/sort/sort_omp.cc
+GEN_CPU_SRC += cunumeric/sort/sort_omp.cc   \
+							 cunumeric/sort/searchsorted_omp.cc
 endif
 
-GEN_GPU_SRC += cunumeric/sort/sort.cu                   \
+GEN_GPU_SRC += cunumeric/sort/sort.cu   \
+							 cunumeric/sort/searchsorted.cu           \
 							 cunumeric/sort/cub_sort_bool.cu          \
 							 cunumeric/sort/cub_sort_int8.cu          \
 							 cunumeric/sort/cub_sort_int16.cu         \
