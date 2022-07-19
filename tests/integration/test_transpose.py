@@ -25,7 +25,8 @@ square = num.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
 class Test_free_function:
     def test_forward(self, x):
         y = num.transpose(x)
-        assert num.array_equal(y, np.transpose(x))
+        npx = np.array(x)
+        assert num.array_equal(y, np.transpose(npx))
 
     def test_round_trip(self, x):
         y = num.transpose(x)
@@ -37,7 +38,8 @@ class Test_free_function:
 class Test_method:
     def test_forward(self, x):
         y = x.transpose()
-        assert num.array_equal(y, np.transpose(x))
+        npx = np.array(x)
+        assert num.array_equal(y, npx.transpose())
 
     def test_round_trip(self, x):
         y = x.transpose()
