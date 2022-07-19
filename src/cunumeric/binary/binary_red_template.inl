@@ -39,7 +39,14 @@ struct BinaryRedImpl {
     using OP  = BinaryOp<OP_CODE, CODE>;
     using ARG = legate_type_of<CODE>;
 
-    auto rect = args.in1.shape<DIM>();
+    // A technical note: unlike region-backed stores that are partitionable, future-backed stores
+    // are not partitionable and replicated to all point tasks, including their metadata.
+    // This can lead to an unalignment between the input stores when one of them is future-backed,
+    // because it sees the metadata for the entire store, whereas the other one gets that for
+    // a subset. That unalignment itself simply denotes that this task in fact has no computation
+    // to perform, but to identiy such cases, we need to compute the intersection of the stores'
+    // shapes and check if it's empty.
+    auto rect = args.in1.shape<DIM>().intersection(args.in2.shape<DIM>());
 
     Pitches<DIM - 1> pitches;
     size_t volume = pitches.flatten(rect);

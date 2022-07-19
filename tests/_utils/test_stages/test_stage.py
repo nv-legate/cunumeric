@@ -169,10 +169,12 @@ class TestStage(Protocol):
         test_file_string = str(test_file)
         args = PER_FILE_ARGS.get(test_file_string, [])
 
-        # This is somewhat ugly but necessary in order to make pytest generate
-        # more verbose output for integration tests when --verbose is specified
-        if "integration" in test_file_string and config.verbose:
+        # These are a bit ugly but necessary in order to make pytest generate
+        # more verbose output for integration tests when -v, -vv is specified
+        if "integration" in test_file_string and config.verbose > 0:
             args += ["-v"]
+        if "integration" in test_file_string and config.verbose > 1:
+            args += ["-s"]
 
         return args
 

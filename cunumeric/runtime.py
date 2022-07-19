@@ -17,12 +17,15 @@ from __future__ import annotations
 import struct
 import warnings
 from functools import reduce
+from typing import TYPE_CHECKING, Any, Optional, Sequence, Union
 
 import numpy as np
 from legate.rc import ArgSpec, Argument, parse_command_args
+from typing_extensions import TypeGuard
 
 import legate.core.types as ty
 from legate.core import LEGATE_MAX_DIM, Rect, get_legate_runtime, legion
+from legate.core.context import Context as LegateContext
 
 from .config import (
     CuNumericOpCode,
@@ -35,7 +38,15 @@ from .config import (
 from .deferred import DeferredArray
 from .eager import EagerArray
 from .thunk import NumPyThunk
+from .types import NdShape
 from .utils import calculate_volume, find_last_user_stacklevel, get_arg_dtype
+
+if TYPE_CHECKING:
+    import numpy.typing as npt
+
+    from legate.core._legion.future import Future
+
+    from .types import NdShapeLike
 
 _supported_dtypes = {
     np.bool_: ty.bool_,
@@ -118,12 +129,12 @@ ARGS = [
 
 
 class Runtime(object):
-    def __init__(self, legate_context):
+    def __init__(self, legate_context: LegateContext) -> None:
         self.legate_context = legate_context
         self.legate_runtime = get_legate_runtime()
         self.current_random_epoch = 0
         self.destroyed = False
-        self.api_calls = []
+        self.api_calls: list[tuple[str, str, bool]] = []
 
         self.max_eager_volume = int(
             self.legate_context.get_tunable(
@@ -155,15 +166,17 @@ class Runtime(object):
         if self.num_gpus > 0 and self.args.preload_cudalibs:
             self._load_cudalibs()
 
-    def _register_dtypes(self):
+    def _register_dtypes(self) -> None:
         type_system = self.legate_context.type_system
         for numpy_type, core_type in _supported_dtypes.items():
-            type_system.make_alias(np.dtype(numpy_type), core_type)
+            type_system.make_alias(
+                np.dtype(numpy_type), core_type  # type: ignore
+            )
 
         for n in range(1, LEGATE_MAX_DIM + 1):
             self._register_point_type(n)
 
-    def _register_point_type(self, n):
+    def _register_point_type(self, n: int) -> None:
         type_system = self.legate_context.type_system
         point_type = "Point" + str(n)
         if point_type not in type_system:
@@ -171,7 +184,7 @@ class Runtime(object):
             size_in_bytes = 8 * n
             type_system.add_type(point_type, size_in_bytes, code)
 
-    def get_point_type(self, n):
+    def get_point_type(self, n: int) -> str:
         type_system = self.legate_context.type_system
         point_type = "Point" + str(n)
         if point_type not in type_system:
@@ -184,7 +197,7 @@ class Runtime(object):
         assert self.args.report_coverage
         self.api_calls.append((name, location, implemented))
 
-    def _load_cudalibs(self):
+    def _load_cudalibs(self) -> None:
         task = self.legate_context.create_task(
             CuNumericOpCode.LOAD_CUDALIBS,
             manual=True,
@@ -193,7 +206,7 @@ class Runtime(object):
         task.execute()
         self.legate_runtime.issue_execution_fence(block=True)
 
-    def _unload_cudalibs(self):
+    def _unload_cudalibs(self) -> None:
         task = self.legate_context.create_task(
             CuNumericOpCode.UNLOAD_CUDALIBS,
             manual=True,
@@ -201,7 +214,7 @@ class Runtime(object):
         )
         task.execute()
 
-    def get_arg_dtype(self, value_dtype):
+    def get_arg_dtype(self, value_dtype: np.dtype[Any]) -> np.dtype[Any]:
         arg_dtype = get_arg_dtype(value_dtype)
         type_system = self.legate_context.type_system
         if arg_dtype not in type_system:
@@ -216,7 +229,7 @@ class Runtime(object):
                 dtype.register_reduction_op(redop, redop_id)
         return arg_dtype
 
-    def _report_coverage(self):
+    def _report_coverage(self) -> None:
         total = len(self.api_calls)
         implemented = sum(int(impl) for (_, _, impl) in self.api_calls)
 
@@ -241,45 +254,59 @@ class Runtime(object):
             self._report_coverage()
         self.destroyed = True
 
-    def create_scalar(self, array: memoryview, dtype, shape=None, wrap=False):
+    def create_scalar(
+        self,
+        array: memoryview,
+        dtype: np.dtype[Any],
+        shape: Optional[NdShape] = None,
+    ) -> Future:
         data = array.tobytes()
         buf = struct.pack(f"{len(data)}s", data)
-        future = self.legate_runtime.create_future(buf, len(buf))
-        if wrap:
-            assert all(extent == 1 for extent in shape)
-            assert shape is not None
-            store = self.legate_context.create_store(
-                dtype,
-                shape=shape,
-                storage=future,
-                optimize_scalar=True,
-            )
-            result = DeferredArray(self, store, dtype=dtype)
-        else:
-            result = future
-        return result
+        return self.legate_runtime.create_future(buf, len(buf))
+
+    def create_wrapped_scalar(
+        self, array: memoryview, dtype: np.dtype[Any], shape: NdShape
+    ) -> DeferredArray:
+        future = self.create_scalar(array, dtype, shape)
+        assert all(extent == 1 for extent in shape)
+        store = self.legate_context.create_store(
+            dtype,
+            shape=shape,
+            storage=future,
+            optimize_scalar=True,
+        )
+        return DeferredArray(self, store, dtype=dtype)
 
     def set_next_random_epoch(self, epoch: int) -> None:
         self.current_random_epoch = epoch
 
-    def get_next_random_epoch(self):
+    def get_next_random_epoch(self) -> int:
         result = self.current_random_epoch
         # self.current_random_epoch += 1
         return result
 
-    def is_point_type(self, dtype):
-        if len(dtype) == 6 and dtype[0:5] == "Point":
+    def is_point_type(self, dtype: Union[str, np.dtype[Any]]) -> bool:
+        if (
+            isinstance(dtype, str)
+            and len(dtype) == 6
+            and dtype[0:5] == "Point"
+        ):
             return True
         else:
             return False
 
-    def is_supported_type(self, dtype):
+    def is_supported_type(self, dtype: Union[str, np.dtype[Any]]) -> bool:
         if self.is_point_type(dtype):
             return dtype in self.legate_context.type_system
         else:
             return np.dtype(dtype) in self.legate_context.type_system
 
-    def get_numpy_thunk(self, obj, share=False, dtype=None) -> DeferredArray:
+    def get_numpy_thunk(
+        self,
+        obj: Any,
+        share: bool = False,
+        dtype: Optional[npt.DTypeLike] = None,
+    ) -> NumPyThunk:
         # Check to see if this object implements the Legate data interface
         if hasattr(obj, "__legate_data_interface__"):
             legate_data = obj.__legate_data_interface__
@@ -302,7 +329,9 @@ class Runtime(object):
                 dtype = np.dtype(array.type.to_pandas_dtype())
             return DeferredArray(self, store, dtype=dtype)
         # See if this is a normal numpy array
-        if not isinstance(obj, np.ndarray):
+        # Make sure to convert numpy matrices to numpy arrays here
+        # as the former doesn't behave quite like the latter
+        if type(obj) is not np.ndarray:
             # If it's not, make it into a numpy array
             if share:
                 obj = np.asarray(obj, dtype=dtype)
@@ -314,21 +343,23 @@ class Runtime(object):
             obj = obj.copy()
         return self.find_or_create_array_thunk(obj, share=share)
 
-    def has_external_attachment(self, array):
+    def has_external_attachment(self, array: Any) -> bool:
         assert array.base is None or not isinstance(array.base, np.ndarray)
         return self.legate_runtime.has_attachment(array.data)
 
     @staticmethod
-    def compute_parent_child_mapping(array):
+    def compute_parent_child_mapping(
+        array: npt.NDArray[Any],
+    ) -> Union[tuple[Union[slice, None], ...], None]:
         # We need an algorithm for figuring out how to compute the
         # slice object that was used to generate a child array from
         # a parent array so we can build the same mapping from a
         # logical region to a subregion
-        parent_ptr = int(array.base.ctypes.data)
+        parent_ptr = int(array.base.ctypes.data)  # type: ignore
         child_ptr = int(array.ctypes.data)
         assert child_ptr >= parent_ptr
         ptr_diff = child_ptr - parent_ptr
-        parent_shape = array.base.shape
+        parent_shape = array.base.shape  # type: ignore
         div = (
             reduce(lambda x, y: x * y, parent_shape)
             if len(parent_shape) > 1
@@ -343,11 +374,11 @@ class Runtime(object):
             offsets.append((ptr_diff % mod) // div)
         assert div == array.dtype.itemsize
         # Now build the view and dimmap for the parent to create the view
-        key = ()
+        key: tuple[Union[slice, None], ...] = ()
         child_idx = 0
         child_strides = tuple(array.strides)
-        parent_strides = tuple(array.base.strides)
-        for idx in range(array.base.ndim):
+        parent_strides = tuple(array.base.strides)  # type: ignore
+        for idx in range(array.base.ndim):  # type: ignore
             # Handle the adding and removing dimension cases
             if parent_strides[idx] == 0:
                 # This was an added dimension in the parent
@@ -386,7 +417,9 @@ class Runtime(object):
         else:
             return key
 
-    def find_or_create_array_thunk(self, array, share=False, defer=False):
+    def find_or_create_array_thunk(
+        self, array: npt.NDArray[Any], share: bool = False, defer: bool = False
+    ) -> NumPyThunk:
         assert isinstance(array, np.ndarray)
         # We have to be really careful here to handle the case of
         # aliased numpy arrays that are passed in from the application
@@ -417,6 +450,7 @@ class Runtime(object):
             # Don't store this one in the ptr_to_thunk as we only want to
             # store the root ones
             return parent_thunk.get_item(key)
+
         # Once it's a normal numpy array we can make it into one of our arrays
         # Check to see if it is a type that we support for doing deferred
         # execution and big enough to be worth off-loading onto Legion
@@ -427,57 +461,60 @@ class Runtime(object):
         ):
             if array.size == 1 and not share:
                 # This is a single value array
-                result = self.create_scalar(
+                # We didn't attach to this so we don't need to save it
+                return self.create_wrapped_scalar(
                     array.data,
                     array.dtype,
                     array.shape,
-                    wrap=True,
                 )
-                # We didn't attach to this so we don't need to save it
-                return result
-            else:
-                # This is not a scalar so make a field
-                store = self.legate_context.create_store(
-                    array.dtype,
-                    shape=array.shape,
-                    optimize_scalar=False,
-                )
-                store.attach_external_allocation(
-                    self.legate_context,
-                    array.data,
-                    share,
-                )
-                result = DeferredArray(
-                    self,
-                    store,
-                    dtype=array.dtype,
-                    numpy_array=array if share else None,
-                )
-        else:
-            assert not defer
-            # Make this into an eager evaluated thunk
-            result = EagerArray(self, array)
-        return result
 
-    def create_empty_thunk(self, shape, dtype, inputs=None):
-        # Convert to a tuple type if necessary
-        if type(shape) == int:
-            shape = (shape,)
+            # This is not a scalar so make a field
+            store = self.legate_context.create_store(
+                array.dtype,
+                shape=array.shape,
+                optimize_scalar=False,
+            )
+            store.attach_external_allocation(
+                self.legate_context,
+                array.data,
+                share,
+            )
+            return DeferredArray(
+                self,
+                store,
+                dtype=array.dtype,
+                numpy_array=array if share else None,
+            )
+
+        assert not defer
+        # Make this into an eager evaluated thunk
+        return EagerArray(self, array)
+
+    def create_empty_thunk(
+        self,
+        shape: NdShapeLike,
+        dtype: np.dtype[Any],
+        inputs: Optional[Sequence[NumPyThunk]] = None,
+    ) -> NumPyThunk:
+        computed_shape = (shape,) if isinstance(shape, int) else shape
         if self.is_supported_type(dtype) and not (
-            self.is_eager_shape(shape) and self.are_all_eager_inputs(inputs)
+            self.is_eager_shape(computed_shape)
+            and self.are_all_eager_inputs(inputs)
         ):
             store = self.legate_context.create_store(
-                dtype, shape=shape, optimize_scalar=True
+                dtype, shape=computed_shape, optimize_scalar=True
             )
             return DeferredArray(self, store, dtype=dtype)
         else:
             return EagerArray(self, np.empty(shape, dtype=dtype))
 
-    def create_unbound_thunk(self, dtype, ndim=1):
+    def create_unbound_thunk(
+        self, dtype: np.dtype[Any], ndim: int = 1
+    ) -> DeferredArray:
         store = self.legate_context.create_store(dtype, ndim=ndim)
         return DeferredArray(self, store, dtype=dtype)
 
-    def is_eager_shape(self, shape):
+    def is_eager_shape(self, shape: NdShape) -> bool:
         volume = calculate_volume(shape)
         # Newly created empty arrays are ALWAYS eager
         if volume == 0:
@@ -493,7 +530,7 @@ class Runtime(object):
         return volume <= self.max_eager_volume
 
     @staticmethod
-    def are_all_eager_inputs(inputs):
+    def are_all_eager_inputs(inputs: Optional[Sequence[NumPyThunk]]) -> bool:
         if inputs is None:
             return True
         for inp in inputs:
@@ -503,14 +540,14 @@ class Runtime(object):
         return True
 
     @staticmethod
-    def is_eager_array(array):
+    def is_eager_array(array: NumPyThunk) -> TypeGuard[EagerArray]:
         return isinstance(array, EagerArray)
 
     @staticmethod
-    def is_deferred_array(array):
+    def is_deferred_array(array: NumPyThunk) -> TypeGuard[DeferredArray]:
         return isinstance(array, DeferredArray)
 
-    def to_eager_array(self, array):
+    def to_eager_array(self, array: NumPyThunk) -> EagerArray:
         if self.is_eager_array(array):
             return array
         elif self.is_deferred_array(array):
@@ -518,7 +555,7 @@ class Runtime(object):
         else:
             raise RuntimeError("invalid array type")
 
-    def to_deferred_array(self, array):
+    def to_deferred_array(self, array: NumPyThunk) -> DeferredArray:
         if self.is_deferred_array(array):
             return array
         elif self.is_eager_array(array):
@@ -526,7 +563,7 @@ class Runtime(object):
         else:
             raise RuntimeError("invalid array type")
 
-    def warn(self, msg, category=UserWarning) -> None:
+    def warn(self, msg: str, category: type = UserWarning) -> None:
         if not self.args.warning:
             return
         stacklevel = find_last_user_stacklevel()
