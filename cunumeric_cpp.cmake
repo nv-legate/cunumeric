@@ -108,6 +108,8 @@ list(APPEND cunumeric_SOURCES
   src/cunumeric/ternary/where.cc
   src/cunumeric/binary/binary_op.cc
   src/cunumeric/binary/binary_red.cc
+  src/cunumeric/bits/packbits.cc
+  src/cunumeric/bits/unpackbits.cc
   src/cunumeric/unary/scalar_unary_red.cc
   src/cunumeric/unary/unary_op.cc
   src/cunumeric/unary/unary_red.cc
@@ -153,6 +155,8 @@ if(Legion_USE_OpenMP)
     src/cunumeric/ternary/where_omp.cc
     src/cunumeric/binary/binary_op_omp.cc
     src/cunumeric/binary/binary_red_omp.cc
+    src/cunumeric/bits/packbits_omp.cc
+    src/cunumeric/bits/unpackbits_omp.cc
     src/cunumeric/unary/unary_op_omp.cc
     src/cunumeric/unary/scalar_unary_red_omp.cc
     src/cunumeric/unary/unary_red_omp.cc
@@ -192,6 +196,8 @@ if(Legion_USE_CUDA)
     src/cunumeric/ternary/where.cu
     src/cunumeric/binary/binary_op.cu
     src/cunumeric/binary/binary_red.cu
+    src/cunumeric/bits/packbits.cu
+    src/cunumeric/bits/unpackbits.cu
     src/cunumeric/unary/scalar_unary_red.cu
     src/cunumeric/unary/unary_red.cu
     src/cunumeric/unary/unary_op.cu
