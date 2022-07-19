@@ -420,6 +420,9 @@ class EagerArray(NumPyThunk):
         if self.deferred is not None:
             return self.deferred.squeeze(axis)
         child = self.array.squeeze(axis)
+        # Early exit if there's no dimension to squeeze
+        if child is self.array:
+            return self
         # Should be aliased with parent region
         assert child.base is not None
         result = EagerArray(
@@ -538,12 +541,12 @@ class EagerArray(NumPyThunk):
                 out=self.array,
             )
 
-    def choose(self, *args, rhs):
+    def choose(self, rhs, *args):
         self.check_eager_args(*args, rhs)
         if self.deferred is not None:
             self.deferred.choose(
-                *args,
                 rhs,
+                *args,
             )
         else:
             choices = tuple(c.array for c in args)
@@ -615,6 +618,13 @@ class EagerArray(NumPyThunk):
             for array in arrays:
                 result += (EagerArray(self.runtime, array),)
             return result
+
+    def searchsorted(self, rhs, v, side="left"):
+        self.check_eager_args(rhs, v)
+        if self.deferred is not None:
+            self.deferred.searchsorted(rhs, v, side)
+        else:
+            self.array = np.searchsorted(rhs.array, v.array, side=side)
 
     def sort(self, rhs, argsort=False, axis=-1, kind="quicksort", order=None):
         self.check_eager_args(rhs, axis, kind, order)
@@ -850,3 +860,21 @@ class EagerArray(NumPyThunk):
         else:
             fn = _WINDOW_OPS[op_code]
             self.array[:] = fn(M, *args)
+
+    def packbits(self, src, axis, bitorder):
+        self.check_eager_args(src)
+        if self.deferred is not None:
+            self.deferred.packbits(src, axis, bitorder)
+        else:
+            self.array[:] = np.packbits(
+                src.array, axis=axis, bitorder=bitorder
+            )
+
+    def unpackbits(self, src, axis, bitorder):
+        self.check_eager_args(src)
+        if self.deferred is not None:
+            self.deferred.unpackbits(src, axis, bitorder)
+        else:
+            self.array[:] = np.unpackbits(
+                src.array, axis=axis, bitorder=bitorder
+            )

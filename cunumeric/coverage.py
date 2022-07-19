@@ -18,14 +18,15 @@ import warnings
 from dataclasses import dataclass
 from functools import wraps
 from types import FunctionType, MethodDescriptorType, MethodType, ModuleType
-from typing import Any, Callable, Container, Mapping, Optional, TypeVar, cast
+from typing import Any, Container, Mapping, Optional, cast
 
+import numpy as np
 from typing_extensions import Protocol
 
 from .runtime import runtime
 from .utils import find_last_user_frames, find_last_user_stacklevel
 
-__all__ = ("clone_class", "clone_module")
+__all__ = ("clone_module", "clone_np_ndarray")
 
 FALLBACK_WARNING = (
     "cuNumeric has not implemented {name} "
@@ -118,7 +119,11 @@ def implemented(
 
 
 def unimplemented(
-    func: AnyCallable, prefix: str, name: str, reporting: bool = True
+    func: AnyCallable,
+    prefix: str,
+    name: str,
+    reporting: bool = True,
+    self_fallback: Optional[str] = None,
 ) -> CuWrapped:
     name = f"{prefix}.{name}"
 
@@ -150,6 +155,9 @@ def unimplemented(
                 location=location,
                 implemented=False,
             )
+            if self_fallback:
+                self_value = getattr(args[0], self_fallback)()
+                args = (self_value,) + args[1:]
             return func(*args, **kwargs)
 
     else:
@@ -162,6 +170,9 @@ def unimplemented(
                 stacklevel=stacklevel,
                 category=RuntimeWarning,
             )
+            if self_fallback:
+                self_value = getattr(args[0], self_fallback)()
+                args = (self_value,) + args[1:]
             return func(*args, **kwargs)
 
     wrapper._cunumeric = CuWrapperMetadata(implemented=False)
@@ -219,59 +230,51 @@ def clone_module(
             new_globals[attr] = value
 
 
-C = TypeVar("C", bound=type)
+def should_wrap(obj: object) -> bool:
+    return isinstance(obj, (FunctionType, MethodType, MethodDescriptorType))
 
 
-def clone_class(origin_class: type) -> Callable[[C], C]:
-    """Copy attributes from one class to another
+def clone_np_ndarray(cls: type) -> type:
+    """Copy attributes from np.ndarray to cunumeric.ndarray
 
     Method types are wrapped with a decorator to report API calls. All
     other values are copied as-is.
 
-    Parameters
-    ----------
-    origin_class : type
-        Existing class type to clone attributes from
-
     """
 
-    def should_wrap(obj: object) -> bool:
-        return isinstance(
-            obj, (FunctionType, MethodType, MethodDescriptorType)
-        )
+    origin_class = np.ndarray
 
-    def decorator(cls: C) -> C:
-        class_name = f"{origin_class.__module__}.{origin_class.__name__}"
+    class_name = f"{origin_class.__module__}.{origin_class.__name__}"
 
-        missing = filter_namespace(
-            origin_class.__dict__,
-            # this simply omits ndarray internal methods for any class. If
-            # we ever need to wrap more classes we may need to generalize to
-            # per-class specification of internal names to skip
-            omit_names=set(cls.__dict__).union(NDARRAY_INTERNAL),
-        )
+    missing = filter_namespace(
+        origin_class.__dict__,
+        # this simply omits ndarray internal methods for any class. If
+        # we ever need to wrap more classes we may need to generalize to
+        # per-class specification of internal names to skip
+        omit_names=set(cls.__dict__).union(NDARRAY_INTERNAL),
+    )
 
-        reporting = runtime.args.report_coverage
+    reporting = runtime.args.report_coverage
 
-        for attr, value in cls.__dict__.items():
-            if should_wrap(value):
-                wrapped = implemented(
-                    value, class_name, attr, reporting=reporting
-                )
-                setattr(cls, attr, wrapped)
+    for attr, value in cls.__dict__.items():
+        if should_wrap(value):
+            wrapped = implemented(value, class_name, attr, reporting=reporting)
+            setattr(cls, attr, wrapped)
 
-        for attr, value in missing.items():
-            if should_wrap(value):
-                wrapped = unimplemented(
-                    value, class_name, attr, reporting=reporting
-                )
-                setattr(cls, attr, wrapped)
-            else:
-                setattr(cls, attr, value)
+    for attr, value in missing.items():
+        if should_wrap(value):
+            wrapped = unimplemented(
+                value,
+                class_name,
+                attr,
+                reporting=reporting,
+                self_fallback="__array__",
+            )
+            setattr(cls, attr, wrapped)
+        else:
+            setattr(cls, attr, value)
 
-        return cls
-
-    return decorator
+    return cls
 
 
 def is_implemented(obj: Any) -> bool:
