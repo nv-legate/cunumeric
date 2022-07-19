@@ -1174,7 +1174,7 @@ def atleast_1d(*arys: Sequence[ndarray]) -> Union(list[ndarray], ndarray):
 
     Parameters
     ----------
-    arys1, arys2, … : array_like
+    *arys : array_like
         One or more input arrays.
 
     Returns
@@ -1201,7 +1201,7 @@ def atleast_2d(*arys: Sequence[ndarray]) -> Union(list[ndarray], ndarray):
 
     Parameters
     ----------
-    arys1, arys2, … : array_like
+    *arys : array_like
         One or more array-like sequences.
         Non-array inputs are converted to arrays.
         Arrays that already have two or more dimensions are preserved.
@@ -1231,10 +1231,10 @@ def atleast_3d(*arys: Sequence[ndarray]) -> Union(list[ndarray], ndarray):
 
     Parameters
     ----------
-    arys1, arys2, … : array_like
+    *arys : array_like
         One or more array-like sequences.
         Non-array inputs are converted to arrays.
-        Arrays that already have two or more dimensions are preserved.
+        Arrays that already have three or more dimensions are preserved.
 
     Returns
     -------
