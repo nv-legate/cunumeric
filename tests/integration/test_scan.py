@@ -80,6 +80,10 @@ def _run_tests(op, n0, shape, dt, axis, out0, outtype):
         print(f"INPUT    : {A}")
         print(f"CUNUMERIC: {B}")
         print(f"NUMPY    : {C}")
+        D = np.nonzero(np.isclose(B, C))
+        print(f"indices  : {D}")
+        print(f"cunumeric: {B[D]}")
+        print(f"numpy    : {C[D]}")
         assert False
 
 
