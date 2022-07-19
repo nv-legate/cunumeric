@@ -25,6 +25,7 @@ Searching
    argmax
    argmin
    nonzero
+   searchsorted
    where
 
 Counting

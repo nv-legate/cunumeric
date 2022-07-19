@@ -14,6 +14,8 @@
 #
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Any
+
 import numpy as np
 
 from .config import (
@@ -29,6 +31,12 @@ from .config import (
 )
 from .thunk import NumPyThunk
 from .utils import is_advanced_indexing
+
+if TYPE_CHECKING:
+    import numpy.typing as npt
+
+    from .deferred import DeferredArray
+
 
 _UNARY_OPS = {
     UnaryOpCode.ABSOLUTE: np.absolute,
@@ -163,8 +171,8 @@ class EagerArray(NumPyThunk):
     :meta private:
     """
 
-    def __init__(self, runtime, array, parent=None, key=None):
-        NumPyThunk.__init__(self, runtime, array.dtype)
+    def __init__(self, runtime, array, parent=None, key=None) -> None:
+        super().__init__(runtime, array.dtype)
         self.array = array
         self.parent = parent
         self.children = None
@@ -184,7 +192,7 @@ class EagerArray(NumPyThunk):
     def shape(self):
         return self.array.shape
 
-    def __numpy_array__(self):
+    def __numpy_array__(self) -> npt.NDArray[Any]:
         if self.deferred is not None:
             return self.deferred.__numpy_array__()
         # Track when this escapes. If it escapes we have
@@ -231,7 +239,7 @@ class EagerArray(NumPyThunk):
             for child in self.children:
                 child._convert_children()
 
-    def to_deferred_array(self):
+    def to_deferred_array(self) -> DeferredArray:
         """This is a really important method. It will convert a tree of
         eager NumPy arrays into an equivalent tree of deferred arrays that
         are mirrored by an equivalent logical region tree. To be consistent
@@ -247,11 +255,10 @@ class EagerArray(NumPyThunk):
                 # We are at the root of the tree so we need to
                 # actually make a DeferredArray to use
                 if self.array.size == 1:
-                    self.deferred = self.runtime.create_scalar(
+                    self.deferred = self.runtime.create_wrapped_scalar(
                         self.array.data,
                         dtype=self.array.dtype,
                         shape=self.shape,
-                        wrap=True,
                     )
                 else:
                     self.deferred = self.runtime.find_or_create_array_thunk(
@@ -356,7 +363,7 @@ class EagerArray(NumPyThunk):
         assert isinstance(key, NumPyThunk)
         return self.runtime.to_eager_array(key).array
 
-    def get_item(self, key):
+    def get_item(self, key) -> NumPyThunk:
         if self.deferred is not None:
             return self.deferred.get_item(key)
         if is_advanced_indexing(key):
@@ -413,6 +420,9 @@ class EagerArray(NumPyThunk):
         if self.deferred is not None:
             return self.deferred.squeeze(axis)
         child = self.array.squeeze(axis)
+        # Early exit if there's no dimension to squeeze
+        if child is self.array:
+            return self
         # Should be aliased with parent region
         assert child.base is not None
         result = EagerArray(
@@ -453,7 +463,7 @@ class EagerArray(NumPyThunk):
                 else:
                     self.array[:] = rhs.array
 
-    def fill(self, value):
+    def fill(self, value) -> None:
         if self.deferred is not None:
             self.deferred.fill(value)
         else:
@@ -480,7 +490,7 @@ class EagerArray(NumPyThunk):
         self.children.append(result)
         return result
 
-    def repeat(self, repeats, axis, scalar_repeats):
+    def repeat(self, repeats, axis, scalar_repeats) -> NumPyThunk:
         if not scalar_repeats:
             self.check_eager_args(repeats)
         if self.deferred is not None:
@@ -531,12 +541,12 @@ class EagerArray(NumPyThunk):
                 out=self.array,
             )
 
-    def choose(self, *args, rhs):
+    def choose(self, rhs, *args):
         self.check_eager_args(*args, rhs)
         if self.deferred is not None:
             self.deferred.choose(
-                *args,
                 rhs,
+                *args,
             )
         else:
             choices = tuple(c.array for c in args)
@@ -564,7 +574,7 @@ class EagerArray(NumPyThunk):
                 axes = tuple(range(ndims - naxes, ndims))
                 self.array = diagonal_reference(rhs.array, axes)
 
-    def eye(self, k):
+    def eye(self, k) -> None:
         if self.deferred is not None:
             self.deferred.eye(k)
         else:
@@ -575,7 +585,7 @@ class EagerArray(NumPyThunk):
                     self.shape[0], self.shape[1], k, dtype=self.dtype
                 )
 
-    def arange(self, start, stop, step):
+    def arange(self, start, stop, step) -> None:
         if self.deferred is not None:
             self.deferred.arange(start, stop, step)
         else:
@@ -609,6 +619,13 @@ class EagerArray(NumPyThunk):
                 result += (EagerArray(self.runtime, array),)
             return result
 
+    def searchsorted(self, rhs, v, side="left"):
+        self.check_eager_args(rhs, v)
+        if self.deferred is not None:
+            self.deferred.searchsorted(rhs, v, side)
+        else:
+            self.array = np.searchsorted(rhs.array, v.array, side=side)
+
     def sort(self, rhs, argsort=False, axis=-1, kind="quicksort", order=None):
         self.check_eager_args(rhs, axis, kind, order)
         if self.deferred is not None:
@@ -637,7 +654,7 @@ class EagerArray(NumPyThunk):
             else:
                 self.array = np.partition(rhs.array, kth, axis, kind, order)
 
-    def random_uniform(self):
+    def random_uniform(self) -> None:
         if self.deferred is not None:
             self.deferred.random_uniform()
         else:
@@ -646,7 +663,7 @@ class EagerArray(NumPyThunk):
             else:
                 self.array[:] = np.random.rand(*(self.array.shape))
 
-    def random_normal(self):
+    def random_normal(self) -> None:
         if self.deferred is not None:
             self.deferred.random_normal()
         else:
@@ -655,7 +672,7 @@ class EagerArray(NumPyThunk):
             else:
                 self.array[:] = np.random.randn(*(self.array.shape))
 
-    def random_integer(self, low, high):
+    def random_integer(self, low, high) -> None:
         if self.deferred is not None:
             self.deferred.random_integer(low, high)
         else:
@@ -751,7 +768,7 @@ class EagerArray(NumPyThunk):
         else:
             raise RuntimeError("unsupported unary reduction op " + str(op))
 
-    def isclose(self, rhs1, rhs2, rtol, atol, equal_nan):
+    def isclose(self, rhs1, rhs2, rtol, atol, equal_nan) -> None:
         self.check_eager_args(rhs1, rhs2)
         if self.deferred is not None:
             self.deferred.isclose(rhs1, rhs2, rtol, atol, equal_nan)
@@ -837,9 +854,27 @@ class EagerArray(NumPyThunk):
         else:
             return EagerArray(self.runtime, np.unique(self.array))
 
-    def create_window(self, op_code, M, *args):
+    def create_window(self, op_code, M, *args) -> None:
         if self.deferred is not None:
             return self.deferred.create_window(op_code, M, *args)
         else:
             fn = _WINDOW_OPS[op_code]
             self.array[:] = fn(M, *args)
+
+    def packbits(self, src, axis, bitorder):
+        self.check_eager_args(src)
+        if self.deferred is not None:
+            self.deferred.packbits(src, axis, bitorder)
+        else:
+            self.array[:] = np.packbits(
+                src.array, axis=axis, bitorder=bitorder
+            )
+
+    def unpackbits(self, src, axis, bitorder):
+        self.check_eager_args(src)
+        if self.deferred is not None:
+            self.deferred.unpackbits(src, axis, bitorder)
+        else:
+            self.array[:] = np.unpackbits(
+                src.array, axis=axis, bitorder=bitorder
+            )

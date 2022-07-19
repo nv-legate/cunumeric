@@ -14,10 +14,11 @@
 #
 from __future__ import annotations
 
+import warnings
 from collections.abc import Iterable
 from functools import reduce, wraps
 from inspect import signature
-from typing import Any, Callable, Optional, Set, TypeVar
+from typing import Any, Callable, Optional, Set, TypeVar, Union
 
 import numpy as np
 import pyarrow
@@ -28,9 +29,16 @@ from typing_extensions import ParamSpec
 from legate.core import Array
 
 from .config import FFTDirection, FFTNormalization, UnaryOpCode, UnaryRedCode
-from .coverage import clone_class
+from .coverage import clone_np_ndarray
 from .runtime import runtime
 from .utils import dot_modes
+
+FALLBACK_WARNING = (
+    "cuNumeric has not fully implemented {name} "
+    + "and is falling back to canonical numpy. "
+    + "You may notice significantly decreased performance "
+    + "for this function call."
+)
 
 R = TypeVar("R")
 P = ParamSpec("P")
@@ -140,7 +148,7 @@ def _convert_all_to_numpy(obj):
         return obj
 
 
-@clone_class(np.ndarray)
+@clone_np_ndarray
 class ndarray:
     def __init__(
         self,
@@ -192,9 +200,12 @@ class ndarray:
             # so we just need to convert our type and stick it in
             # a Legate Array
             arrow_type = pyarrow.from_numpy_dtype(self.dtype)
+            # If the thunk is an eager array, we need to convert it to a
+            # deferred array so we can extract a legate store
+            deferred_thunk = runtime.to_deferred_array(self._thunk)
             # We don't have nullable data for the moment
             # until we support masked arrays
-            array = Array(arrow_type, [None, self._thunk])
+            array = Array(arrow_type, [None, deferred_thunk.base])
             self._legate_data = dict()
             self._legate_data["version"] = 1
             data = dict()
@@ -240,7 +251,20 @@ class ndarray:
 
         # TODO: We could check at this point that our implementation supports
         # all the provided arguments, and fall back to NumPy if not.
-        return cn_func(*args, **kwargs)
+        #
+        # For now we simply try to call the cuNumeric version and fall back
+        # to NumPy once we hit a NotImplementedError
+        try:
+            return cn_func(*args, **kwargs)
+        except NotImplementedError:
+            warnings.warn(
+                FALLBACK_WARNING.format(name=func.__name__),
+                category=RuntimeWarning,
+                stacklevel=4,
+            )
+            args = _convert_all_to_numpy(args)
+            kwargs = _convert_all_to_numpy(kwargs)
+            return func(*args, **kwargs)
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
         from . import _ufunc
@@ -257,7 +281,21 @@ class ndarray:
                 # TODO: We could check at this point that our implementation
                 # supports all the provided arguments, and fall back to
                 # NumPy if not.
-                return cn_method(*inputs, **kwargs)
+                #
+                # For now we simply try to call the cuNumeric version and
+                # fall back # to NumPy once we hit a NotImplementedError
+                try:
+                    return cn_method(*inputs, **kwargs)
+                except NotImplementedError:
+                    name = f"{ufunc.__name__}.{method}"
+                    warnings.warn(
+                        FALLBACK_WARNING.format(name=name),
+                        category=RuntimeWarning,
+                        stacklevel=3,
+                    )
+                    inputs = _convert_all_to_numpy(inputs)
+                    kwargs = _convert_all_to_numpy(kwargs)
+                    return getattr(ufunc, method)(*inputs, **kwargs)
 
         # We cannot handle this ufunc call, so we will fall back to NumPy.
         # Ideally we would be able to skip the __array_ufunc__ dispatch, and
@@ -1922,8 +1960,8 @@ class ndarray:
 
         ch = tuple(c._thunk for c in choices)  #
         out_arr._thunk.choose(
+            a._thunk,
             *ch,
-            rhs=a._thunk,
         )
         if out is not None and out.dtype != ch_dtype:
             out._thunk.convert(out_arr._thunk)
@@ -3010,6 +3048,80 @@ class ndarray:
         """
         self.__array__().setflags(write=write, align=align, uic=uic)
 
+    @add_boilerplate()
+    def searchsorted(
+        self: ndarray,
+        v: Union[int, float, ndarray],
+        side: str = "left",
+        sorter: Optional[ndarray] = None,
+    ) -> Union[int, ndarray]:
+        """a.searchsorted(v, side='left', sorter=None)
+
+        Find the indices into a sorted array a such that, if the corresponding
+        elements in v were inserted before the indices, the order of a would be
+        preserved.
+
+        Parameters
+        ----------
+        v : scalar or array_like
+            Values to insert into a.
+        side : ``{'left', 'right'}``, optional
+            If 'left', the index of the first suitable location found is given.
+            If 'right', return the last such index. If there is no suitable
+            index, return either 0 or N (where N is the length of a).
+        sorter : 1-D array_like, optional
+            Optional array of integer indices that sort array a into ascending
+            order. They are typically the result of argsort.
+
+        Returns
+        -------
+        indices : int or array_like[int]
+            Array of insertion points with the same shape as v, or an integer
+            if v is a scalar.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+        """
+
+        if self.ndim != 1:
+            raise ValueError("Dimension mismatch: self must be a 1D array")
+
+        # this is needed in case v is a scalar
+        v_ndarray = convert_to_cunumeric_ndarray(v)
+
+        a = self
+        # in case we have different dtypes we ned to find a common type
+        if a.dtype is not v_ndarray.dtype:
+            ch_dtype = np.find_common_type([a.dtype, v_ndarray.dtype], [])
+
+            if v_ndarray.dtype is not ch_dtype:
+                v_ndarray = v_ndarray.astype(ch_dtype)
+            if a.dtype is not ch_dtype:
+                a = a.astype(ch_dtype)
+
+        if sorter is not None and a.shape[0] > 1:
+            if sorter.ndim != 1:
+                raise ValueError(
+                    "Dimension mismatch: sorter must be a 1D array"
+                )
+            if sorter.shape != a.shape:
+                raise ValueError(
+                    "Shape mismatch: sorter must have the same shape as self"
+                )
+            if not np.issubdtype(sorter.dtype, np.integer):
+                raise ValueError(
+                    "Dtype mismatch: sorter must be of integer type"
+                )
+            a = a.take(sorter).copy()
+
+        result = ndarray(
+            v_ndarray.shape, np.int64, inputs=(a, v_ndarray, sorter)
+        )
+
+        result._thunk.searchsorted(a._thunk, v_ndarray._thunk, side)
+        return result
+
     def sort(self, axis=-1, kind="quicksort", order=None):
         """a.sort(axis=-1, kind=None, order=None)
 
@@ -3067,24 +3179,19 @@ class ndarray:
 
         """
         if axis is not None:
-            if isinstance(axis, int):
-                if axis >= self.ndim:
-                    raise ValueError(
-                        "all axis to squeeze must be less than ndim"
-                    )
-                if self.shape[axis] != 1:
-                    raise ValueError("axis to squeeze must have extent of one")
-            elif isinstance(axis, tuple):
-                for ax in axis:
-                    if ax >= self.ndim:
-                        raise ValueError(
-                            "all axes to squeeze must be less than ndim"
-                        )
-                    if self.shape[ax] != 1:
-                        raise ValueError(
-                            "all axes to squeeze must have extent of one"
-                        )
-        return ndarray(shape=None, thunk=self._thunk.squeeze(axis))
+            computed_axis = normalize_axis_tuple(axis, self.ndim)
+            if any(self.shape[ax] != 1 for ax in computed_axis):
+                raise ValueError(
+                    "can only select axes to squeeze out with size "
+                    "equal to one"
+                )
+        else:
+            computed_axis = None
+
+        thunk = self._thunk.squeeze(computed_axis)
+        if self._thunk is thunk:
+            return self
+        return ndarray(shape=None, thunk=thunk)
 
     @add_boilerplate()
     def sum(

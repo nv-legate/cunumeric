@@ -1,4 +1,4 @@
-# Copyright 2021-2022 NVIDIA Corporation
+# Copyright 2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,37 +13,24 @@
 # limitations under the License.
 #
 
+import numpy as np
 import pytest
 
-import cunumeric as np
+import cunumeric as num
 
 
-def test_basic():
-    x = np.array([[[1, 2, 3]]])
-    y = x.squeeze()
-    assert y.ndim == 1
-    assert y[0] == 1
-    assert y[1] == 2
-    assert y[2] == 3
-
-    y = x.squeeze(axis=1)
-    assert y.ndim == 2
-    assert y[0, 0] == 1
-    assert y[0, 1] == 2
-    assert y[0, 2] == 3
-
-    x = np.array([[[1], [2], [3]]])
-    y = x.squeeze(axis=(0, 2))
-    assert y.ndim == 1
-    assert y[0] == 1
-    assert y[1] == 2
-    assert y[2] == 3
+def test_array_equal():
+    a = num.array([1, 2, 3])
+    assert np.array_equal(a, a, equal_nan=True)
 
 
-def test_idempotent():
-    x = np.array([1, 2, 3])
-    y = x.squeeze()
-    assert x is y
+def test_ufunc():
+    in_num = num.array([0, 1, 2, 3])
+    in_np = in_num.__array__()
+
+    out_num = np.logical_and.reduce(in_num)
+    out_np = np.logical_and.reduce(in_np)
+    assert np.array_equal(out_num, out_np)
 
 
 if __name__ == "__main__":

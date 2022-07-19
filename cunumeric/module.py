@@ -3898,8 +3898,10 @@ def isclose(
     return out
 
 
-@add_boilerplate("a", "b")
-def array_equal(a: ndarray, b: ndarray) -> Union[bool, ndarray]:
+@add_boilerplate("a1", "a2")
+def array_equal(
+    a1: ndarray, a2: ndarray, equal_nan: bool = False
+) -> Union[bool, ndarray]:
     """
 
     True if two arrays have the same shape and elements, False otherwise.
@@ -3908,6 +3910,10 @@ def array_equal(a: ndarray, b: ndarray) -> Union[bool, ndarray]:
     ----------
     a1, a2 : array_like
         Input arrays.
+    equal_nan : bool
+        Whether to compare NaN's as equal. If the dtype of a1 and a2 is
+        complex, values will be considered equal if either the real or the
+        imaginary component of a given value is ``nan``.
 
     Returns
     -------
@@ -3922,10 +3928,15 @@ def array_equal(a: ndarray, b: ndarray) -> Union[bool, ndarray]:
     --------
     Multiple GPUs, Multiple CPUs
     """
-    if a.shape != b.shape:
+    if equal_nan:
+        raise NotImplementedError(
+            "cuNumeric does not support `equal_nan` yet for `array_equal`"
+        )
+
+    if a1.shape != a2.shape:
         return False
     return ndarray._perform_binary_reduction(
-        BinaryOpCode.EQUAL, a, b, dtype=np.dtype(np.bool_)
+        BinaryOpCode.EQUAL, a1, a2, dtype=np.dtype(np.bool_)
     )
 
 
@@ -4629,6 +4640,47 @@ def msort(a: ndarray) -> ndarray:
     Multiple GPUs, Single CPU
     """
     return sort(a, axis=0)
+
+
+@add_boilerplate("a")
+def searchsorted(
+    a: ndarray,
+    v: Union[int, float, ndarray],
+    side: str = "left",
+    sorter: Optional[ndarray] = None,
+) -> Union[int, ndarray]:
+    """
+
+    Find the indices into a sorted array a such that, if the corresponding
+    elements in v were inserted before the indices, the order of a would be
+    preserved.
+
+    Parameters
+    ----------
+    a : 1-D array_like
+        Input array. If sorter is None, then it must be sorted in ascending
+        order, otherwise sorter must be an array of indices that sort it.
+    v : scalar or array_like
+        Values to insert into a.
+    side : ``{'left', 'right'}``, optional
+        If 'left', the index of the first suitable location found is given.
+        If 'right', return the last such index. If there is no suitable index,
+        return either 0 or N (where N is the length of a).
+    sorter : 1-D array_like, optional
+        Optional array of integer indices that sort array a into ascending
+        order. They are typically the result of argsort.
+
+    Returns
+    -------
+    indices : int or array_like[int]
+        Array of insertion points with the same shape as v, or an integer
+        if v is a scalar.
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    return a.searchsorted(v, side, sorter)
 
 
 @add_boilerplate("a")

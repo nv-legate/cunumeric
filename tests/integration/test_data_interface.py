@@ -1,4 +1,4 @@
-# Copyright 2021-2022 NVIDIA Corporation
+# Copyright 2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,35 +15,24 @@
 
 import pytest
 
-import cunumeric as np
+import cunumeric as num
 
 
-def test_basic():
-    x = np.array([[[1, 2, 3]]])
-    y = x.squeeze()
-    assert y.ndim == 1
-    assert y[0] == 1
-    assert y[1] == 2
-    assert y[2] == 3
+# A simple wrapper with a legate data interface implementation for testing
+class Wrapper:
+    def __init__(self, wrapped):
+        self.wrapped = wrapped
 
-    y = x.squeeze(axis=1)
-    assert y.ndim == 2
-    assert y[0, 0] == 1
-    assert y[0, 1] == 2
-    assert y[0, 2] == 3
-
-    x = np.array([[[1], [2], [3]]])
-    y = x.squeeze(axis=(0, 2))
-    assert y.ndim == 1
-    assert y[0] == 1
-    assert y[1] == 2
-    assert y[2] == 3
+    @property
+    def __legate_data_interface__(self):
+        return self.wrapped
 
 
-def test_idempotent():
-    x = np.array([1, 2, 3])
-    y = x.squeeze()
-    assert x is y
+def test_roundtrip():
+    arr1 = num.array([1, 2, 3, 4], dtype=num.float64)
+    data = Wrapper(arr1.__legate_data_interface__)
+    arr2 = num.asarray(data)
+    assert num.array_equal(arr1, arr2)
 
 
 if __name__ == "__main__":

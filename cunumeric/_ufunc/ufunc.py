@@ -264,7 +264,10 @@ class ufunc:
         raise TypeError("return arrays must be of ArrayType")
 
     def _prepare_operands(
-        self, *args: Any, out: Union[ndarray, None], where: bool = True
+        self,
+        *args: Any,
+        out: Union[ndarray, tuple[ndarray, ...], None],
+        where: bool = True,
     ) -> tuple[
         Sequence[ndarray],
         Sequence[Union[ndarray, None]],
@@ -295,6 +298,8 @@ class ufunc:
             computed_out = (None,) * self.nout
         elif not isinstance(out, tuple):
             computed_out = (out,)
+        else:
+            computed_out = out
 
         outputs = tuple(
             self._maybe_convert_output_to_cunumeric_ndarray(arr)
@@ -469,7 +474,7 @@ class multiout_unary_ufunc(ufunc):
     def __call__(
         self,
         *args: Any,
-        out: Union[ndarray, None] = None,
+        out: Union[ndarray, tuple[ndarray, ...], None] = None,
         where: bool = True,
         casting: CastingKind = "same_kind",
         order: str = "K",
