@@ -17,12 +17,12 @@
 #include "generator.cuh"
 #include "generator_create.inl"
 
-extern "C" curandStatus_t CURANDAPI randutilCreateGenerator(randutilGenerator_t* generator,
-                                                            curandRngType_t rng_type,
-                                                            uint64_t seed,
-                                                            uint64_t generatorID,
-                                                            uint32_t flags,
-                                                            cudaStream_t stream)
+extern "C" curandStatus_t randutilCreateGenerator(randutilGenerator_t* generator,
+                                                  curandRngType_t rng_type,
+                                                  uint64_t seed,
+                                                  uint64_t generatorID,
+                                                  uint32_t flags,
+                                                  cudaStream_t stream)
 {
   return inner_randutilCreateGenerator<randutilimpl::execlocation::DEVICE>(
     generator, rng_type, seed, generatorID, stream);
