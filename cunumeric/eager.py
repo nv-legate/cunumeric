@@ -290,6 +290,7 @@ class EagerArray(NumPyThunk):
         return EagerArray(self.runtime, self.array.conj())
 
     def convolve(self, v, out, mode):
+        self.check_eager_args(v, out)
         if self.deferred is not None:
             self.deferred(v, out, mode)
         else:
@@ -627,7 +628,7 @@ class EagerArray(NumPyThunk):
             self.array = np.searchsorted(rhs.array, v.array, side=side)
 
     def sort(self, rhs, argsort=False, axis=-1, kind="quicksort", order=None):
-        self.check_eager_args(rhs, axis, kind, order)
+        self.check_eager_args(rhs)
         if self.deferred is not None:
             self.deferred.sort(rhs, argsort, axis, kind, order)
         else:
@@ -645,7 +646,7 @@ class EagerArray(NumPyThunk):
         kind="introselect",
         order=None,
     ):
-        self.check_eager_args(rhs, kth, axis, kind, order)
+        self.check_eager_args(rhs)
         if self.deferred is not None:
             self.deferred.partition(rhs, kth, argpartition, axis, kind, order)
         else:
@@ -725,7 +726,7 @@ class EagerArray(NumPyThunk):
     def unary_reduction(
         self, op, rhs, where, orig_axis, axes, keepdims, args, initial
     ):
-        self.check_eager_args(rhs)
+        self.check_eager_args(rhs, where)
         if self.deferred is not None:
             self.deferred.unary_reduction(
                 op,
