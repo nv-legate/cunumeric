@@ -1153,7 +1153,7 @@ def _reshape_recur(ndim: int, arr: ndarray) -> tuple[int]:
 def _atleast_nd(
     ndim: int, arys: Sequence[ndarray], view: bool = True
 ) -> Union(list[ndarray], ndarray):
-    inputs = arys = list(convert_to_cunumeric_ndarray(arr) for arr in arys)
+    inputs = list(convert_to_cunumeric_ndarray(arr) for arr in arys)
     if view:
         inputs = list(arr.view() for arr in arys)
     # 'reshape' change the shape of arrays
@@ -1714,8 +1714,7 @@ def stack(
             " of input arrays"
         )
 
-    shape = list(common_info.shape)
-    shape.insert(axis, 1)
+    shape = common_info.shape[:axis] + (1,) + common_info.shape[axis:]
     arrays = [arr.reshape(shape) for arr in arrays]
     common_info.shape = tuple(shape)
     return _concatenate(arrays, common_info, axis, out=out)
@@ -1755,11 +1754,10 @@ def vstack(tup: Sequence[ndarray]) -> ndarray:
     Multiple GPUs, Multiple CPUs
     """
     # Reshape arrays in the `array_list` if needed before concatenation
-    inputs = list(convert_to_cunumeric_ndarray(inp) for inp in tup)
-    reshaped = _atleast_nd(2, inputs, False)
+    reshaped = _atleast_nd(2, tup, False)
+    if not isinstance(reshaped, list):
+        reshaped = [reshaped]
     tup, common_info = check_shape_dtype(reshaped, vstack.__name__, 0)
-    common_info.shape = tup[0].shape
-
     return _concatenate(
         tup,
         common_info,
@@ -1845,11 +1843,11 @@ def dstack(tup: Sequence[ndarray]) -> ndarray:
     --------
     Multiple GPUs, Multiple CPUs
     """
-    inputs = list(convert_to_cunumeric_ndarray(inp) for inp in tup)
     # Reshape arrays to (1,N,1) for ndim ==1 or (M,N,1) for ndim == 2:
-    reshaped = _atleast_nd(3, inputs, False)
+    reshaped = _atleast_nd(3, tup, False)
+    if not isinstance(reshaped, list):
+        reshaped = [reshaped]
     tup, common_info = check_shape_dtype(reshaped, dstack.__name__, 2)
-
     return _concatenate(
         tup,
         common_info,
