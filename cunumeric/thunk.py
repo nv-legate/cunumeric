@@ -36,8 +36,6 @@ class NumPyThunk(ABC):
     :meta private:
     """
 
-    array: Any
-
     def __init__(self, runtime: Runtime, dtype: np.dtype[Any]) -> None:
         self.runtime = runtime
         self.context = runtime.legate_context

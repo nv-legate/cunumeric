@@ -626,7 +626,7 @@ class EagerArray(NumPyThunk):
         else:
             self.array[:] = np.bincount(
                 rhs.array,
-                weights.array if weights is not None else None,
+                cast(EagerArray, weights).array if weights else None,
                 minlength=self.array.size,
             )
 
