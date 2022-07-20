@@ -385,6 +385,9 @@ class _Test_ndarray:
     def conjugate(self):
         return self, "conjugate"
 
+    def extra(self):
+        return "extra"
+
     attr1 = 10
     attr2 = 30
 
@@ -406,6 +409,8 @@ class Test_clone_np_ndarray:
         assert _Test_ndarray.conjugate.__wrapped__
         assert _Test_ndarray.conjugate._cunumeric.implemented
 
+        assert not hasattr(_Test_ndarray.extra, "_cunumeric")
+
     @patch.object(cunumeric.runtime.args, "report_coverage", False)
     def test_report_coverage_False(self) -> None:
         assert not cunumeric.runtime.args.report_coverage
@@ -421,6 +426,8 @@ class Test_clone_np_ndarray:
 
         assert _Test_ndarray.conjugate.__wrapped__
         assert _Test_ndarray.conjugate._cunumeric.implemented
+
+        assert not hasattr(_Test_ndarray.extra, "_cunumeric")
 
     # TODO (bev) Not sure how to unit test this. Try to use a toy ndarray class
     # (as above) for testing, and numpy gets unhappy. On the other hand, if we
