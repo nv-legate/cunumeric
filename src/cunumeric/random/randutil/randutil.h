@@ -24,123 +24,124 @@ typedef void* randutilGenerator_t;
 
 // CUDA-ONLY API
 #ifdef LEGATE_USE_CUDA
-extern "C" curandStatus_t CURANDAPI randutilCreateGenerator(randutilGenerator_t* generator,
-                                                            curandRngType_t rng_type,
-                                                            uint64_t seed,
-                                                            uint64_t generatorID,
-                                                            uint32_t flags,
-                                                            cudaStream_t stream);
+extern "C" curandStatus_t randutilCreateGenerator(randutilGenerator_t* generator,
+                                                  curandRngType_t rng_type,
+                                                  uint64_t seed,
+                                                  uint64_t generatorID,
+                                                  uint32_t flags,
+                                                  cudaStream_t stream);
 #endif
 
-extern "C" curandStatus_t CURANDAPI randutilCreateGeneratorHost(randutilGenerator_t* generator,
-                                                                curandRngType_t rng_type,
-                                                                uint64_t seed,
-                                                                uint64_t generatorID,
-                                                                uint32_t flags);
-extern "C" curandStatus_t CURANDAPI randutilDestroyGenerator(randutilGenerator_t generator);
+extern "C" curandStatus_t randutilCreateGeneratorHost(randutilGenerator_t* generator,
+                                                      curandRngType_t rng_type,
+                                                      uint64_t seed,
+                                                      uint64_t generatorID,
+                                                      uint32_t flags);
+extern "C" curandStatus_t randutilDestroyGenerator(randutilGenerator_t generator);
 
 /* curand distributions */
 
-extern "C" curandStatus_t CURANDAPI randutilGenerateIntegers32(randutilGenerator_t generator,
-                                                               int32_t* outputPtr,
-                                                               size_t num,
-                                                               int32_t low /* inclusive */,
-                                                               int32_t high /* exclusive */);
-extern "C" curandStatus_t CURANDAPI randutilGenerateIntegers64(randutilGenerator_t generator,
-                                                               int64_t* outputPtr,
-                                                               size_t num,
-                                                               int64_t low /* inclusive */,
-                                                               int64_t high /* exclusive */);
-extern "C" curandStatus_t CURANDAPI randutilGenerateRawUInt32(randutilGenerator_t generator,
-                                                              uint32_t* outputPtr,
-                                                              size_t num);
+extern "C" curandStatus_t randutilGenerateIntegers32(randutilGenerator_t generator,
+                                                     int32_t* outputPtr,
+                                                     size_t num,
+                                                     int32_t low /* inclusive */,
+                                                     int32_t high /* exclusive */);
+extern "C" curandStatus_t randutilGenerateIntegers64(randutilGenerator_t generator,
+                                                     int64_t* outputPtr,
+                                                     size_t num,
+                                                     int64_t low /* inclusive */,
+                                                     int64_t high /* exclusive */);
+extern "C" curandStatus_t randutilGenerateRawUInt32(randutilGenerator_t generator,
+                                                    uint32_t* outputPtr,
+                                                    size_t num);
 
-extern "C" curandStatus_t CURANDAPI randutilGenerateUniformEx(randutilGenerator_t generator,
-                                                              float* outputPtr,
-                                                              size_t num,
-                                                              float low  = 0.0f, /* inclusive */
-                                                              float high = 1.0f /* exclusive */);
+extern "C" curandStatus_t randutilGenerateUniformEx(randutilGenerator_t generator,
+                                                    float* outputPtr,
+                                                    size_t num,
+                                                    float low  = 0.0f, /* inclusive */
+                                                    float high = 1.0f /* exclusive */);
 
-extern "C" curandStatus_t CURANDAPI
-randutilGenerateUniformDoubleEx(randutilGenerator_t generator,
-                                double* outputPtr,
-                                size_t num,
-                                double low  = 0.0, /* inclusive */
-                                double high = 1.0 /* exclusive */);
+extern "C" curandStatus_t randutilGenerateUniformDoubleEx(randutilGenerator_t generator,
+                                                          double* outputPtr,
+                                                          size_t num,
+                                                          double low  = 0.0, /* inclusive */
+                                                          double high = 1.0 /* exclusive */);
 
-extern "C" curandStatus_t CURANDAPI randutilGenerateLogNormalEx(
+extern "C" curandStatus_t randutilGenerateLogNormalEx(
   randutilGenerator_t generator, float* outputPtr, size_t n, float mean, float stddev);
-extern "C" curandStatus_t CURANDAPI randutilGenerateLogNormalDoubleEx(
+extern "C" curandStatus_t randutilGenerateLogNormalDoubleEx(
   randutilGenerator_t generator, double* outputPtr, size_t n, double mean, double stddev);
 
-extern "C" curandStatus_t CURANDAPI randutilGenerateNormalEx(
+extern "C" curandStatus_t randutilGenerateNormalEx(
   randutilGenerator_t generator, float* outputPtr, size_t n, float mean, float stddev);
-extern "C" curandStatus_t CURANDAPI randutilGenerateNormalDoubleEx(
+extern "C" curandStatus_t randutilGenerateNormalDoubleEx(
   randutilGenerator_t generator, double* outputPtr, size_t n, double mean, double stddev);
 
-extern "C" curandStatus_t CURANDAPI randutilGeneratePoissonEx(randutilGenerator_t generator,
-                                                              uint32_t* outputPtr,
-                                                              size_t n,
-                                                              double lambda);
+extern "C" curandStatus_t randutilGeneratePoissonEx(randutilGenerator_t generator,
+                                                    uint32_t* outputPtr,
+                                                    size_t n,
+                                                    double lambda);
 
 /* Straightforward Distributions */
 
-extern "C" curandStatus_t CURANDAPI randutilGenerateExponentialEx(randutilGenerator_t generator,
-                                                                  float* outputPtr,
-                                                                  size_t n,
-                                                                  float scale);
-extern "C" curandStatus_t CURANDAPI randutilGenerateExponentialDoubleEx(
-  randutilGenerator_t generator, double* outputPtr, size_t n, double scale);
+extern "C" curandStatus_t randutilGenerateExponentialEx(randutilGenerator_t generator,
+                                                        float* outputPtr,
+                                                        size_t n,
+                                                        float scale);
+extern "C" curandStatus_t randutilGenerateExponentialDoubleEx(randutilGenerator_t generator,
+                                                              double* outputPtr,
+                                                              size_t n,
+                                                              double scale);
 
-extern "C" curandStatus_t CURANDAPI randutilGenerateGumbelEx(
+extern "C" curandStatus_t randutilGenerateGumbelEx(
   randutilGenerator_t generator, float* outputPtr, size_t n, float mu, float beta);
-extern "C" curandStatus_t CURANDAPI randutilGenerateGumbelDoubleEx(
+extern "C" curandStatus_t randutilGenerateGumbelDoubleEx(
   randutilGenerator_t generator, double* outputPtr, size_t n, double mu, double beta);
 
-extern "C" curandStatus_t CURANDAPI randutilGenerateLaplaceEx(
+extern "C" curandStatus_t randutilGenerateLaplaceEx(
   randutilGenerator_t generator, float* outputPtr, size_t n, float mu, float beta);
-extern "C" curandStatus_t CURANDAPI randutilGenerateLaplaceDoubleEx(
+extern "C" curandStatus_t randutilGenerateLaplaceDoubleEx(
   randutilGenerator_t generator, double* outputPtr, size_t n, double mu, double beta);
 
-extern "C" curandStatus_t CURANDAPI randutilGenerateLogisticEx(
+extern "C" curandStatus_t randutilGenerateLogisticEx(
   randutilGenerator_t generator, float* outputPtr, size_t n, float mu, float beta);
-extern "C" curandStatus_t CURANDAPI randutilGenerateLogisticDoubleEx(
+extern "C" curandStatus_t randutilGenerateLogisticDoubleEx(
   randutilGenerator_t generator, double* outputPtr, size_t n, double mu, double beta);
 
-extern "C" curandStatus_t CURANDAPI randutilGenerateParetoEx(
+extern "C" curandStatus_t randutilGenerateParetoEx(
   randutilGenerator_t generator, float* outputPtr, size_t n, float xm, float alpha);
-extern "C" curandStatus_t CURANDAPI randutilGenerateParetoDoubleEx(
+extern "C" curandStatus_t randutilGenerateParetoDoubleEx(
   randutilGenerator_t generator, double* outputPtr, size_t n, double xm, double alpha);
 
-extern "C" curandStatus_t CURANDAPI randutilGeneratePowerEx(randutilGenerator_t generator,
-                                                            float* outputPtr,
-                                                            size_t n,
-                                                            float alpha);
-extern "C" curandStatus_t CURANDAPI randutilGeneratePowerDoubleEx(randutilGenerator_t generator,
-                                                                  double* outputPtr,
-                                                                  size_t n,
-                                                                  double alpha);
+extern "C" curandStatus_t randutilGeneratePowerEx(randutilGenerator_t generator,
+                                                  float* outputPtr,
+                                                  size_t n,
+                                                  float alpha);
+extern "C" curandStatus_t randutilGeneratePowerDoubleEx(randutilGenerator_t generator,
+                                                        double* outputPtr,
+                                                        size_t n,
+                                                        double alpha);
 
-extern "C" curandStatus_t CURANDAPI randutilGenerateRayleighEx(randutilGenerator_t generator,
-                                                               float* outputPtr,
-                                                               size_t n,
-                                                               float sigma);
-extern "C" curandStatus_t CURANDAPI randutilGenerateRayleighDoubleEx(randutilGenerator_t generator,
-                                                                     double* outputPtr,
-                                                                     size_t n,
-                                                                     double sigma);
+extern "C" curandStatus_t randutilGenerateRayleighEx(randutilGenerator_t generator,
+                                                     float* outputPtr,
+                                                     size_t n,
+                                                     float sigma);
+extern "C" curandStatus_t randutilGenerateRayleighDoubleEx(randutilGenerator_t generator,
+                                                           double* outputPtr,
+                                                           size_t n,
+                                                           double sigma);
 
-extern "C" curandStatus_t CURANDAPI randutilGenerateCauchyEx(
+extern "C" curandStatus_t randutilGenerateCauchyEx(
   randutilGenerator_t generator, float* outputPtr, size_t n, float x0, float gamma);
-extern "C" curandStatus_t CURANDAPI randutilGenerateCauchyDoubleEx(
+extern "C" curandStatus_t randutilGenerateCauchyDoubleEx(
   randutilGenerator_t generator, double* outputPtr, size_t n, double x0, double gamma);
 
-extern "C" curandStatus_t CURANDAPI randutilGenerateTriangularEx(
+extern "C" curandStatus_t randutilGenerateTriangularEx(
   randutilGenerator_t generator, float* outputPtr, size_t n, float a, float b, float c);
-extern "C" curandStatus_t CURANDAPI randutilGenerateTriangularDoubleEx(
+extern "C" curandStatus_t randutilGenerateTriangularDoubleEx(
   randutilGenerator_t generator, double* outputPtr, size_t n, double a, double b, double c);
 
-extern "C" curandStatus_t CURANDAPI randutilGenerateWeibullEx(
+extern "C" curandStatus_t randutilGenerateWeibullEx(
   randutilGenerator_t generator, float* outputPtr, size_t n, float lam, float k);
-extern "C" curandStatus_t CURANDAPI randutilGenerateWeibullDoubleEx(
+extern "C" curandStatus_t randutilGenerateWeibullDoubleEx(
   randutilGenerator_t generator, double* outputPtr, size_t n, double lam, double k);

@@ -22,7 +22,7 @@ struct raw;
 template <>
 struct raw<uint32_t> {
   template <typename gen_t>
-  __forceinline__ __host__ __device__ uint32_t operator()(gen_t& gen)
+  RANDUTIL_QUALIFIERS uint32_t operator()(gen_t& gen)
   {
     return (uint32_t)curand(&gen);
   }

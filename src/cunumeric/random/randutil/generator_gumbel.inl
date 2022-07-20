@@ -25,7 +25,7 @@ struct gumbel_t<float> {
 
   // gumble cdf : $ cdf(x) = \exp^{-\exp^{-\frac{x-\mu}{\beta}}} $
   template <typename gen_t>
-  __forceinline__ __host__ __device__ float operator()(gen_t& gen)
+  RANDUTIL_QUALIFIERS float operator()(gen_t& gen)
   {
     float y = curand_uniform(&gen);  // y cannot be zero
     if (y == 1.0f) return mu;
@@ -39,7 +39,7 @@ struct gumbel_t<double> {
   double mu, beta;
 
   template <typename gen_t>
-  __forceinline__ __host__ __device__ double operator()(gen_t& gen)
+  RANDUTIL_QUALIFIERS double operator()(gen_t& gen)
   {
     double y = curand_uniform_double(&gen);  // y cannot be zero
     if (y == 1.0) return mu;

@@ -25,7 +25,7 @@ struct lognormal_t<float> {
   float stddev = 1.0;
 
   template <typename gen_t>
-  __forceinline__ __host__ __device__ float operator()(gen_t& gen)
+  RANDUTIL_QUALIFIERS float operator()(gen_t& gen)
   {
     return curand_log_normal(&gen, mean, stddev);
   }
@@ -37,7 +37,7 @@ struct lognormal_t<double> {
   double stddev = 1.0;
 
   template <typename gen_t>
-  __forceinline__ __host__ __device__ double operator()(gen_t& gen)
+  RANDUTIL_QUALIFIERS double operator()(gen_t& gen)
   {
     return curand_log_normal_double(&gen, mean, stddev);
   }

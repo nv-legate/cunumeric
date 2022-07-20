@@ -24,7 +24,7 @@ struct uniform_t<float> {
   float offset, mult;
 
   template <typename gen_t>
-  __forceinline__ __host__ __device__ float operator()(gen_t& gen)
+  RANDUTIL_QUALIFIERS float operator()(gen_t& gen)
   {
     return offset + mult * curand_uniform(&gen);
   }
@@ -35,7 +35,7 @@ struct uniform_t<double> {
   double offset, mult;
 
   template <typename gen_t>
-  __forceinline__ __host__ __device__ double operator()(gen_t& gen)
+  RANDUTIL_QUALIFIERS double operator()(gen_t& gen)
   {
     return offset + mult * curand_uniform_double(&gen);
   }

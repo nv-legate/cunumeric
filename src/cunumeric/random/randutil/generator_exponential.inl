@@ -24,7 +24,7 @@ struct exponential_t<float> {
   float scale = 1.0f;
 
   template <typename gen_t>
-  __forceinline__ __host__ __device__ float operator()(gen_t& gen)
+  RANDUTIL_QUALIFIERS float operator()(gen_t& gen)
   {
     float uni = curand_uniform(&gen);
     return -::logf(uni) * scale;
@@ -36,7 +36,7 @@ struct exponential_t<double> {
   double scale = 1.0f;
 
   template <typename gen_t>
-  __forceinline__ __host__ __device__ double operator()(gen_t& gen)
+  RANDUTIL_QUALIFIERS double operator()(gen_t& gen)
   {
     double uni = curand_uniform_double(&gen);
     return -::logf(uni) * scale;

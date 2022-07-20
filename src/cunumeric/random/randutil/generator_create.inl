@@ -33,11 +33,11 @@ curandStatus_t randutilGenerator(randutilGenerator_t* generator,
 }
 
 template <randutilimpl::execlocation location>
-static curandStatus_t CURANDAPI inner_randutilCreateGenerator(randutilGenerator_t* generator,
-                                                              curandRngType_t rng_type,
-                                                              uint64_t seed,
-                                                              uint64_t generatorID,
-                                                              cudaStream_t stream = nullptr)
+static curandStatus_t inner_randutilCreateGenerator(randutilGenerator_t* generator,
+                                                    curandRngType_t rng_type,
+                                                    uint64_t seed,
+                                                    uint64_t generatorID,
+                                                    cudaStream_t stream = nullptr)
 {
   switch (rng_type) {
     case CURAND_RNG_PSEUDO_XORWOW:

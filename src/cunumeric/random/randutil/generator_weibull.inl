@@ -24,7 +24,7 @@ struct weibull_t<float> {
   float lambda, invk;
 
   template <typename gen_t>
-  __forceinline__ __host__ __device__ float operator()(gen_t& gen)
+  RANDUTIL_QUALIFIERS float operator()(gen_t& gen)
   {
     float y = curand_uniform(&gen);  // y cannot be 0
     // log(y) can be zero !
@@ -39,7 +39,7 @@ struct weibull_t<double> {
   double lambda, invk;
 
   template <typename gen_t>
-  __forceinline__ __host__ __device__ double operator()(gen_t& gen)
+  RANDUTIL_QUALIFIERS double operator()(gen_t& gen)
   {
     double y = curand_uniform_double(&gen);  // y cannot be 0
     // log(y) can be zero !

@@ -20,7 +20,7 @@ struct poisson {
   double lambda = 1.0;
 
   template <typename gen_t>
-  __forceinline__ __host__ __device__ unsigned operator()(gen_t& gen)
+  RANDUTIL_QUALIFIERS unsigned operator()(gen_t& gen)
   {
     return curand_poisson(&gen, lambda);
   }
