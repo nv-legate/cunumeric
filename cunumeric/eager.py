@@ -45,6 +45,8 @@ from .utils import is_advanced_indexing
 if TYPE_CHECKING:
     import numpy.typing as npt
 
+    from legate.core import FieldID, Future, Region
+
     from .runtime import Runtime
     from .types import BitOrder, NdShape, OrderType, SortSide, SortType
 
@@ -207,7 +209,7 @@ class EagerArray(NumPyThunk):
         self.escaped = False
 
     @property
-    def storage(self) -> Any:
+    def storage(self) -> Union[Future, tuple[Region, FieldID]]:
         if self.deferred is None:
             self.to_deferred_array()
         return self.deferred.storage  # type: ignore

@@ -57,6 +57,8 @@ from .utils import is_advanced_indexing
 if TYPE_CHECKING:
     import numpy.typing as npt
 
+    from legate.core import FieldID, Region
+
     from .runtime import Runtime
     from .types import BitOrder, NdShape, OrderType, SortSide, SortType
 
@@ -223,7 +225,7 @@ class DeferredArray(NumPyThunk):
         return f"DeferredArray(base: {self.base})"
 
     @property
-    def storage(self) -> Any:
+    def storage(self) -> Union[Future, tuple[Region, FieldID]]:
         storage = self.base.storage
         if self.base.kind == Future:
             return storage
@@ -444,7 +446,7 @@ class DeferredArray(NumPyThunk):
         task.add_scalar_arg(self.ndim, ty.int64)  # N of points in Point<N>
         task.add_scalar_arg(key_dim, ty.int64)  # key_dim
         task.add_scalar_arg(start_index, ty.int64)  # start_index
-        task.add_scalar_arg(self.shape, (ty.int64,))  # type: ignore
+        task.add_scalar_arg(self.shape, (ty.int64,))
         for a in arrays:
             task.add_input(a)
             task.add_alignment(output_arr.base, a)
@@ -1125,7 +1127,7 @@ class DeferredArray(NumPyThunk):
         task.add_input(input, partition=p_input)
         for p_stencil in p_stencils:
             task.add_input(input, partition=p_stencil)
-        task.add_scalar_arg(self.shape, (ty.int64,))  # type: ignore
+        task.add_scalar_arg(self.shape, (ty.int64,))
 
         task.add_constraint(p_out == p_input)
         for stencil, p_stencil in zip(stencils, p_stencils):
@@ -1436,9 +1438,9 @@ class DeferredArray(NumPyThunk):
         task.add_reduction(lhs, ReductionOp.ADD)
         task.add_input(rhs1)
         task.add_input(rhs2)
-        task.add_scalar_arg(tuple(lhs_dim_mask), (bool,))  # type: ignore
-        task.add_scalar_arg(tuple(rhs1_dim_mask), (bool,))  # type: ignore
-        task.add_scalar_arg(tuple(rhs2_dim_mask), (bool,))  # type: ignore
+        task.add_scalar_arg(tuple(lhs_dim_mask), (bool,))
+        task.add_scalar_arg(tuple(rhs1_dim_mask), (bool,))
+        task.add_scalar_arg(tuple(rhs2_dim_mask), (bool,))
         task.add_alignment(lhs, rhs1)
         task.add_alignment(lhs, rhs2)
         task.execute()
@@ -1653,7 +1655,7 @@ class DeferredArray(NumPyThunk):
         task = self.context.create_auto_task(CuNumericOpCode.FLIP)
         task.add_output(output)
         task.add_input(input)
-        task.add_scalar_arg(axes, (ty.int32,))  # type: ignore
+        task.add_scalar_arg(axes, (ty.int32,))
 
         task.add_broadcast(input)
         task.add_alignment(input, output)
@@ -1717,8 +1719,7 @@ class DeferredArray(NumPyThunk):
         task.add_scalar_arg(gen_code.value, ty.int32)
         epoch = self.runtime.get_next_random_epoch()
         task.add_scalar_arg(epoch, ty.uint32)
-        # XXXX change needed in legate add_scalar_arg?
-        task.add_scalar_arg(self.compute_strides(self.shape), (ty.int64,))  # type: ignore  # noqa
+        task.add_scalar_arg(self.compute_strides(self.shape), (ty.int64,))
         self.add_arguments(task, args)
 
         task.execute()
@@ -1822,9 +1823,7 @@ class DeferredArray(NumPyThunk):
             task.add_reduction(lhs, _UNARY_RED_TO_REDUCTION_OPS[op])
             task.add_input(rhs_array.base)
             task.add_scalar_arg(op, ty.int32)
-
-            # XXXX legate currently expects single dtype, issue here or there?
-            task.add_scalar_arg(rhs_array.shape, (ty.int64,))  # type: ignore
+            task.add_scalar_arg(rhs_array.shape, (ty.int64,))
 
             self.add_arguments(task, args)
 

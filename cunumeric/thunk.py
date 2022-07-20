@@ -21,6 +21,8 @@ if TYPE_CHECKING:
     import numpy as np
     import numpy.typing as npt
 
+    from legate.core import FieldID, Future, Region
+
     from .config import UnaryRedCode
     from .runtime import Runtime
     from .types import BitOrder, NdShape, OrderType, SortType
@@ -57,7 +59,7 @@ class NumPyThunk(ABC):
     # Abstract methods
 
     @abstractproperty
-    def storage(self) -> Any:
+    def storage(self) -> Union[Future, tuple[Region, FieldID]]:
         """Return the Legion storage primitive for this NumPy thunk"""
         ...
 
