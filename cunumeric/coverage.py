@@ -214,6 +214,9 @@ def clone_module(
     from ._ufunc.ufunc import ufunc as lgufunc
 
     for attr, value in new_globals.items():
+        # We don't need to wrap anything that is not in the origin module
+        if attr not in origin_module.__dict__:
+            continue
         if isinstance(value, (FunctionType, lgufunc)):
             wrapped = implemented(
                 cast(AnyCallable, value), mod_name, attr, reporting=reporting

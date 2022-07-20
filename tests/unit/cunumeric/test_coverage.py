@@ -318,6 +318,9 @@ _DestCode = """
 def function2():
     pass
 
+def extra():
+    pass
+
 attr2 = 30
 """
 
@@ -346,6 +349,8 @@ class Test_clone_module:
         assert _Dest.function2.__wrapped__
         assert _Dest.function2._cunumeric.implemented
 
+        assert not hasattr(_Dest.extra, "_cunumeric")
+
     @patch.object(cunumeric.runtime.args, "report_coverage", False)
     def test_report_coverage_False(self) -> None:
         assert not cunumeric.runtime.args.report_coverage
@@ -368,6 +373,8 @@ class Test_clone_module:
 
         assert _Dest.function2.__wrapped__
         assert _Dest.function2._cunumeric.implemented
+
+        assert not hasattr(_Dest.extra, "_cunumeric")
 
 
 @m.clone_np_ndarray
