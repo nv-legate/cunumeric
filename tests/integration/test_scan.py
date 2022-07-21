@@ -150,17 +150,14 @@ def test_scan(op, shape, axis, out0):
                 _run_tests(op, n0, shape, dt, axis, out0, outtype)
 
     for outtype in complex_types:
-        if op == "nancumsum" or op == "nancumprod":
-            print("Complex NAN conversion currently not supported!")
-        else:
-            for dt in int_types:
-                _run_tests(op, None, shape, dt, axis, out0, outtype)
-            for dt in float_types:
-                for n0 in n0s:
-                    _run_tests(op, n0, shape, dt, axis, out0, outtype)
-            for dt in complex_types:
-                for n0 in n0s:
-                    _run_tests(op, n0, shape, dt, axis, out0, outtype)
+        for dt in int_types:
+            _run_tests(op, None, shape, dt, axis, out0, outtype)
+        for dt in float_types:
+            for n0 in n0s:
+                _run_tests(op, n0, shape, dt, axis, out0, outtype)
+        for dt in complex_types:
+            for n0 in n0s:
+                _run_tests(op, n0, shape, dt, axis, out0, outtype)
 
 
 if __name__ == "__main__":

@@ -18,11 +18,6 @@
 
 #include "legion.h"
 
-// #define _USE_MATH_DEFINES
-
-// #include <math.h>
-// #include <complex>
-
 namespace cunumeric {
 
 template <legate::LegateTypeCode CODE>
@@ -31,33 +26,26 @@ struct isnan {
 
   isnan() {}
 
-  template <typename _T = T, std::enable_if_t<!std::is_floating_point<_T>::value>* = nullptr>
-  inline constexpr bool operator()(const T& x) const
+  template <typename _T = T, std::enable_if_t<std::is_integral<_T>::value>* = nullptr>
+  constexpr bool operator()(const T& x) const
   {
     return false;
   }
 
   template <typename _T = T, std::enable_if_t<std::is_floating_point<_T>::value>* = nullptr>
-  inline constexpr bool operator()(const T& x) const
+  __CUDA_HD__ bool operator()(const T& x) const
   {
     using std::isnan;
     return isnan(x);
   }
 
   template <typename _T>
-  inline constexpr bool operator()(const complex<_T>& x) const
+  __CUDA_HD__ bool operator()(const complex<_T>& x) const
   {
     return std::isnan(x.imag()) || std::isnan(x.real());
   }
+
+  __CUDA_HD__ bool operator()(const __half& x) const { return isnan(x); }
 };
-
-// template <>
-// struct isnan<legate::LegateTypeCode::HALF_LT> {
-// using T                     = __half;
-
-// isnan(const std::vector<legate::Store>& args) {}
-
-// __CUDA_HD__ bool operator()(const __half& x) const { return isnan(x); }
-// };
 
 }  // namespace cunumeric
