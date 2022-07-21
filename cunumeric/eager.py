@@ -487,14 +487,6 @@ class EagerArray(NumPyThunk):
         else:
             self.array.fill(value)
 
-    def dot(self, rhs1: Any, rhs2: Any) -> None:
-        self.check_eager_args(rhs1, rhs2)
-        if self.deferred is not None:
-            # XXXX bug? deferred.dot does not exist
-            self.deferred.dot(rhs1, rhs2)  # type: ignore
-        else:
-            np.dot(rhs1.array, rhs2.array, out=self.array)
-
     def transpose(self, axes: Any) -> NumPyThunk:
         if self.deferred is not None:
             return self.deferred.transpose(axes)
