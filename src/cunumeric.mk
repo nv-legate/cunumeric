@@ -61,7 +61,7 @@ GEN_CPU_SRC += cunumeric/cephes/chbevl.cc \
 							 cunumeric/cephes/i0.cc
 
 ifeq ($(strip $(USE_OPENMP)),1)
-GEN_CPU_SRC += cunumeric/ternary/where_omp.cc                        \
+GEN_CPU_SRC += cunumeric/ternary/where_omp.cc          \
 							 cunumeric/binary/binary_op_omp.cc       \
 							 cunumeric/binary/binary_red_omp.cc      \
 							 cunumeric/bits/packbits_omp.cc          \
@@ -141,7 +141,10 @@ GEN_GPU_SRC += cunumeric/ternary/where.cu               \
 							 cunumeric/cunumeric.cu
 
 include cunumeric/sort/sort.mk
+
+ifeq ($(strip $(USE_CUDA)),1)
 include cunumeric/random/random.mk
+endif
 
 GEN_CPU_SRC += cunumeric/cunumeric.cc # This must always be the last file!
                                       # It guarantees we do our registration callback

@@ -28,6 +28,10 @@ namespace cunumeric {
 using namespace Legion;
 using namespace legate;
 
+static Legion::Logger log_curand("cunumeric.random");
+
+Legion::Logger& randutil_log() { return log_curand; }
+
 struct CPUGenerator : public CURANDGenerator {
   CPUGenerator(BitGeneratorType gentype, uint64_t seed, uint64_t generatorId, uint32_t flags)
     : CURANDGenerator(gentype, seed, generatorId)

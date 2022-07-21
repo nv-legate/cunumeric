@@ -28,15 +28,11 @@ namespace cunumeric {
 using namespace Legion;
 using namespace legate;
 
-static Legion::Logger log_curand("cunumeric.random");
-
-Legion::Logger& randutil_log() { return log_curand; }
-
 void randutil_check_curand(curandStatus_t error, const char* file, int line)
 {
   if (error != CURAND_STATUS_SUCCESS) {
-    log_curand.fatal() << "Internal CURAND failure with error " << (int)error << " in file " << file
-                       << " at line " << line;
+    randutil_log().fatal() << "Internal CURAND failure with error " << (int)error << " in file "
+                           << file << " at line " << line;
     assert(false);
   }
 }
