@@ -39,7 +39,7 @@ if TYPE_CHECKING:
     import numpy.typing as npt
 
     from ._ufunc.ufunc import CastingKind
-    from .types import SortType
+    from .types import ConvolveMode, SelectKind, SortType
 
 _builtin_abs = abs
 _builtin_all = all
@@ -3190,7 +3190,7 @@ def _contract(
 
     # Compute extent per mode. No need to consider broadcasting at this stage,
     # since it has been handled above.
-    mode2extent: dict[str, Union[int, tuple[int, ...]]] = {}
+    mode2extent: dict[str, int] = {}
     for (mode, extent) in chain(
         zip(a_modes, a.shape), zip(b_modes, b.shape) if b is not None else []
     ):
@@ -4289,7 +4289,7 @@ min = amin
 
 
 @add_boilerplate("a", "v")
-def convolve(a: ndarray, v: ndarray, mode: str = "full") -> ndarray:
+def convolve(a: ndarray, v: ndarray, mode: ConvolveMode = "full") -> ndarray:
     """
 
     Returns the discrete, linear convolution of two ndarrays.
@@ -4508,7 +4508,7 @@ def unique(
 @add_boilerplate("a")
 def argsort(
     a: ndarray,
-    axis: Optional[int] = -1,
+    axis: int = -1,
     kind: SortType = "quicksort",
     order: Optional[Union[str, list[str]]] = None,
 ) -> ndarray:
@@ -4631,7 +4631,7 @@ def searchsorted(
 @add_boilerplate("a")
 def sort(
     a: ndarray,
-    axis: Optional[int] = -1,
+    axis: int = -1,
     kind: SortType = "quicksort",
     order: Optional[Union[str, list[str]]] = None,
 ) -> ndarray:
@@ -4722,8 +4722,8 @@ def sort_complex(a: ndarray) -> ndarray:
 def argpartition(
     a: ndarray,
     kth: Union[int, Sequence[int]],
-    axis: Optional[int] = -1,
-    kind: str = "introselect",
+    axis: int = -1,
+    kind: SelectKind = "introselect",
     order: Optional[Union[str, list[str]]] = None,
 ) -> ndarray:
     """
@@ -4778,8 +4778,8 @@ def argpartition(
 def partition(
     a: ndarray,
     kth: Union[int, Sequence[int]],
-    axis: Optional[int] = -1,
-    kind: str = "introselect",
+    axis: int = -1,
+    kind: SelectKind = "introselect",
     order: Optional[Union[str, list[str]]] = None,
 ) -> ndarray:
     """

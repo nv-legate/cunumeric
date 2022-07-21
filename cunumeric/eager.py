@@ -47,11 +47,20 @@ if TYPE_CHECKING:
 
     from legate.core import FieldID, Future, Region
 
+    from .config import _FFTType
     from .runtime import Runtime
-    from .types import BitOrder, NdShape, OrderType, SortSide, SortType
+    from .types import (
+        BitOrder,
+        ConvolveMode,
+        NdShape,
+        OrderType,
+        SelectKind,
+        SortSide,
+        SortType,
+    )
 
 
-_UNARY_OPS: Dict[int, Any] = {
+_UNARY_OPS: Dict[UnaryOpCode, Any] = {
     UnaryOpCode.ABSOLUTE: np.absolute,
     UnaryOpCode.ARCCOS: np.arccos,
     UnaryOpCode.ARCCOSH: np.arccosh,
@@ -96,7 +105,7 @@ _UNARY_OPS: Dict[int, Any] = {
     UnaryOpCode.TRUNC: np.trunc,
 }
 
-_UNARY_RED_OPS: Dict[int, Any] = {
+_UNARY_RED_OPS: Dict[UnaryRedCode, Any] = {
     UnaryRedCode.ALL: np.all,
     UnaryRedCode.ANY: np.any,
     UnaryRedCode.MAX: np.max,
@@ -105,7 +114,7 @@ _UNARY_RED_OPS: Dict[int, Any] = {
     UnaryRedCode.SUM: np.sum,
 }
 
-_BINARY_OPS: Dict[int, Any] = {
+_BINARY_OPS: Dict[BinaryOpCode, Any] = {
     BinaryOpCode.ADD: np.add,
     BinaryOpCode.ARCTAN2: np.arctan2,
     BinaryOpCode.BITWISE_AND: np.bitwise_and,
@@ -143,7 +152,7 @@ _BINARY_OPS: Dict[int, Any] = {
 }
 
 _WINDOW_OPS: Dict[
-    int,
+    WindowOpCode,
     Union[
         Callable[[float], npt.NDArray[Any]],
         Callable[[float, float], npt.NDArray[Any]],
@@ -170,7 +179,7 @@ def eye_reference(
     return res
 
 
-def diagonal_reference(a: Any, axes: NdShape) -> Any:
+def diagonal_reference(a: npt.NDArray[Any], axes: NdShape) -> npt.NDArray[Any]:
     transpose_axes = tuple(ax for ax in range(a.ndim) if ax not in axes)
     axes = tuple(sorted(axes, reverse=False, key=lambda i: a.shape[i]))
     a = a.transpose(transpose_axes + axes)
@@ -194,15 +203,15 @@ class EagerArray(NumPyThunk):
     def __init__(
         self,
         runtime: Runtime,
-        array: Any,
-        parent: Optional[Any] = None,
-        key: Optional[Any] = None,
+        array: npt.NDArray[Any],
+        parent: Optional[EagerArray] = None,
+        key: Optional[tuple[Any, ...]] = None,
     ) -> None:
         super().__init__(runtime, array.dtype)
-        self.array: Any = array
-        self.parent: Any = parent
-        self.children: list[Any] = []
-        self.key = key
+        self.array: npt.NDArray[Any] = array
+        self.parent: Optional[EagerArray] = parent
+        self.children: list[EagerArray] = []
+        self.key: Optional[tuple[Any, ...]] = key
         #: if this ever becomes set (to a DeferredArray), we forward all
         #: operations to it
         self.deferred: Optional[DeferredArray] = None
@@ -255,8 +264,10 @@ class EagerArray(NumPyThunk):
         assert self.runtime.is_deferred_array(self.deferred)
         for child in self.children:
             if child.deferred is None:
-                func = getattr(self.deferred, child.key[0])
-                args = child.key[1:]
+                # mypy can't deduce that children nodes will always have
+                # their .key attribute set.
+                func = getattr(self.deferred, child.key[0])  # type: ignore
+                args = child.key[1:]  # type: ignore
                 child.deferred = func(*args)
         # After we've made all the deferred views for each child then
         # we can traverse down. Do it this way so we can get partition
@@ -314,7 +325,7 @@ class EagerArray(NumPyThunk):
 
         return EagerArray(self.runtime, self.array.conj())
 
-    def convolve(self, v: Any, out: Any, mode: Any) -> None:
+    def convolve(self, v: Any, out: Any, mode: ConvolveMode) -> None:
         self.check_eager_args(v, out)
         if self.deferred is not None:
             self.deferred.convolve(v, out, mode)
@@ -326,7 +337,13 @@ class EagerArray(NumPyThunk):
 
                 out.array = convolve(self.array, v.array, mode)
 
-    def fft(self, rhs: Any, axes: Any, kind: Any, direction: Any) -> None:
+    def fft(
+        self,
+        rhs: Any,
+        axes: Sequence[int],
+        kind: _FFTType,
+        direction: FFTDirection,
+    ) -> None:
         self.check_eager_args(rhs)
         if self.deferred is not None:
             self.deferred.fft(rhs, axes, kind, direction)
@@ -442,7 +459,8 @@ class EagerArray(NumPyThunk):
     def squeeze(self, axis: Optional[int]) -> NumPyThunk:
         if self.deferred is not None:
             return self.deferred.squeeze(axis)
-        child = self.array.squeeze(axis)
+        # See https://github.com/numpy/numpy/issues/22019
+        child = self.array.squeeze(axis)  # type: ignore
         # Early exit if there's no dimension to squeeze
         if child is self.array:
             return self
@@ -488,10 +506,13 @@ class EagerArray(NumPyThunk):
         else:
             self.array.fill(value)
 
-    def transpose(self, axes: Any) -> NumPyThunk:
+    def transpose(
+        self, axes: Union[None, tuple[int, ...], list[int]]
+    ) -> NumPyThunk:
         if self.deferred is not None:
             return self.deferred.transpose(axes)
-        child = self.array.transpose(axes)
+        # See https://github.com/numpy/numpy/issues/22019
+        child = self.array.transpose(axes)  # type: ignore
         # Should be aliased with parent region
         assert child.base is not None
         result = EagerArray(
@@ -518,7 +539,7 @@ class EagerArray(NumPyThunk):
                 array = np.repeat(self.array, repeats, axis)
             return EagerArray(self.runtime, array)
 
-    def flip(self, rhs: Any, axes: Optional[Any]) -> None:
+    def flip(self, rhs: Any, axes: Union[None, int, tuple[int, ...]]) -> None:
         self.check_eager_args(rhs)
         if self.deferred is not None:
             self.deferred.flip(rhs, axes)
@@ -532,7 +553,7 @@ class EagerArray(NumPyThunk):
         rhs1_modes: list[str],
         rhs2_thunk: Any,
         rhs2_modes: list[str],
-        mode2extent: dict[str, Any],
+        mode2extent: dict[str, int],
     ) -> None:
         self.check_eager_args(rhs1_thunk, rhs2_thunk)
         if self.deferred is not None:
@@ -644,9 +665,9 @@ class EagerArray(NumPyThunk):
         self,
         rhs: Any,
         argsort: bool = False,
-        axis: Optional[int] = -1,
+        axis: int = -1,
         kind: SortType = "quicksort",
-        order: Optional[Any] = None,
+        order: Union[None, str, list[str]] = None,
     ) -> None:
         self.check_eager_args(rhs)
         if self.deferred is not None:
@@ -662,22 +683,18 @@ class EagerArray(NumPyThunk):
         rhs: Any,
         kth: Union[int, Sequence[int]],
         argpartition: bool = False,
-        axis: Optional[int] = -1,
-        kind: str = "introselect",
-        order: Optional[Any] = None,
+        axis: int = -1,
+        kind: SelectKind = "introselect",
+        order: Union[None, str, list[str]] = None,
     ) -> None:
         self.check_eager_args(rhs)
         if self.deferred is not None:
             self.deferred.partition(rhs, kth, argpartition, axis, kind, order)
         else:
             if argpartition:
-                self.array = np.argpartition(
-                    rhs.array, kth, axis, kind, order  # type:  ignore
-                )
+                self.array = np.argpartition(rhs.array, kth, axis, kind, order)
             else:
-                self.array = np.partition(
-                    rhs.array, kth, axis, kind, order  # type:  ignore
-                )
+                self.array = np.partition(rhs.array, kth, axis, kind, order)
 
     def random_uniform(self) -> None:
         if self.deferred is not None:
@@ -714,7 +731,7 @@ class EagerArray(NumPyThunk):
 
     def unary_op(
         self,
-        op: Any,
+        op: UnaryOpCode,
         rhs: Any,
         where: Any,
         args: Any,
@@ -763,8 +780,8 @@ class EagerArray(NumPyThunk):
         op: UnaryRedCode,
         rhs: Any,
         where: Any,
-        orig_axis: Any,
-        axes: Any,
+        orig_axis: int,
+        axes: tuple[int, ...],
         keepdims: bool,
         args: Any,
         initial: Any,
@@ -828,7 +845,7 @@ class EagerArray(NumPyThunk):
             )
 
     def binary_op(
-        self, op: int, rhs1: Any, rhs2: Any, where: Any, args: Any
+        self, op: BinaryOpCode, rhs1: Any, rhs2: Any, where: Any, args: Any
     ) -> None:
         self.check_eager_args(rhs1, rhs2, where)
         if self.deferred is not None:
@@ -847,7 +864,12 @@ class EagerArray(NumPyThunk):
             )
 
     def binary_reduction(
-        self, op: int, rhs1: Any, rhs2: Any, broadcast: Any, args: Any
+        self,
+        op: BinaryOpCode,
+        rhs1: Any,
+        rhs2: Any,
+        broadcast: Union[NdShape, None],
+        args: Any,
     ) -> None:
         self.check_eager_args(rhs1, rhs2)
         if self.deferred is not None:
@@ -904,7 +926,7 @@ class EagerArray(NumPyThunk):
         else:
             return EagerArray(self.runtime, np.unique(self.array))
 
-    def create_window(self, op_code: int, M: int, *args: Any) -> None:
+    def create_window(self, op_code: WindowOpCode, M: int, *args: Any) -> None:
         if self.deferred is not None:
             return self.deferred.create_window(op_code, M, *args)
         else:
