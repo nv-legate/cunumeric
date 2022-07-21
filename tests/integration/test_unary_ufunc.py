@@ -196,6 +196,8 @@ def test_all():
         # "isnat",
     ]
     check_ops(ops, (np.array([-np.inf, 0.0, 1.0, np.inf, np.nan]),))
+    check_ops(ops, (np.array([-np.inf, 0.0, 1.0, np.inf, np.nan], dtype="F"),))
+    check_ops(ops, (np.array([-np.inf, 0.0, 1.0, np.inf, np.nan], dtype="e"),))
     check_ops(ops, (np.array(np.inf),))
 
 
