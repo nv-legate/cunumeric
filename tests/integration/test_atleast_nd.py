@@ -40,8 +40,7 @@ def _check(a, routine, sizes):
         f"Failed, {print_msg}\n"
         f"numpy result: {err_arr[0]}\n"
         f"cunumeric_result: {err_arr[1]}\n"
-        f"cunumeric and numpy shows"
-        f" different result\n"
+        f"cunumeric and numpy shows different result\n"
     )
     print(f"Passed, {print_msg}, np: {b}" f", cunumeric: {c}")
 
