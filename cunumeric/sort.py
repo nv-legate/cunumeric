@@ -14,7 +14,7 @@
 #
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Union, cast
 
 from numpy.core.multiarray import normalize_axis_index  # type: ignore
 
@@ -29,11 +29,14 @@ if TYPE_CHECKING:
 def sort_flattened(
     output: DeferredArray, input: DeferredArray, argsort: bool, stable: bool
 ) -> None:
-    flattened = input.reshape((input.size,), order="C")
+    flattened = cast("DeferredArray", input.reshape((input.size,), order="C"))
 
     # run sort flattened -- return 1D solution
-    sort_result = output.runtime.create_empty_thunk(
-        flattened.shape, dtype=output.dtype, inputs=(flattened,)
+    sort_result = cast(
+        "DeferredArray",
+        output.runtime.create_empty_thunk(
+            flattened.shape, dtype=output.dtype, inputs=(flattened,)
+        ),
     )
     sort(sort_result, flattened, argsort, stable=stable)
     output.base = sort_result.base
@@ -52,15 +55,21 @@ def sort_swapped(
     # swap axes
     swapped = input.swapaxes(sort_axis, input.ndim - 1)
 
-    swapped_copy = output.runtime.create_empty_thunk(
-        swapped.shape, dtype=input.dtype, inputs=(input, swapped)
+    swapped_copy = cast(
+        "DeferredArray",
+        output.runtime.create_empty_thunk(
+            swapped.shape, dtype=input.dtype, inputs=(input, swapped)
+        ),
     )
     swapped_copy.copy(swapped, deep=True)
 
     # run sort on last axis
     if argsort is True:
-        sort_result = output.runtime.create_empty_thunk(
-            swapped_copy.shape, dtype=output.dtype, inputs=(swapped_copy,)
+        sort_result = cast(
+            "DeferredArray",
+            output.runtime.create_empty_thunk(
+                swapped_copy.shape, dtype=output.dtype, inputs=(swapped_copy,)
+            ),
         )
         sort(sort_result, swapped_copy, argsort, stable=stable)
         output.base = sort_result.swapaxes(input.ndim - 1, sort_axis).base
