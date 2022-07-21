@@ -16,6 +16,7 @@
 
 #include "cunumeric/scan/scan_local.h"
 #include "cunumeric/scan/scan_local_template.inl"
+#include "cunumeric/isnan.h"
 
 #include <thrust/scan.h>
 #include <thrust/execution_policy.h>
@@ -70,7 +71,8 @@ struct ScanLocalNanImplBody<VariantKind::OMP, OP_CODE, CODE, DIM> {
   using VAL = legate_type_of<CODE>;
 
   struct convert_nan_func {
-    VAL operator()(VAL x) { return std::isnan(x) ? (VAL)ScanOp<OP_CODE, CODE>::nan_identity : x; }
+    cunumeric::isnan<CODE> isn;
+    VAL operator()(VAL x) const { return isn(x) ? (VAL)ScanOp<OP_CODE, CODE>::nan_identity : x; }
   };
 
   void operator()(OP func,

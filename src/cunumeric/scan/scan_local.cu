@@ -16,6 +16,7 @@
 
 #include "cunumeric/scan/scan_local.h"
 #include "cunumeric/scan/scan_local_template.inl"
+#include "cunumeric/isnan.h"
 
 #include <thrust/scan.h>
 #include <thrust/execution_policy.h>
@@ -83,9 +84,10 @@ struct ScanLocalNanImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
   using VAL = legate_type_of<CODE>;
 
   struct convert_nan_func {
+    cunumeric::isnan<CODE> isn;
     __device__ VAL operator()(VAL x)
     {
-      return std::isnan(x) ? (VAL)ScanOp<OP_CODE, CODE>::nan_identity : x;
+      return isn(x) ? (VAL)ScanOp<OP_CODE, CODE>::nan_identity : x;
     }
   };
 

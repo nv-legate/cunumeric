@@ -35,7 +35,9 @@ struct ScanLocalImpl {
   // Case where NANs are transformed
   template <LegateTypeCode CODE,
             int DIM,
-            std::enable_if_t<NAN_TO_IDENTITY && legate::is_floating_point<CODE>::value>* = nullptr>
+            std::enable_if_t<NAN_TO_IDENTITY &&
+                             (legate::is_floating_point<CODE>::value ||
+                              legate::is_complex<legate::legate_type_of<CODE>>::value)>* = nullptr>
   void operator()(ScanLocalArgs& args) const
   {
     using OP  = ScanOp<OP_CODE, CODE>;
@@ -58,7 +60,9 @@ struct ScanLocalImpl {
   template <
     LegateTypeCode CODE,
     int DIM,
-    std::enable_if_t<!(NAN_TO_IDENTITY && legate::is_floating_point<CODE>::value)>* = nullptr>
+    std::enable_if_t<!(NAN_TO_IDENTITY &&
+                       (legate::is_floating_point<CODE>::value ||
+                        legate::is_complex<legate::legate_type_of<CODE>>::value))>* = nullptr>
   void operator()(ScanLocalArgs& args) const
   {
     using OP  = ScanOp<OP_CODE, CODE>;
