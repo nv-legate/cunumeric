@@ -13,6 +13,8 @@
 # limitations under the License.
 #
 
+from typing import Any
+
 import numpy as np
 import pytest
 
@@ -75,11 +77,68 @@ def _broadcast_check(sizes):
     print(f"Passed, {print_msg}")
 
 
+def _check(*args, params: list[Any], routine: str):
+    b = getattr(np, routine)(*args)
+    c = getattr(num, routine)(*args)
+    is_equal = True
+    if isinstance(b, list):
+        for each in zip(b, c):
+            if not np.array_equal(each[0], each[1]):
+                is_equal = False
+                err_arr = [("iters", b.index), each[0], each[1]]
+                break
+
+    else:
+        for each in zip(b, c):
+            if isinstance(each[0], np.ndarray) and not np.array_equal(
+                each[0], each[1]
+            ):
+                is_equal = False
+            elif isinstance(each[0], tuple) and each[0] != each[1]:
+                is_equal = False
+            if not is_equal:
+                err_arr = [each[0], each[1]]
+                break
+
+    print_msg = f"np.{routine}({params})"
+    assert is_equal, (
+        f"Failed, {print_msg}\n"
+        f"numpy result: {err_arr[0]}\n"
+        f"cunumeric_result: {err_arr[1]}\n"
+        f"cunumeric and numpy shows"
+        f" different result\n"
+    )
+
+    print(f"Passed, {print_msg}")
+
+
 # test to run broadcast  w/ different size of arryas
 @pytest.mark.parametrize("dim", DIM_CASES, ids=str)
 def test_broadcast(dim):
     SIZE_CASES = list((dim,) * ndim for ndim in range(1, LEGATE_MAX_DIM + 1))
     _broadcast_check(SIZE_CASES)
+
+
+@pytest.mark.parametrize("ndim", range(2, LEGATE_MAX_DIM))
+def test_broadcast_shapes(ndim):
+    dim = DIM_CASES[0]
+    shape_list = list((dim,) * i for i in range(1, ndim + 1))
+    _check(*shape_list, params=shape_list, routine="broadcast_shapes")
+
+
+@pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM))
+@pytest.mark.parametrize("dim", DIM_CASES, ids=str)
+def test_broadcast_to(dim, ndim):
+    shape = (dim,) * ndim
+    arr = np.arange(np.prod(shape)).reshape(shape)
+    _check(arr, shape, params=(arr.shape, shape), routine="broadcast_to")
+
+
+@pytest.mark.parametrize("dim", DIM_CASES, ids=str)
+def test_broadcast_arrays(dim):
+    shapes = list((dim,) * ndim for ndim in range(1, LEGATE_MAX_DIM + 1))
+    arrays = list(np.arange(np.prod(shape)).reshape(shape) for shape in shapes)
+    _check(*arrays, params=shapes, routine="broadcast_arrays")
 
 
 if __name__ == "__main__":

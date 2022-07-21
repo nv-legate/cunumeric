@@ -29,7 +29,12 @@ from numpy.core.numeric import (  # type: ignore [attr-defined]
 from ._ufunc.comparison import maximum, minimum
 from ._ufunc.floating import floor
 from ._ufunc.math import add, multiply
-from .array import add_boilerplate, convert_to_cunumeric_ndarray, ndarray
+from .array import (
+    _broadcast_shapes,
+    add_boilerplate,
+    convert_to_cunumeric_ndarray,
+    ndarray,
+)
 from .config import BinaryOpCode, UnaryRedCode
 from .runtime import runtime
 from .types import NdShape, NdShapeLike
@@ -1199,18 +1204,18 @@ def broadcast_shapes(*args: Sequence(Union[tuple(int), int])) -> tuple(int):
     Multiple GPUs, Multiple CPUs
 
     """
-    return np.broadcast_shapes(*args)
+    return _broadcast_shapes(*args)
 
 
 def _broadcast_to(
-    arr: Any,
+    arr: ndarray,
     shape: Union[tuple(int), int],
     subok: bool = False,
     writeable: bool = False,
     broadcasted: bool = False,
 ) -> ndarray:
-    # create an arry object w/ options passed from 'broadcast' routines
-    arr = array(convert_to_cunumeric_ndarray(arr), copy=False, subok=subok)
+    # create an array object w/ options passed from 'broadcast' routines
+    arr = array(arr, copy=False, subok=subok)
     # 'broadcast_to' returns a read-only view of the original array
     out_shape = broadcast_shapes(arr.shape, shape)
     result = ndarray(
@@ -1223,6 +1228,7 @@ def _broadcast_to(
     return result
 
 
+@add_boilerplate("arr")
 def broadcast_to(
     arr: Any, shape: Union[tuple(int), int], subok: bool = False
 ) -> ndarray:
@@ -1275,16 +1281,13 @@ def broadcast_to(
 
 
 def _broadcast_arrays(
-    *arrays: Sequence(Any),
+    *arrays: Sequence(ndarray),
     subok: bool = False,
     writeable: bool = True,
     broadcasted: bool = False,
 ) -> list(ndarray):
     # create an arry object w/ options passed from 'broadcast' routines
-    arrays = list(
-        array(convert_to_cunumeric_ndarray(arr), copy=False, subok=subok)
-        for arr in arrays
-    )
+    arrays = list(array(arr, copy=False, subok=subok) for arr in arrays)
     # check if the broadcast can happen in the input list of arrays
     shapes = list(arr.shape for arr in arrays)
     out_shape = broadcast_shapes(*shapes)
@@ -1329,6 +1332,7 @@ def broadcast_arrays(
     # writeable will be set to 'False'
     # when 'numpy' changes the output of this routine
     # as read-only views of the original arrays in the future release
+    args = list(convert_to_cunumeric_ndarray(arr) for arr in args)
     return _broadcast_arrays(
         *args, subok=subok, writeable=True, broadcasted=True
     )
@@ -1359,6 +1363,7 @@ class broadcast:
             and may be used as an iterator.
 
         """
+        arrays = list(convert_to_cunumeric_ndarray(arr) for arr in arrays)
         arrays = _broadcast_arrays(*arrays)
         self._iters = tuple(arr.flat for arr in arrays)
         self._index = 0
