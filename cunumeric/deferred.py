@@ -1421,8 +1421,10 @@ class DeferredArray(NumPyThunk):
 
         # Transpose arrays according to alphabetical order of mode labels
         def alphabetical_transpose(store: Store, modes: list[str]) -> Store:
-            perm = [dim for (_, dim) in sorted(zip(modes, range(len(modes))))]
-            return store.transpose(tuple(perm))
+            perm = tuple(
+                dim for (_, dim) in sorted(zip(modes, range(len(modes))))
+            )
+            return store.transpose(perm)
 
         lhs = alphabetical_transpose(lhs, lhs_modes)
         rhs1 = alphabetical_transpose(rhs1, rhs1_modes)
