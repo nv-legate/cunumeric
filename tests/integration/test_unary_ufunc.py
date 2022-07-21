@@ -242,6 +242,8 @@ nan_ops = (
 @pytest.mark.parametrize("op", nan_ops)
 def test_nan_ops(op):
     check_op(op, (np.array([-np.inf, 0.0, 1.0, np.inf, np.nan]),))
+    check_op(op, (np.array([-np.inf, 0.0, 1.0, np.inf, np.nan], dtype="F"),))
+    check_op(op, (np.array([-np.inf, 0.0, 1.0, np.inf, np.nan], dtype="e"),))
     check_op(op, (np.array(np.inf),))
 
 
