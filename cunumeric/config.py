@@ -117,6 +117,7 @@ class _CunumericSharedLib:
     CUNUMERIC_SCAN_LOCAL: int
     CUNUMERIC_SCAN_PROD: int
     CUNUMERIC_SCAN_SUM: int
+    CUNUMERIC_SEARCHSORTED: int
     CUNUMERIC_SORT: int
     CUNUMERIC_SYRK: int
     CUNUMERIC_TILE: int

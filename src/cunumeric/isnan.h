@@ -23,42 +23,41 @@
 // #include <math.h>
 // #include <complex>
 
-
 namespace cunumeric {
 
-  template <legate::LegateTypeCode CODE>
-  struct isnan {
-    using T                     = legate::legate_type_of<CODE>;
+template <legate::LegateTypeCode CODE>
+struct isnan {
+  using T = legate::legate_type_of<CODE>;
 
-    isnan() {}
+  isnan() {}
 
-    template <typename _T = T, std::enable_if_t<!std::is_floating_point<_T>::value>* = nullptr>
-    inline constexpr bool operator()(const T& x) const
-    {
-      return false;
-    }
+  template <typename _T = T, std::enable_if_t<!std::is_floating_point<_T>::value>* = nullptr>
+  inline constexpr bool operator()(const T& x) const
+  {
+    return false;
+  }
 
-    template <typename _T = T, std::enable_if_t<std::is_floating_point<_T>::value>* = nullptr>
-    inline constexpr bool operator()(const T& x) const
-    {
-      using std::isnan;
-      return isnan(x);
-    }
+  template <typename _T = T, std::enable_if_t<std::is_floating_point<_T>::value>* = nullptr>
+  inline constexpr bool operator()(const T& x) const
+  {
+    using std::isnan;
+    return isnan(x);
+  }
 
-    template <typename _T>
-    inline constexpr bool operator()(const complex<_T>& x) const
-    {
-      return std::isnan(x.imag()) || std::isnan(x.real());
-    }
-  };
+  template <typename _T>
+  inline constexpr bool operator()(const complex<_T>& x) const
+  {
+    return std::isnan(x.imag()) || std::isnan(x.real());
+  }
+};
 
-  // template <>
-  // struct isnan<legate::LegateTypeCode::HALF_LT> {
-  // using T                     = __half;
+// template <>
+// struct isnan<legate::LegateTypeCode::HALF_LT> {
+// using T                     = __half;
 
-  // isnan(const std::vector<legate::Store>& args) {}
+// isnan(const std::vector<legate::Store>& args) {}
 
-  // __CUDA_HD__ bool operator()(const __half& x) const { return isnan(x); }
-  // };
+// __CUDA_HD__ bool operator()(const __half& x) const { return isnan(x); }
+// };
 
-}
+}  // namespace cunumeric

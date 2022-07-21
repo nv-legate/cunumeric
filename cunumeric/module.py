@@ -39,6 +39,7 @@ if TYPE_CHECKING:
     import numpy.typing as npt
 
     from ._ufunc.ufunc import CastingKind
+    from .types import SortType
 
 _builtin_abs = abs
 _builtin_all = all
@@ -410,7 +411,7 @@ def full_like(
 
 def array(
     obj: Any,
-    dtype: Optional[npt.DTypeLike] = None,
+    dtype: Optional[np.dtype[Any]] = None,
     copy: bool = True,
     order: str = "K",
     subok: bool = False,
@@ -490,7 +491,7 @@ def array(
     return result
 
 
-def asarray(a: Any, dtype: Optional[npt.DTypeLike] = None) -> ndarray:
+def asarray(a: Any, dtype: Optional[np.dtype[Any]] = None) -> ndarray:
     """
     Convert the input to an array.
 
@@ -4724,7 +4725,7 @@ def nancumprod(
 def argsort(
     a: ndarray,
     axis: Optional[int] = -1,
-    kind: str = "quicksort",
+    kind: SortType = "quicksort",
     order: Optional[Union[str, list[str]]] = None,
 ) -> ndarray:
     """
@@ -4847,7 +4848,7 @@ def searchsorted(
 def sort(
     a: ndarray,
     axis: Optional[int] = -1,
-    kind: str = "quicksort",
+    kind: SortType = "quicksort",
     order: Optional[Union[str, list[str]]] = None,
 ) -> ndarray:
     """
