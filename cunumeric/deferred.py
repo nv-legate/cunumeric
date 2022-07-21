@@ -1711,8 +1711,7 @@ class DeferredArray(NumPyThunk):
         task.execute()
         return results
 
-    # XXXX mutable default
-    def random(self, gen_code: Any, args: Any = []) -> None:
+    def random(self, gen_code: Any, args: Any = ()) -> None:
         task = self.context.create_auto_task(CuNumericOpCode.RAND)
 
         task.add_output(self.base)
