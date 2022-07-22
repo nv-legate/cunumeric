@@ -178,6 +178,17 @@ test_opts = parser.add_argument_group("Test run configuration options")
 
 
 test_opts.add_argument(
+    "--legate",
+    dest="legate_dir",
+    metavar="LEGATE_DIR",
+    action="store",
+    default=None,
+    required=False,
+    help="Path to Legate installation directory",
+)
+
+
+test_opts.add_argument(
     "-C",
     "--directory",
     dest="test_root",
