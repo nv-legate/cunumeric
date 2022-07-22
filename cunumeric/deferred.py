@@ -1668,11 +1668,13 @@ class DeferredArray(NumPyThunk):
     def flip(self, rhs: Any, axes: Union[None, int, tuple[int, ...]]) -> None:
         input = rhs.base
         output = self.base
-
-        if axes is None:
-            normalized_axes = tuple(range(self.ndim))
-        elif not isinstance(axes, tuple):
-            normalized_axes = (axes,)
+        normalized_axes = (
+            tuple(range(self.ndim))
+            if axes is None
+            else (axes,)
+            if not isinstance(axes, tuple)
+            else axes
+        )
 
         task = self.context.create_auto_task(CuNumericOpCode.FLIP)
         task.add_output(output)
