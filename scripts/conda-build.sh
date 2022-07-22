@@ -23,6 +23,5 @@ conda mambabuild \
     --merge-build-host \
     --no-include-recipe \
     --no-anaconda-upload \
-    --output-folder /tmp/conda-build/cunumeric \
     --variants "{gpu_enabled: 'true', python: $PYTHON_VERSION}" \
     ./conda/conda-build
