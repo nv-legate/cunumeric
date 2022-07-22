@@ -17,7 +17,7 @@
 """
 from __future__ import annotations
 
-from pathlib import PurePath
+from pathlib import Path, PurePath
 
 import pytest
 
@@ -54,7 +54,7 @@ class TestConfig:
         assert c.verbose == 0
         assert c.test_root is None
         assert c.requested_workers is None
-        assert isinstance(c.legate_dir, None)
+        assert c.legate_dir is None
 
         assert c.extra_args == []
         assert c.root_dir == PurePath(m.__file__).parents[2]
@@ -62,7 +62,7 @@ class TestConfig:
         assert any("examples" in str(x) for x in c.test_files)
         assert any("integration" in str(x) for x in c.test_files)
         assert all("unit" not in str(x) for x in c.test_files)
-        assert isinstance(c.legate_path, None)
+        assert c.legate_path is "legate"
 
     @pytest.mark.parametrize("feature", FEATURES)
     def test_env_features(
@@ -140,18 +140,20 @@ class TestConfig:
         assert c._legate_source == "install"
 
     def test_cmd_legate_dir_good(self) -> None:
-        c = m.Config(["test.py", "--legate", "/usr/local"])
-        assert c.legate_dir == "/usr/local"
-        assert c.legate_path == "/usr/local/bin/legate"
+        legate_dir = Path("/usr/local")
+        c = m.Config(["test.py", "--legate", str(legate_dir)])
+        assert c.legate_dir == legate_dir
+        assert c.legate_path == str(legate_dir / "bin" / "legate")
         assert c._legate_source == "cmd"
 
     def test_env_legate_dir_good(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        monkeypatch.setenv("LEGATE_DIR", "/usr/local")
+        legate_dir = Path("/usr/local")
+        monkeypatch.setenv("LEGATE_DIR", str(legate_dir))
         c = m.Config([])
-        assert c.legate_dir == "/usr/local"
-        assert c.legate_path == "/usr/local/bin/legate"
+        assert c.legate_dir == legate_dir
+        assert c.legate_path == str(legate_dir / "bin" / "legate")
         assert c._legate_source == "env"
 
     def test_extra_args(self) -> None:
