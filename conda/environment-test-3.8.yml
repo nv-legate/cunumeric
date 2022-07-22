@@ -38,6 +38,7 @@ dependencies:
     - jinja2
     - pydata-sphinx-theme
     - recommonmark
+    - markdown<3.4.0
     - sphinx>=4.4.0
     - sphinx-copybutton
     - sphinx-markdown-tables
