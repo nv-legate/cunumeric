@@ -26,10 +26,10 @@ if TYPE_CHECKING:
     from .config import (
         BinaryOpCode,
         FFTDirection,
+        FFTType,
         UnaryOpCode,
         UnaryRedCode,
         WindowOpCode,
-        _FFTType,
     )
     from .runtime import Runtime
     from .types import (
@@ -104,7 +104,7 @@ class NumPyThunk(ABC):
         self,
         out: Any,
         axes: Sequence[int],
-        kind: _FFTType,
+        kind: FFTType,
         direction: FFTDirection,
     ) -> None:
         ...

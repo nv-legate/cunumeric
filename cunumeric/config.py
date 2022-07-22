@@ -442,7 +442,7 @@ class CuNumericTunable(IntEnum):
 
 
 # Match these to fftType in fft_util.h
-class _FFTType:
+class FFTType:
     def __init__(
         self,
         name: str,
@@ -450,7 +450,7 @@ class _FFTType:
         input_dtype: npt.DTypeLike,
         output_dtype: npt.DTypeLike,
         single_precision: bool,
-        complex_type: Union[_FFTType, None] = None,
+        complex_type: Union[FFTType, None] = None,
     ) -> None:
         self._name = name
         self._type_id = type_id
@@ -470,7 +470,7 @@ class _FFTType:
         return self._type_id
 
     @property
-    def complex(self) -> Union[_FFTType, None]:
+    def complex(self) -> Union[FFTType, None]:
         return self._complex_type
 
     @property
@@ -486,7 +486,7 @@ class _FFTType:
         return self._single_precision
 
 
-FFT_C2C = _FFTType(
+FFT_C2C = FFTType(
     "C2C",
     _cunumeric.CUNUMERIC_FFT_C2C,
     np.complex64,
@@ -494,7 +494,7 @@ FFT_C2C = _FFTType(
     True,
 )
 
-FFT_Z2Z = _FFTType(
+FFT_Z2Z = FFTType(
     "Z2Z",
     _cunumeric.CUNUMERIC_FFT_Z2Z,
     np.complex128,
@@ -502,7 +502,7 @@ FFT_Z2Z = _FFTType(
     False,
 )
 
-FFT_R2C = _FFTType(
+FFT_R2C = FFTType(
     "R2C",
     _cunumeric.CUNUMERIC_FFT_R2C,
     np.float32,
@@ -511,7 +511,7 @@ FFT_R2C = _FFTType(
     FFT_C2C,
 )
 
-FFT_C2R = _FFTType(
+FFT_C2R = FFTType(
     "C2R",
     _cunumeric.CUNUMERIC_FFT_C2R,
     np.complex64,
@@ -520,7 +520,7 @@ FFT_C2R = _FFTType(
     FFT_C2C,
 )
 
-FFT_D2Z = _FFTType(
+FFT_D2Z = FFTType(
     "D2Z",
     _cunumeric.CUNUMERIC_FFT_D2Z,
     np.float64,
@@ -529,7 +529,7 @@ FFT_D2Z = _FFTType(
     FFT_Z2Z,
 )
 
-FFT_Z2D = _FFTType(
+FFT_Z2D = FFTType(
     "Z2D",
     _cunumeric.CUNUMERIC_FFT_Z2D,
     np.complex128,
@@ -541,7 +541,7 @@ FFT_Z2D = _FFTType(
 
 class FFTCode:
     @staticmethod
-    def real_to_complex_code(dtype: npt.DTypeLike) -> _FFTType:
+    def real_to_complex_code(dtype: npt.DTypeLike) -> FFTType:
         if dtype == np.float64:
             return FFT_D2Z
         elif dtype == np.float32:
@@ -555,7 +555,7 @@ class FFTCode:
             )
 
     @staticmethod
-    def complex_to_real_code(dtype: npt.DTypeLike) -> _FFTType:
+    def complex_to_real_code(dtype: npt.DTypeLike) -> FFTType:
         if dtype == np.complex128:
             return FFT_Z2D
         elif dtype == np.complex64:

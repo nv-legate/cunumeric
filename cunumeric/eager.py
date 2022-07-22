@@ -47,7 +47,7 @@ if TYPE_CHECKING:
 
     from legate.core import FieldID, Future, Region
 
-    from .config import _FFTType
+    from .config import FFTType
     from .runtime import Runtime
     from .types import (
         BitOrder,
@@ -341,7 +341,7 @@ class EagerArray(NumPyThunk):
         self,
         rhs: Any,
         axes: Sequence[int],
-        kind: _FFTType,
+        kind: FFTType,
         direction: FFTDirection,
     ) -> None:
         self.check_eager_args(rhs)

@@ -59,7 +59,7 @@ if TYPE_CHECKING:
     from legate.core import FieldID, Region
     from legate.core.operation import AutoTask, ManualTask
 
-    from .config import FFTDirection, WindowOpCode, _FFTType
+    from .config import FFTDirection, FFTType, WindowOpCode
     from .runtime import Runtime
     from .types import (
         BitOrder,
@@ -1153,7 +1153,7 @@ class DeferredArray(NumPyThunk):
         self,
         rhs: Any,
         axes: Sequence[int],
-        kind: _FFTType,
+        kind: FFTType,
         direction: FFTDirection,
     ) -> None:
         lhs = self
