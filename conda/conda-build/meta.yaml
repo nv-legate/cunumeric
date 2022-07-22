@@ -82,10 +82,13 @@ requirements:
   host:
     - make
     - ninja
+    - cmake {{ cmake_version }}
+    - {{ compiler('c') }} =11.2
+    - {{ compiler('cxx') }} =11.2
+  host:
     - python
     - scikit-build
     - openblas =* =*openmp*
-    - cmake {{ cmake_version }}
 {% if not gpu_enabled_bool %}
     - legate-core ={{ core_version }} =*_cpu
 {% else %}
