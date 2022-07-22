@@ -49,7 +49,7 @@ class GPU(TestStage):
         stage_args = ["-cunumeric:test"] + next(self.gpu_args(config))
         file_args = self.file_args(test_file, config)
 
-        cmd = ["legate", str(test_path)]
+        cmd = [str(config.legate_path), str(test_path)]
         cmd += stage_args + file_args + config.extra_args
 
         result = system.run(cmd, env=system.env)

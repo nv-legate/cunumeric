@@ -62,6 +62,7 @@ class Config:
         self.verbose = args.verbose
         self.test_root = args.test_root
         self.requested_workers = args.workers
+        self.legate_dir = self._compute_legate_dir(args)
 
     @property
     def extra_args(self) -> ArgList:
@@ -105,6 +106,13 @@ class Config:
 
         return tuple(files)
 
+    @property
+    def legate_path(self) -> Path:
+        """Computed path to the legate driver script"""
+        if self.legate_dir is None:
+            return "legate"
+        return self.legate_dir / "bin" / "legate"
+
     def _compute_features(self, args: Namespace) -> tuple[FeatureType, ...]:
         args_features = args.features or []
         computed = []
@@ -119,3 +127,14 @@ class Config:
             computed.append("cpus")
 
         return tuple(computed)
+
+    def _compute_legate_dir(self, args: Namespace) -> Path:
+        # self._legate_source below is purely for testing
+        if args.legate_dir:
+            self._legate_source = "cmd"
+            return Path(args.legate_dir)
+        elif "LEGATE_DIR" in os.environ:
+            self._legate_source = "env"
+            return Path(os.environ["LEGATE_DIR"])
+        self._legate_source = "install"
+        return None

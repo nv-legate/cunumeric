@@ -65,6 +65,9 @@ class TestParserDefaults:
     def test_ompthreads(self) -> None:
         assert m.parser.get_default("ompthreads") == DEFAULT_OMPTHREADS
 
+    def test_legate_dir(self) -> None:
+        assert m.parser.get_default("legate_dir") is None
+
     def test_test_root(self) -> None:
         assert m.parser.get_default("test_root") is None
 
