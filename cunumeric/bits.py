@@ -21,10 +21,11 @@ from .module import empty
 
 if TYPE_CHECKING:
     from .array import ndarray
+    from .types import BitOrder
 
 
 def _sanitize_arguments(
-    a: ndarray, axis: Optional[int], bitorder: str
+    a: ndarray, axis: Optional[int], bitorder: BitOrder
 ) -> Tuple[ndarray, int]:
     if axis is None:
         if a.ndim > 1:
@@ -48,7 +49,7 @@ def _sanitize_arguments(
 
 @add_boilerplate("a")
 def packbits(
-    a: ndarray, axis: Optional[int] = None, bitorder: str = "big"
+    a: ndarray, axis: Optional[int] = None, bitorder: BitOrder = "big"
 ) -> ndarray:
     """
 
@@ -109,7 +110,7 @@ def unpackbits(
     a: ndarray,
     axis: Optional[int] = None,
     count: Optional[int] = None,
-    bitorder: str = "big",
+    bitorder: BitOrder = "big",
 ) -> ndarray:
     """
     Unpacks elements of a uint8 array into a binary-valued output array.
