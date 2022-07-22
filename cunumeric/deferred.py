@@ -33,12 +33,10 @@ from typing import (
     cast,
 )
 
-import numpy as np
-from typing_extensions import ParamSpec
-
 import legate.core.types as ty
 import numpy as np
 from legate.core import Future, ReductionOp, Store
+from typing_extensions import ParamSpec
 
 from .config import (
     BinaryOpCode,
@@ -58,7 +56,6 @@ from .utils import is_advanced_indexing
 
 if TYPE_CHECKING:
     import numpy.typing as npt
-
     from legate.core import FieldID, Region
     from legate.core.operation import AutoTask, ManualTask
 

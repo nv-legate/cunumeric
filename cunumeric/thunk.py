@@ -20,7 +20,6 @@ from typing import TYPE_CHECKING, Any, Optional, Sequence, Union
 if TYPE_CHECKING:
     import numpy as np
     import numpy.typing as npt
-
     from legate.core import FieldID, Future, Region
 
     from .config import (

@@ -45,7 +45,6 @@ from .utils import is_advanced_indexing
 
 if TYPE_CHECKING:
     import numpy.typing as npt
-
     from legate.core import FieldID, Future, Region
 
     from .config import BitGeneratorType, FFTType
