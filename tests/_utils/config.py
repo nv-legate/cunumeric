@@ -107,11 +107,11 @@ class Config:
         return tuple(files)
 
     @property
-    def legate_path(self) -> Path:
+    def legate_path(self) -> str:
         """Computed path to the legate driver script"""
         if self.legate_dir is None:
             return "legate"
-        return self.legate_dir / "bin" / "legate"
+        return str(self.legate_dir / "bin" / "legate")
 
     def _compute_features(self, args: Namespace) -> tuple[FeatureType, ...]:
         args_features = args.features or []
