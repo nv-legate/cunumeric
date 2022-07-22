@@ -40,6 +40,10 @@ Changing number of dimensions
    :toctree: generated/
 
    squeeze
+   broadcast
+   broadcast_arrays
+   broadcast_shapes
+   broadcast_to
 
 
 Changing kind of array
