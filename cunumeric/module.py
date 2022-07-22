@@ -1202,7 +1202,7 @@ def broadcast_shapes(*args: Sequence(Union[tuple(int), int])) -> tuple(int):
 
     Availability
     --------
-    Multiple GPUs, Multiple CPUs
+    Single CPU
 
     """
     return _broadcast_shapes(*args)

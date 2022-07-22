@@ -110,31 +110,42 @@ def _check(*args, params: list, routine: str):
     print(f"Passed, {print_msg}")
 
 
+def gen_shapes(dim):
+    base = (dim,)
+    result = [base]
+    for i in range(1, LEGATE_MAX_DIM):
+        base = base + (1,) if i % 2 == 0 else base + (dim,)
+        result.append(base)
+    return result
+
+
+SHAPE_LISTS = {dim: gen_shapes(dim) for dim in DIM_CASES}
+
+
 # test to run broadcast  w/ different size of arryas
 @pytest.mark.parametrize("dim", DIM_CASES, ids=str)
 def test_broadcast(dim):
-    SIZE_CASES = list((dim,) * ndim for ndim in range(1, LEGATE_MAX_DIM + 1))
-    _broadcast_check(SIZE_CASES)
+    _broadcast_check(SHAPE_LISTS[dim])
 
 
 @pytest.mark.parametrize("ndim", range(2, LEGATE_MAX_DIM))
 def test_broadcast_shapes(ndim):
     dim = DIM_CASES[0]
-    shape_list = list((dim,) * i for i in range(1, ndim + 1))
+    shape_list = SHAPE_LISTS[dim]
     _check(*shape_list, params=shape_list, routine="broadcast_shapes")
 
 
 @pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM))
 @pytest.mark.parametrize("dim", DIM_CASES, ids=str)
 def test_broadcast_to(dim, ndim):
-    shape = (dim,) * ndim
-    arr = np.arange(np.prod(shape)).reshape(shape)
+    shape = SHAPE_LISTS[dim][-1]
+    arr = np.arange(np.prod((dim,))).reshape((dim,))
     _check(arr, shape, params=(arr.shape, shape), routine="broadcast_to")
 
 
 @pytest.mark.parametrize("dim", DIM_CASES, ids=str)
 def test_broadcast_arrays(dim):
-    shapes = list((dim,) * ndim for ndim in range(1, LEGATE_MAX_DIM + 1))
+    shapes = SHAPE_LISTS[dim]
     arrays = list(np.arange(np.prod(shape)).reshape(shape) for shape in shapes)
     _check(*arrays, params=shapes, routine="broadcast_arrays")
 
