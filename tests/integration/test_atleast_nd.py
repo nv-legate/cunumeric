@@ -42,7 +42,7 @@ def _check(a, routine, sizes):
         f"cunumeric_result: {err_arr[1]}\n"
         f"cunumeric and numpy shows different result\n"
     )
-    print(f"Passed, {print_msg}, np: {b}" f", cunumeric: {c}")
+    print(f"Passed, {print_msg}, np: {b}, cunumeric: {c}")
 
 
 DIM = 10

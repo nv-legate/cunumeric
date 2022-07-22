@@ -1151,11 +1151,9 @@ def _reshape_recur(ndim: int, arr: ndarray) -> tuple[int]:
 
 
 def _atleast_nd(
-    ndim: int, arys: Sequence[ndarray], view: bool = True
+    ndim: int, arys: Sequence[ndarray]
 ) -> Union(list[ndarray], ndarray):
     inputs = list(convert_to_cunumeric_ndarray(arr) for arr in arys)
-    if view:
-        inputs = list(arr.view() for arr in arys)
     # 'reshape' change the shape of arrays
     # only when arr.shape != _reshape_recur(ndim,arr)
     result = list(arr.reshape(_reshape_recur(ndim, arr)) for arr in inputs)
@@ -1754,7 +1752,7 @@ def vstack(tup: Sequence[ndarray]) -> ndarray:
     Multiple GPUs, Multiple CPUs
     """
     # Reshape arrays in the `array_list` if needed before concatenation
-    reshaped = _atleast_nd(2, tup, False)
+    reshaped = _atleast_nd(2, tup)
     if not isinstance(reshaped, list):
         reshaped = [reshaped]
     tup, common_info = check_shape_dtype(reshaped, vstack.__name__, 0)
@@ -1844,7 +1842,7 @@ def dstack(tup: Sequence[ndarray]) -> ndarray:
     Multiple GPUs, Multiple CPUs
     """
     # Reshape arrays to (1,N,1) for ndim ==1 or (M,N,1) for ndim == 2:
-    reshaped = _atleast_nd(3, tup, False)
+    reshaped = _atleast_nd(3, tup)
     if not isinstance(reshaped, list):
         reshaped = [reshaped]
     tup, common_info = check_shape_dtype(reshaped, dstack.__name__, 2)
