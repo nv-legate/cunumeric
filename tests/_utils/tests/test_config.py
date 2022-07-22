@@ -62,7 +62,7 @@ class TestConfig:
         assert any("examples" in str(x) for x in c.test_files)
         assert any("integration" in str(x) for x in c.test_files)
         assert all("unit" not in str(x) for x in c.test_files)
-        assert c.legate_path is "legate"
+        assert c.legate_path == "legate"
 
     @pytest.mark.parametrize("feature", FEATURES)
     def test_env_features(
