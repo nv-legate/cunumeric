@@ -39,12 +39,14 @@ Changing number of dimensions
 .. autosummary::
    :toctree: generated/
 
-   squeeze
+   atleast_1d
+   atleast_2d
+   atleast_3d
    broadcast
    broadcast_arrays
    broadcast_shapes
    broadcast_to
-
+   squeeze
 
 Changing kind of array
 ----------------------
