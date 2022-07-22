@@ -13,8 +13,6 @@
 # limitations under the License.
 #
 
-from typing import Any
-
 import numpy as np
 import pytest
 
@@ -77,7 +75,7 @@ def _broadcast_check(sizes):
     print(f"Passed, {print_msg}")
 
 
-def _check(*args, params: list[Any], routine: str):
+def _check(*args, params: list, routine: str):
     b = getattr(np, routine)(*args)
     c = getattr(num, routine)(*args)
     is_equal = True
