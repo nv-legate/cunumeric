@@ -273,6 +273,10 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
+    def broadcast_to(self, shape: Union[tuple(int), int]) -> NumPyThunk:
+        ...
+
+    @abstractmethod
     def where(self, rhs1: Any, rhs2: Any, rhs3: Any) -> None:
         ...
 

@@ -41,6 +41,12 @@ _SUPPORTED_DTYPES = [
 ]
 
 
+def _broadcast_shapes(*args: Sequence(Union[tuple(int), int])) -> tuple(int):
+    # Call _broadcast_shapes' for now.
+    # We will have a new implementation later
+    return np.broadcast_shapes(*args)
+
+
 def is_advanced_indexing(key: Any) -> bool:
     if key is Ellipsis or key is None:  # np.newdim case
         return False

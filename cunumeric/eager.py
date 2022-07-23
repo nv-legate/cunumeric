@@ -525,7 +525,7 @@ class EagerArray(NumPyThunk):
         else:
             self.array = np.flip(rhs.array, axes)
 
-    def broadcast_to(self, shape):
+    def broadcast_to(self, shape: Union[tuple(int), int]) -> NumPyThunk:
         if self.deferred is not None:
             return self.deferred.broadcast_to(shape)
         else:

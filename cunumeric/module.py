@@ -29,16 +29,17 @@ from numpy.core.numeric import (  # type: ignore [attr-defined]
 from ._ufunc.comparison import maximum, minimum
 from ._ufunc.floating import floor
 from ._ufunc.math import add, multiply
-from .array import (
-    _broadcast_shapes,
-    add_boilerplate,
-    convert_to_cunumeric_ndarray,
-    ndarray,
-)
+from .array import add_boilerplate, convert_to_cunumeric_ndarray, ndarray
 from .config import BinaryOpCode, UnaryRedCode
 from .runtime import runtime
 from .types import NdShape, NdShapeLike
-from .utils import AxesPairLike, inner_modes, matmul_modes, tensordot_modes
+from .utils import (
+    AxesPairLike,
+    _broadcast_shapes,
+    inner_modes,
+    matmul_modes,
+    tensordot_modes,
+)
 
 if TYPE_CHECKING:
     import numpy.typing as npt
@@ -1163,7 +1164,8 @@ def _atleast_nd(
     # 'reshape' change the shape of arrays
     # only when arr.shape != _reshape_recur(ndim,arr)
     result = list(arr.reshape(_reshape_recur(ndim, arr)) for arr in inputs)
-    # if the number of arrys in `arys` is 1, the return value is a single array
+    # if the number of arrays in `arys` is 1,
+    # the return value is a single array
     if len(result) == 1:
         result = result[0]
     return result
@@ -1348,7 +1350,7 @@ def _broadcast_to(
 
 @add_boilerplate("arr")
 def broadcast_to(
-    arr: Any, shape: Union[tuple(int), int], subok: bool = False
+    arr: ndarray, shape: Union[tuple(int), int], subok: bool = False
 ) -> ndarray:
 
     """
@@ -1445,6 +1447,10 @@ def broadcast_arrays(
         While you can set the writable flag True,
         writing to a single output value may end up changing
         more than one location in the output array.
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
 
     """
     # writeable will be set to 'False'
@@ -4176,7 +4182,7 @@ def isclose(
             "cuNumeric does not support `equal_nan` yet for isclose"
         )
 
-    out_shape = np.broadcast_shapes(a.shape, b.shape)
+    out_shape = _broadcast_shapes(a.shape, b.shape)
     out = empty(out_shape, dtype=bool)
 
     common_type = ndarray.find_common_type(a, b)

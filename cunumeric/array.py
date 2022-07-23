@@ -18,7 +18,7 @@ import warnings
 from collections.abc import Iterable
 from functools import reduce, wraps
 from inspect import signature
-from typing import Any, Callable, Optional, Sequence, Set, TypeVar, Union
+from typing import Any, Callable, Optional, Set, TypeVar, Union
 
 import numpy as np
 import pyarrow
@@ -31,7 +31,7 @@ from legate.core import Array
 from .config import FFTDirection, FFTNormalization, UnaryOpCode, UnaryRedCode
 from .coverage import clone_np_ndarray
 from .runtime import runtime
-from .utils import dot_modes
+from .utils import _broadcast_shapes, dot_modes
 
 FALLBACK_WARNING = (
     "cuNumeric has not fully implemented {name} "
@@ -126,12 +126,6 @@ def convert_to_predicate_ndarray(obj):
     raise NotImplementedError(
         "the `where` parameter is currently not supported"
     )
-
-
-def _broadcast_shapes(*args: Sequence(Union[tuple(int), int])) -> tuple(int):
-    # Call _broadcast_shapes' for now.
-    # We will have a new implementation later
-    return np.broadcast_shapes(*args)
 
 
 def _convert_all_to_numpy(obj):
