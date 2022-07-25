@@ -81,6 +81,9 @@ def _check(*args, params: list, routine: str):
     is_equal = True
     if isinstance(b, list):
         for each in zip(b, c):
+            # Try to modify multiple elements in each broadcasted array
+            each[0][:, 1] = 1
+            each[1][:, 1] = 1
             if not np.array_equal(each[0], each[1]):
                 is_equal = False
                 err_arr = [("iters", b.index), each[0], each[1]]
