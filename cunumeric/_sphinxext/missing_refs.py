@@ -14,7 +14,6 @@
 #
 from __future__ import annotations
 
-from textwrap import indent
 from typing import Any
 
 from docutils import nodes
@@ -28,7 +27,27 @@ from . import PARALLEL_SAFE, SphinxParallelSpec
 
 log = getLogger(__name__)
 
-SKIP: list[str] = []
+SKIP = (
+    "cunumeric.cast",
+    "cunumeric.ndarray.__array_function__",
+    "cunumeric.ndarray.__array_ufunc__",
+    "cunumeric.ndarray.__format__",
+    "cunumeric.ndarray.__hash__",
+    "cunumeric.ndarray.__iter__",
+    "cunumeric.ndarray.__radd__",
+    "cunumeric.ndarray.__rand__",
+    "cunumeric.ndarray.__rdivmod__",
+    "cunumeric.ndarray.__reduce_ex__",
+    "cunumeric.ndarray.__rfloordiv__",
+    "cunumeric.ndarray.__rmod__",
+    "cunumeric.ndarray.__rmul__",
+    "cunumeric.ndarray.__ror__",
+    "cunumeric.ndarray.__rpow__",
+    "cunumeric.ndarray.__rsub__",
+    "cunumeric.ndarray.__rtruediv__",
+    "cunumeric.ndarray.__rxor__",
+    "cunumeric.ndarray.__sizeof__",
+)
 
 MISSING: list[tuple[str, str]] = []
 
@@ -41,12 +60,7 @@ class MissingRefs(SphinxPostTransform):
         for node in self.document.findall(addnodes.pending_xref):
             self._check_target(node)
 
-        if MISSING:
-            header = "The following Cunumeric API links are broken:"
-            items = "\n".join(f"{loc}: {target}" for loc, target in MISSING)
-            log.warning(f"{header}\n\n{indent(items, '    ')}\n", type="ref")
-
-    def _check_target(self, node: Any) -> None:
+    def _check_target(self, node: nodes.Node) -> None:
         target = node["reftarget"]
 
         if not target.startswith("cunumeric.") or target in SKIP:
@@ -70,7 +84,11 @@ class MissingRefs(SphinxPostTransform):
             uri = None
 
         if uri is None:
-            MISSING.append((f"{get_node_location(node)}", f"{target}"))
+            loc = get_node_location(node)
+            log.warning(
+                f"Cunumeric reference missing a target: {loc}: {target}",
+                type="ref",
+            )
 
 
 def setup(app: Sphinx) -> SphinxParallelSpec:
