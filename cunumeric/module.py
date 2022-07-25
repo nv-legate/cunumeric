@@ -39,6 +39,7 @@ if TYPE_CHECKING:
     import numpy.typing as npt
 
     from ._ufunc.ufunc import CastingKind
+    from .types import SortType
 
 _builtin_abs = abs
 _builtin_all = all
@@ -410,7 +411,7 @@ def full_like(
 
 def array(
     obj: Any,
-    dtype: Optional[npt.DTypeLike] = None,
+    dtype: Optional[np.dtype[Any]] = None,
     copy: bool = True,
     order: str = "K",
     subok: bool = False,
@@ -490,7 +491,7 @@ def array(
     return result
 
 
-def asarray(a: Any, dtype: Optional[npt.DTypeLike] = None) -> ndarray:
+def asarray(a: Any, dtype: Optional[np.dtype[Any]] = None) -> ndarray:
     """
     Convert the input to an array.
 
@@ -1138,6 +1139,123 @@ def moveaxis(
 # Changing number of dimensions
 
 
+def _reshape_recur(ndim: int, arr: ndarray) -> tuple[int]:
+    if arr.ndim < ndim:
+        cur_shape = _reshape_recur(ndim - 1, arr)
+        if ndim == 2:
+            cur_shape = (1,) + cur_shape
+        else:
+            cur_shape = cur_shape + (1,)
+    else:
+        cur_shape = arr.shape
+    return cur_shape
+
+
+def _atleast_nd(
+    ndim: int, arys: Sequence[ndarray]
+) -> Union(list[ndarray], ndarray):
+    inputs = list(convert_to_cunumeric_ndarray(arr) for arr in arys)
+    # 'reshape' change the shape of arrays
+    # only when arr.shape != _reshape_recur(ndim,arr)
+    result = list(arr.reshape(_reshape_recur(ndim, arr)) for arr in inputs)
+    # if the number of arrys in `arys` is 1, the return value is a single array
+    if len(result) == 1:
+        result = result[0]
+    return result
+
+
+def atleast_1d(*arys: Sequence[ndarray]) -> Union(list[ndarray], ndarray):
+    """
+
+    Convert inputs to arrays with at least one dimension.
+    Scalar inputs are converted to 1-dimensional arrays,
+    whilst higher-dimensional inputs are preserved.
+
+    Parameters
+    ----------
+    *arys : array_like
+        One or more input arrays.
+
+    Returns
+    -------
+    ret : ndarray
+        An array, or list of arrays, each with a.ndim >= 1.
+        Copies are made only if necessary.
+
+    See Also
+    --------
+    numpy.atleast_1d
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    return _atleast_nd(1, arys)
+
+
+def atleast_2d(*arys: Sequence[ndarray]) -> Union(list[ndarray], ndarray):
+    """
+
+    View inputs as arrays with at least two dimensions.
+
+    Parameters
+    ----------
+    *arys : array_like
+        One or more array-like sequences.
+        Non-array inputs are converted to arrays.
+        Arrays that already have two or more dimensions are preserved.
+
+    Returns
+    -------
+    res, res2, … : ndarray
+        An array, or list of arrays, each with a.ndim >= 2.
+        Copies are avoided where possible, and
+        views with two or more dimensions are returned.
+
+    See Also
+    --------
+    numpy.atleast_2d
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    return _atleast_nd(2, arys)
+
+
+def atleast_3d(*arys: Sequence[ndarray]) -> Union(list[ndarray], ndarray):
+    """
+
+    View inputs as arrays with at least three dimensions.
+
+    Parameters
+    ----------
+    *arys : array_like
+        One or more array-like sequences.
+        Non-array inputs are converted to arrays.
+        Arrays that already have three or more dimensions are preserved.
+
+    Returns
+    -------
+    res, res2, … : ndarray
+        An array, or list of arrays, each with a.ndim >= 3.
+        Copies are avoided where possible, and
+        views with three or more dimensions are returned.
+        For example, a 1-D array of shape (N,) becomes
+        a view of shape (1, N, 1),  and a 2-D array of shape (M, N)
+        becomes a view of shape (M, N, 1).
+
+    See Also
+    --------
+    numpy.atleast_3d
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    return _atleast_nd(3, arys)
+
+
 @add_boilerplate("a")
 def squeeze(a: ndarray, axis: Optional[NdShapeLike] = None) -> ndarray:
     """
@@ -1595,8 +1713,7 @@ def stack(
             " of input arrays"
         )
 
-    shape = list(common_info.shape)
-    shape.insert(axis, 1)
+    shape = common_info.shape[:axis] + (1,) + common_info.shape[axis:]
     arrays = [arr.reshape(shape) for arr in arrays]
     common_info.shape = tuple(shape)
     return _concatenate(arrays, common_info, axis, out=out)
@@ -1636,14 +1753,10 @@ def vstack(tup: Sequence[ndarray]) -> ndarray:
     Multiple GPUs, Multiple CPUs
     """
     # Reshape arrays in the `array_list` if needed before concatenation
-    inputs = list(convert_to_cunumeric_ndarray(inp) for inp in tup)
-    reshaped = list(
-        inp.reshape([1, inp.shape[0]]) if inp.ndim == 1 else inp
-        for inp in inputs
-    )
+    reshaped = _atleast_nd(2, tup)
+    if not isinstance(reshaped, list):
+        reshaped = [reshaped]
     tup, common_info = check_shape_dtype(reshaped, vstack.__name__, 0)
-    common_info.shape = tup[0].shape
-
     return _concatenate(
         tup,
         common_info,
@@ -1730,16 +1843,10 @@ def dstack(tup: Sequence[ndarray]) -> ndarray:
     Multiple GPUs, Multiple CPUs
     """
     # Reshape arrays to (1,N,1) for ndim ==1 or (M,N,1) for ndim == 2:
-    reshaped = []
-    inputs = list(convert_to_cunumeric_ndarray(inp) for inp in tup)
-    for arr in inputs:
-        if arr.ndim == 1:
-            arr = arr.reshape((1,) + arr.shape + (1,))
-        elif arr.ndim == 2:
-            arr = arr.reshape(arr.shape + (1,))
-        reshaped.append(arr)
+    reshaped = _atleast_nd(3, tup)
+    if not isinstance(reshaped, list):
+        reshaped = [reshaped]
     tup, common_info = check_shape_dtype(reshaped, dstack.__name__, 2)
-
     return _concatenate(
         tup,
         common_info,
@@ -4508,7 +4615,7 @@ def unique(
 def argsort(
     a: ndarray,
     axis: Optional[int] = -1,
-    kind: str = "quicksort",
+    kind: SortType = "quicksort",
     order: Optional[Union[str, list[str]]] = None,
 ) -> ndarray:
     """
@@ -4631,7 +4738,7 @@ def searchsorted(
 def sort(
     a: ndarray,
     axis: Optional[int] = -1,
-    kind: str = "quicksort",
+    kind: SortType = "quicksort",
     order: Optional[Union[str, list[str]]] = None,
 ) -> ndarray:
     """

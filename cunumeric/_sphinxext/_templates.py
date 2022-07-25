@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from os.path import dirname, join
 
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, FileSystemLoader  # type: ignore [import]
 
 _templates_path = join(dirname(__file__), "_templates")
 _env = Environment(loader=FileSystemLoader(_templates_path))
