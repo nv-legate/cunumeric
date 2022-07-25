@@ -17,12 +17,15 @@ import argparse
 
 import numpy as np
 import pytest
+from utils.comparisons import allclose
 
 import cunumeric as num
 
+np.random.seed(12345)
+
 
 def check_result(op, in_np, out_np, out_num):
-    result = np.allclose(out_np, out_num) and out_np.dtype == out_num.dtype
+    result = allclose(out_np, out_num) and out_np.dtype == out_num.dtype
     if not result:
         print(f"cunumeric.{op} failed the test")
         print("Inputs:")
@@ -35,170 +38,213 @@ def check_result(op, in_np, out_np, out_num):
         print("cuNumeric output:")
         print(out_num)
         print(f"dtype: {out_num.dtype}")
-        assert False
+    return result
+
+
+def check_op(op, in_np, out_dtype="d"):
+    op_np = getattr(np, op)
+    op_num = getattr(num, op)
+
+    assert op_np.nout == 1
+
+    in_num = tuple(num.array(arr) for arr in in_np)
+
+    out_np = op_np(*in_np)
+    out_num = op_num(*in_num)
+
+    assert check_result(op, in_np, out_np, out_num)
+
+    out_np = np.empty(out_np.shape, dtype=out_dtype)
+    out_num = num.empty(out_num.shape, dtype=out_dtype)
+
+    op_np(*in_np, out=out_np)
+    op_num(*in_num, out=out_num)
+
+    assert check_result(op, in_np, out_np, out_num)
+
+    out_np = np.empty(out_np.shape, dtype=out_dtype)
+    out_num = num.empty(out_num.shape, dtype=out_dtype)
+
+    op_np(*in_np, out_np)
+    op_num(*in_num, out_num)
+
+    assert check_result(op, in_np, out_np, out_num)
+
+    # Ask cuNumeric to produce outputs to NumPy ndarrays
+    out_num = np.ones(out_np.shape, dtype=out_dtype)
+    op_num(*in_num, out_num)
+
+    assert check_result(op, in_np, out_np, out_num)
 
 
 def check_ops(ops, in_np, out_dtype="d"):
     for op in ops:
-        op_np = getattr(np, op)
-        op_num = getattr(num, op)
-
-        assert op_np.nout == 1
-
-        in_num = tuple(num.array(arr) for arr in in_np)
-
-        out_np = op_np(*in_np)
-        out_num = op_num(*in_num)
-
-        check_result(op, in_np, out_np, out_num)
-
-        out_np = np.empty(out_np.shape, dtype=out_dtype)
-        out_num = num.empty(out_num.shape, dtype=out_dtype)
-
-        op_np(*in_np, out=out_np)
-        op_num(*in_num, out=out_num)
-
-        check_result(op, in_np, out_np, out_num)
-
-        out_np = np.empty(out_np.shape, dtype=out_dtype)
-        out_num = num.empty(out_num.shape, dtype=out_dtype)
-
-        op_np(*in_np, out_np)
-        op_num(*in_num, out_num)
-
-        check_result(op, in_np, out_np, out_num)
-
-        # Ask cuNumeric to produce outputs to NumPy ndarrays
-        out_num = np.ones(out_np.shape, dtype=out_dtype)
-        op_num(*in_num, out_num)
-
-        check_result(op, in_np, out_np, out_num)
+        check_op(op, in_np, out_dtype)
 
 
-def test_all():
-    # TODO: right now we will simply check if the operations work
-    # for some boring inputs. For some of these, we will want to
-    # test corner cases in the future.
+# TODO: right now we will simply check if the operations work
+# for some boring inputs. For some of these, we will want to
+# test corner cases in the future.
 
-    np.random.seed(12345)
 
-    # Math operations
-    ops = [
-        "absolute",
-        "conjugate",
-        "exp",
-        "exp2",
-        "expm1",
-        "fabs",
-        "logical_not",
-        "negative",
-        "positive",
-        "reciprocal",
-        "rint",
-        "sign",
-        "square",
-    ]
-    check_ops(ops, (np.random.randn(4, 5),))
-    check_ops(ops, (np.random.randn(4, 5).astype("e"),))
-    check_ops(ops, (np.random.randn(4, 5).astype("f"),))
-    check_ops(ops, (np.random.randn(4, 5).astype("b"),))
-    check_ops(ops, (np.random.randn(4, 5).astype("B"),))
-    check_ops(ops, (np.random.randint(1, 10, size=(4, 5)),))
-    check_ops(ops, (np.random.randn(1)[0],))
+# Math operations
+math_ops = (
+    "absolute",
+    "conjugate",
+    "exp",
+    "exp2",
+    "expm1",
+    "fabs",
+    "logical_not",
+    "negative",
+    "positive",
+    "reciprocal",
+    "rint",
+    "sign",
+    "square",
+)
 
-    ops = [
-        "log",
-        "log10",
-        "log1p",
-        "log2",
-        "sqrt",
-    ]
-    check_ops(ops, (np.random.randn(4, 5) + 3,))
-    check_ops(ops, (np.random.randn(4, 5).astype("e") + 3,))
-    check_ops(ops, (np.random.randn(4, 5).astype("f") + 3,))
-    check_ops(ops, (np.random.randn(4, 5).astype("F") + 3,), out_dtype="D")
-    check_ops(ops, (np.random.randint(3, 10, size=(4, 5)),))
-    check_ops(ops, (np.random.randn(1)[0] + 3,))
 
-    ops = [
-        "cbrt",
-    ]
-    check_ops(ops, (np.random.randn(4, 5),))
-    check_ops(ops, (np.random.randn(4, 5).astype("e"),))
-    check_ops(ops, (np.random.randn(4, 5).astype("f"),))
-    check_ops(ops, (np.random.randint(0, 10, size=(4, 5)),))
-    check_ops(ops, (np.random.randn(1)[0] + 3,))
+@pytest.mark.parametrize("op", math_ops)
+def test_math_ops(op):
+    check_op(op, (np.random.randn(4, 5),))
+    check_op(op, (np.random.randn(4, 5).astype("e"),))
+    check_op(op, (np.random.randn(4, 5).astype("f"),))
+    check_op(op, (np.random.randn(4, 5).astype("b"),))
+    check_op(op, (np.random.randn(4, 5).astype("B"),))
+    check_op(op, (np.random.randint(1, 10, size=(4, 5)),))
+    check_op(op, (np.random.randn(1)[0],))
 
-    # Trigonometric functions
-    ops = [
-        "arccos",
-        "arcsin",
-        "arctan",
-        "arctanh",
-        "cos",
-        "cosh",
-        "deg2rad",
-        "rad2deg",
-        "sin",
-        "sinh",
-        "tan",
-        "tanh",
-    ]
-    check_ops(ops, (np.random.uniform(low=-1, high=1, size=(4, 5)),))
-    check_ops(
-        ops, (np.random.uniform(low=-1, high=1, size=(4, 5)).astype("e"),)
-    )
-    check_ops(ops, (np.array(np.random.uniform(low=-1, high=1)),))
 
-    ops = [
-        "arccosh",
-        "arcsinh",
-    ]
-    check_ops(ops, (np.random.uniform(low=1, high=5, size=(4, 5)),))
-    check_ops(
-        ops, (np.random.uniform(low=1, high=5, size=(4, 5)).astype("e"),)
-    )
-    check_ops(ops, (np.array(np.random.uniform(low=1, high=5)),))
+log_ops = (
+    "log",
+    "log10",
+    "log1p",
+    "log2",
+)
 
-    # Bit-twiddling functions
-    ops = [
-        "invert",
-    ]
-    check_ops(ops, (np.random.randint(0, 2, size=(4, 5)),))
-    check_ops(ops, (np.random.randint(0, 1, size=(4, 5), dtype="?"),))
 
-    # Comparison functions
-    ops = [
-        "logical_not",
-    ]
-    check_ops(ops, (np.random.randint(0, 2, size=(4, 5)),))
+@pytest.mark.parametrize("op", log_ops)
+def test_power_ops(op):
+    check_op(op, (np.random.randn(4, 5) + 3,))
+    check_op(op, (np.random.randn(4, 5).astype("e") + 3,))
+    check_op(op, (np.random.randn(4, 5).astype("f") + 3,))
+    check_op(op, (np.random.randn(4, 5).astype("F") + 3,), out_dtype="D")
+    check_op(op, (np.random.randint(3, 10, size=(4, 5)),))
+    check_op(op, (np.random.randn(1)[0] + 3,))
 
-    # Floating functions
 
-    ops = [
-        "ceil",
-        "floor",
-        "signbit",
-        # "spacing",
-        "trunc",
-    ]
-    check_ops(ops, (np.random.randn(4, 5),))
-    check_ops(ops, (np.random.randn(4, 5).astype("f"),))
-    check_ops(ops, (np.random.randn(4, 5).astype("e"),))
-    check_ops(ops, (np.random.randint(0, 10, size=(4, 5)),))
-    check_ops(ops, (np.random.randint(0, 10, size=(4, 5), dtype="I"),))
-    check_ops(ops, (np.random.randn(1)[0] + 3,))
+even_root_ops = ("sqrt",)
 
-    ops = [
-        "isfinite",
-        "isinf",
-        "isnan",
-        # "isnat",
-    ]
-    check_ops(ops, (np.array([-np.inf, 0.0, 1.0, np.inf, np.nan]),))
-    check_ops(ops, (np.array([-np.inf, 0.0, 1.0, np.inf, np.nan], dtype="F"),))
-    check_ops(ops, (np.array([-np.inf, 0.0, 1.0, np.inf, np.nan], dtype="e"),))
-    check_ops(ops, (np.array(np.inf),))
+
+@pytest.mark.parametrize("op", even_root_ops)
+def test_even_root_ops(op):
+    check_op(op, (np.random.randn(4, 5) + 3,))
+    check_op(op, (np.random.randn(4, 5).astype("e") + 3,))
+    check_op(op, (np.random.randn(4, 5).astype("f") + 3,))
+    check_op(op, (np.random.randn(4, 5).astype("F") + 3,), out_dtype="D")
+    check_op(op, (np.random.randint(3, 10, size=(4, 5)),))
+    check_op(op, (np.random.randn(1)[0] + 3,))
+
+
+odd_root_ops = ("cbrt",)
+
+
+@pytest.mark.parametrize("op", odd_root_ops)
+def test_odd_root_ops(op):
+    check_op(op, (np.random.randn(4, 5),))
+    check_op(op, (np.random.randn(4, 5).astype("e"),))
+    check_op(op, (np.random.randn(4, 5).astype("f"),))
+    check_op(op, (np.random.randint(0, 10, size=(4, 5)),))
+    check_op(op, (np.random.randn(1)[0] + 3,))
+
+
+trig_ops = (
+    "arccos",
+    "arcsin",
+    "arctan",
+    "arctanh",
+    "cos",
+    "cosh",
+    "deg2rad",
+    "rad2deg",
+    "sin",
+    "sinh",
+    "tan",
+    "tanh",
+)
+
+
+@pytest.mark.parametrize("op", trig_ops)
+def test_trig_ops(op):
+    check_op(op, (np.random.uniform(low=-1, high=1, size=(4, 5)),))
+    check_op(op, (np.random.uniform(low=-1, high=1, size=(4, 5)).astype("e"),))
+    check_op(op, (np.array(np.random.uniform(low=-1, high=1)),))
+
+
+arc_hyp_trig_ops = (
+    "arccosh",
+    "arcsinh",
+)
+
+
+@pytest.mark.parametrize("op", arc_hyp_trig_ops)
+def test_arc_hyp_trig_ops(op):
+    check_op(op, (np.random.uniform(low=1, high=5, size=(4, 5)),))
+    check_op(op, (np.random.uniform(low=1, high=5, size=(4, 5)).astype("e"),))
+    check_op(op, (np.array(np.random.uniform(low=1, high=5)),))
+
+
+bit_ops = ("invert",)
+
+
+@pytest.mark.parametrize("op", bit_ops)
+def test_bit_ops(op):
+    check_op(op, (np.random.randint(0, 2, size=(4, 5)),))
+    check_op(op, (np.random.randint(0, 1, size=(4, 5), dtype="?"),))
+
+
+comparison_ops = ("logical_not",)
+
+
+@pytest.mark.parametrize("op", comparison_ops)
+def test_comparison_ops(op):
+    check_op(op, (np.random.randint(0, 2, size=(4, 5)),))
+
+
+floating_ops = (
+    "ceil",
+    "floor",
+    "signbit",
+    # "spacing",
+    "trunc",
+)
+
+
+@pytest.mark.parametrize("op", floating_ops)
+def test_floating_ops(op):
+    check_op(op, (np.random.randn(4, 5),))
+    check_op(op, (np.random.randn(4, 5).astype("f"),))
+    check_op(op, (np.random.randn(4, 5).astype("e"),))
+    check_op(op, (np.random.randint(0, 10, size=(4, 5)),))
+    check_op(op, (np.random.randint(0, 10, size=(4, 5), dtype="I"),))
+    check_op(op, (np.random.randn(1)[0] + 3,))
+
+
+nan_ops = (
+    "isfinite",
+    "isinf",
+    "isnan",
+    # "isnat",
+)
+
+
+@pytest.mark.parametrize("op", nan_ops)
+def test_nan_ops(op):
+    check_op(op, (np.array([-np.inf, 0.0, 1.0, np.inf, np.nan]),))
+    check_op(op, (np.array([-np.inf, 0.0, 1.0, np.inf, np.nan], dtype="F"),))
+    check_op(op, (np.array([-np.inf, 0.0, 1.0, np.inf, np.nan], dtype="e"),))
+    check_op(op, (np.array(np.inf),))
 
 
 def parse_inputs(in_str, dtype_str):

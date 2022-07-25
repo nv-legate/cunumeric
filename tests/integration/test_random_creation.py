@@ -15,6 +15,7 @@
 
 import numpy as np
 import pytest
+from utils.comparisons import allclose
 
 import cunumeric as cn
 
@@ -25,7 +26,7 @@ def test_randn():
     x = cn.random.randn(10)
     np.random.seed(42)
     xn = np.random.randn(10)
-    assert np.allclose(x, xn)
+    assert allclose(x, xn)
 
 
 if __name__ == "__main__":

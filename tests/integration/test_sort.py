@@ -15,12 +15,13 @@
 
 import numpy as np
 import pytest
+from utils.comparisons import allclose
 
 import cunumeric as num
 
 
 def compare_assert(a_np, a_num):
-    if not num.allclose(a_np, a_num):
+    if not allclose(a_np, a_num):
         print("numpy, shape " + str(a_np.shape) + ":")
         print(a_np)
         print("cuNumeric, shape " + str(a_num.shape) + ":")
