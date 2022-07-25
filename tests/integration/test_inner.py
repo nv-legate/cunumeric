@@ -14,7 +14,8 @@
 #
 import pytest
 from legate.core import LEGATE_MAX_DIM
-from test_tools.contractions import check_default
+from cunumeric.utils import inner_modes
+from utils.contractions import check_default
 
 from cunumeric.utils import inner_modes
 

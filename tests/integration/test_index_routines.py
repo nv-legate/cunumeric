@@ -19,7 +19,8 @@ from itertools import permutations
 import numpy as np
 import pytest
 from legate.core import LEGATE_MAX_DIM
-from test_tools.generators import mk_seq_array
+from cunumeric.eager import diagonal_reference
+from utils.generators import mk_seq_array
 
 import cunumeric as num
 from cunumeric.eager import diagonal_reference

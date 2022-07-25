@@ -40,6 +40,7 @@ extensions = [
     "sphinx_markdown_tables",
     "recommonmark",
     "cunumeric._sphinxext.comparison_table",
+    "cunumeric._sphinxext.missing_refs",
     "cunumeric._sphinxext.ufunc_formatter",
 ]
 

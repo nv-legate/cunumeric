@@ -22,9 +22,23 @@ if TYPE_CHECKING:
     import numpy.typing as npt
     from legate.core import FieldID, Future, Region
 
-    from .config import UnaryRedCode
+    from .config import (
+        BinaryOpCode,
+        FFTDirection,
+        FFTType,
+        UnaryOpCode,
+        UnaryRedCode,
+        WindowOpCode,
+    )
     from .runtime import Runtime
-    from .types import BitOrder, NdShape, OrderType, SortType
+    from .types import (
+        BitOrder,
+        ConvolveMode,
+        NdShape,
+        OrderType,
+        SelectKind,
+        SortType,
+    )
 
 
 class NumPyThunk(ABC):
@@ -81,11 +95,17 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def convolve(self, v: Any, out: Any, mode: Any) -> None:
+    def convolve(self, v: Any, out: Any, mode: ConvolveMode) -> None:
         ...
 
     @abstractmethod
-    def fft(self, out: Any, axes: Any, kind: Any, direction: Any) -> None:
+    def fft(
+        self,
+        out: Any,
+        axes: Sequence[int],
+        kind: FFTType,
+        direction: FFTDirection,
+    ) -> None:
         ...
 
     @abstractmethod
@@ -136,11 +156,13 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def transpose(self, axes: Any) -> NumPyThunk:
+    def transpose(
+        self, axes: Union[None, tuple[int, ...], list[int]]
+    ) -> NumPyThunk:
         ...
 
     @abstractmethod
-    def flip(self, rhs: Any, axes: Optional[Any]) -> None:
+    def flip(self, rhs: Any, axes: Union[None, int, tuple[int, ...]]) -> None:
         ...
 
     @abstractmethod
@@ -151,7 +173,7 @@ class NumPyThunk(ABC):
         rhs1_modes: list[str],
         rhs2_thunk: Any,
         rhs2_modes: list[str],
-        mode2extent: dict[str, Any],
+        mode2extent: dict[str, int],
     ) -> None:
         ...
 
@@ -199,9 +221,9 @@ class NumPyThunk(ABC):
         rhs: Any,
         kth: Union[int, Sequence[int]],
         argpartition: bool = False,
-        axis: Optional[int] = -1,
-        kind: str = "introselect",
-        order: Optional[Any] = None,
+        axis: int = -1,
+        kind: SelectKind = "introselect",
+        order: Union[None, str, list[str]] = None,
     ) -> None:
         ...
 
@@ -222,16 +244,16 @@ class NumPyThunk(ABC):
         self,
         rhs: Any,
         argsort: bool = False,
-        axis: Optional[int] = -1,
+        axis: int = -1,
         kind: SortType = "quicksort",
-        order: Optional[Any] = None,
+        order: Union[None, str, list[str]] = None,
     ) -> None:
         ...
 
     @abstractmethod
     def unary_op(
         self,
-        op: Any,
+        op: UnaryOpCode,
         rhs: Any,
         where: Any,
         args: Any,
@@ -245,8 +267,8 @@ class NumPyThunk(ABC):
         op: UnaryRedCode,
         rhs: Any,
         where: Any,
-        orig_axis: Any,
-        axes: Any,
+        orig_axis: int,
+        axes: tuple[int, ...],
         keepdims: bool,
         args: Any,
         initial: Any,
@@ -261,13 +283,18 @@ class NumPyThunk(ABC):
 
     @abstractmethod
     def binary_op(
-        self, op: int, rhs1: Any, rhs2: Any, where: Any, args: Any
+        self, op: BinaryOpCode, rhs1: Any, rhs2: Any, where: Any, args: Any
     ) -> None:
         ...
 
     @abstractmethod
     def binary_reduction(
-        self, op: int, rhs1: Any, rhs2: Any, broadcast: Any, args: Any
+        self,
+        op: BinaryOpCode,
+        rhs1: Any,
+        rhs2: Any,
+        broadcast: Union[NdShape, None],
+        args: Any,
     ) -> None:
         ...
 
@@ -284,7 +311,7 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def create_window(self, op_code: int, M: Any, *args: Any) -> None:
+    def create_window(self, op_code: WindowOpCode, M: Any, *args: Any) -> None:
         ...
 
     @abstractmethod

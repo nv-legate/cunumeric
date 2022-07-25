@@ -15,7 +15,8 @@
 
 import pytest
 from legate.core import LEGATE_MAX_DIM
-from test_tools.contractions import (
+from cunumeric.utils import matmul_modes
+from utils.contractions import (
     check_default,
     check_permutations,
     check_shapes,
