@@ -666,7 +666,7 @@ class EagerArray(NumPyThunk):
         rhs: Any,
         argsort: bool = False,
         axis: int = -1,
-        kind: SortType = "quicksort",
+        kind: Union[SortType, None] = "quicksort",
         order: Union[None, str, list[str]] = None,
     ) -> None:
         self.check_eager_args(rhs)
@@ -1119,7 +1119,7 @@ class EagerArray(NumPyThunk):
         op: UnaryRedCode,
         rhs: Any,
         where: Any,
-        orig_axis: int,
+        orig_axis: Union[int, None],
         axes: tuple[int, ...],
         keepdims: bool,
         args: Any,

@@ -18,7 +18,7 @@ import math
 import re
 from collections import Counter
 from itertools import chain
-from typing import TYPE_CHECKING, Any, Optional, Sequence, Union, cast
+from typing import TYPE_CHECKING, Any, Literal, Optional, Sequence, Union, cast
 
 import numpy as np
 import opt_einsum as oe  # type: ignore [import]
@@ -32,14 +32,14 @@ from ._ufunc.math import add, multiply
 from .array import add_boilerplate, convert_to_cunumeric_ndarray, ndarray
 from .config import BinaryOpCode, UnaryRedCode
 from .runtime import runtime
-from .types import NdShape, NdShapeLike
+from .types import NdShape, NdShapeLike, OrderType, SortSide
 from .utils import AxesPairLike, inner_modes, matmul_modes, tensordot_modes
 
 if TYPE_CHECKING:
     import numpy.typing as npt
 
     from ._ufunc.ufunc import CastingKind
-    from .types import ConvolveMode, SelectKind, SortType
+    from .types import BoundsMode, ConvolveMode, SelectKind, SortType
 
 _builtin_abs = abs
 _builtin_all = all
@@ -413,7 +413,7 @@ def array(
     obj: Any,
     dtype: Optional[np.dtype[Any]] = None,
     copy: bool = True,
-    order: str = "K",
+    order: Union[OrderType, Literal["K"]] = "K",
     subok: bool = False,
     ndmin: int = 0,
 ) -> ndarray:
@@ -643,7 +643,7 @@ def linspace(
     retstep: bool = False,
     dtype: Optional[npt.DTypeLike] = None,
     axis: int = 0,
-) -> Union[ndarray, tuple[ndarray, float]]:
+) -> Union[ndarray, tuple[ndarray, Union[float, ndarray]]]:
     """
 
     Return evenly spaced numbers over a specified interval.
@@ -755,6 +755,7 @@ def linspace(
     # else delta is a scalar so start must be also
     # therefore it will trivially broadcast correctly
 
+    step: Union[float, ndarray]
     if div > 0:
         step = delta / div
         if delta.ndim == 0:
@@ -994,7 +995,7 @@ def shape(a: ndarray) -> NdShape:
 
 
 @add_boilerplate("a")
-def ravel(a: ndarray, order: str = "C") -> ndarray:
+def ravel(a: ndarray, order: OrderType = "C") -> ndarray:
     """
     Return a contiguous flattened array.
 
@@ -1041,7 +1042,9 @@ def ravel(a: ndarray, order: str = "C") -> ndarray:
 
 
 @add_boilerplate("a")
-def reshape(a: ndarray, newshape: NdShapeLike, order: str = "C") -> ndarray:
+def reshape(
+    a: ndarray, newshape: NdShapeLike, order: OrderType = "C"
+) -> ndarray:
     """
 
     Gives a new shape to an array without changing its data.
@@ -1948,7 +1951,7 @@ def column_stack(tup: Sequence[ndarray]) -> ndarray:
     tup, common_info = check_shape_dtype(tup, column_stack.__name__, 1)
     # When ndim == 1, hstack concatenates arrays along the first axis
     if common_info.ndim == 1:
-        tup = list(inp.reshape([inp.shape[0], 1]) for inp in tup)
+        tup = list(inp.reshape((inp.shape[0], 1)) for inp in tup)
         common_info.shape = tup[0].shape
     return _concatenate(
         tup,
@@ -2234,7 +2237,7 @@ def tile(A: ndarray, reps: Union[int, ndarray]) -> ndarray:
     # Prepend ones until the dimensions match
     while len(computed_reps) < out_dims:
         computed_reps = (1,) + computed_reps
-    out_shape: NdShape = ()
+    out_shape: tuple[Any, ...] = ()
     # Prepend dimensions if necessary
     for dim in range(out_dims - A.ndim):
         out_shape += (computed_reps[dim],)
@@ -2773,7 +2776,7 @@ def take(
     indices: ndarray,
     axis: Optional[int] = None,
     out: Optional[ndarray] = None,
-    mode: str = "raise",
+    mode: BoundsMode = "raise",
 ) -> ndarray:
     """
     Take elements from an array along an axis.
@@ -2828,7 +2831,7 @@ def choose(
     a: ndarray,
     choices: Sequence[ndarray],
     out: Optional[ndarray] = None,
-    mode: str = "raise",
+    mode: BoundsMode = "raise",
 ) -> ndarray:
     """
     Construct an array from an index array and a list of arrays to choose from.
@@ -3843,7 +3846,7 @@ def trace(
     offset: int = 0,
     axis1: Optional[int] = None,
     axis2: Optional[int] = None,
-    dtype: Optional[npt.DTypeLike] = None,
+    dtype: Optional[np.dtype[Any]] = None,
     out: Optional[ndarray] = None,
 ) -> ndarray:
     """
@@ -4687,7 +4690,7 @@ def clip(
     a: ndarray,
     a_min: Union[int, float, ndarray],
     a_max: Union[int, float, ndarray],
-    out: Optional[ndarray] = None,
+    out: Optional[npt.NDArray[Any]] = None,
 ) -> ndarray:
     """
 
@@ -4915,7 +4918,7 @@ def msort(a: ndarray) -> ndarray:
 def searchsorted(
     a: ndarray,
     v: Union[int, float, ndarray],
-    side: str = "left",
+    side: SortSide = "left",
     sorter: Optional[ndarray] = None,
 ) -> Union[int, ndarray]:
     """
@@ -5295,7 +5298,7 @@ def count_nonzero(
 def mean(
     a: ndarray,
     axis: Optional[Union[int, tuple[int, ...]]] = None,
-    dtype: Optional[npt.DTypeLike] = None,
+    dtype: Optional[np.dtype[Any]] = None,
     out: Optional[ndarray] = None,
     keepdims: bool = False,
 ) -> ndarray:

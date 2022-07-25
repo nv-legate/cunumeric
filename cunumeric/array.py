@@ -18,20 +18,53 @@ import warnings
 from collections.abc import Iterable
 from functools import reduce, wraps
 from inspect import signature
-from typing import Any, Callable, Optional, Set, TypeVar, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Literal,
+    Optional,
+    Sequence,
+    Set,
+    TypeVar,
+    Union,
+    cast,
+)
 
 import numpy as np
 import pyarrow
-from numpy.core.multiarray import normalize_axis_index
-from numpy.core.numeric import normalize_axis_tuple
+from numpy.core.multiarray import normalize_axis_index  # type: ignore
+from numpy.core.numeric import normalize_axis_tuple  # type: ignore
 from typing_extensions import ParamSpec
 
 from legate.core import Array
 
-from .config import FFTDirection, FFTNormalization, UnaryOpCode, UnaryRedCode
+from .config import (
+    BinaryOpCode,
+    FFTDirection,
+    FFTNormalization,
+    FFTType,
+    UnaryOpCode,
+    UnaryRedCode,
+)
 from .coverage import clone_np_ndarray
 from .runtime import runtime
 from .utils import dot_modes
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    import numpy.typing as npt
+
+    from .thunk import NumPyThunk, SortSide
+    from .types import (
+        BoundsMode,
+        CastingKind,
+        NdShape,
+        OrderType,
+        SelectKind,
+        SortType,
+    )
 
 FALLBACK_WARNING = (
     "cuNumeric has not fully implemented {name} "
@@ -58,7 +91,7 @@ def add_boilerplate(
     """
     keys: Set[str] = set(array_params)
 
-    def decorator(func):
+    def decorator(func: Callable[P, R]) -> Callable[P, R]:
         assert not hasattr(
             func, "__wrapped__"
         ), "this decorator must be the innermost"
@@ -80,7 +113,7 @@ def add_boilerplate(
         assert len(keys - all_formals) == 0, "unkonwn parameter(s)"
 
         @wraps(func)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: Any, **kwargs: Any) -> R:
             assert (where_idx is None or len(args) <= where_idx) and (
                 out_idx is None or len(args) <= out_idx
             ), "'where' and 'out' should be passed as keyword arguments"
@@ -109,7 +142,7 @@ def add_boilerplate(
     return decorator
 
 
-def convert_to_cunumeric_ndarray(obj, share: bool = False) -> ndarray:
+def convert_to_cunumeric_ndarray(obj: Any, share: bool = False) -> ndarray:
     # If this is an instance of one of our ndarrays then we're done
     if isinstance(obj, ndarray):
         return obj
@@ -118,7 +151,7 @@ def convert_to_cunumeric_ndarray(obj, share: bool = False) -> ndarray:
     return ndarray(shape=None, thunk=thunk)
 
 
-def convert_to_predicate_ndarray(obj):
+def convert_to_predicate_ndarray(obj: Any) -> bool:
     # Keep all boolean types as they are
     if obj is True or obj is False:
         return obj
@@ -128,7 +161,7 @@ def convert_to_predicate_ndarray(obj):
     )
 
 
-def _convert_all_to_numpy(obj):
+def _convert_all_to_numpy(obj: Any) -> Any:
     """
     Converts all cuNumeric arrays within a data structure into NumPy arrays.
 
@@ -152,14 +185,14 @@ def _convert_all_to_numpy(obj):
 class ndarray:
     def __init__(
         self,
-        shape,
-        dtype=np.float64,
-        buffer=None,
-        offset=0,
-        strides=None,
-        order=None,
-        thunk=None,
-        inputs=None,
+        shape: Any,
+        dtype: npt.DTypeLike = np.float64,
+        buffer: Union[Any, None] = None,
+        offset: int = 0,
+        strides: Union[tuple[int], None] = None,
+        order: Union[OrderType, None] = None,
+        thunk: Union[NumPyThunk, None] = None,
+        inputs: Union[Any, None] = None,
     ) -> None:
         # `inputs` being a cuNumeric ndarray is definitely a bug
         assert not isinstance(inputs, ndarray)
@@ -168,7 +201,7 @@ class ndarray:
                 dtype = np.dtype(dtype)
             if buffer is not None:
                 # Make a normal numpy array for this buffer
-                np_array = np.ndarray(
+                np_array: npt.NDArray[Any] = np.ndarray(
                     shape=shape,
                     dtype=dtype,
                     buffer=buffer,
@@ -190,11 +223,11 @@ class ndarray:
                 self._thunk = runtime.create_empty_thunk(shape, dtype, inputs)
         else:
             self._thunk = thunk
-        self._legate_data = None
+        self._legate_data: Union[dict[str, Any], None] = None
 
     # Support for the Legate data interface
     @property
-    def __legate_data_interface__(self):
+    def __legate_data_interface__(self) -> dict[str, Any]:
         if self._legate_data is None:
             # All of our thunks implement the Legate Store interface
             # so we just need to convert our type and stick it in
@@ -234,7 +267,9 @@ class ndarray:
     # def __array_struct__(self):
     #    return self.__array__().__array_struct__
 
-    def __array_function__(self, func, types, args, kwargs):
+    def __array_function__(
+        self, func: Any, types: Any, args: tuple[Any], kwargs: dict[str, Any]
+    ) -> Any:
         import cunumeric as cn
 
         # We are wrapping all NumPy modules, so we can expect to find every
@@ -266,7 +301,9 @@ class ndarray:
             kwargs = _convert_all_to_numpy(kwargs)
             return func(*args, **kwargs)
 
-    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+    def __array_ufunc__(
+        self, ufunc: Any, method: str, *inputs: Any, **kwargs: Any
+    ) -> Any:
         from . import _ufunc
 
         # TODO: Similar to __array_function__, we should technically confirm
@@ -313,7 +350,7 @@ class ndarray:
         return getattr(ufunc, method)(*inputs, **kwargs)
 
     @property
-    def T(self):
+    def T(self) -> ndarray:
         """
 
         The transposed array.
@@ -329,7 +366,7 @@ class ndarray:
         return self.transpose()
 
     @property
-    def base(self):
+    def base(self) -> Union[npt.NDArray[Any], None]:
         """
         Returns dtype for the base element of the subarrays,
         regardless of their dimension or shape.
@@ -342,7 +379,7 @@ class ndarray:
         return self.__array__().base
 
     @property
-    def data(self):
+    def data(self) -> memoryview:
         """
         Python buffer object pointing to the start of the array's data.
 
@@ -350,7 +387,7 @@ class ndarray:
         return self.__array__().data
 
     @property
-    def dtype(self):
+    def dtype(self) -> np.dtype[Any]:
         """
         Data-type of the array's elements.
 
@@ -364,7 +401,7 @@ class ndarray:
         return self._thunk.dtype
 
     @property
-    def flags(self):
+    def flags(self) -> Any:
         """
         Information about the memory layout of the array.
 
@@ -439,7 +476,7 @@ class ndarray:
         return self.__array__().flags
 
     @property
-    def flat(self):
+    def flat(self) -> np.flatiter[npt.NDArray[Any]]:
         """
         A 1-D iterator over the array.
 
@@ -451,7 +488,7 @@ class ndarray:
         return self.__array__().flat
 
     @property
-    def imag(self):
+    def imag(self) -> ndarray:
         """
         The imaginary part of the array.
 
@@ -464,7 +501,7 @@ class ndarray:
             return result
 
     @property
-    def ndim(self):
+    def ndim(self) -> int:
         """
         Number of array dimensions.
 
@@ -472,7 +509,7 @@ class ndarray:
         return self._thunk.ndim
 
     @property
-    def real(self):
+    def real(self) -> ndarray:
         """
 
         The real part of the array.
@@ -484,7 +521,7 @@ class ndarray:
             return self
 
     @property
-    def shape(self):
+    def shape(self) -> NdShape:
         """
 
         Tuple of array dimensions.
@@ -499,7 +536,7 @@ class ndarray:
         return self._thunk.shape
 
     @property
-    def size(self):
+    def size(self) -> int:
         """
 
         Number of elements in the array.
@@ -524,7 +561,7 @@ class ndarray:
         return s
 
     @property
-    def itemsize(self):
+    def itemsize(self) -> int:
         """
 
         The element size of this data-type object.
@@ -536,7 +573,7 @@ class ndarray:
         return self._thunk.dtype.itemsize
 
     @property
-    def nbytes(self):
+    def nbytes(self) -> int:
         """
 
         Total bytes consumed by the elements of the array.
@@ -550,7 +587,7 @@ class ndarray:
         return self.itemsize * self.size
 
     @property
-    def strides(self):
+    def strides(self) -> tuple[int, ...]:
         """
 
         Tuple of bytes to step in each dimension when traversing an array.
@@ -582,7 +619,7 @@ class ndarray:
         return self.__array__().strides
 
     @property
-    def ctypes(self):
+    def ctypes(self) -> Any:
         """
 
         An object to simplify the interaction of the array with the ctypes
@@ -609,7 +646,7 @@ class ndarray:
 
     # Methods for ndarray
 
-    def __abs__(self):
+    def __abs__(self) -> ndarray:
         """a.__abs__(/)
 
         Return ``abs(self)``.
@@ -624,7 +661,7 @@ class ndarray:
 
         return absolute(self)
 
-    def __add__(self, rhs):
+    def __add__(self, rhs: Any) -> ndarray:
         """a.__add__(value, /)
 
         Return ``self+value``.
@@ -638,7 +675,7 @@ class ndarray:
 
         return add(self, rhs)
 
-    def __and__(self, rhs):
+    def __and__(self, rhs: Any) -> ndarray:
         """a.__and__(value, /)
 
         Return ``self&value``.
@@ -652,7 +689,9 @@ class ndarray:
 
         return logical_and(self, rhs)
 
-    def __array__(self, dtype=None):
+    def __array__(
+        self, dtype: Union[np.dtype[Any], None] = None
+    ) -> npt.NDArray[Any]:
         """a.__array__([dtype], /)
 
         Returns either a new reference to self if dtype is not given or a new
@@ -671,7 +710,7 @@ class ndarray:
     # def __array_wrap__(self, *args, **kwargs):
     #    return self.__array__().__array_wrap__(*args, **kwargs)
 
-    def __bool__(self):
+    def __bool__(self) -> bool:
         """a.__bool__(/)
 
         Return ``self!=0``
@@ -679,11 +718,11 @@ class ndarray:
         """
         return bool(self.__array__())
 
-    def __complex__(self):
+    def __complex__(self) -> complex:
         """a.__complex__(/)"""
         return complex(self.__array__())
 
-    def __contains__(self, item):
+    def __contains__(self, item: Any) -> ndarray:
         """a.__contains__(key, /)
 
         Return ``key in self``.
@@ -707,7 +746,7 @@ class ndarray:
             args=args,
         )
 
-    def __copy__(self):
+    def __copy__(self) -> ndarray:
         """a.__copy__()
 
         Used if :func:`copy.copy` is called on an array. Returns a copy
@@ -724,7 +763,7 @@ class ndarray:
         result._thunk.copy(self._thunk, deep=False)
         return result
 
-    def __deepcopy__(self, memo=None):
+    def __deepcopy__(self, memo: Union[Any, None] = None) -> ndarray:
         """a.__deepcopy__(memo, /)
 
         Deep copy of array.
@@ -740,7 +779,7 @@ class ndarray:
         result._thunk.copy(self._thunk, deep=True)
         return result
 
-    def __div__(self, rhs):
+    def __div__(self, rhs: Any) -> ndarray:
         """a.__div__(value, /)
 
         Return ``self/value``.
@@ -752,7 +791,7 @@ class ndarray:
         """
         return self.__truediv__(rhs)
 
-    def __divmod__(self, rhs):
+    def __divmod__(self, rhs: Any) -> ndarray:
         """a.__divmod__(value, /)
 
         Return ``divmod(self, value)``.
@@ -766,7 +805,7 @@ class ndarray:
             "cunumeric.ndarray doesn't support __divmod__ yet"
         )
 
-    def __eq__(self, rhs):
+    def __eq__(self, rhs: object) -> ndarray:  # type: ignore [override]
         """a.__eq__(value, /)
 
         Return ``self==value``.
@@ -780,7 +819,7 @@ class ndarray:
 
         return equal(self, rhs)
 
-    def __float__(self):
+    def __float__(self) -> float:
         """a.__float__(/)
 
         Return ``float(self)``.
@@ -788,7 +827,7 @@ class ndarray:
         """
         return float(self.__array__())
 
-    def __floordiv__(self, rhs):
+    def __floordiv__(self, rhs: Any) -> ndarray:
         """a.__floordiv__(value, /)
 
         Return ``self//value``.
@@ -802,10 +841,10 @@ class ndarray:
 
         return floor_divide(self, rhs)
 
-    def __format__(self, *args, **kwargs):
+    def __format__(self, *args: Any, **kwargs: Any) -> str:
         return self.__array__().__format__(*args, **kwargs)
 
-    def __ge__(self, rhs):
+    def __ge__(self, rhs: Any) -> ndarray:
         """a.__ge__(value, /)
 
         Return ``self>=value``.
@@ -821,7 +860,7 @@ class ndarray:
 
     # __getattribute__
 
-    def _convert_key(self, key, first=True):
+    def _convert_key(self, key: Any, first: bool = True) -> Any:
         # Convert any arrays stored in a key to a cuNumeric array
         if (
             key is np.newaxis
@@ -848,7 +887,7 @@ class ndarray:
             return key._thunk
 
     @add_boilerplate()
-    def __getitem__(self, key):
+    def __getitem__(self, key: Any) -> ndarray:
         """a.__getitem__(key, /)
 
         Return ``self[key]``.
@@ -857,7 +896,7 @@ class ndarray:
         key = self._convert_key(key)
         return ndarray(shape=None, thunk=self._thunk.get_item(key))
 
-    def __gt__(self, rhs):
+    def __gt__(self, rhs: Any) -> ndarray:
         """a.__gt__(value, /)
 
         Return ``self>value``.
@@ -871,10 +910,10 @@ class ndarray:
 
         return greater(self, rhs)
 
-    def __hash__(self, *args, **kwargs):
+    def __hash__(self) -> int:
         raise TypeError("unhashable type: cunumeric.ndarray")
 
-    def __iadd__(self, rhs):
+    def __iadd__(self, rhs: Any) -> ndarray:
         """a.__iadd__(value, /)
 
         Return ``self+=value``.
@@ -888,7 +927,7 @@ class ndarray:
 
         return add(self, rhs, out=self)
 
-    def __iand__(self, rhs):
+    def __iand__(self, rhs: Any) -> ndarray:
         """a.__iand__(value, /)
 
         Return ``self&=value``.
@@ -902,7 +941,7 @@ class ndarray:
 
         return logical_and(self, rhs, out=self)
 
-    def __idiv__(self, rhs):
+    def __idiv__(self, rhs: Any) -> ndarray:
         """a.__idiv__(value, /)
 
         Return ``self/=value``.
@@ -914,7 +953,7 @@ class ndarray:
         """
         return self.__itruediv__(rhs)
 
-    def __ifloordiv__(self, rhs):
+    def __ifloordiv__(self, rhs: Any) -> ndarray:
         """a.__ifloordiv__(value, /)
 
         Return ``self//=value``.
@@ -928,7 +967,7 @@ class ndarray:
 
         return floor_divide(self, rhs, out=self)
 
-    def __ilshift__(self, rhs):
+    def __ilshift__(self, rhs: Any) -> ndarray:
         """a.__ilshift__(value, /)
 
         Return ``self<<=value``.
@@ -942,7 +981,7 @@ class ndarray:
 
         return left_shift(self, rhs, out=self)
 
-    def __imod__(self, rhs):
+    def __imod__(self, rhs: Any) -> ndarray:
         """a.__imod__(value, /)
 
         Return ``self%=value``.
@@ -956,7 +995,7 @@ class ndarray:
 
         return remainder(self, rhs, out=self)
 
-    def __imul__(self, rhs):
+    def __imul__(self, rhs: Any) -> ndarray:
         """a.__imul__(value, /)
 
         Return ``self*=value``.
@@ -970,7 +1009,7 @@ class ndarray:
 
         return multiply(self, rhs, out=self)
 
-    def __int__(self):
+    def __int__(self) -> int:
         """a.__int__(/)
 
         Return ``int(self)``.
@@ -978,7 +1017,7 @@ class ndarray:
         """
         return int(self.__array__())
 
-    def __invert__(self):
+    def __invert__(self) -> ndarray:
         """a.__invert__(/)
 
         Return ``~self``.
@@ -998,7 +1037,7 @@ class ndarray:
 
             return invert(self)
 
-    def __ior__(self, rhs):
+    def __ior__(self, rhs: Any) -> ndarray:
         """a.__ior__(/)
 
         Return ``self|=value``.
@@ -1012,7 +1051,7 @@ class ndarray:
 
         return logical_or(self, rhs, out=self)
 
-    def __ipow__(self, rhs):
+    def __ipow__(self, rhs: float) -> ndarray:
         """a.__ipow__(/)
 
         Return ``self**=value``.
@@ -1026,7 +1065,7 @@ class ndarray:
 
         return power(self, rhs, out=self)
 
-    def __irshift__(self, rhs):
+    def __irshift__(self, rhs: Any) -> ndarray:
         """a.__irshift__(/)
 
         Return ``self>>=value``.
@@ -1040,11 +1079,11 @@ class ndarray:
 
         return right_shift(self, rhs, out=self)
 
-    def __iter__(self):
+    def __iter__(self) -> Any:
         """a.__iter__(/)"""
         return self.__array__().__iter__()
 
-    def __isub__(self, rhs):
+    def __isub__(self, rhs: Any) -> ndarray:
         """a.__isub__(/)
 
         Return ``self-=value``.
@@ -1058,7 +1097,7 @@ class ndarray:
 
         return subtract(self, rhs, out=self)
 
-    def __itruediv__(self, rhs):
+    def __itruediv__(self, rhs: Any) -> ndarray:
         """a.__itruediv__(/)
 
         Return ``self/=value``.
@@ -1072,7 +1111,7 @@ class ndarray:
 
         return true_divide(self, rhs, out=self)
 
-    def __ixor__(self, rhs):
+    def __ixor__(self, rhs: Any) -> ndarray:
         """a.__ixor__(/)
 
         Return ``self^=value``.
@@ -1086,7 +1125,7 @@ class ndarray:
 
         return logical_xor(self, rhs, out=self)
 
-    def __le__(self, rhs):
+    def __le__(self, rhs: Any) -> ndarray:
         """a.__le__(value, /)
 
         Return ``self<=value``.
@@ -1100,7 +1139,7 @@ class ndarray:
 
         return less_equal(self, rhs)
 
-    def __len__(self):
+    def __len__(self) -> int:
         """a.__len__(/)
 
         Return ``len(self)``.
@@ -1108,7 +1147,7 @@ class ndarray:
         """
         return self.shape[0]
 
-    def __lshift__(self, rhs):
+    def __lshift__(self, rhs: Any) -> ndarray:
         """a.__lshift__(value, /)
 
         Return ``self<<value``.
@@ -1122,7 +1161,7 @@ class ndarray:
 
         return left_shift(self, rhs)
 
-    def __lt__(self, rhs):
+    def __lt__(self, rhs: Any) -> ndarray:
         """a.__lt__(value, /)
 
         Return ``self<value``.
@@ -1136,7 +1175,7 @@ class ndarray:
 
         return less(self, rhs)
 
-    def __matmul__(self, value):
+    def __matmul__(self, value: Any) -> ndarray:
         """a.__matmul__(value, /)
 
         Return ``self@value``.
@@ -1148,7 +1187,7 @@ class ndarray:
         """
         return self.dot(value)
 
-    def __mod__(self, rhs):
+    def __mod__(self, rhs: Any) -> ndarray:
         """a.__mod__(value, /)
 
         Return ``self%value``.
@@ -1162,7 +1201,7 @@ class ndarray:
 
         return remainder(self, rhs)
 
-    def __mul__(self, rhs):
+    def __mul__(self, rhs: Any) -> ndarray:
         """a.__mul__(value, /)
 
         Return ``self*value``.
@@ -1176,7 +1215,7 @@ class ndarray:
 
         return multiply(self, rhs)
 
-    def __ne__(self, rhs):
+    def __ne__(self, rhs: object) -> ndarray:  # type: ignore [override]
         """a.__ne__(value, /)
 
         Return ``self!=value``.
@@ -1190,7 +1229,7 @@ class ndarray:
 
         return not_equal(self, rhs)
 
-    def __neg__(self):
+    def __neg__(self) -> ndarray:
         """a.__neg__(value, /)
 
         Return ``-self``.
@@ -1228,25 +1267,7 @@ class ndarray:
             ndarray(shape=thunk.shape, thunk=thunk) for thunk in thunks
         )
 
-    def __nonzero__(self):
-        """a.nonzero(/)
-
-        Return the indices of the elements that are non-zero.
-
-        Refer to :func:`cunumeric.nonzero` for full documentation.
-
-        See Also
-        --------
-        cunumeric.nonzero : equivalent function
-
-        Availability
-        --------
-        Multiple GPUs, Multiple CPUs
-
-        """
-        return self.__array__().__nonzero__()
-
-    def __or__(self, rhs):
+    def __or__(self, rhs: Any) -> ndarray:
         """a.__or__(value, /)
 
         Return ``self|value``.
@@ -1260,7 +1281,7 @@ class ndarray:
 
         return logical_or(self, rhs)
 
-    def __pos__(self):
+    def __pos__(self) -> ndarray:
         """a.__pos__(value, /)
 
         Return ``+self``.
@@ -1275,7 +1296,7 @@ class ndarray:
 
         return positive(self)
 
-    def __pow__(self, rhs):
+    def __pow__(self, rhs: float) -> ndarray:
         """a.__pow__(value, /)
 
         Return ``pow(self, value)``.
@@ -1289,7 +1310,7 @@ class ndarray:
 
         return power(self, rhs)
 
-    def __radd__(self, lhs):
+    def __radd__(self, lhs: Any) -> ndarray:
         """a.__radd__(value, /)
 
         Return ``value+self``.
@@ -1303,7 +1324,7 @@ class ndarray:
 
         return add(lhs, self)
 
-    def __rand__(self, lhs):
+    def __rand__(self, lhs: Any) -> ndarray:
         """a.__rand__(value, /)
 
         Return ``value&self``.
@@ -1317,7 +1338,7 @@ class ndarray:
 
         return logical_and(lhs, self)
 
-    def __rdiv__(self, lhs):
+    def __rdiv__(self, lhs: Any) -> ndarray:
         """a.__rdiv__(value, /)
 
         Return ``value/self``.
@@ -1331,7 +1352,7 @@ class ndarray:
 
         return true_divide(lhs, self)
 
-    def __rdivmod__(self, lhs):
+    def __rdivmod__(self, lhs: Any) -> ndarray:
         """a.__rdivmod__(value, /)
 
         Return ``divmod(value, self)``.
@@ -1345,7 +1366,9 @@ class ndarray:
             "cunumeric.ndarray doesn't support __rdivmod__ yet"
         )
 
-    def __reduce__(self, *args, **kwargs):
+    def __reduce__(
+        self, *args: Any, **kwargs: Any
+    ) -> Union[str, tuple[str, ...]]:
         """a.__reduce__(/)
 
         For pickling.
@@ -1353,10 +1376,12 @@ class ndarray:
         """
         return self.__array__().__reduce__(*args, **kwargs)
 
-    def __reduce_ex__(self, *args, **kwargs):
+    def __reduce_ex__(
+        self, *args: Any, **kwargs: Any
+    ) -> Union[str, tuple[str, ...]]:
         return self.__array__().__reduce_ex__(*args, **kwargs)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """a.__repr__(/)
 
         Return ``repr(self)``.
@@ -1368,7 +1393,7 @@ class ndarray:
         """
         return repr(self.__array__())
 
-    def __rfloordiv__(self, lhs):
+    def __rfloordiv__(self, lhs: Any) -> ndarray:
         """a.__rfloordiv__(value, /)
 
         Return ``value//self``.
@@ -1382,7 +1407,7 @@ class ndarray:
 
         return floor_divide(lhs, self)
 
-    def __rmod__(self, lhs):
+    def __rmod__(self, lhs: Any) -> ndarray:
         """a.__rmod__(value, /)
 
         Return ``value%self``.
@@ -1396,7 +1421,7 @@ class ndarray:
 
         return remainder(lhs, self)
 
-    def __rmul__(self, lhs):
+    def __rmul__(self, lhs: Any) -> ndarray:
         """a.__rmul__(value, /)
 
         Return ``value*self``.
@@ -1410,7 +1435,7 @@ class ndarray:
 
         return multiply(lhs, self)
 
-    def __ror__(self, lhs):
+    def __ror__(self, lhs: Any) -> ndarray:
         """a.__ror__(value, /)
 
         Return ``value|self``.
@@ -1424,7 +1449,7 @@ class ndarray:
 
         return logical_or(lhs, self)
 
-    def __rpow__(self, lhs):
+    def __rpow__(self, lhs: Any) -> ndarray:
         """__rpow__(value, /)
 
         Return ``pow(value, self)``.
@@ -1438,7 +1463,7 @@ class ndarray:
 
         return power(lhs, self)
 
-    def __rshift__(self, rhs):
+    def __rshift__(self, rhs: Any) -> ndarray:
         """a.__rshift__(value, /)
 
         Return ``self>>value``.
@@ -1452,7 +1477,7 @@ class ndarray:
 
         return right_shift(self, rhs)
 
-    def __rsub__(self, lhs):
+    def __rsub__(self, lhs: Any) -> ndarray:
         """a.__rsub__(value, /)
 
         Return ``value-self``.
@@ -1466,7 +1491,7 @@ class ndarray:
 
         return subtract(lhs, self)
 
-    def __rtruediv__(self, lhs):
+    def __rtruediv__(self, lhs: Any) -> ndarray:
         """a.__rtruediv__(value, /)
 
         Return ``value/self``.
@@ -1480,7 +1505,7 @@ class ndarray:
 
         return true_divide(lhs, self)
 
-    def __rxor__(self, lhs):
+    def __rxor__(self, lhs: Any) -> ndarray:
         """a.__rxor__(value, /)
 
         Return ``value^self``.
@@ -1497,7 +1522,7 @@ class ndarray:
     # __setattr__
 
     @add_boilerplate("value")
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: Any, value: Any) -> None:
         """__setitem__(key, value, /)
 
         Set ``self[key]=value``.
@@ -1512,7 +1537,7 @@ class ndarray:
         key = self._convert_key(key)
         self._thunk.set_item(key, value._thunk)
 
-    def __setstate__(self, state):
+    def __setstate__(self, state: Any) -> None:
         """a.__setstate__(state, /)
 
         For unpickling.
@@ -1533,10 +1558,10 @@ class ndarray:
         """
         self.__array__().__setstate__(state)
 
-    def __sizeof__(self, *args, **kwargs):
+    def __sizeof__(self, *args: Any, **kwargs: Any) -> int:
         return self.__array__().__sizeof__(*args, **kwargs)
 
-    def __sub__(self, rhs):
+    def __sub__(self, rhs: Any) -> ndarray:
         """a.__sub__(value, /)
 
         Return ``self-value``.
@@ -1550,7 +1575,7 @@ class ndarray:
 
         return subtract(self, rhs)
 
-    def __str__(self):
+    def __str__(self) -> str:
         """a.__str__(/)
 
         Return ``str(self)``.
@@ -1562,7 +1587,7 @@ class ndarray:
         """
         return str(self.__array__())
 
-    def __truediv__(self, rhs):
+    def __truediv__(self, rhs: Any) -> ndarray:
         """a.__truediv__(value, /)
 
         Return ``self/value``.
@@ -1576,7 +1601,7 @@ class ndarray:
 
         return true_divide(self, rhs)
 
-    def __xor__(self, rhs):
+    def __xor__(self, rhs: Any) -> ndarray:
         """a.__xor__(value, /)
 
         Return ``self^value``.
@@ -1593,12 +1618,12 @@ class ndarray:
     @add_boilerplate()
     def all(
         self,
-        axis=None,
-        out=None,
-        keepdims=False,
-        initial=None,
-        where=True,
-    ):
+        axis: Any = None,
+        out: Union[ndarray, None] = None,
+        keepdims: bool = False,
+        initial: Union[int, float, None] = None,
+        where: Union[bool, ndarray] = True,
+    ) -> ndarray:
         """a.all(axis=None, out=None, keepdims=False, initial=None, where=True)
 
         Returns True if all elements evaluate to True.
@@ -1628,12 +1653,12 @@ class ndarray:
     @add_boilerplate()
     def any(
         self,
-        axis=None,
-        out=None,
-        keepdims=False,
-        initial=None,
-        where=True,
-    ):
+        axis: Any = None,
+        out: Union[ndarray, None] = None,
+        keepdims: bool = False,
+        initial: Union[int, float, None] = None,
+        where: Union[bool, ndarray] = True,
+    ) -> ndarray:
         """a.any(axis=None, out=None, keepdims=False, initial=None, where=True)
 
         Returns True if any of the elements of `a` evaluate to True.
@@ -1661,7 +1686,12 @@ class ndarray:
         )
 
     @add_boilerplate()
-    def argmax(self, axis=None, out=None, keepdims=False):
+    def argmax(
+        self,
+        axis: Any = None,
+        out: Union[ndarray, None] = None,
+        keepdims: bool = False,
+    ) -> ndarray:
         """a.argmax(axis=None, out=None)
 
         Return indices of the maximum values along the given axis.
@@ -1691,7 +1721,12 @@ class ndarray:
         )
 
     @add_boilerplate()
-    def argmin(self, axis=None, out=None, keepdims=False):
+    def argmin(
+        self,
+        axis: Any = None,
+        out: Union[ndarray, None] = None,
+        keepdims: bool = False,
+    ) -> ndarray:
         """a.argmin(axis=None, out=None)
 
         Return indices of the minimum values along the given axis.
@@ -1721,7 +1756,12 @@ class ndarray:
         )
 
     def astype(
-        self, dtype, order="C", casting="unsafe", subok=True, copy=True
+        self,
+        dtype: npt.DTypeLike,
+        order: OrderType = "C",
+        casting: CastingKind = "unsafe",
+        subok: bool = True,
+        copy: bool = True,
     ) -> ndarray:
         """a.astype(dtype, order='C', casting='unsafe', subok=True, copy=True)
 
@@ -1798,7 +1838,13 @@ class ndarray:
         return result
 
     @add_boilerplate()
-    def take(self, indices, axis=None, out=None, mode="raise"):
+    def take(
+        self,
+        indices: Any,
+        axis: Any = None,
+        out: Union[ndarray, None] = None,
+        mode: BoundsMode = "raise",
+    ) -> ndarray:
         """a.take(indices, axis=None, out=None, mode="raise")
 
         Take elements from an array along an axis.
@@ -1872,7 +1918,12 @@ class ndarray:
                 res = res.copy()
             return res
 
-    def choose(self, choices, out=None, mode="raise") -> ndarray:
+    def choose(
+        self,
+        choices: Any,
+        out: Union[ndarray, None] = None,
+        mode: BoundsMode = "raise",
+    ) -> ndarray:
         """a.choose(choices, out=None, mode='raise')
 
         Use an index array to construct a new array from a set of choices.
@@ -1912,7 +1963,7 @@ class ndarray:
 
         if not np.issubdtype(self.dtype, np.integer):
             raise TypeError("a array should be integer type")
-        if self.dtype is not np.int64:
+        if self.dtype.type is not np.int64:
             a = a.astype(np.int64)
         if mode == "raise":
             if (a < 0).any() | (a >= n).any():
@@ -1970,7 +2021,12 @@ class ndarray:
             return out_arr
 
     @add_boilerplate()
-    def compress(self, condition, axis=None, out=None):
+    def compress(
+        self,
+        condition: ndarray,
+        axis: Any = None,
+        out: Union[ndarray, None] = None,
+    ) -> ndarray:
         """a.compress(self, condition, axis=None, out=None)
 
         Return selected slices of an array along given axis.
@@ -2015,7 +2071,7 @@ class ndarray:
             )
             a = a[slice_tuple]
 
-        index_tuple = tuple(slice(None) for ax in range(axis))
+        index_tuple: tuple[Any, ...] = tuple(slice(None) for ax in range(axis))
         index_tuple += (condition,)
 
         if out is not None:
@@ -2025,7 +2081,12 @@ class ndarray:
             res = a[index_tuple]
             return res
 
-    def clip(self, min=None, max=None, out=None) -> ndarray:
+    def clip(
+        self,
+        min: Union[npt.ArrayLike, None] = None,
+        max: Union[npt.ArrayLike, None] = None,
+        out: Union[npt.NDArray[Any], None] = None,
+    ) -> ndarray:
         """a.clip(min=None, max=None, out=None)
 
         Return an array whose values are limited to ``[min, max]``.
@@ -2056,11 +2117,11 @@ class ndarray:
                 category=RuntimeWarning,
             )
             if out is not None:
-                self.__array__().clip(min, max, out=out)
+                self.__array__().clip(args[0], args[1], out=out)
                 return convert_to_cunumeric_ndarray(out, share=True)
             else:
                 return convert_to_cunumeric_ndarray(
-                    self.__array__.clip(min, max)
+                    self.__array__().clip(args[0], args[1])
                 )
         return self._perform_unary_op(
             UnaryOpCode.CLIP, self, dst=out, extra_args=args
@@ -2106,7 +2167,7 @@ class ndarray:
         """
         return self.conj()
 
-    def copy(self, order="C") -> ndarray:
+    def copy(self, order: OrderType = "C") -> ndarray:
         """copy()
 
         Get a copy of the iterator as a 1-D array.
@@ -2125,12 +2186,12 @@ class ndarray:
     # use case of having arbitrary number of offsets
     def _diag_helper(
         self,
-        offset=0,
-        axes=None,
-        extract=True,
-        trace=False,
-        out=None,
-        dtype=None,
+        offset: int = 0,
+        axes: Union[Any, None] = None,
+        extract: bool = True,
+        trace: bool = False,
+        out: Union[ndarray, None] = None,
+        dtype: Union[np.dtype[Any], None] = None,
     ) -> ndarray:
         # _diag_helper can be used only for arrays with dim>=1
         if self.ndim < 1:
@@ -2155,6 +2216,7 @@ class ndarray:
                 self._thunk, offset=offset, naxes=0, extract=False, trace=False
             )
         else:
+            assert axes is not None
             N = len(axes)
             if len(axes) != len(set(axes)):
                 raise ValueError(
@@ -2205,6 +2267,7 @@ class ndarray:
 
             tr_shape = tuple(a.shape[i] for i in range(a.ndim - N))
             # calculate shape of the output array
+            out_shape: NdShape
             if trace:
                 if N != 2:
                     raise ValueError(
@@ -2227,11 +2290,9 @@ class ndarray:
                     raise ValueError("output array has wrong shape")
                 a = a._maybe_convert(out.dtype, (a, out))
             else:
-                out = ndarray(
-                    shape=out_shape, dtype=self.dtype, inputs=(self,)
-                )
-            if out is None and dtype is not None:
-                a = a._maybe_convert(dtype, (a,))
+                if dtype is not None:
+                    a = a._maybe_convert(dtype, (a,))
+                out = ndarray(shape=out_shape, dtype=a.dtype, inputs=(self,))
 
             out._thunk._diag_helper(
                 a._thunk, offset=offset, naxes=N, extract=extract, trace=trace
@@ -2239,7 +2300,12 @@ class ndarray:
         return out
 
     def diagonal(
-        self, offset=0, axis1=None, axis2=None, extract=True, axes=None
+        self,
+        offset: int = 0,
+        axis1: Any = None,
+        axis2: Any = None,
+        extract: bool = True,
+        axes: Any = None,
     ) -> ndarray:
         """a.diagonal(offset=0, axis1=None, axis2=None)
 
@@ -2277,7 +2343,14 @@ class ndarray:
         return self._diag_helper(offset=offset, axes=axes, extract=extract)
 
     @add_boilerplate()
-    def trace(self, offset=0, axis1=None, axis2=None, dtype=None, out=None):
+    def trace(
+        self,
+        offset: int = 0,
+        axis1: Any = None,
+        axis2: Any = None,
+        dtype: Union[np.dtype[Any], None] = None,
+        out: Union[ndarray, None] = None,
+    ) -> ndarray:
         """a.trace(offset=0, axis1=None, axis2=None, dtype = None, out = None)
 
         Return the sum along diagonals of the array.
@@ -2298,7 +2371,7 @@ class ndarray:
                 "trace operation can't be called on a array with DIM<2"
             )
 
-        axes = []
+        axes: tuple[int, ...] = ()
         if (axis1 is None) and (axis2 is None):
             # default values for axis
             axes = (0, 1)
@@ -2318,7 +2391,7 @@ class ndarray:
         return res
 
     @add_boilerplate("rhs")
-    def dot(self, rhs, out=None) -> ndarray:
+    def dot(self, rhs: Any, out: Union[ndarray, None] = None) -> ndarray:
         """a.dot(rhs, out=None)
 
         Return the dot product of this array with ``rhs``.
@@ -2352,7 +2425,7 @@ class ndarray:
             casting="no",
         )
 
-    def dump(self, file):
+    def dump(self, file: Union[str, Path]) -> None:
         """a.dump(file)
 
         Dump a pickle of the array to the specified file.
@@ -2371,7 +2444,7 @@ class ndarray:
         """
         self.__array__().dump(file=file)
 
-    def dumps(self):
+    def dumps(self) -> bytes:
         """a.dumps()
 
         Returns the pickle of the array as a string.
@@ -2389,7 +2462,9 @@ class ndarray:
         """
         return self.__array__().dumps()
 
-    def _normalize_axes_shape(self, axes, s):
+    def _normalize_axes_shape(
+        self, axes: Any, s: Any
+    ) -> tuple[npt.NDArray[Any], npt.NDArray[Any]]:
         user_axes = axes is not None
         user_sizes = s is not None
         if user_axes and user_sizes and len(axes) != len(s):
@@ -2403,7 +2478,7 @@ class ndarray:
                     )
                 )
         else:
-            fft_axes = range(len(s)) if user_sizes else range(self.ndim)
+            fft_axes = list(range(len(s)) if user_sizes else range(self.ndim))
 
         fft_s = list(self.shape)
         if user_sizes:
@@ -2411,7 +2486,14 @@ class ndarray:
                 fft_s[ax] = s[idx]
         return np.asarray(fft_axes), np.asarray(fft_s)
 
-    def fft(self, s, axes, kind, direction, norm) -> ndarray:
+    def fft(
+        self,
+        s: Any,
+        axes: Union[Sequence[int], None],
+        kind: FFTType,
+        direction: FFTDirection,
+        norm: Any,
+    ) -> ndarray:
         """a.fft(s, axes, kind, direction, norm)
 
         Return the ``kind`` ``direction`` FFT of this array
@@ -2487,7 +2569,9 @@ class ndarray:
             shape=fft_output_shape,
             dtype=fft_output_type,
         )
-        out._thunk.fft(fft_input._thunk, fft_axes, kind, direction)
+        out._thunk.fft(
+            fft_input._thunk, cast(Sequence[int], fft_axes), kind, direction
+        )
 
         # Normalization
         fft_norm = FFTNormalization.from_string(norm)
@@ -2513,7 +2597,7 @@ class ndarray:
 
         return out
 
-    def fill(self, value):
+    def fill(self, value: float) -> None:
         """a.fill(value)
 
         Fill the array with a scalar value.
@@ -2531,7 +2615,7 @@ class ndarray:
         val = np.array(value, dtype=self.dtype)
         self._thunk.fill(val)
 
-    def flatten(self, order="C"):
+    def flatten(self, order: OrderType = "C") -> ndarray:
         """a.flatten(order='C')
 
         Return a copy of the array collapsed into one dimension.
@@ -2565,18 +2649,18 @@ class ndarray:
         # Same as 'ravel' because cuNumeric creates a new array by 'reshape'
         return self.reshape(-1, order=order)
 
-    def getfield(self, dtype, offset=0):
+    def getfield(self, dtype: np.dtype[Any], offset: int = 0) -> None:
         raise NotImplementedError(
             "cuNumeric does not currently support type reinterpretation "
             "for ndarray.getfield"
         )
 
-    def _convert_singleton_key(self, args: tuple):
+    def _convert_singleton_key(self, args: tuple[Any, ...]) -> Any:
         if len(args) == 0 and self.size == 1:
             return (0,) * self.ndim
         if len(args) == 1 and isinstance(args[0], int):
             flat_idx = args[0]
-            result = ()
+            result: tuple[int, ...] = ()
             for dim_size in reversed(self.shape):
                 result = (flat_idx % dim_size,) + result
                 flat_idx //= dim_size
@@ -2587,7 +2671,7 @@ class ndarray:
             raise KeyError("invalid key")
         return args
 
-    def item(self, *args):
+    def item(self, *args: Any) -> Any:
         """a.item(*args)
 
         Copy an element of an array to a standard Python scalar and return it.
@@ -2632,7 +2716,7 @@ class ndarray:
         assert result.shape == ()
         return result._thunk.__numpy_array__()
 
-    def itemset(self, *args):
+    def itemset(self, *args: Any) -> None:
         """a.itemset(*args)
 
         Insert scalar into an array (scalar is cast to array's dtype,
@@ -2676,12 +2760,12 @@ class ndarray:
     @add_boilerplate()
     def max(
         self,
-        axis=None,
-        out=None,
-        keepdims=False,
-        initial=None,
-        where=True,
-    ):
+        axis: Any = None,
+        out: Union[ndarray, None] = None,
+        keepdims: bool = False,
+        initial: Union[int, float, None] = None,
+        where: Union[bool, ndarray] = True,
+    ) -> ndarray:
         """a.max(axis=None, out=None, keepdims=False, initial=<no value>, where=True)
 
         Return the maximum along a given axis.
@@ -2708,7 +2792,13 @@ class ndarray:
         )
 
     @add_boilerplate()
-    def mean(self, axis=None, dtype=None, out=None, keepdims=False):
+    def mean(
+        self,
+        axis: Any = None,
+        dtype: Union[np.dtype[Any], None] = None,
+        out: Union[ndarray, None] = None,
+        keepdims: bool = False,
+    ) -> ndarray:
         """a.mean(axis=None, dtype=None, out=None, keepdims=False)
 
         Returns the average of the array elements along given axis.
@@ -2772,12 +2862,12 @@ class ndarray:
     @add_boilerplate()
     def min(
         self,
-        axis=None,
-        out=None,
-        keepdims=False,
-        initial=None,
-        where=True,
-    ):
+        axis: Any = None,
+        out: Union[ndarray, None] = None,
+        keepdims: bool = False,
+        initial: Union[int, float, None] = None,
+        where: Union[bool, ndarray] = True,
+    ) -> ndarray:
         """a.min(axis=None, out=None, keepdims=False, initial=<no value>, where=True)
 
         Return the minimum along a given axis.
@@ -2804,7 +2894,13 @@ class ndarray:
         )
 
     @add_boilerplate()
-    def partition(self, kth, axis=-1, kind="introselect", order=None):
+    def partition(
+        self,
+        kth: Union[int, Sequence[int]],
+        axis: Any = -1,
+        kind: SelectKind = "introselect",
+        order: Union[OrderType, None] = None,
+    ) -> None:
         """a.partition(kth, axis=-1, kind='introselect', order=None)
 
         Partition of an array in-place.
@@ -2825,7 +2921,13 @@ class ndarray:
         )
 
     @add_boilerplate()
-    def argpartition(self, kth, axis=-1, kind="introselect", order=None):
+    def argpartition(
+        self,
+        kth: Union[int, Sequence[int]],
+        axis: Any = -1,
+        kind: SelectKind = "introselect",
+        order: Union[OrderType, None] = None,
+    ) -> ndarray:
         """a.argpartition(kth, axis=-1, kind='introselect', order=None)
 
         Returns the indices that would partition this array.
@@ -2855,13 +2957,13 @@ class ndarray:
     @add_boilerplate()
     def prod(
         self,
-        axis=None,
-        dtype=None,
-        out=None,
-        keepdims=False,
-        initial=None,
-        where=True,
-    ):
+        axis: Any = None,
+        dtype: Union[np.dtype[Any], None] = None,
+        out: Union[ndarray, None] = None,
+        keepdims: bool = False,
+        initial: Union[int, float, None] = None,
+        where: Union[bool, ndarray] = True,
+    ) -> ndarray:
         """a.prod(axis=None, dtype=None, out=None, keepdims=False, initial=1,
         where=True)
 
@@ -2899,7 +3001,7 @@ class ndarray:
             where=where,
         )
 
-    def ravel(self, order="C") -> ndarray:
+    def ravel(self, order: OrderType = "C") -> ndarray:
         """a.ravel(order="C")
 
         Return a flattened array.
@@ -2918,7 +3020,7 @@ class ndarray:
         """
         return self.reshape(-1, order=order)
 
-    def reshape(self, shape, order="C") -> ndarray:
+    def reshape(self, shape: Any, order: OrderType = "C") -> ndarray:
         """a.reshape(shape, order='C')
 
         Returns an array containing the same data with a new shape.
@@ -2938,7 +3040,7 @@ class ndarray:
             # Check that these sizes are compatible
             if isinstance(shape, Iterable):
                 newsize = 1
-                newshape = list()
+                newshape: list[Union[int, None]] = []
                 unknown_axis = -1
                 for ax, dim in enumerate(shape):
                     if dim < 0:
@@ -2961,7 +3063,7 @@ class ndarray:
                             + str(tuple(newshape))
                         )
                     newshape[unknown_axis] = self.size // newsize
-                    newsize *= newshape[unknown_axis]
+                    newsize *= cast(int, newshape[unknown_axis])
                 if newsize != self.size:
                     raise ValueError(
                         "cannot reshape array of size "
@@ -2991,13 +3093,20 @@ class ndarray:
             thunk=self._thunk.reshape(shape, order),
         )
 
-    def setfield(self, val, dtype, offset=0):
+    def setfield(
+        self, val: float, dtype: np.dtype[Any], offset: int = 0
+    ) -> None:
         raise NotImplementedError(
             "cuNumeric does not currently support type reinterpretation "
             "for ndarray.setfield"
         )
 
-    def setflags(self, write=None, align=None, uic=None):
+    def setflags(
+        self,
+        write: Union[bool, None] = None,
+        align: Union[bool, None] = None,
+        uic: Union[bool, None] = None,
+    ) -> None:
         """a.setflags(write=None, align=None, uic=None)
 
         Set array flags WRITEABLE, ALIGNED, WRITEBACKIFCOPY,
@@ -3046,13 +3155,23 @@ class ndarray:
         Multiple GPUs, Multiple CPUs
 
         """
-        self.__array__().setflags(write=write, align=align, uic=uic)
+        # Be a bit more careful here, and only pass params that are explicitly
+        # set by the caller. The numpy interface specifies only bool values,
+        # despite its None defaults.
+        kws = {}
+        if write is not None:
+            kws["write"] = write
+        if align is not None:
+            kws["align"] = align
+        if uic is not None:
+            kws["uic"] = uic
+        self.__array__().setflags(**kws)
 
     @add_boilerplate()
     def searchsorted(
         self: ndarray,
         v: Union[int, float, ndarray],
-        side: str = "left",
+        side: SortSide = "left",
         sorter: Optional[ndarray] = None,
     ) -> Union[int, ndarray]:
         """a.searchsorted(v, side='left', sorter=None)
@@ -3122,7 +3241,12 @@ class ndarray:
         result._thunk.searchsorted(a._thunk, v_ndarray._thunk, side)
         return result
 
-    def sort(self, axis=-1, kind="quicksort", order=None):
+    def sort(
+        self,
+        axis: Any = -1,
+        kind: SortType = "quicksort",
+        order: Union[OrderType, None] = None,
+    ) -> None:
         """a.sort(axis=-1, kind=None, order=None)
 
         Sort an array in-place.
@@ -3140,7 +3264,12 @@ class ndarray:
         """
         self._thunk.sort(rhs=self._thunk, axis=axis, kind=kind, order=order)
 
-    def argsort(self, axis=-1, kind=None, order=None):
+    def argsort(
+        self,
+        axis: Any = -1,
+        kind: Union[SortType, None] = None,
+        order: Union[OrderType, None] = None,
+    ) -> ndarray:
         """a.argsort(axis=-1, kind=None, order=None)
 
         Returns the indices that would sort this array.
@@ -3162,7 +3291,7 @@ class ndarray:
         )
         return result
 
-    def squeeze(self, axis=None) -> ndarray:
+    def squeeze(self, axis: Any = None) -> ndarray:
         """a.squeeze(axis=None)
 
         Remove axes of length one from `a`.
@@ -3196,13 +3325,13 @@ class ndarray:
     @add_boilerplate()
     def sum(
         self,
-        axis=None,
-        dtype=None,
-        out=None,
-        keepdims=False,
-        initial=None,
-        where=True,
-    ):
+        axis: Any = None,
+        dtype: Union[np.dtype[Any], None] = None,
+        out: Union[ndarray, None] = None,
+        keepdims: bool = False,
+        initial: Union[int, float, None] = None,
+        where: Union[bool, ndarray] = True,
+    ) -> ndarray:
         """a.sum(axis=None, dtype=None, out=None, keepdims=False, initial=0,
         where=True)
 
@@ -3240,7 +3369,7 @@ class ndarray:
             where=where,
         )
 
-    def swapaxes(self, axis1, axis2) -> ndarray:
+    def swapaxes(self, axis1: Any, axis2: Any) -> ndarray:
         """a.swapaxes(axis1, axis2)
 
         Return a view of the array with `axis1` and `axis2` interchanged.
@@ -3266,7 +3395,7 @@ class ndarray:
             )
         return ndarray(shape=None, thunk=self._thunk.swapaxes(axis1, axis2))
 
-    def tofile(self, fid, sep="", format="%s"):
+    def tofile(self, fid: Any, sep: str = "", format: str = "%s") -> None:
         """a.tofile(fid, sep="", format="%s")
 
         Write array to a file as text or binary (default).
@@ -3310,7 +3439,7 @@ class ndarray:
         """
         return self.__array__().tofile(fid=fid, sep=sep, format=format)
 
-    def tobytes(self, order="C"):
+    def tobytes(self, order: OrderType = "C") -> bytes:
         """a.tobytes(order='C')
 
         Construct Python bytes containing the raw data bytes in the array.
@@ -3339,7 +3468,7 @@ class ndarray:
         """
         return self.__array__().tobytes(order=order)
 
-    def tolist(self):
+    def tolist(self) -> Any:
         """a.tolist()
 
         Return the array as an ``a.ndim``-levels deep nested list of Python
@@ -3374,7 +3503,7 @@ class ndarray:
         """
         return self.__array__().tolist()
 
-    def tostring(self, order="C"):
+    def tostring(self, order: OrderType = "C") -> bytes:
         """a.tostring(order='C')
 
         A compatibility alias for `tobytes`, with exactly the same behavior.
@@ -3385,9 +3514,9 @@ class ndarray:
         Multiple GPUs, Multiple CPUs
 
         """
-        return self.__array__().tostring(order=order)
+        return self.__array__().tostring(order=order)  # type: ignore
 
-    def transpose(self, axes=None) -> ndarray:
+    def transpose(self, axes: Any = None) -> ndarray:
         """a.transpose(axes=None)
 
         Returns a view of the array with axes transposed.
@@ -3439,7 +3568,7 @@ class ndarray:
             )
         return ndarray(shape=None, thunk=self._thunk.transpose(axes))
 
-    def flip(self, axis=None) -> ndarray:
+    def flip(self, axis: Any = None) -> ndarray:
         """
         Reverse the order of elements in an array along the given axis.
 
@@ -3474,7 +3603,11 @@ class ndarray:
         result._thunk.flip(self._thunk, axis)
         return result
 
-    def view(self, dtype=None, type=None):
+    def view(
+        self,
+        dtype: Union[npt.DTypeLike, None] = None,
+        type: Union[Any, None] = None,
+    ) -> ndarray:
         if dtype is not None and dtype != self.dtype:
             raise NotImplementedError(
                 "cuNumeric does not currently support type reinterpretation"
@@ -3501,7 +3634,9 @@ class ndarray:
         return ndarray(shape=thunk.shape, thunk=thunk)
 
     @classmethod
-    def _get_where_thunk(cls, where, out_shape):
+    def _get_where_thunk(
+        cls, where: Union[bool, ndarray], out_shape: NdShape
+    ) -> Union[Literal[True], NumPyThunk]:
         if where is True:
             return True
         if where is False:
@@ -3513,7 +3648,7 @@ class ndarray:
         return where._thunk
 
     @staticmethod
-    def find_common_type(*args) -> np.dtype[Any]:
+    def find_common_type(*args: Any) -> np.dtype[Any]:
         """Determine common type following standard coercion rules.
 
         Parameters
@@ -3541,7 +3676,7 @@ class ndarray:
                 array_types.append(array.dtype)
         return np.find_common_type(array_types, scalar_types)
 
-    def _maybe_convert(self, dtype, hints):
+    def _maybe_convert(self, dtype: np.dtype[Any], hints: Any) -> ndarray:
         if self.dtype == dtype:
             return self
         copy = ndarray(shape=self.shape, dtype=dtype, inputs=hints)
@@ -3552,13 +3687,13 @@ class ndarray:
     @classmethod
     def _perform_unary_op(
         cls,
-        op,
-        src,
-        dst=None,
-        extra_args=None,
-        dtype=None,
-        where=True,
-        out_dtype=None,
+        op: UnaryOpCode,
+        src: ndarray,
+        dst: Union[Any, None] = None,
+        extra_args: Any = None,
+        dtype: Union[np.dtype[Any], None] = None,
+        where: Union[bool, ndarray] = True,
+        out_dtype: Union[np.dtype[Any], None] = None,
     ) -> ndarray:
         if dst is not None:
             # If the shapes don't match see if we can broadcast
@@ -3650,16 +3785,16 @@ class ndarray:
     @classmethod
     def _perform_unary_reduction(
         cls,
-        op,
-        src,
-        axis=None,
-        dtype=None,
-        res_dtype=None,
-        out=None,
-        keepdims=False,
-        args=None,
-        initial=None,
-        where=True,
+        op: UnaryRedCode,
+        src: ndarray,
+        axis: Any = None,
+        dtype: Union[np.dtype[Any], None] = None,
+        res_dtype: Union[npt.DTypeLike, None] = None,
+        out: Union[ndarray, None] = None,
+        keepdims: bool = False,
+        args: Union[Any, None] = None,
+        initial: Union[int, float, None] = None,
+        where: Union[bool, ndarray] = True,
     ) -> ndarray:
         # When 'res_dtype' is not None, the input and output of the reduction
         # have different types. Such reduction operators don't take a dtype of
@@ -3707,7 +3842,7 @@ class ndarray:
         else:
             axes = normalize_axis_tuple(axis, src.ndim)
 
-        out_shape = ()
+        out_shape: NdShape = ()
         for dim in range(src.ndim):
             if dim not in axes:
                 out_shape += (src.shape[dim],)
@@ -3754,11 +3889,11 @@ class ndarray:
     @classmethod
     def _perform_binary_reduction(
         cls,
-        op,
-        one,
-        two,
-        dtype,
-        extra_args=None,
+        op: BinaryOpCode,
+        one: Any,
+        two: Any,
+        dtype: np.dtype[Any],
+        extra_args: Union[tuple[Any, ...], None] = None,
     ) -> ndarray:
         args = (one, two)
 
@@ -3786,17 +3921,19 @@ class ndarray:
         return dst
 
     @classmethod
-    def _perform_where(cls, mask, one, two) -> ndarray:
+    def _perform_where(
+        cls, mask: ndarray, one: ndarray, two: ndarray
+    ) -> ndarray:
         args = (mask, one, two)
 
-        mask = mask._maybe_convert(np.dtype(np.bool_), args)._thunk
+        mask = mask._maybe_convert(np.dtype(np.bool_), args)
 
         common_type = cls.find_common_type(one, two)
-        one = one._maybe_convert(common_type, args)._thunk
-        two = two._maybe_convert(common_type, args)._thunk
+        one = one._maybe_convert(common_type, args)
+        two = two._maybe_convert(common_type, args)
 
         # Compute the output shape
         out_shape = np.broadcast_shapes(mask.shape, one.shape, two.shape)
         out = ndarray(shape=out_shape, dtype=common_type, inputs=args)
-        out._thunk.where(mask, one, two)
+        out._thunk.where(mask._thunk, one._thunk, two._thunk)
         return out

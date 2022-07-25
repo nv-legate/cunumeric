@@ -18,6 +18,12 @@ from typing import Literal, Tuple, Union
 
 from typing_extensions import TypeAlias
 
+BoundsMode: TypeAlias = Literal["raise", "wrap", "clip"]
+
+CastingKind: TypeAlias = Union[
+    Literal["no", "equiv", "safe", "same_kind", "unsafe"], None
+]
+
 NdShape: TypeAlias = Tuple[int, ...]
 
 NdShapeLike: TypeAlias = Union[int, NdShape]
