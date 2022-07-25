@@ -341,21 +341,8 @@ elseif(NOT Legion_USE_CUDA)
   list(APPEND cunumeric_CXX_OPTIONS -DTHRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CPP)
 endif()
 
-###
-# Preinclude `realm_defines.h` and `legion_defines.h` in all compilations.
-# TODO: It isn't possible to expose this as part of the public legate_core
-# target's interface in a portable way, so this code needs to be duplicated
-# in both legate.core and cuNumeric.
-#
-# A better solution would be to add #include directives to the requisite
-# legate.core and cuNumeric headers.
-###
-include(cmake/Modules/legion_helpers.cmake)
-get_legion_and_realm_includes(extra_include_options)
-
 target_compile_options(cunumeric
-  PRIVATE ${extra_include_options}
-          "$<$<COMPILE_LANGUAGE:CXX>:${cunumeric_CXX_OPTIONS}>"
+  PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:${cunumeric_CXX_OPTIONS}>"
           "$<$<COMPILE_LANGUAGE:CUDA>:${cunumeric_CUDA_OPTIONS}>")
 
 target_compile_definitions(cunumeric
