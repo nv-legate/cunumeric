@@ -106,6 +106,13 @@ def implemented(
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             return func(*args, **kwargs)
 
+    # This is incredibly ugly and unpleasant, but @wraps(func) doesn't handle
+    # ufuncs the way we need it to. The alternative would be to vendor and
+    # modify a custom version of @wraps
+    if hasattr(wrapper.__wrapped__, "_name"):
+        wrapper.__name__ = wrapper.__wrapped__._name
+        wrapper.__qualname__ = wrapper.__wrapped__._name
+
     # TODO (bev) Scraping text to set flags seems a bit fragile. It would be
     # preferable to start with flags, and use those to update docstrings.
     multi = "Multiple GPUs" in (getattr(func, "__doc__", None) or "")
