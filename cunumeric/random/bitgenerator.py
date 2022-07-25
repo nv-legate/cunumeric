@@ -41,11 +41,6 @@ class BitGenerator:
         if self.handle != 0:
             runtime.bitgenerator_destroy(self.handle, disposing=True)
 
-    # explicit destruction
-    def destroy(self):
-        runtime.bitgenerator_destroy(self.handle, disposing=False)
-        self.handle = 0
-
     # when output is false => skip ahead
     def random_raw(self, shape=None):
         if shape is None:

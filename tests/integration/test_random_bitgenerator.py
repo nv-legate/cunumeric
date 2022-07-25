@@ -42,8 +42,7 @@ def test_bitgenerator_type(t):
 
 @pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
 def test_force_build(t):
-    bitgen = t(42, True)
-    bitgen.destroy()
+    t(42, True)
 
 
 @pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
