@@ -63,5 +63,12 @@ strict_equality = true
 warn_unused_configs = true
 
 [[tool.mypy.overrides]]
-module = ["cunumeric.array"]
+module = [
+    "cunumeric.array",
+    "cunumeric.deferred",
+    "cunumeric.eager",
+    "cunumeric.random.bitgenerator",
+    "cunumeric.random.generator",
+    "cunumeric.thunk",
+]
 ignore_errors = true
