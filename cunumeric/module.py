@@ -2515,17 +2515,17 @@ def tril_indices(
         The row dimension of the arrays for which the returned
         indices will be valid.
     k : int, optional
-        Diagonal offset (see `tril` for details).
+        Diagonal offset (see :func:`cunumeric.tril` for details).
     m : int, optional
         The column dimension of the arrays for which the returned
-        arrays will be valid.
+        indices will be valid.
         By default `m` is taken equal to `n`.
 
     Returns
     -------
     inds : tuple of arrays
-        The indices for the triangle. The returned tuple contains two arrays,
-        each with the indices along one dimension of the array.
+        The indices for the lower-triangle. The returned tuple contains two
+        arrays, each with the indices along one dimension of the array.
 
     See also
     --------
@@ -2548,15 +2548,21 @@ def tril_indices_from(arr: ndarray, k: int = 0) -> tuple[ndarray, ...]:
     """
     Return the indices for the lower-triangle of arr.
 
-    See `tril_indices` for full details.
+    See :func:`cunumeric.tril_indices` for full details.
 
     Parameters
     ----------
     arr : array_like
-        The indices will be valid for square arrays whose dimensions are
+        The indices will be valid for arrays whose dimensions are
         the same as arr.
     k : int, optional
-        Diagonal offset (see `tril` for details).
+        Diagonal offset (see :func:`cunumeric.tril` for details).
+
+    Returns
+    -------
+    inds : tuple of arrays
+        The indices for the lower-triangle. The returned tuple contains two
+        arrays, each with the indices along one dimension of the array.
 
     See Also
     --------
@@ -2588,7 +2594,7 @@ def triu_indices(
         The size of the arrays for which the returned indices will
         be valid.
     k : int, optional
-        Diagonal offset (see `triu` for details).
+        Diagonal offset (see :func:`cunumeric.triu` for details).
     m : int, optional
         The column dimension of the arrays for which the returned
         arrays will be valid.
@@ -2596,10 +2602,9 @@ def triu_indices(
 
     Returns
     -------
-    inds : tuple, shape(2) of ndarrays, shape(`n`)
-        The indices for the triangle. The returned tuple contains two arrays,
-        each with the indices along one dimension of the array.  Can be used
-        to slice a ndarray of shape(`n`, `n`).
+    inds : tuple of arrays
+        The indices for the upper-triangle. The returned tuple contains two
+        arrays, each with the indices along one dimension of the array.
 
     See also
     --------
@@ -2622,19 +2627,21 @@ def triu_indices_from(arr: ndarray, k: int = 0) -> tuple[ndarray, ...]:
     """
     Return the indices for the upper-triangle of arr.
 
-    See `triu_indices` for full details.
+    See :func:`cunumeric.triu_indices` for full details.
 
     Parameters
     ----------
     arr : ndarray, shape(N, N)
-        The indices will be valid for square arrays.
+        The indices will be valid for arrays whose dimensions are
+        the same as arr.
     k : int, optional
-        Diagonal offset (see `triu` for details).
+        Diagonal offset (see :func:`cunumeric.triu` for details).
 
     Returns
     -------
-    triu_indices_from : tuple, shape(2) of ndarray, shape(N)
-        Indices for the upper-triangle of `arr`.
+    inds : tuple of arrays
+        The indices for the upper-triangle. The returned tuple contains two
+        arrays, each with the indices along one dimension of the array.
 
     See Also
     --------
