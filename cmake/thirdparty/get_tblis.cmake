@@ -21,13 +21,6 @@ function(find_or_configure_tblis)
   include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/cpm_helpers.cmake)
   get_cpm_git_args(tblis_cpm_git_args REPOSITORY ${PKG_REPOSITORY} BRANCH ${PKG_BRANCH})
 
-  rapids_cpm_find(tblis ${PKG_VERSION}
-      GLOBAL_TARGETS    tblis::tblis
-      CPM_ARGS
-        ${tblis_cpm_git_args}
-        EXCLUDE_FROM_ALL  ${PKG_EXCLUDE_FROM_ALL}
-  )
-
   set(lib_suffix "")
   if(BUILD_SHARED_LIBS)
     add_library(tblis SHARED IMPORTED GLOBAL)
@@ -36,6 +29,24 @@ function(find_or_configure_tblis)
     add_library(tblis STATIC IMPORTED GLOBAL)
     set(lib_suffix "${CMAKE_STATIC_LIBRARY_SUFFIX}")
   endif()
+
+  rapids_find_generate_module(tblis
+                HEADER_NAMES "tblis/tblis.h"
+                LIBRARY_NAMES "libtblis${lib_suffix}"
+                NO_CONFIG
+                BUILD_EXPORT_SET   cunumeric-exports
+                INSTALL_EXPORT_SET cunumeric-exports
+  )
+
+  rapids_cpm_find(tblis ${PKG_VERSION}
+      GLOBAL_TARGETS    tblis::tblis
+      BUILD_EXPORT_SET   cunumeric-exports
+      INSTALL_EXPORT_SET cunumeric-exports
+      CPM_ARGS
+        ${tblis_cpm_git_args}
+        EXCLUDE_FROM_ALL  ${PKG_EXCLUDE_FROM_ALL}
+  )
+
 
   set(should_build_tblis OFF)
   if(tblis_ADDED AND
@@ -128,28 +139,30 @@ function(find_or_configure_tblis)
       VERBATIM
     )
 
+    # Makes `target_include_directories()` below work
+    file(MAKE_DIRECTORY "${tblis_BINARY_DIR}/include")
+  endif()
+
+  if (tblis_ADDED)
+    # We need to make the tblis target here since we
+    # did not find an external package.
     add_custom_target(tblis_build ALL
       DEPENDS "${tblis_BINARY_DIR}/lib/libtci${lib_suffix}"
               "${tblis_BINARY_DIR}/lib/libtblis${lib_suffix}")
 
     add_dependencies(tblis tblis_build)
 
-    # Makes `target_include_directories()` below work
-    file(MAKE_DIRECTORY "${tblis_BINARY_DIR}/include")
+    add_library(tblis::tblis ALIAS tblis)
+    target_include_directories(tblis INTERFACE "${tblis_BINARY_DIR}/include")
+    set_target_properties(tblis
+      PROPERTIES BUILD_RPATH                         "\$ORIGIN"
+                 INSTALL_RPATH                       "\$ORIGIN"
+                 IMPORTED_SONAME                     tblis
+                 IMPORTED_LOCATION                   "${tblis_BINARY_DIR}/lib/libtblis${lib_suffix}"
+                 INSTALL_REMOVE_ENVIRONMENT_RPATH    ON
+                 INTERFACE_POSITION_INDEPENDENT_CODE ON)
   endif()
 
-  add_library(tblis::tblis ALIAS tblis)
-  target_include_directories(tblis INTERFACE "${tblis_BINARY_DIR}/include")
-  set_target_properties(tblis
-    PROPERTIES BUILD_RPATH                         "\$ORIGIN"
-               INSTALL_RPATH                       "\$ORIGIN"
-               IMPORTED_SONAME                     tblis
-               IMPORTED_LOCATION                   "${tblis_BINARY_DIR}/lib/libtblis${lib_suffix}"
-               INSTALL_REMOVE_ENVIRONMENT_RPATH    ON
-               INTERFACE_POSITION_INDEPENDENT_CODE ON)
-
-  set(tblis_BINARY_DIR ${tblis_BINARY_DIR} PARENT_SCOPE)
-  set(tblis_SOURCE_DIR ${tblis_SOURCE_DIR} PARENT_SCOPE)
   set(cunumeric_INSTALL_TBLIS ${should_build_tblis} PARENT_SCOPE)
 endfunction()
 
