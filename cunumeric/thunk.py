@@ -213,6 +213,104 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
+    def bitgenerator_random_raw(
+        self, bitgen, generatorType, seed, flags
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def bitgenerator_integers(
+        self, bitgen, generatorType, seed, flags, low, high
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def bitgenerator_uniform(
+        self, bitgen, generatorType, seed, flags, low, high
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def bitgenerator_lognormal(
+        self, bitgen, generatorType, seed, flags, mean, sigma
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def bitgenerator_normal(
+        self, bitgen, generatorType, seed, flags, mean, sigma
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def bitgenerator_poisson(
+        self, bitgen, generatorType, seed, flags, lam
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def bitgenerator_exponential(
+        self, bitgen, generatorType, seed, flags, scale
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def bitgenerator_gumbel(
+        self, bitgen, generatorType, seed, flags, mu, beta
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def bitgenerator_laplace(
+        self, bitgen, generatorType, seed, flags, mu, beta
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def bitgenerator_logistic(
+        self, bitgen, generatorType, seed, flags, mu, beta
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def bitgenerator_pareto(
+        self, bitgen, generatorType, seed, flags, alpha
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def bitgenerator_power(
+        self, bitgen, generatorType, seed, flags, alpha
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def bitgenerator_rayleigh(
+        self, bitgen, generatorType, seed, flags, sigma
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def bitgenerator_cauchy(
+        self, bitgen, generatorType, seed, flags, x0, gamma
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def bitgenerator_triangular(
+        self, bitgen, generatorType, seed, flags, a, b, c
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def bitgenerator_weibull(self, bitgen, generatorType, seed, flags) -> None:
+        ...
+
+    @abstractmethod
+    def bitgenerator_bytes(self, bitgen, generatorType, seed, flags) -> None:
+        ...
+
+    @abstractmethod
     def random_uniform(self) -> None:
         ...
 

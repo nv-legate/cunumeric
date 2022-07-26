@@ -41,6 +41,8 @@ from legate.core import Future, ReductionOp, Store
 
 from .config import (
     BinaryOpCode,
+    BitGeneratorDistribution,
+    BitGeneratorOperation,
     Bitorder,
     CuNumericOpCode,
     CuNumericRedopCode,
@@ -1736,6 +1738,445 @@ class DeferredArray(NumPyThunk):
 
         task.execute()
         return results
+
+    def bitgenerator_random_raw(
+        self, handle, generatorType, seed, flags
+    ) -> None:
+        task = self.context.create_task(CuNumericOpCode.BITGENERATOR)
+
+        task.add_output(self.base)
+
+        task.add_scalar_arg(BitGeneratorOperation.RAND_RAW, ty.int32)
+        task.add_scalar_arg(handle, ty.int32)
+        task.add_scalar_arg(generatorType, ty.uint32)
+        task.add_scalar_arg(seed, ty.uint64)
+        task.add_scalar_arg(flags, ty.uint32)
+
+        # strides
+        task.add_scalar_arg(self.compute_strides(self.shape), (ty.int64,))
+
+        task.execute()
+
+    def bitgenerator_distribution(
+        self,
+        handle,
+        generatorType,
+        seed,
+        flags,
+        distribution,
+        intparams,
+        floatparams,
+        doubleparams,
+    ) -> None:
+        task = self.context.create_task(CuNumericOpCode.BITGENERATOR)
+
+        task.add_output(self.base)
+
+        task.add_scalar_arg(BitGeneratorOperation.DISTRIBUTION, ty.int32)
+        task.add_scalar_arg(handle, ty.int32)
+        task.add_scalar_arg(generatorType, ty.uint32)
+        task.add_scalar_arg(seed, ty.uint64)
+        task.add_scalar_arg(flags, ty.uint32)
+        task.add_scalar_arg(distribution, ty.uint32)
+
+        # strides
+        task.add_scalar_arg(self.compute_strides(self.shape), (ty.int64,))
+        task.add_scalar_arg(intparams, (ty.int64,))
+        task.add_scalar_arg(floatparams, (ty.float32,))
+        task.add_scalar_arg(doubleparams, (ty.float64,))
+
+        task.execute()
+
+    def bitgenerator_integers(
+        self, handle, generatorType, seed, flags, low, high
+    ) -> None:
+        intparams = (low, high)
+        if self.dtype == np.int32:
+            distribution = BitGeneratorDistribution.INTEGERS_32
+        elif self.dtype == np.int64:
+            distribution = BitGeneratorDistribution.INTEGERS_64
+        else:
+            raise NotImplementedError(
+                "type for random.integers has to be int64 or int32"
+            )
+        self.bitgenerator_distribution(
+            handle, generatorType, seed, flags, distribution, intparams, (), ()
+        )
+
+    def bitgenerator_uniform(
+        self, handle, generatorType, seed, flags, low, high
+    ) -> None:
+        if self.dtype == np.float32:
+            distribution = BitGeneratorDistribution.UNIFORM_32
+            floatparams = (float(low), float(high))
+            doubleparams = ()
+        elif self.dtype == np.float64:
+            distribution = BitGeneratorDistribution.UNIFORM_64
+            floatparams = ()
+            doubleparams = (float(low), float(high))
+        else:
+            raise NotImplementedError(
+                "type for random.uniform has to be float64 or float32"
+            )
+        self.bitgenerator_distribution(
+            handle,
+            generatorType,
+            seed,
+            flags,
+            distribution,
+            (),
+            floatparams,
+            doubleparams,
+        )
+
+    def bitgenerator_lognormal(
+        self, handle, generatorType, seed, flags, mean, sigma
+    ) -> None:
+        if self.dtype == np.float32:
+            distribution = BitGeneratorDistribution.LOGNORMAL_32
+            floatparams = (float(mean), float(sigma))
+            doubleparams = ()
+        elif self.dtype == np.float64:
+            distribution = BitGeneratorDistribution.LOGNORMAL_64
+            floatparams = ()
+            doubleparams = (float(mean), float(sigma))
+        else:
+            raise NotImplementedError(
+                "type for random.lognormal has to be float64 or float32"
+            )
+        self.bitgenerator_distribution(
+            handle,
+            generatorType,
+            seed,
+            flags,
+            distribution,
+            (),
+            floatparams,
+            doubleparams,
+        )
+
+    def bitgenerator_normal(
+        self, handle, generatorType, seed, flags, mean, sigma
+    ) -> None:
+        if self.dtype == np.float32:
+            distribution = BitGeneratorDistribution.NORMAL_32
+            floatparams = (float(mean), float(sigma))
+            doubleparams = ()
+        elif self.dtype == np.float64:
+            distribution = BitGeneratorDistribution.NORMAL_64
+            floatparams = ()
+            doubleparams = (float(mean), float(sigma))
+        else:
+            raise NotImplementedError(
+                "type for random.normal has to be float64 or float32"
+            )
+        self.bitgenerator_distribution(
+            handle,
+            generatorType,
+            seed,
+            flags,
+            distribution,
+            (),
+            floatparams,
+            doubleparams,
+        )
+
+    def bitgenerator_poisson(
+        self, handle, generatorType, seed, flags, lam
+    ) -> None:
+        if self.dtype == np.uint32:
+            distribution = BitGeneratorDistribution.POISSON
+            doubleparams = (float(lam),)
+        else:
+            raise NotImplementedError(
+                "type for random.random has to be float64 or float32"
+            )
+        self.bitgenerator_distribution(
+            handle,
+            generatorType,
+            seed,
+            flags,
+            distribution,
+            (),
+            (),
+            doubleparams,
+        )
+
+    def bitgenerator_exponential(
+        self, handle, generatorType, seed, flags, scale
+    ) -> None:
+        if self.dtype == np.float32:
+            distribution = BitGeneratorDistribution.EXPONENTIAL_32
+            floatparams = (float(scale),)
+            doubleparams = ()
+        elif self.dtype == np.float64:
+            distribution = BitGeneratorDistribution.EXPONENTIAL_64
+            floatparams = ()
+            doubleparams = (float(scale),)
+        else:
+            raise NotImplementedError(
+                "type for random.exponential has to be float64 or float32"
+            )
+        self.bitgenerator_distribution(
+            handle,
+            generatorType,
+            seed,
+            flags,
+            distribution,
+            (),
+            floatparams,
+            doubleparams,
+        )
+
+    def bitgenerator_gumbel(
+        self, handle, generatorType, seed, flags, mu, beta
+    ) -> None:
+        if self.dtype == np.float32:
+            distribution = BitGeneratorDistribution.GUMBEL_32
+            floatparams = (float(mu), float(beta))
+            doubleparams = ()
+        elif self.dtype == np.float64:
+            distribution = BitGeneratorDistribution.GUMBEL_64
+            floatparams = ()
+            doubleparams = (float(mu), float(beta))
+        else:
+            raise NotImplementedError(
+                "type for random.gumbel has to be float64 or float32"
+            )
+        self.bitgenerator_distribution(
+            handle,
+            generatorType,
+            seed,
+            flags,
+            distribution,
+            (),
+            floatparams,
+            doubleparams,
+        )
+
+    def bitgenerator_laplace(
+        self, handle, generatorType, seed, flags, mu, beta
+    ) -> None:
+        if self.dtype == np.float32:
+            distribution = BitGeneratorDistribution.LAPLACE_32
+            floatparams = (float(mu), float(beta))
+            doubleparams = ()
+        elif self.dtype == np.float64:
+            distribution = BitGeneratorDistribution.LAPLACE_64
+            floatparams = ()
+            doubleparams = (float(mu), float(beta))
+        else:
+            raise NotImplementedError(
+                "type for random.laplace has to be float64 or float32"
+            )
+        self.bitgenerator_distribution(
+            handle,
+            generatorType,
+            seed,
+            flags,
+            distribution,
+            (),
+            floatparams,
+            doubleparams,
+        )
+
+    def bitgenerator_logistic(
+        self, handle, generatorType, seed, flags, mu, beta
+    ) -> None:
+        if self.dtype == np.float32:
+            distribution = BitGeneratorDistribution.LOGISTIC_32
+            floatparams = (float(mu), float(beta))
+            doubleparams = ()
+        elif self.dtype == np.float64:
+            distribution = BitGeneratorDistribution.LOGISTIC_64
+            floatparams = ()
+            doubleparams = (float(mu), float(beta))
+        else:
+            raise NotImplementedError(
+                "type for random.logistic has to be float64 or float32"
+            )
+        self.bitgenerator_distribution(
+            handle,
+            generatorType,
+            seed,
+            flags,
+            distribution,
+            (),
+            floatparams,
+            doubleparams,
+        )
+
+    def bitgenerator_pareto(
+        self, handle, generatorType, seed, flags, alpha
+    ) -> None:
+        if self.dtype == np.float32:
+            distribution = BitGeneratorDistribution.PARETO_32
+            floatparams = (float(alpha),)
+            doubleparams = ()
+        elif self.dtype == np.float64:
+            distribution = BitGeneratorDistribution.PARETO_64
+            floatparams = ()
+            doubleparams = (float(alpha),)
+        else:
+            raise NotImplementedError(
+                "type for random.pareto has to be float64 or float32"
+            )
+        self.bitgenerator_distribution(
+            handle,
+            generatorType,
+            seed,
+            flags,
+            distribution,
+            (),
+            floatparams,
+            doubleparams,
+        )
+
+    def bitgenerator_power(
+        self, handle, generatorType, seed, flags, alpha
+    ) -> None:
+        if self.dtype == np.float32:
+            distribution = BitGeneratorDistribution.POWER_32
+            floatparams = (float(alpha),)
+            doubleparams = ()
+        elif self.dtype == np.float64:
+            distribution = BitGeneratorDistribution.POWER_64
+            floatparams = ()
+            doubleparams = (float(alpha),)
+        else:
+            raise NotImplementedError(
+                "type for random.power has to be float64 or float32"
+            )
+        self.bitgenerator_distribution(
+            handle,
+            generatorType,
+            seed,
+            flags,
+            distribution,
+            (),
+            floatparams,
+            doubleparams,
+        )
+
+    def bitgenerator_rayleigh(
+        self, handle, generatorType, seed, flags, sigma
+    ) -> None:
+        if self.dtype == np.float32:
+            distribution = BitGeneratorDistribution.RAYLEIGH_32
+            floatparams = (float(sigma),)
+            doubleparams = ()
+        elif self.dtype == np.float64:
+            distribution = BitGeneratorDistribution.RAYLEIGH_64
+            floatparams = ()
+            doubleparams = (float(sigma),)
+        else:
+            raise NotImplementedError(
+                "type for random.rayleigh has to be float64 or float32"
+            )
+        self.bitgenerator_distribution(
+            handle,
+            generatorType,
+            seed,
+            flags,
+            distribution,
+            (),
+            floatparams,
+            doubleparams,
+        )
+
+    def bitgenerator_cauchy(
+        self, handle, generatorType, seed, flags, x0, gamma
+    ) -> None:
+        if self.dtype == np.float32:
+            distribution = BitGeneratorDistribution.CAUCHY_32
+            floatparams = (float(x0), float(gamma))
+            doubleparams = ()
+        elif self.dtype == np.float64:
+            distribution = BitGeneratorDistribution.CAUCHY_64
+            floatparams = ()
+            doubleparams = (float(x0), float(gamma))
+        else:
+            raise NotImplementedError(
+                "type for random.cauchy has to be float64 or float32"
+            )
+        self.bitgenerator_distribution(
+            handle,
+            generatorType,
+            seed,
+            flags,
+            distribution,
+            (),
+            floatparams,
+            doubleparams,
+        )
+
+    def bitgenerator_triangular(
+        self, handle, generatorType, seed, flags, a, b, c
+    ) -> None:
+        if self.dtype == np.float32:
+            distribution = BitGeneratorDistribution.TRIANGULAR_32
+            floatparams = (float(a), float(b), float(c))
+            doubleparams = ()
+        elif self.dtype == np.float64:
+            distribution = BitGeneratorDistribution.TRIANGULAR_64
+            floatparams = ()
+            doubleparams = (float(a), float(b), float(c))
+        else:
+            raise NotImplementedError(
+                "type for random.triangular has to be float64 or float32"
+            )
+        self.bitgenerator_distribution(
+            handle,
+            generatorType,
+            seed,
+            flags,
+            distribution,
+            (),
+            floatparams,
+            doubleparams,
+        )
+
+    def bitgenerator_weibull(
+        self, handle, generatorType, seed, flags, lam, k
+    ) -> None:
+        if self.dtype == np.float32:
+            distribution = BitGeneratorDistribution.WEIBULL_32
+            floatparams = (float(lam), float(k))
+            doubleparams = ()
+        elif self.dtype == np.float64:
+            distribution = BitGeneratorDistribution.WEIBULL_64
+            floatparams = ()
+            doubleparams = (float(lam), float(k))
+        else:
+            raise NotImplementedError(
+                "type for random.weibull has to be float64 or float32"
+            )
+        self.bitgenerator_distribution(
+            handle,
+            generatorType,
+            seed,
+            flags,
+            distribution,
+            (),
+            floatparams,
+            doubleparams,
+        )
+
+    def bitgenerator_bytes(self, handle, generatorType, seed, flags) -> None:
+        if self.dtype == np.uint8:
+            distribution = BitGeneratorDistribution.BYTES
+        else:
+            raise NotImplementedError("type for random.bytes has to be uint8")
+        self.bitgenerator_distribution(
+            handle,
+            generatorType,
+            seed,
+            flags,
+            distribution,
+            (),
+            (),
+            (),
+        )
 
     def random(self, gen_code: Any, args: Any = ()) -> None:
         task = self.context.create_auto_task(CuNumericOpCode.RAND)

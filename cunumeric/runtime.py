@@ -28,6 +28,7 @@ from legate.core import LEGATE_MAX_DIM, Rect, get_legate_runtime, legion
 from legate.core.context import Context as LegateContext
 
 from .config import (
+    BitGeneratorOperation,
     CuNumericOpCode,
     CuNumericRedopCode,
     CuNumericTunable,
@@ -133,6 +134,8 @@ class Runtime(object):
         self.legate_context = legate_context
         self.legate_runtime = get_legate_runtime()
         self.current_random_epoch = 0
+        self.current_random_bitgenid = 0
+        self.current_random_bitgen_zombies = ()
         self.destroyed = False
         self.api_calls: list[tuple[str, str, bool]] = []
 
@@ -279,6 +282,62 @@ class Runtime(object):
             optimize_scalar=True,
         )
         return DeferredArray(self, store, dtype=dtype)
+
+    def bitgenerator_populate_task(
+        self, task, taskop, generatorID, generatorType=0, seed=0, flags=0
+    ):
+        task.add_scalar_arg(taskop, ty.int32)
+        task.add_scalar_arg(generatorID, ty.int32)
+        task.add_scalar_arg(generatorType, ty.uint32)
+        task.add_scalar_arg(seed, ty.uint64)
+        task.add_scalar_arg(flags, ty.uint32)
+
+    def bitgenerator_create(
+        self, generatorType, seed, flags, forceCreate=False
+    ):
+        self.current_random_bitgenid = self.current_random_bitgenid + 1
+        if forceCreate:
+            task = self.legate_context.create_task(
+                CuNumericOpCode.BITGENERATOR,
+                manual=True,
+                launch_domain=Rect(lo=(0,), hi=(self.num_procs,)),
+            )
+            self.bitgenerator_populate_task(
+                task,
+                BitGeneratorOperation.CREATE,
+                self.current_random_bitgenid,
+                generatorType,
+                seed,
+                flags,
+            )
+            task.add_scalar_arg(
+                self.current_random_bitgen_zombies, (ty.uint32,)
+            )
+            self.current_random_bitgen_zombies = ()
+            task.execute()
+            self.legate_runtime.issue_execution_fence()
+        return self.current_random_bitgenid
+
+    def bitgenerator_destroy(self, handle, disposing=True):
+        if disposing:
+            # when called from within destructor, do not schedule a task
+            self.current_random_bitgen_zombies += (handle,)
+        else:
+            # with explicit destruction, do schedule a task
+            self.legate_runtime.issue_execution_fence()
+            task = self.legate_context.create_task(
+                CuNumericOpCode.BITGENERATOR,
+                manual=True,
+                launch_domain=Rect(lo=(0,), hi=(self.num_procs,)),
+            )
+            self.bitgenerator_populate_task(
+                task, BitGeneratorOperation.DESTROY, handle
+            )
+            task.add_scalar_arg(
+                self.current_random_bitgen_zombies, (ty.uint32,)
+            )
+            self.current_random_bitgen_zombies = ()
+            task.execute()
 
     def set_next_random_epoch(self, epoch: int) -> None:
         self.current_random_epoch = epoch

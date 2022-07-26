@@ -1,4 +1,4 @@
-# Copyright 2021-2022 NVIDIA Corporation
+# Copyright 2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,15 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from __future__ import annotations
 
-import numpy.random as _nprandom
-from cunumeric.random.random import *
-from cunumeric.coverage import clone_module
-from cunumeric.random.bitgenerator import *
-from cunumeric.random.generator import *
+GEN_CPU_SRC += cunumeric/random/bitgenerator.cc                            \
+							 cunumeric/random/randutil/generator_host.cc                 \
+							 cunumeric/random/randutil/generator_host_straightforward.cc
 
-clone_module(_nprandom, globals())
-
-del clone_module
-del _nprandom
+GEN_GPU_SRC += cunumeric/random/bitgenerator.cu                              \
+							 cunumeric/random/randutil/generator_device.cu                 \
+							 cunumeric/random/randutil/generator_device_straightforward.cu
