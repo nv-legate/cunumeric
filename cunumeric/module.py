@@ -37,6 +37,8 @@ from .types import NdShape, NdShapeLike
 from .utils import AxesPairLike, inner_modes, matmul_modes, tensordot_modes
 
 if TYPE_CHECKING:
+    from typing import Callable
+
     import numpy.typing as npt
 
     from ._ufunc.ufunc import CastingKind
@@ -2382,7 +2384,9 @@ def indices(
         return res_array
 
 
-def mask_indices(n: int, mask_func, k: int = 0) -> tuple[ndarray, ...]:
+def mask_indices(
+    n: int, mask_func: Callable[[ndarray, int], ndarray], k: int = 0
+) -> tuple[ndarray, ...]:
     """
     Return the indices to access (n, n) arrays, given a masking function.
 
