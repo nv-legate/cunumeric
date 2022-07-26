@@ -40,7 +40,9 @@ Changing number of dimensions
    :toctree: generated/
 
    squeeze
-
+   atleast_1d
+   atleast_2d
+   atleast_3d
 
 Changing kind of array
 ----------------------

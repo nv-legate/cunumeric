@@ -15,6 +15,7 @@
 
 import numpy as np
 import pytest
+from utils.comparisons import allclose as _allclose
 
 import cunumeric as num
 
@@ -27,7 +28,7 @@ def allclose(A, B):
         l2 = np.sqrt(np.sum(l2) / np.sum(A * np.conj(A)))
         return l2 < 1e-6
     else:
-        return np.allclose(A, B)
+        return _allclose(A, B)
 
 
 def check_1d_c2r(N, dtype=np.float64):
