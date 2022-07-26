@@ -2401,13 +2401,14 @@ def mask_indices(
     n : int
         The returned indices will be valid to access arrays of shape (n, n).
     mask_func : callable
-        A function whose call signature is similar to that of `triu`, `tril`.
+        A function whose call signature is similar to that of
+        :function:`cunumeric.triu`, :function:`cunumeric.tril`.
         That is, ``mask_func(x, k)`` returns a boolean array, shaped like `x`.
         `k` is an optional argument to the function.
     k : scalar
         An optional argument which is passed through to `mask_func`. Functions
-        like `triu`, `tril` take a second argument that is interpreted as an
-        offset.
+        like :function:`cunumeric.triu`, :function:`cunumeric,tril`
+        take a second argument that is interpreted as an offset.
 
     Returns
     -------
@@ -2422,9 +2423,9 @@ def mask_indices(
     Notes
     -----
     WARNING: `mask_indices` expects `mask_function` to call cuNumeric functions
-    for good performance. In case non-cuNumeric fucntion is called by
+    for good performance. In case non-cuNumeric fucntions are called by
     `mask_function`, cuNumeric will have to materialize all data on the host
-    which might result in allocating to much of a system memory.
+    which might result in running out of system memory.
 
     Availability
     --------
