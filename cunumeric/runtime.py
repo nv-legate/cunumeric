@@ -290,7 +290,7 @@ class Runtime(object):
         taskop: int,
         generatorID: int,
         generatorType: int = 0,
-        seed: int = 0,
+        seed: Union[int, None] = 0,
         flags: int = 0,
     ) -> None:
         task.add_scalar_arg(taskop, ty.int32)
@@ -302,7 +302,7 @@ class Runtime(object):
     def bitgenerator_create(
         self,
         generatorType: int,
-        seed: int,
+        seed: Union[int, None],
         flags: int,
         forceCreate: bool = False,
     ) -> int:
