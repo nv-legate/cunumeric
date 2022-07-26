@@ -40,6 +40,8 @@ function(find_or_configure_tblis)
 
   rapids_cpm_find(tblis ${PKG_VERSION}
       GLOBAL_TARGETS    tblis::tblis
+      BUILD_EXPORT_SET   cunumeric-exports
+      INSTALL_EXPORT_SET cunumeric-exports
       CPM_ARGS
         ${tblis_cpm_git_args}
         EXCLUDE_FROM_ALL  ${PKG_EXCLUDE_FROM_ALL}
