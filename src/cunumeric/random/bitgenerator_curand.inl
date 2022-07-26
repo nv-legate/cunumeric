@@ -176,6 +176,35 @@ struct CURANDGenerator {
   {
     CHECK_CURAND(::randutilGenerateWeibullEx(gen_, out, count, lam, k));
   }
+  void generate_beta_64(uint64_t count, double* out, double a, double b)
+  {
+    CHECK_CURAND(::randutilGenerateBetaDoubleEx(gen_, out, count, a, b));
+  }
+  void generate_beta_32(uint64_t count, float* out, float a, float b)
+  {
+    CHECK_CURAND(::randutilGenerateBetaEx(gen_, out, count, a, b));
+  }
+  void generate_f_64(uint64_t count, double* out, double dfnum, double dfden)
+  {
+    CHECK_CURAND(::randutilGenerateFisherSnedecorDoubleEx(gen_, out, count, dfnum, dfden));
+  }
+  void generate_f_32(uint64_t count, float* out, float dfnum, float dfden)
+  {
+    CHECK_CURAND(::randutilGenerateFisherSnedecorEx(gen_, out, count, dfnum, dfden));
+  }
+  void generate_logseries(uint64_t count, uint32_t* out, double p)
+  {
+    CHECK_CURAND(::randutilGenerateLogSeriesEx(gen_, out, count, p));
+  }
+  void generate_noncentral_f_64(
+    uint64_t count, double* out, double dfnum, double dfden, double nonc)
+  {
+    CHECK_CURAND(::randutilGenerateFisherSnedecorDoubleEx(gen_, out, count, dfnum, dfden, nonc));
+  }
+  void generate_noncentral_f_32(uint64_t count, float* out, float dfnum, float dfden, float nonc)
+  {
+    CHECK_CURAND(::randutilGenerateFisherSnedecorEx(gen_, out, count, dfnum, dfden, nonc));
+  }
 };
 
 #pragma endregion
@@ -794,6 +823,146 @@ struct bytes_generator<unsigned char> {
 
 #pragma endregion
 
+#pragma region beta
+
+template <typename output_t>
+struct beta_generator;
+template <>
+struct beta_generator<double> {
+  double a_, b_;
+
+  beta_generator(const std::vector<int64_t>& intparams,
+                 const std::vector<float>& floatparams,
+                 const std::vector<double>& doubleparams)
+    : a_(doubleparams[0]), b_(doubleparams[1])
+  {
+  }
+
+  void generate(CURANDGenerator& gen, uint64_t count, double* p) const
+  {
+    gen.generate_beta_64(count, p, a_, b_);
+  }
+};
+template <>
+struct beta_generator<float> {
+  float a_, b_;
+
+  beta_generator(const std::vector<int64_t>& intparams,
+                 const std::vector<float>& floatparams,
+                 const std::vector<double>& doubleparams)
+    : a_(floatparams[0]), b_(floatparams[1])
+  {
+  }
+
+  void generate(CURANDGenerator& gen, uint64_t count, float* p) const
+  {
+    gen.generate_beta_32(count, p, a_, b_);
+  }
+};
+
+#pragma endregion
+
+#pragma region f
+
+template <typename output_t>
+struct f_generator;
+template <>
+struct f_generator<double> {
+  double dfnum_, dfden_;
+
+  f_generator(const std::vector<int64_t>& intparams,
+              const std::vector<float>& floatparams,
+              const std::vector<double>& doubleparams)
+    : dfnum_(doubleparams[0]), dfden_(doubleparams[1])
+  {
+  }
+
+  void generate(CURANDGenerator& gen, uint64_t count, double* p) const
+  {
+    gen.generate_f_64(count, p, dfnum_, dfden_);
+  }
+};
+template <>
+struct f_generator<float> {
+  float dfnum_, dfden_;
+
+  f_generator(const std::vector<int64_t>& intparams,
+              const std::vector<float>& floatparams,
+              const std::vector<double>& doubleparams)
+    : dfnum_(floatparams[0]), dfden_(floatparams[1])
+  {
+  }
+
+  void generate(CURANDGenerator& gen, uint64_t count, float* p) const
+  {
+    gen.generate_f_32(count, p, dfnum_, dfden_);
+  }
+};
+
+#pragma endregion
+
+#pragma region logseries
+
+template <typename output_t>
+struct logseries_generator;
+template <>
+struct logseries_generator<unsigned> {
+  double p_;
+
+  logseries_generator(const std::vector<int64_t>& intparams,
+                      const std::vector<float>& floatparams,
+                      const std::vector<double>& doubleparams)
+    : p_(doubleparams[0])
+  {
+  }
+
+  void generate(CURANDGenerator& gen, uint64_t count, unsigned* p) const
+  {
+    gen.generate_logseries(count, p, p_);
+  }
+};
+
+#pragma endregion
+
+#pragma region noncentral_f
+
+template <typename output_t>
+struct noncentral_f_generator;
+template <>
+struct noncentral_f_generator<double> {
+  double dfnum_, dfden_, nonc_;
+
+  noncentral_f_generator(const std::vector<int64_t>& intparams,
+                         const std::vector<float>& floatparams,
+                         const std::vector<double>& doubleparams)
+    : dfnum_(doubleparams[0]), dfden_(doubleparams[1]), nonc_(doubleparams[2])
+  {
+  }
+
+  void generate(CURANDGenerator& gen, uint64_t count, double* p) const
+  {
+    gen.generate_noncentral_f_64(count, p, dfnum_, dfden_, nonc_);
+  }
+};
+template <>
+struct noncentral_f_generator<float> {
+  float dfnum_, dfden_, nonc_;
+
+  noncentral_f_generator(const std::vector<int64_t>& intparams,
+                         const std::vector<float>& floatparams,
+                         const std::vector<double>& doubleparams)
+    : dfnum_(floatparams[0]), dfden_(floatparams[1]), nonc_(floatparams[2])
+  {
+  }
+
+  void generate(CURANDGenerator& gen, uint64_t count, float* p) const
+  {
+    gen.generate_noncentral_f_32(count, p, dfnum_, dfden_, nonc_);
+  }
+};
+
+#pragma endregion
+
 #pragma endregion
 
 template <typename output_t, typename generator_t>
@@ -1084,6 +1253,34 @@ struct BitGeneratorImplBody {
               break;
             case BitGeneratorDistribution::BYTES:
               generate_distribution<unsigned char, bytes_generator<unsigned char>>::generate(
+                res, cugen, intparams, floatparams, doubleparams);
+              break;
+            case BitGeneratorDistribution::BETA_32:
+              generate_distribution<float, beta_generator<float>>::generate(
+                res, cugen, intparams, floatparams, doubleparams);
+              break;
+            case BitGeneratorDistribution::BETA_64:
+              generate_distribution<double, beta_generator<double>>::generate(
+                res, cugen, intparams, floatparams, doubleparams);
+              break;
+            case BitGeneratorDistribution::F_32:
+              generate_distribution<float, f_generator<float>>::generate(
+                res, cugen, intparams, floatparams, doubleparams);
+              break;
+            case BitGeneratorDistribution::F_64:
+              generate_distribution<double, f_generator<double>>::generate(
+                res, cugen, intparams, floatparams, doubleparams);
+              break;
+            case BitGeneratorDistribution::LOGSERIES:
+              generate_distribution<uint32_t, logseries_generator<unsigned>>::generate(
+                res, cugen, intparams, floatparams, doubleparams);
+              break;
+            case BitGeneratorDistribution::NONCENTRAL_F_32:
+              generate_distribution<float, noncentral_f_generator<float>>::generate(
+                res, cugen, intparams, floatparams, doubleparams);
+              break;
+            case BitGeneratorDistribution::NONCENTRAL_F_64:
+              generate_distribution<double, noncentral_f_generator<double>>::generate(
                 res, cugen, intparams, floatparams, doubleparams);
               break;
             default: {

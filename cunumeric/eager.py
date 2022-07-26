@@ -927,6 +927,69 @@ class EagerArray(NumPyThunk):
                 b.extend(aa)
                 self.array[:] = b
 
+    def bitgenerator_beta(
+        self, handle, generatorType, seed, flags, a, b
+    ) -> None:
+        if self.deferred is not None:
+            self.deferred.bitgenerator_beta(
+                handle, generatorType, seed, flags, a, b
+            )
+        else:
+            if self.array.size == 1:
+                self.array.fill(np.random.beta(a, b))
+            else:
+                aa = np.random.beta(a, b, size=self.array.shape)
+                self.array[:] = aa
+
+    def bitgenerator_f(
+        self, handle, generatorType, seed, flags, dfnum, dfden
+    ) -> None:
+        if self.deferred is not None:
+            self.deferred.bitgenerator_f(
+                handle,
+                generatorType,
+                seed,
+                flags,
+                dfnum,
+                dfden,
+            )
+        else:
+            if self.array.size == 1:
+                self.array.fill(np.random.f(dfnum, dfden))
+            else:
+                aa = np.random.f(dfnum, dfden, size=self.array.shape)
+                self.array[:] = aa
+
+    def bitgenerator_logseries(
+        self, handle, generatorType, seed, flags, p
+    ) -> None:
+        if self.deferred is not None:
+            self.deferred.bitgenerator_logseries(
+                handle, generatorType, seed, flags, p
+            )
+        else:
+            if self.array.size == 1:
+                self.array.fill(np.random.logseries(p))
+            else:
+                aa = np.random.logseries(p, size=self.array.shape)
+                self.array[:] = aa
+
+    def bitgenerator_noncentral_f(
+        self, handle, generatorType, seed, flags, dfnum, dfden, nonc
+    ) -> None:
+        if self.deferred is not None:
+            self.deferred.bitgenerator_noncentral_f(
+                handle, generatorType, seed, flags, dfnum, dfden, nonc
+            )
+        else:
+            if self.array.size == 1:
+                self.array.fill(np.random.noncentral_f(dfnum, dfden, nonc))
+            else:
+                aa = np.random.noncentral_f(
+                    dfnum, dfden, nonc, size=self.array.shape
+                )
+                self.array[:] = aa
+
     def partition(
         self,
         rhs: Any,

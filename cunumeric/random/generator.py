@@ -100,6 +100,22 @@ class Generator:
     def bytes(self, length):
         return self.bit_generator.bytes(length=length)
 
+    def beta(self, a, b, size=None, dtype=np.float64):
+        return self.bit_generator.beta(a=a, b=b, shape=size, dtype=dtype)
+
+    def f(self, dfnum, dfden, size=None, dtype=np.float64):
+        return self.bit_generator.f(
+            dfnum=dfnum, dfden=dfden, shape=size, dtype=dtype
+        )
+
+    def logseries(self, p, size=None, dtype=np.uint32):
+        return self.bit_generator.logseries(p=p, shape=size, dtype=np.uint32)
+
+    def noncentral_f(self, dfnum, dfden, nonc, size=None, dtype=np.float64):
+        return self.bit_generator.noncentral_f(
+            dfnum=dfnum, dfden=dfden, nonc=nonc, shape=size, dtype=dtype
+        )
+
 
 def default_rng(seed=None):
     if seed is None:

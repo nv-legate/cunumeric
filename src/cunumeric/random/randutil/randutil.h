@@ -145,3 +145,30 @@ extern "C" curandStatus_t randutilGenerateWeibullEx(
   randutilGenerator_t generator, float* outputPtr, size_t n, float lam, float k);
 extern "C" curandStatus_t randutilGenerateWeibullDoubleEx(
   randutilGenerator_t generator, double* outputPtr, size_t n, double lam, double k);
+
+/* more advanced distributions */
+
+extern "C" curandStatus_t randutilGenerateBetaEx(
+  randutilGenerator_t generator, float* outputPtr, size_t n, float a, float b);
+extern "C" curandStatus_t randutilGenerateBetaDoubleEx(
+  randutilGenerator_t generator, double* outputPtr, size_t n, double a, double b);
+
+extern "C" curandStatus_t randutilGenerateFisherSnedecorEx(
+  randutilGenerator_t generator,
+  float* outputPtr,
+  size_t n,
+  float dfnum,
+  float dfden,
+  float nonc = 0.0f);  // 0.0f is F distribution
+extern "C" curandStatus_t randutilGenerateFisherSnedecorDoubleEx(
+  randutilGenerator_t generator,
+  double* outputPtr,
+  size_t n,
+  double dfnum,
+  double dfden,
+  double nonc = 0.0);  // 0.0 is F distribution
+
+extern "C" curandStatus_t randutilGenerateLogSeriesEx(randutilGenerator_t generator,
+                                                      uint32_t* outputPtr,
+                                                      size_t n,
+                                                      double p);

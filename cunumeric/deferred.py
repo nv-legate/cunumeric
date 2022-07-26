@@ -2178,6 +2178,102 @@ class DeferredArray(NumPyThunk):
             (),
         )
 
+    def bitgenerator_beta(
+        self, handle, generatorType, seed, flags, a, b
+    ) -> None:
+        if self.dtype == np.float32:
+            distribution = BitGeneratorDistribution.BETA_32
+            floatparams = (float(a), float(b))
+            doubleparams = ()
+        elif self.dtype == np.float64:
+            distribution = BitGeneratorDistribution.BETA_64
+            floatparams = ()
+            doubleparams = (float(a), float(b))
+        else:
+            raise NotImplementedError(
+                "type for random.beta has to be float64 or float32"
+            )
+        self.bitgenerator_distribution(
+            handle,
+            generatorType,
+            seed,
+            flags,
+            distribution,
+            (),
+            floatparams,
+            doubleparams,
+        )
+
+    def bitgenerator_f(
+        self, handle, generatorType, seed, flags, dfnum, dfden
+    ) -> None:
+        if self.dtype == np.float32:
+            distribution = BitGeneratorDistribution.F_32
+            floatparams = (float(dfnum), float(dfden))
+            doubleparams = ()
+        elif self.dtype == np.float64:
+            distribution = BitGeneratorDistribution.F_64
+            floatparams = ()
+            doubleparams = (float(dfnum), float(dfden))
+        else:
+            raise NotImplementedError(
+                "type for random.beta has to be float64 or float32"
+            )
+        self.bitgenerator_distribution(
+            handle,
+            generatorType,
+            seed,
+            flags,
+            distribution,
+            (),
+            floatparams,
+            doubleparams,
+        )
+
+    def bitgenerator_logseries(
+        self, handle, generatorType, seed, flags, p
+    ) -> None:
+        if self.dtype == np.uint32:
+            distribution = BitGeneratorDistribution.LOGSERIES
+        else:
+            raise NotImplementedError("type for random.beta has to be uint32")
+        self.bitgenerator_distribution(
+            handle,
+            generatorType,
+            seed,
+            flags,
+            distribution,
+            (),
+            (),
+            (float(p),),
+        )
+
+    def bitgenerator_noncentral_f(
+        self, handle, generatorType, seed, flags, dfnum, dfden, nonc
+    ) -> None:
+        if self.dtype == np.float32:
+            distribution = BitGeneratorDistribution.NONCENTRAL_F_32
+            floatparams = (float(dfnum), float(dfden), float(nonc))
+            doubleparams = ()
+        elif self.dtype == np.float64:
+            distribution = BitGeneratorDistribution.NONCENTRAL_F_64
+            floatparams = ()
+            doubleparams = (float(dfnum), float(dfden), float(nonc))
+        else:
+            raise NotImplementedError(
+                "type for random.noncentral_f has to be float64 or float32"
+            )
+        self.bitgenerator_distribution(
+            handle,
+            generatorType,
+            seed,
+            flags,
+            distribution,
+            (),
+            floatparams,
+            doubleparams,
+        )
+
     def random(self, gen_code: Any, args: Any = ()) -> None:
         task = self.context.create_auto_task(CuNumericOpCode.RAND)
 

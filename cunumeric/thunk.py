@@ -311,6 +311,30 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
+    def bitgenerator_beta(
+        self, bitgen, generatorType, seed, flags, a, b
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def bitgenerator_f(
+        self, bitgen, generatorType, seed, flags, dfnum, dfden
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def bitgenerator_logseries(
+        self, bitgen, generatorType, seed, flags, p
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def bitgenerator_noncentral_f(
+        self, bitgen, generatorType, seed, flags, dfnum, dfden, nonc
+    ) -> None:
+        ...
+
+    @abstractmethod
     def random_uniform(self) -> None:
         ...
 

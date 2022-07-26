@@ -249,6 +249,61 @@ class BitGenerator:
         )
         return res
 
+    def beta(self, a, b, shape=None, dtype=np.float64):
+        if shape is None:
+            shape = (1,)
+        if not isinstance(shape, tuple):
+            shape = (shape,)
+        res = ndarray(shape, dtype=dtype)
+        res._thunk.bitgenerator_beta(
+            self.handle, self.generatorType, self.seed, self.flags, a, b
+        )
+        return res
+
+    def f(self, dfnum, dfden, shape=None, dtype=np.float64):
+        if shape is None:
+            shape = (1,)
+        if not isinstance(shape, tuple):
+            shape = (shape,)
+        res = ndarray(shape, dtype=dtype)
+        res._thunk.bitgenerator_f(
+            self.handle,
+            self.generatorType,
+            self.seed,
+            self.flags,
+            dfnum,
+            dfden,
+        )
+        return res
+
+    def logseries(self, p, shape=None, dtype=np.uint32):
+        if shape is None:
+            shape = (1,)
+        if not isinstance(shape, tuple):
+            shape = (shape,)
+        res = ndarray(shape, dtype=dtype)
+        res._thunk.bitgenerator_logseries(
+            self.handle, self.generatorType, self.seed, self.flags, p
+        )
+        return res
+
+    def noncentral_f(self, dfnum, dfden, nonc, shape=None, dtype=np.float64):
+        if shape is None:
+            shape = (1,)
+        if not isinstance(shape, tuple):
+            shape = (shape,)
+        res = ndarray(shape, dtype=dtype)
+        res._thunk.bitgenerator_noncentral_f(
+            self.handle,
+            self.generatorType,
+            self.seed,
+            self.flags,
+            dfnum,
+            dfden,
+            nonc,
+        )
+        return res
+
 
 class XORWOW(BitGenerator):
     def __init__(self, seed=None, forceBuild=False):
