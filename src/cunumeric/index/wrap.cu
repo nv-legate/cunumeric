@@ -16,6 +16,7 @@
 
 #include "cunumeric/index/wrap.h"
 #include "cunumeric/index/wrap_template.inl"
+#include "cunumeric/cuda_help.h"
 
 namespace cunumeric {
 
@@ -23,12 +24,63 @@ using namespace Legion;
 using namespace legate;
 
 template <int DIM>
+__global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
+  wrap_kernel(const AccessorWO<Point<DIM>, 1> out,
+              const size_t start,
+              const size_t volume,
+              const Pitches<0> pitches_out,
+              const Point<1> out_lo,
+              const Pitches<DIM - 1> pitches_in,
+              const Point<DIM> in_lo,
+              const size_t in_volume)
+{
+  const size_t idx = global_tid_1d();
+  if (idx >= volume) return;
+  const size_t input_idx = (idx + start) % (in_volume - 1);
+  auto out_p             = pitches_out.unflatten(idx, out_lo);
+  auto p                 = pitches_in.unflatten(input_idx, in_lo);
+  out[out_p]             = p;
+}
+
+template <int DIM>
+__global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
+  wrap_kernel_dense(Point<DIM>* out,
+                    const size_t start,
+                    const size_t volume,
+                    const Pitches<DIM - 1> pitches_in,
+                    const Point<DIM> in_lo,
+                    const size_t in_volume)
+{
+  const size_t idx = global_tid_1d();
+  if (idx >= volume) return;
+  const size_t input_idx = (idx + start) % (in_volume - 1);
+  auto p                 = pitches_in.unflatten(input_idx, in_lo);
+  out[idx]               = p;
+}
+
+template <int DIM>
 struct WrapImplBody<VariantKind::GPU, DIM> {
   void operator()(const AccessorWO<Point<DIM>, 1>& out,
+                  const Pitches<0>& pitches_out,
                   const Rect<1>& out_rect,
                   const Pitches<DIM - 1>& pitches_in,
-                  const Rect<DIM> rect_in) const
+                  const Rect<DIM>& in_rect,
+                  const bool dense) const
   {
+    auto stream            = get_cached_stream();
+    const size_t start     = out_rect.lo[0];
+    const size_t volume    = out_rect.volume();
+    const size_t in_volume = in_rect.volume();
+    const size_t blocks    = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
+    if (dense) {
+      auto outptr = out.ptr(out_rect);
+      wrap_kernel_dense<DIM><<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
+        outptr, start, volume, pitches_in, in_rect.lo, in_volume);
+    } else {
+      wrap_kernel<DIM><<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
+        out, start, volume, pitches_out, out_rect.lo, pitches_in, in_rect.lo, in_volume);
+    }
+    CHECK_CUDA_STREAM(stream);
   }
 };
 

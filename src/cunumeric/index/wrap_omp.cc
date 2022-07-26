@@ -25,10 +25,32 @@ using namespace legate;
 template <int DIM>
 struct WrapImplBody<VariantKind::OMP, DIM> {
   void operator()(const AccessorWO<Point<DIM>, 1>& out,
+                  const Pitches<0>& pitches_out,
                   const Rect<1>& out_rect,
                   const Pitches<DIM - 1>& pitches_in,
-                  const Rect<DIM> rect_in) const
+                  const Rect<DIM>& in_rect,
+                  const bool dense) const
   {
+    const size_t start     = out_rect.lo[0];
+    const size_t end       = out_rect.hi[0];
+    const size_t in_volume = in_rect.volume();
+    if (dense) {
+      auto outptr = out.ptr(out_rect);
+#pragma omp parallel for schedule(static)
+      for (size_t i = start; i <= end; i++) {
+        const size_t input_idx = i % (in_volume - 1);
+        auto point             = pitches_in.unflatten(input_idx, in_rect.lo);
+        outptr[i - start]      = point;
+      }
+    } else {
+#pragma omp parallel for schedule(static)
+      for (size_t i = start; i <= end; i++) {
+        const size_t input_idx = i % (in_volume - 1);
+        auto point             = pitches_in.unflatten(input_idx, in_rect.lo);
+        auto point_out         = pitches_out.unflatten(i - start, out_rect.lo);
+        out[point_out]         = point;
+      }
+    }  // else
   }
 };
 

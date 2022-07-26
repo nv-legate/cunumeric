@@ -37,6 +37,16 @@ struct WrapImpl {
     auto out_rect = args.out.shape<1>();  // output array is always 1D
     auto out      = args.out.write_accessor<Point<DIM>, 1>(out_rect);
 
+    Pitches<0> pitches_out;
+    size_t volume_out = pitches_out.flatten(out_rect);
+    if (volume_out == 0) return;
+
+#ifndef LEGION_BOUNDS_CHECKS
+    bool dense = out.accessor.is_dense_row_major(out_rect);
+#else
+    bool dense = false;
+#endif
+
     Point<DIM> point_lo, point_hi;
     for (int dim = 0; dim < DIM; ++dim) {
       point_lo[dim] = 0;
@@ -48,7 +58,7 @@ struct WrapImpl {
     size_t volume_in = pitches_in.flatten(input_rect);
     if (volume_in == 0) return;
 
-    WrapImplBody<KIND, DIM>()(out, out_rect, pitches_in, input_rect);
+    WrapImplBody<KIND, DIM>()(out, pitches_out, out_rect, pitches_in, input_rect, dense);
   }
 };
 

@@ -3801,11 +3801,12 @@ class ndarray:
         out._thunk.where(mask, one, two)
         return out
 
-    @add_boilerplate()
-    def _wrap(self: ndarray, new_len: int) -> ndarray:
+    def _wrap(self, new_len: int) -> ndarray:
         out = ndarray(
             shape=(new_len,),
             dtype=self.dtype,
             inputs=(self,),
         )
-        return out._thunk._wrap(src=self._thunk, new_len=new_len)
+        out.fill(0)
+        out._thunk._wrap(src=self._thunk, new_len=new_len)
+        return out

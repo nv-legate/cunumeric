@@ -2768,7 +2768,7 @@ def fill_diagonal(a: ndarray, val: ndarray, wrap: Optional[bool] = False):
     if a.ndim < 2:
         raise ValueError("array must be at least 2-d")
 
-    n = min(a.shape)
+    n = _builtin_min(a.shape)
 
     if a.ndim > 2:
         for s in a.shape:
@@ -2787,11 +2787,12 @@ def fill_diagonal(a: ndarray, val: ndarray, wrap: Optional[bool] = False):
         val = val.ravel()
 
     len_val = n
+
     if wrap:
         len_val = a.shape[1]
 
-    if val.size < len_val and val.ndim > 0:
-        val._wrap(len_val)
+    if val.size != len_val and val.ndim > 0:
+        val = val._wrap(len_val)
 
     if a.ndim == 2:
         # if not wrap or a.shape[0] >= a.shape[1]:
