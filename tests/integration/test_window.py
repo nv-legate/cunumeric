@@ -16,57 +16,29 @@
 
 import numpy as np
 import pytest
+from utils.comparisons import allclose
 
-import cunumeric as num
+import cunumeric as cn
 
-fns = ["bartlett", "blackman", "hamming", "hanning"]
+window_functions = ("bartlett", "blackman", "hamming", "hanning")
 
 
-def test():
-    for fn in fns:
-        print(f"Testing cunumeric.{fn}")
-        np_fn = getattr(np, fn)
-        num_fn = getattr(num, fn)
+@pytest.mark.parametrize("M", (0, 1, 10, 100))
+@pytest.mark.parametrize("fn", window_functions)
+def test_basic_window(fn, M):
+    out_np = getattr(np, fn)(M)
+    out_cn = getattr(cn, fn)(M)
 
-        out_np = np_fn(0)
-        out_num = num_fn(0)
+    assert allclose(out_np, out_cn)
 
-        assert np.allclose(out_np, out_num)
 
-        out_np = np_fn(1)
-        out_num = num_fn(1)
+@pytest.mark.parametrize("beta", (0, 6))
+@pytest.mark.parametrize("M", (0, 1, 10, 100))
+def test_kaiser_window(M, beta):
+    out_np = np.kaiser(M, beta)
+    out_cn = cn.kaiser(M, beta)
 
-        assert np.allclose(out_np, out_num)
-
-        out_np = np_fn(10)
-        out_num = num_fn(10)
-
-        assert np.allclose(out_np, out_num)
-
-        out_np = np_fn(100)
-        out_num = num_fn(100)
-
-        assert np.allclose(out_np, out_num)
-
-    print("Testing cunumeric.kaiser")
-    out_np = np.kaiser(0, 0)
-    out_num = num.kaiser(0, 0)
-
-    assert np.allclose(out_np, out_num)
-
-    out_np = np.kaiser(1, 0)
-    out_num = num.kaiser(1, 0)
-
-    assert np.allclose(out_np, out_num)
-    out_np = np.kaiser(10, 0)
-    out_num = num.kaiser(10, 0)
-
-    assert np.allclose(out_np, out_num)
-
-    out_np = np.kaiser(100, 6)
-    out_num = num.kaiser(100, 6)
-
-    assert np.allclose(out_np, out_num)
+    assert allclose(out_np, out_cn)
 
 
 if __name__ == "__main__":

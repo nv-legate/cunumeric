@@ -15,7 +15,7 @@
 
 import numpy as np
 import pytest
-from test_tools.generators import mk_seq_array
+from utils.generators import mk_seq_array
 
 import cunumeric as num
 from legate.core import LEGATE_MAX_DIM

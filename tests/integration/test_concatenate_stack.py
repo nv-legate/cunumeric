@@ -68,6 +68,8 @@ def run_test(arr, routine, input_size):
 
 DIM = 10
 
+NUM_ARR = [1, 3]
+
 SIZES = [
     (0,),
     (0, 10),
@@ -81,40 +83,46 @@ SIZES = [
 
 
 @pytest.fixture(autouse=True)
-def a(size):
-    return [np.random.randint(low=0, high=100, size=size) for _ in range(3)]
+def a(size, num):
+    return [np.random.randint(low=0, high=100, size=size) for _ in range(num)]
 
 
+@pytest.mark.parametrize("num", NUM_ARR, ids=str)
 @pytest.mark.parametrize("size", SIZES, ids=str)
-def test_concatenate(size, a):
+def test_concatenate(size, num, a):
     run_test(tuple(a), "concatenate", size)
 
 
+@pytest.mark.parametrize("num", NUM_ARR, ids=str)
 @pytest.mark.parametrize("size", SIZES, ids=str)
-def test_stack(size, a):
+def test_stack(size, num, a):
     run_test(tuple(a), "stack", size)
 
 
+@pytest.mark.parametrize("num", NUM_ARR, ids=str)
 @pytest.mark.parametrize("size", SIZES, ids=str)
-def test_hstack(size, a):
+def test_hstack(size, num, a):
     run_test(tuple(a), "hstack", size)
 
 
+@pytest.mark.parametrize("num", NUM_ARR, ids=str)
 @pytest.mark.parametrize("size", SIZES, ids=str)
-def test_column_stack(size, a):
+def test_column_stack(size, num, a):
     run_test(tuple(a), "column_stack", size)
 
 
+@pytest.mark.parametrize("num", NUM_ARR, ids=str)
 @pytest.mark.parametrize("size", SIZES, ids=str)
-def test_column_vstack(size, a):
+def test_vstack(size, num, a):
     # exception for 1d array on vstack
     if len(size) == 2 and size == (1, DIM):
         a.append(np.random.randint(low=0, high=100, size=(DIM,)))
     run_test(tuple(a), "vstack", size)
 
 
+@pytest.mark.parametrize("num", NUM_ARR, ids=str)
 @pytest.mark.parametrize("size", SIZES, ids=str)
-def test_column_dstack(size, a):
+def test_dstack(size, num, a):
     # exception for 1d array on dstack
     if len(size) == 2 and size == (1, DIM):
         a.append(np.random.randint(low=0, high=100, size=(DIM,)))
