@@ -15,7 +15,7 @@
 
 import pytest
 from cunumeric.utils import matmul_modes
-from test_tools.contractions import (
+from utils.contractions import (
     check_default,
     check_permutations,
     check_shapes,
