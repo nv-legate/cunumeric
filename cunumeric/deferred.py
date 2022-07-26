@@ -2274,6 +2274,58 @@ class DeferredArray(NumPyThunk):
             doubleparams,
         )
 
+    def bitgenerator_chisquare(
+        self, handle, generatorType, seed, flags, df, nonc
+    ) -> None:
+        if self.dtype == np.float32:
+            distribution = BitGeneratorDistribution.CHISQUARE_32
+            floatparams = (float(df), float(nonc))
+            doubleparams = ()
+        elif self.dtype == np.float64:
+            distribution = BitGeneratorDistribution.CHISQUARE_64
+            floatparams = ()
+            doubleparams = (float(df), float(nonc))
+        else:
+            raise NotImplementedError(
+                "type for random.chisquare has to be float64 or float32"
+            )
+        self.bitgenerator_distribution(
+            handle,
+            generatorType,
+            seed,
+            flags,
+            distribution,
+            (),
+            floatparams,
+            doubleparams,
+        )
+
+    def bitgenerator_gamma(
+        self, handle, generatorType, seed, flags, k, theta
+    ) -> None:
+        if self.dtype == np.float32:
+            distribution = BitGeneratorDistribution.GAMMA_32
+            floatparams = (float(k), float(theta))
+            doubleparams = ()
+        elif self.dtype == np.float64:
+            distribution = BitGeneratorDistribution.GAMMA_64
+            floatparams = ()
+            doubleparams = (float(k), float(theta))
+        else:
+            raise NotImplementedError(
+                "type for random.gamma has to be float64 or float32"
+            )
+        self.bitgenerator_distribution(
+            handle,
+            generatorType,
+            seed,
+            flags,
+            distribution,
+            (),
+            floatparams,
+            doubleparams,
+        )
+
     def random(self, gen_code: Any, args: Any = ()) -> None:
         task = self.context.create_auto_task(CuNumericOpCode.RAND)
 

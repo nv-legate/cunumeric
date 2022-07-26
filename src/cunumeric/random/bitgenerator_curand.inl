@@ -205,6 +205,22 @@ struct CURANDGenerator {
   {
     CHECK_CURAND(::randutilGenerateFisherSnedecorEx(gen_, out, count, dfnum, dfden, nonc));
   }
+  void generate_chisquare_64(uint64_t count, double* out, double df, double nonc)
+  {
+    CHECK_CURAND(::randutilGenerateChiSquareDoubleEx(gen_, out, count, df, nonc));
+  }
+  void generate_chisquare_32(uint64_t count, float* out, float df, float nonc)
+  {
+    CHECK_CURAND(::randutilGenerateChiSquareEx(gen_, out, count, df, nonc));
+  }
+  void generate_gamma_64(uint64_t count, double* out, double k, double theta)
+  {
+    CHECK_CURAND(::randutilGenerateGammaDoubleEx(gen_, out, count, k, theta));
+  }
+  void generate_gamma_32(uint64_t count, float* out, float k, float theta)
+  {
+    CHECK_CURAND(::randutilGenerateGammaEx(gen_, out, count, k, theta));
+  }
 };
 
 #pragma endregion
@@ -963,6 +979,84 @@ struct noncentral_f_generator<float> {
 
 #pragma endregion
 
+#pragma region chisquare
+
+template <typename output_t>
+struct chisquare_generator;
+template <>
+struct chisquare_generator<double> {
+  double df_, nonc_;
+
+  chisquare_generator(const std::vector<int64_t>& intparams,
+                      const std::vector<float>& floatparams,
+                      const std::vector<double>& doubleparams)
+    : df_(doubleparams[0]), nonc_(doubleparams[1])
+  {
+  }
+
+  void generate(CURANDGenerator& gen, uint64_t count, double* p) const
+  {
+    gen.generate_chisquare_64(count, p, df_, nonc_);
+  }
+};
+template <>
+struct chisquare_generator<float> {
+  float df_, nonc_;
+
+  chisquare_generator(const std::vector<int64_t>& intparams,
+                      const std::vector<float>& floatparams,
+                      const std::vector<double>& doubleparams)
+    : df_(floatparams[0]), nonc_(floatparams[1])
+  {
+  }
+
+  void generate(CURANDGenerator& gen, uint64_t count, float* p) const
+  {
+    gen.generate_chisquare_32(count, p, df_, nonc_);
+  }
+};
+
+#pragma endregion
+
+#pragma region gamma
+
+template <typename output_t>
+struct gamma_generator;
+template <>
+struct gamma_generator<double> {
+  double k_, theta_;
+
+  gamma_generator(const std::vector<int64_t>& intparams,
+                  const std::vector<float>& floatparams,
+                  const std::vector<double>& doubleparams)
+    : k_(doubleparams[0]), theta_(doubleparams[1])
+  {
+  }
+
+  void generate(CURANDGenerator& gen, uint64_t count, double* p) const
+  {
+    gen.generate_gamma_64(count, p, k_, theta_);
+  }
+};
+template <>
+struct gamma_generator<float> {
+  float k_, theta_;
+
+  gamma_generator(const std::vector<int64_t>& intparams,
+                  const std::vector<float>& floatparams,
+                  const std::vector<double>& doubleparams)
+    : k_(floatparams[0]), theta_(floatparams[1])
+  {
+  }
+
+  void generate(CURANDGenerator& gen, uint64_t count, float* p) const
+  {
+    gen.generate_gamma_32(count, p, k_, theta_);
+  }
+};
+
+#pragma endregion
+
 #pragma endregion
 
 template <typename output_t, typename generator_t>
@@ -1281,6 +1375,22 @@ struct BitGeneratorImplBody {
               break;
             case BitGeneratorDistribution::NONCENTRAL_F_64:
               generate_distribution<double, noncentral_f_generator<double>>::generate(
+                res, cugen, intparams, floatparams, doubleparams);
+              break;
+            case BitGeneratorDistribution::CHISQUARE_32:
+              generate_distribution<float, chisquare_generator<float>>::generate(
+                res, cugen, intparams, floatparams, doubleparams);
+              break;
+            case BitGeneratorDistribution::CHISQUARE_64:
+              generate_distribution<double, chisquare_generator<double>>::generate(
+                res, cugen, intparams, floatparams, doubleparams);
+              break;
+            case BitGeneratorDistribution::GAMMA_32:
+              generate_distribution<float, gamma_generator<float>>::generate(
+                res, cugen, intparams, floatparams, doubleparams);
+              break;
+            case BitGeneratorDistribution::GAMMA_64:
+              generate_distribution<double, gamma_generator<double>>::generate(
                 res, cugen, intparams, floatparams, doubleparams);
               break;
             default: {

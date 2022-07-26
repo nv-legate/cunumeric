@@ -304,6 +304,28 @@ class BitGenerator:
         )
         return res
 
+    def chisquare(self, df, nonc=0.0, shape=None, dtype=np.float64):
+        if shape is None:
+            shape = (1,)
+        if not isinstance(shape, tuple):
+            shape = (shape,)
+        res = ndarray(shape, dtype=dtype)
+        res._thunk.bitgenerator_chisquare(
+            self.handle, self.generatorType, self.seed, self.flags, df, nonc
+        )
+        return res
+
+    def gamma(self, k, theta=1.0, shape=None, dtype=np.float64):
+        if shape is None:
+            shape = (1,)
+        if not isinstance(shape, tuple):
+            shape = (shape,)
+        res = ndarray(shape, dtype=dtype)
+        res._thunk.bitgenerator_gamma(
+            self.handle, self.generatorType, self.seed, self.flags, k, theta
+        )
+        return res
+
 
 class XORWOW(BitGenerator):
     def __init__(self, seed=None, forceBuild=False):

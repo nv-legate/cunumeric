@@ -116,6 +116,24 @@ class Generator:
             dfnum=dfnum, dfden=dfden, nonc=nonc, shape=size, dtype=dtype
         )
 
+    def chisquare(self, df, size=None, dtype=np.float64):
+        return self.bit_generator.chisquare(
+            df=df, nonc=0.0, shape=size, dtype=dtype
+        )
+
+    def noncentral_chisquare(self, df, nonc, size=None, dtype=np.float64):
+        return self.bit_generator.chisquare(
+            df=df, nonc=nonc, shape=size, dtype=dtype
+        )
+
+    def gamma(self, shape, scale=1.0, size=None, dtype=np.float64):
+        return self.bit_generator.gamma(
+            k=shape, theta=scale, shape=size, dtype=dtype
+        )
+
+    def standard_gamma(self, shape, size=None, dtype=np.float64):
+        return self.gamma(shape=shape, scale=1.0, size=size, dtype=dtype)
+
 
 def default_rng(seed=None):
     if seed is None:

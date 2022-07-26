@@ -335,6 +335,18 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
+    def bitgenerator_chisquare(
+        self, bitgen, generatorType, seed, flags, df, nonc
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def bitgenerator_gamma(
+        self, bitgen, generatorType, seed, flags, k, theta
+    ) -> None:
+        ...
+
+    @abstractmethod
     def random_uniform(self) -> None:
         ...
 

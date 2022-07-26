@@ -32,3 +32,18 @@ template struct randutilimpl::
 #include "generator_logseries.inl"
 template struct randutilimpl::
   dispatcher<randutilimpl::execlocation::DEVICE, logseries_t<double>, uint32_t>;
+
+#include "generator_chisquare.inl"
+template struct randutilimpl::
+  dispatcher<randutilimpl::execlocation::DEVICE, chisquare_t<float>, float>;
+template struct randutilimpl::
+  dispatcher<randutilimpl::execlocation::DEVICE, chisquare_t<double>, double>;
+template struct randutilimpl::
+  dispatcher<randutilimpl::execlocation::DEVICE, noncentralchisquare_t<float>, float>;
+template struct randutilimpl::
+  dispatcher<randutilimpl::execlocation::DEVICE, noncentralchisquare_t<double>, double>;
+
+#include "generator_gamma.inl"
+template struct randutilimpl::dispatcher<randutilimpl::execlocation::DEVICE, gamma_t<float>, float>;
+template struct randutilimpl::
+  dispatcher<randutilimpl::execlocation::DEVICE, gamma_t<double>, double>;

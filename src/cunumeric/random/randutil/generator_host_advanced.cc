@@ -109,3 +109,81 @@ extern "C" curandStatus_t randutilGenerateLogSeriesEx(randutilGenerator_t genera
 }
 
 #pragma endregion
+
+#pragma region ChiSquared
+
+#include "generator_chisquare.inl"
+
+extern "C" curandStatus_t randutilGenerateChiSquareEx(
+  randutilGenerator_t generator,
+  float* outputPtr,
+  size_t n,
+  float df,
+  float nonc)  // <> 0.0f is non-central distribution
+{
+  randutilimpl::basegenerator* gen = (randutilimpl::basegenerator*)generator;
+  if (nonc == 0.0f) {
+    chisquare_t<float> func;
+    func.df = df;
+    return randutilimpl::dispatch<decltype(func), float>(gen, func, n, outputPtr);
+  } else {
+    noncentralchisquare_t<float> func;
+    func.df   = df;
+    func.nonc = nonc;
+    return randutilimpl::dispatch<decltype(func), float>(gen, func, n, outputPtr);
+  }
+}
+
+extern "C" curandStatus_t randutilGenerateChiSquareDoubleEx(
+  randutilGenerator_t generator,
+  double* outputPtr,
+  size_t n,
+  double df,
+  double nonc)  // <> 0.0 is non-central distribution
+{
+  randutilimpl::basegenerator* gen = (randutilimpl::basegenerator*)generator;
+  if (nonc == 0.0) {
+    chisquare_t<double> func;
+    func.df = df;
+    return randutilimpl::dispatch<decltype(func), double>(gen, func, n, outputPtr);
+  } else {
+    noncentralchisquare_t<double> func;
+    func.df   = df;
+    func.nonc = nonc;
+    return randutilimpl::dispatch<decltype(func), double>(gen, func, n, outputPtr);
+  }
+}
+
+#pragma endregion
+
+#pragma region gamma
+
+#include "generator_gamma.inl"
+
+extern "C" curandStatus_t randutilGenerateGammaEx(randutilGenerator_t generator,
+                                                  float* outputPtr,
+                                                  size_t n,
+                                                  float shape,
+                                                  float scale)  // = 1.0f is standard_gamma
+{
+  randutilimpl::basegenerator* gen = (randutilimpl::basegenerator*)generator;
+  gamma_t<float> func;
+  func.shape = shape;
+  func.scale = scale;
+  return randutilimpl::dispatch<decltype(func), float>(gen, func, n, outputPtr);
+}
+
+extern "C" curandStatus_t randutilGenerateGammaDoubleEx(randutilGenerator_t generator,
+                                                        double* outputPtr,
+                                                        size_t n,
+                                                        double shape,
+                                                        double scale)  // = 1.0 is standard_gamma
+{
+  randutilimpl::basegenerator* gen = (randutilimpl::basegenerator*)generator;
+  gamma_t<double> func;
+  func.shape = shape;
+  func.scale = scale;
+  return randutilimpl::dispatch<decltype(func), double>(gen, func, n, outputPtr);
+}
+
+#pragma endregion

@@ -172,3 +172,17 @@ extern "C" curandStatus_t randutilGenerateLogSeriesEx(randutilGenerator_t genera
                                                       uint32_t* outputPtr,
                                                       size_t n,
                                                       double p);
+
+extern "C" curandStatus_t randutilGenerateChiSquareEx(
+  randutilGenerator_t generator, float* outputPtr, size_t n, float df, float nonc = 0.0);
+extern "C" curandStatus_t randutilGenerateChiSquareDoubleEx(
+  randutilGenerator_t generator, double* outputPtr, size_t n, double df, double nonc = 0.0);
+
+extern "C" curandStatus_t randutilGenerateGammaEx(
+  randutilGenerator_t generator,
+  float* outputPtr,
+  size_t n,
+  float shape,
+  float scale = 1.0f);  // scale = 1.0 is standard_gamma
+extern "C" curandStatus_t randutilGenerateGammaDoubleEx(
+  randutilGenerator_t generator, double* outputPtr, size_t n, double shape, double scale = 1.0);

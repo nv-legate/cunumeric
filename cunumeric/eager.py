@@ -990,6 +990,48 @@ class EagerArray(NumPyThunk):
                 )
                 self.array[:] = aa
 
+    def bitgenerator_chisquare(
+        self, handle, generatorType, seed, flags, df, nonc
+    ) -> None:
+        if self.deferred is not None:
+            self.deferred.bitgenerator_chisquare(
+                handle, generatorType, seed, flags, df, nonc
+            )
+        else:
+            if self.array.size == 1:
+                if nonc == 0.0:
+                    self.array.fill(np.random.chisquare(df))
+                else:
+                    self.array.fill(np.random.noncentral_chisquare(df, nonc))
+            else:
+                if nonc == 0.0:
+                    aa = np.random.chisquare(df, size=self.array.shape)
+                else:
+                    aa = np.random.noncentral_chisquare(
+                        df, nonc, size=self.array.shape
+                    )
+                self.array[:] = aa
+
+    def bitgenerator_gamma(
+        self, handle, generatorType, seed, flags, k, theta
+    ) -> None:
+        if self.deferred is not None:
+            self.deferred.bitgenerator_gamma(
+                handle, generatorType, seed, flags, k, theta
+            )
+        else:
+            if self.array.size == 1:
+                if theta == 1.0:
+                    self.array.fill(np.random.standard_gamma(k))
+                else:
+                    self.array.fill(np.random.gamma(k, theta))
+            else:
+                if theta == 1.0:
+                    aa = np.random.standard_gamma(k, size=self.array.shape)
+                else:
+                    aa = np.random.gamma(k, theta, size=self.array.shape)
+                self.array[:] = aa
+
     def partition(
         self,
         rhs: Any,
