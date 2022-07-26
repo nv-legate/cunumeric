@@ -2525,8 +2525,9 @@ def take_along_axis(a: ndarray, indices: ndarray, axis: int) -> ndarray:
     the index and data arrays, and uses the former to look up values in the
     latter. These slices can be different lengths.
 
-    Functions returning an index along an axis, like `argsort` and
-    `argpartition`, produce suitable indices for this function.
+    Functions returning an index along an axis, like
+    :func:`cunumeric.argsort` and :func:`cunumeric.argpartition`,
+    produce suitable indices for this function.
 
     Parameters
     ----------
@@ -2539,7 +2540,7 @@ def take_along_axis(a: ndarray, indices: ndarray, axis: int) -> ndarray:
     axis : int
         The axis to take 1d slices along. If axis is None, the input array is
         treated as if it had first been flattened to 1d, for consistency with
-        `sort` and `argsort`.
+        :func:`cunumeric.sort` and :func:`cunumeric.argsort`.
 
     Returns
     -------
@@ -2584,8 +2585,9 @@ def put_along_axis(
     the index and data arrays, and uses the former to place values into the
     latter. These slices can be different lengths.
 
-    Functions returning an index along an axis, like `argsort` and
-    `argpartition`, produce suitable indices for this function.
+    Functions returning an index along an axis, like :func:`cunumeric.argsort`
+    and :func:`cunumeric.argpartition`, produce suitable indices for
+    this function.
 
     Parameters
     ----------
