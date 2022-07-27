@@ -75,6 +75,20 @@ class NumPyThunk(ABC):
         """Return the Legion storage primitive for this NumPy thunk"""
         ...
 
+    @abstractmethod
+    def get_root(self) -> Any:
+        """
+        Return the base data that this thunk is a view over.
+
+        Two thunks represent views over the same data iff their roots are the
+        same object, i.e. `a.get_root() is b.get_root()`.
+
+        The type of the base data object is subclass-specific, and thus the
+        returned root object should not be inspected or used, except for
+        identity checks as outlined above.
+        """
+        ...
+
     @abstractproperty
     def shape(self) -> NdShape:
         ...

@@ -37,7 +37,7 @@ import numpy as np
 from typing_extensions import ParamSpec
 
 import legate.core.types as ty
-from legate.core import Future, ReductionOp, Store
+from legate.core import Future, ReductionOp, Storage, Store
 
 from .config import (
     BinaryOpCode,
@@ -242,6 +242,9 @@ class DeferredArray(NumPyThunk):
             return storage
         else:
             return (storage.region, storage.field.field_id)
+
+    def get_root(self) -> Storage:
+        return self.base.get_root()
 
     @property
     def shape(self) -> NdShape:

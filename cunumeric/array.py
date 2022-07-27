@@ -343,6 +343,10 @@ class ndarray:
         """
         return self.__array__().data
 
+    @add_boilerplate("rhs")
+    def same_root(self, rhs: ndarray) -> bool:
+        return self._thunk.get_root() is rhs._thunk.get_root()
+
     @property
     def dtype(self):
         """
