@@ -14,8 +14,22 @@
 #
 from __future__ import annotations
 
-from typing import Tuple, Union
+from typing import Literal, Tuple, Union
 
-NdShape = Tuple[int, ...]
+from typing_extensions import TypeAlias
 
-NdShapeLike = Union[int, NdShape]
+NdShape: TypeAlias = Tuple[int, ...]
+
+NdShapeLike: TypeAlias = Union[int, NdShape]
+
+SortSide: TypeAlias = Literal["left", "right"]
+
+SortType: TypeAlias = Literal["quicksort", "mergesort", "heapsort", "stable"]
+
+OrderType: TypeAlias = Literal["A", "C", "F"]
+
+BitOrder: TypeAlias = Literal["big", "little"]
+
+ConvolveMode: TypeAlias = Literal["full", "valid", "same"]
+
+SelectKind: TypeAlias = Literal["introselect"]

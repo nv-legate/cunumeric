@@ -14,7 +14,16 @@
 #
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    Optional,
+    Sequence,
+    Union,
+    cast,
+)
 
 import numpy as np
 
@@ -29,16 +38,29 @@ from .config import (
     UnaryRedCode,
     WindowOpCode,
 )
+from .deferred import DeferredArray
 from .thunk import NumPyThunk
 from .utils import is_advanced_indexing
 
 if TYPE_CHECKING:
     import numpy.typing as npt
 
-    from .deferred import DeferredArray
+    from legate.core import FieldID, Future, Region
+
+    from .config import FFTType
+    from .runtime import Runtime
+    from .types import (
+        BitOrder,
+        ConvolveMode,
+        NdShape,
+        OrderType,
+        SelectKind,
+        SortSide,
+        SortType,
+    )
 
 
-_UNARY_OPS = {
+_UNARY_OPS: Dict[UnaryOpCode, Any] = {
     UnaryOpCode.ABSOLUTE: np.absolute,
     UnaryOpCode.ARCCOS: np.arccos,
     UnaryOpCode.ARCCOSH: np.arccosh,
@@ -83,7 +105,7 @@ _UNARY_OPS = {
     UnaryOpCode.TRUNC: np.trunc,
 }
 
-_UNARY_RED_OPS = {
+_UNARY_RED_OPS: Dict[UnaryRedCode, Any] = {
     UnaryRedCode.ALL: np.all,
     UnaryRedCode.ANY: np.any,
     UnaryRedCode.MAX: np.max,
@@ -92,7 +114,7 @@ _UNARY_RED_OPS = {
     UnaryRedCode.SUM: np.sum,
 }
 
-_BINARY_OPS = {
+_BINARY_OPS: Dict[BinaryOpCode, Any] = {
     BinaryOpCode.ADD: np.add,
     BinaryOpCode.ARCTAN2: np.arctan2,
     BinaryOpCode.BITWISE_AND: np.bitwise_and,
@@ -129,7 +151,13 @@ _BINARY_OPS = {
     BinaryOpCode.SUBTRACT: np.subtract,
 }
 
-_WINDOW_OPS = {
+_WINDOW_OPS: Dict[
+    WindowOpCode,
+    Union[
+        Callable[[float], npt.NDArray[Any]],
+        Callable[[float, float], npt.NDArray[Any]],
+    ],
+] = {
     WindowOpCode.BARLETT: np.bartlett,
     WindowOpCode.BLACKMAN: np.blackman,
     WindowOpCode.HAMMING: np.hamming,
@@ -138,7 +166,9 @@ _WINDOW_OPS = {
 }
 
 
-def eye_reference(shape, dtype, axes):
+def eye_reference(
+    shape: NdShape, dtype: np.dtype[Any], axes: tuple[int, ...]
+) -> npt.NDArray[Any]:
     n = min(shape[ax] for ax in axes)
     res = np.zeros(shape, dtype=dtype)
     for i in range(n):
@@ -149,16 +179,15 @@ def eye_reference(shape, dtype, axes):
     return res
 
 
-def diagonal_reference(a, axes):
+def diagonal_reference(a: npt.NDArray[Any], axes: NdShape) -> npt.NDArray[Any]:
     transpose_axes = tuple(ax for ax in range(a.ndim) if ax not in axes)
-    axes = sorted(axes, reverse=False, key=lambda i: a.shape[i])
-    axes = tuple(axes)
+    axes = tuple(sorted(axes, reverse=False, key=lambda i: a.shape[i]))
     a = a.transpose(transpose_axes + axes)
     diff = a.ndim - len(axes)
     axes = tuple((diff + ax) for ax in range(0, len(axes)))
     eye = eye_reference(a.shape, a.dtype, axes)
     res = a * eye
-    for ax in list(reversed(sorted(axes)))[:-1]:
+    for ax in tuple(reversed(sorted(axes)))[:-1]:
         res = res.sum(axis=ax)
     return res
 
@@ -171,25 +200,31 @@ class EagerArray(NumPyThunk):
     :meta private:
     """
 
-    def __init__(self, runtime, array, parent=None, key=None) -> None:
+    def __init__(
+        self,
+        runtime: Runtime,
+        array: npt.NDArray[Any],
+        parent: Optional[EagerArray] = None,
+        key: Optional[tuple[Any, ...]] = None,
+    ) -> None:
         super().__init__(runtime, array.dtype)
-        self.array = array
-        self.parent = parent
-        self.children = None
-        self.key = key
+        self.array: npt.NDArray[Any] = array
+        self.parent: Optional[EagerArray] = parent
+        self.children: list[EagerArray] = []
+        self.key: Optional[tuple[Any, ...]] = key
         #: if this ever becomes set (to a DeferredArray), we forward all
         #: operations to it
-        self.deferred = None
+        self.deferred: Optional[DeferredArray] = None
         self.escaped = False
 
     @property
-    def storage(self):
+    def storage(self) -> Union[Future, tuple[Region, FieldID]]:
         if self.deferred is None:
             self.to_deferred_array()
-        return self.deferred.storage
+        return self.deferred.storage  # type: ignore
 
     @property
-    def shape(self):
+    def shape(self) -> NdShape:
         return self.array.shape
 
     def __numpy_array__(self) -> npt.NDArray[Any]:
@@ -200,13 +235,13 @@ class EagerArray(NumPyThunk):
         self.record_escape()
         return self.array.__array__()
 
-    def record_escape(self):
+    def record_escape(self) -> None:
         if self.parent is None:
             self.escaped = True
         else:
             self.parent.record_escape()
 
-    def check_eager_args(self, *args):
+    def check_eager_args(self, *args: Any) -> None:
         if self.deferred is not None:
             return
         for arg in args:
@@ -222,22 +257,23 @@ class EagerArray(NumPyThunk):
             else:
                 raise RuntimeError("bad argument type")
 
-    def _convert_children(self):
+    def _convert_children(self) -> None:
         """
         Traverse down our children and convert them to deferred arrays.
         """
         assert self.runtime.is_deferred_array(self.deferred)
-        if self.children is not None:
-            for child in self.children:
-                if child.deferred is None:
-                    func = getattr(self.deferred, child.key[0])
-                    args = child.key[1:]
-                    child.deferred = func(*args)
-            # After we've made all the deferred views for each child then
-            # we can traverse down. Do it this way so we can get partition
-            # coalescing where possible
-            for child in self.children:
-                child._convert_children()
+        for child in self.children:
+            if child.deferred is None:
+                # mypy can't deduce that children nodes will always have
+                # their .key attribute set.
+                func = getattr(self.deferred, child.key[0])  # type: ignore
+                args = child.key[1:]  # type: ignore
+                child.deferred = func(*args)
+        # After we've made all the deferred views for each child then
+        # we can traverse down. Do it this way so we can get partition
+        # coalescing where possible
+        for child in self.children:
+            child._convert_children()
 
     def to_deferred_array(self) -> DeferredArray:
         """This is a really important method. It will convert a tree of
@@ -261,7 +297,7 @@ class EagerArray(NumPyThunk):
                         shape=self.shape,
                     )
                 else:
-                    self.deferred = self.runtime.find_or_create_array_thunk(
+                    self.deferred = self.runtime.find_or_create_array_thunk(  # type: ignore # noqa E501
                         self.array,
                         share=self.escaped,
                         defer=True,
@@ -271,40 +307,48 @@ class EagerArray(NumPyThunk):
                 # Traverse up the tree to make the deferred array
                 self.parent.to_deferred_array()
                 assert self.deferred is not None
-        return self.deferred
+        return cast(DeferredArray, self.deferred)
 
-    def imag(self):
+    def imag(self) -> NumPyThunk:
         if self.deferred is not None:
             return self.deferred.imag()
         return EagerArray(self.runtime, self.array.imag)
 
-    def real(self):
+    def real(self) -> NumPyThunk:
         if self.deferred is not None:
             return self.deferred.real()
         return EagerArray(self.runtime, self.array.real)
 
-    def conj(self):
+    def conj(self) -> NumPyThunk:
         if self.deferred is not None:
             return self.deferred.conj()
 
         return EagerArray(self.runtime, self.array.conj())
 
-    def convolve(self, v, out, mode):
+    def convolve(self, v: Any, out: Any, mode: ConvolveMode) -> None:
+        self.check_eager_args(v, out)
         if self.deferred is not None:
-            self.deferred(v, out, mode)
+            self.deferred.convolve(v, out, mode)
         else:
             if self.ndim == 1:
                 out.array = np.convolve(self.array, v.array, mode)
             else:
-                from scipy.signal import convolve
+                from scipy.signal import convolve  # type: ignore
 
                 out.array = convolve(self.array, v.array, mode)
 
-    def fft(self, rhs, axes, kind, direction):
+    def fft(
+        self,
+        rhs: Any,
+        axes: Sequence[int],
+        kind: FFTType,
+        direction: FFTDirection,
+    ) -> None:
         self.check_eager_args(rhs)
         if self.deferred is not None:
             self.deferred.fft(rhs, axes, kind, direction)
         else:
+            res: npt.NDArray[Any]
             if kind in (FFT_D2Z, FFT_R2C):
                 res = np.fft.rfftn(rhs.array, axes=axes, norm="backward")
             elif kind in (FFT_Z2D, FFT_C2R):
@@ -325,7 +369,7 @@ class EagerArray(NumPyThunk):
             else:
                 self.array[:] = res
 
-    def copy(self, rhs, deep=False):
+    def copy(self, rhs: Any, deep: bool = False) -> None:
         self.check_eager_args(rhs)
         if self.deferred is not None:
             self.deferred.copy(rhs, deep=deep)
@@ -338,17 +382,17 @@ class EagerArray(NumPyThunk):
                 self.array[:] = rhs.array
 
     @property
-    def scalar(self):
+    def scalar(self) -> bool:
         if self.deferred is not None:
             return self.deferred.scalar
         return self.array.size == 1
 
-    def get_scalar_array(self):
+    def get_scalar_array(self) -> npt.NDArray[Any]:
         if self.deferred is not None:
             return self.deferred.get_scalar_array()
         return self.array.reshape(())
 
-    def _create_indexing_key(self, key):
+    def _create_indexing_key(self, key: Any) -> Any:
         if key is None or key is Ellipsis:
             return key
         if isinstance(key, int):
@@ -356,14 +400,14 @@ class EagerArray(NumPyThunk):
         if isinstance(key, slice):
             return key
         if isinstance(key, tuple):
-            result = ()
+            result: tuple[Any, ...] = ()
             for k in key:
                 result += (self._create_indexing_key(k),)
             return result
         assert isinstance(key, NumPyThunk)
         return self.runtime.to_eager_array(key).array
 
-    def get_item(self, key) -> NumPyThunk:
+    def get_item(self, key: Any) -> NumPyThunk:
         if self.deferred is not None:
             return self.deferred.get_item(key)
         if is_advanced_indexing(key):
@@ -375,12 +419,10 @@ class EagerArray(NumPyThunk):
             result = EagerArray(
                 self.runtime, child, parent=self, key=("get_item", key)
             )
-            if self.children is None:
-                self.children = list()
             self.children.append(result)
         return result
 
-    def set_item(self, key, value):
+    def set_item(self, key: Any, value: Any) -> None:
         self.check_eager_args(value)
         if self.deferred is not None:
             self.deferred.set_item(key, value)
@@ -397,7 +439,7 @@ class EagerArray(NumPyThunk):
                 else:
                     self.array[key] = value
 
-    def reshape(self, newshape, order):
+    def reshape(self, newshape: NdShape, order: OrderType) -> NumPyThunk:
         if self.deferred is not None:
             return self.deferred.reshape(newshape, order)
         child = self.array.reshape(newshape, order=order)
@@ -411,15 +453,14 @@ class EagerArray(NumPyThunk):
                 parent=self,
                 key=("reshape", newshape, order),
             )
-            if self.children is None:
-                self.children = list()
             self.children.append(result)
         return result
 
-    def squeeze(self, axis):
+    def squeeze(self, axis: Optional[int]) -> NumPyThunk:
         if self.deferred is not None:
             return self.deferred.squeeze(axis)
-        child = self.array.squeeze(axis)
+        # See https://github.com/numpy/numpy/issues/22019
+        child = self.array.squeeze(axis)  # type: ignore
         # Early exit if there's no dimension to squeeze
         if child is self.array:
             return self
@@ -428,12 +469,10 @@ class EagerArray(NumPyThunk):
         result = EagerArray(
             self.runtime, child, parent=self, key=("squeeze", axis)
         )
-        if self.children is None:
-            self.children = list()
         self.children.append(result)
         return result
 
-    def swapaxes(self, axis1, axis2):
+    def swapaxes(self, axis1: int, axis2: int) -> NumPyThunk:
         if self.deferred is not None:
             return self.deferred.swapaxes(axis1, axis2)
         child = self.array.swapaxes(axis1, axis2)
@@ -442,12 +481,10 @@ class EagerArray(NumPyThunk):
         result = EagerArray(
             self.runtime, child, parent=self, key=("swapaxes", axis1, axis2)
         )
-        if self.children is None:
-            self.children = list()
         self.children.append(result)
         return result
 
-    def convert(self, rhs, warn=True):
+    def convert(self, rhs: Any, warn: bool = True) -> None:
         self.check_eager_args(rhs)
         if self.deferred is not None:
             return self.deferred.convert(rhs, warn=warn)
@@ -463,34 +500,30 @@ class EagerArray(NumPyThunk):
                 else:
                     self.array[:] = rhs.array
 
-    def fill(self, value) -> None:
+    def fill(self, value: Any) -> None:
         if self.deferred is not None:
             self.deferred.fill(value)
         else:
             self.array.fill(value)
 
-    def dot(self, rhs1, rhs2):
-        self.check_eager_args(rhs1, rhs2)
-        if self.deferred is not None:
-            self.deferred.dot(rhs1, rhs2)
-        else:
-            np.dot(rhs1.array, rhs2.array, out=self.array)
-
-    def transpose(self, axes):
+    def transpose(
+        self, axes: Union[None, tuple[int, ...], list[int]]
+    ) -> NumPyThunk:
         if self.deferred is not None:
             return self.deferred.transpose(axes)
-        child = self.array.transpose(axes)
+        # See https://github.com/numpy/numpy/issues/22019
+        child = self.array.transpose(axes)  # type: ignore
         # Should be aliased with parent region
         assert child.base is not None
         result = EagerArray(
             self.runtime, child, parent=self, key=("transpose", axes)
         )
-        if self.children is None:
-            self.children = list()
         self.children.append(result)
         return result
 
-    def repeat(self, repeats, axis, scalar_repeats) -> NumPyThunk:
+    def repeat(
+        self, repeats: Any, axis: int, scalar_repeats: bool
+    ) -> NumPyThunk:
         if not scalar_repeats:
             self.check_eager_args(repeats)
         if self.deferred is not None:
@@ -506,7 +539,7 @@ class EagerArray(NumPyThunk):
                 array = np.repeat(self.array, repeats, axis)
             return EagerArray(self.runtime, array)
 
-    def flip(self, rhs, axes):
+    def flip(self, rhs: Any, axes: Union[None, int, tuple[int, ...]]) -> None:
         self.check_eager_args(rhs)
         if self.deferred is not None:
             self.deferred.flip(rhs, axes)
@@ -515,13 +548,13 @@ class EagerArray(NumPyThunk):
 
     def contract(
         self,
-        lhs_modes,
-        rhs1_thunk,
-        rhs1_modes,
-        rhs2_thunk,
-        rhs2_modes,
-        mode2extent,
-    ):
+        lhs_modes: list[str],
+        rhs1_thunk: Any,
+        rhs1_modes: list[str],
+        rhs2_thunk: Any,
+        rhs2_modes: list[str],
+        mode2extent: dict[str, int],
+    ) -> None:
         self.check_eager_args(rhs1_thunk, rhs2_thunk)
         if self.deferred is not None:
             self.deferred.contract(
@@ -541,7 +574,7 @@ class EagerArray(NumPyThunk):
                 out=self.array,
             )
 
-    def choose(self, rhs, *args):
+    def choose(self, rhs: Any, *args: Any) -> None:
         self.check_eager_args(*args, rhs)
         if self.deferred is not None:
             self.deferred.choose(
@@ -552,7 +585,9 @@ class EagerArray(NumPyThunk):
             choices = tuple(c.array for c in args)
             self.array[:] = np.choose(rhs.array, choices, mode="raise")
 
-    def _diag_helper(self, rhs, offset, naxes, extract, trace):
+    def _diag_helper(
+        self, rhs: Any, offset: int, naxes: int, extract: bool, trace: bool
+    ) -> None:
         self.check_eager_args(rhs)
         if self.deferred is not None:
             self.deferred._diag_helper(rhs, offset, naxes, extract, trace)
@@ -574,7 +609,7 @@ class EagerArray(NumPyThunk):
                 axes = tuple(range(ndims - naxes, ndims))
                 self.array = diagonal_reference(rhs.array, axes)
 
-    def eye(self, k) -> None:
+    def eye(self, k: int) -> None:
         if self.deferred is not None:
             self.deferred.eye(k)
         else:
@@ -585,49 +620,56 @@ class EagerArray(NumPyThunk):
                     self.shape[0], self.shape[1], k, dtype=self.dtype
                 )
 
-    def arange(self, start, stop, step) -> None:
+    def arange(self, start: float, stop: float, step: float) -> None:
         if self.deferred is not None:
             self.deferred.arange(start, stop, step)
         else:
             self.array = np.arange(start, stop, step, self.dtype)
 
-    def tile(self, rhs, reps):
+    def tile(self, rhs: Any, reps: Union[int, Sequence[int]]) -> None:
         self.check_eager_args(rhs)
         if self.deferred is not None:
             self.deferred.tile(rhs, reps)
         else:
             self.array[:] = np.tile(rhs.array, reps)
 
-    def bincount(self, rhs, weights=None):
+    def bincount(self, rhs: Any, weights: Optional[NumPyThunk] = None) -> None:
         self.check_eager_args(rhs, weights)
         if self.deferred is not None:
             self.deferred.bincount(rhs, weights=weights)
         else:
             self.array[:] = np.bincount(
                 rhs.array,
-                weights.array if weights is not None else None,
+                cast(EagerArray, weights).array if weights else None,
                 minlength=self.array.size,
             )
 
-    def nonzero(self):
+    def nonzero(self) -> tuple[NumPyThunk, ...]:
         if self.deferred is not None:
             return self.deferred.nonzero()
         else:
             arrays = self.array.nonzero()
-            result = ()
+            result: tuple[NumPyThunk, ...] = ()
             for array in arrays:
                 result += (EagerArray(self.runtime, array),)
             return result
 
-    def searchsorted(self, rhs, v, side="left"):
+    def searchsorted(self, rhs: Any, v: Any, side: SortSide = "left") -> None:
         self.check_eager_args(rhs, v)
         if self.deferred is not None:
             self.deferred.searchsorted(rhs, v, side)
         else:
             self.array = np.searchsorted(rhs.array, v.array, side=side)
 
-    def sort(self, rhs, argsort=False, axis=-1, kind="quicksort", order=None):
-        self.check_eager_args(rhs, axis, kind, order)
+    def sort(
+        self,
+        rhs: Any,
+        argsort: bool = False,
+        axis: int = -1,
+        kind: SortType = "quicksort",
+        order: Union[None, str, list[str]] = None,
+    ) -> None:
+        self.check_eager_args(rhs)
         if self.deferred is not None:
             self.deferred.sort(rhs, argsort, axis, kind, order)
         else:
@@ -636,16 +678,265 @@ class EagerArray(NumPyThunk):
             else:
                 self.array = np.sort(rhs.array, axis, kind, order)
 
+    def bitgenerator_random_raw(
+        self, handle, generatorType, seed, flags
+    ) -> None:
+        if self.deferred is not None:
+            self.deferred.bitgenerator_random_raw(
+                handle, generatorType, seed, flags
+            )
+        else:
+            if self.array.size == 1:
+                self.array.fill(np.random.randint(0, 2**32 - 1))
+            else:
+                a = np.random.randint(
+                    low=0,
+                    high=2**32 - 1,
+                    size=self.array.shape,
+                    dtype=self.array.dtype,
+                )
+                self.array[:] = a[:]
+
+    def bitgenerator_integers(
+        self, handle, generatorType, seed, flags, low, high
+    ) -> None:
+        if self.deferred is not None:
+            self.deferred.bitgenerator_integers(
+                handle, generatorType, seed, flags, low, high
+            )
+        else:
+            if self.array.size == 1:
+                self.array.fill(np.random.random_integers(low, high))
+            else:
+                a = np.random.random_integers(low, high, size=self.array.shape)
+                self.array[:] = a
+
+    def bitgenerator_lognormal(
+        self, handle, generatorType, seed, flags, mean, sigma
+    ) -> None:
+        if self.deferred is not None:
+            self.deferred.bitgenerator_lognormal(
+                handle, generatorType, seed, flags, mean, sigma
+            )
+        else:
+            if self.array.size == 1:
+                self.array.fill(np.random.lognormal(mean, sigma))
+            else:
+                a = np.random.lognormal(mean, sigma, size=self.array.shape)
+                self.array[:] = a
+
+    def bitgenerator_normal(
+        self, handle, generatorType, seed, flags, mean, sigma
+    ) -> None:
+        if self.deferred is not None:
+            self.deferred.bitgenerator_normal(
+                handle, generatorType, seed, flags, mean, sigma
+            )
+        else:
+            if self.array.size == 1:
+                self.array.fill(np.random.normal(mean, sigma))
+            else:
+                a = np.random.normal(mean, sigma, size=self.array.shape)
+                self.array[:] = a
+
+    def bitgenerator_uniform(
+        self, handle, generatorType, seed, flags, low, high
+    ) -> None:
+        if self.deferred is not None:
+            self.deferred.bitgenerator_uniform(
+                handle, generatorType, seed, flags, low, high
+            )
+        else:
+            if self.array.size == 1:
+                self.array.fill(np.random.uniform(low, high))
+            else:
+                a = np.random.uniform(low, high, size=self.array.shape)
+                self.array[:] = a
+
+    def bitgenerator_poisson(
+        self, handle, generatorType, seed, flags, lam
+    ) -> None:
+        if self.deferred is not None:
+            self.deferred.bitgenerator_poisson(
+                handle, generatorType, seed, flags, lam
+            )
+        else:
+            if self.array.size == 1:
+                self.array.fill(np.random.poisson(lam))
+            else:
+                a = np.random.poisson(lam, size=self.array.shape)
+                self.array[:] = a
+
+    def bitgenerator_exponential(
+        self, handle, generatorType, seed, flags, scale
+    ) -> None:
+        if self.deferred is not None:
+            self.deferred.bitgenerator_exponential(
+                handle, generatorType, seed, flags, scale
+            )
+        else:
+            if self.array.size == 1:
+                self.array.fill(np.random.exponential(scale))
+            else:
+                a = np.random.exponential(scale, size=self.array.shape)
+                self.array[:] = a
+
+    def bitgenerator_gumbel(
+        self, handle, generatorType, seed, flags, mu, beta
+    ) -> None:
+        if self.deferred is not None:
+            self.deferred.bitgenerator_gumbel(
+                handle, generatorType, seed, flags, mu, beta
+            )
+        else:
+            if self.array.size == 1:
+                self.array.fill(np.random.gumbel(mu, beta))
+            else:
+                a = np.random.gumbel(mu, beta, size=self.array.shape)
+                self.array[:] = a
+
+    def bitgenerator_laplace(
+        self, handle, generatorType, seed, flags, mu, beta
+    ) -> None:
+        if self.deferred is not None:
+            self.deferred.bitgenerator_laplace(
+                handle, generatorType, seed, flags, mu, beta
+            )
+        else:
+            if self.array.size == 1:
+                self.array.fill(np.random.laplace(mu, beta))
+            else:
+                a = np.random.laplace(mu, beta, size=self.array.shape)
+                self.array[:] = a
+
+    def bitgenerator_logistic(
+        self, handle, generatorType, seed, flags, mu, beta
+    ) -> None:
+        if self.deferred is not None:
+            self.deferred.bitgenerator_logistic(
+                handle, generatorType, seed, flags, mu, beta
+            )
+        else:
+            if self.array.size == 1:
+                self.array.fill(np.random.logistic(mu, beta))
+            else:
+                a = np.random.logistic(mu, beta, size=self.array.shape)
+                self.array[:] = a
+
+    def bitgenerator_pareto(
+        self, handle, generatorType, seed, flags, alpha
+    ) -> None:
+        if self.deferred is not None:
+            self.deferred.bitgenerator_pareto(
+                handle, generatorType, seed, flags, alpha
+            )
+        else:
+            if self.array.size == 1:
+                self.array.fill(np.random.pareto(alpha))
+            else:
+                a = np.random.pareto(alpha, size=self.array.shape)
+                self.array[:] = a
+
+    def bitgenerator_power(
+        self, handle, generatorType, seed, flags, alpha
+    ) -> None:
+        if self.deferred is not None:
+            self.deferred.bitgenerator_power(
+                handle, generatorType, seed, flags, alpha
+            )
+        else:
+            if self.array.size == 1:
+                self.array.fill(np.random.power(alpha))
+            else:
+                a = np.random.power(alpha, size=self.array.shape)
+                self.array[:] = a
+
+    def bitgenerator_rayleigh(
+        self, handle, generatorType, seed, flags, sigma
+    ) -> None:
+        if self.deferred is not None:
+            self.deferred.bitgenerator_rayleigh(
+                handle, generatorType, seed, flags, sigma
+            )
+        else:
+            if self.array.size == 1:
+                self.array.fill(np.random.rayleigh(sigma))
+            else:
+                a = np.random.rayleigh(sigma, size=self.array.shape)
+                self.array[:] = a
+
+    def bitgenerator_cauchy(
+        self, handle, generatorType, seed, flags, x0, gamma
+    ) -> None:
+        if self.deferred is not None:
+            self.deferred.bitgenerator_cauchy(
+                handle, generatorType, seed, flags, x0, gamma
+            )
+        else:
+            if self.array.size == 1:
+                self.array.fill(x0 + gamma * np.random.standard_cauchy())
+            else:
+                a = np.random.standard_cauchy(size=self.array.shape)
+                self.array[:] = x0 + gamma * a
+
+    def bitgenerator_triangular(
+        self, handle, generatorType, seed, flags, a, b, c
+    ) -> None:
+        if self.deferred is not None:
+            self.deferred.bitgenerator_triangular(
+                handle, generatorType, seed, flags, a, b, c
+            )
+        else:
+            if self.array.size == 1:
+                self.array.fill(np.random.triangular(a, c, b))
+            else:
+                aa = np.random.triangular(a, c, b, size=self.array.shape)
+                self.array[:] = aa
+
+    def bitgenerator_weibull(
+        self,
+        handle,
+        generatorType,
+        seed,
+        flags,
+        lam,
+        k,
+    ) -> None:
+        if self.deferred is not None:
+            self.deferred.bitgenerator_weibull(
+                handle, generatorType, seed, flags, lam, k
+            )
+        else:
+            if self.array.size == 1:
+                self.array.fill(lam * np.random.weibull(k))
+            else:
+                aa = np.random.weibull(k, size=self.array.shape)
+                self.array[:] = lam * aa
+
+    def bitgenerator_bytes(self, handle, generatorType, seed, flags) -> None:
+        if self.deferred is not None:
+            self.deferred.bitgenerator_bytes(
+                handle, generatorType, seed, flags
+            )
+        else:
+            if self.array.size == 1:
+                self.array.fill(np.random.bytes(1))
+            else:
+                aa = np.random.bytes(self.array.size)
+                b = bytearray()
+                b.extend(aa)
+                self.array[:] = b
+
     def partition(
         self,
-        rhs,
-        kth,
-        argpartition=False,
-        axis=-1,
-        kind="introselect",
-        order=None,
-    ):
-        self.check_eager_args(rhs, kth, axis, kind, order)
+        rhs: Any,
+        kth: Union[int, Sequence[int]],
+        argpartition: bool = False,
+        axis: int = -1,
+        kind: SelectKind = "introselect",
+        order: Union[None, str, list[str]] = None,
+    ) -> None:
+        self.check_eager_args(rhs)
         if self.deferred is not None:
             self.deferred.partition(rhs, kth, argpartition, axis, kind, order)
         else:
@@ -672,7 +963,11 @@ class EagerArray(NumPyThunk):
             else:
                 self.array[:] = np.random.randn(*(self.array.shape))
 
-    def random_integer(self, low, high) -> None:
+    def random_integer(
+        self,
+        low: Union[int, npt.NDArray[Any]],
+        high: Union[int, npt.NDArray[Any]],
+    ) -> None:
         if self.deferred is not None:
             self.deferred.random_integer(low, high)
         else:
@@ -683,7 +978,14 @@ class EagerArray(NumPyThunk):
                     low, high, size=self.array.shape, dtype=self.array.dtype
                 )
 
-    def unary_op(self, op, rhs, where, args, multiout=None):
+    def unary_op(
+        self,
+        op: UnaryOpCode,
+        rhs: Any,
+        where: Any,
+        args: Any,
+        multiout: Optional[Any] = None,
+    ) -> None:
         if multiout is None:
             self.check_eager_args(rhs, where)
         else:
@@ -723,9 +1025,17 @@ class EagerArray(NumPyThunk):
             raise RuntimeError("unsupported unary op " + str(op))
 
     def unary_reduction(
-        self, op, rhs, where, orig_axis, axes, keepdims, args, initial
-    ):
-        self.check_eager_args(rhs)
+        self,
+        op: UnaryRedCode,
+        rhs: Any,
+        where: Any,
+        orig_axis: int,
+        axes: tuple[int, ...],
+        keepdims: bool,
+        args: Any,
+        initial: Any,
+    ) -> None:
+        self.check_eager_args(rhs, where)
         if self.deferred is not None:
             self.deferred.unary_reduction(
                 op,
@@ -743,7 +1053,7 @@ class EagerArray(NumPyThunk):
             if initial is None:
                 # NumPy starts using this predefined constant, instead of None,
                 # to mean no value was given by the caller
-                initial = np._NoValue
+                initial = np._NoValue  # type: ignore
             fn(
                 rhs.array,
                 out=self.array,
@@ -768,7 +1078,9 @@ class EagerArray(NumPyThunk):
         else:
             raise RuntimeError("unsupported unary reduction op " + str(op))
 
-    def isclose(self, rhs1, rhs2, rtol, atol, equal_nan) -> None:
+    def isclose(
+        self, rhs1: Any, rhs2: Any, rtol: float, atol: float, equal_nan: bool
+    ) -> None:
         self.check_eager_args(rhs1, rhs2)
         if self.deferred is not None:
             self.deferred.isclose(rhs1, rhs2, rtol, atol, equal_nan)
@@ -781,7 +1093,9 @@ class EagerArray(NumPyThunk):
                 equal_nan=equal_nan,
             )
 
-    def binary_op(self, op, rhs1, rhs2, where, args):
+    def binary_op(
+        self, op: BinaryOpCode, rhs1: Any, rhs2: Any, where: Any, args: Any
+    ) -> None:
         self.check_eager_args(rhs1, rhs2, where)
         if self.deferred is not None:
             self.deferred.binary_op(op, rhs1, rhs2, where, args)
@@ -798,7 +1112,14 @@ class EagerArray(NumPyThunk):
                 else where.array,
             )
 
-    def binary_reduction(self, op, rhs1, rhs2, broadcast, args):
+    def binary_reduction(
+        self,
+        op: BinaryOpCode,
+        rhs1: Any,
+        rhs2: Any,
+        broadcast: Union[NdShape, None],
+        args: Any,
+    ) -> None:
         self.check_eager_args(rhs1, rhs2)
         if self.deferred is not None:
             self.deferred.binary_reduction(op, rhs1, rhs2, broadcast, args)
@@ -816,14 +1137,14 @@ class EagerArray(NumPyThunk):
                     "unsupported binary reduction op " + str(op)
                 )
 
-    def where(self, rhs1, rhs2, rhs3):
+    def where(self, rhs1: Any, rhs2: Any, rhs3: Any) -> None:
         self.check_eager_args(rhs1, rhs2, rhs3)
         if self.deferred is not None:
             self.deferred.where(rhs1, rhs2, rhs3)
         else:
             self.array[:] = np.where(rhs1.array, rhs2.array, rhs3.array)
 
-    def trilu(self, rhs, k, lower):
+    def trilu(self, rhs: Any, k: int, lower: bool) -> None:
         self.check_eager_args(rhs)
         if self.deferred is not None:
             self.deferred.trilu(rhs, k, lower)
@@ -833,7 +1154,7 @@ class EagerArray(NumPyThunk):
             else:
                 self.array[:] = np.triu(rhs.array, k)
 
-    def cholesky(self, src, no_tril):
+    def cholesky(self, src: Any, no_tril: bool) -> None:
         self.check_eager_args(src)
         if self.deferred is not None:
             self.deferred.cholesky(src, no_tril)
@@ -848,20 +1169,22 @@ class EagerArray(NumPyThunk):
                 result = np.triu(result.T.conj(), k=1) + result
             self.array[:] = result
 
-    def unique(self):
+    def unique(self) -> NumPyThunk:
         if self.deferred is not None:
             return self.deferred.unique()
         else:
             return EagerArray(self.runtime, np.unique(self.array))
 
-    def create_window(self, op_code, M, *args) -> None:
+    def create_window(self, op_code: WindowOpCode, M: int, *args: Any) -> None:
         if self.deferred is not None:
             return self.deferred.create_window(op_code, M, *args)
         else:
             fn = _WINDOW_OPS[op_code]
             self.array[:] = fn(M, *args)
 
-    def packbits(self, src, axis, bitorder):
+    def packbits(
+        self, src: Any, axis: Union[int, None], bitorder: BitOrder
+    ) -> None:
         self.check_eager_args(src)
         if self.deferred is not None:
             self.deferred.packbits(src, axis, bitorder)
@@ -870,7 +1193,9 @@ class EagerArray(NumPyThunk):
                 src.array, axis=axis, bitorder=bitorder
             )
 
-    def unpackbits(self, src, axis, bitorder):
+    def unpackbits(
+        self, src: Any, axis: Union[int, None], bitorder: BitOrder
+    ) -> None:
         self.check_eager_args(src)
         if self.deferred is not None:
             self.deferred.unpackbits(src, axis, bitorder)

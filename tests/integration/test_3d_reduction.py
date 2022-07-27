@@ -15,6 +15,7 @@
 
 import numpy as np
 import pytest
+from utils.comparisons import allclose
 
 import cunumeric as num
 
@@ -24,11 +25,11 @@ np.random.seed(42)
 def test_sum():
     b = np.random.random((10, 12, 13))
     a = num.array(b)
-    assert np.allclose(a, b)
+    assert allclose(a, b)
 
     lg_sum = num.sum(a)
     np_sum = np.sum(b)
-    assert np.allclose(np_sum, lg_sum)
+    assert allclose(np_sum, lg_sum)
 
 
 if __name__ == "__main__":

@@ -29,7 +29,7 @@ from typing_extensions import ParamSpec
 from legate.core import Array
 
 from .config import FFTDirection, FFTNormalization, UnaryOpCode, UnaryRedCode
-from .coverage import clone_class
+from .coverage import clone_np_ndarray
 from .runtime import runtime
 from .utils import dot_modes
 
@@ -148,7 +148,7 @@ def _convert_all_to_numpy(obj):
         return obj
 
 
-@clone_class(np.ndarray)
+@clone_np_ndarray
 class ndarray:
     def __init__(
         self,

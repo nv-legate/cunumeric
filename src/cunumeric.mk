@@ -145,6 +145,10 @@ GEN_GPU_SRC += cunumeric/ternary/where.cu               \
 
 include cunumeric/sort/sort.mk
 
+ifeq ($(strip $(USE_CUDA)),1)
+include cunumeric/random/random.mk
+endif
+
 GEN_CPU_SRC += cunumeric/cunumeric.cc # This must always be the last file!
                                       # It guarantees we do our registration callback
                                       # only after all task variants are recorded
