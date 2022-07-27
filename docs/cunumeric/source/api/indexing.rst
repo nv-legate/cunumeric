@@ -11,6 +11,10 @@ Generating index arrays
 
    diag_indices
    diag_indices_from
+   tril_indices
+   tril_indices_from
+   triu_indices
+   triu_indices_from
    indices
    nonzero
    where
