@@ -3882,14 +3882,10 @@ class ndarray:
                 # if out array is specified, its type overrules dtype
                 dtype = out.dtype
             if out.shape != src_arr.shape:
-                if src.ndim == 1 and dtype != src.dtype:
-                    raise NotImplementedError(
-                        "Varried output shape not supported"
-                    )
-                else:
-                    raise RuntimeError(
-                        "Invalid shape/size on provided output array"
-                    )
+                raise NotImplementedError(
+                    "Varried output shape not supported. Output must have "
+                    "same shape as input (same size if no axis is provided"
+                )
             if dtype != src_arr.dtype:
                 # convert input to temporary for type conversion
                 temp = ndarray(shape=src_arr.shape, dtype=dtype)
