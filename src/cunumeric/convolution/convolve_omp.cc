@@ -93,7 +93,7 @@ struct ConvolveImplBody<VariantKind::OMP, CODE, DIM> {
 #pragma omp parallel for
     for (int idx = 0; idx < threads; idx++) {
       Point<DIM> output = subrect.lo;
-      size_t offset     = idx * blocks;
+      uint64_t offset     = idx * blocks;
       for (int d = 0; d < DIM; d++) output[d] += output_pitches[d].divmod(offset, offset);
       for (size_t p = 0; p < blocks; p++) {
         out[output] = VAL{0};
@@ -125,7 +125,7 @@ struct ConvolveImplBody<VariantKind::OMP, CODE, DIM> {
 #pragma omp parallel for  // schedule(dynamic) // Turn this on when Realm is fixed
       for (unsigned l2_outidx = 0; l2_outidx < total_l2_outputs; l2_outidx++) {
         Point<DIM> l2_output = subrect.lo;
-        size_t offset        = l2_outidx;
+        uint64_t offset        = l2_outidx;
         for (int d = 0; d < DIM; d++)
           l2_output[d] += l2_tile_pitches[d].divmod(offset, offset) * l2_output_tile[d];
         Rect<DIM> l2_output_rect(l2_output, l2_output + l2_output_tile - one);
