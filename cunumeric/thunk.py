@@ -150,7 +150,9 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def convert(self, rhs: Any, warn: bool = True) -> None:
+    def convert(
+        self, rhs: Any, nan_identity: Optional[int], warn: bool = True
+    ) -> None:
         ...
 
     @abstractmethod

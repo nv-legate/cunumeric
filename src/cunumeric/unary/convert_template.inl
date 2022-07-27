@@ -80,7 +80,8 @@ struct SourceTypeDispatch {
 template <VariantKind KIND>
 static void convert_template(TaskContext& context)
 {
-  ConvertArgs args{context.outputs()[0], context.inputs()[0]};
+  ConvertArgs args{
+    context.outputs()[0], context.inputs()[0], context.scalars()[0].value<int32_t>()};
   type_dispatch(args.in.code(), SourceTypeDispatch<KIND>{}, args);
 }
 

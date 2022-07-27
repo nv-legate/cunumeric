@@ -485,7 +485,9 @@ class EagerArray(NumPyThunk):
         self.children.append(result)
         return result
 
-    def convert(self, rhs: Any, warn: bool = True) -> None:
+    def convert(
+        self, rhs: Any, nan_identity: Optional[int], warn: bool = True
+    ) -> None:
         self.check_eager_args(rhs)
         if self.deferred is not None:
             return self.deferred.convert(rhs, warn=warn)

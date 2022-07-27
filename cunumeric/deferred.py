@@ -1111,7 +1111,9 @@ class DeferredArray(NumPyThunk):
 
     # Convert the source array to the destination array
     @auto_convert([1])
-    def convert(self, rhs: Any, warn: bool = True) -> None:
+    def convert(
+        self, rhs: Any, nan_identity: Optional[int], warn: bool = True
+    ) -> None:
         lhs_array = self
         rhs_array = rhs
         assert lhs_array.dtype != rhs_array.dtype
@@ -1125,6 +1127,9 @@ class DeferredArray(NumPyThunk):
                 category=UserWarning,
             )
 
+        if nan_identity is None:
+            # NOTE: Currently only 0 and 1 are valid nan conversion values
+            nan_identity = -1
         lhs = lhs_array.base
         rhs = rhs_array.base
 
@@ -1132,6 +1137,7 @@ class DeferredArray(NumPyThunk):
         task.add_output(lhs)
         task.add_input(rhs)
         task.add_dtype_arg(lhs_array.dtype)  # type: ignore
+        task.add_scalar_arg(nan_identity, ty.int32)
 
         task.add_alignment(lhs, rhs)
 

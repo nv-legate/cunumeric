@@ -23,6 +23,7 @@ namespace cunumeric {
 struct ConvertArgs {
   const Array& out;
   const Array& in;
+  int nan_identity;
 };
 
 class ConvertTask : public CuNumericTask<ConvertTask> {
