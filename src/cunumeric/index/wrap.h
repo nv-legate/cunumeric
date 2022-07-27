@@ -41,12 +41,4 @@ class WrapTask : public CuNumericTask<WrapTask> {
 #endif
 };
 
-constexpr coord_t compute_idx(coord_t index, coord_t extent)
-{
-  coord_t new_index = index < 0 ? index + extent : index;
-  if (new_index < 0 || new_index >= extent)
-    throw legate::TaskException("index is out of bounds in index array");
-  return new_index;
-}
-
 }  // namespace cunumeric
