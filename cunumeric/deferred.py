@@ -736,10 +736,17 @@ class DeferredArray(NumPyThunk):
             else:
                 if rhs.base.transformed:
                     rhs = rhs._copy_store(rhs.base)
+                if rhs.base.kind == Future:
+                    rhs = self._convert_future_to_store(rhs)
                 rhs_store = rhs.base
 
             copy = self.context.create_copy()
             copy.set_target_indirect_out_of_range(False)
+
+            if lhs.base.kind == Future:
+                lhs = self._convert_future_to_store(lhs)
+            if index_array.base.kind == Future:
+                index_array = self._convert_future_to_store(index_array)
 
             copy.add_input(rhs_store)
             copy.add_target_indirect(index_array.base)
@@ -2039,13 +2046,20 @@ class DeferredArray(NumPyThunk):
         indirect = self.runtime.create_empty_thunk(
             shape=(new_len,),
             dtype=pointN_dtype,
-            inputs=[self],
+            inputs=[src],
         )
 
         task = self.context.create_task(CuNumericOpCode.WRAP)
         task.add_output(indirect.base)
         task.add_scalar_arg(src.shape, (ty.int64,))
         task.execute()
+
+        if indirect.base.kind == Future:
+            indirect = src._convert_future_to_store(indirect)
+        if self.base.kind == Future:
+            self = src._convert_future_to_store(self)
+        if src.base.kind == Future:
+            src = self._convert_future_to_store(src)
 
         copy = self.context.create_copy()
         copy.set_target_indirect_out_of_range(False)

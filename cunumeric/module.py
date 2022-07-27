@@ -2783,9 +2783,6 @@ def fill_diagonal(a: ndarray, val: ndarray, wrap: Optional[bool] = False):
     idx = arange(n, dtype=int)
     indices = (idx,) * a.ndim
 
-    if val.ndim > 1:
-        val = val.ravel()
-
     len_val = n
 
     if wrap:
@@ -2795,8 +2792,7 @@ def fill_diagonal(a: ndarray, val: ndarray, wrap: Optional[bool] = False):
         val = val._wrap(len_val)
 
     if a.ndim == 2:
-        # if not wrap or a.shape[0] >= a.shape[1]:
-        if not wrap:
+        if not wrap or a.shape[0] >= a.shape[1]:
             a[indices] = val
         else:
             idx2 = arange(a.shape[1], dtype=int)
