@@ -2556,7 +2556,7 @@ def take_along_axis(a: ndarray, indices: ndarray, axis: int) -> ndarray:
     Multiple GPUs, Multiple CPUs
     """
     if not np.issubdtype(indices.dtype, np.integer):
-        raise IndexError("`indices` must be an integer array")
+        raise TypeError("`indices` must be an integer array")
 
     if axis is None:
         if indices.ndim != 1:
