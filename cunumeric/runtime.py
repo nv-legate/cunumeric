@@ -28,10 +28,10 @@ from legate.core import LEGATE_MAX_DIM, Rect, get_legate_runtime, legion
 from legate.core.context import Context as LegateContext
 
 from .config import (
+    _CUNUMERIC_DTYPES,
     CuNumericOpCode,
     CuNumericRedopCode,
     CuNumericTunable,
-    CuNumericTypeCodes,
     cunumeric_context,
     cunumeric_lib,
 )
@@ -173,20 +173,15 @@ class Runtime(object):
                 np.dtype(numpy_type), core_type  # type: ignore
             )
 
-        for n in range(1, LEGATE_MAX_DIM + 1):
-            self._register_point_type(n)
-
-    def _register_point_type(self, n: int) -> None:
-        type_system = self.legate_context.type_system
-        point_type = "Point" + str(n)
-        if point_type not in type_system:
-            code = CuNumericTypeCodes.CUNUMERIC_TYPE_POINT1 + n - 1
-            size_in_bytes = 8 * n
-            type_system.add_type(point_type, size_in_bytes, code)
+        for dtype in _CUNUMERIC_DTYPES:
+            type_system.add_type(dtype.type, dtype.size, dtype.code)
 
     def get_point_type(self, n: int) -> str:
         type_system = self.legate_context.type_system
-        point_type = "Point" + str(n)
+        if n == 1:
+            point_type = np.dtype("i8")
+        else:
+            point_type = _CUNUMERIC_DTYPES[n - 2].type
         if point_type not in type_system:
             raise ValueError(f"there is no point type registered for {n}")
         return point_type
