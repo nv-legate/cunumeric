@@ -66,6 +66,25 @@ def test_fill_diagonal(ndim):
     assert np.array_equal(np_res, num_res)
 
 
+SHAPES = [(10, 100), (1, 100), (10, 11)]
+VALUE_SHAPES = [(5,), (5, 5), (2,)]
+
+
+@pytest.mark.parametrize("shape, vshape", zip(SHAPES, VALUE_SHAPES), ids=str)
+def test_tall_matrices(shape, vshape):
+    a_np = np.random.rand(*shape)
+    v_np = np.random.rand(*vshape)
+    a_num = num.array(a_np)
+    v_num = num.array(v_np)
+    res_np = np.fill_diagonal(a_np, v_np)
+    res_num = num.fill_diagonal(a_num, v_num)
+    assert np.array_equal(res_np, res_num)
+
+    res_np = np.fill_diagonal(a_np, v_np, wrap=True)
+    res_num = num.fill_diagonal(a_num, v_num, wrap=True)
+    assert np.array_equal(res_np, res_num)
+
+
 if __name__ == "__main__":
     import sys
 
