@@ -387,11 +387,10 @@ class DeferredArray(NumPyThunk):
         # NumPy array.
         N = self.ndim
         pointN_dtype = self.runtime.get_point_type(N)
-        store = self.context.create_store(
-            pointN_dtype, shape=out_shape, optimize_scalar=True
-        )
-        output_arr = DeferredArray(
-            self.runtime, base=store, dtype=pointN_dtype
+        output_arr = self.runtime.create_empty_thunk(
+            shape=out_shape,
+            dtype=pointN_dtype,
+            inputs=[self],
         )
 
         # call ZIP function to combine index arrays into a singe array
@@ -2037,11 +2036,10 @@ class DeferredArray(NumPyThunk):
         # to the target 1D wrapped array
         N = src.ndim
         pointN_dtype = self.runtime.get_point_type(N)
-        indirect_store = self.context.create_store(
-            pointN_dtype, shape=(new_len,), optimize_scalar=True
-        )
-        indirect = DeferredArray(
-            self.runtime, base=indirect_store, dtype=pointN_dtype
+        indirect = self.runtime.create_empty_thunk(
+            shape=(new_len,),
+            dtype=pointN_dtype,
+            inputs=[self],
         )
 
         task = self.context.create_task(CuNumericOpCode.WRAP)
