@@ -15,7 +15,8 @@
 
 import numpy as np
 import pytest
-from test_tools.generators import mk_0to1_array
+from utils.comparisons import allclose
+from utils.generators import mk_0to1_array
 
 import cunumeric as cn
 from legate.core import LEGATE_MAX_DIM
@@ -40,7 +41,7 @@ cn_arrays = [
 def test_noaxis_1d(ord, keepdims):
     np_res = np.linalg.norm(np_arrays[1], ord=ord, keepdims=keepdims)
     cn_res = cn.linalg.norm(cn_arrays[1], ord=ord, keepdims=keepdims)
-    assert np.allclose(np_res, cn_res)
+    assert allclose(np_res, cn_res)
 
 
 @pytest.mark.parametrize("ord", MATRIX_ORDS)
@@ -48,7 +49,7 @@ def test_noaxis_1d(ord, keepdims):
 def test_noaxis_2d(ord, keepdims):
     np_res = np.linalg.norm(np_arrays[2], ord=ord, keepdims=keepdims)
     cn_res = cn.linalg.norm(cn_arrays[2], ord=ord, keepdims=keepdims)
-    assert np.allclose(np_res, cn_res)
+    assert allclose(np_res, cn_res)
 
 
 @pytest.mark.parametrize("ndim", [0] + list(range(3, LEGATE_MAX_DIM + 1)))
@@ -56,7 +57,7 @@ def test_noaxis_2d(ord, keepdims):
 def test_noaxis_other(ndim, keepdims):
     np_res = np.linalg.norm(np_arrays[ndim], keepdims=keepdims)
     cn_res = cn.linalg.norm(cn_arrays[ndim], keepdims=keepdims)
-    assert np.allclose(np_res, cn_res)
+    assert allclose(np_res, cn_res)
 
 
 @pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
@@ -69,7 +70,7 @@ def test_axis_1d(ndim, ord, keepdims):
     cn_res = cn.linalg.norm(
         cn_arrays[ndim], ord=ord, axis=0, keepdims=keepdims
     )
-    assert np.allclose(np_res, cn_res)
+    assert allclose(np_res, cn_res)
 
 
 @pytest.mark.parametrize("ndim", range(2, LEGATE_MAX_DIM + 1))
@@ -82,7 +83,7 @@ def test_axis_2d(ndim, ord, keepdims):
     cn_res = cn.linalg.norm(
         cn_arrays[ndim], ord=ord, axis=(0, 1), keepdims=keepdims
     )
-    assert np.allclose(np_res, cn_res)
+    assert allclose(np_res, cn_res)
 
 
 if __name__ == "__main__":

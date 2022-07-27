@@ -26,7 +26,6 @@ from typing import (
     Callable,
     Collection,
     Dict,
-    Literal,
     Optional,
     Sequence,
     TypeVar,
@@ -42,6 +41,8 @@ from legate.core import Future, ReductionOp, Store
 
 from .config import (
     BinaryOpCode,
+    BitGeneratorDistribution,
+    BitGeneratorOperation,
     Bitorder,
     CuNumericOpCode,
     CuNumericRedopCode,
@@ -58,9 +59,19 @@ if TYPE_CHECKING:
     import numpy.typing as npt
 
     from legate.core import FieldID, Region
+    from legate.core.operation import AutoTask, ManualTask
 
+    from .config import FFTDirection, FFTType, WindowOpCode
     from .runtime import Runtime
-    from .types import BitOrder, NdShape, OrderType, SortSide, SortType
+    from .types import (
+        BitOrder,
+        ConvolveMode,
+        NdShape,
+        OrderType,
+        SelectKind,
+        SortSide,
+        SortType,
+    )
 
 
 def _complex_field_dtype(dtype: np.dtype[Any]) -> np.dtype[Any]:
@@ -120,7 +131,7 @@ class _CuNumericNDarray(object):
         shape: NdShape,
         field_type: Any,
         base_ptr: Any,
-        strides: Any,
+        strides: tuple[int, ...],
         read_only: bool,
     ) -> None:
         # See: https://docs.scipy.org/doc/numpy/reference/arrays.interface.html
@@ -240,11 +251,14 @@ class DeferredArray(NumPyThunk):
     def ndim(self) -> int:
         return len(self.shape)
 
-    def _copy_if_overlapping(self, other: Any) -> NumPyThunk:
+    def _copy_if_overlapping(self, other: DeferredArray) -> DeferredArray:
         if not self.base.overlaps(other.base):
             return self
-        copy = self.runtime.create_empty_thunk(
-            self.shape, self.dtype, inputs=[self]
+        copy = cast(
+            "DeferredArray",
+            self.runtime.create_empty_thunk(
+                self.shape, self.dtype, inputs=[self]
+            ),
         )
         copy.copy(self, deep=True)
         return copy
@@ -269,7 +283,7 @@ class DeferredArray(NumPyThunk):
             alloc = self.base.get_inline_allocation(self.context)
 
             def construct_ndarray(
-                shape: NdShape, address: Any, strides: Any
+                shape: NdShape, address: Any, strides: tuple[int, ...]
             ) -> npt.NDArray[Any]:
                 initializer = _CuNumericNDarray(
                     shape, self.dtype, address, strides, False
@@ -1102,7 +1116,7 @@ class DeferredArray(NumPyThunk):
         task.execute()
 
     @auto_convert([1, 2])
-    def convolve(self, v: Any, lhs: Any, mode: Any) -> None:
+    def convolve(self, v: Any, lhs: Any, mode: ConvolveMode) -> None:
         input = self.base
         filter = v.base
         out = lhs.base
@@ -1137,7 +1151,13 @@ class DeferredArray(NumPyThunk):
         task.execute()
 
     @auto_convert([1])
-    def fft(self, rhs: Any, axes: Any, kind: Any, direction: Any) -> None:
+    def fft(
+        self,
+        rhs: Any,
+        axes: Sequence[int],
+        kind: FFTType,
+        direction: FFTDirection,
+    ) -> None:
         lhs = self
         # For now, deferred only supported with GPU, use eager / numpy for CPU
         if self.runtime.num_gpus == 0:
@@ -1212,14 +1232,14 @@ class DeferredArray(NumPyThunk):
         rhs1_modes: list[str],
         rhs2_thunk: Any,
         rhs2_modes: list[str],
-        mode2extent: dict[str, Any],
+        mode2extent: dict[str, int],
     ) -> None:
-        supported_dtypes: list[Any] = [
-            np.float16,
-            np.float32,
-            np.float64,
-            np.complex64,
-            np.complex128,
+        supported_dtypes: list[np.dtype[Any]] = [
+            np.dtype(np.float16),
+            np.dtype(np.float32),
+            np.dtype(np.float64),
+            np.dtype(np.complex64),
+            np.dtype(np.complex128),
         ]
         lhs_thunk: NumPyThunk = self
 
@@ -1229,7 +1249,7 @@ class DeferredArray(NumPyThunk):
         assert len(rhs1_modes) == len(set(rhs1_modes))
         assert len(rhs2_modes) == len(set(rhs2_modes))
         # no singleton modes
-        mode_counts: Any = Counter()
+        mode_counts: Counter[str] = Counter()
         mode_counts.update(lhs_modes)
         mode_counts.update(rhs1_modes)
         mode_counts.update(rhs2_modes)
@@ -1402,8 +1422,12 @@ class DeferredArray(NumPyThunk):
             raise TypeError(f"Unsupported type: {lhs_thunk.dtype}")
 
         # Transpose arrays according to alphabetical order of mode labels
-        def alphabetical_transpose(store: Any, modes: Any) -> Any:
-            perm = [dim for (_, dim) in sorted(zip(modes, range(len(modes))))]
+        def alphabetical_transpose(
+            store: Store, modes: Sequence[str]
+        ) -> Store:
+            perm = tuple(
+                dim for (_, dim) in sorted(zip(modes, range(len(modes))))
+            )
             return store.transpose(perm)
 
         lhs = alphabetical_transpose(lhs, lhs_modes)
@@ -1418,7 +1442,7 @@ class DeferredArray(NumPyThunk):
             extent = mode2extent[mode]
 
             def add_mode(
-                store: Any, modes: Sequence[str], dim_mask: list[bool]
+                store: Store, modes: Sequence[str], dim_mask: list[bool]
             ) -> Any:
                 if mode not in modes:
                     dim_mask.append(False)
@@ -1596,7 +1620,9 @@ class DeferredArray(NumPyThunk):
         task.execute()
 
     # Transpose the matrix dimensions
-    def transpose(self, axes: Any) -> DeferredArray:
+    def transpose(
+        self, axes: Union[None, tuple[int, ...], list[int]]
+    ) -> DeferredArray:
         result = self.base.transpose(axes)
         result = DeferredArray(self.runtime, result, self.dtype)
         return result
@@ -1643,19 +1669,21 @@ class DeferredArray(NumPyThunk):
         return out
 
     @auto_convert([1])
-    def flip(self, rhs: Any, axes: Optional[Any]) -> None:
+    def flip(self, rhs: Any, axes: Union[None, int, tuple[int, ...]]) -> None:
         input = rhs.base
         output = self.base
-
-        if axes is None:
-            axes = list(range(self.ndim))
-        elif not isinstance(axes, tuple):
-            axes = (axes,)
+        normalized_axes = (
+            tuple(range(self.ndim))
+            if axes is None
+            else (axes,)
+            if not isinstance(axes, tuple)
+            else axes
+        )
 
         task = self.context.create_auto_task(CuNumericOpCode.FLIP)
         task.add_output(output)
         task.add_input(input)
-        task.add_scalar_arg(axes, (ty.int32,))
+        task.add_scalar_arg(normalized_axes, (ty.int32,))
 
         task.add_broadcast(input)
         task.add_alignment(input, output)
@@ -1711,6 +1739,445 @@ class DeferredArray(NumPyThunk):
         task.execute()
         return results
 
+    def bitgenerator_random_raw(
+        self, handle, generatorType, seed, flags
+    ) -> None:
+        task = self.context.create_task(CuNumericOpCode.BITGENERATOR)
+
+        task.add_output(self.base)
+
+        task.add_scalar_arg(BitGeneratorOperation.RAND_RAW, ty.int32)
+        task.add_scalar_arg(handle, ty.int32)
+        task.add_scalar_arg(generatorType, ty.uint32)
+        task.add_scalar_arg(seed, ty.uint64)
+        task.add_scalar_arg(flags, ty.uint32)
+
+        # strides
+        task.add_scalar_arg(self.compute_strides(self.shape), (ty.int64,))
+
+        task.execute()
+
+    def bitgenerator_distribution(
+        self,
+        handle,
+        generatorType,
+        seed,
+        flags,
+        distribution,
+        intparams,
+        floatparams,
+        doubleparams,
+    ) -> None:
+        task = self.context.create_task(CuNumericOpCode.BITGENERATOR)
+
+        task.add_output(self.base)
+
+        task.add_scalar_arg(BitGeneratorOperation.DISTRIBUTION, ty.int32)
+        task.add_scalar_arg(handle, ty.int32)
+        task.add_scalar_arg(generatorType, ty.uint32)
+        task.add_scalar_arg(seed, ty.uint64)
+        task.add_scalar_arg(flags, ty.uint32)
+        task.add_scalar_arg(distribution, ty.uint32)
+
+        # strides
+        task.add_scalar_arg(self.compute_strides(self.shape), (ty.int64,))
+        task.add_scalar_arg(intparams, (ty.int64,))
+        task.add_scalar_arg(floatparams, (ty.float32,))
+        task.add_scalar_arg(doubleparams, (ty.float64,))
+
+        task.execute()
+
+    def bitgenerator_integers(
+        self, handle, generatorType, seed, flags, low, high
+    ) -> None:
+        intparams = (low, high)
+        if self.dtype == np.int32:
+            distribution = BitGeneratorDistribution.INTEGERS_32
+        elif self.dtype == np.int64:
+            distribution = BitGeneratorDistribution.INTEGERS_64
+        else:
+            raise NotImplementedError(
+                "type for random.integers has to be int64 or int32"
+            )
+        self.bitgenerator_distribution(
+            handle, generatorType, seed, flags, distribution, intparams, (), ()
+        )
+
+    def bitgenerator_uniform(
+        self, handle, generatorType, seed, flags, low, high
+    ) -> None:
+        if self.dtype == np.float32:
+            distribution = BitGeneratorDistribution.UNIFORM_32
+            floatparams = (float(low), float(high))
+            doubleparams = ()
+        elif self.dtype == np.float64:
+            distribution = BitGeneratorDistribution.UNIFORM_64
+            floatparams = ()
+            doubleparams = (float(low), float(high))
+        else:
+            raise NotImplementedError(
+                "type for random.uniform has to be float64 or float32"
+            )
+        self.bitgenerator_distribution(
+            handle,
+            generatorType,
+            seed,
+            flags,
+            distribution,
+            (),
+            floatparams,
+            doubleparams,
+        )
+
+    def bitgenerator_lognormal(
+        self, handle, generatorType, seed, flags, mean, sigma
+    ) -> None:
+        if self.dtype == np.float32:
+            distribution = BitGeneratorDistribution.LOGNORMAL_32
+            floatparams = (float(mean), float(sigma))
+            doubleparams = ()
+        elif self.dtype == np.float64:
+            distribution = BitGeneratorDistribution.LOGNORMAL_64
+            floatparams = ()
+            doubleparams = (float(mean), float(sigma))
+        else:
+            raise NotImplementedError(
+                "type for random.lognormal has to be float64 or float32"
+            )
+        self.bitgenerator_distribution(
+            handle,
+            generatorType,
+            seed,
+            flags,
+            distribution,
+            (),
+            floatparams,
+            doubleparams,
+        )
+
+    def bitgenerator_normal(
+        self, handle, generatorType, seed, flags, mean, sigma
+    ) -> None:
+        if self.dtype == np.float32:
+            distribution = BitGeneratorDistribution.NORMAL_32
+            floatparams = (float(mean), float(sigma))
+            doubleparams = ()
+        elif self.dtype == np.float64:
+            distribution = BitGeneratorDistribution.NORMAL_64
+            floatparams = ()
+            doubleparams = (float(mean), float(sigma))
+        else:
+            raise NotImplementedError(
+                "type for random.normal has to be float64 or float32"
+            )
+        self.bitgenerator_distribution(
+            handle,
+            generatorType,
+            seed,
+            flags,
+            distribution,
+            (),
+            floatparams,
+            doubleparams,
+        )
+
+    def bitgenerator_poisson(
+        self, handle, generatorType, seed, flags, lam
+    ) -> None:
+        if self.dtype == np.uint32:
+            distribution = BitGeneratorDistribution.POISSON
+            doubleparams = (float(lam),)
+        else:
+            raise NotImplementedError(
+                "type for random.random has to be float64 or float32"
+            )
+        self.bitgenerator_distribution(
+            handle,
+            generatorType,
+            seed,
+            flags,
+            distribution,
+            (),
+            (),
+            doubleparams,
+        )
+
+    def bitgenerator_exponential(
+        self, handle, generatorType, seed, flags, scale
+    ) -> None:
+        if self.dtype == np.float32:
+            distribution = BitGeneratorDistribution.EXPONENTIAL_32
+            floatparams = (float(scale),)
+            doubleparams = ()
+        elif self.dtype == np.float64:
+            distribution = BitGeneratorDistribution.EXPONENTIAL_64
+            floatparams = ()
+            doubleparams = (float(scale),)
+        else:
+            raise NotImplementedError(
+                "type for random.exponential has to be float64 or float32"
+            )
+        self.bitgenerator_distribution(
+            handle,
+            generatorType,
+            seed,
+            flags,
+            distribution,
+            (),
+            floatparams,
+            doubleparams,
+        )
+
+    def bitgenerator_gumbel(
+        self, handle, generatorType, seed, flags, mu, beta
+    ) -> None:
+        if self.dtype == np.float32:
+            distribution = BitGeneratorDistribution.GUMBEL_32
+            floatparams = (float(mu), float(beta))
+            doubleparams = ()
+        elif self.dtype == np.float64:
+            distribution = BitGeneratorDistribution.GUMBEL_64
+            floatparams = ()
+            doubleparams = (float(mu), float(beta))
+        else:
+            raise NotImplementedError(
+                "type for random.gumbel has to be float64 or float32"
+            )
+        self.bitgenerator_distribution(
+            handle,
+            generatorType,
+            seed,
+            flags,
+            distribution,
+            (),
+            floatparams,
+            doubleparams,
+        )
+
+    def bitgenerator_laplace(
+        self, handle, generatorType, seed, flags, mu, beta
+    ) -> None:
+        if self.dtype == np.float32:
+            distribution = BitGeneratorDistribution.LAPLACE_32
+            floatparams = (float(mu), float(beta))
+            doubleparams = ()
+        elif self.dtype == np.float64:
+            distribution = BitGeneratorDistribution.LAPLACE_64
+            floatparams = ()
+            doubleparams = (float(mu), float(beta))
+        else:
+            raise NotImplementedError(
+                "type for random.laplace has to be float64 or float32"
+            )
+        self.bitgenerator_distribution(
+            handle,
+            generatorType,
+            seed,
+            flags,
+            distribution,
+            (),
+            floatparams,
+            doubleparams,
+        )
+
+    def bitgenerator_logistic(
+        self, handle, generatorType, seed, flags, mu, beta
+    ) -> None:
+        if self.dtype == np.float32:
+            distribution = BitGeneratorDistribution.LOGISTIC_32
+            floatparams = (float(mu), float(beta))
+            doubleparams = ()
+        elif self.dtype == np.float64:
+            distribution = BitGeneratorDistribution.LOGISTIC_64
+            floatparams = ()
+            doubleparams = (float(mu), float(beta))
+        else:
+            raise NotImplementedError(
+                "type for random.logistic has to be float64 or float32"
+            )
+        self.bitgenerator_distribution(
+            handle,
+            generatorType,
+            seed,
+            flags,
+            distribution,
+            (),
+            floatparams,
+            doubleparams,
+        )
+
+    def bitgenerator_pareto(
+        self, handle, generatorType, seed, flags, alpha
+    ) -> None:
+        if self.dtype == np.float32:
+            distribution = BitGeneratorDistribution.PARETO_32
+            floatparams = (float(alpha),)
+            doubleparams = ()
+        elif self.dtype == np.float64:
+            distribution = BitGeneratorDistribution.PARETO_64
+            floatparams = ()
+            doubleparams = (float(alpha),)
+        else:
+            raise NotImplementedError(
+                "type for random.pareto has to be float64 or float32"
+            )
+        self.bitgenerator_distribution(
+            handle,
+            generatorType,
+            seed,
+            flags,
+            distribution,
+            (),
+            floatparams,
+            doubleparams,
+        )
+
+    def bitgenerator_power(
+        self, handle, generatorType, seed, flags, alpha
+    ) -> None:
+        if self.dtype == np.float32:
+            distribution = BitGeneratorDistribution.POWER_32
+            floatparams = (float(alpha),)
+            doubleparams = ()
+        elif self.dtype == np.float64:
+            distribution = BitGeneratorDistribution.POWER_64
+            floatparams = ()
+            doubleparams = (float(alpha),)
+        else:
+            raise NotImplementedError(
+                "type for random.power has to be float64 or float32"
+            )
+        self.bitgenerator_distribution(
+            handle,
+            generatorType,
+            seed,
+            flags,
+            distribution,
+            (),
+            floatparams,
+            doubleparams,
+        )
+
+    def bitgenerator_rayleigh(
+        self, handle, generatorType, seed, flags, sigma
+    ) -> None:
+        if self.dtype == np.float32:
+            distribution = BitGeneratorDistribution.RAYLEIGH_32
+            floatparams = (float(sigma),)
+            doubleparams = ()
+        elif self.dtype == np.float64:
+            distribution = BitGeneratorDistribution.RAYLEIGH_64
+            floatparams = ()
+            doubleparams = (float(sigma),)
+        else:
+            raise NotImplementedError(
+                "type for random.rayleigh has to be float64 or float32"
+            )
+        self.bitgenerator_distribution(
+            handle,
+            generatorType,
+            seed,
+            flags,
+            distribution,
+            (),
+            floatparams,
+            doubleparams,
+        )
+
+    def bitgenerator_cauchy(
+        self, handle, generatorType, seed, flags, x0, gamma
+    ) -> None:
+        if self.dtype == np.float32:
+            distribution = BitGeneratorDistribution.CAUCHY_32
+            floatparams = (float(x0), float(gamma))
+            doubleparams = ()
+        elif self.dtype == np.float64:
+            distribution = BitGeneratorDistribution.CAUCHY_64
+            floatparams = ()
+            doubleparams = (float(x0), float(gamma))
+        else:
+            raise NotImplementedError(
+                "type for random.cauchy has to be float64 or float32"
+            )
+        self.bitgenerator_distribution(
+            handle,
+            generatorType,
+            seed,
+            flags,
+            distribution,
+            (),
+            floatparams,
+            doubleparams,
+        )
+
+    def bitgenerator_triangular(
+        self, handle, generatorType, seed, flags, a, b, c
+    ) -> None:
+        if self.dtype == np.float32:
+            distribution = BitGeneratorDistribution.TRIANGULAR_32
+            floatparams = (float(a), float(b), float(c))
+            doubleparams = ()
+        elif self.dtype == np.float64:
+            distribution = BitGeneratorDistribution.TRIANGULAR_64
+            floatparams = ()
+            doubleparams = (float(a), float(b), float(c))
+        else:
+            raise NotImplementedError(
+                "type for random.triangular has to be float64 or float32"
+            )
+        self.bitgenerator_distribution(
+            handle,
+            generatorType,
+            seed,
+            flags,
+            distribution,
+            (),
+            floatparams,
+            doubleparams,
+        )
+
+    def bitgenerator_weibull(
+        self, handle, generatorType, seed, flags, lam, k
+    ) -> None:
+        if self.dtype == np.float32:
+            distribution = BitGeneratorDistribution.WEIBULL_32
+            floatparams = (float(lam), float(k))
+            doubleparams = ()
+        elif self.dtype == np.float64:
+            distribution = BitGeneratorDistribution.WEIBULL_64
+            floatparams = ()
+            doubleparams = (float(lam), float(k))
+        else:
+            raise NotImplementedError(
+                "type for random.weibull has to be float64 or float32"
+            )
+        self.bitgenerator_distribution(
+            handle,
+            generatorType,
+            seed,
+            flags,
+            distribution,
+            (),
+            floatparams,
+            doubleparams,
+        )
+
+    def bitgenerator_bytes(self, handle, generatorType, seed, flags) -> None:
+        if self.dtype == np.uint8:
+            distribution = BitGeneratorDistribution.BYTES
+        else:
+            raise NotImplementedError("type for random.bytes has to be uint8")
+        self.bitgenerator_distribution(
+            handle,
+            generatorType,
+            seed,
+            flags,
+            distribution,
+            (),
+            (),
+            (),
+        )
+
     def random(self, gen_code: Any, args: Any = ()) -> None:
         task = self.context.create_auto_task(CuNumericOpCode.RAND)
 
@@ -1745,7 +2212,7 @@ class DeferredArray(NumPyThunk):
     @auto_convert([2])
     def unary_op(
         self,
-        op: Any,
+        op: UnaryOpCode,
         src: Any,
         where: Any,
         args: Any,
@@ -1777,8 +2244,8 @@ class DeferredArray(NumPyThunk):
         op: UnaryRedCode,
         src: Any,
         where: Any,
-        orig_axis: Any,
-        axes: Any,
+        orig_axis: int,
+        axes: tuple[int, ...],
         keepdims: bool,
         args: Any,
         initial: Any,
@@ -1889,7 +2356,12 @@ class DeferredArray(NumPyThunk):
     # Perform the binary operation and put the result in the lhs array
     @auto_convert([2, 3])
     def binary_op(
-        self, op_code: Any, src1: Any, src2: Any, where: Any, args: Any
+        self,
+        op_code: BinaryOpCode,
+        src1: Any,
+        src2: Any,
+        where: Any,
+        args: Any,
     ) -> None:
         lhs = self.base
         rhs1 = src1._broadcast(lhs.shape)
@@ -1911,10 +2383,10 @@ class DeferredArray(NumPyThunk):
     @auto_convert([2, 3])
     def binary_reduction(
         self,
-        op: Union[Literal[BinaryOpCode.NOT_EQUAL], Any],
+        op: BinaryOpCode,
         src1: Any,
         src2: Any,
-        broadcast: Any,
+        broadcast: Union[NdShape, None],
         args: Any,
     ) -> None:
         lhs = self.base
@@ -1966,7 +2438,9 @@ class DeferredArray(NumPyThunk):
 
     # A helper method for attaching arguments
     def add_arguments(
-        self, task: Any, args: Optional[Sequence[npt.NDArray[Any]]]
+        self,
+        task: Union[AutoTask, ManualTask],
+        args: Optional[Sequence[npt.NDArray[Any]]],
     ) -> None:
         if args is None:
             return
@@ -1980,7 +2454,7 @@ class DeferredArray(NumPyThunk):
             task.add_input(scalar.base)
 
     @staticmethod
-    def compute_strides(shape: NdShape) -> NdShape:
+    def compute_strides(shape: NdShape) -> tuple[int, ...]:
         stride = 1
         result: NdShape = ()
         for dim in reversed(shape):
@@ -2102,9 +2576,9 @@ class DeferredArray(NumPyThunk):
         self,
         rhs: Any,
         argsort: bool = False,
-        axis: Optional[int] = -1,
+        axis: int = -1,
         kind: SortType = "quicksort",
-        order: Optional[Any] = None,
+        order: Union[None, str, list[str]] = None,
     ) -> None:
 
         if kind == "stable":
@@ -2128,9 +2602,9 @@ class DeferredArray(NumPyThunk):
         rhs: Any,
         kth: Union[int, Sequence[int]],
         argpartition: bool = False,
-        axis: Optional[int] = -1,
-        kind: str = "introselect",
-        order: Optional[Any] = None,
+        axis: int = -1,
+        kind: SelectKind = "introselect",
+        order: Union[None, str, list[str]] = None,
     ) -> None:
 
         if order is not None:
@@ -2144,7 +2618,7 @@ class DeferredArray(NumPyThunk):
         # fallback to sort for now
         sort(self, rhs, argpartition, axis, False)
 
-    def create_window(self, op_code: int, M: int, *args: Any) -> None:
+    def create_window(self, op_code: WindowOpCode, M: int, *args: Any) -> None:
         task = self.context.create_auto_task(CuNumericOpCode.WINDOW)
         task.add_output(self.base)
         task.add_scalar_arg(op_code, ty.int32)

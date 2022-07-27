@@ -265,6 +265,7 @@ class CuNumericOpCode(IntEnum):
     BINARY_OP = _cunumeric.CUNUMERIC_BINARY_OP
     BINARY_RED = _cunumeric.CUNUMERIC_BINARY_RED
     BINCOUNT = _cunumeric.CUNUMERIC_BINCOUNT
+    BITGENERATOR = _cunumeric.CUNUMERIC_BITGENERATOR
     CHOOSE = _cunumeric.CUNUMERIC_CHOOSE
     CONTRACT = _cunumeric.CUNUMERIC_CONTRACT
     CONVERT = _cunumeric.CUNUMERIC_CONVERT
@@ -454,8 +455,63 @@ class ScanCode(IntEnum):
     SUM = _cunumeric.CUNUMERIC_SCAN_SUM
 
 
+# Match these to BitGeneratorOperation in cunumeric_c.h
+@unique
+class BitGeneratorOperation(IntEnum):
+    CREATE = _cunumeric.CUNUMERIC_BITGENOP_CREATE
+    DESTROY = _cunumeric.CUNUMERIC_BITGENOP_DESTROY
+    RAND_RAW = _cunumeric.CUNUMERIC_BITGENOP_RAND_RAW
+    DISTRIBUTION = _cunumeric.CUNUMERIC_BITGENOP_DISTRIBUTION
+
+
+# Match these to BitGeneratorType in cunumeric_c.h
+@unique
+class BitGeneratorType(IntEnum):
+    DEFAULT = _cunumeric.CUNUMERIC_BITGENTYPE_DEFAULT
+    XORWOW = _cunumeric.CUNUMERIC_BITGENTYPE_XORWOW
+    MRG32K3A = _cunumeric.CUNUMERIC_BITGENTYPE_MRG32K3A
+    MTGP32 = _cunumeric.CUNUMERIC_BITGENTYPE_MTGP32
+    MT19937 = _cunumeric.CUNUMERIC_BITGENTYPE_MT19937
+    PHILOX4_32_10 = _cunumeric.CUNUMERIC_BITGENTYPE_PHILOX4_32_10
+
+
+# Match these to BitGeneratorDistribution in cunumeric_c.h
+@unique
+class BitGeneratorDistribution(IntEnum):
+    INTEGERS_32 = _cunumeric.CUNUMERIC_BITGENDIST_INTEGERS_32
+    INTEGERS_64 = _cunumeric.CUNUMERIC_BITGENDIST_INTEGERS_64
+    UNIFORM_32 = _cunumeric.CUNUMERIC_BITGENDIST_UNIFORM_32
+    UNIFORM_64 = _cunumeric.CUNUMERIC_BITGENDIST_UNIFORM_64
+    LOGNORMAL_32 = _cunumeric.CUNUMERIC_BITGENDIST_LOGNORMAL_32
+    LOGNORMAL_64 = _cunumeric.CUNUMERIC_BITGENDIST_LOGNORMAL_64
+    NORMAL_32 = _cunumeric.CUNUMERIC_BITGENDIST_NORMAL_32
+    NORMAL_64 = _cunumeric.CUNUMERIC_BITGENDIST_NORMAL_64
+    POISSON = _cunumeric.CUNUMERIC_BITGENDIST_POISSON
+    EXPONENTIAL_32 = _cunumeric.CUNUMERIC_BITGENDIST_EXPONENTIAL_32
+    EXPONENTIAL_64 = _cunumeric.CUNUMERIC_BITGENDIST_EXPONENTIAL_64
+    GUMBEL_32 = _cunumeric.CUNUMERIC_BITGENDIST_GUMBEL_32
+    GUMBEL_64 = _cunumeric.CUNUMERIC_BITGENDIST_GUMBEL_64
+    LAPLACE_32 = _cunumeric.CUNUMERIC_BITGENDIST_LAPLACE_32
+    LAPLACE_64 = _cunumeric.CUNUMERIC_BITGENDIST_LAPLACE_64
+    LOGISTIC_32 = _cunumeric.CUNUMERIC_BITGENDIST_LOGISTIC_32
+    LOGISTIC_64 = _cunumeric.CUNUMERIC_BITGENDIST_LOGISTIC_64
+    PARETO_32 = _cunumeric.CUNUMERIC_BITGENDIST_PARETO_32
+    PARETO_64 = _cunumeric.CUNUMERIC_BITGENDIST_PARETO_64
+    POWER_32 = _cunumeric.CUNUMERIC_BITGENDIST_POWER_32
+    POWER_64 = _cunumeric.CUNUMERIC_BITGENDIST_POWER_64
+    RAYLEIGH_32 = _cunumeric.CUNUMERIC_BITGENDIST_RAYLEIGH_32
+    RAYLEIGH_64 = _cunumeric.CUNUMERIC_BITGENDIST_RAYLEIGH_64
+    CAUCHY_32 = _cunumeric.CUNUMERIC_BITGENDIST_CAUCHY_32
+    CAUCHY_64 = _cunumeric.CUNUMERIC_BITGENDIST_CAUCHY_64
+    TRIANGULAR_32 = _cunumeric.CUNUMERIC_BITGENDIST_TRIANGULAR_32
+    TRIANGULAR_64 = _cunumeric.CUNUMERIC_BITGENDIST_TRIANGULAR_64
+    WEIBULL_32 = _cunumeric.CUNUMERIC_BITGENDIST_WEIBULL_32
+    WEIBULL_64 = _cunumeric.CUNUMERIC_BITGENDIST_WEIBULL_64
+    BYTES = _cunumeric.CUNUMERIC_BITGENDIST_BYTES
+
+
 # Match these to fftType in fft_util.h
-class _FFTType:
+class FFTType:
     def __init__(
         self,
         name: str,
@@ -463,7 +519,7 @@ class _FFTType:
         input_dtype: npt.DTypeLike,
         output_dtype: npt.DTypeLike,
         single_precision: bool,
-        complex_type: Union[_FFTType, None] = None,
+        complex_type: Union[FFTType, None] = None,
     ) -> None:
         self._name = name
         self._type_id = type_id
@@ -483,7 +539,7 @@ class _FFTType:
         return self._type_id
 
     @property
-    def complex(self) -> Union[_FFTType, None]:
+    def complex(self) -> Union[FFTType, None]:
         return self._complex_type
 
     @property
@@ -499,7 +555,7 @@ class _FFTType:
         return self._single_precision
 
 
-FFT_C2C = _FFTType(
+FFT_C2C = FFTType(
     "C2C",
     _cunumeric.CUNUMERIC_FFT_C2C,
     np.complex64,
@@ -507,7 +563,7 @@ FFT_C2C = _FFTType(
     True,
 )
 
-FFT_Z2Z = _FFTType(
+FFT_Z2Z = FFTType(
     "Z2Z",
     _cunumeric.CUNUMERIC_FFT_Z2Z,
     np.complex128,
@@ -515,7 +571,7 @@ FFT_Z2Z = _FFTType(
     False,
 )
 
-FFT_R2C = _FFTType(
+FFT_R2C = FFTType(
     "R2C",
     _cunumeric.CUNUMERIC_FFT_R2C,
     np.float32,
@@ -524,7 +580,7 @@ FFT_R2C = _FFTType(
     FFT_C2C,
 )
 
-FFT_C2R = _FFTType(
+FFT_C2R = FFTType(
     "C2R",
     _cunumeric.CUNUMERIC_FFT_C2R,
     np.complex64,
@@ -533,7 +589,7 @@ FFT_C2R = _FFTType(
     FFT_C2C,
 )
 
-FFT_D2Z = _FFTType(
+FFT_D2Z = FFTType(
     "D2Z",
     _cunumeric.CUNUMERIC_FFT_D2Z,
     np.float64,
@@ -542,7 +598,7 @@ FFT_D2Z = _FFTType(
     FFT_Z2Z,
 )
 
-FFT_Z2D = _FFTType(
+FFT_Z2D = FFTType(
     "Z2D",
     _cunumeric.CUNUMERIC_FFT_Z2D,
     np.complex128,
@@ -554,7 +610,7 @@ FFT_Z2D = _FFTType(
 
 class FFTCode:
     @staticmethod
-    def real_to_complex_code(dtype: npt.DTypeLike) -> _FFTType:
+    def real_to_complex_code(dtype: npt.DTypeLike) -> FFTType:
         if dtype == np.float64:
             return FFT_D2Z
         elif dtype == np.float32:
@@ -568,7 +624,7 @@ class FFTCode:
             )
 
     @staticmethod
-    def complex_to_real_code(dtype: npt.DTypeLike) -> _FFTType:
+    def complex_to_real_code(dtype: npt.DTypeLike) -> FFTType:
         if dtype == np.complex128:
             return FFT_Z2D
         elif dtype == np.complex64:
