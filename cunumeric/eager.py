@@ -1032,6 +1032,78 @@ class EagerArray(NumPyThunk):
                     aa = np.random.gamma(k, theta, size=self.array.shape)
                 self.array[:] = aa
 
+    def bitgenerator_standard_t(
+        self, handle, generatorType, seed, flags, df
+    ) -> None:
+        if self.deferred is not None:
+            self.deferred.bitgenerator_standard_t(
+                handle, generatorType, seed, flags, df
+            )
+        else:
+            if self.array.size == 1:
+                self.array.fill(np.random.standard_t(df))
+            else:
+                aa = np.random.standard_t(df, size=self.array.shape)
+                self.array[:] = aa
+
+    def bitgenerator_hypergeometric(
+        self, handle, generatorType, seed, flags, ngood, nbad, nsample
+    ) -> None:
+        if self.deferred is not None:
+            self.deferred.bitgenerator_hypergeometric(
+                handle, generatorType, seed, flags, ngood, nbad, nsample
+            )
+        else:
+            if self.array.size == 1:
+                self.array.fill(np.random.hypergeometric(ngood, nbad, nsample))
+            else:
+                aa = np.random.hypergeometric(
+                    ngood, nbad, nsample, size=self.array.shape
+                )
+                self.array[:] = aa
+
+    def bitgenerator_vonmises(
+        self, handle, generatorType, seed, flags, mu, kappa
+    ) -> None:
+        if self.deferred is not None:
+            self.deferred.bitgenerator_vonmises(
+                handle, generatorType, seed, flags, mu, kappa
+            )
+        else:
+            if self.array.size == 1:
+                self.array.fill(np.random.vonmises(mu, kappa))
+            else:
+                aa = np.random.vonmises(mu, kappa, size=self.array.shape)
+                self.array[:] = aa
+
+    def bitgenerator_zipf(
+        self, handle, generatorType, seed, flags, alpha
+    ) -> None:
+        if self.deferred is not None:
+            self.deferred.bitgenerator_zipf(
+                handle, generatorType, seed, flags, alpha
+            )
+        else:
+            if self.array.size == 1:
+                self.array.fill(np.random.zipf(alpha))
+            else:
+                aa = np.random.zipf(alpha, size=self.array.shape)
+                self.array[:] = aa
+
+    def bitgenerator_geometric(
+        self, handle, generatorType, seed, flags, p
+    ) -> None:
+        if self.deferred is not None:
+            self.deferred.bitgenerator_geometric(
+                handle, generatorType, seed, flags, p
+            )
+        else:
+            if self.array.size == 1:
+                self.array.fill(np.random.geometric(p))
+            else:
+                aa = np.random.geometric(p, size=self.array.shape)
+                self.array[:] = aa
+
     def partition(
         self,
         rhs: Any,

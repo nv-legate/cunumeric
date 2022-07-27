@@ -47,3 +47,27 @@ template struct randutilimpl::
 template struct randutilimpl::dispatcher<randutilimpl::execlocation::DEVICE, gamma_t<float>, float>;
 template struct randutilimpl::
   dispatcher<randutilimpl::execlocation::DEVICE, gamma_t<double>, double>;
+
+#include "generator_standard_t.inl"
+template struct randutilimpl::
+  dispatcher<randutilimpl::execlocation::DEVICE, standard_t_t<float>, float>;
+template struct randutilimpl::
+  dispatcher<randutilimpl::execlocation::DEVICE, standard_t_t<double>, double>;
+
+#include "generator_vonmises.inl"
+template struct randutilimpl::
+  dispatcher<randutilimpl::execlocation::DEVICE, vonmises_t<float>, float>;
+template struct randutilimpl::
+  dispatcher<randutilimpl::execlocation::DEVICE, vonmises_t<double>, double>;
+
+#include "generator_hypergeometric.inl"
+template struct randutilimpl::
+  dispatcher<randutilimpl::execlocation::DEVICE, hypergeometric_t<int64_t>, uint32_t>;
+
+#include "generator_zipf.inl"
+template struct randutilimpl::
+  dispatcher<randutilimpl::execlocation::DEVICE, zipf_t<double>, uint32_t>;
+
+#include "generator_geometric.inl"
+template struct randutilimpl::
+  dispatcher<randutilimpl::execlocation::DEVICE, geometric_t<double>, uint32_t>;

@@ -221,6 +221,35 @@ struct CURANDGenerator {
   {
     CHECK_CURAND(::randutilGenerateGammaEx(gen_, out, count, k, theta));
   }
+  void generate_standard_t_64(uint64_t count, double* out, double df)
+  {
+    CHECK_CURAND(::randutilGenerateStandardTDoubleEx(gen_, out, count, df));
+  }
+  void generate_standard_t_32(uint64_t count, float* out, float df)
+  {
+    CHECK_CURAND(::randutilGenerateStandardTEx(gen_, out, count, df));
+  }
+  void generate_hypergeometric(
+    uint64_t count, uint32_t* out, int64_t ngood, int64_t nbad, int64_t nsample)
+  {
+    CHECK_CURAND(::randutilGenerateHyperGeometricEx(gen_, out, count, ngood, nbad, nsample));
+  }
+  void generate_vonmises_64(uint64_t count, double* out, double mu, double kappa)
+  {
+    CHECK_CURAND(::randutilGenerateVonMisesDoubleEx(gen_, out, count, mu, kappa));
+  }
+  void generate_vonmises_32(uint64_t count, float* out, float mu, float kappa)
+  {
+    CHECK_CURAND(::randutilGenerateVonMisesEx(gen_, out, count, mu, kappa));
+  }
+  void generate_zipf(uint64_t count, uint32_t* out, double a)
+  {
+    CHECK_CURAND(::randutilGenerateZipfEx(gen_, out, count, a));
+  }
+  void generate_geometric(uint64_t count, uint32_t* out, double p)
+  {
+    CHECK_CURAND(::randutilGenerateGeometricEx(gen_, out, count, p));
+  }
 };
 
 #pragma endregion
@@ -1057,6 +1086,153 @@ struct gamma_generator<float> {
 
 #pragma endregion
 
+#pragma region hypergeometric
+
+template <typename output_t>
+struct hypergeometric_generator;
+template <>
+struct hypergeometric_generator<unsigned> {
+  int64_t ngood_, nbad_, nsample_;
+
+  hypergeometric_generator(const std::vector<int64_t>& intparams,
+                           const std::vector<float>& floatparams,
+                           const std::vector<double>& doubleparams)
+    : ngood_(intparams[0]), nbad_(intparams[1]), nsample_(intparams[2])
+  {
+  }
+
+  void generate(CURANDGenerator& gen, uint64_t count, unsigned* p) const
+  {
+    gen.generate_hypergeometric(count, p, ngood_, nbad_, nsample_);
+  }
+};
+
+#pragma endregion
+
+#pragma region zipf
+
+template <typename output_t>
+struct zipf_generator;
+template <>
+struct zipf_generator<unsigned> {
+  double a_;
+
+  zipf_generator(const std::vector<int64_t>& intparams,
+                 const std::vector<float>& floatparams,
+                 const std::vector<double>& doubleparams)
+    : a_(doubleparams[0])
+  {
+  }
+
+  void generate(CURANDGenerator& gen, uint64_t count, unsigned* p) const
+  {
+    gen.generate_zipf(count, p, a_);
+  }
+};
+
+#pragma endregion
+
+#pragma region geometric
+
+template <typename output_t>
+struct geometric_generator;
+template <>
+struct geometric_generator<unsigned> {
+  double p_;
+
+  geometric_generator(const std::vector<int64_t>& intparams,
+                      const std::vector<float>& floatparams,
+                      const std::vector<double>& doubleparams)
+    : p_(doubleparams[0])
+  {
+  }
+
+  void generate(CURANDGenerator& gen, uint64_t count, unsigned* p) const
+  {
+    gen.generate_geometric(count, p, p_);
+  }
+};
+
+#pragma endregion
+
+#pragma region standard_t
+
+template <typename output_t>
+struct standard_t_generator;
+template <>
+struct standard_t_generator<double> {
+  double df_;
+
+  standard_t_generator(const std::vector<int64_t>& intparams,
+                       const std::vector<float>& floatparams,
+                       const std::vector<double>& doubleparams)
+    : df_(doubleparams[0])
+  {
+  }
+
+  void generate(CURANDGenerator& gen, uint64_t count, double* p) const
+  {
+    gen.generate_standard_t_64(count, p, df_);
+  }
+};
+template <>
+struct standard_t_generator<float> {
+  float df_;
+
+  standard_t_generator(const std::vector<int64_t>& intparams,
+                       const std::vector<float>& floatparams,
+                       const std::vector<double>& doubleparams)
+    : df_(floatparams[0])
+  {
+  }
+
+  void generate(CURANDGenerator& gen, uint64_t count, float* p) const
+  {
+    gen.generate_standard_t_32(count, p, df_);
+  }
+};
+
+#pragma endregion
+
+#pragma region vonmises
+
+template <typename output_t>
+struct vonmises_generator;
+template <>
+struct vonmises_generator<double> {
+  double mu_, kappa_;
+
+  vonmises_generator(const std::vector<int64_t>& intparams,
+                     const std::vector<float>& floatparams,
+                     const std::vector<double>& doubleparams)
+    : mu_(doubleparams[0]), kappa_(doubleparams[1])
+  {
+  }
+
+  void generate(CURANDGenerator& gen, uint64_t count, double* p) const
+  {
+    gen.generate_vonmises_64(count, p, mu_, kappa_);
+  }
+};
+template <>
+struct vonmises_generator<float> {
+  float mu_, kappa_;
+
+  vonmises_generator(const std::vector<int64_t>& intparams,
+                     const std::vector<float>& floatparams,
+                     const std::vector<double>& doubleparams)
+    : mu_(floatparams[0]), kappa_(floatparams[1])
+  {
+  }
+
+  void generate(CURANDGenerator& gen, uint64_t count, float* p) const
+  {
+    gen.generate_vonmises_32(count, p, mu_, kappa_);
+  }
+};
+
+#pragma endregion
+
 #pragma endregion
 
 template <typename output_t, typename generator_t>
@@ -1391,6 +1567,34 @@ struct BitGeneratorImplBody {
               break;
             case BitGeneratorDistribution::GAMMA_64:
               generate_distribution<double, gamma_generator<double>>::generate(
+                res, cugen, intparams, floatparams, doubleparams);
+              break;
+            case BitGeneratorDistribution::STANDARD_T_32:
+              generate_distribution<float, standard_t_generator<float>>::generate(
+                res, cugen, intparams, floatparams, doubleparams);
+              break;
+            case BitGeneratorDistribution::STANDARD_T_64:
+              generate_distribution<double, standard_t_generator<double>>::generate(
+                res, cugen, intparams, floatparams, doubleparams);
+              break;
+            case BitGeneratorDistribution::VONMISES_32:
+              generate_distribution<float, vonmises_generator<float>>::generate(
+                res, cugen, intparams, floatparams, doubleparams);
+              break;
+            case BitGeneratorDistribution::VONMISES_64:
+              generate_distribution<double, vonmises_generator<double>>::generate(
+                res, cugen, intparams, floatparams, doubleparams);
+              break;
+            case BitGeneratorDistribution::HYPERGEOMETRIC:
+              generate_distribution<uint32_t, hypergeometric_generator<unsigned>>::generate(
+                res, cugen, intparams, floatparams, doubleparams);
+              break;
+            case BitGeneratorDistribution::ZIPF:
+              generate_distribution<uint32_t, zipf_generator<unsigned>>::generate(
+                res, cugen, intparams, floatparams, doubleparams);
+              break;
+            case BitGeneratorDistribution::GEOMETRIC:
+              generate_distribution<uint32_t, geometric_generator<unsigned>>::generate(
                 res, cugen, intparams, floatparams, doubleparams);
               break;
             default: {

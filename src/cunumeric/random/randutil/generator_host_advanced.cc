@@ -187,3 +187,112 @@ extern "C" curandStatus_t randutilGenerateGammaDoubleEx(randutilGenerator_t gene
 }
 
 #pragma endregion
+
+#pragma region standart_t
+
+#include "generator_standard_t.inl"
+
+extern "C" curandStatus_t randutilGenerateStandardTEx(randutilGenerator_t generator,
+                                                      float* outputPtr,
+                                                      size_t n,
+                                                      float df)
+{
+  randutilimpl::basegenerator* gen = (randutilimpl::basegenerator*)generator;
+  standard_t_t<float> func;
+  func.df = df;
+  return randutilimpl::dispatch<decltype(func), float>(gen, func, n, outputPtr);
+}
+
+extern "C" curandStatus_t randutilGenerateStandardTDoubleEx(randutilGenerator_t generator,
+                                                            double* outputPtr,
+                                                            size_t n,
+                                                            double df)
+{
+  randutilimpl::basegenerator* gen = (randutilimpl::basegenerator*)generator;
+  standard_t_t<double> func;
+  func.df = df;
+  return randutilimpl::dispatch<decltype(func), double>(gen, func, n, outputPtr);
+}
+
+#pragma endregion
+
+#pragma region von mises
+
+#include "generator_vonmises.inl"
+
+extern "C" curandStatus_t randutilGenerateVonMisesEx(
+  randutilGenerator_t generator, float* outputPtr, size_t n, float mu, float kappa)
+{
+  randutilimpl::basegenerator* gen = (randutilimpl::basegenerator*)generator;
+  vonmises_t<float> func;
+  func.mu    = mu;
+  func.kappa = kappa;
+  return randutilimpl::dispatch<decltype(func), float>(gen, func, n, outputPtr);
+}
+
+extern "C" curandStatus_t randutilGenerateVonMisesDoubleEx(
+  randutilGenerator_t generator, double* outputPtr, size_t n, double mu, double kappa)
+{
+  randutilimpl::basegenerator* gen = (randutilimpl::basegenerator*)generator;
+  vonmises_t<double> func;
+  func.mu    = mu;
+  func.kappa = kappa;
+  return randutilimpl::dispatch<decltype(func), double>(gen, func, n, outputPtr);
+}
+
+#pragma endregion
+
+#pragma region hypergeometric
+
+#include "generator_hypergeometric.inl"
+
+extern "C" curandStatus_t randutilGenerateHyperGeometricEx(randutilGenerator_t generator,
+                                                           uint32_t* outputPtr,
+                                                           size_t n,
+                                                           int64_t ngood,
+                                                           int64_t nbad,
+                                                           int64_t nsample)
+{
+  randutilimpl::basegenerator* gen = (randutilimpl::basegenerator*)generator;
+  hypergeometric_t<int64_t> func;
+  func.ngood   = ngood;
+  func.nbad    = nbad;
+  func.nsample = nsample;
+  return randutilimpl::dispatch<decltype(func), uint32_t>(gen, func, n, outputPtr);
+}
+
+#pragma endregion
+
+#pragma region zipf
+
+#include "generator_zipf.inl"
+
+extern "C" curandStatus_t randutilGenerateZipfEx(randutilGenerator_t generator,
+                                                 uint32_t* outputPtr,
+                                                 size_t n,
+                                                 double a)
+{
+  randutilimpl::basegenerator* gen = (randutilimpl::basegenerator*)generator;
+  zipf_t<double> func;
+  func.a = a;
+  return randutilimpl::dispatch<decltype(func), uint32_t>(gen, func, n, outputPtr);
+}
+
+#pragma endregion
+
+#pragma region geometric
+
+#include "generator_geometric.inl"
+
+extern "C" curandStatus_t randutilGenerateGeometricEx(randutilGenerator_t generator,
+                                                      uint32_t* outputPtr,
+                                                      size_t n,
+                                                      double p)
+{
+  randutilimpl::basegenerator* gen = (randutilimpl::basegenerator*)generator;
+  geometric_t<double> func;
+  func.p = p;
+  return randutilimpl::dispatch<decltype(func), uint32_t>(gen, func, n, outputPtr);
+}
+
+#pragma endregion

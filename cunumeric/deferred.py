@@ -2326,6 +2326,119 @@ class DeferredArray(NumPyThunk):
             doubleparams,
         )
 
+    def bitgenerator_standard_t(
+        self, handle, generatorType, seed, flags, df
+    ) -> None:
+        if self.dtype == np.float32:
+            distribution = BitGeneratorDistribution.STANDARD_T_32
+            floatparams = (float(df),)
+            doubleparams = ()
+        elif self.dtype == np.float64:
+            distribution = BitGeneratorDistribution.STANDARD_T_64
+            floatparams = ()
+            doubleparams = (float(df),)
+        else:
+            raise NotImplementedError(
+                "type for random.standard_t has to be float64 or float32"
+            )
+        self.bitgenerator_distribution(
+            handle,
+            generatorType,
+            seed,
+            flags,
+            distribution,
+            (),
+            floatparams,
+            doubleparams,
+        )
+
+    def bitgenerator_hypergeometric(
+        self, handle, generatorType, seed, flags, ngood, nbad, nsample
+    ) -> None:
+        if self.dtype == np.uint32:
+            distribution = BitGeneratorDistribution.HYPERGEOMETRIC
+        else:
+            raise NotImplementedError(
+                "type for random.hypergeometric has to be uint32"
+            )
+        intparams = (int(ngood), int(nbad), int(nsample))
+        self.bitgenerator_distribution(
+            handle,
+            generatorType,
+            seed,
+            flags,
+            distribution,
+            intparams,
+            (),
+            (),
+        )
+
+    def bitgenerator_vonmises(
+        self, handle, generatorType, seed, flags, mu, kappa
+    ) -> None:
+        if self.dtype == np.float32:
+            distribution = BitGeneratorDistribution.VONMISES_32
+            floatparams = (float(mu), float(kappa))
+            doubleparams = ()
+        elif self.dtype == np.float64:
+            distribution = BitGeneratorDistribution.VONMISES_64
+            floatparams = ()
+            doubleparams = (float(mu), float(kappa))
+        else:
+            raise NotImplementedError(
+                "type for random.vonmises has to be float64 or float32"
+            )
+        self.bitgenerator_distribution(
+            handle,
+            generatorType,
+            seed,
+            flags,
+            distribution,
+            (),
+            floatparams,
+            doubleparams,
+        )
+
+    def bitgenerator_zipf(
+        self, handle, generatorType, seed, flags, alpha
+    ) -> None:
+        if self.dtype == np.uint32:
+            distribution = BitGeneratorDistribution.ZIPF
+            doubleparams = (float(alpha),)
+        else:
+            raise NotImplementedError("type for random.zipf has to be uint32")
+        self.bitgenerator_distribution(
+            handle,
+            generatorType,
+            seed,
+            flags,
+            distribution,
+            (),
+            (),
+            doubleparams,
+        )
+
+    def bitgenerator_geometric(
+        self, handle, generatorType, seed, flags, p
+    ) -> None:
+        if self.dtype == np.uint32:
+            distribution = BitGeneratorDistribution.GEOMETRIC
+            doubleparams = (float(p),)
+        else:
+            raise NotImplementedError(
+                "type for random.geometric has to be uint32"
+            )
+        self.bitgenerator_distribution(
+            handle,
+            generatorType,
+            seed,
+            flags,
+            distribution,
+            (),
+            (),
+            doubleparams,
+        )
+
     def random(self, gen_code: Any, args: Any = ()) -> None:
         task = self.context.create_auto_task(CuNumericOpCode.RAND)
 

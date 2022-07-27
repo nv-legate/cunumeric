@@ -186,3 +186,30 @@ extern "C" curandStatus_t randutilGenerateGammaEx(
   float scale = 1.0f);  // scale = 1.0 is standard_gamma
 extern "C" curandStatus_t randutilGenerateGammaDoubleEx(
   randutilGenerator_t generator, double* outputPtr, size_t n, double shape, double scale = 1.0);
+
+extern "C" curandStatus_t randutilGenerateStandardTDoubleEx(randutilGenerator_t generator,
+                                                            double* outputPtr,
+                                                            size_t n,
+                                                            double df);
+extern "C" curandStatus_t randutilGenerateStandardTEx(randutilGenerator_t generator,
+                                                      float* outputPtr,
+                                                      size_t n,
+                                                      float df);
+extern "C" curandStatus_t randutilGenerateHyperGeometricEx(randutilGenerator_t generator,
+                                                           uint32_t* outputPtr,
+                                                           size_t n,
+                                                           int64_t ngood,
+                                                           int64_t nbad,
+                                                           int64_t nsample);
+extern "C" curandStatus_t randutilGenerateVonMisesDoubleEx(
+  randutilGenerator_t generator, double* outputPtr, size_t n, double mu, double kappa);
+extern "C" curandStatus_t randutilGenerateVonMisesEx(
+  randutilGenerator_t generator, float* outputPtr, size_t n, float mu, float kappa);
+extern "C" curandStatus_t randutilGenerateZipfEx(randutilGenerator_t generator,
+                                                 uint32_t* outputPtr,
+                                                 size_t n,
+                                                 double a);
+extern "C" curandStatus_t randutilGenerateGeometricEx(randutilGenerator_t generator,
+                                                      uint32_t* outputPtr,
+                                                      size_t n,
+                                                      double p);

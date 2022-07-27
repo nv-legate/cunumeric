@@ -347,6 +347,36 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
+    def bitgenerator_standard_t(
+        self, bitgen, generatorType, seed, flags, df
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def bitgenerator_hypergeometric(
+        self, bitgen, generatorType, seed, flags, ngood, nbad, nsample
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def bitgenerator_vonmises(
+        self, bitgen, generatorType, seed, flags, mu, kappa
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def bitgenerator_zipf(
+        self, bitgen, generatorType, seed, flags, alpha
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def bitgenerator_geometric(
+        self, bitgen, generatorType, seed, flags, p
+    ) -> None:
+        ...
+
+    @abstractmethod
     def random_uniform(self) -> None:
         ...
 

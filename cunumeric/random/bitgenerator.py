@@ -326,6 +326,69 @@ class BitGenerator:
         )
         return res
 
+    def standard_t(self, df, shape=None, dtype=np.float64):
+        if shape is None:
+            shape = (1,)
+        if not isinstance(shape, tuple):
+            shape = (shape,)
+        res = ndarray(shape, dtype=dtype)
+        res._thunk.bitgenerator_standard_t(
+            self.handle, self.generatorType, self.seed, self.flags, df
+        )
+        return res
+
+    def hypergeometric(
+        self, ngood, nbad, nsample, shape=None, dtype=np.uint32
+    ):
+        if shape is None:
+            shape = (1,)
+        if not isinstance(shape, tuple):
+            shape = (shape,)
+        res = ndarray(shape, dtype=dtype)
+        res._thunk.bitgenerator_hypergeometric(
+            self.handle,
+            self.generatorType,
+            self.seed,
+            self.flags,
+            ngood,
+            nbad,
+            nsample,
+        )
+        return res
+
+    def vonmises(self, mu, kappa, shape=None, dtype=np.float64):
+        if shape is None:
+            shape = (1,)
+        if not isinstance(shape, tuple):
+            shape = (shape,)
+        res = ndarray(shape, dtype=dtype)
+        res._thunk.bitgenerator_vonmises(
+            self.handle, self.generatorType, self.seed, self.flags, mu, kappa
+        )
+        return res
+
+    def zipf(self, alpha, shape=None, dtype=np.uint32):
+        if shape is None:
+            shape = (1,)
+        if not isinstance(shape, tuple):
+            shape = (shape,)
+        res = ndarray(shape, dtype=dtype)
+        res._thunk.bitgenerator_zipf(
+            self.handle, self.generatorType, self.seed, self.flags, alpha
+        )
+        return res
+
+    def geometric(self, p, shape=None, dtype=np.uint32):
+        if shape is None:
+            shape = (1,)
+        if not isinstance(shape, tuple):
+            shape = (shape,)
+        res = ndarray(shape, dtype=dtype)
+        res._thunk.bitgenerator_geometric(
+            self.handle, self.generatorType, self.seed, self.flags, p
+        )
+        return res
+
 
 class XORWOW(BitGenerator):
     def __init__(self, seed=None, forceBuild=False):

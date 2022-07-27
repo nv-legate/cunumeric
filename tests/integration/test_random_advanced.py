@@ -14,7 +14,6 @@
 #
 import numpy as np
 import pytest
-
 import cunumeric as num
 
 BITGENERATOR_ARGS = [
@@ -47,98 +46,91 @@ def assert_distribution(a, theo_mean, theo_stdev, tolerance=1e-2):
 
 
 @pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
-def test_gamma_float32(t):
+def test_standard_t_float32(t):
     bitgen = t(seed=42)
     gen = num.random.Generator(bitgen)
-    k = 3.1415
-    theta = 1.414
-    a = gen.gamma(k, theta, size=(1024 * 1024,), dtype=np.float32)
-    theo_mean = k * theta
-    theo_std = np.sqrt(k) * theta
+    nu = 3.1415
+    a = gen.standard_t(df=nu, size=(1024 * 1024,), dtype=np.float32)
+    theo_mean = 0
+    theo_std = np.sqrt(nu / (nu - 2.0))
+    assert_distribution(a, theo_mean, theo_std, 0.1)
+
+
+@pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
+def test_standard_t_float64(t):
+    bitgen = t(seed=42)
+    gen = num.random.Generator(bitgen)
+    nu = 3.1415
+    a = gen.standard_t(df=nu, size=(1024 * 1024,), dtype=np.float64)
+    theo_mean = 0
+    theo_std = np.sqrt(nu / (nu - 2.0))
+    assert_distribution(a, theo_mean, theo_std, 0.1)
+
+
+@pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
+def test_vonmises_float32(t):
+    bitgen = t(seed=42)
+    gen = num.random.Generator(bitgen)
+    mu = 1.414
+    kappa = 3.1415
+    a = gen.vonmises(mu, kappa, size=(1024 * 1024,), dtype=np.float32)
+    ref_a = np.random.vonmises(mu,kappa,1024*1024)
+    theo_mean = np.average(ref_a)
+    theo_std = np.std(ref_a)
     assert_distribution(a, theo_mean, theo_std)
 
 
 @pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
-def test_gamma_float64(t):
+def test_vonmises_float64(t):
     bitgen = t(seed=42)
     gen = num.random.Generator(bitgen)
-    k = 3.1415
-    theta = 1.414
-    a = gen.gamma(k, theta, size=(1024 * 1024,), dtype=np.float64)
-    theo_mean = k * theta
-    theo_std = np.sqrt(k) * theta
+    mu = 1.414
+    kappa = 3.1415
+    a = gen.vonmises(mu, kappa, size=(1024 * 1024,), dtype=np.float64)
+    ref_a = np.random.vonmises(mu,kappa,1024*1024)
+    theo_mean = np.average(ref_a)
+    theo_std = np.std(ref_a)
     assert_distribution(a, theo_mean, theo_std)
 
 
 @pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
-def test_standard_gamma_float32(t):
+def test_hypergeometric(t):
     bitgen = t(seed=42)
     gen = num.random.Generator(bitgen)
-    k = 3.1415
-    theta = 1.0
-    a = gen.standard_gamma(k, size=(1024 * 1024,), dtype=np.float32)
-    theo_mean = k * theta
-    theo_std = np.sqrt(k) * theta
+    N=500
+    K=60
+    n=200
+    ngood=K
+    nbad=N-K
+    nsample=n
+    a = gen.hypergeometric(ngood,nbad,nsample, size=(1024 * 1024,), dtype=np.uint32)
+    theo_mean = n*K/N
+    theo_std = np.sqrt(n*(K*(N-K)*(N-n))/(N*N*(N-1)))
     assert_distribution(a, theo_mean, theo_std)
 
 
 @pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
-def test_standard_gamma_float64(t):
+def test_geometric(t):
     bitgen = t(seed=42)
     gen = num.random.Generator(bitgen)
-    k = 3.1415
-    theta = 1.0
-    a = gen.standard_gamma(k, size=(1024 * 1024,), dtype=np.float64)
-    theo_mean = k * theta
-    theo_std = np.sqrt(k) * theta
+    p=0.707
+    a = gen.geometric(p, size=(1024 * 1024,), dtype=np.uint32)
+    theo_mean = 1/p
+    theo_std = np.sqrt(1-p)/p
     assert_distribution(a, theo_mean, theo_std)
 
 
 @pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
-def test_chisquare_float32(t):
+def test_zipf(t):
     bitgen = t(seed=42)
     gen = num.random.Generator(bitgen)
-    k = 3.0
-    a = gen.chisquare(k, size=(1024 * 1024,), dtype=np.float32)
-    theo_mean = k
-    theo_std = np.sqrt(2.0 * k)
-    assert_distribution(a, theo_mean, theo_std)
-
-
-@pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
-def test_chisquare_float64(t):
-    bitgen = t(seed=42)
-    gen = num.random.Generator(bitgen)
-    k = 3.0
-    a = gen.chisquare(k, size=(1024 * 1024,), dtype=np.float64)
-    theo_mean = k
-    theo_std = np.sqrt(2.0 * k)
-    assert_distribution(a, theo_mean, theo_std)
-
-
-@pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
-def test_noncentral_chisquare_float32(t):
-    bitgen = t(seed=42)
-    gen = num.random.Generator(bitgen)
-    k = 3.0
-    lam = 1.414
-    a = gen.noncentral_chisquare(k, lam, size=(1024 * 1024,), dtype=np.float32)
-    theo_mean = k + lam
-    theo_std = np.sqrt(2.0 * (k + 2.0 * lam))
-    assert_distribution(a, theo_mean, theo_std)
-
-
-@pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
-def test_noncentral_chisquare_float64(t):
-    bitgen = t(seed=42)
-    gen = num.random.Generator(bitgen)
-    k = 3.0
-    lam = 1.414
-    a = gen.noncentral_chisquare(k, lam, size=(1024 * 1024,), dtype=np.float64)
-    theo_mean = k + lam
-    theo_std = np.sqrt(2.0 * (k + 2.0 * lam))
-    assert_distribution(a, theo_mean, theo_std)
-
+    s = 7.5
+    a = gen.zipf(a=s, size=(1024 * 1024,), dtype=np.uint32)
+    a = np.random.zipf(s,1024*1024)
+    ref_a = np.random.zipf(s,1024*1024)
+    theo_mean = np.average(ref_a)
+    theo_std = np.std(ref_a)
+    assert_distribution(a, theo_mean, theo_std, 0.2)
 
 if __name__ == "__main__":
     import sys

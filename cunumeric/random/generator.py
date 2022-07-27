@@ -134,6 +134,25 @@ class Generator:
     def standard_gamma(self, shape, size=None, dtype=np.float64):
         return self.gamma(shape=shape, scale=1.0, size=size, dtype=dtype)
 
+    def standard_t(self, df, size=None, dtype=np.float64):
+        return self.bit_generator.standard_t(df=df, shape=size, dtype=dtype)
+
+    def hypergeometric(self, ngood, nbad, nsample, size=None, dtype=np.uint32):
+        return self.bit_generator.hypergeometric(
+            ngood=ngood, nbad=nbad, nsample=nsample, shape=size, dtype=dtype
+        )
+
+    def vonmises(self, mu, kappa, size=None, dtype=np.float64):
+        return self.bit_generator.vonmises(
+            mu=mu, kappa=kappa, shape=size, dtype=dtype
+        )
+
+    def zipf(self, a, size=None, dtype=np.uint32):
+        return self.bit_generator.zipf(alpha=a, shape=size, dtype=dtype)
+
+    def geometric(self, p, size=None, dtype=np.uint32):
+        return self.bit_generator.geometric(p=p, shape=size, dtype=dtype)
+
 
 def default_rng(seed=None):
     if seed is None:
