@@ -22,6 +22,7 @@ from typing import TYPE_CHECKING, Any, Optional, Sequence, Union, cast
 
 import numpy as np
 import opt_einsum as oe  # type: ignore [import]
+from cunumeric.coverage import is_implemented
 from numpy.core.numeric import (  # type: ignore [attr-defined]
     normalize_axis_tuple,
 )
@@ -2539,6 +2540,12 @@ def mask_indices(
     """
     # this implementation is based on the Cupy
     a = ones((n, n), dtype=bool)
+    if not is_implemented(mask_func):
+        runtime.warn(
+            "Calling non-cuNumeric functions in mask_func can result in bad "
+            "performance",
+            category=UserWarning,
+        )
     return mask_func(a, k).nonzero()
 
 
