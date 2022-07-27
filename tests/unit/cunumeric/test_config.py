@@ -172,7 +172,8 @@ def test_CuNumericOpCode() -> None:
         "UNPACKBITS",
         "WHERE",
         "WINDOW",
-        "WRAP" "WRITE",
+        "WRAP",
+        "WRITE",
         "ZIP",
     }
 

@@ -1207,6 +1207,15 @@ class EagerArray(NumPyThunk):
     def _wrap(self, src, new_len):
         self.check_eager_args(src)
         if self.deferred is not None:
-            self.deferred._wrap(src, new_len)
+            return self.deferred._wrap(src, new_len)
         else:
-            raise RuntimeError("not implemented Yet")
+            src = np.ravel(src)
+            if src.size == new_len:
+                return src
+            elif src.size < new_len:
+                return src[:new_len]
+            else:
+                out = src.copy()
+                while out.size < new_len:
+                    out = np.concatenate((out, src), axis=0)
+                return out[0:new_len]
