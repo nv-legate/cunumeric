@@ -322,3 +322,19 @@ extern "C" curandStatus_t randutilGenerateWaldDoubleEx(
 }
 
 #pragma endregion
+
+#pragma region wald
+
+#include "generator_binomial.inl"
+
+extern "C" curandStatus_t randutilGenerateBinomialEx(
+  randutilGenerator_t generator, uint32_t* outputPtr, size_t n, uint32_t ntrials, double p)
+{
+  randutilimpl::basegenerator* gen = (randutilimpl::basegenerator*)generator;
+  binomial_t<uint32_t> func;
+  func.n = ntrials;
+  func.p = p;
+  return randutilimpl::dispatch<decltype(func), uint32_t>(gen, func, n, outputPtr);
+}
+
+#pragma endregion

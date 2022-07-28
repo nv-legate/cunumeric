@@ -377,6 +377,12 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
+    def bitgenerator_binomial(
+        self, bitgen, generatorType, seed, flags, ntrials, p
+    ) -> None:
+        ...
+
+    @abstractmethod
     def bitgenerator_geometric(
         self, bitgen, generatorType, seed, flags, p
     ) -> None:

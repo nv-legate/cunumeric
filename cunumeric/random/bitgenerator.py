@@ -389,7 +389,7 @@ class BitGenerator:
         )
         return res
 
-    def wald(self, mean, scale, shape=None, dtype=np.uint32):
+    def wald(self, mean, scale, shape=None, dtype=np.float64):
         if shape is None:
             shape = (1,)
         if not isinstance(shape, tuple):
@@ -397,6 +397,17 @@ class BitGenerator:
         res = ndarray(shape, dtype=dtype)
         res._thunk.bitgenerator_wald(
             self.handle, self.generatorType, self.seed, self.flags, mean, scale
+        )
+        return res
+
+    def binomial(self, ntrials, p, shape=None, dtype=np.uint32):
+        if shape is None:
+            shape = (1,)
+        if not isinstance(shape, tuple):
+            shape = (shape,)
+        res = ndarray(shape, dtype=dtype)
+        res._thunk.bitgenerator_binomial(
+            self.handle, self.generatorType, self.seed, self.flags, ntrials, p
         )
         return res
 

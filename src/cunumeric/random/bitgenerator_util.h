@@ -90,6 +90,7 @@ enum class BitGeneratorDistribution : int32_t {
   GEOMETRIC       = CUNUMERIC_BITGENDIST_GEOMETRIC,
   WALD_32         = CUNUMERIC_BITGENDIST_WALD_32,
   WALD_64         = CUNUMERIC_BITGENDIST_WALD_64,
+  BINOMIAL        = CUNUMERIC_BITGENDIST_BINOMIAL,
 };
 
 }  // namespace cunumeric

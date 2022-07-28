@@ -76,3 +76,7 @@ template struct randutilimpl::
 template struct randutilimpl::dispatcher<randutilimpl::execlocation::DEVICE, wald_t<float>, float>;
 template struct randutilimpl::
   dispatcher<randutilimpl::execlocation::DEVICE, wald_t<double>, double>;
+
+#include "generator_binomial.inl"
+template struct randutilimpl::
+  dispatcher<randutilimpl::execlocation::DEVICE, binomial_t<uint32_t>, uint32_t>;

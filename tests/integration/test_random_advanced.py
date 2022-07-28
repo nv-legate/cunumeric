@@ -162,6 +162,18 @@ def test_wald_float64(t):
     assert_distribution(a, theo_mean, theo_std)
 
 
+@pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
+def test_binomial(t):
+    bitgen = t(seed=42)
+    gen = num.random.Generator(bitgen)
+    n = 15
+    p = 0.666
+    a = gen.binomial(n, p, size=(1024 * 1024,), dtype=np.uint32)
+    theo_mean = n * p
+    theo_std = np.sqrt(n * p * (1 - p))
+    assert_distribution(a, theo_mean, theo_std)
+
+
 if __name__ == "__main__":
     import sys
 

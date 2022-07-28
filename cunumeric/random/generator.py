@@ -153,8 +153,11 @@ class Generator:
     def geometric(self, p, size=None, dtype=np.uint32):
         return self.bit_generator.geometric(p=p, shape=size, dtype=dtype)
 
-    def wald(self, mean, scale, size=None, dtype=np.uint32):
+    def wald(self, mean, scale, size=None, dtype=np.float64):
         return self.bit_generator.wald(mean, scale, shape=size, dtype=dtype)
+
+    def binomial(self, ntrials, p, size=None, dtype=np.uint32):
+        return self.bit_generator.binomial(ntrials, p, shape=size, dtype=dtype)
 
 
 def default_rng(seed=None):

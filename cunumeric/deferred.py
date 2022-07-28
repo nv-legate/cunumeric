@@ -2465,6 +2465,28 @@ class DeferredArray(NumPyThunk):
             doubleparams,
         )
 
+    def bitgenerator_binomial(
+        self, handle, generatorType, seed, flags, ntrials, p
+    ) -> None:
+        if self.dtype == np.uint32:
+            distribution = BitGeneratorDistribution.BINOMIAL
+            intparams = (int(ntrials),)
+            doubleparams = (float(p),)
+        else:
+            raise NotImplementedError(
+                "type for random.binomial has to be uint32"
+            )
+        self.bitgenerator_distribution(
+            handle,
+            generatorType,
+            seed,
+            flags,
+            distribution,
+            intparams,
+            (),
+            doubleparams,
+        )
+
     def random(self, gen_code: Any, args: Any = ()) -> None:
         task = self.context.create_auto_task(CuNumericOpCode.RAND)
 

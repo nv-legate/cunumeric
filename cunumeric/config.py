@@ -515,6 +515,7 @@ class BitGeneratorDistribution(IntEnum):
     GEOMETRIC = _cunumeric.CUNUMERIC_BITGENDIST_GEOMETRIC
     WALD_32 = _cunumeric.CUNUMERIC_BITGENDIST_WALD_32
     WALD_64 = _cunumeric.CUNUMERIC_BITGENDIST_WALD_64
+    BINOMIAL = _cunumeric.CUNUMERIC_BITGENDIST_BINOMIAL
 
 
 # Match these to fftType in fft_util.h

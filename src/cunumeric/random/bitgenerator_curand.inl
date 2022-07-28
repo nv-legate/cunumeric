@@ -258,6 +258,10 @@ struct CURANDGenerator {
   {
     CHECK_CURAND(::randutilGenerateWaldEx(gen_, out, count, mean, scale));
   }
+  void generate_binomial(uint64_t count, uint32_t* out, uint32_t ntrials, double p)
+  {
+    CHECK_CURAND(::randutilGenerateBinomialEx(gen_, out, count, ntrials, p));
+  }
 };
 
 #pragma endregion
@@ -1280,6 +1284,30 @@ struct wald_generator<float> {
 
 #pragma endregion
 
+#pragma region geometric
+
+template <typename output_t>
+struct binomial_generator;
+template <>
+struct binomial_generator<uint32_t> {
+  uint32_t n_;
+  double p_;
+
+  binomial_generator(const std::vector<int64_t>& intparams,
+                     const std::vector<float>& floatparams,
+                     const std::vector<double>& doubleparams)
+    : n_(intparams[0]), p_(doubleparams[0])
+  {
+  }
+
+  void generate(CURANDGenerator& gen, uint64_t count, unsigned* p) const
+  {
+    gen.generate_binomial(count, p, n_, p_);
+  }
+};
+
+#pragma endregion
+
 #pragma endregion
 
 template <typename output_t, typename generator_t>
@@ -1650,6 +1678,10 @@ struct BitGeneratorImplBody {
               break;
             case BitGeneratorDistribution::WALD_64:
               generate_distribution<double, wald_generator<double>>::generate(
+                res, cugen, intparams, floatparams, doubleparams);
+              break;
+            case BitGeneratorDistribution::BINOMIAL:
+              generate_distribution<uint32_t, binomial_generator<uint32_t>>::generate(
                 res, cugen, intparams, floatparams, doubleparams);
               break;
             default: {
