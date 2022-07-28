@@ -15,6 +15,7 @@
 
 import numpy as np
 import pytest
+from utils.comparisons import allclose
 
 import cunumeric as num
 
@@ -44,7 +45,7 @@ def test_bincount_weights(dtype):
 
     out_np = np.bincount(v_np, weights=w_np)
     out_num = num.bincount(v_num, weights=w_num)
-    assert num.allclose(out_np, out_num)
+    assert allclose(out_np, out_num)
 
 
 if __name__ == "__main__":

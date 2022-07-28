@@ -15,12 +15,32 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod, abstractproperty
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional, Sequence, Union
 
 if TYPE_CHECKING:
+    import numpy as np
     import numpy.typing as npt
 
-    from .types import NdShape
+    from legate.core import FieldID, Future, Region
+
+    from .config import (
+        BinaryOpCode,
+        BitGeneratorType,
+        FFTDirection,
+        FFTType,
+        UnaryOpCode,
+        UnaryRedCode,
+        WindowOpCode,
+    )
+    from .runtime import Runtime
+    from .types import (
+        BitOrder,
+        ConvolveMode,
+        NdShape,
+        OrderType,
+        SelectKind,
+        SortType,
+    )
 
 
 class NumPyThunk(ABC):
@@ -31,17 +51,17 @@ class NumPyThunk(ABC):
     :meta private:
     """
 
-    def __init__(self, runtime, dtype) -> None:
+    def __init__(self, runtime: Runtime, dtype: np.dtype[Any]) -> None:
         self.runtime = runtime
         self.context = runtime.legate_context
         self.dtype = dtype
 
     @property
-    def ndim(self):
+    def ndim(self) -> int:
         return len(self.shape)
 
     @property
-    def size(self):
+    def size(self) -> int:
         s = 1
         if self.ndim == 0:
             return s
@@ -52,7 +72,7 @@ class NumPyThunk(ABC):
     # Abstract methods
 
     @abstractproperty
-    def storage(self):
+    def storage(self) -> Union[Future, tuple[Region, FieldID]]:
         """Return the Legion storage primitive for this NumPy thunk"""
         ...
 
@@ -65,120 +85,328 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def imag(self):
+    def imag(self) -> NumPyThunk:
         ...
 
     @abstractmethod
-    def real(self):
+    def real(self) -> NumPyThunk:
         ...
 
     @abstractmethod
-    def conj(self):
+    def conj(self) -> NumPyThunk:
         ...
 
     @abstractmethod
-    def convolve(self, v, out, mode) -> None:
+    def convolve(self, v: Any, out: Any, mode: ConvolveMode) -> None:
         ...
 
     @abstractmethod
-    def fft(self, out, axes, kind, direction):
+    def fft(
+        self,
+        out: Any,
+        axes: Sequence[int],
+        kind: FFTType,
+        direction: FFTDirection,
+    ) -> None:
         ...
 
     @abstractmethod
-    def copy(self, rhs, deep) -> None:
+    def copy(self, rhs: Any, deep: bool) -> None:
         ...
 
     @abstractmethod
-    def repeat(self, repeats, axis, scalar_repeats) -> NumPyThunk:
+    def repeat(
+        self, repeats: Any, axis: int, scalar_repeats: bool
+    ) -> NumPyThunk:
         ...
 
     @property
     @abstractmethod
-    def scalar(self):
+    def scalar(self) -> bool:
         ...
 
     @abstractmethod
-    def get_scalar_array(self):
+    def get_scalar_array(self) -> npt.NDArray[Any]:
         ...
 
     @abstractmethod
-    def get_item(self, key, view=None, dim_map=None) -> NumPyThunk:
+    def get_item(self, key: Any) -> NumPyThunk:
         ...
 
     @abstractmethod
-    def set_item(self, key, value):
+    def set_item(self, key: Any, value: Any) -> None:
         ...
 
     @abstractmethod
-    def reshape(self, newshape, order):
+    def reshape(self, newshape: NdShape, order: OrderType) -> NumPyThunk:
         ...
 
     @abstractmethod
-    def squeeze(self, axis):
+    def squeeze(self, axis: Optional[int]) -> NumPyThunk:
         ...
 
     @abstractmethod
-    def swapaxes(self, axis1, axis2):
+    def swapaxes(self, axis1: int, axis2: int) -> NumPyThunk:
         ...
 
     @abstractmethod
-    def convert(self, rhs, warn=True) -> None:
+    def convert(self, rhs: Any, warn: bool = True) -> None:
         ...
 
     @abstractmethod
-    def fill(self, value) -> None:
+    def fill(self, value: Any) -> None:
         ...
 
     @abstractmethod
-    def transpose(self, axes):
+    def transpose(
+        self, axes: Union[None, tuple[int, ...], list[int]]
+    ) -> NumPyThunk:
         ...
 
     @abstractmethod
-    def flip(self, rhs, axes):
+    def flip(self, rhs: Any, axes: Union[None, int, tuple[int, ...]]) -> None:
         ...
 
     @abstractmethod
     def contract(
         self,
-        lhs_modes,
-        rhs1_thunk,
-        rhs1_modes,
-        rhs2_thunk,
-        rhs2_modes,
-        mode2extent,
+        lhs_modes: list[str],
+        rhs1_thunk: Any,
+        rhs1_modes: list[str],
+        rhs2_thunk: Any,
+        rhs2_modes: list[str],
+        mode2extent: dict[str, int],
     ) -> None:
         ...
 
     @abstractmethod
-    def choose(self, rhs, *args):
+    def choose(self, rhs: Any, *args: Any) -> None:
         ...
 
     @abstractmethod
-    def _diag_helper(self, rhs, offset, naxes, extract, trace):
+    def _diag_helper(
+        self, rhs: Any, offset: int, naxes: int, extract: bool, trace: bool
+    ) -> None:
         ...
 
     @abstractmethod
-    def eye(self, k) -> None:
+    def eye(self, k: int) -> None:
         ...
 
     @abstractmethod
-    def arange(self, start, stop, step) -> None:
+    def arange(self, start: float, stop: float, step: float) -> None:
         ...
 
     @abstractmethod
-    def tile(self, rhs, reps) -> None:
+    def tile(self, rhs: Any, reps: Union[Any, Sequence[int]]) -> None:
         ...
 
     @abstractmethod
-    def trilu(self, rhs, k, lower) -> None:
+    def trilu(self, rhs: Any, k: int, lower: bool) -> None:
         ...
 
     @abstractmethod
-    def bincount(self, rhs, weights=None) -> None:
+    def bincount(self, rhs: Any, weights: Optional[NumPyThunk] = None) -> None:
         ...
 
     @abstractmethod
-    def nonzero(self):
+    def nonzero(self) -> tuple[NumPyThunk, ...]:
+        ...
+
+    @abstractmethod
+    def bitgenerator_random_raw(
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def bitgenerator_integers(
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        low: int,
+        high: int,
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def bitgenerator_uniform(
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        low: float,
+        high: float,
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def bitgenerator_lognormal(
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        mean: float,
+        sigma: float,
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def bitgenerator_normal(
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        mean: float,
+        sigma: float,
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def bitgenerator_poisson(
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        lam: float,
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def bitgenerator_exponential(
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        scale: float,
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def bitgenerator_gumbel(
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        mu: float,
+        beta: float,
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def bitgenerator_laplace(
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        mu: float,
+        beta: float,
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def bitgenerator_logistic(
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        mu: float,
+        beta: float,
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def bitgenerator_pareto(
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        alpha: float,
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def bitgenerator_power(
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        alpha: float,
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def bitgenerator_rayleigh(
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        sigma: float,
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def bitgenerator_cauchy(
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        x0: float,
+        gamma: float,
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def bitgenerator_triangular(
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        a: float,
+        b: float,
+        c: float,
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def bitgenerator_weibull(
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        lam: float,
+        k: float,
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def bitgenerator_bytes(
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+    ) -> None:
         ...
 
     @abstractmethod
@@ -188,12 +416,12 @@ class NumPyThunk(ABC):
     @abstractmethod
     def partition(
         self,
-        rhs,
-        kth,
-        argpartition=False,
-        axis=-1,
-        kind="introselect",
-        order=None,
+        rhs: Any,
+        kth: Union[int, Sequence[int]],
+        argpartition: bool = False,
+        axis: int = -1,
+        kind: SelectKind = "introselect",
+        order: Union[None, str, list[str]] = None,
     ) -> None:
         ...
 
@@ -202,66 +430,96 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def random_integer(self, low, high) -> None:
-        ...
-
-    @abstractmethod
-    def sort(
-        self, rhs, argsort=False, axis=-1, kind="quicksort", order=None
+    def random_integer(
+        self,
+        low: Union[int, npt.NDArray[Any]],
+        high: Union[int, npt.NDArray[Any]],
     ) -> None:
         ...
 
     @abstractmethod
-    def unary_op(self, op, rhs, where, args, multiout=None) -> None:
+    def sort(
+        self,
+        rhs: Any,
+        argsort: bool = False,
+        axis: int = -1,
+        kind: SortType = "quicksort",
+        order: Union[None, str, list[str]] = None,
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def unary_op(
+        self,
+        op: UnaryOpCode,
+        rhs: Any,
+        where: Any,
+        args: Any,
+        multiout: Optional[Any] = None,
+    ) -> None:
         ...
 
     @abstractmethod
     def unary_reduction(
         self,
-        op,
-        redop,
-        rhs,
-        where,
-        orig_axis,
-        axes,
-        keepdims,
-        args,
-        initial,
-    ):
+        op: UnaryRedCode,
+        rhs: Any,
+        where: Any,
+        orig_axis: int,
+        axes: tuple[int, ...],
+        keepdims: bool,
+        args: Any,
+        initial: Any,
+    ) -> None:
         ...
 
     @abstractmethod
-    def isclose(self, rhs1, rhs2, rtol, atol, equal_nan) -> None:
+    def isclose(
+        self, rhs1: Any, rhs2: Any, rtol: float, atol: float, equal_nan: bool
+    ) -> None:
         ...
 
     @abstractmethod
-    def binary_op(self, op, rhs1, rhs2, where, args) -> None:
+    def binary_op(
+        self, op: BinaryOpCode, rhs1: Any, rhs2: Any, where: Any, args: Any
+    ) -> None:
         ...
 
     @abstractmethod
-    def binary_reduction(self, op, rhs1, rhs2, broadcast, args):
+    def binary_reduction(
+        self,
+        op: BinaryOpCode,
+        rhs1: Any,
+        rhs2: Any,
+        broadcast: Union[NdShape, None],
+        args: Any,
+    ) -> None:
         ...
 
     @abstractmethod
-    def where(self, op, rhs1, rhs2, rhs3):
+    def where(self, rhs1: Any, rhs2: Any, rhs3: Any) -> None:
         ...
 
     @abstractmethod
-    def cholesky(self, src, no_tril) -> None:
+    def cholesky(self, src: Any, no_tril: bool) -> None:
         ...
 
     @abstractmethod
-    def unique(self):
+    def unique(self) -> NumPyThunk:
         ...
 
     @abstractmethod
-    def create_window(self, op_code, *args) -> None:
+    def create_window(self, op_code: WindowOpCode, M: Any, *args: Any) -> None:
         ...
 
     @abstractmethod
-    def packbits(self, src, axis, bitorder):
+    def packbits(
+        self, src: Any, axis: Union[int, None], bitorder: BitOrder
+    ) -> None:
         ...
 
     @abstractmethod
-    def unpackbits(self, src, axis, bitorder):
+    def unpackbits(
+        self, src: Any, axis: Union[int, None], bitorder: BitOrder
+    ) -> None:
         ...

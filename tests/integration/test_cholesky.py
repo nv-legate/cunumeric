@@ -15,6 +15,7 @@
 
 import numpy as np
 import pytest
+from utils.comparisons import allclose
 
 import cunumeric as num
 
@@ -24,7 +25,7 @@ SIZES = [8, 9, 255, 512]
 def test_diagonal():
     a = num.eye(10) * 10.0
     b = num.linalg.cholesky(a)
-    assert num.allclose(b**2.0, a)
+    assert allclose(b**2.0, a)
 
 
 @pytest.mark.parametrize("n", SIZES)
@@ -33,7 +34,7 @@ def test_real(n):
     b = a + a.T + num.eye(n) * n
     c = num.linalg.cholesky(b)
     c_np = np.linalg.cholesky(b.__array__())
-    assert num.allclose(c, c_np)
+    assert allclose(c, c_np)
 
 
 @pytest.mark.parametrize("n", SIZES)
@@ -42,13 +43,13 @@ def test_complex(n):
     b = a + a.T.conj() + num.eye(n) * n
     c = num.linalg.cholesky(b)
     c_np = np.linalg.cholesky(b.__array__())
-    assert num.allclose(c, c_np)
+    assert allclose(c, c_np)
 
     d = num.empty((2, n, n))
     d[1] = b
     c = num.linalg.cholesky(d[1])
     c_np = np.linalg.cholesky(d[1].__array__())
-    assert num.allclose(c, c_np)
+    assert allclose(c, c_np)
 
 
 if __name__ == "__main__":

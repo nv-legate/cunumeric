@@ -16,6 +16,7 @@
 from types import ModuleType
 
 import cunumeric.coverage as m  # module under test
+import numpy as np
 import pytest
 from mock import MagicMock, patch
 
@@ -317,6 +318,9 @@ _DestCode = """
 def function2():
     pass
 
+def extra():
+    pass
+
 attr2 = 30
 """
 
@@ -345,6 +349,8 @@ class Test_clone_module:
         assert _Dest.function2.__wrapped__
         assert _Dest.function2._cunumeric.implemented
 
+        assert not hasattr(_Dest.extra, "_cunumeric")
+
     @patch.object(cunumeric.runtime.args, "report_coverage", False)
     def test_report_coverage_False(self) -> None:
         assert not cunumeric.runtime.args.report_coverage
@@ -365,90 +371,72 @@ class Test_clone_module:
         assert _Dest.function1.__wrapped__ is _OriginMod.function1
         assert not _Dest.function1._cunumeric.implemented
 
-        assert _Dest.function2 is _Dest.function2
+        assert _Dest.function2.__wrapped__
+        assert _Dest.function2._cunumeric.implemented
+
+        assert not hasattr(_Dest.extra, "_cunumeric")
 
 
-class _OriginClass:
-    def __array_finalize__(self) -> None:
-        pass
+@m.clone_np_ndarray
+class _Test_ndarray:
+    def __array__(self):
+        return "__array__"
 
-    def __array_function__(self) -> None:
-        pass
+    def conjugate(self):
+        return self, "conjugate"
 
-    def __array_interface__(self) -> None:
-        pass
-
-    def __array_prepare__(self) -> None:
-        pass
-
-    def __array_priority__(self) -> None:
-        pass
-
-    def __array_struct__(self) -> None:
-        pass
-
-    def __array_ufunc__(self) -> None:
-        pass
-
-    def __array_wrap__(self) -> None:
-        pass
-
-    def method1(self) -> None:
-        pass
-
-    def method2(self) -> None:
-        pass
+    def extra(self):
+        return "extra"
 
     attr1 = 10
+    attr2 = 30
 
-    attr2 = 20
 
-
-class Test_clone_class:
+class Test_clone_np_ndarray:
     @patch.object(cunumeric.runtime.args, "report_coverage", True)
     def test_report_coverage_True(self) -> None:
         assert cunumeric.runtime.args.report_coverage
 
-        @m.clone_class(_OriginClass)
-        class _Dest:
-            def method2(self) -> None:
-                pass
-
-            attr2 = 30
-
         for name in m.NDARRAY_INTERNAL:
-            assert name not in _Dest.__dict__
+            assert name not in _Test_ndarray.__dict__
 
-        assert _Dest.attr1 == 10
-        assert _Dest.attr2 == 30
+        assert _Test_ndarray.attr1 == 10
+        assert _Test_ndarray.attr2 == 30
 
-        assert _Dest.method1.__wrapped__ is _OriginClass.method1
-        assert not _Dest.method1._cunumeric.implemented
+        assert _Test_ndarray.conj.__wrapped__ is np.ndarray.conj
+        assert not _Test_ndarray.conj._cunumeric.implemented
 
-        assert _Dest.method2.__wrapped__
-        assert _Dest.method2._cunumeric.implemented
+        assert _Test_ndarray.conjugate.__wrapped__
+        assert _Test_ndarray.conjugate._cunumeric.implemented
+
+        assert not hasattr(_Test_ndarray.extra, "_cunumeric")
 
     @patch.object(cunumeric.runtime.args, "report_coverage", False)
     def test_report_coverage_False(self) -> None:
         assert not cunumeric.runtime.args.report_coverage
 
-        @m.clone_class(_OriginClass)
-        class _Dest:
-            def method2(self) -> None:
-                pass
-
-            attr2 = 30
-
         for name in m.NDARRAY_INTERNAL:
-            assert name not in _Dest.__dict__
+            assert name not in _Test_ndarray.__dict__
 
-        assert _Dest.attr1 == 10
-        assert _Dest.attr2 == 30
+        assert _Test_ndarray.attr1 == 10
+        assert _Test_ndarray.attr2 == 30
 
-        assert _Dest.method1.__wrapped__ is _OriginClass.method1
-        assert not _Dest.method1._cunumeric.implemented
+        assert _Test_ndarray.conj.__wrapped__ is np.ndarray.conj
+        assert not _Test_ndarray.conj._cunumeric.implemented
 
-        assert _Dest.method2 is _Dest.method2
+        assert _Test_ndarray.conjugate.__wrapped__
+        assert _Test_ndarray.conjugate._cunumeric.implemented
+
+        assert not hasattr(_Test_ndarray.extra, "_cunumeric")
+
+    # TODO (bev) Not sure how to unit test this. Try to use a toy ndarray class
+    # (as above) for testing, and numpy gets unhappy. On the other hand, if we
+    # pick some arbitrary currently unimplemented method to test with, then it
+    # could become implemented in the future, silently making the test a noop
+    # For now, will test with real code in a separate integration test, and
+    # assert the unimplemented-ness so that future changes will draw attention
+    def test_self_fallback(self):
+        pass
 
 
 if __name__ == "__main__":
