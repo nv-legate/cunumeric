@@ -138,6 +138,9 @@ class _CunumericSharedLib:
     CUNUMERIC_CHOOSE: int
     CUNUMERIC_CONTRACT: int
     CUNUMERIC_CONVERT: int
+    CUNUMERIC_CONVERT_NAN_NOOP: int
+    CUNUMERIC_CONVERT_NAN_PROD: int
+    CUNUMERIC_CONVERT_NAN_SUM: int
     CUNUMERIC_CONVOLVE: int
     CUNUMERIC_DIAG: int
     CUNUMERIC_DOT: int
@@ -520,6 +523,14 @@ class CuNumericTunable(IntEnum):
 class ScanCode(IntEnum):
     PROD = _cunumeric.CUNUMERIC_SCAN_PROD
     SUM = _cunumeric.CUNUMERIC_SCAN_SUM
+
+
+# Match these to CuNumericConvertCode in cunumeric_c.h
+@unique
+class ConvertCode(IntEnum):
+    NOOP = _cunumeric.CUNUMERIC_CONVERT_NAN_NOOP
+    PROD = _cunumeric.CUNUMERIC_CONVERT_NAN_PROD
+    SUM = _cunumeric.CUNUMERIC_CONVERT_NAN_SUM
 
 
 # Match these to BitGeneratorOperation in cunumeric_c.h

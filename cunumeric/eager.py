@@ -33,6 +33,7 @@ from .config import (
     FFT_R2C,
     FFT_Z2D,
     BinaryOpCode,
+    ConvertCode,
     FFTDirection,
     ScanCode,
     UnaryOpCode,
@@ -486,7 +487,10 @@ class EagerArray(NumPyThunk):
         return result
 
     def convert(
-        self, rhs: Any, nan_identity: Optional[int], warn: bool = True
+        self,
+        rhs: Any,
+        nan_op: Optional[int] = ConvertCode.CUNUMERIC_CONVERT_NAN_NOOP,
+        warn: bool = True,
     ) -> None:
         self.check_eager_args(rhs)
         if self.deferred is not None:

@@ -26,6 +26,7 @@ if TYPE_CHECKING:
     from .config import (
         BinaryOpCode,
         BitGeneratorType,
+        ConvertCode,
         FFTDirection,
         FFTType,
         UnaryOpCode,
@@ -151,7 +152,10 @@ class NumPyThunk(ABC):
 
     @abstractmethod
     def convert(
-        self, rhs: Any, nan_identity: Optional[int], warn: bool = True
+        self,
+        rhs: Any,
+        nan_op: Optional[int] = ConvertCode.CUNUMERIC_CONVERT_NAN_NOOP,
+        warn: bool = True,
     ) -> None:
         ...
 
