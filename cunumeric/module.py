@@ -2561,8 +2561,9 @@ def mask_indices(
     Assume `mask_func` is a function that, for a square array a of size
     ``(n, n)`` with a possible offset argument `k`, when called as
     ``mask_func(a, k)`` returns a new array with zeros in certain locations
-    (functions like `triu` or `tril` do precisely this). Then this function
-    returns the indices where the non-zero values would be located.
+    (functions like :func:`cunumeric.triu` or :func:`cunumeric.tril`
+    do precisely this). Then this function returns the indices where
+    the non-zero values would be located.
 
     Parameters
     ----------
@@ -2591,7 +2592,7 @@ def mask_indices(
     Notes
     -----
     WARNING: `mask_indices` expects `mask_function` to call cuNumeric functions
-    for good performance. In case non-cuNumeric fucntions are called by
+    for good performance. In case non-cuNumeric functions are called by
     `mask_function`, cuNumeric will have to materialize all data on the host
     which might result in running out of system memory.
 
