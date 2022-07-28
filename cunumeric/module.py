@@ -1203,9 +1203,9 @@ def moveaxis(
 # Changing number of dimensions
 
 
-def _reshape_recur(ndim: int, arr: ndarray) -> tuple[int]:
+def _reshape_recur(ndim: int, arr: ndarray) -> tuple[int, ...]:
     if arr.ndim < ndim:
-        cur_shape = _reshape_recur(ndim - 1, arr)
+        cur_shape: tuple[int, ...] = _reshape_recur(ndim - 1, arr)
         if ndim == 2:
             cur_shape = (1,) + cur_shape
         else:
@@ -1216,19 +1216,19 @@ def _reshape_recur(ndim: int, arr: ndarray) -> tuple[int]:
 
 
 def _atleast_nd(
-    ndim: int, arys: Sequence[ndarray]
-) -> Union(list[ndarray], ndarray):
+    ndim: int, arys: tuple[ndarray, ...]
+) -> Union[list[ndarray], ndarray]:
     inputs = list(convert_to_cunumeric_ndarray(arr) for arr in arys)
     # 'reshape' change the shape of arrays
     # only when arr.shape != _reshape_recur(ndim,arr)
     result = list(arr.reshape(_reshape_recur(ndim, arr)) for arr in inputs)
     # if the number of arrys in `arys` is 1, the return value is a single array
     if len(result) == 1:
-        result = result[0]
+        return result[0]
     return result
 
 
-def atleast_1d(*arys: Sequence[ndarray]) -> Union(list[ndarray], ndarray):
+def atleast_1d(*arys: ndarray) -> Union[list[ndarray], ndarray]:
     """
 
     Convert inputs to arrays with at least one dimension.
@@ -1257,7 +1257,7 @@ def atleast_1d(*arys: Sequence[ndarray]) -> Union(list[ndarray], ndarray):
     return _atleast_nd(1, arys)
 
 
-def atleast_2d(*arys: Sequence[ndarray]) -> Union(list[ndarray], ndarray):
+def atleast_2d(*arys: ndarray) -> Union[list[ndarray], ndarray]:
     """
 
     View inputs as arrays with at least two dimensions.
@@ -1287,7 +1287,7 @@ def atleast_2d(*arys: Sequence[ndarray]) -> Union(list[ndarray], ndarray):
     return _atleast_nd(2, arys)
 
 
-def atleast_3d(*arys: Sequence[ndarray]) -> Union(list[ndarray], ndarray):
+def atleast_3d(*arys: ndarray) -> Union[list[ndarray], ndarray]:
     """
 
     View inputs as arrays with at least three dimensions.
@@ -1817,7 +1817,7 @@ def vstack(tup: Sequence[ndarray]) -> ndarray:
     Multiple GPUs, Multiple CPUs
     """
     # Reshape arrays in the `array_list` if needed before concatenation
-    reshaped = _atleast_nd(2, tup)
+    reshaped = _atleast_nd(2, tuple(tup))
     if not isinstance(reshaped, list):
         reshaped = [reshaped]
     tup, common_info = check_shape_dtype(reshaped, vstack.__name__, 0)
@@ -1907,7 +1907,7 @@ def dstack(tup: Sequence[ndarray]) -> ndarray:
     Multiple GPUs, Multiple CPUs
     """
     # Reshape arrays to (1,N,1) for ndim ==1 or (M,N,1) for ndim == 2:
-    reshaped = _atleast_nd(3, tup)
+    reshaped = _atleast_nd(3, tuple(tup))
     if not isinstance(reshaped, list):
         reshaped = [reshaped]
     tup, common_info = check_shape_dtype(reshaped, dstack.__name__, 2)
