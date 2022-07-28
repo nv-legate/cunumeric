@@ -411,6 +411,17 @@ class BitGenerator:
         )
         return res
 
+    def negative_binomial(self, ntrials, p, shape=None, dtype=np.uint32):
+        if shape is None:
+            shape = (1,)
+        if not isinstance(shape, tuple):
+            shape = (shape,)
+        res = ndarray(shape, dtype=dtype)
+        res._thunk.bitgenerator_negative_binomial(
+            self.handle, self.generatorType, self.seed, self.flags, ntrials, p
+        )
+        return res
+
 
 class XORWOW(BitGenerator):
     def __init__(self, seed=None, forceBuild=False):

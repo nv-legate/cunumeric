@@ -174,6 +174,19 @@ def test_binomial(t):
     assert_distribution(a, theo_mean, theo_std)
 
 
+@pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
+def test_negative_binomial(t):
+    bitgen = t(seed=42)
+    gen = num.random.Generator(bitgen)
+    n = 15
+    p = 0.666
+    a = gen.negative_binomial(n, p, size=(1024 * 1024,), dtype=np.uint32)
+    ref_a = np.random.negative_binomial(n, p, 1024 * 1024)
+    theo_mean = np.average(ref_a)
+    theo_std = np.std(ref_a)
+    assert_distribution(a, theo_mean, theo_std)
+
+
 if __name__ == "__main__":
     import sys
 

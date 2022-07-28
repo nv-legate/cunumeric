@@ -80,3 +80,7 @@ template struct randutilimpl::
 #include "generator_binomial.inl"
 template struct randutilimpl::
   dispatcher<randutilimpl::execlocation::DEVICE, binomial_t<uint32_t>, uint32_t>;
+
+#include "generator_negative_binomial.inl"
+template struct randutilimpl::
+  dispatcher<randutilimpl::execlocation::DEVICE, negative_binomial_t<uint32_t>, uint32_t>;

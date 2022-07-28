@@ -159,6 +159,11 @@ class Generator:
     def binomial(self, ntrials, p, size=None, dtype=np.uint32):
         return self.bit_generator.binomial(ntrials, p, shape=size, dtype=dtype)
 
+    def negative_binomial(self, ntrials, p, size=None, dtype=np.uint32):
+        return self.bit_generator.negative_binomial(
+            ntrials, p, shape=size, dtype=dtype
+        )
+
 
 def default_rng(seed=None):
     if seed is None:

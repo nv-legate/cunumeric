@@ -1132,6 +1132,22 @@ class EagerArray(NumPyThunk):
                 aa = np.random.binomial(ntrials, p, size=self.array.shape)
                 self.array[:] = aa
 
+    def bitgenerator_negative_binomial(
+        self, handle, generatorType, seed, flags, ntrials, p
+    ) -> None:
+        if self.deferred is not None:
+            self.deferred.bitgenerator_negative_binomial(
+                handle, generatorType, seed, flags, ntrials, p
+            )
+        else:
+            if self.array.size == 1:
+                self.array.fill(np.random.negative_binomial(ntrials, p))
+            else:
+                aa = np.random.negative_binomial(
+                    ntrials, p, size=self.array.shape
+                )
+                self.array[:] = aa
+
     def partition(
         self,
         rhs: Any,

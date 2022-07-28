@@ -262,6 +262,10 @@ struct CURANDGenerator {
   {
     CHECK_CURAND(::randutilGenerateBinomialEx(gen_, out, count, ntrials, p));
   }
+  void generate_negative_binomial(uint64_t count, uint32_t* out, uint32_t ntrials, double p)
+  {
+    CHECK_CURAND(::randutilGenerateNegativeBinomialEx(gen_, out, count, ntrials, p));
+  }
 };
 
 #pragma endregion
@@ -1284,7 +1288,7 @@ struct wald_generator<float> {
 
 #pragma endregion
 
-#pragma region geometric
+#pragma region binomial
 
 template <typename output_t>
 struct binomial_generator;
@@ -1303,6 +1307,30 @@ struct binomial_generator<uint32_t> {
   void generate(CURANDGenerator& gen, uint64_t count, unsigned* p) const
   {
     gen.generate_binomial(count, p, n_, p_);
+  }
+};
+
+#pragma endregion
+
+#pragma region negative_binomial
+
+template <typename output_t>
+struct negative_binomial_generator;
+template <>
+struct negative_binomial_generator<uint32_t> {
+  uint32_t n_;
+  double p_;
+
+  negative_binomial_generator(const std::vector<int64_t>& intparams,
+                              const std::vector<float>& floatparams,
+                              const std::vector<double>& doubleparams)
+    : n_(intparams[0]), p_(doubleparams[0])
+  {
+  }
+
+  void generate(CURANDGenerator& gen, uint64_t count, unsigned* p) const
+  {
+    gen.generate_negative_binomial(count, p, n_, p_);
   }
 };
 
@@ -1682,6 +1710,10 @@ struct BitGeneratorImplBody {
               break;
             case BitGeneratorDistribution::BINOMIAL:
               generate_distribution<uint32_t, binomial_generator<uint32_t>>::generate(
+                res, cugen, intparams, floatparams, doubleparams);
+              break;
+            case BitGeneratorDistribution::NEGATIVE_BINOMIAL:
+              generate_distribution<uint32_t, negative_binomial_generator<uint32_t>>::generate(
                 res, cugen, intparams, floatparams, doubleparams);
               break;
             default: {

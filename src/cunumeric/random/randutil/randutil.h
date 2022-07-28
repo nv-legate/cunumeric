@@ -220,3 +220,5 @@ extern "C" curandStatus_t randutilGenerateWaldEx(
 
 extern "C" curandStatus_t randutilGenerateBinomialEx(
   randutilGenerator_t generator, uint32_t* outputPtr, size_t n, uint32_t ntrials, double p);
+extern "C" curandStatus_t randutilGenerateNegativeBinomialEx(
+  randutilGenerator_t generator, uint32_t* outputPtr, size_t n, uint32_t ntrials, double p);
