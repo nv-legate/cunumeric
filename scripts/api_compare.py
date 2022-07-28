@@ -18,9 +18,9 @@ import csv
 import sys
 from dataclasses import astuple, dataclass
 
+from cunumeric._sphinxext._comparison_config import GROUPED_CONFIGS
+from cunumeric._sphinxext._comparison_util import filter_names
 from cunumeric.coverage import is_implemented
-from cunumeric.sphinxext._comparison_config import GROUPED_CONFIGS
-from cunumeric.sphinxext._comparison_util import filter_names
 
 
 @dataclass

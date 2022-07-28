@@ -12,25 +12,39 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import numpy as np
 import pytest
 
 import cunumeric as num
 
-
-def test_function():
-    x = num.array([[1, 2, 3], [4, 5, 6]])
-    y = num.transpose(x)
-    assert num.array_equal(y, [[1, 4], [2, 5], [3, 6]])
-    z = num.transpose(y)
-    assert num.array_equal(x, z)
+rect = num.array([[1, 2, 3], [4, 5, 6]])
+square = num.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
 
 
-def test_method():
-    x = num.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
-    y = x.transpose()
-    assert num.array_equal(y, [[1, 4, 7], [2, 5, 8], [3, 6, 9]])
-    z = num.transpose(y)
-    assert num.array_equal(x, z)
+@pytest.mark.parametrize("x", (rect, square), ids=("rect", "square"))
+class Test_free_function:
+    def test_forward(self, x):
+        y = num.transpose(x)
+        npx = np.array(x)
+        assert num.array_equal(y, np.transpose(npx))
+
+    def test_round_trip(self, x):
+        y = num.transpose(x)
+        z = num.transpose(y)
+        assert num.array_equal(x, z)
+
+
+@pytest.mark.parametrize("x", (rect, square), ids=("rect", "square"))
+class Test_method:
+    def test_forward(self, x):
+        y = x.transpose()
+        npx = np.array(x)
+        assert num.array_equal(y, npx.transpose())
+
+    def test_round_trip(self, x):
+        y = x.transpose()
+        z = y.transpose()
+        assert num.array_equal(x, z)
 
 
 if __name__ == "__main__":

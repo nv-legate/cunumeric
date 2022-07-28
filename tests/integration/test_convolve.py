@@ -16,6 +16,7 @@
 import numpy as np
 import pytest
 import scipy.signal as sig
+from utils.comparisons import allclose
 
 import cunumeric as num
 
@@ -34,7 +35,7 @@ def check_convolve(a, v):
     else:
         out_np = np.convolve(anp, vnp, mode="same")
 
-    assert num.allclose(out, out_np)
+    assert allclose(out, out_np)
 
 
 @pytest.mark.parametrize(
