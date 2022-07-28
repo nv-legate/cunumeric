@@ -14,6 +14,7 @@
 #
 from __future__ import annotations
 
+import time
 from typing import TYPE_CHECKING, Union
 
 import numpy as np
@@ -39,8 +40,9 @@ class BitGenerator:
             raise NotImplementedError(
                 "BitGenerator is a base class and cannot be instantized"
             )
+
         self.generatorType = generatorType
-        self.seed = seed
+        self.seed = seed or time.perf_counter_ns()
         self.flags = 0
         self.handle = runtime.bitgenerator_create(
             generatorType, seed, self.flags, forceBuild
