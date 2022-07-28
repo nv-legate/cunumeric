@@ -214,6 +214,9 @@ def clone_module(
     from ._ufunc.ufunc import ufunc as lgufunc
 
     for attr, value in new_globals.items():
+        # Only need to wrap things that are in the origin module to begin with
+        if attr not in origin_module.__dict__:
+            continue
         if isinstance(value, (FunctionType, lgufunc)):
             wrapped = implemented(
                 cast(AnyCallable, value), mod_name, attr, reporting=reporting
@@ -257,6 +260,9 @@ def clone_np_ndarray(cls: type) -> type:
     reporting = runtime.args.report_coverage
 
     for attr, value in cls.__dict__.items():
+        # Only need to wrap things that are in the origin class to begin with
+        if not hasattr(origin_class, attr):
+            continue
         if should_wrap(value):
             wrapped = implemented(value, class_name, attr, reporting=reporting)
             setattr(cls, attr, wrapped)

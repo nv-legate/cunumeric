@@ -19,7 +19,8 @@ from typing import List, Optional, Set, Tuple
 
 import numpy as np
 import pytest
-from test_tools.generators import mk_0to1_array, permutes_to
+from utils.comparisons import allclose
+from utils.generators import mk_0to1_array, permutes_to
 
 import cunumeric as cn
 
@@ -231,12 +232,12 @@ def check_np_vs_cn(expr, mk_input, mk_output=None, **kwargs):
             or kwargs.get("dtype") == np.float16
             else 1e-05
         )
-        assert np.allclose(np_res, cn_res, rtol=rtol)
+        assert allclose(np_res, cn_res, rtol=rtol)
         if mk_output is not None:
             for cn_out in mk_output(cn, out_shape):
                 cn.einsum(expr, *cn_inputs, out=cn_out, **kwargs)
                 rtol_out = 1e-02 if cn_out.dtype == np.float16 else rtol
-                assert np.allclose(cn_out, cn_res, rtol=rtol_out)
+                assert allclose(cn_out, cn_res, rtol=rtol_out)
 
 
 @pytest.mark.parametrize("expr", gen_expr())

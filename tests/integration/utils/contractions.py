@@ -14,10 +14,12 @@
 #
 
 import numpy as np
-from test_tools.generators import mk_0to1_array
 
 import cunumeric as cn
 from legate.core import LEGATE_MAX_DIM
+
+from .comparisons import allclose
+from .generators import mk_0to1_array
 
 
 def gen_inputs_default(lib, modes):
@@ -118,12 +120,12 @@ def _test(name, modes, operation, gen_inputs, gen_output=None, **kwargs):
             or kwargs.get("dtype") == np.float16
             else 1e-05
         )
-        assert np.allclose(np_res, cn_res, rtol=rtol)
+        assert allclose(np_res, cn_res, rtol=rtol)
         if gen_output is not None:
             for cn_out in gen_output(cn, modes, *cn_inputs):
                 operation(cn, *cn_inputs, out=cn_out, **kwargs)
                 rtol_out = 1e-02 if cn_out.dtype == np.float16 else rtol
-                assert np.allclose(cn_out, cn_res, rtol=rtol_out)
+                assert allclose(cn_out, cn_res, rtol=rtol_out)
 
 
 def check_default(name, modes, operation):

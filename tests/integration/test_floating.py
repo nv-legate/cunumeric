@@ -15,6 +15,7 @@
 
 import numpy as np
 import pytest
+from utils.comparisons import allclose
 
 import cunumeric as num
 
@@ -35,14 +36,14 @@ def test_modf(shape):
     outs_num = num.modf(x_num)
 
     for out_np, out_num in zip(outs_np, outs_num):
-        assert np.allclose(out_np, out_num)
+        assert allclose(out_np, out_num)
 
     # Test integer input
     outs_np = np.modf(x_np.astype("i"))
     outs_num = num.modf(x_num.astype("i"))
 
     for out_np, out_num in zip(outs_np, outs_num):
-        assert np.allclose(out_np, out_num)
+        assert allclose(out_np, out_num)
 
     # Test positional outputs
     out1_np = np.empty(shape, dtype="f")
@@ -54,14 +55,14 @@ def test_modf(shape):
     np.modf(x_np, out1_np, out2_np)
     num.modf(x_num, out1_num, out2_num)
 
-    assert np.allclose(out1_np, out1_num)
-    assert np.allclose(out2_np, out2_num)
+    assert allclose(out1_np, out1_num)
+    assert allclose(out2_np, out2_num)
 
     (tmp1_np, out2_np) = np.modf(x_np, out1_np)
     (tmp1_num, out2_num) = num.modf(x_num, out1_num)
 
-    assert np.allclose(out1_np, out1_num)
-    assert np.allclose(out2_np, out2_num)
+    assert allclose(out1_np, out1_num)
+    assert allclose(out2_np, out2_num)
     assert tmp1_num is out1_num
 
     # Test keyword outputs
@@ -74,21 +75,21 @@ def test_modf(shape):
     np.modf(x_np, out=(out1_np, out2_np))
     num.modf(x_num, out=(out1_num, out2_num))
 
-    assert np.allclose(out1_np, out1_num)
-    assert np.allclose(out2_np, out2_num)
+    assert allclose(out1_np, out1_num)
+    assert allclose(out2_np, out2_num)
 
     (tmp2_np, out2_np) = np.modf(x_np, out=(out1_np, None))
     (tmp2_num, out2_num) = num.modf(x_num, out=(out1_num, None))
 
-    assert np.allclose(out1_np, out1_num)
-    assert np.allclose(out2_np, out2_num)
+    assert allclose(out1_np, out1_num)
+    assert allclose(out2_np, out2_num)
     assert out1_num is tmp2_num
 
     (out1_np, tmp2_np) = np.modf(x_np, out=(None, out2_np))
     (out1_num, tmp2_num) = num.modf(x_num, out=(None, out2_num))
 
-    assert np.allclose(out1_np, out1_num)
-    assert np.allclose(out2_np, out2_num)
+    assert allclose(out1_np, out1_num)
+    assert allclose(out2_np, out2_num)
     assert out2_num is tmp2_num
 
 
@@ -101,7 +102,7 @@ def test_floating(shape):
     frexp_num = num.frexp(x_num)
 
     for out_np, out_num in zip(frexp_np, frexp_num):
-        assert np.allclose(out_np, out_num)
+        assert allclose(out_np, out_num)
 
     out1_np = np.empty(shape, dtype="f")
     out2_np = np.empty(shape, dtype="l")
@@ -112,18 +113,18 @@ def test_floating(shape):
     np.frexp(x_np, out=(out1_np, out2_np))
     num.frexp(x_num, out=(out1_num, out2_num))
 
-    assert np.allclose(out1_np, out1_num)
-    assert np.allclose(out2_np, out2_num)
+    assert allclose(out1_np, out1_num)
+    assert allclose(out2_np, out2_num)
 
     ldexp_np = np.ldexp(*frexp_np)
     ldexp_num = num.ldexp(*frexp_num)
 
-    assert np.allclose(ldexp_np, ldexp_num)
+    assert allclose(ldexp_np, ldexp_num)
 
     ldexp_np = np.ldexp(out1_np, out2_np)
     ldexp_num = num.ldexp(out1_num, out2_num)
 
-    assert np.allclose(ldexp_np, ldexp_num)
+    assert allclose(ldexp_np, ldexp_num)
 
 
 @pytest.mark.parametrize("fun", ("modf", "frexp"))

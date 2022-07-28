@@ -40,6 +40,7 @@ if TYPE_CHECKING:
     import numpy.typing as npt
 
     from ._ufunc.ufunc import CastingKind
+    from .types import ConvolveMode, SelectKind, SortType
 
 _builtin_abs = abs
 _builtin_all = all
@@ -411,7 +412,7 @@ def full_like(
 
 def array(
     obj: Any,
-    dtype: Optional[npt.DTypeLike] = None,
+    dtype: Optional[np.dtype[Any]] = None,
     copy: bool = True,
     order: str = "K",
     subok: bool = False,
@@ -491,7 +492,7 @@ def array(
     return result
 
 
-def asarray(a: Any, dtype: Optional[npt.DTypeLike] = None) -> ndarray:
+def asarray(a: Any, dtype: Optional[np.dtype[Any]] = None) -> ndarray:
     """
     Convert the input to an array.
 
@@ -832,6 +833,67 @@ def diag(v: ndarray, k: int = 0) -> ndarray:
         raise ValueError("diag requires 1- or 2-D array, use diagonal instead")
 
 
+def tri(
+    N: int,
+    M: Optional[int] = None,
+    k: int = 0,
+    dtype: npt.DTypeLike = float,
+    *,
+    like: Optional[ndarray] = None,
+) -> ndarray:
+    """
+    An array with ones at and below the given diagonal and zeros elsewhere.
+
+    Parameters
+    ----------
+    N : int
+        Number of rows in the array.
+    M : int, optional
+        Number of columns in the array.
+        By default, `M` is taken equal to `N`.
+    k : int, optional
+        The sub-diagonal at and below which the array is filled.
+        `k` = 0 is the main diagonal, while `k` < 0 is below it,
+        and `k` > 0 is above.  The default is 0.
+    dtype : dtype, optional
+        Data type of the returned array.  The default is float.
+    like : array_like
+        Reference object to allow the creation of arrays which are not NumPy
+        arrays. If an array-like passed in as `like` supports the
+        `__array_function__` protocol, the result will be defined by it. In
+        this case it ensures the creation of an array object compatible with
+        that passed in via this argument.
+
+    Returns
+    -------
+    tri : ndarray of shape (N, M)
+        Array with its lower triangle filled with ones and zero elsewhere;
+        in other words ``T[i,j] == 1`` for ``j <= i + k``, 0 otherwise.
+
+    See Also
+    --------
+    numpy.tri
+
+    Notes
+    -----
+    `like` argument is currently not supported
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+
+    """
+    # TODO: add support for `like` (see issue #418)
+    if like is not None:
+        raise ValueError("like parameter is currently not supported")
+
+    if M is None:
+        M = N
+
+    out = ones((N, M), dtype=dtype)
+    return tril(out, k)
+
+
 @add_boilerplate("m")
 def trilu(m: ndarray, k: int, lower: bool) -> ndarray:
     if m.ndim < 1:
@@ -1137,6 +1199,123 @@ def moveaxis(
 
 
 # Changing number of dimensions
+
+
+def _reshape_recur(ndim: int, arr: ndarray) -> tuple[int, ...]:
+    if arr.ndim < ndim:
+        cur_shape: tuple[int, ...] = _reshape_recur(ndim - 1, arr)
+        if ndim == 2:
+            cur_shape = (1,) + cur_shape
+        else:
+            cur_shape = cur_shape + (1,)
+    else:
+        cur_shape = arr.shape
+    return cur_shape
+
+
+def _atleast_nd(
+    ndim: int, arys: tuple[ndarray, ...]
+) -> Union[list[ndarray], ndarray]:
+    inputs = list(convert_to_cunumeric_ndarray(arr) for arr in arys)
+    # 'reshape' change the shape of arrays
+    # only when arr.shape != _reshape_recur(ndim,arr)
+    result = list(arr.reshape(_reshape_recur(ndim, arr)) for arr in inputs)
+    # if the number of arrys in `arys` is 1, the return value is a single array
+    if len(result) == 1:
+        return result[0]
+    return result
+
+
+def atleast_1d(*arys: ndarray) -> Union[list[ndarray], ndarray]:
+    """
+
+    Convert inputs to arrays with at least one dimension.
+    Scalar inputs are converted to 1-dimensional arrays,
+    whilst higher-dimensional inputs are preserved.
+
+    Parameters
+    ----------
+    *arys : array_like
+        One or more input arrays.
+
+    Returns
+    -------
+    ret : ndarray
+        An array, or list of arrays, each with a.ndim >= 1.
+        Copies are made only if necessary.
+
+    See Also
+    --------
+    numpy.atleast_1d
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    return _atleast_nd(1, arys)
+
+
+def atleast_2d(*arys: ndarray) -> Union[list[ndarray], ndarray]:
+    """
+
+    View inputs as arrays with at least two dimensions.
+
+    Parameters
+    ----------
+    *arys : array_like
+        One or more array-like sequences.
+        Non-array inputs are converted to arrays.
+        Arrays that already have two or more dimensions are preserved.
+
+    Returns
+    -------
+    res, res2, … : ndarray
+        An array, or list of arrays, each with a.ndim >= 2.
+        Copies are avoided where possible, and
+        views with two or more dimensions are returned.
+
+    See Also
+    --------
+    numpy.atleast_2d
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    return _atleast_nd(2, arys)
+
+
+def atleast_3d(*arys: ndarray) -> Union[list[ndarray], ndarray]:
+    """
+
+    View inputs as arrays with at least three dimensions.
+
+    Parameters
+    ----------
+    *arys : array_like
+        One or more array-like sequences.
+        Non-array inputs are converted to arrays.
+        Arrays that already have three or more dimensions are preserved.
+
+    Returns
+    -------
+    res, res2, … : ndarray
+        An array, or list of arrays, each with a.ndim >= 3.
+        Copies are avoided where possible, and
+        views with three or more dimensions are returned.
+        For example, a 1-D array of shape (N,) becomes
+        a view of shape (1, N, 1),  and a 2-D array of shape (M, N)
+        becomes a view of shape (M, N, 1).
+
+    See Also
+    --------
+    numpy.atleast_3d
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    return _atleast_nd(3, arys)
 
 
 @add_boilerplate("a")
@@ -1596,8 +1775,7 @@ def stack(
             " of input arrays"
         )
 
-    shape = list(common_info.shape)
-    shape.insert(axis, 1)
+    shape = common_info.shape[:axis] + (1,) + common_info.shape[axis:]
     arrays = [arr.reshape(shape) for arr in arrays]
     common_info.shape = tuple(shape)
     return _concatenate(arrays, common_info, axis, out=out)
@@ -1637,14 +1815,10 @@ def vstack(tup: Sequence[ndarray]) -> ndarray:
     Multiple GPUs, Multiple CPUs
     """
     # Reshape arrays in the `array_list` if needed before concatenation
-    inputs = list(convert_to_cunumeric_ndarray(inp) for inp in tup)
-    reshaped = list(
-        inp.reshape([1, inp.shape[0]]) if inp.ndim == 1 else inp
-        for inp in inputs
-    )
+    reshaped = _atleast_nd(2, tuple(tup))
+    if not isinstance(reshaped, list):
+        reshaped = [reshaped]
     tup, common_info = check_shape_dtype(reshaped, vstack.__name__, 0)
-    common_info.shape = tup[0].shape
-
     return _concatenate(
         tup,
         common_info,
@@ -1731,16 +1905,10 @@ def dstack(tup: Sequence[ndarray]) -> ndarray:
     Multiple GPUs, Multiple CPUs
     """
     # Reshape arrays to (1,N,1) for ndim ==1 or (M,N,1) for ndim == 2:
-    reshaped = []
-    inputs = list(convert_to_cunumeric_ndarray(inp) for inp in tup)
-    for arr in inputs:
-        if arr.ndim == 1:
-            arr = arr.reshape((1,) + arr.shape + (1,))
-        elif arr.ndim == 2:
-            arr = arr.reshape(arr.shape + (1,))
-        reshaped.append(arr)
+    reshaped = _atleast_nd(3, tuple(tup))
+    if not isinstance(reshaped, list):
+        reshaped = [reshaped]
     tup, common_info = check_shape_dtype(reshaped, dstack.__name__, 2)
-
     return _concatenate(
         tup,
         common_info,
@@ -2441,6 +2609,163 @@ def diag_indices_from(arr: ndarray) -> tuple[ndarray, ...]:
             raise ValueError("All dimensions of input must be of equal length")
 
     return diag_indices(arr.shape[0], arr.ndim)
+
+
+def tril_indices(
+    n: int, k: int = 0, m: Optional[int] = None
+) -> tuple[ndarray, ...]:
+    """
+    Return the indices for the lower-triangle of an (n, m) array.
+
+    Parameters
+    ----------
+    n : int
+        The row dimension of the arrays for which the returned
+        indices will be valid.
+    k : int, optional
+        Diagonal offset (see :func:`cunumeric.tril` for details).
+    m : int, optional
+        The column dimension of the arrays for which the returned
+        indices will be valid.
+        By default `m` is taken equal to `n`.
+
+    Returns
+    -------
+    inds : tuple of arrays
+        The indices for the lower-triangle. The returned tuple contains two
+        arrays, each with the indices along one dimension of the array.
+
+    See also
+    --------
+    numpy.tril_indices
+
+    Notes
+    -----
+
+    Availability
+    ------------
+    Multiple GPUs, Multiple CPUs
+    """
+
+    tri_ = tri(n, m, k=k, dtype=bool)
+    return nonzero(tri_)
+
+
+@add_boilerplate("arr")
+def tril_indices_from(arr: ndarray, k: int = 0) -> tuple[ndarray, ...]:
+    """
+    Return the indices for the lower-triangle of arr.
+
+    See :func:`cunumeric.tril_indices` for full details.
+
+    Parameters
+    ----------
+    arr : array_like
+        The indices will be valid for arrays whose dimensions are
+        the same as arr.
+    k : int, optional
+        Diagonal offset (see :func:`cunumeric.tril` for details).
+
+    Returns
+    -------
+    inds : tuple of arrays
+        The indices for the lower-triangle. The returned tuple contains two
+        arrays, each with the indices along one dimension of the array.
+
+    See Also
+    --------
+    numpy.tril_indices_from
+
+    Notes
+    -----
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+
+    """
+    # this implementation is taken from numpy
+    if arr.ndim != 2:
+        raise ValueError("input array must be 2-d")
+    return tril_indices(arr.shape[-2], k=k, m=arr.shape[-1])
+
+
+def triu_indices(
+    n: int, k: int = 0, m: Optional[int] = None
+) -> tuple[ndarray, ...]:
+    """
+    Return the indices for the upper-triangle of an (n, m) array.
+
+    Parameters
+    ----------
+    n : int
+        The size of the arrays for which the returned indices will
+        be valid.
+    k : int, optional
+        Diagonal offset (see :func:`cunumeric.triu` for details).
+    m : int, optional
+        The column dimension of the arrays for which the returned
+        arrays will be valid.
+        By default `m` is taken equal to `n`.
+
+    Returns
+    -------
+    inds : tuple of arrays
+        The indices for the upper-triangle. The returned tuple contains two
+        arrays, each with the indices along one dimension of the array.
+
+    See also
+    --------
+    numpy.triu_indices
+
+    Notes
+    -----
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+
+    tri_ = ~tri(n, m, k=k - 1, dtype=bool)
+    return nonzero(tri_)
+
+
+@add_boilerplate("arr")
+def triu_indices_from(arr: ndarray, k: int = 0) -> tuple[ndarray, ...]:
+    """
+    Return the indices for the upper-triangle of arr.
+
+    See :func:`cunumeric.triu_indices` for full details.
+
+    Parameters
+    ----------
+    arr : ndarray, shape(N, N)
+        The indices will be valid for arrays whose dimensions are
+        the same as arr.
+    k : int, optional
+        Diagonal offset (see :func:`cunumeric.triu` for details).
+
+    Returns
+    -------
+    inds : tuple of arrays
+        The indices for the upper-triangle. The returned tuple contains two
+        arrays, each with the indices along one dimension of the array.
+
+    See Also
+    --------
+    numpy.triu_indices_from
+
+    Notes
+    -----
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    # this implementation is taken from numpy
+    if arr.ndim != 2:
+        raise ValueError("input array must be 2-d")
+    return triu_indices(arr.shape[-2], k=k, m=arr.shape[-1])
 
 
 @add_boilerplate("a")
@@ -3323,7 +3648,7 @@ def _contract(
 
     # Compute extent per mode. No need to consider broadcasting at this stage,
     # since it has been handled above.
-    mode2extent: dict[str, Union[int, tuple[int, ...]]] = {}
+    mode2extent: dict[str, int] = {}
     for (mode, extent) in chain(
         zip(a_modes, a.shape), zip(b_modes, b.shape) if b is not None else []
     ):
@@ -4422,7 +4747,7 @@ min = amin
 
 
 @add_boilerplate("a", "v")
-def convolve(a: ndarray, v: ndarray, mode: str = "full") -> ndarray:
+def convolve(a: ndarray, v: ndarray, mode: ConvolveMode = "full") -> ndarray:
     """
 
     Returns the discrete, linear convolution of two ndarrays.
@@ -4641,8 +4966,8 @@ def unique(
 @add_boilerplate("a")
 def argsort(
     a: ndarray,
-    axis: Optional[int] = -1,
-    kind: str = "quicksort",
+    axis: int = -1,
+    kind: SortType = "quicksort",
     order: Optional[Union[str, list[str]]] = None,
 ) -> ndarray:
     """
@@ -4764,8 +5089,8 @@ def searchsorted(
 @add_boilerplate("a")
 def sort(
     a: ndarray,
-    axis: Optional[int] = -1,
-    kind: str = "quicksort",
+    axis: int = -1,
+    kind: SortType = "quicksort",
     order: Optional[Union[str, list[str]]] = None,
 ) -> ndarray:
     """
@@ -4855,8 +5180,8 @@ def sort_complex(a: ndarray) -> ndarray:
 def argpartition(
     a: ndarray,
     kth: Union[int, Sequence[int]],
-    axis: Optional[int] = -1,
-    kind: str = "introselect",
+    axis: int = -1,
+    kind: SelectKind = "introselect",
     order: Optional[Union[str, list[str]]] = None,
 ) -> ndarray:
     """
@@ -4911,8 +5236,8 @@ def argpartition(
 def partition(
     a: ndarray,
     kth: Union[int, Sequence[int]],
-    axis: Optional[int] = -1,
-    kind: str = "introselect",
+    axis: int = -1,
+    kind: SelectKind = "introselect",
     order: Optional[Union[str, list[str]]] = None,
 ) -> ndarray:
     """
