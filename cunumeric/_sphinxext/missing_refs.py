@@ -28,9 +28,9 @@ from . import PARALLEL_SAFE, SphinxParallelSpec
 
 log = getLogger(__name__)
 
-SKIP = []
+SKIP: list[str] = []
 
-MISSING = []
+MISSING: list[tuple[str, str]] = []
 
 
 class MissingRefs(SphinxPostTransform):
@@ -46,7 +46,7 @@ class MissingRefs(SphinxPostTransform):
             items = "\n".join(f"{loc}: {target}" for loc, target in MISSING)
             log.warning(f"{header}\n\n{indent(items, '    ')}\n", type="ref")
 
-    def _check_target(self, node: nodes.Node) -> None:
+    def _check_target(self, node: Any) -> None:
         target = node["reftarget"]
 
         if not target.startswith("cunumeric.") or target in SKIP:
