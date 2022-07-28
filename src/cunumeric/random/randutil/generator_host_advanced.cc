@@ -296,3 +296,29 @@ extern "C" curandStatus_t randutilGenerateGeometricEx(randutilGenerator_t genera
 }
 
 #pragma endregion
+
+#pragma region wald
+
+#include "generator_wald.inl"
+
+extern "C" curandStatus_t randutilGenerateWaldEx(
+  randutilGenerator_t generator, float* outputPtr, size_t n, float mu, float lambda)
+{
+  randutilimpl::basegenerator* gen = (randutilimpl::basegenerator*)generator;
+  wald_t<float> func;
+  func.mu     = mu;
+  func.lambda = lambda;
+  return randutilimpl::dispatch<decltype(func), float>(gen, func, n, outputPtr);
+}
+
+extern "C" curandStatus_t randutilGenerateWaldDoubleEx(
+  randutilGenerator_t generator, double* outputPtr, size_t n, double mu, double lambda)
+{
+  randutilimpl::basegenerator* gen = (randutilimpl::basegenerator*)generator;
+  wald_t<double> func;
+  func.mu     = mu;
+  func.lambda = lambda;
+  return randutilimpl::dispatch<decltype(func), double>(gen, func, n, outputPtr);
+}
+
+#pragma endregion

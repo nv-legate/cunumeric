@@ -250,6 +250,14 @@ struct CURANDGenerator {
   {
     CHECK_CURAND(::randutilGenerateGeometricEx(gen_, out, count, p));
   }
+  void generate_wald_64(uint64_t count, double* out, double mean, double scale)
+  {
+    CHECK_CURAND(::randutilGenerateWaldDoubleEx(gen_, out, count, mean, scale));
+  }
+  void generate_wald_32(uint64_t count, float* out, float mean, float scale)
+  {
+    CHECK_CURAND(::randutilGenerateWaldEx(gen_, out, count, mean, scale));
+  }
 };
 
 #pragma endregion
@@ -1233,6 +1241,45 @@ struct vonmises_generator<float> {
 
 #pragma endregion
 
+#pragma region wald
+
+template <typename output_t>
+struct wald_generator;
+template <>
+struct wald_generator<double> {
+  double mean_, scale_;
+
+  wald_generator(const std::vector<int64_t>& intparams,
+                 const std::vector<float>& floatparams,
+                 const std::vector<double>& doubleparams)
+    : mean_(doubleparams[0]), scale_(doubleparams[1])
+  {
+  }
+
+  void generate(CURANDGenerator& gen, uint64_t count, double* p) const
+  {
+    gen.generate_wald_64(count, p, mean_, scale_);
+  }
+};
+template <>
+struct wald_generator<float> {
+  float mean_, scale_;
+
+  wald_generator(const std::vector<int64_t>& intparams,
+                 const std::vector<float>& floatparams,
+                 const std::vector<double>& doubleparams)
+    : mean_(floatparams[0]), scale_(floatparams[1])
+  {
+  }
+
+  void generate(CURANDGenerator& gen, uint64_t count, float* p) const
+  {
+    gen.generate_wald_32(count, p, mean_, scale_);
+  }
+};
+
+#pragma endregion
+
 #pragma endregion
 
 template <typename output_t, typename generator_t>
@@ -1595,6 +1642,14 @@ struct BitGeneratorImplBody {
               break;
             case BitGeneratorDistribution::GEOMETRIC:
               generate_distribution<uint32_t, geometric_generator<unsigned>>::generate(
+                res, cugen, intparams, floatparams, doubleparams);
+              break;
+            case BitGeneratorDistribution::WALD_32:
+              generate_distribution<float, wald_generator<float>>::generate(
+                res, cugen, intparams, floatparams, doubleparams);
+              break;
+            case BitGeneratorDistribution::WALD_64:
+              generate_distribution<double, wald_generator<double>>::generate(
                 res, cugen, intparams, floatparams, doubleparams);
               break;
             default: {

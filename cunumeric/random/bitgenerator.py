@@ -389,6 +389,17 @@ class BitGenerator:
         )
         return res
 
+    def wald(self, mean, scale, shape=None, dtype=np.uint32):
+        if shape is None:
+            shape = (1,)
+        if not isinstance(shape, tuple):
+            shape = (shape,)
+        res = ndarray(shape, dtype=dtype)
+        res._thunk.bitgenerator_wald(
+            self.handle, self.generatorType, self.seed, self.flags, mean, scale
+        )
+        return res
+
 
 class XORWOW(BitGenerator):
     def __init__(self, seed=None, forceBuild=False):

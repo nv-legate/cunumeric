@@ -1104,6 +1104,20 @@ class EagerArray(NumPyThunk):
                 aa = np.random.geometric(p, size=self.array.shape)
                 self.array[:] = aa
 
+    def bitgenerator_wald(
+        self, handle, generatorType, seed, flags, mean, scale
+    ) -> None:
+        if self.deferred is not None:
+            self.deferred.bitgenerator_wald(
+                handle, generatorType, seed, flags, mean, scale
+            )
+        else:
+            if self.array.size == 1:
+                self.array.fill(np.random.wald(mean, scale))
+            else:
+                aa = np.random.wald(mean, scale, size=self.array.shape)
+                self.array[:] = aa
+
     def partition(
         self,
         rhs: Any,

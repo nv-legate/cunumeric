@@ -88,6 +88,8 @@ enum class BitGeneratorDistribution : int32_t {
   VONMISES_64     = CUNUMERIC_BITGENDIST_VONMISES_64,
   ZIPF            = CUNUMERIC_BITGENDIST_ZIPF,
   GEOMETRIC       = CUNUMERIC_BITGENDIST_GEOMETRIC,
+  WALD_32         = CUNUMERIC_BITGENDIST_WALD_32,
+  WALD_64         = CUNUMERIC_BITGENDIST_WALD_64,
 };
 
 }  // namespace cunumeric

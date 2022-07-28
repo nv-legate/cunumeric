@@ -71,3 +71,8 @@ template struct randutilimpl::
 #include "generator_geometric.inl"
 template struct randutilimpl::
   dispatcher<randutilimpl::execlocation::DEVICE, geometric_t<double>, uint32_t>;
+
+#include "generator_wald.inl"
+template struct randutilimpl::dispatcher<randutilimpl::execlocation::DEVICE, wald_t<float>, float>;
+template struct randutilimpl::
+  dispatcher<randutilimpl::execlocation::DEVICE, wald_t<double>, double>;

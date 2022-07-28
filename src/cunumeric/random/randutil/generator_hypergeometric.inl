@@ -17,15 +17,13 @@
 #include "generator.h"
 #include "random_distributions.h"
 
+template <typename int_t>
+struct hypergeometric_t {
+  int_t ngood, nbad, nsample;
 
-template<typename int_t>
-struct hypergeometric_t
-{
-    int_t ngood, nbad, nsample ;
-
-    template<typename gen_t>
-    RANDUTIL_QUALIFIERS uint32_t operator()(gen_t& gen)
-    {
-        return (uint32_t)rk_hypergeometric(&gen, (long)ngood, (long)nbad, (long)nsample);
-    }
-} ;
+  template <typename gen_t>
+  RANDUTIL_QUALIFIERS uint32_t operator()(gen_t& gen)
+  {
+    return (uint32_t)rk_hypergeometric(&gen, (long)ngood, (long)nbad, (long)nsample);
+  }
+};

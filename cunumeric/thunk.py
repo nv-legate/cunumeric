@@ -371,6 +371,12 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
+    def bitgenerator_wald(
+        self, bitgen, generatorType, seed, flags, mean, scale
+    ) -> None:
+        ...
+
+    @abstractmethod
     def bitgenerator_geometric(
         self, bitgen, generatorType, seed, flags, p
     ) -> None:

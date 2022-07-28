@@ -17,18 +17,16 @@
 #include "generator.h"
 #include "random_distributions.h"
 
+template <typename field_t>
+struct geometric_t;
 
-template<typename field_t>
-struct geometric_t ;
+template <>
+struct geometric_t<double> {
+  double p;
 
-template<>
-struct geometric_t<double>
-{
-    double p ;
-
-    template<typename gen_t>
-    RANDUTIL_QUALIFIERS uint32_t operator()(gen_t& gen)
-    {
-        return (uint32_t)rk_geometric(&gen, p);
-    }
-} ;
+  template <typename gen_t>
+  RANDUTIL_QUALIFIERS uint32_t operator()(gen_t& gen)
+  {
+    return (uint32_t)rk_geometric(&gen, p);
+  }
+};

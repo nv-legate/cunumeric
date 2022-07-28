@@ -2439,6 +2439,32 @@ class DeferredArray(NumPyThunk):
             doubleparams,
         )
 
+    def bitgenerator_wald(
+        self, handle, generatorType, seed, flags, mean, scale
+    ) -> None:
+        if self.dtype == np.float32:
+            distribution = BitGeneratorDistribution.WALD_32
+            floatparams = (float(mean), float(scale))
+            doubleparams = ()
+        elif self.dtype == np.float64:
+            distribution = BitGeneratorDistribution.WALD_64
+            floatparams = ()
+            doubleparams = (float(mean), float(scale))
+        else:
+            raise NotImplementedError(
+                "type for random.wald has to be float64 or float32"
+            )
+        self.bitgenerator_distribution(
+            handle,
+            generatorType,
+            seed,
+            flags,
+            distribution,
+            (),
+            floatparams,
+            doubleparams,
+        )
+
     def random(self, gen_code: Any, args: Any = ()) -> None:
         task = self.context.create_auto_task(CuNumericOpCode.RAND)
 

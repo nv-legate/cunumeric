@@ -18,27 +18,42 @@
 #include "random_distributions.h"
 
 template <typename field_t>
-struct standard_t_t;
+struct wald_t;
 
 template <>
-struct standard_t_t<float> {
-  float df;
+struct wald_t<float> {
+  float mu, lambda;
 
   template <typename gen_t>
   RANDUTIL_QUALIFIERS float operator()(gen_t& gen)
   {
-    // TODO: fp32 implementation ?
-    return (float)rk_standard_t(&gen, (double)df);  // no float implementation
+    float v = curand_normal(&gen);
+    float y = v * v;
+    float x = mu + (mu * mu * y) / (2.0f * lambda) -
+              (mu / (2.0f * lambda)) * ::sqrtf(mu * y * (4.0f * lambda + mu * y));
+    float z = curand_uniform(&gen);
+    if (z <= (mu) / (mu + x))
+      return x;
+    else
+      return (mu * mu) / x;
   }
 };
 
 template <>
-struct standard_t_t<double> {
-  double df;
+struct wald_t<double> {
+  double mu, lambda;
 
   template <typename gen_t>
   RANDUTIL_QUALIFIERS double operator()(gen_t& gen)
   {
-    return rk_standard_t(&gen, df);
+    double v = curand_normal(&gen);
+    double y = v * v;
+    double x = mu + (mu * mu * y) / (2.0 * lambda) -
+               (mu / (2.0 * lambda)) * ::sqrtf(mu * y * (4.0 * lambda + mu * y));
+    double z = curand_uniform(&gen);
+    if (z <= (mu) / (mu + x))
+      return x;
+    else
+      return (mu * mu) / x;
   }
 };

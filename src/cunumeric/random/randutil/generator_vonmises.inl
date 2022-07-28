@@ -17,31 +17,28 @@
 #include "generator.h"
 #include "random_distributions.h"
 
+template <typename field_t>
+struct vonmises_t;
 
-template<typename field_t>
-struct vonmises_t ;
+template <>
+struct vonmises_t<float> {
+  float mu, kappa;
 
-template<>
-struct vonmises_t<float>
-{
-    float mu, kappa ;
+  template <typename gen_t>
+  RANDUTIL_QUALIFIERS float operator()(gen_t& gen)
+  {
+    // TODO: fp32 implementation ?
+    return (float)rk_vonmises(&gen, (double)mu, (double)kappa);  // no float implementation
+  }
+};
 
-    template<typename gen_t>
-    RANDUTIL_QUALIFIERS float operator()(gen_t& gen)
-    {
-        // TODO: fp32 implementation ?
-        return (float)rk_vonmises(&gen, (double)mu, (double)kappa); // no float implementation
-    }
-} ;
+template <>
+struct vonmises_t<double> {
+  double mu, kappa;
 
-template<>
-struct vonmises_t<double>
-{
-    double mu, kappa ;
-
-    template<typename gen_t>
-    RANDUTIL_QUALIFIERS double operator()(gen_t& gen)
-    {
-        return rk_vonmises(&gen, mu, kappa);
-    }
-} ;
+  template <typename gen_t>
+  RANDUTIL_QUALIFIERS double operator()(gen_t& gen)
+  {
+    return rk_vonmises(&gen, mu, kappa);
+  }
+};

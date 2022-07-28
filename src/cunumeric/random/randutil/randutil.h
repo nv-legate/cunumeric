@@ -213,3 +213,7 @@ extern "C" curandStatus_t randutilGenerateGeometricEx(randutilGenerator_t genera
                                                       uint32_t* outputPtr,
                                                       size_t n,
                                                       double p);
+extern "C" curandStatus_t randutilGenerateWaldDoubleEx(
+  randutilGenerator_t generator, double* outputPtr, size_t n, double mu, double lambda);
+extern "C" curandStatus_t randutilGenerateWaldEx(
+  randutilGenerator_t generator, float* outputPtr, size_t n, float mu, float lambda);

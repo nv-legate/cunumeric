@@ -17,17 +17,16 @@
 #include "generator.h"
 #include "random_distributions.h"
 
-template<typename field_t>
-struct zipf_t ;
+template <typename field_t>
+struct zipf_t;
 
-template<>
-struct zipf_t<double>
-{
-    double a ;
+template <>
+struct zipf_t<double> {
+  double a;
 
-    template<typename gen_t>
-    RANDUTIL_QUALIFIERS uint32_t operator()(gen_t& gen)
-    {
-        return rk_zipf(&gen, a);
-    }
-} ;
+  template <typename gen_t>
+  RANDUTIL_QUALIFIERS uint32_t operator()(gen_t& gen)
+  {
+    return rk_zipf(&gen, a);
+  }
+};

@@ -14,6 +14,7 @@
 #
 import numpy as np
 import pytest
+
 import cunumeric as num
 
 BITGENERATOR_ARGS = [
@@ -74,7 +75,7 @@ def test_vonmises_float32(t):
     mu = 1.414
     kappa = 3.1415
     a = gen.vonmises(mu, kappa, size=(1024 * 1024,), dtype=np.float32)
-    ref_a = np.random.vonmises(mu,kappa,1024*1024)
+    ref_a = np.random.vonmises(mu, kappa, 1024 * 1024)
     theo_mean = np.average(ref_a)
     theo_std = np.std(ref_a)
     assert_distribution(a, theo_mean, theo_std)
@@ -87,7 +88,7 @@ def test_vonmises_float64(t):
     mu = 1.414
     kappa = 3.1415
     a = gen.vonmises(mu, kappa, size=(1024 * 1024,), dtype=np.float64)
-    ref_a = np.random.vonmises(mu,kappa,1024*1024)
+    ref_a = np.random.vonmises(mu, kappa, 1024 * 1024)
     theo_mean = np.average(ref_a)
     theo_std = np.std(ref_a)
     assert_distribution(a, theo_mean, theo_std)
@@ -97,15 +98,17 @@ def test_vonmises_float64(t):
 def test_hypergeometric(t):
     bitgen = t(seed=42)
     gen = num.random.Generator(bitgen)
-    N=500
-    K=60
-    n=200
-    ngood=K
-    nbad=N-K
-    nsample=n
-    a = gen.hypergeometric(ngood,nbad,nsample, size=(1024 * 1024,), dtype=np.uint32)
-    theo_mean = n*K/N
-    theo_std = np.sqrt(n*(K*(N-K)*(N-n))/(N*N*(N-1)))
+    N = 500
+    K = 60
+    n = 200
+    ngood = K
+    nbad = N - K
+    nsample = n
+    a = gen.hypergeometric(
+        ngood, nbad, nsample, size=(1024 * 1024,), dtype=np.uint32
+    )
+    theo_mean = n * K / N
+    theo_std = np.sqrt(n * (K * (N - K) * (N - n)) / (N * N * (N - 1)))
     assert_distribution(a, theo_mean, theo_std)
 
 
@@ -113,10 +116,10 @@ def test_hypergeometric(t):
 def test_geometric(t):
     bitgen = t(seed=42)
     gen = num.random.Generator(bitgen)
-    p=0.707
+    p = 0.707
     a = gen.geometric(p, size=(1024 * 1024,), dtype=np.uint32)
-    theo_mean = 1/p
-    theo_std = np.sqrt(1-p)/p
+    theo_mean = 1 / p
+    theo_std = np.sqrt(1 - p) / p
     assert_distribution(a, theo_mean, theo_std)
 
 
@@ -126,11 +129,38 @@ def test_zipf(t):
     gen = num.random.Generator(bitgen)
     s = 7.5
     a = gen.zipf(a=s, size=(1024 * 1024,), dtype=np.uint32)
-    a = np.random.zipf(s,1024*1024)
-    ref_a = np.random.zipf(s,1024*1024)
+    a = np.random.zipf(s, 1024 * 1024)
+    ref_a = np.random.zipf(s, 1024 * 1024)
     theo_mean = np.average(ref_a)
     theo_std = np.std(ref_a)
     assert_distribution(a, theo_mean, theo_std, 0.2)
+
+
+@pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
+def test_wald_float32(t):
+    bitgen = t(seed=42)
+    gen = num.random.Generator(bitgen)
+    mu = 1.414
+    kappa = 3.1415
+    a = gen.wald(mu, kappa, size=(1024 * 1024,), dtype=np.float32)
+    ref_a = np.random.wald(mu, kappa, 1024 * 1024)
+    theo_mean = np.average(ref_a)
+    theo_std = np.std(ref_a)
+    assert_distribution(a, theo_mean, theo_std)
+
+
+@pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
+def test_wald_float64(t):
+    bitgen = t(seed=42)
+    gen = num.random.Generator(bitgen)
+    mu = 1.414
+    kappa = 3.1415
+    a = gen.wald(mu, kappa, size=(1024 * 1024,), dtype=np.float64)
+    ref_a = np.random.wald(mu, kappa, 1024 * 1024)
+    theo_mean = np.average(ref_a)
+    theo_std = np.std(ref_a)
+    assert_distribution(a, theo_mean, theo_std)
+
 
 if __name__ == "__main__":
     import sys
