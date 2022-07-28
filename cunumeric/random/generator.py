@@ -205,6 +205,33 @@ class Generator:
 
 
 def default_rng(seed: Union[int, None] = None) -> Generator:
+    """Construct a new Generator with the default BitGenerator (PCG64).
+
+    Parameters
+    ----------
+    seed :
+        {None, int, array_like[ints], SeedSequence, BitGenerator, Generator},
+        optional
+
+        A seed to initialize the `BitGenerator`. If None, then fresh,
+        unpredictable entropy will be pulled from the OS. If an ``int`` or
+        ``array_like[ints]`` is passed, then it will be passed to
+        `SeedSequence` to derive the initial `BitGenerator` state. One may also
+        pass in a `SeedSequence` instance.
+        Additionally, when passed a `BitGenerator`, it will be wrapped by
+        `Generator`. If passed a `Generator`, it will be returned unaltered.
+
+    Returns
+    -------
+    Generator
+        The initialized generator object.
+
+    Notes
+    -----
+    If ``seed`` is not a `BitGenerator` or a `Generator`, a new `BitGenerator`
+    is instantiated. This function does not manage a default global instance.
+
+    """
     if seed is None:
         return Generator(XORWOW())
     elif isinstance(seed, BitGenerator):
