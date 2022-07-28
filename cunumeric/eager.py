@@ -48,7 +48,7 @@ if TYPE_CHECKING:
 
     from legate.core import FieldID, Future, Region
 
-    from .config import FFTType
+    from .config import BitGeneratorType, FFTType
     from .runtime import Runtime
     from .types import (
         BitOrder,
@@ -680,7 +680,11 @@ class EagerArray(NumPyThunk):
                 self.array = np.sort(rhs.array, axis, kind, order)
 
     def bitgenerator_random_raw(
-        self, handle, generatorType, seed, flags
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
     ) -> None:
         if self.deferred is not None:
             self.deferred.bitgenerator_random_raw(
@@ -699,7 +703,13 @@ class EagerArray(NumPyThunk):
                 self.array[:] = a[:]
 
     def bitgenerator_integers(
-        self, handle, generatorType, seed, flags, low, high
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        low: int,
+        high: int,
     ) -> None:
         if self.deferred is not None:
             self.deferred.bitgenerator_integers(
@@ -713,7 +723,13 @@ class EagerArray(NumPyThunk):
                 self.array[:] = a
 
     def bitgenerator_lognormal(
-        self, handle, generatorType, seed, flags, mean, sigma
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        mean: float,
+        sigma: float,
     ) -> None:
         if self.deferred is not None:
             self.deferred.bitgenerator_lognormal(
@@ -727,7 +743,13 @@ class EagerArray(NumPyThunk):
                 self.array[:] = a
 
     def bitgenerator_normal(
-        self, handle, generatorType, seed, flags, mean, sigma
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        mean: float,
+        sigma: float,
     ) -> None:
         if self.deferred is not None:
             self.deferred.bitgenerator_normal(
@@ -741,7 +763,13 @@ class EagerArray(NumPyThunk):
                 self.array[:] = a
 
     def bitgenerator_uniform(
-        self, handle, generatorType, seed, flags, low, high
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        low: float,
+        high: float,
     ) -> None:
         if self.deferred is not None:
             self.deferred.bitgenerator_uniform(
@@ -755,7 +783,12 @@ class EagerArray(NumPyThunk):
                 self.array[:] = a
 
     def bitgenerator_poisson(
-        self, handle, generatorType, seed, flags, lam
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        lam: float,
     ) -> None:
         if self.deferred is not None:
             self.deferred.bitgenerator_poisson(
@@ -769,7 +802,12 @@ class EagerArray(NumPyThunk):
                 self.array[:] = a
 
     def bitgenerator_exponential(
-        self, handle, generatorType, seed, flags, scale
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        scale: float,
     ) -> None:
         if self.deferred is not None:
             self.deferred.bitgenerator_exponential(
@@ -783,7 +821,13 @@ class EagerArray(NumPyThunk):
                 self.array[:] = a
 
     def bitgenerator_gumbel(
-        self, handle, generatorType, seed, flags, mu, beta
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        mu: float,
+        beta: float,
     ) -> None:
         if self.deferred is not None:
             self.deferred.bitgenerator_gumbel(
@@ -797,7 +841,13 @@ class EagerArray(NumPyThunk):
                 self.array[:] = a
 
     def bitgenerator_laplace(
-        self, handle, generatorType, seed, flags, mu, beta
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        mu: float,
+        beta: float,
     ) -> None:
         if self.deferred is not None:
             self.deferred.bitgenerator_laplace(
@@ -811,7 +861,13 @@ class EagerArray(NumPyThunk):
                 self.array[:] = a
 
     def bitgenerator_logistic(
-        self, handle, generatorType, seed, flags, mu, beta
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        mu: float,
+        beta: float,
     ) -> None:
         if self.deferred is not None:
             self.deferred.bitgenerator_logistic(
@@ -825,7 +881,12 @@ class EagerArray(NumPyThunk):
                 self.array[:] = a
 
     def bitgenerator_pareto(
-        self, handle, generatorType, seed, flags, alpha
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        alpha: float,
     ) -> None:
         if self.deferred is not None:
             self.deferred.bitgenerator_pareto(
@@ -839,7 +900,12 @@ class EagerArray(NumPyThunk):
                 self.array[:] = a
 
     def bitgenerator_power(
-        self, handle, generatorType, seed, flags, alpha
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        alpha: float,
     ) -> None:
         if self.deferred is not None:
             self.deferred.bitgenerator_power(
@@ -853,7 +919,12 @@ class EagerArray(NumPyThunk):
                 self.array[:] = a
 
     def bitgenerator_rayleigh(
-        self, handle, generatorType, seed, flags, sigma
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        sigma: float,
     ) -> None:
         if self.deferred is not None:
             self.deferred.bitgenerator_rayleigh(
@@ -867,7 +938,13 @@ class EagerArray(NumPyThunk):
                 self.array[:] = a
 
     def bitgenerator_cauchy(
-        self, handle, generatorType, seed, flags, x0, gamma
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        x0: float,
+        gamma: float,
     ) -> None:
         if self.deferred is not None:
             self.deferred.bitgenerator_cauchy(
@@ -881,7 +958,14 @@ class EagerArray(NumPyThunk):
                 self.array[:] = x0 + gamma * a
 
     def bitgenerator_triangular(
-        self, handle, generatorType, seed, flags, a, b, c
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        a: float,
+        b: float,
+        c: float,
     ) -> None:
         if self.deferred is not None:
             self.deferred.bitgenerator_triangular(
@@ -896,12 +980,12 @@ class EagerArray(NumPyThunk):
 
     def bitgenerator_weibull(
         self,
-        handle,
-        generatorType,
-        seed,
-        flags,
-        lam,
-        k,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        lam: float,
+        k: float,
     ) -> None:
         if self.deferred is not None:
             self.deferred.bitgenerator_weibull(
@@ -914,7 +998,13 @@ class EagerArray(NumPyThunk):
                 aa = np.random.weibull(k, size=self.array.shape)
                 self.array[:] = lam * aa
 
-    def bitgenerator_bytes(self, handle, generatorType, seed, flags) -> None:
+    def bitgenerator_bytes(
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+    ) -> None:
         if self.deferred is not None:
             self.deferred.bitgenerator_bytes(
                 handle, generatorType, seed, flags
