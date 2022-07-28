@@ -92,9 +92,9 @@ ops = [
 # keeping array sizes small to avoid accumulation variance
 # between cunumeric and numpy
 shapes = [
-    [10000],
-    [10, 1000],
-    [10, 10, 100],
+    [400],
+    [4, 100],
+    [4, 10, 10],
 ]
 axes = [
     None,
