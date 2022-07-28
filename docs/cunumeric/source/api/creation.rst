@@ -50,5 +50,6 @@ Building matrices
    :toctree: generated/
 
    diag
+   tri
    tril
    triu

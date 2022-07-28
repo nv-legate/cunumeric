@@ -29,3 +29,7 @@ SortType: TypeAlias = Literal["quicksort", "mergesort", "heapsort", "stable"]
 OrderType: TypeAlias = Literal["A", "C", "F"]
 
 BitOrder: TypeAlias = Literal["big", "little"]
+
+ConvolveMode: TypeAlias = Literal["full", "valid", "same"]
+
+SelectKind: TypeAlias = Literal["introselect"]
