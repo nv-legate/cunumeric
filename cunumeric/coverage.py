@@ -77,6 +77,9 @@ class CuWrapperMetadata:
 
 class CuWrapped(AnyCallable, Protocol):
     _cunumeric: CuWrapperMetadata
+    __wrapped__: Any
+    __name__: str
+    __qualname__: str
 
 
 def implemented(

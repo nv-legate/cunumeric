@@ -60,7 +60,7 @@ class MissingRefs(SphinxPostTransform):
         for node in self.document.findall(addnodes.pending_xref):
             self._check_target(node)
 
-    def _check_target(self, node: nodes.Node) -> None:
+    def _check_target(self, node: Any) -> None:
         target = node["reftarget"]
 
         if not target.startswith("cunumeric.") or target in SKIP:
