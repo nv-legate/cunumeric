@@ -21,30 +21,17 @@ import cunumeric as num
 from legate.core import LEGATE_MAX_DIM
 
 
-def test_3d():
+def test_None():
 
     x = mk_seq_array(np, (256, 256, 100))
     x_num = mk_seq_array(num, (256, 256, 100))
 
-    indices = mk_seq_array(np, (256, 256, 10)) % 100
+    indices = mk_seq_array(np, (256,)) % 100
     indices_num = num.array(indices)
 
-    res = np.put_along_axis(x, indices, -10, -1)
-    res_num = num.put_along_axis(x_num, indices_num, -10, -1)
-    assert np.array_equal(res_num, res)
-
-
-def test_None_axis():
-    x = mk_seq_array(np, (256, 256, 100))
-    x_num = mk_seq_array(num, (256, 256, 100))
-
-    # testig the case when axis = None
-    indices = mk_seq_array(np, (256,))
-    indices_num = num.array(indices)
-
-    res = np.put_along_axis(x, indices, 99, None)
-    res_num = num.put_along_axis(x_num, indices_num, 99, None)
-    assert np.array_equal(res_num, res)
+    np.put_along_axis(x, indices, -10, None)
+    num.put_along_axis(x_num, indices_num, -10, None)
+    assert np.array_equal(x_num, x)
 
 
 N = 10
@@ -54,19 +41,23 @@ N = 10
 def test_ndim(ndim):
     shape = (N,) * ndim
     np_arr = mk_seq_array(np, shape)
-    num_arr = mk_seq_array(num, shape)
+    num_arr = num.array(np_arr)
+
+    np_indices = mk_seq_array(np, (3,))
+    num_indices = num.array(np_indices)
+    np.put_along_axis(np_arr, np_indices, None)
+    num.put_along_axis(num_arr, num_indices, None)
+    assert np.array_equal(num_arr, np_arr)
+
     shape_idx = (1,) * ndim
     np_indices = mk_seq_array(np, shape_idx) % N
     num_indices = mk_seq_array(num, shape_idx) % N
-    for axis in range(ndim):
-        res_np = np.put_along_axis(np_arr, np_indices, 8, axis=axis)
-        res_num = num.put_along_axis(num_arr, num_indices, 8, axis=axis)
-        assert np.array_equal(res_num, res_np)
-    np_indices = mk_seq_array(np, (3,))
-    num_indices = mk_seq_array(num, (3,))
-    res_np = np.put_along_axis(np_arr, np_indices, 11, None)
-    res_num = num.put_along_axis(num_arr, num_indices, 11, None)
-    assert np.array_equal(res_num, res_np)
+    for axis in range(-1, ndim):
+        np_a = np_arr.copy()
+        num_a = num_arr.copy()
+        np.put_along_axis(np_a, np_indices, 8, axis=axis)
+        num.put_along_axis(num_a, num_indices, 8, axis=axis)
+        assert np.array_equal(np_a, num_a)
 
 
 if __name__ == "__main__":

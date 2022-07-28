@@ -20,33 +20,6 @@ from test_tools.generators import mk_seq_array
 import cunumeric as num
 from legate.core import LEGATE_MAX_DIM
 
-
-def test_3d():
-
-    x = mk_seq_array(np, (256, 256, 100))
-    x_num = mk_seq_array(num, (256, 256, 100))
-
-    indices = mk_seq_array(np, (256, 256, 10)) % 100
-    indices_num = num.array(indices)
-
-    res = np.take_along_axis(x, indices, -1)
-    res_num = num.take_along_axis(x_num, indices_num, -1)
-    assert np.array_equal(res_num, res)
-
-
-def test_None_axis():
-    x = mk_seq_array(np, (256, 256, 100))
-    x_num = mk_seq_array(num, (256, 256, 100))
-
-    # testig the case when axis = None
-    indices = mk_seq_array(np, (256,))
-    indices_num = num.array(indices)
-
-    res = np.take_along_axis(x, indices, None)
-    res_num = num.take_along_axis(x_num, indices_num, None)
-    assert np.array_equal(res_num, res)
-
-
 N = 10
 
 
@@ -58,7 +31,7 @@ def test_ndim(ndim):
     shape_idx = (1,) * ndim
     np_indices = mk_seq_array(np, shape_idx) % N
     num_indices = mk_seq_array(num, shape_idx) % N
-    for axis in range(ndim):
+    for axis in range(-1, ndim):
         res_np = np.take_along_axis(np_arr, np_indices, axis=axis)
         res_num = num.take_along_axis(num_arr, num_indices, axis=axis)
         assert np.array_equal(res_num, res_np)

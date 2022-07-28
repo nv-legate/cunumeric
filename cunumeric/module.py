@@ -2545,7 +2545,8 @@ def take_along_axis(a: ndarray, indices: ndarray, axis: int) -> ndarray:
     Returns
     -------
     out: ndarray (Ni..., J, Nk...)
-        The indexed result.
+        The indexed result. It is going to be a vew to `arr` for most cases,
+        except the case when `axis=Null` and `arr.ndim>1`.
 
     See Also
     --------
@@ -2561,13 +2562,13 @@ def take_along_axis(a: ndarray, indices: ndarray, axis: int) -> ndarray:
     if axis is None:
         if indices.ndim != 1:
             raise ValueError("indices must be 1D if axis=None")
-        a = a.ravel()
+        if a.ndim > 1:
+            a = a.ravel()
         axis = 0
     else:
         axis = normalize_axis_index(axis, a.ndim)
 
-    ndim = a.ndim
-    if ndim != indices.ndim:
+    if a.ndim != indices.ndim:
         raise ValueError(
             "`indices` and `a` must have the same number of dimensions"
         )
@@ -2604,6 +2605,11 @@ def put_along_axis(
         The axis to take 1d slices along. If axis is None, the destination
         array is treated as if a flattened 1d view had been created of it.
 
+    Note
+    ----
+    Having duplicate entries in `indices` will result in undefined behavior
+    since operation performs asynchronous update of the `arr` entries.
+
     See Also
     --------
     numpy.put_along_axis
@@ -2614,12 +2620,13 @@ def put_along_axis(
 
     """
     if not np.issubdtype(indices.dtype, np.integer):
-        raise IndexError("`indices` must be an integer array")
+        raise TypeError("`indices` must be an integer array")
 
     if axis is None:
         if indices.ndim != 1:
             raise ValueError("indices must be 1D if axis=None")
-        a = a.ravel()
+        if a.ndim > 1:
+            a = a.ravel()
         axis = 0
     else:
         axis = normalize_axis_index(axis, a.ndim)
