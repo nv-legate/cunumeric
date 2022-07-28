@@ -1767,7 +1767,7 @@ class DeferredArray(NumPyThunk):
         generatorType: BitGeneratorType,
         seed: Union[int, None],
         flags: int,
-        distribution: int,
+        distribution: BitGeneratorDistribution,
         intparams: tuple[int, ...],
         floatparams: tuple[float, ...],
         doubleparams: tuple[float, ...],
