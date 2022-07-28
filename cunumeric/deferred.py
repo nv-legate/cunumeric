@@ -61,7 +61,7 @@ if TYPE_CHECKING:
     from legate.core import FieldID, Region
     from legate.core.operation import AutoTask, ManualTask
 
-    from .config import FFTDirection, FFTType, WindowOpCode
+    from .config import BitGeneratorType, FFTDirection, FFTType, WindowOpCode
     from .runtime import Runtime
     from .types import (
         BitOrder,
@@ -1746,7 +1746,11 @@ class DeferredArray(NumPyThunk):
         return results
 
     def bitgenerator_random_raw(
-        self, handle, generatorType, seed, flags
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
     ) -> None:
         task = self.context.create_task(CuNumericOpCode.BITGENERATOR)
 
@@ -1765,14 +1769,14 @@ class DeferredArray(NumPyThunk):
 
     def bitgenerator_distribution(
         self,
-        handle,
-        generatorType,
-        seed,
-        flags,
-        distribution,
-        intparams,
-        floatparams,
-        doubleparams,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        distribution: BitGeneratorDistribution,
+        intparams: tuple[int, ...],
+        floatparams: tuple[float, ...],
+        doubleparams: tuple[float, ...],
     ) -> None:
         task = self.context.create_task(CuNumericOpCode.BITGENERATOR)
 
@@ -1794,7 +1798,13 @@ class DeferredArray(NumPyThunk):
         task.execute()
 
     def bitgenerator_integers(
-        self, handle, generatorType, seed, flags, low, high
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        low: int,
+        high: int,
     ) -> None:
         intparams = (low, high)
         if self.dtype == np.int32:
@@ -1810,8 +1820,16 @@ class DeferredArray(NumPyThunk):
         )
 
     def bitgenerator_uniform(
-        self, handle, generatorType, seed, flags, low, high
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        low: float,
+        high: float,
     ) -> None:
+        floatparams: tuple[float, ...]
+        doubleparams: tuple[float, ...]
         if self.dtype == np.float32:
             distribution = BitGeneratorDistribution.UNIFORM_32
             floatparams = (float(low), float(high))
@@ -1836,8 +1854,16 @@ class DeferredArray(NumPyThunk):
         )
 
     def bitgenerator_lognormal(
-        self, handle, generatorType, seed, flags, mean, sigma
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        mean: float,
+        sigma: float,
     ) -> None:
+        floatparams: tuple[float, ...]
+        doubleparams: tuple[float, ...]
         if self.dtype == np.float32:
             distribution = BitGeneratorDistribution.LOGNORMAL_32
             floatparams = (float(mean), float(sigma))
@@ -1862,8 +1888,16 @@ class DeferredArray(NumPyThunk):
         )
 
     def bitgenerator_normal(
-        self, handle, generatorType, seed, flags, mean, sigma
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        mean: float,
+        sigma: float,
     ) -> None:
+        floatparams: tuple[float, ...]
+        doubleparams: tuple[float, ...]
         if self.dtype == np.float32:
             distribution = BitGeneratorDistribution.NORMAL_32
             floatparams = (float(mean), float(sigma))
@@ -1888,7 +1922,12 @@ class DeferredArray(NumPyThunk):
         )
 
     def bitgenerator_poisson(
-        self, handle, generatorType, seed, flags, lam
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        lam: float,
     ) -> None:
         if self.dtype == np.uint32:
             distribution = BitGeneratorDistribution.POISSON
@@ -1909,8 +1948,15 @@ class DeferredArray(NumPyThunk):
         )
 
     def bitgenerator_exponential(
-        self, handle, generatorType, seed, flags, scale
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        scale: float,
     ) -> None:
+        floatparams: tuple[float, ...]
+        doubleparams: tuple[float, ...]
         if self.dtype == np.float32:
             distribution = BitGeneratorDistribution.EXPONENTIAL_32
             floatparams = (float(scale),)
@@ -1935,8 +1981,16 @@ class DeferredArray(NumPyThunk):
         )
 
     def bitgenerator_gumbel(
-        self, handle, generatorType, seed, flags, mu, beta
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        mu: float,
+        beta: float,
     ) -> None:
+        floatparams: tuple[float, ...]
+        doubleparams: tuple[float, ...]
         if self.dtype == np.float32:
             distribution = BitGeneratorDistribution.GUMBEL_32
             floatparams = (float(mu), float(beta))
@@ -1961,8 +2015,16 @@ class DeferredArray(NumPyThunk):
         )
 
     def bitgenerator_laplace(
-        self, handle, generatorType, seed, flags, mu, beta
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        mu: float,
+        beta: float,
     ) -> None:
+        floatparams: tuple[float, ...]
+        doubleparams: tuple[float, ...]
         if self.dtype == np.float32:
             distribution = BitGeneratorDistribution.LAPLACE_32
             floatparams = (float(mu), float(beta))
@@ -1987,8 +2049,16 @@ class DeferredArray(NumPyThunk):
         )
 
     def bitgenerator_logistic(
-        self, handle, generatorType, seed, flags, mu, beta
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        mu: float,
+        beta: float,
     ) -> None:
+        floatparams: tuple[float, ...]
+        doubleparams: tuple[float, ...]
         if self.dtype == np.float32:
             distribution = BitGeneratorDistribution.LOGISTIC_32
             floatparams = (float(mu), float(beta))
@@ -2013,8 +2083,15 @@ class DeferredArray(NumPyThunk):
         )
 
     def bitgenerator_pareto(
-        self, handle, generatorType, seed, flags, alpha
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        alpha: float,
     ) -> None:
+        floatparams: tuple[float, ...]
+        doubleparams: tuple[float, ...]
         if self.dtype == np.float32:
             distribution = BitGeneratorDistribution.PARETO_32
             floatparams = (float(alpha),)
@@ -2039,8 +2116,15 @@ class DeferredArray(NumPyThunk):
         )
 
     def bitgenerator_power(
-        self, handle, generatorType, seed, flags, alpha
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        alpha: float,
     ) -> None:
+        floatparams: tuple[float, ...]
+        doubleparams: tuple[float, ...]
         if self.dtype == np.float32:
             distribution = BitGeneratorDistribution.POWER_32
             floatparams = (float(alpha),)
@@ -2065,8 +2149,15 @@ class DeferredArray(NumPyThunk):
         )
 
     def bitgenerator_rayleigh(
-        self, handle, generatorType, seed, flags, sigma
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        sigma: float,
     ) -> None:
+        floatparams: tuple[float, ...]
+        doubleparams: tuple[float, ...]
         if self.dtype == np.float32:
             distribution = BitGeneratorDistribution.RAYLEIGH_32
             floatparams = (float(sigma),)
@@ -2091,8 +2182,16 @@ class DeferredArray(NumPyThunk):
         )
 
     def bitgenerator_cauchy(
-        self, handle, generatorType, seed, flags, x0, gamma
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        x0: float,
+        gamma: float,
     ) -> None:
+        floatparams: tuple[float, ...]
+        doubleparams: tuple[float, ...]
         if self.dtype == np.float32:
             distribution = BitGeneratorDistribution.CAUCHY_32
             floatparams = (float(x0), float(gamma))
@@ -2117,8 +2216,17 @@ class DeferredArray(NumPyThunk):
         )
 
     def bitgenerator_triangular(
-        self, handle, generatorType, seed, flags, a, b, c
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        a: float,
+        b: float,
+        c: float,
     ) -> None:
+        floatparams: tuple[float, ...]
+        doubleparams: tuple[float, ...]
         if self.dtype == np.float32:
             distribution = BitGeneratorDistribution.TRIANGULAR_32
             floatparams = (float(a), float(b), float(c))
@@ -2143,8 +2251,16 @@ class DeferredArray(NumPyThunk):
         )
 
     def bitgenerator_weibull(
-        self, handle, generatorType, seed, flags, lam, k
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        lam: float,
+        k: float,
     ) -> None:
+        floatparams: tuple[float, ...]
+        doubleparams: tuple[float, ...]
         if self.dtype == np.float32:
             distribution = BitGeneratorDistribution.WEIBULL_32
             floatparams = (float(lam), float(k))
@@ -2168,7 +2284,13 @@ class DeferredArray(NumPyThunk):
             doubleparams,
         )
 
-    def bitgenerator_bytes(self, handle, generatorType, seed, flags) -> None:
+    def bitgenerator_bytes(
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+    ) -> None:
         if self.dtype == np.uint8:
             distribution = BitGeneratorDistribution.BYTES
         else:

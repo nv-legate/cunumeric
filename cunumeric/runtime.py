@@ -46,6 +46,7 @@ if TYPE_CHECKING:
     import numpy.typing as npt
 
     from legate.core._legion.future import Future
+    from legate.core.operation import AutoTask, ManualTask
 
     from .types import NdShapeLike
 
@@ -135,7 +136,7 @@ class Runtime(object):
         self.legate_runtime = get_legate_runtime()
         self.current_random_epoch = 0
         self.current_random_bitgenid = 0
-        self.current_random_bitgen_zombies = ()
+        self.current_random_bitgen_zombies: tuple[Any, ...] = ()
         self.destroyed = False
         self.api_calls: list[tuple[str, str, bool]] = []
 
@@ -279,8 +280,14 @@ class Runtime(object):
         return DeferredArray(self, store, dtype=dtype)
 
     def bitgenerator_populate_task(
-        self, task, taskop, generatorID, generatorType=0, seed=0, flags=0
-    ):
+        self,
+        task: Union[AutoTask, ManualTask],
+        taskop: int,
+        generatorID: int,
+        generatorType: int = 0,
+        seed: Union[int, None] = 0,
+        flags: int = 0,
+    ) -> None:
         task.add_scalar_arg(taskop, ty.int32)
         task.add_scalar_arg(generatorID, ty.int32)
         task.add_scalar_arg(generatorType, ty.uint32)
@@ -288,8 +295,12 @@ class Runtime(object):
         task.add_scalar_arg(flags, ty.uint32)
 
     def bitgenerator_create(
-        self, generatorType, seed, flags, forceCreate=False
-    ):
+        self,
+        generatorType: int,
+        seed: Union[int, None],
+        flags: int,
+        forceCreate: bool = False,
+    ) -> int:
         self.current_random_bitgenid = self.current_random_bitgenid + 1
         if forceCreate:
             task = self.legate_context.create_task(
@@ -313,7 +324,9 @@ class Runtime(object):
             self.legate_runtime.issue_execution_fence()
         return self.current_random_bitgenid
 
-    def bitgenerator_destroy(self, handle, disposing=True):
+    def bitgenerator_destroy(
+        self, handle: Any, disposing: bool = True
+    ) -> None:
         if disposing:
             # when called from within destructor, do not schedule a task
             self.current_random_bitgen_zombies += (handle,)
