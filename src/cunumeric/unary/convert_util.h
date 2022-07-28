@@ -17,6 +17,7 @@
 #pragma once
 
 #include "cunumeric/cunumeric.h"
+#include "cunumeric/isnan.h"
 
 namespace cunumeric {
 
