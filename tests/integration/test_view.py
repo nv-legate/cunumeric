@@ -18,35 +18,49 @@ import pytest
 
 import cunumeric as num
 
+num.random.seed(10)
 
-def test_basic():
-    num.random.seed(10)
-    origVals = num.random.randn(2, 3, 4)
-    sliceUpdate = num.random.randn(3, 15)
-    sliceView = origVals[0]
-    origVals[0, :] += sliceUpdate[:, 11:]
-    assert num.array_equal(origVals[0, 0, :], sliceView[0, :])
 
-    sliceView[1, :] = num.random.randn(4)
-    assert num.array_equal(origVals[0], sliceView)
+def test_update_orig():
+    orig = num.random.randn(2, 3, 4)
+    update = num.random.randn(3, 15)
+    view = orig[0]
 
+    orig[0, :] += update[:, 11:]
+
+    assert num.array_equal(orig[0, 0, :], view[0, :])
+
+
+def test_update_slice():
+    orig = num.random.randn(2, 3, 4)
+    view = orig[0]
+
+    view[1, :] = num.random.randn(4)
+
+    assert num.array_equal(orig[0], view)
+
+
+def test_mixed():
     xnp = np.array(
         [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12], [13, 14, 15, 16]]
     )
     ynp = xnp[2:, 2:]
     x = num.array(xnp)
+
     y = x[2:, 2:]
+
     assert np.array_equal(ynp, y)
 
-    # views over scalar values are writable
+
+@pytest.mark.parametrize("value", (2, 3))
+def test_scalar(value):
     x = num.ones((1,))
     y = x.reshape((1, 1))
-    y[:] = 2
-    assert np.array_equal(x, [2])
-    assert np.array_equal(y, [[2]])
-    y[:] = 3
-    assert np.array_equal(x, [3])
-    assert np.array_equal(y, [[3]])
+
+    y[:] = value
+
+    assert np.array_equal(x, [value])
+    assert np.array_equal(y, [[value]])
 
 
 if __name__ == "__main__":

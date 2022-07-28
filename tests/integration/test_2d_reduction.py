@@ -15,6 +15,7 @@
 
 import numpy as np
 import pytest
+from utils.comparisons import allclose
 
 import cunumeric as num
 
@@ -32,14 +33,14 @@ def test_sum():
 def test_random():
     bnp = np.random.random((2, 3))
     b = num.array(bnp)
-    assert np.allclose(num.sum(b), np.sum(bnp))
+    assert allclose(num.sum(b), np.sum(bnp))
 
 
 def test_randn():
     af = np.random.randn(4, 5)
     bf = num.array(af)
-    assert np.allclose(af.mean(0), bf.mean(0))
-    assert np.allclose(af.mean(), bf.mean())
+    assert allclose(af.mean(0), bf.mean(0))
+    assert allclose(af.mean(), bf.mean())
 
 
 if __name__ == "__main__":
