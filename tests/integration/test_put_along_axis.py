@@ -15,7 +15,7 @@
 
 import numpy as np
 import pytest
-from test_tools.generators import mk_seq_array
+from utils.generators import mk_seq_array
 
 import cunumeric as num
 from legate.core import LEGATE_MAX_DIM
@@ -23,10 +23,10 @@ from legate.core import LEGATE_MAX_DIM
 
 def test_None():
 
-    x = mk_seq_array(np, (256, 256, 100))
-    x_num = mk_seq_array(num, (256, 256, 100))
+    x = mk_seq_array(np, (256,))
+    x_num = mk_seq_array(num, (256,))
 
-    indices = mk_seq_array(np, (256,)) % 100
+    indices = mk_seq_array(np, (125,))
     indices_num = num.array(indices)
 
     np.put_along_axis(x, indices, -10, None)
@@ -42,12 +42,6 @@ def test_ndim(ndim):
     shape = (N,) * ndim
     np_arr = mk_seq_array(np, shape)
     num_arr = num.array(np_arr)
-
-    np_indices = mk_seq_array(np, (3,))
-    num_indices = num.array(np_indices)
-    np.put_along_axis(np_arr, np_indices, None)
-    num.put_along_axis(num_arr, num_indices, None)
-    assert np.array_equal(num_arr, np_arr)
 
     shape_idx = (1,) * ndim
     np_indices = mk_seq_array(np, shape_idx) % N

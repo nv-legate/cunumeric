@@ -2929,6 +2929,7 @@ def put_along_axis(
     axis : int
         The axis to take 1d slices along. If axis is None, the destination
         array is treated as if a flattened 1d view had been created of it.
+        `axis=None` case is currenlty supported only for 1D input arrays.
 
     Note
     ----
@@ -2951,7 +2952,8 @@ def put_along_axis(
         if indices.ndim != 1:
             raise ValueError("indices must be 1D if axis=None")
         if a.ndim > 1:
-            a = a.ravel()
+            # TODO call a=a.flat when flat is implemented
+            raise ValueError("a.ndim>1 case is not supported when axis=None")
         axis = 0
     else:
         axis = normalize_axis_index(axis, a.ndim)
