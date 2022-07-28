@@ -26,15 +26,19 @@ namespace cunumeric {
 using namespace Legion;
 using namespace legate;
 
-template <VariantKind KIND, LegateTypeCode DST_TYPE, LegateTypeCode SRC_TYPE, int DIM>
+template <VariantKind KIND,
+          ConvertCode NAN_OP,
+          LegateTypeCode DST_TYPE,
+          LegateTypeCode SRC_TYPE,
+          int DIM>
 struct ConvertImplBody;
 
-template <VariantKind KIND, LegateTypeCode SRC_TYPE>
+template <VariantKind KIND, ConvertCode NAN_OP, LegateTypeCode SRC_TYPE>
 struct ConvertImpl {
   template <LegateTypeCode DST_TYPE, int DIM, std::enable_if_t<SRC_TYPE != DST_TYPE>* = nullptr>
   void operator()(ConvertArgs& args) const
   {
-    using OP  = ConvertOp<DST_TYPE, SRC_TYPE>;
+    using OP  = ConvertOp<NAN_OP, DST_TYPE, SRC_TYPE>;
     using SRC = legate_type_of<SRC_TYPE>;
     using DST = legate_type_of<DST_TYPE>;
 
@@ -57,7 +61,7 @@ struct ConvertImpl {
 #endif
 
     OP func{};
-    ConvertImplBody<KIND, DST_TYPE, SRC_TYPE, DIM>()(func, out, in, pitches, rect, dense);
+    ConvertImplBody<KIND, NAN_OP, DST_TYPE, SRC_TYPE, DIM>()(func, out, in, pitches, rect, dense);
   }
 
   template <LegateTypeCode DST_TYPE, int DIM, std::enable_if_t<SRC_TYPE == DST_TYPE>* = nullptr>
@@ -69,11 +73,20 @@ struct ConvertImpl {
 
 template <VariantKind KIND>
 struct SourceTypeDispatch {
-  template <LegateTypeCode SRC_TYPE>
+  template <ConvertCode NAN_OP, LegateTypeCode SRC_TYPE>
   void operator()(ConvertArgs& args) const
   {
     auto dim = std::max(1, args.out.dim());
-    double_dispatch(dim, args.out.code(), ConvertImpl<KIND, SRC_TYPE>{}, args);
+    double_dispatch(dim, args.out.code(), ConvertImpl<KIND, NAN_OP, SRC_TYPE>{}, args);
+  }
+};
+
+template <VariantKind KIND>
+struct ConvertDispatch {
+  template <ConvertCode NAN_OP>
+  void operator()(ConvertArgs& args) const
+  {
+    type_dispatch(args.in.code(), SourceTypeDispatch<KIND, NAN_OP>{}, args);
   }
 };
 
@@ -81,8 +94,8 @@ template <VariantKind KIND>
 static void convert_template(TaskContext& context)
 {
   ConvertArgs args{
-    context.outputs()[0], context.inputs()[0], context.scalars()[0].value<int32_t>()};
-  type_dispatch(args.in.code(), SourceTypeDispatch<KIND>{}, args);
+    context.outputs()[0], context.inputs()[0], context.scalars()[0].value<ConvertCode>()};
+  op_dispatch(args.nan_op, ConvertDispatch<KIND>{}, args);
 }
 
 }  // namespace cunumeric

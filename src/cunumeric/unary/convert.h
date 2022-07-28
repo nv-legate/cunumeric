@@ -16,6 +16,7 @@
 
 #pragma once
 
+#include "cunumeric/unary/convert_util.h"
 #include "cunumeric/cunumeric.h"
 
 namespace cunumeric {
@@ -23,7 +24,7 @@ namespace cunumeric {
 struct ConvertArgs {
   const Array& out;
   const Array& in;
-  int nan_identity;
+  ConvertCode nan_op;
 };
 
 class ConvertTask : public CuNumericTask<ConvertTask> {
