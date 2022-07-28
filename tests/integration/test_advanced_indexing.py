@@ -704,6 +704,17 @@ def test():
     res_num = x_num[indx_num]
     assert np.array_equal(res, res_num)
 
+    # slicing with the scalar from array
+    offsets_np = np.ones((1,), dtype=int)
+    offsets_num = num.array(offsets_np)
+    offset_np = offsets_np[0]
+    offset_num = offsets_num[0]
+    x_np = np.zeros((300,))
+    x_num = num.zeros((300,))
+    x_np[: int(offset_np)] = 0
+    x_num[:offset_num] = 0
+    assert np.array_equal(x_np, x_num)
+
     # we do less than LEGATE_MAX_DIM becasue the dimension will be increased by
     # 1 when passig 2d index array
     for ndim in range(2, LEGATE_MAX_DIM):

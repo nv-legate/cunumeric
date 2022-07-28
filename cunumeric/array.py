@@ -823,6 +823,21 @@ class ndarray:
 
     def _convert_key(self, key, first=True):
         # Convert any arrays stored in a key to a cuNumeric array
+        if isinstance(key, slice):
+            if isinstance(key.start, ndarray):
+                start = int(key.start)
+            else:
+                start = key.start
+            if isinstance(key.stop, ndarray):
+                stop = int(key.stop)
+            else:
+                stop = key.stop
+            if isinstance(key.step, ndarray):
+                step = int(key.step)
+            else:
+                step = key.step
+            key = slice(start, stop, step)
+
         if (
             key is np.newaxis
             or key is Ellipsis
