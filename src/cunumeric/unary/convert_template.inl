@@ -71,9 +71,9 @@ struct ConvertImpl {
   }
 };
 
-template <VariantKind KIND>
+template <VariantKind KIND, ConvertCode NAN_OP>
 struct SourceTypeDispatch {
-  template <ConvertCode NAN_OP, LegateTypeCode SRC_TYPE>
+  template <LegateTypeCode SRC_TYPE>
   void operator()(ConvertArgs& args) const
   {
     auto dim = std::max(1, args.out.dim());
