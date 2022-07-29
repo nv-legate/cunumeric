@@ -227,9 +227,9 @@ def rand(*shapeargs: int) -> Union[float, ndarray]:
 
 
 def randint(
-    low: Union[int, Sequence[int]],
-    high: Union[int, Sequence[int], None] = None,
-    size: Union[int, Sequence[int], None] = None,
+    low: int,
+    high: Union[int, None] = None,
+    size: Union[NdShapeLike, None] = None,
     dtype: Union[np.dtype[Any], type, None] = int,
 ) -> Union[int, ndarray, npt.NDArray[Any]]:
     return generator.get_static_generator().integers(low, high, size, dtype)
@@ -249,9 +249,9 @@ def random(
 
 # deprecated in numpy from version 1.11.0
 def random_integers(
-    low: Union[int, Sequence[int]],
-    high: Union[int, Sequence[int], None] = None,
-    size: Union[int, Sequence[int], None] = None,
+    low: int,
+    high: Union[int, None] = None,
+    size: Union[NdShapeLike, None] = None,
     dtype: Union[np.dtype[Any], type, None] = int,
 ) -> Union[int, ndarray, npt.NDArray[Any]]:
     if high is None:
