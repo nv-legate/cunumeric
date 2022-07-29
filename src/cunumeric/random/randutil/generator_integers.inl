@@ -20,6 +20,18 @@ template <typename field_t>
 struct integers;
 
 template <>
+struct integers<int16_t> {
+  int16_t from;
+  int16_t to;
+
+  template <typename gen_t>
+  RANDUTIL_QUALIFIERS int32_t operator()(gen_t& gen)
+  {
+    return (int16_t)(curand(&gen) % (uint16_t)(to - from)) + from;
+  }
+};
+
+template <>
 struct integers<int32_t> {
   int32_t from;
   int32_t to;
@@ -27,7 +39,6 @@ struct integers<int32_t> {
   template <typename gen_t>
   RANDUTIL_QUALIFIERS int32_t operator()(gen_t& gen)
   {
-    // take two draws to get a 64 bits value
     return (int32_t)(curand(&gen) % (uint32_t)(to - from)) + from;
   }
 };

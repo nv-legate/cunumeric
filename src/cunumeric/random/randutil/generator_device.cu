@@ -31,6 +31,8 @@ extern "C" curandStatus_t randutilCreateGenerator(randutilGenerator_t* generator
 // explicit instantiations of distributions
 #include "generator_integers.inl"
 template struct randutilimpl::
+  dispatcher<randutilimpl::execlocation::DEVICE, integers<int16_t>, int16_t>;
+template struct randutilimpl::
   dispatcher<randutilimpl::execlocation::DEVICE, integers<int32_t>, int32_t>;
 template struct randutilimpl::
   dispatcher<randutilimpl::execlocation::DEVICE, integers<int64_t>, int64_t>;

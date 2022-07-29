@@ -40,6 +40,7 @@ enum class BitGeneratorType : uint32_t {
 
 // Match these to BitGeneratorDistribution in config.py
 enum class BitGeneratorDistribution : int32_t {
+  INTEGERS_16       = CUNUMERIC_BITGENDIST_INTEGERS_16,
   INTEGERS_32       = CUNUMERIC_BITGENDIST_INTEGERS_32,
   INTEGERS_64       = CUNUMERIC_BITGENDIST_INTEGERS_64,
   UNIFORM_32        = CUNUMERIC_BITGENDIST_UNIFORM_32,
