@@ -63,6 +63,12 @@ def test_scalar(value):
     assert np.array_equal(y, [[value]])
 
 
+def test_view_dtype_ndarray():
+    x = num.ones((5,))
+    assert num.array_equal(x, x.view(num.ndarray))
+    assert num.array_equal(x, x.view(num.ndarray))
+
+
 if __name__ == "__main__":
     import sys
 
