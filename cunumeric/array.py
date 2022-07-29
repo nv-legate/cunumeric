@@ -14,6 +14,7 @@
 #
 from __future__ import annotations
 
+import operator
 import warnings
 from collections.abc import Iterable
 from functools import reduce, wraps
@@ -825,6 +826,12 @@ class ndarray:
 
     def _convert_key(self, key, first=True):
         # Convert any arrays stored in a key to a cuNumeric array
+        if isinstance(key, slice):
+            key = slice(
+                operator.index(key.start) if key.start is not None else None,
+                operator.index(key.stop) if key.stop is not None else None,
+                operator.index(key.step) if key.step is not None else None,
+            )
         if (
             key is np.newaxis
             or key is Ellipsis
@@ -971,6 +978,9 @@ class ndarray:
         from ._ufunc import multiply
 
         return multiply(self, rhs, out=self)
+
+    def __index__(self) -> int:
+        return self.__array__().__index__()
 
     def __int__(self):
         """a.__int__(/)
