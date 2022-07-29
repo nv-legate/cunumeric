@@ -17,27 +17,35 @@ import pytest
 
 import cunumeric as np
 
+x = np.array([[[1, 2, 3]]])
 
-def test_basic():
-    x = np.array([[[1, 2, 3]]])
+
+def test_default():
     y = x.squeeze()
-    assert y.ndim == 1
-    assert y[0] == 1
-    assert y[1] == 2
-    assert y[2] == 3
 
+    assert np.array_equal(y, [1, 2, 3])
+
+
+def test_axis_1d():
     y = x.squeeze(axis=1)
-    assert y.ndim == 2
-    assert y[0, 0] == 1
-    assert y[0, 1] == 2
-    assert y[0, 2] == 3
 
+    assert np.array_equal(y, [[1, 2, 3]])
+
+
+def test_axis_2d():
     x = np.array([[[1], [2], [3]]])
+
     y = x.squeeze(axis=(0, 2))
-    assert y.ndim == 1
-    assert y[0] == 1
-    assert y[1] == 2
-    assert y[2] == 3
+
+    assert np.array_equal(y, [1, 2, 3])
+
+
+def test_idempotent():
+    x = np.array([1, 2, 3])
+
+    y = x.squeeze()
+
+    assert x is y
 
 
 if __name__ == "__main__":

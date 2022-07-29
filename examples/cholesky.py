@@ -27,7 +27,9 @@ def cholesky(n, dtype):
     np.linalg.cholesky(input)
     stop = time()
     flops = (n**3) / 3 + 2 * n / 3
-    print(f"{(stop - start) * 1e-3} ms, {flops / (stop - start) * 1e-3} GOP/s")
+    total = (stop - start) / 1000.0
+    print(f"Elapsed Time: {total} ms")
+    print(f"{flops / total} GOP/s")
 
 
 if __name__ == "__main__":

@@ -138,7 +138,6 @@ MANIP = (
     "asfarray",
     "asfortranarray",
     "asmatrix",
-    "asscalar",
     "atleast_1d",
     "atleast_2d",
     "atleast_3d",

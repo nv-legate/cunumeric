@@ -46,17 +46,17 @@ class _CunumericSharedLib:
     CUNUMERIC_BINOP_FLOOR_DIVIDE: int
     CUNUMERIC_BINOP_FMOD: int
     CUNUMERIC_BINOP_GCD: int
-    CUNUMERIC_BINOP_GREATER_EQUAL: int
     CUNUMERIC_BINOP_GREATER: int
+    CUNUMERIC_BINOP_GREATER_EQUAL: int
     CUNUMERIC_BINOP_HYPOT: int
     CUNUMERIC_BINOP_ISCLOSE: int
     CUNUMERIC_BINOP_LCM: int
     CUNUMERIC_BINOP_LDEXP: int
     CUNUMERIC_BINOP_LEFT_SHIFT: int
-    CUNUMERIC_BINOP_LESS_EQUAL: int
     CUNUMERIC_BINOP_LESS: int
-    CUNUMERIC_BINOP_LOGADDEXP: int
+    CUNUMERIC_BINOP_LESS_EQUAL: int
     CUNUMERIC_BINOP_LOGADDEXP2: int
+    CUNUMERIC_BINOP_LOGADDEXP: int
     CUNUMERIC_BINOP_LOGICAL_AND: int
     CUNUMERIC_BINOP_LOGICAL_OR: int
     CUNUMERIC_BINOP_LOGICAL_XOR: int
@@ -69,6 +69,49 @@ class _CunumericSharedLib:
     CUNUMERIC_BINOP_POWER: int
     CUNUMERIC_BINOP_RIGHT_SHIFT: int
     CUNUMERIC_BINOP_SUBTRACT: int
+    CUNUMERIC_BITGENERATOR: int
+    CUNUMERIC_BITGENOP_DISTRIBUTION: int
+    CUNUMERIC_BITGENTYPE_DEFAULT: int
+    CUNUMERIC_BITGENTYPE_XORWOW: int
+    CUNUMERIC_BITGENTYPE_MRG32K3A: int
+    CUNUMERIC_BITGENTYPE_MTGP32: int
+    CUNUMERIC_BITGENTYPE_MT19937: int
+    CUNUMERIC_BITGENTYPE_PHILOX4_32_10: int
+    CUNUMERIC_BITGENDIST_INTEGERS_32: int
+    CUNUMERIC_BITGENDIST_INTEGERS_64: int
+    CUNUMERIC_BITGENDIST_UNIFORM_32: int
+    CUNUMERIC_BITGENDIST_UNIFORM_64: int
+    CUNUMERIC_BITGENDIST_LOGNORMAL_32: int
+    CUNUMERIC_BITGENDIST_LOGNORMAL_64: int
+    CUNUMERIC_BITGENDIST_NORMAL_32: int
+    CUNUMERIC_BITGENDIST_NORMAL_64: int
+    CUNUMERIC_BITGENDIST_POISSON: int
+    CUNUMERIC_BITGENDIST_EXPONENTIAL_32: int
+    CUNUMERIC_BITGENDIST_EXPONENTIAL_64: int
+    CUNUMERIC_BITGENDIST_GUMBEL_32: int
+    CUNUMERIC_BITGENDIST_GUMBEL_64: int
+    CUNUMERIC_BITGENDIST_LAPLACE_32: int
+    CUNUMERIC_BITGENDIST_LAPLACE_64: int
+    CUNUMERIC_BITGENDIST_LOGISTIC_32: int
+    CUNUMERIC_BITGENDIST_LOGISTIC_64: int
+    CUNUMERIC_BITGENDIST_PARETO_32: int
+    CUNUMERIC_BITGENDIST_PARETO_64: int
+    CUNUMERIC_BITGENDIST_POWER_32: int
+    CUNUMERIC_BITGENDIST_POWER_64: int
+    CUNUMERIC_BITGENDIST_RAYLEIGH_32: int
+    CUNUMERIC_BITGENDIST_RAYLEIGH_64: int
+    CUNUMERIC_BITGENDIST_CAUCHY_32: int
+    CUNUMERIC_BITGENDIST_CAUCHY_64: int
+    CUNUMERIC_BITGENDIST_TRIANGULAR_32: int
+    CUNUMERIC_BITGENDIST_TRIANGULAR_64: int
+    CUNUMERIC_BITGENDIST_WEIBULL_32: int
+    CUNUMERIC_BITGENDIST_WEIBULL_64: int
+    CUNUMERIC_BITGENDIST_BYTES: int
+    CUNUMERIC_BITGENOP_CREATE: int
+    CUNUMERIC_BITGENOP_DESTROY: int
+    CUNUMERIC_BITGENOP_RAND_RAW: int
+    CUNUMERIC_BITORDER_BIG: int
+    CUNUMERIC_BITORDER_LITTLE: int
     CUNUMERIC_CHOOSE: int
     CUNUMERIC_CONTRACT: int
     CUNUMERIC_CONVERT: int
@@ -76,6 +119,7 @@ class _CunumericSharedLib:
     CUNUMERIC_DIAG: int
     CUNUMERIC_DOT: int
     CUNUMERIC_EYE: int
+    CUNUMERIC_FFT: int
     CUNUMERIC_FFT_C2C: int
     CUNUMERIC_FFT_C2R: int
     CUNUMERIC_FFT_D2Z: int
@@ -84,7 +128,6 @@ class _CunumericSharedLib:
     CUNUMERIC_FFT_R2C: int
     CUNUMERIC_FFT_Z2D: int
     CUNUMERIC_FFT_Z2Z: int
-    CUNUMERIC_FFT: int
     CUNUMERIC_FILL: int
     CUNUMERIC_FLIP: int
     CUNUMERIC_GEMM: int
@@ -95,6 +138,7 @@ class _CunumericSharedLib:
     CUNUMERIC_MAX_REDOPS: int
     CUNUMERIC_MAX_TASKS: int
     CUNUMERIC_NONZERO: int
+    CUNUMERIC_PACKBITS: int
     CUNUMERIC_POTRF: int
     CUNUMERIC_RAND: int
     CUNUMERIC_READ: int
@@ -110,6 +154,7 @@ class _CunumericSharedLib:
     CUNUMERIC_RED_SUM: int
     CUNUMERIC_REPEAT: int
     CUNUMERIC_SCALAR_UNARY_RED: int
+    CUNUMERIC_SEARCHSORTED: int
     CUNUMERIC_SORT: int
     CUNUMERIC_SYRK: int
     CUNUMERIC_TILE: int
@@ -131,9 +176,10 @@ class _CunumericSharedLib:
     CUNUMERIC_TYPE_POINT9: int
     CUNUMERIC_UNARY_OP: int
     CUNUMERIC_UNARY_RED: int
-    CUNUMERIC_UNIQUE_REDUCE: int
     CUNUMERIC_UNIQUE: int
+    CUNUMERIC_UNIQUE_REDUCE: int
     CUNUMERIC_UNLOAD_CUDALIBS: int
+    CUNUMERIC_UNPACKBITS: int
     CUNUMERIC_UOP_ABSOLUTE: int
     CUNUMERIC_UOP_ARCCOS: int
     CUNUMERIC_UOP_ARCCOSH: int
@@ -149,8 +195,8 @@ class _CunumericSharedLib:
     CUNUMERIC_UOP_COS: int
     CUNUMERIC_UOP_COSH: int
     CUNUMERIC_UOP_DEG2RAD: int
-    CUNUMERIC_UOP_EXP: int
     CUNUMERIC_UOP_EXP2: int
+    CUNUMERIC_UOP_EXP: int
     CUNUMERIC_UOP_EXPM1: int
     CUNUMERIC_UOP_FLOOR: int
     CUNUMERIC_UOP_FREXP: int
@@ -160,10 +206,10 @@ class _CunumericSharedLib:
     CUNUMERIC_UOP_ISFINITE: int
     CUNUMERIC_UOP_ISINF: int
     CUNUMERIC_UOP_ISNAN: int
-    CUNUMERIC_UOP_LOG: int
     CUNUMERIC_UOP_LOG10: int
     CUNUMERIC_UOP_LOG1P: int
     CUNUMERIC_UOP_LOG2: int
+    CUNUMERIC_UOP_LOG: int
     CUNUMERIC_UOP_LOGICAL_NOT: int
     CUNUMERIC_UOP_MODF: int
     CUNUMERIC_UOP_NEGATIVE: int
@@ -182,12 +228,12 @@ class _CunumericSharedLib:
     CUNUMERIC_UOP_TANH: int
     CUNUMERIC_UOP_TRUNC: int
     CUNUMERIC_WHERE: int
+    CUNUMERIC_WINDOW: int
     CUNUMERIC_WINDOW_BARLETT: int
     CUNUMERIC_WINDOW_BLACKMAN: int
     CUNUMERIC_WINDOW_HAMMING: int
     CUNUMERIC_WINDOW_HANNING: int
     CUNUMERIC_WINDOW_KAISER: int
-    CUNUMERIC_WINDOW: int
     CUNUMERIC_WRITE: int
     CUNUMERIC_ZIP: int
 
@@ -256,6 +302,7 @@ class CuNumericOpCode(IntEnum):
     BINARY_OP = _cunumeric.CUNUMERIC_BINARY_OP
     BINARY_RED = _cunumeric.CUNUMERIC_BINARY_RED
     BINCOUNT = _cunumeric.CUNUMERIC_BINCOUNT
+    BITGENERATOR = _cunumeric.CUNUMERIC_BITGENERATOR
     CHOOSE = _cunumeric.CUNUMERIC_CHOOSE
     CONTRACT = _cunumeric.CUNUMERIC_CONTRACT
     CONVERT = _cunumeric.CUNUMERIC_CONVERT
@@ -271,11 +318,13 @@ class CuNumericOpCode(IntEnum):
     MATMUL = _cunumeric.CUNUMERIC_MATMUL
     MATVECMUL = _cunumeric.CUNUMERIC_MATVECMUL
     NONZERO = _cunumeric.CUNUMERIC_NONZERO
+    PACKBITS = _cunumeric.CUNUMERIC_PACKBITS
     POTRF = _cunumeric.CUNUMERIC_POTRF
     RAND = _cunumeric.CUNUMERIC_RAND
     READ = _cunumeric.CUNUMERIC_READ
     REPEAT = _cunumeric.CUNUMERIC_REPEAT
     SCALAR_UNARY_RED = _cunumeric.CUNUMERIC_SCALAR_UNARY_RED
+    SEARCHSORTED = _cunumeric.CUNUMERIC_SEARCHSORTED
     SORT = _cunumeric.CUNUMERIC_SORT
     SYRK = _cunumeric.CUNUMERIC_SYRK
     TILE = _cunumeric.CUNUMERIC_TILE
@@ -287,6 +336,7 @@ class CuNumericOpCode(IntEnum):
     UNIQUE = _cunumeric.CUNUMERIC_UNIQUE
     UNIQUE_REDUCE = _cunumeric.CUNUMERIC_UNIQUE_REDUCE
     UNLOAD_CUDALIBS = _cunumeric.CUNUMERIC_UNLOAD_CUDALIBS
+    UNPACKBITS = _cunumeric.CUNUMERIC_UNPACKBITS
     WHERE = _cunumeric.CUNUMERIC_WHERE
     WINDOW = _cunumeric.CUNUMERIC_WINDOW
     WRITE = _cunumeric.CUNUMERIC_WRITE
@@ -433,8 +483,63 @@ class CuNumericTunable(IntEnum):
     HAS_NUMAMEM = _cunumeric.CUNUMERIC_TUNABLE_HAS_NUMAMEM
 
 
+# Match these to BitGeneratorOperation in cunumeric_c.h
+@unique
+class BitGeneratorOperation(IntEnum):
+    CREATE = _cunumeric.CUNUMERIC_BITGENOP_CREATE
+    DESTROY = _cunumeric.CUNUMERIC_BITGENOP_DESTROY
+    RAND_RAW = _cunumeric.CUNUMERIC_BITGENOP_RAND_RAW
+    DISTRIBUTION = _cunumeric.CUNUMERIC_BITGENOP_DISTRIBUTION
+
+
+# Match these to BitGeneratorType in cunumeric_c.h
+@unique
+class BitGeneratorType(IntEnum):
+    DEFAULT = _cunumeric.CUNUMERIC_BITGENTYPE_DEFAULT
+    XORWOW = _cunumeric.CUNUMERIC_BITGENTYPE_XORWOW
+    MRG32K3A = _cunumeric.CUNUMERIC_BITGENTYPE_MRG32K3A
+    MTGP32 = _cunumeric.CUNUMERIC_BITGENTYPE_MTGP32
+    MT19937 = _cunumeric.CUNUMERIC_BITGENTYPE_MT19937
+    PHILOX4_32_10 = _cunumeric.CUNUMERIC_BITGENTYPE_PHILOX4_32_10
+
+
+# Match these to BitGeneratorDistribution in cunumeric_c.h
+@unique
+class BitGeneratorDistribution(IntEnum):
+    INTEGERS_32 = _cunumeric.CUNUMERIC_BITGENDIST_INTEGERS_32
+    INTEGERS_64 = _cunumeric.CUNUMERIC_BITGENDIST_INTEGERS_64
+    UNIFORM_32 = _cunumeric.CUNUMERIC_BITGENDIST_UNIFORM_32
+    UNIFORM_64 = _cunumeric.CUNUMERIC_BITGENDIST_UNIFORM_64
+    LOGNORMAL_32 = _cunumeric.CUNUMERIC_BITGENDIST_LOGNORMAL_32
+    LOGNORMAL_64 = _cunumeric.CUNUMERIC_BITGENDIST_LOGNORMAL_64
+    NORMAL_32 = _cunumeric.CUNUMERIC_BITGENDIST_NORMAL_32
+    NORMAL_64 = _cunumeric.CUNUMERIC_BITGENDIST_NORMAL_64
+    POISSON = _cunumeric.CUNUMERIC_BITGENDIST_POISSON
+    EXPONENTIAL_32 = _cunumeric.CUNUMERIC_BITGENDIST_EXPONENTIAL_32
+    EXPONENTIAL_64 = _cunumeric.CUNUMERIC_BITGENDIST_EXPONENTIAL_64
+    GUMBEL_32 = _cunumeric.CUNUMERIC_BITGENDIST_GUMBEL_32
+    GUMBEL_64 = _cunumeric.CUNUMERIC_BITGENDIST_GUMBEL_64
+    LAPLACE_32 = _cunumeric.CUNUMERIC_BITGENDIST_LAPLACE_32
+    LAPLACE_64 = _cunumeric.CUNUMERIC_BITGENDIST_LAPLACE_64
+    LOGISTIC_32 = _cunumeric.CUNUMERIC_BITGENDIST_LOGISTIC_32
+    LOGISTIC_64 = _cunumeric.CUNUMERIC_BITGENDIST_LOGISTIC_64
+    PARETO_32 = _cunumeric.CUNUMERIC_BITGENDIST_PARETO_32
+    PARETO_64 = _cunumeric.CUNUMERIC_BITGENDIST_PARETO_64
+    POWER_32 = _cunumeric.CUNUMERIC_BITGENDIST_POWER_32
+    POWER_64 = _cunumeric.CUNUMERIC_BITGENDIST_POWER_64
+    RAYLEIGH_32 = _cunumeric.CUNUMERIC_BITGENDIST_RAYLEIGH_32
+    RAYLEIGH_64 = _cunumeric.CUNUMERIC_BITGENDIST_RAYLEIGH_64
+    CAUCHY_32 = _cunumeric.CUNUMERIC_BITGENDIST_CAUCHY_32
+    CAUCHY_64 = _cunumeric.CUNUMERIC_BITGENDIST_CAUCHY_64
+    TRIANGULAR_32 = _cunumeric.CUNUMERIC_BITGENDIST_TRIANGULAR_32
+    TRIANGULAR_64 = _cunumeric.CUNUMERIC_BITGENDIST_TRIANGULAR_64
+    WEIBULL_32 = _cunumeric.CUNUMERIC_BITGENDIST_WEIBULL_32
+    WEIBULL_64 = _cunumeric.CUNUMERIC_BITGENDIST_WEIBULL_64
+    BYTES = _cunumeric.CUNUMERIC_BITGENDIST_BYTES
+
+
 # Match these to fftType in fft_util.h
-class _FFTType:
+class FFTType:
     def __init__(
         self,
         name: str,
@@ -442,7 +547,7 @@ class _FFTType:
         input_dtype: npt.DTypeLike,
         output_dtype: npt.DTypeLike,
         single_precision: bool,
-        complex_type: Union[_FFTType, None] = None,
+        complex_type: Union[FFTType, None] = None,
     ) -> None:
         self._name = name
         self._type_id = type_id
@@ -462,7 +567,7 @@ class _FFTType:
         return self._type_id
 
     @property
-    def complex(self) -> Union[_FFTType, None]:
+    def complex(self) -> Union[FFTType, None]:
         return self._complex_type
 
     @property
@@ -478,7 +583,7 @@ class _FFTType:
         return self._single_precision
 
 
-FFT_C2C = _FFTType(
+FFT_C2C = FFTType(
     "C2C",
     _cunumeric.CUNUMERIC_FFT_C2C,
     np.complex64,
@@ -486,7 +591,7 @@ FFT_C2C = _FFTType(
     True,
 )
 
-FFT_Z2Z = _FFTType(
+FFT_Z2Z = FFTType(
     "Z2Z",
     _cunumeric.CUNUMERIC_FFT_Z2Z,
     np.complex128,
@@ -494,7 +599,7 @@ FFT_Z2Z = _FFTType(
     False,
 )
 
-FFT_R2C = _FFTType(
+FFT_R2C = FFTType(
     "R2C",
     _cunumeric.CUNUMERIC_FFT_R2C,
     np.float32,
@@ -503,7 +608,7 @@ FFT_R2C = _FFTType(
     FFT_C2C,
 )
 
-FFT_C2R = _FFTType(
+FFT_C2R = FFTType(
     "C2R",
     _cunumeric.CUNUMERIC_FFT_C2R,
     np.complex64,
@@ -512,7 +617,7 @@ FFT_C2R = _FFTType(
     FFT_C2C,
 )
 
-FFT_D2Z = _FFTType(
+FFT_D2Z = FFTType(
     "D2Z",
     _cunumeric.CUNUMERIC_FFT_D2Z,
     np.float64,
@@ -521,7 +626,7 @@ FFT_D2Z = _FFTType(
     FFT_Z2Z,
 )
 
-FFT_Z2D = _FFTType(
+FFT_Z2D = FFTType(
     "Z2D",
     _cunumeric.CUNUMERIC_FFT_Z2D,
     np.complex128,
@@ -533,7 +638,7 @@ FFT_Z2D = _FFTType(
 
 class FFTCode:
     @staticmethod
-    def real_to_complex_code(dtype: npt.DTypeLike) -> _FFTType:
+    def real_to_complex_code(dtype: npt.DTypeLike) -> FFTType:
         if dtype == np.float64:
             return FFT_D2Z
         elif dtype == np.float32:
@@ -547,7 +652,7 @@ class FFTCode:
             )
 
     @staticmethod
-    def complex_to_real_code(dtype: npt.DTypeLike) -> _FFTType:
+    def complex_to_real_code(dtype: npt.DTypeLike) -> FFTType:
         if dtype == np.complex128:
             return FFT_Z2D
         elif dtype == np.complex64:
@@ -565,6 +670,13 @@ class FFTCode:
 class FFTDirection(IntEnum):
     FORWARD = _cunumeric.CUNUMERIC_FFT_FORWARD
     INVERSE = _cunumeric.CUNUMERIC_FFT_INVERSE
+
+
+# Match these to CuNumericBitorder in cunumeric_c.h
+@unique
+class Bitorder(IntEnum):
+    BIG = _cunumeric.CUNUMERIC_BITORDER_BIG
+    LITTLE = _cunumeric.CUNUMERIC_BITORDER_LITTLE
 
 
 @unique

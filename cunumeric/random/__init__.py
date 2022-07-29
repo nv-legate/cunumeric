@@ -17,6 +17,8 @@ from __future__ import annotations
 import numpy.random as _nprandom
 from cunumeric.random.random import *
 from cunumeric.coverage import clone_module
+from cunumeric.random.bitgenerator import *
+from cunumeric.random.generator import *
 
 clone_module(_nprandom, globals())
 

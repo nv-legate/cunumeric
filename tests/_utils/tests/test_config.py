@@ -51,7 +51,7 @@ class TestConfig:
 
         assert c.debug is False
         assert c.dry_run is False
-        assert c.verbose is False
+        assert c.verbose == 0
         assert c.test_root is None
         assert c.requested_workers is None
         assert isinstance(c.legate_dir, Path)
@@ -121,9 +121,13 @@ class TestConfig:
         assert c.dry_run is True
 
     @pytest.mark.parametrize("arg", ("-v", "--verbose"))
-    def test_verbose(self, arg: str) -> None:
+    def test_verbose1(self, arg: str) -> None:
         c = m.Config(["test.py", arg])
-        assert c.verbose is True
+        assert c.verbose == 1
+
+    def test_verbose2(self) -> None:
+        c = m.Config(["test.py", "-vv"])
+        assert c.verbose == 2
 
     @pytest.mark.parametrize("arg", ("-C", "--directory"))
     def test_test_root(self, arg: str) -> None:
