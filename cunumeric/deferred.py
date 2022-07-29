@@ -2613,9 +2613,7 @@ class DeferredArray(NumPyThunk):
                 swapped.shape, dtype=rhs.dtype, inputs=(rhs, swapped)
             )
             input.copy(swapped, deep=True)
-            output = self.runtime.create_empty_thunk(  # type: ignore
-                input.shape, dtype=self.dtype
-            )
+            output = input
 
         task = output.context.create_task(CuNumericOpCode.SCAN_LOCAL)
         task.add_output(output.base)
