@@ -2190,7 +2190,9 @@ def vsplit(a: ndarray, indices: Union[int, ndarray]) -> list[ndarray]:
 
 
 @add_boilerplate("A")
-def tile(A: ndarray, reps: Union[int, ndarray]) -> ndarray:
+def tile(
+    A: ndarray, reps: Union[int, Sequence[int], npt.NDArray[np.int_]]
+) -> ndarray:
     """
     Construct an array by repeating A the number of times given by reps.
 
@@ -2211,7 +2213,7 @@ def tile(A: ndarray, reps: Union[int, ndarray]) -> ndarray:
     ----------
     A : array_like
         The input array.
-    reps : array_like
+    reps : 1d array_like
         The number of repetitions of `A` along each axis.
 
     Returns
@@ -2227,17 +2229,19 @@ def tile(A: ndarray, reps: Union[int, ndarray]) -> ndarray:
     --------
     Multiple GPUs, Multiple CPUs
     """
-    computed_reps: Union[ndarray, Sequence[int]]
+    computed_reps: tuple[int, ...]
     if isinstance(reps, int):
         computed_reps = (reps,)
     else:
-        computed_reps = reps
+        if np.ndim(reps) > 1:
+            raise TypeError("`reps` must be a 1d sequence")
+        computed_reps = tuple(reps)
     # Figure out the shape of the destination array
-    out_dims = A.ndim if A.ndim > len(computed_reps) else len(computed_reps)
+    out_dims = _builtin_max(A.ndim, len(computed_reps))
     # Prepend ones until the dimensions match
     while len(computed_reps) < out_dims:
         computed_reps = (1,) + computed_reps
-    out_shape: tuple[Any, ...] = ()
+    out_shape: NdShape = ()
     # Prepend dimensions if necessary
     for dim in range(out_dims - A.ndim):
         out_shape += (computed_reps[dim],)
