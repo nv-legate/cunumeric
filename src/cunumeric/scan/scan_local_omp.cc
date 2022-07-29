@@ -71,7 +71,7 @@ struct ScanLocalNanImplBody<VariantKind::OMP, OP_CODE, CODE, DIM> {
   using VAL = legate_type_of<CODE>;
 
   struct convert_nan_func {
-    cunumeric::isnan<CODE> isn;
+    cunumeric::Isnan<CODE> isn;
     VAL operator()(VAL x) const { return isn(x) ? (VAL)ScanOp<OP_CODE, CODE>::nan_identity : x; }
   };
 

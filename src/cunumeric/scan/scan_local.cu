@@ -84,7 +84,7 @@ struct ScanLocalNanImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
   using VAL = legate_type_of<CODE>;
 
   struct convert_nan_func {
-    cunumeric::isnan<CODE> isn;
+    cunumeric::Isnan<CODE> isn;
     __device__ VAL operator()(VAL x)
     {
       return isn(x) ? (VAL)ScanOp<OP_CODE, CODE>::nan_identity : x;

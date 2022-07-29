@@ -21,10 +21,10 @@
 namespace cunumeric {
 
 template <legate::LegateTypeCode CODE>
-struct isnan {
+struct Isnan {
   using T = legate::legate_type_of<CODE>;
 
-  isnan() {}
+  Isnan() {}
 
   template <typename _T = T, std::enable_if_t<std::is_integral<_T>::value>* = nullptr>
   constexpr bool operator()(const T& x) const
