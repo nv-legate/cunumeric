@@ -35,17 +35,16 @@ constexpr decltype(auto) op_dispatch(ScanCode op_code,
 {
   switch (op_code) {
     case ScanCode::PROD:
-      switch (nan_to_identity) {
-        case true:
-          return f.template operator()<ScanCode::PROD, true>(std::forward<Fnargs>(args)...);
-        case false:
-          return f.template operator()<ScanCode::PROD, false>(std::forward<Fnargs>(args)...);
+      if (nan_to_identity) {
+        return f.template operator()<ScanCode::PROD, true>(std::forward<Fnargs>(args)...);
+      } else {
+        return f.template operator()<ScanCode::PROD, false>(std::forward<Fnargs>(args)...);
       }
     case ScanCode::SUM:
-      switch (nan_to_identity) {
-        case true: return f.template operator()<ScanCode::SUM, true>(std::forward<Fnargs>(args)...);
-        case false:
-          return f.template operator()<ScanCode::SUM, false>(std::forward<Fnargs>(args)...);
+      if (nan_to_identity) {
+        return f.template operator()<ScanCode::SUM, true>(std::forward<Fnargs>(args)...);
+      } else {
+        return f.template operator()<ScanCode::SUM, false>(std::forward<Fnargs>(args)...);
       }
     default: break;
   }

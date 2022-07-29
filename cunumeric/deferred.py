@@ -2593,7 +2593,7 @@ class DeferredArray(NumPyThunk):
         self,
         op: int,
         rhs: Any,
-        axis: Optional[int],
+        axis: int,
         dtype: Optional[np.dtype[Any]],
         nan_to_identity: bool,
     ) -> None:
@@ -2613,7 +2613,7 @@ class DeferredArray(NumPyThunk):
                 swapped.shape, dtype=rhs.dtype, inputs=(rhs, swapped)
             )
             input.copy(swapped, deep=True)
-            output = self.runtime.create_empty_thunk(
+            output = self.runtime.create_empty_thunk(  # type: ignore
                 input.shape, dtype=self.dtype
             )
 

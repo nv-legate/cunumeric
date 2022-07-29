@@ -30,8 +30,6 @@ struct ScanLocalNanImplBody;
 
 template <VariantKind KIND, ScanCode OP_CODE, bool NAN_TO_IDENTITY>
 struct ScanLocalImpl {
-  // NOTE: currently NAN conversion is not supported for complex types, once implemented the
-  // following templatization should also check for complex types.
   // Case where NANs are transformed
   template <LegateTypeCode CODE,
             int DIM,
