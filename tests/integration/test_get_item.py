@@ -38,8 +38,6 @@ def test_scalar_ndarray_as_index(arr):
     offset = offsets[3]  # 3
     # assert arr[offset] == 1  # TODO: doesn't work when arr is a num.ndarray
     assert np.array_equal(arr[offset - 2 : offset], [3, 2])
-    arr[offset - 2 : offset] = [-1, -1]
-    assert np.array_equal(arr, [4, -1, -1, 1, 0])
 
 
 if __name__ == "__main__":
