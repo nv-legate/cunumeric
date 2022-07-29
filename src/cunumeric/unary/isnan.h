@@ -20,32 +20,24 @@
 
 namespace cunumeric {
 
-template <legate::LegateTypeCode CODE>
-struct Isnan {
-  using T = legate::legate_type_of<CODE>;
-
-  Isnan() {}
-
-  template <typename _T = T, std::enable_if_t<std::is_integral<_T>::value>* = nullptr>
-  constexpr bool operator()(const T& x) const
+  template <typename T, std::enable_if_t<std::is_integral<T>::value>* = nullptr>
+  constexpr bool is_nan(const T& x)
   {
     return false;
   }
 
-  template <typename _T = T, std::enable_if_t<std::is_floating_point<_T>::value>* = nullptr>
-  __CUDA_HD__ bool operator()(const T& x) const
+  template <typename T, std::enable_if_t<std::is_floating_point<T>::value>* = nullptr>
+  __CUDA_HD__ bool is_nan(const T& x)
   {
-    using std::isnan;
-    return isnan(x);
+    return std::isnan(x);
   }
 
-  template <typename _T>
-  __CUDA_HD__ bool operator()(const complex<_T>& x) const
+  template <typename T>
+  __CUDA_HD__ bool is_nan(const complex<T>& x)
   {
     return std::isnan(x.imag()) || std::isnan(x.real());
   }
 
-  __CUDA_HD__ bool operator()(const __half& x) const { return isnan(x); }
-};
+  __CUDA_HD__ inline bool is_nan(const __half& x) { return isnan(x); }
 
 }  // namespace cunumeric
