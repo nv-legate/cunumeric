@@ -22,6 +22,7 @@ from typing import TYPE_CHECKING, Any, Optional, Sequence, Union, cast
 
 import numpy as np
 import opt_einsum as oe  # type: ignore [import]
+from cunumeric.coverage import is_implemented
 from numpy.core.numeric import (  # type: ignore [attr-defined]
     normalize_axis_tuple,
 )
@@ -36,6 +37,8 @@ from .types import NdShape, NdShapeLike
 from .utils import AxesPairLike, inner_modes, matmul_modes, tensordot_modes
 
 if TYPE_CHECKING:
+    from typing import Callable
+
     import numpy.typing as npt
 
     from ._ufunc.ufunc import CastingKind
@@ -1200,9 +1203,9 @@ def moveaxis(
 # Changing number of dimensions
 
 
-def _reshape_recur(ndim: int, arr: ndarray) -> tuple[int]:
+def _reshape_recur(ndim: int, arr: ndarray) -> tuple[int, ...]:
     if arr.ndim < ndim:
-        cur_shape = _reshape_recur(ndim - 1, arr)
+        cur_shape: tuple[int, ...] = _reshape_recur(ndim - 1, arr)
         if ndim == 2:
             cur_shape = (1,) + cur_shape
         else:
@@ -1213,19 +1216,19 @@ def _reshape_recur(ndim: int, arr: ndarray) -> tuple[int]:
 
 
 def _atleast_nd(
-    ndim: int, arys: Sequence[ndarray]
-) -> Union(list[ndarray], ndarray):
+    ndim: int, arys: tuple[ndarray, ...]
+) -> Union[list[ndarray], ndarray]:
     inputs = list(convert_to_cunumeric_ndarray(arr) for arr in arys)
     # 'reshape' change the shape of arrays
     # only when arr.shape != _reshape_recur(ndim,arr)
     result = list(arr.reshape(_reshape_recur(ndim, arr)) for arr in inputs)
     # if the number of arrys in `arys` is 1, the return value is a single array
     if len(result) == 1:
-        result = result[0]
+        return result[0]
     return result
 
 
-def atleast_1d(*arys: Sequence[ndarray]) -> Union(list[ndarray], ndarray):
+def atleast_1d(*arys: ndarray) -> Union[list[ndarray], ndarray]:
     """
 
     Convert inputs to arrays with at least one dimension.
@@ -1254,7 +1257,7 @@ def atleast_1d(*arys: Sequence[ndarray]) -> Union(list[ndarray], ndarray):
     return _atleast_nd(1, arys)
 
 
-def atleast_2d(*arys: Sequence[ndarray]) -> Union(list[ndarray], ndarray):
+def atleast_2d(*arys: ndarray) -> Union[list[ndarray], ndarray]:
     """
 
     View inputs as arrays with at least two dimensions.
@@ -1284,7 +1287,7 @@ def atleast_2d(*arys: Sequence[ndarray]) -> Union(list[ndarray], ndarray):
     return _atleast_nd(2, arys)
 
 
-def atleast_3d(*arys: Sequence[ndarray]) -> Union(list[ndarray], ndarray):
+def atleast_3d(*arys: ndarray) -> Union[list[ndarray], ndarray]:
     """
 
     View inputs as arrays with at least three dimensions.
@@ -1814,7 +1817,7 @@ def vstack(tup: Sequence[ndarray]) -> ndarray:
     Multiple GPUs, Multiple CPUs
     """
     # Reshape arrays in the `array_list` if needed before concatenation
-    reshaped = _atleast_nd(2, tup)
+    reshaped = _atleast_nd(2, tuple(tup))
     if not isinstance(reshaped, list):
         reshaped = [reshaped]
     tup, common_info = check_shape_dtype(reshaped, vstack.__name__, 0)
@@ -1904,7 +1907,7 @@ def dstack(tup: Sequence[ndarray]) -> ndarray:
     Multiple GPUs, Multiple CPUs
     """
     # Reshape arrays to (1,N,1) for ndim ==1 or (M,N,1) for ndim == 2:
-    reshaped = _atleast_nd(3, tup)
+    reshaped = _atleast_nd(3, tuple(tup))
     if not isinstance(reshaped, list):
         reshaped = [reshaped]
     tup, common_info = check_shape_dtype(reshaped, dstack.__name__, 2)
@@ -2547,6 +2550,65 @@ def indices(
             )
             res_array[i] = idx
         return res_array
+
+
+def mask_indices(
+    n: int, mask_func: Callable[[ndarray, int], ndarray], k: int = 0
+) -> tuple[ndarray, ...]:
+    """
+    Return the indices to access (n, n) arrays, given a masking function.
+
+    Assume `mask_func` is a function that, for a square array a of size
+    ``(n, n)`` with a possible offset argument `k`, when called as
+    ``mask_func(a, k)`` returns a new array with zeros in certain locations
+    (functions like :func:`cunumeric.triu` or :func:`cunumeric.tril`
+    do precisely this). Then this function returns the indices where
+    the non-zero values would be located.
+
+    Parameters
+    ----------
+    n : int
+        The returned indices will be valid to access arrays of shape (n, n).
+    mask_func : callable
+        A function whose call signature is similar to that of
+        :func:`cunumeric.triu`, :func:`cunumeric.tril`.
+        That is, ``mask_func(x, k)`` returns a boolean array, shaped like `x`.
+        `k` is an optional argument to the function.
+    k : scalar
+        An optional argument which is passed through to `mask_func`. Functions
+        like :func:`cunumeric.triu`, :func:`cunumeric,tril`
+        take a second argument that is interpreted as an offset.
+
+    Returns
+    -------
+    indices : tuple of arrays.
+        The `n` arrays of indices corresponding to the locations where
+        ``mask_func(np.ones((n, n)), k)`` is True.
+
+    See Also
+    --------
+    numpy.mask_indices
+
+    Notes
+    -----
+    WARNING: `mask_indices` expects `mask_function` to call cuNumeric functions
+    for good performance. In case non-cuNumeric functions are called by
+    `mask_function`, cuNumeric will have to materialize all data on the host
+    which might result in running out of system memory.
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    # this implementation is based on the Cupy
+    a = ones((n, n), dtype=bool)
+    if not is_implemented(mask_func):
+        runtime.warn(
+            "Calling non-cuNumeric functions in mask_func can result in bad "
+            "performance",
+            category=UserWarning,
+        )
+    return mask_func(a, k).nonzero()
 
 
 def diag_indices(n: int, ndim: int = 2) -> tuple[ndarray, ...]:
