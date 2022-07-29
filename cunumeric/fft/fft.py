@@ -14,18 +14,11 @@
 #
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Sequence, Union, cast
+from typing import TYPE_CHECKING, Sequence, Union
 
 import numpy as np
 
-from ..config import (
-    FFT_C2C,
-    FFT_Z2Z,
-    FFTCode,
-    FFTDirection,
-    FFTNormalization,
-    FFTType,
-)
+from ..config import FFT_C2C, FFT_Z2Z, FFTCode, FFTDirection, FFTNormalization
 from ..module import add_boilerplate
 
 if TYPE_CHECKING:
@@ -648,7 +641,7 @@ def rfftn(
             return r2c.fft(
                 s=s[0:-1],
                 axes=axes[0:-1],
-                kind=cast(FFTType, fft_type.complex),
+                kind=fft_type.complex,
                 direction=FFTDirection.FORWARD,
                 norm=norm,
             )
@@ -863,7 +856,7 @@ def irfftn(
             c2r = a.fft(
                 s=s[0:-1],
                 axes=axes[0:-1],
-                kind=cast(FFTType, fft_type.complex),
+                kind=fft_type.complex,
                 direction=FFTDirection.INVERSE,
                 norm=norm,
             )
