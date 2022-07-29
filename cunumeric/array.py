@@ -31,7 +31,7 @@ from legate.core import Array
 from .config import FFTDirection, FFTNormalization, UnaryOpCode, UnaryRedCode
 from .coverage import clone_np_ndarray
 from .runtime import runtime
-from .utils import dot_modes
+from .utils import _broadcast_shapes, dot_modes
 
 FALLBACK_WARNING = (
     "cuNumeric has not fully implemented {name} "
@@ -160,6 +160,7 @@ class ndarray:
         order=None,
         thunk=None,
         inputs=None,
+        broadcasted=False,
     ) -> None:
         # `inputs` being a cuNumeric ndarray is definitely a bug
         assert not isinstance(inputs, ndarray)
@@ -191,6 +192,7 @@ class ndarray:
         else:
             self._thunk = thunk
         self._legate_data = None
+        self._broadcasted = broadcasted
 
     # Support for the Legate data interface
     @property
@@ -1503,6 +1505,16 @@ class ndarray:
         Set ``self[key]=value``.
 
         """
+        if self._broadcasted is True:
+            warnings.warn(
+                "This array is a broadcasted array from "
+                "cunumeric.broadcast_arrays. "
+                "Writing to this array will be prohibited "
+                "in the future release "
+                "If this write is intetional, make a copy before writing ",
+                category=DeprecationWarning,
+            )
+
         if key is None:
             raise KeyError("invalid key passed to cunumeric.ndarray")
         if value.dtype != self.dtype:
@@ -1930,14 +1942,12 @@ class ndarray:
         # we need to broadcast all arrays in choices with
         # input and output arrays
         if out is not None:
-            out_shape = np.broadcast_shapes(
-                a.shape, choices[0].shape, out.shape
-            )
+            out_shape = _broadcast_shapes(a.shape, choices[0].shape, out.shape)
         else:
-            out_shape = np.broadcast_shapes(a.shape, choices[0].shape)
+            out_shape = _broadcast_shapes(a.shape, choices[0].shape)
 
         for c in choices:
-            out_shape = np.broadcast_shapes(out_shape, c.shape)
+            out_shape = _broadcast_shapes(out_shape, c.shape)
 
         # if output is provided, it shape should be the same as out_shape
         if out is not None and out.shape != out_shape:
@@ -3564,13 +3574,13 @@ class ndarray:
             # If the shapes don't match see if we can broadcast
             # This will raise an exception if they can't be broadcast together
             if isinstance(where, ndarray):
-                np.broadcast_shapes(src.shape, dst.shape, where.shape)
+                _broadcast_shapes(src.shape, dst.shape, where.shape)
             else:
-                np.broadcast_shapes(src.shape, dst.shape)
+                _broadcast_shapes(src.shape, dst.shape)
         else:
             # No output yet, so make one
             if isinstance(where, ndarray):
-                out_shape = np.broadcast_shapes(src.shape, where.shape)
+                out_shape = _broadcast_shapes(src.shape, where.shape)
             else:
                 out_shape = src.shape
             if dtype is not None:
@@ -3683,7 +3693,7 @@ class ndarray:
         #       or a where mask is given.
         if isinstance(where, ndarray):
             # The where array has to broadcast to the src.shape
-            if np.broadcast_shapes(src.shape, where.shape) != src.shape:
+            if _broadcast_shapes(src.shape, where.shape) != src.shape:
                 raise ValueError(
                     '"where" array must broadcast against source array '
                     "for reduction"
@@ -3767,7 +3777,7 @@ class ndarray:
         # Collapsing down to a single value in this case
         # Check to see if we need to broadcast between inputs
         if one.shape != two.shape:
-            broadcast = np.broadcast_shapes(one.shape, two.shape)
+            broadcast = _broadcast_shapes(one.shape, two.shape)
         else:
             broadcast = None
 
@@ -3796,7 +3806,7 @@ class ndarray:
         two = two._maybe_convert(common_type, args)._thunk
 
         # Compute the output shape
-        out_shape = np.broadcast_shapes(mask.shape, one.shape, two.shape)
+        out_shape = _broadcast_shapes(mask.shape, one.shape, two.shape)
         out = ndarray(shape=out_shape, dtype=common_type, inputs=args)
         out._thunk.where(mask, one, two)
         return out

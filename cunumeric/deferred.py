@@ -53,7 +53,7 @@ from .config import (
 from .linalg.cholesky import cholesky
 from .sort import sort
 from .thunk import NumPyThunk
-from .utils import is_advanced_indexing
+from .utils import _broadcast_shapes, is_advanced_indexing
 
 if TYPE_CHECKING:
     import numpy.typing as npt
@@ -392,7 +392,7 @@ class DeferredArray(NumPyThunk):
         shapes = tuple(a.shape for a in arrays)
         if len(arrays) > 1:
             # TODO: replace with cunumeric.broadcast_shapes, when available
-            b_shape = np.broadcast_shapes(*shapes)
+            b_shape = _broadcast_shapes(*shapes)
         else:
             b_shape = arrays[0].shape
 
@@ -860,6 +860,11 @@ class DeferredArray(NumPyThunk):
                     rhs = rhs_copy
 
                 view.copy(rhs, deep=False)
+
+    def broadcast_to(self, shape: Union[tuple(int), int]) -> NumPyThunk:
+        return DeferredArray(
+            self.runtime, base=self._broadcast(shape), dtype=self.dtype
+        )
 
     def reshape(self, newshape: NdShape, order: OrderType) -> NumPyThunk:
         assert isinstance(newshape, Iterable)

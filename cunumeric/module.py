@@ -34,7 +34,13 @@ from .array import add_boilerplate, convert_to_cunumeric_ndarray, ndarray
 from .config import BinaryOpCode, UnaryRedCode
 from .runtime import runtime
 from .types import NdShape, NdShapeLike
-from .utils import AxesPairLike, inner_modes, matmul_modes, tensordot_modes
+from .utils import (
+    AxesPairLike,
+    _broadcast_shapes,
+    inner_modes,
+    matmul_modes,
+    tensordot_modes,
+)
 
 if TYPE_CHECKING:
     from typing import Callable
@@ -1222,7 +1228,8 @@ def _atleast_nd(
     # 'reshape' change the shape of arrays
     # only when arr.shape != _reshape_recur(ndim,arr)
     result = list(arr.reshape(_reshape_recur(ndim, arr)) for arr in inputs)
-    # if the number of arrys in `arys` is 1, the return value is a single array
+    # if the number of arrays in `arys` is 1,
+    # the return value is a single array
     if len(result) == 1:
         return result[0]
     return result
@@ -1356,6 +1363,243 @@ def squeeze(a: ndarray, axis: Optional[NdShapeLike] = None) -> ndarray:
     Multiple GPUs, Multiple CPUs
     """
     return a.squeeze(axis=axis)
+
+
+def broadcast_shapes(*args: Sequence(Union[tuple(int), int])) -> tuple(int):
+    """
+
+    Broadcast the input shapes into a single shape.
+
+    Parameters
+    ----------
+    `*args` : tuples of ints, or ints
+        The shapes to be broadcast against each other.
+
+    Returns
+    -------
+    tuple : Broadcasted shape.
+
+    See Also
+    --------
+    numpy.broadcast_shapes
+
+    Availability
+    --------
+    Single CPU
+
+    """
+    return _broadcast_shapes(*args)
+
+
+def _broadcast_to(
+    arr: ndarray,
+    shape: Union[tuple(int), int],
+    subok: bool = False,
+    writeable: bool = False,
+    broadcasted: bool = False,
+) -> ndarray:
+    # create an array object w/ options passed from 'broadcast' routines
+    arr = array(arr, copy=False, subok=subok)
+    # 'broadcast_to' returns a read-only view of the original array
+    out_shape = broadcast_shapes(arr.shape, shape)
+    result = ndarray(
+        shape=out_shape,
+        thunk=arr._thunk.broadcast_to(out_shape),
+        broadcasted=broadcasted,
+    )
+    if result.flags["WRITEABLE"] != writeable:
+        result.setflags(write=writeable)
+    return result
+
+
+@add_boilerplate("arr")
+def broadcast_to(
+    arr: ndarray, shape: Union[tuple(int), int], subok: bool = False
+) -> ndarray:
+
+    """
+
+    Broadcast an array to a new shape.
+
+    Parameters
+    ----------
+    arr : array_like
+        The array to broadcast.
+    shape : tuple or int
+        The shape of the desired array.
+        A single integer i is interpreted as (i,).
+    subok : bool, optional
+        If True, then sub-classes will be passed-through,
+        otherwise the returned array will be forced to
+        be a base-class array (default).
+
+    values : array_like
+        These values are appended to a copy of arr.
+        It must be of the correct
+        shape (the same shape as arr, excluding axis).
+        If axis is not specified, values can be any shape
+        and will be flattened before use.
+    axis : int, optional
+        The axis along which values are appended.
+        If axis is not given, both `arr` and `values`
+        are flattened before use.
+
+    Returns
+    -------
+    broadcast : array
+        A readonly view on the original array with the given shape.
+        It is typically not contiguous.
+        Furthermore, more than one element of a broadcasted array
+        may refer to a single memory location.
+
+    See Also
+    --------
+    numpy.broadcast_to
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+
+    """
+    return _broadcast_to(arr, shape, subok)
+
+
+def _broadcast_arrays(
+    *arrays: Sequence(ndarray),
+    subok: bool = False,
+    writeable: bool = True,
+    broadcasted: bool = False,
+) -> list(ndarray):
+    # create an arry object w/ options passed from 'broadcast' routines
+    arrays = list(array(arr, copy=False, subok=subok) for arr in arrays)
+    # check if the broadcast can happen in the input list of arrays
+    shapes = list(arr.shape for arr in arrays)
+    out_shape = broadcast_shapes(*shapes)
+    # broadcast to the final shape
+    arrays = list(
+        _broadcast_to(arr, out_shape, subok, writeable, broadcasted)
+        for arr in arrays
+    )
+    return arrays
+
+
+def broadcast_arrays(
+    *args: Sequence(Any), subok: bool = False
+) -> list(ndarray):
+    """
+
+    Broadcast any number of arrays against each other.
+
+    Parameters
+    ----------
+    `*args` : array_likes
+        The arrays to broadcast.
+
+    subok : bool, optional
+        If True, then sub-classes will be passed-through,
+        otherwise the returned arrays will be forced to
+        be a base-class array (default).
+
+    Returns
+    -------
+    broadcasted : list of arrays
+        These arrays are views on the original arrays.
+        They are typically not contiguous.
+        Furthermore, more than one element of a broadcasted array
+        may refer to a single memory location.
+        If you need to write to the arrays, make copies first.
+        While you can set the writable flag True,
+        writing to a single output value may end up changing
+        more than one location in the output array.
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+
+    """
+    # writeable will be set to 'False'
+    # when 'numpy' changes the output of this routine
+    # as read-only views of the original arrays in the future release
+    args = list(convert_to_cunumeric_ndarray(arr) for arr in args)
+    return _broadcast_arrays(
+        *args, subok=subok, writeable=True, broadcasted=True
+    )
+
+
+class broadcast:
+    def __init__(self, *arrays: Sequence(Any)) -> None:
+        """
+
+        Produce an object that mimics broadcasting.
+
+        Parameters
+        ----------
+        `*arrays` : array_likes
+            The arrays to broadcast.
+
+        subok : bool, optional
+            If True, then sub-classes will be passed-through,
+            otherwise the returned arrays will be forced to
+            be a base-class array (default).
+
+        Returns
+        -------
+        b : broadcast object
+            Broadcast the input parameters against one another,
+            and return an object that encapsulates the result.
+            Amongst others, it has shape and nd properties,
+            and may be used as an iterator.
+
+        """
+        arrays = list(convert_to_cunumeric_ndarray(arr) for arr in arrays)
+        arrays = _broadcast_arrays(*arrays)
+        self._iters = tuple(arr.flat for arr in arrays)
+        self._index = 0
+        self._shape = arrays[0].shape
+        self._size = np.prod(self.shape)
+
+    def __iter__(self):
+        self._index = 0
+        return self
+
+    def __next__(self):
+        if self._index < self.size:
+            result = tuple(each[self._index] for each in self._iters)
+            self._index += 1
+            return result
+        else:
+            raise StopIteration
+
+    def reset(self):
+        self._index = 0
+
+    @property
+    def index(self):
+        return self._index
+
+    @property
+    def iters(self):
+        return self._iters
+
+    @property
+    def numiter(self):
+        return len(self._iters)
+
+    @property
+    def nd(self):
+        return self.ndim
+
+    @property
+    def ndim(self):
+        return len(self.shape)
+
+    @property
+    def shape(self):
+        return self._shape
+
+    @property
+    def size(self):
+        return self._size
 
 
 # Joining arrays
@@ -4218,7 +4462,7 @@ def isclose(
             "cuNumeric does not support `equal_nan` yet for isclose"
         )
 
-    out_shape = np.broadcast_shapes(a.shape, b.shape)
+    out_shape = _broadcast_shapes(a.shape, b.shape)
     out = empty(out_shape, dtype=bool)
 
     common_type = ndarray.find_common_type(a, b)
