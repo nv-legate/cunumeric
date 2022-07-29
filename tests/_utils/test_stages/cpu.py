@@ -14,13 +14,11 @@
 #
 from __future__ import annotations
 
-from pathlib import Path
-from subprocess import CompletedProcess
-from typing import Iterator
-
+from .. import FeatureType
 from ..config import Config
-from ..system import ArgList, System
-from .test_stage import TestStage
+from ..system import System
+from ..types import ArgList, EnvDict
+from .test_stage import Shard, StageSpec, TestStage, adjust_workers
 
 
 class CPU(TestStage):
@@ -36,30 +34,35 @@ class CPU(TestStage):
 
     """
 
-    kind = "cpus"
+    kind: FeatureType = "cpus"
+
+    args = ["-cunumeric:test"]
+
+    env: EnvDict = {}
 
     def __init__(self, config: Config, system: System) -> None:
-        self.workers = self.compute_workers(config, system)
+        self._init(config, system)
 
-    def run(
-        self, test_file: Path, config: Config, system: System
-    ) -> CompletedProcess[str]:
-        test_path = config.root_dir / test_file
-        stage_args = ["-cunumeric:test"] + next(self.cpu_args(config))
-        file_args = self.file_args(test_file, config)
+    def shard_args(self, shard: Shard, config: Config) -> ArgList:
+        return [
+            "--cpus",
+            str(len(shard)),
+            "--cpu-bind",
+            ",".join(str(x) for x in shard),
+        ]
 
-        cmd = [str(config.legate_path), str(test_path)]
-        cmd += stage_args + file_args + config.extra_args
+    def compute_spec(self, config: Config, system: System) -> StageSpec:
+        N = len(system.cpus)
+        degree = N // (config.cpus + config.utility)
 
-        result = system.run(cmd, env=system.env)
-        self._log_proc(result, test_file, config.verbose)
-        return result
+        if config.verbose:
+            workers = 1
+        else:
+            workers = adjust_workers(degree, config.requested_workers)
 
-    def cpu_args(self, config: Config) -> Iterator[ArgList]:
-        yield ["--cpus", str(config.cpus)]
+        # https://docs.python.org/3/library/itertools.html#itertools-recipes
+        # grouper('ABCDEF', 3) --> ABC DEF
+        args = [iter(range(workers * config.cpus))] * config.cpus
+        shards = list(zip(*args))
 
-    def compute_workers(self, config: Config, system: System) -> int:
-        if config.requested_workers is not None:
-            return config.requested_workers
-
-        return 1 if config.verbose else len(system.cpus) // config.cpus
+        return StageSpec(workers, shards)

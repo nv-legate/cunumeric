@@ -14,14 +14,13 @@
 #
 from __future__ import annotations
 
-from pathlib import Path
-from subprocess import CompletedProcess
-from typing import Iterator
-
-from .. import DEFAULT_GPU_MEMORY_BUDGET, DEFAULT_GPU_PARALLELISM
+from .. import FeatureType
 from ..config import Config
-from ..system import ArgList, System
-from .test_stage import TestStage
+from ..system import System
+from ..types import ArgList, EnvDict
+from .test_stage import Shard, StageSpec, TestStage, adjust_workers
+
+BLOAT_FACTOR = 1.5  # hard coded for now
 
 
 class GPU(TestStage):
@@ -37,42 +36,41 @@ class GPU(TestStage):
 
     """
 
-    kind = "cuda"
+    kind: FeatureType = "cuda"
+
+    args = ["-cunumeric:test"]
+
+    env: EnvDict = {}
 
     def __init__(self, config: Config, system: System) -> None:
-        self.workers = self.compute_workers(config, system)
+        self._init(config, system)
 
-    def run(
-        self, test_file: Path, config: Config, system: System
-    ) -> CompletedProcess[str]:
-        test_path = config.root_dir / test_file
-        stage_args = ["-cunumeric:test"] + next(self.gpu_args(config))
-        file_args = self.file_args(test_file, config)
+    def shard_args(self, shard: Shard, config: Config) -> ArgList:
+        return [
+            "--gpus",
+            str(len(shard)),
+            "--gpu-bind",
+            ",".join(str(x) for x in shard),
+        ]
 
-        cmd = [str(config.legate_path), str(test_path)]
-        cmd += stage_args + file_args + config.extra_args
+    def compute_spec(self, config: Config, system: System) -> StageSpec:
+        N = len(system.gpus)
+        degree = N // config.gpus
 
-        result = system.run(cmd, env=system.env)
-        self._log_proc(result, test_file, config.verbose)
-        return result
+        if config.verbose:
+            workers = 1
+        else:
+            fbsize = min(gpu.total for gpu in system.gpus)
+            oversub_factor = int(fbsize // (config.fbmem * BLOAT_FACTOR))
+            workers = adjust_workers(
+                degree * oversub_factor, config.requested_workers
+            )
 
-    def gpu_args(self, config: Config) -> Iterator[ArgList]:
-        yield ["--gpus", str(config.gpus)]
+        # https://docs.python.org/3/library/itertools.html#itertools-recipes
+        # grouper('ABCDEF', 3) --> ABC DEF
+        args = [iter(range(degree * config.gpus))] * config.gpus
+        per_worker_shards = list(zip(*args))
 
-    def compute_workers(self, config: Config, system: System) -> int:
+        shards = per_worker_shards * workers
 
-        gpus = system.gpus
-        assert len(gpus)
-
-        min_free = min(info.free for info in gpus)
-
-        parallelism_per_gpu = min(
-            DEFAULT_GPU_PARALLELISM, min_free // DEFAULT_GPU_MEMORY_BUDGET
-        )
-
-        return (
-            parallelism_per_gpu
-            * (len(gpus) // config.gpus)
-            * config.gpus
-            // len(gpus)
-        )
+        return StageSpec(workers, shards)

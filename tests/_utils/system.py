@@ -20,33 +20,14 @@ from __future__ import annotations
 
 import multiprocessing
 import os
-from dataclasses import dataclass
 from subprocess import PIPE, STDOUT, CompletedProcess, run as stdlib_run
-from typing import Any, Dict, List, Sequence
+from typing import Sequence
 
-from typing_extensions import TypeAlias
-
-from . import DEFAULT_PROCESS_ENV
 from .logger import LOG
+from .types import CPUInfo, EnvDict, GPUInfo
 from .ui import shell
 
 SKIPPED_RETURNCODE = -99999
-
-
-@dataclass(frozen=True)
-class CPUInfo:
-    id: int
-
-
-@dataclass(frozen=True)
-class GPUInfo:
-    id: int
-    free: int
-
-
-ArgList = List[str]
-
-EnvDict: TypeAlias = Dict[str, str]
 
 
 class System:
@@ -72,18 +53,43 @@ class System:
         self,
         cmd: Sequence[str],
         *,
-        env: dict[str, Any] | None = None,
+        env: EnvDict | None = None,
         cwd: str | None = None,
     ) -> CompletedProcess[str]:
+        """Wrapper for subprocess.run that encapsulates logging.
+
+        Parameters
+        ----------
+        cmd : sequence of str
+            The command to run, split on whitespace into a sequence
+            of strings
+
+        env : dict[str, str] or None, optional, default: None
+            Environment variables to apply when running the command
+
+        cwd: str or None, optional, default: None
+            A current working directory to pass to stdlib ``run``.
+
+        """
+
+        env = env or {}
+
+        envstr = (
+            " ".join(f"{k}={v}" for k, v in env.items())
+            + min(len(env), 1) * " "
+        )
 
         if self.dry_run or self.debug:
-            LOG.record(shell(" ".join(cmd)))
+            LOG.record(shell(envstr + " ".join(cmd)))
 
         if self.dry_run:
             return CompletedProcess(cmd, SKIPPED_RETURNCODE, stdout="")
 
+        full_env = dict(os.environ)
+        full_env.update(env)
+
         return stdlib_run(
-            cmd, cwd=cwd, env=env, stdout=PIPE, stderr=STDOUT, text=True
+            cmd, cwd=cwd, env=full_env, stdout=PIPE, stderr=STDOUT, text=True
         )
 
     @property
@@ -93,7 +99,7 @@ class System:
 
     @property
     def gpus(self) -> tuple[GPUInfo, ...]:
-        """A list of GPUs on the system, including free memory information."""
+        """A list of GPUs on the system, including total memory information."""
 
         # This pynvml import is protected inside this method so that in case
         # pynvml is not installed, tests stages that don't need gpu info (e.g.
@@ -110,13 +116,6 @@ class System:
             info = pynvml.nvmlDeviceGetMemoryInfo(
                 pynvml.nvmlDeviceGetHandleByIndex(i)
             )
-            results.append(GPUInfo(i, info.free))
+            results.append(GPUInfo(i, info.total))
 
         return tuple(results)
-
-    @property
-    def env(self) -> EnvDict:
-        """A base default environment used for process exectution."""
-        env = dict(os.environ)
-        env.update(DEFAULT_PROCESS_ENV)
-        return env

@@ -14,12 +14,11 @@
 #
 from __future__ import annotations
 
-from pathlib import Path
-from subprocess import CompletedProcess
-
+from .. import FeatureType
 from ..config import Config
-from ..system import ArgList, System
-from .test_stage import TestStage
+from ..system import System
+from ..types import ArgList, EnvDict
+from .test_stage import Shard, StageSpec, TestStage, adjust_workers
 
 
 class OMP(TestStage):
@@ -35,36 +34,38 @@ class OMP(TestStage):
 
     """
 
-    kind = "openmp"
+    kind: FeatureType = "openmp"
+
+    args = ["-cunumeric:test"]
+
+    env: EnvDict = {}
 
     def __init__(self, config: Config, system: System) -> None:
-        self.workers = self.compute_workers(config, system)
+        self._init(config, system)
 
-    def run(
-        self, test_file: Path, config: Config, system: System
-    ) -> CompletedProcess[str]:
-        test_path = config.root_dir / test_file
-        stage_args = ["-cunumeric:test"] + self.omp_args(config)
-        file_args = self.file_args(test_file, config)
-
-        cmd = [str(config.legate_path), str(test_path)]
-        cmd += stage_args + file_args + config.extra_args
-
-        result = system.run(cmd, env=system.env)
-        self._log_proc(result, test_file, config.verbose)
-        return result
-
-    def omp_args(self, config: Config) -> ArgList:
+    def shard_args(self, shard: Shard, config: Config) -> ArgList:
         return [
             "--omps",
             str(config.omps),
             "--ompthreads",
             str(config.ompthreads),
+            "--cpu-bind",
+            ",".join(str(x) for x in shard),
         ]
 
-    def compute_workers(self, config: Config, system: System) -> int:
-        if config.requested_workers is not None:
-            return config.requested_workers
+    def compute_spec(self, config: Config, system: System) -> StageSpec:
+        N = len(system.cpus)
+        omps, threads = config.omps, config.ompthreads
+        degree = N // (omps * threads + config.utility)
 
-        requested_procs = config.omps * config.ompthreads
-        return 1 if config.verbose else len(system.cpus) // requested_procs
+        if config.verbose:
+            workers = 1
+        else:
+            workers = adjust_workers(degree, config.requested_workers)
+
+        # https://docs.python.org/3/library/itertools.html#itertools-recipes
+        # grouper('ABCDEF', 3) --> ABC DEF
+        args = [iter(range(workers * omps * threads))] * (omps * threads)
+        shards = list(zip(*args))
+
+        return StageSpec(workers, shards)
