@@ -2596,7 +2596,7 @@ class DeferredArray(NumPyThunk):
         axis: Optional[int],
         dtype: Optional[np.dtype[Any]],
         nan_to_identity: bool,
-    ):
+    ) -> None:
         # local sum
         # storage for local sums accessible
         temp = self.runtime.create_unbound_thunk(

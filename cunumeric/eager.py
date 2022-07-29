@@ -1267,7 +1267,7 @@ class EagerArray(NumPyThunk):
         axis: Optional[int],
         dtype: Optional[np.dtype[Any]],
         nan_to_identity: bool,
-    ):
+    ) -> None:
         self.check_eager_args(rhs)
         if self.deferred is not None:
             self.deferred.scan(op, rhs, axis, dtype, nan_to_identity)
