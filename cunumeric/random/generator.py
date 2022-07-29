@@ -203,6 +203,162 @@ class Generator:
     def bytes(self, length: Union[int, tuple[int, ...]]) -> ndarray:
         return self.bit_generator.bytes(length=length)
 
+    def beta(
+        self,
+        a: float,
+        b: float,
+        size: Union[NdShapeLike, None] = None,
+        dtype: npt.DTypeLike = np.float64,
+    ) -> ndarray:
+        return self.bit_generator.beta(a=a, b=b, shape=size, dtype=dtype)
+
+    def f(
+        self,
+        dfnum: float,
+        dfden: float,
+        size: Union[NdShapeLike, None] = None,
+        dtype: npt.DTypeLike = np.float64,
+    ) -> ndarray:
+        return self.bit_generator.f(
+            dfnum=dfnum, dfden=dfden, shape=size, dtype=dtype
+        )
+
+    def logseries(
+        self,
+        p: float,
+        size: Union[NdShapeLike, None] = None,
+        dtype: npt.DTypeLike = np.uint32,
+    ) -> ndarray:
+        return self.bit_generator.logseries(p=p, shape=size, dtype=dtype)
+
+    def noncentral_f(
+        self,
+        dfnum: float,
+        dfden: float,
+        nonc: float,
+        size: Union[NdShapeLike, None] = None,
+        dtype: npt.DTypeLike = np.float64,
+    ) -> ndarray:
+        return self.bit_generator.noncentral_f(
+            dfnum=dfnum, dfden=dfden, nonc=nonc, shape=size, dtype=dtype
+        )
+
+    def chisquare(
+        self,
+        df: float,
+        size: Union[NdShapeLike, None] = None,
+        dtype: npt.DTypeLike = np.float64,
+    ) -> ndarray:
+        return self.bit_generator.chisquare(
+            df=df, nonc=0.0, shape=size, dtype=dtype
+        )
+
+    def noncentral_chisquare(
+        self,
+        df: float,
+        nonc: float,
+        size: Union[NdShapeLike, None] = None,
+        dtype: npt.DTypeLike = np.float64,
+    ) -> ndarray:
+        return self.bit_generator.chisquare(
+            df=df, nonc=nonc, shape=size, dtype=dtype
+        )
+
+    def gamma(
+        self,
+        shape: float,
+        scale: float = 1.0,
+        size: Union[NdShapeLike, None] = None,
+        dtype: npt.DTypeLike = np.float64,
+    ) -> ndarray:
+        return self.bit_generator.gamma(
+            k=shape, theta=scale, shape=size, dtype=dtype
+        )
+
+    def standard_gamma(
+        self,
+        shape: float,
+        size: Union[NdShapeLike, None] = None,
+        dtype: npt.DTypeLike = np.float64,
+    ) -> ndarray:
+        return self.gamma(shape=shape, scale=1.0, size=size, dtype=dtype)
+
+    def standard_t(
+        self,
+        df: float,
+        size: Union[NdShapeLike, None] = None,
+        dtype: npt.DTypeLike = np.float64,
+    ) -> ndarray:
+        return self.bit_generator.standard_t(df=df, shape=size, dtype=dtype)
+
+    def hypergeometric(
+        self,
+        ngood: int,
+        nbad: int,
+        nsample: int,
+        size: Union[NdShapeLike, None] = None,
+        dtype: npt.DTypeLike = np.uint32,
+    ) -> ndarray:
+        return self.bit_generator.hypergeometric(
+            ngood=ngood, nbad=nbad, nsample=nsample, shape=size, dtype=dtype
+        )
+
+    def vonmises(
+        self,
+        mu: float,
+        kappa: float,
+        size: Union[NdShapeLike, None] = None,
+        dtype: npt.DTypeLike = np.float64,
+    ) -> ndarray:
+        return self.bit_generator.vonmises(
+            mu=mu, kappa=kappa, shape=size, dtype=dtype
+        )
+
+    def zipf(
+        self,
+        a: float,
+        size: Union[NdShapeLike, None] = None,
+        dtype: npt.DTypeLike = np.uint32,
+    ) -> ndarray:
+        return self.bit_generator.zipf(alpha=a, shape=size, dtype=dtype)
+
+    def geometric(
+        self,
+        p: float,
+        size: Union[NdShapeLike, None] = None,
+        dtype: npt.DTypeLike = np.uint32,
+    ) -> ndarray:
+        return self.bit_generator.geometric(p=p, shape=size, dtype=dtype)
+
+    def wald(
+        self,
+        mean: float,
+        scale: float,
+        size: Union[NdShapeLike, None] = None,
+        dtype: npt.DTypeLike = np.float64,
+    ) -> ndarray:
+        return self.bit_generator.wald(mean, scale, shape=size, dtype=dtype)
+
+    def binomial(
+        self,
+        ntrials: int,
+        p: float,
+        size: Union[NdShapeLike, None] = None,
+        dtype: npt.DTypeLike = np.uint32,
+    ) -> ndarray:
+        return self.bit_generator.binomial(ntrials, p, shape=size, dtype=dtype)
+
+    def negative_binomial(
+        self,
+        ntrials: int,
+        p: float,
+        size: Union[NdShapeLike, None] = None,
+        dtype: npt.DTypeLike = np.uint32,
+    ) -> ndarray:
+        return self.bit_generator.negative_binomial(
+            ntrials, p, shape=size, dtype=dtype
+        )
+
 
 def default_rng(seed: Union[int, None] = None) -> Generator:
     if seed is None:

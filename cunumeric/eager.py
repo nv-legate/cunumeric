@@ -1026,6 +1026,309 @@ class EagerArray(NumPyThunk):
                 b.extend(aa)
                 self.array[:] = b
 
+    def bitgenerator_beta(
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        a: float,
+        b: float,
+    ) -> None:
+        if self.deferred is not None:
+            self.deferred.bitgenerator_beta(
+                handle, generatorType, seed, flags, a, b
+            )
+        else:
+            if self.array.size == 1:
+                self.array.fill(np.random.beta(a, b))
+            else:
+                aa = np.random.beta(a, b, size=self.array.shape)
+                self.array[:] = aa
+
+    def bitgenerator_f(
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        dfnum: float,
+        dfden: float,
+    ) -> None:
+        if self.deferred is not None:
+            self.deferred.bitgenerator_f(
+                handle,
+                generatorType,
+                seed,
+                flags,
+                dfnum,
+                dfden,
+            )
+        else:
+            if self.array.size == 1:
+                self.array.fill(np.random.f(dfnum, dfden))
+            else:
+                aa = np.random.f(dfnum, dfden, size=self.array.shape)
+                self.array[:] = aa
+
+    def bitgenerator_logseries(
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        p: float,
+    ) -> None:
+        if self.deferred is not None:
+            self.deferred.bitgenerator_logseries(
+                handle, generatorType, seed, flags, p
+            )
+        else:
+            if self.array.size == 1:
+                self.array.fill(np.random.logseries(p))
+            else:
+                aa = np.random.logseries(p, size=self.array.shape)
+                self.array[:] = aa
+
+    def bitgenerator_noncentral_f(
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        dfnum: float,
+        dfden: float,
+        nonc: float,
+    ) -> None:
+        if self.deferred is not None:
+            self.deferred.bitgenerator_noncentral_f(
+                handle, generatorType, seed, flags, dfnum, dfden, nonc
+            )
+        else:
+            if self.array.size == 1:
+                self.array.fill(np.random.noncentral_f(dfnum, dfden, nonc))
+            else:
+                aa = np.random.noncentral_f(
+                    dfnum, dfden, nonc, size=self.array.shape
+                )
+                self.array[:] = aa
+
+    def bitgenerator_chisquare(
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        df: float,
+        nonc: float,
+    ) -> None:
+        if self.deferred is not None:
+            self.deferred.bitgenerator_chisquare(
+                handle, generatorType, seed, flags, df, nonc
+            )
+        else:
+            if self.array.size == 1:
+                if nonc == 0.0:
+                    self.array.fill(np.random.chisquare(df))
+                else:
+                    self.array.fill(np.random.noncentral_chisquare(df, nonc))
+            else:
+                if nonc == 0.0:
+                    aa = np.random.chisquare(df, size=self.array.shape)
+                else:
+                    aa = np.random.noncentral_chisquare(
+                        df, nonc, size=self.array.shape
+                    )
+                self.array[:] = aa
+
+    def bitgenerator_gamma(
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        k: float,
+        theta: float,
+    ) -> None:
+        if self.deferred is not None:
+            self.deferred.bitgenerator_gamma(
+                handle, generatorType, seed, flags, k, theta
+            )
+        else:
+            if self.array.size == 1:
+                if theta == 1.0:
+                    self.array.fill(np.random.standard_gamma(k))
+                else:
+                    self.array.fill(np.random.gamma(k, theta))
+            else:
+                if theta == 1.0:
+                    aa = np.random.standard_gamma(k, size=self.array.shape)
+                else:
+                    aa = np.random.gamma(k, theta, size=self.array.shape)
+                self.array[:] = aa
+
+    def bitgenerator_standard_t(
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        df: float,
+    ) -> None:
+        if self.deferred is not None:
+            self.deferred.bitgenerator_standard_t(
+                handle, generatorType, seed, flags, df
+            )
+        else:
+            if self.array.size == 1:
+                self.array.fill(np.random.standard_t(df))
+            else:
+                aa = np.random.standard_t(df, size=self.array.shape)
+                self.array[:] = aa
+
+    def bitgenerator_hypergeometric(
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        ngood: int,
+        nbad: int,
+        nsample: int,
+    ) -> None:
+        if self.deferred is not None:
+            self.deferred.bitgenerator_hypergeometric(
+                handle, generatorType, seed, flags, ngood, nbad, nsample
+            )
+        else:
+            if self.array.size == 1:
+                self.array.fill(np.random.hypergeometric(ngood, nbad, nsample))
+            else:
+                aa = np.random.hypergeometric(
+                    ngood, nbad, nsample, size=self.array.shape
+                )
+                self.array[:] = aa
+
+    def bitgenerator_vonmises(
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        mu: float,
+        kappa: float,
+    ) -> None:
+        if self.deferred is not None:
+            self.deferred.bitgenerator_vonmises(
+                handle, generatorType, seed, flags, mu, kappa
+            )
+        else:
+            if self.array.size == 1:
+                self.array.fill(np.random.vonmises(mu, kappa))
+            else:
+                aa = np.random.vonmises(mu, kappa, size=self.array.shape)
+                self.array[:] = aa
+
+    def bitgenerator_zipf(
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        alpha: float,
+    ) -> None:
+        if self.deferred is not None:
+            self.deferred.bitgenerator_zipf(
+                handle, generatorType, seed, flags, alpha
+            )
+        else:
+            if self.array.size == 1:
+                self.array.fill(np.random.zipf(alpha))
+            else:
+                aa = np.random.zipf(alpha, size=self.array.shape)
+                self.array[:] = aa
+
+    def bitgenerator_geometric(
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        p: float,
+    ) -> None:
+        if self.deferred is not None:
+            self.deferred.bitgenerator_geometric(
+                handle, generatorType, seed, flags, p
+            )
+        else:
+            if self.array.size == 1:
+                self.array.fill(np.random.geometric(p))
+            else:
+                aa = np.random.geometric(p, size=self.array.shape)
+                self.array[:] = aa
+
+    def bitgenerator_wald(
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        mean: float,
+        scale: float,
+    ) -> None:
+        if self.deferred is not None:
+            self.deferred.bitgenerator_wald(
+                handle, generatorType, seed, flags, mean, scale
+            )
+        else:
+            if self.array.size == 1:
+                self.array.fill(np.random.wald(mean, scale))
+            else:
+                aa = np.random.wald(mean, scale, size=self.array.shape)
+                self.array[:] = aa
+
+    def bitgenerator_binomial(
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        ntrials: int,
+        p: float,
+    ) -> None:
+        if self.deferred is not None:
+            self.deferred.bitgenerator_binomial(
+                handle, generatorType, seed, flags, ntrials, p
+            )
+        else:
+            if self.array.size == 1:
+                self.array.fill(np.random.binomial(ntrials, p))
+            else:
+                aa = np.random.binomial(ntrials, p, size=self.array.shape)
+                self.array[:] = aa
+
+    def bitgenerator_negative_binomial(
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        ntrials: int,
+        p: float,
+    ) -> None:
+        if self.deferred is not None:
+            self.deferred.bitgenerator_negative_binomial(
+                handle, generatorType, seed, flags, ntrials, p
+            )
+        else:
+            if self.array.size == 1:
+                self.array.fill(np.random.negative_binomial(ntrials, p))
+            else:
+                aa = np.random.negative_binomial(
+                    ntrials, p, size=self.array.shape
+                )
+                self.array[:] = aa
+
     def partition(
         self,
         rhs: Any,
