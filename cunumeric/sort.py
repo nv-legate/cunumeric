@@ -76,9 +76,7 @@ def sort_task(
 ) -> None:
     task = output.context.create_task(CuNumericOpCode.SORT)
 
-    uses_unbound_output = (
-        output.runtime.num_gpus > 1 and input.ndim == 1
-    ) or (output.runtime.num_procs > 1 and input.ndim == 1)
+    uses_unbound_output = output.runtime.num_procs > 1 and input.ndim == 1
 
     task.add_input(input.base)
     if uses_unbound_output:

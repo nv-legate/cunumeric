@@ -43,7 +43,7 @@ void thrust_local_sort_inplace(VAL* inptr,
                                const size_t volume,
                                const size_t sort_dim_size,
                                const bool stable_argsort,
-                               const thrust::detail::execution_policy_base<DerivedPolicy>& exec)
+                               const DerivedPolicy& exec)
 {
   if (argptr == nullptr) {
     // sort (in place)
@@ -82,7 +82,7 @@ void rebalance_data(SegmentMergePiece<VAL>& merge_buffer,
                     size_t num_segments_l,
                     /* other */
                     bool argsort,
-                    const thrust::detail::execution_policy_base<DerivedPolicy>& exec,
+                    const DerivedPolicy& exec,
                     comm::coll::CollComm comm)
 {
   // output is either values or indices
@@ -456,7 +456,7 @@ void sample_sort_nd(SortPiece<legate_type_of<CODE>> local_sorted,
                     /* other */
                     bool rebalance,
                     bool argsort,
-                    const thrust::detail::execution_policy_base<DerivedPolicy>& exec,
+                    const DerivedPolicy& exec,
                     comm::coll::CollComm comm)
 {
   using VAL = legate_type_of<CODE>;
@@ -903,7 +903,7 @@ struct SortImplBodyCpu {
                   const size_t local_rank,
                   const size_t num_ranks,
                   const size_t num_sort_ranks,
-                  const thrust::detail::execution_policy_base<DerivedPolicy>& exec,
+                  const DerivedPolicy& exec,
                   const std::vector<comm::Communicator>& comms)
   {
     auto input = input_array.read_accessor<VAL, DIM>(rect);

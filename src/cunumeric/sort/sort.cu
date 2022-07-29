@@ -536,26 +536,26 @@ struct subtract : public thrust::unary_function<int64_t, int64_t> {
 
   subtract(int64_t constant) : constant_(constant) {}
 
-  __host__ __device__ int64_t operator()(const int64_t& input) const { return input - constant_; }
+  __CUDA_HD__ int64_t operator()(const int64_t& input) const { return input - constant_; }
 };
 
 struct positive_value : public thrust::unary_function<int64_t, int64_t> {
-  __host__ __device__ int64_t operator()(const int64_t& x) const { return x > 0 ? x : 0; }
+  __CUDA_HD__ int64_t operator()(const int64_t& x) const { return x > 0 ? x : 0; }
 };
 
 struct negative_value : public thrust::unary_function<int64_t, int64_t> {
-  __host__ __device__ int64_t operator()(const int64_t& x) const { return x < 0 ? -x : 0; }
+  __CUDA_HD__ int64_t operator()(const int64_t& x) const { return x < 0 ? -x : 0; }
 };
 
 struct positive_plus : public thrust::binary_function<int64_t, int64_t, int64_t> {
-  __host__ __device__ int64_t operator()(const int64_t& lhs, const int64_t& rhs) const
+  __CUDA_HD__ int64_t operator()(const int64_t& lhs, const int64_t& rhs) const
   {
     return lhs > 0 ? (lhs + (rhs > 0 ? rhs : 0)) : (rhs > 0 ? rhs : 0);
   }
 };
 
 struct negative_plus : public thrust::binary_function<int64_t, int64_t, int64_t> {
-  __host__ __device__ int64_t operator()(const int64_t& lhs, const int64_t& rhs) const
+  __CUDA_HD__ int64_t operator()(const int64_t& lhs, const int64_t& rhs) const
   {
     return (lhs < 0 ? (lhs + (rhs < 0 ? rhs : 0)) : (rhs < 0 ? rhs : 0));
   }

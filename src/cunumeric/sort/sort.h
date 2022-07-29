@@ -22,16 +22,13 @@
 
 namespace cunumeric {
 
-using namespace Legion;
-using namespace legate;
-
 struct SortArgs {
   const Array& input;
   Array& output;
   bool argsort;
   bool stable;
   size_t segment_size_g;
-  bool is_index_space;
+  bool is_index_space;  // !single_task
   size_t local_rank;
   size_t num_ranks;
   size_t num_sort_ranks;
@@ -47,24 +44,23 @@ struct SegmentSample {
 
 template <typename VAL>
 struct SortPiece {
-  Buffer<VAL> values;
-  Buffer<int64_t> indices;
+  legate::Buffer<VAL> values;
+  legate::Buffer<int64_t> indices;
   size_t size;
 };
 
 template <typename VAL>
 struct SegmentMergePiece {
-  Buffer<size_t> segments;
-  Buffer<VAL> values;
-  Buffer<int64_t> indices;
+  legate::Buffer<size_t> segments;
+  legate::Buffer<VAL> values;
+  legate::Buffer<int64_t> indices;
   size_t size;
 };
 
 template <typename VAL>
 struct SegmentSampleComparator
   : public thrust::binary_function<SegmentSample<VAL>, SegmentSample<VAL>, bool> {
-  __host__ __device__ bool operator()(const SegmentSample<VAL>& lhs,
-                                      const SegmentSample<VAL>& rhs) const
+  __CUDA_HD__ bool operator()(const SegmentSample<VAL>& lhs, const SegmentSample<VAL>& rhs) const
   {
     if (lhs.segment != rhs.segment) {
       return lhs.segment < rhs.segment;
@@ -88,7 +84,7 @@ struct modulusWithOffset : public thrust::binary_function<int64_t, int64_t, int6
 
   modulusWithOffset(size_t _constant) : constant(_constant) {}
 
-  __host__ __device__ int64_t operator()(const int64_t& lhs, const int64_t& rhs) const
+  __CUDA_HD__ int64_t operator()(const int64_t& lhs, const int64_t& rhs) const
   {
     return lhs % rhs + constant;
   }
