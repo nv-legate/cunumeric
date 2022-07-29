@@ -45,6 +45,16 @@ extern "C" curandStatus_t randutilDestroyGenerator(randutilGenerator_t generator
 
 #include "generator_integers.inl"
 
+extern "C" curandStatus_t randutilGenerateIntegers16(
+  randutilGenerator_t generator, int16_t* outputPtr, size_t n, int16_t low, int16_t high)
+{
+  randutilimpl::basegenerator* gen = (randutilimpl::basegenerator*)generator;
+  integers<int16_t> func;
+  func.from = low;
+  func.to   = high;
+  return randutilimpl::dispatch<decltype(func), int16_t>(gen, func, n, outputPtr);
+}
+
 extern "C" curandStatus_t randutilGenerateIntegers32(
   randutilGenerator_t generator, int32_t* outputPtr, size_t n, int32_t low, int32_t high)
 {

@@ -1805,9 +1805,11 @@ class DeferredArray(NumPyThunk):
             distribution = BitGeneratorDistribution.INTEGERS_32
         elif self.dtype == np.int64:
             distribution = BitGeneratorDistribution.INTEGERS_64
+        elif self.dtype == np.int16:
+            distribution = BitGeneratorDistribution.INTEGERS_16
         else:
             raise NotImplementedError(
-                "type for random.integers has to be int64 or int32"
+                "type for random.integers has to be int64 or int32 or int16"
             )
         self.bitgenerator_distribution(
             handle, generatorType, seed, flags, distribution, intparams, (), ()
