@@ -2948,26 +2948,30 @@ def take_along_axis(
     if not np.issubdtype(indices.dtype, np.integer):
         raise TypeError("`indices` must be an integer array")
 
+    computed_axis = 0
     if axis is None:
         if indices.ndim != 1:
             raise ValueError("indices must be 1D if axis=None")
         if a.ndim > 1:
             a = a.ravel()
-        axis = 0
     else:
-        axis = normalize_axis_index(axis, a.ndim)
+        computed_axis = normalize_axis_index(axis, a.ndim)
 
     if a.ndim != indices.ndim:
         raise ValueError(
             "`indices` and `a` must have the same number of dimensions"
         )
-    return a[_fill_fancy_index_for_along_axis_routines(a.shape, axis, indices)]
+    return a[
+        _fill_fancy_index_for_along_axis_routines(
+            a.shape, computed_axis, indices
+        )
+    ]
 
 
 @add_boilerplate("a", "indices", "values")
 def put_along_axis(
     a: ndarray, indices: ndarray, values: ndarray, axis: Union[int, None]
-):
+) -> None:
     """
     Put values into the destination array by matching 1d index and data slices.
 
@@ -3012,22 +3016,25 @@ def put_along_axis(
     if not np.issubdtype(indices.dtype, np.integer):
         raise TypeError("`indices` must be an integer array")
 
+    computed_axis = 0
     if axis is None:
         if indices.ndim != 1:
             raise ValueError("indices must be 1D if axis=None")
         if a.ndim > 1:
             # TODO call a=a.flat when flat is implemented
             raise ValueError("a.ndim>1 case is not supported when axis=None")
-        axis = 0
     else:
-        axis = normalize_axis_index(axis, a.ndim)
+        computed_axis = normalize_axis_index(axis, a.ndim)
 
     if a.ndim != indices.ndim:
         raise ValueError(
             "`indices` and `a` must have the same number of dimensions"
         )
-    ind = _fill_fancy_index_for_along_axis_routines(a.shape, axis, indices)
+    ind = _fill_fancy_index_for_along_axis_routines(
+        a.shape, computed_axis, indices
+    )
     a[ind] = values
+    return
 
 
 @add_boilerplate("a")
