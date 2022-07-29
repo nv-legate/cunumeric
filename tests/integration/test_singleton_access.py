@@ -15,10 +15,10 @@
 
 import numpy as np
 import pytest
+from legate.core import LEGATE_MAX_DIM
 from utils.generators import mk_0to1_array, scalar_gen
 
 import cunumeric as num
-from legate.core import LEGATE_MAX_DIM
 
 
 def nonscalar_gen(lib):

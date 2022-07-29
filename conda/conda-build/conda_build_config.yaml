@@ -1,7 +1,14 @@
 gpu_enabled:
   - true
   - false
+
 python:
   - 3.8
   - 3.9
   - 3.10
+
+numpy_version:
+  - ">=1.22"
+
+cmake_version:
+  - ">=3.20.1,!=3.23.0"

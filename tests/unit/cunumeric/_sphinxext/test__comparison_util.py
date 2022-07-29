@@ -13,11 +13,11 @@
 # limitations under the License.
 #
 
-import cunumeric._sphinxext._comparison_util as m  # module under test
 import numpy
 import pytest
 
 import cunumeric
+import cunumeric._sphinxext._comparison_util as m  # module under test
 
 
 def test_get_namespaces_None():

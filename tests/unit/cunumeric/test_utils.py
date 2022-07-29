@@ -16,9 +16,10 @@
 import inspect
 from typing import List, Tuple, Union
 
-import cunumeric.utils as m  # module under test
 import numpy as np
 import pytest
+
+import cunumeric.utils as m  # module under test
 
 EXPECTED_SUPPORTED_DTYPES = [
     np.float16,

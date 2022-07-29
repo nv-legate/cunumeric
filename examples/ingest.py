@@ -21,9 +21,9 @@ from glob import glob
 
 import pyarrow as pa
 import tifffile as tfl
+from legate.core import CustomSplit, Rect, TiledSplit, ingest
 
 import cunumeric as np
-from legate.core import CustomSplit, Rect, TiledSplit, ingest
 
 parser = argparse.ArgumentParser()
 parser.add_argument(

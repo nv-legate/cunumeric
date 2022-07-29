@@ -16,10 +16,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from cunumeric.config import CuNumericOpCode
-
 from legate.core import Rect, types as ty
 from legate.core.shape import Shape
+
+from cunumeric.config import CuNumericOpCode
 
 from .exception import LinAlgError
 

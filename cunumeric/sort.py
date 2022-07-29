@@ -16,9 +16,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Union, cast
 
-from numpy.core.multiarray import normalize_axis_index  # type: ignore
-
 from legate.core import types as ty
+from numpy.core.multiarray import normalize_axis_index  # type: ignore
 
 from .config import CuNumericOpCode
 

@@ -47,7 +47,7 @@ class OMP(TestStage):
         stage_args = ["-cunumeric:test"] + self.omp_args(config)
         file_args = self.file_args(test_file, config)
 
-        cmd = [str(config.legate_path), str(test_path)]
+        cmd = [config.legate_path, str(test_path)]
         cmd += stage_args + file_args + config.extra_args
 
         result = system.run(cmd, env=system.env)
