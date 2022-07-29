@@ -347,7 +347,13 @@ class BitGenerator:
         )
         return res
 
-    def beta(self, a, b, shape=None, dtype=np.float64):
+    def beta(
+        self,
+        a: float,
+        b: float,
+        shape: Union[NdShapeLike, None] = None,
+        dtype: npt.DTypeLike = np.float64,
+    ) -> ndarray:
         if shape is None:
             shape = (1,)
         if not isinstance(shape, tuple):
@@ -358,7 +364,13 @@ class BitGenerator:
         )
         return res
 
-    def f(self, dfnum, dfden, shape=None, dtype=np.float64):
+    def f(
+        self,
+        dfnum: float,
+        dfden: float,
+        shape: Union[NdShapeLike, None] = None,
+        dtype: npt.DTypeLike = np.float64,
+    ) -> ndarray:
         if shape is None:
             shape = (1,)
         if not isinstance(shape, tuple):
@@ -374,7 +386,12 @@ class BitGenerator:
         )
         return res
 
-    def logseries(self, p, shape=None, dtype=np.uint32):
+    def logseries(
+        self,
+        p: float,
+        shape: Union[NdShapeLike, None] = None,
+        dtype: npt.DTypeLike = np.uint32,
+    ) -> ndarray:
         if shape is None:
             shape = (1,)
         if not isinstance(shape, tuple):
@@ -385,7 +402,14 @@ class BitGenerator:
         )
         return res
 
-    def noncentral_f(self, dfnum, dfden, nonc, shape=None, dtype=np.float64):
+    def noncentral_f(
+        self,
+        dfnum: float,
+        dfden: float,
+        nonc: float,
+        shape: Union[NdShapeLike, None] = None,
+        dtype: npt.DTypeLike = np.float64,
+    ) -> ndarray:
         if shape is None:
             shape = (1,)
         if not isinstance(shape, tuple):
@@ -402,7 +426,13 @@ class BitGenerator:
         )
         return res
 
-    def chisquare(self, df, nonc=0.0, shape=None, dtype=np.float64):
+    def chisquare(
+        self,
+        df: float,
+        nonc: float = 0.0,
+        shape: Union[NdShapeLike, None] = None,
+        dtype: npt.DTypeLike = np.float64,
+    ) -> ndarray:
         if shape is None:
             shape = (1,)
         if not isinstance(shape, tuple):
@@ -413,7 +443,13 @@ class BitGenerator:
         )
         return res
 
-    def gamma(self, k, theta=1.0, shape=None, dtype=np.float64):
+    def gamma(
+        self,
+        k: float,
+        theta: float = 1.0,
+        shape: Union[NdShapeLike, None] = None,
+        dtype: npt.DTypeLike = np.float64,
+    ) -> ndarray:
         if shape is None:
             shape = (1,)
         if not isinstance(shape, tuple):
@@ -424,7 +460,12 @@ class BitGenerator:
         )
         return res
 
-    def standard_t(self, df, shape=None, dtype=np.float64):
+    def standard_t(
+        self,
+        df: float,
+        shape: Union[NdShapeLike, None] = None,
+        dtype: npt.DTypeLike = np.float64,
+    ) -> ndarray:
         if shape is None:
             shape = (1,)
         if not isinstance(shape, tuple):
@@ -436,8 +477,13 @@ class BitGenerator:
         return res
 
     def hypergeometric(
-        self, ngood, nbad, nsample, shape=None, dtype=np.uint32
-    ):
+        self,
+        ngood: int,
+        nbad: int,
+        nsample: int,
+        shape: Union[NdShapeLike, None] = None,
+        dtype: npt.DTypeLike = np.uint32,
+    ) -> ndarray:
         if shape is None:
             shape = (1,)
         if not isinstance(shape, tuple):
@@ -454,7 +500,13 @@ class BitGenerator:
         )
         return res
 
-    def vonmises(self, mu, kappa, shape=None, dtype=np.float64):
+    def vonmises(
+        self,
+        mu: float,
+        kappa: float,
+        shape: Union[NdShapeLike, None] = None,
+        dtype: npt.DTypeLike = np.float64,
+    ) -> ndarray:
         if shape is None:
             shape = (1,)
         if not isinstance(shape, tuple):
@@ -465,7 +517,12 @@ class BitGenerator:
         )
         return res
 
-    def zipf(self, alpha, shape=None, dtype=np.uint32):
+    def zipf(
+        self,
+        alpha: float,
+        shape: Union[NdShapeLike, None] = None,
+        dtype: npt.DTypeLike = np.uint32,
+    ) -> ndarray:
         if shape is None:
             shape = (1,)
         if not isinstance(shape, tuple):
@@ -476,7 +533,12 @@ class BitGenerator:
         )
         return res
 
-    def geometric(self, p, shape=None, dtype=np.uint32):
+    def geometric(
+        self,
+        p: float,
+        shape: Union[NdShapeLike, None] = None,
+        dtype: npt.DTypeLike = np.uint32,
+    ) -> ndarray:
         if shape is None:
             shape = (1,)
         if not isinstance(shape, tuple):
@@ -487,7 +549,13 @@ class BitGenerator:
         )
         return res
 
-    def wald(self, mean, scale, shape=None, dtype=np.float64):
+    def wald(
+        self,
+        mean: float,
+        scale: float,
+        shape: Union[NdShapeLike, None] = None,
+        dtype: npt.DTypeLike = np.float64,
+    ) -> ndarray:
         if shape is None:
             shape = (1,)
         if not isinstance(shape, tuple):
@@ -498,7 +566,13 @@ class BitGenerator:
         )
         return res
 
-    def binomial(self, ntrials, p, shape=None, dtype=np.uint32):
+    def binomial(
+        self,
+        ntrials: int,
+        p: float,
+        shape: Union[NdShapeLike, None] = None,
+        dtype: npt.DTypeLike = np.uint32,
+    ) -> ndarray:
         if shape is None:
             shape = (1,)
         if not isinstance(shape, tuple):
@@ -509,7 +583,13 @@ class BitGenerator:
         )
         return res
 
-    def negative_binomial(self, ntrials, p, shape=None, dtype=np.uint32):
+    def negative_binomial(
+        self,
+        ntrials: int,
+        p: float,
+        shape: Union[NdShapeLike, None] = None,
+        dtype: npt.DTypeLike = np.uint32,
+    ) -> ndarray:
         if shape is None:
             shape = (1,)
         if not isinstance(shape, tuple):

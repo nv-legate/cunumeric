@@ -2301,8 +2301,16 @@ class DeferredArray(NumPyThunk):
         )
 
     def bitgenerator_beta(
-        self, handle, generatorType, seed, flags, a, b
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        a: float,
+        b: float,
     ) -> None:
+        floatparams: tuple[float, ...]
+        doubleparams: tuple[float, ...]
         if self.dtype == np.float32:
             distribution = BitGeneratorDistribution.BETA_32
             floatparams = (float(a), float(b))
@@ -2327,8 +2335,16 @@ class DeferredArray(NumPyThunk):
         )
 
     def bitgenerator_f(
-        self, handle, generatorType, seed, flags, dfnum, dfden
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        dfnum: float,
+        dfden: float,
     ) -> None:
+        floatparams: tuple[float, ...]
+        doubleparams: tuple[float, ...]
         if self.dtype == np.float32:
             distribution = BitGeneratorDistribution.F_32
             floatparams = (float(dfnum), float(dfden))
@@ -2353,7 +2369,12 @@ class DeferredArray(NumPyThunk):
         )
 
     def bitgenerator_logseries(
-        self, handle, generatorType, seed, flags, p
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        p: float,
     ) -> None:
         if self.dtype == np.uint32:
             distribution = BitGeneratorDistribution.LOGSERIES
@@ -2371,8 +2392,17 @@ class DeferredArray(NumPyThunk):
         )
 
     def bitgenerator_noncentral_f(
-        self, handle, generatorType, seed, flags, dfnum, dfden, nonc
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        dfnum: float,
+        dfden: float,
+        nonc: float,
     ) -> None:
+        floatparams: tuple[float, ...]
+        doubleparams: tuple[float, ...]
         if self.dtype == np.float32:
             distribution = BitGeneratorDistribution.NONCENTRAL_F_32
             floatparams = (float(dfnum), float(dfden), float(nonc))
@@ -2397,8 +2427,16 @@ class DeferredArray(NumPyThunk):
         )
 
     def bitgenerator_chisquare(
-        self, handle, generatorType, seed, flags, df, nonc
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        df: float,
+        nonc: float,
     ) -> None:
+        floatparams: tuple[float, ...]
+        doubleparams: tuple[float, ...]
         if self.dtype == np.float32:
             distribution = BitGeneratorDistribution.CHISQUARE_32
             floatparams = (float(df), float(nonc))
@@ -2423,8 +2461,16 @@ class DeferredArray(NumPyThunk):
         )
 
     def bitgenerator_gamma(
-        self, handle, generatorType, seed, flags, k, theta
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        k: float,
+        theta: float,
     ) -> None:
+        floatparams: tuple[float, ...]
+        doubleparams: tuple[float, ...]
         if self.dtype == np.float32:
             distribution = BitGeneratorDistribution.GAMMA_32
             floatparams = (float(k), float(theta))
@@ -2449,8 +2495,15 @@ class DeferredArray(NumPyThunk):
         )
 
     def bitgenerator_standard_t(
-        self, handle, generatorType, seed, flags, df
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        df: float,
     ) -> None:
+        floatparams: tuple[float, ...]
+        doubleparams: tuple[float, ...]
         if self.dtype == np.float32:
             distribution = BitGeneratorDistribution.STANDARD_T_32
             floatparams = (float(df),)
@@ -2475,7 +2528,14 @@ class DeferredArray(NumPyThunk):
         )
 
     def bitgenerator_hypergeometric(
-        self, handle, generatorType, seed, flags, ngood, nbad, nsample
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        ngood: int,
+        nbad: int,
+        nsample: int,
     ) -> None:
         if self.dtype == np.uint32:
             distribution = BitGeneratorDistribution.HYPERGEOMETRIC
@@ -2496,8 +2556,16 @@ class DeferredArray(NumPyThunk):
         )
 
     def bitgenerator_vonmises(
-        self, handle, generatorType, seed, flags, mu, kappa
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        mu: float,
+        kappa: float,
     ) -> None:
+        floatparams: tuple[float, ...]
+        doubleparams: tuple[float, ...]
         if self.dtype == np.float32:
             distribution = BitGeneratorDistribution.VONMISES_32
             floatparams = (float(mu), float(kappa))
@@ -2522,7 +2590,12 @@ class DeferredArray(NumPyThunk):
         )
 
     def bitgenerator_zipf(
-        self, handle, generatorType, seed, flags, alpha
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        alpha: float,
     ) -> None:
         if self.dtype == np.uint32:
             distribution = BitGeneratorDistribution.ZIPF
@@ -2541,7 +2614,12 @@ class DeferredArray(NumPyThunk):
         )
 
     def bitgenerator_geometric(
-        self, handle, generatorType, seed, flags, p
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        p: float,
     ) -> None:
         if self.dtype == np.uint32:
             distribution = BitGeneratorDistribution.GEOMETRIC
@@ -2562,8 +2640,16 @@ class DeferredArray(NumPyThunk):
         )
 
     def bitgenerator_wald(
-        self, handle, generatorType, seed, flags, mean, scale
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        mean: float,
+        scale: float,
     ) -> None:
+        floatparams: tuple[float, ...]
+        doubleparams: tuple[float, ...]
         if self.dtype == np.float32:
             distribution = BitGeneratorDistribution.WALD_32
             floatparams = (float(mean), float(scale))
@@ -2588,7 +2674,13 @@ class DeferredArray(NumPyThunk):
         )
 
     def bitgenerator_binomial(
-        self, handle, generatorType, seed, flags, ntrials, p
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        ntrials: int,
+        p: float,
     ) -> None:
         if self.dtype == np.uint32:
             distribution = BitGeneratorDistribution.BINOMIAL
@@ -2610,7 +2702,13 @@ class DeferredArray(NumPyThunk):
         )
 
     def bitgenerator_negative_binomial(
-        self, handle, generatorType, seed, flags, ntrials, p
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        ntrials: int,
+        p: float,
     ) -> None:
         if self.dtype == np.uint32:
             distribution = BitGeneratorDistribution.NEGATIVE_BINOMIAL

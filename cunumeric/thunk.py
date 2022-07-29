@@ -411,85 +411,167 @@ class NumPyThunk(ABC):
 
     @abstractmethod
     def bitgenerator_beta(
-        self, bitgen, generatorType, seed, flags, a, b
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        a: float,
+        b: float,
     ) -> None:
         ...
 
     @abstractmethod
     def bitgenerator_f(
-        self, bitgen, generatorType, seed, flags, dfnum, dfden
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        dfnum: float,
+        dfden: float,
     ) -> None:
         ...
 
     @abstractmethod
     def bitgenerator_logseries(
-        self, bitgen, generatorType, seed, flags, p
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        p: float,
     ) -> None:
         ...
 
     @abstractmethod
     def bitgenerator_noncentral_f(
-        self, bitgen, generatorType, seed, flags, dfnum, dfden, nonc
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        dfnum: float,
+        dfden: float,
+        nonc: float,
     ) -> None:
         ...
 
     @abstractmethod
     def bitgenerator_chisquare(
-        self, bitgen, generatorType, seed, flags, df, nonc
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        df: float,
+        nonc: float,
     ) -> None:
         ...
 
     @abstractmethod
     def bitgenerator_gamma(
-        self, bitgen, generatorType, seed, flags, k, theta
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        k: float,
+        theta: float,
     ) -> None:
         ...
 
     @abstractmethod
     def bitgenerator_standard_t(
-        self, bitgen, generatorType, seed, flags, df
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        df: float,
     ) -> None:
         ...
 
     @abstractmethod
     def bitgenerator_hypergeometric(
-        self, bitgen, generatorType, seed, flags, ngood, nbad, nsample
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        ngood: int,
+        nbad: int,
+        nsample: int,
     ) -> None:
         ...
 
     @abstractmethod
     def bitgenerator_vonmises(
-        self, bitgen, generatorType, seed, flags, mu, kappa
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        mu: float,
+        kappa: float,
     ) -> None:
         ...
 
     @abstractmethod
     def bitgenerator_zipf(
-        self, bitgen, generatorType, seed, flags, alpha
-    ) -> None:
-        ...
-
-    @abstractmethod
-    def bitgenerator_wald(
-        self, bitgen, generatorType, seed, flags, mean, scale
-    ) -> None:
-        ...
-
-    @abstractmethod
-    def bitgenerator_binomial(
-        self, bitgen, generatorType, seed, flags, ntrials, p
-    ) -> None:
-        ...
-
-    @abstractmethod
-    def bitgenerator_negative_binomial(
-        self, bitgen, generatorType, seed, flags, ntrials, p
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        alpha: float,
     ) -> None:
         ...
 
     @abstractmethod
     def bitgenerator_geometric(
-        self, bitgen, generatorType, seed, flags, p
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        p: float,
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def bitgenerator_wald(
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        mean: float,
+        scale: float,
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def bitgenerator_binomial(
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        ntrials: int,
+        p: float,
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def bitgenerator_negative_binomial(
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        ntrials: int,
+        p: float,
     ) -> None:
         ...
 
