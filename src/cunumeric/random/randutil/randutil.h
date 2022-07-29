@@ -145,3 +145,80 @@ extern "C" curandStatus_t randutilGenerateWeibullEx(
   randutilGenerator_t generator, float* outputPtr, size_t n, float lam, float k);
 extern "C" curandStatus_t randutilGenerateWeibullDoubleEx(
   randutilGenerator_t generator, double* outputPtr, size_t n, double lam, double k);
+
+/* more advanced distributions */
+
+extern "C" curandStatus_t randutilGenerateBetaEx(
+  randutilGenerator_t generator, float* outputPtr, size_t n, float a, float b);
+extern "C" curandStatus_t randutilGenerateBetaDoubleEx(
+  randutilGenerator_t generator, double* outputPtr, size_t n, double a, double b);
+
+extern "C" curandStatus_t randutilGenerateFisherSnedecorEx(
+  randutilGenerator_t generator,
+  float* outputPtr,
+  size_t n,
+  float dfnum,
+  float dfden,
+  float nonc = 0.0f);  // 0.0f is F distribution
+extern "C" curandStatus_t randutilGenerateFisherSnedecorDoubleEx(
+  randutilGenerator_t generator,
+  double* outputPtr,
+  size_t n,
+  double dfnum,
+  double dfden,
+  double nonc = 0.0);  // 0.0 is F distribution
+
+extern "C" curandStatus_t randutilGenerateLogSeriesEx(randutilGenerator_t generator,
+                                                      uint32_t* outputPtr,
+                                                      size_t n,
+                                                      double p);
+
+extern "C" curandStatus_t randutilGenerateChiSquareEx(
+  randutilGenerator_t generator, float* outputPtr, size_t n, float df, float nonc = 0.0);
+extern "C" curandStatus_t randutilGenerateChiSquareDoubleEx(
+  randutilGenerator_t generator, double* outputPtr, size_t n, double df, double nonc = 0.0);
+
+extern "C" curandStatus_t randutilGenerateGammaEx(
+  randutilGenerator_t generator,
+  float* outputPtr,
+  size_t n,
+  float shape,
+  float scale = 1.0f);  // scale = 1.0 is standard_gamma
+extern "C" curandStatus_t randutilGenerateGammaDoubleEx(
+  randutilGenerator_t generator, double* outputPtr, size_t n, double shape, double scale = 1.0);
+
+extern "C" curandStatus_t randutilGenerateStandardTDoubleEx(randutilGenerator_t generator,
+                                                            double* outputPtr,
+                                                            size_t n,
+                                                            double df);
+extern "C" curandStatus_t randutilGenerateStandardTEx(randutilGenerator_t generator,
+                                                      float* outputPtr,
+                                                      size_t n,
+                                                      float df);
+extern "C" curandStatus_t randutilGenerateHyperGeometricEx(randutilGenerator_t generator,
+                                                           uint32_t* outputPtr,
+                                                           size_t n,
+                                                           int64_t ngood,
+                                                           int64_t nbad,
+                                                           int64_t nsample);
+extern "C" curandStatus_t randutilGenerateVonMisesDoubleEx(
+  randutilGenerator_t generator, double* outputPtr, size_t n, double mu, double kappa);
+extern "C" curandStatus_t randutilGenerateVonMisesEx(
+  randutilGenerator_t generator, float* outputPtr, size_t n, float mu, float kappa);
+extern "C" curandStatus_t randutilGenerateZipfEx(randutilGenerator_t generator,
+                                                 uint32_t* outputPtr,
+                                                 size_t n,
+                                                 double a);
+extern "C" curandStatus_t randutilGenerateGeometricEx(randutilGenerator_t generator,
+                                                      uint32_t* outputPtr,
+                                                      size_t n,
+                                                      double p);
+extern "C" curandStatus_t randutilGenerateWaldDoubleEx(
+  randutilGenerator_t generator, double* outputPtr, size_t n, double mu, double lambda);
+extern "C" curandStatus_t randutilGenerateWaldEx(
+  randutilGenerator_t generator, float* outputPtr, size_t n, float mu, float lambda);
+
+extern "C" curandStatus_t randutilGenerateBinomialEx(
+  randutilGenerator_t generator, uint32_t* outputPtr, size_t n, uint32_t ntrials, double p);
+extern "C" curandStatus_t randutilGenerateNegativeBinomialEx(
+  randutilGenerator_t generator, uint32_t* outputPtr, size_t n, uint32_t ntrials, double p);
