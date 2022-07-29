@@ -3886,18 +3886,14 @@ class ndarray:
                     "Varried output shape not supported. Output must have "
                     "same shape as input (same size if no axis is provided"
                 )
-            if dtype != src_arr.dtype:
-                # convert input to temporary for type conversion
-                temp = ndarray(shape=src_arr.shape, dtype=dtype)
-                temp._thunk.convert(src_arr._thunk)
-                src_arr = temp
         else:
             out = ndarray(shape=src_arr.shape, dtype=dtype)
-            if dtype != src.dtype:
-                # convert input to temporary for type conversion
-                temp = ndarray(shape=src_arr.shape, dtype=dtype)
-                temp._thunk.convert(src_arr._thunk)
-                src_arr = temp
+
+        if dtype != src_arr.dtype:
+            # convert input to temporary for type conversion
+            temp = ndarray(shape=src_arr.shape, dtype=dtype)
+            temp._thunk.convert(src_arr._thunk)
+            src_arr = temp
 
         out._thunk.scan(
             op,
