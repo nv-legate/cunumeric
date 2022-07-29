@@ -20,24 +20,24 @@
 
 namespace cunumeric {
 
-  template <typename T, std::enable_if_t<std::is_integral<T>::value>* = nullptr>
-  constexpr bool is_nan(const T& x)
-  {
-    return false;
-  }
+template <typename T, std::enable_if_t<std::is_integral<T>::value>* = nullptr>
+constexpr bool is_nan(const T& x)
+{
+  return false;
+}
 
-  template <typename T, std::enable_if_t<std::is_floating_point<T>::value>* = nullptr>
-  __CUDA_HD__ bool is_nan(const T& x)
-  {
-    return std::isnan(x);
-  }
+template <typename T, std::enable_if_t<std::is_floating_point<T>::value>* = nullptr>
+__CUDA_HD__ bool is_nan(const T& x)
+{
+  return std::isnan(x);
+}
 
-  template <typename T>
-  __CUDA_HD__ bool is_nan(const complex<T>& x)
-  {
-    return std::isnan(x.imag()) || std::isnan(x.real());
-  }
+template <typename T>
+__CUDA_HD__ bool is_nan(const complex<T>& x)
+{
+  return std::isnan(x.imag()) || std::isnan(x.real());
+}
 
-  __CUDA_HD__ inline bool is_nan(const __half& x) { return isnan(x); }
+__CUDA_HD__ inline bool is_nan(const __half& x) { return isnan(x); }
 
 }  // namespace cunumeric
