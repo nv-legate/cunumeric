@@ -23,7 +23,7 @@ from typing import TYPE_CHECKING, Any, Optional, Sequence, Union, cast
 import numpy as np
 import opt_einsum as oe  # type: ignore [import]
 from cunumeric.coverage import is_implemented
-from numpy.core.multiarray import normalize_axis_index
+from numpy.core.multiarray import normalize_axis_index  # type: ignore
 from numpy.core.numeric import (  # type: ignore [attr-defined]
     normalize_axis_tuple,
 )
@@ -2904,7 +2904,9 @@ def _fill_fancy_index_for_along_axis_routines(
 
 
 @add_boilerplate("a", "indices")
-def take_along_axis(a: ndarray, indices: ndarray, axis: int) -> ndarray:
+def take_along_axis(
+    a: ndarray, indices: ndarray, axis: Union[int, None]
+) -> ndarray:
     """
     Take values from the input array by matching 1d index and data slices.
 
@@ -2964,8 +2966,8 @@ def take_along_axis(a: ndarray, indices: ndarray, axis: int) -> ndarray:
 
 @add_boilerplate("a", "indices", "values")
 def put_along_axis(
-    a: ndarray, indices: ndarray, values: ndarray, axis: int
-) -> ndarray:
+    a: ndarray, indices: ndarray, values: ndarray, axis: Union[int, None]
+):
     """
     Put values into the destination array by matching 1d index and data slices.
 
