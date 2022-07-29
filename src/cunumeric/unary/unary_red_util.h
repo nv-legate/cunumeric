@@ -16,6 +16,8 @@
 
 #pragma once
 
+#include <core/utilities/typedefs.h>
+#include <core/utilities/dispatch.h>
 #include "cunumeric/cunumeric.h"
 #include "cunumeric/arg.h"
 #include "cunumeric/arg.inl"
@@ -33,7 +35,33 @@ enum class UnaryRedCode : int {
   MIN           = CUNUMERIC_RED_MIN,
   PROD          = CUNUMERIC_RED_PROD,
   SUM           = CUNUMERIC_RED_SUM,
+  UNSPECIFIED   = SUM + 1,
 };
+
+#define NttpCase(x) \
+  case x: return Callback{}.template operator()<x>(std::forward<Args>(args)...)
+using cunumeric::UnaryRedCode;
+
+template <class Callback, class... Args>
+void runtime_parameter_to_nttp(UnaryRedCode code, Args&&... args)
+{
+  switch (code) {
+    NttpCase(UnaryRedCode::ALL);
+    NttpCase(UnaryRedCode::ANY);
+    NttpCase(UnaryRedCode::ARGMAX);
+    NttpCase(UnaryRedCode::ARGMIN);
+    NttpCase(UnaryRedCode::CONTAINS);
+    NttpCase(UnaryRedCode::COUNT_NONZERO);
+    NttpCase(UnaryRedCode::MAX);
+    NttpCase(UnaryRedCode::MIN);
+    NttpCase(UnaryRedCode::PROD);
+    NttpCase(UnaryRedCode::SUM);
+    default: break;
+  }
+  assert(false);
+}
+
+#undef NttpCase
 
 template <UnaryRedCode OP_CODE>
 struct is_arg_reduce : std::false_type {
@@ -81,12 +109,21 @@ struct UnaryRedOp {
 };
 
 template <legate::LegateTypeCode TYPE_CODE>
+struct UnaryRedOp<UnaryRedCode::CONTAINS, TYPE_CODE> {
+  static constexpr bool valid = true;
+
+  using RHS = legate::legate_type_of<TYPE_CODE>;
+  using VAL = bool;
+  using OP  = Legion::SumReduction<VAL>;
+};
+
+template <legate::LegateTypeCode TYPE_CODE>
 struct UnaryRedOp<UnaryRedCode::ALL, TYPE_CODE> {
   static constexpr bool valid = TYPE_CODE != legate::LegateTypeCode::COMPLEX128_LT;
 
   using RHS = legate::legate_type_of<TYPE_CODE>;
   using VAL = bool;
-  using OP  = Legion::ProdReduction<VAL>;
+  using OP  = Legion::ProdReduction<bool>;
 
   template <bool EXCLUSIVE>
   __CUDA_HD__ static void fold(VAL& a, VAL b)
