@@ -3267,7 +3267,7 @@ class ndarray:
     def argsort(
         self,
         axis: Any = -1,
-        kind: Union[SortType, None] = None,
+        kind: SortType = "quicksort",
         order: Union[OrderType, None] = None,
     ) -> ndarray:
         """a.argsort(axis=-1, kind=None, order=None)
