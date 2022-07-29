@@ -28,6 +28,8 @@ from numpy.core.numeric import (  # type: ignore [attr-defined]
     normalize_axis_tuple,
 )
 
+from cunumeric.coverage import is_implemented
+
 from ._ufunc.comparison import maximum, minimum
 from ._ufunc.floating import floor
 from ._ufunc.math import add, multiply
