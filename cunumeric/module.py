@@ -4692,9 +4692,9 @@ def convolve(a: ndarray, v: ndarray, mode: ConvolveMode = "full") -> ndarray:
 @add_boilerplate("a")
 def clip(
     a: ndarray,
-    a_min: Union[int, float, ndarray],
-    a_max: Union[int, float, ndarray],
-    out: Optional[npt.NDArray[Any]] = None,
+    a_min: Union[int, float, npt.ArrayLike, None],
+    a_max: Union[int, float, npt.ArrayLike, None],
+    out: Union[npt.NDArray[Any], ndarray, None] = None,
 ) -> ndarray:
     """
 

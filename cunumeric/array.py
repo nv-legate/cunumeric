@@ -2083,9 +2083,9 @@ class ndarray:
 
     def clip(
         self,
-        min: Union[npt.ArrayLike, None] = None,
-        max: Union[npt.ArrayLike, None] = None,
-        out: Union[npt.NDArray[Any], None] = None,
+        min: Union[int, float, npt.ArrayLike, None] = None,
+        max: Union[int, float, npt.ArrayLike, None] = None,
+        out: Union[npt.NDArray[Any], ndarray, None] = None,
     ) -> ndarray:
         """a.clip(min=None, max=None, out=None)
 
@@ -2116,9 +2116,12 @@ class ndarray:
                 "function call.",
                 category=RuntimeWarning,
             )
-            if out is not None:
+            if isinstance(out, np.ndarray):
                 self.__array__().clip(args[0], args[1], out=out)
                 return convert_to_cunumeric_ndarray(out, share=True)
+            elif isinstance(out, ndarray):
+                self.__array__().clip(args[0], args[1], out=out.__array__())
+                return out
             else:
                 return convert_to_cunumeric_ndarray(
                     self.__array__().clip(args[0], args[1])
