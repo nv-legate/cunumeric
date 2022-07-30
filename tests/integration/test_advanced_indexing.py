@@ -660,7 +660,7 @@ def test():
 
     x = np.ones((3, 4), dtype=float)
     x_num = num.array(x)
-    ind = np.full((3,), 1)
+    ind = np.arange(3)
     ind_num = num.array(ind)
     res = x[ind, ind]
     res_num = x_num[ind_num, ind_num]

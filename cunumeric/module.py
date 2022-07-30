@@ -23,6 +23,7 @@ from typing import TYPE_CHECKING, Any, Optional, Sequence, Union, cast
 import numpy as np
 import opt_einsum as oe  # type: ignore [import]
 from cunumeric.coverage import is_implemented
+from numpy.core.multiarray import normalize_axis_index  # type: ignore
 from numpy.core.numeric import (  # type: ignore [attr-defined]
     normalize_axis_tuple,
 )
@@ -3127,6 +3128,156 @@ def take(
     Multiple GPUs, Multiple CPUs
     """
     return a.take(indices=indices, axis=axis, out=out, mode=mode)
+
+
+def _fill_fancy_index_for_along_axis_routines(
+    a_shape: NdShape, axis: int, indices: ndarray
+) -> tuple[ndarray, ...]:
+
+    # the logic below is base on the cupy implementation of
+    # the *_along_axis routines
+    ndim = len(a_shape)
+    fancy_index = []
+    for i, n in enumerate(a_shape):
+        if i == axis:
+            fancy_index.append(indices)
+        else:
+            ind_shape = (1,) * i + (-1,) + (1,) * (ndim - i - 1)
+            fancy_index.append(arange(n).reshape(ind_shape))
+    return tuple(fancy_index)
+
+
+@add_boilerplate("a", "indices")
+def take_along_axis(
+    a: ndarray, indices: ndarray, axis: Union[int, None]
+) -> ndarray:
+    """
+    Take values from the input array by matching 1d index and data slices.
+
+    This iterates over matching 1d slices oriented along the specified axis in
+    the index and data arrays, and uses the former to look up values in the
+    latter. These slices can be different lengths.
+
+    Functions returning an index along an axis, like
+    :func:`cunumeric.argsort` and :func:`cunumeric.argpartition`,
+    produce suitable indices for this function.
+
+    Parameters
+    ----------
+    arr : ndarray (Ni..., M, Nk...)
+        Source array
+    indices : ndarray (Ni..., J, Nk...)
+        Indices to take along each 1d slice of `arr`. This must match the
+        dimension of arr, but dimensions Ni and Nj only need to broadcast
+        against `arr`.
+    axis : int
+        The axis to take 1d slices along. If axis is None, the input array is
+        treated as if it had first been flattened to 1d, for consistency with
+        :func:`cunumeric.sort` and :func:`cunumeric.argsort`.
+
+    Returns
+    -------
+    out: ndarray (Ni..., J, Nk...)
+        The indexed result. It is going to be a view to `arr` for most cases,
+        except the case when `axis=Null` and `arr.ndim>1`.
+
+    See Also
+    --------
+    numpy.take_along_axis
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    if not np.issubdtype(indices.dtype, np.integer):
+        raise TypeError("`indices` must be an integer array")
+
+    computed_axis = 0
+    if axis is None:
+        if indices.ndim != 1:
+            raise ValueError("indices must be 1D if axis=None")
+        if a.ndim > 1:
+            a = a.ravel()
+    else:
+        computed_axis = normalize_axis_index(axis, a.ndim)
+
+    if a.ndim != indices.ndim:
+        raise ValueError(
+            "`indices` and `a` must have the same number of dimensions"
+        )
+    return a[
+        _fill_fancy_index_for_along_axis_routines(
+            a.shape, computed_axis, indices
+        )
+    ]
+
+
+@add_boilerplate("a", "indices", "values")
+def put_along_axis(
+    a: ndarray, indices: ndarray, values: ndarray, axis: Union[int, None]
+) -> None:
+    """
+    Put values into the destination array by matching 1d index and data slices.
+
+    This iterates over matching 1d slices oriented along the specified axis in
+    the index and data arrays, and uses the former to place values into the
+    latter. These slices can be different lengths.
+
+    Functions returning an index along an axis, like :func:`cunumeric.argsort`
+    and :func:`cunumeric.argpartition`, produce suitable indices for
+    this function.
+
+    Parameters
+    ----------
+    arr : ndarray (Ni..., M, Nk...)
+        Destination array.
+    indices : ndarray (Ni..., J, Nk...)
+        Indices to change along each 1d slice of `arr`. This must match the
+        dimension of arr, but dimensions in Ni and Nj may be 1 to broadcast
+        against `arr`.
+    values : array_like (Ni..., J, Nk...)
+        values to insert at those indices. Its shape and dimension are
+        broadcast to match that of `indices`.
+    axis : int
+        The axis to take 1d slices along. If axis is None, the destination
+        array is treated as if a flattened 1d view had been created of it.
+        `axis=None` case is currently supported only for 1D input arrays.
+
+    Note
+    ----
+    Having duplicate entries in `indices` will result in undefined behavior
+    since operation performs asynchronous update of the `arr` entries.
+
+    See Also
+    --------
+    numpy.put_along_axis
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+
+    """
+    if not np.issubdtype(indices.dtype, np.integer):
+        raise TypeError("`indices` must be an integer array")
+
+    computed_axis = 0
+    if axis is None:
+        if indices.ndim != 1:
+            raise ValueError("indices must be 1D if axis=None")
+        if a.ndim > 1:
+            # TODO call a=a.flat when flat is implemented
+            raise ValueError("a.ndim>1 case is not supported when axis=None")
+    else:
+        computed_axis = normalize_axis_index(axis, a.ndim)
+
+    if a.ndim != indices.ndim:
+        raise ValueError(
+            "`indices` and `a` must have the same number of dimensions"
+        )
+    ind = _fill_fancy_index_for_along_axis_routines(
+        a.shape, computed_axis, indices
+    )
+    a[ind] = values
 
 
 @add_boilerplate("a")
