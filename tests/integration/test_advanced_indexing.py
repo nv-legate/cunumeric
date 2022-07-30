@@ -670,12 +670,6 @@ def test():
     x_num[ind_num, ind_num] = 5
     assert np.array_equal(x, x_num)
 
-    b = np.array([1, 2, 3], dtype=np.int16)
-    b_num = num.array(b)
-    x[ind, ind] = b
-    x_num[ind_num, ind_num] = b_num
-    assert np.array_equal(x, x_num)
-
     # some additional tests for bool index arrays:
     # 2d:
     x = mk_seq_array(
