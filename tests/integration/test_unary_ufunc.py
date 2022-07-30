@@ -21,13 +21,25 @@ from utils.comparisons import allclose
 
 import cunumeric as num
 
-np.random.seed(12345)
+
+def deterministic_op_test(func):
+    # Uses the op name to create a deterministic seed.
+    # This enforces that inputs are always the same whether
+    # running all tests or a single test with -k.
+    def wrapper_set_seed(op, *args, **kwargs):
+        # np seeds must be limited to 32-bits
+        np.random.seed(hash(op) & 0xFFFFFFFF)
+        func(op, *args, **kwargs)
+        func(op, *args, **kwargs)
+
+    return wrapper_set_seed
 
 
 def check_result(op, in_np, out_np, out_num, **isclose_kwargs):
     if in_np.dtype == "e" or out_np.dtype == "e":
         # The mantissa is only 10 bits, 2**-10 ~= 10^(-4)
-        f16_rtol = 1e-4
+        # Gives 1e-3 as rtol to provide extra rounding error.
+        f16_rtol = 1e-3
         rtol = isclose_kwargs.setdefault("rtol", f16_rtol)
         # make sure we aren't trying to fp16 compare with less precision
         assert rtol >= f16_rtol
@@ -133,6 +145,7 @@ def check_op_input(
 # test corner cases in the future.
 
 
+@deterministic_op_test
 def check_math_ops(op, **kwargs):
     check_op_input(op, **kwargs)
     check_op_input(op, astype="e", **kwargs)
@@ -185,6 +198,7 @@ log_ops = (
 
 
 @pytest.mark.parametrize("op", log_ops)
+@deterministic_op_test
 def test_log_ops(op):
     # for real-valued log functions, requires inputs to be positive
     # since numpy does log(real) -> real and not log(real)->complex
@@ -209,19 +223,23 @@ even_root_ops = ("sqrt",)
 
 
 @pytest.mark.parametrize("op", even_root_ops)
+@deterministic_op_test
 def test_even_root_ops(op):
-    check_op(op, np.random.randn(4, 5) + 3)
-    check_op(op, np.random.randn(4, 5).astype("e") + 3)
-    check_op(op, np.random.randn(4, 5).astype("f") + 3)
-    check_op(op, np.random.randn(4, 5).astype("F") + 3, out_dtype="D")
-    check_op(op, np.random.randint(3, 10, size=(4, 5)))
-    check_op(op, np.random.randn(1)[0] + 3)
+    # Need to guarantee positive inputs with a_min # for float roots
+    check_op_input(op, offset=3, a_min=0)
+    check_op_input(op, astype="e", offset=3, a_min=0)
+    check_op_input(op, astype="f", offset=3, a_min=0)
+    # Complex inputs can be negative
+    check_op_input(op, astype="F", out_dtype="D")
+    check_op_input(op, randint=True, a_min=3, a_max=10)
+    check_op_input(op, shape=(1,), offset=3)
 
 
 odd_root_ops = ("cbrt",)
 
 
 @pytest.mark.parametrize("op", odd_root_ops)
+@deterministic_op_test
 def test_odd_root_ops(op):
     check_op(op, np.random.randn(4, 5))
     check_op(op, np.random.randn(4, 5).astype("e"))
@@ -247,6 +265,7 @@ trig_ops = (
 
 
 @pytest.mark.parametrize("op", trig_ops)
+@deterministic_op_test
 def test_trig_ops(op):
     check_op(op, np.random.uniform(low=-1, high=1, size=(4, 5)))
     check_op(op, np.random.uniform(low=-1, high=1, size=(4, 5)).astype("e"))
@@ -271,6 +290,7 @@ bit_ops = ("invert",)
 
 
 @pytest.mark.parametrize("op", bit_ops)
+@deterministic_op_test
 def test_bit_ops(op):
     check_op(op, np.random.randint(0, 2, size=(4, 5)))
     check_op(op, np.random.randint(0, 1, size=(4, 5), dtype="?"))
@@ -294,6 +314,7 @@ floating_ops = (
 
 
 @pytest.mark.parametrize("op", floating_ops)
+@deterministic_op_test
 def test_floating_ops(op):
     check_op(op, np.random.randn(4, 5))
     check_op(op, np.random.randn(4, 5).astype("f"))
