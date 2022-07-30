@@ -2934,7 +2934,7 @@ def take_along_axis(
     Returns
     -------
     out: ndarray (Ni..., J, Nk...)
-        The indexed result. It is going to be a vew to `arr` for most cases,
+        The indexed result. It is going to be a view to `arr` for most cases,
         except the case when `axis=Null` and `arr.ndim>1`.
 
     See Also
@@ -2997,7 +2997,7 @@ def put_along_axis(
     axis : int
         The axis to take 1d slices along. If axis is None, the destination
         array is treated as if a flattened 1d view had been created of it.
-        `axis=None` case is currenlty supported only for 1D input arrays.
+        `axis=None` case is currently supported only for 1D input arrays.
 
     Note
     ----
@@ -3034,7 +3034,6 @@ def put_along_axis(
         a.shape, computed_axis, indices
     )
     a[ind] = values
-    return
 
 
 @add_boilerplate("a")
