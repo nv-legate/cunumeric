@@ -446,11 +446,10 @@ class DeferredArray(NumPyThunk):
         # NumPy array.
         N = self.ndim
         pointN_dtype = self.runtime.get_point_type(N)
-        store = self.context.create_store(
-            pointN_dtype, shape=out_shape, optimize_scalar=True
-        )
-        output_arr = DeferredArray(
-            self.runtime, base=store, dtype=cast("np.dtype[Any]", pointN_dtype)
+        output_arr = self.runtime.create_empty_thunk(
+            shape=out_shape,
+            dtype=pointN_dtype,
+            inputs=[self],
         )
 
         # call ZIP function to combine index arrays into a singe array
@@ -806,10 +805,17 @@ class DeferredArray(NumPyThunk):
             else:
                 if rhs.base.transformed:
                     rhs = rhs._copy_store(rhs.base)
+                if rhs.base.kind == Future:
+                    rhs = self._convert_future_to_store(rhs)
                 rhs_store = rhs.base
 
             copy = self.context.create_copy()
             copy.set_target_indirect_out_of_range(False)
+
+            if lhs.base.kind == Future:
+                lhs = self._convert_future_to_store(lhs)
+            if index_array.base.kind == Future:
+                index_array = self._convert_future_to_store(index_array)
 
             copy.add_input(rhs_store)
             copy.add_target_indirect(index_array.base)
@@ -3152,3 +3158,35 @@ class DeferredArray(NumPyThunk):
         scale = tuple(8 if dim == axis else 1 for dim in range(src.ndim))
         task.add_constraint(p_out <= p_in * scale)  # type: ignore
         task.execute()
+
+    @auto_convert([1])
+    def _wrap(self, src, new_len):
+        # first, we create indirect array with PointN type that
+        # (len,) shape and is used to copy data from original array
+        # to the target 1D wrapped array
+        N = src.ndim
+        pointN_dtype = self.runtime.get_point_type(N)
+        indirect = self.runtime.create_empty_thunk(
+            shape=(new_len,),
+            dtype=pointN_dtype,
+            inputs=[src],
+        )
+
+        task = self.context.create_task(CuNumericOpCode.WRAP)
+        task.add_output(indirect.base)
+        task.add_scalar_arg(src.shape, (ty.int64,))
+        task.execute()
+
+        if indirect.base.kind == Future:
+            indirect = src._convert_future_to_store(indirect)
+        if self.base.kind == Future:
+            self = src._convert_future_to_store(self)
+        if src.base.kind == Future:
+            src = self._convert_future_to_store(src)
+
+        copy = self.context.create_copy()
+        copy.set_target_indirect_out_of_range(False)
+        copy.add_input(src.base)
+        copy.add_source_indirect(indirect.base)
+        copy.add_output(self.base)
+        copy.execute()

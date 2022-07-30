@@ -3810,3 +3810,13 @@ class ndarray:
         out = ndarray(shape=out_shape, dtype=common_type, inputs=args)
         out._thunk.where(mask, one, two)
         return out
+
+    def _wrap(self, new_len: int) -> ndarray:
+        out = ndarray(
+            shape=(new_len,),
+            dtype=self.dtype,
+            inputs=(self,),
+        )
+        out.fill(0)
+        out._thunk._wrap(src=self._thunk, new_len=new_len)
+        return out

@@ -689,3 +689,7 @@ class NumPyThunk(ABC):
         self, src: Any, axis: Union[int, None], bitorder: BitOrder
     ) -> None:
         ...
+
+    @abstractmethod
+    def _wrap(self, src, new_len):
+        ...
