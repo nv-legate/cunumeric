@@ -223,6 +223,12 @@ class EagerArray(NumPyThunk):
             self.to_deferred_array()
         return self.deferred.storage  # type: ignore
 
+    def get_root(self) -> npt.NDArray[Any]:
+        root = self.array.base
+        if root is None:
+            root = self.array
+        return root
+
     @property
     def shape(self) -> NdShape:
         return self.array.shape

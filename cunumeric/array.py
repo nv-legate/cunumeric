@@ -332,13 +332,7 @@ class ndarray:
     @property
     def base(self):
         """
-        Returns dtype for the base element of the subarrays,
-        regardless of their dimension or shape.
-
-        See Also
-        --------
-        numpy.dtype.subdtype
-
+        Base object if memory is from some other object.
         """
         return self.__array__().base
 
@@ -349,6 +343,10 @@ class ndarray:
 
         """
         return self.__array__().data
+
+    @add_boilerplate("rhs")
+    def same_root(self, rhs: ndarray) -> bool:
+        return self._thunk.get_root() is rhs._thunk.get_root()
 
     @property
     def dtype(self):
