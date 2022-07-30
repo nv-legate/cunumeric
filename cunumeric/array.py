@@ -29,7 +29,13 @@ from typing_extensions import ParamSpec
 
 from legate.core import Array
 
-from .config import FFTDirection, FFTNormalization, UnaryOpCode, UnaryRedCode
+from .config import (
+    FFTDirection,
+    FFTNormalization,
+    ScanCode,
+    UnaryOpCode,
+    UnaryRedCode,
+)
 from .coverage import clone_np_ndarray
 from .runtime import runtime
 from .utils import _broadcast_shapes, dot_modes
@@ -2139,6 +2145,50 @@ class ndarray:
         # We don't care about dimension order in cuNumeric
         return self.__copy__()
 
+    @add_boilerplate()
+    def cumsum(self, axis=None, dtype=None, out=None) -> ndarray:
+        return self._perform_scan(
+            ScanCode.SUM,
+            self,
+            axis=axis,
+            dtype=dtype,
+            out=out,
+            nan_to_identity=False,
+        )
+
+    @add_boilerplate()
+    def cumprod(self, axis=None, dtype=None, out=None) -> ndarray:
+        return self._perform_scan(
+            ScanCode.PROD,
+            self,
+            axis=axis,
+            dtype=dtype,
+            out=out,
+            nan_to_identity=False,
+        )
+
+    @add_boilerplate()
+    def nancumsum(self, axis=None, dtype=None, out=None) -> ndarray:
+        return self._perform_scan(
+            ScanCode.SUM,
+            self,
+            axis=axis,
+            dtype=dtype,
+            out=out,
+            nan_to_identity=True,
+        )
+
+    @add_boilerplate()
+    def nancumprod(self, axis=None, dtype=None, out=None) -> ndarray:
+        return self._perform_scan(
+            ScanCode.PROD,
+            self,
+            axis=axis,
+            dtype=dtype,
+            out=out,
+            nan_to_identity=True,
+        )
+
     # diagonal helper. Will return diagonal for arbitrary number of axes;
     # currently offset option is implemented only for the case of number of
     # axes=2. This restriction can be lifted in the future if there is a
@@ -3819,4 +3869,57 @@ class ndarray:
         out_shape = _broadcast_shapes(mask.shape, one.shape, two.shape)
         out = ndarray(shape=out_shape, dtype=common_type, inputs=args)
         out._thunk.where(mask, one, two)
+        return out
+
+    @classmethod
+    def _perform_scan(
+        cls, op, src, axis=None, dtype=None, out=None, nan_to_identity=False
+    ) -> ndarray:
+        if dtype is None:
+            if out is None:
+                if src.dtype.kind == "i":
+                    # Set dtype to default platform integer
+                    dtype = np.int_
+                else:
+                    dtype = src.dtype
+            else:
+                dtype = out.dtype
+        if (src.dtype.kind in ("f", "c")) and np.issubdtype(dtype, np.integer):
+            # Needs changes to convert()
+            raise NotImplementedError(
+                "Integer output types currently not supported for "
+                "floating/complex inputs"
+            )
+        # flatten input when axis is None
+        if axis is None:
+            axis = 0
+            src_arr = src.ravel()
+        else:
+            axis = normalize_axis_index(axis, src.ndim)
+            src_arr = src
+        if out is not None:
+            if dtype != out.dtype:
+                # if out array is specified, its type overrules dtype
+                dtype = out.dtype
+            if out.shape != src_arr.shape:
+                raise NotImplementedError(
+                    "Varried output shape not supported. Output must have "
+                    "same shape as input (same size if no axis is provided"
+                )
+        else:
+            out = ndarray(shape=src_arr.shape, dtype=dtype)
+
+        if dtype != src_arr.dtype:
+            # convert input to temporary for type conversion
+            temp = ndarray(shape=src_arr.shape, dtype=dtype)
+            temp._thunk.convert(src_arr._thunk)
+            src_arr = temp
+
+        out._thunk.scan(
+            op,
+            src_arr._thunk,
+            axis=axis,
+            dtype=dtype,
+            nan_to_identity=nan_to_identity,
+        )
         return out

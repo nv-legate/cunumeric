@@ -37,6 +37,8 @@ enum CuNumericOpCode {
   CUNUMERIC_CONTRACT,
   CUNUMERIC_CONVERT,
   CUNUMERIC_CONVOLVE,
+  CUNUMERIC_SCAN_GLOBAL,
+  CUNUMERIC_SCAN_LOCAL,
   CUNUMERIC_DIAG,
   CUNUMERIC_DOT,
   CUNUMERIC_EYE,
@@ -208,6 +210,13 @@ enum CuNumericBounds {
   CUNUMERIC_MAX_MAPPERS = 1,
   CUNUMERIC_MAX_REDOPS  = 1024,
   CUNUMERIC_MAX_TASKS   = 1048576,
+};
+
+// Match these to ScanCode in config.py
+// Also, sort these alphabetically for easy lookup later
+enum CuNumericScanCode {
+  CUNUMERIC_SCAN_PROD = 1,
+  CUNUMERIC_SCAN_SUM,
 };
 
 // Match these to BitGeneratorOperation in config.py

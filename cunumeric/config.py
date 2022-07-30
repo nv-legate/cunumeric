@@ -177,6 +177,10 @@ class _CunumericSharedLib:
     CUNUMERIC_RED_SUM: int
     CUNUMERIC_REPEAT: int
     CUNUMERIC_SCALAR_UNARY_RED: int
+    CUNUMERIC_SCAN_GLOBAL: int
+    CUNUMERIC_SCAN_LOCAL: int
+    CUNUMERIC_SCAN_PROD: int
+    CUNUMERIC_SCAN_SUM: int
     CUNUMERIC_SEARCHSORTED: int
     CUNUMERIC_SORT: int
     CUNUMERIC_SYRK: int
@@ -347,6 +351,8 @@ class CuNumericOpCode(IntEnum):
     READ = _cunumeric.CUNUMERIC_READ
     REPEAT = _cunumeric.CUNUMERIC_REPEAT
     SCALAR_UNARY_RED = _cunumeric.CUNUMERIC_SCALAR_UNARY_RED
+    SCAN_GLOBAL = _cunumeric.CUNUMERIC_SCAN_GLOBAL
+    SCAN_LOCAL = _cunumeric.CUNUMERIC_SCAN_LOCAL
     SEARCHSORTED = _cunumeric.CUNUMERIC_SEARCHSORTED
     SORT = _cunumeric.CUNUMERIC_SORT
     SYRK = _cunumeric.CUNUMERIC_SYRK
@@ -504,6 +510,13 @@ class CuNumericTunable(IntEnum):
     NUM_PROCS = _cunumeric.CUNUMERIC_TUNABLE_NUM_PROCS
     MAX_EAGER_VOLUME = _cunumeric.CUNUMERIC_TUNABLE_MAX_EAGER_VOLUME
     HAS_NUMAMEM = _cunumeric.CUNUMERIC_TUNABLE_HAS_NUMAMEM
+
+
+# Match these to CuNumericScanCode in cunumeric_c.h
+@unique
+class ScanCode(IntEnum):
+    PROD = _cunumeric.CUNUMERIC_SCAN_PROD
+    SUM = _cunumeric.CUNUMERIC_SCAN_SUM
 
 
 # Match these to BitGeneratorOperation in cunumeric_c.h
