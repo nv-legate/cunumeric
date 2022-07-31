@@ -50,8 +50,10 @@ struct UnaryRedImpl {
     auto rhs = args.rhs.read_accessor<RHS, DIM>(rect);
 
     auto lhs = args.lhs.reduce_accessor<typename OP::OP, KIND != VariantKind::GPU, DIM>(rect);
-    UnaryRedImplBody<KIND, OP_CODE, CODE, DIM>()(
-      lhs, rhs, rect, pitches, args.collapsed_dim, volume);
+    if constexpr (OP_CODE != UnaryRedCode::CONTAINS) {
+      UnaryRedImplBody<KIND, OP_CODE, CODE, DIM>()(
+        lhs, rhs, rect, pitches, args.collapsed_dim, volume);
+    }
   }
 
   template <LegateTypeCode CODE,
