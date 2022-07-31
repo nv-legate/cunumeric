@@ -808,6 +808,21 @@ class DeferredArray(NumPyThunk):
                     rhs = rhs._copy_store(rhs.base)
                 rhs_store = rhs.base
 
+            # the case when rhs is a scalar and indices array contains
+            # a single value
+            # TODO this logic should be removed when copy accepts Futures
+            if rhs_store.kind == Future:
+                rhs_tmp = DeferredArray(
+                    self.runtime,
+                    base=rhs_store,
+                    dtype=rhs.dtype,
+                )
+                rhs_tmp2 = self._convert_future_to_store(rhs_tmp)
+                rhs_store = rhs_tmp2.base
+
+            if index_array.base.kind == Future:
+                index_array = self._convert_future_to_store(index_array)
+
             copy = self.context.create_copy()
             copy.set_target_indirect_out_of_range(False)
 
@@ -1805,9 +1820,11 @@ class DeferredArray(NumPyThunk):
             distribution = BitGeneratorDistribution.INTEGERS_32
         elif self.dtype == np.int64:
             distribution = BitGeneratorDistribution.INTEGERS_64
+        elif self.dtype == np.int16:
+            distribution = BitGeneratorDistribution.INTEGERS_16
         else:
             raise NotImplementedError(
-                "type for random.integers has to be int64 or int32"
+                "type for random.integers has to be int64 or int32 or int16"
             )
         self.bitgenerator_distribution(
             handle, generatorType, seed, flags, distribution, intparams, (), ()
@@ -3016,6 +3033,63 @@ class DeferredArray(NumPyThunk):
     @auto_convert([1])
     def cholesky(self, src: Any, no_tril: bool = False) -> None:
         cholesky(self, src, no_tril)
+
+    @auto_convert([2])
+    def scan(
+        self,
+        op: int,
+        rhs: Any,
+        axis: int,
+        dtype: Optional[np.dtype[Any]],
+        nan_to_identity: bool,
+    ) -> None:
+        # local sum
+        # storage for local sums accessible
+        temp = self.runtime.create_unbound_thunk(
+            dtype=self.dtype, ndim=self.ndim
+        )
+
+        if axis == rhs.ndim - 1:
+            input = rhs
+            output = self
+        else:
+            # swap axes, always performing scan along last axis
+            swapped = rhs.swapaxes(axis, rhs.ndim - 1)
+            input = self.runtime.create_empty_thunk(
+                swapped.shape, dtype=rhs.dtype, inputs=(rhs, swapped)
+            )
+            input.copy(swapped, deep=True)
+            output = input
+
+        task = output.context.create_task(CuNumericOpCode.SCAN_LOCAL)
+        task.add_output(output.base)
+        task.add_input(input.base)
+        task.add_output(temp.base)
+        task.add_scalar_arg(op, ty.int32)
+        task.add_scalar_arg(nan_to_identity, bool)
+
+        task.add_alignment(input.base, output.base)
+
+        task.execute()
+        # Global sum
+        # NOTE: Assumes the partitioning stays the same from previous task.
+        # NOTE: Each node will do a sum up to its index, alternatively could
+        # do one centralized scan and broadcast (slightly less redundant work)
+        task = output.context.create_task(CuNumericOpCode.SCAN_GLOBAL)
+        task.add_input(output.base)
+        task.add_input(temp.base)
+        task.add_output(output.base)
+        task.add_scalar_arg(op, ty.int32)
+
+        task.add_broadcast(temp.base)
+
+        task.execute()
+
+        # if axes were swapped, turn them back
+        if output is not self:
+            swapped = output.swapaxes(rhs.ndim - 1, axis)
+            assert self.shape == swapped.shape
+            self.copy(swapped, deep=True)
 
     def unique(self) -> NumPyThunk:
         result = self.runtime.create_unbound_thunk(self.dtype)

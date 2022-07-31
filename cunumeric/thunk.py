@@ -671,6 +671,17 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
+    def scan(
+        self,
+        op: int,
+        rhs: Any,
+        axis: int,
+        dtype: Optional[np.dtype[Any]],
+        nan_to_identity: bool,
+    ) -> None:
+        ...
+
+    @abstractmethod
     def unique(self) -> NumPyThunk:
         ...
 

@@ -14,36 +14,16 @@
 #
 import numpy as np
 import pytest
+from utils.random import ModuleGenerator, assert_distribution
 
 import cunumeric as num
 
 BITGENERATOR_ARGS = [
+    ModuleGenerator,
     num.random.XORWOW,
     num.random.MRG32k3a,
     num.random.PHILOX4_32_10,
 ]
-
-
-def assert_distribution(a, theo_mean, theo_stdev, tolerance=1e-2):
-    if True:
-        aa = np.array(a)
-        average = np.mean(aa)
-        stdev = np.std(aa)
-    else:  # keeping this path for further investigation
-        average = num.mean(a)
-        stdev = num.sqrt(
-            num.mean((a - average) ** 2)
-        )  # num.std(a) -> does not work
-    print(
-        f"average = {average} - expected {theo_mean}"
-        + f", stdev = {stdev} - expected {theo_stdev}\n"
-    )
-    assert np.abs(theo_mean - average) < tolerance * np.max(
-        (1.0, np.abs(theo_mean))
-    )
-    assert np.abs(theo_stdev - stdev) < tolerance * np.max(
-        (1.0, np.abs(theo_stdev))
-    )
 
 
 @pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
@@ -168,7 +148,7 @@ def test_binomial(t):
     gen = num.random.Generator(bitgen)
     n = 15
     p = 0.666
-    a = gen.binomial(n, p, size=(1024 * 1024,), dtype=np.uint32)
+    a = gen.binomial(ntrials=n, p=p, size=(1024 * 1024,), dtype=np.uint32)
     theo_mean = n * p
     theo_std = np.sqrt(n * p * (1 - p))
     assert_distribution(a, theo_mean, theo_std)

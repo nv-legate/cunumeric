@@ -34,6 +34,7 @@ from .config import (
     FFT_Z2D,
     BinaryOpCode,
     FFTDirection,
+    ScanCode,
     UnaryOpCode,
     UnaryRedCode,
     WindowOpCode,
@@ -1561,6 +1562,31 @@ class EagerArray(NumPyThunk):
             if no_tril:
                 result = np.triu(result.T.conj(), k=1) + result
             self.array[:] = result
+
+    def scan(
+        self,
+        op: int,
+        rhs: Any,
+        axis: int,
+        dtype: Optional[np.dtype[Any]],
+        nan_to_identity: bool,
+    ) -> None:
+        self.check_eager_args(rhs)
+        if self.deferred is not None:
+            self.deferred.scan(op, rhs, axis, dtype, nan_to_identity)
+            return
+        if op is ScanCode.SUM:
+            if nan_to_identity is False:
+                np.cumsum(rhs.array, axis, dtype, self.array)
+            else:
+                np.nancumsum(rhs.array, axis, dtype, self.array)
+        elif op is ScanCode.PROD:
+            if nan_to_identity is False:
+                np.cumprod(rhs.array, axis, dtype, self.array)
+            else:
+                np.nancumprod(rhs.array, axis, dtype, self.array)
+        else:
+            raise RuntimeError(f"unsupported scan op {op}")
 
     def unique(self) -> NumPyThunk:
         if self.deferred is not None:

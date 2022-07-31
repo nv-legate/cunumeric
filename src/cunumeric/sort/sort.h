@@ -18,6 +18,8 @@
 
 #include "cunumeric/cunumeric.h"
 
+#include <thrust/sort.h>
+
 namespace cunumeric {
 
 struct SortArgs {
@@ -26,17 +28,66 @@ struct SortArgs {
   bool argsort;
   bool stable;
   size_t segment_size_g;
-  bool is_index_space;
+  bool is_index_space;  // !single_task
   size_t local_rank;
   size_t num_ranks;
   size_t num_sort_ranks;
 };
 
 template <typename VAL>
-struct SampleEntry {
+struct SegmentSample {
   VAL value;
-  size_t rank;
-  size_t local_id;
+  size_t segment;
+  int32_t rank;
+  size_t position;
+};
+
+template <typename VAL>
+struct SortPiece {
+  legate::Buffer<VAL> values;
+  legate::Buffer<int64_t> indices;
+  size_t size;
+};
+
+template <typename VAL>
+struct SegmentMergePiece {
+  legate::Buffer<size_t> segments;
+  legate::Buffer<VAL> values;
+  legate::Buffer<int64_t> indices;
+  size_t size;
+};
+
+template <typename VAL>
+struct SegmentSampleComparator
+  : public thrust::binary_function<SegmentSample<VAL>, SegmentSample<VAL>, bool> {
+  __CUDA_HD__ bool operator()(const SegmentSample<VAL>& lhs, const SegmentSample<VAL>& rhs) const
+  {
+    if (lhs.segment != rhs.segment) {
+      return lhs.segment < rhs.segment;
+    } else {
+      // special case for unused samples
+      if (lhs.rank < 0 || rhs.rank < 0) { return rhs.rank < 0 && lhs.rank >= 0; }
+
+      if (lhs.value != rhs.value) {
+        return lhs.value < rhs.value;
+      } else if (lhs.rank != rhs.rank) {
+        return lhs.rank < rhs.rank;
+      } else {
+        return lhs.position < rhs.position;
+      }
+    }
+  }
+};
+
+struct modulusWithOffset : public thrust::binary_function<int64_t, int64_t, int64_t> {
+  const size_t constant;
+
+  modulusWithOffset(size_t _constant) : constant(_constant) {}
+
+  __CUDA_HD__ int64_t operator()(const int64_t& lhs, const int64_t& rhs) const
+  {
+    return lhs % rhs + constant;
+  }
 };
 
 class SortTask : public CuNumericTask<SortTask> {
