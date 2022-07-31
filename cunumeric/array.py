@@ -3535,6 +3535,13 @@ class ndarray:
         return result
 
     def view(self, dtype=None, type=None):
+        # It is valid to pass numpy.ndarray and subclasses thereof to this
+        # call, so we attempt to handle them here. If it's not a type a type
+        # that we recognize, assume it is a normal dtype.
+        if dtype is np.ndarray or dtype is ndarray:
+            return ndarray(
+                shape=self.shape, dtype=self.dtype, thunk=self._thunk
+            )
         if dtype is not None and dtype != self.dtype:
             raise NotImplementedError(
                 "cuNumeric does not currently support type reinterpretation"
