@@ -440,16 +440,15 @@ class DeferredArray(NumPyThunk):
         # NOTE: We need to instantiate a RegionField of non-primitive
         # dtype, to store N-dimensional index points, to be used as the
         # indirection field in a copy.
-        # Such dtypes are technically not supported,
-        # but it should be safe to directly create a DeferredArray
-        # of that dtype, so long as we don't try to convert it to a
-        # NumPy array.
         N = self.ndim
         pointN_dtype = self.runtime.get_point_type(N)
-        output_arr = self.runtime.create_empty_thunk(
-            shape=out_shape,
-            dtype=cast(np.dtype[Any], pointN_dtype),
-            inputs=[self],
+        output_arr = cast(
+            DeferredArray,
+            self.runtime.create_empty_thunk(
+                shape=out_shape,
+                dtype=pointN_dtype,
+                inputs=[self],
+            ),
         )
 
         # call ZIP function to combine index arrays into a singe array
@@ -513,9 +512,7 @@ class DeferredArray(NumPyThunk):
             # indirect copy operation
             if is_set:
                 N = rhs.ndim
-                out_dtype = cast(
-                    "np.dtype[Any]", rhs.runtime.get_point_type(N)
-                )
+                out_dtype = rhs.runtime.get_point_type(N)
 
             # TODO : current implementation of the ND output regions
             # requires out.ndim == rhs.ndim. This will be fixed in the
@@ -3242,7 +3239,7 @@ class DeferredArray(NumPyThunk):
             DeferredArray,
             self.runtime.create_empty_thunk(
                 shape=(new_len,),
-                dtype=cast(np.dtype[Any], pointN_dtype),
+                dtype=pointN_dtype,
                 inputs=[src],
             ),
         )
@@ -3254,10 +3251,10 @@ class DeferredArray(NumPyThunk):
 
         if indirect.base.kind == Future:
             indirect = src._convert_future_to_store(indirect)
-        if self.base.kind == Future:
-            self = src._convert_future_to_store(self)
         if src.base.kind == Future:
             src = self._convert_future_to_store(src)
+        if self.base.kind == Future:
+            self = src._convert_future_to_store(self)
 
         copy = self.context.create_copy()
         copy.set_target_indirect_out_of_range(False)

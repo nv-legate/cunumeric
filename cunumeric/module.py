@@ -3242,26 +3242,6 @@ def diagonal(
     )
 
 
-# @add_boilerplate("a")
-# def _wrap_1d_array( a : ndarray, new_len:int):
-#    result = empty((new_len,), dtype=a.dtype)
-#    filled_size = 0
-#    indices = arange(new_len)
-#    while filled_size<new_len:
-#        diff = new_len-filled_size
-#
-#        if (diff <a.size):
-#            result[indices[filled_size:new_len]] = a[0:diff]
-#        else:
-#            result[indices[filled_size:(filled_size+a.size)]]=a
-#
-#        #    a_tmp = new_a[0:diff].copy()
-#        #    new_a = concatenate((new_a, a_tmp), axis = 0).copy()
-#        #else:
-#        #new_a = concatenate((new_a, new_a), axis =0).copy()
-#    return result
-
-
 @add_boilerplate("a", "val")
 def fill_diagonal(
     a: ndarray, val: ndarray, wrap: Optional[bool] = False

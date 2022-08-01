@@ -3920,5 +3920,6 @@ class ndarray:
             dtype=self.dtype,
             inputs=(self,),
         )
+        out.fill(0)
         out._thunk._wrap(src=self._thunk, new_len=new_len)
         return out
