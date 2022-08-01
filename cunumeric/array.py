@@ -3016,6 +3016,16 @@ class ndarray:
                     f"into shape ({extent})"
                 )
             unknown_extent //= extent
+
+        if (
+            all(extent > 0 for extent in computed_shape)
+            and unknown_extent != 1
+        ):
+            raise ValueError(
+                f"cannot reshape array of size {self.size} "
+                f"into shape ({computed_shape})"
+            )
+
         computed_shape = tuple(
             unknown_extent if extent < 0 else extent
             for extent in computed_shape
