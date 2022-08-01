@@ -2977,7 +2977,7 @@ class ndarray:
         """
         return self.reshape(-1, order=order)
 
-    def reshape(self, shape, order="C") -> ndarray:
+    def reshape(self, *args, order="C") -> ndarray:
         """a.reshape(shape, order='C')
 
         Returns an array containing the same data with a new shape.
@@ -2994,7 +2994,14 @@ class ndarray:
         Multiple GPUs, Multiple CPUs
         """
 
-        computed_shape = (shape,) if isinstance(shape, int) else shape
+        if len(args) == 0:
+            raise TypeError("reshape() takes exactly 1 argument (0 given)")
+        elif len(args) == 1:
+            shape = (args[0],) if isinstance(args[0], int) else args[0]
+        else:
+            shape = args
+
+        computed_shape = tuple(operator.index(extent) for extent in shape)
 
         if sum(extent < 0 for extent in computed_shape) > 1:
             raise ValueError("can only specify one unknown dimension")

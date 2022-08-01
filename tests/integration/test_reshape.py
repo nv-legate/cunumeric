@@ -34,26 +34,26 @@ class TestSquare:
     anp = np.arange(100).reshape(10, 10)
 
     def test_basic(self):
-        a = num.arange(100).reshape((10, 10))
+        a = num.arange(100).reshape(10, 10)
         assert np.array_equal(self.anp, a)
 
     @pytest.mark.parametrize("shape", SQUARE_CASES, ids=str)
     def test_shape(self, shape):
-        a = num.arange(100).reshape((10, 10))
+        a = num.arange(100).reshape(10, 10)
         assert np.array_equal(
             num.reshape(a, shape),
             np.reshape(self.anp, shape),
         )
 
     def test_1d(self):
-        a = num.arange(100).reshape((10, 10))
+        a = num.arange(100).reshape(10, 10)
         assert np.array_equal(
             num.reshape(a, (100,)),
             np.reshape(self.anp, (100,)),
         )
 
     def test_ravel(self):
-        a = num.arange(100).reshape((10, 10))
+        a = num.arange(100).reshape(10, 10)
         assert np.array_equal(
             num.ravel(a),
             np.ravel(self.anp),
