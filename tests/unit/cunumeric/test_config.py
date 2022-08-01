@@ -157,6 +157,8 @@ def test_CuNumericOpCode() -> None:
         "READ",
         "REPEAT",
         "SCALAR_UNARY_RED",
+        "SCAN_GLOBAL",
+        "SCAN_LOCAL",
         "SORT",
         "SEARCHSORTED",
         "SYRK",
@@ -245,6 +247,10 @@ def test_CuNumericTunable() -> None:
         "MAX_EAGER_VOLUME",
         "HAS_NUMAMEM",
     }
+
+
+def test_ScanCode() -> None:
+    assert (set(m.ScanCode.__members__)) == {"PROD", "SUM"}
 
 
 if __name__ == "__main__":

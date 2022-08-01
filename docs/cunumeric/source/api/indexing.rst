@@ -12,6 +12,7 @@ Generating index arrays
    fill_diagonal
    diag_indices
    diag_indices_from
+   mask_indices
    tril_indices
    tril_indices_from
    triu_indices
@@ -32,3 +33,13 @@ Indexing-like operations
    diag
    diagonal
    take
+   take_along_axis
+
+
+Inserting data into arrays
+--------------------------
+
+.. autosummary::
+   :toctree: generated/
+
+   put_along_axis

@@ -76,6 +76,7 @@ jobs:
           - {name: OpenMP test, options: --use openmp --omps 1 --ompthreads 2, log: omp}
           - {name: 2 OpenMPs test, options: --use openmp --omps 2 --ompthreads 2, log: omps}
           - {name: Eager execution test, options: --use eager, log: eager}
+          - {name: mypy, options: mypy, log: mypy}
     name: ${{ matrix.name }}
     steps:
       - name: Dump GitHub context

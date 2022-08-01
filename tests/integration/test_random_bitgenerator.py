@@ -1,4 +1,4 @@
-# Copyright 2021-2022 NVIDIA Corporation
+# Copyright 2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,10 +14,12 @@
 #
 import numpy as np
 import pytest
+from utils.random import ModuleGenerator, assert_distribution
 
 import cunumeric as num
 
 BITGENERATOR_ARGS = [
+    ModuleGenerator,
     num.random.XORWOW,
     num.random.MRG32k3a,
     num.random.PHILOX4_32_10,
@@ -65,23 +67,14 @@ def test_integers_int32(t):
     print(f"1024*1024 sum = {a.sum()}")
 
 
-def assert_distribution(a, theo_mean, theo_stdev, tolerance=1e-2):
-    if True:
-        aa = np.array(a)
-        average = np.mean(aa)
-        stdev = np.std(aa)
-    else:  # keeping this path for further investigation
-        average = num.mean(a)
-        stdev = num.sqrt(
-            num.mean((a - average) ** 2)
-        )  # num.std(a) -> does not work
-    print(f"average = {average}, stdev = {stdev}\n")
-    assert np.abs(theo_mean - average) < tolerance * np.max(
-        (1.0, np.abs(theo_mean))
-    )
-    assert np.abs(theo_stdev - stdev) < tolerance * np.max(
-        (1.0, np.abs(theo_stdev))
-    )
+@pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
+def test_integers_int16(t):
+    bitgen = t(seed=42)
+    gen = num.random.Generator(bitgen)
+    a = gen.integers(512, 653548, size=(1024,), dtype=np.int16)
+    print(f"1024 sum = {a.sum()}")
+    a = gen.integers(512, 653548, size=(1024 * 1024,), dtype=np.int16)
+    print(f"1024*1024 sum = {a.sum()}")
 
 
 @pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
