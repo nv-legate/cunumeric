@@ -22,6 +22,8 @@ if runtime.has_curand:
     from cunumeric.random.random import *
     from cunumeric.random.bitgenerator import *
     from cunumeric.random.generator import *
+else:
+    from cunumeric.random.legacy import *
 
 clone_module(_nprandom, globals())
 

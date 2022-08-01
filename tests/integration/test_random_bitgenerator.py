@@ -79,6 +79,9 @@ def test_integers_int16(t):
 
 @pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
 def test_random_float32(t):
+    # top-level random function has a different signature
+    if t is ModuleGenerator:
+        return
     bitgen = t(seed=42)
     gen = num.random.Generator(bitgen)
     a = gen.random(size=(1024 * 1024,), dtype=np.float32)
@@ -87,6 +90,9 @@ def test_random_float32(t):
 
 @pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
 def test_random_float64(t):
+    # top-level random function has a different signature
+    if t == ModuleGenerator:
+        return
     bitgen = t(seed=42)
     gen = num.random.Generator(bitgen)
     a = gen.random(size=(1024 * 1024,), dtype=np.float64)
