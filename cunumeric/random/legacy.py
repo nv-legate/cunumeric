@@ -14,7 +14,7 @@
 #
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Sequence, Union
+from typing import TYPE_CHECKING, Any, Union
 
 import numpy as np
 import numpy.random as nprandom
@@ -23,6 +23,8 @@ from cunumeric.runtime import runtime
 
 if TYPE_CHECKING:
     import numpy.typing as npt
+
+    from ..types import NdShapeLike
 
 
 def seed(init: Union[int, None] = None) -> None:
@@ -68,9 +70,9 @@ def rand(*shapeargs: int) -> Union[float, ndarray]:
 
 
 def randint(
-    low: Union[int, Sequence[int]],
-    high: Union[int, Sequence[int], None] = None,
-    size: Union[int, Sequence[int], None] = None,
+    low: int,
+    high: Union[int, None] = None,
+    size: Union[NdShapeLike, None] = None,
     dtype: Union[np.dtype[Any], type, None] = int,
 ) -> Union[int, ndarray, npt.NDArray[Any]]:
     """
@@ -180,7 +182,7 @@ def randn(*shapeargs: int) -> Union[float, ndarray]:
     return result
 
 
-def random(shape: Union[tuple[int], None] = None) -> Union[float, ndarray]:
+def random(size: Union[NdShapeLike, None] = None) -> Union[float, ndarray]:
     """
     random(size=None)
 
@@ -194,8 +196,8 @@ def random(shape: Union[tuple[int], None] = None) -> Union[float, ndarray]:
     --------
     Multiple GPUs, Multiple CPUs
     """
-    if shape is None:
+    if size is None:
         return nprandom.random()
-    result = ndarray(shape, dtype=np.dtype(np.float64))
+    result = ndarray(size, dtype=np.dtype(np.float64))
     result._thunk.random_uniform()
     return result
