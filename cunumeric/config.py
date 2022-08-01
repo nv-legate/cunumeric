@@ -264,6 +264,9 @@ class _CunumericSharedLib:
     CUNUMERIC_WRITE: int
     CUNUMERIC_ZIP: int
 
+    def cunumeric_has_curand(self) -> int:
+        ...
+
 
 # Load the cuNumeric library first so we have a shard object that
 # we can use to initialize all these configuration enumerations
