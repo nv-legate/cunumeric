@@ -159,6 +159,18 @@ def test_scan(op, shape, axis, out0):
                 _run_tests(op, n0, shape, dt, axis, out0, outtype)
 
 
+def test_empty_inputs():
+    in_np = np.ones(10)
+    in_np[5:] = 0
+    in_num = num.array(in_np).nonzero()[0]
+    in_np = in_np.nonzero()[0]
+
+    out_np = np.cumsum(in_np)
+    out_num = num.cumsum(in_num)
+
+    assert np.array_equal(out_np, out_num)
+
+
 if __name__ == "__main__":
     import sys
 
