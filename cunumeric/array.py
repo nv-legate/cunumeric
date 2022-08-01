@@ -3006,28 +3006,34 @@ class ndarray:
         if sum(extent < 0 for extent in computed_shape) > 1:
             raise ValueError("can only specify one unknown dimension")
 
-        unknown_extent = self.size
+        remaining_size = self.size
+        found_unknown = False
+        empty_reshape = False
         for extent in computed_shape:
-            if extent <= 0:
+            if extent < 0:
+                found_unknown = True
                 continue
-            if unknown_extent % extent != 0:
+            elif extent == 0:
+                empty_reshape = True
+                continue
+            if remaining_size % extent != 0:
                 raise ValueError(
                     f"cannot reshape array of size {self.size} "
                     f"into shape ({extent})"
                 )
-            unknown_extent //= extent
+            remaining_size //= extent
 
-        if (
-            all(extent > 0 for extent in computed_shape)
-            and unknown_extent != 1
-        ):
-            raise ValueError(
-                f"cannot reshape array of size {self.size} "
-                f"into shape ({computed_shape})"
-            )
+        if not found_unknown:
+            if not (
+                (empty_reshape and remaining_size == 0) or remaining_size == 1
+            ):
+                raise ValueError(
+                    f"cannot reshape array of size {self.size} "
+                    f"into shape ({computed_shape})"
+                )
 
         computed_shape = tuple(
-            unknown_extent if extent < 0 else extent
+            remaining_size if extent < 0 else extent
             for extent in computed_shape
         )
 
