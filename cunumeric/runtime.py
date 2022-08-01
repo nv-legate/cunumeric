@@ -179,7 +179,7 @@ class Runtime(object):
         for dtype in _CUNUMERIC_DTYPES:
             type_system.add_type(dtype.type, dtype.size, dtype.code)
 
-    def get_point_type(self, n: int) -> str:
+    def get_point_type(self, n: int) -> np.dtype[Any]:
         type_system = self.legate_context.type_system
         if n == 1:
             point_type = np.dtype("i8")

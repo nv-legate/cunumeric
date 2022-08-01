@@ -1204,7 +1204,7 @@ class EagerArray(NumPyThunk):
                 src.array, axis=axis, bitorder=bitorder
             )
 
-    def _wrap(self, src, new_len):
+    def _wrap(self, src: Any, new_len: int) -> NumPyThunk:
         self.check_eager_args(src)
         if self.deferred is not None:
             return self.deferred._wrap(src, new_len)

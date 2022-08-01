@@ -426,5 +426,5 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def _wrap(self, src, new_len):
+    def _wrap(self, src: Any, new_len: int) -> None:
         ...

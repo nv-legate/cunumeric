@@ -3050,7 +3050,9 @@ def diagonal(
 
 
 @add_boilerplate("a", "val")
-def fill_diagonal(a: ndarray, val: ndarray, wrap: Optional[bool] = False):
+def fill_diagonal(
+    a: ndarray, val: ndarray, wrap: Optional[bool] = False
+) -> None:
     """
     Fill the main diagonal of the given array of any dimensionality.
 

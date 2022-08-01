@@ -448,7 +448,7 @@ class DeferredArray(NumPyThunk):
         pointN_dtype = self.runtime.get_point_type(N)
         output_arr = self.runtime.create_empty_thunk(
             shape=out_shape,
-            dtype=pointN_dtype,
+            dtype=cast(np.dtype[Any], pointN_dtype),
             inputs=[self],
         )
 
@@ -2607,16 +2607,19 @@ class DeferredArray(NumPyThunk):
         task.execute()
 
     @auto_convert([1])
-    def _wrap(self, src, new_len):
+    def _wrap(self, src: Any, new_len: int) -> None:
         # first, we create indirect array with PointN type that
         # (len,) shape and is used to copy data from original array
         # to the target 1D wrapped array
         N = src.ndim
         pointN_dtype = self.runtime.get_point_type(N)
-        indirect = self.runtime.create_empty_thunk(
-            shape=(new_len,),
-            dtype=pointN_dtype,
-            inputs=[src],
+        indirect = cast(
+            DeferredArray,
+            self.runtime.create_empty_thunk(
+                shape=(new_len,),
+                dtype=cast(np.dtype[Any], pointN_dtype),
+                inputs=[src],
+            ),
         )
 
         task = self.context.create_task(CuNumericOpCode.WRAP)
