@@ -2994,6 +2994,31 @@ class ndarray:
         --------
         Multiple GPUs, Multiple CPUs
         """
+
+        computed_shape = (shape,) if isinstance(shape, int) else shape
+
+        if sum(extent == -1 for extent in computed_shape) > 1:
+            raise ValueError("can only specify one unknown dimension")
+
+        unknown_extent = self.size
+        for extent in computed_shape:
+            if extent == -1 or extent == 0:
+                continue
+            if unknown_extent % extent != 0:
+                raise ValueError(
+                    f"cannot reshape array of size {self.size} "
+                    f"into shape ({extent})"
+                )
+            unknown_extent //= extent
+        computed_shape = tuple(
+            unknown_extent if extent == -1 else extent
+            for extent in computed_shape
+        )
+
+        # Handle an easy case
+        if computed_shape == self.shape:
+            return self
+
         if shape != -1:
             # Check that these sizes are compatible
             if isinstance(shape, Iterable):
@@ -3043,12 +3068,9 @@ class ndarray:
         else:
             # Compute a flattened version of the shape
             shape = (self.size,)
-        # Handle an easy case
-        if shape == self.shape:
-            return self
         return ndarray(
             shape=None,
-            thunk=self._thunk.reshape(shape, order),
+            thunk=self._thunk.reshape(computed_shape, order),
         )
 
     def setfield(self, val, dtype, offset=0):
