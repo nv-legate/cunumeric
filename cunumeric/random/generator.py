@@ -20,6 +20,8 @@ import numpy as np
 from cunumeric.random.bitgenerator import XORWOW, BitGenerator
 
 if TYPE_CHECKING:
+    from typing import Any
+
     import numpy.typing as npt
 
     from ..array import ndarray
@@ -362,7 +364,40 @@ class Generator:
         return self.bit_generator.zipf(alpha=a, shape=size, dtype=dtype)
 
 
-def default_rng(seed: Union[int, None] = None) -> Generator:
+# TODO: Leaving the type of `seed` vague, since the proper type
+# `Union[None, int, BitGenerator, Generator]` currently breaks the docs build.
+# TODO: Link to other classes using :class:`cunumeric.random.<class>`, once
+# we add documentation for them.
+def default_rng(seed: Union[None, Any] = None) -> Generator:
+    """
+    Construct a new `Generator` with the default `BitGenerator` (XORWOW).
+
+    Parameters
+    ----------
+    seed : {None, int, BitGenerator, Generator}, optional
+        A seed to initialize the `BitGenerator`. If None, then fresh,
+        unpredictable entropy will be pulled from the OS. If passed a
+        `BitGenerator`, it will be wrapped by `Generator`. If passed a
+        `Generator`, it will be returned unaltered.
+
+    Returns
+    -------
+    Generator
+        The initialized `Generator` object.
+
+    Notes
+    -----
+    If ``seed`` is not a `BitGenerator` or a `Generator`, a new `BitGenerator`
+    is instantiated. This function does not manage a default global instance.
+
+    See Also
+    --------
+    numpy.random.default_rng
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
     if seed is None:
         return Generator(XORWOW())
     elif isinstance(seed, BitGenerator):

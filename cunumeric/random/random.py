@@ -29,6 +29,22 @@ if TYPE_CHECKING:
 
 
 def seed(init: Union[int, None] = None) -> None:
+    """
+    (Re-)seed the global random number generator.
+
+    Parameters
+    ----------
+    init : int, optional
+        The seed number to use
+
+    See Also
+    --------
+    numpy.random.seed
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
     if init is None:
         init = 0
     runtime.set_next_random_epoch(int(init))
