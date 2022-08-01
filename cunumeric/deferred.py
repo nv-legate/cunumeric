@@ -446,6 +446,10 @@ class DeferredArray(NumPyThunk):
         # NumPy array.
         N = self.ndim
         pointN_dtype = self.runtime.get_point_type(N)
+        # if scalar array is passed as an argument, make the output
+        # shape be (1,)
+        if out_shape == ():
+            out_shape = (1,)
         store = self.context.create_store(
             pointN_dtype, shape=out_shape, optimize_scalar=True
         )
@@ -463,7 +467,8 @@ class DeferredArray(NumPyThunk):
         task.add_scalar_arg(self.shape, (ty.int64,))
         for a in arrays:
             task.add_input(a)
-            task.add_alignment(output_arr.base, a)
+            if a.shape != ():
+                task.add_alignment(output_arr.base, a)
         task.execute()
 
         return output_arr
