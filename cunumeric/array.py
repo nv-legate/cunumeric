@@ -16,7 +16,6 @@ from __future__ import annotations
 
 import operator
 import warnings
-from collections.abc import Iterable
 from functools import reduce, wraps
 from inspect import signature
 from typing import Any, Callable, Optional, Set, TypeVar, Union
@@ -2997,12 +2996,12 @@ class ndarray:
 
         computed_shape = (shape,) if isinstance(shape, int) else shape
 
-        if sum(extent == -1 for extent in computed_shape) > 1:
+        if sum(extent < 0 for extent in computed_shape) > 1:
             raise ValueError("can only specify one unknown dimension")
 
         unknown_extent = self.size
         for extent in computed_shape:
-            if extent == -1 or extent == 0:
+            if extent <= 0:
                 continue
             if unknown_extent % extent != 0:
                 raise ValueError(
@@ -3011,7 +3010,7 @@ class ndarray:
                 )
             unknown_extent //= extent
         computed_shape = tuple(
-            unknown_extent if extent == -1 else extent
+            unknown_extent if extent < 0 else extent
             for extent in computed_shape
         )
 
@@ -3019,55 +3018,6 @@ class ndarray:
         if computed_shape == self.shape:
             return self
 
-        if shape != -1:
-            # Check that these sizes are compatible
-            if isinstance(shape, Iterable):
-                newsize = 1
-                newshape = list()
-                unknown_axis = -1
-                for ax, dim in enumerate(shape):
-                    if dim < 0:
-                        newshape.append(np.newaxis)
-                        if unknown_axis == -1:
-                            unknown_axis = ax
-                        else:
-                            unknown_axis = -2
-                    else:
-                        newsize *= dim
-                        newshape.append(dim)
-                if unknown_axis == -2:
-                    raise ValueError("can only specify one unknown dimension")
-                if unknown_axis >= 0:
-                    if self.size % newsize != 0:
-                        raise ValueError(
-                            "cannot reshape array of size "
-                            + str(self.size)
-                            + " into shape "
-                            + str(tuple(newshape))
-                        )
-                    newshape[unknown_axis] = self.size // newsize
-                    newsize *= newshape[unknown_axis]
-                if newsize != self.size:
-                    raise ValueError(
-                        "cannot reshape array of size "
-                        + str(self.size)
-                        + " into shape "
-                        + str(shape)
-                    )
-                shape = tuple(newshape)
-            elif isinstance(shape, int):
-                if shape != self.size:
-                    raise ValueError(
-                        "cannot reshape array of size "
-                        + str(self.size)
-                        + " into shape "
-                        + str((shape,))
-                    )
-            else:
-                TypeError("shape must be int-like or tuple-like")
-        else:
-            # Compute a flattened version of the shape
-            shape = (self.size,)
         return ndarray(
             shape=None,
             thunk=self._thunk.reshape(computed_shape, order),
