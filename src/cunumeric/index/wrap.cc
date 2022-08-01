@@ -32,21 +32,24 @@ struct WrapImplBody<VariantKind::CPU, DIM> {
                   const bool dense) const
   {
     const size_t start     = out_rect.lo[0];
-    const size_t end       = out_rect.hi[0];
+    size_t end             = out_rect.hi[0];
     const size_t in_volume = in_rect.volume();
+    size_t out_idx         = 0;
     if (dense) {
       auto outptr = out.ptr(out_rect);
       for (size_t i = start; i <= end; i++) {
-        const size_t input_idx = i % (in_volume - 1);
+        const size_t input_idx = i % in_volume;
         auto point             = pitches_in.unflatten(input_idx, in_rect.lo);
-        outptr[i - start]      = point;
+        outptr[out_idx]        = point;
+        out_idx++;
       }
     } else {
       for (size_t i = start; i <= end; i++) {
-        const size_t input_idx = i % (in_volume - 1);
+        const size_t input_idx = i % in_volume;
         auto point             = pitches_in.unflatten(input_idx, in_rect.lo);
-        auto point_out         = pitches_out.unflatten(i - start, out_rect.lo);
+        auto point_out         = pitches_out.unflatten(out_idx, out_rect.lo);
         out[point_out]         = point;
+        out_idx++;
       }
     }  // else
   }

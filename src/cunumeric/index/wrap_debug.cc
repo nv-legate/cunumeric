@@ -23,7 +23,7 @@ using namespace Legion;
 using namespace legate;
 
 template <int DIM>
-struct WrapImplBody<VariantKind::OMP, DIM> {
+struct WrapImplBody<VariantKind::CPU, DIM> {
   void operator()(const AccessorWO<Point<DIM>, 1>& out,
                   const Pitches<0>& pitches_out,
                   const Rect<1>& out_rect,
@@ -36,27 +36,32 @@ struct WrapImplBody<VariantKind::OMP, DIM> {
     const size_t in_volume = in_rect.volume();
     if (dense) {
       auto outptr = out.ptr(out_rect);
-#pragma omp parallel for schedule(static)
       for (size_t i = start; i <= end; i++) {
         const size_t input_idx = i % in_volume;
         auto point             = pitches_in.unflatten(input_idx, in_rect.lo);
         outptr[i - start]      = point;
+        std::cout << "IRINA DEBUG point_out = " << i - start << " point = " << point << std::endl;
       }
     } else {
-#pragma omp parallel for schedule(static)
       for (size_t i = start; i <= end; i++) {
         const size_t input_idx = i % in_volume;
         auto point             = pitches_in.unflatten(input_idx, in_rect.lo);
         auto point_out         = pitches_out.unflatten(i - start, out_rect.lo);
         out[point_out]         = point;
+        std::cout << "IRINA DEBUG point_out = " << point_out << " point = " << point << std::endl;
       }
     }  // else
   }
 };
 
-/*static*/ void WrapTask::omp_variant(TaskContext& context)
+/*static*/ void WrapTask::cpu_variant(TaskContext& context)
 {
-  wrap_template<VariantKind::OMP>(context);
+  wrap_template<VariantKind::CPU>(context);
 }
+
+namespace  // unnamed
+{
+static void __attribute__((constructor)) register_tasks(void) { WrapTask::register_variants(); }
+}  // namespace
 
 }  // namespace cunumeric

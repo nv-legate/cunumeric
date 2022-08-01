@@ -50,7 +50,7 @@ struct WrapImpl {
     Point<DIM> point_lo, point_hi;
     for (int dim = 0; dim < DIM; ++dim) {
       point_lo[dim] = 0;
-      point_hi[dim] = args.shape[dim];
+      point_hi[dim] = args.shape[dim] - 1;
     }
     Rect<DIM> input_rect(point_lo, point_hi);
 
