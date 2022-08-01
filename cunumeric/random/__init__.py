@@ -15,10 +15,13 @@
 from __future__ import annotations
 
 import numpy.random as _nprandom
-from cunumeric.random.random import *
 from cunumeric.coverage import clone_module
-from cunumeric.random.bitgenerator import *
-from cunumeric.random.generator import *
+from cunumeric.runtime import runtime
+
+if runtime.has_curand:
+    from cunumeric.random.random import *
+    from cunumeric.random.bitgenerator import *
+    from cunumeric.random.generator import *
 
 clone_module(_nprandom, globals())
 

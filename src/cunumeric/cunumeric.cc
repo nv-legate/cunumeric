@@ -83,4 +83,13 @@ void cunumeric_perform_registration(void)
     ctx, CUNUMERIC_TUNABLE_HAS_NUMAMEM, cunumeric::CuNumeric::mapper_id);
   if (fut.get_result<int32_t>() != 0) cunumeric::CuNumeric::has_numamem = true;
 }
+
+bool cunumeric_has_curand()
+{
+#ifdef LEGATE_USE_CUDA
+  return true;
+#else
+  return false;
+#endif
+}
 }

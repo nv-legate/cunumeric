@@ -162,6 +162,8 @@ class Runtime(object):
         # Make sure that our CuNumericLib object knows about us so it can
         # destroy us
         cunumeric_lib.set_runtime(self)
+        assert cunumeric_lib.shared_object is not None
+        self.has_curand = cunumeric_lib.shared_object.cunumeric_has_curand()
         self._register_dtypes()
 
         self.args = parse_command_args("cunumeric", ARGS)

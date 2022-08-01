@@ -328,6 +328,7 @@ extern "C" {
 #endif
 
 void cunumeric_perform_registration();
+bool cunumeric_has_curand();
 
 #ifdef __cplusplus
 }
