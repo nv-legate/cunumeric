@@ -241,10 +241,8 @@ def randn(*shapeargs: int) -> Union[float, ndarray]:
 
 def random(
     size: Union[NdShapeLike, None] = None,
-    dtype: npt.DTypeLike = np.float64,
-    out: Union[ndarray, None] = None,
 ) -> Union[float, ndarray]:
-    return generator.get_static_generator().random(size, dtype, out)
+    return generator.get_static_generator().random(size)
 
 
 # deprecated in numpy from version 1.11.0
