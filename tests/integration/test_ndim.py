@@ -21,12 +21,17 @@ from legate.core import LEGATE_MAX_DIM
 
 
 @pytest.mark.parametrize("ndim", range(LEGATE_MAX_DIM + 1))
-def test_ndim(ndim):
+def test_ndarray(ndim):
     shape = (4,) * ndim
     a = num.ones(shape)
     a_np = np.array(a)
 
     assert np.ndim(a_np) == num.ndim(a)
+
+
+@pytest.mark.parametrize("input", (42, [0, 1, 2], [[0, 1, 2], [3, 4, 5]]))
+def test_python_values(input):
+    assert np.ndim(input) == num.ndim(input)
 
 
 if __name__ == "__main__":
