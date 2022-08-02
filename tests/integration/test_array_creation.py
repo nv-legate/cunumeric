@@ -124,6 +124,30 @@ def test_arange_with_dtype():
     assert x.dtype == y.dtype
 
 
+def test_zero_with_nd_ndarray_shape():
+    shape = num.array([2, 3, 4])
+    x = num.zeros(shape)
+    y = np.zeros(shape)
+    assert np.array_equal(x, y)
+
+    shape = np.array([2, 3, 4])
+    x = num.zeros(shape)
+    y = np.zeros(shape)
+    assert np.array_equal(x, y)
+
+
+def test_zero_with_0d_ndarray_shape():
+    shape = num.array(3)
+    x = num.zeros(shape)
+    y = np.zeros(shape)
+    assert np.array_equal(x, y)
+
+    shape = np.array(3)
+    x = num.zeros(shape)
+    y = np.zeros(shape)
+    assert np.array_equal(x, y)
+
+
 if __name__ == "__main__":
     import sys
 
