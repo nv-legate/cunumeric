@@ -29,6 +29,22 @@ if TYPE_CHECKING:
 
 
 def seed(init: Union[int, None] = None) -> None:
+    """
+    (Re-)seed the global random number generator.
+
+    Parameters
+    ----------
+    init : int, optional
+        The seed number to use
+
+    See Also
+    --------
+    numpy.random.seed
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
     if init is None:
         init = 0
     runtime.set_next_random_epoch(int(init))
@@ -241,10 +257,8 @@ def randn(*shapeargs: int) -> Union[float, ndarray]:
 
 def random(
     size: Union[NdShapeLike, None] = None,
-    dtype: npt.DTypeLike = np.float64,
-    out: Union[ndarray, None] = None,
 ) -> Union[float, ndarray]:
-    return generator.get_static_generator().random(size, dtype, out)
+    return generator.get_static_generator().random(size)
 
 
 # deprecated in numpy from version 1.11.0

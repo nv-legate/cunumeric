@@ -38,6 +38,10 @@ __CUDA_HD__ bool is_nan(const complex<T>& x)
   return std::isnan(x.imag()) || std::isnan(x.real());
 }
 
-__CUDA_HD__ inline bool is_nan(const __half& x) { return isnan(x); }
+__CUDA_HD__ inline bool is_nan(const __half& x)
+{
+  using std::isnan;
+  return isnan(x);
+}
 
 }  // namespace cunumeric
