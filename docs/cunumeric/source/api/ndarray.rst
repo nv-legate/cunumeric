@@ -156,12 +156,12 @@ Calculation
    .. ndarray.round
    .. ndarray.trace
    ndarray.sum
-   .. ndarray.cumsum
+   ndarray.cumsum
    ndarray.mean
    .. ndarray.var
    .. ndarray.std
    ndarray.prod
-   .. ndarray.cumprod
+   ndarray.cumprod
    ndarray.all
    ndarray.any
    ndarray.unique
