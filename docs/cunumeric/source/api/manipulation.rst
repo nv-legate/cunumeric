@@ -9,6 +9,7 @@ Basic operations
 .. autosummary::
    :toctree: generated/
 
+   ndim
    shape
 
 

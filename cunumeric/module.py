@@ -973,6 +973,36 @@ def triu(m: ndarray, k: int = 0) -> ndarray:
 
 
 @add_boilerplate("a")
+def ndim(a: ndarray) -> int:
+    """
+
+    Return the number of dimensions of an array.
+
+    Parameters
+    ----------
+    a : array_like
+        Input array.  If it is not already an ndarray, a conversion is
+        attempted.
+
+    Returns
+    -------
+    number_of_dimensions : int
+        The number of dimensions in `a`.  Scalars are zero-dimensional.
+
+    See Also
+    --------
+    ndarray.ndim : equivalent method
+    shape : dimensions of array
+    ndarray.shape : dimensions of array
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    return a.ndim
+
+
+@add_boilerplate("a")
 def shape(a: ndarray) -> NdShape:
     """
 
