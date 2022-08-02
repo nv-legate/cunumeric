@@ -28,6 +28,29 @@ if TYPE_CHECKING:
 
 class Generator:
     def __init__(self, bit_generator: BitGenerator) -> None:
+        """
+        Generator(bit_generator)
+
+        Container for the BitGenerators.
+
+        The function :func:`cunumeric.random.default_rng` will instantiate
+        a `Generator` with numpy's default `BitGenerator`.
+
+        Parameters
+        ----------
+        bit_generator : BitGenerator
+            BitGenerator to use as the core generator.
+
+        See Also
+        --------
+        numpy.random.Generator
+        default_rng : Recommended constructor for `Generator`.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         self.bit_generator = bit_generator
 
     def beta(
@@ -363,6 +386,31 @@ class Generator:
 
 
 def default_rng(seed: Union[int, None] = None) -> Generator:
+    """
+        Construct a new Generator with the default BitGenerator (XORWOW).
+
+    Parameters
+    ----------
+    seed : {None, int,  BitGenerator, Generator}, optional
+        A seed to initialize the `BitGenerator`. If None, then fresh,
+        unpredictable entropy will be pulled from the OS.
+        Additionally, when passed a `BitGenerator`, it will be wrapped by
+        `Generator`. If passed a `Generator`, it will be returned unaltered.
+
+    Returns
+    -------
+    Generator
+        The initialized generator object.
+
+    Notes
+    -----
+    If ``seed`` is not a `BitGenerator` or a `Generator`, a new `BitGenerator`
+    is instantiated. This function does not manage a default global instance.
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
     if seed is None:
         return Generator(XORWOW())
     elif isinstance(seed, BitGenerator):

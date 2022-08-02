@@ -57,6 +57,10 @@ Sums, products, differences
 
    prod
    sum
+   cumprod
+   cumsum
+   nancumprod
+   nancumsum
 
 
 Exponents and logarithms
