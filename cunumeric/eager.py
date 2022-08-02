@@ -1568,7 +1568,7 @@ class EagerArray(NumPyThunk):
         op: int,
         rhs: Any,
         axis: int,
-        dtype: Optional[np.dtype[Any]],
+        dtype: Optional[npt.DTypeLike],
         nan_to_identity: bool,
     ) -> None:
         self.check_eager_args(rhs)

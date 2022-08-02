@@ -681,7 +681,7 @@ class NumPyThunk(ABC):
         op: int,
         rhs: Any,
         axis: int,
-        dtype: Optional[np.dtype[Any]],
+        dtype: Optional[npt.DTypeLike],
         nan_to_identity: bool,
     ) -> None:
         ...

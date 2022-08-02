@@ -2195,7 +2195,12 @@ class ndarray:
         return self.__copy__()
 
     @add_boilerplate()
-    def cumsum(self, axis=None, dtype=None, out=None) -> ndarray:
+    def cumsum(
+        self,
+        axis: Any = None,
+        dtype: Union[np.dtype[Any], None] = None,
+        out: Union[ndarray, None] = None,
+    ) -> ndarray:
         return self._perform_scan(
             ScanCode.SUM,
             self,
@@ -2206,7 +2211,12 @@ class ndarray:
         )
 
     @add_boilerplate()
-    def cumprod(self, axis=None, dtype=None, out=None) -> ndarray:
+    def cumprod(
+        self,
+        axis: Any = None,
+        dtype: Union[np.dtype[Any], None] = None,
+        out: Union[ndarray, None] = None,
+    ) -> ndarray:
         return self._perform_scan(
             ScanCode.PROD,
             self,
@@ -2217,7 +2227,12 @@ class ndarray:
         )
 
     @add_boilerplate()
-    def nancumsum(self, axis=None, dtype=None, out=None) -> ndarray:
+    def nancumsum(
+        self,
+        axis: Any = None,
+        dtype: Union[np.dtype[Any], None] = None,
+        out: Union[ndarray, None] = None,
+    ) -> ndarray:
         return self._perform_scan(
             ScanCode.SUM,
             self,
@@ -2228,7 +2243,12 @@ class ndarray:
         )
 
     @add_boilerplate()
-    def nancumprod(self, axis=None, dtype=None, out=None) -> ndarray:
+    def nancumprod(
+        self,
+        axis: Any = None,
+        dtype: Union[np.dtype[Any], None] = None,
+        out: Union[ndarray, None] = None,
+    ) -> ndarray:
         return self._perform_scan(
             ScanCode.PROD,
             self,
@@ -3998,7 +4018,13 @@ class ndarray:
 
     @classmethod
     def _perform_scan(
-        cls, op, src, axis=None, dtype=None, out=None, nan_to_identity=False
+        cls,
+        op: ScanCode,
+        src: ndarray,
+        axis: Any = None,
+        dtype: Union[npt.DTypeLike, None] = None,
+        out: Union[ndarray, None] = None,
+        nan_to_identity: bool = False,
     ) -> ndarray:
         if dtype is None:
             if out is None:
