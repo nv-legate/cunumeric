@@ -28,15 +28,6 @@ namespace cunumeric {
 using namespace Legion;
 using namespace legate;
 
-void randutil_check_curand(curandStatus_t error, const char* file, int line)
-{
-  if (error != CURAND_STATUS_SUCCESS) {
-    randutil_log().fatal() << "Internal CURAND failure with error " << (int)error << " in file "
-                           << file << " at line " << line;
-    assert(false);
-  }
-}
-
 struct GPUGenerator : public CURANDGenerator {
   cudaStream_t stream_;
   GPUGenerator(BitGeneratorType gentype, uint64_t seed, uint64_t generatorId, uint32_t flags)
