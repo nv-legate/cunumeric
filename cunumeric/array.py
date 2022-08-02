@@ -216,8 +216,10 @@ class ndarray:
         self._legate_data = None
 
     @staticmethod
-    def _sanitize_shape(shape: Union[NdShapeLike, Sequence[Any], ndarray]):
-        if isinstance(shape, ndarray):
+    def _sanitize_shape(
+        shape: Union[NdShapeLike, Sequence[Any], np.ndarray, ndarray]
+    ):
+        if isinstance(shape, (ndarray, np.ndarray)):
             if shape.ndim == 0:
                 seq = (shape.__array__().item(),)
             else:
