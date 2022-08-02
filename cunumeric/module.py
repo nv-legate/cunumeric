@@ -989,6 +989,9 @@ def ndim(a: ndarray) -> int:
     shape : dimensions of array
     ndarray.shape : dimensions of array
 
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
     """
     return a.ndim
 
