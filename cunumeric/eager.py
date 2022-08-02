@@ -1626,15 +1626,15 @@ class EagerArray(NumPyThunk):
     def _wrap(self, src: Any, new_len: int) -> None:
         self.check_eager_args(src)
         if self.deferred is not None:
-            return self.deferred._wrap(src, new_len)
+            self.deferred._wrap(src, new_len)
         else:
-            src = np.ravel(src)
+            src.array = np.ravel(src.array)
             if src.size == new_len:
-                return src
-            elif src.size < new_len:
-                return src[:new_len]
+                self.array[:] = src.array[:]
+            elif src.array.size > new_len:
+                self.array[:] = src.array[:new_len]
             else:
-                out = src.copy()
-                while out.size < new_len:
-                    out = np.concatenate((out, src), axis=0)
-                return out[0:new_len]
+                out = src
+                while out.array.size < new_len:
+                    out.array = np.concatenate((out.array, src.array), axis=0)
+                self.array[:] = out.array[0:new_len]

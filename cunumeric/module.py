@@ -3316,7 +3316,7 @@ def fill_diagonal(
         idx0 = idx0_tmp.copy()
         while idx0.size < a.shape[0]:
             idx0_tmp = idx0_tmp + (a.shape[1] + 1)
-            idx0 = np.hstack((idx0, idx0_tmp))
+            idx0 = hstack((idx0, idx0_tmp))
         idx0 = idx0[0:len_val]
         idx1 = arange(len_val, dtype=int) % a.shape[1]
         a[idx0, idx1] = val
