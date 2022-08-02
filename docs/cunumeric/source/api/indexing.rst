@@ -9,7 +9,6 @@ Generating index arrays
 .. autosummary::
    :toctree: generated/
 
-   fill_diagonal
    diag_indices
    diag_indices_from
    mask_indices
@@ -41,5 +40,6 @@ Inserting data into arrays
 
 .. autosummary::
    :toctree: generated/
-
+ 
+   fill_diagonal
    put_along_axis
