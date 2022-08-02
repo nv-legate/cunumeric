@@ -3003,37 +3003,24 @@ class ndarray:
 
         computed_shape = tuple(operator.index(extent) for extent in shape)
 
-        if sum(extent < 0 for extent in computed_shape) > 1:
+        num_unknowns = sum(extent < 0 for extent in computed_shape)
+        if num_unknowns > 1:
             raise ValueError("can only specify one unknown dimension")
 
-        remaining_size = self.size
-        found_unknown = False
-        empty_reshape = False
-        for extent in computed_shape:
-            if extent < 0:
-                found_unknown = True
-                continue
-            elif extent == 0:
-                empty_reshape = True
-                continue
-            if remaining_size % extent != 0:
-                raise ValueError(
-                    f"cannot reshape array of size {self.size} "
-                    f"into shape ({extent})"
-                )
-            remaining_size //= extent
+        knowns = filter(lambda x: x >= 0, computed_shape)
+        known_volume = reduce(lambda x, y: x * y, knowns, 1)
 
-        if not found_unknown:
-            if not (
-                (empty_reshape and remaining_size == 0) or remaining_size == 1
-            ):
-                raise ValueError(
-                    f"cannot reshape array of size {self.size} "
-                    f"into shape ({computed_shape})"
-                )
+        size = self.size
+        unknown_extent = 1 if num_unknowns == 0 else size // known_volume
+
+        if unknown_extent * known_volume != size:
+            raise ValueError(
+                f"cannot reshape array of size {size} into "
+                f"shape {computed_shape}"
+            )
 
         computed_shape = tuple(
-            remaining_size if extent < 0 else extent
+            unknown_extent if extent < 0 else extent
             for extent in computed_shape
         )
 
