@@ -21,12 +21,13 @@
 #include "cunumeric/pitches.h"
 #include "core/comm/coll.h"
 
-#include <thrust/sort.h>
 #include <thrust/detail/config.h>
 #include <thrust/execution_policy.h>
-#include <thrust/system/omp/execution_policy.h>
-#include <thrust/sequence.h>
 #include <thrust/iterator/constant_iterator.h>
+#include <thrust/scan.h>
+#include <thrust/sequence.h>
+#include <thrust/sort.h>
+#include <thrust/system/omp/execution_policy.h>
 
 #include <functional>
 #include <numeric>
@@ -204,9 +205,10 @@ void rebalance_data(SegmentMergePiece<VAL>& merge_buffer,
 
     auto* segment_diff_2d_ptr      = segment_diff_2d.ptr(0);
     auto* segment_diff_2d_scan_ptr = segment_diff_2d_scan.ptr(0);
-    std::inclusive_scan(segment_diff_2d_ptr,
-                        segment_diff_2d_ptr + num_segments_l * num_sort_ranks,
-                        segment_diff_2d_scan_ptr);
+    thrust::inclusive_scan(exec,
+                           segment_diff_2d_ptr,
+                           segment_diff_2d_ptr + num_segments_l * num_sort_ranks,
+                           segment_diff_2d_scan_ptr);
     for (int64_t segment = 0; segment < num_segments_l; ++segment) {
       send_right[segment] = segment_diff_2d_scan_ptr[segment * num_sort_ranks + my_sort_rank];
     }
@@ -214,7 +216,7 @@ void rebalance_data(SegmentMergePiece<VAL>& merge_buffer,
     auto iter_in = std::reverse_iterator(segment_diff_2d_ptr + num_segments_l * num_sort_ranks);
     auto iter_out =
       std::reverse_iterator(segment_diff_2d_scan_ptr + num_segments_l * num_sort_ranks);
-    std::inclusive_scan(iter_in, iter_in + num_segments_l * num_sort_ranks, iter_out);
+    thrust::inclusive_scan(exec, iter_in, iter_in + num_segments_l * num_sort_ranks, iter_out);
     for (size_t segment = 0; segment < num_segments_l; ++segment) {
       send_left[segment] = segment_diff_2d_scan_ptr[segment * num_sort_ranks + my_sort_rank];
     }
@@ -563,7 +565,7 @@ void sample_sort_nd(SortPiece<legate_type_of<CODE>> local_sorted,
       for (size_t sort_rank = 0; sort_rank < num_sort_ranks; ++sort_rank) {
         comm_size[sort_ranks[sort_rank]] = num_samples_l * sizeof(SegmentSample<VAL>);
       }
-      std::exclusive_scan(comm_size.ptr(0), comm_size.ptr(num_ranks), rdispls.ptr(0), 0);
+      thrust::exclusive_scan(exec, comm_size.ptr(0), comm_size.ptr(num_ranks), rdispls.ptr(0), 0);
 
       comm::coll::collAlltoallv(samples_l.ptr(0),
                                 comm_size.ptr(0),  // num_samples_l*size for all in sort group
@@ -683,7 +685,7 @@ void sample_sort_nd(SortPiece<legate_type_of<CODE>> local_sorted,
     for (size_t sort_rank = 0; sort_rank < num_sort_ranks; ++sort_rank) {
       comm_size[sort_ranks[sort_rank]] = num_segments_l + 1;
     }
-    std::exclusive_scan(comm_size.ptr(0), comm_size.ptr(num_ranks), displs.ptr(0), 0);
+    thrust::exclusive_scan(exec, comm_size.ptr(0), comm_size.ptr(num_ranks), displs.ptr(0), 0);
 
     comm::coll::collAlltoallv(
       size_send.ptr(0),
@@ -779,8 +781,8 @@ void sample_sort_nd(SortPiece<legate_type_of<CODE>> local_sorted,
       recv_size_total[sort_ranks[sort_rank]] =
         sizeof(VAL) * size_recv[sort_rank * (num_segments_l + 1) + num_segments_l];
     }
-    std::exclusive_scan(send_size_total.ptr(0), send_size_total.ptr(num_ranks), sdispls.ptr(0), 0);
-    std::exclusive_scan(recv_size_total.ptr(0), recv_size_total.ptr(num_ranks), rdispls.ptr(0), 0);
+    thrust::exclusive_scan(exec, send_size_total.ptr(0), send_size_total.ptr(num_ranks), sdispls.ptr(0), 0);
+    thrust::exclusive_scan(exec, recv_size_total.ptr(0), recv_size_total.ptr(num_ranks), rdispls.ptr(0), 0);
 
     comm::coll::collAlltoallv(val_send_buffer.ptr(0),
                               send_size_total.ptr(0),
@@ -799,10 +801,10 @@ void sample_sort_nd(SortPiece<legate_type_of<CODE>> local_sorted,
           size_recv[sort_rank * (num_segments_l + 1) + num_segments_l];
       }
 
-      std::exclusive_scan(
-        send_size_total.ptr(0), send_size_total.ptr(num_ranks), sdispls.ptr(0), 0);
-      std::exclusive_scan(
-        recv_size_total.ptr(0), recv_size_total.ptr(num_ranks), rdispls.ptr(0), 0);
+      thrust::exclusive_scan(
+        exec, send_size_total.ptr(0), send_size_total.ptr(num_ranks), sdispls.ptr(0), 0);
+      thrust::exclusive_scan(
+        exec, recv_size_total.ptr(0), recv_size_total.ptr(num_ranks), rdispls.ptr(0), 0);
       comm::coll::collAlltoallv(idc_send_buffer.ptr(0),
                                 send_size_total.ptr(0),
                                 sdispls.ptr(0),
