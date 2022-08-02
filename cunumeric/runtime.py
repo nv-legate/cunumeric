@@ -567,7 +567,7 @@ class Runtime(object):
 
     def create_empty_thunk(
         self,
-        shape: tuple[int, ...],
+        shape: NdShape,
         dtype: np.dtype[Any],
         inputs: Optional[Sequence[NumPyThunk]] = None,
     ) -> NumPyThunk:
