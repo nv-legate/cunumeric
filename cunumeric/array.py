@@ -3010,6 +3010,13 @@ class ndarray:
         knowns = filter(lambda x: x >= 0, computed_shape)
         known_volume = reduce(lambda x, y: x * y, knowns, 1)
 
+        # Can't have an unknown if the known shape has 0 size
+        if num_unknowns > 0 and known_volume == 0:
+            raise ValueError(
+                f"cannot reshape array of size {self.size} into "
+                f"shape {computed_shape}"
+            )
+
         size = self.size
         unknown_extent = 1 if num_unknowns == 0 else size // known_volume
 
