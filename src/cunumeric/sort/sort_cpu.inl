@@ -781,8 +781,10 @@ void sample_sort_nd(SortPiece<legate_type_of<CODE>> local_sorted,
       recv_size_total[sort_ranks[sort_rank]] =
         sizeof(VAL) * size_recv[sort_rank * (num_segments_l + 1) + num_segments_l];
     }
-    thrust::exclusive_scan(exec, send_size_total.ptr(0), send_size_total.ptr(num_ranks), sdispls.ptr(0), 0);
-    thrust::exclusive_scan(exec, recv_size_total.ptr(0), recv_size_total.ptr(num_ranks), rdispls.ptr(0), 0);
+    thrust::exclusive_scan(
+      exec, send_size_total.ptr(0), send_size_total.ptr(num_ranks), sdispls.ptr(0), 0);
+    thrust::exclusive_scan(
+      exec, recv_size_total.ptr(0), recv_size_total.ptr(num_ranks), rdispls.ptr(0), 0);
 
     comm::coll::collAlltoallv(val_send_buffer.ptr(0),
                               send_size_total.ptr(0),
