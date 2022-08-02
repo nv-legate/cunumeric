@@ -51,6 +51,7 @@ from .config import (
 )
 from .coverage import clone_np_ndarray
 from .runtime import runtime
+from .types import NdShape
 from .utils import dot_modes
 
 if TYPE_CHECKING:
@@ -62,7 +63,7 @@ if TYPE_CHECKING:
     from .types import (
         BoundsMode,
         CastingKind,
-        NdShape,
+        NdShapeLike,
         OrderType,
         SelectKind,
         SortType,
@@ -199,12 +200,14 @@ class ndarray:
         # `inputs` being a cuNumeric ndarray is definitely a bug
         assert not isinstance(inputs, ndarray)
         if thunk is None:
+            assert shape is not None
+            sanitized_shape = self._sanitize_shape(shape)
             if not isinstance(dtype, np.dtype):
                 dtype = np.dtype(dtype)
             if buffer is not None:
                 # Make a normal numpy array for this buffer
                 np_array: npt.NDArray[Any] = np.ndarray(
-                    shape=shape,
+                    shape=sanitized_shape,
                     dtype=dtype,
                     buffer=buffer,
                     offset=offset,
@@ -222,10 +225,39 @@ class ndarray:
                         for inp in inputs
                         if isinstance(inp, ndarray)
                     ]
-                self._thunk = runtime.create_empty_thunk(shape, dtype, inputs)
+                self._thunk = runtime.create_empty_thunk(
+                    sanitized_shape, dtype, inputs
+                )
         else:
             self._thunk = thunk
         self._legate_data: Union[dict[str, Any], None] = None
+
+    @staticmethod
+    def _sanitize_shape(
+        shape: Union[NdShapeLike, Sequence[Any], npt.NDArray[Any], ndarray]
+    ) -> NdShape:
+        seq: tuple[Any, ...]
+        if isinstance(shape, (ndarray, np.ndarray)):
+            if shape.ndim == 0:
+                seq = (shape.__array__().item(),)
+            else:
+                seq = tuple(shape.__array__())
+        elif np.isscalar(shape):
+            seq = (shape,)
+        else:
+            seq = tuple(cast(NdShape, shape))
+        try:
+            # Unfortunately, we can't do this check using
+            # 'isinstance(value, int)', as the values in a NumPy ndarray
+            # don't satisfy the predicate (they have numpy value types,
+            # such as numpy.int64).
+            result = tuple(operator.index(value) for value in seq)
+        except TypeError:
+            raise TypeError(
+                "expected a sequence of integers or a single integer, "
+                f"got {shape!r}"
+            )
+        return result
 
     # Support for the Legate data interface
     @property

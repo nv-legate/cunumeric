@@ -266,6 +266,7 @@ def build_cunumeric(
     install_dir,
     openblas_dir,
     tblis_dir,
+    curand_dir,
     cutensor_dir,
     nccl_dir,
     thrust_dir,
@@ -303,6 +304,8 @@ def build_cunumeric(
             "CHECK_BOUNDS=%s" % (1 if check_bounds else 0),
             "PREFIX=%s" % install_dir,
         ]
+        if curand_dir is not None:
+            make_flags += [f"CURAND_PATH={curand_dir}"]
         if clean_first:
             execute_command(
                 ["make"] + make_flags + ["clean"],
@@ -347,6 +350,7 @@ def install_cunumeric(
     legate_dir,
     openblas_dir,
     tblis_dir,
+    curand_dir,
     cutensor_dir,
     thrust_dir,
     debug,
@@ -367,6 +371,7 @@ def install_cunumeric(
         print("openblas_dir: ", openblas_dir, "\n")
         print("tblis_dir: ", tblis_dir, "\n")
         print("cutensor_dir: ", cutensor_dir, "\n")
+        print("curand_dir: ", curand_dir, "\n")
         print("thrust_dir: ", thrust_dir, "\n")
         print("debug: ", debug, "\n")
         print("debug_release: ", debug_release, "\n")
@@ -430,6 +435,8 @@ def install_cunumeric(
     nccl_dir = None
     cuda = find_compile_flag("USE_CUDA", makefile_path)
     if cuda:
+        # A custom path to cuRAND is ignored when CUDA support is available
+        curand_dir = None
         # Find cuTensor installation
         if cutensor_dir is None:
             cutensor_dir = libs_config.get("cutensor")
@@ -448,6 +455,12 @@ def install_cunumeric(
                 "If the problem persists, please open a GitHub issue for it. "
             )
         nccl_dir = libs_config["nccl"]
+    else:
+        if curand_dir is None:
+            curand_dir = libs_config.get("curand")
+        if curand_dir is not None:
+            curand_dir = os.path.realpath(curand_dir)
+            libs_config["curand"] = curand_dir
 
     # Record all newly installed libraries in the global configuration
     with open(libs_path, "w") as f:
@@ -475,6 +488,7 @@ def install_cunumeric(
         legate_dir,
         openblas_dir,
         tblis_dir,
+        curand_dir,
         cutensor_dir,
         nccl_dir,
         thrust_dir,
@@ -544,6 +558,15 @@ def driver():
         required=False,
         default=os.environ.get("TBLIS_PATH"),
         help="Path to TBLIS installation directory.",
+    )
+    parser.add_argument(
+        "--with-curand",
+        dest="curand_dir",
+        metavar="DIR",
+        required=False,
+        default=os.environ.get("CURAND_PATH"),
+        help="Path to cuRAND installation directory. This flag is ignored "
+        "if Legate Core was built with CUDA support.",
     )
     parser.add_argument(
         "--with-cutensor",
