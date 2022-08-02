@@ -23,6 +23,41 @@ import cunumeric as num
 from legate.core import LEGATE_MAX_DIM
 
 
+def test_future_stores():
+    # array is a future:
+    arr_np = np.array([4])
+    index_np = np.zeros(8, dtype=int)
+    arr_num = num.array(arr_np)
+    index_num = num.array(index_np)
+    res_np = arr_np[index_np]
+    res_num = arr_num[index_num]
+    assert np.array_equal(res_np, res_num)
+
+    # index and array and lhs are futures:
+    res_np = arr_np[index_np[1]]
+    res_num = arr_num[index_num[1]]
+    assert np.array_equal(res_np, res_num)
+
+    # all futures
+    b_np = np.array([10, 11, 12])
+    b_num = num.array(b_np)
+    arr_np[index_np[1]] = b_np[0]
+    arr_num[index_num[1]] = b_num[0]
+    assert np.array_equal(arr_np, arr_num)
+
+    # index and lhs are futures:
+    arr_np = np.array([4, 3, 2, 1])
+    arr_num = num.array(arr_np)
+    res_np = arr_np[index_np[3]]
+    res_num = arr_num[index_num[3]]
+    assert np.array_equal(res_np, res_num)
+
+    # rhs is a future
+    arr_np[index_np[3]] = b_np[2]
+    arr_num[index_num[3]] = b_num[2]
+    assert np.array_equal(arr_np, arr_num)
+
+
 def test():
 
     # tests on 1D input array:

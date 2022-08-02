@@ -446,10 +446,6 @@ class DeferredArray(NumPyThunk):
         # NumPy array.
         N = self.ndim
         pointN_dtype = self.runtime.get_point_type(N)
-        # if scalar array is passed as an argument, make the output
-        # shape be (1,)
-        if out_shape == ():
-            out_shape = (1,)
         store = self.context.create_store(
             pointN_dtype, shape=out_shape, optimize_scalar=True
         )
@@ -742,7 +738,11 @@ class DeferredArray(NumPyThunk):
                 index_array,
                 self,
             ) = self._create_indexing_array(key)
+
+            if rhs.base.kind == Future:
+                rhs = self._convert_future_to_store(rhs)
             store = rhs.base
+
             if copy_needed:
                 result: NumPyThunk
                 if index_array.base.kind == Future:
@@ -827,6 +827,8 @@ class DeferredArray(NumPyThunk):
 
             if index_array.base.kind == Future:
                 index_array = self._convert_future_to_store(index_array)
+            if lhs.base.kind == Future:
+                lhs = self._convert_future_to_store(lhs)
 
             copy = self.context.create_copy()
             copy.set_target_indirect_out_of_range(False)
