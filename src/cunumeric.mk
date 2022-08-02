@@ -148,7 +148,7 @@ GEN_GPU_SRC += cunumeric/ternary/where.cu               \
 
 include cunumeric/sort/sort.mk
 
-ifeq ($(strip $(USE_CUDA)),1)
+ifeq ($(strip $(BUILD_CURAND_TASKS)),1)
 include cunumeric/random/random.mk
 endif
 
