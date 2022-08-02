@@ -3305,16 +3305,21 @@ def fill_diagonal(
 
     len_val = n
 
-    if wrap:
-        len_val = a.shape[0]
+    if wrap and a.shape[0] > a.shape[1]:
+        len_val = a.shape[0] - int(a.shape[0] / (a.shape[1] + 1))
 
     if val.size != len_val and val.ndim > 0:
         val = val._wrap(len_val)
 
-    if a.ndim == 2 and wrap:
-        idx2 = arange(a.shape[0], dtype=int)
-        idx1 = idx2 % a.shape[1]
-        a[idx2, idx1] = val
+    if a.ndim == 2 and wrap and a.shape[0] > a.shape[1]:
+        idx0_tmp = arange(a.shape[1], dtype=int)
+        idx0 = idx0_tmp.copy()
+        while idx0.size < a.shape[0]:
+            idx0_tmp = idx0_tmp + (a.shape[1] + 1)
+            idx0 = np.hstack((idx0, idx0_tmp))
+        idx0 = idx0[0:len_val]
+        idx1 = arange(len_val, dtype=int) % a.shape[1]
+        a[idx0, idx1] = val
     else:
         a[indices] = val
 

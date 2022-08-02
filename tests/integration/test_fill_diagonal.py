@@ -82,12 +82,7 @@ def test_tall_matrices(shape, vshape):
 
     np.fill_diagonal(a_np, v_np, wrap=True)
     num.fill_diagonal(a_num, v_num, wrap=True)
-    # print("IRINA DEBUG numpuy:")
-    # print(a_np)
-    # print("IRINA DEBUG cunumeric")
-    # print(a_num)
-
-    # assert np.array_equal(a_np, a_num)
+    assert np.array_equal(a_np, a_num)
 
 
 if __name__ == "__main__":
