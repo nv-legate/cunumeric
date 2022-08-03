@@ -1,18 +1,22 @@
 
 <!DOCTYPE html>
 
-<html>
+<html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
     <title>Random sampling (cunumeric.random) &#8212; cunumeric  documentation</title>
-    
-  <!-- Loaded before other Sphinx assets -->
-  <link href="../_static/styles/theme.css?digest=1999514e3f237ded88cf" rel="stylesheet">
-<link href="../_static/styles/pydata-sphinx-theme.css?digest=1999514e3f237ded88cf" rel="stylesheet">
+<script>
+  document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+  document.documentElement.dataset.theme = localStorage.getItem("theme") || "light"
+</script>
 
-    
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=92025949c220c2e29695" rel="stylesheet">
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=92025949c220c2e29695" rel="stylesheet">
+
+
   <link rel="stylesheet"
     href="../_static/vendor/fontawesome/5.13.0/css/all.min.css">
   <link rel="preload" as="font" type="font/woff2" crossorigin
@@ -23,46 +27,55 @@
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css" />
     <link rel="stylesheet" type="text/css" href="../_static/params.css" />
-    
+
   <!-- Pre-loaded scripts that we'll load fully later -->
-  <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=1999514e3f237ded88cf">
+  <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=92025949c220c2e29695">
 
     <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
     <script src="../_static/jquery.js"></script>
     <script src="../_static/underscore.js"></script>
+    <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="../_static/doctools.js"></script>
     <script src="../_static/clipboard.min.js"></script>
     <script src="../_static/copybutton.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="cunumeric.random.rand" href="generated/cunumeric.random.rand.html" />
+    <link rel="next" title="cunumeric.random.default_rng" href="generated/cunumeric.random.default_rng.html" />
     <link rel="prev" title="cunumeric.fft.ihfft" href="generated/cunumeric.fft.ihfft.html" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="docsearch:language" content="None">
-    
-
-    <!-- Google Analytics -->
-    
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="docsearch:language" content="en">
   </head>
-  <body data-spy="scroll" data-target="#bd-toc-nav" data-offset="60">
-    
-    <div class="container-fluid" id="banner"></div>
+  
+  
+  <body data-spy="scroll" data-target="#bd-toc-nav" data-offset="180" data-default-mode="">
+    <div class="bd-header-announcement container-fluid" id="banner">
+      
+
+    </div>
 
     
-    <nav class="navbar navbar-light navbar-expand-lg bg-light fixed-top bd-navbar" id="navbar-main"><div class="container-xl">
+    <nav class="bd-header navbar navbar-light navbar-expand-lg bg-light fixed-top bd-navbar" id="navbar-main"><div class="bd-header__inner container-xl">
 
   <div id="navbar-start">
     
     
-<a class="navbar-brand" href="../index.html">
-<p class="title">cunumeric</p>
-</a>
+  
 
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+    <p class="title logo__title">cunumeric  documentation</p>
+  
+</a>
     
   </div>
 
   <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbar-collapsible" aria-controls="navbar-collapsible" aria-expanded="false" aria-label="Toggle navigation">
-    <span class="navbar-toggler-icon"></span>
+    <span class="fas fa-bars"></span>
   </button>
 
   
@@ -110,6 +123,14 @@
     <div id="navbar-end">
       
       <div class="navbar-end-item">
+        <span id="theme-switch" class="btn btn-sm btn-outline-primary navbar-btn rounded-circle">
+    <a class="theme-switch" data-mode="light"><i class="fas fa-sun"></i></a>
+    <a class="theme-switch" data-mode="dark"><i class="far fa-moon"></i></a>
+    <a class="theme-switch" data-mode="auto"><i class="fas fa-adjust"></i></a>
+</span>
+      </div>
+      
+      <div class="navbar-end-item">
         <ul id="navbar-icon-links" class="navbar-nav" aria-label="Icon Links">
       </ul>
       </div>
@@ -120,13 +141,13 @@
     </nav>
     
 
-    <div class="container-xl">
-      <div class="row">
+    <div class="bd-container container-xl">
+      <div class="bd-container__inner row">
           
-            
-            <!-- Only show if we have sidebars configured, else just a small margin  -->
-            <div class="col-12 col-md-3 bd-sidebar">
-              <div class="sidebar-start-items"><form class="bd-search d-flex align-items-center" action="../search.html" method="get">
+
+<!-- Only show if we have sidebars configured, else just a small margin  -->
+<div class="bd-sidebar-primary col-12 col-md-3 bd-sidebar">
+  <div class="sidebar-start-items"><form class="bd-search d-flex align-items-center" action="../search.html" method="get">
   <i class="icon fas fa-search"></i>
   <input type="search" class="form-control" name="q" id="search-input" placeholder="Search the docs ..." aria-label="Search the docs ..." autocomplete="off" >
 </form><nav class="bd-links" id="bd-docs-nav" aria-label="Main navigation">
@@ -238,6 +259,11 @@
       </a>
      </li>
      <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.tri.html">
+       cunumeric.tri
+      </a>
+     </li>
+     <li class="toctree-l3">
       <a class="reference internal" href="generated/cunumeric.tril.html">
        cunumeric.tril
       </a>
@@ -259,6 +285,11 @@
      </i>
     </label>
     <ul>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.ndim.html">
+       cunumeric.ndim
+      </a>
+     </li>
      <li class="toctree-l3">
       <a class="reference internal" href="generated/cunumeric.shape.html">
        cunumeric.shape
@@ -292,6 +323,21 @@
      <li class="toctree-l3">
       <a class="reference internal" href="generated/cunumeric.squeeze.html">
        cunumeric.squeeze
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.atleast_1d.html">
+       cunumeric.atleast_1d
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.atleast_2d.html">
+       cunumeric.atleast_2d
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.atleast_3d.html">
+       cunumeric.atleast_3d
       </a>
      </li>
      <li class="toctree-l3">
@@ -421,6 +467,16 @@
        cunumeric.right_shift
       </a>
      </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.packbits.html">
+       cunumeric.packbits
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.unpackbits.html">
+       cunumeric.unpackbits
+      </a>
+     </li>
     </ul>
    </li>
    <li class="toctree-l2 has-children">
@@ -441,6 +497,31 @@
      <li class="toctree-l3">
       <a class="reference internal" href="generated/cunumeric.diag_indices_from.html">
        cunumeric.diag_indices_from
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.mask_indices.html">
+       cunumeric.mask_indices
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.tril_indices.html">
+       cunumeric.tril_indices
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.tril_indices_from.html">
+       cunumeric.tril_indices_from
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.triu_indices.html">
+       cunumeric.triu_indices
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.triu_indices_from.html">
+       cunumeric.triu_indices_from
       </a>
      </li>
      <li class="toctree-l3">
@@ -481,6 +562,16 @@
      <li class="toctree-l3">
       <a class="reference internal" href="generated/cunumeric.take.html">
        cunumeric.take
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.take_along_axis.html">
+       cunumeric.take_along_axis
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.put_along_axis.html">
+       cunumeric.put_along_axis
       </a>
      </li>
     </ul>
@@ -833,6 +924,26 @@
      <li class="toctree-l3">
       <a class="reference internal" href="generated/cunumeric.sum.html">
        cunumeric.sum
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.cumprod.html">
+       cunumeric.cumprod
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.cumsum.html">
+       cunumeric.cumsum
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.nancumprod.html">
+       cunumeric.nancumprod
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.nancumsum.html">
+       cunumeric.nancumsum
       </a>
      </li>
      <li class="toctree-l3">
@@ -1202,13 +1313,33 @@
     </label>
     <ul>
      <li class="toctree-l3">
-      <a class="reference internal" href="generated/cunumeric.random.rand.html">
-       cunumeric.random.rand
+      <a class="reference internal" href="generated/cunumeric.random.default_rng.html">
+       cunumeric.random.default_rng
       </a>
      </li>
      <li class="toctree-l3">
-      <a class="reference internal" href="generated/cunumeric.random.randint.html">
-       cunumeric.random.randint
+      <a class="reference internal" href="_generator.html">
+       cunumeric.random.Generator
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="_bitgenerator.html">
+       cunumeric.random.BitGenerator
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.seed.html">
+       cunumeric.random.seed
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.default_rng.html">
+       cunumeric.random.default_rng
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.rand.html">
+       cunumeric.random.rand
       </a>
      </li>
      <li class="toctree-l3">
@@ -1217,13 +1348,193 @@
       </a>
      </li>
      <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.randint.html">
+       cunumeric.random.randint
+      </a>
+     </li>
+     <li class="toctree-l3">
       <a class="reference internal" href="generated/cunumeric.random.random.html">
        cunumeric.random.random
       </a>
      </li>
      <li class="toctree-l3">
-      <a class="reference internal" href="generated/cunumeric.random.seed.html">
-       cunumeric.random.seed
+      <a class="reference internal" href="generated/cunumeric.random.random_integers.html">
+       cunumeric.random.random_integers
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.random_sample.html">
+       cunumeric.random.random_sample
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.bytes.html">
+       cunumeric.random.bytes
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.beta.html">
+       cunumeric.random.beta
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.binomial.html">
+       cunumeric.random.binomial
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.chisquare.html">
+       cunumeric.random.chisquare
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.exponential.html">
+       cunumeric.random.exponential
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.f.html">
+       cunumeric.random.f
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.gamma.html">
+       cunumeric.random.gamma
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.geometric.html">
+       cunumeric.random.geometric
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.gumbel.html">
+       cunumeric.random.gumbel
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.hypergeometric.html">
+       cunumeric.random.hypergeometric
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.laplace.html">
+       cunumeric.random.laplace
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.logistic.html">
+       cunumeric.random.logistic
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.lognormal.html">
+       cunumeric.random.lognormal
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.logseries.html">
+       cunumeric.random.logseries
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.negative_binomial.html">
+       cunumeric.random.negative_binomial
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.noncentral_chisquare.html">
+       cunumeric.random.noncentral_chisquare
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.noncentral_f.html">
+       cunumeric.random.noncentral_f
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.normal.html">
+       cunumeric.random.normal
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.pareto.html">
+       cunumeric.random.pareto
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.poisson.html">
+       cunumeric.random.poisson
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.power.html">
+       cunumeric.random.power
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.ranf.html">
+       cunumeric.random.ranf
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.rayleigh.html">
+       cunumeric.random.rayleigh
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.sample.html">
+       cunumeric.random.sample
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.standard_cauchy.html">
+       cunumeric.random.standard_cauchy
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.standard_exponential.html">
+       cunumeric.random.standard_exponential
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.standard_gamma.html">
+       cunumeric.random.standard_gamma
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.standard_t.html">
+       cunumeric.random.standard_t
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.triangular.html">
+       cunumeric.random.triangular
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.uniform.html">
+       cunumeric.random.uniform
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.vonmises.html">
+       cunumeric.random.vonmises
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.wald.html">
+       cunumeric.random.wald
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.weibull.html">
+       cunumeric.random.weibull
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.zipf.html">
+       cunumeric.random.zipf
       </a>
      </li>
     </ul>
@@ -1710,6 +2021,11 @@
       </a>
      </li>
      <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.ndarray.cumsum.html">
+       cunumeric.ndarray.cumsum
+      </a>
+     </li>
+     <li class="toctree-l3">
       <a class="reference internal" href="generated/cunumeric.ndarray.mean.html">
        cunumeric.ndarray.mean
       </a>
@@ -1717,6 +2033,11 @@
      <li class="toctree-l3">
       <a class="reference internal" href="generated/cunumeric.ndarray.prod.html">
        cunumeric.ndarray.prod
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.ndarray.cumprod.html">
+       cunumeric.ndarray.cumprod
       </a>
      </li>
      <li class="toctree-l3">
@@ -1930,6 +2251,11 @@
       </a>
      </li>
      <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.ndarray.__index__.html">
+       cunumeric.ndarray.__index__
+      </a>
+     </li>
+     <li class="toctree-l3">
       <a class="reference internal" href="generated/cunumeric.ndarray.__reduce__.html">
        cunumeric.ndarray.__reduce__
       </a>
@@ -2002,19 +2328,20 @@
 
   </div>
 </nav>
-              </div>
-              <div class="sidebar-end-items">
-              </div>
-            </div>
-            
-          
+  </div>
+  <div class="sidebar-end-items">
+  </div>
+</div>
+
 
           
-          <div class="d-none d-xl-block col-xl-2 bd-toc">
-            
-              
-              <div class="toc-item">
-                
+
+
+<div class="bd-sidebar-secondary d-none d-xl-block col-xl-2 bd-toc">
+  
+    
+    <div class="toc-item">
+      
 <div class="tocsection onthispage mt-5 pt-1 pb-3">
     <i class="fas fa-list"></i> On this page
 </div>
@@ -2022,60 +2349,213 @@
 <nav id="bd-toc-nav">
     <ul class="visible nav section-nav flex-column">
  <li class="toc-h2 nav-item toc-entry">
-  <a class="reference internal nav-link" href="#functions-in-cunumeric-random">
-   Functions in
-   <code class="xref py py-mod docutils literal notranslate">
-    <span class="pre">
-     cunumeric.random
-    </span>
-   </code>
+  <a class="reference internal nav-link" href="#random-generator">
+   Random Generator
+  </a>
+  <ul class="nav section-nav flex-column">
+  </ul>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#bit-generators">
+   Bit Generators
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#seeding-and-state">
+   Seeding and State
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#simple-random-data">
+   Simple random data
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#distributions">
+   Distributions
   </a>
  </li>
 </ul>
 
 </nav>
-              </div>
-              
-              <div class="toc-item">
-                
-              </div>
-              
-            
-          </div>
-          
+    </div>
+    
+    <div class="toc-item">
+      
+    </div>
+    
+  
+</div>
+
 
           
           
-            
-          
-          <main class="col-12 col-md-9 col-xl-7 py-md-5 pl-md-5 pr-md-4 bd-content" role="main">
+          <div class="bd-content col-12 col-md-9 col-xl-7">
               
-              <div>
+              <article class="bd-article" role="main">
                 
   <span class="target" id="module-cunumeric.random"></span><section id="random-sampling-cunumeric-random">
-<h1>Random sampling (<a class="reference internal" href="#module-cunumeric.random" title="cunumeric.random"><code class="xref py py-mod docutils literal notranslate"><span class="pre">cunumeric.random</span></code></a>)<a class="headerlink" href="#random-sampling-cunumeric-random" title="Permalink to this headline">#</a></h1>
-<section id="functions-in-cunumeric-random">
-<h2>Functions in <a class="reference internal" href="#module-cunumeric.random" title="cunumeric.random"><code class="xref py py-mod docutils literal notranslate"><span class="pre">cunumeric.random</span></code></a><a class="headerlink" href="#functions-in-cunumeric-random" title="Permalink to this headline">#</a></h2>
-<table class="longtable table autosummary">
-<colgroup>
-<col style="width: 10%" />
-<col style="width: 90%" />
-</colgroup>
+<h1>Random sampling (<a class="reference internal" href="#module-cunumeric.random" title="cunumeric.random"><code class="xref py py-mod docutils literal notranslate"><span class="pre">cunumeric.random</span></code></a>)<a class="headerlink" href="#random-sampling-cunumeric-random" title="Permalink to this heading">#</a></h1>
+<section id="random-generator">
+<h2>Random Generator<a class="headerlink" href="#random-generator" title="Permalink to this heading">#</a></h2>
+<table class="autosummary longtable table autosummary">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.random.rand.html#cunumeric.random.rand" title="cunumeric.random.rand"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rand</span></code></a>(d0, d1, ..., dn)</p></td>
-<td><p>Random values in a given shape.</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.random.default_rng.html#cunumeric.random.default_rng" title="cunumeric.random.default_rng"><code class="xref py py-obj docutils literal notranslate"><span class="pre">default_rng</span></code></a>([seed])</p></td>
+<td><p>Construct a new Generator with the default BitGenerator (XORWOW).</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.random.randint.html#cunumeric.random.randint" title="cunumeric.random.randint"><code class="xref py py-obj docutils literal notranslate"><span class="pre">randint</span></code></a>(low[, high, size, dtype])</p></td>
-<td><p>Return random integers from <cite>low</cite> (inclusive) to <cite>high</cite> (exclusive).</p></td>
+</tbody>
+</table>
+<div class="toctree-wrapper compound">
+</div>
+</section>
+<section id="bit-generators">
+<h2>Bit Generators<a class="headerlink" href="#bit-generators" title="Permalink to this heading">#</a></h2>
+<div class="toctree-wrapper compound">
+</div>
+</section>
+<section id="seeding-and-state">
+<h2>Seeding and State<a class="headerlink" href="#seeding-and-state" title="Permalink to this heading">#</a></h2>
+<table class="autosummary longtable table autosummary">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.random.seed.html#cunumeric.random.seed" title="cunumeric.random.seed"><code class="xref py py-obj docutils literal notranslate"><span class="pre">seed</span></code></a>([init])</p></td>
+<td><p>Reseed the legacy random number generator.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="simple-random-data">
+<h2>Simple random data<a class="headerlink" href="#simple-random-data" title="Permalink to this heading">#</a></h2>
+<table class="autosummary longtable table autosummary">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.random.default_rng.html#cunumeric.random.default_rng" title="cunumeric.random.default_rng"><code class="xref py py-obj docutils literal notranslate"><span class="pre">default_rng</span></code></a>([seed])</p></td>
+<td><p>Construct a new Generator with the default BitGenerator (XORWOW).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.random.rand.html#cunumeric.random.rand" title="cunumeric.random.rand"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rand</span></code></a>(d0, d1, ..., dn)</p></td>
+<td><p>Random values in a given shape.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.random.randn.html#cunumeric.random.randn" title="cunumeric.random.randn"><code class="xref py py-obj docutils literal notranslate"><span class="pre">randn</span></code></a>(d0, d1, ..., dn)</p></td>
 <td><p>Return a sample (or samples) from the &quot;standard normal&quot; distribution.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.random.random.html#cunumeric.random.random" title="cunumeric.random.random"><code class="xref py py-obj docutils literal notranslate"><span class="pre">random</span></code></a>([size])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.random.randint.html#cunumeric.random.randint" title="cunumeric.random.randint"><code class="xref py py-obj docutils literal notranslate"><span class="pre">randint</span></code></a>(low[, high, size, dtype])</p></td>
+<td><p>Return random integers from <cite>low</cite> (inclusive) to <cite>high</cite> (exclusive).</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.random.random.html#cunumeric.random.random" title="cunumeric.random.random"><code class="xref py py-obj docutils literal notranslate"><span class="pre">random</span></code></a>([size])</p></td>
 <td><p>Return random floats in the half-open interval [0.0, 1.0).</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.random.seed.html#cunumeric.random.seed" title="cunumeric.random.seed"><code class="xref py py-obj docutils literal notranslate"><span class="pre">seed</span></code></a>([init])</p></td>
-<td><p></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.random.random_integers.html#cunumeric.random.random_integers" title="cunumeric.random.random_integers"><code class="xref py py-obj docutils literal notranslate"><span class="pre">random_integers</span></code></a>(low[, high, size])</p></td>
+<td><p>Random integers of type <cite>np.int_</cite> between <cite>low</cite> and <cite>high</cite>, inclusive.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.random.random_sample.html#cunumeric.random.random_sample" title="cunumeric.random.random_sample"><code class="xref py py-obj docutils literal notranslate"><span class="pre">random_sample</span></code></a>([size])</p></td>
+<td><p>Return random floats in the half-open interval <code class="docutils literal notranslate"><span class="pre">[0.0,</span> <span class="pre">1.0)</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.random.bytes.html#cunumeric.random.bytes" title="cunumeric.random.bytes"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bytes</span></code></a>(length)</p></td>
+<td><p>Return random bytes.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="distributions">
+<h2>Distributions<a class="headerlink" href="#distributions" title="Permalink to this heading">#</a></h2>
+<table class="autosummary longtable table autosummary">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.random.beta.html#cunumeric.random.beta" title="cunumeric.random.beta"><code class="xref py py-obj docutils literal notranslate"><span class="pre">beta</span></code></a>(a, b[, size])</p></td>
+<td><p>Draw samples from a Beta distribution.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.random.binomial.html#cunumeric.random.binomial" title="cunumeric.random.binomial"><code class="xref py py-obj docutils literal notranslate"><span class="pre">binomial</span></code></a>(n, p[, size])</p></td>
+<td><p>Draw samples from a binomial distribution.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.random.chisquare.html#cunumeric.random.chisquare" title="cunumeric.random.chisquare"><code class="xref py py-obj docutils literal notranslate"><span class="pre">chisquare</span></code></a>(df[, size])</p></td>
+<td><p>Draw samples from a chi-square distribution.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.random.exponential.html#cunumeric.random.exponential" title="cunumeric.random.exponential"><code class="xref py py-obj docutils literal notranslate"><span class="pre">exponential</span></code></a>([scale, size])</p></td>
+<td><p>Draw samples from an exponential distribution.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.random.f.html#cunumeric.random.f" title="cunumeric.random.f"><code class="xref py py-obj docutils literal notranslate"><span class="pre">f</span></code></a>(dfnum, dfden[, size])</p></td>
+<td><p>Draw samples from an F distribution.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.random.gamma.html#cunumeric.random.gamma" title="cunumeric.random.gamma"><code class="xref py py-obj docutils literal notranslate"><span class="pre">gamma</span></code></a>(shape[, scale, size])</p></td>
+<td><p>Draw samples from a Gamma distribution.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.random.geometric.html#cunumeric.random.geometric" title="cunumeric.random.geometric"><code class="xref py py-obj docutils literal notranslate"><span class="pre">geometric</span></code></a>(p[, size])</p></td>
+<td><p>Draw samples from the geometric distribution.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.random.gumbel.html#cunumeric.random.gumbel" title="cunumeric.random.gumbel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">gumbel</span></code></a>([loc, scale, size])</p></td>
+<td><p>Draw samples from a Gumbel distribution.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.random.hypergeometric.html#cunumeric.random.hypergeometric" title="cunumeric.random.hypergeometric"><code class="xref py py-obj docutils literal notranslate"><span class="pre">hypergeometric</span></code></a>(ngood, nbad, nsample[, size])</p></td>
+<td><p>Draw samples from a Hypergeometric distribution.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.random.laplace.html#cunumeric.random.laplace" title="cunumeric.random.laplace"><code class="xref py py-obj docutils literal notranslate"><span class="pre">laplace</span></code></a>([loc, scale, size])</p></td>
+<td><p>Draw samples from the Laplace or double exponential distribution with specified location (or mean) and scale (decay).</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.random.logistic.html#cunumeric.random.logistic" title="cunumeric.random.logistic"><code class="xref py py-obj docutils literal notranslate"><span class="pre">logistic</span></code></a>([loc, scale, size])</p></td>
+<td><p>Draw samples from a logistic distribution.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.random.lognormal.html#cunumeric.random.lognormal" title="cunumeric.random.lognormal"><code class="xref py py-obj docutils literal notranslate"><span class="pre">lognormal</span></code></a>([mean, sigma, size])</p></td>
+<td><p>Draw samples from a log-normal distribution.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.random.logseries.html#cunumeric.random.logseries" title="cunumeric.random.logseries"><code class="xref py py-obj docutils literal notranslate"><span class="pre">logseries</span></code></a>(p[, size])</p></td>
+<td><p>Draw samples from a logarithmic series distribution.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.random.negative_binomial.html#cunumeric.random.negative_binomial" title="cunumeric.random.negative_binomial"><code class="xref py py-obj docutils literal notranslate"><span class="pre">negative_binomial</span></code></a>(n, p[, size])</p></td>
+<td><p>Draw samples from a negative binomial distribution.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.random.noncentral_chisquare.html#cunumeric.random.noncentral_chisquare" title="cunumeric.random.noncentral_chisquare"><code class="xref py py-obj docutils literal notranslate"><span class="pre">noncentral_chisquare</span></code></a>(df, nonc[, size])</p></td>
+<td><p>Draw samples from a noncentral chi-square distribution.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.random.noncentral_f.html#cunumeric.random.noncentral_f" title="cunumeric.random.noncentral_f"><code class="xref py py-obj docutils literal notranslate"><span class="pre">noncentral_f</span></code></a>(dfnum, dfden, nonc[, size])</p></td>
+<td><p>Draw samples from the noncentral F distribution.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.random.normal.html#cunumeric.random.normal" title="cunumeric.random.normal"><code class="xref py py-obj docutils literal notranslate"><span class="pre">normal</span></code></a>([loc, scale, size])</p></td>
+<td><p>Draw random samples from a normal (Gaussian) distribution.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.random.pareto.html#cunumeric.random.pareto" title="cunumeric.random.pareto"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pareto</span></code></a>(a[, size])</p></td>
+<td><p>Draw samples from a Pareto II or Lomax distribution with specified shape.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.random.poisson.html#cunumeric.random.poisson" title="cunumeric.random.poisson"><code class="xref py py-obj docutils literal notranslate"><span class="pre">poisson</span></code></a>([lam, size])</p></td>
+<td><p>Draw samples from a Poisson distribution.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.random.power.html#cunumeric.random.power" title="cunumeric.random.power"><code class="xref py py-obj docutils literal notranslate"><span class="pre">power</span></code></a>(a[, size])</p></td>
+<td><p>Draws samples in [0, 1] from a power distribution with positive exponent a - 1.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.random.ranf.html#cunumeric.random.ranf" title="cunumeric.random.ranf"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ranf</span></code></a>([size, dtype])</p></td>
+<td><p>random_sample(size=None)</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.random.rayleigh.html#cunumeric.random.rayleigh" title="cunumeric.random.rayleigh"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rayleigh</span></code></a>([scale, size])</p></td>
+<td><p>Draw samples from a Rayleigh distribution.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.random.sample.html#cunumeric.random.sample" title="cunumeric.random.sample"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sample</span></code></a>([size, dtype])</p></td>
+<td><p>random_sample(size=None)</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.random.standard_cauchy.html#cunumeric.random.standard_cauchy" title="cunumeric.random.standard_cauchy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">standard_cauchy</span></code></a>([size])</p></td>
+<td><p>Draw samples from a standard Cauchy distribution with mode = 0.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.random.standard_exponential.html#cunumeric.random.standard_exponential" title="cunumeric.random.standard_exponential"><code class="xref py py-obj docutils literal notranslate"><span class="pre">standard_exponential</span></code></a>([size])</p></td>
+<td><p>Draw samples from the standard exponential distribution.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.random.standard_gamma.html#cunumeric.random.standard_gamma" title="cunumeric.random.standard_gamma"><code class="xref py py-obj docutils literal notranslate"><span class="pre">standard_gamma</span></code></a>(shape[, size])</p></td>
+<td><p>Draw samples from a standard Gamma distribution.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.random.standard_t.html#cunumeric.random.standard_t" title="cunumeric.random.standard_t"><code class="xref py py-obj docutils literal notranslate"><span class="pre">standard_t</span></code></a>(df[, size])</p></td>
+<td><p>Draw samples from a standard Student's t distribution with <cite>df</cite> degrees of freedom.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.random.triangular.html#cunumeric.random.triangular" title="cunumeric.random.triangular"><code class="xref py py-obj docutils literal notranslate"><span class="pre">triangular</span></code></a>(left, mode, right[, size])</p></td>
+<td><p>Draw samples from the triangular distribution over the interval <code class="docutils literal notranslate"><span class="pre">[left,</span> <span class="pre">right]</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.random.uniform.html#cunumeric.random.uniform" title="cunumeric.random.uniform"><code class="xref py py-obj docutils literal notranslate"><span class="pre">uniform</span></code></a>([low, high, size])</p></td>
+<td><p>Draw samples from a uniform distribution.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.random.vonmises.html#cunumeric.random.vonmises" title="cunumeric.random.vonmises"><code class="xref py py-obj docutils literal notranslate"><span class="pre">vonmises</span></code></a>(mu, kappa[, size])</p></td>
+<td><p>Draw samples from a von Mises distribution.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.random.wald.html#cunumeric.random.wald" title="cunumeric.random.wald"><code class="xref py py-obj docutils literal notranslate"><span class="pre">wald</span></code></a>(mean, scale[, size])</p></td>
+<td><p>Draw samples from a Wald, or inverse Gaussian, distribution.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.random.weibull.html#cunumeric.random.weibull" title="cunumeric.random.weibull"><code class="xref py py-obj docutils literal notranslate"><span class="pre">weibull</span></code></a>(a[, size])</p></td>
+<td><p>Draw samples from a Weibull distribution.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.random.zipf.html#cunumeric.random.zipf" title="cunumeric.random.zipf"><code class="xref py py-obj docutils literal notranslate"><span class="pre">zipf</span></code></a>(a[, size])</p></td>
+<td><p>Draw samples from a Zipf distribution.</p></td>
 </tr>
 </tbody>
 </table>
@@ -2083,51 +2563,55 @@
 </section>
 
 
-              </div>
+              </article>
               
-              
-              <!-- Previous / next buttons -->
-<div class='prev-next-area'>
-    <a class='left-prev' id="prev-link" href="generated/cunumeric.fft.ihfft.html" title="previous page">
-        <i class="fas fa-angle-left"></i>
-        <div class="prev-next-info">
-            <p class="prev-next-subtitle">previous</p>
-            <p class="prev-next-title">cunumeric.fft.ihfft</p>
-        </div>
-    </a>
-    <a class='right-next' id="next-link" href="generated/cunumeric.random.rand.html" title="next page">
-    <div class="prev-next-info">
-        <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">cunumeric.random.rand</p>
-    </div>
-    <i class="fas fa-angle-right"></i>
-    </a>
-</div>
-              
-          </main>
-          
 
+              
+              <footer class="bd-footer-article">
+                  <!-- Previous / next buttons -->
+<div class='prev-next-area'>
+  <a class='left-prev' id="prev-link" href="generated/cunumeric.fft.ihfft.html" title="previous page">
+      <i class="fas fa-angle-left"></i>
+      <div class="prev-next-info">
+          <p class="prev-next-subtitle">previous</p>
+          <p class="prev-next-title">cunumeric.fft.ihfft</p>
+      </div>
+  </a>
+  <a class='right-next' id="next-link" href="generated/cunumeric.random.default_rng.html" title="next page">
+  <div class="prev-next-info">
+      <p class="prev-next-subtitle">next</p>
+      <p class="prev-next-title">cunumeric.random.default_rng</p>
+  </div>
+  <i class="fas fa-angle-right"></i>
+  </a>
+</div>
+              </footer>
+              
+          </div>
+          
       </div>
     </div>
+
+  
   
   <!-- Scripts loaded after <body> so the DOM is not blocked -->
-  <script src="../_static/scripts/pydata-sphinx-theme.js?digest=1999514e3f237ded88cf"></script>
-<footer class="footer mt-5 mt-md-0">
-  <div class="container">
-    
-    <div class="footer-item">
-      <p class="copyright">
+  <script src="../_static/scripts/pydata-sphinx-theme.js?digest=92025949c220c2e29695"></script>
+
+<footer class="bd-footer"><div class="bd-footer__inner container">
+  
+  <div class="footer-item">
+    <p class="copyright">
     &copy; Copyright 2021-2022, NVIDIA.<br>
 </p>
-    </div>
-    
-    <div class="footer-item">
-      <p class="sphinx-version">
-Created using <a href="http://sphinx-doc.org/">Sphinx</a> 4.4.0.<br>
-</p>
-    </div>
-    
   </div>
+  
+  <div class="footer-item">
+    <p class="sphinx-version">
+Created using <a href="http://sphinx-doc.org/">Sphinx</a> 5.0.2.<br>
+</p>
+  </div>
+  
+</div>
 </footer>
   </body>
 </html>

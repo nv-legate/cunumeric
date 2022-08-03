@@ -1,17 +1,21 @@
 
 <!DOCTYPE html>
 
-<html>
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Index &#8212; cunumeric  documentation</title>
-    
-  <!-- Loaded before other Sphinx assets -->
-  <link href="_static/styles/theme.css?digest=1999514e3f237ded88cf" rel="stylesheet">
-<link href="_static/styles/pydata-sphinx-theme.css?digest=1999514e3f237ded88cf" rel="stylesheet">
+<script>
+  document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+  document.documentElement.dataset.theme = localStorage.getItem("theme") || "light"
+</script>
 
-    
+  <!-- Loaded before other Sphinx assets -->
+  <link href="_static/styles/theme.css?digest=92025949c220c2e29695" rel="stylesheet">
+<link href="_static/styles/pydata-sphinx-theme.css?digest=92025949c220c2e29695" rel="stylesheet">
+
+
   <link rel="stylesheet"
     href="_static/vendor/fontawesome/5.13.0/css/all.min.css">
   <link rel="preload" as="font" type="font/woff2" crossorigin
@@ -22,44 +26,53 @@
     <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="_static/copybutton.css" />
     <link rel="stylesheet" type="text/css" href="_static/params.css" />
-    
+
   <!-- Pre-loaded scripts that we'll load fully later -->
-  <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=1999514e3f237ded88cf">
+  <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=92025949c220c2e29695">
 
     <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
     <script src="_static/jquery.js"></script>
     <script src="_static/underscore.js"></script>
+    <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="_static/doctools.js"></script>
     <script src="_static/clipboard.min.js"></script>
     <script src="_static/copybutton.js"></script>
     <link rel="index" title="Index" href="#" />
     <link rel="search" title="Search" href="search.html" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="docsearch:language" content="None">
-    
-
-    <!-- Google Analytics -->
-    
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="docsearch:language" content="en">
   </head>
-  <body data-spy="scroll" data-target="#bd-toc-nav" data-offset="60">
-    
-    <div class="container-fluid" id="banner"></div>
+  
+  
+  <body data-spy="scroll" data-target="#bd-toc-nav" data-offset="180" data-default-mode="">
+    <div class="bd-header-announcement container-fluid" id="banner">
+      
+
+    </div>
 
     
-    <nav class="navbar navbar-light navbar-expand-lg bg-light fixed-top bd-navbar" id="navbar-main"><div class="container-xl">
+    <nav class="bd-header navbar navbar-light navbar-expand-lg bg-light fixed-top bd-navbar" id="navbar-main"><div class="bd-header__inner container-xl">
 
   <div id="navbar-start">
     
     
-<a class="navbar-brand" href="index.html">
-<p class="title">cunumeric</p>
-</a>
+  
 
+
+<a class="navbar-brand logo" href="index.html">
+  
+  
+  
+  
+  
+    <p class="title logo__title">cunumeric  documentation</p>
+  
+</a>
     
   </div>
 
   <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbar-collapsible" aria-controls="navbar-collapsible" aria-expanded="false" aria-label="Toggle navigation">
-    <span class="navbar-toggler-icon"></span>
+    <span class="fas fa-bars"></span>
   </button>
 
   
@@ -107,6 +120,14 @@
     <div id="navbar-end">
       
       <div class="navbar-end-item">
+        <span id="theme-switch" class="btn btn-sm btn-outline-primary navbar-btn rounded-circle">
+    <a class="theme-switch" data-mode="light"><i class="fas fa-sun"></i></a>
+    <a class="theme-switch" data-mode="dark"><i class="far fa-moon"></i></a>
+    <a class="theme-switch" data-mode="auto"><i class="fas fa-adjust"></i></a>
+</span>
+      </div>
+      
+      <div class="navbar-end-item">
         <ul id="navbar-icon-links" class="navbar-nav" aria-label="Icon Links">
       </ul>
       </div>
@@ -117,13 +138,13 @@
     </nav>
     
 
-    <div class="container-xl">
-      <div class="row">
+    <div class="bd-container container-xl">
+      <div class="bd-container__inner row">
           
-            
-            <!-- Only show if we have sidebars configured, else just a small margin  -->
-            <div class="col-12 col-md-3 bd-sidebar">
-              <div class="sidebar-start-items"><form class="bd-search d-flex align-items-center" action="search.html" method="get">
+
+<!-- Only show if we have sidebars configured, else just a small margin  -->
+<div class="bd-sidebar-primary col-12 col-md-3 bd-sidebar">
+  <div class="sidebar-start-items"><form class="bd-search d-flex align-items-center" action="search.html" method="get">
   <i class="icon fas fa-search"></i>
   <input type="search" class="form-control" name="q" id="search-input" placeholder="Search the docs ..." aria-label="Search the docs ..." autocomplete="off" >
 </form><nav class="bd-links" id="bd-docs-nav" aria-label="Main navigation">
@@ -131,26 +152,25 @@
     
   </div>
 </nav>
-              </div>
-              <div class="sidebar-end-items">
-              </div>
-            </div>
-            
-          
+  </div>
+  <div class="sidebar-end-items">
+  </div>
+</div>
+
 
           
-          <div class="d-none d-xl-block col-xl-2 bd-toc">
-            
-          </div>
-          
+
+
+<div class="bd-sidebar-secondary d-none d-xl-block col-xl-2 bd-toc">
+  
+</div>
+
 
           
           
-            
-          
-          <main class="col-12 col-md-9 col-xl-7 py-md-5 pl-md-5 pr-md-4 bd-content" role="main">
+          <div class="bd-content col-12 col-md-9 col-xl-7">
               
-              <div>
+              <article class="bd-article" role="main">
                 
 
 <h1 id="index">Index</h1>
@@ -228,16 +248,24 @@
 </li>
       <li><a href="api/generated/cunumeric.ndarray.__imul__.html#cunumeric.ndarray.__imul__">__imul__() (cunumeric.ndarray method)</a>
 </li>
-      <li><a href="api/_ndarray.html#cunumeric.ndarray.__init__">__init__() (cunumeric.ndarray method)</a>
+      <li><a href="api/generated/cunumeric.ndarray.__index__.html#cunumeric.ndarray.__index__">__index__() (cunumeric.ndarray method)</a>
 </li>
+      <li><a href="api/_ndarray.html#cunumeric.ndarray.__init__">__init__() (cunumeric.ndarray method)</a>
+
+      <ul>
+        <li><a href="api/_bitgenerator.html#cunumeric.random.BitGenerator.__init__">(cunumeric.random.BitGenerator method)</a>
+</li>
+        <li><a href="api/_generator.html#cunumeric.random.Generator.__init__">(cunumeric.random.Generator method)</a>
+</li>
+      </ul></li>
       <li><a href="api/generated/cunumeric.ndarray.__int__.html#cunumeric.ndarray.__int__">__int__() (cunumeric.ndarray method)</a>
 </li>
       <li><a href="api/generated/cunumeric.ndarray.__invert__.html#cunumeric.ndarray.__invert__">__invert__() (cunumeric.ndarray method)</a>
 </li>
-      <li><a href="api/generated/cunumeric.ndarray.__ior__.html#cunumeric.ndarray.__ior__">__ior__() (cunumeric.ndarray method)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/cunumeric.ndarray.__ior__.html#cunumeric.ndarray.__ior__">__ior__() (cunumeric.ndarray method)</a>
+</li>
       <li><a href="api/generated/cunumeric.ndarray.__ipow__.html#cunumeric.ndarray.__ipow__">__ipow__() (cunumeric.ndarray method)</a>
 </li>
       <li><a href="api/generated/cunumeric.ndarray.__irshift__.html#cunumeric.ndarray.__irshift__">__irshift__() (cunumeric.ndarray method)</a>
@@ -334,10 +362,10 @@
 </li>
       <li><a href="api/generated/cunumeric.arcsinh.html#cunumeric.arcsinh">arcsinh() (in module cunumeric)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/generated/cunumeric.arctan.html#cunumeric.arctan">arctan() (in module cunumeric)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/generated/cunumeric.arctan2.html#cunumeric.arctan2">arctan2() (in module cunumeric)</a>
 </li>
       <li><a href="api/generated/cunumeric.arctanh.html#cunumeric.arctanh">arctanh() (in module cunumeric)</a>
@@ -376,6 +404,12 @@
 </li>
       <li><a href="api/generated/cunumeric.ndarray.astype.html#cunumeric.ndarray.astype">astype() (cunumeric.ndarray method)</a>
 </li>
+      <li><a href="api/generated/cunumeric.atleast_1d.html#cunumeric.atleast_1d">atleast_1d() (in module cunumeric)</a>
+</li>
+      <li><a href="api/generated/cunumeric.atleast_2d.html#cunumeric.atleast_2d">atleast_2d() (in module cunumeric)</a>
+</li>
+      <li><a href="api/generated/cunumeric.atleast_3d.html#cunumeric.atleast_3d">atleast_3d() (in module cunumeric)</a>
+</li>
   </ul></td>
 </tr></table>
 
@@ -388,10 +422,16 @@
 </li>
       <li><a href="api/generated/cunumeric.ndarray.flags.html#cunumeric.BEHAVED">BEHAVED (in module cunumeric)</a>
 </li>
+      <li><a href="api/generated/cunumeric.random.beta.html#cunumeric.random.beta">beta() (in module cunumeric.random)</a>
+</li>
       <li><a href="api/generated/cunumeric.bincount.html#cunumeric.bincount">bincount() (in module cunumeric)</a>
+</li>
+      <li><a href="api/generated/cunumeric.random.binomial.html#cunumeric.random.binomial">binomial() (in module cunumeric.random)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/_bitgenerator.html#cunumeric.random.BitGenerator">BitGenerator (class in cunumeric.random)</a>
+</li>
       <li><a href="api/generated/cunumeric.bitwise_and.html#cunumeric.bitwise_and">bitwise_and() (in module cunumeric)</a>
 </li>
       <li><a href="api/generated/cunumeric.bitwise_or.html#cunumeric.bitwise_or">bitwise_or() (in module cunumeric)</a>
@@ -401,6 +441,8 @@
       <li><a href="api/generated/cunumeric.blackman.html#cunumeric.blackman">blackman() (in module cunumeric)</a>
 </li>
       <li><a href="api/generated/cunumeric.block.html#cunumeric.block">block() (in module cunumeric)</a>
+</li>
+      <li><a href="api/generated/cunumeric.random.bytes.html#cunumeric.random.bytes">bytes() (in module cunumeric.random)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -415,6 +457,8 @@
       <li><a href="api/generated/cunumeric.cbrt.html#cunumeric.cbrt">cbrt() (in module cunumeric)</a>
 </li>
       <li><a href="api/generated/cunumeric.ceil.html#cunumeric.ceil">ceil() (in module cunumeric)</a>
+</li>
+      <li><a href="api/generated/cunumeric.random.chisquare.html#cunumeric.random.chisquare">chisquare() (in module cunumeric.random)</a>
 </li>
       <li><a href="api/generated/cunumeric.linalg.cholesky.html#cunumeric.linalg.cholesky">cholesky() (in module cunumeric.linalg)</a>
 </li>
@@ -446,14 +490,14 @@
         <li><a href="api/generated/cunumeric.conj.html#cunumeric.conj">(in module cunumeric)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/generated/cunumeric.ndarray.conjugate.html#cunumeric.ndarray.conjugate">conjugate() (cunumeric.ndarray method)</a>
 
       <ul>
         <li><a href="api/generated/cunumeric.conjugate.html#cunumeric.conjugate">(in module cunumeric)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/generated/cunumeric.convolve.html#cunumeric.convolve">convolve() (in module cunumeric)</a>
 </li>
       <li><a href="api/generated/cunumeric.ndarray.copy.html#cunumeric.ndarray.copy">copy() (cunumeric.ndarray method)</a>
@@ -472,6 +516,18 @@
 </li>
       <li><a href="api/generated/cunumeric.ndarray.ctypes.html#cunumeric.ndarray.ctypes">ctypes (cunumeric.ndarray property)</a>
 </li>
+      <li><a href="api/generated/cunumeric.ndarray.cumprod.html#cunumeric.ndarray.cumprod">cumprod() (cunumeric.ndarray method)</a>
+
+      <ul>
+        <li><a href="api/generated/cunumeric.cumprod.html#cunumeric.cumprod">(in module cunumeric)</a>
+</li>
+      </ul></li>
+      <li><a href="api/generated/cunumeric.ndarray.cumsum.html#cunumeric.ndarray.cumsum">cumsum() (cunumeric.ndarray method)</a>
+
+      <ul>
+        <li><a href="api/generated/cunumeric.cumsum.html#cunumeric.cumsum">(in module cunumeric)</a>
+</li>
+      </ul></li>
       <li>
     cunumeric.fft
 
@@ -500,6 +556,8 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/generated/cunumeric.ndarray.data.html#cunumeric.ndarray.data">data (cunumeric.ndarray property)</a>
+</li>
+      <li><a href="api/generated/cunumeric.random.default_rng.html#cunumeric.random.default_rng">default_rng() (in module cunumeric.random)</a>
 </li>
       <li><a href="api/generated/cunumeric.deg2rad.html#cunumeric.deg2rad">deg2rad() (in module cunumeric)</a>
 </li>
@@ -551,15 +609,17 @@
 </li>
       <li><a href="api/generated/cunumeric.empty_like.html#cunumeric.empty_like">empty_like() (in module cunumeric)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/generated/cunumeric.equal.html#cunumeric.equal">equal() (in module cunumeric)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/generated/cunumeric.exp.html#cunumeric.exp">exp() (in module cunumeric)</a>
 </li>
       <li><a href="api/generated/cunumeric.exp2.html#cunumeric.exp2">exp2() (in module cunumeric)</a>
 </li>
       <li><a href="api/generated/cunumeric.expm1.html#cunumeric.expm1">expm1() (in module cunumeric)</a>
+</li>
+      <li><a href="api/generated/cunumeric.random.exponential.html#cunumeric.random.exponential">exponential() (in module cunumeric.random)</a>
 </li>
       <li><a href="api/generated/cunumeric.eye.html#cunumeric.eye">eye() (in module cunumeric)</a>
 </li>
@@ -569,6 +629,8 @@
 <h2 id="F">F</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/cunumeric.random.f.html#cunumeric.random.f">f() (in module cunumeric.random)</a>
+</li>
       <li><a href="api/generated/cunumeric.ndarray.flags.html#cunumeric.F_CONTIGUOUS">F_CONTIGUOUS (in module cunumeric)</a>
 </li>
       <li><a href="api/generated/cunumeric.fabs.html#cunumeric.fabs">fabs() (in module cunumeric)</a>
@@ -591,14 +653,14 @@
 </li>
       <li><a href="api/generated/cunumeric.ndarray.flatten.html#cunumeric.ndarray.flatten">flatten() (cunumeric.ndarray method)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/generated/cunumeric.ndarray.flip.html#cunumeric.ndarray.flip">flip() (cunumeric.ndarray method)</a>
 
       <ul>
         <li><a href="api/generated/cunumeric.flip.html#cunumeric.flip">(in module cunumeric)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/generated/cunumeric.float_power.html#cunumeric.float_power">float_power() (in module cunumeric)</a>
 </li>
       <li><a href="api/generated/cunumeric.floor.html#cunumeric.floor">floor() (in module cunumeric)</a>
@@ -627,15 +689,23 @@
 <h2 id="G">G</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/cunumeric.random.gamma.html#cunumeric.random.gamma">gamma() (in module cunumeric.random)</a>
+</li>
       <li><a href="api/generated/cunumeric.gcd.html#cunumeric.gcd">gcd() (in module cunumeric)</a>
 </li>
-      <li><a href="api/generated/cunumeric.ndarray.getfield.html#cunumeric.ndarray.getfield">getfield() (cunumeric.ndarray method)</a>
+      <li><a href="api/_generator.html#cunumeric.random.Generator">Generator (class in cunumeric.random)</a>
+</li>
+      <li><a href="api/generated/cunumeric.random.geometric.html#cunumeric.random.geometric">geometric() (in module cunumeric.random)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/cunumeric.ndarray.getfield.html#cunumeric.ndarray.getfield">getfield() (cunumeric.ndarray method)</a>
+</li>
       <li><a href="api/generated/cunumeric.greater.html#cunumeric.greater">greater() (in module cunumeric)</a>
 </li>
       <li><a href="api/generated/cunumeric.greater_equal.html#cunumeric.greater_equal">greater_equal() (in module cunumeric)</a>
+</li>
+      <li><a href="api/generated/cunumeric.random.gumbel.html#cunumeric.random.gumbel">gumbel() (in module cunumeric.random)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -654,6 +724,8 @@
       <li><a href="api/generated/cunumeric.hsplit.html#cunumeric.hsplit">hsplit() (in module cunumeric)</a>
 </li>
       <li><a href="api/generated/cunumeric.hstack.html#cunumeric.hstack">hstack() (in module cunumeric)</a>
+</li>
+      <li><a href="api/generated/cunumeric.random.hypergeometric.html#cunumeric.random.hypergeometric">hypergeometric() (in module cunumeric.random)</a>
 </li>
       <li><a href="api/generated/cunumeric.hypot.html#cunumeric.hypot">hypot() (in module cunumeric)</a>
 </li>
@@ -733,6 +805,8 @@
 <h2 id="L">L</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/cunumeric.random.laplace.html#cunumeric.random.laplace">laplace() (in module cunumeric.random)</a>
+</li>
       <li><a href="api/generated/cunumeric.lcm.html#cunumeric.lcm">lcm() (in module cunumeric)</a>
 </li>
       <li><a href="api/generated/cunumeric.ldexp.html#cunumeric.ldexp">ldexp() (in module cunumeric)</a>
@@ -749,10 +823,10 @@
 </li>
       <li><a href="api/generated/cunumeric.log10.html#cunumeric.log10">log10() (in module cunumeric)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/generated/cunumeric.log1p.html#cunumeric.log1p">log1p() (in module cunumeric)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/generated/cunumeric.log2.html#cunumeric.log2">log2() (in module cunumeric)</a>
 </li>
       <li><a href="api/generated/cunumeric.logaddexp.html#cunumeric.logaddexp">logaddexp() (in module cunumeric)</a>
@@ -767,12 +841,20 @@
 </li>
       <li><a href="api/generated/cunumeric.logical_xor.html#cunumeric.logical_xor">logical_xor() (in module cunumeric)</a>
 </li>
+      <li><a href="api/generated/cunumeric.random.logistic.html#cunumeric.random.logistic">logistic() (in module cunumeric.random)</a>
+</li>
+      <li><a href="api/generated/cunumeric.random.lognormal.html#cunumeric.random.lognormal">lognormal() (in module cunumeric.random)</a>
+</li>
+      <li><a href="api/generated/cunumeric.random.logseries.html#cunumeric.random.logseries">logseries() (in module cunumeric.random)</a>
+</li>
   </ul></td>
 </tr></table>
 
 <h2 id="M">M</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/cunumeric.mask_indices.html#cunumeric.mask_indices">mask_indices() (in module cunumeric)</a>
+</li>
       <li><a href="api/generated/cunumeric.matmul.html#cunumeric.matmul">matmul() (in module cunumeric)</a>
 </li>
       <li><a href="api/generated/cunumeric.linalg.matrix_power.html#cunumeric.linalg.matrix_power">matrix_power() (in module cunumeric.linalg)</a>
@@ -791,10 +873,10 @@
 </li>
       <li><a href="api/generated/cunumeric.minimum.html#cunumeric.minimum">minimum() (in module cunumeric)</a>
 </li>
-      <li><a href="api/generated/cunumeric.mod.html#cunumeric.mod">mod() (in module cunumeric)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/cunumeric.mod.html#cunumeric.mod">mod() (in module cunumeric)</a>
+</li>
       <li><a href="api/generated/cunumeric.modf.html#cunumeric.modf">modf() (in module cunumeric)</a>
 </li>
       <li>
@@ -822,17 +904,29 @@
 <h2 id="N">N</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/cunumeric.nancumprod.html#cunumeric.nancumprod">nancumprod() (in module cunumeric)</a>
+</li>
+      <li><a href="api/generated/cunumeric.nancumsum.html#cunumeric.nancumsum">nancumsum() (in module cunumeric)</a>
+</li>
       <li><a href="api/generated/cunumeric.ndarray.nbytes.html#cunumeric.ndarray.nbytes">nbytes (cunumeric.ndarray property)</a>
 </li>
       <li><a href="api/_ndarray.html#cunumeric.ndarray">ndarray (class in cunumeric)</a>
 </li>
       <li><a href="api/generated/cunumeric.ndarray.ndim.html#cunumeric.ndarray.ndim">ndim (cunumeric.ndarray property)</a>
 </li>
+      <li><a href="api/generated/cunumeric.ndim.html#cunumeric.ndim">ndim() (in module cunumeric)</a>
+</li>
       <li><a href="api/generated/cunumeric.negative.html#cunumeric.negative">negative() (in module cunumeric)</a>
+</li>
+      <li><a href="api/generated/cunumeric.random.negative_binomial.html#cunumeric.random.negative_binomial">negative_binomial() (in module cunumeric.random)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/generated/cunumeric.nextafter.html#cunumeric.nextafter">nextafter() (in module cunumeric)</a>
+</li>
+      <li><a href="api/generated/cunumeric.random.noncentral_chisquare.html#cunumeric.random.noncentral_chisquare">noncentral_chisquare() (in module cunumeric.random)</a>
+</li>
+      <li><a href="api/generated/cunumeric.random.noncentral_f.html#cunumeric.random.noncentral_f">noncentral_f() (in module cunumeric.random)</a>
 </li>
       <li><a href="api/generated/cunumeric.ndarray.nonzero.html#cunumeric.ndarray.nonzero">nonzero() (cunumeric.ndarray method)</a>
 
@@ -841,6 +935,8 @@
 </li>
       </ul></li>
       <li><a href="api/generated/cunumeric.linalg.norm.html#cunumeric.linalg.norm">norm() (in module cunumeric.linalg)</a>
+</li>
+      <li><a href="api/generated/cunumeric.random.normal.html#cunumeric.random.normal">normal() (in module cunumeric.random)</a>
 </li>
       <li><a href="api/generated/cunumeric.not_equal.html#cunumeric.not_equal">not_equal() (in module cunumeric)</a>
 </li>
@@ -866,24 +962,36 @@
 <h2 id="P">P</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/cunumeric.packbits.html#cunumeric.packbits">packbits() (in module cunumeric)</a>
+</li>
+      <li><a href="api/generated/cunumeric.random.pareto.html#cunumeric.random.pareto">pareto() (in module cunumeric.random)</a>
+</li>
       <li><a href="api/generated/cunumeric.ndarray.partition.html#cunumeric.ndarray.partition">partition() (cunumeric.ndarray method)</a>
 
       <ul>
         <li><a href="api/generated/cunumeric.partition.html#cunumeric.partition">(in module cunumeric)</a>
 </li>
       </ul></li>
-      <li><a href="api/generated/cunumeric.positive.html#cunumeric.positive">positive() (in module cunumeric)</a>
+      <li><a href="api/generated/cunumeric.random.poisson.html#cunumeric.random.poisson">poisson() (in module cunumeric.random)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/generated/cunumeric.power.html#cunumeric.power">power() (in module cunumeric)</a>
+      <li><a href="api/generated/cunumeric.positive.html#cunumeric.positive">positive() (in module cunumeric)</a>
 </li>
+      <li><a href="api/generated/cunumeric.power.html#cunumeric.power">power() (in module cunumeric)</a>
+
+      <ul>
+        <li><a href="api/generated/cunumeric.random.power.html#cunumeric.random.power">(in module cunumeric.random)</a>
+</li>
+      </ul></li>
       <li><a href="api/generated/cunumeric.ndarray.prod.html#cunumeric.ndarray.prod">prod() (cunumeric.ndarray method)</a>
 
       <ul>
         <li><a href="api/generated/cunumeric.prod.html#cunumeric.prod">(in module cunumeric)</a>
 </li>
       </ul></li>
+      <li><a href="api/generated/cunumeric.put_along_axis.html#cunumeric.put_along_axis">put_along_axis() (in module cunumeric)</a>
+</li>
   </ul></td>
 </tr></table>
 
@@ -902,18 +1010,26 @@
 </li>
       <li><a href="api/generated/cunumeric.random.random.html#cunumeric.random.random">random() (in module cunumeric.random)</a>
 </li>
+      <li><a href="api/generated/cunumeric.random.random_integers.html#cunumeric.random.random_integers">random_integers() (in module cunumeric.random)</a>
+</li>
+      <li><a href="api/generated/cunumeric.random.random_sample.html#cunumeric.random.random_sample">random_sample() (in module cunumeric.random)</a>
+</li>
+      <li><a href="api/generated/cunumeric.random.ranf.html#cunumeric.random.ranf">ranf() (in module cunumeric.random)</a>
+</li>
       <li><a href="api/generated/cunumeric.ndarray.ravel.html#cunumeric.ndarray.ravel">ravel() (cunumeric.ndarray method)</a>
 
       <ul>
         <li><a href="api/generated/cunumeric.ravel.html#cunumeric.ravel">(in module cunumeric)</a>
 </li>
       </ul></li>
+      <li><a href="api/generated/cunumeric.random.rayleigh.html#cunumeric.random.rayleigh">rayleigh() (in module cunumeric.random)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/generated/cunumeric.ndarray.real.html#cunumeric.ndarray.real">real (cunumeric.ndarray property)</a>
 </li>
       <li><a href="api/generated/cunumeric.real.html#cunumeric.real">real() (in module cunumeric)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/generated/cunumeric.reciprocal.html#cunumeric.reciprocal">reciprocal() (in module cunumeric)</a>
 </li>
       <li><a href="api/generated/cunumeric.remainder.html#cunumeric.remainder">remainder() (in module cunumeric)</a>
@@ -944,6 +1060,8 @@
 <h2 id="S">S</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/cunumeric.random.sample.html#cunumeric.random.sample">sample() (in module cunumeric.random)</a>
+</li>
       <li><a href="api/generated/cunumeric.ndarray.searchsorted.html#cunumeric.ndarray.searchsorted">searchsorted() (cunumeric.ndarray method)</a>
 
       <ul>
@@ -976,10 +1094,10 @@
         <li><a href="api/generated/cunumeric.sort.html#cunumeric.sort">(in module cunumeric)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/generated/cunumeric.sort_complex.html#cunumeric.sort_complex">sort_complex() (in module cunumeric)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/generated/cunumeric.split.html#cunumeric.split">split() (in module cunumeric)</a>
 </li>
       <li><a href="api/generated/cunumeric.sqrt.html#cunumeric.sqrt">sqrt() (in module cunumeric)</a>
@@ -993,6 +1111,14 @@
 </li>
       </ul></li>
       <li><a href="api/generated/cunumeric.stack.html#cunumeric.stack">stack() (in module cunumeric)</a>
+</li>
+      <li><a href="api/generated/cunumeric.random.standard_cauchy.html#cunumeric.random.standard_cauchy">standard_cauchy() (in module cunumeric.random)</a>
+</li>
+      <li><a href="api/generated/cunumeric.random.standard_exponential.html#cunumeric.random.standard_exponential">standard_exponential() (in module cunumeric.random)</a>
+</li>
+      <li><a href="api/generated/cunumeric.random.standard_gamma.html#cunumeric.random.standard_gamma">standard_gamma() (in module cunumeric.random)</a>
+</li>
+      <li><a href="api/generated/cunumeric.random.standard_t.html#cunumeric.random.standard_t">standard_t() (in module cunumeric.random)</a>
 </li>
       <li><a href="api/generated/cunumeric.ndarray.strides.html#cunumeric.ndarray.strides">strides (cunumeric.ndarray property)</a>
 </li>
@@ -1024,6 +1150,8 @@
         <li><a href="api/generated/cunumeric.take.html#cunumeric.take">(in module cunumeric)</a>
 </li>
       </ul></li>
+      <li><a href="api/generated/cunumeric.take_along_axis.html#cunumeric.take_along_axis">take_along_axis() (in module cunumeric)</a>
+</li>
       <li><a href="api/generated/cunumeric.tan.html#cunumeric.tan">tan() (in module cunumeric)</a>
 </li>
       <li><a href="api/generated/cunumeric.tanh.html#cunumeric.tanh">tanh() (in module cunumeric)</a>
@@ -1036,8 +1164,6 @@
 </li>
       <li><a href="api/generated/cunumeric.ndarray.tofile.html#cunumeric.ndarray.tofile">tofile() (cunumeric.ndarray method)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/generated/cunumeric.ndarray.tolist.html#cunumeric.ndarray.tolist">tolist() (cunumeric.ndarray method)</a>
 </li>
       <li><a href="api/generated/cunumeric.ndarray.tostring.html#cunumeric.ndarray.tostring">tostring() (cunumeric.ndarray method)</a>
@@ -1048,15 +1174,29 @@
         <li><a href="api/generated/cunumeric.trace.html#cunumeric.trace">(in module cunumeric)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/generated/cunumeric.ndarray.transpose.html#cunumeric.ndarray.transpose">transpose() (cunumeric.ndarray method)</a>
 
       <ul>
         <li><a href="api/generated/cunumeric.transpose.html#cunumeric.transpose">(in module cunumeric)</a>
 </li>
       </ul></li>
+      <li><a href="api/generated/cunumeric.tri.html#cunumeric.tri">tri() (in module cunumeric)</a>
+</li>
+      <li><a href="api/generated/cunumeric.random.triangular.html#cunumeric.random.triangular">triangular() (in module cunumeric.random)</a>
+</li>
       <li><a href="api/generated/cunumeric.tril.html#cunumeric.tril">tril() (in module cunumeric)</a>
 </li>
+      <li><a href="api/generated/cunumeric.tril_indices.html#cunumeric.tril_indices">tril_indices() (in module cunumeric)</a>
+</li>
+      <li><a href="api/generated/cunumeric.tril_indices_from.html#cunumeric.tril_indices_from">tril_indices_from() (in module cunumeric)</a>
+</li>
       <li><a href="api/generated/cunumeric.triu.html#cunumeric.triu">triu() (in module cunumeric)</a>
+</li>
+      <li><a href="api/generated/cunumeric.triu_indices.html#cunumeric.triu_indices">triu_indices() (in module cunumeric)</a>
+</li>
+      <li><a href="api/generated/cunumeric.triu_indices_from.html#cunumeric.triu_indices_from">triu_indices_from() (in module cunumeric)</a>
 </li>
       <li><a href="api/generated/cunumeric.true_divide.html#cunumeric.true_divide">true_divide() (in module cunumeric)</a>
 </li>
@@ -1068,12 +1208,18 @@
 <h2 id="U">U</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/cunumeric.random.uniform.html#cunumeric.random.uniform">uniform() (in module cunumeric.random)</a>
+</li>
       <li><a href="api/generated/cunumeric.ndarray.unique.html#cunumeric.ndarray.unique">unique() (cunumeric.ndarray method)</a>
 
       <ul>
         <li><a href="api/generated/cunumeric.unique.html#cunumeric.unique">(in module cunumeric)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/cunumeric.unpackbits.html#cunumeric.unpackbits">unpackbits() (in module cunumeric)</a>
+</li>
   </ul></td>
 </tr></table>
 
@@ -1086,6 +1232,8 @@
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/cunumeric.random.vonmises.html#cunumeric.random.vonmises">vonmises() (in module cunumeric.random)</a>
+</li>
       <li><a href="api/generated/cunumeric.vsplit.html#cunumeric.vsplit">vsplit() (in module cunumeric)</a>
 </li>
       <li><a href="api/generated/cunumeric.vstack.html#cunumeric.vstack">vstack() (in module cunumeric)</a>
@@ -1096,10 +1244,14 @@
 <h2 id="W">W</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/generated/cunumeric.where.html#cunumeric.where">where() (in module cunumeric)</a>
+      <li><a href="api/generated/cunumeric.random.wald.html#cunumeric.random.wald">wald() (in module cunumeric.random)</a>
+</li>
+      <li><a href="api/generated/cunumeric.random.weibull.html#cunumeric.random.weibull">weibull() (in module cunumeric.random)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/cunumeric.where.html#cunumeric.where">where() (in module cunumeric)</a>
+</li>
       <li><a href="api/generated/cunumeric.ndarray.flags.html#cunumeric.WRITEABLE">WRITEABLE (in module cunumeric)</a>
 </li>
       <li><a href="api/generated/cunumeric.ndarray.flags.html#cunumeric.WRITEBACKIFCOPY">WRITEBACKIFCOPY (in module cunumeric)</a>
@@ -1116,42 +1268,48 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/generated/cunumeric.zeros_like.html#cunumeric.zeros_like">zeros_like() (in module cunumeric)</a>
 </li>
+      <li><a href="api/generated/cunumeric.random.zipf.html#cunumeric.random.zipf">zipf() (in module cunumeric.random)</a>
+</li>
   </ul></td>
 </tr></table>
 
 
 
-              </div>
+              </article>
               
+
               
-              <!-- Previous / next buttons -->
+              <footer class="bd-footer-article">
+                  <!-- Previous / next buttons -->
 <div class='prev-next-area'>
 </div>
+              </footer>
               
-          </main>
+          </div>
           
-
       </div>
     </div>
+
+  
   
   <!-- Scripts loaded after <body> so the DOM is not blocked -->
-  <script src="_static/scripts/pydata-sphinx-theme.js?digest=1999514e3f237ded88cf"></script>
-<footer class="footer mt-5 mt-md-0">
-  <div class="container">
-    
-    <div class="footer-item">
-      <p class="copyright">
+  <script src="_static/scripts/pydata-sphinx-theme.js?digest=92025949c220c2e29695"></script>
+
+<footer class="bd-footer"><div class="bd-footer__inner container">
+  
+  <div class="footer-item">
+    <p class="copyright">
     &copy; Copyright 2021-2022, NVIDIA.<br>
 </p>
-    </div>
-    
-    <div class="footer-item">
-      <p class="sphinx-version">
-Created using <a href="http://sphinx-doc.org/">Sphinx</a> 4.4.0.<br>
-</p>
-    </div>
-    
   </div>
+  
+  <div class="footer-item">
+    <p class="sphinx-version">
+Created using <a href="http://sphinx-doc.org/">Sphinx</a> 5.0.2.<br>
+</p>
+  </div>
+  
+</div>
 </footer>
   </body>
 </html>

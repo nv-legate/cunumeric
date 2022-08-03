@@ -1,18 +1,22 @@
 
 <!DOCTYPE html>
 
-<html>
+<html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
     <title>cunumeric.ndarray &#8212; cunumeric  documentation</title>
-    
-  <!-- Loaded before other Sphinx assets -->
-  <link href="../_static/styles/theme.css?digest=1999514e3f237ded88cf" rel="stylesheet">
-<link href="../_static/styles/pydata-sphinx-theme.css?digest=1999514e3f237ded88cf" rel="stylesheet">
+<script>
+  document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+  document.documentElement.dataset.theme = localStorage.getItem("theme") || "light"
+</script>
 
-    
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=92025949c220c2e29695" rel="stylesheet">
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=92025949c220c2e29695" rel="stylesheet">
+
+
   <link rel="stylesheet"
     href="../_static/vendor/fontawesome/5.13.0/css/all.min.css">
   <link rel="preload" as="font" type="font/woff2" crossorigin
@@ -23,13 +27,14 @@
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css" />
     <link rel="stylesheet" type="text/css" href="../_static/params.css" />
-    
+
   <!-- Pre-loaded scripts that we'll load fully later -->
-  <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=1999514e3f237ded88cf">
+  <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=92025949c220c2e29695">
 
     <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
     <script src="../_static/jquery.js"></script>
     <script src="../_static/underscore.js"></script>
+    <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="../_static/doctools.js"></script>
     <script src="../_static/clipboard.min.js"></script>
     <script src="../_static/copybutton.js"></script>
@@ -37,32 +42,40 @@
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="cunumeric.ndarray.all" href="generated/cunumeric.ndarray.all.html" />
     <link rel="prev" title="The N-Dimensional array (cunumeric.ndarray)" href="ndarray.html" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="docsearch:language" content="None">
-    
-
-    <!-- Google Analytics -->
-    
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="docsearch:language" content="en">
   </head>
-  <body data-spy="scroll" data-target="#bd-toc-nav" data-offset="60">
-    
-    <div class="container-fluid" id="banner"></div>
+  
+  
+  <body data-spy="scroll" data-target="#bd-toc-nav" data-offset="180" data-default-mode="">
+    <div class="bd-header-announcement container-fluid" id="banner">
+      
+
+    </div>
 
     
-    <nav class="navbar navbar-light navbar-expand-lg bg-light fixed-top bd-navbar" id="navbar-main"><div class="container-xl">
+    <nav class="bd-header navbar navbar-light navbar-expand-lg bg-light fixed-top bd-navbar" id="navbar-main"><div class="bd-header__inner container-xl">
 
   <div id="navbar-start">
     
     
-<a class="navbar-brand" href="../index.html">
-<p class="title">cunumeric</p>
-</a>
+  
 
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+    <p class="title logo__title">cunumeric  documentation</p>
+  
+</a>
     
   </div>
 
   <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbar-collapsible" aria-controls="navbar-collapsible" aria-expanded="false" aria-label="Toggle navigation">
-    <span class="navbar-toggler-icon"></span>
+    <span class="fas fa-bars"></span>
   </button>
 
   
@@ -110,6 +123,14 @@
     <div id="navbar-end">
       
       <div class="navbar-end-item">
+        <span id="theme-switch" class="btn btn-sm btn-outline-primary navbar-btn rounded-circle">
+    <a class="theme-switch" data-mode="light"><i class="fas fa-sun"></i></a>
+    <a class="theme-switch" data-mode="dark"><i class="far fa-moon"></i></a>
+    <a class="theme-switch" data-mode="auto"><i class="fas fa-adjust"></i></a>
+</span>
+      </div>
+      
+      <div class="navbar-end-item">
         <ul id="navbar-icon-links" class="navbar-nav" aria-label="Icon Links">
       </ul>
       </div>
@@ -120,13 +141,13 @@
     </nav>
     
 
-    <div class="container-xl">
-      <div class="row">
+    <div class="bd-container container-xl">
+      <div class="bd-container__inner row">
           
-            
-            <!-- Only show if we have sidebars configured, else just a small margin  -->
-            <div class="col-12 col-md-3 bd-sidebar">
-              <div class="sidebar-start-items"><form class="bd-search d-flex align-items-center" action="../search.html" method="get">
+
+<!-- Only show if we have sidebars configured, else just a small margin  -->
+<div class="bd-sidebar-primary col-12 col-md-3 bd-sidebar">
+  <div class="sidebar-start-items"><form class="bd-search d-flex align-items-center" action="../search.html" method="get">
   <i class="icon fas fa-search"></i>
   <input type="search" class="form-control" name="q" id="search-input" placeholder="Search the docs ..." aria-label="Search the docs ..." autocomplete="off" >
 </form><nav class="bd-links" id="bd-docs-nav" aria-label="Main navigation">
@@ -238,6 +259,11 @@
       </a>
      </li>
      <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.tri.html">
+       cunumeric.tri
+      </a>
+     </li>
+     <li class="toctree-l3">
       <a class="reference internal" href="generated/cunumeric.tril.html">
        cunumeric.tril
       </a>
@@ -259,6 +285,11 @@
      </i>
     </label>
     <ul>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.ndim.html">
+       cunumeric.ndim
+      </a>
+     </li>
      <li class="toctree-l3">
       <a class="reference internal" href="generated/cunumeric.shape.html">
        cunumeric.shape
@@ -292,6 +323,21 @@
      <li class="toctree-l3">
       <a class="reference internal" href="generated/cunumeric.squeeze.html">
        cunumeric.squeeze
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.atleast_1d.html">
+       cunumeric.atleast_1d
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.atleast_2d.html">
+       cunumeric.atleast_2d
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.atleast_3d.html">
+       cunumeric.atleast_3d
       </a>
      </li>
      <li class="toctree-l3">
@@ -421,6 +467,16 @@
        cunumeric.right_shift
       </a>
      </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.packbits.html">
+       cunumeric.packbits
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.unpackbits.html">
+       cunumeric.unpackbits
+      </a>
+     </li>
     </ul>
    </li>
    <li class="toctree-l2 has-children">
@@ -441,6 +497,31 @@
      <li class="toctree-l3">
       <a class="reference internal" href="generated/cunumeric.diag_indices_from.html">
        cunumeric.diag_indices_from
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.mask_indices.html">
+       cunumeric.mask_indices
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.tril_indices.html">
+       cunumeric.tril_indices
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.tril_indices_from.html">
+       cunumeric.tril_indices_from
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.triu_indices.html">
+       cunumeric.triu_indices
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.triu_indices_from.html">
+       cunumeric.triu_indices_from
       </a>
      </li>
      <li class="toctree-l3">
@@ -481,6 +562,16 @@
      <li class="toctree-l3">
       <a class="reference internal" href="generated/cunumeric.take.html">
        cunumeric.take
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.take_along_axis.html">
+       cunumeric.take_along_axis
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.put_along_axis.html">
+       cunumeric.put_along_axis
       </a>
      </li>
     </ul>
@@ -833,6 +924,26 @@
      <li class="toctree-l3">
       <a class="reference internal" href="generated/cunumeric.sum.html">
        cunumeric.sum
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.cumprod.html">
+       cunumeric.cumprod
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.cumsum.html">
+       cunumeric.cumsum
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.nancumprod.html">
+       cunumeric.nancumprod
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.nancumsum.html">
+       cunumeric.nancumsum
       </a>
      </li>
      <li class="toctree-l3">
@@ -1202,13 +1313,33 @@
     </label>
     <ul>
      <li class="toctree-l3">
-      <a class="reference internal" href="generated/cunumeric.random.rand.html">
-       cunumeric.random.rand
+      <a class="reference internal" href="generated/cunumeric.random.default_rng.html">
+       cunumeric.random.default_rng
       </a>
      </li>
      <li class="toctree-l3">
-      <a class="reference internal" href="generated/cunumeric.random.randint.html">
-       cunumeric.random.randint
+      <a class="reference internal" href="_generator.html">
+       cunumeric.random.Generator
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="_bitgenerator.html">
+       cunumeric.random.BitGenerator
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.seed.html">
+       cunumeric.random.seed
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.default_rng.html">
+       cunumeric.random.default_rng
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.rand.html">
+       cunumeric.random.rand
       </a>
      </li>
      <li class="toctree-l3">
@@ -1217,13 +1348,193 @@
       </a>
      </li>
      <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.randint.html">
+       cunumeric.random.randint
+      </a>
+     </li>
+     <li class="toctree-l3">
       <a class="reference internal" href="generated/cunumeric.random.random.html">
        cunumeric.random.random
       </a>
      </li>
      <li class="toctree-l3">
-      <a class="reference internal" href="generated/cunumeric.random.seed.html">
-       cunumeric.random.seed
+      <a class="reference internal" href="generated/cunumeric.random.random_integers.html">
+       cunumeric.random.random_integers
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.random_sample.html">
+       cunumeric.random.random_sample
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.bytes.html">
+       cunumeric.random.bytes
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.beta.html">
+       cunumeric.random.beta
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.binomial.html">
+       cunumeric.random.binomial
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.chisquare.html">
+       cunumeric.random.chisquare
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.exponential.html">
+       cunumeric.random.exponential
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.f.html">
+       cunumeric.random.f
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.gamma.html">
+       cunumeric.random.gamma
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.geometric.html">
+       cunumeric.random.geometric
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.gumbel.html">
+       cunumeric.random.gumbel
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.hypergeometric.html">
+       cunumeric.random.hypergeometric
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.laplace.html">
+       cunumeric.random.laplace
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.logistic.html">
+       cunumeric.random.logistic
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.lognormal.html">
+       cunumeric.random.lognormal
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.logseries.html">
+       cunumeric.random.logseries
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.negative_binomial.html">
+       cunumeric.random.negative_binomial
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.noncentral_chisquare.html">
+       cunumeric.random.noncentral_chisquare
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.noncentral_f.html">
+       cunumeric.random.noncentral_f
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.normal.html">
+       cunumeric.random.normal
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.pareto.html">
+       cunumeric.random.pareto
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.poisson.html">
+       cunumeric.random.poisson
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.power.html">
+       cunumeric.random.power
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.ranf.html">
+       cunumeric.random.ranf
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.rayleigh.html">
+       cunumeric.random.rayleigh
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.sample.html">
+       cunumeric.random.sample
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.standard_cauchy.html">
+       cunumeric.random.standard_cauchy
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.standard_exponential.html">
+       cunumeric.random.standard_exponential
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.standard_gamma.html">
+       cunumeric.random.standard_gamma
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.standard_t.html">
+       cunumeric.random.standard_t
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.triangular.html">
+       cunumeric.random.triangular
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.uniform.html">
+       cunumeric.random.uniform
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.vonmises.html">
+       cunumeric.random.vonmises
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.wald.html">
+       cunumeric.random.wald
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.weibull.html">
+       cunumeric.random.weibull
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.random.zipf.html">
+       cunumeric.random.zipf
       </a>
      </li>
     </ul>
@@ -1710,6 +2021,11 @@
       </a>
      </li>
      <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.ndarray.cumsum.html">
+       cunumeric.ndarray.cumsum
+      </a>
+     </li>
+     <li class="toctree-l3">
       <a class="reference internal" href="generated/cunumeric.ndarray.mean.html">
        cunumeric.ndarray.mean
       </a>
@@ -1717,6 +2033,11 @@
      <li class="toctree-l3">
       <a class="reference internal" href="generated/cunumeric.ndarray.prod.html">
        cunumeric.ndarray.prod
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.ndarray.cumprod.html">
+       cunumeric.ndarray.cumprod
       </a>
      </li>
      <li class="toctree-l3">
@@ -1930,6 +2251,11 @@
       </a>
      </li>
      <li class="toctree-l3">
+      <a class="reference internal" href="generated/cunumeric.ndarray.__index__.html">
+       cunumeric.ndarray.__index__
+      </a>
+     </li>
+     <li class="toctree-l3">
       <a class="reference internal" href="generated/cunumeric.ndarray.__reduce__.html">
        cunumeric.ndarray.__reduce__
       </a>
@@ -2002,43 +2328,42 @@
 
   </div>
 </nav>
-              </div>
-              <div class="sidebar-end-items">
-              </div>
-            </div>
-            
-          
+  </div>
+  <div class="sidebar-end-items">
+  </div>
+</div>
+
 
           
-          <div class="d-none d-xl-block col-xl-2 bd-toc">
-            
-              
-              <div class="toc-item">
-                
+
+
+<div class="bd-sidebar-secondary d-none d-xl-block col-xl-2 bd-toc">
+  
+    
+    <div class="toc-item">
+      
 
 <nav id="bd-toc-nav">
     
 </nav>
-              </div>
-              
-              <div class="toc-item">
-                
-              </div>
-              
-            
-          </div>
-          
+    </div>
+    
+    <div class="toc-item">
+      
+    </div>
+    
+  
+</div>
+
 
           
           
-            
-          
-          <main class="col-12 col-md-9 col-xl-7 py-md-5 pl-md-5 pr-md-4 bd-content" role="main">
+          <div class="bd-content col-12 col-md-9 col-xl-7">
               
-              <div>
+              <article class="bd-article" role="main">
                 
   <section id="cunumeric-ndarray">
-<h1>cunumeric.ndarray<a class="headerlink" href="#cunumeric-ndarray" title="Permalink to this headline">#</a></h1>
+<h1>cunumeric.ndarray<a class="headerlink" href="#cunumeric-ndarray" title="Permalink to this heading">#</a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="cunumeric.ndarray">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cunumeric.</span></span><span class="sig-name descname"><span class="pre">ndarray</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype=&lt;class</span> <span class="pre">'numpy.float64'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">buffer=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offset=0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strides=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">order=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">thunk=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs=None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cunumeric.ndarray" title="Permalink to this definition">#</a></dt>
@@ -2048,164 +2373,159 @@
 <dd></dd></dl>
 
 <p class="rubric">Methods</p>
-<table class="longtable table autosummary">
-<colgroup>
-<col style="width: 10%" />
-<col style="width: 90%" />
-</colgroup>
+<table class="autosummary longtable table autosummary">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="#cunumeric.ndarray.__init__" title="cunumeric.ndarray.__init__"><code class="xref py py-obj docutils literal notranslate"><span class="pre">__init__</span></code></a>(shape[, dtype, buffer, offset, ...])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.all.html#cunumeric.ndarray.all" title="cunumeric.ndarray.all"><code class="xref py py-obj docutils literal notranslate"><span class="pre">all</span></code></a>([axis, out, keepdims, initial, where])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.__index__.html#cunumeric.ndarray.__index__" title="cunumeric.ndarray.__index__"><code class="xref py py-obj docutils literal notranslate"><span class="pre">__index__</span></code></a>()</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.all.html#cunumeric.ndarray.all" title="cunumeric.ndarray.all"><code class="xref py py-obj docutils literal notranslate"><span class="pre">all</span></code></a>([axis, out, keepdims, initial, where])</p></td>
 <td><p>Returns True if all elements evaluate to True.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.any.html#cunumeric.ndarray.any" title="cunumeric.ndarray.any"><code class="xref py py-obj docutils literal notranslate"><span class="pre">any</span></code></a>([axis, out, keepdims, initial, where])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.any.html#cunumeric.ndarray.any" title="cunumeric.ndarray.any"><code class="xref py py-obj docutils literal notranslate"><span class="pre">any</span></code></a>([axis, out, keepdims, initial, where])</p></td>
 <td><p>Returns True if any of the elements of <cite>a</cite> evaluate to True.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.argmax.html#cunumeric.ndarray.argmax" title="cunumeric.ndarray.argmax"><code class="xref py py-obj docutils literal notranslate"><span class="pre">argmax</span></code></a>([axis, out])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.argmax.html#cunumeric.ndarray.argmax" title="cunumeric.ndarray.argmax"><code class="xref py py-obj docutils literal notranslate"><span class="pre">argmax</span></code></a>([axis, out])</p></td>
 <td><p>Return indices of the maximum values along the given axis.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.argmin.html#cunumeric.ndarray.argmin" title="cunumeric.ndarray.argmin"><code class="xref py py-obj docutils literal notranslate"><span class="pre">argmin</span></code></a>([axis, out])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.argmin.html#cunumeric.ndarray.argmin" title="cunumeric.ndarray.argmin"><code class="xref py py-obj docutils literal notranslate"><span class="pre">argmin</span></code></a>([axis, out])</p></td>
 <td><p>Return indices of the minimum values along the given axis.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.argpartition.html#cunumeric.ndarray.argpartition" title="cunumeric.ndarray.argpartition"><code class="xref py py-obj docutils literal notranslate"><span class="pre">argpartition</span></code></a>(kth[, axis, kind, order])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.argpartition.html#cunumeric.ndarray.argpartition" title="cunumeric.ndarray.argpartition"><code class="xref py py-obj docutils literal notranslate"><span class="pre">argpartition</span></code></a>(kth[, axis, kind, order])</p></td>
 <td><p>Returns the indices that would partition this array.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.argsort.html#cunumeric.ndarray.argsort" title="cunumeric.ndarray.argsort"><code class="xref py py-obj docutils literal notranslate"><span class="pre">argsort</span></code></a>([axis, kind, order])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.argsort.html#cunumeric.ndarray.argsort" title="cunumeric.ndarray.argsort"><code class="xref py py-obj docutils literal notranslate"><span class="pre">argsort</span></code></a>([axis, kind, order])</p></td>
 <td><p>Returns the indices that would sort this array.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.astype.html#cunumeric.ndarray.astype" title="cunumeric.ndarray.astype"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astype</span></code></a>(dtype[, order, casting, subok, copy])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.astype.html#cunumeric.ndarray.astype" title="cunumeric.ndarray.astype"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astype</span></code></a>(dtype[, order, casting, subok, copy])</p></td>
 <td><p>Copy of the array, cast to a specified type.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.choose.html#cunumeric.ndarray.choose" title="cunumeric.ndarray.choose"><code class="xref py py-obj docutils literal notranslate"><span class="pre">choose</span></code></a>(choices[, out, mode])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.choose.html#cunumeric.ndarray.choose" title="cunumeric.ndarray.choose"><code class="xref py py-obj docutils literal notranslate"><span class="pre">choose</span></code></a>(choices[, out, mode])</p></td>
 <td><p>Use an index array to construct a new array from a set of choices.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.clip.html#cunumeric.ndarray.clip" title="cunumeric.ndarray.clip"><code class="xref py py-obj docutils literal notranslate"><span class="pre">clip</span></code></a>([min, max, out])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.clip.html#cunumeric.ndarray.clip" title="cunumeric.ndarray.clip"><code class="xref py py-obj docutils literal notranslate"><span class="pre">clip</span></code></a>([min, max, out])</p></td>
 <td><p>Return an array whose values are limited to <code class="docutils literal notranslate"><span class="pre">[min,</span> <span class="pre">max]</span></code>.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.compress.html#cunumeric.ndarray.compress" title="cunumeric.ndarray.compress"><code class="xref py py-obj docutils literal notranslate"><span class="pre">compress</span></code></a>(self, condition[, axis, out])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.compress.html#cunumeric.ndarray.compress" title="cunumeric.ndarray.compress"><code class="xref py py-obj docutils literal notranslate"><span class="pre">compress</span></code></a>(self, condition[, axis, out])</p></td>
 <td><p>Return selected slices of an array along given axis.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.conj.html#cunumeric.ndarray.conj" title="cunumeric.ndarray.conj"><code class="xref py py-obj docutils literal notranslate"><span class="pre">conj</span></code></a>()</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.conj.html#cunumeric.ndarray.conj" title="cunumeric.ndarray.conj"><code class="xref py py-obj docutils literal notranslate"><span class="pre">conj</span></code></a>()</p></td>
 <td><p>Complex-conjugate all elements.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.conjugate.html#cunumeric.ndarray.conjugate" title="cunumeric.ndarray.conjugate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">conjugate</span></code></a>()</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.conjugate.html#cunumeric.ndarray.conjugate" title="cunumeric.ndarray.conjugate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">conjugate</span></code></a>()</p></td>
 <td><p>Return the complex conjugate, element-wise.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.copy.html#cunumeric.ndarray.copy" title="cunumeric.ndarray.copy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">copy</span></code></a>()</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.copy.html#cunumeric.ndarray.copy" title="cunumeric.ndarray.copy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">copy</span></code></a>()</p></td>
 <td><p>Get a copy of the iterator as a 1-D array.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.diagonal.html#cunumeric.ndarray.diagonal" title="cunumeric.ndarray.diagonal"><code class="xref py py-obj docutils literal notranslate"><span class="pre">diagonal</span></code></a>([offset, axis1, axis2])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.diagonal.html#cunumeric.ndarray.diagonal" title="cunumeric.ndarray.diagonal"><code class="xref py py-obj docutils literal notranslate"><span class="pre">diagonal</span></code></a>([offset, axis1, axis2])</p></td>
 <td><p>Return specified diagonals.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.dot.html#cunumeric.ndarray.dot" title="cunumeric.ndarray.dot"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dot</span></code></a>(rhs[, out])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.dot.html#cunumeric.ndarray.dot" title="cunumeric.ndarray.dot"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dot</span></code></a>(rhs[, out])</p></td>
 <td><p>Return the dot product of this array with <code class="docutils literal notranslate"><span class="pre">rhs</span></code>.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.dump.html#cunumeric.ndarray.dump" title="cunumeric.ndarray.dump"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dump</span></code></a>(file)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.dump.html#cunumeric.ndarray.dump" title="cunumeric.ndarray.dump"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dump</span></code></a>(file)</p></td>
 <td><p>Dump a pickle of the array to the specified file.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.dumps.html#cunumeric.ndarray.dumps" title="cunumeric.ndarray.dumps"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dumps</span></code></a>()</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.dumps.html#cunumeric.ndarray.dumps" title="cunumeric.ndarray.dumps"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dumps</span></code></a>()</p></td>
 <td><p>Returns the pickle of the array as a string.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.fill.html#cunumeric.ndarray.fill" title="cunumeric.ndarray.fill"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fill</span></code></a>(value)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.fill.html#cunumeric.ndarray.fill" title="cunumeric.ndarray.fill"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fill</span></code></a>(value)</p></td>
 <td><p>Fill the array with a scalar value.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.find_common_type.html#cunumeric.ndarray.find_common_type" title="cunumeric.ndarray.find_common_type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">find_common_type</span></code></a>(*args)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.find_common_type.html#cunumeric.ndarray.find_common_type" title="cunumeric.ndarray.find_common_type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">find_common_type</span></code></a>(*args)</p></td>
 <td><p>Determine common type following standard coercion rules.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.flatten.html#cunumeric.ndarray.flatten" title="cunumeric.ndarray.flatten"><code class="xref py py-obj docutils literal notranslate"><span class="pre">flatten</span></code></a>([order])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.flatten.html#cunumeric.ndarray.flatten" title="cunumeric.ndarray.flatten"><code class="xref py py-obj docutils literal notranslate"><span class="pre">flatten</span></code></a>([order])</p></td>
 <td><p>Return a copy of the array collapsed into one dimension.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.flip.html#cunumeric.ndarray.flip" title="cunumeric.ndarray.flip"><code class="xref py py-obj docutils literal notranslate"><span class="pre">flip</span></code></a>([axis])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.flip.html#cunumeric.ndarray.flip" title="cunumeric.ndarray.flip"><code class="xref py py-obj docutils literal notranslate"><span class="pre">flip</span></code></a>([axis])</p></td>
 <td><p>Reverse the order of elements in an array along the given axis.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.getfield.html#cunumeric.ndarray.getfield" title="cunumeric.ndarray.getfield"><code class="xref py py-obj docutils literal notranslate"><span class="pre">getfield</span></code></a>(dtype[, offset])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.getfield.html#cunumeric.ndarray.getfield" title="cunumeric.ndarray.getfield"><code class="xref py py-obj docutils literal notranslate"><span class="pre">getfield</span></code></a>(dtype[, offset])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.item.html#cunumeric.ndarray.item" title="cunumeric.ndarray.item"><code class="xref py py-obj docutils literal notranslate"><span class="pre">item</span></code></a>(*args)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.item.html#cunumeric.ndarray.item" title="cunumeric.ndarray.item"><code class="xref py py-obj docutils literal notranslate"><span class="pre">item</span></code></a>(*args)</p></td>
 <td><p>Copy an element of an array to a standard Python scalar and return it.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.itemset.html#cunumeric.ndarray.itemset" title="cunumeric.ndarray.itemset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">itemset</span></code></a>(*args)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.itemset.html#cunumeric.ndarray.itemset" title="cunumeric.ndarray.itemset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">itemset</span></code></a>(*args)</p></td>
 <td><p>Insert scalar into an array (scalar is cast to array's dtype, if possible)</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.max.html#cunumeric.ndarray.max" title="cunumeric.ndarray.max"><code class="xref py py-obj docutils literal notranslate"><span class="pre">max</span></code></a>([axis, out, keepdims, initial, where])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.max.html#cunumeric.ndarray.max" title="cunumeric.ndarray.max"><code class="xref py py-obj docutils literal notranslate"><span class="pre">max</span></code></a>([axis, out, keepdims, initial, where])</p></td>
 <td><p>Return the maximum along a given axis.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.mean.html#cunumeric.ndarray.mean" title="cunumeric.ndarray.mean"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mean</span></code></a>([axis, dtype, out, keepdims])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.mean.html#cunumeric.ndarray.mean" title="cunumeric.ndarray.mean"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mean</span></code></a>([axis, dtype, out, keepdims])</p></td>
 <td><p>Returns the average of the array elements along given axis.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.min.html#cunumeric.ndarray.min" title="cunumeric.ndarray.min"><code class="xref py py-obj docutils literal notranslate"><span class="pre">min</span></code></a>([axis, out, keepdims, initial, where])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.min.html#cunumeric.ndarray.min" title="cunumeric.ndarray.min"><code class="xref py py-obj docutils literal notranslate"><span class="pre">min</span></code></a>([axis, out, keepdims, initial, where])</p></td>
 <td><p>Return the minimum along a given axis.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.nonzero.html#cunumeric.ndarray.nonzero" title="cunumeric.ndarray.nonzero"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nonzero</span></code></a>()</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.nonzero.html#cunumeric.ndarray.nonzero" title="cunumeric.ndarray.nonzero"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nonzero</span></code></a>()</p></td>
 <td><p>Return the indices of the elements that are non-zero.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.partition.html#cunumeric.ndarray.partition" title="cunumeric.ndarray.partition"><code class="xref py py-obj docutils literal notranslate"><span class="pre">partition</span></code></a>(kth[, axis, kind, order])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.partition.html#cunumeric.ndarray.partition" title="cunumeric.ndarray.partition"><code class="xref py py-obj docutils literal notranslate"><span class="pre">partition</span></code></a>(kth[, axis, kind, order])</p></td>
 <td><p>Partition of an array in-place.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.prod.html#cunumeric.ndarray.prod" title="cunumeric.ndarray.prod"><code class="xref py py-obj docutils literal notranslate"><span class="pre">prod</span></code></a>([axis, dtype, out, keepdims, initial, ...])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.prod.html#cunumeric.ndarray.prod" title="cunumeric.ndarray.prod"><code class="xref py py-obj docutils literal notranslate"><span class="pre">prod</span></code></a>([axis, dtype, out, keepdims, initial, ...])</p></td>
 <td><p>a.prod(axis=None, dtype=None, out=None, keepdims=False, initial=1, where=True)</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.ravel.html#cunumeric.ndarray.ravel" title="cunumeric.ndarray.ravel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ravel</span></code></a>([order])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.ravel.html#cunumeric.ndarray.ravel" title="cunumeric.ndarray.ravel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ravel</span></code></a>([order])</p></td>
 <td><p>Return a flattened array.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.reshape.html#cunumeric.ndarray.reshape" title="cunumeric.ndarray.reshape"><code class="xref py py-obj docutils literal notranslate"><span class="pre">reshape</span></code></a>(shape[, order])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.reshape.html#cunumeric.ndarray.reshape" title="cunumeric.ndarray.reshape"><code class="xref py py-obj docutils literal notranslate"><span class="pre">reshape</span></code></a>(shape[, order])</p></td>
 <td><p>Returns an array containing the same data with a new shape.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.searchsorted.html#cunumeric.ndarray.searchsorted" title="cunumeric.ndarray.searchsorted"><code class="xref py py-obj docutils literal notranslate"><span class="pre">searchsorted</span></code></a>(v[, side, sorter])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.searchsorted.html#cunumeric.ndarray.searchsorted" title="cunumeric.ndarray.searchsorted"><code class="xref py py-obj docutils literal notranslate"><span class="pre">searchsorted</span></code></a>(v[, side, sorter])</p></td>
 <td><p>Find the indices into a sorted array a such that, if the corresponding elements in v were inserted before the indices, the order of a would be preserved.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.setfield.html#cunumeric.ndarray.setfield" title="cunumeric.ndarray.setfield"><code class="xref py py-obj docutils literal notranslate"><span class="pre">setfield</span></code></a>(val, dtype[, offset])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.setfield.html#cunumeric.ndarray.setfield" title="cunumeric.ndarray.setfield"><code class="xref py py-obj docutils literal notranslate"><span class="pre">setfield</span></code></a>(val, dtype[, offset])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.setflags.html#cunumeric.ndarray.setflags" title="cunumeric.ndarray.setflags"><code class="xref py py-obj docutils literal notranslate"><span class="pre">setflags</span></code></a>([write, align, uic])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.setflags.html#cunumeric.ndarray.setflags" title="cunumeric.ndarray.setflags"><code class="xref py py-obj docutils literal notranslate"><span class="pre">setflags</span></code></a>([write, align, uic])</p></td>
 <td><p>Set array flags WRITEABLE, ALIGNED, WRITEBACKIFCOPY, respectively.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.sort.html#cunumeric.ndarray.sort" title="cunumeric.ndarray.sort"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sort</span></code></a>([axis, kind, order])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.sort.html#cunumeric.ndarray.sort" title="cunumeric.ndarray.sort"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sort</span></code></a>([axis, kind, order])</p></td>
 <td><p>Sort an array in-place.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.squeeze.html#cunumeric.ndarray.squeeze" title="cunumeric.ndarray.squeeze"><code class="xref py py-obj docutils literal notranslate"><span class="pre">squeeze</span></code></a>([axis])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.squeeze.html#cunumeric.ndarray.squeeze" title="cunumeric.ndarray.squeeze"><code class="xref py py-obj docutils literal notranslate"><span class="pre">squeeze</span></code></a>([axis])</p></td>
 <td><p>Remove axes of length one from <cite>a</cite>.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.sum.html#cunumeric.ndarray.sum" title="cunumeric.ndarray.sum"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sum</span></code></a>([axis, dtype, out, keepdims, initial, where])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.sum.html#cunumeric.ndarray.sum" title="cunumeric.ndarray.sum"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sum</span></code></a>([axis, dtype, out, keepdims, initial, where])</p></td>
 <td><p>a.sum(axis=None, dtype=None, out=None, keepdims=False, initial=0, where=True)</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.swapaxes.html#cunumeric.ndarray.swapaxes" title="cunumeric.ndarray.swapaxes"><code class="xref py py-obj docutils literal notranslate"><span class="pre">swapaxes</span></code></a>(axis1, axis2)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.swapaxes.html#cunumeric.ndarray.swapaxes" title="cunumeric.ndarray.swapaxes"><code class="xref py py-obj docutils literal notranslate"><span class="pre">swapaxes</span></code></a>(axis1, axis2)</p></td>
 <td><p>Return a view of the array with <cite>axis1</cite> and <cite>axis2</cite> interchanged.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.take.html#cunumeric.ndarray.take" title="cunumeric.ndarray.take"><code class="xref py py-obj docutils literal notranslate"><span class="pre">take</span></code></a>(indices[, axis, out, mode])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.take.html#cunumeric.ndarray.take" title="cunumeric.ndarray.take"><code class="xref py py-obj docutils literal notranslate"><span class="pre">take</span></code></a>(indices[, axis, out, mode])</p></td>
 <td><p>Take elements from an array along an axis.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.tobytes.html#cunumeric.ndarray.tobytes" title="cunumeric.ndarray.tobytes"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tobytes</span></code></a>([order])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.tobytes.html#cunumeric.ndarray.tobytes" title="cunumeric.ndarray.tobytes"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tobytes</span></code></a>([order])</p></td>
 <td><p>Construct Python bytes containing the raw data bytes in the array.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.tofile.html#cunumeric.ndarray.tofile" title="cunumeric.ndarray.tofile"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tofile</span></code></a>(fid[, sep, format])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.tofile.html#cunumeric.ndarray.tofile" title="cunumeric.ndarray.tofile"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tofile</span></code></a>(fid[, sep, format])</p></td>
 <td><p>Write array to a file as text or binary (default).</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.tolist.html#cunumeric.ndarray.tolist" title="cunumeric.ndarray.tolist"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tolist</span></code></a>()</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.tolist.html#cunumeric.ndarray.tolist" title="cunumeric.ndarray.tolist"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tolist</span></code></a>()</p></td>
 <td><p>Return the array as an <code class="docutils literal notranslate"><span class="pre">a.ndim</span></code>-levels deep nested list of Python scalars.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.tostring.html#cunumeric.ndarray.tostring" title="cunumeric.ndarray.tostring"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tostring</span></code></a>([order])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.tostring.html#cunumeric.ndarray.tostring" title="cunumeric.ndarray.tostring"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tostring</span></code></a>([order])</p></td>
 <td><p>A compatibility alias for <cite>tobytes</cite>, with exactly the same behavior.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.transpose.html#cunumeric.ndarray.transpose" title="cunumeric.ndarray.transpose"><code class="xref py py-obj docutils literal notranslate"><span class="pre">transpose</span></code></a>([axes])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.transpose.html#cunumeric.ndarray.transpose" title="cunumeric.ndarray.transpose"><code class="xref py py-obj docutils literal notranslate"><span class="pre">transpose</span></code></a>([axes])</p></td>
 <td><p>Returns a view of the array with axes transposed.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.unique.html#cunumeric.ndarray.unique" title="cunumeric.ndarray.unique"><code class="xref py py-obj docutils literal notranslate"><span class="pre">unique</span></code></a>()</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.unique.html#cunumeric.ndarray.unique" title="cunumeric.ndarray.unique"><code class="xref py py-obj docutils literal notranslate"><span class="pre">unique</span></code></a>()</p></td>
 <td><p>Find the unique elements of an array.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.view.html#cunumeric.ndarray.view" title="cunumeric.ndarray.view"><code class="xref py py-obj docutils literal notranslate"><span class="pre">view</span></code></a>([dtype, type])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.view.html#cunumeric.ndarray.view" title="cunumeric.ndarray.view"><code class="xref py py-obj docutils literal notranslate"><span class="pre">view</span></code></a>([dtype, type])</p></td>
 <td><p></p></td>
 </tr>
 </tbody>
 </table>
 <p class="rubric">Attributes</p>
-<table class="longtable table autosummary">
-<colgroup>
-<col style="width: 10%" />
-<col style="width: 90%" />
-</colgroup>
+<table class="autosummary longtable table autosummary">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.T.html#cunumeric.ndarray.T" title="cunumeric.ndarray.T"><code class="xref py py-obj docutils literal notranslate"><span class="pre">T</span></code></a></p></td>
 <td><p>The transposed array.</p></td>
@@ -2259,51 +2579,55 @@
 </section>
 
 
-              </div>
+              </article>
               
-              
-              <!-- Previous / next buttons -->
-<div class='prev-next-area'>
-    <a class='left-prev' id="prev-link" href="ndarray.html" title="previous page">
-        <i class="fas fa-angle-left"></i>
-        <div class="prev-next-info">
-            <p class="prev-next-subtitle">previous</p>
-            <p class="prev-next-title">The N-Dimensional array (<code class="xref py py-class docutils literal notranslate"><span class="pre">cunumeric.ndarray</span></code>)</p>
-        </div>
-    </a>
-    <a class='right-next' id="next-link" href="generated/cunumeric.ndarray.all.html" title="next page">
-    <div class="prev-next-info">
-        <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">cunumeric.ndarray.all</p>
-    </div>
-    <i class="fas fa-angle-right"></i>
-    </a>
-</div>
-              
-          </main>
-          
 
+              
+              <footer class="bd-footer-article">
+                  <!-- Previous / next buttons -->
+<div class='prev-next-area'>
+  <a class='left-prev' id="prev-link" href="ndarray.html" title="previous page">
+      <i class="fas fa-angle-left"></i>
+      <div class="prev-next-info">
+          <p class="prev-next-subtitle">previous</p>
+          <p class="prev-next-title">The N-Dimensional array (<code class="xref py py-class docutils literal notranslate"><span class="pre">cunumeric.ndarray</span></code>)</p>
+      </div>
+  </a>
+  <a class='right-next' id="next-link" href="generated/cunumeric.ndarray.all.html" title="next page">
+  <div class="prev-next-info">
+      <p class="prev-next-subtitle">next</p>
+      <p class="prev-next-title">cunumeric.ndarray.all</p>
+  </div>
+  <i class="fas fa-angle-right"></i>
+  </a>
+</div>
+              </footer>
+              
+          </div>
+          
       </div>
     </div>
+
+  
   
   <!-- Scripts loaded after <body> so the DOM is not blocked -->
-  <script src="../_static/scripts/pydata-sphinx-theme.js?digest=1999514e3f237ded88cf"></script>
-<footer class="footer mt-5 mt-md-0">
-  <div class="container">
-    
-    <div class="footer-item">
-      <p class="copyright">
+  <script src="../_static/scripts/pydata-sphinx-theme.js?digest=92025949c220c2e29695"></script>
+
+<footer class="bd-footer"><div class="bd-footer__inner container">
+  
+  <div class="footer-item">
+    <p class="copyright">
     &copy; Copyright 2021-2022, NVIDIA.<br>
 </p>
-    </div>
-    
-    <div class="footer-item">
-      <p class="sphinx-version">
-Created using <a href="http://sphinx-doc.org/">Sphinx</a> 4.4.0.<br>
-</p>
-    </div>
-    
   </div>
+  
+  <div class="footer-item">
+    <p class="sphinx-version">
+Created using <a href="http://sphinx-doc.org/">Sphinx</a> 5.0.2.<br>
+</p>
+  </div>
+  
+</div>
 </footer>
   </body>
 </html>

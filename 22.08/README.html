@@ -1,18 +1,22 @@
 
 <!DOCTYPE html>
 
-<html>
+<html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
     <title>cuNumeric &#8212; cunumeric  documentation</title>
-    
-  <!-- Loaded before other Sphinx assets -->
-  <link href="_static/styles/theme.css?digest=1999514e3f237ded88cf" rel="stylesheet">
-<link href="_static/styles/pydata-sphinx-theme.css?digest=1999514e3f237ded88cf" rel="stylesheet">
+<script>
+  document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+  document.documentElement.dataset.theme = localStorage.getItem("theme") || "light"
+</script>
 
-    
+  <!-- Loaded before other Sphinx assets -->
+  <link href="_static/styles/theme.css?digest=92025949c220c2e29695" rel="stylesheet">
+<link href="_static/styles/pydata-sphinx-theme.css?digest=92025949c220c2e29695" rel="stylesheet">
+
+
   <link rel="stylesheet"
     href="_static/vendor/fontawesome/5.13.0/css/all.min.css">
   <link rel="preload" as="font" type="font/woff2" crossorigin
@@ -23,13 +27,14 @@
     <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="_static/copybutton.css" />
     <link rel="stylesheet" type="text/css" href="_static/params.css" />
-    
+
   <!-- Pre-loaded scripts that we'll load fully later -->
-  <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=1999514e3f237ded88cf">
+  <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=92025949c220c2e29695">
 
     <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
     <script src="_static/jquery.js"></script>
     <script src="_static/underscore.js"></script>
+    <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="_static/doctools.js"></script>
     <script src="_static/clipboard.min.js"></script>
     <script src="_static/copybutton.js"></script>
@@ -37,32 +42,40 @@
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="API Reference" href="api/index.html" />
     <link rel="prev" title="Welcome to cuNumeric’s documentation!" href="index.html" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="docsearch:language" content="None">
-    
-
-    <!-- Google Analytics -->
-    
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="docsearch:language" content="en">
   </head>
-  <body data-spy="scroll" data-target="#bd-toc-nav" data-offset="60">
-    
-    <div class="container-fluid" id="banner"></div>
+  
+  
+  <body data-spy="scroll" data-target="#bd-toc-nav" data-offset="180" data-default-mode="">
+    <div class="bd-header-announcement container-fluid" id="banner">
+      
+
+    </div>
 
     
-    <nav class="navbar navbar-light navbar-expand-lg bg-light fixed-top bd-navbar" id="navbar-main"><div class="container-xl">
+    <nav class="bd-header navbar navbar-light navbar-expand-lg bg-light fixed-top bd-navbar" id="navbar-main"><div class="bd-header__inner container-xl">
 
   <div id="navbar-start">
     
     
-<a class="navbar-brand" href="index.html">
-<p class="title">cunumeric</p>
-</a>
+  
 
+
+<a class="navbar-brand logo" href="index.html">
+  
+  
+  
+  
+  
+    <p class="title logo__title">cunumeric  documentation</p>
+  
+</a>
     
   </div>
 
   <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbar-collapsible" aria-controls="navbar-collapsible" aria-expanded="false" aria-label="Toggle navigation">
-    <span class="navbar-toggler-icon"></span>
+    <span class="fas fa-bars"></span>
   </button>
 
   
@@ -110,6 +123,14 @@
     <div id="navbar-end">
       
       <div class="navbar-end-item">
+        <span id="theme-switch" class="btn btn-sm btn-outline-primary navbar-btn rounded-circle">
+    <a class="theme-switch" data-mode="light"><i class="fas fa-sun"></i></a>
+    <a class="theme-switch" data-mode="dark"><i class="far fa-moon"></i></a>
+    <a class="theme-switch" data-mode="auto"><i class="fas fa-adjust"></i></a>
+</span>
+      </div>
+      
+      <div class="navbar-end-item">
         <ul id="navbar-icon-links" class="navbar-nav" aria-label="Icon Links">
       </ul>
       </div>
@@ -120,13 +141,13 @@
     </nav>
     
 
-    <div class="container-xl">
-      <div class="row">
+    <div class="bd-container container-xl">
+      <div class="bd-container__inner row">
           
-            
-            <!-- Only show if we have sidebars configured, else just a small margin  -->
-            <div class="col-12 col-md-3 bd-sidebar">
-              <div class="sidebar-start-items"><form class="bd-search d-flex align-items-center" action="search.html" method="get">
+
+<!-- Only show if we have sidebars configured, else just a small margin  -->
+<div class="bd-sidebar-primary col-12 col-md-3 bd-sidebar">
+  <div class="sidebar-start-items"><form class="bd-search d-flex align-items-center" action="search.html" method="get">
   <i class="icon fas fa-search"></i>
   <input type="search" class="form-control" name="q" id="search-input" placeholder="Search the docs ..." aria-label="Search the docs ..." autocomplete="off" >
 </form><nav class="bd-links" id="bd-docs-nav" aria-label="Main navigation">
@@ -134,19 +155,20 @@
     
   </div>
 </nav>
-              </div>
-              <div class="sidebar-end-items">
-              </div>
-            </div>
-            
-          
+  </div>
+  <div class="sidebar-end-items">
+  </div>
+</div>
+
 
           
-          <div class="d-none d-xl-block col-xl-2 bd-toc">
-            
-              
-              <div class="toc-item">
-                
+
+
+<div class="bd-sidebar-secondary d-none d-xl-block col-xl-2 bd-toc">
+  
+    
+    <div class="toc-item">
+      
 <div class="tocsection onthispage mt-5 pt-1 pb-3">
     <i class="fas fa-list"></i> On this page
 </div>
@@ -206,23 +228,21 @@
 </ul>
 
 </nav>
-              </div>
-              
-              <div class="toc-item">
-                
-              </div>
-              
-            
-          </div>
-          
+    </div>
+    
+    <div class="toc-item">
+      
+    </div>
+    
+  
+</div>
+
 
           
           
-            
-          
-          <main class="col-12 col-md-9 col-xl-7 py-md-5 pl-md-5 pr-md-4 bd-content" role="main">
+          <div class="bd-content col-12 col-md-9 col-xl-7">
               
-              <div>
+              <article class="bd-article" role="main">
                 
   <!--
 Copyright 2021-2022 NVIDIA Corporation
@@ -240,7 +260,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 --><section id="cunumeric">
-<h1>cuNumeric<a class="headerlink" href="#cunumeric" title="Permalink to this headline">#</a></h1>
+<h1>cuNumeric<a class="headerlink" href="#cunumeric" title="Permalink to this heading">#</a></h1>
 <p>cuNumeric is a <a class="reference external" href="https://github.com/nv-legate/legate.core">Legate</a> library
 that aims to provide a distributed and accelerated drop-in replacement for the
 <a class="reference external" href="https://numpy.org/doc/stable/reference/">NumPy API</a> on top of the
@@ -267,7 +287,7 @@ canonical NumPy implementation.</p>
 <li><p><a class="reference external" href="#known-bugs">Known Bugs</a></p></li>
 </ol>
 <section id="installation">
-<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">#</a></h2>
+<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this heading">#</a></h2>
 <p>cuNumeric is available <a class="reference external" href="https://anaconda.org/legate/cunumeric">on conda</a>:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">install</span> <span class="o">-</span><span class="n">c</span> <span class="n">nvidia</span> <span class="o">-</span><span class="n">c</span> <span class="n">conda</span><span class="o">-</span><span class="n">forge</span> <span class="o">-</span><span class="n">c</span> <span class="n">legate</span> <span class="n">cunumeric</span>
 </pre></div>
@@ -280,7 +300,7 @@ supported clusters are available on the
 <p>Read on for general instructions on building cuNumeric from source.</p>
 </section>
 <section id="dependencies">
-<h2>Dependencies<a class="headerlink" href="#dependencies" title="Permalink to this headline">#</a></h2>
+<h2>Dependencies<a class="headerlink" href="#dependencies" title="Permalink to this heading">#</a></h2>
 <p>Users must have a working installation of the
 <a class="reference external" href="https://github.com/nv-legate/legate.core">Legate Core</a>
 library prior to installing cuNumeric.</p>
@@ -308,7 +328,7 @@ be issues due to lack of independent thread scheduling. Please report any such
 issues on GitHub.</p>
 </section>
 <section id="building-from-source">
-<h2>Building from Source<a class="headerlink" href="#building-from-source" title="Permalink to this headline">#</a></h2>
+<h2>Building from Source<a class="headerlink" href="#building-from-source" title="Permalink to this heading">#</a></h2>
 <p>Installation of cuNumeric is done with either <code class="docutils literal notranslate"><span class="pre">setup.py</span></code> for simple
 uses cases or <code class="docutils literal notranslate"><span class="pre">install.py</span></code> for more advanced use cases. The most common
 installation command is:</p>
@@ -338,7 +358,7 @@ and they can be omitted in subsequent invocations unless you want to change
 them.</p>
 </section>
 <section id="usage-and-execution">
-<h2>Usage and Execution<a class="headerlink" href="#usage-and-execution" title="Permalink to this headline">#</a></h2>
+<h2>Usage and Execution<a class="headerlink" href="#usage-and-execution" title="Permalink to this heading">#</a></h2>
 <p>Using cuNumeric as a replacement for NumPy is easy. Users only need
 to replace:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
@@ -362,7 +382,7 @@ documentation or simply by passing <code class="docutils literal notranslate"><s
 driver script automatically. Check out <code class="docutils literal notranslate"><span class="pre">test.py</span> <span class="pre">--help</span></code> for further options.</p>
 </section>
 <section id="supported-and-planned-features">
-<h2>Supported and Planned Features<a class="headerlink" href="#supported-and-planned-features" title="Permalink to this headline">#</a></h2>
+<h2>Supported and Planned Features<a class="headerlink" href="#supported-and-planned-features" title="Permalink to this heading">#</a></h2>
 <p>cuNumeric is currently a work in progress and we are gradually adding support for
 additional NumPy operators. Unsupported NumPy operations will provide a
 warning that we are falling back to canonical NumPy. Please report unimplemented
@@ -372,7 +392,7 @@ unimplemented feature, the more we will prioritize it. Please include a pointer
 to your code if possible too so we can see how you are using the feature in context.</p>
 </section>
 <section id="supported-types-and-dimensions">
-<h2>Supported Types and Dimensions<a class="headerlink" href="#supported-types-and-dimensions" title="Permalink to this headline">#</a></h2>
+<h2>Supported Types and Dimensions<a class="headerlink" href="#supported-types-and-dimensions" title="Permalink to this heading">#</a></h2>
 <p>cuNumeric currently supports the following NumPy types: <code class="docutils literal notranslate"><span class="pre">float16</span></code>, <code class="docutils literal notranslate"><span class="pre">float32</span></code>,
 <code class="docutils literal notranslate"><span class="pre">float64</span></code>, <code class="docutils literal notranslate"><span class="pre">int16</span></code>, <code class="docutils literal notranslate"><span class="pre">int32</span></code>, <code class="docutils literal notranslate"><span class="pre">int64</span></code>, <code class="docutils literal notranslate"><span class="pre">uint16</span></code>, <code class="docutils literal notranslate"><span class="pre">uint32</span></code>, <code class="docutils literal notranslate"><span class="pre">uint64</span></code>, <code class="docutils literal notranslate"><span class="pre">bool</span></code>,
 <code class="docutils literal notranslate"><span class="pre">complex64</span></code>, and <code class="docutils literal notranslate"><span class="pre">complex128</span></code>.</p>
@@ -380,12 +400,12 @@ to your code if possible too so we can see how you are using the feature in cont
 installing legate.core with a larger <code class="docutils literal notranslate"><span class="pre">--max-dim</span></code>.</p>
 </section>
 <section id="documentation">
-<h2>Documentation<a class="headerlink" href="#documentation" title="Permalink to this headline">#</a></h2>
+<h2>Documentation<a class="headerlink" href="#documentation" title="Permalink to this heading">#</a></h2>
 <p>A complete list of available features can is provided in the <a class="reference external" href="https://nv-legate.github.io/cunumeric/api/index.html">API
 reference</a>.</p>
 </section>
 <section id="future-directions">
-<h2>Future Directions<a class="headerlink" href="#future-directions" title="Permalink to this headline">#</a></h2>
+<h2>Future Directions<a class="headerlink" href="#future-directions" title="Permalink to this heading">#</a></h2>
 <p>There are three primary directions that we plan to investigate
 with cuNumeric going forward:</p>
 <ul class="simple">
@@ -406,11 +426,11 @@ features of Legion from inside the Python interpreter.</p></li>
 <p>We are open to comments, suggestions, and ideas.</p>
 </section>
 <section id="contributing">
-<h2>Contributing<a class="headerlink" href="#contributing" title="Permalink to this headline">#</a></h2>
+<h2>Contributing<a class="headerlink" href="#contributing" title="Permalink to this heading">#</a></h2>
 <p>See the discussion of contributing in <a class="reference internal" href="CONTRIBUTING.html"><span class="doc">CONTRIBUTING.md</span></a>.</p>
 </section>
 <section id="known-issues">
-<h2>Known Issues<a class="headerlink" href="#known-issues" title="Permalink to this headline">#</a></h2>
+<h2>Known Issues<a class="headerlink" href="#known-issues" title="Permalink to this heading">#</a></h2>
 <ul>
 <li><p>When using certain operations with high scratch space requirements (e.g.
 <code class="docutils literal notranslate"><span class="pre">einsum</span></code> or <code class="docutils literal notranslate"><span class="pre">convolve</span></code>) you might run into the following error:</p>
@@ -439,51 +459,55 @@ please contact us and we will be able to help you.</p></li>
 </section>
 
 
-              </div>
+              </article>
               
-              
-              <!-- Previous / next buttons -->
-<div class='prev-next-area'>
-    <a class='left-prev' id="prev-link" href="index.html" title="previous page">
-        <i class="fas fa-angle-left"></i>
-        <div class="prev-next-info">
-            <p class="prev-next-subtitle">previous</p>
-            <p class="prev-next-title">Welcome to cuNumeric’s documentation!</p>
-        </div>
-    </a>
-    <a class='right-next' id="next-link" href="api/index.html" title="next page">
-    <div class="prev-next-info">
-        <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">API Reference</p>
-    </div>
-    <i class="fas fa-angle-right"></i>
-    </a>
-</div>
-              
-          </main>
-          
 
+              
+              <footer class="bd-footer-article">
+                  <!-- Previous / next buttons -->
+<div class='prev-next-area'>
+  <a class='left-prev' id="prev-link" href="index.html" title="previous page">
+      <i class="fas fa-angle-left"></i>
+      <div class="prev-next-info">
+          <p class="prev-next-subtitle">previous</p>
+          <p class="prev-next-title">Welcome to cuNumeric’s documentation!</p>
+      </div>
+  </a>
+  <a class='right-next' id="next-link" href="api/index.html" title="next page">
+  <div class="prev-next-info">
+      <p class="prev-next-subtitle">next</p>
+      <p class="prev-next-title">API Reference</p>
+  </div>
+  <i class="fas fa-angle-right"></i>
+  </a>
+</div>
+              </footer>
+              
+          </div>
+          
       </div>
     </div>
+
+  
   
   <!-- Scripts loaded after <body> so the DOM is not blocked -->
-  <script src="_static/scripts/pydata-sphinx-theme.js?digest=1999514e3f237ded88cf"></script>
-<footer class="footer mt-5 mt-md-0">
-  <div class="container">
-    
-    <div class="footer-item">
-      <p class="copyright">
+  <script src="_static/scripts/pydata-sphinx-theme.js?digest=92025949c220c2e29695"></script>
+
+<footer class="bd-footer"><div class="bd-footer__inner container">
+  
+  <div class="footer-item">
+    <p class="copyright">
     &copy; Copyright 2021-2022, NVIDIA.<br>
 </p>
-    </div>
-    
-    <div class="footer-item">
-      <p class="sphinx-version">
-Created using <a href="http://sphinx-doc.org/">Sphinx</a> 4.4.0.<br>
-</p>
-    </div>
-    
   </div>
+  
+  <div class="footer-item">
+    <p class="sphinx-version">
+Created using <a href="http://sphinx-doc.org/">Sphinx</a> 5.0.2.<br>
+</p>
+  </div>
+  
+</div>
 </footer>
   </body>
 </html>

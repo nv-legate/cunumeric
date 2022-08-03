@@ -1,18 +1,22 @@
 
 <!DOCTYPE html>
 
-<html>
+<html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
     <title>Contributing to cuNumeric &#8212; cunumeric  documentation</title>
-    
-  <!-- Loaded before other Sphinx assets -->
-  <link href="_static/styles/theme.css?digest=1999514e3f237ded88cf" rel="stylesheet">
-<link href="_static/styles/pydata-sphinx-theme.css?digest=1999514e3f237ded88cf" rel="stylesheet">
+<script>
+  document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+  document.documentElement.dataset.theme = localStorage.getItem("theme") || "light"
+</script>
 
-    
+  <!-- Loaded before other Sphinx assets -->
+  <link href="_static/styles/theme.css?digest=92025949c220c2e29695" rel="stylesheet">
+<link href="_static/styles/pydata-sphinx-theme.css?digest=92025949c220c2e29695" rel="stylesheet">
+
+
   <link rel="stylesheet"
     href="_static/vendor/fontawesome/5.13.0/css/all.min.css">
   <link rel="preload" as="font" type="font/woff2" crossorigin
@@ -23,13 +27,14 @@
     <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="_static/copybutton.css" />
     <link rel="stylesheet" type="text/css" href="_static/params.css" />
-    
+
   <!-- Pre-loaded scripts that we'll load fully later -->
-  <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=1999514e3f237ded88cf">
+  <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=92025949c220c2e29695">
 
     <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
     <script src="_static/jquery.js"></script>
     <script src="_static/underscore.js"></script>
+    <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="_static/doctools.js"></script>
     <script src="_static/clipboard.min.js"></script>
     <script src="_static/copybutton.js"></script>
@@ -37,32 +42,40 @@
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Versions" href="versions.html" />
     <link rel="prev" title="Comparison Table" href="comparison/comparison.html" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="docsearch:language" content="None">
-    
-
-    <!-- Google Analytics -->
-    
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="docsearch:language" content="en">
   </head>
-  <body data-spy="scroll" data-target="#bd-toc-nav" data-offset="60">
-    
-    <div class="container-fluid" id="banner"></div>
+  
+  
+  <body data-spy="scroll" data-target="#bd-toc-nav" data-offset="180" data-default-mode="">
+    <div class="bd-header-announcement container-fluid" id="banner">
+      
+
+    </div>
 
     
-    <nav class="navbar navbar-light navbar-expand-lg bg-light fixed-top bd-navbar" id="navbar-main"><div class="container-xl">
+    <nav class="bd-header navbar navbar-light navbar-expand-lg bg-light fixed-top bd-navbar" id="navbar-main"><div class="bd-header__inner container-xl">
 
   <div id="navbar-start">
     
     
-<a class="navbar-brand" href="index.html">
-<p class="title">cunumeric</p>
-</a>
+  
 
+
+<a class="navbar-brand logo" href="index.html">
+  
+  
+  
+  
+  
+    <p class="title logo__title">cunumeric  documentation</p>
+  
+</a>
     
   </div>
 
   <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbar-collapsible" aria-controls="navbar-collapsible" aria-expanded="false" aria-label="Toggle navigation">
-    <span class="navbar-toggler-icon"></span>
+    <span class="fas fa-bars"></span>
   </button>
 
   
@@ -110,6 +123,14 @@
     <div id="navbar-end">
       
       <div class="navbar-end-item">
+        <span id="theme-switch" class="btn btn-sm btn-outline-primary navbar-btn rounded-circle">
+    <a class="theme-switch" data-mode="light"><i class="fas fa-sun"></i></a>
+    <a class="theme-switch" data-mode="dark"><i class="far fa-moon"></i></a>
+    <a class="theme-switch" data-mode="auto"><i class="fas fa-adjust"></i></a>
+</span>
+      </div>
+      
+      <div class="navbar-end-item">
         <ul id="navbar-icon-links" class="navbar-nav" aria-label="Icon Links">
       </ul>
       </div>
@@ -120,13 +141,13 @@
     </nav>
     
 
-    <div class="container-xl">
-      <div class="row">
+    <div class="bd-container container-xl">
+      <div class="bd-container__inner row">
           
-            
-            <!-- Only show if we have sidebars configured, else just a small margin  -->
-            <div class="col-12 col-md-3 bd-sidebar">
-              <div class="sidebar-start-items"><form class="bd-search d-flex align-items-center" action="search.html" method="get">
+
+<!-- Only show if we have sidebars configured, else just a small margin  -->
+<div class="bd-sidebar-primary col-12 col-md-3 bd-sidebar">
+  <div class="sidebar-start-items"><form class="bd-search d-flex align-items-center" action="search.html" method="get">
   <i class="icon fas fa-search"></i>
   <input type="search" class="form-control" name="q" id="search-input" placeholder="Search the docs ..." aria-label="Search the docs ..." autocomplete="off" >
 </form><nav class="bd-links" id="bd-docs-nav" aria-label="Main navigation">
@@ -134,19 +155,20 @@
     
   </div>
 </nav>
-              </div>
-              <div class="sidebar-end-items">
-              </div>
-            </div>
-            
-          
+  </div>
+  <div class="sidebar-end-items">
+  </div>
+</div>
+
 
           
-          <div class="d-none d-xl-block col-xl-2 bd-toc">
-            
-              
-              <div class="toc-item">
-                
+
+
+<div class="bd-sidebar-secondary d-none d-xl-block col-xl-2 bd-toc">
+  
+    
+    <div class="toc-item">
+      
 <div class="tocsection onthispage mt-5 pt-1 pb-3">
     <i class="fas fa-list"></i> On this page
 </div>
@@ -183,34 +205,32 @@
 </ul>
 
 </nav>
-              </div>
-              
-              <div class="toc-item">
-                
-              </div>
-              
-            
-          </div>
-          
+    </div>
+    
+    <div class="toc-item">
+      
+    </div>
+    
+  
+</div>
+
 
           
           
-            
-          
-          <main class="col-12 col-md-9 col-xl-7 py-md-5 pl-md-5 pr-md-4 bd-content" role="main">
+          <div class="bd-content col-12 col-md-9 col-xl-7">
               
-              <div>
+              <article class="bd-article" role="main">
                 
   <section id="contributing-to-cunumeric">
-<h1>Contributing to cuNumeric<a class="headerlink" href="#contributing-to-cunumeric" title="Permalink to this headline">#</a></h1>
+<h1>Contributing to cuNumeric<a class="headerlink" href="#contributing-to-cunumeric" title="Permalink to this heading">#</a></h1>
 <p>CuNumeric is an open-source project released under the <a class="reference external" href="https://www.apache.org/licenses/LICENSE-2.0">Apache license, version 2.0</a>.  We welcome any and all contributions, and we hope that you can help us develop a strong community.</p>
 <section id="how-to-begin">
-<h2>How to begin<a class="headerlink" href="#how-to-begin" title="Permalink to this headline">#</a></h2>
+<h2>How to begin<a class="headerlink" href="#how-to-begin" title="Permalink to this heading">#</a></h2>
 <p>Most of the time, the best thing is to begin by <a class="reference external" href="https://github.com/nv-legate/cunumeric/issues">opening an issue</a>.  This gives us a chance to discuss the contribution and to define the problem or feature that it addresses.   Often, opening of the issue first may help prevent you from doing unnecessary work or to enhance and further develop your idea.</p>
 <p>Once you are ready to start development, we ask you to work on a <a class="reference external" href="https://help.github.com/en/articles/fork-a-repo">fork</a> of our repository.  The next step is to create a (pull request)[https://help.github.com/en/articles/about-pull-requests].  Feel free to open the pull request as soon as you begin your development (just mark it <a class="reference external" href="https://github.blog/2019-02-14-introducing-draft-pull-requests/">as a draft</a>) or when you are ready to have your contribution merged.</p>
 </section>
 <section id="the-legalese-developer-certificate-of-origin">
-<h2>The Legalese: Developer Certificate of Origin<a class="headerlink" href="#the-legalese-developer-certificate-of-origin" title="Permalink to this headline">#</a></h2>
+<h2>The Legalese: Developer Certificate of Origin<a class="headerlink" href="#the-legalese-developer-certificate-of-origin" title="Permalink to this heading">#</a></h2>
 <p>CuNumeric is released under the open-source <a class="reference external" href="https://www.apache.org/licenses/LICENSE-2.0">Apache license, version 2.0</a>, and is free to use, modify, and redistribute.  To ensure that the license can be exercised without encumbrance, we ask you that you only contribute your own work or work to which you have the intellectual rights.  To that end, we employ the Developer’s Certificate of Origin (DCO), which is the lightweight mechanism for you to certify that you are legally able to make your contribution. Here is the full text of the certificate (also available at <a class="reference external" href="https://DeveloperCertificate.org">DeveloperCertificate.org</a>):</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Developer</span> <span class="n">Certificate</span> <span class="n">of</span> <span class="n">Origin</span>
 <span class="n">Version</span> <span class="mf">1.1</span>
@@ -249,7 +269,7 @@
 </pre></div>
 </div>
 <section id="how-do-i-sign-the-dco">
-<h3>How Do I Sign the DCO?<a class="headerlink" href="#how-do-i-sign-the-dco" title="Permalink to this headline">#</a></h3>
+<h3>How Do I Sign the DCO?<a class="headerlink" href="#how-do-i-sign-the-dco" title="Permalink to this heading">#</a></h3>
 <p>Fortunately, it does not take much work to sign the DCO.  The only thing that you have to do is to mark all your commits with a <code class="docutils literal notranslate"><span class="pre">Signed-off-by</span></code> line that looks like that:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Signed</span><span class="o">-</span><span class="n">off</span><span class="o">-</span><span class="n">by</span><span class="p">:</span> <span class="n">Your</span> <span class="n">Name</span> <span class="o">&lt;</span><span class="n">your</span><span class="nd">@email</span><span class="o">.</span><span class="n">address</span><span class="o">&gt;</span>
 </pre></div>
@@ -258,63 +278,67 @@
 </section>
 </section>
 <section id="review-process">
-<h2>Review Process<a class="headerlink" href="#review-process" title="Permalink to this headline">#</a></h2>
+<h2>Review Process<a class="headerlink" href="#review-process" title="Permalink to this heading">#</a></h2>
 <p>We are really grateful that you are thinking of contributing to cuNumeric.  We will make every effort to review your contributions as soon as possible.</p>
 <p>As we suggested at the beginning of this document, it will be really helpful to start with an issue unless your proposed change is really trivial.  An issue will help to save work in the review process (e.g., maybe somebody is already working on exactly the same thing you want to work on).  After you open your pull request (PR), there usually will be a community feedback that often will require further changes to your contribution (the usual open-source process).  Usually, this will conclude in the PR being merged by a maintainer, but on rare occasions a PR may be rejected.  This may happen, for example, if the PR appears abandoned (no response to the community feedback) or if the PR does not seem to be approaching community acceptance in a reasonable time frame.  In any case, an explanation will always be given why a PR is closed.  Even if a PR is closed for some reason, it may always be reopened if the situation evolves (feel free to comment on closed PRs to discuss reopening them).</p>
 </section>
 <section id="code-formatting-requirements">
-<h2>Code Formatting Requirements<a class="headerlink" href="#code-formatting-requirements" title="Permalink to this headline">#</a></h2>
+<h2>Code Formatting Requirements<a class="headerlink" href="#code-formatting-requirements" title="Permalink to this heading">#</a></h2>
 <p>CuNumeric has a set of coding standards that are expected from all the code merged into the project.  The coding standards are defined by the set of tools we use to format our code.  We use the <a class="reference external" href="https://pre-commit.com/">pre-commit</a> framework to run our formatting tools.  The easiest way to meet the coding standards is to simply use the pre-commit framework to run all the checks for you.  Please visit the <a class="reference external" href="https://pre-commit.com/">pre-commit project page</a> for pre-commit installation and usage instructions.  Once pre-commit is installed in the cuNumeric repo, all the checks and formatting will be run on every commit, but one can also run the checks explicitly as detailed in pre-commit documentation.</p>
 <p>We hope that the automation of our formatting checks will make it easy to comply with our coding standards.  If you encounter problems with code formatting, however, please let us know in a comment on your PR, and we will do our best to help.</p>
 </section>
 </section>
 
 
-              </div>
+              </article>
               
-              
-              <!-- Previous / next buttons -->
-<div class='prev-next-area'>
-    <a class='left-prev' id="prev-link" href="comparison/comparison.html" title="previous page">
-        <i class="fas fa-angle-left"></i>
-        <div class="prev-next-info">
-            <p class="prev-next-subtitle">previous</p>
-            <p class="prev-next-title">Comparison Table</p>
-        </div>
-    </a>
-    <a class='right-next' id="next-link" href="versions.html" title="next page">
-    <div class="prev-next-info">
-        <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">Versions</p>
-    </div>
-    <i class="fas fa-angle-right"></i>
-    </a>
-</div>
-              
-          </main>
-          
 
+              
+              <footer class="bd-footer-article">
+                  <!-- Previous / next buttons -->
+<div class='prev-next-area'>
+  <a class='left-prev' id="prev-link" href="comparison/comparison.html" title="previous page">
+      <i class="fas fa-angle-left"></i>
+      <div class="prev-next-info">
+          <p class="prev-next-subtitle">previous</p>
+          <p class="prev-next-title">Comparison Table</p>
+      </div>
+  </a>
+  <a class='right-next' id="next-link" href="versions.html" title="next page">
+  <div class="prev-next-info">
+      <p class="prev-next-subtitle">next</p>
+      <p class="prev-next-title">Versions</p>
+  </div>
+  <i class="fas fa-angle-right"></i>
+  </a>
+</div>
+              </footer>
+              
+          </div>
+          
       </div>
     </div>
+
+  
   
   <!-- Scripts loaded after <body> so the DOM is not blocked -->
-  <script src="_static/scripts/pydata-sphinx-theme.js?digest=1999514e3f237ded88cf"></script>
-<footer class="footer mt-5 mt-md-0">
-  <div class="container">
-    
-    <div class="footer-item">
-      <p class="copyright">
+  <script src="_static/scripts/pydata-sphinx-theme.js?digest=92025949c220c2e29695"></script>
+
+<footer class="bd-footer"><div class="bd-footer__inner container">
+  
+  <div class="footer-item">
+    <p class="copyright">
     &copy; Copyright 2021-2022, NVIDIA.<br>
 </p>
-    </div>
-    
-    <div class="footer-item">
-      <p class="sphinx-version">
-Created using <a href="http://sphinx-doc.org/">Sphinx</a> 4.4.0.<br>
-</p>
-    </div>
-    
   </div>
+  
+  <div class="footer-item">
+    <p class="sphinx-version">
+Created using <a href="http://sphinx-doc.org/">Sphinx</a> 5.0.2.<br>
+</p>
+  </div>
+  
+</div>
 </footer>
   </body>
 </html>

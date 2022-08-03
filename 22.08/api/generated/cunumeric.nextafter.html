@@ -1,18 +1,22 @@
 
 <!DOCTYPE html>
 
-<html>
+<html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
     <title>cunumeric.nextafter &#8212; cunumeric  documentation</title>
-    
-  <!-- Loaded before other Sphinx assets -->
-  <link href="../../_static/styles/theme.css?digest=1999514e3f237ded88cf" rel="stylesheet">
-<link href="../../_static/styles/pydata-sphinx-theme.css?digest=1999514e3f237ded88cf" rel="stylesheet">
+<script>
+  document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+  document.documentElement.dataset.theme = localStorage.getItem("theme") || "light"
+</script>
 
-    
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=92025949c220c2e29695" rel="stylesheet">
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=92025949c220c2e29695" rel="stylesheet">
+
+
   <link rel="stylesheet"
     href="../../_static/vendor/fontawesome/5.13.0/css/all.min.css">
   <link rel="preload" as="font" type="font/woff2" crossorigin
@@ -23,13 +27,14 @@
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/params.css" />
-    
+
   <!-- Pre-loaded scripts that we'll load fully later -->
-  <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=1999514e3f237ded88cf">
+  <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=92025949c220c2e29695">
 
     <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
     <script src="../../_static/jquery.js"></script>
     <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="../../_static/doctools.js"></script>
     <script src="../../_static/clipboard.min.js"></script>
     <script src="../../_static/copybutton.js"></script>
@@ -37,32 +42,40 @@
     <link rel="search" title="Search" href="../../search.html" />
     <link rel="next" title="cunumeric.lcm" href="cunumeric.lcm.html" />
     <link rel="prev" title="cunumeric.ldexp" href="cunumeric.ldexp.html" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="docsearch:language" content="None">
-    
-
-    <!-- Google Analytics -->
-    
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="docsearch:language" content="en">
   </head>
-  <body data-spy="scroll" data-target="#bd-toc-nav" data-offset="60">
-    
-    <div class="container-fluid" id="banner"></div>
+  
+  
+  <body data-spy="scroll" data-target="#bd-toc-nav" data-offset="180" data-default-mode="">
+    <div class="bd-header-announcement container-fluid" id="banner">
+      
+
+    </div>
 
     
-    <nav class="navbar navbar-light navbar-expand-lg bg-light fixed-top bd-navbar" id="navbar-main"><div class="container-xl">
+    <nav class="bd-header navbar navbar-light navbar-expand-lg bg-light fixed-top bd-navbar" id="navbar-main"><div class="bd-header__inner container-xl">
 
   <div id="navbar-start">
     
     
-<a class="navbar-brand" href="../../index.html">
-<p class="title">cunumeric</p>
-</a>
+  
 
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    <p class="title logo__title">cunumeric  documentation</p>
+  
+</a>
     
   </div>
 
   <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbar-collapsible" aria-controls="navbar-collapsible" aria-expanded="false" aria-label="Toggle navigation">
-    <span class="navbar-toggler-icon"></span>
+    <span class="fas fa-bars"></span>
   </button>
 
   
@@ -110,6 +123,14 @@
     <div id="navbar-end">
       
       <div class="navbar-end-item">
+        <span id="theme-switch" class="btn btn-sm btn-outline-primary navbar-btn rounded-circle">
+    <a class="theme-switch" data-mode="light"><i class="fas fa-sun"></i></a>
+    <a class="theme-switch" data-mode="dark"><i class="far fa-moon"></i></a>
+    <a class="theme-switch" data-mode="auto"><i class="fas fa-adjust"></i></a>
+</span>
+      </div>
+      
+      <div class="navbar-end-item">
         <ul id="navbar-icon-links" class="navbar-nav" aria-label="Icon Links">
       </ul>
       </div>
@@ -120,13 +141,13 @@
     </nav>
     
 
-    <div class="container-xl">
-      <div class="row">
+    <div class="bd-container container-xl">
+      <div class="bd-container__inner row">
           
-            
-            <!-- Only show if we have sidebars configured, else just a small margin  -->
-            <div class="col-12 col-md-3 bd-sidebar">
-              <div class="sidebar-start-items"><form class="bd-search d-flex align-items-center" action="../../search.html" method="get">
+
+<!-- Only show if we have sidebars configured, else just a small margin  -->
+<div class="bd-sidebar-primary col-12 col-md-3 bd-sidebar">
+  <div class="sidebar-start-items"><form class="bd-search d-flex align-items-center" action="../../search.html" method="get">
   <i class="icon fas fa-search"></i>
   <input type="search" class="form-control" name="q" id="search-input" placeholder="Search the docs ..." aria-label="Search the docs ..." autocomplete="off" >
 </form><nav class="bd-links" id="bd-docs-nav" aria-label="Main navigation">
@@ -238,6 +259,11 @@
       </a>
      </li>
      <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.tri.html">
+       cunumeric.tri
+      </a>
+     </li>
+     <li class="toctree-l3">
       <a class="reference internal" href="cunumeric.tril.html">
        cunumeric.tril
       </a>
@@ -259,6 +285,11 @@
      </i>
     </label>
     <ul>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.ndim.html">
+       cunumeric.ndim
+      </a>
+     </li>
      <li class="toctree-l3">
       <a class="reference internal" href="cunumeric.shape.html">
        cunumeric.shape
@@ -292,6 +323,21 @@
      <li class="toctree-l3">
       <a class="reference internal" href="cunumeric.squeeze.html">
        cunumeric.squeeze
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.atleast_1d.html">
+       cunumeric.atleast_1d
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.atleast_2d.html">
+       cunumeric.atleast_2d
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.atleast_3d.html">
+       cunumeric.atleast_3d
       </a>
      </li>
      <li class="toctree-l3">
@@ -421,6 +467,16 @@
        cunumeric.right_shift
       </a>
      </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.packbits.html">
+       cunumeric.packbits
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.unpackbits.html">
+       cunumeric.unpackbits
+      </a>
+     </li>
     </ul>
    </li>
    <li class="toctree-l2 has-children">
@@ -441,6 +497,31 @@
      <li class="toctree-l3">
       <a class="reference internal" href="cunumeric.diag_indices_from.html">
        cunumeric.diag_indices_from
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.mask_indices.html">
+       cunumeric.mask_indices
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.tril_indices.html">
+       cunumeric.tril_indices
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.tril_indices_from.html">
+       cunumeric.tril_indices_from
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.triu_indices.html">
+       cunumeric.triu_indices
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.triu_indices_from.html">
+       cunumeric.triu_indices_from
       </a>
      </li>
      <li class="toctree-l3">
@@ -481,6 +562,16 @@
      <li class="toctree-l3">
       <a class="reference internal" href="cunumeric.take.html">
        cunumeric.take
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.take_along_axis.html">
+       cunumeric.take_along_axis
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.put_along_axis.html">
+       cunumeric.put_along_axis
       </a>
      </li>
     </ul>
@@ -833,6 +924,26 @@
      <li class="toctree-l3">
       <a class="reference internal" href="cunumeric.sum.html">
        cunumeric.sum
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.cumprod.html">
+       cunumeric.cumprod
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.cumsum.html">
+       cunumeric.cumsum
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.nancumprod.html">
+       cunumeric.nancumprod
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.nancumsum.html">
+       cunumeric.nancumsum
       </a>
      </li>
      <li class="toctree-l3">
@@ -1202,13 +1313,33 @@
     </label>
     <ul>
      <li class="toctree-l3">
-      <a class="reference internal" href="cunumeric.random.rand.html">
-       cunumeric.random.rand
+      <a class="reference internal" href="cunumeric.random.default_rng.html">
+       cunumeric.random.default_rng
       </a>
      </li>
      <li class="toctree-l3">
-      <a class="reference internal" href="cunumeric.random.randint.html">
-       cunumeric.random.randint
+      <a class="reference internal" href="../_generator.html">
+       cunumeric.random.Generator
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="../_bitgenerator.html">
+       cunumeric.random.BitGenerator
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.random.seed.html">
+       cunumeric.random.seed
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.random.default_rng.html">
+       cunumeric.random.default_rng
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.random.rand.html">
+       cunumeric.random.rand
       </a>
      </li>
      <li class="toctree-l3">
@@ -1217,13 +1348,193 @@
       </a>
      </li>
      <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.random.randint.html">
+       cunumeric.random.randint
+      </a>
+     </li>
+     <li class="toctree-l3">
       <a class="reference internal" href="cunumeric.random.random.html">
        cunumeric.random.random
       </a>
      </li>
      <li class="toctree-l3">
-      <a class="reference internal" href="cunumeric.random.seed.html">
-       cunumeric.random.seed
+      <a class="reference internal" href="cunumeric.random.random_integers.html">
+       cunumeric.random.random_integers
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.random.random_sample.html">
+       cunumeric.random.random_sample
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.random.bytes.html">
+       cunumeric.random.bytes
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.random.beta.html">
+       cunumeric.random.beta
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.random.binomial.html">
+       cunumeric.random.binomial
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.random.chisquare.html">
+       cunumeric.random.chisquare
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.random.exponential.html">
+       cunumeric.random.exponential
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.random.f.html">
+       cunumeric.random.f
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.random.gamma.html">
+       cunumeric.random.gamma
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.random.geometric.html">
+       cunumeric.random.geometric
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.random.gumbel.html">
+       cunumeric.random.gumbel
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.random.hypergeometric.html">
+       cunumeric.random.hypergeometric
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.random.laplace.html">
+       cunumeric.random.laplace
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.random.logistic.html">
+       cunumeric.random.logistic
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.random.lognormal.html">
+       cunumeric.random.lognormal
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.random.logseries.html">
+       cunumeric.random.logseries
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.random.negative_binomial.html">
+       cunumeric.random.negative_binomial
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.random.noncentral_chisquare.html">
+       cunumeric.random.noncentral_chisquare
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.random.noncentral_f.html">
+       cunumeric.random.noncentral_f
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.random.normal.html">
+       cunumeric.random.normal
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.random.pareto.html">
+       cunumeric.random.pareto
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.random.poisson.html">
+       cunumeric.random.poisson
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.random.power.html">
+       cunumeric.random.power
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.random.ranf.html">
+       cunumeric.random.ranf
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.random.rayleigh.html">
+       cunumeric.random.rayleigh
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.random.sample.html">
+       cunumeric.random.sample
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.random.standard_cauchy.html">
+       cunumeric.random.standard_cauchy
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.random.standard_exponential.html">
+       cunumeric.random.standard_exponential
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.random.standard_gamma.html">
+       cunumeric.random.standard_gamma
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.random.standard_t.html">
+       cunumeric.random.standard_t
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.random.triangular.html">
+       cunumeric.random.triangular
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.random.uniform.html">
+       cunumeric.random.uniform
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.random.vonmises.html">
+       cunumeric.random.vonmises
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.random.wald.html">
+       cunumeric.random.wald
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.random.weibull.html">
+       cunumeric.random.weibull
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.random.zipf.html">
+       cunumeric.random.zipf
       </a>
      </li>
     </ul>
@@ -1710,6 +2021,11 @@
       </a>
      </li>
      <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.ndarray.cumsum.html">
+       cunumeric.ndarray.cumsum
+      </a>
+     </li>
+     <li class="toctree-l3">
       <a class="reference internal" href="cunumeric.ndarray.mean.html">
        cunumeric.ndarray.mean
       </a>
@@ -1717,6 +2033,11 @@
      <li class="toctree-l3">
       <a class="reference internal" href="cunumeric.ndarray.prod.html">
        cunumeric.ndarray.prod
+      </a>
+     </li>
+     <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.ndarray.cumprod.html">
+       cunumeric.ndarray.cumprod
       </a>
      </li>
      <li class="toctree-l3">
@@ -1930,6 +2251,11 @@
       </a>
      </li>
      <li class="toctree-l3">
+      <a class="reference internal" href="cunumeric.ndarray.__index__.html">
+       cunumeric.ndarray.__index__
+      </a>
+     </li>
+     <li class="toctree-l3">
       <a class="reference internal" href="cunumeric.ndarray.__reduce__.html">
        cunumeric.ndarray.__reduce__
       </a>
@@ -2002,49 +2328,48 @@
 
   </div>
 </nav>
-              </div>
-              <div class="sidebar-end-items">
-              </div>
-            </div>
-            
-          
+  </div>
+  <div class="sidebar-end-items">
+  </div>
+</div>
+
 
           
-          <div class="d-none d-xl-block col-xl-2 bd-toc">
-            
-              
-              <div class="toc-item">
-                
+
+
+<div class="bd-sidebar-secondary d-none d-xl-block col-xl-2 bd-toc">
+  
+    
+    <div class="toc-item">
+      
 
 <nav id="bd-toc-nav">
     
 </nav>
-              </div>
-              
-              <div class="toc-item">
-                
-              </div>
-              
-            
-          </div>
-          
+    </div>
+    
+    <div class="toc-item">
+      
+    </div>
+    
+  
+</div>
+
 
           
           
-            
-          
-          <main class="col-12 col-md-9 col-xl-7 py-md-5 pl-md-5 pr-md-4 bd-content" role="main">
+          <div class="bd-content col-12 col-md-9 col-xl-7">
               
-              <div>
+              <article class="bd-article" role="main">
                 
   <section id="cunumeric-nextafter">
-<h1>cunumeric.nextafter<a class="headerlink" href="#cunumeric-nextafter" title="Permalink to this headline">#</a></h1>
+<h1>cunumeric.nextafter<a class="headerlink" href="#cunumeric-nextafter" title="Permalink to this heading">#</a></h1>
 <dl class="py function">
 <dt class="sig sig-object py" id="cunumeric.nextafter">
 <span class="sig-prename descclassname"><span class="pre">cunumeric.</span></span><span class="sig-name descname"><span class="pre">nextafter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="../_ndarray.html#cunumeric.ndarray" title="cunumeric.ndarray"><span class="pre">ndarray</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)"><span class="pre">None</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">where</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">casting</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">CastingKind</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'same_kind'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">order</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'K'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">np.dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)"><span class="pre">None</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="../_ndarray.html#cunumeric.ndarray" title="cunumeric.ndarray"><span class="pre">ndarray</span></a></span></span><a class="headerlink" href="#cunumeric.nextafter" title="Permalink to this definition">#</a></dt>
 <dd><p>Return the next floating-point value after x1 towards x2, element-wise.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>x1</strong> (<em>array_like</em>) – Input arrays. If <code class="docutils literal notranslate"><span class="pre">x1.shape</span> <span class="pre">!=</span> <span class="pre">x2.shape</span></code>, they must be broadcastable
 to a common shape (which becomes the shape of the output).</p></li>
@@ -2064,11 +2389,11 @@ remain uninitialized.</p></li>
 <a class="reference external" href="https://numpy.org/doc/stable/reference/ufuncs.html#ufuncs-kwargs" title="(in NumPy v1.23)"><span class="xref std std-ref">ufunc docs</span></a>.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><strong>y</strong> – Result.
 This is a scalar if both <cite>x1</cite> and <cite>x2</cite> are scalars.</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><a class="reference internal" href="../_ndarray.html#cunumeric.ndarray" title="cunumeric.ndarray">ndarray</a> or scalar</p>
 </dd>
 </dl>
@@ -2077,7 +2402,7 @@ This is a scalar if both <cite>x1</cite> and <cite>x2</cite> are scalars.</p>
 <p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.nextafter.html#numpy.nextafter" title="(in NumPy v1.23)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.nextafter</span></code></a></p>
 </div>
 <dl class="field-list simple">
-<dt class="field-odd">Availability</dt>
+<dt class="field-odd">Availability<span class="colon">:</span></dt>
 <dd class="field-odd"><p><em>Multiple GPUs, Multiple CPUs</em></p>
 </dd>
 </dl>
@@ -2086,51 +2411,55 @@ This is a scalar if both <cite>x1</cite> and <cite>x2</cite> are scalars.</p>
 </section>
 
 
-              </div>
+              </article>
               
-              
-              <!-- Previous / next buttons -->
-<div class='prev-next-area'>
-    <a class='left-prev' id="prev-link" href="cunumeric.ldexp.html" title="previous page">
-        <i class="fas fa-angle-left"></i>
-        <div class="prev-next-info">
-            <p class="prev-next-subtitle">previous</p>
-            <p class="prev-next-title">cunumeric.ldexp</p>
-        </div>
-    </a>
-    <a class='right-next' id="next-link" href="cunumeric.lcm.html" title="next page">
-    <div class="prev-next-info">
-        <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">cunumeric.lcm</p>
-    </div>
-    <i class="fas fa-angle-right"></i>
-    </a>
-</div>
-              
-          </main>
-          
 
+              
+              <footer class="bd-footer-article">
+                  <!-- Previous / next buttons -->
+<div class='prev-next-area'>
+  <a class='left-prev' id="prev-link" href="cunumeric.ldexp.html" title="previous page">
+      <i class="fas fa-angle-left"></i>
+      <div class="prev-next-info">
+          <p class="prev-next-subtitle">previous</p>
+          <p class="prev-next-title">cunumeric.ldexp</p>
+      </div>
+  </a>
+  <a class='right-next' id="next-link" href="cunumeric.lcm.html" title="next page">
+  <div class="prev-next-info">
+      <p class="prev-next-subtitle">next</p>
+      <p class="prev-next-title">cunumeric.lcm</p>
+  </div>
+  <i class="fas fa-angle-right"></i>
+  </a>
+</div>
+              </footer>
+              
+          </div>
+          
       </div>
     </div>
+
+  
   
   <!-- Scripts loaded after <body> so the DOM is not blocked -->
-  <script src="../../_static/scripts/pydata-sphinx-theme.js?digest=1999514e3f237ded88cf"></script>
-<footer class="footer mt-5 mt-md-0">
-  <div class="container">
-    
-    <div class="footer-item">
-      <p class="copyright">
+  <script src="../../_static/scripts/pydata-sphinx-theme.js?digest=92025949c220c2e29695"></script>
+
+<footer class="bd-footer"><div class="bd-footer__inner container">
+  
+  <div class="footer-item">
+    <p class="copyright">
     &copy; Copyright 2021-2022, NVIDIA.<br>
 </p>
-    </div>
-    
-    <div class="footer-item">
-      <p class="sphinx-version">
-Created using <a href="http://sphinx-doc.org/">Sphinx</a> 4.4.0.<br>
-</p>
-    </div>
-    
   </div>
+  
+  <div class="footer-item">
+    <p class="sphinx-version">
+Created using <a href="http://sphinx-doc.org/">Sphinx</a> 5.0.2.<br>
+</p>
+  </div>
+  
+</div>
 </footer>
   </body>
 </html>
