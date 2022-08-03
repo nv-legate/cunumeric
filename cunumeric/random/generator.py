@@ -394,7 +394,9 @@ class Generator:
         return self.bit_generator.zipf(alpha=a, shape=size, dtype=dtype)
 
 
-def default_rng(seed: Union[int, None] = None) -> Generator:
+def default_rng(
+    seed: Union[None, int, BitGenerator, Generator] = None
+) -> Generator:
     """
     Construct a new Generator with the default BitGenerator (XORWOW).
 
