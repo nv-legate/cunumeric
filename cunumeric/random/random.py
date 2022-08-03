@@ -35,7 +35,7 @@ def seed(init: Union[int, None] = None) -> None:
     """
     Reseed the legacy random number generator.
 
-    This function is effective only when the cuRAND is NOT used in the build
+    This function is effective only when cuRAND is NOT used in the build
     and is a no-op otherwise.
     """
     if init is None:
