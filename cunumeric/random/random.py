@@ -182,8 +182,8 @@ def chisquare(
 
     When `df` independent random variables, each with standard normal
     distributions (mean 0, variance 1), are squared and summed, the
-    resulting distribution is chi-square (see Notes).  This distribution
-    is often used in hypothesis testing.
+    resulting distribution is chi-square.  This distribution is often
+    used in hypothesis testing.
 
     Parameters
     ----------
@@ -426,16 +426,15 @@ def gumbel(
     Draw samples from a Gumbel distribution.
 
     Draw samples from a Gumbel distribution with specified location and
-    scale.  For more information on the Gumbel distribution, see
-    Notes and References below.
+    scale.
 
     Parameters
     ----------
     loc : float, optional
         The location of the mode of the distribution. Default is 0.
     scale : float, optional
-        The scale parameter of the distribution. Default is 1. Must be non-
-        negative.
+        The scale parameter of the distribution. Default is 1. Must be
+        non-negative.
     size : int or tuple of ints, optional
         Output shape.  If the given shape is, e.g., ``(m, n, k)``, then
         ``m * n * k`` samples are drawn.  If size is ``None`` (default),
@@ -531,8 +530,8 @@ def laplace(
     loc : float, optional
         The position, :math:`\\mu`, of the distribution peak. Default is 0.
     scale : float, optional
-        :math:`\\lambda`, the exponential decay. Default is 1. Must be non-
-        negative.
+        :math:`\\lambda`, the exponential decay. Default is 1. Must be
+        non-negative.
     size : int or tuple of ints, optional
         Output shape.  If the given shape is, e.g., ``(m, n, k)``, then
         ``m * n * k`` samples are drawn.  If size is ``None`` (default),
@@ -691,14 +690,14 @@ def negative_binomial(
 
     Samples are drawn from a negative binomial distribution with specified
     parameters, `n` successes and `p` probability of success where `n`
-    is > 0 and `p` is in the interval [0, 1].
+    is > 0 and `p` is in the interval (0, 1].
 
     Parameters
     ----------
     n : int
         Parameter of the distribution, > 0.
     p : float
-        Parameter of the distribution, >= 0 and <=1.
+        Parameter of the distribution, > 0 and <=1.
     size : int or tuple of ints, optional
         Output shape.  If the given shape is, e.g., ``(m, n, k)``, then
         ``m * n * k`` samples are drawn.  If size is ``None`` (default),
@@ -831,9 +830,9 @@ def normal(
     The probability density function of the normal distribution, first
     derived by De Moivre and 200 years later by both Gauss and Laplace
     independently [1]_, is often called the bell curve because of
-    its characteristic shape (see the example below).
+    its characteristic shape.
 
-    The normal distributions occurs often in nature.  For example, it
+    The normal distribution occurs often in nature.  For example, it
     describes the commonly occurring distribution of samples influenced
     by a large number of tiny, random disturbances, each with its own
     unique distribution [1]_.
@@ -886,7 +885,7 @@ def pareto(
     The Lomax or Pareto II distribution is a shifted Pareto
     distribution. The classical Pareto distribution can be
     obtained from the Lomax distribution by adding 1 and
-    multiplying by the scale parameter ``m`` (see Notes).  The
+    multiplying by the scale parameter ``m``.  The
     smallest value of the Lomax distribution is zero while for the
     classical Pareto distribution it is ``mu``, where the standard
     Pareto distribution has location ``mu = 1``.  Lomax can also
@@ -1012,8 +1011,6 @@ def rand(*shapeargs: int) -> Union[float, ndarray]:
 
     Random values in a given shape.
 
-        other NumPy functions like `numpy.zeros` and `numpy.ones`.
-
     Create an array of the given shape and populate it with
     random samples from a uniform distribution
     over ``[0, 1)``.
@@ -1022,7 +1019,7 @@ def rand(*shapeargs: int) -> Union[float, ndarray]:
     ----------
     d0, d1, ..., dn : int, optional
         The dimensions of the returned array, must be non-negative.
-        If no argument is given a single Python float is returned.
+        If no argument is given a single float is returned.
 
     Returns
     -------
@@ -1064,14 +1061,12 @@ def randint(
     high : int, optional
         If provided, one above the largest (signed) integer to be drawn
         from the distribution (see above for behavior if ``high=None``).
-        If array-like, must contain integer values
     size : int or tuple of ints, optional
         Output shape.  If the given shape is, e.g., ``(m, n, k)``, then
         ``m * n * k`` samples are drawn.  Default is None, in which case a
         single value is returned.
     dtype : dtype, optional
-        Desired dtype of the result. Byteorder must be native.
-        The default value is int.
+        Desired dtype of the result.  The default value is int.
 
     Returns
     -------
@@ -1096,8 +1091,6 @@ def randn(*shapeargs: int) -> Union[float, ndarray]:
 
     Return a sample (or samples) from the "standard normal" distribution.
 
-        other NumPy functions like `numpy.zeros` and `numpy.ones`.
-
     If positive int_like arguments are provided, `randn` generates an array
     of shape ``(d0, d1, ..., dn)``, filled
     with random floats sampled from a univariate "normal" (Gaussian)
@@ -1108,7 +1101,7 @@ def randn(*shapeargs: int) -> Union[float, ndarray]:
     ----------
     d0, d1, ..., dn : int, optional
         The dimensions of the returned array, must be non-negative.
-        If no argument is given a single Python float is returned.
+        If no argument is given a single float is returned.
 
     Returns
     -------
