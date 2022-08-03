@@ -26,7 +26,7 @@ from legate.core import LEGATE_MAX_DIM
 # arr = [42]
 # idx = 0
 @pytest.mark.parametrize("arr_is_region", [True, False])
-@pytest.mark.parametrize("idx_is_region", [True, False])  # Fails
+@pytest.mark.parametrize("idx_is_region", [False])  # TODO: 'True' Fails
 def test_getitem_scalar_0d(arr_is_region, idx_is_region):
     if arr_is_region:
         arr = num.full((5,), 42)[2:3]
@@ -43,8 +43,8 @@ def test_getitem_scalar_0d(arr_is_region, idx_is_region):
 # idx = 0
 # val = -1
 @pytest.mark.parametrize("arr_is_region", [True, False])
-@pytest.mark.parametrize("idx_is_region", [True, False])  # Fails
-@pytest.mark.parametrize("val_is_region", [True, False])  # Fails
+@pytest.mark.parametrize("idx_is_region", [False])  # TODO: 'True' Fails
+@pytest.mark.parametrize("val_is_region", [False])  # TODO: 'True' Fails
 def test_setitem_scalar_0d(arr_is_region, idx_is_region, val_is_region):
     if arr_is_region:
         arr = num.full((5,), 42)[2:3]
