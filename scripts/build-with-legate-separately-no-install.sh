@@ -6,6 +6,8 @@ cd $(dirname "$(realpath "$0")")/..
 source ./scripts/util/build-caching.sh
 # Use consistent C[XX]FLAGS
 source ./scripts/util/compiler-flags.sh
+# Read legate_core_ROOT from the environment or prompt the user to enter it
+source ./scripts/util/read-legate-core-root.sh "$0"
 
 # Remove existing build artifacts
 rm -rf ./{build,_skbuild,dist,cunumeric.egg-info}
@@ -18,7 +20,8 @@ if [[ -n "$(which ninja)" ]]; then cmake_args+="-GNinja"; fi
 
 # Add other build options here as desired
 cmake_args+="
--D CMAKE_CUDA_ARCHITECTURES=NATIVE";
+-D CMAKE_CUDA_ARCHITECTURES=NATIVE
+-D legate_core_ROOT:STRING=\"$legate_core_ROOT\"";
 
 # Use all but 2 threads to compile
 ninja_args="-j$(nproc --ignore=2)"
