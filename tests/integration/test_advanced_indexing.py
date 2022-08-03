@@ -17,86 +17,66 @@ import random
 
 import numpy as np
 import pytest
+from pytest_lazyfixture import lazy_fixture
 from utils.generators import mk_seq_array
 
 import cunumeric as num
 from legate.core import LEGATE_MAX_DIM
 
 
-# arr = [42]
-# idx = 0
-@pytest.mark.parametrize("arr_is_region", [True, False])
-@pytest.mark.parametrize("idx_is_region", [False])  # TODO: 'True' Fails
-def test_getitem_scalar_0d(arr_is_region, idx_is_region):
-    if arr_is_region:
-        arr = num.full((5,), 42)[2:3]
-    else:
-        arr = num.full((1,), 42)
-    if idx_is_region:
-        idx = num.zeros((3,), dtype=np.int64)[2:3].reshape(())
-    else:
-        idx = num.zeros((3,), dtype=np.int64).max()
+@pytest.fixture
+def arr_region():
+    return num.full((5,), 42)[2:3]
+
+
+@pytest.fixture
+def arr_future():
+    return num.full((1,), 42)
+
+
+idx_region_1d = num.zeros((3,), dtype=np.int64)[2:3]
+idx_future_1d = num.zeros((1,), dtype=np.int64)
+idx_region_0d = num.zeros((3,), dtype=np.int64)[2:3].reshape(())
+idx_future_0d = num.zeros((3,), dtype=np.int64).max()
+
+val_region_1d = num.full((3,), -1)[2:3]
+val_future_1d = num.full((1,), -1)
+val_region_0d = num.full((3,), -1)[2:3].reshape(())
+val_future_0d = num.full((3,), -1).max()
+
+# We use fixtures for `arr` because the `set_item` tests modify
+# their input.
+ARRS = (lazy_fixture("arr_region"), lazy_fixture("arr_future"))
+IDXS_0D = (idx_future_0d,)  # TODO: idx_region_0d fails
+VALS_0D = (val_future_0d,)  # TODO: val_region_0d fails
+IDXS_1D = (idx_region_1d, idx_future_1d)
+VALS_1D = (val_region_1d, val_future_1d)
+
+
+@pytest.mark.parametrize("idx", IDXS_0D)  # idx = 0
+@pytest.mark.parametrize("arr", ARRS)  # arr = [42]
+def test_getitem_scalar_0d(arr, idx):
     assert np.array_equal(arr[idx], 42)
 
 
-# arr = [42]
-# idx = 0
-# val = -1
-@pytest.mark.parametrize("arr_is_region", [True, False])
-@pytest.mark.parametrize("idx_is_region", [False])  # TODO: 'True' Fails
-@pytest.mark.parametrize("val_is_region", [False])  # TODO: 'True' Fails
-def test_setitem_scalar_0d(arr_is_region, idx_is_region, val_is_region):
-    if arr_is_region:
-        arr = num.full((5,), 42)[2:3]
-    else:
-        arr = num.full((1,), 42)
-    if idx_is_region:
-        idx = num.zeros((3,), dtype=np.int64)[2:3].reshape(())
-    else:
-        idx = num.zeros((3,), dtype=np.int64).max()
-    if val_is_region:
-        val = num.full((3,), -1)[2:3].reshape(())
-    else:
-        val = num.full((3,), -1).max()
+@pytest.mark.parametrize("val", VALS_0D)  # val = -1
+@pytest.mark.parametrize("idx", IDXS_0D)  # idx = 0
+@pytest.mark.parametrize("arr", ARRS)  # arr = [42]
+def test_setitem_scalar_0d(arr, idx, val):
     arr[idx] = val
     assert np.array_equal(arr, [-1])
 
 
-# arr = [42]
-# idx = [0]
-@pytest.mark.parametrize("arr_is_region", [True, False])
-@pytest.mark.parametrize("idx_is_region", [True, False])
-def test_getitem_scalar_1d(arr_is_region, idx_is_region):
-    if arr_is_region:
-        arr = num.full((5,), 42)[2:3]
-    else:
-        arr = num.full((1,), 42)
-    if idx_is_region:
-        idx = num.zeros((3,), dtype=np.int64)[2:3]
-    else:
-        idx = num.zeros((1,), dtype=np.int64)
+@pytest.mark.parametrize("idx", IDXS_1D)  # idx = [0]
+@pytest.mark.parametrize("arr", ARRS)  # arr = [42]
+def test_getitem_scalar_1d(arr, idx):
     assert np.array_equal(arr[idx], [42])
 
 
-# arr = [42]
-# idx = [0]
-# val = [-1]
-@pytest.mark.parametrize("arr_is_region", [True, False])
-@pytest.mark.parametrize("idx_is_region", [True, False])
-@pytest.mark.parametrize("val_is_region", [True, False])
-def test_setitem_scalar_1d(arr_is_region, idx_is_region, val_is_region):
-    if arr_is_region:
-        arr = num.full((5,), 42)[2:3]
-    else:
-        arr = num.full((1,), 42)
-    if idx_is_region:
-        idx = num.zeros((3,), dtype=np.int64)[2:3]
-    else:
-        idx = num.zeros((1,), dtype=np.int64)
-    if val_is_region:
-        val = num.full((3,), -1)[2:3]
-    else:
-        val = num.full((1,), -1)
+@pytest.mark.parametrize("val", VALS_1D)  # val = [-1]
+@pytest.mark.parametrize("idx", IDXS_1D)  # idx = [0]
+@pytest.mark.parametrize("arr", ARRS)  # arr = [42]
+def test_setitem_scalar_1d(arr, idx, val):
     arr[idx] = val
     assert np.array_equal(arr, [-1])
 
