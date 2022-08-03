@@ -357,7 +357,7 @@ class Runtime(object):
 
     def get_next_random_epoch(self) -> int:
         result = self.current_random_epoch
-        # self.current_random_epoch += 1
+        self.current_random_epoch += 1
         return result
 
     def is_point_type(self, dtype: Union[str, np.dtype[Any]]) -> bool:

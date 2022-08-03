@@ -33,20 +33,42 @@ class BitGenerator:
     def __init__(
         self,
         seed: Union[int, None] = None,
-        generatorType: BitGeneratorType = BitGeneratorType.DEFAULT,
         forceBuild: bool = False,
     ) -> None:
+        """
+        BitGenerator(seed=None)
+
+        Base Class for generic BitGenerators, which provide a stream
+        of random bits based on different algorithms. Must be overridden.
+
+        Parameters
+        ----------
+        seed : {None, int}, optional
+            A seed to initialize the `BitGenerator`. If None, then fresh,
+            unpredictable entropy will be pulled from the OS.
+
+        See Also
+        --------
+        numpy.random.BitGenerator
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+        """
         if type(self) is BitGenerator:
             raise NotImplementedError(
                 "BitGenerator is a base class and cannot be instantized"
             )
 
-        self.generatorType = generatorType
         self.seed = seed or time.perf_counter_ns()
         self.flags = 0
         self.handle = runtime.bitgenerator_create(
-            generatorType, seed, self.flags, forceBuild
+            self.generatorType, seed, self.flags, forceBuild
         )
+
+    @property
+    def generatorType(self) -> BitGeneratorType:
+        ...
 
     def __del__(self) -> None:
         if self.handle != 0:
@@ -602,21 +624,18 @@ class BitGenerator:
 
 
 class XORWOW(BitGenerator):
-    def __init__(
-        self, seed: Union[int, None] = None, forceBuild: bool = False
-    ) -> None:
-        super().__init__(seed, BitGeneratorType.XORWOW, forceBuild)
+    @property
+    def generatorType(self) -> BitGeneratorType:
+        return BitGeneratorType.XORWOW
 
 
 class MRG32k3a(BitGenerator):
-    def __init__(
-        self, seed: Union[int, None] = None, forceBuild: bool = False
-    ) -> None:
-        super().__init__(seed, BitGeneratorType.MRG32K3A, forceBuild)
+    @property
+    def generatorType(self) -> BitGeneratorType:
+        return BitGeneratorType.MRG32K3A
 
 
 class PHILOX4_32_10(BitGenerator):
-    def __init__(
-        self, seed: Union[int, None] = None, forceBuild: bool = False
-    ) -> None:
-        super().__init__(seed, BitGeneratorType.PHILOX4_32_10, forceBuild)
+    @property
+    def generatorType(self) -> BitGeneratorType:
+        return BitGeneratorType.PHILOX4_32_10
