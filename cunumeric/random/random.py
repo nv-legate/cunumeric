@@ -17,15 +17,15 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Union
 
 import numpy as np
+
 <<<<<<< HEAD
 import numpy.random as nprandom
 
 =======
 >>>>>>> 06821fdbeef9f525b8bbcac7f38462cdd38e08dc
 from cunumeric.array import ndarray
-from cunumeric.runtime import runtime
-
 from cunumeric.random import generator
+from cunumeric.runtime import runtime
 
 if TYPE_CHECKING:
     import numpy.typing as npt

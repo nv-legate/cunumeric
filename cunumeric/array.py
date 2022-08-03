@@ -38,6 +38,7 @@ from typing_extensions import ParamSpec
 
 <<<<<<< HEAD
 from .config import FFTDirection, FFTNormalization, UnaryOpCode, UnaryRedCode
+
 =======
 from legate.core import Array
 
@@ -48,6 +49,7 @@ from .config import (
     UnaryOpCode,
     UnaryRedCode,
 )
+
 >>>>>>> 06821fdbeef9f525b8bbcac7f38462cdd38e08dc
 from .coverage import clone_np_ndarray
 from .runtime import runtime
