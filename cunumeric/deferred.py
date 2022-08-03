@@ -463,8 +463,7 @@ class DeferredArray(NumPyThunk):
         task.add_scalar_arg(self.shape, (ty.int64,))
         for a in arrays:
             task.add_input(a)
-            if a.shape != ():
-                task.add_alignment(output_arr.base, a)
+            task.add_alignment(output_arr.base, a)
         task.execute()
 
         return output_arr
@@ -739,11 +738,12 @@ class DeferredArray(NumPyThunk):
                 self,
             ) = self._create_indexing_array(key)
 
-            if rhs.base.kind == Future:
-                rhs = self._convert_future_to_store(rhs)
             store = rhs.base
 
             if copy_needed:
+                if rhs.base.kind == Future:
+                    rhs = self._convert_future_to_store(rhs)
+                store = rhs.base
                 result: NumPyThunk
                 if index_array.base.kind == Future:
                     index_array = self._convert_future_to_store(index_array)
