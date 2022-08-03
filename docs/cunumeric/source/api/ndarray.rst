@@ -250,6 +250,7 @@ For standard library functions:
 
    ndarray.__copy__
    ndarray.__deepcopy__
+   ndarray.__index__
    ndarray.__reduce__
    ndarray.__setstate__
 
