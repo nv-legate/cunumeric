@@ -12,6 +12,7 @@ cunumeric.ndarray
    .. autosummary::
 
       ~ndarray.__init__
+      ~ndarray.__index__
       ~ndarray.all
       ~ndarray.any
       ~ndarray.argmax
