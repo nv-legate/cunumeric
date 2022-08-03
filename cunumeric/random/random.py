@@ -33,8 +33,10 @@ default_rng = generator.default_rng
 
 def seed(init: Union[int, None] = None) -> None:
     """
-    Ressed the legacy random number generator.
-    This function is effective only in the CPU-only binary.
+    Reseed the legacy random number generator.
+
+    This function is effective only when the cuRAND is NOT used in the build
+    and is a no-op otherwise.
     """
     if init is None:
         init = 0
@@ -71,15 +73,14 @@ def beta(
 
     Parameters
     ----------
-    a : float or array_like of floats
+    a : float
         Alpha, positive (>0).
-    b : float or array_like of floats
+    b : float
         Beta, positive (>0).
     size : int or tuple of ints, optional
         Output shape.  If the given shape is, e.g., ``(m, n, k)``, then
         ``m * n * k`` samples are drawn.  If size is ``None`` (default),
-        a single value is returned if ``a`` and ``b`` are both scalars.
-        Otherwise, ``np.broadcast(a, b).size`` samples are drawn.
+        a single value is returned.
 
     Returns
     -------
@@ -110,21 +111,20 @@ def binomial(
 
     Samples are drawn from a binomial distribution with specified
     parameters, n trials and p probability of success where
-    n an integer >= 0 and p is in the interval [0,1]. (n may be
+    n an integer >= 0 and p is in the interval ``[0,1]``. (n may be
     input as a float, but it is truncated to an integer in use)
 
     Parameters
     ----------
-    n : int or array_like of ints
+    n : int
         Parameter of the distribution, >= 0. Floats are also accepted,
         but they will be truncated to integers.
-    p : float or array_like of floats
+    p : float
         Parameter of the distribution, >= 0 and <=1.
     size : int or tuple of ints, optional
         Output shape.  If the given shape is, e.g., ``(m, n, k)``, then
         ``m * n * k`` samples are drawn.  If size is ``None`` (default),
-        a single value is returned if ``n`` and ``p`` are both scalars.
-        Otherwise, ``np.broadcast(n, p).size`` samples are drawn.
+        a single value is returned.
 
     Returns
     -------
@@ -187,13 +187,12 @@ def chisquare(
 
     Parameters
     ----------
-    df : float or array_like of floats
+    df : float
          Number of degrees of freedom, must be > 0.
     size : int or tuple of ints, optional
         Output shape.  If the given shape is, e.g., ``(m, n, k)``, then
         ``m * n * k`` samples are drawn.  If size is ``None`` (default),
-        a single value is returned if ``df`` is a scalar.  Otherwise,
-        ``np.array(df).size`` samples are drawn.
+        a single value is returned.
 
     Returns
     -------
@@ -244,14 +243,13 @@ def exponential(
 
     Parameters
     ----------
-    scale : float or array_like of floats
+    scale : float, optional
         The scale parameter, :math:`\\beta = 1/\\lambda`. Must be
         non-negative.
     size : int or tuple of ints, optional
         Output shape.  If the given shape is, e.g., ``(m, n, k)``, then
         ``m * n * k`` samples are drawn.  If size is ``None`` (default),
-        a single value is returned if ``scale`` is a scalar.  Otherwise,
-        ``np.array(scale).size`` samples are drawn.
+        a single value is returned.
 
     Returns
     -------
@@ -301,15 +299,14 @@ def f(
 
     Parameters
     ----------
-    dfnum : float or array_like of floats
+    dfnum : float
         Degrees of freedom in numerator, must be > 0.
-    dfden : float or array_like of float
+    dfden : float
         Degrees of freedom in denominator, must be > 0.
     size : int or tuple of ints, optional
         Output shape.  If the given shape is, e.g., ``(m, n, k)``, then
         ``m * n * k`` samples are drawn.  If size is ``None`` (default),
-        a single value is returned if ``dfnum`` and ``dfden`` are both scalars.
-        Otherwise, ``np.broadcast(dfnum, dfden).size`` samples are drawn.
+        a single value is returned.
 
     Returns
     -------
@@ -344,16 +341,15 @@ def gamma(
 
     Parameters
     ----------
-    shape : float or array_like of floats
+    shape : float
         The shape of the gamma distribution. Must be non-negative.
-    scale : float or array_like of floats, optional
+    scale : float, optional
         The scale of the gamma distribution. Must be non-negative.
         Default is equal to 1.
     size : int or tuple of ints, optional
         Output shape.  If the given shape is, e.g., ``(m, n, k)``, then
         ``m * n * k`` samples are drawn.  If size is ``None`` (default),
-        a single value is returned if ``shape`` and ``scale`` are both scalars.
-        Otherwise, ``np.broadcast(shape, scale).size`` samples are drawn.
+        a single value is returned.
 
     Returns
     -------
@@ -395,13 +391,12 @@ def geometric(
 
     Parameters
     ----------
-    p : float or array_like of floats
+    p : float
         The probability of success of an individual trial.
     size : int or tuple of ints, optional
         Output shape.  If the given shape is, e.g., ``(m, n, k)``, then
         ``m * n * k`` samples are drawn.  If size is ``None`` (default),
-        a single value is returned if ``p`` is a scalar.  Otherwise,
-        ``np.array(p).size`` samples are drawn.
+        a single value is returned.
 
     Returns
     -------
@@ -436,16 +431,15 @@ def gumbel(
 
     Parameters
     ----------
-    loc : float or array_like of floats, optional
+    loc : float, optional
         The location of the mode of the distribution. Default is 0.
-    scale : float or array_like of floats, optional
+    scale : float, optional
         The scale parameter of the distribution. Default is 1. Must be non-
         negative.
     size : int or tuple of ints, optional
         Output shape.  If the given shape is, e.g., ``(m, n, k)``, then
         ``m * n * k`` samples are drawn.  If size is ``None`` (default),
-        a single value is returned if ``loc`` and ``scale`` are both scalars.
-        Otherwise, ``np.broadcast(loc, scale).size`` samples are drawn.
+        a single value is returned.
 
     Returns
     -------
@@ -482,19 +476,17 @@ def hypergeometric(
 
     Parameters
     ----------
-    ngood : int or array_like of ints
+    ngood : int
         Number of ways to make a good selection.  Must be nonnegative.
-    nbad : int or array_like of ints
+    nbad : int
         Number of ways to make a bad selection.  Must be nonnegative.
-    nsample : int or array_like of ints
+    nsample : int
         Number of items sampled.  Must be at least 1 and at most
         ``ngood + nbad``.
     size : int or tuple of ints, optional
         Output shape.  If the given shape is, e.g., ``(m, n, k)``, then
         ``m * n * k`` samples are drawn.  If size is ``None`` (default),
-        a single value is returned if `ngood`, `nbad`, and `nsample`
-        are all scalars.  Otherwise,
-        ``np.broadcast(ngood, nbad, nsample).size`` samples are drawn.
+        a single value is returned.
 
     Returns
     -------
@@ -536,16 +528,15 @@ def laplace(
 
     Parameters
     ----------
-    loc : float or array_like of floats, optional
+    loc : float, optional
         The position, :math:`\\mu`, of the distribution peak. Default is 0.
-    scale : float or array_like of floats, optional
+    scale : float, optional
         :math:`\\lambda`, the exponential decay. Default is 1. Must be non-
         negative.
     size : int or tuple of ints, optional
         Output shape.  If the given shape is, e.g., ``(m, n, k)``, then
         ``m * n * k`` samples are drawn.  If size is ``None`` (default),
-        a single value is returned if ``loc`` and ``scale`` are both scalars.
-        Otherwise, ``np.broadcast(loc, scale).size`` samples are drawn.
+        a single value is returned.
 
     Returns
     -------
@@ -579,16 +570,15 @@ def logistic(
 
     Parameters
     ----------
-    loc : float or array_like of floats, optional
+    loc : float, optional
         Parameter of the distribution. Default is 0.
-    scale : float or array_like of floats, optional
+    scale : float, optional
         Parameter of the distribution. Must be non-negative.
         Default is 1.
     size : int or tuple of ints, optional
         Output shape.  If the given shape is, e.g., ``(m, n, k)``, then
         ``m * n * k`` samples are drawn.  If size is ``None`` (default),
-        a single value is returned if ``loc`` and ``scale`` are both scalars.
-        Otherwise, ``np.broadcast(loc, scale).size`` samples are drawn.
+        a single value is returned.
 
     Returns
     -------
@@ -624,16 +614,15 @@ def lognormal(
 
     Parameters
     ----------
-    mean : float or array_like of floats, optional
+    mean : float, optional
         Mean value of the underlying normal distribution. Default is 0.
-    sigma : float or array_like of floats, optional
+    sigma : float, optional
         Standard deviation of the underlying normal distribution. Must be
         non-negative. Default is 1.
     size : int or tuple of ints, optional
         Output shape.  If the given shape is, e.g., ``(m, n, k)``, then
         ``m * n * k`` samples are drawn.  If size is ``None`` (default),
-        a single value is returned if ``mean`` and ``sigma`` are both scalars.
-        Otherwise, ``np.broadcast(mean, sigma).size`` samples are drawn.
+        a single value is returned.
 
     Returns
     -------
@@ -666,13 +655,12 @@ def logseries(
 
     Parameters
     ----------
-    p : float or array_like of floats
+    p : float
         Shape parameter for the distribution.  Must be in the range (0, 1).
     size : int or tuple of ints, optional
         Output shape.  If the given shape is, e.g., ``(m, n, k)``, then
         ``m * n * k`` samples are drawn.  If size is ``None`` (default),
-        a single value is returned if ``p`` is a scalar.  Otherwise,
-        ``np.array(p).size`` samples are drawn.
+        a single value is returned.
 
     Returns
     -------
@@ -691,7 +679,7 @@ def logseries(
 
 
 def negative_binomial(
-    ntrials: int,
+    n: int,
     p: float,
     size: Union[NdShapeLike, None] = None,
     dtype: npt.DTypeLike = np.uint32,
@@ -707,15 +695,14 @@ def negative_binomial(
 
     Parameters
     ----------
-    n : float or array_like of floats
+    n : int
         Parameter of the distribution, > 0.
-    p : float or array_like of floats
+    p : float
         Parameter of the distribution, >= 0 and <=1.
     size : int or tuple of ints, optional
         Output shape.  If the given shape is, e.g., ``(m, n, k)``, then
         ``m * n * k`` samples are drawn.  If size is ``None`` (default),
-        a single value is returned if ``n`` and ``p`` are both scalars.
-        Otherwise, ``np.broadcast(n, p).size`` samples are drawn.
+        a single value is returned.
 
     Returns
     -------
@@ -733,7 +720,7 @@ def negative_binomial(
     Multiple GPUs, Multiple CPUs
     """
     return generator.get_static_generator().negative_binomial(
-        ntrials, p, size, dtype
+        n, p, size, dtype
     )
 
 
@@ -753,18 +740,14 @@ def noncentral_chisquare(
 
     Parameters
     ----------
-    df : float or array_like of floats
+    df : float
         Degrees of freedom, must be > 0.
-
-        .. versionchanged:: 1.10.0
-           Earlier NumPy versions required dfnum > 1.
-    nonc : float or array_like of floats
+    nonc : float
         Non-centrality, must be non-negative.
     size : int or tuple of ints, optional
         Output shape.  If the given shape is, e.g., ``(m, n, k)``, then
         ``m * n * k`` samples are drawn.  If size is ``None`` (default),
-        a single value is returned if ``df`` and ``nonc`` are both scalars.
-        Otherwise, ``np.broadcast(df, nonc).size`` samples are drawn.
+        a single value is returned.
 
     Returns
     -------
@@ -804,22 +787,17 @@ def noncentral_f(
 
     Parameters
     ----------
-    dfnum : float or array_like of floats
+    dfnum : float
         Numerator degrees of freedom, must be > 0.
-
-        .. versionchanged:: 1.14.0
-           Earlier NumPy versions required dfnum > 1.
-    dfden : float or array_like of floats
+    dfden : float
         Denominator degrees of freedom, must be > 0.
-    nonc : float or array_like of floats
+    nonc : float
         Non-centrality parameter, the sum of the squares of the numerator
         means, must be >= 0.
     size : int or tuple of ints, optional
         Output shape.  If the given shape is, e.g., ``(m, n, k)``, then
         ``m * n * k`` samples are drawn.  If size is ``None`` (default),
-        a single value is returned if ``dfnum``, ``dfden``, and ``nonc``
-        are all scalars.  Otherwise, ``np.broadcast(dfnum, dfden, nonc).size``
-        samples are drawn.
+        a single value is returned.
 
     Returns
     -------
@@ -862,16 +840,15 @@ def normal(
 
     Parameters
     ----------
-    loc : float or array_like of floats
+    loc : float
         Mean ("centre") of the distribution.
-    scale : float or array_like of floats
+    scale : float
         Standard deviation (spread or "width") of the distribution. Must be
         non-negative.
     size : int or tuple of ints, optional
         Output shape.  If the given shape is, e.g., ``(m, n, k)``, then
         ``m * n * k`` samples are drawn.  If size is ``None`` (default),
-        a single value is returned if ``loc`` and ``scale`` are both scalars.
-        Otherwise, ``np.broadcast(loc, scale).size`` samples are drawn.
+        a single value is returned.
 
     Returns
     -------
@@ -925,13 +902,12 @@ def pareto(
 
     Parameters
     ----------
-    a : float or array_like of floats
+    a : float
         Shape of the distribution. Must be positive.
     size : int or tuple of ints, optional
         Output shape.  If the given shape is, e.g., ``(m, n, k)``, then
         ``m * n * k`` samples are drawn.  If size is ``None`` (default),
-        a single value is returned if ``a`` is a scalar.  Otherwise,
-        ``np.array(a).size`` samples are drawn.
+        a single value is returned.
 
     Returns
     -------
@@ -962,15 +938,14 @@ def poisson(
 
     Parameters
     ----------
-    lam : float or array_like of floats
+    lam : float
         Expected number of events occurring in a fixed-time interval,
         must be >= 0. A sequence must be broadcastable over the requested
         size.
     size : int or tuple of ints, optional
         Output shape.  If the given shape is, e.g., ``(m, n, k)``, then
         ``m * n * k`` samples are drawn.  If size is ``None`` (default),
-        a single value is returned if ``lam`` is a scalar. Otherwise,
-        ``np.array(lam).size`` samples are drawn.
+        a single value is returned.
 
     Returns
     -------
@@ -1003,13 +978,12 @@ def power(
 
     Parameters
     ----------
-    a : float or array_like of floats
+    a : float
         Parameter of the distribution. Must be non-negative.
     size : int or tuple of ints, optional
         Output shape.  If the given shape is, e.g., ``(m, n, k)``, then
         ``m * n * k`` samples are drawn.  If size is ``None`` (default),
-        a single value is returned if ``a`` is a scalar.  Otherwise,
-        ``np.array(a).size`` samples are drawn.
+        a single value is returned.
 
     Returns
     -------
@@ -1083,11 +1057,11 @@ def randint(
 
     Parameters
     ----------
-    low : int or array-like of ints
+    low : int
         Lowest (signed) integers to be drawn from the distribution (unless
         ``high=None``, in which case this parameter is one above the
         *highest* such integer).
-    high : int or array-like of ints, optional
+    high : int, optional
         If provided, one above the largest (signed) integer to be drawn
         from the distribution (see above for behavior if ``high=None``).
         If array-like, must contain integer values
@@ -1098,8 +1072,6 @@ def randint(
     dtype : dtype, optional
         Desired dtype of the result. Byteorder must be native.
         The default value is int.
-
-        .. versionadded:: 1.11.0
 
     Returns
     -------
@@ -1196,8 +1168,6 @@ def random_integers(
 
     This function has been deprecated. Use randint instead.
 
-    .. deprecated:: 1.11.0
-
     Parameters
     ----------
     low : int
@@ -1238,7 +1208,7 @@ def random_sample(
     """
     random_sample(size=None)
 
-    Return random floats in the half-open interval [0.0, 1.0).
+    Return random floats in the half-open interval ``[0.0, 1.0)``.
 
     Results are from the "continuous uniform" distribution over the
     stated interval.  To sample :math:`Unif[a, b), b > a` multiply
@@ -1274,7 +1244,7 @@ ranf = random_sample
 
 
 def rayleigh(
-    scale: float,
+    scale: float = 1.0,
     size: Union[NdShapeLike, None] = None,
     dtype: npt.DTypeLike = np.float64,
 ) -> ndarray:
@@ -1288,13 +1258,12 @@ def rayleigh(
 
     Parameters
     ----------
-    scale : float or array_like of floats, optional
+    scale : float, optional
         Scale, also equals the mode. Must be non-negative. Default is 1.
     size : int or tuple of ints, optional
         Output shape.  If the given shape is, e.g., ``(m, n, k)``, then
-        ``m * n * k`` samples are drawn.  If size is ``None`` (default),
-        a single value is returned if ``scale`` is a scalar.  Otherwise,
-        ``np.array(scale).size`` samples are drawn.
+        ``m * n * k`` samples are drawn.  Default is None, in which case a
+        single value is returned.
 
     Returns
     -------
@@ -1399,13 +1368,12 @@ def standard_gamma(
 
     Parameters
     ----------
-    shape : float or array_like of floats
+    shape : float
         Parameter, must be non-negative.
     size : int or tuple of ints, optional
         Output shape.  If the given shape is, e.g., ``(m, n, k)``, then
-        ``m * n * k`` samples are drawn.  If size is ``None`` (default),
-        a single value is returned if ``shape`` is a scalar.  Otherwise,
-        ``np.array(shape).size`` samples are drawn.
+        ``m * n * k`` samples are drawn.  Default is None, in which case a
+        single value is returned.
 
     Returns
     -------
@@ -1440,13 +1408,12 @@ def standard_t(
 
     Parameters
     ----------
-    df : float or array_like of floats
+    df : float
         Degrees of freedom, must be > 0.
     size : int or tuple of ints, optional
         Output shape.  If the given shape is, e.g., ``(m, n, k)``, then
-        ``m * n * k`` samples are drawn.  If size is ``None`` (default),
-        a single value is returned if ``df`` is a scalar.  Otherwise,
-        ``np.array(df).size`` samples are drawn.
+        ``m * n * k`` samples are drawn.  Default is None, in which case a
+        single value is returned.
 
     Returns
     -------
@@ -1484,19 +1451,17 @@ def triangular(
 
     Parameters
     ----------
-    left : float or array_like of floats
+    left : float
         Lower limit.
-    mode : float or array_like of floats
+    mode : float
         The value where the peak of the distribution occurs.
         The value must fulfill the condition ``left <= mode <= right``.
-    right : float or array_like of floats
+    right : float
         Upper limit, must be larger than `left`.
     size : int or tuple of ints, optional
         Output shape.  If the given shape is, e.g., ``(m, n, k)``, then
-        ``m * n * k`` samples are drawn.  If size is ``None`` (default),
-        a single value is returned if ``left``, ``mode``, and ``right``
-        are all scalars.  Otherwise, ``np.broadcast(left, mode, right).size``
-        samples are drawn.
+        ``m * n * k`` samples are drawn.  Default is None, in which case a
+        single value is returned.
 
     Returns
     -------
@@ -1534,10 +1499,10 @@ def uniform(
 
     Parameters
     ----------
-    low : float or array_like of floats, optional
+    low : float, optional
         Lower boundary of the output interval.  All values generated will be
         greater than or equal to low.  The default value is 0.
-    high : float or array_like of floats
+    high : float, optional
         Upper boundary of the output interval.  All values generated will be
         less than or equal to high.  The high limit may be included in the
         returned array of floats due to floating-point rounding in the
@@ -1545,9 +1510,8 @@ def uniform(
         is 1.0.
     size : int or tuple of ints, optional
         Output shape.  If the given shape is, e.g., ``(m, n, k)``, then
-        ``m * n * k`` samples are drawn.  If size is ``None`` (default),
-        a single value is returned if ``low`` and ``high`` are both scalars.
-        Otherwise, ``np.broadcast(low, high).size`` samples are drawn.
+        ``m * n * k`` samples are drawn.  Default is None, in which case a
+        single value is returned.
 
     Returns
     -------
@@ -1586,15 +1550,14 @@ def vonmises(
 
     Parameters
     ----------
-    mu : float or array_like of floats
+    mu : float
         Mode ("center") of the distribution.
-    kappa : float or array_like of floats
+    kappa : float
         Dispersion of the distribution, has to be >=0.
     size : int or tuple of ints, optional
         Output shape.  If the given shape is, e.g., ``(m, n, k)``, then
-        ``m * n * k`` samples are drawn.  If size is ``None`` (default),
-        a single value is returned if ``mu`` and ``kappa`` are both scalars.
-        Otherwise, ``np.broadcast(mu, kappa).size`` samples are drawn.
+        ``m * n * k`` samples are drawn.  Default is None, in which case a
+        single value is returned.
 
     Returns
     -------
@@ -1634,15 +1597,14 @@ def wald(
 
     Parameters
     ----------
-    mean : float or array_like of floats
+    mean : float
         Distribution mean, must be > 0.
-    scale : float or array_like of floats
+    scale : float
         Scale parameter, must be > 0.
     size : int or tuple of ints, optional
         Output shape.  If the given shape is, e.g., ``(m, n, k)``, then
-        ``m * n * k`` samples are drawn.  If size is ``None`` (default),
-        a single value is returned if ``mean`` and ``scale`` are both scalars.
-        Otherwise, ``np.broadcast(mean, scale).size`` samples are drawn.
+        ``m * n * k`` samples are drawn.  Default is None, in which case a
+        single value is returned.
 
     Returns
     -------
@@ -1682,13 +1644,12 @@ def weibull(
 
     Parameters
     ----------
-    a : float or array_like of floats
+    a : float
         Shape parameter of the distribution.  Must be nonnegative.
     size : int or tuple of ints, optional
         Output shape.  If the given shape is, e.g., ``(m, n, k)``, then
-        ``m * n * k`` samples are drawn.  If size is ``None`` (default),
-        a single value is returned if ``a`` is a scalar.  Otherwise,
-        ``np.array(a).size`` samples are drawn.
+        ``m * n * k`` samples are drawn.  Default is None, in which case a
+        single value is returned.
 
     Returns
     -------
@@ -1726,13 +1687,12 @@ def zipf(
 
     Parameters
     ----------
-    a : float or array_like of floats
+    a : float
         Distribution parameter. Must be greater than 1.
     size : int or tuple of ints, optional
         Output shape.  If the given shape is, e.g., ``(m, n, k)``, then
-        ``m * n * k`` samples are drawn.  If size is ``None`` (default),
-        a single value is returned if ``a`` is a scalar. Otherwise,
-        ``np.array(a).size`` samples are drawn.
+        ``m * n * k`` samples are drawn.  Default is None, in which case a
+        single value is returned.
 
     Returns
     -------

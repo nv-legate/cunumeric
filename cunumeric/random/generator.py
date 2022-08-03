@@ -33,8 +33,17 @@ class Generator:
 
         Container for the BitGenerators.
 
+        ``Generator`` exposes a number of methods for generating random numbers
+        drawn from a variety of probability distributions. In addition to the
+        distribution-specific arguments, each method takes a keyword argument
+        `size` that defaults to ``None``. If `size` is ``None``, then a single
+        value is generated and returned. If `size` is an integer, then a 1-D
+        array filled with generated values is returned. If `size` is a tuple,
+        then an array with that shape is filled and returned.
+
+
         The function :func:`cunumeric.random.default_rng` will instantiate
-        a `Generator` with numpy's default `BitGenerator`.
+        a `Generator` with cuNumeric's default `BitGenerator`.
 
         Parameters
         ----------
@@ -387,15 +396,16 @@ class Generator:
 
 def default_rng(seed: Union[int, None] = None) -> Generator:
     """
-        Construct a new Generator with the default BitGenerator (XORWOW).
+    Construct a new Generator with the default BitGenerator (XORWOW).
 
     Parameters
     ----------
     seed : {None, int,  BitGenerator, Generator}, optional
-        A seed to initialize the `BitGenerator`. If None, then fresh,
+        A seed to initialize the ``BitGenerator``. If ``None``, then fresh,
         unpredictable entropy will be pulled from the OS.
-        Additionally, when passed a `BitGenerator`, it will be wrapped by
-        `Generator`. If passed a `Generator`, it will be returned unaltered.
+        Additionally, when passed a ``BitGenerator``, it will be wrapped by
+        ``Generator``. If passed a ``Generator``, it will be returned
+        unaltered.
 
     Returns
     -------
@@ -404,8 +414,9 @@ def default_rng(seed: Union[int, None] = None) -> Generator:
 
     Notes
     -----
-    If ``seed`` is not a `BitGenerator` or a `Generator`, a new `BitGenerator`
-    is instantiated. This function does not manage a default global instance.
+    If ``seed`` is not a ``BitGenerator`` or a ``Generator``, a new
+    ``BitGenerator`` is instantiated. This function does not manage
+    a default global instance.
 
     Availability
     --------
