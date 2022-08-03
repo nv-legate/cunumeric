@@ -418,6 +418,10 @@ def default_rng(seed: Union[int, None] = None) -> Generator:
     ``BitGenerator`` is instantiated. This function does not manage
     a default global instance.
 
+    See Also
+    --------
+    numpy.random.default_rng
+
     Availability
     --------
     Multiple GPUs, Multiple CPUs

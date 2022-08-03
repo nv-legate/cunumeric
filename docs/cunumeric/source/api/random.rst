@@ -45,6 +45,7 @@ Simple random data
 .. autosummary::
    :toctree: generated/
 
+   default_rng
    rand
    randn
    randint

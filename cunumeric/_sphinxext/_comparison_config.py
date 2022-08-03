@@ -46,7 +46,6 @@ SKIP = {
     "iterable",
     "max",
     "min",
-    "ndim",
     "product",
     "recfromcsv",
     "recfromtxt",
@@ -335,7 +334,7 @@ STATS = (
     "var",
 )
 
-MISC = ("kron",)
+MISC = ("kron", "ndim")
 
 PACK = ("packbits", "unpackbits")
 
