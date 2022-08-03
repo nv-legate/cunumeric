@@ -22,14 +22,7 @@ from typing import TYPE_CHECKING, Any, Optional, Sequence, Union, cast
 
 import numpy as np
 import opt_einsum as oe  # type: ignore [import]
-
-<<<<<<< HEAD
-=======
 from numpy.core.multiarray import normalize_axis_index  # type: ignore
-
-from cunumeric.coverage import is_implemented
-
->>>>>>> 06821fdbeef9f525b8bbcac7f38462cdd38e08dc
 from numpy.core.numeric import (  # type: ignore [attr-defined]
     normalize_axis_tuple,
 )
