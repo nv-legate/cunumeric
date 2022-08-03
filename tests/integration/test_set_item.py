@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import numpy as np
 import pytest
 
 import cunumeric as num
@@ -26,6 +27,22 @@ def test_basic():
     assert x[0] == 1
     assert x[1] == 2
     assert x[2] == 3
+
+
+ARRAYS_4_3_2_1_0 = [
+    4 - num.arange(5),
+    4 - np.arange(5),
+    [4, 3, 2, 1, 0],
+]
+
+
+@pytest.mark.parametrize("arr", ARRAYS_4_3_2_1_0)
+def test_scalar_ndarray_as_index(arr):
+    offsets = num.arange(5)  # [0, 1, 2, 3, 4]
+    offset = offsets[3]  # 3
+    # arr[offset] = -1  # TODO: doesn't work when arr is a num.ndarray
+    arr[offset - 2 : offset] = [-1, -1]
+    assert np.array_equal(arr, [4, -1, -1, 1, 0])
 
 
 if __name__ == "__main__":

@@ -16,6 +16,8 @@
 # List all the application source files that need OpenMP separately
 # since we have to add the -fopenmp flag to  CC_FLAGS for them
 GEN_CPU_SRC += cunumeric/ternary/where.cc               \
+							 cunumeric/scan/scan_global.cc            \
+							 cunumeric/scan/scan_local.cc             \
 							 cunumeric/binary/binary_op.cc            \
 							 cunumeric/binary/binary_red.cc           \
 							 cunumeric/bits/packbits.cc               \
@@ -62,6 +64,8 @@ GEN_CPU_SRC += cunumeric/cephes/chbevl.cc \
 
 ifeq ($(strip $(USE_OPENMP)),1)
 GEN_CPU_SRC += cunumeric/ternary/where_omp.cc          \
+							 cunumeric/scan/scan_global_omp.cc       \
+							 cunumeric/scan/scan_local_omp.cc        \
 							 cunumeric/binary/binary_op_omp.cc       \
 							 cunumeric/binary/binary_red_omp.cc      \
 							 cunumeric/bits/packbits_omp.cc          \
@@ -100,6 +104,8 @@ GEN_CPU_SRC += cunumeric/ternary/where_omp.cc          \
 endif
 
 GEN_GPU_SRC += cunumeric/ternary/where.cu               \
+							 cunumeric/scan/scan_global.cu            \
+							 cunumeric/scan/scan_local.cu             \
 							 cunumeric/binary/binary_op.cu            \
 							 cunumeric/binary/binary_red.cu           \
 							 cunumeric/bits/packbits.cu               \
@@ -142,7 +148,7 @@ GEN_GPU_SRC += cunumeric/ternary/where.cu               \
 
 include cunumeric/sort/sort.mk
 
-ifeq ($(strip $(USE_CUDA)),1)
+ifeq ($(strip $(BUILD_CURAND_TASKS)),1)
 include cunumeric/random/random.mk
 endif
 

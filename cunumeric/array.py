@@ -14,11 +14,20 @@
 #
 from __future__ import annotations
 
+import operator
 import warnings
-from collections.abc import Iterable
 from functools import reduce, wraps
 from inspect import signature
-from typing import Any, Callable, Optional, Set, TypeVar, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Optional,
+    Sequence,
+    Set,
+    TypeVar,
+    Union,
+)
 
 import numpy as np
 import pyarrow
@@ -28,10 +37,19 @@ from typing_extensions import ParamSpec
 
 from legate.core import Array
 
-from .config import FFTDirection, FFTNormalization, UnaryOpCode, UnaryRedCode
+from .config import (
+    FFTDirection,
+    FFTNormalization,
+    ScanCode,
+    UnaryOpCode,
+    UnaryRedCode,
+)
 from .coverage import clone_np_ndarray
 from .runtime import runtime
 from .utils import dot_modes
+
+if TYPE_CHECKING:
+    from .types import NdShapeLike
 
 FALLBACK_WARNING = (
     "cuNumeric has not fully implemented {name} "
@@ -164,12 +182,14 @@ class ndarray:
         # `inputs` being a cuNumeric ndarray is definitely a bug
         assert not isinstance(inputs, ndarray)
         if thunk is None:
+            assert shape is not None
+            sanitized_shape = self._sanitize_shape(shape)
             if not isinstance(dtype, np.dtype):
                 dtype = np.dtype(dtype)
             if buffer is not None:
                 # Make a normal numpy array for this buffer
                 np_array = np.ndarray(
-                    shape=shape,
+                    shape=sanitized_shape,
                     dtype=dtype,
                     buffer=buffer,
                     offset=offset,
@@ -187,10 +207,38 @@ class ndarray:
                         for inp in inputs
                         if isinstance(inp, ndarray)
                     ]
-                self._thunk = runtime.create_empty_thunk(shape, dtype, inputs)
+                self._thunk = runtime.create_empty_thunk(
+                    sanitized_shape, dtype, inputs
+                )
         else:
             self._thunk = thunk
         self._legate_data = None
+
+    @staticmethod
+    def _sanitize_shape(
+        shape: Union[NdShapeLike, Sequence[Any], np.ndarray, ndarray]
+    ):
+        if isinstance(shape, (ndarray, np.ndarray)):
+            if shape.ndim == 0:
+                seq = (shape.__array__().item(),)
+            else:
+                seq = tuple(shape.__array__())
+        elif np.isscalar(shape):
+            seq = (shape,)
+        else:
+            seq = tuple(shape)
+        try:
+            # Unfortunately, we can't do this check using
+            # 'isinstance(value, int)', as the values in a NumPy ndarray
+            # don't satisfy the predicate (they have numpy value types,
+            # such as numpy.int64).
+            result = tuple(operator.index(value) for value in seq)
+        except TypeError:
+            raise TypeError(
+                "expected a sequence of integers or a single integer, "
+                f"got '{shape}'"
+            )
+        return result
 
     # Support for the Legate data interface
     @property
@@ -823,6 +871,12 @@ class ndarray:
 
     def _convert_key(self, key, first=True):
         # Convert any arrays stored in a key to a cuNumeric array
+        if isinstance(key, slice):
+            key = slice(
+                operator.index(key.start) if key.start is not None else None,
+                operator.index(key.stop) if key.stop is not None else None,
+                operator.index(key.step) if key.step is not None else None,
+            )
         if (
             key is np.newaxis
             or key is Ellipsis
@@ -969,6 +1023,9 @@ class ndarray:
         from ._ufunc import multiply
 
         return multiply(self, rhs, out=self)
+
+    def __index__(self) -> int:
+        return self.__array__().__index__()
 
     def __int__(self):
         """a.__int__(/)
@@ -2119,6 +2176,50 @@ class ndarray:
         # We don't care about dimension order in cuNumeric
         return self.__copy__()
 
+    @add_boilerplate()
+    def cumsum(self, axis=None, dtype=None, out=None) -> ndarray:
+        return self._perform_scan(
+            ScanCode.SUM,
+            self,
+            axis=axis,
+            dtype=dtype,
+            out=out,
+            nan_to_identity=False,
+        )
+
+    @add_boilerplate()
+    def cumprod(self, axis=None, dtype=None, out=None) -> ndarray:
+        return self._perform_scan(
+            ScanCode.PROD,
+            self,
+            axis=axis,
+            dtype=dtype,
+            out=out,
+            nan_to_identity=False,
+        )
+
+    @add_boilerplate()
+    def nancumsum(self, axis=None, dtype=None, out=None) -> ndarray:
+        return self._perform_scan(
+            ScanCode.SUM,
+            self,
+            axis=axis,
+            dtype=dtype,
+            out=out,
+            nan_to_identity=True,
+        )
+
+    @add_boilerplate()
+    def nancumprod(self, axis=None, dtype=None, out=None) -> ndarray:
+        return self._perform_scan(
+            ScanCode.PROD,
+            self,
+            axis=axis,
+            dtype=dtype,
+            out=out,
+            nan_to_identity=True,
+        )
+
     # diagonal helper. Will return diagonal for arbitrary number of axes;
     # currently offset option is implemented only for the case of number of
     # axes=2. This restriction can be lifted in the future if there is a
@@ -2918,7 +3019,7 @@ class ndarray:
         """
         return self.reshape(-1, order=order)
 
-    def reshape(self, shape, order="C") -> ndarray:
+    def reshape(self, *args, order="C") -> ndarray:
         """a.reshape(shape, order='C')
 
         Returns an array containing the same data with a new shape.
@@ -2934,61 +3035,51 @@ class ndarray:
         --------
         Multiple GPUs, Multiple CPUs
         """
-        if shape != -1:
-            # Check that these sizes are compatible
-            if isinstance(shape, Iterable):
-                newsize = 1
-                newshape = list()
-                unknown_axis = -1
-                for ax, dim in enumerate(shape):
-                    if dim < 0:
-                        newshape.append(np.newaxis)
-                        if unknown_axis == -1:
-                            unknown_axis = ax
-                        else:
-                            unknown_axis = -2
-                    else:
-                        newsize *= dim
-                        newshape.append(dim)
-                if unknown_axis == -2:
-                    raise ValueError("can only specify one unknown dimension")
-                if unknown_axis >= 0:
-                    if self.size % newsize != 0:
-                        raise ValueError(
-                            "cannot reshape array of size "
-                            + str(self.size)
-                            + " into shape "
-                            + str(tuple(newshape))
-                        )
-                    newshape[unknown_axis] = self.size // newsize
-                    newsize *= newshape[unknown_axis]
-                if newsize != self.size:
-                    raise ValueError(
-                        "cannot reshape array of size "
-                        + str(self.size)
-                        + " into shape "
-                        + str(shape)
-                    )
-                shape = tuple(newshape)
-            elif isinstance(shape, int):
-                if shape != self.size:
-                    raise ValueError(
-                        "cannot reshape array of size "
-                        + str(self.size)
-                        + " into shape "
-                        + str((shape,))
-                    )
-            else:
-                TypeError("shape must be int-like or tuple-like")
+
+        if len(args) == 0:
+            raise TypeError("reshape() takes exactly 1 argument (0 given)")
+        elif len(args) == 1:
+            shape = (args[0],) if isinstance(args[0], int) else args[0]
         else:
-            # Compute a flattened version of the shape
-            shape = (self.size,)
+            shape = args
+
+        computed_shape = tuple(operator.index(extent) for extent in shape)
+
+        num_unknowns = sum(extent < 0 for extent in computed_shape)
+        if num_unknowns > 1:
+            raise ValueError("can only specify one unknown dimension")
+
+        knowns = filter(lambda x: x >= 0, computed_shape)
+        known_volume = reduce(lambda x, y: x * y, knowns, 1)
+
+        # Can't have an unknown if the known shape has 0 size
+        if num_unknowns > 0 and known_volume == 0:
+            raise ValueError(
+                f"cannot reshape array of size {self.size} into "
+                f"shape {computed_shape}"
+            )
+
+        size = self.size
+        unknown_extent = 1 if num_unknowns == 0 else size // known_volume
+
+        if unknown_extent * known_volume != size:
+            raise ValueError(
+                f"cannot reshape array of size {size} into "
+                f"shape {computed_shape}"
+            )
+
+        computed_shape = tuple(
+            unknown_extent if extent < 0 else extent
+            for extent in computed_shape
+        )
+
         # Handle an easy case
-        if shape == self.shape:
+        if computed_shape == self.shape:
             return self
+
         return ndarray(
             shape=None,
-            thunk=self._thunk.reshape(shape, order),
+            thunk=self._thunk.reshape(computed_shape, order),
         )
 
     def setfield(self, val, dtype, offset=0):
@@ -3135,7 +3226,7 @@ class ndarray:
 
         Availability
         --------
-        Multiple GPUs, Single CPU
+        Multiple GPUs, Multiple CPUs
 
         """
         self._thunk.sort(rhs=self._thunk, axis=axis, kind=kind, order=order)
@@ -3153,7 +3244,7 @@ class ndarray:
 
         Availability
         --------
-        Multiple GPUs, Single CPU
+        Multiple GPUs, Multiple CPUs
 
         """
         result = ndarray(self.shape, np.int64)
@@ -3799,4 +3890,57 @@ class ndarray:
         out_shape = np.broadcast_shapes(mask.shape, one.shape, two.shape)
         out = ndarray(shape=out_shape, dtype=common_type, inputs=args)
         out._thunk.where(mask, one, two)
+        return out
+
+    @classmethod
+    def _perform_scan(
+        cls, op, src, axis=None, dtype=None, out=None, nan_to_identity=False
+    ) -> ndarray:
+        if dtype is None:
+            if out is None:
+                if src.dtype.kind == "i":
+                    # Set dtype to default platform integer
+                    dtype = np.int_
+                else:
+                    dtype = src.dtype
+            else:
+                dtype = out.dtype
+        if (src.dtype.kind in ("f", "c")) and np.issubdtype(dtype, np.integer):
+            # Needs changes to convert()
+            raise NotImplementedError(
+                "Integer output types currently not supported for "
+                "floating/complex inputs"
+            )
+        # flatten input when axis is None
+        if axis is None:
+            axis = 0
+            src_arr = src.ravel()
+        else:
+            axis = normalize_axis_index(axis, src.ndim)
+            src_arr = src
+        if out is not None:
+            if dtype != out.dtype:
+                # if out array is specified, its type overrules dtype
+                dtype = out.dtype
+            if out.shape != src_arr.shape:
+                raise NotImplementedError(
+                    "Varried output shape not supported. Output must have "
+                    "same shape as input (same size if no axis is provided"
+                )
+        else:
+            out = ndarray(shape=src_arr.shape, dtype=dtype)
+
+        if dtype != src_arr.dtype:
+            # convert input to temporary for type conversion
+            temp = ndarray(shape=src_arr.shape, dtype=dtype)
+            temp._thunk.convert(src_arr._thunk)
+            src_arr = temp
+
+        out._thunk.scan(
+            op,
+            src_arr._thunk,
+            axis=axis,
+            dtype=dtype,
+            nan_to_identity=nan_to_identity,
+        )
         return out

@@ -410,6 +410,172 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
+    def bitgenerator_beta(
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        a: float,
+        b: float,
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def bitgenerator_f(
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        dfnum: float,
+        dfden: float,
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def bitgenerator_logseries(
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        p: float,
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def bitgenerator_noncentral_f(
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        dfnum: float,
+        dfden: float,
+        nonc: float,
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def bitgenerator_chisquare(
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        df: float,
+        nonc: float,
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def bitgenerator_gamma(
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        k: float,
+        theta: float,
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def bitgenerator_standard_t(
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        df: float,
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def bitgenerator_hypergeometric(
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        ngood: int,
+        nbad: int,
+        nsample: int,
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def bitgenerator_vonmises(
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        mu: float,
+        kappa: float,
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def bitgenerator_zipf(
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        alpha: float,
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def bitgenerator_geometric(
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        p: float,
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def bitgenerator_wald(
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        mean: float,
+        scale: float,
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def bitgenerator_binomial(
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        ntrials: int,
+        p: float,
+    ) -> None:
+        ...
+
+    @abstractmethod
+    def bitgenerator_negative_binomial(
+        self,
+        handle: int,
+        generatorType: BitGeneratorType,
+        seed: Union[int, None],
+        flags: int,
+        ntrials: int,
+        p: float,
+    ) -> None:
+        ...
+
+    @abstractmethod
     def random_uniform(self) -> None:
         ...
 
@@ -502,6 +668,17 @@ class NumPyThunk(ABC):
 
     @abstractmethod
     def cholesky(self, src: Any, no_tril: bool) -> None:
+        ...
+
+    @abstractmethod
+    def scan(
+        self,
+        op: int,
+        rhs: Any,
+        axis: int,
+        dtype: Optional[np.dtype[Any]],
+        nan_to_identity: bool,
+    ) -> None:
         ...
 
     @abstractmethod
