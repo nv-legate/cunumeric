@@ -64,6 +64,10 @@ struct CURANDGenerator {
   {
     CHECK_CURAND(::randutilGenerateIntegers64(gen_, out, count, low, high));
   }
+  void generate_integer_16(uint64_t count, int16_t* out, int16_t low, int16_t high)
+  {
+    CHECK_CURAND(::randutilGenerateIntegers16(gen_, out, count, low, high));
+  }
   void generate_integer_32(uint64_t count, int32_t* out, int32_t low, int32_t high)
   {
     CHECK_CURAND(::randutilGenerateIntegers32(gen_, out, count, low, high));
@@ -328,6 +332,22 @@ struct integer_generator<int32_t> {
   void generate(CURANDGenerator& gen, uint64_t count, int32_t* p) const
   {
     gen.generate_integer_32(count, p, low_, high_);
+  }
+};
+template <>
+struct integer_generator<int16_t> {
+  int16_t low_, high_;
+
+  integer_generator(const std::vector<int64_t>& intparams,
+                    const std::vector<float>& floatparams,
+                    const std::vector<double>& doubleparams)
+    : low_((int16_t)intparams[0]), high_((int16_t)intparams[1])
+  {
+  }
+
+  void generate(CURANDGenerator& gen, uint64_t count, int16_t* p) const
+  {
+    gen.generate_integer_16(count, p, low_, high_);
   }
 };
 
@@ -1508,6 +1528,10 @@ struct BitGeneratorImplBody {
           legate::Store& res     = output[0];
           CURANDGenerator& cugen = *genptr;
           switch (distribution) {
+            case BitGeneratorDistribution::INTEGERS_16:
+              generate_distribution<int16_t, integer_generator<int16_t>>::generate(
+                res, cugen, intparams, floatparams, doubleparams);
+              break;
             case BitGeneratorDistribution::INTEGERS_32:
               generate_distribution<int32_t, integer_generator<int32_t>>::generate(
                 res, cugen, intparams, floatparams, doubleparams);

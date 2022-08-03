@@ -41,6 +41,12 @@ extern "C" curandStatus_t randutilDestroyGenerator(randutilGenerator_t generator
 
 /* curand distributions */
 
+extern "C" curandStatus_t randutilGenerateIntegers16(randutilGenerator_t generator,
+                                                     int16_t* outputPtr,
+                                                     size_t num,
+                                                     int16_t low /* inclusive */,
+                                                     int16_t high /* exclusive */);
+
 extern "C" curandStatus_t randutilGenerateIntegers32(randutilGenerator_t generator,
                                                      int32_t* outputPtr,
                                                      size_t num,

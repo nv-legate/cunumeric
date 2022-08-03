@@ -660,7 +660,7 @@ def test():
 
     x = np.ones((3, 4), dtype=float)
     x_num = num.array(x)
-    ind = np.full((3,), 1)
+    ind = np.arange(3)
     ind_num = num.array(ind)
     res = x[ind, ind]
     res_num = x_num[ind_num, ind_num]
@@ -668,12 +668,6 @@ def test():
 
     x[ind, ind] = 5
     x_num[ind_num, ind_num] = 5
-    assert np.array_equal(x, x_num)
-
-    b = np.array([1, 2, 3], dtype=np.int16)
-    b_num = num.array(b)
-    x[ind, ind] = b
-    x_num[ind_num, ind_num] = b_num
     assert np.array_equal(x, x_num)
 
     # some additional tests for bool index arrays:

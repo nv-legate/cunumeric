@@ -76,6 +76,7 @@ class _CunumericSharedLib:
     CUNUMERIC_BITGENTYPE_MTGP32: int
     CUNUMERIC_BITGENTYPE_MT19937: int
     CUNUMERIC_BITGENTYPE_PHILOX4_32_10: int
+    CUNUMERIC_BITGENDIST_INTEGERS_16: int
     CUNUMERIC_BITGENDIST_INTEGERS_32: int
     CUNUMERIC_BITGENDIST_INTEGERS_64: int
     CUNUMERIC_BITGENDIST_UNIFORM_32: int
@@ -175,6 +176,10 @@ class _CunumericSharedLib:
     CUNUMERIC_RED_SUM: int
     CUNUMERIC_REPEAT: int
     CUNUMERIC_SCALAR_UNARY_RED: int
+    CUNUMERIC_SCAN_GLOBAL: int
+    CUNUMERIC_SCAN_LOCAL: int
+    CUNUMERIC_SCAN_PROD: int
+    CUNUMERIC_SCAN_SUM: int
     CUNUMERIC_SEARCHSORTED: int
     CUNUMERIC_SORT: int
     CUNUMERIC_SYRK: int
@@ -257,6 +262,9 @@ class _CunumericSharedLib:
     CUNUMERIC_WINDOW_KAISER: int
     CUNUMERIC_WRITE: int
     CUNUMERIC_ZIP: int
+
+    def cunumeric_has_curand(self) -> int:
+        ...
 
 
 # Load the cuNumeric library first so we have a shard object that
@@ -345,6 +353,8 @@ class CuNumericOpCode(IntEnum):
     READ = _cunumeric.CUNUMERIC_READ
     REPEAT = _cunumeric.CUNUMERIC_REPEAT
     SCALAR_UNARY_RED = _cunumeric.CUNUMERIC_SCALAR_UNARY_RED
+    SCAN_GLOBAL = _cunumeric.CUNUMERIC_SCAN_GLOBAL
+    SCAN_LOCAL = _cunumeric.CUNUMERIC_SCAN_LOCAL
     SEARCHSORTED = _cunumeric.CUNUMERIC_SEARCHSORTED
     SORT = _cunumeric.CUNUMERIC_SORT
     SYRK = _cunumeric.CUNUMERIC_SYRK
@@ -504,6 +514,13 @@ class CuNumericTunable(IntEnum):
     HAS_NUMAMEM = _cunumeric.CUNUMERIC_TUNABLE_HAS_NUMAMEM
 
 
+# Match these to CuNumericScanCode in cunumeric_c.h
+@unique
+class ScanCode(IntEnum):
+    PROD = _cunumeric.CUNUMERIC_SCAN_PROD
+    SUM = _cunumeric.CUNUMERIC_SCAN_SUM
+
+
 # Match these to BitGeneratorOperation in cunumeric_c.h
 @unique
 class BitGeneratorOperation(IntEnum):
@@ -527,6 +544,7 @@ class BitGeneratorType(IntEnum):
 # Match these to BitGeneratorDistribution in cunumeric_c.h
 @unique
 class BitGeneratorDistribution(IntEnum):
+    INTEGERS_16 = _cunumeric.CUNUMERIC_BITGENDIST_INTEGERS_16
     INTEGERS_32 = _cunumeric.CUNUMERIC_BITGENDIST_INTEGERS_32
     INTEGERS_64 = _cunumeric.CUNUMERIC_BITGENDIST_INTEGERS_64
     UNIFORM_32 = _cunumeric.CUNUMERIC_BITGENDIST_UNIFORM_32

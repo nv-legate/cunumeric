@@ -84,7 +84,7 @@ def sort_task(
 ) -> None:
     task = output.context.create_task(CuNumericOpCode.SORT)
 
-    uses_unbound_output = output.runtime.num_gpus > 1 and input.ndim == 1
+    uses_unbound_output = output.runtime.num_procs > 1 and input.ndim == 1
 
     task.add_input(input.base)
     if uses_unbound_output:
@@ -98,13 +98,8 @@ def sort_task(
 
     if output.runtime.num_gpus > 1:
         task.add_nccl_communicator()
-
-    # Distributed sort on CPU not supported yet
-    if output.runtime.num_gpus == 0 and output.runtime.num_procs > 1:
-        if output.ndim > 1:
-            task.add_broadcast(input.base, input.ndim - 1)
-        else:
-            task.add_broadcast(input.base)
+    elif output.runtime.num_gpus == 0 and output.runtime.num_procs > 1:
+        task.add_cpu_communicator()
 
     task.add_scalar_arg(argsort, bool)  # return indices flag
     task.add_scalar_arg(input.base.shape, (ty.int64,))

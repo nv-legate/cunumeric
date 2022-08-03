@@ -17,6 +17,13 @@
 #include "generator.h"
 #include "generator_create.inl"
 
+#if !defined(LEGATE_USE_CUDA)
+// the host code of cuRAND try to extern these variables out of nowhere,
+// so we need to define them somewhere.
+const dim3 blockDim{};
+const uint3 threadIdx{};
+#endif
+
 extern "C" curandStatus_t randutilCreateGeneratorHost(randutilGenerator_t* generator,
                                                       curandRngType_t rng_type,
                                                       uint64_t seed,
@@ -44,6 +51,16 @@ extern "C" curandStatus_t randutilDestroyGenerator(randutilGenerator_t generator
 #pragma region integers
 
 #include "generator_integers.inl"
+
+extern "C" curandStatus_t randutilGenerateIntegers16(
+  randutilGenerator_t generator, int16_t* outputPtr, size_t n, int16_t low, int16_t high)
+{
+  randutilimpl::basegenerator* gen = (randutilimpl::basegenerator*)generator;
+  integers<int16_t> func;
+  func.from = low;
+  func.to   = high;
+  return randutilimpl::dispatch<decltype(func), int16_t>(gen, func, n, outputPtr);
+}
 
 extern "C" curandStatus_t randutilGenerateIntegers32(
   randutilGenerator_t generator, int32_t* outputPtr, size_t n, int32_t low, int32_t high)

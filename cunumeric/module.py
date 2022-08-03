@@ -22,6 +22,11 @@ from typing import TYPE_CHECKING, Any, Optional, Sequence, Union, cast
 
 import numpy as np
 import opt_einsum as oe  # type: ignore [import]
+<<<<<<< HEAD
+=======
+from cunumeric.coverage import is_implemented
+from numpy.core.multiarray import normalize_axis_index  # type: ignore
+>>>>>>> 06821fdbeef9f525b8bbcac7f38462cdd38e08dc
 from numpy.core.numeric import (  # type: ignore [attr-defined]
     normalize_axis_tuple,
 )
@@ -32,7 +37,7 @@ from ._ufunc.comparison import maximum, minimum
 from ._ufunc.floating import floor
 from ._ufunc.math import add, multiply
 from .array import add_boilerplate, convert_to_cunumeric_ndarray, ndarray
-from .config import BinaryOpCode, UnaryRedCode
+from .config import BinaryOpCode, ScanCode, UnaryRedCode
 from .runtime import runtime
 from .types import NdShape, NdShapeLike
 from .utils import AxesPairLike, inner_modes, matmul_modes, tensordot_modes
@@ -964,6 +969,36 @@ def triu(m: ndarray, k: int = 0) -> ndarray:
 #############################
 
 # Basic operations
+
+
+@add_boilerplate("a")
+def ndim(a: ndarray) -> int:
+    """
+
+    Return the number of dimensions of an array.
+
+    Parameters
+    ----------
+    a : array_like
+        Input array.  If it is not already an ndarray, a conversion is
+        attempted.
+
+    Returns
+    -------
+    number_of_dimensions : int
+        The number of dimensions in `a`.  Scalars are zero-dimensional.
+
+    See Also
+    --------
+    ndarray.ndim : equivalent method
+    shape : dimensions of array
+    ndarray.shape : dimensions of array
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    return a.ndim
 
 
 @add_boilerplate("a")
@@ -2886,6 +2921,156 @@ def take(
     return a.take(indices=indices, axis=axis, out=out, mode=mode)
 
 
+def _fill_fancy_index_for_along_axis_routines(
+    a_shape: NdShape, axis: int, indices: ndarray
+) -> tuple[ndarray, ...]:
+
+    # the logic below is base on the cupy implementation of
+    # the *_along_axis routines
+    ndim = len(a_shape)
+    fancy_index = []
+    for i, n in enumerate(a_shape):
+        if i == axis:
+            fancy_index.append(indices)
+        else:
+            ind_shape = (1,) * i + (-1,) + (1,) * (ndim - i - 1)
+            fancy_index.append(arange(n).reshape(ind_shape))
+    return tuple(fancy_index)
+
+
+@add_boilerplate("a", "indices")
+def take_along_axis(
+    a: ndarray, indices: ndarray, axis: Union[int, None]
+) -> ndarray:
+    """
+    Take values from the input array by matching 1d index and data slices.
+
+    This iterates over matching 1d slices oriented along the specified axis in
+    the index and data arrays, and uses the former to look up values in the
+    latter. These slices can be different lengths.
+
+    Functions returning an index along an axis, like
+    :func:`cunumeric.argsort` and :func:`cunumeric.argpartition`,
+    produce suitable indices for this function.
+
+    Parameters
+    ----------
+    arr : ndarray (Ni..., M, Nk...)
+        Source array
+    indices : ndarray (Ni..., J, Nk...)
+        Indices to take along each 1d slice of `arr`. This must match the
+        dimension of arr, but dimensions Ni and Nj only need to broadcast
+        against `arr`.
+    axis : int
+        The axis to take 1d slices along. If axis is None, the input array is
+        treated as if it had first been flattened to 1d, for consistency with
+        :func:`cunumeric.sort` and :func:`cunumeric.argsort`.
+
+    Returns
+    -------
+    out: ndarray (Ni..., J, Nk...)
+        The indexed result. It is going to be a view to `arr` for most cases,
+        except the case when `axis=Null` and `arr.ndim>1`.
+
+    See Also
+    --------
+    numpy.take_along_axis
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    if not np.issubdtype(indices.dtype, np.integer):
+        raise TypeError("`indices` must be an integer array")
+
+    computed_axis = 0
+    if axis is None:
+        if indices.ndim != 1:
+            raise ValueError("indices must be 1D if axis=None")
+        if a.ndim > 1:
+            a = a.ravel()
+    else:
+        computed_axis = normalize_axis_index(axis, a.ndim)
+
+    if a.ndim != indices.ndim:
+        raise ValueError(
+            "`indices` and `a` must have the same number of dimensions"
+        )
+    return a[
+        _fill_fancy_index_for_along_axis_routines(
+            a.shape, computed_axis, indices
+        )
+    ]
+
+
+@add_boilerplate("a", "indices", "values")
+def put_along_axis(
+    a: ndarray, indices: ndarray, values: ndarray, axis: Union[int, None]
+) -> None:
+    """
+    Put values into the destination array by matching 1d index and data slices.
+
+    This iterates over matching 1d slices oriented along the specified axis in
+    the index and data arrays, and uses the former to place values into the
+    latter. These slices can be different lengths.
+
+    Functions returning an index along an axis, like :func:`cunumeric.argsort`
+    and :func:`cunumeric.argpartition`, produce suitable indices for
+    this function.
+
+    Parameters
+    ----------
+    arr : ndarray (Ni..., M, Nk...)
+        Destination array.
+    indices : ndarray (Ni..., J, Nk...)
+        Indices to change along each 1d slice of `arr`. This must match the
+        dimension of arr, but dimensions in Ni and Nj may be 1 to broadcast
+        against `arr`.
+    values : array_like (Ni..., J, Nk...)
+        values to insert at those indices. Its shape and dimension are
+        broadcast to match that of `indices`.
+    axis : int
+        The axis to take 1d slices along. If axis is None, the destination
+        array is treated as if a flattened 1d view had been created of it.
+        `axis=None` case is currently supported only for 1D input arrays.
+
+    Note
+    ----
+    Having duplicate entries in `indices` will result in undefined behavior
+    since operation performs asynchronous update of the `arr` entries.
+
+    See Also
+    --------
+    numpy.put_along_axis
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+
+    """
+    if not np.issubdtype(indices.dtype, np.integer):
+        raise TypeError("`indices` must be an integer array")
+
+    computed_axis = 0
+    if axis is None:
+        if indices.ndim != 1:
+            raise ValueError("indices must be 1D if axis=None")
+        if a.ndim > 1:
+            # TODO call a=a.flat when flat is implemented
+            raise ValueError("a.ndim>1 case is not supported when axis=None")
+    else:
+        computed_axis = normalize_axis_index(axis, a.ndim)
+
+    if a.ndim != indices.ndim:
+        raise ValueError(
+            "`indices` and `a` must have the same number of dimensions"
+        )
+    ind = _fill_fancy_index_for_along_axis_routines(
+        a.shape, computed_axis, indices
+    )
+    a[ind] = values
+
+
 @add_boilerplate("a")
 def choose(
     a: ndarray,
@@ -4450,6 +4635,219 @@ def sum(
     )
 
 
+@add_boilerplate("a")
+def cumprod(
+    a: ndarray,
+    axis: Optional[int] = None,
+    dtype: Optional[np.dtype[Any]] = None,
+    out: Optional[ndarray] = None,
+) -> ndarray:
+    """
+    Return the cumulative product of the elements along a given axis.
+
+    Parameters
+    ----------
+    a : array_like
+        Input array.
+
+    axis : int, optional
+        Axis along which the cumulative sum is computed. The default (None) is
+        to compute the cumsum over the flattened array.
+
+    dtype : dtype, optional
+        Type of the returned array and of the accumulator in which the elements
+        are summed. If dtype is not specified, it defaults to the dtype of a,
+        unless a has an integer dtype with a precision less than that of the
+        default platform integer. In that case, the default platform integer is
+        used.
+    out : ndarray, optional
+        Alternative output array in which to place the result. It must have the
+        same shape and buffer length as the expected output but the type will
+        be cast if necessary. See Output type determination for more details.
+
+    Returns
+    -------
+    cumprod_along_axis : ndarray.
+        A new array holding the result is returned unless out is specified, in
+        which case a reference to out is returned. The result has the same size
+        as a, and the same shape as a if axis is not None or a is a 1-d array.
+
+    See Also
+    --------
+    numpy.cumprod
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    return ndarray._perform_scan(
+        ScanCode.PROD,
+        a,
+        axis=axis,
+        dtype=dtype,
+        out=out,
+        nan_to_identity=False,
+    )
+
+
+@add_boilerplate("a")
+def cumsum(
+    a: ndarray,
+    axis: Optional[int] = None,
+    dtype: Optional[np.dtype[Any]] = None,
+    out: Optional[ndarray] = None,
+) -> ndarray:
+    """
+    Return the cumulative sum of the elements along a given axis.
+
+    Parameters
+    ----------
+    a : array_like
+        Input array.
+
+    axis : int, optional
+        Axis along which the cumulative sum is computed. The default (None) is
+        to compute the cumsum over the flattened array.
+
+    dtype : dtype, optional
+        Type of the returned array and of the accumulator in which the elements
+        are summed. If dtype is not specified, it defaults to the dtype of a,
+        unless a has an integer dtype with a precision less than that of the
+        default platform integer. In that case, the default platform integer is
+        used.
+    out : ndarray, optional
+        Alternative output array in which to place the result. It must have the
+        same shape and buffer length as the expected output but the type will
+        be cast if necessary. See Output type determination for more details.
+
+    Returns
+    -------
+    cumsum_along_axis : ndarray.
+        A new array holding the result is returned unless out is specified, in
+        which case a reference to out is returned. The result has the same size
+        as a, and the same shape as a if axis is not None or a is a 1-d array.
+
+    See Also
+    --------
+    numpy.cumsum
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    return ndarray._perform_scan(
+        ScanCode.SUM, a, axis=axis, dtype=dtype, out=out, nan_to_identity=False
+    )
+
+
+@add_boilerplate("a")
+def nancumprod(
+    a: ndarray,
+    axis: Optional[int] = None,
+    dtype: Optional[np.dtype[Any]] = None,
+    out: Optional[ndarray] = None,
+) -> ndarray:
+    """
+    Return the cumulative product of the elements along a given axis treating
+    Not a Numbers (NaNs) as one. The cumulative product does not change when
+    NaNs are encountered and leading NaNs are replaced by ones.
+
+    Ones are returned for slices that are all-NaN or empty.
+
+    Parameters
+    ----------
+    a : array_like
+        Input array.
+
+    axis : int, optional
+        Axis along which the cumulative sum is computed. The default (None) is
+        to compute the cumsum over the flattened array.
+
+    dtype : dtype, optional
+        Type of the returned array and of the accumulator in which the elements
+        are summed. If dtype is not specified, it defaults to the dtype of a,
+        unless a has an integer dtype with a precision less than that of the
+        default platform integer. In that case, the default platform integer is
+        used.
+    out : ndarray, optional
+        Alternative output array in which to place the result. It must have the
+        same shape and buffer length as the expected output but the type will
+        be cast if necessary. See Output type determination for more details.
+
+    Returns
+    -------
+    cumprod_along_axis : ndarray.
+        A new array holding the result is returned unless out is specified, in
+        which case a reference to out is returned. The result has the same size
+        as a, and the same shape as a if axis is not None or a is a 1-d array.
+
+    See Also
+    --------
+    numpy.nancumprod
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    return ndarray._perform_scan(
+        ScanCode.PROD, a, axis=axis, dtype=dtype, out=out, nan_to_identity=True
+    )
+
+
+@add_boilerplate("a")
+def nancumsum(
+    a: ndarray,
+    axis: Optional[int] = None,
+    dtype: Optional[np.dtype[Any]] = None,
+    out: Optional[ndarray] = None,
+) -> ndarray:
+    """
+    Return the cumulative sum of the elements along a given axis treating Not a
+    Numbers (NaNs) as zero. The cumulative sum does not change when NaNs are
+    encountered and leading NaNs are replaced by zeros.
+
+    Zeros are returned for slices that are all-NaN or empty.
+
+    Parameters
+    ----------
+    a : array_like
+        Input array.
+
+    axis : int, optional
+        Axis along which the cumulative sum is computed. The default (None) is
+        to compute the cumsum over the flattened array.
+
+    dtype : dtype, optional
+        Type of the returned array and of the accumulator in which the elements
+        are summed. If dtype is not specified, it defaults to the dtype of a,
+        unless a has an integer dtype with a precision less than that of the
+        default platform integer. In that case, the default platform integer is
+        used.
+    out : ndarray, optional
+        Alternative output array in which to place the result. It must have the
+        same shape and buffer length as the expected output but the type will
+        be cast if necessary. See Output type determination for more details.
+
+    Returns
+    -------
+    cumsum_along_axis : ndarray.
+        A new array holding the result is returned unless out is specified, in
+        which case a reference to out is returned. The result has the same size
+        as a, and the same shape as a if axis is not None or a is a 1-d array.
+
+    See Also
+    --------
+    numpy.nancumsum
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    return ndarray._perform_scan(
+        ScanCode.SUM, a, axis=axis, dtype=dtype, out=out, nan_to_identity=True
+    )
+
+
 # Exponents and logarithms
 
 
@@ -4922,18 +5320,13 @@ def argsort(
         Array of indices that sort a along the specified axis. It has the
         same shape as `a.shape` or is flattened in case of `axis` is None.
 
-    Notes
-    -----
-    The current implementation has only limited support for distributed data.
-    Distributed 1-D or flattened data will be broadcasted.
-
     See Also
     --------
     numpy.argsort
 
     Availability
     --------
-    Multiple GPUs, Single CPU
+    Multiple GPUs, Multiple CPUs
     """
 
     result = ndarray(a.shape, np.int64)
@@ -4958,18 +5351,13 @@ def msort(a: ndarray) -> ndarray:
     out : ndarray
         Sorted array with same dtype and shape as `a`.
 
-    Notes
-    -----
-    The current implementation has only limited support for distributed data.
-    Distributed 1-D  data will be broadcasted.
-
     See Also
     --------
     numpy.msort
 
     Availability
     --------
-    Multiple GPUs, Single CPU
+    Multiple GPUs, Multiple CPUs
     """
     return sort(a, axis=0)
 
@@ -5045,10 +5433,6 @@ def sort(
         Sorted array with same dtype and shape as `a`. In case `axis` is
         None the result is flattened.
 
-    Notes
-    -----
-    The current implementation has only limited support for distributed data.
-    Distributed 1-D or flattened data will be broadcasted.
 
     See Also
     --------
@@ -5056,7 +5440,7 @@ def sort(
 
     Availability
     --------
-    Multiple GPUs, Single CPU
+    Multiple GPUs, Multiple CPUs
     """
     result = ndarray(a.shape, a.dtype)
     result._thunk.sort(rhs=a._thunk, axis=axis, kind=kind, order=order)
@@ -5080,18 +5464,13 @@ def sort_complex(a: ndarray) -> ndarray:
     out : ndarray, complex
         Sorted array with same shape as `a`.
 
-    Notes
-    -----
-    The current implementation has only limited support for distributed data.
-    Distributed 1-D data will be broadcasted.
-
     See Also
     --------
     numpy.sort_complex
 
     Availability
     --------
-    Multiple GPUs, Single CPU
+    Multiple GPUs, Multiple CPUs
     """
 
     result = sort(a)
@@ -5147,7 +5526,7 @@ def argpartition(
 
     Availability
     --------
-    Multiple GPUs, Single CPU
+    Multiple GPUs, Multiple CPUs
     """
     result = ndarray(a.shape, np.int64)
     result._thunk.partition(
@@ -5202,7 +5581,7 @@ def partition(
 
     Availability
     --------
-    Multiple GPUs, Single CPU
+    Multiple GPUs, Multiple CPUs
     """
     result = ndarray(a.shape, a.dtype)
     result._thunk.partition(
