@@ -23,6 +23,84 @@ import cunumeric as num
 from legate.core import LEGATE_MAX_DIM
 
 
+# arr = [42]
+# idx = 0
+@pytest.mark.parametrize("arr_is_region", [True, False])
+@pytest.mark.parametrize("idx_is_region", [True, False])  # Fails
+def test_getitem_scalar_0d(arr_is_region, idx_is_region):
+    if arr_is_region:
+        arr = num.full((5,), 42)[2:3]
+    else:
+        arr = num.full((1,), 42)
+    if idx_is_region:
+        idx = num.zeros((3,), dtype=np.int64)[2:3].reshape(())
+    else:
+        idx = num.zeros((3,), dtype=np.int64).max()
+    assert np.array_equal(arr[idx], 42)
+
+
+# arr = [42]
+# idx = 0
+# val = -1
+@pytest.mark.parametrize("arr_is_region", [True, False])
+@pytest.mark.parametrize("idx_is_region", [True, False])  # Fails
+@pytest.mark.parametrize("val_is_region", [True, False])  # Fails
+def test_setitem_scalar_0d(arr_is_region, idx_is_region, val_is_region):
+    if arr_is_region:
+        arr = num.full((5,), 42)[2:3]
+    else:
+        arr = num.full((1,), 42)
+    if idx_is_region:
+        idx = num.zeros((3,), dtype=np.int64)[2:3].reshape(())
+    else:
+        idx = num.zeros((3,), dtype=np.int64).max()
+    if val_is_region:
+        val = num.full((3,), -1)[2:3].reshape(())
+    else:
+        val = num.full((3,), -1).max()
+    arr[idx] = val
+    assert np.array_equal(arr, [-1])
+
+
+# arr = [42]
+# idx = [0]
+@pytest.mark.parametrize("arr_is_region", [True, False])
+@pytest.mark.parametrize("idx_is_region", [True, False])
+def test_getitem_scalar_1d(arr_is_region, idx_is_region):
+    if arr_is_region:
+        arr = num.full((5,), 42)[2:3]
+    else:
+        arr = num.full((1,), 42)
+    if idx_is_region:
+        idx = num.zeros((3,), dtype=np.int64)[2:3]
+    else:
+        idx = num.zeros((1,), dtype=np.int64)
+    assert np.array_equal(arr[idx], [42])
+
+
+# arr = [42]
+# idx = [0]
+# val = [-1]
+@pytest.mark.parametrize("arr_is_region", [True, False])
+@pytest.mark.parametrize("idx_is_region", [True, False])
+@pytest.mark.parametrize("val_is_region", [True, False])
+def test_setitem_scalar_1d(arr_is_region, idx_is_region, val_is_region):
+    if arr_is_region:
+        arr = num.full((5,), 42)[2:3]
+    else:
+        arr = num.full((1,), 42)
+    if idx_is_region:
+        idx = num.zeros((3,), dtype=np.int64)[2:3]
+    else:
+        idx = num.zeros((1,), dtype=np.int64)
+    if val_is_region:
+        val = num.full((3,), -1)[2:3]
+    else:
+        val = num.full((1,), -1)
+    arr[idx] = val
+    assert np.array_equal(arr, [-1])
+
+
 def test_future_stores():
     # array is a future:
     arr_np = np.array([4])
