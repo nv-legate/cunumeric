@@ -105,6 +105,8 @@ set(cunumeric_CUDA_OPTIONS "")
 
 # Add `src/cunumeric.mk` sources
 list(APPEND cunumeric_SOURCES
+  src/cunumeric/scan/scan_global.cc
+  src/cunumeric/scan/scan_local.cc
   src/cunumeric/ternary/where.cc
   src/cunumeric/binary/binary_op.cc
   src/cunumeric/binary/binary_red.cc
@@ -152,6 +154,8 @@ list(APPEND cunumeric_SOURCES
 
 if(Legion_USE_OpenMP)
   list(APPEND cunumeric_SOURCES
+    src/cunumeric/scan/scan_global_omp.cc
+    src/cunumeric/scan/scan_local_omp.cc
     src/cunumeric/ternary/where_omp.cc
     src/cunumeric/binary/binary_op_omp.cc
     src/cunumeric/binary/binary_red_omp.cc
@@ -193,6 +197,8 @@ endif()
 
 if(Legion_USE_CUDA)
   list(APPEND cunumeric_SOURCES
+    src/cunumeric/scan/scan_global.cu
+    src/cunumeric/scan/scan_local.cu
     src/cunumeric/ternary/where.cu
     src/cunumeric/binary/binary_op.cu
     src/cunumeric/binary/binary_red.cu
@@ -282,6 +288,24 @@ if(Legion_USE_CUDA)
   )
 endif()
 
+# Add `src/cunumeric/random/random.mk` sources
+if(Legion_USE_CUDA OR cunumeric_cuRAND_INCLUDE_DIR)
+  list(APPEND cunumeric_SOURCES
+    src/cunumeric/random/bitgenerator.cc
+    src/cunumeric/random/randutil/generator_host.cc
+    src/cunumeric/random/randutil/generator_host_straightforward.cc
+    src/cunumeric/random/randutil/generator_host_advanced.cc
+  )
+  if(Legion_USE_CUDA)
+    list(APPEND cunumeric_SOURCES
+      src/cunumeric/random/bitgenerator.cu
+      src/cunumeric/random/randutil/generator_device.cu
+      src/cunumeric/random/randutil/generator_device_straightforward.cu
+      src/cunumeric/random/randutil/generator_device_advanced.cu
+    )
+  endif()
+endif()
+
 list(APPEND cunumeric_SOURCES
   # This must always be the last file!
   # It guarantees we do our registration callback
@@ -331,6 +355,11 @@ target_link_libraries(cunumeric
           $<TARGET_NAME_IF_EXISTS:CUDA::cusolver>
           $<TARGET_NAME_IF_EXISTS:OpenMP::OpenMP_CXX>
           $<TARGET_NAME_IF_EXISTS:cutensor::cutensor>)
+
+if(NOT Legion_USE_CUDA AND cunumeric_cuRAND_INCLUDE_DIR)
+  list(APPEND cunumeric_CXX_DEFS CUNUMERIC_CURAND_FOR_CPU_BUILD)
+  target_include_directories(cunumeric PRIVATE ${cunumeric_cuRAND_INCLUDE_DIR})
+endif()
 
 # Change THRUST_DEVICE_SYSTEM for `.cpp` files
 if(Legion_USE_OpenMP)
