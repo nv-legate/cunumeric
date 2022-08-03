@@ -17,6 +17,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Union
 
 import numpy as np
+
 from cunumeric.random.bitgenerator import XORWOW, BitGenerator
 
 if TYPE_CHECKING:
