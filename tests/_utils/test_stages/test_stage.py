@@ -158,7 +158,7 @@ class TestStage(Protocol):
         result = summary(self.name, total, passed, self.result.time)
 
         footer = banner(
-            f"Exiting state: {self.name}",
+            f"Exiting stage: {self.name}",
             details=(
                 "* Results      : "
                 + yellow(
