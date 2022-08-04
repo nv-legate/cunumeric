@@ -192,7 +192,14 @@ def skipped(msg: str) -> str:
     return f"{cyan('[SKIP]')} {msg}"
 
 
-def summary(name: str, total: int, passed: int, time: timedelta) -> str:
+def summary(
+    name: str,
+    total: int,
+    passed: int,
+    time: timedelta,
+    *,
+    justify: bool = True,
+) -> str:
     """Generate a test result summary line.
 
     The output is bright green if all tests passed, otherwise bright red.
@@ -217,4 +224,4 @@ def summary(name: str, total: int, passed: int, time: timedelta) -> str:
         f"in {time.total_seconds():0.2f}s"
     )
     color = green if passed == total else red
-    return bright(color(f"{summary: >{UI_WIDTH}}"))
+    return bright(color(f"{summary: >{UI_WIDTH}}" if justify else summary))

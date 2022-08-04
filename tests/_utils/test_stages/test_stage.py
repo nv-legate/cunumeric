@@ -54,6 +54,16 @@ class StageResult:
     #: Cumulative execution time for all tests in a stage.
     time: timedelta
 
+    @property
+    def total(self) -> int:
+        """The total number of tests run in this stage."""
+        return len(self.procs)
+
+    @property
+    def passed(self) -> int:
+        """The number of tests in this stage that passed."""
+        return sum(p.returncode == 0 for p in self.procs)
+
 
 class TestStage(Protocol):
     """Encapsulate running configured test files using specific features.
@@ -152,8 +162,7 @@ class TestStage(Protocol):
     @property
     def outro(self) -> str:
         """An informative banner to display at stage end."""
-        total = len(self.result.procs)
-        passed = len([p for p in self.result.procs if p.returncode == 0])
+        total, passed = self.result.total, self.result.passed
 
         result = summary(self.name, total, passed, self.result.time)
 

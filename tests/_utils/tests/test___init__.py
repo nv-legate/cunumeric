@@ -53,7 +53,7 @@ class TestConsts:
         }
 
     def test_UI_WIDTH(self) -> None:
-        assert UI_WIDTH == 60
+        assert UI_WIDTH == 65
 
     def test_FEATURES(self) -> None:
         assert FEATURES == ("cpus", "cuda", "eager", "openmp")

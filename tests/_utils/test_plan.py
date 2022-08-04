@@ -64,9 +64,7 @@ class TestPlan:
         total = len(all_procs)
         passed = sum(proc.returncode == 0 for proc in all_procs)
 
-        time = sum((s.result.time for s in self._stages), timedelta(0, 0))
-
-        LOG(self.outro(total, passed, time))
+        LOG(self.outro(total, passed))
 
         return int((total - passed) > 0)
 
@@ -87,7 +85,7 @@ class TestPlan:
         )
         return banner("Test Suite Configuration", details=details)
 
-    def outro(self, total: int, passed: int, time: timedelta) -> str:
+    def outro(self, total: int, passed: int) -> str:
         """An informative banner to display at test run end.
 
         Parameters
@@ -98,9 +96,21 @@ class TestPlan:
         passed: int
             Number of tests that passed in all stages
 
-        time : timedelta
-            The time taken to run the tests
-
         """
-        result = summary("All tests", total, passed, time)
+        details = [
+            f"* {s.name: <6}: "
+            + yellow(
+                f"{s.result.passed} / {s.result.total} passed in {s.result.time.total_seconds():0.2f}s"  # noqa E501
+            )
+            for s in self._stages
+        ]
+
+        time = sum((s.result.time for s in self._stages), timedelta(0, 0))
+        details.append("")
+        details.append(
+            summary("All tests", total, passed, time, justify=False)
+        )
+
+        result = banner("Test Suite Summary", details=details)
+
         return f"\n{rule()}\n{result}\n"
