@@ -737,8 +737,13 @@ class DeferredArray(NumPyThunk):
                 index_array,
                 self,
             ) = self._create_indexing_array(key)
+
             store = rhs.base
+
             if copy_needed:
+                if rhs.base.kind == Future:
+                    rhs = self._convert_future_to_store(rhs)
+                store = rhs.base
                 result: NumPyThunk
                 if index_array.base.kind == Future:
                     index_array = self._convert_future_to_store(index_array)
@@ -822,6 +827,8 @@ class DeferredArray(NumPyThunk):
 
             if index_array.base.kind == Future:
                 index_array = self._convert_future_to_store(index_array)
+            if lhs.base.kind == Future:
+                lhs = self._convert_future_to_store(lhs)
 
             copy = self.context.create_copy()
             copy.set_target_indirect_out_of_range(False)
