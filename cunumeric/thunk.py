@@ -26,7 +26,6 @@ if TYPE_CHECKING:
     from .config import (
         BinaryOpCode,
         BitGeneratorType,
-        ConvertCode,
         FFTDirection,
         FFTType,
         UnaryOpCode,

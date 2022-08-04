@@ -103,60 +103,33 @@ out0s = [
     True,
     False,
 ]
+dtypes = [
+    np.int16,
+    np.int32,
+    np.int64,
+    np.float32,
+    np.float64,
+    np.complex64,
+    np.complex128,
+]
+n0s = [
+    None,
+    "first_half",
+    "second_half",
+]
 
 
 @pytest.mark.parametrize("op", ops)
 @pytest.mark.parametrize("shape", shapes)
 @pytest.mark.parametrize("axis", axes)
 @pytest.mark.parametrize("out0", out0s)
-def test_scan(op, shape, axis, out0):
-    n0s = [
-        None,
-        "first_half",
-        "second_half",
-    ]
-    int_types = [
-        np.int16,
-        np.int32,
-        np.int64,
-    ]
-    float_types = [
-        np.float32,
-        np.float64,
-    ]
-    complex_types = [
-        np.complex64,
-        np.complex128,
-    ]
-    for outtype in int_types:
-        for dt in int_types:
-            _run_tests(op, None, shape, dt, axis, out0, outtype)
-        for dt in float_types:
-            for n0 in n0s:
-                print("Float to int NAN conversion currently not supported!")
-        for dt in complex_types:
-            for n0 in n0s:
-                print("Complex to int NAN conversion currently not supported!")
-
-    for outtype in float_types:
-        for dt in int_types:
-            _run_tests(op, None, shape, dt, axis, out0, outtype)
-        for dt in float_types:
-            for n0 in n0s:
-                _run_tests(op, n0, shape, dt, axis, out0, outtype)
-        for dt in complex_types:
-            for n0 in n0s:
-                _run_tests(op, n0, shape, dt, axis, out0, outtype)
-
-    for outtype in complex_types:
-        for dt in int_types:
-            _run_tests(op, None, shape, dt, axis, out0, outtype)
-        for dt in float_types:
-            for n0 in n0s:
-                _run_tests(op, n0, shape, dt, axis, out0, outtype)
-        for dt in complex_types:
-            for n0 in n0s:
-                _run_tests(op, n0, shape, dt, axis, out0, outtype)
+@pytest.mark.parametrize("outtype", dtypes)
+@pytest.mark.parametrize("dt", dtypes)
+@pytest.mark.parametrize("n0", n0s)
+def test_scan(op, shape, axis, out0, outtype, dt, n0):
+    if np.issubdtype(dt, np.integer) and n0 is not None:
+        return
+    _run_tests(op, n0, shape, dt, axis, out0, outtype)
 
 
 def test_empty_inputs():

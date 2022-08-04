@@ -1140,8 +1140,6 @@ class DeferredArray(NumPyThunk):
         task.add_output(lhs)
         task.add_input(rhs)
         task.add_scalar_arg(nan_op, ty.int32)
-        # RRRR add_dtype_arg doesn't seem to be needed, commenting for now.
-        # task.add_dtype_arg(lhs_array.dtype)  # type: ignore
 
         task.add_alignment(lhs, rhs)
 
