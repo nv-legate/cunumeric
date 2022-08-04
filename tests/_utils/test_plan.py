@@ -17,6 +17,7 @@
 """
 from __future__ import annotations
 
+from datetime import timedelta
 from itertools import chain
 
 from .config import Config
@@ -63,7 +64,9 @@ class TestPlan:
         total = len(all_procs)
         passed = sum(proc.returncode == 0 for proc in all_procs)
 
-        LOG(self.outro(total, passed))
+        time = sum((s.result.time for s in self._stages), timedelta(0, 0))
+
+        LOG(self.outro(total, passed, time))
 
         return int((total - passed) > 0)
 
@@ -84,7 +87,7 @@ class TestPlan:
         )
         return banner("Test Suite Configuration", details=details)
 
-    def outro(self, total: int, passed: int) -> str:
+    def outro(self, total: int, passed: int, time: timedelta) -> str:
         """An informative banner to display at test run end.
 
         Parameters
@@ -95,6 +98,9 @@ class TestPlan:
         passed: int
             Number of tests that passed in all stages
 
+        time : timedelta
+            The time taken to run the tests
+
         """
-        result = summary("All tests", total, passed)
+        result = summary("All tests", total, passed, time)
         return f"\n{rule()}\n{result}\n"

@@ -155,7 +155,7 @@ class TestStage(Protocol):
         total = len(self.result.procs)
         passed = len([p for p in self.result.procs if p.returncode == 0])
 
-        result = summary(self.name, total, passed)
+        result = summary(self.name, total, passed, self.result.time)
 
         footer = banner(
             f"Exiting state: {self.name}",
