@@ -1115,8 +1115,8 @@ class DeferredArray(NumPyThunk):
     def convert(
         self,
         rhs: Any,
-        nan_op: Optional[int] = ConvertCode.CUNUMERIC_CONVERT_NAN_NOOP,
         warn: bool = True,
+        nan_op: Optional[int] = None,
     ) -> None:
         lhs_array = self
         rhs_array = rhs
@@ -1131,14 +1131,17 @@ class DeferredArray(NumPyThunk):
                 category=UserWarning,
             )
 
+        if nan_op is None:
+            nan_op = ConvertCode.NOOP
         lhs = lhs_array.base
         rhs = rhs_array.base
 
         task = self.context.create_auto_task(CuNumericOpCode.CONVERT)
         task.add_output(lhs)
         task.add_input(rhs)
-        task.add_dtype_arg(lhs_array.dtype)  # type: ignore
         task.add_scalar_arg(nan_op, ty.int32)
+        # RRRR add_dtype_arg doesn't seem to be needed, commenting for now.
+        # task.add_dtype_arg(lhs_array.dtype)  # type: ignore
 
         task.add_alignment(lhs, rhs)
 

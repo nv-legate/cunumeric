@@ -154,8 +154,8 @@ class NumPyThunk(ABC):
     def convert(
         self,
         rhs: Any,
-        nan_op: Optional[int] = ConvertCode.CUNUMERIC_CONVERT_NAN_NOOP,
         warn: bool = True,
+        nan_op: Optional[int] = None,
     ) -> None:
         ...
 

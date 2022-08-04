@@ -38,6 +38,7 @@ from typing_extensions import ParamSpec
 from legate.core import Array
 
 from .config import (
+    ConvertCode,
     FFTDirection,
     FFTNormalization,
     ScanCode,
@@ -3905,12 +3906,6 @@ class ndarray:
                     dtype = src.dtype
             else:
                 dtype = out.dtype
-        if (src.dtype.kind in ("f", "c")) and np.issubdtype(dtype, np.integer):
-            # Needs changes to convert()
-            raise NotImplementedError(
-                "Integer output types currently not supported for "
-                "floating/complex inputs"
-            )
         # flatten input when axis is None
         if axis is None:
             axis = 0
@@ -3931,9 +3926,16 @@ class ndarray:
             out = ndarray(shape=src_arr.shape, dtype=dtype)
 
         if dtype != src_arr.dtype:
+            if nan_to_identity:
+                if op is ScanCode.SUM:
+                    nan_op = ConvertCode.SUM
+                else:
+                    nan_op = ConvertCode.PROD
+            else:
+                nan_op = ConvertCode.NOOP
             # convert input to temporary for type conversion
             temp = ndarray(shape=src_arr.shape, dtype=dtype)
-            temp._thunk.convert(src_arr._thunk)
+            temp._thunk.convert(src_arr._thunk, nan_op=nan_op)
             src_arr = temp
 
         out._thunk.scan(
