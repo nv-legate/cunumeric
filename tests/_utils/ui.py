@@ -82,7 +82,7 @@ def banner(
     width: int = UI_WIDTH,
     details: Iterable[str] | None = None,
 ) -> str:
-    """Print a title banner, with optional details included.
+    """Generate a title banner, with optional details included.
 
     Parameters
     ----------
@@ -149,7 +149,7 @@ def passed(msg: str, *, details: Details | None = None) -> str:
 
 
 def rule(pad: int = 4, char: str = "~") -> str:
-    """Output a horizontal rule.
+    """Generate a horizontal rule.
 
     Parameters
     ----------
@@ -192,7 +192,7 @@ def skipped(msg: str) -> str:
 
 
 def summary(name: str, total: int, passed: int) -> str:
-    """Output a test result summary line.
+    """Generate a test result summary line.
 
     The output is bright green if all tests passed, otherwise bright red.
 

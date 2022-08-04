@@ -19,14 +19,29 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
 from subprocess import CompletedProcess
+from typing import Tuple, Union
 
-from typing_extensions import Protocol
+from typing_extensions import Protocol, TypeAlias
 
-from .. import PER_FILE_ARGS
+from .. import PER_FILE_ARGS, FeatureType
 from ..config import Config
 from ..logger import LOG
-from ..system import SKIPPED_RETURNCODE, ArgList, System
+from ..system import SKIPPED_RETURNCODE, System
+from ..types import ArgList, EnvDict
 from ..ui import banner, failed, passed, skipped, summary, yellow
+
+Shard: TypeAlias = Tuple[int, ...]
+
+
+@dataclass(frozen=True)
+class StageSpec:
+    """Specify the operation of a test run"""
+
+    #: The number of worker processes to start for running tests
+    workers: int
+
+    # A list of (cpu or gpu) shards to draw on for each test
+    shards: list[Shard]
 
 
 @dataclass(frozen=True)
@@ -53,43 +68,41 @@ class TestStage(Protocol):
 
     """
 
-    kind: str
+    kind: FeatureType
 
-    #: The computed number of worker processes to launch to run the
+    #: The computed specification for processes to launch to run the
     #: configured test files.
-    workers: int
+    spec: StageSpec
+
+    #: The computed sharding id sets to use for job runs
+    shards: multiprocessing.Queue[Shard]
 
     #: After the stage completes, results will be stored here
     result: StageResult
+
+    #: Any fixed stage-specific command-line args to pass
+    args: ArgList
+
+    #: Any stage-specific customizations to the process env
+    env: EnvDict
+
+    _manager: multiprocessing.managers.SyncManager = multiprocessing.Manager()
 
     # --- Protocol methods
 
     def __init__(self, config: Config, system: System) -> None:
         ...
 
-    def run(
-        self, test_file: Path, config: Config, system: System
-    ) -> CompletedProcess[str]:
-        """Execute a single test files with appropriate environment and
-        command-line options for a feature test stage.
-
-        Parameters
-        ----------
-        test_file : Path
-            Test file to execute
-
-        config: Config
-            Test runner configuration
-
-        system: System
-            Process execution wrapper
+    def shard_args(self, shard: Shard, config: Config) -> ArgList:
+        """Generate the command line arguments necessary to launch
+        the next test process on the given shard.
 
         """
         ...
 
-    def compute_workers(self, config: Config, system: System) -> int:
-        """Compute the number of worker processes to launch for running
-        the configured test files.
+    def compute_spec(self, config: Config, system: System) -> StageSpec:
+        """Compute the number of worker processes to launch and stage shards
+        to use for running the configured test files.
 
         Parameters
         ----------
@@ -130,8 +143,11 @@ class TestStage(Protocol):
     @property
     def intro(self) -> str:
         """An informative banner to display at stage end."""
-        workers = f"{self.workers} worker{'s' if self.workers > 1 else ''}"
-        return banner(f"Entering stage: {self.name} (with {workers})") + "\n"
+        workers = self.spec.workers
+        workers_text = f"{workers} worker{'s' if workers > 1 else ''}"
+        return (
+            banner(f"Entering stage: {self.name} (with {workers_text})") + "\n"
+        )
 
     @property
     def outro(self) -> str:
@@ -178,11 +194,57 @@ class TestStage(Protocol):
 
         return args
 
+    def run(
+        self, test_file: Path, config: Config, system: System
+    ) -> CompletedProcess[str]:
+        """Execute a single test files with appropriate environment and
+        command-line options for a feature test stage.
+
+        Parameters
+        ----------
+        test_file : Path
+            Test file to execute
+
+        config: Config
+            Test runner configuration
+
+        system: System
+            Process execution wrapper
+
+        """
+        test_path = config.root_dir / test_file
+
+        shard = self.shards.get()
+
+        stage_args = self.args + self.shard_args(shard, config)
+        file_args = self.file_args(test_file, config)
+
+        cmd = [str(config.legate_path), str(test_path)]
+        cmd += stage_args + file_args + config.extra_args
+
+        result = system.run(cmd, env=self._env(config))
+        log_proc(self.name, result, test_file, config.verbose)
+
+        self.shards.put(shard)
+
+        return result
+
+    def _env(self, config: Config) -> EnvDict:
+        env = config.env
+        env.update(self.env)
+        return env
+
+    def _init(self, config: Config, system: System) -> None:
+        self.spec = self.compute_spec(config, system)
+        self.shards = self._manager.Queue(len(self.spec.shards))
+        for shard in self.spec.shards:
+            self.shards.put(shard)
+
     def _launch(
         self, config: Config, system: System
     ) -> list[CompletedProcess[str]]:
 
-        pool = multiprocessing.Pool(self.workers)
+        pool = multiprocessing.Pool(self.spec.workers)
 
         jobs = [
             pool.apply_async(self.run, (path, config, system))
@@ -192,14 +254,32 @@ class TestStage(Protocol):
 
         return [job.get() for job in jobs]
 
-    def _log_proc(
-        self, proc: CompletedProcess[str], test_file: Path, verbose: bool
-    ) -> None:
-        msg = f"({self.name}) {test_file}"
-        details = proc.stdout.split("\n") if verbose else None
-        if proc.returncode == 0:
-            LOG(passed(msg, details=details))
-        elif proc.returncode == SKIPPED_RETURNCODE:
-            LOG(skipped(msg))
-        else:
-            LOG(failed(msg, details=details))
+
+def adjust_workers(workers: int, requested_workers: Union[int, None]) -> int:
+    if requested_workers is not None and requested_workers < 0:
+        raise ValueError("requested workers must be non-negative")
+
+    if requested_workers is not None:
+        if requested_workers > workers:
+            raise RuntimeError(
+                "Requested workers greater than assignable workers"
+            )
+        workers = requested_workers
+
+    if workers == 0:
+        raise RuntimeError("Current configuration results in zero workers")
+
+    return workers
+
+
+def log_proc(
+    name: str, proc: CompletedProcess[str], test_file: Path, verbose: bool
+) -> None:
+    msg = f"({name}) {test_file}"
+    details = proc.stdout.split("\n") if verbose else None
+    if proc.returncode == 0:
+        LOG(passed(msg, details=details))
+    elif proc.returncode == SKIPPED_RETURNCODE:
+        LOG(skipped(msg))
+    else:
+        LOG(failed(msg, details=details))
