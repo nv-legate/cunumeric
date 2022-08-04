@@ -17,14 +17,13 @@
 """
 from __future__ import annotations
 
-import os
 from subprocess import CompletedProcess
 from unittest.mock import MagicMock
 
 import pytest
 from pytest_mock import MockerFixture
 
-from .. import DEFAULT_PROCESS_ENV, system as m
+from .. import system as m
 from ..logger import LOG
 
 
@@ -90,10 +89,3 @@ class TestSystem:
         s = m.System()
         # can't really assume / test much here
         s.gpus
-
-    def test_env(self) -> None:
-        s = m.System()
-        env = s.env
-        assert env is not os.environ  # type: ignore [comparison-overlap]
-        for k, v in DEFAULT_PROCESS_ENV.items():
-            assert env[k] == v
