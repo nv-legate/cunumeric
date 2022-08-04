@@ -518,6 +518,17 @@ class DeferredArray(NumPyThunk):
                     "np.dtype[Any]", rhs.runtime.get_point_type(N)
                 )
 
+            if key.size == 0:
+                out = cast(
+                    DeferredArray,
+                    self.runtime.create_empty_thunk(
+                        key.shape,
+                        out_dtype,
+                        inputs=[key],
+                    ),
+                )
+                return False, rhs, out, self
+
             # TODO : current implementation of the ND output regions
             # requires out.ndim == rhs.ndim. This will be fixed in the
             # future
@@ -542,6 +553,7 @@ class DeferredArray(NumPyThunk):
             # requires out.ndim == rhs.ndim.
             # The logic below will be removed in the future
             out_dim = rhs.ndim - key_dims + 1
+
             if out_dim != rhs.ndim:
                 out_tmp = out.base
                 for dim in range(rhs.ndim - out_dim):

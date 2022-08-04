@@ -34,15 +34,22 @@ def arr_future():
     return num.full((1,), 42)
 
 
+@pytest.fixture
+def arr_empty1d():
+    return num.full((0), 0)
+
+
 idx_region_1d = num.zeros((3,), dtype=np.int64)[2:3]
 idx_future_1d = num.zeros((1,), dtype=np.int64)
 idx_region_0d = num.zeros((3,), dtype=np.int64)[2:3].reshape(())
 idx_future_0d = num.zeros((3,), dtype=np.int64).max()
+idx_empty_1d = num.array([], dtype=int)
 
 val_region_1d = num.full((3,), -1)[2:3]
 val_future_1d = num.full((1,), -1)
 val_region_0d = num.full((3,), -1)[2:3].reshape(())
 val_future_0d = num.full((3,), -1).max()
+
 
 # We use fixtures for `arr` because the `set_item` tests modify
 # their input.
@@ -51,6 +58,13 @@ IDXS_0D = (idx_future_0d,)  # TODO: idx_region_0d fails
 VALS_0D = (val_future_0d,)  # TODO: val_region_0d fails
 IDXS_1D = (idx_region_1d, idx_future_1d)
 VALS_1D = (val_region_1d, val_future_1d)
+ARRS_EMPTY_1D = (
+    lazy_fixture("arr_empty1d"),
+    lazy_fixture("arr_region"),
+    lazy_fixture("arr_future"),
+)
+IDXS_EMPTY_1D = (idx_empty_1d,)
+VALS_EMPTY_1D = (num.array([]),)
 
 
 @pytest.mark.parametrize("idx", IDXS_0D)  # idx = 0
@@ -79,6 +93,54 @@ def test_getitem_scalar_1d(arr, idx):
 def test_setitem_scalar_1d(arr, idx, val):
     arr[idx] = val
     assert np.array_equal(arr, [-1])
+
+
+@pytest.mark.parametrize("idx", IDXS_EMPTY_1D)  # idx = []
+@pytest.mark.parametrize("arr", ARRS_EMPTY_1D)  # arr = [42], [5], []
+def test_getitem_empty_1d(arr, idx):
+    assert np.array_equal(arr[idx], [])
+
+
+@pytest.mark.parametrize("idx", IDXS_EMPTY_1D)  # idx = []
+@pytest.mark.parametrize("arr", ARRS_EMPTY_1D)  # arr = []
+@pytest.mark.parametrize("val", VALS_EMPTY_1D)  # val = []
+def test_setitem_empty_1d(arr, idx, val):
+    arr[idx] = val
+    assert np.array_equal(arr[idx], [])
+
+
+def test_empty_bool():
+    # empty arrays and indices
+    arr_np = np.array([[]])
+    arr_num = num.array([[]])
+    idx_np = np.array([[]], dtype=bool)
+    idx_num = num.array([[]], dtype=bool)
+    res_np = arr_np[idx_np]
+    res_num = arr_num[idx_num]
+    assert np.array_equal(res_np, res_num)
+
+    res_np = res_np.reshape((0,))
+    res_num = res_num.reshape((0,))
+
+    # set_item
+    val_np = np.array([])
+    val_num = num.array([])
+    arr_np[idx_np] = val_np
+    arr_num[idx_num] = val_num
+    assert np.array_equal(arr_np, arr_num)
+
+    # empty output
+    arr_np = np.array([[-1]])
+    arr_num = num.array([[-1]])
+    idx_np = np.array([[False]], dtype=bool)
+    idx_num = num.array([[False]], dtype=bool)
+    res_np = arr_np[idx_np]
+    res_num = arr_num[idx_num]
+    assert np.array_equal(res_np, res_num)
+
+    arr_np[idx_np] = val_np
+    arr_num[idx_num] = val_num
+    assert np.array_equal(arr_np, arr_num)
 
 
 def test_future_stores():
