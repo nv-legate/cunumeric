@@ -3017,6 +3017,17 @@ class ndarray:
         Multiple GPUs, Multiple CPUs
 
         """
+        if self.size == 0 and self.ndim > 1:
+            idx = tuple()
+            for i in range(self.ndim):
+                if self.shape[i] != 0:
+                    idx += (0,)
+                else:
+                    idx += (slice(None),)
+            idx = tuple(idx)
+            self = self[idx].copy()
+            return self
+
         return self.reshape(-1, order=order)
 
     def reshape(self, *args, order="C") -> ndarray:
