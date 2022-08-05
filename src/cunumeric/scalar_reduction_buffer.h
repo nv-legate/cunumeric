@@ -24,37 +24,34 @@ namespace cunumeric {
 template <typename REDOP>
 class ScalarReductionBuffer {
  private:
-  using LHS = typename REDOP::LHS;
-  using RHS = typename REDOP::RHS;
+  using VAL = typename REDOP::RHS;
 
  public:
-  ScalarReductionBuffer(cudaStream_t stream) : buffer_(legate::create_buffer<LHS>(1))
+  ScalarReductionBuffer(cudaStream_t stream) : buffer_(legate::create_buffer<VAL>(1))
   {
-    // This will prevent this template from getting instantiated at compile time
-    // if LHS and RHS are different types
-    LHS identity{REDOP::identity};
+    VAL identity{REDOP::identity};
     ptr_ = buffer_.ptr(0);
-    CHECK_CUDA(cudaMemcpyAsync(ptr_, &identity, sizeof(LHS), cudaMemcpyHostToDevice, stream));
+    CHECK_CUDA(cudaMemcpyAsync(ptr_, &identity, sizeof(VAL), cudaMemcpyHostToDevice, stream));
   }
 
-  __device__ void operator<<=(const RHS& value) const
+  __device__ void operator<<=(const VAL& value) const
   {
     REDOP::template fold<false /*exclusive*/>(*ptr_, value);
   }
 
-  __host__ LHS read(cudaStream_t stream) const
+  __host__ VAL read(cudaStream_t stream) const
   {
-    LHS result{REDOP::identity};
-    CHECK_CUDA(cudaMemcpyAsync(&result, ptr_, sizeof(LHS), cudaMemcpyDeviceToHost, stream));
+    VAL result{REDOP::identity};
+    CHECK_CUDA(cudaMemcpyAsync(&result, ptr_, sizeof(VAL), cudaMemcpyDeviceToHost, stream));
     CHECK_CUDA(cudaStreamSynchronize(stream));
     return result;
   }
 
-  __device__ LHS read() const { return *ptr_; }
+  __device__ VAL read() const { return *ptr_; }
 
  private:
-  legate::Buffer<LHS> buffer_;
-  LHS* ptr_;
+  legate::Buffer<VAL> buffer_;
+  VAL* ptr_;
 };
 
 }  // namespace cunumeric
