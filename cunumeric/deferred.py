@@ -519,10 +519,15 @@ class DeferredArray(NumPyThunk):
                 )
 
             if key.size == 0:
+                out_dim = rhs.ndim - key.ndim + 1
+                out_shape = tuple(
+                    0 for i in range(rhs.ndim - out_dim, out_dim)
+                )
+
                 out = cast(
                     DeferredArray,
                     self.runtime.create_empty_thunk(
-                        key.shape,
+                        out_shape,
                         out_dtype,
                         inputs=[key],
                     ),
