@@ -29,7 +29,7 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
 {
   const size_t idx = global_tid_1d();
   if (idx >= volume) return;
-  if (!func(in1[idx], in2[idx])) out.reduce<true /*ATOMIC*/>(false);
+  if (!func(in1[idx], in2[idx])) out.reduce<false /*EXCLUSIVE*/>(false);
 }
 
 template <typename Function, typename RES, typename ReadAcc, typename Pitches, typename Rect>
@@ -39,7 +39,7 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM) gen
   const size_t idx = global_tid_1d();
   if (idx >= volume) return;
   auto point = pitches.unflatten(idx, rect.lo);
-  if (!func(in1[point], in2[point])) out.reduce<true /*ATOMIC*/>(false);
+  if (!func(in1[point], in2[point])) out.reduce<false /*EXCLUSIVE*/>(false);
 }
 
 template <typename Buffer, typename RedAcc>

@@ -35,10 +35,10 @@ class DeviceScalarReductionBuffer {
     CHECK_CUDA(cudaMemcpyAsync(ptr_, &identity, sizeof(VAL), cudaMemcpyHostToDevice, stream));
   }
 
-  template <bool ATOMIC>
+  template <bool EXCLUSIVE>
   __device__ void reduce(const VAL& value) const
   {
-    REDOP::template fold<!ATOMIC /*exclusive*/>(*ptr_, value);
+    REDOP::template fold<EXCLUSIVE /*exclusive*/>(*ptr_, value);
   }
 
   __host__ VAL read(cudaStream_t stream) const

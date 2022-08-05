@@ -250,7 +250,7 @@ __device__ __forceinline__ void reduce_output(DeviceScalarReductionBuffer<REDUCT
   if (threadIdx.x == 0) {
     for (int i = 1; i < (THREADS_PER_BLOCK / 32); i++)
       REDUCTION::template fold<true /*exclusive*/>(value, trampoline[i]);
-    result.reduce<true /*ATOMIC*/>(value);
+    result.reduce<false /*EXCLUSIVE*/>(value);
     // Make sure the result is visible externally
     __threadfence_system();
   }
