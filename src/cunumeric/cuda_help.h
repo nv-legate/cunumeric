@@ -21,6 +21,7 @@
 #include "core/cuda/stream_pool.h"
 #include "cunumeric/arg.h"
 #include "cunumeric/arg.inl"
+#include "cunumeric/scalar_reduction_buffer.h"
 #include <cublas_v2.h>
 #include <cusolverDn.h>
 #include <cuda_runtime.h>
@@ -231,7 +232,7 @@ struct HasNativeShuffle<Argval<T>> {
 };
 
 template <typename T, typename REDUCTION>
-__device__ __forceinline__ void reduce_output(Legion::DeferredReduction<REDUCTION> result, T value)
+__device__ __forceinline__ void reduce_output(ScalarReductionBuffer<REDUCTION> result, T value)
 {
   __shared__ T trampoline[THREADS_PER_BLOCK / 32];
   // Reduce across the warp
