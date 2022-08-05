@@ -47,6 +47,8 @@ class GPU(TestStage):
 
     def shard_args(self, shard: Shard, config: Config) -> ArgList:
         return [
+            "--fbmem",
+            str(config.fbmem // (1024 * 1024)),  # accepts size in MB
             "--gpus",
             str(len(shard)),
             "--gpu-bind",

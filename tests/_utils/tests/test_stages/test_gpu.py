@@ -47,7 +47,14 @@ def test_shard_args(shard: tuple[int, ...], expected: str) -> None:
     s = FakeSystem()
     stage = m.GPU(c, s)
     result = stage.shard_args(shard, c)
-    assert result == ["--gpus", f"{len(shard)}", "--gpu-bind", expected]
+    assert result == [
+        "--fbmem",
+        "4096",
+        "--gpus",
+        f"{len(shard)}",
+        "--gpu-bind",
+        expected,
+    ]
 
 
 def test_spec_with_gpus_1() -> None:
