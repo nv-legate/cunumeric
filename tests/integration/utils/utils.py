@@ -14,12 +14,13 @@
 #
 
 import numpy as np
+
 import cunumeric as num
 
 
-def compare_array(b,c):
+def compare_array(b, c):
     """
-        Compare two array using zip method.
+    Compare two array using zip method.
     """
 
     is_equal = True
@@ -39,7 +40,7 @@ def compare_array(b,c):
 
 def run_test(fn, args, kwargs, print_msg):
     """
-        Run np.func and num.func respectively and compare resutls
+    Run np.func and num.func respectively and compare resutls
     """
 
     b = getattr(num, fn)(*args, **kwargs)

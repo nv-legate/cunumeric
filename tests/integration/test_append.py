@@ -15,10 +15,9 @@
 
 import numpy as np
 import pytest
+from utils.utils import run_test
 
 import cunumeric as num
-
-from utils.utils import run_test
 
 DIM = 10
 
@@ -35,6 +34,7 @@ SIZES = [
     (DIM, DIM, DIM),
 ]
 
+
 @pytest.mark.parametrize("size", SIZES, ids=str)
 def test_append(size):
     a = np.random.randint(low=0, high=100, size=size)
@@ -44,10 +44,8 @@ def test_append(size):
         size_b = list(size)
         size_b[axis] = size[axis] + 10
         b = np.random.randint(low=0, high=100, size=size_b)
-        print_msg = (
-            f"np.append(array({a.shape}), array({b.shape}), {axis})"
-        )
-        run_test("append", [a, b], {'axis':axis}, print_msg)
+        print_msg = f"np.append(array({a.shape}), array({b.shape}), {axis})"
+        run_test("append", [a, b], {"axis": axis}, print_msg)
 
 
 def test_append_axis_none():
@@ -59,7 +57,7 @@ def test_append_axis_none():
             print_msg = (
                 f"np.append(array({a.shape}), array({b.shape}), {axis})"
             )
-            run_test("append", [a, b], {'axis': axis}, print_msg)
+            run_test("append", [a, b], {"axis": axis}, print_msg)
 
 
 def test_append_negative():
@@ -67,8 +65,10 @@ def test_append_negative():
     size_b = (1, DIM, 1)
     a = np.random.randint(low=0, high=100, size=size_a)
     b = np.random.randint(low=0, high=100, size=size_b)
-    with pytest.raises(ValueError,
-                       match='All arguments to concatenate must have the same number of dimensions'):
+    with pytest.raises(
+        ValueError,
+        match="All arguments to concatenate must have the same number of dimensions",
+    ):
         num.append(a, b, axis=1)
 
     size_c = (10, DIM)
