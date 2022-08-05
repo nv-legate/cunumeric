@@ -64,8 +64,8 @@ struct BinaryRedImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
   {
     size_t volume       = rect.volume();
     const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-    DeferredReduction<ProdReduction<bool>> result;
-    auto stream = get_cached_stream();
+    auto stream         = get_cached_stream();
+    ScalarReductionBuffer<ProdReduction<bool>> result(stream);
     if (dense) {
       auto in1ptr = in1.ptr(rect);
       auto in2ptr = in2.ptr(rect);
