@@ -61,7 +61,7 @@ struct DotImplBody<VariantKind::GPU, CODE> {
 
     const auto volume   = rect.volume();
     const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-    ScalarReductionBuffer<SumReduction<ACC>> result(stream);
+    DeviceScalarReductionBuffer<SumReduction<ACC>> result(stream);
     size_t shmem_size = THREADS_PER_BLOCK / 32 * sizeof(ACC);
 
     if (blocks >= MAX_REDUCTION_CTAS) {

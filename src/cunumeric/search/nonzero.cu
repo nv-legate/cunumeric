@@ -85,7 +85,7 @@ struct NonzeroImplBody<VariantKind::GPU, CODE, DIM> {
                           Buffer<int64_t>& offsets,
                           cudaStream_t stream)
   {
-    ScalarReductionBuffer<SumReduction<uint64_t>> size(stream);
+    DeviceScalarReductionBuffer<SumReduction<uint64_t>> size(stream);
 
     const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
     size_t shmem_size   = THREADS_PER_BLOCK / 32 * sizeof(int64_t);

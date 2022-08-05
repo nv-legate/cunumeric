@@ -22,21 +22,23 @@
 namespace cunumeric {
 
 template <typename REDOP>
-class ScalarReductionBuffer {
+class DeviceScalarReductionBuffer {
  private:
   using VAL = typename REDOP::RHS;
 
  public:
-  ScalarReductionBuffer(cudaStream_t stream) : buffer_(legate::create_buffer<VAL>(1))
+  DeviceScalarReductionBuffer(cudaStream_t stream)
+    : buffer_(legate::create_buffer<VAL>(1, Legion::Memory::Kind::GPU_FB_MEM))
   {
     VAL identity{REDOP::identity};
     ptr_ = buffer_.ptr(0);
     CHECK_CUDA(cudaMemcpyAsync(ptr_, &identity, sizeof(VAL), cudaMemcpyHostToDevice, stream));
   }
 
-  __device__ void operator<<=(const VAL& value) const
+  template <bool ATOMIC>
+  __device__ void reduce(const VAL& value) const
   {
-    REDOP::template fold<false /*exclusive*/>(*ptr_, value);
+    REDOP::template fold<!ATOMIC /*exclusive*/>(*ptr_, value);
   }
 
   __host__ VAL read(cudaStream_t stream) const

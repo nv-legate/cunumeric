@@ -21,7 +21,7 @@
 #include "core/cuda/stream_pool.h"
 #include "cunumeric/arg.h"
 #include "cunumeric/arg.inl"
-#include "cunumeric/scalar_reduction_buffer.h"
+#include "cunumeric/device_scalar_reduction_buffer.h"
 #include <cublas_v2.h>
 #include <cusolverDn.h>
 #include <cuda_runtime.h>
@@ -228,7 +228,8 @@ struct HasNativeShuffle<Argval<T>> {
 };
 
 template <typename T, typename REDUCTION>
-__device__ __forceinline__ void reduce_output(ScalarReductionBuffer<REDUCTION> result, T value)
+__device__ __forceinline__ void reduce_output(DeviceScalarReductionBuffer<REDUCTION> result,
+                                              T value)
 {
   __shared__ T trampoline[THREADS_PER_BLOCK / 32];
   // Reduce across the warp
@@ -249,7 +250,7 @@ __device__ __forceinline__ void reduce_output(ScalarReductionBuffer<REDUCTION> r
   if (threadIdx.x == 0) {
     for (int i = 1; i < (THREADS_PER_BLOCK / 32); i++)
       REDUCTION::template fold<true /*exclusive*/>(value, trampoline[i]);
-    result <<= value;
+    result.reduce<true /*ATOMIC*/>(value);
     // Make sure the result is visible externally
     __threadfence_system();
   }

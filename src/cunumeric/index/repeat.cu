@@ -137,7 +137,7 @@ struct RepeatImplBody<VariantKind::GPU, CODE, DIM> {
     int64_t extent = in_rect.hi[axis] - in_rect.lo[axis] + 1;
     auto offsets   = create_buffer<int64_t>(Point<1>(extent), Memory::Kind::Z_COPY_MEM);
 
-    ScalarReductionBuffer<SumReduction<uint64_t>> sum(stream);
+    DeviceScalarReductionBuffer<SumReduction<uint64_t>> sum(stream);
     const size_t blocks_count = (extent + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
     const size_t shmem_size   = THREADS_PER_BLOCK / 32 * sizeof(int64_t);
 

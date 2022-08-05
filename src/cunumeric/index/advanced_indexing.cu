@@ -90,7 +90,7 @@ struct AdvancedIndexingImplBody<VariantKind::GPU, CODE, DIM, OUT_TYPE> {
                        const size_t skip_size,
                        const size_t key_dim) const
   {
-    ScalarReductionBuffer<SumReduction<uint64_t>> size(stream);
+    DeviceScalarReductionBuffer<SumReduction<uint64_t>> size(stream);
 
     const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
 
