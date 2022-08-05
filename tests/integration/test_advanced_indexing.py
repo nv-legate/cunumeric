@@ -17,6 +17,7 @@ import random
 
 import numpy as np
 import pytest
+from legate.core import LEGATE_MAX_DIM
 from pytest_lazyfixture import lazy_fixture
 from utils.generators import mk_seq_array
 
