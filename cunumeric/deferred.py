@@ -503,6 +503,25 @@ class DeferredArray(NumPyThunk):
                         f"dimension {i} doesn't match to the shape of the"
                         f"index array which is {rhs.shape[i]}"
                     )
+
+            if key.size == 0:
+                rhs_store = rhs.base
+                for i in range(key.ndim - 1):
+                    rhs_store = rhs_store.project(0, 0)
+
+                out = cast(
+                    DeferredArray,
+                    self.runtime.create_empty_thunk(
+                        rhs_store.shape,
+                        rhs.dtype,
+                        inputs=[rhs],
+                    ),
+                )
+
+                out = cast(DeferredArray, out._copy_store(rhs_store))
+
+                return False, rhs, out, self
+
             key_store = key.base
             # bring key to the same shape as rhs
             for i in range(key_store.ndim, rhs.ndim):
@@ -517,22 +536,6 @@ class DeferredArray(NumPyThunk):
                 out_dtype = cast(
                     "np.dtype[Any]", rhs.runtime.get_point_type(N)
                 )
-
-            if key.size == 0:
-                out_dim = rhs.ndim - key.ndim + 1
-                out_shape = tuple(
-                    0 for i in range(rhs.ndim - out_dim, out_dim)
-                )
-
-                out = cast(
-                    DeferredArray,
-                    self.runtime.create_empty_thunk(
-                        out_shape,
-                        out_dtype,
-                        inputs=[key],
-                    ),
-                )
-                return False, rhs, out, self
 
             # TODO : current implementation of the ND output regions
             # requires out.ndim == rhs.ndim. This will be fixed in the
