@@ -124,8 +124,10 @@ def test_spec_with_requested_workers_bad() -> None:
 
 
 def test_spec_with_verbose() -> None:
-    c = Config(["test.py", "--verbose", "--cpus", "2"])
+    args = ["test.py", "--cpus", "2"]
+    c = Config(args)
+    cv = Config(args + ["--verbose"])
     s = FakeSystem()
-    stage = m.OMP(c, s)
-    assert stage.spec.workers == 1
-    assert stage.spec.shards == [(0, 1, 2, 3)]
+
+    spec, vspec = m.OMP(c, s).spec, m.OMP(cv, s).spec
+    assert vspec == spec

@@ -18,7 +18,6 @@ import multiprocessing
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
-from subprocess import CompletedProcess
 from typing import Tuple, Union
 
 from typing_extensions import Protocol, TypeAlias
@@ -26,9 +25,9 @@ from typing_extensions import Protocol, TypeAlias
 from .. import PER_FILE_ARGS, FeatureType
 from ..config import Config
 from ..logger import LOG
-from ..system import SKIPPED_RETURNCODE, System
+from ..system import ProcessResult, System
 from ..types import ArgList, EnvDict
-from ..ui import banner, failed, passed, skipped, summary, yellow
+from ..ui import banner, failed, passed, shell, skipped, summary, yellow
 
 Shard: TypeAlias = Tuple[int, ...]
 
@@ -49,10 +48,20 @@ class StageResult:
     """Collect results from all tests in a TestStage."""
 
     #: Individual test process results including return code and stdout.
-    procs: list[CompletedProcess[str]]
+    procs: list[ProcessResult]
 
     #: Cumulative execution time for all tests in a stage.
     time: timedelta
+
+    @property
+    def total(self) -> int:
+        """The total number of tests run in this stage."""
+        return len(self.procs)
+
+    @property
+    def passed(self) -> int:
+        """The number of tests in this stage that passed."""
+        return sum(p.returncode == 0 for p in self.procs)
 
 
 class TestStage(Protocol):
@@ -152,13 +161,12 @@ class TestStage(Protocol):
     @property
     def outro(self) -> str:
         """An informative banner to display at stage end."""
-        total = len(self.result.procs)
-        passed = len([p for p in self.result.procs if p.returncode == 0])
+        total, passed = self.result.total, self.result.passed
 
-        result = summary(self.name, total, passed)
+        result = summary(self.name, total, passed, self.result.time)
 
         footer = banner(
-            f"Exiting state: {self.name}",
+            f"Exiting stage: {self.name}",
             details=(
                 "* Results      : "
                 + yellow(
@@ -196,7 +204,7 @@ class TestStage(Protocol):
 
     def run(
         self, test_file: Path, config: Config, system: System
-    ) -> CompletedProcess[str]:
+    ) -> ProcessResult:
         """Execute a single test files with appropriate environment and
         command-line options for a feature test stage.
 
@@ -223,7 +231,7 @@ class TestStage(Protocol):
         cmd += stage_args + file_args + config.extra_args
 
         result = system.run(cmd, env=self._env(config))
-        log_proc(self.name, result, test_file, config.verbose)
+        log_proc(self.name, result, test_file, config)
 
         self.shards.put(shard)
 
@@ -240,9 +248,7 @@ class TestStage(Protocol):
         for shard in self.spec.shards:
             self.shards.put(shard)
 
-    def _launch(
-        self, config: Config, system: System
-    ) -> list[CompletedProcess[str]]:
+    def _launch(self, config: Config, system: System) -> list[ProcessResult]:
 
         pool = multiprocessing.Pool(self.spec.workers)
 
@@ -273,13 +279,15 @@ def adjust_workers(workers: int, requested_workers: Union[int, None]) -> int:
 
 
 def log_proc(
-    name: str, proc: CompletedProcess[str], test_file: Path, verbose: bool
+    name: str, proc: ProcessResult, test_file: Path, config: Config
 ) -> None:
+    if config.debug or config.dry_run:
+        LOG(shell(proc.invocation))
     msg = f"({name}) {test_file}"
-    details = proc.stdout.split("\n") if verbose else None
-    if proc.returncode == 0:
-        LOG(passed(msg, details=details))
-    elif proc.returncode == SKIPPED_RETURNCODE:
+    details = proc.output.split("\n") if config.verbose else None
+    if proc.skipped:
         LOG(skipped(msg))
+    elif proc.returncode == 0:
+        LOG(passed(msg, details=details))
     else:
         LOG(failed(msg, details=details))

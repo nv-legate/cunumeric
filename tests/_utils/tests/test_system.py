@@ -24,7 +24,6 @@ import pytest
 from pytest_mock import MockerFixture
 
 from .. import system as m
-from ..logger import LOG
 
 
 @pytest.fixture
@@ -39,23 +38,19 @@ class TestSystem:
     def test_init(self) -> None:
         s = m.System()
         assert s.dry_run is False
-        assert s.debug is False
-
-    @pytest.fixture(autouse=True)
-    def clear_log(self) -> None:
-        LOG.clear()
 
     def test_run(self, mock_subprocess_run: MagicMock) -> None:
         s = m.System()
 
-        expected = CompletedProcess(CMD, 10, stdout="<output>")
-        mock_subprocess_run.return_value = expected
+        expected = m.ProcessResult(CMD, returncode=10, output="<output>")
+        mock_subprocess_run.return_value = CompletedProcess(
+            CMD, 10, stdout="<output>"
+        )
 
         result = s.run(CMD.split())
         mock_subprocess_run.assert_called()
 
         assert result == expected
-        assert LOG.dump() == ""
 
     def test_dry_run(self, mock_subprocess_run: MagicMock) -> None:
         s = m.System(dry_run=True)
@@ -63,21 +58,8 @@ class TestSystem:
         result = s.run(CMD.split())
         mock_subprocess_run.assert_not_called()
 
-        assert result.stdout == ""
-        assert result.returncode == m.SKIPPED_RETURNCODE
-        assert LOG.dump() == f"+{CMD}"
-
-    def test_debug(self, mock_subprocess_run: MagicMock) -> None:
-        s = m.System(debug=True)
-
-        expected = CompletedProcess(CMD, 10, stdout="<output>")
-        mock_subprocess_run.return_value = expected
-
-        result = s.run(CMD.split())
-        mock_subprocess_run.assert_called()
-
-        assert result == expected
-        assert LOG.dump() == f"+{CMD}"
+        assert result.output == ""
+        assert result.skipped
 
     def test_cpus(self) -> None:
         s = m.System()

@@ -210,6 +210,7 @@ test_opts.add_argument(
 
 test_opts.add_argument(
     "-j",
+    "--workers",
     dest="workers",
     type=int,
     default=None,

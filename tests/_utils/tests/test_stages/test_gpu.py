@@ -47,23 +47,30 @@ def test_shard_args(shard: tuple[int, ...], expected: str) -> None:
     s = FakeSystem()
     stage = m.GPU(c, s)
     result = stage.shard_args(shard, c)
-    assert result == ["--gpus", f"{len(shard)}", "--gpu-bind", expected]
+    assert result == [
+        "--fbmem",
+        "4096",
+        "--gpus",
+        f"{len(shard)}",
+        "--gpu-bind",
+        expected,
+    ]
 
 
 def test_spec_with_gpus_1() -> None:
     c = Config(["test.py", "--gpus", "1"])
     s = FakeSystem()
     stage = m.GPU(c, s)
-    assert stage.spec.workers == 12
-    assert stage.spec.shards == [(0,), (1,), (2,), (3,), (4,), (5,)] * 12
+    assert stage.spec.workers == 24
+    assert stage.spec.shards == [(0,), (1,), (2,), (3,), (4,), (5,)] * 24
 
 
 def test_spec_with_gpus_2() -> None:
     c = Config(["test.py", "--gpus", "2"])
     s = FakeSystem()
     stage = m.GPU(c, s)
-    assert stage.spec.workers == 6
-    assert stage.spec.shards == [(0, 1), (2, 3), (4, 5)] * 6
+    assert stage.spec.workers == 12
+    assert stage.spec.shards == [(0, 1), (2, 3), (4, 5)] * 12
 
 
 def test_spec_with_requested_workers() -> None:
@@ -84,15 +91,17 @@ def test_spec_with_requested_workers_zero() -> None:
 
 def test_spec_with_requested_workers_bad() -> None:
     s = FakeSystem()
-    c = Config(["test.py", "-j", f"{len(s.gpus)+10}"])
+    c = Config(["test.py", "-j", f"{len(s.gpus)+100}"])
     assert c.requested_workers > len(s.gpus)
     with pytest.raises(RuntimeError):
         m.GPU(c, s)
 
 
 def test_spec_with_verbose() -> None:
-    c = Config(["test.py", "--verbose", "--gpus", "2"])
+    args = ["test.py", "--gpus", "2"]
+    c = Config(args)
+    cv = Config(args + ["--verbose"])
     s = FakeSystem()
-    stage = m.GPU(c, s)
-    assert stage.spec.workers == 1
-    assert stage.spec.shards == [(0, 1), (2, 3), (4, 5)]
+
+    spec, vspec = m.GPU(c, s).spec, m.GPU(cv, s).spec
+    assert vspec == spec
