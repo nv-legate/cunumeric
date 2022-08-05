@@ -214,58 +214,21 @@ __device__ __forceinline__ T shuffle(unsigned mask, T var, int laneMask, int wid
 // Overload for complex
 // TBD: if compiler optimizes out the shuffle function we defined, we could make it the default
 // version
-template <typename T, typename REDUCTION>
-__device__ __forceinline__ void reduce_output(Legion::DeferredReduction<REDUCTION> result,
-                                              complex<T> value)
-{
-  __shared__ complex<T> trampoline[THREADS_PER_BLOCK / 32];
-  // Reduce across the warp
-  const int laneid = threadIdx.x & 0x1f;
-  const int warpid = threadIdx.x >> 5;
-  for (int i = 16; i >= 1; i /= 2) {
-    const complex<T> shuffle_value = shuffle(0xffffffff, value, i, 32);
-    REDUCTION::template fold<true /*exclusive*/>(value, shuffle_value);
-  }
-  // Write warp values into shared memory
-  if ((laneid == 0) && (warpid > 0)) trampoline[warpid] = value;
-  __syncthreads();
-  // Output reduction
-  if (threadIdx.x == 0) {
-    for (int i = 1; i < (THREADS_PER_BLOCK / 32); i++)
-      REDUCTION::template fold<true /*exclusive*/>(value, trampoline[i]);
-    result <<= value;
-    // Make sure the result is visible externally
-    __threadfence_system();
-  }
-}
 
-// Overload for argval
-// TBD: if compiler optimizes out the shuffle function we defined, we could make it the default
-// version
-template <typename T, typename REDUCTION>
-__device__ __forceinline__ void reduce_output(Legion::DeferredReduction<REDUCTION> result,
-                                              Argval<T> value)
-{
-  __shared__ Argval<T> trampoline[THREADS_PER_BLOCK / 32];
-  // Reduce across the warp
-  const int laneid = threadIdx.x & 0x1f;
-  const int warpid = threadIdx.x >> 5;
-  for (int i = 16; i >= 1; i /= 2) {
-    const Argval<T> shuffle_value = shuffle(0xffffffff, value, i, 32);
-    REDUCTION::template fold<true /*exclusive*/>(value, shuffle_value);
-  }
-  // Write warp values into shared memory
-  if ((laneid == 0) && (warpid > 0)) trampoline[warpid] = value;
-  __syncthreads();
-  // Output reduction
-  if (threadIdx.x == 0) {
-    for (int i = 1; i < (THREADS_PER_BLOCK / 32); i++)
-      REDUCTION::template fold<true /*exclusive*/>(value, trampoline[i]);
-    result <<= value;
-    // Make sure the result is visible externally
-    __threadfence_system();
-  }
-}
+template <typename T>
+struct HasNativeShuffle {
+  static constexpr bool value = true;
+};
+
+template <typename T>
+struct HasNativeShuffle<complex<T>> {
+  static constexpr bool value = false;
+};
+
+template <typename T>
+struct HasNativeShuffle<Argval<T>> {
+  static constexpr bool value = false;
+};
 
 template <typename T, typename REDUCTION>
 __device__ __forceinline__ void reduce_output(Legion::DeferredReduction<REDUCTION> result, T value)
@@ -275,7 +238,11 @@ __device__ __forceinline__ void reduce_output(Legion::DeferredReduction<REDUCTIO
   const int laneid = threadIdx.x & 0x1f;
   const int warpid = threadIdx.x >> 5;
   for (int i = 16; i >= 1; i /= 2) {
-    const T shuffle_value = __shfl_xor_sync(0xffffffff, value, i, 32);
+    T shuffle_value;
+    if constexpr (HasNativeShuffle<T>::value)
+      shuffle_value = __shfl_xor_sync(0xffffffff, value, i, 32);
+    else
+      shuffle_value = shuffle(0xffffffff, value, i, 32);
     REDUCTION::template fold<true /*exclusive*/>(value, shuffle_value);
   }
   // Write warp values into shared memory
@@ -289,184 +256,6 @@ __device__ __forceinline__ void reduce_output(Legion::DeferredReduction<REDUCTIO
     // Make sure the result is visible externally
     __threadfence_system();
   }
-}
-
-__device__ __forceinline__ void reduce_bool(Legion::DeferredValue<bool> result, int value)
-{
-  __shared__ int trampoline[THREADS_PER_BLOCK / 32];
-  // Reduce across the warp
-  const int laneid = threadIdx.x & 0x1f;
-  const int warpid = threadIdx.x >> 5;
-  for (int i = 16; i >= 1; i /= 2) {
-    const int shuffle_value = __shfl_xor_sync(0xffffffff, value, i, 32);
-    if (shuffle_value == 0) value = 0;
-  }
-  // Write warp values into shared memory
-  if ((laneid == 0) && (warpid > 0)) trampoline[warpid] = value;
-  __syncthreads();
-  // Output reduction
-  if (threadIdx.x == 0) {
-    for (int i = 1; i < (THREADS_PER_BLOCK / 32); i++)
-      if (trampoline[i] == 0) {
-        value = 0;
-        break;
-      }
-    if (value == 0) {
-      result = false;
-      // Make sure the result is visible externally
-      __threadfence_system();
-    }
-  }
-}
-
-template <typename T>
-__device__ __forceinline__ T load_cached(const T* ptr)
-{
-  return *ptr;
-}
-
-// Specializations to use PTX cache qualifiers to keep
-// all the input data in as many caches as we can
-// Use .ca qualifier to cache at all levels
-template <>
-__device__ __forceinline__ uint16_t load_cached<uint16_t>(const uint16_t* ptr)
-{
-  uint16_t value;
-  asm volatile("ld.global.ca.u16 %0, [%1];" : "=h"(value) : "l"(ptr) : "memory");
-  return value;
-}
-
-template <>
-__device__ __forceinline__ uint32_t load_cached<uint32_t>(const uint32_t* ptr)
-{
-  uint32_t value;
-  asm volatile("ld.global.ca.u32 %0, [%1];" : "=r"(value) : "l"(ptr) : "memory");
-  return value;
-}
-
-template <>
-__device__ __forceinline__ uint64_t load_cached<uint64_t>(const uint64_t* ptr)
-{
-  uint64_t value;
-  asm volatile("ld.global.ca.u64 %0, [%1];" : "=l"(value) : "l"(ptr) : "memory");
-  return value;
-}
-
-template <>
-__device__ __forceinline__ int16_t load_cached<int16_t>(const int16_t* ptr)
-{
-  int16_t value;
-  asm volatile("ld.global.ca.s16 %0, [%1];" : "=h"(value) : "l"(ptr) : "memory");
-  return value;
-}
-
-template <>
-__device__ __forceinline__ int32_t load_cached<int32_t>(const int32_t* ptr)
-{
-  int32_t value;
-  asm volatile("ld.global.ca.s32 %0, [%1];" : "=r"(value) : "l"(ptr) : "memory");
-  return value;
-}
-
-template <>
-__device__ __forceinline__ int64_t load_cached<int64_t>(const int64_t* ptr)
-{
-  int64_t value;
-  asm volatile("ld.global.ca.s64 %0, [%1];" : "=l"(value) : "l"(ptr) : "memory");
-  return value;
-}
-
-// No half because inline ptx is dumb about the type
-
-template <>
-__device__ __forceinline__ float load_cached<float>(const float* ptr)
-{
-  float value;
-  asm volatile("ld.global.ca.f32 %0, [%1];" : "=f"(value) : "l"(ptr) : "memory");
-  return value;
-}
-
-template <>
-__device__ __forceinline__ double load_cached<double>(const double* ptr)
-{
-  double value;
-  asm volatile("ld.global.ca.f64 %0, [%1];" : "=d"(value) : "l"(ptr) : "memory");
-  return value;
-}
-
-template <typename T>
-__device__ __forceinline__ T load_l2(const T* ptr)
-{
-  return *ptr;
-}
-
-// Specializations to use PTX cache qualifiers to keep
-// data loaded into L2 but no higher in the hierarchy
-// Use .cg qualifier to cache at L2
-template <>
-__device__ __forceinline__ uint16_t load_l2<uint16_t>(const uint16_t* ptr)
-{
-  uint16_t value;
-  asm volatile("ld.global.cg.u16 %0, [%1];" : "=h"(value) : "l"(ptr) : "memory");
-  return value;
-}
-
-template <>
-__device__ __forceinline__ uint32_t load_l2<uint32_t>(const uint32_t* ptr)
-{
-  uint32_t value;
-  asm volatile("ld.global.cg.u32 %0, [%1];" : "=r"(value) : "l"(ptr) : "memory");
-  return value;
-}
-
-template <>
-__device__ __forceinline__ uint64_t load_l2<uint64_t>(const uint64_t* ptr)
-{
-  uint64_t value;
-  asm volatile("ld.global.cg.u64 %0, [%1];" : "=l"(value) : "l"(ptr) : "memory");
-  return value;
-}
-
-template <>
-__device__ __forceinline__ int16_t load_l2<int16_t>(const int16_t* ptr)
-{
-  int16_t value;
-  asm volatile("ld.global.cg.s16 %0, [%1];" : "=h"(value) : "l"(ptr) : "memory");
-  return value;
-}
-
-template <>
-__device__ __forceinline__ int32_t load_l2<int32_t>(const int32_t* ptr)
-{
-  int32_t value;
-  asm volatile("ld.global.cg.s32 %0, [%1];" : "=r"(value) : "l"(ptr) : "memory");
-  return value;
-}
-
-template <>
-__device__ __forceinline__ int64_t load_l2<int64_t>(const int64_t* ptr)
-{
-  int64_t value;
-  asm volatile("ld.global.cg.s64 %0, [%1];" : "=l"(value) : "l"(ptr) : "memory");
-  return value;
-}
-
-// No half because inline ptx is dumb about the type
-
-template <>
-__device__ __forceinline__ float load_l2<float>(const float* ptr)
-{
-  float value;
-  asm volatile("ld.global.cg.f32 %0, [%1];" : "=f"(value) : "l"(ptr) : "memory");
-  return value;
-}
-
-template <>
-__device__ __forceinline__ double load_l2<double>(const double* ptr)
-{
-  double value;
-  asm volatile("ld.global.cg.f64 %0, [%1];" : "=d"(value) : "l"(ptr) : "memory");
-  return value;
 }
 
 template <typename T>
