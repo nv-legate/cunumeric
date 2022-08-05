@@ -14,12 +14,11 @@
 #
 from __future__ import annotations
 
-from pathlib import Path
-from subprocess import CompletedProcess
-
+from .. import FeatureType
 from ..config import Config
 from ..system import System
-from .test_stage import TestStage
+from ..types import ArgList
+from .test_stage import Shard, StageSpec, TestStage, adjust_workers
 
 
 class Eager(TestStage):
@@ -35,34 +34,38 @@ class Eager(TestStage):
 
     """
 
-    kind = "eager"
+    kind: FeatureType = "eager"
+
+    args: ArgList = []
+
+    # Raise min chunk sizes for deferred codepaths to force eager execution
+    env = {
+        "CUNUMERIC_MIN_CPU_CHUNK": "2000000000",
+        "CUNUMERIC_MIN_OMP_CHUNK": "2000000000",
+        "CUNUMERIC_MIN_GPU_CHUNK": "2000000000",
+    }
 
     def __init__(self, config: Config, system: System) -> None:
-        self.workers = self.compute_workers(config, system)
+        self._init(config, system)
 
-    def run(
-        self, test_file: Path, config: Config, system: System
-    ) -> CompletedProcess[str]:
-        test_path = config.root_dir / test_file
-        stage_args = ["--cpus", "1"]
-        file_args = self.file_args(test_file, config)
+    def shard_args(self, shard: Shard, config: Config) -> ArgList:
+        return [
+            "--cpus",
+            "1",
+            "--cpu-bind",
+            ",".join(str(x) for x in shard),
+        ]
 
-        cmd = [config.legate_path, str(test_path)]
-        cmd += stage_args + file_args + config.extra_args
+    def compute_spec(self, config: Config, system: System) -> StageSpec:
+        N = len(system.cpus)
 
-        env = system.env
-        env.update(
-            CUNUMERIC_MIN_CPU_CHUNK="2000000000",
-            CUNUMERIC_MIN_OMP_CHUNK="2000000000",
-            CUNUMERIC_MIN_GPU_CHUNK="2000000000",
-        )
+        if config.verbose:
+            workers = 1
+        else:
+            degree = min(N, 60)  # ~LEGION_MAX_NUM_PROCS just in case
+            workers = adjust_workers(degree, config.requested_workers)
 
-        result = system.run(cmd, env=env)
-        self._log_proc(result, test_file, config.verbose)
-        return result
+        # Just put each worker on its own CPU for eager tests
+        shards = [tuple([i]) for i in range(workers)]
 
-    def compute_workers(self, config: Config, system: System) -> int:
-        if config.requested_workers is not None:
-            return config.requested_workers
-
-        return 1 if config.verbose else len(system.cpus)
+        return StageSpec(workers, shards)

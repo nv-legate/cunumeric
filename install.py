@@ -95,6 +95,7 @@ def install_cunumeric(
     legate_branch,
     openblas_dir,
     tblis_dir,
+    curand_dir,
     cutensor_dir,
     thrust_dir,
     nccl_dir,
@@ -334,6 +335,15 @@ def driver():
         required=False,
         default=os.environ.get("TBLIS_PATH"),
         help="Path to TBLIS installation directory.",
+    )
+    parser.add_argument(
+        "--with-curand",
+        dest="curand_dir",
+        metavar="DIR",
+        required=False,
+        default=os.environ.get("CURAND_PATH"),
+        help="Path to cuRAND installation directory. This flag is ignored "
+        "if Legate Core was built with CUDA support.",
     )
     parser.add_argument(
         "--with-cutensor",

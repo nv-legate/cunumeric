@@ -1,4 +1,4 @@
-# Copyright 2021-2022 NVIDIA Corporation
+# Copyright 2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,32 +12,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
 import numpy as np
 import pytest
 
 import cunumeric as num
+from legate.core import LEGATE_MAX_DIM
 
 
-def test_basic():
-    x = num.array([1, 2, 3])
-    assert x[0] == 1
-    assert x[1] == 2
-    assert x[2] == 3
+@pytest.mark.parametrize("ndim", range(LEGATE_MAX_DIM + 1))
+def test_ndarray(ndim):
+    shape = (4,) * ndim
+    a = num.ones(shape)
+    a_np = np.array(a)
+
+    assert np.ndim(a_np) == num.ndim(a)
 
 
-ARRAYS_4_3_2_1_0 = [
-    4 - num.arange(5),
-    4 - np.arange(5),
-    [4, 3, 2, 1, 0],
-]
-
-
-@pytest.mark.parametrize("arr", ARRAYS_4_3_2_1_0)
-def test_scalar_ndarray_as_index(arr):
-    offsets = num.arange(5)  # [0, 1, 2, 3, 4]
-    offset = offsets[3]  # 3
-    assert np.array_equal(arr[offset], 1)
-    assert np.array_equal(arr[offset - 2 : offset], [3, 2])
+@pytest.mark.parametrize("input", (42, [0, 1, 2], [[0, 1, 2], [3, 4, 5]]))
+def test_python_values(input):
+    assert np.ndim(input) == num.ndim(input)
 
 
 if __name__ == "__main__":

@@ -137,6 +137,8 @@ class Test_implemented:
     ) -> None:
         wrapped = m.implemented(_test_func, "foo", "_test_func")
 
+        assert wrapped.__name__ == _test_func.__name__
+        assert wrapped.__qualname__ == _test_func.__qualname__
         assert wrapped.__doc__ == _test_func.__doc__
         assert wrapped.__wrapped__ is _test_func
 
@@ -160,6 +162,8 @@ class Test_implemented:
             _test_func, "foo", "_test_func", reporting=False
         )
 
+        assert wrapped.__name__ == _test_func.__name__
+        assert wrapped.__qualname__ == _test_func.__qualname__
         assert wrapped.__doc__ == _test_func.__doc__
         assert wrapped.__wrapped__ is _test_func
 
@@ -172,6 +176,10 @@ class Test_implemented:
         self, mock_record_api_call: MagicMock
     ) -> None:
         wrapped = m.implemented(_test_ufunc, "foo", "_test_ufunc")
+
+        # these had to be special-cased, @wraps does not handle them
+        assert wrapped.__name__ == _test_ufunc._name
+        assert wrapped.__qualname__ == _test_ufunc._name
 
         assert wrapped.__doc__ == _test_ufunc.__doc__
         assert wrapped.__wrapped__ is _test_ufunc
@@ -196,6 +204,10 @@ class Test_implemented:
             _test_ufunc, "foo", "_test_func", reporting=False
         )
 
+        # these had to be special-cased, @wraps does not handle them
+        assert wrapped.__name__ == _test_ufunc._name
+        assert wrapped.__qualname__ == _test_ufunc._name
+
         assert wrapped.__doc__ == _test_ufunc.__doc__
         assert wrapped.__wrapped__ is _test_ufunc
 
@@ -211,6 +223,8 @@ class Test_unimplemented:
     ) -> None:
         wrapped = m.unimplemented(_test_func, "foo", "_test_func")
 
+        assert wrapped.__name__ == _test_func.__name__
+        assert wrapped.__qualname__ == _test_func.__qualname__
         assert wrapped.__doc__ == _test_func.__doc__
         assert wrapped.__wrapped__ is _test_func
 
@@ -234,6 +248,8 @@ class Test_unimplemented:
             _test_func, "foo", "_test_func", reporting=False
         )
 
+        assert wrapped.__name__ == _test_func.__name__
+        assert wrapped.__qualname__ == _test_func.__qualname__
         assert wrapped.__doc__ == _test_func.__doc__
         assert wrapped.__wrapped__ is _test_func
 

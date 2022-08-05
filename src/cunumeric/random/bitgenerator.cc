@@ -32,6 +32,15 @@ static Legion::Logger log_curand("cunumeric.random");
 
 Legion::Logger& randutil_log() { return log_curand; }
 
+void randutil_check_curand(curandStatus_t error, const char* file, int line)
+{
+  if (error != CURAND_STATUS_SUCCESS) {
+    randutil_log().fatal() << "Internal CURAND failure with error " << (int)error << " in file "
+                           << file << " at line " << line;
+    assert(false);
+  }
+}
+
 struct CPUGenerator : public CURANDGenerator {
   CPUGenerator(BitGeneratorType gentype, uint64_t seed, uint64_t generatorId, uint32_t flags)
     : CURANDGenerator(gentype, seed, generatorId)

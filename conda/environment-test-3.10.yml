@@ -39,6 +39,7 @@ dependencies:
   - pytest
   - pytest-cov
   - pytest-mock
+  - pytest-lazy-fixture
   - types-docutils
 
   # pip dependencies

@@ -86,7 +86,7 @@ void cunumeric_perform_registration(void)
 
 bool cunumeric_has_curand()
 {
-#ifdef LEGATE_USE_CUDA
+#if defined(LEGATE_USE_CUDA) || defined(CUNUMERIC_CURAND_FOR_CPU_BUILD)
   return true;
 #else
   return false;
