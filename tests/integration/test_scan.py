@@ -23,19 +23,22 @@ np.random.seed(12345)
 
 
 def _gen_array(n0, shape, dt, axis, outtype):
-    # range 1-10, avoiding zeros to ensure correct testing for int prod case
+    range_lower = 0
+    # range 1-5 for ints, avoid zeros for correct testing in prod case
+    if np.issubdtype(dt, np.integer):
+        range_lower = 1
     if dt == np.complex64:
         A = (
-            (5 * np.random.random(shape) + 1)
-            + (5 * np.random.random(shape) + 1) * 1j
+            (5 * np.random.random(shape) + range_lower)
+            + (5 * np.random.random(shape) + range_lower) * 1j
         ).astype(np.complex64)
     elif dt == np.complex128:
         A = (
-            (5 * np.random.random(shape) + 1)
-            + (5 * np.random.random(shape) + 1) * 1j
+            (5 * np.random.random(shape) + range_lower)
+            + (5 * np.random.random(shape) + range_lower) * 1j
         ).astype(np.complex128)
     else:
-        A = (5 * np.random.random(shape) + 1).astype(dt)
+        A = (5 * np.random.random(shape) + range_lower).astype(dt)
     if n0 == "first_half":
         # second element along all axes is a NAN
         A[(1,) * len(shape)] = np.nan
