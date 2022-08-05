@@ -116,7 +116,7 @@ jobs:
       - name: Test
         run: |
           cd legate-ci/github-ci/cunumeric
-          ./test.sh ${{ matrix.options }} -j 1 > ${COMMIT}-test-${{ matrix.log }}.log 2>&1
+          ./test.sh ${{ matrix.options }} > ${COMMIT}-test-${{ matrix.log }}.log 2>&1
       - name: Process output
         if: always()
         run: |

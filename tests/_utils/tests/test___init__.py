@@ -39,7 +39,7 @@ class TestConsts:
         assert DEFAULT_GPUS_PER_NODE == 1
 
     def test_DEFAULT_GPU_MEMORY_BUDGET(self) -> None:
-        assert DEFAULT_GPU_MEMORY_BUDGET == 6 << 30
+        assert DEFAULT_GPU_MEMORY_BUDGET == 4 << 30
 
     def test_DEFAULT_OMPS_PER_NODE(self) -> None:
         assert DEFAULT_OMPS_PER_NODE == 1
@@ -53,7 +53,7 @@ class TestConsts:
         }
 
     def test_UI_WIDTH(self) -> None:
-        assert UI_WIDTH == 60
+        assert UI_WIDTH == 65
 
     def test_FEATURES(self) -> None:
         assert FEATURES == ("cpus", "cuda", "eager", "openmp")

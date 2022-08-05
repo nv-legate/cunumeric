@@ -32,7 +32,7 @@ DEFAULT_CPUS_PER_NODE = 4
 DEFAULT_GPUS_PER_NODE = 1
 
 # Value to use if --fbmem is not specified
-DEFAULT_GPU_MEMORY_BUDGET = 6 << 30
+DEFAULT_GPU_MEMORY_BUDGET = 4 << 30
 
 #: Value to use if --omps is not specified.
 DEFAULT_OMPS_PER_NODE = 1
@@ -46,7 +46,7 @@ DEFAULT_PROCESS_ENV = {
 }
 
 #: Width for terminal ouput headers and footers.
-UI_WIDTH = 60
+UI_WIDTH = 65
 
 #: Feature values that are accepted for --use, in the relative order
 #: that the corresponding test stages should always execute in

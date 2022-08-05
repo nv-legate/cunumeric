@@ -47,6 +47,8 @@ class GPU(TestStage):
 
     def shard_args(self, shard: Shard, config: Config) -> ArgList:
         return [
+            "--fbmem",
+            str(config.fbmem // (1024 * 1024)),  # accepts size in MB
             "--gpus",
             str(len(shard)),
             "--gpu-bind",
@@ -57,14 +59,11 @@ class GPU(TestStage):
         N = len(system.gpus)
         degree = N // config.gpus
 
-        if config.verbose:
-            workers = 1
-        else:
-            fbsize = min(gpu.total for gpu in system.gpus)
-            oversub_factor = int(fbsize // (config.fbmem * BLOAT_FACTOR))
-            workers = adjust_workers(
-                degree * oversub_factor, config.requested_workers
-            )
+        fbsize = min(gpu.total for gpu in system.gpus)
+        oversub_factor = int(fbsize // (config.fbmem * BLOAT_FACTOR))
+        workers = adjust_workers(
+            degree * oversub_factor, config.requested_workers
+        )
 
         # https://docs.python.org/3/library/itertools.html#itertools-recipes
         # grouper('ABCDEF', 3) --> ABC DEF

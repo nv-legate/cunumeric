@@ -22,6 +22,7 @@ text output (i.e. without ANSI color codes) will generated.
 from __future__ import annotations
 
 import sys
+from datetime import timedelta
 from typing import Iterable
 
 from typing_extensions import TypeAlias
@@ -191,7 +192,14 @@ def skipped(msg: str) -> str:
     return f"{cyan('[SKIP]')} {msg}"
 
 
-def summary(name: str, total: int, passed: int) -> str:
+def summary(
+    name: str,
+    total: int,
+    passed: int,
+    time: timedelta,
+    *,
+    justify: bool = True,
+) -> str:
     """Generate a test result summary line.
 
     The output is bright green if all tests passed, otherwise bright red.
@@ -207,9 +215,13 @@ def summary(name: str, total: int, passed: int) -> str:
     passed : int
         The number of passed tests to report.
 
+    time : timedelta
+        The time taken to run the tests
+
     """
     summary = (
-        f"{name}: Passed {passed} of {total} tests ({passed/total*100:0.1f}%)"
+        f"{name}: Passed {passed} of {total} tests ({passed/total*100:0.1f}%) "
+        f"in {time.total_seconds():0.2f}s"
     )
     color = green if passed == total else red
-    return bright(color(f"{summary: >{UI_WIDTH}}"))
+    return bright(color(f"{summary: >{UI_WIDTH}}" if justify else summary))

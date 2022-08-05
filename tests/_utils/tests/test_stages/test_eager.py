@@ -79,8 +79,9 @@ def test_spec_with_requested_workers_bad() -> None:
 
 
 def test_spec_with_verbose() -> None:
-    c = Config(["test.py", "--verbose"])
+    c = Config(["test.py"])
+    cv = Config(["test.py", "--verbose"])
     s = FakeSystem()
-    stage = m.Eager(c, s)
-    assert stage.spec.workers == 1
-    assert stage.spec.shards == [(0,)]
+
+    spec, vspec = m.Eager(c, s).spec, m.Eager(cv, s).spec
+    assert vspec == spec

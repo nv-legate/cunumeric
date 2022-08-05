@@ -58,10 +58,7 @@ class OMP(TestStage):
         omps, threads = config.omps, config.ompthreads
         degree = N // (omps * threads + config.utility)
 
-        if config.verbose:
-            workers = 1
-        else:
-            workers = adjust_workers(degree, config.requested_workers)
+        workers = adjust_workers(degree, config.requested_workers)
 
         # https://docs.python.org/3/library/itertools.html#itertools-recipes
         # grouper('ABCDEF', 3) --> ABC DEF

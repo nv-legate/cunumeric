@@ -17,6 +17,7 @@
 """
 from __future__ import annotations
 
+from datetime import timedelta
 from itertools import chain
 
 from .config import Config
@@ -96,5 +97,20 @@ class TestPlan:
             Number of tests that passed in all stages
 
         """
-        result = summary("All tests", total, passed)
+        details = [
+            f"* {s.name: <6}: "
+            + yellow(
+                f"{s.result.passed} / {s.result.total} passed in {s.result.time.total_seconds():0.2f}s"  # noqa E501
+            )
+            for s in self._stages
+        ]
+
+        time = sum((s.result.time for s in self._stages), timedelta(0, 0))
+        details.append("")
+        details.append(
+            summary("All tests", total, passed, time, justify=False)
+        )
+
+        result = banner("Test Suite Summary", details=details)
+
         return f"\n{rule()}\n{result}\n"
