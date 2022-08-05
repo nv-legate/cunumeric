@@ -17,7 +17,7 @@ import numpy as np
 import pytest
 
 import cunumeric as num
-
+from itertools import product
 
 def test_array():
     x = num.array([1, 2, 3])
@@ -32,82 +32,134 @@ def test_array():
     assert x.dtype == y.dtype
 
 
-def test_empty():
-    xe = num.empty((2, 3))
-    ye = np.empty((2, 3))
-    assert xe.shape == ye.shape
-    assert xe.dtype == ye.dtype
+CREATION_FUNCTIONS = ("empty", "zeros", "ones")
+FILLED_VALUES = [0, 1, 1000, 123.456]
+SIZES = (0, 1, 2)
+NDIMS = 5
+DTYPES = (np.uint32, np.int32, np.float64, np.complex128)
+
+@pytest.mark.parametrize("fn", CREATION_FUNCTIONS)
+def test_creation_func(fn):
+    num_f = getattr(num, fn)
+    np_f = getattr(np, fn)
+
+    par = (SIZES,
+           range(NDIMS),
+           DTYPES)
+    for size, ndims, dtype in product(*par):
+        shape = ndims * [size]
+
+        xf = num_f(shape, dtype=dtype)
+        yf = np_f(shape, dtype=dtype)
+
+        if fn == "empty":
+            assert xf.shape == yf.shape
+        else:
+            assert np.array_equal(xf, yf)
+        assert xf.dtype == yf.dtype
+
+@pytest.mark.parametrize('value', FILLED_VALUES)
+def test_full(value):
+    par = (SIZES,
+           range(NDIMS),
+           DTYPES)
+    for size, ndims, dtype in product(*par):
+        shape = ndims * [size]
+
+        xf = num.full(shape, value, dtype=dtype)
+        yf = np.full(shape, value, dtype=dtype)
+
+        assert np.array_equal(xf, yf)
+        assert xf.dtype == yf.dtype
 
 
-def test_zeros():
-    xz = num.zeros((2, 3))
-    yz = np.zeros((2, 3))
-    assert np.array_equal(xz, yz)
-    assert xz.dtype == yz.dtype
+SHAPES_NEGATIVE = [
+    -1,
+    (-1,2,3),
+    #num.array([2, -3, 4]),  ## it would raise RuntimeError("Unable to find attachment to remove") when num.array
+    # is removed at the end as global variable
+    np.array([2, -3, 4]),
+]
+
+def test_creation_func_negative():
+    for shape in SHAPES_NEGATIVE + [num.array([2, -3, 4])]:
+        with pytest.raises(ValueError):
+            num.empty(shape)
+        with pytest.raises(ValueError):
+            num.zeros(shape)
+        with pytest.raises(ValueError):
+            num.ones(shape)
+        with pytest.raises(ValueError):
+            num.full(shape, 10)
+
+    num.full((2,3), [1])
+    with pytest.raises(AssertionError):
+        num.full((2,3), [10, 20, 30])
 
 
-def test_ones():
-    xo = num.ones((2, 3))
-    yo = np.ones((2, 3))
-    assert np.array_equal(xo, yo)
-    assert xo.dtype == yo.dtype
+DATA_ARGS = [
+    # Array scalars
+    (np.array(3.), None),
+    (np.array(3), 'f8'),
+    # 1D arrays
+    (np.array([]), None),
+    (np.arange(6, dtype='f4'), None),
+    (np.arange(6), 'c16'),
+    # 2D arrays
+    (np.array([[]]), None),
+    (np.arange(6).reshape(2, 3), None),
+    (np.arange(6).reshape(3, 2), 'i1'),
+    # 3D arrays
+    (np.arange(24).reshape(2, 3, 4), None),
+    (np.arange(24).reshape(4, 3, 2), 'f4'),
+]
+LIKE_FUNCTIONS = ("empty_like", "zeros_like", "ones_like")
+
+@pytest.mark.parametrize('x_np,dtype', DATA_ARGS)
+@pytest.mark.parametrize("fn", LIKE_FUNCTIONS)
+def test_func_like(fn, x_np, dtype):
+    num_f = getattr(num, fn)
+    np_f = getattr(np, fn)
+
+    x = num.array(x_np)
+    xfl = num_f(x, dtype=dtype)
+    yfl = np_f(x_np, dtype=dtype)
+
+    if fn == "empty_like":
+        assert xfl.shape == yfl.shape
+    else:
+        assert np.array_equal(xfl, yfl)
+    assert xfl.dtype == yfl.dtype
 
 
-def test_full():
-    xf = num.full((2, 3), 3)
-    yf = np.full((2, 3), 3)
-    assert np.array_equal(xf, yf)
-    assert xf.dtype == yf.dtype
+@pytest.mark.parametrize('value', FILLED_VALUES)
+@pytest.mark.parametrize('x_np, dtype', DATA_ARGS)
+def test_full_like(x_np, dtype, value):
+    x = num.array(x_np)
 
-
-def test_empty_like():
-    x = num.array([1, 2, 3])
-    y = num.array(x)
-    xel = num.empty_like(x)
-    yel = np.empty_like(y)
-    assert xel.shape == yel.shape
-    assert xel.dtype == yel.dtype
-
-
-def test_zeros_like():
-    x = num.array([1, 2, 3])
-    y = num.array(x)
-    xzl = num.zeros_like(x)
-    yzl = np.zeros_like(y)
-    assert np.array_equal(xzl, yzl)
-    assert xzl.dtype == yzl.dtype
-
-
-def test_ones_like():
-    x = num.array([1, 2, 3])
-    y = num.array(x)
-    xol = num.ones_like(x)
-    yol = np.ones_like(y)
-    assert np.array_equal(xol, yol)
-    assert xol.dtype == yol.dtype
-
-
-def test_full_like():
-    x = num.array([1, 2, 3])
-    y = num.array(x)
-    xfl = num.full_like(x, 3)
-    yfl = np.full_like(y, 3)
+    xfl = num.full_like(x, value, dtype=dtype)
+    yfl = np.full_like(x_np, value, dtype=dtype)
     assert np.array_equal(xfl, yfl)
     assert xfl.dtype == yfl.dtype
 
-    # xfls = num.full_like(x, '3', dtype=np.str_)
-    # yfls = np.full_like(y, '3', dtype=np.str_)
-    # assert(num.array_equal(xfls, yfls))
-    # assert(xfls.dtype == yfls.dtype)
+
+def test_full_like_negative():
+    x = num.array([[1,2,3],[4,5,6]])
+    num.full_like(x,[1])
+    with pytest.raises(AssertionError):
+        num.full_like(x, [10,20,30])
 
 
 ARANGE_ARGS = [
-    (1,),
+    (0,),
     (10,),
-    (2.0, 10.0),
-    (2, 30, 3),
+    (3.5,),
+    (2, 10),
+    (-2.5, 10.0),
+    # (1, -10, -2.5), ### output: num: array([ 1, -1, -3, -5, -7]), np: array([ 1. , -1.5, -4. , -6.5, -9. ]
+    (1.0, -10.0, -2.5),
+    (-10, 10, 10)
 ]
-
 
 @pytest.mark.parametrize("args", ARANGE_ARGS, ids=str)
 def test_arange(args):
@@ -117,11 +169,34 @@ def test_arange(args):
     assert x.dtype == y.dtype
 
 
-def test_arange_with_dtype():
-    x = num.arange(10, dtype=np.int32)
-    y = np.arange(10, dtype=np.int32)
+@pytest.mark.parametrize("dtype", [np.int32, np.float64], ids=str)
+@pytest.mark.parametrize("args", ARANGE_ARGS, ids=str)
+def test_arange_with_dtype(args, dtype):
+    x = num.arange(*args, dtype=dtype)
+    y = np.arange(*args, dtype=dtype)
     assert np.array_equal(x, y)
     assert x.dtype == y.dtype
+
+
+def test_arange_negative():
+    with pytest.raises(ValueError):
+        num.arange(-10)  ###np.arange(-10) returns [] successfully
+    with pytest.raises(ValueError):
+        num.arange(2, -10) ###np.arange(2, -10) returns [] successfully
+
+    with pytest.raises(OverflowError):
+        num.arange(0, num.inf)
+    with pytest.raises(ValueError):
+        num.arange(0, 1, num.nan)
+
+    with pytest.raises(ZeroDivisionError):
+        num.arange(0, 10, 0)
+    with pytest.raises(ZeroDivisionError):
+        num.arange(0.0, 10.0, 0.0)
+    with pytest.raises(ZeroDivisionError):
+        num.arange(0, 0, 0)
+    with pytest.raises(ZeroDivisionError):
+        num.arange(0.0, 0.0, 0.0)
 
 
 def test_zero_with_nd_ndarray_shape():
@@ -146,6 +221,7 @@ def test_zero_with_0d_ndarray_shape():
     x = num.zeros(shape)
     y = np.zeros(shape)
     assert np.array_equal(x, y)
+
 
 
 if __name__ == "__main__":
