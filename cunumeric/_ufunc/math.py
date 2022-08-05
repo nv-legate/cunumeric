@@ -58,8 +58,8 @@ true_divide = create_binary_ufunc(
 )
 
 floor_divide = create_binary_ufunc(
-    """Return the largest integer smaller or equal to the division of the inputs.
-It is equivalent to the Python ``//`` operator and pairs with the
+    """Return the largest integer smaller or equal to the division of the 
+inputs. It is equivalent to the Python ``//`` operator and pairs with the
 Python ``%`` (`remainder`), function so that ``a = a % b + b * (a // b)``
 up to roundoff.""",
     "floor_divide",
