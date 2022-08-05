@@ -126,6 +126,7 @@ def install_cunumeric(
         print("openblas_dir: ", openblas_dir)
         print("tblis_dir: ", tblis_dir)
         print("cutensor_dir: ", cutensor_dir)
+        print("curand_dir: ", curand_dir)
         print("thrust_dir: ", thrust_dir)
         print("nccl_dir: ", nccl_dir)
         print("debug: ", debug)
@@ -233,6 +234,9 @@ def install_cunumeric(
         cmake_flags += ["-DBLAS_DIR=%s" % openblas_dir]
     if cutensor_dir:
         cmake_flags += ["-Dcutensor_DIR=%s" % cutensor_dir]
+    # A custom path to cuRAND is ignored when CUDA support is available
+    if cuda and curand_dir is not None:
+        cmake_flags += ["-Dcunumeric_cuRAND_INCLUDE_DIR=%s" % curand_dir]
     if legate_dir and (
         # TODO: Undo this! Only setting temporarily so CI passes
         exists(join(legate_dir, "lib", "cmake", "legate_core"))

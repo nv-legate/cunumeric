@@ -163,6 +163,7 @@ function(find_or_configure_tblis)
                  INTERFACE_POSITION_INDEPENDENT_CODE ON)
   endif()
 
+  set(tblis_BINARY_DIR ${tblis_BINARY_DIR} PARENT_SCOPE)
   set(cunumeric_INSTALL_TBLIS ${should_build_tblis} PARENT_SCOPE)
 endfunction()
 

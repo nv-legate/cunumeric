@@ -15,6 +15,7 @@
 
 import numpy as np
 import pytest
+from legate.core import LEGATE_MAX_DIM
 from utils.comparisons import allclose
 from utils.generators import mk_0to1_array
 

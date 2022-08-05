@@ -14,7 +14,7 @@
 #
 
 import pytest
-from cunumeric.utils import matmul_modes
+from legate.core import LEGATE_MAX_DIM
 from utils.contractions import (
     check_default,
     check_permutations,

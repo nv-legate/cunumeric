@@ -36,8 +36,6 @@ from numpy.core.multiarray import normalize_axis_index
 from numpy.core.numeric import normalize_axis_tuple
 from typing_extensions import ParamSpec
 
-from legate.core import Array
-
 from .config import (
     FFTDirection,
     FFTNormalization,

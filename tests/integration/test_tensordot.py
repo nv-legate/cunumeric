@@ -13,7 +13,7 @@
 # limitations under the License.
 #
 import pytest
-from cunumeric.utils import tensordot_modes
+from legate.core import LEGATE_MAX_DIM
 from utils.contractions import check_default
 
 from cunumeric.utils import tensordot_modes
