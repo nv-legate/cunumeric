@@ -72,7 +72,7 @@ requirements:
     - cuda-nvcc ={{ cuda_version }}
 {% endif %}
   host:
-    # the nvcc requirement is necessary because it contains crt/host_config.h used by cuda runtime. This is a packaging bug that has been reported.P
+    # the nvcc requirement is necessary because it contains crt/host_config.h used by cuda runtime. This is a packaging bug that has been reported.
     - cuda-nvcc ={{ cuda_version }}
     - python
     - openblas =* =*openmp*
