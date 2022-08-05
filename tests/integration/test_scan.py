@@ -26,16 +26,16 @@ def _gen_array(n0, shape, dt, axis, outtype):
     # range 1-10, avoiding zeros to ensure correct testing for int prod case
     if dt == np.complex64:
         A = (
-            (99 * np.random.random(shape) + 1)
-            + (99 * np.random.random(shape) + 1) * 1j
+            (5 * np.random.random(shape) + 1)
+            + (5 * np.random.random(shape) + 1) * 1j
         ).astype(np.complex64)
     elif dt == np.complex128:
         A = (
-            (99 * np.random.random(shape) + 1)
-            + (99 * np.random.random(shape) + 1) * 1j
+            (5 * np.random.random(shape) + 1)
+            + (5 * np.random.random(shape) + 1) * 1j
         ).astype(np.complex128)
     else:
-        A = (99 * np.random.random(shape) + 1).astype(dt)
+        A = (5 * np.random.random(shape) + 1).astype(dt)
     if n0 == "first_half":
         # second element along all axes is a NAN
         A[(1,) * len(shape)] = np.nan
@@ -127,7 +127,11 @@ n0s = [
 @pytest.mark.parametrize("dt", dtypes)
 @pytest.mark.parametrize("n0", n0s)
 def test_scan(op, shape, axis, out0, outtype, dt, n0):
-    if np.issubdtype(dt, np.integer) and n0 is not None:
+    if (np.issubdtype(dt, np.integer) and n0 is not None) or (
+        np.issubdtype(outtype, np.integer)
+        and (op == "cumsum" or op == "cumprod")
+        and n0 is not None
+    ):
         return
     _run_tests(op, n0, shape, dt, axis, out0, outtype)
 
