@@ -20,7 +20,7 @@ from ..system import System
 from ..types import ArgList, EnvDict
 from .test_stage import Shard, StageSpec, TestStage, adjust_workers
 
-BLOAT_FACTOR = 1.25  # hard coded for now
+BLOAT_FACTOR = 1.5  # hard coded for now
 
 
 class GPU(TestStage):
