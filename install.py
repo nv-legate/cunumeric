@@ -136,6 +136,10 @@ def install_cunumeric(
         print("verbose: ", verbose)
         print("unknown: ", unknown)
 
+    # hack for now to get the CI to pass
+    # if given a cutensor or nccl directory, activate cuda
+    cuda = cuda or cutensor_dir or nccl_dir
+
     join = os.path.join
     exists = os.path.exists
     dirname = os.path.dirname
