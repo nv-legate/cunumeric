@@ -104,6 +104,8 @@ struct AdvancedIndexingImplBody<VariantKind::GPU, CODE, DIM, OUT_TYPE> {
       count_nonzero_kernel<<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
         volume, size, offsets, in, pitches, rect.lo, 1, skip_size, key_dim);
 
+    CHECK_CUDA_STREAM(stream);
+
     auto off_ptr = offsets.ptr(0);
     thrust::exclusive_scan(thrust::cuda::par.on(stream), off_ptr, off_ptr + volume, off_ptr);
 

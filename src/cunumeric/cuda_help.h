@@ -212,10 +212,6 @@ __device__ __forceinline__ T shuffle(unsigned mask, T var, int laneMask, int wid
   return var;
 }
 
-// Overload for complex
-// TBD: if compiler optimizes out the shuffle function we defined, we could make it the default
-// version
-
 template <typename T>
 struct HasNativeShuffle {
   static constexpr bool value = true;
