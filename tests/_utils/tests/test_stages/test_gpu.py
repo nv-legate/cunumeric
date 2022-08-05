@@ -91,8 +91,10 @@ def test_spec_with_requested_workers_bad() -> None:
 
 
 def test_spec_with_verbose() -> None:
-    c = Config(["test.py", "--verbose", "--gpus", "2"])
+    args = ["test.py", "--gpus", "2"]
+    c = Config(args)
+    cv = Config(args + ["--verbose"])
     s = FakeSystem()
-    stage = m.GPU(c, s)
-    assert stage.spec.workers == 1
-    assert stage.spec.shards == [(0, 1), (2, 3), (4, 5)]
+
+    spec, vspec = m.GPU(c, s).spec, m.GPU(cv, s).spec
+    assert vspec == spec
