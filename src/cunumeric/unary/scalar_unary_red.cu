@@ -127,7 +127,7 @@ struct ScalarUnaryRedImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
 
     const size_t volume = rect.volume();
     const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-    DeferredReduction<typename OP::OP> result;
+    DeviceScalarReductionBuffer<typename OP::OP> result(stream);
     size_t shmem_size = THREADS_PER_BLOCK / 32 * sizeof(LHS);
 
     if (blocks >= MAX_REDUCTION_CTAS) {
@@ -156,7 +156,7 @@ struct ScalarUnaryRedImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
 
     const size_t volume = rect.volume();
     const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-    DeferredReduction<typename OP::OP> result;
+    DeviceScalarReductionBuffer<typename OP::OP> result(stream);
     size_t shmem_size = THREADS_PER_BLOCK / 32 * sizeof(LHS);
 
     if (blocks >= MAX_REDUCTION_CTAS) {
@@ -190,7 +190,7 @@ struct ScalarUnaryRedImplBody<VariantKind::GPU, UnaryRedCode::CONTAINS, CODE, DI
     const auto to_find  = to_find_scalar.scalar<RHS>();
     const size_t volume = rect.volume();
     const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-    DeferredReduction<SumReduction<bool>> result;
+    DeviceScalarReductionBuffer<SumReduction<bool>> result(stream);
     size_t shmem_size = THREADS_PER_BLOCK / 32 * sizeof(bool);
 
     if (blocks >= MAX_REDUCTION_CTAS) {

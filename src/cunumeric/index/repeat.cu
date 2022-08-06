@@ -35,7 +35,7 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
                       const size_t iters,
                       Buffer<int64_t> offsets)
 {
-  int64_t value = 0;
+  uint64_t value = 0;
   for (size_t idx = 0; idx < iters; idx++) {
     const int64_t offset = (idx * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (offset < extent) {
@@ -43,7 +43,7 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
       p[axis] += offset;
       auto val        = repeats[p];
       offsets[offset] = val;
-      SumReduction<int64_t>::fold<true>(value, val);
+      SumReduction<uint64_t>::fold<true>(value, val);
     }
   }
   // Every thread in the thread block must participate in the exchange to get correct results
@@ -137,7 +137,7 @@ struct RepeatImplBody<VariantKind::GPU, CODE, DIM> {
     int64_t extent = in_rect.hi[axis] - in_rect.lo[axis] + 1;
     auto offsets   = create_buffer<int64_t>(Point<1>(extent), Memory::Kind::Z_COPY_MEM);
 
-    DeferredReduction<SumReduction<int64_t>> sum;
+    DeviceScalarReductionBuffer<SumReduction<uint64_t>> sum(stream);
     const size_t blocks_count = (extent + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
     const size_t shmem_size   = THREADS_PER_BLOCK / 32 * sizeof(int64_t);
 
@@ -151,10 +151,8 @@ struct RepeatImplBody<VariantKind::GPU, CODE, DIM> {
     }
     CHECK_CUDA_STREAM(stream);
 
-    cudaStreamSynchronize(stream);
-
     Point<DIM> out_extents = in_rect.hi - in_rect.lo + Point<DIM>::ONES();
-    out_extents[axis]      = sum.read();
+    out_extents[axis]      = static_cast<Legion::coord_t>(sum.read(stream));
 
     auto out = out_array.create_output_buffer<VAL, DIM>(out_extents, true);
 
