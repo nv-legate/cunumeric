@@ -29,7 +29,7 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
 {
   const size_t idx = global_tid_1d();
   if (idx >= volume) return;
-  if (!func(in1[idx], in2[idx])) out <<= false;
+  if (!func(in1[idx], in2[idx])) out.reduce<false /*EXCLUSIVE*/>(false);
 }
 
 template <typename Function, typename RES, typename ReadAcc, typename Pitches, typename Rect>
@@ -39,7 +39,7 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM) gen
   const size_t idx = global_tid_1d();
   if (idx >= volume) return;
   auto point = pitches.unflatten(idx, rect.lo);
-  if (!func(in1[point], in2[point])) out <<= false;
+  if (!func(in1[point], in2[point])) out.reduce<false /*EXCLUSIVE*/>(false);
 }
 
 template <typename Buffer, typename RedAcc>
@@ -64,8 +64,8 @@ struct BinaryRedImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
   {
     size_t volume       = rect.volume();
     const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-    DeferredReduction<ProdReduction<bool>> result;
-    auto stream = get_cached_stream();
+    auto stream         = get_cached_stream();
+    DeviceScalarReductionBuffer<ProdReduction<bool>> result(stream);
     if (dense) {
       auto in1ptr = in1.ptr(rect);
       auto in2ptr = in2.ptr(rect);

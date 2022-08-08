@@ -2875,7 +2875,8 @@ class ndarray:
         initial: Union[int, float, None] = None,
         where: Union[bool, ndarray] = True,
     ) -> ndarray:
-        """a.max(axis=None, out=None, keepdims=False, initial=<no value>, where=True)
+        """a.max(axis=None, out=None, keepdims=False, initial=<no value>,
+                 where=True)
 
         Return the maximum along a given axis.
 
@@ -2977,7 +2978,8 @@ class ndarray:
         initial: Union[int, float, None] = None,
         where: Union[bool, ndarray] = True,
     ) -> ndarray:
-        """a.min(axis=None, out=None, keepdims=False, initial=<no value>, where=True)
+        """a.min(axis=None, out=None, keepdims=False, initial=<no value>,
+                 where=True)
 
         Return the minimum along a given axis.
 
