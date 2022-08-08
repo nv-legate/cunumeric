@@ -16,8 +16,12 @@
 # List all the application source files that need OpenMP separately
 # since we have to add the -fopenmp flag to  CC_FLAGS for them
 GEN_CPU_SRC += cunumeric/ternary/where.cc               \
+							 cunumeric/scan/scan_global.cc            \
+							 cunumeric/scan/scan_local.cc             \
 							 cunumeric/binary/binary_op.cc            \
 							 cunumeric/binary/binary_red.cc           \
+							 cunumeric/bits/packbits.cc               \
+							 cunumeric/bits/unpackbits.cc             \
 							 cunumeric/unary/scalar_unary_red.cc      \
 							 cunumeric/unary/unary_op.cc              \
 							 cunumeric/unary/unary_red.cc             \
@@ -25,8 +29,8 @@ GEN_CPU_SRC += cunumeric/ternary/where.cc               \
 							 cunumeric/nullary/arange.cc              \
 							 cunumeric/nullary/eye.cc                 \
 							 cunumeric/nullary/fill.cc                \
-                                                         cunumeric/nullary/window.cc              \
-                                                         cunumeric/index/advanced_indexing.cc     \
+							 cunumeric/nullary/window.cc              \
+							 cunumeric/index/advanced_indexing.cc     \
 							 cunumeric/index/choose.cc                \
 							 cunumeric/index/repeat.cc                \
 							 cunumeric/index/zip.cc                   \
@@ -60,8 +64,12 @@ GEN_CPU_SRC += cunumeric/cephes/chbevl.cc \
 
 ifeq ($(strip $(USE_OPENMP)),1)
 GEN_CPU_SRC += cunumeric/ternary/where_omp.cc          \
+							 cunumeric/scan/scan_global_omp.cc       \
+							 cunumeric/scan/scan_local_omp.cc        \
 							 cunumeric/binary/binary_op_omp.cc       \
 							 cunumeric/binary/binary_red_omp.cc      \
+							 cunumeric/bits/packbits_omp.cc          \
+							 cunumeric/bits/unpackbits_omp.cc        \
 							 cunumeric/unary/unary_op_omp.cc         \
 							 cunumeric/unary/scalar_unary_red_omp.cc \
 							 cunumeric/unary/unary_red_omp.cc        \
@@ -69,8 +77,8 @@ GEN_CPU_SRC += cunumeric/ternary/where_omp.cc          \
 							 cunumeric/nullary/arange_omp.cc         \
 							 cunumeric/nullary/eye_omp.cc            \
 							 cunumeric/nullary/fill_omp.cc           \
-                                                         cunumeric/nullary/window_omp.cc         \
-                                                         cunumeric/index/advanced_indexing_omp.cc\
+							 cunumeric/nullary/window_omp.cc         \
+							 cunumeric/index/advanced_indexing_omp.cc\
 							 cunumeric/index/choose_omp.cc           \
 							 cunumeric/index/repeat_omp.cc           \
 							 cunumeric/index/zip_omp.cc              \
@@ -96,8 +104,12 @@ GEN_CPU_SRC += cunumeric/ternary/where_omp.cc          \
 endif
 
 GEN_GPU_SRC += cunumeric/ternary/where.cu               \
+							 cunumeric/scan/scan_global.cu            \
+							 cunumeric/scan/scan_local.cu             \
 							 cunumeric/binary/binary_op.cu            \
 							 cunumeric/binary/binary_red.cu           \
+							 cunumeric/bits/packbits.cu               \
+							 cunumeric/bits/unpackbits.cu             \
 							 cunumeric/unary/scalar_unary_red.cu      \
 							 cunumeric/unary/unary_red.cu             \
 							 cunumeric/unary/unary_op.cu              \
@@ -105,10 +117,10 @@ GEN_GPU_SRC += cunumeric/ternary/where.cu               \
 							 cunumeric/nullary/arange.cu              \
 							 cunumeric/nullary/eye.cu                 \
 							 cunumeric/nullary/fill.cu                \
-                                                         cunumeric/nullary/window.cu              \
-                                                         cunumeric/index/advanced_indexing.cu     \
+							 cunumeric/nullary/window.cu              \
+							 cunumeric/index/advanced_indexing.cu     \
 							 cunumeric/index/choose.cu                \
-                                                         cunumeric/index/repeat.cu                \
+							 cunumeric/index/repeat.cu                \
 							 cunumeric/index/zip.cu                   \
 							 cunumeric/item/read.cu                   \
 							 cunumeric/item/write.cu                  \
@@ -135,6 +147,10 @@ GEN_GPU_SRC += cunumeric/ternary/where.cu               \
 							 cunumeric/cunumeric.cu
 
 include cunumeric/sort/sort.mk
+
+ifeq ($(strip $(BUILD_CURAND_TASKS)),1)
+include cunumeric/random/random.mk
+endif
 
 GEN_CPU_SRC += cunumeric/cunumeric.cc # This must always be the last file!
                                       # It guarantees we do our registration callback

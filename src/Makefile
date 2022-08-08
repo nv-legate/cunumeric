@@ -41,15 +41,28 @@ include $(LEGATE_DIR)/share/legate/config.mk
 
 LIBNAME = libcunumeric
 
+CURAND_PATH ?=
+
 CC_FLAGS ?=
 CC_FLAGS += -I. -I$(OPENBLAS_PATH)/include -I$(TBLIS_PATH)/include -I$(THRUST_PATH)
 CC_FLAGS += -DTHRUST_HOST_SYSTEM=THRUST_HOST_SYSTEM_CPP -DTHRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_OMP
+
+ifdef CURAND_PATH
+BUILD_CURAND_TASKS = 1
+CC_FLAGS += -I$(CURAND_PATH)/include -DCUNUMERIC_CURAND_FOR_CPU_BUILD
+else
+ifeq ($(strip $(USE_CUDA)),1)
+BUILD_CURAND_TASKS = 1
+else
+BUILD_CURAND_TASKS = 0
+endif
+endif
 
 LD_FLAGS ?=
 LD_FLAGS += -L$(OPENBLAS_PATH)/lib -l$(OPENBLAS_LIBNAME) -Wl,-rpath,$(OPENBLAS_PATH)/lib
 LD_FLAGS += -L$(TBLIS_PATH)/lib -ltblis -Wl,-rpath,$(TBLIS_PATH)/lib
 ifeq ($(strip $(USE_CUDA)),1)
-LD_FLAGS += -lcublas -lcusolver -lcufft
+LD_FLAGS += -lcublas -lcusolver -lcufft -lcurand
 LD_FLAGS += -L$(CUTENSOR_PATH)/lib -lcutensor -Wl,-rpath,$(CUTENSOR_PATH)/lib
 LD_FLAGS += -L$(NCCL_PATH)/lib -lnccl -Wl,-rpath,$(NCCL_PATH)/lib
 endif

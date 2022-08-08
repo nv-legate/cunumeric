@@ -135,6 +135,7 @@ def test_CuNumericOpCode() -> None:
         "BINARY_OP",
         "BINARY_RED",
         "BINCOUNT",
+        "BITGENERATOR",
         "CHOOSE",
         "CONTRACT",
         "CONVERT",
@@ -142,20 +143,24 @@ def test_CuNumericOpCode() -> None:
         "DIAG",
         "DOT",
         "EYE",
+        "FFT",
         "FILL",
         "FLIP",
-        "FFT",
         "GEMM",
         "LOAD_CUDALIBS",
         "MATMUL",
         "MATVECMUL",
         "NONZERO",
+        "PACKBITS",
         "POTRF",
         "RAND",
         "READ",
         "REPEAT",
         "SCALAR_UNARY_RED",
+        "SCAN_GLOBAL",
+        "SCAN_LOCAL",
         "SORT",
+        "SEARCHSORTED",
         "SYRK",
         "TILE",
         "TRANSPOSE_COPY_2D",
@@ -166,6 +171,7 @@ def test_CuNumericOpCode() -> None:
         "UNIQUE",
         "UNIQUE_REDUCE",
         "UNLOAD_CUDALIBS",
+        "UNPACKBITS",
         "WHERE",
         "WINDOW",
         "WRITE",
@@ -240,6 +246,10 @@ def test_CuNumericTunable() -> None:
         "MAX_EAGER_VOLUME",
         "HAS_NUMAMEM",
     }
+
+
+def test_ScanCode() -> None:
+    assert (set(m.ScanCode.__members__)) == {"PROD", "SUM"}
 
 
 if __name__ == "__main__":

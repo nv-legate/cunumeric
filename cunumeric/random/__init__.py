@@ -12,10 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from __future__ import annotations
 
 import numpy.random as _nprandom
-from cunumeric.random.random import *
 from cunumeric.coverage import clone_module
+from cunumeric.runtime import runtime
+
+if runtime.has_curand:
+    from cunumeric.random.random import *
+    from cunumeric.random.bitgenerator import *
+    from cunumeric.random.generator import *
+else:
+    from cunumeric.random.legacy import *
 
 clone_module(_nprandom, globals())
 

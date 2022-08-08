@@ -14,6 +14,10 @@
  *
  */
 
+#pragma once
+
+// Useful for IDEs
+#include "cunumeric/set/unique.h"
 #include "cunumeric/pitches.h"
 
 namespace cunumeric {

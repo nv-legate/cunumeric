@@ -18,6 +18,7 @@
 
 #include "cunumeric/cunumeric.h"
 #include "cunumeric/arg.h"
+#include "cunumeric/arg.inl"
 
 #define _USE_MATH_DEFINES
 
@@ -657,23 +658,25 @@ struct UnaryOp<UnaryOpCode::ISFINITE, CODE> {
 
   UnaryOp(const std::vector<legate::Store>& args) {}
 
-  template <typename _T = T, std::enable_if_t<!std::is_floating_point<_T>::value>* = nullptr>
+  template <typename _T = T, std::enable_if_t<std::is_integral<_T>::value>* = nullptr>
   constexpr bool operator()(const T& x) const
   {
     return true;
   }
 
   template <typename _T = T, std::enable_if_t<std::is_floating_point<_T>::value>* = nullptr>
-  constexpr bool operator()(const T& x) const
+  __CUDA_HD__ bool operator()(const T& x) const
   {
     return std::isfinite(x);
   }
 
   template <typename _T>
-  constexpr bool operator()(const complex<_T>& x) const
+  __CUDA_HD__ bool operator()(const complex<_T>& x) const
   {
     return std::isfinite(x.imag()) && std::isfinite(x.real());
   }
+
+  __CUDA_HD__ bool operator()(const __half& x) const { return isfinite(static_cast<float>(x)); }
 };
 
 template <legate::LegateTypeCode CODE>
@@ -683,31 +686,23 @@ struct UnaryOp<UnaryOpCode::ISINF, CODE> {
 
   UnaryOp(const std::vector<legate::Store>& args) {}
 
-  template <typename _T = T, std::enable_if_t<!std::is_floating_point<_T>::value>* = nullptr>
+  template <typename _T = T, std::enable_if_t<std::is_integral<_T>::value>* = nullptr>
   constexpr bool operator()(const T& x) const
   {
     return false;
   }
 
   template <typename _T = T, std::enable_if_t<std::is_floating_point<_T>::value>* = nullptr>
-  constexpr bool operator()(const T& x) const
+  __CUDA_HD__ bool operator()(const T& x) const
   {
     return std::isinf(x);
   }
 
   template <typename _T>
-  constexpr bool operator()(const complex<_T>& x) const
+  __CUDA_HD__ bool operator()(const complex<_T>& x) const
   {
     return std::isinf(x.imag()) || std::isinf(x.real());
   }
-};
-
-template <>
-struct UnaryOp<UnaryOpCode::ISINF, legate::LegateTypeCode::HALF_LT> {
-  static constexpr bool valid = true;
-  using T                     = __half;
-
-  UnaryOp(const std::vector<legate::Store>& args) {}
 
   __CUDA_HD__ bool operator()(const __half& x) const { return isinf(x); }
 };
@@ -719,32 +714,24 @@ struct UnaryOp<UnaryOpCode::ISNAN, CODE> {
 
   UnaryOp(const std::vector<legate::Store>& args) {}
 
-  template <typename _T = T, std::enable_if_t<!std::is_floating_point<_T>::value>* = nullptr>
+  template <typename _T = T, std::enable_if_t<std::is_integral<_T>::value>* = nullptr>
   constexpr bool operator()(const T& x) const
   {
     return false;
   }
 
   template <typename _T = T, std::enable_if_t<std::is_floating_point<_T>::value>* = nullptr>
-  constexpr bool operator()(const T& x) const
+  __CUDA_HD__ bool operator()(const T& x) const
   {
     using std::isnan;
     return isnan(x);
   }
 
   template <typename _T>
-  constexpr bool operator()(const complex<_T>& x) const
+  __CUDA_HD__ bool operator()(const complex<_T>& x) const
   {
     return std::isnan(x.imag()) || std::isnan(x.real());
   }
-};
-
-template <>
-struct UnaryOp<UnaryOpCode::ISNAN, legate::LegateTypeCode::HALF_LT> {
-  static constexpr bool valid = true;
-  using T                     = __half;
-
-  UnaryOp(const std::vector<legate::Store>& args) {}
 
   __CUDA_HD__ bool operator()(const __half& x) const { return isnan(x); }
 };

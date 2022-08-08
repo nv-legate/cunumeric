@@ -17,7 +17,7 @@ import random
 
 import numpy as np
 import pytest
-from test_tools.generators import mk_seq_array
+from utils.generators import mk_seq_array
 
 import cunumeric as num
 from legate.core import LEGATE_MAX_DIM
@@ -96,6 +96,10 @@ def test():
 
     # j: test for bool array of the same dimension
     index = np.array([True, False, False, True, True, False, True])
+    index_num = num.array(index)
+    assert np.array_equal(x[index], x_num[index_num])
+
+    index = np.array([False] * 7)
     index_num = num.array(index)
     assert np.array_equal(x[index], x_num[index_num])
 
@@ -441,6 +445,21 @@ def test():
     res = x[indx, indx]
     res_num = x_num[indx_num, indx_num]
     assert np.array_equal(res, res_num)
+
+    # call to advanced indexing task:
+    # indx.ndim< arrya.ndim
+    indx_num = num.array(indx)
+    res = x[indx]
+    res_num = x_num[indx_num]
+    assert np.array_equal(res, res_num)
+
+    # call to advanced indexing task:
+    # indx.ndim< arrya.ndim
+    indx_num = num.array(indx)
+    res = x[:, :, indx]
+    res_num = x_num[:, :, indx_num]
+    assert np.array_equal(res, res_num)
+
     if LEGATE_MAX_DIM > 4:
         x = mk_seq_array(
             np,
@@ -641,7 +660,7 @@ def test():
 
     x = np.ones((3, 4), dtype=float)
     x_num = num.array(x)
-    ind = np.full((3,), 1)
+    ind = np.arange(3)
     ind_num = num.array(ind)
     res = x[ind, ind]
     res_num = x_num[ind_num, ind_num]
@@ -651,11 +670,33 @@ def test():
     x_num[ind_num, ind_num] = 5
     assert np.array_equal(x, x_num)
 
-    b = np.array([1, 2, 3], dtype=np.int16)
-    b_num = num.array(b)
-    x[ind, ind] = b
-    x_num[ind_num, ind_num] = b_num
-    assert np.array_equal(x, x_num)
+    # some additional tests for bool index arrays:
+    # 2d:
+    x = mk_seq_array(
+        np,
+        (
+            3,
+            4,
+        ),
+    )
+    x_num = mk_seq_array(
+        num,
+        (
+            3,
+            4,
+        ),
+    )
+    indx = np.array(
+        [
+            [True, False, False, False],
+            [False, False, False, False],
+            [False, False, False, True],
+        ]
+    )
+    indx_num = num.array(indx)
+    res = x[indx]
+    res_num = x_num[indx_num]
+    assert np.array_equal(res, res_num)
 
     # we do less than LEGATE_MAX_DIM becasue the dimension will be increased by
     # 1 when passig 2d index array

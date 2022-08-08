@@ -46,7 +46,6 @@ SKIP = {
     "iterable",
     "max",
     "min",
-    "ndim",
     "product",
     "recfromcsv",
     "recfromtxt",
@@ -73,8 +72,8 @@ MISSING_NP_REFS = {
 class SectionConfig:
     title: str
     attr: str | None
-    types: tuple(type) | None = None
-    names: tuple(str) | None = None
+    types: tuple[type, ...] | None = None
+    names: tuple[str, ...] | None = None
 
 
 FUNCTIONS = (FunctionType, BuiltinFunctionType)
@@ -138,7 +137,6 @@ MANIP = (
     "asfarray",
     "asfortranarray",
     "asmatrix",
-    "asscalar",
     "atleast_1d",
     "atleast_2d",
     "atleast_3d",
@@ -336,7 +334,7 @@ STATS = (
     "var",
 )
 
-MISC = ("kron",)
+MISC = ("kron", "ndim")
 
 PACK = ("packbits", "unpackbits")
 

@@ -12,40 +12,64 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from __future__ import annotations
 
+from typing import TYPE_CHECKING, Union, cast
 
-from cunumeric.config import CuNumericOpCode
+from numpy.core.multiarray import normalize_axis_index  # type: ignore
 
 from legate.core import types as ty
 
+from .config import CuNumericOpCode
 
-def sort_flattened(output, input, argsort, stable):
-    flattened = input.reshape((input.size,), order="C")
+if TYPE_CHECKING:
+    from .deferred import DeferredArray
+
+
+def sort_flattened(
+    output: DeferredArray, input: DeferredArray, argsort: bool, stable: bool
+) -> None:
+    flattened = cast("DeferredArray", input.reshape((input.size,), order="C"))
 
     # run sort flattened -- return 1D solution
-    sort_result = output.runtime.create_empty_thunk(
-        flattened.shape, dtype=output.dtype, inputs=(flattened,)
+    sort_result = cast(
+        "DeferredArray",
+        output.runtime.create_empty_thunk(
+            flattened.shape, dtype=output.dtype, inputs=(flattened,)
+        ),
     )
     sort(sort_result, flattened, argsort, stable=stable)
     output.base = sort_result.base
     output.numpy_array = None
 
 
-def sort_swapped(output, input, argsort, sort_axis, stable):
-    assert sort_axis < input.ndim - 1 and sort_axis >= 0
+def sort_swapped(
+    output: DeferredArray,
+    input: DeferredArray,
+    argsort: bool,
+    sort_axis: int,
+    stable: bool,
+) -> None:
+    sort_axis = normalize_axis_index(sort_axis, input.ndim)
 
     # swap axes
     swapped = input.swapaxes(sort_axis, input.ndim - 1)
 
-    swapped_copy = output.runtime.create_empty_thunk(
-        swapped.shape, dtype=input.dtype, inputs=(input, swapped)
+    swapped_copy = cast(
+        "DeferredArray",
+        output.runtime.create_empty_thunk(
+            swapped.shape, dtype=input.dtype, inputs=(input, swapped)
+        ),
     )
     swapped_copy.copy(swapped, deep=True)
 
     # run sort on last axis
     if argsort is True:
-        sort_result = output.runtime.create_empty_thunk(
-            swapped_copy.shape, dtype=output.dtype, inputs=(swapped_copy,)
+        sort_result = cast(
+            "DeferredArray",
+            output.runtime.create_empty_thunk(
+                swapped_copy.shape, dtype=output.dtype, inputs=(swapped_copy,)
+            ),
         )
         sort(sort_result, swapped_copy, argsort, stable=stable)
         output.base = sort_result.swapaxes(input.ndim - 1, sort_axis).base
@@ -56,10 +80,12 @@ def sort_swapped(output, input, argsort, sort_axis, stable):
         output.numpy_array = None
 
 
-def sort_task(output, input, argsort, stable):
+def sort_task(
+    output: DeferredArray, input: DeferredArray, argsort: bool, stable: bool
+) -> None:
     task = output.context.create_task(CuNumericOpCode.SORT)
 
-    uses_unbound_output = output.runtime.num_gpus > 1 and input.ndim == 1
+    uses_unbound_output = output.runtime.num_procs > 1 and input.ndim == 1
 
     task.add_input(input.base)
     if uses_unbound_output:
@@ -73,13 +99,8 @@ def sort_task(output, input, argsort, stable):
 
     if output.runtime.num_gpus > 1:
         task.add_nccl_communicator()
-
-    # Distributed sort on CPU not supported yet
-    if output.runtime.num_gpus == 0 and output.runtime.num_procs > 1:
-        if output.ndim > 1:
-            task.add_broadcast(input.base, input.ndim - 1)
-        else:
-            task.add_broadcast(input.base)
+    elif output.runtime.num_gpus == 0 and output.runtime.num_procs > 1:
+        task.add_cpu_communicator()
 
     task.add_scalar_arg(argsort, bool)  # return indices flag
     task.add_scalar_arg(input.base.shape, (ty.int64,))
@@ -91,18 +112,22 @@ def sort_task(output, input, argsort, stable):
         output.numpy_array = None
 
 
-def sort(output, input, argsort, axis=-1, stable=False):
+def sort(
+    output: DeferredArray,
+    input: DeferredArray,
+    argsort: bool,
+    axis: Union[int, None] = -1,
+    stable: bool = False,
+) -> None:
     if axis is None and input.ndim > 1:
         sort_flattened(output, input, argsort, stable)
     else:
         if axis is None:
-            axis = 0
-        elif axis < 0:
-            axis = input.ndim + axis
-
-        if axis is not input.ndim - 1:
-            sort_swapped(output, input, argsort, axis, stable)
-
+            computed_axis = 0
         else:
-            # run actual sort task
+            computed_axis = normalize_axis_index(axis, input.ndim)
+
+        if computed_axis == input.ndim - 1:
             sort_task(output, input, argsort, stable)
+        else:
+            sort_swapped(output, input, argsort, computed_axis, stable)

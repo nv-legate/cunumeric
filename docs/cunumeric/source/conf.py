@@ -19,20 +19,11 @@
 # list see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
-# -- Path setup --------------------------------------------------------------
-
-# If extensions (or modules to document with autodoc) are in another directory,
-# add these directories to sys.path here. If the directory is relative to the
-# documentation root, use os.path.abspath to make it absolute, like shown here.
-#
-
-
 # -- Project information -----------------------------------------------------
 
 project = "cunumeric"
 copyright = "2021-2022, NVIDIA"
 author = "NVIDIA"
-
 
 # -- General configuration ---------------------------------------------------
 
@@ -49,10 +40,10 @@ extensions = [
     "sphinx_markdown_tables",
     "recommonmark",
     "cunumeric._sphinxext.comparison_table",
+    "cunumeric._sphinxext.implemented_index",
+    "cunumeric._sphinxext.missing_refs",
     "cunumeric._sphinxext.ufunc_formatter",
 ]
-
-copybutton_prompt_text = ">>> "
 
 # The master toctree document.
 master_doc = "index"
@@ -67,12 +58,10 @@ source_suffix = {".rst": "restructuredtext", ".md": "markdown"}
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = []
 
-
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-#
 html_theme = "pydata_sphinx_theme"
 
 # Add any paths that contain custom static files (such as style sheets) here,
@@ -82,34 +71,20 @@ html_static_path = ["_static"]
 
 pygments_style = "sphinx"
 
-nitpick_ignore = [
-    ("py:class", "1-D array of"),
-    ("py:class", "any"),
-    ("py:class", "array_like"),
-    ("py:class", "array"),
-    ("py:class", "complex ndarray"),
-    ("py:class", "data-type"),
-    ("py:class", "M"),
-    ("py:class", "N"),
-    ("py:class", "nested list of array_like"),
-    ("py:class", "optional"),
-    ("py:class", "scalar"),
-    ("py:class", "scalars"),
-    ("py:class", "sequence of ints"),
-    ("py:class", "type"),
-]
-
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3/", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
 }
 
-# Config napolean
-napoleon_custom_sections = [("Availability", "returns_style")]
+# -- Options for extensions --------------------------------------------------
 
 autosummary_generate = True
 
+copybutton_prompt_text = ">>> "
+
 mathjax_path = "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
+
+napoleon_custom_sections = [("Availability", "returns_style")]
 
 
 def setup(app):

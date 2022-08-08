@@ -161,6 +161,13 @@ std::vector<StoreMapping> CuNumericMapper::store_mappings(
       mappings.back().policy.exact = true;
       return std::move(mappings);
     }
+    case CUNUMERIC_SEARCHSORTED: {
+      std::vector<StoreMapping> mappings;
+      auto& inputs = task.inputs();
+      mappings.push_back(StoreMapping::default_mapping(inputs[0], options.front()));
+      mappings.back().policy.exact = true;
+      return std::move(mappings);
+    }
     case CUNUMERIC_SORT: {
       std::vector<StoreMapping> mappings;
       auto& inputs  = task.inputs();
@@ -173,6 +180,52 @@ std::vector<StoreMapping> CuNumericMapper::store_mappings(
       for (auto& output : outputs) {
         mappings.push_back(StoreMapping::default_mapping(output, options.front()));
         mappings.back().policy.ordering.c_order();
+        mappings.back().policy.exact = true;
+      }
+      return std::move(mappings);
+    }
+    case CUNUMERIC_SCAN_LOCAL: {
+      std::vector<StoreMapping> mappings;
+      auto& inputs  = task.inputs();
+      auto& outputs = task.outputs();
+      for (auto& input : inputs) {
+        mappings.push_back(StoreMapping::default_mapping(input, options.front()));
+        mappings.back().policy.ordering.c_order();
+        mappings.back().policy.exact = true;
+      }
+      for (auto& output : outputs) {
+        mappings.push_back(StoreMapping::default_mapping(output, options.front()));
+        mappings.back().policy.ordering.c_order();
+        mappings.back().policy.exact = true;
+      }
+      return std::move(mappings);
+    }
+    case CUNUMERIC_SCAN_GLOBAL: {
+      std::vector<StoreMapping> mappings;
+      auto& inputs  = task.inputs();
+      auto& outputs = task.outputs();
+      for (auto& input : inputs) {
+        mappings.push_back(StoreMapping::default_mapping(input, options.front()));
+        mappings.back().policy.ordering.c_order();
+        mappings.back().policy.exact = true;
+      }
+      for (auto& output : outputs) {
+        mappings.push_back(StoreMapping::default_mapping(output, options.front()));
+        mappings.back().policy.ordering.c_order();
+        mappings.back().policy.exact = true;
+      }
+      return std::move(mappings);
+    }
+    case CUNUMERIC_BITGENERATOR: {
+      std::vector<StoreMapping> mappings;
+      auto& inputs  = task.inputs();
+      auto& outputs = task.outputs();
+      for (auto& input : inputs) {
+        mappings.push_back(StoreMapping::default_mapping(input, options.front()));
+        mappings.back().policy.exact = true;
+      }
+      for (auto& output : outputs) {
+        mappings.push_back(StoreMapping::default_mapping(output, options.front()));
         mappings.back().policy.exact = true;
       }
       return std::move(mappings);

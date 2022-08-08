@@ -14,6 +14,11 @@
  *
  */
 
+#pragma once
+
+// Useful for IDEs
+#include "cunumeric/stat/bincount.h"
+
 namespace cunumeric {
 
 using namespace Legion;

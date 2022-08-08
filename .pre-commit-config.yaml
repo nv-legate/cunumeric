@@ -4,7 +4,7 @@ repos:
       hooks:
             - id: isort
     - repo: https://github.com/psf/black
-      rev: 22.3.0
+      rev: 22.6.0
       hooks:
             - id: black
     - repo: https://github.com/PyCQA/flake8
@@ -12,10 +12,18 @@ repos:
       hooks:
             - id: flake8
     - repo: https://github.com/pre-commit/mirrors-clang-format
-      rev: 'v14.0.3'  # Use the sha / tag you want to point at
+      rev: 'v14.0.6'  # Use the sha / tag you want to point at
       hooks:
         - id: clang-format
           files: \.(cu|cuh|h|cc|inl)$
           types_or: []
+    - repo: local
+      hooks:
+        - id: enforce-pytest-main
+          name: Enforce pytest.main
+          description: Make sure tests use sys.ext(pytest.main(...))
+          entry: python scripts/hooks/enforce_pytest_main.py
+          language: python
+          pass_filenames: false
 default_language_version:
     python: python3

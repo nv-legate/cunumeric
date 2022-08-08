@@ -136,52 +136,6 @@ std::tuple<dim3, dim3> generate_launchconfig_for_2d_copy(size_t row_size, size_t
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
 template <typename VAL>
-struct SegmentSample {
-  VAL value;
-  size_t segment;
-  int32_t rank;
-  size_t position;
-};
-
-template <typename VAL>
-struct SortPiece {
-  Buffer<VAL> values;
-  Buffer<int64_t> indices;
-  size_t size;
-};
-
-template <typename VAL>
-struct SegmentMergePiece {
-  Buffer<size_t> segments;
-  Buffer<VAL> values;
-  Buffer<int64_t> indices;
-  size_t size;
-};
-
-template <typename VAL>
-struct SegmentSampleComparator
-  : public thrust::binary_function<SegmentSample<VAL>, SegmentSample<VAL>, bool> {
-  __host__ __device__ bool operator()(const SegmentSample<VAL>& lhs,
-                                      const SegmentSample<VAL>& rhs) const
-  {
-    if (lhs.segment != rhs.segment) {
-      return lhs.segment < rhs.segment;
-    } else {
-      // special case for unused samples
-      if (lhs.rank < 0 || rhs.rank < 0) { return rhs.rank < 0 && lhs.rank >= 0; }
-
-      if (lhs.value != rhs.value) {
-        return lhs.value < rhs.value;
-      } else if (lhs.rank != rhs.rank) {
-        return lhs.rank < rhs.rank;
-      } else {
-        return lhs.position < rhs.position;
-      }
-    }
-  }
-};
-
-template <typename VAL>
 __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   extract_split_positions_segments(const VAL* data,
                                    const size_t segment_size_l,
@@ -582,39 +536,28 @@ struct subtract : public thrust::unary_function<int64_t, int64_t> {
 
   subtract(int64_t constant) : constant_(constant) {}
 
-  __host__ __device__ int64_t operator()(const int64_t& input) const { return input - constant_; }
+  __CUDA_HD__ int64_t operator()(const int64_t& input) const { return input - constant_; }
 };
 
 struct positive_value : public thrust::unary_function<int64_t, int64_t> {
-  __host__ __device__ int64_t operator()(const int64_t& x) const { return x > 0 ? x : 0; }
+  __CUDA_HD__ int64_t operator()(const int64_t& x) const { return x > 0 ? x : 0; }
 };
 
 struct negative_value : public thrust::unary_function<int64_t, int64_t> {
-  __host__ __device__ int64_t operator()(const int64_t& x) const { return x < 0 ? -x : 0; }
+  __CUDA_HD__ int64_t operator()(const int64_t& x) const { return x < 0 ? -x : 0; }
 };
 
 struct positive_plus : public thrust::binary_function<int64_t, int64_t, int64_t> {
-  __host__ __device__ int64_t operator()(const int64_t& lhs, const int64_t& rhs) const
+  __CUDA_HD__ int64_t operator()(const int64_t& lhs, const int64_t& rhs) const
   {
     return lhs > 0 ? (lhs + (rhs > 0 ? rhs : 0)) : (rhs > 0 ? rhs : 0);
   }
 };
 
 struct negative_plus : public thrust::binary_function<int64_t, int64_t, int64_t> {
-  __host__ __device__ int64_t operator()(const int64_t& lhs, const int64_t& rhs) const
+  __CUDA_HD__ int64_t operator()(const int64_t& lhs, const int64_t& rhs) const
   {
     return (lhs < 0 ? (lhs + (rhs < 0 ? rhs : 0)) : (rhs < 0 ? rhs : 0));
-  }
-};
-
-struct modulusWithOffset : public thrust::binary_function<int64_t, int64_t, int64_t> {
-  const size_t constant;
-
-  modulusWithOffset(size_t _constant) : constant(_constant) {}
-
-  __host__ __device__ int64_t operator()(const int64_t& lhs, const int64_t& rhs) const
-  {
-    return lhs % rhs + constant;
   }
 };
 
@@ -1266,7 +1209,7 @@ void sample_sort_nccl_nd(SortPiece<legate_type_of<CODE>> local_sorted,
   using VAL = legate_type_of<CODE>;
 
   size_t volume              = local_sorted.size;
-  bool is_unbound_1d_storage = output_array_unbound.dim() == -1;
+  bool is_unbound_1d_storage = output_array_unbound.is_output_store();
 
   /////////////////////////////////////////////////////////////////////////////////////////////////
   /////////////// Part 0: detection of empty nodes
@@ -1734,7 +1677,7 @@ struct SortImplBody<VariantKind::GPU, CODE, DIM> {
 
     auto stream = get_cached_stream();
 
-    bool is_unbound_1d_storage = output_array.dim() == -1;
+    bool is_unbound_1d_storage = output_array.is_output_store();
     bool need_distributed_sort = segment_size_l != segment_size_g || is_unbound_1d_storage;
     bool rebalance             = !is_unbound_1d_storage;
     assert(DIM == 1 || !is_unbound_1d_storage);

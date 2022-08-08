@@ -131,7 +131,7 @@ Item selection and manipulation
    ndarray.argsort
    ndarray.partition
    ndarray.argpartition
-   .. ndarray.searchsorted
+   ndarray.searchsorted
    ndarray.nonzero
    ndarray.compress
    ndarray.diagonal
@@ -156,12 +156,12 @@ Calculation
    .. ndarray.round
    .. ndarray.trace
    ndarray.sum
-   .. ndarray.cumsum
+   ndarray.cumsum
    ndarray.mean
    .. ndarray.var
    .. ndarray.std
    ndarray.prod
-   .. ndarray.cumprod
+   ndarray.cumprod
    ndarray.all
    ndarray.any
    ndarray.unique
@@ -250,6 +250,7 @@ For standard library functions:
 
    ndarray.__copy__
    ndarray.__deepcopy__
+   ndarray.__index__
    ndarray.__reduce__
    ndarray.__setstate__
 

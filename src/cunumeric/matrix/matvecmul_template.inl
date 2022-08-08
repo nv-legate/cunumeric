@@ -14,6 +14,10 @@
  *
  */
 
+#pragma once
+
+// Useful for IDEs
+#include "cunumeric/matrix/matvecmul.h"
 #include "cunumeric/matrix/util.h"
 
 namespace cunumeric {

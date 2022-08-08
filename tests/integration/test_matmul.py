@@ -15,7 +15,12 @@
 
 import pytest
 from cunumeric.utils import matmul_modes
-from test_tools.contractions import check_default
+from utils.contractions import (
+    check_default,
+    check_permutations,
+    check_shapes,
+    check_types,
+)
 
 from legate.core import LEGATE_MAX_DIM
 
@@ -30,6 +35,10 @@ def test(a_ndim, b_ndim):
         return lib.matmul(*args, **kwargs)
 
     check_default(name, modes, operation)
+    check_permutations(name, modes, operation)
+    check_shapes(name, modes, operation)
+    if a_ndim <= 2 and b_ndim <= 2:
+        check_types(name, modes, operation)
 
 
 if __name__ == "__main__":
