@@ -25,7 +25,7 @@ from tests._utils.test_plan import TestPlan
 if __name__ == "__main__":
     config = Config(sys.argv)
 
-    system = System(dry_run=config.dry_run, debug=config.debug)
+    system = System(dry_run=config.dry_run)
 
     plan = TestPlan(config, system)
 

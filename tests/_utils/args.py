@@ -147,20 +147,29 @@ feature_opts.add_argument(
 
 
 feature_opts.add_argument(
-    "--fbmem",
-    dest="fbmem",
-    type=int,
-    default=DEFAULT_GPU_MEMORY_BUDGET,
-    help="GPU framebuffer memory",
-)
-
-
-feature_opts.add_argument(
     "--omps",
     dest="omps",
     type=int,
     default=DEFAULT_OMPS_PER_NODE,
     help="Number OpenMP processors per node to use",
+)
+
+
+feature_opts.add_argument(
+    "--utility",
+    dest="utility",
+    type=int,
+    default=1,
+    help="Number of of utility CPUs to reserve for runtime services",
+)
+
+
+feature_opts.add_argument(
+    "--fbmem",
+    dest="fbmem",
+    type=int,
+    default=DEFAULT_GPU_MEMORY_BUDGET,
+    help="GPU framebuffer memory",
 )
 
 
@@ -202,6 +211,7 @@ test_opts.add_argument(
 
 test_opts.add_argument(
     "-j",
+    "--workers",
     dest="workers",
     type=int,
     default=None,

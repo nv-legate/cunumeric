@@ -18,9 +18,102 @@ import random
 import numpy as np
 import pytest
 from legate.core import LEGATE_MAX_DIM
+from pytest_lazyfixture import lazy_fixture
 from utils.generators import mk_seq_array
 
 import cunumeric as num
+
+
+@pytest.fixture
+def arr_region():
+    return num.full((5,), 42)[2:3]
+
+
+@pytest.fixture
+def arr_future():
+    return num.full((1,), 42)
+
+
+idx_region_1d = num.zeros((3,), dtype=np.int64)[2:3]
+idx_future_1d = num.zeros((1,), dtype=np.int64)
+idx_region_0d = num.zeros((3,), dtype=np.int64)[2:3].reshape(())
+idx_future_0d = num.zeros((3,), dtype=np.int64).max()
+
+val_region_1d = num.full((3,), -1)[2:3]
+val_future_1d = num.full((1,), -1)
+val_region_0d = num.full((3,), -1)[2:3].reshape(())
+val_future_0d = num.full((3,), -1).max()
+
+# We use fixtures for `arr` because the `set_item` tests modify
+# their input.
+ARRS = (lazy_fixture("arr_region"), lazy_fixture("arr_future"))
+IDXS_0D = (idx_future_0d,)  # TODO: idx_region_0d fails
+VALS_0D = (val_future_0d,)  # TODO: val_region_0d fails
+IDXS_1D = (idx_region_1d, idx_future_1d)
+VALS_1D = (val_region_1d, val_future_1d)
+
+
+@pytest.mark.parametrize("idx", IDXS_0D)  # idx = 0
+@pytest.mark.parametrize("arr", ARRS)  # arr = [42]
+def test_getitem_scalar_0d(arr, idx):
+    assert np.array_equal(arr[idx], 42)
+
+
+@pytest.mark.parametrize("val", VALS_0D)  # val = -1
+@pytest.mark.parametrize("idx", IDXS_0D)  # idx = 0
+@pytest.mark.parametrize("arr", ARRS)  # arr = [42]
+def test_setitem_scalar_0d(arr, idx, val):
+    arr[idx] = val
+    assert np.array_equal(arr, [-1])
+
+
+@pytest.mark.parametrize("idx", IDXS_1D)  # idx = [0]
+@pytest.mark.parametrize("arr", ARRS)  # arr = [42]
+def test_getitem_scalar_1d(arr, idx):
+    assert np.array_equal(arr[idx], [42])
+
+
+@pytest.mark.parametrize("val", VALS_1D)  # val = [-1]
+@pytest.mark.parametrize("idx", IDXS_1D)  # idx = [0]
+@pytest.mark.parametrize("arr", ARRS)  # arr = [42]
+def test_setitem_scalar_1d(arr, idx, val):
+    arr[idx] = val
+    assert np.array_equal(arr, [-1])
+
+
+def test_future_stores():
+    # array is a future:
+    arr_np = np.array([4])
+    index_np = np.zeros(8, dtype=int)
+    arr_num = num.array(arr_np)
+    index_num = num.array(index_np)
+    res_np = arr_np[index_np]
+    res_num = arr_num[index_num]
+    assert np.array_equal(res_np, res_num)
+
+    # index and array and lhs are futures:
+    res_np = arr_np[index_np[1]]
+    res_num = arr_num[index_num[1]]
+    assert np.array_equal(res_np, res_num)
+
+    # all futures
+    b_np = np.array([10, 11, 12])
+    b_num = num.array(b_np)
+    arr_np[index_np[1]] = b_np[0]
+    arr_num[index_num[1]] = b_num[0]
+    assert np.array_equal(arr_np, arr_num)
+
+    # index and lhs are futures:
+    arr_np = np.array([4, 3, 2, 1])
+    arr_num = num.array(arr_np)
+    res_np = arr_np[index_np[3]]
+    res_num = arr_num[index_num[3]]
+    assert np.array_equal(res_np, res_num)
+
+    # rhs is a future
+    arr_np[index_np[3]] = b_np[2]
+    arr_num[index_num[3]] = b_num[2]
+    assert np.array_equal(arr_np, arr_num)
 
 
 def test():
