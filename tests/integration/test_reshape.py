@@ -59,6 +59,14 @@ class TestSquare:
             np.ravel(self.anp),
         )
 
+        a = num.full((1, 0), 1, dtype=int)
+        anp = np.full((1, 0), 1, dtype=int)
+        assert np.array_equal(num.ravel(a), np.ravel(anp))
+
+        a = num.full((0, 1), 1, dtype=int)
+        anp = np.full((0, 1), 1, dtype=int)
+        assert np.array_equal(num.ravel(a), np.ravel(anp))
+
 
 RECT_CASES = [
     (10, 2, 10),
