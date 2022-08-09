@@ -38,7 +38,7 @@ SIZES = [
 @pytest.mark.parametrize("size", SIZES, ids=str)
 def test_append(size):
     a = np.random.randint(low=0, high=100, size=size)
-    test_args = list(range(a.ndim))
+    test_args = [-1] + list(range(a.ndim))
 
     for axis in test_args:
         size_b = list(size)
@@ -48,36 +48,43 @@ def test_append(size):
         run_test("append", [a, b], {"axis": axis}, print_msg)
 
 
-def test_append_axis_none():
+@pytest.mark.parametrize("size_b", SIZES, ids=str)
+@pytest.mark.parametrize("size_a", SIZES, ids=str)
+def test_append_axis_none(size_a, size_b):
     axis = None
-    for size_a in SIZES:
-        a = np.random.randint(low=0, high=100, size=size_a)
-        for size_b in SIZES:
-            b = np.random.randint(low=0, high=100, size=size_b)
-            print_msg = (
-                f"np.append(array({a.shape}), array({b.shape}), {axis})"
-            )
-            run_test("append", [a, b], {"axis": axis}, print_msg)
-
-
-def test_append_negative():
-    size_a = (1, DIM)
-    size_b = (1, DIM, 1)
     a = np.random.randint(low=0, high=100, size=size_a)
     b = np.random.randint(low=0, high=100, size=size_b)
-    with pytest.raises(
-        ValueError,
-        match="All arguments to concatenate must have the same number of dimensions",
-    ):
-        num.append(a, b, axis=1)
+    print_msg = f"np.append(array({a.shape}), array({b.shape}), {axis})"
+    run_test("append", [a, b], {"axis": axis}, print_msg)
 
-    size_c = (10, DIM)
-    c = np.random.randint(low=0, high=100, size=size_c)
-    with pytest.raises(AssertionError):
-        num.append(a, c, axis=1)
 
-    with pytest.raises(IndexError):
-        num.append(a, a, axis=5)
+class TestAppendErrors:
+
+    def setup(self):
+        size_a = (1, DIM)
+        self.a = np.random.randint(low=0, high=100, size=size_a)
+
+    def test_bad_dimension(self):
+        size_b = (1, DIM, 1)
+        b = np.random.randint(low=0, high=100, size=size_b)
+
+        msg = "All arguments to concatenate must have the " \
+              "same number of dimensions"
+        with pytest.raises(ValueError, match=msg):
+            num.append(self.a, b, axis=1)
+
+    def test_bad_index(self):
+        with pytest.raises(IndexError):
+            num.append(self.a, self.a, axis=5)
+
+
+    def test_bad_shape(self):
+        size_c = (10, DIM)
+        c = np.random.randint(low=0, high=100, size=size_c)
+        ## In cunumeric eager execution and np, ValueError is raised
+        ## In cunumeric gpu test, AssertionError is raised
+        with pytest.raises(AssertionError):
+            num.append(self.a, c, axis=1)
 
 
 if __name__ == "__main__":

@@ -18,44 +18,38 @@ import numpy as np
 import cunumeric as num
 
 
-def compare_array(b, c):
+def compare_array(a, b):
     """
     Compare two array using zip method.
     """
 
-    is_equal = True
-    err_arr = [b, c]
-
-    if len(b) != len(c):
-        is_equal = False
-        err_arr = [b, c]
+    if len(a) != len(b):
+        return False, [a, b]
     else:
-        for each in zip(b, c):
+        for each in zip(a, b):
             if not np.array_equal(*each):
-                err_arr = each
-                is_equal = False
-                break
-    return is_equal, err_arr
+                return False, each
+    return True, None
 
 
 def run_test(fn, args, kwargs, print_msg):
     """
-    Run np.func and num.func respectively and compare resutls
+    Run np.func and num.func respectively and compare results
     """
 
-    b = getattr(num, fn)(*args, **kwargs)
-    c = getattr(np, fn)(*args, **kwargs)
+    a = getattr(num, fn)(*args, **kwargs)
+    b = getattr(np, fn)(*args, **kwargs)
 
-    is_equal, err_arr = compare_array(b, c)
+    is_equal, err_arr = compare_array(a, b)
 
     assert is_equal, (
         f"Failed, {print_msg}\n"
-        f"numpy result: {err_arr[0]}, {b.shape}\n"
-        f"cunumeric_result: {err_arr[1]}, {c.shape}\n"
+        f"numpy result: {err_arr[0]}, {a.shape}\n"
+        f"cunumeric_result: {err_arr[1]}, {b.shape}\n"
         f"cunumeric and numpy shows"
         f" different result\n"
     )
     print(
-        f"Passed, {print_msg}, np: ({b.shape}, {b.dtype})"
-        f", cunumeric: ({c.shape}, {c.dtype})"
+        f"Passed, {print_msg}, np: ({a.shape}, {a.dtype})"
+        f", cunumeric: ({b.shape}, {b.dtype})"
     )

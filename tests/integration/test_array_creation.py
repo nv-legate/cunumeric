@@ -34,11 +34,23 @@ def test_array():
     assert x.dtype == y.dtype
 
 
-CREATION_FUNCTIONS = ("empty", "zeros", "ones")
+CREATION_FUNCTIONS = ("zeros", "ones")
 FILLED_VALUES = [0, 1, 1000, 123.456]
 SIZES = (0, 1, 2)
 NDIMS = 5
 DTYPES = (np.uint32, np.int32, np.float64, np.complex128)
+
+
+def test_empty():
+    par = (SIZES, range(NDIMS), DTYPES)
+    for size, ndims, dtype in product(*par):
+        shape = ndims * [size]
+
+        xf = num.empty(shape, dtype=dtype)
+        yf = np.empty(shape, dtype=dtype)
+
+        assert xf.shape == yf.shape
+        assert xf.dtype == yf.dtype
 
 
 @pytest.mark.parametrize("fn", CREATION_FUNCTIONS)
@@ -53,10 +65,7 @@ def test_creation_func(fn):
         xf = num_f(shape, dtype=dtype)
         yf = np_f(shape, dtype=dtype)
 
-        if fn == "empty":
-            assert xf.shape == yf.shape
-        else:
-            assert np.array_equal(xf, yf)
+        assert np.array_equal(xf, yf)
         assert xf.dtype == yf.dtype
 
 
@@ -76,24 +85,38 @@ def test_full(value):
 SHAPES_NEGATIVE = [
     -1,
     (-1, 2, 3),
-    # num.array([2, -3, 4]),  ## it would raise RuntimeError("Unable to find attachment to remove") when num.array
-    # is removed at the end as global variable
+    ## it raises RuntimeError("Unable to find attachment to remove")
+    ## when num.array is removed at the end as global variable
+    # num.array([2, -3, 4]),
     np.array([2, -3, 4]),
 ]
 
 
-def test_creation_func_negative():
-    for shape in SHAPES_NEGATIVE + [num.array([2, -3, 4])]:
+@pytest.mark.parametrize('shape', SHAPES_NEGATIVE, ids=str)
+class TestCreationErrors:
+
+    def test_empty_with_negative_shape(self, shape):
         with pytest.raises(ValueError):
             num.empty(shape)
+
+    def test_zeros_with_negative_shape(self, shape):
         with pytest.raises(ValueError):
             num.zeros(shape)
+
+    def test_ones_with_negative_shape(self, shape):
         with pytest.raises(ValueError):
             num.ones(shape)
+
+    def test_full_with_negative_shape(self, shape):
         with pytest.raises(ValueError):
             num.full(shape, 10)
 
-    num.full((2, 3), [1])
+
+# additional special case for full
+def test_full_assertion():
+    ## pass in cunumeric + gpu, but fail for
+    ## cunumeric + eager execution
+    ## num.full((2, 3), [1])
     with pytest.raises(AssertionError):
         num.full((2, 3), [10, 20, 30])
 
@@ -114,7 +137,17 @@ DATA_ARGS = [
     (np.arange(24).reshape(2, 3, 4), None),
     (np.arange(24).reshape(4, 3, 2), "f4"),
 ]
-LIKE_FUNCTIONS = ("empty_like", "zeros_like", "ones_like")
+LIKE_FUNCTIONS = ("zeros_like", "ones_like")
+
+
+@pytest.mark.parametrize("x_np,dtype", DATA_ARGS)
+def test_empty_like(x_np, dtype):
+    x = num.array(x_np)
+    xfl = num.empty_like(x, dtype=dtype)
+    yfl = np.empty_like(x_np, dtype=dtype)
+
+    assert xfl.shape == yfl.shape
+    assert xfl.dtype == yfl.dtype
 
 
 @pytest.mark.parametrize("x_np,dtype", DATA_ARGS)
@@ -127,10 +160,7 @@ def test_func_like(fn, x_np, dtype):
     xfl = num_f(x, dtype=dtype)
     yfl = np_f(x_np, dtype=dtype)
 
-    if fn == "empty_like":
-        assert xfl.shape == yfl.shape
-    else:
-        assert np.array_equal(xfl, yfl)
+    assert np.array_equal(xfl, yfl)
     assert xfl.dtype == yfl.dtype
 
 
@@ -145,9 +175,11 @@ def test_full_like(x_np, dtype, value):
     assert xfl.dtype == yfl.dtype
 
 
-def test_full_like_negative():
-    x = num.array([[1, 2, 3], [4, 5, 6]])
-    num.full_like(x, [1])
+def test_full_like_assertion():
+    x = num.array([[1, 2, 3],[4, 5, 6]])
+    ## pass in cunumeric + gpu, but fail for
+    ## cunumeric + eager execution
+    ## num.full_like(x, [1])
     with pytest.raises(AssertionError):
         num.full_like(x, [10, 20, 30])
 
@@ -158,7 +190,9 @@ ARANGE_ARGS = [
     (3.5,),
     (2, 10),
     (-2.5, 10.0),
-    # (1, -10, -2.5), ### output: num: array([ 1, -1, -3, -5, -7]), np: array([ 1. , -1.5, -4. , -6.5, -9. ]
+    ### output: num: array([ 1, -1, -3, -5, -7]),
+    ### np: array([ 1. , -1.5, -4. , -6.5, -9. ]
+    # (1, -10, -2.5),
     (1.0, -10.0, -2.5),
     (-10, 10, 10),
 ]
@@ -181,25 +215,33 @@ def test_arange_with_dtype(args, dtype):
     assert x.dtype == y.dtype
 
 
-def test_arange_negative():
-    with pytest.raises(ValueError):
-        num.arange(-10)  ###np.arange(-10) returns [] successfully
-    with pytest.raises(ValueError):
-        num.arange(2, -10)  ###np.arange(2, -10) returns [] successfully
+class TestArrangeErrors:
 
-    with pytest.raises(OverflowError):
-        num.arange(0, num.inf)
-    with pytest.raises(ValueError):
-        num.arange(0, 1, num.nan)
+    def test_negative_sizes(self):
+        with pytest.raises(ValueError):
+            ###np.arange(-10) returns [] successfully
+            num.arange(-10)
+        with pytest.raises(ValueError):
+            ###np.arange(2, -10) returns [] successfully
+            num.arange(2, -10)
 
-    with pytest.raises(ZeroDivisionError):
-        num.arange(0, 10, 0)
-    with pytest.raises(ZeroDivisionError):
-        num.arange(0.0, 10.0, 0.0)
-    with pytest.raises(ZeroDivisionError):
-        num.arange(0, 0, 0)
-    with pytest.raises(ZeroDivisionError):
-        num.arange(0.0, 0.0, 0.0)
+    def test_inf(self):
+        with pytest.raises(OverflowError):
+            num.arange(0, num.inf)
+
+    def test_nan(self):
+        with pytest.raises(ValueError):
+            num.arange(0, 1, num.nan)
+
+    def test_zero_division(self):
+        with pytest.raises(ZeroDivisionError):
+            num.arange(0, 10, 0)
+        with pytest.raises(ZeroDivisionError):
+            num.arange(0.0, 10.0, 0.0)
+        with pytest.raises(ZeroDivisionError):
+            num.arange(0, 0, 0)
+        with pytest.raises(ZeroDivisionError):
+            num.arange(0.0, 0.0, 0.0)
 
 
 def test_zero_with_nd_ndarray_shape():
