@@ -92,9 +92,8 @@ SHAPES_NEGATIVE = [
 ]
 
 
-@pytest.mark.parametrize('shape', SHAPES_NEGATIVE, ids=str)
+@pytest.mark.parametrize("shape", SHAPES_NEGATIVE, ids=str)
 class TestCreationErrors:
-
     def test_empty_with_negative_shape(self, shape):
         with pytest.raises(ValueError):
             num.empty(shape)
@@ -176,7 +175,7 @@ def test_full_like(x_np, dtype, value):
 
 
 def test_full_like_assertion():
-    x = num.array([[1, 2, 3],[4, 5, 6]])
+    x = num.array([[1, 2, 3], [4, 5, 6]])
     ## pass in cunumeric + gpu, but fail for
     ## cunumeric + eager execution
     ## num.full_like(x, [1])
@@ -216,7 +215,6 @@ def test_arange_with_dtype(args, dtype):
 
 
 class TestArrangeErrors:
-
     def test_negative_sizes(self):
         with pytest.raises(ValueError):
             ###np.arange(-10) returns [] successfully

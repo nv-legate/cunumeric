@@ -59,7 +59,6 @@ def test_append_axis_none(size_a, size_b):
 
 
 class TestAppendErrors:
-
     def setup(self):
         size_a = (1, DIM)
         self.a = np.random.randint(low=0, high=100, size=size_a)
@@ -68,15 +67,16 @@ class TestAppendErrors:
         size_b = (1, DIM, 1)
         b = np.random.randint(low=0, high=100, size=size_b)
 
-        msg = "All arguments to concatenate must have the " \
-              "same number of dimensions"
+        msg = (
+            "All arguments to concatenate must have the "
+            "same number of dimensions"
+        )
         with pytest.raises(ValueError, match=msg):
             num.append(self.a, b, axis=1)
 
     def test_bad_index(self):
         with pytest.raises(IndexError):
             num.append(self.a, self.a, axis=5)
-
 
     def test_bad_shape(self):
         size_c = (10, DIM)
