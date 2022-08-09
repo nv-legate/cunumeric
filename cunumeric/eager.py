@@ -1563,6 +1563,19 @@ class EagerArray(NumPyThunk):
                 result = np.triu(result.T.conj(), k=1) + result
             self.array[:] = result
 
+    def solve(self, a: Any, b: Any) -> None:
+        self.check_eager_args(a, b)
+        if self.deferred is not None:
+            self.deferred.solve(a, b)
+        else:
+            try:
+                result = np.linalg.solve(a.array, b.array)
+            except np.linalg.LinAlgError as e:
+                from .linalg import LinAlgError
+
+                raise LinAlgError(e) from e
+            self.array[:] = result
+
     def scan(
         self,
         op: int,
