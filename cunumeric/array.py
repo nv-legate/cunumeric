@@ -166,6 +166,38 @@ def _convert_all_to_numpy(obj):
         return obj
 
 
+class flatiter:
+    def __init__(self, base: ndarray):
+        self._base = base
+        dims = list(range(dim) for dim in base.shape)
+        self._coords = iter_product(*dims)
+        self._index = 0
+
+    def __iter__(self):
+        self._index = 0
+        return self
+
+    def __next__(self):
+        if self._index < len(self._coords):
+            result = self._base[self._coords[self._index]]
+            self._index += 1
+            return result
+        else:
+            raise StopIteration
+
+    @property
+    def index(self):
+        return self._index
+
+    @property
+    def cords(self):
+        return self._coords
+
+    @property
+    def base(self):
+        return self._base
+
+
 @clone_np_ndarray
 class ndarray:
     def __init__(
@@ -498,7 +530,7 @@ class ndarray:
         flatten : Return a copy of the array collapsed into one dimension.
 
         """
-        return self.__array__().flat
+        return flatiter(self)  # self.__array__().flat
 
     @property
     def imag(self):
