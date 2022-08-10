@@ -45,6 +45,31 @@ def test_condition(cond):
     assert np.array_equal(np.where(anp, xnp, ynp), num.where(a, x, y))
 
 
+def test_argwhere_3d():
+    anp = np.array(
+        [1, 54, 4, 4, 0, 45, 5, 58, 0, 9, 0, 4, 0, 0, 0, 5, 0, 1]
+    ).reshape((3, 2, 3))
+    a = num.array(anp)
+
+    assert np.array_equal(np.argwhere(anp), num.argwhere(a))
+
+
+def test_argwhere_1d():
+    anp = np.array([1, 54, 4, 4, 0, 45, 5, 58, 0, 9, 0, 4, 0, 0, 0, 5, 0, 1])
+    a = num.array(anp)
+
+    assert np.array_equal(np.argwhere(anp), num.argwhere(a))
+
+
+def test_argwhere_2d():
+    anp = np.array(
+        [1, 54, 4, 4, 0, 45, 5, 58, 0, 9, 0, 4, 0, 0, 0, 5, 0, 1]
+    ).reshape((6, 3))
+    a = num.array(anp)
+
+    assert np.array_equal(np.argwhere(anp), num.argwhere(a))
+
+
 @pytest.mark.skip
 def test_extract():
     cnp = np.array(

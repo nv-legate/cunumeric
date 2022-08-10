@@ -2472,6 +2472,36 @@ def nonzero(a: ndarray) -> tuple[ndarray, ...]:
     return a.nonzero()
 
 
+@add_boilerplate("a")
+def flatnonzero(a: ndarray) -> ndarray:
+    """
+
+    Return indices that are non-zero in the flattened version of a.
+
+    This is equivalent to `np.nonzero(np.ravel(a))[0]`.
+
+    Parameters
+    ----------
+    a : array_like
+        Input array.
+
+    Returns
+    -------
+    res : ndarray
+        Output array, containing the indices of the elements of
+        `a.ravel()` that are non-zero.
+
+    See Also
+    --------
+    numpy.flatnonzero
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    return nonzero(ravel(a))[0]
+
+
 @add_boilerplate("a", "x", "y")
 def where(
     a: ndarray, x: Optional[ndarray] = None, y: Optional[ndarray] = None
@@ -2511,6 +2541,37 @@ def where(
             )
         return nonzero(a)
     return ndarray._perform_where(a, x, y)
+
+
+@add_boilerplate("a")
+def argwhere(a: ndarray) -> ndarray:
+    """
+    argwhere(a)
+
+    Find the indices of array elements that are non-zero, grouped by element.
+
+    Parameters
+    ----------
+    a : array_like
+        Input data.
+
+    Returns
+    -------
+    index_array : ndarray
+        Indices of elements that are non-zero. Indices are grouped by element.
+        This array will have shape (N, a.ndim) where N is the number of
+        non-zero items.
+
+    See Also
+    --------
+    numpy.argwhere
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    thunk = a._thunk.argwhere()
+    return ndarray(shape=thunk.shape, thunk=thunk)
 
 
 # Indexing-like operations

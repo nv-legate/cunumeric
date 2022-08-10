@@ -1538,6 +1538,12 @@ class EagerArray(NumPyThunk):
         else:
             self.array[:] = np.where(rhs1.array, rhs2.array, rhs3.array)
 
+    def argwhere(self):
+        if self.deferred is not None:
+            return self.deferred.argwhere()
+        else:
+            return EagerArray(self.runtime, np.argwhere(self.array))
+
     def trilu(self, rhs: Any, k: int, lower: bool) -> None:
         self.check_eager_args(rhs)
         if self.deferred is not None:

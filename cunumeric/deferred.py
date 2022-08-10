@@ -3011,6 +3011,19 @@ class DeferredArray(NumPyThunk):
 
         task.execute()
 
+    def argwhere(self) -> NumPyThunk:
+        result = self.runtime.create_unbound_thunk(np.dtype(np.int64), ndim=2)
+
+        task = self.context.create_task(CuNumericOpCode.ARGWHERE)
+
+        task.add_output(result.base)
+        task.add_input(self.base)
+        task.add_broadcast(self.base, axes=range(1, self.ndim))
+
+        task.execute()
+
+        return result
+
     # A helper method for attaching arguments
     def add_arguments(
         self,
