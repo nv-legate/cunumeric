@@ -85,8 +85,8 @@ def test_full(value):
 SHAPES_NEGATIVE = [
     -1,
     (-1, 2, 3),
-    ## it raises RuntimeError("Unable to find attachment to remove")
-    ## when num.array is removed at the end as global variable
+    # it raises RuntimeError("Unable to find attachment to remove")
+    # when num.array is removed at the end as global variable
     # num.array([2, -3, 4]),
     np.array([2, -3, 4]),
 ]
@@ -113,9 +113,9 @@ class TestCreationErrors:
 
 # additional special case for full
 def test_full_assertion():
-    ## pass in cunumeric + gpu, but fail for
-    ## cunumeric + eager execution
-    ## num.full((2, 3), [1])
+    # pass in cunumeric + gpu, but fail for
+    # cunumeric + eager execution
+    # num.full((2, 3), [1])
     with pytest.raises(AssertionError):
         num.full((2, 3), [10, 20, 30])
 
@@ -176,9 +176,9 @@ def test_full_like(x_np, dtype, value):
 
 def test_full_like_assertion():
     x = num.array([[1, 2, 3], [4, 5, 6]])
-    ## pass in cunumeric + gpu, but fail for
-    ## cunumeric + eager execution
-    ## num.full_like(x, [1])
+    # pass in cunumeric + gpu, but fail for
+    # cunumeric + eager execution
+    # num.full_like(x, [1])
     with pytest.raises(AssertionError):
         num.full_like(x, [10, 20, 30])
 
@@ -189,8 +189,8 @@ ARANGE_ARGS = [
     (3.5,),
     (2, 10),
     (-2.5, 10.0),
-    ### output: num: array([ 1, -1, -3, -5, -7]),
-    ### np: array([ 1. , -1.5, -4. , -6.5, -9. ]
+    # output: num: array([ 1, -1, -3, -5, -7]),
+    # np: array([ 1. , -1.5, -4. , -6.5, -9. ]
     # (1, -10, -2.5),
     (1.0, -10.0, -2.5),
     (-10, 10, 10),
@@ -214,13 +214,27 @@ def test_arange_with_dtype(args, dtype):
     assert x.dtype == y.dtype
 
 
+ARANGE_ARGS_STEP_ZERO = [
+    (0, 0, 0),
+    (0, 10, 0),
+    (-10, 10, 0),
+    (1, 10, 0),
+    (10, -10, 0),
+    (0.0, 0.0, 0.0),
+    (0.0, 10.0, 0.0),
+    (-10.0, 10.0, 0.0),
+    (1.0, 10.0, 0.0),
+    (10.0, -10.0, 0.0),
+]
+
+
 class TestArrangeErrors:
     def test_negative_sizes(self):
         with pytest.raises(ValueError):
-            ###np.arange(-10) returns [] successfully
+            # np.arange(-10) returns [] successfully
             num.arange(-10)
         with pytest.raises(ValueError):
-            ###np.arange(2, -10) returns [] successfully
+            # np.arange(2, -10) returns [] successfully
             num.arange(2, -10)
 
     def test_inf(self):
@@ -231,15 +245,10 @@ class TestArrangeErrors:
         with pytest.raises(ValueError):
             num.arange(0, 1, num.nan)
 
-    def test_zero_division(self):
+    @pytest.mark.parametrize("args", ARANGE_ARGS_STEP_ZERO, ids=str)
+    def test_zero_division(self, args):
         with pytest.raises(ZeroDivisionError):
-            num.arange(0, 10, 0)
-        with pytest.raises(ZeroDivisionError):
-            num.arange(0.0, 10.0, 0.0)
-        with pytest.raises(ZeroDivisionError):
-            num.arange(0, 0, 0)
-        with pytest.raises(ZeroDivisionError):
-            num.arange(0.0, 0.0, 0.0)
+            num.arange(*args)
 
 
 def test_zero_with_nd_ndarray_shape():

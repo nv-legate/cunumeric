@@ -15,7 +15,7 @@
 
 import numpy as np
 import pytest
-from utils.utils import run_test
+from utils.utils import check_array_method
 
 import cunumeric as num
 
@@ -45,7 +45,7 @@ def test_append(size):
         size_b[axis] = size[axis] + 10
         b = np.random.randint(low=0, high=100, size=size_b)
         print_msg = f"np.append(array({a.shape}), array({b.shape}), {axis})"
-        run_test("append", [a, b], {"axis": axis}, print_msg)
+        check_array_method("append", [a, b], {"axis": axis}, print_msg)
 
 
 @pytest.mark.parametrize("size_b", SIZES, ids=str)
@@ -55,7 +55,7 @@ def test_append_axis_none(size_a, size_b):
     a = np.random.randint(low=0, high=100, size=size_a)
     b = np.random.randint(low=0, high=100, size=size_b)
     print_msg = f"np.append(array({a.shape}), array({b.shape}), {axis})"
-    run_test("append", [a, b], {"axis": axis}, print_msg)
+    check_array_method("append", [a, b], {"axis": axis}, print_msg)
 
 
 class TestAppendErrors:
@@ -81,8 +81,8 @@ class TestAppendErrors:
     def test_bad_shape(self):
         size_c = (10, DIM)
         c = np.random.randint(low=0, high=100, size=size_c)
-        ## In cunumeric eager execution and np, ValueError is raised
-        ## In cunumeric gpu test, AssertionError is raised
+        # In cunumeric eager execution and np, ValueError is raised
+        # In cunumeric gpu test, AssertionError is raised
         with pytest.raises(AssertionError):
             num.append(self.a, c, axis=1)
 

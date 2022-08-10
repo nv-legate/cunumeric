@@ -32,7 +32,7 @@ def compare_array(a, b):
     return True, None
 
 
-def run_test(fn, args, kwargs, print_msg):
+def check_array_method(fn, args, kwargs, print_msg):
     """
     Run np.func and num.func respectively and compare results
     """
