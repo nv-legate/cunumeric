@@ -13,7 +13,6 @@
 # limitations under the License.
 #
 
-import os
 from subprocess import run
 
 import pytest
@@ -21,6 +20,7 @@ import pytest
 # TODO: (bev) This probably only works in bash. Skipping the tests until
 # something more reliable can be implemented.
 # legate = os.environ["_"]
+legate = ""
 
 
 @pytest.mark.skip
