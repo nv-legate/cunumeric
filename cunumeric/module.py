@@ -4646,12 +4646,12 @@ def cumprod(
         Input array.
 
     axis : int, optional
-        Axis along which the cumulative sum is computed. The default (None) is
-        to compute the cumsum over the flattened array.
+        Axis along which the cumulative product is computed. The default (None)
+        is to compute the cumprod over the flattened array.
 
     dtype : dtype, optional
         Type of the returned array and of the accumulator in which the elements
-        are summed. If dtype is not specified, it defaults to the dtype of a,
+        are returned. If dtype is not specified, it defaults to the dtype of a,
         unless a has an integer dtype with a precision less than that of the
         default platform integer. In that case, the default platform integer is
         used.
@@ -4662,7 +4662,7 @@ def cumprod(
 
     Returns
     -------
-    cumprod_along_axis : ndarray.
+    cumprod : ndarray
         A new array holding the result is returned unless out is specified, in
         which case a reference to out is returned. The result has the same size
         as a, and the same shape as a if axis is not None or a is a 1-d array.
@@ -4670,6 +4670,19 @@ def cumprod(
     See Also
     --------
     numpy.cumprod
+
+    Notes
+    -----
+    Due to the parallel nature of cuNumeric implementation, with floating point
+    and complex types, the accuracy of the results can differ compared to
+    NumPy. Furthermore when boundary values such as inf occur they might not
+    propagate as expected. Consider the hypothetical float32 array
+    ``[3e+37, 1, 100, 0.01]`` doing a cumprod on it should result in
+    ``[3e+37, 3e+37, inf, inf]`` in Numpy, however in cunumeric, if this array
+    is internally partitioned such that partition 0 has ``[3e+37, 1]``  and
+    partition 1 has ``[100, 0.01]``, the end result of the cumprod turns out
+    being ``[3e+37, 3e+37, inf, 3e+37]``, a result that albeit more acurate, is
+    often not expected.
 
     Availability
     --------
@@ -4706,7 +4719,7 @@ def cumsum(
 
     dtype : dtype, optional
         Type of the returned array and of the accumulator in which the elements
-        are summed. If dtype is not specified, it defaults to the dtype of a,
+        are returned. If dtype is not specified, it defaults to the dtype of a,
         unless a has an integer dtype with a precision less than that of the
         default platform integer. In that case, the default platform integer is
         used.
@@ -4717,7 +4730,7 @@ def cumsum(
 
     Returns
     -------
-    cumsum_along_axis : ndarray.
+    cumsum : ndarray.
         A new array holding the result is returned unless out is specified, in
         which case a reference to out is returned. The result has the same size
         as a, and the same shape as a if axis is not None or a is a 1-d array.
@@ -4725,6 +4738,14 @@ def cumsum(
     See Also
     --------
     numpy.cumsum
+
+    Notes
+    -----
+    Due to the parallel nature of cuNumeric implementation, with floating point
+    and complex types, the accuracy of the results can differ compared to
+    NumPy. Furthermore when boundary values such as inf occur they might not
+    propagate as expected. For a more detailed explanation check
+    cunumeric.cumprod
 
     Availability
     --------
@@ -4755,12 +4776,12 @@ def nancumprod(
         Input array.
 
     axis : int, optional
-        Axis along which the cumulative sum is computed. The default (None) is
-        to compute the cumsum over the flattened array.
+        Axis along which the cumulative product is computed. The default (None)
+        is to compute the nancumprod over the flattened array.
 
     dtype : dtype, optional
         Type of the returned array and of the accumulator in which the elements
-        are summed. If dtype is not specified, it defaults to the dtype of a,
+        are returned. If dtype is not specified, it defaults to the dtype of a,
         unless a has an integer dtype with a precision less than that of the
         default platform integer. In that case, the default platform integer is
         used.
@@ -4771,7 +4792,7 @@ def nancumprod(
 
     Returns
     -------
-    cumprod_along_axis : ndarray.
+    nancumprod : ndarray.
         A new array holding the result is returned unless out is specified, in
         which case a reference to out is returned. The result has the same size
         as a, and the same shape as a if axis is not None or a is a 1-d array.
@@ -4779,6 +4800,14 @@ def nancumprod(
     See Also
     --------
     numpy.nancumprod
+
+    Notes
+    -----
+    Due to the parallel nature of cuNumeric implementation, with floating point
+    and complex types, the accuracy of the results can differ compared to
+    NumPy. Furthermore when boundary values such as inf occur they might not
+    propagate as expected. For a more detailed explanation check
+    cunumeric.cumprod
 
     Availability
     --------
@@ -4810,11 +4839,11 @@ def nancumsum(
 
     axis : int, optional
         Axis along which the cumulative sum is computed. The default (None) is
-        to compute the cumsum over the flattened array.
+        to compute the nancumsum over the flattened array.
 
     dtype : dtype, optional
         Type of the returned array and of the accumulator in which the elements
-        are summed. If dtype is not specified, it defaults to the dtype of a,
+        are returned. If dtype is not specified, it defaults to the dtype of a,
         unless a has an integer dtype with a precision less than that of the
         default platform integer. In that case, the default platform integer is
         used.
@@ -4825,7 +4854,7 @@ def nancumsum(
 
     Returns
     -------
-    cumsum_along_axis : ndarray.
+    nancumsum : ndarray.
         A new array holding the result is returned unless out is specified, in
         which case a reference to out is returned. The result has the same size
         as a, and the same shape as a if axis is not None or a is a 1-d array.
@@ -4833,6 +4862,14 @@ def nancumsum(
     See Also
     --------
     numpy.nancumsum
+
+    Notes
+    -----
+    Due to the parallel nature of cuNumeric implementation, with floating point
+    and complex types, the accuracy of the results can differ compared to
+    NumPy. Furthermore when boundary values such as inf occur they might not
+    propagate as expected. For a more detailed explanation check
+    cunumeric.cumprod
 
     Availability
     --------
