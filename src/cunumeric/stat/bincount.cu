@@ -298,7 +298,7 @@ struct BincountImplBody<VariantKind::GPU, CODE> {
         lhs, rhs, weights, volume, num_bins, rect.lo);
     } else {
       auto blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-      weighted_bincount_kernel_rd_global<VAL><<<num_ctas, THREADS_PER_BLOCK, 0, stream>>>(
+      weighted_bincount_kernel_rd_global<VAL><<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
         lhs, rhs, weights, volume, num_bins, rect.lo);
     }
     CHECK_CUDA_STREAM(stream);
@@ -327,7 +327,7 @@ struct BincountImplBody<VariantKind::GPU, CODE> {
         lhs, rhs, weights, volume, num_bins, rect.lo);
     } else {
       auto blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-      weighted_bincount_kernel_rw_global<VAL><<<num_ctas, THREADS_PER_BLOCK, 0, stream>>>(
+      weighted_bincount_kernel_rw_global<VAL><<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
         lhs, rhs, weights, volume, num_bins, rect.lo);
     }
     CHECK_CUDA_STREAM(stream);
