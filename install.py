@@ -223,7 +223,7 @@ def install_cunumeric(
     if nccl_dir:
         cmake_flags += ["-DNCCL_DIR=%s" % nccl_dir]
     if tblis_dir:
-        cmake_flags += ["-DTBLIS_DIR=%s" % tblis_dir]
+        cmake_flags += ["-Dtblis_ROOT=%s" % tblis_dir]
     if thrust_dir:
         cmake_flags += ["-DThrust_ROOT=%s" % thrust_dir]
     if openblas_dir:
