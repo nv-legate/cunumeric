@@ -5855,9 +5855,9 @@ def bincount(
         weights = weights.astype(np.float64)
     if a.dtype.kind != "i" and a.dtype.kind != "u":
         raise TypeError("input array for bincount must be integer type")
-    # If nobody told us the size then compute it
-    if minlength <= 0:
-        minlength = int(amax(a)) + 1
+    if minlength < 0:
+        raise ValueError("'minlength' must not be negative")
+    minlength = _builtin_max(minlength, int(amax(a)) + 1)
     if a.size == 1:
         # Handle the special case of 0-D array
         if weights is None:
