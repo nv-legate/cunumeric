@@ -45,28 +45,23 @@ def test_condition(cond):
     assert np.array_equal(np.where(anp, xnp, ynp), num.where(a, x, y))
 
 
-def test_argwhere_3d():
-    anp = np.array(
-        [1, 54, 4, 4, 0, 45, 5, 58, 0, 9, 0, 4, 0, 0, 0, 5, 0, 1]
-    ).reshape((3, 2, 3))
+INPUT = [
+    [1, 54, 4, 4, 0, 45, 5, 58, 0, 9, 0, 4, 0, 0, 0, 5, 0, 1],
+    [[1, 54, 4], [4, 0, 45], [5, 58, 0], [9, 0, 4], [0, 0, 0], [5, 0, 1]],
+    [
+        [[1, 54, 4], [4, 0, 45]],
+        [[5, 58, 0], [9, 0, 4]],
+        [[0, 0, 0], [5, 0, 1]],
+    ],
+    [[[1 + 2j, 54, 4], [4, 0 + 1j, 45]], [[5, 58, 0], [9, 0, 4]]],
+    [[True, False], [True, True], [True, False]],
+]
+
+
+@pytest.mark.parametrize("input", INPUT, ids=str)
+def test_argwhere(input):
+    anp = np.array(input)
     a = num.array(anp)
-
-    assert np.array_equal(np.argwhere(anp), num.argwhere(a))
-
-
-def test_argwhere_1d():
-    anp = np.array([1, 54, 4, 4, 0, 45, 5, 58, 0, 9, 0, 4, 0, 0, 0, 5, 0, 1])
-    a = num.array(anp)
-
-    assert np.array_equal(np.argwhere(anp), num.argwhere(a))
-
-
-def test_argwhere_2d():
-    anp = np.array(
-        [1, 54, 4, 4, 0, 45, 5, 58, 0, 9, 0, 4, 0, 0, 0, 5, 0, 1]
-    ).reshape((6, 3))
-    a = num.array(anp)
-
     assert np.array_equal(np.argwhere(anp), num.argwhere(a))
 
 
