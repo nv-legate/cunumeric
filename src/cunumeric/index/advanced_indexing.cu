@@ -40,7 +40,7 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   uint64_t value = 0;
   for (size_t i = 0; i < iters; i++) {
     size_t idx = (i * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
-    if (idx > volume) break;
+    if (idx >= volume) break;
     auto point   = pitches.unflatten(idx, origin);
     bool val     = (index[point] && ((idx + 1) % skip_size == 0));
     offsets[idx] = static_cast<int64_t>(val);
@@ -101,7 +101,7 @@ struct AdvancedIndexingImplBody<VariantKind::GPU, CODE, DIM, OUT_TYPE> {
       count_nonzero_kernel<<<MAX_REDUCTION_CTAS, THREADS_PER_BLOCK, shmem_size, stream>>>(
         volume, size, offsets, in, pitches, rect.lo, iters, skip_size, key_dim);
     } else
-      count_nonzero_kernel<<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
+      count_nonzero_kernel<<<blocks, THREADS_PER_BLOCK, shmem_size, stream>>>(
         volume, size, offsets, in, pitches, rect.lo, 1, skip_size, key_dim);
 
     CHECK_CUDA_STREAM(stream);
