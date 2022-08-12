@@ -81,9 +81,7 @@ class TestAppendErrors:
     def test_bad_shape(self):
         size_c = (10, DIM)
         c = np.random.randint(low=0, high=100, size=size_c)
-        # In cunumeric eager execution and np, ValueError is raised
-        # In cunumeric gpu test, AssertionError is raised
-        with pytest.raises(AssertionError):
+        with pytest.raises(ValueError):
             num.append(self.a, c, axis=1)
 
 

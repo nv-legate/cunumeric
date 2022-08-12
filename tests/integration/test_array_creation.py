@@ -85,39 +85,38 @@ def test_full(value):
 SHAPES_NEGATIVE = [
     -1,
     (-1, 2, 3),
-    # it raises RuntimeError("Unable to find attachment to remove")
-    # when num.array is removed at the end as global variable
-    # num.array([2, -3, 4]),
     np.array([2, -3, 4]),
 ]
 
 
-@pytest.mark.parametrize("shape", SHAPES_NEGATIVE, ids=str)
 class TestCreationErrors:
-    def test_empty_with_negative_shape(self, shape):
+    def setup(self):
+        self.bad_type_shape = (2, 3.0)
+
+    @pytest.mark.parametrize("shape", SHAPES_NEGATIVE, ids=str)
+    class TestNegativeShape():
+        @pytest.mark.parametrize("fn", ("empty", "zeros", "ones"))
+        def test_creation(self, shape, fn):
+            with pytest.raises(ValueError):
+                getattr(num, fn)(shape)
+
+        def test_full(self, shape):
+            with pytest.raises(ValueError):
+                num.full(shape, 10)
+
+    @pytest.mark.parametrize("fn", ("empty", "zeros", "ones"))
+    def test_creation_bad_type(self, fn):
+        with pytest.raises(TypeError):
+            getattr(num, fn)(self.bad_type_shape)
+
+    def test_full_bad_type(self):
+        with pytest.raises(TypeError):
+            num.full(self.bad_type_shape, 10)
+
+    # additional special case for full
+    def test_full_bad_filled_value(self):
         with pytest.raises(ValueError):
-            num.empty(shape)
-
-    def test_zeros_with_negative_shape(self, shape):
-        with pytest.raises(ValueError):
-            num.zeros(shape)
-
-    def test_ones_with_negative_shape(self, shape):
-        with pytest.raises(ValueError):
-            num.ones(shape)
-
-    def test_full_with_negative_shape(self, shape):
-        with pytest.raises(ValueError):
-            num.full(shape, 10)
-
-
-# additional special case for full
-def test_full_assertion():
-    # pass in cunumeric + gpu, but fail for
-    # cunumeric + eager execution
-    # num.full((2, 3), [1])
-    with pytest.raises(AssertionError):
-        num.full((2, 3), [10, 20, 30])
+            num.full((2, 3), [10, 20, 30])
 
 
 DATA_ARGS = [
@@ -133,6 +132,7 @@ DATA_ARGS = [
     (np.arange(6).reshape(2, 3), None),
     (np.arange(6).reshape(3, 2), "i1"),
     # 3D arrays
+    (np.array([[[]]]), None),
     (np.arange(24).reshape(2, 3, 4), None),
     (np.arange(24).reshape(4, 3, 2), "f4"),
 ]
@@ -174,12 +174,9 @@ def test_full_like(x_np, dtype, value):
     assert xfl.dtype == yfl.dtype
 
 
-def test_full_like_assertion():
+def test_full_like_bad_filled_value():
     x = num.array([[1, 2, 3], [4, 5, 6]])
-    # pass in cunumeric + gpu, but fail for
-    # cunumeric + eager execution
-    # num.full_like(x, [1])
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         num.full_like(x, [10, 20, 30])
 
 
@@ -187,13 +184,14 @@ ARANGE_ARGS = [
     (0,),
     (10,),
     (3.5,),
+    pytest.param((-10), marks=pytest.mark.xfail),
     (2, 10),
+    pytest.param((2, -10), marks=pytest.mark.xfail),
     (-2.5, 10.0),
-    # output: num: array([ 1, -1, -3, -5, -7]),
-    # np: array([ 1. , -1.5, -4. , -6.5, -9. ]
-    # (1, -10, -2.5),
+    pytest.param((1, -10, -2.5), marks=pytest.mark.xfail),
     (1.0, -10.0, -2.5),
     (-10, 10, 10),
+    (-10, 10, -100),
 ]
 
 
@@ -229,14 +227,6 @@ ARANGE_ARGS_STEP_ZERO = [
 
 
 class TestArrangeErrors:
-    def test_negative_sizes(self):
-        with pytest.raises(ValueError):
-            # np.arange(-10) returns [] successfully
-            num.arange(-10)
-        with pytest.raises(ValueError):
-            # np.arange(2, -10) returns [] successfully
-            num.arange(2, -10)
-
     def test_inf(self):
         with pytest.raises(OverflowError):
             num.arange(0, num.inf)
