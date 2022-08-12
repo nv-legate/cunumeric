@@ -36,19 +36,25 @@ static inline void potrf_template(Potrf potrf, VAL* array, int32_t m, int32_t n)
 
 template <>
 struct PotrfImplBody<VariantKind::CPU, LegateTypeCode::FLOAT_LT> {
-  void operator()(float* array, int32_t m, int32_t n) { potrf_template(spotrf_, array, m, n); }
+  void operator()(float* array, int32_t m, int32_t n)
+  {
+    potrf_template(LAPACK_spotrf, array, m, n);
+  }
 };
 
 template <>
 struct PotrfImplBody<VariantKind::CPU, LegateTypeCode::DOUBLE_LT> {
-  void operator()(double* array, int32_t m, int32_t n) { potrf_template(dpotrf_, array, m, n); }
+  void operator()(double* array, int32_t m, int32_t n)
+  {
+    potrf_template(LAPACK_dpotrf, array, m, n);
+  }
 };
 
 template <>
 struct PotrfImplBody<VariantKind::CPU, LegateTypeCode::COMPLEX64_LT> {
   void operator()(complex<float>* array, int32_t m, int32_t n)
   {
-    potrf_template(cpotrf_, reinterpret_cast<__complex__ float*>(array), m, n);
+    potrf_template(LAPACK_cpotrf, reinterpret_cast<__complex__ float*>(array), m, n);
   }
 };
 
@@ -56,7 +62,7 @@ template <>
 struct PotrfImplBody<VariantKind::CPU, LegateTypeCode::COMPLEX128_LT> {
   void operator()(complex<double>* array, int32_t m, int32_t n)
   {
-    potrf_template(zpotrf_, reinterpret_cast<__complex__ double*>(array), m, n);
+    potrf_template(LAPACK_zpotrf, reinterpret_cast<__complex__ double*>(array), m, n);
   }
 };
 
