@@ -16,7 +16,6 @@
 #
 from __future__ import annotations
 
-import multiprocessing
 import sys
 
 from tests._utils.config import Config
@@ -26,9 +25,7 @@ from tests._utils.test_plan import TestPlan
 if __name__ == "__main__":
     config = Config(sys.argv)
 
-    manager = multiprocessing.Manager()
-
-    system = System(manager=manager, dry_run=config.dry_run)
+    system = System(dry_run=config.dry_run)
 
     plan = TestPlan(config, system)
 
