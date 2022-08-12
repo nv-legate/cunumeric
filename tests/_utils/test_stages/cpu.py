@@ -14,11 +14,11 @@
 #
 from __future__ import annotations
 
-from ... import FeatureType
-from ...config import Config
-from ...system import System
-from ...types import ArgList, EnvDict
-from ..test_stage import Shard, StageSpec, TestStage, adjust_workers
+from .. import FeatureType
+from ..config import Config
+from ..system import System
+from ..types import ArgList, EnvDict
+from .test_stage import Shard, StageSpec, TestStage, adjust_workers
 
 
 class CPU(TestStage):
@@ -38,13 +38,18 @@ class CPU(TestStage):
 
     args = ["-cunumeric:test"]
 
-    env: EnvDict = {"REALM_SYNTHETIC_CORE_MAP": ""}
+    env: EnvDict = {}
 
     def __init__(self, config: Config, system: System) -> None:
         self._init(config, system)
 
     def shard_args(self, shard: Shard, config: Config) -> ArgList:
-        return ["--cpus", str(len(shard))]
+        return [
+            "--cpus",
+            str(len(shard)),
+            "--cpu-bind",
+            ",".join(str(x) for x in shard),
+        ]
 
     def compute_spec(self, config: Config, system: System) -> StageSpec:
         N = len(system.cpus)
@@ -52,7 +57,9 @@ class CPU(TestStage):
 
         workers = adjust_workers(degree, config.requested_workers)
 
-        # Just put each worker on its own CPU for CPU tests
-        shards = [tuple([i]) for i in range(workers)]
+        # https://docs.python.org/3/library/itertools.html#itertools-recipes
+        # grouper('ABCDEF', 3) --> ABC DEF
+        args = [iter(range(workers * config.cpus))] * config.cpus
+        shards = list(zip(*args))
 
         return StageSpec(workers, shards)

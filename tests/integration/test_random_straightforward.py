@@ -13,7 +13,6 @@
 # limitations under the License.
 #
 import math
-import sys
 
 import numpy as np
 import pytest
@@ -21,16 +20,12 @@ from utils.random import ModuleGenerator, assert_distribution
 
 import cunumeric as num
 
-if sys.platform == "darwin":
-    pytestmark = pytest.mark.skip()
-    BITGENERATOR_ARGS = []
-else:
-    BITGENERATOR_ARGS = [
-        ModuleGenerator,
-        num.random.XORWOW,
-        num.random.MRG32k3a,
-        num.random.PHILOX4_32_10,
-    ]
+BITGENERATOR_ARGS = [
+    ModuleGenerator,
+    num.random.XORWOW,
+    num.random.MRG32k3a,
+    num.random.PHILOX4_32_10,
+]
 
 
 @pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
