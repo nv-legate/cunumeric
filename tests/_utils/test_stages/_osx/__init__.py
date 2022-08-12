@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-
-# Copyright 2021-2022 NVIDIA Corporation
+# Copyright 2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,22 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+"""Provide TestStage subclasses for running configured test files using
+specific features on OSX.
+
+"""
 from __future__ import annotations
 
-import multiprocessing
-import sys
-
-from tests._utils.config import Config
-from tests._utils.system import System
-from tests._utils.test_plan import TestPlan
-
-if __name__ == "__main__":
-    config = Config(sys.argv)
-
-    manager = multiprocessing.Manager()
-
-    system = System(manager=manager, dry_run=config.dry_run)
-
-    plan = TestPlan(config, system)
-
-    sys.exit(plan.execute())
+from .cpu import CPU
+from .gpu import GPU
+from .eager import Eager
+from .omp import OMP
