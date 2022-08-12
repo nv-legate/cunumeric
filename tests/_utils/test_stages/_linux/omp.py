@@ -14,17 +14,15 @@
 #
 from __future__ import annotations
 
-from .. import FeatureType
-from ..config import Config
-from ..system import System
-from ..types import ArgList, EnvDict
-from .test_stage import Shard, StageSpec, TestStage, adjust_workers
-
-BLOAT_FACTOR = 1.5  # hard coded for now
+from ... import FeatureType
+from ...config import Config
+from ...system import System
+from ...types import ArgList, EnvDict
+from ..test_stage import Shard, StageSpec, TestStage, adjust_workers
 
 
-class GPU(TestStage):
-    """A test stage for exercising GPU features.
+class OMP(TestStage):
+    """A test stage for exercising OpenMP features.
 
     Parameters
     ----------
@@ -36,7 +34,7 @@ class GPU(TestStage):
 
     """
 
-    kind: FeatureType = "cuda"
+    kind: FeatureType = "openmp"
 
     args = ["-cunumeric:test"]
 
@@ -47,29 +45,24 @@ class GPU(TestStage):
 
     def shard_args(self, shard: Shard, config: Config) -> ArgList:
         return [
-            "--fbmem",
-            str(config.fbmem // (1024 * 1024)),  # accepts size in MB
-            "--gpus",
-            str(len(shard)),
-            "--gpu-bind",
+            "--omps",
+            str(config.omps),
+            "--ompthreads",
+            str(config.ompthreads),
+            "--cpu-bind",
             ",".join(str(x) for x in shard),
         ]
 
     def compute_spec(self, config: Config, system: System) -> StageSpec:
-        N = len(system.gpus)
-        degree = N // config.gpus
+        N = len(system.cpus)
+        omps, threads = config.omps, config.ompthreads
+        degree = N // (omps * threads + config.utility)
 
-        fbsize = min(gpu.total for gpu in system.gpus)
-        oversub_factor = int(fbsize // (config.fbmem * BLOAT_FACTOR))
-        workers = adjust_workers(
-            degree * oversub_factor, config.requested_workers
-        )
+        workers = adjust_workers(degree, config.requested_workers)
 
         # https://docs.python.org/3/library/itertools.html#itertools-recipes
         # grouper('ABCDEF', 3) --> ABC DEF
-        args = [iter(range(degree * config.gpus))] * config.gpus
-        per_worker_shards = list(zip(*args))
-
-        shards = per_worker_shards * workers
+        args = [iter(range(workers * omps * threads))] * (omps * threads)
+        shards = list(zip(*args))
 
         return StageSpec(workers, shards)

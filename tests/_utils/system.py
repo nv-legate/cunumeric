@@ -54,7 +54,9 @@ class System:
 
     """
 
-    def __init__(self, *, dry_run: bool = False) -> None:
+    def __init__(self, manager: multiprocessing.managers.SyncManager, *, dry_run: bool = False) -> None:
+        self.manager = manager
+        self.pool = multiprocessing.Pool(20)
         self.dry_run: bool = dry_run
 
     def run(
