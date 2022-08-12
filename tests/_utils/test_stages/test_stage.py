@@ -95,6 +95,8 @@ class TestStage(Protocol):
     #: Any stage-specific customizations to the process env
     env: EnvDict
 
+    _manager: multiprocessing.managers.SyncManager = multiprocessing.Manager()
+
     # --- Protocol methods
 
     def __init__(self, config: Config, system: System) -> None:
@@ -242,13 +244,13 @@ class TestStage(Protocol):
 
     def _init(self, config: Config, system: System) -> None:
         self.spec = self.compute_spec(config, system)
-        self.shards = system.manager.Queue(len(self.spec.shards))
+        self.shards = self._manager.Queue(len(self.spec.shards))
         for shard in self.spec.shards:
             self.shards.put(shard)
 
     def _launch(self, config: Config, system: System) -> list[ProcessResult]:
 
-        pool = multiprocessing.pool.ThreadPool(self.spec.workers)
+        pool = multiprocessing.Pool(self.spec.workers)
 
         jobs = [
             pool.apply_async(self.run, (path, config, system))
