@@ -18,7 +18,7 @@ from ... import FeatureType
 from ...config import Config
 from ...system import System
 from ...types import ArgList, EnvDict
-from ..test_stage import Shard, StageSpec, TestStage, adjust_workers
+from ..test_stage import TestStage
 
 
 class GPU(TestStage):
@@ -36,15 +36,9 @@ class GPU(TestStage):
 
     kind: FeatureType = "cuda"
 
-    args = []
+    args: ArgList() = []
 
     env: EnvDict = {}
 
     def __init__(self, config: Config, system: System) -> None:
         raise RuntimeError("GPU test are not supported on OSX")
-
-    # def shard_args(self, shard: Shard, config: Config) -> ArgList:
-    #     return []
-
-    # def compute_spec(self, config: Config, system: System) -> StageSpec:
-    #     return StageSpec(1, [])
