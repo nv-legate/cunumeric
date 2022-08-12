@@ -22,4 +22,3 @@ from .cpu import CPU
 from .gpu import GPU
 from .eager import Eager
 from .omp import OMP
-

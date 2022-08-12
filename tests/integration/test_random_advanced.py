@@ -13,6 +13,7 @@
 # limitations under the License.
 #
 import sys
+
 import numpy as np
 import pytest
 from utils.random import ModuleGenerator, assert_distribution

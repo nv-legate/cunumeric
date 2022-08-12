@@ -31,6 +31,7 @@ else:
         num.random.PHILOX4_32_10,
     ]
 
+
 @pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
 def test_gamma_float32(t):
     bitgen = t(seed=42)
