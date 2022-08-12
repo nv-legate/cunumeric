@@ -589,12 +589,12 @@ class Runtime(object):
 
     def is_eager_shape(self, shape: NdShape) -> bool:
         volume = calculate_volume(shape)
-        # Newly created empty arrays are ALWAYS eager
-        if volume == 0:
-            return True
         # If we're testing then the answer is always no
         if self.args.test_mode:
             return False
+        # Newly created empty arrays are ALWAYS eager
+        if volume == 0:
+            return True
         if len(shape) > LEGATE_MAX_DIM:
             return True
         if len(shape) == 0:
