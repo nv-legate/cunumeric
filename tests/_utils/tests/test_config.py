@@ -77,7 +77,7 @@ class TestConfig:
 
         # also test with a --use value provided
         c = m.Config(["test.py", "--use", "cuda"])
-        assert set(c.features) == {"cuda", feature}
+        assert set(c.features) == {"cuda"}
 
     @pytest.mark.parametrize("feature", FEATURES)
     def test_cmd_features(self, feature: str) -> None:
