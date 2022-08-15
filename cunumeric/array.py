@@ -3205,7 +3205,7 @@ class ndarray:
         )
 
     def setfield(
-        self, val: float, dtype: np.dtype[Any], offset: int = 0
+        self, val: Any, dtype: npt.DTypeLike, offset: int = 0
     ) -> None:
         raise NotImplementedError(
             "cuNumeric does not currently support type reinterpretation "
