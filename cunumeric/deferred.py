@@ -710,7 +710,7 @@ class DeferredArray(NumPyThunk):
             if result.shape[dim] != shape[dim]:
                 if result.shape[dim] != 1:
                     raise ValueError(
-                        f"Shape did not match along dimension {dim}"
+                        f"Shape did not match along dimension {dim} "
                         "and the value is not equal to 1"
                     )
                 result = result.project(dim, 0).promote(dim, shape[dim])
