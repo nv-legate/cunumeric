@@ -17,6 +17,8 @@
 """
 from __future__ import annotations
 
+from datetime import timedelta
+
 import pytest
 from pytest_mock import MockerFixture
 
@@ -77,6 +79,13 @@ def test_skipped() -> None:
 
 def test_summary() -> None:
     assert (
-        m.summary("foo", 12, 11)
-        == f"{'foo: Passed 11 of 12 tests (91.7%)': >{UI_WIDTH}}"
+        m.summary("foo", 12, 11, timedelta(seconds=2.123))
+        == f"{'foo: Passed 11 of 12 tests (91.7%) in 2.12s': >{UI_WIDTH}}"
+    )
+
+
+def test_summary_no_justify() -> None:
+    assert (
+        m.summary("foo", 12, 11, timedelta(seconds=2.123), justify=False)
+        == "foo: Passed 11 of 12 tests (91.7%) in 2.12s"
     )

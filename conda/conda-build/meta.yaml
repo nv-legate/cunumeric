@@ -79,6 +79,12 @@ requirements:
     - {{ compiler('c') }} =11.2
     - {{ compiler('cxx') }} =11.2
   host:
+    # the nvcc requirement is necessary because it contains crt/host_config.h used by cuda runtime. This is a packaging bug that has been reported.
+    - cuda-nvcc ={{ cuda_version }}
+    # libcurand is used both in CPU and GPU builds
+    - libcurand-dev
+    # cudart needed for CPU and GPU builds because of curand
+    - cuda-cudart-dev ={{ cuda_version }}
     - python
     - scikit-build
     - openblas =* =*openmp*
@@ -111,6 +117,8 @@ requirements:
     - libcublas
     - libcusolver
     - libcufft
+    # libcurand only enabled for a GPU package, include-only for CPU package
+    - libcurand
 {% endif %}
     - opt_einsum >=3.3
     - scipy
