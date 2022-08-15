@@ -2006,7 +2006,7 @@ class ndarray:
 
         if not np.issubdtype(self.dtype, np.integer):
             raise TypeError("a array should be integer type")
-        if self.dtype.type != np.int64:
+        if self.dtype != np.int64:
             a = a.astype(np.int64)
         if mode == "raise":
             if (a < 0).any() | (a >= n).any():
