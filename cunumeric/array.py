@@ -3614,7 +3614,7 @@ class ndarray:
         Multiple GPUs, Multiple CPUs
 
         """
-        return self.__array__().tostring(order=order)  # type: ignore
+        return self.__array__().tobytes(order=order)  # type: ignore
 
     def transpose(self, axes: Any = None) -> ndarray:
         """a.transpose(axes=None)
