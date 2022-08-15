@@ -58,13 +58,14 @@ if TYPE_CHECKING:
 
     import numpy.typing as npt
 
-    from .thunk import NumPyThunk, SortSide
+    from .thunk import NumPyThunk
     from .types import (
         BoundsMode,
         CastingKind,
         NdShapeLike,
         OrderType,
         SelectKind,
+        SortSide,
         SortType,
     )
 
@@ -3614,7 +3615,7 @@ class ndarray:
         Multiple GPUs, Multiple CPUs
 
         """
-        return self.__array__().tobytes(order=order)  # type: ignore
+        return self.__array__().tobytes(order=order)
 
     def transpose(self, axes: Any = None) -> ndarray:
         """a.transpose(axes=None)
