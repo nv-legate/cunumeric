@@ -20,9 +20,7 @@ from typing_extensions import TypeAlias
 
 BoundsMode: TypeAlias = Literal["raise", "wrap", "clip"]
 
-CastingKind: TypeAlias = Union[
-    Literal["no", "equiv", "safe", "same_kind", "unsafe"], None
-]
+CastingKind: TypeAlias = Literal["no", "equiv", "safe", "same_kind", "unsafe"]
 
 NdShape: TypeAlias = Tuple[int, ...]
 
