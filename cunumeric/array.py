@@ -2006,7 +2006,7 @@ class ndarray:
 
         if not np.issubdtype(self.dtype, np.integer):
             raise TypeError("a array should be integer type")
-        if self.dtype.type is not np.int64:
+        if self.dtype.type != np.int64:
             a = a.astype(np.int64)
         if mode == "raise":
             if (a < 0).any() | (a >= n).any():
@@ -3312,12 +3312,12 @@ class ndarray:
 
         a = self
         # in case we have different dtypes we ned to find a common type
-        if a.dtype is not v_ndarray.dtype:
+        if a.dtype != v_ndarray.dtype:
             ch_dtype = np.find_common_type([a.dtype, v_ndarray.dtype], [])
 
-            if v_ndarray.dtype is not ch_dtype:
+            if v_ndarray.dtype != ch_dtype:
                 v_ndarray = v_ndarray.astype(ch_dtype)
-            if a.dtype is not ch_dtype:
+            if a.dtype != ch_dtype:
                 a = a.astype(ch_dtype)
 
         if sorter is not None and a.shape[0] > 1:
