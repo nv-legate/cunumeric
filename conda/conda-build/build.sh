@@ -12,15 +12,17 @@ CMAKE_ARGS+="
 
 # We rely on an environment variable to determine if we need to build cpu-only bits
 if [ -z "$CPU_ONLY" ]; then
+  # cutensor, relying on the conda cutensor package
   CMAKE_ARGS+="
+-Dcutensor_DIR=$PREFIX
 -DCMAKE_LIBRARY_PATH=$PREFIX/lib/stubs
 -DCMAKE_CUDA_ARCHITECTURES:LIST=60-real;70-real;75-real;80-real;86
 "
-  # cutensor, relying on the conda cutensor package
-  install_args+=("--with-cutensor" "$PREFIX")
 else
   # When we build without cuda, we need to provide the location of curand
-  install_args+=("--with-curand" "$PREFIX")
+  CMAKE_ARGS+="
+-Dcunumeric_cuRAND_INCLUDE_DIR=$PREFIX
+"
 fi
 
 # Do not compile with NDEBUG until Legion handles it without warnings
