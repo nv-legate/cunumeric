@@ -55,6 +55,7 @@ class Config:
         self.gpus = args.gpus
         self.omps = args.omps
         self.utility = args.utility
+        self.strict_pin = args.strict_pin
         self.fbmem = args.fbmem
         self.ompthreads = args.ompthreads
 

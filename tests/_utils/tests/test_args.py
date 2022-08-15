@@ -56,6 +56,9 @@ class TestParserDefaults:
     def test_gpus(self) -> None:
         assert m.parser.get_default("gpus") == DEFAULT_GPUS_PER_NODE
 
+    def test_strict_pin(self) -> None:
+        assert m.parser.get_default("strict_pin") is False
+
     def test_fbmem(self) -> None:
         assert m.parser.get_default("fbmem") == DEFAULT_GPU_MEMORY_BUDGET
 

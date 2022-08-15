@@ -66,7 +66,7 @@ class TestSystem:
         s = m.System()
         cpus = s.cpus
         assert len(cpus) > 0
-        assert [cpu.id for cpu in cpus] == list(range(len(cpus)))
+        assert all(len(cpu.ids) > 0 for cpu in cpus)
 
     @pytest.mark.skipif(sys.platform != "linux", reason="pynvml required")
     def test_gpus(self) -> None:
