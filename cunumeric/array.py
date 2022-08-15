@@ -1952,7 +1952,7 @@ class ndarray:
         point_indices += (indices,)
         if out is not None:
             if out.dtype != self.dtype:
-                raise ValueError("Type mismatch: out array has wrong type")
+                raise ValueError("Type mismatch: out array has the wrong type")
             out[:] = self[point_indices]
             return out
         else:
@@ -2313,16 +2313,16 @@ class ndarray:
         if dtype is not None and not trace:
             raise ValueError("_diag_helper supports dtype only for trace=True")
 
-        elif self.ndim == 1:
+        if self.ndim == 1:
             if axes is not None:
                 raise ValueError(
                     "Axes shouldn't be specified when getting "
                     "diagonal for 1D array"
                 )
             m = self.shape[0] + np.abs(offset)
-            out = ndarray((m, m), dtype=self.dtype, inputs=(self,))
+            res = ndarray((m, m), dtype=self.dtype, inputs=(self,))
             diag_size = self.shape[0]
-            out._thunk._diag_helper(
+            res._thunk._diag_helper(
                 self._thunk, offset=offset, naxes=0, extract=False, trace=False
             )
         else:
@@ -2395,19 +2395,29 @@ class ndarray:
             else:
                 out_shape = tr_shape + (diag_size,)
 
-            if out is not None:
-                if out.shape != out_shape:
-                    raise ValueError("output array has wrong shape")
-                a = a._maybe_convert(out.dtype, (a, out))
+            res_dtype = (
+                dtype
+                if dtype is not None
+                else out.dtype
+                if out is not None
+                else a.dtype
+            )
+            a = a._maybe_convert(res_dtype, (a,))
+            if out is not None and out.shape != out_shape:
+                raise ValueError("output array has the wrong shape")
+            if out is not None and out.dtype == res_dtype:
+                res = out
             else:
-                if dtype is not None:
-                    a = a._maybe_convert(dtype, (a,))
-                out = ndarray(shape=out_shape, dtype=a.dtype, inputs=(self,))
+                res = ndarray(shape=out_shape, dtype=res_dtype, inputs=(self,))
 
-            out._thunk._diag_helper(
+            res._thunk._diag_helper(
                 a._thunk, offset=offset, naxes=N, extract=extract, trace=trace
             )
-        return out
+            if out is not None and out is not res:
+                out._thunk.convert(res._thunk)
+                res = out
+
+        return res
 
     def diagonal(
         self,
