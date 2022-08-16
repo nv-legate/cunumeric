@@ -5804,9 +5804,9 @@ def mean(
 # Histograms
 
 
-@add_boilerplate("a", "weights")
+@add_boilerplate("x", "weights")
 def bincount(
-    a: ndarray, weights: Optional[ndarray] = None, minlength: int = 0
+    x: ndarray, weights: Optional[ndarray] = None, minlength: int = 0
 ) -> ndarray:
     """
     bincount(x, weights=None, minlength=0)
@@ -5854,25 +5854,25 @@ def bincount(
     Multiple GPUs, Multiple CPUs
     """
     if weights is not None:
-        if weights.shape != a.shape:
+        if weights.shape != x.shape:
             raise ValueError("weights array must be same shape for bincount")
         if weights.dtype.kind == "c":
             raise ValueError("weights must be convertible to float64")
         # Make sure the weights are float64
         weights = weights.astype(np.float64)
-    if a.dtype.kind != "i" and a.dtype.kind != "u":
+    if x.dtype.kind != "i" and x.dtype.kind != "u":
         raise TypeError("input array for bincount must be integer type")
-    # If nobody told us the size then compute it
-    if minlength <= 0:
-        minlength = int(amax(a)) + 1
-    if a.size == 1:
+    if minlength < 0:
+        raise ValueError("'minlength' must not be negative")
+    minlength = _builtin_max(minlength, int(amax(x)) + 1)
+    if x.size == 1:
         # Handle the special case of 0-D array
         if weights is None:
             out = zeros((minlength,), dtype=np.dtype(np.int64))
-            out[a[0]] = 1
+            out[x[0]] = 1
         else:
             out = zeros((minlength,), dtype=weights.dtype)
-            index = a[0]
+            index = x[0]
             out[index] = weights[index]
     else:
         # Normal case of bincount
@@ -5880,14 +5880,14 @@ def bincount(
             out = ndarray(
                 (minlength,),
                 dtype=np.dtype(np.int64),
-                inputs=(a, weights),
+                inputs=(x, weights),
             )
-            out._thunk.bincount(a._thunk)
+            out._thunk.bincount(x._thunk)
         else:
             out = ndarray(
                 (minlength,),
                 dtype=weights.dtype,
-                inputs=(a, weights),
+                inputs=(x, weights),
             )
-            out._thunk.bincount(a._thunk, weights=weights._thunk)
+            out._thunk.bincount(x._thunk, weights=weights._thunk)
     return out
