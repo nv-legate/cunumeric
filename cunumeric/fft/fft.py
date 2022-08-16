@@ -18,14 +18,8 @@ from typing import TYPE_CHECKING, Sequence, Union
 
 import numpy as np
 
-from cunumeric.config import (
-    FFT_C2C,
-    FFT_Z2Z,
-    FFTCode,
-    FFTDirection,
-    FFTNormalization,
-)
-from cunumeric.module import add_boilerplate
+from ..config import FFT_C2C, FFT_Z2Z, FFTCode, FFTDirection, FFTNormalization
+from ..module import add_boilerplate
 
 if TYPE_CHECKING:
     from ..array import ndarray

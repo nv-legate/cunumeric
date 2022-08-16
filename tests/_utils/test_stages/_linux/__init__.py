@@ -13,28 +13,12 @@
 # limitations under the License.
 #
 """Provide TestStage subclasses for running configured test files using
-specific features.
+specific features on linux platforms.
 
 """
 from __future__ import annotations
 
-import sys
-from typing import Dict, Type
-
-from .. import FeatureType
-from .test_stage import TestStage
-
-if sys.platform == "darwin":
-    from ._osx import CPU, Eager, GPU, OMP
-elif sys.platform.startswith("linux"):
-    from ._linux import CPU, Eager, GPU, OMP
-else:
-    raise RuntimeError(f"unsupported platform: {sys.platform}")
-
-#: All the available test stages that can be selected
-STAGES: Dict[FeatureType, Type[TestStage]] = {
-    "cpus": CPU,
-    "cuda": GPU,
-    "openmp": OMP,
-    "eager": Eager,
-}
+from .cpu import CPU
+from .gpu import GPU
+from .eager import Eager
+from .omp import OMP

@@ -91,11 +91,7 @@ warn_unused_configs = true
 # legate files need to be listed here for now
 # since they are included in the type check
 module = [
-  "cunumeric.array",
   "cunumeric.install_info",
   "cunumeric._version",
-  "legate.core.install_info",
-  "legate._version",
-  "legate.__main__"
 ]
 ignore_errors = true

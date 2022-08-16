@@ -38,6 +38,7 @@ if TYPE_CHECKING:
         NdShape,
         OrderType,
         SelectKind,
+        SortSide,
         SortType,
     )
 
@@ -603,6 +604,10 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
+    def searchsorted(self, rhs: Any, v: Any, side: SortSide = "left") -> None:
+        ...
+
+    @abstractmethod
     def sort(
         self,
         rhs: Any,
@@ -630,7 +635,7 @@ class NumPyThunk(ABC):
         op: UnaryRedCode,
         rhs: Any,
         where: Any,
-        orig_axis: int,
+        orig_axis: Union[int, None],
         axes: tuple[int, ...],
         keepdims: bool,
         args: Any,
@@ -675,7 +680,7 @@ class NumPyThunk(ABC):
         op: int,
         rhs: Any,
         axis: int,
-        dtype: Optional[np.dtype[Any]],
+        dtype: Optional[npt.DTypeLike],
         nan_to_identity: bool,
     ) -> None:
         ...
