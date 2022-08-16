@@ -21,7 +21,7 @@ import pytest
 
 from ...config import Config
 from ...system import System
-from ...test_stages import cpu as m
+from ...test_stages._linux import cpu as m
 from ...types import CPUInfo
 
 

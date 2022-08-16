@@ -17,6 +17,7 @@
 """
 from __future__ import annotations
 
+import sys
 from subprocess import CompletedProcess
 from unittest.mock import MagicMock
 
@@ -67,6 +68,7 @@ class TestSystem:
         assert len(cpus) > 0
         assert [cpu.id for cpu in cpus] == list(range(len(cpus)))
 
+    @pytest.mark.skipif(sys.platform != "linux", reason="pynvml required")
     def test_gpus(self) -> None:
         s = m.System()
         # can't really assume / test much here
