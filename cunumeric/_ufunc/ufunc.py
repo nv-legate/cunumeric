@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING, Any, Dict, Sequence, Union
 
 import numpy as np
 
-from ..array import convert_to_cunumeric_ndarray, ndarray
+from ..array import convert_to_cunumeric_ndarray, ndarray, writeable
 from ..config import BinaryOpCode, UnaryOpCode, UnaryRedCode
 from ..types import NdShape
 
@@ -387,6 +387,7 @@ class unary_ufunc(ufunc):
 
         return arr.astype(to_dtype), np.dtype(self._types[to_dtype.char])
 
+    @writeable()
     def __call__(
         self,
         *args: Any,
@@ -642,6 +643,7 @@ class binary_ufunc(ufunc):
 
         return arrs, np.dtype(self._types[chosen])
 
+    @writeable()
     def __call__(
         self,
         *args: Any,

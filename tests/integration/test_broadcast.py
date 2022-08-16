@@ -53,7 +53,7 @@ def _broadcast_check(sizes):
             err_arr = [("reset", b.index), each[0], each[1]]
         # test whether the broadcast provide views of the original array
         for i in range(len(arr_num)):
-            c.iters[i][0] = 1
+            arr_num[i][(0,) * arr_num[i].ndim] = 1
             if c.iters[i][0] != arr_num[i][(0,) * arr_num[i].ndim]:
                 is_equal = False
                 err_arr = [
@@ -82,8 +82,6 @@ def _check(*args, params: list, routine: str):
     if isinstance(b, list):
         for each in zip(b, c):
             # Try to modify multiple elements in each broadcasted array
-            each[0][:, 1] = 1
-            each[1][:, 1] = 1
             if not np.array_equal(each[0], each[1]):
                 is_equal = False
                 err_arr = [("iters", b.index), each[0], each[1]]

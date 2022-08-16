@@ -35,7 +35,13 @@ from .array import add_boilerplate, convert_to_cunumeric_ndarray, ndarray
 from .config import BinaryOpCode, ScanCode, UnaryRedCode
 from .runtime import runtime
 from .types import NdShape, NdShapeLike, OrderType, SortSide
-from .utils import AxesPairLike, inner_modes, matmul_modes, tensordot_modes
+from .utils import (
+    AxesPairLike,
+    _broadcast_shapes,
+    inner_modes,
+    matmul_modes,
+    tensordot_modes,
+)
 
 if TYPE_CHECKING:
     from typing import Callable
@@ -1423,7 +1429,6 @@ def _broadcast_to(
     arr: ndarray,
     shape: Union[tuple(int), int],
     subok: bool = False,
-    writeable: bool = False,
     broadcasted: bool = False,
 ) -> ndarray:
     # create an array object w/ options passed from 'broadcast' routines
@@ -1433,10 +1438,9 @@ def _broadcast_to(
     result = ndarray(
         shape=out_shape,
         thunk=arr._thunk.broadcast_to(out_shape),
-        broadcasted=broadcasted,
+        flags=arr.flags,
     )
-    if result.flags["WRITEABLE"] != writeable:
-        result.setflags(write=writeable)
+    result.setflags(write=0)
     return result
 
 
@@ -1495,8 +1499,6 @@ def broadcast_to(
 def _broadcast_arrays(
     *arrays: Sequence(ndarray),
     subok: bool = False,
-    writeable: bool = True,
-    broadcasted: bool = False,
 ) -> list(ndarray):
     # create an arry object w/ options passed from 'broadcast' routines
     arrays = list(array(arr, copy=False, subok=subok) for arr in arrays)
@@ -1504,10 +1506,7 @@ def _broadcast_arrays(
     shapes = list(arr.shape for arr in arrays)
     out_shape = broadcast_shapes(*shapes)
     # broadcast to the final shape
-    arrays = list(
-        _broadcast_to(arr, out_shape, subok, writeable, broadcasted)
-        for arr in arrays
-    )
+    arrays = list(_broadcast_to(arr, out_shape, subok) for arr in arrays)
     return arrays
 
 
@@ -1545,13 +1544,8 @@ def broadcast_arrays(
     Multiple GPUs, Multiple CPUs
 
     """
-    # writeable will be set to 'False'
-    # when 'numpy' changes the output of this routine
-    # as read-only views of the original arrays in the future release
     args = list(convert_to_cunumeric_ndarray(arr) for arr in args)
-    return _broadcast_arrays(
-        *args, subok=subok, writeable=True, broadcasted=True
-    )
+    return _broadcast_arrays(*args, subok=subok)
 
 
 class broadcast:
@@ -2391,7 +2385,9 @@ def array_split(
             new_subarray = array[tuple(in_shape)].view()
         else:
             out_shape[axis] = 0
-            new_subarray = ndarray(tuple(out_shape), dtype=array.dtype)
+            new_subarray = ndarray(
+                tuple(out_shape), dtype=array.dtype, flags=array.flags
+            )
         result.append(new_subarray)
         start_idx = pts
 

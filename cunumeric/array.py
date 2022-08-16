@@ -135,6 +135,8 @@ def add_boilerplate(
                     kwargs[k] = convert_to_predicate_ndarray(v)
                 elif k == "out":
                     kwargs[k] = convert_to_cunumeric_ndarray(v, share=True)
+                    if kwargs[k].flags.writeable is False:
+                        raise RuntimeError("out is not writeable")
                 elif k in keys:
                     kwargs[k] = convert_to_cunumeric_ndarray(v)
 
@@ -184,36 +186,130 @@ def _convert_all_to_numpy(obj: Any) -> Any:
         return obj
 
 
-class flatiter:
-    def __init__(self, base: ndarray):
-        self._base = base
-        dims = list(range(dim) for dim in base.shape)
-        self._coords = iter_product(*dims)
-        self._index = 0
+def writeable() -> Callable[[Callable[P, R]], Callable[P, R]]:
+    def decorator(func: Callable[P, R]) -> Callable[P, R]:
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
+            if isinstance(args[0], ndarray) and not args[0].flags.writeable:
+                raise RuntimeError("'self' is not writeable")
+            return func(*args, **kwargs)
 
-    def __iter__(self):
-        self._index = 0
-        return self
+        return wrapper
 
-    def __next__(self):
-        if self._index < len(self._coords):
-            result = self._base[self._coords[self._index]]
-            self._index += 1
-            return result
-        else:
-            raise StopIteration
+    return decorator
+
+
+class FlagsObj(object):
+    def __init__(
+        self,
+        c_contiguous=True,
+        f_contiguous=False,
+        owndata=True,
+        writeable=True,
+        aligned=True,
+        writebackifcopy=False,
+    ):
+        self._c_contiguous = c_contiguous
+        self._f_contiguous = f_contiguous
+        self._owndata = owndata
+        self._writeable = True
+        self._aligned = True
+        self._writebackifcopy = False
+
+    def __getitem__(self, key):
+        key = self.check_flag(key)
+        return getattr(self, key)
+
+    def __setitem__(self, key, value):
+        key = self.check_flag(key)
+        setattr(self, key, value)
+
+    def __repr__(self):
+        output = ""
+        for each in self.__dict__:
+            output += f"{each.strip('_').upper()} : {self.__dict__[each]} \n"
+        return output
+
+    def __str__(self):
+        return repr(self)
+
+    def check_flag(self, key):
+        key = key.lower()
+        if len(key) == 1:
+            if key == "x":
+                key = "writebackifcopy"
+            else:
+                for attr in self.__dict__.keys():
+                    if (str)(attr).strip("_")[0] == key:
+                        key = (str)(attr)
+                        break
+
+        if not hasattr(self, key):
+            raise AttributeError(f"{key} is unknown flag for ndarray.flags")
+        return key
 
     @property
-    def index(self):
-        return self._index
+    def c_contiguous(self):
+        return self._c_contiguous
 
     @property
-    def cords(self):
-        return self._coords
+    def f_contiguous(self):
+        return self._f_contiguous
 
     @property
-    def base(self):
-        return self._base
+    def owndata(self):
+        return self._owndata
+
+    @property
+    def writeable(self):
+        return self._writeable
+
+    @property
+    def aligned(self):
+        return self._aligned
+
+    @property
+    def writebackifcopy(self):
+        return self._writebackifcopy
+
+    @property
+    def fnc(self):
+        return self.f_contiguous and ~self.c_contigous
+
+    @property
+    def forc(self):
+        return self.f_contiguous or self.c_contiguous
+
+    @property
+    def behaved(self):
+        return self.aligned and self.writeable
+
+    @property
+    def carray(self):
+        return self.behaved and self.c_contiguous
+
+    @property
+    def farray(self):
+        return self.behaved and self.f_contiguous and ~self.c_contiguous
+
+    @writeable.setter
+    def writeable(self, value: bool):
+        if value is True and self.owndata is False:
+            raise ValueError(
+                "cannot set WRITEABLE flag to True for this array"
+            )
+        self._writeable = value
+
+    @aligned.setter
+    def aligned(self, value: bool):
+        self._aligned = value
+
+    @writebackifcopy.setter
+    def writebackifcopy(self, value: bool):
+        if value is True:
+            raise ValueError(
+                "cannot set WRITEBACKIFCOPY flag to True for this array"
+            )
+        self._writebackifcopy = value
 
 
 @clone_np_ndarray
@@ -228,6 +324,7 @@ class ndarray:
         order: Union[OrderType, None] = None,
         thunk: Union[NumPyThunk, None] = None,
         inputs: Union[Any, None] = None,
+        flags: FlagsObj = None,
     ) -> None:
         # `inputs` being a cuNumeric ndarray is definitely a bug
         assert not isinstance(inputs, ndarray)
@@ -263,6 +360,14 @@ class ndarray:
         else:
             self._thunk = thunk
         self._legate_data: Union[dict[str, Any], None] = None
+       # TODO: flags are passed. We use this argument only for views
+        # Not all routines are changed to pass these arguments correctly yet.
+        if flags is not None:
+            self._flags = FlagsObj(*flags.__dict__.values())
+            self._flags._owndata = False
+        else:
+            self._flags = FlagsObj()
+        self._legate_data = None
 
     @staticmethod
     def _sanitize_shape(
@@ -539,7 +644,7 @@ class ndarray:
         for C-style contiguous arrays or ``self.strides[0] == self.itemsize``
         for Fortran-style contiguous arrays is true.
         """
-        return self.__array__().flags
+        return self._flags
 
     @property
     def flat(self) -> np.flatiter[npt.NDArray[Any]]:
@@ -551,7 +656,7 @@ class ndarray:
         flatten : Return a copy of the array collapsed into one dimension.
 
         """
-        return flatiter(self)  # self.__array__().flat
+        return self.__array__().flat
 
     @property
     def imag(self) -> ndarray:
@@ -1595,7 +1700,7 @@ class ndarray:
         return bitwise_xor(lhs, self)
 
     # __setattr__
-
+    @writeable()
     @add_boilerplate("value")
     def __setitem__(self, key: Any, value: Any) -> None:
         """__setitem__(key, value, /)
@@ -1603,15 +1708,6 @@ class ndarray:
         Set ``self[key]=value``.
 
         """
-        if self._broadcasted is True:
-            warnings.warn(
-                "This array is a broadcasted array from "
-                "cunumeric.broadcast_arrays. "
-                "Writing to this array will be prohibited "
-                "in the future release "
-                "If this write is intetional, make a copy before writing ",
-                category=DeprecationWarning,
-            )
 
         if key is None:
             raise KeyError("invalid key passed to cunumeric.ndarray")
@@ -2003,6 +2099,7 @@ class ndarray:
                 res = res.copy()
             return res
 
+    @add_boilerplate()
     def choose(
         self,
         choices: Any,
@@ -2164,6 +2261,7 @@ class ndarray:
             res = a[index_tuple]
             return res
 
+    @add_boilerplate()
     def clip(
         self,
         min: Union[int, float, npt.ArrayLike, None] = None,
@@ -2210,7 +2308,7 @@ class ndarray:
                     self.__array__().clip(args[0], args[1])
                 )
         return self._perform_unary_op(
-            UnaryOpCode.CLIP, self, dst=out, extra_args=args
+            UnaryOpCode.CLIP, self, out=out, extra_args=args
         )
 
     def conj(self) -> ndarray:
@@ -2334,6 +2432,7 @@ class ndarray:
     # currently offset option is implemented only for the case of number of
     # axes=2. This restriction can be lifted in the future if there is a
     # use case of having arbitrary number of offsets
+    @add_boilerplate()
     def _diag_helper(
         self,
         offset: int = 0,
@@ -2757,6 +2856,7 @@ class ndarray:
 
         return out
 
+    @writeable()
     def fill(self, value: float) -> None:
         """a.fill(value)
 
@@ -2806,8 +2906,12 @@ class ndarray:
         Multiple GPUs, Multiple CPUs
 
         """
-        # Same as 'ravel' because cuNumeric creates a new array by 'reshape'
-        return self.reshape(-1, order=order)
+        # Reshape first and make a copy if the output is a view of the src
+        # the output always should be a copy of the src array
+        result = self.reshape(-1, order=order)
+        if result.base is not None:
+            result = result.copy()
+        return result
 
     def getfield(self, dtype: np.dtype[Any], offset: int = 0) -> None:
         raise NotImplementedError(
@@ -3055,6 +3159,7 @@ class ndarray:
             where=where,
         )
 
+    @writeable()
     @add_boilerplate()
     def partition(
         self,
@@ -3309,14 +3414,12 @@ class ndarray:
         # Be a bit more careful here, and only pass params that are explicitly
         # set by the caller. The numpy interface specifies only bool values,
         # despite its None defaults.
-        kws = {}
         if write is not None:
-            kws["write"] = write
+            self._flags.writeable = write
         if align is not None:
-            kws["align"] = align
+            self._flags.align = align
         if uic is not None:
-            kws["uic"] = uic
-        self.__array__().setflags(**kws)
+            self._flags.writebackifcopy = uic
 
     @add_boilerplate()
     def searchsorted(
@@ -3392,6 +3495,7 @@ class ndarray:
         result._thunk.searchsorted(a._thunk, v_ndarray._thunk, side)
         return result
 
+    @writeable()
     def sort(
         self,
         axis: Any = -1,
@@ -3717,7 +3821,9 @@ class ndarray:
             raise ValueError(
                 "axes must be the same size as ndim for transpose"
             )
-        return ndarray(shape=None, thunk=self._thunk.transpose(axes))
+        return ndarray(
+            shape=None, thunk=self._thunk.transpose(axes), flags=self.flags
+        )
 
     def flip(self, axis: Any = None) -> ndarray:
         """
@@ -3763,7 +3869,12 @@ class ndarray:
             raise NotImplementedError(
                 "cuNumeric does not currently support type reinterpretation"
             )
-        return ndarray(shape=self.shape, dtype=self.dtype, thunk=self._thunk)
+        return ndarray(
+            shape=self.shape,
+            dtype=self.dtype,
+            thunk=self._thunk,
+            flags=self.flags,
+        )
 
     def unique(self) -> ndarray:
         """a.unique()
@@ -3840,19 +3951,19 @@ class ndarray:
         cls,
         op: UnaryOpCode,
         src: ndarray,
-        dst: Union[Any, None] = None,
+        out: Union[Any, None] = None,
         extra_args: Any = None,
         dtype: Union[np.dtype[Any], None] = None,
         where: Union[bool, ndarray] = True,
         out_dtype: Union[np.dtype[Any], None] = None,
     ) -> ndarray:
-        if dst is not None:
+        if out is not None:
             # If the shapes don't match see if we can broadcast
             # This will raise an exception if they can't be broadcast together
             if isinstance(where, ndarray):
-                _broadcast_shapes(src.shape, dst.shape, where.shape)
+                _broadcast_shapes(src.shape, out.shape, where.shape)
             else:
-                _broadcast_shapes(src.shape, dst.shape)
+                _broadcast_shapes(src.shape, out.shape)
         else:
             # No output yet, so make one
             if isinstance(where, ndarray):
@@ -3860,19 +3971,19 @@ class ndarray:
             else:
                 out_shape = src.shape
             if dtype is not None:
-                dst = ndarray(
+                out = ndarray(
                     shape=out_shape,
                     dtype=dtype,
                     inputs=(src, where),
                 )
             elif out_dtype is not None:
-                dst = ndarray(
+                out = ndarray(
                     shape=out_shape,
                     dtype=out_dtype,
                     inputs=(src, where),
                 )
             else:
-                dst = ndarray(
+                out = ndarray(
                     shape=out_shape,
                     dtype=src.dtype
                     if src.dtype.kind != "c"
@@ -3884,53 +3995,53 @@ class ndarray:
 
         # Quick exit
         if where is False:
-            return dst
+            return out
 
         if out_dtype is None:
-            if dst.dtype != src.dtype and not (
+            if out.dtype != src.dtype and not (
                 op == UnaryOpCode.ABSOLUTE and src.dtype.kind == "c"
             ):
                 temp = ndarray(
-                    dst.shape,
+                    out.shape,
                     dtype=src.dtype,
                     inputs=(src, where),
                 )
                 temp._thunk.unary_op(
                     op,
                     src._thunk,
-                    cls._get_where_thunk(where, dst.shape),
+                    cls._get_where_thunk(where, out.shape),
                     extra_args,
                 )
-                dst._thunk.convert(temp._thunk)
+                out._thunk.convert(temp._thunk)
             else:
-                dst._thunk.unary_op(
+                out._thunk.unary_op(
                     op,
                     src._thunk,
-                    cls._get_where_thunk(where, dst.shape),
+                    cls._get_where_thunk(where, out.shape),
                     extra_args,
                 )
         else:
-            if dst.dtype != out_dtype:
+            if out.dtype != out_dtype:
                 temp = ndarray(
-                    dst.shape,
+                    out.shape,
                     dtype=out_dtype,
                     inputs=(src, where),
                 )
                 temp._thunk.unary_op(
                     op,
                     src._thunk,
-                    cls._get_where_thunk(where, dst.shape),
+                    cls._get_where_thunk(where, out.shape),
                     extra_args,
                 )
-                dst._thunk.convert(temp._thunk)
+                out._thunk.convert(temp._thunk)
             else:
-                dst._thunk.unary_op(
+                out._thunk.unary_op(
                     op,
                     src._thunk,
-                    cls._get_where_thunk(where, dst.shape),
+                    cls._get_where_thunk(where, out.shape),
                     extra_args,
                 )
-        return dst
+        return out
 
     # For performing reduction unary operations
     @classmethod
