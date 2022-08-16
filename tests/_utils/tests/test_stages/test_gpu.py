@@ -21,7 +21,7 @@ import pytest
 
 from ...config import Config
 from ...system import System
-from ...test_stages import gpu as m
+from ...test_stages._linux import gpu as m
 from ...types import GPUInfo
 
 

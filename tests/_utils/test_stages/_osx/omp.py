@@ -14,15 +14,15 @@
 #
 from __future__ import annotations
 
-from .. import FeatureType
-from ..config import Config
-from ..system import System
-from ..types import ArgList
-from .test_stage import Shard, StageSpec, TestStage, adjust_workers
+from ... import FeatureType
+from ...config import Config
+from ...system import System
+from ...types import ArgList, EnvDict
+from ..test_stage import Shard, StageSpec, TestStage, adjust_workers
 
 
-class Eager(TestStage):
-    """A test stage for exercising Eager Numpy execution features.
+class OMP(TestStage):
+    """A test stage for exercising OpenMP features.
 
     Parameters
     ----------
@@ -34,35 +34,31 @@ class Eager(TestStage):
 
     """
 
-    kind: FeatureType = "eager"
+    kind: FeatureType = "openmp"
 
-    args: ArgList = []
+    args = ["-cunumeric:test"]
 
-    # Raise min chunk sizes for deferred codepaths to force eager execution
-    env = {
-        "CUNUMERIC_MIN_CPU_CHUNK": "2000000000",
-        "CUNUMERIC_MIN_OMP_CHUNK": "2000000000",
-        "CUNUMERIC_MIN_GPU_CHUNK": "2000000000",
-    }
+    env: EnvDict = {"REALM_SYNTHETIC_CORE_MAP": ""}
 
     def __init__(self, config: Config, system: System) -> None:
         self._init(config, system)
 
     def shard_args(self, shard: Shard, config: Config) -> ArgList:
         return [
-            "--cpus",
-            "1",
-            "--cpu-bind",
-            ",".join(str(x) for x in shard),
+            "--omps",
+            str(config.omps),
+            "--ompthreads",
+            str(config.ompthreads),
         ]
 
     def compute_spec(self, config: Config, system: System) -> StageSpec:
         N = len(system.cpus)
+        omps, threads = config.omps, config.ompthreads
+        degree = N // (omps * threads + config.utility)
 
-        degree = min(N, 60)  # ~LEGION_MAX_NUM_PROCS just in case
         workers = adjust_workers(degree, config.requested_workers)
 
-        # Just put each worker on its own CPU for eager tests
+        # Just put each worker on its own CPU for OMP tests
         shards = [tuple([i]) for i in range(workers)]
 
         return StageSpec(workers, shards)
