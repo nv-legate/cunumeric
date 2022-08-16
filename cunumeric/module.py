@@ -2441,6 +2441,52 @@ def flip(m: ndarray, axis: Optional[NdShapeLike] = None) -> ndarray:
 # Generating index arrays
 
 
+@add_boilerplate("condition", "arr")
+def extract(condition: ndarray, arr: ndarray) -> ndarray:
+    """
+
+    Return the elements of an array that satisfy some condition.
+
+    Parameters
+    ----------
+    condition : array_like
+        An array whose nonzero or True entries indicate the elements
+        of `arr` to extract.
+    arr : array_like
+        Input array of the same size as `condition`.
+
+    Returns
+    -------
+    result : ndarray
+        Rank 1 array of values from arr where `condition` is True.
+
+    See Also
+    --------
+    numpy.extract
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+
+    if condition.size != arr.size:
+        raise ValueError("arr array and condition array must be of same size")
+
+    if condition.shape != arr.shape:
+        condition_reshape = condition.reshape(arr.shape)
+    else:
+        condition_reshape = condition
+
+    if condition_reshape.dtype is np.bool_:
+        thunk = arr._thunk.get_item(condition_reshape._thunk)
+    else:
+        nonzero_indices = nonzero(condition_reshape)
+        nonzero_thunks = tuple(i._thunk for i in nonzero_indices)
+        thunk = arr._thunk.get_item(nonzero_thunks)
+
+    return ndarray(shape=thunk.shape, thunk=thunk)
+
+
 @add_boilerplate("a")
 def nonzero(a: ndarray) -> tuple[ndarray, ...]:
     """
