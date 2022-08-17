@@ -26,6 +26,7 @@ Searching
    argmin
    nonzero
    searchsorted
+   extract
    where
 
 Counting
