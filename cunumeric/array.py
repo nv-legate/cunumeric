@@ -279,23 +279,25 @@ class FlagsObj(object):
 
     @property
     def fnc(self) -> bool:
-        return self.f_contiguous and ~self.c_contiguous
+        return (bool)(self.f_contiguous and ~self.c_contiguous)
 
     @property
     def forc(self) -> bool:
-        return self.f_contiguous or self.c_contiguous
+        return (bool)(self.f_contiguous or self.c_contiguous)
 
     @property
     def behaved(self) -> bool:
-        return self.aligned and self.writeable
+        return (bool)(self.aligned and self.writeable)
 
     @property
     def carray(self) -> bool:
-        return self.behaved and self.c_contiguous
+        return (bool)(self.behaved and self.c_contiguous)
 
     @property
     def farray(self) -> bool:
-        return self.behaved and self.f_contiguous and ~self.c_contiguous
+        return (bool)(
+            self.behaved and self.f_contiguous and ~self.c_contiguous
+        )
 
     @writeable.setter
     def writeable(self, value: bool) -> None:

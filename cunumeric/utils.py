@@ -22,7 +22,7 @@ from typing import Any, List, Sequence, Tuple, Union, cast
 
 import numpy as np
 
-from .types import NdShape, NdShapeLike
+from .types import NdShape
 
 _SUPPORTED_DTYPES = [
     np.float16,
@@ -41,7 +41,7 @@ _SUPPORTED_DTYPES = [
 ]
 
 
-def _broadcast_shapes(*args: Sequence[NdShapeLike]) -> tuple[int]:
+def _broadcast_shapes(*args: Union[int, Sequence[NdShape]]) -> NdShape:
     # Call _broadcast_shapes' for now.
     # We will have a new implementation later
     return np.broadcast_shapes(*args)

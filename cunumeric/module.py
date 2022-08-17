@@ -1544,12 +1544,12 @@ def broadcast_arrays(
     Multiple GPUs, Multiple CPUs
 
     """
-    args = list(convert_to_cunumeric_ndarray(arr) for arr in args)
-    return _broadcast_arrays(*args, subok=subok)
+    arrs = list(convert_to_cunumeric_ndarray(arr) for arr in args)
+    return _broadcast_arrays(*arrs, subok=subok)
 
 
 class broadcast:
-    def __init__(self, *arrs: Sequence[Any]) -> None:
+    def __init__(self, *arrays: Sequence[Any]) -> None:
         """
 
         Produce an object that mimics broadcasting.
@@ -1573,12 +1573,12 @@ class broadcast:
             and may be used as an iterator.
 
         """
-        arrays = list(convert_to_cunumeric_ndarray(arr) for arr in arrs)
-        arrays = _broadcast_arrays(*arrays)
-        self._iters: tuple[Any] = tuple(arr.flat for arr in arrays)
-        self._index: int = 0
-        self._shape: NdShape = arrays[0].shape
-        self._size: int = np.prod(self.shape)
+        arrs = list(convert_to_cunumeric_ndarray(arr) for arr in arrays)
+        broadcasted = _broadcast_arrays(*arrs)
+        self._iters = tuple(arr.flat for arr in broadcasted)
+        self._index = 0
+        self._shape = broadcasted[0].shape
+        self._size = np.prod(self.shape)
 
     def __iter__(self) -> broadcast:
         self._index = 0
