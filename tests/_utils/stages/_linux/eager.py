@@ -17,8 +17,9 @@ from __future__ import annotations
 from ... import FeatureType
 from ...config import Config
 from ...system import System
-from ...types import ArgList
-from ..test_stage import Shard, StageSpec, TestStage, adjust_workers
+from ...types import ArgList, EnvDict
+from ..test_stage import TestStage
+from ..util import Shard, StageSpec, adjust_workers
 
 
 class Eager(TestStage):
@@ -38,15 +39,17 @@ class Eager(TestStage):
 
     args: ArgList = []
 
-    # Raise min chunk sizes for deferred codepaths to force eager execution
-    env = {
-        "CUNUMERIC_MIN_CPU_CHUNK": "2000000000",
-        "CUNUMERIC_MIN_OMP_CHUNK": "2000000000",
-        "CUNUMERIC_MIN_GPU_CHUNK": "2000000000",
-    }
-
     def __init__(self, config: Config, system: System) -> None:
         self._init(config, system)
+
+    def env(self, config: Config, system: System) -> EnvDict:
+        # Raise min chunk sizes for deferred codepaths to force eager execution
+        env = {
+            "CUNUMERIC_MIN_CPU_CHUNK": "2000000000",
+            "CUNUMERIC_MIN_OMP_CHUNK": "2000000000",
+            "CUNUMERIC_MIN_GPU_CHUNK": "2000000000",
+        }
+        return env
 
     def shard_args(self, shard: Shard, config: Config) -> ArgList:
         return [
@@ -62,7 +65,7 @@ class Eager(TestStage):
         degree = min(N, 60)  # ~LEGION_MAX_NUM_PROCS just in case
         workers = adjust_workers(degree, config.requested_workers)
 
-        # Just put each worker on its own CPU for eager tests
-        shards = [tuple([i]) for i in range(workers)]
+        # Just put each worker on its own full CPU for eager tests
+        shards = [cpu.ids for cpu in system.cpus]
 
         return StageSpec(workers, shards)

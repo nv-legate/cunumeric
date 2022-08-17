@@ -18,11 +18,12 @@ from ... import FeatureType
 from ...config import Config
 from ...system import System
 from ...types import ArgList, EnvDict
-from ..test_stage import Shard, StageSpec, TestStage, adjust_workers
+from ..test_stage import TestStage
+from ..util import UNPIN_ENV, Shard, StageSpec, adjust_workers
 
 
-class CPU(TestStage):
-    """A test stage for exercising CPU features.
+class Eager(TestStage):
+    """A test stage for exercising Eager Numpy execution features.
 
     Parameters
     ----------
@@ -34,32 +35,29 @@ class CPU(TestStage):
 
     """
 
-    kind: FeatureType = "cpus"
+    kind: FeatureType = "eager"
 
-    args = ["-cunumeric:test"]
-
-    env: EnvDict = {}
+    args: ArgList = []
 
     def __init__(self, config: Config, system: System) -> None:
         self._init(config, system)
 
+    def env(self, config: Config, system: System) -> EnvDict:
+        # Raise min chunk sizes for deferred codepaths to force eager execution
+        env = {
+            "CUNUMERIC_MIN_CPU_CHUNK": "2000000000",
+            "CUNUMERIC_MIN_OMP_CHUNK": "2000000000",
+            "CUNUMERIC_MIN_GPU_CHUNK": "2000000000",
+        }
+        env.update(UNPIN_ENV)
+        return env
+
     def shard_args(self, shard: Shard, config: Config) -> ArgList:
-        return [
-            "--cpus",
-            str(len(shard)),
-            "--cpu-bind",
-            ",".join(str(x) for x in shard),
-        ]
+        return ["--cpus", "1"]
 
     def compute_spec(self, config: Config, system: System) -> StageSpec:
         N = len(system.cpus)
-        degree = N // (config.cpus + config.utility)
-
+        degree = min(N, 60)  # ~LEGION_MAX_NUM_PROCS just in case
         workers = adjust_workers(degree, config.requested_workers)
 
-        # https://docs.python.org/3/library/itertools.html#itertools-recipes
-        # grouper('ABCDEF', 3) --> ABC DEF
-        args = [iter(range(workers * config.cpus))] * config.cpus
-        shards = list(zip(*args))
-
-        return StageSpec(workers, shards)
+        return StageSpec(workers, [])
