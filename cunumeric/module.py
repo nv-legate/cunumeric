@@ -2480,11 +2480,11 @@ def extract(condition: ndarray, arr: ndarray) -> ndarray:
         raise ValueError("arr array and condition array must be of same size")
 
     if condition.shape != arr.shape:
-        condition_reshape = condition.reshape(arr.shape)
+        condition_reshape = reshape(condition, arr.shape)
     else:
         condition_reshape = condition
 
-    if condition_reshape.dtype is np.bool_:
+    if condition_reshape.dtype == np.dtype(np.bool_):
         thunk = arr._thunk.get_item(condition_reshape._thunk)
     else:
         nonzero_indices = nonzero(condition_reshape)
