@@ -24,6 +24,7 @@ import pytest
 
 from .. import (
     DEFAULT_CPUS_PER_NODE,
+    DEFAULT_GPU_DELAY,
     DEFAULT_GPU_MEMORY_BUDGET,
     DEFAULT_GPUS_PER_NODE,
     DEFAULT_OMPS_PER_NODE,
@@ -58,6 +59,9 @@ class TestParserDefaults:
 
     def test_strict_pin(self) -> None:
         assert m.parser.get_default("strict_pin") is False
+
+    def test_gpu_delay(self) -> None:
+        assert m.parser.get_default("gpu_delay") == DEFAULT_GPU_DELAY
 
     def test_fbmem(self) -> None:
         assert m.parser.get_default("fbmem") == DEFAULT_GPU_MEMORY_BUDGET

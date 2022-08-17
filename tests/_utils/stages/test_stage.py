@@ -75,17 +75,35 @@ class TestStage(Protocol):
         """
         ...
 
+    def delay(self, shard: Shard, config: Config, system: System) -> None:
+        """Wait any delay that should be applied before running the next
+        test.
+
+        Parameters
+        ----------
+        shard: Shard
+            The shard to be used for the next test that is run
+
+        config: Config
+            Test runner configuration
+
+        system: System
+            Process execution wrapper
+
+        """
+        ...
+
     def shard_args(self, shard: Shard, config: Config) -> ArgList:
         """Generate the command line arguments necessary to launch
         the next test process on the given shard.
 
         Parameters
         ----------
+        shard: Shard
+            The shard to be used for the next test that is run
+
         config: Config
             Test runner configuration
-
-        system: System
-            Process execution wrapper
 
         """
         ...
@@ -210,6 +228,8 @@ class TestStage(Protocol):
 
         cmd = [str(config.legate_path), str(test_path)]
         cmd += stage_args + file_args + config.extra_args
+
+        self.delay(shard, config, system)
 
         result = system.run(cmd, env=self._env(config, system))
         log_proc(self.name, result, test_file, config)

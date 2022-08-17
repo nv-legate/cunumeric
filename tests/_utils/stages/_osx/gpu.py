@@ -14,12 +14,14 @@
 #
 from __future__ import annotations
 
+import time
+
 from ... import FeatureType
 from ...config import Config
 from ...system import System
 from ...types import ArgList, EnvDict
 from ..test_stage import TestStage
-from ..util import CUNUMERIC_TEST_ARG, UNPIN_ENV
+from ..util import CUNUMERIC_TEST_ARG, UNPIN_ENV, Shard
 
 
 class GPU(TestStage):
@@ -44,3 +46,6 @@ class GPU(TestStage):
 
     def env(self, config: Config, system: System) -> EnvDict:
         return UNPIN_ENV
+
+    def delay(self, shard: Shard, config: Config, system: System) -> None:
+        time.sleep(config.gpu_delay / 1000)

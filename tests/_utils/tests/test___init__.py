@@ -19,6 +19,7 @@ from __future__ import annotations
 
 from .. import (
     DEFAULT_CPUS_PER_NODE,
+    DEFAULT_GPU_DELAY,
     DEFAULT_GPU_MEMORY_BUDGET,
     DEFAULT_GPUS_PER_NODE,
     DEFAULT_OMPS_PER_NODE,
@@ -37,6 +38,9 @@ class TestConsts:
 
     def test_DEFAULT_GPUS_PER_NODE(self) -> None:
         assert DEFAULT_GPUS_PER_NODE == 1
+
+    def test_DEFAULT_GPU_DELAY(self) -> None:
+        assert DEFAULT_GPU_DELAY == 2000
 
     def test_DEFAULT_GPU_MEMORY_BUDGET(self) -> None:
         assert DEFAULT_GPU_MEMORY_BUDGET == 4096

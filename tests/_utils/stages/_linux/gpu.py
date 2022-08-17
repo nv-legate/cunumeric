@@ -14,6 +14,8 @@
 #
 from __future__ import annotations
 
+import time
+
 from ... import FeatureType
 from ...config import Config
 from ...system import System
@@ -46,6 +48,9 @@ class GPU(TestStage):
 
     def env(self, config: Config, system: System) -> EnvDict:
         return {}
+
+    def delay(self, shard: Shard, config: Config, system: System) -> None:
+        time.sleep(config.gpu_delay / 1000)
 
     def shard_args(self, shard: Shard, config: Config) -> ArgList:
         return [
