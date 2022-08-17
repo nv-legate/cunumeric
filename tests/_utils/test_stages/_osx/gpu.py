@@ -12,29 +12,33 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-"""Provide TestStage subclasses for running configured test files using
-specific features.
-
-"""
 from __future__ import annotations
 
-import sys
-from typing import Dict, Type
+from ... import FeatureType
+from ...config import Config
+from ...system import System
+from ...types import ArgList, EnvDict
+from ..test_stage import TestStage
 
-from .. import FeatureType
-from .test_stage import TestStage
 
-if sys.platform == "darwin":
-    from ._osx import CPU, Eager, GPU, OMP
-elif sys.platform.startswith("linux"):
-    from ._linux import CPU, Eager, GPU, OMP
-else:
-    raise RuntimeError(f"unsupported platform: {sys.platform}")
+class GPU(TestStage):
+    """A test stage for exercising GPU features.
 
-#: All the available test stages that can be selected
-STAGES: Dict[FeatureType, Type[TestStage]] = {
-    "cpus": CPU,
-    "cuda": GPU,
-    "openmp": OMP,
-    "eager": Eager,
-}
+    Parameters
+    ----------
+    config: Config
+        Test runner configuration
+
+    system: System
+        Process execution wrapper
+
+    """
+
+    kind: FeatureType = "cuda"
+
+    args: ArgList() = []
+
+    env: EnvDict = {}
+
+    def __init__(self, config: Config, system: System) -> None:
+        raise RuntimeError("GPU test are not supported on OSX")

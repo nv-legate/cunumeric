@@ -1423,7 +1423,7 @@ class EagerArray(NumPyThunk):
         op: UnaryRedCode,
         rhs: Any,
         where: Any,
-        orig_axis: int,
+        orig_axis: Union[int, None],
         axes: tuple[int, ...],
         keepdims: bool,
         args: Any,
@@ -1568,7 +1568,7 @@ class EagerArray(NumPyThunk):
         op: int,
         rhs: Any,
         axis: int,
-        dtype: Optional[np.dtype[Any]],
+        dtype: Optional[npt.DTypeLike],
         nan_to_identity: bool,
     ) -> None:
         self.check_eager_args(rhs)
