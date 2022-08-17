@@ -72,7 +72,6 @@ struct NonzeroImplBody<VariantKind::GPU, CODE, DIM> {
 
     auto offsets = create_buffer<int64_t>(volume, Memory::Kind::GPU_FB_MEM);
     auto size    = compute_offsets(in, pitches, rect, volume, offsets, stream);
-    CHECK_CUDA_STREAM(stream);
 
     for (auto& result : results) result = create_buffer<int64_t>(size, Memory::Kind::GPU_FB_MEM);
 

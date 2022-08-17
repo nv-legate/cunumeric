@@ -20,24 +20,26 @@ from utils.comparisons import allclose
 import cunumeric as num
 
 N = 8000
-
+MAX_VAL = 9
 DTYPES = [np.int64, np.int32, np.int16]
+MINLENGTHS = [0, 5, 15]
 
 
 @pytest.mark.parametrize("dtype", DTYPES)
-def test_bincount_basic(dtype):
-    v_num = num.random.randint(0, 9, size=N, dtype=dtype)
+@pytest.mark.parametrize("minlength", MINLENGTHS)
+def test_bincount_basic(dtype, minlength):
+    v_num = num.random.randint(0, MAX_VAL, size=N, dtype=dtype)
 
     v_np = v_num.__array__()
 
-    out_np = np.bincount(v_np)
-    out_num = num.bincount(v_num)
+    out_np = np.bincount(v_np, minlength=minlength)
+    out_num = num.bincount(v_num, minlength=minlength)
     assert num.array_equal(out_np, out_num)
 
 
 @pytest.mark.parametrize("dtype", DTYPES)
 def test_bincount_weights(dtype):
-    v_num = num.random.randint(0, 9, size=N, dtype=dtype)
+    v_num = num.random.randint(0, MAX_VAL, size=N, dtype=dtype)
     w_num = num.random.randn(N)
 
     v_np = v_num.__array__()

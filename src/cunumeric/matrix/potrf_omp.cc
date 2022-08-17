@@ -26,30 +26,36 @@ namespace cunumeric {
 using namespace Legion;
 using namespace legate;
 
-template <typename Potrf, typename VAL>
-static inline void potrf_template(Potrf potrf, VAL* array, int32_t m, int32_t n)
-{
-  char uplo    = 'L';
-  int32_t info = 0;
-  potrf(&uplo, &n, array, &m, &info);
-  if (info != 0) throw legate::TaskException("Matrix is not positive definite");
-}
-
 template <>
 struct PotrfImplBody<VariantKind::OMP, LegateTypeCode::FLOAT_LT> {
-  void operator()(float* array, int32_t m, int32_t n) { potrf_template(spotrf_, array, m, n); }
+  void operator()(float* array, int32_t m, int32_t n)
+  {
+    char uplo    = 'L';
+    int32_t info = 0;
+    LAPACK_spotrf(&uplo, &n, array, &m, &info);
+    if (info != 0) throw legate::TaskException("Matrix is not positive definite");
+  }
 };
 
 template <>
 struct PotrfImplBody<VariantKind::OMP, LegateTypeCode::DOUBLE_LT> {
-  void operator()(double* array, int32_t m, int32_t n) { potrf_template(dpotrf_, array, m, n); }
+  void operator()(double* array, int32_t m, int32_t n)
+  {
+    char uplo    = 'L';
+    int32_t info = 0;
+    LAPACK_dpotrf(&uplo, &n, array, &m, &info);
+    if (info != 0) throw legate::TaskException("Matrix is not positive definite");
+  }
 };
 
 template <>
 struct PotrfImplBody<VariantKind::OMP, LegateTypeCode::COMPLEX64_LT> {
   void operator()(complex<float>* array, int32_t m, int32_t n)
   {
-    potrf_template(cpotrf_, reinterpret_cast<__complex__ float*>(array), m, n);
+    char uplo    = 'L';
+    int32_t info = 0;
+    LAPACK_cpotrf(&uplo, &n, reinterpret_cast<__complex__ float*>(array), &m, &info);
+    if (info != 0) throw legate::TaskException("Matrix is not positive definite");
   }
 };
 
@@ -57,7 +63,10 @@ template <>
 struct PotrfImplBody<VariantKind::OMP, LegateTypeCode::COMPLEX128_LT> {
   void operator()(complex<double>* array, int32_t m, int32_t n)
   {
-    potrf_template(zpotrf_, reinterpret_cast<__complex__ double*>(array), m, n);
+    char uplo    = 'L';
+    int32_t info = 0;
+    LAPACK_zpotrf(&uplo, &n, reinterpret_cast<__complex__ double*>(array), &m, &info);
+    if (info != 0) throw legate::TaskException("Matrix is not positive definite");
   }
 };
 

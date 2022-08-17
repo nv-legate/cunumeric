@@ -630,7 +630,7 @@ class FFTType:
         return self._type_id
 
     @property
-    def complex(self) -> Union[FFTType, None]:
+    def complex(self) -> FFTType:
         return self._complex_type
 
     @property
