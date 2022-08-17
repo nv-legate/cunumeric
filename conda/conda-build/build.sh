@@ -4,6 +4,9 @@ install_args=()
 if [ -z "$CPU_ONLY" ]; then
   # cutensor, relying on the conda cutensor package
   install_args+=("--with-cutensor" "$PREFIX")
+else
+  # When we build without cuda, we need to provide the location of curand
+  install_args+=("--with-curand" "$PREFIX")
 fi
 
 # location of legate-core

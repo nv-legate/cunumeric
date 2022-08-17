@@ -22,9 +22,9 @@ import os
 from argparse import Namespace
 from pathlib import Path, PurePath
 
-from . import FEATURES, SKIPPED_EXAMPLES, FeatureType
+from . import DEFAULT_PROCESS_ENV, FEATURES, SKIPPED_EXAMPLES, FeatureType
 from .args import parser
-from .system import ArgList
+from .types import ArgList, EnvDict
 
 
 class Config:
@@ -53,8 +53,9 @@ class Config:
         # feature options for integration tests
         self.cpus = args.cpus
         self.gpus = args.gpus
-        self.fbmem = args.fbmem
         self.omps = args.omps
+        self.utility = args.utility
+        self.fbmem = args.fbmem
         self.ompthreads = args.ompthreads
 
         # test run configuration
@@ -64,6 +65,11 @@ class Config:
         self.test_root = args.test_root
         self.requested_workers = args.workers
         self.legate_dir = self._compute_legate_dir(args)
+
+    @property
+    def env(self) -> EnvDict:
+        """Custom environment settings used for process exectution."""
+        return dict(DEFAULT_PROCESS_ENV)
 
     @property
     def extra_args(self) -> ArgList:
@@ -113,13 +119,14 @@ class Config:
         return self.legate_dir / "bin" / "legate"
 
     def _compute_features(self, args: Namespace) -> tuple[FeatureType, ...]:
-        args_features = args.features or []
-        computed = []
-        for feature in FEATURES:
-            if feature in args_features:
-                computed.append(feature)
-            elif os.environ.get(f"USE_{feature.upper()}", None) == "1":
-                computed.append(feature)
+        if args.features is not None:
+            computed = args.features
+        else:
+            computed = [
+                feature
+                for feature in FEATURES
+                if os.environ.get(f"USE_{feature.upper()}", None) == "1"
+            ]
 
         # if nothing is specified any other way, at least run CPU stage
         if len(computed) == 0:

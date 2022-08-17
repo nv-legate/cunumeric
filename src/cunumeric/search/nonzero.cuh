@@ -33,14 +33,14 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
                        size_t iters,
                        Buffer<int64_t> offsets)
 {
-  int64_t value = 0;
+  uint64_t value = 0;
   for (size_t idx = 0; idx < iters; idx++) {
     const size_t offset = (idx * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (offset < volume) {
       auto point      = pitches.unflatten(offset, origin);
-      auto val        = static_cast<int64_t>(in[point] != VAL(0));
+      auto val        = static_cast<uint64_t>(in[point] != VAL(0));
       offsets[offset] = val;
-      SumReduction<int64_t>::fold<true>(value, val);
+      SumReduction<uint64_t>::fold<true>(value, val);
     }
   }
   // Every thread in the thread block must participate in the exchange to get correct results
@@ -60,7 +60,7 @@ int64_t compute_offsets(const AccessorRO<VAL, DIM>& in,
                         Buffer<int64_t>& offsets,
                         cudaStream_t stream)
 {
-  DeferredReduction<SumReduction<int64_t>> size;
+  DeviceScalarReductionBuffer<SumReduction<uint64_t>> size(stream);
 
   const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
   size_t shmem_size   = THREADS_PER_BLOCK / 32 * sizeof(int64_t);
@@ -73,14 +73,12 @@ int64_t compute_offsets(const AccessorRO<VAL, DIM>& in,
     count_nonzero_kernel<<<blocks, THREADS_PER_BLOCK, shmem_size, stream>>>(
       volume, size, in, pitches, rect.lo, 1, offsets);
 
-  cudaStreamSynchronize(stream);
-
   auto p_offsets = offsets.ptr(0);
 
   exclusive_sum(p_offsets, volume, stream);
 
   CHECK_CUDA_STREAM(stream);
-  return size.read();
+  return size.read(stream);
 }
 
 }  // namespace cunumeric
