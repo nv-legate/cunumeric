@@ -25,19 +25,25 @@ using namespace Legion;
 using namespace legate;
 
 template <typename GetrfBufferSize, typename Getrf, typename Getrs, typename VAL>
-static inline void solve_template(GetrfBufferSize getrf_buffer_size, Getrf getrf, Getrs getrs,
-  int32_t m, int32_t n, int32_t nrhs, VAL* a, VAL* b)
+static inline void solve_template(GetrfBufferSize getrf_buffer_size,
+                                  Getrf getrf,
+                                  Getrs getrs,
+                                  int32_t m,
+                                  int32_t n,
+                                  int32_t nrhs,
+                                  VAL* a,
+                                  VAL* b)
 {
   const auto trans = CUBLAS_OP_N;
 
   auto handle = get_cusolver();
-  auto stream  = get_cached_stream();
+  auto stream = get_cached_stream();
   CHECK_CUSOLVER(cusolverDnSetStream(handle, stream));
 
   int32_t buffer_size;
   CHECK_CUSOLVER(getrf_buffer_size(handle, m, n, a, m, &buffer_size));
 
-  auto ipiv = create_buffer<int32_t>(std::min(m, n), Memory::Kind::GPU_FB_MEM);
+  auto ipiv   = create_buffer<int32_t>(std::min(m, n), Memory::Kind::GPU_FB_MEM);
   auto buffer = create_buffer<VAL>(buffer_size, Memory::Kind::GPU_FB_MEM);
   auto info   = create_buffer<int32_t>(1, Memory::Kind::Z_COPY_MEM);
 
@@ -54,8 +60,8 @@ template <>
 struct SolveImplBody<VariantKind::GPU, LegateTypeCode::FLOAT_LT> {
   void operator()(int32_t m, int32_t n, int32_t nrhs, float* a, float* b)
   {
-    solve_template(cusolverDnSgetrf_bufferSize, cusolverDnSgetrf, cusolverDnSgetrs,
-      m, n, nrhs, a, b);
+    solve_template(
+      cusolverDnSgetrf_bufferSize, cusolverDnSgetrf, cusolverDnSgetrs, m, n, nrhs, a, b);
   }
 };
 
@@ -63,8 +69,8 @@ template <>
 struct SolveImplBody<VariantKind::GPU, LegateTypeCode::DOUBLE_LT> {
   void operator()(int32_t m, int32_t n, int32_t nrhs, double* a, double* b)
   {
-    solve_template(cusolverDnDgetrf_bufferSize, cusolverDnDgetrf, cusolverDnDgetrs,
-      m, n, nrhs, a, b);
+    solve_template(
+      cusolverDnDgetrf_bufferSize, cusolverDnDgetrf, cusolverDnDgetrs, m, n, nrhs, a, b);
   }
 };
 
@@ -72,8 +78,14 @@ template <>
 struct SolveImplBody<VariantKind::GPU, LegateTypeCode::COMPLEX64_LT> {
   void operator()(int32_t m, int32_t n, int32_t nrhs, complex<float>* a, complex<float>* b)
   {
-    solve_template(cusolverDnCgetrf_bufferSize, cusolverDnCgetrf, cusolverDnCgetrs,
-      m, n, nrhs, reinterpret_cast<cuComplex*>(a), reinterpret_cast<cuComplex*>(b));
+    solve_template(cusolverDnCgetrf_bufferSize,
+                   cusolverDnCgetrf,
+                   cusolverDnCgetrs,
+                   m,
+                   n,
+                   nrhs,
+                   reinterpret_cast<cuComplex*>(a),
+                   reinterpret_cast<cuComplex*>(b));
   }
 };
 
@@ -81,8 +93,14 @@ template <>
 struct SolveImplBody<VariantKind::GPU, LegateTypeCode::COMPLEX128_LT> {
   void operator()(int32_t m, int32_t n, int32_t nrhs, complex<double>* a, complex<double>* b)
   {
-    solve_template(cusolverDnZgetrf_bufferSize, cusolverDnZgetrf, cusolverDnZgetrs,
-      m, n, nrhs, reinterpret_cast<cuDoubleComplex*>(a), reinterpret_cast<cuDoubleComplex*>(b));
+    solve_template(cusolverDnZgetrf_bufferSize,
+                   cusolverDnZgetrf,
+                   cusolverDnZgetrs,
+                   m,
+                   n,
+                   nrhs,
+                   reinterpret_cast<cuDoubleComplex*>(a),
+                   reinterpret_cast<cuDoubleComplex*>(b));
   }
 };
 

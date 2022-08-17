@@ -62,11 +62,11 @@ struct SolveImpl {
     size_t a_strides[2];
     size_t b_strides[2];
 
-    const auto m = static_cast<int64_t>(a_shape.hi[0] - a_shape.lo[0] + 1);
-    const auto n = static_cast<int64_t>(a_shape.hi[1] - a_shape.lo[1] + 1);
+    const auto m    = static_cast<int64_t>(a_shape.hi[0] - a_shape.lo[0] + 1);
+    const auto n    = static_cast<int64_t>(a_shape.hi[1] - a_shape.lo[1] + 1);
     const auto nrhs = static_cast<int64_t>(b_shape.hi[1] - b_shape.lo[1] + 1);
-    auto a = a_array.write_accessor<VAL, 2>(a_shape).ptr(a_shape, a_strides);
-    auto b = b_array.write_accessor<VAL, 2>(b_shape).ptr(b_shape, b_strides);
+    auto a          = a_array.write_accessor<VAL, 2>(a_shape).ptr(a_shape, a_strides);
+    auto b          = b_array.write_accessor<VAL, 2>(b_shape).ptr(b_shape, b_strides);
 
     assert(m > 0 && n > 0 && nrhs > 0);
 

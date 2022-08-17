@@ -45,7 +45,7 @@ def transpose_copy_single(
     task.execute()
 
 
-def solve_single(context: Context, a : Store, b : Store) -> None:
+def solve_single(context: Context, a: Store, b: Store) -> None:
     task = context.create_auto_task(CuNumericOpCode.SOLVE)
     task.throws_exception(LinAlgError)
     task.add_input(a)
@@ -59,9 +59,7 @@ def solve_single(context: Context, a : Store, b : Store) -> None:
     task.execute()
 
 
-def solve(
-    output: DeferredArray, a: DeferredArray, b: DeferredArray
-) -> None:
+def solve(output: DeferredArray, a: DeferredArray, b: DeferredArray) -> None:
 
     context = output.context
 

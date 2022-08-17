@@ -79,6 +79,7 @@ def cholesky(a: ndarray) -> ndarray:
         )
     return _cholesky(a)
 
+
 @add_boilerplate("a", "b")
 def solve(a: ndarray, b: ndarray) -> ndarray:
     if len(a.shape) < 2:
@@ -98,6 +99,7 @@ def solve(a: ndarray, b: ndarray) -> ndarray:
             "cuNumeric needs to support stacked 2d arrays"
         )
     return _solve(a, b)
+
 
 # This implementation is adapted closely from NumPy
 @add_boilerplate("a")
@@ -574,6 +576,7 @@ def _cholesky(a: ndarray, no_tril: bool = False) -> ndarray:
     )
     output._thunk.cholesky(input._thunk, no_tril=no_tril)
     return output
+
 
 def _solve(a: ndarray, b: ndarray) -> ndarray:
     a_input = a
