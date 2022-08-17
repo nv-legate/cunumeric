@@ -1399,7 +1399,7 @@ def squeeze(a: ndarray, axis: Optional[NdShapeLike] = None) -> ndarray:
     return a.squeeze(axis=axis)
 
 
-def broadcast_shapes(*args: Sequence(Union[tuple(int), int])) -> tuple(int):
+def broadcast_shapes(*args: Sequence[NdShapeLike]) -> NdShape:
     """
 
     Broadcast the input shapes into a single shape.
@@ -1427,7 +1427,7 @@ def broadcast_shapes(*args: Sequence(Union[tuple(int), int])) -> tuple(int):
 
 def _broadcast_to(
     arr: ndarray,
-    shape: Union[tuple(int), int],
+    shape: NdShapeLike,
     subok: bool = False,
     broadcasted: bool = False,
 ) -> ndarray:
@@ -1446,7 +1446,7 @@ def _broadcast_to(
 
 @add_boilerplate("arr")
 def broadcast_to(
-    arr: ndarray, shape: Union[tuple(int), int], subok: bool = False
+    arr: ndarray, shape: NdShapeLike, subok: bool = False
 ) -> ndarray:
 
     """
@@ -1497,11 +1497,11 @@ def broadcast_to(
 
 
 def _broadcast_arrays(
-    *arrays: Sequence(ndarray),
+    *arrs: Sequence[ndarray],
     subok: bool = False,
-) -> list(ndarray):
+) -> list[ndarray]:
     # create an arry object w/ options passed from 'broadcast' routines
-    arrays = list(array(arr, copy=False, subok=subok) for arr in arrays)
+    arrays = list(array(arr, copy=False, subok=subok) for arr in arrs)
     # check if the broadcast can happen in the input list of arrays
     shapes = list(arr.shape for arr in arrays)
     out_shape = broadcast_shapes(*shapes)
@@ -1511,8 +1511,8 @@ def _broadcast_arrays(
 
 
 def broadcast_arrays(
-    *args: Sequence(Any), subok: bool = False
-) -> list(ndarray):
+    *args: Sequence[Any], subok: bool = False
+) -> list[ndarray]:
     """
 
     Broadcast any number of arrays against each other.
@@ -1549,7 +1549,7 @@ def broadcast_arrays(
 
 
 class broadcast:
-    def __init__(self, *arrays: Sequence(Any)) -> None:
+    def __init__(self, *arrs: Sequence[Any]) -> None:
         """
 
         Produce an object that mimics broadcasting.
@@ -1573,18 +1573,18 @@ class broadcast:
             and may be used as an iterator.
 
         """
-        arrays = list(convert_to_cunumeric_ndarray(arr) for arr in arrays)
+        arrays = list(convert_to_cunumeric_ndarray(arr) for arr in arrs)
         arrays = _broadcast_arrays(*arrays)
-        self._iters = tuple(arr.flat for arr in arrays)
-        self._index = 0
-        self._shape = arrays[0].shape
-        self._size = np.prod(self.shape)
+        self._iters: tuple[Any] = tuple(arr.flat for arr in arrays)
+        self._index: int = 0
+        self._shape: NdShape = arrays[0].shape
+        self._size: int = np.prod(self.shape)
 
-    def __iter__(self):
+    def __iter__(self) -> broadcast:
         self._index = 0
         return self
 
-    def __next__(self):
+    def __next__(self) -> Any:
         if self._index < self.size:
             result = tuple(each[self._index] for each in self._iters)
             self._index += 1
@@ -1592,35 +1592,35 @@ class broadcast:
         else:
             raise StopIteration
 
-    def reset(self):
+    def reset(self) -> None:
         self._index = 0
 
     @property
-    def index(self):
+    def index(self) -> int:
         return self._index
 
     @property
-    def iters(self):
+    def iters(self) -> tuple[Any]:
         return self._iters
 
     @property
-    def numiter(self):
+    def numiter(self) -> int:
         return len(self._iters)
 
     @property
-    def nd(self):
+    def nd(self) -> int:
         return self.ndim
 
     @property
-    def ndim(self):
+    def ndim(self) -> int:
         return len(self.shape)
 
     @property
-    def shape(self):
+    def shape(self) -> NdShape:
         return self._shape
 
     @property
-    def size(self):
+    def size(self) -> int:
         return self._size
 
 

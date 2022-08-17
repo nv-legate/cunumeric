@@ -187,6 +187,12 @@ def _convert_all_to_numpy(obj: Any) -> Any:
 
 
 def writeable() -> Callable[[Callable[P, R]], Callable[P, R]]:
+    """
+    Check if the current array is writeable
+    This decorator needs to be manually inserted
+    with consideration on the behavior of the corresponding method
+    """
+
     def decorator(func: Callable[P, R]) -> Callable[P, R]:
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             if isinstance(args[0], ndarray) and not args[0].flags.writeable:
@@ -201,13 +207,13 @@ def writeable() -> Callable[[Callable[P, R]], Callable[P, R]]:
 class FlagsObj(object):
     def __init__(
         self,
-        c_contiguous=True,
-        f_contiguous=False,
-        owndata=True,
-        writeable=True,
-        aligned=True,
-        writebackifcopy=False,
-    ):
+        c_contiguous: bool = True,
+        f_contiguous: bool = False,
+        owndata: bool = True,
+        writeable: bool = True,
+        aligned: bool = True,
+        writebackifcopy: bool = False,
+    ) -> None:
         self._c_contiguous = c_contiguous
         self._f_contiguous = f_contiguous
         self._owndata = owndata
@@ -215,24 +221,24 @@ class FlagsObj(object):
         self._aligned = True
         self._writebackifcopy = False
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: Any) -> bool:
         key = self.check_flag(key)
         return getattr(self, key)
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: str, value: Any) -> None:
         key = self.check_flag(key)
         setattr(self, key, value)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         output = ""
         for each in self.__dict__:
             output += f"{each.strip('_').upper()} : {self.__dict__[each]} \n"
         return output
 
-    def __str__(self):
+    def __str__(self) -> str:
         return repr(self)
 
-    def check_flag(self, key):
+    def check_flag(self, key: str) -> str:
         key = key.lower()
         if len(key) == 1:
             if key == "x":
@@ -248,51 +254,51 @@ class FlagsObj(object):
         return key
 
     @property
-    def c_contiguous(self):
+    def c_contiguous(self) -> bool:
         return self._c_contiguous
 
     @property
-    def f_contiguous(self):
+    def f_contiguous(self) -> bool:
         return self._f_contiguous
 
     @property
-    def owndata(self):
+    def owndata(self) -> bool:
         return self._owndata
 
     @property
-    def writeable(self):
+    def writeable(self) -> bool:
         return self._writeable
 
     @property
-    def aligned(self):
+    def aligned(self) -> bool:
         return self._aligned
 
     @property
-    def writebackifcopy(self):
+    def writebackifcopy(self) -> bool:
         return self._writebackifcopy
 
     @property
-    def fnc(self):
-        return self.f_contiguous and ~self.c_contigous
+    def fnc(self) -> bool:
+        return self.f_contiguous and ~self.c_contiguous
 
     @property
-    def forc(self):
+    def forc(self) -> bool:
         return self.f_contiguous or self.c_contiguous
 
     @property
-    def behaved(self):
+    def behaved(self) -> bool:
         return self.aligned and self.writeable
 
     @property
-    def carray(self):
+    def carray(self) -> bool:
         return self.behaved and self.c_contiguous
 
     @property
-    def farray(self):
+    def farray(self) -> bool:
         return self.behaved and self.f_contiguous and ~self.c_contiguous
 
     @writeable.setter
-    def writeable(self, value: bool):
+    def writeable(self, value: bool) -> None:
         if value is True and self.owndata is False:
             raise ValueError(
                 "cannot set WRITEABLE flag to True for this array"
@@ -300,11 +306,11 @@ class FlagsObj(object):
         self._writeable = value
 
     @aligned.setter
-    def aligned(self, value: bool):
+    def aligned(self, value: bool) -> None:
         self._aligned = value
 
     @writebackifcopy.setter
-    def writebackifcopy(self, value: bool):
+    def writebackifcopy(self, value: bool) -> None:
         if value is True:
             raise ValueError(
                 "cannot set WRITEBACKIFCOPY flag to True for this array"
@@ -324,7 +330,7 @@ class ndarray:
         order: Union[OrderType, None] = None,
         thunk: Union[NumPyThunk, None] = None,
         inputs: Union[Any, None] = None,
-        flags: FlagsObj = None,
+        flags: Union[FlagsObj, None] = None,
     ) -> None:
         # `inputs` being a cuNumeric ndarray is definitely a bug
         assert not isinstance(inputs, ndarray)
@@ -363,10 +369,10 @@ class ndarray:
         # TODO: flags are passed. We use this argument only for views
         # Not all routines are changed to pass these arguments correctly yet.
         if flags is not None:
-            self._flags = FlagsObj(*flags.__dict__.values())
+            self._flags: FlagsObj = FlagsObj(*flags.__dict__.values())
             self._flags._owndata = False
         else:
-            self._flags = FlagsObj()
+            self._flags: FlagsObj = FlagsObj()
 
     @staticmethod
     def _sanitize_shape(
@@ -3414,11 +3420,11 @@ class ndarray:
         # set by the caller. The numpy interface specifies only bool values,
         # despite its None defaults.
         if write is not None:
-            self._flags.writeable = write
+            self._flags["WRITEABLE"] = write
         if align is not None:
-            self._flags.align = align
+            self._flags["ALIGNED"] = align
         if uic is not None:
-            self._flags.writebackifcopy = uic
+            self._flags["WRITEBACKIFCOPY"] = uic
 
     @add_boilerplate()
     def searchsorted(
