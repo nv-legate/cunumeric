@@ -50,6 +50,5 @@ def check_array_method(fn, args, kwargs, print_msg):
         f" different result\n"
     )
     print(
-        f"Passed, {print_msg}, np: ({a.shape}, {a.dtype})"
-        f", cunumeric: ({b.shape}, {b.dtype})"
+        f"Passed, {print_msg}"
     )

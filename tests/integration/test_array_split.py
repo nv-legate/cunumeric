@@ -14,11 +14,10 @@
 #
 
 import math
-
 import numpy as np
 import pytest
-
 import cunumeric as num
+from utils.utils import check_array_method
 
 # Seed the random generator with a random number
 np.random.seed(416)
@@ -37,6 +36,33 @@ SIZES = [
     (DIM, DIM),
     (DIM, DIM, DIM),
 ]
+
+
+class TestArraySplitErrors:
+    """
+    this class is to test negative cases
+    """
+
+    def test_indices_negative(self):
+        # negative indices should be not accepted
+        ary = np.arange(10)
+        # In numpy, it raises ValueError, msg is "number sections must be larger than 0."
+        # while in cunumeric, it passed.
+        num.array_split(ary, -2)
+
+    def test_indices_0(self):
+        # 0 indices should be not accepted
+        ary = np.arange(10)
+        # In numpy, it raises ValueError, msg is "number sections must be larger than 0.".
+        # In cunumeric, it raises ZeroDivisionError
+        with pytest.raises(ZeroDivisionError):
+            num.array_split(ary, 0)
+
+    def test_axis_bigger(self):
+        msg = "has less dimensions than"
+        ary = np.arange(9)
+        with pytest.raises((ValueError, AssertionError), match=msg):
+            num.array_split(ary, len(ary) // 2, 2)
 
 
 @pytest.mark.parametrize("size", SIZES, ids=str)
@@ -96,33 +122,8 @@ def test_array_split(size):
             print_msg = f"np.array_split({a.shape}, {input_opt}" f", {axis})"
             # Check if both impls produce the error
             # for non-viable options
-            b = np.array_split(a, input_opt, axis)
-            c = num.array_split(a, input_opt, axis)
-            is_equal = True
-            err_arr = [b, c]
+            check_array_method("array_split", [a, input_opt], {"axis": axis}, print_msg)
 
-            if len(b) != len(c):
-                is_equal = False
-                err_arr = [b, c]
-            else:
-                for each in zip(b, c):
-                    if not np.array_equal(each[0], each[1]):
-                        err_arr = each
-                        is_equal = False
-                        break
-
-            assert is_equal, (
-                f"Failed, {print_msg}"
-                f"numpy result: {err_arr[0]}"
-                f"cunumeric_result: {err_arr[1]}"
-                f"cunumeric and numpy shows"
-                f"different result\n"
-                f"array({size}),"
-                f"routine: array_split,"
-                f"indices: {input_opt}, axis: {axis}"
-            )
-
-            print(f"Passed, {print_msg}")
 
 
 if __name__ == "__main__":
