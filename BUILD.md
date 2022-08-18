@@ -28,12 +28,12 @@ We review each of these modes with examples.
 
 ## Using install.py
 
-For releases <= 22.07, the main method for building cuNumeric was the provided `install.py` script.
+For releases <= 22.07, the main method for building cuNumeric was the `install.py` script.
 Although the underlying implementation has significantly changed, `install.py` still supports the
 same usage and same set of flags. For a full list of flags, users can run:
 
 ```
-> ./install.py --help
+$ ./install.py --help
 ```
 
 ## Using Conda
@@ -47,11 +47,11 @@ pip installer to build and install cuNumeric. After downloading or cloning the c
 users can run the following in the cunumeric folder:
 
 ```
-> pip install .
+$ pip install .
 ```
 or
 ```
-> python3 -m pip install .
+$ python3 -m pip install .
 ```
 
 This will install cuNumeric in the standard packages directory for the environment Python.
@@ -80,7 +80,7 @@ We assume a pre-existing Legate CUDA build. For details on building Legate, cons
 First, the CMake build needs to be configured:
 
 ```
-> cmake -S . -B build -GNinja -D legate_core_ROOT:STRING=path/to/legate/build
+$ cmake -S . -B build -GNinja -D legate_core_ROOT:STRING=path/to/legate/build
 ```
 
 We point cuNumeric to the Legate *build* tree, not an installation.
@@ -88,14 +88,14 @@ This generates all build-dependent headers and Python files.
 Once configured, we can build the C++ libraries:
 
 ```
-> cmake --build build
+$ cmake --build build
 ```
 
 This will invoke Ninja (or make) to execute the build.
 Once the C++ libraries are available, we can do an editable (development) pip installation.
 
 ```
-> SKBUILD_BUILD_OPTIONS="-D FIND_CUNUMERIC_CPP=ON -D cunumeric_ROOT=$(pwd)/build" \
+$ SKBUILD_BUILD_OPTIONS="-D FIND_CUNUMERIC_CPP=ON -D cunumeric_ROOT=$(pwd)/build" \
   python3 -m pip install \
   --root / --no-deps --no-build-isolation 
   --editable .
@@ -105,6 +105,6 @@ The Python source tree and CMake build tree are now available with the environme
 for running cuNumeric programs. The diagram below illustrates the 
 complete workflow for building both Legate core and cuNumeric.
 
-<img src="docs/figures/developer-build.png" alt="drawing" width="400"/>
+<img src="docs/figures/developer-build.png" alt="drawing" width="600"/>
 
 
