@@ -46,14 +46,16 @@ class TestArraySplitErrors:
     def test_indices_negative(self):
         # negative indices should be not accepted
         ary = np.arange(10)
-        # In numpy, it raises ValueError, msg is "number sections must be larger than 0."
+        # In numpy, it raises ValueError, 
+        # msg is "number sections must be larger than 0."
         # while in cunumeric, it passed.
         num.array_split(ary, -2)
 
     def test_indices_0(self):
         # 0 indices should be not accepted
         ary = np.arange(10)
-        # In numpy, it raises ValueError, msg is "number sections must be larger than 0.".
+        # In numpy, it raises ValueError, 
+        # msg is "number sections must be larger than 0.".
         # In cunumeric, it raises ZeroDivisionError
         with pytest.raises(ZeroDivisionError):
             num.array_split(ary, 0)
