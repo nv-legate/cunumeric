@@ -17,7 +17,7 @@ limitations under the License.
 
 # cuNumeric
 
-cuNumeric is a [Legate](https://github.com/nv-legate/legate.core) library
+cuNumeric is a [Legate](https://github.com/nv-legate/legate.core) library--test
 that aims to provide a distributed and accelerated drop-in replacement for the
 [NumPy API](https://numpy.org/doc/stable/reference/) on top of the
 [Legion](https://legion.stanford.edu) runtime. Using cuNumeric you do things like run
