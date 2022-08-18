@@ -116,7 +116,7 @@ def mk_deferred_array(lib, shape):
     good_shape = tuple(max(1, dim) for dim in shape)
     # for shape (2,0,3,4): key = [:,[False],:,:]
     key = tuple([False] if dim == 0 else slice(None) for dim in shape)
-    print("IRINA DEBUG ", key, good_shape)
+    print("IRINA DEBUG good_shape , key", good_shape, key)
     return lib.ones(good_shape)[key]
 
 
@@ -128,7 +128,6 @@ def test_zero_size():
                     0 if dim == zero_dim else 3 for dim in range(arr_ndim)
                 )
                 np_arr = mk_deferred_array(np, arr_shape)
-                print("IRINA DEBUG shape numpy", np_arr.shape)
                 num_arr = mk_deferred_array(num, arr_shape)
                 idx_shape = arr_shape[:idx_ndim]
                 val_shape = (
@@ -138,7 +137,15 @@ def test_zero_size():
                 )
                 np_idx = np.ones(idx_shape, dtype=np.bool_)
                 num_idx = num.ones(idx_shape, dtype=np.bool_)
+                print(
+                    "IRINA DEBUG shapes ",
+                    np_arr[np_idx],
+                    np_arr[np_idx].shape,
+                    num_arr[num_idx],
+                    num_arr[num_idx].shape,
+                )
                 assert np.array_equal(np_arr[np_idx], num_arr[num_idx])
+
                 np_val = np.random.random(val_shape)
                 num_val = num.array(np_val)
                 np_arr[np_idx] = np_val

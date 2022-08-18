@@ -42,9 +42,7 @@ struct FillImpl {
 
     if (volume == 0) return;
 
-    auto out        = args.out.write_accessor<VAL, DIM>(rect);
-    auto fill_value = args.fill_value.read_accessor<VAL, 1>();
-
+    auto out = args.out.write_accessor<VAL, DIM>(rect);
 #ifndef LEGION_BOUNDS_CHECKS
     // Check to see if this is dense or not
     bool dense = out.accessor.is_dense_row_major(rect);
@@ -52,7 +50,30 @@ struct FillImpl {
     // No dense execution if we're doing bounds checks
     bool dense = false;
 #endif
+
+    auto fill_value = args.fill_value.read_accessor<VAL, 1>();
     FillImplBody<KIND, VAL, DIM>{}(out, fill_value, pitches, rect, dense);
+  }
+  template <typename VAL, int DIM>
+  void fill_zero(FillArgs& args) const
+  {
+    auto rect = args.out.shape<DIM>();
+
+    Pitches<DIM - 1> pitches;
+    size_t volume = pitches.flatten(rect);
+
+    if (volume == 0) return;
+
+    auto out = args.out.write_accessor<VAL, DIM>(rect);
+#ifndef LEGION_BOUNDS_CHECKS
+    // Check to see if this is dense or not
+    bool dense = out.accessor.is_dense_row_major(rect);
+#else
+    // No dense execution if we're doing bounds checks
+    bool dense = false;
+#endif
+
+    FillImplBody<KIND, VAL, DIM>{}(out, pitches, rect, dense);
   }
 
   template <LegateTypeCode CODE, int DIM>
@@ -60,10 +81,14 @@ struct FillImpl {
   {
     if (args.is_argval) {
       using VAL = Argval<legate_type_of<CODE>>;
+      assert(args.is_zero == false);
       fill<VAL, DIM>(args);
     } else {
       using VAL = legate_type_of<CODE>;
-      fill<VAL, DIM>(args);
+      if (args.is_zero)
+        fill_zero<VAL, DIM>(args);
+      else
+        fill<VAL, DIM>(args);
     }
   }
 };
@@ -71,8 +96,15 @@ struct FillImpl {
 template <VariantKind KIND>
 static void fill_template(TaskContext& context)
 {
-  FillArgs args{context.outputs()[0], context.inputs()[0], context.scalars()[0].value<bool>()};
-  double_dispatch(args.out.dim(), args.out.code(), FillImpl<KIND>{}, args);
+  bool is_zero = context.scalars()[1].value<bool>();
+  if (is_zero) {
+    FillArgs args{context.outputs()[0], Array(), context.scalars()[0].value<bool>(), true};
+    double_dispatch(args.out.dim(), args.out.code(), FillImpl<KIND>{}, args);
+  } else {
+    FillArgs args{
+      context.outputs()[0], context.inputs()[0], context.scalars()[0].value<bool>(), false};
+    double_dispatch(args.out.dim(), args.out.code(), FillImpl<KIND>{}, args);
+  }
 }
 
 }  // namespace cunumeric

@@ -482,6 +482,14 @@ class DeferredArray(NumPyThunk):
         store_copy.copy(store_to_copy, deep=True)
         return store_copy
 
+    def _fill_with_zero(self):
+        task = self.context.create_auto_task(CuNumericOpCode.FILL)
+        task.add_output(self.base)
+        task.add_scalar_arg(False, bool)
+        task.add_scalar_arg(True, bool)  # fill with 0
+
+        task.execute()
+
     def _create_indexing_array(
         self, key: Any, is_set: bool = False
     ) -> tuple[bool, Any, Any, Any]:
@@ -504,22 +512,29 @@ class DeferredArray(NumPyThunk):
                         f"index array which is {rhs.shape[i]}"
                     )
 
-            if key.size == 0:
-                rhs_store = rhs.base
-                for i in range(key.ndim - 1):
-                    rhs_store = rhs_store.project(0, 0)
+            # if key or rhs are empty, return an empty array with correct shape
+            if key.size == 0 or rhs.size == 0:
+                if rhs.size == 0 and key.size != 0:
+                    # we need to calculate shape of the 0 dim of output region
+                    # even though the size of it is 0
+                    # this can potentially be replaced with COUNT_NONZERO
+                    s = key.nonzero()[0].size
+                else:
+                    s = 0
 
+                out_shape = (s,) + tuple(
+                    rhs.shape[i] for i in range(key.ndim, rhs.ndim)
+                )
                 out = cast(
                     DeferredArray,
                     self.runtime.create_empty_thunk(
-                        rhs_store.shape,
+                        out_shape,
                         rhs.dtype,
                         inputs=[rhs],
                     ),
                 )
 
-                out = cast(DeferredArray, out._copy_store(rhs_store))
-
+                out._fill_with_zero()
                 return False, rhs, out, self
 
             key_store = key.base
@@ -651,8 +666,12 @@ class DeferredArray(NumPyThunk):
                     # in case of the mixed indises we all nonzero
                     # for the bool array
                     k = k.nonzero()
-                    shift += len(k) - 1
-                    tuple_of_arrays += k
+                    if k[0].size == 0:
+                        store = store.project(dim + shift, 0)
+                        store = store.promote(dim + shift, 0)
+                    else:
+                        shift += len(k) - 1
+                        tuple_of_arrays += k
                 else:
                     tuple_of_arrays += (k,)
             else:
@@ -671,6 +690,8 @@ class DeferredArray(NumPyThunk):
             # the store with transformation
             rhs = cast(DeferredArray, self._copy_store(store))
 
+        if len(tuple_of_arrays) == 0:
+            return False, rhs, rhs, self
         if len(tuple_of_arrays) <= rhs.ndim:
             output_arr = rhs._zip_indices(start_index, tuple_of_arrays)
             return True, rhs, output_arr, self
@@ -758,12 +779,10 @@ class DeferredArray(NumPyThunk):
                 self,
             ) = self._create_indexing_array(key)
 
-            store = rhs.base
-
             if copy_needed:
+
                 if rhs.base.kind == Future:
                     rhs = self._convert_future_to_store(rhs)
-                store = rhs.base
                 result: NumPyThunk
                 if index_array.base.kind == Future:
                     index_array = self._convert_future_to_store(index_array)
@@ -777,6 +796,7 @@ class DeferredArray(NumPyThunk):
                         base=result_store,
                         dtype=self.dtype,
                     )
+
                 else:
                     result = self.runtime.create_empty_thunk(
                         index_array.base.shape,
@@ -786,7 +806,7 @@ class DeferredArray(NumPyThunk):
 
                 copy = self.context.create_copy()
                 copy.set_source_indirect_out_of_range(False)
-                copy.add_input(store)
+                copy.add_input(rhs.base)
                 copy.add_source_indirect(index_array.base)
                 copy.add_output(result.base)  # type: ignore
                 copy.execute()
@@ -850,13 +870,15 @@ class DeferredArray(NumPyThunk):
             if lhs.base.kind == Future:
                 lhs = self._convert_future_to_store(lhs)
 
-            copy = self.context.create_copy()
-            copy.set_target_indirect_out_of_range(False)
+            if index_array.size != 0:
 
-            copy.add_input(rhs_store)
-            copy.add_target_indirect(index_array.base)
-            copy.add_output(lhs.base)
-            copy.execute()
+                copy = self.context.create_copy()
+                copy.set_target_indirect_out_of_range(False)
+
+                copy.add_input(rhs_store)
+                copy.add_target_indirect(index_array.base)
+                copy.add_output(lhs.base)
+                copy.execute()
 
             # TODO this copy will be removed when affine copies are
             # supported in Legion/Realm
@@ -1250,6 +1272,7 @@ class DeferredArray(NumPyThunk):
             task.add_output(self.base)
             task.add_input(value)
             task.add_scalar_arg(argval, bool)
+            task.add_scalar_arg(False, bool)  # fill with zero
 
             task.execute()
 

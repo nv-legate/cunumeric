@@ -31,7 +31,25 @@ struct FillImplBody<VariantKind::CPU, VAL, DIM> {
                   bool dense) const
   {
     auto fill_value = in[0];
-    size_t volume   = rect.volume();
+    fill(out, fill_value, pitches, rect, dense);
+  }
+
+  void operator()(AccessorWO<VAL, DIM> out,
+                  const Pitches<DIM - 1>& pitches,
+                  const Rect<DIM>& rect,
+                  bool dense) const
+  {
+    VAL fill_value = VAL(0);
+    fill(out, fill_value, pitches, rect, dense);
+  }
+
+  void fill(AccessorWO<VAL, DIM> out,
+            VAL& fill_value,
+            const Pitches<DIM - 1>& pitches,
+            const Rect<DIM>& rect,
+            bool dense) const
+  {
+    size_t volume = rect.volume();
     if (dense) {
       auto outptr = out.ptr(rect);
       for (size_t idx = 0; idx < volume; ++idx) outptr[idx] = fill_value;

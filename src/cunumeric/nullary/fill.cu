@@ -23,23 +23,42 @@ namespace cunumeric {
 
 using namespace Legion;
 
-template <typename ARG, typename ReadAcc>
+template <typename ARG, typename VAL>
 static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-  dense_kernel(size_t volume, ARG* out, ReadAcc fill_value)
+  dense_kernel(size_t volume, ARG* out, AccessorRO<VAL, 1> fill_value)
 {
   const size_t idx = global_tid_1d();
   if (idx >= volume) return;
   out[idx] = fill_value[0];
 }
 
-template <typename WriteAcc, typename ReadAcc, typename Pitches, typename Rect>
-static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-  generic_kernel(size_t volume, WriteAcc out, ReadAcc fill_value, Pitches pitches, Rect rect)
+template <typename WriteAcc, typename VAL, typename Pitches, typename Rect>
+static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM) generic_kernel(
+  size_t volume, WriteAcc out, AccessorRO<VAL, 1> fill_value, Pitches pitches, Rect rect)
 {
   const size_t idx = global_tid_1d();
   if (idx >= volume) return;
   auto point = pitches.unflatten(idx, rect.lo);
   out[point] = fill_value[0];
+}
+
+template <typename VAL>
+static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
+  dense_kernel(size_t volume, VAL* out)
+{
+  const size_t idx = global_tid_1d();
+  if (idx >= volume) return;
+  out[idx] = VAL(0);
+}
+
+template <typename VAL, int32_t DIM, typename Pitches, typename Rect>
+static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
+  generic_kernel(size_t volume, AccessorWO<VAL, DIM> out, Pitches pitches, Rect rect)
+{
+  const size_t idx = global_tid_1d();
+  if (idx >= volume) return;
+  auto point = pitches.unflatten(idx, rect.lo);
+  out[point] = VAL(0);
 }
 
 template <typename VAL, int32_t DIM>
@@ -58,6 +77,24 @@ struct FillImplBody<VariantKind::GPU, VAL, DIM> {
       dense_kernel<<<blocks, THREADS_PER_BLOCK, 0, stream>>>(volume, outptr, in);
     } else {
       generic_kernel<<<blocks, THREADS_PER_BLOCK, 0, stream>>>(volume, out, in, pitches, rect);
+    }
+    CHECK_CUDA_STREAM(stream);
+  }
+
+  // the case when we fill with 0
+  void operator()(AccessorWO<VAL, DIM> out,
+                  const Pitches<DIM - 1>& pitches,
+                  const Rect<DIM>& rect,
+                  bool dense) const
+  {
+    size_t volume       = rect.volume();
+    const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
+    auto stream         = get_cached_stream();
+    if (dense) {
+      auto outptr = out.ptr(rect);
+      dense_kernel<<<blocks, THREADS_PER_BLOCK, 0, stream>>>(volume, outptr);
+    } else {
+      generic_kernel<<<blocks, THREADS_PER_BLOCK, 0, stream>>>(volume, out, pitches, rect);
     }
     CHECK_CUDA_STREAM(stream);
   }
