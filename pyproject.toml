@@ -93,5 +93,8 @@ warn_unused_configs = true
 module = [
   "cunumeric.install_info",
   "cunumeric._version",
+  "legate._version",
+  "legate.__main__",
+  "legate.core.install_info",
 ]
 ignore_errors = true
