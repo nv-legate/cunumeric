@@ -14,10 +14,12 @@
 #
 
 import math
+
 import numpy as np
 import pytest
-import cunumeric as num
 from utils.utils import check_array_method
+
+import cunumeric as num
 
 # Seed the random generator with a random number
 np.random.seed(416)
@@ -124,8 +126,9 @@ def test_array_split(size):
             print_msg = f"np.array_split({a.shape}, {input_opt}" f", {axis})"
             # Check if both impls produce the error
             # for non-viable options
-            check_array_method("array_split", [a, input_opt], {"axis": axis}, print_msg)
-
+            check_array_method(
+                "array_split", [a, input_opt], {"axis": axis}, print_msg
+            )
 
 
 if __name__ == "__main__":
