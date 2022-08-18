@@ -14,12 +14,10 @@
 #
 
 import math
-
 import numpy as np
 import pytest
-from utils.utils import check_array_method
-
 import cunumeric as num
+from utils.utils import check_array_method
 
 # Seed the random generator with a random number
 np.random.seed(416)
@@ -73,7 +71,9 @@ class TestArraySplitErrors:
 def test_array_split(size):
 
     a = np.random.randint(low=0, high=100, size=size)
-    for axis in range(a.ndim):
+    axis_list = list(range(a.ndim))
+    axis_list.append(-1)
+    for axis in axis_list:
         input_arr = []
         even_div = None
         uneven_div = None
