@@ -90,17 +90,6 @@ struct BincountImplBody<VariantKind::OMP, CODE> {
         lhs.reduce(bin_num, local_bins[bin_num]);
   }
 
-  void operator()(const AccessorRW<int64_t, 1>& lhs,
-                  const AccessorRO<VAL, 1>& rhs,
-                  const Rect<1>& rect,
-                  const Rect<1>& lhs_rect) const
-  {
-    auto all_local_bins = _bincount(rhs, rect, lhs_rect);
-    for (auto& local_bins : all_local_bins)
-      for (size_t bin_num = 0; bin_num < local_bins.size(); ++bin_num)
-        lhs[bin_num] += local_bins[bin_num];
-  }
-
   void operator()(AccessorRD<SumReduction<double>, true, 1> lhs,
                   const AccessorRO<VAL, 1>& rhs,
                   const AccessorRO<double, 1>& weights,
@@ -111,18 +100,6 @@ struct BincountImplBody<VariantKind::OMP, CODE> {
     for (auto& local_bins : all_local_bins)
       for (size_t bin_num = 0; bin_num < local_bins.size(); ++bin_num)
         lhs.reduce(bin_num, local_bins[bin_num]);
-  }
-
-  void operator()(const AccessorRW<double, 1>& lhs,
-                  const AccessorRO<VAL, 1>& rhs,
-                  const AccessorRO<double, 1>& weights,
-                  const Rect<1>& rect,
-                  const Rect<1>& lhs_rect) const
-  {
-    auto all_local_bins = _bincount(rhs, weights, rect, lhs_rect);
-    for (auto& local_bins : all_local_bins)
-      for (size_t bin_num = 0; bin_num < local_bins.size(); ++bin_num)
-        lhs[bin_num] += local_bins[bin_num];
   }
 };
 
