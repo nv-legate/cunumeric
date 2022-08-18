@@ -38,7 +38,11 @@ $ ./install.py --help
 
 ## Using Conda
  
-TODO(trxcllnt): add Conda directions
+cuNumeric can be installed using Conda by pointing to the required channels (`-c`):
+
+```
+conda install -c nvidia -c conda-forge -c legate legate-core
+```
 
 ## Using pip
 
