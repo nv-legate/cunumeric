@@ -1399,7 +1399,9 @@ def squeeze(a: ndarray, axis: Optional[NdShapeLike] = None) -> ndarray:
     return a.squeeze(axis=axis)
 
 
-def broadcast_shapes(*args: Sequence[NdShapeLike]) -> NdShape:
+def broadcast_shapes(
+    *args: Union[NdShapeLike, Sequence[NdShapeLike]]
+) -> NdShape:
     """
 
     Broadcast the input shapes into a single shape.
@@ -1440,7 +1442,7 @@ def _broadcast_to(
         thunk=arr._thunk.broadcast_to(out_shape),
         flags=arr.flags,
     )
-    result.setflags(write=0)
+    result.setflags(write=False)
     return result
 
 
@@ -1497,7 +1499,7 @@ def broadcast_to(
 
 
 def _broadcast_arrays(
-    *arrs: Sequence[ndarray],
+    arrs: list[ndarray],
     subok: bool = False,
 ) -> list[ndarray]:
     # create an arry object w/ options passed from 'broadcast' routines
@@ -1545,7 +1547,7 @@ def broadcast_arrays(
 
     """
     arrs = list(convert_to_cunumeric_ndarray(arr) for arr in args)
-    return _broadcast_arrays(*arrs, subok=subok)
+    return _broadcast_arrays(arrs, subok=subok)
 
 
 class broadcast:
@@ -1574,7 +1576,7 @@ class broadcast:
 
         """
         arrs = list(convert_to_cunumeric_ndarray(arr) for arr in arrays)
-        broadcasted = _broadcast_arrays(*arrs)
+        broadcasted = _broadcast_arrays(arrs)
         self._iters = tuple(arr.flat for arr in broadcasted)
         self._index = 0
         self._shape = broadcasted[0].shape
@@ -1601,7 +1603,7 @@ class broadcast:
 
     @property
     def iters(self) -> tuple[Any]:
-        return self._iters
+        return self._iters  # type: ignore [return-value]
 
     @property
     def numiter(self) -> int:
@@ -1621,7 +1623,7 @@ class broadcast:
 
     @property
     def size(self) -> int:
-        return self._size
+        return self._size  # type: ignore [return-value]
 
 
 # Joining arrays

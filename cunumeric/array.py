@@ -299,7 +299,7 @@ class FlagsObj(object):
             self.behaved and self.f_contiguous and ~self.c_contiguous
         )
 
-    @writeable.setter
+    @writeable.setter  # type: ignore
     def writeable(self, value: bool) -> None:
         if value is True and self.owndata is False:
             raise ValueError(
@@ -307,11 +307,11 @@ class FlagsObj(object):
             )
         self._writeable = value
 
-    @aligned.setter
+    @aligned.setter  # type: ignore
     def aligned(self, value: bool) -> None:
         self._aligned = value
 
-    @writebackifcopy.setter
+    @writebackifcopy.setter  # type: ignore
     def writebackifcopy(self, value: bool) -> None:
         if value is True:
             raise ValueError(
@@ -371,10 +371,10 @@ class ndarray:
         # TODO: flags are passed. We use this argument only for views
         # Not all routines are changed to pass these arguments correctly yet.
         if flags is not None:
-            self._flags: FlagsObj = FlagsObj(*flags.__dict__.values())
+            self._flags = FlagsObj(*flags.__dict__.values())
             self._flags._owndata = False
         else:
-            self._flags: FlagsObj = FlagsObj()
+            self._flags = FlagsObj()  # type : ignore
 
     @staticmethod
     def _sanitize_shape(

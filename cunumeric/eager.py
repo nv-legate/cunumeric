@@ -554,7 +554,7 @@ class EagerArray(NumPyThunk):
         # which is different from the shape of the broadcasted arrays
         if self.deferred is None:
             self.to_deferred_array()
-        return self.deferred.broadcast_to(shape)
+        return self.deferred.broadcast_to(shape)  # type: ignore [union-attr]
 
     def contract(
         self,

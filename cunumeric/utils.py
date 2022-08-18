@@ -22,7 +22,7 @@ from typing import Any, List, Sequence, Tuple, Union, cast
 
 import numpy as np
 
-from .types import NdShape
+from .types import NdShape, NdShapeLike
 
 _SUPPORTED_DTYPES = [
     np.float16,
@@ -41,10 +41,12 @@ _SUPPORTED_DTYPES = [
 ]
 
 
-def _broadcast_shapes(*args: Union[int, Sequence[NdShape]]) -> NdShape:
+def _broadcast_shapes(
+    *args: Union[NdShapeLike, Sequence[NdShapeLike]]
+) -> NdShape:
     # Call _broadcast_shapes' for now.
     # We will have a new implementation later
-    return np.broadcast_shapes(*args)
+    return np.broadcast_shapes(*args)  # type: ignore [arg-type]
 
 
 def is_advanced_indexing(key: Any) -> bool:
