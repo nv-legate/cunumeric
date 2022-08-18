@@ -55,6 +55,23 @@ $ python3 -m pip install .
 ```
 
 This will install cuNumeric in the standard packages directory for the environment Python.
+Note: This is currently not sufficient for running cuNumeric programs. cuNumeric relies
+on the `legate` launcher from Legate core, which must be installed separately.
+For details on installing Legate, consult the [Legate repository](https://github.com/nv-legate/legate.core).
+
+### Advanced Customization
+
+If users need to customize details of the underlying CMake build, they can pass
+CMake flags through the `SKBUILD_CONFIGURE_OPTIONS` environment variable:
+
+```
+$ SKBUILD_CONFIGURE_OPTIONS="-D Legion_USE_CUDA:BOOL=ON" \
+  pip install .
+```
+An alternative syntax using `setup.py` with `scikit-build` is
+```
+$ python setup.py install -- -DLegion_USE_CUDA:BOOL=ON
+```
 
 # Building for Developers
 
