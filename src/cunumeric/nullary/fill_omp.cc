@@ -36,25 +36,7 @@ struct FillImplBody<VariantKind::OMP, VAL, DIM> {
                   bool dense) const
   {
     auto fill_value = in[0];
-    fill(out, fill_value, pitches, rect, dense);
-  }
-
-  void operator()(AccessorWO<VAL, DIM> out,
-                  const Pitches<DIM - 1>& pitches,
-                  const Rect<DIM>& rect,
-                  bool dense) const
-  {
-    VAL fill_value = VAL(0);
-    fill(out, fill_value, pitches, rect, dense);
-  }
-
-  void fill(AccessorWO<VAL, DIM> out,
-            VAL& fill_value,
-            const Pitches<DIM - 1>& pitches,
-            const Rect<DIM>& rect,
-            bool dense) const
-  {
-    size_t volume = rect.volume();
+    size_t volume   = rect.volume();
     if (dense) {
       auto outptr = out.ptr(rect);
 #pragma omp parallel for schedule(static)
@@ -62,8 +44,8 @@ struct FillImplBody<VariantKind::OMP, VAL, DIM> {
     } else {
 #pragma omp parallel for schedule(static)
       for (size_t idx = 0; idx < volume; ++idx) {
-        const auto point = pitches.unflatten(idx, rect.lo);
-        out[point]       = fill_value;
+        auto p = pitches.unflatten(idx, rect.lo);
+        out[p] = fill_value;
       }
     }
   }

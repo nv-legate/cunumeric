@@ -24,7 +24,6 @@ struct FillArgs {
   const Array& out;
   const Array& fill_value;
   bool is_argval;
-  bool is_zero;
 };
 
 class FillTask : public CuNumericTask<FillTask> {

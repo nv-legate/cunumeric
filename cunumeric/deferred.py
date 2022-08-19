@@ -482,14 +482,6 @@ class DeferredArray(NumPyThunk):
         store_copy.copy(store_to_copy, deep=True)
         return store_copy
 
-    def _fill_with_zero(self):
-        task = self.context.create_auto_task(CuNumericOpCode.FILL)
-        task.add_output(self.base)
-        task.add_scalar_arg(False, bool)
-        task.add_scalar_arg(True, bool)  # fill with 0
-
-        task.execute()
-
     def _create_indexing_array(
         self, key: Any, is_set: bool = False
     ) -> tuple[bool, Any, Any, Any]:
@@ -533,8 +525,7 @@ class DeferredArray(NumPyThunk):
                         inputs=[rhs],
                     ),
                 )
-
-                out._fill_with_zero()
+                out.fill(np.zeros((), dtype=out.dtype))
                 return False, rhs, out, self
 
             key_store = key.base
