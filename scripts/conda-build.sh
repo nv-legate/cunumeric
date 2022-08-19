@@ -19,6 +19,7 @@ conda mambabuild \
     --croot /tmp/conda-build/cunumeric \
     --no-test \
     --no-verify \
+    --no-build-id \
     --build-id-pat='' \
     --merge-build-host \
     --no-include-recipe \

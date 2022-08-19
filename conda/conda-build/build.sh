@@ -32,6 +32,13 @@ export CPPFLAGS="-UNDEBUG"
 export CUDAFLAGS="-UNDEBUG"
 export CMAKE_GENERATOR=Ninja
 
+if [[ -n "$(which sccache)" ]]; then
+    # Use sccache if installed
+    export CMAKE_C_COMPILER_LAUNCHER="${CMAKE_C_COMPILER_LAUNCHER:-$(which sccache)}";
+    export CMAKE_CXX_COMPILER_LAUNCHER="${CMAKE_CXX_COMPILER_LAUNCHER:-$(which sccache)}";
+    export CMAKE_CUDA_COMPILER_LAUNCHER="${CMAKE_CUDA_COMPILER_LAUNCHER:-$(which sccache)}";
+fi
+
 cmake -S . -B build ${CMAKE_ARGS}
 cmake --build build -j$CPU_COUNT
 cmake --install build
