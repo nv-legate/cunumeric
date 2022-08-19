@@ -168,4 +168,4 @@ def assert_distribution(a, theo_mean, theo_stdev, mean_tol=1e-2, stdev_tol=2):
     #       method, we make the check lenient to avoid random
     #       failures in the CI. (we still need the check to catch
     #       the cases that are obviously wrong.)
-    assert np.abs(theo_stdev - stdev) / theo_stdev <= stdev_tol
+    assert np.abs(theo_stdev - stdev) / min(theo_stdev, stdev) <= stdev_tol
