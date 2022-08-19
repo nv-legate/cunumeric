@@ -460,7 +460,7 @@ class EagerArray(NumPyThunk):
         if self.deferred is not None:
             return self.deferred.squeeze(axis)
         # See https://github.com/numpy/numpy/issues/22019
-        child = self.array.squeeze(axis)  # type: ignore
+        child = self.array.squeeze(cast(Any, axis))
         # Early exit if there's no dimension to squeeze
         if child is self.array:
             return self
@@ -512,7 +512,7 @@ class EagerArray(NumPyThunk):
         if self.deferred is not None:
             return self.deferred.transpose(axes)
         # See https://github.com/numpy/numpy/issues/22019
-        child = self.array.transpose(axes)  # type: ignore
+        child = self.array.transpose(cast(Any, axes))
         # Should be aliased with parent region
         assert child.base is not None
         result = EagerArray(

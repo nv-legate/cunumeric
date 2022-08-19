@@ -19,25 +19,22 @@ from __future__ import annotations
 
 import pytest
 
-from ...config import Config
-from ...system import System
-from ...test_stages._linux import cpu as m
-from ...types import CPUInfo
-
-
-class FakeSystem(System):
-    @property
-    def cpus(self) -> tuple[CPUInfo, ...]:
-        return tuple(CPUInfo(i) for i in range(6))
+from ....config import Config
+from ....stages._linux import eager as m
+from .. import FakeSystem
 
 
 def test_default() -> None:
     c = Config([])
     s = FakeSystem()
-    stage = m.CPU(c, s)
-    assert stage.kind == "cpus"
-    assert stage.args == ["-cunumeric:test"]
-    assert stage.env == {}
+    stage = m.Eager(c, s)
+    assert stage.kind == "eager"
+    assert stage.args == []
+    assert stage.env(c, s) == {
+        "CUNUMERIC_MIN_CPU_CHUNK": "2000000000",
+        "CUNUMERIC_MIN_OMP_CHUNK": "2000000000",
+        "CUNUMERIC_MIN_GPU_CHUNK": "2000000000",
+    }
     assert stage.spec.workers > 0
 
 
@@ -45,41 +42,18 @@ def test_default() -> None:
 def test_shard_args(shard: tuple[int, ...], expected: str) -> None:
     c = Config([])
     s = FakeSystem()
-    stage = m.CPU(c, s)
+    stage = m.Eager(c, s)
     result = stage.shard_args(shard, c)
-    assert result == ["--cpus", f"{len(shard)}", "--cpu-bind", expected]
+    assert result == ["--cpus", "1", "--cpu-bind", expected]
 
 
-def test_spec_with_cpus_1() -> None:
-    c = Config(["test.py", "--cpus", "1"])
+def test_spec() -> None:
+    c = Config([])
     s = FakeSystem()
-    stage = m.CPU(c, s)
-    assert stage.spec.workers == 3
-    assert stage.spec.shards == [(0,), (1,), (2,)]
-
-
-def test_spec_with_cpus_2() -> None:
-    c = Config(["test.py", "--cpus", "2"])
-    s = FakeSystem()
-    stage = m.CPU(c, s)
-    assert stage.spec.workers == 2
-    assert stage.spec.shards == [(0, 1), (2, 3)]
-
-
-def test_spec_with_utility() -> None:
-    c = Config(["test.py", "--cpus", "1", "--utility", "2"])
-    s = FakeSystem()
-    stage = m.CPU(c, s)
-    assert stage.spec.workers == 2
-    assert stage.spec.shards == [(0,), (1,)]
-
-
-def test_spec_with_requested_workers() -> None:
-    c = Config(["test.py", "--cpus", "1", "-j", "2"])
-    s = FakeSystem()
-    stage = m.CPU(c, s)
-    assert stage.spec.workers == 2
-    assert stage.spec.shards == [(0,), (1,)]
+    stage = m.Eager(c, s)
+    assert stage.spec.workers == len(s.cpus)
+    #  [cpu.ids for cpu in system.cpus]
+    assert stage.spec.shards == [(i,) for i in range(stage.spec.workers)]
 
 
 def test_spec_with_requested_workers_zero() -> None:
@@ -87,7 +61,7 @@ def test_spec_with_requested_workers_zero() -> None:
     c = Config(["test.py", "-j", "0"])
     assert c.requested_workers == 0
     with pytest.raises(RuntimeError):
-        m.CPU(c, s)
+        m.Eager(c, s)
 
 
 def test_spec_with_requested_workers_bad() -> None:
@@ -95,14 +69,13 @@ def test_spec_with_requested_workers_bad() -> None:
     c = Config(["test.py", "-j", f"{len(s.cpus)+1}"])
     assert c.requested_workers > len(s.cpus)
     with pytest.raises(RuntimeError):
-        m.CPU(c, s)
+        m.Eager(c, s)
 
 
 def test_spec_with_verbose() -> None:
-    args = ["test.py", "--cpus", "2"]
-    c = Config(args)
-    cv = Config(args + ["--verbose"])
+    c = Config(["test.py"])
+    cv = Config(["test.py", "--verbose"])
     s = FakeSystem()
 
-    spec, vspec = m.CPU(c, s).spec, m.CPU(cv, s).spec
+    spec, vspec = m.Eager(c, s).spec, m.Eager(cv, s).spec
     assert vspec == spec

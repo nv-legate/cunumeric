@@ -54,7 +54,9 @@ class Config:
         self.gpus = args.gpus
         self.omps = args.omps
         self.utility = args.utility
+        self.strict_pin = args.strict_pin
         self.fbmem = args.fbmem
+        self.gpu_delay = args.gpu_delay
         self.ompthreads = args.ompthreads
 
         # test run configuration

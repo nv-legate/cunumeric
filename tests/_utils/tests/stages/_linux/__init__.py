@@ -14,31 +14,9 @@
 #
 from __future__ import annotations
 
-from ... import FeatureType
-from ...config import Config
-from ...system import System
-from ...types import ArgList, EnvDict
-from ..test_stage import TestStage
+import sys
 
+import pytest
 
-class GPU(TestStage):
-    """A test stage for exercising GPU features.
-
-    Parameters
-    ----------
-    config: Config
-        Test runner configuration
-
-    system: System
-        Process execution wrapper
-
-    """
-
-    kind: FeatureType = "cuda"
-
-    args: ArgList() = []
-
-    env: EnvDict = {}
-
-    def __init__(self, config: Config, system: System) -> None:
-        raise RuntimeError("GPU test are not supported on OSX")
+if sys.platform != "linux":
+    pytestmark = pytest.mark.skip()

@@ -22,6 +22,7 @@ from typing import Any, Generic, Iterable, Iterator, Sequence, TypeVar, Union
 
 from . import (
     DEFAULT_CPUS_PER_NODE,
+    DEFAULT_GPU_DELAY,
     DEFAULT_GPU_MEMORY_BUDGET,
     DEFAULT_GPUS_PER_NODE,
     DEFAULT_OMPS_PER_NODE,
@@ -165,11 +166,30 @@ feature_opts.add_argument(
 
 
 feature_opts.add_argument(
+    "--strict-pin",
+    dest="strict_pin",
+    action="store_true",
+    help=(
+        "Pin all cores and including Python processor "
+        "(linux CPU and OMP only)"
+    ),
+)
+
+feature_opts.add_argument(
+    "--gpu-delay",
+    dest="gpu_delay",
+    type=int,
+    default=DEFAULT_GPU_DELAY,
+    help="Delay to introduce between GPU tests (ms)",
+)
+
+
+feature_opts.add_argument(
     "--fbmem",
     dest="fbmem",
     type=int,
     default=DEFAULT_GPU_MEMORY_BUDGET,
-    help="GPU framebuffer memory",
+    help="GPU framebuffer memory (MB)",
 )
 
 
