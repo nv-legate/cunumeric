@@ -157,9 +157,7 @@ def assert_distribution(a, theo_mean, theo_stdev, mean_tol=1e-2, stdev_tol=2):
         f"average = {average} - theoretical {theo_mean}"
         + f", stdev = {stdev} - theoretical {theo_stdev}\n"
     )
-    assert np.abs(theo_mean - average) < mean_tol * np.max(
-        (1.0, np.abs(theo_mean))
-    )
+    assert abs(theo_mean - average) < mean_tol * max(1.0, abs(theo_mean))
     # the theoretical standard deviation can't be 0
     assert theo_stdev != 0
     # TODO: this check is not a good proxy to validating that the samples
@@ -168,4 +166,4 @@ def assert_distribution(a, theo_mean, theo_stdev, mean_tol=1e-2, stdev_tol=2):
     #       method, we make the check lenient to avoid random
     #       failures in the CI. (we still need the check to catch
     #       the cases that are obviously wrong.)
-    assert np.abs(theo_stdev - stdev) / min(theo_stdev, stdev) <= stdev_tol
+    assert abs(theo_stdev - stdev) / min(theo_stdev, stdev) <= stdev_tol
