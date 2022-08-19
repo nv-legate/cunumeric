@@ -802,8 +802,6 @@ class DeferredArray(NumPyThunk):
             else:
                 if rhs.base.transformed:
                     rhs = rhs._copy_store(rhs.base)
-                if rhs.base.kind == Future:
-                    rhs = self._convert_future_to_store(rhs)
                 rhs_store = rhs.base
 
             # the case when rhs is a scalar and indices array contains
@@ -826,8 +824,6 @@ class DeferredArray(NumPyThunk):
 
             if lhs.base.kind == Future:
                 lhs = self._convert_future_to_store(lhs)
-            if index_array.base.kind == Future:
-                index_array = self._convert_future_to_store(index_array)
 
             copy.add_input(rhs_store)
             copy.add_target_indirect(index_array.base)
@@ -3230,6 +3226,11 @@ class DeferredArray(NumPyThunk):
 
     @auto_convert([1])
     def _wrap(self, src: Any, new_len: int) -> None:
+        if src.base.kind == Future:
+            src = self._convert_future_to_store(src)
+        if self.base.kind == Future:
+            self = src._convert_future_to_store(self)
+
         # first, we create indirect array with PointN type that
         # (len,) shape and is used to copy data from original array
         # to the target 1D wrapped array
@@ -3249,12 +3250,12 @@ class DeferredArray(NumPyThunk):
         task.add_scalar_arg(src.shape, (ty.int64,))
         task.execute()
 
-        if indirect.base.kind == Future:
-            indirect = src._convert_future_to_store(indirect)
-        if src.base.kind == Future:
-            src = self._convert_future_to_store(src)
-        if self.base.kind == Future:
-            self = src._convert_future_to_store(self)
+        #        if indirect.base.kind == Future:
+        #            indirect = src._convert_future_to_store(indirect)
+        #        if src.base.kind == Future:
+        #            src = self._convert_future_to_store(src)
+        #        if self.base.kind == Future:
+        #            self = src._convert_future_to_store(self)
 
         copy = self.context.create_copy()
         copy.set_target_indirect_out_of_range(False)

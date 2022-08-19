@@ -3308,7 +3308,7 @@ def fill_diagonal(
     if wrap and a.shape[0] > a.shape[1]:
         len_val = a.shape[0] - int(a.shape[0] / (a.shape[1] + 1))
 
-    if val.size != len_val and val.ndim > 0:
+    if (val.size != len_val and val.ndim > 0) or val.ndim > 1:
         val = val._wrap(len_val)
 
     if a.ndim == 2 and wrap and a.shape[0] > a.shape[1]:
