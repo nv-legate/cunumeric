@@ -4651,8 +4651,8 @@ def cumprod(
 
     dtype : dtype, optional
         Type of the returned array and of the accumulator in which the elements
-        are returned. If dtype is not specified, it defaults to the dtype of a,
-        unless a has an integer dtype with a precision less than that of the
+        are multiplied. If dtype is not specified, it defaults to the dtype of
+        a, unless a has an integer dtype with a precision less than that of the
         default platform integer. In that case, the default platform integer is
         used.
     out : ndarray, optional
@@ -4673,16 +4673,13 @@ def cumprod(
 
     Notes
     -----
-    Due to the parallel nature of cuNumeric implementation, with floating point
-    and complex types, the accuracy of the results can differ compared to
-    NumPy. Furthermore when boundary values such as inf occur they might not
-    propagate as expected. Consider the hypothetical float32 array
-    ``[3e+37, 1, 100, 0.01]`` doing a cumprod on it should result in
-    ``[3e+37, 3e+37, inf, inf]`` in Numpy, however in cunumeric, if this array
-    is internally partitioned such that partition 0 has ``[3e+37, 1]``  and
-    partition 1 has ``[100, 0.01]``, the end result of the cumprod turns out
-    being ``[3e+37, 3e+37, inf, 3e+37]``, a result that albeit more acurate, is
-    often not expected.
+    CuNumeric's parallel implementation may yield different results from NumPy
+    with floating point and complex types. For example, when boundary values
+    such as inf occur they may not propagate as expected. Consider the float32
+    array ``[3e+37, 1, 100, 0.01]``. NumPy's cumprod will return a result of
+    ``[3e+37, 3e+37, inf, inf]``. However, cuNumeric might internally partition
+    the array such that partition 0 has ``[3e+37, 1]``  and partition 1 has
+    ``[100, 0.01]``, returning the result ``[3e+37, 3e+37, inf, 3e+37]``.
 
     Availability
     --------
@@ -4719,7 +4716,7 @@ def cumsum(
 
     dtype : dtype, optional
         Type of the returned array and of the accumulator in which the elements
-        are returned. If dtype is not specified, it defaults to the dtype of a,
+        are summed. If dtype is not specified, it defaults to the dtype of a,
         unless a has an integer dtype with a precision less than that of the
         default platform integer. In that case, the default platform integer is
         used.
@@ -4741,11 +4738,10 @@ def cumsum(
 
     Notes
     -----
-    Due to the parallel nature of cuNumeric implementation, with floating point
-    and complex types, the accuracy of the results can differ compared to
-    NumPy. Furthermore when boundary values such as inf occur they might not
-    propagate as expected. For a more detailed explanation check
-    cunumeric.cumprod
+    CuNumeric's parallel implementation may yield different results from NumPy
+    with floating point and complex types. For example, when boundary values
+    such as inf occur they may not propagate as expected. For more explanation
+    check cunumeric.cumprod.
 
     Availability
     --------
@@ -4781,8 +4777,8 @@ def nancumprod(
 
     dtype : dtype, optional
         Type of the returned array and of the accumulator in which the elements
-        are returned. If dtype is not specified, it defaults to the dtype of a,
-        unless a has an integer dtype with a precision less than that of the
+        are multiplied. If dtype is not specified, it defaults to the dtype of
+        a, unless a has an integer dtype with a precision less than that of the
         default platform integer. In that case, the default platform integer is
         used.
     out : ndarray, optional
@@ -4803,11 +4799,10 @@ def nancumprod(
 
     Notes
     -----
-    Due to the parallel nature of cuNumeric implementation, with floating point
-    and complex types, the accuracy of the results can differ compared to
-    NumPy. Furthermore when boundary values such as inf occur they might not
-    propagate as expected. For a more detailed explanation check
-    cunumeric.cumprod
+    CuNumeric's parallel implementation may yield different results from NumPy
+    with floating point and complex types. For example, when boundary values
+    such as inf occur they may not propagate as expected. For more explanation
+    check cunumeric.cumprod.
 
     Availability
     --------
@@ -4843,7 +4838,7 @@ def nancumsum(
 
     dtype : dtype, optional
         Type of the returned array and of the accumulator in which the elements
-        are returned. If dtype is not specified, it defaults to the dtype of a,
+        are summed. If dtype is not specified, it defaults to the dtype of a,
         unless a has an integer dtype with a precision less than that of the
         default platform integer. In that case, the default platform integer is
         used.
@@ -4865,11 +4860,10 @@ def nancumsum(
 
     Notes
     -----
-    Due to the parallel nature of cuNumeric implementation, with floating point
-    and complex types, the accuracy of the results can differ compared to
-    NumPy. Furthermore when boundary values such as inf occur they might not
-    propagate as expected. For a more detailed explanation check
-    cunumeric.cumprod
+    CuNumeric's parallel implementation may yield different results from NumPy
+    with floating point and complex types. For example, when boundary values
+    such as inf occur they may not propagate as expected. For more explanation
+    check cunumeric.cumprod.
 
     Availability
     --------
