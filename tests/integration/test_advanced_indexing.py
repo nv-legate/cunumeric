@@ -116,41 +116,38 @@ def mk_deferred_array(lib, shape):
     good_shape = tuple(max(1, dim) for dim in shape)
     # for shape (2,0,3,4): key = [:,[False],:,:]
     key = tuple([False] if dim == 0 else slice(None) for dim in shape)
-    print("IRINA DEBUG good_shape , key", good_shape, key)
     return lib.ones(good_shape)[key]
 
 
-def test_zero_size():
+def gen_args():
+    result = []
     for arr_ndim in range(1, LEGATE_MAX_DIM + 1):
         for idx_ndim in range(1, arr_ndim + 1):
             for zero_dim in range(arr_ndim):
-                arr_shape = tuple(
-                    0 if dim == zero_dim else 3 for dim in range(arr_ndim)
-                )
-                np_arr = mk_deferred_array(np, arr_shape)
-                num_arr = mk_deferred_array(num, arr_shape)
-                idx_shape = arr_shape[:idx_ndim]
-                val_shape = (
-                    arr_shape
-                    if idx_ndim == 1
-                    else (np.prod(idx_shape),) + arr_shape[idx_ndim:]
-                )
-                np_idx = np.ones(idx_shape, dtype=np.bool_)
-                num_idx = num.ones(idx_shape, dtype=np.bool_)
-                print(
-                    "IRINA DEBUG shapes ",
-                    np_arr[np_idx],
-                    np_arr[np_idx].shape,
-                    num_arr[num_idx],
-                    num_arr[num_idx].shape,
-                )
-                assert np.array_equal(np_arr[np_idx], num_arr[num_idx])
+                result += [[arr_ndim, idx_ndim, zero_dim]]
+    return result
 
-                np_val = np.random.random(val_shape)
-                num_val = num.array(np_val)
-                np_arr[np_idx] = np_val
-                num_arr[num_idx] = num_val
-                assert np.array_equal(np_arr, num_arr)
+
+@pytest.mark.parametrize("arr_ndim,idx_ndim,zero_dim", gen_args())
+def test_zero_size(arr_ndim, idx_ndim, zero_dim):
+    arr_shape = tuple(0 if dim == zero_dim else 3 for dim in range(arr_ndim))
+    np_arr = mk_deferred_array(np, arr_shape)
+    num_arr = mk_deferred_array(num, arr_shape)
+    idx_shape = arr_shape[:idx_ndim]
+    val_shape = (
+        arr_shape
+        if idx_ndim == 1
+        else (np.prod(idx_shape),) + arr_shape[idx_ndim:]
+    )
+    np_idx = np.ones(idx_shape, dtype=np.bool_)
+    num_idx = num.ones(idx_shape, dtype=np.bool_)
+    assert np.array_equal(np_arr[np_idx], num_arr[num_idx])
+
+    np_val = np.random.random(val_shape)
+    num_val = num.array(np_val)
+    np_arr[np_idx] = np_val
+    num_arr[num_idx] = num_val
+    assert np.array_equal(np_arr, num_arr)
 
 
 def test_empty_bool():
