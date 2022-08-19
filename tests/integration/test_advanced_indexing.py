@@ -120,12 +120,10 @@ def mk_deferred_array(lib, shape):
 
 
 def gen_args():
-    result = []
     for arr_ndim in range(1, LEGATE_MAX_DIM + 1):
         for idx_ndim in range(1, arr_ndim + 1):
             for zero_dim in range(arr_ndim):
-                result += [[arr_ndim, idx_ndim, zero_dim]]
-    return result
+                yield arr_ndim, idx_ndim, zero_dim
 
 
 @pytest.mark.parametrize("arr_ndim,idx_ndim,zero_dim", gen_args())
