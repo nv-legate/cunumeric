@@ -2475,7 +2475,6 @@ def extract(condition: ndarray, arr: ndarray) -> ndarray:
     --------
     Multiple GPUs, Multiple CPUs
     """
-
     if condition.size != arr.size:
         raise ValueError("arr array and condition array must be of same size")
 
@@ -2484,12 +2483,11 @@ def extract(condition: ndarray, arr: ndarray) -> ndarray:
     else:
         condition_reshape = condition
 
-    if condition_reshape.dtype == np.dtype(np.bool_):
+    if condition_reshape.dtype == bool:
         thunk = arr._thunk.get_item(condition_reshape._thunk)
     else:
-        nonzero_indices = nonzero(condition_reshape)
-        nonzero_thunks = tuple(i._thunk for i in nonzero_indices)
-        thunk = arr._thunk.get_item(nonzero_thunks)
+        bool_condition = condition_reshape.astype(bool)
+        thunk = arr._thunk.get_item(bool_condition._thunk)
 
     return ndarray(shape=thunk.shape, thunk=thunk)
 

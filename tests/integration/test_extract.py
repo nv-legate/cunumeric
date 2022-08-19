@@ -43,6 +43,17 @@ ARR = [
     ],
     [[[1 + 2j, 54, 4], [4, 0 + 1j, 45]], [[5, 58, 0], [9, 0, 4]]],
     [[True, False], [True, True], [True, False]],
+    [[]],
+    [],
+    [
+        [[0, 0, 0], [0, 0, 0]],
+        [[0, 0, 0], [0, 0, 1]],
+    ],
+    [False, False, False],
+    [
+        [[0, 0, 0], [0, 0, 0]],
+        [[0, 0, 0], [0, 0, 0]],
+    ],
 ]
 
 
@@ -50,6 +61,8 @@ def check_extract(condition_np, arr_np):
     arr_num = num.array(arr_np)
     condition_num = num.array(condition_np)
     result_np = np.extract(condition_np, arr_np)
+    result_np2 = arr_np[condition_np.reshape(arr_np.shape).astype(bool)]
+    assert np.array_equal(result_np, result_np2)
     result_num = num.extract(condition_num, arr_num)
     assert np.array_equal(result_np, result_num)
 
