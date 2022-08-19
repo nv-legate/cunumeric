@@ -657,12 +657,8 @@ class DeferredArray(NumPyThunk):
                     # in case of the mixed indises we all nonzero
                     # for the bool array
                     k = k.nonzero()
-                    if k[0].size == 0:
-                        store = store.project(dim + shift, 0)
-                        store = store.promote(dim + shift, 0)
-                    else:
-                        shift += len(k) - 1
-                        tuple_of_arrays += k
+                    shift += len(k) - 1
+                    tuple_of_arrays += k
                 else:
                     tuple_of_arrays += (k,)
             else:
@@ -1263,7 +1259,6 @@ class DeferredArray(NumPyThunk):
             task.add_output(self.base)
             task.add_input(value)
             task.add_scalar_arg(argval, bool)
-            task.add_scalar_arg(False, bool)  # fill with zero
 
             task.execute()
 
