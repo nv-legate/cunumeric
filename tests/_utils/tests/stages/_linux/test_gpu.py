@@ -19,16 +19,9 @@ from __future__ import annotations
 
 import pytest
 
-from ...config import Config
-from ...system import System
-from ...test_stages import gpu as m
-from ...types import GPUInfo
-
-
-class FakeSystem(System):
-    @property
-    def gpus(self) -> tuple[GPUInfo, ...]:
-        return tuple(GPUInfo(i, 6 << 32) for i in range(6))
+from ....config import Config
+from ....stages._linux import gpu as m
+from .. import FakeSystem
 
 
 def test_default() -> None:
@@ -37,7 +30,7 @@ def test_default() -> None:
     stage = m.GPU(c, s)
     assert stage.kind == "cuda"
     assert stage.args == ["-cunumeric:test"]
-    assert stage.env == {}
+    assert stage.env(c, s) == {}
     assert stage.spec.workers > 0
 
 
@@ -61,16 +54,16 @@ def test_spec_with_gpus_1() -> None:
     c = Config(["test.py", "--gpus", "1"])
     s = FakeSystem()
     stage = m.GPU(c, s)
-    assert stage.spec.workers == 24
-    assert stage.spec.shards == [(0,), (1,), (2,), (3,), (4,), (5,)] * 24
+    assert stage.spec.workers == 12
+    assert stage.spec.shards == [(0,), (1,), (2,), (3,), (4,), (5,)] * 12
 
 
 def test_spec_with_gpus_2() -> None:
     c = Config(["test.py", "--gpus", "2"])
     s = FakeSystem()
     stage = m.GPU(c, s)
-    assert stage.spec.workers == 12
-    assert stage.spec.shards == [(0, 1), (2, 3), (4, 5)] * 12
+    assert stage.spec.workers == 6
+    assert stage.spec.shards == [(0, 1), (2, 3), (4, 5)] * 6
 
 
 def test_spec_with_requested_workers() -> None:

@@ -14,11 +14,18 @@
 #
 from __future__ import annotations
 
-from .. import FeatureType
-from ..config import Config
-from ..system import System
-from ..types import ArgList, EnvDict
-from .test_stage import Shard, StageSpec, TestStage, adjust_workers
+from ... import FeatureType
+from ...config import Config
+from ...system import System
+from ...types import ArgList, EnvDict
+from ..test_stage import TestStage
+from ..util import (
+    CUNUMERIC_TEST_ARG,
+    UNPIN_ENV,
+    Shard,
+    StageSpec,
+    adjust_workers,
+)
 
 
 class CPU(TestStage):
@@ -36,30 +43,21 @@ class CPU(TestStage):
 
     kind: FeatureType = "cpus"
 
-    args = ["-cunumeric:test"]
-
-    env: EnvDict = {}
+    args = [CUNUMERIC_TEST_ARG]
 
     def __init__(self, config: Config, system: System) -> None:
         self._init(config, system)
 
+    def env(self, config: Config, system: System) -> EnvDict:
+        return UNPIN_ENV
+
     def shard_args(self, shard: Shard, config: Config) -> ArgList:
-        return [
-            "--cpus",
-            str(len(shard)),
-            "--cpu-bind",
-            ",".join(str(x) for x in shard),
-        ]
+        return ["--cpus", str(config.cpus)]
 
     def compute_spec(self, config: Config, system: System) -> StageSpec:
-        N = len(system.cpus)
-        degree = N // (config.cpus + config.utility)
+        procs = config.cpus + config.utility
+        workers = adjust_workers(
+            len(system.cpus) // procs, config.requested_workers
+        )
 
-        workers = adjust_workers(degree, config.requested_workers)
-
-        # https://docs.python.org/3/library/itertools.html#itertools-recipes
-        # grouper('ABCDEF', 3) --> ABC DEF
-        args = [iter(range(workers * config.cpus))] * config.cpus
-        shards = list(zip(*args))
-
-        return StageSpec(workers, shards)
+        return StageSpec(workers, [])

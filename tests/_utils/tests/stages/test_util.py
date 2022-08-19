@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import pytest
 
-from ...test_stages import eager as m
+from ...stages import util as m
 
 
 class Test_adjust_workers:

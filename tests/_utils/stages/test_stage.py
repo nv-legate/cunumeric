@@ -15,53 +15,17 @@
 from __future__ import annotations
 
 import multiprocessing
-from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
-from typing import Tuple, Union
 
-from typing_extensions import Protocol, TypeAlias
+from typing_extensions import Protocol
 
 from .. import PER_FILE_ARGS, FeatureType
 from ..config import Config
-from ..logger import LOG
 from ..system import ProcessResult, System
 from ..types import ArgList, EnvDict
-from ..ui import banner, failed, passed, shell, skipped, summary, yellow
-
-Shard: TypeAlias = Tuple[int, ...]
-
-
-@dataclass(frozen=True)
-class StageSpec:
-    """Specify the operation of a test run"""
-
-    #: The number of worker processes to start for running tests
-    workers: int
-
-    # A list of (cpu or gpu) shards to draw on for each test
-    shards: list[Shard]
-
-
-@dataclass(frozen=True)
-class StageResult:
-    """Collect results from all tests in a TestStage."""
-
-    #: Individual test process results including return code and stdout.
-    procs: list[ProcessResult]
-
-    #: Cumulative execution time for all tests in a stage.
-    time: timedelta
-
-    @property
-    def total(self) -> int:
-        """The total number of tests run in this stage."""
-        return len(self.procs)
-
-    @property
-    def passed(self) -> int:
-        """The number of tests in this stage that passed."""
-        return sum(p.returncode == 0 for p in self.procs)
+from ..ui import banner, summary, yellow
+from .util import Shard, StageResult, StageSpec, log_proc
 
 
 class TestStage(Protocol):
@@ -92,19 +56,54 @@ class TestStage(Protocol):
     #: Any fixed stage-specific command-line args to pass
     args: ArgList
 
-    #: Any stage-specific customizations to the process env
-    env: EnvDict
-
-    _manager: multiprocessing.managers.SyncManager = multiprocessing.Manager()
-
     # --- Protocol methods
 
     def __init__(self, config: Config, system: System) -> None:
         ...
 
+    def env(self, config: Config, system: System) -> EnvDict:
+        """Generate stage-specific customizations to the process env
+
+        Parameters
+        ----------
+        config: Config
+            Test runner configuration
+
+        system: System
+            Process execution wrapper
+
+        """
+        ...
+
+    def delay(self, shard: Shard, config: Config, system: System) -> None:
+        """Wait any delay that should be applied before running the next
+        test.
+
+        Parameters
+        ----------
+        shard: Shard
+            The shard to be used for the next test that is run
+
+        config: Config
+            Test runner configuration
+
+        system: System
+            Process execution wrapper
+
+        """
+        ...
+
     def shard_args(self, shard: Shard, config: Config) -> ArgList:
         """Generate the command line arguments necessary to launch
         the next test process on the given shard.
+
+        Parameters
+        ----------
+        shard: Shard
+            The shard to be used for the next test that is run
+
+        config: Config
+            Test runner configuration
 
         """
         ...
@@ -230,27 +229,29 @@ class TestStage(Protocol):
         cmd = [str(config.legate_path), str(test_path)]
         cmd += stage_args + file_args + config.extra_args
 
-        result = system.run(cmd, env=self._env(config))
+        self.delay(shard, config, system)
+
+        result = system.run(cmd, env=self._env(config, system))
         log_proc(self.name, result, test_file, config)
 
         self.shards.put(shard)
 
         return result
 
-    def _env(self, config: Config) -> EnvDict:
-        env = config.env
-        env.update(self.env)
+    def _env(self, config: Config, system: System) -> EnvDict:
+        env = dict(config.env)
+        env.update(self.env(config, system))
         return env
 
     def _init(self, config: Config, system: System) -> None:
         self.spec = self.compute_spec(config, system)
-        self.shards = self._manager.Queue(len(self.spec.shards))
+        self.shards = system.manager.Queue(len(self.spec.shards))
         for shard in self.spec.shards:
             self.shards.put(shard)
 
     def _launch(self, config: Config, system: System) -> list[ProcessResult]:
 
-        pool = multiprocessing.Pool(self.spec.workers)
+        pool = multiprocessing.pool.ThreadPool(self.spec.workers)
 
         jobs = [
             pool.apply_async(self.run, (path, config, system))
@@ -259,35 +260,3 @@ class TestStage(Protocol):
         pool.close()
 
         return [job.get() for job in jobs]
-
-
-def adjust_workers(workers: int, requested_workers: Union[int, None]) -> int:
-    if requested_workers is not None and requested_workers < 0:
-        raise ValueError("requested workers must be non-negative")
-
-    if requested_workers is not None:
-        if requested_workers > workers:
-            raise RuntimeError(
-                "Requested workers greater than assignable workers"
-            )
-        workers = requested_workers
-
-    if workers == 0:
-        raise RuntimeError("Current configuration results in zero workers")
-
-    return workers
-
-
-def log_proc(
-    name: str, proc: ProcessResult, test_file: Path, config: Config
-) -> None:
-    if config.debug or config.dry_run:
-        LOG(shell(proc.invocation))
-    msg = f"({name}) {test_file}"
-    details = proc.output.split("\n") if config.verbose else None
-    if proc.skipped:
-        LOG(skipped(msg))
-    elif proc.returncode == 0:
-        LOG(passed(msg, details=details))
-    else:
-        LOG(failed(msg, details=details))

@@ -734,7 +734,11 @@ class DeferredArray(NumPyThunk):
 
         for dim in range(len(shape)):
             if result.shape[dim] != shape[dim]:
-                assert result.shape[dim] == 1
+                if result.shape[dim] != 1:
+                    raise ValueError(
+                        f"Shape did not match along dimension {dim} "
+                        "and the value is not equal to 1"
+                    )
                 result = result.project(dim, 0).promote(dim, shape[dim])
 
         return result
@@ -1262,7 +1266,8 @@ class DeferredArray(NumPyThunk):
 
     def fill(self, numpy_array: Any) -> None:
         assert isinstance(numpy_array, np.ndarray)
-        assert numpy_array.size == 1
+        if numpy_array.size != 1:
+            raise ValueError("Filled value array size is not equal to 1")
         assert self.dtype == numpy_array.dtype
         # Have to copy the numpy array because this launch is asynchronous
         # and we need to make sure the application doesn't mutate the value
@@ -2846,7 +2851,7 @@ class DeferredArray(NumPyThunk):
         op: UnaryRedCode,
         src: Any,
         where: Any,
-        orig_axis: int,
+        orig_axis: Union[int, None],
         axes: tuple[int, ...],
         keepdims: bool,
         args: Any,
@@ -3074,7 +3079,7 @@ class DeferredArray(NumPyThunk):
         op: int,
         rhs: Any,
         axis: int,
-        dtype: Optional[np.dtype[Any]],
+        dtype: Optional[npt.DTypeLike],
         nan_to_identity: bool,
     ) -> None:
         # local sum

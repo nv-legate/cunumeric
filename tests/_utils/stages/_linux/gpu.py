@@ -14,11 +14,14 @@
 #
 from __future__ import annotations
 
-from .. import FeatureType
-from ..config import Config
-from ..system import System
-from ..types import ArgList, EnvDict
-from .test_stage import Shard, StageSpec, TestStage, adjust_workers
+import time
+
+from ... import FeatureType
+from ...config import Config
+from ...system import System
+from ...types import ArgList, EnvDict
+from ..test_stage import TestStage
+from ..util import CUNUMERIC_TEST_ARG, Shard, StageSpec, adjust_workers
 
 BLOAT_FACTOR = 1.5  # hard coded for now
 
@@ -38,17 +41,21 @@ class GPU(TestStage):
 
     kind: FeatureType = "cuda"
 
-    args = ["-cunumeric:test"]
-
-    env: EnvDict = {}
+    args = [CUNUMERIC_TEST_ARG]
 
     def __init__(self, config: Config, system: System) -> None:
         self._init(config, system)
 
+    def env(self, config: Config, system: System) -> EnvDict:
+        return {}
+
+    def delay(self, shard: Shard, config: Config, system: System) -> None:
+        time.sleep(config.gpu_delay / 1000)
+
     def shard_args(self, shard: Shard, config: Config) -> ArgList:
         return [
             "--fbmem",
-            str(config.fbmem // (1024 * 1024)),  # accepts size in MB
+            str(config.fbmem),
             "--gpus",
             str(len(shard)),
             "--gpu-bind",
@@ -59,7 +66,7 @@ class GPU(TestStage):
         N = len(system.gpus)
         degree = N // config.gpus
 
-        fbsize = min(gpu.total for gpu in system.gpus)
+        fbsize = min(gpu.total for gpu in system.gpus) / (2 << 20)  # MB
         oversub_factor = int(fbsize // (config.fbmem * BLOAT_FACTOR))
         workers = adjust_workers(
             degree * oversub_factor, config.requested_workers

@@ -22,8 +22,8 @@ from itertools import chain
 
 from .config import Config
 from .logger import LOG
+from .stages import STAGES
 from .system import System
-from .test_stages import STAGES
 from .ui import banner, rule, summary, yellow
 
 

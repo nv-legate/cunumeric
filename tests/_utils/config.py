@@ -55,7 +55,9 @@ class Config:
         self.gpus = args.gpus
         self.omps = args.omps
         self.utility = args.utility
+        self.strict_pin = args.strict_pin
         self.fbmem = args.fbmem
+        self.gpu_delay = args.gpu_delay
         self.ompthreads = args.ompthreads
 
         # test run configuration
@@ -119,13 +121,14 @@ class Config:
         return self.legate_dir / "bin" / "legate"
 
     def _compute_features(self, args: Namespace) -> tuple[FeatureType, ...]:
-        args_features = args.features or []
-        computed = []
-        for feature in FEATURES:
-            if feature in args_features:
-                computed.append(feature)
-            elif os.environ.get(f"USE_{feature.upper()}", None) == "1":
-                computed.append(feature)
+        if args.features is not None:
+            computed = args.features
+        else:
+            computed = [
+                feature
+                for feature in FEATURES
+                if os.environ.get(f"USE_{feature.upper()}", None) == "1"
+            ]
 
         # if nothing is specified any other way, at least run CPU stage
         if len(computed) == 0:
