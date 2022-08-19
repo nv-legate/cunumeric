@@ -45,7 +45,7 @@ def test_complex(src_dtype, dst_dtype):
     complex_input = [
         complex(v1, v2) for v1, v2 in zip(TEST_VECTOR[:-1], TEST_VECTOR[1:])
     ]
-    in_np = np.array(complex_input, dtype="F")
+    in_np = np.array(complex_input, dtype=src_dtype)
     in_num = num.array(in_np)
 
     out_np = in_np.astype(dst_dtype)
