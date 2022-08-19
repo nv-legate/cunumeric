@@ -102,7 +102,6 @@ template <typename VAL>
 static __global__ void bincount_kernel_rd_global(AccessorRD<SumReduction<int64_t>, false, 1> lhs,
                                                  AccessorRO<VAL, 1> rhs,
                                                  const size_t volume,
-                                                 const size_t num_bins,
                                                  Point<1> origin)
 {
   // Just blast out the atomic writes into global memory.
@@ -110,38 +109,6 @@ static __global__ void bincount_kernel_rd_global(AccessorRD<SumReduction<int64_t
   if (idx >= volume) return;
   auto bin = rhs[idx + origin[0]];
   lhs[bin] <<= 1;
-}
-
-template <typename VAL>
-static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-  bincount_kernel_rw(AccessorRW<int64_t, 1> lhs,
-                     AccessorRO<VAL, 1> rhs,
-                     const size_t volume,
-                     const size_t num_bins,
-                     Point<1> origin)
-{
-  extern __shared__ char array[];
-  auto bins = reinterpret_cast<int32_t*>(array);
-  _bincount(bins, rhs, volume, num_bins, origin);
-  // Now do the atomics out to global memory
-  for (int32_t bin = threadIdx.x; bin < num_bins; bin += blockDim.x) {
-    const auto count = bins[bin];
-    if (count > 0) SumReduction<int64_t>::fold<false>(lhs[bin], count);
-  }
-}
-
-template <typename VAL>
-static __global__ void bincount_kernel_rw_global(AccessorRW<int64_t, 1> lhs,
-                                                 AccessorRO<VAL, 1> rhs,
-                                                 const size_t volume,
-                                                 const size_t num_bins,
-                                                 Point<1> origin)
-{
-  // Just blast out the atomic writes into global memory.
-  auto idx = global_tid_1d();
-  if (idx >= volume) return;
-  auto bin = rhs[idx + origin[0]];
-  SumReduction<int64_t>::fold<false>(lhs[bin], 1);
 }
 
 template <typename VAL>
@@ -169,7 +136,6 @@ static __global__ void weighted_bincount_kernel_rd_global(
   AccessorRO<VAL, 1> rhs,
   AccessorRO<double, 1> weights,
   const size_t volume,
-  const size_t num_bins,
   Point<1> origin)
 {
   // Just blast out the atomic writes into global memory.
@@ -177,40 +143,6 @@ static __global__ void weighted_bincount_kernel_rd_global(
   if (idx >= volume) return;
   auto bin = rhs[idx + origin[0]];
   lhs[bin] <<= weights[idx + origin[0]];
-}
-
-template <typename VAL>
-static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-  weighted_bincount_kernel_rw(AccessorRW<double, 1> lhs,
-                              AccessorRO<VAL, 1> rhs,
-                              AccessorRO<double, 1> weights,
-                              const size_t volume,
-                              const size_t num_bins,
-                              Point<1> origin)
-{
-  extern __shared__ char array[];
-  auto bins = reinterpret_cast<double*>(array);
-  _weighted_bincount(bins, rhs, weights, volume, num_bins, origin);
-  // Now do the atomics out to global memory
-  for (int32_t bin = threadIdx.x; bin < num_bins; bin += blockDim.x) {
-    const auto weight = bins[bin];
-    SumReduction<double>::fold<false>(lhs[bin], weight);
-  }
-}
-
-template <typename VAL>
-static __global__ void weighted_bincount_kernel_rw_global(AccessorRW<double, 1> lhs,
-                                                          AccessorRO<VAL, 1> rhs,
-                                                          AccessorRO<double, 1> weights,
-                                                          const size_t volume,
-                                                          const size_t num_bins,
-                                                          Point<1> origin)
-{
-  // Just blast out the atomic writes into global memory.
-  auto idx = global_tid_1d();
-  if (idx >= volume) return;
-  auto bin = rhs[idx + origin[0]];
-  SumReduction<double>::fold<false>(lhs[bin], weights[idx + origin[0]]);
 }
 
 template <LegateTypeCode CODE>
@@ -241,35 +173,7 @@ struct BincountImplBody<VariantKind::GPU, CODE> {
     } else {
       auto blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
       bincount_kernel_rd_global<VAL>
-        <<<blocks, THREADS_PER_BLOCK, 0, stream>>>(lhs, rhs, volume, num_bins, rect.lo);
-    }
-    CHECK_CUDA_STREAM(stream);
-  }
-
-  void operator()(const AccessorRW<int64_t, 1>& lhs,
-                  const AccessorRO<VAL, 1>& rhs,
-                  const Rect<1>& rect,
-                  const Rect<1>& lhs_rect) const
-  {
-    const auto volume   = rect.volume();
-    const auto num_bins = lhs_rect.volume();
-    const auto bin_size = num_bins * sizeof(int32_t);
-    auto stream         = get_cached_stream();
-
-    int32_t num_ctas = 0;
-    cudaOccupancyMaxActiveBlocksPerMultiprocessor(
-      &num_ctas, bincount_kernel_rw<VAL>, THREADS_PER_BLOCK, bin_size);
-    // If the number of bins is relatively low, attempt to use an algorithm that
-    // buffers bincounts local to each SM in shared memory. If there are too many
-    // bins to fit in shared memory, fall back to an approach that just blasts
-    // updates out to global memory.
-    if (num_ctas > 0) {
-      bincount_kernel_rw<VAL>
-        <<<num_ctas, THREADS_PER_BLOCK, bin_size, stream>>>(lhs, rhs, volume, num_bins, rect.lo);
-    } else {
-      auto blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-      bincount_kernel_rw_global<VAL>
-        <<<blocks, THREADS_PER_BLOCK, 0, stream>>>(lhs, rhs, volume, num_bins, rect.lo);
+        <<<blocks, THREADS_PER_BLOCK, 0, stream>>>(lhs, rhs, volume, rect.lo);
     }
     CHECK_CUDA_STREAM(stream);
   }
@@ -298,36 +202,7 @@ struct BincountImplBody<VariantKind::GPU, CODE> {
     } else {
       auto blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
       weighted_bincount_kernel_rd_global<VAL>
-        <<<blocks, THREADS_PER_BLOCK, 0, stream>>>(lhs, rhs, weights, volume, num_bins, rect.lo);
-    }
-    CHECK_CUDA_STREAM(stream);
-  }
-
-  void operator()(const AccessorRW<double, 1>& lhs,
-                  const AccessorRO<VAL, 1>& rhs,
-                  const AccessorRO<double, 1>& weights,
-                  const Rect<1>& rect,
-                  const Rect<1>& lhs_rect) const
-  {
-    const auto volume   = rect.volume();
-    const auto num_bins = lhs_rect.volume();
-    const auto bin_size = num_bins * sizeof(double);
-    auto stream         = get_cached_stream();
-
-    int32_t num_ctas = 0;
-    cudaOccupancyMaxActiveBlocksPerMultiprocessor(
-      &num_ctas, weighted_bincount_kernel_rw<VAL>, THREADS_PER_BLOCK, bin_size);
-    // If the number of bins is relatively low, attempt to use an algorithm that
-    // buffers bincounts local to each SM in shared memory. If there are too many
-    // bins to fit in shared memory, fall back to an approach that just blasts
-    // updates out to global memory.
-    if (num_ctas > 0) {
-      weighted_bincount_kernel_rw<VAL><<<num_ctas, THREADS_PER_BLOCK, bin_size, stream>>>(
-        lhs, rhs, weights, volume, num_bins, rect.lo);
-    } else {
-      auto blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-      weighted_bincount_kernel_rw_global<VAL>
-        <<<blocks, THREADS_PER_BLOCK, 0, stream>>>(lhs, rhs, weights, volume, num_bins, rect.lo);
+        <<<blocks, THREADS_PER_BLOCK, 0, stream>>>(lhs, rhs, weights, volume, rect.lo);
     }
     CHECK_CUDA_STREAM(stream);
   }

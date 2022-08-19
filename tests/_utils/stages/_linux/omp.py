@@ -14,11 +14,20 @@
 #
 from __future__ import annotations
 
+from itertools import chain
+
 from ... import FeatureType
 from ...config import Config
 from ...system import System
 from ...types import ArgList, EnvDict
-from ..test_stage import Shard, StageSpec, TestStage, adjust_workers
+from ..test_stage import TestStage
+from ..util import (
+    CUNUMERIC_TEST_ARG,
+    UNPIN_ENV,
+    Shard,
+    StageSpec,
+    adjust_workers,
+)
 
 
 class OMP(TestStage):
@@ -36,12 +45,13 @@ class OMP(TestStage):
 
     kind: FeatureType = "openmp"
 
-    args = ["-cunumeric:test"]
-
-    env: EnvDict = {"REALM_SYNTHETIC_CORE_MAP": ""}
+    args = [CUNUMERIC_TEST_ARG]
 
     def __init__(self, config: Config, system: System) -> None:
         self._init(config, system)
+
+    def env(self, config: Config, system: System) -> EnvDict:
+        return {} if config.strict_pin else dict(UNPIN_ENV)
 
     def shard_args(self, shard: Shard, config: Config) -> ArgList:
         return [
@@ -49,16 +59,20 @@ class OMP(TestStage):
             str(config.omps),
             "--ompthreads",
             str(config.ompthreads),
+            "--cpu-bind",
+            ",".join(str(x) for x in shard),
         ]
 
     def compute_spec(self, config: Config, system: System) -> StageSpec:
-        N = len(system.cpus)
+        cpus = system.cpus
         omps, threads = config.omps, config.ompthreads
-        degree = N // (omps * threads + config.utility)
+        procs = omps * threads + config.utility + int(config.strict_pin)
+        workers = adjust_workers(len(cpus) // procs, config.requested_workers)
 
-        workers = adjust_workers(degree, config.requested_workers)
-
-        # Just put each worker on its own CPU for OMP tests
-        shards = [tuple([i]) for i in range(workers)]
+        shards: list[tuple[int, ...]] = []
+        for i in range(workers):
+            shard_cpus = range(i * procs, (i + 1) * procs)
+            shard = chain.from_iterable(cpus[j].ids for j in shard_cpus)
+            shards.append(tuple(sorted(shard)))
 
         return StageSpec(workers, shards)
