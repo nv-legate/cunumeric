@@ -21,7 +21,6 @@ from typing import TYPE_CHECKING, Union, cast
 import numpy as np
 
 from legate.core import Library, ResourceConfig, get_legate_runtime
-from legate.core.types import _Dtype
 
 if TYPE_CHECKING:
     import numpy.typing as npt
@@ -774,30 +773,28 @@ class FFTNormalization(IntEnum):
 # Match these to CuNumericTypeCodes in cunumeric_c.h
 # we start from POINT2 type since POINT1 is int8 type
 _CUNUMERIC_DTYPES = [
-    _Dtype(np.dtype("i8, i8"), 16, _cunumeric.CUNUMERIC_TYPE_POINT2),
-    _Dtype(np.dtype("i8, i8, i8"), 24, _cunumeric.CUNUMERIC_TYPE_POINT3),
-    _Dtype(np.dtype("i8, i8, i8, i8"), 32, _cunumeric.CUNUMERIC_TYPE_POINT4),
-    _Dtype(
-        np.dtype("i8, i8, i8, i8, i8"), 40, _cunumeric.CUNUMERIC_TYPE_POINT5
-    ),
-    _Dtype(
+    [np.dtype("i8, i8"), 16, _cunumeric.CUNUMERIC_TYPE_POINT2],
+    [np.dtype("i8, i8, i8"), 24, _cunumeric.CUNUMERIC_TYPE_POINT3],
+    [np.dtype("i8, i8, i8, i8"), 32, _cunumeric.CUNUMERIC_TYPE_POINT4],
+    [np.dtype("i8, i8, i8, i8, i8"), 40, _cunumeric.CUNUMERIC_TYPE_POINT5],
+    [
         np.dtype("i8, i8, i8, i8, i8, i8"),
         48,
         _cunumeric.CUNUMERIC_TYPE_POINT6,
-    ),
-    _Dtype(
+    ],
+    [
         np.dtype("i8, i8, i8, i8, i8, i8, i8"),
         56,
         _cunumeric.CUNUMERIC_TYPE_POINT7,
-    ),
-    _Dtype(
+    ],
+    [
         np.dtype("i8, i8, i8, i8, i8, i8, i8, i8"),
         64,
         _cunumeric.CUNUMERIC_TYPE_POINT8,
-    ),
-    _Dtype(
+    ],
+    [
         np.dtype("i8, i8, i8, i8, i8, i8, i8, i8, i8"),
         72,
         _cunumeric.CUNUMERIC_TYPE_POINT9,
-    ),
+    ],
 ]

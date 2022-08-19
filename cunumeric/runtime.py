@@ -180,14 +180,11 @@ class Runtime(object):
             )
 
         for dtype in _CUNUMERIC_DTYPES:
-            type_system.add_type(dtype.type, dtype.size, dtype.code)
+            type_system.add_type(dtype[0], dtype[1], dtype[2])
 
     def get_point_type(self, n: int) -> np.dtype[Any]:
         type_system = self.legate_context.type_system
-        if n == 1:
-            point_type = np.dtype("i8")
-        else:
-            point_type = _CUNUMERIC_DTYPES[n - 2].type
+        point_type = np.dtype(",".join(("i8",) * n))
         if point_type not in type_system:
             raise ValueError(f"there is no point type registered for {n}")
         return point_type

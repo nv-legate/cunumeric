@@ -3250,13 +3250,6 @@ class DeferredArray(NumPyThunk):
         task.add_scalar_arg(src.shape, (ty.int64,))
         task.execute()
 
-        #        if indirect.base.kind == Future:
-        #            indirect = src._convert_future_to_store(indirect)
-        #        if src.base.kind == Future:
-        #            src = self._convert_future_to_store(src)
-        #        if self.base.kind == Future:
-        #            self = src._convert_future_to_store(self)
-
         copy = self.context.create_copy()
         copy.set_target_indirect_out_of_range(False)
         copy.add_input(src.base)
