@@ -51,7 +51,6 @@ struct ArgWhereImplBody<VariantKind::CPU, CODE, DIM> {
     }
 
     assert(size == out_idx);
-    // out_array.return_data(out, Point<2>(size, DIM));
   }
 };
 
