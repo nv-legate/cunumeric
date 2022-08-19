@@ -51,6 +51,8 @@ from .utils import dot_modes
 if TYPE_CHECKING:
     from .types import NdShapeLike
 
+from math import prod
+
 FALLBACK_WARNING = (
     "cuNumeric has not fully implemented {name} "
     + "and is falling back to canonical numpy. "
@@ -3019,17 +3021,6 @@ class ndarray:
         Multiple GPUs, Multiple CPUs
 
         """
-        if self.size == 0 and self.ndim > 1:
-            idx = tuple()
-            for i in range(self.ndim):
-                if self.shape[i] != 0:
-                    idx += (0,)
-                else:
-                    idx += (slice(None),)
-            idx = tuple(idx)
-            self = self[idx].copy()
-            return self
-
         return self.reshape(-1, order=order)
 
     def reshape(self, *args, order="C") -> ndarray:
@@ -3055,6 +3046,20 @@ class ndarray:
             shape = (args[0],) if isinstance(args[0], int) else args[0]
         else:
             shape = args
+
+        if self.size == 0 and self.ndim > 1:
+            if shape == (-1,):
+                shape = (0,)
+            new_size = prod(shape)
+            if new_size > 0:
+                raise ValueError("new shape has bigger size than original")
+            result = ndarray(
+                shape=shape,
+                dtype=self.dtype,
+                inputs=(self,),
+            )
+            result.fill(0)
+            return result
 
         computed_shape = tuple(operator.index(extent) for extent in shape)
 
