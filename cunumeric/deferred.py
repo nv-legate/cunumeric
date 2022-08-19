@@ -677,8 +677,6 @@ class DeferredArray(NumPyThunk):
             # the store with transformation
             rhs = cast(DeferredArray, self._copy_store(store))
 
-        if len(tuple_of_arrays) == 0:
-            return False, rhs, rhs, self
         if len(tuple_of_arrays) <= rhs.ndim:
             output_arr = rhs._zip_indices(start_index, tuple_of_arrays)
             return True, rhs, output_arr, self
