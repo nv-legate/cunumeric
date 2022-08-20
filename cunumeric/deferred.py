@@ -288,7 +288,10 @@ class DeferredArray(NumPyThunk):
                 initializer = _CuNumericNDarray(
                     shape, self.dtype, address, strides, False
                 )
-                return np.asarray(initializer)
+                result = np.asarray(initializer)
+                if self.shape == ():
+                    result = result.reshape(())
+                return result
 
             result = cast("npt.NDArray[Any]", alloc.consume(construct_ndarray))
 
