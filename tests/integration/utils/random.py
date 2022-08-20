@@ -143,7 +143,9 @@ class ModuleGenerator:
         return num.random.zipf(alpha, shape, dtype)
 
 
-def assert_distribution(a, theo_mean, theo_stdev, mean_tol=1e-2, stdev_tol=2):
+def assert_distribution(
+    a, theo_mean, theo_stdev, mean_tol=1e-2, stdev_tol=1.0
+):
     if True:
         aa = np.array(a)
         average = np.mean(aa)
