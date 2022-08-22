@@ -255,7 +255,7 @@ class DeferredArray(NumPyThunk):
         if not self.base.overlaps(other.base):
             return self
         copy = cast(
-            "DeferredArray",
+            DeferredArray,
             self.runtime.create_empty_thunk(
                 self.shape, self.dtype, inputs=[self]
             ),
@@ -468,7 +468,7 @@ class DeferredArray(NumPyThunk):
 
         return output_arr
 
-    def _copy_store(self, store: Any) -> NumPyThunk:
+    def _copy_store(self, store: Any) -> DeferredArray:
         store_to_copy = DeferredArray(
             self.runtime,
             base=store,
@@ -480,7 +480,7 @@ class DeferredArray(NumPyThunk):
             inputs=[store_to_copy],
         )
         store_copy.copy(store_to_copy, deep=True)
-        return store_copy
+        return cast(DeferredArray, store_copy)
 
     def _create_indexing_array(
         self, key: Any, is_set: bool = False
@@ -649,7 +649,7 @@ class DeferredArray(NumPyThunk):
             # after store is transformed we need to to return a copy of
             # the store since Copy operation can't be done on
             # the store with transformation
-            rhs = cast(DeferredArray, self._copy_store(store))
+            rhs = self._copy_store(store)
 
         if len(tuple_of_arrays) <= rhs.ndim:
             output_arr = rhs._zip_indices(start_index, tuple_of_arrays)
