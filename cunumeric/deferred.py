@@ -717,19 +717,19 @@ class DeferredArray(NumPyThunk):
 
         return result
 
-    def _convert_future_to_store(self, a: Any) -> DeferredArray:
+    def _convert_future_to_regionfield(self) -> DeferredArray:
         store = self.context.create_store(
-            a.dtype,
-            shape=a.shape,
+            self.dtype,
+            shape=self.shape,
             optimize_scalar=False,
         )
-        store_copy = DeferredArray(
+        thunk_copy = DeferredArray(
             self.runtime,
             base=store,
-            dtype=a.dtype,
+            dtype=self.dtype,
         )
-        store_copy.copy(a, deep=True)
-        return store_copy
+        thunk_copy.copy(self, deep=True)
+        return thunk_copy
 
     def get_item(self, key: Any) -> NumPyThunk:
         # Check to see if this is advanced indexing or not
@@ -746,11 +746,11 @@ class DeferredArray(NumPyThunk):
 
             if copy_needed:
                 if rhs.base.kind == Future:
-                    rhs = self._convert_future_to_store(rhs)
+                    rhs = rhs._convert_future_to_regionfield()
                 store = rhs.base
                 result: NumPyThunk
                 if index_array.base.kind == Future:
-                    index_array = self._convert_future_to_store(index_array)
+                    index_array = index_array._convert_future_to_regionfield()
                     result_store = self.context.create_store(
                         self.dtype,
                         shape=index_array.shape,
@@ -826,13 +826,13 @@ class DeferredArray(NumPyThunk):
                     base=rhs_store,
                     dtype=rhs.dtype,
                 )
-                rhs_tmp2 = self._convert_future_to_store(rhs_tmp)
+                rhs_tmp2 = rhs_tmp._convert_future_to_regionfield()
                 rhs_store = rhs_tmp2.base
 
             if index_array.base.kind == Future:
-                index_array = self._convert_future_to_store(index_array)
+                index_array = index_array._convert_future_to_regionfield()
             if lhs.base.kind == Future:
-                lhs = self._convert_future_to_store(lhs)
+                lhs = lhs._convert_future_to_regionfield()
 
             copy = self.context.create_copy()
             copy.set_target_indirect_out_of_range(False)
