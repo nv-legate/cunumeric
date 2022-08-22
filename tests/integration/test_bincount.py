@@ -21,6 +21,8 @@ import cunumeric as num
 
 N = 8000
 MAX_VAL = 9
+LARGE_NUM_BINS = 20000
+
 DTYPES = [np.int64, np.int32, np.int16]
 MINLENGTHS = [0, 5, 15]
 
@@ -29,11 +31,10 @@ MINLENGTHS = [0, 5, 15]
 @pytest.mark.parametrize("minlength", MINLENGTHS)
 def test_bincount_basic(dtype, minlength):
     v_num = num.random.randint(0, MAX_VAL, size=N, dtype=dtype)
+    out_num = num.bincount(v_num, minlength=minlength)
 
     v_np = v_num.__array__()
-
     out_np = np.bincount(v_np, minlength=minlength)
-    out_num = num.bincount(v_num, minlength=minlength)
     assert num.array_equal(out_np, out_num)
 
 
@@ -41,12 +42,36 @@ def test_bincount_basic(dtype, minlength):
 def test_bincount_weights(dtype):
     v_num = num.random.randint(0, MAX_VAL, size=N, dtype=dtype)
     w_num = num.random.randn(N)
+    out_num = num.bincount(v_num, weights=w_num)
 
     v_np = v_num.__array__()
     w_np = w_num.__array__()
-
     out_np = np.bincount(v_np, weights=w_np)
+
+    assert allclose(out_np, out_num)
+
+
+@pytest.mark.parametrize("dtype", DTYPES)
+def test_bincount_high_bins(dtype):
+    v_num = num.array([0, LARGE_NUM_BINS], dtype=dtype)
+    out_num = num.bincount(v_num)
+
+    v_np = v_num.__array__()
+    out_np = np.bincount(v_np)
+
+    assert num.array_equal(out_np, out_num)
+
+
+@pytest.mark.parametrize("dtype", DTYPES)
+def test_bincount_weights_high_bins(dtype):
+    v_num = num.array([0, LARGE_NUM_BINS], dtype=dtype)
+    w_num = num.random.randn(2)
     out_num = num.bincount(v_num, weights=w_num)
+
+    v_np = v_num.__array__()
+    w_np = w_num.__array__()
+    out_np = np.bincount(v_np, weights=w_np)
+
     assert allclose(out_np, out_num)
 
 

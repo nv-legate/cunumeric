@@ -503,6 +503,31 @@ class DeferredArray(NumPyThunk):
                         f"dimension {i} doesn't match to the shape of the"
                         f"index array which is {rhs.shape[i]}"
                     )
+
+            # if key or rhs are empty, return an empty array with correct shape
+            if key.size == 0 or rhs.size == 0:
+                if rhs.size == 0 and key.size != 0:
+                    # we need to calculate shape of the 0 dim of output region
+                    # even though the size of it is 0
+                    # this can potentially be replaced with COUNT_NONZERO
+                    s = key.nonzero()[0].size
+                else:
+                    s = 0
+
+                out_shape = (s,) + tuple(
+                    rhs.shape[i] for i in range(key.ndim, rhs.ndim)
+                )
+                out = cast(
+                    DeferredArray,
+                    self.runtime.create_empty_thunk(
+                        out_shape,
+                        rhs.dtype,
+                        inputs=[rhs],
+                    ),
+                )
+                out.fill(np.zeros((), dtype=out.dtype))
+                return False, rhs, out, self
+
             key_store = key.base
             # bring key to the same shape as rhs
             for i in range(key_store.ndim, rhs.ndim):
@@ -542,6 +567,7 @@ class DeferredArray(NumPyThunk):
             # requires out.ndim == rhs.ndim.
             # The logic below will be removed in the future
             out_dim = rhs.ndim - key_dims + 1
+
             if out_dim != rhs.ndim:
                 out_tmp = out.base
                 for dim in range(rhs.ndim - out_dim):
@@ -732,12 +758,10 @@ class DeferredArray(NumPyThunk):
                 self,
             ) = self._create_indexing_array(key)
 
-            store = rhs.base
-
             if copy_needed:
+
                 if rhs.base.kind == Future:
                     rhs = rhs._convert_future_to_regionfield()
-                store = rhs.base
                 result: NumPyThunk
                 if index_array.base.kind == Future:
                     index_array = index_array._convert_future_to_regionfield()
@@ -751,6 +775,7 @@ class DeferredArray(NumPyThunk):
                         base=result_store,
                         dtype=self.dtype,
                     )
+
                 else:
                     result = self.runtime.create_empty_thunk(
                         index_array.base.shape,
@@ -760,7 +785,7 @@ class DeferredArray(NumPyThunk):
 
                 copy = self.context.create_copy()
                 copy.set_source_indirect_out_of_range(False)
-                copy.add_input(store)
+                copy.add_input(rhs.base)
                 copy.add_source_indirect(index_array.base)
                 copy.add_output(result.base)  # type: ignore
                 copy.execute()
@@ -824,13 +849,15 @@ class DeferredArray(NumPyThunk):
             if lhs.base.kind == Future:
                 lhs = lhs._convert_future_to_regionfield()
 
-            copy = self.context.create_copy()
-            copy.set_target_indirect_out_of_range(False)
+            if index_array.size != 0:
 
-            copy.add_input(rhs_store)
-            copy.add_target_indirect(index_array.base)
-            copy.add_output(lhs.base)
-            copy.execute()
+                copy = self.context.create_copy()
+                copy.set_target_indirect_out_of_range(False)
+
+                copy.add_input(rhs_store)
+                copy.add_target_indirect(index_array.base)
+                copy.add_output(lhs.base)
+                copy.execute()
 
             # TODO this copy will be removed when affine copies are
             # supported in Legion/Realm
