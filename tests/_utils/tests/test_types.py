@@ -12,4 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+"""Consolidate test configuration from command-line and environment.
+
+"""
 from __future__ import annotations
+
+from .. import types as m
+
+
+class TestCPUInfo:
+    def test_fields(self) -> None:
+        assert set(m.CPUInfo.__dataclass_fields__) == {"ids"}
+
+
+class TestGPUInfo:
+    def test_fields(self) -> None:
+        assert set(m.GPUInfo.__dataclass_fields__) == {"id", "total"}

@@ -20,7 +20,9 @@ from __future__ import annotations
 
 import multiprocessing
 import os
+import sys
 from dataclasses import dataclass
+from functools import cached_property
 from subprocess import PIPE, STDOUT, run as stdlib_run
 from typing import Sequence
 
@@ -60,7 +62,6 @@ class System:
         dry_run: bool = False,
     ) -> None:
         self.manager = multiprocessing.Manager()
-        self.pool = multiprocessing.Pool(20)
         self.dry_run: bool = dry_run
 
     def run(
@@ -109,12 +110,26 @@ class System:
             invocation, returncode=proc.returncode, output=proc.stdout
         )
 
-    @property
+    @cached_property
     def cpus(self) -> tuple[CPUInfo, ...]:
         """A list of CPUs on the system."""
-        return tuple(CPUInfo(i) for i in range(multiprocessing.cpu_count()))
 
-    @property
+        N = multiprocessing.cpu_count()
+
+        if sys.platform == "darwin":
+            return tuple(CPUInfo((i,)) for i in range(N))
+
+        sibling_sets: set[tuple[int, ...]] = set()
+        for i in range(N):
+            line = open(
+                f"/sys/devices/system/cpu/cpu{i}/topology/thread_siblings_list"
+            ).read()
+            sibling_sets.add(
+                tuple(sorted(int(x) for x in line.strip().split(",")))
+            )
+        return tuple(CPUInfo(siblings) for siblings in sorted(sibling_sets))
+
+    @cached_property
     def gpus(self) -> tuple[GPUInfo, ...]:
         """A list of GPUs on the system, including total memory information."""
 

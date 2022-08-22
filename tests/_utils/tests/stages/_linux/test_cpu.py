@@ -19,25 +19,29 @@ from __future__ import annotations
 
 import pytest
 
-from ...config import Config
-from ...system import System
-from ...test_stages._linux import gpu as m
-from ...types import GPUInfo
-
-
-class FakeSystem(System):
-    @property
-    def gpus(self) -> tuple[GPUInfo, ...]:
-        return tuple(GPUInfo(i, 6 << 32) for i in range(6))
+from ....config import Config
+from ....stages._linux import cpu as m
+from ....stages.util import UNPIN_ENV
+from .. import FakeSystem
 
 
 def test_default() -> None:
     c = Config([])
     s = FakeSystem()
-    stage = m.GPU(c, s)
-    assert stage.kind == "cuda"
+    stage = m.CPU(c, s)
+    assert stage.kind == "cpus"
     assert stage.args == ["-cunumeric:test"]
-    assert stage.env == {}
+    assert stage.env(c, s) == UNPIN_ENV
+    assert stage.spec.workers > 0
+
+
+def test_strict_pin() -> None:
+    c = Config(["test.py", "--strict-pin"])
+    s = FakeSystem()
+    stage = m.CPU(c, s)
+    assert stage.kind == "cpus"
+    assert stage.args == ["-cunumeric:test"]
+    assert stage.env(c, s) == {}
     assert stage.spec.workers > 0
 
 
@@ -45,40 +49,41 @@ def test_default() -> None:
 def test_shard_args(shard: tuple[int, ...], expected: str) -> None:
     c = Config([])
     s = FakeSystem()
-    stage = m.GPU(c, s)
+    stage = m.CPU(c, s)
     result = stage.shard_args(shard, c)
-    assert result == [
-        "--fbmem",
-        "4096",
-        "--gpus",
-        f"{len(shard)}",
-        "--gpu-bind",
-        expected,
-    ]
+    assert result == ["--cpus", f"{c.cpus}", "--cpu-bind", expected]
 
 
-def test_spec_with_gpus_1() -> None:
-    c = Config(["test.py", "--gpus", "1"])
+def test_spec_with_cpus_1() -> None:
+    c = Config(["test.py", "--cpus", "1"])
     s = FakeSystem()
-    stage = m.GPU(c, s)
-    assert stage.spec.workers == 24
-    assert stage.spec.shards == [(0,), (1,), (2,), (3,), (4,), (5,)] * 24
+    stage = m.CPU(c, s)
+    assert stage.spec.workers == 3
+    assert stage.spec.shards == [(0, 1), (2, 3), (4, 5)]
 
 
-def test_spec_with_gpus_2() -> None:
-    c = Config(["test.py", "--gpus", "2"])
+def test_spec_with_cpus_2() -> None:
+    c = Config(["test.py", "--cpus", "2"])
     s = FakeSystem()
-    stage = m.GPU(c, s)
-    assert stage.spec.workers == 12
-    assert stage.spec.shards == [(0, 1), (2, 3), (4, 5)] * 12
+    stage = m.CPU(c, s)
+    assert stage.spec.workers == 2
+    assert stage.spec.shards == [(0, 1, 2), (3, 4, 5)]
+
+
+def test_spec_with_utility() -> None:
+    c = Config(["test.py", "--cpus", "1", "--utility", "2"])
+    s = FakeSystem()
+    stage = m.CPU(c, s)
+    assert stage.spec.workers == 2
+    assert stage.spec.shards == [(0, 1, 2), (3, 4, 5)]
 
 
 def test_spec_with_requested_workers() -> None:
-    c = Config(["test.py", "--gpus", "1", "-j", "2"])
+    c = Config(["test.py", "--cpus", "1", "-j", "2"])
     s = FakeSystem()
-    stage = m.GPU(c, s)
+    stage = m.CPU(c, s)
     assert stage.spec.workers == 2
-    assert stage.spec.shards == [(0,), (1,), (2,), (3,), (4,), (5,)] * 2
+    assert stage.spec.shards == [(0, 1), (2, 3)]
 
 
 def test_spec_with_requested_workers_zero() -> None:
@@ -86,22 +91,22 @@ def test_spec_with_requested_workers_zero() -> None:
     c = Config(["test.py", "-j", "0"])
     assert c.requested_workers == 0
     with pytest.raises(RuntimeError):
-        m.GPU(c, s)
+        m.CPU(c, s)
 
 
 def test_spec_with_requested_workers_bad() -> None:
     s = FakeSystem()
-    c = Config(["test.py", "-j", f"{len(s.gpus)+100}"])
-    assert c.requested_workers > len(s.gpus)
+    c = Config(["test.py", "-j", f"{len(s.cpus)+1}"])
+    assert c.requested_workers > len(s.cpus)
     with pytest.raises(RuntimeError):
-        m.GPU(c, s)
+        m.CPU(c, s)
 
 
 def test_spec_with_verbose() -> None:
-    args = ["test.py", "--gpus", "2"]
+    args = ["test.py", "--cpus", "2"]
     c = Config(args)
     cv = Config(args + ["--verbose"])
     s = FakeSystem()
 
-    spec, vspec = m.GPU(c, s).spec, m.GPU(cv, s).spec
+    spec, vspec = m.CPU(c, s).spec, m.CPU(cv, s).spec
     assert vspec == spec

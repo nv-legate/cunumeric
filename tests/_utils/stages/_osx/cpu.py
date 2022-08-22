@@ -18,13 +18,18 @@ from ... import FeatureType
 from ...config import Config
 from ...system import System
 from ...types import ArgList, EnvDict
-from ..test_stage import Shard, StageSpec, TestStage, adjust_workers
+from ..test_stage import TestStage
+from ..util import (
+    CUNUMERIC_TEST_ARG,
+    UNPIN_ENV,
+    Shard,
+    StageSpec,
+    adjust_workers,
+)
 
-BLOAT_FACTOR = 1.5  # hard coded for now
 
-
-class GPU(TestStage):
-    """A test stage for exercising GPU features.
+class CPU(TestStage):
+    """A test stage for exercising CPU features.
 
     Parameters
     ----------
@@ -36,40 +41,23 @@ class GPU(TestStage):
 
     """
 
-    kind: FeatureType = "cuda"
+    kind: FeatureType = "cpus"
 
-    args = ["-cunumeric:test"]
-
-    env: EnvDict = {}
+    args = [CUNUMERIC_TEST_ARG]
 
     def __init__(self, config: Config, system: System) -> None:
         self._init(config, system)
 
+    def env(self, config: Config, system: System) -> EnvDict:
+        return UNPIN_ENV
+
     def shard_args(self, shard: Shard, config: Config) -> ArgList:
-        return [
-            "--fbmem",
-            str(config.fbmem // (1024 * 1024)),  # accepts size in MB
-            "--gpus",
-            str(len(shard)),
-            "--gpu-bind",
-            ",".join(str(x) for x in shard),
-        ]
+        return ["--cpus", str(config.cpus)]
 
     def compute_spec(self, config: Config, system: System) -> StageSpec:
-        N = len(system.gpus)
-        degree = N // config.gpus
-
-        fbsize = min(gpu.total for gpu in system.gpus)
-        oversub_factor = int(fbsize // (config.fbmem * BLOAT_FACTOR))
+        procs = config.cpus + config.utility
         workers = adjust_workers(
-            degree * oversub_factor, config.requested_workers
+            len(system.cpus) // procs, config.requested_workers
         )
 
-        # https://docs.python.org/3/library/itertools.html#itertools-recipes
-        # grouper('ABCDEF', 3) --> ABC DEF
-        args = [iter(range(degree * config.gpus))] * config.gpus
-        per_worker_shards = list(zip(*args))
-
-        shards = per_worker_shards * workers
-
-        return StageSpec(workers, shards)
+        return StageSpec(workers, [])

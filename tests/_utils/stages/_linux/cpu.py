@@ -14,15 +14,24 @@
 #
 from __future__ import annotations
 
+from itertools import chain
+
 from ... import FeatureType
 from ...config import Config
 from ...system import System
-from ...types import ArgList
-from ..test_stage import Shard, StageSpec, TestStage, adjust_workers
+from ...types import ArgList, EnvDict
+from ..test_stage import TestStage
+from ..util import (
+    CUNUMERIC_TEST_ARG,
+    UNPIN_ENV,
+    Shard,
+    StageSpec,
+    adjust_workers,
+)
 
 
-class Eager(TestStage):
-    """A test stage for exercising Eager Numpy execution features.
+class CPU(TestStage):
+    """A test stage for exercising CPU features.
 
     Parameters
     ----------
@@ -34,31 +43,33 @@ class Eager(TestStage):
 
     """
 
-    kind: FeatureType = "eager"
+    kind: FeatureType = "cpus"
 
-    args: ArgList = []
-
-    # Raise min chunk sizes for deferred codepaths to force eager execution
-    env = {
-        "CUNUMERIC_MIN_CPU_CHUNK": "2000000000",
-        "CUNUMERIC_MIN_OMP_CHUNK": "2000000000",
-        "CUNUMERIC_MIN_GPU_CHUNK": "2000000000",
-        "REALM_SYNTHETIC_CORE_MAP": "",
-    }
+    args = [CUNUMERIC_TEST_ARG]
 
     def __init__(self, config: Config, system: System) -> None:
         self._init(config, system)
 
+    def env(self, config: Config, system: System) -> EnvDict:
+        return {} if config.strict_pin else dict(UNPIN_ENV)
+
     def shard_args(self, shard: Shard, config: Config) -> ArgList:
-        return ["--cpus", "1"]
+        return [
+            "--cpus",
+            str(config.cpus),
+            "--cpu-bind",
+            ",".join(str(x) for x in shard),
+        ]
 
     def compute_spec(self, config: Config, system: System) -> StageSpec:
-        N = len(system.cpus)
+        cpus = system.cpus
+        procs = config.cpus + config.utility + int(config.strict_pin)
+        workers = adjust_workers(len(cpus) // procs, config.requested_workers)
 
-        degree = min(N, 60)  # ~LEGION_MAX_NUM_PROCS just in case
-        workers = adjust_workers(degree, config.requested_workers)
-
-        # Just put each worker on its own CPU for eager tests
-        shards = [tuple([i]) for i in range(workers)]
+        shards: list[tuple[int, ...]] = []
+        for i in range(workers):
+            shard_cpus = range(i * procs, (i + 1) * procs)
+            shard = chain.from_iterable(cpus[j].ids for j in shard_cpus)
+            shards.append(tuple(sorted(shard)))
 
         return StageSpec(workers, shards)

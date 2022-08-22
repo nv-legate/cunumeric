@@ -27,8 +27,8 @@ from typing_extensions import TypeAlias
 class CPUInfo:
     """Encapsulate information about a single CPU"""
 
-    #: ID of the CPU to specify in test shards
-    id: int
+    #: IDs of hypterthreading sibling cores for a given physscal core
+    ids: tuple[int, ...]
 
 
 @dataclass(frozen=True)
@@ -38,7 +38,7 @@ class GPUInfo:
     #: ID of the GPU to specify in test shards
     id: int
 
-    #: The totl framebuffer memory of this GPU
+    #: The total framebuffer memory of this GPU
     total: int
 
 
