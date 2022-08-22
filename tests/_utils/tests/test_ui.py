@@ -17,6 +17,8 @@
 """
 from __future__ import annotations
 
+from datetime import timedelta
+
 import pytest
 from pytest_mock import MockerFixture
 
@@ -51,23 +53,35 @@ def test_banner_full() -> None:
     )
 
 
-def test_rule() -> None:
+def test_rule_default() -> None:
     assert m.rule() == "    " + "~" * (UI_WIDTH - 4)
+
+
+def test_rule_with_args() -> None:
     assert m.rule(10, "-") == " " * 10 + "-" * (UI_WIDTH - 10)
 
 
 def test_shell() -> None:
     assert m.shell("cmd --foo") == "+cmd --foo"
+
+
+def test_shell_with_char() -> None:
     assert m.shell("cmd --foo", char="") == "cmd --foo"
 
 
 def test_passed() -> None:
     assert m.passed("msg") == "[PASS] msg"
+
+
+def test_passed_with_details() -> None:
     assert m.passed("msg", details=["a", "b"]) == "[PASS] msg\n   a\n   b"
 
 
 def test_failed() -> None:
     assert m.failed("msg") == "[FAIL] msg"
+
+
+def test_failed_with_details() -> None:
     assert m.failed("msg", details=["a", "b"]) == "[FAIL] msg\n   a\n   b"
 
 
@@ -77,6 +91,13 @@ def test_skipped() -> None:
 
 def test_summary() -> None:
     assert (
-        m.summary("foo", 12, 11)
-        == f"{'foo: Passed 11 of 12 tests (91.7%)': >{UI_WIDTH}}"
+        m.summary("foo", 12, 11, timedelta(seconds=2.123))
+        == f"{'foo: Passed 11 of 12 tests (91.7%) in 2.12s': >{UI_WIDTH}}"
+    )
+
+
+def test_summary_no_justify() -> None:
+    assert (
+        m.summary("foo", 12, 11, timedelta(seconds=2.123), justify=False)
+        == "foo: Passed 11 of 12 tests (91.7%) in 2.12s"
     )

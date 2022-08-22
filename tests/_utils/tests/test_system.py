@@ -17,15 +17,14 @@
 """
 from __future__ import annotations
 
-import os
+import sys
 from subprocess import CompletedProcess
 from unittest.mock import MagicMock
 
 import pytest
 from pytest_mock import MockerFixture
 
-from .. import DEFAULT_PROCESS_ENV, system as m
-from ..logger import LOG
+from .. import system as m
 
 
 @pytest.fixture
@@ -40,23 +39,19 @@ class TestSystem:
     def test_init(self) -> None:
         s = m.System()
         assert s.dry_run is False
-        assert s.debug is False
-
-    @pytest.fixture(autouse=True)
-    def clear_log(self) -> None:
-        LOG.clear()
 
     def test_run(self, mock_subprocess_run: MagicMock) -> None:
         s = m.System()
 
-        expected = CompletedProcess(CMD, 10, stdout="<output>")
-        mock_subprocess_run.return_value = expected
+        expected = m.ProcessResult(CMD, returncode=10, output="<output>")
+        mock_subprocess_run.return_value = CompletedProcess(
+            CMD, 10, stdout="<output>"
+        )
 
         result = s.run(CMD.split())
         mock_subprocess_run.assert_called()
 
         assert result == expected
-        assert LOG.dump() == ""
 
     def test_dry_run(self, mock_subprocess_run: MagicMock) -> None:
         s = m.System(dry_run=True)
@@ -64,36 +59,17 @@ class TestSystem:
         result = s.run(CMD.split())
         mock_subprocess_run.assert_not_called()
 
-        assert result.stdout == ""
-        assert result.returncode == m.SKIPPED_RETURNCODE
-        assert LOG.dump() == f"+{CMD}"
-
-    def test_debug(self, mock_subprocess_run: MagicMock) -> None:
-        s = m.System(debug=True)
-
-        expected = CompletedProcess(CMD, 10, stdout="<output>")
-        mock_subprocess_run.return_value = expected
-
-        result = s.run(CMD.split())
-        mock_subprocess_run.assert_called()
-
-        assert result == expected
-        assert LOG.dump() == f"+{CMD}"
+        assert result.output == ""
+        assert result.skipped
 
     def test_cpus(self) -> None:
         s = m.System()
         cpus = s.cpus
         assert len(cpus) > 0
-        assert [cpu.id for cpu in cpus] == list(range(len(cpus)))
+        assert all(len(cpu.ids) > 0 for cpu in cpus)
 
+    @pytest.mark.skipif(sys.platform != "linux", reason="pynvml required")
     def test_gpus(self) -> None:
         s = m.System()
         # can't really assume / test much here
         s.gpus
-
-    def test_env(self) -> None:
-        s = m.System()
-        env = s.env
-        assert env is not os.environ  # type: ignore [comparison-overlap]
-        for k, v in DEFAULT_PROCESS_ENV.items():
-            assert env[k] == v

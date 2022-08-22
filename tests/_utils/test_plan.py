@@ -17,12 +17,13 @@
 """
 from __future__ import annotations
 
+from datetime import timedelta
 from itertools import chain
 
 from .config import Config
 from .logger import LOG
+from .stages import STAGES
 from .system import System
-from .test_stages import STAGES
 from .ui import banner, rule, summary, yellow
 
 
@@ -70,13 +71,46 @@ class TestPlan:
     @property
     def intro(self) -> str:
         """An informative banner to display at test run start."""
+
+        cpus = len(self._system.cpus)
+        try:
+            gpus = len(self._system.gpus)
+        except ImportError:
+            gpus = 0
+
         details = (
             f"* Feature stages       : {', '.join(yellow(x) for x in self._config.features)}",  # noqa E501
             f"* Test files per stage : {yellow(str(len(self._config.test_files)))}",  # noqa E501
+            f"* System description   : {yellow(str(cpus) + ' cpus')} / {yellow(str(gpus) + ' gpus')}",  # noqa E501
         )
         return banner("Test Suite Configuration", details=details)
 
     def outro(self, total: int, passed: int) -> str:
-        """An informative banner to display at test run end."""
-        result = summary("All tests", total, passed)
+        """An informative banner to display at test run end.
+
+        Parameters
+        ----------
+        total: int
+            Number of total tests that ran in all stages
+
+        passed: int
+            Number of tests that passed in all stages
+
+        """
+        details = [
+            f"* {s.name: <6}: "
+            + yellow(
+                f"{s.result.passed} / {s.result.total} passed in {s.result.time.total_seconds():0.2f}s"  # noqa E501
+            )
+            for s in self._stages
+        ]
+
+        time = sum((s.result.time for s in self._stages), timedelta(0, 0))
+        details.append("")
+        details.append(
+            summary("All tests", total, passed, time, justify=False)
+        )
+
+        result = banner("Test Suite Summary", details=details)
+
         return f"\n{rule()}\n{result}\n"

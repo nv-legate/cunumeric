@@ -194,10 +194,10 @@ cublasHandle_t CUDALibraries::get_cublas()
 {
   if (nullptr == cublas_) {
     CHECK_CUBLAS(cublasCreate(&cublas_));
-    const char* disable_tensor_cores = getenv("CUNUMERIC_DISABLE_TENSOR_CORES");
-    if (nullptr == disable_tensor_cores) {
-      // No request to disable tensor cores so turn them on
-      cublasStatus_t status = cublasSetMathMode(cublas_, CUBLAS_TENSOR_OP_MATH);
+    const char* fast_math = getenv("CUNUMERIC_FAST_MATH");
+    if (fast_math != nullptr && atoi(fast_math) > 0) {
+      // Enable acceleration of single precision routines using TF32 tensor cores.
+      cublasStatus_t status = cublasSetMathMode(cublas_, CUBLAS_TF32_TENSOR_OP_MATH);
       if (status != CUBLAS_STATUS_SUCCESS)
         fprintf(stderr, "WARNING: cuBLAS does not support Tensor cores!");
     }
