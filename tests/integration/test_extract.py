@@ -89,6 +89,33 @@ def test_extract_nonzero(arr):
     check_extract(condition_np, arr_np.swapaxes(0, condition_np.ndim - 1))
 
 
+VALUES = [
+    [11, 12, 13],
+    [99, 93, 76, 65, 76, 87, 43, 23, 12, 54, 756, 2345, 232, 2323, 12145],
+    [42],
+    [True, False, False, True],
+    [42.3, 42.3, 42.3, 42.3, 42.3, 42.3, 42.3, 42.3],
+    [42 + 3j],
+]
+
+
+@pytest.mark.parametrize("arr", ARR, ids=str)
+@pytest.mark.parametrize("vals", VALUES, ids=str)
+def test_place(arr, vals):
+    arr_np = np.array(arr)
+    vals_np = np.array(vals).astype(arr_np.dtype)
+    condition_np = arr_np != 0
+
+    arr_num = num.array(arr_np)
+    condition_num = num.array(condition_np)
+    vals_num = num.array(vals_np)
+
+    np.place(arr_np, condition_np, vals_np)
+    num.place(arr_num, condition_num, vals_num)
+
+    assert np.array_equal(arr_np, arr_num)
+
+
 if __name__ == "__main__":
     import sys
 
