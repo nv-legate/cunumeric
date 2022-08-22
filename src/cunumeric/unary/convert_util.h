@@ -42,6 +42,9 @@ struct ConvertOp {
       return static_cast<DST>(src.real()) || static_cast<DST>(src.imag());
     else
       return static_cast<DST>(src.real());
+    // Unreachable
+    assert(false);
+    return DST{};
   }
 };
 
