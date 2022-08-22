@@ -2458,7 +2458,7 @@ def place(arr: ndarray, mask: ndarray, vals: ndarray) -> None:
     arr : array_like
         Array to put data into.
     mask : array_like
-        Boolean mask array. Must have the same size as `arr`.
+        Mask array. Must have the same size as `arr`.
     vals : 1-D sequence
         Values to put into `arr`. Only the first N elements are used,
         where N is the number of True values in mask. If vals is smaller
@@ -2473,6 +2473,9 @@ def place(arr: ndarray, mask: ndarray, vals: ndarray) -> None:
     --------
     Multiple GPUs, Multiple CPUs
     """
+    if arr.size == 0:
+        return
+
     if mask.size != arr.size:
         raise ValueError("arr array and condition array must be of same size")
 
@@ -2491,16 +2494,10 @@ def place(arr: ndarray, mask: ndarray, vals: ndarray) -> None:
     if vals.size == 0:
         raise ValueError("vals array cannot be empty")
 
-    if num_values > vals.size:
-        # repeat vals to achieve same length as num_values
-        vals_resized = repeat(
-            reshape(vals, (1, vals.size)),
-            math.ceil(num_values / vals.size),
-            axis=0,
-        ).flatten()[:num_values]
-
-    elif num_values < vals.size:
-        vals_resized = vals[:num_values]
+    if num_values != vals.size:
+        reps = (num_values + vals.size - 1) // vals.size
+        values_resized = vals.tile(reps) if reps > 1 else vals
+        values_resized = values_resized[:num_values]
     else:
         vals_resized = vals
 
