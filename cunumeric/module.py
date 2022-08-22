@@ -2495,9 +2495,9 @@ def place(arr: ndarray, mask: ndarray, vals: ndarray) -> None:
         raise ValueError("vals array cannot be empty")
 
     if num_values != vals.size:
-        reps = (num_values + vals.size - 1) // vals.size
-        values_resized = tile(vals, reps) if reps > 1 else vals
-        values_resized = values_resized[:num_values]
+        reps: int = (num_values + vals.size - 1) // vals.size
+        vals_resized = tile(A=vals, reps=reps) if reps > 1 else vals
+        vals_resized = vals_resized[:num_values]
     else:
         vals_resized = vals
 
