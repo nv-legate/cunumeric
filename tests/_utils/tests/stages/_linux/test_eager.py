@@ -19,16 +19,9 @@ from __future__ import annotations
 
 import pytest
 
-from ...config import Config
-from ...system import System
-from ...test_stages import eager as m
-from ...types import CPUInfo
-
-
-class FakeSystem(System):
-    @property
-    def cpus(self) -> tuple[CPUInfo, ...]:
-        return tuple(CPUInfo(i) for i in range(6))
+from ....config import Config
+from ....stages._linux import eager as m
+from .. import FakeSystem
 
 
 def test_default() -> None:
@@ -37,7 +30,7 @@ def test_default() -> None:
     stage = m.Eager(c, s)
     assert stage.kind == "eager"
     assert stage.args == []
-    assert stage.env == {
+    assert stage.env(c, s) == {
         "CUNUMERIC_MIN_CPU_CHUNK": "2000000000",
         "CUNUMERIC_MIN_OMP_CHUNK": "2000000000",
         "CUNUMERIC_MIN_GPU_CHUNK": "2000000000",
@@ -59,7 +52,8 @@ def test_spec() -> None:
     s = FakeSystem()
     stage = m.Eager(c, s)
     assert stage.spec.workers == len(s.cpus)
-    assert stage.spec.shards == [tuple([i]) for i in range(stage.spec.workers)]
+    #  [cpu.ids for cpu in system.cpus]
+    assert stage.spec.shards == [(i,) for i in range(stage.spec.workers)]
 
 
 def test_spec_with_requested_workers_zero() -> None:

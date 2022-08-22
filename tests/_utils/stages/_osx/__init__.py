@@ -12,4 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+"""Provide TestStage subclasses for running configured test files using
+specific features on OSX.
+
+"""
 from __future__ import annotations
+
+from .cpu import CPU
+from .gpu import GPU
+from .eager import Eager
+from .omp import OMP
