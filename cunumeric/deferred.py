@@ -546,17 +546,7 @@ class DeferredArray(NumPyThunk):
                 out_tmp = out.base
                 for dim in range(rhs.ndim - out_dim):
                     out_tmp = out_tmp.project(rhs.ndim - dim - 1, 0)
-
-                out = cast(
-                    DeferredArray,
-                    self.runtime.create_empty_thunk(
-                        out_tmp.shape,
-                        out_dtype,
-                        inputs=[out],
-                    ),
-                )
-
-                out = cast(DeferredArray, out._copy_store(out_tmp))
+                out = out._copy_store(out_tmp)
 
             return False, rhs, out, self
 
