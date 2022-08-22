@@ -66,6 +66,9 @@ option(Legion_BOUNDS_CHECKS "Build cuNumeric with bounds checks (expensive)" OFF
 include(cmake/thirdparty/get_legate_core.cmake)
 
 if(Legion_USE_CUDA)
+  include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/cuda_arch_helpers.cmake)
+  # Needs to run before `rapids_cuda_init_architectures`
+  set_cuda_arch_from_names()
   # Needs to run before `enable_language(CUDA)`
   rapids_cuda_init_architectures(cunumeric)
   enable_language(CUDA)
