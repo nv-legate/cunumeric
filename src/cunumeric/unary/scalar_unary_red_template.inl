@@ -77,12 +77,12 @@ struct ScalarUnaryRedImpl {
       if constexpr (dense && KIND != VariantKind::GPU) {
         // On CPU, you can directly access through a pointer.
         auto inptr = in.ptr(rect);
-        ScalarReductionPolicy<KIND>()(volume, out, /*identity=*/false, [=](bool& lhs, size_t idx) {
+        ScalarReductionPolicy<KIND, LG_OP>()(volume, out, /*identity=*/false, [=](bool& lhs, size_t idx) {
           if (inptr[idx] == to_find) { lhs = true; }
         });
       } else {
         // On GPU or if not dense, must go through accessor.
-        ScalarReductionPolicy<KIND>()(volume, out, /*identity=*/false, [=](bool& lhs, size_t idx) {
+        ScalarReductionPolicy<KIND, LG_OP>()(volume, out, /*identity=*/false, [=] __host__ __device__  (bool& lhs, size_t idx) {
           auto point = pitches.unflatten(idx, origin);
           if (in[point] == to_find) { lhs = true; }
         });
@@ -92,12 +92,12 @@ struct ScalarUnaryRedImpl {
       if constexpr (dense && KIND != VariantKind::GPU) {
         // On CPU, you can directly access through a pointer.
         auto inptr = in.ptr(rect);
-        ScalarReductionPolicy<KIND>()(volume, out, identity, [=](LHS& lhs, size_t idx) {
+        ScalarReductionPolicy<KIND, LG_OP>()(volume, out, identity, [=](LHS& lhs, size_t idx) {
           auto p = pitches.unflatten(idx, origin);
           OP::template fold<true>(lhs, OP::convert(p, shape, inptr[idx]));
         });
       } else {
-        ScalarReductionPolicy<KIND>()(volume, out, identity, [=](LHS& lhs, size_t idx) {
+        ScalarReductionPolicy<KIND, LG_OP>()(volume, out, identity, [=] __host__ __device__  (LHS& lhs, size_t idx) {
           auto p = pitches.unflatten(idx, origin);
           OP::template fold<true>(lhs, OP::convert(p, shape, in[p]));
         });
@@ -106,11 +106,11 @@ struct ScalarUnaryRedImpl {
       if constexpr (dense && KIND != VariantKind::GPU) {
         // On CPU, you can directly access through a pointer.
         auto inptr = in.ptr(rect);
-        ScalarReductionPolicy<KIND>()(volume, out, identity, [=](LHS& lhs, size_t idx) {
+        ScalarReductionPolicy<KIND, LG_OP>()(volume, out, identity, [=](LHS& lhs, size_t idx) {
           OP::template fold<true>(lhs, OP::convert(inptr[idx]));
         });
       } else {
-        ScalarReductionPolicy<KIND>()(volume, out, identity, [=](LHS& lhs, size_t idx) {
+        ScalarReductionPolicy<KIND, LG_OP>()(volume, out, identity, [=] __host__ __device__  (LHS& lhs, size_t idx) {
           auto p = pitches.unflatten(idx, origin);
           OP::template fold<true>(lhs, OP::convert(in[p]));
         });
