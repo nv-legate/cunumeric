@@ -40,6 +40,14 @@ def test_scalar_ndarray_as_index(arr):
     assert np.array_equal(arr[offset - 2 : offset], [3, 2])
 
 
+def test_empty():
+    a_np = np.array([1, 2, 3])
+    a_num = num.array([1, 2, 3])
+    print("IRINA DEBUG", a_np[1:1].shape, a_num[1:1].shape)
+    assert np.array_equal(a_np[1:1], a_num[1:1])
+    assert np.array_equal(a_np[4:5], a_num[4:5])
+
+
 if __name__ == "__main__":
     import sys
 
