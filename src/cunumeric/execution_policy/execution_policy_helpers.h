@@ -1,0 +1,11 @@
+#ifndef SRC_CUNUMERIC_EXECUTION_POLICY_EXECUTION_POLICY_HELPERS_H_
+#define SRC_CUNUMERIC_EXECUTION_POLICY_EXECUTION_POLICY_HELPERS_H_
+
+// If nvcc or clang indicates CUDA compilation
+#if defined(__CUDACC__) || defined(__CUDA__)
+#define CUDA_FUNCTION __host__ __device__
+#else
+#define CUDA_FUNCTION
+#endif
+
+#endif // SRC_CUNUMERIC_EXECUTION_POLICY_EXECUTION_POLICY_HELPERS_H_
