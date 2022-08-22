@@ -46,6 +46,7 @@ cmake_args+="
 # Build legion_core_python and perform an "editable" install
 SKBUILD_BUILD_OPTIONS="$ninja_args"       \
 SKBUILD_CONFIGURE_OPTIONS="$cmake_args"   \
+SETUPTOOLS_ENABLE_FEATURES="legacy-editable" \
     python -m pip install                 \
         --root / --prefix "$CONDA_PREFIX" \
         --no-deps --no-build-isolation    \

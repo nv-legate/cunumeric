@@ -174,22 +174,28 @@ def install_cunumeric(
         )
 
     # Configure and build cuNumeric via setup.py
-    pip_install_cmd = [
-        sys.executable,
-        "-m",
-        "pip",
-        "install",
-        "--root",
-        "/",
-    ]
+    pip_install_cmd = [sys.executable, "-m", "pip", "install"]
+    cmd_env = dict(os.environ.items())
 
     if unknown is not None:
-        pip_install_cmd += unknown
+        try:
+            prefix_loc = unknown.index("--prefix")
+            pip_install_cmd += ["--root", "/"]
+            pip_install_cmd.extend(unknown[prefix_loc : prefix_loc + 2])
+        except ValueError:
+            if install_dir is not None:
+                pip_install_cmd += [
+                    "--root",
+                    "/",
+                    "--prefix",
+                    str(install_dir),
+                ]
     elif install_dir is not None:
-        pip_install_cmd += ["--prefix", str(realpath(install_dir))]
+        pip_install_cmd += ["--root", "/", "--prefix", str(install_dir)]
 
     if editable:
         pip_install_cmd += ["--no-deps", "--no-build-isolation", "--editable"]
+        cmd_env.update({ "SETUPTOOLS_ENABLE_FEATURES": "legacy-editable" })
     else:
         if not build_isolation:
             pip_install_cmd += ["--no-deps", "--no-build-isolation"]
@@ -245,7 +251,6 @@ def install_cunumeric(
         cmake_flags += ["-Dcunumeric_LEGATE_CORE_BRANCH=%s" % legate_branch]
 
     cmake_flags += extra_flags
-    cmd_env = dict(os.environ.items())
     cmd_env.update(
         {
             "SKBUILD_BUILD_OPTIONS": f"-j{str(thread_count)}",
