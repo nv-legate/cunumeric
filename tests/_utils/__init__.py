@@ -31,8 +31,11 @@ DEFAULT_CPUS_PER_NODE = 4
 #: Value to use if --gpus is not specified.
 DEFAULT_GPUS_PER_NODE = 1
 
-# Value to use if --fbmem is not specified
-DEFAULT_GPU_MEMORY_BUDGET = 4 << 30
+# Delay to introduce between GPU test invocations (ms)
+DEFAULT_GPU_DELAY = 2000
+
+# Value to use if --fbmem is not specified (MB)
+DEFAULT_GPU_MEMORY_BUDGET = 4096
 
 #: Value to use if --omps is not specified.
 DEFAULT_OMPS_PER_NODE = 1

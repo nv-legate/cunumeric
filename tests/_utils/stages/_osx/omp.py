@@ -18,11 +18,18 @@ from ... import FeatureType
 from ...config import Config
 from ...system import System
 from ...types import ArgList, EnvDict
-from ..test_stage import Shard, StageSpec, TestStage, adjust_workers
+from ..test_stage import TestStage
+from ..util import (
+    CUNUMERIC_TEST_ARG,
+    UNPIN_ENV,
+    Shard,
+    StageSpec,
+    adjust_workers,
+)
 
 
-class CPU(TestStage):
-    """A test stage for exercising CPU features.
+class OMP(TestStage):
+    """A test stage for exercising OpenMP features.
 
     Parameters
     ----------
@@ -34,25 +41,29 @@ class CPU(TestStage):
 
     """
 
-    kind: FeatureType = "cpus"
+    kind: FeatureType = "openmp"
 
-    args = ["-cunumeric:test"]
-
-    env: EnvDict = {"REALM_SYNTHETIC_CORE_MAP": ""}
+    args = [CUNUMERIC_TEST_ARG]
 
     def __init__(self, config: Config, system: System) -> None:
         self._init(config, system)
 
+    def env(self, config: Config, system: System) -> EnvDict:
+        return UNPIN_ENV
+
     def shard_args(self, shard: Shard, config: Config) -> ArgList:
-        return ["--cpus", str(len(shard))]
+        return [
+            "--omps",
+            str(config.omps),
+            "--ompthreads",
+            str(config.ompthreads),
+        ]
 
     def compute_spec(self, config: Config, system: System) -> StageSpec:
-        N = len(system.cpus)
-        degree = N // (config.cpus + config.utility)
+        omps, threads = config.omps, config.ompthreads
+        procs = omps * threads + config.utility
+        workers = adjust_workers(
+            len(system.cpus) // procs, config.requested_workers
+        )
 
-        workers = adjust_workers(degree, config.requested_workers)
-
-        # Just put each worker on its own CPU for CPU tests
-        shards = [tuple([i]) for i in range(workers)]
-
-        return StageSpec(workers, shards)
+        return StageSpec(workers, [])
