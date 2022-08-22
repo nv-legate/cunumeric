@@ -570,19 +570,32 @@ class DeferredArray(NumPyThunk):
 
             if out_dim != rhs.ndim:
                 out_tmp = out.base
-                for dim in range(rhs.ndim - out_dim):
-                    out_tmp = out_tmp.project(rhs.ndim - dim - 1, 0)
 
-                out = cast(
-                    DeferredArray,
-                    self.runtime.create_empty_thunk(
-                        out_tmp.shape,
-                        out_dtype,
-                        inputs=[out],
-                    ),
-                )
+                if out.size == 0:
+                    out_shape = tuple(out.shape[i] for i in range(0, out_dim))
+                    out = cast(
+                        DeferredArray,
+                        self.runtime.create_empty_thunk(
+                            out_shape,
+                            out_dtype,
+                            inputs=[out],
+                        ),
+                    )
+                    out.fill(np.array(0, dtype=out_dtype))
+                else:
+                    for dim in range(rhs.ndim - out_dim):
+                        out_tmp = out_tmp.project(rhs.ndim - dim - 1, 0)
 
-                out = cast(DeferredArray, out._copy_store(out_tmp))
+                    out = cast(
+                        DeferredArray,
+                        self.runtime.create_empty_thunk(
+                            out_tmp.shape,
+                            out_dtype,
+                            inputs=[out],
+                        ),
+                    )
+
+                    out = cast(DeferredArray, out._copy_store(out_tmp))
 
             return False, rhs, out, self
 

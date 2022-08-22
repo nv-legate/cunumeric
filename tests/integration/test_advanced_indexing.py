@@ -177,9 +177,17 @@ def test_empty_bool():
     res_num = arr_num[idx_num]
     assert np.array_equal(res_np, res_num)
 
-    arr_np[idx_np] = val_np
-    arr_num[idx_num] = val_num
-    assert np.array_equal(arr_np, arr_num)
+    # TODO this doesn't work until this PR is merged:
+    # https://github.com/nv-legate/cunumeric/pull/473
+    # arr_np[idx_np] = val_np
+    # arr_num[idx_num] = val_num
+    # assert np.array_equal(arr_np, arr_num)
+
+    arr_np = np.array([[1, 2, 3], [2, 3, 4]])
+    arr_num = num.array(arr_np)
+    idx_np = np.array([False, False], dtype=bool)
+    idx_num = num.array([False, False], dtype=bool)
+    assert np.array_equal(arr_np[idx_np], arr_num[idx_num])
 
 
 def test_future_stores():
