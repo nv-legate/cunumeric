@@ -31,34 +31,6 @@ template <LegateTypeCode CODE, int DIM, typename OUT_TYPE>
 struct AdvancedIndexingImplBody<VariantKind::OMP, CODE, DIM, OUT_TYPE> {
   using VAL = legate_type_of<CODE>;
 
-  template <typename OUT_T>
-  void compute_output(Buffer<OUT_T, DIM>& out,
-                      const AccessorRO<VAL, DIM>& in,
-                      const AccessorRO<bool, DIM>& index,
-                      const Pitches<DIM - 1>& pitches,
-                      const Rect<DIM>& rect,
-                      const size_t volume,
-                      int64_t out_idx,
-                      const int key_dim,
-                      const size_t skip_size) const
-  {
-#pragma omp for schedule(static)
-    for (size_t idx = 0; idx < volume; ++idx) {
-      auto p = pitches.unflatten(idx, rect.lo);
-      if (index[p] == true) {
-        Point<DIM> out_p;
-        out_p[0] = out_idx;
-        for (size_t i = 0; i < DIM - key_dim; i++) {
-          size_t j     = key_dim + i;
-          out_p[i + 1] = p[j];
-        }
-        for (size_t i = DIM - key_dim + 1; i < DIM; i++) out_p[i] = 0;
-        fill_out(out[out_p], p, in[p]);
-        if ((idx + 1) % skip_size == 0) out_idx++;
-      }
-    }
-  }
-
   size_t compute_output_offsets(ThreadLocalStorage<int64_t>& offsets,
                                 const AccessorRO<bool, DIM>& index,
                                 const Pitches<DIM - 1>& pitches,
@@ -80,6 +52,7 @@ struct AdvancedIndexingImplBody<VariantKind::OMP, CODE, DIM, OUT_TYPE> {
     }  // end of parallel
     size_t size = thrust::reduce(thrust::omp::par, sizes.begin(), sizes.end(), 0);
     thrust::exclusive_scan(thrust::omp::par, sizes.begin(), sizes.end(), offsets.begin());
+
     return size;
   }
 
@@ -117,7 +90,22 @@ struct AdvancedIndexingImplBody<VariantKind::OMP, CODE, DIM, OUT_TYPE> {
     {
       const int tid   = omp_get_thread_num();
       int64_t out_idx = offsets[tid];
-      compute_output(out, input, index, pitches, rect, volume, out_idx, key_dim, skip_size);
+#pragma omp for schedule(static)
+      for (size_t idx = 0; idx < volume; ++idx) {
+        auto p = pitches.unflatten(idx, rect.lo);
+        if (index[p] == true) {
+          Point<DIM> out_p;
+          out_p[0] = out_idx;
+          for (size_t i = 0; i < DIM - key_dim; i++) {
+            size_t j     = key_dim + i;
+            out_p[i + 1] = p[j];
+          }
+          for (size_t i = DIM - key_dim + 1; i < DIM; i++) out_p[i] = 0;
+          fill_out(out[out_p], p, input[p]);
+          if ((idx + 1) % skip_size == 0) out_idx++;
+        }
+      }
+
     }  // end parallel region
   }
 };
