@@ -255,7 +255,7 @@ class DeferredArray(NumPyThunk):
         if not self.base.overlaps(other.base):
             return self
         copy = cast(
-            "DeferredArray",
+            DeferredArray,
             self.runtime.create_empty_thunk(
                 self.shape, self.dtype, inputs=[self]
             ),
@@ -471,7 +471,7 @@ class DeferredArray(NumPyThunk):
 
         return output_arr
 
-    def _copy_store(self, store: Any) -> NumPyThunk:
+    def _copy_store(self, store: Any) -> DeferredArray:
         store_to_copy = DeferredArray(
             self.runtime,
             base=store,
@@ -483,7 +483,7 @@ class DeferredArray(NumPyThunk):
             inputs=[store_to_copy],
         )
         store_copy.copy(store_to_copy, deep=True)
-        return store_copy
+        return cast(DeferredArray, store_copy)
 
     def _create_indexing_array(
         self, key: Any, is_set: bool = False
@@ -575,17 +575,7 @@ class DeferredArray(NumPyThunk):
                 out_tmp = out.base
                 for dim in range(rhs.ndim - out_dim):
                     out_tmp = out_tmp.project(rhs.ndim - dim - 1, 0)
-
-                out = cast(
-                    DeferredArray,
-                    self.runtime.create_empty_thunk(
-                        out_tmp.shape,
-                        out_dtype,
-                        inputs=[out],
-                    ),
-                )
-
-                out = cast(DeferredArray, out._copy_store(out_tmp))
+                out = out._copy_store(out_tmp)
 
             return False, rhs, out, self
 
@@ -678,7 +668,7 @@ class DeferredArray(NumPyThunk):
             # after store is transformed we need to to return a copy of
             # the store since Copy operation can't be done on
             # the store with transformation
-            rhs = cast(DeferredArray, self._copy_store(store))
+            rhs = self._copy_store(store)
 
         if len(tuple_of_arrays) <= rhs.ndim:
             output_arr = rhs._zip_indices(start_index, tuple_of_arrays)
@@ -746,19 +736,19 @@ class DeferredArray(NumPyThunk):
 
         return result
 
-    def _convert_future_to_store(self, a: Any) -> DeferredArray:
+    def _convert_future_to_regionfield(self) -> DeferredArray:
         store = self.context.create_store(
-            a.dtype,
-            shape=a.shape,
+            self.dtype,
+            shape=self.shape,
             optimize_scalar=False,
         )
-        store_copy = DeferredArray(
+        thunk_copy = DeferredArray(
             self.runtime,
             base=store,
-            dtype=a.dtype,
+            dtype=self.dtype,
         )
-        store_copy.copy(a, deep=True)
-        return store_copy
+        thunk_copy.copy(self, deep=True)
+        return thunk_copy
 
     def get_item(self, key: Any) -> NumPyThunk:
         # Check to see if this is advanced indexing or not
@@ -774,10 +764,10 @@ class DeferredArray(NumPyThunk):
             if copy_needed:
 
                 if rhs.base.kind == Future:
-                    rhs = self._convert_future_to_store(rhs)
+                    rhs = rhs._convert_future_to_regionfield()
                 result: NumPyThunk
                 if index_array.base.kind == Future:
-                    index_array = self._convert_future_to_store(index_array)
+                    index_array = index_array._convert_future_to_regionfield()
                     result_store = self.context.create_store(
                         self.dtype,
                         shape=index_array.shape,
@@ -854,13 +844,13 @@ class DeferredArray(NumPyThunk):
                     base=rhs_store,
                     dtype=rhs.dtype,
                 )
-                rhs_tmp2 = self._convert_future_to_store(rhs_tmp)
+                rhs_tmp2 = rhs_tmp._convert_future_to_regionfield()
                 rhs_store = rhs_tmp2.base
 
             if index_array.base.kind == Future:
-                index_array = self._convert_future_to_store(index_array)
+                index_array = index_array._convert_future_to_regionfield()
             if lhs.base.kind == Future:
-                lhs = self._convert_future_to_store(lhs)
+                lhs = lhs._convert_future_to_regionfield()
 
             if index_array.size != 0:
 
