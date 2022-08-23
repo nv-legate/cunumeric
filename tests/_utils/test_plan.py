@@ -22,7 +22,7 @@ from itertools import chain
 
 from .config import Config
 from .logger import LOG
-from .stages import STAGES
+from .stages import STAGES, log_proc
 from .system import System
 from .ui import banner, rule, summary, yellow
 
@@ -63,6 +63,10 @@ class TestPlan:
         )
         total = len(all_procs)
         passed = sum(proc.returncode == 0 for proc in all_procs)
+
+        LOG(f"\n{rule()}")
+
+        self._log_failures(total, passed)
 
         LOG(self.outro(total, passed))
 
@@ -111,6 +115,17 @@ class TestPlan:
             summary("All tests", total, passed, time, justify=False)
         )
 
-        result = banner("Test Suite Summary", details=details)
+        overall = banner("Overall summary", details=details)
 
-        return f"\n{rule()}\n{result}\n"
+        return f"{overall}\n"
+
+    def _log_failures(self, total: int, passed: int) -> None:
+        if total == passed:
+            return
+
+        LOG(f"{banner('FAILURES')}\n")
+
+        for stage in self._stages:
+            procs = (proc for proc in stage.result.procs if proc.returncode)
+            for proc in procs:
+                log_proc(stage.name, proc, self._config, verbose=True)
