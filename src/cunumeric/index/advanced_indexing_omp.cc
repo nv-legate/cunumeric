@@ -31,7 +31,7 @@ template <LegateTypeCode CODE, int DIM, typename OUT_TYPE>
 struct AdvancedIndexingImplBody<VariantKind::OMP, CODE, DIM, OUT_TYPE> {
   using VAL = legate_type_of<CODE>;
 
-  size_t compute_output_offsets(ThreadLocalStorage<int64_t>& offsets,
+  size_t compute_output_offsets(Buffer<int64_t>& offsets,
                                 const AccessorRO<bool, DIM>& index,
                                 const Pitches<DIM - 1>& pitches,
                                 const Rect<DIM>& rect,
@@ -40,7 +40,7 @@ struct AdvancedIndexingImplBody<VariantKind::OMP, CODE, DIM, OUT_TYPE> {
                                 const size_t max_threads) const
   {
     ThreadLocalStorage<int64_t> sizes(max_threads);
-    thrust::fill(thrust::omp::par, sizes.begin(), sizes.end(), 0);
+    for (auto idx = 0; idx < max_threads; ++idx) sizes[idx] = 0;
 #pragma omp parallel
     {
       const int tid = omp_get_thread_num();
@@ -50,8 +50,14 @@ struct AdvancedIndexingImplBody<VariantKind::OMP, CODE, DIM, OUT_TYPE> {
         sizes[tid] += static_cast<int64_t>(index[p] && ((idx + 1) % skip_size == 0));
       }
     }  // end of parallel
-    size_t size = thrust::reduce(thrust::omp::par, sizes.begin(), sizes.end(), 0);
-    thrust::exclusive_scan(thrust::omp::par, sizes.begin(), sizes.end(), offsets.begin());
+    size_t size = 0;
+    for (auto idx = 0; idx < max_threads; ++idx) {
+      size += sizes[idx];
+      offsets[idx] = sizes[idx];
+    }
+
+    thrust::exclusive_scan(
+      thrust::omp::par, offsets.ptr(0), offsets.ptr(0) + max_threads, offsets.ptr(0));
 
     return size;
   }
@@ -71,7 +77,8 @@ struct AdvancedIndexingImplBody<VariantKind::OMP, CODE, DIM, OUT_TYPE> {
 
     const auto max_threads = omp_get_max_threads();
     const size_t volume    = rect.volume();
-    ThreadLocalStorage<int64_t> offsets(max_threads);
+    auto kind    = CuNumeric::has_numamem ? Memory::Kind::SOCKET_MEM : Memory::Kind::SYSTEM_MEM;
+    auto offsets = create_buffer<int64_t>(max_threads, kind);
     size_t size =
       compute_output_offsets(offsets, index, pitches, rect, volume, skip_size, max_threads);
 
