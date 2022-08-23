@@ -48,8 +48,6 @@ if TYPE_CHECKING:
     from legate.core._legion.future import Future
     from legate.core.operation import AutoTask, ManualTask
 
-    from .types import NdShapeLike
-
 _supported_dtypes = {
     np.bool_: ty.bool_,
     np.int8: ty.int8,
@@ -175,9 +173,7 @@ class Runtime(object):
     def _register_dtypes(self) -> None:
         type_system = self.legate_context.type_system
         for numpy_type, core_type in _supported_dtypes.items():
-            type_system.make_alias(
-                np.dtype(numpy_type), core_type  # type: ignore
-            )
+            type_system.make_alias(np.dtype(numpy_type), core_type)
 
         for dtype in _CUNUMERIC_DTYPES:
             type_system.add_type(dtype[0], dtype[1], dtype[2])
@@ -351,7 +347,7 @@ class Runtime(object):
 
     def get_next_random_epoch(self) -> int:
         result = self.current_random_epoch
-        # self.current_random_epoch += 1
+        self.current_random_epoch += 1
         return result
 
     def is_point_type(self, dtype: Union[str, np.dtype[Any]]) -> bool:
@@ -561,17 +557,15 @@ class Runtime(object):
 
     def create_empty_thunk(
         self,
-        shape: NdShapeLike,
+        shape: NdShape,
         dtype: np.dtype[Any],
         inputs: Optional[Sequence[NumPyThunk]] = None,
     ) -> NumPyThunk:
-        computed_shape = (shape,) if isinstance(shape, int) else shape
         if self.is_supported_type(dtype) and not (
-            self.is_eager_shape(computed_shape)
-            and self.are_all_eager_inputs(inputs)
+            self.is_eager_shape(shape) and self.are_all_eager_inputs(inputs)
         ):
             store = self.legate_context.create_store(
-                dtype, shape=computed_shape, optimize_scalar=True
+                dtype, shape=shape, optimize_scalar=True
             )
             return DeferredArray(self, store, dtype=dtype)
         else:

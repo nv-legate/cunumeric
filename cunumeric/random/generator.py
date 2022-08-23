@@ -28,6 +28,38 @@ if TYPE_CHECKING:
 
 class Generator:
     def __init__(self, bit_generator: BitGenerator) -> None:
+        """
+        Generator(bit_generator)
+
+        Container for the BitGenerators.
+
+        ``Generator`` exposes a number of methods for generating random numbers
+        drawn from a variety of probability distributions. In addition to the
+        distribution-specific arguments, each method takes a keyword argument
+        `size` that defaults to ``None``. If `size` is ``None``, then a single
+        value is generated and returned. If `size` is an integer, then a 1-D
+        array filled with generated values is returned. If `size` is a tuple,
+        then an array with that shape is filled and returned.
+
+
+        The function :func:`cunumeric.random.default_rng` will instantiate
+        a `Generator` with cuNumeric's default `BitGenerator`.
+
+        Parameters
+        ----------
+        bit_generator : BitGenerator
+            BitGenerator to use as the core generator.
+
+        See Also
+        --------
+        numpy.random.Generator
+        default_rng : Recommended constructor for `Generator`.
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         self.bit_generator = bit_generator
 
     def beta(
@@ -362,7 +394,40 @@ class Generator:
         return self.bit_generator.zipf(alpha=a, shape=size, dtype=dtype)
 
 
-def default_rng(seed: Union[int, None] = None) -> Generator:
+def default_rng(
+    seed: Union[None, int, BitGenerator, Generator] = None
+) -> Generator:
+    """
+    Construct a new Generator with the default BitGenerator (XORWOW).
+
+    Parameters
+    ----------
+    seed : {None, int,  BitGenerator, Generator}, optional
+        A seed to initialize the ``BitGenerator``. If ``None``, then fresh,
+        unpredictable entropy will be pulled from the OS.
+        Additionally, when passed a ``BitGenerator``, it will be wrapped by
+        ``Generator``. If passed a ``Generator``, it will be returned
+        unaltered.
+
+    Returns
+    -------
+    Generator
+        The initialized generator object.
+
+    Notes
+    -----
+    If ``seed`` is not a ``BitGenerator`` or a ``Generator``, a new
+    ``BitGenerator`` is instantiated. This function does not manage
+    a default global instance.
+
+    See Also
+    --------
+    numpy.random.default_rng
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
     if seed is None:
         return Generator(XORWOW())
     elif isinstance(seed, BitGenerator):

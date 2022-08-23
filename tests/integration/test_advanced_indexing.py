@@ -17,10 +17,204 @@ import random
 
 import numpy as np
 import pytest
+from pytest_lazyfixture import lazy_fixture
 from utils.generators import mk_seq_array
 
 import cunumeric as num
 from legate.core import LEGATE_MAX_DIM
+
+
+@pytest.fixture
+def arr_region():
+    return num.full((5,), 42)[2:3]
+
+
+@pytest.fixture
+def arr_future():
+    return num.full((1,), 42)
+
+
+@pytest.fixture
+def arr_empty1d():
+    return num.full((0), 0)
+
+
+idx_region_1d = num.zeros((3,), dtype=np.int64)[2:3]
+idx_future_1d = num.zeros((1,), dtype=np.int64)
+idx_region_0d = num.zeros((3,), dtype=np.int64)[2:3].reshape(())
+idx_future_0d = num.zeros((3,), dtype=np.int64).max()
+idx_empty_1d = num.array([], dtype=int)
+
+val_region_1d = num.full((3,), -1)[2:3]
+val_future_1d = num.full((1,), -1)
+val_region_0d = num.full((3,), -1)[2:3].reshape(())
+val_future_0d = num.full((3,), -1).max()
+
+
+# We use fixtures for `arr` because the `set_item` tests modify
+# their input.
+ARRS = (lazy_fixture("arr_region"), lazy_fixture("arr_future"))
+IDXS_0D = (idx_future_0d,)  # TODO: idx_region_0d fails
+VALS_0D = (val_future_0d,)  # TODO: val_region_0d fails
+IDXS_1D = (idx_region_1d, idx_future_1d)
+VALS_1D = (val_region_1d, val_future_1d)
+ARRS_EMPTY_1D = (
+    lazy_fixture("arr_empty1d"),
+    lazy_fixture("arr_region"),
+    lazy_fixture("arr_future"),
+)
+IDXS_EMPTY_1D = (idx_empty_1d,)
+VALS_EMPTY_1D = (num.array([]),)
+
+
+@pytest.mark.parametrize("idx", IDXS_0D)  # idx = 0
+@pytest.mark.parametrize("arr", ARRS)  # arr = [42]
+def test_getitem_scalar_0d(arr, idx):
+    assert np.array_equal(arr[idx], 42)
+
+
+@pytest.mark.parametrize("val", VALS_0D)  # val = -1
+@pytest.mark.parametrize("idx", IDXS_0D)  # idx = 0
+@pytest.mark.parametrize("arr", ARRS)  # arr = [42]
+def test_setitem_scalar_0d(arr, idx, val):
+    arr[idx] = val
+    assert np.array_equal(arr, [-1])
+
+
+@pytest.mark.parametrize("idx", IDXS_1D)  # idx = [0]
+@pytest.mark.parametrize("arr", ARRS)  # arr = [42]
+def test_getitem_scalar_1d(arr, idx):
+    assert np.array_equal(arr[idx], [42])
+
+
+@pytest.mark.parametrize("val", VALS_1D)  # val = [-1]
+@pytest.mark.parametrize("idx", IDXS_1D)  # idx = [0]
+@pytest.mark.parametrize("arr", ARRS)  # arr = [42]
+def test_setitem_scalar_1d(arr, idx, val):
+    arr[idx] = val
+    assert np.array_equal(arr, [-1])
+
+
+@pytest.mark.parametrize("idx", IDXS_EMPTY_1D)  # idx = []
+@pytest.mark.parametrize("arr", ARRS_EMPTY_1D)  # arr = [42], [5], []
+def test_getitem_empty_1d(arr, idx):
+    assert np.array_equal(arr[idx], [])
+
+
+@pytest.mark.parametrize("idx", IDXS_EMPTY_1D)  # idx = []
+@pytest.mark.parametrize("arr", ARRS_EMPTY_1D)  # arr = []
+@pytest.mark.parametrize("val", VALS_EMPTY_1D)  # val = []
+def test_setitem_empty_1d(arr, idx, val):
+    arr[idx] = val
+    assert np.array_equal(arr[idx], [])
+
+
+def mk_deferred_array(lib, shape):
+    if np.prod(shape) != 0:
+        return lib.ones(shape)
+    # for shape (2,0,3,4): good_shape = (2,1,3,4)
+    good_shape = tuple(max(1, dim) for dim in shape)
+    # for shape (2,0,3,4): key = [:,[False],:,:]
+    key = tuple([False] if dim == 0 else slice(None) for dim in shape)
+    return lib.ones(good_shape)[key]
+
+
+def gen_args():
+    for arr_ndim in range(1, LEGATE_MAX_DIM + 1):
+        for idx_ndim in range(1, arr_ndim + 1):
+            for zero_dim in range(arr_ndim):
+                yield arr_ndim, idx_ndim, zero_dim
+
+
+@pytest.mark.parametrize("arr_ndim,idx_ndim,zero_dim", gen_args())
+def test_zero_size(arr_ndim, idx_ndim, zero_dim):
+    arr_shape = tuple(0 if dim == zero_dim else 3 for dim in range(arr_ndim))
+    np_arr = mk_deferred_array(np, arr_shape)
+    num_arr = mk_deferred_array(num, arr_shape)
+    idx_shape = arr_shape[:idx_ndim]
+    val_shape = (
+        arr_shape
+        if idx_ndim == 1
+        else (np.prod(idx_shape),) + arr_shape[idx_ndim:]
+    )
+    np_idx = np.ones(idx_shape, dtype=np.bool_)
+    num_idx = num.ones(idx_shape, dtype=np.bool_)
+    assert np.array_equal(np_arr[np_idx], num_arr[num_idx])
+
+    np_val = np.random.random(val_shape)
+    num_val = num.array(np_val)
+    np_arr[np_idx] = np_val
+    num_arr[num_idx] = num_val
+    assert np.array_equal(np_arr, num_arr)
+
+
+def test_empty_bool():
+    # empty arrays and indices
+    arr_np = np.array([[]])
+    arr_num = num.array([[]])
+    idx_np = np.array([[]], dtype=bool)
+    idx_num = num.array([[]], dtype=bool)
+    res_np = arr_np[idx_np]
+    res_num = arr_num[idx_num]
+    assert np.array_equal(res_np, res_num)
+
+    res_np = res_np.reshape((0,))
+    res_num = res_num.reshape((0,))
+
+    # set_item
+    val_np = np.array([])
+    val_num = num.array([])
+    arr_np[idx_np] = val_np
+    arr_num[idx_num] = val_num
+    assert np.array_equal(arr_np, arr_num)
+
+    # empty output
+    arr_np = np.array([[-1]])
+    arr_num = num.array([[-1]])
+    idx_np = np.array([[False]], dtype=bool)
+    idx_num = num.array([[False]], dtype=bool)
+    res_np = arr_np[idx_np]
+    res_num = arr_num[idx_num]
+    assert np.array_equal(res_np, res_num)
+
+    arr_np[idx_np] = val_np
+    arr_num[idx_num] = val_num
+    assert np.array_equal(arr_np, arr_num)
+
+
+def test_future_stores():
+    # array is a future:
+    arr_np = np.array([4])
+    index_np = np.zeros(8, dtype=int)
+    arr_num = num.array(arr_np)
+    index_num = num.array(index_np)
+    res_np = arr_np[index_np]
+    res_num = arr_num[index_num]
+    assert np.array_equal(res_np, res_num)
+
+    # index and array and lhs are futures:
+    res_np = arr_np[index_np[1]]
+    res_num = arr_num[index_num[1]]
+    assert np.array_equal(res_np, res_num)
+
+    # all futures
+    b_np = np.array([10, 11, 12])
+    b_num = num.array(b_np)
+    arr_np[index_np[1]] = b_np[0]
+    arr_num[index_num[1]] = b_num[0]
+    assert np.array_equal(arr_np, arr_num)
+
+    # index and lhs are futures:
+    arr_np = np.array([4, 3, 2, 1])
+    arr_num = num.array(arr_np)
+    res_np = arr_np[index_np[3]]
+    res_num = arr_num[index_num[3]]
+    assert np.array_equal(res_np, res_num)
+
+    # rhs is a future
+    arr_np[index_np[3]] = b_np[2]
+    arr_num[index_num[3]] = b_num[2]
+    assert np.array_equal(arr_np, arr_num)
 
 
 def test():

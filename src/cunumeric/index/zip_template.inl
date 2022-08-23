@@ -67,12 +67,12 @@ struct ZipImpl {
 template <VariantKind KIND>
 static void zip_template(TaskContext& context)
 {
-  // Here `N` is the number of dimenstions of the input array and the number
+  // Here `N` is the number of dimensions of the input array and the number
   // of dimensions of the Point<N> field
   // key_dim - is the number of dimensions of the index arrays before
   // they were broadcasted to the shape of the input array (shape of
   // all index arrays should be the same))
-  // start index - is the index from wich first index array was passed
+  // start index - is the index from which first index array was passed
   // DIM - dimension of the output array
   //
   // for the example:
@@ -95,7 +95,11 @@ static void zip_template(TaskContext& context)
   int64_t start_index = context.scalars()[2].value<int64_t>();
   auto shape          = context.scalars()[3].value<DomainPoint>();
   ZipArgs args{context.outputs()[0], context.inputs(), N, key_dim, start_index, shape};
-  double_dispatch(args.inputs[0].dim(), N, ZipImpl<KIND>{}, args);
+  int dim = args.inputs[0].dim();
+  // if scalar passed as an input, convert it to the array size 1
+  if (dim == 0) { dim = 1; }
+
+  double_dispatch(dim, N, ZipImpl<KIND>{}, args);
 }
 
 }  // namespace cunumeric

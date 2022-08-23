@@ -20,6 +20,7 @@ import cunumeric as num
 
 SQUARE_CASES = [
     (10, 5, 2),
+    (-1, 5, 2),
     (5, 2, 10),
     (5, 2, 5, 2),
     (10, 10, 1),
@@ -33,35 +34,78 @@ class TestSquare:
     anp = np.arange(100).reshape(10, 10)
 
     def test_basic(self):
-        a = num.arange(100).reshape((10, 10))
+        a = num.arange(100).reshape(10, 10)
         assert np.array_equal(self.anp, a)
 
     @pytest.mark.parametrize("shape", SQUARE_CASES, ids=str)
     def test_shape(self, shape):
-        a = num.arange(100).reshape((10, 10))
+        a = num.arange(100).reshape(10, 10)
         assert np.array_equal(
             num.reshape(a, shape),
             np.reshape(self.anp, shape),
         )
 
     def test_1d(self):
-        a = num.arange(100).reshape((10, 10))
+        a = num.arange(100).reshape(10, 10)
         assert np.array_equal(
             num.reshape(a, (100,)),
             np.reshape(self.anp, (100,)),
         )
 
     def test_ravel(self):
-        a = num.arange(100).reshape((10, 10))
+        a = num.arange(100).reshape(10, 10)
         assert np.array_equal(
             num.ravel(a),
             np.ravel(self.anp),
         )
 
+        i = num.array(
+            [
+                False,
+                False,
+                False,
+                False,
+                False,
+                False,
+                False,
+                False,
+                False,
+                False,
+            ]
+        )
+        inp = np.array(
+            [
+                False,
+                False,
+                False,
+                False,
+                False,
+                False,
+                False,
+                False,
+                False,
+                False,
+            ]
+        )
+        b = a[i, :]
+        bnp = self.anp[inp, :]
+        assert np.array_equal(b.ravel(), bnp.ravel())
+
+        assert np.array_equal(b.reshape((0,)), bnp.reshape((0,)))
+
+        a = num.full((3, 0), 1, dtype=int)
+        anp = np.full((3, 0), 1, dtype=int)
+        assert np.array_equal(num.ravel(a), np.ravel(anp))
+
+        a = num.full((0, 3), 1, dtype=int)
+        anp = np.full((0, 3), 1, dtype=int)
+        assert np.array_equal(a.ravel(), anp.ravel())
+
 
 RECT_CASES = [
     (10, 2, 10),
     (20, 10),
+    (20, -5),
     (5, 40),
     (200, 1),
     (1, 200),

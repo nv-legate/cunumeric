@@ -14,7 +14,7 @@
 #
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Dict, Literal, Sequence, Union
+from typing import TYPE_CHECKING, Any, Dict, Sequence, Union
 
 import numpy as np
 
@@ -25,9 +25,8 @@ from ..types import NdShape
 if TYPE_CHECKING:
     import numpy.typing as npt
 
-CastingKind = Union[
-    Literal["no", "equiv", "safe", "same_kind", "unsafe"], None
-]
+    from ..types import CastingKind
+
 
 _UNARY_DOCSTRING_TEMPLATE = """{}
 

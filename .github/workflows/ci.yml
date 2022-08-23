@@ -1,5 +1,5 @@
 name: Build cunumeric
-on: 
+on:
   push:
     branches-ignore:
       - gh-pages  # deployment target branch (this workflow should not exist on that branch anyway)
@@ -65,17 +65,17 @@ jobs:
     if: ${{ github.repository == 'nv-legate/cunumeric' }}
     runs-on: self-hosted
     needs: build
-    strategy: 
+    strategy:
       fail-fast: false
       matrix:
         include:
-          - {name: 1 CPU test, options: --cpus 1 --unit, log: cpu}
-          - {name: 2 CPUs test, options: --cpus 2, log: cpus}
-          - {name: GPU test, options: --use cuda --gpus 1, log: gpu}
-          - {name: 2 GPUs test, options: --use cuda --gpus 2, log: gpus}
-          - {name: OpenMP test, options: --use openmp --omps 1 --ompthreads 2, log: omp}
-          - {name: 2 OpenMPs test, options: --use openmp --omps 2 --ompthreads 2, log: omps}
-          - {name: Eager execution test, options: --use eager, log: eager}
+          - {name: 1 CPU test, options: --cpus 1 --unit --debug, log: cpu}
+          - {name: 2 CPUs test, options: --cpus 2 --debug, log: cpus}
+          - {name: GPU test, options: --use cuda --gpus 1 --debug, log: gpu}
+          - {name: 2 GPUs test, options: --use cuda --gpus 2 --debug, log: gpus}
+          - {name: OpenMP test, options: --use openmp --omps 1 --ompthreads 2 --debug, log: omp}
+          - {name: 2 OpenMPs test, options: --use openmp --omps 2 --ompthreads 2 --debug, log: omps}
+          - {name: Eager execution test, options: --use eager --debug, log: eager}
           - {name: mypy, options: mypy, log: mypy}
     name: ${{ matrix.name }}
     steps:
@@ -116,7 +116,7 @@ jobs:
       - name: Test
         run: |
           cd legate-ci/github-ci/cunumeric
-          ./test.sh ${{ matrix.options }} -j 1 > ${COMMIT}-test-${{ matrix.log }}.log 2>&1
+          ./test.sh ${{ matrix.options }} > ${COMMIT}-test-${{ matrix.log }}.log 2>&1
       - name: Process output
         if: always()
         run: |

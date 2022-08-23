@@ -12,18 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import sys
+
 import numpy as np
 import pytest
 from utils.random import ModuleGenerator, assert_distribution
 
 import cunumeric as num
 
-BITGENERATOR_ARGS = [
-    ModuleGenerator,
-    num.random.XORWOW,
-    num.random.MRG32k3a,
-    num.random.PHILOX4_32_10,
-]
+if sys.platform == "darwin":
+    pytestmark = pytest.mark.skip()
+    BITGENERATOR_ARGS = []
+else:
+    BITGENERATOR_ARGS = [
+        ModuleGenerator,
+        num.random.XORWOW,
+        num.random.MRG32k3a,
+        num.random.PHILOX4_32_10,
+    ]
 
 
 @pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
@@ -79,6 +85,9 @@ def test_integers_int16(t):
 
 @pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
 def test_random_float32(t):
+    # top-level random function has a different signature
+    if t is ModuleGenerator:
+        return
     bitgen = t(seed=42)
     gen = num.random.Generator(bitgen)
     a = gen.random(size=(1024 * 1024,), dtype=np.float32)
@@ -87,6 +96,9 @@ def test_random_float32(t):
 
 @pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
 def test_random_float64(t):
+    # top-level random function has a different signature
+    if t == ModuleGenerator:
+        return
     bitgen = t(seed=42)
     gen = num.random.Generator(bitgen)
     a = gen.random(size=(1024 * 1024,), dtype=np.float64)

@@ -36,7 +36,7 @@ ARRAYS_4_3_2_1_0 = [
 def test_scalar_ndarray_as_index(arr):
     offsets = num.arange(5)  # [0, 1, 2, 3, 4]
     offset = offsets[3]  # 3
-    # assert arr[offset] == 1  # TODO: doesn't work when arr is a num.ndarray
+    assert np.array_equal(arr[offset], 1)
     assert np.array_equal(arr[offset - 2 : offset], [3, 2])
 
 
