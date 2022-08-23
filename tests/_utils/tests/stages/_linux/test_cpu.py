@@ -27,22 +27,41 @@ from .. import FakeSystem
 
 def test_default() -> None:
     c = Config([])
-    s = FakeSystem()
+    s = FakeSystem(cpus=12)
     stage = m.CPU(c, s)
     assert stage.kind == "cpus"
     assert stage.args == ["-cunumeric:test"]
     assert stage.env(c, s) == UNPIN_ENV
     assert stage.spec.workers > 0
 
+    shard = [(1, 2, 3), "1,2,3"]
+    assert "--cpu-bind" in stage.shard_args(shard, c)
 
-def test_strict_pin() -> None:
-    c = Config(["test.py", "--strict-pin"])
-    s = FakeSystem()
+
+def test_cpu_pin_strict() -> None:
+    c = Config(["test.py", "--cpu-pin", "strict"])
+    s = FakeSystem(cpus=12)
     stage = m.CPU(c, s)
     assert stage.kind == "cpus"
     assert stage.args == ["-cunumeric:test"]
     assert stage.env(c, s) == {}
     assert stage.spec.workers > 0
+
+    shard = [(1, 2, 3), "1,2,3"]
+    assert "--cpu-bind" in stage.shard_args(shard, c)
+
+
+def test_cpu_pin_none() -> None:
+    c = Config(["test.py", "--cpu-pin", "none"])
+    s = FakeSystem(cpus=12)
+    stage = m.CPU(c, s)
+    assert stage.kind == "cpus"
+    assert stage.args == ["-cunumeric:test"]
+    assert stage.env(c, s) == UNPIN_ENV
+    assert stage.spec.workers > 0
+
+    shard = [(1, 2, 3), "1,2,3"]
+    assert "--cpu-bind" not in stage.shard_args(shard, c)
 
 
 @pytest.mark.parametrize("shard,expected", [[(2,), "2"], [(1, 2, 3), "1,2,3"]])

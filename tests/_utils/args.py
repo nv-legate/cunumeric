@@ -18,7 +18,18 @@
 from __future__ import annotations
 
 from argparse import Action, ArgumentParser, Namespace
-from typing import Any, Generic, Iterable, Iterator, Sequence, TypeVar, Union
+from typing import (
+    Any,
+    Generic,
+    Iterable,
+    Iterator,
+    Literal,
+    Sequence,
+    TypeVar,
+    Union,
+)
+
+from typing_extensions import TypeAlias
 
 from . import (
     DEFAULT_CPUS_PER_NODE,
@@ -31,6 +42,18 @@ from . import (
 )
 
 T = TypeVar("T")
+
+PinOptionsType: TypeAlias = Union[
+    Literal["auto"],
+    Literal["none"],
+    Literal["strict"],
+]
+
+PIN_OPTIONS: tuple[PinOptionsType, ...] = (
+    "auto",
+    "none",
+    "strict",
+)
 
 
 class MultipleChoices(Generic[T]):
@@ -166,13 +189,11 @@ feature_opts.add_argument(
 
 
 feature_opts.add_argument(
-    "--strict-pin",
-    dest="strict_pin",
-    action="store_true",
-    help=(
-        "Pin all cores and including Python processor "
-        "(linux CPU and OMP only)"
-    ),
+    "--cpu-pin",
+    dest="cpu_pin",
+    choices=PIN_OPTIONS,
+    default="auto",
+    help="CPU pinning behavior on platforms that support CPU pinning",
 )
 
 feature_opts.add_argument(
