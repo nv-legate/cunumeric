@@ -24,6 +24,8 @@ Searching
 
    argmax
    argmin
+   argwhere
+   flatnonzero
    nonzero
    searchsorted
    where
