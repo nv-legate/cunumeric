@@ -37,6 +37,16 @@ def test_permutation_array():
   assert(num.linalg.norm(x-p) == 0.0)
 
 
+def test_shuffle():
+  count = 16
+  p = num.arange(count)
+  x = num.arange(count)
+  num.random.shuffle(x)
+  assert(num.linalg.norm(x-p) != 0.0)
+  x.sort()
+  assert(num.linalg.norm(x-p) == 0.0)
+
+
 if __name__ == "__main__":
     import sys
 

@@ -1291,6 +1291,11 @@ def rayleigh(
 sample = random_sample
 
 
+def shuffle(a : ndarray) -> None:
+    b = cunumeric.random.permutation(a)
+    a[:] = b
+
+
 def standard_cauchy(
     size: Union[NdShapeLike, None] = None,
     dtype: npt.DTypeLike = np.float64,
