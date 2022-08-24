@@ -355,6 +355,7 @@ target_link_libraries(cunumeric
           $<TARGET_NAME_IF_EXISTS:conda_env>
           $<TARGET_NAME_IF_EXISTS:CUDA::cufft>
           $<TARGET_NAME_IF_EXISTS:CUDA::cublas>
+          $<TARGET_NAME_IF_EXISTS:CUDA::curand>
           $<TARGET_NAME_IF_EXISTS:CUDA::cusolver>
           $<TARGET_NAME_IF_EXISTS:OpenMP::OpenMP_CXX>
           $<TARGET_NAME_IF_EXISTS:cutensor::cutensor>)
