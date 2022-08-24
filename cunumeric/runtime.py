@@ -176,7 +176,7 @@ class Runtime(object):
             type_system.make_alias(np.dtype(numpy_type), core_type)
 
         for dtype in _CUNUMERIC_DTYPES:
-            type_system.add_type(dtype[0], dtype[1], dtype[2])
+            type_system.add_type(dtype[0], int(dtype[1]), int(dtype[2]))
 
     def get_point_type(self, n: int) -> np.dtype[Any]:
         type_system = self.legate_context.type_system
