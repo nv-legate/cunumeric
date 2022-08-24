@@ -51,19 +51,24 @@ class CPU(TestStage):
         self._init(config, system)
 
     def env(self, config: Config, system: System) -> EnvDict:
-        return {} if config.strict_pin else dict(UNPIN_ENV)
+        return {} if config.cpu_pin == "strict" else dict(UNPIN_ENV)
 
     def shard_args(self, shard: Shard, config: Config) -> ArgList:
-        return [
+        args = [
             "--cpus",
             str(config.cpus),
-            "--cpu-bind",
-            ",".join(str(x) for x in shard),
         ]
+        if config.cpu_pin != "none":
+            args += [
+                "--cpu-bind",
+                ",".join(str(x) for x in shard),
+            ]
+        return args
 
     def compute_spec(self, config: Config, system: System) -> StageSpec:
         cpus = system.cpus
-        procs = config.cpus + config.utility + int(config.strict_pin)
+
+        procs = config.cpus + config.utility + int(config.cpu_pin == "strict")
         workers = adjust_workers(len(cpus) // procs, config.requested_workers)
 
         shards: list[tuple[int, ...]] = []

@@ -45,6 +45,26 @@ def test_condition(cond):
     assert np.array_equal(np.where(anp, xnp, ynp), num.where(a, x, y))
 
 
+INPUT = [
+    [1, 54, 4, 4, 0, 45, 5, 58, 0, 9, 0, 4, 0, 0, 0, 5, 0, 1],
+    [[1, 54, 4], [4, 0, 45], [5, 58, 0], [9, 0, 4], [0, 0, 0], [5, 0, 1]],
+    [
+        [[1, 54, 4], [4, 0, 45]],
+        [[5, 58, 0], [9, 0, 4]],
+        [[0, 0, 0], [5, 0, 1]],
+    ],
+    [[[1 + 2j, 54, 4], [4, 0 + 1j, 45]], [[5, 58, 0], [9, 0, 4]]],
+    [[True, False], [True, True], [True, False]],
+]
+
+
+@pytest.mark.parametrize("input", INPUT, ids=str)
+def test_argwhere(input):
+    anp = np.array(input)
+    a = num.array(anp)
+    assert np.array_equal(np.argwhere(anp), num.argwhere(a))
+
+
 @pytest.mark.skip
 def test_extract():
     cnp = np.array(
