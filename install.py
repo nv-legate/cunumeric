@@ -239,12 +239,12 @@ def install_cunumeric(
     # A custom path to cuRAND is ignored when CUDA support is available
     if cuda and curand_dir is not None:
         cmake_flags += ["-Dcunumeric_cuRAND_INCLUDE_DIR=%s" % curand_dir]
-    if legate_dir and (
+    if legate_dir:
         # TODO: Undo this! Only setting temporarily so CI passes
-        exists(join(legate_dir, "lib", "cmake", "legate_core"))
-        or exists(join(legate_dir, "build", "legate_core-config.cmake"))
-    ):
-        cmake_flags += ["-Dlegate_core_ROOT=%s" % legate_dir]
+        if exists(join(legate_dir, "lib", "cmake", "legate_core")):
+            cmake_flags += ["-Dlegate_core_ROOT=%s" % legate_dir]
+        elif exists(join(legate_dir, "legate_core-config.cmake")):
+            cmake_flags += ["-Dlegate_core_ROOT=%s" % legate_dir]
     if legate_url:
         cmake_flags += ["-Dcunumeric_LEGATE_CORE_REPOSITORY=%s" % legate_url]
     if legate_branch:
@@ -310,7 +310,7 @@ def driver():
         required=False,
         # TODO: Undo this! Only setting temporarily so CI passes
         # default="https://github.com/nv-legate/legate.core.git",
-        default="https://github.com/trxcllnt/legate.core.git",
+        default="https://github.com/jjwilke/legate.core.git",
         help="Legate git URL to build cuNumeric with.",
     )
     parser.add_argument(
@@ -319,7 +319,7 @@ def driver():
         required=False,
         # TODO: Undo this! Only setting temporarily so CI passes
         # default="branch-22.07",
-        default="fea/add-cmake",
+        default="add-cmake-pr",
         help="Legate branch to build cuNumeric with.",
     )
     parser.add_argument(
