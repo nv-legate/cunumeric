@@ -26,6 +26,13 @@ if(POLICY CMP0096)
   set(CMAKE_POLICY_DEFAULT_CMP0096 NEW)
 endif()
 
+if(POLICY CMP0135)
+  # make the timestamps of ExternalProject_ADD match the download time
+  # https://cmake.org/cmake/help/latest/policy/CMP0135.html
+  cmake_policy(SET CMP0135 NEW)
+  set(CMAKE_POLICY_DEFAULT_CMP0135 NEW)
+endif()
+
 ##############################################################################
 # - Download and initialize RAPIDS CMake helpers -----------------------------
 
