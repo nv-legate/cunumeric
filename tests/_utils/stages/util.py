@@ -16,7 +16,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import timedelta
-from pathlib import Path
 from typing import Tuple, Union
 
 from typing_extensions import TypeAlias
@@ -66,6 +65,24 @@ class StageResult:
 
 
 def adjust_workers(workers: int, requested_workers: Union[int, None]) -> int:
+    """Adjust computed workers according to command line requested workers.
+
+    The final number of workers will only be adjusted down by this function.
+
+    Parameters
+    ----------
+    workers: int
+        The computed number of workers to use
+
+    requested_workers: int | None, optional
+        Requested number of workers from the user, if supplied (default: None)
+
+    Returns
+    -------
+    int
+        The number of workers to actually use
+
+    """
     if requested_workers is not None and requested_workers < 0:
         raise ValueError("requested workers must be non-negative")
 
@@ -83,12 +100,13 @@ def adjust_workers(workers: int, requested_workers: Union[int, None]) -> int:
 
 
 def log_proc(
-    name: str, proc: ProcessResult, test_file: Path, config: Config
+    name: str, proc: ProcessResult, config: Config, *, verbose: bool
 ) -> None:
+    """Log a process result according to the current configuration"""
     if config.debug or config.dry_run:
         LOG(shell(proc.invocation))
-    msg = f"({name}) {test_file}"
-    details = proc.output.split("\n") if config.verbose else None
+    msg = f"({name}) {proc.test_file}"
+    details = proc.output.split("\n") if verbose else None
     if proc.skipped:
         LOG(skipped(msg))
     elif proc.returncode == 0:
