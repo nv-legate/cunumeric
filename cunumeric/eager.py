@@ -1622,13 +1622,13 @@ class EagerArray(NumPyThunk):
         if self.deferred is not None:
             self.deferred._wrap(src, new_len)
         else:
-            src.array = np.ravel(src.array)
-            if src.size == new_len:
-                self.array[:] = src.array[:]
-            elif src.array.size > new_len:
-                self.array[:] = src.array[:new_len]
+            src_flat = np.ravel(src.array)
+            if src_flat.size == new_len:
+                self.array[:] = src_flat[:]
+            elif src_flat.size > new_len:
+                self.array[:] = src_flat[:new_len]
             else:
-                out = src
-                while out.array.size < new_len:
-                    out.array = np.concatenate((out.array, src.array), axis=0)
-                self.array[:] = out.array[0:new_len]
+                reps = (new_len + src_flat.size - 1) // src_flat.size
+                if reps > 1:
+                    src_flat = np.tile(src_flat, reps)
+                self.array[:] = src_flat[:new_len]

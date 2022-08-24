@@ -3280,9 +3280,7 @@ def diagonal(
 
 
 @add_boilerplate("a", "val")
-def fill_diagonal(
-    a: ndarray, val: ndarray, wrap: Optional[bool] = False
-) -> None:
+def fill_diagonal(a: ndarray, val: ndarray, wrap: bool = False) -> None:
     """
     Fill the main diagonal of the given array of any dimensionality.
 
@@ -3301,9 +3299,7 @@ def fill_diagonal(
         If array-like, the flattened val is written along
         the diagonal, repeating if necessary to fill all diagonal entries.
     wrap : bool
-        For tall matrices (2d) the diagonal “wrapped” after N columns.
-        You can have this behavior with this option. This affects
-        only tall matrices.
+        If true, the diagonal "wraps" after N columns, for tall 2d matrices.
 
     Raises
     ------
@@ -3335,15 +3331,12 @@ def fill_diagonal(
                 )
 
         if wrap:
-            raise ValueError("wrap can be set to True only for tall matrices")
-
-    idx = arange(n, dtype=int)
-    indices = (idx,) * a.ndim
+            raise ValueError("wrap can be set to True only for 2d matrices")
 
     len_val = n
 
     if wrap and a.shape[0] > a.shape[1]:
-        len_val = a.shape[0] - int(a.shape[0] / (a.shape[1] + 1))
+        len_val = a.shape[0] - (a.shape[0] // (a.shape[1] + 1))
 
     if (val.size != len_val and val.ndim > 0) or val.ndim > 1:
         val = val._wrap(len_val)
@@ -3351,13 +3344,16 @@ def fill_diagonal(
     if a.ndim == 2 and wrap and a.shape[0] > a.shape[1]:
         idx0_tmp = arange(a.shape[1], dtype=int)
         idx0 = idx0_tmp.copy()
-        while idx0.size < a.shape[0]:
+        while idx0.size < len_val:
             idx0_tmp = idx0_tmp + (a.shape[1] + 1)
             idx0 = hstack((idx0, idx0_tmp))
         idx0 = idx0[0:len_val]
         idx1 = arange(len_val, dtype=int) % a.shape[1]
         a[idx0, idx1] = val
     else:
+        idx = arange(n, dtype=int)
+        indices = (idx,) * a.ndim
+
         a[indices] = val
 
 
