@@ -3255,9 +3255,9 @@ class DeferredArray(NumPyThunk):
     @auto_convert([1])
     def _wrap(self, src: Any, new_len: int) -> None:
         if src.base.kind == Future or src.base.transformed:
-            src = self._convert_future_to_store(src)
+            src = src._convert_future_to_regionfield()
         if self.base.kind == Future or self.base.transformed:
-            lhs = src._convert_future_to_store(self)
+            lhs = self._convert_future_to_regionfield()
         else:
             lhs = self
 
