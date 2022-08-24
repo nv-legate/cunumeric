@@ -52,12 +52,9 @@ struct AdvancedIndexingImplBody<VariantKind::OMP, CODE, DIM, OUT_TYPE> {
     }  // end of parallel
     size_t size = 0;
     for (auto idx = 0; idx < max_threads; ++idx) {
+      offsets[idx] = size;
       size += sizes[idx];
-      offsets[idx] = sizes[idx];
     }
-
-    thrust::exclusive_scan(
-      thrust::omp::par, offsets.ptr(0), offsets.ptr(0) + max_threads, offsets.ptr(0));
 
     return size;
   }
