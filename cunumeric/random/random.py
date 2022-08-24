@@ -20,6 +20,7 @@ import numpy as np
 from cunumeric.array import ndarray
 from cunumeric.runtime import runtime
 
+import cunumeric.sort
 from cunumeric.random import generator
 
 if TYPE_CHECKING:
@@ -922,6 +923,19 @@ def pareto(
     Multiple GPUs, Multiple CPUs
     """
     return generator.get_static_generator().pareto(a, size, dtype)
+
+
+def permuation(x: Union[int, ndarray]) -> ndarray:
+    if x is int:
+        count = x
+    else:
+        count = len(x)
+    key = uniform(0.0, 1.0, count)
+    indices = cunumeric.argsort(key)
+    if x is int:
+        return indices
+    else:
+        return x[indices]
 
 
 def poisson(
