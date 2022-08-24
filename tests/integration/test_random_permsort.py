@@ -12,39 +12,106 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import sys
-
 import numpy as np
 import pytest
-from utils.random import ModuleGenerator, assert_distribution
 
 import cunumeric as num
 
 
 def test_permutation_int():
-  count = 1024
-  p = num.random.permutation(count)
-  p.sort()
-  assert(num.linalg.norm(p - np.arange(count)) == 0.0)
+    count = 1024
+    p = num.random.permutation(count)
+    p.sort()
+    assert num.linalg.norm(p - np.arange(count)) == 0.0
 
 
 def test_permutation_array():
-  count = 1024
-  x = num.arange(count)
-  p = num.random.permutation(x)
-  assert(num.linalg.norm(x-p) != 0.0)
-  p.sort()
-  assert(num.linalg.norm(x-p) == 0.0)
+    count = 1024
+    x = num.arange(count)
+    p = num.random.permutation(x)
+    assert num.linalg.norm(x - p) != 0.0
+    p.sort()
+    assert num.linalg.norm(x - p) == 0.0
 
 
 def test_shuffle():
-  count = 16
-  p = num.arange(count)
-  x = num.arange(count)
-  num.random.shuffle(x)
-  assert(num.linalg.norm(x-p) != 0.0)
-  x.sort()
-  assert(num.linalg.norm(x-p) == 0.0)
+    count = 16
+    p = num.arange(count)
+    x = num.arange(count)
+    num.random.shuffle(x)
+    assert num.linalg.norm(x - p) != 0.0
+    x.sort()
+    assert num.linalg.norm(x - p) == 0.0
+
+
+maxvalue = 1024
+count = 42
+
+
+def test_choice_1():
+    a = num.random.choice(maxvalue, count)
+    assert len(a) == count
+    assert num.amax(a) <= maxvalue
+    assert num.amin(a) >= 0
+
+
+def test_choice_2():
+    a = num.random.choice(maxvalue, count, False)
+    assert len(a) == count
+    assert num.amax(a) <= maxvalue
+    assert num.amin(a) >= 0
+    for i in range(count):
+        for j in range(count):
+            if i == j:
+                continue
+            assert a[i] != a[j]
+
+
+def test_choice_3():
+    values = num.random.random_integers(0, maxvalue, maxvalue)
+
+    a = num.random.choice(values, count)
+    assert len(a) == count
+    assert num.amax(a) <= maxvalue
+    assert num.amin(a) >= 0
+
+
+def test_choice_4():
+    values = num.arange(maxvalue)
+
+    a = num.random.choice(values, count, False)
+    assert len(a) == count
+    assert num.amax(a) <= maxvalue
+    assert num.amin(a) >= 0
+    for i in range(count):
+        for j in range(count):
+            if i == j:
+                continue
+            assert a[i] != a[j]
+
+
+def test_choice_5():
+    values = num.arange(maxvalue)
+
+    p = num.random.uniform(0, 1, maxvalue)
+    p /= p.sum()
+
+    a = num.random.choice(values, count, True, p)
+    assert len(a) == count
+    assert num.amax(a) <= maxvalue
+    assert num.amin(a) >= 0
+
+
+def test_choice_6():
+    values = num.random.random_integers(0, maxvalue, maxvalue)
+
+    p = num.random.uniform(0, 1, maxvalue)
+    p /= p.sum()
+
+    a = num.random.choice(values, count, True, p)
+    assert len(a) == count
+    assert num.amax(a) <= maxvalue
+    assert num.amin(a) >= 0
 
 
 if __name__ == "__main__":
