@@ -44,13 +44,13 @@ from . import (
 T = TypeVar("T")
 
 PinOptionsType: TypeAlias = Union[
-    Literal["auto"],
+    Literal["partial"],
     Literal["none"],
     Literal["strict"],
 ]
 
 PIN_OPTIONS: tuple[PinOptionsType, ...] = (
-    "auto",
+    "partial",
     "none",
     "strict",
 )
@@ -192,7 +192,7 @@ feature_opts.add_argument(
     "--cpu-pin",
     dest="cpu_pin",
     choices=PIN_OPTIONS,
-    default="auto",
+    default="partial",
     help="CPU pinning behavior on platforms that support CPU pinning",
 )
 

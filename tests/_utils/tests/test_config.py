@@ -47,7 +47,7 @@ class TestConfig:
 
         assert c.cpus == DEFAULT_CPUS_PER_NODE
         assert c.gpus == DEFAULT_GPUS_PER_NODE
-        assert c.cpu_pin == "auto"
+        assert c.cpu_pin == "partial"
         assert c.gpu_delay == DEFAULT_GPU_DELAY
         assert c.fbmem == DEFAULT_GPU_MEMORY_BUDGET
         assert c.omps == DEFAULT_OMPS_PER_NODE

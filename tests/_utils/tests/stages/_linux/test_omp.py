@@ -34,7 +34,7 @@ def test_default() -> None:
     assert stage.env(c, s) == UNPIN_ENV
     assert stage.spec.workers > 0
 
-    shard = [(1, 2, 3), "1,2,3"]
+    shard = (1, 2, 3)
     assert "--cpu-bind" in stage.shard_args(shard, c)
 
 
@@ -47,7 +47,7 @@ def test_cpu_pin_strict() -> None:
     assert stage.env(c, s) == {}
     assert stage.spec.workers > 0
 
-    shard = [(1, 2, 3), "1,2,3"]
+    shard = (1, 2, 3)
     assert "--cpu-bind" in stage.shard_args(shard, c)
 
 
@@ -60,7 +60,7 @@ def test_cpu_pin_none() -> None:
     assert stage.env(c, s) == UNPIN_ENV
     assert stage.spec.workers > 0
 
-    shard = [(1, 2, 3), "1,2,3"]
+    shard = (1, 2, 3)
     assert "--cpu-bind" not in stage.shard_args(shard, c)
 
 

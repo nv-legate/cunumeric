@@ -58,7 +58,7 @@ class TestParserDefaults:
         assert m.parser.get_default("gpus") == DEFAULT_GPUS_PER_NODE
 
     def test_cpu_pin(self) -> None:
-        assert m.parser.get_default("cpu_pin") == "auto"
+        assert m.parser.get_default("cpu_pin") == "partial"
 
     def test_gpu_delay(self) -> None:
         assert m.parser.get_default("gpu_delay") == DEFAULT_GPU_DELAY
