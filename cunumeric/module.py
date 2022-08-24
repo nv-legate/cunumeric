@@ -2487,7 +2487,7 @@ def place(arr: ndarray, mask: ndarray, vals: ndarray) -> None:
     else:
         mask_reshape = mask
 
-    num_values = count_nonzero(mask_reshape)
+    num_values = int(count_nonzero(mask_reshape))
     if num_values == 0:
         return
 
@@ -2495,7 +2495,7 @@ def place(arr: ndarray, mask: ndarray, vals: ndarray) -> None:
         raise ValueError("vals array cannot be empty")
 
     if num_values != vals.size:
-        reps: int = (num_values + vals.size - 1) // vals.size
+        reps = (num_values + vals.size - 1) // vals.size
         vals_resized = tile(A=vals, reps=reps) if reps > 1 else vals
         vals_resized = vals_resized[:num_values]
     else:
