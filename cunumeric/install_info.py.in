@@ -18,11 +18,18 @@ def get_libpath():
     exists = os.path.exists
     dirname = os.path.dirname
     cn_path = dirname(dirname(__file__))
-    if exists(libdir := join(cn_path, "build", "lib")):
-        return libdir
-    if exists(libdir := join(dirname(dirname(sys.executable)), "lib")):
-        return libdir
-    return ""
+
+    def find_libcunumeric(libdir):
+        if exists(join(libdir, "libcunumeric.so")):
+            return libdir
+        return None
+
+    return (
+        find_libcunumeric(join(cn_path, "build", "lib")) or
+        find_libcunumeric(join(dirname(dirname(dirname(cn_path))), "lib")) or
+        find_libcunumeric(join(dirname(dirname(sys.executable)), "lib")) or
+        ""
+    )
 
 
 libpath: str = get_libpath()
