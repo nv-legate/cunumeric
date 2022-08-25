@@ -505,13 +505,9 @@ class EagerArray(NumPyThunk):
                     self.array.fill(rhs.array.item())
             else:
                 if nan_op is ConvertCode.SUM:
-                    self.array[:] = np.select(
-                        [~np.isnan(rhs.array)], [rhs.array], 0
-                    )
+                    self.array[:] = np.where(np.isnan(rhs.array), 0, rhs.array)
                 elif nan_op is ConvertCode.PROD:
-                    self.array[:] = np.select(
-                        [~np.isnan(rhs.array)], [rhs.array], 1
-                    )
+                    self.array[:] = np.where(np.isnan(rhs.array), 1, rhs.array)
                 else:
                     self.array[:] = rhs.array
 
