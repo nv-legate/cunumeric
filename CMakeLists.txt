@@ -71,3 +71,28 @@ else()
               C CXX)
   include(cunumeric_python.cmake)
 endif()
+
+if(CMAKE_GENERATOR STREQUAL "Ninja")
+  function(add_touch_cunumeric_ninja_build_target)
+    set(_suf )
+    set(_depends )
+    if(SKBUILD)
+      set(_suf "_python")
+    endif()
+    foreach(_dep IN ITEMS cunumeric cunumeric_python
+                          legion_core legion_core_python
+                          Legion LegionRuntime
+                          Realm RealmRuntime
+                          Regent)
+      if(TARGET ${_dep})
+        list(APPEND _depends ${_dep})
+      endif()
+    endforeach()
+    add_custom_target("touch_cunumeric${_suf}_ninja_build" ALL
+      COMMAND ${CMAKE_COMMAND} -E touch "${CMAKE_CURRENT_BINARY_DIR}/build.ninja"
+      COMMENT "touch build.ninja so ninja doesn't re-run CMake on rebuild"
+      VERBATIM DEPENDS ${_depends}
+    )
+  endfunction()
+  add_touch_cunumeric_ninja_build_target()
+endif()
