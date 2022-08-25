@@ -103,7 +103,6 @@ def install_cunumeric(
     debug_release,
     check_bounds,
     clean_first,
-    python_only,
     thread_count,
     editable,
     build_isolation,
@@ -111,6 +110,9 @@ def install_cunumeric(
     extra_flags,
     unknown,
 ):
+    if clean_first is None:
+        clean_first = not editable
+
     print("Verbose build is ", "on" if verbose else "off")
     if verbose:
         print("Options are:")
@@ -120,6 +122,7 @@ def install_cunumeric(
         print("cuda_dir: ", cuda_dir)
         print("cmake_exe: ", cmake_exe)
         print("cmake_generator: ", cmake_generator)
+        print("install_dir: ", install_dir)
         print("legate_dir: ", legate_dir)
         print("legate_url: ", legate_url)
         print("legate_branch: ", legate_branch)
@@ -133,7 +136,6 @@ def install_cunumeric(
         print("debug_release: ", debug_release)
         print("check_bounds: ", check_bounds)
         print("clean_first: ", clean_first)
-        print("python_only: ", python_only)
         print("thread_count: ", thread_count)
         print("verbose: ", verbose)
         print("unknown: ", unknown)
@@ -149,18 +151,31 @@ def install_cunumeric(
         thread_count = multiprocessing.cpu_count()
 
     def validate_path(path):
-        if path is not None:
-            path = realpath(path)
-            if not os.path.exists(path):
-                path = None
-        return path
+        if path is not None and (path := str(path)) != "":
+            if not os.path.isabs(path):
+                path = join(cunumeric_dir, path)
+            if exists(path := realpath(path)):
+                return path
+        return None
 
     cuda_dir = validate_path(cuda_dir)
+    nccl_dir = validate_path(nccl_dir)
     tblis_dir = validate_path(tblis_dir)
     legate_dir = validate_path(legate_dir)
     thrust_dir = validate_path(thrust_dir)
+    curand_dir = validate_path(curand_dir)
     cutensor_dir = validate_path(cutensor_dir)
     openblas_dir = validate_path(openblas_dir)
+
+    if verbose:
+        print("cuda_dir: ", cuda_dir)
+        print("nccl_dir: ", nccl_dir)
+        print("tblis_dir: ", tblis_dir)
+        print("legate_dir: ", legate_dir)
+        print("thrust_dir: ", thrust_dir)
+        print("curand_dir: ", curand_dir)
+        print("cutensor_dir: ", cutensor_dir)
+        print("openblas_dir: ", openblas_dir)
 
     build_dir = join(cunumeric_dir, "_skbuild")
 
@@ -180,17 +195,19 @@ def install_cunumeric(
     if unknown is not None:
         try:
             prefix_loc = unknown.index("--prefix")
-            pip_install_cmd += ["--root", "/"]
-            pip_install_cmd.extend(unknown[prefix_loc : prefix_loc + 2])
-        except ValueError:
-            if install_dir is not None:
-                pip_install_cmd += [
-                    "--root",
-                    "/",
-                    "--prefix",
-                    str(install_dir),
-                ]
-    elif install_dir is not None:
+            prefix_dir = validate_path(unknown[prefix_loc + 1])
+            if prefix_dir is not None:
+                install_dir = prefix_dir
+                unknown = unknown[:prefix_loc] + unknown[prefix_loc + 2:]
+        except Exception:
+            pass
+
+    install_dir = validate_path(install_dir)
+
+    if verbose:
+        print("install_dir: ", install_dir)
+
+    if install_dir is not None:
         pip_install_cmd += ["--root", "/", "--prefix", str(install_dir)]
 
     if editable:
@@ -423,16 +440,8 @@ def driver():
         "--clean",
         dest="clean_first",
         action=BooleanFlag,
-        default=True,
+        default=None,
         help="Clean before build.",
-    )
-    parser.add_argument(
-        "--python-only",
-        dest="python_only",
-        action="store_true",
-        required=False,
-        default=False,
-        help="Reinstall only the Python package.",
     )
     parser.add_argument(
         "--extra",
