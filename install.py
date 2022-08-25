@@ -208,6 +208,7 @@ def install_cunumeric(
     if legate_dir is None:
         try:
             import legate.install_info as lg_install_info
+
             legate_dir = dirname(lg_install_info.libpath)
         except Exception:
             pass
@@ -250,7 +251,7 @@ def install_cunumeric(
             prefix_dir = validate_path(unknown[prefix_loc + 1])
             if prefix_dir is not None:
                 install_dir = prefix_dir
-                unknown = unknown[:prefix_loc] + unknown[prefix_loc + 2:]
+                unknown = unknown[:prefix_loc] + unknown[prefix_loc + 2 :]
         except Exception:
             pass
 
