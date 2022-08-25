@@ -24,6 +24,8 @@ static __global__ void __launch_bounds__(1, 1) copy_kernel(Buffer result, RedAcc
   out.reduce(0, result.read());
 }
 
+} // namespace scalar_reduction_impl
+
 template <class LG_OP>
 struct ScalarReductionPolicy<VariantKind::GPU, LG_OP> {
   template <class AccessorRD, class LHS, class Kernel>
@@ -37,16 +39,15 @@ struct ScalarReductionPolicy<VariantKind::GPU, LG_OP> {
 
     if (blocks >= MAX_REDUCTION_CTAS) {
       const size_t iters = (blocks + MAX_REDUCTION_CTAS - 1) / MAX_REDUCTION_CTAS;
-      scalar_unary_red_kernel<<<MAX_REDUCTION_CTAS, THREADS_PER_BLOCK, shmem_size, stream>>>(
+      scalar_reduction_impl::scalar_unary_red_kernel<<<MAX_REDUCTION_CTAS, THREADS_PER_BLOCK, shmem_size, stream>>>(
         volume, iters, result, std::forward<Kernel>(kernel), identity);
     } else {
-      scalar_unary_red_kernel<<<blocks, THREADS_PER_BLOCK, shmem_size, stream>>>(
+      scalar_reduction_impl::scalar_unary_red_kernel<<<blocks, THREADS_PER_BLOCK, shmem_size, stream>>>(
         volume, 1, result, std::forward<Kernel>(kernel), identity);
     }
-    copy_kernel<<<1, 1, 0, stream>>>(result, out);
+    scalar_reduction_impl::copy_kernel<<<1, 1, 0, stream>>>(result, out);
     CHECK_CUDA_STREAM(stream);
   }
 };
 
-} // namespace scalar_reduction_impl
 } // namespace cunumeric

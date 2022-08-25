@@ -4,7 +4,6 @@
 #include <omp.h>
 
 namespace cunumeric {
-namespace scalar_reduction_impl {
 
 template <class LG_OP>
 struct ScalarReductionPolicy<VariantKind::OMP, LG_OP> {
@@ -24,5 +23,4 @@ struct ScalarReductionPolicy<VariantKind::OMP, LG_OP> {
   }
 };
 
-}
 }

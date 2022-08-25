@@ -28,44 +28,88 @@ namespace cunumeric {
 using namespace Legion;
 using namespace legate;
 
+template <VariantKind KIND, UnaryRedCode OP_CODE, LegateTypeCode CODE, int DIM>
+struct ScalarUnaryRed {
+  using OP    = UnaryRedOp<OP_CODE, CODE>;
+  using LG_OP = typename OP::OP;
+  using LHS   = typename OP::VAL;
+  using RHS   = legate_type_of<CODE>;
+  
+  template <class InPtr, class Out, class ToFind>
+  static void DenseContains(size_t volume, InPtr inptr, Out out, ToFind&& to_find){
+    ScalarReductionPolicy<KIND, LG_OP>()(volume, out, /*identity=*/false, [=](bool& lhs, size_t idx) {
+      if (inptr[idx] == to_find) { lhs = true; }
+    });
+  }
 
-template <VariantKind KIND, UnaryRedCode OP_CODE>
-struct ScalarUnaryRedImpl {
-  template <LegateTypeCode CODE,
-            int DIM,
-            std::enable_if_t<UnaryRedOp<OP_CODE, CODE>::valid>* = nullptr>
-  void operator()(ScalarUnaryRedArgs& args) const
-  {
-    using RHS   = legate_type_of<CODE>;
+  template <class In, class Out, class Pitches, class Origin, class ToFind>
+  static void SparseContains(size_t volume, In in, Out out, const Pitches& pitches, const Origin& origin, const ToFind& to_find){
+    ScalarReductionPolicy<KIND, LG_OP>()(volume, out, /*identity=*/false, [=] __host__ __device__  (bool& lhs, size_t idx) {
+      auto point = pitches.unflatten(idx, origin);
+      if (in[point] == to_find) { lhs = true; }
+    });
+  }
+
+  template <class InPtr, class Out, class Shape, class Pitches, class Origin>
+  static void DenseArgReduction(size_t volume, InPtr inptr, Out out, const Shape& shape, const Pitches& pitches, const Origin& origin){
+    auto identity = LG_OP::identity;    
+    ScalarReductionPolicy<KIND, LG_OP>()(volume, out, identity, [=](LHS& lhs, size_t idx) {
+      auto p = pitches.unflatten(idx, origin);
+      OP::template fold<true>(lhs, OP::convert(p, shape, inptr[idx]));
+    });
+  }
+
+  template <class In, class Out, class Shape, class Pitches, class Origin>
+  static void SparseArgReduction(size_t volume, In in, Out out, const Shape& shape, const Pitches& pitches, const Origin& origin){
+    auto identity = LG_OP::identity;
+    ScalarReductionPolicy<KIND, LG_OP>()(volume, out, identity, [=] __host__ __device__  (LHS& lhs, size_t idx) {
+      auto p = pitches.unflatten(idx, origin);
+      OP::template fold<true>(lhs, OP::convert(p, shape, in[p]));
+    });
+  }  
+ 
+  template <class InPtr, class Out>
+  static void DenseReduction(size_t volume, InPtr inptr, Out out){
+    auto identity = LG_OP::identity;    
+    ScalarReductionPolicy<KIND, LG_OP>()(volume, out, identity, [=](LHS& lhs, size_t idx) {
+      OP::template fold<true>(lhs, OP::convert(inptr[idx]));
+    });
+  }
+
+  template <class In, class Out, class Pitches, class Origin>
+  static void SparseReduction(size_t volume, In in, Out out, const Pitches& pitches, const Origin& origin) {
+    auto identity = LG_OP::identity;
+    ScalarReductionPolicy<KIND, LG_OP>()(volume, out, identity, [=] __host__ __device__  (LHS& lhs, size_t idx) {
+      auto p = pitches.unflatten(idx, origin);
+      OP::template fold<true>(lhs, OP::convert(in[p]));
+    });
+  }
+
+
+  void operator()(ScalarUnaryRedArgs& args) const {
     auto rect = args.in.shape<DIM>();
-    auto in  = args.in.read_accessor<RHS, DIM>(rect);
-
+    auto in  = args.in.read_accessor<RHS, DIM>(rect);    
 #ifndef LEGION_BOUNDS_CHECKS
     // Check to see if this is dense or not
     if (in.accessor.is_dense_row_major(rect)){
-      return execute_kernel<true, CODE, DIM>(in, args);
+      return execute_kernel<true>(args);
     }
 #endif
-    return execute_kernel<false, CODE, DIM>(in, args);
+    return execute_kernel<false>(args);
   }
 
-  template <bool dense, LegateTypeCode CODE, int DIM, class AccessorRO>
-  void execute_kernel(AccessorRO& in, ScalarUnaryRedArgs& args) const {
+  template <bool dense>
+  void execute_kernel(ScalarUnaryRedArgs& args) const {
     using OP    = UnaryRedOp<OP_CODE, CODE>;
     using LG_OP = typename OP::OP;
     using LHS   = typename OP::VAL;
     using RHS   = legate_type_of<CODE>;
-    using scalar_reduction_impl::ScalarReductionPolicy;
 
     auto rect        = args.in.shape<DIM>();
+    auto in  = args.in.read_accessor<RHS, DIM>(rect);
     auto origin      = rect.lo;
-    Point<DIM> shape = args.shape;
-
-
     Pitches<DIM - 1> pitches;
     size_t volume = pitches.flatten(rect);
-
-    auto identity = LG_OP::identity;
 
     if (0 == volume) return;
 
@@ -77,53 +121,42 @@ struct ScalarUnaryRedImpl {
       if constexpr (dense && KIND != VariantKind::GPU) {
         // On CPU, you can directly access through a pointer.
         auto inptr = in.ptr(rect);
-        ScalarReductionPolicy<KIND, LG_OP>()(volume, out, /*identity=*/false, [=](bool& lhs, size_t idx) {
-          if (inptr[idx] == to_find) { lhs = true; }
-        });
+        DenseContains(volume, inptr, out, to_find);
       } else {
         // On GPU or if not dense, must go through accessor.
-        ScalarReductionPolicy<KIND, LG_OP>()(volume, out, /*identity=*/false, [=] __host__ __device__  (bool& lhs, size_t idx) {
-          auto point = pitches.unflatten(idx, origin);
-          if (in[point] == to_find) { lhs = true; }
-        });
+        SparseContains(volume, in, out, pitches, origin, to_find);
       }
     } else if constexpr (OP_CODE == UnaryRedCode::ARGMAX || OP_CODE == UnaryRedCode::ARGMIN) {
+      Point<DIM> shape = args.shape;
       // The reduction performs a min/max, but records the index of the maximum, not the value.
       if constexpr (dense && KIND != VariantKind::GPU) {
-        // On CPU, you can directly access through a pointer.
         auto inptr = in.ptr(rect);
-        ScalarReductionPolicy<KIND, LG_OP>()(volume, out, identity, [=](LHS& lhs, size_t idx) {
-          auto p = pitches.unflatten(idx, origin);
-          OP::template fold<true>(lhs, OP::convert(p, shape, inptr[idx]));
-        });
+        // On CPU, you can directly access through a pointer.
+        DenseArgReduction(volume, inptr, out, shape, pitches, origin);
       } else {
-        ScalarReductionPolicy<KIND, LG_OP>()(volume, out, identity, [=] __host__ __device__  (LHS& lhs, size_t idx) {
-          auto p = pitches.unflatten(idx, origin);
-          OP::template fold<true>(lhs, OP::convert(p, shape, in[p]));
-        });
+        SparseArgReduction(volume, in, out, shape, pitches, origin);
       }
     } else {  // All other op types
       if constexpr (dense && KIND != VariantKind::GPU) {
         // On CPU, you can directly access through a pointer.
         auto inptr = in.ptr(rect);
-        ScalarReductionPolicy<KIND, LG_OP>()(volume, out, identity, [=](LHS& lhs, size_t idx) {
-          OP::template fold<true>(lhs, OP::convert(inptr[idx]));
-        });
+        DenseReduction(volume, inptr, out);
       } else {
-        ScalarReductionPolicy<KIND, LG_OP>()(volume, out, identity, [=] __host__ __device__  (LHS& lhs, size_t idx) {
-          auto p = pitches.unflatten(idx, origin);
-          OP::template fold<true>(lhs, OP::convert(in[p]));
-        });
+        SparseReduction(volume, in, out, pitches, origin);
       }
     }
-  }
+  }  
+};
 
+template <VariantKind KIND, UnaryRedCode OP_CODE>
+struct ScalarUnaryRedImpl {
   template <LegateTypeCode CODE,
-            int DIM,
-            std::enable_if_t<!UnaryRedOp<OP_CODE, CODE>::valid>* = nullptr>
+            int DIM>
   void operator()(ScalarUnaryRedArgs& args) const
   {
-    assert(false);
+    if constexpr (UnaryRedOp<OP_CODE, CODE>::valid){
+      ScalarUnaryRed<KIND, OP_CODE, CODE, DIM>()(args);
+    }
   }
 };
 

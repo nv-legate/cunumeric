@@ -4,7 +4,6 @@
 #include "cunumeric/cunumeric.h"
 
 namespace cunumeric {
-namespace scalar_reduction_impl {
 
 template <VariantKind KIND, class LG_OP>
 struct ScalarReductionPolicy {
@@ -33,7 +32,6 @@ struct ScalarReductionPolicy<VariantKind::CPU, LG_OP> {
   }
 };
 
-}  // namespace scalar_reduction_impl
 }  // namespace cunumeric
 
 #endif  // SRC_CUNUMERIC_EXECUTION_POLICY_REDUCTION_REDUCTION_H_
