@@ -28,6 +28,7 @@ Searching
    flatnonzero
    nonzero
    searchsorted
+   extract
    where
 
 Counting
