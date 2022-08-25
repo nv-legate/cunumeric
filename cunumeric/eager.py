@@ -462,7 +462,7 @@ class EagerArray(NumPyThunk):
         if self.deferred is not None:
             return self.deferred.squeeze(axis)
         # See https://github.com/numpy/numpy/issues/22019
-        child = self.array.squeeze(axis)  # type: ignore
+        child = self.array.squeeze(cast(Any, axis))
         # Early exit if there's no dimension to squeeze
         if child is self.array:
             return self
@@ -503,32 +503,17 @@ class EagerArray(NumPyThunk):
                     self.array.fill(1)
                 else:
                     self.array.fill(rhs.array.item())
+        else:
+            if nan_op is ConvertCode.SUM:
+                self.array[:] = np.select(
+                    [~np.isnan(rhs.array)], [rhs.array], 0
+                )
+            elif nan_op is ConvertCode.PROD:
+                self.array[:] = np.select(
+                    [~np.isnan(rhs.array)], [rhs.array], 1
+                )
             else:
-                if (
-                    rhs.array.dtype.kind == "c"
-                    and self.array.dtype.kind != "c"
-                ):
-                    if nan_op is ConvertCode.SUM:
-                        self.array[:] = np.select(
-                            [~np.isnan(rhs.array)], [rhs.array.real], 0
-                        )
-                    elif nan_op is ConvertCode.PROD:
-                        self.array[:] = np.select(
-                            [~np.isnan(rhs.array)], [rhs.array.real], 1
-                        )
-                    else:
-                        self.array[:] = rhs.array.real
-                else:
-                    if nan_op is ConvertCode.SUM:
-                        self.array[:] = np.select(
-                            [~np.isnan(rhs.array)], [rhs.array], 0
-                        )
-                    elif nan_op is ConvertCode.PROD:
-                        self.array[:] = np.select(
-                            [~np.isnan(rhs.array)], [rhs.array], 1
-                        )
-                    else:
-                        self.array[:] = rhs.array
+                self.array[:] = rhs.array
 
     def fill(self, value: Any) -> None:
         if self.deferred is not None:
@@ -542,7 +527,7 @@ class EagerArray(NumPyThunk):
         if self.deferred is not None:
             return self.deferred.transpose(axes)
         # See https://github.com/numpy/numpy/issues/22019
-        child = self.array.transpose(axes)  # type: ignore
+        child = self.array.transpose(cast(Any, axes))
         # Should be aliased with parent region
         assert child.base is not None
         result = EagerArray(
@@ -1452,7 +1437,7 @@ class EagerArray(NumPyThunk):
         op: UnaryRedCode,
         rhs: Any,
         where: Any,
-        orig_axis: int,
+        orig_axis: Union[int, None],
         axes: tuple[int, ...],
         keepdims: bool,
         args: Any,
@@ -1567,6 +1552,12 @@ class EagerArray(NumPyThunk):
         else:
             self.array[:] = np.where(rhs1.array, rhs2.array, rhs3.array)
 
+    def argwhere(self) -> NumPyThunk:
+        if self.deferred is not None:
+            return self.deferred.argwhere()
+        else:
+            return EagerArray(self.runtime, np.argwhere(self.array))
+
     def trilu(self, rhs: Any, k: int, lower: bool) -> None:
         self.check_eager_args(rhs)
         if self.deferred is not None:
@@ -1597,7 +1588,7 @@ class EagerArray(NumPyThunk):
         op: int,
         rhs: Any,
         axis: int,
-        dtype: Optional[np.dtype[Any]],
+        dtype: Optional[npt.DTypeLike],
         nan_to_identity: bool,
     ) -> None:
         self.check_eager_args(rhs)

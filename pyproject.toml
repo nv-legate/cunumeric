@@ -61,7 +61,3 @@ implicit_reexport = true
 strict_equality = true
 
 warn_unused_configs = true
-
-[[tool.mypy.overrides]]
-module = ["cunumeric.array"]
-ignore_errors = true

@@ -31,6 +31,7 @@ if TYPE_CHECKING:
 class _CunumericSharedLib:
     CUNUMERIC_ADVANCED_INDEXING: int
     CUNUMERIC_ARANGE: int
+    CUNUMERIC_ARGWHERE: int
     CUNUMERIC_BINARY_OP: int
     CUNUMERIC_BINARY_RED: int
     CUNUMERIC_BINCOUNT: int
@@ -332,6 +333,7 @@ _cunumeric = cast(_CunumericSharedLib, cunumeric_lib.shared_object)
 class CuNumericOpCode(IntEnum):
     ADVANCED_INDEXING = _cunumeric.CUNUMERIC_ADVANCED_INDEXING
     ARANGE = _cunumeric.CUNUMERIC_ARANGE
+    ARGWHERE = _cunumeric.CUNUMERIC_ARGWHERE
     BINARY_OP = _cunumeric.CUNUMERIC_BINARY_OP
     BINARY_RED = _cunumeric.CUNUMERIC_BINARY_RED
     BINCOUNT = _cunumeric.CUNUMERIC_BINCOUNT
@@ -640,7 +642,7 @@ class FFTType:
         return self._type_id
 
     @property
-    def complex(self) -> Union[FFTType, None]:
+    def complex(self) -> FFTType:
         return self._complex_type
 
     @property

@@ -20,33 +20,33 @@ from __future__ import annotations
 
 import multiprocessing
 import os
+import sys
 from dataclasses import dataclass
-from subprocess import PIPE, STDOUT, CompletedProcess, run as stdlib_run
-from typing import Any, Dict, List, Sequence
+from functools import cached_property
+from pathlib import Path
+from subprocess import PIPE, STDOUT, run as stdlib_run
+from typing import Sequence
 
-from typing_extensions import TypeAlias
-
-from . import DEFAULT_PROCESS_ENV
-from .logger import LOG
-from .ui import shell
-
-SKIPPED_RETURNCODE = -99999
+from .types import CPUInfo, EnvDict, GPUInfo
 
 
-@dataclass(frozen=True)
-class CPUInfo:
-    id: int
+@dataclass
+class ProcessResult:
 
+    #: The command invovation, including relevant environment vars
+    invocation: str
 
-@dataclass(frozen=True)
-class GPUInfo:
-    id: int
-    free: int
+    #  User-friendly test file path to use in reported output
+    test_file: Path
 
+    #: Whether this process was actually invoked
+    skipped: bool = False
 
-ArgList = List[str]
+    #: The returncode from the process
+    returncode: int = 0
 
-EnvDict: TypeAlias = Dict[str, str]
+    #: The collected stdout and stderr output from the process
+    output: str = ""
 
 
 class System:
@@ -58,42 +58,91 @@ class System:
         If True, no commands will be executed, but a log of any commands
         submitted to ``run`` will be made. (default: False)
 
-    debug : bool, optional
-        If True, a log of commands submitted to ``run`` will be made.
-        (default: False)
-
     """
 
-    def __init__(self, *, dry_run: bool = False, debug: bool = False) -> None:
+    def __init__(
+        self,
+        *,
+        dry_run: bool = False,
+    ) -> None:
+        self.manager = multiprocessing.Manager()
         self.dry_run: bool = dry_run
-        self.debug = debug
 
     def run(
         self,
         cmd: Sequence[str],
+        test_file: Path,
         *,
-        env: dict[str, Any] | None = None,
+        env: EnvDict | None = None,
         cwd: str | None = None,
-    ) -> CompletedProcess[str]:
+    ) -> ProcessResult:
+        """Wrapper for subprocess.run that encapsulates logging.
 
-        if self.dry_run or self.debug:
-            LOG.record(shell(" ".join(cmd)))
+        Parameters
+        ----------
+        cmd : sequence of str
+            The command to run, split on whitespace into a sequence
+            of strings
 
-        if self.dry_run:
-            return CompletedProcess(cmd, SKIPPED_RETURNCODE, stdout="")
+        test_file : Path
+            User-friendly test file path to use in reported output
 
-        return stdlib_run(
-            cmd, cwd=cwd, env=env, stdout=PIPE, stderr=STDOUT, text=True
+        env : dict[str, str] or None, optional, default: None
+            Environment variables to apply when running the command
+
+        cwd: str or None, optional, default: None
+            A current working directory to pass to stdlib ``run``.
+
+        """
+
+        env = env or {}
+
+        envstr = (
+            " ".join(f"{k}={v}" for k, v in env.items())
+            + min(len(env), 1) * " "
         )
 
-    @property
+        invocation = envstr + " ".join(cmd)
+
+        if self.dry_run:
+            return ProcessResult(invocation, test_file, skipped=True)
+
+        full_env = dict(os.environ)
+        full_env.update(env)
+
+        proc = stdlib_run(
+            cmd, cwd=cwd, env=full_env, stdout=PIPE, stderr=STDOUT, text=True
+        )
+
+        return ProcessResult(
+            invocation,
+            test_file,
+            returncode=proc.returncode,
+            output=proc.stdout,
+        )
+
+    @cached_property
     def cpus(self) -> tuple[CPUInfo, ...]:
         """A list of CPUs on the system."""
-        return tuple(CPUInfo(i) for i in range(multiprocessing.cpu_count()))
 
-    @property
+        N = multiprocessing.cpu_count()
+
+        if sys.platform == "darwin":
+            return tuple(CPUInfo((i,)) for i in range(N))
+
+        sibling_sets: set[tuple[int, ...]] = set()
+        for i in range(N):
+            line = open(
+                f"/sys/devices/system/cpu/cpu{i}/topology/thread_siblings_list"
+            ).read()
+            sibling_sets.add(
+                tuple(sorted(int(x) for x in line.strip().split(",")))
+            )
+        return tuple(CPUInfo(siblings) for siblings in sorted(sibling_sets))
+
+    @cached_property
     def gpus(self) -> tuple[GPUInfo, ...]:
-        """A list of GPUs on the system, including free memory information."""
+        """A list of GPUs on the system, including total memory information."""
 
         # This pynvml import is protected inside this method so that in case
         # pynvml is not installed, tests stages that don't need gpu info (e.g.
@@ -110,13 +159,6 @@ class System:
             info = pynvml.nvmlDeviceGetMemoryInfo(
                 pynvml.nvmlDeviceGetHandleByIndex(i)
             )
-            results.append(GPUInfo(i, info.free))
+            results.append(GPUInfo(i, info.total))
 
         return tuple(results)
-
-    @property
-    def env(self) -> EnvDict:
-        """A base default environment used for process exectution."""
-        env = dict(os.environ)
-        env.update(DEFAULT_PROCESS_ENV)
-        return env

@@ -23,6 +23,7 @@ import pytest
 
 from .. import (
     DEFAULT_CPUS_PER_NODE,
+    DEFAULT_GPU_DELAY,
     DEFAULT_GPU_MEMORY_BUDGET,
     DEFAULT_GPUS_PER_NODE,
     DEFAULT_OMPS_PER_NODE,
@@ -30,6 +31,7 @@ from .. import (
     FEATURES,
     config as m,
 )
+from ..args import PIN_OPTIONS, PinOptionsType
 
 
 class TestConfig:
@@ -45,6 +47,8 @@ class TestConfig:
 
         assert c.cpus == DEFAULT_CPUS_PER_NODE
         assert c.gpus == DEFAULT_GPUS_PER_NODE
+        assert c.cpu_pin == "partial"
+        assert c.gpu_delay == DEFAULT_GPU_DELAY
         assert c.fbmem == DEFAULT_GPU_MEMORY_BUDGET
         assert c.omps == DEFAULT_OMPS_PER_NODE
         assert c.ompthreads == DEFAULT_OMPTHREADS
@@ -77,7 +81,7 @@ class TestConfig:
 
         # also test with a --use value provided
         c = m.Config(["test.py", "--use", "cuda"])
-        assert set(c.features) == {"cuda", feature}
+        assert set(c.features) == {"cuda"}
 
     @pytest.mark.parametrize("feature", FEATURES)
     def test_cmd_features(self, feature: str) -> None:
@@ -102,15 +106,20 @@ class TestConfig:
         assert c.files == ["a", "b", "c"]
 
     @pytest.mark.parametrize(
-        "opt", ("cpus", "gpus", "fbmem", "omps", "ompthreads")
+        "opt", ("cpus", "gpus", "gpu-delay", "fbmem", "omps", "ompthreads")
     )
     def test_feature_options(self, opt: str) -> None:
-        c = m.Config(["test.py", f"--{opt}", "1000"])
-        assert getattr(c, opt) == 1000
+        c = m.Config(["test.py", f"--{opt}", "1234"])
+        assert getattr(c, opt.replace("-", "_")) == 1234
+
+    @pytest.mark.parametrize("value", PIN_OPTIONS)
+    def test_cpu_pin(self, value: PinOptionsType) -> None:
+        c = m.Config(["test.py", "--cpu-pin", value])
+        assert c.cpu_pin == value
 
     def test_workers(self) -> None:
-        c = m.Config(["test.py", "-j", "1000"])
-        assert c.requested_workers == 1000
+        c = m.Config(["test.py", "-j", "1234"])
+        assert c.requested_workers == 1234
 
     def test_debug(self) -> None:
         c = m.Config(["test.py", "--debug"])

@@ -65,7 +65,13 @@ struct ConvertOp<ConvertCode::NOOP, DST_TYPE, SRC_TYPE> {
               nullptr>
   constexpr DST operator()(const _SRC& src) const
   {
-    return static_cast<DST>(src.real());
+    if constexpr (DST_TYPE == legate::LegateTypeCode::BOOL_LT)
+      return static_cast<DST>(src.real()) || static_cast<DST>(src.imag());
+    else
+      return static_cast<DST>(src.real());
+    // Unreachable
+    assert(false);
+    return DST{};
   }
 };
 

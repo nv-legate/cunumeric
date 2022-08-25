@@ -13,24 +13,12 @@
 # limitations under the License.
 #
 """Provide TestStage subclasses for running configured test files using
-specific features.
+specific features on linux platforms.
 
 """
 from __future__ import annotations
 
-from typing import Dict, Type
-
-from .. import FeatureType
 from .cpu import CPU
 from .gpu import GPU
 from .eager import Eager
 from .omp import OMP
-from .test_stage import TestStage
-
-#: All the available test stages that can be selected
-STAGES: Dict[FeatureType, Type[TestStage]] = {
-    "cpus": CPU,
-    "cuda": GPU,
-    "openmp": OMP,
-    "eager": Eager,
-}

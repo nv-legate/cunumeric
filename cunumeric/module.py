@@ -18,7 +18,7 @@ import math
 import re
 from collections import Counter
 from itertools import chain
-from typing import TYPE_CHECKING, Any, Optional, Sequence, Union, cast
+from typing import TYPE_CHECKING, Any, Literal, Optional, Sequence, Union, cast
 
 import numpy as np
 import opt_einsum as oe  # type: ignore [import]
@@ -34,7 +34,7 @@ from ._ufunc.math import add, multiply
 from .array import add_boilerplate, convert_to_cunumeric_ndarray, ndarray
 from .config import BinaryOpCode, ScanCode, UnaryRedCode
 from .runtime import runtime
-from .types import NdShape, NdShapeLike
+from .types import NdShape, NdShapeLike, OrderType, SortSide
 from .utils import AxesPairLike, inner_modes, matmul_modes, tensordot_modes
 
 if TYPE_CHECKING:
@@ -43,7 +43,7 @@ if TYPE_CHECKING:
     import numpy.typing as npt
 
     from ._ufunc.ufunc import CastingKind
-    from .types import ConvolveMode, SelectKind, SortType
+    from .types import BoundsMode, ConvolveMode, SelectKind, SortType
 
 _builtin_abs = abs
 _builtin_all = all
@@ -417,7 +417,7 @@ def array(
     obj: Any,
     dtype: Optional[np.dtype[Any]] = None,
     copy: bool = True,
-    order: str = "K",
+    order: Union[OrderType, Literal["K"]] = "K",
     subok: bool = False,
     ndmin: int = 0,
 ) -> ndarray:
@@ -647,7 +647,7 @@ def linspace(
     retstep: bool = False,
     dtype: Optional[npt.DTypeLike] = None,
     axis: int = 0,
-) -> Union[ndarray, tuple[ndarray, float]]:
+) -> Union[ndarray, tuple[ndarray, Union[float, ndarray]]]:
     """
 
     Return evenly spaced numbers over a specified interval.
@@ -688,7 +688,7 @@ def linspace(
         There are `num` equally spaced samples in the closed interval
         ``[start, stop]`` or the half-open interval ``[start, stop)``
         (depending on whether `endpoint` is True or False).
-    step : float, optional
+    step : float or ndarray, optional
         Only returned if `retstep` is True
 
         Size of spacing between samples.
@@ -759,6 +759,7 @@ def linspace(
     # else delta is a scalar so start must be also
     # therefore it will trivially broadcast correctly
 
+    step: Union[float, ndarray]
     if div > 0:
         step = delta / div
         if delta.ndim == 0:
@@ -1028,7 +1029,7 @@ def shape(a: ndarray) -> NdShape:
 
 
 @add_boilerplate("a")
-def ravel(a: ndarray, order: str = "C") -> ndarray:
+def ravel(a: ndarray, order: OrderType = "C") -> ndarray:
     """
     Return a contiguous flattened array.
 
@@ -1075,7 +1076,9 @@ def ravel(a: ndarray, order: str = "C") -> ndarray:
 
 
 @add_boilerplate("a")
-def reshape(a: ndarray, newshape: NdShapeLike, order: str = "C") -> ndarray:
+def reshape(
+    a: ndarray, newshape: NdShapeLike, order: OrderType = "C"
+) -> ndarray:
     """
 
     Gives a new shape to an array without changing its data.
@@ -1982,7 +1985,7 @@ def column_stack(tup: Sequence[ndarray]) -> ndarray:
     tup, common_info = check_shape_dtype(tup, column_stack.__name__, 1)
     # When ndim == 1, hstack concatenates arrays along the first axis
     if common_info.ndim == 1:
-        tup = list(inp.reshape([inp.shape[0], 1]) for inp in tup)
+        tup = list(inp.reshape((inp.shape[0], 1)) for inp in tup)
         common_info.shape = tup[0].shape
     return _concatenate(
         tup,
@@ -2221,7 +2224,9 @@ def vsplit(a: ndarray, indices: Union[int, ndarray]) -> list[ndarray]:
 
 
 @add_boilerplate("A")
-def tile(A: ndarray, reps: Union[int, ndarray]) -> ndarray:
+def tile(
+    A: ndarray, reps: Union[int, Sequence[int], npt.NDArray[np.int_]]
+) -> ndarray:
     """
     Construct an array by repeating A the number of times given by reps.
 
@@ -2242,7 +2247,7 @@ def tile(A: ndarray, reps: Union[int, ndarray]) -> ndarray:
     ----------
     A : array_like
         The input array.
-    reps : array_like
+    reps : 1d array_like
         The number of repetitions of `A` along each axis.
 
     Returns
@@ -2258,13 +2263,15 @@ def tile(A: ndarray, reps: Union[int, ndarray]) -> ndarray:
     --------
     Multiple GPUs, Multiple CPUs
     """
-    computed_reps: Union[ndarray, Sequence[int]]
+    computed_reps: tuple[int, ...]
     if isinstance(reps, int):
         computed_reps = (reps,)
     else:
-        computed_reps = reps
+        if np.ndim(reps) > 1:
+            raise TypeError("`reps` must be a 1d sequence")
+        computed_reps = tuple(reps)
     # Figure out the shape of the destination array
-    out_dims = A.ndim if A.ndim > len(computed_reps) else len(computed_reps)
+    out_dims = _builtin_max(A.ndim, len(computed_reps))
     # Prepend ones until the dimensions match
     while len(computed_reps) < out_dims:
         computed_reps = (1,) + computed_reps
@@ -2441,6 +2448,110 @@ def flip(m: ndarray, axis: Optional[NdShapeLike] = None) -> ndarray:
 # Generating index arrays
 
 
+@add_boilerplate("arr", "mask", "vals")
+def place(arr: ndarray, mask: ndarray, vals: ndarray) -> None:
+    """
+    Change elements of an array based on conditional and input values.
+
+    Parameters
+    ----------
+    arr : array_like
+        Array to put data into.
+    mask : array_like
+        Mask array. Must have the same size as `arr`.
+    vals : 1-D sequence
+        Values to put into `arr`. Only the first N elements are used,
+        where N is the number of True values in mask. If vals is smaller
+        than N, it will be repeated, and if elements of a are to be masked,
+        this sequence must be non-empty.
+
+    See Also
+    --------
+    numpy.copyto, numpy.put, numpy.take, numpy.extract
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    if arr.size == 0:
+        return
+
+    if mask.size != arr.size:
+        raise ValueError("arr array and condition array must be of same size")
+
+    if vals.ndim != 1:
+        raise ValueError("vals array has to be 1-dimensional")
+
+    if mask.shape != arr.shape:
+        mask_reshape = reshape(mask, arr.shape)
+    else:
+        mask_reshape = mask
+
+    num_values = int(count_nonzero(mask_reshape))
+    if num_values == 0:
+        return
+
+    if vals.size == 0:
+        raise ValueError("vals array cannot be empty")
+
+    if num_values != vals.size:
+        reps = (num_values + vals.size - 1) // vals.size
+        vals_resized = tile(A=vals, reps=reps) if reps > 1 else vals
+        vals_resized = vals_resized[:num_values]
+    else:
+        vals_resized = vals
+
+    if mask_reshape.dtype == bool:
+        arr._thunk.set_item(mask_reshape._thunk, vals_resized._thunk)
+    else:
+        bool_mask = mask_reshape.astype(bool)
+        arr._thunk.set_item(bool_mask._thunk, vals_resized._thunk)
+
+
+@add_boilerplate("condition", "arr")
+def extract(condition: ndarray, arr: ndarray) -> ndarray:
+    """
+
+    Return the elements of an array that satisfy some condition.
+
+    Parameters
+    ----------
+    condition : array_like
+        An array whose nonzero or True entries indicate the elements
+        of `arr` to extract.
+    arr : array_like
+        Input array of the same size as `condition`.
+
+    Returns
+    -------
+    result : ndarray
+        Rank 1 array of values from arr where `condition` is True.
+
+    See Also
+    --------
+    numpy.extract
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    if condition.size != arr.size:
+        raise ValueError("arr array and condition array must be of same size")
+
+    if condition.shape != arr.shape:
+        condition_reshape = reshape(condition, arr.shape)
+    else:
+        condition_reshape = condition
+
+    if condition_reshape.dtype == bool:
+        thunk = arr._thunk.get_item(condition_reshape._thunk)
+    else:
+        bool_condition = condition_reshape.astype(bool)
+        thunk = arr._thunk.get_item(bool_condition._thunk)
+
+    return ndarray(shape=thunk.shape, thunk=thunk)
+
+
 @add_boilerplate("a")
 def nonzero(a: ndarray) -> tuple[ndarray, ...]:
     """
@@ -2470,6 +2581,36 @@ def nonzero(a: ndarray) -> tuple[ndarray, ...]:
     Multiple GPUs, Multiple CPUs
     """
     return a.nonzero()
+
+
+@add_boilerplate("a")
+def flatnonzero(a: ndarray) -> ndarray:
+    """
+
+    Return indices that are non-zero in the flattened version of a.
+
+    This is equivalent to `np.nonzero(np.ravel(a))[0]`.
+
+    Parameters
+    ----------
+    a : array_like
+        Input array.
+
+    Returns
+    -------
+    res : ndarray
+        Output array, containing the indices of the elements of
+        `a.ravel()` that are non-zero.
+
+    See Also
+    --------
+    numpy.flatnonzero
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    return nonzero(ravel(a))[0]
 
 
 @add_boilerplate("a", "x", "y")
@@ -2511,6 +2652,37 @@ def where(
             )
         return nonzero(a)
     return ndarray._perform_where(a, x, y)
+
+
+@add_boilerplate("a")
+def argwhere(a: ndarray) -> ndarray:
+    """
+    argwhere(a)
+
+    Find the indices of array elements that are non-zero, grouped by element.
+
+    Parameters
+    ----------
+    a : array_like
+        Input data.
+
+    Returns
+    -------
+    index_array : ndarray
+        Indices of elements that are non-zero. Indices are grouped by element.
+        This array will have shape (N, a.ndim) where N is the number of
+        non-zero items.
+
+    See Also
+    --------
+    numpy.argwhere
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    thunk = a._thunk.argwhere()
+    return ndarray(shape=thunk.shape, thunk=thunk)
 
 
 # Indexing-like operations
@@ -2866,7 +3038,7 @@ def take(
     indices: ndarray,
     axis: Optional[int] = None,
     out: Optional[ndarray] = None,
-    mode: str = "raise",
+    mode: BoundsMode = "raise",
 ) -> ndarray:
     """
     Take elements from an array along an axis.
@@ -3071,7 +3243,7 @@ def choose(
     a: ndarray,
     choices: Sequence[ndarray],
     out: Optional[ndarray] = None,
-    mode: str = "raise",
+    mode: BoundsMode = "raise",
 ) -> ndarray:
     """
     Construct an array from an index array and a list of arrays to choose from.
@@ -4086,7 +4258,7 @@ def trace(
     offset: int = 0,
     axis1: Optional[int] = None,
     axis2: Optional[int] = None,
-    dtype: Optional[npt.DTypeLike] = None,
+    dtype: Optional[np.dtype[Any]] = None,
     out: Optional[ndarray] = None,
 ) -> ndarray:
     """
@@ -4646,13 +4818,13 @@ def cumprod(
         Input array.
 
     axis : int, optional
-        Axis along which the cumulative sum is computed. The default (None) is
-        to compute the cumsum over the flattened array.
+        Axis along which the cumulative product is computed. The default (None)
+        is to compute the cumprod over the flattened array.
 
     dtype : dtype, optional
         Type of the returned array and of the accumulator in which the elements
-        are summed. If dtype is not specified, it defaults to the dtype of a,
-        unless a has an integer dtype with a precision less than that of the
+        are multiplied. If dtype is not specified, it defaults to the dtype of
+        a, unless a has an integer dtype with a precision less than that of the
         default platform integer. In that case, the default platform integer is
         used.
     out : ndarray, optional
@@ -4662,7 +4834,7 @@ def cumprod(
 
     Returns
     -------
-    cumprod_along_axis : ndarray.
+    cumprod : ndarray
         A new array holding the result is returned unless out is specified, in
         which case a reference to out is returned. The result has the same size
         as a, and the same shape as a if axis is not None or a is a 1-d array.
@@ -4670,6 +4842,16 @@ def cumprod(
     See Also
     --------
     numpy.cumprod
+
+    Notes
+    -----
+    CuNumeric's parallel implementation may yield different results from NumPy
+    with floating point and complex types. For example, when boundary values
+    such as inf occur they may not propagate as expected. Consider the float32
+    array ``[3e+37, 1, 100, 0.01]``. NumPy's cumprod will return a result of
+    ``[3e+37, 3e+37, inf, inf]``. However, cuNumeric might internally partition
+    the array such that partition 0 has ``[3e+37, 1]``  and partition 1 has
+    ``[100, 0.01]``, returning the result ``[3e+37, 3e+37, inf, 3e+37]``.
 
     Availability
     --------
@@ -4717,7 +4899,7 @@ def cumsum(
 
     Returns
     -------
-    cumsum_along_axis : ndarray.
+    cumsum : ndarray.
         A new array holding the result is returned unless out is specified, in
         which case a reference to out is returned. The result has the same size
         as a, and the same shape as a if axis is not None or a is a 1-d array.
@@ -4725,6 +4907,13 @@ def cumsum(
     See Also
     --------
     numpy.cumsum
+
+    Notes
+    -----
+    CuNumeric's parallel implementation may yield different results from NumPy
+    with floating point and complex types. For example, when boundary values
+    such as inf occur they may not propagate as expected. For more explanation
+    check cunumeric.cumprod.
 
     Availability
     --------
@@ -4755,13 +4944,13 @@ def nancumprod(
         Input array.
 
     axis : int, optional
-        Axis along which the cumulative sum is computed. The default (None) is
-        to compute the cumsum over the flattened array.
+        Axis along which the cumulative product is computed. The default (None)
+        is to compute the nancumprod over the flattened array.
 
     dtype : dtype, optional
         Type of the returned array and of the accumulator in which the elements
-        are summed. If dtype is not specified, it defaults to the dtype of a,
-        unless a has an integer dtype with a precision less than that of the
+        are multiplied. If dtype is not specified, it defaults to the dtype of
+        a, unless a has an integer dtype with a precision less than that of the
         default platform integer. In that case, the default platform integer is
         used.
     out : ndarray, optional
@@ -4771,7 +4960,7 @@ def nancumprod(
 
     Returns
     -------
-    cumprod_along_axis : ndarray.
+    nancumprod : ndarray.
         A new array holding the result is returned unless out is specified, in
         which case a reference to out is returned. The result has the same size
         as a, and the same shape as a if axis is not None or a is a 1-d array.
@@ -4779,6 +4968,13 @@ def nancumprod(
     See Also
     --------
     numpy.nancumprod
+
+    Notes
+    -----
+    CuNumeric's parallel implementation may yield different results from NumPy
+    with floating point and complex types. For example, when boundary values
+    such as inf occur they may not propagate as expected. For more explanation
+    check cunumeric.cumprod.
 
     Availability
     --------
@@ -4810,7 +5006,7 @@ def nancumsum(
 
     axis : int, optional
         Axis along which the cumulative sum is computed. The default (None) is
-        to compute the cumsum over the flattened array.
+        to compute the nancumsum over the flattened array.
 
     dtype : dtype, optional
         Type of the returned array and of the accumulator in which the elements
@@ -4825,7 +5021,7 @@ def nancumsum(
 
     Returns
     -------
-    cumsum_along_axis : ndarray.
+    nancumsum : ndarray.
         A new array holding the result is returned unless out is specified, in
         which case a reference to out is returned. The result has the same size
         as a, and the same shape as a if axis is not None or a is a 1-d array.
@@ -4833,6 +5029,13 @@ def nancumsum(
     See Also
     --------
     numpy.nancumsum
+
+    Notes
+    -----
+    CuNumeric's parallel implementation may yield different results from NumPy
+    with floating point and complex types. For example, when boundary values
+    such as inf occur they may not propagate as expected. For more explanation
+    check cunumeric.cumprod.
 
     Availability
     --------
@@ -5141,9 +5344,9 @@ def convolve(a: ndarray, v: ndarray, mode: ConvolveMode = "full") -> ndarray:
 @add_boilerplate("a")
 def clip(
     a: ndarray,
-    a_min: Union[int, float, ndarray],
-    a_max: Union[int, float, ndarray],
-    out: Optional[ndarray] = None,
+    a_min: Union[int, float, npt.ArrayLike, None],
+    a_max: Union[int, float, npt.ArrayLike, None],
+    out: Union[npt.NDArray[Any], ndarray, None] = None,
 ) -> ndarray:
     """
 
@@ -5361,7 +5564,7 @@ def msort(a: ndarray) -> ndarray:
 def searchsorted(
     a: ndarray,
     v: Union[int, float, ndarray],
-    side: str = "left",
+    side: SortSide = "left",
     sorter: Optional[ndarray] = None,
 ) -> Union[int, ndarray]:
     """
@@ -5732,7 +5935,7 @@ def count_nonzero(
 def mean(
     a: ndarray,
     axis: Optional[Union[int, tuple[int, ...]]] = None,
-    dtype: Optional[npt.DTypeLike] = None,
+    dtype: Optional[np.dtype[Any]] = None,
     out: Optional[ndarray] = None,
     keepdims: bool = False,
 ) -> ndarray:
@@ -5797,9 +6000,9 @@ def mean(
 # Histograms
 
 
-@add_boilerplate("a", "weights")
+@add_boilerplate("x", "weights")
 def bincount(
-    a: ndarray, weights: Optional[ndarray] = None, minlength: int = 0
+    x: ndarray, weights: Optional[ndarray] = None, minlength: int = 0
 ) -> ndarray:
     """
     bincount(x, weights=None, minlength=0)
@@ -5847,25 +6050,25 @@ def bincount(
     Multiple GPUs, Multiple CPUs
     """
     if weights is not None:
-        if weights.shape != a.shape:
+        if weights.shape != x.shape:
             raise ValueError("weights array must be same shape for bincount")
         if weights.dtype.kind == "c":
             raise ValueError("weights must be convertible to float64")
         # Make sure the weights are float64
         weights = weights.astype(np.float64)
-    if a.dtype.kind != "i" and a.dtype.kind != "u":
+    if x.dtype.kind != "i" and x.dtype.kind != "u":
         raise TypeError("input array for bincount must be integer type")
-    # If nobody told us the size then compute it
-    if minlength <= 0:
-        minlength = int(amax(a)) + 1
-    if a.size == 1:
+    if minlength < 0:
+        raise ValueError("'minlength' must not be negative")
+    minlength = _builtin_max(minlength, int(amax(x)) + 1)
+    if x.size == 1:
         # Handle the special case of 0-D array
         if weights is None:
             out = zeros((minlength,), dtype=np.dtype(np.int64))
-            out[a[0]] = 1
+            out[x[0]] = 1
         else:
             out = zeros((minlength,), dtype=weights.dtype)
-            index = a[0]
+            index = x[0]
             out[index] = weights[index]
     else:
         # Normal case of bincount
@@ -5873,14 +6076,14 @@ def bincount(
             out = ndarray(
                 (minlength,),
                 dtype=np.dtype(np.int64),
-                inputs=(a, weights),
+                inputs=(x, weights),
             )
-            out._thunk.bincount(a._thunk)
+            out._thunk.bincount(x._thunk)
         else:
             out = ndarray(
                 (minlength,),
                 dtype=weights.dtype,
-                inputs=(a, weights),
+                inputs=(x, weights),
             )
-            out._thunk.bincount(a._thunk, weights=weights._thunk)
+            out._thunk.bincount(x._thunk, weights=weights._thunk)
     return out

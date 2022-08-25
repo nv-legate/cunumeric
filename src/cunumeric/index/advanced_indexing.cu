@@ -37,14 +37,14 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
                        const size_t skip_size,
                        const size_t key_dim)
 {
-  size_t value = 0;
+  uint64_t value = 0;
   for (size_t i = 0; i < iters; i++) {
     size_t idx = (i * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
-    if (idx > volume) break;
+    if (idx >= volume) break;
     auto point   = pitches.unflatten(idx, origin);
     bool val     = (index[point] && ((idx + 1) % skip_size == 0));
     offsets[idx] = static_cast<int64_t>(val);
-    SumReduction<size_t>::fold<true>(value, val);
+    SumReduction<uint64_t>::fold<true>(value, val);
   }
   // Every thread in the thread block must participate in the exchange to get correct results
   reduce_output(out, value);
@@ -90,7 +90,7 @@ struct AdvancedIndexingImplBody<VariantKind::GPU, CODE, DIM, OUT_TYPE> {
                        const size_t skip_size,
                        const size_t key_dim) const
   {
-    DeferredReduction<SumReduction<size_t>> size;
+    DeviceScalarReductionBuffer<SumReduction<uint64_t>> size(stream);
 
     const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
 
@@ -101,15 +101,15 @@ struct AdvancedIndexingImplBody<VariantKind::GPU, CODE, DIM, OUT_TYPE> {
       count_nonzero_kernel<<<MAX_REDUCTION_CTAS, THREADS_PER_BLOCK, shmem_size, stream>>>(
         volume, size, offsets, in, pitches, rect.lo, iters, skip_size, key_dim);
     } else
-      count_nonzero_kernel<<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
+      count_nonzero_kernel<<<blocks, THREADS_PER_BLOCK, shmem_size, stream>>>(
         volume, size, offsets, in, pitches, rect.lo, 1, skip_size, key_dim);
 
-    cudaStreamSynchronize(stream);
+    CHECK_CUDA_STREAM(stream);
 
     auto off_ptr = offsets.ptr(0);
     thrust::exclusive_scan(thrust::cuda::par.on(stream), off_ptr, off_ptr + volume, off_ptr);
 
-    return size.read();
+    return size.read(stream);
   }
 
   void operator()(Array& out_arr,
@@ -131,11 +131,6 @@ struct AdvancedIndexingImplBody<VariantKind::GPU, CODE, DIM, OUT_TYPE> {
     }
 
     size = compute_size(index, pitches, rect, volume, stream, offsets, skip_size, key_dim);
-
-    if (0 == size) {
-      out_arr.make_empty();
-      return;
-    }
 
     // calculating the shape of the output region for this sub-task
     Point<DIM> extents;

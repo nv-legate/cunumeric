@@ -421,7 +421,7 @@ def norm(
                 sqnorm = dot(x, x)
             ret = _sqrt(sqnorm)
             if keepdims:
-                ret = ret.reshape(ndim * [1])
+                ret = ret.reshape(ndim * (1,))
             return ret
 
     if axis is None:
@@ -503,7 +503,7 @@ def norm(
             ret_shape = list(x.shape)
             ret_shape[computed_axis[0]] = 1
             ret_shape[computed_axis[1]] = 1
-            ret = ret.reshape(ret_shape)
+            ret = ret.reshape(tuple(ret_shape))
         return ret
     else:
         raise ValueError("Improper number of dimensions to norm")

@@ -51,13 +51,7 @@ struct AdvancedIndexingImpl {
 #endif
 
     if (volume == 0) {
-      if (args.is_set) {
-        auto empty = create_buffer<Point<DIM>>(0);
-        args.output.return_data(empty, Point<1>(0));
-      } else {
-        auto empty = create_buffer<VAL>(0);
-        args.output.return_data(empty, Point<1>(0));
-      }
+      args.output.make_empty();
       return;
     }
 

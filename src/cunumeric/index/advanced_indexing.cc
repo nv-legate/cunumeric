@@ -79,11 +79,6 @@ struct AdvancedIndexingImplBody<VariantKind::CPU, CODE, DIM, OUT_TYPE> {
       if (index[p] == true) { size++; }
     }
 
-    if (0 == size) {
-      out_arr.make_empty();
-      return;
-    }
-
     // calculating the shape of the output region for this sub-task
     Point<DIM> extents;
     extents[0] = size;
@@ -94,8 +89,7 @@ struct AdvancedIndexingImplBody<VariantKind::CPU, CODE, DIM, OUT_TYPE> {
     for (size_t i = DIM - key_dim + 1; i < DIM; i++) extents[i] = 1;
 
     auto out = out_arr.create_output_buffer<OUT_TYPE, DIM>(extents, true);
-
-    compute_output(out, input, index, pitches, rect, volume, key_dim, skip_size);
+    if (size > 0) compute_output(out, input, index, pitches, rect, volume, key_dim, skip_size);
   }
 };
 
