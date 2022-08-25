@@ -108,9 +108,9 @@ set(cunumeric_CUDA_OPTIONS "")
 
 # Add `src/cunumeric.mk` sources
 list(APPEND cunumeric_SOURCES
+  src/cunumeric/ternary/where.cc
   src/cunumeric/scan/scan_global.cc
   src/cunumeric/scan/scan_local.cc
-  src/cunumeric/ternary/where.cc
   src/cunumeric/binary/binary_op.cc
   src/cunumeric/binary/binary_red.cc
   src/cunumeric/bits/packbits.cc
@@ -143,6 +143,7 @@ list(APPEND cunumeric_SOURCES
   src/cunumeric/matrix/trsm.cc
   src/cunumeric/matrix/util.cc
   src/cunumeric/random/rand.cc
+  src/cunumeric/search/argwhere.cc
   src/cunumeric/search/nonzero.cc
   src/cunumeric/set/unique.cc
   src/cunumeric/set/unique_reduce.cc
@@ -157,9 +158,9 @@ list(APPEND cunumeric_SOURCES
 
 if(Legion_USE_OpenMP)
   list(APPEND cunumeric_SOURCES
+    src/cunumeric/ternary/where_omp.cc
     src/cunumeric/scan/scan_global_omp.cc
     src/cunumeric/scan/scan_local_omp.cc
-    src/cunumeric/ternary/where_omp.cc
     src/cunumeric/binary/binary_op_omp.cc
     src/cunumeric/binary/binary_red_omp.cc
     src/cunumeric/bits/packbits_omp.cc
@@ -190,6 +191,7 @@ if(Legion_USE_OpenMP)
     src/cunumeric/matrix/trsm_omp.cc
     src/cunumeric/matrix/util_omp.cc
     src/cunumeric/random/rand_omp.cc
+    src/cunumeric/search/argwhere_omp.cc
     src/cunumeric/search/nonzero_omp.cc
     src/cunumeric/set/unique_omp.cc
     src/cunumeric/stat/bincount_omp.cc
@@ -200,9 +202,9 @@ endif()
 
 if(Legion_USE_CUDA)
   list(APPEND cunumeric_SOURCES
+    src/cunumeric/ternary/where.cu
     src/cunumeric/scan/scan_global.cu
     src/cunumeric/scan/scan_local.cu
-    src/cunumeric/ternary/where.cu
     src/cunumeric/binary/binary_op.cu
     src/cunumeric/binary/binary_red.cu
     src/cunumeric/bits/packbits.cu
@@ -234,6 +236,7 @@ if(Legion_USE_CUDA)
     src/cunumeric/matrix/trilu.cu
     src/cunumeric/matrix/trsm.cu
     src/cunumeric/random/rand.cu
+    src/cunumeric/search/argwhere.cu
     src/cunumeric/search/nonzero.cu
     src/cunumeric/set/unique.cu
     src/cunumeric/stat/bincount.cu
