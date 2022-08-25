@@ -71,9 +71,36 @@ struct ConvertImpl {
   }
 };
 
-template <VariantKind KIND, ConvertCode NAN_OP>
-struct SourceTypeDispatch {
-  template <LegateTypeCode SRC_TYPE>
+// template <VariantKind KIND, ConvertCode NAN_OP>
+// struct SourceTypeDispatch {
+//   template <LegateTypeCode SRC_TYPE>
+//   void operator()(ConvertArgs& args) const
+//   {
+//     auto dim = std::max(1, args.out.dim());
+//     double_dispatch(dim, args.out.code(), ConvertImpl<KIND, NAN_OP, SRC_TYPE>{}, args);
+//   }
+// };
+
+// template <VariantKind KIND>
+// struct ConvertDispatch {
+//   template <ConvertCode NAN_OP>
+//   void operator()(ConvertArgs& args) const
+//   {
+//     type_dispatch(args.in.code(), SourceTypeDispatch<KIND, NAN_OP>{}, args);
+//   }
+// };
+
+// template <VariantKind KIND>
+// static void convert_template(TaskContext& context)
+// {
+//   ConvertArgs args{
+//     context.outputs()[0], context.inputs()[0], context.scalars()[0].value<ConvertCode>()};
+//   op_dispatch(args.nan_op, ConvertDispatch<KIND>{}, args);
+// }
+
+template <VariantKind KIND, LegateTypeCode SRC_TYPE>
+struct ConvertDispatch {
+  template <ConvertCode NAN_OP>
   void operator()(ConvertArgs& args) const
   {
     auto dim = std::max(1, args.out.dim());
@@ -82,11 +109,11 @@ struct SourceTypeDispatch {
 };
 
 template <VariantKind KIND>
-struct ConvertDispatch {
-  template <ConvertCode NAN_OP>
+struct SourceTypeDispatch {
+  template <LegateTypeCode SRC_TYPE>
   void operator()(ConvertArgs& args) const
   {
-    type_dispatch(args.in.code(), SourceTypeDispatch<KIND, NAN_OP>{}, args);
+    op_dispatch(args.nan_op, ConvertDispatch<KIND, SRC_TYPE>{}, args);
   }
 };
 
@@ -95,7 +122,7 @@ static void convert_template(TaskContext& context)
 {
   ConvertArgs args{
     context.outputs()[0], context.inputs()[0], context.scalars()[0].value<ConvertCode>()};
-  op_dispatch(args.nan_op, ConvertDispatch<KIND>{}, args);
+  type_dispatch(args.in.code(), SourceTypeDispatch<KIND>{}, args);
 }
 
 }  // namespace cunumeric
