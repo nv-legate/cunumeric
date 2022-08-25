@@ -503,17 +503,17 @@ class EagerArray(NumPyThunk):
                     self.array.fill(1)
                 else:
                     self.array.fill(rhs.array.item())
-        else:
-            if nan_op is ConvertCode.SUM:
-                self.array[:] = np.select(
-                    [~np.isnan(rhs.array)], [rhs.array], 0
-                )
-            elif nan_op is ConvertCode.PROD:
-                self.array[:] = np.select(
-                    [~np.isnan(rhs.array)], [rhs.array], 1
-                )
             else:
-                self.array[:] = rhs.array
+                if nan_op is ConvertCode.SUM:
+                    self.array[:] = np.select(
+                        [~np.isnan(rhs.array)], [rhs.array], 0
+                    )
+                elif nan_op is ConvertCode.PROD:
+                    self.array[:] = np.select(
+                        [~np.isnan(rhs.array)], [rhs.array], 1
+                    )
+                else:
+                    self.array[:] = rhs.array
 
     def fill(self, value: Any) -> None:
         if self.deferred is not None:
