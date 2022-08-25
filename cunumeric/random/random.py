@@ -218,10 +218,10 @@ def chisquare(
 
 
 def choice(
-    a : Union[int, ndarray], 
-    size: Union[NdShapeLike, None]=None, 
-    replace: bool=True, 
-    p: Union[None, ndarray]=None
+    a: Union[int, ndarray],
+    size: Union[NdShapeLike, None] = None,
+    replace: bool = True,
+    p: Union[None, ndarray] = None,
 ) -> Union[int, ndarray, npt.NDArray[Any]]:
     """
     Returns an array of random values from a given 1-D array.
