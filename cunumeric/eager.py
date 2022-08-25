@@ -490,7 +490,7 @@ class EagerArray(NumPyThunk):
         self,
         rhs: Any,
         warn: bool = True,
-        nan_op: Optional[int] = None,
+        nan_op: ConvertCode = ConvertCode.NOOP,
     ) -> None:
         self.check_eager_args(rhs)
         if self.deferred is not None:

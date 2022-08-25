@@ -1140,7 +1140,7 @@ class DeferredArray(NumPyThunk):
         self,
         rhs: Any,
         warn: bool = True,
-        nan_op: Optional[int] = None,
+        nan_op: ConvertCode = ConvertCode.NOOP,
     ) -> None:
         lhs_array = self
         rhs_array = rhs
@@ -1155,8 +1155,6 @@ class DeferredArray(NumPyThunk):
                 category=UserWarning,
             )
 
-        if nan_op is None:
-            nan_op = ConvertCode.NOOP
         lhs = lhs_array.base
         rhs = rhs_array.base
 
