@@ -44,18 +44,14 @@ def test_shuffle():
     assert num.linalg.norm(x - p) == 0.0
 
 
-maxvalue = 1024
-count = 42
-
-
-def test_choice_1():
+def test_choice_1(maxvalue = 1024, count = 42):
     a = num.random.choice(maxvalue, count)
     assert len(a) == count
     assert num.amax(a) <= maxvalue
     assert num.amin(a) >= 0
 
 
-def test_choice_2():
+def test_choice_2(maxvalue = 1024, count = 42):
     a = num.random.choice(maxvalue, count, False)
     assert len(a) == count
     assert num.amax(a) <= maxvalue
@@ -67,7 +63,7 @@ def test_choice_2():
             assert a[i] != a[j]
 
 
-def test_choice_3():
+def test_choice_3(maxvalue = 1024, count = 42):
     values = num.random.random_integers(0, maxvalue, maxvalue)
 
     a = num.random.choice(values, count)
@@ -76,7 +72,7 @@ def test_choice_3():
     assert num.amin(a) >= num.amin(values)
 
 
-def test_choice_4():
+def test_choice_4(maxvalue = 1024, count = 42):
     values = num.arange(maxvalue)
 
     a = num.random.choice(values, count, False)
@@ -90,7 +86,7 @@ def test_choice_4():
             assert a[i] != a[j]
 
 
-def test_choice_5():
+def test_choice_5(maxvalue = 1024, count = 42):
     values = num.arange(maxvalue)
 
     p = num.random.uniform(0, 1, maxvalue)
@@ -102,7 +98,7 @@ def test_choice_5():
     assert num.amin(a) >= num.amin(values)
 
 
-def test_choice_6():
+def test_choice_6(maxvalue = 1024, count = 42):
     values = num.random.random_integers(0, maxvalue, maxvalue)
 
     p = num.random.uniform(0, 1, maxvalue)
