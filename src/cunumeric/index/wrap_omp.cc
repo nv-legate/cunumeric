@@ -31,24 +31,23 @@ struct WrapImplBody<VariantKind::OMP, DIM> {
                   const Rect<DIM>& in_rect,
                   const bool dense) const
   {
-    const size_t start     = out_rect.lo[0];
-    const size_t end       = out_rect.hi[0];
-    const size_t in_volume = in_rect.volume();
+    const int64_t start  = out_rect.lo[0];
+    const int64_t end    = out_rect.hi[0];
+    const auto in_volume = in_rect.volume();
     if (dense) {
       auto outptr = out.ptr(out_rect);
 #pragma omp parallel for schedule(static)
-      for (size_t i = start; i <= end; i++) {
-        const size_t input_idx = i % in_volume;
-        auto point             = pitches_in.unflatten(input_idx, in_rect.lo);
-        outptr[i - start]      = point;
+      for (int64_t i = start; i <= end; i++) {
+        const int64_t input_idx = i % in_volume;
+        auto point              = pitches_in.unflatten(input_idx, in_rect.lo);
+        outptr[i - start]       = point;
       }
     } else {
 #pragma omp parallel for schedule(static)
-      for (size_t i = start; i <= end; i++) {
-        const size_t input_idx = i % in_volume;
-        auto point             = pitches_in.unflatten(input_idx, in_rect.lo);
-        auto point_out         = pitches_out.unflatten(i - start, out_rect.lo);
-        out[point_out]         = point;
+      for (int64_t i = start; i <= end; i++) {
+        const int64_t input_idx = i % in_volume;
+        auto point              = pitches_in.unflatten(input_idx, in_rect.lo);
+        out[i]                  = point;
       }
     }  // else
   }

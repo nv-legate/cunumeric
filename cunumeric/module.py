@@ -3318,6 +3318,9 @@ def fill_diagonal(a: ndarray, val: ndarray, wrap: bool = False) -> None:
     Multiple GPUs, Multiple CPUs
 
     """
+    if val.size == 0 or a.size == 0:
+        return
+
     if a.ndim < 2:
         raise ValueError("array must be at least 2-d")
 

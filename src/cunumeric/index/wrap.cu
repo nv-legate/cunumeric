@@ -26,36 +26,35 @@ using namespace legate;
 template <int DIM>
 __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   wrap_kernel(const AccessorWO<Point<DIM>, 1> out,
-              const size_t start,
-              const size_t volume,
+              const int64_t start,
+              const int64_t volume,
               const Pitches<0> pitches_out,
               const Point<1> out_lo,
               const Pitches<DIM - 1> pitches_in,
               const Point<DIM> in_lo,
               const size_t in_volume)
 {
-  const size_t idx = global_tid_1d();
+  const auto idx = global_tid_1d();
   if (idx >= volume) return;
-  const size_t input_idx = (idx + start) % in_volume;
-  auto out_p             = pitches_out.unflatten(idx, out_lo);
-  auto p                 = pitches_in.unflatten(input_idx, in_lo);
-  out[out_p]             = p;
+  const int64_t input_idx = (idx + start) % in_volume;
+  auto p                  = pitches_in.unflatten(input_idx, in_lo);
+  out[idx]                = p;
 }
 
 template <int DIM>
 __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   wrap_kernel_dense(Point<DIM>* out,
-                    const size_t start,
-                    const size_t volume,
+                    const int64_t start,
+                    const int64_t volume,
                     const Pitches<DIM - 1> pitches_in,
                     const Point<DIM> in_lo,
                     const size_t in_volume)
 {
-  const size_t idx = global_tid_1d();
+  const auto idx = global_tid_1d();
   if (idx >= volume) return;
-  const size_t input_idx = (idx + start) % in_volume;
-  auto p                 = pitches_in.unflatten(input_idx, in_lo);
-  out[idx]               = p;
+  const int64_t input_idx = (idx + start) % in_volume;
+  auto p                  = pitches_in.unflatten(input_idx, in_lo);
+  out[idx - start]        = p;
 }
 
 template <int DIM>
@@ -67,11 +66,11 @@ struct WrapImplBody<VariantKind::GPU, DIM> {
                   const Rect<DIM>& in_rect,
                   const bool dense) const
   {
-    auto stream            = get_cached_stream();
-    const size_t start     = out_rect.lo[0];
-    const size_t volume    = out_rect.volume();
-    const size_t in_volume = in_rect.volume();
-    const size_t blocks    = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
+    auto stream          = get_cached_stream();
+    const int64_t start  = out_rect.lo[0];
+    const int64_t volume = out_rect.volume();
+    const auto in_volume = in_rect.volume();
+    const size_t blocks  = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
     if (dense) {
       auto outptr = out.ptr(out_rect);
       wrap_kernel_dense<DIM><<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
