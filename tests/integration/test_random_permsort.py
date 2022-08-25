@@ -72,8 +72,8 @@ def test_choice_3():
 
     a = num.random.choice(values, count)
     assert len(a) == count
-    assert num.amax(a) <= maxvalue
-    assert num.amin(a) >= 0
+    assert num.amax(a) <= num.amax(values) 
+    assert num.amin(a) >= num.amin(values)
 
 
 def test_choice_4():
@@ -81,8 +81,8 @@ def test_choice_4():
 
     a = num.random.choice(values, count, False)
     assert len(a) == count
-    assert num.amax(a) <= maxvalue
-    assert num.amin(a) >= 0
+    assert num.amax(a) <= num.amax(values) 
+    assert num.amin(a) >= num.amin(values)
     for i in range(count):
         for j in range(count):
             if i == j:
@@ -98,8 +98,8 @@ def test_choice_5():
 
     a = num.random.choice(values, count, True, p)
     assert len(a) == count
-    assert num.amax(a) <= maxvalue
-    assert num.amin(a) >= 0
+    assert num.amax(a) <= num.amax(values) 
+    assert num.amin(a) >= num.amin(values)
 
 
 def test_choice_6():
@@ -110,8 +110,8 @@ def test_choice_6():
 
     a = num.random.choice(values, count, True, p)
     assert len(a) == count
-    assert num.amax(a) <= maxvalue
-    assert num.amin(a) >= 0
+    assert num.amax(a) <= num.amax(values) 
+    assert num.amin(a) >= num.amin(values)
 
 
 if __name__ == "__main__":
