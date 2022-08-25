@@ -82,6 +82,44 @@ def execute_command(args, verbose, **kwargs):
     subprocess.check_call(args, **kwargs)
 
 
+def scikit_build_cmake_build_dir(skbuild_dir):
+    if os.path.exists(skbuild_dir):
+        for f in os.listdir(skbuild_dir):
+            if os.path.exists(
+                cmake_build := os.path.join(skbuild_dir, f, "cmake-build")
+            ):
+                return cmake_build
+    return None
+
+
+def find_cmake_val(pattern, filepath):
+    return (
+        subprocess.check_output(["grep", "--color=never", pattern, filepath])
+        .decode("UTF-8")
+        .strip()
+    )
+
+
+def was_previously_built_with_different_build_isolation(
+    isolated, cunumeric_build_dir
+):
+    if (
+        cunumeric_build_dir is not None
+        and os.path.exists(cunumeric_build_dir)
+        and os.path.exists(
+            cmake_cache := os.path.join(cunumeric_build_dir, "CMakeCache.txt")
+        )
+    ):
+        try:
+            if isolated:
+                return True
+            if find_cmake_val("pip-build-env", cmake_cache):
+                return True
+        except Exception:
+            pass
+    return False
+
+
 def install_cunumeric(
     arch,
     march,
@@ -184,10 +222,17 @@ def install_cunumeric(
         print("cutensor_dir: ", cutensor_dir)
         print("openblas_dir: ", openblas_dir)
 
-    build_dir = join(cunumeric_dir, "_skbuild")
+    skbuild_dir = join(cunumeric_dir, "_skbuild")
+    cunumeric_build_dir = scikit_build_cmake_build_dir(skbuild_dir)
+
+    if was_previously_built_with_different_build_isolation(
+        build_isolation and not editable, cunumeric_build_dir
+    ):
+        print("Performing a clean build to accommodate build isolation.")
+        clean_first = True
 
     if clean_first:
-        shutil.rmtree(build_dir, ignore_errors=True)
+        shutil.rmtree(skbuild_dir, ignore_errors=True)
         shutil.rmtree(join(cunumeric_dir, "dist"), ignore_errors=True)
         shutil.rmtree(join(cunumeric_dir, "build"), ignore_errors=True)
         shutil.rmtree(
@@ -218,6 +263,7 @@ def install_cunumeric(
         pip_install_cmd += ["--root", "/", "--prefix", str(install_dir)]
 
     if editable:
+        # editable implies build_isolation = False
         pip_install_cmd += ["--no-deps", "--no-build-isolation", "--editable"]
         cmd_env.update({"SETUPTOOLS_ENABLE_FEATURES": "legacy-editable"})
     else:
