@@ -2449,6 +2449,110 @@ def flip(m: ndarray, axis: Optional[NdShapeLike] = None) -> ndarray:
 # Generating index arrays
 
 
+@add_boilerplate("arr", "mask", "vals")
+def place(arr: ndarray, mask: ndarray, vals: ndarray) -> None:
+    """
+    Change elements of an array based on conditional and input values.
+
+    Parameters
+    ----------
+    arr : array_like
+        Array to put data into.
+    mask : array_like
+        Mask array. Must have the same size as `arr`.
+    vals : 1-D sequence
+        Values to put into `arr`. Only the first N elements are used,
+        where N is the number of True values in mask. If vals is smaller
+        than N, it will be repeated, and if elements of a are to be masked,
+        this sequence must be non-empty.
+
+    See Also
+    --------
+    numpy.copyto, numpy.put, numpy.take, numpy.extract
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    if arr.size == 0:
+        return
+
+    if mask.size != arr.size:
+        raise ValueError("arr array and condition array must be of same size")
+
+    if vals.ndim != 1:
+        raise ValueError("vals array has to be 1-dimensional")
+
+    if mask.shape != arr.shape:
+        mask_reshape = reshape(mask, arr.shape)
+    else:
+        mask_reshape = mask
+
+    num_values = int(count_nonzero(mask_reshape))
+    if num_values == 0:
+        return
+
+    if vals.size == 0:
+        raise ValueError("vals array cannot be empty")
+
+    if num_values != vals.size:
+        reps = (num_values + vals.size - 1) // vals.size
+        vals_resized = tile(A=vals, reps=reps) if reps > 1 else vals
+        vals_resized = vals_resized[:num_values]
+    else:
+        vals_resized = vals
+
+    if mask_reshape.dtype == bool:
+        arr._thunk.set_item(mask_reshape._thunk, vals_resized._thunk)
+    else:
+        bool_mask = mask_reshape.astype(bool)
+        arr._thunk.set_item(bool_mask._thunk, vals_resized._thunk)
+
+
+@add_boilerplate("condition", "arr")
+def extract(condition: ndarray, arr: ndarray) -> ndarray:
+    """
+
+    Return the elements of an array that satisfy some condition.
+
+    Parameters
+    ----------
+    condition : array_like
+        An array whose nonzero or True entries indicate the elements
+        of `arr` to extract.
+    arr : array_like
+        Input array of the same size as `condition`.
+
+    Returns
+    -------
+    result : ndarray
+        Rank 1 array of values from arr where `condition` is True.
+
+    See Also
+    --------
+    numpy.extract
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    if condition.size != arr.size:
+        raise ValueError("arr array and condition array must be of same size")
+
+    if condition.shape != arr.shape:
+        condition_reshape = reshape(condition, arr.shape)
+    else:
+        condition_reshape = condition
+
+    if condition_reshape.dtype == bool:
+        thunk = arr._thunk.get_item(condition_reshape._thunk)
+    else:
+        bool_condition = condition_reshape.astype(bool)
+        thunk = arr._thunk.get_item(bool_condition._thunk)
+
+    return ndarray(shape=thunk.shape, thunk=thunk)
+
+
 @add_boilerplate("a")
 def nonzero(a: ndarray) -> tuple[ndarray, ...]:
     """
