@@ -23,6 +23,7 @@ from typing import Dict, Type
 
 from .. import FeatureType
 from .test_stage import TestStage
+from .util import log_proc
 
 if sys.platform == "darwin":
     from ._osx import CPU, Eager, GPU, OMP
