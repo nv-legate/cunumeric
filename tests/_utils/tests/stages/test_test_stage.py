@@ -60,7 +60,8 @@ class TestTestStage:
         c = Config([])
         stage = MockTestStage(c, s)
         stage.result = StageResult(
-            [ProcessResult("invoke")], timedelta(seconds=2.123)
+            [ProcessResult("invoke", Path("test/file"))],
+            timedelta(seconds=2.123),
         )
         outro = stage.outro
         assert "Exiting stage: mock" in outro
