@@ -122,31 +122,40 @@ def was_previously_built_with_different_build_isolation(
 
 def install_cunumeric(
     arch,
-    march,
-    cuda,
-    cuda_dir,
-    cmake_exe,
-    cmake_generator,
-    install_dir,
-    legate_dir,
-    legate_url,
-    legate_branch,
-    openblas_dir,
-    tblis_dir,
-    curand_dir,
-    cutensor_dir,
-    thrust_dir,
-    nccl_dir,
-    debug,
-    debug_release,
+    build_isolation,
     check_bounds,
     clean_first,
-    thread_count,
+    cmake_exe,
+    cmake_generator,
+    conduit,
+    cuda_dir,
+    cuda,
+    curand_dir,
+    cutensor_dir,
+    debug_release,
+    debug,
     editable,
-    build_isolation,
-    verbose,
     extra_flags,
+    gasnet_dir,
+    gasnet,
+    hdf,
+    install_dir,
+    legate_branch,
+    legate_dir,
+    legate_url,
+    llvm,
+    march,
+    maxdim,
+    maxfields,
+    nccl_dir,
+    openblas_dir,
+    openmp,
+    spy,
+    tblis_dir,
+    thread_count,
+    thrust_dir,
     unknown,
+    verbose,
 ):
     if clean_first is None:
         clean_first = not editable
@@ -155,28 +164,40 @@ def install_cunumeric(
     if verbose:
         print("Options are:")
         print("arch: ", arch)
-        print("march: ", march)
-        print("cuda: ", cuda)
-        print("cuda_dir: ", cuda_dir)
-        print("cmake_exe: ", cmake_exe)
-        print("cmake_generator: ", cmake_generator)
-        print("install_dir: ", install_dir)
-        print("legate_dir: ", legate_dir)
-        print("legate_url: ", legate_url)
-        print("legate_branch: ", legate_branch)
-        print("openblas_dir: ", openblas_dir)
-        print("tblis_dir: ", tblis_dir)
-        print("cutensor_dir: ", cutensor_dir)
-        print("curand_dir: ", curand_dir)
-        print("thrust_dir: ", thrust_dir)
-        print("nccl_dir: ", nccl_dir)
-        print("debug: ", debug)
-        print("debug_release: ", debug_release)
+        print("build_isolation: ", build_isolation)
         print("check_bounds: ", check_bounds)
         print("clean_first: ", clean_first)
+        print("cmake_exe: ", cmake_exe)
+        print("cmake_generator: ", cmake_generator)
+        print("conduit: ", conduit)
+        print("cuda_dir: ", cuda_dir)
+        print("cuda: ", cuda)
+        print("curand_dir: ", curand_dir)
+        print("cutensor_dir: ", cutensor_dir)
+        print("debug_release: ", debug_release)
+        print("debug: ", debug)
+        print("editable: ", editable)
+        print("extra_flags: ", extra_flags)
+        print("gasnet_dir: ", gasnet_dir)
+        print("gasnet: ", gasnet)
+        print("hdf: ", hdf)
+        print("install_dir: ", install_dir)
+        print("legate_branch: ", legate_branch)
+        print("legate_dir: ", legate_dir)
+        print("legate_url: ", legate_url)
+        print("llvm: ", llvm)
+        print("march: ", march)
+        print("maxdim: ", maxdim)
+        print("maxfields: ", maxfields)
+        print("nccl_dir: ", nccl_dir)
+        print("openblas_dir: ", openblas_dir)
+        print("openmp: ", openmp)
+        print("spy: ", spy)
+        print("tblis_dir: ", tblis_dir)
         print("thread_count: ", thread_count)
-        print("verbose: ", verbose)
+        print("thrust_dir: ", thrust_dir)
         print("unknown: ", unknown)
+        print("verbose: ", verbose)
 
     join = os.path.join
     exists = os.path.exists
@@ -202,6 +223,7 @@ def install_cunumeric(
     legate_dir = validate_path(legate_dir)
     thrust_dir = validate_path(thrust_dir)
     curand_dir = validate_path(curand_dir)
+    gasnet_dir = validate_path(gasnet_dir)
     cutensor_dir = validate_path(cutensor_dir)
     openblas_dir = validate_path(openblas_dir)
 
@@ -220,6 +242,7 @@ def install_cunumeric(
         print("legate_dir: ", legate_dir)
         print("thrust_dir: ", thrust_dir)
         print("curand_dir: ", curand_dir)
+        print("gasnet_dir: ", gasnet_dir)
         print("cutensor_dir: ", cutensor_dir)
         print("openblas_dir: ", openblas_dir)
 
@@ -291,14 +314,25 @@ def install_cunumeric(
 -DBUILD_SHARED_LIBS=ON
 -DBUILD_MARCH={str(march)}
 -DCMAKE_CUDA_ARCHITECTURES={str(arch)}
--DLegion_USE_CUDA={("ON" if cuda else "OFF")}
+-DLegion_MAX_DIM={str(maxdim)}
+-DLegion_MAX_FIELDS={str(maxfields)}
+-DLegion_SPY={("ON" if spy else "OFF")}
 -DLegion_BOUNDS_CHECKS={("ON" if check_bounds else "OFF")}
+-DLegion_USE_CUDA={("ON" if cuda else "OFF")}
+-DLegion_USE_OpenMP={("ON" if openmp else "OFF")}
+-DLegion_USE_LLVM={("ON" if llvm else "OFF")}
+-DLegion_USE_GASNet={("ON" if gasnet else "OFF")}
+-DLegion_USE_HDF5={("ON" if hdf else "OFF")}
 """.splitlines()
 
     if cuda_dir:
         cmake_flags += ["-DCUDAToolkit_ROOT=%s" % cuda_dir]
     if nccl_dir:
         cmake_flags += ["-DNCCL_DIR=%s" % nccl_dir]
+    if gasnet_dir:
+        cmake_flags += ["-DGASNet_ROOT_DIR=%s" % gasnet_dir]
+    if conduit:
+        cmake_flags += ["-DGASNet_CONDUIT=%s" % conduit]
     if tblis_dir:
         cmake_flags += ["-Dtblis_ROOT=%s" % tblis_dir]
     if thrust_dir:
@@ -366,6 +400,36 @@ def driver():
         required=False,
         default=False,
         help="Build cuNumeric with bounds checks.",
+    )
+    parser.add_argument(
+        "--max-dim",
+        dest="maxdim",
+        type=int,
+        default=int(os.environ.get("LEGION_MAX_DIM", 4)),
+        help="Maximum number of dimensions that cuNumeric will support",
+    )
+    parser.add_argument(
+        "--max-fields",
+        dest="maxfields",
+        type=int,
+        default=int(os.environ.get("LEGION_MAX_FIELDS", 256)),
+        help="Maximum number of fields that cuNumeric will support",
+    )
+    parser.add_argument(
+        "--gasnet",
+        dest="gasnet",
+        action="store_true",
+        required=False,
+        default=os.environ.get("USE_GASNET", "0") == "1",
+        help="Build cuNumeric with GASNet.",
+    )
+    parser.add_argument(
+        "--with-gasnet",
+        dest="gasnet_dir",
+        metavar="DIR",
+        required=False,
+        default=os.environ.get("GASNET"),
+        help="Path to GASNet installation directory.",
     )
     parser.add_argument(
         "--with-core",
@@ -465,7 +529,7 @@ def driver():
         "--cuda",
         action=BooleanFlag,
         default=os.environ.get("USE_CUDA", "0") == "1",
-        help="Build Legate with CUDA support.",
+        help="Build cuNumeric with CUDA support.",
     )
     parser.add_argument(
         "--with-cuda",
@@ -484,11 +548,54 @@ def driver():
         help="Specify the target GPU architecture.",
     )
     parser.add_argument(
+        "--openmp",
+        action=BooleanFlag,
+        default=os.environ.get("USE_OPENMP", "0") == "1",
+        help="Build cuNumeric with OpenMP support.",
+    )
+    parser.add_argument(
         "--march",
         dest="march",
         required=False,
         default="native",
         help="Specify the target CPU architecture.",
+    )
+    parser.add_argument(
+        "--llvm",
+        dest="llvm",
+        action="store_true",
+        required=False,
+        default=os.environ.get("USE_LLVM", "0") == "1",
+        help="Build cuNumeric with LLVM support.",
+    )
+    parser.add_argument(
+        "--hdf5",
+        "--hdf",
+        dest="hdf",
+        action="store_true",
+        required=False,
+        default=os.environ.get("USE_HDF", "0") == "1",
+        help="Build cuNumeric with HDF support.",
+    )
+    parser.add_argument(
+        "--spy",
+        dest="spy",
+        action="store_true",
+        required=False,
+        default=os.environ.get("USE_SPY", "0") == "1",
+        help="Build cuNumeric with detailed Legion Spy enabled.",
+    )
+    parser.add_argument(
+        "--conduit",
+        dest="conduit",
+        action="store",
+        required=False,
+        # TODO: To support UDP conduit, we would need to add a special case on
+        # the legate launcher.
+        # See https://github.com/nv-legate/legate.core/issues/294.
+        choices=["ibv", "ucx", "aries", "mpi"],
+        default=os.environ.get("CONDUIT"),
+        help="Build cuNumeric with specified GASNet conduit.",
     )
     parser.add_argument(
         "--clean",
