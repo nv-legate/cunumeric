@@ -37,8 +37,9 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   const auto idx = global_tid_1d();
   if (idx >= volume) return;
   const int64_t input_idx = (idx + start) % in_volume;
+  auto out_p              = pitches_out.unflatten(idx, out_lo);
   auto p                  = pitches_in.unflatten(input_idx, in_lo);
-  out[idx]                = p;
+  out[out_p]              = p;
 }
 
 template <int DIM>
@@ -54,7 +55,7 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   if (idx >= volume) return;
   const int64_t input_idx = (idx + start) % in_volume;
   auto p                  = pitches_in.unflatten(input_idx, in_lo);
-  out[idx - start]        = p;
+  out[idx]                = p;
 }
 
 template <int DIM>

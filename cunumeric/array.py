@@ -4125,6 +4125,10 @@ class ndarray:
         return out
 
     def _wrap(self, new_len: int) -> ndarray:
+        if new_len == 1:
+            idxs = tuple(0 for i in range(self.ndim))
+            return self[idxs]
+
         out = ndarray(
             shape=(new_len,),
             dtype=self.dtype,

@@ -56,7 +56,9 @@ struct WrapImpl {
 
     Pitches<DIM - 1> pitches_in;
     size_t volume_in = pitches_in.flatten(input_rect);
-    if (volume_in == 0) return;
+#ifdef DEBUG_CUNUMERIC
+    assert(volume_in != 0);
+#endif
 
     WrapImplBody<KIND, DIM>()(out, pitches_out, out_rect, pitches_in, input_rect, dense);
   }

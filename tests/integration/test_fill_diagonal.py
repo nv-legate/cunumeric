@@ -31,6 +31,9 @@ def test_fill_diagonal(ndim):
     assert np.array_equal(np_array, num_array)
 
     # values is an array:
+    shape = (5,) * ndim
+    np_array = mk_seq_array(np, shape)
+    num_array = num.array(np_array)
     np_values = mk_seq_array(np, 5) * 10
     num_values = num.array(np_values)
     np.fill_diagonal(np_array, np_values)
@@ -38,6 +41,9 @@ def test_fill_diagonal(ndim):
     assert np.array_equal(np_array, num_array)
 
     # values is array that needs to be broadcasted:
+    shape = (5,) * ndim
+    np_array = mk_seq_array(np, shape)
+    num_array = num.array(np_array)
     np_values = mk_seq_array(np, 3) * 100
     num_values = num.array(np_values)
     np.fill_diagonal(np_array, np_values)
@@ -45,6 +51,9 @@ def test_fill_diagonal(ndim):
     assert np.array_equal(np_array, num_array)
 
     # values are 2d that need to be broadcasted
+    shape = (5,) * ndim
+    np_array = mk_seq_array(np, shape)
+    num_array = num.array(np_array)
     np_values = mk_seq_array(np, (2, 2)) * 100
     num_values = num.array(np_values)
     np.fill_diagonal(np_array, np_values)
@@ -52,6 +61,9 @@ def test_fill_diagonal(ndim):
     assert np.array_equal(np_array, num_array)
 
     # values are 3d that need to be broadcasted
+    shape = (5,) * ndim
+    np_array = mk_seq_array(np, shape)
+    num_array = num.array(np_array)
     np_values = mk_seq_array(np, (2, 2, 2)) * 100
     num_values = num.array(np_values)
     np.fill_diagonal(np_array, np_values)
@@ -59,6 +71,9 @@ def test_fill_diagonal(ndim):
     assert np.array_equal(np_array, num_array)
 
     # values are too long
+    shape = (5,) * ndim
+    np_array = mk_seq_array(np, shape)
+    num_array = num.array(np_array)
     np_values = mk_seq_array(np, (2, 2, 6)) * 100
     num_values = num.array(np_values)
     np.fill_diagonal(np_array, np_values)
@@ -66,22 +81,39 @@ def test_fill_diagonal(ndim):
     assert np.array_equal(np_array, num_array)
 
 
-SHAPES = [(20, 10), (100, 2), (55, 11)]
-VALUE_SHAPES = [(5, 5), (5), (9,)]
+SHAPES = [
+    (20, 10),
+    (100, 2),
+    (55, 11),
+    (3, 0),
+    (
+        1,
+        1,
+    ),
+]
+VALUE_SHAPES = [
+    (5, 5),
+    (5,),
+    (9,),
+    (
+        0,
+        3,
+    ),
+    (0,),
+]
+WRAP = [True, False]
 
 
-@pytest.mark.parametrize("shape, vshape", zip(SHAPES, VALUE_SHAPES), ids=str)
-def test_tall_matrices(shape, vshape):
-    a_np = mk_seq_array(np, shape)
-    v_np = mk_seq_array(np, vshape) * 100
+@pytest.mark.parametrize("shape", SHAPES, ids=str)
+@pytest.mark.parametrize("vshape", VALUE_SHAPES, ids=str)
+@pytest.mark.parametrize("wrap", WRAP, ids=str)
+def test_tall_matrices(shape, vshape, wrap):
+    a_np = np.ones(shape)
+    v_np = np.full(vshape, 100)
     a_num = num.array(a_np)
     v_num = num.array(v_np)
-    np.fill_diagonal(a_np, v_np)
-    num.fill_diagonal(a_num, v_num)
-    assert np.array_equal(a_np, a_num)
-
-    np.fill_diagonal(a_np, v_np, wrap=True)
-    num.fill_diagonal(a_num, v_num, wrap=True)
+    np.fill_diagonal(a_np, v_np, wrap)
+    num.fill_diagonal(a_num, v_num, wrap)
     assert np.array_equal(a_np, a_num)
 
 

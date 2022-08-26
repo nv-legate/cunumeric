@@ -3333,12 +3333,9 @@ def fill_diagonal(a: ndarray, val: ndarray, wrap: bool = False) -> None:
                     "All dimensions of input must be of equal length"
                 )
 
-        if wrap:
-            raise ValueError("wrap can be set to True only for 2d matrices")
-
     len_val = n
 
-    if wrap and a.shape[0] > a.shape[1]:
+    if a.ndim == 2 and wrap and a.shape[0] > a.shape[1]:
         len_val = a.shape[0] - (a.shape[0] // (a.shape[1] + 1))
 
     if (val.size != len_val and val.ndim > 0) or val.ndim > 1:
