@@ -31,7 +31,7 @@ template <LegateTypeCode CODE, int DIM, typename OUT_TYPE>
 struct AdvancedIndexingImplBody<VariantKind::OMP, CODE, DIM, OUT_TYPE> {
   using VAL = legate_type_of<CODE>;
 
-  size_t compute_output_offsets(Buffer<int64_t>& offsets,
+  size_t compute_output_offsets(ThreadLocalStorage<int64_t>& offsets,
                                 const AccessorRO<bool, DIM>& index,
                                 const Pitches<DIM - 1>& pitches,
                                 const Rect<DIM>& rect,
@@ -74,8 +74,7 @@ struct AdvancedIndexingImplBody<VariantKind::OMP, CODE, DIM, OUT_TYPE> {
 
     const auto max_threads = omp_get_max_threads();
     const size_t volume    = rect.volume();
-    auto kind    = CuNumeric::has_numamem ? Memory::Kind::SOCKET_MEM : Memory::Kind::SYSTEM_MEM;
-    auto offsets = create_buffer<int64_t>(max_threads, kind);
+    ThreadLocalStorage<int64_t> offsets(max_threads);
     size_t size =
       compute_output_offsets(offsets, index, pitches, rect, volume, skip_size, max_threads);
 
