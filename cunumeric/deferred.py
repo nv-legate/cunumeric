@@ -581,7 +581,8 @@ class DeferredArray(NumPyThunk):
                             inputs=[out],
                         ),
                     )
-                    out.fill(np.array(0, dtype=out_dtype))
+                    if not is_set:
+                        out.fill(np.array(0, dtype=out_dtype))
                 else:
                     for dim in range(rhs.ndim - out_dim):
                         out_tmp = out_tmp.project(rhs.ndim - dim - 1, 0)
