@@ -186,25 +186,20 @@ def _convert_all_to_numpy(obj: Any) -> Any:
         return obj
 
 
-def writeable() -> Callable[[Callable[P, R]], Callable[P, R]]:
+def check_writeable(arr: Union[ndarray, tuple[ndarray, ...], None]):
     """
     Check if the current array is writeable
-    This decorator needs to be manually inserted
+    This check needs to be manually inserted
     with consideration on the behavior of the corresponding method
     """
-
-    def decorator(func: Callable[P, R]) -> Callable[P, R]:
-        def wrapper(*args: Any, **kwargs: Any) -> Any:
-            if isinstance(args[0], ndarray) and not args[0].flags.writeable:
-                raise RuntimeError("'self' is not writeable")
-            return func(*args, **kwargs)
-
-        return wrapper
-
-    return decorator
+    if arr is not None:
+        check_list = [arr] if not isinstance(arr, tuple) else arr
+        for each in check_list:
+            if not each.flags.writeable:
+                raise RuntimeError("array is not writeable")
 
 
-class FlagsObj(object):
+class flagsobj(object):
     def __init__(
         self,
         c_contiguous: bool = True,
@@ -217,9 +212,9 @@ class FlagsObj(object):
         self._c_contiguous = c_contiguous
         self._f_contiguous = f_contiguous
         self._owndata = owndata
-        self._writeable = True
-        self._aligned = True
-        self._writebackifcopy = False
+        self._writeable = writeable
+        self._aligned = aligned
+        self._writebackifcopy = writebackifcopy
 
     def __getitem__(self, key: Any) -> bool:
         key = self.check_flag(key)
@@ -332,7 +327,7 @@ class ndarray:
         order: Union[OrderType, None] = None,
         thunk: Union[NumPyThunk, None] = None,
         inputs: Union[Any, None] = None,
-        flags: Union[FlagsObj, None] = None,
+        flags: Union[flagsobj, None] = None,
     ) -> None:
         # `inputs` being a cuNumeric ndarray is definitely a bug
         assert not isinstance(inputs, ndarray)
@@ -371,10 +366,10 @@ class ndarray:
         # TODO: flags are passed. We use this argument only for views
         # Not all routines are changed to pass these arguments correctly yet.
         if flags is not None:
-            self._flags = FlagsObj(*flags.__dict__.values())
+            self._flags = flagsobj(*flags.__dict__.values())
             self._flags._owndata = False
         else:
-            self._flags = FlagsObj()  # type : ignore
+            self._flags = flagsobj()  # type : ignore
 
     @staticmethod
     def _sanitize_shape(
@@ -1707,7 +1702,6 @@ class ndarray:
         return bitwise_xor(lhs, self)
 
     # __setattr__
-    @writeable()
     @add_boilerplate("value")
     def __setitem__(self, key: Any, value: Any) -> None:
         """__setitem__(key, value, /)
@@ -1715,7 +1709,7 @@ class ndarray:
         Set ``self[key]=value``.
 
         """
-
+        check_writeable(self)
         if key is None:
             raise KeyError("invalid key passed to cunumeric.ndarray")
         if value.dtype != self.dtype:
@@ -2863,7 +2857,6 @@ class ndarray:
 
         return out
 
-    @writeable()
     def fill(self, value: float) -> None:
         """a.fill(value)
 
@@ -2879,6 +2872,7 @@ class ndarray:
         Multiple GPUs, Multiple CPUs
 
         """
+        check_writeable(self)
         val = np.array(value, dtype=self.dtype)
         self._thunk.fill(val)
 
@@ -3166,7 +3160,6 @@ class ndarray:
             where=where,
         )
 
-    @writeable()
     @add_boilerplate()
     def partition(
         self,
@@ -3190,6 +3183,7 @@ class ndarray:
         Multiple GPUs, Single CPU
 
         """
+        check_writeable(self)
         self._thunk.partition(
             rhs=self._thunk, kth=kth, axis=axis, kind=kind, order=order
         )
@@ -3502,7 +3496,6 @@ class ndarray:
         result._thunk.searchsorted(a._thunk, v_ndarray._thunk, side)
         return result
 
-    @writeable()
     def sort(
         self,
         axis: Any = -1,
@@ -3524,6 +3517,7 @@ class ndarray:
         Multiple GPUs, Multiple CPUs
 
         """
+        check_writeable(self)
         self._thunk.sort(rhs=self._thunk, axis=axis, kind=kind, order=order)
 
     def argsort(

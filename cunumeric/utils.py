@@ -44,7 +44,7 @@ _SUPPORTED_DTYPES = [
 def _broadcast_shapes(
     *args: Union[NdShapeLike, Sequence[NdShapeLike]]
 ) -> NdShape:
-    # Call _broadcast_shapes' for now.
+    # Call 'np.broadcast_shapes' for now.
     # We will have a new implementation later
     return np.broadcast_shapes(*args)  # type: ignore [arg-type]
 

@@ -1467,17 +1467,6 @@ def broadcast_to(
         otherwise the returned array will be forced to
         be a base-class array (default).
 
-    values : array_like
-        These values are appended to a copy of arr.
-        It must be of the correct
-        shape (the same shape as arr, excluding axis).
-        If axis is not specified, values can be any shape
-        and will be flattened before use.
-    axis : int, optional
-        The axis along which values are appended.
-        If axis is not given, both `arr` and `values`
-        are flattened before use.
-
     Returns
     -------
     broadcast : array
@@ -1503,12 +1492,12 @@ def _broadcast_arrays(
     subok: bool = False,
 ) -> list[ndarray]:
     # create an arry object w/ options passed from 'broadcast' routines
-    arrays = list(array(arr, copy=False, subok=subok) for arr in arrs)
+    arrays = [array(arr, copy=False, subok=subok) for arr in arrs]
     # check if the broadcast can happen in the input list of arrays
-    shapes = list(arr.shape for arr in arrays)
+    shapes = [arr.shape for arr in arrays]
     out_shape = broadcast_shapes(*shapes)
     # broadcast to the final shape
-    arrays = list(_broadcast_to(arr, out_shape, subok) for arr in arrays)
+    arrays = [_broadcast_to(arr, out_shape, subok) for arr in arrays]
     return arrays
 
 

@@ -22,48 +22,8 @@ from legate.core import LEGATE_MAX_DIM
 DIM_CASES = [5, 40]
 
 
-def _broadcast_check(sizes):
-    arr_np = list(np.arange(np.prod(size)).reshape(size) for size in sizes)
-    arr_num = list(num.arange(np.prod(size)).reshape(size) for size in sizes)
-    b = np.broadcast(*arr_np)
-    c = num.broadcast(*arr_num)
-
-    attrs = ["index", "nd", "ndim", "numiter", "shape", "size"]
-
-    is_equal = True
-
-    err_arr = None
-    # test attributes
-    for attr in attrs:
-        if getattr(b, attr) != getattr(c, attr):
-            is_equal = False
-            err_arr = [attr, getattr(b, attr), getattr(c, attr)]
-    if is_equal:
-        # test elements in broadcasted array
-        for each in zip(b, c):
-            if each[0] != each[1]:
-                is_equal = False
-                err_arr = [("iters", b.index), each[0], each[1]]
-                break
-        # test reset method
-        b.reset()
-        c.reset()
-        if b.index != c.index:
-            is_equal = False
-            err_arr = [("reset", b.index), each[0], each[1]]
-        # test whether the broadcast provide views of the original array
-        for i in range(len(arr_num)):
-            arr_num[i][(0,) * arr_num[i].ndim] = 1
-            if c.iters[i][0] != arr_num[i][(0,) * arr_num[i].ndim]:
-                is_equal = False
-                err_arr = [
-                    ("view", i),
-                    c.iters[i][0],
-                    arr_num[i][(0,) * arr_num[i].ndim],
-                ]
-
-    print_msg = f"np.broadcast({sizes})"
-    assert is_equal, (
+def _print_result(test_result, print_msg, err_arr):
+    assert test_result, (
         f"Failed, {print_msg}\n"
         f"Attr, {err_arr[0]}\n"
         f"numpy result: {err_arr[1]}\n"
@@ -71,14 +31,79 @@ def _broadcast_check(sizes):
         f"cunumeric and numpy shows"
         f" different result\n"
     )
-
     print(f"Passed, {print_msg}")
+
+
+def _broadcast_attrs(sizes):
+    arr_np = list(np.arange(np.prod(size)).reshape(size) for size in sizes)
+    arr_num = list(num.arange(np.prod(size)).reshape(size) for size in sizes)
+    b = np.broadcast(*arr_np)
+    c = num.broadcast(*arr_num)
+
+    attrs = ["index", "nd", "ndim", "numiter", "shape", "size"]
+    is_equal = True
+    err_arr = None
+    # test attributes
+    for attr in attrs:
+        if getattr(b, attr) != getattr(c, attr):
+            is_equal = False
+            err_arr = [attr, getattr(b, attr), getattr(c, attr)]
+            break
+
+    _print_result(is_equal, f"np.broadcast({sizes})", err_arr)
+
+
+def _broadcast_value(sizes):
+    arr_np = list(np.arange(np.prod(size)).reshape(size) for size in sizes)
+    arr_num = list(num.arange(np.prod(size)).reshape(size) for size in sizes)
+    b = np.broadcast(*arr_np)
+    c = num.broadcast(*arr_num)
+
+    is_equal = True
+    err_arr = None
+
+    # test elements in broadcasted array
+    for each in zip(b, c):
+        if each[0] != each[1]:
+            is_equal = False
+            err_arr = [("iters", b.index), each[0], each[1]]
+            break
+    # test reset method
+    b.reset()
+    c.reset()
+    if b.index != c.index:
+        is_equal = False
+        err_arr = [("reset", b.index), each[0], each[1]]
+
+    _print_result(is_equal, f"np.broadcast({sizes})", err_arr)
+
+
+def _broadcast_view(sizes):
+    arr_num = list(num.arange(np.prod(size)).reshape(size) for size in sizes)
+    c = num.broadcast(*arr_num)
+
+    is_equal = True
+    err_arr = None
+
+    # test whether the broadcast provide views of the original array
+    for i in range(len(arr_num)):
+        arr_num[i][(0,) * arr_num[i].ndim] = 1
+        if c.iters[i][0] != arr_num[i][(0,) * arr_num[i].ndim]:
+            is_equal = False
+            err_arr = [
+                ("view", i),
+                c.iters[i][0],
+                arr_num[i][(0,) * arr_num[i].ndim],
+            ]
+
+    _print_result(is_equal, f"np.broadcast({sizes})", err_arr)
 
 
 def _check(*args, params: list, routine: str):
     b = getattr(np, routine)(*args)
     c = getattr(num, routine)(*args)
     is_equal = True
+    err_arr = None
     if isinstance(b, list):
         for each in zip(b, c):
             # Try to modify multiple elements in each broadcasted array
@@ -96,19 +121,10 @@ def _check(*args, params: list, routine: str):
             elif isinstance(each[0], tuple) and each[0] != each[1]:
                 is_equal = False
             if not is_equal:
-                err_arr = [each[0], each[1]]
+                err_arr = [("value", None), each[0], each[1]]
                 break
 
-    print_msg = f"np.{routine}({params})"
-    assert is_equal, (
-        f"Failed, {print_msg}\n"
-        f"numpy result: {err_arr[0]}\n"
-        f"cunumeric_result: {err_arr[1]}\n"
-        f"cunumeric and numpy shows"
-        f" different result\n"
-    )
-
-    print(f"Passed, {print_msg}")
+    _print_result(is_equal, f"np.{routine}({params})", err_arr)
 
 
 def gen_shapes(dim):
@@ -125,12 +141,21 @@ SHAPE_LISTS = {dim: gen_shapes(dim) for dim in DIM_CASES}
 
 # test to run broadcast  w/ different size of arryas
 @pytest.mark.parametrize("dim", DIM_CASES, ids=str)
-def test_broadcast(dim):
-    _broadcast_check(SHAPE_LISTS[dim])
+def test_broadcast_attrs(dim):
+    _broadcast_attrs(SHAPE_LISTS[dim])
 
 
-@pytest.mark.parametrize("ndim", range(2, LEGATE_MAX_DIM))
-def test_broadcast_shapes(ndim):
+@pytest.mark.parametrize("dim", DIM_CASES, ids=str)
+def test_broadcast_value(dim):
+    _broadcast_value(SHAPE_LISTS[dim])
+
+
+@pytest.mark.parametrize("dim", DIM_CASES, ids=str)
+def test_broadcast_view(dim):
+    _broadcast_view(SHAPE_LISTS[dim])
+
+
+def test_broadcast_shapes():
     dim = DIM_CASES[0]
     shape_list = SHAPE_LISTS[dim]
     _check(*shape_list, params=shape_list, routine="broadcast_shapes")
