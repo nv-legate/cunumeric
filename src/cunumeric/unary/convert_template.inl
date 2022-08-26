@@ -71,40 +71,25 @@ struct ConvertImpl {
   }
 };
 
-// template <VariantKind KIND, ConvertCode NAN_OP>
-// struct SourceTypeDispatch {
-//   template <LegateTypeCode SRC_TYPE>
-//   void operator()(ConvertArgs& args) const
-//   {
-//     auto dim = std::max(1, args.out.dim());
-//     double_dispatch(dim, args.out.code(), ConvertImpl<KIND, NAN_OP, SRC_TYPE>{}, args);
-//   }
-// };
-
-// template <VariantKind KIND>
-// struct ConvertDispatch {
-//   template <ConvertCode NAN_OP>
-//   void operator()(ConvertArgs& args) const
-//   {
-//     type_dispatch(args.in.code(), SourceTypeDispatch<KIND, NAN_OP>{}, args);
-//   }
-// };
-
-// template <VariantKind KIND>
-// static void convert_template(TaskContext& context)
-// {
-//   ConvertArgs args{
-//     context.outputs()[0], context.inputs()[0], context.scalars()[0].value<ConvertCode>()};
-//   op_dispatch(args.nan_op, ConvertDispatch<KIND>{}, args);
-// }
-
 template <VariantKind KIND, LegateTypeCode SRC_TYPE>
 struct ConvertDispatch {
-  template <ConvertCode NAN_OP>
+  template <ConvertCode NAN_OP,
+            std::enable_if_t<(legate::is_floating_point<SRC_TYPE>::value ||
+                              legate::is_complex<legate::legate_type_of<SRC_TYPE>>::value) &&
+                             NAN_OP != ConvertCode::NOOP>* = nullptr>
   void operator()(ConvertArgs& args) const
   {
     auto dim = std::max(1, args.out.dim());
     double_dispatch(dim, args.out.code(), ConvertImpl<KIND, NAN_OP, SRC_TYPE>{}, args);
+  }
+
+  template <ConvertCode NAN_OP,
+            std::enable_if_t<!((legate::is_floating_point<SRC_TYPE>::value ||
+                                legate::is_complex<legate::legate_type_of<SRC_TYPE>>::value) &&
+                               (NAN_OP != ConvertCode::NOOP))>* = nullptr>
+  void operator()(ConvertArgs& args) const
+  {
+    assert(false);
   }
 };
 

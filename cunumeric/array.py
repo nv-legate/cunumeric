@@ -4110,6 +4110,8 @@ class ndarray:
                     nan_op = ConvertCode.SUM
                 else:
                     nan_op = ConvertCode.PROD
+                # If convert is called, it will handle NAN conversion
+                nan_to_identity = False
             else:
                 nan_op = ConvertCode.NOOP
             # convert input to temporary for type conversion
