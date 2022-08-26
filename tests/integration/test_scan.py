@@ -142,8 +142,8 @@ def test_scan_out0_shape(shape, axis, outtype, dt):
     _run_tests(op, n0, shape, dt, axis, out0, outtype)
 
 
-@pytest.mark.parametrize("op", ops_nan)
-@pytest.mark.parametrize("outtype", dtypes)
+@pytest.mark.parametrize("op", ops)
+@pytest.mark.parametrize("outtype", dtypes_simplified)
 @pytest.mark.parametrize("dt", dtypes)
 @pytest.mark.parametrize("n0", n0s)
 def test_scan_nan(op, outtype, dt, n0):

@@ -4076,6 +4076,8 @@ class ndarray:
         out: Union[ndarray, None] = None,
         nan_to_identity: bool = False,
     ) -> ndarray:
+        if src.dtype.kind != "c" and src.dtype.kind != "f":
+            nan_to_identity = False
         if dtype is None:
             if out is None:
                 if src.dtype.kind == "i":
