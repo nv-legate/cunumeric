@@ -18,6 +18,7 @@
 
 // Useful for IDEs
 #include <core/utilities/typedefs.h>
+#include "cunumeric/cunumeric.h"
 #include "cunumeric/unary/scalar_unary_red.h"
 #include "cunumeric/unary/unary_red_util.h"
 #include "cunumeric/pitches.h"
@@ -34,118 +35,87 @@ struct ScalarUnaryRed {
   using LG_OP = typename OP::OP;
   using LHS   = typename OP::VAL;
   using RHS   = legate_type_of<CODE>;
-  
-  template <class InPtr, class Out, class ToFind>
-  static void DenseContains(size_t volume, InPtr inptr, Out out, ToFind&& to_find){
-    ScalarReductionPolicy<KIND, LG_OP>()(volume, out, /*identity=*/false, [=](bool& lhs, size_t idx) {
-      if (inptr[idx] == to_find) { lhs = true; }
-    });
-  }
+  using OUT   = AccessorRD<LG_OP, true, 1>;
+  using IN    = AccessorRO<RHS, DIM>;
 
-  template <class In, class Out, class Pitches, class Origin, class ToFind>
-  static void SparseContains(size_t volume, In in, Out out, const Pitches& pitches, const Origin& origin, const ToFind& to_find){
-    ScalarReductionPolicy<KIND, LG_OP>()(volume, out, /*identity=*/false, [=] __host__ __device__  (bool& lhs, size_t idx) {
-      auto point = pitches.unflatten(idx, origin);
-      if (in[point] == to_find) { lhs = true; }
-    });
-  }
+  IN in;
+  const RHS* inptr;
+  OUT out;
+  size_t volume;
+  Pitches<DIM-1> pitches;
+  Rect<DIM> rect;
+  Point<DIM> origin;
+  Point<DIM> shape;
+  RHS to_find;
+  bool dense;
 
-  template <class InPtr, class Out, class Shape, class Pitches, class Origin>
-  static void DenseArgReduction(size_t volume, InPtr inptr, Out out, const Shape& shape, const Pitches& pitches, const Origin& origin){
-    auto identity = LG_OP::identity;    
-    ScalarReductionPolicy<KIND, LG_OP>()(volume, out, identity, [=](LHS& lhs, size_t idx) {
-      auto p = pitches.unflatten(idx, origin);
-      OP::template fold<true>(lhs, OP::convert(p, shape, inptr[idx]));
-    });
-  }
+  struct DenseContains {};
+  struct SparseContains {};
+  struct DenseReduction {};
+  struct SparseReduction {};
+  struct DenseArgReduction {};
+  struct SparseArgReduction {};
 
-  template <class In, class Out, class Shape, class Pitches, class Origin>
-  static void SparseArgReduction(size_t volume, In in, Out out, const Shape& shape, const Pitches& pitches, const Origin& origin){
-    auto identity = LG_OP::identity;
-    ScalarReductionPolicy<KIND, LG_OP>()(volume, out, identity, [=] __host__ __device__  (LHS& lhs, size_t idx) {
-      auto p = pitches.unflatten(idx, origin);
-      OP::template fold<true>(lhs, OP::convert(p, shape, in[p]));
-    });
-  }  
- 
-  template <class InPtr, class Out>
-  static void DenseReduction(size_t volume, InPtr inptr, Out out){
-    auto identity = LG_OP::identity;    
-    ScalarReductionPolicy<KIND, LG_OP>()(volume, out, identity, [=](LHS& lhs, size_t idx) {
-      OP::template fold<true>(lhs, OP::convert(inptr[idx]));
-    });
-  }
+  ScalarUnaryRed(ScalarUnaryRedArgs& args) : 
+    dense(false)
+  {
+    rect        = args.in.shape<DIM>();
+    origin = rect.lo;
+    in  = args.in.read_accessor<RHS, DIM>(rect);
+    volume = pitches.flatten(rect);
+    shape = args.shape;
 
-  template <class In, class Out, class Pitches, class Origin>
-  static void SparseReduction(size_t volume, In in, Out out, const Pitches& pitches, const Origin& origin) {
-    auto identity = LG_OP::identity;
-    ScalarReductionPolicy<KIND, LG_OP>()(volume, out, identity, [=] __host__ __device__  (LHS& lhs, size_t idx) {
-      auto p = pitches.unflatten(idx, origin);
-      OP::template fold<true>(lhs, OP::convert(in[p]));
-    });
-  }
+    out = args.out.reduce_accessor<LG_OP, true, 1>();
+    if constexpr (OP_CODE == UnaryRedCode::CONTAINS){
+      to_find = args.args[0].scalar<RHS>();
+    }
 
-
-  void operator()(ScalarUnaryRedArgs& args) const {
-    auto rect = args.in.shape<DIM>();
-    auto in  = args.in.read_accessor<RHS, DIM>(rect);    
 #ifndef LEGION_BOUNDS_CHECKS
     // Check to see if this is dense or not
     if (in.accessor.is_dense_row_major(rect)){
-      return execute_kernel<true>(args);
+      dense = true;
+      inptr = in.ptr(rect);
     }
-#endif
-    return execute_kernel<false>(args);
+#endif  
   }
 
-  template <bool dense>
-  void execute_kernel(ScalarUnaryRedArgs& args) const {
-    using OP    = UnaryRedOp<OP_CODE, CODE>;
-    using LG_OP = typename OP::OP;
-    using LHS   = typename OP::VAL;
-    using RHS   = legate_type_of<CODE>;
+  __host__ __device__ void operator()(LHS& lhs, size_t idx, DenseReduction) const noexcept {
+    if constexpr (OP_CODE == UnaryRedCode::CONTAINS){
+      if (inptr[idx] == to_find) { lhs = true; }
+    } else if constexpr (OP_CODE == UnaryRedCode::ARGMAX || OP_CODE == UnaryRedCode::ARGMIN){
+      auto p = pitches.unflatten(idx, origin);
+      OP::template fold<true>(lhs, OP::convert(p, shape, inptr[idx]));
+    } else {
+      OP::template fold<true>(lhs, OP::convert(inptr[idx]));      
+    }   
+  }
 
-    auto rect        = args.in.shape<DIM>();
-    auto in  = args.in.read_accessor<RHS, DIM>(rect);
-    auto origin      = rect.lo;
-    Pitches<DIM - 1> pitches;
-    size_t volume = pitches.flatten(rect);
+  __host__ __device__ void operator()(LHS& lhs, size_t idx, SparseReduction) const noexcept {
+    if constexpr (OP_CODE == UnaryRedCode::CONTAINS){
+      auto point = pitches.unflatten(idx, origin);
+      if (in[point] == to_find) { lhs = true; }
+    } else if constexpr (OP_CODE == UnaryRedCode::ARGMAX || OP_CODE == UnaryRedCode::ARGMIN){
+      auto p = pitches.unflatten(idx, origin);
+      OP::template fold<true>(lhs, OP::convert(p, shape, in[p]));
+    } else {
+      auto p = pitches.unflatten(idx, origin);
+      OP::template fold<true>(lhs, OP::convert(in[p]));      
+    }
+  }
 
-    if (0 == volume) return;
-
-    auto out = args.out.reduce_accessor<LG_OP, true, 1>();
-
-    if constexpr (OP_CODE == UnaryRedCode::CONTAINS) {
-      auto to_find = args.args[0].scalar<RHS>();
-      // The reduction only checks if any element is equal to the search element.
-      if constexpr (dense && KIND != VariantKind::GPU) {
-        // On CPU, you can directly access through a pointer.
-        auto inptr = in.ptr(rect);
-        DenseContains(volume, inptr, out, to_find);
-      } else {
-        // On GPU or if not dense, must go through accessor.
-        SparseContains(volume, in, out, pitches, origin, to_find);
-      }
-    } else if constexpr (OP_CODE == UnaryRedCode::ARGMAX || OP_CODE == UnaryRedCode::ARGMIN) {
-      Point<DIM> shape = args.shape;
-      // The reduction performs a min/max, but records the index of the maximum, not the value.
-      if constexpr (dense && KIND != VariantKind::GPU) {
-        auto inptr = in.ptr(rect);
-        // On CPU, you can directly access through a pointer.
-        DenseArgReduction(volume, inptr, out, shape, pitches, origin);
-      } else {
-        SparseArgReduction(volume, in, out, shape, pitches, origin);
-      }
-    } else {  // All other op types
-      if constexpr (dense && KIND != VariantKind::GPU) {
-        // On CPU, you can directly access through a pointer.
-        auto inptr = in.ptr(rect);
-        DenseReduction(volume, inptr, out);
-      } else {
-        SparseReduction(volume, in, out, pitches, origin);
+  void execute() const noexcept {
+#ifndef LEGION_BOUNDS_CHECKS
+    auto identity = LG_OP::identity;
+    if constexpr (KIND != VariantKind::GPU){
+      // Check to see if this is dense or not
+      if (dense){
+        return ScalarReductionPolicy<KIND, LG_OP, DenseReduction>()(volume, out, identity, *this);
       }
     }
-  }  
+#endif
+    return ScalarReductionPolicy<KIND, LG_OP, SparseReduction>()(volume, out, identity, *this);   
+  }
+  
 };
 
 template <VariantKind KIND, UnaryRedCode OP_CODE>
@@ -155,7 +125,8 @@ struct ScalarUnaryRedImpl {
   void operator()(ScalarUnaryRedArgs& args) const
   {
     if constexpr (UnaryRedOp<OP_CODE, CODE>::valid){
-      ScalarUnaryRed<KIND, OP_CODE, CODE, DIM>()(args);
+      ScalarUnaryRed<KIND, OP_CODE, CODE, DIM> red(args);
+      red.execute();
     }
   }
 };

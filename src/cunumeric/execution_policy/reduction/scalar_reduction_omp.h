@@ -5,8 +5,8 @@
 
 namespace cunumeric {
 
-template <class LG_OP>
-struct ScalarReductionPolicy<VariantKind::OMP, LG_OP> {
+template <class LG_OP, class Tag>
+struct ScalarReductionPolicy<VariantKind::OMP, LG_OP, Tag> {
   template <class AccessorRD, class LHS, class Kernel>
   void operator()(size_t volume, AccessorRD& out, const LHS& identity, Kernel&& kernel)
   {
@@ -17,7 +17,7 @@ struct ScalarReductionPolicy<VariantKind::OMP, LG_OP> {
     {
       const int tid = omp_get_thread_num();
 #pragma omp for schedule(static)
-      for (size_t idx = 0; idx < volume; ++idx) { kernel(locals[tid], idx); }
+      for (size_t idx = 0; idx < volume; ++idx) { kernel(locals[tid], idx, Tag{}); }
     }
     for (auto idx = 0; idx < max_threads; ++idx) out.reduce(0, locals[idx]);
   }

@@ -5,7 +5,7 @@
 
 namespace cunumeric {
 
-template <VariantKind KIND, class LG_OP>
+template <VariantKind KIND, class LG_OP, class Tag = void>
 struct ScalarReductionPolicy {
   // No C++-20 yet. This is just here to illustrate the expected concept
   // that all kernels passed to this execution should have.
@@ -21,13 +21,15 @@ struct ScalarReductionPolicy {
   };
 };
 
-template <class LG_OP>
-struct ScalarReductionPolicy<VariantKind::CPU, LG_OP> {
+template <class LG_OP, class Tag>
+struct ScalarReductionPolicy<VariantKind::CPU, LG_OP, Tag> {
   template <class AccessorRD, class LHS, class Kernel>
   void operator()(size_t volume, AccessorRD& out, const LHS& identity, Kernel&& kernel)
   {
     auto result = identity;
-    for (size_t idx = 0; idx < volume; ++idx) { kernel(result, idx); }
+    for (size_t idx = 0; idx < volume; ++idx) { 
+      kernel(result, idx, Tag{}); 
+    }
     out.reduce(0, result);
   }
 };

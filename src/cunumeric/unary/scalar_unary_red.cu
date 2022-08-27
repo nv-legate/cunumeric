@@ -14,11 +14,15 @@
  *
  */
 
+#include "cunumeric/cunumeric.h"
 #include "cunumeric/unary/scalar_unary_red.h"
 #include "cunumeric/unary/scalar_unary_red_template.inl"
 #include "cunumeric/execution_policy/reduction/scalar_reduction.cuh"
 
 namespace cunumeric {
+
+using namespace Legion;
+using namespace legate;
 
 /*static*/ void ScalarUnaryRedTask::gpu_variant(TaskContext& context)
 {

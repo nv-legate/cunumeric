@@ -9,12 +9,12 @@ def tuple_dims(strings):
 
 def run_benchmark(fxn, arr, iters: int):
     cn_arr = cn.array(arr)
-    start = time()
     out = fxn(cn_arr)
+    start = time()
     for i in range(1, iters):
-        fxn(arr, out=out)
+        fxn(cn_arr, out=out)
     stop = time()
-    ms_per = (stop - start) / iters / 1e3
+    ms_per = (stop - start) / (iters-1) / 1e3
     bytes_accessed = arr.size * arr.itemsize
     print(bytes_accessed)
     tput_gb = bytes_accessed / ms_per / 1e6
@@ -44,6 +44,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
     arr = np.random.randn(*args.shape).astype(np.float32)
     print("N=%dM" % (arr.size / 1e6))
-    run_benchmark(np.sum, arr, args.iters)
+    run_benchmark(cn.sum, arr, args.iters)
 
-    run_benchmark(np.argmax, arr, args.iters)
+    run_benchmark(cn.argmax, arr, args.iters)
