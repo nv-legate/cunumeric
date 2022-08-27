@@ -672,6 +672,10 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
+    def argwhere(self) -> NumPyThunk:
+        ...
+
+    @abstractmethod
     def where(self, rhs1: Any, rhs2: Any, rhs3: Any) -> None:
         ...
 

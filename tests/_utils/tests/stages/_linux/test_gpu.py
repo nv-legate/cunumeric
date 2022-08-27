@@ -19,29 +19,18 @@ from __future__ import annotations
 
 import pytest
 
-from ...config import Config
-from ...system import System
-from ...test_stages._linux import eager as m
-from ...types import CPUInfo
-
-
-class FakeSystem(System):
-    @property
-    def cpus(self) -> tuple[CPUInfo, ...]:
-        return tuple(CPUInfo(i) for i in range(6))
+from ....config import Config
+from ....stages._linux import gpu as m
+from .. import FakeSystem
 
 
 def test_default() -> None:
     c = Config([])
     s = FakeSystem()
-    stage = m.Eager(c, s)
-    assert stage.kind == "eager"
-    assert stage.args == []
-    assert stage.env == {
-        "CUNUMERIC_MIN_CPU_CHUNK": "2000000000",
-        "CUNUMERIC_MIN_OMP_CHUNK": "2000000000",
-        "CUNUMERIC_MIN_GPU_CHUNK": "2000000000",
-    }
+    stage = m.GPU(c, s)
+    assert stage.kind == "cuda"
+    assert stage.args == ["-cunumeric:test"]
+    assert stage.env(c, s) == {}
     assert stage.spec.workers > 0
 
 
@@ -49,17 +38,40 @@ def test_default() -> None:
 def test_shard_args(shard: tuple[int, ...], expected: str) -> None:
     c = Config([])
     s = FakeSystem()
-    stage = m.Eager(c, s)
+    stage = m.GPU(c, s)
     result = stage.shard_args(shard, c)
-    assert result == ["--cpus", "1", "--cpu-bind", expected]
+    assert result == [
+        "--fbmem",
+        "4096",
+        "--gpus",
+        f"{len(shard)}",
+        "--gpu-bind",
+        expected,
+    ]
 
 
-def test_spec() -> None:
-    c = Config([])
+def test_spec_with_gpus_1() -> None:
+    c = Config(["test.py", "--gpus", "1"])
     s = FakeSystem()
-    stage = m.Eager(c, s)
-    assert stage.spec.workers == len(s.cpus)
-    assert stage.spec.shards == [tuple([i]) for i in range(stage.spec.workers)]
+    stage = m.GPU(c, s)
+    assert stage.spec.workers == 12
+    assert stage.spec.shards == [(0,), (1,), (2,), (3,), (4,), (5,)] * 12
+
+
+def test_spec_with_gpus_2() -> None:
+    c = Config(["test.py", "--gpus", "2"])
+    s = FakeSystem()
+    stage = m.GPU(c, s)
+    assert stage.spec.workers == 6
+    assert stage.spec.shards == [(0, 1), (2, 3), (4, 5)] * 6
+
+
+def test_spec_with_requested_workers() -> None:
+    c = Config(["test.py", "--gpus", "1", "-j", "2"])
+    s = FakeSystem()
+    stage = m.GPU(c, s)
+    assert stage.spec.workers == 2
+    assert stage.spec.shards == [(0,), (1,), (2,), (3,), (4,), (5,)] * 2
 
 
 def test_spec_with_requested_workers_zero() -> None:
@@ -67,21 +79,22 @@ def test_spec_with_requested_workers_zero() -> None:
     c = Config(["test.py", "-j", "0"])
     assert c.requested_workers == 0
     with pytest.raises(RuntimeError):
-        m.Eager(c, s)
+        m.GPU(c, s)
 
 
 def test_spec_with_requested_workers_bad() -> None:
     s = FakeSystem()
-    c = Config(["test.py", "-j", f"{len(s.cpus)+1}"])
-    assert c.requested_workers > len(s.cpus)
+    c = Config(["test.py", "-j", f"{len(s.gpus)+100}"])
+    assert c.requested_workers > len(s.gpus)
     with pytest.raises(RuntimeError):
-        m.Eager(c, s)
+        m.GPU(c, s)
 
 
 def test_spec_with_verbose() -> None:
-    c = Config(["test.py"])
-    cv = Config(["test.py", "--verbose"])
+    args = ["test.py", "--gpus", "2"]
+    c = Config(args)
+    cv = Config(args + ["--verbose"])
     s = FakeSystem()
 
-    spec, vspec = m.Eager(c, s).spec, m.Eager(cv, s).spec
+    spec, vspec = m.GPU(c, s).spec, m.GPU(cv, s).spec
     assert vspec == spec

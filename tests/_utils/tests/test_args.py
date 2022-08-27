@@ -24,6 +24,7 @@ import pytest
 
 from .. import (
     DEFAULT_CPUS_PER_NODE,
+    DEFAULT_GPU_DELAY,
     DEFAULT_GPU_MEMORY_BUDGET,
     DEFAULT_GPUS_PER_NODE,
     DEFAULT_OMPS_PER_NODE,
@@ -55,6 +56,12 @@ class TestParserDefaults:
 
     def test_gpus(self) -> None:
         assert m.parser.get_default("gpus") == DEFAULT_GPUS_PER_NODE
+
+    def test_cpu_pin(self) -> None:
+        assert m.parser.get_default("cpu_pin") == "partial"
+
+    def test_gpu_delay(self) -> None:
+        assert m.parser.get_default("gpu_delay") == DEFAULT_GPU_DELAY
 
     def test_fbmem(self) -> None:
         assert m.parser.get_default("fbmem") == DEFAULT_GPU_MEMORY_BUDGET

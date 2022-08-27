@@ -2673,6 +2673,110 @@ def flip(m: ndarray, axis: Optional[NdShapeLike] = None) -> ndarray:
 # Generating index arrays
 
 
+@add_boilerplate("arr", "mask", "vals")
+def place(arr: ndarray, mask: ndarray, vals: ndarray) -> None:
+    """
+    Change elements of an array based on conditional and input values.
+
+    Parameters
+    ----------
+    arr : array_like
+        Array to put data into.
+    mask : array_like
+        Mask array. Must have the same size as `arr`.
+    vals : 1-D sequence
+        Values to put into `arr`. Only the first N elements are used,
+        where N is the number of True values in mask. If vals is smaller
+        than N, it will be repeated, and if elements of a are to be masked,
+        this sequence must be non-empty.
+
+    See Also
+    --------
+    numpy.copyto, numpy.put, numpy.take, numpy.extract
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    if arr.size == 0:
+        return
+
+    if mask.size != arr.size:
+        raise ValueError("arr array and condition array must be of same size")
+
+    if vals.ndim != 1:
+        raise ValueError("vals array has to be 1-dimensional")
+
+    if mask.shape != arr.shape:
+        mask_reshape = reshape(mask, arr.shape)
+    else:
+        mask_reshape = mask
+
+    num_values = int(count_nonzero(mask_reshape))
+    if num_values == 0:
+        return
+
+    if vals.size == 0:
+        raise ValueError("vals array cannot be empty")
+
+    if num_values != vals.size:
+        reps = (num_values + vals.size - 1) // vals.size
+        vals_resized = tile(A=vals, reps=reps) if reps > 1 else vals
+        vals_resized = vals_resized[:num_values]
+    else:
+        vals_resized = vals
+
+    if mask_reshape.dtype == bool:
+        arr._thunk.set_item(mask_reshape._thunk, vals_resized._thunk)
+    else:
+        bool_mask = mask_reshape.astype(bool)
+        arr._thunk.set_item(bool_mask._thunk, vals_resized._thunk)
+
+
+@add_boilerplate("condition", "arr")
+def extract(condition: ndarray, arr: ndarray) -> ndarray:
+    """
+
+    Return the elements of an array that satisfy some condition.
+
+    Parameters
+    ----------
+    condition : array_like
+        An array whose nonzero or True entries indicate the elements
+        of `arr` to extract.
+    arr : array_like
+        Input array of the same size as `condition`.
+
+    Returns
+    -------
+    result : ndarray
+        Rank 1 array of values from arr where `condition` is True.
+
+    See Also
+    --------
+    numpy.extract
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    if condition.size != arr.size:
+        raise ValueError("arr array and condition array must be of same size")
+
+    if condition.shape != arr.shape:
+        condition_reshape = reshape(condition, arr.shape)
+    else:
+        condition_reshape = condition
+
+    if condition_reshape.dtype == bool:
+        thunk = arr._thunk.get_item(condition_reshape._thunk)
+    else:
+        bool_condition = condition_reshape.astype(bool)
+        thunk = arr._thunk.get_item(bool_condition._thunk)
+
+    return ndarray(shape=thunk.shape, thunk=thunk)
+
+
 @add_boilerplate("a")
 def nonzero(a: ndarray) -> tuple[ndarray, ...]:
     """
@@ -2702,6 +2806,36 @@ def nonzero(a: ndarray) -> tuple[ndarray, ...]:
     Multiple GPUs, Multiple CPUs
     """
     return a.nonzero()
+
+
+@add_boilerplate("a")
+def flatnonzero(a: ndarray) -> ndarray:
+    """
+
+    Return indices that are non-zero in the flattened version of a.
+
+    This is equivalent to `np.nonzero(np.ravel(a))[0]`.
+
+    Parameters
+    ----------
+    a : array_like
+        Input array.
+
+    Returns
+    -------
+    res : ndarray
+        Output array, containing the indices of the elements of
+        `a.ravel()` that are non-zero.
+
+    See Also
+    --------
+    numpy.flatnonzero
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    return nonzero(ravel(a))[0]
 
 
 @add_boilerplate("a", "x", "y")
@@ -2743,6 +2877,37 @@ def where(
             )
         return nonzero(a)
     return ndarray._perform_where(a, x, y)
+
+
+@add_boilerplate("a")
+def argwhere(a: ndarray) -> ndarray:
+    """
+    argwhere(a)
+
+    Find the indices of array elements that are non-zero, grouped by element.
+
+    Parameters
+    ----------
+    a : array_like
+        Input data.
+
+    Returns
+    -------
+    index_array : ndarray
+        Indices of elements that are non-zero. Indices are grouped by element.
+        This array will have shape (N, a.ndim) where N is the number of
+        non-zero items.
+
+    See Also
+    --------
+    numpy.argwhere
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    thunk = a._thunk.argwhere()
+    return ndarray(shape=thunk.shape, thunk=thunk)
 
 
 # Indexing-like operations
@@ -4878,13 +5043,13 @@ def cumprod(
         Input array.
 
     axis : int, optional
-        Axis along which the cumulative sum is computed. The default (None) is
-        to compute the cumsum over the flattened array.
+        Axis along which the cumulative product is computed. The default (None)
+        is to compute the cumprod over the flattened array.
 
     dtype : dtype, optional
         Type of the returned array and of the accumulator in which the elements
-        are summed. If dtype is not specified, it defaults to the dtype of a,
-        unless a has an integer dtype with a precision less than that of the
+        are multiplied. If dtype is not specified, it defaults to the dtype of
+        a, unless a has an integer dtype with a precision less than that of the
         default platform integer. In that case, the default platform integer is
         used.
     out : ndarray, optional
@@ -4894,7 +5059,7 @@ def cumprod(
 
     Returns
     -------
-    cumprod_along_axis : ndarray.
+    cumprod : ndarray
         A new array holding the result is returned unless out is specified, in
         which case a reference to out is returned. The result has the same size
         as a, and the same shape as a if axis is not None or a is a 1-d array.
@@ -4902,6 +5067,16 @@ def cumprod(
     See Also
     --------
     numpy.cumprod
+
+    Notes
+    -----
+    CuNumeric's parallel implementation may yield different results from NumPy
+    with floating point and complex types. For example, when boundary values
+    such as inf occur they may not propagate as expected. Consider the float32
+    array ``[3e+37, 1, 100, 0.01]``. NumPy's cumprod will return a result of
+    ``[3e+37, 3e+37, inf, inf]``. However, cuNumeric might internally partition
+    the array such that partition 0 has ``[3e+37, 1]``  and partition 1 has
+    ``[100, 0.01]``, returning the result ``[3e+37, 3e+37, inf, 3e+37]``.
 
     Availability
     --------
@@ -4949,7 +5124,7 @@ def cumsum(
 
     Returns
     -------
-    cumsum_along_axis : ndarray.
+    cumsum : ndarray.
         A new array holding the result is returned unless out is specified, in
         which case a reference to out is returned. The result has the same size
         as a, and the same shape as a if axis is not None or a is a 1-d array.
@@ -4957,6 +5132,13 @@ def cumsum(
     See Also
     --------
     numpy.cumsum
+
+    Notes
+    -----
+    CuNumeric's parallel implementation may yield different results from NumPy
+    with floating point and complex types. For example, when boundary values
+    such as inf occur they may not propagate as expected. For more explanation
+    check cunumeric.cumprod.
 
     Availability
     --------
@@ -4987,13 +5169,13 @@ def nancumprod(
         Input array.
 
     axis : int, optional
-        Axis along which the cumulative sum is computed. The default (None) is
-        to compute the cumsum over the flattened array.
+        Axis along which the cumulative product is computed. The default (None)
+        is to compute the nancumprod over the flattened array.
 
     dtype : dtype, optional
         Type of the returned array and of the accumulator in which the elements
-        are summed. If dtype is not specified, it defaults to the dtype of a,
-        unless a has an integer dtype with a precision less than that of the
+        are multiplied. If dtype is not specified, it defaults to the dtype of
+        a, unless a has an integer dtype with a precision less than that of the
         default platform integer. In that case, the default platform integer is
         used.
     out : ndarray, optional
@@ -5003,7 +5185,7 @@ def nancumprod(
 
     Returns
     -------
-    cumprod_along_axis : ndarray.
+    nancumprod : ndarray.
         A new array holding the result is returned unless out is specified, in
         which case a reference to out is returned. The result has the same size
         as a, and the same shape as a if axis is not None or a is a 1-d array.
@@ -5011,6 +5193,13 @@ def nancumprod(
     See Also
     --------
     numpy.nancumprod
+
+    Notes
+    -----
+    CuNumeric's parallel implementation may yield different results from NumPy
+    with floating point and complex types. For example, when boundary values
+    such as inf occur they may not propagate as expected. For more explanation
+    check cunumeric.cumprod.
 
     Availability
     --------
@@ -5042,7 +5231,7 @@ def nancumsum(
 
     axis : int, optional
         Axis along which the cumulative sum is computed. The default (None) is
-        to compute the cumsum over the flattened array.
+        to compute the nancumsum over the flattened array.
 
     dtype : dtype, optional
         Type of the returned array and of the accumulator in which the elements
@@ -5057,7 +5246,7 @@ def nancumsum(
 
     Returns
     -------
-    cumsum_along_axis : ndarray.
+    nancumsum : ndarray.
         A new array holding the result is returned unless out is specified, in
         which case a reference to out is returned. The result has the same size
         as a, and the same shape as a if axis is not None or a is a 1-d array.
@@ -5065,6 +5254,13 @@ def nancumsum(
     See Also
     --------
     numpy.nancumsum
+
+    Notes
+    -----
+    CuNumeric's parallel implementation may yield different results from NumPy
+    with floating point and complex types. For example, when boundary values
+    such as inf occur they may not propagate as expected. For more explanation
+    check cunumeric.cumprod.
 
     Availability
     --------

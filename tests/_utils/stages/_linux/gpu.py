@@ -14,15 +14,20 @@
 #
 from __future__ import annotations
 
+import time
+
 from ... import FeatureType
 from ...config import Config
 from ...system import System
 from ...types import ArgList, EnvDict
-from ..test_stage import Shard, StageSpec, TestStage, adjust_workers
+from ..test_stage import TestStage
+from ..util import CUNUMERIC_TEST_ARG, Shard, StageSpec, adjust_workers
+
+BLOAT_FACTOR = 1.5  # hard coded for now
 
 
-class OMP(TestStage):
-    """A test stage for exercising OpenMP features.
+class GPU(TestStage):
+    """A test stage for exercising GPU features.
 
     Parameters
     ----------
@@ -34,35 +39,44 @@ class OMP(TestStage):
 
     """
 
-    kind: FeatureType = "openmp"
+    kind: FeatureType = "cuda"
 
-    args = ["-cunumeric:test"]
-
-    env: EnvDict = {}
+    args = [CUNUMERIC_TEST_ARG]
 
     def __init__(self, config: Config, system: System) -> None:
         self._init(config, system)
 
+    def env(self, config: Config, system: System) -> EnvDict:
+        return {}
+
+    def delay(self, shard: Shard, config: Config, system: System) -> None:
+        time.sleep(config.gpu_delay / 1000)
+
     def shard_args(self, shard: Shard, config: Config) -> ArgList:
         return [
-            "--omps",
-            str(config.omps),
-            "--ompthreads",
-            str(config.ompthreads),
-            "--cpu-bind",
+            "--fbmem",
+            str(config.fbmem),
+            "--gpus",
+            str(len(shard)),
+            "--gpu-bind",
             ",".join(str(x) for x in shard),
         ]
 
     def compute_spec(self, config: Config, system: System) -> StageSpec:
-        N = len(system.cpus)
-        omps, threads = config.omps, config.ompthreads
-        degree = N // (omps * threads + config.utility)
+        N = len(system.gpus)
+        degree = N // config.gpus
 
-        workers = adjust_workers(degree, config.requested_workers)
+        fbsize = min(gpu.total for gpu in system.gpus) / (2 << 20)  # MB
+        oversub_factor = int(fbsize // (config.fbmem * BLOAT_FACTOR))
+        workers = adjust_workers(
+            degree * oversub_factor, config.requested_workers
+        )
 
         # https://docs.python.org/3/library/itertools.html#itertools-recipes
         # grouper('ABCDEF', 3) --> ABC DEF
-        args = [iter(range(workers * omps * threads))] * (omps * threads)
-        shards = list(zip(*args))
+        args = [iter(range(degree * config.gpus))] * config.gpus
+        per_worker_shards = list(zip(*args))
+
+        shards = per_worker_shards * workers
 
         return StageSpec(workers, shards)

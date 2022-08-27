@@ -102,11 +102,6 @@ struct AdvancedIndexingImplBody<VariantKind::OMP, CODE, DIM, OUT_TYPE> {
     size_t size =
       compute_output_offsets(offsets, index, pitches, rect, volume, skip_size, max_threads);
 
-    if (0 == size) {
-      out_arr.make_empty();
-      return;
-    }
-
     // calculating the shape of the output region for this sub-task
     Point<DIM> extents;
     extents[0] = size;
@@ -117,7 +112,7 @@ struct AdvancedIndexingImplBody<VariantKind::OMP, CODE, DIM, OUT_TYPE> {
     for (size_t i = DIM - key_dim + 1; i < DIM; i++) extents[i] = 1;
 
     auto out = out_arr.create_output_buffer<OUT_TYPE, DIM>(extents, true);
-
+    if (size > 0)
 #pragma omp parallel
     {
       const int tid   = omp_get_thread_num();

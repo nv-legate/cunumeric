@@ -173,9 +173,7 @@ class Runtime(object):
     def _register_dtypes(self) -> None:
         type_system = self.legate_context.type_system
         for numpy_type, core_type in _supported_dtypes.items():
-            type_system.make_alias(
-                np.dtype(numpy_type), core_type  # type: ignore
-            )
+            type_system.make_alias(np.dtype(numpy_type), core_type)
 
         for n in range(1, LEGATE_MAX_DIM + 1):
             self._register_point_type(n)
