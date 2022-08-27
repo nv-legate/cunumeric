@@ -30,6 +30,7 @@ export CXXFLAGS="-UNDEBUG"
 export CPPFLAGS="-UNDEBUG"
 export CUDAFLAGS="-UNDEBUG"
 export CMAKE_GENERATOR=Ninja
+export CUDAHOSTCXX=${CXX}
 
 cmake -S . -B build ${CMAKE_ARGS}
 cmake --build build -j$CPU_COUNT
