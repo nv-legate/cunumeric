@@ -2115,14 +2115,13 @@ def array_split(
     elif isinstance(indices, (list, tuple)) or (
         isinstance(indices, (ndarray, np.ndarray)) and indices.dtype == int
     ):
-        try:
-            Ntotal = array.shape[axis]
-        except AttributeError:
-            Ntotal = len(array)
         split_pts = list(indices)
         # adding the size of the target dimension.
         # This helps create dummy or last subarray correctly
-        split_pts.append(array.shape[axis])
+        try:
+            split_pts.append(array.shape[axis])
+        except AttributeError:
+            raise ValueError("The axis has to be shorter than the length of the list indexes.")
 
     else:
         raise ValueError("Integer or array for split should be provided")
