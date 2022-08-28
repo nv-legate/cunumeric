@@ -2086,7 +2086,7 @@ def array_split(
 
     if isinstance(indices, int):
         if indices <= 0:
-            raise ValueError('number sections must be larger than 0.')
+            raise ValueError("number sections must be larger than 0.")
         res = array.shape[axis] % indices
         if equal and res != 0:
             raise ValueError("array split does not result in an equal divison")
