@@ -2079,12 +2079,14 @@ def array_split(
     """
     array = convert_to_cunumeric_ndarray(a)
     split_pts = []
-    if axis >= array.ndim:
-        raise ValueError(
-            f"array({array.shape}) has less dimensions than axis({axis})"
-        )
+    # if axis >= array.ndim:
+    #     raise ValueError(
+    #         f"array({array.shape}) has less dimensions than axis({axis})"
+    #     )
 
     if isinstance(indices, int):
+        if indices <= 0:
+            raise ValueError('number sections must be larger than 0.')
         res = array.shape[axis] % indices
         if equal and res != 0:
             raise ValueError("array split does not result in an equal divison")
@@ -2113,6 +2115,10 @@ def array_split(
     elif isinstance(indices, (list, tuple)) or (
         isinstance(indices, (ndarray, np.ndarray)) and indices.dtype == int
     ):
+        try:
+            Ntotal = array.shape[axis]
+        except AttributeError:
+            Ntotal = len(array)
         split_pts = list(indices)
         # adding the size of the target dimension.
         # This helps create dummy or last subarray correctly

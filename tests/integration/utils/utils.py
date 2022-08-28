@@ -49,4 +49,11 @@ def check_array_method(fn, args, kwargs, print_msg):
         f"cunumeric and numpy shows"
         f" different result\n"
     )
-    print(f"Passed, {print_msg}")
+
+    if isinstance(a, list):
+        print(f"Passed, {print_msg}")
+    else:
+        print(
+            f"Passed, {print_msg}, np: ({a.shape}, {a.dtype})"
+            f", cunumeric: ({b.shape}, {b.dtype})"
+        )
