@@ -14,10 +14,12 @@
 #
 
 import math
+
 import numpy as np
 import pytest
-import cunumeric as num
 from utils.utils import check_array_method
+
+import cunumeric as num
 
 # Seed the random generator with a random number
 np.random.seed(416)
