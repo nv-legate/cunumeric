@@ -188,7 +188,7 @@ def _convert_all_to_numpy(obj: Any) -> Any:
         return obj
 
 
-def check_writeable(arr: Union[ndarray, tuple[ndarray, ...], None]):
+def check_writeable(arr: Union[ndarray, tuple[ndarray, ...], None]) -> None:
     """
     Check if the current array is writeable
     This check needs to be manually inserted
