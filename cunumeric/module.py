@@ -2122,7 +2122,7 @@ def array_split(
             split_pts.append(array.shape[axis])
         except AttributeError:
             raise ValueError(
-                "The axis has to be shorter than the length of the list indexes."
+                "axis has to be shorter than the length of the list indexes"
             )
 
     else:
