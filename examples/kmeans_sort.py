@@ -24,11 +24,6 @@ from benchmark import run_benchmark
 
 import cunumeric as np
 
-try:
-    xrange
-except NameError:
-    xrange = range
-
 
 def initialize(N, D, C, T):
     # Uncomment this if we want execution to be deterministic
@@ -68,7 +63,7 @@ def find_centroids(data, labels, C, D):
     # sum across them to create the centroids
     centroids = np.empty((C, D), dtype=data.dtype)
     ragged_arrays = np.split(sorted_points, indexes)
-    for idx in xrange(C):
+    for idx in range(C):
         centroids[idx, :] = np.sum(ragged_arrays[idx], axis=0)
     # To avoid introducing divide by zero errors
     # If a centroid has no weight, we'll do no normalization
