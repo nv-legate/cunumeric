@@ -21,8 +21,7 @@ import argparse
 import gc
 import math
 
-from benchmark import run_benchmark
-from legate.timing import time
+from benchmark import run_benchmark, time
 
 import cunumeric as np
 

@@ -17,15 +17,7 @@
 
 import argparse
 
-from benchmark import run_benchmark
-
-try:
-    from legate.timing import time
-except ImportError:
-    from time import perf_counter_ns
-
-    def time():
-        return perf_counter_ns() / 1000.0
+from benchmark import run_benchmark, time
 
 
 # This is technically dead code right now, but we'll keep it around in

@@ -18,6 +18,14 @@
 import math
 from functools import reduce
 
+try:
+    from legate.timing import time
+except ImportError:
+    from time import perf_counter_ns
+
+    def time():
+        return perf_counter_ns() / 1000.0
+
 
 # A helper method for benchmarking applications
 def run_benchmark(f, samples, name, args):

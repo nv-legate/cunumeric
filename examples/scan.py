@@ -18,8 +18,7 @@
 import argparse
 
 import numpy as np
-from benchmark import run_benchmark
-from legate.timing import time
+from benchmark import run_benchmark, time
 
 
 def initialize(shape, dt, axis):
