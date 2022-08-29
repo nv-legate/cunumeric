@@ -106,6 +106,9 @@ set(cunumeric_CUDA_DEFS "")
 set(cunumeric_CXX_OPTIONS "")
 set(cunumeric_CUDA_OPTIONS "")
 
+include(cmake/Modules/set_cpu_arch_flags.cmake)
+set_cpu_arch_flags(cunumeric_CXX_OPTIONS)
+
 # Add `src/cunumeric.mk` sources
 list(APPEND cunumeric_SOURCES
   src/cunumeric/ternary/where.cc
