@@ -11,6 +11,7 @@ dependencies:
   - zlib
   - cmake>=3.24
   - ninja
+  - openmpi
   - c-compiler
   - cxx-compiler
   - gcc_linux-64 # [linux64]
