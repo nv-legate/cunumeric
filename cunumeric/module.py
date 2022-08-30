@@ -2079,10 +2079,10 @@ def array_split(
     """
     array = convert_to_cunumeric_ndarray(a)
     split_pts = []
-    # if axis >= array.ndim:
-    #     raise ValueError(
-    #         f"array({array.shape}) has less dimensions than axis({axis})"
-    #     )
+    if axis >= array.ndim:
+        raise ValueError(
+            f"array({array.shape}) has less dimensions than axis({axis})"
+        )
 
     if isinstance(indices, int):
         if indices <= 0:

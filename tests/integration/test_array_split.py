@@ -61,8 +61,13 @@ class TestArraySplitErrors:
 
     def test_axis_bigger(self):
         ary = np.arange(9)
-        with pytest.raises(IndexError):
+        with pytest.raises(ValueError):
             num.array_split(ary, len(ary) // 2, 2)
+
+    def test_axis_negative(self):
+        ary = np.arange(9)
+        with pytest.raises(IndexError):
+            num.array_split(ary, len(ary) // 2, -2)
 
 
 @pytest.mark.parametrize("size", SIZES, ids=str)
