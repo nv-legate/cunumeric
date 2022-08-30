@@ -99,7 +99,7 @@ if __name__ == "__main__":
         help="precision of the computation in bits",
     )
 
-    args, np = parse_args()
+    args, np = parse_args(parser)
 
     if args.P == 16:
         run_benchmark(

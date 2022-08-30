@@ -162,7 +162,7 @@ if __name__ == "__main__":
              else, use einsum(expr, A, B, out=C)""",
     )
 
-    args, np = parse_args()
+    args, np = parse_args(parser)
 
     cupy_compatibility = args.cupy_compatibility or args.package == "cupy"
     if cupy_compatibility:

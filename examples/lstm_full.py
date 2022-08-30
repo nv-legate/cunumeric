@@ -397,7 +397,7 @@ if __name__ == "__main__":
         help="standard deviation of weights for initialization",
     )
 
-    args, np = parse_args()
+    args, np = parse_args(parser)
 
     run_benchmark(
         run_lstm,

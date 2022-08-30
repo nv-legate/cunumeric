@@ -110,7 +110,7 @@ if __name__ == "__main__":
         help="print verbose output",
     )
 
-    args, np = parse_args()
+    args, np = parse_args(parser)
 
     run_benchmark(
         run_jacobi,

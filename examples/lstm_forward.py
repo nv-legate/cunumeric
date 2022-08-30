@@ -97,7 +97,7 @@ if __name__ == "__main__":
         help="perform timing",
     )
 
-    args, np = parse_args()
+    args, np = parse_args(parser)
 
     run_benchmark(
         run_lstm,

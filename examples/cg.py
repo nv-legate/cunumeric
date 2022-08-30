@@ -290,7 +290,7 @@ if __name__ == "__main__":
         help="convergence check threshold",
     )
 
-    args, np = parse_args()
+    args, np = parse_args(parser)
 
     run_benchmark(
         run_preconditioned_cg if args.precondition else run_cg,

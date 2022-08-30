@@ -268,7 +268,7 @@ if __name__ == "__main__":
         help="name of the index routine to test",
     )
 
-    args, np = parse_args()
+    args, np = parse_args(parser)
 
     run_benchmark(
         run_indexing_routines,

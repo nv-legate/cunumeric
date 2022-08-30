@@ -155,7 +155,7 @@ if __name__ == "__main__":
         help="use argsort",
     )
 
-    args, num = parse_args()
+    args, num = parse_args(parser)
 
     run_benchmark(
         run_sort,

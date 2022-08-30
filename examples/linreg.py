@@ -121,7 +121,7 @@ if __name__ == "__main__":
         help="number of iterations between sampling the log likelihood",
     )
 
-    args, np = parse_args()
+    args, np = parse_args(parser)
 
     if args.P == 16:
         run_benchmark(
