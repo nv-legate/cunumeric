@@ -16,14 +16,21 @@
 
 cmake_minimum_required(VERSION 3.22.1 FATAL_ERROR)
 
-if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.13)
+if(POLICY CMP0077)
   cmake_policy(SET CMP0077 NEW)
   set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
 endif()
 
-if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.16)
+if(POLICY CMP0096)
   cmake_policy(SET CMP0096 NEW)
   set(CMAKE_POLICY_DEFAULT_CMP0096 NEW)
+endif()
+
+if(POLICY CMP0135)
+  # make the timestamps of ExternalProject_ADD match the download time
+  # https://cmake.org/cmake/help/latest/policy/CMP0135.html
+  cmake_policy(SET CMP0135 NEW)
+  set(CMAKE_POLICY_DEFAULT_CMP0135 NEW)
 endif()
 
 ##############################################################################
@@ -40,13 +47,17 @@ include(rapids-cuda)
 include(rapids-export)
 include(rapids-find)
 
-set(cunumeric_version 22.07.00)
+set(cunumeric_version 22.10.00)
 
 # For now we want the optimization flags to match on both normal make and cmake
 # builds so we override the cmake defaults here for release, this changes
 # -O3 to -O2 and removes -DNDEBUG
+set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
+set(CMAKE_CUDA_FLAGS_DEBUG "-O0 -g")
 set(CMAKE_CXX_FLAGS_RELEASE "-O2")
 set(CMAKE_CUDA_FLAGS_RELEASE "-O2")
+set(CMAKE_CXX_FLAGS_MINSIZEREL "-Os")
+set(CMAKE_CUDA_FLAGS_MINSIZEREL "-Os")
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g")
 set(CMAKE_CUDA_FLAGS_RELWITHDEBINFO "-O2 -g")
 
@@ -63,4 +74,29 @@ else()
               # that is fixed we need to keep C.
               C CXX)
   include(cunumeric_python.cmake)
+endif()
+
+if(CMAKE_GENERATOR STREQUAL "Ninja")
+  function(add_touch_cunumeric_ninja_build_target)
+    set(_suf )
+    set(_depends )
+    if(SKBUILD)
+      set(_suf "_python")
+    endif()
+    foreach(_dep IN ITEMS cunumeric cunumeric_python
+                          legion_core legion_core_python
+                          Legion LegionRuntime
+                          Realm RealmRuntime
+                          Regent)
+      if(TARGET ${_dep})
+        list(APPEND _depends ${_dep})
+      endif()
+    endforeach()
+    add_custom_target("touch_cunumeric${_suf}_ninja_build" ALL
+      COMMAND ${CMAKE_COMMAND} -E touch_nocreate "${CMAKE_CURRENT_BINARY_DIR}/build.ninja"
+      COMMENT "touch build.ninja so ninja doesn't re-run CMake on rebuild"
+      VERBATIM DEPENDS ${_depends}
+    )
+  endfunction()
+  add_touch_cunumeric_ninja_build_target()
 endif()

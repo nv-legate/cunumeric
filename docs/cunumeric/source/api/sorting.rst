@@ -24,8 +24,11 @@ Searching
 
    argmax
    argmin
+   argwhere
+   flatnonzero
    nonzero
    searchsorted
+   extract
    where
 
 Counting

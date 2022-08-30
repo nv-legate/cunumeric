@@ -61,13 +61,13 @@ endfunction()
 
 if(NOT DEFINED cunumeric_LEGATE_CORE_BRANCH)
   # TODO: Undo this! Only setting temporarily so CI passes
-  set(cunumeric_LEGATE_CORE_BRANCH fea/add-cmake)
+  set(cunumeric_LEGATE_CORE_BRANCH add-cmake-pr)
   # set(cunumeric_LEGATE_CORE_BRANCH branch-22.07)
 endif()
 
 if(NOT DEFINED cunumeric_LEGATE_CORE_REPOSITORY)
   # TODO: Undo this! Only setting temporarily so CI passes
-  set(cunumeric_LEGATE_CORE_REPOSITORY https://github.com/trxcllnt/legate.core.git)
+  set(cunumeric_LEGATE_CORE_REPOSITORY https://github.com/jjwilke/legate.core.git)
   # set(cunumeric_LEGATE_CORE_REPOSITORY https://github.com/nv-legate/legate.core.git)
 endif()
 

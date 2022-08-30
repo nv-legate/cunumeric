@@ -18,6 +18,7 @@ Generating index arrays
    triu_indices_from
    indices
    nonzero
+   flatnonzero
    where
 
 
@@ -42,3 +43,4 @@ Inserting data into arrays
    :toctree: generated/
 
    put_along_axis
+   place

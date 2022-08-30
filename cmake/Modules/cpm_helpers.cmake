@@ -44,8 +44,12 @@ function(get_cpm_git_args _out_var)
   elseif(GIT_REPOSITORY MATCHES "gitlab\.com")
     # GitLab archive URIs replace slashes with dashes
     string(REPLACE "/" "-" archive_tag "${repo_tag}")
+    string(LENGTH "${GIT_REPOSITORY}" repo_name_len)
+    string(FIND "${GIT_REPOSITORY}" "/" repo_name_idx REVERSE)
+    math(EXPR repo_name_len "${repo_name_len} - ${repo_name_idx}")
+    string(SUBSTRING "${GIT_REPOSITORY}" ${repo_name_idx} ${repo_name_len} repo_name)
     # If retrieving from gitlab use `.zip` URL to download faster
-    set(cpm_git_args URL "${GIT_REPOSITORY}/-/archive/${repo_tag}/legion-${archive_tag}.zip")
+    set(cpm_git_args URL "${GIT_REPOSITORY}/-/archive/${repo_tag}/${repo_name}-${archive_tag}.zip")
   endif()
 
   set(${_out_var} ${cpm_git_args} PARENT_SCOPE)

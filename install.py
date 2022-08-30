@@ -82,61 +82,122 @@ def execute_command(args, verbose, **kwargs):
     subprocess.check_call(args, **kwargs)
 
 
+def scikit_build_cmake_build_dir(skbuild_dir):
+    if os.path.exists(skbuild_dir):
+        for f in os.listdir(skbuild_dir):
+            if os.path.exists(
+                cmake_build := os.path.join(skbuild_dir, f, "cmake-build")
+            ):
+                return cmake_build
+    return None
+
+
+def find_cmake_val(pattern, filepath):
+    return (
+        subprocess.check_output(["grep", "--color=never", pattern, filepath])
+        .decode("UTF-8")
+        .strip()
+    )
+
+
+def was_previously_built_with_different_build_isolation(
+    isolated, cunumeric_build_dir
+):
+    if (
+        cunumeric_build_dir is not None
+        and os.path.exists(cunumeric_build_dir)
+        and os.path.exists(
+            cmake_cache := os.path.join(cunumeric_build_dir, "CMakeCache.txt")
+        )
+    ):
+        try:
+            if isolated:
+                return True
+            if find_cmake_val("pip-build-env", cmake_cache):
+                return True
+        except Exception:
+            pass
+    return False
+
+
 def install_cunumeric(
     arch,
-    march,
-    cuda,
-    cuda_dir,
-    cmake_exe,
-    cmake_generator,
-    install_dir,
-    legate_dir,
-    legate_url,
-    legate_branch,
-    openblas_dir,
-    tblis_dir,
-    curand_dir,
-    cutensor_dir,
-    thrust_dir,
-    nccl_dir,
-    debug,
-    debug_release,
+    build_isolation,
     check_bounds,
     clean_first,
-    python_only,
-    thread_count,
+    cmake_exe,
+    cmake_generator,
+    conduit,
+    cuda_dir,
+    cuda,
+    curand_dir,
+    cutensor_dir,
+    debug_release,
+    debug,
     editable,
-    build_isolation,
-    verbose,
     extra_flags,
+    gasnet_dir,
+    gasnet,
+    hdf,
+    install_dir,
+    legate_branch,
+    legate_dir,
+    legate_url,
+    llvm,
+    march,
+    maxdim,
+    maxfields,
+    nccl_dir,
+    openblas_dir,
+    openmp,
+    spy,
+    tblis_dir,
+    thread_count,
+    thrust_dir,
     unknown,
+    verbose,
 ):
+    if clean_first is None:
+        clean_first = not editable
+
     print("Verbose build is ", "on" if verbose else "off")
     if verbose:
         print("Options are:")
         print("arch: ", arch)
-        print("march: ", march)
-        print("cuda: ", cuda)
-        print("cuda_dir: ", cuda_dir)
-        print("cmake_exe: ", cmake_exe)
-        print("cmake_generator: ", cmake_generator)
-        print("legate_dir: ", legate_dir)
-        print("legate_url: ", legate_url)
-        print("legate_branch: ", legate_branch)
-        print("openblas_dir: ", openblas_dir)
-        print("tblis_dir: ", tblis_dir)
-        print("cutensor_dir: ", cutensor_dir)
-        print("curand_dir: ", curand_dir)
-        print("thrust_dir: ", thrust_dir)
-        print("nccl_dir: ", nccl_dir)
-        print("debug: ", debug)
-        print("debug_release: ", debug_release)
+        print("build_isolation: ", build_isolation)
         print("check_bounds: ", check_bounds)
         print("clean_first: ", clean_first)
-        print("python_only: ", python_only)
+        print("cmake_exe: ", cmake_exe)
+        print("cmake_generator: ", cmake_generator)
+        print("conduit: ", conduit)
+        print("cuda_dir: ", cuda_dir)
+        print("cuda: ", cuda)
+        print("curand_dir: ", curand_dir)
+        print("cutensor_dir: ", cutensor_dir)
+        print("debug_release: ", debug_release)
+        print("debug: ", debug)
+        print("editable: ", editable)
+        print("extra_flags: ", extra_flags)
+        print("gasnet_dir: ", gasnet_dir)
+        print("gasnet: ", gasnet)
+        print("hdf: ", hdf)
+        print("install_dir: ", install_dir)
+        print("legate_branch: ", legate_branch)
+        print("legate_dir: ", legate_dir)
+        print("legate_url: ", legate_url)
+        print("llvm: ", llvm)
+        print("march: ", march)
+        print("maxdim: ", maxdim)
+        print("maxfields: ", maxfields)
+        print("nccl_dir: ", nccl_dir)
+        print("openblas_dir: ", openblas_dir)
+        print("openmp: ", openmp)
+        print("spy: ", spy)
+        print("tblis_dir: ", tblis_dir)
         print("thread_count: ", thread_count)
-        print("verbose: ", verbose)
+        print("thrust_dir: ", thrust_dir)
         print("unknown: ", unknown)
+        print("verbose: ", verbose)
 
     join = os.path.join
     exists = os.path.exists
@@ -149,23 +210,53 @@ def install_cunumeric(
         thread_count = multiprocessing.cpu_count()
 
     def validate_path(path):
-        if path is not None:
-            path = realpath(path)
-            if not os.path.exists(path):
-                path = None
-        return path
+        if path is not None and (path := str(path)) != "":
+            if not os.path.isabs(path):
+                path = join(cunumeric_dir, path)
+            if exists(path := realpath(path)):
+                return path
+        return None
 
     cuda_dir = validate_path(cuda_dir)
+    nccl_dir = validate_path(nccl_dir)
     tblis_dir = validate_path(tblis_dir)
     legate_dir = validate_path(legate_dir)
     thrust_dir = validate_path(thrust_dir)
+    curand_dir = validate_path(curand_dir)
+    gasnet_dir = validate_path(gasnet_dir)
     cutensor_dir = validate_path(cutensor_dir)
     openblas_dir = validate_path(openblas_dir)
 
-    build_dir = join(cunumeric_dir, "_skbuild")
+    if legate_dir is None:
+        try:
+            import legate.install_info as lg_install_info
+
+            legate_dir = dirname(lg_install_info.libpath)
+        except Exception:
+            pass
+
+    if verbose:
+        print("cuda_dir: ", cuda_dir)
+        print("nccl_dir: ", nccl_dir)
+        print("tblis_dir: ", tblis_dir)
+        print("legate_dir: ", legate_dir)
+        print("thrust_dir: ", thrust_dir)
+        print("curand_dir: ", curand_dir)
+        print("gasnet_dir: ", gasnet_dir)
+        print("cutensor_dir: ", cutensor_dir)
+        print("openblas_dir: ", openblas_dir)
+
+    skbuild_dir = join(cunumeric_dir, "_skbuild")
+    cunumeric_build_dir = scikit_build_cmake_build_dir(skbuild_dir)
+
+    if was_previously_built_with_different_build_isolation(
+        build_isolation and not editable, cunumeric_build_dir
+    ):
+        print("Performing a clean build to accommodate build isolation.")
+        clean_first = True
 
     if clean_first:
-        shutil.rmtree(build_dir, ignore_errors=True)
+        shutil.rmtree(skbuild_dir, ignore_errors=True)
         shutil.rmtree(join(cunumeric_dir, "dist"), ignore_errors=True)
         shutil.rmtree(join(cunumeric_dir, "build"), ignore_errors=True)
         shutil.rmtree(
@@ -174,22 +265,31 @@ def install_cunumeric(
         )
 
     # Configure and build cuNumeric via setup.py
-    pip_install_cmd = [
-        sys.executable,
-        "-m",
-        "pip",
-        "install",
-        "--root",
-        "/",
-    ]
+    pip_install_cmd = [sys.executable, "-m", "pip", "install"]
+    cmd_env = dict(os.environ.items())
 
     if unknown is not None:
-        pip_install_cmd += unknown
-    elif install_dir is not None:
-        pip_install_cmd += ["--prefix", str(realpath(install_dir))]
+        try:
+            prefix_loc = unknown.index("--prefix")
+            prefix_dir = validate_path(unknown[prefix_loc + 1])
+            if prefix_dir is not None:
+                install_dir = prefix_dir
+                unknown = unknown[:prefix_loc] + unknown[prefix_loc + 2 :]
+        except Exception:
+            pass
+
+    install_dir = validate_path(install_dir)
+
+    if verbose:
+        print("install_dir: ", install_dir)
+
+    if install_dir is not None:
+        pip_install_cmd += ["--root", "/", "--prefix", str(install_dir)]
 
     if editable:
+        # editable implies build_isolation = False
         pip_install_cmd += ["--no-deps", "--no-build-isolation", "--editable"]
+        cmd_env.update({"SETUPTOOLS_ENABLE_FEATURES": "legacy-editable"})
     else:
         if not build_isolation:
             pip_install_cmd += ["--no-deps", "--no-build-isolation"]
@@ -214,14 +314,25 @@ def install_cunumeric(
 -DBUILD_SHARED_LIBS=ON
 -DBUILD_MARCH={str(march)}
 -DCMAKE_CUDA_ARCHITECTURES={str(arch)}
--DLegion_USE_CUDA={("ON" if cuda else "OFF")}
+-DLegion_MAX_DIM={str(maxdim)}
+-DLegion_MAX_FIELDS={str(maxfields)}
+-DLegion_SPY={("ON" if spy else "OFF")}
 -DLegion_BOUNDS_CHECKS={("ON" if check_bounds else "OFF")}
+-DLegion_USE_CUDA={("ON" if cuda else "OFF")}
+-DLegion_USE_OpenMP={("ON" if openmp else "OFF")}
+-DLegion_USE_LLVM={("ON" if llvm else "OFF")}
+-DLegion_USE_GASNet={("ON" if gasnet else "OFF")}
+-DLegion_USE_HDF5={("ON" if hdf else "OFF")}
 """.splitlines()
 
     if cuda_dir:
         cmake_flags += ["-DCUDAToolkit_ROOT=%s" % cuda_dir]
     if nccl_dir:
         cmake_flags += ["-DNCCL_DIR=%s" % nccl_dir]
+    if gasnet_dir:
+        cmake_flags += ["-DGASNet_ROOT_DIR=%s" % gasnet_dir]
+    if conduit:
+        cmake_flags += ["-DGASNet_CONDUIT=%s" % conduit]
     if tblis_dir:
         cmake_flags += ["-Dtblis_ROOT=%s" % tblis_dir]
     if thrust_dir:
@@ -233,19 +344,18 @@ def install_cunumeric(
     # A custom path to cuRAND is ignored when CUDA support is available
     if cuda and curand_dir is not None:
         cmake_flags += ["-Dcunumeric_cuRAND_INCLUDE_DIR=%s" % curand_dir]
-    if legate_dir and (
+    if legate_dir:
         # TODO: Undo this! Only setting temporarily so CI passes
-        exists(join(legate_dir, "lib", "cmake", "legate_core"))
-        or exists(join(legate_dir, "build", "legate_core-config.cmake"))
-    ):
-        cmake_flags += ["-Dlegate_core_ROOT=%s" % legate_dir]
+        if exists(join(legate_dir, "lib", "cmake", "legate_core")):
+            cmake_flags += ["-Dlegate_core_ROOT=%s" % legate_dir]
+        elif exists(join(legate_dir, "legate_core-config.cmake")):
+            cmake_flags += ["-Dlegate_core_ROOT=%s" % legate_dir]
     if legate_url:
         cmake_flags += ["-Dcunumeric_LEGATE_CORE_REPOSITORY=%s" % legate_url]
     if legate_branch:
         cmake_flags += ["-Dcunumeric_LEGATE_CORE_BRANCH=%s" % legate_branch]
 
     cmake_flags += extra_flags
-    cmd_env = dict(os.environ.items())
     cmd_env.update(
         {
             "SKBUILD_BUILD_OPTIONS": f"-j{str(thread_count)}",
@@ -292,6 +402,36 @@ def driver():
         help="Build cuNumeric with bounds checks.",
     )
     parser.add_argument(
+        "--max-dim",
+        dest="maxdim",
+        type=int,
+        default=int(os.environ.get("LEGION_MAX_DIM", 4)),
+        help="Maximum number of dimensions that cuNumeric will support",
+    )
+    parser.add_argument(
+        "--max-fields",
+        dest="maxfields",
+        type=int,
+        default=int(os.environ.get("LEGION_MAX_FIELDS", 256)),
+        help="Maximum number of fields that cuNumeric will support",
+    )
+    parser.add_argument(
+        "--gasnet",
+        dest="gasnet",
+        action="store_true",
+        required=False,
+        default=os.environ.get("USE_GASNET", "0") == "1",
+        help="Build cuNumeric with GASNet.",
+    )
+    parser.add_argument(
+        "--with-gasnet",
+        dest="gasnet_dir",
+        metavar="DIR",
+        required=False,
+        default=os.environ.get("GASNET"),
+        help="Path to GASNet installation directory.",
+    )
+    parser.add_argument(
         "--with-core",
         dest="legate_dir",
         metavar="DIR",
@@ -305,7 +445,7 @@ def driver():
         required=False,
         # TODO: Undo this! Only setting temporarily so CI passes
         # default="https://github.com/nv-legate/legate.core.git",
-        default="https://github.com/trxcllnt/legate.core.git",
+        default="https://github.com/jjwilke/legate.core.git",
         help="Legate git URL to build cuNumeric with.",
     )
     parser.add_argument(
@@ -314,7 +454,7 @@ def driver():
         required=False,
         # TODO: Undo this! Only setting temporarily so CI passes
         # default="branch-22.07",
-        default="fea/add-cmake",
+        default="add-cmake-pr",
         help="Legate branch to build cuNumeric with.",
     )
     parser.add_argument(
@@ -389,7 +529,7 @@ def driver():
         "--cuda",
         action=BooleanFlag,
         default=os.environ.get("USE_CUDA", "0") == "1",
-        help="Build Legate with CUDA support.",
+        help="Build cuNumeric with CUDA support.",
     )
     parser.add_argument(
         "--with-cuda",
@@ -408,6 +548,12 @@ def driver():
         help="Specify the target GPU architecture.",
     )
     parser.add_argument(
+        "--openmp",
+        action=BooleanFlag,
+        default=os.environ.get("USE_OPENMP", "0") == "1",
+        help="Build cuNumeric with OpenMP support.",
+    )
+    parser.add_argument(
         "--march",
         dest="march",
         required=False,
@@ -415,19 +561,48 @@ def driver():
         help="Specify the target CPU architecture.",
     )
     parser.add_argument(
+        "--llvm",
+        dest="llvm",
+        action="store_true",
+        required=False,
+        default=os.environ.get("USE_LLVM", "0") == "1",
+        help="Build cuNumeric with LLVM support.",
+    )
+    parser.add_argument(
+        "--hdf5",
+        "--hdf",
+        dest="hdf",
+        action="store_true",
+        required=False,
+        default=os.environ.get("USE_HDF", "0") == "1",
+        help="Build cuNumeric with HDF support.",
+    )
+    parser.add_argument(
+        "--spy",
+        dest="spy",
+        action="store_true",
+        required=False,
+        default=os.environ.get("USE_SPY", "0") == "1",
+        help="Build cuNumeric with detailed Legion Spy enabled.",
+    )
+    parser.add_argument(
+        "--conduit",
+        dest="conduit",
+        action="store",
+        required=False,
+        # TODO: To support UDP conduit, we would need to add a special case on
+        # the legate launcher.
+        # See https://github.com/nv-legate/legate.core/issues/294.
+        choices=["ibv", "ucx", "aries", "mpi"],
+        default=os.environ.get("CONDUIT"),
+        help="Build cuNumeric with specified GASNet conduit.",
+    )
+    parser.add_argument(
         "--clean",
         dest="clean_first",
         action=BooleanFlag,
-        default=True,
+        default=None,
         help="Clean before build.",
-    )
-    parser.add_argument(
-        "--python-only",
-        dest="python_only",
-        action="store_true",
-        required=False,
-        default=False,
-        help="Reinstall only the Python package.",
     )
     parser.add_argument(
         "--extra",

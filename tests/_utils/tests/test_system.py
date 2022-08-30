@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import sys
+from pathlib import Path
 from subprocess import CompletedProcess
 from unittest.mock import MagicMock
 
@@ -43,12 +44,14 @@ class TestSystem:
     def test_run(self, mock_subprocess_run: MagicMock) -> None:
         s = m.System()
 
-        expected = m.ProcessResult(CMD, returncode=10, output="<output>")
+        expected = m.ProcessResult(
+            CMD, Path("test/file"), returncode=10, output="<output>"
+        )
         mock_subprocess_run.return_value = CompletedProcess(
             CMD, 10, stdout="<output>"
         )
 
-        result = s.run(CMD.split())
+        result = s.run(CMD.split(), Path("test/file"))
         mock_subprocess_run.assert_called()
 
         assert result == expected
@@ -56,7 +59,7 @@ class TestSystem:
     def test_dry_run(self, mock_subprocess_run: MagicMock) -> None:
         s = m.System(dry_run=True)
 
-        result = s.run(CMD.split())
+        result = s.run(CMD.split(), Path("test/file"))
         mock_subprocess_run.assert_not_called()
 
         assert result.output == ""
@@ -66,7 +69,7 @@ class TestSystem:
         s = m.System()
         cpus = s.cpus
         assert len(cpus) > 0
-        assert [cpu.id for cpu in cpus] == list(range(len(cpus)))
+        assert all(len(cpu.ids) > 0 for cpu in cpus)
 
     @pytest.mark.skipif(sys.platform != "linux", reason="pynvml required")
     def test_gpus(self) -> None:

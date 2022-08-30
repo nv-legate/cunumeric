@@ -9,10 +9,13 @@ dependencies:
   - nccl
   - make
   - zlib
-  - cmake
+  - cmake>=3.24
   - ninja
+  - openmpi
   - c-compiler
   - cxx-compiler
+  - gcc_linux-64 # [linux64]
+  - sysroot_linux-64==2.17 # [linux64]
   - setuptools>=60
   - cutensor>=1.3.3
   - scikit-build>=0.13.1

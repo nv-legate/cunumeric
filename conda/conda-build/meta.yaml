@@ -56,11 +56,21 @@ build:
 {% else %}
   string: "cuda{{ cuda_major }}_py{{ py_version }}_{{ GIT_DESCRIBE_HASH }}_{{ PKG_BUILDNUM }}"
 {% endif %}
+  script_env:
+    - SCCACHE_BUCKET
+    - SCCACHE_REGION
+    - SCCACHE_IDLE_TIMEOUT
+    - SCCACHE_S3_KEY_PREFIX
+    - SCCACHE_S3_KEY_PREFIX
+    - AWS_ACCESS_KEY_ID
+    - AWS_SECRET_ACCESS_KEY
+    - CMAKE_C_COMPILER_LAUNCHER
+    - CMAKE_CXX_COMPILER_LAUNCHER
+    - CMAKE_CUDA_COMPILER_LAUNCHER
 {% if not gpu_enabled_bool %}
+    - CPU_ONLY=1
   track_features:
     - cpu_only
-  script_env:
-    - CPU_ONLY=1
 {% else %}
 # prevent nccl from pulling in cudatoolkit
 # once an nccl package compatible with cuda-* packages is introduced, this can be removed

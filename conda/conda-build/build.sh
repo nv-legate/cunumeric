@@ -15,7 +15,6 @@ if [ -z "$CPU_ONLY" ]; then
   # cutensor, relying on the conda cutensor package
   CMAKE_ARGS+="
 -Dcutensor_DIR=$PREFIX
--DCMAKE_LIBRARY_PATH=$PREFIX/lib/stubs
 -DCMAKE_CUDA_ARCHITECTURES:LIST=60-real;70-real;75-real;80-real;86
 "
 else
@@ -31,6 +30,7 @@ export CXXFLAGS="-UNDEBUG"
 export CPPFLAGS="-UNDEBUG"
 export CUDAFLAGS="-UNDEBUG"
 export CMAKE_GENERATOR=Ninja
+export CUDAHOSTCXX=${CXX}
 
 cmake -S . -B build ${CMAKE_ARGS}
 cmake --build build -j$CPU_COUNT
