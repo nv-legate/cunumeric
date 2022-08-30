@@ -19,9 +19,7 @@ import argparse
 import datetime
 import math
 
-from benchmark import run_benchmark
-
-import cunumeric as np
+from benchmark import parse_args, run_benchmark
 
 
 def generate_random(N, min, max, D):
@@ -107,34 +105,24 @@ if __name__ == "__main__":
         dest="P",
         help="precision of the computation in bits",
     )
-    parser.add_argument(
-        "-b",
-        "--benchmark",
-        type=int,
-        default=1,
-        dest="benchmark",
-        help="number of times to benchmark this application (default 1 - "
-        "normal execution)",
-    )
-    args = parser.parse_args()
+
+    args, np = parse_args()
+
     if args.P == 16:
         run_benchmark(
             run_black_scholes,
-            args.benchmark,
             "Black Scholes",
             (args.N, np.float16),
         )
     elif args.P == 32:
         run_benchmark(
             run_black_scholes,
-            args.benchmark,
             "Black Scholes",
             (args.N, np.float32),
         )
     elif args.P == 64:
         run_benchmark(
             run_black_scholes,
-            args.benchmark,
             "Black Scholes",
             (args.N, np.float64),
         )

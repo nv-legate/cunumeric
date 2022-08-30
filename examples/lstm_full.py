@@ -18,9 +18,7 @@
 import argparse
 import datetime
 
-from benchmark import run_benchmark
-
-import cunumeric as np
+from benchmark import parse_args, run_benchmark
 
 
 class Param:
@@ -400,19 +398,11 @@ if __name__ == "__main__":
         dest="weight",
         help="standard deviation of weights for initialization",
     )
-    parser.add_argument(
-        "-b",
-        "--benchmark",
-        type=int,
-        default=1,
-        dest="benchmark",
-        help="number of times to benchmark this application (default 1 - "
-        "normal execution)",
-    )
-    args = parser.parse_args()
+
+    args, np = parse_args()
+
     run_benchmark(
         run_lstm,
-        args.benchmark,
         "LSTM Full",
         (
             args.file_name,

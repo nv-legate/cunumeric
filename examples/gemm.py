@@ -19,9 +19,7 @@ import argparse
 import datetime
 import math
 
-from benchmark import run_benchmark
-
-import cunumeric as np
+from benchmark import parse_args, run_benchmark
 
 
 def initialize(M, N, K, ft):
@@ -100,27 +98,14 @@ if __name__ == "__main__":
         help="number of bits of precision to use for the gemm computation "
         "(16,32,64)",
     )
-    parser.add_argument(
-        "-b",
-        "--benchmark",
-        type=int,
-        default=1,
-        dest="benchmark",
-        help="number of times to benchmark this application (default 1 - "
-        "normal execution)",
-    )
-    args = parser.parse_args()
+
+    args, np = parse_args()
+
     if args.P == 16:
-        run_benchmark(
-            run_gemm, args.benchmark, "HGEMM", (args.N, args.I, np.float16)
-        )
+        run_benchmark(run_gemm, "HGEMM", (args.N, args.I, np.float16))
     elif args.P == 32:
-        run_benchmark(
-            run_gemm, args.benchmark, "SGEMM", (args.N, args.I, np.float32)
-        )
+        run_benchmark(run_gemm, "SGEMM", (args.N, args.I, np.float32))
     elif args.P == 64:
-        run_benchmark(
-            run_gemm, args.benchmark, "DGEMM", (args.N, args.I, np.float64)
-        )
+        run_benchmark(run_gemm, "DGEMM", (args.N, args.I, np.float64))
     else:
         raise TypeError("Precision must be one of 16, 32, or 64")

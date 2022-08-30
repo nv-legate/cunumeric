@@ -15,9 +15,7 @@
 
 import argparse
 
-from benchmark import run_benchmark, time
-
-import cunumeric as np
+from benchmark import parse_args, run_benchmark, time
 
 float_type = "float32"
 
@@ -112,19 +110,11 @@ if __name__ == "__main__":
         action="store_true",
         help="perform timing",
     )
-    parser.add_argument(
-        "-b",
-        "--benchmark",
-        type=int,
-        default=1,
-        dest="benchmark",
-        help="number of times to benchmark this application (default 1 "
-        "- normal execution)",
-    )
-    args = parser.parse_args()
+
+    args, np = parse_args()
+
     run_benchmark(
         run_richardson_lucy,
-        args.benchmark,
         "Richardson Lucy",
         (
             (args.X, args.Y, args.Z),

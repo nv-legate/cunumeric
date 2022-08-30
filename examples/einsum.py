@@ -18,7 +18,7 @@
 import argparse
 import re
 
-from benchmark import run_benchmark, time
+from benchmark import parse_args, run_benchmark, time
 
 
 def run_einsum(expr, N, iters, dtype, cupy_compatibility):
@@ -145,31 +145,6 @@ if __name__ == "__main__":
         help="dtype for array elements",
     )
     parser.add_argument(
-        "-b",
-        "--benchmark",
-        type=int,
-        default=1,
-        dest="benchmark",
-        help="number of times to benchmark this application (default 1 - "
-        "normal execution)",
-    )
-    parser.add_argument(
-        "--package",
-        dest="package",
-        choices=["legate", "numpy", "cupy"],
-        type=str,
-        default="legate",
-        help="NumPy package to use (legate, numpy, or cupy)",
-    )
-    parser.add_argument(
-        "--cupy-allocator",
-        dest="cupy_allocator",
-        choices=["default", "off", "managed"],
-        type=str,
-        default="default",
-        help="cupy allocator to use (default, off, or managed)",
-    )
-    parser.add_argument(
         "--cupy-compatibility",
         action="store_true",
         dest="cupy_compatibility",
@@ -177,25 +152,9 @@ if __name__ == "__main__":
              else, use einsum(expr, A, B, out=C)""",
     )
 
-    args, _ = parser.parse_known_args()
+    args, np = parse_args()
 
-    cupy_compatibility = args.cupy_compatibility
-    if args.package == "legate":
-        import cunumeric as np
-    elif args.package == "cupy":
-        import cupy as np
-
-        if args.cupy_allocator == "off":
-            np.cuda.set_allocator(None)
-            print("Turning off memory pool")
-        elif args.cupy_allocator == "managed":
-            np.cuda.set_allocator(
-                np.cuda.MemoryPool(np.cuda.malloc_managed).malloc
-            )
-            print("Using managed memory pool")
-        cupy_compatibility = True
-    elif args.package == "numpy":
-        import numpy as np
+    cupy_compatibility = args.cupy_compatibility or args.package == "cupy"
     if cupy_compatibility:
         print("Use C = np.einsum(expr, A, B) for cupy compatibility")
 
@@ -208,7 +167,6 @@ if __name__ == "__main__":
     }
     run_benchmark(
         run_einsum,
-        args.benchmark,
         "Einsum",
         (
             args.expr,

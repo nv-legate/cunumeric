@@ -20,9 +20,7 @@
 import argparse
 import datetime
 
-from benchmark import run_benchmark
-
-import cunumeric as np
+from benchmark import parse_args, run_benchmark
 
 
 def initialize(N, D, C, T):
@@ -185,20 +183,12 @@ if __name__ == "__main__":
         dest="S",
         help="number of iterations between sampling the log likelihood",
     )
-    parser.add_argument(
-        "-b",
-        "--benchmark",
-        type=int,
-        default=1,
-        dest="benchmark",
-        help="number of times to benchmark this application"
-        " (default 1 - normal execution)",
-    )
-    args = parser.parse_args()
+
+    args, np = parse_args()
+
     if args.P == 16:
         run_benchmark(
             run_kmeans,
-            args.benchmark,
             "KMEANS(H)",
             (
                 args.C,
@@ -213,7 +203,6 @@ if __name__ == "__main__":
     elif args.P == 32:
         run_benchmark(
             run_kmeans,
-            args.benchmark,
             "KMEANS(S)",
             (
                 args.C,
@@ -228,7 +217,6 @@ if __name__ == "__main__":
     elif args.P == 64:
         run_benchmark(
             run_kmeans,
-            args.benchmark,
             "KMEANS(D)",
             (
                 args.C,

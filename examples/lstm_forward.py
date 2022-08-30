@@ -19,9 +19,7 @@ import argparse
 import datetime
 import math
 
-from benchmark import run_benchmark
-
-import cunumeric as np
+from benchmark import parse_args, run_benchmark
 
 
 def run_lstm(batch_size, hidden_size, sentence_length, word_size, timing):
@@ -82,7 +80,7 @@ def run_lstm(batch_size, hidden_size, sentence_length, word_size, timing):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "-b", "--batch", type=int, default=32, dest="batch", help="batch size"
+        "-B", "--batch", type=int, default=32, dest="batch", help="batch size"
     )
     parser.add_argument(
         "--hidden", type=int, default=10, dest="hidden", help="hidden size"
@@ -105,18 +103,11 @@ if __name__ == "__main__":
         action="store_true",
         help="perform timing",
     )
-    parser.add_argument(
-        "--benchmark",
-        type=int,
-        default=1,
-        dest="benchmark",
-        help="number of times to benchmark this application (default 1 - "
-        "normal execution)",
-    )
-    args = parser.parse_args()
+
+    args, np = parse_args()
+
     run_benchmark(
         run_lstm,
-        args.benchmark,
         "LSTM Forward",
         (args.batch, args.hidden, args.sentence, args.word, args.timing),
     )

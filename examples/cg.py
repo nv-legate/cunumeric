@@ -17,7 +17,7 @@
 
 import argparse
 
-from benchmark import run_benchmark, time
+from benchmark import parse_args, run_benchmark, time
 
 
 # This is technically dead code right now, but we'll keep it around in
@@ -252,59 +252,17 @@ if __name__ == "__main__":
         help="print verbose output",
     )
     parser.add_argument(
-        "-b",
-        "--benchmark",
-        type=int,
-        default=1,
-        dest="benchmark",
-        help="number of times to benchmark this application (default 1 - "
-        "normal execution)",
-    )
-    parser.add_argument(
         "--threshold",
         type=float,
         default=1e-10,
         dest="conv_threshold",
         help="convergence check threshold",
     )
-    parser.add_argument(
-        "--package",
-        dest="package",
-        choices=["legate", "numpy", "cupy"],
-        type=str,
-        default="legate",
-        help="NumPy package to use (legate, numpy, or cupy)",
-    )
-    parser.add_argument(
-        "--cupy-allocator",
-        dest="cupy_allocator",
-        choices=["default", "off", "managed"],
-        type=str,
-        default="default",
-        help="cupy allocator to use (default, off, or managed)",
-    )
 
-    args, _ = parser.parse_known_args()
-
-    if args.package == "legate":
-        import cunumeric as np
-    elif args.package == "cupy":
-        import cupy as np
-
-        if args.cupy_allocator == "off":
-            np.cuda.set_allocator(None)
-            print("Turning off memory pool")
-        elif args.cupy_allocator == "managed":
-            np.cuda.set_allocator(
-                np.cuda.MemoryPool(np.cuda.malloc_managed).malloc
-            )
-            print("Using managed memory pool")
-    elif args.package == "numpy":
-        import numpy as np
+    args, np = parse_args()
 
     run_benchmark(
         run_cg,
-        args.benchmark,
         "PreCG" if args.precondition else "CG",
         (
             args.N,
