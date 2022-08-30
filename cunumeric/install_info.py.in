@@ -13,14 +13,21 @@
 #   * install_info.py is a generated file and should not be modified by hand
 
 def get_libpath():
-    import os, sys
+    import os, sys, platform
     join = os.path.join
     exists = os.path.exists
     dirname = os.path.dirname
     cn_path = dirname(dirname(__file__))
+    so_ext = {
+        "": "",
+        "Java": ".jar",
+        "Linux": ".so",
+        "Darwin": ".dylib",
+        "Windows": ".dll"
+    }[platform.system()]
 
     def find_libcunumeric(libdir):
-        if exists(join(libdir, "libcunumeric.so")):
+        if exists(join(libdir, "libcunumeric{so_ext}")):
             return libdir
         return None
 
