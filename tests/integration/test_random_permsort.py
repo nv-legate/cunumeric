@@ -17,6 +17,7 @@ import pytest
 
 import cunumeric as num
 
+
 def test_permutation_int():
     count = 1024
     p = num.random.permutation(count)
@@ -45,8 +46,8 @@ def test_shuffle():
 
 class TestChoice:
 
-    maxvalue=1024
-    count=42
+    maxvalue = 1024
+    count = 42
 
     def test_choice_1(self):
         a = num.random.choice(self.maxvalue, self.count)
@@ -65,7 +66,6 @@ class TestChoice:
                     continue
                 assert a[i] != a[j]
 
-
     def test_choice_3(self):
         values = num.random.random_integers(0, self.maxvalue, self.maxvalue)
 
@@ -73,7 +73,6 @@ class TestChoice:
         assert len(a) == self.count
         assert num.amax(a) <= num.amax(values)
         assert num.amin(a) >= num.amin(values)
-
 
     def test_choice_4(self):
         values = num.arange(self.maxvalue)
@@ -88,7 +87,6 @@ class TestChoice:
                     continue
                 assert a[i] != a[j]
 
-
     def test_choice_5(self):
         values = num.arange(self.maxvalue)
 
@@ -99,7 +97,6 @@ class TestChoice:
         assert len(a) == self.count
         assert num.amax(a) <= num.amax(values)
         assert num.amin(a) >= num.amin(values)
-
 
     def test_choice_6(self):
         values = num.random.random_integers(0, self.maxvalue, self.maxvalue)

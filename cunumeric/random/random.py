@@ -1042,7 +1042,7 @@ def permutation(x: Union[int, ndarray]) -> ndarray:
     key = uniform(0.0, 1.0, count)
     indices = cunumeric.argsort(key)
 
-    return indices if isinstance(x,int) else x[indices]
+    return indices if isinstance(x, int) else x[indices]
 
 
 def poisson(
