@@ -80,8 +80,7 @@ def run_scan(OP, shape, dt, ax, check):
     getattr(num, OP)(A, out=B, axis=ax)
 
     stop = time()
-    delta = stop - start
-    total = delta / 1000.0
+    total = (stop - start) / 1000.0
     print(f"Elapsed Time:  {total}ms")
     # error checking
     if check:

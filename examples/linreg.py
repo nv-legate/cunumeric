@@ -16,10 +16,8 @@
 #
 
 import argparse
-import datetime
-import math
 
-from benchmark import parse_args, run_benchmark
+from benchmark import parse_args, run_benchmark, time
 
 
 def initialize(N, F, T):
@@ -61,14 +59,11 @@ def run_linear_regression(N, F, T, I, S, B):  # noqa: E741
     print("Number of data points: " + str(N) + "K")
     print("Number of features: " + str(F))
     print("Number of iterations: " + str(I))
-    start = datetime.datetime.now()
+    start = time()
     features, target = initialize(N * 1000, F, T)
-    weights = linear_regression(T, features, target, I, 1e-5, S, B)
-    # Check the weights for NaNs to synchronize before stopping timing
-    assert not math.isnan(np.sum(weights))
-    stop = datetime.datetime.now()
-    delta = stop - start
-    total = delta.total_seconds() * 1000.0
+    _ = linear_regression(T, features, target, I, 1e-5, S, B)
+    stop = time()
+    total = (stop - start) / 1000.0
     print("Elapsed Time: " + str(total) + " ms")
     return total
 

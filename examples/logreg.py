@@ -16,7 +16,6 @@
 #
 
 import argparse
-import math
 
 from benchmark import parse_args, run_benchmark, time
 
@@ -74,10 +73,8 @@ def run_logistic_regression(N, F, T, I, S, B):  # noqa: E741
     print("Number of iterations: " + str(I))
     features, target = initialize(N * 1000, F, T)
     start = time()
-    weights = logistic_regression(T, features, target, I, 1e-5, S, B)
+    _ = logistic_regression(T, features, target, I, 1e-5, S, B)
     stop = time()
-    # Check the weights for NaNs
-    assert not math.isnan(np.sum(weights))
     total = (stop - start) / 1000.0
     print(f"Elapsed Time: {total} ms")
     return total

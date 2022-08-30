@@ -16,7 +16,6 @@
 #
 
 import argparse
-import math
 
 from benchmark import parse_args, run_benchmark, time
 
@@ -54,7 +53,6 @@ def run_stencil(N, I, timing):  # noqa: E741
     stop = time()
     print("Average energy is %.8g" % average)
     total = (stop - start) / 1000.0
-    assert not math.isnan(average)
     if timing:
         print(f"Elapsed Time: {total} ms")
     return total

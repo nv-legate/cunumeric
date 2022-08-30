@@ -16,10 +16,8 @@
 #
 
 import argparse
-import datetime
-import math
 
-from benchmark import parse_args, run_benchmark
+from benchmark import parse_args, run_benchmark, time
 
 
 def initialize(M, N, K, ft):
@@ -45,12 +43,7 @@ def run_gemm(N, I, ft):  # noqa: E741
     space = total_space(N, N, N, ft)
     print("Total Size:       " + str(space / 1e6) + " MB")
     A, B, C = initialize(N, N, N, ft)
-    # Compute some sums and check for NaNs to force synchronization
-    # before we start the timing
-    assert not math.isnan(np.sum(A))
-    assert not math.isnan(np.sum(B))
-    assert not math.isnan(np.sum(C))
-    start = datetime.datetime.now()
+    start = time()
     # Run for as many iterations as was requested
     for idx in range(I):
         np.dot(A, B, out=C)
@@ -59,11 +52,8 @@ def run_gemm(N, I, ft):  # noqa: E741
         # on the first iteration and reuse them, this means
         # that A, B, C all need to be square
         A, B, C = B, C, A
-    # Do another sum to synchronize for timings, B is last output
-    assert not math.isnan(np.sum(B))
-    stop = datetime.datetime.now()
-    delta = stop - start
-    total = delta.total_seconds() * 1000.0
+    stop = time()
+    total = (stop - start) / 1000.0
     print("Elapsed Time:     " + str(total) + " ms")
     average = total / I
     print("Average GEMM:     " + str(average) + " ms")

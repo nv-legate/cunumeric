@@ -16,14 +16,12 @@
 #
 
 import argparse
-import datetime
-import math
 
-from benchmark import parse_args, run_benchmark
+from benchmark import parse_args, run_benchmark, time
 
 
 def run_lstm(batch_size, hidden_size, sentence_length, word_size, timing):
-    start = datetime.datetime.now()
+    start = time()
 
     X = np.random.randn(sentence_length, batch_size, hidden_size)
     h0 = np.random.randn(1, hidden_size)
@@ -65,13 +63,8 @@ def run_lstm(batch_size, hidden_size, sentence_length, word_size, timing):
         Ct[t] = np.tanh(C[t])
         Hout[t] = IFOGf[t, :, 2 * d : 3 * d] * Ct[t]
 
-    # Do a little sum of the outputs to synchronize and check for NaNs
-    total = np.sum(Hout)
-    assert not math.isnan(total)
-
-    stop = datetime.datetime.now()
-    delta = stop - start
-    total = delta.total_seconds() * 1000.0
+    stop = time()
+    total = (stop - start) / 1000.0
     if timing:
         print("Elapsed Time: " + str(total) + " ms")
     return total

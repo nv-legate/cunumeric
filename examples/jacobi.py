@@ -16,7 +16,6 @@
 #
 
 import argparse
-import math
 
 from benchmark import parse_args, run_benchmark, time
 
@@ -56,9 +55,6 @@ def run_jacobi(N, iters, perform_check, timing, verbose):
     x = solve(A, b, iters, verbose)
     if perform_check:
         check(A, x, b)
-    else:
-        # Need a synchronization here for timing
-        assert not math.isnan(np.sum(x))
     stop = time()
     total = (stop - start) / 1000.0
     if timing:

@@ -18,9 +18,8 @@
 # Derived from https://github.com/bryancatanzaro/kmeans
 
 import argparse
-import datetime
 
-from benchmark import parse_args, run_benchmark
+from benchmark import parse_args, run_benchmark, time
 
 
 def initialize(N, D, C, T):
@@ -78,7 +77,7 @@ def run_kmeans(C, D, T, I, N, S, benchmarking):  # noqa: E741
     print("Number of dimensions: " + str(D))
     print("Number of centroids: " + str(C))
     print("Max iterations: " + str(I))
-    start = datetime.datetime.now()
+    start = time()
     data, centroids = initialize(N, D, C, T)
 
     data_dots = np.square(np.linalg.norm(data, ord=2, axis=1))
@@ -126,9 +125,8 @@ def run_kmeans(C, D, T, I, N, S, benchmarking):  # noqa: E741
         + ": "
         + str(prior_distance_sum)
     )
-    stop = datetime.datetime.now()
-    delta = stop - start
-    total = delta.total_seconds() * 1000.0
+    stop = time()
+    total = (stop - start) / 1000.0
     print("Elapsed Time: " + str(total) + " ms")
     return total
 

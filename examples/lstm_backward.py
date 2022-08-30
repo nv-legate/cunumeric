@@ -16,14 +16,12 @@
 #
 
 import argparse
-import datetime
-import math
 
-from benchmark import parse_args, run_benchmark
+from benchmark import parse_args, run_benchmark, time
 
 
 def run_lstm(batch_size, hidden_size, sentence_length, word_size, timing):
-    start = datetime.datetime.now()
+    start = time()
 
     WLSTM = np.random.randn(
         word_size + hidden_size, 4 * hidden_size
@@ -75,13 +73,8 @@ def run_lstm(batch_size, hidden_size, sentence_length, word_size, timing):
         else:
             dh0[0] += np.sum(dHin[t, :, word_size:], 0)
 
-    # Do a little sum to synchronize and check for NaNs
-    total = np.sum(dh0)
-    assert not math.isnan(total)
-
-    stop = datetime.datetime.now()
-    delta = stop - start
-    total = delta.total_seconds() * 1000.0
+    stop = time()
+    total = (stop - start) / 1000.0
     if timing:
         print("Elapsed Time: " + str(total) + " ms")
     return total
