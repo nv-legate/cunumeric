@@ -27,7 +27,7 @@ def get_libpath():
     }[platform.system()]
 
     def find_libcunumeric(libdir):
-        if exists(join(libdir, "libcunumeric{so_ext}")):
+        if exists(join(libdir, f"libcunumeric{so_ext}")):
             return libdir
         return None
 
