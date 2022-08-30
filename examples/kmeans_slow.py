@@ -188,6 +188,7 @@ if __name__ == "__main__":
     if args.P == 16:
         run_benchmark(
             run_kmeans,
+            args.benchmark,
             "KMEANS(H)",
             (
                 args.C,
@@ -202,6 +203,7 @@ if __name__ == "__main__":
     elif args.P == 32:
         run_benchmark(
             run_kmeans,
+            args.benchmark,
             "KMEANS(S)",
             (
                 args.C,
@@ -216,6 +218,7 @@ if __name__ == "__main__":
     elif args.P == 64:
         run_benchmark(
             run_kmeans,
+            args.benchmark,
             "KMEANS(D)",
             (
                 args.C,

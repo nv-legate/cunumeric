@@ -74,8 +74,7 @@ def parse_args(parser):
 
 
 # A helper method for benchmarking applications
-def run_benchmark(f, name, args):
-    samples = args.benchmark
+def run_benchmark(f, samples, name, args):
     if samples > 1:
         results = [f(*args) for s in range(samples)]
         # Remove the largest and the smallest ones

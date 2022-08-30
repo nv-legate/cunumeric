@@ -401,6 +401,7 @@ if __name__ == "__main__":
 
     run_benchmark(
         run_lstm,
+        args.benchmark,
         "LSTM Full",
         (
             args.file_name,

@@ -114,6 +114,7 @@ if __name__ == "__main__":
 
     run_benchmark(
         run_jacobi,
+        args.benchmark,
         "Jacobi",
         (
             args.N,

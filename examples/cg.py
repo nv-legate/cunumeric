@@ -294,6 +294,7 @@ if __name__ == "__main__":
 
     run_benchmark(
         run_preconditioned_cg if args.precondition else run_cg,
+        args.benchmark,
         "PreCG" if args.precondition else "CG",
         (
             args.N,

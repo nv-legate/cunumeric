@@ -101,6 +101,7 @@ if __name__ == "__main__":
 
     run_benchmark(
         run_lstm,
+        args.benchmark,
         "LSTM Forward",
         (args.batch, args.hidden, args.sentence, args.word, args.timing),
     )

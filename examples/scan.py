@@ -134,6 +134,7 @@ if __name__ == "__main__":
 
     run_benchmark(
         run_scan,
+        args.benchmark,
         "Scan",
         (
             args.OP,

@@ -105,15 +105,24 @@ if __name__ == "__main__":
 
     if args.P == 16:
         run_benchmark(
-            run_gemm, "HGEMM", (args.N, args.I, args.warmup, np.float16)
+            run_gemm,
+            args.benchmark,
+            "HGEMM",
+            (args.N, args.I, args.warmup, np.float16),
         )
     elif args.P == 32:
         run_benchmark(
-            run_gemm, "SGEMM", (args.N, args.I, args.warmup, np.float32)
+            run_gemm,
+            args.benchmark,
+            "SGEMM",
+            (args.N, args.I, args.warmup, np.float32),
         )
     elif args.P == 64:
         run_benchmark(
-            run_gemm, "DGEMM", (args.N, args.I, args.warmup, np.float64)
+            run_gemm,
+            args.benchmark,
+            "DGEMM",
+            (args.N, args.I, args.warmup, np.float64),
         )
     else:
         raise TypeError("Precision must be one of 16, 32, or 64")

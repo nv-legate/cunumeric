@@ -92,5 +92,8 @@ if __name__ == "__main__":
     args, np = parse_args(parser)
 
     run_benchmark(
-        run_stencil, "Stencil", (args.N, args.I, args.warmup, args.timing)
+        run_stencil,
+        args.benchmark,
+        "Stencil",
+        (args.N, args.I, args.warmup, args.timing),
     )

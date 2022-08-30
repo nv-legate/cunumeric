@@ -104,18 +104,21 @@ if __name__ == "__main__":
     if args.P == 16:
         run_benchmark(
             run_black_scholes,
+            args.benchmark,
             "Black Scholes",
             (args.N, np.float16),
         )
     elif args.P == 32:
         run_benchmark(
             run_black_scholes,
+            args.benchmark,
             "Black Scholes",
             (args.N, np.float32),
         )
     elif args.P == 64:
         run_benchmark(
             run_black_scholes,
+            args.benchmark,
             "Black Scholes",
             (args.N, np.float64),
         )

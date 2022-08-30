@@ -272,6 +272,7 @@ if __name__ == "__main__":
 
     run_benchmark(
         run_indexing_routines,
+        args.benchmark,
         "Indexing Routines",
         (args.N, args.I, args.warmup, args.timing, args.verbose, args.routine),
     )

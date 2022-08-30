@@ -137,18 +137,21 @@ if __name__ == "__main__":
     if args.P == 16:
         run_benchmark(
             run_logistic_regression,
+            args.benchmark,
             "LOGREG(H)",
             (args.N, args.F, np.float16, args.I, args.warmup, args.S, args.B),
         )
     elif args.P == 32:
         run_benchmark(
             run_logistic_regression,
+            args.benchmark,
             "LOGREG(S)",
             (args.N, args.F, np.float32, args.I, args.warmup, args.S, args.B),
         )
     elif args.P == 64:
         run_benchmark(
             run_logistic_regression,
+            args.benchmark,
             "LOGREG(D)",
             (args.N, args.F, np.float64, args.I, args.warmup, args.S, args.B),
         )

@@ -115,6 +115,7 @@ if __name__ == "__main__":
 
     run_benchmark(
         run_richardson_lucy,
+        args.benchmark,
         "Richardson Lucy",
         (
             (args.X, args.Y, args.Z),

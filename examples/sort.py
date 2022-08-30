@@ -159,6 +159,7 @@ if __name__ == "__main__":
 
     run_benchmark(
         run_sort,
+        args.benchmark,
         "Sort",
         (
             args.shape,
