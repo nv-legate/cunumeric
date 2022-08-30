@@ -17,7 +17,6 @@ import pytest
 
 import cunumeric as num
 
-
 def test_permutation_int():
     count = 1024
     p = num.random.permutation(count)
@@ -44,70 +43,74 @@ def test_shuffle():
     assert num.linalg.norm(x - p) == 0.0
 
 
-def test_choice_1(maxvalue=1024, count=42):
-    a = num.random.choice(maxvalue, count)
-    assert len(a) == count
-    assert num.amax(a) <= maxvalue
-    assert num.amin(a) >= 0
+class TestChoice:
+
+    maxvalue=1024
+    count=42
+
+    def test_choice_1(self):
+        a = num.random.choice(self.maxvalue, self.count)
+        assert len(a) == self.count
+        assert num.amax(a) <= self.maxvalue
+        assert num.amin(a) >= 0
+
+    def test_choice_2(self):
+        a = num.random.choice(self.maxvalue, self.count, False)
+        assert len(a) == self.count
+        assert num.amax(a) <= self.maxvalue
+        assert num.amin(a) >= 0
+        for i in range(self.count):
+            for j in range(self.count):
+                if i == j:
+                    continue
+                assert a[i] != a[j]
 
 
-def test_choice_2(maxvalue=1024, count=42):
-    a = num.random.choice(maxvalue, count, False)
-    assert len(a) == count
-    assert num.amax(a) <= maxvalue
-    assert num.amin(a) >= 0
-    for i in range(count):
-        for j in range(count):
-            if i == j:
-                continue
-            assert a[i] != a[j]
+    def test_choice_3(self):
+        values = num.random.random_integers(0, self.maxvalue, self.maxvalue)
+
+        a = num.random.choice(values, self.count)
+        assert len(a) == self.count
+        assert num.amax(a) <= num.amax(values)
+        assert num.amin(a) >= num.amin(values)
 
 
-def test_choice_3(maxvalue=1024, count=42):
-    values = num.random.random_integers(0, maxvalue, maxvalue)
+    def test_choice_4(self):
+        values = num.arange(self.maxvalue)
 
-    a = num.random.choice(values, count)
-    assert len(a) == count
-    assert num.amax(a) <= num.amax(values)
-    assert num.amin(a) >= num.amin(values)
-
-
-def test_choice_4(maxvalue=1024, count=42):
-    values = num.arange(maxvalue)
-
-    a = num.random.choice(values, count, False)
-    assert len(a) == count
-    assert num.amax(a) <= num.amax(values)
-    assert num.amin(a) >= num.amin(values)
-    for i in range(count):
-        for j in range(count):
-            if i == j:
-                continue
-            assert a[i] != a[j]
+        a = num.random.choice(values, self.count, False)
+        assert len(a) == self.count
+        assert num.amax(a) <= num.amax(values)
+        assert num.amin(a) >= num.amin(values)
+        for i in range(self.count):
+            for j in range(self.count):
+                if i == j:
+                    continue
+                assert a[i] != a[j]
 
 
-def test_choice_5(maxvalue=1024, count=42):
-    values = num.arange(maxvalue)
+    def test_choice_5(self):
+        values = num.arange(self.maxvalue)
 
-    p = num.random.uniform(0, 1, maxvalue)
-    p /= p.sum()
+        p = num.random.uniform(0, 1, self.maxvalue)
+        p /= p.sum()
 
-    a = num.random.choice(values, count, True, p)
-    assert len(a) == count
-    assert num.amax(a) <= num.amax(values)
-    assert num.amin(a) >= num.amin(values)
+        a = num.random.choice(values, self.count, True, p)
+        assert len(a) == self.count
+        assert num.amax(a) <= num.amax(values)
+        assert num.amin(a) >= num.amin(values)
 
 
-def test_choice_6(maxvalue=1024, count=42):
-    values = num.random.random_integers(0, maxvalue, maxvalue)
+    def test_choice_6(self):
+        values = num.random.random_integers(0, self.maxvalue, self.maxvalue)
 
-    p = num.random.uniform(0, 1, maxvalue)
-    p /= p.sum()
+        p = num.random.uniform(0, 1, self.maxvalue)
+        p /= p.sum()
 
-    a = num.random.choice(values, count, True, p)
-    assert len(a) == count
-    assert num.amax(a) <= num.amax(values)
-    assert num.amin(a) >= num.amin(values)
+        a = num.random.choice(values, self.count, True, p)
+        assert len(a) == self.count
+        assert num.amax(a) <= num.amax(values)
+        assert num.amin(a) >= num.amin(values)
 
 
 if __name__ == "__main__":

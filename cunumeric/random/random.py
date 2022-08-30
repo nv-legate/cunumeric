@@ -1037,16 +1037,12 @@ def permutation(x: Union[int, ndarray]) -> ndarray:
     --------
     Multiple GPUs, Multiple CPUs
     """
-    if isinstance(x, int):
-        count = x
-    else:
-        count = len(x)
+    count = x if isinstance(x, int) else len(x)
+
     key = uniform(0.0, 1.0, count)
     indices = cunumeric.argsort(key)
-    if isinstance(x, int):
-        return indices
-    else:
-        return x[indices]
+
+    return indices if isinstance(x,int) else x[indices]
 
 
 def poisson(
