@@ -31,16 +31,6 @@ def generate_random(N):
     return A, b
 
 
-def solve(A, b, iters, verbose):
-    print("Solving system...")
-    x = np.zeros(A.shape[1])
-    d = np.diag(A)
-    R = A - np.diag(d)
-    for i in range(iters):
-        x = (b - np.dot(R, x)) / d
-    return x
-
-
 def check(A, x, b):
     print("Checking result...")
     if np.allclose(A.dot(x), b):
@@ -49,13 +39,24 @@ def check(A, x, b):
         print("FAIL!")
 
 
-def run_jacobi(N, iters, perform_check, timing, verbose):
+def run_jacobi(N, iters, warmup, perform_check, timing, verbose):
     A, b = generate_random(N)
+
+    print("Solving system...")
+    x = np.zeros(A.shape[1])
+    d = np.diag(A)
+    R = A - np.diag(d)
+
     start = time()
-    x = solve(A, b, iters, verbose)
+    for i in range(iters + warmup):
+        if i == warmup:
+            start = time()
+        x = (b - np.dot(R, x)) / d
+    stop = time()
+
     if perform_check:
         check(A, x, b)
-    stop = time()
+
     total = (stop - start) / 1000.0
     if timing:
         print(f"Elapsed Time: {total} ms")
@@ -77,6 +78,14 @@ if __name__ == "__main__":
         default=1000,
         dest="iters",
         help="number of iterations to run",
+    )
+    parser.add_argument(
+        "-w",
+        "--warmup",
+        type=int,
+        default=5,
+        dest="warmup",
+        help="warm-up iterations",
     )
     parser.add_argument(
         "-n",
@@ -106,5 +115,12 @@ if __name__ == "__main__":
     run_benchmark(
         run_jacobi,
         "Jacobi",
-        (args.N, args.iters, args.check, args.timing, args.verbose),
+        (
+            args.N,
+            args.iters,
+            args.warmup,
+            args.check,
+            args.timing,
+            args.verbose,
+        ),
     )

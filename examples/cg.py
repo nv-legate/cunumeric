@@ -67,92 +67,6 @@ def generate_2D(N, corners):
     return A, b
 
 
-def solve(A, b, conv_iters, max_iters, conv_threshold, verbose):
-    print("Solving system...")
-    x = np.zeros(A.shape[1])
-    r = b - A.dot(x)
-    p = r
-    rsold = r.dot(r)
-    converged = -1
-    # Should always converge in fewer iterations than this
-    max_iters = (
-        min(max_iters, b.shape[0]) if max_iters is not None else b.shape[0]
-    )
-    for i in range(max_iters):
-        Ap = A.dot(p)
-        alpha = rsold / (p.dot(Ap))
-        x = x + alpha * p
-        r = r - alpha * Ap
-        rsnew = r.dot(r)
-        # We only do the convergence test every conv_iters or on the last
-        # iteration
-        if (i % conv_iters == 0 or i == (max_iters - 1)) and np.sqrt(
-            rsnew
-        ) < conv_threshold:
-            converged = i
-            break
-        if verbose:
-            print("Residual: " + str(rsnew))
-        beta = rsnew / rsold
-        p = r + beta * p
-        rsold = rsnew
-    if converged < 0:
-        print("Convergence FAILURE!")
-    else:
-        print("Converged in %d iterations" % (converged))
-    return x
-
-
-def precondition(A, N, corners):
-    if corners:
-        d = 8 * (N**2)
-    else:
-        d = 4 * (N**2)
-    M = np.diag(np.full(N**2, 1.0 / d))
-    return M
-
-
-def preconditioned_solve(
-    A, M, b, conv_iters, max_iters, conv_threshold, verbose
-):
-    print("Solving system with preconditioner...")
-    x = np.zeros(A.shape[1])
-    r = b - A.dot(x)
-    z = M.dot(r)
-    p = z
-    rzold = r.dot(z)
-    converged = -1
-    # Should always converge in fewer iterations than this
-    max_iters = (
-        min(max_iters, b.shape[0]) if max_iters is not None else b.shape[0]
-    )
-    for i in range(max_iters):
-        Ap = A.dot(p)
-        alpha = rzold / (p.dot(Ap))
-        x = x + alpha * p
-        r = r - alpha * Ap
-        rznew = r.dot(r)
-        # We only do the convergence test every conv_iters or on the
-        # last iteration
-        if (i % conv_iters == 0 or i == (max_iters - 1)) and np.sqrt(
-            rznew
-        ) < conv_threshold:
-            converged = i
-            break
-        if verbose:
-            print("Residual: " + str(rznew))
-        z = M.dot(r)
-        rznew = r.dot(z)
-        beta = rznew / rzold
-        p = z + beta * p
-        rzold = rznew
-    if converged < 0:
-        print("Convergence FAILURE!")
-    else:
-        print("Converged in %d iterations" % (converged))
-    return x
-
-
 def check(A, x, b):
     print("Checking result...")
     if np.allclose(A.dot(x), b):
@@ -164,9 +78,9 @@ def check(A, x, b):
 def run_cg(
     N,
     corners,
-    preconditioner,
     conv_iters,
     max_iters,
+    warmup,
     conv_threshold,
     perform_check,
     timing,
@@ -174,17 +88,126 @@ def run_cg(
 ):
     # A, b = generate_random(N)
     A, b = generate_2D(N, corners)
+
+    print("Solving system...")
+    x = np.zeros(A.shape[1])
+    r = b - A.dot(x)
+    p = r
+    rsold = r.dot(r)
+    converged = -1
+    # Should always converge in fewer iterations than this
+    max_iters = (
+        min(max_iters, b.shape[0]) if max_iters is not None else b.shape[0]
+    )
+
     start = time()
-    if preconditioner:
-        M = precondition(A, N, corners)
-        x = preconditioned_solve(
-            A, M, b, conv_iters, max_iters, conv_threshold, verbose
-        )
+    for i in range(-warmup, max_iters):
+        if i == 0:
+            start = time()
+        Ap = A.dot(p)
+        alpha = rsold / (p.dot(Ap))
+        x = x + alpha * p
+        r = r - alpha * Ap
+        rsnew = r.dot(r)
+        # We only do the convergence test every conv_iters or on the last
+        # iteration
+        if (
+            i >= 0
+            and (i % conv_iters == 0 or i == (max_iters - 1))
+            and np.sqrt(rsnew) < conv_threshold
+        ):
+            converged = i
+            break
+        if verbose:
+            print("Residual: " + str(rsnew))
+        beta = rsnew / rsold
+        p = r + beta * p
+        rsold = rsnew
+    stop = time()
+
+    if converged < 0:
+        print("Convergence FAILURE!")
     else:
-        x = solve(A, b, conv_iters, max_iters, conv_threshold, verbose)
+        print("Converged in %d iterations" % (converged))
     if perform_check:
         check(A, x, b)
+
+    total = (stop - start) / 1000.0
+    if timing:
+        print(f"Elapsed Time: {total} ms")
+    return total
+
+
+def precondition(A, N, corners):
+    if corners:
+        d = 8 * (N**2)
+    else:
+        d = 4 * (N**2)
+    M = np.diag(np.full(N**2, 1.0 / d))
+    return M
+
+
+def run_preconditioned_cg(
+    N,
+    corners,
+    conv_iters,
+    max_iters,
+    warmup,
+    conv_threshold,
+    perform_check,
+    timing,
+    verbose,
+):
+    print("Solving system with preconditioner...")
+    # A, b = generate_random(N)
+    A, b = generate_2D(N, corners)
+    M = precondition(A, N, corners)
+
+    x = np.zeros(A.shape[1])
+    r = b - A.dot(x)
+    z = M.dot(r)
+    p = z
+    rzold = r.dot(z)
+    converged = -1
+    # Should always converge in fewer iterations than this
+    max_iters = (
+        min(max_iters, b.shape[0]) if max_iters is not None else b.shape[0]
+    )
+
+    start = time()
+    for i in range(-warmup, max_iters):
+        if i == 0:
+            start = time()
+        Ap = A.dot(p)
+        alpha = rzold / (p.dot(Ap))
+        x = x + alpha * p
+        r = r - alpha * Ap
+        rznew = r.dot(r)
+        # We only do the convergence test every conv_iters or on the
+        # last iteration
+        if (
+            i >= 0
+            and (i % conv_iters == 0 or i == (max_iters - 1))
+            and np.sqrt(rznew) < conv_threshold
+        ):
+            converged = i
+            break
+        if verbose:
+            print("Residual: " + str(rznew))
+        z = M.dot(r)
+        rznew = r.dot(z)
+        beta = rznew / rzold
+        p = z + beta * p
+        rzold = rznew
     stop = time()
+
+    if converged < 0:
+        print("Convergence FAILURE!")
+    else:
+        print("Converged in %d iterations" % (converged))
+    if perform_check:
+        check(A, x, b)
+
     total = (stop - start) / 1000.0
     if timing:
         print(f"Elapsed Time: {total} ms")
@@ -230,6 +253,14 @@ if __name__ == "__main__":
         help="bound the maximum number of iterations",
     )
     parser.add_argument(
+        "-w",
+        "--warmup",
+        type=int,
+        default=5,
+        dest="warmup",
+        help="warm-up iterations",
+    )
+    parser.add_argument(
         "-n",
         "--num",
         type=int,
@@ -262,14 +293,14 @@ if __name__ == "__main__":
     args, np = parse_args()
 
     run_benchmark(
-        run_cg,
+        run_preconditioned_cg if args.precondition else run_cg,
         "PreCG" if args.precondition else "CG",
         (
             args.N,
             args.corners,
-            args.precondition,
             args.conv_iters,
             args.max_iters,
+            args.warmup,
             args.conv_threshold,
             args.check,
             args.timing,

@@ -35,7 +35,7 @@ def total_space(M, N, K, ft):
     return (M * N + M * K + K * N) * np.dtype(ft).itemsize
 
 
-def run_gemm(N, I, ft):  # noqa: E741
+def run_gemm(N, I, warmup, ft):  # noqa: E741
     print("Problem Size:     M=" + str(N) + " N=" + str(N) + " K=" + str(N))
     print("Total Iterations: " + str(I))
     flops = total_flops(N, N, N)
@@ -43,9 +43,12 @@ def run_gemm(N, I, ft):  # noqa: E741
     space = total_space(N, N, N, ft)
     print("Total Size:       " + str(space / 1e6) + " MB")
     A, B, C = initialize(N, N, N, ft)
+
     start = time()
     # Run for as many iterations as was requested
-    for idx in range(I):
+    for idx in range(I + warmup):
+        if idx == warmup:
+            start = time()
         np.dot(A, B, out=C)
         # We need to rotate the matrices to keep Legate honest
         # about moving data so it can't just duplicate A and B
@@ -53,6 +56,7 @@ def run_gemm(N, I, ft):  # noqa: E741
         # that A, B, C all need to be square
         A, B, C = B, C, A
     stop = time()
+
     total = (stop - start) / 1000.0
     print("Elapsed Time:     " + str(total) + " ms")
     average = total / I
@@ -70,6 +74,14 @@ if __name__ == "__main__":
         default=100,
         dest="I",
         help="number of iterations to run",
+    )
+    parser.add_argument(
+        "-w",
+        "--warmup",
+        type=int,
+        default=5,
+        dest="warmup",
+        help="warm-up iterations",
     )
     parser.add_argument(
         "-n",
@@ -92,10 +104,16 @@ if __name__ == "__main__":
     args, np = parse_args()
 
     if args.P == 16:
-        run_benchmark(run_gemm, "HGEMM", (args.N, args.I, np.float16))
+        run_benchmark(
+            run_gemm, "HGEMM", (args.N, args.I, args.warmup, np.float16)
+        )
     elif args.P == 32:
-        run_benchmark(run_gemm, "SGEMM", (args.N, args.I, np.float32))
+        run_benchmark(
+            run_gemm, "SGEMM", (args.N, args.I, args.warmup, np.float32)
+        )
     elif args.P == 64:
-        run_benchmark(run_gemm, "DGEMM", (args.N, args.I, np.float64))
+        run_benchmark(
+            run_gemm, "DGEMM", (args.N, args.I, args.warmup, np.float64)
+        )
     else:
         raise TypeError("Precision must be one of 16, 32, or 64")

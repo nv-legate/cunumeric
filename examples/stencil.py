@@ -30,28 +30,25 @@ def initialize(N):
     return grid
 
 
-def run(grid, I, N):  # noqa: E741
+def run_stencil(N, I, warmup, timing):  # noqa: E741
+    grid = initialize(N)
+
     print("Running Jacobi stencil...")
     center = grid[1:-1, 1:-1]
     north = grid[0:-2, 1:-1]
     east = grid[1:-1, 2:]
     west = grid[1:-1, 0:-2]
     south = grid[2:, 1:-1]
-    for i in range(I):
+
+    start = time()
+    for i in range(I + warmup):
+        if i == warmup:
+            start = time()
         average = center + north + east + west + south
         work = 0.2 * average
-        # delta = np.sum(np.absolute(work - center))
         center[:] = work
-    total = np.sum(center)
-    return total / (N**2)
-
-
-def run_stencil(N, I, timing):  # noqa: E741
-    grid = initialize(N)
-    start = time()
-    average = run(grid, I, N)
     stop = time()
-    print("Average energy is %.8g" % average)
+
     total = (stop - start) / 1000.0
     if timing:
         print(f"Elapsed Time: {total} ms")
@@ -67,6 +64,14 @@ if __name__ == "__main__":
         default=100,
         dest="I",
         help="number of iterations to run",
+    )
+    parser.add_argument(
+        "-w",
+        "--warmup",
+        type=int,
+        default=5,
+        dest="warmup",
+        help="warm-up iterations",
     )
     parser.add_argument(
         "-n",
@@ -86,4 +91,6 @@ if __name__ == "__main__":
 
     args, np = parse_args()
 
-    run_benchmark(run_stencil, "Stencil", (args.N, args.I, args.timing))
+    run_benchmark(
+        run_stencil, "Stencil", (args.N, args.I, args.warmup, args.timing)
+    )

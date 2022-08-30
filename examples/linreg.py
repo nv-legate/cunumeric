@@ -28,41 +28,36 @@ def initialize(N, F, T):
     return x, y
 
 
-def linear_regression(
-    T, features, target, steps, learning_rate, sample, add_intercept=False
-):
-    if add_intercept:
+def run_linear_regression(N, F, T, I, warmup, S, B):  # noqa: E741
+    print("Running linear regression...")
+    print("Number of data points: " + str(N) + "K")
+    print("Number of features: " + str(F))
+    print("Number of iterations: " + str(I))
+
+    learning_rate = 1e-5
+    features, target = initialize(N * 1000, F, T)
+    if B:
         intercept = np.ones((features.shape[0], 1), dtype=T)
         features = np.hstack((intercept, features))
-
     weights = np.zeros(features.shape[1], dtype=T)
 
-    for step in range(steps):
+    start = time()
+    for step in range(-warmup, I):
+        if step == 0:
+            start = time()
         scores = np.dot(features, weights)
         error = scores - target
         gradient = -(1.0 / len(features)) * error.dot(features)
         weights += learning_rate * gradient
-
-        if step % sample == 0:
+        if step >= 0 and step % S == 0:
             print(
                 "Error of step "
                 + str(step)
                 + ": "
                 + str(np.sum(np.power(error, 2)))
             )
-
-    return weights
-
-
-def run_linear_regression(N, F, T, I, S, B):  # noqa: E741
-    print("Running linear regression...")
-    print("Number of data points: " + str(N) + "K")
-    print("Number of features: " + str(F))
-    print("Number of iterations: " + str(I))
-    start = time()
-    features, target = initialize(N * 1000, F, T)
-    _ = linear_regression(T, features, target, I, 1e-5, S, B)
     stop = time()
+
     total = (stop - start) / 1000.0
     print("Elapsed Time: " + str(total) + " ms")
     return total
@@ -92,6 +87,14 @@ if __name__ == "__main__":
         default=1000,
         dest="I",
         help="number of iterations to run the algorithm for",
+    )
+    parser.add_argument(
+        "-w",
+        "--warmup",
+        type=int,
+        default=5,
+        dest="warmup",
+        help="warm-up iterations",
     )
     parser.add_argument(
         "-n",
@@ -124,19 +127,19 @@ if __name__ == "__main__":
         run_benchmark(
             run_linear_regression,
             "LINREG(H)",
-            (args.N, args.F, np.float16, args.I, args.S, args.B),
+            (args.N, args.F, np.float16, args.I, args.warmup, args.S, args.B),
         )
     elif args.P == 32:
         run_benchmark(
             run_linear_regression,
             "LINREG(S)",
-            (args.N, args.F, np.float32, args.I, args.S, args.B),
+            (args.N, args.F, np.float32, args.I, args.warmup, args.S, args.B),
         )
     elif args.P == 64:
         run_benchmark(
             run_linear_regression,
             "LINREG(D)",
-            (args.N, args.F, np.float64, args.I, args.S, args.B),
+            (args.N, args.F, np.float64, args.I, args.warmup, args.S, args.B),
         )
     else:
         raise TypeError("Precision must be one of 16, 32, or 64")

@@ -21,7 +21,7 @@ import re
 from benchmark import parse_args, run_benchmark, time
 
 
-def run_einsum(expr, N, iters, dtype, cupy_compatibility):
+def run_einsum(expr, N, iters, warmup, dtype, cupy_compatibility):
     # Parse contraction expression
     m = re.match(r"([a-zA-Z]*),([a-zA-Z]*)->([a-zA-Z]*)", expr)
     assert m is not None
@@ -83,7 +83,9 @@ def run_einsum(expr, N, iters, dtype, cupy_compatibility):
 
     # Run contraction
     start = time()
-    for _ in range(iters):
+    for idx in range(iters):
+        if idx == warmup:
+            start = time()
         if cupy_compatibility:
             C = np.einsum(expr, A, B)
         else:
@@ -137,6 +139,14 @@ if __name__ == "__main__":
         help="number of iterations to run",
     )
     parser.add_argument(
+        "-w",
+        "--warmup",
+        type=int,
+        default=5,
+        dest="warmup",
+        help="warm-up iterations",
+    )
+    parser.add_argument(
         "-t",
         "--dtype",
         default="f32",
@@ -172,6 +182,7 @@ if __name__ == "__main__":
             args.expr,
             args.N,
             args.iters,
+            args.warmup,
             dtypes[args.dtype],
             cupy_compatibility,
         ),
