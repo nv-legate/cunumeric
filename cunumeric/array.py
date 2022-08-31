@@ -32,7 +32,7 @@ from typing import (
 )
 
 import numpy as np
-import pyarrow
+import pyarrow # type: ignore
 from legate.core import Array
 from numpy.core.multiarray import normalize_axis_index  # type: ignore
 from numpy.core.numeric import normalize_axis_tuple  # type: ignore
