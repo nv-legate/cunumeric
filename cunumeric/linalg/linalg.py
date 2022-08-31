@@ -80,6 +80,27 @@ def cholesky(a: ndarray) -> ndarray:
     return _cholesky(a)
 
 
+@add_boilerplate("a", "b")
+def solve(a: ndarray, b: ndarray) -> ndarray:
+    if len(a.shape) < 2:
+        raise ValueError(
+            f"{len(a.shape)}-dimensional array given. "
+            "Array must be at least two-dimensional"
+        )
+
+    if len(b.shape) < 1:
+        raise ValueError(
+            f"{len(a.shape)}-dimensional array given. "
+            "Array must be at least one-dimensional"
+        )
+
+    if len(a.shape) > 2 or len(b.shape) > 2:
+        raise NotImplementedError(
+            "cuNumeric needs to support stacked 2d arrays"
+        )
+    return _solve(a, b)
+
+
 # This implementation is adapted closely from NumPy
 @add_boilerplate("a")
 def matrix_power(a: ndarray, n: int) -> ndarray:
@@ -554,4 +575,20 @@ def _cholesky(a: ndarray, no_tril: bool = False) -> ndarray:
         inputs=(input,),
     )
     output._thunk.cholesky(input._thunk, no_tril=no_tril)
+    return output
+
+
+def _solve(a: ndarray, b: ndarray) -> ndarray:
+    a_input = a
+    b_input = b
+    if a_input.dtype.kind not in ("f", "c"):
+        a_input = a_input.astype("float64")
+    if b_input.dtype.kind not in ("f", "c"):
+        b_input = b_input.astype("float64")
+    output = ndarray(
+        shape=b_input.shape,
+        dtype=b_input.dtype,
+        inputs=(b_input,),
+    )
+    output._thunk.solve(a_input._thunk, b_input._thunk)
     return output
