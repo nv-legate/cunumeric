@@ -50,10 +50,9 @@ def check_result(op, in_np, out_np, out_num, **isclose_kwargs):
     )
     if not result:
         print(f"cunumeric.{op} failed the test")
-        print("Inputs:")
-        for arr in in_np:
-            print(arr)
-            print(f"dtype: {arr.dtype}")
+        print("Input:")
+        print(in_np)
+        print(f"dtype: {in_np.dtype}")
         print("NumPy output:")
         print(out_np)
         print(f"dtype: {out_np.dtype}")
