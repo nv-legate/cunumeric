@@ -40,7 +40,7 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
 
 template <typename RES, int DIM>
 static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-  partition_sum(RES* out, RES* sum_val, const Pitches<DIM - 1> pitches, uint64_t len, uint64_t stride)
+  partition_sum(RES* out, Buffer<RES, DIM> sum_val, const Pitches<DIM - 1> pitches, uint64_t len, uint64_t stride)
 {
   unsigned int tid = threadIdx.x;
   uint64_t blid = blockIdx.x * blockDim.x;
@@ -50,13 +50,13 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   if(index < len){
     auto sum_valp = pitches.unflatten(index, Point<DIM>::ZEROES());
     sum_valp[DIM - 1] = 0;
-    sum_val[sum_valp] = out[index + stride - 1]
+    sum_val[sum_valp] = out[index + stride - 1];
   }
 }
 
 template <typename RES, typename OP>
 static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-__global__ void cuda_add(, RES*B, uint64_t len, uint64_t stride, OP func, RES *block_sum)
+  cuda_add(RES *B, uint64_t len, uint64_t stride, OP func, RES *block_sum)
 {
   unsigned int tid = threadIdx.x;
   unsigned int blid = blockIdx.x * blockDim.x;
@@ -95,7 +95,7 @@ __global__ void cuda_add(, RES*B, uint64_t len, uint64_t stride, OP func, RES *b
 
 template <typename RES, typename OP>
 static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-  batch_scan_cuda(RES *A, RES*B, uint64_t len, uint64_t stride, OP func, RES identity, RES *block_sum)
+  batch_scan_cuda(const RES *A, RES *B, uint64_t len, uint64_t stride, OP func, RES identity, RES *block_sum)
 {
   __shared__ RES temp[THREADS_PER_BLOCK];
 
@@ -164,7 +164,7 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
 }
 
 template <typename RES, typename OP>
-void cuda_scan(RES *A, RES*B, uint64_t len, uint64_t stride, OP func, RES identity, cudaStream_t stream)
+void cuda_scan(const RES *A, RES *B, uint64_t len, uint64_t stride, OP func, RES identity, cudaStream_t stream)
 {
   assert(stride != 0);
   uint64_t pad_stride = 1 << (32 - __builtin_clz(stride));
@@ -180,10 +180,10 @@ void cuda_scan(RES *A, RES*B, uint64_t len, uint64_t stride, OP func, RES identi
   if(stride > THREADS_PER_BLOCK){
     blocked_len = grid_dim;
     blocked_stride = grid_dim / (len / stride);
-    CE( cudaMalloc(&blocked_sum, blocked_len * sizeof(RES)) );
+    CHECK_CUDA( cudaMalloc(&blocked_sum, blocked_len * sizeof(RES)) );
   }
 
-  batch_scan_cuda<<<grid_dim, THREADS_PER_BLOCK, 0, stream>>>(A, B, len, stride, func, identity, blocked_sum);
+  batch_scan_cuda<RES, OP><<<grid_dim, THREADS_PER_BLOCK, 0, stream>>>(A, B, len, stride, func, identity, blocked_sum);
 
   if(stride > THREADS_PER_BLOCK){
     cuda_scan(blocked_sum, blocked_sum, blocked_len, blocked_stride, func, identity, stream);
@@ -197,7 +197,7 @@ struct ScanLocalImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
   using VAL = legate_type_of<CODE>;
 
   void operator()(OP func,
-                  const AccessorWO<VAL, DIM>& out,
+                  AccessorWO<VAL, DIM>& out,
                   const AccessorRO<VAL, DIM>& in,
                   Array& sum_vals,
                   const Pitches<DIM - 1>& pitches,
@@ -218,10 +218,10 @@ struct ScanLocalImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
 
     VAL identity = (VAL)ScanOp<OP_CODE, CODE>::nan_identity;
 
-    cuda_scan(inptr, outptr, volume, stride, func, identity, stream);
+    cuda_scan<VAL, OP>(inptr, outptr, volume, stride, func, identity, stream);
     
     uint64_t grid_dim = ((volume / stride) - 1) / THREADS_PER_BLOCK + 1;
-    partition_sum<<<grid_dim, THREADS_PER_BLOCK, 0, stream>>>(outptr, sum_valsptr, Pitches, volume, stride);
+    partition_sum<<<grid_dim, THREADS_PER_BLOCK, 0, stream>>>(outptr, sum_valsptr, pitches, volume, stride);
     CHECK_CUDA_STREAM(stream);
   }
 };
